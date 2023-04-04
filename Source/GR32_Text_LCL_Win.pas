@@ -121,7 +121,7 @@ begin
   while Res > 0 do
   begin
     S := BufferPtr.cb - SizeOf(TTTPolygonHeader);
-    PtrUInt(CurvePtr) := PtrUInt(BufferPtr) + SizeOf(TTTPolygonHeader);
+    PByte(CurvePtr) := PByte(BufferPtr) + SizeOf(TTTPolygonHeader);
     P1 := PointFXtoPointF(BufferPtr.pfxStart);
     Path.MoveTo(P1.X + DstX, P1.Y + DstY);
     while S > 0 do
@@ -166,13 +166,13 @@ begin
       K := (CurvePtr.cpfx - 1) * SizeOf(TPointFX) + SizeOf(TTPolyCurve);
       Dec(S, K);
 
-      Inc(PtrInt(CurvePtr), K);
+      Inc(PByte(CurvePtr), K);
     end;
 
     Path.EndPath(True);
 
     Dec(Res, BufferPtr.cb);
-    Inc(PtrInt(BufferPtr), BufferPtr.cb);
+    Inc(PByte(BufferPtr), BufferPtr.cb);
   end;
 
   FreeMem(GlyphMemPtr);

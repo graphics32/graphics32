@@ -146,6 +146,9 @@ end;
 
 procedure SetGamma(Gamma: Double);
 begin
+  if (IsZero(Gamma)) then
+      exit;
+
   GAMMA_VALUE := Gamma;
 
   // calculate default gamma tables

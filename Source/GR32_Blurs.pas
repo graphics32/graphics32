@@ -296,7 +296,6 @@ var
   GaussLUT: array of array of Cardinal;
   PreMulArray: array of TColor32Entry;
 
-  Alpha: Cardinal;
   Mask: TBitmap32;
   Clr, MaskClr: TColor32Entry;
   Pts: TArrayOfFloatPoint;
@@ -569,7 +568,6 @@ var
   GaussLUT: array of array of Cardinal;
   PreMulArray: array of TColor32Entry;
 
-  Alpha: Cardinal;
   Mask: TBitmap32;
   Clr, MaskClr: TColor32Entry;
   Pts: TArrayOfFloatPoint;
@@ -1611,7 +1609,6 @@ procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
 var
   LL, RR, XX, I, X, Y, RadiusI, Passes: Integer;
   ImagePixel, ImagePixel2, ImagePixel3: PColor32Entry;
-  ImagePixels, ImagePixels2: PColor32EntryArray;
   SumRec: TSumRecord;
   Pixels: array of TSumRecord;
   Mask: TBitmap32;
@@ -1622,7 +1619,6 @@ var
   Affine: TAffineTransformation;
   BmpCutout: TBitmap32;
   BmpRotated: TBitmap32;
-  PrevIsBlank, ThisIsBlank: boolean;
 begin
   if Dist < 1 then
     Exit
@@ -1874,7 +1870,6 @@ procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
 var
   LL, RR, XX, I, X, Y, RadiusI, Passes: Integer;
   ImagePixel, ImagePixel2, ImagePixel3: PColor32Entry;
-  ImagePixels, ImagePixels2: PColor32EntryArray;
   SumRec: TSumRecord;
   Pixels: array of TSumRecord;
   Mask: TBitmap32;
@@ -1885,7 +1880,6 @@ var
   Affine: TAffineTransformation;
   BmpCutout: TBitmap32;
   BmpRotated: TBitmap32;
-  PrevIsBlank, ThisIsBlank: boolean;
 begin
   if Dist < 1 then
     Exit

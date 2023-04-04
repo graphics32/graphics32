@@ -102,14 +102,9 @@ implementation
 {$ENDIF}
 
 uses
-  UITypes,
+  System.UITypes,
 {$IFDEF Darwin}
   MacOSAll,
-{$ENDIF}
-{$IFNDEF FPC}
-  JPEG,
-{$ELSE}
-  LazJPG,
 {$ENDIF}
   GR32_Filters, GR32_System;
 
@@ -351,10 +346,6 @@ begin
 end;
 
 initialization
-{$IFDEF COMPILERXE2_UP}
   FormatSettings.DecimalSeparator := '.';
-{$ELSE}
-  DecimalSeparator := '.';
-{$ENDIF}
 
 end.

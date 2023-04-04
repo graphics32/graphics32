@@ -918,7 +918,7 @@ destructor TCustomPaintBox32.Destroy;
 begin
   FreeAndNil(FRepaintOptimizer);
   FreeAndNil(FInvalidRects);
-  FreeAndNil(UpdateRects);
+  FreeAndNil(FUpdateRects);
   FreeAndNil(FBuffer);
   inherited;
 end;

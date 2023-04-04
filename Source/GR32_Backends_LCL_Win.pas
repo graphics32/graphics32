@@ -346,7 +346,6 @@ var
   RegionSize: integer;
   RegionData: PRgnData;
   Offset: TPoint;
-  r: TRect;
   i: integer;
 begin
   UpdateRegion := CreateRectRgn(0,0,0,0);
@@ -790,6 +789,7 @@ end;
 function TLCLMemoryBackend.CopyFrom(Graphic: TGraphic): Boolean;
 begin
   // yet todo
+  Result := False;
 end;
 
 

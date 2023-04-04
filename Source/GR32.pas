@@ -755,7 +755,7 @@ type
   strict protected
     procedure BackendChangedHandler(Sender: TObject); virtual;
     procedure BackendChangingHandler(Sender: TObject); virtual;
-  protected
+  strict protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
     BlendProc: Pointer;
@@ -764,19 +764,9 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
     procedure CopyMapTo(Dst: TCustomBitmap32); virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); virtual;
-    procedure AssignTo(Dst: TPersistent); override;
-    function LoadFromBMPStream(Stream: TStream; Size: Int64): boolean;
-    function LoadFromDIBStream(Stream: TStream; Size: Int64): boolean;
-    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean = False); overload;
-    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion); overload;
     function  Equal(B: TCustomBitmap32): Boolean;
-    procedure SET_T256(X, Y: Integer; C: TColor32);
-    procedure SET_TS256(X, Y: Integer; C: TColor32);
-    function  GET_T256(X, Y: Integer): TColor32;
-    function  GET_TS256(X, Y: Integer): TColor32;
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
-    procedure DefineProperties(Filer: TFiler); override;
 
     procedure InitializeBackend(ABackendClass: TCustomBackendClass); virtual;
     procedure FinalizeBackend; virtual;
@@ -787,6 +777,22 @@ type
 {$ELSE}
     function QueryInterface(const iid: TGuid; out obj): HResult; stdcall;
 {$ENDIF}
+
+  protected
+    procedure AssignTo(Dst: TPersistent); override;
+    procedure DefineProperties(Filer: TFiler); override;
+
+  protected
+    function LoadFromBMPStream(Stream: TStream; Size: Int64): boolean;
+    function LoadFromDIBStream(Stream: TStream; Size: Int64): boolean;
+    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean = False); overload;
+    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion); overload;
+
+  protected
+    procedure SET_T256(X, Y: Integer; C: TColor32);
+    procedure SET_TS256(X, Y: Integer; C: TColor32);
+    function  GET_T256(X, Y: Integer): TColor32;
+    function  GET_TS256(X, Y: Integer): TColor32;
 
     function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1129,10 +1135,10 @@ type
     procedure SetPixelAccessMode(const Value: TPixelAccessMode);
   strict protected
     function GetWidth: TFloat; virtual;
-    procedure AssignTo(Dst: TPersistent); override;
     procedure DoChanged; override;
     property ClipRect: TRect read FClipRect;
   protected
+    procedure AssignTo(Dst: TPersistent); override;
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TCustomBitmap32; SrcRect: TRect;

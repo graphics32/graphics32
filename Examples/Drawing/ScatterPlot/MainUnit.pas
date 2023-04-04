@@ -119,6 +119,8 @@ procedure TFmScatterPlot.ApplicationIdleHandler(Sender: TObject;
 var
   Index: Cardinal;
 begin
+  Done := False;
+
   for Index := 0 to Length(FPoints) - 1 do
   begin
     FPoints[Index].X := FPoints[Index].X + FSelection * (Random - 0.5);

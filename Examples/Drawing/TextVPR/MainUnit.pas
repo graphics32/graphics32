@@ -98,7 +98,7 @@ implementation
 {$ENDIF}
 
 uses
-  System.Types,
+  Types,
   System.UITypes,
   GR32_Backends, GR32_Gamma, GR32_Polygons,
   {$IFDEF FPC}
@@ -213,7 +213,7 @@ begin
   if Supports(Img.Bitmap.Backend, ITextToPathSupport, Intf) then
   begin
     DestRect := FloatRect(Img.BoundsRect);
-    InflateRect(DestRect, -10, -10);
+    GR32.InflateRect(DestRect, -10, -10);
     Flag := RgpHorzAlign.ItemIndex;
     case RgpVerticalAlign.ItemIndex of
       0: ;

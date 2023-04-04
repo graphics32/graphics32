@@ -194,14 +194,10 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG,
-{$ELSE}
-  LazJPG,
-{$ENDIF}
   Math, Printers, ClipBrd,
   GR32_LowLevel, GR32_Paths, GR32_VectorUtils, GR32_Backends, GR32_Text_VCL,
   GR32_ColorGradients, GR32_Polygons, GR32_Geometry, GR32_Clipboard,
+  GR32.ImageFormats.JPG,
   NewImageUnit, RGBALoaderUnit;
 
 const
@@ -622,8 +618,6 @@ var
   Intf: ITextToPathSupport;
   ColorGradient: TLinearGradientPolygonFiller;
   BorderWidth: Double;
-const
-  CScale = 1 / 200;
 begin
   if not(Sender is TPositionedLayer) then
     exit;
@@ -860,6 +854,8 @@ end;
 procedure TMainForm.TimerMarchingAntsTimer(Sender: TObject);
 const
   StippleSize = 8; // The size of our stipple pattern. The default pattern has a size of 4
+var
+  NewStippleCounter: TFloat;
 begin
   if (RBLayer = nil) or (not RBLayer.Visible) then
     exit;
@@ -868,7 +864,7 @@ begin
   if (not Application.Active) then
     exit;
 
-  var NewStippleCounter := RBLayer.FrameStippleCounter+1.5;
+  NewStippleCounter := RBLayer.FrameStippleCounter+1.5;
 
   // Handle overflow
   if (NewStippleCounter >= StippleSize) then

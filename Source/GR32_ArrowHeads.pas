@@ -35,7 +35,7 @@ unit GR32_ArrowHeads;
 interface
 
 uses
-  System.SysUtils,
+  {$ifndef FPC}System.{$endif}SysUtils,
   GR32,
   GR32_Polygons,
   GR32_VectorUtils,
@@ -84,7 +84,7 @@ resourcestring
 implementation
 
 uses
-  System.Math;
+  {$ifndef FPC}System.{$endif}Math;
 
 constructor TArrowHeadAbstract.Create(Size: TFloat);
 begin

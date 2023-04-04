@@ -242,21 +242,20 @@ begin
   if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= H - 1) then
   begin
     P := @FVectors[WX + WY * W];
-    if (WY = H - 1) then W := 0 else W := W * Next;
-    if (WX = W - 1) then H := 0 else H := Next;
+    if (WY = H - 1) then
+      W := 0
+    else
+      W := W * Next;
+    if (WX = W - 1) then
+      H := 0
+    else
+      H := Next;
     WX := TFixedRec(X).Frac;
     WY := TFixedRec(Y).Frac;
-    {$IFDEF HAS_NATIVEINT}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
       PFixedPoint(NativeUInt(P) + NativeUInt(H))^, WX), CombineVectorsReg(
       PFixedPoint(NativeUInt(P) + NativeUInt(W))^,
       PFixedPoint(NativeUInt(P) + NativeUInt(W + H))^, WX), WY);
-    {$ELSE}
-    Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
-      PFixedPoint(Cardinal(P) + Cardinal(H))^, WX), CombineVectorsReg(
-      PFixedPoint(Cardinal(P) + Cardinal(W))^,
-      PFixedPoint(Cardinal(P) + Cardinal(W) + Cardinal(H))^, WX), WY);
-    {$ENDIF}
   end else
   begin
     Result.X := 0;
