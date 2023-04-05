@@ -832,7 +832,8 @@ type
     procedure SaveToStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion); overload; virtual;
 
     procedure LoadFromFile(const FileName: string); virtual;
-    procedure SaveToFile(const FileName: string; SaveTopDown: Boolean = False); overload; virtual;
+    procedure SaveToFile(const FileName: string); overload; virtual;
+    procedure SaveToFile(const FileName: string; SaveTopDown: Boolean); overload; virtual;
     procedure SaveToFile(const FileName: string; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion); overload; virtual;
 
     procedure LoadFromResourceID(Instance: THandle; ResID: Integer; ResType: TResourceType = RT_BITMAP);
@@ -6118,10 +6119,30 @@ begin
   raise Exception.Create(sUnknownImageFormat);
 end;
 
+procedure TCustomBitmap32.SaveToFile(const FileName: string);
+var
+  Extension: string;
+  Writer: IImageFormatWriter;
+  FileStream: TFileStream;
+begin
+  Extension := Copy(ExtractFileExt(FileName), 2, MaxInt);
+
+  Writer := ImageFormatManager.Writers.FindWriter(Extension);
+
+  if (Writer <> nil) then
+  begin
+    FileStream := TFileStream.Create(FileName, fmCreate);
+    try
+      Writer.SaveToStream(Self, FileStream);
+    finally
+      FileStream.Free;
+    end;
+  end else
+    SaveToFile(FileName, False);
+end;
+
 procedure TCustomBitmap32.SaveToFile(const FileName: string; SaveTopDown: Boolean);
 begin
-  // TODO : Should we go through ImageFormatManager here?
-
   SaveToFile(FileName, SaveTopDown, DefaultBitmapHeaderVersion);
 end;
 
