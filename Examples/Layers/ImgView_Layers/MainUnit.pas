@@ -121,6 +121,8 @@ type
     MenuItemPasteNew: TMenuItem;
     ActionPasteInto: TAction;
     MenuItemPasteInto: TMenuItem;
+    ActionSave: TAction;
+    Saveas1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnLayerRescaleClick(Sender: TObject);
@@ -159,6 +161,7 @@ type
     procedure ActionCopyExecute(Sender: TObject);
     procedure ActionPasteIntoExecute(Sender: TObject);
     procedure ActionPasteNewExecute(Sender: TObject);
+    procedure ActionSaveExecute(Sender: TObject);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
@@ -199,7 +202,11 @@ uses
   Math, Printers, ClipBrd,
   GR32_LowLevel, GR32_Paths, GR32_VectorUtils, GR32_Backends, GR32_Text_VCL,
   GR32_ColorGradients, GR32_Polygons, GR32_Geometry, GR32_Clipboard,
-  NewImageUnit, RGBALoaderUnit;
+  GR32.ImageFormats,
+  GR32.ImageFormats.JPG,
+  GR32.ImageFormats.GIF,
+  NewImageUnit,
+  RGBALoaderUnit;
 
 const
   RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
@@ -217,6 +224,9 @@ begin
   ImgView.MouseZoom.MaintainPivot := True;
   ImgView.RepaintMode := rmOptimizer;;
   ImgView.Options := ImgView.Options + [pboWantArrowKeys];
+
+  OpenPictureDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True);
+  SaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter, True);
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -350,6 +360,43 @@ end;
 procedure TMainForm.ActionPasteNewUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := CanPasteBitmap32;
+end;
+
+procedure TMainForm.ActionSaveExecute(Sender: TObject);
+var
+  TempBitmap: TBitmap32;
+  SaveBitmap: TBitmap32;
+begin
+  if not SaveDialog.Execute then
+    exit;
+
+  // Hide selection
+  Selection := nil;
+
+  Screen.Cursor := crHourGlass;
+  try
+    TempBitmap := nil;
+    try
+      if (ImgView.Layers.Count > 0) then
+      begin
+        // Save a flattened copy of the main bitmap
+        TempBitmap := TBitmap32.Create;
+        TempBitmap.SetSizeFrom(ImgView.Bitmap);
+
+        ImgView.PaintTo(TempBitmap, ImgView.Bitmap.BoundsRect);
+
+        SaveBitmap := TempBitmap;
+      end else
+        // Save the main bitmap directly
+        SaveBitmap := ImgView.Bitmap;
+
+      SaveBitmap.SaveToFile(SaveDialog.FileName);
+    finally
+      TempBitmap.Free;
+    end;
+  finally
+    Screen.Cursor := crDefault;
+  end;
 end;
 
 procedure TMainForm.BtnLayerRescaleClick(Sender: TObject);

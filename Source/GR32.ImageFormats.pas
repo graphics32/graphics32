@@ -787,17 +787,28 @@ function TImageFormatManager.LoadFromResource(ADest: TCustomBitmap32; AResourceT
   AStream: TStream): boolean;
 var
   Item: TImageFormatItem;
-  Reader: IImageFormatResourceReader;
+  ResourceReader: IImageFormatResourceReader;
+  Reader: IImageFormatReader;
   SavePos: Int64;
 begin
   SavePos := AStream.Position;
 
+  // First try reading resource format
   for Item in FFormats do
-    if (Supports(Item.ImageFormat, IImageFormatResourceReader, Reader)) then
+    if (Supports(Item.ImageFormat, IImageFormatResourceReader, ResourceReader)) then
     begin
-      if (Reader.LoadFromResource(ADest, AResourceType, AStream)) then
+      if (ResourceReader.LoadFromResource(ADest, AResourceType, AStream)) then
         exit(True);
       AStream.Position := SavePos;  // Restore pos after LoadFromResource
+    end;
+
+  // Fall back to reading in file format
+  for Item in FFormats do
+    if (Supports(Item.ImageFormat, IImageFormatReader, Reader)) then
+    begin
+      if (Reader.LoadFromStream(ADest, AStream)) then
+        exit(True);
+      AStream.Position := SavePos;  // Restore pos after LoadFromStream
     end;
 
   Result := False;

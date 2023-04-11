@@ -356,6 +356,9 @@ object MainForm: TMainForm
         Caption = 'Open...'
         OnClick = MnuFileOpenClick
       end
+      object Saveas1: TMenuItem
+        Action = ActionSave
+      end
       object N6: TMenuItem
         Caption = '-'
       end
@@ -497,6 +500,7 @@ object MainForm: TMainForm
     Top = 56
   end
   object SaveDialog: TSaveDialog
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
     Left = 64
     Top = 104
   end
@@ -520,6 +524,10 @@ object MainForm: TMainForm
       ShortCut = 24662
       OnExecute = ActionPasteIntoExecute
       OnUpdate = ActionPasteIntoUpdate
+    end
+    object ActionSave: TAction
+      Caption = 'Save as...'
+      OnExecute = ActionSaveExecute
     end
   end
 end
