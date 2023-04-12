@@ -102,6 +102,7 @@ var
 const
   MaxColorTableSize = 256; // From 2 to 256
   MinAlpha = 64;
+  Count: Cardinal;
 begin
   // Build histogram...
   Colors := TDictionary<TColor32, Cardinal>.Create;
@@ -119,7 +120,6 @@ begin
 
       Color := Color or $FF000000;
 
-      var Count: Cardinal;
       if (Colors.TryGetValue(Color, Count)) then
       begin
         Inc(Count);
