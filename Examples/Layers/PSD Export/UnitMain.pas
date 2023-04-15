@@ -5,7 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
-  GR32, GR32_Image,
+  GR32,
+  GR32_Image,
   GR32_Layers,
   GR32_PNG,
   GR32_Polygons,
@@ -14,9 +15,9 @@ uses
 type
   TPsdBitmap32Layer = class(TPsdLayer)
   public
-      Bitmap: TCustomBitmap32;
-      procedure GetChannelScanLine(AChannel, ALine:integer;var Bytes);override;
-   end;
+    Bitmap: TCustomBitmap32;
+    procedure GetChannelScanLine(AChannel, ALine: integer; var Bytes); override;
+  end;
 
   TFormMain = class(TForm)
     ImgView: TImgView32;
@@ -30,7 +31,6 @@ type
   private
     procedure Star(Opacity:integer);
   public
-
   end;
 
 var
@@ -39,92 +39,111 @@ var
 implementation
 
 {$R *.dfm}
-procedure PsdSave(AImgView: TImgView32; ExportLayers:boolean);
+
+procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean);
 var
- Psd:TPsdBuilder;
- BLayer :TPsdBitmap32Layer;
- Filename:string;
- I, W, H:integer;
- Ly:TCustomLayer;
- B : TBitmap32;
- L: TFloatRect;
- Bmp32:TBitmap32;
+ PsdBuilder: TPsdBuilder;
+ PsdLayer: TPsdBitmap32Layer;
+ Filename: string;
+ I, W, H: integer;
+ SourceLayer: TCustomLayer;
+ BackgroundBitmap: TBitmap32;
+ Location: TFloatRect;
+ LayerBitmap: TBitmap32;
 begin
   if AImgView.Bitmap.Empty then
-      Exit;
+    Exit;
+
+  if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
+    Exit;
 
   W := AImgView.Bitmap.Width;
   H := AImgView.Bitmap.Height;
 
-  B := TBitmap32.Create;
-  Psd := TPsdBuilder.Create;
+  PsdBuilder := TPsdBuilder.Create;
   try
-    B.SetSize(W, H);
-    AImgView.PaintTo(B, System.Classes.Rect(0, 0, W, H));
-	  BLayer := TPsdBitmap32Layer.Create;
-	  BLayer.Bitmap := B;
-    BLayer.LayerSetBounds(0, 0, B.Width, B.Height);
-	  Psd.Background := BLayer;
-    Psd.PsdCompression := psComRLE;
-	  Psd.PsdLayerCompression := psComZip; // some editors don't support zip compression
-    if ExportLayers then
-      for I := 0 to AImgView.Layers.Count -1 do
-      begin
-          Ly := AImgView.Layers[I];
-          if not (Ly is TBitmapLayer) then
+    PsdBuilder.PsdCompression := psComRLE;
+    PsdBuilder.PsdLayerCompression := psComZip; // some editors don't support zip compression
+
+    BackgroundBitmap := TBitmap32.Create;
+    try
+      // Create flattened bitmap
+      BackgroundBitmap.SetSize(W, H);
+      AImgView.PaintTo(BackgroundBitmap, BackgroundBitmap.BoundsRect);
+
+      PsdLayer := TPsdBitmap32Layer.Create;
+      PsdLayer.Bitmap := BackgroundBitmap;
+      PsdLayer.LayerSetBounds(0, 0, BackgroundBitmap.Width, BackgroundBitmap.Height);
+
+      PsdBuilder.Background := PsdLayer; // PsdBuilder now owns SourceLayer, but not the bitmap
+
+      if ExportLayers then
+        for I := 0 to AImgView.Layers.Count -1 do
+        begin
+          SourceLayer := AImgView.Layers[I];
+          if not (SourceLayer is TBitmapLayer) then
             continue;
-          Bmp32 := TBitmapLayer(Ly).Bitmap;
-          L :=  TBitmapLayer(Ly).Location;
 
-          BLayer := TPsdBitmap32Layer.Create;
-          Psd.Add(BLayer);
-          BLayer.LayerSetBounds(Round(L.Left),
-                                Round(L.Top),
-                                Bmp32.Width,
-                                Bmp32.Height);
-          BLayer.Opacity := Bmp32.MasterAlpha;
-          BLayer.Bitmap :=  Bmp32;
+          LayerBitmap := TBitmapLayer(SourceLayer).Bitmap;
+          Location := TBitmapLayer(SourceLayer).Location;
 
-          BLayer.Name := 'Layer ' + inttostr(I);
-      end;
-    Psd.Build;
-    if PromptForFilename(Filename,'PS files (*.psd)|*.psd','psd','','',True) then
-       Psd.Stream.SaveToFile(Filename);
+          PsdLayer := TPsdBitmap32Layer.Create;
+          PsdBuilder.Add(PsdLayer);
+          PsdLayer.LayerSetBounds(Round(Location.Left),
+                                Round(Location.Top),
+                                LayerBitmap.Width,
+                                LayerBitmap.Height);
+          PsdLayer.Opacity := LayerBitmap.MasterAlpha;
+          PsdLayer.Bitmap :=  LayerBitmap;
+
+          PsdLayer.Name := 'Layer ' + inttostr(I);
+        end;
+
+      PsdBuilder.Build;
+
+      PsdBuilder.Stream.SaveToFile(Filename);
+
+    finally
+      BackgroundBitmap.Free;
+    end;
   finally
-    Psd.Free;
-    B.Free;
+    PsdBuilder.Free;
   end;
 end;
 
 
 procedure TFormMain.BSaveClick(Sender: TObject);
 begin
-   PsdSave(ImgView, CExportLayers.Checked);
+  PsdSave(ImgView, CExportLayers.Checked);
 end;
 
-procedure TPsdBitmap32Layer.GetChannelScanLine(AChannel, ALine: integer;var Bytes);
+procedure TPsdBitmap32Layer.GetChannelScanLine(AChannel, ALine: integer; var Bytes);
 var
- I:integer;
- pData:PByteArray;
- P:PColor32Entry;
- C:TColor32;
+  I: integer;
+  pDest: PByte;
+  pSource: PByte;
 begin
-   if (Bitmap = nil) then
-   begin
-     FillChar(Bytes, Width, $FF);
-     Exit;
-   end;
+  if (Bitmap = nil) then
+  begin
+    FillChar(Bytes, Width, $FF);
+    Exit;
+  end;
 
-   pData := @Bytes;
-   if AChannel < 0 then
-      AChannel := 3
-   else
-      AChannel := 2 - AChannel;
-   for I:= 0 to Bitmap.Width-1 do
-   begin
-     C := Bitmap.Pixels[I, ALine];
-     pData[I] := TColor32Entry(C).Planes[AChannel];
-   end;
+  if AChannel < 0 then
+    AChannel := 3
+  else
+    AChannel := 2 - AChannel;
+
+  pSource := @(PColor32Entry(Bitmap.ScanLine[ALine]).Planes[AChannel]);
+  pDest := @Bytes;
+
+  for I:= 0 to Bitmap.Width-1 do
+  begin
+    pDest^ := pSource^;
+
+    Inc(pDest);
+    Inc(pSource, SizeOf(TColor32));
+  end;
 end;
 
 function RandomColor():TColor32;
@@ -175,10 +194,9 @@ end;
 
 procedure TFormMain.BRandomClick(Sender: TObject);
 var
- I:Integer;
+  I:Integer;
 begin
   ImgView.Layers.Clear;
-  ImgView.Bitmap.Clear(Color32(clWhite));
 
   for I := 0 to 3 do
      Star($FF);
@@ -189,7 +207,10 @@ end;
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
   ImgView.Background.CheckersStyle := bcsMedium;
+  ImgView.Background.FillStyle := bfsCheckers;
+
   ImgView.Bitmap.SetSize(600,400);
+  ImgView.Bitmap.DrawMode := dmBlend;
 
   BRandomClick(nil);
 end;

@@ -84,6 +84,9 @@ type
       CSize:integer;
    end;
 
+  TSafeByteArray = array[0..MaxInt-1] of byte;
+  PByteArray = ^TSafeByteArray;
+
 function Swap32(c:Integer):Integer;
 begin
   Result := Swap(c shr 16) or (Swap(c) shl 16);
@@ -91,14 +94,16 @@ end;
 
 // needs optimisation
 function CompressScanLineRLE8(const Line; Width: Integer; Stream : TStream):integer;
+
+  procedure Out8(c: byte);
+  begin
+    Stream.Write(c, 1);
+  end;
+
 var
   pArr :PByteArray;
   I, J, c, R, count:integer;
   uPacked:boolean;
-  procedure Out8(c:byte);
-  begin
-    Stream.Write(c,1);
-  end;
 begin
     Result := Stream.Position;
     pArr := @Line;
@@ -122,7 +127,7 @@ begin
            R := Min(count, 128);
            if uPacked then
            begin
-              Out8(-R + 1);
+              Out8(Byte(-R + 1));
               Out8(c);
            end else
            begin
@@ -515,7 +520,8 @@ var
  end;
  procedure W_Image();
  var
-   I, J, rleTablePos, rleLen:integer;
+   I, J, rleTablePos:integer;
+   rleLen: SmallInt;
    rleTable:array of SmallInt;
    ScanLineBuff :TBytesArray;
  begin
