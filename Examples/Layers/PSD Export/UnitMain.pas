@@ -18,6 +18,8 @@ type
     Panel1: TPanel;
     CheckBoxExportLayers: TCheckBox;
     ButtonRandom: TButton;
+    ComboBoxCompression: TComboBox;
+    LabelCompression: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
     procedure ButtonRandomClick(Sender: TObject);
@@ -83,7 +85,7 @@ begin
   end;
 end;
 
-procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean);
+procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean; Compression: TPsdLayerCompression);
 var
   Filename: string;
   PsdBuilder: TPsdBuilder;
@@ -102,8 +104,9 @@ begin
 
   PsdBuilder := TPsdBuilder.Create;
   try
-    PsdBuilder.Compression := psComRLE;
-    PsdBuilder.LayerCompression := psComZip; // some editors don't support zip compression
+    // Note: some readers don't support zip compression
+    PsdBuilder.Compression := Compression;
+    PsdBuilder.LayerCompression := Compression;
 
     BackgroundBitmap := TBitmap32.Create;
     try
@@ -150,7 +153,7 @@ end;
 
 procedure TFormMain.ButtonSaveClick(Sender: TObject);
 begin
-  PsdSave(ImgView, CheckBoxExportLayers.Checked);
+  PsdSave(ImgView, CheckBoxExportLayers.Checked, TPsdLayerCompression(ComboBoxCompression.ItemIndex));
 end;
 
 function RandomColor():TColor32;

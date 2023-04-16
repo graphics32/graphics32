@@ -126,66 +126,142 @@ const
 
 type
    TPsdChannelInfo = packed record
-     ChID: Smallint;
-     CSize: integer;
+     ChID: Word;
+     CSize: Cardinal;
    end;
 
   TSafeByteArray = array[0..MaxInt-1] of byte;
   PByteArray = ^TSafeByteArray;
 
-function Swap32(c: Integer): Integer;
+// Various swap functions for converting big-endian data
+function Swap16(Value: Word): Word; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+{$IFDEF SUPPORTS_INLINE}
 begin
-  Result := Swap(c shr 16) or (Swap(c) shl 16);
+  Result := Swap(Value);
+{$ELSE}
+{$IFDEF PUREPASCAL}
+begin
+  Result := Swap(Value);
+{$ELSE}
+asm
+  {$IFDEF CPUx86_64}
+  MOV     EAX, ECX
+  {$ENDIF}
+  XCHG    AL, AH
+  {$ENDIF}
+  {$ENDIF}
 end;
 
+function Swap32(Value: Cardinal): Cardinal;
+{$IFDEF PUREPASCAL}
+type
+  TTwoWords = array [0..1] of Word;
+begin
+  TTwoWords(Result)[1] := Swap(TTwoWords(Value)[0]);
+  TTwoWords(Result)[0] := Swap(TTwoWords(Value)[1]);
+{$ELSE}
+asm
+  {$IFDEF CPUx86_64}
+  MOV     EAX, ECX
+  {$ENDIF}
+  BSWAP   EAX
+  {$ENDIF}
+end;
+
+function Swap64(Value: Int64): Int64;
+type
+  TFourWords = array [0..3] of Word;
+begin
+  TFourWords(Result)[3] := Swap(TFourWords(Value)[0]);
+  TFourWords(Result)[2] := Swap(TFourWords(Value)[1]);
+  TFourWords(Result)[1] := Swap(TFourWords(Value)[2]);
+  TFourWords(Result)[0] := Swap(TFourWords(Value)[3]);
+end;
+
+procedure WriteByte(Stream: TStream; Value: Byte); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+begin
+  Stream.Write(Value, SizeOf(Byte));
+end;
+
+procedure WriteSwappedWord(Stream: TStream; Value: Word); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+begin
+  Value := Swap16(Value);
+  Stream.Write(Value, SizeOf(Word));
+end;
+
+procedure WriteSwappedSmallInt(Stream: TStream; Value: SmallInt); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+begin
+  Value := Swap16(Value);
+  Stream.Write(Value, SizeOf(SmallInt));
+end;
+
+procedure WriteSwappedCardinal(Stream: TStream; Value: Cardinal); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+begin
+  Value := Swap32(Value);
+  Stream.Write(Value, SizeOf(Cardinal));
+end;
+
+procedure WriteSwappedInt64(Stream: TStream; Value: Int64); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+begin
+  Value := Swap64(Value);
+  Stream.Write(Value, SizeOf(Int64));
+end;
+
+
 // needs optimisation
-function CompressScanLineRLE8(const Line; Width: Integer; Stream: TStream): integer;
-
-  procedure Out8(c: byte);
-  begin
-    Stream.Write(c, 1);
-  end;
-
+function CompressScanLineRLE8(const Line; Width: Integer; Stream: TStream): Word;
 var
+  StartPos: Int64;
   pArr :PByteArray;
-  I, J, c, R, count:integer;
+  i, j, c, R, count:integer;
   uPacked:boolean;
 begin
-    Result := Stream.Position;
-    pArr := @Line;
-    I :=0;
-    while I < Width do
+  StartPos := Stream.Position;
+  pArr := @Line;
+  i :=0;
+  while i < Width do
+  begin
+    c := pArr[i];
+    j := i+1;
+    while (j < Width) and (pArr[j] = c) do
+      inc(j);
+
+    uPacked := j - i > 1;
+    if not uPacked then
     begin
-        c := pArr[I];
-        J := I+1;
-        while (J < Width) and (pArr[J] = c) do
-          inc(J);
-        uPacked := J - I > 1;
-        if not uPacked then
-        begin
-          while (J < Width) and (pArr[J-1] <> pArr[J]) do
-            inc(J);
-          if (J < Width) and (J - I > 1) then
-            dec(j);
-        end;
-        count := J - I;
-        repeat
-           R := Min(count, 128);
-           if uPacked then
-           begin
-              Out8(Byte(-R + 1));
-              Out8(c);
-           end else
-           begin
-              Out8(R - 1);
-              Stream.Write(pArr[I], R);
-           end;
-           Inc(I,128);
-           dec(count,128);
-        until count <= 0;
-        I := J;
+      while (j < Width) and (pArr[j-1] <> pArr[j]) do
+        inc(j);
+
+      if (j < Width) and (j - i > 1) then
+        dec(j);
     end;
-  Result := Stream.Position - Result;
+
+    count := j - i;
+    repeat
+      R := Min(count, 128);
+{$IFOPT R+}
+{$DEFINE R_PLUS}
+{$RANGECHECKS OFF}
+{$ENDIF}
+      if uPacked then
+      begin
+        WriteByte(Stream, -R + 1);
+        WriteByte(Stream, c);
+      end else
+      begin
+        WriteByte(Stream, R - 1);
+        Stream.Write(pArr[i], R);
+      end;
+{$IFDEF R_PLUS}
+{$RANGECHECKS ON}
+{$UNDEF R_PLUS}
+{$ENDIF}
+      Inc(i,128);
+      dec(count,128);
+    until count <= 0;
+    i := j;
+  end;
+  Result := Stream.Position - StartPos;
 end;
 
 { TCustomPsdLayer }
@@ -261,9 +337,9 @@ begin
   Width  := Bitmap.Width;
 end;
 
-procedure TPsdBitmapLayer.GetChannelScanLine(AChannel, ALine: integer;var Bytes);
+procedure TPsdBitmapLayer.GetChannelScanLine(AChannel, ALine: integer; var Bytes);
 var
-  I: integer;
+  i: integer;
   P, pData: PByteArray;
 begin
   if (Bitmap = nil) or ((AChannel < 0) and (Bitmap.PixelFormat <> pf32Bit)) then
@@ -277,8 +353,8 @@ begin
   if Bitmap.PixelFormat = pf24Bit then
   begin
     AChannel := 2-AChannel;
-    for I := 0 to Bitmap.Width-1 do
-      pData[I] := P[I * 3 + AChannel];
+    for i := 0 to Bitmap.Width-1 do
+      pData[i] := P[i * 3 + AChannel];
   end else
   if Bitmap.PixelFormat = pf32Bit then
   begin
@@ -287,8 +363,8 @@ begin
     else
       AChannel := 2-AChannel;
 
-    for I:= 0 to Bitmap.Width-1 do
-      pData[I] := P[I * 4 + AChannel];
+    for i:= 0 to Bitmap.Width-1 do
+      pData[i] := P[i * 4 + AChannel];
   end;
 end;
 
@@ -364,60 +440,44 @@ end;
 procedure TPsdBuilder.Build();
 const
   CHANNELS = 4;
-  CHANNELS_IDS: array[0..CHANNELS-1] of Smallint = (-1, 0, 1, 2); // -1 alpha channel
+  CHANNELS_IDS: array[0..CHANNELS-1] of SmallInt = (-1, 0, 1, 2); // -1 alpha channel
 var
-  SectionsCaptures: array of integer;
+  SectionsCaptures: array of Cardinal;
 
-  function W_Append(ASize: integer):integer;
+  function W_Append(ASize: integer): Cardinal;
   begin
-    Result:= FStream.Position;
+    Result := FStream.Position;
     FStream.Size := FStream.Size + ASize;
     FStream.Position := FStream.Size;
   end;
 
-  procedure BE_Int32(c: Integer);
+  procedure W_RawStr(const s: AnsiString);
   begin
-    c := Swap32(c);
-    FStream.Write(c,4);
+    FStream.Write(PAnsiChar(s)^, Length(s));
   end;
 
-  procedure BE_Int16(c: short);
-  begin
-    c := Swap(c);
-    FStream.Write(c,2);
-  end;
-
-  procedure W_Int8(c:byte);
-  begin
-    FStream.Write(c,1);
-  end;
-
-  procedure W_RawStr(const s: Ansistring);
-  begin
-    FStream.Write(PAnsiChar(s)^,Length(s));
-  end;
-
-  function W_WriteAT(APos: integer; const Buff; Count: integer): Pointer;
+  function W_WriteAT(APos: Cardinal; const Buff; Count: integer): Pointer;
   begin
     Result := @PByteArray(FStream.Memory)[APos];
     Move(Buff, Result^, Count);
   end;
 
-  function W_Begin_Section():integer;
+  function W_Begin_Section(): Cardinal;
   begin
-    BE_Int32(0);//field slot
-    Result :=Length(SectionsCaptures);
-    Setlength(SectionsCaptures, Result + 1);
-    SectionsCaptures[Result]:= FStream.Position;
+    WriteSwappedCardinal(FStream, 0); // field slot
+    Result := Length(SectionsCaptures);
+    SetLength(SectionsCaptures, Result + 1);
+    SectionsCaptures[Result] := FStream.Position;
   end;
 
-  procedure W_End_Section(Align: integer);
+  procedure W_End_Section(Align: Cardinal);
   var
-    Sz, StartPos, FieldPos, Last: integer;
+    Sz: Cardinal;
+    StartPos, FieldPos, Last: integer;
   begin
     Last := High(SectionsCaptures);
     StartPos := SectionsCaptures[Last];
-    Setlength(SectionsCaptures, Last);
+    SetLength(SectionsCaptures, Last);
     Sz := FStream.Position - StartPos;
     if (Align <> 0) and (Sz mod Align <> 0) then
       W_Append(Align - Sz mod Align);
@@ -428,84 +488,89 @@ var
 
   procedure Fill_RLE(AWidth, AHeight: integer);
   var
-    L, I, t: integer;
+    L, i, t: integer;
     Arr: array of Word;
   begin
     L := Ceil(AWidth / 128); // round up
     Setlength(Arr, L);
 
-    for I := 0 to L - 1 do
-      Arr[I] := $FF81;
+    for i := 0 to L - 1 do
+      Arr[i] := $FF81;
 
     t := AWidth mod 128;
     if t <> 0 then
       Arr[L - 1] := $FF00 or byte(-t + 1);
 
-    BE_Int16(1); // RLE compression
-    for I := 0 to AHeight * CHANNELS - 1 do // rleLengthsTable
-      BE_Int16(L * 2);
+    WriteSwappedWord(FStream, 1); // RLE compression
+    for i := 0 to AHeight * CHANNELS - 1 do // rleLengthsTable
+      WriteSwappedWord(FStream, L * SizeOf(Word));
 
-    for I := 0 to AHeight * CHANNELS - 1 do // rleData
-      FStream.Write(Pointer(Arr)^, L * 2);
+    for i := 0 to AHeight * CHANNELS - 1 do // rleData
+      FStream.Write(Pointer(Arr)^, L * SizeOf(Word));
   end;
 
   procedure W_CompressRAW(AChannelID: integer; ALayer: TCustomPsdLayer; var ADest);
   var
-    I: integer;
+    i: integer;
   begin
-    for I := 0 to ALayer.Height - 1 do
+    for i := 0 to ALayer.Height - 1 do
     begin
-      ALayer.GetChannelScanLine(AChannelID, I, ADest);
+      ALayer.GetChannelScanLine(AChannelID, i, ADest);
       FStream.Write(ADest, ALayer.Width);
     end;
   end;
 
   procedure W_CompressRLE(AChannelID: integer; ALayer: TCustomPsdLayer; var ADest);
   var
-    I, rleTablePos, rleLen: integer;
-    rleTable: array of Smallint;
+    i: integer;
+    rleTablePos: Cardinal;
+    rleLen: Word;
+    rleTable: array of Word;
   begin
     Setlength(rleTable, ALayer.Height);
     rleTablePos := W_Append(ALayer.Height * SizeOf(Smallint));
     // allocate lenghs table
-    for I := 0 to ALayer.Height - 1 do
+    for i := 0 to ALayer.Height - 1 do
     begin
-      ALayer.GetChannelScanLine(AChannelID, I, ADest);
+      ALayer.GetChannelScanLine(AChannelID, i, ADest);
       rleLen := CompressScanLineRLE8(ADest, ALayer.Width, FStream);
-      rleTable[I] := Swap(rleLen);
+      rleTable[i] := Swap16(rleLen);
     end;
-    W_WriteAT(rleTablePos, rleTable[0], ALayer.Height * SizeOf(Smallint));
+    W_WriteAT(rleTablePos, rleTable[0], ALayer.Height * SizeOf(Word));
   end;
 
   procedure W_CompressZIP(AChannelID: integer; ALayer: TCustomPsdLayer; var ADest);
   var
-    I: integer;
+    i: integer;
+    Stream: TStream;
   begin
-    with TCompressionStream.Create(clDefault, FStream) do
-      try
-        for I := 0 to ALayer.Height - 1 do
-        begin
-          ALayer.GetChannelScanLine(AChannelID, I, ADest);
-          Write(ADest, ALayer.Width);
-        end;
-      finally
-        Free;
+    Stream := TCompressionStream.Create(clDefault, FStream);
+    try
+      for i := 0 to ALayer.Height - 1 do
+      begin
+        ALayer.GetChannelScanLine(AChannelID, i, ADest);
+        Stream.Write(ADest, ALayer.Width);
       end;
+    finally
+      Stream.Free;
+    end;
   end;
 
   procedure W_Layer_Image(ALayer: TCustomPsdLayer; ACompression: TPsdLayerCompression);
   var
-    Sz, I, ChID: integer;
+    Sz: Cardinal;
+    ChID: SmallInt;
+    i: integer;
     ChannelsInfs: array [0 .. CHANNELS - 1] of TPsdChannelInfo;
     ScanLineBuffer: TBytesArray;
   begin
     Setlength(ScanLineBuffer, ALayer.Width);
     ALayer.BeginScan();
-    for I := 0 to CHANNELS - 1 do
+    for i := 0 to CHANNELS - 1 do
     begin
       Sz := FStream.Position;
-      BE_Int16(Ord(ACompression)); // compression algo
-      ChID := CHANNELS_IDS[I];
+      WriteSwappedWord(FStream, Ord(ACompression)); // compression algo
+      ChID := CHANNELS_IDS[i];
       case ACompression of
         psComRLE:
           W_CompressRLE(ChID, ALayer, ScanLineBuffer[0]);
@@ -520,8 +585,8 @@ var
           W_CompressRAW(ChID, ALayer, ScanLineBuffer[0]);
       end;
       Sz := FStream.Position - Sz;
-      ChannelsInfs[I].ChID := Swap(ChID);
-      ChannelsInfs[I].CSize := Swap32(Sz);
+      ChannelsInfs[i].ChID := Swap16(Word(ChID));
+      ChannelsInfs[i].CSize := Swap32(Sz);
     end;
     ALayer.EndScan();
     W_WriteAT(ALayer.FChannelsInfoPos, ChannelsInfs, SizeOf(ChannelsInfs))
@@ -532,13 +597,13 @@ var
     L: integer;
   begin
     L := Length(AName);
-    W_Int8(L);
+    WriteByte(FStream, L);
     W_RawStr(AName); // ansi name
     if (L + 1) mod Align <> 0 then
       W_Append(Align - ((L + 1) mod Align)); // align
   end;
 
-  procedure W_Layer_Begin_ExtraInfo(const AKey: string);
+  procedure W_Layer_Begin_ExtraInfo(const AKey: AnsiString);
   begin
     W_RawStr('8BIM'); // signature
     W_RawStr(AKey); // key
@@ -552,45 +617,43 @@ var
 
   procedure W_LayerUnicodeText(const AText: string);
   var
-    L, I: integer;
+    L, i: integer;
   begin
     L := Length(AText);
-    BE_Int32(L);
-    if L = 0 then
-      exit;
-    for I := 1 to L do
-      BE_Int16(Ord(AText[I]));
-    // BE_Int16(0);// ? null
+    WriteSwappedCardinal(FStream, L);
+    for i := 1 to L do
+      WriteSwappedWord(FStream, Ord(AText[i]));
+    // WriteSwappedWord(FStream, 0);// ? null
   end;
 
   procedure W_Layer_Record(ALayer: TCustomPsdLayer);
   begin
-    BE_Int32(ALayer.Top); // top
-    BE_Int32(ALayer.Left); // left
-    BE_Int32(ALayer.Top + ALayer.Height); // bottom
-    BE_Int32(ALayer.Left + ALayer.Width); // right
+    WriteSwappedCardinal(FStream, ALayer.Top); // top
+    WriteSwappedCardinal(FStream, ALayer.Left); // left
+    WriteSwappedCardinal(FStream, ALayer.Top + ALayer.Height); // bottom
+    WriteSwappedCardinal(FStream, ALayer.Left + ALayer.Width); // right
 
-    BE_Int16(CHANNELS); // Layer Channels
+    WriteSwappedWord(FStream, CHANNELS); // Layer Channels
     // forward alloc to be updated in W_Layer_Image
     ALayer.FChannelsInfoPos := W_Append(CHANNELS * SizeOf(TPsdChannelInfo));
     // ch IDs & size
 
     W_RawStr('8BIM'); // signature
     W_RawStr(PSD_BLENDMODE_NAMES[ALayer.BlendMode]); // blend mode
-    W_Int8(ALayer.Opacity); // opacity
-    W_Int8(Ord(ALayer.Clipping)); // clipping
-    W_Int8(byte(ALayer.Flags)); // Flags
-    W_Int8(0); // Filler
+    WriteByte(FStream, ALayer.Opacity); // opacity
+    WriteByte(FStream, Ord(ALayer.Clipping)); // clipping
+    WriteByte(FStream, byte(ALayer.Flags)); // Flags
+    WriteByte(FStream, 0); // Filler
 
     // variable section
     W_Begin_Section(); // extralength field
 
-    BE_Int32(0); // layer mask
+    WriteSwappedCardinal(FStream, 0); // layer mask
 
-    BE_Int32(0); // blending ranges
+    WriteSwappedCardinal(FStream, 0); // blending ranges
 
-    // name of layer
-    W_LayerName(ALayer.Name, 4);
+    // name of layer - ANSI
+    W_LayerName(AnsiString(ALayer.Name), 4);
 
     // *layer extra info '8BIM' sequences
     W_Layer_Begin_ExtraInfo('luni');
@@ -602,17 +665,17 @@ var
 
   procedure W_Layer_Info();
   var
-    I: integer;
+    i: integer;
   begin
     W_Begin_Section(); // layerInfoLength field
 
-    BE_Int16(FLayers.count); // Layers count
+    WriteSwappedWord(FStream, FLayers.count); // Layers count
 
-    for I := 0 to FLayers.count - 1 do
-      W_Layer_Record(TCustomPsdLayer(FLayers[I]));
+    for i := 0 to FLayers.count - 1 do
+      W_Layer_Record(TCustomPsdLayer(FLayers[i]));
 
-    for I := 0 to FLayers.count - 1 do
-      W_Layer_Image(TCustomPsdLayer(FLayers[I]), FLayerCompression);
+    for i := 0 to FLayers.count - 1 do
+      W_Layer_Image(TCustomPsdLayer(FLayers[i]), FLayerCompression);
 
     W_End_Section(2);
   end;
@@ -621,14 +684,14 @@ var
   begin
     if FLayers.count = 0 then
     begin
-      BE_Int32(0);
+      WriteSwappedCardinal(FStream, 0);
       exit;
     end;
     W_Begin_Section(); // layer's total size field
 
     W_Layer_Info();
 
-    BE_Int32(0); // global Mask .. optional
+    WriteSwappedCardinal(FStream, 0); // global Mask .. optional
 
     // * global extra layer info '8BIM'
 
@@ -637,29 +700,28 @@ var
 
   procedure W_Image();
   var
-    I, J, rleTablePos: integer;
-    rleLen: Smallint;
-    rleTable: array of Smallint;
+    i, j: integer;
+    rleTablePos: Cardinal;
+    rleLen: Word;
+    rleTable: array of Word;
     ScanLineBuff: TBytesArray;
   begin
     Setlength(ScanLineBuff, FBackground.Width);
     Setlength(rleTable, FBackground.Height);
     FBackground.BeginScan();
-    BE_Int16(Ord(psComRLE)); // compression algo
+    WriteSwappedWord(FStream, Ord(psComRLE)); // compression algo
     rleTablePos := W_Append(FBackground.Height * SizeOf(Smallint) * CHANNELS);
     // allocate lenghs table
-    for J := 0 to CHANNELS - 1 do
+    for j := 0 to CHANNELS - 1 do
     begin
-      for I := 0 to FBackground.Height - 1 do
+      for i := 0 to FBackground.Height - 1 do
       begin
-        FBackground.GetChannelScanLine(CHANNELS_IDS[(J + 1) mod 4], I,
-          ScanLineBuff[0]);
-        rleLen := CompressScanLineRLE8(ScanLineBuff[0],
-          FBackground.Width, FStream);
-        rleTable[I] := Swap(rleLen);
+        FBackground.GetChannelScanLine(CHANNELS_IDS[(j + 1) mod 4], i, ScanLineBuff[0]);
+        rleLen := CompressScanLineRLE8(ScanLineBuff[0], FBackground.Width, FStream);
+        rleTable[i] := Swap16(rleLen);
       end;
-      W_WriteAT(rleTablePos, rleTable[0], Length(rleTable) * SizeOf(Smallint));
-      inc(rleTablePos, Length(rleTable) * SizeOf(Smallint));
+      W_WriteAT(rleTablePos, rleTable[0], Length(rleTable) * SizeOf(Word));
+      Inc(rleTablePos, Length(rleTable) * SizeOf(Word));
     end;
     FBackground.EndScan();
   end;
@@ -667,19 +729,19 @@ var
 begin
   // Header
   W_RawStr('8BPS');
-  BE_Int16(1); // version 1
+  WriteSwappedWord(FStream, 1); // version 1
   W_Append(6); // unused
-  BE_Int16(CHANNELS);// channels
-  BE_Int32(FDims.cy); // height
-  BE_Int32(FDims.cx); // width
-  BE_Int16(8);// bit depth
-  BE_Int16(3);// color mode RGB = 3
+  WriteSwappedWord(FStream, CHANNELS);// channels
+  WriteSwappedCardinal(FStream, FDims.cy); // height
+  WriteSwappedCardinal(FStream, FDims.cx); // width
+  WriteSwappedWord(FStream, 8);// bit depth
+  WriteSwappedWord(FStream, 3);// color mode RGB = 3
 
   // color mode Table
-  BE_Int32(0);
+  WriteSwappedCardinal(FStream, 0);
 
   // resources
-  BE_Int32(0);
+  WriteSwappedCardinal(FStream, 0);
 
   // layer
   W_Layer();
