@@ -35,6 +35,9 @@ implementation
 
 {$R *.dfm}
 
+uses
+  GR32.ImageFormats.JPG;
+
 type
   TPsdBitmap32Layer = class(TCustomPsdLayer)
   private
@@ -201,10 +204,22 @@ end;
 
 procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
-  i:Integer;
+  BitmapLayer: TBitmapLayer;
+  i: Integer;
+const
+  FolderMedia = '..\..\..\..\..\Media';
 begin
   ImgView.Layers.Clear;
 
+  // First layer is static bitmap...
+  BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
+  BitmapLayer.Bitmap.LoadFromFile(FolderMedia+'\Monalisa.jpg');
+  BitmapLayer.Bitmap.DrawMode := dmBlend;
+  BitmapLayer.Bitmap.MasterAlpha := 192;
+  BitmapLayer.Location := GR32.FloatRect(BitmapLayer.Bitmap.BoundsRect);
+  BitmapLayer.Scaled := True;
+
+  // and on top of that a bunch of random shapes
   for i := 0 to 3 do
     Star($FF); // Solid shapes
 
