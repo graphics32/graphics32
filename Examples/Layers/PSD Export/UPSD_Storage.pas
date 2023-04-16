@@ -92,6 +92,7 @@ type
     function GetLayer(Index: integer): TCustomPsdLayer;
     function GetLayerCount: integer;
     procedure SetBackground(const Value: TCustomPsdLayer);
+    procedure SetCompression(const Value: TPsdLayerCompression);
     procedure Add(ALayer: TCustomPsdLayer);
     procedure Remove(ALayer: TCustomPsdLayer);
   public
@@ -107,7 +108,7 @@ type
     property Layers[Index: integer]: TCustomPsdLayer read GetLayer;
 
     property LayerCompression: TPsdLayerCompression read FLayerCompression write FLayerCompression;
-    property Compression: TPsdLayerCompression read FCompression write FCompression;
+    property Compression: TPsdLayerCompression read FCompression write SetCompression;
     property Stream: TMemoryStream read FStream;
     property Background: TCustomPsdLayer read FBackground write SetBackground;
   end;
@@ -437,6 +438,13 @@ begin
     FDims.cx := FBackground.Width;
     FDims.cY := FBackground.Height;
   end;
+end;
+
+procedure TPsdBuilder.SetCompression(const Value: TPsdLayerCompression);
+begin
+  if (Value = psComZIPrd) then
+    raise Exception.Create('"ZIP with prediction"-compression is not implemented');
+  FCompression := Value;
 end;
 
 procedure TPsdBuilder.SetSize(AWidth, AHeight: Integer);

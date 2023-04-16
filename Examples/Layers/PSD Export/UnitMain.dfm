@@ -89,8 +89,7 @@ object FormMain: TFormMain
       Items.Strings = (
         'Raw (no compression)'
         'RLE'
-        'ZIP'
-        'ZIP with prediction')
+        'ZIP')
     end
   end
 end
