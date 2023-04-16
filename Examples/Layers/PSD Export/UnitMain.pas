@@ -8,26 +8,19 @@ uses
   GR32,
   GR32_Image,
   GR32_Layers,
-  GR32_PNG,
   GR32_Polygons,
   UPSD_Storage;
 
 type
-  TPsdBitmap32Layer = class(TPsdLayer)
-  public
-    Bitmap: TCustomBitmap32;
-    procedure GetChannelScanLine(AChannel, ALine: integer; var Bytes); override;
-  end;
-
   TFormMain = class(TForm)
     ImgView: TImgView32;
-    BSave: TButton;
+    ButtonSave: TButton;
     Panel1: TPanel;
-    CExportLayers: TCheckBox;
-    BRandom: TButton;
+    CheckBoxExportLayers: TCheckBox;
+    ButtonRandom: TButton;
     procedure FormCreate(Sender: TObject);
-    procedure BSaveClick(Sender: TObject);
-    procedure BRandomClick(Sender: TObject);
+    procedure ButtonSaveClick(Sender: TObject);
+    procedure ButtonRandomClick(Sender: TObject);
   private
     procedure Star(Opacity:integer);
   public
@@ -40,86 +33,30 @@ implementation
 
 {$R *.dfm}
 
-procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean);
-var
- PsdBuilder: TPsdBuilder;
- PsdLayer: TPsdBitmap32Layer;
- Filename: string;
- I, W, H: integer;
- SourceLayer: TCustomLayer;
- BackgroundBitmap: TBitmap32;
- Location: TFloatRect;
- LayerBitmap: TBitmap32;
-begin
-  if AImgView.Bitmap.Empty then
-    Exit;
-
-  if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
-    Exit;
-
-  W := AImgView.Bitmap.Width;
-  H := AImgView.Bitmap.Height;
-
-  PsdBuilder := TPsdBuilder.Create;
-  try
-    PsdBuilder.PsdCompression := psComRLE;
-    PsdBuilder.PsdLayerCompression := psComZip; // some editors don't support zip compression
-
-    BackgroundBitmap := TBitmap32.Create;
-    try
-      // Create flattened bitmap
-      BackgroundBitmap.SetSize(W, H);
-      AImgView.PaintTo(BackgroundBitmap, BackgroundBitmap.BoundsRect);
-
-      PsdLayer := TPsdBitmap32Layer.Create;
-      PsdLayer.Bitmap := BackgroundBitmap;
-      PsdLayer.LayerSetBounds(0, 0, BackgroundBitmap.Width, BackgroundBitmap.Height);
-
-      PsdBuilder.Background := PsdLayer; // PsdBuilder now owns SourceLayer, but not the bitmap
-
-      if ExportLayers then
-        for I := 0 to AImgView.Layers.Count -1 do
-        begin
-          SourceLayer := AImgView.Layers[I];
-          if not (SourceLayer is TBitmapLayer) then
-            continue;
-
-          LayerBitmap := TBitmapLayer(SourceLayer).Bitmap;
-          Location := TBitmapLayer(SourceLayer).Location;
-
-          PsdLayer := TPsdBitmap32Layer.Create;
-          PsdBuilder.Add(PsdLayer);
-          PsdLayer.LayerSetBounds(Round(Location.Left),
-                                Round(Location.Top),
-                                LayerBitmap.Width,
-                                LayerBitmap.Height);
-          PsdLayer.Opacity := LayerBitmap.MasterAlpha;
-          PsdLayer.Bitmap :=  LayerBitmap;
-
-          PsdLayer.Name := 'Layer ' + inttostr(I);
-        end;
-
-      PsdBuilder.Build;
-
-      PsdBuilder.Stream.SaveToFile(Filename);
-
-    finally
-      BackgroundBitmap.Free;
-    end;
-  finally
-    PsdBuilder.Free;
+type
+  TPsdBitmap32Layer = class(TCustomPsdLayer)
+  private
+    FBitmap: TCustomBitmap32;
+    procedure SetBitmap(const Value: TCustomBitmap32);
+  protected
+    procedure GetChannelScanLine(AChannel, ALine: integer; var Bytes); override;
+  public
+    property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
   end;
-end;
 
-
-procedure TFormMain.BSaveClick(Sender: TObject);
+procedure TPsdBitmap32Layer.SetBitmap(const Value: TCustomBitmap32);
 begin
-  PsdSave(ImgView, CExportLayers.Checked);
+  FBitmap := Value;
+  if (FBitmap <> nil) then
+  begin
+    Width := FBitmap.Width;
+    Height := FBitmap.Height;
+  end;
 end;
 
 procedure TPsdBitmap32Layer.GetChannelScanLine(AChannel, ALine: integer; var Bytes);
 var
-  I: integer;
+  i: integer;
   pDest: PByte;
   pSource: PByte;
 begin
@@ -137,13 +74,83 @@ begin
   pSource := @(PColor32Entry(Bitmap.ScanLine[ALine]).Planes[AChannel]);
   pDest := @Bytes;
 
-  for I:= 0 to Bitmap.Width-1 do
+  for i:= 0 to Bitmap.Width-1 do
   begin
     pDest^ := pSource^;
 
     Inc(pDest);
     Inc(pSource, SizeOf(TColor32));
   end;
+end;
+
+procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean);
+var
+  Filename: string;
+  PsdBuilder: TPsdBuilder;
+  PsdLayer: TCustomPsdLayer;
+  i: integer;
+  SourceLayer: TCustomLayer;
+  BackgroundBitmap: TBitmap32;
+  Location: TFloatRect;
+  LayerBitmap: TBitmap32;
+begin
+  if AImgView.Bitmap.Empty then
+    Exit;
+
+  if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
+    Exit;
+
+  PsdBuilder := TPsdBuilder.Create;
+  try
+    PsdBuilder.Compression := psComRLE;
+    PsdBuilder.LayerCompression := psComZip; // some editors don't support zip compression
+
+    BackgroundBitmap := TBitmap32.Create;
+    try
+      // Create flattened bitmap for use as background
+      BackgroundBitmap.SetSizeFrom(AImgView.Bitmap);
+      AImgView.PaintTo(BackgroundBitmap, BackgroundBitmap.BoundsRect);
+
+      PsdLayer := TPsdBitmap32Layer.Create;
+      TPsdBitmap32Layer(PsdLayer).Bitmap := BackgroundBitmap; // Layer just references the bitmap; It doesn't own it.
+
+      PsdBuilder.Background := PsdLayer; // PsdBuilder now owns the layer, but not the bitmap
+
+      if ExportLayers then
+        for i := 0 to AImgView.Layers.Count -1 do
+        begin
+          SourceLayer := AImgView.Layers[i];
+          if not (SourceLayer is TBitmapLayer) then
+            continue;
+
+          LayerBitmap := TBitmapLayer(SourceLayer).Bitmap;
+          Location := TBitmapLayer(SourceLayer).Location;
+
+          PsdLayer := PsdBuilder.AddLayer(TPsdBitmap32Layer);
+          PsdLayer.Opacity := LayerBitmap.MasterAlpha;
+          PsdLayer.Left := Round(Location.Left);
+          PsdLayer.Top := Round(Location.Top);
+          TPsdBitmap32Layer(PsdLayer).Bitmap :=  LayerBitmap;
+
+          PsdLayer.Name := 'Layer ' + inttostr(i);
+        end;
+
+      PsdBuilder.Build;
+
+      PsdBuilder.Stream.SaveToFile(Filename);
+
+    finally
+      BackgroundBitmap.Free;
+    end;
+  finally
+    PsdBuilder.Free;
+  end;
+end;
+
+
+procedure TFormMain.ButtonSaveClick(Sender: TObject);
+begin
+  PsdSave(ImgView, CheckBoxExportLayers.Checked);
 end;
 
 function RandomColor():TColor32;
@@ -156,7 +163,7 @@ end;
 procedure TFormMain.Star(Opacity: integer);
 var
   BitmapLayer: TBitmapLayer;
-  I, Steps, nCorners ,X, Y, Diam, t2:integer;
+  i, Steps, nCorners ,X, Y, Diam, t2:integer;
   r, Ang: Double;
   Poly:TArrayOfFloatPoint;
 begin
@@ -171,37 +178,35 @@ begin
   Setlength(Poly, Steps + 1);
   Ang := PI / nCorners;
 
-  for I := 0 to Steps do
+  for i := 0 to Steps do
   begin
-     r := t2;
-     if Odd(I) then
-       r := t2 * 0.6;
-     Poly[I] := FloatPoint(t2 + Sin(I * Ang) * r, t2 + Cos(I * Ang) * r);
+    r := t2;
+    if Odd(i) then
+      r := t2 * 0.6;
+    Poly[i] := FloatPoint(t2 + Sin(i * Ang) * r, t2 + Cos(i * Ang) * r);
   end;
 
   GR32_Polygons.PolygonFS(BitmapLayer.Bitmap, Poly, RandomColor());
   GR32_Polygons.PolyLineFS(BitmapLayer.Bitmap, Poly, clBlack32,True, 2);
 
 
-  with BitmapLayer do
-  begin
-      Bitmap.DrawMode := dmBlend;
-      Bitmap.MasterAlpha := Opacity;
-      Location := GR32.FloatRect(X, Y, X + Diam, Y + Diam);
-      Scaled := True;
-  end;
+  BitmapLayer.Bitmap.DrawMode := dmBlend;
+  BitmapLayer.Bitmap.MasterAlpha := Opacity;
+  BitmapLayer.Location := GR32.FloatRect(X, Y, X + Diam, Y + Diam);
+  BitmapLayer.Scaled := True;
 end;
 
-procedure TFormMain.BRandomClick(Sender: TObject);
+procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
-  I:Integer;
+  i:Integer;
 begin
   ImgView.Layers.Clear;
 
-  for I := 0 to 3 do
-     Star($FF);
-  for I := 0 to 3 do // semi transparent forms
-     Star($80);
+  for i := 0 to 3 do
+    Star($FF); // Solid shapes
+
+  for i := 0 to 3 do
+    Star($80); // Semi-transparent shapes
 end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
@@ -212,8 +217,7 @@ begin
   ImgView.Bitmap.SetSize(600,400);
   ImgView.Bitmap.DrawMode := dmBlend;
 
-  BRandomClick(nil);
+  ButtonRandom.Click;
 end;
-
 
 end.
