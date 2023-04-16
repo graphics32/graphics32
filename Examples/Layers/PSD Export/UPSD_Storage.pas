@@ -340,7 +340,9 @@ end;
 procedure TPsdBitmapLayer.GetChannelScanLine(AChannel, ALine: integer; var Bytes);
 var
   i: integer;
-  P, pData: PByteArray;
+  P: PByte;
+  pData: PByteArray;
+  Stride: integer;
 begin
   if (Bitmap = nil) or ((AChannel < 0) and (Bitmap.PixelFormat <> pf32Bit)) then
   begin
@@ -349,22 +351,28 @@ begin
   end;
 
   pData := @Bytes;
-  P := Bitmap.ScanLine[ALine];
+
   if Bitmap.PixelFormat = pf24Bit then
   begin
+    Stride := 3;
     AChannel := 2-AChannel;
-    for i := 0 to Bitmap.Width-1 do
-      pData[i] := P[i * 3 + AChannel];
   end else
   if Bitmap.PixelFormat = pf32Bit then
   begin
+    Stride := 4;
     if AChannel < 0 then
       AChannel := 3
     else
       AChannel := 2-AChannel;
+  end else
+    exit;
 
-    for i:= 0 to Bitmap.Width-1 do
-      pData[i] := P[i * 4 + AChannel];
+  P := @(PByteArray(Bitmap.ScanLine[ALine])^[AChannel]);
+
+  for i := 0 to Bitmap.Width-1 do
+  begin
+    pData[i] := P^;
+    Inc(P, Stride);
   end;
 end;
 
@@ -444,11 +452,23 @@ const
 var
   SectionsCaptures: array of Cardinal;
 
-  function W_Append(ASize: integer): Cardinal;
+  function Pad(Value: Cardinal; Alignment: Cardinal = 4): integer;
+  begin
+    Result := (Alignment - (Value and (Alignment - 1))) and (Alignment - 1);
+  end;
+
+  function W_Append(ASize: Cardinal): Cardinal;
   begin
     Result := FStream.Position;
+    if (ASize = 0) then
+      Exit;
     FStream.Size := FStream.Size + ASize;
     FStream.Position := FStream.Size;
+  end;
+
+  procedure W_Pad(Value: Cardinal; Alignment: Cardinal = 4);
+  begin
+    W_Append(Pad(Value, Alignment));
   end;
 
   procedure W_RawStr(const s: AnsiString);
@@ -470,7 +490,7 @@ var
     SectionsCaptures[Result] := FStream.Position;
   end;
 
-  procedure W_End_Section(Align: Cardinal);
+  procedure W_End_Section(Align: Cardinal = 4);
   var
     Sz: Cardinal;
     StartPos, FieldPos, Last: integer;
@@ -479,8 +499,7 @@ var
     StartPos := SectionsCaptures[Last];
     SetLength(SectionsCaptures, Last);
     Sz := FStream.Position - StartPos;
-    if (Align <> 0) and (Sz mod Align <> 0) then
-      W_Append(Align - Sz mod Align);
+    W_Pad(Sz, Align);
     Sz := Swap32(FStream.Position - StartPos);
     FieldPos := StartPos - 4; // field slot
     W_WriteAT(FieldPos, Sz, SizeOf(Sz));
@@ -592,15 +611,14 @@ var
     W_WriteAT(ALayer.FChannelsInfoPos, ChannelsInfs, SizeOf(ChannelsInfs))
   end;
 
-  procedure W_LayerName(const AName: Ansistring; Align: integer);
+  procedure W_LayerName(const AName: AnsiString; Align: Cardinal = 4);
   var
     L: integer;
   begin
     L := Length(AName);
     WriteByte(FStream, L);
     W_RawStr(AName); // ansi name
-    if (L + 1) mod Align <> 0 then
-      W_Append(Align - ((L + 1) mod Align)); // align
+    W_Pad(L + 1, Align);
   end;
 
   procedure W_Layer_Begin_ExtraInfo(const AKey: AnsiString);
@@ -617,13 +635,13 @@ var
 
   procedure W_LayerUnicodeText(const AText: string);
   var
-    L, i: integer;
+    L: Cardinal;
+    i: integer;
   begin
     L := Length(AText);
     WriteSwappedCardinal(FStream, L);
     for i := 1 to L do
       WriteSwappedWord(FStream, Ord(AText[i]));
-    // WriteSwappedWord(FStream, 0);// ? null
   end;
 
   procedure W_Layer_Record(ALayer: TCustomPsdLayer);
