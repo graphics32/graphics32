@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Buttons,
   GR32,
   GR32_Image,
   GR32_Layers,
@@ -15,13 +15,15 @@ type
     ImgView: TImgView32;
     ButtonSave: TButton;
     Panel1: TPanel;
-    CheckBoxExportLayers: TCheckBox;
     ButtonRandom: TButton;
     ComboBoxCompression: TComboBox;
     LabelCompression: TLabel;
+    ButtonCompressionWarning: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
     procedure ButtonRandomClick(Sender: TObject);
+    procedure ComboBoxCompressionChange(Sender: TObject);
+    procedure ButtonCompressionWarningClick(Sender: TObject);
   private
     procedure Star(Opacity:integer);
   public
@@ -39,7 +41,7 @@ uses
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG;
 
-procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean; Compression: TPsdLayerCompression);
+procedure SaveToPSD(AImgView: TImgView32; ACompression: TPsdLayerCompression);
 var
   Filename: string;
   PhotoshopDocument: TPhotoshopDocument;
@@ -55,9 +57,9 @@ begin
   try
     PhotoshopDocument := TPhotoshopDocument.Create;
     try
-      // Note: some readers don't support zip compression
-      PhotoshopDocument.DefaultCompression := Compression;
+      PhotoshopDocument.Compression := ACompression;
 
+      // Construct a PSD based on the layers of the TImgView32
       PhotoshopDocument.Assign(AImgView);
 
       TPhotoshopDocumentWriter.SaveToStream(PhotoshopDocument, Stream);
@@ -73,7 +75,12 @@ end;
 
 procedure TFormMain.ButtonSaveClick(Sender: TObject);
 begin
-  PsdSave(ImgView, CheckBoxExportLayers.Checked, TPsdLayerCompression(ComboBoxCompression.ItemIndex));
+  SaveToPSD(ImgView, TPsdLayerCompression(ComboBoxCompression.ItemIndex));
+end;
+
+procedure TFormMain.ComboBoxCompressionChange(Sender: TObject);
+begin
+  ButtonCompressionWarning.Visible := (TPsdLayerCompression(ComboBoxCompression.ItemIndex) >= lcZIP)
 end;
 
 function RandomColor():TColor32;
@@ -119,6 +126,11 @@ begin
   BitmapLayer.Scaled := True;
 end;
 
+procedure TFormMain.ButtonCompressionWarningClick(Sender: TObject);
+begin
+  MessageDlg('Be aware that many applications only support reading RAW and RLE compressed PSD files', mtWarning, [mbOK], 0);
+end;
+
 procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
   BitmapLayer: TBitmapLayer;
@@ -128,7 +140,7 @@ const
 begin
   ImgView.Layers.Clear;
 
-  // First layer is static bitmap...
+  // First layer is a static bitmap...
   BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
   BitmapLayer.Bitmap.LoadFromFile(FolderMedia+'\Monalisa.jpg');
   BitmapLayer.Bitmap.DrawMode := dmBlend;

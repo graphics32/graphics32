@@ -29,6 +29,7 @@ unit GR32.ImageFormats.PSD.Writer;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Anders Melander <anders@melander.dk>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -49,6 +50,8 @@ uses
 //
 //      TPhotoshopDocumentWriter
 //
+//------------------------------------------------------------------------------
+// Writes a PSD document to a stream
 //------------------------------------------------------------------------------
 type
   TPhotoshopDocumentWriter = class abstract

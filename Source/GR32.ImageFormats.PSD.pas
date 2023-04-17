@@ -29,6 +29,7 @@ unit GR32.ImageFormats.PSD;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Anders Melander <anders@melander.dk>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -126,8 +127,7 @@ type
     FOptions: TPSDLayerOptions;
     FClipping: boolean;
     FCompression: TPSDLayerCompression;
-    FUseDefaultCompression: boolean;
-    procedure SetUseDefaultCompression(const Value: boolean);
+    FUseDocumentCompression: boolean;
   protected
     procedure SetDocument(const Value: TPhotoshopDocument);
     function GetIndex: integer;
@@ -136,6 +136,7 @@ type
     procedure SetBoundsRect(const Value: TRect);
     procedure SetCompression(const Value: TPSDLayerCompression);
     function GetCompression: TPSDLayerCompression;
+    procedure SetUseDocumentCompression(const Value: boolean);
 
     procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes); virtual; abstract;
   public
@@ -161,7 +162,7 @@ type
     property Options: TPSDLayerOptions read FOptions write FOptions;
     property Clipping: boolean read FClipping write FClipping;
     property Compression: TPSDLayerCompression read GetCompression write SetCompression;
-    property UseDefaultCompression: boolean read FUseDefaultCompression write SetUseDefaultCompression;
+    property UseDocumentCompression: boolean read FUseDocumentCompression write SetUseDocumentCompression;
   end;
 
   TPhotoshopLayerClass = class of TCustomPhotoshopLayer;
@@ -203,13 +204,14 @@ type
     FWidth: Integer;
     FHeight: Integer;
     FBackground: TCustomPhotoshopLayer;
-    FDefaultCompression: TPSDLayerCompression;
+    FCompression: TPSDLayerCompression;
   private
     class var
       FDefaultLayerClass: TPhotoshopLayerClass;
+      FDefaultCompression: TPSDLayerCompression;
   protected
     procedure SetBackground(const Value: TCustomPhotoshopLayer);
-    procedure SetDefaultCompression(const Value: TPSDLayerCompression);
+    procedure SetCompression(const Value: TPSDLayerCompression);
     procedure AddLayer(ALayer: TCustomPhotoshopLayer);
     procedure RemoveLayer(ALayer: TCustomPhotoshopLayer);
   public
@@ -230,9 +232,12 @@ type
     // Background: An optional preview of the flattened image.
     property Background: TCustomPhotoshopLayer read FBackground write SetBackground;
 
-    property DefaultCompression: TPSDLayerCompression read FDefaultCompression write SetDefaultCompression;
+    // Default background and layer compression. Initialized to the
+    // value of DefaultCompression.
+    property Compression: TPSDLayerCompression read FCompression write SetCompression;
 
     class property DefaultLayerClass: TPhotoshopLayerClass read FDefaultLayerClass write FDefaultLayerClass;
+    class property DefaultCompression: TPSDLayerCompression read FDefaultCompression write FDefaultCompression;
   end;
 
 
@@ -265,7 +270,15 @@ type
 //      Construct a TPhotoshopDocument from a TCustomImage32
 //
 //------------------------------------------------------------------------------
-procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument);
+procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument); overload;
+
+//------------------------------------------------------------------------------
+//
+//      Construct a TPhotoshopDocument from a TBitmap32
+//
+//------------------------------------------------------------------------------
+procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument); overload;
+
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -276,11 +289,105 @@ implementation
 uses
   ZLib,
   Math,
-  GR32_Layers;
+  GR32_Layers,
+  GR32.ImageFormats,
+  GR32.ImageFormats.PSD.Writer;
 
 const
   PsdSignature: AnsiString        = '8BPS'#00#01;
   PsdSignatureMask: AnsiString    = #$ff#$ff#$ff#$ff#$ff#$ff;
+
+//------------------------------------------------------------------------------
+//
+//      TImageFormatAdapterPSD
+//
+//------------------------------------------------------------------------------
+// Implements IImageFormatAdapter for the PSD image format using
+// TPhotoshopDocument.
+//------------------------------------------------------------------------------
+type
+  TImageFormatAdapterPSD = class(TCustomImageFormatAdapter,
+    IImageFormatAdapter,
+    IImageFormatFileInfo,
+    IImageFormatWriter)
+  strict protected
+    // IImageFormatAdapter
+    function CanAssignFrom(Source: TPersistent): boolean; override;
+    function AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean; override;
+    function CanAssignTo(Dest: TPersistent): boolean; override;
+    function AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean; override;
+  private
+    // IImageFormatFileInfo
+    function ImageFormatDescription: string;
+    function ImageFormatFileTypes: TFileTypes;
+  private
+    // IImageFormatWriter
+    procedure SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
+  end;
+
+
+//------------------------------------------------------------------------------
+// IImageFormatAdapter
+//------------------------------------------------------------------------------
+function TImageFormatAdapterPSD.CanAssignFrom(Source: TPersistent): boolean;
+begin
+  Result := False;
+end;
+
+function TImageFormatAdapterPSD.AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean;
+begin
+  Result := inherited;
+end;
+
+//------------------------------------------------------------------------------
+
+function TImageFormatAdapterPSD.CanAssignTo(Dest: TPersistent): boolean;
+begin
+  Result := (Dest is TPhotoshopDocument);
+end;
+
+function TImageFormatAdapterPSD.AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean;
+begin
+  if (Dest is TPhotoshopDocument) then
+  begin
+    CreatePhotoshopDocument(Source, TPhotoshopDocument(Dest));
+    Result := True;
+  end else
+    Result := inherited;
+end;
+
+//------------------------------------------------------------------------------
+// IImageFormatFileInfo
+//------------------------------------------------------------------------------
+
+function TImageFormatAdapterPSD.ImageFormatFileTypes: TFileTypes;
+begin
+  Result := ['psd'];
+end;
+
+function TImageFormatAdapterPSD.ImageFormatDescription: string;
+resourcestring
+  sImageFormatPSDName = 'PSD images';
+begin
+  Result := sImageFormatPSDName;
+end;
+
+//------------------------------------------------------------------------------
+// IImageFormatWriter
+//------------------------------------------------------------------------------
+procedure TImageFormatAdapterPSD.SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
+var
+  PSD: TPhotoshopDocument;
+begin
+  PSD := TPhotoshopDocument.Create;
+  try
+    CreatePhotoshopDocument(ASource, PSD);
+    TPhotoshopDocumentWriter.SaveToStream(PSD, AStream);
+  finally
+    PSD.Free;
+  end;
+end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -354,6 +461,34 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      Construct a TPhotoshopDocument from a TBitmap32
+//
+//------------------------------------------------------------------------------
+procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument); overload;
+var
+  PSDLayer: TCustomPhotoshopLayer;
+begin
+  ADocument.Clear;
+
+  if ABitmap.Empty then
+    Exit;
+
+  PSDLayer := TPhotoshopLayer32.Create;
+  try
+
+    TPhotoshopLayer32(PSDLayer).Bitmap := ABitmap;
+    ADocument.Background := PSDLayer; // Document now owns the layer
+
+  except
+    PSDLayer.Free;
+    raise;
+  end;
+end;
+
+
+
+//------------------------------------------------------------------------------
+//
 //      TCustomPhotoshopLayer
 //
 //------------------------------------------------------------------------------
@@ -363,7 +498,7 @@ begin
   inherited Create;
   FBlendMode := lbmNormal;
   FOpacity := $FF;
-  FUseDefaultCompression := True;
+  FUseDocumentCompression := True;
   SetDocument(ADocument);
 end;
 
@@ -390,8 +525,8 @@ end;
 
 function TCustomPhotoshopLayer.GetCompression: TPSDLayerCompression;
 begin
-  if (FUseDefaultCompression) and (FDocument <> nil) then
-    Result := FDocument.DefaultCompression
+  if (FUseDocumentCompression) and (FDocument <> nil) then
+    Result := FDocument.Compression
   else
     Result := FCompression;
 end;
@@ -422,7 +557,7 @@ begin
   if (Value = lcPredictedZIP) then
     raise EPhotoshopDocument.Create('"ZIP with prediction"-compression is not implemented');
   FCompression := Value;
-  FUseDefaultCompression := False;
+  FUseDocumentCompression := False;
 end;
 
 procedure TCustomPhotoshopLayer.SetDocument(const Value: TPhotoshopDocument);
@@ -450,9 +585,9 @@ begin
   end;
 end;
 
-procedure TCustomPhotoshopLayer.SetUseDefaultCompression(const Value: boolean);
+procedure TCustomPhotoshopLayer.SetUseDocumentCompression(const Value: boolean);
 begin
-  FUseDefaultCompression := Value;
+  FUseDocumentCompression := Value;
 end;
 
 
@@ -528,7 +663,7 @@ constructor TPhotoshopDocument.Create(ABackground: TCustomPhotoshopLayer);
 begin
   inherited Create;
   FLayers := TPhotoshopLayers.Create(Self);
-  FDefaultCompression := lcRLE;
+  FCompression := FDefaultCompression;
   FBackground := ABackground;
 end;
 
@@ -592,11 +727,11 @@ begin
   end;
 end;
 
-procedure TPhotoshopDocument.SetDefaultCompression(const Value: TPSDLayerCompression);
+procedure TPhotoshopDocument.SetCompression(const Value: TPSDLayerCompression);
 begin
   if (Value = lcPredictedZIP) then
     raise EPhotoshopDocument.Create('"ZIP with prediction"-compression is not implemented');
-  FDefaultCompression := Value;
+  FCompression := Value;
 end;
 
 procedure TPhotoshopDocument.SetSize(AWidth, AHeight: Integer);
@@ -667,6 +802,8 @@ end;
 
 initialization
   TPhotoshopDocument.DefaultLayerClass := TPhotoshopLayer32;
-//  ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPSD.Create, ImageFormatPriorityNormal);
+  TPhotoshopDocument.DefaultCompression := lcRLE;
+
+  ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPSD.Create, ImageFormatPriorityNormal);
 end.
 

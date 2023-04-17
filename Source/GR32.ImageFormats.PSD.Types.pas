@@ -29,6 +29,7 @@ unit GR32.ImageFormats.PSD.Types;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Anders Melander <anders@melander.dk>
  *
  * ***** END LICENSE BLOCK ***** *)
 
