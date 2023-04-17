@@ -8,8 +8,7 @@ uses
   GR32,
   GR32_Image,
   GR32_Layers,
-  GR32_Polygons,
-  UPSD_Storage;
+  GR32_Polygons;
 
 type
   TFormMain = class(TForm)
@@ -36,68 +35,15 @@ implementation
 {$R *.dfm}
 
 uses
+  GR32.ImageFormats.PSD,
+  GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG;
-
-type
-  TPsdBitmap32Layer = class(TCustomPsdLayer)
-  private
-    FBitmap: TCustomBitmap32;
-    procedure SetBitmap(const Value: TCustomBitmap32);
-  protected
-    procedure GetChannelScanLine(AChannel, ALine: integer; var Bytes); override;
-  public
-    property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
-  end;
-
-procedure TPsdBitmap32Layer.SetBitmap(const Value: TCustomBitmap32);
-begin
-  FBitmap := Value;
-  if (FBitmap <> nil) then
-  begin
-    Width := FBitmap.Width;
-    Height := FBitmap.Height;
-  end;
-end;
-
-procedure TPsdBitmap32Layer.GetChannelScanLine(AChannel, ALine: integer; var Bytes);
-var
-  i: integer;
-  pDest: PByte;
-  pSource: PByte;
-begin
-  if (Bitmap = nil) then
-  begin
-    FillChar(Bytes, Width, $FF);
-    Exit;
-  end;
-
-  if AChannel < 0 then
-    AChannel := 3
-  else
-    AChannel := 2 - AChannel;
-
-  pSource := @(PColor32Entry(Bitmap.ScanLine[ALine]).Planes[AChannel]);
-  pDest := @Bytes;
-
-  for i:= 0 to Bitmap.Width-1 do
-  begin
-    pDest^ := pSource^;
-
-    Inc(pDest);
-    Inc(pSource, SizeOf(TColor32));
-  end;
-end;
 
 procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean; Compression: TPsdLayerCompression);
 var
   Filename: string;
-  PsdBuilder: TPsdBuilder;
-  PsdLayer: TCustomPsdLayer;
-  i: integer;
-  SourceLayer: TCustomLayer;
-  BackgroundBitmap: TBitmap32;
-  Location: TFloatRect;
-  LayerBitmap: TBitmap32;
+  PhotoshopDocument: TPhotoshopDocument;
+  Stream: TStream;
 begin
   if AImgView.Bitmap.Empty then
     Exit;
@@ -105,51 +51,22 @@ begin
   if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
     Exit;
 
-  PsdBuilder := TPsdBuilder.Create;
+  Stream := TFileStream.Create(Filename, fmCreate);
   try
-    // Note: some readers don't support zip compression
-    PsdBuilder.Compression := Compression;
-    PsdBuilder.LayerCompression := Compression;
-
-    BackgroundBitmap := TBitmap32.Create;
+    PhotoshopDocument := TPhotoshopDocument.Create;
     try
-      // Create flattened bitmap for use as background
-      BackgroundBitmap.SetSizeFrom(AImgView.Bitmap);
-      AImgView.PaintTo(BackgroundBitmap, BackgroundBitmap.BoundsRect);
+      // Note: some readers don't support zip compression
+      PhotoshopDocument.DefaultCompression := Compression;
 
-      PsdLayer := TPsdBitmap32Layer.Create;
-      TPsdBitmap32Layer(PsdLayer).Bitmap := BackgroundBitmap; // Layer just references the bitmap; It doesn't own it.
+      PhotoshopDocument.Assign(AImgView);
 
-      PsdBuilder.Background := PsdLayer; // PsdBuilder now owns the layer, but not the bitmap
-
-      if ExportLayers then
-        for i := 0 to AImgView.Layers.Count -1 do
-        begin
-          SourceLayer := AImgView.Layers[i];
-          if not (SourceLayer is TBitmapLayer) then
-            continue;
-
-          LayerBitmap := TBitmapLayer(SourceLayer).Bitmap;
-          Location := TBitmapLayer(SourceLayer).Location;
-
-          PsdLayer := PsdBuilder.AddLayer(TPsdBitmap32Layer);
-          PsdLayer.Opacity := LayerBitmap.MasterAlpha;
-          PsdLayer.Left := Round(Location.Left);
-          PsdLayer.Top := Round(Location.Top);
-          TPsdBitmap32Layer(PsdLayer).Bitmap :=  LayerBitmap;
-
-          PsdLayer.Name := 'Layer ' + inttostr(i);
-        end;
-
-      PsdBuilder.Build;
-
-      PsdBuilder.Stream.SaveToFile(Filename);
-
+      TPhotoshopDocumentWriter.SaveToStream(PhotoshopDocument, Stream);
     finally
-      BackgroundBitmap.Free;
+      PhotoshopDocument.Free;
     end;
+
   finally
-    PsdBuilder.Free;
+    Stream.Free;
   end;
 end;
 
