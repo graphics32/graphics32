@@ -290,6 +290,7 @@ uses
   ZLib,
   Math,
   GR32_Layers,
+  GR32_Backends_Generic,
   GR32.ImageFormats,
   GR32.ImageFormats.PSD.Writer;
 
@@ -394,6 +395,9 @@ end;
 //      Construct a TPhotoshopDocument from a TCustomImage32
 //
 //------------------------------------------------------------------------------
+type
+  TBitmapLayerCracker = class(TCustomIndirectBitmapLayer);
+
 procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument);
 var
   PSDLayer: TCustomPhotoshopLayer;
@@ -401,14 +405,14 @@ var
   SourceLayer: TCustomLayer;
   BackgroundBitmap: TBitmap32;
   Location: TFloatRect;
-  LayerBitmap: TBitmap32;
+  LayerBitmap: TCustomBitmap32;
 begin
   ADocument.Clear;
 
   if AImage.Bitmap.Empty then
     Exit;
 
-  BackgroundBitmap := TBitmap32.Create;
+  BackgroundBitmap := TBitmap32.Create(TMemoryBackend);
   try
     // Create flattened bitmap for use as background
     BackgroundBitmap.SetSizeFrom(AImage.Bitmap);
@@ -439,11 +443,11 @@ begin
   for i := 0 to AImage.Layers.Count -1 do
   begin
     SourceLayer := AImage.Layers[i];
-    if not (SourceLayer is TBitmapLayer) then
+    if not (SourceLayer is TCustomIndirectBitmapLayer) then
       continue;
 
-    LayerBitmap := TBitmapLayer(SourceLayer).Bitmap;
-    Location := TBitmapLayer(SourceLayer).Location;
+    LayerBitmap := TBitmapLayerCracker(SourceLayer).Bitmap;
+    Location := TBitmapLayerCracker(SourceLayer).Location;
 
     PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
     PSDLayer.Opacity := LayerBitmap.MasterAlpha;
