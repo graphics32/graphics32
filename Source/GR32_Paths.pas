@@ -90,6 +90,7 @@ type
     procedure HorizontalLineToRelative(const X: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure VerticalLineTo(const Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure VerticalLineToRelative(const Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    // Cubic beziers
     procedure CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const C1, C2, P: TFloatPoint); overload; virtual;
@@ -98,6 +99,7 @@ type
     procedure CurveToRelative(const X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveToRelative(const C1, C2, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveToRelative(const C2, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    // Quadratic bezier
     procedure ConicTo(const X1, Y1, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicTo(const P1, P: TFloatPoint); overload; virtual;
     procedure ConicTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -710,18 +712,21 @@ end;
 
 procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
 var
-  n: Integer;
+  p: TFloatPoint;
 begin
   if (FPointIndex = 0) then
     DoBeginPath;
 
+  // Work around for Delphi compiler bug.
+  // We'll get an AV on the assignment below without it.
+  p := Point;
+
   // Grow buffer if required
-  n := Length(FPoints);
-  if (FPointIndex >= n) then
-    SetLength(FPoints, n + VertexBufferSizeGrow);
+  if (FPointIndex > High(FPoints)) then
+    SetLength(FPoints, Length(FPoints) + VertexBufferSizeGrow);
 
   // Add vertex to buffer
-  FPoints[FPointIndex] := Point;
+  FPoints[FPointIndex] := p;
   Inc(FPointIndex);
 end;
 

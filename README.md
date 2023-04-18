@@ -7,3 +7,9 @@ This is the official GitHub fork of the original SourceForge repository. The lat
 
 ### Misc.
 Delphinus-Support
+
+### License
+
+This work is dual-licensed under MPL 1.1 or LGPL 2.1 with linking exception.
+
+`SPDX-License-Identifier: MPL-1.1+ OR LGPL-2.1-linking-exception+`
