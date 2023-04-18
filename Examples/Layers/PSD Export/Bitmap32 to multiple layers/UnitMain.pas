@@ -116,7 +116,7 @@ begin
   end;
 end;
 
-procedure ExportRegtangles(Src :TBitmap32; const Rects:array of TRect);
+procedure ExportRectangles(Src :TBitmap32; const Rects:array of TRect);
 var
   Filename: string;
   PsdBuilder: TPsdBuilder;
@@ -174,7 +174,7 @@ begin
         Regs[I * 3 + J] := Bounds(J * Dx, I * Dy, Dx, Dy);
     end;
 
-   ExportRegtangles(ImgView.Bitmap, Regs);
+   ExportRectangles(ImgView.Bitmap, Regs);
 end;
 
 
