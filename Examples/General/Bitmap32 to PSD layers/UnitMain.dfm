@@ -2,7 +2,7 @@ object FormMain: TFormMain
   Left = 0
   Top = 0
   BorderIcons = [biSystemMenu]
-  Caption = 'Export TImage32 layers to PSD'
+  Caption = 'Export TBitmap32 to PSD with layers'
   ClientHeight = 562
   ClientWidth = 692
   Color = clBtnFace
@@ -22,8 +22,8 @@ object FormMain: TFormMain
     ShowCaption = False
     TabOrder = 0
     object BSave: TButton
-      Left = 128
-      Top = 2
+      Left = 89
+      Top = 4
       Width = 75
       Height = 24
       Caption = '&Save'
@@ -31,11 +31,11 @@ object FormMain: TFormMain
       OnClick = BSaveClick
     end
     object BOpen: TButton
-      Left = 16
-      Top = 2
+      Left = 8
+      Top = 4
       Width = 75
       Height = 24
-      Caption = 'Open'
+      Caption = '&Open'
       TabOrder = 1
       OnClick = BOpenClick
     end
