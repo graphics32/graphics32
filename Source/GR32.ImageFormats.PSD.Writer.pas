@@ -69,6 +69,7 @@ uses
   Generics.Collections,
   ZLib,
   Math,
+  SysUtils,
   GR32,
   GR32.ImageFormats.PSD.Types;
 
@@ -182,59 +183,98 @@ end;
 //------------------------------------------------------------------------------
 // RLE compression (PackBit)
 //------------------------------------------------------------------------------
-function WriteScanlineRLE(AStream: TStream; const ABuffer; Width: integer): Cardinal;
-var
-  StartPos: Int64;
-  pArr :PByteArray;
-  i, j, c, R, count:integer;
-  uPacked:boolean;
-begin
-  StartPos := AStream.Position;
-  pArr := @ABuffer;
-  i :=0;
-  while i < Width do
-  begin
-    c := pArr[i];
-    j := i+1;
-    while (j < Width) and (pArr[j] = c) do
-      inc(j);
+type
+  TPackBitsStream = class(TStream)
+  private
+    FStream: TStream;
+  public
+    constructor Create(AStream: TStream);
 
-    uPacked := j - i > 1;
-    if not uPacked then
-    begin
-      while (j < Width) and (pArr[j-1] <> pArr[j]) do
-        inc(j);
-
-      if (j < Width) and (j - i > 1) then
-        dec(j);
-    end;
-
-    count := j - i;
-    repeat
-      R := Min(count, 128);
-{$IFOPT R+}
-{$DEFINE R_PLUS}
-{$RANGECHECKS OFF}
-{$ENDIF}
-      if uPacked then
-      begin
-        WriteByte(AStream, -R + 1);
-        WriteByte(AStream, c);
-      end else
-      begin
-        WriteByte(AStream, R - 1);
-        AStream.Write(pArr[i], R);
-      end;
-{$IFDEF R_PLUS}
-{$RANGECHECKS ON}
-{$UNDEF R_PLUS}
-{$ENDIF}
-      Inc(i,128);
-      dec(count,128);
-    until count <= 0;
-    i := j;
+    function Read(var Buffer; Count: Longint): Longint; override;
+    function Write(const Buffer; Count: Longint): Longint; override;
   end;
-  Result := AStream.Position - StartPos;
+
+constructor TPackBitsStream.Create(AStream: TStream);
+begin
+  inherited Create;
+  FStream := AStream;
+end;
+
+function TPackBitsStream.Read(var Buffer; Count: Longint): Longint;
+begin
+  Assert(False, 'Not implemented');
+end;
+
+function TPackBitsStream.Write(const Buffer; Count: Longint): Longint;
+const
+  MaxRun = 128;
+  // These values are for classic PackBits encoding.
+  // Other variants use other values (e.g. PDB uses PackBase=127, PackSign=1)
+  PackBase = 257;
+  PackSign = -1;
+var
+  Index: Cardinal;
+  RunCount: Byte;
+  RunValue: Byte;
+  StartIndex: integer;
+begin
+  Index := 0;
+  Result := 0;
+
+  while (Index < Count) do
+  begin
+    (*
+    ** Always encode 3-byte repeat sequences.
+    ** Encode 2-byte repeat sequences only when they are at the start of the block.
+    *)
+
+    RunValue := TByteArray(Buffer)[Index];
+
+    if (Index < Count - 1) and (TByteArray(Buffer)[Index] = TByteArray(Buffer)[Index + 1]) then
+    begin
+      // Do a repeat run
+      RunCount := 2; // We already know that we have at least a run of two because of the test above
+      Inc(Index, 2);
+      while (Index < Count) and (RunValue = TByteArray(Buffer)[Index]) and (RunCount < MaxRun) do
+      begin
+        Inc(Index);
+        Inc(RunCount);
+      end;
+
+      // Encode run count
+      // RunCount := Byte(PackBase + PackSign * RunCount);
+      RunCount := Byte(257 - RunCount);
+
+      FStream.Write(RunCount, 1);
+      FStream.Write(RunValue, 1);
+      Inc(Result, 2);
+    end else
+    begin
+      // Do a non-repeat run
+      RunCount := 0;
+      StartIndex := Index;
+      while
+        // We're at the end; No room for repeat runs
+        ((Index + 2 >= Count) and (Index < Count)) or
+        // There's at least 3 bytes left and...
+        ((Index + 2 < Count) and (
+         // Next 2 differ
+         (RunValue <> TByteArray(Buffer)[Index + 1]) or
+         // Next 2 same, but differs from the third
+         (RunValue <> TByteArray(Buffer)[Index + 2]))) do
+      begin
+        Inc(Index);
+        Inc(RunCount);
+        if (RunCount = MaxRun) then
+          Break;
+        RunValue := TByteArray(Buffer)[Index];
+      end;
+
+      WriteByte(FStream, RunCount-1);
+      FStream.Write(TByteArray(Buffer)[StartIndex], RunCount);
+      Inc(Result, RunCount+1);
+    end;
+  end;
 end;
 
 procedure WriteChannelRLE(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
@@ -244,6 +284,7 @@ var
   RowSize: Word;
   RowTable: array of Word;
   SavePos: Int64;
+  RLEStream: TStream;
 begin
   RowTablePos := AStream.Position;
 
@@ -251,11 +292,20 @@ begin
   AStream.Seek(ALayer.Height * SizeOf(Smallint), soFromCurrent);
   SetLength(RowTable, ALayer.Height);
 
-  for i := 0 to ALayer.Height - 1 do
-  begin
-    TPhotoshopLayerCracker(ALayer).GetChannelScanLine(AChannel, i, ABuffer);
-    RowSize := WriteScanlineRLE(AStream, ABuffer, ALayer.Width);
-    RowTable[i] := Swap16(RowSize);
+  RLEStream := TPackBitsStream.Create(AStream);
+  try
+
+    for i := 0 to ALayer.Height - 1 do
+    begin
+      TPhotoshopLayerCracker(ALayer).GetChannelScanLine(AChannel, i, ABuffer);
+
+      RowSize := RLEStream.Write(ABuffer, ALayer.Width);
+
+      RowTable[i] := Swap16(RowSize);
+    end;
+
+  finally
+    RLEStream.Free;
   end;
 
   // Rewind and update row table
@@ -274,6 +324,7 @@ var
   RowSize: Word;
   RowTable: array of Word;
   SavePos: Int64;
+  RLEStream: TStream;
 begin
   SetLength(ScanLineBuffer, ALayer.Width);
   SetLength(RowTable, ALayer.Height);
@@ -282,23 +333,32 @@ begin
   // Make room for row table (for all channels)
   AStream.Seek(ALayer.Height * SizeOf(Word) * PSD_CHANNELS, soFromCurrent);
 
-  for Channel in PSDPlanarOrder do
-  begin
+  RLEStream := TPackBitsStream.Create(AStream);
+  try
 
-    for i := 0 to ALayer.Height - 1 do
+    for Channel in PSDPlanarOrder do
     begin
-      TPhotoshopLayerCracker(ALayer).GetChannelScanLine(Channel, i, ScanLineBuffer[0]);
-      RowSize := WriteScanlineRLE(AStream, ScanLineBuffer[0], ALayer.Width);
-      RowTable[i] := Swap16(RowSize);
+
+      for i := 0 to ALayer.Height - 1 do
+      begin
+        TPhotoshopLayerCracker(ALayer).GetChannelScanLine(Channel, i, ScanLineBuffer[0]);
+
+        RowSize := RLEStream.Write(ScanLineBuffer[0], ALayer.Width);
+
+        RowTable[i] := Swap16(RowSize);
+      end;
+
+      // Rewind and update row table for the channel
+      SavePos := AStream.Position;
+      AStream.Position := RowTablePos;
+      AStream.Write(RowTable[0], ALayer.Height * SizeOf(Word));
+      // Move table pos forward to next channel
+      Inc(RowTablePos, ALayer.Height * SizeOf(Word));
+      AStream.Position := SavePos;
     end;
 
-    // Rewind and update row table for the channel
-    SavePos := AStream.Position;
-    AStream.Position := RowTablePos;
-    AStream.Write(RowTable[0], ALayer.Height * SizeOf(Word));
-    // Move table pos forward to next channel
-    Inc(RowTablePos, ALayer.Height * SizeOf(Word));
-    AStream.Position := SavePos;
+  finally
+    RLEStream.Free;
   end;
 end;
 
