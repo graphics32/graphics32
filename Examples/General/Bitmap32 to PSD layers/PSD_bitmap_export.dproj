@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{333525C0-3868-4A7F-AA77-BA47AB4F649F}</ProjectGuid>
+        <ProjectGuid>{00F85785-3D1A-4C6A-A53E-91A435059CAA}</ProjectGuid>
         <MainSource>PSD_bitmap_export.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
