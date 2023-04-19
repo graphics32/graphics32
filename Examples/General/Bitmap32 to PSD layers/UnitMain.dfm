@@ -39,6 +39,15 @@ object FormMain: TFormMain
       TabOrder = 1
       OnClick = ButtonOpenClick
     end
+    object CheckBoxViewTiles: TCheckBox
+      Left = 184
+      Top = 7
+      Width = 137
+      Height = 17
+      Caption = 'View tile rectangles'
+      TabOrder = 2
+      OnClick = CheckBoxViewTilesClick
+    end
   end
   object ImgView: TImgView32
     Left = 0

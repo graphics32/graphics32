@@ -71,6 +71,8 @@ uses
   Math,
   SysUtils,
   GR32,
+  GR32_LowLevel,
+  GR32.BigEndian,
   GR32.ImageFormats.PSD.Types;
 
 type
@@ -78,41 +80,6 @@ type
   TSafeByteArray = array[0..MaxInt-1] of byte;
   PByteArray = ^TSafeByteArray;
   TPhotoshopLayerCracker = class(TCustomPhotoshopLayer);
-
-//------------------------------------------------------------------------------
-//
-//      Big Endian I/O
-//
-//------------------------------------------------------------------------------
-procedure WriteByte(Stream: TStream; Value: Byte); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-begin
-  Stream.Write(Value, SizeOf(Byte));
-end;
-
-procedure WriteBigEndianWord(Stream: TStream; Value: Word); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-begin
-  Value := Swap16(Value);
-  Stream.Write(Value, SizeOf(Word));
-end;
-
-procedure WriteBigEndianSmallInt(Stream: TStream; Value: SmallInt); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-begin
-  Value := Swap16(Value);
-  Stream.Write(Value, SizeOf(SmallInt));
-end;
-
-procedure WriteBigEndianCardinal(Stream: TStream; Value: Cardinal); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-begin
-  Value := Swap32(Value);
-  Stream.Write(Value, SizeOf(Cardinal));
-end;
-
-procedure WriteBigEndianInt64(Stream: TStream; Value: Int64); {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-begin
-  Value := Swap64(Value);
-  Stream.Write(Value, SizeOf(Int64));
-end;
-
 
 //------------------------------------------------------------------------------
 //
@@ -148,23 +115,30 @@ const
 //------------------------------------------------------------------------------
 // RAW compression (i.e. no compression)
 //------------------------------------------------------------------------------
-function WriteScanlineRAW(AStream: TStream; const ABuffer; Width: integer): Cardinal;
+type
+  CompressionRAW = record
+    class function WriteScanline(AStream: TStream; const ABuffer; Width: integer): Cardinal; static;
+    class procedure WriteChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer); static;
+    class procedure WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer); static;
+  end;
+
+class function CompressionRAW.WriteScanline(AStream: TStream; const ABuffer; Width: integer): Cardinal;
 begin
   Result := AStream.Write(ABuffer, Width);
 end;
 
-procedure WriteChannelRAW(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
+class procedure CompressionRAW.WriteChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
 var
   i: integer;
 begin
   for i := 0 to ALayer.Height - 1 do
   begin
     TPhotoshopLayerCracker(ALayer).GetChannelScanLine(AChannel, i, ABuffer);
-    WriteScanlineRAW(AStream, ABuffer, ALayer.Width);
+    WriteScanline(AStream, ABuffer, ALayer.Width);
   end;
 end;
 
-procedure WriteBitmapRAW(AStream: TStream; ALayer: TCustomPhotoshopLayer);
+class procedure CompressionRAW.WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer);
 var
   ScanLineBuffer: TBytesArray;
   Channel: TColor32Component;
@@ -176,7 +150,7 @@ begin
     for i := 0 to ALayer.Height - 1 do
     begin
       TPhotoshopLayerCracker(ALayer).GetChannelScanLine(Channel, i, ScanLineBuffer[0]);
-      WriteScanlineRAW(AStream, ScanLineBuffer[0], ALayer.Width);
+      WriteScanline(AStream, ScanLineBuffer[0], ALayer.Width);
     end;
 end;
 
@@ -203,6 +177,7 @@ end;
 function TPackBitsStream.Read(var Buffer; Count: Longint): Longint;
 begin
   Assert(False, 'Not implemented');
+  Result := 0;
 end;
 
 function TPackBitsStream.Write(const Buffer; Count: Longint): Longint;
@@ -213,7 +188,7 @@ const
   PackBase = 257;
   PackSign = -1;
 var
-  Index: Cardinal;
+  Index: Int64;
   RunCount: Byte;
   RunValue: Byte;
   StartIndex: integer;
@@ -270,14 +245,20 @@ begin
         RunValue := TByteArray(Buffer)[Index];
       end;
 
-      WriteByte(FStream, RunCount-1);
+      BigEndian.WriteByte(FStream, RunCount-1);
       FStream.Write(TByteArray(Buffer)[StartIndex], RunCount);
       Inc(Result, RunCount+1);
     end;
   end;
 end;
 
-procedure WriteChannelRLE(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
+type
+  CompressionRLE = record
+    class procedure WriteChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer); static;
+    class procedure WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer); static;
+  end;
+
+class procedure CompressionRLE.WriteChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
 var
   i: integer;
   RowTablePos: Int64;
@@ -315,7 +296,7 @@ begin
   AStream.Position := SavePos;
 end;
 
-procedure WriteBitmapRLE(AStream: TStream; ALayer: TCustomPhotoshopLayer);
+class procedure CompressionRLE.WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer);
 var
   ScanLineBuffer: TBytesArray;
   Channel: TColor32Component;
@@ -365,7 +346,13 @@ end;
 //------------------------------------------------------------------------------
 // ZIP compression
 //------------------------------------------------------------------------------
-procedure WriteChannelZIP(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
+type
+  CompressionZIP = record
+    class procedure WriteChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer); static;
+    class procedure WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer); static;
+  end;
+
+class procedure CompressionZIP.WriteChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
 var
   i: integer;
   Stream: TStream;
@@ -382,7 +369,7 @@ begin
   end;
 end;
 
-procedure WriteBitmapZIP(AStream: TStream; ALayer: TCustomPhotoshopLayer);
+class procedure CompressionZIP.WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer);
 var
   ScanLineBuffer: TBytesArray;
   Stream: TStream;
@@ -410,13 +397,13 @@ function GetLayerWriter(ALayer: TCustomPhotoshopLayer): TPSDChannelWriterDelegat
 begin
   case ALayer.Compression of
     lcRLE:
-      Result := WriteChannelRLE;
+      Result := CompressionRLE.WriteChannel;
 
     lcZIP:
-      Result := WriteChannelZIP;
+      Result := CompressionZIP.WriteChannel;
 
     lcRAW:
-      Result := WriteChannelRAW;
+      Result := CompressionRAW.WriteChannel;
   else
     raise EPhotoshopDocument.CreateFmt('Unsupported compression method: %d', [Ord(ALayer.Compression)]);
   end;
@@ -426,13 +413,13 @@ function GetBitmapWriter(ALayer: TCustomPhotoshopLayer): TPSDBitmapWriterDelegat
 begin
   case ALayer.Compression of
     lcRLE:
-      Result := WriteBitmapRLE;
+      Result := CompressionRLE.WriteBitmap;
 
     lcZIP:
-      Result := WriteBitmapZIP;
+      Result := CompressionZIP.WriteBitmap;
 
     lcRAW:
-      Result := WriteBitmapRAW;
+      Result := CompressionRAW.WriteBitmap;
   else
     raise EPhotoshopDocument.CreateFmt('Unsupported compression method: %d', [Ord(ALayer.Compression)]);
   end;
@@ -478,7 +465,7 @@ var
 
   function WriteAnsiText(const AText: AnsiString): Cardinal;
   begin
-    WriteByte(AStream, Length(AText));
+    BigEndian.WriteByte(AStream, Length(AText));
     Result := WriteRawAnsiString(AText) + 1;
   end;
 
@@ -486,9 +473,9 @@ var
   var
     c: Char;
   begin
-    WriteBigEndianCardinal(AStream, Length(AText));
+    BigEndian.WriteCardinal(AStream, Length(AText));
     for c in AText do
-      WriteBigEndianWord(AStream, Ord(c));
+      BigEndian.WriteWord(AStream, Ord(c));
     c := #0;
     AStream.Write(c, SizeOf(Char));
     Result := (Length(AText)+1) * SizeOf(Char) + SizeOf(Cardinal);
@@ -496,7 +483,7 @@ var
 
   procedure WriteBeginSection;
   begin
-    WriteBigEndianCardinal(AStream, 0); // field slot
+    BigEndian.WriteCardinal(AStream, 0); // field slot
     SectionsCaptures.Push(AStream.Position);
   end;
 
@@ -533,9 +520,9 @@ var
     if t <> 0 then
       Arr[L - 1] := $FF00 or byte(-t + 1);
 
-    WriteBigEndianWord(AStream, PSD_COMPRESSION_RLE);
+    BigEndian.WriteWord(AStream, PSD_COMPRESSION_RLE);
     for i := 0 to AHeight * PSD_CHANNELS - 1 do // rleLengthsTable
-      WriteBigEndianWord(AStream, L * SizeOf(Word));
+      BigEndian.WriteWord(AStream, L * SizeOf(Word));
 
     for i := 0 to AHeight * PSD_CHANNELS - 1 do // rleData
       AStream.Write(Pointer(Arr)^, L * SizeOf(Word));
@@ -560,7 +547,7 @@ var
       begin
         SavePos := AStream.Position;
 
-        WriteBigEndianWord(AStream, Ord(ALayer.Compression));
+        BigEndian.WriteWord(AStream, Ord(ALayer.Compression));
         LayerWriter(AStream, Channel, ALayer, ScanLineBuffer[0]);
 
         Size := AStream.Position - SavePos;
@@ -600,12 +587,12 @@ var
 
   procedure WriteLayerRecord(ALayer: TCustomPhotoshopLayer; var AChannelsInfoPos: Int64);
   begin
-    WriteBigEndianCardinal(AStream, ALayer.Top); // top
-    WriteBigEndianCardinal(AStream, ALayer.Left); // left
-    WriteBigEndianCardinal(AStream, ALayer.Top + ALayer.Height); // bottom
-    WriteBigEndianCardinal(AStream, ALayer.Left + ALayer.Width); // right
+    BigEndian.WriteCardinal(AStream, ALayer.Top); // top
+    BigEndian.WriteCardinal(AStream, ALayer.Left); // left
+    BigEndian.WriteCardinal(AStream, ALayer.Top + ALayer.Height); // bottom
+    BigEndian.WriteCardinal(AStream, ALayer.Left + ALayer.Width); // right
 
-    WriteBigEndianWord(AStream, PSD_CHANNELS);
+    BigEndian.WriteWord(AStream, PSD_CHANNELS);
 
     // Make room for channel info list. Later updated in WriteLayerImage
     AChannelsInfoPos := AStream.Position;
@@ -613,18 +600,18 @@ var
 
     WriteRawAnsiString('8BIM'); // signature
     WriteRawAnsiString(PSDBlendModeMapping[ALayer.BlendMode]); // blend mode
-    WriteByte(AStream, ALayer.Opacity); // opacity
-    WriteByte(AStream, Ord(ALayer.Clipping)); // clipping
-    WriteByte(AStream, byte(ALayer.Options)); // Options
-    WriteByte(AStream, 0); // Filler
+    BigEndian.WriteByte(AStream, ALayer.Opacity); // opacity
+    BigEndian.WriteByte(AStream, Ord(ALayer.Clipping)); // clipping
+    BigEndian.WriteByte(AStream, byte(ALayer.Options)); // Options
+    BigEndian.WriteByte(AStream, 0); // Filler
 
     // variable section
     WriteBeginSection; // extralength field
     begin
 
-      WriteBigEndianCardinal(AStream, 0); // layer mask
+      BigEndian.WriteCardinal(AStream, 0); // layer mask
 
-      WriteBigEndianCardinal(AStream, 0); // blending ranges
+      BigEndian.WriteCardinal(AStream, 0); // blending ranges
 
       // name of layer - ANSI
       WriteLayerName(AnsiString(ALayer.Name), 4);
@@ -648,7 +635,7 @@ var
     WriteBeginSection(); // layerInfoLength field
     begin
 
-      WriteBigEndianWord(AStream, ADocument.Layers.Count); // Layers count
+      BigEndian.WriteWord(AStream, ADocument.Layers.Count); // Layers count
 
       SetLength(ChannelsInfoPos, ADocument.Layers.Count);
 
@@ -666,7 +653,7 @@ var
   begin
     if ADocument.Layers.Count = 0 then
     begin
-      WriteBigEndianCardinal(AStream, 0);
+      BigEndian.WriteCardinal(AStream, 0);
       exit;
     end;
 
@@ -674,7 +661,7 @@ var
     begin
       WriteLayerInfo;
 
-      WriteBigEndianCardinal(AStream, 0); // global Mask .. optional
+      BigEndian.WriteCardinal(AStream, 0); // global Mask .. optional
 
       // * global extra layer info '8BIM'
 
@@ -690,7 +677,7 @@ var
 
     ADocument.Background.BeginScan;
     begin
-      WriteBigEndianWord(AStream, Ord(ADocument.Background.Compression));
+      BigEndian.WriteWord(AStream, Ord(ADocument.Background.Compression));
       BitmapWriter(AStream, ADocument.Background);
     end;
     ADocument.Background.EndScan;
@@ -699,19 +686,19 @@ var
 begin
   // Header
   WriteRawAnsiString('8BPS');
-  WriteBigEndianWord(AStream, PSD_VERSION_PSD);
+  BigEndian.WriteWord(AStream, PSD_VERSION_PSD);
   WritePadding(6); // unused
-  WriteBigEndianWord(AStream, PSD_CHANNELS);// PSD_CHANNELS
-  WriteBigEndianCardinal(AStream, ADocument.Height); // height
-  WriteBigEndianCardinal(AStream, ADocument.Width); // width
-  WriteBigEndianWord(AStream, 8);// bit depth
-  WriteBigEndianWord(AStream, PSD_RGB);// color mode RGB = 3
+  BigEndian.WriteWord(AStream, PSD_CHANNELS);// PSD_CHANNELS
+  BigEndian.WriteCardinal(AStream, ADocument.Height); // height
+  BigEndian.WriteCardinal(AStream, ADocument.Width); // width
+  BigEndian.WriteWord(AStream, 8);// bit depth
+  BigEndian.WriteWord(AStream, PSD_RGB);// color mode RGB = 3
 
   // color mode Table
-  WriteBigEndianCardinal(AStream, 0);
+  BigEndian.WriteCardinal(AStream, 0);
 
   // resources
-  WriteBigEndianCardinal(AStream, 0);
+  BigEndian.WriteCardinal(AStream, 0);
 
   SectionsCaptures := TStack<Int64>.Create;
   try

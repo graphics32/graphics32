@@ -6,7 +6,21 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
   GR32,
-  GR32_Image;
+  GR32_Image,
+  GR32_Layers;
+
+type
+  TRectangles = array of TRect;
+
+  // A simple custom paint layer used to visualize the tile rectangles
+  TTileLayer = class(TCustomLayer)
+  private
+    FRectangles: TRectangles;
+  protected
+    procedure Paint(Buffer: TBitmap32); override;
+  public
+    procedure SetRectangles(const ARectangles: TRectangles);
+  end;
 
 type
   TFormMain = class(TForm)
@@ -14,12 +28,15 @@ type
     Panel1: TPanel;
     ButtonOpen: TButton;
     ImgView: TImgView32;
+    CheckBoxViewTiles: TCheckBox;
     procedure ButtonSaveClick(Sender: TObject);
     procedure ButtonOpenClick(Sender: TObject);
+    procedure CheckBoxViewTilesClick(Sender: TObject);
   private
-
+    FRectangles: TRectangles;
+    FTileLayer: TTileLayer;
   public
-
+    constructor Create(AOwner: TComponent); override;
   end;
 
 var
@@ -30,13 +47,14 @@ implementation
 {$R *.dfm}
 
 uses
+  Types,
   GR32.ImageFormats,
   GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG,
   GR32.ImageFormats.PNG;
 
-procedure ExportRectangles(ABitmap: TCustomBitmap32; const ARectangles: array of TRect);
+procedure ExportTiles(ABitmap: TCustomBitmap32; const ARectangles: TRectangles);
 var
   Writer: IImageFormatWriter;
   FileInfo: IImageFormatFileInfo;
@@ -65,7 +83,7 @@ begin
     // This creates the PSD background image and set the size of the PSD image
     PSD.Assign(ABitmap);
 
-    // Create a layer for each of the rectangles
+    // Create a layer for each of the tiles
     for i := 0 to High(ARectangles) do
     begin
       PSDLayer := PSD.Layers.Add;
@@ -93,25 +111,81 @@ begin
   end;
 end;
 
+{ TTileLayer }
+
+procedure TTileLayer.SetRectangles(const ARectangles: TRectangles);
+begin
+  FRectangles := ARectangles;
+  Changed;
+end;
+
+procedure TTileLayer.Paint(Buffer: TBitmap32);
+var
+  i: integer;
+  r: TFloatRect;
+begin
+  for i := 0 to High(FRectangles) do
+  begin
+    r := FloatRect(FRectangles[i]);
+
+    // Rectangle is in bitmap coordinates. Translate it to viewport coordinates
+    r.TopLeft := LayerCollection.LocalToViewport(r.TopLeft, True);
+    r.BottomRight := LayerCollection.LocalToViewport(r.BottomRight, True);
+
+    // Outline the tile as a semitransparent red rectangle
+    Buffer.FrameRectTS(MakeRect(r), clTrRed32);
+  end;
+end;
+
+{ TFormMain }
+
+procedure TFormMain.CheckBoxViewTilesClick(Sender: TObject);
+begin
+  FTileLayer.Visible := TCheckBox(Sender).Checked;
+end;
+
+constructor TFormMain.Create(AOwner: TComponent);
+begin
+  inherited;
+  FTileLayer := TTileLayer.Create(ImgView.Layers);
+  FTileLayer.Visible := False;
+end;
+
 procedure TFormMain.ButtonOpenClick(Sender: TObject);
 var
   Filter: string;
   Filename: string;
+
+  X, Y: integer;
+  SizeX, SizeY: integer;
 begin
   Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True);
 
-  if PromptForFilename(Filename, Filter) then
-  begin
-    ImgView.Bitmap.LoadFromFile(Filename);
-    ImgView.Bitmap.DrawMode := dmBlend;
-  end;
+  if not PromptForFilename(Filename, Filter) then
+    exit;
+
+  ImgView.Bitmap.LoadFromFile(Filename);
+  ImgView.Bitmap.DrawMode := dmBlend;
+
+  // Divide the bitmap into 3*3=9 equally sized tiles
+  SizeX := ImgView.Bitmap.Width div 3;
+  SizeY := ImgView.Bitmap.Height div 3;
+
+  SetLength(FRectangles, 9);
+
+  // Note that due to rounding the tiles might not cover the whole bitmap.
+  // For example a 100*100 bitmap will be divided into nine 33*33 tiles
+  // thus not covering the last column and the last row.
+  for Y := 0 to 2 do
+    for X := 0 to 2 do
+      FRectangles[Y * 3 + X] := Bounds(X * SizeX, Y * SizeY, SizeX, SizeY);
+
+  // Pass the rectangles to the custom paint layer so it can draw them
+  FTileLayer.SetRectangles(FRectangles);
 end;
 
 procedure TFormMain.ButtonSaveClick(Sender: TObject);
 var
-  X, Y: integer;
-  SizeX, SizeY: integer;
-  Rectangles: array of TRect;
   Bitmap: TCustomBitmap32;
 begin
   Bitmap := ImgView.Bitmap;
@@ -119,19 +193,7 @@ begin
   if Bitmap.Empty then
     Exit;
 
-  // Divide the bitmap into 3*3=9 equally sized rectangles
-  SizeX := Bitmap.Width div 3;
-  SizeY := Bitmap.Height div 3;
-
-  SetLength(Rectangles, 9);
-
-  for Y := 0 to 2 do
-    for X := 0 to 2 do
-      Rectangles[Y * 3 + X] := Bounds(X * SizeX, Y * SizeY, SizeX, SizeY);
-
-  ExportRectangles(Bitmap, Rectangles);
+  ExportTiles(Bitmap, FRectangles);
 end;
-
-
 
 end.

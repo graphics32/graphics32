@@ -76,11 +76,16 @@ procedure StackFree(P: Pointer); register;
 {$ENDIF}
 
 { Exchange two 32-bit values }
-procedure Swap(var A, B: Pointer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-procedure Swap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-procedure Swap(var A, B: TFixed); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-procedure Swap(var A, B: TColor32); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-procedure Swap32(var A, B); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: Pointer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: TFixed); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: TColor32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap32(var A, B); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+{ Convert little-endian <-> big-endian }
+function Swap16(Value: Word): Word; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function Swap32(Value: Cardinal): Cardinal; overload; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+function Swap64(Value: Int64): Int64; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
 
 { Exchange A <-> B only if B < A }
 procedure TestSwap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -599,6 +604,50 @@ begin
   T := Integer(A);
   Integer(A) := Integer(B);
   Integer(B) := T;
+end;
+
+function Swap16(Value: Word): Word; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
+{$IFDEF SUPPORTS_INLINE}
+begin
+  Result := System.Swap(Value);
+{$ELSE}
+{$IFDEF PUREPASCAL}
+begin
+  Result := System.Swap(Value);
+{$ELSE}
+asm
+  {$IFDEF TARGET_x64}
+  MOV     EAX, ECX
+  {$ENDIF}
+  XCHG    AL, AH
+  {$ENDIF}
+{$ENDIF}
+end;
+
+function Swap32(Value: Cardinal): Cardinal;
+{$IFDEF PUREPASCAL}
+type
+  TTwoWords = array [0..1] of Word;
+begin
+  TTwoWords(Result)[1] := System.Swap(TTwoWords(Value)[0]);
+  TTwoWords(Result)[0] := System.Swap(TTwoWords(Value)[1]);
+{$ELSE}
+asm
+  {$IFDEF TARGET_x64}
+  MOV     EAX, ECX
+  {$ENDIF}
+  BSWAP   EAX
+{$ENDIF}
+end;
+
+function Swap64(Value: Int64): Int64;
+type
+  TFourWords = array [0..3] of Word;
+begin
+  TFourWords(Result)[3] := System.Swap(TFourWords(Value)[0]);
+  TFourWords(Result)[2] := System.Swap(TFourWords(Value)[1]);
+  TFourWords(Result)[1] := System.Swap(TFourWords(Value)[2]);
+  TFourWords(Result)[0] := System.Swap(TFourWords(Value)[3]);
 end;
 
 procedure TestSwap(var A, B: Integer);

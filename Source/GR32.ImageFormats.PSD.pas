@@ -104,6 +104,7 @@ type
 type
   EPhotoshopDocument = class(Exception);
 
+
 //------------------------------------------------------------------------------
 //
 //      TCustomPhotoshopLayer
@@ -171,6 +172,7 @@ type
 
   TPhotoshopLayerClass = class of TCustomPhotoshopLayer;
 
+
 //------------------------------------------------------------------------------
 //
 //      TPhotoshopDocument
@@ -233,14 +235,28 @@ type
 
     // Layers: The individual PSD layers
     property Layers: TPhotoshopLayers read FLayers;
-    // Background: An optional preview of the flattened image.
+
+    // Background: A composite of the flattened image.
+    // If the document contains no layers this is the primary image. Otherwise
+    // it is usually just used as a preview of the image. Applications that
+    // cannot handle layers will often just load this bitmap and ignore the
+    // layers, while application that does handle layers will ignore the
+    // background if the image contains layers. For this reason you should only
+    // omit the background if you are sure that the reader will not require it.
+    // If no background is specified then a fully transparent bitmap will be
+    // saved in its place.
     property Background: TCustomPhotoshopLayer read FBackground write SetBackground;
 
     // Default background and layer compression. Initialized to the
     // value of DefaultCompression.
     property Compression: TPSDLayerCompression read FCompression write SetCompression;
 
+    // DefaultLayerClass: The type of layer create when calling Layers.Add
+    // with no layer type specified.
     class property DefaultLayerClass: TPhotoshopLayerClass read FDefaultLayerClass write FDefaultLayerClass;
+
+    // DefaultCompression: The default background and layer compression used
+    // if no explicit compression type is specified.
     class property DefaultCompression: TPSDLayerCompression read FDefaultCompression write FDefaultCompression;
   end;
 
@@ -251,7 +267,7 @@ type
 //
 //------------------------------------------------------------------------------
 // Layer wrapping a TBitmap32
-// Note that the layer only references the bitmap; It doesn't own it.
+// Note that by default the layer only references the bitmap; It doesn't own it.
 //------------------------------------------------------------------------------
 type
   TPhotoshopLayer32 = class(TCustomPhotoshopLayer)
@@ -271,8 +287,14 @@ type
     destructor Destroy; override;
 
     property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
+
+    // OwnsBitmap: Specifies if the layers owns the bit referenced by
+    // the Bitmap property. Default: False
     property OwnsBitmap: boolean read FOwnsBitmap write FOwnsBitmap;
 
+    // SourceRect: The area of the bitmap used to produce the layer bitmap.
+    // By default the whole bitmap is used, but SourceRect can be used to
+    // only use a section of it.
     property SourceRect: TRect read GetSourceRect write SetSourceRect;
   end;
 
@@ -282,12 +304,20 @@ type
 //      Construct a TPhotoshopDocument from a TCustomImage32
 //
 //------------------------------------------------------------------------------
+// The function produces a PSD where the background is the composite of the
+// TCustomImage32 and its layers (i.e. a flattened view of the image) and one
+// PSD layer for each bitmap layer in the TCustomImage32.
+//------------------------------------------------------------------------------
 procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument); overload;
+
 
 //------------------------------------------------------------------------------
 //
 //      Construct a TPhotoshopDocument from a TBitmap32
 //
+//------------------------------------------------------------------------------
+// The function produces a PSD with no layers but with a background based on the
+// bitmap.
 //------------------------------------------------------------------------------
 procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument); overload;
 

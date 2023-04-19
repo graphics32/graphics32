@@ -125,72 +125,11 @@ type
 
 
 //------------------------------------------------------------------------------
-//
-//      Big-endian support
-//
-//------------------------------------------------------------------------------
-// Various swap functions for converting big-endian data
-//------------------------------------------------------------------------------
-function Swap16(Value: Word): Word; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-function Swap32(Value: Cardinal): Cardinal; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-function Swap64(Value: Int64): Int64; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-
-
-//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 implementation
 
-
-//------------------------------------------------------------------------------
-//
-//      Big-endian support
-//
-//------------------------------------------------------------------------------
-function Swap16(Value: Word): Word; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF}
-{$IFDEF SUPPORTS_INLINE}
-begin
-  Result := Swap(Value);
-{$ELSE}
-{$IFDEF PUREPASCAL}
-begin
-  Result := Swap(Value);
-{$ELSE}
-asm
-  {$IFDEF CPUx86_64}
-  MOV     EAX, ECX
-  {$ENDIF}
-  XCHG    AL, AH
-  {$ENDIF}
-  {$ENDIF}
-end;
-
-function Swap32(Value: Cardinal): Cardinal;
-{$IFDEF PUREPASCAL}
-type
-  TTwoWords = array [0..1] of Word;
-begin
-  TTwoWords(Result)[1] := Swap(TTwoWords(Value)[0]);
-  TTwoWords(Result)[0] := Swap(TTwoWords(Value)[1]);
-{$ELSE}
-asm
-  {$IFDEF CPUx86_64}
-  MOV     EAX, ECX
-  {$ENDIF}
-  BSWAP   EAX
-  {$ENDIF}
-end;
-
-function Swap64(Value: Int64): Int64;
-type
-  TFourWords = array [0..3] of Word;
-begin
-  TFourWords(Result)[3] := Swap(TFourWords(Value)[0]);
-  TFourWords(Result)[2] := Swap(TFourWords(Value)[1]);
-  TFourWords(Result)[1] := Swap(TFourWords(Value)[2]);
-  TFourWords(Result)[0] := Swap(TFourWords(Value)[3]);
-end;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
