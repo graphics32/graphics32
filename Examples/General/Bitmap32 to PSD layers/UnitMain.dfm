@@ -9,7 +9,7 @@ object FormMain: TFormMain
   ParentFont = True
   OldCreateOrder = True
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 15
   object Panel1: TPanel
     Left = 0
     Top = 0
@@ -21,23 +21,23 @@ object FormMain: TFormMain
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
-    object BSave: TButton
+    object ButtonSave: TButton
       Left = 89
       Top = 4
       Width = 75
       Height = 24
       Caption = '&Save'
       TabOrder = 0
-      OnClick = BSaveClick
+      OnClick = ButtonSaveClick
     end
-    object BOpen: TButton
+    object ButtonOpen: TButton
       Left = 8
       Top = 4
       Width = 75
       Height = 24
       Caption = '&Open'
       TabOrder = 1
-      OnClick = BOpenClick
+      OnClick = ButtonOpenClick
     end
   end
   object ImgView: TImgView32

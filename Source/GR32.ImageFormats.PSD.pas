@@ -139,6 +139,10 @@ type
     procedure SetUseDocumentCompression(const Value: boolean);
 
     procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes); virtual; abstract;
+    function GetHeight: Integer; virtual;
+    function GetWidth: Integer; virtual;
+    procedure SetHeight(const Value: Integer); virtual;
+    procedure SetWidth(const Value: Integer); virtual;
   public
     constructor Create(ADocument: TPhotoshopDocument = nil); virtual;
     destructor Destroy; override;
@@ -154,8 +158,8 @@ type
     property BoundsRect: TRect read GetBoundsRect write SetBoundsRect;
     property Top: integer read FTop write FTop;
     property Left: integer read FLeft write FLeft;
-    property Height: integer read FHeight write FHeight;
-    property Width: integer read FWidth write FWidth;
+    property Height: Integer read GetHeight write SetHeight;
+    property Width: Integer read GetWidth write SetWidth;
     property Name: string read FName write FName;
     property BlendMode: TPSDLayerBlendMode read FBlendMode write FBlendMode;
     property Opacity: Byte read FOpacity write FOpacity;
@@ -254,14 +258,22 @@ type
   private
     FBitmap: TCustomBitmap32;
     FOwnsBitmap: boolean;
+    FSourceTop: integer;
+    FSourceLeft: integer;
   protected
     procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes); override;
+    function GetHeight: Integer; override;
+    function GetWidth: Integer; override;
     procedure SetBitmap(const Value: TCustomBitmap32);
+    function GetSourceRect: TRect;
+    procedure SetSourceRect(const Value: TRect);
   public
     destructor Destroy; override;
 
     property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
     property OwnsBitmap: boolean read FOwnsBitmap write FOwnsBitmap;
+
+    property SourceRect: TRect read GetSourceRect write SetSourceRect;
   end;
 
 
@@ -556,6 +568,26 @@ begin
   SetBounds(Value.Left, Value.Top, Value.Width, Value.Height);
 end;
 
+function TCustomPhotoshopLayer.GetHeight: Integer;
+begin
+  Result := FHeight;
+end;
+
+function TCustomPhotoshopLayer.GetWidth: Integer;
+begin
+  Result := FWidth;
+end;
+
+procedure TCustomPhotoshopLayer.SetHeight(const Value: Integer);
+begin
+  FHeight := Value;
+end;
+
+procedure TCustomPhotoshopLayer.SetWidth(const Value: Integer);
+begin
+  FWidth := Value;
+end;
+
 procedure TCustomPhotoshopLayer.SetCompression(const Value: TPSDLayerCompression);
 begin
   if (Value = lcPredictedZIP) then
@@ -740,8 +772,8 @@ end;
 
 procedure TPhotoshopDocument.SetSize(AWidth, AHeight: Integer);
 begin
-  FWidth := AWidth;
-  FHeight := AHeight;
+  Width := AWidth;
+  Height := AHeight;
 end;
 
 
@@ -750,20 +782,6 @@ end;
 //      TPhotoshopLayer32
 //
 //------------------------------------------------------------------------------
-procedure TPhotoshopLayer32.SetBitmap(const Value: TCustomBitmap32);
-begin
-  if (FOwnsBitmap) and (FBitmap <> nil) then
-    FBitmap.Free;
-
-  FBitmap := Value;
-
-  if (FBitmap <> nil) then
-  begin
-    Width := FBitmap.Width;
-    Height := FBitmap.Height;
-  end;
-end;
-
 destructor TPhotoshopLayer32.Destroy;
 begin
   if (FOwnsBitmap) then
@@ -772,22 +790,44 @@ begin
   inherited;
 end;
 
+procedure TPhotoshopLayer32.SetBitmap(const Value: TCustomBitmap32);
+begin
+  if (FOwnsBitmap) and (FBitmap <> nil) then
+    FBitmap.Free;
+
+  FBitmap := Value;
+
+  FSourceTop := 0;
+  FSourceLeft := 0;
+  if (FBitmap <> nil) then
+  begin
+    Height := FBitmap.Height;
+    Width := FBitmap.Width;
+  end else
+  begin
+    Height := 0;
+    Width := 0;
+  end;
+end;
+
 procedure TPhotoshopLayer32.GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes);
 var
   Count: integer;
   pDest: PByte;
   pSource: PByte;
 begin
+  if (Width = 0) or (Height = 0) then
+    Exit;
+
   if (Bitmap = nil) then
   begin
     FillChar(Bytes, Width, $FF);
     Exit;
   end;
 
-  Assert(Width = Bitmap.Width);
-
-  pSource := @(PColor32Entry(Bitmap.ScanLine[ALine]).Components[AChannel]);
   pDest := @Bytes;
+  pSource := @(PColor32Entry(Bitmap.ScanLine[ALine + FSourceTop]).Components[AChannel]);
+  Inc(pSource, FSourceLeft * SizeOf(TColor32));
 
   Count := Width;
   while (Count > 0) do
@@ -798,6 +838,62 @@ begin
     Inc(pSource, SizeOf(TColor32));
     Dec(Count);
   end;
+end;
+
+function TPhotoshopLayer32.GetSourceRect: TRect;
+begin
+  if (FBitmap <> nil) then
+  begin
+    Result.Top :=  Min(FSourceTop, FBitmap.Height);
+    Result.Left :=  Min(FSourceLeft, FBitmap.Width);
+  end else
+  begin
+    Result.Top :=  0;
+    Result.Left :=  0;
+  end;
+  Result.Width := Width;
+  Result.Height := Height;
+end;
+
+function TPhotoshopLayer32.GetHeight: Integer;
+begin
+  // Size of bitmap can have changed since assignment
+  // so we need to reevaluate the size.
+  if (FBitmap <> nil) then
+    Result := Min(inherited GetHeight, Max(0, FBitmap.Height - FSourceTop))
+  else
+    Result := 0;
+end;
+
+function TPhotoshopLayer32.GetWidth: Integer;
+begin
+  // Size of bitmap can have changed since assignment
+  // so we need to reevaluate the size.
+  if (FBitmap <> nil) then
+    Result := Min(inherited GetWidth, Max(0, FBitmap.Width - FSourceLeft))
+  else
+    Result := 0;
+end;
+
+procedure TPhotoshopLayer32.SetSourceRect(const Value: TRect);
+var
+  SourceRect: TRect;
+begin
+  if (FBitmap <> nil) then
+    IntersectRect(SourceRect, Value, FBitmap.BoundsRect)
+  else
+  begin
+    SourceRect.Top := Max(0, Value.Top);
+    SourceRect.Left := Max(0, Value.Left);
+    SourceRect.Bottom := Max(SourceRect.Bottom, Value.Top);
+    SourceRect.Right := Max(SourceRect.Right, Value.Left);
+  end;
+
+  FSourceTop := SourceRect.Top;
+  FSourceLeft := SourceRect.Left;
+
+  Width := SourceRect.Width;
+  Height := SourceRect.Height;
 end;
 
 //------------------------------------------------------------------------------
