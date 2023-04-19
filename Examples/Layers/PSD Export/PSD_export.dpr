@@ -1,7 +1,10 @@
 program PSD_export;
 
 uses
-  Vcl.Forms,
+{$ifdef FPC}
+  Interfaces,
+{$endif FPC}
+  Forms,
   UnitMain in 'UnitMain.pas' {FormMain};
 
 {$R *.res}

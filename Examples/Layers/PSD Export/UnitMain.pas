@@ -3,8 +3,9 @@ unit UnitMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Buttons,
+  {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Winapi.Windows, {$ENDIF}
+  SysUtils, Variants, Classes, Graphics,
+  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, Buttons,
   GR32,
   GR32_Image,
   GR32_Layers,
@@ -40,6 +41,36 @@ uses
   GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG;
+
+{$ifdef FPC}
+function PromptForFilename(var AFilename: string; const AFilter: string;
+  const ADefaultExt: string = ''; Dummy1: string = ''; Dummy2: string = '';
+  Save: boolean = False): boolean;
+var
+  Dialog: TOpenDialog;
+begin
+  if (Save) then
+    Dialog := TSaveDialog.Create(nil)
+  else
+    Dialog := TOpenDialog.Create(nil);
+  try
+    if (Save) then
+      Dialog.Options := [ofPathMustExist, ofOverwritePrompt]
+    else
+      Dialog.Options := [ofFileMustExist];
+    Dialog.Filter := AFilter;
+    Dialog.Filename := AFilename;
+    Dialog.DefaultExt := ADefaultExt;
+
+    Result := Dialog.Execute;
+
+    If Result then
+      AFilename := Dialog.Filename;
+  finally
+    Dialog.Free;
+  end;
+end;
+{$endif}
 
 procedure SaveToPSD(AImgView: TImgView32; ACompression: TPsdLayerCompression);
 var
@@ -136,7 +167,11 @@ var
   BitmapLayer: TBitmapLayer;
   i: Integer;
 const
+{$ifndef FPC}
   FolderMedia = '..\..\..\..\..\Media';
+{$else FPC}
+  FolderMedia = '..\..\Media';
+{$endif FPC}
 begin
   ImgView.Layers.Clear;
 

@@ -67,7 +67,11 @@ implementation
 
 uses
   Generics.Collections,
+{$ifndef FPC}
   ZLib,
+{$else FPC}
+  zstream,
+{$endif FPC}
   Math,
   SysUtils,
   GR32,

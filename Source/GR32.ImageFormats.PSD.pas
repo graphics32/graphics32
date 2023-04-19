@@ -329,7 +329,6 @@ procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotosho
 implementation
 
 uses
-  ZLib,
   Math,
   GR32_Layers,
   GR32_Backends_Generic,
@@ -408,9 +407,10 @@ begin
   Result := ['psd'];
 end;
 
-function TImageFormatAdapterPSD.ImageFormatDescription: string;
 resourcestring
   sImageFormatPSDName = 'PSD images';
+
+function TImageFormatAdapterPSD.ImageFormatDescription: string;
 begin
   Result := sImageFormatPSDName;
 end;

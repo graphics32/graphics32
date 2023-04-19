@@ -3,8 +3,9 @@ unit UnitMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
+  {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Winapi.Windows, {$ENDIF}
+  SysUtils, Variants, Classes, Graphics,
+  Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
   GR32,
   GR32_Image,
   GR32_Layers;
@@ -51,8 +52,38 @@ uses
   GR32.ImageFormats,
   GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Writer,
-  GR32.ImageFormats.JPG,
-  GR32.ImageFormats.PNG;
+  GR32.ImageFormats.JPG;
+
+{$ifdef FPC}
+function PromptForFilename(var AFilename: string; const AFilter: string;
+  const ADefaultExt: string = ''; Dummy1: string = ''; Dummy2: string = '';
+  Save: boolean = False): boolean;
+var
+  Dialog: TOpenDialog;
+begin
+  if (Save) then
+    Dialog := TSaveDialog.Create(nil)
+  else
+    Dialog := TOpenDialog.Create(nil);
+  try
+    if (Save) then
+      Dialog.Options := [ofPathMustExist, ofOverwritePrompt]
+    else
+      Dialog.Options := [ofFileMustExist];
+    Dialog.Filter := AFilter;
+    Dialog.Filename := AFilename;
+    Dialog.DefaultExt := ADefaultExt;
+
+    Result := Dialog.Execute;
+
+    If Result then
+      AFilename := Dialog.Filename;
+  finally
+    Dialog.Free;
+  end;
+end;
+{$endif}
+
 
 procedure ExportTiles(ABitmap: TCustomBitmap32; const ARectangles: TRectangles);
 var
@@ -68,7 +99,7 @@ begin
   // Find the image format writer for PSD images
   Writer := ImageFormatManager.Writers.FindWriter('psd');
 
-  // Get the FileInfo interface from it and construct a fileter for the open dialog
+  // Get the FileInfo interface from it and construct a filter for the open dialog
   if (Writer <> nil) and (Supports(Writer, IImageFormatFileInfo, FileInfo)) then
     Filter := Format('%0:s (*.%1:s)|*.%1:s', [FileInfo.ImageFormatDescription, FileInfo.ImageFormatFileTypes[0]])
   else
