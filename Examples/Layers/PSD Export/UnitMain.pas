@@ -162,6 +162,14 @@ begin
   MessageDlg('Be aware that many applications only support reading RAW and RLE compressed PSD files', mtWarning, [mbOK], 0);
 end;
 
+// the save dialog changes the current directory, ie FolderMedia is lost, so clicking second time on ButtonRandomClick raises error 
+function AppDir(const AFilename:string = ''):string;
+begin
+   Result := ExtractFileDir(ParamStr(0));
+   if AFilename <> '' then
+      Result := Result + '\' + AFilename;
+end;
+
 procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
   BitmapLayer: TBitmapLayer;
@@ -177,7 +185,7 @@ begin
 
   // First layer is a static bitmap...
   BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
-  BitmapLayer.Bitmap.LoadFromFile(FolderMedia+'\Monalisa.jpg');
+  BitmapLayer.Bitmap.LoadFromFile(AppDir(FolderMedia+'\Monalisa.jpg'));
   BitmapLayer.Bitmap.DrawMode := dmBlend;
   BitmapLayer.Bitmap.MasterAlpha := 192;
   BitmapLayer.Location := GR32.FloatRect(BitmapLayer.Bitmap.BoundsRect);
