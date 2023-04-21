@@ -509,27 +509,41 @@ var
     AStream.Position := SavePos;
   end;
 
-  procedure Fill_RLE(AWidth, AHeight: integer);
+  procedure FillEmptyImage();
   var
-    L, i, t: integer;
-    Arr: array of Word;
+    l, i, t: integer;
+    rle: array of Word;
+    raw: array of byte;
   begin
-    L := Ceil(AWidth / 128); // round up
-    SetLength(Arr, L);
+    if ADocument.Compression = lcRLE then
+    begin
+      l := Ceil(ADocument.Width / 128); // round up
+      SetLength(rle, l);
 
-    for i := 0 to L - 1 do
-      Arr[i] := $FF81;
+      for i := 0 to L - 1 do
+        rle[i] := Swap16($81FF);
 
-    t := AWidth mod 128;
-    if t <> 0 then
-      Arr[L - 1] := $FF00 or byte(-t + 1);
+      t := ADocument.Width mod 128;
+      if t <> 0 then
+        rle[L - 1] := Swap16(byte(-t + 1) shl 8 or $FF);
 
-    BigEndian.WriteWord(AStream, PSD_COMPRESSION_RLE);
-    for i := 0 to AHeight * PSD_CHANNELS - 1 do // rleLengthsTable
-      BigEndian.WriteWord(AStream, L * SizeOf(Word));
+      BigEndian.WriteWord(AStream, PSD_COMPRESSION_RLE);// RLE compression
 
-    for i := 0 to AHeight * PSD_CHANNELS - 1 do // rleData
-      AStream.Write(Pointer(Arr)^, L * SizeOf(Word));
+      for i := 0 to ADocument.Height * PSD_CHANNELS - 1 do // RLE channels info
+        BigEndian.WriteWord(AStream, l * SizeOf(Word));
+
+      for i := 0 to ADocument.Height * PSD_CHANNELS - 1 do
+        AStream.Write(Pointer(rle)^, l * SizeOf(Word));
+    end else
+    begin  // RAW no compression
+      SetLength(raw, ADocument.Width);
+      FillChar(Pointer(raw)^, ADocument.Width * PSD_CHANNELS, $FF);
+
+      BigEndian.WriteWord(AStream, PSD_COMPRESSION_NONE); // No compression
+
+      for i := 0 to ADocument.Height - 1 do
+        AStream.Write(Pointer(raw)^, ADocument.Width * PSD_CHANNELS);
+    end;
   end;
 
   procedure WriteLayerImage(ALayer: TCustomPhotoshopLayer; AChannelsInfoPos: Int64);
@@ -714,9 +728,9 @@ begin
     SectionsCaptures.Free;
   end;
 
-  // image
+  //Image
   if ADocument.Background = nil then
-    FILL_RLE(ADocument.Width, ADocument.Height)
+    FillEmptyImage()
   else
     WriteImage();
 end;
