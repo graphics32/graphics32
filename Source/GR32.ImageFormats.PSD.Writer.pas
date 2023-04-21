@@ -587,28 +587,30 @@ var
   var
     Size: integer;
   begin
-    Size := WriteAnsiText(AName); // ansi name
+    Size := WriteAnsiText(AName);
     WritePadToAlignment(Size, Align);
   end;
 
   procedure WriteLayerBeginExtraInfo(const AKey: AnsiString);
   begin
-    WriteRawAnsiString('8BIM'); // signature
-    WriteRawAnsiString(AKey); // key
-    WriteBeginSection;
+    if Length(AKey) <> 4 then
+       raise EPhotoshopDocument.CreateFmt('Invalid layer info key "%s"',[AKey]);
+    WriteRawAnsiString('8BIM'); // Signature
+    WriteRawAnsiString(AKey); // Key
+    WriteBeginSection; // Size field
   end;
 
   procedure WriteLayerEndExtraInfo();
   begin
-    WriteEndSection(2);
+    WriteEndSection(4); // Spec: should aligned by 2, applications use 4
   end;
 
   procedure WriteLayerRecord(ALayer: TCustomPhotoshopLayer; var AChannelsInfoPos: Int64);
   begin
-    BigEndian.WriteCardinal(AStream, ALayer.Top); // top
-    BigEndian.WriteCardinal(AStream, ALayer.Left); // left
-    BigEndian.WriteCardinal(AStream, ALayer.Top + ALayer.Height); // bottom
-    BigEndian.WriteCardinal(AStream, ALayer.Left + ALayer.Width); // right
+    BigEndian.WriteCardinal(AStream, ALayer.Top); // Top
+    BigEndian.WriteCardinal(AStream, ALayer.Left); // Left
+    BigEndian.WriteCardinal(AStream, ALayer.Top + ALayer.Height); // Bottom
+    BigEndian.WriteCardinal(AStream, ALayer.Left + ALayer.Width); // Right
 
     BigEndian.WriteWord(AStream, PSD_CHANNELS);
 
@@ -616,25 +618,25 @@ var
     AChannelsInfoPos := AStream.Position;
     AStream.Seek(PSD_CHANNELS * SizeOf(TPSDChannelInfo), soFromCurrent);
 
-    WriteRawAnsiString('8BIM'); // signature
-    WriteRawAnsiString(PSDBlendModeMapping[ALayer.BlendMode]); // blend mode
-    BigEndian.WriteByte(AStream, ALayer.Opacity); // opacity
-    BigEndian.WriteByte(AStream, Ord(ALayer.Clipping)); // clipping
+    WriteRawAnsiString('8BIM'); // Signature
+    WriteRawAnsiString(PSDBlendModeMapping[ALayer.BlendMode]); // Blend mode
+    BigEndian.WriteByte(AStream, ALayer.Opacity); // Opacity
+    BigEndian.WriteByte(AStream, Ord(ALayer.Clipping)); // Clipping
     BigEndian.WriteByte(AStream, byte(ALayer.Options)); // Options
-    BigEndian.WriteByte(AStream, 0); // Filler
+    BigEndian.WriteByte(AStream, 0); // Filler always 0
 
-    // variable section
-    WriteBeginSection; // extralength field
+    // Variable section
+    WriteBeginSection; // Extra data field
     begin
 
-      BigEndian.WriteCardinal(AStream, 0); // layer mask
+      BigEndian.WriteCardinal(AStream, 0); // Layer mask
 
-      BigEndian.WriteCardinal(AStream, 0); // blending ranges
+      BigEndian.WriteCardinal(AStream, 0); // Blending ranges
 
-      // name of layer - ANSI
+      // Name of layer - ANSI
       WriteLayerName(AnsiString(ALayer.Name), 4);
 
-      // *layer extra info '8BIM' sequences
+      // *Layer extra info '8BIM' sequences
       WriteLayerBeginExtraInfo('luni');
       begin
         WriteUnicodeText(ALayer.Name); // unicode layer name sequence
@@ -650,7 +652,7 @@ var
     i: integer;
     ChannelsInfoPos: array of Int64;
   begin
-    WriteBeginSection(); // layerInfoLength field
+    WriteBeginSection(); // Layer info size field
     begin
 
       BigEndian.WriteWord(AStream, ADocument.Layers.Count); // Layers count
@@ -679,7 +681,7 @@ var
     begin
       WriteLayerInfo;
 
-      BigEndian.WriteCardinal(AStream, 0); // global Mask .. optional
+      BigEndian.WriteCardinal(AStream, 0); // Global Mask .. optional
 
       // * global extra layer info '8BIM'
 
@@ -702,6 +704,8 @@ var
   end;
 
 begin
+  if (ADocument.Width = 0) or (ADocument.Height = 0) then
+     raise EPhotoshopDocument.Create('Invalid PSD document size');
   // Header
   WriteRawAnsiString('8BPS');
   BigEndian.WriteWord(AStream, PSD_VERSION_PSD);
