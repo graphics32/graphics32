@@ -509,41 +509,82 @@ var
     AStream.Position := SavePos;
   end;
 
-  procedure FillEmptyImage();
-  var
-    l, i, t: integer;
-    rle: array of Word;
-    raw: array of byte;
-  begin
-    if ADocument.Compression = lcRLE then
+  procedure WriteEmptyImage;
+
+    procedure WriteEmptyImageRLE;
+    var
+      RepeatsCount: integer;
+      RemainCount: integer;
+      i: integer;
+      RowBuffer: array of Word;
     begin
-      l := Ceil(ADocument.Width / 128); // round up
-      SetLength(rle, l);
+      BigEndian.WriteWord(AStream, PSD_COMPRESSION_RLE);
 
-      for i := 0 to L - 1 do
-        rle[i] := Swap16($81FF);
+      // Everything is repeats.
+      // How many whole 128 byte repeats do we have?
+      RepeatsCount := (ADocument.Width + 127) div 128; // round up
+      // How many bytes remaining?
+      RemainCount := ADocument.Width mod 128;
 
-      t := ADocument.Width mod 128;
-      if t <> 0 then
-        rle[L - 1] := Swap16(byte(-t + 1) shl 8 or $FF);
+      SetLength(RowBuffer, RepeatsCount);
 
-      BigEndian.WriteWord(AStream, PSD_COMPRESSION_RLE);// RLE compression
-
-      for i := 0 to ADocument.Height * PSD_CHANNELS - 1 do // RLE channels info
-        BigEndian.WriteWord(AStream, l * SizeOf(Word));
-
+      // Write row table (all 4 channels)
       for i := 0 to ADocument.Height * PSD_CHANNELS - 1 do
-        AStream.Write(Pointer(rle)^, l * SizeOf(Word));
-    end else
-    begin  // RAW no compression
-      SetLength(raw, ADocument.Width);
-      FillChar(Pointer(raw)^, ADocument.Width * PSD_CHANNELS, $FF);
+        BigEndian.WriteWord(AStream, RepeatsCount * SizeOf(Word));
 
-      BigEndian.WriteWord(AStream, PSD_COMPRESSION_NONE); // No compression
+      (*
+      ** Write RGB channels = $xxFFFFFF
+      *)
+      for i := 0 to RepeatsCount - 1 do
+        RowBuffer[i] := Swap16($81FF); // Fill with whole 128 byte repeat runs
+
+      if (RemainCount <> 0) then
+        // Replace last entry with the remaining repeat run
+        RowBuffer[RepeatsCount - 1] := Swap16(byte(-RemainCount + 1) shl 8 or $FF);
+
+      for i := 0 to ADocument.Height * (PSD_CHANNELS-1) - 1 do
+        AStream.Write(RowBuffer[0], RepeatsCount * SizeOf(Word));
+
+      (*
+      ** Write A channel = $00xxxxxx
+      *)
+      for i := 0 to RepeatsCount - 1 do
+        RowBuffer[i] := Swap16($8100); // Fill with whole 128 byte repeat runs
+
+      if (RemainCount <> 0) then
+        // Replace last entry with the remaining repeat run
+        RowBuffer[RepeatsCount - 1] := Swap16(byte(-RemainCount + 1) shl 8 or $00);
 
       for i := 0 to ADocument.Height - 1 do
-        AStream.Write(Pointer(raw)^, ADocument.Width * PSD_CHANNELS);
+        AStream.Write(RowBuffer[0], RepeatsCount * SizeOf(Word));
     end;
+
+    procedure WriteEmptyImageRAW;
+    var
+      RowBuffer: array of byte;
+      i: integer;
+    begin
+      BigEndian.WriteWord(AStream, PSD_COMPRESSION_NONE); // No compression
+
+      SetLength(RowBuffer, ADocument.Width);
+
+      // Write RGB channels = $xxFFFFFF
+      FillChar(RowBuffer[0], ADocument.Width, $FF);
+      for i := 0 to (ADocument.Height * (PSD_CHANNELS-1)) - 1 do
+        AStream.Write(RowBuffer[0], ADocument.Width);
+
+      // Write A channel = $00xxxxxx
+      FillChar(RowBuffer[0], ADocument.Width, $00);
+      for i := 0 to ADocument.Height - 1 do
+        AStream.Write(RowBuffer[0], ADocument.Width);
+    end;
+
+  begin
+    // Write an "empty" image containing ARGB=$00FFFFFF
+    if (ADocument.Compression = lcRAW) then
+      WriteEmptyImageRAW
+    else
+      WriteEmptyImageRLE;
   end;
 
   procedure WriteLayerImage(ALayer: TCustomPhotoshopLayer; AChannelsInfoPos: Int64);
@@ -594,7 +635,7 @@ var
   procedure WriteLayerBeginExtraInfo(const AKey: AnsiString);
   begin
     if Length(AKey) <> 4 then
-       raise EPhotoshopDocument.CreateFmt('Invalid layer info key "%s"',[AKey]);
+       raise EPhotoshopDocument.CreateFmt('Invalid layer info key: "%s"',[string(AKey)]);
     WriteRawAnsiString('8BIM'); // Signature
     WriteRawAnsiString(AKey); // Key
     WriteBeginSection; // Size field
@@ -602,7 +643,9 @@ var
 
   procedure WriteLayerEndExtraInfo();
   begin
-    WriteEndSection(4); // Spec: should aligned by 2, applications use 4
+    // Specs state section size should be aligned to 2 bytes.
+    // In reality it is aligned to 4 bytes and some readers complain if it isn't.
+    WriteEndSection(4);
   end;
 
   procedure WriteLayerRecord(ALayer: TCustomPhotoshopLayer; var AChannelsInfoPos: Int64);
@@ -623,7 +666,7 @@ var
     BigEndian.WriteByte(AStream, ALayer.Opacity); // Opacity
     BigEndian.WriteByte(AStream, Ord(ALayer.Clipping)); // Clipping
     BigEndian.WriteByte(AStream, byte(ALayer.Options)); // Options
-    BigEndian.WriteByte(AStream, 0); // Filler always 0
+    BigEndian.WriteByte(AStream, 0); // Filler, always 0
 
     // Variable section
     WriteBeginSection; // Extra data field
@@ -733,10 +776,10 @@ begin
   end;
 
   //Image
-  if ADocument.Background = nil then
-    FillEmptyImage()
+  if (ADocument.Background = nil) then
+    WriteEmptyImage
   else
-    WriteImage();
+    WriteImage;
 end;
 
 end.
