@@ -70,13 +70,28 @@ type
   TPaintStageEvent = procedure(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal) of object;
 
   { TPaintStage }
-  PPaintStage = ^TPaintStage;
+  TPaintStageMask = set of (
+    psmDesignTime,              // Stage is painted at design-time
+    psmRunTime,                 // Stage is painted at run-time
+    psmExport                   // Stage is painted when exporting the image via PaintTo
+  );
+
   TPaintStage = record
-    DsgnTime: Boolean;
-    RunTime: Boolean;
+  private
+    function GetDesignTime: boolean;
+    function GetRunTime: boolean;
+    procedure SetDesignTime(const Value: boolean);
+    procedure SetRunTime(const Value: boolean);
+  public
+    Mask: TPaintStageMask;
     Stage: Cardinal;             // a PST_* constant
     Parameter: Cardinal;         // an optional parameter
+
+    // Backward compatibility
+    property DsgnTime: boolean read GetDesignTime write SetDesignTime;
+    property RunTime: boolean read GetRunTime write SetRunTime;
   end;
+  PPaintStage = ^TPaintStage;
 
   { TPaintStages }
   TPaintStages = class
@@ -762,6 +777,34 @@ const
 resourcestring
   RCStrInvalidStageIndex = 'Invalid stage index';
 
+{ TPaintStage }
+
+function TPaintStage.GetDesignTime: boolean;
+begin
+  Result := (psmDesignTime in Mask);
+end;
+
+function TPaintStage.GetRunTime: boolean;
+begin
+  Result := (psmRunTime in Mask);
+end;
+
+procedure TPaintStage.SetDesignTime(const Value: boolean);
+begin
+  if (Value) then
+    Include(Mask, psmDesignTime)
+  else
+    Exclude(Mask, psmDesignTime);
+end;
+
+procedure TPaintStage.SetRunTime(const Value: boolean);
+begin
+  if (Value) then
+    Include(Mask, psmRunTime)
+  else
+    Exclude(Mask, psmRunTime);
+end;
+
 { TPaintStages }
 
 function TPaintStages.Add: PPaintStage;
@@ -773,8 +816,7 @@ begin
   Result := @FItems[L];
   with Result^ do
   begin
-    DsgnTime := False;
-    RunTime := True;
+    Mask := [psmRunTime, psmExport];
     Stage := 0;
     Parameter := 0;
   end;
@@ -830,8 +872,7 @@ begin
   Result := @FItems[Index];
   with Result^ do
   begin
-    DsgnTime := False;
-    RunTime := True;
+    Mask := [psmRunTime, psmExport];
     Stage := 0;
     Parameter := 0;
   end;
@@ -1873,6 +1914,7 @@ procedure TCustomImage32.DoPaintBuffer;
 var
   PaintStageHandlerCount: Integer;
   I, J: Integer;
+  PaintStageMask: TPaintStageMask;
   DT, RT: Boolean;
 begin
   if FRepaintOptimizer.Enabled then
@@ -1884,29 +1926,30 @@ begin
   SetLength(FPaintStageNum, FPaintStages.Count);
   PaintStageHandlerCount := 0;
 
-  DT := csDesigning in ComponentState;
-  RT := not DT;
+  if (csDesigning in ComponentState) then
+    PaintStageMask := [psmDesignTime]
+  else
+    PaintStageMask := [psmRunTime];
 
   // compile list of paintstage handler methods
   for I := 0 to FPaintStages.Count - 1 do
   begin
-    with FPaintStages[I]^ do
-      if (DsgnTime and DT) or (RunTime and RT) then
-      begin
-        FPaintStageNum[PaintStageHandlerCount] := I;
-        case Stage of
-          PST_CUSTOM: FPaintStageHandlers[PaintStageHandlerCount] := ExecCustom;
-          PST_CLEAR_BUFFER: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBuffer;
-          PST_CLEAR_BACKGND: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBackgnd;
-          PST_DRAW_BITMAP: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawBitmap;
-          PST_DRAW_LAYERS: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawLayers;
-          PST_CONTROL_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecControlFrame;
-          PST_BITMAP_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecBitmapFrame;
-        else
-          Dec(PaintStageHandlerCount); // this should not happen .
-        end;
-        Inc(PaintStageHandlerCount);
+    if (FPaintStages[I].Mask * PaintStageMask <> []) then
+    begin
+      FPaintStageNum[PaintStageHandlerCount] := I;
+      case FPaintStages[I].Stage of
+        PST_CUSTOM: FPaintStageHandlers[PaintStageHandlerCount] := ExecCustom;
+        PST_CLEAR_BUFFER: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBuffer;
+        PST_CLEAR_BACKGND: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBackgnd;
+        PST_DRAW_BITMAP: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawBitmap;
+        PST_DRAW_LAYERS: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawLayers;
+        PST_CONTROL_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecControlFrame;
+        PST_BITMAP_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecBitmapFrame;
+      else
+        Dec(PaintStageHandlerCount); // this should not happen .
       end;
+      Inc(PaintStageHandlerCount);
+    end;
   end;
 
   Buffer.BeginUpdate;
@@ -2295,7 +2338,13 @@ end;
 
 procedure TCustomImage32.ExecClearBuffer(Dest: TBitmap32; StageNum: Integer);
 begin
-  Dest.Clear(Color32(Color));
+  // By default ExecClearBuffer is never called because the PST_CLEAR_BUFFER
+  // paint stage isn't used by default.
+
+  // We skip the clear if Image.Bitmap.DrawMode=dmOpaque since the bitmap will
+  // cover the area we cleared anyway.
+  if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
+    Dest.Clear(Color32(Color));
 end;
 
 procedure TCustomImage32.ExecControlFrame(Dest: TBitmap32; StageNum: Integer);
@@ -2463,43 +2512,47 @@ end;
 
 procedure TCustomImage32.InitDefaultStages;
 begin
+  // clear buffer
+  (* Not used. PST_CLEAR_BACKGND is used instead.
+  with PaintStages.Add^ do
+  begin
+    Mask := [];
+    Stage := PST_CLEAR_BUFFER;
+  end;
+  *)
+
   // background
   with PaintStages.Add^ do
   begin
-    DsgnTime := True;
-    RunTime := True;
+    Mask := [psmRunTime, psmDesignTime]; // See issue #247
     Stage := PST_CLEAR_BACKGND;
   end;
 
   // control frame
   with PaintStages.Add^ do
   begin
-    DsgnTime := True;
-    RunTime := False;
+    Mask := [psmDesignTime];
     Stage := PST_CONTROL_FRAME;
   end;
 
   // bitmap
   with PaintStages.Add^ do
   begin
-    DsgnTime := True;
-    RunTime := True;
+    Mask := [psmRunTime, psmDesignTime, psmExport];
     Stage := PST_DRAW_BITMAP;
   end;
 
   // bitmap frame
   with PaintStages.Add^ do
   begin
-    DsgnTime := True;
-    RunTime := False;
+    Mask := [psmDesignTime];
     Stage := PST_BITMAP_FRAME;
   end;
 
   // layers
   with PaintStages.Add^ do
   begin
-    DsgnTime := True;
-    RunTime := True;
+    Mask := [psmRunTime, psmDesignTime, psmExport];
     Stage := PST_DRAW_LAYERS;
     Parameter := LOB_VISIBLE;
   end;
@@ -2698,10 +2751,30 @@ begin
 
   CacheValid := True;
 
+  //
+  // By default neither PST_CLEAR_BUFFER/ExecClearBuffer nor
+  // PST_CLEAR_BACKGND/ExecClearBackgnd is called to clear the
+  // destination bitmap.
+  //
+  // This means that we are painting the bitmap and layers onto whatever is
+  // already on the destination bitmap. This makes it possible to produce a
+  // flattened semitransparent bitmap.
+  // If an flattened opaque bitmap is desired then:
+  //
+  // - The destination bitmap can be made opaque before PaintTo is called
+  //   (i.e. cleared with the desired background color).
+  //
+  // - A opaque Image.Bitmap can be used (i.e. all pixels have Alpha=255).
+  //
+  // - Image.Bitmap.DrawMode can be set to dmOpaque (the default).
+  //
+  // See issue #248
+  //
+
   PaintToMode := True;
   try
     for I := 0 to FPaintStages.Count - 1 do
-      if FPaintStages[I].RunTime then
+      if (psmExport in FPaintStages[I].Mask) then
         case FPaintStages[I].Stage of
           PST_CUSTOM: ExecCustom(Dest, I);
           PST_CLEAR_BUFFER: ExecClearBuffer(Dest, I);
