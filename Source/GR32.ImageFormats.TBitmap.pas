@@ -44,7 +44,11 @@ implementation
 
 uses
   Classes,
+{$ifndef FPC}
   Windows,
+{$else FPC}
+  LCLType,
+{$endif FPC}
   Graphics,
   SysUtils,
   GR32,
@@ -154,6 +158,15 @@ end;
 //------------------------------------------------------------------------------
 // IImageFormatResourceReader
 //------------------------------------------------------------------------------
+type
+  TBitmapFileHeader = packed record
+    bfType: Word;
+    bfSize: DWORD;
+    bfReserved1: Word;
+    bfReserved2: Word;
+    bfOffBits: DWORD;
+  end;
+
 function TImageFormatAdapterTBitmap.LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType;
   AStream: TStream): boolean;
 var

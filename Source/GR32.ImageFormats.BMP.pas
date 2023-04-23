@@ -44,9 +44,10 @@ implementation
 
 uses
   Classes,
-  Windows,
   Graphics,
-{$ifdef FPC}
+{$ifndef FPC}
+  Windows,
+{$else FPC}
   LCLType,
 {$endif FPC}
   GR32,
