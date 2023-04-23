@@ -456,8 +456,20 @@ begin
 
   BackgroundBitmap := TBitmap32.Create(TMemoryBackend);
   try
-    // Create flattened bitmap for use as background
     BackgroundBitmap.SetSizeFrom(AImage.Bitmap);
+
+    // We clear the background with:
+    //
+    //   $00xxxxxx to make it transparent for those that can handle transparent PSD
+    //
+    //   $xxFFFFFF to make it white for those that can't handle transparent PSD
+    //
+    // Regardless, if the image contains layers and the reader can handle them, then
+    // the background is ignored; The background is only used when there are no
+    // layers or if the reader cannot handle layers.
+    BackgroundBitmap.Clear($00FFFFFF);
+
+    // Create flattened bitmap for use as background
     AImage.PaintTo(BackgroundBitmap, BackgroundBitmap.BoundsRect);
 
     PSDLayer := TPhotoshopLayer32.Create;
