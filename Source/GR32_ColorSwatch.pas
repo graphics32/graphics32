@@ -180,10 +180,7 @@ begin
 
     // eventually draw border
     if FBorder then
-    begin
       FBuffer.FrameRectTS(0, 0, FBuffer.Width, FBuffer.Height, $DF000000);
-      FBuffer.RaiseRectTS(1, 1, FBuffer.Width - 1, FBuffer.Height - 1, 20);
-    end;
 
     (FBuffer.Backend as IPaintSupport).CheckPixmap;
     FBufferValid := True;

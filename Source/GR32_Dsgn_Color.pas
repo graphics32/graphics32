@@ -38,6 +38,7 @@ interface
 
 uses
   Classes, SysUtils,
+  Generics.Collections,
 {$IFDEF FPC}
   RTLConsts, LazIDEIntf, PropEdits, Graphics, Dialogs, Forms,
   {$IFDEF Windows}
@@ -52,15 +53,13 @@ uses
 
 type
   { TColorManager }
-  PColorEntry = ^TColorEntry;
   TColorEntry = record
-    Name: string[31];
+    Name: string;
     Color: TColor32;
   end;
 
-  TColorManager = class(TList)
+  TColorManager = class(TList<TColorEntry>)
   public
-    destructor Destroy; override;
     procedure AddColor(const AName: string; AColor: TColor32);
     procedure EnumColors(Proc: TGetStrProc);
     function  FindColor(const AName: string): TColor32;
@@ -70,7 +69,6 @@ type
     procedure RemoveColor(const AName: string);
   end;
 
-{$IFDEF COMPILER2010_UP}
   TColor32Dialog = class(TCommonDialog)
   private
     FColor: TColor32;
@@ -83,13 +81,11 @@ type
     property CustomColors: TStrings read FCustomColors write SetCustomColors;
     property Ctl3D default True;
   end;
-{$ENDIF}
 
   { TColor32Property }
   TColor32Property = class(TIntegerProperty
 {$IFDEF EXT_PROP_EDIT}
-    , ICustomPropertyListDrawing, ICustomPropertyDrawing
-    {$IFDEF COMPILER2005_UP}, ICustomPropertyDrawing80{$ENDIF}
+    , ICustomPropertyListDrawing, ICustomPropertyDrawing, ICustomPropertyDrawing80
 {$ENDIF}
   )
   public
@@ -106,11 +102,9 @@ type
     { ICustomPropertyDrawing }
     procedure PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
     procedure PropDrawValue(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
-  {$IFDEF COMPILER2005_UP}
     { ICustomPropertyDrawing80 }
     function PropDrawNameRect(const ARect: TRect): TRect;
     function PropDrawValueRect(const ARect: TRect): TRect;
-  {$ENDIF}
 {$ENDIF}
   end;
 
@@ -121,103 +115,87 @@ var ColorManager: TColorManager;
 
 implementation
 
-{$IFDEF COMPILER2010_UP}
 uses
   GR32_Dsgn_ColorPicker;
-{$ENDIF}
 
 { TColorManager }
 
-destructor TColorManager.Destroy;
-var
-  I: Integer;
-begin
-  for I := 0 to Count - 1 do FreeMem(Items[I], SizeOf(TColorEntry));
-  inherited;
-end;
-
 procedure TColorManager.AddColor(const AName: string; AColor: TColor32);
 var
-  NewEntry: PColorEntry;
+  Entry: TColorEntry;
 begin
-  New(NewEntry);
-  if NewEntry = nil then
-    raise Exception.Create('Could not allocate memory for color registration!');
-  with NewEntry^ do
-  begin
-    Name := ShortString(AName);
-    Color := AColor;
-  end;
-  Add(NewEntry);
+  Entry.Name := AName;
+  Entry.Color := AColor;
+
+  Add(Entry);
 end;
 
 procedure TColorManager.EnumColors(Proc: TGetStrProc);
 var
-  I: Integer;
+  Entry: TColorEntry;
 begin
-  for I := 0 to Count - 1 do Proc(string(TColorEntry(Items[I]^).Name));
+  for Entry in Self do
+    Proc(Entry.Name);
 end;
 
 function TColorManager.FindColor(const AName: string): TColor32;
 var
-  I: Integer;
+  Entry: TColorEntry;
 begin
   Result := clBlack32;
-  for I := 0 to Count - 1 do
-    with TColorEntry(Items[I]^) do
-      if string(Name) = AName then
-      begin
-        Result := Color;
-        Break;
-      end;
+  for Entry in Self do
+    if SameText(Entry.Name, AName) then
+    begin
+      Result := Entry.Color;
+      break;
+    end;
 end;
 
 function TColorManager.GetColor(const AName: string): TColor32;
-var
-  S: string;
 
-  function HexToClr(const HexStr: string): Cardinal;
+  function HexToColor(const HexStr: string): Cardinal;
   var
-    I: Integer;
-    C: Char;
+    c: Char;
   begin
     Result := 0;
-    for I := 1 to Length(HexStr) do
+    for c in HexStr do
     begin
-      C := HexStr[I];
-      case C of
-        '0'..'9': Result := Int64(16) * Result + (Ord(C) - $30);
-        'A'..'F': Result := Int64(16) * Result + (Ord(C) - $37);
-        'a'..'f': Result := Int64(16) * Result + (Ord(C) - $57);
+      case c of
+        '0'..'9': Result := (Result shl 4) + Cardinal(Ord(c) - Ord('0'));
+        'A'..'F': Result := (Result shl 4) + Cardinal(Ord(c) - Ord('A') + 10);
+        'a'..'f': Result := (Result shl 4) + Cardinal(Ord(c) - Ord('a') + 10);
       else
-        raise EConvertError.Create('Illegal character in hex string');
+        Result := clBlack32;
+        break;
       end;
+      if (Result >= $1FFFFFFF) then
+        break; // Next digit would overflow
     end;
   end;
 
+var
+  s: string;
 begin
-  S := Trim(AName);
-  if S[1] = '$' then S := Copy(S, 2, Length(S) - 1);
-  if (S[1] = 'c') and (S[2] = 'l') then Result := FindColor(S)
+  s := Trim(AName);
+  if s[1] = '$' then
+    System.Delete(s, 1, 1);
+
+  if (s[1] = 'c') and (s[2] = 'l') then
+    Result := FindColor(s)
   else
-  try
-    Result := HexToClr(S);
-  except
-    Result := clBlack32;
-  end;
+    Result := HexToColor(s);
 end;
 
 function TColorManager.GetColorName(AColor: TColor32): string;
 var
-  I: Integer;
+  Entry: TColorEntry;
 begin
-  for I := 0 to Count - 1 do
-    with TColorEntry(Items[I]^) do
-      if Color = AColor then
-      begin
-        Result := string(TColorEntry(Items[I]^).Name);
-        Exit;
-      end;
+  for Entry in Self do
+    if Entry.Color = AColor then
+    begin
+      Result := string(Entry.Name);
+      Exit;
+    end;
   Result := '$' + IntToHex(AColor, 8);
 end;
 
@@ -385,13 +363,13 @@ end;
 
 procedure TColorManager.RemoveColor(const AName: string);
 var
-  I: Integer;
+  i: Integer;
 begin
-  for I := 0 to Count - 1 do
-    if CompareText(string(TColorEntry(Items[I]^).Name), AName) = 0 then
+  for i := 0 to Count - 1 do
+    if SameText(Items[i].Name, AName) then
     begin
-      Delete(I);
-      Break;
+      Delete(i);
+      break;
     end;
 end;
 
@@ -408,7 +386,6 @@ end;
 
 { TColor32Dialog }
 
-{$IFDEF COMPILER2010_UP}
 procedure TColor32Dialog.SetCustomColors(Value: TStrings);
 begin
   FCustomColors.Assign(Value);
@@ -428,7 +405,6 @@ begin
     ColorPicker.Free;
   end;
 end;
-{$ENDIF}
 
 
 { TColor32Property }
@@ -436,16 +412,13 @@ end;
 {$IFDEF EXT_PROP_EDIT}
 procedure TColor32Property.Edit;
 var
-{$IFDEF COMPILER2010_UP}
   ColorDialog: TColor32Dialog;
-{$ELSE}
-  ColorDialog: TColorDialog;
-{$ENDIF}
   IniFile: TRegIniFile;
 
   procedure GetCustomColors;
   begin
-    if BaseRegistryKey = '' then Exit;
+    if BaseRegistryKey = '' then
+      Exit;
     IniFile := TRegIniFile.Create(BaseRegistryKey);
     try
       IniFile.ReadSectionValues(SCustomColors, ColorDialog.CustomColors);
@@ -456,39 +429,31 @@ var
 
   procedure SaveCustomColors;
   var
-    I, P: Integer;
-    S: string;
+    i: Integer;
+    Name: string;
   begin
-    if IniFile <> nil then
-      with ColorDialog do
-        for I := 0 to CustomColors.Count - 1 do
-        begin
-          S := CustomColors.Strings[I];
-          P := Pos('=', S);
-          if P <> 0 then
-          begin
-            S := Copy(S, 1, P - 1);
-            IniFile.WriteString(SCustomColors, S, CustomColors.Values[S]);
-          end;
-        end;
+    if IniFile = nil then
+      exit;
+
+    for i := 0 to ColorDialog.CustomColors.Count - 1 do
+    begin
+      Name := ColorDialog.CustomColors.Names[i];
+      if Name <> '' then
+        IniFile.WriteString(SCustomColors, Name, ColorDialog.CustomColors.Values[Name]);
+    end;
   end;
 
 begin
   IniFile := nil;
-{$IFDEF COMPILER2010_UP}
   ColorDialog := TColor32Dialog.Create(Application);
-{$ELSE}
-  ColorDialog := TColorDialog.Create(Application);
-{$ENDIF}
   try
     GetCustomColors;
+
     ColorDialog.Color := GetOrdValue;
-    ColorDialog.HelpContext := 25010;
-{$IFNDEF COMPILER2010_UP}
-    ColorDialog.Options := [cdShowHelp];
-{$ENDIF}
+
     if ColorDialog.Execute then
       SetOrdValue(Cardinal(ColorDialog.Color));
+
     SaveCustomColors;
   finally
     IniFile.Free;
@@ -499,8 +464,7 @@ end;
 
 function TColor32Property.GetAttributes: TPropertyAttributes;
 begin
-  Result := [paMultiSelect, {$IFDEF EXT_PROP_EDIT}paDialog,{$ENDIF} paValueList,
-    paRevertable];
+  Result := [paMultiSelect, paValueList, paRevertable {$IFDEF EXT_PROP_EDIT}, paDialog{$ENDIF}];
 end;
 
 procedure TColor32Property.GetValues(Proc: TGetStrProc);
@@ -577,7 +541,6 @@ begin
         Bitmap32.FillRectT(0, 0, W, H, C);
       end;
       Bitmap32.FrameRectTS(0, 0, W, H, $DF000000);
-      Bitmap32.RaiseRectTS(1, 1, W - 1, H - 1, 20);
       Bitmap32.DrawTo(ACanvas.Handle, ARect.Left + 1, ARect.Top + 1);
     finally
       Bitmap32.Free;
@@ -604,7 +567,6 @@ begin
   DefaultPropertyDrawName(Self, ACanvas, ARect);
 end;
 
-{$IFDEF COMPILER2005_UP}
 function TColor32Property.PropDrawNameRect(const ARect: TRect): TRect;
 begin
   Result := ARect;
@@ -614,7 +576,6 @@ function TColor32Property.PropDrawValueRect(const ARect: TRect): TRect;
 begin
   Result := Rect(ARect.Left, ARect.Top, (ARect.Bottom - ARect.Top) + ARect.Left, ARect.Bottom);
 end;
-{$ENDIF}
 
 {$ENDIF}
 

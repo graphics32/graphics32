@@ -102,6 +102,8 @@ type
 
     procedure SetColor32(const Value: TColor32);
   public
+    function Execute: boolean;
+
     property Color: TColor32 read FColor write SetColor32;
   end;
 
@@ -113,10 +115,10 @@ implementation
 
 procedure TFormColorPicker.ButtonPickFromScreenClick(Sender: TObject);
 begin
-  FScreenColorPickerForm := TScreenColorPickerForm.Create(Application);
+  FScreenColorPickerForm := TScreenColorPickerForm.Create(nil);
   try
     FScreenColorPickerForm.OnMouseMove := ScreenColorPickerMouseMove;
-    if FScreenColorPickerForm.ShowModal = mrOk then
+    if FScreenColorPickerForm.Execute then
       Color := FScreenColorPickerForm.SelectedColor;
   finally
     FreeAndNil(FScreenColorPickerForm);
@@ -176,9 +178,21 @@ begin
   end;
 end;
 
+function TFormColorPicker.Execute: boolean;
+begin
+  Result := (ShowModal = mrOK);
+end;
+
 procedure TFormColorPicker.ScreenColorPickerMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
+var
+  r: TRect;
 begin
+  // Hide ourself if we are getting in the way of the screen color picker
+  r := BoundsRect;
+  InflateRect(r, 8, 8);
+  Visible := not PtInRect(r, Point(X, Y));
+
   Color := FScreenColorPickerForm.SelectedColor;
 end;
 
@@ -236,7 +250,6 @@ begin
     ColorPickerAlpha.SelectedColor := FColor and $FF000000;
     ColorPickerGTK.SelectedColor := FColor;
     ColorSwatch.Color := FColor;
-
 
   finally
     // re-enable OnChange handler
