@@ -69,19 +69,6 @@ type
     procedure RemoveColor(const AName: string);
   end;
 
-  TColor32Dialog = class(TCommonDialog)
-  private
-    FColor: TColor32;
-    FCustomColors: TStrings;
-    procedure SetCustomColors(Value: TStrings);
-  public
-    function Execute(ParentWnd: HWND): Boolean; override;
-  published
-    property Color: TColor32 read FColor write FColor default clBlack32;
-    property CustomColors: TStrings read FCustomColors write SetCustomColors;
-    property Ctl3D default True;
-  end;
-
   { TColor32Property }
   TColor32Property = class(TIntegerProperty
 {$IFDEF EXT_PROP_EDIT}
@@ -384,80 +371,21 @@ begin
 end;
 
 
-{ TColor32Dialog }
-
-procedure TColor32Dialog.SetCustomColors(Value: TStrings);
-begin
-  FCustomColors.Assign(Value);
-end;
-
-function TColor32Dialog.Execute(ParentWnd: HWND): Boolean;
-var
-  ColorPicker: TFormColorPicker;
-begin
-  ColorPicker := TFormColorPicker.Create(nil);
-  try
-    ColorPicker.Color := FColor;
-    Result := ColorPicker.ShowModal = mrOK;
-    if Result then
-      FColor := ColorPicker.Color;
-  finally
-    ColorPicker.Free;
-  end;
-end;
-
-
 { TColor32Property }
 
 {$IFDEF EXT_PROP_EDIT}
 procedure TColor32Property.Edit;
 var
-  ColorDialog: TColor32Dialog;
-  IniFile: TRegIniFile;
-
-  procedure GetCustomColors;
-  begin
-    if BaseRegistryKey = '' then
-      Exit;
-    IniFile := TRegIniFile.Create(BaseRegistryKey);
-    try
-      IniFile.ReadSectionValues(SCustomColors, ColorDialog.CustomColors);
-    except
-      { Ignore errors while reading values }
-    end;
-  end;
-
-  procedure SaveCustomColors;
-  var
-    i: Integer;
-    Name: string;
-  begin
-    if IniFile = nil then
-      exit;
-
-    for i := 0 to ColorDialog.CustomColors.Count - 1 do
-    begin
-      Name := ColorDialog.CustomColors.Names[i];
-      if Name <> '' then
-        IniFile.WriteString(SCustomColors, Name, ColorDialog.CustomColors.Values[Name]);
-    end;
-  end;
-
+  ColorPicker: TFormColorPicker;
 begin
-  IniFile := nil;
-  ColorDialog := TColor32Dialog.Create(Application);
+  ColorPicker := TFormColorPicker.Create(nil);
   try
-    GetCustomColors;
+    ColorPicker.Color := GetOrdValue;
 
-    ColorDialog.Color := GetOrdValue;
-
-    if ColorDialog.Execute then
-      SetOrdValue(Cardinal(ColorDialog.Color));
-
-    SaveCustomColors;
+    if (ColorPicker.Execute) then
+      SetOrdValue(Cardinal(ColorPicker.Color));
   finally
-    IniFile.Free;
-    ColorDialog.Free;
+    ColorPicker.Free;
   end;
 end;
 {$ENDIF}

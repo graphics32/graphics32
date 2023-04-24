@@ -1,9 +1,9 @@
 object FormColorPicker: TFormColorPicker
   Left = 0
   Top = 0
-  BorderStyle = bsDialog
+  BorderStyle = bsToolWindow
   Caption = 'Color Picker'
-  ClientHeight = 303
+  ClientHeight = 307
   ClientWidth = 563
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,7 +14,7 @@ object FormColorPicker: TFormColorPicker
   Position = poOwnerFormCenter
   DesignSize = (
     563
-    303)
+    307)
   TextHeight = 13
   object LabelWebColor: TLabel
     Left = 432
@@ -71,7 +71,7 @@ object FormColorPicker: TFormColorPicker
   end
   object PanelControl: TPanel
     Left = 0
-    Top = 270
+    Top = 274
     Width = 563
     Height = 33
     Align = alBottom
@@ -109,7 +109,6 @@ object FormColorPicker: TFormColorPicker
       Height = 23
       Anchors = [akLeft, akBottom]
       Caption = 'Pick from screen'
-      ModalResult = 1
       TabOrder = 2
       OnClick = ButtonPickFromScreenClick
     end

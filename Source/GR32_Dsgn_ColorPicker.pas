@@ -114,15 +114,25 @@ implementation
 { TFormColorPicker }
 
 procedure TFormColorPicker.ButtonPickFromScreenClick(Sender: TObject);
+var
+  SaveBounds: TRect;
 begin
+  Invalidate;
+
+  SaveBounds := BoundsRect;
+
   FScreenColorPickerForm := TScreenColorPickerForm.Create(nil);
   try
     FScreenColorPickerForm.OnMouseMove := ScreenColorPickerMouseMove;
+
     if FScreenColorPickerForm.Execute then
       Color := FScreenColorPickerForm.SelectedColor;
+
   finally
     FreeAndNil(FScreenColorPickerForm);
   end;
+
+  BoundsRect := SaveBounds;
 end;
 
 procedure TFormColorPicker.CheckBoxWebSafeClick(Sender: TObject);
@@ -186,14 +196,84 @@ end;
 procedure TFormColorPicker.ScreenColorPickerMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 var
+  FormCenter: TPoint;
+
+const
+  DMZ = 20;
+  MoveSize = 80;
+
+  procedure MoveHorizontally;
+  begin
+    if (FormCenter.X > X) then
+    begin
+      // We are to the right. Can we move more toward the right?
+      if (BoundsRect.Right + MoveSize < Monitor.BoundsRect.Right) then
+        Left := Left + MoveSize
+      else
+        // Move left of center instead
+        Left := Monitor.BoundsRect.CenterPoint.X - Width;
+    end else
+    begin
+      // We are to the left. Can we move more toward the left?
+      if (BoundsRect.Left - MoveSize > Monitor.BoundsRect.Left) then
+        Left := Left - MoveSize
+      else
+        // Move right of center instead
+        Left := Monitor.BoundsRect.CenterPoint.X;
+    end;
+  end;
+
+  procedure MoveVertically;
+  begin
+    if (FormCenter.Y > Y) then
+    begin
+      // We are at the bottom. Can we move more toward the bottom?
+      if (BoundsRect.Bottom + MoveSize < Monitor.BoundsRect.Bottom) then
+        Top := Top + MoveSize
+      else
+        // Move above center instead
+        Top := Monitor.BoundsRect.CenterPoint.Y - Height;
+    end else
+    begin
+      // We are to the top. Can we move more toward the top?
+      if (BoundsRect.Top - MoveSize > Monitor.BoundsRect.Top) then
+        Top := Top - MoveSize
+      else
+        // Move below center instead
+        Top := Monitor.BoundsRect.CenterPoint.Y;
+    end;
+  end;
+
+var
   r: TRect;
+  Collision: boolean;
 begin
-  // Hide ourself if we are getting in the way of the screen color picker
+  // Move ourself if we are getting in the way of the screen color picker
   r := BoundsRect;
-  InflateRect(r, 8, 8);
-  Visible := not PtInRect(r, Point(X, Y));
+  InflateRect(r, DMZ, DMZ);
+  if (PtInRect(r, Point(X, Y))) then
+  begin
+    FormCenter := BoundsRect.CenterPoint;
+
+    // Horizontal collision?
+    Collision := (Abs(FormCenter.X - X) - Width <= DMZ);
+
+    if (Collision) and (Y >= BoundsRect.Top) and (Y <= BoundsRect.Bottom) then
+    begin
+      MoveHorizontally;
+      FormCenter := BoundsRect.CenterPoint;
+    end;
+
+    // Vertical collision?
+    Collision :=  (Abs(FormCenter.Y - Y) - Height <= DMZ);
+
+    if (Collision) and (X >= BoundsRect.Left) and (X <= BoundsRect.Right) then
+      MoveVertically;
+  end;
 
   Color := FScreenColorPickerForm.SelectedColor;
+
+  Update;
 end;
 
 procedure TFormColorPicker.SetColor32(const Value: TColor32);

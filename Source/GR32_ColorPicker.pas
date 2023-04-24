@@ -585,14 +585,13 @@ end;
 {$IFDEF MSWINDOWS}
 function GetDesktopColor(const x, y: Integer): TColor32;
 var
-  c: TCanvas;
+  DC: HDC;
 begin
-  c := TCanvas.Create;
+  DC := GetWindowDC(GetDesktopWindow);
   try
-    c.Handle := GetWindowDC(GetDesktopWindow);
-    Result := Color32(GetPixel(c.Handle, x, y));
+    Result := Color32(GetPixel(DC, x, y));
   finally
-    c.Free;
+    ReleaseDC(GetDesktopWindow, DC);
   end;
 end;
 {$ENDIF}
@@ -685,10 +684,21 @@ end;
 
 procedure TScreenColorPickerForm.KeyDown(var Key: Word; Shift: TShiftState);
 begin
-  if (Key = VK_ESCAPE) then
-    ModalResult := mrCancel
+  case Key of
+    VK_ESCAPE:
+      begin
+        ModalResult := mrCancel;
+        Key := 0;
+      end;
+
+    VK_RETURN:
+      begin
+        ModalResult := mrOK;
+        Key := 0;
+      end;
   else
     inherited;
+  end;
 end;
 
 procedure TScreenColorPickerForm.MouseDown(Button: TMouseButton;
