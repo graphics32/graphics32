@@ -38,6 +38,10 @@ implementation
 {$R *.dfm}
 
 uses
+{$ifndef FPC}
+  System.UITypes,
+  System.Types,
+{$endif}
   GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG;

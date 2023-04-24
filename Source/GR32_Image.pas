@@ -1915,7 +1915,6 @@ var
   PaintStageHandlerCount: Integer;
   I, J: Integer;
   PaintStageMask: TPaintStageMask;
-  DT, RT: Boolean;
 begin
   if FRepaintOptimizer.Enabled then
     FRepaintOptimizer.BeginPaintBuffer;
