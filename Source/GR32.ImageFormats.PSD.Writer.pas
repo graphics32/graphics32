@@ -643,8 +643,12 @@ var
 
   procedure WriteLayerEndExtraInfo();
   begin
-    // Specs state section size should be aligned to 2 bytes.
-    // In reality it is aligned to 4 bytes and some readers complain if it isn't.
+    // Specs state section size should be aligned to 2 bytes for most sub section types:
+    //
+    //   https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_71546
+    //
+    // In reality the one section we write ('luni') is aligned to 4 bytes and some readers
+    // complain if it isn't.
     WriteEndSection(4);
   end;
 
@@ -709,7 +713,13 @@ var
         WriteLayerImage(TCustomPhotoshopLayer(ADocument.Layers[i]), ChannelsInfoPos[i]);
 
     end;
-    WriteEndSection(2);
+
+    // Specs state section size should be aligned to 2 bytes:
+    //
+    //   https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_16000
+    //
+    // In reality it is aligned to 4 bytes and some readers complain if it isn't.
+    WriteEndSection(4);
   end;
 
   procedure WriteLayer;
