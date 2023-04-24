@@ -38,12 +38,12 @@ interface
 
 uses
   Classes,
+  Generics.Defaults,
+  Generics.Collections,
 {$ifdef FPC}
   Graphics,
   LCLType,
 {$endif FPC}
-  Generics.Defaults,
-  Generics.Collections,
   GR32;
 
 {$ifndef FPC}
@@ -384,9 +384,9 @@ uses
 {$ifndef FPC}
   Consts,
   IOUtils,
+  Windows,
 {$endif FPC}
   ClipBrd,
-  Windows,
   SysUtils,
   GR32_Clipboard;
 
