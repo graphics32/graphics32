@@ -82,8 +82,6 @@ var
   PhotoshopDocument: TPhotoshopDocument;
   Stream: TStream;
 begin
-  if AImgView.Bitmap.Empty then
-    Exit;
 
   if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
     Exit;
@@ -168,25 +166,9 @@ end;
 
 procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
-  BitmapLayer: TBitmapLayer;
-  i: Integer;
-const
-{$ifndef FPC}
-  FolderMedia = '..\..\..\..\..\Media';
-{$else FPC}
-  FolderMedia = '..\..\Media';
-{$endif FPC}
+ i: Integer;
 begin
   ImgView.Layers.Clear;
-
-  // First layer is a static bitmap...
-  BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
-  BitmapLayer.Bitmap.LoadFromFile(FolderMedia+'\Monalisa.jpg');
-  BitmapLayer.Bitmap.DrawMode := dmBlend;
-  BitmapLayer.Bitmap.MasterAlpha := 192;
-  BitmapLayer.Location := GR32.FloatRect(BitmapLayer.Bitmap.BoundsRect);
-  BitmapLayer.Scaled := True;
-
   // and on top of that a bunch of random shapes
   for i := 0 to 3 do
     Star($FF); // Solid shapes
@@ -196,12 +178,19 @@ begin
 end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
+const
+{$ifndef FPC}
+  FolderMedia = '..\..\..\..\..\Media';
+{$else FPC}
+  FolderMedia = '..\..\Media';
+{$endif FPC}
 begin
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.FillStyle := bfsCheckers;
 
-  ImgView.Bitmap.SetSize(600,400);
+  ImgView.Bitmap.LoadFromFile(FolderMedia+'\Monalisa.jpg');
   ImgView.Bitmap.DrawMode := dmBlend;
+  ImgView.Bitmap.MasterAlpha := 192;
 
   ButtonRandom.Click;
 end;
