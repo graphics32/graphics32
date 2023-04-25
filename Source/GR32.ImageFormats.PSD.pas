@@ -449,8 +449,9 @@ resourcestring
 
 procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument);
 var
-  PSDLayer: TCustomPhotoshopLayer;
   i: integer;
+  ImageWidth, ImageHeight: integer;
+  PSDLayer: TCustomPhotoshopLayer;
   SourceLayer: TCustomLayer;
   BackgroundBitmap: TBitmap32;
   Location: TFloatRect;
@@ -458,12 +459,62 @@ var
 begin
   ADocument.Clear;
 
-  if AImage.Bitmap.Empty then
+  if (AImage.Bitmap.Empty) and (AImage.Layers.Count = 0) then
     Exit;
+
+  // Add the main bitmap as a layer
+  if (not AImage.Bitmap.Empty) then
+  begin
+    PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
+    PSDLayer.Opacity := AImage.Bitmap.MasterAlpha;
+    // Layer just references the bitmap; It doesn't own it.
+    TPhotoshopLayer32(PSDLayer).Bitmap :=  AImage.Bitmap;
+
+    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+  end;
+
+  for i := 0 to AImage.Layers.Count - 1 do
+  begin
+    SourceLayer := AImage.Layers[i];
+    if not (SourceLayer is TCustomIndirectBitmapLayer) then
+      continue;
+
+    LayerBitmap := TBitmapLayerCracker(SourceLayer).Bitmap;
+    Location := TBitmapLayerCracker(SourceLayer).Location;
+
+    PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
+    PSDLayer.Opacity := LayerBitmap.MasterAlpha;
+    PSDLayer.Left := Round(Location.Left);
+    PSDLayer.Top := Round(Location.Top);
+    // Layer just references the bitmap; It doesn't own it.
+    TPhotoshopLayer32(PSDLayer).Bitmap :=  LayerBitmap;
+    if (not SourceLayer.Visible) then
+      PSDLayer.Options := PSDLayer.Options + [loHidden];
+
+    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+  end;
 
   BackgroundBitmap := TBitmap32.Create(TMemoryBackend);
   try
-    BackgroundBitmap.SetSizeFrom(AImage.Bitmap);
+    if (AImage.Bitmap.Empty) then
+    begin
+      // The image has no bitmap - Calculate size from the layers instead
+      ImageWidth := 0;
+      ImageHeight := 0;
+      for i := 0 to ADocument.Layers.Count - 1 do
+      begin
+        PSDLayer := ADocument.Layers[i];
+
+        ImageWidth := Max(ImageWidth, PSDLayer.Left + PSDLayer.Width);
+        ImageHeight := Max(ImageHeight, PSDLayer.Top + PSDLayer.Height);
+      end;
+
+      if (ImageWidth = 0) and (ImageHeight = 0) then
+        exit;
+
+      BackgroundBitmap.SetSize(ImageWidth, ImageHeight);
+    end else
+      BackgroundBitmap.SetSizeFrom(AImage.Bitmap);
 
     // We clear the background with:
     //
@@ -471,8 +522,8 @@ begin
     //
     //   $xxFFFFFF to make it white for those that can't handle transparent PSD
     //
-    // Regardless, if the image contains layers and the reader can handle them, then
-    // the background is ignored; The background is only used when there are no
+    // If the image contains layers and the reader can handle them then the
+    // background is ignored; The background is only used when there are no
     // layers or if the reader cannot handle layers.
     BackgroundBitmap.Clear($00FFFFFF);
 
@@ -496,44 +547,10 @@ begin
       raise;
     end;
 
-  except
+  finally
     BackgroundBitmap.Free;
-    raise;
   end;
 
-  // If the image has layers then we need to add the main bitmap as a layer too
-  if (AImage.Layers.Count > 0) then
-  begin
-    PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
-    PSDLayer.Opacity := AImage.Bitmap.MasterAlpha;
-    PSDLayer.Left := 0;
-    PSDLayer.Top := 0;
-    // Layer just references the bitmap; It doesn't own it.
-    TPhotoshopLayer32(PSDLayer).Bitmap :=  AImage.Bitmap;
-
-    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
-  end;
-
-  for i := 0 to AImage.Layers.Count -1 do
-  begin
-    SourceLayer := AImage.Layers[i];
-    if not (SourceLayer is TCustomIndirectBitmapLayer) then
-      continue;
-
-    LayerBitmap := TBitmapLayerCracker(SourceLayer).Bitmap;
-    Location := TBitmapLayerCracker(SourceLayer).Location;
-
-    PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
-    PSDLayer.Opacity := LayerBitmap.MasterAlpha;
-    PSDLayer.Left := Round(Location.Left);
-    PSDLayer.Top := Round(Location.Top);
-    // Layer just references the bitmap; It doesn't own it.
-    TPhotoshopLayer32(PSDLayer).Bitmap :=  LayerBitmap;
-    if (not SourceLayer.Visible) then
-      PSDLayer.Options := PSDLayer.Options + [loHidden];
-
-    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
-  end;
 end;
 
 
