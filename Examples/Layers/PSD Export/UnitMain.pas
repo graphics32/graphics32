@@ -83,9 +83,6 @@ var
   PhotoshopDocument: TPhotoshopDocument;
   Stream: TStream;
 begin
-  if AImgView.Bitmap.Empty then
-    Exit;
-
   if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
     Exit;
 
@@ -169,23 +166,11 @@ end;
 
 procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
-  BitmapLayer: TBitmapLayer;
   i: Integer;
 begin
   ImgView.Layers.Clear;
 
-  if Graphics32Examples.MediaFileExists('Monalisa.jpg') then
-  begin
-    // First layer is a static bitmap...
-    BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
-    BitmapLayer.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\Monalisa.jpg');
-    BitmapLayer.Bitmap.DrawMode := dmBlend;
-    BitmapLayer.Bitmap.MasterAlpha := 192;
-    BitmapLayer.Location := GR32.FloatRect(BitmapLayer.Bitmap.BoundsRect);
-    BitmapLayer.Scaled := True;
-  end;
-
-  // and on top of that a bunch of random shapes
+  // Add a bunch of random shapes
   for i := 0 to 3 do
     Star($FF); // Solid shapes
 
@@ -198,8 +183,13 @@ begin
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.FillStyle := bfsCheckers;
 
-  ImgView.Bitmap.SetSize(600,400);
   ImgView.Bitmap.DrawMode := dmBlend;
+  ImgView.Bitmap.MasterAlpha := 192;
+  ImgView.Bitmap.DrawMode := dmBlend;
+
+  if Graphics32Examples.MediaFileExists('Monalisa.jpg') then
+    // Background is a static bitmap
+    ImgView.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\Monalisa.jpg');
 
   ButtonRandom.Click;
 end;
