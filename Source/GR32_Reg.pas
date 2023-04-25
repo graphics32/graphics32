@@ -69,8 +69,7 @@ begin
   RegisterComponents('Graphics32', [TPaintBox32, TImage32, TBitmap32List,
     TRangeBar, TGaugeBar, TImgView32{$IFDEF Windows}, TSyntheticImage32{$ENDIF},
     TColorPickerComponent, TColorPickerRGBA, TColorPickerHS, TColorPickerHSV,
-    TColorPickerGTK, {$IFDEF COMPILER2010_UP} TColor32Dialog,{$ENDIF}
-    TColorSwatch]);
+    TColorPickerGTK, TColorSwatch]);
   RegisterPropertyEditor(TypeInfo(TColor32), nil, '', TColor32Property);
   RegisterPropertyEditor(TypeInfo(TBitmap32), nil, '', TBitmap32Property);
   RegisterComponentEditor(TCustomImage32, TImage32Editor);

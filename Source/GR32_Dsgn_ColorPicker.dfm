@@ -1,8 +1,9 @@
 object FormColorPicker: TFormColorPicker
   Left = 0
   Top = 0
+  BorderStyle = bsToolWindow
   Caption = 'Color Picker'
-  ClientHeight = 303
+  ClientHeight = 307
   ClientWidth = 563
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -10,11 +11,10 @@ object FormColorPicker: TFormColorPicker
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
+  Position = poOwnerFormCenter
   DesignSize = (
     563
-    303)
-  PixelsPerInch = 96
+    307)
   TextHeight = 13
   object LabelWebColor: TLabel
     Left = 432
@@ -71,7 +71,7 @@ object FormColorPicker: TFormColorPicker
   end
   object PanelControl: TPanel
     Left = 0
-    Top = 270
+    Top = 274
     Width = 563
     Height = 33
     Align = alBottom
@@ -109,7 +109,6 @@ object FormColorPicker: TFormColorPicker
       Height = 23
       Anchors = [akLeft, akBottom]
       Caption = 'Pick from screen'
-      ModalResult = 1
       TabOrder = 2
       OnClick = ButtonPickFromScreenClick
     end
@@ -139,6 +138,7 @@ object FormColorPicker: TFormColorPicker
     Top = 8
     Width = 256
     Height = 256
+    Cursor = crHandPoint
     ParentBackground = False
     SelectedColor = -16777216
     TabOrder = 2
@@ -149,6 +149,7 @@ object FormColorPicker: TFormColorPicker
     Top = 8
     Width = 192
     Height = 22
+    Cursor = crHandPoint
     Anchors = [akTop, akRight]
     Border = True
     ColorComponent = ccRed
@@ -162,6 +163,7 @@ object FormColorPicker: TFormColorPicker
     Top = 48
     Width = 192
     Height = 22
+    Cursor = crHandPoint
     Anchors = [akTop, akRight]
     Border = True
     ColorComponent = ccGreen
@@ -175,6 +177,7 @@ object FormColorPicker: TFormColorPicker
     Top = 88
     Width = 192
     Height = 22
+    Cursor = crHandPoint
     Anchors = [akTop, akRight]
     Border = True
     ColorComponent = ccBlue
@@ -188,6 +191,7 @@ object FormColorPicker: TFormColorPicker
     Top = 128
     Width = 192
     Height = 22
+    Cursor = crHandPoint
     Anchors = [akTop, akRight]
     Border = True
     ColorComponent = ccAlpha
@@ -259,6 +263,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -16777216
     ParentBackground = False
@@ -270,6 +275,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -1
     ParentBackground = False
@@ -281,6 +287,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -16711936
     ParentBackground = False
@@ -292,6 +299,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -65536
     ParentBackground = False
@@ -303,6 +311,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -16711681
     ParentBackground = False
@@ -314,6 +323,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -65281
     ParentBackground = False
@@ -325,6 +335,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -256
     ParentBackground = False
@@ -336,6 +347,7 @@ object FormColorPicker: TFormColorPicker
     Top = 238
     Width = 24
     Height = 24
+    Cursor = crHandPoint
     Border = True
     Color = -16776961
     ParentBackground = False
