@@ -35,7 +35,11 @@ unit GR32_ArrowHeads;
 interface
 
 uses
-  SysUtils, GR32, GR32_Polygons, GR32_VectorUtils, GR32_Geometry;
+  SysUtils,
+  GR32,
+  GR32_Polygons,
+  GR32_VectorUtils,
+  GR32_Geometry;
 
 type
   TArrowHeadAbstract = class
@@ -77,6 +81,10 @@ resourcestring
   RCStrInsufficientPointsInArray = 'Insufficient points in array';
 
 implementation
+
+uses
+  Math,
+  GR32_Math;
 
 constructor TArrowHeadAbstract.Create(Size: TFloat);
 begin
@@ -139,7 +147,7 @@ function TArrowHeadCircle.GetPointsInternal: TArrayOfFloatPoint;
 var
   MidPt: TFloatPoint;
 begin
-  MidPt := Average(FTipPoint, FBasePoint);
+  MidPt := GR32_Geometry.Average(FTipPoint, FBasePoint);
   Result := Circle(MidPt.X, MidPt.Y, FSize * 0.5, Round(FSize));
 end;
 //------------------------------------------------------------------------------
@@ -149,7 +157,7 @@ var
   MidPt, UnitNorm: TFloatPoint;
   Sz: Single;
 begin
-  MidPt := Average(FTipPoint, FBasePoint);
+  MidPt := GR32_Geometry.Average(FTipPoint, FBasePoint);
   UnitNorm := GetUnitNormal(FTipPoint, FBasePoint);
   Sz := FSize / 3;
   SetLength(Result, 4);

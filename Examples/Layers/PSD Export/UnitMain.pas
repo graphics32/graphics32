@@ -42,6 +42,7 @@ uses
   System.UITypes,
   System.Types,
 {$endif}
+  GR32.Examples,
   GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG;
@@ -170,22 +171,19 @@ procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
   BitmapLayer: TBitmapLayer;
   i: Integer;
-const
-{$ifndef FPC}
-  FolderMedia = '..\..\..\..\..\Media';
-{$else FPC}
-  FolderMedia = '..\..\Media';
-{$endif FPC}
 begin
   ImgView.Layers.Clear;
 
-  // First layer is a static bitmap...
-  BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
-  BitmapLayer.Bitmap.LoadFromFile(FolderMedia+'\Monalisa.jpg');
-  BitmapLayer.Bitmap.DrawMode := dmBlend;
-  BitmapLayer.Bitmap.MasterAlpha := 192;
-  BitmapLayer.Location := GR32.FloatRect(BitmapLayer.Bitmap.BoundsRect);
-  BitmapLayer.Scaled := True;
+  if Graphics32Examples.MediaFileExists('Monalisa.jpg') then
+  begin
+    // First layer is a static bitmap...
+    BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
+    BitmapLayer.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\Monalisa.jpg');
+    BitmapLayer.Bitmap.DrawMode := dmBlend;
+    BitmapLayer.Bitmap.MasterAlpha := 192;
+    BitmapLayer.Location := GR32.FloatRect(BitmapLayer.Bitmap.BoundsRect);
+    BitmapLayer.Scaled := True;
+  end;
 
   // and on top of that a bunch of random shapes
   for i := 0 to 3 do

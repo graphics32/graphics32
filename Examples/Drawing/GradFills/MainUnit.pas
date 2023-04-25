@@ -97,17 +97,25 @@ var
 
 implementation
 
-uses
-  GR32_Geometry, GR32_VectorUtils, GR32_Gamma, GR32_Paths, {$IFDEF FPC}
-  GR32_Text_LCL_Win {$ELSE} GR32_Text_VCL {$ENDIF};
-
 {$IFDEF FPC}
-{$R *.lfm}
-{$R data.res}
+  {$R *.lfm}
 {$ELSE}
-{$R *.dfm}
-{$R data.res}
+  {$R *.dfm}
 {$ENDIF}
+
+{$R data.res}
+
+uses
+  GR32_Math,
+  GR32_Geometry,
+  GR32_VectorUtils,
+  GR32_Gamma,
+  GR32_Paths,
+{$IFDEF FPC}
+  GR32_Text_LCL_Win
+{$ELSE}
+  GR32_Text_VCL
+{$ENDIF};
 
 const
   Colors: array[0..147] of TIdentMapEntry = (

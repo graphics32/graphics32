@@ -43,11 +43,10 @@ implementation
 {$R *.dfm}
 
 uses
+  GR32.Examples,
   GR32,
-  GR32_PNG;
-
-const
-  sMediaFolder = '..\..\..\..\Media';
+  GR32_PNG,
+  GR32_PortableNetworkGraphic; // Required for inline expansion
 
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
@@ -57,8 +56,8 @@ begin
   ImgView.Bitmap.DrawMode := dmBlend;
   Image.Bitmap.DrawMode := dmBlend;
 
-  LoadBitmap32FromPNG(ImgView.Bitmap, sMediaFolder+'\coffee.png');
-  LoadBitmap32FromPNG(Image.Bitmap, sMediaFolder+'\coffee.png');
+  LoadBitmap32FromPNG(ImgView.Bitmap, Graphics32Examples.MediaFolder+'\coffee.png');
+  LoadBitmap32FromPNG(Image.Bitmap, Graphics32Examples.MediaFolder+'\coffee.png');
 
   ImgView.MousePan.Enabled := True;
   Image.MousePan.Enabled := True;

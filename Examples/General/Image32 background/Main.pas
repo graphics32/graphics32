@@ -26,10 +26,9 @@ implementation
 {$R *.dfm}
 
 uses
-  GR32_PNG;
-
-const
-  sMediaFolder = '..\..\..\..\Media';
+  GR32.Examples,
+  GR32_PNG,
+  GR32_PortableNetworkGraphic; // Required for inline expansion
 
 { TFormMain }
 
@@ -37,11 +36,11 @@ const
 
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
-  LoadBitmap32FromPNG(ImgView.Bitmap, sMediaFolder+'\coffee.png');
+  LoadBitmap32FromPNG(ImgView.Bitmap, Graphics32Examples.MediaFolder+'\coffee.png');
 
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.CheckersExponent := 3; // Size of each tile becomes 2^3 = 8 pixels
-  ImgView.Background.PatternBitmap.LoadFromFile(sMediaFolder+'\bumps.bmp');
+  ImgView.Background.PatternBitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\bumps.bmp');
   ImgView.Background.OuterBorderColor := clGray;
   ImgView.Background.InnerBorderWidth := 8;
   ImgView.Background.InnerBorderColor := clWhite;
@@ -50,7 +49,7 @@ begin
   ImgView.Background.DropShadowSize := 4;
   ImgView.Background.DropShadowColor := $20000000;
 {$else SOLID_DROPSHADOW}
-  ImgView.Background.DropShadowBitmap.LoadFromFile(sMediaFolder+'\dropshadow.bmp');
+  ImgView.Background.DropShadowBitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\dropshadow.bmp');
   ImgView.Background.DropShadowBitmap.MasterAlpha := 128;
 {$endif SOLID_DROPSHADOW}
 end;
