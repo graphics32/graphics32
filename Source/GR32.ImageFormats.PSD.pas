@@ -307,6 +307,10 @@ type
 // The function produces a PSD where the background is the composite of the
 // TCustomImage32 and its layers (i.e. a flattened view of the image) and one
 // PSD layer for each bitmap layer in the TCustomImage32.
+//
+// If the TCustomImage32 does not have layers then the TCustomImage32.Bitmap
+// will be exported as the "background" in a PSD with no layers, otherwise the
+// Bitmap will be exported as a PSD layer.
 //------------------------------------------------------------------------------
 procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument); overload;
 
@@ -440,6 +444,9 @@ end;
 type
   TBitmapLayerCracker = class(TCustomIndirectBitmapLayer);
 
+resourcestring
+  sPSDLayerName = 'Layer %d';
+
 procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument);
 var
   PSDLayer: TCustomPhotoshopLayer;
@@ -494,6 +501,19 @@ begin
     raise;
   end;
 
+  // If the image has layers then we need to add the main bitmap as a layer too
+  if (AImage.Layers.Count > 0) then
+  begin
+    PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
+    PSDLayer.Opacity := AImage.Bitmap.MasterAlpha;
+    PSDLayer.Left := 0;
+    PSDLayer.Top := 0;
+    // Layer just references the bitmap; It doesn't own it.
+    TPhotoshopLayer32(PSDLayer).Bitmap :=  AImage.Bitmap;
+
+    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+  end;
+
   for i := 0 to AImage.Layers.Count -1 do
   begin
     SourceLayer := AImage.Layers[i];
@@ -512,7 +532,7 @@ begin
     if (not SourceLayer.Visible) then
       PSDLayer.Options := PSDLayer.Options + [loHidden];
 
-    PSDLayer.Name := Format('Layer %d', [i+1]);
+    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
   end;
 end;
 
