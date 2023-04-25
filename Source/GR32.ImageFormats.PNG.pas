@@ -40,7 +40,19 @@ interface
 
 {$I GR32.inc}
 
+{$ifdef FPC}
+{$message WARN 'GR32.ImageFormats.PNG does not support FreePascal. Use the GR32.ImageFormats.PNG32 unit instead'}
+{$endif FPC}
+
+
 implementation
+
+{$ifdef FPC}
+// Make sure ImageFormats.PNG32 is referenced so the adapters are registered.
+// Beyond that, this unit does nothing on FPC.
+uses
+  GR32.ImageFormats.PNG32;
+{$else FPC}
 
 uses
   Classes,
@@ -279,8 +291,11 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
+{$endif FPC}
 
 initialization
+{$ifndef FPC}
   ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPNG.Create, ImageFormatPriorityWorse);
+{$endif FPC}
 end.
 
