@@ -56,8 +56,8 @@ begin
   ImgView.Bitmap.DrawMode := dmBlend;
   Image.Bitmap.DrawMode := dmBlend;
 
-  LoadBitmap32FromPNG(ImgView.Bitmap, Graphics32Examples.MediaFolder+'\coffee.png');
-  LoadBitmap32FromPNG(Image.Bitmap, Graphics32Examples.MediaFolder+'\coffee.png');
+  ImgView.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\coffee.png');
+  Image.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\coffee.png');
 
   ImgView.MousePan.Enabled := True;
   Image.MousePan.Enabled := True;
@@ -106,7 +106,6 @@ begin
     finally
       TImage32(Sender).EndUpdate;
     end;
-    TImage32(Sender).Changed;
   end;
 end;
 
@@ -130,7 +129,6 @@ begin
     finally
       TImgView32(Sender).EndUpdate;
     end;
-    TImgView32(Sender).Changed;
   end;
 end;
 

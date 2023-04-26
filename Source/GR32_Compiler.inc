@@ -414,7 +414,6 @@
   {$MODE Delphi}
   {$DEFINE PLATFORM_INDEPENDENT}
   {$DEFINE FPC_HAS_CONSTREF}
-  {$DEFINE HAS_NATIVEINT}
   {$DEFINE NATIVE_SINCOS}
   {$DEFINE USESTACKALLOC}
   {$IFNDEF WINDOWS}
@@ -588,24 +587,6 @@
   {$DEFINE NATIVE_SINCOS}
 {$ENDIF}
 
-
-(*
-  Symbol HAS_NATIVEINT:
-  ---------------------
-
-     With the latest compilers (Delphi XE1+ and FPC 2.6.0+) the type NativeInt
-     is available which has the native size of the OS (32-Bit or 64-Bit). Thus,
-     it can be used to perform pointer arithmetrics.
-
-   NOTE: Please do not use simple Cardinal() or Integer() casts on pointers only
-*)
-
-{$IFDEF COMPILERXE1_UP}
-  {$DEFINE HAS_NATIVEINT}
-{$ENDIF}
-{$IFDEF FPC}
-  {$DEFINE HAS_NATIVEINT}
-{$ENDIF}
 
 
 (*

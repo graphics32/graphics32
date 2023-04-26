@@ -12,13 +12,11 @@ object FormImage32Example: TFormImage32Example
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
   DesignSize = (
     542
     418)
-  PixelsPerInch = 96
   TextHeight = 13
   object PnlImage: TPanel
     Left = 8
@@ -55,7 +53,7 @@ object FormImage32Example: TFormImage32Example
       Top = 104
       Width = 129
       Height = 129
-      Caption = 'f'
+      Caption = 'ScaleMode'
       ItemIndex = 0
       Items.Strings = (
         'smNormal'
@@ -103,7 +101,6 @@ object FormImage32Example: TFormImage32Example
       Width = 33
       Height = 17
       Caption = 'Scale:'
-      Enabled = False
       TabOrder = 3
     end
     object SbrScale: TGaugeBar

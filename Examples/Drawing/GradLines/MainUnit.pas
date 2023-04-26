@@ -74,6 +74,7 @@ type
     RgpDraw: TRadioGroup;
     RgpFade: TRadioGroup;
     RepaintOpt: TCheckBox;
+    TimerFrameRate: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure RepaintOptClick(Sender: TObject);
     procedure BtnAddOneClick(Sender: TObject);
@@ -81,6 +82,7 @@ type
     procedure BtnClearClick(Sender: TObject);
     procedure RgpFadeClick(Sender: TObject);
     procedure RgpDrawClick(Sender: TObject);
+    procedure TimerFrameRateTimer(Sender: TObject);
   protected
     Lines: array of TLine;
     P: TPoint; // mouse shift
@@ -88,6 +90,8 @@ type
     FadeCount: Integer;
     Pass: Integer;
     DrawPasses: Integer;
+    FrameCount: integer;
+    LastCheck: Cardinal;
     procedure AppEventsIdle(Sender: TObject; var Done: Boolean);
   public
     procedure AddLine;
@@ -99,13 +103,11 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
-uses Math;
+uses
+  Math,
+  Windows;
 
 function VectorAdd(const A, B: TVector2f): TVector2f;
 begin
@@ -249,7 +251,8 @@ procedure TFormGradientLines.AddLines(N: Integer);
 var
   Index: Integer;
 begin
-  for Index := 0 to N - 1 do AddLine;
+  for Index := 0 to N - 1 do
+    AddLine;
 end;
 
 procedure TFormGradientLines.AppEventsIdle(Sender: TObject; var Done: Boolean);
@@ -257,54 +260,84 @@ var
   I, J: Integer;
   P: PColor32;
 begin
-  for J := 0 to DrawPasses - 1 do
-    for I := 0 to High(Lines) do
-    begin
-      Lines[I].Advance(1);
-      Lines[I].Paint;
-    end;
+  // We need to be continously called. Even when there are no
+  // messages in the message queue. Otherwise the framerate calculation will
+  // not work.
 
-  if FadeCount > 0 then
-  begin
-    if Pass = 0 then with PaintBox.Buffer do
-    begin
-      P := @Bits[0];
-      for I := 0 to Width * Height -1 do
+  Done := False;
+
+  if (Length(Lines) = 0) then
+    exit;
+//  PaintBox.BeginUpdate;
+  try
+    for J := 0 to DrawPasses - 1 do
+      for I := 0 to High(Lines) do
       begin
-        BlendMem($10000000, P^);
-        Inc(P);
+        Lines[I].Advance(1);
+        Lines[I].Paint;
       end;
-      EMMS;
-    end;
-    Dec(Pass);
-    if (Pass < 0) or (Pass > FadeCount) then Pass := FadeCount;
 
-    // we're doing unsafe operations above, so force a complete invalidation
-    // so that wrong output of repaint optimizer doesn't show.
-    PaintBox.ForceFullInvalidate;
-  end
-  else
-    PaintBox.Invalidate;
+    if FadeCount > 0 then
+    begin
+      if Pass = 0 then with PaintBox.Buffer do
+      begin
+        P := @Bits[0];
+        for I := 0 to Width * Height -1 do
+        begin
+          BlendMem($10000000, P^);
+          Inc(P);
+        end;
+        EMMS;
+      end;
+      Dec(Pass);
+      if (Pass < 0) or (Pass > FadeCount) then Pass := FadeCount;
+
+      // we're doing unsafe operations above, so force a complete invalidation
+      // so that wrong output of repaint optimizer doesn't show.
+      PaintBox.ForceFullInvalidate;
+    end
+    else
+      ;//PaintBox.Invalidate;
+
+  finally
+//    PaintBox.EndUpdate;
+  end;
+  Inc(FrameCount);
 end;
 
 procedure TFormGradientLines.BtnAddOneClick(Sender: TObject);
 begin
+  TimerFrameRate.Enabled := False;
+
+  RandSeed := 0;
   AddLine;
+
+  LastCheck := GetTickCount;
+  TimerFrameRate.Enabled := True;
 end;
 
 procedure TFormGradientLines.BtnAddTenClick(Sender: TObject);
 begin
+  TimerFrameRate.Enabled := False;
+
+  RandSeed := 0;
   AddLines(10);
+
+  LastCheck := GetTickCount;
+  TimerFrameRate.Enabled := True;
 end;
 
 procedure TFormGradientLines.BtnClearClick(Sender: TObject);
 var
   Index: Integer;
 begin
-  for Index := High(Lines) downto 0 do Lines[Index].Free;
+  for Index := High(Lines) downto 0 do
+    Lines[Index].Free;
   Lines := nil;
   PaintBox.Buffer.Clear;
   PnlTotalLines.Caption := '0';
+  Caption := '';
+  TimerFrameRate.Enabled := False;
 end;
  
 procedure TFormGradientLines.RgpFadeClick(Sender: TObject);
@@ -312,6 +345,23 @@ const
   FC: array [0..2] of Integer = (0, 7, 1);
 begin
   FadeCount := FC[RgpFade.ItemIndex];
+  RepaintOpt.Enabled := (FadeCount = 0);
+end;
+
+procedure TFormGradientLines.TimerFrameRateTimer(Sender: TObject);
+var
+  TimeElapsed: Cardinal;
+  FPS: Single;
+begin
+  TTimer(Sender).Enabled := False;
+  TimeElapsed := GetTickCount - LastCheck;
+
+  FPS := FrameCount / (TimeElapsed / 1000);
+  Caption := Format('%.0n fps', [FPS]);
+
+  FrameCount := 0;
+  LastCheck := GetTickCount;
+  TTimer(Sender).Enabled := True;
 end;
 
 procedure TFormGradientLines.RgpDrawClick(Sender: TObject);

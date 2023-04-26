@@ -123,6 +123,7 @@ type
     MenuItemPasteInto: TMenuItem;
     ActionSave: TAction;
     Saveas1: TMenuItem;
+    TimerMarchingAnts: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnLayerRescaleClick(Sender: TObject);
@@ -162,6 +163,7 @@ type
     procedure ActionPasteIntoExecute(Sender: TObject);
     procedure ActionPasteNewExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
+    procedure TimerMarchingAntsTimer(Sender: TObject);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
@@ -175,6 +177,7 @@ type
       var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
     procedure PaintMagnifierHandler(Sender: TObject; Buffer: TBitmap32);
     procedure PaintSimpleDrawingHandler(Sender: TObject; Buffer: TBitmap32);
+    procedure PaintSimpleDrawingGetUpdateRectHandler(Sender: TObject; var UpdateRect: TRect);
     procedure PaintButtonMockupHandler(Sender: TObject; Buffer: TBitmap32);
   public
     procedure CreateNewImage(AWidth, AHeight: Integer; FillColor: TColor32);
@@ -193,11 +196,6 @@ implementation
 uses
 {$IFDEF Darwin}
   MacOSAll,
-{$ENDIF}
-{$IFNDEF FPC}
-  JPEG,
-{$ELSE}
-  LazJPG,
 {$ENDIF}
   Math, Printers, ClipBrd,
   GR32_LowLevel, GR32_Paths, GR32_VectorUtils, GR32_Backends, GR32_Text_VCL,
@@ -638,6 +636,7 @@ var
 begin
   L := CreatePositionedLayer;
   L.OnPaint := PaintSimpleDrawingHandler;
+  L.OnGetUpdateRect := PaintSimpleDrawingGetUpdateRectHandler;
   L.Tag := 1;
   Selection := L;
 end;
@@ -665,8 +664,7 @@ var
   Path: TFlattenedPath;
   Intf: ITextToPathSupport;
   ColorGradient: TLinearGradientPolygonFiller;
-const
-  CScale = 1 / 200;
+  BorderWidth: Double;
 begin
   if not(Sender is TPositionedLayer) then
     exit;
@@ -674,9 +672,17 @@ begin
   Layer := TPositionedLayer(Sender);
 
   Bounds := Layer.GetAdjustedLocation;
-  InflateRect(Bounds, -1, -1);
+
+  BorderWidth := 0.1 * GbrBorderWidth.Position;
+
+  // Make sure that we stay within bounds.
+  // The fill is done inside the bounds rect while the border is centered on the
+  // bounds rect. I.e. half of the border is "outside" the bounds rect.
+  InflateRect(Bounds, -(BorderWidth / 2), -(BorderWidth / 2));
+
   RoundPoly := RoundRect(Bounds, GbrBorderRadius.Position);
 
+  // Button fill
   ColorGradient := TLinearGradientPolygonFiller.Create;
   try
     ColorGradient.SetPoints(FloatPoint(0, Bounds.Top), FloatPoint(0, Bounds.Bottom));
@@ -689,12 +695,15 @@ begin
   finally
     ColorGradient.Free;
   end;
-  PolyPolygonFS(Buffer, BuildPolyPolyLine(PolyPolygon(RoundPoly), True,
-    0.1 * GbrBorderWidth.Position), clGray32, pfAlternate);
 
+  // Button border
+  PolyPolygonFS(Buffer,
+    BuildPolyPolyLine(PolyPolygon(RoundPoly), True, BorderWidth),
+    clGray32, pfAlternate);
+
+  // Button text
   Path := TFlattenedPath.Create;
   try
-//    Buffer.Font.Assign(FFont);
     Buffer.Font.Size := 12;
     if Supports(Buffer.Backend, ITextToPathSupport, Intf) then
     begin
@@ -825,6 +834,18 @@ begin
       Cy + H2 * I * Sin(I * 0.125));
 end;
 
+procedure TMainForm.PaintSimpleDrawingGetUpdateRectHandler(Sender: TObject;
+  var UpdateRect: TRect);
+begin
+  // Since we're drawing outside the layer bounds rect, we need to expand the
+  // update rect or else the layer repaint mechanism will not be able to update
+  // the correct area when the layer is moved or resized.
+
+  // Instead of trying to calculate the precise extent of the figure drawn, we
+  // just increase the update rect about 15%.
+  GR32.InflateRect(UpdateRect, UpdateRect.Width div 6, UpdateRect.Height div 6);
+end;
+
 procedure TMainForm.SetSelection(Value: TPositionedLayer);
 begin
   if Value <> FSelection then
@@ -848,6 +869,7 @@ begin
         RBLayer := TRubberBandLayer.Create(ImgView.Layers);
         RBLayer.MinHeight := 1;
         RBLayer.MinWidth := 1;
+        RBLayer.SetFrameStipple([clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32]);
       end
       else
         RBLayer.BringToFront;
@@ -874,6 +896,28 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TMainForm.TimerMarchingAntsTimer(Sender: TObject);
+const
+  StippleSize = 8; // The size of our stipple pattern. The default pattern has a size of 4
+var
+  NewStippleCounter: TFloat;
+begin
+  if (RBLayer = nil) or (not RBLayer.Visible) then
+    exit;
+
+  // Only animate when our application is active
+  if (not Application.Active) then
+    exit;
+
+  NewStippleCounter := RBLayer.FrameStippleCounter+1.5;
+
+  // Handle overflow
+  if (NewStippleCounter >= StippleSize) then
+    NewStippleCounter := NewStippleCounter - StippleSize;
+
+  RBLayer.FrameStippleCounter := NewStippleCounter;
 end;
 
 procedure TMainForm.MnuScaledClick(Sender: TObject);
@@ -951,7 +995,6 @@ begin
     finally
       ImgView.EndUpdate;
     end;
-    ImgView.Changed;
   end;
 end;
 

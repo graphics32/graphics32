@@ -79,33 +79,16 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG,
-{$ELSE}
-  LazJPG,
-{$ENDIF}
-  Math;
+  Math,
+  GR32.ImageFormats.PNG32,
+  GR32.ImageFormats.JPG;
 
 { TFormRotLayer }
 
 procedure TFormRotLayer.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // load example image
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    ImgView.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  ImgView.Bitmap.LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
 
   L := TRotLayer.Create(ImgView.Layers);
   L.Bitmap := TBitmap32.Create;
@@ -113,7 +96,7 @@ begin
   begin
     BeginUpdate;
 
-    L.Bitmap.LoadFromResourceName(HInstance, 'SpriteTexture');
+    L.Bitmap.LoadFromResourceName(HInstance, 'Texture', 'PNG');
 
     TLinearResampler.Create(L.Bitmap);
 

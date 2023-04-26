@@ -1,6 +1,7 @@
 object FormGammaBlur: TFormGammaBlur
   Left = 100
   Top = 189
+  BorderStyle = bsDialog
   Caption = 'GammaBlur'
   ClientHeight = 314
   ClientWidth = 263
@@ -11,13 +12,12 @@ object FormGammaBlur: TFormGammaBlur
   Font.Name = 'Arial'
   Font.Style = []
   OldCreateOrder = False
-  Position = poDesigned
+  Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
     263
     314)
-  PixelsPerInch = 96
   TextHeight = 15
   object LabelIncorrect: TLabel
     Left = 8
@@ -60,20 +60,6 @@ object FormGammaBlur: TFormGammaBlur
     Width = 3
     Height = 15
     Anchors = [akTop, akRight]
-  end
-  object LabelBlurType: TLabel
-    Left = 8
-    Top = 290
-    Width = 53
-    Height = 15
-    Caption = 'Blur Type:'
-  end
-  object LabelTestImage: TLabel
-    Left = 8
-    Top = 8
-    Width = 68
-    Height = 15
-    Caption = 'Test  Image:'
   end
   object PaintBoxIncorrect: TPaintBox32
     Left = 8
@@ -123,40 +109,78 @@ object FormGammaBlur: TFormGammaBlur
     Position = 50
     OnChange = GaugeBarBlurRadiusChange
   end
-  object RadioButtonGaussianBlur: TRadioButton
-    Left = 82
-    Top = 290
-    Width = 80
-    Height = 17
-    Caption = 'Gaussian'
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 263
+    Height = 26
+    Align = alTop
+    BevelOuter = bvNone
+    ParentColor = True
     TabOrder = 4
+    object LabelTestImage: TLabel
+      Left = 8
+      Top = 8
+      Width = 67
+      Height = 15
+      Caption = 'Test  Image:'
+    end
+    object RadioButtonRedGreen: TRadioButton
+      Left = 82
+      Top = 7
+      Width = 80
+      Height = 17
+      Caption = 'Red/Green'
+      Checked = True
+      TabOrder = 0
+      TabStop = True
+      OnClick = RadioButtonTestImageClick
+    end
+    object RadioButtonCircles: TRadioButton
+      Left = 175
+      Top = 8
+      Width = 66
+      Height = 17
+      Caption = 'Circles'
+      TabOrder = 1
+      OnClick = RadioButtonTestImageClick
+    end
   end
-  object RadioButtonFastBlur: TRadioButton
-    Left = 168
-    Top = 288
-    Width = 50
-    Height = 17
-    Caption = 'Fast'
+  object Panel2: TPanel
+    Left = 0
+    Top = 281
+    Width = 263
+    Height = 33
+    Align = alBottom
+    BevelOuter = bvNone
+    ParentColor = True
+    ShowCaption = False
     TabOrder = 5
-  end
-  object RadioButtonRedGreen: TRadioButton
-    Left = 82
-    Top = 7
-    Width = 80
-    Height = 17
-    Caption = 'Red/Green'
-    Checked = True
-    TabOrder = 6
-    TabStop = True
-    OnClick = RadioButtonTestImageClick
-  end
-  object RadioButtonCircles: TRadioButton
-    Left = 175
-    Top = 8
-    Width = 66
-    Height = 17
-    Caption = 'Circles'
-    TabOrder = 7
-    OnClick = RadioButtonTestImageClick
+    ExplicitTop = 273
+    object LabelBlurType: TLabel
+      Left = 8
+      Top = 10
+      Width = 53
+      Height = 15
+      Caption = 'Blur Type:'
+    end
+    object RadioButtonGaussianBlur: TRadioButton
+      Left = 82
+      Top = 8
+      Width = 80
+      Height = 17
+      Caption = 'Gaussian'
+      Checked = True
+      TabOrder = 0
+      TabStop = True
+    end
+    object RadioButtonFastBlur: TRadioButton
+      Left = 168
+      Top = 8
+      Width = 50
+      Height = 17
+      Caption = 'Fast'
+      TabOrder = 1
+    end
   end
 end

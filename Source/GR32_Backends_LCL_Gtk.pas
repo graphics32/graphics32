@@ -52,9 +52,15 @@ type
 
   { TLCLBackend }
 
-  TLCLBackend = class(TCustomBackend, IPaintSupport, ITextSupport,
-    IFontSupport, ICanvasSupport, IDeviceContextSupport,
-    IInteroperabilitySupport)
+  TLCLBackend = class(TCustomBackend,
+      IPaintSupport,
+      ITextSupport,
+      IFontSupport,
+      ICanvasSupport,
+      IDeviceContextSupport,
+      IInteroperabilitySupport,
+      IUpdateRectSupport
+    )
   private
     FFont: TFont;
     FOnFontChange: TNotifyEvent;
@@ -117,6 +123,9 @@ type
     function GetCanvas: TCanvas;
     function CanvasAllocated: Boolean;
     procedure DeleteCanvas;
+  protected
+    { IUpdateRectSupport }
+    procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   protected
     property Canvas: TCanvas read GetCanvas;
   public
@@ -423,6 +432,15 @@ end;
 function TLCLBackend.GetOnFontChange: TNotifyEvent;
 begin
   Result := Font.OnChange;
+end;
+
+procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer;
+  var AFullUpdate: boolean);
+begin
+  // TODO : How do we get the update rect with GTK?
+  // TGdkWindow.get_update_area ?
+
+  AFullUpdate := True;
 end;
 
 procedure TLCLBackend.SetOnFontChange(Handler: TNotifyEvent);

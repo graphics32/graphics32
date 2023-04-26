@@ -36,7 +36,7 @@ uses
 
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
-  LoadBitmap32FromPNG(ImgView.Bitmap, Graphics32Examples.MediaFolder+'\coffee.png');
+  ImgView.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\coffee.png');
 
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.CheckersExponent := 3; // Size of each tile becomes 2^3 = 8 pixels

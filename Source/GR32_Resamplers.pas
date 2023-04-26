@@ -976,11 +976,7 @@ begin
         CombineLine(@Buf1[1], @Buf1[0], SrcRectW, FracX);
 
         if SrcRect.Left > 0 then
-          {$IFDEF HAS_NATIVEINT}
           C2 := CombineReg(PColor32(NativeUInt(SrcP) - 4)^, SrcP[0], FracX xor $FF)
-          {$ELSE}
-          C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
-          {$ENDIF}
         else
           C2 := SrcP[0];
 
@@ -995,11 +991,7 @@ begin
       CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracX xor $FF);
 
       if SrcRect.Left > 0 then
-        {$IFDEF HAS_NATIVEINT}
         C1 := CombineReg(PColor32(NativeUInt(SrcP) - 4)^, SrcP[0], FracX)
-        {$ELSE}
-        C1 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX)
-        {$ENDIF}
       else
         C1 := SrcP[0];
 
@@ -1044,11 +1036,7 @@ begin
         CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracX xor $FF);
 
         if SrcRect.Left > 0 then
-          {$IFDEF HAS_NATIVEINT}
           C2 := CombineReg(PColor32(NativeUInt(SrcP) - 4)^, SrcP[0], FracX xor $FF)
-          {$ELSE}
-          C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
-          {$ENDIF}
         else
           C2 := SrcP[0];
 
@@ -1087,11 +1075,7 @@ begin
         CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracY xor $FF);
         CombineLine(@Buf2[0], @Buf1[0], SrcRectW, FracY xor $FF);
         if SrcRect.Left > 0 then
-          {$IFDEF HAS_NATIVEINT}
           C2 := CombineReg(PColor32(NativeUInt(SrcP) - 4)^, SrcP[0], FracX xor $FF)
-          {$ELSE}
-          C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
-          {$ENDIF}
         else
           C2 := SrcP[0];
         BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * BW * MA shr 16)
@@ -2088,11 +2072,7 @@ begin
       Inc(iA, C.A);
       Inc(C);
     end;
-    {$IFDEF HAS_NATIVEINT}
-    Inc(NativeUInt(RowSrc), OffSrc);
-    {$ELSE}
     Inc(PByte(RowSrc), OffSrc);
-    {$ENDIF}
   end;
 
   Area := Dlx * Dly;
@@ -2570,11 +2550,7 @@ begin
         end;
 
         Inc(DstLine, Dst.Width);
-        {$IFDEF HAS_NATIVEINT}
-        Inc(NativeUInt(RowSrc), OffSrc * dy);
-        {$ELSE}
         Inc(PByte(RowSrc), OffSrc * dy);
-        {$ENDIF}
       end;
     end;
   EMMS;
@@ -3453,11 +3429,7 @@ begin
           Fixed := Round((clX - X) * W);
           PHorzKernel := @HorzKernel;
           FloorKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Int]^;
-          {$IFDEF HAS_NATIVEINT}
           CeilKernel := PKernelEntry(NativeUInt(FloorKernel) + J);
-          {$ELSE}
-          CeilKernel := PKernelEntry(Cardinal(FloorKernel) + J);
-          {$ENDIF}
           Dev := -256;
           for I := -KWidth to KWidth do
           begin
@@ -3473,11 +3445,7 @@ begin
           Fixed := Round((clY - Y) * W);
           PVertKernel := @VertKernel;
           FloorKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Int]^;
-          {$IFDEF HAS_NATIVEINT}
           CeilKernel := PKernelEntry(NativeUInt(FloorKernel) + J);
-          {$ELSE}
-          CeilKernel := PKernelEntry(Cardinal(FloorKernel) + J);
-          {$ENDIF}
           Dev := -256;
           for I := -KWidth to KWidth do
           begin

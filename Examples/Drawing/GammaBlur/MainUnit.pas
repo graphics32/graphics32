@@ -5,8 +5,8 @@ interface
 uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Menus, Dialogs, ComCtrls,
-  ExtCtrls, StdCtrls, Math, GR32, GR32_Image, GR32_Layers, GR32_System,
-  GR32_RangeBars;
+  ExtCtrls, StdCtrls, Math,
+  GR32, GR32_Image, GR32_Layers, GR32_System, GR32_RangeBars;
 
 type
   TFormGammaBlur = class(TForm)
@@ -20,12 +20,14 @@ type
     GaugeBarBlurRadius: TGaugeBar;
     LabelBlur: TLabel;
     LabelBlurValue: TLabel;
-    LabelBlurType: TLabel;
-    RadioButtonGaussianBlur: TRadioButton;
-    RadioButtonFastBlur: TRadioButton;
+    Panel1: TPanel;
     LabelTestImage: TLabel;
     RadioButtonRedGreen: TRadioButton;
     RadioButtonCircles: TRadioButton;
+    Panel2: TPanel;
+    LabelBlurType: TLabel;
+    RadioButtonGaussianBlur: TRadioButton;
+    RadioButtonFastBlur: TRadioButton;
     procedure PaintBoxIncorrectPaintBuffer(Sender: TObject);
     procedure PaintBoxCorrectPaintBuffer(Sender: TObject);
     procedure GaugeBarGammaChange(Sender: TObject);
@@ -51,7 +53,6 @@ implementation
 {$ENDIF}
 
 uses
-  {$IFNDEF FPC} JPEG, {$ELSE} LazJPG, {$ENDIF}
   GR32_Math,
   GR32_Polygons,
   GR32_VectorUtils,
