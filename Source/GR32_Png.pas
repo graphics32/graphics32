@@ -68,7 +68,7 @@ function IsValidPNG(Stream: TStream): Boolean; overload; {$IFDEF USEINLINING} in
 function IsValidPNG(const Filename: string): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; const Filename: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; const FileName: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
@@ -409,7 +409,7 @@ begin
   end;
 end;
 
-procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string);
+procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; const FileName: string);
 begin
   with TPortableNetworkGraphic32.Create do
   try
