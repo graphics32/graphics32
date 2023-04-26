@@ -762,6 +762,8 @@ end;
 destructor TLinkedList.Destroy;
 begin
   Clear;
+
+  inherited Destroy;
 end;
 
 procedure TLinkedList.DoFreeData(Data: Pointer);
@@ -862,3 +864,4 @@ begin
 end;
 
 end.
+
