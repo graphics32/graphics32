@@ -1,4 +1,4 @@
-program PSD_export;
+program PSD_bitmap_export;
 
 uses
 {$ifdef FPC}

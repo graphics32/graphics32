@@ -3,26 +3,28 @@ unit UnitMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
+  {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Winapi.Windows, {$ENDIF}
+  SysUtils, Variants, Classes, Graphics,
+  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, Buttons,
   GR32,
   GR32_Image,
   GR32_Layers,
-  GR32_Polygons,
-  UPSD_Storage;
+  GR32_Polygons;
 
 type
   TFormMain = class(TForm)
     ImgView: TImgView32;
     ButtonSave: TButton;
     Panel1: TPanel;
-    CheckBoxExportLayers: TCheckBox;
     ButtonRandom: TButton;
     ComboBoxCompression: TComboBox;
     LabelCompression: TLabel;
+    ButtonCompressionWarning: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
     procedure ButtonRandomClick(Sender: TObject);
+    procedure ComboBoxCompressionChange(Sender: TObject);
+    procedure ButtonCompressionWarningClick(Sender: TObject);
   private
     procedure Star(Opacity:integer);
   public
@@ -36,127 +38,82 @@ implementation
 {$R *.dfm}
 
 uses
+{$ifndef FPC}
+  System.UITypes,
+  System.Types,
+{$endif}
+  GR32.Examples,
+  GR32.ImageFormats.PSD,
+  GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG;
 
-type
-  TPsdBitmap32Layer = class(TCustomPsdLayer)
-  private
-    FBitmap: TCustomBitmap32;
-    procedure SetBitmap(const Value: TCustomBitmap32);
-  protected
-    procedure GetChannelScanLine(AChannel, ALine: integer; var Bytes); override;
-  public
-    property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
-  end;
-
-procedure TPsdBitmap32Layer.SetBitmap(const Value: TCustomBitmap32);
-begin
-  FBitmap := Value;
-  if (FBitmap <> nil) then
-  begin
-    Width := FBitmap.Width;
-    Height := FBitmap.Height;
-  end;
-end;
-
-procedure TPsdBitmap32Layer.GetChannelScanLine(AChannel, ALine: integer; var Bytes);
+{$ifdef FPC}
+function PromptForFilename(var AFilename: string; const AFilter: string;
+  const ADefaultExt: string = ''; Dummy1: string = ''; Dummy2: string = '';
+  Save: boolean = False): boolean;
 var
-  i: integer;
-  pDest: PByte;
-  pSource: PByte;
+  Dialog: TOpenDialog;
 begin
-  if (Bitmap = nil) then
-  begin
-    FillChar(Bytes, Width, $FF);
-    Exit;
-  end;
-
-  if AChannel < 0 then
-    AChannel := 3
+  if (Save) then
+    Dialog := TSaveDialog.Create(nil)
   else
-    AChannel := 2 - AChannel;
+    Dialog := TOpenDialog.Create(nil);
+  try
+    if (Save) then
+      Dialog.Options := [ofPathMustExist, ofOverwritePrompt]
+    else
+      Dialog.Options := [ofFileMustExist];
+    Dialog.Filter := AFilter;
+    Dialog.Filename := AFilename;
+    Dialog.DefaultExt := ADefaultExt;
 
-  pSource := @(PColor32Entry(Bitmap.ScanLine[ALine]).Planes[AChannel]);
-  pDest := @Bytes;
+    Result := Dialog.Execute;
 
-  for i:= 0 to Bitmap.Width-1 do
-  begin
-    pDest^ := pSource^;
-
-    Inc(pDest);
-    Inc(pSource, SizeOf(TColor32));
+    If Result then
+      AFilename := Dialog.Filename;
+  finally
+    Dialog.Free;
   end;
 end;
+{$endif}
 
-procedure PsdSave(AImgView: TImgView32; ExportLayers: boolean; Compression: TPsdLayerCompression);
+procedure SaveToPSD(AImgView: TImgView32; ACompression: TPsdLayerCompression);
 var
   Filename: string;
-  PsdBuilder: TPsdBuilder;
-  PsdLayer: TCustomPsdLayer;
-  i: integer;
-  SourceLayer: TCustomLayer;
-  BackgroundBitmap: TBitmap32;
-  Location: TFloatRect;
-  LayerBitmap: TBitmap32;
+  PhotoshopDocument: TPhotoshopDocument;
+  Stream: TStream;
 begin
-  if AImgView.Bitmap.Empty then
-    Exit;
-
   if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
     Exit;
 
-  PsdBuilder := TPsdBuilder.Create;
+  Stream := TFileStream.Create(Filename, fmCreate);
   try
-    // Note: some readers don't support zip compression
-    PsdBuilder.Compression := Compression;
-    PsdBuilder.LayerCompression := Compression;
-
-    BackgroundBitmap := TBitmap32.Create;
+    PhotoshopDocument := TPhotoshopDocument.Create;
     try
-      // Create flattened bitmap for use as background
-      BackgroundBitmap.SetSizeFrom(AImgView.Bitmap);
-      AImgView.PaintTo(BackgroundBitmap, BackgroundBitmap.BoundsRect);
+      PhotoshopDocument.Compression := ACompression;
 
-      PsdLayer := TPsdBitmap32Layer.Create;
-      TPsdBitmap32Layer(PsdLayer).Bitmap := BackgroundBitmap; // Layer just references the bitmap; It doesn't own it.
+      // Construct a PSD based on the layers of the TImgView32
+      PhotoshopDocument.Assign(AImgView);
 
-      PsdBuilder.Background := PsdLayer; // PsdBuilder now owns the layer, but not the bitmap
-
-      if ExportLayers then
-        for i := 0 to AImgView.Layers.Count -1 do
-        begin
-          SourceLayer := AImgView.Layers[i];
-          if not (SourceLayer is TBitmapLayer) then
-            continue;
-
-          LayerBitmap := TBitmapLayer(SourceLayer).Bitmap;
-          Location := TBitmapLayer(SourceLayer).Location;
-
-          PsdLayer := PsdBuilder.AddLayer(TPsdBitmap32Layer);
-          PsdLayer.Opacity := LayerBitmap.MasterAlpha;
-          PsdLayer.Left := Round(Location.Left);
-          PsdLayer.Top := Round(Location.Top);
-          TPsdBitmap32Layer(PsdLayer).Bitmap :=  LayerBitmap;
-
-          PsdLayer.Name := 'Layer ' + inttostr(i);
-        end;
-
-      PsdBuilder.Build;
-
-      PsdBuilder.Stream.SaveToFile(Filename);
-
+      TPhotoshopDocumentWriter.SaveToStream(PhotoshopDocument, Stream);
     finally
-      BackgroundBitmap.Free;
+      PhotoshopDocument.Free;
     end;
+
   finally
-    PsdBuilder.Free;
+    Stream.Free;
   end;
 end;
 
 
 procedure TFormMain.ButtonSaveClick(Sender: TObject);
 begin
-  PsdSave(ImgView, CheckBoxExportLayers.Checked, TPsdLayerCompression(ComboBoxCompression.ItemIndex));
+  SaveToPSD(ImgView, TPsdLayerCompression(ComboBoxCompression.ItemIndex));
+end;
+
+procedure TFormMain.ComboBoxCompressionChange(Sender: TObject);
+begin
+  ButtonCompressionWarning.Visible := (TPsdLayerCompression(ComboBoxCompression.ItemIndex) >= lcZIP)
 end;
 
 function RandomColor():TColor32;
@@ -202,24 +159,18 @@ begin
   BitmapLayer.Scaled := True;
 end;
 
+procedure TFormMain.ButtonCompressionWarningClick(Sender: TObject);
+begin
+  MessageDlg('Be aware that many applications only support reading RAW and RLE compressed PSD files', mtWarning, [mbOK], 0);
+end;
+
 procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
-  BitmapLayer: TBitmapLayer;
   i: Integer;
-const
-  FolderMedia = '..\..\..\..\..\Media';
 begin
   ImgView.Layers.Clear;
 
-  // First layer is static bitmap...
-  BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
-  BitmapLayer.Bitmap.LoadFromFile(FolderMedia+'\Monalisa.jpg');
-  BitmapLayer.Bitmap.DrawMode := dmBlend;
-  BitmapLayer.Bitmap.MasterAlpha := 192;
-  BitmapLayer.Location := GR32.FloatRect(BitmapLayer.Bitmap.BoundsRect);
-  BitmapLayer.Scaled := True;
-
-  // and on top of that a bunch of random shapes
+  // Add a bunch of random shapes
   for i := 0 to 3 do
     Star($FF); // Solid shapes
 
@@ -232,8 +183,13 @@ begin
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.FillStyle := bfsCheckers;
 
-  ImgView.Bitmap.SetSize(600,400);
   ImgView.Bitmap.DrawMode := dmBlend;
+  ImgView.Bitmap.MasterAlpha := 192;
+  ImgView.Bitmap.DrawMode := dmBlend;
+
+  if Graphics32Examples.MediaFileExists('Monalisa.jpg') then
+    // Background is a static bitmap
+    ImgView.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\Monalisa.jpg');
 
   ButtonRandom.Click;
 end;

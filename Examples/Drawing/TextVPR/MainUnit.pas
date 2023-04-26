@@ -98,8 +98,14 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Backends, GR32_Gamma, GR32_Polygons,
-  {$IFDEF FPC}
+{$IFNDEF FPC}
+  Types,
+  UITypes,
+{$ENDIF}
+  GR32_Backends,
+  GR32_Gamma,
+  GR32_Polygons,
+{$IFDEF FPC}
   {$IFDEF LCLWin32}
     GR32_Text_LCL_Win;
   {$ENDIF}
@@ -112,9 +118,9 @@ uses
   {$IFDEF LCLCustomDrawn}
     GR32_Text_LCL_CustomDrawn;
   {$ENDIF}
-  {$ELSE}
+{$ELSE}
   GR32_Text_VCL;
-  {$ENDIF}
+{$ENDIF}
 
 const
   CLoremIpsum =

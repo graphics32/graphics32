@@ -205,6 +205,7 @@ uses
   GR32.ImageFormats,
   GR32.ImageFormats.JPG,
   GR32.ImageFormats.GIF,
+  GR32.ImageFormats.PSD,
   NewImageUnit,
   RGBALoaderUnit;
 

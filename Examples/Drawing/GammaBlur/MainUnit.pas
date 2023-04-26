@@ -44,15 +44,20 @@ var
 
 implementation
 
-uses
-  {$IFNDEF FPC} JPEG, {$ELSE} LazJPG, {$ENDIF}
-  GR32_Polygons, GR32_VectorUtils, GR32_Gamma, GR32_Blurs, GR32_Resamplers;
-
 {$IFDEF FPC}
 {$R *.lfm}
 {$ELSE}
 {$R *.dfm}
 {$ENDIF}
+
+uses
+  {$IFNDEF FPC} JPEG, {$ELSE} LazJPG, {$ENDIF}
+  GR32_Math,
+  GR32_Polygons,
+  GR32_VectorUtils,
+  GR32_Gamma,
+  GR32_Blurs,
+  GR32_Resamplers;
 
 { TFrmGammaBlur }
 

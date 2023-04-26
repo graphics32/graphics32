@@ -26,12 +26,12 @@ var
 implementation
 
 uses
-  GR32_PNG, GR32_PortableNetworkGraphic;
+  GR32.Examples,
+  GR32,
+  GR32_PNG,
+  GR32_PortableNetworkGraphic;
 
 {$R *.dfm}
-
-const
-  sMediaFolder = '..\..\..\Media';
 
 procedure TFmPngDemo.ButtonLoadClick(Sender: TObject);
 var
@@ -106,8 +106,8 @@ begin
   ImageDisplay.AlignWithMargins := True;
 {$ENDIF}
 
-  if FileExists(sMediaFolder+'\Dice.png') then
-    LoadBitmap32FromPNG(ImageDisplay.Bitmap, sMediaFolder+'\Dice.png');
+  if Graphics32Examples.MediaFileExists('Dice.png') then
+    LoadBitmap32FromPNG(ImageDisplay.Bitmap, Graphics32Examples.MediaFolder+'\Dice.png');
 end;
 
 end.
