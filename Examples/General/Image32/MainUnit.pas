@@ -76,29 +76,11 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  GR32.ImageFormats.JPG;
 
 procedure TFormImage32Example.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
-  JPEG := TJPEGImage.Create;
-  try
-	ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    Image.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  Image.Bitmap.LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
 
   with TKernelResampler.Create(Image.Bitmap) do
   begin
@@ -123,13 +105,9 @@ end;
 procedure TFormImage32Example.RgpScaleModeClick(Sender: TObject);
 const
   SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
-var
-  ScaleEnabled: Boolean;
 begin
   Image.ScaleMode := SM_CONSTS[RgpScaleMode.ItemIndex];
-  ScaleEnabled := (RgpScaleMode.ItemIndex = 2) or (RgpScaleMode.ItemIndex = 5);
-  SbrScale.Enabled := ScaleEnabled;
-  SbrScale.Enabled := ScaleEnabled;
+  SbrScale.Enabled := (Image.ScaleMode in [smScale, smOptimalScaled]);
 end;
 
 procedure TFormImage32Example.RgpKernelClick(Sender: TObject);

@@ -152,4 +152,11 @@ object FormGradientLines: TFormGradientLines
     ReadOnly = True
     TabOrder = 8
   end
+  object TimerFrameRate: TTimer
+    Enabled = False
+    Interval = 5000
+    OnTimer = TimerFrameRateTimer
+    Left = 304
+    Top = 216
+  end
 end

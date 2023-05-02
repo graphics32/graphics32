@@ -37,9 +37,19 @@ interface
 
 {$I GR32.inc}
 
+{-$DEFINE UPDATERECT_DEBUGDRAW}
+{-$DEFINE UPDATERECT_DEBUGDRAW_RANDOM_COLORS}
+
 uses
-  SysUtils, Classes, Windows, Graphics, GR32, GR32_Backends, GR32_Containers,
-  GR32_Image, GR32_Backends_Generic, GR32_Paths;
+  System.SysUtils, System.Classes,
+  WinAPI.Windows,
+  VCL.Graphics, VCL.Controls,
+  GR32,
+  GR32_Backends,
+  GR32_Containers,
+  GR32_Image,
+  GR32_Backends_Generic,
+  GR32_Paths;
 
 type
   { TGDIBackend }
@@ -47,9 +57,16 @@ type
     It uses the GDI to manage and provide the buffer and additional
     graphics sub system features. The backing buffer is kept in memory. }
 
-  TGDIBackend = class(TCustomBackend, IPaintSupport,
-    IBitmapContextSupport, IDeviceContextSupport,
-    ITextSupport, IFontSupport, ICanvasSupport, ITextToPathSupport)
+  TGDIBackend = class(TCustomBackend,
+      IPaintSupport,
+      IBitmapContextSupport,
+      IDeviceContextSupport,
+      ITextSupport,
+      IFontSupport,
+      ICanvasSupport,
+      ITextToPathSupport,
+      IUpdateRectSupport
+    )
   private
     procedure FontChangedHandler(Sender: TObject);
     procedure CanvasChangedHandler(Sender: TObject);
@@ -131,6 +148,10 @@ type
 
     property Canvas: TCanvas read GetCanvas;
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
+
+    { IUpdateRectSupport }
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
+    procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   end;
 
   { TGDIMMFBackend }
@@ -180,6 +201,8 @@ type
 implementation
 
 uses
+  System.Math,
+  System.Types,
   GR32_Text_VCL;
 
 var
@@ -309,14 +332,14 @@ begin
   Result.cX := 0;
   Result.cY := 0;
   if Handle <> 0 then
-    Windows.GetTextExtentPoint32(Handle, PChar(Text), Length(Text), Result)
+    WinAPI.Windows.GetTextExtentPoint32(Handle, PChar(Text), Length(Text), Result)
   else
   begin
     StockBitmap.Canvas.Lock;
     try
       DC := StockBitmap.Canvas.Handle;
       OldFont := SelectObject(DC, Font.Handle);
-      Windows.GetTextExtentPoint32(DC, PChar(Text), Length(Text), Result);
+      WinAPI.Windows.GetTextExtentPoint32(DC, PChar(Text), Length(Text), Result);
       SelectObject(DC, OldFont);
     finally
       StockBitmap.Canvas.Unlock;
@@ -375,14 +398,14 @@ begin
   begin
     SelectObject(Handle, Font.Handle);
     SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, Windows.TRANSPARENT);
+    SetBkMode(Handle, WinAPI.Windows.TRANSPARENT);
     FFontHandle := Font.Handle;
   end
   else
   begin
     SelectObject(Handle, FFontHandle);
     SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, Windows.TRANSPARENT);
+    SetBkMode(Handle, WinAPI.Windows.TRANSPARENT);
   end;
 end;
 
@@ -452,6 +475,75 @@ begin
   Result := FOnFontChange;
 end;
 
+procedure TGDIBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
+begin
+  if (AControl.HandleAllocated) then
+    WinAPI.Windows.InvalidateRect(AControl.Handle, @ARect, False);
+end;
+
+procedure TGDIBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
+var
+  RegionType: integer;
+  UpdateRegion: HRGN;
+  RegionSize: integer;
+  RegionData: PRgnData;
+  r: TRect;
+  i: integer;
+begin
+  UpdateRegion := CreateRectRgn(0,0,0,0);
+  try
+    RegionType := GetUpdateRgn(AControl.Handle, UpdateRegion, False);
+
+    case RegionType of
+
+      COMPLEXREGION:
+        begin
+          RegionSize := GetRegionData(UpdateRegion, 0, nil);
+
+          if (RegionSize > 0) then
+          begin
+            GetMem(RegionData, RegionSize);
+            try
+
+              RegionSize := GetRegionData(UpdateRegion, RegionSize, RegionData);
+              Assert(RegionSize <> 0);
+
+              // Final count is known so set capacity to avoid reallocation
+              AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + integer(RegionData.rdh.nCount));
+
+              for i := 0 to RegionData.rdh.nCount-1 do
+                AUpdateRects.Add(PPolyRects(@RegionData.Buffer)[i]);
+
+            finally
+              FreeMem(RegionData);
+            end;
+          end;
+        end;
+
+      NULLREGION:
+        AFullUpdate := True;
+
+      SIMPLEREGION:
+        begin
+          GetUpdateRect(AControl.Handle, r, False);
+          if (GR32.EqualRect(r, AControl.ClientRect)) then
+            AFullUpdate := True
+          else
+          begin
+            AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + 1);
+            AUpdateRects.Add(r);
+          end;
+        end
+
+    else
+      // Error - Ignore it
+      AFullUpdate := True
+    end;
+  finally
+    DeleteObject(UpdateRegion);
+  end;
+end;
+
 procedure TGDIBackend.SetCanvasChange(Handler: TNotifyEvent);
 begin
   FOnCanvasChange := Handler;
@@ -518,18 +610,58 @@ begin
 
 end;
 
+{$IFDEF UPDATERECT_DEBUGDRAW}
+const
+  clDebugDrawFill = TColor32($30FF0000);
+  clDebugDrawFrame = TColor32($90FF0000);
+{$ENDIF}
+
 procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 var
   i: Integer;
+{$IFDEF UPDATERECT_DEBUGDRAW}
+  C1, C2: TColor32;
+  r: TRect;
+{$ENDIF}
 begin
+{$IFDEF UPDATERECT_DEBUGDRAW}
+{$IFDEF UPDATERECT_DEBUGDRAW_RANDOM_COLORS}
+  C1 := Random(MaxInt) AND $00FFFFFF;
+  C2 := C1 OR $90000000;
+  C1 := C1 OR $30000000;
+{$ELSE}
+  C1 := clDebugDrawFill;
+  C2 := clDebugDrawFrame;
+{$ENDIF}
+{$ENDIF}
+
   if AInvalidRects.Count > 0 then
+  begin
     for i := 0 to AInvalidRects.Count - 1 do
+    begin
+{$IFDEF UPDATERECT_DEBUGDRAW}
+      r := AInvalidRects[i]^;
+      ABuffer.BeginLockUpdate;
+      ABuffer.FillRectTS(r, C1);
+      ABuffer.FrameRectTS(r, C2);
+      ABuffer.EndLockUpdate;
+{$ENDIF}
       with AInvalidRects[i]^ do
-        BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY)
-  else
+        BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
+    end;
+  end else
+  begin
+{$IFDEF UPDATERECT_DEBUGDRAW}
+      r := APaintBox.GetViewportRect;
+      ABuffer.BeginLockUpdate;
+      ABuffer.FillRectTS(r, C1);
+      ABuffer.FrameRectTS(r, C2);
+      ABuffer.EndLockUpdate;
+{$ENDIF}
     with APaintBox.GetViewportRect do
       BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
+  end;
 end;
 
 

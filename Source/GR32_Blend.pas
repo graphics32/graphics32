@@ -904,15 +904,9 @@ var
   P: PLongWord;
 begin
   GetMem(AlphaTable, 257 * 8 * SizeOf(Cardinal));
-  {$IFDEF HAS_NATIVEINT}
   alpha_ptr := Pointer(NativeUInt(AlphaTable) and (not $F));
   if NativeUInt(alpha_ptr) < NativeUInt(AlphaTable) then
     alpha_ptr := Pointer(NativeUInt(alpha_ptr) + 16);
-  {$ELSE}
-  alpha_ptr := Pointer(Cardinal(AlphaTable) and (not $F));
-  if Cardinal(alpha_ptr) < Cardinal(AlphaTable) then
-    Inc(Cardinal(alpha_ptr), 16);
-  {$ENDIF}
   P := alpha_ptr;
   for I := 0 to 255 do
   begin

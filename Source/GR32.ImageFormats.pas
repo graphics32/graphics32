@@ -268,12 +268,14 @@ const
 
 type
   IImageFormatEnumerator = interface
+    ['{68377765-DD99-49C6-868F-18A86468627B}']
     function GetCurrent: IImageFormat;
     function MoveNext: Boolean;
     property Current: IImageFormat read GetCurrent;
   end;
 
   IImageFormats = interface
+    ['{62458797-D109-4EBA-9941-DD5872ABA202}']
     function GetEnumerator: IImageFormatEnumerator;
   end;
 

@@ -1162,7 +1162,8 @@ end;
 
 procedure RegisterPngChunk(ChunkClass: TCustomDefinedChunkWithHeaderClass);
 begin
-  Assert(IsPngChunkRegistered(ChunkClass) = False);
+  Assert(not IsPngChunkRegistered(ChunkClass), 'PNG chunk already registered');
+
   SetLength(GPngChunkClasses, Length(GPngChunkClasses) + 1);
   GPngChunkClasses[Length(GPngChunkClasses) - 1] := ChunkClass;
 end;

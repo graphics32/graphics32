@@ -100,12 +100,12 @@ implementation
 uses
 {$IFNDEF FPC}
   Types,
-  UITypes,
+  System.UITypes,
 {$ENDIF}
   GR32_Backends,
   GR32_Gamma,
   GR32_Polygons,
-{$IFDEF FPC}
+  {$IFDEF FPC}
   {$IFDEF LCLWin32}
     GR32_Text_LCL_Win;
   {$ENDIF}
@@ -118,9 +118,9 @@ uses
   {$IFDEF LCLCustomDrawn}
     GR32_Text_LCL_CustomDrawn;
   {$ENDIF}
-{$ELSE}
+  {$ELSE}
   GR32_Text_VCL;
-{$ENDIF}
+  {$ENDIF}
 
 const
   CLoremIpsum =
@@ -217,7 +217,7 @@ begin
   if Supports(Img.Bitmap.Backend, ITextToPathSupport, Intf) then
   begin
     DestRect := FloatRect(Img.BoundsRect);
-    InflateRect(DestRect, -10, -10);
+    GR32.InflateRect(DestRect, -10, -10);
     Flag := RgpHorzAlign.ItemIndex;
     case RgpVerticalAlign.ItemIndex of
       0: ;

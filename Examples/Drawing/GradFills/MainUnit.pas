@@ -98,9 +98,9 @@ var
 implementation
 
 {$IFDEF FPC}
-  {$R *.lfm}
+{$R *.lfm}
 {$ELSE}
-  {$R *.dfm}
+{$R *.dfm}
 {$ENDIF}
 
 {$R data.res}
