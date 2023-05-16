@@ -47,8 +47,7 @@ uses
 {$ENDIF}
   Generics.Collections,
   Classes, SysUtils, Math,
-  GR32,
-  GR32_Layers.RubberBand;
+  GR32;
 
 const
   { Layer Options Bits }
