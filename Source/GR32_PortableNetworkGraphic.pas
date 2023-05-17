@@ -1440,35 +1440,33 @@ begin
   if inflateInit_(ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0 then
     raise EPngError.Create('Error during decompression');
   {$ENDIF}
-
-  GetMem(TempBuffer, CBufferSize);
   try
-    ZResult := Z_OK;
 
-    while (ZStreamRecord.avail_in > 0) and (ZResult = Z_OK) do
-    begin
-      ZStreamRecord.next_out := TempBuffer;
-      ZStreamRecord.avail_out := CBufferSize;
+    GetMem(TempBuffer, CBufferSize);
+    try
+      ZResult := Z_OK;
 
-      ZResult := inflate(ZStreamRecord, Z_NO_FLUSH);
+      while (ZStreamRecord.avail_in > 0) and (ZResult <> Z_STREAM_END) do
+      begin
+        ZStreamRecord.next_out := TempBuffer;
+        ZStreamRecord.avail_out := CBufferSize;
 
-      Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
+        ZResult := inflate(ZStreamRecord, Z_NO_FLUSH);
+
+        if ZResult < 0 then
+          raise EPngError.CreateFmt('Error during decompression: %d', [ZResult]);
+
+        Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
+      end;
+
+    finally
+      FreeMem(TempBuffer);
     end;
 
-    repeat
-      ZStreamRecord.next_out := TempBuffer;
-      ZStreamRecord.avail_out := CBufferSize;
-
-      ZResult := inflate(ZStreamRecord, Z_FINISH);
-
-      Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
-    until (ZResult = Z_STREAM_END) and (ZStreamRecord.avail_out > 0);
   finally
-    FreeMem(TempBuffer);
+    if inflateEnd(ZStreamRecord) > 0 then
+      raise EPngError.Create('Error on stream validation');
   end;
-
-  if inflateEnd(ZStreamRecord) > 0 then
-    raise EPngError.Create('Error on stream validation');
 end;
 
 procedure ZDecompress(const Input: TMemoryStream; const Output: TStream); overload;
