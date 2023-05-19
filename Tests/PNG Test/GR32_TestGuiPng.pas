@@ -161,6 +161,7 @@ resourcestring
 const
   CPngSuiteDir = '..\Resources\PNG Suite Images\';
   CTestPngDir = '..\Resources\Test\';
+  CRegressionTestPngDir = '..\Resources\RegressionTest\';
 
 procedure TestPngAgainstReferenceBmp(TestCase: TTestCase; const PNGFileName, BMPFilename: TFileName);
 var
@@ -830,13 +831,14 @@ begin
   FileTestSuite := TFolderTestSuite.Create('PNG Suite Tests', TGR32FileTest, CPngSuiteDir, '*.png', True);
   FileTestSuite.AddTests(TGR32InvalidFileTest);
   FileTestSuite.AddTests(TTestPngToBitmap32);
-
   RegisterTest(FileTestSuite);
 
   RegisterTest(TTestGR32PngBasics.Suite);
   RegisterTest(TTestPngBitmap32Roundtrip.Suite);
   RegisterTest(TTestPngGR32AncillaryChunks.Suite);
 
+  FileTestSuite := TFolderTestSuite.Create('PNG Regression Tests', TGR32FileTest, CRegressionTestPngDir, '*.png', True);
+  RegisterTest(FileTestSuite);
 {$ENDIF}
 end;
 
