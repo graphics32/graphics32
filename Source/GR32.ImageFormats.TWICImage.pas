@@ -32,10 +32,6 @@ unit GR32.ImageFormats.TWICImage;
  *
  * ***** END LICENSE BLOCK ***** *)
 
-// WEAKPACKAGEUNIT so we can include the unit in the GR32 design time
-// package in order to have the design time editor support the various formats.
-{$WEAKPACKAGEUNIT ON}
-
 interface
 
 {$I GR32.inc}
@@ -110,11 +106,16 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+var
+  ImageFormatHandle: integer = 0;
+
 initialization
 {$IFNDEF PLATFORM_INDEPENDENT}
-  ImageFormatManager.RegisterImageFormat(
+  ImageFormatHandle := ImageFormatManager.RegisterImageFormat(
     TImageFormatAdapterTWICImage.Create(TWICImage, SVTIFFImages, ['tif', 'tiff']),
     ImageFormatPriorityNormal);
 {$ENDIF}
+finalization
+  ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
 end.
 

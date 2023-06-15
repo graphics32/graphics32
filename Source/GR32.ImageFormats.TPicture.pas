@@ -32,10 +32,6 @@ unit GR32.ImageFormats.TPicture;
  *
  * ***** END LICENSE BLOCK ***** *)
 
-// WEAKPACKAGEUNIT so we can include the unit in the GR32 design time
-// package in order to have the design time editor support the various formats.
-{$WEAKPACKAGEUNIT ON}
-
 interface
 
 {$I GR32.inc}
@@ -233,10 +229,17 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+var
+  ImageFormatAdapterHandle: integer = 0;
+  ImageFormatReaderHandle: integer = 0;
+
 initialization
-  ImageFormatManager.RegisterImageFormat(TImageFormatAdapterTPicture.Create, ImageFormatPriorityNormal);
+  ImageFormatAdapterHandle := ImageFormatManager.RegisterImageFormat(TImageFormatAdapterTPicture.Create, ImageFormatPriorityNormal);
 {$ifdef LOADFROMSTREAM}
-  ImageFormatManager.RegisterImageFormat(TImageFormatReaderTPicture.Create, ImageFormatPriorityWorst);
+  ImageFormatReaderHandle := ImageFormatManager.RegisterImageFormat(TImageFormatReaderTPicture.Create, ImageFormatPriorityWorst);
 {$endif LOADFROMSTREAM}
+finalization
+  ImageFormatManager.UnregisterImageFormat(ImageFormatAdapterHandle);
+  ImageFormatManager.UnregisterImageFormat(ImageFormatReaderHandle);
 end.
 

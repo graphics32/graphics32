@@ -281,7 +281,9 @@ type
 
   IImageFormatManager = interface
     ['{91478233-7F42-4F47-AF1B-0F27D6912CC7}']
-    procedure RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer = ImageFormatPriorityNormal);
+    function RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer = ImageFormatPriorityNormal): integer;
+    procedure UnregisterImageFormat(const AImageFormat: IImageFormat); overload;
+    procedure UnregisterImageFormat(const AHandle: integer); overload;
 
     function ImageFormats: IImageFormats; overload;
     function ImageFormats(Intf: TGUID): IImageFormats; overload;
@@ -567,6 +569,7 @@ type
     TImageFormatItem = record
       Priority: integer;
       ImageFormat: IImageFormat;
+      Handle: integer;
     end;
 
 {$ifdef FPC}
@@ -600,9 +603,17 @@ type
   strict private
     // List of image format, ordered by priority
     FFormats: TImageFormatList;
+    // Image format handle counter
+    FImageFormatHandle: integer;
+    class var FInstance: IImageFormatManager;
+  strict private
+    procedure Shutdown;
+    class function GetInstance: IImageFormatManager; static;
   private
     // IImageFormatManager
-    procedure RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer = 0);
+    function RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer): integer;
+    procedure UnregisterImageFormat(const AImageFormat: IImageFormat); overload;
+    procedure UnregisterImageFormat(const AHandle: integer); overload;
     function ImageFormats: IImageFormats; overload;
     function ImageFormats(Intf: TGUID): IImageFormats; overload;
     function GetAdapters: IImageFormatAdapter;
@@ -633,16 +644,51 @@ type
     function SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
     function CanPasteFromClipboard: boolean;
     function PasteFromClipboard(ADest: TCustomBitmap32): boolean;
+  private
+    class destructor Destroy;
   public
     destructor Destroy; override;
+    class property Instance: IImageFormatManager read GetInstance;
   end;
 
 //------------------------------------------------------------------------------
 
+class destructor TImageFormatManager.Destroy;
+begin
+  OutputDebugString('TImageFormatManager.Destroy');
+  if (FInstance <> nil) then
+    TImageFormatManager(FInstance).Shutdown;
+
+  OutputDebugString('TImageFormatManager.Destroy - nilling FInstance');
+  FInstance := nil;
+end;
+
+class function TImageFormatManager.GetInstance: IImageFormatManager;
+begin
+  if (FInstance = nil) then
+  begin
+    OutputDebugString('TImageFormatManager.GetInstance - Creating TImageFormatManager');
+    FInstance := TImageFormatManager.Create;
+  end;
+  Result := FInstance;
+end;
+
 destructor TImageFormatManager.Destroy;
 begin
-  FFormats.Free;
+  OutputDebugString('TImageFormatManager.Destroy');
+  if (FFormats <> nil) then
+    OutputDebugString('Freeing FFormats');
+  FreeAndNil(FFormats);
   inherited;
+end;
+
+procedure TImageFormatManager.Shutdown;
+begin
+  OutputDebugString('TImageFormatManager.Shutdown');
+  if (FFormats <> nil) then
+    OutputDebugString('FFormats <> nil');
+  if (FFormats <> nil) then
+    FFormats.Clear;
 end;
 
 
@@ -1088,7 +1134,7 @@ begin
 end;
 {$endif ANONYMOUS_METHODS}
 
-procedure TImageFormatManager.RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer);
+function TImageFormatManager.RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer): integer;
 var
   Index: integer;
   Item: TImageFormatItem;
@@ -1107,11 +1153,46 @@ begin
       ));
   end;
 
+  Inc(FImageFormatHandle);
+
   Item.Priority := APriority;
   Item.ImageFormat := AImageFormat;
+  Item.Handle := FImageFormatHandle;
 
   FFormats.BinarySearch(Item, Index);
   FFormats.Insert(Index, Item);
+
+  Result := FImageFormatHandle;
+end;
+
+procedure TImageFormatManager.UnregisterImageFormat(const AHandle: integer);
+var
+  i: integer;
+begin
+  if (FFormats = nil) or (AHandle <= 0) then
+    exit;
+
+  for i := 0 to FFormats.Count-1 do
+    if (FFormats[i].Handle = AHandle) then
+    begin
+      FFormats.Delete(i);
+      break;
+    end;
+end;
+
+procedure TImageFormatManager.UnregisterImageFormat(const AImageFormat: IImageFormat);
+var
+  i: integer;
+begin
+  if (FFormats = nil) then
+    exit;
+
+  for i := 0 to FFormats.Count-1 do
+    if (FFormats[i].ImageFormat = AImageFormat) then
+    begin
+      FFormats.Delete(i);
+      break;
+    end;
 end;
 
 {$ifdef FPC}
@@ -1270,15 +1351,10 @@ end;
 //      ImageFormatManager
 //
 //------------------------------------------------------------------------------
-var
-  FImageFormatManager: IImageFormatManager;
 
 function ImageFormatManager: IImageFormatManager;
 begin
-  if (FImageFormatManager = nil) then
-    FImageFormatManager := TImageFormatManager.Create;
-
-  Result := FImageFormatManager;
+  Result := TImageFormatManager.Instance;
 end;
 
 //------------------------------------------------------------------------------
@@ -1287,6 +1363,6 @@ end;
 
 initialization
 finalization
-  FImageFormatManager := nil;
+//  FImageFormatManager := nil;
 end.
 
