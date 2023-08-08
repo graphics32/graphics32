@@ -504,8 +504,10 @@ begin
           begin
             GetMem(RegionData, RegionSize);
             try
-
-              RegionSize := GetRegionData(UpdateRegion, RegionSize, RegionData);
+              {$IFOPT C+} // ST: IF ASSERTIONS ON
+              RegionSize :=
+              {$ENDIF}
+              GetRegionData(UpdateRegion, RegionSize, RegionData);
               Assert(RegionSize <> 0);
 
               // Final count is known so set capacity to avoid reallocation
@@ -513,7 +515,6 @@ begin
 
               for i := 0 to RegionData.rdh.nCount-1 do
                 AUpdateRects.Add(PPolyRects(@RegionData.Buffer)[i]);
-
             finally
               FreeMem(RegionData);
             end;
