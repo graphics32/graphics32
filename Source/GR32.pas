@@ -6567,32 +6567,35 @@ begin
       Dst := Tmp;
     end else
       Tmp := nil;
-
-    Dst.BeginUpdate;
     try
 
-      Dst.SetSize(Height, Width);
-      I := 0;
-      for Y := 0 to Height - 1 do
-      begin
-        J := Height - 1 - Y;
-        for X := 0 to Width - 1 do
+      Dst.BeginUpdate;
+      try
+
+        Dst.SetSize(Height, Width);
+        I := 0;
+        for Y := 0 to Height - 1 do
         begin
-          Dst.Bits[J] := Bits[I];
-          Inc(I);
-          Inc(J, Height);
+          J := Height - 1 - Y;
+          for X := 0 to Width - 1 do
+          begin
+            Dst.Bits[J] := Bits[I];
+            Inc(I);
+            Inc(J, Height);
+          end;
         end;
+
+        Dst.Changed;
+      finally
+        Dst.EndUpdate;
       end;
 
-      if Tmp <> nil then
+    finally
+      if (Tmp <> nil) then
       begin
         Tmp.CopyMapTo(Self);
         Tmp.Free;
       end;
-
-      Dst.Changed;
-    finally
-      Dst.EndUpdate;
     end;
   end else
   if (Dst = nil) or (Dst = Self) then
@@ -6651,32 +6654,35 @@ begin
       Dst := Tmp;
     end else
       Tmp := nil;
-
-    Dst.BeginUpdate;
     try
 
-      Dst.SetSize(Height, Width);
-      I := 0;
-      for Y := 0 to Height - 1 do
-      begin
-        J := (Width - 1) * Height + Y;
-        for X := 0 to Width - 1 do
+      Dst.BeginUpdate;
+      try
+
+        Dst.SetSize(Height, Width);
+        I := 0;
+        for Y := 0 to Height - 1 do
         begin
-          Dst.Bits[J] := Bits[I];
-          Inc(I);
-          Dec(J, Height);
+          J := (Width - 1) * Height + Y;
+          for X := 0 to Width - 1 do
+          begin
+            Dst.Bits[J] := Bits[I];
+            Inc(I);
+            Dec(J, Height);
+          end;
         end;
+
+        Dst.Changed;
+      finally
+        Dst.EndUpdate;
       end;
 
-      if Tmp <> nil then
+    finally
+      if (Tmp <> nil) then
       begin
         Tmp.CopyMapTo(Self);
         Tmp.Free;
       end;
-
-      Dst.Changed;
-    finally
-      Dst.EndUpdate;
     end;
   end else
   if (Dst = nil) or (Dst = Self) then

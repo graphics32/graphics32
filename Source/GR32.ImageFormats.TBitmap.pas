@@ -32,10 +32,6 @@ unit GR32.ImageFormats.TBitmap;
  *
  * ***** END LICENSE BLOCK ***** *)
 
-// WEAKPACKAGEUNIT so we can include the unit in the GR32 design time
-// package in order to have the design time editor support the various formats.
-{$WEAKPACKAGEUNIT ON}
-
 interface
 
 {$I GR32.inc}
@@ -208,7 +204,12 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+var
+  ImageFormatHandle: integer = 0;
+
 initialization
-  ImageFormatManager.RegisterImageFormat(TImageFormatAdapterTBitmap.Create(TBitmap), ImageFormatPriorityNormal);
+  ImageFormatHandle := ImageFormatManager.RegisterImageFormat(TImageFormatAdapterTBitmap.Create(TBitmap), ImageFormatPriorityNormal);;
+finalization
+  ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
 end.
 

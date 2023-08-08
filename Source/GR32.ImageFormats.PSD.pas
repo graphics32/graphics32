@@ -33,10 +33,6 @@ unit GR32.ImageFormats.PSD;
  *
  * ***** END LICENSE BLOCK ***** *)
 
-// WEAKPACKAGEUNIT so we can include the unit in the GR32 design time
-// package in order to have the design time editor support the various formats.
-{$WEAKPACKAGEUNIT ON}
-
 interface
 
 {$I GR32.inc}
@@ -979,10 +975,15 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+var
+  ImageFormatHandle: integer = 0;
+
 initialization
   TPhotoshopDocument.DefaultLayerClass := TPhotoshopLayer32;
   TPhotoshopDocument.DefaultCompression := lcRLE;
 
-  ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPSD.Create, ImageFormatPriorityNormal);
+  ImageFormatHandle := ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPSD.Create, ImageFormatPriorityNormal);
+finalization
+  ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
 end.
 

@@ -32,10 +32,6 @@ unit GR32.ImageFormats.GIF;
  *
  * ***** END LICENSE BLOCK ***** *)
 
-// WEAKPACKAGEUNIT so we can include the unit in the GR32 design time
-// package in order to have the design time editor support the various formats.
-{$WEAKPACKAGEUNIT ON}
-
 interface
 
 {$I GR32.inc}
@@ -234,9 +230,14 @@ begin
 end;
 {$endif FPC}
 
+var
+  ImageFormatHandle: integer = 0;
+
 initialization
-  ImageFormatManager.RegisterImageFormat(
+  ImageFormatHandle := ImageFormatManager.RegisterImageFormat(
     TImageFormatAdapterTGIFImage.Create(TGIFImage, sGIFImageFile, ['gif']),
     ImageFormatPriorityNormal);
+finalization
+  ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
 end.
 

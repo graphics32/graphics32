@@ -177,7 +177,7 @@ end;
 
 function TGlobalMemoryStream.Write(const Buffer; Count: Integer): Longint;
 var
-  Pos: Longint;
+  Pos: Int64;
 begin
   Result := 0;
   if (Position >= 0) and (Count >= 0) then
@@ -199,7 +199,7 @@ begin
         SetPointer(FPointer, Pos);
       end;
 
-      System.Move(Buffer, Pointer(Longint(FPointer) + Position)^, Count);
+      System.Move(Buffer, Pointer(NativeUInt(FPointer) + Position)^, Count);
       Seek(Pos, soFromBeginning);
 
       Result := Count;
