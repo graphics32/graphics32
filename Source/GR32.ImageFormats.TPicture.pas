@@ -83,15 +83,29 @@ end;
 
 function TImageFormatAdapterTPicture.CanAssignTo(Dest: TPersistent): boolean;
 begin
-  Result := (Dest is TPicture) and (TPicture(Dest).Graphic <> nil) and
-    ImageFormatManager.Adapters.CanAssignTo(TPicture(Dest).Graphic);
+  if (Dest is TPicture) then
+  begin
+    // Try to assign to TPicture.Graphic, fallback to TBitmap
+    Result := ((TPicture(Dest).Graphic <> nil) and ImageFormatManager.Adapters.CanAssignTo(TPicture(Dest).Graphic)) or
+      ImageFormatManager.Adapters.CanAssignTo(TPicture(Dest).Bitmap); // Note: This potentially modifies the TPicture
+  end else
+    Result := False;
 end;
 
 function TImageFormatAdapterTPicture.AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean;
 begin
-  Result := (Dest is TPicture) and (TPicture(Dest).Graphic <> nil) and
-    // Recurse and try to assign to the TGraphic
-    ImageFormatManager.Adapters.AssignTo(Source, TPicture(Dest).Graphic);
+  if (Dest is TPicture) then
+  begin
+    // Try to assign to TPicture.Graphic, fallback to TBitmap
+    Result := (TPicture(Dest).Graphic <> nil) and
+      // Recurse and try to assign to the TGraphic
+      ImageFormatManager.Adapters.AssignTo(Source, TPicture(Dest).Graphic);
+
+    if (not Result) then
+      // Recurse and try to assign to TBitmap
+      Result := ImageFormatManager.Adapters.AssignTo(Source, TPicture(Dest).Bitmap);
+  end else
+    Result := False;
 end;
 
 
