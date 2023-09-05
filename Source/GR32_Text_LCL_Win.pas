@@ -178,7 +178,7 @@ begin
   FreeMem(GlyphMemPtr);
 end;
 
-procedure InternalTextToPath(DC: HDC; Path: TCustomPath; const ARect: TFloatRect;
+procedure InternalTextToPath(DC: HDC; Path: TCustomPath; var ARect: TFloatRect;
   const Text: string; Flags: Cardinal);
 const
   CHAR_CR = 10;
@@ -442,6 +442,12 @@ begin
 
   X := ARect.Right - XMax;
   Y := ARect.Bottom - YMax;
+  case (Flags and DT_HORZ_ALIGN_MASK) of
+    DT_LEFT   : ARect := FloatRect(ARect.Left, ARect.Top, XMax, YMax);
+    DT_CENTER : ARect := FloatRect(ARect.Left + X * 0.5, ARect.Top, XMax + X * 0.5, YMax);
+    DT_RIGHT  : ARect := FloatRect(ARect.Left + X, ARect.Top, ARect.Right, YMax);
+    DT_JUSTIFY: ARect := FloatRect(ARect.Left, ARect.Top, ARect.Right, YMax);
+  end;
   if Flags and (DT_VCENTER or DT_BOTTOM) <> 0 then
   begin
     if Flags and DT_VCENTER <> 0 then
@@ -450,6 +456,8 @@ begin
       for I := 0 to High(TextPath.Path) do
         for J := 0 to High(TextPath.Path[I]) do
           TextPath.Path[I][J].Y := TextPath.Path[I][J].Y + Y;
+
+    OffsetRect(ARect, 0, Y);
   end;
 
 {$IFDEF USEKERNING}
@@ -475,11 +483,13 @@ procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
 var
   DC: HDC;
   SavedFont: HFONT;
+  R: TFloatRect;
 begin
   DC := GetDC(0);
   try
     SavedFont := SelectObject(DC, Font);
-    InternalTextToPath(DC, Path, ARect, Text, Flags);
+    R := ARect;
+    InternalTextToPath(DC, Path, R, Text, Flags);
     SelectObject(DC, SavedFont);
   finally
     ReleaseDC(0, DC);
@@ -491,10 +501,6 @@ function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: string;
 begin
   Result := ARect;
   InternalTextToPath(DC, nil, Result, Text, Flags);
-  Result.Left := Round(Result.Left);
-  Result.Top := Round(Result.Top);
-  Result.Right := Round(Result.Right);
-  Result.Bottom := Round(Result.Bottom);
 end;
 
 function MeasureText(Font: HFONT; const ARect: TFloatRect;
