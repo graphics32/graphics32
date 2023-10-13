@@ -686,8 +686,11 @@ begin
   try
     Dst.SetSizeFrom(Src);
     Sampler := SamplerClass.Create(Src.Resampler);
-    Sampler.Kernel := Kernel;
     try
+      Sampler.Kernel := Kernel;
+      Sampler.CenterX := CenterX;
+      Sampler.CenterY := CenterY;
+
       Rasterizer.Sampler := Sampler;
       Rasterizer.Rasterize(Dst);
     finally
