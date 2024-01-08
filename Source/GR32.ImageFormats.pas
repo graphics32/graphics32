@@ -112,7 +112,7 @@ type
 //------------------------------------------------------------------------------
 // When data is read from the clipboard, we iterate all image formats that
 // IImageFormatClipboardFormat; We first try calling PasteFromClipboard on the
-// image format and if that isn't sucessful, we then iterate the available
+// image format and if that isn't successful, we then iterate the available
 // clipboard formats and call LoadFromClipboardFormat on each in turn.
 // If both of the above methods return False, we fall back to using the
 // IImageFormatReader interface to try and read the data.

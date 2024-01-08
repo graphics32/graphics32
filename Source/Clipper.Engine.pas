@@ -4073,8 +4073,8 @@ begin
       if assigned(outRec.owner) then
         DeepCheckOwner(outRec, outRec.owner);
 
-			// swap the order when a child preceeds its owner
-			// (because owners must preceed children in polytrees)
+			// swap the order when a child precedes its owner
+			// (because owners must precede children in polytrees)
       if assigned(outRec.owner) and
         (outRec.owner.idx > outRec.idx) then
       begin
