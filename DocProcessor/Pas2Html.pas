@@ -3,7 +3,7 @@ unit Pas2Html;
 //Limitations: precompiler directives treated as comments
 
 // Regarding building new units from existing PAS files ...
-// 1. Comments directly preceeding declarations in the header section of PAS
+// 1. Comments directly preceding declarations in the header section of PAS
 //    files will be imported as declaration descriptions into the help file.
 // 2. Images can also be flagged for import by using <img src="filename">
 //    Format. Images must be located in images folder and the filename
