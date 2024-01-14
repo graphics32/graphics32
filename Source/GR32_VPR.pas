@@ -208,7 +208,14 @@ begin
   for I := 0 to N - 1 do
   begin
     X := Round(P.X);
-    if X < Span.X1 then Span.X1 := X;
+
+    // Work around for issue #272
+    if (X < 0) then
+      X := 0;
+
+    if X < Span.X1 then
+      Span.X1 := X;
+
     if P.Y = 1 then
     begin
       fracX := P.X - X;
@@ -223,7 +230,10 @@ begin
         SpanData[X] := SpanData[X] - fracX;
       end;
     end;
-    if X > Span.X2 then Span.X2 := X;
+
+    if X > Span.X2 then
+      Span.X2 := X;
+
     inc(P);
   end;
 
