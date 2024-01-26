@@ -209,6 +209,9 @@ begin
   P := @Points[0];
   for I := 0 to N - 1 do
   begin
+    // Since we know X >= 0 we could have used Trunc here but unfortunately
+    // Delphi's Trunc is much slower than Round because it modifies the FPU
+    // control word.
     X := Round(P.X);
 
     if X < Span.X1 then
@@ -268,26 +271,35 @@ end;
 procedure DivideSegment(var P1, P2: TFloatPoint; const ScanLines: PScanLineArray);
 var
   Y, Y1, Y2: Integer;
-  k, X, X2: TFloat;
+  X, X2: TFloat;
+  k: TFloat;
 begin
+  (*
+  ** Split each line segment into smaller segments in a vertical buffer,
+  ** such that y-values are between 0 and 1.
+  *)
+
   Y1 := Round(P1.Y);
   Y2 := Round(P2.Y);
 
+  // Special case for horizontal line; It just produces a single segment.
   if Y1 = Y2 then
   begin
     AddSegment(P1.X, P1.Y - Y1, P2.X, P2.Y - Y1, ScanLines[Y1]);
   end
   else
   begin
-    k := (P2.X - P1.X) / (P2.Y - P1.Y);
+    // k: Inverse slope; For each change in Y, how much does X change
     // k is expanded below to limit rounding errors.
-    if Y1 < Y2 then
+    k := (P2.X - P1.X) / (P2.Y - P1.Y);
+
+    if Y1 < Y2 then // Y is increasing
     begin
       X := P1.X + (Y1 + 1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
       AddSegment(P1.X, P1.Y - Y1, X, 1, ScanLines[Y1]);
+
       for Y := Y1 + 1 to Y2 - 1 do
       begin
-        X2 := X + k;
         // Note: Iteratively calculating the next X value based on the previous value and an
         // increment accumulates the rounding error.
         // Ideally we would repeat the calculation of X from Y for each Y to avoid this but
@@ -302,18 +314,21 @@ begin
         AddSegment(X, 0, X2, 1, ScanLines[Y]);
         X := X2;
       end;
+
       AddSegment(X, 0, P2.X, P2.Y - Y2, ScanLines[Y2]);
     end
     else
     begin
       X := P1.X + (Y1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
       AddSegment(P1.X, P1.Y - Y1, X, 0, ScanLines[Y1]);
+
       for Y := Y1 - 1 downto Y2 + 1 do
       begin
         X2 := Max(0, X - k);
         AddSegment(X, 1, X2, 0, ScanLines[Y]);
         X := X2;
       end;
+
       AddSegment(X, 1, P2.X, P2.Y - Y2, ScanLines[Y2]);
     end;
   end;
@@ -376,7 +391,7 @@ begin
   PScanLines := @ScanLines[-YMin];
 
   (*
-  ** compute array sizes for each scanline
+  ** Compute array sizes for each scanline
   *)
   for K := 0 to M do
   begin
@@ -450,17 +465,24 @@ begin
     ScanLines[I].Y := YMin + I;
   end;
 
+  (*
+  ** Divide all segments of the polygon into scanline fragments
+  *)
   for K := 0 to M do
   begin
     N := High(Points[K]);
     if N < 2 then
       Continue;
 
+    // Start with the segment going from the last vertex to the first
     PPt1 := @Points[K][N];
     PPt2 := @Points[K][0];
+
     for I := 0 to N do
     begin
       DivideSegment(PPt1^, PPt2^, PScanLines);
+
+      // Move on to the next segment
       PPt1 := PPt2;
       Inc(PPt2);
     end;
@@ -468,7 +490,7 @@ begin
 end;
 
 procedure RenderScanline(var ScanLine: TScanLine;
-  RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; X1, X2: Integer);
+  RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; ClipX1, ClipX2: Integer);
 var
   Span: TValueSpan;
 {$if Defined(NEGATIVE_INDEX_64) }
@@ -480,11 +502,16 @@ begin
   if ScanLine.Count > 0 then
   begin
     ExtractSingleSpan(ScanLine, Span, SpanData);
-    if Span.X1 < X1 then Span.X1 := X1;
-    if Span.X2 > X2 then Span.X2 := X2;
-    if Span.X2 < Span.X1 then Exit;
+
+    if Span.X1 < ClipX1 then
+      Span.X1 := ClipX1;
+    if Span.X2 > ClipX2 then
+      Span.X2 := ClipX2;
+    if Span.X2 < Span.X1 then
+      Exit;
 
     RenderProc(Data, Span, ScanLine.Y);
+
     X := Span.X1;
     FillLongWord(SpanData[X], Span.X2 - Span.X1 + 1, 0);
   end;
@@ -530,10 +557,10 @@ begin
 
     if (Length(ScanLines) > 0) then
     begin
-    CX1 := Round(ClipRect.Left);
-    CX2 := -Round(-ClipRect.Right) - 1;
+      CX1 := Round(ClipRect.Left); // Round down = Floor
+      CX2 := -Round(-ClipRect.Right) - 1; // Round up = Ceil
 
-    I := CX2 - CX1 + 4;
+      I := CX2 - CX1 + 4;
 
 {$ifdef VPR_CACHE}
       var Size := I * SizeOf(Single);
@@ -548,18 +575,18 @@ begin
       end;
       SpanData := SpanDataCache;
 {$else VPR_CACHE}
-    GetMem(SpanData, I * SizeOf(Single));
+      GetMem(SpanData, I * SizeOf(Single));
 {$endif VPR_CACHE}
 
-    FillLongWord(SpanData^, I, 0);
+      FillLongWord(SpanData^, I, 0);
 
-    for I := 0 to High(ScanLines) do
-    begin
-      RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
+      for I := 0 to High(ScanLines) do
+      begin
+        RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
 {$ifndef VPR_CACHE}
-      FreeMem(ScanLines[I].Segments);
+        FreeMem(ScanLines[I].Segments);
 {$endif VPR_CACHE}
-    end;
+      end;
 
 {$ifdef VPR_CACHE}
       if (LineSegmentCacheSize > MaxLineSegmentCacheSize) then
@@ -576,7 +603,7 @@ begin
         SpanDataCacheSize := 0;
       end;
 {$else VPR_CACHE}
-    FreeMem(SpanData);
+      FreeMem(SpanData);
 {$endif VPR_CACHE}
     end;
   finally
