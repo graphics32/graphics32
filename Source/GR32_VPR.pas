@@ -211,10 +211,6 @@ begin
   begin
     X := Round(P.X);
 
-    // Work around for issue #272
-    if (X < 0) then
-      X := 0;
-
     if X < Span.X1 then
       Span.X1 := X;
 
@@ -292,6 +288,17 @@ begin
       for Y := Y1 + 1 to Y2 - 1 do
       begin
         X2 := X + k;
+        // Note: Iteratively calculating the next X value based on the previous value and an
+        // increment accumulates the rounding error.
+        // Ideally we would repeat the calculation of X from Y for each Y to avoid this but
+        // that is too expensive.
+        // Because of the rounding error we can end up with a tiny negative X value (when X
+        // almost equals k) and, because we've set the rounding mode to rmDown, this negative
+        // X value will later be rounded down to -1 in ExtractSingleSpan.
+        // This is the cause of issue #272.
+        // The Max(0, ...) below works around this problem.
+
+        X2 := Max(0, X + k);
         AddSegment(X, 0, X2, 1, ScanLines[Y]);
         X := X2;
       end;
@@ -303,7 +310,7 @@ begin
       AddSegment(P1.X, P1.Y - Y1, X, 0, ScanLines[Y1]);
       for Y := Y1 - 1 downto Y2 + 1 do
       begin
-        X2 := X - k;
+        X2 := Max(0, X - k);
         AddSegment(X, 1, X2, 0, ScanLines[Y]);
         X := X2;
       end;
