@@ -542,6 +542,9 @@ var
   SavedRoundMode: TRoundingMode;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
+{$ifdef VPR_CACHE}
+  Size: Cardinal;
+{$endif VPR_CACHE}
 begin
   Len := Length(Points);
   if Len = 0 then
@@ -563,7 +566,7 @@ begin
       I := CX2 - CX1 + 4;
 
 {$ifdef VPR_CACHE}
-      var Size := I * SizeOf(Single);
+      Size := I * SizeOf(Single);
       if (Size > SpanDataCacheSize) then
       begin
         if (Size < MinSpanDataCacheSize) then
