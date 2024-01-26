@@ -255,8 +255,10 @@ procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine); {$I
 var
   S: PLineSegment;
 begin
-  if (Y1 = 0) and (Y2 = 0) then
-    Exit;  {** needed for proper clipping }
+  // Fast way of checking a Single = 0.
+  if (Cardinal(Pointer(Y1)) shl 1 = 0) and (Cardinal(Pointer(Y2)) shl 1 = 0) then
+  // if (Y1 = 0) and (Y2 = 0) then
+    Exit;  { needed for proper clipping }
 
   S := @ScanLine.Segments[ScanLine.Count];
   Inc(ScanLine.Count);
