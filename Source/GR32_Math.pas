@@ -90,6 +90,8 @@ function FloatMod(x, y: Double): Double; {$IFDEF INLININGSUPPORTED} inline; {$EN
 
 function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
 
+
+{ CumSum - Cumulative Sum a.k.a. Prefix Sum }
 type
   TCumSumProc = procedure(Values: PSingleArray; Count: Integer);
 
