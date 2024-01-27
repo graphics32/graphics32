@@ -114,38 +114,49 @@ var
 begin
   TestTime := TestTime * 1000;
   RandSeed := 0;
-  Img.Bitmap.Clear(clWhite32);
-  Update;
+
   Canvas := TCanvas32.Create(Img.Bitmap);
-  try try
-    Canvas.Brushes.Add(TSolidBrush);
-    Canvas.Brushes.Add(TStrokeBrush);
-    Canvas.Brushes[0].Visible := True;
-    Canvas.Brushes[1].Visible := False;
-    i := 0;
-    GlobalPerfTimer.Start;
-    repeat
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      TestProc(Canvas);
-      t := GlobalPerfTimer.ReadValue;
-      Inc(i, 10);
-    until t > TestTime;
-    WriteTestResult((i*1000000) div t);
-  except
+  try
+    try
+      Img.BeginUpdate;
+      try
+        Img.Bitmap.Clear(clWhite32);
+
+        Canvas.Brushes.Add(TSolidBrush);
+        Canvas.Brushes.Add(TStrokeBrush);
+        Canvas.Brushes[0].Visible := True;
+        Canvas.Brushes[1].Visible := False;
+        i := 0;
+        GlobalPerfTimer.Start;
+
+        repeat
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          TestProc(Canvas);
+          t := GlobalPerfTimer.ReadValue;
+          Inc(i, 10);
+        until t > TestTime;
+        WriteTestResult((i*1000000) div t);
+
+        Img.Invalidate; // VPR2 and VPR2X doesn't call TBitmap32.Changed when they draw
+      finally
+        Img.EndUpdate;
+      end;
+      Img.Update;
+      Sleep(100); // Tiny delay to work around Windows 10+ deferring update while application is busy
+    except
       MemoLog.Lines.Add(Format('%s: Failed', [cmbRenderer.Text]));
-  end;
+    end;
   finally
     Canvas.Free;
   end;
-  Img.Invalidate; // VPR2 and VPR2X doesn't call TBitmap32.Changed when they draw
 end;
 
 function RandColor: TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -398,7 +409,7 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
     for I := 0 to CmbTest.Items.Count - 1 do
     begin
       CmbTest.ItemIndex := I;
-      Repaint;
+      Update;
       PerformTest;
     end;
     MemoLog.Lines.Add('');
@@ -407,6 +418,9 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 begin
   Screen.Cursor := crHourGlass;
   try
+    Img.Bitmap.Clear(clWhite32);
+    Update;
+
     if CbxAllTests.Checked then
       PerformAllTests
     else
