@@ -199,10 +199,23 @@ var
   Points: PFloatPointArray;
   N: Integer;
 begin
+  (*
+  ** Extract spans of coverage values for a scanline.
+  *)
+
   N := ScanLine.Count * 2;
   Points := @ScanLine.Segments[0];
   Span.X1 := High(Integer);
   Span.X2 := Low(Integer);
+
+
+  (*
+  ** (a) set the length of the span to the horizontal range of that row.
+  **
+  ** (b) if a line segment goes from row Y to row Y + 1 then we need to add
+  **     or subtract 1 from the (X, X + 1) indexes at the crossing (depending on
+  **     line orientation).
+  *)
 
   P := @Points[0];
   for I := 0 to N - 1 do
@@ -212,35 +225,48 @@ begin
     // control word.
     X := Round(P.X);
 
+    // (a1) Find the lower bound of the horizontal span
     if X < Span.X1 then
       Span.X1 := X;
 
+    // (b) if a line segment goes from row Y to row Y + 1 then...
     if P.Y = 1 then
     begin
       fracX := P.X - X;
       if Odd(I) then
-      begin
-        SpanData[X] := SpanData[X] + (1 - fracX); Inc(X);
+      begin // Right edge
+        SpanData[X] := SpanData[X] + (1 - fracX);
+        Inc(X);
         SpanData[X] := SpanData[X] + fracX;
       end
       else
-      begin
-        SpanData[X] := SpanData[X] - (1 - fracX); Inc(X);
+      begin // Left edge
+        SpanData[X] := SpanData[X] - (1 - fracX);
+        Inc(X);
         SpanData[X] := SpanData[X] - fracX;
       end;
     end;
 
+    // (a2) Find the upper bound of the horizontal span
     if X > Span.X2 then
       Span.X2 := X;
 
     inc(P);
   end;
 
+
+  (*
+  ** (c) compute cumulative sum of span values.
+  *)
   X := Span.X1; // Use X so NEGATIVE_INDEX_64 is handled
   Span.Values := @SpanData[X];
 
   CumSum(Span.Values, Span.X2 - Span.X1 + 1);
 
+
+  (*
+  ** (d) integrate each line segment and accumulate span buffer.
+  *)
   for I := 0 to ScanLine.Count - 1 do
   begin
     S := @ScanLine.Segments[I];
@@ -390,7 +416,29 @@ begin
     PY := @Points[K][0].Y;
     for I := 0 to N do
     begin
+      // Calculate the max fragment count; Start of line vertex increments
+      // the running fragment count for the start scanline and the end of
+      // line vertex decrements the running fragment count for the end
+      // scanline.
+      //
+      //    Polygon     Scanline                  Lines(Y0, Y1)              Count Sum
+      //                       (4, 0) (0, 2) (2, 1) (1, 3) (3, 7) (7, 4)
+      //
+      //       *           0      1      1                                     2   2
+      //      /\           1                    1      1                       2   4
+      //     /  \/\        2                                                   0   4
+      //    /      \       3            -1     -1             1               -1   3
+      //   /       /       4                          -1             1         0   3
+      //   \      /        5     -1                                           -1   2
+      //    \    /         6                                                   0   2
+      //     \  /          7                                                   0   2
+      //      \/           8                                 -1     -1        -2   0
+      //
+
+
       Y1 := Round(PY^);
+
+      // Line has positive slope
       if Y0 <= Y1 then
       begin
         Inc(PScanLines[Y0].Count);
