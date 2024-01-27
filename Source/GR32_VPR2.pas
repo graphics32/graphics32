@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32, GR32_Gamma, GR32_Polygons, GR32_OrdinalMaps;
+  GR32, GR32_Polygons, GR32_OrdinalMaps;
 
 type
   PIntSpan = ^TIntSpan;
@@ -220,9 +220,6 @@ begin
       V := Abs(Round(Last * $10000));
       if V > $10000 then V := $10000;
       V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-      V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
       C.A := V;
     end;
     AlphaValues[I] := Color;
@@ -248,9 +245,6 @@ begin
       V := V and $01ffff;
       if V >= $10000 then V := V xor $1ffff;
       V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-      V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
       C.A := V;
     end;
     AlphaValues[I] := Color;
@@ -474,9 +468,6 @@ begin
       V := Abs(Coverage[I]);
       if V > $ffff then V := $ffff;
       V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-      V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
       C.A := V;
     end;
     AlphaValues[I] := Color;
@@ -499,9 +490,6 @@ begin
       V := V and $01ffff;
       if V >= $10000 then V := V xor $1ffff;
       V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-      V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
       C.A := V;
     end;
     AlphaValues[I] := Color;

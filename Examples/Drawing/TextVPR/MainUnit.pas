@@ -169,9 +169,6 @@ begin
   PaintBox32.Buffer.SetSizeFrom(PaintBox32);
   PaintBox32.Buffer.Clear(clWhite32);
   RgpHinting.ItemIndex := Ord(GetHinting);
-  {$IFDEF USEGR32GAMMA}
-  TbrGamma.Enabled := True;
-  {$ENDIF}
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);

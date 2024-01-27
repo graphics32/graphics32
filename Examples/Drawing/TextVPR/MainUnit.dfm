@@ -78,13 +78,13 @@ object MainForm: TMainForm
         Top = 158
         Width = 141
         Height = 28
-        Enabled = False
         Max = 3000
         Min = 30
         Frequency = 300
         Position = 1000
         TabOrder = 0
         ThumbLength = 18
+        TickMarks = tmBoth
         TickStyle = tsNone
         OnChange = TbrGammaChange
       end
@@ -236,9 +236,7 @@ object MainForm: TMainForm
     Height = 19
     Panels = <>
     SimplePanel = True
-    SimpleText = 
-      '  Note: For the Gamma trackbar to work, the USEGR32GAMMA define ' +
-      'in GR32.inc must be enabled.'
+    SimpleText = '  Note: The Gamma trackbar currently does nothing.'
   end
   object FontDialog: TFontDialog
     Font.Charset = DEFAULT_CHARSET

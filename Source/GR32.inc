@@ -193,19 +193,6 @@
 
 
 (*
-  Symbol: USEGR32GAMMA
-  --------------------
-
-    If defined the polygon rasterizer will use the GR32 gamma correction LUT.
-
-  Disable for a slight performance increase.
-*)
-
-{$DEFINE USEGR32GAMMA}
-
-
-
-(*
   Symbol: CHANGENOTIFICATIONS
   ---------------------------
 
