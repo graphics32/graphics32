@@ -599,6 +599,8 @@ end;
 
 initialization
   RegisterPolygonRenderer(TPolygonRenderer32VPR2);
-  RegisterPolygonRenderer(TPolygonRenderer32VPR2X);
 
+  // TPolygonRenderer32VPR2X has been disabled as it's incomplete.
+  // It causes AVs - and always have.
+  // RegisterPolygonRenderer(TPolygonRenderer32VPR2X);
 end.
