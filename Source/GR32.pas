@@ -559,12 +559,6 @@ type
   TWrapProc = function(Value, Max: Integer): Integer;
   TWrapProcEx = function(Value, Min, Max: Integer): Integer;
 
-{$IFDEF DEPRECATEDMODE}
-{ Stretch filters }
-  TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline,
-    sfLanczos, sfMitchell);
-{$ENDIF}
-
 type
   { TPlainInterfacedPersistent }
   { TPlainInterfacedPersistent provides simple interface support with
@@ -719,9 +713,6 @@ type
     FStippleCounter: Single;
     FStipplePattern: TArrayOfColor32;
     FStippleStep: Single;
-{$IFDEF DEPRECATEDMODE}
-    FStretchFilter: TStretchFilter;
-{$ENDIF}
     FOnPixelCombine: TPixelCombineEvent;
     FOnAreaChanged: TAreaChangedEvent;
     FOldOnAreaChanged: TAreaChangedEvent;
@@ -739,9 +730,6 @@ type
     procedure SetDrawMode(Value: TDrawMode);
     procedure SetWrapMode(Value: TWrapMode);
     procedure SetMasterAlpha(Value: Cardinal);
-{$IFDEF DEPRECATEDMODE}
-    procedure SetStretchFilter(Value: TStretchFilter);
-{$ENDIF}
     procedure SetClipRect(const Value: TRect);
     procedure SetResampler(AResampler: TCustomResampler);
     function GetResamplerClassName: string;
@@ -986,9 +974,6 @@ type
     property WrapMode: TWrapMode read FWrapMode write SetWrapMode default wmClamp;
     property MasterAlpha: Cardinal read FMasterAlpha write SetMasterAlpha default $FF;
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
-{$IFDEF DEPRECATEDMODE}
-    property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
-{$ENDIF}
     property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
     property Resampler: TCustomResampler read FResampler write SetResampler;
     property OnChange;
@@ -2889,9 +2874,6 @@ begin
   Dst.MasterAlpha := MasterAlpha;
   Dst.OuterColor := OuterColor;
 
-{$IFDEF DEPRECATEDMODE}
-  Dst.StretchFilter := StretchFilter;
-{$ENDIF}
   Dst.ResamplerClassName := ResamplerClassName;
   if (Dst.Resampler <> nil) and (Resampler <> nil) then
     Dst.Resampler.Assign(Resampler);
@@ -6375,33 +6357,6 @@ begin
     Changed;
   end;
 end;
-
-{$IFDEF DEPRECATEDMODE}
-procedure TCustomBitmap32.SetStretchFilter(Value: TStretchFilter);
-begin
-  if FStretchFilter <> Value then
-  begin
-    FStretchFilter := Value;
-
-    case FStretchFilter of
-      sfNearest: TNearestResampler.Create(Self);
-      sfDraft:   TDraftResampler.Create(Self);
-      sfLinear:  TLinearResampler.Create(Self);
-    else
-      TKernelResampler.Create(Self);
-      with FResampler as TKernelResampler do
-        case FStretchFilter of
-          sfCosine: Kernel := TCosineKernel.Create;
-          sfSpline: Kernel := TSplineKernel.Create;
-          sfLanczos: Kernel := TLanczosKernel.Create;
-          sfMitchell: Kernel := TMitchellKernel.Create;
-        end;
-    end;
-
-    Changed;
-  end;
-end;
-{$ENDIF}
 
 procedure TCustomBitmap32.Roll(Dx, Dy: Integer; FillBack: Boolean; FillColor: TColor32);
 var

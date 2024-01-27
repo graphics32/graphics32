@@ -56,18 +56,6 @@
 
 
 
-(* Symbol DEPRECATEDMODE :
-   -----------------------
-
-      Defines if GR32 should behave like version 1.7.x and down.
-
-   NOTE: Support for this will be dropped at some time and is only provided
-   for transition *)
-
-  {-$DEFINE DEPRECATEDMODE}
-
-
-
 (* Symbol CHANGED_IN_PIXELS :
    --------------------------
 
