@@ -655,38 +655,28 @@ type
 
 class destructor TImageFormatManager.Destroy;
 begin
-  OutputDebugString('TImageFormatManager.Destroy');
   if (FInstance <> nil) then
     TImageFormatManager(FInstance).Shutdown;
 
-  OutputDebugString('TImageFormatManager.Destroy - nilling FInstance');
   FInstance := nil;
 end;
 
 class function TImageFormatManager.GetInstance: IImageFormatManager;
 begin
   if (FInstance = nil) then
-  begin
-    OutputDebugString('TImageFormatManager.GetInstance - Creating TImageFormatManager');
     FInstance := TImageFormatManager.Create;
-  end;
+
   Result := FInstance;
 end;
 
 destructor TImageFormatManager.Destroy;
 begin
-  OutputDebugString('TImageFormatManager.Destroy');
-  if (FFormats <> nil) then
-    OutputDebugString('Freeing FFormats');
   FreeAndNil(FFormats);
   inherited;
 end;
 
 procedure TImageFormatManager.Shutdown;
 begin
-  OutputDebugString('TImageFormatManager.Shutdown');
-  if (FFormats <> nil) then
-    OutputDebugString('FFormats <> nil');
   if (FFormats <> nil) then
     FFormats.Clear;
 end;
