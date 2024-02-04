@@ -34,11 +34,14 @@ unit GR32_Clipper;
 
 interface
 
+{$I GR32.inc}
+
 uses
   Classes,
   SysUtils,
   Math,
   GR32_Clipper2,
+  GR32_Polygons,
   Clipper.Core,
   Clipper.Engine,
   Clipper.Offset,
@@ -114,23 +117,22 @@ type
   private
   public
     procedure AddPath(const path: TArrayOfFloatPoint); overload; deprecated 'Use AddPath(path, joinType, endType)';
-    procedure AddPath(const path: TArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload;
+    procedure AddPath(const path: TArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
     procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use AddPaths(paths, joinType, endType)';
-    procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload;
+    procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
     procedure Execute(delta: Double; jt: TJoinType; et: TEndType; out solution: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use Execute(delta)';
-    function Execute(delta: Double): TArrayOfArrayOfFloatPoint; overload;
+    function Execute(delta: Double): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
   end;
 
 function InflatePaths(const paths: Gr32.TArrayOfArrayOfFixedPoint;
   delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint; overload;
+  miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 function InflatePaths(const paths: Gr32.TArrayOfArrayOfFloatPoint;
   delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint; overload;
-
+  miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
 
