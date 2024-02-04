@@ -148,7 +148,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := GR32_Clipper2.FixedPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FixedOne, jointType, endType, miterLimit);
+  sol := Clipper.InflatePaths(sub, delta * FixedOne * 0.5, jointType, endType, miterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFixedPoints(sol);
 end;
@@ -160,7 +160,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := GR32_Clipper2.FloatPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * ClipperFloatScale, jointType, endType, miterLimit);
+  sol := Clipper.InflatePaths(sub, delta * ClipperFloatScale * 0.5, jointType, endType, miterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFloatPoints(sol);
 end;
@@ -315,7 +315,7 @@ function TClipperOffset.Execute(delta: Double): TArrayOfArrayOfFloatPoint;
 var
   paths64: TPaths64;
 begin
-  paths64 := inherited Execute(delta);
+  inherited Execute(delta, paths64);
   Result := GR32_Clipper2.Paths64ToFloatPoints(paths64);
 end;
 

@@ -353,7 +353,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := FixedPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FixedOne,
+  sol := Clipper.InflatePaths(sub, delta * FixedOne * 0.5,
     jointType, endType, miterLimit);
   sol := RamerDouglasPeucker(sol, 1);
   Result := Paths64ToFixedPoints(sol);
@@ -366,7 +366,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := FloatPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FClipperFloatScale,
+  sol := Clipper.InflatePaths(sub, delta * FClipperFloatScale * 0.5,
     jointType, endType, miterLimit);
   sol := RamerDouglasPeucker(sol, 10);
   Result := Paths64ToFloatPoints(sol);

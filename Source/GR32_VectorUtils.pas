@@ -1819,7 +1819,7 @@ var
   tmp: TArrayOfFloatPoint;
 begin
   tmp := GrowOld(FixedPointToFloatPoint(Points), FixedPointToFloatPoint(Normals),
-    Delta * FixedToFloat, JoinStyle, Closed, MiterLimit * FixedToFloat);
+    Delta * FixedToFloat, JoinStyle, Closed, MiterLimit);
   result := FloatPointToFixedPoint(tmp);
 end;
 
@@ -3177,7 +3177,7 @@ var
 begin
   Points64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
 
-  Result64 := GrowClipper(Points64, Delta * FixedToFloat, JoinStyle, Closed, MiterLimit * FixedToFloat);
+  Result64 := GrowClipper(Points64, Delta * FixedToFloat, JoinStyle, Closed, MiterLimit);
 
   Res := GR32_Clipper2.Paths64ToFixedPoints(Result64);
 
@@ -3236,7 +3236,7 @@ begin
 
   EndType := EndStyleToEndType[EndStyle];
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * ClipperFloatScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit * ClipperFloatScale);
+  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
 
   Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
@@ -3261,7 +3261,7 @@ begin
   else
     EndType := EndStyleToEndType[EndStyle];
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * ClipperFloatScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit * ClipperFloatScale);
+  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
 
   Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
@@ -3275,7 +3275,7 @@ var
 begin
   sub := [GR32_Clipper2.FixedPointsToPath64(Points)];
 
-  sol := Clipper.InflatePaths(sub, StrokeWidth * ClipperFloatScale, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
+  sol := Clipper.InflatePaths(sub, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 1);
 
   res := GR32_Clipper2.Paths64ToFixedPoints(sol);
@@ -3298,7 +3298,7 @@ begin
   else
     EndType := EndStyleToEndType[EndStyle];
 
-  sol := Clipper.InflatePaths(sub, StrokeWidth * ClipperFloatScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
+  sol := Clipper.InflatePaths(sub, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 1);
 
   Result := GR32_Clipper2.Paths64ToFixedPoints(sol);
