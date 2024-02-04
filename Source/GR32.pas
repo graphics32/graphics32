@@ -603,8 +603,8 @@ type
     property Modified: boolean read FModified;
   public
     procedure BeforeDestruction; override;
-    procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure BeginUpdate; virtual;
+    procedure EndUpdate; virtual;
     procedure Changed; virtual;
 
     procedure BeginLockUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -750,8 +750,6 @@ type
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
-    procedure CopyMapTo(Dst: TCustomBitmap32); virtual;
-    procedure CopyPropertiesTo(Dst: TCustomBitmap32); virtual;
     function  Equal(B: TCustomBitmap32): Boolean;
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
@@ -767,6 +765,9 @@ type
 {$ENDIF}
 
   protected
+    procedure CopyMapTo(Dst: TCustomBitmap32); virtual;
+    procedure CopyPropertiesTo(Dst: TCustomBitmap32); virtual;
+
     procedure AssignTo(Dst: TPersistent); override;
     procedure DefineProperties(Filer: TFiler); override;
 
