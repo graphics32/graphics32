@@ -34,11 +34,14 @@ unit GR32_Clipper;
 
 interface
 
+{$I GR32.inc}
+
 uses
   Classes,
   SysUtils,
   Math,
   GR32_Clipper2,
+  GR32_Polygons,
   Clipper.Core,
   Clipper.Engine,
   Clipper.Offset,
@@ -114,23 +117,22 @@ type
   private
   public
     procedure AddPath(const path: TArrayOfFloatPoint); overload; deprecated 'Use AddPath(path, joinType, endType)';
-    procedure AddPath(const path: TArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload;
+    procedure AddPath(const path: TArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
     procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use AddPaths(paths, joinType, endType)';
-    procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload;
+    procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
     procedure Execute(delta: Double; jt: TJoinType; et: TEndType; out solution: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use Execute(delta)';
-    function Execute(delta: Double): TArrayOfArrayOfFloatPoint; overload;
+    function Execute(delta: Double): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
   end;
 
 function InflatePaths(const paths: Gr32.TArrayOfArrayOfFixedPoint;
   delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint; overload;
+  miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 function InflatePaths(const paths: Gr32.TArrayOfArrayOfFloatPoint;
   delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint; overload;
-
+  miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
 
@@ -146,7 +148,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := GR32_Clipper2.FixedPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FixedOne, jointType, endType, miterLimit);
+  sol := Clipper.InflatePaths(sub, delta * FixedOne * 0.5, jointType, endType, miterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFixedPoints(sol);
 end;
@@ -158,7 +160,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := GR32_Clipper2.FloatPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * ClipperFloatScale, jointType, endType, miterLimit);
+  sol := Clipper.InflatePaths(sub, delta * ClipperFloatScale * 0.5, jointType, endType, miterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFloatPoints(sol);
 end;
@@ -313,7 +315,7 @@ function TClipperOffset.Execute(delta: Double): TArrayOfArrayOfFloatPoint;
 var
   paths64: TPaths64;
 begin
-  paths64 := inherited Execute(delta);
+  inherited Execute(delta, paths64);
   Result := GR32_Clipper2.Paths64ToFloatPoints(paths64);
 end;
 

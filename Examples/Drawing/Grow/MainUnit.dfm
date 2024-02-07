@@ -12,71 +12,205 @@ object FormGrow: TFormGrow
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  Menu = MainMenu1
-  OldCreateOrder = False
+  Menu = MainMenu
   Position = poScreenCenter
   OnCreate = FormCreate
-  DesignSize = (
-    542
-    459)
-  PixelsPerInch = 96
   TextHeight = 13
-  object PnlImage: TPanel
+  object Image: TImage32
+    AlignWithMargins = True
     Left = 8
     Top = 8
     Width = 526
     Height = 443
-    Anchors = [akLeft, akTop, akRight, akBottom]
-    BevelOuter = bvLowered
-    BorderWidth = 1
+    Margins.Left = 8
+    Margins.Top = 8
+    Margins.Right = 8
+    Margins.Bottom = 8
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Scale = 1.000000000000000000
+    ScaleMode = smScale
+    MousePan.Enabled = True
+    MouseZoom.Enabled = True
     TabOrder = 0
-    object Image: TImage32
-      Left = 2
-      Top = 2
-      Width = 522
-      Height = 439
-      Align = alClient
-      Bitmap.ResamplerClassName = 'TNearestResampler'
-      BitmapAlign = baCenter
-      Scale = 1.000000000000000000
-      ScaleMode = smNormal
-      TabOrder = 0
-      OnClick = ImageClick
-      OnResize = ImageResize
-    end
+    OnClick = ImageClick
+    OnResize = ImageResize
   end
-  object MainMenu1: TMainMenu
-    Left = 154
-    Top = 154
-    object File1: TMenuItem
+  object MainMenu: TMainMenu
+    Left = 74
+    Top = 42
+    object MenuItemFile: TMenuItem
       Caption = '&File'
-      object Refresh1: TMenuItem
-        Caption = '&Refresh'
-        ShortCut = 13
-        OnClick = Refresh1Click
+      object MenuItemRefresh: TMenuItem
+        Action = ActionRefresh
       end
       object N1: TMenuItem
         Caption = '-'
       end
-      object Exit1: TMenuItem
-        Caption = 'E&xit'
-        ShortCut = 27
-        OnClick = Exit1Click
+      object MenuItemExit: TMenuItem
+        Action = ActionFileExit
       end
     end
-    object Options1: TMenuItem
+    object MenuItemOptions: TMenuItem
       Caption = '&Options'
-      object mnuInflatePolygon: TMenuItem
-        Caption = 'Inflate &Polygon'
-        ShortCut = 16464
-        OnClick = mnuInflatePolygonClick
+      object MenuItemOptionsInflatePolygon: TMenuItem
+        Action = ActionOptionShapePolygon
+        AutoCheck = True
+        GroupIndex = 1
+        RadioItem = True
       end
-      object mnuInflatePolyLine: TMenuItem
-        Caption = 'Inflate Poly&Line'
-        Checked = True
-        ShortCut = 16460
-        OnClick = mnuInflatePolygonClick
+      object MenuItemOptionsInflatePolyLine: TMenuItem
+        Action = ActionOptionShapePolyLine
+        AutoCheck = True
+        GroupIndex = 1
+        RadioItem = True
       end
+      object N2: TMenuItem
+        Caption = '-'
+        GroupIndex = 1
+      end
+      object Joinstyle1: TMenuItem
+        Action = ActionOptionJoinStyle
+        GroupIndex = 1
+        object Miterjoin1: TMenuItem
+          Action = ActionOptionJoinMiter
+          Checked = True
+          GroupIndex = 2
+          RadioItem = True
+        end
+        object Beveljoin1: TMenuItem
+          Action = ActionOptionJoinBevel
+          GroupIndex = 2
+          RadioItem = True
+        end
+        object Beveljoin2: TMenuItem
+          Action = ActionOptionJoinRound
+          GroupIndex = 2
+          RadioItem = True
+        end
+        object RoundExjoin1: TMenuItem
+          Action = ActionOptionJoinRoundEx
+          GroupIndex = 2
+          RadioItem = True
+        end
+      end
+      object Endstyle1: TMenuItem
+        Action = ActionOptionEndStyle
+        GroupIndex = 1
+        object Action51: TMenuItem
+          Action = ActionOptionEndButt
+          Checked = True
+          GroupIndex = 3
+          RadioItem = True
+        end
+        object Action52: TMenuItem
+          Action = ActionOptionEndSquare
+          GroupIndex = 3
+          RadioItem = True
+        end
+        object Action71: TMenuItem
+          Action = ActionOptionEndRound
+          GroupIndex = 3
+          RadioItem = True
+        end
+      end
+    end
+  end
+  object ActionList: TActionList
+    Left = 76
+    Top = 96
+    object ActionRefresh: TAction
+      Caption = '&Refresh'
+      ShortCut = 13
+      OnExecute = ActionRefreshExecute
+    end
+    object ActionFileExit: TAction
+      Caption = 'E&xit'
+      ShortCut = 27
+      OnExecute = ActionFileExitExecute
+    end
+    object ActionOptionShapePolygon: TAction
+      Category = 'Options'
+      AutoCheck = True
+      Caption = '&Polygon'
+      GroupIndex = 1
+      ShortCut = 16464
+      OnExecute = ActionOptionShapeExecute
+    end
+    object ActionOptionShapePolyLine: TAction
+      Category = 'Options'
+      AutoCheck = True
+      Caption = 'Poly&Line'
+      Checked = True
+      GroupIndex = 1
+      ShortCut = 16460
+      OnExecute = ActionOptionShapeExecute
+    end
+    object ActionOptionJoinStyle: TAction
+      Category = 'Options'
+      Caption = '&Join style'
+      OnExecute = ActionDummyExecute
+    end
+    object ActionOptionJoinMiter: TAction
+      Category = 'Options'
+      Caption = '&Miter join'
+      GroupIndex = 2
+      OnExecute = ActionOptionJoinStyleExecute
+      OnUpdate = ActionOptionJoinStyleUpdate
+    end
+    object ActionOptionJoinBevel: TAction
+      Tag = 1
+      Category = 'Options'
+      Caption = '&Bevel join'
+      GroupIndex = 2
+      OnExecute = ActionOptionJoinStyleExecute
+      OnUpdate = ActionOptionJoinStyleUpdate
+    end
+    object ActionOptionJoinRound: TAction
+      Tag = 2
+      Category = 'Options'
+      Caption = '&Round join'
+      GroupIndex = 2
+      OnExecute = ActionOptionJoinStyleExecute
+      OnUpdate = ActionOptionJoinStyleUpdate
+    end
+    object ActionOptionJoinRoundEx: TAction
+      Tag = 3
+      Category = 'Options'
+      Caption = 'R&oundEx join'
+      GroupIndex = 2
+      OnExecute = ActionOptionJoinStyleExecute
+      OnUpdate = ActionOptionJoinStyleUpdate
+    end
+    object ActionOptionEndStyle: TAction
+      Category = 'Options'
+      Caption = '&End style'
+      OnExecute = ActionDummyExecute
+      OnUpdate = ActionOptionEndStylesUpdate
+    end
+    object ActionOptionEndButt: TAction
+      Category = 'Options'
+      Caption = '&Butt end'
+      GroupIndex = 3
+      OnExecute = ActionOptionEndStyleExecute
+      OnUpdate = ActionOptionEndStyleUpdate
+    end
+    object ActionOptionEndSquare: TAction
+      Tag = 1
+      Category = 'Options'
+      Caption = '&Square end'
+      GroupIndex = 3
+      OnExecute = ActionOptionEndStyleExecute
+      OnUpdate = ActionOptionEndStyleUpdate
+    end
+    object ActionOptionEndRound: TAction
+      Tag = 2
+      Category = 'Options'
+      Caption = '&Round end'
+      GroupIndex = 3
+      OnExecute = ActionOptionEndStyleExecute
+      OnUpdate = ActionOptionEndStyleUpdate
     end
   end
 end

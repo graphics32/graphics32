@@ -818,6 +818,7 @@ procedure TCanvas32.DrawPath(const Path: TFlattenedPath);
 var
   ClipRect: TFloatRect;
   i: Integer;
+  Closed: boolean;
 begin
   if (Length(Path.Path) = 0) then
     exit;
@@ -828,14 +829,16 @@ begin
   // Simple case: All paths are closed or all paths are open
   if (Path.ClosedCount = 0) or (Path.ClosedCount = Length(Path.Path)) then
   begin
+    Closed := (Path.ClosedCount > 0);
     for i := 0 to FBrushes.Count-1 do
       if FBrushes[i].Visible then
-        FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, (Path.ClosedCount > 0));
+        FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, Closed);
   end else
   // Not so simple case: Some paths are closed, some are open
   begin
     for i := 0 to FBrushes.Count-1 do
-      FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, Path.PathClosed);
+      if FBrushes[i].Visible then
+        FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, Path.PathClosed);
   end;
 end;
 

@@ -34,13 +34,18 @@ unit GR32_Clipper2;
 
 interface
 
-uses Gr32, Gr32_Polygons,
+uses
+  Gr32, Gr32_Polygons,
   Clipper, Clipper.Core, Clipper.Engine, Clipper.Offset;
 
+(*
+** TFixed variants
+*)
 
 function Gr32BoolOp(clipType: TClipType; fillMode: TPolyFillMode;
   const subject, clip: Gr32.TArrayOfArrayOfFixedPoint):
   Gr32.TArrayOfArrayOfFixedPoint; overload;
+
 function Gr32_Intersect(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
   fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint; overload;
 function Gr32_Union(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
@@ -53,6 +58,11 @@ function Gr32_XOR(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
 function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFixedPoint;
   delta: double; jointType: TJoinType; endType: TEndType;
   miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint; overload;
+
+
+(*
+** TFloat variants
+*)
 
 function Gr32BoolOp(clipType: TClipType; fillMode: TPolyFillMode;
   const subject, clip: Gr32.TArrayOfArrayOfFloatPoint):
@@ -106,6 +116,7 @@ const
   frNegative  = Clipper.Core.frNegative;
   jtSquare    = Clipper.Offset.jtSquare;
   jtRound     = Clipper.Offset.jtRound;
+  jtRoundEx   = Clipper.Offset.jtRound; // Not implemented in Clipper2
   jtMiter     = Clipper.Offset.jtMiter;
   etPolygon   = Clipper.Offset.etPolygon;
   etJoined    = Clipper.Offset.etJoined;
@@ -119,8 +130,8 @@ const
   ctDifference    = Clipper.Core.ctDifference;
   ctXor           = Clipper.Core.ctXor;
 
-function ClipperFloatScale: Double;
-function SetClipperFloatScale(Value: Double): Double;
+function ClipperFloatScale: Double; {$IFDEF USEINLINING} inline; {$ENDIF}
+function SetClipperFloatScale(Value: Double): Double; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
 
@@ -143,27 +154,30 @@ begin
   end;
 end;
 
-function DblToInt64(val: double): Int64; {$IFDEF INLINE} inline; {$ENDIF}
+function DoubleToInt64(val: double): Int64; {$IFDEF INLINE} inline; {$ENDIF}
 var
   exp: integer;
   i64: UInt64 absolute val;
 begin
   //https://en.wikipedia.org/wiki/Double-precision_floating-point_format
   Result := 0;
-  if i64 = 0 then Exit;
+  if i64 = 0 then
+    Exit;
   exp := Integer(Cardinal(i64 shr 52) and $7FF) - 1023;
   //nb: when exp == 1024 then val == INF or NAN.
-  if exp < 0 then Exit;
+  if exp < 0 then
+    Exit;
   Result := ((i64 and $1FFFFFFFFFFFFF) shr (52 - exp)) or (UInt64(1) shl exp);
-  if val < 0 then Result := -Result;
+  if val < 0 then
+    Result := -Result;
 end;
 
 function FloatRect(const r: TRect64): GR32.TFloatRect;
 begin
-  Result.Left := DblToInt64(r.Left * FClipperFloatScale);
-  Result.Top := DblToInt64(r.Top * FClipperFloatScale);
-  Result.Right := DblToInt64(r.Right * FClipperFloatScale);
-  Result.Bottom  := DblToInt64(r.Bottom * FClipperFloatScale);
+  Result.Left := DoubleToInt64(r.Left * FClipperFloatScale);
+  Result.Top := DoubleToInt64(r.Top * FClipperFloatScale);
+  Result.Right := DoubleToInt64(r.Right * FClipperFloatScale);
+  Result.Bottom  := DoubleToInt64(r.Bottom * FClipperFloatScale);
 end;
 
 function FixedPointsToPath64(const pathFixed: Gr32.TArrayOfFixedPoint): Clipper.TPath64;
@@ -187,13 +201,12 @@ begin
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := DblToInt64(pathFloat[i].X * FClipperFloatScale);
-    Result[i].Y := DblToInt64(pathFloat[i].Y * FClipperFloatScale);
+    Result[i].X := DoubleToInt64(pathFloat[i].X * FClipperFloatScale);
+    Result[i].Y := DoubleToInt64(pathFloat[i].Y * FClipperFloatScale);
   end;
 end;
 
-function FixedPointsToPaths64(
-  const pathsFixed: Gr32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
+function FixedPointsToPaths64(const pathsFixed: Gr32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
 var
   i, len: integer;
 begin
@@ -203,8 +216,7 @@ begin
     Result[i] := FixedPointsToPath64(pathsFixed[i]);
 end;
 
-function FloatPointsToPaths64(
-  const pathsFloat: Gr32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
+function FloatPointsToPaths64(const pathsFloat: Gr32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
 var
   i, len: integer;
 begin
@@ -308,19 +320,6 @@ begin
   Result := Gr32BoolOp(ctXor, fillMode, subject, clip);
 end;
 
-function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFixedPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint;
-var
-  sub, sol: TPaths64;
-begin
-  sub := FixedPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FixedOne,
-    jointType, endType, miterLimit);
-  sol := RamerDouglasPeucker(sol, 10);
-  Result := Paths64ToFixedPoints(sol);
-end;
-
 function Gr32_Intersect(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
   fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint;
 begin
@@ -347,6 +346,19 @@ begin
 end;
 
 
+function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFixedPoint;
+  delta: double; jointType: TJoinType; endType: TEndType;
+  miterLimit: double): Gr32.TArrayOfArrayOfFixedPoint;
+var
+  sub, sol: TPaths64;
+begin
+  sub := FixedPointsToPaths64(paths);
+  sol := Clipper.InflatePaths(sub, delta * FixedOne * 0.5,
+    jointType, endType, miterLimit);
+  sol := RamerDouglasPeucker(sol, 1);
+  Result := Paths64ToFixedPoints(sol);
+end;
+
 function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFloatPoint;
   delta: double; jointType: TJoinType; endType: TEndType;
   miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint;
@@ -354,13 +366,19 @@ var
   sub, sol: TPaths64;
 begin
   sub := FloatPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FClipperFloatScale,
+  sol := Clipper.InflatePaths(sub, delta * FClipperFloatScale * 0.5,
     jointType, endType, miterLimit);
-  sol := RamerDouglasPeucker(sol, 1);
+  sol := RamerDouglasPeucker(sol, 10);
   Result := Paths64ToFloatPoints(sol);
 end;
 
 initialization
   SetClipperFloatScale(100);
+
+  // Guard against breaking change in Clipper TFillRule order
+  Assert(Ord(TPolyFillMode.pfAlternate) = Ord(TFillRule.frEvenOdd));
+  Assert(Ord(TPolyFillMode.pfWinding) = Ord(TFillRule.frNonZero));
+  Assert(Ord(TPolyFillMode.pfEvenOdd) = Ord(TFillRule.frEvenOdd));
+  Assert(Ord(TPolyFillMode.pfNonZero) = Ord(TFillRule.frNonZero));
 end.
 

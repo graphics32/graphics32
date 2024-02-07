@@ -223,9 +223,9 @@ var
 begin
   FBoxIndex := -1;
   for Index := 0 to High(FBoxCenter) do
-    if GR32.PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
-      FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad,
-      FBoxCenter[Index].Y + CRad), GR32.Point(X, Y)) then
+    if GR32.PtInRect(
+      FloatRect(FBoxCenter[Index].X - CRad, FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad, FBoxCenter[Index].Y + CRad),
+      GR32.Point(X, Y)) then
     begin
       FLastPos := GR32.Point(X, Y);
       FBoxIndex := Index;
@@ -240,19 +240,17 @@ var
 begin
   if FBoxIndex >= 0 then
   begin
-    FBoxCenter[FBoxIndex].X := EnsureRange(FBoxCenter[FBoxIndex].X + X -
-      FLastPos.X, CRad, ImgView32.Width - CRad);
-    FBoxCenter[FBoxIndex].Y := EnsureRange(FBoxCenter[FBoxIndex].Y + Y -
-      FLastPos.Y, CRad, ImgView32.Height - CRad);
+    FBoxCenter[FBoxIndex].X := EnsureRange(FBoxCenter[FBoxIndex].X + X - FLastPos.X, CRad, ImgView32.Width - CRad);
+    FBoxCenter[FBoxIndex].Y := EnsureRange(FBoxCenter[FBoxIndex].Y + Y - FLastPos.Y, CRad, ImgView32.Height - CRad);
     ReDraw;
     FLastPos := GR32.Point(X, Y);
   end
   else
   begin
     for Index := 0 to High(FBoxCenter) do
-      if GR32.PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
-        FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad,
-        FBoxCenter[Index].Y + CRad), GR32.Point(X, Y)) then
+      if GR32.PtInRect(
+        FloatRect(FBoxCenter[Index].X - CRad, FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad, FBoxCenter[Index].Y + CRad),
+        GR32.Point(X, Y)) then
       begin
         ImgView32.Cursor := crHandPoint;
         Exit;
@@ -281,6 +279,7 @@ var
   Delta: TFloatPoint;
   Arrow: TArrowHeadAbstract;
   GradientFiller: TLinearGradientPolygonFiller;
+  ArrowOverlap: integer;
 const
   StartArrowColor: TColor32 = $60009900;
   StartArrowPenColor: TColor32 = $FF339900;
@@ -289,38 +288,42 @@ const
 begin
   ImgView32.Bitmap.Clear(clWhite32);
 
-  case RgpArrowStyle.ItemIndex of
-    1: Arrow := TArrowHeadSimple.Create(ArrowSize);
-    2: Arrow := TArrowHeadFourPt.Create(ArrowSize);
-    3: Arrow := TArrowHeadDiamond.Create(ArrowSize);
-    4: Arrow := TArrowHeadCircle.Create(ArrowSize);
-    else Arrow := nil;
-  end;
+
+  (*
+  ** Stippled boxes
+  *)
 
   Box[0] := MakeBox(FBoxCenter[0], CBoxSize);
   Box[1] := MakeBox(FBoxCenter[1], CBoxSize);
 
   FBitmapFiller.Pattern := FPattern[0];
-  DashLineFS(ImgView32.Bitmap, Box[0], FDashes, FBitmapFiller, EndArrowPenColor,
-    True, CBorderSize, 1.5);
+  DashLineFS(ImgView32.Bitmap, Box[0], FDashes, FBitmapFiller, EndArrowPenColor, True, CBorderSize, 1.5);
 
   FBitmapFiller.Pattern := FPattern[1];
-  DashLineFS(ImgView32.Bitmap, Box[1], FDashes, FBitmapFiller, EndArrowPenColor,
-    True, CBorderSize, 1.5);
+  DashLineFS(ImgView32.Bitmap, Box[1], FDashes, FBitmapFiller, EndArrowPenColor, True, CBorderSize, 1.5);
 
-  // now accommodate for CBorderSize width as above ...
+
+  (*
+  ** Construct a bezier line connecting the two boxes
+  *)
+
+  // Find line start and end point;
+  // Given a box center point, and the size of the box plus the border, calculate the outer boxes.
   Box[0] := MakeBox(FBoxCenter[0], CBoxSizePlus);
   Box[1] := MakeBox(FBoxCenter[1], CBoxSizePlus);
+  // If the boxes overlap we use the box center as the start and end points...
   if BoxesOverlap(FBoxCenter[0], FBoxCenter[1], CBoxSizePlus) then
   begin
     StartPoint := FBoxCenter[0];
     EndPoint := FBoxCenter[1];
   end else
+  // ...otherwise we use nearest point on the border;
   begin
     StartPoint := GetNearestPointOnBox(FBoxCenter[1], FBoxCenter[0], Box[0]);
     EndPoint := GetNearestPointOnBox(FBoxCenter[0], FBoxCenter[1], Box[1]);
   end;
 
+  // Calculate the bezier control points;
   Delta.X := StartPoint.X - FBoxCenter[0].X;
   Delta.Y := StartPoint.Y - FBoxCenter[0].Y;
   if Abs(Delta.X) > Abs(Delta.Y) then
@@ -335,49 +338,83 @@ begin
   else
     EndOffsetPt := FloatPoint(EndPoint.X, EndPoint.Y + Delta.Y * 2);
 
-  Poly := BuildPolygonF([StartPoint.X, StartPoint.Y,
+  // Create a polyline and from that, a bezier
+  Poly := BuildPolygonF([
+    StartPoint.X, StartPoint.Y,
     StartOffsetPt.X, StartOffsetPt.Y,
     EndOffsetPt.X, EndOffsetPt.Y,
     EndPoint.X, EndPoint.Y]);
   Poly := MakeBezierCurve(Poly);
 
-  if Assigned(Arrow) then
+  (*
+  ** Arrow heads
+  *)
+
+  case RgpArrowStyle.ItemIndex of
+    1: Arrow := TArrowHeadSimple.Create(ArrowSize);
+    2: Arrow := TArrowHeadFourPt.Create(ArrowSize);
+    3: Arrow := TArrowHeadDiamond.Create(ArrowSize);
+    4: Arrow := TArrowHeadCircle.Create(ArrowSize);
+  else
+    Arrow := nil;
+  end;
+
+
+  (*
+  ** Draw arrow head(s) and a gradient connecting line
+  **   or
+  ** Draw a solid connecting line
+  *)
+
+  // Draw arrow head(s) and a gradient connecting line
+  if (Arrow <> nil) then
   begin
-    // shorten path at specified end(s) and draw ...
+    // Shorten line path at specified end(s) so arrow doesn't overlap box border;
+    ArrowOverlap := ArrowSize;
+
+    if (RgpArrowStyle.ItemIndex <> 4) then
+      // Note: Because of the miter the arrow might still overlap the border a few pixels.
+      Inc(ArrowOverlap, TbrLineWidth.Position)
+    else
+      Inc(ArrowOverlap, (TbrLineWidth.Position+1) div 2);
+
     case RgpPosition.ItemIndex of
-      0: Poly := Shorten(Poly, ArrowSize, lpStart);
-      1: Poly := Shorten(Poly, ArrowSize, lpEnd);
-      2: Poly := Shorten(Poly, ArrowSize, lpBoth);
+      0: Poly := Shorten(Poly, ArrowOverlap, lpStart);
+      1: Poly := Shorten(Poly, ArrowOverlap, lpEnd);
+      2: Poly := Shorten(Poly, ArrowOverlap, lpBoth);
     end;
-    // draw the connecting line ...
+
+    // Draw a gradient connecting line;
     GradientFiller := TLinearGradientPolygonFiller.Create;
     try
-      GradientFiller.SimpleGradient(Poly[0], StartArrowPenColor,
-        Poly[High(Poly)], EndArrowPenColor);
-      PolylineFS(ImgView32.Bitmap, Poly, GradientFiller, False,
-        TbrLineWidth.Position);
+      GradientFiller.SimpleGradient(Poly[0], StartArrowPenColor, Poly[High(Poly)], EndArrowPenColor);
+      PolylineFS(ImgView32.Bitmap, Poly, GradientFiller, False, TbrLineWidth.Position);
     finally
       GradientFiller.Free;
     end;
 
-    // draw specified arrows ...
+    // Draw arrow(s);
+    // Start arrow head...
     if RgpPosition.ItemIndex <> 1 then
     begin
       ArrowPts := Arrow.GetPoints(Poly, False);
+      // Brush
       PolygonFS(ImgView32.Bitmap, ArrowPts, StartArrowColor);
-      PolylineFS(ImgView32.Bitmap, ArrowPts, StartArrowPenColor, True,
-        TbrLineWidth.Position);
+      // Stroke
+      PolylineFS(ImgView32.Bitmap, ArrowPts, StartArrowPenColor, True, TbrLineWidth.Position);
     end;
+    // End arrow head...
     if RgpPosition.ItemIndex <> 0 then
     begin
       ArrowPts := Arrow.GetPoints(Poly, True);
+      // Brush
       PolygonFS(ImgView32.Bitmap, ArrowPts, EndArrowColor);
-      PolylineFS(ImgView32.Bitmap, ArrowPts, EndArrowPenColor, True,
-        TbrLineWidth.Position);
+      // Stroke
+      PolylineFS(ImgView32.Bitmap, ArrowPts, EndArrowPenColor, True, TbrLineWidth.Position);
     end;
   end else
-    PolylineFS(ImgView32.Bitmap, Poly, clBlack32, False,
-      TbrLineWidth.Position);
+  // Draw a solid connecting line
+    PolylineFS(ImgView32.Bitmap, Poly, clBlack32, False, TbrLineWidth.Position);
 end;
 
 procedure TFmArrowHead.RgpArrowStyleClick(Sender: TObject);
@@ -444,9 +481,9 @@ begin
   begin
     // manage box collisions ...
     if (Abs(FBoxCenter[0].X - FBoxCenter[1].X) > CBoxSizePlus) then
-        SwapVelocities(FVelocity[0].X, FVelocity[1].X);
+      SwapVelocities(FVelocity[0].X, FVelocity[1].X);
     if (Abs(FBoxCenter[0].Y - FBoxCenter[1].Y) > CBoxSizePlus) then
-        SwapVelocities(FVelocity[0].Y, FVelocity[1].Y);
+      SwapVelocities(FVelocity[0].Y, FVelocity[1].Y);
     NextCenter[0] := OffsetPoint(FBoxCenter[0], FVelocity[0].X, FVelocity[0].Y);
     NextCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
   end;
@@ -454,13 +491,17 @@ begin
   // manage wall collisions ...
   for Index := 0 to High(FBoxCenter) do
   begin
-    if (NextCenter[Index].X + CRad > ImgView32.Width) or
-      (NextCenter[Index].X < CRad) then
-        ChangeSign(FVelocity[Index].X);
+    if (NextCenter[Index].X + CRad > ImgView32.Width) then
+      FVelocity[Index].X := -Abs(FVelocity[Index].X)
+    else
+    if (NextCenter[Index].X - CRad < 0) then
+      FVelocity[Index].X := Abs(FVelocity[Index].X);
 
-    if (NextCenter[Index].Y + CRad > ImgView32.Height) or
-      (NextCenter[Index].Y < CRad) then
-        ChangeSign(FVelocity[Index].Y);
+    if (NextCenter[Index].Y + CRad > ImgView32.Height) then
+      FVelocity[Index].Y := -Abs(FVelocity[Index].Y)
+    else
+    if (NextCenter[Index].Y - CRad < 0) then
+      FVelocity[Index].Y := Abs(FVelocity[Index].Y);
   end;
 end;
 
