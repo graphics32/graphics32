@@ -812,6 +812,9 @@ implementation
 
 uses
   Math, TypInfo,
+{$if defined(WINDOWS)}
+  MMSystem,
+{$ifend}
 {$if defined(AnimatedZoom)}
   amEasing,
 {$ifend}
@@ -2891,6 +2894,98 @@ begin
   DoInitStages;
 end;
 
+// PanDetect is an adaption of DragDetectPlus from the Drag and Drop Component Suite.
+// The following assumptions are made:
+// - The Position parameter is in screen coordinates.
+// - The mouse has already been captured.
+// - Only the left mouse button is handled.
+{$if defined(WINDOWS)}
+function PanDetect(Handle: THandle; Position: TPoint): boolean;
+var
+  DragRect: TRect;
+  Msg: TMsg;
+  StartTime: DWORD;
+const
+  PM_QS_INPUT = QS_INPUT shl 16;
+  PM_QS_KEY = QS_KEY shl 16;
+  PM_QS_MOUSEMOVE = QS_MOUSEMOVE shl 16;
+  PM_QS_MOUSEBUTTON = QS_MOUSEBUTTON shl 16;
+begin
+  Result := False;
+
+  // Check mouse state, and punt if none of the mouse buttons are down.
+  if ((GetKeyState(VK_LBUTTON) AND $8000) = 0) then
+    exit;
+
+  // Calculate the drag rect.
+  // If the mouse leaves this rect, while the mouse button is pressed, a drag is
+  // detected.
+  DragRect.TopLeft := Position;
+  DragRect.BottomRight := Position;
+  GR32.InflateRect(DragRect, GetSystemMetrics(SM_CXDRAG), GetSystemMetrics(SM_CYDRAG));
+
+  StartTime := TimeGetTime;
+
+  // Abort if we haven't captured the mouse.
+  if (GetCapture <> Handle) then
+    exit;
+
+  while (not Result) do
+  begin
+    // Wait for mouse or keyboard events.
+    // - but do not eat mouse button messages (so we don't break popup menus etc).
+    if (PeekMessage(Msg, 0, WM_LBUTTONDOWN, WM_LBUTTONUP, PM_NOREMOVE)) then
+    begin
+      // Mouse button was changed - bail out.
+      exit;
+    end;
+
+    while (not PeekMessage(Msg, 0, WM_LBUTTONDOWN, WM_LBUTTONUP, PM_NOREMOVE)) and
+     (not PeekMessage(Msg, 0, 0, 0, PM_REMOVE or PM_QS_KEY or PM_QS_MOUSEMOVE)) and
+      (GetCapture = Handle) do
+    begin
+      // If there are no events for 500mS start drag without further ado.
+      if (MsgWaitForMultipleObjects(0, nil^, False, 500, QS_INPUT) = WAIT_TIMEOUT) then
+      begin
+        Result := True;
+        exit;
+      end;
+    end;
+
+    // Bail out if someone else has captured the mouse.
+    if (GetCapture <> Handle) then
+      break;
+
+    case (Msg.message) of
+      // Mouse was moved.
+      WM_MOUSEMOVE:
+        // Start drag if mouse has moved outside the drag rect and the minimum
+        // time has elapsed.
+        // Note that we ignore time warp (wrap around) and that Msg.Time
+        // might be smaller than StartTime.
+        Result := (not GR32.PtInRect(DragRect, Msg.pt)) and (Msg.time >= StartTime + DWORD(100));
+
+      // [Esc] cancels drag detection.
+      WM_KEYDOWN:
+        if (Msg.wParam = VK_ESCAPE) then
+          break;
+
+      // Some operation cancelled our mouse capture.
+      WM_CANCELMODE:
+        break;
+
+      // Application is shutting down.
+      WM_QUIT:
+        begin
+          // Put quit message back in queue and abort.
+          PostQuitMessage(Msg.wParam);
+          exit;
+        end;
+    end;
+  end;
+end;
+{$ifend}
+
 procedure TCustomImage32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Layer: TCustomLayer;
@@ -2915,9 +3010,19 @@ begin
 
     if (Layer = nil) and (CanMousePan) and (Button = FMousePanOptions.MouseButton) and (FMousePanOptions.MatchShiftState(Shift)) then
     begin
+      // Wait a moment, looking for a mouse-up, before we decide that this
+      // is a drag and not a click. Note that we cannot use the Windows DragDetect
+      // function as it eats the mouse-up event and thus break the OnClick generation.
+{$if defined(WINDOWS)}
+      if (not PanDetect(WindowHandle, ClientToScreen(Point(X, Y)))) then
+        exit;
+{$ifend}
+
       FIsMousePanning := True;
       if (FMousePanOptions.PanCursor <> crDefault) then
         Screen.Cursor := FMousePanOptions.PanCursor;
+      // Avoid OnClick event when pan finishes
+      ControlState := ControlState - [csClicked];
 
       // Remember start point
       FMousePanStartPos.X := X;
