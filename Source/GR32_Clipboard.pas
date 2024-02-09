@@ -355,8 +355,8 @@ begin
       Bitmap.Free;
     end;
 
-    // Allocate room for BI_BITFIELDS whether we use it or not. It's just 12 bytes.
-    Size := 124 {124=SizeOf(TBitmapV5Header)} + 3 * SizeOf(DWORD) + Source.Width * Source.Height * SizeOf(DWORD);
+    // Preallocate the minimum that we might need and no more.
+    Size := 124 {124=SizeOf(TBitmapV5Header)} + Source.Width * Source.Height * SizeOf(DWORD);
 {$ifndef FPC}
     // Copy the unaltered image as CF_DIBV5
     Stream := TOwnedGlobalMemoryStream.Create(Size);
@@ -368,7 +368,11 @@ begin
       TMemoryStreamCracker(Stream).Capacity := Size;
 {$endif FPC}
 
-      TBitmap32Cracker(Source).SaveToDIBStream(Stream);
+      // The clipboard needs a v5 DIB *without* a color table.
+      // Note that Firefox, at the time of writing, expects a color table for v4 and v5 DIBs
+      // so it will not be able to correctly read what we put on the clipboard. Our position
+      // is that this is a bug in Firefox.
+      TBitmap32Cracker(Source).SaveToDIBStream(Stream, False, TCustomBitmap32.TInfoHeaderVersion.InfoHeaderVersion5, False);
 
 {$ifndef FPC}
       Clipboard.SetAsHandle(CF_DIBV5, TGlobalMemoryStream(Stream).ReleaseHandle);
@@ -420,6 +424,9 @@ begin
     end;
     Dest.Changed;
   end;
+
+  // There's no need to fall back to CF_DIB since the clipboard will
+  //synthesize CF_DIBV5 from CF_DIB.
 
   if (not Result) and (Clipboard.HasFormat(CF_BITMAP)) then
   begin

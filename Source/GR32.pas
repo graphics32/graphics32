@@ -774,8 +774,10 @@ type
   protected
     function LoadFromBMPStream(Stream: TStream; Size: Int64): boolean;
     function LoadFromDIBStream(Stream: TStream; Size: Int64): boolean;
-    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean = False); overload;
-    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion); overload;
+    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean = False; IncludeColorTable: boolean = False); overload;
+    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion; IncludeColorTable: boolean = False); overload;
+    procedure SaveToStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion; IncludeColorTable: boolean); overload;
+    procedure SaveToFile(const FileName: string; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion; IncludeColorTable: boolean); overload;
 
   protected
     procedure SET_T256(X, Y: Integer; C: TColor32);
@@ -1149,6 +1151,8 @@ var
 var
   // Default file format version of BMPs written by SaveToStream/SaveToFile.
   DefaultBitmapHeaderVersion: TCustomBitmap32.TInfoHeaderVersion = InfoHeaderVersion4;
+  // By default, do not include a color table in BI_BITFIELDS BMPs written by SaveToStream/SaveToFile.
+  DefaultBitmapIncludeColorTable: boolean = False;
 
 resourcestring
   RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
@@ -5922,7 +5926,7 @@ begin
   if (Size < 0) then
     exit;
 
-  // Set bitmap size and allocate bit pixel data so we can read into it
+  // Set bitmap size and allocate pixel data so we can read into it
   SetSize(BitmapHeader.InfoHeader.biWidth, Abs(BitmapHeader.InfoHeader.biHeight));
 
   // Check whether the bitmap is saved top-down or bottom-up:
@@ -6066,45 +6070,57 @@ begin
 end;
 
 procedure TCustomBitmap32.SaveToStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion);
-var
-  FileHeader: TBitmapFileHeader;
-  BitmapSize: Integer;
-  HeaderSize: integer;
 begin
-  BitmapSize := Width * Height * SizeOf(DWORD);
+  SaveToStream(Stream, SaveTopDown, InfoHeaderVersion, DefaultBitmapIncludeColorTable);
+end;
 
-  case InfoHeaderVersion of
-    InfoHeaderVersion1: HeaderSize := SizeOf(TBitmapInfoHeader);// 40
-    InfoHeaderVersion2: HeaderSize := SizeOf(TBitmapV2Header);  // 52
-    InfoHeaderVersion3: HeaderSize := SizeOf(TBitmapV3Header);  // 56
-    InfoHeaderVersion4: HeaderSize := SizeOf(TBitmapV4Header);  // 108
-    InfoHeaderVersion5: HeaderSize := SizeOf(TBitmapV5Header);  // 124
-  else
-    raise Exception.Create('Invalid header version');
-  end;
+procedure TCustomBitmap32.SaveToStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion; IncludeColorTable: boolean);
+var
+  StartPos: Int64;
+  SavePos: Int64;
+  FileHeader: TBitmapFileHeader;
+begin
+  StartPos := Stream.Position;
 
-  FileHeader.bfType := $4D42; // Magic bytes for Windows Bitmap
-  FileHeader.bfSize := BitmapSize + SizeOf(TBitmapFileHeader) + HeaderSize; // Size of file
+  // Skip past file header. We will write it once the DIB has been written.
+  Stream.Seek(SizeOf(TBitmapFileHeader), soFromCurrent);
+
+  // Save the DIB
+  SaveToDIBStream(Stream, SaveTopDown, InfoHeaderVersion, IncludeColorTable);
+  SavePos := Stream.Position;
+
+  // Calculate size, store in header, rewind and write the file header
+  FileHeader.bfType := $4D42; // Magic bytes for Windows Bitmap: 'BM'
+  FileHeader.bfSize := Stream.Position - StartPos;
   FileHeader.bfReserved1 := 0;
   FileHeader.bfReserved2 := 0;
-  // The offset, in bytes, from the beginning of the BITMAPFILEHEADER structure to the bitmap bits.
-  FileHeader.bfOffBits := SizeOf(TBitmapFileHeader) + HeaderSize;
+  // Most application doesn't care about the value in bfOffBits but some do and
+  // for those (e.g. Gimp, MS Paint) it appears to be important that we store a
+  // correct value. Without a correct value the applications are, for some reason,
+  // unable to handle BI_BITFIELDS BMPs with a color table.
+  FileHeader.bfOffBits := SizeOf(TBitmapFileHeader);
+  case InfoHeaderVersion of
+    InfoHeaderVersion1: Inc(FileHeader.bfOffBits, SizeOf(TBitmapInfoHeader));// 40
+    InfoHeaderVersion2: Inc(FileHeader.bfOffBits, SizeOf(TBitmapV2Header));  // 52
+    InfoHeaderVersion3: Inc(FileHeader.bfOffBits, SizeOf(TBitmapV3Header));  // 56
+    InfoHeaderVersion4: Inc(FileHeader.bfOffBits, SizeOf(TBitmapV4Header));  // 108
+    InfoHeaderVersion5: Inc(FileHeader.bfOffBits, SizeOf(TBitmapV5Header));  // 124
+  end;
+  if (IncludeColorTable) and (InfoHeaderVersion >= InfoHeaderVersion3) then
+    Inc(FileHeader.bfOffBits, 3*SizeOf(DWORD));
 
-  // Note that the above offsets and sizes doesn't include a potential BI_BITFIELDS
-  // color mask. This doesn't appear to be a problem since nobody (wisely) uses the
-  // values in these fields anyway.
-
+  Stream.Position := StartPos;
   Stream.WriteBuffer(FileHeader, SizeOf(FileHeader));
 
-  SaveToDIBStream(Stream, SaveTopDown, InfoHeaderVersion);
+  Stream.Position := SavePos;
 end;
 
-procedure TCustomBitmap32.SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean);
+procedure TCustomBitmap32.SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; IncludeColorTable: boolean);
 begin
-  SaveToDIBStream(Stream, SaveTopDown, DefaultBitmapHeaderVersion);
+  SaveToDIBStream(Stream, SaveTopDown, DefaultBitmapHeaderVersion, IncludeColorTable);
 end;
 
-procedure TCustomBitmap32.SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion);
+procedure TCustomBitmap32.SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion; IncludeColorTable: boolean);
 type
   TDIBHeader = packed record
   case TInfoHeaderVersion of
@@ -6160,6 +6176,7 @@ begin
   begin
     // First header version to formally support Alpha. But this requires that we use
     // BI_BITFIELDS compression.
+    // Note though that Windows Explorer only recongnizes alpha in v4 and v5.
     Header.InfoHeader.biCompression := BI_BITFIELDS; // Switch from BI_RGB
     Header.V3Header.bV3AlphaMask := $FF000000;
   end;
@@ -6182,9 +6199,20 @@ begin
   Stream.WriteBuffer(Header, Header.InfoHeader.biSize);
 
   // Write the color table.
-  // This is just a duplication of the first three fields of the header color mask.
-  if (Header.InfoHeader.biCompression = BI_BITFIELDS) then
-    Stream.WriteBuffer(Header.V2Header.bV2RedMask, 3*SizeOf(DWORD));
+  // This just contains the same values as first three fields of the header color mask.
+  //
+  // Note that by default we never write the color table.
+  // Empirical evidence has shown that, for most consistent results, neither bitmap files
+  // (i.e. BMPs) nor DIBs (such as clipboard data) should contain the color table.
+  //
+  // The current MSDN documentation state that the color tables must always be present
+  // for BI_BITFIELDS. However investigation of the relevant source code has revealed
+  // that different parts of Windows has widely different implementations of the format;
+  // The clipboard appears to always expect a color table while parts of GDI expect one
+  // for v3 but not for v4 and v5 DIBs - or vice versa.
+  //
+  if (IncludeColorTable) and (Header.InfoHeader.biCompression = BI_BITFIELDS) then
+    Stream.WriteBuffer(Header.V2Header.bV2RedMask, 3*SizeOf(DWORD)); // Actually, 3*SizeOf(TRGBQuad)
 
   // Pixel array
 {$IFNDEF RGBA_FORMAT}
@@ -6205,13 +6233,13 @@ begin
   if SaveTopDown then
   begin
     for i := 0 to Width*Height-1 do
-      Stream.Write(SwapRedBlue(Bits[i]), SizeOf(TColor32));
+      Stream.WriteData(SwapRedBlue(Bits[i]), SizeOf(TColor32));
   end
   else
   begin
     for i := Height - 1 downto 0 do
       for W := 0 to Width-1 do
-        Stream.Write(SwapRedBlue(ScanLine[i][W]), SizeOf(TColor32));
+        Stream.WriteData(SwapRedBlue(ScanLine[i][W]), SizeOf(TColor32));
   end;
 {$ENDIF RGBA_FORMAT}
 end;
@@ -6279,12 +6307,18 @@ begin
 end;
 
 procedure TCustomBitmap32.SaveToFile(const FileName: string; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion);
+begin
+  SaveToFile(FileName, SaveTopDown, InfoHeaderVersion, DefaultBitmapIncludeColorTable);
+end;
+
+procedure TCustomBitmap32.SaveToFile(const FileName: string; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion; IncludeColorTable: boolean);
 var
   FileStream: TFileStream;
 begin
+  // The purpose of this extra overload is primarily to allow the unit test to generate BMPs with/without a color table
   FileStream := TFileStream.Create(Filename, fmCreate);
   try
-    SaveToStream(FileStream, SaveTopDown, InfoHeaderVersion);
+    SaveToStream(FileStream, SaveTopDown, InfoHeaderVersion, IncludeColorTable);
   finally
     FileStream.Free;
   end;
