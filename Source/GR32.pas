@@ -1222,14 +1222,14 @@ type
   // Each new version adds to the one before it.
   TBitmapInfoHeader = packed record
     biSize: DWORD;
-    biWidth: Longint;
-    biHeight: Longint;
+    biWidth: Integer;
+    biHeight: Integer;
     biPlanes: Word;
     biBitCount: Word;
     biCompression: DWORD;
     biSizeImage: DWORD;
-    biXPelsPerMeter: Longint;
-    biYPelsPerMeter: Longint;
+    biXPelsPerMeter: Integer;
+    biYPelsPerMeter: Integer;
     biClrUsed: DWORD;
     biClrImportant: DWORD;
   end;
@@ -1267,14 +1267,14 @@ type
   // V4 header: BITMAPV4HEADER
   TBitmapV4Header = packed record
     bV4Size: DWORD;
-    bV4Width: Longint;
-    bV4Height: Longint;
+    bV4Width: Integer;
+    bV4Height: Integer;
     bV4Planes: Word;
     bV4BitCount: Word;
     bV4V4Compression: DWORD;
     bV4SizeImage: DWORD;
-    bV4XPelsPerMeter: Longint;
-    bV4YPelsPerMeter: Longint;
+    bV4XPelsPerMeter: Integer;
+    bV4YPelsPerMeter: Integer;
     bV4ClrUsed: DWORD;
     bV4ClrImportant: DWORD;
     bV4RedMask: DWORD;
@@ -1291,14 +1291,14 @@ type
   // V5 header: BITMAPV5HEADER
   TBitmapV5Header = packed record
     bV5Size: DWORD;
-    bV5Width: Longint;
-    bV5Height: Longint;
+    bV5Width: Integer;
+    bV5Height: Integer;
     bV5Planes: Word;
     bV5BitCount: Word;
     bV5Compression: DWORD;
     bV5SizeImage: DWORD;
-    bV5XPelsPerMeter: Longint;
-    bV5YPelsPerMeter: Longint;
+    bV5XPelsPerMeter: Integer;
+    bV5YPelsPerMeter: Integer;
     bV5ClrUsed: DWORD;
     bV5ClrImportant: DWORD;
     bV5RedMask: DWORD;
@@ -6131,14 +6131,20 @@ type
     InfoHeaderVersion5: (V5Header: TBitmapV5Header);            // 124
   end;
 
-{$IFDEF FPC}
 const
+  LCS_sRGB = $73524742; // 'sRGB'
+{$IFDEF FPC}
   LCS_GM_IMAGES = 4;
 {$ENDIF}
+
 var
   Header: TDIBHeader;
   i: Integer;
   W: Integer;
+{$ifdef RGBA_FORMAT}
+  Colors: array of TColor32;
+  Line: PColor32Array;
+{$endif RGBA_FORMAT}
 begin
   Header := Default(TDIBHeader);
 
@@ -6191,7 +6197,7 @@ begin
   end;
 
   if (InfoHeaderVersion >= InfoHeaderVersion4) then
-    Header.V4Header.bV4CSType := $73524742;// LCS_sRGB
+    Header.V4Header.bV4CSType := LCS_sRGB;
 
   if (InfoHeaderVersion >= InfoHeaderVersion5) then
     Header.V5Header.bV5Intent := LCS_GM_IMAGES;
@@ -6229,17 +6235,17 @@ begin
       Stream.WriteBuffer(ScanLine[i]^, W);
   end;
 {$ELSE RGBA_FORMAT}
-  // Bits are in RGBA format but we need to write BGRA
-  if SaveTopDown then
+  // Bits are in RGBA format but we need to write BGRA.
+  SetLength(Colors, Width);
+  for i := 0 to Height-1 do
   begin
-    for i := 0 to Width*Height-1 do
-      Stream.WriteData(SwapRedBlue(Bits[i]), SizeOf(TColor32));
-  end
-  else
-  begin
-    for i := Height - 1 downto 0 do
-      for W := 0 to Width-1 do
-        Stream.WriteData(SwapRedBlue(ScanLine[i][W]), SizeOf(TColor32));
+    if SaveTopDown then
+      Line := ScanLine[i]
+    else
+      Line := ScanLine[Height-i-1];
+    for W := 0 to Width-1 do
+      Colors[W] := SwapRedBlue(Line[W]);
+    Stream.WriteBuffer(Colors[0], Width*SizeOf(DWORD));
   end;
 {$ENDIF RGBA_FORMAT}
 end;
