@@ -41,11 +41,18 @@ uses
 
 type
   { Polygon join style - used by GR32_VectorUtils.Grow(). }
-  { nb: jsRoundEx rounds both convex and concave joins unlike jsRound which
-    only rounds convex joins. The depth of convex join rounding is controlled
-    by Grow's MiterLimit parameter }
-  TJoinStyle = (jsMiter, jsBevel, jsRound, jsRoundEx);
+  TJoinStyle = (jsMiter, jsBevel, jsRound, jsSquare);
 
+const
+  // jsRoundEx: Rounds both convex and concave joins unlike jsRound which
+  // only rounds convex joins. The depth of convex join rounding is controlled
+  // by Grow's MiterLimit parameter.
+  //
+  // Note: jsRoundEx was a join type implemented in Clipper1 for Graphics32.
+  // Clipper2 doesn't support this join style.
+  jsRoundEx = jsRound;
+
+type
   { Polygon end style }
   TEndStyle = (esButt, esSquare, esRound);
 

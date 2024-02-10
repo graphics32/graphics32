@@ -80,21 +80,22 @@ type
     function GetBounds: TFloatRect;
 
     // ADDPATH & ADDPATHS METHODS ...
-    procedure AddPath(const path: TArrayOfFloatPoint; polyType: TPathType = ptSubject; isOpen: Boolean = false); overload;
-    procedure AddPath(const path: TArrayOfFixedPoint; polyType: TPathType = ptSubject; isOpen: Boolean = false); overload;
-    procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint; polyType: TPathType = ptSubject; isOpen: Boolean = false); overload;
-    procedure AddPaths(const paths: TArrayOfArrayOfFixedPoint; polyType: TPathType = ptSubject; isOpen: Boolean = false); overload;
+    procedure AddPath(const Path: TArrayOfFloatPoint; PolyType: TPathType = ptSubject; IsOpen: Boolean = False); overload;
+    procedure AddPath(const Path: TArrayOfFixedPoint; PolyType: TPathType = ptSubject; IsOpen: Boolean = False); overload;
+    procedure AddPaths(const Paths: TArrayOfArrayOfFloatPoint; PolyType: TPathType = ptSubject; IsOpen: Boolean = False); overload;
+    procedure AddPaths(const Paths: TArrayOfArrayOfFixedPoint; PolyType: TPathType = ptSubject; IsOpen: Boolean = False); overload;
 
     // EXECUTE METHODS ...
-    function Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths: TArrayOfArrayOfFloatPoint): Boolean; overload;
-    function Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths: TArrayOfArrayOfFixedPoint): Boolean; overload;
-    function Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths, openPaths: TArrayOfArrayOfFloatPoint): Boolean; overload;
-    function Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths, openPaths: TArrayOfArrayOfFixedPoint): Boolean; overload;
+    function Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths: TArrayOfArrayOfFloatPoint): Boolean; overload;
+    function Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths: TArrayOfArrayOfFixedPoint): Boolean; overload;
+    function Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths, OpenPaths: TArrayOfArrayOfFloatPoint): Boolean; overload;
+    function Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths, OpenPaths: TArrayOfArrayOfFixedPoint): Boolean; overload;
   end;
 
 
 const
   // TJoinType
+  jtBevel       = Clipper.Offset.jtBevel;
   jtSquare      = Clipper.Offset.jtSquare;
   jtRound       = Clipper.Offset.jtRound;
   jtRoundEx     = Clipper.Offset.jtRound; // Not implemented in Clipper2
@@ -116,23 +117,23 @@ type
   TClipperOffset = class(Clipper.Offset.TClipperOffset)
   private
   public
-    procedure AddPath(const path: TArrayOfFloatPoint); overload; deprecated 'Use AddPath(path, joinType, endType)';
-    procedure AddPath(const path: TArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure AddPath(const Path: TArrayOfFloatPoint); overload; deprecated 'Use AddPath(path, joinType, endType)';
+    procedure AddPath(const Path: TArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-    procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use AddPaths(paths, joinType, endType)';
-    procedure AddPaths(const paths: TArrayOfArrayOfFloatPoint; joinType: TJoinType; endType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure AddPaths(const Paths: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use AddPaths(paths, joinType, endType)';
+    procedure AddPaths(const Paths: TArrayOfArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-    procedure Execute(delta: Double; jt: TJoinType; et: TEndType; out solution: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use Execute(delta)';
-    function Execute(delta: Double): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure Execute(Delta: Double; jt: TJoinType; et: TEndType; out Solution: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use Execute(delta)';
+    function Execute(Delta: Double): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
   end;
 
-function InflatePaths(const paths: Gr32.TArrayOfArrayOfFixedPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function InflatePaths(const Paths: GR32.TArrayOfArrayOfFixedPoint;
+  Delta: double; jointType: TJoinType; EndType: TEndType;
+  MiterLimit: double = 2): GR32.TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-function InflatePaths(const paths: Gr32.TArrayOfArrayOfFloatPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function InflatePaths(const Paths: GR32.TArrayOfArrayOfFloatPoint;
+  Delta: double; jointType: TJoinType; EndType: TEndType;
+  MiterLimit: double = 2): GR32.TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
 
@@ -141,26 +142,26 @@ uses
 
 //------------------------------------------------------------------------------
 
-function InflatePaths(const paths: Gr32.TArrayOfArrayOfFixedPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double): Gr32.TArrayOfArrayOfFixedPoint;
+function InflatePaths(const Paths: GR32.TArrayOfArrayOfFixedPoint;
+  Delta: double; jointType: TJoinType; EndType: TEndType;
+  MiterLimit: double): GR32.TArrayOfArrayOfFixedPoint;
 var
   sub, sol: TPaths64;
 begin
-  sub := GR32_Clipper2.FixedPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FixedOne * 0.5, jointType, endType, miterLimit);
+  sub := GR32_Clipper2.FixedPointsToPaths64(Paths);
+  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.FixedGrowScale, jointType, EndType, MiterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFixedPoints(sol);
 end;
 
-function InflatePaths(const paths: Gr32.TArrayOfArrayOfFloatPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double): Gr32.TArrayOfArrayOfFloatPoint;
+function InflatePaths(const Paths: GR32.TArrayOfArrayOfFloatPoint;
+  Delta: double; jointType: TJoinType; EndType: TEndType;
+  MiterLimit: double): GR32.TArrayOfArrayOfFloatPoint;
 var
   sub, sol: TPaths64;
 begin
-  sub := GR32_Clipper2.FloatPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * ClipperFloatScale * 0.5, jointType, endType, miterLimit);
+  sub := GR32_Clipper2.FloatPointsToPaths64(Paths);
+  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.GrowScale, jointType, EndType, MiterLimit);
   sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFloatPoints(sol);
 end;
@@ -170,103 +171,103 @@ end;
 //------------------------------------------------------------------------------
 //  TClipper methods ...
 //------------------------------------------------------------------------------
-procedure TClipper.AddPath(const path: TArrayOfFloatPoint; polyType: TPathType; isOpen: Boolean);
+procedure TClipper.AddPath(const Path: TArrayOfFloatPoint; PolyType: TPathType; IsOpen: Boolean);
 var
-  path64: TPath64;
+  Path64: TPath64;
 begin
-  path64 := GR32_Clipper2.FloatPointsToPath64(path);
-  inherited AddPath(path64, polyType, isOpen);
+  Path64 := GR32_Clipper2.FloatPointsToPath64(Path);
+  inherited AddPath(Path64, PolyType, IsOpen);
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TClipper.AddPath(const path: TArrayOfFixedPoint; polyType: TPathType; isOpen: Boolean);
+procedure TClipper.AddPath(const Path: TArrayOfFixedPoint; PolyType: TPathType; IsOpen: Boolean);
 var
-  path64: TPath64;
+  Path64: TPath64;
 begin
-  path64 := GR32_Clipper2.FixedPointsToPath64(path);
-  inherited AddPath(path64, polyType, isOpen);
+  Path64 := GR32_Clipper2.FixedPointsToPath64(Path);
+  inherited AddPath(Path64, PolyType, IsOpen);
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TClipper.AddPaths(const paths: TArrayOfArrayOfFloatPoint; polyType: TPathType; isOpen: Boolean);
+procedure TClipper.AddPaths(const Paths: TArrayOfArrayOfFloatPoint; PolyType: TPathType; IsOpen: Boolean);
 var
-  paths64: TPaths64;
+  Paths64: TPaths64;
 begin
-  paths64 := GR32_Clipper2.FloatPointsToPaths64(paths);
-  inherited AddPaths(paths64, polyType, isOpen);
+  Paths64 := GR32_Clipper2.FloatPointsToPaths64(Paths);
+  inherited AddPaths(Paths64, PolyType, IsOpen);
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TClipper.AddPaths(const paths: TArrayOfArrayOfFixedPoint; polyType: TPathType; isOpen: Boolean);
+procedure TClipper.AddPaths(const Paths: TArrayOfArrayOfFixedPoint; PolyType: TPathType; IsOpen: Boolean);
 var
-  paths64: TPaths64;
+  Paths64: TPaths64;
 begin
-  paths64 := GR32_Clipper2.FixedPointsToPaths64(paths);
-  inherited AddPaths(paths64, polyType, isOpen);
+  Paths64 := GR32_Clipper2.FixedPointsToPaths64(Paths);
+  inherited AddPaths(Paths64, PolyType, IsOpen);
 end;
 
 //------------------------------------------------------------------------------
 
-function TClipper.Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths: TArrayOfArrayOfFloatPoint): Boolean;
+function TClipper.Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths: TArrayOfArrayOfFloatPoint): Boolean;
 var
-  closedSolutions: TPaths64;
+  ClosedSolutions: TPaths64;
 begin
-  Result := inherited Execute(clipType, fillRule, closedSolutions);
+  Result := inherited Execute(ClipType, FillRule, ClosedSolutions);
   if (Result) then
-    closedPaths := GR32_Clipper2.Paths64ToFloatPoints(closedSolutions)
+    ClosedPaths := GR32_Clipper2.Paths64ToFloatPoints(ClosedSolutions)
   else
-    SetLength(closedPaths, 0);
+    SetLength(ClosedPaths, 0);
 end;
 
 //------------------------------------------------------------------------------
 
-function TClipper.Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths: TArrayOfArrayOfFixedPoint): Boolean;
+function TClipper.Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths: TArrayOfArrayOfFixedPoint): Boolean;
 var
-  closedSolutions: TPaths64;
+  ClosedSolutions: TPaths64;
 begin
-  Result := inherited Execute(clipType, fillRule, closedSolutions);
+  Result := inherited Execute(ClipType, FillRule, ClosedSolutions);
   if (Result) then
-    closedPaths := GR32_Clipper2.Paths64ToFixedPoints(closedSolutions)
+    ClosedPaths := GR32_Clipper2.Paths64ToFixedPoints(ClosedSolutions)
   else
-    SetLength(closedPaths, 0);
+    SetLength(ClosedPaths, 0);
 end;
 
 //------------------------------------------------------------------------------
 
-function TClipper.Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths, openPaths: TArrayOfArrayOfFloatPoint): Boolean;
+function TClipper.Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths, OpenPaths: TArrayOfArrayOfFloatPoint): Boolean;
 var
-  closedSolutions, openSolutions: TPaths64;
+  ClosedSolutions, OpenSolutions: TPaths64;
 begin
-  Result := inherited Execute(clipType, fillRule, closedSolutions, openSolutions);
+  Result := inherited Execute(ClipType, FillRule, ClosedSolutions, OpenSolutions);
   if (Result) then
   begin
-    closedPaths := GR32_Clipper2.Paths64ToFloatPoints(closedSolutions);
-    openPaths := GR32_Clipper2.Paths64ToFloatPoints(openSolutions);
+    ClosedPaths := GR32_Clipper2.Paths64ToFloatPoints(ClosedSolutions);
+    OpenPaths := GR32_Clipper2.Paths64ToFloatPoints(OpenSolutions);
   end else
   begin
-    SetLength(closedPaths, 0);
-    SetLength(openPaths, 0);
+    SetLength(ClosedPaths, 0);
+    SetLength(OpenPaths, 0);
   end;
 end;
 
 //------------------------------------------------------------------------------
 
-function TClipper.Execute(clipType: TClipType; fillRule: TFillRule; out closedPaths, openPaths: TArrayOfArrayOfFixedPoint): Boolean;
+function TClipper.Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths, OpenPaths: TArrayOfArrayOfFixedPoint): Boolean;
 var
-  closedSolutions, openSolutions: TPaths64;
+  ClosedSolutions, OpenSolutions: TPaths64;
 begin
-  Result := inherited Execute(clipType, fillRule, closedSolutions, openSolutions);
+  Result := inherited Execute(ClipType, FillRule, ClosedSolutions, OpenSolutions);
   if (Result) then
   begin
-    closedPaths := GR32_Clipper2.Paths64ToFixedPoints(closedSolutions);
-    openPaths := GR32_Clipper2.Paths64ToFixedPoints(openSolutions);
+    ClosedPaths := GR32_Clipper2.Paths64ToFixedPoints(ClosedSolutions);
+    OpenPaths := GR32_Clipper2.Paths64ToFixedPoints(OpenSolutions);
   end else
   begin
-    SetLength(closedPaths, 0);
-    SetLength(openPaths, 0);
+    SetLength(ClosedPaths, 0);
+    SetLength(OpenPaths, 0);
   end;
 end;
 
@@ -281,47 +282,47 @@ end;
 //------------------------------------------------------------------------------
 //  TClipperOffset methods ...
 //------------------------------------------------------------------------------
-procedure TClipperOffset.AddPath(const path: TArrayOfFloatPoint; joinType: TJoinType; endType: TEndType);
+procedure TClipperOffset.AddPath(const Path: TArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType);
 var
-  path64: TPath64;
+  Path64: TPath64;
 begin
-  path64 := GR32_Clipper2.FloatPointsToPath64(path);
-  inherited AddPath(path64, joinType, endType);
+  Path64 := GR32_Clipper2.FloatPointsToPath64(Path);
+  inherited AddPath(Path64, JoinType, EndType);
 end;
 
-procedure TClipperOffset.AddPath(const path: TArrayOfFloatPoint);
+procedure TClipperOffset.AddPath(const Path: TArrayOfFloatPoint);
 begin
-  AddPath(path, jtRound, etPolygon);
+  AddPath(Path, jtRound, etPolygon);
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TClipperOffset.AddPaths(const paths: TArrayOfArrayOfFloatPoint; joinType: TJoinType; endType: TEndType);
+procedure TClipperOffset.AddPaths(const Paths: TArrayOfArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType);
 var
-  paths64: TPaths64;
+  Paths64: TPaths64;
 begin
-  paths64 := GR32_Clipper2.FloatPointsToPaths64(paths);
-  inherited AddPaths(paths64, joinType, endType);
+  Paths64 := GR32_Clipper2.FloatPointsToPaths64(Paths);
+  inherited AddPaths(Paths64, JoinType, EndType);
 end;
 
-procedure TClipperOffset.AddPaths(const paths: TArrayOfArrayOfFloatPoint);
+procedure TClipperOffset.AddPaths(const Paths: TArrayOfArrayOfFloatPoint);
 begin
-  AddPaths(paths, jtRound, etPolygon);
+  AddPaths(Paths, jtRound, etPolygon);
 end;
 
 //------------------------------------------------------------------------------
 
-function TClipperOffset.Execute(delta: Double): TArrayOfArrayOfFloatPoint;
+function TClipperOffset.Execute(Delta: Double): TArrayOfArrayOfFloatPoint;
 var
-  paths64: TPaths64;
+  Paths64: TPaths64;
 begin
-  inherited Execute(delta, paths64);
-  Result := GR32_Clipper2.Paths64ToFloatPoints(paths64);
+  inherited Execute(Delta, Paths64);
+  Result := GR32_Clipper2.Paths64ToFloatPoints(Paths64);
 end;
 
-procedure TClipperOffset.Execute(delta: Double; jt: TJoinType; et: TEndType; out solution: TArrayOfArrayOfFloatPoint);
+procedure TClipperOffset.Execute(Delta: Double; jt: TJoinType; et: TEndType; out Solution: TArrayOfArrayOfFloatPoint);
 begin
-  solution := Execute(delta);
+  Solution := Execute(Delta);
 end;
 
 //------------------------------------------------------------------------------

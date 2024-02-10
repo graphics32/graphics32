@@ -43,8 +43,7 @@ uses
   ExtCtrls, Math, Vcl.ExtDlgs, Vcl.Menus, System.Actions, Vcl.ActnList,
 
   GR32_Paths, GR32_Polygons,
-  GR32_VectorUtils, GR32, GR32_Gamma, GR32_Blend, GR32_Image,
-  Gr32_Clipper;
+  GR32_VectorUtils, GR32, GR32_Gamma, GR32_Blend, GR32_Image;
 
 type
   TFormGrow = class(TForm)
@@ -114,10 +113,12 @@ implementation
 {$R *.dfm}
 {$ENDIF}
 
-{$IFDEF Darwin}
 uses
-  MacOSAll;
+  GR32_Clipper
+{$IFDEF Darwin}
+  , MacOSAll
 {$ENDIF}
+  ;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -186,21 +187,10 @@ var
   i,j: integer;
   Area, a: Single;
 begin
-  SetLength(Result, 4);
-  Result[0].X := 50;
-  Result[0].Y := 50;
-  Result[1].X := 80;
-  Result[1].Y := 50;
-  Result[2].X := 80;
-  Result[2].Y := 80;
-  Result[3].X := 50;
-  Result[3].Y := 80;
-  exit;
-
   Setlength(PolyPts, 1);
   PolyPts[0] := MakeRandomPath(MaxWidth, MaxHeight, EdgeCount);
 
-  // NOTE: INFLATEPATHS WILL BEHAVE IN AN UNDERTERMINED FASHION
+  // NOTE: INFLATEPATHS WILL BEHAVE IN AN UNDETERMINED FASHION
   // WHENEVER SELF-INTERSECTING POLYGONS ARE ENCOUNTERED.
 
   // so, remove self-intersections
@@ -274,7 +264,7 @@ var
   PolyPts: TArrayOfArrayOfFloatPoint;
   Closed: boolean;
 const
-  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtSquare, jtRound, jtRoundEx);
+  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtBevel, jtRound, jtSquare);
   EndStyleToEndType: array[TEndStyle] of TEndType = (etOpenButt, etOpenSquare, etOpenRound);
 begin
   // Apply options to existing polyline/polygon and repaint
@@ -292,7 +282,7 @@ begin
     PolyPts := InflatePaths(FPolyPoints, 20, JoinStyleToJoinType[FJoinStyle], EndStyleToEndType[FEndStyle])
   else
     // INFLATE (GROW / OFFSET) A POLYGON ...
-    PolyPts := InflatePaths(FPolyPoints, 10, JoinStyleToJoinType[FJoinStyle], etPolygon, 10);
+    PolyPts := InflatePaths(FPolyPoints, 20, JoinStyleToJoinType[FJoinStyle], etPolygon);
 
   PolyPolylineFS(image.Bitmap, PolyPts, clRed32, True, 1);
   PolyPolygonFS(image.Bitmap, PolyPts, $10FF0000);

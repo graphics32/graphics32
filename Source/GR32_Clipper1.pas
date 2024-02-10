@@ -1,4 +1,4 @@
-unit GR32_Clipper1;
+unit GR32_Clipper1 deprecated 'Use GR32_Clipper2';
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception

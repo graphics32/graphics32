@@ -35,62 +35,55 @@ unit GR32_Clipper2;
 interface
 
 uses
-  Gr32, Gr32_Polygons,
+  GR32, GR32_Polygons,
   Clipper, Clipper.Core, Clipper.Engine, Clipper.Offset;
 
 (*
 ** TFixed variants
 *)
 
-function Gr32BoolOp(clipType: TClipType; fillMode: TPolyFillMode;
-  const subject, clip: Gr32.TArrayOfArrayOfFixedPoint):
-  Gr32.TArrayOfArrayOfFixedPoint; overload;
+function GR32BoolOp(ClipType: TClipType; FillMode: TPolyFillMode; const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint): GR32.TArrayOfArrayOfFixedPoint; overload;
 
-function Gr32_Intersect(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint; overload;
-function Gr32_Union(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint; overload;
-function Gr32_Difference(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint; overload;
-function Gr32_XOR(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint; overload;
+function GR32_Intersect(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint; overload;
+function GR32_Union(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint; overload;
+function GR32_Difference(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint; overload;
+function GR32_XOR(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint; overload;
 
-function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFixedPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFixedPoint; overload;
+function GR32_Inflate(const Paths: GR32.TArrayOfArrayOfFixedPoint; Delta: double; JoinType: TJoinType; EndType: TEndType; MiterLimit: double = 2): GR32.TArrayOfArrayOfFixedPoint; overload;
 
 
 (*
 ** TFloat variants
 *)
 
-function Gr32BoolOp(clipType: TClipType; fillMode: TPolyFillMode;
-  const subject, clip: Gr32.TArrayOfArrayOfFloatPoint):
-  Gr32.TArrayOfArrayOfFloatPoint; overload;
+function GR32BoolOp(ClipType: TClipType; FillMode: TPolyFillMode; const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint): GR32.TArrayOfArrayOfFloatPoint; overload;
 
-function Gr32_Intersect(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint; overload;
-function Gr32_Union(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint; overload;
-function Gr32_Difference(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint; overload;
-function Gr32_XOR(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint; overload;
+function GR32_Intersect(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint; overload;
+function GR32_Union(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint; overload;
+function GR32_Difference(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint; overload;
+function GR32_XOR(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint; FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint; overload;
 
-function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFloatPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint; overload;
+function GR32_Inflate(const Paths: GR32.TArrayOfArrayOfFloatPoint; Delta: double; JoinType: TJoinType; EndType: TEndType; MiterLimit: double = 2): GR32.TArrayOfArrayOfFloatPoint; overload;
 
 
-function FixedPointsToPath64(const pathFixed: Gr32.TArrayOfFixedPoint): Clipper.TPath64;
-function FloatPointsToPath64(const pathFloat: Gr32.TArrayOfFloatPoint): Clipper.TPath64;
-function FixedPointsToPaths64(const pathsFixed: Gr32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
-function FloatPointsToPaths64(const pathsFloat: Gr32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
+(*
+** TPath64 conversion
+*)
 
-function Paths64ToFixedPoints(const paths: Clipper.TPaths64): Gr32.TArrayOfArrayOfFixedPoint;
-function Paths64ToFloatPoints(const paths: Clipper.TPaths64): Gr32.TArrayOfArrayOfFloatPoint;
+function FixedPointsToPath64(const PathFixed: GR32.TArrayOfFixedPoint): Clipper.TPath64;
+function FloatPointsToPath64(const PathFloat: GR32.TArrayOfFloatPoint): Clipper.TPath64;
+function FixedPointsToPaths64(const PathsFixed: GR32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
+function FloatPointsToPaths64(const PathsFloat: GR32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
+
+function Paths64ToFixedPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFixedPoint;
+function Paths64ToFloatPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFloatPoint;
 
 function FloatRect(const r: TRect64): GR32.TFloatRect;
+
+
+(*
+** Convenience redeclarations
+*)
 
 type
   TClipper    = Clipper.Engine.TClipper64;
@@ -109,15 +102,24 @@ type
   TJoinType   = Clipper.Offset.TJoinType;
   TEndType    = Clipper.Offset.TEndType;
   TClipType   = Clipper.Core.TClipType;
+
+
+(*
+** Ditto consts
+*)
+
 const
   frEvenOdd   = Clipper.Core.frEvenOdd;
   frNonZero   = Clipper.Core.frNonZero;
   frPositive  = Clipper.Core.frPositive;
   frNegative  = Clipper.Core.frNegative;
-  jtSquare    = Clipper.Offset.jtSquare;
-  jtRound     = Clipper.Offset.jtRound;
-  jtRoundEx   = Clipper.Offset.jtRound; // Not implemented in Clipper2
+
   jtMiter     = Clipper.Offset.jtMiter;
+  jtBevel     = Clipper.Offset.jtBevel;
+  jtRound     = Clipper.Offset.jtRound;
+  jtSquare    = Clipper.Offset.jtSquare;
+  jtRoundEx   = Clipper.Offset.jtRound; // Not implemented in Clipper2
+
   etPolygon   = Clipper.Offset.etPolygon;
   etJoined    = Clipper.Offset.etJoined;
   etButt      = Clipper.Offset.etButt;
@@ -130,29 +132,42 @@ const
   ctDifference    = Clipper.Core.ctDifference;
   ctXor           = Clipper.Core.ctXor;
 
-function ClipperFloatScale: Double; {$IFDEF USEINLINING} inline; {$ENDIF}
-function SetClipperFloatScale(Value: Double): Double; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+(*
+** Clipper float scale factor
+*)
+
+type
+  ClipperFloat = record
+  private
+    class var
+      FScale: Double;
+      FInvScale: Double;
+      FGrowScale: Double;
+      FFixedGrowScale: Double;
+
+    class procedure SetScale(Value: Double); static;
+  public
+    class property Scale: Double read FScale write SetScale;
+    class property InvScale: Double read FInvScale;             // 1 / Scale
+    class property GrowScale: Double read FGrowScale;           // Scale * OffsetFactor
+    class property FixedGrowScale: Double read FFixedGrowScale; // Note: Does not apply scale since fixed values aren't scaled
+
+  const
+    // OffsetFactor specifies the ratio between Graphic32's traditional measure
+    // of stroke width (or growth delta) and the measure Clipper2 uses.
+    //
+    // For example, in Graphics32, when we draw a line with a stroke width of 10,
+    // we expect a line that is approximately 10 pixel wide. Prior to using
+    // Clipper2 to offset polylines into polygons, we would simply inflate the
+    // polyline with a growth delta of 10. With the current Clipper2 implementation
+    // we instead has to inflate the polyline with a growth delta of 5.
+    //
+    // In some older versions of Clipper2, OffsetFactor was 1.
+    OffsetFactor = 0.5;
+  end;
 
 implementation
-
-var
-  FClipperFloatScale: Double;
-  FClipperInvFloatScale: Double;
-
-function ClipperFloatScale: Double;
-begin
-  Result := FClipperFloatScale;
-end;
-
-function SetClipperFloatScale(Value: Double): Double;
-begin
-  Result := FClipperFloatScale;
-  if (Value <> 0) then
-  begin
-    FClipperFloatScale := Value;
-    FClipperInvFloatScale := 1/FClipperFloatScale;
-  end;
-end;
 
 function DoubleToInt64(val: double): Int64; {$IFDEF INLINE} inline; {$ENDIF}
 var
@@ -174,206 +189,217 @@ end;
 
 function FloatRect(const r: TRect64): GR32.TFloatRect;
 begin
-  Result.Left := DoubleToInt64(r.Left * FClipperFloatScale);
-  Result.Top := DoubleToInt64(r.Top * FClipperFloatScale);
-  Result.Right := DoubleToInt64(r.Right * FClipperFloatScale);
-  Result.Bottom  := DoubleToInt64(r.Bottom * FClipperFloatScale);
+  Result.Left := DoubleToInt64(r.Left * ClipperFloat.Scale);
+  Result.Top := DoubleToInt64(r.Top * ClipperFloat.Scale);
+  Result.Right := DoubleToInt64(r.Right * ClipperFloat.Scale);
+  Result.Bottom  := DoubleToInt64(r.Bottom * ClipperFloat.Scale);
 end;
 
-function FixedPointsToPath64(const pathFixed: Gr32.TArrayOfFixedPoint): Clipper.TPath64;
+function FixedPointsToPath64(const PathFixed: GR32.TArrayOfFixedPoint): Clipper.TPath64;
 var
   i, len: integer;
 begin
-  len := Length(pathFixed);
+  len := Length(PathFixed);
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := pathFixed[i].X;
-    Result[i].Y := pathFixed[i].Y;
+    Result[i].X := PathFixed[i].X;
+    Result[i].Y := PathFixed[i].Y;
   end;
 end;
 
-function FloatPointsToPath64(const pathFloat: Gr32.TArrayOfFloatPoint): Clipper.TPath64;
+function FloatPointsToPath64(const PathFloat: GR32.TArrayOfFloatPoint): Clipper.TPath64;
 var
   i, len: integer;
 begin
-  len := Length(pathFloat);
+  len := Length(PathFloat);
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := DoubleToInt64(pathFloat[i].X * FClipperFloatScale);
-    Result[i].Y := DoubleToInt64(pathFloat[i].Y * FClipperFloatScale);
+    Result[i].X := DoubleToInt64(PathFloat[i].X * ClipperFloat.Scale);
+    Result[i].Y := DoubleToInt64(PathFloat[i].Y * ClipperFloat.Scale);
   end;
 end;
 
-function FixedPointsToPaths64(const pathsFixed: Gr32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
+function FixedPointsToPaths64(const PathsFixed: GR32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
 var
   i, len: integer;
 begin
-  len := Length(pathsFixed);
+  len := Length(PathsFixed);
   SetLength(Result, len);
   for i := 0 to len -1 do
-    Result[i] := FixedPointsToPath64(pathsFixed[i]);
+    Result[i] := FixedPointsToPath64(PathsFixed[i]);
 end;
 
-function FloatPointsToPaths64(const pathsFloat: Gr32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
+function FloatPointsToPaths64(const PathsFloat: GR32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
 var
   i, len: integer;
 begin
-  len := Length(pathsFloat);
+  len := Length(PathsFloat);
   SetLength(Result, len);
   for i := 0 to len -1 do
-    Result[i] := FloatPointsToPath64(pathsFloat[i]);
+    Result[i] := FloatPointsToPath64(PathsFloat[i]);
 end;
 
-function Path64ToFixedPoints(const path: Clipper.TPath64): Gr32.TArrayOfFixedPoint;
+function Path64ToFixedPoints(const Path: Clipper.TPath64): GR32.TArrayOfFixedPoint;
 var
   i, len: integer;
 begin
-  len := Length(path);
+  len := Length(Path);
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := TFixed(path[i].X);
-    Result[i].Y := TFixed(path[i].Y);
+    Result[i].X := TFixed(Path[i].X);
+    Result[i].Y := TFixed(Path[i].Y);
   end;
 end;
 
-function Path64ToFloatPoints(const path: Clipper.TPath64): Gr32.TArrayOfFloatPoint;
+function Path64ToFloatPoints(const Path: Clipper.TPath64): GR32.TArrayOfFloatPoint;
 var
   i, len: integer;
 begin
-  len := Length(path);
+  len := Length(Path);
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := path[i].X * FClipperInvFloatScale;
-    Result[i].Y := path[i].Y * FClipperInvFloatScale;
+    Result[i].X := Path[i].X * ClipperFloat.InvScale;
+    Result[i].Y := Path[i].Y * ClipperFloat.InvScale;
   end;
 end;
 
-function Paths64ToFixedPoints(const paths: Clipper.TPaths64): Gr32.TArrayOfArrayOfFixedPoint;
+function Paths64ToFixedPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFixedPoint;
 var
   i, len: integer;
 begin
-  len := Length(paths);
+  len := Length(Paths);
   SetLength(Result, len);
   for i := 0 to len -1 do
-    Result[i] := Path64ToFixedPoints(paths[i]);
+    Result[i] := Path64ToFixedPoints(Paths[i]);
 end;
 
-function Paths64ToFloatPoints(const paths: Clipper.TPaths64): Gr32.TArrayOfArrayOfFloatPoint;
+function Paths64ToFloatPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFloatPoint;
 var
   i, len: integer;
 begin
-  len := Length(paths);
+  len := Length(Paths);
   SetLength(Result, len);
   for i := 0 to len -1 do
-    Result[i] := Path64ToFloatPoints(paths[i]);
+    Result[i] := Path64ToFloatPoints(Paths[i]);
 end;
 
-function Gr32BoolOp(clipType: TClipType; fillMode: TPolyFillMode;
-  const subject, clip: Gr32.TArrayOfArrayOfFixedPoint):
-  Gr32.TArrayOfArrayOfFixedPoint;
+function GR32BoolOp(ClipType: TClipType; FillMode: TPolyFillMode;
+  const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint):
+  GR32.TArrayOfArrayOfFixedPoint;
 var
   sub, clp, sol: TPaths64;
 begin
-  sub := FixedPointsToPaths64(subject);
-  clp := FixedPointsToPaths64(clip);
-  sol := Clipper.BooleanOp(clipType, sub, clp, TFillRule(fillMode));
+  sub := FixedPointsToPaths64(Subject);
+  clp := FixedPointsToPaths64(Clip);
+  sol := Clipper.BooleanOp(ClipType, sub, clp, TFillRule(FillMode));
   Result := Paths64ToFixedPoints(sol);
 end;
 
-function Gr32BoolOp(clipType: TClipType; fillMode: TPolyFillMode;
-  const subject, clip: Gr32.TArrayOfArrayOfFloatPoint):
-  Gr32.TArrayOfArrayOfFloatPoint;
+function GR32BoolOp(ClipType: TClipType; FillMode: TPolyFillMode;
+  const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint):
+  GR32.TArrayOfArrayOfFloatPoint;
 var
   sub, clp, sol: TPaths64;
 begin
-  sub := FloatPointsToPaths64(subject);
-  clp := FloatPointsToPaths64(clip);
-  sol := Clipper.BooleanOp(clipType, sub, clp, TFillRule(fillMode));
+  sub := FloatPointsToPaths64(Subject);
+  clp := FloatPointsToPaths64(Clip);
+  sol := Clipper.BooleanOp(ClipType, sub, clp, TFillRule(FillMode));
   Result := Paths64ToFloatPoints(sol);
 end;
 
-function Gr32_Intersect(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint;
+function GR32_Intersect(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint;
 begin
-  Result := Gr32BoolOp(ctIntersection, fillMode, subject, clip);
+  Result := GR32BoolOp(ctIntersection, FillMode, Subject, Clip);
 end;
 
-function Gr32_Union(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint;
+function GR32_Union(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint;
 begin
-  Result := Gr32BoolOp(ctUnion, fillMode, subject, clip);
+  Result := GR32BoolOp(ctUnion, FillMode, Subject, Clip);
 end;
 
-function Gr32_Difference(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint;
+function GR32_Difference(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint;
 begin
-  Result := Gr32BoolOp(ctDifference, fillMode, subject, clip);
+  Result := GR32BoolOp(ctDifference, FillMode, Subject, Clip);
 end;
 
-function Gr32_XOR(const subject, clip: Gr32.TArrayOfArrayOfFixedPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFixedPoint;
+function GR32_XOR(const Subject, Clip: GR32.TArrayOfArrayOfFixedPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFixedPoint;
 begin
-  Result := Gr32BoolOp(ctXor, fillMode, subject, clip);
+  Result := GR32BoolOp(ctXor, FillMode, Subject, Clip);
 end;
 
-function Gr32_Intersect(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint;
+function GR32_Intersect(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint;
 begin
-  Result := Gr32BoolOp(ctIntersection, fillMode, subject, clip);
+  Result := GR32BoolOp(ctIntersection, FillMode, Subject, Clip);
 end;
 
-function Gr32_Union(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint;
+function GR32_Union(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint;
 begin
-  Result := Gr32BoolOp(ctUnion, fillMode, subject, clip);
+  Result := GR32BoolOp(ctUnion, FillMode, Subject, Clip);
 end;
 
-function Gr32_Difference(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint;
+function GR32_Difference(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint;
 begin
-  Result := Gr32BoolOp(ctDifference, fillMode, subject, clip);
-end;
-
-
-function Gr32_XOR(const subject, clip: Gr32.TArrayOfArrayOfFloatPoint;
-  fillMode: TPolyFillMode): Gr32.TArrayOfArrayOfFloatPoint;
-begin
-  Result := Gr32BoolOp(ctXor, fillMode, subject, clip);
+  Result := GR32BoolOp(ctDifference, FillMode, Subject, Clip);
 end;
 
 
-function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFixedPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double): Gr32.TArrayOfArrayOfFixedPoint;
+function GR32_XOR(const Subject, Clip: GR32.TArrayOfArrayOfFloatPoint;
+  FillMode: TPolyFillMode): GR32.TArrayOfArrayOfFloatPoint;
+begin
+  Result := GR32BoolOp(ctXor, FillMode, Subject, Clip);
+end;
+
+
+function GR32_Inflate(const Paths: GR32.TArrayOfArrayOfFixedPoint;
+  Delta: double; JoinType: TJoinType; EndType: TEndType;
+  MiterLimit: double): GR32.TArrayOfArrayOfFixedPoint;
 var
   sub, sol: TPaths64;
 begin
-  sub := FixedPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FixedOne * 0.5,
-    jointType, endType, miterLimit);
+  sub := FixedPointsToPaths64(Paths);
+  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.FixedGrowScale, JoinType, EndType, MiterLimit);
   sol := RamerDouglasPeucker(sol, 1);
   Result := Paths64ToFixedPoints(sol);
 end;
 
-function Gr32_Inflate(const paths: Gr32.TArrayOfArrayOfFloatPoint;
-  delta: double; jointType: TJoinType; endType: TEndType;
-  miterLimit: double = 2): Gr32.TArrayOfArrayOfFloatPoint;
+function GR32_Inflate(const Paths: GR32.TArrayOfArrayOfFloatPoint;
+  Delta: double; JoinType: TJoinType; EndType: TEndType;
+  MiterLimit: double = 2): GR32.TArrayOfArrayOfFloatPoint;
 var
   sub, sol: TPaths64;
 begin
-  sub := FloatPointsToPaths64(paths);
-  sol := Clipper.InflatePaths(sub, delta * FClipperFloatScale * 0.5,
-    jointType, endType, miterLimit);
+  sub := FloatPointsToPaths64(Paths);
+  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.GrowScale, JoinType, EndType, MiterLimit);
   sol := RamerDouglasPeucker(sol, 10);
   Result := Paths64ToFloatPoints(sol);
 end;
 
+{ ClipperFloat }
+
+class procedure ClipperFloat.SetScale(Value: Double);
+begin
+  if (Value <> 0) then
+  begin
+    FScale := Value;
+    FInvScale := 1 / FScale;
+    FGrowScale := FScale * OffsetFactor;
+    FFixedGrowScale := OffsetFactor * FixedToFloat;
+  end;
+end;
+
 initialization
-  SetClipperFloatScale(100);
+  ClipperFloat.Scale := 100;
 
   // Guard against breaking change in Clipper TFillRule order
   Assert(Ord(TPolyFillMode.pfAlternate) = Ord(TFillRule.frEvenOdd));

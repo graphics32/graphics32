@@ -231,6 +231,7 @@ uses
 {$ifdef USE_CLIPPER_GROW}
   Clipper,
   Clipper.Core,
+  Clipper.Offset,
   GR32_Clipper2,
 {$endif USE_CLIPPER_GROW}
   GR32_Math,
@@ -239,7 +240,7 @@ uses
 
 {$ifdef USE_CLIPPER_GROW}
 const
-  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtSquare, jtRound, jtRoundEx);
+  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtBevel, jtRound, jtSquare);
   EndStyleToEndType: array[TEndStyle] of TEndType = (etButt, etSquare, etRound);
 {$endif USE_CLIPPER_GROW}
 
@@ -1855,6 +1856,7 @@ begin
     Result[I] := Points[L - I];
 end;
 
+{$ifdef USE_OLD_GROW}
 function BuildLineEnd(const P, N: TFloatPoint; const W: TFloat;
   EndStyle: TEndStyle): TArrayOfFloatPoint; overload;
 var
@@ -1911,7 +1913,6 @@ begin
   end;
 end;
 
-{$ifdef USE_OLD_GROW}
 function BuildPolylineOld(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 var
@@ -3160,7 +3161,7 @@ var
 begin
   Points64 := [GR32_Clipper2.FloatPointsToPath64(Points)];
 
-  Result64 := GrowClipper(Points64, Delta * ClipperFloatScale, JoinStyle, Closed, MiterLimit);
+  Result64 := GrowClipper(Points64, Delta * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyle, Closed, MiterLimit);
 
   Res := GR32_Clipper2.Paths64ToFloatPoints(Result64);
 
@@ -3236,8 +3237,7 @@ begin
 
   EndType := EndStyleToEndType[EndStyle];
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-
+  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
   Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
   Res := GR32_Clipper2.Paths64ToFloatPoints(Result64);
@@ -3261,7 +3261,7 @@ begin
   else
     EndType := EndStyleToEndType[EndStyle];
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
+  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
 
   Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
@@ -3270,38 +3270,40 @@ end;
 
 function BuildPolylineClipper(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
-  sub, sol: TPaths64;
-  res: TArrayOfArrayOfFixedPoint;
+  Paths64: TPaths64;
+  Result64: TPaths64;
+  Res: TArrayOfArrayOfFixedPoint;
 begin
-  sub := [GR32_Clipper2.FixedPointsToPath64(Points)];
+  Paths64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
 
-  sol := Clipper.InflatePaths(sub, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
-  sol := Clipper.Core.RamerDouglasPeucker(sol, 1);
+  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
+  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
-  res := GR32_Clipper2.Paths64ToFixedPoints(sol);
+  Res := GR32_Clipper2.Paths64ToFixedPoints(Result64);
 
-  if (Length(res) > 0) then
-    Result := res[0]
+  if (Length(Res) > 0) then
+    Result := Res[0]
   else
     SetLength(Result, 0);
 end;
 
 function BuildPolyPolyLineClipper(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
 var
-  sub, sol: TPaths64;
+  Paths64: TPaths64;
   EndType: TEndType;
+  Result64: TPaths64;
 begin
-  sub := GR32_Clipper2.FixedPointsToPaths64(Points);
+  Paths64 := GR32_Clipper2.FixedPointsToPaths64(Points);
 
   if (Closed) then
-    EndType := etPolygon
+    EndType := etJoined
   else
     EndType := EndStyleToEndType[EndStyle];
 
-  sol := Clipper.InflatePaths(sub, StrokeWidth * ClipperFloatScale * 0.5, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-  sol := Clipper.Core.RamerDouglasPeucker(sol, 1);
+  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
+  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
-  Result := GR32_Clipper2.Paths64ToFixedPoints(sol);
+  Result := GR32_Clipper2.Paths64ToFixedPoints(Result64);
 end;
 
 {$endif USE_CLIPPER_GROW}

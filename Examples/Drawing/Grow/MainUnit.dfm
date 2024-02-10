@@ -178,7 +178,7 @@ object FormGrow: TFormGrow
     object ActionOptionJoinRoundEx: TAction
       Tag = 3
       Category = 'Options'
-      Caption = 'R&oundEx join'
+      Caption = '&Square join'
       GroupIndex = 2
       OnExecute = ActionOptionJoinStyleExecute
       OnUpdate = ActionOptionJoinStyleUpdate
