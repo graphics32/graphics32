@@ -543,20 +543,25 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
-        // ECX = X;   EDX = Count;   R8 = Value
+        // RCX = Source;   RDX = Dest;   R8 = Count
+        CMP     RCX,RDX
+        JE      @exit
+
+        TEST    R8,R8
+        JZ      @exit
+
         PUSH    RSI
         PUSH    RDI
 
         MOV     RSI,RCX
         MOV     RDI,RDX
-        MOV     RAX,R8
-        CMP     RDI,RSI
-        JE      @exit
+        MOV     RCX,R8
 
         REP     MOVSW
-@exit:
+
         POP     RDI
         POP     RSI
+@exit:
 {$ENDIF}
 {$ENDIF}
 end;
