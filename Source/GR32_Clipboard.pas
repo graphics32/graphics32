@@ -199,7 +199,7 @@ begin
         SetPointer(FPointer, Pos);
       end;
 
-      System.Move(Buffer, Pointer(NativeUInt(FPointer) + Position)^, Count);
+      System.Move(Buffer, Pointer(NativeUInt(FPointer) + NativeUInt(Position))^, Count);
       Seek(Pos, soFromBeginning);
 
       Result := Count;
