@@ -1188,7 +1188,7 @@ end;
 
 class function TTestBlendModesAsm.PriorityProcAsm(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.CPUFeatures = []) then
+  if (Info^.InstructionSupport = []) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -1300,7 +1300,7 @@ end;
 
 class function TTestBlendModesMMX.PriorityProcMMX(Info: PFunctionInfo): Integer;
 begin
-  if (ciMMX in Info^.CPUFeatures) then
+  if (isMMX in Info^.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -1410,7 +1410,7 @@ end;
 
 class function TTestBlendModesSSE2.PriorityProcSSE2(Info: PFunctionInfo): Integer;
 begin
-  if (ciSSE2 in Info^.CPUFeatures) then
+  if (isSSE2 in Info^.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -1504,9 +1504,9 @@ end;
 initialization
   RegisterTest(TTestBlendModesPas.Suite);
   RegisterTest(TTestBlendModesAsm.Suite);
-  if ciMMX in CPUFeatures then
+  if isMMX in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestBlendModesMMX.Suite);
-  if ciSSE2 in CPUFeatures then
+  if isSSE2 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestBlendModesSSE2.Suite);
 
 end.

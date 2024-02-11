@@ -4485,13 +4485,13 @@ begin
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_Pas);
   Registry.ADD(FID_INTERPOLATOR, @Interpolator_Pas);
 {$IFNDEF PUREPASCAL}
-  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_MMX, [ciMMX]);
+  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_MMX, [isMMX]);
 {$IFDEF USE_3DNOW}
-  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [ci3DNow]);
+  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [is3DNow]);
 {$ENDIF}
-  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_SSE2, [ciSSE2]);
-  Registry.ADD(FID_INTERPOLATOR, @Interpolator_MMX, [ciMMX, ciSSE]);
-  Registry.ADD(FID_INTERPOLATOR, @Interpolator_SSE2, [ciSSE2]);
+  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_SSE2, [isSSE2]);
+  Registry.ADD(FID_INTERPOLATOR, @Interpolator_MMX, [isMMX, isSSE]);
+  Registry.ADD(FID_INTERPOLATOR, @Interpolator_SSE2, [isSSE2]);
 {$ENDIF}
   Registry.RebindAll;
 end;

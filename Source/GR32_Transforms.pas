@@ -2145,18 +2145,18 @@ begin
   Registry := NewRegistry('GR32_Transforms bindings');
   Registry.RegisterBinding(FID_DETERMINANT32, @@DET32);
 
-  Registry.Add(FID_DETERMINANT32, @DET32_Pas, []);
+  Registry.Add(FID_DETERMINANT32, @DET32_Pas);
   {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_DETERMINANT32, @DET32_ASM, []);
-//  Registry.Add(FID_DETERMINANT32, @DET32_SSE2, [ciSSE2]);
+  Registry.Add(FID_DETERMINANT32, @DET32_ASM);
+//  Registry.Add(FID_DETERMINANT32, @DET32_SSE2, [isSSE2]);
   {$ENDIF}
 
   Registry.RegisterBinding(FID_DETERMINANT64, @@DET64);
 
-  Registry.Add(FID_DETERMINANT64, @DET64_Pas, []);
+  Registry.Add(FID_DETERMINANT64, @DET64_Pas);
   {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_DETERMINANT64, @DET64_ASM, []);
-//  Registry.Add(FID_DETERMINANT64, @DET64_SSE2, [ciSSE2]);
+  Registry.Add(FID_DETERMINANT64, @DET64_ASM);
+//  Registry.Add(FID_DETERMINANT64, @DET64_SSE2, [isSSE2]);
   {$ENDIF}
 
   Registry.RebindAll;

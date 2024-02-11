@@ -1258,12 +1258,12 @@ begin
   MathRegistry.RegisterBinding(FID_CUMSUM, @@CumSum);
 
   // pure pascal
-  MathRegistry.Add(FID_CUMSUM, @CumSum_Pas, [], MathBindingFlagPascal);
+  MathRegistry.Add(FID_CUMSUM, @CumSum_Pas, MathBindingFlagPascal);
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}
   // SSE2
-  MathRegistry.Add(FID_CUMSUM, @CumSum_SSE2, [ciSSE2]);
+  MathRegistry.Add(FID_CUMSUM, @CumSum_SSE2, [isSSE2]);
 {$ENDIF}
 {$ENDIF}
 

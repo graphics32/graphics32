@@ -4705,8 +4705,8 @@ begin
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}
-  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_SSE2, [ciSSE2]);
-  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_SSE2, [ciSSE2]);
+  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_SSE2, [isSSE2]);
+  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_SSE2, [isSSE2]);
 {$ENDIF}
 {$ENDIF}
 
