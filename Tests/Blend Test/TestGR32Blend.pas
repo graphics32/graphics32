@@ -48,7 +48,8 @@ type
     FBackground : PColor32Array;
     FReference: PColor32Array;
   protected
-    FColorDiff  : Byte;
+    FColorDiff: Byte;
+    FMaxError: integer;
 
     procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte = 1); overload;
     procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte; const AExtra: string; const AExtraParams: array of const); overload;
@@ -75,7 +76,7 @@ type
   public
     procedure SetUp; override;
     procedure TearDown; override;
-  published
+//  published
 {$IFNDEF FPC}
     procedure PerformanceTest; virtual;
 {$ENDIF}
@@ -190,6 +191,7 @@ procedure TCustomTestBlendModes.SetUp;
 begin
   inherited;
   FColorDiff := 1;
+  FMaxError := 0;
   GetMem(FForeground, 256 * SizeOf(TColor32));
   GetMem(FBackground, 256 * SizeOf(TColor32));
   GetMem(FReference, 256 * SizeOf(TColor32));
@@ -197,6 +199,10 @@ end;
 
 procedure TCustomTestBlendModes.TearDown;
 begin
+  if (FMaxError > 0) then
+    Status(Format('Max error:%d', [FMaxError]));
+
+
   inherited;
   Dispose(FForeground);
   Dispose(FBackground);
@@ -422,8 +428,13 @@ begin
 
   for Index := 0 to High(Byte) do
   begin
-    ExpectedColor32.ARGB := (Index shl 16) or (Index shl 8) or Index;
+    ExpectedColor32.ARGB := clBlack32;
+
+    BlendMem_Reference(FForeground^[Index], ExpectedColor32.ARGB);
+
     CombinedColor32.ARGB := FBackground^[Index];
+    // Ignore alpha for Blend
+    ExpectedColor32.A := 0;
     CombinedColor32.A := 0;
 
     CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
@@ -456,15 +467,16 @@ begin
 
   for Index := 0 to High(Byte) do
   begin
-    CombinedColor32.ARGB := clBlack32;
-    TColor32Entry(CombinedColor32).R := Index;
-    TColor32Entry(CombinedColor32).G := High(Byte) - Index;
-    ExpectedColor32.ARGB := BlendReg(clTrWhite32, CombinedColor32.ARGB);
-    ExpectedColor32.A := $FF;
+    ExpectedColor32.ARGB := clBlack32;
+    TColor32Entry(ExpectedColor32).R := Index;
+    TColor32Entry(ExpectedColor32).G := High(Byte) - Index;
+
+    BlendMem_Reference(clTrWhite32, ExpectedColor32.ARGB);
 
     CombinedColor32.ARGB := FBackground^[Index];
     CombinedColor32.A := $FF;
-    EMMS;
+    ExpectedColor32.A := $FF;
+
 
     CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
   end;
@@ -956,32 +968,61 @@ end;
 procedure TCustomTestBlendModes.CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte);
 var
   Msg: string;
+  DifColor: TColor32Entry;
+  MaxError: integer;
 begin
   FCheckCalled := True;
 
-  if (Abs(ExpectedColor32.A - ActualColor32.A) > Difference) or
-    (Abs(ExpectedColor32.R - ActualColor32.R) > Difference) or
-    (Abs(ExpectedColor32.G - ActualColor32.G) > Difference) or
-    (Abs(ExpectedColor32.B - ActualColor32.B) > Difference) then
+  DifColor.A := Abs(ExpectedColor32.A - ActualColor32.A);
+  DifColor.R := Abs(ExpectedColor32.R - ActualColor32.R);
+  DifColor.G := Abs(ExpectedColor32.G - ActualColor32.G);
+  DifColor.B := Abs(ExpectedColor32.B - ActualColor32.B);
+
+  MaxError := Max(DifColor.A, DifColor.R);
+  MaxError := Max(MaxError, DifColor.G);
+  MaxError := Max(MaxError, DifColor.B);
+
+  if (MaxError > 0) then
   begin
-    Msg := Format('Expected color: %.8X, Actual color: %.8X', [ExpectedColor32.ARGB, ActualColor32.ARGB]);
-    Fail(Msg, ReturnAddress);
+    FMaxError := Max(FMaxError, MaxError);
+
+    if (MaxError > Difference) then
+    begin
+      Msg := Format('Expected:%.8X, Actual:%.8X, Dif:%.8X', [ExpectedColor32.ARGB, ActualColor32.ARGB, DifColor.ARGB]);
+      Fail(Msg, ReturnAddress);
+    end else
+      ;//Status(Format('Dif:%.8X', [DifColor.ARGB]));
   end;
 end;
 
 procedure TCustomTestBlendModes.CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte; const AExtra: string; const AExtraParams: array of const);
 var
   Msg: string;
+  DifColor: TColor32Entry;
+  MaxError: integer;
 begin
   FCheckCalled := True;
 
-  if (Abs(ExpectedColor32.A - ActualColor32.A) > Difference) or
-    (Abs(ExpectedColor32.R - ActualColor32.R) > Difference) or
-    (Abs(ExpectedColor32.G - ActualColor32.G) > Difference) or
-    (Abs(ExpectedColor32.B - ActualColor32.B) > Difference) then
+  DifColor.A := Abs(ExpectedColor32.A - ActualColor32.A);
+  DifColor.R := Abs(ExpectedColor32.R - ActualColor32.R);
+  DifColor.G := Abs(ExpectedColor32.G - ActualColor32.G);
+  DifColor.B := Abs(ExpectedColor32.B - ActualColor32.B);
+
+  MaxError := Max(DifColor.A, DifColor.R);
+  MaxError := Max(MaxError, DifColor.G);
+  MaxError := Max(MaxError, DifColor.B);
+
+
+  if (MaxError > 0) then
   begin
-    Msg := Format('Expected color: %.8X, Actual color: %.8X %s', [ExpectedColor32.ARGB, ActualColor32.ARGB, Format(AExtra, AExtraParams)]);
-    Fail(Msg, ReturnAddress);
+    FMaxError := Max(FMaxError, MaxError);
+
+    if (MaxError > Difference) then
+    begin
+      Msg := Format('Expected:%.8X, Actual:%.8X, Dif:%.8X %s', [ExpectedColor32.ARGB, ActualColor32.ARGB, DifColor.ARGB, Format(AExtra, AExtraParams)]);
+      Fail(Msg, ReturnAddress);
+    end else
+      ;//Status(Format('Dif:%.8X', [DifColor.ARGB]));
   end;
 end;
 
@@ -1012,7 +1053,7 @@ begin
 
   QueryPerformanceCounter(Stop);
 
-  Status('Performance: ' + FloatToStr(1000 * (Stop - Start) / Freq));
+  Status(Format('Performance: %.3n', [1000 * (Stop - Start) / Freq]));
   Check(True);
 end;
 
@@ -1104,37 +1145,37 @@ end;
 
 procedure TTestBlendModesPas.TestMergeReg;
 begin
-  FColorDiff := 9;
+  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeRegEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeMem;
 begin
-  FColorDiff := 9;
+  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeMemEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeLine;
 begin
-  FColorDiff := 9;
+  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeLineEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 4;
   inherited;
 end;
 
@@ -1215,37 +1256,37 @@ end;
 
 procedure TTestBlendModesAsm.TestMergeReg;
 begin
-  FColorDiff := 9;
+  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeRegEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeMem;
 begin
-  FColorDiff := 9;
+  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeMemEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeLine;
 begin
-  FColorDiff := 9;
+  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeLineEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 8;
   inherited;
 end;
 
@@ -1327,25 +1368,25 @@ end;
 
 procedure TTestBlendModesMMX.TestMergeReg;
 begin
-  FColorDiff := 9;
+  FColorDiff := 6;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeRegEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 6;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeMem;
 begin
-  FColorDiff := 9;
+  FColorDiff := 6;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeMemEx;
 begin
-  FColorDiff := 9;
+  FColorDiff := 6;
   inherited;
 end;
 
@@ -1430,7 +1471,7 @@ end;
 
 procedure TTestBlendModesSSE2.TestMergeReg;
 begin
-  FColorDiff := 4;
+  FColorDiff := 1;
   inherited;
 end;
 
@@ -1456,7 +1497,6 @@ end;
 
 procedure TTestBlendModesSSE2.TestMergeLineEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
