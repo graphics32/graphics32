@@ -48,7 +48,9 @@ interface
 {$ENDIF}
 
 uses
-  Graphics, GR32, GR32_Math;
+  Graphics,
+  GR32_Math,
+  GR32;
 
 { Clamp function restricts value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -154,6 +156,17 @@ const
 function Div255(Value: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { shift right with sign conservation }
+// Note that for PUREPASCAL SAR_n(x) is implemented as (x div 2^n).
+// This works for positive values but not for negative values as both Delphi and FPC
+// compiles (x div 2^n) to:
+//
+//   ADD EAX, $00007FFF
+//   TEST EAX, EAX
+//   JNS :positive
+//   ADD EAX, $0000FFFF
+//   :positive
+//   SAR EAX, n
+//
 function SAR_3(Value: Integer): Integer;
 function SAR_4(Value: Integer): Integer;
 function SAR_6(Value: Integer): Integer;
@@ -175,7 +188,8 @@ uses
 {$IFDEF FPC}
   SysUtils,
 {$ENDIF}
-  GR32_System, GR32_Bindings;
+  GR32_System,
+  GR32_Bindings;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 

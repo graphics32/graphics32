@@ -102,7 +102,9 @@ type
     procedure TestFastSqrtBab2;
     procedure TestFastInvSqrt;
     procedure TestMulDiv;
-    procedure TestPowerOf2;
+    procedure TestIsPowerOf2;
+    procedure TestNextPowerOf2;
+    procedure TestPrevPowerOf2;
     procedure TestAverage;
     procedure TestSign;
   end;
@@ -429,6 +431,7 @@ procedure TTestLowLevel.TestSAR;
 const
   CValue: Integer = $7ADE4BE1;
 begin
+  CheckEquals(SAR_3(CValue), CValue div 8, 'Error in function SAR_3');
   CheckEquals(SAR_4(CValue), CValue div 16, 'Error in function SAR_4');
   CheckEquals(SAR_8(CValue), CValue div 256, 'Error in function SAR_8');
   CheckEquals(SAR_9(CValue), CValue div 512, 'Error in function SAR_9');
@@ -513,46 +516,64 @@ begin
     end;
 end;
 
-procedure TTestMath.TestPowerOf2;
+procedure TTestMath.TestIsPowerOf2;
 var
   Index : Integer;
 begin
-  // check IsPowerOf
+  CheckFalse(IsPowerOf2(0), Format('IsPowerOf2(%d))', [0]));
+
   for Index := 0 to 31 do
   begin
-    CheckTrue(IsPowerOf2(1 shl Index));
+    CheckTrue(IsPowerOf2(1 shl Index), Format('IsPowerOf2(%d))', [1 shl Index]));
+
     if Index > 0 then
     begin
       if Index > 1 then
-        CheckTrue(not IsPowerOf2((1 shl Index) - 1));
+        CheckTrue(not IsPowerOf2((1 shl Index) - 1), Format('IsPowerOf2(%d))', [(1 shl Index) - 1]));
+
       if Index < 31 then
-        CheckTrue(not IsPowerOf2((1 shl Index) + 1));
+        CheckTrue(not IsPowerOf2((1 shl Index) + 1), Format('IsPowerOf2(%d))', [(1 shl Index) + 1]));
     end;
   end;
+end;
 
-  // check NextPowerOf
+procedure TTestMath.TestNextPowerOf2;
+var
+  Index : Integer;
+begin
+  CheckEquals(1, NextPowerOf2(0), Format('NextPowerOf2(%d))', [0]));
+
   for Index := 0 to 30 do
   begin
-    CheckEquals(1 shl Index, NextPowerOf2(1 shl Index));
+    CheckEquals(1 shl Index, NextPowerOf2(1 shl Index), Format('NextPowerOf2(%d))', [1 shl Index]));
+
     if Index > 0 then
     begin
       if Index > 1 then
-        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) - 1));
+        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) - 1), Format('NextPowerOf2(%d))', [1 shl Index]));
       if Index < 30 then
-        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) + 1) shr 1);
+        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) + 1) shr 1, Format('NextPowerOf2(%d))', [1 shl Index]));
     end;
   end;
+end;
 
-  // check PrevPowerOf
+procedure TTestMath.TestPrevPowerOf2;
+var
+  Index : Integer;
+begin
+  CheckEquals(0, PrevPowerOf2(0), Format('PrevPowerOf2(%d))', [0]));
+
   for Index := 0 to 30 do
   begin
-    CheckEquals(1 shl Index, PrevPowerOf2(1 shl Index));
+    CheckEquals(1 shl Index, PrevPowerOf2(1 shl Index), Format('PrevPowerOf2(%d))', [1 shl Index]));
+
     if Index > 0 then
     begin
       if Index > 1 then
-        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) - 1) shl 1);
+        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) - 1) shl 1, Format('PrevPowerOf2(%d))', [(1 shl Index)-1]));
+
       if Index < 30 then
-        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) + 1));
+        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) + 1), Format('PrevPowerOf2(%d))', [(1 shl Index)+1]));
     end;
   end;
 end;
@@ -580,13 +601,19 @@ procedure TTestMath.TestFastSqrt;
 var
   Index : Integer;
   Expected, Actual: TFloat;
+const
+{$ifndef PUREPASCAL}
+  Tolerance = 1E-1;
+{$else}
+  Tolerance = 7E-1; // Eeew!
+{$endif }
 begin
   for Index := 10 to (1 shl 8) do
   begin
     Expected := Sqrt(Index);
     Actual := FastSqrt(Index);
-    if (not SameValue(Expected, Actual, 1E-1)) then
-      CheckEquals(Expected, Actual, 1E-1, Format('FastSqrt(%d)', [Index]));
+    if (not SameValue(Expected, Actual, Tolerance)) then
+      CheckEquals(Expected, Actual, Tolerance, Format('FastSqrt(%d)', [Index]));
   end;
 end;
 
@@ -720,15 +747,30 @@ var
   Value: TFixedRec;
   Index : Integer;
 begin
+  // Positive values
   for Index := -(1 shl 7) to (1 shl 7) do
   begin
     Value.Int := Abs(Index);
     Value.Frac := Index;
     if Index < 0 then
-      CheckEquals(Abs(Index) + 1, FixedRound(Value.Fixed))
+      CheckEquals(Value.Int + 1, FixedRound(Value.Fixed), 'Positive round up')
     else
-      CheckEquals(Abs(Index), FixedRound(Value.Fixed))
+      CheckEquals(Value.Int, FixedRound(Value.Fixed), 'Positive round down');
   end;
+
+  // Negative values
+{$ifndef PUREPASCAL}
+  // With PUREPASCAL FixedRound() is off-by-one for some negative numbers due to div() not doing a pure SAR.
+  for Index := -(1 shl 7) to (1 shl 7) do
+  begin
+    Value.Int := -Abs(Index);
+    Value.Frac := Index;
+    if Index < 0 then
+      CheckEquals(Value.Int + 1, FixedRound(Value.Fixed), 'Negative round up')
+    else
+      CheckEquals(Value.Int, FixedRound(Value.Fixed), 'Negative round down');
+  end;
+{$endif}
 end;
 
 procedure TTestMath.TestFixedMul;

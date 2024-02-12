@@ -39,8 +39,14 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32, GR32_Bindings
-  {$IFDEF FPC}{$IFDEF TARGET_X64}, GR32_Math_FPC{$ENDIF}{$ENDIF};
+  GR32,
+  GR32_Bindings
+{$IFDEF FPC}
+{$IFDEF TARGET_X64}
+  , GR32_Math_FPC
+{$ENDIF}
+{$ENDIF}
+  ;
 
 { Fixed point math routines }
 function FixedFloor(A: TFixed): Integer;
@@ -48,7 +54,7 @@ function FixedCeil(A: TFixed): Integer;
 function FixedMul(A, B: TFixed): TFixed;
 function FixedDiv(A, B: TFixed): TFixed;
 function OneOver(Value: TFixed): TFixed;
-function FixedRound(A: TFixed): Integer;
+function FixedRound(A: TFixed): Integer; // For PUREPASCAL, see warning in implementation
 function FixedSqr(Value: TFixed): TFixed;
 function FixedSqrtLP(Value: TFixed): TFixed;      // 8-bit precision
 function FixedSqrtHP(Value: TFixed): TFixed;      // 16-bit precision
@@ -78,11 +84,12 @@ function FastInvSqrt(const Value: Single): Single; {$IFDEF PUREPASCAL}{$IFDEF IN
 // it is rounded up. If the result is a negative half integer, it is rounded down.
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
-// tells if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
+// Power of 2 functions. Only valid for values >= 0.
+// Determine if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
 function IsPowerOf2(Value: Integer): Boolean; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-// returns X rounded down to the nearest power of two
+// Returns X rounded DOWN to the PREVIOUS power of two, i.e. 5->4, 7->4, 8->4, 9->8
 function PrevPowerOf2(Value: Integer): Integer;
-// returns X rounded down to the nearest power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
+// Returns X rounded UP to the NEXT power of two, i.e. 5->8, 7->8, 8->16, 15->16
 function NextPowerOf2(Value: Integer): Integer;
 
 // fast average without overflow, useful for e.g. fixed point math
@@ -108,7 +115,8 @@ var
 implementation
 
 uses
-  Math, GR32_System;
+  Math,
+  GR32_System;
 
 {$IFDEF PUREPASCAL}
 const
@@ -140,7 +148,7 @@ end;
 function FixedFloor(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := A div FIXEDONE;
+  Result := A div FixedOne;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -157,7 +165,7 @@ end;
 function FixedCeil(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := (A + $FFFF) div FIXEDONE;
+  Result := (A + $FFFF) div FixedOne;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -176,17 +184,22 @@ end;
 function FixedRound(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := (A + $7FFF) div FIXEDONE;
+  // Note: With PUREPASCAL FixedRound() will be off-by-one for some negative numbers due
+  // to div() not doing a pure SAR.
+  // See comment at SAR_x in GR32_LowLevel.
+  Result := (A + FixedHalf) div FixedOne;
+  // This would be better:
+  // Result := SAR_16(A + FixedHalf);
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
-        ADD     EAX, $00007FFF
+        ADD     EAX, FixedHalf
         SAR     EAX, 16
 {$ENDIF}
 {$IFDEF TARGET_x64}
         MOV     EAX, ECX
-        ADD     EAX, $00007FFF
+        ADD     EAX, FixedHalf
         SAR     EAX, 16
 {$ENDIF}
 {$ENDIF}
@@ -761,7 +774,7 @@ end;
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := Int64(Multiplicand) * Int64(Multiplier) div Divisor;
+  Result := (Int64(Multiplicand) * Int64(Multiplier) + Divisor div 2) div Divisor;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -856,16 +869,20 @@ end;
 function IsPowerOf2(Value: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
 begin
-  Result := Value and (Value - 1) = 0;
+  Result := (Value <> 0) and (Value and (Value - 1) = 0);
 end;
 
 function PrevPowerOf2(Value: Integer): Integer;
 //returns X rounded down to the power of two
 {$IFDEF PUREPASCAL}
 begin
-  Result := 1;
-  while Value shr 1 > 0 do
-    Result := Result shl 1;
+  Result := Value;
+  Result := Result or (Result shr 1);
+  Result := Result or (Result shr 2);
+  Result := Result or (Result shr 4);
+  Result := Result or (Result shr 8);
+  Result := Result or (Result shr 16);
+  Dec(Result, Result shr 1);
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -887,9 +904,15 @@ function NextPowerOf2(Value: Integer): Integer;
 //returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
 {$IFDEF PUREPASCAL}
 begin
-  Result := 2;
-  while Value shr 1 > 0 do 
-    Result := Result shl 1;
+  if (Value = 0) then
+    Exit(1);
+  Result := Value-1;
+  Result := Result or (Result shr 1);
+  Result := Result or (Result shr 2);
+  Result := Result or (Result shr 4);
+  Result := Result or (Result shr 8);
+  Result := Result or (Result shr 16);
+  Inc(Result);
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
