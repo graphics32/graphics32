@@ -36,6 +36,10 @@ interface
 
 {-$DEFINE CheckNegativeInteger}
 
+// VERIFY_WIN_MULDIV: Validate MulDiv against Windows' MulDiv. Otherwise validates against a floating point emulation.
+// Note though that there's a bug in Windows' MulDiv: https://devblogs.microsoft.com/oldnewthing/20120514-00/?p=7633
+{$define VERIFY_WIN_MULDIV}
+
 uses
 {$IFDEF FPC}
   fpcunit, testregistry
@@ -91,7 +95,8 @@ type
     procedure TestFixedSqrtHP;
     procedure TestFixedCombine;
     procedure TestSinCos;
-    procedure TestHypot;
+    procedure TestHypotFloat;
+    procedure TestHypotInt;
     procedure TestFastSqrt;
     procedure TestFastSqrtBab1;
     procedure TestFastSqrtBab2;
@@ -478,17 +483,33 @@ begin
       CheckEquals((X + Y) div 2, Average(X, Y));
 end;
 
-procedure TTestMath.TestHypot;
+procedure TTestMath.TestHypotFloat;
 var
   X, Y : Integer;
+  Expected, Actual: TFloat;
 begin
   for X := 0 to (1 shl 11) do
     for Y := 0 to (1 shl 11) do
     begin
-      CheckEquals(Round(Math.Hypot(X, Y)), GR32_Math.Hypot(X, Y),
-        'Error at X = ' + IntToStr(X) + ' and Y = ' + IntToStr(Y));
-      CheckEquals(Math.Hypot(X, 1E-4 * Y), GR32_Math.Hypot(X, 1E-4 * Y), 1E-8,
-        'Error at X = ' + IntToStr(X) + ' and Y = ' + IntToStr(Y));
+      Expected := Math.Hypot(X, 1E-4 * Y);
+      Actual := GR32_Math.Hypot(X, 1E-4 * Y);
+      if (not SameValue(Expected, Actual, 7E-5)) then
+        CheckEquals(Expected, Actual, 7E-5, Format('Hypot(%.0n, %.4n)', [1.0 * X, 1E-4 * Y]));
+    end;
+end;
+
+procedure TTestMath.TestHypotInt;
+var
+  X, Y : Integer;
+  Expected, Actual: integer;
+begin
+  for X := 0 to (1 shl 11) do
+    for Y := 0 to (1 shl 11) do
+    begin
+      Expected := Round(Math.Hypot(X, Y));
+      Actual := GR32_Math.Hypot(X, Y);
+      if (Expected <> Actual) then
+        CheckEquals(Expected, Actual, Format('Hypot(%.0n, %.4n)', [1.0 * X, 1.0 * Y]));
     end;
 end;
 
@@ -558,9 +579,15 @@ end;
 procedure TTestMath.TestFastSqrt;
 var
   Index : Integer;
+  Expected, Actual: TFloat;
 begin
-  for Index := 1 to (1 shl 8) do
-    CheckEquals(Sqrt(Index), FastSqrt(Index), 1E-1);
+  for Index := 10 to (1 shl 8) do
+  begin
+    Expected := Sqrt(Index);
+    Actual := FastSqrt(Index);
+    if (not SameValue(Expected, Actual, 1E-1)) then
+      CheckEquals(Expected, Actual, 1E-1, Format('FastSqrt(%d)', [Index]));
+  end;
 end;
 
 procedure TTestMath.TestFastSqrtBab1;
@@ -584,14 +611,67 @@ var
   Multiplicand : Integer;
   Multiplier   : Integer;
   Divisor      : Integer;
+  Expected     : Integer;
+  Actual       : Integer;
+{$ifndef VERIFY_WIN_MULDIV}
+  SaveRoundMode: TRoundingMode;
+{$endif}
 begin
-  for Multiplicand := Low(Byte) to High(Byte) do
-    for Multiplier := Low(Byte) to High(Byte) do
-      for Divisor := 1 to High(Byte) do
-        CheckEquals(
-          Round(Multiplicand * Multiplier / Divisor),
-          MulDiv(Multiplicand, Multiplier, Divisor),
-          Format('MulDiv(%d, %d, %d)', [Multiplicand, Multiplier, Divisor]));
+{$ifndef VERIFY_WIN_MULDIV}
+  SaveRoundMode := SetRoundMode(rmTruncate);
+  try
+{$endif}
+    for Multiplicand := Low(Byte) to High(Byte) do
+      for Multiplier := Low(Byte) to High(Byte) do
+        for Divisor := 1 to High(Byte) do
+        begin
+          Actual := MulDiv(Multiplicand, Multiplier, Divisor);
+{$ifdef VERIFY_WIN_MULDIV}
+          // Check against Windows' MulDiv since that is the one we're emulating
+          Expected := Windows.MulDiv(Multiplicand, Multiplier, Divisor);
+{$else}
+          Expected := Round(Multiplicand * Multiplier / Divisor + 0.5);
+{$endif}
+
+          if (Actual <> Expected) then // Avoid costly Format evaluation unless faillure
+            CheckEquals(Expected, Actual, Format('MulDiv(%d, %d, %d)', [Multiplicand, Multiplier, Divisor]));
+        end;
+
+    // Same again but in Word range
+    Multiplicand := Low(Byte);
+    while (Multiplicand <= High(SmallInt)) do
+    begin
+      Multiplier := Low(Byte);
+      while (Multiplier <= High(SmallInt)) do
+      begin
+        Divisor := 1;
+        while (Divisor <= High(SmallInt)) do
+        begin
+          Actual := MulDiv(Multiplicand, Multiplier, Divisor);
+{$ifdef VERIFY_WIN_MULDIV}
+          // Check against Windows' MulDiv since that is the one we're emulating.
+          Expected := Windows.MulDiv(Multiplicand, Multiplier, Divisor);
+{$else}
+          Expected := Round(Multiplicand * Multiplier / Divisor + 0.5);
+{$endif}
+
+          if (Actual <> Expected) then // Avoid costly Format evaluation unless faillure
+            CheckEquals(Expected, Actual, Format('MulDiv(%d, %d, %d)', [Multiplicand, Multiplier, Divisor]));
+
+          Inc(Divisor, 67); // Odd step
+        end;
+
+        Inc(Multiplier, 257); // Odd step
+      end;
+
+      Inc(Multiplicand, 129); // Odd step
+    end;
+
+{$ifndef VERIFY_WIN_MULDIV}
+  finally
+    SetRoundMode(SaveRoundMode);
+  end;
+{$endif}
 end;
 
 procedure TTestMath.TestSinCos;

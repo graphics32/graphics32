@@ -66,12 +66,16 @@ function Hypot(const X, Y: Integer): Integer; overload;
 function FastSqrt(const Value: TFloat): TFloat;
 function FastSqrtBab1(const Value: TFloat): TFloat;
 function FastSqrtBab2(const Value: TFloat): TFloat;
-function FastInvSqrt(const Value: Single): Single; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF} overload;
+function FastInvSqrt(const Value: Single): Single; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 
 { Misc. Routines }
 
 { MulDiv a faster implementation of Windows.MulDiv funtion }
+// The MSDN documentation for MulDiv states:
+// [...] the return value is the result of the multiplication and division, rounded
+// to the nearest integer. If the result is a positive half integer (ends in .5),
+// it is rounded up. If the result is a negative half integer, it is rounded down.
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
 // tells if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
@@ -613,7 +617,6 @@ asm
 end;
 
 function FastSqrt(const Value: TFloat): TFloat;
-// see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
 {$IFDEF PUREPASCAL}
 var
   I: Integer absolute Value;
@@ -624,12 +627,29 @@ begin
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
+        // Sqrt(x) = x * InvSqrt(x)
+        MOVSS   XMM0, [Value]
+        RSQRTSS XMM1, XMM0
+        MULSS   XMM0, XMM1
+        MOVSS   [Result], XMM0
+(* Fast, but pretty bad, approximations:
+   see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+
         MOV     EAX, DWORD PTR Value
+
+{ As outlined in the wikipedia article:
+        SUB     EAX, $00800000
+        SAR     EAX, 1
+        ADD     EAX, $20000000
+}
+{ Previous GR32 implementation:
         SUB     EAX, $3F800000
         SAR     EAX, 1
         ADD     EAX, $3F800000
+}
         MOV     DWORD PTR [ESP - 4], EAX
         FLD     DWORD PTR [ESP - 4]
+*)
 {$ENDIF}
 {$IFDEF TARGET_x64}
         SQRTSS  XMM0, XMM0
@@ -715,12 +735,25 @@ asm
 end;
 
 function FastInvSqrt(const Value: Single): Single;
+{$IFDEF PUREPASCAL}
 var
   IntCst : Cardinal absolute result;
 begin
   Result := Value;
   IntCst := ($BE6EB50C - IntCst) shr 1;
   Result := 0.5 * Result * (3 - Value * Sqr(Result));
+{$ELSE}
+{$IFDEF TARGET_x86}
+asm
+        MOVSS   XMM0, [Value]
+        RSQRTSS XMM0, XMM0
+        MOVSS   [Result], XMM0
+{$ENDIF}
+{$IFDEF TARGET_x64}
+asm
+        RSQRTSS XMM0, XMM0
+{$ENDIF}
+{$ENDIF}
 end;
 
 { Misc. }
