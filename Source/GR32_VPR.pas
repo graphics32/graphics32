@@ -356,6 +356,10 @@ var
   PY: PSingle;
   PPt1, PPt2: PFloatPoint;
   PScanLines: PScanLineArray;
+{$ifdef VPR_CACHE}
+  Size: Cardinal;
+  p: PLineSegment;
+{$endif}
 begin
 
   (*
@@ -426,14 +430,12 @@ begin
   *)
 {$ifdef VPR_CACHE}
   J := 0;
-  var Size: Cardinal := 0;
+  Size := 0;
   for I := 0 to High(ScanLines) do
   begin
     Inc(J, ScanLines[I].Count);
     Inc(Size, J * SizeOf(TLineSegment));
   end;
-
-  var p: PLineSegment;
 
   if (Size > LineSegmentCacheSize) then
   begin
