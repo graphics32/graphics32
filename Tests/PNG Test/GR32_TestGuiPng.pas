@@ -159,9 +159,9 @@ resourcestring
   RCStrWrongSignificantBitsFormat = 'Wrong significant bits format!';
 
 const
-  CPngSuiteDir = '..\Resources\PNG Suite Images\';
-  CTestPngDir = '..\Resources\Test\';
-  CRegressionTestPngDir = '..\Resources\RegressionTest\';
+  CPngSuiteDir = '.\Data\PNG Suite Images\';
+  CTestPngDir = '.\Data\Test\';
+  CRegressionTestPngDir = '.\Data\RegressionTest\';
 
 procedure TestPngAgainstReferenceBmp(TestCase: TTestCase; const PNGFileName, BMPFilename: TFileName);
 var

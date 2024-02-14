@@ -1,0 +1,96 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{D4421905-E810-4745-8F02-A235E3EEFB70}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Blend Test\BlendTest.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Color Space Test\ColorSpaceTest.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="LowLevel Test\LowLevelTest.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PNG Test\GuiPngTest.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Bitmap Test\BitmapTest.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Polygon Test\PolygonTest.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="BlendTest">
+        <MSBuild Projects="Blend Test\BlendTest.dproj"/>
+    </Target>
+    <Target Name="BlendTest:Clean">
+        <MSBuild Projects="Blend Test\BlendTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BlendTest:Make">
+        <MSBuild Projects="Blend Test\BlendTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ColorSpaceTest">
+        <MSBuild Projects="Color Space Test\ColorSpaceTest.dproj"/>
+    </Target>
+    <Target Name="ColorSpaceTest:Clean">
+        <MSBuild Projects="Color Space Test\ColorSpaceTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ColorSpaceTest:Make">
+        <MSBuild Projects="Color Space Test\ColorSpaceTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="LowLevelTest">
+        <MSBuild Projects="LowLevel Test\LowLevelTest.dproj"/>
+    </Target>
+    <Target Name="LowLevelTest:Clean">
+        <MSBuild Projects="LowLevel Test\LowLevelTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LowLevelTest:Make">
+        <MSBuild Projects="LowLevel Test\LowLevelTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="GuiPngTest">
+        <MSBuild Projects="PNG Test\GuiPngTest.dproj"/>
+    </Target>
+    <Target Name="GuiPngTest:Clean">
+        <MSBuild Projects="PNG Test\GuiPngTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="GuiPngTest:Make">
+        <MSBuild Projects="PNG Test\GuiPngTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="BitmapTest">
+        <MSBuild Projects="Bitmap Test\BitmapTest.dproj"/>
+    </Target>
+    <Target Name="BitmapTest:Clean">
+        <MSBuild Projects="Bitmap Test\BitmapTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BitmapTest:Make">
+        <MSBuild Projects="Bitmap Test\BitmapTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="PolygonTest">
+        <MSBuild Projects="Polygon Test\PolygonTest.dproj"/>
+    </Target>
+    <Target Name="PolygonTest:Clean">
+        <MSBuild Projects="Polygon Test\PolygonTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PolygonTest:Make">
+        <MSBuild Projects="Polygon Test\PolygonTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
