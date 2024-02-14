@@ -759,8 +759,6 @@ begin
   end;
 
   // Negative values
-{$ifndef PUREPASCAL}
-  // With PUREPASCAL FixedRound() is off-by-one for some negative numbers due to div() not doing a pure SAR.
   for Index := -(1 shl 7) to (1 shl 7) do
   begin
     Value.Int := -Abs(Index);
@@ -770,7 +768,6 @@ begin
     else
       CheckEquals(Value.Int, FixedRound(Value.Fixed), 'Negative round down');
   end;
-{$endif}
 end;
 
 procedure TTestMath.TestFixedMul;

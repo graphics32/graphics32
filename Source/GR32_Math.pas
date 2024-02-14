@@ -54,7 +54,7 @@ function FixedCeil(A: TFixed): Integer;
 function FixedMul(A, B: TFixed): TFixed;
 function FixedDiv(A, B: TFixed): TFixed;
 function OneOver(Value: TFixed): TFixed;
-function FixedRound(A: TFixed): Integer; // For PUREPASCAL, see warning in implementation
+function FixedRound(A: TFixed): Integer; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 function FixedSqr(Value: TFixed): TFixed;
 function FixedSqrtLP(Value: TFixed): TFixed;      // 8-bit precision
 function FixedSqrtHP(Value: TFixed): TFixed;      // 16-bit precision
@@ -184,12 +184,16 @@ end;
 function FixedRound(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  // Note: With PUREPASCAL FixedRound() will be off-by-one for some negative numbers due
-  // to div() not doing a pure SAR.
-  // See comment at SAR_x in GR32_LowLevel.
-  Result := (A + FixedHalf) div FixedOne;
-  // This would be better:
-  // Result := SAR_16(A + FixedHalf);
+  Result := (A + $7FFF);
+
+  Result := (Cardinal(Result) shr 16) or (($10000000 - (Cardinal((Result and a) shr 31))) shl 16); // [*]
+
+  { [*] Above line is just a branchless version of:
+  if Integer(Result and A) < 0 then
+    Result := (Result shr 16) or $FFFF0000
+  else
+    Result := (Result shr 16);
+  }
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
