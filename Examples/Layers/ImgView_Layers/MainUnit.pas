@@ -101,7 +101,7 @@ type
     N4: TMenuItem;
     N5: TMenuItem;
     N6: TMenuItem;
-    OpenPictureDialog: TOpenPictureDialog;
+    OpenDialog: TOpenDialog;
     PnlBitmapLayer: TPanel;
     PnlBitmapLayerHeader: TPanel;
     PnlButtonMockup: TPanel;
@@ -224,7 +224,7 @@ begin
   ImgView.RepaintMode := rmOptimizer;;
   ImgView.Options := ImgView.Options + [pboWantArrowKeys];
 
-  OpenPictureDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True);
+  OpenDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True);
   SaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter, True);
 end;
 
@@ -505,8 +505,8 @@ end;
 
 procedure TMainForm.MnuFileOpenClick(Sender: TObject);
 begin
-  if OpenPictureDialog.Execute then
-    OpenImage(OpenPictureDialog.FileName);
+  if OpenDialog.Execute then
+    OpenImage(OpenDialog.FileName);
 end;
 
 procedure TMainForm.MnuLayersClick(Sender: TObject);
@@ -538,12 +538,12 @@ var
   P: TPoint;
   W, H: Single;
 begin
-  if not OpenPictureDialog.Execute then
+  if not OpenDialog.Execute then
     exit;
 
   BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
   try
-    BitmapLayer.Bitmap.LoadFromFile(OpenPictureDialog.FileName);
+    BitmapLayer.Bitmap.LoadFromFile(OpenDialog.FileName);
     BitmapLayer.Bitmap.DrawMode := dmBlend;
 
     R := ImgView.GetViewportRect;

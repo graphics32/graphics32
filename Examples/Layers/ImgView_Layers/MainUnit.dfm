@@ -483,7 +483,7 @@ object MainForm: TMainForm
       end
     end
   end
-  object OpenPictureDialog: TOpenPictureDialog
+  object OpenDialog: TOpenDialog
     Filter = 
       'All (*.tga;*.dds;*.dib;*.tif;*.gif;*.png;*.png;*.gif;*.png;*.jpg' +
       ';*.jpeg;*.bmp;*.tif;*.tiff;*.ico;*.emf;*.wmf)|*.tga;*.dds;*.dib;' +
