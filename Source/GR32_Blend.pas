@@ -900,13 +900,17 @@ end;
 procedure GenAlphaTable;
 var
   I: Integer;
-  L: LongWord;
-  P: PLongWord;
+  L: Cardinal;
+  P: PCardinal;
 begin
-  GetMem(AlphaTable, 257 * 8 * SizeOf(Cardinal));
+  // 255 entries of 4 Cardinals + 16 bytes for alignment
+  GetMem(AlphaTable, 255 * 4 * SizeOf(Cardinal) + 16);
+
+  // Align to 16 bytes
   alpha_ptr := Pointer(NativeUInt(AlphaTable) and (not $F));
   if NativeUInt(alpha_ptr) < NativeUInt(AlphaTable) then
-    alpha_ptr := Pointer(NativeUInt(alpha_ptr) + 16);
+    Inc(NativeUInt(alpha_ptr),  16);
+
   P := alpha_ptr;
   for I := 0 to 255 do
   begin
@@ -921,7 +925,7 @@ begin
     Inc(P);
   end;
   bias_ptr := alpha_ptr;
-  Inc(PLongWord(bias_ptr), 4 * $80);
+  Inc(PByte(bias_ptr), $80 * 4 * SizeOf(Cardinal));
 end;
 
 procedure FreeAlphaTable;
