@@ -625,6 +625,9 @@ end;
 
 procedure TLayerCollection.Delete(Index: Integer);
 begin
+  // Hide layer so the area covered by it will be invalidated
+  TCustomLayer(FItems[Index]).Visible := False;
+
   TCustomLayer(FItems[Index]).Free;
 end;
 
