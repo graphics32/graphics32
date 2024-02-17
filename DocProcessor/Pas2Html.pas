@@ -3,14 +3,15 @@ unit Pas2Html;
 //Limitations: precompiler directives treated as comments
 
 // Regarding building new units from existing PAS files ...
-// 1. Comments directly preceding declarations in the header section of PAS
+// 1. Comments directly preceeding declarations in the header section of PAS
 //    files will be imported as declaration descriptions into the help file.
 // 2. Images can also be flagged for import by using <img src="filename">
 //    Format. Images must be located in images folder and the filename
 //    must not contain a Path.
-// 3. Extended comments (sample code etc) can be flagged for import by using
-//    the custom <include src="filename"> Format. Again the file for importing
-//    must be in the PAS file's folder and the filename must not contain a path.
+// 3. Extended comments (sample html formatted code etc) can be flagged for
+//    import by using the custom <include src="filename"> Format.
+//    Again the file for importing must be in the PAS file's folder and if the
+//    filename has a path, it must be relative to the PAS folder.
 
 {$I DocProcessor.inc}
 
@@ -29,8 +30,10 @@ uses
   StrUtils;
 
 const
-  htmlEnd: string = #10'<p class="Body"></p>'#10#10'</body>'#10'</html>';
-  cr: AnsiChar = #10;
+HtmlStart: string = '<html>'#10'<head>'#10'<title></title></head>'#10+
+  '<body bgcolor="#FFFFFF">'#10;
+htmlEnd: string = #10'<p class="Body"></p>'#10#10'</body>'#10'</html>';
+cr: AnsiChar = #10;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -40,17 +43,6 @@ begin
   Result := '';
   for Level := 1 to Level do
     Result := Result + '../';
-end;
-//------------------------------------------------------------------------------
-
-function HtmlStart(Level: Integer; const metaTag: string = ''): string;
-const
-  HtmlStart1: string =
-    '<html>'#10'<head>'#10'<title>G32Version</title>'#10'<link rel="stylesheet" href="';
-  HtmlStart2: string = 'Styles/Default.css" type="text/css">'#10;
-  HtmlStart3: string = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
-begin
-  Result := HtmlStart1 + LevelToEllipsis(Level) + HtmlStart2 + metaTag + HtmlStart3;
 end;
 //------------------------------------------------------------------------------
 
@@ -684,7 +676,14 @@ var
         MkDir(ClassPath);
       Ancestor := '<meta name="Ancestor" content="' + Ancestor + '">'#10;
       StringToFile(ClassPath + '_Body.htm',
-        HtmlStart(5, Ancestor) + MakeDescription(5, Comment) + htmlEnd);
+        HtmlStart + MakeDescription(5, Comment) + htmlEnd);
+
+      if (Tok.Text = 'end') then
+      begin
+        GetNextToken(Tok); //trailing semicolon
+        result := true;
+        Exit;
+      end;
 
       inPublic := false;
       repeat
@@ -803,7 +802,7 @@ var
               if s = '' then Exit;
               s2 := FirstWordInStr(s);
               Comment := FixComment(s2, Comment);
-              s := HtmlStart(6) + '<p class="Decl"><b>property</b> ' +
+              s := HtmlStart + '<p class="Decl"><b>property</b> ' +
                 s + '</p>'#10 + MakeDescription(6, Comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
@@ -824,7 +823,7 @@ var
     end;
     if FileExists(ClassPath + 'Fields.htm') then
     begin
-      PrependStringToFile(ClassPath + 'Fields.htm', HtmlStart(5));
+      PrependStringToFile(ClassPath + 'Fields.htm', HtmlStart);
       AppendStringToFile(ClassPath + 'Fields.htm', htmlEnd);
     end;
   end;
@@ -875,7 +874,7 @@ var
       if not DirectoryExists(InterfacePath) then
         MkDir(InterfacePath);
       StringToFile(InterfacePath+ '_Body.htm',
-        HtmlStart(5) + GBuffer + MakeDescription(5, Comment) + htmlEnd);
+        HtmlStart + GBuffer + MakeDescription(5, Comment) + htmlEnd);
 
       GetNextToken(Tok);
       repeat
@@ -925,7 +924,7 @@ var
               if s = '' then Exit;
               s2 := FirstWordInStr(s);
               Comment := FixComment(s2, Comment);
-              s := HtmlStart(6) + '<p class="Decl"><b>property</b> ' + s +
+              s := HtmlStart + '<p class="Decl"><b>property</b> ' + s +
                 '</p>'#10+ MakeDescription(6, Comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
@@ -974,7 +973,7 @@ var
       if not DirectoryExists(DestUnitFolder + 'Types') then
         MkDir(DestUnitFolder + 'Types');
       StringToFile(DestUnitFolder + 'Types/' + FuncName + '.htm',
-        HtmlStart(4) + '<p class="Decl">' +GBuffer + '</p>'#10 +
+        HtmlStart + '<p class="Decl">' +GBuffer + '</p>'#10 +
           MakeDescription(4, Comment)+ htmlEnd);
     end;
   end;
@@ -1006,7 +1005,7 @@ var
       if not DirectoryExists(DestUnitFolder + 'Types') then
         MkDir(DestUnitFolder + 'Types');
       StringToFile(DestUnitFolder + 'Types/' + ProcName + '.htm',
-        HtmlStart(4) + '<p class="Decl">' + GBuffer + '</p>'#10 +
+        HtmlStart + '<p class="Decl">' + GBuffer + '</p>'#10 +
         MakeDescription(4, Comment) + htmlEnd);
     end;
   end;
@@ -1015,6 +1014,7 @@ var
   var
     inCase: Boolean;
     inBrace: Boolean;
+    spaces: string;
   begin
     Result := False;
     ClearBuffer;
@@ -1033,11 +1033,30 @@ var
       inBrace := False;
       repeat
         GetNextToken(Tok);
+
+        if inBrace or (Tok.Text = 'end') or
+          (Tok.Text = 'private') or (Tok.Text = 'public') then
+            spaces := ''
+        else if inCase then
+          spaces := '&nbsp;&nbsp;&nbsp;&nbsp;'
+        else
+          spaces := '&nbsp;&nbsp;';
+
         if (Tok.Text = ';') and not inBrace then
-          AddToBuffer(';<br>') else
-          AddToBuffer(Tok);
+        begin
+          AddToBuffer(';<br>');
+          AddToBuffer(#10);
+        end
+        else
+        begin
+          AddToBuffer(spaces);
+          AddToBuffer(tok);
+        end;
         if (Tok.Text = 'private') or (Tok.Text = 'public') then
+        begin
           AddToBuffer('<br>');
+          AddToBuffer(#10);
+        end;
         if Tok.Text = 'case' then
           inCase := True
         else if inCase and (Tok.Text = 'of') then
@@ -1056,7 +1075,7 @@ var
         if not DirectoryExists(DestUnitFolder + 'Types') then
           MkDir(DestUnitFolder + 'Types');
         StringToFile(DestUnitFolder + 'Types/' + recordName + '.htm',
-          HtmlStart(4) + '<p class="Decl">' + GBuffer + '</p>'#10 +
+          HtmlStart + '<p class="Decl">' + GBuffer + '</p>'#10 +
           MakeDescription(4, Comment) + htmlEnd);
       end;
     end;
@@ -1114,7 +1133,7 @@ var
       if not DirectoryExists(DestUnitFolder + 'Types') then
         MkDir(DestUnitFolder + 'Types');
       StringToFile(DestUnitFolder + 'Types\' + TypeName + '.htm',
-        HtmlStart(4) + '<p class="Decl">' + GBuffer + '</p>'#10 +
+        HtmlStart + '<p class="Decl">' + GBuffer + '</p>'#10 +
         MakeDescription(4, Comment) + htmlEnd);
     end;
   end;
@@ -1168,8 +1187,7 @@ begin
   if not DirectoryExists(DestUnitFolder) then
     MkDir(DestUnitFolder);
 
-  StringToFile(DestUnitFolder + '_Body.htm', HtmlStart(3) + '<b>Unit</b> ' +
-    ChangeFileExt(ExtractFileName(PasFilename),'') + #10'<br>'#10'<br>' + htmlEnd);
+  StringToFile(DestUnitFolder + '_Body.htm', HtmlStart + htmlEnd);
 
   PasLines := TStringlist.Create;
   try
@@ -1248,7 +1266,7 @@ begin
       begin
         if not DirectoryExists(DestUnitFolder + 'Constants') then
           MkDir(DestUnitFolder + 'Constants');
-        ConstList.Insert(0, HtmlStart(4));
+        ConstList.Insert(0, HtmlStart);
         ConstList.Add(htmlEnd);
         ConstList.SaveToFile(DestUnitFolder + 'Constants/'+fn+'.htm');
       end;
@@ -1257,7 +1275,7 @@ begin
       begin
         if not DirectoryExists(DestUnitFolder + 'Variables') then
           MkDir(DestUnitFolder + 'Variables');
-        VarList.Insert(0, HtmlStart(4));
+        VarList.Insert(0, HtmlStart);
         VarList.Add(htmlEnd);
         VarList.SaveToFile(DestUnitFolder + 'Variables/'+fn+'.htm');
       end;
@@ -1265,8 +1283,7 @@ begin
      for i := 0 to RoutinesList.Count - 1 do
      begin
        //nb: the RoutinesList object simply stores the 'level' of the file ...
-       PrependStringToFile(RoutinesList[i],
-         HtmlStart(Integer(RoutinesList.Objects[i])));
+       PrependStringToFile(RoutinesList[i], HtmlStart);
        AppendStringToFile(RoutinesList[i], htmlEnd);
      end;
 

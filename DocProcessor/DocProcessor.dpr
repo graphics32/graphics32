@@ -1,9 +1,8 @@
 program DocProcessor;
 
-{$R 'MainIcon.res' 'MainIcon.rc'}
+{$R mainicon.res}
 
 uses
-  FastMM4,
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm},
   HTML_Tags in 'HTML_Tags.pas',
@@ -11,7 +10,8 @@ uses
   Utils in 'Utils.pas',
   DocStructure in 'DocStructure.pas',
   Pas2Html in 'Pas2Html.pas',
-  DelphiParse in 'DelphiParse.pas';
+  DelphiParse in 'DelphiParse.pas',
+  FixRecordFormat in 'FixRecordFormat.pas';
 
 begin
   ReportMemoryLeaksOnShutdown := True;

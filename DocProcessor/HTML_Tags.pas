@@ -64,7 +64,7 @@ initialization
   Add('body'            , etBlock  ,  ctAlways , False);
   Add('br'              , etBR     ,  ctNever  , True);
   Add('center'          , etBlock  ,  ctAlways , True);
-  Add('div'             , etInline ,  ctAlways , True);
+  Add('div'             , etInline ,  ctAlways , False);
   Add('em'              , etInline ,  ctAlways , True);
   Add('font'            , etInline ,  ctAlways , True);
   Add('head'            , etBlock  ,  ctAlways , False);

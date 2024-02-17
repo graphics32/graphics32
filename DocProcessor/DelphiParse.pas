@@ -11,7 +11,7 @@ unit DelphiParse;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes;
+  Windows, Messages, Types, SysUtils, Classes;
 
 type
   TTokenKind = (tkIdentifier, tkReserved, tkAsm, tkText, tkSymbol, tkValue,
@@ -37,7 +37,7 @@ type
     FReservedList: TStringList;
     FCurrent: TPoint;
     FLastX: Integer;
-    FCurrentLine: AnsiString; //line containing next token to be read
+    FCurrentLine: string; //line containing next token to be read
     FCurrentLineLen: Integer;
     FLastSpecialComment: string;
     FLatestCommentLine: Integer;

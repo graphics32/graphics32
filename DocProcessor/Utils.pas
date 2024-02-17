@@ -8,17 +8,22 @@ interface
 
 uses
   Windows, Classes, SysUtils, FileCtrl, Contnrs, SimpleDOM, DocStructure,
-  Forms, StdCtrls;
+  ShellApi, Forms, StdCtrls;
 
-function DirName(const FullPath: string): string;
+function QuickCheckLink(const FileName: string): Boolean;
+function TrimHashedAnchor(const filename: string): string;
+function RelativePathToAbsolute(BasePath, relativePath: string): string;
+function DeleteDir(windowHdl: HWnd; const dir: string): Boolean;
+function DeleteDirectoryTree(Dir: string): Boolean;
+function GetFolderName(const FullPath: string): string;
 function FileNameNoExt(const FileName: string): string;
 function GetMeta(const FileName: string; const Name: string): string;
 function GetFileList(FDirectory, Filter: TFileName): TStringList;
 function GetDirList(FDirectory, Filter: TFileName): TStringList;
 function CompareDirectories(List: TStringList; Index1, Index2: Integer): Integer;
-function GetLinkName(const Target: AnsiString): string;
+function GetLinkName(const Target: string): string;
 function CompareLinks(List: TStringList; Index1, Index2: Integer): Integer;
-function CompareElements(Item1, Item2: Pointer): Integer;
+function CompareDisplayNames(Item1, Item2: Pointer): Integer;
 procedure RunCommandInMemo(const Command: string; AMemo: TMemo);
 
 {$IFNDEF SUPPORTS_UNICODE}
@@ -36,7 +41,63 @@ uses
 const
   CDirInfoFile = 'DirInfo.xml';
 
-function DirName(const FullPath: string): string;
+function QuickCheckLink(const FileName: string): Boolean;
+begin
+  Result := Pos('\\', Filename) = 0;
+end;
+
+function TrimHashedAnchor(const filename: string): string;
+var
+  i: integer;
+begin
+  i := pos('#', filename);
+  if i = 0 then
+  Result := filename else
+  Result := Copy(filename, 1, i -1);
+end;
+
+function PathCanonicalize(lpszDst: PChar; lpszSrc: PChar): LongBool; stdcall;
+  external 'shlwapi.dll' name 'PathCanonicalizeW';
+
+function RelativePathToAbsolute(BasePath, relativePath: string): string;
+var
+  Dst: array[0..MAX_PATH-1] of char;
+begin
+  relativePath := StringReplace(relativePath, '/', '\', [rfReplaceAll]);
+  PathCanonicalize(@Dst[0], PChar(IncludeTrailingBackslash(BasePath) + relativePath));
+  result := Dst;
+end;
+
+function DeleteDirectoryTree(Dir: string): Boolean;
+var
+  CharCount: Integer;
+  FileOpt : TSHFileOpStruct;
+begin
+  Result := False;
+  CharCount := Length(Dir);
+  if (CharCount > 0) and (Dir[CharCount] = '\') then Dir[CharCount] := #0;
+  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Dir) then Exit;
+  FillChar(FileOpt, SizeOf(FileOpt), 0);
+  FileOpt.Wnd := 0;
+  FileOpt.wFunc := FO_DELETE;
+  FileOpt.pFrom := PChar(Dir);
+  FileOpt.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
+  Result := SHFileOperation(FileOpt) = 0;
+end;
+
+function DeleteDir(windowHdl: HWnd; const dir: string): Boolean;
+var
+  ShOp: TSHFileOpStruct;
+begin
+  ShOp.Wnd := windowHdl;
+  ShOp.wFunc := FO_DELETE;
+  ShOp.pFrom := PChar(dir + #0);
+  ShOp.pTo := nil;
+  ShOp.fFlags := FOF_NO_UI;
+  Result := SHFileOperation(ShOp) = 0;
+end;
+
+function GetFolderName(const FullPath: string): string;
 begin
   Result := ExtractFileName(ExcludeTrailingBackslash(FullPath));
 end;
@@ -132,12 +193,12 @@ var
   S1: string;
   S2: string;
 begin
-  S1 := DirName(List[Index1]);
-  S2 := DirName(List[Index2]);
+  S1 := GetFolderName(List[Index1]);
+  S2 := GetFolderName(List[Index2]);
   Result := AnsiCompareStr(S1, S2);
 end;
 
-function GetLinkName(const Target: AnsiString): string;
+function GetLinkName(const Target: string): string;
 var
   I: Integer;
 begin
@@ -161,8 +222,8 @@ begin
       end;
       Result := FileNameNoExt(Result);
       if Result = '_Body' then
-        Result := DirName(ExtractFilePath(Target));
-      if Result = '_Home' then Result := 'Home';
+        Result := GetFolderName(ExtractFilePath(Target));
+      if Result = '_Home' then Result := 'Index';
     end;
   end;
 end;
@@ -183,9 +244,9 @@ begin
   Result := AnsiCompareStr(GetLinkName2(List[Index1]), GetLinkName2(List[Index2]));
 end;
 
-function CompareElements(Item1, Item2: Pointer): Integer;
+function CompareDisplayNames(Item1, Item2: Pointer): Integer;
 begin
-  Result := AnsiCompareStr(TElement(Item1).DisplayName, TElement(Item2).DisplayName);
+  Result := AnsiCompareStr(TElement(Item1).ShortFileName, TElement(Item2).ShortFileName);
 end;
 
 procedure RunCommandInMemo(const Command: string; AMemo: TMemo);

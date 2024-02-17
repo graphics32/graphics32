@@ -6,15 +6,22 @@ unit DocStructure;
 interface
 
 uses
-  Classes, SysUtils, Contnrs, Windows, FileCtrl, StrUtils, SimpleDOM;
-
-const
-  cColumnCount = 5;
-var
-  IncludeAlphabetClasses: boolean = true;
-  CheckForBrokenLinks: boolean = true;
+  Classes, SysUtils, Contnrs, Windows, FileCtrl, StrUtils, SimpleDOM, Math;
 
 type
+
+  TMenuSubItem = record
+    shortFileName : string;
+    url           : string;
+  end;
+
+  TMenuTopItem = record
+    shortFileName : string;
+    url           : string;
+    subItems      : array of TMenuSubItem;
+  end;
+  TMenuTopItems = array of TMenuTopItem;
+
   TElement = class;
   TElementClass = class of TElement;
   TElements = class;
@@ -28,7 +35,8 @@ type
     procedure SetItems(Index: Integer; Value: TGroupElement);
   public
     ElemClass: TGroupElementClass;
-    SubDirName: string;
+    groupName: string;
+    altGroupName: string;
     Owner: TElement;
     constructor Create(AOwner: TElement; AElemClass: TGroupElementClass; const ADirName: string);
     procedure Add(AElement: TGroupElement);
@@ -37,17 +45,25 @@ type
   end;
 
   TElement = class
+  private
+    function ExpandFileName(filename: string): string;
+    procedure AddBrokenLink(const link: string);
   protected
     class function IsTopic: Boolean; virtual;
-    procedure AddSeeAlso(Body: TDomNode; Links: TStringList);
-    procedure InsertBanner(Body: TDomNode);
+    procedure AddUnitTable(divNode: TDomNode; elements: TElements);
+    procedure AddSeeAlso(Body: TDomNode; SeeAlso: TStringList);
+    procedure InsertMenu(Body: TDomNode; menuIdx: integer; isTopLevel: Boolean);
+    procedure InsertTopLevelMenu(menuNode: TDomNode; menuIdx: integer);
+    procedure InsertNormalMenu(menuNode: TDomNode);
     procedure InsertHeading(Body: TDomNode);
   public
     FileName: string;
     Folder: string;
-    DisplayName: string;
+    ShortFileName: string;
+    TitleText: string;
     Parent: TElement;
     Project: TProject;
+    FolderLevel: integer;
     constructor Create(AParent: TElement; const APath: string); virtual;
     function GetDstFolder: string;
     function GetDstFile: string;
@@ -55,7 +71,7 @@ type
     function LinkTo(const Target: string): string; overload;
     function PathTo(Target: TElement): string; overload;
     function PathTo(const Target: string): string; overload;
-    procedure Process(Head, Body: TDomNode; const Anchors, Links: TStringList); virtual;
+    procedure ProcessBody(Body: TDomNode; const Anchors, SeeAlso: TStringList); virtual;
     procedure Transform;
   end;
 
@@ -103,7 +119,7 @@ type
     Ancestor: TClassElement;
     AncestorName: string;
     constructor Create(AParent: TElement; const APath: string); override;
-    procedure Process(Head, Body: TDomNode; const Anchors, Links: TStringList); override;
+    procedure ProcessBody(Body: TDomNode; const Anchors, Links: TStringList); override;
     procedure Read; override;
   end;
 
@@ -114,30 +130,13 @@ type
   TUnitElement = class(TGroupElement)
     Interfaces: TElements;
     Classes: TElements;
-    Records: TElements;
-    Routines: TElements;
+    Functions: TElements;
     Types: TElements;
     Globals: TElements;
     Variables: TElements;
     Constants: TElements;
     constructor Create(AParent: TElement; const APath: string); override;
-    procedure Process(Head, Body: TDomNode; const Anchors, Links: TStringList); override;
-  end;
-
-  TCaptionUrlList = class
-  private
-    CaptionList: TStringList;
-    UrlList: TStringList;
-    function GetCaption(index: Integer): string;
-    function GetUrl(index: Integer): string;
-  public
-    procedure Add(const aCaption, aUrl: string);
-    procedure Clear;
-    function Count: Integer;
-    constructor Create;
-    destructor Destroy; override;
-    property Caption[index: Integer]: string read GetCaption;
-    property Url[index: Integer]: string read GetUrl;
+    procedure ProcessBody(Body: TDomNode; const Anchors, Links: TStringList); override;
   end;
 
   TIndex = class;
@@ -164,8 +163,6 @@ type
   TClassElementArray = array of TClassElement;
 
   TProject = class(TGroupElement)
-  protected
-    procedure AddClasses(const Classes: TClassElementArray; Body: TDomNode);
   public
     Units: TElements;
     Root: TNodeElement;
@@ -176,28 +173,30 @@ type
 
     Files: TStringList;
     FileElements: array of TTopicElement;
+    SourceFolder: string;
     DestinationFolder: string;
     ImageFolder: string;
     ScriptFolder: string;
-    StylesFolder: string;
 
-    HeadSectionTemplate: string;
-    HeadSectionTemplateDOM: TDomDocument;
-    BodySectionTemplate: string;
-    BodySectionTemplateDOM: TDomDocument;
+    HeadIncludes: TDomDocument;
+    HeadInclude: TDomNode;
+    BodyIncludes: string;
+
+    MenuTopItems: TMenuTopItems;
 
     BrokenLinks: TStringList;
+    imageNames : TStringList;
+
+    CheckForBrokenLinks: boolean;
+    CheckBrokenImages: Boolean;
 
     Index: TIndex;
     constructor Create(AParent: TElement; const APath: string); override;
     destructor Destroy; override;
     procedure BuildHierarchy;
-    procedure ParseMenuData(CuList: TCaptionUrlList);
-    procedure BuildIndex(const IndexFile: string);
-    procedure BuildTOC(const TocFile: string);
     function FindClass(const AName: string): TClassElement;
     function FindInterface(const AName: string): TInterfaceElement;
-    procedure Process(Head, Body: TDomNode; const Anchors, Links: TStringList); override;
+    procedure ProcessBody(Body: TDomNode; const Anchors, Links: TStringList); override;
     procedure Read; override;
   end;
 
@@ -209,9 +208,16 @@ type
     destructor Destroy; override;
   end;
 
+resourcestring
+  DefaultTypesCaption = 'Types';
+  DefaultStaticFuncsCaption = 'Static Functions';
+
 var
-  EnglishFormatSettings: TFormatSettings;
-  VersionString: string;
+  dataTypesCaption: string = DefaultTypesCaption;
+  staticFuncsCaption: string = DefaultStaticFuncsCaption;
+
+  VersionString: string = '1.0';
+  BuildDateString: string;
 
 implementation
 
@@ -221,62 +227,16 @@ uses
 resourcestring
   RCStrInvalidNodeElement = 'Invalid node element';
   RCStrInvalidElementPath = 'Invalid element path';
-  RCStrTCaptionUrlListRan = 'TCaptionUrlList: range error';
   RCStrCantGetDestinationFileName = 'Can''t get destination filename';
   RCStrCantGetDestinationFolder = 'Can''t get destination folder';
   RCStrInvalidTarget = 'Invalid target';
   RCStrFileSIsInvalidHead = 'File ''%s'' is invalid (missing HEAD element)';
-  RCStrFileSIsInvalidLink = 'File ''%s'' is invalid (missing LINK element)';
   RCStrFileSIsInvalidBody = 'File ''%s'' is invalid (missing BODY element)';
   RCStrLoopedHierarchyRef = 'Looped hierarchy Ref';
 
-procedure TCaptionUrlList.Add(const aCaption, aUrl: string);
-begin
-  CaptionList.Add(aCaption);
-  UrlList.Add(aUrl);
-end;
-
-procedure TCaptionUrlList.Clear;
-begin
-  CaptionList.Clear;
-  UrlList.Clear;
-end;
-
-function TCaptionUrlList.Count;
-begin
-  Result := CaptionList.Count;
-end;
-
-function TCaptionUrlList.GetCaption(index: Integer): string;
-begin
-  if (index < 0) or (index >= CaptionList.Count) then
-    raise Exception.Create(RCStrTCaptionUrlListRan);
-  Result := CaptionList[index];
-end;
-
-function TCaptionUrlList.GetUrl(index: Integer): string;
-begin
-  if (index < 0) or (index >= UrlList.Count) then
-    raise Exception.Create(RCStrTCaptionUrlListRan);
-  Result := UrlList[index];
-end;
-
-constructor TCaptionUrlList.Create;
-begin
-  CaptionList := TStringList.Create;
-  UrlList := TStringList.Create;
-end;
-
-destructor TCaptionUrlList.Destroy;
-begin
-  CaptionList.Free;
-  UrlList.Free;
-end;
-
-
 type
   TClassLinks = class
-    DisplayName: string;
+    ShortFileName: string;
     Fields: TStringList;
     Properties: TStringList;
     Methods: TStringList;
@@ -311,7 +271,7 @@ procedure TClassLinks.Get(Src: TClassElement);
 var
   I: Integer;
 begin
-  DisplayName := Src.DisplayName;
+  ShortFileName := Src.ShortFileName;
   for I := 0 to Src.Fields.Count - 1 do
     Fields.Add(Src.Fields[I].FileName);
   for I := 0 to Src.Methods.Count - 1 do
@@ -362,12 +322,27 @@ begin
   AElement.ListRef := Self;
 end;
 
-constructor TElements.Create(AOwner: TElement; AElemClass: TGroupElementClass; const ADirName: string);
+constructor TElements.Create(AOwner: TElement;
+  AElemClass: TGroupElementClass; const ADirName: string);
+var
+  aname: string;
+  i: integer;
 begin
   OwnsObjects := true;                           //!! IMPORTANT
   Owner := AOwner;
   ElemClass := AElemClass;
-  SubDirName := ADirName;
+  aname := ADirName;
+  i := pos(',', aname);
+  if i = 0 then i := pos(';', aname);
+  if i > 1 then
+  begin
+    groupName := Trim(copy(aname, 1, i -1));
+    altGroupName := Trim(copy(aname, i +1, 255));
+  end else
+  begin
+    groupName := ADirName;
+    altGroupName := '';
+  end;
 end;
 
 function TElements.GetItems(Index: Integer): TGroupElement;
@@ -385,9 +360,16 @@ begin
   Assert(ElemClass <> nil);
   Assert(Owner <> nil);
   Clear;
-  Folder := Owner.Folder + '\' + SubDirName;
-  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Folder) then Exit;
-  Listing := nil;
+  Folder := Owner.Folder + '\' + groupName;
+  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Folder) then
+  begin
+    if (altGroupName = '') then Exit;
+    Folder := Owner.Folder + '\' + altGroupName;
+    if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Folder) then
+      Exit;
+  end;
+
+  Listing := nil;                                //!! IMPORTANT BUGFIX
   try
     if ElemClass.IsTopic then
     begin
@@ -411,7 +393,7 @@ begin
         Elem.Read;
       end;
     end;
-    Sort(CompareElements);
+    Sort(CompareDisplayNames);
   finally
     Listing.Free;
   end;
@@ -422,15 +404,75 @@ begin
   inherited Items[Index] := Value;
 end;
 
+function AddLevels(levels: integer): string;
+var
+  i: integer;
+begin
+  if levels <= 0 then Result := './'
+  else
+  begin
+    Result := '';
+    for i := 1 to levels do
+      Result := Result + '../';
+  end;
+end;
+
 { TElement }
 
-procedure TElement.AddSeeAlso(Body: TDomNode; Links: TStringList);
+// File names should be case sensitive since the hosting web server will
+// likely be running on a Linux machine where filenames are case sensitive.
+function FileExistsCaseSensitive(const filename: string): Boolean;
+var
+  fileNameNoPath: string;
+  flags: Cardinal;
+  handle: THandle;
+  findData: TWin32FindData;
+begin
+  flags := GetFileAttributes(PChar(FileName));
+  Result :=
+    (flags <> INVALID_FILE_ATTRIBUTES) and
+    (faDirectory and flags = 0);
+  if not Result then Exit;
+
+  handle := FindFirstFile(PChar(Filename), findData);
+  if handle <> INVALID_HANDLE_VALUE then
+  begin
+    FindClose(handle);
+    fileNameNoPath := ExtractFileName(filename);
+    Result := CompareStr(FindData.cFileName, fileNameNoPath) = 0;
+  end;
+end;
+
+procedure TElement.AddUnitTable(divNode: TDomNode; elements: TElements);
+var
+  i: Integer;
+begin
+  elements.Sort(CompareDisplayNames);
+  divNode.Attributes['class'] := 'autoTbl';
+  divNode.Add('div').Add('b').AddText(elements.groupName);
+  with divNode.Add('div') do
+  begin
+    for i := 0 to elements.Count - 1 do
+    begin
+      with Add('span').Add('a') do
+      begin
+        Attributes['href'] := PathTo(elements[I].FileName);
+        AddText(GetLinkName(elements[I].FileName));
+      end;
+      AddText(#13#10);
+    end;
+  end;
+  divNode.Add('br');
+end;
+
+procedure TElement.AddSeeAlso(Body: TDomNode; SeeAlso: TStringList);
 var
   I, J: Integer;
   S, PrevS: string;
   E: TElement;
 begin
-  if Links.Count = 0 then Exit;
+  if not assigned(project) or (SeeAlso.Count = 0) then
+    Exit;
 
   with Body.Add('h2') do
   begin
@@ -442,39 +484,37 @@ begin
     // Attributes['id'] := 'Auto'; must be unique!
     Attributes['class'] := 'Body';
 
-    Links.CustomSort(CompareLinks);
+    SeeAlso.CustomSort(CompareLinks);
     PrevS := '';
-    for I := 0 to Links.Count - 1 do
+    for I := 0 to SeeAlso.Count - 1 do
     begin
-      S := Links[I];
+      S := SeeAlso[I];
+      if (Pos('mailto:', S) > 0) then Continue;
       J := Pos('#', S);
-      if J > 0 then
-        SetLength(S, J -1);
+      if J > 0 then SetLength(S, J -1);
 
-      if CheckForBrokenLinks and not FileExists(S) and (Pos('mailto:', S) = 0) then
-      begin
-        Project.BrokenLinks.Add('  ' + S + #13#10);
-        Project.BrokenLinks.Add('    in ' + Self.FileName + #13#10);
-      end;
+      if Project.CheckForBrokenLinks and
+        not FileExistsCaseSensitive(S) then
+          AddBrokenLink(S);
 
       E := nil;
-      if Project <> nil then
-        for J := 0 to Project.Files.Count - 1 do
-          if Project.Files[J] = S then
-          begin
-            E := TElement(Project.Files.Objects[J]);
-            Break;
-          end;
+      for J := 0 to Project.Files.Count - 1 do
+        if Project.Files[J] = S then
+        begin
+          E := TElement(Project.Files.Objects[J]);
+          Break;
+        end;
 
-      if (E <> nil) and (E.Parent <> nil) and (E.Parent is TClassElement) and (E.Parent <> Self.Parent) then
+      if not assigned(E) then
+        S := LinkTo(S)
+      else if Assigned(E.Parent) and
+        (E.Parent is TClassElement) and (E.Parent <> Self.Parent) then
       begin
         S := Format('<a href="%s">%s</a>',
-          [PathTo(S), E.Parent.DisplayName + '.' + GetLinkName(S)]);
+          [PathTo(S), E.Parent.ShortFileName + '.' + GetLinkName(S)]);
       end
-      else if (E <> nil) and (E = E.Project) then
-      begin
-        S := Format('<a href="%s"><b>Home</b></a>', [PathTo(S)]);
-      end
+      else if (E = E.Project) then
+        S := Format('<a href="%s"><b>Index</b></a>', [PathTo(S)])
       else
         S := LinkTo(S);
 
@@ -488,6 +528,25 @@ begin
   end;
 end;
 
+function GetFolderLevel(const folderPath: string): integer;
+var
+  i, len: integer;
+  isFilePath: boolean;
+begin
+  result := 0;
+  len := length(folderPath);
+  if len = 0 then Exit;
+  isFilePath := false;
+  for i := len downto 1 do
+  begin
+    if CharInSet(folderPath[i], ['\','/']) then inc(Result)
+    else if (folderPath[i] = '.') and (result = 0) then
+      isFilePath := true;
+  end;
+  if not isFilePath and
+    not CharInSet(folderPath[len], ['\','/']) then inc(Result);
+end;
+
 constructor TElement.Create(AParent: TElement; const APath: string);
 begin
   Parent := AParent;
@@ -499,14 +558,14 @@ begin
     begin
       FileName := APath;
       Folder := ExtractFilePath(APath);
-      DisplayName := FileNameNoExt(APath);
+      ShortFileName := FileNameNoExt(APath);
     end
     else if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(APath) then
     begin
       if FileExists(APath + '\_Body.htm') then
         FileName := APath + '\_Body.htm';
       Folder := APath;
-      DisplayName := DirName(APath);
+      ShortFileName := GetFolderName(APath);
     end
     else raise Exception.Create(RCStrInvalidNodeElement);
   end
@@ -517,7 +576,7 @@ begin
       raise Exception.Create(RCStrInvalidElementPath);
     FileName := APath;
     Folder := ExtractFilePath(APath);
-    DisplayName := FileNameNoExt(APath);
+    ShortFileName := FileNameNoExt(APath);
   end
   else
   begin
@@ -527,12 +586,14 @@ begin
     if FileExists(APath + '\_Body.htm') then
       FileName := APath + '\_Body.htm';
     Folder := APath;
-    DisplayName := DirName(APath);
-    if DisplayName = '_Home' then DisplayName := 'Home';
+    ShortFileName := GetFolderName(APath); // ie directory's name
   end;
 
   if (FileName <> '') and (Project <> nil) then
+  begin
     Project.Files.AddObject(FileName, Self);
+    FolderLevel := GetFolderLevel(FileName);
+  end;
 end;
 
 function TElement.GetDstFile: string;
@@ -543,6 +604,48 @@ begin
   Result := Project.DestinationFolder + '\' + Result;
 end;
 
+procedure TElement.AddBrokenLink(const link: string);
+begin
+  Project.BrokenLinks.Add('  ' + link + #13#10);
+  Project.BrokenLinks.Add('    in ' + Self.FileName + #13#10);
+end;
+
+{$WARN SYMBOL_PLATFORM OFF}
+function TElement.ExpandFileName(filename: string): string;
+var
+  i,i2, upLevels: integer;
+  folder: string;
+begin
+  upLevels := 0;
+  i := 1;
+  filename := StringReplace(filename, '/', '\', [rfReplaceAll]);
+
+  while True do
+  begin
+    i2 := PosEx('..', filename, i);
+    if i2 = 0 then break;
+    i := i2 + 2;
+    if (filename[i] = '\') then
+      inc(upLevels) else
+      break;
+  end;
+  if filename[i] = '.' then inc(i);
+  if (filename[i] = '\') then inc(i);
+  filename := Copy(filename, i, Length(filename));
+
+  folder := StringReplace(Self.folder, '/', '\', [rfReplaceAll]);
+  folder := IncludeTrailingBackslash(folder);
+  i := Length(folder);
+  while upLevels > 0 do
+  begin
+    dec(i);
+    while (i > 0) and (folder[i] <> '\') do dec(i);
+    dec(upLevels);
+  end;
+  Result := Copy(folder, 1, i) + filename;
+end;
+{$WARN SYMBOL_PLATFORM ON}
+
 function TElement.GetDstFolder: string;
 begin
   if Folder = '' then
@@ -551,62 +654,122 @@ begin
   Result := Project.Folder + '\' + Result;
 end;
 
-procedure TElement.InsertBanner(Body: TDomNode);
+procedure TElement.InsertMenu(Body: TDomNode;
+  menuIdx: integer; isTopLevel: Boolean);
 var
-  Banner, TR, TD, A: TDomNode;
-  P: TElement;
-
-  procedure AddImage(const AName: string);
-  begin
-    with A.Add('img') do
-    begin
-      Attributes['src'] := PathTo(Project.ImageFolder + '/' + AName);
-      Attributes['align'] := 'absmiddle';
-    end;
-  end;
-
+  menuNode, node: TDomNode;
 begin
-  Banner := Body.Insert(0, 'table');
-  Banner.Attributes['class'] := 'Banner';
-  Banner.Attributes['cellspacing'] := '0';
-  Banner.Attributes['cellpadding'] := '0';
-  Banner.Attributes['border'] := '1';
-  Banner.Attributes['bordercolorlight'] := '#303080';
-  Banner.Attributes['bordercolordark'] := '#7070B0';
+  //insert menu container
+  menuNode := Body.Insert(0, 'div');
+  menuNode.Attributes['class'] := 'menu';
+  menuNode.Attributes['id'] := 'menu';
+  if isTopLevel then
+    menuNode.Attributes['onmouseleave'] := 'OnMouseLeaveEvent()';
+  menuNode.AddText(#13#10);
 
-  TR := Banner.Add('tr');
-
-  P := Parent;
-  while P <> nil do
+  //insert Index (which is always an ancestor)
+  if isTopLevel and (menuIdx = -2) then
   begin
-    if P.FileName <> '' then
-    begin
-      TD := TR.Insert(0, 'td');
-      TD.Attributes['class'] := 'Banner';
-      TD.Attributes['nowrap'] := '';
-      A := TD.Add('a');
-      with A do
-      begin
-        Attributes['href'] := PathTo(P);
-        Attributes['class'] := 'Banner';
-        if P is TUnitElement then AddImage('_Unit.gif')
-        else if P is TClassElement then AddImage('_Class.gif')
-        else if P is TProject then AddImage('_Home.gif');
-        if P is TProject then AddText('Home') else AddText(P.DisplayName);
-      end;
-    end;
-    P := P.Parent;
+    node := menuNode.Add('span');
+    node.Attributes['class'] := 'ancestor active';
+    node.AddText('Index');
+  end else
+  begin
+    node := menuNode.Insert(1, 'a');
+    node.Attributes['class'] := 'ancestor';
+    node.Attributes['href'] := PathTo(Project);
+    node.AddText('Index');
   end;
-  with TR.Add('td') do
-  begin
-    Attributes['class'] := 'Banner';
-    Attributes['width'] := '100%';
-    Attributes['align'] := 'right';
-    with Add('img') do
+  menuNode.AddText(#13#10);
+
+  if isTopLevel then
+    InsertTopLevelMenu(menuNode, menuIdx) else
+    InsertNormalMenu(menuNode);
+
+  Body.Insert(1, 'br');
+  Body.Insert(1, 'br');
+end;
+
+procedure TElement.InsertTopLevelMenu(menuNode: TDomNode; menuIdx: integer);
+var
+  i,j: integer;
+  hamberger, node, subdiv, subnode: TDomNode;
+begin
+  for i := 0 to High(Project.MenuTopItems) do
+    with Project.MenuTopItems[i] do
     begin
-      Attributes['src'] := PathTo(Project.ImageFolder + '/_Project_Logo.gif');
-      Attributes['align'] := 'absmiddle';
+      if i = menuIdx then
+      begin
+        node := menuNode.Add('span');
+        node.Attributes['class'] := 'active';
+        node.AddText(shortFileName); //TMenuTopItem
+      end
+      else if pos('.htm', Url) = 0 then
+      begin
+        subnode := menuNode.Add('span');
+        subnode.Attributes['class'] := 'submenu_owner';
+        subnode.Attributes['onmouseover'] := 'onSubmenuPopup(this)';
+        subnode.AddText(#13#10);
+        with subnode.Add('span') do
+        begin
+          Attributes['class'] := 'submenu_heading';
+          AddText(shortFileName);
+        end;
+        subnode.AddText(#13#10);
+        subdiv := subnode.Add('div');
+        subdiv.Attributes['class'] := 'submenu_background';
+
+        for j := 0 to High(subItems) do
+          with subItems[j] do
+          begin
+            subdiv.AddText(#13#10);
+            node := subdiv.Add('a');
+            node.AddText(shortFileName);     //TMenuSubItem.shortFileName
+            node.Attributes['href'] := Url;  //TMenuSubItem.Url
+          end;
+      end else
+      begin
+        node := menuNode.Add('a');
+        node.AddText(shortFileName);         //TMenuTopItem.shortFileName
+        node.Attributes['href'] := Url;      //TMenuTopItem.Url
+      end;
+      menuNode.AddText(#13#10);
     end;
+
+  hamberger := menuNode.Add('a');
+  hamberger.Attributes['class'] := 'icon_container';
+  hamberger.Attributes['id'] := 'icon_container';
+  hamberger.Attributes['href'] := 'javascript:void(0)';
+  hamberger.Attributes['onclick'] := 'hamburger()';
+  node := hamberger.Add('img');
+  node.Attributes['id'] := 'menu_icon';
+  node.Attributes['src'] := '../Menu/hamburger.svg';
+end;
+
+procedure TElement.InsertNormalMenu(menuNode: TDomNode);
+var
+  last: integer;
+  element: TElement;
+  node: TDomNode;
+  dots :string;
+begin
+
+  last := menuNode.Count;
+  node := menuNode.Insert(last, 'span');
+  node.Attributes['class'] := 'active';
+  node.AddText(ShortFileName);
+  element := parent;
+  while element <> Project do
+  begin
+    if element.FileName <> '' then
+    begin
+      node := menuNode.Insert(last, 'a');
+      node.Attributes['class'] := 'ancestor';
+      dots := AddLevels(FolderLevel - element.FolderLevel);
+      node.Attributes['href'] := dots + ExtractFilename(element.FileName);
+      node.AddText(element.ShortFileName);
+    end;
+    element := element.Parent;
   end;
 end;
 
@@ -614,9 +777,9 @@ procedure TElement.InsertHeading(Body: TDomNode);
 var
   S: string;
 begin
-  S := DisplayName;
   if (Parent is TClassElement) or (Parent is TInterfaceElement) then
-    S := Parent.DisplayName + '.' + S;
+    S := Parent.ShortFileName + '.' + ShortFileName else
+    S := TitleText;
   Body.Insert(0, 'h1').AddText(S);
 end;
 
@@ -645,89 +808,79 @@ var
   S: string;
 begin
   if Target = '' then raise Exception.Create(RCStrInvalidTarget);
-  S := StringReplace(Target, '/', '\', [rfReplaceAll]);
+    S := StringReplace(Target, '/', '\', [rfReplaceAll]);
   S := ExtractRelativePath(FileName, S);
   Result := StringReplace(S, '\', '/', [rfReplaceAll]);
 end;
 
-procedure TElement.Process(Head, Body: TDomNode; const Anchors, Links: TStringList);
+procedure TElement.ProcessBody(Body: TDomNode; const Anchors, SeeAlso: TStringList);
 var
-  I: Integer;
+  i, menuIdx: Integer;
+  isTopLevel: Boolean;
 begin
   InsertHeading(Body);
-  InsertBanner(Body);
-  AddSeeAlso(Body, Links);
+  AddSeeAlso(Body, SeeAlso);
+
+  menuIdx := -1;
+  isTopLevel := FolderLevel = Project.FolderLevel;
   if Self <> Project then
   begin
-    Project.Index.Add(DisplayName, FileName);
+    Project.Index.Add(ShortFileName, FileName);
     for I := 0 to Anchors.Count - 1 do
       Project.Index.Add(Anchors[I], FileName + '#' + Anchors[I]);
+
+    if isTopLevel then  //get menu index
+    begin
+      for I := 0 to High(Project.MenuTopItems) do
+        if project.MenuTopItems[i].shortFileName = ShortFileName then
+        begin
+          menuIdx := i;
+          break;
+        end;
+    end;
+  end;
+  InsertMenu(Body, menuIdx, isTopLevel);
+end;
+
+
+procedure InjectHeader(head, includes: TDomNode; level: integer);
+var
+  s, dots: string;
+  node: TDomNode;
+begin
+  if not Assigned(includes) then Exit;
+  dots := AddLevels(level);
+
+  node := includes.FirstChild;
+  while assigned(node) do
+  begin
+    if node.Name = 'script' then
+    begin
+      s := Format('<script type="%s" src="%s%s"></script>',
+        [node.Attributes['type'], dots, node.Attributes['src']]);
+      head.AddText(s);
+    end
+    else if node.Name = 'link' then
+    begin
+      s := Format('<link rel="%s" type="%s" href="%s%s"/>',
+        [node.Attributes['rel'], node.Attributes['type'],
+        dots, node.Attributes['href']]);
+      head.AddText(s);
+    end else
+      head.AddText(node.AsString);
+
+    node := node.NextSibling;
   end;
 end;
 
 procedure TElement.Transform;
 var
   Dom: TDomDocument;
-  Head, Title, Body, Link: TDomNode;
+  Head, Title, Body: TDomNode;
   DestFile, DestPath, S: string;
-  LinkNodes: TDomNodeList;
-  Anchors, Links: TStringList;
+  SeeAlsoNodes, ImgNodes: TDomNodeList;
+  Anchors, SeeAlso: TStringList;
   I: Integer;
-
-  procedure InjectSectionTemplate(const NameBegin, NameEnd: string;
-    SrcDoc: TDomDocument; DstNode: TDomNode; const RootFolder: string);
-  var
-    SrcNode: TDomNode;
-    SubNode: TDomNode;
-    I: Integer;
-    Att: TAttribute;
-
-    procedure RewriteLocationAttribute(const Name: string; Node: TDomNode);
-    begin
-      Att := Node.Attributes.FindItem(Name);
-      if Assigned(Att) then
-        Att.Value := PathTo(RootFolder + Att.Value);
-    end;
-
-    procedure RewriteWithMacros(Node: TDomNode);
-    var
-      I: Integer;
-      ChildNode: TDomNode;
-    begin
-      for I := 0 to Node.Count - 1 do
-      begin
-        ChildNode := Node.Items[I];
-        ChildNode.Value := StringReplace(ChildNode.Value, '##BuildDate##', FormatDateTime('d-mmmm-yyyy', Now, EnglishFormatSettings), [rfReplaceAll, rfIgnoreCase]);
-        ChildNode.Value := StringReplace(ChildNode.Value, '##VersionString##', VersionString, [rfReplaceAll, rfIgnoreCase]);
-        // Add new macros here...
-        RewriteWithMacros(ChildNode);
-      end;
-    end;
-
-  begin
-    SrcNode := SrcDoc.FindNode(NameBegin, True);
-    if Assigned(SrcNode) then
-      for I := SrcNode.Count - 1 downto 0 do
-      begin
-        SubNode := SrcNode.Items[I].Duplicate;
-        RewriteLocationAttribute('src', SubNode);
-        RewriteLocationAttribute('href', SubNode);
-        RewriteWithMacros(SubNode);
-        DstNode.InsertNode(0, SubNode);
-      end;
-
-    SrcNode := SrcDoc.FindNode(NameEnd, True);
-    if Assigned(SrcNode) then
-      for I := 0 to SrcNode.Count - 1 do
-      begin
-        SubNode := SrcNode.Items[I].Duplicate;
-        RewriteLocationAttribute('src', SubNode);
-        RewriteLocationAttribute('href', SubNode);
-        RewriteWithMacros(SubNode);
-        DstNode.AddNode(SubNode);
-      end;
-  end;
-
 begin
   Dom := TDomDocument.Create;
   try
@@ -735,30 +888,41 @@ begin
     Head := Dom.FindNode('head', True);
     if not Assigned(Head) then
       raise Exception.CreateFmt(RCStrFileSIsInvalidHead, [FileName]);
-    Link := Head.FindNode('link', False);
-    if not Assigned(Link) then
-      raise Exception.CreateFmt(RCStrFileSIsInvalidLink, [FileName]);
-    Link.Attributes['href'] := StringReplace(Link.Attributes['href'], '\', '/', [rfReplaceAll]);
+
     Title := Head.FindNode('title', False);
-    Title.Clear;
-    Title.AddText(DisplayName);
+    if not Assigned(Title) then
+    begin
+      Title := Head.Add('title');
+      Title.AddText(ShortFileName)
+    end
+    else if Title.Count = 0 then
+      Title.AddText(ShortFileName);
+    TitleText := Title.FirstChild.Value;
+
+    InjectHeader(head, project.HeadInclude,
+      FolderLevel - Project.FolderLevel +1);
+
     Body := Dom.FindNode('body', True);
     if not Assigned(Body) then
       raise Exception.CreateFmt(RCStrFileSIsInvalidBody, [FileName]);
 
-    Anchors := TStringList.Create;
-    Links := TStringList.Create;
-    try
-      LinkNodes := Body.FindNodes('a', True);
-      try
-        Anchors.Sorted := True;
-        Anchors.Duplicates := dupIgnore;
-        Links.Sorted := True;
-        Links.Duplicates := dupIgnore;
+    if FolderLevel = Project.FolderLevel then
+      Body.Attributes.Add('onload', 'OnLoadEvent()');
 
+    // fix up links and anchors and PROCESS
+    Anchors := TStringList.Create;
+    SeeAlso := TStringList.Create;
+    try
+      Anchors.Sorted := True;
+      Anchors.Duplicates := dupIgnore;
+      SeeAlso.Sorted := True;
+      SeeAlso.Duplicates := dupIgnore;
+
+      SeeAlsoNodes := Body.FindNodes('a', True);
+      try
         SetCurrentDir(Folder);
-        for I := 0 to LinkNodes.Count - 1 do
-          with LinkNodes.Items[I] do
+        for I := 0 to SeeAlsoNodes.Count - 1 do
+          with SeeAlsoNodes.Items[I] do
           begin
             S := Attributes['name'];
             if Length(S) > 0 then
@@ -769,31 +933,54 @@ begin
             S := Attributes['href'];
             if (Length(S) > 0) and (S[1] <> '#') then
             begin
-              if Pos('//', S) = 0 then
+              if Pos('http', S) = 0 then
               begin
                 S := StringReplace(S, '%20', ' ', [rfReplaceAll]);
                 S := ExpandFileName(S);
-                Links.Add(S);
+                if not QuickCheckLink(S) then
+                  AddBrokenLink(S);
+                SeeAlso.Add(S);
               end;
             end;
           end;
 
-        Links.Sorted := False;
-        Links.CustomSort(CompareLinks);
+        SeeAlso.Sorted := False;
+        SeeAlso.CustomSort(CompareLinks);
 
-        Process(Head, Body, Anchors, Links);
-        InjectSectionTemplate('head_begin', 'head_end', Project.HeadSectionTemplateDOM, Head, ExtractFilePath(Project.HeadSectionTemplate));
-        InjectSectionTemplate('body_begin', 'body_end', Project.BodySectionTemplateDOM, Body, ExtractFilePath(Project.BodySectionTemplate));
+        ProcessBody(Body, Anchors, SeeAlso);
+
+        //finally, add copyright info etc.
+        Body.AddText(Project.BodyIncludes);
+
       finally
-        LinkNodes.Free;
+        SeeAlsoNodes.Free;
+      end;
+
+      if Project.CheckBrokenImages then
+      begin
+        ImgNodes := Body.FindNodes('img', True);
+        try
+          SetCurrentDir(Folder);
+          for I := 0 to ImgNodes.Count - 1 do
+            with ImgNodes.Items[I] do
+            begin
+              S := Attributes['src'];
+              if pos('../Menu/', S) < 1 then
+                Project.imageNames.Add(ExpandFileName(S));
+            end;
+        finally
+          ImgNodes.Free;
+        end;
       end;
 
     finally
-      Links.Free;
+      SeeAlso.Free;
       Anchors.Free;
     end;
 
+
     DestFile := GetDstFile;
+
     DestPath := ExtractFilePath(DestFile);
     if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(DestPath) then
       {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}ForceDirectories(DestPath);
@@ -892,14 +1079,14 @@ begin
     L := TList.Create;
     try
       for I := 0 to Count - 1 do L.Add(Child[I]);
-      Children.OwnsObjects := False;
+      Children.OwnsObjects := False;             //!! IMPORTANT
       Children.Clear;
 
       for I := 0 to Order.Count - 1 do
       begin
         J := 0;
         while J < L.Count do
-          if SameText(TNodeElement(L[J]).DisplayName, Order[I]) then
+          if SameText(TNodeElement(L[J]).ShortFileName, Order[I]) then
           begin
             Children.Add(TNodeElement(L[J]));
             L.Delete(J);
@@ -910,7 +1097,7 @@ begin
       for I := 0 to L.Count - 1 do
         Children.Add(TNodeElement(L[I]));
 
-      Children.OwnsObjects := True;
+      Children.OwnsObjects := True;              //!! IMPORTANT
     finally
       L.Free;
     end;
@@ -1004,7 +1191,7 @@ begin
   inherited;
   Fields := TElements.Create(Self, TTopicElement, 'Fields');
   Properties := TElements.Create(Self, TTopicElement, 'Properties');
-  Methods := TElements.Create(Self, TTopicElement, 'Methods');
+  Methods := TElements.Create(Self, TTopicElement, 'Methods, Functions');
   Events := TElements.Create(Self, TTopicElement, 'Events');
   RegList(Fields);
   RegList(Methods);
@@ -1012,7 +1199,7 @@ begin
   RegList(Events);
 end;
 
-procedure TClassElement.Process(Head, Body: TDomNode; const Anchors, Links: TStringList);
+procedure TClassElement.ProcessBody(Body: TDomNode; const Anchors, Links: TStringList);
 type
   TColumns = set of (ctFields, ctProperties, ctMethods, ctEvents);
 var
@@ -1020,7 +1207,7 @@ var
   Ancestors: TObjectList;
   AE: TClassElement;
   Columns: TColumns;
-  ColCount: Integer;
+  ColCount, cc: Integer;
   T: TDomNode;
   I, J: Integer;
   S: string;
@@ -1070,15 +1257,15 @@ var
       Assert(Assigned(Elements[I]));
 
       Project.Index.AddMember(
-        DisplayName,
-        Elements[I].DisplayName,
-        DisplayName + '.' + Elements[I].DisplayName,
+        ShortFileName,
+        Elements[I].ShortFileName,
+        ShortFileName + '.' + Elements[I].ShortFileName,
         Elements[I].FileName);
 
       Project.Index.AddMember(
-        Elements[I].DisplayName,
-        DisplayName,
-        DisplayName + '.' + Elements[I].DisplayName,
+        Elements[I].ShortFileName,
+        ShortFileName,
+        ShortFileName + '.' + Elements[I].ShortFileName,
         Elements[I].FileName);
     end;
   end;
@@ -1186,28 +1373,67 @@ begin
         AddText('Reference');
       end;
 
-      T := Body.Add('table');
+      // Unfortunately class member lists (that usually include
+      // ancestor members) really do need to be in a TABLE.
+      // But if the table scrolls (see default.css), then this
+      // still works  pretty well on mobile devices.
+
+      cc := 0;
+      T := Body.Add('p');
+      T := T.Add('table');
       with T do
       begin
-        // Attributes['id'] := 'Auto'; // must be unique!
+        Attributes['class'] := 'autoTbl';
 
         // heading row
         with Add('tr') do
         begin
-          if ctFields in Columns then Add('th').AddText('Fields');
-          if ctMethods in Columns then Add('th').AddText('Methods');
-          if ctProperties in Columns then Add('th').AddText('Properties');
-          if ctEvents in Columns then Add('th').AddText('Events');
+          if ctFields in Columns then
+            with Add('th') do
+            begin
+              inc(cc);
+              if cc = ColCount then
+              Attributes['style'] := 'width: 100%;';
+              AddText('Fields');
+            end;
+
+          if ctMethods in Columns then
+          begin
+            with Add('th') do
+            begin
+              inc(cc);
+              if cc = ColCount then
+              Attributes['style'] := 'width: 100%;';
+              AddText('Methods');
+            end;
+          end;
+
+          if ctProperties in Columns then
+            with Add('th') do
+            begin
+              inc(cc);
+              if cc = ColCount then
+              Attributes['style'] := 'width: 100%;';
+              AddText('Properties');
+            end;
+
+          if ctEvents in Columns then
+            with Add('th') do
+            begin
+              Attributes['style'] := 'width: 100%;';
+              AddText('Events');
+            end;
         end;
 
         if ClassLinks.TotalCount > 0 then
         begin
-          with Add('tr').Add('td') do
-          begin
-            Attributes['colspan'] := IntToStr(ColCount);
-            Attributes['class'] := 'White';
-            AddText('In ' + DirName(Folder) + ':');
-          end;
+          if Ancestors.Count > 0 then
+            with Add('tr').Add('td') do
+            begin
+              Attributes['colspan'] := IntToStr(ColCount);
+              Attributes['class'] := 'ancestor';
+              AddText('In ' + GetFolderName(Folder) + ':');
+            end;
           AddMembers(ClassLinks);
         end;
 
@@ -1217,8 +1443,8 @@ begin
             with Add('tr').Add('td') do
             begin
               Attributes['colspan'] := IntToStr(ColCount);
-              Attributes['class'] := 'White';
-              AddText('In ' + TClassLinks(Ancestors[I]).DisplayName + ':');
+              Attributes['class'] := 'ancestor';
+              AddText('In ' + TClassLinks(Ancestors[I]).ShortFileName + ':');
             end;
             AddMembers(TClassLinks(Ancestors[I]));
           end;
@@ -1271,15 +1497,13 @@ begin
   inherited;
   Interfaces := TElements.Create(Self, TInterfaceElement, 'Interfaces');
   Classes := TElements.Create(Self, TClassElement, 'Classes');
-  Records := TElements.Create(Self, TTopicElement, 'Records');
-  Routines := TElements.Create(Self, TTopicElement, 'Routines');
+  Functions := TElements.Create(Self, TTopicElement, 'Routines, Functions');
   Types := TElements.Create(Self, TTopicElement, 'Types');
   Globals := TElements.Create(Self, TTopicElement, 'Globals');
   Variables := TElements.Create(Self, TTopicElement, 'Variables');
   Constants := TElements.Create(Self, TTopicElement, 'Constants');
   RegList(Types);
-  RegList(Records);
-  RegList(Routines);
+  RegList(Functions);
   RegList(Globals);
   RegList(Constants);
   RegList(Variables);
@@ -1287,17 +1511,16 @@ begin
   RegList(Classes);
 end;
 
-procedure TUnitElement.Process(Head, Body: TDomNode; const Anchors, Links: TStringList);
+procedure TUnitElement.ProcessBody(Body: TDomNode; const Anchors, Links: TStringList);
 var
-  N, I, J: Integer;
+  N, I: Integer;
   Columns: TList;
-  T: TDomNode;
+  unitDiv: TDomNode;
 begin
   N := Types.Count;
-  if Records.Count > N then N := Records.Count;
   if Interfaces.Count > N then N := Interfaces.Count;
   if Classes.Count > N then N := Classes.Count;
-  if Routines.Count > N then N := Routines.Count;
+  if Functions.Count > N then N := Functions.Count;
   if Globals.Count > N then N := Globals.Count;
   if Variables.Count > N then N := Variables.Count;
   if Constants.Count > N then N := Constants.Count;
@@ -1314,31 +1537,16 @@ begin
     try
       // get non-empty columns
       if Types.Count > 0 then Columns.Add(Types);
-      if Records.Count > 0 then Columns.Add(Records);
       if Interfaces.Count > 0 then Columns.Add(Interfaces);
       if Classes.Count > 0 then Columns.Add(Classes);
-      if Routines.Count > 0 then Columns.Add(Routines);
+      if Functions.Count > 0 then Columns.Add(Functions);
       if Globals.Count > 0 then Columns.Add(Globals);
       if Variables.Count > 0 then Columns.Add(Variables);
       if Constants.Count > 0 then Columns.Add(Constants);
 
-      // add table
-      T := Body.Add('table');
-      with T do
-      begin
-        // Attributes['id'] := 'Auto'; // must be unique!
-        with Add('tr') do
-          for I := 0 to Columns.Count - 1 do
-            Add('th').AddText(TElements(Columns[I]).SubDirName);
-        for I := 0 to N - 1 do
-          with Add('tr') do
-            for J := 0 to Columns.Count - 1 do
-            begin
-              with Add('td') do
-                if I < TElements(Columns[J]).Count then
-                  AddParse(LinkTo(TElements(Columns[J])[I].FileName));
-            end;
-      end;
+      unitDiv := Body.Add('p').Add('div');
+      for I := 0 to Columns.Count - 1 do
+        AddUnitTable(unitDiv, TElements(Columns[I]));
 
     finally
       Columns.Free;
@@ -1352,82 +1560,8 @@ end;
 
 function CompareClasses(Item1, Item2: Pointer): Integer;
 begin
-  Result := AnsiCompareStr(TClassEntry(Item1).Element.DisplayName,
-    TClassEntry(Item2).Element.DisplayName);
-end;
-
-procedure TProject.AddClasses(const Classes: TClassElementArray; Body: TDomNode);
-const
-  IMG_E = '<img src="../Images/_BranchEmpty.gif" align="absmiddle">';
-  IMG_E1 = '<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">';
-  IMG_V = '<img src="../Images/_BranchVert.gif" align="absmiddle">';
-  IMG_R = '<img src="../Images/_BranchRight.gif" align="absmiddle">';
-  IMG_VR = '<img src="../Images/_BranchVertRight.gif" align="absmiddle">';
-  IMG_C = '<img src="../Images/_Class.gif" align="absmiddle">';
-var
-  CC: TObjectList;
-  I: Integer;
-
-  procedure AddClass(Parent: TClassEntry; Elem: TClassElement; List: TObjectList);
-  var
-    I: Integer;
-    Entry: TClassEntry;
-  begin
-    Entry := TClassEntry.Create(Elem);
-    Entry.Parent := Parent;
-    List.Add(Entry);
-    for I := 0 to High(Classes) do
-      if Classes[I].Ancestor = Elem then AddClass(Entry, Classes[I], Entry.Children);
-  end;
-
-  procedure Write(Entry: TClassEntry; Level: Integer; IsLast: Boolean);
-  var
-    I: Integer;
-    E: TClassEntry;
-  begin
-    with Body.Add('p') do
-    begin
-      // Attributes['id'] := 'Auto'; // must be unique!
-      Attributes['Class'] := 'Tree';
-
-      E := Entry;
-      while E.Parent <> nil do
-      begin
-        if E.Parent.Children.Last = E then
-        begin
-          if E = Entry then AddText(IMG_R).Index := 0
-          else AddText(IMG_E).Index := 0;
-        end
-        else
-          if E = Entry then AddText(IMG_VR).Index := 0
-          else AddText(IMG_V).Index := 0;
-        E := E.Parent;
-      end;
-      AddText(IMG_E1).Index := 0;
-
-      if Entry.Element.FileName <> '' then
-        AddParse(LinkTo(Entry.Element.FileName)).AddText(IMG_C + '&nbsp;').Index := 0
-      else
-        AddParse(Entry.Element.DisplayName).AddText(IMG_C + '&nbsp;').Index := 0;
-    end;
-
-    Entry.Children.Sort(CompareClasses);
-    for I := 0 to Entry.Children.Count - 1 do
-      Write(TClassEntry(Entry.Children.Items[I]), Level + 1, I = Entry.Children.Count - 1);
-  end;
-
-begin
-  CC := TObjectList.Create;
-  try
-    for I := 0 to High(Classes) do
-      if Classes[I].Ancestor = nil then AddClass(nil, Classes[I], CC);
-
-    CC.Sort(CompareClasses);
-    for I := 0 to CC.Count - 1 do
-      Write(TClassEntry(CC.Items[I]), 0, I = CC.Count - 1);
-  finally
-    CC.Free;
-  end;
+  Result := AnsiCompareStr(TClassEntry(Item1).Element.ShortFileName,
+    TClassEntry(Item2).Element.ShortFileName);
 end;
 
 procedure TProject.BuildHierarchy;
@@ -1440,7 +1574,7 @@ begin
     AName := Classes[I].AncestorName;
     if AName <> '' then
       for J := 0 to High(Classes) do
-        if SameText(Classes[J].DisplayName, AName) then
+        if SameText(Classes[J].ShortFileName, AName) then
         begin
           Classes[I].Ancestor := Classes[J];
           if Classes[J] = Classes[I] then
@@ -1462,185 +1596,6 @@ begin
   end;
 end;
 
-procedure TProject.BuildIndex(const IndexFile: string);
-var
-  Dom: TDomDocument;
-  Body: TDomNode;
-  I, J, K: Integer;
-  Base: string;
-
-  function Link(const Target: string): string;
-  begin
-    Result := 'Docs\' + ExtractRelativePath(Base, Target);
-  end;
-
-begin
-  Base := Folder + '\t.htm';
-  Dom := TDomDocument.Create;
-  try
-    with Dom.Add('html') do
-    begin
-      Add('head');
-      Body := Add('Body');
-      with Body.Add('ul') do
-      begin
-        for I := 0 to Self.Index.Count - 1 do
-          with TIndexEntry(Self.Index.Items[I]) do
-          begin
-            with Add('li').AddObject('text/sitemap') do
-            begin
-              AddObjectParam('Keyword', Keyword);
-              for J := 0 to Targets.Count - 1 do
-              begin
-                AddObjectParam('Name', GetLinkName(Targets[J]));
-                AddObjectParam('Local', Link(Targets[J]));
-              end;
-            end;
-
-            if Members.Count > 0 then with Add('ul') do
-              for J := 0 to Members.Count - 1 do
-                with Add('li').AddObject('text/sitemap'), Members[J] do
-                begin
-                  AddObjectParam('Keyword', Keyword);
-                  for K := 0 to Targets.Count - 1 do
-                  begin
-                    AddObjectParam('Name', Name);
-                    AddObjectParam('Local', Link(Targets[K]));
-                  end;
-                end;
-            end;
-        end;
-    end;
-    Dom.SaveToFile(IndexFile);
-  finally
-    Dom.Free;
-  end;
-end;
-
-procedure TProject.BuildTOC(const TocFile: string);
-var
-  Dom: TDomDocument;
-  Body: TDomNode;
-  Base: string;
-
-  procedure AddNode(N: TDomNode; NE: TNodeElement);
-  var
-    I: Integer;
-    UL: TDomNode;
-  begin
-    with N.Add('li').AddObject('text/sitemap') do
-    begin
-      AddObjectParam('Name', NE.DisplayName);
-      if NE.FileName <> '' then
-        AddObjectParam('Local', 'Docs\' + ExtractRelativePath(Base, NE.FileName));
-      if NE.Count = 0 then AddObjectParam('ImageNumber', '11');
-    end;
-    if NE.Count > 0 then
-    begin
-      UL := N.Add('ul');
-      for I := 0 to NE.Count - 1 do AddNode(UL, NE.Child[I]);
-    end;
-  end;
-
-  procedure AddGroupElement(N: TDomNode; E: TGroupElement);
-  var
-    I: Integer;
-    UL: TDomNode;
-
-    procedure AddList(NN: TDomNode; L: TElements);
-    var
-      I: Integer;
-      UL: TDomNode;
-    begin
-      Assert(L <> nil);
-      if L.Count = 0 then Exit;
-      if L.ElemClass = TClassElement then
-        for I := 0 to L.Count - 1 do AddGroupElement(NN, L[I])
-      else
-      begin
-        with NN.Add('li').AddObject('text/sitemap') do
-        begin
-          AddObjectParam('Name', L.SubDirName);
-          AddObjectParam('ImageNumber', '5');
-        end;
-        UL := NN.Add('ul');
-        for I := 0 to L.Count - 1 do
-        begin
-          Assert(L[I] <> nil);
-          AddGroupElement(UL, L[I]);
-        end;
-      end;
-    end;
-
-  begin
-    if E.FileName <> '' then
-    begin
-      if E <> Project then
-        with N.Add('li').AddObject('text/sitemap') do
-        begin
-          AddObjectParam('Name', E.DisplayName);
-          if E.FileName <> '' then
-            AddObjectParam('Local', 'Docs\' + ExtractRelativePath(Base, E.FileName));
-          if E.IsTopic then AddObjectParam('ImageNumber', '11');
-          if E is TClassElement then AddObjectParam('ImageNumber', '11');
-        end;
-    end;
-
-    if E.ChildLists.Count > 0 then
-    begin
-      UL := N.Add('ul');
-      with UL do
-      begin
-        if E = Self then
-          with Add('li').AddObject('text/sitemap') do
-          begin
-            AddObjectParam('Name', E.DisplayName);
-            if E.FileName <> '' then
-              AddObjectParam('Local', 'Docs\' + ExtractRelativePath(Base, E.FileName));
-            AddObjectParam('ImageNumber', '21');
-          end;
-      end;
-
-      if E = Self then
-        for I := 0 to Root.Count - 1 do
-          AddNode(UL, Root.Child[I]);
-
-      if E = Self then
-      begin
-        with UL.Add('li').AddObject('text/sitemap') do
-        begin
-          AddObjectParam('Name', 'Reference');
-        end;
-        UL := UL.Add('ul');
-      end;
-
-      for I := 0 to E.ChildLists.Count - 1 do
-        AddList(UL, TElements(E.ChildLists[I]));
-    end;
-  end;
-
-begin
-  Base := Folder + '\t.htm';
-  Dom := TDomDocument.Create;
-  try
-    with Dom.Add('html') do
-    begin
-      Add('head');
-      Body := Add('Body');
-      with Body.AddObject('text/site properties') do
-      begin
-        AddObjectParam('Window Styles', '0x800227');
-        AddObjectParam('Image Type', 'Folder');
-      end;
-
-      AddGroupElement(Body, Self);
-    end;
-    Dom.SaveToFile(TocFile);
-  finally
-    Dom.Free;
-  end;
-end;
-
 constructor TProject.Create(AParent: TElement; const APath: string);
 begin
   inherited;
@@ -1649,21 +1604,30 @@ begin
   Index := TIndex.Create;
   Units := TElements.Create(Self, TUnitElement, 'Units');
   Root := TNodeElement.CreateRoot(Self);
-  HeadSectionTemplateDOM := TDomDocument.Create;
-  BodySectionTemplateDOM := TDomDocument.Create;
+  HeadIncludes := TDomDocument.Create;
+
   RegList(Units);
-  if (FileName <> '') then Files.AddObject(FileName, Self);
+  if (FileName <> '') then
+  begin
+    Files.AddObject(FileName, Self);
+    FolderLevel := GetFolderLevel(FileName);
+  end;
+
   BrokenLinks := TStringList.create;
+
+  imageNames  := TStringList.Create;
+  imageNames.Sorted := True;
+  imageNames.Duplicates := dupIgnore;
 end;
 
 destructor TProject.Destroy;
 begin
+  imageNames.Free;
   BrokenLinks.Free;
-  BodySectionTemplateDOM.Free;
-  HeadSectionTemplateDOM.Free;
   Root.Free;
   Index.Free;
   Files.Free;
+  HeadIncludes.Free;
   Topics := nil;
   Interfaces := nil;
   Classes := nil;
@@ -1678,7 +1642,7 @@ begin
   for I := 0 to High(Classes) do
   begin
     Result := Classes[I];
-    if SameText(Result.DisplayName, AName) then Exit;
+    if SameText(Result.ShortFileName, AName) then Exit;
   end;
   Result := nil;
 end;
@@ -1690,217 +1654,94 @@ begin
   for I := 0 to High(Interfaces) do
   begin
     Result := Interfaces[I];
-    if SameText(Result.DisplayName, AName) then Exit;
+    if SameText(Result.ShortFileName, AName) then Exit;
   end;
   Result := nil;
 end;
 
-function GetParentDirectory(const path: string): string;
-begin
- Result := ExpandFileName(path + '\..') + '\';
-end;
-
-procedure TProject.ParseMenuData(CuList: TCaptionUrlList);
-var
-  Index: Integer;
-  projDir, Cap, url: string;
-  StrLst: TStringList;
-
-  function GetTextBetweenQuotes(const str: string): string;
-  var
-    i, j: Integer;
-  begin
-    i := Pos('"', str);
-    j := PosEx('"', str, i+1);
-    if (i = 0) or (j <= i) then Result := ''
-    else SetString(Result, PChar(@str[i+1]), j-i-1);
-  end;
-
-begin
-  CuList.Clear;
-  ProjDir := GetParentDirectory(Folder);
-  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(ProjDir + 'Scripts') or
-    not FileExists(ProjDir + 'Scripts\menu_data.js') then exit;
-  StrLst := TStringList.Create;
-  try
-    StrLst.LoadFromFile(ProjDir + 'Scripts\menu_data.js');
-    for Index := 0 to StrLst.Count - 2 do
-    begin
-      if (Pos('td_1', StrLst[Index]) <> 1) or (PosEx('_', StrLst[Index], 5) <> 5) then Continue;
-      Cap := GetTextBetweenQuotes(StrLst[Index]);
-      if Pos('url_', StrLst[Index+1]) <> 1 then Continue;
-      Url := {'.\' +} GetTextBetweenQuotes(StrLst[Index + 1]);
-      CuList.add(Cap, url);
-    end;
-  finally
-    StrLst.Free;
-  end;
-end;
-
-procedure TProject.Process(Head, Body: TDomNode; const Anchors, Links: TStringList);
+procedure TProject.ProcessBody(Body: TDomNode; const Anchors, Links: TStringList);
 var
   Elems: TElements;
   I, J: Integer;
-  TD: TDomNode;
-  CuList: TCaptionUrlList;
 
-  procedure AddOverviewTable(CuList: TCaptionUrlList);
+  function AddIndexTable(const displayName: string): TDomNode;
   var
-    i: Integer;
+    I: Integer;
   begin
-    with Body.Add('table') do
+    Elems.Sort(CompareDisplayNames);
+    Result := Body.Add('p');
+    Result := Result.Add('div');
+    with Result do
     begin
-      // Attributes['id'] := 'Auto'; // must be unique!
-      with Add('tr') do
-        for i := 0 to CuList.Count -1 do
-          with Add('td') do
-            AddText(Format('<a href="%s">%s</a>', [CuList.Url[i], CuList.Caption[i]]));
-    end;
-  end;
-
-  procedure AddClassTable(const Classes: TClassElementArray; const DisplayName: string);
-  var
-    I, J: Integer;
-  begin
-    with Body.Add('table') do
-    begin
-      // Attributes['id'] := 'Auto'; // must be unique!
-      Attributes['class'] := 'Home';
-      Attributes['cellpadding'] := '0';
-      Attributes['cellspacing'] := '0';
-      Attributes['border'] := '0';
-      with Add('tr') do
+      Attributes['class'] := 'autoTbl';
+      with Add('div') do
+        with Add('b') do AddText(displayName);
+      with Add('div') do
       begin
-        TD := Add('td');
-        TD.Attributes['class'] := 'Home';
-        TD.Attributes['valign'] := 'Top';
-
-        if IncludeAlphabetClasses then
+        for I := 0 to Elems.Count - 1 do
         begin
-          for I := 0 to High(Classes) do Elems.Add(TClassElement(Classes[I]));
-          if Elems.Count > 0 then
+          with Add('span') do
           begin
-            TD.Add('h2').AddText(DisplayName + ' (Alphabetical)');
-            Elems.Sort(CompareElements);
-            for J := 0 to Elems.Count - 1 do
-              with TD.Add('p') do
-              begin
-                // Attributes['id'] := 'Auto'; // must be unique!
-                Attributes['class'] := 'Tree';
-
-                AddText('<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">');
-                AddParse(LinkTo(Elems[J]));
-              end;
-            Elems.Clear;
+            with Add('a') do
+            begin
+              Attributes['href'] := PathTo(Elems[I].FileName);
+              AddText(GetLinkName(Elems[I].FileName));
+            end;
           end;
         end;
-
-        // classes
-        TD := Add('td');
-        with TD do
-        begin
-          Attributes['class'] := 'Home';
-          Attributes['valign'] := 'Top';
-          Add('h2').AddText(DisplayName + ' (Hierarchy)');
-          AddClasses(Classes, TD);
-        end;
       end;
     end;
-  end;
-
-  procedure AddElems(NUM_COL: Integer);
-  var
-    I, J, N, R: Integer;
-    Links: array of array of string;
-  begin
-    Elems.Sort(CompareElements);
-    with Body.Add('table') do
-    begin
-      // Attributes['id'] := 'Auto'; // must be unique!
-      SetLength(Links, NUM_COL);
-      R := (Elems.Count + NUM_COL - 1) div NUM_COL;
-      N := 0;
-      for I := 0 to NUM_COL - 1 do
-      begin
-        SetLength(Links[I], R);
-        for J := 0 to R - 1 do
-        begin
-          if N < Elems.Count then
-            Links[I][J] := LinkTo(Elems[N])
-          else Break;
-          Inc(N);
-        end;
-      end;
-
-      for J := 0 to R - 1 do
-      begin
-        with Add('tr') do
-          for I := 0 to NUM_COL - 1 do
-            if Links[I][J] <> '' then
-              with Add('td') do AddText(Links[I][J]);
-      end;
-    end;
+    Body.AddText(#13#10#13#10);
   end;
 
 begin
   Elems := TElements.Create(nil, TTopicElement, Folder);
   try
+    //this is the start of the Index links
+    //that are listed **after** any text found in _Body.htm in 'source'
+
     Elems.OwnsObjects := false;                  //!! IMPORTANT
 
-    //overview items ...
-    CuList := TCaptionUrlList.Create;
-    try
-      ParseMenuData(CuList);
-      if CuList.Count > 0 then
-        AddOverviewTable(CuList);
-    finally
-      CuList.Free;
+    // units
+    for I := 0 to Units.Count - 1 do
+      Elems.Add(TUnitElement(Units[I]));
+    if Elems.Count > 0 then
+    begin
+      Elems.Sort(CompareDisplayNames);
+      AddIndexTable('Units');
+      Elems.Clear;
     end;
 
+    // classes
     if Length(Classes) > 0 then
-      AddClassTable(TClassElementArray(Classes), 'Classes');
+    begin
+      for I := 0 to High(Classes) do
+        Elems.Add(Classes[I]);
+      if Elems.Count > 0 then
+      begin
+        AddIndexTable('Classes');
+        Elems.Clear;
+      end;
+    end;
+
     if Length(Interfaces) > 0 then
-      AddClassTable(TClassElementArray(Interfaces), 'Interfaces');
+    begin
+
+      for I := 0 to High(Interfaces) do
+        Elems.Add(Interfaces[I]);
+      if Elems.Count > 0 then
+      begin
+        AddIndexTable('Interfaces');
+        Elems.Clear;
+      end;
+    end;
 
     // types
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
       for J := 0 to Types.Count - 1 do Elems.Add(Types[J]);
     if Elems.Count > 0 then
-      begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto-Types'; // must be unique!
-        AddText('Types');
-      end;
-      AddElems(cColumnCount);
-      Elems.Clear;
-    end;
-
-    // Records
-    for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
-      for J := 0 to Records.Count - 1 do Elems.Add(Records[J]);
-    if Elems.Count > 0 then
     begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto-Records'; // must be unique!
-        AddText('Records');
-      end;
-      AddElems(cColumnCount);
-      Elems.Clear;
-    end;
-
-    // Functions
-    for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
-      for J := 0 to Routines.Count - 1 do Elems.Add(Routines[J]);
-    if Elems.Count > 0 then
-    begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto-Functions'; // must be unique!
-        AddText('Routines');
-      end;
-      AddElems(cColumnCount);
+      AddIndexTable(dataTypesCaption);
       Elems.Clear;
     end;
 
@@ -1908,13 +1749,8 @@ begin
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
       for J := 0 to Globals.Count - 1 do Elems.Add(Globals[J]);
     if Elems.Count > 0 then
-      begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto-Globals'; // must be unique!
-        AddText('Globals');
-      end;
-      AddElems(cColumnCount);
+    begin
+      AddIndexTable('Globals');
       Elems.Clear;
     end;
 
@@ -1922,13 +1758,8 @@ begin
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
       for J := 0 to Variables.Count - 1 do Elems.Add(Variables[J]);
     if Elems.Count > 0 then
-      begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto-Variables'; // must be unique!
-        AddText('Variables');
-      end;
-      AddElems(cColumnCount);
+    begin
+      AddIndexTable('Variables');
       Elems.Clear;
     end;
 
@@ -1936,32 +1767,32 @@ begin
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
       for J := 0 to Constants.Count - 1 do Elems.Add(Constants[J]);
     if Elems.Count > 0 then
-      begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto-Constants'; // must be unique!
-        AddText('Constants');
-      end;
-      AddElems(cColumnCount);
+    begin
+      AddIndexTable('Constants');
       Elems.Clear;
     end;
 
-    // units
-    for I := 0 to Units.Count - 1 do Elems.Add(TUnitElement(Units[I]));
+    // Functions
+    for I := 0 to Units.Count - 1 do
+      with TUnitElement(Units[I]) do
+        for J := 0 to Functions.Count - 1 do
+        begin
+          Elems.Add(Functions[J]);
+        end;
+
     if Elems.Count > 0 then
     begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto-Units'; // must be unique!
-        AddText('Units');
-      end;
-      Elems.Sort(CompareElements);
-      AddElems(cColumnCount);
+      AddIndexTable(staticFuncsCaption);
       Elems.Clear;
     end;
+
   finally
     Elems.Free;
   end;
+
+  //inserts the library's desciption <H1>
+  InsertHeading(Body);
+  InsertMenu(Body, -2, true);
 end;
 
 procedure TProject.Read;
@@ -1971,39 +1802,32 @@ var
   NE: TNodeElement;
 begin
   inherited;
-
-  if FileExists(HeadSectionTemplate) then
-    HeadSectionTemplateDOM.LoadFromFile(HeadSectionTemplate);
-
-  if FileExists(BodySectionTemplate) then
-    BodySectionTemplateDOM.LoadFromFile(BodySectionTemplate);
-
   Dirs := GetDirList(Folder, '*.*');
   Files := GetFileList(Folder, '*.htm*');
   try
-    if Dirs.Count = 0 then Exit;
-    for I := 0 to ChildLists.Count - 1 do
+    if Dirs.Count > 0 then
     begin
-      J := Dirs.IndexOf(Folder + '\' + TElements(ChildLists[I]).SubDirName);
-      if J >= 0 then
-        Dirs.Delete(J);
-    end;
-    for I := Dirs.Count - 1 downto 0 do
-      if SameText(Dirs[I], 'cvs') then
-        Dirs.Delete(I);
+      for I := 0 to ChildLists.Count - 1 do
+      begin
+        J := Dirs.IndexOf(Folder + '\' + TElements(ChildLists[I]).groupName);
+        if J >= 0 then
+          Dirs.Delete(J);
+      end;
+      for I := Dirs.Count - 1 downto 0 do
+        if SameText(Dirs[I], 'cvs') then
+          Dirs.Delete(I);
 
-    J := Files.IndexOf(Folder + '\' + '_Body.htm');
-    if J >= 0 then
-      Files.Delete(J);
-
-    for I := 0 to Dirs.Count - 1 do
-    begin
-      NE := TNodeElement.Create(Self, Dirs[I]);
-      Root.Children.Add(NE);
-      NE.Read;
+      for I := 0 to Dirs.Count - 1 do
+      begin
+        NE := TNodeElement.Create(Self, Dirs[I]);
+        Root.Children.Add(NE);
+        NE.Read;
+      end;
     end;
+
     for I := 0 to Files.Count - 1 do
     begin
+      if ExtractFileName(Files[I]) = '_Body.htm' then Continue;
       NE := TNodeElement.Create(Self, Files[I]);
       Root.Children.Add(NE);
     end;
@@ -2103,8 +1927,6 @@ begin
   inherited;
 end;
 
-initialization
-  VersionString := 'v1.0';
-  GetLocaleFormatSettings(2057, EnglishFormatSettings);
-  
+{$WARN SYMBOL_PLATFORM OFF}
+
 end.

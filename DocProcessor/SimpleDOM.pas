@@ -8,7 +8,8 @@ interface
 {-$DEFINE CODESITE}
 
 uses
-  Classes, SysUtils, Contnrs, HTML_Tags{$IFDEF CODESITE}, CSIntf{$ENDIF};
+  Classes, Types, SysUtils, Contnrs,
+  HTML_Tags{$IFDEF CODESITE}, CSIntf{$ENDIF};
 
 type
   EDomError = class(Exception);
@@ -78,6 +79,8 @@ type
     function LastChild: TDomNode;
     function NextSibling: TDomNode;
     function PrevSibling: TDomNode;
+    function AsString: string;
+    function GetContent: string;
     property Attributes: TAttributeList read FAttributes;
     property Index: Integer read GetIndex write SetIndex;
     property Name: string read FName write FName;
@@ -499,6 +502,36 @@ begin
   end;
 end;
 
+function TDomNode.AsString: string;
+var
+  i: integer;
+  ti: THtmlTagInfo;
+begin
+  Result := '';
+  case FNodeType of
+    ntComment, ntPI, ntCData: Exit;
+    ntText: begin Result := Value; Exit; end;
+  end;
+  ti := GetTagInfo(name);
+  Result := '<' + name;
+  for i := 0 to Attributes.Count -1 do
+    with Attributes.Items[i] do
+      Result := Format('%s %s="%s"', [Result, name, value]);
+
+  if (ti.ClosingType = ctNever) then
+    Result := Result + '/>'
+  else
+    Result := Result + '>' + GetContent + format('</%s>', [name]) ;
+end;
+
+function TDomNode.GetContent: string;
+var
+  i: integer;
+begin
+  for i := 0 to Count -1 do
+    Result := Result + items[i].AsString;
+end;
+
 { TDomDocument }
 
 constructor TDomDocument.Create;
@@ -624,7 +657,9 @@ var
 
       if (TagInfo.ClosingType in [ctNever]) then
       begin
-        if Pos^ <> '>' then DomError(Name + ' tag should not contain any data');
+        if Pos^ = '/' then Inc(Pos);
+        if Pos^ <> '>' then
+          DomError(Name + 'Improper tag closure');
         Inc(Pos);
         if StrLComp(Pos, '</', 2) = 0 then
         begin
@@ -837,6 +872,7 @@ var
     if Level > 0 then NLS := AnsiString(#13#10 + StringOfChar(' ', Level * 2))
     else NLS := AnsiString(#13#10);
   end;
+
 begin
   case Src.NodeType of
     ntText:
@@ -860,7 +896,16 @@ begin
 
     ntTag:
       begin
-        if SameText(Src.Attributes['id'], 'hidden') then Exit;
+        if SameText(Src.Attributes['id'], 'hidden') then
+          Exit;
+
+        //treat empty tags as a forced newline
+        if Src.Name = '' then
+        begin
+          Stream.WriteBuffer(#13#10, 2);
+          NewLine;
+          Exit;
+        end;
 
         TagInfo := GetTagInfo(Src.Name);
         if TagInfo.ElemType = etBlock then NewLine;
@@ -895,15 +940,17 @@ begin
           Write('>');
 
           // child elements
-          if not TagInfo.SimpleContent then NewLine;
+          //if not TagInfo.SimpleContent then NewLine;
 
-          for I := 0 to Src.Count - 1 do WriteStream(Src.Items[I], Stream, Level + 1);
+          for I := 0 to Src.Count - 1 do
+            WriteStream(Src.Items[I], Stream, Level + 1);
 
           if not TagInfo.SimpleContent then NewLine;
 
           // closing tag
           Write('</' + AnsiString(Src.Name) + '>');
-          if TagInfo.ElemType in [etBlock, etUnknown] then NewLine;
+
+          if TagInfo.ElemType = etBlock then NewLine;
         end;
       end;
   end;

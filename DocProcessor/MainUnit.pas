@@ -10,26 +10,21 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Mask, FileCtrl, ComCtrls, Contnrs, IniFiles, ExtCtrls, ShellApi,
-  Utils, SimpleDOM, DocStructure, Pas2Html;
+  Utils, SimpleDOM, DocStructure, Pas2Html, FixRecordFormat, Vcl.WinXPickers;
 
 type
   TMainForm = class(TForm)
     BtnClose: TButton;
-    BtnCompile: TButton;
     BtnOpen: TButton;
     BtnParseMissing: TButton;
-    BtnProcess: TButton;
     BtnSaveProjectInfo: TButton;
     BtnTransform: TButton;
-    CbxBrokenLinks: TCheckBox;
-    CbxIncludeAlphabetClasses: TCheckBox;
+    CbxReportBrokenLinks: TCheckBox;
     CbxOpenAfterProcess: TCheckBox;
     CmbProjectName: TComboBox;
-    EdtCHMCompiler: TEdit;
     EdtProjectDirectory: TEdit;
     EdtProjectTitle: TEdit;
     EdtVersionString: TEdit;
-    LblCompiler: TLabel;
     LblProgress: TLabel;
     LblProjectDirectory: TLabel;
     LblProjectFileName: TLabel;
@@ -37,24 +32,23 @@ type
     LblVersionString: TLabel;
     Log: TMemo;
     OpnDlgPAS: TOpenDialog;
-    PnlCompiler: TPanel;
-    PnlCompilerHead: TPanel;
     PnlControl: TPanel;
     PnlLog: TPanel;
     PnlMisc: TPanel;
-    PnlMiscHead: TPanel;
     PnlProgress: TPanel;
     PnlProjectInfo: TPanel;
     PnlProjectInfoHead: TPanel;
     PnlTransComp: TPanel;
-    PnlTransCompHead: TPanel;
     Progress: TProgressBar;
+    cbxReportBrokenImages: TCheckBox;
+    Label1: TLabel;
+    dtpProjectBuildDate: TDateTimePicker;
+    StatusBar1: TStatusBar;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure BtnCloseClick(Sender: TObject);
-    procedure BtnCompileClick(Sender: TObject);
     procedure BtnOpenClick(Sender: TObject);
     procedure BtnParseMissingClick(Sender: TObject);
     procedure BtnProcessClick(Sender: TObject);
@@ -65,24 +59,32 @@ type
     procedure EdtProjectDirectoryChange(Sender: TObject);
     procedure EdtProjectTitleChange(Sender: TObject);
     procedure EdtCHMCompilerChange(Sender: TObject);
+    procedure EdtVersionStringChange(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   public
+    projectFolders: TStringList;
     ProjectDir: TFileName;
     SourceDir: TFileName;
     CompiledDir: TFileName;
-    StyleFile: TFileName;
+    ExeFilename: TFileName;
+    procedure LoadProperties;
     procedure LoadProject(const ProjName: TFileName);
     procedure SaveProject;
     function StartTransforming: Boolean;
-    procedure StartCompile;
-    procedure WriteProject(const FileName: TFileName);
+    function GetProjectIniFilename(const folder, projectName: string): string;
   end;
 
 var
   ExePath: string;
-  DelphiSourceFolder: string;
+
   NoGUI: Boolean;
   MainForm: TMainForm;
   Project: TProject;
+
+  LogElemCnt: integer;
+  LogElemsCnt: integer;
+
+procedure LogAdd(const S: string);
 
 implementation
 
@@ -90,12 +92,31 @@ const
   CDots: string = '...';
   CRLF = #13#10;
 
+  BodyFileContent =
+    '<html>'#10'<head></head>'#10'<body></body>'#10'</html>';
+  indexFileContent =
+    '<html>'#10+
+    '<head>'#10+
+    '  <meta http-equiv = "refresh" content = "0; URL=./_Body.htm"/>'#10+
+    '</head>'#10+
+    '<body>'#10+
+    '  <p>Redirected <a href="./_Body.htm">here</a></p>'#10+
+    '</body>'#10+
+    '</html>';
+  indexFileContent2 =
+    '<html>'#10+
+    '<head>'#10+
+    '  <meta http-equiv = "refresh" content = "0; URL=./Docs/_Body.htm"/>'#10+
+    '</head>'#10+
+    '<body>'#10+
+    '  <p>Redirected <a href="./Docs/_Body.htm">here</a></p>'#10+
+    '</body>'#10+
+    '</html>';
+
 resourcestring
   RCStrTransformingFiles = 'Transforming Files';
-  RCStrBuildingIndex = 'Building Index';
   RCStrWritingProject = 'Writing Project';
   RCStrProjectContains = 'Project Contains';
-  RCStrStartingHTMLHelpCompiler = 'Starting HTML Help compiler';
   RCStrReadingFiles = 'Reading files';
   RCStrBuildingClassHierarchy = 'Building Class Hierarchy';
   RCStrDeletingDocFolder = 'Deleting Doc folder';
@@ -103,28 +124,9 @@ resourcestring
   RCStrTransformingHalted = 'Transforming halted.';
   RCStrBrokenLinksFound = 'Broken links found';
   RCStrErrorDestinationFolderDoesNotExist = 'Error: destination folder does not exist.';
-  RCStrHTMLHelpCompilerNotFound = 'HTML Help compiler not found! (%s)';
-  RCStrBuildingTOC = 'Building TOC';
   RCStrStartingPas2Html = 'Starting Pas2Html';
 
 {$R *.DFM}
-
-function DeleteDirectoryTree(Dir: string): Boolean;
-var
-  CharCount: Integer;
-  FileOpt : TSHFileOpStruct;
-begin
-  Result := False;
-  CharCount := Length(Dir);
-  if (CharCount > 0) and (Dir[CharCount] = '\') then Dir[CharCount] := #0;
-  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Dir) then Exit;
-  FillChar(FileOpt, SizeOf(FileOpt), 0);
-  FileOpt.Wnd := 0;
-  FileOpt.wFunc := FO_DELETE;
-  FileOpt.pFrom := PChar(Dir);
-  FileOpt.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
-  Result := SHFileOperation(FileOpt) = 0;
-end;
 
 procedure LogAdd(const S: string);
 begin
@@ -161,9 +163,14 @@ begin
     Lines[Lines.Count - 1] := S;
 end;
 
+function TMainForm.GetProjectIniFilename(const folder, projectName: string): string;
+begin
+  Result := IncludeTrailingBackslash(folder) + projectName + '.ini';
+end;
+
 procedure TMainForm.EdtCHMCompilerChange(Sender: TObject);
 begin
-  BtnCompile.Enabled := FileExists(EdtCHMCompiler.Text);
+  //BtnCompile.Enabled := FileExists(EdtCHMCompiler.Text);
   EdtProjectTitleChange(Sender);
 end;
 
@@ -176,79 +183,67 @@ begin
     if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(ProjectDir + 'Source') then
     begin
       SourceDir := ProjectDir + 'Source\';
-      BtnProcess.Enabled := True;
+      BtnTransform.Enabled := True;
       BtnSaveProjectInfo.Enabled := True;
+      if EdtProjectDirectory.Focused then Log.Lines.Clear;
       Exit;
     end;
   end;
-  BtnProcess.Enabled := False;
+  BtnTransform.Enabled := False;
   ProjectDir := '';
   SourceDir := '';
+  if not EdtProjectDirectory.Focused then Exit;
+  LogNL;
+  LogAdd('Caution: no ''Source'' folder found.');
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  Index, ActiveItem: Integer;
-  StrValue: string;
+  iniFilename: string;
 begin
+  projectFolders := TStringList.Create;
+
   EdtProjectDirectoryChange(Self);
 
+  ExeFilename := paramstr(0);
   ExePath := IncludeTrailingBackslash(ExtractFilePath(ParamStr(0)));
-
-  with TIniFile.Create(ExePath + 'Properties.ini') do
-  try
-    Index := 1;
-    while ValueExists('Projects', 'ProjectName' + IntToStr(Index)) do
-    begin
-      StrValue := ReadString('Projects', 'ProjectName' + IntToStr(Index), '');
-      if StrValue <> '' then CmbProjectName.Items.Add(StrValue);
-      Inc(Index);
-    end;
-    DelphiSourceFolder := ReadString('Settings', 'DelphiSourceFolder', '');
-    ActiveItem := ReadInteger('Settings', 'ActiveProject', 0);
-  finally
-    Free;
-  end;
+  LoadProperties;
 
   NoGUI := False;
 
-  if (ParamCount > 0) and FileExists(ExePath + paramstr(2)) then
-    LoadProject(paramstr(2))
-  else if (ParamCount > 0) and FileExists(ExePath + paramstr(2) + '.ini') then
-    LoadProject(paramstr(2)+ '.ini')
-  else if (CmbProjectName.Items.Count > 0) then
+
+  if (ParamCount > 1) then
   begin
-    if (ActiveItem < CmbProjectName.Items.Count) and
-      FileExists(ExePath + CmbProjectName.Items[ActiveItem] + '.ini') then
-        LoadProject(CmbProjectName.Items[ActiveItem] + '.ini')
-    else if FileExists(ExePath + CmbProjectName.Items[0] + '.ini') then
-        LoadProject(CmbProjectName.Items[0] + '.ini')
-    else LoadProject('Properties.ini');
-  end else
-    LoadProject('Properties.ini');
+    iniFilename := ExePath + paramstr(2);
+    if not FileExists(iniFilename) then Exit;
 
-  if BtnProcess.Enabled then
-    ActiveControl := BtnProcess;
+    LoadProject(iniFilename);
 
-  BtnCompile.Enabled := FileExists(EdtCHMCompiler.Text);
+    if ParamCount <= 2 then Exit;
 
-  if ParamCount > 2 then
-  begin
     if FindCmdLineSwitch('nogui') then
     begin
       NoGUI := True;
       Self.Hide;
+    end
+    else if FindCmdLineSwitch('transform') then
+    begin
+      BtnTransform.Click;
+      Application.Terminate;
     end;
-
-    if FindCmdLineSwitch('transform') then
-      BtnTransform.Click
-    else if FindCmdLineSwitch('compile') then
-      BtnCompile.Click
-    else if FindCmdLineSwitch('process') then
-      BtnProcess.Click;
-
-    Application.Terminate;
+  end else
+  begin
+    if (CmbProjectName.ItemIndex < 0) then Exit;
+    with CmbProjectName do
+      LoadProject(projectFolders[ItemIndex]+ Text + '.ini');
+    if BtnTransform.Enabled then
+      ActiveControl := BtnTransform;
   end;
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  projectFolders.Free;
 end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -256,15 +251,24 @@ var
   Index: Integer;
 begin
   CanClose := True;
+  if CmbProjectName.Items.Count <> projectFolders.Count then Exit;
+
   if not NoGUI and BtnSaveProjectInfo.Enabled and
     (MessageBox(self.handle, 'Save Project Information', PChar(caption),
       MB_YESNO or MB_DEFBUTTON1) = IDYES) then SaveProject;
-  with TIniFile.Create(ExePath + 'Properties.ini') do
+
+  with TIniFile.Create(ChangeFileExt(ExeFilename, '.ini')) do
   try
     WriteInteger('Settings', 'ActiveProject', CmbProjectName.ItemIndex);
     if SectionExists('Projects') then EraseSection('Projects');
-    for Index := 0 to CmbProjectName.Items.Count - 1 do
-      WriteString('Projects', 'ProjectName' + IntToStr(Index + 1), CmbProjectName.Items[Index]);
+    if SectionExists('ProjectFolders') then EraseSection('ProjectFolders');
+    with CmbProjectName do
+      for Index := 0 to Items.Count - 1 do
+      begin
+        WriteString('Projects',
+          'ProjectName' + IntToStr(Index + 1), Items[Index]);
+        WriteString('ProjectFolders', Items[Index], projectFolders[Index]);
+      end;
   finally
     Free;
   end;
@@ -275,21 +279,73 @@ var
   Index: Integer;
   Ini: TIniFile;
 begin
-  if CmbProjectName.Items.IndexOf(CmbProjectName.Text) < 0 then
-    CmbProjectName.Items.Add(CmbProjectName.Text);
+  Index := CmbProjectName.Items.IndexOf(CmbProjectName.Text);
+  if Index < 0 then
+  begin
+    index := CmbProjectName.Items.Add(CmbProjectName.Text);
+    projectFolders.Add(EdtProjectDirectory.Text);
+    CmbProjectName.ItemIndex := index;
+  end
+  else
+    projectFolders[index] := EdtProjectDirectory.Text;
 
-  Ini := TIniFile.Create(ExePath + CmbProjectName.Text + '.ini');
+  Ini := TIniFile.Create(
+    GetProjectIniFilename(EdtProjectDirectory.Text, CmbProjectName.Text));
   try
     Ini.WriteString('Settings', 'ProjectName', CmbProjectName.Text);
-    Ini.WriteString('Settings', 'DelphiSourceFolder', DelphiSourceFolder);
     for Index := 0 to Self.ComponentCount - 1 do
       if Self.Components[Index].InheritsFrom(TCustomEdit) and
          not Self.Components[Index].InheritsFrom(TMemo) then
         Ini.WriteString('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), TEdit(Self.Components[Index]).Text)
       else if Self.Components[Index].InheritsFrom(TCheckBox) then
-        Ini.WriteBool('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), TCheckBox(Self.Components[Index]).Checked);
+        Ini.WriteBool('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), TCheckBox(Self.Components[Index]).Checked)
+      else if Self.Components[Index].InheritsFrom(TDateTimePicker) then
+        Ini.WriteDate('Settings',
+          Copy(Self.Components[Index].Name, 4, MAXINT),
+          TDateTimePicker(Self.Components[Index]).Date);
   finally
     Ini.Free;
+  end;
+end;
+
+type TDateTimePickerHack = class(TDateTimePicker);
+
+function ReadValueOnly(const sectionValue: string): string;
+begin
+  Result := Copy(sectionValue, Pos('=', sectionValue) +1, Length(sectionValue));
+end;
+
+procedure TMainForm.LoadProperties;
+var
+  i: Integer;
+begin
+  with TIniFile.Create(ChangeFileExt(ExeFilename, '.ini')) do
+  try
+    ReadSectionValues('Projects', CmbProjectName.Items);
+    for i := 0 to CmbProjectName.Items.Count -1 do
+      CmbProjectName.Items[i] := ReadValueOnly(CmbProjectName.Items[i]);
+    ReadSectionValues('ProjectFolders', projectFolders);
+    for i := 0 to projectFolders.Count -1 do
+      projectFolders[i] :=
+        IncludeTrailingBackslash(ReadValueOnly(projectFolders[i]));
+
+    if CmbProjectName.Items.Count = 0 then Exit;
+
+    if CmbProjectName.Items.Count <> projectFolders.Count then
+    begin
+      LogAdd(CRLF +
+        'There''s a problem in Properties.ini.'+CRLF+
+        'The Projects and ProjectFolders section counts '+
+        'don''t match.'+CRLF);
+      Log.Color := $E7E7FF;
+      Exit;
+    end;
+
+    i := ReadInteger('Settings', 'ActiveProject', 0);
+    CmbProjectName.ItemIndex := i;
+    ProjectDir := projectFolders[i];
+  finally
+    Free;
   end;
 end;
 
@@ -299,14 +355,33 @@ var
   Index: Integer;
   StrValue: string;
 begin
-  Ini := TIniFile.Create(ExePath + ProjName);
+  if not FileExists(ProjName) then
+  begin
+    LogAdd('Couldn''t find: ' + ProjName);
+    Log.Color := $E7E7FF;
+    Exit;
+  end;
+  ini := TIniFile.Create(ProjName);
   try
-    if ProjName = 'Properties.ini' then
-      StrValue := Ini.ReadString('Settings', 'ProjectName', 'MyProjectName') else
-      StrValue := ChangeFileExt(ProjName, '');
+    StrValue := Ini.ReadString('Settings', 'ProjectName', 'MyProjectName');
     Index := CmbProjectName.Items.IndexOf(StrValue);
-    if Index >= 0 then CmbProjectName.ItemIndex := Index
-    else CmbProjectName.Text := StrValue;
+    if Index >= 0 then
+      CmbProjectName.ItemIndex := Index
+    else
+    begin
+      Index := CmbProjectName.Items.Add(StrValue);
+      CmbProjectName.ItemIndex := index;
+      projectFolders.Add(ProjName);
+    end;
+
+    BtnTransform.Enabled := false; //assume a problem
+
+    dataTypesCaption := ini.ReadString('Settings', 'AlternateTypesName', '');
+    if dataTypesCaption = '' then dataTypesCaption := DefaultTypesCaption;
+
+
+    staticFuncsCaption := ini.ReadString('Settings', 'AlternateStaticFuncsName', '');
+    if staticFuncsCaption = '' then staticFuncsCaption := DefaultStaticFuncsCaption;
 
     for Index := 0 to Self.ComponentCount - 1 do
       if Self.Components[Index].InheritsFrom(TCustomEdit) and
@@ -317,12 +392,27 @@ begin
       end
       else if Self.Components[Index].InheritsFrom(TCheckBox) then
         TCheckBox(Self.Components[Index]).Checked :=
-          Ini.ReadBool('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), False);
+          Ini.ReadBool('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), False)
+      else if Self.Components[Index].InheritsFrom(TDateTimePicker) then
+        with TDateTimePickerHack(Self.Components[Index]) do
+        begin
+          Date := Ini.ReadDate('Settings',
+            Copy(Self.Components[Index].Name, 4, MAXINT), Date);
+          if Assigned(OnChange) then OnChange(nil);
+      end;
   finally
     Ini.Free;
   end;
+
   Log.Lines.Clear;
   BtnSaveProjectInfo.Enabled := False;
+
+  if not BtnTransform.Enabled then
+  begin
+    //no project directory with source subfolder found
+    LogNL;
+    LogAdd('Caution: no ''Source'' folder found.');
+  end;
 end;
 
 procedure TMainForm.BtnSaveProjectInfoClick(Sender: TObject);
@@ -339,7 +429,9 @@ end;
 
 procedure TMainForm.CmbProjectNameClick(Sender: TObject);
 begin
-  LoadProject(CmbProjectName.Text + '.ini');
+  if CmbProjectName.ItemIndex >= 0 then
+    with CmbProjectName do
+      LoadProject(projectFolders[ItemIndex]+ Text + '.ini');
 end;
 
 procedure TMainForm.BtnCloseClick(Sender: TObject);
@@ -353,78 +445,303 @@ begin
   case Key of
     VK_ESCAPE: Close;
     VK_F7: BtnTransformClick(nil);
-    VK_F8: BtnCompileClick(nil);
-    VK_F9: BtnProcessClick(nil);
   end;
 end;
 
 procedure TMainForm.BtnProcessClick(Sender: TObject);
 begin
   if not StartTransforming then Exit;
-  LogAdd(CRLF);
-  StartCompile;
 end;
 
-procedure TMainForm.StartCompile;
+procedure WriteRedirectFile(const folder, title: string);
 begin
-  if FileExists(EdtCHMCompiler.Text) then
+  with TStringList.Create do
+  try
+    text := indexFileContent;
+    SaveToFile(folder + 'Docs\index.htm');
+
+    text := indexFileContent2;
+    SaveToFile(folder + 'index.htm');
+  finally
+    Free;
+  end;
+end;
+
+function CleanFoldername(const foldername: string): string;
+var
+  len: integer;
+begin
+  Result := foldername;
+  if Length(Result) < 3 then Exit;
+  if (Result[1] = '.') and
+    ((Result[2] = '\') or (Result[2] = '/')) then
+      Delete(Result, 1, 2);
+  len := Length(Result);
+  if (Result[len] = '\') or (Result[len] = '/') then
+    Delete(Result, len, 1);
+end;
+
+function AddForwardSlash(const S: string): string;
+var
+  c: Char;
+begin
+  Result := S;
+  if (Result = '') then Exit;
+  c := Result[Length(Result)];
+  if c <> '/' then  Result := Result + '/';
+end;
+
+procedure AddSubItem(var topItem: TMenuTopItem; const cap, url: string);
+var
+  len: integer;
+begin
+  len := length(topItem.subItems);
+  SetLength(topItem.subItems, len +1);
+  topItem.subItems[len].shortFileName := cap;
+  if pos('.htm', url) = 0 then
+    topItem.subItems[len].url := url + '/_Body.htm' else
+    topItem.subItems[len].url := url;
+end;
+
+function FindExclude(firstNode: TDomNode; const exclude: string): Boolean;
+var
+  textNode: TDomNode;
+begin
+  Result := true;
+  while Assigned(firstNode) do
   begin
-    LogAdd(RCStrStartingHTMLHelpCompiler + CDots + CRLF);
-    RunCommandInMemo(EdtCHMCompiler.Text + ' "' + ProjectDir + CmbProjectName.Text + '.hhp"', Log);
-    LogAdd('Done.' + CRLF);
-    LogNL;
-    if CbxOpenAfterProcess.Checked then
-      BtnOpenClick(nil);
-    Exit;
-  end
-  else
-    LogAdd(Format(RCStrHTMLHelpCompilerNotFound, [EdtCHMCompiler.Text]) + CRLF);
-  LogNL;
+    textNode := firstNode.FirstChild;
+    if assigned(textNode) and (textNode.Value = exclude) then Exit;
+    firstNode := firstNode.NextSibling;
+  end;
+  Result := false;
+end;
+
+procedure GetSubItems(const foldername: string; var topItem: TMenuTopItem);
+var
+  res: integer;
+  sr: TSearchRec;
+  cap, url: string;
+  isFolder: Boolean;
+  excludes: TDomDocument;
+  firstExclude: TDomNode;
+begin
+  excludes := TDomDocument.Create;
+  try
+    firstExclude := nil;
+    if FileExists(foldername+'\excludes.xml') then
+    begin
+      excludes.LoadFromFile(foldername+'\excludes.xml');
+      firstExclude := excludes.FindNode('exclude', true);
+    end;
+
+    res := FindFirst(foldername+'\*.*', faAnyFile, sr);
+    while res = 0 do
+    begin
+      if sr.Name[1] <> '.' then
+      begin
+        isFolder := (sr.Attr and faDirectory <> 0);
+        if isFolder or (pos('.htm', sr.Name) > 0) then
+        begin
+          if isFolder then
+            cap := sr.Name else
+            cap := ChangeFileExt(sr.Name, '');
+          url := AddForwardSlash(topItem.url) + sr.Name;
+          if not FindExclude(firstExclude, sr.Name) then
+            AddSubItem(topItem, cap, url);
+        end;
+      end;
+      res := FindNext(sr);
+    end;
+  finally
+    excludes.Free;
+  end;
+end;
+
+function AddTopItem(const sourcePath: string; var topItems: TMenuTopItems;
+  const caption: string; url: string; isFolder: Boolean): integer;
+begin
+  Result := length(topItems);
+  SetLength(topItems, Result +1);
+  if url = '' then url := './' + caption;
+  topItems[Result].url := url;
+  if isFolder and (Pos('.htm', url) = 0) then
+  begin
+    topItems[Result].shortFileName := caption;
+    GetSubItems(AddForwardSlash(sourcePath)+ url, topItems[Result]);
+  end else
+    topItems[Result].shortFileName := ChangeFileExt(caption, '');
+end;
+
+procedure GetFilenamesInFolder(const foldername:string; sl: TStringList);
+var
+  res: integer;
+  sr: TSearchRec;
+begin
+  res := FindFirst(foldername+'\*.*', faAnyFile, sr);
+  while res = 0 do
+  begin
+    if sr.Name[1] <> '.' then
+      sl.Add(foldername + '\'+sr.Name);
+    res := FindNext(sr);
+  end;
+end;
+
+procedure GetTopItems(node: TDomNode;
+  const sourceFolder: string; var items: TMenuTopItems);
+var
+  cap, url: string;
+  isFolder: Boolean;
+begin
+  node := node.FirstChild;
+  while Assigned(node) do
+  begin
+    if (node.Name <> 'include') then
+    begin
+      node := node.NextSibling;
+      Continue;
+    end;
+    cap := node.Attributes['caption'];
+    url := node.Attributes['url'];
+    if (Lowercase(cap) = 'index') or (cap = '_Body') then
+    begin
+      node := node.NextSibling;
+      Continue;
+    end;
+
+    if url <> '' then
+    begin
+      url := CleanFoldername(url);
+      if (pos('.htm', url) = 0) and not SysUtils.DirectoryExists(
+        IncludeTrailingBackslash(sourceFolder) + url) then
+          url := '' else
+          url := './' + url;
+      isFolder := url <> '';
+    end else
+      isFolder := SysUtils.DirectoryExists(
+        IncludeTrailingBackslash(sourceFolder) + cap);
+    AddTopItem(sourceFolder, items, cap, url, isFolder);
+
+    node := node.NextSibling;
+  end;
+end;
+
+function ReplaceMacros(const text: string): string; overload;
+begin
+    Result := StringReplace(text, '##BuildDate##', BuildDateString,
+      [rfReplaceAll, rfIgnoreCase]);
+    Result := StringReplace(Result,
+      '##VersionString##', VersionString, [rfReplaceAll, rfIgnoreCase]);
+    Result := StringReplace(Result,
+      '##HtmlCompileDate##', FormatDateTime('d mmm yyyy', date),
+        [rfReplaceAll, rfIgnoreCase]);
 end;
 
 function TMainForm.StartTransforming: Boolean;
 const
   cUpdateInterval = 500;
 var
-  I: Integer;
-  S: string;
+  i,j: Integer;
+  found: boolean;
+  S, dstFolder: string;
   CompileTime: Cardinal;
   NextUpdate: Cardinal;
+
+  Includes: TDomDocument;
+  node: TDomNode;
+  imageInFolder: TStringList;
+  indexes: array of Boolean;
 begin
+  LogElemCnt := 0;
+  LogElemsCnt := 0;
+
   Result := False;
+
+  BuildDateString := FormatDateTime('d mmmm yyyy', dtpProjectBuildDate.Date);
   VersionString := EdtVersionString.Text;
   if ProjectDir = '' then Exit;
   ProjectDir := ExpandFileName(ProjectDir);
+
+  if not FileExists(SourceDir + '_Body.htm') then
+    with TStringList.Create do
+    try
+      text := BodyFileContent;
+      SaveToFile(SourceDir + '_Body.htm');
+    finally
+      Free;
+    end;
+
   Log.Clear;
-  Log.Color := clWhite;
+  Log.Color := $E7FFE7;
   Progress.Position := 0;
   Enabled := False;
+  LogAdd('Deleting Docs folder');
   Application.ProcessMessages;
   if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(ProjectDir + 'Docs') then
-    RemoveDir(ProjectDir + 'Docs');
+    DeleteDir(Self.Handle, ProjectDir + 'Docs');
   CompiledDir := (ProjectDir + 'Docs\');
-  StyleFile := ProjectDir + 'Styles\Default.css';
 
-  Log.Color := $E7FFE7;
+  Log.Clear;
   Application.ProcessMessages;
   CompileTime := GetTickCount;
 
-  DocStructure.IncludeAlphabetClasses := CbxIncludeAlphabetClasses.Checked;
-  DocStructure.CheckForBrokenLinks := CbxBrokenLinks.Checked;
-
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
-    Project.DisplayName := EdtProjectTitle.Text;
-    Project.DestinationFolder := ProjectDir + 'Docs';
-    Project.ImageFolder := ProjectDir + 'Images';
-    Project.ScriptFolder := ProjectDir + 'Script';
-    Project.StylesFolder := ProjectDir + 'Styles';
-    Project.HeadSectionTemplate := ProjectDir + 'HeadSection.tmpl';
-    Project.BodySectionTemplate := ProjectDir + 'BodySection.tmpl';
+    Project.ShortFileName         := EdtProjectTitle.Text;
+    Project.DestinationFolder   := ProjectDir + 'Docs';
+    Project.SourceFolder        := ProjectDir + 'Source';
+    Project.ImageFolder         := ProjectDir + 'Images';
+    Project.ScriptFolder        := ProjectDir + 'Script';
+
+    //get includes
+    if fileExists(SourceDir + '_head_includes.xml')  then
+    begin
+      Project.HeadIncludes.LoadFromFile(SourceDir + '_head_includes.xml');
+      Project.HeadInclude := Project.HeadIncludes.FindNode('head_include', false);
+    end;
+
+    if fileExists(SourceDir + '_body_includes.xml')  then
+    begin
+      Includes := TDomDocument.Create;
+      try
+        Includes.LoadFromFile(SourceDir + '_body_includes.xml');
+        node := Includes.FindNode('body_include', true);
+        if Assigned(node) then
+          Project.BodyIncludes := ReplaceMacros(node.GetContent);
+      finally
+        Includes.Free;
+      end;
+    end;
+
+    //add top level menu items listed in includes.xml
+    if fileExists(SourceDir + '_top_items_includes.xml')  then
+    begin
+      Includes := TDomDocument.Create;
+      try
+        Includes.LoadFromFile(SourceDir + '_top_items_includes.xml');
+        node := Includes.FindNode('includes', false);
+        if Assigned(node) then
+          GetTopItems(node, Project.SourceFolder, Project.MenuTopItems);
+      finally
+        Includes.Free;
+      end;
+    end;
+
+    s := GetProjectIniFilename(EdtProjectDirectory.Text, CmbProjectName.Text);
+    if not FileExists(s) then
+    begin
+      LogAdd('Oops, couldn''t find: ' + s);
+      Log.Color := $E7E7FF;
+      Exit;
+    end;
+
     LogAdd(CRLF + 'Transforming - ' + CmbProjectName.Text + CRLF);
     LogNL;
-
     LogAdd(RCStrReadingFiles + ' ' + CDots);
+
+    Project.CheckForBrokenLinks := CbxReportBrokenLinks.Checked;
+    Project.CheckBrokenImages := cbxReportBrokenImages.Checked;
+
     Project.Read;
     Progress.Position := 2;
     LogAdd(CDots + ' done' + CRLF);
@@ -449,24 +766,23 @@ begin
     LogAdd(RCStrTransformingFiles + ':');
 
     Progress.Position := 4;
-
     NextUpdate := 0;
 
-    for I := 0 to Project.Files.Count - 1 do
+    for i := 0 to Project.Files.Count - 1 do
     begin
-      S := TElement(Project.Files.Objects[I]).DisplayName;
+      S := TElement(Project.Files.Objects[i]).ShortFileName;
 
       if GetTickCount > NextUpdate then
       begin
         LogReplace(Format(RCStrTransformingFile + ': (%d/%d) %s',
-          [I + 1, Project.Files.Count, S]));
-        Progress.Position := 4 + 83 * I div Project.Files.Count;
+          [i + 1, Project.Files.Count, S]));
+        Progress.Position := 4 + 83 * i div Project.Files.Count;
         Application.ProcessMessages;
         NextUpdate := GetTickCount + cUpdateInterval;
       end;
 
       try
-        TElement(Project.Files.Objects[I]).Transform;
+        TElement(Project.Files.Objects[i]).Transform;
       except
         on e: Exception do
         begin
@@ -480,18 +796,39 @@ begin
       end;
     end;
     LogReplace(RCStrTransformingFiles + ' ' + CDots + CDots + ' done' + CRLF);
-    LogAdd(RCStrBuildingTOC + ' ' + CDots);
-    Project.BuildToc(ProjectDir + CmbProjectName.Text + '.hhc');
-    LogAdd(CDots + ' ' + 'done' + CRLF);
-    Progress.Position := 95;
-    LogAdd(RCStrBuildingIndex + ' ' + CDots);
-    Project.BuildIndex(ProjectDir + CmbProjectName.Text + '.hhk');
-    LogAdd(CDots + ' done' + CRLF);
     Progress.Position := 100;
 
-    LogAdd(RCStrWritingProject + ' ' + CDots);
-    WriteProject(ProjectDir + CmbProjectName.Text + '.hhp');
-    LogAdd(CDots + ' ' + 'done' + CRLF);
+    //parse TOP LEVEL files for placeholder strings and replace
+    dstFolder := IncludeTrailingBackslash(project.DestinationFolder);
+    with TStringList.Create do
+    try
+      if FileExists(dstFolder + '_Body.htm') then
+      begin
+        LoadFromFile(dstFolder + '_Body.htm');
+        text := StringReplace(text,
+          '##BuildDate##', BuildDateString, [rfReplaceAll, rfIgnoreCase]);
+        text := StringReplace(text, '##VersionString##',
+          VersionString, [rfReplaceAll, rfIgnoreCase]);
+        SaveToFile(dstFolder + '_Body.htm');
+      end;
+      for i := 0 to HIgh(Project.MenuTopItems) do
+        with TMenuTopItem(Project.MenuTopItems[i]) do
+        begin
+          if not FileExists(dstFolder + url) then Continue;
+          LoadFromFile(dstFolder + url);
+          text := StringReplace(text,
+            '##BuildDate##', BuildDateString, [rfReplaceAll, rfIgnoreCase]);
+          text := StringReplace(text, '##VersionString##',
+            VersionString, [rfReplaceAll, rfIgnoreCase]);
+          SaveToFile(dstFolder + url);
+        end;
+    finally
+      Free;
+    end;
+
+
+    WriteRedirectFile(ProjectDir, CmbProjectName.Text);
+
     LogNL;
     LogAdd('Project transformed in ');
 
@@ -504,50 +841,63 @@ begin
     begin
       LogNL;
       LogAdd(RCStrBrokenLinksFound + ':' + CRLF);
-      for I := 0 to Project.BrokenLinks.Count -1 do
-        LogAdd(Project.BrokenLinks[I]);
+      for i := 0 to Project.BrokenLinks.Count -1 do
+        LogAdd(Project.BrokenLinks[i]);
       LogNL;
       Log.Color := $E7FFFF;
     end;
 
+    if Project.CheckBrokenImages then
+    begin
+      imageInFolder := TStringList.create;
+      try
+        imageInFolder.CaseSensitive := true;
+        GetFilenamesInFolder( Project.ImageFolder, imageInFolder);
+        imageInFolder.Sort;
+        SetLength(indexes, imageInFolder.Count);
+        //imageInFolder.SaveToFile('c:\temp\imgs.txt');
+
+        found := true;
+        LogNL;
+        LogAdd('Missing Images:'+CRLF);
+        for i := 0 to Project.imageNames.Count -1 do
+        begin
+          j := imageInFolder.IndexOf(Project.imageNames[i]);
+          if j < 0 then
+          begin
+            found := false;
+            LogAdd('  ' + Project.imageNames[i] + CRLF);
+          end else
+            indexes[j] := True;
+        end;
+        if found then
+          LogAdd('  None.'+CRLF) else
+          LogAdd('  Note: Case sensitivity is important.'+CRLF);
+
+        found := false;
+        LogNL;
+        LogAdd('Unused Images:'+CRLF);
+        for i := 0 to High(indexes) do
+          if not indexes[i] then
+          begin
+            found := true;
+            LogAdd('  ' + ExtractFileName(imageInFolder[i]) + CRLF);
+          end;
+        if not found then
+          LogAdd('  None.'+CRLF);
+
+      finally
+        imageInFolder.Free;
+      end;
+    end;
     Result := True;
+
+    if CbxOpenAfterProcess.Checked then
+      BtnOpenClick(nil);
+
   finally
     Enabled := True;
     Project.Free;
-  end;
-end;
-
-procedure TMainForm.WriteProject(const FileName: TFileName);
-var
-  Lines: TStringList;
-begin
-  Lines := TStringList.Create;
-  try
-    Lines.Add('[OPTIONS]');
-    Lines.Add('Compatibility=1.1 or later');
-    Lines.Add('Compiled file=' + CmbProjectName.Text + '.chm');
-    Lines.Add('Contents file=' + CmbProjectName.Text + '.hhc');
-    Lines.Add('Default Window=Main Window');
-    Lines.Add('Default topic=Docs\Overview.htm');
-    //Lines.Add('Default topic=Docs\Overview\_Body.htm');
-    Lines.Add('Display compile progress=No');
-    Lines.Add('Full-text search=Yes');
-    Lines.Add('Index file=' + CmbProjectName.Text + '.hhk');
-    Lines.Add('Language=0x409 English (United States)');
-    Lines.Add('Title=' + EdtProjectTitle.Text);
-    Lines.Add('');
-    Lines.Add('[WINDOWS]');
-    Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview.htm",' +
-      '"Docs\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
-      [EdtProjectTitle.Text, CmbProjectName.Text + '.hhc', CmbProjectName.Text + '.hhk']));
-    //Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview\_Body.htm",' +
-    //  '"Docs\Overview\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
-    //  [EdtProjectTitle.Text, CmbProjectName.Text + '.hhc', CmbProjectName.Text + '.hhk']));
-    Lines.Add('');
-    Lines.Add('[INFOTYPES]');
-    Lines.SaveToFile(FileName);
-  finally
-    Lines.Free;
   end;
 end;
 
@@ -556,42 +906,31 @@ begin
   StartTransforming;
 end;
 
-procedure TMainForm.BtnCompileClick(Sender: TObject);
-begin
-  Log.Clear;
-  StartCompile;
-end;
-
 procedure TMainForm.BtnOpenClick(Sender: TObject);
+var
+  indexFile: string;
 begin
-  ShellExecute(Self.Handle, 'open',
-    PChar(IncludeTrailingBackslash(EdtProjectDirectory.Text) +
-    CmbProjectName.Text + '.chm'), '', '', SW_SHOW);
+  indexFile := IncludeTrailingBackslash(
+    EdtProjectDirectory.Text) + 'Docs\_Body.htm';
+  if not FileExists(indexFile) then
+    beep else
+    ShellExecute( Self.Handle, 'open', PChar(indexFile), '', '', SW_SHOW);
 end;
 
 procedure TMainForm.BtnParseMissingClick(Sender: TObject);
 var
-  I, J, K: Integer;
-  FileType: Integer;
+  I, K: Integer;
   DestUnitFolder, Fn: TFileName;
   S: string;
-  PasFiles, MenuData: TStringList;
+  PasFiles: TStringList;
 const
   NEW_MAIN_UNIT = 5;
   NEW_ADDITIONAL_UNIT = 6;
 begin
   if SourceDir = '' then Exit;
-  OpnDlgPAS.InitialDir := DelphiSourceFolder;
+  OpnDlgPAS.InitialDir :=
+    IncludeTrailingBackslash(EdtProjectDirectory.Text) + 'source';
   if not OpnDlgPAS.Execute then exit;
-  DelphiSourceFolder := ExtractFilePath(OpnDlgPAS.FileName);
-
-  if OpnDlgPAS.Files.count > 1 then
-    S := 'Add files as MAIN units?' else
-    S := 'Add file as a MAIN unit?';
-  if MessageBox(Handle, PChar(S), PChar(Caption),
-    MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) = IDYES then
-      FileType := NEW_MAIN_UNIT else
-      FileType := NEW_ADDITIONAL_UNIT;
 
   DestUnitFolder := SourceDir + 'Units\';
 
@@ -608,7 +947,6 @@ begin
   LogNL;
   Application.ProcessMessages;
 
-  J := 0;
   PasFiles := TStringList.Create;
   try
     PasFiles.Duplicates := dupIgnore;
@@ -636,69 +974,13 @@ begin
       //prepare to update the menu list ...
       PasFiles[I] := fn;
       PasFiles.Objects[I] := Pointer(1); //flag as updating
-      Inc(J);
     end;
 
     //remove skipped over files ...
     for I := PasFiles.Count - 1 downto 0 do
       if PasFiles.Objects[I] = nil then
         PasFiles.Delete(I);
-    PasFiles.Sorted := True;
-    //now update the help file's dropdown menu list of units
-    if (J > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then
-    begin
-      MenuData := TStringList.Create;
-      try
-        MenuData.LoadFromFile(ProjectDir + 'Scripts\menu_data.js');
-        if FileType = NEW_MAIN_UNIT then
-          I := MenuData.IndexOf('td_5 = "Main Units"') else
-          I := MenuData.IndexOf('td_6 = "Additional Units"');
-        if I < 0 then
-        begin
-          //'Main Units'/'Additional Units' structure missing so
-          //skip updating menu structure ...
-          LogAdd('Finished adding units.' + CRLF);
-          Exit;
-        end;
-
-        LogAdd('Adding ' + IntToStr(J) + ' units' + CRLF);
-        Inc(I);
-        J := I;
-
-        //add any existing files to PasFiles so the new files are
-        //inserted in alphabetical order ...
-        while (I < MenuData.Count) and (MenuData[I] <> '') do
-        begin
-          S := Copy(MenuData[I], Pos('= "', MenuData[I]) + 3, 255);
-          K := Pos('.pas"', S);
-          if K > 0 then
-            Delete(S, K, 255);
-          PasFiles.Add(S);
-          Inc(I, 2);
-        end;
-        //clear out and rebuild the menu ...
-        for I := 1 to I - J do
-          MenuData.Delete(J);
-        for I := 0 to PasFiles.Count - 1 do
-        begin
-          MenuData.Insert(J, Format('td_%d_%d = "%s.pas"',
-            [FileType, I + 1, PasFiles[I]]));
-          MenuData.Insert(J + 1, Format('url_%d_%d = "Units/%s/_Body.htm"',
-            [FileType, I + 1, PasFiles[I]]));
-          Inc(J, 2);
-        end;
-
-        LogNL;
-        if FileType = NEW_MAIN_UNIT then
-          LogAdd('  ''Main Units'' menu updated.' + CRLF) else
-          LogAdd('  ''Additional Units'' menu updated.' + CRLF);
-
-        //MenuData.SaveToFile('c:\temp\menu_data.txt'); //debugging only
-        MenuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
-      finally
-        MenuData.Free;
-      end;
-    end;
+    PasFiles.Sorted := True; //???
     LogNL;
     LogAdd(CDots + ' done' + CRLF);
     Log.Color := $E7FFE7;
@@ -710,6 +992,13 @@ end;
 procedure TMainForm.EdtProjectTitleChange(Sender: TObject);
 begin
   BtnSaveProjectInfo.Enabled := True;
+end;
+
+procedure TMainForm.EdtVersionStringChange(Sender: TObject);
+begin
+  BtnSaveProjectInfo.Enabled := True;
+  if EdtVersionString.Focused then
+    dtpProjectBuildDate.Date := Date;
 end;
 
 end.
