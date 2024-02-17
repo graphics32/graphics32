@@ -614,7 +614,10 @@ begin
   BeginUpdate;
   try
     while FItems.Count > 0 do
+    begin
+      TCustomLayer(FItems.Last).Visible := False;
       TCustomLayer(FItems.Last).Free;
+    end;
     Notify(lnCleared, nil, 0);
     Changed;
   finally
