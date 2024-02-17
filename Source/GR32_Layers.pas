@@ -51,13 +51,13 @@ uses
 
 const
   { Layer Options Bits }
-  LOB_VISIBLE           = $80000000; // 31-st bit
-  LOB_GDI_OVERLAY       = $40000000; // 30-th bit
-  LOB_MOUSE_EVENTS      = $20000000; // 29-th bit
-  LOB_NO_UPDATE         = $10000000; // 28-th bit
-  LOB_NO_CAPTURE        = $08000000; // 27-th bit
-  LOB_INVALID           = $04000000; // 26-th bit
-  LOB_FORCE_UPDATE      = $02000000; // 25-th bit
+  LOB_VISIBLE           = $80000000; // 31-st bit: Controls the layer visibility
+  LOB_GDI_OVERLAY       = $40000000; // 30-th bit: Indicates that the layer performs drawing when its owner draws its GDI Overlays.
+  LOB_MOUSE_EVENTS      = $20000000; // 29-th bit: Specifies whether the layer responds to mouse messages.
+  LOB_NO_UPDATE         = $10000000; // 28-th bit: Disables automatic repainting when the layer changes its location or other properties.
+  LOB_NO_CAPTURE        = $08000000; // 27-th bit: Allows to override automatic capturing of mouse messages when the left mouse is pressed on top of the layer. This bit has no effect if LOB_MOUSE_EVENTS is not set.
+  LOB_INVALID           = $04000000; // 26-th bit: Used internall by repaint optimizer.
+  LOB_FORCE_UPDATE      = $02000000; // 25-th bit: Used internally to force a layer to update when it is being hidden.
   LOB_RESERVED_24       = $01000000; // 24-th bit
   LOB_RESERVED_MASK     = $FF000000;
 
@@ -251,7 +251,6 @@ type
     procedure SetLayerCollection(Value: TLayerCollection); virtual;
     procedure SetLayerOptions(Value: Cardinal); virtual;
     procedure DoChanged; overload; override;
-
     property Invalid: Boolean read GetInvalid write SetInvalid;
     property ForceUpdate: Boolean read GetForceUpdate write SetForceUpdate;
   public
@@ -733,7 +732,7 @@ begin
   else
     Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
-  if (Result <> MouseListener) and ((Result = nil) or ((Result.FLayerOptions and LOB_NO_CAPTURE) = 0)) then
+  if (Result <> MouseListener) and ((Result = nil) or (Result.FLayerOptions and LOB_NO_CAPTURE = 0)) then
     MouseListener := Result; // capture the mouse
 
   if (MouseListener <> nil) then
@@ -977,14 +976,14 @@ end;
 
 procedure TCustomLayer.DoChanged;
 begin
-  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
   begin
     Update;
 
     if Visible then
       FLayerCollection.Changed
     else
-    if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
+    if (FLayerOptions and LOB_GDI_OVERLAY <> 0) then
       FLayerCollection.GDIUpdate;
 
     inherited;
@@ -996,7 +995,7 @@ begin
   if UpdateCount > 0 then
     Exit;
 
-  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
   begin
     Update(Rect);
 
@@ -1018,7 +1017,7 @@ begin
   if UpdateCount > 0 then
     Exit;
 
-  if Visible and (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if Visible and (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
     FLayerCollection.Changing;
 end;
 
@@ -1058,7 +1057,7 @@ end;
 
 function TCustomLayer.GetMouseEvents: Boolean;
 begin
-  Result := FLayerOptions and LOB_MOUSE_EVENTS <> 0;
+  Result := (FLayerOptions and LOB_MOUSE_EVENTS <> 0);
 end;
 
 function TCustomLayer.GetOwner: TPersistent;
@@ -1068,7 +1067,7 @@ end;
 
 function TCustomLayer.GetVisible: Boolean;
 begin
-  Result := FLayerOptions and LOB_VISIBLE <> 0;
+  Result := (FLayerOptions and LOB_VISIBLE <> 0);
 end;
 
 function TCustomLayer.HitTest(X, Y: Integer): Boolean;
@@ -1231,7 +1230,7 @@ end;
 
 procedure TCustomLayer.Update;
 begin
-  if (FLayerCollection <> nil) and (Visible or (LayerOptions and LOB_FORCE_UPDATE <> 0)) then
+  if (FLayerCollection <> nil) and (Visible or ForceUpdate) then
     FLayerCollection.DoUpdateLayer(Self);
 end;
 
@@ -1244,7 +1243,7 @@ end;
 
 function TCustomLayer.GetInvalid: Boolean;
 begin
-  Result := LayerOptions and LOB_INVALID <> 0;
+  Result := (LayerOptions and LOB_INVALID <> 0);
 end;
 
 procedure TCustomLayer.SetInvalid(Value: Boolean);
@@ -1259,7 +1258,7 @@ end;
 
 function TCustomLayer.GetForceUpdate: Boolean;
 begin
-  Result := LayerOptions and LOB_FORCE_UPDATE <> 0;
+  Result := (LayerOptions and LOB_FORCE_UPDATE <> 0);
 end;
 
 procedure TCustomLayer.SetForceUpdate(Value: Boolean);
@@ -1347,7 +1346,7 @@ begin
   Changing;
 
   // Invalidate old location
-  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
     Update;
 
   DoSetLocation(Value);
@@ -1403,7 +1402,7 @@ begin
   if (FBitmap.Empty) then
     Exit;
 
-  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
   begin
     r := GetAdjustedLocation;
 
