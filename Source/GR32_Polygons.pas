@@ -1821,28 +1821,39 @@ begin
     Result := RenderSpan;
 end;
 
-procedure TPolygonRenderer32VPR.PolyPolygonFS(
-  const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
+procedure TPolygonRenderer32VPR.PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
 {$IFDEF CHANGENOTIFICATIONS}
 var
-  I: Integer;
+  i: Integer;
+  ChangeRect: TRect;
 {$ENDIF}
 begin
-  UpdateFillProcs;
-  if (FFiller <> nil) then
+  if (not Bitmap.MeasuringMode) then
   begin
-    FFiller.BeginRendering;
-    RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
-    FFiller.EndRendering;
-  end
-  else
-    RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
+
+    UpdateFillProcs;
+
+    if (FFiller <> nil) then
+    begin
+      FFiller.BeginRendering;
+      RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
+      FFiller.EndRendering;
+    end else
+      RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
+
+  end;
 
 {$IFDEF CHANGENOTIFICATIONS}
-  if TBitmap32Access(Bitmap).UpdateCount = 0 then
-    for I := 0 to High(Points) do
-      if Length(Points[I]) > 0 then
-        Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
+  if (TBitmap32Access(Bitmap).LockUpdateCount = 0) and
+    ((Bitmap.MeasuringMode) or (TBitmap32Access(Bitmap).UpdateCount = 0)) then
+  begin
+    for i := 0 to High(Points) do
+      if (Length(Points[i]) > 0) then
+      begin
+        if (GR32.IntersectRect(ChangeRect, MakeRect(ClipRect, rrOutside), MakeRect(PolygonBounds(Points[i])))) then
+          Bitmap.Changed(ChangeRect);
+      end;
+  end;
 {$ENDIF}
 end;
 
@@ -1885,26 +1896,38 @@ end;
 
 { TPolygonRenderer32LCD }
 
-procedure TPolygonRenderer32LCD.PolyPolygonFS(
-  const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
+procedure TPolygonRenderer32LCD.PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
 var
   R: TFloatRect;
   APoints: TArrayOfArrayOfFloatPoint;
 {$IFDEF CHANGENOTIFICATIONS}
-  I: Integer;
+  i: Integer;
+  ChangeRect: TRect;
 {$ENDIF}
 begin
-  APoints := ScalePolyPolygon(Points, 3, 1);
-  R.Top := ClipRect.Top;
-  R.Bottom := ClipRect.Bottom;
-  R.Left := ClipRect.Left * 3;
-  R.Right := ClipRect.Right * 3;
-  RenderPolyPolygon(APoints, R, RenderSpan);
+  if (not Bitmap.MeasuringMode) then
+  begin
+    APoints := ScalePolyPolygon(Points, 3, 1);
+
+    R.Top := ClipRect.Top;
+    R.Bottom := ClipRect.Bottom;
+    R.Left := ClipRect.Left * 3;
+    R.Right := ClipRect.Right * 3;
+
+    RenderPolyPolygon(APoints, R, RenderSpan);
+  end;
+
 {$IFDEF CHANGENOTIFICATIONS}
-  if TBitmap32Access(Bitmap).UpdateCount = 0 then
-    for I := 0 to High(Points) do
-      if length(Points[I]) > 0 then
-        Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
+  if (TBitmap32Access(Bitmap).LockUpdateCount = 0) and
+    ((Bitmap.MeasuringMode) or (TBitmap32Access(Bitmap).UpdateCount = 0)) then
+  begin
+    for i := 0 to High(Points) do
+      if (Length(Points[i]) > 0) then
+      begin
+        if (GR32.IntersectRect(ChangeRect, MakeRect(ClipRect, rrOutside), MakeRect(PolygonBounds(Points[i])))) then
+          Bitmap.Changed(ChangeRect);
+      end;
+  end;
 {$ENDIF}
 end;
 
