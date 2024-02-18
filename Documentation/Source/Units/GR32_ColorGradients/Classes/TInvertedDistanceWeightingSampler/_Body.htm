@@ -1,13 +1,11 @@
 <html>
 <head>
-<title>G32Version</title>
-<link rel="stylesheet" href="../../../../../styles/default.css" type="text/css">
 <meta name="Ancestor" content="TCustomArbitrarySparsePointGradientSampler">
 </head>
 <body bgcolor="#FFFFFF">
 <h2>Description</h2>
 <p class="Body">A sparse point <em>inverted distance weighting</em> color gradient interpolation.<br></p>
-<p class="Body">The <a href="http://en.wikipedia.org/wiki/Inverse_distance_weighting">inverted distance weighting</a> method uses a ratio of the inverse distances to each of the given points to determine the color of the pixel at the current point. It is a bit like having spotlights of color at each point which interacts with each other, as the light spreads out to a uniform average of all the given colors at infinity. For a <a href="./Properties/Power.htm">Power</a> of 2 the interpolation is also called Shepards. For lower power will sharpen the points of color, while higher power values approach the <a href="../TVoronoiSampler/_body.htm">TVoronoiSampler</a> sampler.</p>
+<p class="Body">The <a href="http://en.wikipedia.org/wiki/Inverse_distance_weighting">inverted distance weighting</a> method uses a ratio of the inverse distances to each of the given points to determine the color of the pixel at the current point. It is a bit like having spotlights of color at each point which interacts with each other, as the light spreads out to a uniform average of all the given colors at infinity. For a <a href="./Properties/Power.htm">Power</a> of 2 the interpolation is also called Shepards. For lower power will sharpen the points of color, while higher power values approach the <a href="../TVoronoiSampler/_Body.htm">TVoronoiSampler</a> sampler.</p>
 <p align="center" class="Body"><img src="../../../../../Images/img_035.png" width="100" height="100"> <img src="../../../../../Images/img_036.png" width="100" height="100"> <img src="../../../../../Images/img_037.png" width="100" height="100"> <img src="../../../../../Images/img_038.png" width="100" height="100"><br>
   <span class="EmptyRef">Figure 1: Output of a TInvertedDistanceWeightingSampler with the underlying polygon vertices marked with circles (power = 1, 2, 4, 8)</span>
 </p>

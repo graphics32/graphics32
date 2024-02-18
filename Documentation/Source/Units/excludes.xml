@@ -1,0 +1,12 @@
+<excludes>
+  <exclude>GR32_Backends_Generic</exclude>
+  <exclude>GR32_Backends_LCL_Carbon</exclude>
+  <exclude>GR32_Backends_LCL_Win</exclude>
+  <exclude>GR32_Backends_VCL</exclude>
+  <exclude>GR32_Clipper</exclude>
+  <exclude>GR32_ExtImage</exclude>
+  <exclude>GR32_Lowlevel</exclude>
+  <exclude>GR32_Math</exclude>
+  <exclude>GR32_OrdinalMaps</exclude>
+  <exclude>GR32_VectorMaps</exclude>
+</excludes>

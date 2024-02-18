@@ -1,0 +1,7 @@
+<body_include>
+  <p class="Copyright" id="auto">
+    <br><br>
+    Copyright &copy;2000-2024 Alex Denisov and the Graphics32 Team &nbsp; - &nbsp; Graphics32 ##VersionString## &nbsp; - &nbsp; Help file built on ##HtmlCompileDate##
+    <br><br>
+  </p>
+</body_include>

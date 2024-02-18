@@ -1,0 +1,156 @@
+    .menu 
+    {      
+      /* menu color constants */
+      --color: #6060A0;
+      --colorHi: #9090D0;
+      --colorActive: #DDD;
+      --colorActiveHi: #F8F8F8;      
+      --colorFont: #FFF;
+      --colorFontActive: #000;
+      --colorFontActiveHi: #057;
+      
+      /* top menu attributes */
+      margin: 0 !important;
+      position: sticky;
+      top: 0;     
+      background-color: var(--color);
+      display: inline-block;
+      color: var(--colorFont);
+      width: 98vw;
+      z-index: 99;
+      padding: 0;
+      overflow: visible;
+    }
+
+
+    /* top menu item attributes */
+    .menu a, .menu span
+    {
+      float: left;
+      padding: 8px 10px;
+      /* overrides anchor font colors */
+      color: var(--colorFont);
+    }
+
+    /* active menu has lighter color */
+    .menu span.active
+    {
+      background-color: var(--colorHi);
+    }
+
+    /* Change the hover color */
+    .menu a:hover
+    {
+      background-color: var(--colorActive);
+      color: var(--colorFontActive);
+      font-weight:500;
+    }
+
+    /* don't display hamburger unless mobile device */
+    .menu:not(.mobile) a.icon_container
+    {
+      display: none;
+    }
+
+    /* position hamburger */
+    .menu.mobile a.icon_container 
+    {
+      float: right;
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      top: 0;       /* needed for drop-down */
+      right: calc(100% - 100vw);
+    }
+        
+    /* The "open" class is added to "menu mobile" with 
+    JavaScript when the user clicks on the hamburger. */
+                      
+    .menu.mobile.open a, .menu.mobile.open span
+    {
+      float: none;
+      display: block;
+      text-align: left;
+    }
+    
+    /* In top level mobile view, only display "active" 
+    menuitem unless hamburger opened. In lower level
+    mobile view, show all ancestors. */
+    .menu.mobile:not(.open) a:not(.ancestor),
+      .menu.mobile:not(.open) span:not(.active)
+    {
+      display: none;
+    }
+ 
+    /* shape submenu_owner, but also use 'span'
+    specificity otherwise loses precedence */
+    span.submenu_owner {
+      padding: 0;
+      border: 0;
+      position: relative;
+    }
+     
+    /* change color of submenu parent */
+    .submenu_owner:hover {
+      background-color: var(--colorActive);
+    }
+
+    /* make submenus visible on parent hover */
+    .submenu_owner:hover .submenu_background {
+      display: block;
+      background-color: var(--colorActive);
+    }
+                
+    /* vertically align submenu items */
+    .submenu_owner a {
+      clear: left;
+    }
+
+    /* submenu heading font color */
+    .submenu_owner:hover .submenu_heading {
+      color: var(--colorFontActive);
+    }
+        
+    /* Position the 'popup' submenu 
+    window below submenu_heading caption */
+    .submenu_background 
+    {
+      background-color: var(--colorActive);
+      border-left: solid 2px white;
+      border-top: solid 2px white;
+      border-right: solid 1px gray;
+      border-bottom: solid 1px gray;
+      clear: left;
+      display: none;
+      position: absolute; /*no longer contained by owner*/
+      top: 80%;
+      left: 0;
+      width: auto;
+      margin: 0 !important;
+      padding: 0;
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    /* change color of submenu 'hover' items */
+    .submenu_background a:hover {
+      background-color: var(--colorActiveHi);
+      color: var(--colorFontActiveHi);
+    }
+                  
+    /* submenus - font */
+    .submenu_background a, .submenu_background span
+    {
+      color: var(--colorFontActive);
+      font-weight:500;
+      text-align: left;
+      width: 100%;
+      padding: 7px 15px;
+    }
+
+    /* position mobile view submenus*/
+    .menu.mobile.open .submenu_background {
+      left: 140px;
+      transform: translateY(-25%);
+    }
+    

@@ -1,7 +1,5 @@
 <html>
 <head>
-<title>ApplyBitmask</title>
-<link rel="STYLESHEET" href="../../../../Styles/Default.css">
 </head>
 
 <body bgcolor="#FFFFFF">
@@ -24,35 +22,35 @@
   <b>DstY</b>) or directly in-place on <strong>ABitmap</strong>. The operation is carried out in the following manner: &quot;Source Pixel [Logical Operation] Bitmask&quot; regardless of present destination or in-place operation. The logical operation is defined by the provided <a href="../Types/TLogicalOperator.htm">Logical Operator</a>. <br>
 			<br>
 			Each byte in the bitmask will be used as component corresponding operand. The following combinations illustrates different applications:</p>
-		<table width="738" border="0" cellspacing="2" cellpadding="0">
+		<table border="0" cellspacing="2" cellpadding="0" style="margin: 0 20px 0 40px; display: block; overflow-x: auto; table-layout: fixed; max-width: min(760px, calc(100vw - 80px)); width: auto;">
 			<tr>
-				<td width="210"><strong>Description</strong></td>
+				<td width="240"><strong>Description</strong></td>
 				<td width="174"><strong>Parameter Values</strong></td>
 				<td><strong>Source</strong></td>
 				<td><strong>Result</strong></td>
 			</tr>
 			<tr>
-				<td width="210">Zero out Red and Blue components, leave the rest untouched</td>
+				<td width="240" style="word-wrap:break-word">Zero out Red and Blue components, leave the rest untouched</td>
 				<td width="174">
 					LogicalOperator = loAND<br>Bitmask = $FF00FF00</td>
 				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>
 				<td><img src="../../../../Images/img_027.png" alt="" height="122" width="158" border="0"></td>
 			</tr>
 			<tr>
-				<td width="210">Invertion of Blue component, leave the rest untouched</td>
+				<td width="240" style="word-wrap:break-word">Invertion of Blue component, leave the rest untouched</td>
 				<td width="174"> LogicalOperator = loXOR<br>Bitmask = $000000FF</td>
 				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>
 				<td><img src="../../../../Images/img_028.png" alt="" height="122" width="158" border="0"></td>
 			</tr>
 			<tr>
-				<td width="210">Full power to Red component, leave the rest untouched</td>
+				<td width="240" style="word-wrap:break-word">Full power to Red component, leave the rest untouched</td>
 				<td width="174">LogicalOperator = loOR<br>
 					Bitmask = $00FF0000</td>
 				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>
 				<td><img src="../../../../Images/img_029.png" alt="" height="122" width="158" border="0"></td>
 			</tr>
 			<tr>
-				<td width="210">Weird filter</td>
+				<td width="240">Weird filter</td>
 				<td width="174">LogicalOperator = loOR<br>
 					Bitmask = $BABEC0DE</td>
 				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>

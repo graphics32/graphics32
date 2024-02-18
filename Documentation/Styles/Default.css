@@ -1,162 +1,133 @@
-p.Body {  
-  margin-left: 1cm;
-  margin-right: 0.5cm;
+:root {
+  --languageColor: #067;
+  --anchorBackgnd: #8ED;
+  --monoboldBkgnd: #DEE;  
 }
 
-p.Hierarchy {
-	margin-top: 0;
-	margin-left : 1cm;
-	margin-bottom : 0;
-	font-size : 90%;
+html { 
+  font-family: Verdana, Tahoma, Helvetica, sans-serif;
+  font-size: 16px;
 }
 
-.EmptyRef {
-  font-weight: bold;
+body {
+  position: absolute;
+  margin: 0;
+  max-width: 820px;  
+}
+  
+.Comment {
+  margin-left: 40px;
+  margin-right: 20px;
+  font-size: 0.9rem;  
+  font-weight: 600; 
+  font-style: italic;  
+  color: #206020;
 }
 
-.API {
-  color: #700070;
-  font-style: italic;
+.Language {
+  display: inline-block;
+  margin-left: 0px;
+  width: 4em;
+  font-size: 0.9rem;  
+  font-weight: 600; 
+  color: var(--languageColor);
 }
 
-.Code {
-  font-family: Arial, Helvetica, sans-serif;
-  margin-left: 1cm; 
-  margin-right: 1cm;   
-  margin-top: 0px;
-  margin-bottom: 0px;
+.Language2 {
+  display: inline-block;
+  margin-left: 0px;
+  width: 4em;
+  font-weight: 600; 
+  color: var(--languageColor);
+}
+
+.Number {
+  font-weight: 600; 
+  color: #008800;
+}
+
+.Maroon {
+  color: Maroon;
+}
+
+br.half {
+  margin: 0px;
+  padding: 2px;
+  display: block;
+  font-size: 0.5em;
+  content: " ";
+}
+
+p, div {
+  padding: 10px 0;
+  margin-left: 40px;
+	margin-right: 0px;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  overflow: hidden;
+  width: min(760px, calc(100vw - 80px));
 }
 
 p.Decl {
   font-family: Arial, Helvetica, sans-serif;
   background-color: #E0E0E0;
-  padding-top: 3pt;
-  padding-right: 4pt;
-  padding-left: 0.75cm;
-  padding-bottom: 3pt;
-  margin-left: 1cm; 
-  margin-top: 0px; 
-  margin-right: 0.5cm; 
-  margin-bottom: 0px;
-  text-indent: -0.5cm;
+  padding-top: 3px;
+  padding-right: 10px;
+  padding-left: 10px;
+  padding-bottom: 3px;
+  overflow: hidden;
+  width: calc(100% - 64px);
 }
 
-body {
-  font-family: Verdana, Tahoma, serif;
-  font-size: 70%;
-  margin-left : 2px;
-  margin-top: 2px;
-  margin-right : 2px;
-  margin-top : 2px;
+p.Hierarchy, div.Hierarchy {
+  margin: 0 40px;
+  padding: 0;
 }
 
-p {
-  margin-top: 5pt;
-  margin-bottom: 5pt;
+div > div {
+  margin: 0;
+  padding: 0;
+}
+
+hr {
+  margin-left: 40px; 
 }
 
 h1 {
-  font-size: 150%;
+  font-size: 1.5rem;
   margin-top: 5pt;
   margin-bottom: 16pt;
-  margin-left : 0.25cm;
+  margin-left: 20px;
 }
 
 h2 {
-  font-size: 100%;
+  font-size: 1.2rem;
+  margin-left: 40px;
   margin-bottom: 4pt;
   margin-top: 16px; 
-  margin-left: 0.25cm; 
+  padding-left: 0px;
+  margin-block-start: 0;
+  margin-block-end: 0;
+  
+}
+
+h3 {
+  font-size: 1.1rem;
+  margin-left: 40px;
+  margin-bottom: 4pt;
+  margin-top: 16px; 
   padding-left: 0px;
 }
 
-table {  
-  border: none;
-  margin-left: 1cm; 
-  border-color: #FFFFFF; 
-  margin-right: 0.5cm;
-}
-
-th {  
-  font-family: Verdana, Arial, Helvetica, sans-serif;
-  font-size: 70%; 
-  background-color: #D0D0D0; 
-  padding-right: 6pt; 
-  padding-left: 6pt;
-}
-
-td {  
-  font-family: Verdana, Arial, Helvetica, sans-serif; 
-  font-size: 70%;
-  background-color: #F0F0F0; 
-  padding-right: 4pt; 
-  padding-left: 4pt;
-}
-
-td.White {  
-  font-family: Verdana, Arial, Helvetica, sans-serif; 
-  font-size: 65%;
-  background-color: #FFFFFF; 
-  padding-right: 4pt; 
-  padding-left: 4pt;
-}
-
-table.Banner  { color: white; font-size: 90%; background-color: #9595bd; margin-top: 0; margin-right: 0; margin-left: 0; padding: 3pt 4pt; width: 100%; cellpadding: 0; cellspacing: 0 }
-
-td.Banner {
-  background-color: #6060A0;
-  font-size: 7pt;
-  padding-top: 0pt;
-  padding-bottom: 0pt;
-}
-a:link { color: blue; text-decoration: underline }
-a:visited { color: blue; text-decoration: underline }
-a:hover { color: black; text-decoration: none; background-color: #d0d0ff }
-table.Home {  
-  border: #FFFFFF none;
-  margin-left: 0cm;
-  padding-left: 0cm; 
-  border-color: #FFFFFF; 
-  margin-right: 0cm;
-  width: 100%;
-; padding-right: 0px
-}
-table.menu    { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin-top: 0; margin-right: 0; margin-left: 0; padding: 3px 4px; position: static; border-style: solid; border-width: 1px; border-color: #272758 #656596 #272758 #272758 }
-table.menudrop  { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin: 0; padding: 0; position: absolute; border-left: 1px solid #444475 }
-table.menu td   { font-size: 7pt; background-color: #6060a0; white-space: nowrap; margin: 0; border-right: 1px solid #3d3d7d; border-left: 1px solid #636393 }
-table.menudrop td { font-size: 7pt; background-color: #6060a0; white-space: nowrap; margin: 0; padding: 3px 4px; border-right: 1px solid #3d3d7d; border-bottom: 1px solid #2f2f60; border-left: 1px solid #636393 }
-td.Home {
-  background-color: #FFFFFF;
-  padding-top: 0pt;
-  padding-bottom: 0pt;
-  padding-left: 0pt;
-  margin-left: 0pt;
-}
-a:link.Banner { 
-  text-decoration: none;
-  color: white;
-}
-
-a:visited.Banner { 
-  text-decoration: none;
-  color : white;
-}
-
-a:hover.Banner {
-  background-color: #6060A0;
-  text-decoration: underline;
-  color: white;
-}
-
-a.Bold {
-  font-weight: bold;
-}
+a:link { color: blue; text-decoration: none }
+a:visited { color: blue; text-decoration: none }
+a:hover { color: black; text-decoration: none; background-color: var(--anchorBackgnd);}
 
 li {  
-  list-style-position: outside; 
+  list-style-position: inside; 
   list-style-type: square;
   margin-top: 3pt; margin-bottom: 3pt;
-  margin-left: 12pt;
+  margin-left: 10px;
 }
 
 ul {
@@ -164,47 +135,144 @@ ul {
   margin-bottom : 8pt;
 }
 
-.Comment {  
-  font-style: italic; 
-  color: #206020;
-}
-
 img {
-  margin-top: 0px; 
-  margin-right: 0px; 
-  margin-bottom: 0px; 
-  margin-left: 0px; 
-  border-top-width: 0px; 
-  border-right-width: 0px; 
-  border-bottom-width: 0px; 
-  border-left-width: 0px;
-  padding-top: 0px; 
-  padding-right: 0px; 
-  padding-bottom: 0px; 
-  padding-left: 0px;
+  margin: 0; 
+  border-width: 0; 
+  padding: 0;
+  max-width: 100%;
+  height: auto;
+  width: auto;
+  object-fit: scale-down;
+  float: left;
 }
 
-span.sub {  
-  font-size: 80%; 
-  vertical-align: sub;
+span.plusImg {
+  float: left;
+  height: 40px;  
+  width: 40px;
+  padding: 10px;
 }
 
-.Tree {  
-  margin-top: 0px; 
-  margin-bottom: 0px; 
-  margin-left: 1cm;
-  padding-top: 0px; 
-  padding-bottom: 0px; 
+span.plusImg > img {
+  position: absolute;
+  transform: translateY(200%);
 }
 
-span.Menu {
-  font-weight: bold; 
-  color: #402000
+span.monobold {
+  font-family: Lucida Console, Courier, monospace;
+  font-weight: 900; 
+  font-size: 110%;  
 }
 
-p.Copyright {font-size: 7pt; color: #808090; text-align: center; font-family: Tahoma, Arial, sans-serif}
-
-.pascalcode {
-  font-family: "Courier New", Courier, mono;
+span.monobold2 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600; 
+  background-color: var(--monoboldBkgnd);
 }
-#mainmenu  { position: static }
+
+.Smaller {
+  font-size: 0.85rem; 
+}
+
+.Copyright {
+  font-size: 0.7rem; 
+  color: #808090; 
+  text-align: center; 
+  font-family: Tahoma, Arial, sans-serif
+}
+
+div.pseudoTbl {  
+  margin: 20px 20px 20px 40px;
+  padding: 4px 0;
+  background-color: #F0F0F0; 
+  max-width: min(760px, calc(100vw - 80px));
+}
+
+span.floatLeft {
+  float: left;
+  margin: 5px 10px;
+}
+
+table {
+  background-color: #F0F0F0;
+  margin: 10px 20px 6px 40px;
+  width: calc(100% - 64px);
+}
+
+p table {
+  margin-left: 0;
+  margin-right: 0;
+  display: block;
+  max-width: min(760px, calc(100vw - 80px));
+  width: auto;
+  overflow-x: auto;
+}
+
+td {
+  padding-left: 3px; 
+  padding-right: 7px; 
+}
+
+/*table.autoTbl almost obsolete*/
+table.autoTbl, div.autoTbl {  
+  border: none;
+  background-color: #F0F0F0;
+  padding: 1px;
+  
+  display: block;
+  white-space: nowrap;
+  max-width: min(760px, calc(100vw - 80px));
+  width: auto;
+}
+
+div.autoTblContainer { 
+  margin: 10px 0;
+  padding: 0;
+}
+
+div.autoTbl { 
+  overflow-x: hidden;
+  margin: 0 20px 0 40px;
+}
+
+table.autoTbl { 
+  overflow-x: auto;
+}
+
+table.autoTbl tbody { 
+  max-width: min(758px, calc(100vw - 82px));
+}
+
+div.autoTbl div { 
+  margin: 4px 10px;
+  columns: 180px 3;
+  line-height: 22px;
+}
+
+div.autoTbl span { 
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow-x: hidden;
+}
+
+table th {  
+  text-align: left;
+  padding: 2px 14px;
+}
+
+table.autoTbl td {    
+  padding: 2px 0 2px 14px;
+  white-space: nowrap;
+  overflow-x: hidden;  
+  min-width: 150px;
+}
+
+td.ancestor {
+  padding-top: 2px; 
+  padding-bottom: 4px;
+  background-color: #e8e8e8;
+  border-bottom: solid 1px white;
+  border-top: solid 1px silver;
+  width: min(740px, calc(100vw - 100px));
+}

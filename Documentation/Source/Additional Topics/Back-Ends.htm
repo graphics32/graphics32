@@ -1,7 +1,5 @@
 <html>
 <head>
-<title>Back-Ends</title>
-<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
 </head>
 <body bgcolor="#FFFFFF">
 <h2>1 Introduction</h2>
@@ -9,31 +7,26 @@
 With the arrival of broader platform support in Graphics32 we are separating the memory management as well as OS or graphics subsystem specific methods from the generic methods in <a href="../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> and move these portions into so called back-end classes.</p>
 <h2>2 Approach and compatibility</h2>
 <p class="Body">In order to keep backwards compatibility the <a href="../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> class still exposes the same external interface. In order to get a clean cut from the platform specific methods and properties we implemented a new in-between class <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> which is truly platform agnostic and relies solely on the associated back-end class to handle its needs. As a matter of fact <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> is missing all Text, Canvas and Handle methods. Back-ends may implement predefined interfaces to implement the functionality.</p>
-<p class="Body">The back-end instance is switchable during the lifecycle of a <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> instance. Conversion to the new back-end instance is handled transparently, i.e. without loosing the bitmap's surface contents. For instance this allows for temporarily switching a handle-less memory-only bitmap to a GDI bitmap with handle and vice versa. <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> exposes the current back-end via its <a href="../Units/GR32/Classes/TCustomBitmap32/Properties/Backend.htm">Backend</a> property. <br>
-  <br>
-</p>
-<div align="center">
-  <table border="0">
-    <tr>
-      <th width="761" scope="col">Code example (Switching back-ends) </th>
-    </tr>
-    <tr>
-      <td><pre class="brush: delphi;">
-begin
+<p class="Body">The back-end instance is switchable during the lifecycle of a <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> instance. Conversion to the new back-end instance is handled transparently, i.e. without loosing the bitmap's surface contents. For instance this allows for temporarily switching a handle-less memory-only bitmap to a GDI bitmap with handle and vice versa. <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> exposes the current back-end via its <a href="../Units/GR32/Classes/TCustomBitmap32/Properties/Backend.htm">Backend</a> property. <br><br>
+
+<div class="pseudoTbl">
+<div><b>Code example (Switching back-ends)</b></div>
+<pre class="brush: delphi;">begin
   MyBitmap := TBitmap32.Create;
-  TMMFBackend.Create(MyBitmap); // Switch to a handle-less memory mapped file back-end...
+  // Switch to a handle-less memory mapped file back-end...
+  TMMFBackend.Create(MyBitmap); 
   MyBitmap.SetSize(5000, 5000);
 
   // Draw onto your new big bitmap...
-  // Note: No text or canvas drawing is allowed because TMMFBackend does not implement those operations.
+  // Note: No text or canvas drawing is allowed because 
+  // TMMFBackend does not implement those operations.
   // Use TGDIMMFBackend instead...
 
-  TGDIBackend.Create(MyBitmap); // Switch to a GDI back-end and convert the current buffer...
+  // Switch to a GDI back-end and convert the current buffer...
+  TGDIBackend.Create(MyBitmap); 
   MyBitmap.SaveToFile('test.bmp');
-end;</pre></td>
-    </tr>
-  </table>
-</div>
+end;</pre></div>
+</p>
 
 <h2>3 Class and interface overview</h2>
 <p class="Body">Currently Graphics32 ships with the following back-end classes which are subclasses of <a href="../Units/GR32/Classes/TBackend/_Body.htm">TBackend</a> and implement several interfaces (see below):</p>

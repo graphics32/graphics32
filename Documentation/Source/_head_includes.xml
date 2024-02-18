@@ -1,0 +1,16 @@
+<head_include>
+    <script type="text/javascript" src="CodeScripts/SyntaxHighlighter/scripts/shCore.js"/>
+    <script type="text/javascript" src="CodeScripts/SyntaxHighlighter/scripts/shBrushDelphi.js"/>
+    <script type="text/javascript" src="CodeScripts/SyntaxHighlighter/scripts/shBrushCpp.js"/>
+    <script type="text/javascript" src="CodeScripts/SyntaxHighlighter/scripts/shBrushCSharp.js"/>
+
+    <link rel="stylesheet" type="text/css" href="Styles/default.css"/>
+    <link rel="stylesheet" type="text/css" href="Menu/menu.css"/>
+    <link type="text/css" rel="stylesheet" href="CodeScripts/SyntaxHighlighter/styles/shCoreDefault.css"/>
+    <link type="text/css" rel="stylesheet" href="CodeScripts/SyntaxHighlighter/styles/shThemeDefault.css"/>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    
+    <script type="text/javascript" src="Menu/menu.js" />
+    <script type="text/javascript" src="CodeScripts/bootstrap.js"/>
+</head_include>

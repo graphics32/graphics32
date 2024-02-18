@@ -1,7 +1,6 @@
 <html>
 <head>
-  <title>Color Gradients</title>
-  <link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
+  
 </head>
 <body bgcolor="#FFFFFF">
 <h2 class="Body">Color Gradients</h2>
@@ -11,14 +10,11 @@
 <p class="Body">Classic color gradients only use 2 colors with a linear transition from one color to the other color, as can be seen in Figure 1.</p>
 <p align="center" class="Body"><img src="../../Images/img_069.png" width="100" height="100"> <img src="../../Images/img_070.png" width="100" height="100"> <img src="../../Images/img_071.png" width="100" height="100"> <img src="../../Images/img_072.png" width="100" height="100"><br>
 <span class="EmptyRef">Figure 1: Simple 2-point linear gradients</span></p>
-<p class="Body">The code, which is necessary to build the above gradients is very simple. In fact a linear gradient sampler is created and the values for each pixels are calculated</p> 
-<div align="center">
-  <table border="0">
-    <tr>
-      <th width="761" scope="col">Code example (Linear Gradient Sampler) </th>
-    </tr>
-    <tr>
-      <td><pre class="brush: delphi;">
+<p class="Body">The code, which is necessary to build the above gradients is very simple. In fact a linear gradient sampler is created and the values for each pixels are calculated.<br><br>
+
+<div class="pseudoTbl">
+<div><b>Code example (Linear Gradient Sampler)</b></div>
+<pre class="brush: delphi;">
 var
   X, Y: Integer;
   Sampler: TLinearGradientSampler;
@@ -39,24 +35,19 @@ begin
     end;
   end;
 end;
-</pre></td>
-    </tr>
-  </table>
-</div>
+</pre></div>
+</p> 
 
 <br>
 <h2 class="Body">Simple 2-Point Radial Gradients</h2>
 <p class="Body">Another classical color gradient supported by Graphics32 (since version 2.0.0) is the circular gradient. A circular gradient is specified as a circle that has one color and a focus (the center of the circle) that has another. Colors are calculated by linear interpolation based on distance from the focus. The distance from the focus is mapped using a radius property</p> 
 <p align="center" class="Body"><img src="../../Images/img_073.png" width="100" height="100"> <img src="../../Images/img_074.png" width="100" height="100"> <img src="../../Images/img_075.png" width="100" height="100"> <img src="../../Images/img_076.png" width="100" height="100"><br>
 <span class="EmptyRef">Figure 2: Simple 2-point circular gradients</span></p>
-<p class="Body">The code, which is necessary to build the above gradients is very simple. In fact a linear gradient sampler is created and the values for each pixels are calculated</p> 
-<div align="center">
-  <table border="0">
-    <tr>
-      <th width="761" scope="col">Code example (Radial Gradient Sampler) </th>
-    </tr>
-    <tr>
-      <td><pre class="brush: delphi;">var
+<p class="Body">The code, which is necessary to build the above gradients is very simple. In fact a linear gradient sampler is created and the values for each pixels are calculated.
+
+<div class="pseudoTbl">
+<div><b>Code example (Radial Gradient Sampler) </b></div>
+<pre class="brush: delphi;">var
   X, Y: Integer;
   Sampler: TRadialGradientSampler;
 begin
@@ -79,11 +70,9 @@ begin
     end;
   end;
 end;  
-</pre></td>
-    </tr>
-  </table>
-</div>
+</pre></div>
 
+</p> 
 <br>
 <h2 class="Body">Wrap Modes</h2>
 <p class="Body">As can be seen in Figure 2, the color outside the defined radius is clamped. While this might be desired and sufficient for typical cases, it is alsp possible to use other wrap modes. Figure 3 shows the differences between all the different wrap modes available.</p> 

@@ -1,7 +1,5 @@
 <html>
 <head>
-<title>Repaint Optimization</title>
-<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
 <style type="text/css">
 <!--
 .code {font-size: 100%}
@@ -30,28 +28,25 @@
   Figure 2 shows an example comparison of the old full scene repaint (<em><a href="../Units/GR32_Image/Types/TRepaintMode.htm">rmFull</a></em>) and the new optimized repaint (<em><a href="../Units/GR32_Image/Types/TRepaintMode.htm">rmOptimizer</a></em>) for simple layer operations like moving or resizing. One can see that the new method breaks the full scene repaint down to just a fractional repaint namely those parts that were changed. Both modes are used in TCustomPaintBox32 for repaint to screen and in TCustomImage32 for repaint to buffer. Additionally there is one mode called rmDirect which is only available for TCustomPaintBox32 derived controls and does provide a direct repainting to screen. In this mode the deferred repaint technique is replaced by an immediate repaint. This technique is especially useful for the new <a href="../Units/GR32_ExtImage/Classes/TSyntheticImage/_Body.htm">TSyntheticImage</a> class, which provides incremental painting of the result while still rendering. </p>
 <h2><a name="MeasuringMode"></a>3 Measuring Mode </h2>
 <p class="Body">Layers in Graphics32 are a special case that needs to be taken care of separately: Since layers are not forced to stay within their determined bounds (for TPositionedLayer for example), they can basically paint everywhere on the buffer. Thus we need to find some other way of determining which areas the layer is drawing to. For this to work we have extended all safe drawing operations in Graphics32 to support a method called measuring. This method can basically be thought of as a simulation mode or dry-run where nothing is actually drawn to the buffer. However, the Changed event is still triggered. So, this way the repaint optimizer can get information of which areas the operation is drawing to. As a matter of fact the repaint optimizer just needs to iterate through all marked layers (compare <em>Figure 2</em>), calling the Paint method of each layer with the measuring mode enabled. The information gathered in this process is used for the repaint manager's internal optimization work, ie. unifying overlapping areas and minimizing the number of rectangles to be updated. </p>
-<p class="Body"> Profiling has shown, that the measuring process adds only neglectable overhead to the repaint process. However, the developer needs to take care of certain facts in his custom code to actually take advantage of the performance benefits the repaint optimizer offers. </p>
-<div align="center">
-  <table border="0">
-    <tr>
-      <th scope="col">Code 1 </th>
-      <th scope="col">Code 2 </th>
-    </tr>
-    <tr>
-      <td><pre class="brush: delphi;">
+<p class="Body"> Profiling has shown, that the measuring process adds only neglectable overhead to the repaint process. However, the developer needs to take care of certain facts in his custom code to actually take advantage of the performance benefits the repaint optimizer offers.<br><br>
+
+<div class="pseudoTbl">
+<div><b>Code 1</b></div>
+<pre class="brush: delphi;">
 begin
   MyDrawingOperation(Buffer);
   Buffer.Changed;
-end;</pre></td>
-      <td><pre class="brush: delphi;">
+end;</pre></div>
+<div class="pseudoTbl">
+<div><b>Code 2</b></div>
+<pre class="brush: delphi;">
 begin
   if not Buffer.Measuringmode then
     MyDrawingOperation(Buffer);
   Buffer.Changed(RectOfAreaThatWasChanged);
-end;</pre></td>
-    </tr>
-  </table>
-</div>
+end;</pre></div>
+</p>
+
 <p class="Body"><span class="EmptyRef">Code 1</span> compared to <span class="EmptyRef">Code 2</span> illustrates the required changes in pseudo-Pascal-code. As seen in the <em>Code 2</em>, a simple check for active measuring mode is introduced. In this case the actual drawing operation is omitted. </p>
 <p class="Body"> If the developer's code includes calls to the Changed method, those calls need to be changed to only represent the changed area instead of the whole buffer area. Keeping the Changed method unmodified will force a complete buffer invalidation, thus the effect of the repaint optimizer and the partial repaint therefore is reversed. Also, the custom code needs to be fully safe, meaning it has to offer full clipping support. </p>
 <p class="Body"> If the developer's custom code solely relies on the safe drawing operations provided by Graphics32, there is no need to change this code. However, doing so will likely result in better performance especially if the custom code is calling many safe drawing operations. In this case introducing the changes of <em>Code 2</em> could simplify the measuring process a lot by overriding all subordinated checks by one superordinated check for measuring mode. </p>
