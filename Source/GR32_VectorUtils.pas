@@ -797,6 +797,12 @@ begin
   Recurse(0, High(Values));
 end;
 
+// Delaunay Triangulation
+// Based on Paul Bourke's implementation of the Bowyer–Watson algorithm.
+// References:
+//   http://paulbourke.net/papers/triangulate/
+//   https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm
+// Note: GR32_ColorGradients contains a custom version of this function. Keep both in sync.
 function DelaunayTriangulation(Points: TArrayOfFloatPoint): TArrayOfTriangleVertexIndices;
 var
   Complete: array of Byte;
@@ -857,6 +863,11 @@ const
     begin
       M1 := -(Pt2.X - Pt1.X) / (Pt2.Y - Pt1.Y);
       M2 := -(Pt3.X - Pt2.X) / (Pt3.Y - Pt2.Y);
+      if Abs(M1 - M2) < CTolerance then
+      begin
+        Result := False;
+        Exit;
+      end;
       MX1 := (Pt1.X + Pt2.X) * 0.5;
       MX2 := (Pt2.X + Pt3.X) * 0.5;
       MY1 := (Pt1.Y + Pt2.Y) * 0.5;

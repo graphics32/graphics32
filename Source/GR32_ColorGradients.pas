@@ -2348,6 +2348,7 @@ begin
   Recurse(0, High(Values));
 end;
 
+// Note: GR32_VectorUtils contains a generic version of this function. Keep both in sync.
 function DelaunayTriangulation(Points: TArrayOfColor32FloatPoint): TArrayOfTriangleVertexIndices;
 var
   Complete: array of Byte;
