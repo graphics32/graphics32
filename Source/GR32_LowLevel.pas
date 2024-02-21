@@ -1418,11 +1418,11 @@ begin
   Registry := NewRegistry('GR32_LowLevel bindings');
   Registry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
 
-  Registry.Add(FID_FILLLONGWORD, @FillLongWord_Pas, []);
+  Registry.Add(FID_FILLLONGWORD, @FillLongWord_Pas);
   {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_FILLLONGWORD, @FillLongWord_ASM, []);
-  Registry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [ciMMX]);
-  Registry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [ciSSE2]);
+  Registry.Add(FID_FILLLONGWORD, @FillLongWord_ASM);
+  Registry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [isMMX]);
+  Registry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [isSSE2]);
   {$ENDIF}
 
   Registry.RebindAll;

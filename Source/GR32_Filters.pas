@@ -1686,12 +1686,12 @@ begin
   Registry.Add(FID_ORLINEEX, @OrLineEx_ASM);
   Registry.Add(FID_XORLINEEX, @XorLineEx_ASM);
 {$IFNDEF OMIT_MMX}
-  Registry.Add(FID_ANDLINEEX, @AndLineEx_MMX, [ciMMX]);
-  Registry.Add(FID_ORLINEEX, @OrLineEx_MMX, [ciMMX]);
-  Registry.Add(FID_XORLINEEX, @XorLineEx_MMX, [ciMMX]);
-  Registry.Add(FID_ANDLINEEX, @AndLineEx_EMMX, [ciEMMX]);
-  Registry.Add(FID_ORLINEEX, @OrLineEx_EMMX, [ciEMMX]);
-  Registry.Add(FID_XORLINEEX, @XorLineEx_EMMX, [ciEMMX]);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_MMX, [isMMX]);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_MMX, [isMMX]);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_MMX, [isMMX]);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_EMMX, [isExMMX]);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_EMMX, [isExMMX]);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_EMMX, [isExMMX]);
 {$ENDIF}
 {$ENDIF}
 

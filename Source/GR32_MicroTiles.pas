@@ -1676,8 +1676,8 @@ begin
 
 {$IFNDEF PUREPASCAL}
 {$IFDEF TARGET_x86}
-  Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_EMMX, [ciEMMX]);
-  Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_EMMX, [ciEMMX]);
+  Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_EMMX, [isExMMX]);
+  Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_EMMX, [isExMMX]);
 {$ENDIF}
 {$ENDIF}
   Registry.RebindAll;

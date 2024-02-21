@@ -52,6 +52,9 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
+{$IFNDEF PUREPASCAL}
+  GR32.CPUID,
+{$ENDIF}
   SysUtils;
 
 type
@@ -74,6 +77,9 @@ type
     function ReadValue: Int64;
   end;
 
+var
+  GlobalPerfTimer: TPerfTimer;
+
 { Pseudo GetTickCount implementation for Linux - for compatibility
   This works for basic time testing, however, it doesnt work like its
   Windows counterpart, ie. it doesnt return the number of milliseconds since
@@ -83,34 +89,80 @@ function GetTickCount: Cardinal;
 { Returns the number of processors configured by the operating system. }
 function GetProcessorCount: Cardinal;
 
+
+(*
+** Legacy HasInstructionSet and CPUFeatures functions
+*)
 type
-  {$IFNDEF PUREPASCAL}
-  { TCPUInstructionSet, defines specific CPU technologies }
-  TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
-  {$ELSE}
-  TCPUInstructionSet = (ciDummy);
+{$IFNDEF PUREPASCAL}
+  { TCPUFeature, previously TCPUInstructionSet, defines specific CPU technologies }
+  TCPUFeature = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
+{$ELSE}
+  TCPUFeature = (ciDummy);
   {$DEFINE NO_REQUIREMENTS}
-  {$ENDIF}
+{$ENDIF}
 
   PCPUFeatures = ^TCPUFeatures;
-  TCPUFeatures = set of TCPUInstructionSet;
+  TCPUFeatures = set of TCPUFeature;
 
 { General function that returns whether a particular instruction set is
   supported for the current CPU or not }
-function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
-function CPUFeatures: TCPUFeatures;
+function HasInstructionSet(const InstructionSet: TCPUFeature): Boolean; deprecated 'Use CPU.InstructionSupport instead';
+function CPUFeatures: TCPUFeatures; deprecated 'Use CPU.InstructionSupport instead';
+
+{$IFNDEF PUREPASCAL}
+const
+  InstructionSetMap: array[TCPUFeature] of TCPUInstructionSet = (isMMX, isExMMX, isSSE, isSSE2, is3DNow, isEx3DNow);
+{$ELSE}
+const
+  siDummy = ciDummy;
+  InstructionSetMap: array[TCPUInstructionSet] of TCPUInstructionSet = (siDummy);
+type
+  TInstructionSupport = set of TCPUInstructionSet;
+{$ENDIF}
+
+// Migration support: TCPUFeatures->TInstructionSupport
+function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructionSupport;
+
+
+
+(*
+** GR32.CPUID CPU feature detection
+*)
+// Convenience aliases. For the most common usage, this avoids the need to use GR32.CPUID directly.
+{$IFNDEF PUREPASCAL}
+type
+  TCPU = GR32.CPUID.TCPU;
+  TInstructionSupport = GR32.CPUID.TInstructionSupport;
+  TCPUInstructionSet = GR32.CPUID.TCPUInstructionSet;
+
+const
+  isMMX = GR32.CPUID.TCPUInstructionSet.isMMX;
+  isExMMX = GR32.CPUID.TCPUInstructionSet.isExMMX;
+  isSSE = GR32.CPUID.TCPUInstructionSet.isSSE;
+  isSSE2 = GR32.CPUID.TCPUInstructionSet.isSSE2;
+  isSSE3 = GR32.CPUID.TCPUInstructionSet.isSSE3;
+  isSSSE3 = GR32.CPUID.TCPUInstructionSet.isSSSE3;
+  isSSE41 = GR32.CPUID.TCPUInstructionSet.isSSE41;
+  isSSE42 = GR32.CPUID.TCPUInstructionSet.isSSE42;
+  isAVX = GR32.CPUID.TCPUInstructionSet.isAVX;
+  isAVX2 = GR32.CPUID.TCPUInstructionSet.isAVX2;
+  isAVX512f = GR32.CPUID.TCPUInstructionSet.isAVX512f;
+{$ELSE}
+type
+  TCPU = record
+    InstructionSupport: TInstructionSupport;
+  end;
+{$ENDIF}
 
 var
-  GlobalPerfTimer: TPerfTimer;
+  CPU: TCPU;
+
 
 implementation
 
 uses
-  Forms, Classes, TypInfo;
-
-var
-  CPUFeaturesInitialized : Boolean = False;
-  CPUFeaturesData: TCPUFeatures;
+  Classes;
 
 {$IFDEF UNIX}
 {$IFDEF FPC}
@@ -220,207 +272,40 @@ begin
 end;
 {$ENDIF}
 
-{$IFNDEF PUREPASCAL}
-const
-  CPUISChecks: array [TCPUInstructionSet] of Cardinal =
-    ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
-    {ciMMX  ,  ciEMMX,  ciSSE   , ciSSE2  , ci3DNow ,  ci3DNowExt}
-
-function CPUID_Available: Boolean; {$IFDEF FPC}assembler;{$ENDIF}
-asm
-{$IFDEF TARGET_x86}
-        MOV       EDX,False
-        PUSHFD
-        POP       EAX
-        MOV       ECX,EAX
-        XOR       EAX,$00200000
-        PUSH      EAX
-        POPFD
-        PUSHFD
-        POP       EAX
-        XOR       ECX,EAX
-        JZ        @1
-        MOV       EDX,True
-@1:     PUSH      EAX
-        POPFD
-        MOV       EAX,EDX
-{$ENDIF}
-{$IFDEF TARGET_x64}
-        MOV       EDX,False
-        PUSHFQ
-        POP       RAX
-        MOV       ECX,EAX
-        XOR       EAX,$00200000
-        PUSH      RAX
-        POPFQ
-        PUSHFQ
-        POP       RAX
-        XOR       ECX,EAX
-        JZ        @1
-        MOV       EDX,True
-@1:     PUSH      RAX
-        POPFQ
-        MOV       EAX,EDX
-{$ENDIF}
-end;
-
-function CPU_Signature: Integer; {$IFDEF FPC}assembler;{$ENDIF}
-asm
-{$IFDEF TARGET_x86}
-        PUSH      EBX
-        MOV       EAX,1
-        {$IFDEF FPC}
-        CPUID
-        {$ELSE}
-        DW        $A20F   // CPUID
-        {$ENDIF}
-        POP       EBX
-{$ENDIF}
-{$IFDEF TARGET_x64}
-        PUSH      RBX
-        MOV       EAX,1
-        CPUID
-        POP       RBX
-{$ENDIF}
-end;
-
-function CPU_Features: Integer; {$IFDEF FPC}assembler;{$ENDIF}
-asm
-{$IFDEF TARGET_x86}
-        PUSH      EBX
-        MOV       EAX,1
-        {$IFDEF FPC}
-        CPUID
-        {$ELSE}
-        DW        $A20F   // CPUID
-        {$ENDIF}
-        POP       EBX
-        MOV       EAX,EDX
-{$ENDIF}
-{$IFDEF TARGET_x64}
-        PUSH      RBX
-        MOV       EAX,1
-        CPUID
-        POP       RBX
-        MOV       EAX,EDX
-{$ENDIF}
-end;
-
-function CPU_ExtensionsAvailable: Boolean; {$IFDEF FPC}assembler;{$ENDIF}
-asm
-{$IFDEF TARGET_x86}
-        PUSH      EBX
-        MOV       @Result, True
-        MOV       EAX, $80000000
-        {$IFDEF FPC}
-        CPUID
-        {$ELSE}
-        DW        $A20F   // CPUID
-        {$ENDIF}
-        CMP       EAX, $80000000
-        JBE       @NOEXTENSION
-        JMP       @EXIT
-      @NOEXTENSION:
-        MOV       @Result, False
-      @EXIT:
-        POP       EBX
-{$ENDIF}
-{$IFDEF TARGET_x64}
-        PUSH      RBX
-        MOV       @Result, True
-        MOV       EAX, $80000000
-        CPUID
-        CMP       EAX, $80000000
-        JBE       @NOEXTENSION
-        JMP       @EXIT
-        @NOEXTENSION:
-        MOV       @Result, False
-        @EXIT:
-        POP       RBX
-{$ENDIF}
-end;
-
-function CPU_ExtFeatures: Integer; {$IFDEF FPC}assembler;{$ENDIF}
-asm
-{$IFDEF TARGET_x86}
-        PUSH      EBX
-        MOV       EAX, $80000001
-        {$IFDEF FPC}
-        CPUID
-        {$ELSE}
-        DW        $A20F   // CPUID
-        {$ENDIF}
-        POP       EBX
-        MOV       EAX,EDX
-{$ENDIF}
-{$IFDEF TARGET_x64}
-        PUSH      RBX
-        MOV       EAX, $80000001
-        CPUID
-        POP       RBX
-        MOV       EAX,EDX
-{$ENDIF}
-end;
-
-function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
-// Must be implemented for each target CPU on which specific functions rely
-begin
-  Result := False;
-  if not CPUID_Available then Exit;                   // no CPUID available
-  if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
-
-  case InstructionSet of
-    ci3DNow, ci3DNowExt:
-      {$IFNDEF FPC}
-      if not CPU_ExtensionsAvailable or (CPU_ExtFeatures and CPUISChecks[InstructionSet] = 0) then
-      {$ENDIF}
-        Exit;
-    ciEMMX:
-      begin
-        // check for SSE, necessary for Intel CPUs because they don't implement the
-        // extended info
-        if (CPU_Features and CPUISChecks[ciSSE] = 0) and
-          (not CPU_ExtensionsAvailable or (CPU_ExtFeatures and CPUISChecks[ciEMMX] = 0)) then
-          Exit;
-      end;
-  else
-    if CPU_Features and CPUISChecks[InstructionSet] = 0 then
-      Exit; // return -> instruction set not supported
-    end;
-
-  Result := True;
-end;
-
-{$ELSE}
-
-function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
-begin
-  Result := False;
-end;
-{$ENDIF}
-
-procedure InitCPUFeaturesData;
+function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructionSupport;
 var
-  I: TCPUInstructionSet;
+  InstructionSet: TCPUFeature;
 begin
-  if CPUFeaturesInitialized then Exit;
+  Result := [];
+  for InstructionSet in CPUFeatures do
+    Include(Result, InstructionSetMap[InstructionSet]);
+end;
 
-  CPUFeaturesData := [];
-  for I := Low(TCPUInstructionSet) to High(TCPUInstructionSet) do
-    if HasInstructionSet(I) then CPUFeaturesData := CPUFeaturesData + [I];
-
-  CPUFeaturesInitialized := True;
+function HasInstructionSet(const InstructionSet: TCPUFeature): Boolean;
+begin
+{$IFNDEF PUREPASCAL}
+  Result := (InstructionSetMap[InstructionSet] in CPU.InstructionSupport);
+{$ELSE}
+  Result := False;
+{$ENDIF}
 end;
 
 function CPUFeatures: TCPUFeatures;
+var
+  InstructionSet: TCPUFeature;
 begin
-  if not CPUFeaturesInitialized then
-    InitCPUFeaturesData;
-  Result := CPUFeaturesData;
+  Result := [];
+  for InstructionSet := Low(TCPUFeature) to High(TCPUFeature) do
+    if HasInstructionSet(InstructionSet) then
+      Include(Result, InstructionSet);
 end;
 
 initialization
-  InitCPUFeaturesData;
+{$IFNDEF PUREPASCAL}
+  CPU := TCPU.GetCPUInfo;
+{$ELSE}
+  CPU := Default(TCPU);
+{$ENDIF}
   GlobalPerfTimer := TPerfTimer.Create;
 
 finalization

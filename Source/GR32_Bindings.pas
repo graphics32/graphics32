@@ -38,7 +38,8 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, GR32_System;
+  Classes,
+  GR32_System;
 
 type
   TFunctionName = type string;
@@ -48,7 +49,7 @@ type
   TFunctionInfo = record
     FunctionID: Integer;
     Proc: Pointer;
-    CPUFeatures: TCPUFeatures;
+    InstructionSupport: TInstructionSupport;
     Flags: Integer;
     Priority: Integer; // Smaller is better
   end;
@@ -81,8 +82,11 @@ type
     destructor Destroy; override;
     procedure Clear;
 
-    procedure Add(FunctionID: Integer; Proc: Pointer; CPUFeatures: TCPUFeatures = [];
-      Flags: Integer = 0; Priority: Integer = 0);
+    procedure Add(FunctionID: Integer; Proc: Pointer; CPUFeatures: TCPUFeatures;
+      Flags: Integer = 0; Priority: Integer = 0); overload; deprecated;
+    procedure Add(FunctionID: Integer; Proc: Pointer; InstructionSupport: TInstructionSupport = [];
+      Flags: Integer = 0; Priority: Integer = 0); overload;
+    procedure Add(FunctionID: Integer; Proc: Pointer; Flags: Integer; Priority: Integer = 0); overload;
 
     // function rebinding support
     procedure RegisterBinding(FunctionID: Integer; BindVariable: PPointer);
@@ -128,7 +132,7 @@ end;
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.CPUFeatures <= GR32_System.CPUFeatures) then
+  if (Info^.InstructionSupport <= GR32_System.CPU.InstructionSupport) then
     Result := Info^.Priority
   else
     Result := INVALID_PRIORITY;
@@ -138,13 +142,27 @@ end;
 
 procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer;
   CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
+begin
+  Add(FunctionID, Proc, CPUFeaturesToInstructionSupport(CPUFeatures), Flags, Priority);
+end;
+
+
+procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer; Flags: Integer; Priority: Integer = 0);
+const
+  Nothing: TInstructionSupport = [];
+begin
+  Add(FunctionID, Proc, Nothing, Flags, Priority);
+end;
+
+procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer; InstructionSupport: TInstructionSupport;
+  Flags: Integer; Priority: Integer);
 var
   Info: PFunctionInfo;
 begin
   New(Info);
   Info^.FunctionID := FunctionID;
   Info^.Proc := Proc;
-  Info^.CPUFeatures := CPUFeatures;
+  Info^.InstructionSupport := InstructionSupport;
   Info^.Flags := Flags;
   Info^.Priority := Priority;
   FItems.Add(Info);
