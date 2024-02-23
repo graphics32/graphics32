@@ -632,6 +632,16 @@
   {$ENDIF}
 {$ENDIF}
 
+{$IFNDEF FPC}
+  // FPC does not support class vars in record types. Use object type instead.
+  {$DEFINE RECORD_CLASS_VAR}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  // FPC does not support casting an interface to a class.
+  {$DEFINE CAST_INTF_TO_CLASS}
+{$ENDIF}
+
 {$R-}{$Q-}  // switch off overflow and range checking
 
 {$IFDEF COMPILER6_UP}

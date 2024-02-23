@@ -114,9 +114,10 @@ function CPUFeatures: TCPUFeatures; deprecated 'Use CPU.InstructionSupport inste
 const
   InstructionSetMap: array[TCPUFeature] of TCPUInstructionSet = (isMMX, isExMMX, isSSE, isSSE2, is3DNow, isEx3DNow);
 {$ELSE}
+type
+  TCPUInstructionSet = (siDummy);
 const
-  siDummy = ciDummy;
-  InstructionSetMap: array[TCPUInstructionSet] of TCPUInstructionSet = (siDummy);
+  InstructionSetMap: array[TCPUFeature] of TCPUInstructionSet = (siDummy);
 type
   TInstructionSupport = set of TCPUInstructionSet;
 {$ENDIF}
@@ -296,7 +297,7 @@ var
 begin
   Result := [];
   for InstructionSet := Low(TCPUFeature) to High(TCPUFeature) do
-    if HasInstructionSet(InstructionSet) then
+    if (InstructionSetMap[InstructionSet] in CPU.InstructionSupport) then
       Include(Result, InstructionSet);
 end;
 

@@ -138,7 +138,7 @@ const
 *)
 
 type
-  ClipperFloat = record
+  ClipperFloat = {$ifdef RECORD_CLASS_VAR}record{$else}object{$endif}
   private
     class var
       FScale: Double;

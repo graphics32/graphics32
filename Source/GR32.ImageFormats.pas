@@ -550,6 +550,17 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      IImageFormatManagerInternal
+//
+//------------------------------------------------------------------------------
+type
+  IImageFormatManagerInternal = interface
+    ['{3A0A7985-6DE5-4D8A-99AF-560735712E26}']
+    procedure Shutdown;
+  end;
+
+//------------------------------------------------------------------------------
+//
 //      TImageFormatManager
 //
 //------------------------------------------------------------------------------
@@ -557,6 +568,7 @@ end;
 //------------------------------------------------------------------------------
 type
   TImageFormatManager = class(TInterfacedObject, IImageFormatManager,
+    IImageFormatManagerInternal,
     IImageFormatAdapter,
     IImageFormatReaders,
     IImageFormatWriters,
@@ -607,8 +619,10 @@ type
     FImageFormatHandle: integer;
     class var FInstance: IImageFormatManager;
   strict private
-    procedure Shutdown;
     class function GetInstance: IImageFormatManager; static;
+  private
+    // IImageFormatManagerInternal
+    procedure Shutdown;
   private
     // IImageFormatManager
     function RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer): integer;
@@ -656,7 +670,11 @@ type
 class destructor TImageFormatManager.Destroy;
 begin
   if (FInstance <> nil) then
+{$ifdef CAST_INTF_TO_CLASS}
     TImageFormatManager(FInstance).Shutdown;
+{$else}
+    (FInstance as IImageFormatManagerInternal).Shutdown;
+{$endif}
 
   FInstance := nil;
 end;

@@ -166,11 +166,20 @@ implementation
 
 uses
   Math,
+  Types,
   GR32.ImageFormats,
   GR32_Resamplers,
   GR32_Backends_Generic;
 
 {$R *.dfm}
+
+resourcestring
+  sInfo = 'Width: %.0n, Height: %.0n';
+  sInfoEmpty = '(empty)';
+  sZoom = 'Zoom: %.0n%%';
+  sHelp = 'Pan by clicking and dragging.'#13+
+    'Zoom with the mouse wheel.'#13+
+    'Reset zoom and center with the middle mouse button.';
 
 //------------------------------------------------------------------------------
 //
@@ -412,9 +421,6 @@ procedure TPictureEditorForm.LoadFromImage(Source: TPersistent);
     end;
   end;
 
-resourcestring
-  sInfo = 'Width: %.0n, Height: %.0n';
-  sInfoEmpty = '(empty)';
 begin
   ImageAllChannels.BeginUpdate;
   ImageRGBChannels.BeginUpdate;
@@ -538,8 +544,6 @@ procedure TPictureEditorForm.SyncZoomAndPan;
     Image.ForceFullInvalidate;
   end;
 
-resourcestring
-  sZoom = 'Zoom: %.0n%%';
 begin
   if (CurrentImage = nil) then
     exit;
@@ -920,10 +924,6 @@ begin
 end;
 
 procedure TPictureEditorForm.ActionHelpExecute(Sender: TObject);
-resourcestring
-  sHelp = 'Pan by clicking and dragging.'#13+
-    'Zoom with the mouse wheel.'#13+
-    'Reset zoom and center with the middle mouse button.';
 begin
   ShowMessage(sHelp);
 end;
