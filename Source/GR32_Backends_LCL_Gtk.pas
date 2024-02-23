@@ -125,6 +125,7 @@ type
     procedure DeleteCanvas;
   protected
     { IUpdateRectSupport }
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   protected
     property Canvas: TCanvas read GetCanvas;
@@ -434,15 +435,6 @@ begin
   Result := Font.OnChange;
 end;
 
-procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer;
-  var AFullUpdate: boolean);
-begin
-  // TODO : How do we get the update rect with GTK?
-  // TGdkWindow.get_update_area ?
-
-  AFullUpdate := True;
-end;
-
 procedure TLCLBackend.SetOnFontChange(Handler: TNotifyEvent);
 begin
   Font.OnChange := Handler;
@@ -464,6 +456,79 @@ procedure TLCLBackend.UpdateFont;
 begin
   Font.OnChange := FOnFontChange;
   Canvas.Font := FFont;
+end;
+
+
+{ IUpdateRectSupport }
+procedure TLCLBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
+var
+  Widget: PGtkWidget;
+  UpdateRect: TGdkRectangle;
+begin
+  // https://lazka.github.io/pgi-docs/Gdk-3.0/classes/Window.html#Gdk.Window.invalidate_rect
+  // https://developer-old.gnome.org/pygtk/stable/class-gdkwindow.html#method-gdkwindow--invalidate-rect
+
+  // procedure gdk_window_invalidate_rect(window:PGdkWindow; rect:PGdkRectangle; invalidate_children:gboolean); cdecl; external gdklib;
+
+  Widget := PGtkWidget(AControl.Handle);
+
+  UpdateRect.x := ARect.Left;
+  UpdateRect.y := ARect.Top;
+  UpdateRect.Width := ARect.Right-ARect.Left;
+  UpdateRect.Height := ARect.Bottom-ARect.Top;
+
+  gdk_window_invalidate_rect(Widget.window, @UpdateRect, False);
+end;
+
+procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer;
+  var AFullUpdate: boolean);
+var
+  Widget: PGtkWidget;
+  UpdateRegion: PGdkRegion;
+  UpdateRects: PGdkRectangle;
+  UpdateRect: PGdkRectangle;
+  Count: integer;
+  r: TRect;
+begin
+  // TODO : How do we get the update rect with GTK?
+  // TGdkWindow.get_update_area ?
+  // https://developer-old.gnome.org/pygtk/stable/class-gdkwindow.html#method-gdkwindow--get-update-area
+
+  // function gdk_window_get_update_area(window:PGdkWindow):PGdkRegion; cdecl; external gdklib;
+
+  Widget := PGtkWidget(AControl.Handle);
+
+  UpdateRegion := gdk_window_get_update_area(Widget.window);
+  if (UpdateRegion = GDK_NONE) then
+    exit;
+  try
+
+    if (gdk_region_empty(UpdateRegion)) then
+      exit;
+
+    gdk_region_get_rectangles(UpdateRegion, UpdateRects, @Count);
+    try
+      if (Count = 0) then
+        exit;
+
+      // Final count is known so set capacity to avoid reallocation
+      AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + Count);
+
+      UpdateRect := UpdateRects;
+      for i := 0 to Count-1 do
+      begin
+        r := MakeRect(UpdateRect.x, UpdateRect.y, UpdateRect.x+UpdateRect.Width, UpdateRect.y+UpdateRect.Height);
+        AUpdateRects.Add(r);
+        Inc(UpdateRect);
+      end;
+
+    finally
+      g_free(UpdateRects)
+    end;
+  finally
+    gdk_region_destroy(UpdateRegion);
+  end;
+
 end;
 
 
