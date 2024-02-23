@@ -47,19 +47,25 @@ interface
   {$DEFINE USENATIVECODE}
 {$ENDIF}
 
+// Define WRAP_USEFLOATMOD to have Wrap(Single, Single) forward to FloatMod().
+// If WRAP_USEFLOATMOD is not defined then an iterative algorithm is used which is
+// very ineffective when the value is much out of bounds.
+{$define WRAP_USEFLOATMOD}
+
 uses
   Graphics,
   GR32_Math,
-  GR32;
+  GR32,
+  GR32_Bindings;
 
 { Clamp function restricts value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { An analogue of FillChar for 32 bit values }
-var
-  FillLongword: procedure(var X; Count: Cardinal; Value: Longword);
+var FillLongword: procedure(var X; Count: Cardinal; Value: Longword);
 
 procedure FillWord(var X; Count: Cardinal; Value: Longword);
+
 
 { An analogue of Move for 32 bit values }
 {$IFDEF USEMOVE}
@@ -116,10 +122,15 @@ function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING
 
 { Wrap integer value to [0..Max] range }
 function Wrap(Value, Max: Integer): Integer; overload;
-{ Same but [Min..Max] range }
+{ Same but [Min..Max] range. Min is assumed to be <= Max }
 function Wrap(Value, Min, Max: Integer): Integer; overload;
 
-{ Wrap single value to [0..Max] range }
+{ Wrap single value to [0..Max) range.
+  Basically the same as FloatMod except:
+  - The upper limit is expected to always be positive.
+  - If Max=0,, then 0 is returned.
+  Unlike the integer version of Wrap, the upper limit is exclusive.
+  NAN is not checked. If Max=0, Zero is returned. }
 function Wrap(Value, Max: Single): Single; overload; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 
 { Fast Wrap alternatives for cases where range + 1 is a power of two }
@@ -182,14 +193,25 @@ function SAR_16(Value: Integer): Integer;
 { ColorSwap exchanges ARGB <-> ABGR and fills A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 
+{CPU target and feature Function templates}
+var
+  LowLevelRegistry: TFunctionRegistry;
+
+const
+  FID_FILLLONGWORD      = 0;
+
+const
+  LowLevelBindingFlagPascal = $0001;
+
+
 implementation
 
 uses
 {$IFDEF FPC}
   SysUtils,
 {$ENDIF}
-  GR32_System,
-  GR32_Bindings;
+  Math,
+  GR32_System;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
@@ -861,10 +883,12 @@ end;
 function Wrap(Value, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
-  if Value < 0 then
-    Result := Max + (Value - Max) mod (Max + 1)
-  else
-    Result := Value mod (Max + 1);
+  Inc(Max);
+
+  if (Value < 0) then
+    Value := Value + Max * (-Value div Max + 1);
+
+  Result := Value mod Max;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -886,18 +910,25 @@ asm
 end;
 
 function Wrap(Value, Min, Max: Integer): Integer;
+var
+  Range: integer;
 begin
-  if Value < Min then
-    Result := Max + (Value - Max) mod (Max - Min + 1)
-  else
-    Result := Min + (Value - Min) mod (Max - Min + 1);
+  Range := Max - Min + 1;
+
+  if (Value < Min) then
+    Value := Value + Range * ((Min - Value) div Range + 1);
+
+  Result := Min + (Value - Min) mod Range;
 end;
 
 function Wrap(Value, Max: Single): Single;
 begin
-{$IFDEF USEFLOATMOD}
-  Result := FloatMod(Value, Max);
-{$ELSE}
+{$if defined(WRAP_USEFLOATMOD)}
+  if (not IsZero(Max)) then
+    Result := FloatMod(Value, Max)
+  else
+    Result := 0;
+{$else}
   if Max = 0 then
   begin
     Result := 0;
@@ -909,7 +940,7 @@ begin
     Result := Result - Max;
   while Result < 0 do
     Result := Result + Max;
-{$ENDIF}
+{$ifend}
 end;
 
 function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
@@ -1403,29 +1434,20 @@ end;
 {$ENDIF}
 {$ENDIF}
 
-{CPU target and feature Function templates}
-
-const
-  FID_FILLLONGWORD = 0;
-
-{Complete collection of unit templates}
-
-var
-  Registry: TFunctionRegistry;
-
 procedure RegisterBindings;
 begin
-  Registry := NewRegistry('GR32_LowLevel bindings');
-  Registry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
+  LowLevelRegistry := NewRegistry('GR32_LowLevel bindings');
+  LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
 
-  Registry.Add(FID_FILLLONGWORD, @FillLongWord_Pas);
-  {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_FILLLONGWORD, @FillLongWord_ASM);
-  Registry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [isMMX]);
-  Registry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [isSSE2]);
-  {$ENDIF}
+  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_Pas, LowLevelBindingFlagPascal);
 
-  Registry.RebindAll;
+{$IFNDEF PUREPASCAL}
+  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_ASM);
+  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [isMMX]);
+  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [isSSE2]);
+{$ENDIF}
+
+  LowLevelRegistry.RebindAll;
 end;
 
 initialization

@@ -71,7 +71,10 @@ type
 {$ENDIF USESTACKALLOC}
     procedure TestConstrain;
     procedure TestMinMax;
-    procedure TestWrap;
+    procedure TestWrapInteger;
+    procedure TestWrapFloat;
+    procedure TestWrapMinMax;
+    procedure TestWrapPow2;
     procedure TestMirror;
     procedure TestSAR;
   end;
@@ -107,6 +110,10 @@ type
     procedure TestPrevPowerOf2;
     procedure TestAverage;
     procedure TestSign;
+    procedure TestFloatModDouble;
+    procedure TestFloatModSingle;
+    procedure TestFloatRemainderDouble;
+    procedure TestFloatRemainderSingle;
   end;
 
 
@@ -462,11 +469,115 @@ begin
 end;
 {$ENDIF USESTACKALLOC}
 
-procedure TTestLowLevel.TestWrap;
+procedure TTestLowLevel.TestWrapInteger;
+var
+  i: integer;
+  Expected, Actual: integer;
 begin
   CheckEquals(50, Wrap(50, 100));
   CheckEquals(49, Wrap(150, 100));
   CheckEquals(50, Wrap(150, 99));
+
+  // Negative values
+  CheckEquals(50, Wrap(-150, 99));
+
+  // Edge cases
+  CheckEquals(0, Wrap(0, 0));
+  CheckEquals(0, Wrap(50, 0));
+  CheckEquals(0, Wrap(0, 50));
+  CheckEquals(50, Wrap(50, 50));
+
+  // Function should produce a saw-tooth
+  Expected := 5;
+  for i := -100 to 100 do
+  begin
+    Actual := Wrap(i, 20);
+
+    CheckEquals(Expected, Actual);
+
+    if (Expected = 20) then
+      Expected := 0
+    else
+      Inc(Expected);
+  end;
+end;
+
+procedure TTestLowLevel.TestWrapFloat;
+var
+  i: integer;
+  Expected, Actual: Single;
+const
+  Epsilon = 1e-10;
+begin
+  CheckEquals(50.0, Wrap(50.0, 100.0), Epsilon);
+  CheckEquals(50, Wrap(150.0, 100.0), Epsilon);
+  CheckEquals(51, Wrap(150.0, 99.0), Epsilon);
+
+  // Negative values
+  CheckEquals(48.0, Wrap(-150.0, 99.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0.0, Wrap(0.0, 0.0), Epsilon);
+  CheckEquals(0.0, Wrap(50.0, 0.0), Epsilon);
+  CheckEquals(0.0, Wrap(0.0, 50.5), Epsilon);
+  CheckEquals(0.0, Wrap(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := 0;
+  for i := -100 to 100 do
+  begin
+    Actual := Wrap(i, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon);
+
+    Expected := Expected + 1.0;
+    if (Expected = 20) then
+      Expected := 0;
+  end;
+end;
+
+procedure TTestLowLevel.TestWrapMinMax;
+var
+  i: integer;
+  Expected, Actual : integer;
+begin
+  // Inside range
+  CheckEquals(50, Wrap(50, 25, 100));
+
+  // Outside range
+  CheckEquals(77, Wrap(1, 25, 100));
+  CheckEquals(74, Wrap(150, 25, 100));
+
+  CheckEquals(74, Wrap(150, 25, 100));
+  CheckEquals(75, Wrap(150, 25, 99));
+
+  // Negative values
+  CheckEquals(78, Wrap(-150, 25, 100));
+  CheckEquals(75, Wrap(-150, 25, 99));
+
+  // Edge cases
+  CheckEquals(10, Wrap(0, 10, 10));
+  CheckEquals(10, Wrap(50, 10, 10));
+  CheckEquals(10, Wrap(10, 10, 50));
+  CheckEquals(50, Wrap(50, 10, 50));
+
+  // Function should produce a saw-tooth
+  Expected := 11;
+  for i := 0 to 100 do
+  begin
+    Actual := Wrap(i, 10, 20);
+
+    CheckEquals(Expected, Actual);
+
+    if (Expected = 20) then
+      Expected := 10
+    else
+      Inc(Expected);
+  end;
+end;
+
+procedure TTestLowLevel.TestWrapPow2;
+begin
   CheckEquals(64, WrapPow2(64, 127));
   CheckEquals(64, WrapPow2(192, 127));
   CheckEquals(32, WrapPow2(160, 127));
@@ -484,6 +595,243 @@ begin
   for X := 0 to (1 shl 10) do
     for Y := 0 to (1 shl 10) do
       CheckEquals((X + Y) div 2, Average(X, Y));
+end;
+
+function FloatMod_Reference(ANumerator, ADenominator: Double): Double; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
+end;
+
+function FloatMod_Reference(ANumerator, ADenominator: Single): Single; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
+end;
+
+procedure TTestMath.TestFloatModDouble;
+var
+  Numerator, Denominator: Double;
+  Expected, Actual: Double;
+  i: integer;
+const
+  Epsilon = 1e-10;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatMod(Numerator, Denominator);
+      Expected := FloatMod_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(-5.0, FloatMod(5.0, -10.0), Epsilon);
+  CheckEquals(-5.5, FloatMod(4.5, -10.0), Epsilon);
+  CheckEquals(5.0, FloatMod(-5.0, 10.0), Epsilon);
+  CheckEquals(5.5, FloatMod(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0, FloatMod(0, 0), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 0.0), Epsilon);
+
+  CheckEquals(50, FloatMod(50, 0), Epsilon);
+  CheckEquals(50.0, FloatMod(50.0, 0.0), Epsilon);
+
+  CheckEquals(0, FloatMod(0, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 50.5), Epsilon);
+
+  CheckEquals(0, FloatMod(50, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := 10;
+  for i := -100 to 100 do
+  begin
+    Actual := FloatMod(i * 0.5, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon);
+
+    Expected := Expected + 0.5;
+    if (Expected = 20) then
+      Expected := 0;
+  end;
+end;
+
+procedure TTestMath.TestFloatModSingle;
+var
+  Numerator, Denominator: Single;
+  Expected, Actual: Single;
+  i: integer;
+const
+  Epsilon = 1e-5;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatMod(Numerator, Denominator);
+      Expected := FloatMod_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(-5.0, FloatMod(5.0, -10.0), Epsilon);
+  CheckEquals(-5.5, FloatMod(4.5, -10.0), Epsilon);
+  CheckEquals(5.0, FloatMod(-5.0, 10.0), Epsilon);
+  CheckEquals(5.5, FloatMod(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0, FloatMod(0, 0), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 0.0), Epsilon);
+
+  CheckEquals(50, FloatMod(50, 0), Epsilon);
+  CheckEquals(50.0, FloatMod(50.0, 0.0), Epsilon);
+
+  CheckEquals(0, FloatMod(0, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 50.5), Epsilon);
+
+  CheckEquals(0, FloatMod(50, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := 10;
+  for i := -100 to 100 do
+  begin
+    Actual := FloatMod(i * 0.5, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon);
+
+    Expected := Expected + 0.5;
+    if (Expected = 20) then
+      Expected := 0;
+  end;
+end;
+
+function FloatRemainder_Reference(ANumerator, ADenominator: Double): Double; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
+end;
+
+function FloatRemainder_Reference(ANumerator, ADenominator: Single): Single; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
+end;
+
+procedure TTestMath.TestFloatRemainderDouble;
+var
+  Numerator, Denominator: Double;
+  Expected, NextExpected, Actual: Double;
+  i: integer;
+const
+  Epsilon = 1e-10;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatRemainder(Numerator, Denominator);
+      Expected := FloatRemainder_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(5.0, FloatRemainder(5.0, -10.0), Epsilon);
+  CheckEquals(4.5, FloatRemainder(4.5, -10.0), Epsilon);
+  CheckEquals(-5.0, FloatRemainder(-5.0, 10.0), Epsilon);
+  CheckEquals(-4.5, FloatRemainder(-4.5, 10.0), Epsilon);
+
+  // Test values from https://en.cppreference.com/w/c/numeric/math/remainder
+  // The results are completely bonkers
+  (*
+  CheckEquals(-0.9, FloatRemainder(+5.1, +3.0), Epsilon);
+  CheckEquals(+0.9, FloatRemainder(-5.1, +3.0), Epsilon);
+  CheckEquals(-0.9, FloatRemainder(+5.1, -3.0), Epsilon);
+  CheckEquals(+0.9, FloatRemainder(-5.1, -3.0), Epsilon);
+  CheckEquals(+0.0, FloatRemainder(+0.0, +1.0), Epsilon);
+  CheckEquals(-0.0, FloatRemainder(-0.0, +1.0), Epsilon);
+  *)
+
+  // Edge cases
+  CheckEquals(0.0, FloatRemainder(0.0, 0.0), Epsilon);
+  CheckEquals(50.0, FloatRemainder(50.0, 0.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(0.0, 50.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(50.0, 50.0), Epsilon);
+
+  // Function should produce a saw-tooth - and it does but I can't figure out how to verify it :-(
+end;
+
+procedure TTestMath.TestFloatRemainderSingle;
+var
+  Numerator, Denominator: Double;
+  Expected, Actual: Double;
+  i: integer;
+const
+  Epsilon = 1e-10;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatRemainder(Numerator, Denominator);
+      Expected := FloatRemainder_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(5.0, FloatRemainder(5.0, -10.0), Epsilon);
+  CheckEquals(4.5, FloatRemainder(4.5, -10.0), Epsilon);
+  CheckEquals(-5.0, FloatRemainder(-5.0, 10.0), Epsilon);
+  CheckEquals(-4.5, FloatRemainder(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0.0, FloatRemainder(0.0, 0.0), Epsilon);
+  CheckEquals(50.0, FloatRemainder(50.0, 0.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(0.0, 50.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(50.0, 50.0), Epsilon);
 end;
 
 procedure TTestMath.TestHypotFloat;

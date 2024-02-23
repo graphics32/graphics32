@@ -10,13 +10,13 @@ object FormGradientLines: TFormGradientLines
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
+  KeyPreview = True
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   DesignSize = (
     623
     423)
-  PixelsPerInch = 96
   TextHeight = 13
   object LblTotal: TLabel
     Left = 510
