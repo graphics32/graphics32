@@ -43,6 +43,16 @@ interface
 // update areas into as few separate non-overlapping areas as possible.
 {$define CONSOLIDATE_UPDATERECTS}
 
+{-$define PAINT_UNCLIPPED} // Circumvent WM_PAINT/BeginDraw/EndDraw update region clipping
+{-$define UPDATERECT_DEBUGDRAW} // Display update rects. See issue # 202
+{-$define UPDATERECT_DEBUGDRAW_RANDOM_COLORS} // More cow bell!
+{-$define UPDATERECT_SLOWMOTION} // Slow everything down so we can see what's going on
+{-$define UPDATERECT_SUPERSLOWMOTION} // Matrix bullet time mode
+
+{$ifdef UPDATERECT_DEBUGDRAW}
+  {$define PAINT_UNCLIPPED}
+{$endif}
+
 {$I GR32.inc}
 
 uses
@@ -1219,6 +1229,27 @@ end;
 procedure TCustomPaintBox32.Paint;
 var
   PaintSupport: IPaintSupport;
+{$ifdef UPDATERECT_SLOWMOTION}
+const
+{$ifdef UPDATERECT_SUPERSLOWMOTION}
+  SlowMotionDelay = 100;
+{$else}
+  SlowMotionDelay = 10;
+{$endif}
+{$endif}
+{$ifdef UPDATERECT_DEBUGDRAW}
+const
+  clDebugDrawFill = TColor32($00FF1010);
+  clDebugDrawFrame = TColor32($00AF0A0A);
+var
+  C1, C2: TColor32;
+  r: TRect;
+  i: integer;
+{$endif}
+{$ifdef PAINT_UNCLIPPED}
+var
+  Canvas: TControlCanvas;
+{$endif}
 begin
   if (Parent = nil) then
     Exit;
@@ -1235,20 +1266,72 @@ begin
     PaintSupport.CheckPixmap;
   end;
 
+  // Create a new canvas so we can paint outside the WM_PAINT/BeginPaint/EndPaint update regions
+  // This will also reveal if the DoPaint below paints more than it should.
+{$ifdef PAINT_UNCLIPPED}
+  Canvas := TControlCanvas.Create;
+  Canvas.Control := Self;
+{$endif}
+
+{$ifdef UPDATERECT_DEBUGDRAW}
+{$ifdef UPDATERECT_DEBUGDRAW_RANDOM_COLORS}
+  C1 := Random($7F) or (Random($7F) shl 8) or (Random($7F) shl 16);
+  C2 := (C1 shl 1);
+{$ELSE}
+  C1 := clDebugDrawFill;
+  C2 := clDebugDrawFrame;
+{$endif}
+
+
+  Canvas.Brush.Color := C1;
+  Canvas.Brush.Style := bsSolid;
+  if (FUpdateRects.Count > 0) then
+  begin
+    for i := 0 to FUpdateRects.Count-1 do
+    begin
+      r := FUpdateRects[i]^;
+      Canvas.FillRect(r);
+    end;
+  end else
+    Canvas.FillRect(Canvas.ClipRect);
+
+{$ifdef UPDATERECT_SLOWMOTION}
+  Sleep(SlowMotionDelay);
+{$endif}
+{$endif}
+
   FBuffer.Lock;
   try
     PaintSupport.DoPaint(FBuffer, FUpdateRects, Canvas, Self);
   finally
     FBuffer.Unlock;
   end;
+{$ifdef UPDATERECT_SLOWMOTION}
+  Sleep(SlowMotionDelay);
+{$endif}
 
-{-$define DEBUG_UPDATERECTS}
-{$ifdef DEBUG_UPDATERECTS} // See issue # 202
-  Canvas.Brush.Color := clRed;
+{$ifdef UPDATERECT_DEBUGDRAW}
+  Canvas.Brush.Color := C2;
   Canvas.Brush.Style := bsSolid;
-  for var i := 0 to FUpdateRects.Count-1 do
-    Canvas.FrameRect(FUpdateRects[i]^);
-{$endif DEBUG_UPDATERECTS}
+  if (FUpdateRects.Count > 0) then
+  begin
+    for i := 0 to FUpdateRects.Count-1 do
+    begin
+      r := FUpdateRects[i]^;
+      GR32.InflateRect(r, 1, 1);
+      Canvas.FrameRect(r);
+    end;
+  end else
+    Canvas.FrameRect(Canvas.ClipRect);
+
+{$ifdef UPDATERECT_SLOWMOTION}
+  Sleep(SlowMotionDelay);
+{$endif}
+{$endif}
+
+{$ifdef PAINT_UNCLIPPED}
+  Canvas.Free;
+{$endif}
 
   DoPaintGDIOverlay;
 

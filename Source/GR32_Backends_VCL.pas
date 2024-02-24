@@ -37,9 +37,6 @@ interface
 
 {$I GR32.inc}
 
-{-$DEFINE UPDATERECT_DEBUGDRAW}
-{-$DEFINE UPDATERECT_DEBUGDRAW_RANDOM_COLORS}
-
 uses
   System.SysUtils, System.Classes,
   WinAPI.Windows,
@@ -605,55 +602,18 @@ begin
 
 end;
 
-{$IFDEF UPDATERECT_DEBUGDRAW}
-const
-  clDebugDrawFill = TColor32($30FF0000);
-  clDebugDrawFrame = TColor32($90FF0000);
-{$ENDIF}
-
 procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 var
   i: Integer;
-{$IFDEF UPDATERECT_DEBUGDRAW}
-  C1, C2: TColor32;
-  r: TRect;
-{$ENDIF}
 begin
-{$IFDEF UPDATERECT_DEBUGDRAW}
-{$IFDEF UPDATERECT_DEBUGDRAW_RANDOM_COLORS}
-  C1 := Random(MaxInt) AND $00FFFFFF;
-  C2 := C1 OR $90000000;
-  C1 := C1 OR $30000000;
-{$ELSE}
-  C1 := clDebugDrawFill;
-  C2 := clDebugDrawFrame;
-{$ENDIF}
-{$ENDIF}
-
   if AInvalidRects.Count > 0 then
   begin
     for i := 0 to AInvalidRects.Count - 1 do
-    begin
-{$IFDEF UPDATERECT_DEBUGDRAW}
-      r := AInvalidRects[i]^;
-      ABuffer.BeginLockUpdate;
-      ABuffer.FillRectTS(r, C1);
-      ABuffer.FrameRectTS(r, C2);
-      ABuffer.EndLockUpdate;
-{$ENDIF}
       with AInvalidRects[i]^ do
         BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
-    end;
   end else
   begin
-{$IFDEF UPDATERECT_DEBUGDRAW}
-      r := APaintBox.GetViewportRect;
-      ABuffer.BeginLockUpdate;
-      ABuffer.FillRectTS(r, C1);
-      ABuffer.FrameRectTS(r, C2);
-      ABuffer.EndLockUpdate;
-{$ENDIF}
     with APaintBox.GetViewportRect do
       BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
   end;
