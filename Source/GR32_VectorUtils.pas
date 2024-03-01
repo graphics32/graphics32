@@ -38,10 +38,10 @@ interface
 
 {$BOOLEVAL OFF}
 
-{$define USE_CLIPPER_GROW}
+{-$define USE_CLIPPER_GROW}
 {-$define USE_OLD_GROW}
 
-{$if not defined(USE_CLIPPER_GROW)}
+{$if (not defined(USE_CLIPPER_GROW)) and (not defined(USE_OLD_GROW))}
   // We need at least one or the other
   {$define USE_OLD_GROW}
 {$ifend}
@@ -1705,7 +1705,6 @@ var
         jsMiter: AddMitered(A.X, A.Y, B.X, B.Y);
         jsBevel: AddBevelled(A.X, A.Y, B.X, B.Y);
         jsRound: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
-        jsRoundEx: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
       end;
   end;
 
