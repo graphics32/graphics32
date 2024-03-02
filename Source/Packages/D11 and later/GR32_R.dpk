@@ -59,6 +59,7 @@ contains
   GR32_Rasterizers in '..\..\GR32_Rasterizers.pas',
   GR32_RepaintOpt in '..\..\GR32_RepaintOpt.pas',
   GR32_Resamplers in '..\..\GR32_Resamplers.pas',
+  GR32.CPUID in '..\..\GR32.CPUID.pas',
   GR32_System in '..\..\GR32_System.pas',
   GR32_Transforms in '..\..\GR32_Transforms.pas',
   GR32_VectorMaps in '..\..\GR32_VectorMaps.pas',

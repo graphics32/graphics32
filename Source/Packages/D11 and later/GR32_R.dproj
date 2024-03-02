@@ -111,6 +111,7 @@
         <DCCReference Include="..\..\GR32_Rasterizers.pas"/>
         <DCCReference Include="..\..\GR32_RepaintOpt.pas"/>
         <DCCReference Include="..\..\GR32_Resamplers.pas"/>
+        <DCCReference Include="..\..\GR32.CPUID.pas"/>
         <DCCReference Include="..\..\GR32_System.pas"/>
         <DCCReference Include="..\..\GR32_Transforms.pas"/>
         <DCCReference Include="..\..\GR32_VectorMaps.pas"/>
