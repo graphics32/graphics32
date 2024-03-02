@@ -304,7 +304,7 @@ begin
     begin
       if (Abs(FImage.Scale) <= 4) or (Lines mod 8 <> 0) then
       begin
-        p := FImage.BitmapToControl(Point(i, i));
+        p := FImage.BitmapToControl(GR32.Point(i, i));
 
         // Vertical line
         if (i < Size.cx) then
@@ -329,7 +329,7 @@ begin
     if (Abs(FImage.Scale) > 4) then
       while (i < Size.cx) or (i < Size.cy) do
       begin
-        p := FImage.BitmapToControl(Point(i, i));
+        p := FImage.BitmapToControl(GR32.Point(i, i));
 
         // Vertical line
         if (i < Size.cx) then
@@ -980,7 +980,7 @@ begin
     exit;
   end;
 
-  P := Image.ControlToBitmap(Point(X, Y));
+  P := Image.ControlToBitmap(GR32.Point(X, Y));
 
   if (P.X >= 0) and (P.Y >= 0) and
     (P.X < Image.Bitmap.Width) and (P.Y < Image.Bitmap.Height) then
