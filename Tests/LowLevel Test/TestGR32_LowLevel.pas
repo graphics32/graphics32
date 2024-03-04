@@ -42,10 +42,33 @@ interface
 
 uses
 {$IFDEF FPC}
-  fpcunit, testregistry
+  fpcunit, testregistry,
 {$ELSE}
-  TestFramework, Windows
-{$ENDIF};
+  TestFramework, Windows,
+{$ENDIF}
+  GR32_Bindings;
+
+// ----------------------------------------------------------------------------
+//
+// TBindingTestCase
+//
+// ----------------------------------------------------------------------------
+type
+  TBindingTestCase = class abstract(TTestCase)
+  private
+  protected
+    class function FunctionRegistry: TFunctionRegistry; virtual; abstract;
+    class function PriorityProc: TFunctionPriority; virtual; abstract;
+
+    class function PriorityProcPas(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcAsm(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcMMX(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcSSE2(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcSSE41(Info: PFunctionInfo): Integer; static;
+  public
+    procedure SetUp; override;
+    procedure TearDown; override;
+  end;
 
 // ----------------------------------------------------------------------------
 //
@@ -53,11 +76,19 @@ uses
 //
 // ----------------------------------------------------------------------------
 type
-  TTestLowLevel = class(TTestCase)
+  TTestLowLevel = class abstract(TBindingTestCase)
   private
+  protected
+    class function FunctionRegistry: TFunctionRegistry; override;
   public
   published
     procedure TestDiv255;
+    procedure TestFastDiv255;
+    procedure TestDiv255Round;
+
+    procedure TestFastTrunc;
+    procedure TestFastRound;
+
     procedure TestClamp1;
     procedure TestClampMax;
 
@@ -77,6 +108,31 @@ type
     procedure TestWrapPow2;
     procedure TestMirror;
     procedure TestSAR;
+  end;
+
+  TTestLowLevelPas = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelAsm = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelMMX = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelSSE2 = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelSSE41 = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
   end;
 
 // ----------------------------------------------------------------------------
@@ -123,15 +179,108 @@ uses
   Controls, Types, Classes, SysUtils, Messages, Graphics,
   Math,
   GR32,
+  GR32_System,
   GR32_LowLevel,
-  GR32_Math,
-  GR32_Bindings;
+  GR32_Math;
+
+// ----------------------------------------------------------------------------
+//
+// TBindingTestCase
+//
+// ----------------------------------------------------------------------------
+class function TBindingTestCase.PriorityProcPas(Info: PFunctionInfo): Integer;
+begin
+  if (Info^.Flags and LowLevelBindingFlagPascal <> 0) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcAsm(Info: PFunctionInfo): Integer;
+begin
+  if (Info^.InstructionSupport = []) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
+begin
+  if (isMMX in Info^.InstructionSupport) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
+begin
+  if (isSSE2 in Info^.InstructionSupport) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
+begin
+  if (isSSE41 in Info^.InstructionSupport) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+procedure TBindingTestCase.SetUp;
+begin
+  inherited;
+  RandSeed := 0;
+  FunctionRegistry.RebindAll(True, pointer(PriorityProc));
+end;
+
+procedure TBindingTestCase.TearDown;
+begin
+  inherited;
+  FunctionRegistry.RebindAll(True);
+end;
 
 // ----------------------------------------------------------------------------
 //
 // TTestLowLevel
 //
 // ----------------------------------------------------------------------------
+class function TTestLowLevelPas.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcPas;
+end;
+
+class function TTestLowLevelAsm.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcAsm;
+end;
+
+class function TTestLowLevelMMX.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcMMX;
+end;
+
+class function TTestLowLevelSSE2.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcSSE2;
+end;
+
+class function TTestLowLevelSSE41.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcSSE41;
+end;
+
+// ----------------------------------------------------------------------------
+//
+// TTestLowLevel
+//
+// ----------------------------------------------------------------------------
+class function TTestLowLevel.FunctionRegistry: TFunctionRegistry;
+begin
+  Result := LowLevelRegistry;
+end;
+
 procedure TTestLowLevel.TestClamp1;
 var
   Value: integer;
@@ -179,15 +328,120 @@ procedure TTestLowLevel.TestDiv255;
 var
   Value: Cardinal;
 begin
-  // Verify documented range
-  for Value := 0 to 66298 do
-    CheckEquals(Value div 255, Div255(Value));
+  // Edge cases
+  CheckEquals(0, Byte(Div255(0)));
+  CheckEquals(1, Byte(Div255(255)));
+  CheckEquals(255, Byte(Div255(255*255)));
 
-(*
-  // Check outside range
-  for Value := 66298+1 to MaxInt do
-    CheckEquals(Value div 255, Div255(Value), Format('%d div 255', [Value]));
-*)
+  // Verify documented range
+  for Value := 0 to 255*255 do
+    CheckEquals(Trunc(Value/255), Byte(Div255(Value)));
+end;
+
+procedure TTestLowLevel.TestFastDiv255;
+var
+  Value: Cardinal;
+begin
+  // Edge cases
+  CheckEquals(0, Byte(FastDiv255(0)));
+  CheckEquals(1, Byte(FastDiv255(255)));
+  CheckEquals(255, Byte(FastDiv255(255*255)));
+
+  // Verify documented range
+  for Value := 0 to 255*255 do
+    CheckEquals(Value div 255, FastDiv255(Value));
+end;
+
+procedure TTestLowLevel.TestDiv255Round;
+var
+  Value: Cardinal;
+begin
+  // Edge cases
+  CheckEquals(0, Byte(Div255Round(0)));
+  CheckEquals(1, Byte(Div255Round(255)));
+  CheckEquals(255, Byte(Div255Round(255*255)));
+
+  // Verify documented range
+  for Value := 0 to 255*255 do
+    CheckEquals(Round(Value/255), Div255Round(Value));
+end;
+
+procedure TTestLowLevel.TestFastRound;
+var
+  i: integer;
+  Value: Single;
+  Expected, Actual: Integer;
+begin
+  for i := 1 to 1000 do
+  begin
+    Value := (Random(10000)-5000) / i;
+
+    Expected := Round(Value);
+    Actual := FastRound(Value);
+
+    if (Expected <> Actual) then
+      CheckEquals(Expected, Actual, Format('FastRound(%g)', [Value]));
+  end;
+end;
+
+procedure TTestLowLevel.TestFastTrunc;
+
+  procedure DoTest;
+  var
+    i: integer;
+    Value: TFloat;
+    Expected, Actual: Integer;
+  begin
+    for i := 1 to 1000 do
+    begin
+      Value := (Random(10000)-5000) / i;
+
+      Expected := Trunc(Value);
+      Actual := FastTrunc(Value);
+
+      if (Expected <> Actual) then
+        CheckEquals(Expected, Actual, Format('FastTrunc(%g)', [Value]));
+    end;
+  end;
+
+var
+  SaveMXCSR: DWORD;
+  NewMXCSR: DWORD;
+begin
+  SaveMXCSR := GetMXCSR;
+  try
+    // Set Mode=Truncation
+    NewMXCSR := SaveMXCSR or $00006000;
+    SetMXCSR(NewMXCSR);
+
+    DoTest;
+
+    // Verify that MXCSR is preserved
+    CheckEquals(NewMXCSR and $0000FFC0, GetMXCSR and $0000FFC0, 'MXCSR not preserved');
+
+
+    // Set Mode=Floor
+    NewMXCSR := (SaveMXCSR and (not $00006000)) or $00002000;
+    SetMXCSR(NewMXCSR);
+
+    DoTest;
+
+    // Verify that MXCSR is preserved
+    CheckEquals(NewMXCSR and $0000FFC0, GetMXCSR and $0000FFC0, 'MXCSR not preserved');
+
+
+
+    // Set Mode=Round
+    NewMXCSR := SaveMXCSR and (not $00006000);
+    SetMXCSR(NewMXCSR);
+
+    DoTest;
+
+    // Verify that MXCSR is preserved
+    CheckEquals(NewMXCSR and $0000FFC0, GetMXCSR and $0000FFC0, 'MXCSR not preserved');
+  finally
+    SetMXCSR(SaveMXCSR);
+  end;
 end;
 
 procedure TTestLowLevel.TestClamp2;
@@ -748,8 +1002,7 @@ end;
 procedure TTestMath.TestFloatRemainderDouble;
 var
   Numerator, Denominator: Double;
-  Expected, NextExpected, Actual: Double;
-  i: integer;
+  Expected, Actual: Double;
 const
   Epsilon = 1e-10;
 begin
@@ -800,7 +1053,6 @@ procedure TTestMath.TestFloatRemainderSingle;
 var
   Numerator, Denominator: Double;
   Expected, Actual: Double;
-  i: integer;
 const
   Epsilon = 1e-10;
 begin
@@ -1213,7 +1465,17 @@ end;
 
 
 initialization
-  RegisterTest(TTestLowLevel.Suite);
+//  RegisterTest(TTestLowLevel.Suite);
+
+  RegisterTest(TTestLowLevelPas.Suite);
+  RegisterTest(TTestLowLevelAsm.Suite);
+  if isMMX in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelMMX.Suite);
+  if isSSE2 in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelSSE2.Suite);
+  if isSSE41 in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelSSE41.Suite);
+
   RegisterTest(TTestMath.Suite);
 end.
 

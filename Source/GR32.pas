@@ -3581,7 +3581,7 @@ begin
     Result := clBlack32;
     Exit;
   end;
-  FStippleCounter := Wrap(FStippleCounter, L);
+  WrapMem(FStippleCounter, L);
   {$IFDEF FPC}
   PrevIndex := Trunc(FStippleCounter);
   {$ELSE}

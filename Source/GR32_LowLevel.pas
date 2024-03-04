@@ -131,7 +131,9 @@ function Wrap(Value, Min, Max: Integer): Integer; overload;
   - If Max=0,, then 0 is returned.
   Unlike the integer version of Wrap, the upper limit is exclusive.
   NAN is not checked. If Max=0, Zero is returned. }
-function Wrap(Value, Max: Single): Single; overload; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function Wrap(Value, Max: Single): Single; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+// Same as Wrap above but Value is by ref and Max is an integer
+procedure WrapMem(var Value: Single; Max: Cardinal); {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Fast Wrap alternatives for cases where range + 1 is a power of two }
 function WrapPow2(Value, Max: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
@@ -163,8 +165,24 @@ const
   WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror);
   WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror);
 
-{ Fast Value div 255, correct result with Value in [0..66298] range }
-function Div255(Value: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
+{ Fast integer division by 255. Valid for the range [0..$ffff] }
+function Div255(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+// Possibly even faster integer division by 255. Valid for the range [0..255*255] }
+function FastDiv255(Value: Word): Word; experimental; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+{ Fast rounded integer division by 255. Valid for the range [0..255*255] }
+function Div255Round(Value: Word): Word; experimental; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+
+type
+  FastRoundProc = function(Value: TFloat): Integer;
+
+var
+  // Trunc and Round using SSE
+  FastTrunc: FastRoundProc experimental;
+  FastRound: FastRoundProc experimental;
+
 
 { shift right with sign conservation }
 // Note that for PUREPASCAL SAR_n(x) is implemented as (x div 2^n).
@@ -199,6 +217,8 @@ var
 
 const
   FID_FILLLONGWORD      = 0;
+  FID_FAST_TRUNC        = 1;
+  FID_FAST_ROUND        = 2;
 
 const
   LowLevelBindingFlagPascal = $0001;
@@ -922,9 +942,11 @@ begin
 end;
 
 function Wrap(Value, Max: Single): Single;
+var
+  Maxbin: Cardinal absolute Max;
 begin
 {$if defined(WRAP_USEFLOATMOD)}
-  if (not IsZero(Max)) then
+  if (Maxbin shl 1 <> 0) then // Single=0 test trick
     Result := FloatMod(Value, Max)
   else
     Result := 0;
@@ -940,6 +962,27 @@ begin
     Result := Result - Max;
   while Result < 0 do
     Result := Result + Max;
+{$ifend}
+end;
+
+procedure WrapMem(var Value: Single; Max: Cardinal);
+begin
+{$if defined(WRAP_USEFLOATMOD)}
+  if (Max <> 0) then
+    Value := FloatMod(Value, Max)
+  else
+    Value := 0;
+{$else}
+  if Max = 0 then
+  begin
+    Value := 0;
+    Exit;
+  end;
+
+  while Value >= Max do
+    Value := Value - Max;
+  while Value < 0 do
+    Value := Value + Max;
 {$ifend}
 end;
 
@@ -1136,9 +1179,117 @@ begin
   end;
 end;
 
-function Div255(Value: Cardinal): Cardinal;
+function Div255(Value: Word): Word;
 begin
+{$if (CompilerVersion >= 36.0) and (defined(TARGET_x86))}
+  // Delphi 12, 32-bit, already knows how to optimize division by 255.
+  // Unfortunately it always optimizes as if the argument is a signed 32-bit.
+  Result := Value div 255;
+{$else}
+  // Input is 16 bit, intermediate result is 32-bit, result is 8 bit
+  // Note: Algorithm doesn't take sign into account!
   Result := (Value * $8081) shr 23;
+{$ifend}
+end;
+
+function FastDiv255(Value: Word): Word;
+begin
+  // Input is 16 bit, intermediate result is 32-bit (25 used), result is 8 bit
+  // Note: Algorithm doesn't take sign into account!
+  Result := (Value + ((Value + 257) shr 8)) shr 8;
+end;
+
+function Div255Round(Value: Word): Word;
+begin
+  // Input is 16 bit, intermediate result is 24-bit, result is 8 bit
+  // Note: Algorithm doesn't take sign into account!
+  Result := ((Value + 128) * 257) shr 16;
+end;
+
+function FastRound_Pas(Value: TFloat): Integer;
+begin
+  Result := Round(Value);
+end;
+
+function FastRound_SSE41(Value: TFloat): Integer;
+// Note: roundss is a SSE4.1 instruction
+const
+  ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
+asm
+{$if defined(TARGET_x86)}
+        MOVSS   xmm0, Value
+{$ifend}
+
+        ROUNDSS xmm0, xmm0, ROUND_MODE
+
+        CVTSS2SI eax, xmm0
+end;
+
+function FastTrunc_Pas(Value: TFloat): Integer;
+begin
+  Result := Trunc(Value);
+end;
+
+function FastTrunc_SSE2(Value: TFloat): Integer;
+var
+  SaveMXCSR: Cardinal;
+  NewMXCSR: Cardinal;
+const
+  // SSE MXCSR rounding modes
+  MXCSR_ROUND_MASK    = $FFFF9FFF;
+  MXCSR_ROUND_NEAREST = $00000000;
+  MXCSR_ROUND_DOWN    = $00002000;
+  MXCSR_ROUND_UP      = $00004000;
+  MXCSR_ROUND_TRUNC   = $00006000;
+asm
+        XOR     ECX, ECX
+
+        // Save current rounding mode
+        STMXCSR SaveMXCSR
+        // Load rounding mode
+        MOV     EAX, SaveMXCSR
+        // Do we need to change anything?
+        MOV     ECX, EAX
+        NOT     ECX
+        AND     ECX, MXCSR_ROUND_TRUNC
+        JZ      @SkipSetMXCSR // Skip expensive LDMXCSR
+@SetMXCSR:
+        // Save current rounding mode in ECX and flag that we need to restore it
+        MOV     ECX, EAX
+        // Set rounding mode to truncation
+        AND     EAX, MXCSR_ROUND_MASK
+        OR      EAX, MXCSR_ROUND_TRUNC
+        // Set new rounding mode
+        MOV     NewMXCSR, EAX
+        LDMXCSR NewMXCSR
+@SkipSetMXCSR:
+
+{$if defined(TARGET_x86)}
+        MOVSS   XMM0, Value
+{$ifend}
+        // Round/Trunc
+        CVTSS2SI EAX, XMM0
+
+        // Restore rounding mode
+        // Did we modify it?
+        TEST    ECX, ECX
+        JZ      @SkipRestoreMXCSR // Skip expensive LDMXCSR
+        // Restore old rounding mode
+        LDMXCSR SaveMXCSR
+@SkipRestoreMXCSR:
+end;
+
+function FastTrunc_SSE41(Value: TFloat): Integer;
+// Note: roundss is a SSE4.1 instruction
+const
+  ROUND_MODE = $08 + $03; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
+asm
+{$if defined(TARGET_x86)}
+        MOVSS   xmm0, Value
+{$ifend}
+
+        ROUNDSS xmm0, xmm0, ROUND_MODE
+        CVTSS2SI eax, xmm0
 end;
 
 { shift right with sign conservation }
@@ -1436,15 +1587,32 @@ end;
 
 procedure RegisterBindings;
 begin
+  {$WARN SYMBOL_EXPERIMENTAL OFF}
+
   LowLevelRegistry := NewRegistry('GR32_LowLevel bindings');
   LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
+  LowLevelRegistry.RegisterBinding(FID_FAST_TRUNC, @@FastTrunc);
+  LowLevelRegistry.RegisterBinding(FID_FAST_ROUND, @@FastRound);
 
   LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_Pas, LowLevelBindingFlagPascal);
+  LowLevelRegistry.Add(FID_FAST_TRUNC, @FastTrunc_Pas, LowLevelBindingFlagPascal);
+  LowLevelRegistry.Add(FID_FAST_ROUND, @FastRound_Pas, LowLevelBindingFlagPascal);
 
 {$IFNDEF PUREPASCAL}
   LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_ASM);
+{$IFNDEF OMIT_MMX}
   LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [isMMX]);
+{$ENDIF}
+{$IFNDEF OMIT_SSE2}
   LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [isSSE2]);
+{$ENDIF}
+
+{$IFNDEF OMIT_SSE2}
+  LowLevelRegistry.Add(FID_FAST_TRUNC, @FastTrunc_SSE2, [isSSE2]);
+  LowLevelRegistry.Add(FID_FAST_TRUNC, @FastTrunc_SSE41, [isSSE41]);
+
+  LowLevelRegistry.Add(FID_FAST_ROUND, @FastRound_SSE41, [isSSE41]);
+{$ENDIF}
 {$ENDIF}
 
   LowLevelRegistry.RebindAll;
