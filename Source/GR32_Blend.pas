@@ -131,12 +131,6 @@ var
   BlendColorAdd: TBlendReg;
   BlendColorModulate: TBlendReg;
 
-{ Special LUT pointers }
-  AlphaTable: Pointer;
-  bias_ptr: Pointer;
-  alpha_ptr: Pointer;
-
-
 { Misc stuff }
   LightenReg: TLightenReg;
 
@@ -222,8 +216,55 @@ procedure EMMS; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 
 var
+  // Blending related lookup tables
+
+  //
+  // RcTable contains the result of a *division* of two bytes values, specified in the byte range:
+  //
+  //   RcTable[a, b] = Round(b * 255 / a)
+  //
+  // It is commonly used to perform the division of the merge operation:
+  //
+  //   ResultColor = RcTable[ResultAlpha, Color] = Color / ResultAlpha
+  //
   RcTable: array [Byte, Byte] of Byte;
+
+  //
+  // The, unfortunatebly named, DivTable contains the result of a *multiplication* of two bytes
+  // values, specified in the byte range:
+  //
+  //   DivTable[a, b] = Round(a * b / 255)
+  //
+  // It is commonly used to perform the multiplications of the blend or merge operations:
+  //
+  //   TempColor = RcTable[Color, Alpha] = Color * Alpha
+  //
   DivTable: array [Byte, Byte] of Byte;
+
+
+
+type
+  TMultEntry = array[0..3] of TColor32Entry;
+  PMultEntry = ^TMultEntry;
+  TMultTable = array[byte] of TMultEntry;
+  PMultTable = ^TMultTable;
+
+  //
+  // alpha_ptr: Pointer to a 16-byte aligned array[256] of 4 cardinal values.
+  // The table is used to implement division by 255:
+  //
+  //   (x div 255) = ((x + 128) shr 8)
+  //               = ((alpha_ptr[x] + bias_ptr^) shr 8)
+  //
+var
+  alpha_ptr: PMultTable;
+
+  //
+  // bias_ptr points to the middle entry of the alpha_ptr table.
+  // The entry contains the value 0080 0080.
+  //
+  bias_ptr: PMultEntry;
+
 
 implementation
 
@@ -897,35 +938,37 @@ end;
 
 {$IFNDEF PUREPASCAL}
 
+var
+  AlphaTable: Pointer;
+
 procedure GenAlphaTable;
 var
-  I: Integer;
-  L: Cardinal;
-  P: PCardinal;
+  i: Integer;
+  Color: TColor32Entry;
 begin
-  // 255 entries of 4 Cardinals + 16 bytes for alignment
-  GetMem(AlphaTable, 255 * 4 * SizeOf(Cardinal) + 16);
+  GetMem(AlphaTable, SizeOf(TMultTable) + 16); // + 16 bytes for alignment
 
   // Align to 16 bytes
-  alpha_ptr := Pointer(NativeUInt(AlphaTable) and (not $F));
-  if NativeUInt(alpha_ptr) < NativeUInt(AlphaTable) then
-    Inc(NativeUInt(alpha_ptr),  16);
+  alpha_ptr := pointer((NativeUInt(AlphaTable) + $F) and (not $F));
 
-  P := alpha_ptr;
-  for I := 0 to 255 do
+  // Values for division by 255: (x div 255) = ((alpha_ptr[x] + 128) shl 8)
+  // Originally 2 entries per value for ASM and MMX.
+  // Later expanded to 4 entries per value so the table can also be used with SSE.
+  for i := Low(TMultTable) to High(TMultTable) do
   begin
-    L := I + I shl 16;
-    P^ := L;
-    Inc(P);
-    P^ := L;
-    Inc(P);
-    P^ := L;
-    Inc(P);
-    P^ := L;
-    Inc(P);
+    Color.Planes[0] := i;
+    Color.Planes[1] := 0;
+    Color.Planes[2] := i;
+    Color.Planes[3] := 0;
+
+    alpha_ptr[i][0] := Color;
+    alpha_ptr[i][1] := Color;
+    alpha_ptr[i][2] := Color;
+    alpha_ptr[i][3] := Color;
   end;
-  bias_ptr := alpha_ptr;
-  Inc(PByte(bias_ptr), $80 * 4 * SizeOf(Cardinal));
+
+  // bias_ptr points to ($80, 0, $80, 0)
+  bias_ptr := @alpha_ptr[128][0];
 end;
 
 procedure FreeAlphaTable;
@@ -1077,8 +1120,8 @@ initialization
 
   MakeMergeTables;
 
-  AlphaTable := nil;
 {$IFNDEF PUREPASCAL}
+  AlphaTable := nil;
   MMX_ACTIVE := (isMMX in CPU.InstructionSupport);
   if [isMMX, isSSE2] * CPU.InstructionSupport <> [] then
     GenAlphaTable;
