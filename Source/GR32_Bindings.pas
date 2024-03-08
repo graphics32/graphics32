@@ -39,6 +39,9 @@ interface
 
 uses
   Classes,
+{$IFNDEF PUREPASCAL}
+  GR32.CPUID,
+{$ENDIF}
   GR32_System;
 
 type
@@ -47,7 +50,7 @@ type
 
   PFunctionInfo = ^TFunctionInfo;
   TFunctionInfo = record
-    FunctionID: Integer;
+    FunctionID: NativeInt; // Either an ID or a pointer
     Proc: Pointer;
     InstructionSupport: TInstructionSupport;
     Flags: Integer;
@@ -58,7 +61,7 @@ type
 
   PFunctionBinding = ^TFunctionBinding;
   TFunctionBinding = record
-    FunctionID: Integer;
+    FunctionID: NativeInt;
     BindVariable: PPointer;
   end;
 
@@ -82,19 +85,27 @@ type
     destructor Destroy; override;
     procedure Clear;
 
-    procedure Add(FunctionID: Integer; Proc: Pointer; CPUFeatures: TCPUFeatures;
-      Flags: Integer = 0; Priority: Integer = 0); overload; deprecated;
-    procedure Add(FunctionID: Integer; Proc: Pointer; InstructionSupport: TInstructionSupport = [];
-      Flags: Integer = 0; Priority: Integer = 0); overload;
-    procedure Add(FunctionID: Integer; Proc: Pointer; Flags: Integer; Priority: Integer = 0); overload;
+    // FunctionID: Identify bound function using function IDs
+    // FunctionProc: Identify bound function using function pointer
 
-    // function rebinding support
-    procedure RegisterBinding(FunctionID: Integer; BindVariable: PPointer);
+    procedure Add(FunctionID: NativeInt; Proc: Pointer; CPUFeatures: TCPUFeatures; Flags: Integer = 0; Priority: Integer = 0); overload; deprecated;
+    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport = []; Flags: Integer = 0; Priority: Integer = 0); overload;
+    procedure Add(FunctionID: NativeInt; Proc: Pointer; Flags: Integer; Priority: Integer = 0); overload;
+    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport = []; Flags: Integer = 0; Priority: Integer = 0); overload;
+    procedure Add(BindVariable: PPointer; Proc: Pointer; Flags: Integer; Priority: Integer = 0); overload;
+
+    // Function rebinding support
+    procedure RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer); overload;
+    procedure RegisterBinding(BindVariable: PPointer); overload;
     procedure RebindAll(AForce: boolean; PriorityCallback: TFunctionPriority = nil); overload;
     procedure RebindAll(PriorityCallback: TFunctionPriority = nil); overload;
-    function Rebind(FunctionID: Integer; PriorityCallback: TFunctionPriority = nil): boolean;
+    function Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): boolean; overload;
+    function Rebind(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): boolean; overload;
 
-    function FindFunction(FunctionID: Integer; PriorityCallback: TFunctionPriority = nil): Pointer;
+    function FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
+    function FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
+
+    // TODO : Items is useless as we have no way to determine the size of the list
     property Items[Index: Integer]: PFunctionInfo read GetItems write SetItems;
   published
     property Name: string read FName write SetName;
@@ -140,22 +151,29 @@ end;
 
 { TFunctionRegistry }
 
-procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer;
-  CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
+procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; Flags, Priority: Integer);
 begin
-  Add(FunctionID, Proc, CPUFeaturesToInstructionSupport(CPUFeatures), Flags, Priority);
+  Add(NativeInt(BindVariable), Proc, Flags, Priority);
 end;
 
+procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags, Priority: Integer);
+begin
+  Add(NativeInt(BindVariable), Proc, CPU.InstructionSupport, Flags, Priority);
+end;
 
-procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer; Flags: Integer; Priority: Integer = 0);
+procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
+begin
+  Add(FunctionID, Proc, CPU.InstructionSupport, Flags, Priority);
+end;
+
+procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; Flags: Integer; Priority: Integer = 0);
 const
   Nothing: TInstructionSupport = [];
 begin
   Add(FunctionID, Proc, Nothing, Flags, Priority);
 end;
 
-procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer; InstructionSupport: TInstructionSupport;
-  Flags: Integer; Priority: Integer);
+procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer; Priority: Integer);
 var
   Info: PFunctionInfo;
 begin
@@ -196,8 +214,12 @@ begin
   inherited;
 end;
 
-function TFunctionRegistry.FindFunction(FunctionID: Integer;
-  PriorityCallback: TFunctionPriority): Pointer;
+function TFunctionRegistry.FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority): Pointer;
+begin
+  Result := FindFunction(NativeInt(BindVariable), PriorityCallback);
+end;
+
+function TFunctionRegistry.FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): Pointer;
 var
   I, MinPriority, P: Integer;
   Info: PFunctionInfo;
@@ -209,10 +231,12 @@ begin
   for I := FItems.Count - 1 downto 0 do
   begin
     Info := FItems[I];
+
     if (Info^.FunctionID = FunctionID) then
     begin
       P := PriorityCallback(Info);
-      if P < MinPriority then
+
+      if (P < MinPriority) then
       begin
         Result := Info^.Proc;
         MinPriority := P;
@@ -226,8 +250,12 @@ begin
   Result := FItems[Index];
 end;
 
-function TFunctionRegistry.Rebind(FunctionID: Integer;
-  PriorityCallback: TFunctionPriority): boolean;
+function TFunctionRegistry.Rebind(BindVariable: PPointer; PriorityCallback: TFunctionPriority): boolean;
+begin
+  Result := Rebind(NativeInt(BindVariable), PriorityCallback);
+end;
+
+function TFunctionRegistry.Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): boolean;
 var
   P: PFunctionBinding;
   I: Integer;
@@ -236,7 +264,8 @@ begin
   for I := 0 to FBindings.Count - 1 do
   begin
     P := PFunctionBinding(FBindings[I]);
-    if P^.FunctionID = FunctionID then
+
+    if (P^.FunctionID = FunctionID) then
     begin
       P^.BindVariable^ := FindFunction(FunctionID, PriorityCallback);
       Result := (P^.BindVariable^ <> nil);
@@ -269,8 +298,12 @@ begin
   FNeedRebind := False;
 end;
 
-procedure TFunctionRegistry.RegisterBinding(FunctionID: Integer;
-  BindVariable: PPointer);
+procedure TFunctionRegistry.RegisterBinding(BindVariable: PPointer);
+begin
+  RegisterBinding(NativeInt(BindVariable), BindVariable);
+end;
+
+procedure TFunctionRegistry.RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer);
 var
   Binding: PFunctionBinding;
 begin
