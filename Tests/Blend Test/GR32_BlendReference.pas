@@ -39,10 +39,16 @@ interface
 
 {$I ..\..\Source\GR32.inc}
 
+// Define UseLookupTables to have the reference implementations use the division and div255 lookup tables.
+// This is not recommended as it would make the reference implementations replicate any errors caused by those tables.
 {-$DEFINE UseLookupTables}
 
-// Contrary to the documentation the result alpha of a Blend operation is either left as-is or set to $FF
+// Contrary to the documentation the result alpha of a Blend operation is either left as-is or set to $FF.
+// Define BlendAlpha255 to have the result alpha forced to 255.
 {$DEFINE BlendAlpha255}
+
+// Define USE_DIV255 to have the reference implementations use the Div255 function instead of Round(x/255).
+{-$define USE_DIV255}
 
 uses
   SysUtils,
@@ -71,7 +77,8 @@ procedure MergeLineEx_Reference(Source, Destination: PColor32; Count: Cardinal; 
 implementation
 
 uses
-  Math;
+  Math,
+  GR32_LowLevel;
 
 {$IFDEF UseLookupTables}
 var
@@ -309,8 +316,11 @@ var
   AlphaForeground : PByteArray;
   AlphaBackground : PByteArray;
 {$ELSE}
+{$ifndef USE_DIV255}
 var
-  Scale : array [0..1] of Double;
+  ScaleFG: Double;
+  ScaleBG: Double;
+{$endif}
 {$ENDIF}
 begin
   if Weight = 0 then
@@ -328,20 +338,27 @@ begin
 {$IFDEF UseLookupTables}
   AlphaForeground := @GDivTable[Weight];
   AlphaBackground := @GDivTable[255 - Weight];
-  ForegroundColor.R := AlphaBackground[BackgroundColor.R] + AlphaForeground[ForegroundColor.R];
-  ForegroundColor.G := AlphaBackground[BackgroundColor.G] + AlphaForeground[ForegroundColor.G];
-  ForegroundColor.B := AlphaBackground[BackgroundColor.B] + AlphaForeground[ForegroundColor.B];
-  ForegroundColor.A := AlphaBackground[BackgroundColor.A] + AlphaForeground[ForegroundColor.A];
+  BackgroundColor.R := AlphaBackground[BackgroundColor.R] + AlphaForeground[ForegroundColor.R];
+  BackgroundColor.G := AlphaBackground[BackgroundColor.G] + AlphaForeground[ForegroundColor.G];
+  BackgroundColor.B := AlphaBackground[BackgroundColor.B] + AlphaForeground[ForegroundColor.B];
+  BackgroundColor.A := AlphaBackground[BackgroundColor.A] + AlphaForeground[ForegroundColor.A];
 {$ELSE}
-  Scale[0] := Weight * COne255th;
-  Scale[1] := 1 - Scale[0];
-  ForegroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
-  ForegroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
-  ForegroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
-  ForegroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$ifdef USE_DIV255}
+  BackgroundColor.A := Div255(SmallInt(Weight) * (ForegroundColor.A - BackgroundColor.A)) + BackgroundColor.A;
+  BackgroundColor.B := Div255(SmallInt(Weight) * (ForegroundColor.B - BackgroundColor.B)) + BackgroundColor.B;
+  BackgroundColor.G := Div255(SmallInt(Weight) * (ForegroundColor.G - BackgroundColor.G)) + BackgroundColor.G;
+  BackgroundColor.R := Div255(SmallInt(Weight) * (ForegroundColor.R - BackgroundColor.R)) + BackgroundColor.R;
+{$else USE_DIV255}
+  ScaleFG := Weight * COne255th;
+  ScaleBG := 1 - ScaleFG;
+  BackgroundColor.R := EnsureRange(Round(ScaleBG * BackgroundColor.R + ScaleFG * ForegroundColor.R), 0, $FF);
+  BackgroundColor.G := EnsureRange(Round(ScaleBG * BackgroundColor.G + ScaleFG * ForegroundColor.G), 0, $FF);
+  BackgroundColor.B := EnsureRange(Round(ScaleBG * BackgroundColor.B + ScaleFG * ForegroundColor.B), 0, $FF);
+  BackgroundColor.A := EnsureRange(Round(ScaleBG * BackgroundColor.A + ScaleFG * ForegroundColor.A), 0, $FF);
+{$endif USE_DIV255}
 {$ENDIF}
 
-  Result := ForeGround;
+  Result := Background;
 end;
 
 procedure CombineMem_Reference(ForeGround: TColor32; var Background: TColor32; Weight: Cardinal);
@@ -352,8 +369,11 @@ var
   AlphaForeground : PByteArray;
   AlphaBackground : PByteArray;
 {$ELSE}
+{$ifndef USE_DIV255}
 var
-  Scale : array [0..1] of Double;
+  ScaleFG: Double;
+  ScaleBG: Double;
+{$endif}
 {$ENDIF}
 begin
   if Weight = 0 then
@@ -368,20 +388,25 @@ begin
 {$IFDEF UseLookupTables}
   AlphaForeground := @GDivTable[Weight];
   AlphaBackground := @GDivTable[255 - Weight];
-  ForegroundColor.R := AlphaBackground[BackgroundColor.R] + AlphaForeground[ForegroundColor.R];
-  ForegroundColor.G := AlphaBackground[BackgroundColor.G] + AlphaForeground[ForegroundColor.G];
-  ForegroundColor.B := AlphaBackground[BackgroundColor.B] + AlphaForeground[ForegroundColor.B];
-  ForegroundColor.A := AlphaBackground[BackgroundColor.A] + AlphaForeground[ForegroundColor.A];
+  BackgroundColor.R := AlphaBackground[BackgroundColor.R] + AlphaForeground[ForegroundColor.R];
+  BackgroundColor.G := AlphaBackground[BackgroundColor.G] + AlphaForeground[ForegroundColor.G];
+  BackgroundColor.B := AlphaBackground[BackgroundColor.B] + AlphaForeground[ForegroundColor.B];
+  BackgroundColor.A := AlphaBackground[BackgroundColor.A] + AlphaForeground[ForegroundColor.A];
 {$ELSE}
-  Scale[0] := Weight * COne255th;
-  Scale[1] := 1 - Scale[0];
-  ForegroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
-  ForegroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
-  ForegroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
-  ForegroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$ifdef USE_DIV255}
+  BackgroundColor.A := Div255(SmallInt(Weight) * (ForegroundColor.A - BackgroundColor.A)) + BackgroundColor.A;
+  BackgroundColor.B := Div255(SmallInt(Weight) * (ForegroundColor.B - BackgroundColor.B)) + BackgroundColor.B;
+  BackgroundColor.G := Div255(SmallInt(Weight) * (ForegroundColor.G - BackgroundColor.G)) + BackgroundColor.G;
+  BackgroundColor.R := Div255(SmallInt(Weight) * (ForegroundColor.R - BackgroundColor.R)) + BackgroundColor.R;
+{$else USE_DIV255}
+  ScaleFG := Weight * COne255th;
+  ScaleBG := 1 - ScaleFG;
+  BackgroundColor.R := EnsureRange(Round(ScaleBG * BackgroundColor.R + ScaleFG * ForegroundColor.R), 0, $FF);
+  BackgroundColor.G := EnsureRange(Round(ScaleBG * BackgroundColor.G + ScaleFG * ForegroundColor.G), 0, $FF);
+  BackgroundColor.B := EnsureRange(Round(ScaleBG * BackgroundColor.B + ScaleFG * ForegroundColor.B), 0, $FF);
+  BackgroundColor.A := EnsureRange(Round(ScaleBG * BackgroundColor.A + ScaleFG * ForegroundColor.A), 0, $FF);
+{$endif USE_DIV255}
 {$ENDIF}
-
-  Background := ForeGround;
 end;
 
 procedure CombineLine_Reference(Source, Destination: PColor32; Count: Integer;
