@@ -49,7 +49,8 @@ uses
   UITypes, Types, Windows,
 {$ENDIF}
   Math,
-  Controls, Graphics, Classes, SysUtils;
+  Controls, Graphics, Classes, SysUtils,
+  GR32_Bindings;
 
 { Version Control }
 
@@ -1156,6 +1157,14 @@ var
   // By default, do not include a color table in BI_BITFIELDS BMPs written by SaveToStream/SaveToFile.
   DefaultBitmapIncludeColorTable: boolean = False;
 
+//------------------------------------------------------------------------------
+//
+//      Function bindings
+//
+//------------------------------------------------------------------------------
+function GeneralRegistry: TFunctionRegistry;
+
+
 resourcestring
   RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
   RCStrCannotSetSize = 'Can''t set size from ''%s''';
@@ -1167,6 +1176,7 @@ uses
   Clipbrd,
   GR32_Blend,
   GR32_LowLevel,
+  GR32_System,
   GR32_Math,
   GR32_Resamplers,
   GR32_Containers,
@@ -7589,7 +7599,46 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+procedure RegisterBindings;
+begin
+end;
+
+var
+  FGeneralRegistry: TFunctionRegistry = nil;
+
+function GeneralRegistry: TFunctionRegistry;
+begin
+  if (FGeneralRegistry = nil) then
+  begin
+    FGeneralRegistry := NewRegistry('GR32 misc. bindings');
+    RegisterBindings;
+  end;
+  Result := FGeneralRegistry;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      Function bindings
+//
+//------------------------------------------------------------------------------
+procedure RegisterBindingFunctions;
+begin
+end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 initialization
+  RegisterBindingFunctions;
+  GeneralRegistry.RebindAll;
+
   SetGamma;
   StockBitmap := TBitmap.Create;
   StockBitmap.Width := 8;
