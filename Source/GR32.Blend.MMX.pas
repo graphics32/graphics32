@@ -1,4 +1,4 @@
-unit GR32_BlendMMX;
+unit GR32.Blend.MMX;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -41,7 +41,16 @@ interface
 uses
   GR32;
 
+//------------------------------------------------------------------------------
+//
+//      MMX SIMD blend implementations
+//
+//------------------------------------------------------------------------------
+
 {$IFNDEF OMIT_MMX}
+//------------------------------------------------------------------------------
+// Blend
+//------------------------------------------------------------------------------
 function BlendReg_MMX(F, B: TColor32): TColor32;
 procedure BlendMem_MMX(F: TColor32; var B: TColor32);
 
@@ -54,14 +63,18 @@ procedure BlendMemRGB_MMX(F: TColor32; var B: TColor32; W: Cardinal);
 procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer);
 procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 
+
+//------------------------------------------------------------------------------
+// Combine
+//------------------------------------------------------------------------------
 function CombineReg_MMX(X, Y: TColor32; W: Cardinal): TColor32;
 procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: Cardinal);
 procedure CombineLine_MMX(Src, Dst: PColor32; Count: Integer; W: Cardinal);
 
-procedure EMMS_MMX;
 
-function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32;
-
+//------------------------------------------------------------------------------
+// Color algebra
+//------------------------------------------------------------------------------
 function ColorAdd_MMX(C1, C2: TColor32): TColor32;
 function ColorSub_MMX(C1, C2: TColor32): TColor32;
 function ColorModulate_MMX(C1, C2: TColor32): TColor32;
@@ -70,7 +83,34 @@ function ColorMin_EMMX(C1, C2: TColor32): TColor32;
 function ColorDifference_MMX(C1, C2: TColor32): TColor32;
 function ColorExclusion_MMX(C1, C2: TColor32): TColor32;
 function ColorScale_MMX(C: TColor32; W: Cardinal): TColor32;
+
+
+//------------------------------------------------------------------------------
+// Misc.
+//------------------------------------------------------------------------------
+function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32;
+
+
+//------------------------------------------------------------------------------
+// EMMS
+//------------------------------------------------------------------------------
+procedure EMMS_MMX;
+
 {$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+const
+  BlendRegistryPriorityMMX = -512;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -78,9 +118,6 @@ uses
   GR32_Blend,
   GR32_LowLevel,
   GR32_System;
-
-const
-  BlendRegistryPriorityMMX = -512;
 
 { MMX versions }
 
@@ -966,34 +1003,44 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
 procedure RegisterBindingFunctions;
 begin
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_MMX}
-  BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLORMAX, @ColorMax_EMMX, [isExMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLORMIN, @ColorMin_EMMX, [isExMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLORADD, @ColorAdd_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLORSUB, @ColorSub_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
-  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_MMX, [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_EMMS,           @EMMS_MMX,              [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_MMX,        [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_MMX,        [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COMBINELINE,    @CombineLine_MMX,       [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDREG,       @BlendReg_MMX,          [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDMEM,       @BlendMem_MMX,          [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDREGEX,     @BlendRegEx_MMX,        [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDMEMEX,     @BlendMemEx_MMX,        [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDLINE,      @BlendLine_MMX,         [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDLINEEX,    @BlendLineEx_MMX,       [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLORMAX,       @ColorMax_EMMX,         [isExMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLORMIN,       @ColorMin_EMMX,         [isExMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLORADD,       @ColorAdd_MMX,          [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLORSUB,       @ColorSub_MMX,          [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLORMODULATE,  @ColorModulate_MMX,     [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLORDIFFERENCE,@ColorDifference_MMX,   [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX,    [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_COLORSCALE,     @ColorScale_MMX,        [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_LIGHTEN,        @LightenReg_MMX,        [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDREGRGB,    @BlendRegRGB_MMX,       [isMMX], 0, BlendRegistryPriorityMMX);
+  BlendRegistry.Add(FID_BLENDMEMRGB,    @BlendMemRGB_MMX,       [isMMX], 0, BlendRegistryPriorityMMX);
 {$ENDIF}
 {$ENDIF}
 end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 initialization
   RegisterBindingFunctions;

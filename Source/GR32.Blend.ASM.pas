@@ -1,4 +1,4 @@
-unit GR32_BlendASM;
+unit GR32.Blend.&ASM;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -41,6 +41,15 @@ interface
 uses
   GR32;
 
+//------------------------------------------------------------------------------
+//
+//      Assembler blend implementations
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Blend
+//------------------------------------------------------------------------------
 function BlendReg_ASM(F, B: TColor32): TColor32;
 procedure BlendMem_ASM(F: TColor32; var B: TColor32);
 procedure BlendMems_ASM(F: TColor32; B: PColor32; Count: Integer);
@@ -51,14 +60,40 @@ procedure BlendMemEx_ASM(F: TColor32; var B:TColor32; M: Cardinal);
 procedure BlendLine_ASM(Src, Dst: PColor32; Count: Integer);
 procedure BlendLine1_ASM(Src: TColor32; Dst: PColor32; Count: Integer);
 
-function CombineReg_ASM(X, Y: TColor32; W: Cardinal): TColor32;
-procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: Cardinal);
 
+//------------------------------------------------------------------------------
+// Merge
+//------------------------------------------------------------------------------
 {$IFDEF TARGET_x86}
 function MergeReg_ASM(F, B: TColor32): TColor32;
 {$ENDIF}
 
+
+//------------------------------------------------------------------------------
+// Combine
+//------------------------------------------------------------------------------
+function CombineReg_ASM(X, Y: TColor32; W: Cardinal): TColor32;
+procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: Cardinal);
+
+
+//------------------------------------------------------------------------------
+// EMMS
+//------------------------------------------------------------------------------
 procedure EMMS_ASM;
+
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+const
+  BlendRegistryPriorityASM = -256;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -67,12 +102,6 @@ uses
   GR32_LowLevel,
   GR32_System;
 
-{ ASM versions }
-
-const
-  BlendRegistryPriorityASM = -256;
-
-{ Assembler versions }
 
 const
   bias = $00800080;
@@ -1497,25 +1526,36 @@ asm
 end;
 
 
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+{$IFNDEF PUREPASCAL}
 procedure RegisterBindingFunctions;
 begin
-{$IFNDEF PUREPASCAL}
-  BlendRegistry.Add(FID_EMMS, @EMMS_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, 0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_ASM, 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_EMMS,           @EMMS_ASM,              0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_ASM,        0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_ASM,        0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREG,       @BlendReg_ASM,          0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEM,       @BlendMem_ASM,          0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEMS,      @BlendMems_ASM,         0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREGEX,     @BlendRegEx_ASM,        0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEMEX,     @BlendMemEx_ASM,        0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE,      @BlendLine_ASM,         0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE1,     @BlendLine1_ASM,        0, BlendRegistryPriorityASM);
 {$IFNDEF TARGET_x64}
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, 0, BlendRegistryPriorityASM);
-{$ENDIF}
+  BlendRegistry.Add(FID_MERGEREG,       @MergeReg_ASM,          0, BlendRegistryPriorityASM);
 {$ENDIF}
 end;
+{$ENDIF}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 initialization
+{$IFNDEF PUREPASCAL}
   RegisterBindingFunctions;
+{$ENDIF}
 end.

@@ -43,6 +43,8 @@ uses
   GR32_Blend,
   GR32_Bindings;
 
+{$M+}
+
 type
   MaxErrorAttribute = class(TCustomAttribute)
   private
