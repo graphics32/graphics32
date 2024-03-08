@@ -28,10 +28,6 @@ unit GR32.Blend.MMX;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *  Christian-W. Budde
- *      - 2019/04/01 - Refactoring
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -119,8 +115,15 @@ uses
   GR32_LowLevel,
   GR32_System;
 
-{ MMX versions }
+//------------------------------------------------------------------------------
+//
+//      Blend
+//
+//------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------
+// BlendReg
+//------------------------------------------------------------------------------
 function BlendReg_MMX(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
@@ -178,8 +181,11 @@ asm
 {$ENDIF}
 end;
 
-{$IFDEF TARGET_x86}
 
+//------------------------------------------------------------------------------
+// BlendMem
+//------------------------------------------------------------------------------
+{$IFDEF TARGET_x86}
 procedure BlendMem_MMX(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // EAX - Color X
@@ -213,7 +219,13 @@ asm
 @1:     RET
 @2:     MOV       [EDX],EAX
 end;
+{$ENDIF}
 
+
+//------------------------------------------------------------------------------
+// BlendRegEx
+//------------------------------------------------------------------------------
+{$IFDEF TARGET_x86}
 function BlendRegEx_MMX(F, B: TColor32; M: Cardinal): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
@@ -253,9 +265,12 @@ asm
 @1:     MOV       EAX,EDX
         POP       EBX
 end;
-
 {$ENDIF}
 
+
+//------------------------------------------------------------------------------
+// BlendMemEx
+//------------------------------------------------------------------------------
 procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
@@ -344,6 +359,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendRegRGB
+//------------------------------------------------------------------------------
 function BlendRegRGB_MMX(F, B: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
@@ -391,6 +410,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendMemRGB
+//------------------------------------------------------------------------------
 procedure BlendMemRGB_MMX(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
@@ -439,6 +462,9 @@ asm
 end;
 
 
+//------------------------------------------------------------------------------
+// BlendLine
+//------------------------------------------------------------------------------
 {$IFDEF TARGET_x86}
 procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -497,7 +523,13 @@ asm
 
 @4:
 end;
+{$ENDIF}
 
+
+//------------------------------------------------------------------------------
+// BlendLineEx
+//------------------------------------------------------------------------------
+{$IFDEF TARGET_x86}
 procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // EAX <- Src
@@ -559,9 +591,18 @@ asm
         POP       ESI
 @4:
 end;
-
 {$ENDIF}
 
+
+//------------------------------------------------------------------------------
+//
+//      Combine
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// CombineReg
+//------------------------------------------------------------------------------
 function CombineReg_MMX(X, Y: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -631,6 +672,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// CombineMem
+//------------------------------------------------------------------------------
 procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -719,8 +764,11 @@ asm
 {$ENDIF}
 end;
 
-{$IFDEF TARGET_x86}
 
+//------------------------------------------------------------------------------
+// CombineLine
+//------------------------------------------------------------------------------
+{$IFDEF TARGET_x86}
 procedure CombineLine_MMX(Src, Dst: PColor32; Count: Integer; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // EAX <- Src
@@ -776,51 +824,18 @@ asm
 @4:     CALL      GR32_LowLevel.MoveLongword
         POP       EBX
 end;
-
 {$ENDIF}
 
-procedure EMMS_MMX; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-  EMMS
-end;
 
-function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$IFDEF TARGET_X86}
-        MOVD    MM0,EAX
-        TEST    EDX,EDX
-        JL      @1
-        IMUL    EDX,$010101
-        MOVD    MM1,EDX
-        PADDUSB MM0,MM1
-        MOVD    EAX,MM0
-        RET
-@1:     NEG     EDX
-        IMUL    EDX,$010101
-        MOVD    MM1,EDX
-        PSUBUSB MM0,MM1
-        MOVD    EAX,MM0
-{$ENDIF}
+//------------------------------------------------------------------------------
+//
+//      Color algebra
+//
+//------------------------------------------------------------------------------
 
-{$IFDEF TARGET_X64}
-        MOVD    MM0,ECX
-        TEST    EDX,EDX
-        JL      @1
-        IMUL    EDX,$010101
-        MOVD    MM1,EDX
-        PADDUSB MM0,MM1
-        MOVD    EAX,MM0
-        RET
-@1:     NEG     EDX
-        IMUL    EDX,$010101
-        MOVD    MM1,EDX
-        PSUBUSB MM0,MM1
-        MOVD    EAX,MM0
-{$ENDIF}
-end;
-
-{ MMX Color algebra versions }
-
+//------------------------------------------------------------------------------
+// ColorAdd
+//------------------------------------------------------------------------------
 function ColorAdd_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -838,6 +853,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorSub
+//------------------------------------------------------------------------------
 function ColorSub_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -855,6 +874,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorModulate
+//------------------------------------------------------------------------------
 function ColorModulate_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -882,6 +905,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorMax
+//------------------------------------------------------------------------------
 function ColorMax_EMMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -899,6 +926,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorMin
+//------------------------------------------------------------------------------
 function ColorMin_EMMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -916,6 +947,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorDifference
+//------------------------------------------------------------------------------
 function ColorDifference_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -939,6 +974,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorExclusion
+//------------------------------------------------------------------------------
 function ColorExclusion_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -972,6 +1011,10 @@ asm
 {$ENDIF}
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorScale
+//------------------------------------------------------------------------------
 function ColorScale_MMX(C: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
@@ -1000,6 +1043,60 @@ asm
         PSRLW     MM0,8
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
+{$ENDIF}
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Misc.
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// EMMS
+//------------------------------------------------------------------------------
+procedure EMMS_MMX; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  EMMS
+end;
+
+
+//------------------------------------------------------------------------------
+// LightenReg
+//------------------------------------------------------------------------------
+function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_X86}
+        MOVD    MM0,EAX
+        TEST    EDX,EDX
+        JL      @1
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PADDUSB MM0,MM1
+        MOVD    EAX,MM0
+        RET
+@1:     NEG     EDX
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PSUBUSB MM0,MM1
+        MOVD    EAX,MM0
+{$ENDIF}
+
+{$IFDEF TARGET_X64}
+        MOVD    MM0,ECX
+        TEST    EDX,EDX
+        JL      @1
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PADDUSB MM0,MM1
+        MOVD    EAX,MM0
+        RET
+@1:     NEG     EDX
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PSUBUSB MM0,MM1
+        MOVD    EAX,MM0
 {$ENDIF}
 end;
 

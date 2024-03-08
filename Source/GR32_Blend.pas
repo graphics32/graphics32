@@ -28,21 +28,6 @@ unit GR32_Blend;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *  Mattias Andersson
- *      - 2004/07/07 - MMX Blendmodes
- *      - 2004/12/10 - _MergeReg, M_MergeReg
- *
- *  Michael Hansen <dyster_tid@hotmail.com>
- *      - 2004/07/07 - Pascal Blendmodes, function setup
- *      - 2005/08/19 - New merge table concept and reference implementations
- *
- *  Bob Voigt
- *      - 2004/08/25 - ColorDiv
- *
- *  Christian-W. Budde
- *      - 2019/04/01 - Refactoring
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -293,6 +278,7 @@ var
   DivTable: array [Byte, Byte] of Byte;
 
 
+//------------------------------------------------------------------------------
 
 type
   TMultEntry = array[0..3] of TColor32Entry;
@@ -300,6 +286,7 @@ type
   TMultTable = array[byte] of TMultEntry;
   PMultTable = ^TMultTable;
 
+var
   //
   // alpha_ptr: Pointer to a 16-byte aligned array[256] of 4 cardinal values.
   // The table is used to implement division by 255:
@@ -307,7 +294,6 @@ type
   //   (x div 255) = ((x + 128) shr 8)
   //               = ((alpha_ptr[x] + bias_ptr^) shr 8)
   //
-var
   alpha_ptr: PMultTable;
 
   //
@@ -346,9 +332,9 @@ end;
 {$IFNDEF PUREPASCAL}
 
 //------------------------------------------------------------------------------
-  //
+//
 //      GenAlphaTable
-  //
+//
 //------------------------------------------------------------------------------
 var
   AlphaTable: Pointer;

@@ -28,21 +28,6 @@ unit GR32.Blend.Pascal;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *  Mattias Andersson
- *      - 2004/07/07 - MMX Blendmodes
- *      - 2004/12/10 - _MergeReg, M_MergeReg
- *
- *  Michael Hansen <dyster_tid@hotmail.com>
- *      - 2004/07/07 - Pascal Blendmodes, function setup
- *      - 2005/08/19 - New merge table concept and reference implementations
- *
- *  Bob Voigt
- *      - 2004/08/25 - ColorDiv
- *
- *  Christian-W. Budde
- *      - 2019/04/01 - Refactoring
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -89,10 +74,11 @@ procedure MergeLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 // Combine
 //------------------------------------------------------------------------------
 function CombineReg_Pas(X, Y: TColor32; W: Cardinal): TColor32;
+
 procedure CombineMem_Pas_Table(X: TColor32; var Y: TColor32; W: Cardinal);
 procedure CombineMem_Pas_Div255(X: TColor32; var Y: TColor32; W: Cardinal);
-procedure CombineMem_Pas_Div255Round(X: TColor32; var Y: TColor32; W: Cardinal);
 procedure CombineMem_Pas_Retro(X: TColor32; var Y: TColor32; W: Cardinal);
+
 procedure CombineLine_Pas(Src, Dst: PColor32; Count: Integer; W: Cardinal);
 
 
@@ -145,8 +131,15 @@ uses
   GR32_LowLevel,
   SysUtils;
 
-{ Pure Pascal }
+//------------------------------------------------------------------------------
+//
+//      Blend
+//
+//------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------
+// BlendReg
+//------------------------------------------------------------------------------
 function BlendReg_Pas(F, B: TColor32): TColor32;
 var
   FX: TColor32Entry absolute F;
@@ -180,6 +173,10 @@ begin
   Result := B;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendMem
+//------------------------------------------------------------------------------
 procedure BlendMem_Pas(F: TColor32; var B: TColor32);
 var
   FX: TColor32Entry absolute F;
@@ -208,6 +205,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendMems
+//------------------------------------------------------------------------------
 procedure BlendMems_Pas(F: TColor32; B: PColor32; Count: Integer);
 begin
   while Count > 0 do
@@ -218,6 +219,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendRegEx
+//------------------------------------------------------------------------------
 function BlendRegEx_Pas(F, B: TColor32; M: Cardinal): TColor32;
 var
   FX: TColor32Entry absolute F;
@@ -248,6 +253,10 @@ begin
   TColor32Entry(Result).A := $FF;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendMemEx
+//------------------------------------------------------------------------------
 procedure BlendMemEx_Pas(F: TColor32; var B: TColor32; M: Cardinal);
 var
   FX: TColor32Entry absolute F;
@@ -275,6 +284,10 @@ begin
   BX.A := $FF;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendRegRGB
+//------------------------------------------------------------------------------
 function BlendRegRGB_Pas(F, B: TColor32; W: Cardinal): TColor32;
 var
   FX: TColor32Entry absolute F;
@@ -295,6 +308,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendMemRGB
+//------------------------------------------------------------------------------
 procedure BlendMemRGB_Pas(F: TColor32; var B: TColor32; W: Cardinal);
 var
   FX: TColor32Entry absolute F;
@@ -314,6 +331,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendMemRGB
+//------------------------------------------------------------------------------
 procedure BlendLine1_Pas(Src: TColor32; Dst: PColor32; Count: Integer);
 begin
   while Count > 0 do
@@ -324,6 +345,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendLine
+//------------------------------------------------------------------------------
 procedure BlendLine_Pas(Src, Dst: PColor32; Count: Integer);
 begin
   while Count > 0 do
@@ -335,6 +360,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendLineEx
+//------------------------------------------------------------------------------
 procedure BlendLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 begin
   if (M = 0) then
@@ -349,6 +378,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendLineEx
+//------------------------------------------------------------------------------
 function CombineReg_Pas(X, Y: TColor32; W: Cardinal): TColor32;
 var
   Xe: TColor32Entry absolute X;
@@ -379,7 +412,24 @@ begin
   Result := X;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Combine
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// CombineMem
+//------------------------------------------------------------------------------
 procedure CombineMem_Pas_Table(X: TColor32; var Y: TColor32; W: Cardinal);
+(*
+TestCombineMem:
+Errors: 32.364 = 24,7 % (Limit: -1)
+Differences: 129.456
+Average difference: 0,00
+Max difference: 1 (Limit: 1)
+*)
 var
   Xe: TColor32Entry absolute X;
   Ye: TColor32Entry absolute Y;
@@ -406,14 +456,18 @@ begin
   Y := X;
 end;
 
+//------------------------------------------------------------------------------
+
+procedure CombineMem_Pas_Div255(X: TColor32; var Y: TColor32; W: Cardinal);
 (*
+Contributed by: Anders Melander
+
 TestCombineMem:
 Errors: 56.170 (42,8 %)
 Differences: 95.152
 Average difference: -1,00
 Max error:1
 *)
-procedure CombineMem_Pas_Div255(X: TColor32; var Y: TColor32; W: Cardinal);
 var
   Xe: TColor32Entry absolute X;
   Ye: TColor32Entry absolute Y;
@@ -445,55 +499,21 @@ begin
   Ye.R := Div255(SmallInt(W) * (Xe.R - Ye.R)) + Ye.R;
 end;
 
+//------------------------------------------------------------------------------
+
+procedure CombineMem_Pas_Retro(X: TColor32; var Y: TColor32; W: Cardinal);
 (*
-TestCombineMem:
-Errors: 32.364 = 24,7 % (Limit: -1)
-Differences: 129.456
-Average difference: 0,00
-Max difference: 1 (Limit: 1)
-*)
-procedure CombineMem_Pas_Div255Round(X: TColor32; var Y: TColor32; W: Cardinal);
-var
-  Xe: TColor32Entry absolute X;
-  Ye: TColor32Entry absolute Y;
-  InvW: SmallInt;
-begin
-  if W = 0 then
-    Exit;
+Contributed by: Anders Melander
 
-  if W >= $FF then
-  begin
-    Y := X;
-    Exit;
-  end;
+Uses the "Double-blend" technique.
+Much faster than CombineMem_Pas_Table but not as precise.
 
-  //
-  // Magic number division using:
-  //
-  //   a*b/255 = (a * b + 128) * 257) shr 16
-  //
-  // Applied to:
-  //
-  //   Result := (W * X) + ((1 - W) * Y)
-  //
-
-  // The Div255Round function already uses the above method so
-  // we can just use that directly:
-  InvW := 255 - W;
-  Ye.A := Div255Round(SmallInt(W) * Xe.A) + Div255Round(InvW * Ye.A);
-  Ye.B := Div255Round(SmallInt(W) * Xe.B) + Div255Round(InvW * Ye.B);
-  Ye.G := Div255Round(SmallInt(W) * Xe.G) + Div255Round(InvW * Ye.G);
-  Ye.R := Div255Round(SmallInt(W) * Xe.R) + Div255Round(InvW * Ye.R);
-end;
-
-(*
 TestCombineMem:
 Errors: 55.769 (42,5 %)
 Differences: 95.884
 Average difference: -1,00
 Max error:1
 *)
-procedure CombineMem_Pas_Retro(X: TColor32; var Y: TColor32; W: Cardinal);
 const
   MaskAG = $FF00FF00;
   MaskRB = $00FF00FF;
@@ -514,10 +534,6 @@ begin
   end;
 
 
-  //
-  // Double-blend technique
-  //
-
   // [0..255] -> [0..256]
   // FixedWeight := Round(W * FixedOne / 255);
   FixedWeight := Div255Round(W * FixedOne);
@@ -537,6 +553,10 @@ begin
   Y := (ag or rb);
 end;
 
+
+//------------------------------------------------------------------------------
+// CombineLine
+//------------------------------------------------------------------------------
 procedure CombineLine_Pas(Src, Dst: PColor32; Count: Integer; W: Cardinal);
 begin
   if W = 0 then
@@ -557,6 +577,16 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Merge
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// MergeReg
+//------------------------------------------------------------------------------
 function MergeReg_Pas(F, B: TColor32): TColor32;
 var
   Fa, Ba, Wa: TColor32;
@@ -585,21 +615,37 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// MergeRegEx
+//------------------------------------------------------------------------------
 function MergeRegEx_Pas(F, B: TColor32; M: Cardinal): TColor32;
 begin
   Result := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
 
+
+//------------------------------------------------------------------------------
+// MergeMem
+//------------------------------------------------------------------------------
 procedure MergeMem_Pas(F: TColor32; var B: TColor32);
 begin
   B := MergeReg(F, B);
 end;
 
+
+//------------------------------------------------------------------------------
+// MergeMemEx
+//------------------------------------------------------------------------------
 procedure MergeMemEx_Pas(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
 
+
+//------------------------------------------------------------------------------
+// MergeLine1
+//------------------------------------------------------------------------------
 procedure MergeLine1_Pas(Src: TColor32; Dst: PColor32; Count: Integer);
 begin
   while Count > 0 do
@@ -610,6 +656,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// MergeLine
+//------------------------------------------------------------------------------
 procedure MergeLine_Pas(Src, Dst: PColor32; Count: Integer);
 begin
   while Count > 0 do
@@ -621,6 +671,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// MergeLineEx
+//------------------------------------------------------------------------------
 procedure MergeLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 var
   PM: PByteArray;
@@ -635,38 +689,16 @@ begin
   end;
 end;
 
-procedure EMMS_Pas;
-begin
-  // Dummy
-end;
 
-function LightenReg_Pas(C: TColor32; Amount: Integer): TColor32;
-var
-  r, g, b: Integer;
-  CX: TColor32Entry absolute C;
-  RX: TColor32Entry absolute Result;
-begin
-  r := CX.R;
-  g := CX.G;
-  b := CX.B;
+//------------------------------------------------------------------------------
+//
+//      Color algebra
+//
+//------------------------------------------------------------------------------
 
-  Inc(r, Amount);
-  Inc(g, Amount);
-  Inc(b, Amount);
-
-  if r > 255 then r := 255 else if r < 0 then r := 0;
-  if g > 255 then g := 255 else if g < 0 then g := 0;
-  if b > 255 then b := 255 else if b < 0 then b := 0;
-
-  // preserve alpha
-  RX.A := CX.A;
-  RX.R := r;
-  RX.G := g;
-  RX.B := b;
-end;
-
-{ Color algebra }
-
+//------------------------------------------------------------------------------
+// ColorAdd
+//------------------------------------------------------------------------------
 function ColorAdd_Pas(C1, C2: TColor32): TColor32;
 var
   Xe: TColor32Entry absolute C1;
@@ -679,6 +711,10 @@ begin
   R.B := Clamp(Xe.B + Ye.B, 255);
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorSub
+//------------------------------------------------------------------------------
 function ColorSub_Pas(C1, C2: TColor32): TColor32;
 var
   Xe: TColor32Entry absolute C1;
@@ -708,6 +744,10 @@ begin
     R.B := Temp;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorDiv
+//------------------------------------------------------------------------------
 function ColorDiv_Pas(C1, C2: TColor32): TColor32;
 var
   C1e: TColor32Entry absolute C1;
@@ -760,6 +800,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorModulate
+//------------------------------------------------------------------------------
 function ColorModulate_Pas(C1, C2: TColor32): TColor32;
 var
   C1e: TColor32Entry absolute C1;
@@ -772,6 +816,10 @@ begin
   Re.B := (C2e.B * C1e.B + $80) shr 8;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorMax
+//------------------------------------------------------------------------------
 function ColorMax_Pas(C1, C2: TColor32): TColor32;
 var
   REnt: TColor32Entry absolute Result;
@@ -787,6 +835,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorMin
+//------------------------------------------------------------------------------
 function ColorMin_Pas(C1, C2: TColor32): TColor32;
 var
   REnt: TColor32Entry absolute Result;
@@ -802,6 +854,10 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorDifference
+//------------------------------------------------------------------------------
 function ColorDifference_Pas(C1, C2: TColor32): TColor32;
 var
   Xe: TColor32Entry absolute C1;
@@ -814,6 +870,10 @@ begin
   R.B := Abs(Xe.B - Ye.B);
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorDifference
+//------------------------------------------------------------------------------
 function ColorExclusion_Pas(C1, C2: TColor32): TColor32;
 var
   Xe: TColor32Entry absolute C1;
@@ -826,6 +886,10 @@ begin
   R.B := Xe.B + Ye.B - ((Xe.B * Ye.B) shr 7);
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorAverage
+//------------------------------------------------------------------------------
 function ColorAverage_Pas(C1, C2: TColor32): TColor32;
 //(A + B)/2 = (A and B) + (A xor B)/2
 var
@@ -839,6 +903,10 @@ begin
   Result := C3 + C1;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorScale
+//------------------------------------------------------------------------------
 function ColorScale_Pas(C: TColor32; W: Cardinal): TColor32;
 var
   Ce: TColor32Entry absolute C;
@@ -858,6 +926,10 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorScreen
+//------------------------------------------------------------------------------
 function ColorScreen_Pas(B, S: TColor32): TColor32;
 var
   Be: TColor32Entry absolute B;
@@ -870,6 +942,10 @@ begin
   R.B := Be.B + Se.B - (Be.B * Se.B) div 255;
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorDodge
+//------------------------------------------------------------------------------
 function ColorDodge_Pas(B, S: TColor32): TColor32;
 
   function Dodge(B, S: Byte): Byte;
@@ -894,6 +970,10 @@ begin
   R.B := Dodge(Be.B, Se.B);
 end;
 
+
+//------------------------------------------------------------------------------
+// ColorBurn
+//------------------------------------------------------------------------------
 function ColorBurn_Pas(B, S: TColor32): TColor32;
 
   function Burn(B, S: Byte): Byte;
@@ -919,8 +999,15 @@ begin
 end;
 
 
-{ Blended color algebra }
+//------------------------------------------------------------------------------
+//
+//      Blended color algebra
+//
+//------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------
+// BlendColorAdd
+//------------------------------------------------------------------------------
 function BlendColorAdd_Pas(C1, C2: TColor32): TColor32;
 var
   Xe: TColor32Entry absolute C1;
@@ -936,6 +1023,10 @@ begin
   R.B := Af[Clamp(Xe.B + Ye.B, 255)] + Ab[Ye.B];
 end;
 
+
+//------------------------------------------------------------------------------
+// BlendColorModulate
+//------------------------------------------------------------------------------
 function BlendColorModulate_Pas(C1, C2: TColor32): TColor32;
 var
   C1e: TColor32Entry absolute C1;
@@ -951,6 +1042,51 @@ begin
   R.B := Af[(C2e.B * C1e.B + $80) shr 8] + Ab[C2e.B];
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Misc.
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// EMMS
+//------------------------------------------------------------------------------
+procedure EMMS_Pas;
+begin
+  // Dummy
+end;
+
+
+//------------------------------------------------------------------------------
+// LightenReg
+//------------------------------------------------------------------------------
+function LightenReg_Pas(C: TColor32; Amount: Integer): TColor32;
+var
+  r, g, b: Integer;
+  CX: TColor32Entry absolute C;
+  RX: TColor32Entry absolute Result;
+begin
+  r := CX.R;
+  g := CX.G;
+  b := CX.B;
+
+  Inc(r, Amount);
+  Inc(g, Amount);
+  Inc(b, Amount);
+
+  if r > 255 then r := 255 else if r < 0 then r := 0;
+  if g > 255 then g := 255 else if g < 0 then g := 0;
+  if b > 255 then b := 255 else if b < 0 then b := 0;
+
+  // preserve alpha
+  RX.A := CX.A;
+  RX.R := r;
+  RX.G := g;
+  RX.B := b;
+end;
+
+
 //------------------------------------------------------------------------------
 //
 //      Bindings
@@ -959,7 +1095,6 @@ end;
 procedure RegisterBindingFunctions;
 begin
   // pure pascal
-  BlendRegistry.Add(FID_EMMS,           @EMMS_Pas,              BlendBindingFlagPascal);
   BlendRegistry.Add(FID_MERGEREG,       @MergeReg_Pas,          BlendBindingFlagPascal);
   BlendRegistry.Add(FID_MERGEMEM,       @MergeMem_Pas,          BlendBindingFlagPascal);
   BlendRegistry.Add(FID_MERGEMEMEX,     @MergeMemEx_Pas,        BlendBindingFlagPascal);
@@ -967,16 +1102,11 @@ begin
   BlendRegistry.Add(FID_MERGELINE,      @MergeLine_Pas,         BlendBindingFlagPascal);
   BlendRegistry.Add(FID_MERGELINEEX,    @MergeLineEx_Pas,       BlendBindingFlagPascal);
   BlendRegistry.Add(FID_MERGELINE1,     @MergeLine1_Pas,        BlendBindingFlagPascal);
-  BlendRegistry.Add(FID_COLORDIV,       @ColorDiv_Pas,          BlendBindingFlagPascal);
-  BlendRegistry.Add(FID_COLORAVERAGE,   @ColorAverage_Pas,      BlendBindingFlagPascal);
+
   BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_Pas,        BlendBindingFlagPascal);
-
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_Pas_Table, BlendBindingFlagPascal); // No errors
-//  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_Pas_Div255, BlendBindingFlagPascal);
-//  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_Pas_Div255Round, BlendBindingFlagPascal); // 25% errors, max difference: 1
-//  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_Pas_Retro, BlendBindingFlagPascal);
-
+  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_Pas_Retro,  BlendBindingFlagPascal);
   BlendRegistry.Add(FID_COMBINELINE,    @CombineLine_Pas,       BlendBindingFlagPascal);
+
   BlendRegistry.Add(FID_BLENDREG,       @BlendReg_Pas,          BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDMEM,       @BlendMem_Pas,          BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDMEMS,      @BlendMems_Pas,         BlendBindingFlagPascal);
@@ -985,6 +1115,9 @@ begin
   BlendRegistry.Add(FID_BLENDMEMEX,     @BlendMemEx_Pas,        BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDLINEEX,    @BlendLineEx_Pas,       BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDLINE1,     @BlendLine1_Pas,        BlendBindingFlagPascal);
+
+  BlendRegistry.Add(FID_COLORDIV,       @ColorDiv_Pas,          BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORAVERAGE,   @ColorAverage_Pas,      BlendBindingFlagPascal);
   BlendRegistry.Add(FID_COLORMAX,       @ColorMax_Pas,          BlendBindingFlagPascal);
   BlendRegistry.Add(FID_COLORMIN,       @ColorMin_Pas,          BlendBindingFlagPascal);
   BlendRegistry.Add(FID_COLORADD,       @ColorAdd_Pas,          BlendBindingFlagPascal);
@@ -996,11 +1129,14 @@ begin
   BlendRegistry.Add(FID_COLORSCREEN,    @ColorScreen_Pas,       BlendBindingFlagPascal);
   BlendRegistry.Add(FID_COLORDODGE,     @ColorDodge_Pas,        BlendBindingFlagPascal);
   BlendRegistry.Add(FID_COLORBURN,      @ColorBurn_Pas,         BlendBindingFlagPascal);
+
   BlendRegistry.Add(FID_BLENDCOLORADD,  @BlendColorAdd_Pas,     BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDCOLORMODULATE, @BlendColorModulate_Pas, BlendBindingFlagPascal);
-  BlendRegistry.Add(FID_LIGHTEN,        @LightenReg_Pas,        BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDREGRGB,    @BlendRegRGB_Pas,       BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDMEMRGB,    @BlendMemRGB_Pas,       BlendBindingFlagPascal);
+
+  BlendRegistry.Add(FID_EMMS,           @EMMS_Pas,              BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_LIGHTEN,        @LightenReg_Pas,        BlendBindingFlagPascal);
 end;
 
 //------------------------------------------------------------------------------

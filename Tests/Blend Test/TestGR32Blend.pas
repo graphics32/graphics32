@@ -265,7 +265,7 @@ type
     procedure TestBlendLine1; override;
     [MaxError(1)]
     procedure TestCombineReg; override;
-    [MaxError(1), MaxErrorCount(-1)]
+    [MaxError(1)]
     procedure TestCombineMem; override;
     procedure TestCombineLine; override;
     [MaxError(1)]
@@ -291,7 +291,7 @@ type
     procedure TestBlendLineEx; override;
     procedure TestBlendLine1; override;
     procedure TestCombineReg; override;
-    [MaxError(1), MaxErrorCount(-1)]
+    [MaxError(1), MaxErrorCount(20)]
     procedure TestCombineMem; override;
     procedure TestCombineLine; override;
     procedure TestMergeReg; override;
