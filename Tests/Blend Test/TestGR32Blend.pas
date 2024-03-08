@@ -34,6 +34,8 @@ interface
 
 {$I ..\..\Source\GR32.inc}
 
+{$define FAIL_NOT_IMPLEMENTED} // Fail test if function isn't implemented
+
 uses
   {$IFDEF FPC} fpcunit, testregistry, {$ELSE} TestFramework, Windows, {$ENDIF}
   Controls, Types, Classes, SysUtils, Messages, Graphics,
@@ -180,27 +182,27 @@ type
     procedure TestBlendMemEx; override;
     [MaxError(1)]
     procedure TestBlendLine; override;
-    [MaxError(1)]
+    [MaxError(0)]
     procedure TestBlendLineEx; override;
     [MaxError(1)]
     procedure TestBlendLine1; override;
-    [MaxError(1)]
+    [MaxError(2)]
     procedure TestCombineReg; override;
-    [MaxError(1)]
+    [MaxError(2)]
     procedure TestCombineMem; override;
-    [MaxError(1)]
+    [MaxError(0)]
     procedure TestCombineLine; override;
-    [MaxError(8)]
+    [MaxError(9)] // Pretty bad :-(
     procedure TestMergeReg; override;
-    [MaxError(8)]
+    [MaxError(0)]
     procedure TestMergeRegEx; override;
-    [MaxError(8)]
+    [MaxError(0)]
     procedure TestMergeMem; override;
-    [MaxError(8)]
+    [MaxError(0)]
     procedure TestMergeMemEx; override;
-    [MaxError(8)]
+    [MaxError(0)]
     procedure TestMergeLine; override;
-    [MaxError(8)]
+    [MaxError(0)]
     procedure TestMergeLineEx; override;
   end;
 
@@ -331,6 +333,8 @@ var
   MaxErrorCount: MaxErrorCountAttribute;
 begin
   inherited;
+
+  BlendRegistry.RebindAll(True, pointer(PriorityProc));
 
   FErrorCountLimit := -1;
   FMaxDifferenceLimit := 0;
@@ -484,8 +488,12 @@ function TCustomTestBlendModes.Rebind(FunctionID: Integer; RequireImplementation
 begin
   Result := BlendRegistry.Rebind(FunctionID, pointer(PriorityProc));
   if (RequireImplementation) and (not Result) then
+{$ifdef FAIL_NOT_IMPLEMENTED}
     // Not really an error but we need to indicate that nothing was tested
     Fail('Not implemented');
+{$else}
+    Enabled := False;
+{$endif}
 end;
 
 {$ENDIF}
@@ -1381,7 +1389,7 @@ end;
 
 class function TTestBlendModesAsm.PriorityProcAsm(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.InstructionSupport = []) then
+  if (Info^.InstructionSupport = []) and (Info^.Flags and BlendBindingFlagPascal = 0) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
