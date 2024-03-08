@@ -37,24 +37,62 @@ interface
 uses
   {$IFDEF FPC} fpcunit, testregistry, {$ELSE} TestFramework, Windows, {$ENDIF}
   Controls, Types, Classes, SysUtils, Messages, Graphics,
+  System.Rtti,
+  System.TypInfo,
   GR32,
   GR32_Blend,
   GR32_Bindings;
 
 type
+  MaxErrorAttribute = class(TCustomAttribute)
+  private
+    FValue: integer;
+  published
+    constructor Create(AValue: integer);
+  public
+    property Value: integer read FValue;
+  end;
+
+  MaxErrorCountAttribute = class(TCustomAttribute)
+  private
+    FValue: integer;
+  published
+    constructor Create(AValue: integer);
+  public
+    property Value: integer read FValue;
+  end;
+
+type
+  TTestBlendTables = class(TTestCase)
+  published
+    procedure TestAlphaTableAlignment;
+    procedure TestAlphaTable;
+    procedure TestDivisionTable;
+    procedure TestMultiplicationTable;
+  end;
+
+type
+  TCheckCombine = reference to procedure (ForeGround, Background: TColor32; Weight: Cardinal);
+
   TCustomTestBlendModes = class abstract(TTestCase)
   strict private
     FForeground : PColor32Array;
     FBackground : PColor32Array;
     FReference: PColor32Array;
   protected
-    FColorDiff: Byte;
-    FMaxError: integer;
+    FMaxDifferenceLimit: Byte;
+    FTestCount: integer;
+    FErrorCount: integer;
+    FErrorCountLimit: integer;
+    FMaxAbsoluteDifference: integer;
+    FDifferenceCount: integer;
+    FDifferenceSum: integer;
 
-    procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte = 1); overload;
-    procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte; const AExtra: string; const AExtraParams: array of const); overload;
+    procedure DoCheckColor(ExpectedColor32, ActualColor32: TColor32Entry; MaxDifferenceLimit: Byte; const AExtra: string; const AExtraParams: array of const); overload;
+    procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; MaxDifferenceLimit: Byte = 1); overload;
+    procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; MaxDifferenceLimit: Byte; const AExtra: string; const AExtraParams: array of const); overload;
 
-    function Rebind(FunctionID: Integer): boolean;
+    function Rebind(FunctionID: Integer; RequireImplementation: boolean = True): boolean;
     class function PriorityProc: TFunctionPriority; virtual; abstract;
 
     procedure TestBlendReg; virtual;
@@ -73,6 +111,8 @@ type
     procedure TestMergeMemEx; virtual;
     procedure TestMergeLine; virtual;
     procedure TestMergeLineEx; virtual;
+
+    procedure DoCheckCombine(CheckCombineProc: TCheckCombine);
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -88,21 +128,37 @@ type
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
+    [MaxError(1)]
     procedure TestBlendReg; override;
+    [MaxError(2)]
     procedure TestBlendRegEx; override;
+    [MaxError(1)]
     procedure TestBlendMem; override;
+    [MaxError(2)]
     procedure TestBlendMemEx; override;
+    [MaxError(1)]
     procedure TestBlendLine; override;
+    [MaxError(1)]
     procedure TestBlendLineEx; override;
+    [MaxError(1)]
     procedure TestBlendLine1; override;
+    [MaxError(1)]
     procedure TestCombineReg; override;
+    [MaxError(1), MaxErrorCount(-1)]
     procedure TestCombineMem; override;
+    [MaxError(1)]
     procedure TestCombineLine; override;
+    [MaxError(4)]
     procedure TestMergeReg; override;
+    [MaxError(4)]
     procedure TestMergeRegEx; override;
+    [MaxError(4)]
     procedure TestMergeMem; override;
+    [MaxError(4)]
     procedure TestMergeMemEx; override;
+    [MaxError(4)]
     procedure TestMergeLine; override;
+    [MaxError(4)]
     procedure TestMergeLineEx; override;
   end;
 
@@ -112,21 +168,37 @@ type
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
+    [MaxError(1)]
     procedure TestBlendReg; override;
+    [MaxError(2)]
     procedure TestBlendRegEx; override;
+    [MaxError(1)]
     procedure TestBlendMem; override;
+    [MaxError(2)]
     procedure TestBlendMemEx; override;
+    [MaxError(1)]
     procedure TestBlendLine; override;
+    [MaxError(1)]
     procedure TestBlendLineEx; override;
+    [MaxError(1)]
     procedure TestBlendLine1; override;
+    [MaxError(1)]
     procedure TestCombineReg; override;
+    [MaxError(1)]
     procedure TestCombineMem; override;
+    [MaxError(1)]
     procedure TestCombineLine; override;
+    [MaxError(8)]
     procedure TestMergeReg; override;
+    [MaxError(8)]
     procedure TestMergeRegEx; override;
+    [MaxError(8)]
     procedure TestMergeMem; override;
+    [MaxError(8)]
     procedure TestMergeMemEx; override;
+    [MaxError(8)]
     procedure TestMergeLine; override;
+    [MaxError(8)]
     procedure TestMergeLineEx; override;
   end;
 
@@ -136,19 +208,33 @@ type
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
+    [MaxError(1)]
     procedure TestBlendReg; override;
+    [MaxError(2)]
     procedure TestBlendRegEx; override;
+    [MaxError(1)]
     procedure TestBlendMem; override;
+    [MaxError(2)]
     procedure TestBlendMemEx; override;
+    [MaxError(1)]
     procedure TestBlendLine; override;
+    [MaxError(2)]
     procedure TestBlendLineEx; override;
+    [MaxError(2)]
     procedure TestBlendLine1; override;
+    [MaxError(1)]
     procedure TestCombineReg; override;
+    [MaxError(1)]
     procedure TestCombineMem; override;
+    [MaxError(1)]
     procedure TestCombineLine; override;
+    [MaxError(6)]
     procedure TestMergeReg; override;
+    [MaxError(6)]
     procedure TestMergeRegEx; override;
+    [MaxError(6)]
     procedure TestMergeMem; override;
+    [MaxError(6)]
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
@@ -160,6 +246,39 @@ type
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
+    [MaxError(1)]
+    procedure TestBlendReg; override;
+    [MaxError(2)]
+    procedure TestBlendRegEx; override;
+    [MaxError(1)]
+    procedure TestBlendMem; override;
+    [MaxError(2)]
+    procedure TestBlendMemEx; override;
+    [MaxError(1)]
+    procedure TestBlendLine; override;
+    [MaxError(2)]
+    procedure TestBlendLineEx; override;
+    procedure TestBlendLine1; override;
+    [MaxError(1)]
+    procedure TestCombineReg; override;
+    [MaxError(1), MaxErrorCount(-1)]
+    procedure TestCombineMem; override;
+    procedure TestCombineLine; override;
+    [MaxError(1)]
+    procedure TestMergeReg; override;
+    procedure TestMergeRegEx; override;
+    procedure TestMergeMem; override;
+    procedure TestMergeMemEx; override;
+    procedure TestMergeLine; override;
+    procedure TestMergeLineEx; override;
+  end;
+
+  TTestBlendModesSSE41 = class(TCustomTestBlendModes)
+  private
+    class function PriorityProcSSE41(Info: PFunctionInfo): Integer; static;
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  published
     procedure TestBlendReg; override;
     procedure TestBlendRegEx; override;
     procedure TestBlendMem; override;
@@ -168,6 +287,7 @@ type
     procedure TestBlendLineEx; override;
     procedure TestBlendLine1; override;
     procedure TestCombineReg; override;
+    [MaxError(1), MaxErrorCount(-1)]
     procedure TestCombineMem; override;
     procedure TestCombineLine; override;
     procedure TestMergeReg; override;
@@ -183,15 +303,57 @@ implementation
 uses
   Math,
   GR32_System,
+  GR32_LowLevel,
   GR32_BlendReference;
+
+constructor MaxErrorAttribute.Create(AValue: integer);
+begin
+  inherited Create;
+  FValue := AValue;
+end;
+
+constructor MaxErrorCountAttribute.Create(AValue: integer);
+begin
+  inherited Create;
+  FValue := AValue;
+end;
 
 { TTestBlendModes }
 
 procedure TCustomTestBlendModes.SetUp;
+var
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  RttiMethod: TRttimethod;
+  MaxAbsoluteError: MaxErrorAttribute;
+  MaxErrorCount: MaxErrorCountAttribute;
 begin
   inherited;
-  FColorDiff := 1;
-  FMaxError := 0;
+
+  FErrorCountLimit := -1;
+  FMaxDifferenceLimit := 0;
+
+  RttiContext := TRttiContext.Create;
+  try
+    RttiType := RttiContext.GetType(ClassType);
+    RttiMethod := RttiType.GetMethod(GetName);
+
+    MaxAbsoluteError := RttiMethod.GetAttribute<MaxErrorAttribute>;
+    if (MaxAbsoluteError <> nil) then
+      FMaxDifferenceLimit := MaxAbsoluteError.Value;
+
+    MaxErrorCount := RttiMethod.GetAttribute<MaxErrorCountAttribute>;
+    if (MaxErrorCount <> nil) then
+      FErrorCountLimit := MaxErrorCount.Value;
+  finally
+    RttiContext.Free
+  end;
+
+  FTestCount := 0;
+  FErrorCount := 0;
+  FMaxAbsoluteDifference := 0;
+  FDifferenceCount := 0;
+  FDifferenceSum := 0;
   GetMem(FForeground, 256 * SizeOf(TColor32));
   GetMem(FBackground, 256 * SizeOf(TColor32));
   GetMem(FReference, 256 * SizeOf(TColor32));
@@ -199,15 +361,132 @@ end;
 
 procedure TCustomTestBlendModes.TearDown;
 begin
-  if (FMaxError > 0) then
-    Status(Format('Max error:%d', [FMaxError]));
+  if (FDifferenceCount > 0) then
+    Status(Format(
+      'Errors: %.0n = %.1n %% (Limit: %d)'#13+
+      'Differences: %.0n'#13+
+      'Average difference: %.2n'#13+
+      'Max difference: %d (Limit: %d)',
+      [FErrorCount*1.0, FErrorCount/FTestCount*100, FErrorCountLimit, FDifferenceCount*1.0, FDifferenceSum/FDifferenceCount, FMaxAbsoluteDifference, FMaxDifferenceLimit]));
 
+  (* This is just for verification that we're testing against the strictest possible criteria
+  if (FDifferenceCount < FMaxAbsoluteDifference) then
+    Fail(Format('Expected max difference: %d, Actual: %d', [FMaxAbsoluteDifference, FDifferenceCount]));
+
+  if (FErrorCountLimit > 0) and (FErrorCount < FErrorCountLimit) then
+    Fail(Format('Expected errors: %d, Actual: %d', [FErrorCountLimit, FErrorCount]));
+  *)
 
   inherited;
   Dispose(FForeground);
   Dispose(FBackground);
   Dispose(FReference);
 end;
+
+{$IFNDEF FPC}
+procedure TCustomTestBlendModes.DoCheckColor(ExpectedColor32, ActualColor32: TColor32Entry; MaxDifferenceLimit: Byte; const AExtra: string; const AExtraParams: array of const);
+var
+  Msg, MsgExtra: string;
+  DifferenceA: integer;
+  DifferenceR: integer;
+  DifferenceG: integer;
+  DifferenceB: integer;
+  MaxAbsoluteDifference: integer;
+begin
+  Inc(FTestCount);
+  FCheckCalled := True;
+
+  DifferenceA := ActualColor32.A - ExpectedColor32.A;
+  DifferenceR := ActualColor32.R - ExpectedColor32.R;
+  DifferenceG := ActualColor32.G - ExpectedColor32.G;
+  DifferenceB := ActualColor32.B - ExpectedColor32.B;
+
+  MaxAbsoluteDifference := Max(Abs(DifferenceA), Abs(DifferenceR));
+  MaxAbsoluteDifference := Max(MaxAbsoluteDifference, Abs(DifferenceG));
+  MaxAbsoluteDifference := Max(MaxAbsoluteDifference, Abs(DifferenceB));
+
+  FDifferenceSum := FDifferenceSum + DifferenceA + DifferenceR + DifferenceG + DifferenceB;
+
+  if (MaxAbsoluteDifference > 0) then
+  begin
+    Inc(FErrorCount);
+
+    FMaxAbsoluteDifference := Max(FMaxAbsoluteDifference, MaxAbsoluteDifference);
+
+    if (DifferenceA <> 0) then
+      Inc(FDifferenceCount);
+    if (DifferenceR <> 0) then
+      Inc(FDifferenceCount);
+    if (DifferenceG <> 0) then
+      Inc(FDifferenceCount);
+    if (DifferenceB <> 0) then
+      Inc(FDifferenceCount);
+
+    if (MaxAbsoluteDifference > MaxDifferenceLimit) or ((FErrorCountLimit <> -1) and (FErrorCount > FErrorCountLimit)) then
+    begin
+      if (AExtra <> '') then
+        MsgExtra := Format(AExtra, AExtraParams)
+      else
+        MsgExtra := '';
+
+      Msg := Format('Expected:%.8X, Actual:%.8X, Dif:%.2X%.2X%.2X%.2X %s',
+        [ExpectedColor32.ARGB, ActualColor32.ARGB, Abs(DifferenceA), Abs(DifferenceR), Abs(DifferenceG), Abs(DifferenceB), MsgExtra]);
+      Fail(Msg, ReturnAddress);
+    end else
+      ;//Status(Format('Dif:%.8X', [DifColor.ARGB]));
+  end;
+end;
+
+procedure TCustomTestBlendModes.CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; MaxDifferenceLimit: Byte);
+begin
+  DoCheckColor(ExpectedColor32, ActualColor32, MaxDifferenceLimit, '', []);
+end;
+
+procedure TCustomTestBlendModes.CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; MaxDifferenceLimit: Byte; const AExtra: string; const AExtraParams: array of const);
+begin
+  DoCheckColor(ExpectedColor32, ActualColor32, MaxDifferenceLimit, AExtra, AExtraParams);
+end;
+
+procedure TCustomTestBlendModes.PerformanceTest;
+var
+  Start, Stop, Freq : Int64;
+  BlendColor32      : TColor32Entry;
+  Index             : Integer;
+begin
+  BlendRegistry.RebindAll(pointer(PriorityProc));
+
+  BlendColor32.ARGB := clWhite32;
+  BlendColor32.A := $5A;
+
+  QueryPerformanceFrequency(Freq);
+  QueryPerformanceCounter(Start);
+
+  for Index := 0 to $7FFFFFF do
+    BlendReg(BlendColor32.ARGB, clBlack32);
+
+  EMMS;
+
+  for Index := 0 to $7FFFFFF do
+  begin
+    BlendReg(BlendColor32.ARGB, clBlack32);
+    EMMS;
+  end;
+
+  QueryPerformanceCounter(Stop);
+
+  Status(Format('Performance: %.3n', [1000 * (Stop - Start) / Freq]));
+  Check(True);
+end;
+
+function TCustomTestBlendModes.Rebind(FunctionID: Integer; RequireImplementation: boolean): boolean;
+begin
+  Result := BlendRegistry.Rebind(FunctionID, pointer(PriorityProc));
+  if (RequireImplementation) and (not Result) then
+    // Not really an error but we need to indicate that nothing was tested
+    Fail('Not implemented');
+end;
+
+{$ENDIF}
 
 
 procedure TCustomTestBlendModes.TestBlendReg;
@@ -217,7 +496,7 @@ var
   ExpectedColor32 : TColor32Entry;
   RefIndex, Index : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDREG)) then
   begin
     Check(True);
@@ -237,7 +516,7 @@ begin
 
   CombinedColor32.A := $FF;
   ExpectedColor32.A := $FF;
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
 
   for RefIndex := 0 to High(Byte) do
   begin
@@ -254,7 +533,7 @@ begin
 
       EMMS;
 
-      CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
+      CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
     end;
   end;
 end;
@@ -267,7 +546,7 @@ var
   RefIndex, Index : Integer;
   MasterIndex     : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDREGEX)) then
   begin
     Check(True);
@@ -287,7 +566,7 @@ begin
 
   EMMS;
 
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
 
   for RefIndex := 0 to High(Byte) do
   begin
@@ -306,7 +585,7 @@ begin
 
         EMMS;
 
-        CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
+        CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
       end;
     end;
   end;
@@ -319,7 +598,7 @@ var
   ExpectedColor32 : TColor32Entry;
   RefIndex, Index : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDMEM)) then
   begin
     Check(True);
@@ -350,7 +629,7 @@ begin
       ExpectedColor32.A := $FF;
       CombinedColor32.A := $FF;
 
-      CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
+      CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
     end;
   end;
 end;
@@ -363,7 +642,7 @@ var
   RefIndex, Index : Integer;
   MasterIndex     : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDMEMEX)) then
   begin
     Check(True);
@@ -395,7 +674,7 @@ begin
         ExpectedColor32.A := $FF;
         CombinedColor32.A := $FF;
 
-        CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
+        CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit,
           '(RefIndex: %d, Index: %d, Master: %d, BlendMemEx(FG:%.8X, BG:%.8X, Master:%d)',
           [RefIndex, Index, MasterIndex shl 5, BlendColor32.ARGB, clBlack32, MasterIndex shl 5]);
       end;
@@ -409,7 +688,7 @@ var
   ExpectedColor32 : TColor32Entry;
   Index           : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDLINE)) then
   begin
     Check(True);
@@ -437,7 +716,7 @@ begin
     ExpectedColor32.A := 0;
     CombinedColor32.A := 0;
 
-    CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
+    CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
   end;
 end;
 
@@ -447,7 +726,7 @@ var
   ExpectedColor32 : TColor32Entry;
   Index           : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDLINE1)) then
   begin
     Check(True);
@@ -478,17 +757,17 @@ begin
     ExpectedColor32.A := $FF;
 
 
-    CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
+    CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
   end;
 end;
 
 procedure TCustomTestBlendModes.TestBlendLineEx;
 var
-  CombinedColor32    : TColor32Entry;
+  ActualColor32      : TColor32Entry;
   ExpectedColor32    : TColor32Entry;
   Index, MasterIndex : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDLINEEX)) then
   begin
     Check(True);
@@ -519,93 +798,124 @@ begin
       ExpectedColor32.ARGB := FReference^[Index];
       ExpectedColor32.A := 0;
 
-      CombinedColor32.ARGB := FBackground^[Index];
-      CombinedColor32.A := 0;
+      ActualColor32.ARGB := FBackground^[Index];
+      ActualColor32.A := 0;
 
-      CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, '(Index: %d, BlendMemEx(FG:%.8X, BG:%.8X, Master:%d)', [Index, FForeground^[Index], clBlack32, MasterIndex shl 5]);
+      CheckColor(ExpectedColor32, ActualColor32, FMaxDifferenceLimit, 'Index: %d, BlendMemEx(FG:%.8X, BG:%.8X, Master:%d)', [Index, FForeground^[Index], clBlack32, MasterIndex shl 5]);
     end;
   end;
 end;
 
-procedure TCustomTestBlendModes.TestCombineReg;
+procedure TCustomTestBlendModes.DoCheckCombine(CheckCombineProc: TCheckCombine);
 var
   BlendColor32    : TColor32Entry;
-  CombinedColor32 : TColor32Entry;
-  ExpectedColor32 : TColor32Entry;
   RefIndex, Index : Integer;
 begin
-  Rebind(FID_EMMS);
+  // Edge cases
+  CheckCombineProc($FF010101, clBlack32, 127);
+  CheckCombineProc($FF010101, clBlack32, 128);
+  CheckCombineProc($FF010101, clWhite32, 127);
+  CheckCombineProc($FF010101, clWhite32, 128);
+
+  CheckCombineProc(clBlack32, clBlack32, 0);
+  CheckCombineProc(clBlack32, clBlack32, 255);
+  CheckCombineProc(clBlack32, clBlack32, 1);
+  CheckCombineProc(clBlack32, clBlack32, 254);
+
+  CheckCombineProc(clWhite32, clWhite32, 0);
+  CheckCombineProc(clWhite32, clWhite32, 255);
+  CheckCombineProc(clWhite32, clWhite32, 1);
+  CheckCombineProc(clWhite32, clWhite32, 254);
+
+  CheckCombineProc(clWhite32, clBlack32, 0);
+  CheckCombineProc(clWhite32, clBlack32, 255);
+  CheckCombineProc(clWhite32, clBlack32, 1);
+  CheckCombineProc(clWhite32, clBlack32, 254);
+
+  CheckCombineProc(clBlack32, clWhite32, 0);
+  CheckCombineProc(clBlack32, clWhite32, 255);
+  CheckCombineProc(clBlack32, clWhite32, 1);
+  CheckCombineProc(clBlack32, clWhite32, 254);
+
+
+  for RefIndex := 0 to High(Byte) do
+  begin
+    BlendColor32.A := $FF;
+    BlendColor32.B := RefIndex;
+    BlendColor32.G := RefIndex shr 1;
+    BlendColor32.R := RefIndex shr 2;
+    for Index := 0 to High(Byte) do
+      CheckCombineProc(BlendColor32.ARGB, clBlack32, Index);
+  end;
+
+  BlendColor32.A := 0;
+  BlendColor32.B := 0;
+  BlendColor32.G := High(Byte);
+  BlendColor32.R := High(Byte);
+  for RefIndex := 0 to High(Byte) do
+  begin
+    Inc(BlendColor32.A);
+    Inc(BlendColor32.B);
+    Dec(BlendColor32.G);
+    Dec(BlendColor32.R);
+    for Index := 0 to High(Byte) do
+      CheckCombineProc(BlendColor32.ARGB, not(BlendColor32.ARGB), Index);
+  end;
+end;
+
+procedure TCustomTestBlendModes.TestCombineReg;
+begin
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_COMBINEREG)) then
   begin
     Check(True);
     Exit;
   end;
 
-  BlendColor32.ARGB := $FF000000;
-  ExpectedColor32.ARGB := CombineReg_Reference(BlendColor32.ARGB, clBlack32, 2);
-  CombinedColor32.ARGB := CombineReg(BlendColor32.ARGB, clBlack32, 2);
-  EMMS;
-
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
-
-  BlendColor32.ARGB := $FF000000;
-  ExpectedColor32.ARGB := CombineReg_Reference(BlendColor32.ARGB, clBlack32, 255);
-  CombinedColor32.ARGB := CombineReg(BlendColor32.ARGB, clBlack32, 255);
-
-  EMMS;
-
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
-
-  for RefIndex := 0 to High(Byte) do
-  begin
-    BlendColor32.A := $FF;
-    BlendColor32.B := RefIndex;
-    BlendColor32.G := RefIndex shr 1;
-    BlendColor32.R := RefIndex shr 2;
-    for Index := 0 to High(Byte) do
+  DoCheckCombine(
+    procedure(ForeGround, Background: TColor32; Weight: Cardinal)
+    var
+      ForegroundColor : TColor32Entry absolute Foreground;
+      BackgroundColor : TColor32Entry absolute Background;
+      ActualColor32   : TColor32Entry;
+      ExpectedColor32 : TColor32Entry;
     begin
-      ExpectedColor32.ARGB := CombineReg_Reference(BlendColor32.ARGB, clBlack32, Index);
-      CombinedColor32.ARGB := CombineReg(BlendColor32.ARGB, clBlack32, Index);
-
+      ExpectedColor32.ARGB := CombineReg_Reference(ForeGround, Background, Weight);
+      ActualColor32.ARGB := CombineReg(ForeGround, Background, Weight);
       EMMS;
 
-      CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
-    end;
-  end;
+      CheckColor(ExpectedColor32, ActualColor32, FMaxDifferenceLimit, 'CombineReg(FG:%.8X, BG:%.8X, Weight:%d)', [ForeGround, Background, Weight]);
+    end
+  );
 end;
 
 procedure TCustomTestBlendModes.TestCombineMem;
-var
-  BlendColor32    : TColor32Entry;
-  CombinedColor32 : TColor32Entry;
-  ExpectedColor32 : TColor32Entry;
-  RefIndex, Index : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_COMBINEMEM)) then
   begin
     Check(True);
     Exit;
   end;
 
-  for RefIndex := 0 to High(Byte) do
-  begin
-    BlendColor32.A := $FF;
-    BlendColor32.B := RefIndex;
-    BlendColor32.G := RefIndex shr 1;
-    BlendColor32.R := RefIndex shr 2;
-    for Index := 0 to High(Byte) do
+  DoCheckCombine(
+    procedure(ForeGround, Background: TColor32; Weight: Cardinal)
+    var
+      ForegroundColor : TColor32Entry absolute Foreground;
+      ActualColor32   : TColor32Entry;
+      ExpectedColor32 : TColor32Entry;
     begin
-      ExpectedColor32.ARGB := clBlack32;
-      CombineMem_Reference(BlendColor32.ARGB, ExpectedColor32.ARGB, Index);
-      CombinedColor32.ARGB := clBlack32;
-      CombineMem(BlendColor32.ARGB, CombinedColor32.ARGB, Index);
+      ExpectedColor32.ARGB := Background;
+      CombineMem_Reference(ForeGround, ExpectedColor32.ARGB, Weight);
+      ActualColor32.ARGB := Background;
+      CombineMem(ForeGround, ActualColor32.ARGB, Weight);
 
       EMMS;
 
-      CheckColor(ExpectedColor32, CombinedColor32, FColorDiff);
-    end;
-  end;
+      CheckColor(ExpectedColor32, ActualColor32, FMaxDifferenceLimit, 'Combinemem(FG:%.8X, BG:%.8X, Weight:%d)', [ForeGround, Background, Weight]);
+    end
+  );
+
 end;
 
 procedure TCustomTestBlendModes.TestCombineLine;
@@ -613,7 +923,7 @@ var
   ExpectedColor32 : TColor32Entry;
   Index           : Integer;
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_COMBINELINE)) then
   begin
     Check(True);
@@ -635,7 +945,7 @@ begin
   begin
     ExpectedColor32.ARGB := (Index shl 24) or $FFFFFF;
 
-    CheckColor(ExpectedColor32, TColor32Entry(FBackground^[Index]), FColorDiff);
+    CheckColor(ExpectedColor32, TColor32Entry(FBackground^[Index]), FMaxDifferenceLimit, 'CombineLine(FG:%.8X, BG:%.8X, Weight:%d)', [FForeground^[Index], FBackground^[Index], 255]);
   end;
 end;
 
@@ -650,7 +960,7 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_MERGEREG)) then
   begin
     Check(True);
@@ -669,7 +979,7 @@ begin
 
   EMMS;
 
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, 'MergeReg(FG: %.8X, BG: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit, 'MergeReg(FG: %.8X, BG: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
 
   // sample test
   MergeColor32.ARGB := clBlack32;
@@ -690,7 +1000,7 @@ begin
 
         EMMS;
 
-        CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
+        CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit,
           '(RefIndex: %d, Alpha Index: %d, MergeReg(FG: %.8X, BG: %.8X) )', [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
       end;
     end;
@@ -709,7 +1019,7 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   Rebind(FID_MERGEREG);
   if (not Rebind(FID_MERGEREGEX)) then
   begin
@@ -724,7 +1034,7 @@ begin
 
   EMMS;
 
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, 'MergeRegEx(FG: %.8X, BG: %.8X, Master: %d)', [BlendColor32.ARGB, MergeColor32.ARGB, 128]);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit, 'MergeRegEx(FG: %.8X, BG: %.8X, Master: %d)', [BlendColor32.ARGB, MergeColor32.ARGB, 128]);
 
   MergeColor32.ARGB := clBlack32;
   for RefIndex := 0 to High(Byte) do
@@ -745,7 +1055,7 @@ begin
 
           EMMS;
 
-          CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
+          CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit,
             '(RefIndex: %d, Alpha Index: %d, MergeRegEx(FG: %.8X, BG: %.8X, Master: %d) )',
             [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB, MasterIndex shl 5]);
         end;
@@ -765,7 +1075,7 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_MERGEMEM)) then
   begin
     Check(True);
@@ -792,7 +1102,7 @@ begin
 
         EMMS;
 
-        CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
+        CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit,
           '(RefIndex: %d, Alpha Index: %d, MergeMem(FG: %.8X, BG: %.8X) )',
           [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
       end;
@@ -812,7 +1122,7 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   Rebind(FID_MERGEREG);
   Rebind(FID_MERGEMEM);
   if (not Rebind(FID_MERGEMEMEX)) then
@@ -843,7 +1153,7 @@ begin
 
           EMMS;
 
-          CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
+          CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit,
             '(RefIndex: %d, Alpha Index: %d, MergeMemEx(FG: %.8X, BG: %.8X, %d) )',
             [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB, MasterIndex shl 5]);
         end;
@@ -862,7 +1172,7 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   Rebind(FID_MERGEREG);
   if (not Rebind(FID_MERGELINE)) then
   begin
@@ -898,7 +1208,7 @@ begin
 
         EMMS;
 
-        CheckColor(ExpectedColor32, MergedColor32, FColorDiff);
+        CheckColor(ExpectedColor32, MergedColor32, FMaxDifferenceLimit);
       end;
     end;
   end;
@@ -915,7 +1225,7 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_EMMS);
+  Rebind(FID_EMMS, False);
   if (not Rebind(FID_MERGELINEEX)) then
   begin
     Check(True);
@@ -955,7 +1265,7 @@ begin
 
           EMMS;
 
-          CheckColor(ExpectedColor32, MergedColor32, FColorDiff,
+          CheckColor(ExpectedColor32, MergedColor32, FMaxDifferenceLimit,
             '(Index: %d, RefIndex: %d, Alpha Index: %d, MergeRegEx(FG: %.8X, BG: %.8X, Master: %d))',
             [Index, RefIndex, AlphaIndex, FForeground^[Index], BlendColor32.ARGB, MasterIndex shl 5]);
         end;
@@ -963,109 +1273,6 @@ begin
     end;
   end;
 end;
-
-{$IFNDEF FPC}
-procedure TCustomTestBlendModes.CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte);
-var
-  Msg: string;
-  DifColor: TColor32Entry;
-  MaxError: integer;
-begin
-  FCheckCalled := True;
-
-  DifColor.A := Abs(ExpectedColor32.A - ActualColor32.A);
-  DifColor.R := Abs(ExpectedColor32.R - ActualColor32.R);
-  DifColor.G := Abs(ExpectedColor32.G - ActualColor32.G);
-  DifColor.B := Abs(ExpectedColor32.B - ActualColor32.B);
-
-  MaxError := Max(DifColor.A, DifColor.R);
-  MaxError := Max(MaxError, DifColor.G);
-  MaxError := Max(MaxError, DifColor.B);
-
-  if (MaxError > 0) then
-  begin
-    FMaxError := Max(FMaxError, MaxError);
-
-    if (MaxError > Difference) then
-    begin
-      Msg := Format('Expected:%.8X, Actual:%.8X, Dif:%.8X', [ExpectedColor32.ARGB, ActualColor32.ARGB, DifColor.ARGB]);
-      Fail(Msg, ReturnAddress);
-    end else
-      ;//Status(Format('Dif:%.8X', [DifColor.ARGB]));
-  end;
-end;
-
-procedure TCustomTestBlendModes.CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte; const AExtra: string; const AExtraParams: array of const);
-var
-  Msg: string;
-  DifColor: TColor32Entry;
-  MaxError: integer;
-begin
-  FCheckCalled := True;
-
-  DifColor.A := Abs(ExpectedColor32.A - ActualColor32.A);
-  DifColor.R := Abs(ExpectedColor32.R - ActualColor32.R);
-  DifColor.G := Abs(ExpectedColor32.G - ActualColor32.G);
-  DifColor.B := Abs(ExpectedColor32.B - ActualColor32.B);
-
-  MaxError := Max(DifColor.A, DifColor.R);
-  MaxError := Max(MaxError, DifColor.G);
-  MaxError := Max(MaxError, DifColor.B);
-
-
-  if (MaxError > 0) then
-  begin
-    FMaxError := Max(FMaxError, MaxError);
-
-    if (MaxError > Difference) then
-    begin
-      Msg := Format('Expected:%.8X, Actual:%.8X, Dif:%.8X %s', [ExpectedColor32.ARGB, ActualColor32.ARGB, DifColor.ARGB, Format(AExtra, AExtraParams)]);
-      Fail(Msg, ReturnAddress);
-    end else
-      ;//Status(Format('Dif:%.8X', [DifColor.ARGB]));
-  end;
-end;
-
-procedure TCustomTestBlendModes.PerformanceTest;
-var
-  Start, Stop, Freq : Int64;
-  BlendColor32      : TColor32Entry;
-  Index             : Integer;
-begin
-  BlendRegistry.RebindAll(pointer(PriorityProc));
-
-  BlendColor32.ARGB := clWhite32;
-  BlendColor32.A := $5A;
-
-  QueryPerformanceFrequency(Freq);
-  QueryPerformanceCounter(Start);
-
-  for Index := 0 to $7FFFFFF do
-    BlendReg(BlendColor32.ARGB, clBlack32);
-
-  EMMS;
-
-  for Index := 0 to $7FFFFFF do
-  begin
-    BlendReg(BlendColor32.ARGB, clBlack32);
-    EMMS;
-  end;
-
-  QueryPerformanceCounter(Stop);
-
-  Status(Format('Performance: %.3n', [1000 * (Stop - Start) / Freq]));
-  Check(True);
-end;
-
-function TCustomTestBlendModes.Rebind(FunctionID: Integer): boolean;
-begin
-  Result := BlendRegistry.Rebind(FunctionID, pointer(PriorityProc));
-  if (not Result) then
-    // Not really an error but we need to indicate that nothing was tested
-    Fail('Not implemented');
-end;
-
-{$ENDIF}
 
 
 { TTestBlendModesPas }
@@ -1085,97 +1292,81 @@ end;
 
 procedure TTestBlendModesPas.TestBlendReg;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestBlendRegEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestBlendMem;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestBlendMemEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestBlendLine;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestBlendLine1;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestBlendLineEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestCombineReg;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestCombineMem;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestCombineLine;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeReg;
 begin
-  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeRegEx;
 begin
-  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeMem;
 begin
-  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeMemEx;
 begin
-  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeLine;
 begin
-  FColorDiff := 4;
   inherited;
 end;
 
 procedure TTestBlendModesPas.TestMergeLineEx;
 begin
-  FColorDiff := 4;
   inherited;
 end;
 
@@ -1196,97 +1387,81 @@ end;
 
 procedure TTestBlendModesAsm.TestBlendReg;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendRegEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendMem;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendMemEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendLine;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendLine1;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendLineEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestCombineReg;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestCombineMem;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestCombineLine;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeReg;
 begin
-  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeRegEx;
 begin
-  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeMem;
 begin
-  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeMemEx;
 begin
-  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeLine;
 begin
-  FColorDiff := 8;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeLineEx;
 begin
-  FColorDiff := 8;
   inherited;
 end;
 
@@ -1308,85 +1483,71 @@ end;
 
 procedure TTestBlendModesMMX.TestBlendReg;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendRegEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendMem;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendMemEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendLine;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendLine1;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendLineEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestCombineReg;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestCombineMem;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestCombineLine;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeReg;
 begin
-  FColorDiff := 6;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeRegEx;
 begin
-  FColorDiff := 6;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeMem;
 begin
-  FColorDiff := 6;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeMemEx;
 begin
-  FColorDiff := 6;
   inherited;
 end;
 
@@ -1423,7 +1584,6 @@ end;
 
 procedure TTestBlendModesSSE2.TestBlendRegEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
@@ -1434,7 +1594,6 @@ end;
 
 procedure TTestBlendModesSSE2.TestBlendMemEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
@@ -1450,7 +1609,6 @@ end;
 
 procedure TTestBlendModesSSE2.TestBlendLineEx;
 begin
-  FColorDiff := 2;
   inherited;
 end;
 
@@ -1471,7 +1629,6 @@ end;
 
 procedure TTestBlendModesSSE2.TestMergeReg;
 begin
-  FColorDiff := 1;
   inherited;
 end;
 
@@ -1501,12 +1658,208 @@ begin
 end;
 
 
+{ TTestBlendTables }
+
+procedure TTestBlendTables.TestAlphaTable;
+var
+  a, b, c: integer;
+  Expected, Actual: integer;
+  Errors: integer;
+const
+  MaxAbsoluteError = 1;
+  MaxErrors = 63232;
+begin
+  Errors := 0;
+  for a := 0 to 255 do
+    for b := 0 to 255 do
+    begin
+      Expected := Round(a * b / 255);
+
+      for c := 0 to 3 do
+      begin
+        // Actual is an *approximation* of Round(a * b / 255) calculated as:
+        //   Actual := (a * b + 128) shr 8;
+
+        Actual := ((a * alpha_ptr[b][c].R + bias_ptr[c].R) shr 8) and $FF;
+
+        if (Expected <> Actual) then
+        begin
+          Inc(Errors);
+
+          if (Abs(Expected-Actual) > MaxAbsoluteError) then
+            CheckEquals(Expected, Actual, Format('%d * %d / 255', [a, b]));
+        end;
+      end;
+    end;
+
+  if (Errors > MaxErrors) then
+    Fail(Format('Too many errors: %d (expected max %d)', [Errors, MaxErrors]));
+end;
+
+procedure TTestBlendTables.TestAlphaTableAlignment;
+begin
+  Check(NativeUInt(alpha_ptr) and $F = 0);
+end;
+
+procedure TTestBlendTables.TestDivisionTable;
+var
+  a, b: integer;
+  Expected, Actual: integer;
+begin
+  for a := 0 to 255 do
+    for b := 0 to 255 do
+    begin
+      if (a <> 0) then
+        Expected := Clamp(Round(b / a * 255))
+      else
+        Expected := 0;
+
+      Actual := RcTable[a, b];
+
+      if (Expected <> Actual) then
+        CheckEquals(Expected, Actual, Format('%d / %d * 255', [a, b]));
+    end;
+end;
+
+procedure TTestBlendTables.TestMultiplicationTable;
+var
+  a, b: integer;
+  Expected, Actual: integer;
+begin
+  for a := 0 to 255 do
+    for b := 0 to 255 do
+    begin
+      Expected := Round(a * b / 255);
+
+      Actual := DivTable[a, b];
+
+      if (Expected <> Actual) then
+        CheckEquals(Expected, Actual, Format('%d * %d / 255', [a, b]));
+    end;
+end;
+
+{ TTestBlendModesSSE41 }
+
+class function TTestBlendModesSSE41.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcSSE41;
+end;
+
+class function TTestBlendModesSSE41.PriorityProcSSE41(Info: PFunctionInfo): Integer;
+begin
+  if (isSSE41 in Info^.InstructionSupport) then
+    Result := 0
+  else
+    Result := INVALID_PRIORITY;
+end;
+
+procedure TTestBlendModesSSE41.TestBlendLine;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestBlendLine1;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestBlendLineEx;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestBlendMem;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestBlendMemEx;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestBlendReg;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestBlendRegEx;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestCombineLine;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestCombineMem;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestCombineReg;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestMergeLine;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestMergeLineEx;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestMergeMem;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestMergeMemEx;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestMergeReg;
+begin
+  inherited;
+
+end;
+
+procedure TTestBlendModesSSE41.TestMergeRegEx;
+begin
+  inherited;
+
+end;
+
+
 initialization
+  RegisterTest(TTestBlendTables.Suite);
+
   RegisterTest(TTestBlendModesPas.Suite);
   RegisterTest(TTestBlendModesAsm.Suite);
   if isMMX in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestBlendModesMMX.Suite);
   if isSSE2 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestBlendModesSSE2.Suite);
+  if isSSE41 in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestBlendModesSSE41.Suite);
 
 end.
