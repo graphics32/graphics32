@@ -3579,6 +3579,32 @@ begin
   FStippleCounter := Wrap(FStippleCounter, L);
 end;
 
+var FastPrevWeight: function(Value: TFloat; PrevIndex: Cardinal): Cardinal;
+
+function FastPrevWeight_Pas(Value: TFloat; PrevIndex: Cardinal): Cardinal;
+begin
+  Result := Round($FF * (Value - PrevIndex));
+end;
+
+function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; experimental;
+// Note: roundss is a SSE4.1 instruction
+const
+  ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
+const
+  Float255 : TFloat = 255.0;
+asm
+{$if defined(TARGET_x86)}
+        MOVSS   xmm0, Value
+{$ifend}
+        CVTSI2SS xmm1, PrevIndex
+
+        SUBSS   xmm0, xmm1
+        MULSS   xmm0, Float255
+
+        ROUNDSS xmm0, xmm0, ROUND_MODE
+        CVTSS2SI eax, xmm0
+end;
+
 function TCustomBitmap32.GetStippleColor: TColor32;
 var
   L: Integer;
@@ -3596,9 +3622,11 @@ begin
   {$IFDEF FPC}
   PrevIndex := Trunc(FStippleCounter);
   {$ELSE}
-  PrevIndex := Round(FStippleCounter - 0.5);
+  // Was: PrevIndex := Round(FStippleCounter - 0.5);
+  PrevIndex := FastTrunc(FStippleCounter);
   {$ENDIF}
-  PrevWeight := $FF - Round($FF * (FStippleCounter - PrevIndex));
+  // Was: PrevWeight= $FF - Round($FF * (FStippleCounter - PrevIndex));
+  PrevWeight := $FF - FastPrevWeight(FStippleCounter, PrevIndex);
   if PrevIndex < 0 then
     FStippleCounter := L - 1;
   NextIndex := PrevIndex + 1;
@@ -7607,6 +7635,7 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
+  GeneralRegistry.RegisterBinding(@@FastPrevWeight);
 end;
 
 var
@@ -7629,6 +7658,10 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindingFunctions;
 begin
+  GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_Pas,    BlendBindingFlagPascal);
+{$IFNDEF PUREPASCAL}
+  GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_SSE41,  [isSSE41]);
+{$ENDIF}
 end;
 
 //------------------------------------------------------------------------------
