@@ -282,9 +282,17 @@ var
   WX: TColor32Entry absolute W;
   RX: TColor32Entry absolute Result;
 begin
-  RX.R := (FX.R - BX.R) * WX.B div 255 + BX.R;
-  RX.G := (FX.G - BX.G) * WX.G div 255 + BX.G;
-  RX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
+  if (W = 0) then
+    Result := B
+  else
+  if (W = $FF) then
+    Result := F
+  else
+  begin
+    RX.R := (FX.R - BX.R) * WX.B div 255 + BX.R;
+    RX.G := (FX.G - BX.G) * WX.G div 255 + BX.G;
+    RX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
+  end;
 end;
 
 procedure BlendMemRGB_Pas(F: TColor32; var B: TColor32; W: Cardinal);
@@ -293,9 +301,17 @@ var
   BX: TColor32Entry absolute B;
   WX: TColor32Entry absolute W;
 begin
-  BX.R := (FX.R - BX.R) * WX.B div 255 + BX.R;
-  BX.G := (FX.G - BX.G) * WX.G div 255 + BX.G;
-  BX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
+  if (W = 0) then
+    exit;
+
+  if ((W and $FFFFFF) = $FFFFFF) then
+    B := F
+  else
+  begin
+    BX.R := (FX.R - BX.R) * WX.B div 255 + BX.R;
+    BX.G := (FX.G - BX.G) * WX.G div 255 + BX.G;
+    BX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
+  end;
 end;
 
 procedure BlendLine1_Pas(Src: TColor32; Dst: PColor32; Count: Integer);
@@ -321,6 +337,9 @@ end;
 
 procedure BlendLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 begin
+  if (M = 0) then
+    exit;
+
   while Count > 0 do
   begin
     BlendMemEx(Src^, Dst^, M);
@@ -367,9 +386,7 @@ var
   Af, Ab: PByteArray;
 begin
   if W = 0 then
-  begin
     Exit;
-  end;
 
   if W >= $FF then
   begin
@@ -522,6 +539,15 @@ end;
 
 procedure CombineLine_Pas(Src, Dst: PColor32; Count: Integer; W: Cardinal);
 begin
+  if W = 0 then
+    Exit;
+
+  if W >= $FF then
+  begin
+    MoveLongword(Src^, Dst^, Count);
+    Exit;
+  end;
+
   while Count > 0 do
   begin
     CombineMem(Src^, Dst^, W);
