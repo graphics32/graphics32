@@ -1733,7 +1733,7 @@ begin
   SetLength(Result, BuffSize);
 
   // prepare
-  if JoinStyle in [jsRound, jsRoundEx] then
+  if JoinStyle = jsRound then
   begin
     Dm.X := 1 - 0.5 * Min(3, Sqr(MINDISTPIXEL / Abs(Delta)));
     Dm.Y := Sqrt(1 - Sqr(Dm.X));

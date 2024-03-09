@@ -71,10 +71,10 @@ function MergeReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDI
 //------------------------------------------------------------------------------
 function CombineReg_SSE2(X, Y: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 
-procedure CombineMem_SSE2_Table(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineMem_SSE2_128(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineMem_SSE41_8081(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineMem_SSE41_Kadaif(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure CombineMem_SSE2_Table(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure CombineMem_SSE2_128(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure CombineMem_SSE41_8081(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure CombineMem_SSE41_Kadaif(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
@@ -126,7 +126,14 @@ uses
   GR32_LowLevel,
   GR32_System;
 
-{$CODEALIGN 16} // 16 byte alignment required for SSE aligned loads
+// 16 byte code alignment required for SSE aligned loads
+{$IFNDEF FPC}
+  {$CODEALIGN 16}
+{$ELSE}
+  {$MODE objfpc}
+  {$H+}
+  {$ALIGN 16}
+{$ENDIF}
 
 //------------------------------------------------------------------------------
 //
@@ -764,7 +771,7 @@ end;
 procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 {$IFDEF FPC}
 const
-  COpaque: QWORD = $FF000000FF000000;
+  COpaque: QWORD = QWORD($FF000000FF000000);
 {$ENDIF}
 asm
 {$IFDEF TARGET_X86}

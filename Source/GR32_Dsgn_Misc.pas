@@ -180,12 +180,15 @@ begin
   TBitmap32(GetComponent(0)).ResamplerClassName := CustomClass;
 end;
 
+{$IFNDEF FPC}
 var
   GSplashScreen     : HBITMAP;
+{$ENDIF}
 
 initialization
+{$IFNDEF FPC}
   // Add Splash Screen
   GSplashScreen := LoadBitmap(hInstance, 'GR32');
   (SplashScreenServices as IOTasplashScreenServices).AddPluginBitmap('Graphics32', GSplashScreen, False, 'Open Source', Graphics32Version);
-
+{$ENDIF}
 end.

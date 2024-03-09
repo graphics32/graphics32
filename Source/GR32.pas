@@ -1010,6 +1010,7 @@ type
     procedure SetBackend(const ABackend: TCustomBackend); override;
 
     procedure HandleChanged; virtual;
+  protected
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
   public
     class function GetPlatformBackendClass: TCustomBackendClass; override;
