@@ -73,12 +73,9 @@ type
 
 implementation
 
-uses GR32, GR32_Resamplers;
-                        
-{$IFDEF COMPILER2005_UP}
-var
-  GSplashScreen     : HBITMAP;
-{$ENDIF}
+uses
+  GR32,
+  GR32_Resamplers;
 
 { TCustomClassProperty }
 
@@ -183,12 +180,12 @@ begin
   TBitmap32(GetComponent(0)).ResamplerClassName := CustomClass;
 end;
 
+var
+  GSplashScreen     : HBITMAP;
+
 initialization
-  {$IFDEF COMPILER2005_UP}
   // Add Splash Screen
   GSplashScreen := LoadBitmap(hInstance, 'GR32');
-  (SplashScreenServices as IOTasplashScreenServices).AddPluginBitmap(
-      'GR32' + ' ' + Graphics32Version, GSplashScreen);
-  {$ENDIF}
+  (SplashScreenServices as IOTasplashScreenServices).AddPluginBitmap('Graphics32', GSplashScreen, False, 'Open Source', Graphics32Version);
 
 end.

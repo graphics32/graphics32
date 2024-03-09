@@ -91,49 +91,67 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="vcl.dcp"/>
-        <DCCReference Include="..\XE3\..\..\GR32.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Backends.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Backends_Generic.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Backends_VCL.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Bindings.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Blend.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Brushes.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ColorGradients.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ColorPicker.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ColorSwatch.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Containers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ExtImage.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Filters.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Geometry.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Image.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Layers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_LowLevel.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Math.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_MicroTiles.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_OrdinalMaps.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Paths.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Polygons.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_PolygonsAggLite.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_RangeBars.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Rasterizers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_RepaintOpt.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Resamplers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_System.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Transforms.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_VectorMaps.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_VectorUtils.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_VPR.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Text_VCL.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_XPThemes.pas"/>
-        <BuildConfiguration Include="Debug">
-            <Key>Cfg_2</Key>
-            <CfgParent>Base</CfgParent>
-        </BuildConfiguration>
+        <DCCReference Include="..\..\GR32.pas"/>
+        <DCCReference Include="..\..\GR32_Backends.pas"/>
+        <DCCReference Include="..\..\GR32_Backends_Generic.pas"/>
+        <DCCReference Include="..\..\GR32_Backends_VCL.pas"/>
+        <DCCReference Include="..\..\GR32_Bindings.pas"/>
+        <DCCReference Include="..\..\GR32_Blend.pas"/>
+        <DCCReference Include="..\..\GR32_Brushes.pas"/>
+        <DCCReference Include="..\..\GR32_ColorGradients.pas"/>
+        <DCCReference Include="..\..\GR32_ColorPicker.pas"/>
+        <DCCReference Include="..\..\GR32_Containers.pas"/>
+        <DCCReference Include="..\..\GR32_ExtImage.pas"/>
+        <DCCReference Include="..\..\GR32_Filters.pas"/>
+        <DCCReference Include="..\..\GR32_Geometry.pas"/>
+        <DCCReference Include="..\..\GR32_Image.pas"/>
+        <DCCReference Include="..\..\GR32_Layers.pas"/>
+        <DCCReference Include="..\..\GR32_LowLevel.pas"/>
+        <DCCReference Include="..\..\GR32_Math.pas"/>
+        <DCCReference Include="..\..\GR32_MicroTiles.pas"/>
+        <DCCReference Include="..\..\GR32_OrdinalMaps.pas"/>
+        <DCCReference Include="..\..\GR32_Paths.pas"/>
+        <DCCReference Include="..\..\GR32_Polygons.pas"/>
+        <DCCReference Include="..\..\GR32_RangeBars.pas"/>
+        <DCCReference Include="..\..\GR32_Rasterizers.pas"/>
+        <DCCReference Include="..\..\GR32_RepaintOpt.pas"/>
+        <DCCReference Include="..\..\GR32_Resamplers.pas"/>
+        <DCCReference Include="..\..\GR32.CPUID.pas"/>
+        <DCCReference Include="..\..\GR32_System.pas"/>
+        <DCCReference Include="..\..\GR32_Transforms.pas"/>
+        <DCCReference Include="..\..\GR32_VectorMaps.pas"/>
+        <DCCReference Include="..\..\GR32_VectorUtils.pas"/>
+        <DCCReference Include="..\..\GR32_VPR.pas"/>
+        <DCCReference Include="..\..\GR32_Text_VCL.pas"/>
+        <DCCReference Include="..\..\GR32_XPThemes.pas"/>
+        <DCCReference Include="..\..\GR32_Clipboard.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.Pascal.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.ASM.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.MMX.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.SSE2.pas"/>
+        <DCCReference Include="..\..\GR32_Gamma.pas"/>
+        <DCCReference Include="..\..\GR32_Png.pas"/>
+        <DCCReference Include="..\..\GR32_PortableNetworkGraphic.pas"/>
+        <DCCReference Include="..\..\GR32_Blurs.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.BMP.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.PNG32.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.TBitmap.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.TClipboard.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.TIcon.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.TMetaFile.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.TPicture.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.TWICImage.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.TGraphic.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
         <BuildConfiguration Include="Release">
             <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Debug">
+            <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
         </BuildConfiguration>
     </ItemGroup>
