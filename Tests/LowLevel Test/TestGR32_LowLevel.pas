@@ -42,10 +42,33 @@ interface
 
 uses
 {$IFDEF FPC}
-  fpcunit, testregistry
+  fpcunit, testregistry,
 {$ELSE}
-  TestFramework, Windows
-{$ENDIF};
+  TestFramework, Windows,
+{$ENDIF}
+  GR32_Bindings;
+
+// ----------------------------------------------------------------------------
+//
+// TBindingTestCase
+//
+// ----------------------------------------------------------------------------
+type
+  TBindingTestCase = class abstract(TTestCase)
+  private
+  protected
+    class function FunctionRegistry: TFunctionRegistry; virtual; abstract;
+    class function PriorityProc: TFunctionPriority; virtual; abstract;
+
+    class function PriorityProcPas(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcAsm(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcMMX(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcSSE2(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcSSE41(Info: PFunctionInfo): Integer; static;
+  public
+    procedure SetUp; override;
+    procedure TearDown; override;
+  end;
 
 // ----------------------------------------------------------------------------
 //
@@ -53,11 +76,19 @@ uses
 //
 // ----------------------------------------------------------------------------
 type
-  TTestLowLevel = class(TTestCase)
+  TTestLowLevel = class abstract(TBindingTestCase)
   private
+  protected
+    class function FunctionRegistry: TFunctionRegistry; override;
   public
   published
     procedure TestDiv255;
+    procedure TestFastDiv255;
+    procedure TestDiv255Round;
+
+    procedure TestFastTrunc;
+    procedure TestFastRound;
+
     procedure TestClamp1;
     procedure TestClampMax;
 
@@ -71,9 +102,37 @@ type
 {$ENDIF USESTACKALLOC}
     procedure TestConstrain;
     procedure TestMinMax;
-    procedure TestWrap;
+    procedure TestWrapInteger;
+    procedure TestWrapFloat;
+    procedure TestWrapMinMax;
+    procedure TestWrapPow2;
     procedure TestMirror;
     procedure TestSAR;
+  end;
+
+  TTestLowLevelPas = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelAsm = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelMMX = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelSSE2 = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
+  end;
+
+  TTestLowLevelSSE41 = class(TTestLowLevel)
+  protected
+    class function PriorityProc: TFunctionPriority; override;
   end;
 
 // ----------------------------------------------------------------------------
@@ -107,6 +166,10 @@ type
     procedure TestPrevPowerOf2;
     procedure TestAverage;
     procedure TestSign;
+    procedure TestFloatModDouble;
+    procedure TestFloatModSingle;
+    procedure TestFloatRemainderDouble;
+    procedure TestFloatRemainderSingle;
   end;
 
 
@@ -116,15 +179,108 @@ uses
   Controls, Types, Classes, SysUtils, Messages, Graphics,
   Math,
   GR32,
+  GR32_System,
   GR32_LowLevel,
-  GR32_Math,
-  GR32_Bindings;
+  GR32_Math;
+
+// ----------------------------------------------------------------------------
+//
+// TBindingTestCase
+//
+// ----------------------------------------------------------------------------
+class function TBindingTestCase.PriorityProcPas(Info: PFunctionInfo): Integer;
+begin
+  if (Info^.Flags and LowLevelBindingFlagPascal <> 0) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcAsm(Info: PFunctionInfo): Integer;
+begin
+  if (Info^.InstructionSupport = []) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
+begin
+  if (isMMX in Info^.InstructionSupport) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
+begin
+  if (isSSE2 in Info^.InstructionSupport) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
+begin
+  if (isSSE41 in Info^.InstructionSupport) then
+    Result := 0
+  else
+    Result := MaxInt-1;//INVALID_PRIORITY;
+end;
+
+procedure TBindingTestCase.SetUp;
+begin
+  inherited;
+  RandSeed := 0;
+  FunctionRegistry.RebindAll(True, pointer(PriorityProc));
+end;
+
+procedure TBindingTestCase.TearDown;
+begin
+  inherited;
+  FunctionRegistry.RebindAll(True);
+end;
 
 // ----------------------------------------------------------------------------
 //
 // TTestLowLevel
 //
 // ----------------------------------------------------------------------------
+class function TTestLowLevelPas.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcPas;
+end;
+
+class function TTestLowLevelAsm.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcAsm;
+end;
+
+class function TTestLowLevelMMX.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcMMX;
+end;
+
+class function TTestLowLevelSSE2.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcSSE2;
+end;
+
+class function TTestLowLevelSSE41.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcSSE41;
+end;
+
+// ----------------------------------------------------------------------------
+//
+// TTestLowLevel
+//
+// ----------------------------------------------------------------------------
+class function TTestLowLevel.FunctionRegistry: TFunctionRegistry;
+begin
+  Result := LowLevelRegistry;
+end;
+
 procedure TTestLowLevel.TestClamp1;
 var
   Value: integer;
@@ -172,15 +328,120 @@ procedure TTestLowLevel.TestDiv255;
 var
   Value: Cardinal;
 begin
-  // Verify documented range
-  for Value := 0 to 66298 do
-    CheckEquals(Value div 255, Div255(Value));
+  // Edge cases
+  CheckEquals(0, Byte(Div255(0)));
+  CheckEquals(1, Byte(Div255(255)));
+  CheckEquals(255, Byte(Div255(255*255)));
 
-(*
-  // Check outside range
-  for Value := 66298+1 to MaxInt do
-    CheckEquals(Value div 255, Div255(Value), Format('%d div 255', [Value]));
-*)
+  // Verify documented range
+  for Value := 0 to 255*255 do
+    CheckEquals(Trunc(Value/255), Byte(Div255(Value)));
+end;
+
+procedure TTestLowLevel.TestFastDiv255;
+var
+  Value: Cardinal;
+begin
+  // Edge cases
+  CheckEquals(0, Byte(FastDiv255(0)));
+  CheckEquals(1, Byte(FastDiv255(255)));
+  CheckEquals(255, Byte(FastDiv255(255*255)));
+
+  // Verify documented range
+  for Value := 0 to 255*255 do
+    CheckEquals(Value div 255, FastDiv255(Value));
+end;
+
+procedure TTestLowLevel.TestDiv255Round;
+var
+  Value: Cardinal;
+begin
+  // Edge cases
+  CheckEquals(0, Byte(Div255Round(0)));
+  CheckEquals(1, Byte(Div255Round(255)));
+  CheckEquals(255, Byte(Div255Round(255*255)));
+
+  // Verify documented range
+  for Value := 0 to 255*255 do
+    CheckEquals(Round(Value/255), Div255Round(Value));
+end;
+
+procedure TTestLowLevel.TestFastRound;
+var
+  i: integer;
+  Value: Single;
+  Expected, Actual: Integer;
+begin
+  for i := 1 to 1000 do
+  begin
+    Value := (Random(10000)-5000) / i;
+
+    Expected := Round(Value);
+    Actual := FastRound(Value);
+
+    if (Expected <> Actual) then
+      CheckEquals(Expected, Actual, Format('FastRound(%g)', [Value]));
+  end;
+end;
+
+procedure TTestLowLevel.TestFastTrunc;
+
+  procedure DoTest;
+  var
+    i: integer;
+    Value: TFloat;
+    Expected, Actual: Integer;
+  begin
+    for i := 1 to 1000 do
+    begin
+      Value := (Random(10000)-5000) / i;
+
+      Expected := Trunc(Value);
+      Actual := FastTrunc(Value);
+
+      if (Expected <> Actual) then
+        CheckEquals(Expected, Actual, Format('FastTrunc(%g)', [Value]));
+    end;
+  end;
+
+var
+  SaveMXCSR: DWORD;
+  NewMXCSR: DWORD;
+begin
+  SaveMXCSR := GetMXCSR;
+  try
+    // Set Mode=Truncation
+    NewMXCSR := SaveMXCSR or $00006000;
+    SetMXCSR(NewMXCSR);
+
+    DoTest;
+
+    // Verify that MXCSR is preserved
+    CheckEquals(NewMXCSR and $0000FFC0, GetMXCSR and $0000FFC0, 'MXCSR not preserved');
+
+
+    // Set Mode=Floor
+    NewMXCSR := (SaveMXCSR and (not $00006000)) or $00002000;
+    SetMXCSR(NewMXCSR);
+
+    DoTest;
+
+    // Verify that MXCSR is preserved
+    CheckEquals(NewMXCSR and $0000FFC0, GetMXCSR and $0000FFC0, 'MXCSR not preserved');
+
+
+
+    // Set Mode=Round
+    NewMXCSR := SaveMXCSR and (not $00006000);
+    SetMXCSR(NewMXCSR);
+
+    DoTest;
+
+    // Verify that MXCSR is preserved
+    CheckEquals(NewMXCSR and $0000FFC0, GetMXCSR and $0000FFC0, 'MXCSR not preserved');
+  finally
+    SetMXCSR(SaveMXCSR);
+  end;
 end;
 
 procedure TTestLowLevel.TestClamp2;
@@ -462,11 +723,115 @@ begin
 end;
 {$ENDIF USESTACKALLOC}
 
-procedure TTestLowLevel.TestWrap;
+procedure TTestLowLevel.TestWrapInteger;
+var
+  i: integer;
+  Expected, Actual: integer;
 begin
   CheckEquals(50, Wrap(50, 100));
   CheckEquals(49, Wrap(150, 100));
   CheckEquals(50, Wrap(150, 99));
+
+  // Negative values
+  CheckEquals(50, Wrap(-150, 99));
+
+  // Edge cases
+  CheckEquals(0, Wrap(0, 0));
+  CheckEquals(0, Wrap(50, 0));
+  CheckEquals(0, Wrap(0, 50));
+  CheckEquals(50, Wrap(50, 50));
+
+  // Function should produce a saw-tooth
+  Expected := 5;
+  for i := -100 to 100 do
+  begin
+    Actual := Wrap(i, 20);
+
+    CheckEquals(Expected, Actual);
+
+    if (Expected = 20) then
+      Expected := 0
+    else
+      Inc(Expected);
+  end;
+end;
+
+procedure TTestLowLevel.TestWrapFloat;
+var
+  i: integer;
+  Expected, Actual: Single;
+const
+  Epsilon = 1e-10;
+begin
+  CheckEquals(50.0, Wrap(50.0, 100.0), Epsilon);
+  CheckEquals(50, Wrap(150.0, 100.0), Epsilon);
+  CheckEquals(51, Wrap(150.0, 99.0), Epsilon);
+
+  // Negative values
+  CheckEquals(48.0, Wrap(-150.0, 99.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0.0, Wrap(0.0, 0.0), Epsilon);
+  CheckEquals(0.0, Wrap(50.0, 0.0), Epsilon);
+  CheckEquals(0.0, Wrap(0.0, 50.5), Epsilon);
+  CheckEquals(0.0, Wrap(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := 0;
+  for i := -100 to 100 do
+  begin
+    Actual := Wrap(i, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon);
+
+    Expected := Expected + 1.0;
+    if (Expected = 20) then
+      Expected := 0;
+  end;
+end;
+
+procedure TTestLowLevel.TestWrapMinMax;
+var
+  i: integer;
+  Expected, Actual : integer;
+begin
+  // Inside range
+  CheckEquals(50, Wrap(50, 25, 100));
+
+  // Outside range
+  CheckEquals(77, Wrap(1, 25, 100));
+  CheckEquals(74, Wrap(150, 25, 100));
+
+  CheckEquals(74, Wrap(150, 25, 100));
+  CheckEquals(75, Wrap(150, 25, 99));
+
+  // Negative values
+  CheckEquals(78, Wrap(-150, 25, 100));
+  CheckEquals(75, Wrap(-150, 25, 99));
+
+  // Edge cases
+  CheckEquals(10, Wrap(0, 10, 10));
+  CheckEquals(10, Wrap(50, 10, 10));
+  CheckEquals(10, Wrap(10, 10, 50));
+  CheckEquals(50, Wrap(50, 10, 50));
+
+  // Function should produce a saw-tooth
+  Expected := 11;
+  for i := 0 to 100 do
+  begin
+    Actual := Wrap(i, 10, 20);
+
+    CheckEquals(Expected, Actual);
+
+    if (Expected = 20) then
+      Expected := 10
+    else
+      Inc(Expected);
+  end;
+end;
+
+procedure TTestLowLevel.TestWrapPow2;
+begin
   CheckEquals(64, WrapPow2(64, 127));
   CheckEquals(64, WrapPow2(192, 127));
   CheckEquals(32, WrapPow2(160, 127));
@@ -484,6 +849,241 @@ begin
   for X := 0 to (1 shl 10) do
     for Y := 0 to (1 shl 10) do
       CheckEquals((X + Y) div 2, Average(X, Y));
+end;
+
+function FloatMod_Reference(ANumerator, ADenominator: Double): Double; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
+end;
+
+function FloatMod_Reference(ANumerator, ADenominator: Single): Single; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
+end;
+
+procedure TTestMath.TestFloatModDouble;
+var
+  Numerator, Denominator: Double;
+  Expected, Actual: Double;
+  i: integer;
+const
+  Epsilon = 1e-10;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatMod(Numerator, Denominator);
+      Expected := FloatMod_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(-5.0, FloatMod(5.0, -10.0), Epsilon);
+  CheckEquals(-5.5, FloatMod(4.5, -10.0), Epsilon);
+  CheckEquals(5.0, FloatMod(-5.0, 10.0), Epsilon);
+  CheckEquals(5.5, FloatMod(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0, FloatMod(0, 0), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 0.0), Epsilon);
+
+  CheckEquals(50, FloatMod(50, 0), Epsilon);
+  CheckEquals(50.0, FloatMod(50.0, 0.0), Epsilon);
+
+  CheckEquals(0, FloatMod(0, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 50.5), Epsilon);
+
+  CheckEquals(0, FloatMod(50, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := 10;
+  for i := -100 to 100 do
+  begin
+    Actual := FloatMod(i * 0.5, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon);
+
+    Expected := Expected + 0.5;
+    if (Expected = 20) then
+      Expected := 0;
+  end;
+end;
+
+procedure TTestMath.TestFloatModSingle;
+var
+  Numerator, Denominator: Single;
+  Expected, Actual: Single;
+  i: integer;
+const
+  Epsilon = 1e-5;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatMod(Numerator, Denominator);
+      Expected := FloatMod_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(-5.0, FloatMod(5.0, -10.0), Epsilon);
+  CheckEquals(-5.5, FloatMod(4.5, -10.0), Epsilon);
+  CheckEquals(5.0, FloatMod(-5.0, 10.0), Epsilon);
+  CheckEquals(5.5, FloatMod(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0, FloatMod(0, 0), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 0.0), Epsilon);
+
+  CheckEquals(50, FloatMod(50, 0), Epsilon);
+  CheckEquals(50.0, FloatMod(50.0, 0.0), Epsilon);
+
+  CheckEquals(0, FloatMod(0, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(0.0, 50.5), Epsilon);
+
+  CheckEquals(0, FloatMod(50, 50), Epsilon);
+  CheckEquals(0.0, FloatMod(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := 10;
+  for i := -100 to 100 do
+  begin
+    Actual := FloatMod(i * 0.5, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon);
+
+    Expected := Expected + 0.5;
+    if (Expected = 20) then
+      Expected := 0;
+  end;
+end;
+
+function FloatRemainder_Reference(ANumerator, ADenominator: Double): Double; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
+end;
+
+function FloatRemainder_Reference(ANumerator, ADenominator: Single): Single; overload;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
+end;
+
+procedure TTestMath.TestFloatRemainderDouble;
+var
+  Numerator, Denominator: Double;
+  Expected, Actual: Double;
+const
+  Epsilon = 1e-10;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatRemainder(Numerator, Denominator);
+      Expected := FloatRemainder_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(5.0, FloatRemainder(5.0, -10.0), Epsilon);
+  CheckEquals(4.5, FloatRemainder(4.5, -10.0), Epsilon);
+  CheckEquals(-5.0, FloatRemainder(-5.0, 10.0), Epsilon);
+  CheckEquals(-4.5, FloatRemainder(-4.5, 10.0), Epsilon);
+
+  // Test values from https://en.cppreference.com/w/c/numeric/math/remainder
+  // The results are completely bonkers
+  (*
+  CheckEquals(-0.9, FloatRemainder(+5.1, +3.0), Epsilon);
+  CheckEquals(+0.9, FloatRemainder(-5.1, +3.0), Epsilon);
+  CheckEquals(-0.9, FloatRemainder(+5.1, -3.0), Epsilon);
+  CheckEquals(+0.9, FloatRemainder(-5.1, -3.0), Epsilon);
+  CheckEquals(+0.0, FloatRemainder(+0.0, +1.0), Epsilon);
+  CheckEquals(-0.0, FloatRemainder(-0.0, +1.0), Epsilon);
+  *)
+
+  // Edge cases
+  CheckEquals(0.0, FloatRemainder(0.0, 0.0), Epsilon);
+  CheckEquals(50.0, FloatRemainder(50.0, 0.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(0.0, 50.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(50.0, 50.0), Epsilon);
+
+  // Function should produce a saw-tooth - and it does but I can't figure out how to verify it :-(
+end;
+
+procedure TTestMath.TestFloatRemainderSingle;
+var
+  Numerator, Denominator: Double;
+  Expected, Actual: Double;
+const
+  Epsilon = 1e-10;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := FloatRemainder(Numerator, Denominator);
+      Expected := FloatRemainder_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(5.0, FloatRemainder(5.0, -10.0), Epsilon);
+  CheckEquals(4.5, FloatRemainder(4.5, -10.0), Epsilon);
+  CheckEquals(-5.0, FloatRemainder(-5.0, 10.0), Epsilon);
+  CheckEquals(-4.5, FloatRemainder(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0.0, FloatRemainder(0.0, 0.0), Epsilon);
+  CheckEquals(50.0, FloatRemainder(50.0, 0.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(0.0, 50.0), Epsilon);
+  CheckEquals(0.0, FloatRemainder(50.0, 50.0), Epsilon);
 end;
 
 procedure TTestMath.TestHypotFloat;
@@ -865,7 +1465,17 @@ end;
 
 
 initialization
-  RegisterTest(TTestLowLevel.Suite);
+//  RegisterTest(TTestLowLevel.Suite);
+
+  RegisterTest(TTestLowLevelPas.Suite);
+  RegisterTest(TTestLowLevelAsm.Suite);
+  if isMMX in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelMMX.Suite);
+  if isSSE2 in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelSSE2.Suite);
+  if isSSE41 in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelSSE41.Suite);
+
   RegisterTest(TTestMath.Suite);
 end.
 
