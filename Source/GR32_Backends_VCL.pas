@@ -606,16 +606,20 @@ procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 var
   i: Integer;
+  CanvasHandle: HDC;
+  BufferHandle: HDC;
 begin
+  CanvasHandle := ACanvas.Handle;
+  BufferHandle := ABuffer.Handle;
   if AInvalidRects.Count > 0 then
   begin
     for i := 0 to AInvalidRects.Count - 1 do
       with AInvalidRects[i]^ do
-        BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
+        BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
   end else
   begin
     with APaintBox.GetViewportRect do
-      BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
+      BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
   end;
 end;
 
