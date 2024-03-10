@@ -20,30 +20,10 @@
         </SyntaxOptions>
       </Parsing>
     </CompilerOptions>
-    <Description Value="Graphics32 is a library designed for fast 32-bit graphics handling on Delphi and Kylix. Optimized for 32-bit pixel formats, it provides fast operations with pixels and graphic primitives, and in most cases Graphics32 outperforms the standard TCanvas classes. It is almost a hundred times faster in per-pixel access and about 2–5 times faster in drawing lines. 
-
-Features Some of Graphics32 features include: 
-    * Fast per-pixel access up to 100 times faster compared to standard TBitmap;
-    * High-performance Bitmap alpha blending (including per-pixel alpha blending);
-    * Pixel, line and polygon antialiasing with sub-pixel accuracy (combined with alpha blending);
-    * Arbitrary polygon transformations and custom fillings;
-    * Bitmap resampling with high quality reconstruction filters (e.g. Lanczos, Cubic, Mitchell);
-    * A unique state-of-the-art rasterization system;
-    * Affine transformations of bitmaps: rotations, scaling, etc with sub-pixel accuracy;
-    * Arbitrary projective transformations of bitmaps;
-    * Arbitrary remapping transformations of bitmaps (e.g. for Warping, Morphing);
-    * Flexible supersampling implementation for maximum sampling quality;
-    * Flicker-free image displaying components with optimized double buffering via advanced MicroTiles? based repaint optimizer;
-    * Multiple customizible easy-to-use overlay layers;
-    * Locking of bitmaps for safe multithreading;
-    * A property editor for RGB and alpha channel loading;
-    * Design-time loading of image formats supported by standard TPicture;
-    * Works on Borland Delphi, C++ Builder and Kylix (The last version that supported Kylix was 1.8.3). 
-
-As of version 1.5.1b Graphics32 is licensed under the terms of the Mozilla Public License."/>
-    <License Value="GNU Library or Lesser General Public License (LGPL)
+    <Description Value="Graphics32 is a library designed for fast 32-bit graphics handling on Delphi and Lazarus."/>
+    <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
 Mozilla Public License 1.1 (MPL 1.1)"/>
-    <Version Major="2"/>
+    <Version Major="3"/>
     <Files Count="46">
       <Item1>
         <Filename Value="..\GR32.inc"/>
@@ -94,145 +74,145 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <UnitName Value="GR32_Blend"/>
       </Item11>
       <Item12>
-        <Filename Value="..\GR32_BlendASM.pas"/>
-        <UnitName Value="GR32_BlendASM"/>
-      </Item12>
-      <Item13>
-        <Filename Value="..\GR32_BlendMMX.pas"/>
-        <UnitName Value="GR32_BlendMMX"/>
-      </Item13>
-      <Item14>
-        <Filename Value="..\GR32_BlendSSE2.pas"/>
-        <UnitName Value="GR32_BlendSSE2"/>
-      </Item14>
-      <Item15>
         <Filename Value="..\GR32_Blurs.pas"/>
         <UnitName Value="GR32_Blurs"/>
-      </Item15>
-      <Item16>
+      </Item12>
+      <Item13>
         <Filename Value="..\GR32_Brushes.pas"/>
         <UnitName Value="GR32_Brushes"/>
-      </Item16>
-      <Item17>
+      </Item13>
+      <Item14>
         <Filename Value="..\GR32_Clipper.pas"/>
         <UnitName Value="GR32_Clipper"/>
-      </Item17>
-      <Item18>
+      </Item14>
+      <Item15>
         <Filename Value="..\GR32_ColorGradients.pas"/>
         <UnitName Value="GR32_ColorGradients"/>
-      </Item18>
-      <Item19>
+      </Item15>
+      <Item16>
         <Filename Value="..\GR32_ColorPicker.pas"/>
         <UnitName Value="GR32_ColorPicker"/>
-      </Item19>
-      <Item20>
+      </Item16>
+      <Item17>
         <Filename Value="..\GR32_ColorSwatch.pas"/>
         <UnitName Value="GR32_ColorSwatch"/>
-      </Item20>
-      <Item21>
+      </Item17>
+      <Item18>
         <Filename Value="..\GR32_Containers.pas"/>
         <UnitName Value="GR32_Containers"/>
-      </Item21>
-      <Item22>
+      </Item18>
+      <Item19>
         <Filename Value="..\GR32_ExtImage.pas"/>
         <UnitName Value="GR32_ExtImage"/>
-      </Item22>
-      <Item23>
+      </Item19>
+      <Item20>
         <Filename Value="..\GR32_Filters.pas"/>
         <UnitName Value="GR32_Filters"/>
-      </Item23>
-      <Item24>
+      </Item20>
+      <Item21>
         <Filename Value="..\GR32_Gamma.pas"/>
         <UnitName Value="GR32_Gamma"/>
-      </Item24>
-      <Item25>
+      </Item21>
+      <Item22>
         <Filename Value="..\GR32_Geometry.pas"/>
         <UnitName Value="GR32_Geometry"/>
-      </Item25>
-      <Item26>
+      </Item22>
+      <Item23>
         <Filename Value="..\GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
-      </Item26>
-      <Item27>
+      </Item23>
+      <Item24>
         <Filename Value="..\GR32_Layers.pas"/>
         <UnitName Value="GR32_Layers"/>
-      </Item27>
-      <Item28>
+      </Item24>
+      <Item25>
         <Filename Value="..\GR32_LowLevel.pas"/>
         <UnitName Value="GR32_LowLevel"/>
-      </Item28>
-      <Item29>
+      </Item25>
+      <Item26>
         <Filename Value="..\GR32_Math.pas"/>
         <UnitName Value="GR32_Math"/>
-      </Item29>
-      <Item30>
+      </Item26>
+      <Item27>
         <Filename Value="..\GR32_MicroTiles.pas"/>
         <UnitName Value="GR32_MicroTiles"/>
-      </Item30>
-      <Item31>
+      </Item27>
+      <Item28>
         <Filename Value="..\GR32_OrdinalMaps.pas"/>
         <UnitName Value="GR32_OrdinalMaps"/>
-      </Item31>
-      <Item32>
+      </Item28>
+      <Item29>
         <Filename Value="..\GR32_Polygons.pas"/>
         <UnitName Value="GR32_Polygons"/>
-      </Item32>
-      <Item33>
+      </Item29>
+      <Item30>
         <Filename Value="..\GR32_PolygonsAggLite.pas"/>
         <UnitName Value="GR32_PolygonsAggLite"/>
-      </Item33>
-      <Item34>
+      </Item30>
+      <Item31>
         <Filename Value="..\GR32_RangeBars.pas"/>
         <UnitName Value="GR32_RangeBars"/>
-      </Item34>
-      <Item35>
+      </Item31>
+      <Item32>
         <Filename Value="..\GR32_Rasterizers.pas"/>
         <UnitName Value="GR32_Rasterizers"/>
-      </Item35>
-      <Item36>
+      </Item32>
+      <Item33>
         <Filename Value="..\GR32_RepaintOpt.pas"/>
         <UnitName Value="GR32_RepaintOpt"/>
-      </Item36>
-      <Item37>
+      </Item33>
+      <Item34>
         <Filename Value="..\GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
-      </Item37>
-      <Item38>
+      </Item34>
+      <Item35>
         <Filename Value="..\GR32_System.pas"/>
         <UnitName Value="GR32_System"/>
-      </Item38>
-      <Item39>
+      </Item35>
+      <Item36>
         <Filename Value="..\GR32_Text_LCL_Win.pas"/>
         <AddToUsesPkgSection Value="False"/>
         <UnitName Value="GR32_Text_LCL_Win"/>
-      </Item39>
-      <Item40>
+      </Item36>
+      <Item37>
         <Filename Value="..\GR32_Transforms.pas"/>
         <UnitName Value="GR32_Transforms"/>
-      </Item40>
-      <Item41>
+      </Item37>
+      <Item38>
         <Filename Value="..\GR32_VectorMaps.pas"/>
         <UnitName Value="GR32_VectorMaps"/>
-      </Item41>
-      <Item42>
+      </Item38>
+      <Item39>
         <Filename Value="..\GR32_VectorUtils.pas"/>
         <UnitName Value="GR32_VectorUtils"/>
-      </Item42>
-      <Item43>
+      </Item39>
+      <Item40>
         <Filename Value="..\GR32_VPR.pas"/>
         <UnitName Value="GR32_VPR"/>
-      </Item43>
-      <Item44>
+      </Item40>
+      <Item41>
         <Filename Value="..\GR32_VPR2.pas"/>
         <UnitName Value="GR32_VPR2"/>
-      </Item44>
-      <Item45>
+      </Item41>
+      <Item42>
         <Filename Value="..\GR32_XPThemes.pas"/>
         <UnitName Value="GR32_XPThemes"/>
-      </Item45>
-      <Item46>
+      </Item42>
+      <Item43>
         <Filename Value="..\GR32_Png.pas"/>
         <UnitName Value="GR32_PNG"/>
+      </Item43>
+      <Item44>
+        <Filename Value="..\GR32.Blend.MMX.pas"/>
+        <UnitName Value="GR32.Blend.MMX"/>
+      </Item44>
+      <Item45>
+        <Filename Value="..\GR32.Blend.Pascal.pas"/>
+        <UnitName Value="GR32.Blend.Pascal"/>
+      </Item45>
+      <Item46>
+        <Filename Value="..\GR32.Blend.SSE2.pas"/>
+        <UnitName Value="GR32.Blend.SSE2"/>
       </Item46>
     </Files>
     <CompatibilityMode Value="True"/>

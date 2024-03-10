@@ -16,7 +16,9 @@ program BlendTest;
 {$ENDIF}
 
 uses
-  TestFramework, GUITestRunner, TextTestRunner,
+  TestFramework,
+  GUITestRunner,
+  TextTestRunner,
   Forms,
   TestGR32Blend in 'TestGR32Blend.pas',
   GR32_Blend in '..\..\Source\GR32_Blend.pas',
