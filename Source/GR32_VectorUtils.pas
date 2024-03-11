@@ -39,13 +39,13 @@ interface
 {$BOOLEVAL OFF}
 
 {-$define USE_CLIPPER_GROW}
+{$define USE_ANGUS_GROW}
 {-$define USE_OLD_GROW}
 
-{$if (not defined(USE_CLIPPER_GROW)) and (not defined(USE_OLD_GROW))}
+{$if (not defined(USE_OLD_GROW)) and (not defined(USE_CLIPPER_GROW)) and (not defined(USE_ANGUS_GROW))}
   // We need at least one or the other
   {$define USE_OLD_GROW}
 {$ifend}
-
 
 uses
   Math,
@@ -99,12 +99,6 @@ function GrowOld(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedP
 function GrowOld(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; {$ifndef USE_OLD_GROW} deprecated; {$ENDIF}
 {$endif USE_OLD_GROW}
 
-// Grow function using Clipper
-{$ifdef USE_CLIPPER_GROW}
-function GrowClipper(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload;
-function GrowClipper(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload;
-{$endif USE_CLIPPER_GROW}
-
 function ReversePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function ReversePolygon(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -120,14 +114,6 @@ function BuildPolyPolyLineOld(const Points: TArrayOfArrayOfFloatPoint; Closed: B
 function BuildPolylineOld(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload;
 function BuildPolyPolyLineOld(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload;
 {$endif USE_OLD_GROW}
-
-// BuildPoly*line using Clipper
-{$ifdef USE_CLIPPER_GROW}
-function BuildPolylineClipper(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload;
-function BuildPolyPolyLineClipper(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload;
-function BuildPolylineClipper(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload;
-function BuildPolyPolyLineClipper(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload;
-{$endif USE_CLIPPER_GROW}
 
 function BuildDashedLine(const Points: TArrayOfFloatPoint;
   const DashArray: TArrayOfFloat; DashOffset: TFloat = 0;
@@ -229,21 +215,14 @@ implementation
 
 uses
   SysUtils,
-{$ifdef USE_CLIPPER_GROW}
-  Clipper,
-  Clipper.Core,
-  Clipper.Offset,
-  GR32_Clipper2,
-{$endif USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
+  GR32_VectorUtils.Clipper2,
+{$elseif defined(USE_ANGUS_GROW)}
+  GR32_VectorUtils.Angus,
+{$ifend}
   GR32_Math,
   GR32_Geometry,
   GR32_LowLevel;
-
-{$ifdef USE_CLIPPER_GROW}
-const
-  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtBevel, jtRound, jtSquare);
-  EndStyleToEndType: array[TEndStyle] of TEndType = (etButt, etSquare, etRound);
-{$endif USE_CLIPPER_GROW}
 
 type
   TTransformationAccess = class(TTransformation);
@@ -3116,207 +3095,91 @@ end;
 
 function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := GrowClipper(Points, Delta, JoinStyle, Closed, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := GrowAngus(Points, Delta, JoinStyle, Closed, MiterLimit);
+{$else}
   Result := GrowOld(Points, Normals, Delta, JoinStyle, Closed, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
 
 function Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := GrowClipper(Points, Delta, JoinStyle, Closed, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := GrowAngus(Points, Delta, JoinStyle, Closed, MiterLimit);
+{$else}
   Result := GrowOld(Points, Delta, JoinStyle, Closed, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
 
 function Grow(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := GrowClipper(Points, Delta, JoinStyle, Closed, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := GrowAngus(Points, Delta, JoinStyle, Closed, MiterLimit);
+{$else}
   Result := GrowOld(Points, Normals, Delta, JoinStyle, Closed, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
 
 function Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := GrowClipper(Points, Delta, JoinStyle, Closed, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := GrowAngus(Points, Delta, JoinStyle, Closed, MiterLimit);
+{$else}
   Result := GrowOld(Points, Delta, JoinStyle, Closed, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
 
-{$ifdef USE_CLIPPER_GROW}
-function GrowClipper(const Points: TPaths64; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TPaths64; overload;
-var
-  EndType: TEndType;
-begin
-  if (Closed) then
-    EndType := etPolygon
-  else
-    EndType := etJoined;
-
-  Result := Clipper.InflatePaths(Points, Delta, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-
-  Result := Clipper.Core.RamerDouglasPeucker(Result, 1);
-end;
-
-function GrowClipper(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
-var
-  Points64, Result64: TPaths64;
-  Res: TArrayOfArrayOfFloatPoint;
-begin
-  Points64 := [GR32_Clipper2.FloatPointsToPath64(Points)];
-
-  Result64 := GrowClipper(Points64, Delta * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyle, Closed, MiterLimit);
-
-  Res := GR32_Clipper2.Paths64ToFloatPoints(Result64);
-
-  if (Length(Res) > 0) then
-    Result := Res[0]
-  else
-    SetLength(Result, 0);
-end;
-
-function GrowClipper(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
-var
-  Points64, Result64: TPaths64;
-  Res: TArrayOfArrayOfFixedPoint;
-begin
-  Points64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
-
-  Result64 := GrowClipper(Points64, Delta * FixedToFloat, JoinStyle, Closed, MiterLimit);
-
-  Res := GR32_Clipper2.Paths64ToFixedPoints(Result64);
-
-  if (Length(Res) > 0) then
-    Result := Res[0]
-  else
-    SetLength(Result, 0);
-end;
-{$endif USE_CLIPPER_GROW}
 
 function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := BuildPolylineClipper(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := BuildPolylineAngus(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+{$else}
   Result := BuildPolylineOld(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
 
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := BuildPolyPolyLineClipper(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := BuildPolyPolyLineAngus(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+{$else}
   Result := BuildPolyPolyLineOld(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
 
 function BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := BuildPolylineClipper(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := BuildPolylineAngus(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+{$else}
   Result := BuildPolylineOld(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
 
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
 begin
-{$ifdef USE_CLIPPER_GROW}
+{$if defined(USE_CLIPPER_GROW)}
   Result := BuildPolyPolyLineClipper(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$else USE_CLIPPER_GROW}
+{$elseif defined(USE_ANGUS_GROW)}
+  Result := BuildPolyPolyLineAngus(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+{$else}
   Result := BuildPolyPolyLineOld(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-{$endif USE_CLIPPER_GROW}
+{$ifend}
 end;
-
-{$ifdef USE_CLIPPER_GROW}
-function BuildPolylineClipper(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
-var
-  Paths64: TPaths64;
-  EndType: TEndType;
-  Result64: TPaths64;
-  Res: TArrayOfArrayOfFloatPoint;
-begin
-  Paths64 := [GR32_Clipper2.FloatPointsToPath64(Points)];
-
-  EndType := EndStyleToEndType[EndStyle];
-
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
-
-  Res := GR32_Clipper2.Paths64ToFloatPoints(Result64);
-
-  if (Length(Res) > 0) then
-    Result := Res[0]
-  else
-    SetLength(Result, 0);
-end;
-
-function BuildPolyPolyLineClipper(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
-var
-  Paths64: TPaths64;
-  EndType: TEndType;
-  Result64: TPaths64;
-begin
-  Paths64 := GR32_Clipper2.FloatPointsToPaths64(Points);
-
-  if (Closed) then
-    EndType := etJoined
-  else
-    EndType := EndStyleToEndType[EndStyle];
-
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
-
-  Result := GR32_Clipper2.Paths64ToFloatPoints(Result64);
-end;
-
-function BuildPolylineClipper(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
-var
-  Paths64: TPaths64;
-  Result64: TPaths64;
-  Res: TArrayOfArrayOfFixedPoint;
-begin
-  Paths64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
-
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
-
-  Res := GR32_Clipper2.Paths64ToFixedPoints(Result64);
-
-  if (Length(Res) > 0) then
-    Result := Res[0]
-  else
-    SetLength(Result, 0);
-end;
-
-function BuildPolyPolyLineClipper(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
-var
-  Paths64: TPaths64;
-  EndType: TEndType;
-  Result64: TPaths64;
-begin
-  Paths64 := GR32_Clipper2.FixedPointsToPaths64(Points);
-
-  if (Closed) then
-    EndType := etJoined
-  else
-    EndType := EndStyleToEndType[EndStyle];
-
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
-
-  Result := GR32_Clipper2.Paths64ToFixedPoints(Result64);
-end;
-
-{$endif USE_CLIPPER_GROW}
 
 end.
