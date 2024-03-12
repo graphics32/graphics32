@@ -26,11 +26,6 @@
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *   Andre Beckedorf <Andre@metaException.de>
- *   Michael Hansen <dyster_tid@hotmail.com>
- *   Christian Budde <Christian@aixcoustic.com>
- *
  * ***** END LICENSE BLOCK ***** *)
 
  {$I GR32_Compiler.inc}
@@ -48,7 +43,7 @@
       any assmbler code. The code is slower, but probably more platform
       independent.
 
-      (Defined by default for FPC and DARWIN targets in GR32_Compilers.INC.)
+      (Defined by default for some targets in GR32_Compilers.INC.)
 
 *)
 

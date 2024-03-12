@@ -46,10 +46,15 @@ interface
 
 uses
   Classes, Graphics, SysUtils,
-  {$IFDEF FPC} ZBase, ZDeflate, ZInflate; {$ELSE}
-  {$IFDEF ZLibEx}ZLibEx, ZLibExApi; {$ELSE}
-  {$IFDEF COMPILERRX2_UP} System.zlib; {$ELSE} zlib;
-  {$ENDIF}{$ENDIF}{$ENDIF}
+{$IFDEF FPC}
+  ZBase, ZDeflate, ZInflate;
+{$ELSE}
+  {$IFDEF ZLibEx}
+    ZLibEx, ZLibExApi;
+  {$ELSE}
+    {$if (CompilerVersion >= 32)} System.zlib; {$else} zlib; {$ifend}
+  {$ENDIF}
+{$ENDIF}
 
 type
   {$A1}

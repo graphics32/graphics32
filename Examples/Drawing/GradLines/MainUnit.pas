@@ -38,9 +38,11 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes, 
-  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, 
-  {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
-  GR32, GR32_Blend, GR32_Image, GR32_LowLevel;
+  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Types,
+  GR32,
+  GR32_Blend,
+  GR32_Image,
+  GR32_LowLevel;
 
 type
   TVector2f = record

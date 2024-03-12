@@ -179,7 +179,6 @@ type
 
   TLayerCollectionClass = class of TLayerCollection;
 
-{$IFDEF COMPILER2009_UP}
   TLayerEnum = class
    private
      FIndex: Integer;
@@ -197,7 +196,6 @@ type
    public
      function GetEnumerator: TLayerEnum;
    end;
-{$ENDIF}
 
   TLayerState = (lsMouseLeft, lsMouseRight, lsMouseMiddle);
   TLayerStates = set of TLayerState;
@@ -898,7 +896,6 @@ begin
 end;
 
 
-{$IFDEF COMPILER2009_UP}
 { TLayerEnum }
 
 constructor TLayerEnum.Create(ALayerCollection: TLayerCollection);
@@ -927,7 +924,6 @@ function TLayerCollectionHelper.GetEnumerator: TLayerEnum;
 begin
   Result := TLayerEnum.Create(Self);
 end;
-{$ENDIF}
 
 
 { TCustomLayer }

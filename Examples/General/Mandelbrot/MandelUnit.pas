@@ -39,8 +39,12 @@ interface
 
 uses
   {$IFDEF FPC}LCLIntf, {$ENDIF} SysUtils, Classes, Graphics, Controls, Forms,
-  ExtCtrls, Menus, ExtDlgs, Dialogs, {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
-  GR32, GR32_Image, GR32_ExtImage, GR32_Resamplers, GR32_Rasterizers;
+  ExtCtrls, Menus, ExtDlgs, Dialogs, Types,
+  GR32,
+  GR32_Image,
+  GR32_ExtImage,
+  GR32_Resamplers,
+  GR32_Rasterizers;
 
 type
   TRasterizerKind = (rkRegular, rkProgressive, rkSwizzling, rkTesseral,

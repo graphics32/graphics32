@@ -299,12 +299,10 @@ procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte); overload;
 function HSVtoRGB(H, S, V: Single; A: Integer = 255): TColor32;
 procedure RGBToHSV(Color: TColor32; out H, S, V: Single);
 
-{$IFNDEF PLATFORM_INDEPENDENT}
+{$if (not defined(PLATFORM_INDEPENDENT)) and (not defined(RGBA_FORMAT))}
 // Palette conversion functions
-{$IFNDEF RGBA_FORMAT}
 function WinPalette(const P: TPalette32): HPALETTE;
-{$ENDIF RGBA_FORMAT}
-{$ENDIF}
+{$ifend}
 
 { A fixed-point type }
 
@@ -382,15 +380,23 @@ const
 function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-{ Points }
+
+//------------------------------------------------------------------------------
+//
+//      Point types
+//
+//------------------------------------------------------------------------------
 
 type
-{$IFNDEF FPC}
-{$IFNDEF BCB}
-  PPoint = ^TPoint;
+//------------------------------------------------------------------------------
+// TPoint
+//------------------------------------------------------------------------------
+// Identical to the Windows POINT structure.
+//------------------------------------------------------------------------------
+{$if (not defined(FPC)) and (not defined(BCB))}
   TPoint = Windows.TPoint;
-{$ENDIF}
-{$ENDIF}
+  PPoint = ^TPoint;
+{$ifend}
 
   PPointArray = ^TPointArray;
   TPointArray = array [0..0] of TPoint;
@@ -399,33 +405,43 @@ type
   PArrayOfArrayOfPoint = ^TArrayOfArrayOfPoint;
   TArrayOfArrayOfPoint = array of TArrayOfPoint;
 
-  PFloatPoint = ^TFloatPoint;
+
+//------------------------------------------------------------------------------
+// TFloatPoint
+//------------------------------------------------------------------------------
+// Floating point, single precision, point
+// Identical to the RTL Types.TPointF type.
+//------------------------------------------------------------------------------
+{$if defined(HAS_TPOINTF)}
+
+  TFloatPoint = Types.TPointF;
+
+{$else}
+
   TFloatPoint = record
     X, Y: TFloat;
-  {$IFDEF SUPPORT_ENHANCED_RECORDS}
   public
-    {$IFNDEF FPC}
-    {$IFDEF COMPILERXE2_UP}
-    constructor Create(P: TPointF); overload;
-    {$ENDIF}
+  {$IFDEF RECORD_CONSTRUCTORS}
     constructor Create(P: TPoint); overload;
     constructor Create(X, Y: Integer); overload;
     constructor Create(X, Y: Single); overload;
-    {$ENDIF}
+  {$ENDIF}
 
     // operator overloads
     class operator Equal(const Lhs, Rhs: TFloatPoint): Boolean;
     class operator NotEqual(const Lhs, Rhs: TFloatPoint): Boolean;
     class operator Add(const Lhs, Rhs: TFloatPoint): TFloatPoint;
     class operator Subtract(const Lhs, Rhs: TFloatPoint): TFloatPoint;
-    {$IFDEF COMPILERXE2_UP}
     class operator Explicit(A: TPointF): TFloatPoint;
     class operator Implicit(A: TPointF): TFloatPoint;
-    {$ENDIF}
 
     class function Zero: TFloatPoint; inline; static;
-  {$ENDIF}
   end;
+
+{$ifend}
+
+  PFloatPoint = ^TFloatPoint;
+
 
   PFloatPointArray = ^TFloatPointArray;
   TFloatPointArray = array [0..0] of TFloatPoint;
@@ -434,20 +450,21 @@ type
   PArrayOfArrayOfFloatPoint = ^TArrayOfArrayOfFloatPoint;
   TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
 
-  PFixedPoint = ^TFixedPoint;
+
+//------------------------------------------------------------------------------
+// TFixedPoint
+//------------------------------------------------------------------------------
+// Fixed precision point.
+//------------------------------------------------------------------------------
   TFixedPoint = record
     X, Y: TFixed;
-  {$IFDEF SUPPORT_ENHANCED_RECORDS}
   public
-    {$IFNDEF FPC}
-    {$IFDEF COMPILERXE2_UP}
-    constructor Create(P: TPointF); overload;
-    {$ENDIF}
+{$IFDEF RECORD_CONSTRUCTORS}
     constructor Create(P: TFloatPoint); overload;
     constructor Create(X, Y: TFixed); overload;
     constructor Create(X, Y: Integer); overload;
     constructor Create(X, Y: TFloat); overload;
-    {$ENDIF}
+{$ENDIF}
 
     // operator overloads
     class operator Equal(const Lhs, Rhs: TFixedPoint): Boolean;
@@ -456,8 +473,10 @@ type
     class operator Subtract(const Lhs, Rhs: TFixedPoint): TFixedPoint;
 
     class function Zero: TFixedPoint; inline; static;
-  {$ENDIF}
   end;
+
+  PFixedPoint = ^TFixedPoint;
+
   {$NODEFINE TFixedPoint}
 
   PFixedPointArray = ^TFixedPointArray;
@@ -467,7 +486,10 @@ type
   PArrayOfArrayOfFixedPoint = ^TArrayOfArrayOfFixedPoint;
   TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;
 
+
+//------------------------------------------------------------------------------
 // construction and conversion of point types
+//------------------------------------------------------------------------------
 function Point(X, Y: Integer): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Point(const FP: TFloatPoint): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Point(const FXP: TFixedPoint): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -479,15 +501,37 @@ function FixedPoint(X, Y: Single): TFixedPoint; overload; {$IFDEF USEINLINING} i
 function FixedPoint(const P: TPoint): TFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-{ Rectangles }
 
+//------------------------------------------------------------------------------
+//
+//      Rectangle types
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// TRect
+//------------------------------------------------------------------------------
+// Identical to the Windows RECT structure.
+//------------------------------------------------------------------------------
 type
 {$IFNDEF FPC}
-  PRect = Windows.PRect;
   TRect = Windows.TRect;
+  PRect = Windows.PRect;
 {$ENDIF}
 
-  PFloatRect = ^TFloatRect;
+
+//------------------------------------------------------------------------------
+// TFloatRect
+//------------------------------------------------------------------------------
+// Single precision, floating point rectangle.
+// Identical to the RTL Types.TRectF type.
+//------------------------------------------------------------------------------
+{$if defined(HAS_TPOINTF)}
+
+  TFloatRect = Types.TRectF;
+
+{$else}
+
   {$NODEFINE TFloatRect}
 {$IFDEF SupportsBoost}
   (*$HPPEMIT '#include <boost/strong_typedef.hpp>'*)
@@ -502,24 +546,69 @@ type
   (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
   (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
   (*$HPPEMIT '} // namespace Gr32 '*)
+
   TFloatRect = packed record
+  private
+    function GetWidth: TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetWidth(const Value: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetHeight: TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetHeight(const Value: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
+  public
+    // operator overloads
+    class operator Equal(const Lhs, Rhs: TFloatRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator NotEqual(const Lhs, Rhs: TFloatRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator Implicit(const Source: TRect): TFloatRect; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator Explicit(const Source: TFloatRect): TRect; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+    property Width: TFloat read GetWidth write SetWidth;
+    property Height: TFloat read GetHeight write SetHeight;
+
     case Integer of
       0: (Left, Top, Right, Bottom: TFloat);
       1: (TopLeft, BottomRight: TFloatPoint);
   end;
 
+{$ifend}
+
+  PFloatRect = ^TFloatRect;
+
+
+//------------------------------------------------------------------------------
+// TFixedRect
+//------------------------------------------------------------------------------
+// Fixed point rectangle
+//------------------------------------------------------------------------------
   {$NODEFINE PFixedRect}
   PFixedRect = ^TFixedRect;
   {$NODEFINE TFixedRect}
   TFixedRect = packed record
+  private
+    function GetWidth: TFixed; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetWidth(const Value: TFixed); {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetHeight: TFixed; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetHeight(const Value: TFixed); {$IFDEF USEINLINING} inline; {$ENDIF}
+  public
+    class operator Equal(const Lhs, Rhs: TFixedRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator NotEqual(const Lhs, Rhs: TFixedRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator Implicit(const Source: TRect): TFixedRect; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator Implicit(const Source: TFloatRect): TFixedRect; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator Explicit(const Source: TFixedRect): TFloatRect; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class operator Explicit(const Source: TFixedRect): TRect; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+    property Width: TFixed read GetWidth write SetWidth;
+    property Height: TFixed read GetHeight write SetHeight;
+
     case Integer of
       0: (Left, Top, Right, Bottom: TFixed);
       1: (TopLeft, BottomRight: TFixedPoint);
   end;
 
+//------------------------------------------------------------------------------
+// Rectangle construction/conversion functions
+//------------------------------------------------------------------------------
+type
   TRectRounding = (rrClosest, rrOutside, rrInside);
 
-// Rectangle construction/conversion functions
 function MakeRect(const L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
@@ -532,8 +621,10 @@ function FloatRect(const TopLeft, BottomRight: TFloatPoint): TFloatRect; overloa
 function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
+//------------------------------------------------------------------------------
 // Some basic operations over rectangles
-function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+//------------------------------------------------------------------------------
+function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF} // TODO : Semantics differ from Delphi IntersectRect
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -551,6 +642,7 @@ function PtInRect(const R: TRect; const P: TFloatPoint): Boolean; overload; {$IF
 function PtInRect(const R: TFloatRect; const P: TFloatPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
 
 type
 { TBitmap32 draw mode }
@@ -1032,11 +1124,9 @@ type
     procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect; MaxTileSize: integer = 1024); overload;
 {$ENDIF}
 
-{$IFDEF COMPILER2009_UP}
     procedure DrawTo(Dst: TControlCanvas; DstX: Integer = 0; DstY: Integer = 0); overload;
     procedure DrawTo(Dst: TControlCanvas; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(Dst: TControlCanvas; const DstRect, SrcRect: TRect; MaxTileSize: integer = 1024); overload;
-{$ENDIF}
 
     procedure UpdateFont;
     procedure Textout(X, Y: Integer; const Text: string); overload;
@@ -1925,6 +2015,9 @@ end;
 
 { Points }
 
+//------------------------------------------------------------------------------
+// TPoint
+//------------------------------------------------------------------------------
 function Point(X, Y: Integer): TPoint;
 begin
   Result.X := X;
@@ -1943,6 +2036,10 @@ begin
   Result.Y := FixedRound(FXP.Y);
 end;
 
+
+//------------------------------------------------------------------------------
+// TFloatPoint
+//------------------------------------------------------------------------------
 function FloatPoint(X, Y: Single): TFloatPoint;
 begin
   Result.X := X;
@@ -1964,21 +2061,13 @@ begin
   end;
 end;
 
-{$IFDEF SUPPORT_ENHANCED_RECORDS}
-{$IFNDEF FPC}
+{$if not defined(HAS_TPOINTF)}
+{$IFDEF RECORD_CONSTRUCTORS}
 constructor TFloatPoint.Create(P: TPoint);
 begin
   Self.X := P.X;
   Self.Y := P.Y;
 end;
-
-{$IFDEF COMPILERXE2_UP}
-constructor TFloatPoint.Create(P: TPointF);
-begin
-  Self.X := P.X;
-  Self.Y := P.Y;
-end;
-{$ENDIF}
 
 constructor TFloatPoint.Create(X, Y: Integer);
 begin
@@ -2016,7 +2105,6 @@ begin
   Result.Y := Lhs.Y - Rhs.Y;
 end;
 
-{$IFDEF COMPILERXE2_UP}
 class operator TFloatPoint.Explicit(A: TPointF): TFloatPoint;
 begin
   Result.X := A.X;
@@ -2028,23 +2116,18 @@ begin
   Result.X := A.X;
   Result.Y := A.Y;
 end;
-{$ENDIF}
 
 class function TFloatPoint.Zero: TFloatPoint;
 begin
-  Result.X := 0;
-  Result.Y := 0;
+  Result := Default(TFloatPoint);
 end;
+{$ifend}
 
-{$IFNDEF FPC}
-{$IFDEF COMPILERXE2_UP}
-constructor TFixedPoint.Create(P: TPointF);
-begin
-  Self.X := Fixed(P.X);
-  Self.Y := Fixed(P.Y);
-end;
-{$ENDIF}
 
+//------------------------------------------------------------------------------
+// TFixedPoint
+//------------------------------------------------------------------------------
+{$IFDEF RECORD_CONSTRUCTORS}
 constructor TFixedPoint.Create(P: TFloatPoint);
 begin
   Self.X := Fixed(P.X);
@@ -2095,10 +2178,8 @@ end;
 
 class function TFixedPoint.Zero: TFixedPoint;
 begin
-  Result.X := 0;
-  Result.Y := 0;
+  Result := Default(TFixedPoint);
 end;
-{$ENDIF}
 
 function FixedPoint(X, Y: Integer): TFixedPoint; overload;
 begin
@@ -2144,10 +2225,10 @@ begin
     case Rounding of
       rrClosest:
         begin
-          Result.Left := Round(Left);
-          Result.Top := Round(Top);
-          Result.Right := Round(Right);
-          Result.Bottom := Round(Bottom);
+          Result.Left := System.Round(Left);
+          Result.Top := System.Round(Top);
+          Result.Right := System.Round(Right);
+          Result.Bottom := System.Round(Bottom);
         end;
 
       rrInside:
@@ -2453,6 +2534,108 @@ begin
   Result := (P.X >= R.Left) and (P.X < R.Right) and
     (P.Y >= R.Top) and (P.Y < R.Bottom);
 end;
+
+//------------------------------------------------------------------------------
+// TFloatRect
+//------------------------------------------------------------------------------
+{$if not defined(HAS_TPOINTF)}
+class operator TFloatRect.Equal(const Lhs, Rhs: TFloatRect): Boolean;
+begin
+  // Compare as two 64-bit values
+  Result := (PInt64(@Lhs.TopLeft)^ = PInt64(@Rhs.TopLeft)^) and (PInt64(@Lhs.BottomRight)^ = PInt64(@Rhs.BottomRight)^);
+end;
+
+class operator TFloatRect.Explicit(const Source: TFloatRect): TRect;
+begin
+  Result := MakeRect(Source);
+end;
+
+class operator TFloatRect.Implicit(const Source: TRect): TFloatRect;
+begin
+  Result := FloatRect(Source);
+end;
+
+class operator TFloatRect.NotEqual(const Lhs, Rhs: TFloatRect): Boolean;
+begin
+  Result := not(Lhs = Rhs);
+end;
+
+function TFloatRect.GetHeight: TFloat;
+begin
+  Result := Self.Bottom - Self.Top;
+end;
+
+function TFloatRect.GetWidth: TFloat;
+begin
+  Result := Self.Right - Self.Left;
+end;
+
+procedure TFloatRect.SetHeight(const Value: TFloat);
+begin
+  Self.Bottom := Self.Top + Value;
+end;
+
+procedure TFloatRect.SetWidth(const Value: TFloat);
+begin
+  Self.Right := Self.Left + Value;
+end;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+// TFixedRect
+//------------------------------------------------------------------------------
+class operator TFixedRect.Equal(const Lhs, Rhs: TFixedRect): Boolean;
+begin
+  // Compare as two 64-bit values
+  Result := (PInt64(@Lhs.TopLeft)^ = PInt64(@Rhs.TopLeft)^) and (PInt64(@Lhs.BottomRight)^ = PInt64(@Rhs.BottomRight)^);
+end;
+
+class operator TFixedRect.NotEqual(const Lhs, Rhs: TFixedRect): Boolean;
+begin
+  Result := not(Lhs = Rhs);
+end;
+
+class operator TFixedRect.Explicit(const Source: TFixedRect): TFloatRect;
+begin
+  Result := FloatRect(Source);
+end;
+
+class operator TFixedRect.Explicit(const Source: TFixedRect): TRect;
+begin
+  Result := MakeRect(Source);
+end;
+
+class operator TFixedRect.Implicit(const Source: TFloatRect): TFixedRect;
+begin
+  Result := FixedRect(Source);
+end;
+
+class operator TFixedRect.Implicit(const Source: TRect): TFixedRect;
+begin
+  Result := FixedRect(Source);
+end;
+
+function TFixedRect.GetHeight: TFixed;
+begin
+  Result := Self.Bottom - Self.Top;
+end;
+
+function TFixedRect.GetWidth: TFixed;
+begin
+  Result := Self.Right - Self.Left;
+end;
+
+procedure TFixedRect.SetHeight(const Value: TFixed);
+begin
+  Self.Bottom := Self.Top + Value;
+end;
+
+procedure TFixedRect.SetWidth(const Value: TFixed);
+begin
+  Self.Right := Self.Left + Value;
+end;
+
 
 { TSimpleInterfacedPersistent }
 
@@ -3599,7 +3782,11 @@ asm
         CVTSI2SS xmm1, PrevIndex
 
         SUBSS   xmm0, xmm1
+{$ifndef FPC}
         MULSS   xmm0, Float255
+{$else}
+        MULSS   xmm0, [rip+Float255]
+{$endif}
 
         ROUNDSS xmm0, xmm0, ROUND_MODE
         CVTSS2SI eax, xmm0
@@ -7117,7 +7304,6 @@ begin
   end;
 end;
 
-{$IFDEF COMPILER2009_UP}
 procedure TBitmap32.DrawTo(Dst: TControlCanvas; DstX, DstY: Integer);
 begin
   DrawTo(Dst.Handle, DstX, DstY);
@@ -7132,7 +7318,6 @@ procedure TBitmap32.TileTo(Dst: TControlCanvas; const DstRect, SrcRect: TRect; M
 begin
   TileTo(Dst.Handle, DstRect, SrcRect, MaxTileSize);
 end;
-{$ENDIF}
 
 procedure TBitmap32.UpdateFont;
 begin
@@ -7194,13 +7379,8 @@ begin
     lfHeight := Font.Height;
     lfWidth := 0; { have font mapper choose }
 
-    {$IFDEF COMPILER2005_UP}
     lfEscapement := Font.Orientation;
     lfOrientation := Font.Orientation;
-    {$ELSE}
-    lfEscapement := 0;
-    lfOrientation := 0;
-    {$ENDIF}
 
     if fsBold in Font.Style then
       lfWeight := FW_BOLD

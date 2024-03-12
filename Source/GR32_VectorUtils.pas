@@ -48,7 +48,8 @@ interface
 
 
 uses
-  Math, {$IFDEF FPC}Types, {$ENDIF} {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
+  Math,
+  Types,
   GR32,
   GR32_Transforms,
   GR32_Polygons;

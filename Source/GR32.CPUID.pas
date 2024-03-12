@@ -58,7 +58,7 @@ interface
 {$message warn 'GR32.CPUID should not be compiled in PUREPASCAL mode}
 {$ENDIF}
 
-{$if (CompilerVersion >= 17.0)} // Delphi 2005
+{$if (defined(CompilerVersion)) and (CompilerVersion >= 17.0)} // Delphi 2005
   {$WARN UNSAFE_CAST OFF}
   {$WARN UNSAFE_CODE OFF}
 {$ifend}

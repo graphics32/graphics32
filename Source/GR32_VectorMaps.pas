@@ -431,25 +431,25 @@ procedure TVectorMap.SaveToFile(const FileName: string);
   procedure ConvertVerticesF;
   var
     I: Integer;
-{$IFDEF COMPILERRX1}
+{$if (defined(CompilerVersion)) and (CompilerVersion = 31)}
     f: single;
-{$ENDIF}
+{$ifend}
   begin
     for I := 0 to Length(FVectors) - 1 do
     begin
       //Not a mistake! Converting physical mem. directly to avoid temporary floating point buffer
       //Do no change to PFloat.. the type is relative to the msh format.
 
-//Workaround for Delphi 10.1 Internal Error C6949 ...
-{$IFDEF COMPILERRX1}
+// Workaround for Delphi 10.1 Internal Error C6949 ...
+{$if (defined(CompilerVersion)) and (CompilerVersion = 31)}
       f := FVectors[I].X * FixedToFloat;
       FVectors[I].X := PInteger(@f)^;
       f := FVectors[I].Y * FixedToFloat;
       FVectors[I].Y := PInteger(@f)^;
-{$ELSE}
+{$else}
       PSingle(@FVectors[I].X)^ := FVectors[I].X * FixedToFloat;
       PSingle(@FVectors[I].Y)^ := FVectors[I].Y * FixedToFloat;
-{$ENDIF}
+{$ifend}
     end;
   end;
 

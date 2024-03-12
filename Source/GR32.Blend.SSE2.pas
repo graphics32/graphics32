@@ -1596,13 +1596,21 @@ asm
         PMULLD    XMM2, XMM0                    // XMM2 <- (ColorX - ColorY) * Weight * $8081
 
         // Add bias (~$7F*$8081)
+{$ifndef FPC}
         PADDD     XMM2, DQWORD PTR [SIMD_4x003FFF7F] // XMM2 <- ((ColorX - ColorY) * Weight * $8081) + Bias
+{$else}
+        PADDD     XMM2, DQWORD PTR [rip+SIMD_4x003FFF7F]
+{$endif}
 
         // Reduce 32-bits to 9-bits
         PSRLD     XMM2, 23                      // XMM2 <- (((ColorX - ColorY) * Weight * $8081) + Bias) shr 23
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
+{$ifndef FPC}
         PSHUFB    XMM2, DQWORD PTR [SIMD_4x0C080400] // XMM2[0] <- XMM4[0..3][0]
+{$else}
+        PSHUFB    XMM2, DQWORD PTR [rip+SIMD_4x0C080400]
+{$endif}
 
         // Result := Value + ColorY
         PADDB     XMM2, XMM1                    // XMM2 <- XMM2 + ColorY

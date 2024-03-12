@@ -58,8 +58,8 @@ function Frac(D: Single): Single; [internproc: fpc_in_frac_real];
 function Int(D: Single): Single; [internproc: fpc_in_int_real];
 function Trunc(D: Single): Int64; [internproc: fpc_in_trunc_real];
 
-function Ceil(X: Single): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-function Floor(X: Single): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+function Ceil(X: Single): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Floor(X: Single): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 {$ENDIF}
 

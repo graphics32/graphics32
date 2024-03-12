@@ -43,7 +43,7 @@ uses
   LCLIntf, LMessages, LCLType, Graphics, Controls, Forms, Dialogs, ExtCtrls,
   {$IFDEF Windows} Windows, {$ENDIF}
 {$ELSE}
-  Windows, Messages, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF}
+  Windows, Messages, {$IFDEF USEINLINING}Types,{$ENDIF}
   Graphics, Controls, Forms, Dialogs, ExtCtrls,
 {$ENDIF}
   SysUtils, Classes, GR32;

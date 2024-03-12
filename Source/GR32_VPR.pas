@@ -61,7 +61,7 @@ procedure RenderPolygon(const Points: TArrayOfFloatPoint;
 
 implementation
 
-{$if Defined(COMPILERFPC) and Defined(CPUx86_64) }
+{$if Defined(FPC) and Defined(CPUx86_64) }
 // Must apply work around for negative array index on FPC 64-bit.
 // See:
 //   - https://github.com/graphics32/graphics32/issues/51
@@ -471,10 +471,8 @@ begin
   end;
 end;
 
-{$ifndef COMPILERXE2_UP}
 type
   TRoundingMode = Math.TFPURoundingMode;
-{$endif COMPILERXE2_UP}
 
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);

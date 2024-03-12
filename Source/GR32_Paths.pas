@@ -213,7 +213,8 @@ type
 implementation
 
 uses
-  Math, {$IFDEF FPC}Types, {$ENDIF} {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
+  Math,
+  Types,
   GR32_Backends,
   GR32_VectorUtils;
 

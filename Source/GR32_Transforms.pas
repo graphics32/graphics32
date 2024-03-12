@@ -1659,7 +1659,7 @@ function TDisturbanceTransformation.GetTransformedBounds(
   const ASrcRect: TFloatRect): TFloatRect;
 begin
   Result := ASrcRect;
-  InflateRect(Result, 0.5 * FDisturbance, 0.5 * FDisturbance);
+  GR32.InflateRect(Result, 0.5 * FDisturbance, 0.5 * FDisturbance);
 end;
 
 procedure TDisturbanceTransformation.ReverseTransformFloat(DstX,
@@ -1793,11 +1793,7 @@ begin
       Map[i] := 1;
   end;
 {$IFDEF DEBUG}
-  // Delphi 2010 doesn't have overloads for Min/MaxValue(array of single)
-  // https://github.com/graphics32/graphics32/issues/153
-  {$IFDEF COMPILERXE1_UP}
   OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(Map), MaxValue(Map) ])));
-  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1805,9 +1801,9 @@ procedure TRadialDistortionTransformation.PrepareTransform;
 var
   r: TRect;
 begin
-  if IsRectEmpty(SrcRect) then
+  if GR32.IsRectEmpty(SrcRect) then
     raise Exception.Create(RCStrSrcRectIsEmpty);
-  TransformValid := not IsRectEmpty(SrcRect);
+  TransformValid := not GR32.IsRectEmpty(SrcRect);
   if Not TransformValid then
     Exit;
 
@@ -1919,9 +1915,9 @@ end;
 
 procedure TRemapTransformation.PrepareTransform;
 begin
-  if IsRectEmpty(SrcRect) then
+  if GR32.IsRectEmpty(SrcRect) then
     raise Exception.Create(RCStrSrcRectIsEmpty);
-  if IsRectEmpty(FMappingRect) then
+  if GR32.IsRectEmpty(FMappingRect) then
     raise Exception.Create(RCStrMappingRectIsEmpty);
   with SrcRect do
   begin
