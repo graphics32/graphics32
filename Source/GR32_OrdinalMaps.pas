@@ -78,9 +78,9 @@ type
 
   TByteMap = class(TCustomMap)
   private
-    function GetValue(X, Y: Integer): Byte; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    function GetValPtr(X, Y: Integer): PByte; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    procedure SetValue(X, Y: Integer; Value: Byte); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): Byte; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetValPtr(X, Y: Integer): PByte; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; Value: Byte); {$IFDEF USEINLINING} inline; {$ENDIF}
     function GetScanline(Y: Integer): PByteArray;
   protected
     FBits: PByteArray;
@@ -124,9 +124,9 @@ type
 
   TWordMap = class(TCustomMap)
   private
-    function GetValPtr(X, Y: Integer): PWord; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    function GetValue(X, Y: Integer): Word; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    procedure SetValue(X, Y: Integer; const Value: Word); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValPtr(X, Y: Integer): PWord; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; const Value: Word); {$IFDEF USEINLINING} inline; {$ENDIF}
     function GetScanline(Y: Integer): PWordArray;
   protected
     FBits: PWordArray;
@@ -149,9 +149,9 @@ type
 
   TIntegerMap = class(TCustomMap)
   private
-    function GetValPtr(X, Y: Integer): PInteger; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    function GetValue(X, Y: Integer): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    procedure SetValue(X, Y: Integer; const Value: Integer); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValPtr(X, Y: Integer): PInteger; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; const Value: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
     function GetScanline(Y: Integer): PIntegerArray;
   protected
     FBits: PIntegerArray;
@@ -174,9 +174,9 @@ type
 
   TCardinalMap = class(TCustomMap)
   private
-    function GetValPtr(X, Y: Cardinal): PCardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    function GetValue(X, Y: Cardinal): Cardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    procedure SetValue(X, Y: Cardinal; const Value: Cardinal); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValPtr(X, Y: Cardinal): PCardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetValue(X, Y: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetValue(X, Y: Cardinal; const Value: Cardinal); {$IFDEF USEINLINING} inline; {$ENDIF}
     function GetScanline(Y: Integer): PCardinalArray;
   protected
     FBits: PCardinalArray;
@@ -199,9 +199,9 @@ type
 
   TFloatMap = class(TCustomMap)
   private
-    function GetValPtr(X, Y: Integer): GR32.PFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    function GetValue(X, Y: Integer): TFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    procedure SetValue(X, Y: Integer; const Value: TFloat); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValPtr(X, Y: Integer): GR32.PFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; const Value: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
     function GetScanline(Y: Integer): PFloatArray;
   protected
     FBits: PFloatArray;
@@ -221,14 +221,13 @@ type
     property Scanline[Y: Integer]: PFloatArray read GetScanline;
   end;
 
-{$IFDEF COMPILER2010}
 
   { TGenericMap<T> }
 
   TGenericMap<T> = class(TCustomMap)
   private
-    function GetValue(X, Y: Integer): T; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-    procedure SetValue(X, Y: Integer; const Value: T); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): T; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; const Value: T); {$IFDEF USEINLINING} inline; {$ENDIF}
   protected
     FBits: Pointer;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
@@ -245,7 +244,6 @@ type
     property Bits: Pointer read FBits;
   end;
 
-{$ENDIF}
 
 implementation
 
@@ -1320,8 +1318,6 @@ begin
 end;
 
 
-{$IFDEF COMPILER2010}
-
 { TGenericMap<T> }
 
 constructor TGenericMap<T>.Create;
@@ -1394,7 +1390,5 @@ procedure TGenericMap<T>.SetValue(X, Y: Integer; const Value: T);
 begin
   Move(Value, PByte(FBits)[(X + Y * Width) * SizeOf(T)], SizeOf(T));
 end;
-
-{$ENDIF}
 
 end.

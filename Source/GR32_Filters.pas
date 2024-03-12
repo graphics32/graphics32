@@ -82,7 +82,9 @@ procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
 implementation
 
 uses
-  {$IFDEF COMPILERXE2_UP}Types, {$ENDIF} GR32_System, GR32_Bindings,
+  Types,
+  GR32_System,
+  GR32_Bindings,
   GR32_Lowlevel;
 
 const

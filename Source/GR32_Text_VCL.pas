@@ -633,7 +633,7 @@ begin
         for J := 0 to High(TextPath.Path[I]) do
           TextPath.Path[I, J].Y := TextPath.Path[I, J].Y + Y;
 
-    OffsetRect(ARect, 0, Y);
+    GR32.OffsetRect(ARect, 0, Y);
   end;
 
 {$IFDEF USEKERNING}

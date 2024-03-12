@@ -376,10 +376,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
-{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;
@@ -421,10 +419,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
-{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;
@@ -465,10 +461,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
-{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;
@@ -512,10 +506,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
-{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;
@@ -559,10 +551,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
-{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;

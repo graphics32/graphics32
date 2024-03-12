@@ -1688,7 +1688,7 @@ var
   R: TFloatRect;
 begin
   R := ClipRect;
-  InflateRect(R, 0.05, 0.05);
+  GR32.InflateRect(R, 0.05, 0.05);
   APoints := ClipPolygon (Points, R);
 
   OutLine := TOutline.Create;
@@ -1745,7 +1745,7 @@ begin
   APoints := Points;
   // temporary fix for floating point rounding errors - corr. - to + by pws
   R := ClipRect;
-  InflateRect(R, 0.05, 0.05);
+  GR32.InflateRect(R, 0.05, 0.05);
   FirstValid := -1;
   for i := 0 to High(APoints) do
   begin

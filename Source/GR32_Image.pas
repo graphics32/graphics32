@@ -60,12 +60,15 @@ uses
   Windows,
 {$ifend}
 {$IFDEF FPC}
-  LCLIntf, LCLType, LMessages, Types,
+  LCLIntf, LCLType, LMessages,
 {$ELSE}
-  Messages, {$IFDEF COMPILERXE2_UP}Types,{$ENDIF}
+  Messages,
 {$ENDIF}
-  Graphics, Controls, Forms,
-  Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars, GR32_Containers,
+  Types, Graphics, Controls, Forms, Classes, SysUtils,
+  GR32,
+  GR32_Layers,
+  GR32_RangeBars,
+  GR32_Containers,
   GR32_RepaintOpt;
 
 {$IFNDEF FPC}
@@ -1180,7 +1183,7 @@ end;
 procedure TCustomPaintBox32.Invalidate;
 begin
   FBufferValid := False;
-{$if defined(COMPILERFPC) and defined(WINDOWS)}
+{$if defined(FPC) and defined(WINDOWS)}
   // LCL TWinControl.Invalidate doesn't take csOpaque in account when calling InvalidateRect.
   if (HandleAllocated) then
     InvalidateRect(Handle, nil, not(csOpaque in ControlStyle));

@@ -26,17 +26,34 @@
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *   Andre Beckedorf <Andre@metaException.de>
- *   Michael Hansen <dyster_tid@hotmail.com>
- *   Christian Budde <Christian@aixcoustic.com>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 
 (*
-  Available Compilers:
+  Supported compilers:
   --------------------
+
+    Name                   CompilerVersion
+    -------------------------------------------
+    Delphi 12 Yukon 	        36.0
+    Delphi 11 Alexandria        35.0
+    Delphi 10.4 Sydney 	        34.0
+    Delphi 10.3 Rio 	        33.0
+    Delphi 10.2 Tokyo 	        32.0
+    Delphi 10.1 Berlin 	        31.0
+    Delphi 10 Seattle 	        30.0
+    Delphi XE8 	                29.0
+    Delphi XE7 	                28.0
+    Delphi XE6 	                27.0
+    Delphi XE5 	                26.0
+    Delphi XE4 	                25.0
+    Delphi XE3 	                24.0
+    Delphi XE2 	                23.0
+
+    FreePascal 3.2.2
+
+
+  This file previously defined the following symbols:
 
     COMPILERFPC  - FPC (since version 2.6.0)
     COMPILER6    - Delphi 6
@@ -62,6 +79,13 @@
     COMPILERRX5  - Delphi 11 (Alexandria)
     COMPILERRX6  - Delphi 12 (Athens)
 
+  The above symbols have all been deprecated. Instead use the following symbols:
+
+    FPC                 - FreePascal
+    DCC                 - Delphi
+    BCB                 - C++ Builder
+    CompilerVersion     - Delphi version
+
 
   Available Targets:
   ------------------
@@ -69,466 +93,104 @@
     TARGET_x86     - x86 (32-Bit)
     TARGET_x64     - x86 (64-Bit)
     TARGET_POWERPC - Power PC
-
+    TARGET_ARM     - ARM processor
 *)
 
 
 
-{$IFDEF FPC}
-  {$DEFINE COMPILERFPC}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
+{$if defined(FPC)}
 
-{$IFDEF VER360}
-  {$DEFINE COMPILERRX6}
-  {$DEFINE COMPILERRX6_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX6}
-  {$ELSE}
-    {$DEFINE BCBRX6}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
+  {...}
 
-{$IFDEF VER350}
-  {$DEFINE COMPILERRX5}
-  {$DEFINE COMPILERRX5_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX5}
-  {$ELSE}
-    {$DEFINE BCBRX5}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
+{$elseif (CompilerVersion < 23.0)}
 
-{$IFDEF VER340}
-  {$DEFINE COMPILERRX4}
-  {$DEFINE COMPILERRX4_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX4}
-  {$ELSE}
-    {$DEFINE BCBRX4}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
+  {$Message Fatal 'Graphics32 only supports Delphi/BCB XE2 (or higher) or Free Pascal / Lazarus'}
 
-{$IFDEF VER330}
-  {$DEFINE COMPILERRX3}
-  {$DEFINE COMPILERRX3_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX3}
-  {$ELSE}
-    {$DEFINE BCBRX3}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
+{$elseif (CompilerVersion > 36.0)}
 
-{$IFDEF VER320}
-  {$DEFINE COMPILERRX2}
-  {$DEFINE COMPILERRX2_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX2}
-  {$ELSE}
-    {$DEFINE BCBRX2}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER310}
-  {$DEFINE COMPILERRX1}
-  {$DEFINE COMPILERRX1_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX1}
-  {$ELSE}
-    {$DEFINE BCBRX1}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER300}
-  {$DEFINE COMPILERRX}
-  {$DEFINE COMPILERRX_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX}
-  {$ELSE}
-    {$DEFINE BCBRX}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER290}
-  {$DEFINE COMPILERXE8}
-  {$DEFINE COMPILERXE8_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE8}
-  {$ELSE}
-    {$DEFINE BCBXE8}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER280}
-  {$DEFINE COMPILERXE7}
-  {$DEFINE COMPILERXE7_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE7}
-  {$ELSE}
-    {$DEFINE BCBXE7}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER270}
-  {$DEFINE COMPILERXE6}
-  {$DEFINE COMPILERXE6_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE6}
-  {$ELSE}
-    {$DEFINE BCBXE6}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER260}
-  {$DEFINE COMPILERXE5}
-  {$DEFINE COMPILERXE5_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE5}
-  {$ELSE}
-    {$DEFINE BCBXE5}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER250}
-  {$DEFINE COMPILERXE4}
-  {$DEFINE COMPILERXE4_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE4}
-  {$ELSE}
-    {$DEFINE BCBXE4}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER240}
-  {$DEFINE COMPILERXE3}
-  {$DEFINE COMPILERXE3_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE3}
-  {$ELSE}
-    {$DEFINE BCBXE3}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER230}
-  {$DEFINE COMPILERXE2}
-  {$DEFINE COMPILERXE2_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE2}
-  {$ELSE}
-    {$DEFINE BCBXE2}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER220}
-  {$DEFINE COMPILERXE1}
-  {$DEFINE COMPILERXE1_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE1}
-  {$ELSE}
-    {$DEFINE BCBXE1}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER210}
-  {$DEFINE COMPILER2010}
-  {$DEFINE COMPILER2010_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2010}
-  {$ELSE}
-    {$DEFINE BCB14}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER200}
-  {$DEFINE COMPILER2009}
-  {$DEFINE COMPILER2009_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2009}
-  {$ELSE}
-    {$DEFINE BCB12}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER185}
-  {$DEFINE COMPILER2007}
-  {$DEFINE COMPILER2007_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2007}
-  {$ELSE}
-    {$DEFINE BCB11}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER180}
-  {$DEFINE COMPILER2006}
-  {$DEFINE COMPILER2006_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2006}
-  {$ELSE}
-    {$DEFINE BCB10}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER170}
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER2005_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2005}
-  {$ELSE}
-    {$DEFINE BCB8}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER150}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER7_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI7}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFDEF VER140}
-  {$DEFINE COMPILER6}
-  {$DEFINE COMPILER6_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI6}
-  {$ELSE}
-    {$DEFINE BCB6}
-  {$ENDIF}
-  {$DEFINE KNOWN_COMPILER}
-{$ENDIF}
-
-{$IFNDEF KNOWN_COMPILER}
-  // Unknown compiler - Assume newer than latest version
   {$Message Hint 'Unknown compiler version. Assuming compatible with last known version.'}
 
-  // Keep the following updated to match the defines for the last known version.
-  {$DEFINE COMPILERRX5}
-  {$DEFINE COMPILERRX5_UP}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIRX5}
-  {$ELSE}
-    {$DEFINE BCBRX5}
-  {$ENDIF}
-{$ELSE KNOWN_COMPILER}
-  {$UNDEF KNOWN_COMPILER}
-{$ENDIF KNOWN_COMPILER}
+{$ifend Delphi}
 
-
-{$IFDEF COMPILERRX6_UP}
-  {$DEFINE COMPILERRX5_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERRX5_UP}
-  {$DEFINE COMPILERRX4_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERRX4_UP}
-  {$DEFINE COMPILERRX3_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERRX3_UP}
-  {$DEFINE COMPILERRX2_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERRX2_UP}
-  {$DEFINE COMPILERRX1_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERRX1_UP}
-  {$DEFINE COMPILERRX_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERRX_UP}
-  {$DEFINE COMPILERXE8_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE8_UP}
-  {$DEFINE COMPILERXE7_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE7_UP}
-  {$DEFINE COMPILERXE6_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE6_UP}
-  {$DEFINE COMPILERXE5_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE5_UP}
-  {$DEFINE COMPILERXE4_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE4_UP}
-  {$DEFINE COMPILERXE3_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE3_UP}
-  {$DEFINE COMPILERXE2_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE2_UP}
-  {$DEFINE COMPILERXE1_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERXE1_UP}
-  {$DEFINE COMPILER2010_UP}
-{$ENDIF}
-
-{$IFDEF COMPILER2010_UP}
-  {$DEFINE COMPILER2009_UP}
-{$ENDIF}
-
-{$IFDEF COMPILER2009_UP}
-  {$DEFINE COMPILER2007_UP}
-{$ENDIF}
-
-{$IFDEF COMPILER2007_UP}
-  {$DEFINE COMPILER2006_UP}
-{$ENDIF}
-
-{$IFDEF COMPILER2006_UP}
-  {$DEFINE COMPILER2005_UP}
-{$ENDIF}
-
-{$IFDEF COMPILER2005_UP}
-  {$DEFINE COMPILER7_UP}
-{$ENDIF}
-
-{$IFDEF COMPILER7_UP}
-  {$DEFINE COMPILER6_UP}
-{$ENDIF}
-
-{$IFDEF COMPILERFPC}
-
-  {$MODE Delphi}
-  {$DEFINE PLATFORM_INDEPENDENT}
-  {$DEFINE FPC_HAS_CONSTREF}
-  {$DEFINE NATIVE_SINCOS}
-  {$DEFINE USESTACKALLOC}
-  {$IFNDEF WINDOWS}
-    {$DEFINE RGBA_FORMAT}
-  {$ENDIF}
-
-  {$IF DEFINED(CPUx86_64)}
-    {$DEFINE PUREPASCAL}
-  {$ELSEIF DEFINED(CPUi386)}
-  {$ELSE}
-    {$DEFINE PUREPASCAL}
-  {$IFEND}
-
-{$ENDIF COMPILERFPC}
-
-
-{$IFNDEF COMPILERXE2_UP}
-{$IFNDEF COMPILERFPC}
-  {$Message Fatal 'Graphics32 only supports Delphi/BCB XE2 (or higher) or Free Pascal / Lazarus'}
-{$ENDIF}
-{$ENDIF}
-
-{$IFDEF COMPILERXE2_UP}
-  {$IFDEF TARGET_x64}
-    {$EXCESSPRECISION OFF}
-  {$ENDIF}
-{$ENDIF}
 
 
 (*
   Symbol INLININGSUPPORTED:
   -------------------------
 
-    In later Delphi versions procedures and functions that do not contain
+    In modern Delphi versions procedures and functions that do not contain
     assembler code can be inlined. This can be extremely useful for calls
     to a small portion of code in a loop. However, depending on the instruction
     cache size, this may or may not result in a performance boost compared to a
     call of assembler optimized code.
 *)
+// Note: Inlining is supported by all supported compilers; This define will be deprecated.
+{$define INLININGSUPPORTED}
 
-{$IFDEF COMPILER2007_UP}
-  // disabled prior Delphi versions due to a compiler bug
-  // see (http://qc.embarcadero.com/wc/qcmain.aspx?d=41166)
-  {$DEFINE INLININGSUPPORTED}
-{$ENDIF}
-
-{$IFDEF COMPILERFPC}
-  {$DEFINE INLININGSUPPORTED}
-{$ENDIF}
 
 
 (*
   Symbol TARGET_* :
+  -----------------
+
     Defines the processor platform (x86, x64 or PowerPC)
 *)
 
-{$IFDEF COMPILERFPC}
+{$ifdef FPC}
 
   // Set up internal CPU target directives according to FPC directives
-  {$IFDEF CPU386}
-    {$IFDEF CPUI386}
+  {$if defined(CPU386)}
+
+    {$if defined(CPUI386)}
+
       // target is an Intel 80386 or later.
-      {$DEFINE TARGET_x86}
+      {$define TARGET_x86}
       {$ASMMODE INTEL}
-    {$ENDIF}
 
-    {$IFDEF CPUX86_64}
+    {$elseif defined(CPUX86_64)}
+
       // target is a 64-bit processor (AMD or INTEL).
-      {$DEFINE TARGET_x64}
+      {$define TARGET_x64}
       {$ASMMODE INTEL}
-    {$ENDIF}
 
-    {$IFDEF CPUPOWERPC}
+    {$elseif defined(CPUPOWERPC)}
+
       // target is a 32-bit PowerPC or compatible.
       // currently only indirect support, added here as example on how to add
       // future specific targets
-      {$DEFINE TARGET_POWERPC}
-    {$ENDIF}
-  {$ENDIF}
+      {$define TARGET_POWERPC}
 
-  {$IFDEF CPUX86_64}
+    {$ifend}
+
+  {$elseif defined(CPUX86_64)}
+
     // target is a 64-bit processor (AMD or INTEL).
-    {$DEFINE TARGET_x64}
+    {$define TARGET_x64}
     {$ASMMODE INTEL}
-  {$ENDIF}
 
-  {$IFDEF CPUARM}
+  {$elseif defined(CPUARM)}
+
     // target is an ARM processor.
-    {$DEFINE TARGET_ARM}
-  {$ENDIF}
+    {$define TARGET_ARM}
 
-{$ELSE COMPILERFPC}
+  {$ifend}
+
+{$else}
 
   // check for XE2 64-Bit compiler define
-  {$IFDEF CPUX64}
-    {$DEFINE TARGET_x64}
-  {$ELSE}
-    // define default (delphi etc) target (32 bit Intel 80386 or later)
-    {$DEFINE TARGET_x86}
-  {$ENDIF}
+  {$if defined(CPUX64)}
 
-{$ENDIF COMPILERFPC}
+    {$define TARGET_x64}
+
+  {$else}
+
+    // define default (delphi etc) target (32 bit Intel 80386 or later)
+    {$define TARGET_x86}
+
+  {$ifend}
+
+{$endif}
+
 
 
 (*
@@ -542,43 +204,34 @@
 
    NOTE: The DARWIN target of Free Pascal generates PIC code by default
    Which isn't compatible with the current assembler, so force PUREPASCAL
-
-   NOTE: Due to several issues with the Delphi X64 compiler, PUREPASCAL is
-   defined. However, most of the assembler optimized code does already work.
-   (for issues please see http://qc.embarcadero.com/wc/qcmain.aspx?d=98616
-   and http://qc.embarcadero.com/wc/qcmain.aspx?d=98613)
 *)
 
-{$IFDEF COMPILERFPC}
+{$ifdef FPC}
   {-$DEFINE PUREPASCAL}
-{$ENDIF}
+{$endif}
 
-{$IFDEF TARGET_x64}
-  {-$DEFINE PUREPASCAL}
-{$ENDIF}
+{$ifdef TARGET_ARM}
+  {$define PUREPASCAL}
+  {$define OMIT_MMX}
+  {$define OMIT_SSE2}
+{$endif}
 
-{$IFDEF TARGET_ARM}
-  {$DEFINE PUREPASCAL}
-  {$DEFINE OMIT_MMX}
-  {$DEFINE OMIT_SSE2}
-{$ENDIF}
+{$ifdef DARWIN}
+  {$define PUREPASCAL}
+{$endif}
 
-{$IFDEF DARWIN}
-  {$DEFINE PUREPASCAL}
-{$ENDIF}
+
 
 (*
   Symbol BITS_GETTER:
   -------------------
-
 *)
 
-{$IFDEF COMPILERFPC}
+{$if defined(FPC) and (not defined(LCLWin32))}
   // Widgetsets other then Windows will want to implement BITS_GETTER
-  {$IFNDEF LCLWin32}
-    {$DEFINE BITS_GETTER}
-  {$ENDIF}
-{$ENDIF}
+  {$define BITS_GETTER}
+{$ifend}
+
 
 
 (*
@@ -593,74 +246,115 @@
    additional conversion between XMM registers and the FPU
 *)
 
-{$IFDEF PUREPASCAL}
-  {$DEFINE NATIVE_SINCOS}
-{$ENDIF}
-{$IFDEF TARGET_x64}
-  {$DEFINE NATIVE_SINCOS}
-{$ENDIF}
+{$if defined(PUREPASCAL) or defined(TARGET_x64)}
+  {$define NATIVE_SINCOS}
+{$ifend}
+
+
+
+(*
+  Symbol: LOADFROMSTREAM
+  ----------------------
+
+    TGraphic has the CanLoadFromStream method.
+
+  If this symbol is defined, Graphics32 will use TGraphics.CanLoadFromStream
+  when loading an image format from a stream.
+*)
+{$if defined(COMPILERRX2_UP) or defined(FPC)}
+  {$define LOADFROMSTREAM}
+{$ifend}
+
+
+
+(*
+  Symbol: HAS_TPOINTF
+  -------------------
+
+    Use the RTL TPointF and TRectF types.
+
+  If this symbol is defined, Graphics32 will alias the TFloatPoint and TFloatRect
+  types to the RTL TPointF and TRectF types. Otherwise the types defined in
+  GR32 will be used.
+  The TPointF and TRectF types exists in Delphi XE2 and later, and in FPC.
+*)
+{$if defined(COMPILERXE2_UP) or defined(FPC)}
+  {$define HAS_TPOINTF}
+{$ifend}
 
 
 
 (*
   Miscellaneous Defines:
-  ---------------------- *)
+  ----------------------
+*)
+
+{$UNDEF USETHREADRESUME}
+
+{$ifdef LINUX}
+  {$define UNIX}
+{$endif}
 
 
-{$IFDEF COMPILER6}
-  {$DEFINE EXT_PROP_EDIT}
-{$ENDIF}
 
-{$IFNDEF COMPILER2010_UP}
-  {$DEFINE USETHREADRESUME}
-{$ENDIF}
-{$IFDEF COMPILERFPC}
-  {$UNDEF USETHREADRESUME}
-  {$DEFINE LOADFROMSTREAM}
-{$ENDIF}
+(*
+** Delphi
+** ---------------------------------------
+*)
+{$if (not defined(FPC))}
 
-{$IFDEF LINUX}
-  {$IFNDEF FPC}
-    {$DEFINE BITS_GETTER}
-  {$ENDIF}
-  {$DEFINE UNIX}
-{$ENDIF}
+  // Disable use of Doubles as intermediary values when calculating
+  // Single precision expressions.
+  {$if defined(TARGET_x64)}
+    {$EXCESSPRECISION OFF}
+  {$ifend}
 
-{$IFNDEF FPC}
-  {$IFNDEF LINUX}
-    {$DEFINE Windows}
-  {$ENDIF}
-{$ENDIF}
+  {$ifdef LINUX}
+    {$define BITS_GETTER}
+  {$else}
+    {$define Windows}
+  {$endif}
 
-{$IFNDEF FPC}
-  // FPC does not support class vars in record types. Use object type instead.
-  {$DEFINE RECORD_CLASS_VAR}
-{$ENDIF}
+  {$define EXT_PROP_EDIT}
+  {$define HasParentBackground}
+  {$define SUPPORT_XPTHEMES} // enable support for windows xp themes
 
-{$IFNDEF FPC}
-  // FPC does not support casting an interface to a class.
-  {$DEFINE CAST_INTF_TO_CLASS}
-{$ENDIF}
+  // Features only supported by Delphi and not by FPC:
+  {$define RECORD_CONSTRUCTORS} // Record type constructors
+  {$define RECORD_CLASS_VAR}    // Class vars in record types. Use object type instead.
+  {$define CAST_INTF_TO_CLASS}  // Casting an interface to a class.
 
+
+{$else}
+(*
+** FPC
+** ---------------------------------------
+*)
+
+  {$MODE Delphi}
+  {$define PLATFORM_INDEPENDENT}
+  {$define FPC_HAS_CONSTREF}
+  {$define NATIVE_SINCOS}
+  {$define USESTACKALLOC}
+
+  {$ifndef WINDOWS}
+    {$define RGBA_FORMAT}
+  {$endif}
+
+  {$if (not defined(TARGET_x86)) and (not defined(TARGET_x64))}
+    // Target processor is neither x86 or x64: Use Pascal versions
+    {$define PUREPASCAL}
+
+  {$ifend}
+
+{$ifend}
+
+
+
+(*
+  Miscellaneous compiler switches:
+  --------------------------------
+*)
 {$R-}{$Q-}  // switch off overflow and range checking
 
-{$IFDEF COMPILER6_UP}
-  {$DEFINE EXT_PROP_EDIT}
-{$ENDIF}
-
-{$IFDEF COMPILER2005_UP}
-  {$DEFINE HasParentBackground}
-{$ENDIF}
-
-{$IFDEF COMPILER2010_UP}
-  {$DEFINE SUPPORT_ENHANCED_RECORDS}
-{$ENDIF}
-
-{$IFDEF COMPILERRX2_UP}
-  {$DEFINE LOADFROMSTREAM}
-{$ENDIF}
-
-{$IFNDEF COMPILERFPC}
-  {$DEFINE SUPPORT_XPTHEMES} // enable support for windows xp themes
-{$ENDIF}
 

@@ -36,6 +36,7 @@ unit GR32_MicroTiles;
 interface
 
 {$I GR32.inc}
+
 {-$DEFINE CODESITE}
 {-$DEFINE CODESITE_HIGH}
 {-$DEFINE PROFILINGDRYRUN}
@@ -46,20 +47,13 @@ interface
   {-$DEFINE MICROTILES_NO_ADAPTION_FORCE_WHOLETILES}
 
 uses
-{$IFDEF FPC}
-  Types,
-  {$IFDEF Windows}
-    Windows,
-  {$ENDIF}
-{$ELSE}
+{$IFDEF Windows}
   Windows,
 {$ENDIF}
 {$IFDEF CODESITE}
   CSIntf, CSAux,
 {$ENDIF}
-{$IFDEF COMPILER2005_UP}
   Types,
-{$ENDIF}
   SysUtils, Classes,
   GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
 

@@ -4293,8 +4293,8 @@ begin
   with FEllipseBounds do
   begin
     FCenter := FloatPoint((Left + Right) * 0.5, (Top + Bottom) * 0.5);
-    FRadius.X := Round((Right - Left) * 0.5);
-    FRadius.Y := Round((Bottom - Top) * 0.5);
+    FRadius.X := System.Round((Right - Left) * 0.5);
+    FRadius.Y := System.Round((Bottom - Top) * 0.5);
   end;
 
   UpdateRadiusScale;

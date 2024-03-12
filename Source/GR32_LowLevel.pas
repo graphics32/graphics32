@@ -1181,7 +1181,7 @@ end;
 
 function Div255(Value: Word): Word;
 begin
-{$if (not defined(CompilerVersion)) or ((CompilerVersion >= 36.0) and (defined(TARGET_x86)))}
+{$if (defined(FPC)) or ((CompilerVersion >= 36.0) and (defined(TARGET_x86)))}
   // Delphi 12, 32-bit, already knows how to optimize division by 255.
   // Unfortunately it always optimizes as if the argument is a signed 32-bit.
   Result := Value div 255;

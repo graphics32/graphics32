@@ -58,7 +58,7 @@ function FixedCeil(A: TFixed): Integer;
 function FixedMul(A, B: TFixed): TFixed;
 function FixedDiv(A, B: TFixed): TFixed;
 function OneOver(Value: TFixed): TFixed;
-function FixedRound(A: TFixed): Integer; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function FixedRound(A: TFixed): Integer; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
 function FixedSqr(Value: TFixed): TFixed;
 function FixedSqrtLP(Value: TFixed): TFixed;      // 8-bit precision
 function FixedSqrtHP(Value: TFixed): TFixed;      // 16-bit precision
@@ -80,7 +80,7 @@ function Hypot(const X, Y: Integer): Integer; overload;
 function FastSqrt(const Value: TFloat): TFloat;
 function FastSqrtBab1(const Value: TFloat): TFloat;
 function FastSqrtBab2(const Value: TFloat): TFloat;
-function FastInvSqrt(const Value: Single): Single; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function FastInvSqrt(const Value: Single): Single; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
 // Power of 2 functions. Only valid for values >= 0.
 // Determine if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
-function IsPowerOf2(Value: Integer): Boolean; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+function IsPowerOf2(Value: Integer): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 // Returns X rounded DOWN to the PREVIOUS power of two, i.e. 5->4, 7->4, 8->4, 9->8
 function PrevPowerOf2(Value: Integer): Integer;
 // Returns X rounded UP to the NEXT power of two, i.e. 5->8, 7->8, 8->16, 15->16

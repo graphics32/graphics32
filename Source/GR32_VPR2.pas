@@ -305,10 +305,8 @@ begin
 end;
 {$IFDEF UseStackAlloc}{$W-}{$ENDIF}
 
-{$ifndef COMPILERXE2_UP}
 type
   TRoundingMode = Math.TFPURoundingMode;
-{$endif COMPILERXE2_UP}
 
 procedure TPolygonRenderer32VPR2.PolyPolygonFS(
   const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
