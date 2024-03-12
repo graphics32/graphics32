@@ -155,15 +155,49 @@ begin
   Result := FloatPoint(X, Y);
 end;
 
-function IntersectPoint(const ln1a, ln1b, ln2a, ln2b: TPointD): TPointD;  overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectPoint(const ln1a, ln1b, ln2a, ln2b: TPointD; out ip: TPointD): Boolean; overload;
+var
+  m1,b1,m2,b2: double;
 begin
-  if (not Intersect(ln1a, ln1b, ln2a, ln2b, Result)) then
-    result := InvalidPointD;
+   // Note: Returns the intersection between the two lines.
+   // Unlike the Graphics32 Intersect function it does not test for
+   // intersection between the line segments.
+
+  result := False;
+  //see http://paulbourke.net/geometry/pointlineplane/
+  if (ln1B.X = ln1A.X) then
+  begin
+    if (ln2B.X = ln2A.X) then exit; //parallel lines
+    m2 := (ln2B.Y - ln2A.Y)/(ln2B.X - ln2A.X);
+    b2 := ln2A.Y - m2 * ln2A.X;
+    ip.X := ln1A.X;
+    ip.Y := m2*ln1A.X + b2;
+    Result := True;
+  end
+  else if (ln2B.X = ln2A.X) then
+  begin
+    m1 := (ln1B.Y - ln1A.Y)/(ln1B.X - ln1A.X);
+    b1 := ln1A.Y - m1 * ln1A.X;
+    ip.X := ln2A.X;
+    ip.Y := m1*ln2A.X + b1;
+    Result := True;
+  end else
+  begin
+    m1 := (ln1B.Y - ln1A.Y)/(ln1B.X - ln1A.X);
+    b1 := ln1A.Y - m1 * ln1A.X;
+    m2 := (ln2B.Y - ln2A.Y)/(ln2B.X - ln2A.X);
+    b2 := ln2A.Y - m2 * ln2A.X;
+    if m1 = m2 then exit; //parallel lines
+    ip.X := (b2 - b1)/(m1 - m2);
+    ip.Y := m1 * ip.X + b1;
+    Result := True;
+  end;
 end;
 
-function IntersectPoint(const ln1a, ln1b, ln2a, ln2b: TPointD; out ip: TPointD): Boolean; overload;
+function IntersectPoint(const ln1a, ln1b, ln2a, ln2b: TPointD): TPointD;  overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
-  Result := Intersect(ln1a, ln1b, ln2a, ln2b, ip);
+  if (not IntersectPoint(ln1a, ln1b, ln2a, ln2b, Result)) then
+    Result := InvalidPointD;
 end;
 
 function PointsNearEqual(const pt1, pt2: TPointD; distSqrd: double): Boolean;
