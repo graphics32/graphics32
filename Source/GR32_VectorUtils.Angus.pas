@@ -20,15 +20,13 @@ unit GR32_VectorUtils.Angus;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Vectorial Polygon Rasterizer for Graphics32
+ * The Original Code is Vector drawing for TImage32
  *
  * The Initial Developer of the Original Code is
- * Mattias Andersson <mattias@centaurix.com>
+ * Angus Johnson (http://www.angusj.com)
  *
- * Portions created by the Initial Developer are Copyright (C) 2008-2012
+ * Portions created by the Initial Developer are Copyright (C) 2019-2024
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -49,19 +47,6 @@ uses
 //      Grow and BuildPoly*line replacements adapted from Image32
 //
 //------------------------------------------------------------------------------
-(*******************************************************************************
-* Author    :  Angus Johnson                                                   *
-* Version   :  4.4                                                             *
-* Date      :  7 March 2024                                                    *
-* Website   :  http://www.angusj.com                                           *
-* Copyright :  Angus Johnson 2019-2024                                         *
-*                                                                              *
-* Purpose   :  Vector drawing for TImage32                                     *
-*                                                                              *
-* License   :  Use, modification & distribution is subject to                  *
-*              Boost Software License Ver 1                                    *
-*              http://www.boost.org/LICENSE_1_0.txt                            *
-*******************************************************************************)
 
 
 //------------------------------------------------------------------------------
