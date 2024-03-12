@@ -49,25 +49,17 @@ uses
 //------------------------------------------------------------------------------
 
 
-//------------------------------------------------------------------------------
-//
-//      Grow
-//
-//------------------------------------------------------------------------------
-function GrowAngus(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload;
-function GrowAngus(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload;
+type
+  BuildPolylineAngus = class(TBuildPolyline)
+  private
+  public
+    // Float
+    class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
 
-
-//------------------------------------------------------------------------------
-//
-//      BuildPoly*line
-//
-//------------------------------------------------------------------------------
-function BuildPolylineAngus(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload;
-function BuildPolyPolyLineAngus(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload;
-function BuildPolylineAngus(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload;
-function BuildPolyPolyLineAngus(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload;
-
+    // Float
+    class function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
+    class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload; override;
+  end;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -619,39 +611,6 @@ begin
 end;
 
 
-
-//------------------------------------------------------------------------------
-//
-//      Grow mapping
-//
-//------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
-// Float
-//------------------------------------------------------------------------------
-function GrowAngus(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint; overload;
-var
-  Normals: TArrayOfFloatPoint;
-begin
-  Normals := BuildNormals(Points);
-
-  Result := Grow(Points, Normals, Delta * GrowScale, JoinStyleMap[JoinStyle], MiterLimit, not Closed);
-end;
-
-//------------------------------------------------------------------------------
-// Fixed
-//------------------------------------------------------------------------------
-function GrowAngus(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: GR32_Polygons.TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint; overload;
-var
-  FloatPoints, FloatResult: GR32.TArrayOfFloatPoint;
-begin
-  FloatPoints := FixedPointToFloatPoint(Points);
-
-  FloatResult := GrowAngus(FloatPoints, Delta, JoinStyle, Closed, MiterLimit);
-
-  Result := FloatPointToFixedPoint(FloatResult);
-end;
-
 //------------------------------------------------------------------------------
 //
 //      Outline internals
@@ -886,14 +845,22 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      BuildPoly*line mapping
+//      BuildPolylineAngus
 //
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-// Float
+// Grow
 //------------------------------------------------------------------------------
-function BuildPolylineAngus(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
+class function BuildPolylineAngus.Grow(const Points, Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
+begin
+  Result := GR32_VectorUtils.Angus.Grow(Points, Normals, Delta * GrowScale, JoinStyleMap[JoinStyle], MiterLimit, not Closed);
+end;
+
+//------------------------------------------------------------------------------
+// BuildPoly*line
+//------------------------------------------------------------------------------
+class function BuildPolylineAngus.BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 var
   Res: TArrayOfArrayOfFloatPoint;
 begin
@@ -905,7 +872,7 @@ begin
     SetLength(Result, 0);
 end;
 
-function BuildPolyPolyLineAngus(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
+class function BuildPolylineAngus.BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
 var
   OutlineEndStyle: TEndStyle;
 begin
@@ -918,34 +885,5 @@ begin
 end;
 
 //------------------------------------------------------------------------------
-// Fixed
-//------------------------------------------------------------------------------
-function BuildPolylineAngus(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
-var
-  FloatPoints, FloatResult: TArrayOfFloatPoint;
-begin
-  FloatPoints := FixedPointToFloatPoint(Points);
-
-  FloatResult := BuildPolyLineAngus(FloatPoints, StrokeWidth*FixedOne, JoinStyle, EndStyle, MiterLimit*FixedOne);
-
-  if (Length(FloatResult) > 0) then
-    Result := FloatPointToFixedPoint(FloatResult)
-  else
-    SetLength(Result, 0);
-end;
-
-function BuildPolyPolyLineAngus(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
-var
-  FloatPoints, FloatResult: GR32.TArrayOfArrayOfFloatPoint;
-begin
-  FloatPoints := FixedPointToFloatPoint(Points);
-
-  FloatResult := BuildPolyPolyLineAngus(FloatPoints, Closed, StrokeWidth*FixedOne, JoinStyle, EndStyle, MiterLimit*FixedOne);
-
-  if (Length(FloatResult) > 0) then
-    Result := FloatPointToFixedPoint(FloatResult)
-  else
-    SetLength(Result, 0);
-end;
 
 end.
