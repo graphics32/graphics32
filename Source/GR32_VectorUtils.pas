@@ -2930,13 +2930,14 @@ var
     PX := X;
     PY := Y;
 
-    if (JoinStyle <> jsRoundEx) and ((X1 * Y2 - X2 * Y1) * Delta < 0)  then
+    if ((X1 * Y2 - X2 * Y1) * Delta < 0)  then
     begin
       AddPoint(Delta * X1, Delta * Y1);
       AddPoint(Delta * X2, Delta * Y2);
     end else
       case JoinStyle of
         jsMiter: AddMitered(A.X, A.Y, B.X, B.Y);
+        jsSquare,
         jsBevel: AddBevelled(A.X, A.Y, B.X, B.Y);
         jsRound: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
       end;
