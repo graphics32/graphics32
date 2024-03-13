@@ -69,7 +69,6 @@ implementation
 
 uses
   Math,
-//  {$IFDEF FPC}Types, {$ENDIF} {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
   SysUtils,
 
   GR32_Math,
@@ -88,7 +87,8 @@ type
   TEndStyle   = (esPolygon = 0, esClosed = 0, esButt, esSquare, esRound);
 
 const
-  JoinStyleMap: array[GR32_Polygons.TJoinStyle] of TJoinStyle = (jsMiter, jsAuto, jsRound, jsSquare);
+  // Note: We map Graphics32's jsBevel to jsSquare
+  JoinStyleMap: array[GR32_Polygons.TJoinStyle] of TJoinStyle = (jsMiter, jsSquare, jsRound, jsSquare);
   EndStyleMap: array[GR32_Polygons.TEndStyle] of TEndStyle = (esButt, esSquare, esRound);
 
 type
