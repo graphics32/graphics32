@@ -52,7 +52,7 @@ uses
 //------------------------------------------------------------------------------
 
 type
-  BuildPolylineClipper = class(TBuildPolyline)
+  PolyLineBuilderClipper = class(TPolyLineBuilder)
   protected
     // Float
     class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
@@ -115,12 +115,12 @@ end;
 //------------------------------------------------------------------------------
 // Grow
 //------------------------------------------------------------------------------
-class function BuildPolylineClipper.Grow(const Points, Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
+class function PolyLineBuilderClipper.Grow(const Points, Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
 begin
   Result := Grow(Points, Delta, JoinStyle, Closed, MiterLimit);
 end;
 
-class function BuildPolylineClipper.Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
+class function PolyLineBuilderClipper.Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
 var
   Points64, Result64: TPaths64;
   Res: TArrayOfArrayOfFloatPoint;
@@ -137,12 +137,12 @@ begin
     SetLength(Result, 0);
 end;
 
-class function BuildPolylineClipper.Grow(const Points, Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
+class function PolyLineBuilderClipper.Grow(const Points, Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
 begin
   Result := Grow(Points, Delta, JoinStyle, Closed, MiterLimit);
 end;
 
-class function BuildPolylineClipper.Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
+class function PolyLineBuilderClipper.Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
   Points64, Result64: TPaths64;
   Res: TArrayOfArrayOfFixedPoint;
@@ -163,7 +163,7 @@ end;
 //------------------------------------------------------------------------------
 // BuildPoly*line
 //------------------------------------------------------------------------------
-class function BuildPolylineClipper.BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
+class function PolyLineBuilderClipper.BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 var
   Paths64: TPaths64;
   EndType: TEndType;
@@ -185,7 +185,7 @@ begin
     SetLength(Result, 0);
 end;
 
-class function BuildPolylineClipper.BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
+class function PolyLineBuilderClipper.BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
 var
   Paths64: TPaths64;
   EndType: TEndType;
@@ -204,7 +204,7 @@ begin
   Result := GR32_Clipper2.Paths64ToFloatPoints(Result64);
 end;
 
-class function BuildPolylineClipper.BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
+class function PolyLineBuilderClipper.BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
   Paths64: TPaths64;
   Result64: TPaths64;
@@ -223,7 +223,7 @@ begin
     SetLength(Result, 0);
 end;
 
-class function BuildPolylineClipper.BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
+class function PolyLineBuilderClipper.BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
 var
   Paths64: TPaths64;
   EndType: TEndType;

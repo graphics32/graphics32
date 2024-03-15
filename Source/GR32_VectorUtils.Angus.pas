@@ -50,7 +50,7 @@ uses
 
 
 type
-  BuildPolylineAngus = class(TBuildPolyline)
+  PolyLineBuilderAngus = class(TPolyLineBuilder)
   protected
     // Float
     class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
@@ -842,16 +842,17 @@ begin
         joinStyle, endStyle, miterLimOrRndScale));
 end;
 
+
 //------------------------------------------------------------------------------
 //
-//      BuildPolylineAngus
+//      PolyLineBuilderAngus
 //
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 // Grow
 //------------------------------------------------------------------------------
-class function BuildPolylineAngus.Grow(const Points, Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
+class function PolyLineBuilderAngus.Grow(const Points, Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
 begin
   Result := GR32_VectorUtils.Angus.Grow(Points, Normals, Delta * GrowScale, JoinStyleMap[JoinStyle], MiterLimit, not Closed);
 end;
@@ -859,7 +860,7 @@ end;
 //------------------------------------------------------------------------------
 // BuildPoly*line
 //------------------------------------------------------------------------------
-class function BuildPolylineAngus.BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
+class function PolyLineBuilderAngus.BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 var
   Res: TArrayOfArrayOfFloatPoint;
 begin
@@ -871,7 +872,7 @@ begin
     SetLength(Result, 0);
 end;
 
-class function BuildPolylineAngus.BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
+class function PolyLineBuilderAngus.BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: GR32_Polygons.TJoinStyle; EndStyle: GR32_Polygons.TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
 var
   OutlineEndStyle: TEndStyle;
 begin

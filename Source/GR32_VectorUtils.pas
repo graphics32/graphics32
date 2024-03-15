@@ -94,9 +94,9 @@ function Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: 
 function ReversePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function ReversePolygon(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 function BuildDashedLine(const Points: TArrayOfFloatPoint;
@@ -152,8 +152,8 @@ function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoin
 
 function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect; overload;
 function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect; overload;
-function PolypolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect; overload;
-function PolypolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect; overload;
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect; overload;
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect; overload;
 
 function ScalePolygon(const Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint; overload;
 function ScalePolygon(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfFixedPoint; overload;
@@ -197,7 +197,7 @@ function FloatPointToFixedPoint(const Points: TArrayOfArrayOfFloatPoint): TArray
 
 
 type
-  TBuildPolyline = class abstract
+  TPolyLineBuilder = class abstract
   protected
     // Float
     class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; virtual; abstract;
@@ -210,17 +210,17 @@ type
     class function Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; virtual;
 
     // Float
-    class function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; virtual; abstract;
+    class function BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; virtual; abstract;
     class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload; virtual; abstract;
     // Fixed
-    class function BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; virtual;
+    class function BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; virtual;
     class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload; virtual;
   end;
 
-  TBuildPolylineClass = class of TBuildPolyline;
+  TPolylineBuilderClass = class of TPolyLineBuilder;
 
 var
-  BuildPolylineClass: TBuildPolylineClass;
+  PolylineBuilder: TPolylineBuilderClass;
 
 
 //------------------------------------------------------------------------------
@@ -2251,7 +2251,7 @@ begin
   end;
 end;
 
-function PolypolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect;
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect;
 var
   i: Integer;
   R: TFloatRect;
@@ -2289,7 +2289,7 @@ begin
     Exit(Default(TFloatRect));
 end;
 
-function PolypolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
 var
   i: Integer;
   R: TFixedRect;
@@ -2684,12 +2684,12 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TBuildPolyline
+//      TPolyLineBuilder
 //
 //------------------------------------------------------------------------------
 // Abstract base class for Grow and BuildPoly*line implementations.
 //------------------------------------------------------------------------------
-class function TBuildPolyline.BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle;
+class function TPolyLineBuilder.BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle;
   EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
   FloatPoints, FloatResult: TArrayOfFloatPoint;
@@ -2705,7 +2705,7 @@ begin
     SetLength(Result, 0);
 end;
 
-class function TBuildPolyline.BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed;
+class function TPolyLineBuilder.BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
 var
   FloatPoints, FloatResult: GR32.TArrayOfArrayOfFloatPoint;
@@ -2721,7 +2721,7 @@ begin
     SetLength(Result, 0);
 end;
 
-class function TBuildPolyline.Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean;
+class function TPolyLineBuilder.Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean;
   MiterLimit: TFloat): TArrayOfFloatPoint;
 var
   Normals: TArrayOfFloatPoint;
@@ -2730,7 +2730,7 @@ begin
   Result := Grow(Points, Normals, Delta, JoinStyle, Closed, MiterLimit);
 end;
 
-class function TBuildPolyline.Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean;
+class function TPolyLineBuilder.Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean;
   MiterLimit: TFixed): TArrayOfFixedPoint;
 var
   Normals: TArrayOfFixedPoint;
@@ -2739,7 +2739,7 @@ begin
   Result := Grow(Points, Normals, Delta, JoinStyle, Closed, MiterLimit);
 end;
 
-class function TBuildPolyline.Grow(const Points, Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle;
+class function TPolyLineBuilder.Grow(const Points, Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle;
   Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
   FloatPoints, FloatNormals, FloatResult: TArrayOfFloatPoint;
@@ -2760,7 +2760,7 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      BuildPolylineReference
+//      PolyLineBuilderReference
 //
 //------------------------------------------------------------------------------
 // Old implementation of the Grow and BuildPoly*line functions.
@@ -2768,7 +2768,7 @@ end;
 {$ifdef USE_REF_GROW}
 
 type
-  BuildPolylineReference = class(TBuildPolyline)
+  PolyLineBuilderReference = class(TPolyLineBuilder)
   private
     class function BuildLineEnd(const P, N: TFloatPoint; const W: TFloat; EndStyle: TEndStyle): TArrayOfFloatPoint; overload; static;
     class function BuildLineEnd(const P, N: TFixedPoint; const W: TFixed; EndStyle: TEndStyle): TArrayOfFixedPoint; overload; static;
@@ -2777,16 +2777,16 @@ type
     class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
 
     // Float
-    class function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
+    class function BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
     class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload; override;
     // Fixed
-    class function BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; override;
+    class function BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; override;
     class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload; override;
   end;
 
 //------------------------------------------------------------------------------
 
-class function BuildPolylineReference.Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint;
+class function PolyLineBuilderReference.Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint;
   const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
 const
   BUFFSIZEINCREMENT = 128;
@@ -3003,7 +3003,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-class function BuildPolylineReference.BuildLineEnd(const P, N: TFloatPoint; const W: TFloat; EndStyle: TEndStyle): TArrayOfFloatPoint;
+class function PolyLineBuilderReference.BuildLineEnd(const P, N: TFloatPoint; const W: TFloat; EndStyle: TEndStyle): TArrayOfFloatPoint;
 var
   a1, a2: TFloat;
 begin
@@ -3030,7 +3030,7 @@ begin
   end;
 end;
 
-class function BuildPolylineReference.BuildLineEnd(const P, N: TFixedPoint; const W: TFixed; EndStyle: TEndStyle): TArrayOfFixedPoint;
+class function PolyLineBuilderReference.BuildLineEnd(const P, N: TFixedPoint; const W: TFixed; EndStyle: TEndStyle): TArrayOfFixedPoint;
 var
   a1, a2: TFloat;
 begin
@@ -3059,7 +3059,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-class function BuildPolylineReference.BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat;
+class function PolyLineBuilderReference.BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 var
   L, H: Integer;
@@ -3094,7 +3094,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-class function BuildPolylineReference.BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint;
+class function PolyLineBuilderReference.BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint;
   Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle;
   EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
 var
@@ -3121,14 +3121,14 @@ begin
   begin
     SetLength(Dst, Length(Points));
     for I := 0 to High(Points) do
-      Dst[I] := BuildPolyline(Points[I], StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+      Dst[I] := BuildPolyLine(Points[I], StrokeWidth, JoinStyle, EndStyle, MiterLimit);
   end;
   Result := Dst;
 end;
 
 //------------------------------------------------------------------------------
 
-class function BuildPolylineReference.BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed;
+class function PolyLineBuilderReference.BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
   L, H: Integer;
@@ -3163,7 +3163,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-class function BuildPolylineReference.BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint;
+class function PolyLineBuilderReference.BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint;
   Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle;
   EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
 var
@@ -3190,7 +3190,7 @@ begin
   begin
     SetLength(Dst, Length(Points));
     for I := 0 to High(Points) do
-      Dst[I] := BuildPolyline(Points[I], StrokeWidth, JoinStyle, EndStyle);
+      Dst[I] := BuildPolyLine(Points[I], StrokeWidth, JoinStyle, EndStyle);
   end;
   Result := Dst;
 end;
@@ -3206,7 +3206,7 @@ end;
 
 function Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
 begin
-  Result := BuildPolylineClass.Grow(Points, Delta, JoinStyle, Closed, MiterLimit);
+  Result := PolylineBuilder.Grow(Points, Delta, JoinStyle, Closed, MiterLimit);
 end;
 
 function Grow(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
@@ -3216,39 +3216,39 @@ end;
 
 function Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFixed): TArrayOfFixedPoint;
 begin
-  Result := BuildPolylineClass.Grow(Points, Delta, JoinStyle, Closed, MiterLimit);
+  Result := PolylineBuilder.Grow(Points, Delta, JoinStyle, Closed, MiterLimit);
 end;
 
 //------------------------------------------------------------------------------
 
-function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
+function BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 begin
-  Result := BuildPolylineClass.BuildPolyline(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  Result := PolylineBuilder.BuildPolyLine(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
 end;
 
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
 begin
-  Result := BuildPolylineClass.BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  Result := PolylineBuilder.BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
 end;
 
-function BuildPolyline(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
+function BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 begin
-  Result := BuildPolylineClass.BuildPolyline(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  Result := PolylineBuilder.BuildPolyLine(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
 end;
 
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
 begin
-  Result := BuildPolylineClass.BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  Result := PolylineBuilder.BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
 end;
 
 //------------------------------------------------------------------------------
 
 initialization
 {$if defined(USE_CLIPPER_GROW)}
-  BuildPolylineClass := BuildPolylineClipper;
+  PolylineBuilder := PolyLineBuilderClipper;
 {$elseif defined(USE_ANGUS_GROW)}
-  BuildPolylineClass := BuildPolylineAngus;
+  PolylineBuilder := PolyLineBuilderAngus;
 {$elseif defined(USE_REF_GROW)}
-  BuildPolylineClass := BuildPolylineReference;
+  PolylineBuilder := PolyLineBuilderReference;
 {$ifend}
 end.
