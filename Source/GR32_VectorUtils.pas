@@ -2215,7 +2215,9 @@ function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect;
 var
   I: Integer;
 begin
-  Assert(Length(Points) > 0);
+  if (Length(Points) = 0) then
+    Exit(Default(TFloatRect));
+
   Result.Left := Points[0].X;
   Result.Top := Points[0].Y;
   Result.Right := Points[0].X;
@@ -2233,7 +2235,9 @@ function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect;
 var
   I: Integer;
 begin
-  Assert(Length(Points) > 0);
+  if (Length(Points) = 0) then
+    Exit(Default(TFloatRect));
+
   Result.Left := Points[0].X;
   Result.Top := Points[0].Y;
   Result.Right := Points[0].X;
@@ -2253,7 +2257,8 @@ var
   R: TFloatRect;
   AnyValid: boolean;
 begin
-  Assert(Length(Points) > 0);
+  if (Length(Points) = 0) then
+    Exit(Default(TFloatRect));
 
   AnyValid := False;
 
@@ -2279,7 +2284,9 @@ begin
         Result.Bottom := R.Bottom;
     end;
   end;
-  Assert(AnyValid);
+
+  if (not AnyValid) then
+    Exit(Default(TFloatRect));
 end;
 
 function PolypolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
@@ -2288,7 +2295,8 @@ var
   R: TFixedRect;
   AnyValid: boolean;
 begin
-  Assert(Length(Points) > 0);
+  if (Length(Points) = 0) then
+    Exit(Default(TFloatRect));
 
   AnyValid := False;
 
@@ -2314,7 +2322,9 @@ begin
         Result.Bottom := R.Bottom;
     end;
   end;
-  Assert(AnyValid);
+
+  if (not AnyValid) then
+    Exit(Default(TFloatRect));
 end;
 
 
