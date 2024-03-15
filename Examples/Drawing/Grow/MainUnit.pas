@@ -42,8 +42,9 @@ uses
   Windows, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls,
   ExtCtrls, Math, Vcl.ExtDlgs, Vcl.Menus, System.Actions, Vcl.ActnList,
 
-  GR32_Paths, GR32_Polygons,
-  GR32_VectorUtils, GR32, GR32_Gamma, GR32_Blend, GR32_Image;
+  GR32,
+  GR32_Polygons,
+  GR32_Image;
 
 type
   TFormGrow = class(TForm)
@@ -80,9 +81,16 @@ type
     Action71: TMenuItem;
     ActionOptionJoinStyle: TAction;
     ActionOptionEndStyle: TAction;
+    ActionOptionGrowClipper: TAction;
+    ActionOptionGrowGraphics32: TAction;
+    N3: TMenuItem;
+    Growusing1: TMenuItem;
+    Graphics321: TMenuItem;
+    Clipper1: TMenuItem;
+    ActionOptionGrowAngus: TAction;
+    Image321: TMenuItem;
     procedure ImageClick(Sender: TObject);
     procedure ImageResize(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure ActionFileExitExecute(Sender: TObject);
     procedure ActionOptionShapeExecute(Sender: TObject);
     procedure ActionOptionJoinStyleExecute(Sender: TObject);
@@ -92,6 +100,7 @@ type
     procedure ActionOptionJoinStyleUpdate(Sender: TObject);
     procedure ActionOptionEndStyleUpdate(Sender: TObject);
     procedure ActionRefreshExecute(Sender: TObject);
+    procedure ActionRedrawExecute(Sender: TObject);
   private
     FJoinStyle: TJoinStyle;
     FEndStyle: TEndStyle;
@@ -114,13 +123,13 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Clipper
-{$IFDEF Darwin}
-  , MacOSAll
-{$ENDIF}
-  ;
+  GR32_Clipper,
+  GR32_Paths,
+  GR32_VectorUtils,
+  GR32_VectorUtils.Reference,
+  GR32_VectorUtils.Angus,
+  GR32_VectorUtils.Clipper2;
 
-//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 function Area(const Path: TArrayOfFloatPoint): Single;
@@ -140,18 +149,7 @@ begin
   end;
   Result := -Result * 0.5;
 end;
-//------------------------------------------------------------------------------
 
-function MakePath(const pts: array of integer): TArrayOfFloatPoint;
-var
-  i, len: Integer;
-begin
-  Result := nil;
-  len := length(pts) div 2;
-  Setlength(Result, len);
-  for i := 0 to len -1 do
-    Result[i] := FloatPoint(pts[i*2], pts[i*2 +1]);
-end;
 //------------------------------------------------------------------------------
 
 function MakeRandomPath(MaxWidth, MaxHeight, Count: Integer): TArrayOfFloatPoint;
@@ -165,6 +163,7 @@ begin
     Result[i].Y := 20 + Random(MaxHeight - 40);
   end;
 end;
+
 //------------------------------------------------------------------------------
 
 function TFormGrow.GeneratePolygon(MaxWidth, MaxHeight, EdgeCount: integer): TArrayOfFloatPoint;
@@ -248,6 +247,11 @@ begin
   TAction(Sender).Checked := (FJoinStyle = TJoinStyle(TAction(Sender).Tag));
 end;
 
+procedure TFormGrow.ActionRedrawExecute(Sender: TObject);
+begin
+  ApplyOptionsAndRedraw;
+end;
+
 procedure TFormGrow.ActionRefreshExecute(Sender: TObject);
 begin
   CreateNewPolygonAndApplyOptions;
@@ -263,9 +267,7 @@ procedure TFormGrow.ApplyOptionsAndRedraw;
 var
   PolyPts: TArrayOfArrayOfFloatPoint;
   Closed: boolean;
-const
-  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtBevel, jtRound, jtSquare);
-  EndStyleToEndType: array[TEndStyle] of TEndType = (etOpenButt, etOpenSquare, etOpenRound);
+  Builder: TPolyLineBuilderClass;
 begin
   // Apply options to existing polyline/polygon and repaint
 
@@ -274,23 +276,21 @@ begin
   Image.Bitmap.Clear(clWhite32);
 
   if (Closed) then
-    PolyPolygonFS(image.Bitmap, FPolyPoints, $100000FF);
+    PolyPolygonFS(image.Bitmap, FPolyPoints, $100000FF, pfNonZero);
   PolyPolylineFS(image.Bitmap, FPolyPoints, clBlack32, Closed, 1);
 
-  if ActionOptionShapePolyLine.Checked then
-    // INFLATE (GROW / OFFSET) A POLYLINE ...
-    PolyPts := InflatePaths(FPolyPoints, 20, JoinStyleToJoinType[FJoinStyle], EndStyleToEndType[FEndStyle])
+  if (ActionOptionGrowClipper.Checked) then
+    Builder := PolyLineBuilderClipper
   else
-    // INFLATE (GROW / OFFSET) A POLYGON ...
-    PolyPts := InflatePaths(FPolyPoints, 20, JoinStyleToJoinType[FJoinStyle], etPolygon);
+  if (ActionOptionGrowAngus.Checked) then
+    Builder := PolyLineBuilderAngus
+  else
+    Builder := PolyLineBuilderReference;
+
+  PolyPts := Builder.BuildPolyPolyLine(FPolyPoints, Closed, 20, FJoinStyle, FEndStyle);
 
   PolyPolylineFS(image.Bitmap, PolyPts, clRed32, True, 1);
-  PolyPolygonFS(image.Bitmap, PolyPts, $10FF0000);
-end;
-
-procedure TFormGrow.FormCreate(Sender: TObject);
-begin
-  SetGamma(1.4);
+  PolyPolygonFS(image.Bitmap, PolyPts, $10FF0000, pfNonZero);
 end;
 
 procedure TFormGrow.ImageResize(Sender: TObject);
@@ -301,6 +301,8 @@ end;
 
 procedure TFormGrow.CreateNewPolygonAndApplyOptions;
 begin
+  Caption := IntToStr(RandSeed);
+
   Setlength(FPolyPoints, 1);
 
   if ActionOptionShapePolyLine.Checked then
