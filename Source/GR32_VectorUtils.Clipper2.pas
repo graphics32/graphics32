@@ -20,15 +20,13 @@ unit GR32_VectorUtils.Clipper2;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Vectorial Polygon Rasterizer for Graphics32
+ * The Original Code is Polyline builder for Graphics32
  *
  * The Initial Developer of the Original Code is
- * Mattias Andersson <mattias@centaurix.com>
+ * Anders Melander <anders@melander.dk>
  *
  * Portions created by the Initial Developer are Copyright (C) 2008-2012
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
 
