@@ -49,6 +49,8 @@ uses
 //------------------------------------------------------------------------------
 // Old implementation of the Grow and BuildPoly*line functions.
 //------------------------------------------------------------------------------
+// Note: Does not currently support JoinStyle=jsSquare; jsBevel is used instead.
+//------------------------------------------------------------------------------
 
 type
   PolyLineBuilderReference = class(TPolyLineBuilder)

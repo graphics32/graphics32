@@ -20,16 +20,13 @@ unit MainUnit;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Graphics32
+ * The Original Code is Clipper grow example
  *
  * The Initial Developer of the Original Code is
- * Alex A. Denisov
+ * Angus Johnson (http://www.angusj.com)
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- * Andre Beckedorf <andre@metaexception.de>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -72,7 +69,7 @@ type
     ActionOptionJoinMiter: TAction;
     ActionOptionJoinBevel: TAction;
     ActionOptionJoinRound: TAction;
-    ActionOptionJoinRoundEx: TAction;
+    ActionOptionJoinSquare: TAction;
     ActionOptionEndButt: TAction;
     ActionOptionEndSquare: TAction;
     ActionOptionEndRound: TAction;

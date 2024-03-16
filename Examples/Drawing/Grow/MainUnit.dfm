@@ -89,7 +89,7 @@ object FormGrow: TFormGrow
           RadioItem = True
         end
         object RoundExjoin1: TMenuItem
-          Action = ActionOptionJoinRoundEx
+          Action = ActionOptionJoinSquare
           GroupIndex = 2
           RadioItem = True
         end
@@ -124,15 +124,18 @@ object FormGrow: TFormGrow
         object Graphics321: TMenuItem
           Action = ActionOptionGrowGraphics32
           AutoCheck = True
+          GroupIndex = 4
           RadioItem = True
         end
         object Image321: TMenuItem
           Action = ActionOptionGrowAngus
           AutoCheck = True
+          GroupIndex = 4
         end
         object Clipper1: TMenuItem
           Action = ActionOptionGrowClipper
           AutoCheck = True
+          GroupIndex = 4
           RadioItem = True
         end
       end
@@ -196,7 +199,7 @@ object FormGrow: TFormGrow
       OnExecute = ActionOptionJoinStyleExecute
       OnUpdate = ActionOptionJoinStyleUpdate
     end
-    object ActionOptionJoinRoundEx: TAction
+    object ActionOptionJoinSquare: TAction
       Tag = 3
       Category = 'Options'
       Caption = '&Square join'

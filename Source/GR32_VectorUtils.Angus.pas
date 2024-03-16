@@ -40,12 +40,18 @@ uses
   Types,
   GR32,
   GR32_Polygons,
-  GR32_VectorUtils;
+  GR32_VectorUtils,
+  GR32_Geometry; // In interface section for inlining
 
 //------------------------------------------------------------------------------
 //
 //      Grow and BuildPoly*line replacements adapted from Image32
 //
+//------------------------------------------------------------------------------
+// Note: Does not currently support JoinStyle=jsSquare; jsBevel is used instead.
+//------------------------------------------------------------------------------
+// The CalcRoundingSteps function has been rewritten to use the same algorithm
+// as from the Arc function.
 //------------------------------------------------------------------------------
 
 
@@ -56,7 +62,7 @@ type
     class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
   public
     // Float
-    class function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
+    class function BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
     class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload; override;
   end;
 
@@ -70,8 +76,7 @@ uses
   Math,
   SysUtils,
 
-  GR32_Math,
-  GR32_Geometry;
+  GR32_Math;
 
 const
   GrowScale = 1.0;
@@ -362,7 +367,7 @@ end;
 //
 //------------------------------------------------------------------------------
 
-function CalcRoundingSteps(radius: double): double; inline;
+function CalcRoundingStepsOld(radius: double): double;
 begin
   //the results of this function have been derived empirically
   //and may need further adjustment
@@ -370,6 +375,19 @@ begin
   else result := Pi * Sqrt(radius);
 end;
 
+function CalcRoundingSteps(radius: double): double;
+const
+  MINSTEPS = 6;
+  SQUAREDMINSTEPS = Sqr(MINSTEPS);
+var
+  Temp: TFloat;
+begin
+  Temp := Abs(Radius) * Sqr(TWOPI);
+  if Temp < SQUAREDMINSTEPS then
+    Result := 6
+  else
+    Result := Round(Sqrt(Temp));
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -377,11 +395,11 @@ end;
 //
 //------------------------------------------------------------------------------
 function Grow(const path, normals: TPathD; delta: double;
-  joinStyle: TJoinStyle; miterLim: double; isOpen: Boolean = false): TPathD;
+  joinStyle: TJoinStyle; miterLim: double; isOpen: Boolean): TPathD;
 var
   resCnt, resCap    : integer;
   norms             : TPathD;
-  spr               : double;
+  stepsPerRadian    : double;
   stepSin, stepCos  : double;
   asin, acos        : double;
 
@@ -451,7 +469,7 @@ var
     AddPoint(PointD(pt.X + dx, pt.Y + dy));
 
     angle := ArcTan2(asin, acos);
-    steps := Ceil(spr * abs(angle));
+    steps := Ceil(stepsPerRadian * abs(angle));
 
     for i := 2 to steps do
     begin
@@ -504,23 +522,22 @@ begin
 
   highI := len -1;
 
+  stepsPerRadian := 0;
   if joinStyle = jsRound then
   begin
     steps := CalcRoundingSteps(delta);
-//    // avoid excessive precision
+//    // avoid excessive precision // todo - recheck if needed
 //		if (steps > absDelta * Pi) then
 //			steps := absDelta * Pi;
     stepSin := sin(TwoPi/steps);
     stepCos := cos(TwoPi/steps);
 		if (delta < 0) then stepSin := -stepSin;
-    spr := steps / TwoPi;
-  end else
-  begin
-    if miterLim <= 0 then miterLim := DefaultMiterLimit
-    else if miterLim < 2 then miterLim := 2;
-    miterLim := 2 /(sqr(miterLim));
-    spr := 0; //stop compiler warning.
+    stepsPerRadian := steps / TwoPi;
   end;
+
+  if miterLim <= 0 then miterLim := DefaultMiterLimit
+  else if miterLim < 2 then miterLim := 2;
+  miterLim := 2 /(sqr(miterLim));
 
   resCnt := 0;
   resCap := 0;
@@ -580,6 +597,7 @@ begin
       DoBevel(j, k);
     k := j;
   end;
+
   if isOpen then
     AddPoint(PointD(
      path[highI].X + norms[highI].X * delta,  //todo - check this !!!
@@ -588,10 +606,9 @@ begin
   SetLength(Result, resCnt);
 end;
 
-
 //------------------------------------------------------------------------------
 //
-//      Outline internals
+//      RoughOutline internals
 //
 //------------------------------------------------------------------------------
 function GetAvgUnitVector(const vec1, vec2: TPointD): TPointD; inline;
@@ -602,18 +619,18 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      Outline
+//      RoughOutline
 //
 //------------------------------------------------------------------------------
 function GrowOpenLine(const line: TPathD; delta: double;
   joinStyle: TJoinStyle; endStyle: TEndStyle;
   miterLim: double): TPathD;
 var
-  len, x,y          : integer;
+  len               : integer;
   resCnt, resCap    : integer;
   asin, acos        : double;
   stepSin, stepCos  : double;
-  spr               : double;
+  stepsPerRadian    : double;
   path, norms       : TPathD;
 
   procedure AddPoint(const pt: TPointD);
@@ -708,6 +725,28 @@ var
     end;
   end;
 
+  procedure DoRound2(j, k: Integer);
+  var
+    a1, a2: TFloat;
+    Arc: TArrayOfFloatPoint;
+    i: integer;
+  begin
+    a2 := ArcTan2(norms[k].Y, norms[k].X);
+    a1 := ArcTan2(-norms[k].Y, -norms[k].X);
+    if a2 < a1 then
+      a2 := a2 + TWOPI;
+    Arc := BuildArc(path[j], a1, a2, delta);
+
+    if resCnt+Length(Arc) > resCap then
+    begin
+      resCap := Length(Arc) + 64;
+      setLength(result, resCap);
+    end;
+
+    for i := 0 to High(Arc) do
+      AddPoint(Arc[i]);
+  end;
+
   procedure DoRound(j, k: Integer);
   var
     i, steps: Integer;
@@ -730,7 +769,7 @@ var
     end;
     AddPoint(PointD(pt.X + dx, pt.Y + dy));
 
-    steps := Ceil(spr * abs(angle));
+    steps := Ceil(stepsPerRadian * abs(angle));
     for i := 2 to steps do
     begin
       oldDx := dx;
@@ -741,6 +780,38 @@ var
     AddPoint(PointD(
       pt.X + norms[j].X * delta,
       pt.Y + norms[j].Y * delta));
+  end;
+
+  procedure DoPoint(j: Cardinal; var k: Cardinal);
+  begin
+    asin := CrossProduct(norms[k], norms[j]);
+    if (asin > 1.0) then asin := 1.0
+    else if (asin < -1.0) then asin := -1.0;
+    acos := DotProduct(norms[k], norms[j]);
+
+    if (acos > -0.999) and (asin * delta < 0) then
+    begin
+      // is concave
+      AddPoint(PointD(
+        path[j].X + norms[k].X * delta, path[j].Y + norms[k].Y * delta));
+      AddPoint(path[j]);
+      AddPoint(PointD(
+        path[j].X + norms[j].X * delta, path[j].Y + norms[j].Y * delta));
+    end
+    else if (acos > 0.999) and (joinStyle <> jsRound) then
+      // almost straight - less than 2.5 degree, so miter
+      DoMiter(j, k, acos)
+    else if (joinStyle = jsMiter) then
+    begin
+      if (1 + acos > miterLim) then
+        DoMiter(j, k, acos) else
+        DoBevel(j, k);
+    end
+    else if (joinStyle = jsRound) then
+      DoRound(j, k)
+    else
+      DoBevel(j, k);
+    k := j;
   end;
 
 var
@@ -780,23 +851,21 @@ begin
       joinStyle := jsSquare;
   end;
 
-  if joinStyle = jsRound then
+  stepsPerRadian := 0;
+  if (joinStyle = jsRound) or (endStyle = esRound) then
   begin
     steps := CalcRoundingSteps(delta);
-//    // avoid excessive precision
-//		if (steps > absDelta * Pi) then
+//		if (steps > absDelta * Pi) then // todo - recheck if needed
 //			steps := absDelta * Pi;
     stepSin := sin(TwoPi/steps);
     stepCos := cos(TwoPi/steps);
 		if (delta < 0) then stepSin := -stepSin;
-    spr := steps / TwoPi;
-  end else
-  begin
-    if miterLim <= 0 then miterLim := DefaultMiterLimit
-    else if miterLim < 2 then miterLim := 2;
-    miterLim := 2 /(sqr(miterLim));
-    spr := 0; //stop compiler warning.
+    stepsPerRadian := steps / TwoPi;
   end;
+
+  if miterLim <= 0 then miterLim := DefaultMiterLimit
+  else if miterLim < 2 then miterLim := 2;
+  miterLim := 2 /(sqr(miterLim));
 
   norms := GetNormals(path);
   resCnt := 0; resCap := 0;
@@ -810,37 +879,7 @@ begin
   // offset the left side going **forward**
   k := 0;
   highJ := len -1;
-  for j := 1 to highJ -1 do
-  begin
-    asin := CrossProduct(norms[k], norms[j]);
-    if (asin > 1.0) then asin := 1.0
-    else if (asin < -1.0) then asin := -1.0;
-    acos := DotProduct(norms[k], norms[j]);
-
-    if (acos > -0.999) and (asin * delta < 0) then
-    begin
-      // is concave
-      AddPoint(PointD(
-        path[j].X + norms[k].X * delta, path[j].Y + norms[k].Y * delta));
-      AddPoint(path[j]);
-      AddPoint(PointD(
-        path[j].X + norms[j].X * delta, path[j].Y + norms[j].Y * delta));
-    end
-    else if (acos > 0.999) and (joinStyle <> jsRound) then
-      // almost straight - less than 2.5 degree, so miter
-      DoMiter(j, k, acos)
-    else if (joinStyle = jsMiter) then
-    begin
-      if (1 + acos > miterLim) then
-        DoMiter(j, k, acos) else
-        DoBevel(j, k);
-    end
-    else if (joinStyle = jsRound) then
-      DoRound(j, k)
-    else
-      DoBevel(j, k);
-    k := j;
-  end;
+  for j := 1 to highJ -1 do DoPoint(j,k);
 
   // reverse the normals ...
   for j := highJ downto 1 do
@@ -859,36 +898,7 @@ begin
   // offset the left side going **backward**
   k := highJ;
   for j := highJ -1 downto 1 do
-  begin
-    asin := CrossProduct(norms[k], norms[j]);
-    if (asin > 1.0) then asin := 1.0
-    else if (asin < -1.0) then asin := -1.0;
-    acos := DotProduct(norms[k], norms[j]);
-
-    if (acos > -0.999) and (asin * delta < 0) then
-    begin
-      // is concave
-      AddPoint(PointD(
-        path[j].X + norms[k].X * delta, path[j].Y + norms[k].Y * delta));
-      AddPoint(path[j]);
-      AddPoint(PointD(
-        path[j].X + norms[j].X * delta, path[j].Y + norms[j].Y * delta));
-    end
-    else if (acos > 0.999) and (joinStyle <> jsRound) then
-      // almost straight - less than 2.5 degree, so miter
-      DoMiter(j, k, acos)
-    else if (joinStyle = jsMiter) then
-    begin
-      if (1 + acos > miterLim) then
-        DoMiter(j, k, acos) else
-        DoBevel(j, k);
-    end
-    else if (joinStyle = jsRound) then
-      DoRound(j, k)
-    else
-      DoBevel(j, k);
-    k := j;
-  end;
+    DoPoint(j, k);
 
   SetLength(Result, resCnt);
 end;
@@ -898,8 +908,7 @@ end;
 function GrowClosedLine(const line: TPathD; width: double;
   joinStyle: TJoinStyle; miterLimOrRndScale: double): TPathsD;
 var
-  j, highJ: cardinal;
-  line2, norms: TPathD;
+  norms: TPathD;
   rec: TRectD;
   skipHole: Boolean;
 begin
@@ -909,20 +918,20 @@ begin
   begin
     SetLength(Result, 1);
     norms := GetNormals(line);
-    Result[0] := Grow(line, norms, width/2, joinStyle, miterLimOrRndScale);
+    Result[0] := Grow(line, norms, width/2, joinStyle, miterLimOrRndScale, false);
   end else
   begin
     SetLength(Result, 2);
     norms := GetNormals(line);
-    Result[0] := Grow(line, norms, width/2, joinStyle, miterLimOrRndScale);
+    Result[0] := Grow(line, norms, width/2, joinStyle, miterLimOrRndScale, false);
     Result[1] := ReversePath(
-      Grow(line, norms, -width/2, joinStyle, miterLimOrRndScale));
+      Grow(line, norms, -width/2, joinStyle, miterLimOrRndScale, false));
   end;
 end;
 
 //------------------------------------------------------------------------------
 
-function Outline(const line: TPathD; lineWidth: double;
+function RoughOutline(const line: TPathD; lineWidth: double;
   joinStyle: TJoinStyle; endStyle: TEndStyle;
   miterLimOrRndScale: double): TPathsD; overload;
 begin
@@ -941,11 +950,11 @@ end;
 
 //------------------------------------------------------------------------------
 
-function Outline(const lines: TPathsD; lineWidth: double;
+function RoughOutline(const lines: TPathsD; lineWidth: double;
   joinStyle: TJoinStyle; endStyle: TEndStyle;
   miterLimOrRndScale: double): TPathsD; overload;
 var
-  i, len: integer;
+  i: integer;
   lwDiv2: double;
   p: TPathD;
 begin
@@ -1004,7 +1013,7 @@ class function PolyLineBuilderAngus.BuildPolyline(const Points: TArrayOfFloatPoi
 var
   Res: TArrayOfArrayOfFloatPoint;
 begin
-  Res := Outline(Points, StrokeWidth * GrowScale, JoinStyleMap[JoinStyle], EndStyleMap[EndStyle], MiterLimit);
+  Res := RoughOutline(Points, StrokeWidth * GrowScale, JoinStyleMap[JoinStyle], EndStyleMap[EndStyle], MiterLimit);
 
   if (Length(Res) > 0) then
     Result := Res[0]
@@ -1021,7 +1030,7 @@ begin
   else
     OutlineEndStyle := EndStyleMap[EndStyle];
 
-  Result := Outline(Points, StrokeWidth * GrowScale, JoinStyleMap[JoinStyle], OutlineEndStyle, MiterLimit);
+  Result := RoughOutline(Points, StrokeWidth * GrowScale, JoinStyleMap[JoinStyle], OutlineEndStyle, MiterLimit);
 end;
 
 //------------------------------------------------------------------------------
