@@ -51,7 +51,7 @@ uses
 // Note: Does not currently support JoinStyle=jsSquare; jsBevel is used instead.
 //------------------------------------------------------------------------------
 // The CalcRoundingSteps function has been rewritten to use the same algorithm
-// as from the Arc function.
+// as the Arc function.
 //------------------------------------------------------------------------------
 
 
@@ -723,28 +723,6 @@ var
       AddPoint(ip);
       AddPoint(ReflectPoint(ip, ptQ));
     end;
-  end;
-
-  procedure DoRound2(j, k: Integer);
-  var
-    a1, a2: TFloat;
-    Arc: TArrayOfFloatPoint;
-    i: integer;
-  begin
-    a2 := ArcTan2(norms[k].Y, norms[k].X);
-    a1 := ArcTan2(-norms[k].Y, -norms[k].X);
-    if a2 < a1 then
-      a2 := a2 + TWOPI;
-    Arc := BuildArc(path[j], a1, a2, delta);
-
-    if resCnt+Length(Arc) > resCap then
-    begin
-      resCap := Length(Arc) + 64;
-      setLength(result, resCap);
-    end;
-
-    for i := 0 to High(Arc) do
-      AddPoint(Arc[i]);
   end;
 
   procedure DoRound(j, k: Integer);
