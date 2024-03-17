@@ -1466,12 +1466,16 @@ end;
 function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint;
 var
   R2: TFloatRect;
+  CornerRadius: TFloat;
 begin
+  // Constrain radius to half width & height
+  CornerRadius := Min(Radius, Min(R.Width / 2, R.Height / 2));
+
   R2 := R;
   // Shrink box and then...
-  GR32.InflateRect(R2, -Radius, -Radius);
-  // Grow it with rounded corners
-  Result := Grow(Rectangle(R2), Radius, jsRound, True);
+  GR32.InflateRect(R2, -CornerRadius, -CornerRadius);
+  // ...Grow it with rounded corners
+  Result := Grow(Rectangle(R2), CornerRadius, jsRound, True);
 end;
 
 function BuildNormals(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
