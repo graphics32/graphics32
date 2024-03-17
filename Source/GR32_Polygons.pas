@@ -37,6 +37,7 @@ interface
 uses
   Types,
   GR32,
+  GR32_Bindings,
   GR32_Containers,
   GR32_VPR,
   GR32_Transforms,
@@ -68,8 +69,8 @@ type
 
     jsSquare            // jsSquare: Cut corners so the distance from the vertice producing the
                         // corner to the midpoint of the corner is the same as the offset distrance.
-    );
-    TJoinStyles = set of TJoinStyle;
+  );
+  TJoinStyles = set of TJoinStyle;
 
 
 //------------------------------------------------------------------------------
@@ -166,11 +167,13 @@ type
   TPolygonRenderer32VPR = class(TPolygonRenderer32)
   private
     FFillProc: TFillProc;
-    procedure UpdateFillProcs;
   protected
+    procedure UpdateFillProc;
+    procedure GetFillProc(var AFillProc: TFillProc); virtual;
     procedure RenderSpan(const Span: TValueSpan; DstY: Integer); virtual;
     procedure FillSpan(const Span: TValueSpan; DstY: Integer); virtual;
     function GetRenderSpan: TRenderSpanEvent; virtual;
+    property FillProc: TFillProc read FFillProc;
   public
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
       const ClipRect: TFloatRect); override;
@@ -510,6 +513,20 @@ var
 
 
 //------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+function PolygonsRegistry: TFunctionRegistry;
+
+var
+  // Coverage builders used internally by TPolygonRenderer32VPR
+  MakeAlphaEvenOddUP: TFillProc;
+  MakeAlphaNonZeroUP: TFillProc;
+  MakeAlphaEvenOddUPF: TFillProc;
+  MakeAlphaNonZeroUPF: TFillProc;
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -537,7 +554,7 @@ end;
 
 // routines for color filling:
 
-procedure MakeAlphaNonZeroUP(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaNonZeroUP_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -596,7 +613,7 @@ begin
   begin
     // Reuse last computed value if coverage is the same
     // Note: Cast to integer to avoid slower floating point comparison
-    if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then // TODO : Unsafe. Assumes SizeOf(TFloat)=SizeOf(integer)=SizeOf(Single)
+    if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then
     begin
       Last := Coverage[I];
       V := Abs(Round(Last * $10000)); // $10000 = 256 * 256
@@ -627,7 +644,7 @@ begin
 end;
 *)
 
-procedure MakeAlphaEvenOddUP(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaEvenOddUP_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -687,7 +704,7 @@ end;
 
 // polygon filler routines (extract alpha only):
 
-procedure MakeAlphaNonZeroUPF(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaNonZeroUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -700,7 +717,7 @@ begin
   end;
 end;
 
-procedure MakeAlphaEvenOddUPF(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaEvenOddUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -1340,22 +1357,22 @@ var
   AlphaValues: PColor32;
   Y: Integer;
 begin
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Bitmap.Width * SizeOf(TColor32));
-  {$ELSE}
+{$ELSE}
   GetMem(AlphaValues, Bitmap.Width * SizeOf(TColor32));
-  {$ENDIF}
+{$ENDIF}
   FillLongword(AlphaValues^, Bitmap.Width, $FF);
   Filler.BeginRendering;
   for Y := 0 to Bitmap.Height - 1 do
     Filler.FillLine(PColor32(Bitmap.ScanLine[y]), 0, y, Bitmap.Width,
       AlphaValues, Bitmap.CombineMode);
   Filler.EndRendering;
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
-  {$ELSE}
+{$ELSE}
   FreeMem(AlphaValues);
-  {$ENDIF}
+{$ENDIF}
 end;
 
 
@@ -1472,15 +1489,15 @@ end;
 procedure CombineLineLCD(Weights: PRGBTripleArray; Dst: PColor32Array; Color: TColor32; Count: Integer);
 var
   I: Integer;
-  {$IFDEF TEST_BLENDMEMRGB128SSE4}
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
   Weights64: UInt64;
-  {$ENDIF}
+{$ENDIF}
 begin
   I := 0;
   while Count <> 0 do
-    {$IFDEF TEST_BLENDMEMRGB128SSE4}
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
     if (Count shr 1) = 0 then
-    {$ENDIF}
+{$ENDIF}
     begin
       if PColor32(@Weights[I])^ = $FFFFFFFF then
         Dst[I] := Color
@@ -1489,7 +1506,7 @@ begin
       Dec(Count);
       Inc(I);
     end
-    {$IFDEF TEST_BLENDMEMRGB128SSE4}
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
     else
     begin
       Weights64 := (UInt64(PColor32(@Weights[I + 1])^) shl 32) or
@@ -1504,7 +1521,7 @@ begin
       Dec(Count, 2);
       Inc(I, 2);
     end
-    {$ENDIF};
+{$ENDIF};
   EMMS;
 end;
 
@@ -1935,20 +1952,20 @@ var
   Count: Integer;
 begin
   Count := Span.X2 - Span.X1 + 1;
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Count * SizeOf(TColor32));
-  {$ELSE}
+{$ELSE}
   GetMem(AlphaValues, Count * SizeOf(TColor32));
-  {$ENDIF}
+{$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
   FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count,
     PColor32(AlphaValues), Bitmap.CombineMode);
   EMMS;
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
-  {$ELSE}
+{$ELSE}
   FreeMem(AlphaValues);
-  {$ENDIF}
+{$ENDIF}
 end;
 {$IFDEF USESTACKALLOC}
 {$W-}
@@ -1972,7 +1989,7 @@ begin
   if (not Bitmap.MeasuringMode) then
   begin
 
-    UpdateFillProcs;
+    UpdateFillProc;
 
     if (FFiller <> nil) then
     begin
@@ -2006,33 +2023,40 @@ var
   Count: Integer;
 begin
   Count := Span.X2 - Span.X1 + 1;
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Count * SizeOf(TColor32));
-  {$ELSE}
+{$ELSE}
   GetMem(AlphaValues, Count * SizeOf(TColor32));
-  {$ENDIF}
+{$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
   if Bitmap.CombineMode = cmMerge then
     MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count)
   else
     BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count);
   EMMS;
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
-  {$ELSE}
+{$ELSE}
   FreeMem(AlphaValues);
-  {$ENDIF}
+{$ENDIF}
 end;
 {$W-}
 
-procedure TPolygonRenderer32VPR.UpdateFillProcs;
+procedure TPolygonRenderer32VPR.GetFillProc(var AFillProc: TFillProc);
+type
+  PFillProc = ^TFillProc;
 const
-  FillProcs: array [Boolean, TPolyFillMode] of TFillProc = (
-    (MakeAlphaEvenOddUP, MakeAlphaNonZeroUP),
-    (MakeAlphaEvenOddUPF, MakeAlphaNonZeroUPF)
+  FillProcs: array [Boolean, TPolyFillMode] of PFillProc = (
+    (@@MakeAlphaEvenOddUP, @@MakeAlphaNonZeroUP),
+    (@@MakeAlphaEvenOddUPF, @@MakeAlphaNonZeroUPF)
   );
 begin
-  FFillProc := FillProcs[(FFiller <> nil), FillMode];
+  AFillProc := FillProcs[(FFiller <> nil), FillMode]^;
+end;
+
+procedure TPolygonRenderer32VPR.UpdateFillProc;
+begin
+  GetFillProc(FFillProc);
 end;
 
 { TPolygonRenderer32LCD }
@@ -2088,11 +2112,11 @@ begin
   X1 := DivMod(Span.X1, 3, Offset);
 
   // Left Padding + Right Padding + Filter Width = 2 + 2 + 2 = 6
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc((Count + 6 + PADDING) * SizeOf(Byte));
-  {$ELSE}
+{$ELSE}
   GetMem(AlphaValues, (Count + 6 + PADDING) * SizeOf(Byte));
-  {$ENDIF}
+{$ENDIF}
   AlphaValues[0] := 0;
   AlphaValues[1] := 0;
   if (X1 > 0) then
@@ -2107,11 +2131,11 @@ begin
   MakeAlpha[FFillMode](Span.Values, PByteArray(@AlphaValues[PADDING]), Count, FColor);
   CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X1]), FColor, (Count + Offset + 2) div 3);
 
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
-  {$ELSE}
+{$ELSE}
   FreeMem(AlphaValues);
-  {$ENDIF}
+{$ENDIF}
 end;
 {$W-}
 
@@ -2134,11 +2158,11 @@ begin
   X1 := DivMod(Span.X1, 3, Offset);
 
   // Left Padding + Right Padding + Filter Width = 2 + 2 + 2 = 6
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc((Count + 6 + PADDING) * SizeOf(Byte));
-  {$ELSE}
+{$ELSE}
   GetMem(AlphaValues, (Count + 6 + PADDING) * SizeOf(Byte));
-  {$ENDIF}
+{$ENDIF}
   AlphaValues[0] := 0;
   AlphaValues[1] := 0;
   if (X1 > 0) then
@@ -2155,24 +2179,68 @@ begin
   Inc(Count);
   CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X1]), FColor, (Count + Offset + 2) div 3);
 
-  {$IFDEF USESTACKALLOC}
+{$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
-  {$ELSE}
+{$ELSE}
   FreeMem(AlphaValues);
-  {$ENDIF}
+{$ENDIF}
 end;
 {$W-}
 
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+procedure RegisterBindings;
+begin
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUP);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUP);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUPF);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUPF);
+end;
+
+var
+  FPolygonsRegistry: TFunctionRegistry = nil;
+
+function PolygonsRegistry: TFunctionRegistry;
+begin
+  if (FPolygonsRegistry = nil) then
+  begin
+    FPolygonsRegistry := NewRegistry('GR32_Polygons bindings');
+    RegisterBindings;
+  end;
+  Result := FPolygonsRegistry;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      Function bindings
+//
+//------------------------------------------------------------------------------
+procedure RegisterBindingFunctions;
+begin
+  PolygonsRegistry.Add(@@MakeAlphaEvenOddUP,    @MakeAlphaEvenOddUP_Pas,        [isPascal]);
+  PolygonsRegistry.Add(@@MakeAlphaNonZeroUP,    @MakeAlphaNonZeroUP_Pas,        [isPascal]);
+  PolygonsRegistry.Add(@@MakeAlphaEvenOddUPF,   @MakeAlphaEvenOddUPF_Pas,       [isPascal]);
+  PolygonsRegistry.Add(@@MakeAlphaNonZeroUPF,   @MakeAlphaNonZeroUPF_Pas,       [isPascal]);
+end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 initialization
-  // Optimization in MakeAlpha* assumes SizeOf(TFloat)=SizeOf(integer)=SizeOf(Single)
-  Assert(SizeOf(TFloat) = SizeOf(Single));
-  Assert(SizeOf(integer) = SizeOf(Single));
+
+  RegisterBindingFunctions;
+  PolygonsRegistry.RebindAll;
 
   RegisterPolygonRenderer(TPolygonRenderer32VPR);
   RegisterPolygonRenderer(TPolygonRenderer32LCD);
   RegisterPolygonRenderer(TPolygonRenderer32LCD2);
 
 finalization
+
   PolygonRendererList.Free;
 
 end.
