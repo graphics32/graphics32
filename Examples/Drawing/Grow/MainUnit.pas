@@ -127,6 +127,9 @@ uses
   GR32_VectorUtils.Angus,
   GR32_VectorUtils.Clipper2;
 
+const
+  MARGIN = 40;
+
 //------------------------------------------------------------------------------
 
 function Area(const Path: TArrayOfFloatPoint): Single;
@@ -156,8 +159,8 @@ begin
   Setlength(Result, Count);
   for i := 0 to Count -1 do
   begin
-    Result[i].X := 20 + Random(MaxWidth - 40);
-    Result[i].Y := 20 + Random(MaxHeight - 40);
+    Result[i].X := MARGIN + Random(MaxWidth - MARGIN * 2);
+    Result[i].Y := MARGIN + Random(MaxHeight - MARGIN * 2);
   end;
 end;
 
@@ -191,6 +194,10 @@ begin
 
   // so, remove self-intersections
   PolyPts := Union(PolyPts);
+
+  if (Length(PolyPts) = 0) then
+    // Most likely user has resized window to zero size
+    Abort;
 
   // and find the largest polygon ...
   j := 0;
@@ -298,6 +305,12 @@ end;
 
 procedure TFormGrow.CreateNewPolygonAndApplyOptions;
 begin
+  if (Image.Bitmap.Width < 2*MARGIN) or (Image.Bitmap.Height < 2*MARGIN) then
+  begin
+    Image.Bitmap.Clear(clRed32);
+    exit;
+  end;
+
   Caption := IntToStr(RandSeed);
 
   Setlength(FPolyPoints, 1);
