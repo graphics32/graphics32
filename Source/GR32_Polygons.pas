@@ -28,8 +28,6 @@ unit GR32_Polygons;
  * Portions created by the Initial Developer are Copyright (C) 2008-2012
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -37,7 +35,13 @@ interface
 {$I GR32.inc}
 
 uses
-  Types, GR32, GR32_Containers, GR32_VPR, GR32_Transforms, GR32_Resamplers;
+  Types,
+  GR32,
+  GR32_Bindings,
+  GR32_Containers,
+  GR32_VPR,
+  GR32_Transforms,
+  GR32_Resamplers;
 
 type
   { Polygon join style - used by GR32_VectorUtils.Grow(). }
@@ -111,11 +115,13 @@ type
   TPolygonRenderer32VPR = class(TPolygonRenderer32)
   private
     FFillProc: TFillProc;
-    procedure UpdateFillProcs;
   protected
+    procedure UpdateFillProc;
+    procedure GetFillProc(var AFillProc: TFillProc); virtual;
     procedure RenderSpan(const Span: TValueSpan; DstY: Integer); virtual;
     procedure FillSpan(const Span: TValueSpan; DstY: Integer); virtual;
     function GetRenderSpan: TRenderSpanEvent; virtual;
+    property FillProc: TFillProc read FFillProc;
   public
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
       const ClipRect: TFloatRect); override;
@@ -375,6 +381,25 @@ var
   PolygonRendererList: TClassList;
   DefaultPolygonRendererClass: TPolygonRenderer32Class = TPolygonRenderer32VPR;
 
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+function PolygonsRegistry: TFunctionRegistry;
+
+var
+  // Coverage builders used internally by TPolygonRenderer32VPR
+  MakeAlphaEvenOddUP: TFillProc;
+  MakeAlphaNonZeroUP: TFillProc;
+  MakeAlphaEvenOddUPF: TFillProc;
+  MakeAlphaNonZeroUPF: TFillProc;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
@@ -396,7 +421,7 @@ end;
 
 // routines for color filling:
 
-procedure MakeAlphaNonZeroUP(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaNonZeroUP_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -455,7 +480,7 @@ begin
   begin
     // Reuse last computed value if coverage is the same
     // Note: Cast to integer to avoid slower floating point comparison
-    if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then // TODO : Unsafe. Assumes SizeOf(TFloat)=SizeOf(integer)=SizeOf(Single)
+    if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then
     begin
       Last := Coverage[I];
       V := Abs(Round(Last * $10000)); // $10000 = 256 * 256
@@ -486,7 +511,7 @@ begin
 end;
 *)
 
-procedure MakeAlphaEvenOddUP(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaEvenOddUP_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -546,7 +571,7 @@ end;
 
 // polygon filler routines (extract alpha only):
 
-procedure MakeAlphaNonZeroUPF(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaNonZeroUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -559,7 +584,7 @@ begin
   end;
 end;
 
-procedure MakeAlphaEvenOddUPF(Coverage: PSingleArray; AlphaValues: PColor32Array;
+procedure MakeAlphaEvenOddUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -1831,7 +1856,7 @@ begin
   if (not Bitmap.MeasuringMode) then
   begin
 
-    UpdateFillProcs;
+    UpdateFillProc;
 
     if (FFiller <> nil) then
     begin
@@ -1884,14 +1909,21 @@ begin
 end;
 {$W-}
 
-procedure TPolygonRenderer32VPR.UpdateFillProcs;
+procedure TPolygonRenderer32VPR.GetFillProc(var AFillProc: TFillProc);
+type
+  PFillProc = ^TFillProc;
 const
-  FillProcs: array [Boolean, TPolyFillMode] of TFillProc = (
-    (MakeAlphaEvenOddUP, MakeAlphaNonZeroUP),
-    (MakeAlphaEvenOddUPF, MakeAlphaNonZeroUPF)
+  FillProcs: array [Boolean, TPolyFillMode] of PFillProc = (
+    (@@MakeAlphaEvenOddUP, @@MakeAlphaNonZeroUP),
+    (@@MakeAlphaEvenOddUPF, @@MakeAlphaNonZeroUPF)
   );
 begin
-  FFillProc := FillProcs[(FFiller <> nil), FillMode];
+  AFillProc := FillProcs[(FFiller <> nil), FillMode]^;
+end;
+
+procedure TPolygonRenderer32VPR.UpdateFillProc;
+begin
+  GetFillProc(FFillProc);
 end;
 
 { TPolygonRenderer32LCD }
@@ -2022,16 +2054,60 @@ begin
 end;
 {$W-}
 
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+procedure RegisterBindings;
+begin
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUP);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUP);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUPF);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUPF);
+end;
+
+var
+  FPolygonsRegistry: TFunctionRegistry = nil;
+
+function PolygonsRegistry: TFunctionRegistry;
+begin
+  if (FPolygonsRegistry = nil) then
+  begin
+    FPolygonsRegistry := NewRegistry('GR32_Polygons bindings');
+    RegisterBindings;
+  end;
+  Result := FPolygonsRegistry;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      Function bindings
+//
+//------------------------------------------------------------------------------
+procedure RegisterBindingFunctions;
+begin
+  PolygonsRegistry.Add(@@MakeAlphaEvenOddUP,    @MakeAlphaEvenOddUP_Pas,        BlendBindingFlagPascal);
+  PolygonsRegistry.Add(@@MakeAlphaNonZeroUP,    @MakeAlphaNonZeroUP_Pas,        BlendBindingFlagPascal);
+  PolygonsRegistry.Add(@@MakeAlphaEvenOddUPF,   @MakeAlphaEvenOddUPF_Pas,       BlendBindingFlagPascal);
+  PolygonsRegistry.Add(@@MakeAlphaNonZeroUPF,   @MakeAlphaNonZeroUPF_Pas,       BlendBindingFlagPascal);
+end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 initialization
-  // Optimization in MakeAlpha* assumes SizeOf(TFloat)=SizeOf(integer)=SizeOf(Single)
-  Assert(SizeOf(TFloat) = SizeOf(Single));
-  Assert(SizeOf(integer) = SizeOf(Single));
+
+  RegisterBindingFunctions;
+  PolygonsRegistry.RebindAll;
 
   RegisterPolygonRenderer(TPolygonRenderer32VPR);
   RegisterPolygonRenderer(TPolygonRenderer32LCD);
   RegisterPolygonRenderer(TPolygonRenderer32LCD2);
 
 finalization
+
   PolygonRendererList.Free;
 
 end.
