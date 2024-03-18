@@ -179,6 +179,7 @@ var
   i: Integer;
   R: TFloatRect;
   Layer: TBitmapLayer;
+  Alpha: Cardinal;
 begin
   if Image32.Layers.Count = 0 then
     Exit;
@@ -188,7 +189,20 @@ begin
   begin
     Layer := TBitmapLayer(Image32.Layers[i]);
 
-    Layer.Bitmap.MasterAlpha := (Layer.Bitmap.MasterAlpha + 1) mod 256;
+    Alpha := Layer.Bitmap.MasterAlpha;
+
+    if (Alpha = 0) then
+      Layer.Tag := 0
+    else
+    if (Alpha >= 255) then
+      Layer.Tag := 1;
+
+    if (Layer.Tag = 0) then
+      Inc(Alpha)
+    else
+      Dec(Alpha);
+
+    Layer.Bitmap.MasterAlpha := Alpha;
 
     R := Layer.Location;
     with Velocities[i] do
