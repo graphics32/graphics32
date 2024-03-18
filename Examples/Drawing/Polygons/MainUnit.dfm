@@ -112,8 +112,8 @@ object FormPolygons: TFormPolygons
       Caption = 'Fill Mode'
       ItemIndex = 0
       Items.Strings = (
-        'pfAlternate'
-        'pfWinding')
+        'pfEvenOdd'
+        'pfNonZero')
       TabOrder = 2
       OnClick = FillModeChange
     end
@@ -180,13 +180,14 @@ object FormPolygons: TFormPolygons
       Top = 306
       Width = 121
       Height = 84
-      Caption = 'Joint Mode'
+      Caption = 'Join Style'
       Enabled = False
       ItemIndex = 0
       Items.Strings = (
-        'jmMiter'
-        'jmBevel'
-        'jmRound')
+        'jsMiter'
+        'jsBevel'
+        'jsRound'
+        'jsSquare')
       TabOrder = 8
       OnClick = JointModeChange
     end
