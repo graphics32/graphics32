@@ -310,6 +310,9 @@ begin
   if (Length(Points) <= 1) then
     Exit;
 
+  if (IsZero(Delta)) then
+    Exit(Points);
+
   RMin := 2 / Sqr(MiterLimit);
 
   H := High(Points) - Ord(not Closed);

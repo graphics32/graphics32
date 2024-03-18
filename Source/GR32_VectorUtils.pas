@@ -39,7 +39,7 @@ interface
 {$BOOLEVAL OFF}
 
 {-$define GR32_OFFSET_CLIPPER}
-{$define GR32_OFFSET_ANGUS}
+{-$define GR32_OFFSET_ANGUS}
 {-$define GR32_OFFSET_REF}
 
 {$if (not defined(GR32_OFFSET_REF)) and (not defined(GR32_OFFSET_CLIPPER)) and (not defined(GR32_OFFSET_ANGUS))}
