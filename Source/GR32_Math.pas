@@ -776,11 +776,26 @@ begin
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
+        //
         // Sqrt(x) = x * InvSqrt(x)
-        MOVSS   XMM0, [Value]
+        //
+        // RSQRT is accurate only to ~11 bits.
+        // Note: RSQRT(0) = INF, INF*0 = NAN !
+        //
+
+        MOV     ECX, [Value]
+        MOVD    XMM0, ECX
+
         RSQRTSS XMM1, XMM0
-        MULSS   XMM0, XMM1
-        MOVSS   [Result], XMM0
+        MULSS   XMM1, XMM0
+
+        UCOMISS XMM1, XMM1      // when XMM1=NAN then XMM1<>XMM1
+        MOVD    EAX, XMM1
+        CMOVP   EAX, ECX        // Result := Value (which we assume is zero) if Result was NAN
+
+        MOV     [Result], EAX
+
+
 (* Fast, but pretty bad, approximations:
    see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
 
@@ -906,6 +921,10 @@ begin
 {$ELSE}
 {$IFDEF TARGET_x86}
 asm
+        //
+        // RSQRT is accurate only to ~11 bits.
+        //
+
         MOVSS   XMM0, [Value]
         RSQRTSS XMM0, XMM0
         MOVSS   [Result], XMM0
