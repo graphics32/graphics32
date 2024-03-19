@@ -119,9 +119,9 @@ end;
 procedure TFrmClipper.AddPolygon(const Pts: TArrayOfFloatPoint);
 var
   ct: TClipType;
-  Clipper: TClipper;
+  Clipper: TClipper32;
 begin
-  Clipper := TClipper.Create;
+  Clipper := TClipper32.Create;
   try
     //add multiple contours of existing polygons as subject polygons ...
     Clipper.AddPaths(Polys, ptSubject);

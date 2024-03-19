@@ -36,8 +36,12 @@ interface
 {$I GR32.inc}
 
 uses
-  Types, Classes, SysUtils, Math, GR32, GR32_Polygons,
-  GR32_VectorUtils, GR32_Bindings;
+  Types, Classes, SysUtils, Math,
+  GR32,
+  GR32_Polygons,
+  GR32_VectorUtils,
+  GR32_Blend, // Needed in interface for inlining
+  GR32_Bindings;
 
 type
   TColor32GradientStop = record
@@ -703,7 +707,10 @@ var
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Math, GR32_Geometry, GR32_Blend;
+  GR32_LowLevel,
+  GR32_System,
+  GR32_Math,
+  GR32_Geometry;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';

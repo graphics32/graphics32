@@ -92,6 +92,8 @@ type
     function Execute(ClipType: TClipType; FillRule: TFillRule; out ClosedPaths, OpenPaths: TArrayOfArrayOfFixedPoint): Boolean; overload;
   end;
 
+  TClipper32 = TClipper; // Can be used to avoid ambiguity with Clipper's own TClipper class.
+
 
 const
   // TJoinType
@@ -118,22 +120,22 @@ type
   private
   public
     procedure AddPath(const Path: TArrayOfFloatPoint); overload; deprecated 'Use AddPath(path, joinType, endType)';
-    procedure AddPath(const Path: TArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure AddPath(const Path: TArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType); overload;
 
     procedure AddPaths(const Paths: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use AddPaths(paths, joinType, endType)';
-    procedure AddPaths(const Paths: TArrayOfArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure AddPaths(const Paths: TArrayOfArrayOfFloatPoint; JoinType: TJoinType; EndType: TEndType); overload;
 
     procedure Execute(Delta: Double; jt: TJoinType; et: TEndType; out Solution: TArrayOfArrayOfFloatPoint); overload; deprecated 'Use Execute(delta)';
-    function Execute(Delta: Double): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function Execute(Delta: Double): TArrayOfArrayOfFloatPoint; overload;
   end;
 
 function InflatePaths(const Paths: GR32.TArrayOfArrayOfFixedPoint;
   Delta: double; jointType: TJoinType; EndType: TEndType;
-  MiterLimit: double = 2): GR32.TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+  MiterLimit: double = 2): GR32.TArrayOfArrayOfFixedPoint; overload;
 
 function InflatePaths(const Paths: GR32.TArrayOfArrayOfFloatPoint;
   Delta: double; jointType: TJoinType; EndType: TEndType;
-  MiterLimit: double = 2): GR32.TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+  MiterLimit: double = 2): GR32.TArrayOfArrayOfFloatPoint; overload;
 
 implementation
 

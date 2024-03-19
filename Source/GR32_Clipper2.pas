@@ -86,7 +86,6 @@ function FloatRect(const r: TRect64): GR32.TFloatRect;
 *)
 
 type
-  TClipper    = Clipper.Engine.TClipper64;
   TClipper64  = Clipper.Engine.TClipper64;
   TPoint64    = Clipper.Core.TPoint64;
   TRect64     = Clipper.Core.TRect64;

@@ -147,7 +147,8 @@ function Star(const P: TFloatPoint; const InnerRadius, OuterRadius: TFloat; Vert
 function Star(const X, Y, InnerRadius, OuterRadius: TFloat; Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Star(const P: TFloatPoint; const Radius: TFloat; Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Star(const X, Y, Radius: TFloat; Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Rectangle(const R: TFloatRect): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Rectangle(const R: TRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Rectangle(const R: TFloatRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect; overload;
@@ -1452,6 +1453,15 @@ begin
       Result[I].Y := InnerRadius * D.Y + P.Y;
     end;
   end;
+end;
+
+function Rectangle(const R: TRect): TArrayOfFloatPoint;
+begin
+  SetLength(Result, 4);
+  Result[0] := FloatPoint(R.TopLeft);
+  Result[1] := FloatPoint(R.Right, R.Top);
+  Result[2] := FloatPoint(R.BottomRight);
+  Result[3] := FloatPoint(R.Left, R.Bottom);
 end;
 
 function Rectangle(const R: TFloatRect): TArrayOfFloatPoint;

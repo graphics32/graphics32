@@ -330,6 +330,7 @@ implementation
 
 uses
   Math,
+  Types,
   GR32_Layers,
   GR32_Backends_Generic,
   GR32.ImageFormats,
@@ -955,13 +956,13 @@ var
   SourceRect: TRect;
 begin
   if (FBitmap <> nil) then
-    IntersectRect(SourceRect, Value, FBitmap.BoundsRect)
+    GR32.IntersectRect(SourceRect, Value, FBitmap.BoundsRect)
   else
   begin
     SourceRect.Top := Max(0, Value.Top);
     SourceRect.Left := Max(0, Value.Left);
-    SourceRect.Bottom := Max(SourceRect.Bottom, Value.Top);
-    SourceRect.Right := Max(SourceRect.Right, Value.Left);
+    SourceRect.Bottom := Max(SourceRect.Top, Value.Top);
+    SourceRect.Right := Max(SourceRect.Left, Value.Left);
   end;
 
   FSourceTop := SourceRect.Top;

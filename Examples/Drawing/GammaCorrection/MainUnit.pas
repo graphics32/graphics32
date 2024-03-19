@@ -35,7 +35,11 @@ var
 implementation
 
 uses
-  GR32_LowLevel, GR32_Gamma, GR32_VectorUtils, GR32_Polygons;
+  Types,
+  GR32_LowLevel,
+  GR32_Gamma,
+  GR32_VectorUtils,
+  GR32_Polygons;
 
 {$IFDEF FPC}
 {$R *.lfm}

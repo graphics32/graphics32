@@ -66,6 +66,7 @@ implementation
 
 uses
   Math,
+  Types,
   GR32,
   GR32_Math,
   GR32_Geometry,

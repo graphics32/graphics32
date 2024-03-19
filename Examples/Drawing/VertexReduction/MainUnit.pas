@@ -70,6 +70,7 @@ implementation
 {$ENDIF}
 
 uses
+  Types,
   GR32_VectorUtils;
 
 
@@ -154,6 +155,8 @@ end;
 procedure TFrmLineSimplification.PaintBox32PaintBuffer(Sender: TObject);
 var
   Index: Integer;
+  r: TRect;
+  rf: TFloatRect;
 begin
   with PaintBox32.Buffer do
   begin
@@ -162,9 +165,13 @@ begin
     FRenderer.PolygonFS(BuildPolyline(FPoints, 2));
 
     for Index := 0 to High(FPoints) do
-      with FPoints[Index] do
-        FillRectS(Round(X - 4), Round(Y - 4), Round(X + 4), Round(Y + 4),
-          clBlack32);
+    begin
+      rf := FloatRect(FPoints[Index], FPoints[Index]);
+      rf.Inflate(4.0, 4.0);
+
+      r := MakeRect(rf, rrClosest);
+      FillRectS(r, clBlack32);
+    end;
   end;
 end;
 

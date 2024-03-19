@@ -678,7 +678,7 @@ begin
   // Make sure that we stay within bounds.
   // The fill is done inside the bounds rect while the border is centered on the
   // bounds rect. I.e. half of the border is "outside" the bounds rect.
-  InflateRect(Bounds, -(BorderWidth / 2), -(BorderWidth / 2));
+  GR32.InflateRect(Bounds, -(BorderWidth / 2), -(BorderWidth / 2));
 
   RoundPoly := RoundRect(Bounds, GbrBorderRadius.Position);
 

@@ -99,6 +99,7 @@ implementation
 
 uses
   Math,
+  Types,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}

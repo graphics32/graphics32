@@ -143,7 +143,12 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_Math, GR32_LowLevel, GR32_Polygons, GR32_Geometry,
+  Math,
+  Types,
+  GR32_Math,
+  GR32_LowLevel,
+  GR32_Polygons,
+  GR32_Geometry,
   GR32_VectorUtils;
 
 { TMyGradient }

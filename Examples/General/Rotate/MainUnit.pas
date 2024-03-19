@@ -64,6 +64,7 @@ implementation
 {$ENDIF}
 
 uses
+  Types,
   GR32_Math,
 {$IFDEF Darwin}
   MacOSAll,

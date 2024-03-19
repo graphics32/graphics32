@@ -85,8 +85,15 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_System, GR32_LowLevel, GR32_Resamplers, GR32_Brushes,
-  GR32_Backends, GR32_VPR2, GR32_PolygonsAggLite;
+  Types,
+  Math,
+  GR32_System,
+  GR32_LowLevel,
+  GR32_Resamplers,
+  GR32_Brushes,
+  GR32_Backends,
+  GR32_VPR2,
+  GR32_PolygonsAggLite;
 
 const
   GridScale: Integer = 40;

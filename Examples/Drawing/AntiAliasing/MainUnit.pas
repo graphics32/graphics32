@@ -27,7 +27,11 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_Math, GR32_Gamma, GR32_VectorUtils;
+  Math,
+  Types,
+  GR32_Math,
+  GR32_Gamma,
+  GR32_VectorUtils;
 
 procedure TFrmAntiAliasingTest.PaintBox32PaintBuffer(Sender: TObject);
 

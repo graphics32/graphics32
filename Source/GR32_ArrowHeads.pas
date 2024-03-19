@@ -84,6 +84,7 @@ implementation
 
 uses
   Math,
+  Types,
   GR32_Math;
 
 constructor TArrowHeadAbstract.Create(Size: TFloat);

@@ -79,6 +79,7 @@ implementation
 {$ENDIF}
 
 uses
+  Types,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}

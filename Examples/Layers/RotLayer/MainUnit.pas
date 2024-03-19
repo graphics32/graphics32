@@ -80,6 +80,7 @@ uses
   MacOSAll,
 {$ENDIF}
   Math,
+  Types,
   GR32.ImageFormats.PNG32,
   GR32.ImageFormats.JPG;
 

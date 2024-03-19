@@ -3645,9 +3645,9 @@ asm
           CALL    TCustomBitmap32.GET_TS256
 {$IFNDEF OMIT_MMX}
           CMP     MMX_ACTIVE.Integer, $00
-          JZ      @Exit
-          DB      $0F, $77               /// EMMS
-@Exit:
+          JZ      @skip_emms
+          EMMS
+@skip_emms:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -3762,6 +3762,13 @@ begin
   FStippleCounter := Wrap(FStippleCounter, L);
 end;
 
+{$IFDEF PUREPASCAL}
+// Just a duplicate of the function below so we at least can get it inlined
+function FastPrevWeight(Value: TFloat; PrevIndex: Cardinal): Cardinal; inline;
+begin
+  Result := Round($FF * (Value - PrevIndex));
+end;
+{$ELSE}
 var FastPrevWeight: function(Value: TFloat; PrevIndex: Cardinal): Cardinal;
 
 function FastPrevWeight_Pas(Value: TFloat; PrevIndex: Cardinal): Cardinal;
@@ -3769,6 +3776,7 @@ begin
   Result := Round($FF * (Value - PrevIndex));
 end;
 
+{$IFNDEF OMIT_SSE2}
 function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; experimental;
 // Note: roundss is a SSE4.1 instruction
 const
@@ -3791,6 +3799,8 @@ asm
         ROUNDSS xmm0, xmm0, ROUND_MODE
         CVTSS2SI eax, xmm0
 end;
+{$ENDIF}
+{$ENDIF}
 
 function TCustomBitmap32.GetStippleColor: TColor32;
 var
@@ -7838,9 +7848,11 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindingFunctions;
 begin
-  GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_Pas,    BlendBindingFlagPascal);
 {$IFNDEF PUREPASCAL}
+  GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_Pas,    BlendBindingFlagPascal);
+{$IFNDEF OMIT_SSE2}
   GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_SSE41,  [isSSE41]);
+{$ENDIF}
 {$ENDIF}
 end;
 

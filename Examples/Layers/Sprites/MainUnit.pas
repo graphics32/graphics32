@@ -103,6 +103,7 @@ implementation
 {$ENDIF}
 
 uses
+  Types,
   System.UITypes,
 {$IFDEF Darwin}
   MacOSAll,
@@ -262,16 +263,20 @@ var
   TimeElapsed: Cardinal;
   Diff: Integer;
   FPS: Single;
+  LocalFormatSettings: TFormatSettings;
 begin
   TimerFPS.Enabled := False;
   TimeElapsed := GetTickCount - LastCheck;
 
+  LocalFormatSettings := FormatSettings;
+  LocalFormatSettings.DecimalSeparator := '.';
+
   FPS := FramesDrawn / (TimeElapsed / 1000);
-  LblFPS.Caption := Format('%.2f fps', [FPS]);
+  LblFPS.Caption := Format('%.2f fps', [FPS], LocalFormatSettings);
 
   if BenchmarkMode then
   begin
-    BenchmarkList.Add(Format('%d ' + #9 + '%.2f', [Image32.Layers.Count, FPS]));
+    BenchmarkList.Add(Format('%d ' + #9 + '%.2f', [Image32.Layers.Count, FPS], LocalFormatSettings));
 
     Diff := 0;  // stop complaining, ye my evil compiler!
 
@@ -377,8 +382,5 @@ procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   BenchmarkList.Free;
 end;
-
-initialization
-  FormatSettings.DecimalSeparator := '.';
 
 end.

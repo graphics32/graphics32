@@ -277,19 +277,18 @@ var
   Offset: TFloat;
   Color: TColor32;
   ColorStr: string;
+  LocalFormatSettings: TFormatSettings;
 begin
-{$IFDEF COMPILER2005_UP}
-  FormatSettings.DecimalSeparator := '.';
-{$ELSE}
-  DecimalSeparator := '.';
-{$ENDIF}
+  LocalFormatSettings := FormatSettings;
+  LocalFormatSettings.DecimalSeparator := '.';
+
   Gradient.ClearColorStops;
   for i := 0 to s.Count - 1 do
   begin
     j := Pos(':', s[i]);
     if j < 2 then
       Continue;
-    Offset := StrToFloatDef(Copy(s[i], 1, j - 1), -1);
+    Offset := StrToFloatDef(Copy(s[i], 1, j - 1), -1, LocalFormatSettings);
     if (Offset < 0) then
       Continue;
     ColorStr := Trim(Copy(s[i], j + 1, 80));

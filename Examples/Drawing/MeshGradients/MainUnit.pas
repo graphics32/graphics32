@@ -65,7 +65,12 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_Geometry, GR32_Resamplers, GR32_Polygons, GR32_VectorUtils;
+  Math,
+  Types,
+  GR32_Geometry,
+  GR32_Resamplers,
+  GR32_Polygons,
+  GR32_VectorUtils;
 
 procedure TFrmMeshGradients.FormCreate(Sender: TObject);
 var

@@ -40,7 +40,7 @@ uses
   GR32_Bindings;
 
 var
-  MMX_ACTIVE: Boolean;
+  MMX_ACTIVE: Boolean; // For backward compatibility use in asm functions.
 
 //------------------------------------------------------------------------------
 //
