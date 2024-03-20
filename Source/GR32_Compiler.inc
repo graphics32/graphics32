@@ -329,6 +329,8 @@
   {$define RECORD_CLASS_VAR}    // Class vars in record types. Use object type instead.
   {$define CAST_INTF_TO_CLASS}  // Casting an interface to a class.
 
+// 16 byte code alignment required for SSE aligned loads from asm db blocks
+  {$CODEALIGN 16}
 
 {$else}
 (*
@@ -341,6 +343,8 @@
   {$define FPC_HAS_CONSTREF}
   {$define NATIVE_SINCOS}
   {$define USESTACKALLOC}
+  // 16 byte code alignment required for SSE aligned loads from asm db blocks
+  {$CODEALIGN PROC=16}
 
   {$ifndef WINDOWS}
     {$define RGBA_FORMAT}

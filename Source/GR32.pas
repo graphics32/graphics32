@@ -3793,7 +3793,7 @@ asm
 {$ifndef FPC}
         MULSS   xmm0, Float255
 {$else}
-        MULSS   xmm0, [rip+Float255]
+        MULSS   xmm0, [rip+Float255].DWORD
 {$endif}
 
         ROUNDSS xmm0, xmm0, ROUND_MODE

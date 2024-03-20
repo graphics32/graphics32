@@ -568,7 +568,11 @@ begin
 
   // temporary fix for floating point rounding errors
   R := ClipRect;
+{$ifndef FPC}
   R.Inflate(-0.05, -0.05);
+{$else}
+  GR32.InflateRect(R, -0.05, -0.05);
+{$endif}
 
   SetLength(FXSpan, Bitmap.Height);
   for I := 0 to High(FXSpan) do

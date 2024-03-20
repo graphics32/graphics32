@@ -590,6 +590,7 @@ type
 function TLCLBackend.CopyFrom(Graphic: TGraphic): Boolean;
 begin
   TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Canvas.Width, Canvas.Height));
+  Result := True;
 end;
 
 

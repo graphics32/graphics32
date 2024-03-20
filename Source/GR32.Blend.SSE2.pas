@@ -126,15 +126,6 @@ uses
   GR32_LowLevel,
   GR32_System;
 
-// 16 byte code alignment required for SSE aligned loads
-{$IFNDEF FPC}
-  {$CODEALIGN 16}
-{$ELSE}
-  {$MODE objfpc}
-  {$H+}
-  {$ALIGN 16}
-{$ENDIF}
-
 //------------------------------------------------------------------------------
 //
 //      Blend
@@ -1426,7 +1417,7 @@ asm
   // R8D        Weight of X [0..255]
 
         // Return ColorY if weight=0
-        TEST      R8D,R8D
+        TEST      R8D, R8D
         JZ        @exit
 
         // Return ColorX if weight=255
@@ -1506,6 +1497,11 @@ end;
 // Aligned bias table
 procedure SIMD_4x003FFF7F;
 asm
+{$ifdef FPC}
+  ALIGN 16
+{$else}
+  .ALIGN 16
+{$endif}
   db $7F, $FF, $3F, $0
   db $7F, $FF, $3F, $0
   db $7F, $FF, $3F, $0
@@ -1515,6 +1511,11 @@ end;
 // Aligned pack table for PSHUFB: Picks low byte of 4 dwords
 procedure SIMD_4x0C080400;
 asm
+{$ifdef FPC}
+  ALIGN 16
+{$else}
+  .ALIGN 16
+{$endif}
   db $00, $04, $08, $0C
   db $00, $04, $08, $0C
   db $00, $04, $08, $0C
@@ -1555,7 +1556,7 @@ asm
   // R8D        Weight of X [0..255]
 
         // Return ColorY if weight=0
-        TEST      R8D,R8D
+        TEST      R8D, R8D
         JZ        @exit
 
         // Return ColorX if weight=255
@@ -2165,7 +2166,11 @@ begin
   BlendRegistry.Add(FID_MERGEREG,       @MergeReg_SSE2, [isSSE2],       0, BlendRegistryPrioritySSE2);
   BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_SSE2, [isSSE2],     0, BlendRegistryPrioritySSE2);
   BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_SSE2_128, [isSSE2], 0, BlendRegistryPrioritySSE2);
+{$ifndef FPC} // CombineMem_SSE41_Kadaif is currently broken on FPC
   BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_SSE41_Kadaif, [isSSE41], 0, BlendRegistryPrioritySSE41);
+{$else}
+  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_SSE41_8081, [isSSE41], 0, BlendRegistryPrioritySSE41);
+{$endif}
   BlendRegistry.Add(FID_COMBINELINE,    @CombineLine_SSE2, [isSSE2],    0, BlendRegistryPrioritySSE2);
   BlendRegistry.Add(FID_BLENDREG,       @BlendReg_SSE2, [isSSE2],       0, BlendRegistryPrioritySSE2);
   BlendRegistry.Add(FID_BLENDMEM,       @BlendMem_SSE2, [isSSE2],       0, BlendRegistryPrioritySSE2);
