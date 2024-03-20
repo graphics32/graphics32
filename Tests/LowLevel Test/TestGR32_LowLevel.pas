@@ -392,6 +392,16 @@ procedure TTestLowLevel.TestFastTrunc;
     Value: TFloat;
     Expected, Actual: Integer;
   begin
+    Value := 0.0;
+    Expected := Trunc(Value);
+    Actual := FastTrunc(Value);
+    CheckEquals(Expected, Actual, Format('FastTrunc(%g)', [Value]));
+
+    Value := -0.0;
+    Expected := Trunc(Value);
+    Actual := FastTrunc(Value);
+    CheckEquals(Expected, Actual, Format('FastTrunc(%g)', [Value]));
+
     for i := 1 to 1000 do
     begin
       Value := (Random(10000)-5000) / i;
