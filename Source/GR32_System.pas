@@ -319,7 +319,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-{$if defined(Windows)}
+{$if (defined(Windows)) and (not defined(FPC))}
 function SetPerformanceAffinityMask(Force: boolean): boolean;
 type
   // Declaration in Delphi 11 lacks EfficiencyClass
@@ -428,7 +428,7 @@ begin
 end;
 
 {$else}
-procedure SetPerformanceAffinityMask;
+function SetPerformanceAffinityMask(Force: boolean): boolean;
 begin
   Result := False;
 end;
