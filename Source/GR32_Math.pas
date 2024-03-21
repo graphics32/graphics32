@@ -962,6 +962,7 @@ begin
   IntCst := ($BE6EB50C - IntCst) shr 1;
   Result := 0.5 * Result * (3 - Value * Sqr(Result));
 {$ELSE}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 {$IFDEF TARGET_x86}
 asm
         //
