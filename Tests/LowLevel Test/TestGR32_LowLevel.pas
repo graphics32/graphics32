@@ -1350,6 +1350,9 @@ procedure TTestMath.TestSign;
 var
   Index : Integer;
 begin
+  CheckEquals(0, GR32_Math.Sign(0));
+  CheckEquals(1, GR32_Math.Sign($7FFFFFFF));
+  CheckEquals(-1, GR32_Math.Sign(Integer($80000000)));
   for Index := 1 to (1 shl 10) do
   begin
     CheckEquals(1, GR32_Math.Sign(Index));
