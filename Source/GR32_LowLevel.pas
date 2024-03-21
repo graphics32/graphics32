@@ -318,6 +318,27 @@ uses
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
+{$IFNDEF PUREPASCAL}
+const
+  // Rounding control values for use with the SSE4.1 ROUNDSS instruction
+  ROUND_TO_NEAREST_INT  = $00; // Round
+  ROUND_TO_NEG_INF      = $01; // Floor
+  ROUND_TO_POS_INF      = $02; // Ceil
+  ROUND_TO_ZERO         = $03; // Trunc
+  ROUND_CUR_DIRECTION   = $04; // Rounds using default from MXCSR register
+
+  ROUND_RAISE_EXC       = $00; // Raise exceptions
+  ROUND_NO_EXC          = $08; // Suppress exceptions
+
+const
+  // SSE MXCSR rounding modes
+  MXCSR_ROUND_MASK    = $FFFF9FFF;
+  MXCSR_ROUND_NEAREST = $00000000;
+  MXCSR_ROUND_DOWN    = $00002000;
+  MXCSR_ROUND_UP      = $00004000;
+  MXCSR_ROUND_TRUNC   = $00006000;
+{$ENDIF}
+
 //------------------------------------------------------------------------------
 //
 //      Clamp
@@ -1446,15 +1467,12 @@ end;
 // FastRound_SSE41
 //------------------------------------------------------------------------------
 function FastRound_SSE41(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
-// Note: roundss is a SSE4.1 instruction
-const
-  ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
 asm
 {$if defined(TARGET_x86)}
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_MODE
+        ROUNDSS xmm0, xmm0, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
 
         CVTSS2SI eax, xmm0
 end;
@@ -1506,13 +1524,6 @@ function SlowTrunc_SSE2(Value: TFloat): Integer;
 var
   SaveMXCSR: Cardinal;
   NewMXCSR: Cardinal;
-const
-  // SSE MXCSR rounding modes
-  MXCSR_ROUND_MASK    = $FFFF9FFF;
-  MXCSR_ROUND_NEAREST = $00000000;
-  MXCSR_ROUND_DOWN    = $00002000;
-  MXCSR_ROUND_UP      = $00004000;
-  MXCSR_ROUND_TRUNC   = $00006000;
 asm
         XOR     ECX, ECX
 
@@ -1560,15 +1571,12 @@ end;
 //
 {$IFNDEF OMIT_SSE2}
 function FastTrunc_SSE41(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
-// Note: roundss is an SSE4.1 instruction
-const
-  ROUND_MODE = $08 + $03; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
 asm
 {$if defined(TARGET_x86)}
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_MODE
+        ROUNDSS xmm0, xmm0, ROUND_TO_ZERO or ROUND_NO_EXC
         CVTSS2SI eax, xmm0
 end;
 {$ENDIF}
