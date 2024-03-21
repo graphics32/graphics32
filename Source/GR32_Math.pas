@@ -77,7 +77,7 @@ procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single); ove
 function Hypot(const X, Y: TFloat): TFloat; overload;
 function Hypot(const X, Y: Integer): Integer; overload;
 // Fast*: Fast approximations
-function FastSqrt(const Value: TFloat): TFloat;
+function FastSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
 function FastSqrtBab1(const Value: TFloat): TFloat;
 function FastSqrtBab2(const Value: TFloat): TFloat;
 function FastInvSqrt(const Value: Single): Single; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
@@ -95,6 +95,8 @@ function FastInvSqrt(const Value: Single): Single; {$IFDEF PUREPASCAL}{$IFDEF US
 // it is rounded up. If the result is a negative half integer, it is rounded down.
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
+function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
+
 // Power of 2 functions. Only valid for values >= 0.
 // Determine if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
 function IsPowerOf2(Value: Integer): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -104,53 +106,81 @@ function PrevPowerOf2(Value: Integer): Integer;
 function NextPowerOf2(Value: Integer): Integer;
 
 // fast average without overflow, useful for e.g. fixed point math
-function Average(A, B: Integer): Integer;
+function Average(A, B: Integer): Integer; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
 // fast sign function
-function Sign(Value: Integer): Integer;
+function Sign(Value: Integer): Integer; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
+//      Modulus
+//
+//------------------------------------------------------------------------------
+// See also: https://en.wikipedia.org/wiki/Modulo
+//------------------------------------------------------------------------------
+//
+// FMod(Numerator, Denominator)
+//
+// Similar to Mod() but for floating point values.
+// Returns a value in the [0..Denominator) range. I.e. Denominator is exclusive.
+// NAN is not checked. If Denominator=0, An exception is raised or INF or NAN is
+// returned depending on the implementation
+//
+// Equivalent to the Delphi RTL Math.FMod function.
+//
+//   Result := Numerator - Denominator * Trunc(Numerator / Denominator);
+//
+function FMod(ANumerator, ADenominator: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FMod(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 //
 // FloatMod(Numerator, Denominator)
 //
-// Similar to Mod() but for floating point values.
 // Returns a value in the [0..Denominator) range. I.e. Denominator is exclusive.
 // NAN is not checked. If Denominator=0, Numerator is returned.
 //
-// Also known as: FMOD
-//
-// Note that, unlike the Delphi Math.FMod, Graphics32's FloatMod uses the
-// Floor() definition of FMod:
+// Note that, unlike FMod, FloatMod uses the Floor() definition of modulus:
 //
 //   Result := Numerator - Denominator * Floor(Numerator / Denominator);
 //
-// While the Delphi Math.FMod uses the Trunc definition:
+// While FMod uses the Trunc definition:
 //
 //   Result := Numerator - Denominator * Trunc(Numerator / Denominator);
 //
-// For a Graphics32 implementation using the Trunc definition, see the
-// FloatRemainder funtion.
-//
-// See also: https://en.wikipedia.org/wiki/Modulo
+// For an implementation using the Trunc() definition, see the
+// FloatRemainder function.
 //
 function FloatMod(ANumerator, ADenominator: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatMod(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 //
 // FloatRemainder(Numerator, Denominator)
+//
 // Returns a value in the [0..Denominator) range. I.e. Denominator is exclusive.
 // NAN is not checked. If Denominator=0, Numerator is returned.
 //
-// Similar to the FloatMod function but uses Round instead of Floor:
+// Similar to the FloatMod function but uses Round() instead of Floor():
 //
 //   Result := Numerator - Denominator * Round(Numerator / Denominator);
 //
 // This corresponds to the C++ remainder() function.
-// See also: FloatMod().
 //
 function FloatRemainder(ANumerator, ADenominator: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRemainder(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
 
+//------------------------------------------------------------------------------
+//
+//      Prefix Sum
+//
+//------------------------------------------------------------------------------
+// Also known as: CumSum, Cumulative Sum
+//------------------------------------------------------------------------------
+type
+  TCumSumProc = procedure(Values: PSingleArray; Count: Integer);
+
+var
+  CumSum: TCumSumProc;
 
 
 //------------------------------------------------------------------------------
@@ -159,18 +189,16 @@ function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
 //
 //------------------------------------------------------------------------------
 type
-  TCumSumProc = procedure(Values: PSingleArray; Count: Integer);
   TFloatMod_FProc = function(ANumerator, ADenominator: TFloat): TFloat;
   TFloatMod_DProc = function(ANumerator, ADenominator: Double): Double;
 
 var
-  { CumSum - Cumulative Sum a.k.a. Prefix Sum }
-  CumSum: TCumSumProc;
-
   FloatMod_F: TFloatMod_FProc; // Single
   FloatMod_D: TFloatMod_DProc; // Double
   FloatRemainder_F: TFloatMod_FProc; // Single
   FloatRemainder_D: TFloatMod_DProc; // Double
+  FMod_F: TFloatMod_FProc; // Single
+  FMod_D: TFloatMod_DProc; // Double
 
 var
   MathRegistry: TFunctionRegistry;
@@ -181,6 +209,8 @@ const
   FID_FLOATMOD_D        = 2;
   FID_FLOATREMAINDER_F  = 3;
   FID_FLOATREMAINDER_D  = 4;
+  FID_FMOD_F            = 5;
+  FID_FMOD_D            = 6;
 
 const
   MathBindingFlagPascal = $0001;
@@ -193,6 +223,19 @@ implementation
 uses
   Math,
   GR32_System;
+
+{$IFNDEF PUREPASCAL}
+const
+  // Rounding control values for use with the SSE4.1 ROUNDSS instruction
+  ROUND_TO_NEAREST_INT  = $00; // Round
+  ROUND_TO_NEG_INF      = $01; // Floor
+  ROUND_TO_POS_INF      = $02; // Ceil
+  ROUND_TO_ZERO         = $03; // Trunc
+  ROUND_CUR_DIRECTION   = $04; // Rounds using default from MXCSR register
+
+  ROUND_RAISE_EXC       = $00; // Raise exceptions
+  ROUND_NO_EXC          = $08; // Suppress exceptions
+{$ENDIF}
 
 {$IFDEF PUREPASCAL}
 const
@@ -1206,6 +1249,8 @@ begin
   Result := FloatMod_F(ANumerator, ADenominator);
 end;
 
+//------------------------------------------------------------------------------
+
 function FloatMod_F_Pas(ANumerator, ADenominator: TFloat): TFloat;
 begin
   if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
@@ -1222,171 +1267,99 @@ begin
     Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
 end;
 
+//------------------------------------------------------------------------------
+
 {$ifndef PUREPASCAL}
 // Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
 function FloatMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-// Note: roundss is a SSE4.1 instruction
-const
-  ROUND_MODE = $08 + $01; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
 asm
 {$if defined(TARGET_x86)}
-        movss   xmm0, ANumerator        // XMM0 <- ANumerator
-        movss   xmm1, ADenominator      // XMM1 <- ADenominator
-        xorps   xmm2, xmm2              // XMM2 <- 0
+        movss   xmm0, ANumerator
+        movss   xmm1, ADenominator
+{$ifend}
+        xorps   xmm2, xmm2
 
         // if (ANumerator < 0) then...
-        comiss  xmm0, xmm2              // Compare(ANumerator, 0)
+        comiss  xmm0, xmm2
         // ...do modulus...
         jb      @@do_mod
 
         // if (ADenominator > ANumerator) then...
-        comiss  xmm1, xmm0              // Compare(ADenominator, ANumerator)
+        comiss  xmm1, xmm0
         // ...Result := ANumerator
         ja     @@return_value
 
 @@do_mod:
         // if (ADenominator = 0) then...
-        ucomiss xmm1, xmm2              // Compare(ADenominator, 0)
+        ucomiss xmm1, xmm2
         lahf                            // AH <- Status flags
         test    ah, $44                 // Test(AH, ZF or PF)
         // ...Result := ANumerator
         jnp     @@return_value
 
         // a := ANumerator / ADenominator
-        movss   xmm2, xmm0              // XMM2 <- ANumerator
-        divss   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
+        movss   xmm2, xmm0
+        divss   xmm2, xmm1
         // b := Floor(a)
-        roundss xmm2, xmm2, ROUND_MODE  // XMM1 <- Floor_or_Trunc(XMM2)
+        roundss xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
         // c := ADenominator * b
-        mulss   xmm2, xmm1              // XMM2 <- xmm1 * ADenominator
+        mulss   xmm2, xmm1
         // Result := ANumerator - c;
-        subss   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
+        subss   xmm0, xmm2
         // Fall through...
 
 @@return_value:
-        movss   Result, xmm0            // Result <- xmm0
-
-        // No explicit return here; Parameters are passed on the stack so we need to have the stack cleaned up
-{$elseif defined(TARGET_x64)}
-        // XMM0: ANumerator
-        // XMM1: ADenominator
-
-        pxor    xmm2, xmm2              // XMM2 <- 0
-
-        // if (ANumerator < 0) then...
-        comiss  xmm0, xmm2              // Compare(ADenominator, 0)
-        // ...do modulus...
-        jb      @do_mod
-
-        // if (ADenominator > ANumerator) then...
-        comiss  xmm1, xmm0              // Compare(ADenominator, ANumerator)
-        // ...Result := ANumerator
-        ja      @return_value           // Result := ANumerator
-
-@do_mod:
-        // if (ADenominator = 0) then...
-        ucomiss xmm1, xmm2              // Compare(ADenominator, 0)
-        // ...Result := ANumerator
-        je      @return_value           // Result := ANumerator
-
-        movss  xmm2, xmm0               // XMM2 <- ANumerator
-        // a := ANumerator / ADenominator
-        divss   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
-        // b := Floor(a)
-        roundss xmm2, xmm2, ROUND_MODE  // XMM2 <- Floor_or_Trunc(XMM2)
-        // c := ADenominator * b
-        mulss   xmm2, xmm1              // XMM2 <- ADenominator * XMM2
-        // Result := ANumerator - c
-        subss   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
-        // Fall through...
-
-@return_value:
- {$ifend}
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
 end;
 
 // Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
 function FloatMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-// Note: roundss is a SSE4.1 instruction
-const
-  ROUND_MODE = $08 + $01; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
 asm
 {$if defined(TARGET_x86)}
         movsd   xmm0, ANumerator        // XMM0 <- ANumerator
         movsd   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
         xorpd   xmm2, xmm2              // XMM2 <- 0
 
         // if (ANumerator < 0) then...
-        comisd  xmm0, xmm2              // Compare(ANumerator, 0)
+        comisd  xmm0, xmm2
         // ...do modulus...
         jb      @@do_mod
 
         // if (ADenominator > ANumerator) then...
-        comisd  xmm1, xmm0              // Compare(ADenominator, ANumerator)
+        comisd  xmm1, xmm0
         // ...Result := ANumerator
         ja     @@return_value
 
 @@do_mod:
         // if (ADenominator = 0) then...
-        ucomisd xmm1, xmm2              // Compare(ADenominator, 0)
+        ucomisd xmm1, xmm2
         lahf                            // AH <- Status flags
         test    ah, $44                 // Test(AH, ZF or PF)
         // ...Result := ANumerator
         jnp     @@return_value
 
         // a := ANumerator / ADenominator
-        movsd   xmm2, xmm0              // XMM2 <- ANumerator
-        divsd   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
+        movsd   xmm2, xmm0
+        divsd   xmm2, xmm1
         // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_MODE  // XMM1 <- Floor_or_Trunc(XMM2)
+        roundsd xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
         // c := ADenominator * b
-        mulsd   xmm2, xmm1              // XMM2 <- xmm1 * ADenominator
+        mulsd   xmm2, xmm1
         // Result := ANumerator - c;
-        subsd   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
+        subsd   xmm0, xmm2
         // Fall through...
 
 @@return_value:
-        movsd   Result, xmm0            // Result <- xmm0
-
-        // No explicit return here; Parameters are passed on the stack so we need to have the stack cleaned up
-{$elseif defined(TARGET_x64)}
-        // XMM0: ANumerator
-        // XMM1: ADenominator
-
-        pxor    xmm2, xmm2              // XMM2 <- 0
-
-        // if (ANumerator < 0) then...
-        comisd  xmm0, xmm2              // Compare(ADenominator, 0)
-        // ...do modulus...
-        jb      @do_mod
-
-        // if (ADenominator > ANumerator) then...
-        comisd  xmm1, xmm0              // Compare(ADenominator, ANumerator)
-        // ...Result := ANumerator
-        ja      @return_value           // Result := ANumerator
-
-@do_mod:
-        // if (ADenominator = 0) then...
-        ucomisd xmm1, xmm2              // Compare(ADenominator, 0)
-        // ...Result := ANumerator
-        je      @return_value           // Result := ANumerator
-
-        movsd  xmm2, xmm0               // XMM2 <- ANumerator
-        // a := ANumerator / ADenominator
-        divsd   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
-        // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_MODE  // XMM2 <- Floor_or_Trunc(XMM2)
-        // c := ADenominator * b
-        mulsd   xmm2, xmm1              // XMM2 <- ADenominator * XMM2
-        // Result := ANumerator - c
-        subsd   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
-        // Fall through...
-
-@return_value:
- {$ifend}
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
 end;
 {$endif PUREPASCAL}
 
@@ -1406,6 +1379,8 @@ begin
   Result := FloatRemainder_F(ANumerator, ADenominator);
 end;
 
+//------------------------------------------------------------------------------
+
 function FloatRemainder_D_Pas(ANumerator, ADenominator: Double): Double;
 begin
   if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
@@ -1422,171 +1397,234 @@ begin
     Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
 end;
 
+//------------------------------------------------------------------------------
+
 {$ifndef PUREPASCAL}
 // Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
 function FloatRemainder_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-// Note: roundss is a SSE4.1 instruction
-const
-  ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
 asm
 {$if defined(TARGET_x86)}
-        movss   xmm0, ANumerator        // XMM0 <- ANumerator
-        movss   xmm1, ADenominator      // XMM1 <- ADenominator
-        xorps   xmm2, xmm2              // XMM2 <- 0
+        movss   xmm0, ANumerator
+        movss   xmm1, ADenominator
+{$ifend}
+        xorps   xmm2, xmm2
 
         // if (ANumerator < 0) then...
-        comiss  xmm0, xmm2              // Compare(ANumerator, 0)
+        comiss  xmm0, xmm2
         // ...do modulus...
         jb      @@do_mod
 
         // if (ADenominator > ANumerator) then...
-        comiss  xmm1, xmm0              // Compare(ADenominator, ANumerator)
+        comiss  xmm1, xmm0
         // ...Result := ANumerator
         ja     @@return_value
 
 @@do_mod:
         // if (ADenominator = 0) then...
-        ucomiss xmm1, xmm2              // Compare(ADenominator, 0)
+        ucomiss xmm1, xmm2
         lahf                            // AH <- Status flags
         test    ah, $44                 // Test(AH, ZF or PF)
         // ...Result := ANumerator
         jnp     @@return_value
 
         // a := ANumerator / ADenominator
-        movss   xmm2, xmm0              // XMM2 <- ANumerator
-        divss   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
-        // b := Floor(a)
-        roundss xmm2, xmm2, ROUND_MODE  // XMM1 <- Floor_or_Trunc(XMM2)
+        movss   xmm2, xmm0
+        divss   xmm2, xmm1
+        // b := Round(a)
+        roundss xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
         // c := ADenominator * b
-        mulss   xmm2, xmm1              // XMM2 <- xmm1 * ADenominator
+        mulss   xmm2, xmm1
         // Result := ANumerator - c;
-        subss   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
+        subss   xmm0, xmm2
         // Fall through...
 
 @@return_value:
-        movss   Result, xmm0            // Result <- xmm0
-
-        // No explicit return here; Parameters are passed on the stack so we need to have the stack cleaned up
-{$elseif defined(TARGET_x64)}
-        // XMM0: ANumerator
-        // XMM1: ADenominator
-
-        pxor    xmm2, xmm2              // XMM2 <- 0
-
-        // if (ANumerator < 0) then...
-        comiss  xmm0, xmm2              // Compare(ADenominator, 0)
-        // ...do modulus...
-        jb      @do_mod
-
-        // if (ADenominator > ANumerator) then...
-        comiss  xmm1, xmm0              // Compare(ADenominator, ANumerator)
-        // ...Result := ANumerator
-        ja      @return_value           // Result := ANumerator
-
-@do_mod:
-        // if (ADenominator = 0) then...
-        ucomiss xmm1, xmm2              // Compare(ADenominator, 0)
-        // ...Result := ANumerator
-        je      @return_value           // Result := ANumerator
-
-        movss  xmm2, xmm0               // XMM2 <- ANumerator
-        // a := ANumerator / ADenominator
-        divss   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
-        // b := Floor(a)
-        roundss xmm2, xmm2, ROUND_MODE  // XMM2 <- Floor_or_Trunc(XMM2)
-        // c := ADenominator * b
-        mulss   xmm2, xmm1              // XMM2 <- ADenominator * XMM2
-        // Result := ANumerator - c
-        subss   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
-        // Fall through...
-
-@return_value:
- {$ifend}
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
 end;
 
 // Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
 function FloatRemainder_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-// Note: roundss is a SSE4.1 instruction
-const
-  ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
 asm
 {$if defined(TARGET_x86)}
         movsd   xmm0, ANumerator        // XMM0 <- ANumerator
         movsd   xmm1, ADenominator      // XMM1 <- ADenominator
-        xorpd   xmm2, xmm2              // XMM2 <- 0
+{$ifend}
+        xorpd   xmm2, xmm2
 
         // if (ANumerator < 0) then...
-        comisd  xmm0, xmm2              // Compare(ANumerator, 0)
+        comisd  xmm0, xmm2
         // ...do modulus...
         jb      @@do_mod
 
         // if (ADenominator > ANumerator) then...
-        comisd  xmm1, xmm0              // Compare(ADenominator, ANumerator)
+        comisd  xmm1, xmm0
         // ...Result := ANumerator
         ja     @@return_value
 
 @@do_mod:
         // if (ADenominator = 0) then...
-        ucomisd xmm1, xmm2              // Compare(ADenominator, 0)
+        ucomisd xmm1, xmm2
         lahf                            // AH <- Status flags
         test    ah, $44                 // Test(AH, ZF or PF)
         // ...Result := ANumerator
         jnp     @@return_value
 
         // a := ANumerator / ADenominator
-        movsd   xmm2, xmm0              // XMM2 <- ANumerator
-        divsd   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
+        movsd   xmm2, xmm0
+        divsd   xmm2, xmm1
         // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_MODE  // XMM1 <- Floor_or_Trunc(XMM2)
+        roundsd xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
         // c := ADenominator * b
-        mulsd   xmm2, xmm1              // XMM2 <- xmm1 * ADenominator
+        mulsd   xmm2, xmm1
         // Result := ANumerator - c;
-        subsd   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
+        subsd   xmm0, xmm2
         // Fall through...
 
 @@return_value:
-        movsd   Result, xmm0            // Result <- xmm0
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
+end;
+{$endif PUREPASCAL}
 
-        // No explicit return here; Parameters are passed on the stack so we need to have the stack cleaned up
-{$elseif defined(TARGET_x64)}
-        // XMM0: ANumerator
-        // XMM1: ADenominator
 
-        pxor    xmm2, xmm2              // XMM2 <- 0
+//------------------------------------------------------------------------------
+//
+//      FMod
+//
+//------------------------------------------------------------------------------
+function FMod(ANumerator, ADenominator: Double): Double;
+begin
+  Result := FMod_D(ANumerator, ADenominator);
+end;
 
-        // if (ANumerator < 0) then...
-        comisd  xmm0, xmm2              // Compare(ADenominator, 0)
-        // ...do modulus...
-        jb      @do_mod
+function FMod(ANumerator, ADenominator: TFloat): TFloat;
+begin
+  Result := FMod_F(ANumerator, ADenominator);
+end;
 
-        // if (ADenominator > ANumerator) then...
-        comisd  xmm1, xmm0              // Compare(ADenominator, ANumerator)
-        // ...Result := ANumerator
-        ja      @return_value           // Result := ANumerator
+//------------------------------------------------------------------------------
 
-@do_mod:
-        // if (ADenominator = 0) then...
-        ucomisd xmm1, xmm2              // Compare(ADenominator, 0)
-        // ...Result := ANumerator
-        je      @return_value           // Result := ANumerator
+function FMod_F_Pas(ANumerator, ADenominator: TFloat): TFloat;
+begin
+  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
+end;
 
-        movsd  xmm2, xmm0               // XMM2 <- ANumerator
+function FMod_D_Pas(ANumerator, ADenominator: Double): Double;
+begin
+  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
+end;
+
+//------------------------------------------------------------------------------
+
+{$ifndef PUREPASCAL}
+// Note: FMod_F_SSE2 and FMod_D_SSE2 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
+function FMod_F_SSE2(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        movss   xmm0, ANumerator        // XMM0 <- ANumerator
+        movss   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movss   xmm2, xmm0
         // a := ANumerator / ADenominator
-        divsd   xmm2, xmm1              // XMM2 <- ANumerator / ADenominator
-        // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_MODE  // XMM2 <- Floor_or_Trunc(XMM2)
-        // c := ADenominator * b
-        mulsd   xmm2, xmm1              // XMM2 <- ADenominator * XMM2
-        // Result := ANumerator - c
-        subsd   xmm0, xmm2              // XMM0 <- ANumerator - XMM2
-        // Fall through...
+        divss   xmm2, xmm1
+        // b := Trunc(a)
+        cvttss2si ecx, xmm2
+        cvtsi2ss xmm2, ecx
+        // c := b*ADenominator
+        mulss   xmm2, xmm1
+        // Result := ANumerator - c;
+        subss   xmm0, xmm2
 
-@return_value:
- {$ifend}
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
+end;
+
+function FMod_D_SSE2(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
+        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movsd   xmm2, xmm0
+        // a := ANumerator / ADenominator
+        divsd   xmm2, xmm1
+        // b := Trunc(a)
+        cvttsd2si ecx, xmm2
+        cvtsi2sd xmm2, ecx
+        // c := b*ADenominator
+        mulsd   xmm2, xmm1
+        // Result := ANumerator - c;
+        subsd   xmm0, xmm2
+
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
+end;
+{$endif PUREPASCAL}
+
+
+//------------------------------------------------------------------------------
+
+{$ifndef PUREPASCAL}
+// Note: FMod_F_SSE41 and FMod_D_SSE41 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
+function FMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        movss   xmm0, ANumerator        // XMM0 <- ANumerator
+        movss   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movss   xmm2, xmm0
+        // a := ANumerator / ADenominator
+        divss   xmm2, xmm1
+        // b := Trunc(a)
+        roundss xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
+        // c := b*ADenominator
+        mulss   xmm2, xmm1
+        // Result := ANumerator - c;
+        subss   xmm0, xmm2
+
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
+end;
+
+function FMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
+        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movsd   xmm2, xmm0
+        // a := ANumerator / ADenominator
+        divsd   xmm2, xmm1
+        // b := Trunc(a)
+        roundsd xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
+        // c := b*ADenominator
+        mulsd   xmm2, xmm1
+        // Result := ANumerator - c;
+        subsd   xmm0, xmm2
+
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
 end;
 {$endif PUREPASCAL}
 
@@ -1640,6 +1678,8 @@ begin
     Values[I] := V;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 {$IFNDEF PUREPASCAL}
 // Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
@@ -1864,6 +1904,8 @@ begin
   MathRegistry.RegisterBinding(FID_FLOATMOD_D, @@FloatMod_D);
   MathRegistry.RegisterBinding(FID_FLOATREMAINDER_F, @@FloatRemainder_F);
   MathRegistry.RegisterBinding(FID_FLOATREMAINDER_D, @@FloatRemainder_D);
+  MathRegistry.RegisterBinding(FID_FMOD_F, @@FMod_F);
+  MathRegistry.RegisterBinding(FID_FMOD_D, @@FMod_D);
 
   // pure pascal
   MathRegistry.Add(FID_CUMSUM, @CumSum_Pas, MathBindingFlagPascal);
@@ -1871,6 +1913,8 @@ begin
   MathRegistry.Add(FID_FLOATMOD_D, @FloatMod_D_Pas, MathBindingFlagPascal);
   MathRegistry.Add(FID_FLOATREMAINDER_F, @FloatRemainder_F_Pas, MathBindingFlagPascal);
   MathRegistry.Add(FID_FLOATREMAINDER_D, @FloatRemainder_D_Pas, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FMOD_F, @FMod_F_Pas, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FMOD_D, @FMod_D_Pas, MathBindingFlagPascal);
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}
@@ -1879,6 +1923,10 @@ begin
   MathRegistry.Add(FID_FLOATMOD_D, @FloatMod_D_SSE41, [isSSE41]);
   MathRegistry.Add(FID_FLOATREMAINDER_F, @FloatRemainder_F_SSE41, [isSSE41]);
   MathRegistry.Add(FID_FLOATREMAINDER_D, @FloatRemainder_D_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FMOD_F, @FMod_F_SSE2, [isSSE2]);
+  MathRegistry.Add(FID_FMOD_D, @FMod_D_SSE2, [isSSE2]);
+  MathRegistry.Add(FID_FMOD_F, @FMod_F_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FMOD_D, @FMod_D_SSE41, [isSSE41]);
 {$ENDIF}
 {$ENDIF}
 

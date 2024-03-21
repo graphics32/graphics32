@@ -166,6 +166,8 @@ type
     procedure TestPrevPowerOf2;
     procedure TestAverage;
     procedure TestSign;
+    procedure TestFModDouble;
+    procedure TestFModSingle;
     procedure TestFloatModDouble;
     procedure TestFloatModSingle;
     procedure TestFloatRemainderDouble;
@@ -861,6 +863,146 @@ begin
       CheckEquals((X + Y) div 2, Average(X, Y));
 end;
 
+// ----------------------------------------------------------------------------
+// GR32_Math.FMod
+// ----------------------------------------------------------------------------
+
+function FMod_Reference(ANumerator, ADenominator: Double): Double; overload;
+begin
+  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
+end;
+
+function FMod_Reference(ANumerator, ADenominator: Single): Single; overload;
+begin
+  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
+end;
+
+procedure TTestMath.TestFModDouble;
+var
+  Numerator, Denominator: Double;
+  Expected, Actual: Double;
+  i: integer;
+const
+  Epsilon = 1e-10;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := GR32_Math.FMod(Numerator, Denominator);
+      Expected := FMod_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon, Format('FMod(%n, %n)', [Numerator, Denominator]));
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(5.0, GR32_Math.FMod(5.0, -10.0), Epsilon);
+  CheckEquals(4.5, GR32_Math.FMod(4.5, -10.0), Epsilon);
+  CheckEquals(-5.0, GR32_Math.FMod(-5.0, 10.0), Epsilon);
+  CheckEquals(-4.5, GR32_Math.FMod(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0, GR32_Math.FMod(0, 50), Epsilon);
+  CheckEquals(0.0, GR32_Math.FMod(0.0, 50.5), Epsilon);
+
+  CheckEquals(0, GR32_Math.FMod(50, 50), Epsilon);
+  CheckEquals(0.0, GR32_Math.FMod(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := -10;
+  for i := -100 to 100 do
+  begin
+    Actual := GR32_Math.FMod(i * 0.5, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon, Format('FMod(%n, %n)', [i * 0.5, 20.0]));
+
+    if (i < 0) then
+    begin
+      if (Expected = 0) then
+        Expected := -20;
+      Expected := Expected + 0.5;
+    end else
+    begin
+      Expected := Expected + 0.5;
+      if (Expected = 20) then
+        Expected := 0;
+    end;
+
+  end;
+end;
+
+procedure TTestMath.TestFModSingle;
+var
+  Numerator, Denominator: Single;
+  Expected, Actual: Single;
+  i: integer;
+const
+  Epsilon = 1e-5;
+begin
+  Denominator := 10;
+  while (Denominator >= -10) do
+  begin
+    Denominator := Denominator - 1.3;
+
+    Numerator := 3 * Denominator;
+    while (Numerator >= -3 * Denominator) do
+    begin
+      Numerator := Numerator - 0.3;
+
+      Actual := GR32_Math.FMod(Numerator, Denominator);
+      Expected := FMod_Reference(Numerator, Denominator);
+
+      CheckEquals(Expected, Actual, Epsilon);
+    end;
+  end;
+
+  // Common test cases
+  CheckEquals(5.0, GR32_Math.FMod(5.0, -10.0), Epsilon);
+  CheckEquals(4.5, GR32_Math.FMod(4.5, -10.0), Epsilon);
+  CheckEquals(-5.0, GR32_Math.FMod(-5.0, 10.0), Epsilon);
+  CheckEquals(-4.5, GR32_Math.FMod(-4.5, 10.0), Epsilon);
+
+  // Edge cases
+  CheckEquals(0, GR32_Math.FMod(0, 50), Epsilon);
+  CheckEquals(0.0, GR32_Math.FMod(0.0, 50.5), Epsilon);
+
+  CheckEquals(0, GR32_Math.FMod(50, 50), Epsilon);
+  CheckEquals(0.0, GR32_Math.FMod(50.5, 50.5), Epsilon);
+
+  // Function should produce a saw-tooth
+  Expected := -10;
+  for i := -100 to 100 do
+  begin
+    Actual := GR32_Math.FMod(i * 0.5, 20.0);
+
+    CheckEquals(Expected, Actual, Epsilon, Format('FMod(%n, %n)', [i * 0.5, 20.0]));
+
+    if (i < 0) then
+    begin
+      if (Expected = 0) then
+        Expected := -20;
+      Expected := Expected + 0.5;
+    end else
+    begin
+      Expected := Expected + 0.5;
+      if (Expected = 20) then
+        Expected := 0;
+    end;
+
+  end;
+end;
+
+// ----------------------------------------------------------------------------
+// FloatMod
+// ----------------------------------------------------------------------------
+
 function FloatMod_Reference(ANumerator, ADenominator: Double): Double; overload;
 begin
   if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
@@ -993,6 +1135,10 @@ begin
   end;
 end;
 
+// ----------------------------------------------------------------------------
+// FloatRemainder
+// ----------------------------------------------------------------------------
+
 function FloatRemainder_Reference(ANumerator, ADenominator: Double): Double; overload;
 begin
   if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
@@ -1096,6 +1242,9 @@ begin
   CheckEquals(0.0, FloatRemainder(50.0, 50.0), Epsilon);
 end;
 
+// ----------------------------------------------------------------------------
+// Hypot
+// ----------------------------------------------------------------------------
 procedure TTestMath.TestHypotFloat;
 var
   X, Y : Integer;
