@@ -208,26 +208,35 @@ end;
 
 class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
 begin
+{$if not defined(PUREPASCAL)}
   if (isMMX in Info^.InstructionSupport) then
     Result := 0
   else
     Result := MaxInt-1;//INVALID_PRIORITY;
+{$ifend}
+  Result := MaxInt-1;
 end;
 
 class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
 begin
+{$if not defined(PUREPASCAL)}
   if (isSSE2 in Info^.InstructionSupport) then
     Result := 0
   else
     Result := MaxInt-1;//INVALID_PRIORITY;
+{$ifend}
+  Result := MaxInt-1;
 end;
 
 class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
 begin
+{$if not defined(PUREPASCAL)}
   if (isSSE41 in Info^.InstructionSupport) then
     Result := 0
   else
     Result := MaxInt-1;//INVALID_PRIORITY;
+{$ifend}
+  Result := MaxInt-1;
 end;
 
 procedure TBindingTestCase.SetUp;
@@ -1627,6 +1636,7 @@ initialization
 //  RegisterTest(TTestLowLevel.Suite);
 
   RegisterTest(TTestLowLevelPas.Suite);
+{$if not defined(PUREPASCAL)}
   RegisterTest(TTestLowLevelAsm.Suite);
   if isMMX in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelMMX.Suite);
@@ -1634,6 +1644,7 @@ initialization
     RegisterTest(TTestLowLevelSSE2.Suite);
   if isSSE41 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelSSE41.Suite);
+{$ifend}
 
   RegisterTest(TTestMath.Suite);
 end.
