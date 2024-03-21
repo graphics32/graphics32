@@ -1445,7 +1445,7 @@ end;
 //------------------------------------------------------------------------------
 // FastRound_SSE41
 //------------------------------------------------------------------------------
-function FastRound_SSE41(Value: TFloat): Integer;
+function FastRound_SSE41(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 // Note: roundss is a SSE4.1 instruction
 const
   ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
@@ -1485,7 +1485,7 @@ end;
 // Faster that RTL Trunc on x86 and x64
 //
 {$IFNDEF OMIT_SSE2}
-function FastTrunc_SSE2(Value: TFloat): Integer;
+function FastTrunc_SSE2(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         MOVSS      XMM0, Value
@@ -1559,7 +1559,7 @@ end;
 // Faster that RTL Trunc on x86
 //
 {$IFNDEF OMIT_SSE2}
-function FastTrunc_SSE41(Value: TFloat): Integer;
+function FastTrunc_SSE41(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 // Note: roundss is an SSE4.1 instruction
 const
   ROUND_MODE = $08 + $03; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
