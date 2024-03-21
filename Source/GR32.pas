@@ -7825,7 +7825,9 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
+{$IFNDEF PUREPASCAL}
   GeneralRegistry.RegisterBinding(@@FastPrevWeight);
+{$ENDIF}
 end;
 
 var
