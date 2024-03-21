@@ -1590,7 +1590,7 @@ begin
 {$ENDIF RGBA_FORMAT}
 end;
 
-procedure Color32ToRGBAMem(var Color32: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Color32ToRGBAMem(var Color32: TColor32);
 begin
 {$IFNDEF RGBA_FORMAT}
   SwapRedBlueMem(Color32);
@@ -1606,7 +1606,7 @@ begin
 {$ENDIF RGBA_FORMAT}
 end;
 
-procedure BGRAToColor32Mem(var BGRA: DWORD); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure BGRAToColor32Mem(var BGRA: DWORD);
 begin
 {$IFDEF RGBA_FORMAT}
   SwapRedBlueMem(TColor32(BGRA));
@@ -1622,7 +1622,7 @@ begin
 {$ENDIF RGBA_FORMAT}
 end;
 
-procedure RGBAToColor32mem(var RGBA: DWORD); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure RGBAToColor32mem(var RGBA: DWORD);
 begin
 {$IFNDEF RGBA_FORMAT}
   SwapRedBlueMem(TColor32(RGBA));
@@ -3764,7 +3764,7 @@ end;
 
 {$IFDEF PUREPASCAL}
 // Just a duplicate of the function below so we at least can get it inlined
-function FastPrevWeight(Value: TFloat; PrevIndex: Cardinal): Cardinal; inline;
+function FastPrevWeight(Value: TFloat; PrevIndex: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result := Round($FF * (Value - PrevIndex));
 end;
