@@ -1218,9 +1218,10 @@ end;
 //------------------------------------------------------------------------------
 function Sign(Value: Integer): Integer;
 {$IFDEF PUREPASCAL}
+{$IFDEF USEINLINE} inline; {$ENDIF}
 begin
-  //Assumes 32 bit integer
-  Result := (- Value) shr 31 - (Value shr 31);
+  // Defer to Math.Sign
+  Result := Integer(Math.Sign(Value));
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
