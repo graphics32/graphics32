@@ -1218,19 +1218,35 @@ end;
 //------------------------------------------------------------------------------
 function Sign(Value: Integer): Integer;
 {$IFDEF PUREPASCAL}
+{$IFDEF USEINLINE} inline; {$ENDIF}
 begin
-  //Assumes 32 bit integer
-  Result := (- Value) shr 31 - (Value shr 31);
+  // Defer to Math.Sign
+  Result := Integer(Math.Sign(Value));
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
-        MOV     EAX, Value
-{$ENDIF}
+  {$IFDEF MSWINDOWS}
+        XOR     EDX, EDX
+        TEST    ECX, ECX
+        SETG    DL
+        SAR     ECX, 31
+        LEA     EAX, [EDX + ECX]
+  {$ELSE}
+        XOR     EDX, EDX
+        TEST    EDI, EDI
+        SETG    DL
+        SAR     EDI, 31
+        LEA     EAX, [EDX + EDI]
+  {$ENDIF}
+{$ELSE}
+        { New algorithm provides no speed saving under 32-bit, so just use this
+          smaller one }
         CDQ
         NEG     EAX
         ADC     EDX, EDX
         MOV     EAX, EDX
+{$ENDIF}
 {$ENDIF}
 end;
 
