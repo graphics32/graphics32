@@ -466,7 +466,7 @@ asm
         JL      @SqrtLP2
         SUB     EDX, EAX
         JL      @SqrtLP2
-        MOV     ECX,EDX
+        MOV     ECX, EDX
         SHR     EAX, 1
         OR      EAX, EBX
         SHR     EBX, 2
@@ -482,29 +482,26 @@ asm
         POP     EBX
 {$ENDIF}
 {$IFDEF TARGET_x64}
-        PUSH    RBX
         XOR     EAX, EAX
-        MOV     EBX, $40000000
+        MOV     R8D, $40000000
 @SqrtLP1:
         MOV     EDX, ECX
-        SUB     EDX, EBX
+        SUB     EDX, R8D
         JL      @SqrtLP2
         SUB     EDX, EAX
         JL      @SqrtLP2
-        MOV     ECX,EDX
+        MOV     ECX, EDX
         SHR     EAX, 1
-        OR      EAX, EBX
-        SHR     EBX, 2
+        OR      EAX, R8D
+        SHR     R8D, 2
         JNZ     @SqrtLP1
         SHL     EAX, 8
-        JMP     @SqrtLP3
+        RET
 @SqrtLP2:
         SHR     EAX, 1
-        SHR     EBX, 2
+        SHR     R8D, 2
         JNZ     @SqrtLP1
         SHL     EAX, 8
-@SqrtLP3:
-        POP     RBX
 {$ENDIF}
 {$ENDIF}
 end;
@@ -524,15 +521,15 @@ asm
 @SqrtHP1:
         MOV     EDX, ECX
         SUB     EDX, EBX
-        jb      @SqrtHP2
+        JB      @SqrtHP2
         SUB     EDX, EAX
-        jb      @SqrtHP2
-        MOV     ECX,EDX
+        JB      @SqrtHP2
+        MOV     ECX, EDX
         SHR     EAX, 1
         OR      EAX, EBX
         SHR     EBX, 2
         JNZ     @SqrtHP1
-        JZ      @SqrtHP5
+        JMP     @SqrtHP5
 @SqrtHP2:
         SHR     EAX, 1
         SHR     EBX, 2
@@ -544,9 +541,9 @@ asm
 @SqrtHP3:
         MOV     EDX, ECX
         SUB     EDX, EBX
-        jb      @SqrtHP4
+        JB      @SqrtHP4
         SUB     EDX, EAX
-        jb      @SqrtHP4
+        JB      @SqrtHP4
         MOV     ECX, EDX
         SHR     EAX, 1
         OR      EAX, EBX
@@ -561,47 +558,44 @@ asm
         POP     EBX
 {$ENDIF}
 {$IFDEF TARGET_x64}
-        PUSH    RBX
         XOR     EAX, EAX
-        MOV     EBX, $40000000
+        MOV     R8D, $40000000
 @SqrtHP1:
         MOV     EDX, ECX
-        SUB     EDX, EBX
-        jb      @SqrtHP2
+        SUB     EDX, R8D
+        JB      @SqrtHP2
         SUB     EDX, EAX
-        jb      @SqrtHP2
-        MOV     ECX,EDX
+        JB      @SqrtHP2
+        MOV     ECX, EDX
         SHR     EAX, 1
-        OR      EAX, EBX
-        SHR     EBX, 2
+        OR      EAX, R8D
+        SHR     R8D, 2
         JNZ     @SqrtHP1
-        JZ      @SqrtHP5
+        JMP     @SqrtHP5
 @SqrtHP2:
         SHR     EAX, 1
-        SHR     EBX, 2
+        SHR     R8D, 2
         JNZ     @SqrtHP1
 @SqrtHP5:
-        MOV     EBX, $00004000
+        MOV     R8D, $00004000
         SHL     EAX, 16
         SHL     ECX, 16
 @SqrtHP3:
         MOV     EDX, ECX
-        SUB     EDX, EBX
-        jb      @SqrtHP4
+        SUB     EDX, R8D
+        JB      @SqrtHP4
         SUB     EDX, EAX
-        jb      @SqrtHP4
+        JB      @SqrtHP4
         MOV     ECX, EDX
         SHR     EAX, 1
-        OR      EAX, EBX
-        SHR     EBX, 2
+        OR      EAX, R8D
+        SHR     R8D, 2
         JNZ     @SqrtHP3
-        JMP     @SqrtHP6
+        RET
 @SqrtHP4:
         SHR     EAX, 1
-        SHR     EBX, 2
+        SHR     R8D, 2
         JNZ     @SqrtHP3
-@SqrtHP6:
-        POP     RBX
 {$ENDIF}
 {$ENDIF}
 end;
