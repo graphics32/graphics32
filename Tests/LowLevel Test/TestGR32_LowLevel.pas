@@ -115,6 +115,8 @@ type
     procedure TestWrapMinMax;
     procedure TestWrapPow2;
     procedure TestMirror;
+    // TODO : procedure TestMirrorMinMax;
+    procedure TestMirrorPow2;
     procedure TestSAR;
   end;
 
@@ -673,12 +675,57 @@ end;
 
 procedure TTestLowLevel.TestMirror;
 begin
-  CheckEquals(50, Mirror(50, 100));
-  CheckEquals(51, Mirror(150, 100));
-  CheckEquals(50, Mirror(149, 99));
-  CheckEquals(64, MirrorPow2(64, 127));
-  CheckEquals(63, MirrorPow2(192, 127));
-  CheckEquals(95, MirrorPow2(160, 127));
+  // Edge cases
+  CheckEquals(  0, Mirror(  0, 100));
+  CheckEquals(100, Mirror(100, 100));
+  CheckEquals(  1, Mirror(  1, 100));
+  CheckEquals( 99, Mirror( 99, 100));
+  CheckEquals( 99, Mirror(101, 100));
+  CheckEquals(  1, Mirror( -1, 100));
+
+  CheckEquals( 50, Mirror(150, 100));
+  CheckEquals(  0, Mirror(200, 100));
+  CheckEquals( 50, Mirror(250, 100));
+  CheckEquals(100, Mirror(300, 100));
+
+  CheckEquals( 49, Mirror(149,  99));
+end;
+
+procedure TTestLowLevel.TestMirrorPow2;
+var
+  Bit: integer;
+  Max: integer;
+  Value: integer;
+  Expected: integer;
+  Actual: integer;
+begin
+  for Bit := 1 to 15 do
+  begin
+    Max := (1 shl Bit)-1;
+
+    // Edge cases
+    CheckEquals(  0,   MirrorPow2(  0,   Max));
+    CheckEquals(Max,   MirrorPow2(Max,   Max));
+    CheckEquals(  1,   MirrorPow2(  1,   Max));
+    CheckEquals(Max-1, MirrorPow2(Max-1, Max));
+    if (Max > 1) then
+      CheckEquals(Max-1, MirrorPow2(Max+1, Max));
+    CheckEquals(  1,   MirrorPow2( -1,   Max));
+
+    // Note: We're using Mirror to validate MirrorPow2 so we're assuming that Mirror isn't broken...
+    for Value := 0 to 3*Max do
+    begin
+      // Positive values
+      Expected := Mirror(Value, Max);
+      Actual := MirrorPow2(Value, Max);
+      CheckEquals(Expected, Actual, Format('MirrorPow2(%d, %d)', [Value, Max]));
+
+      // Negative values
+      Expected := Mirror(-Value, Max);
+      Actual := MirrorPow2(-Value, Max);
+      CheckEquals(Expected, Actual, Format('MirrorPow2(%d, %d)', [Value, Max]));
+    end;
+  end;
 end;
 
 procedure TTestLowLevel.TestMoveLongword;

@@ -1190,13 +1190,14 @@ end;
 
 //------------------------------------------------------------------------------
 
-function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
 {$IFDEF USENATIVECODE}
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
 begin
   Remainder := Dividend mod Divisor;
   Result := Dividend div Divisor;
+end;
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
@@ -1216,8 +1217,8 @@ asm
         MOV       [RCX],EDX
         POP       RBX
 {$ENDIF}
-{$ENDIF}
 end;
+{$ENDIF}
 
 //------------------------------------------------------------------------------
 
@@ -1233,98 +1234,8 @@ begin
   Result := (Value - Min) and (Max - Min) + Min;
 end;
 
-
-//------------------------------------------------------------------------------
-//
-//      Mirror
-//
-//------------------------------------------------------------------------------
-function Mirror(Value, Max: Integer): Integer;
-{$IFDEF USENATIVECODE}
-var
-  DivResult: Integer;
-begin
-  if Value < 0 then
-  begin
-    DivResult := DivMod(Value - Max, Max + 1, Result);
-    Inc(Result, Max);
-  end
-  else
-    DivResult := DivMod(Value, Max + 1, Result);
-
-  if Odd(DivResult) then
-    Result := Max - Result;
-{$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$IFDEF TARGET_x64}
-        MOV       EAX,ECX
-        MOV       ECX,R8D
-{$ENDIF}
-        TEST      EAX,EAX
-        JNL       @@1
-        NEG       EAX
-@@1:
-        MOV       ECX,EDX
-        CDQ
-        IDIV      ECX
-        TEST      EAX,1
-        MOV       EAX,EDX
-        JZ        @Exit
-        NEG       EAX
-        ADD       EAX,ECX
-@Exit:
-{$ENDIF}
-end;
-
 //------------------------------------------------------------------------------
 
-function Mirror(Value, Min, Max: Integer): Integer;
-var
-  DivResult: Integer;
-begin
-  if Value < Min then
-  begin
-    DivResult := DivMod(Value - Max, Max - Min + 1, Result);
-    Inc(Result, Max);
-  end
-  else
-  begin
-    DivResult := DivMod(Value - Min, Max - Min + 1, Result);
-    Inc(Result, Min);
-  end;
-  if Odd(DivResult) then Result := Max + Min - Result;
-end;
-
-//------------------------------------------------------------------------------
-
-function MirrorPow2(Value, Max: Integer): Integer; overload;
-begin
-  if Value and (Max + 1) = 0 then
-    Result := Value and Max
-  else
-    Result := Max - Value and Max;
-end;
-
-//------------------------------------------------------------------------------
-
-function MirrorPow2(Value, Min, Max: Integer): Integer; overload;
-begin
-  Value := Value - Min;
-  Result := Max - Min;
-
-  if Value and (Result + 1) = 0 then
-    Result := Min + Value and Result
-  else
-    Result := Max - Value and Result;
-end;
-
-
-//------------------------------------------------------------------------------
-//
-//      Clamp/Wrap/Mirror
-//
-//------------------------------------------------------------------------------
 function GetOptimalWrap(Max: Integer): TWrapProc; overload;
 begin
   if (Max >= 0) and IsPowerOf2(Max + 1) then
@@ -1342,6 +1253,106 @@ begin
   else
     Result := Wrap;
 end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Mirror
+//
+//------------------------------------------------------------------------------
+{$IFDEF USENATIVECODE}
+function Mirror(Value, Max: Integer): Integer;
+var
+  Quotient: Integer;
+begin
+  if Value < 0 then
+    Value := -Value;
+  Quotient := DivMod(Value, Max, Result);
+
+  if ((Quotient and 1) = 1) then
+    Result := Max - Result;
+end;
+{$ELSE}
+function Mirror(Value, Max: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x64}
+        MOV       EAX, ECX      // Value
+{$ENDIF}
+        // EAX: Value
+        // EDX: Max
+
+        // Value := Abs(Value)
+        TEST      EAX, EAX
+        JNL       @@Positive
+        NEG       EAX
+
+@@Positive:
+        MOV       ECX, EDX
+        // Value := Int64(Value)
+        CDQ
+        // Quotient := DivMod(Value, Max, Remainder)
+        IDIV      ECX
+        // If not Odd(Quotient) then
+        TEST      EAX, 1
+        //   Result := Remainder
+        MOV       EAX, EDX
+        JZ        @Exit
+        // else
+        //   Result := Max - Remainder
+        NEG       EAX
+        ADD       EAX, ECX
+@Exit:
+end;
+{$ENDIF}
+
+//------------------------------------------------------------------------------
+
+function Mirror(Value, Min, Max: Integer): Integer;
+var
+  DivResult: Integer;
+begin
+  if Value < Min then
+  begin
+    DivResult := DivMod(Value - Max, Max - Min + 1, Result);
+    Inc(Result, Max);
+  end
+  else
+  begin
+    DivResult := DivMod(Value - Min, Max - Min + 1, Result);
+    Inc(Result, Min);
+  end;
+  if Odd(DivResult) then
+    Result := Max + Min - Result;
+end;
+
+//------------------------------------------------------------------------------
+
+function MirrorPow2(Value, Max: Integer): Integer; overload;
+begin
+  if Value < 0 then
+    Value := -Value;
+
+  if ((Value and (Max + 1)) = 0) then
+    Result := (Value      ) and Max
+  else
+    Result := (Max - Value + Max) and Max;
+end;
+
+//------------------------------------------------------------------------------
+
+function MirrorPow2(Value, Min, Max: Integer): Integer; overload;
+begin
+  Value := Value - Min;
+  if Value < 0 then
+    Value := -Value;
+  Result := Max - Min;
+
+  if ((Value and (Result + 1)) = 0) then
+    Result := (Min + Value) and Result
+  else
+    Result := (Max - Value) and Result;
+end;
+
 
 //------------------------------------------------------------------------------
 
@@ -1364,7 +1375,10 @@ begin
 end;
 
 //------------------------------------------------------------------------------
-
+//
+//      Clamp/Wrap/Mirror
+//
+//------------------------------------------------------------------------------
 function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
 begin
   case WrapMode of
