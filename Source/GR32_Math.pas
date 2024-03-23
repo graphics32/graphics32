@@ -55,7 +55,7 @@ function FixedCeil(A: TFixed): Integer;
 function FixedMul(A, B: TFixed): TFixed;
 function FixedDiv(A, B: TFixed): TFixed;
 function OneOver(Value: TFixed): TFixed;
-function FixedRound(A: TFixed): Integer; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
+function FixedRound(A: TFixed): Integer; {$IFDEF PUREPASCAL} inline; {$ENDIF}
 function FixedSqr(Value: TFixed): TFixed;
 function FixedSqrtLP(Value: TFixed): TFixed;      // 8-bit precision
 function FixedSqrtHP(Value: TFixed): TFixed;      // 16-bit precision
@@ -74,10 +74,10 @@ procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single); ove
 function Hypot(const X, Y: TFloat): TFloat; overload;
 function Hypot(const X, Y: Integer): Integer; overload;
 // Fast*: Fast approximations
-function FastSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
+function FastSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL} inline; {$ENDIF}
 function FastSqrtBab1(const Value: TFloat): TFloat;
 function FastSqrtBab2(const Value: TFloat): TFloat;
-function FastInvSqrt(const Value: Single): Single; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
+function FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -103,9 +103,9 @@ function PrevPowerOf2(Value: Integer): Integer;
 function NextPowerOf2(Value: Integer): Integer;
 
 // fast average without overflow, useful for e.g. fixed point math
-function Average(A, B: Integer): Integer; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
+function Average(A, B: Integer): Integer; {$IFDEF PUREPASCAL} inline; {$ENDIF}
 // fast sign function
-function Sign(Value: Integer): Integer; {$IFDEF PUREPASCAL}{$IFDEF USEINLINING} inline; {$ENDIF}{$ENDIF}
+function Sign(Value: Integer): Integer; {$IFDEF PUREPASCAL} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -244,8 +244,8 @@ const
 
 //------------------------------------------------------------------------------
 
-{$IFDEF FPC}
-{$IFDEF TARGET_X64}
+{$if defined(FPC) and defined(TARGET_X64)}
+// TODO : Why do we need these?
 function Ceil(X: Single): Integer;
 begin
   Result := Trunc(X);
@@ -259,8 +259,7 @@ begin
   if (X - Result) < 0 then
     Dec(Result);
 end;
-{$ENDIF}
-{$ENDIF}
+{$ifend}
 
 
 
@@ -271,52 +270,73 @@ end;
 //------------------------------------------------------------------------------
 // FixedFloor
 //------------------------------------------------------------------------------
-function FixedFloor(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
+
+function FixedFloor(A: TFixed): Integer;
 begin
   Result := A div FixedOne;
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedFloor(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         SAR     EAX, 16
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, ECX
         SAR     EAX, 16
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FixedCeil
 //------------------------------------------------------------------------------
-function FixedCeil(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
+
+function FixedCeil(A: TFixed): Integer;
 begin
   Result := (A + $FFFF) div FixedOne;
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedCeil(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         ADD     EAX, $0000FFFF
         SAR     EAX, 16
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, ECX
         ADD     EAX, $0000FFFF
         SAR     EAX, 16
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FixedRound
 //------------------------------------------------------------------------------
-function FixedRound(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
+
+function FixedRound(A: TFixed): Integer;
 begin
   Result := (A + $7FFF);
 
@@ -328,135 +348,189 @@ begin
   else
     Result := (Result shr 16);
   }
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedRound(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         ADD     EAX, FixedHalf
         SAR     EAX, 16
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, ECX
         ADD     EAX, FixedHalf
         SAR     EAX, 16
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FixedMul
 //------------------------------------------------------------------------------
-function FixedMul(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
+
+function FixedMul(A, B: TFixed): TFixed;
 begin
   Result := Round(A * FixedToFloat * B);
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedMul(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         IMUL    EDX
         SHRD    EAX, EDX, 16
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, ECX
         IMUL    EDX
         SHRD    EAX, EDX, 16
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FixedDiv
 //------------------------------------------------------------------------------
-function FixedDiv(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
+
+function FixedDiv(A, B: TFixed): TFixed;
 begin
   Result := Round(A / B * FixedOne);
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedDiv(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         MOV     ECX, B
         CDQ
         SHLD    EDX, EAX, 16
         SHL     EAX, 16
         IDIV    ECX
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, ECX
         MOV     ECX, EDX
         CDQ
         SHLD    EDX, EAX, 16
         SHL     EAX, 16
         IDIV    ECX
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // OneOver
 //------------------------------------------------------------------------------
-function OneOver(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
+
+function OneOver(Value: TFixed): TFixed;
 const
   Dividend: Single = 4294967296; // FixedOne * FixedOne
 begin
   Result := Round(Dividend / Value);
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function OneOver(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         MOV     ECX, Value
         XOR     EAX, EAX
         MOV     EDX, 1
         IDIV    ECX
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         XOR     EAX, EAX
         MOV     EDX, 1
         IDIV    ECX
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FixedSqr
 //------------------------------------------------------------------------------
-function FixedSqr(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
+
+function FixedSqr(Value: TFixed): TFixed;
 begin
   Result := Round(Value * FixedToFloat * Value);
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedSqr(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         IMUL    EAX
         SHRD    EAX, EDX, 16
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, Value
         IMUL    EAX
         SHRD    EAX, EDX, 16
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FixedSqrt
 //------------------------------------------------------------------------------
-function FixedSqrtLP(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
+
+function FixedSqrtLP(Value: TFixed): TFixed;
 begin
   Result := Round(Sqrt(Value * FixedOneS));
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedSqrtLP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         PUSH    EBX
         MOV     ECX, EAX
         XOR     EAX, EAX
@@ -481,8 +555,9 @@ asm
         SHL     EAX, 8
 @SqrtLP3:
         POP     EBX
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         XOR     EAX, EAX
         MOV     R8D, $40000000
 @SqrtLP1:
@@ -503,18 +578,29 @@ asm
         SHR     R8D, 2
         JNZ     @SqrtLP1
         SHL     EAX, 8
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
 
-function FixedSqrtHP(Value: TFixed): TFixed;
+{$ENDIF}
+
+//------------------------------------------------------------------------------
+
 {$IFDEF PUREPASCAL}
+
+function FixedSqrtHP(Value: TFixed): TFixed;
 begin
   Result := Round(Sqrt(Value * FixedOneS));
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedSqrtHP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         PUSH    EBX
         MOV     ECX, EAX
         XOR     EAX, EAX
@@ -557,8 +643,9 @@ asm
         JNZ     @SqrtHP3
 @SqrtHP6:
         POP     EBX
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         XOR     EAX, EAX
         MOV     R8D, $40000000
 @SqrtHP1:
@@ -597,40 +684,55 @@ asm
         SHR     EAX, 1
         SHR     R8D, 2
         JNZ     @SqrtHP3
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FixedCombine
 //------------------------------------------------------------------------------
-function FixedCombine(W, X, Y: TFixed): TFixed;
-// EAX <- W, EDX <- X, ECX <- Y
 // combine fixed value X and fixed value Y with the weight of X given in W
 // Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
+//------------------------------------------------------------------------------
 {$IFDEF PUREPASCAL}
+
+function FixedCombine(W, X, Y: TFixed): TFixed;
 begin
   Result := Round(Y + (X - Y) * FixedToFloat * W);
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FixedCombine(W, X, Y: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+// EAX <- W, EDX <- X, ECX <- Y
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         SUB     EDX, ECX
         IMUL    EDX
         SHRD    EAX, EDX, 16
         ADD     EAX, ECX
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, ECX
         SUB     EDX, R8D
         IMUL    EDX
         SHRD    EAX, EDX, 16
         ADD     EAX, R8D
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+
 end;
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -640,59 +742,78 @@ end;
 //------------------------------------------------------------------------------
 // SinCos
 //------------------------------------------------------------------------------
+{$if defined(PUREPASCAL) or defined(NATIVE_SINCOS)}
+
 procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
-{$IFDEF NATIVE_SINCOS}
 var
   S, C: Extended;
 begin
   Math.SinCos(Theta, S, C);
   Sin := S;
   Cos := C;
-{$ELSE}
-{$IFDEF TARGET_x64}
-var
-  Temp: TFloat;
-{$ENDIF}
+end;
+
+{$else}
+
+procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
+{$if defined(TARGET_x86)}
+
 asm
-{$IFDEF TARGET_x86}
         FLD     Theta
         FSINCOS
         FSTP    DWORD PTR [EDX] // cosine
         FSTP    DWORD PTR [EAX] // sine
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
+var
+  Temp: TFloat;
+asm
         MOVD    Temp, Theta
         FLD     Temp
         FSINCOS
         FSTP    [Sin] // cosine
         FSTP    [Cos] // sine
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
 
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+
+{$if defined(PUREPASCAL) or defined(NATIVE_SINCOS)}
+
 procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat);
-{$IFDEF NATIVE_SINCOS}
 var
   S, C: Extended;
 begin
   Math.SinCos(Theta, S, C);
   Sin := S * Radius;
   Cos := C * Radius;
-{$ELSE}
-{$IFDEF TARGET_x64}
-var
-  Temp: TFloat;
-{$ENDIF}
+end;
+
+{$else}
+
+procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
+{$if defined(TARGET_x86)}
+
 asm
-{$IFDEF TARGET_x86}
         FLD     Theta
         FSINCOS
         FMUL    Radius
         FSTP    DWORD PTR [EDX] // cosine
         FMUL    Radius
         FSTP    DWORD PTR [EAX] // sine
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
+var
+  Temp: TFloat;
+asm
         MOVD    Temp, Theta
         FLD     Temp
         MOVD    Temp, Radius
@@ -701,33 +822,45 @@ asm
         FSTP    [Cos]
         FMUL    Temp
         FSTP    [Sin]
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
 
-procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single); overload;
-{$IFDEF NATIVE_SINCOS}
+{$ifend}
+
+//------------------------------------------------------------------------------
+
+{$if defined(PUREPASCAL) or defined(NATIVE_SINCOS)}
+
+procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single);
 var
   S, C: Extended;
 begin
   Math.SinCos(Theta, S, C);
   Sin := S * ScaleX;
   Cos := C * ScaleY;
-{$ELSE}
-{$IFDEF TARGET_x64}
-var
-  Temp: TFloat;
-{$ENDIF}
+end;
+
+{$else}
+
+procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single);  {$IFDEF FPC} assembler; {$ENDIF}
+{$if defined(TARGET_x86)}
+
 asm
-{$IFDEF TARGET_x86}
         FLD     Theta
         FSINCOS
         FMUL    ScaleX
         FSTP    DWORD PTR [EDX] // cosine
         FMUL    ScaleY
         FSTP    DWORD PTR [EAX] // sine
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
+var
+  Temp: TFloat;
+asm
         MOVD    Temp, Theta
         FLD     Temp
         FSINCOS
@@ -737,22 +870,31 @@ asm
         MOVD    Temp, ScaleY
         FMUL    Temp
         FSTP    [Sin]
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ifend}
 
 
 //------------------------------------------------------------------------------
 // Hypot
 //------------------------------------------------------------------------------
-function Hypot(const X, Y: TFloat): TFloat;
 {$IFDEF PUREPASCAL}
+
+function Hypot(const X, Y: TFloat): TFloat;
 begin
   Result := Sqrt(Sqr(X) + Sqr(Y));
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function Hypot(const X, Y: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         FLD     X
         FMUL    ST,ST
         FLD     Y
@@ -760,27 +902,41 @@ asm
         FADDP   ST(1),ST
         FSQRT
         FWAIT
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MULSS   XMM0, XMM0
         MULSS   XMM1, XMM1
         ADDSS   XMM0, XMM1
         SQRTSS  XMM0, XMM0
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
 
+{$ENDIF}
+
+//------------------------------------------------------------------------------
+
+{$if defined(PUREPASCAL) or (True)}
+
 function Hypot(const X, Y: Integer): Integer;
-//{$IFDEF PUREPASCAL}
 begin
   Result := Round(Math.Hypot(X, Y));
-(*
-{$ELSE}
-{$IFDEF FPC}assembler;{$ENDIF}
+end;
+
+{$else}
+
+// TODO : Disabled for some reason. Document why!
+function Hypot(const X, Y: Integer): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
-{$IFDEF TARGET_x64}
+{$if defined(TARGET_x86)}
+
         IMUL    RAX, RCX, RDX
-{$ELSE}
+
+{$elseif defined(TARGET_x64)}
+
         FLD     X
         FMUL    ST,ST
         FLD     Y
@@ -790,10 +946,12 @@ asm
         FISTP   [ESP - 4]
         MOV     EAX, [ESP - 4]
         FWAIT
-{$ENDIF}
-{$ENDIF}
-*)
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -803,17 +961,21 @@ end;
 //------------------------------------------------------------------------------
 // FastSqrt
 //------------------------------------------------------------------------------
-function FastSqrt(const Value: TFloat): TFloat;
 {$IFDEF PUREPASCAL}
+
+function FastSqrt(const Value: TFloat): TFloat;
 var
   I: Integer absolute Value;
   J: Integer absolute Result;
 begin
   J := (I - $3F800000) div 2 + $3F800000;
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FastSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
         //
         // Sqrt(x) = x * InvSqrt(x)
         //
@@ -852,35 +1014,46 @@ asm
         MOV     DWORD PTR [ESP - 4], EAX
         FLD     DWORD PTR [ESP - 4]
 *)
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         SQRTSS  XMM0, XMM0
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FastSqrtBab1
 //------------------------------------------------------------------------------
+// See http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+// Additionally one babylonian step added
+//------------------------------------------------------------------------------
+{$IFDEF PUREPASCAL}
+
 function FastSqrtBab1(const Value: TFloat): TFloat;
-// see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
-// additionally one babylonian step added
-{$IFNDEF PUREPASCAL}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-{$ENDIF}
 const
   CHalf : TFloat = 0.5;
-{$IFDEF PUREPASCAL}
 var
   I: Integer absolute Value;
   J: Integer absolute Result;
 begin
   J := (I - $3F800000) div 2 + $3F800000;
   Result := CHalf * (Result + Value / Result);
+end;
+
 {$ELSE}
+
+function FastSqrtBab1(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+const
+  CHalf : TFloat = 0.5;
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         MOV     EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
@@ -890,21 +1063,28 @@ asm
         FDIV    DWORD PTR [ESP - 4]
         FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         SQRTSS  XMM0, XMM0
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FastSqrtBab2
 //------------------------------------------------------------------------------
-function FastSqrtBab2(const Value: TFloat): TFloat;
-// see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
-// additionally two babylonian steps added
+// See http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+// Additionally two babylonian steps added
+//------------------------------------------------------------------------------
 {$IFDEF PUREPASCAL}
+
+function FastSqrtBab2(const Value: TFloat): TFloat;
 const
   CQuarter : TFloat = 0.25;
 var
@@ -914,12 +1094,16 @@ begin
  J := ((J - (1 shl 23)) shr 1) + (1 shl 29);
  Result := Result + Value / Result;
  Result := CQuarter * Result + Value / Result;
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function FastSqrtBab2(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 const
   CHalf : TFloat = 0.5;
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         MOV     EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
@@ -929,8 +1113,9 @@ asm
         FDIV    DWORD PTR [ESP - 4]
         FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOVD    EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
@@ -940,40 +1125,52 @@ asm
         ADDSS   XMM0, XMM1
         MOVD    XMM1, [RIP + CHalf]
         MULSS   XMM0, XMM1
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
 // FastInvSqrt
 //------------------------------------------------------------------------------
-function FastInvSqrt(const Value: Single): Single;
 {$IFDEF PUREPASCAL}
+
+function FastInvSqrt(const Value: TFloat): TFloat;
 var
   IntCst : Cardinal absolute result;
 begin
   Result := Value;
   IntCst := ($BE6EB50C - IntCst) shr 1;
   Result := 0.5 * Result * (3 - Value * Sqr(Result));
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-{$IFDEF TARGET_x86}
+
+function FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF}{$ENDIF}
+//
+// Note: RSQRT is accurate only to ~11 bits.
+//
 asm
-        //
-        // RSQRT is accurate only to ~11 bits.
-        //
+{$if defined(TARGET_x86)}
 
         MOVSS   XMM0, [Value]
         RSQRTSS XMM0, XMM0
         MOVSS   [Result], XMM0
-{$ENDIF}
-{$IFDEF TARGET_x64}
-asm
+
+{$elseif defined(TARGET_x64)}
+
         RSQRTSS XMM0, XMM0
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -985,14 +1182,19 @@ end;
 //      MulDiv
 //
 //------------------------------------------------------------------------------
-function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 {$IFDEF PUREPASCAL}
+
+function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 begin
   Result := (Int64(Multiplicand) * Int64(Multiplier) + Divisor div 2) div Divisor;
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         PUSH    EBX             // Imperative save
         PUSH    ESI             // of EBX and ESI
 
@@ -1036,8 +1238,9 @@ asm
 @Exit:
         POP     ESI             // Restore
         POP     EBX             // esi and EBX
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, ECX        // Result will be negative or positive so set rounding direction
         XOR     ECX, EDX        //  Negative: substract 1 in case of rounding
         XOR     ECX, R8D        //  Positive: add 1
@@ -1076,9 +1279,13 @@ asm
         OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
                                 //  and "zero-divide" return value
 @Exit:
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -1086,8 +1293,9 @@ end;
 //      IsPowerOf2
 //
 //------------------------------------------------------------------------------
+// Returns true when X = 1,2,4,8,16 etc.
+//------------------------------------------------------------------------------
 function IsPowerOf2(Value: Integer): Boolean;
-//returns true when X = 1,2,4,8,16 etc.
 begin
   Result := (Value <> 0) and (Cardinal(Value) and (Cardinal(Value) - 1) = 0);
 end;
@@ -1098,9 +1306,11 @@ end;
 //      PrevPowerOf2
 //
 //------------------------------------------------------------------------------
-function PrevPowerOf2(Value: Integer): Integer;
-//returns X rounded down to the power of two
+// Returns X rounded down to the power of two
+//------------------------------------------------------------------------------
 {$IFDEF PUREPASCAL}
+
+function PrevPowerOf2(Value: Integer): Integer;
 begin
   Result := Value;
   Result := Result or (Result shr 1);
@@ -1109,22 +1319,31 @@ begin
   Result := Result or (Result shr 8);
   Result := Result or (Result shr 16);
   Dec(Result, Result shr 1);
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function PrevPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         BSR     ECX, EAX
         SHR     EAX, CL
         SHL     EAX, CL
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, Value
         BSR     ECX, EAX
         SHR     EAX, CL
         SHL     EAX, CL
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -1132,9 +1351,11 @@ end;
 //      NextPowerOf2
 //
 //------------------------------------------------------------------------------
-function NextPowerOf2(Value: Integer): Integer;
-//returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
+// Returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
+//------------------------------------------------------------------------------
 {$IFDEF PUREPASCAL}
+
+function NextPowerOf2(Value: Integer): Integer;
 begin
   if (Value = 0) then
     Exit(1);
@@ -1145,10 +1366,14 @@ begin
   Result := Result or (Result shr 8);
   Result := Result or (Result shr 16);
   Inc(Result);
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function NextPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         DEC     EAX
         JLE     @1
         BSR     ECX, EAX
@@ -1157,8 +1382,9 @@ asm
         RET
 @1:
         MOV     EAX, 1
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, Value
         DEC     EAX
         JLE     @1
@@ -1168,9 +1394,13 @@ asm
         RET
 @1:
         MOV     EAX, 1
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -1178,32 +1408,43 @@ end;
 //      Average
 //
 //------------------------------------------------------------------------------
-function Average(A, B: Integer): Integer;
-//fast average without overflow, useful e.g. for fixed point math
-//(A + B)/2 = (A and B) + (A xor B)/2
+// Fast average without overflow, useful e.g. for fixed point math
+// (A + B) / 2 = (A and B) + (A xor B) / 2
+//------------------------------------------------------------------------------
 {$IFDEF PUREPASCAL}
+
+function Average(A, B: Integer): Integer;
 begin
   Result := (A and B) + (A xor B) div 2;
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function Average(A, B: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         MOV     ECX, EDX
         XOR     EDX, EAX
         SAR     EDX, 1
         AND     EAX, ECX
         ADD     EAX, EDX
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
         MOV     EAX, A
         MOV     ECX, EDX
         XOR     EDX, EAX
         SAR     EDX, 1
         AND     EAX, ECX
         ADD     EAX, EDX
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -1211,16 +1452,29 @@ end;
 //      Sign
 //
 //------------------------------------------------------------------------------
-function Sign(Value: Integer): Integer;
 {$IFDEF PUREPASCAL}
-{$IFDEF USEINLINE} inline; {$ENDIF}
+
+function Sign(Value: Integer): Integer;
 begin
   // Defer to Math.Sign
   Result := Integer(Math.Sign(Value));
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function Sign(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x64}
+{$if defined(TARGET_x86)}
+
+        { New algorithm provides no speed saving under 32-bit, so just use this
+          smaller one }
+        CDQ
+        NEG     EAX
+        ADC     EDX, EDX
+        MOV     EAX, EDX
+
+{$elseif defined(TARGET_x64)}
+
   {$IFDEF MSWINDOWS}
         XOR     EDX, EDX
         TEST    ECX, ECX
@@ -1234,16 +1488,13 @@ asm
         SAR     EDI, 31
         LEA     EAX, [EDX + EDI]
   {$ENDIF}
-{$ELSE}
-        { New algorithm provides no speed saving under 32-bit, so just use this
-          smaller one }
-        CDQ
-        NEG     EAX
-        ADC     EDX, EDX
-        MOV     EAX, EDX
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -1282,10 +1533,11 @@ end;
 //------------------------------------------------------------------------------
 
 {$ifndef PUREPASCAL}
-// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
+
+// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are identical except for the ROUNDSS parameter. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
-function FloatMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FloatMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movss   xmm0, ANumerator
@@ -1325,13 +1577,15 @@ asm
 @@return_value:
 {$if defined(TARGET_x86)}
         movss   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
 
-// Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
+// Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are identical except for the ROUNDSD parameter. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
-function FloatMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FloatMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movsd   xmm0, ANumerator        // XMM0 <- ANumerator
@@ -1371,8 +1625,11 @@ asm
 @@return_value:
 {$if defined(TARGET_x86)}
         movsd   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
+
 {$endif PUREPASCAL}
 
 
@@ -1412,10 +1669,11 @@ end;
 //------------------------------------------------------------------------------
 
 {$ifndef PUREPASCAL}
-// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
+
+// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are identical except for the ROUNDSS parameter. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
-function FloatRemainder_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FloatRemainder_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movss   xmm0, ANumerator
@@ -1455,13 +1713,15 @@ asm
 @@return_value:
 {$if defined(TARGET_x86)}
         movss   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
 
-// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are the exact same except for the value of ROUND_MODE. Keep in sync!
+// Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are identical except for the ROUNDSD parameter. Keep in sync!
 // Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
-function FloatRemainder_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FloatRemainder_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movsd   xmm0, ANumerator        // XMM0 <- ANumerator
@@ -1501,8 +1761,11 @@ asm
 @@return_value:
 {$if defined(TARGET_x86)}
         movsd   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
+
 {$endif PUREPASCAL}
 
 
@@ -1536,9 +1799,10 @@ end;
 //------------------------------------------------------------------------------
 
 {$ifndef PUREPASCAL}
+
 // Note: FMod_F_SSE2 and FMod_D_SSE2 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
-function FMod_F_SSE2(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FMod_F_SSE2(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movss   xmm0, ANumerator        // XMM0 <- ANumerator
@@ -1559,10 +1823,12 @@ asm
 
 {$if defined(TARGET_x86)}
         movss   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
 
-function FMod_D_SSE2(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FMod_D_SSE2(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movsd   xmm0, ANumerator        // XMM0 <- ANumerator
@@ -1583,17 +1849,21 @@ asm
 
 {$if defined(TARGET_x86)}
         movsd   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
+
 {$endif PUREPASCAL}
 
 
 //------------------------------------------------------------------------------
 
 {$ifndef PUREPASCAL}
+
 // Note: FMod_F_SSE41 and FMod_D_SSE41 are the exact same except the D variant uses the *d instructions and and the F
 //       variant uses the *s instructions. Keep in sync!
-function FMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movss   xmm0, ANumerator        // XMM0 <- ANumerator
@@ -1613,10 +1883,12 @@ asm
 
 {$if defined(TARGET_x86)}
         movss   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
 
-function FMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         movsd   xmm0, ANumerator        // XMM0 <- ANumerator
@@ -1636,8 +1908,11 @@ asm
 
 {$if defined(TARGET_x86)}
         movsd   Result, xmm0
+{$elseif not defined(TARGET_x64)}
+{$error 'Missing target'}
 {$ifend}
 end;
+
 {$endif PUREPASCAL}
 
 
@@ -1646,22 +1921,28 @@ end;
 //      DivMod
 //
 //------------------------------------------------------------------------------
-function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
 {$IFDEF PUREPASCAL}
+
+function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
 begin
   Result := Dividend div Divisor;
   Remainder := Dividend mod Divisor;
+end;
+
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         PUSH    EDX
         CDQ
         IDIV    DWORD PTR [ESP]
         ADD     ESP, $04
         MOV     DWORD PTR [ECX], edx
-{$ENDIF}
-{$IFDEF TARGET_x64}
+
+{$elseif defined(TARGET_x64)}
+
   {$IFDEF MSWINDOWS}
         MOV     EAX, ECX
         MOV     ECX, EDX
@@ -1675,9 +1956,13 @@ asm
         IDIV    ESI
         MOV     [RDI],EDX
   {$ENDIF}
-{$ENDIF}
-{$ENDIF}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
+{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -1702,10 +1987,12 @@ end;
 //------------------------------------------------------------------------------
 
 {$IFNDEF PUREPASCAL}
+
 // Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
 procedure CumSum_SSE2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
+
         MOV     ECX,EDX
         CMP     ECX,2       // if count < 2, exit
         JL      @END
@@ -1805,8 +2092,10 @@ asm
         ADD     EAX,4
         DEC     ECX
         JNZ     @LOOP3
-{$ENDIF}
-{$IFDEF TARGET_x64}
+@END:
+
+{$elseif defined(TARGET_x64)}
+
         CMP     EDX,2       // if count < 2, exit
         JL      @END
 
@@ -1904,9 +2193,13 @@ asm
         ADD     RAX,4
         DEC     ECX
         JNZ     @LOOP3
-{$ENDIF}
 @END:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
 end;
+
 {$ENDIF}
 
 
@@ -1958,3 +2251,4 @@ end;
 initialization
   RegisterBindings;
 end.
+
