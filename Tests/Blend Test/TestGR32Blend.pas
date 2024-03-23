@@ -37,7 +37,14 @@ interface
 {$define FAIL_NOT_IMPLEMENTED} // Fail test if function isn't implemented
 
 uses
-  {$IFDEF FPC} fpcunit, testregistry, {$ELSE} TestFramework, Windows, {$ENDIF}
+{$IFDEF FPC}
+  fpcunit, testregistry,
+{$ELSE}
+  TestFramework,
+{$ENDIF}
+{$ifdef Windows}
+  Windows,
+{$endif}
   Controls, Types, Classes, SysUtils, Messages, Graphics,
   System.Rtti,
   System.TypInfo,
@@ -1859,6 +1866,22 @@ begin
 
 end;
 
+
+// ----------------------------------------------------------------------------
+//
+// DUnit compatibility for FPC
+//
+// ----------------------------------------------------------------------------
+{$IFDEF FPC}
+procedure RegisterTest(ATest: TTest);
+begin
+  testregistry.RegisterTest('', ATest);
+end;
+{$ENDIF}
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 initialization
   RegisterTest(TTestBlendTables.Suite);

@@ -250,7 +250,13 @@ var
 begin
   inherited;
   RandSeed := 0;
+
+{$ifndef FPC}
+  Proc := pointer(PriorityProc);
+{$else}
   Proc := PriorityProc;
+{$endif}
+
   FunctionRegistry.RebindAll(True, pointer(@Proc));
 end;
 
