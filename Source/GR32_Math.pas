@@ -40,13 +40,10 @@ interface
 
 uses
   GR32,
-  GR32_Bindings
 {$IFDEF FPC}
-{$IFDEF TARGET_X64}
-  , GR32_Math_FPC
+  GR32_Math_FPC,
 {$ENDIF}
-{$ENDIF}
-  ;
+  GR32_Bindings;
 
 //------------------------------------------------------------------------------
 //
@@ -217,6 +214,8 @@ const
 
 
 //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -242,6 +241,8 @@ const
   FixedOneS: Single = 65536;
 {$ENDIF}
 
+
+//------------------------------------------------------------------------------
 
 {$IFDEF FPC}
 {$IFDEF TARGET_X64}
@@ -1088,7 +1089,7 @@ end;
 function IsPowerOf2(Value: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
 begin
-  Result := (Value <> 0) and (Value and (Value - 1) = 0);
+  Result := (Value <> 0) and (Cardinal(Value) and (Cardinal(Value) - 1) = 0);
 end;
 
 

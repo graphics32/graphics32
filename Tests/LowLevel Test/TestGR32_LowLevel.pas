@@ -1296,19 +1296,19 @@ procedure TTestMath.TestIsPowerOf2;
 var
   Index : Integer;
 begin
-  CheckFalse(IsPowerOf2(0), Format('IsPowerOf2(%d))', [0]));
+  CheckFalse(IsPowerOf2(0), Format('IsPowerOf2($%.8X))', [0]));
 
   for Index := 0 to 31 do
   begin
-    CheckTrue(IsPowerOf2(1 shl Index), Format('IsPowerOf2(%d))', [1 shl Index]));
+    CheckTrue(IsPowerOf2(1 shl Index), Format('IsPowerOf2($%.8X))', [1 shl Index]));
 
     if Index > 0 then
     begin
       if Index > 1 then
-        CheckTrue(not IsPowerOf2((1 shl Index) - 1), Format('IsPowerOf2(%d))', [(1 shl Index) - 1]));
+        CheckTrue(not IsPowerOf2((1 shl Index) - 1), Format('IsPowerOf2($%.8X))', [(1 shl Index) - 1]));
 
       if Index < 31 then
-        CheckTrue(not IsPowerOf2((1 shl Index) + 1), Format('IsPowerOf2(%d))', [(1 shl Index) + 1]));
+        CheckTrue(not IsPowerOf2((1 shl Index) + 1), Format('IsPowerOf2($%.8X))', [(1 shl Index) + 1]));
     end;
   end;
 end;
@@ -1317,18 +1317,18 @@ procedure TTestMath.TestNextPowerOf2;
 var
   Index : Integer;
 begin
-  CheckEquals(1, NextPowerOf2(0), Format('NextPowerOf2(%d))', [0]));
+  CheckEquals(1, NextPowerOf2(0), Format('NextPowerOf2($%.8X))', [0]));
 
   for Index := 0 to 30 do
   begin
-    CheckEquals(1 shl Index, NextPowerOf2(1 shl Index), Format('NextPowerOf2(%d))', [1 shl Index]));
+    CheckEquals(1 shl Index, NextPowerOf2(1 shl Index), Format('NextPowerOf2($%.8X))', [1 shl Index]));
 
     if Index > 0 then
     begin
       if Index > 1 then
-        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) - 1), Format('NextPowerOf2(%d))', [1 shl Index]));
+        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) - 1), Format('NextPowerOf2($%.8X))', [1 shl Index]));
       if Index < 30 then
-        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) + 1) shr 1, Format('NextPowerOf2(%d))', [1 shl Index]));
+        CheckEquals(1 shl Index, NextPowerOf2((1 shl Index) + 1) shr 1, Format('NextPowerOf2($%.8X))', [1 shl Index]));
     end;
   end;
 end;
@@ -1337,19 +1337,19 @@ procedure TTestMath.TestPrevPowerOf2;
 var
   Index : Integer;
 begin
-  CheckEquals(0, PrevPowerOf2(0), Format('PrevPowerOf2(%d))', [0]));
+  CheckEquals(0, PrevPowerOf2(0), Format('PrevPowerOf2($%.8X))', [0]));
 
   for Index := 0 to 30 do
   begin
-    CheckEquals(1 shl Index, PrevPowerOf2(1 shl Index), Format('PrevPowerOf2(%d))', [1 shl Index]));
+    CheckEquals(1 shl Index, PrevPowerOf2(1 shl Index), Format('PrevPowerOf2($%.8X))', [1 shl Index]));
 
     if Index > 0 then
     begin
       if Index > 1 then
-        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) - 1) shl 1, Format('PrevPowerOf2(%d))', [(1 shl Index)-1]));
+        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) - 1) shl 1, Format('PrevPowerOf2($%.8X))', [(1 shl Index)-1]));
 
       if Index < 30 then
-        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) + 1), Format('PrevPowerOf2(%d))', [(1 shl Index)+1]));
+        CheckEquals(1 shl Index, PrevPowerOf2((1 shl Index) + 1), Format('PrevPowerOf2($%.8X))', [(1 shl Index)+1]));
     end;
   end;
 end;
