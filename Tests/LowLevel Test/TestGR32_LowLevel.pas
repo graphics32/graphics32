@@ -38,14 +38,19 @@ interface
 
 // VERIFY_WIN_MULDIV: Validate MulDiv against Windows' MulDiv. Otherwise validates against a floating point emulation.
 // Note though that there's a bug in Windows' MulDiv: https://devblogs.microsoft.com/oldnewthing/20120514-00/?p=7633
+{$ifdef Windows}
 {$define VERIFY_WIN_MULDIV}
+{$endif}
 
 uses
 {$IFDEF FPC}
   fpcunit, testregistry,
 {$ELSE}
-  TestFramework, Windows,
+  TestFramework,
 {$ENDIF}
+{$ifdef Windows}
+  Windows,
+{$endif}
   GR32_Bindings;
 
 // ----------------------------------------------------------------------------
@@ -240,10 +245,13 @@ begin
 end;
 
 procedure TBindingTestCase.SetUp;
+var
+  Proc: TFunctionPriority;
 begin
   inherited;
   RandSeed := 0;
-  FunctionRegistry.RebindAll(True, pointer(PriorityProc));
+  Proc := PriorityProc;
+  FunctionRegistry.RebindAll(True, pointer(@Proc));
 end;
 
 procedure TBindingTestCase.TearDown;
@@ -1635,6 +1643,22 @@ begin
 end;
 
 
+// ----------------------------------------------------------------------------
+//
+// DUnit compatibility for FPC
+//
+// ----------------------------------------------------------------------------
+{$IFDEF FPC}
+procedure RegisterTest(ATest: TTest);
+begin
+  testregistry.RegisterTest('', ATest);
+end;
+{$ENDIF}
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
 initialization
 //  RegisterTest(TTestLowLevel.Suite);
 
@@ -1651,6 +1675,4 @@ initialization
 
   RegisterTest(TTestMath.Suite);
 end.
-
-
 
