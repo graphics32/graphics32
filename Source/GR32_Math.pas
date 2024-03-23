@@ -1667,11 +1667,19 @@ asm
         MOV     DWORD PTR [ECX], edx
 {$ENDIF}
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX
-        MOV     R9, RDX
+  {$IFDEF MSWINDOWS}
+        MOV     EAX, ECX
+        MOV     ECX, EDX
         CDQ
-        IDIV    R9
-        MOV     DWORD PTR [R8], EDX
+        IDIV    ECX
+        MOV     [R8],EDX
+  {$ELSE}
+        MOV     EAX, EDI
+        MOV     RDI, RDX
+        CDQ
+        IDIV    ESI
+        MOV     [RDI],EDX
+  {$ENDIF}
 {$ENDIF}
 {$ENDIF}
 end;
