@@ -1466,7 +1466,7 @@ end;
 //------------------------------------------------------------------------------
 // FastRound_SSE41
 //------------------------------------------------------------------------------
-function FastRound_SSE41(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+function FastRound_SSE41(Value: TFloat): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         MOVSS   xmm0, Value
@@ -1503,7 +1503,7 @@ end;
 // Faster that RTL Trunc on x86 and x64
 //
 {$IFNDEF OMIT_SSE2}
-function FastTrunc_SSE2(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+function FastTrunc_SSE2(Value: TFloat): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         MOVSS      XMM0, Value
@@ -1520,7 +1520,7 @@ end;
 // Faster that RTL Trunc on x64 (and sometimes on x86).
 //
 {$IFNDEF OMIT_SSE2}
-function SlowTrunc_SSE2(Value: TFloat): Integer;
+function SlowTrunc_SSE2(Value: TFloat): Integer; {$IFDEF FPC} assembler; {$ENDIF}
 var
   SaveMXCSR: Cardinal;
   NewMXCSR: Cardinal;
@@ -1570,7 +1570,7 @@ end;
 // Faster that RTL Trunc on x86
 //
 {$IFNDEF OMIT_SSE2}
-function FastTrunc_SSE41(Value: TFloat): Integer; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+function FastTrunc_SSE41(Value: TFloat): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
 asm
 {$if defined(TARGET_x86)}
         MOVSS   xmm0, Value

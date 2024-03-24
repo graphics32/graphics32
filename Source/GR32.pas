@@ -3762,13 +3762,16 @@ begin
   FStippleCounter := Wrap(FStippleCounter, L);
 end;
 
-{$IFDEF PUREPASCAL}
+{$if defined(PUREPASCAL) or defined(OMIT_SSE2)}
+
 // Just a duplicate of the function below so we at least can get it inlined
 function FastPrevWeight(Value: TFloat; PrevIndex: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result := Round($FF * (Value - PrevIndex));
 end;
-{$ELSE}
+
+{$else}
+
 var FastPrevWeight: function(Value: TFloat; PrevIndex: Cardinal): Cardinal;
 
 function FastPrevWeight_Pas(Value: TFloat; PrevIndex: Cardinal): Cardinal;
@@ -3776,8 +3779,7 @@ begin
   Result := Round($FF * (Value - PrevIndex));
 end;
 
-{$IFNDEF OMIT_SSE2}
-function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; experimental;
+function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; experimental; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 // Note: roundss is a SSE4.1 instruction
 const
   ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
@@ -3790,17 +3792,17 @@ asm
         CVTSI2SS xmm1, PrevIndex
 
         SUBSS   xmm0, xmm1
-{$ifndef FPC}
+{$if (not defined(FPC)) or (not defined(TARGET_X64))}
         MULSS   xmm0, Float255
 {$else}
         MULSS   xmm0, [rip+Float255].DWORD
-{$endif}
+{$ifend}
 
         ROUNDSS xmm0, xmm0, ROUND_MODE
         CVTSS2SI eax, xmm0
 end;
-{$ENDIF}
-{$ENDIF}
+
+{$ifend}
 
 function TCustomBitmap32.GetStippleColor: TColor32;
 var
@@ -3816,12 +3818,8 @@ begin
     Exit;
   end;
   WrapMem(FStippleCounter, L);
-  {$IFDEF FPC}
-  PrevIndex := Trunc(FStippleCounter);
-  {$ELSE}
   // Was: PrevIndex := Round(FStippleCounter - 0.5);
   PrevIndex := FastTrunc(FStippleCounter);
-  {$ENDIF}
   // Was: PrevWeight= $FF - Round($FF * (FStippleCounter - PrevIndex));
   PrevWeight := $FF - FastPrevWeight(FStippleCounter, PrevIndex);
   if PrevIndex < 0 then
@@ -7825,9 +7823,9 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-{$IFNDEF PUREPASCAL}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   GeneralRegistry.RegisterBinding(@@FastPrevWeight);
-{$ENDIF}
+{$ifend}
 end;
 
 var
@@ -7850,12 +7848,10 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindingFunctions;
 begin
-{$IFNDEF PUREPASCAL}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_Pas,    BlendBindingFlagPascal);
-{$IFNDEF OMIT_SSE2}
   GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_SSE41,  [isSSE41]);
-{$ENDIF}
-{$ENDIF}
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
