@@ -36,8 +36,11 @@ unit GR32_Math_FPC;
 
 interface
 
-{$IFDEF FPC}
-{$IFDEF TARGET_X64}
+{$I GR32.inc}
+
+// TODO : This block was never enabled as TARGET_X64 isn't defined unless GR32.inc is included
+// The block has now been disabled as we can't {$mode objfpc} this late.
+{$if False and defined(FPC) and defined(TARGET_X64)}
 {$mode objfpc}
 
 (*
@@ -57,12 +60,39 @@ function Round(D: Single): Int64; [internproc: fpc_in_round_real];
 function Frac(D: Single): Single; [internproc: fpc_in_frac_real];
 function Int(D: Single): Single; [internproc: fpc_in_int_real];
 function Trunc(D: Single): Int64; [internproc: fpc_in_trunc_real];
+{$ifend}
 
+//------------------------------------------------------------------------------
+
+{$if defined(FPC) and defined(TARGET_X64)}
 function Ceil(X: Single): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Floor(X: Single): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
-{$ENDIF}
-{$ENDIF}
+{$ifend}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
+
+//------------------------------------------------------------------------------
+
+{$if defined(FPC) and defined(TARGET_X64)}
+function Ceil(X: Single): Integer;
+begin
+  Result := Trunc(X);
+  if (X - Result) > 0 then
+    Inc(Result);
+end;
+
+function Floor(X: Single): Integer;
+begin
+  Result := Trunc(X);
+  if (X - Result) < 0 then
+    Dec(Result);
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
 
 end.

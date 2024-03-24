@@ -243,27 +243,6 @@ const
 
 
 //------------------------------------------------------------------------------
-
-{$if defined(FPC) and defined(TARGET_X64)}
-// TODO : Why do we need these?
-function Ceil(X: Single): Integer;
-begin
-  Result := Trunc(X);
-  if (X - Result) > 0 then
-    Inc(Result);
-end;
-
-function Floor(X: Single): Integer;
-begin
-  Result := Trunc(X);
-  if (X - Result) < 0 then
-    Dec(Result);
-end;
-{$ifend}
-
-
-
-//------------------------------------------------------------------------------
 //
 //      Fixed-point math
 //
