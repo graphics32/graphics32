@@ -1454,19 +1454,19 @@ asm
 
 {$elseif defined(TARGET_x64)}
 
-  {$IFDEF MSWINDOWS}
         XOR     EDX, EDX
         TEST    ECX, ECX
         SETG    DL
         SAR     ECX, 31
         LEA     EAX, [EDX + ECX]
-  {$ELSE}
+
+{$elseif defined(TARGET_x64_SYSV)}
+
         XOR     EDX, EDX
         TEST    EDI, EDI
         SETG    DL
         SAR     EDI, 31
         LEA     EAX, [EDX + EDI]
-  {$ENDIF}
 
 {$else}
 {$error 'Missing target'}
@@ -1922,19 +1922,19 @@ asm
 
 {$elseif defined(TARGET_x64)}
 
-  {$IFDEF MSWINDOWS}
         MOV     EAX, ECX
         MOV     ECX, EDX
         CDQ
         IDIV    ECX
         MOV     [R8],EDX
-  {$ELSE}
+
+{$elseif defined(TARGET_x64_SYSV)}
+
         MOV     EAX, EDI
         MOV     RDI, RDX
         CDQ
         IDIV    ESI
         MOV     [RDI],EDX
-  {$ENDIF}
 
 {$else}
 {$error 'Missing target'}

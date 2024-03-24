@@ -147,19 +147,19 @@
 
     {$if defined(CPUI386)}
 
-      // target is an Intel 80386 or later.
-      {$define TARGET_x86}
+      // Delphi 32-bit register calling convention
       {$ASMMODE INTEL}
+      {$define TARGET_x86}
 
     {$elseif defined(CPUX86_64)}
 
-      // target is a 64-bit processor (AMD or INTEL).
-      {$define TARGET_x64}
+      // Microsoft x64 calling convention
       {$ASMMODE INTEL}
+      {$define TARGET_x64}
 
     {$elseif defined(CPUPOWERPC)}
 
-      // target is a 32-bit PowerPC or compatible.
+      // Target is a 32-bit PowerPC or compatible.
       // currently only indirect support, added here as example on how to add
       // future specific targets
       {$define TARGET_POWERPC}
@@ -168,27 +168,38 @@
 
   {$elseif defined(CPUX86_64)}
 
-    // target is a 64-bit processor (AMD or INTEL).
-    {$define TARGET_x64}
+    // Target is a 64-bit processor (AMD or INTEL).
     {$ASMMODE INTEL}
+
+    {$if defined(MSWINDOWS)}
+
+      // Microsoft x64 calling convention
+      {$define TARGET_x64}
+
+    {$else}
+
+      // System V ABI calling convention
+      {$define TARGET_x64_SYSV}
+
+    {$ifend}
 
   {$elseif defined(CPUARM)}
 
-    // target is an ARM processor.
+    // Target is an ARM processor.
     {$define TARGET_ARM}
 
   {$ifend}
 
 {$else}
 
-  // check for XE2 64-Bit compiler define
   {$if defined(CPUX64)}
 
+    // Microsoft x64 calling convention
     {$define TARGET_x64}
 
   {$else}
 
-    // define default (delphi etc) target (32 bit Intel 80386 or later)
+    // Delphi 32-bit register calling convention
     {$define TARGET_x86}
 
   {$ifend}
@@ -209,10 +220,6 @@
    NOTE: The DARWIN target of Free Pascal generates PIC code by default
    Which isn't compatible with the current assembler, so force PUREPASCAL
 *)
-
-{$ifdef FPC}
-  {-$DEFINE PUREPASCAL}
-{$endif}
 
 {$ifdef TARGET_ARM}
   {$define PUREPASCAL}
@@ -317,7 +324,7 @@
   {$ifdef LINUX}
     {$define BITS_GETTER}
   {$else}
-    {$define Windows}
+    {$define WINDOWS}
   {$endif}
 
   {$define EXT_PROP_EDIT}
@@ -329,7 +336,7 @@
   {$define RECORD_CLASS_VAR}    // Class vars in record types. Use object type instead.
   {$define CAST_INTF_TO_CLASS}  // Casting an interface to a class.
 
-// 16 byte code alignment required for SSE aligned loads from asm db blocks
+  // 16 byte code alignment required for SSE aligned loads from asm db blocks
   {$CODEALIGN 16}
 
 {$else}
@@ -350,8 +357,9 @@
     {$define RGBA_FORMAT}
   {$endif}
 
-  {$if (not defined(TARGET_x86)) and (not defined(TARGET_x64))}
-    // Target processor is neither x86 or x64: Use Pascal versions
+  {$if (not defined(TARGET_x86)) and (not defined(TARGET_x64)) and (not defined(TARGET_x64_SYSV))}
+
+    // Unsupported target for assembler: Use Pascal versions
     {$define PUREPASCAL}
 
   {$ifend}
