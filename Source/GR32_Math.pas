@@ -45,20 +45,323 @@ uses
 {$ENDIF}
   GR32_Bindings;
 
+type
+  GR32Math_Pascal = class abstract
+  private
+    const
+      FixedOneS: Single = 65536;
+
+  public
+    //------------------------------------------------------------------------------
+    //
+    //      Fixed point math routines
+    //
+    //------------------------------------------------------------------------------
+    class function FixedFloor(A: TFixed): Integer; static;
+    class function FixedCeil(A: TFixed): Integer; static;
+    class function FixedMul(A, B: TFixed): TFixed; static;
+    class function FixedDiv(A, B: TFixed): TFixed; static;
+    class function OneOver(Value: TFixed): TFixed; static;
+    class function FixedRound(A: TFixed): Integer; static;
+    class function FixedSqr(Value: TFixed): TFixed; static;
+    class function FixedSqrtLP(Value: TFixed): TFixed; static;      // 8-bit precision
+    class function FixedSqrtHP(Value: TFixed): TFixed; static;      // 16-bit precision
+    // Fixed point interpolation
+    class function FixedCombine(W, X, Y: TFixed): TFixed; static;
+
+
+    //------------------------------------------------------------------------------
+    //
+    //      Trigonometric routines
+    //
+    //------------------------------------------------------------------------------
+    class procedure SinCos1(const Theta: TFloat; out Sin, Cos: TFloat); static;
+    class procedure SinCos2(const Theta, Radius: TFloat; out Sin, Cos: TFloat); static;
+    class procedure SinCos3(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: TFloat); static;
+    class function Hypot(const X, Y: TFloat): TFloat; static;
+
+    //------------------------------------------------------------------------------
+    //
+    //      Fast approximations
+    //
+    //------------------------------------------------------------------------------
+    class function FastSqrt(const Value: TFloat): TFloat;  static; inline;
+    class function FastSqrtBab1(const Value: TFloat): TFloat; static;
+    class function FastSqrtBab2(const Value: TFloat): TFloat; static;
+    class function FastInvSqrt(const Value: TFloat): TFloat; static; inline;
+
+
+    //------------------------------------------------------------------------------
+    //
+    //      Misc. Routines
+    //
+    //------------------------------------------------------------------------------
+    { MulDiv a faster implementation of Windows.MulDiv funtion }
+    // The MSDN documentation for MulDiv states:
+    // [...] the return value is the result of the multiplication and division, rounded
+    // to the nearest integer. If the result is a positive half integer (ends in .5),
+    // it is rounded up. If the result is a negative half integer, it is rounded down.
+    class function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; static;
+
+    class function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; static;
+
+    // Power of 2 functions. Only valid for values >= 0.
+    // Determine if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
+    class function IsPowerOf2(Value: Integer): Boolean; static; {$IFDEF USEINLINING} inline; {$ENDIF}
+    // Returns X rounded DOWN to the PREVIOUS power of two, i.e. 5->4, 7->4, 8->4, 9->8
+    class function PrevPowerOf2(Value: Integer): Integer; static;
+    // Returns X rounded UP to the NEXT power of two, i.e. 5->8, 7->8, 8->16, 15->16
+    class function NextPowerOf2(Value: Integer): Integer; static;
+
+    // fast average without overflow, useful for e.g. fixed point math
+    class function Average(A, B: Integer): Integer; static; {$IFDEF PUREPASCAL} inline; {$ENDIF}
+    // fast sign function
+    class function Sign(Value: Integer): Integer; static; {$IFDEF PUREPASCAL} inline; {$ENDIF}
+
+
+    //------------------------------------------------------------------------------
+    //
+    //      Modulus
+    //
+    //------------------------------------------------------------------------------
+    // See also: https://en.wikipedia.org/wiki/Modulo
+    //------------------------------------------------------------------------------
+    //
+    // FMod(Numerator, Denominator)
+    //
+    // Similar to Mod() but for floating point values.
+    // Returns a value in the [0..Denominator) range. I.e. Denominator is exclusive.
+    // NAN is not checked. If Denominator=0, An exception is raised or INF or NAN is
+    // returned depending on the implementation
+    //
+    // Equivalent to the Delphi RTL Math.FMod function.
+    //
+    //   Result := Numerator - Denominator * Trunc(Numerator / Denominator);
+    //
+    class function FMod_D(ANumerator, ADenominator: Double): Double; overload; static; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class function FMod_F(ANumerator, ADenominator: TFloat): TFloat; overload; static; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+    //
+    // FloatMod(Numerator, Denominator)
+    //
+    // Returns a value in the [0..Denominator) range. I.e. Denominator is exclusive.
+    // NAN is not checked. If Denominator=0, Numerator is returned.
+    //
+    // Note that, unlike FMod, FloatMod uses the Floor() definition of modulus:
+    //
+    //   Result := Numerator - Denominator * Floor(Numerator / Denominator);
+    //
+    // While FMod uses the Trunc definition:
+    //
+    //   Result := Numerator - Denominator * Trunc(Numerator / Denominator);
+    //
+    // For an implementation using the Trunc() definition, see the
+    // FloatRemainder function.
+    //
+    class function FloatMod_D(ANumerator, ADenominator: Double): Double; overload; static; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class function FloatMod_F(ANumerator, ADenominator: TFloat): TFloat; overload; static; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+    //
+    // FloatRemainder(Numerator, Denominator)
+    //
+    // Returns a value in the [0..Denominator) range. I.e. Denominator is exclusive.
+    // NAN is not checked. If Denominator=0, Numerator is returned.
+    //
+    // Similar to the FloatMod function but uses Round() instead of Floor():
+    //
+    //   Result := Numerator - Denominator * Round(Numerator / Denominator);
+    //
+    // This corresponds to the C++ remainder() function.
+    //
+    class function FloatRemainder_D(ANumerator, ADenominator: Double): Double; overload; static; {$IFDEF USEINLINING} inline; {$ENDIF}
+    class function FloatRemainder_F(ANumerator, ADenominator: TFloat): TFloat; overload; static; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+
+    //------------------------------------------------------------------------------
+    //
+    //      Prefix Sum
+    //
+    //------------------------------------------------------------------------------
+    // Also known as: CumSum, Cumulative Sum
+    //------------------------------------------------------------------------------
+    class procedure CumSum(Values: PSingleArray; Count: Integer); static;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Common TARGET_x86 and TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+{$if defined(TARGET_x86) or defined(TARGET_x64)}
+  GR32Math_x86x64 = class abstract(GR32Math_Pascal)
+  public
+    {$if not defined(OMIT_SSE2)}
+    class function FMod_D_SSE2(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FMod_F_SSE2(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    class function FMod_D_SSE41(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    class function FloatMod_D_SSE41(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FloatMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    class function FloatRemainder_D_SSE41(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FloatRemainder_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    {$ifend not defined(OMIT_SSE2)}
+  end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+
+{$if defined(PUREPASCAL)}
+  GR32Math = GR32Math_Pascal;
+
+{$elseif defined(TARGET_x86)}
+//------------------------------------------------------------------------------
+//
+//      TARGET_x86 implementations
+//
+//------------------------------------------------------------------------------
+  GR32Math_x86 = class abstract(GR32Math_x86x64)
+  public
+    // Fixed point math routines
+    class function FixedFloor(A: TFixed): Integer; static;
+    class function FixedCeil(A: TFixed): Integer; static;
+    class function FixedMul(A, B: TFixed): TFixed; static;
+    class function FixedDiv(A, B: TFixed): TFixed; static;
+    class function OneOver(Value: TFixed): TFixed; static;
+    class function FixedRound(A: TFixed): Integer; static;
+    class function FixedSqr(Value: TFixed): TFixed; static;
+    class function FixedSqrtLP(Value: TFixed): TFixed; static;
+    class function FixedSqrtHP(Value: TFixed): TFixed; static;
+    class function FixedCombine(W, X, Y: TFixed): TFixed; static;
+
+    // Trigonometric routines
+    {$if not defined(NATIVE_SINCOS)}
+    class procedure SinCos1(const Theta: TFloat; out Sin, Cos: TFloat); static;
+    class procedure SinCos2(const Theta, Radius: TFloat; out Sin, Cos: TFloat); static;
+    class procedure SinCos3(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: TFloat); static;
+    {$ifend}
+    class function Hypot(const X, Y: TFloat): TFloat; static;
+
+    // Fast approximations
+    class function FastSqrt(const Value: TFloat): TFloat;  static;
+    class function FastSqrtBab1(const Value: TFloat): TFloat; static;
+    class function FastSqrtBab2(const Value: TFloat): TFloat; static;
+    class function FastInvSqrt(const Value: TFloat): TFloat; static;
+
+    // Misc. Routines
+    class function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; static;
+    class function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; static;
+    // class function IsPowerOf2(Value: Integer): Boolean; static;
+    class function PrevPowerOf2(Value: Integer): Integer; static;
+    class function NextPowerOf2(Value: Integer): Integer; static;
+    class function Average(A, B: Integer): Integer; static;
+    class function Sign(Value: Integer): Integer; static;
+
+    // Modulus
+    (* Implemented in base class
+    class function FMod(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FMod(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    class function FloatMod(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FloatMod(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    class function FloatRemainder(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FloatRemainder(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    *)
+
+    // Prefix Sum
+    class procedure CumSum(Values: PSingleArray; Count: Integer); static;
+  end;
+  GR32Math = GR32Math_x86;
+
+{$elseif defined(TARGET_x64)}
+
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+  GR32Math_x64 = class abstract(GR32Math_x86x64)
+  public
+    // Fixed point math routines
+    class function FixedFloor(A: TFixed): Integer; static;
+    class function FixedCeil(A: TFixed): Integer; static;
+    class function FixedMul(A, B: TFixed): TFixed; static;
+    class function FixedDiv(A, B: TFixed): TFixed; static;
+    class function OneOver(Value: TFixed): TFixed; static;
+    class function FixedRound(A: TFixed): Integer; static;
+    class function FixedSqr(Value: TFixed): TFixed; static;
+    class function FixedSqrtLP(Value: TFixed): TFixed; static;
+    class function FixedSqrtHP(Value: TFixed): TFixed; static;
+    class function FixedCombine(W, X, Y: TFixed): TFixed; static;
+
+    // Trigonometric routines
+    {$if not defined(NATIVE_SINCOS)}
+    class procedure SinCos1(const Theta: TFloat; out Sin, Cos: TFloat); static;
+    class procedure SinCos2(const Theta, Radius: TFloat; out Sin, Cos: TFloat); static;
+    class procedure SinCos3(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: TFloat); static;
+    {$ifend}
+    class function Hypot(const X, Y: TFloat): TFloat; static;
+
+    // Fast approximations
+    class function FastSqrt(const Value: TFloat): TFloat;  static;
+    class function FastSqrtBab1(const Value: TFloat): TFloat; static;
+    class function FastSqrtBab2(const Value: TFloat): TFloat; static;
+    class function FastInvSqrt(const Value: TFloat): TFloat; static;
+
+    // Misc. Routines
+    class function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; static;
+    class function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; static;
+    // class function IsPowerOf2(Value: Integer): Boolean; static;
+    class function PrevPowerOf2(Value: Integer): Integer; static;
+    class function NextPowerOf2(Value: Integer): Integer; static;
+    class function Average(A, B: Integer): Integer; static;
+    class function Sign(Value: Integer): Integer; static;
+
+    // Modulus
+    (* Implemented in base class
+    class function FMod(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FMod(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    class function FloatMod(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FloatMod(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    class function FloatRemainder(ANumerator, ADenominator: Double): Double; overload; static;
+    class function FloatRemainder(ANumerator, ADenominator: TFloat): TFloat; overload; static;
+    *)
+
+    // Prefix Sum
+    class procedure CumSum(Values: PSingleArray; Count: Integer); static;
+  end;
+  GR32Math = GR32Math_x64;
+
+{$elseif defined(TARGET_x64_SYSV)}
+
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64_SYSV implementations
+//
+//------------------------------------------------------------------------------
+  GR32Math_x64_SysV = class abstract(GR32Math_Pascal)
+  public
+    // Misc. Routines
+    class function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; static;
+    class function Sign(Value: Integer): Integer; static;
+  end;
+  GR32Math = GR32Math_x64_SysV;
+{$ifend}
+
+
 //------------------------------------------------------------------------------
 //
 //      Fixed point math routines
 //
 //------------------------------------------------------------------------------
-function FixedFloor(A: TFixed): Integer;
-function FixedCeil(A: TFixed): Integer;
-function FixedMul(A, B: TFixed): TFixed;
-function FixedDiv(A, B: TFixed): TFixed;
-function OneOver(Value: TFixed): TFixed;
-function FixedRound(A: TFixed): Integer; {$IFDEF PUREPASCAL} inline; {$ENDIF}
-function FixedSqr(Value: TFixed): TFixed;
-function FixedSqrtLP(Value: TFixed): TFixed;      // 8-bit precision
-function FixedSqrtHP(Value: TFixed): TFixed;      // 16-bit precision
+function FixedFloor(A: TFixed): Integer; inline;
+function FixedCeil(A: TFixed): Integer; inline;
+function FixedMul(A, B: TFixed): TFixed; inline;
+function FixedDiv(A, B: TFixed): TFixed; inline;
+function OneOver(Value: TFixed): TFixed; inline;
+function FixedRound(A: TFixed): Integer; inline;
+function FixedSqr(Value: TFixed): TFixed;  inline;
+function FixedSqrtLP(Value: TFixed): TFixed; inline;    // 8-bit precision
+function FixedSqrtHP(Value: TFixed): TFixed; inline;    // 16-bit precision
 // Fixed point interpolation
 function FixedCombine(W, X, Y: TFixed): TFixed;
 
@@ -68,16 +371,22 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 //      Trigonometric routines
 //
 //------------------------------------------------------------------------------
-procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat); overload;
-procedure SinCos(const Theta, Radius: Single; out Sin, Cos: Single); overload;
-procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single); overload;
-function Hypot(const X, Y: TFloat): TFloat; overload;
-function Hypot(const X, Y: Integer): Integer; overload;
-// Fast*: Fast approximations
-function FastSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL} inline; {$ENDIF}
-function FastSqrtBab1(const Value: TFloat): TFloat;
-function FastSqrtBab2(const Value: TFloat): TFloat;
-function FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL} inline; {$ENDIF}
+procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat); overload; inline;
+procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat); overload; inline;
+procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: TFloat); overload; inline;
+function Hypot(const X, Y: TFloat): TFloat; overload; inline;
+function Hypot(const X, Y: Integer): Integer; overload; inline;
+
+
+//------------------------------------------------------------------------------
+//
+//      Fast approximations
+//
+//------------------------------------------------------------------------------
+function FastSqrt(const Value: TFloat): TFloat; inline;
+function FastSqrtBab1(const Value: TFloat): TFloat; inline;
+function FastSqrtBab2(const Value: TFloat): TFloat; inline;
+function FastInvSqrt(const Value: TFloat): TFloat; inline;
 
 
 //------------------------------------------------------------------------------
@@ -90,22 +399,22 @@ function FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL} inline; {
 // [...] the return value is the result of the multiplication and division, rounded
 // to the nearest integer. If the result is a positive half integer (ends in .5),
 // it is rounded up. If the result is a negative half integer, it is rounded down.
-function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
+function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; inline;
 
-function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
+function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; inline;
 
 // Power of 2 functions. Only valid for values >= 0.
 // Determine if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
-function IsPowerOf2(Value: Integer): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IsPowerOf2(Value: Integer): Boolean; inline;
 // Returns X rounded DOWN to the PREVIOUS power of two, i.e. 5->4, 7->4, 8->4, 9->8
-function PrevPowerOf2(Value: Integer): Integer;
+function PrevPowerOf2(Value: Integer): Integer; inline;
 // Returns X rounded UP to the NEXT power of two, i.e. 5->8, 7->8, 8->16, 15->16
-function NextPowerOf2(Value: Integer): Integer;
+function NextPowerOf2(Value: Integer): Integer; inline;
 
 // fast average without overflow, useful for e.g. fixed point math
-function Average(A, B: Integer): Integer; {$IFDEF PUREPASCAL} inline; {$ENDIF}
+function Average(A, B: Integer): Integer; inline;
 // fast sign function
-function Sign(Value: Integer): Integer; {$IFDEF PUREPASCAL} inline; {$ENDIF}
+function Sign(Value: Integer): Integer; inline;
 
 
 //------------------------------------------------------------------------------
@@ -127,8 +436,8 @@ function Sign(Value: Integer): Integer; {$IFDEF PUREPASCAL} inline; {$ENDIF}
 //
 //   Result := Numerator - Denominator * Trunc(Numerator / Denominator);
 //
-function FMod(ANumerator, ADenominator: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FMod(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FMod(ANumerator, ADenominator: Double): Double; overload; inline;
+function FMod(ANumerator, ADenominator: TFloat): TFloat; overload; inline;
 
 //
 // FloatMod(Numerator, Denominator)
@@ -147,8 +456,8 @@ function FMod(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF USEIN
 // For an implementation using the Trunc() definition, see the
 // FloatRemainder function.
 //
-function FloatMod(ANumerator, ADenominator: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FloatMod(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatMod(ANumerator, ADenominator: Double): Double; overload; inline;
+function FloatMod(ANumerator, ADenominator: TFloat): TFloat; overload; inline;
 
 //
 // FloatRemainder(Numerator, Denominator)
@@ -162,8 +471,8 @@ function FloatMod(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF U
 //
 // This corresponds to the C++ remainder() function.
 //
-function FloatRemainder(ANumerator, ADenominator: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FloatRemainder(ANumerator, ADenominator: TFloat): TFloat; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRemainder(ANumerator, ADenominator: Double): Double; overload; inline;
+function FloatRemainder(ANumerator, ADenominator: TFloat): TFloat; overload; inline;
 
 
 //------------------------------------------------------------------------------
@@ -236,86 +545,62 @@ const
   ROUND_NO_EXC          = $08; // Suppress exceptions
 {$ENDIF}
 
-{$IFDEF PUREPASCAL}
-const
-  FixedOneS: Single = 65536;
-{$ENDIF}
-
 
 //------------------------------------------------------------------------------
 //
-//      Fixed-point math
+//      PUREPASCAL implementations
 //
+//------------------------------------------------------------------------------
+// Fixed point math routines
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 // FixedFloor
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function FixedFloor(A: TFixed): Integer;
+class function GR32Math_Pascal.FixedFloor(A: TFixed): Integer;
 begin
   Result := A div FixedOne;
 end;
 
-{$ELSE}
-
-function FixedFloor(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        SAR     EAX, 16
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, ECX
-        SAR     EAX, 16
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
 // FixedCeil
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function FixedCeil(A: TFixed): Integer;
+class function GR32Math_Pascal.FixedCeil(A: TFixed): Integer;
 begin
-  Result := (A + $FFFF) div FixedOne;
+  Result := A div FixedOne;
 end;
 
-{$ELSE}
-
-function FixedCeil(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        ADD     EAX, $0000FFFF
-        SAR     EAX, 16
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, ECX
-        ADD     EAX, $0000FFFF
-        SAR     EAX, 16
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
+//------------------------------------------------------------------------------
+// FixedCombine
+//------------------------------------------------------------------------------
+// combine fixed value X and fixed value Y with the weight of X given in W
+// Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
+// Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FixedCombine(W, X, Y: TFixed): TFixed;
+begin
+  Result := Round(Y + (X - Y) * FixedToFloat * W);
 end;
 
-{$ENDIF}
+//------------------------------------------------------------------------------
+// FixedDiv
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FixedDiv(A, B: TFixed): TFixed;
+begin
+  Result := Round(A / B * FixedOne);
+end;
 
+//------------------------------------------------------------------------------
+// FixedMul
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FixedMul(A, B: TFixed): TFixed;
+begin
+  Result := Round(A * FixedToFloat * B);
+end;
 
 //------------------------------------------------------------------------------
 // FixedRound
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function FixedRound(A: TFixed): Integer;
+class function GR32Math_Pascal.FixedRound(A: TFixed): Integer;
 begin
   Result := (A + $7FFF);
 
@@ -329,257 +614,698 @@ begin
   }
 end;
 
-{$ELSE}
-
-function FixedRound(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        ADD     EAX, FixedHalf
-        SAR     EAX, 16
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, ECX
-        ADD     EAX, FixedHalf
-        SAR     EAX, 16
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FixedMul
+// FixedSqr
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function FixedMul(A, B: TFixed): TFixed;
+class function GR32Math_Pascal.FixedSqr(Value: TFixed): TFixed;
 begin
-  Result := Round(A * FixedToFloat * B);
+  Result := Round(Value * FixedToFloat * Value);
 end;
 
-{$ELSE}
-
-function FixedMul(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        IMUL    EDX
-        SHRD    EAX, EDX, 16
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, ECX
-        IMUL    EDX
-        SHRD    EAX, EDX, 16
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FixedDiv
+// FixedSqrt
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function FixedDiv(A, B: TFixed): TFixed;
+class function GR32Math_Pascal.FixedSqrtHP(Value: TFixed): TFixed;
 begin
-  Result := Round(A / B * FixedOne);
+  Result := Round(Sqrt(Value * FixedOneS));
 end;
 
-{$ELSE}
-
-function FixedDiv(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        MOV     ECX, B
-        CDQ
-        SHLD    EDX, EAX, 16
-        SHL     EAX, 16
-        IDIV    ECX
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, ECX
-        MOV     ECX, EDX
-        CDQ
-        SHLD    EDX, EAX, 16
-        SHL     EAX, 16
-        IDIV    ECX
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
+class function GR32Math_Pascal.FixedSqrtLP(Value: TFixed): TFixed;
+begin
+  Result := Round(Sqrt(Value * FixedOneS));
 end;
-
-{$ENDIF}
-
 
 //------------------------------------------------------------------------------
 // OneOver
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function OneOver(Value: TFixed): TFixed;
+class function GR32Math_Pascal.OneOver(Value: TFixed): TFixed;
 const
   Dividend: Single = 4294967296; // FixedOne * FixedOne
 begin
   Result := Round(Dividend / Value);
 end;
 
-{$ELSE}
 
-function OneOver(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+//------------------------------------------------------------------------------
+//
+//      PUREPASCAL implementations
+//
+//------------------------------------------------------------------------------
+// Trigonometric routines
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.Hypot(const X, Y: TFloat): TFloat;
+begin
+  Result := Sqrt(Sqr(X) + Sqr(Y));
+end;
+
+class procedure GR32Math_Pascal.SinCos3(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single);
+var
+  S, C: Extended;
+begin
+  Math.SinCos(Theta, S, C);
+  Sin := S * ScaleX;
+  Cos := C * ScaleY;
+end;
+
+class procedure GR32Math_Pascal.SinCos2(const Theta, Radius: Single; out Sin, Cos: Single);
+var
+  S, C: Extended;
+begin
+  Math.SinCos(Theta, S, C);
+  Sin := S * Radius;
+  Cos := C * Radius;
+end;
+
+class procedure GR32Math_Pascal.SinCos1(const Theta: TFloat; out Sin, Cos: TFloat);
+var
+  S, C: Extended;
+begin
+  Math.SinCos(Theta, S, C);
+  Sin := S;
+  Cos := C;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      PUREPASCAL implementations
+//
+//------------------------------------------------------------------------------
+// Fast approximations
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// FastInvSqrt
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FastInvSqrt(const Value: TFloat): TFloat;
+var
+  IntCst : Cardinal absolute result;
+begin
+  Result := Value;
+  IntCst := ($BE6EB50C - IntCst) shr 1;
+  Result := 0.5 * Result * (3 - Value * Sqr(Result));
+end;
+
+//------------------------------------------------------------------------------
+// FastSqrt
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FastSqrt(const Value: TFloat): TFloat;
+var
+  I: Integer absolute Value;
+  J: Integer absolute Result;
+begin
+  J := (I - $3F800000) div 2 + $3F800000;
+end;
+
+//------------------------------------------------------------------------------
+// FastSqrtBab1
+//------------------------------------------------------------------------------
+// See http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+// Additionally one babylonian step added
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FastSqrtBab1(const Value: TFloat): TFloat;
+const
+  CHalf : TFloat = 0.5;
+var
+  I: Integer absolute Value;
+  J: Integer absolute Result;
+begin
+  J := (I - $3F800000) div 2 + $3F800000;
+  Result := CHalf * (Result + Value / Result);
+end;
+
+//------------------------------------------------------------------------------
+// FastSqrtBab2
+//------------------------------------------------------------------------------
+// See http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+// Additionally two babylonian steps added
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FastSqrtBab2(const Value: TFloat): TFloat;
+const
+  CQuarter : TFloat = 0.25;
+var
+  J: Integer absolute Result;
+begin
+  Result := Value;
+  J := ((J - (1 shl 23)) shr 1) + (1 shl 29);
+  Result := Result + Value / Result;
+  Result := CQuarter * Result + Value / Result;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      PUREPASCAL implementations
+//
+//------------------------------------------------------------------------------
+// Misc. Routines
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// IsPowerOf2
+//------------------------------------------------------------------------------
+// Returns true when X = 1,2,4,8,16 etc.
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.IsPowerOf2(Value: Integer): Boolean;
+begin
+  Result := (Value <> 0) and (Cardinal(Value) and (Cardinal(Value) - 1) = 0);
+end;
+
+//------------------------------------------------------------------------------
+// MulDiv
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
+begin
+  Result := (Int64(Multiplicand) * Int64(Multiplier) + Divisor div 2) div Divisor;
+end;
+
+//------------------------------------------------------------------------------
+// NextPowerOf2
+//------------------------------------------------------------------------------
+// Returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.NextPowerOf2(Value: Integer): Integer;
+begin
+  if (Value = 0) then
+    Exit(1);
+  Result := Value-1;
+  Result := Result or (Result shr 1);
+  Result := Result or (Result shr 2);
+  Result := Result or (Result shr 4);
+  Result := Result or (Result shr 8);
+  Result := Result or (Result shr 16);
+  Inc(Result);
+end;
+
+//------------------------------------------------------------------------------
+// Sign
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.Sign(Value: Integer): Integer;
+begin
+  // Defer to Math.Sign
+  Result := Integer(Math.Sign(Value));
+end;
+
+//------------------------------------------------------------------------------
+// PrevPowerOf2
+//------------------------------------------------------------------------------
+// Returns X rounded down to the power of two
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.PrevPowerOf2(Value: Integer): Integer;
+begin
+  Result := Value;
+  Result := Result or (Result shr 1);
+  Result := Result or (Result shr 2);
+  Result := Result or (Result shr 4);
+  Result := Result or (Result shr 8);
+  Result := Result or (Result shr 16);
+  Dec(Result, Result shr 1);
+end;
+
+//------------------------------------------------------------------------------
+// Average
+//------------------------------------------------------------------------------
+// Fast average without overflow, useful e.g. for fixed point math
+// (A + B) / 2 = (A and B) + (A xor B) / 2
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.Average(A, B: Integer): Integer;
+begin
+  Result := (A and B) + (A xor B) div 2;
+end;
+
+class function GR32Math_Pascal.DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
+begin
+  Result := Dividend div Divisor;
+  Remainder := Dividend mod Divisor;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      PUREPASCAL implementations
+//
+//------------------------------------------------------------------------------
+// Modulus
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// FloatMod
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FloatMod_F(ANumerator, ADenominator: TFloat): TFloat;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
+end;
+
+class function GR32Math_Pascal.FloatMod_D(ANumerator, ADenominator: Double): Double;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
+end;
+
+//------------------------------------------------------------------------------
+// FloatRemainder
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FloatRemainder_D(ANumerator, ADenominator: Double): Double;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
+end;
+
+class function GR32Math_Pascal.FloatRemainder_F(ANumerator, ADenominator: TFloat): TFloat;
+begin
+  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
+    Result := ANumerator
+  else
+    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
+end;
+
+//------------------------------------------------------------------------------
+// FMod
+//------------------------------------------------------------------------------
+class function GR32Math_Pascal.FMod_F(ANumerator, ADenominator: TFloat): TFloat;
+begin
+  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
+end;
+
+class function GR32Math_Pascal.FMod_D(ANumerator, ADenominator: Double): Double;
+begin
+  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      PUREPASCAL implementations
+//
+//------------------------------------------------------------------------------
+// Prefix Sum
+//------------------------------------------------------------------------------
+class procedure GR32Math_Pascal.CumSum(Values: PSingleArray; Count: Integer);
+var
+  I: Integer;
+  V: TFloat;
+begin
+  V := Values[0];
+  for I := 1 to Count - 1 do
+  begin
+    if PInteger(@Values[I])^ <> 0 then // TODO : It's probably faster to just do the add than to do a test and a branch
+      V := V + Values[I];
+    Values[I] := V;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+
+{$if defined(TARGET_x86) or defined(TARGET_x64)}
+//------------------------------------------------------------------------------
+//
+//      Common TARGET_x86 and TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+{$if not defined(OMIT_SSE2)}
+//------------------------------------------------------------------------------
+// Modulus
+//------------------------------------------------------------------------------
+class function GR32Math_x86x64.FloatMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are identical except for the ROUNDSS parameter. Keep in sync!
+// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
 asm
 {$if defined(TARGET_x86)}
+        movss   xmm0, ANumerator
+        movss   xmm1, ADenominator
+{$ifend}
+        xorps   xmm2, xmm2
 
-        MOV     ECX, Value
-        XOR     EAX, EAX
-        MOV     EDX, 1
+        // if (ANumerator < 0) then...
+        comiss  xmm0, xmm2
+        // ...do modulus...
+        jb      @@do_mod
+
+        // if (ADenominator > ANumerator) then...
+        comiss  xmm1, xmm0
+        // ...Result := ANumerator
+        ja     @@return_value
+
+@@do_mod:
+        // if (ADenominator = 0) then...
+        ucomiss xmm1, xmm2
+        lahf                            // AH <- Status flags
+        test    ah, $44                 // Test(AH, ZF or PF)
+        // ...Result := ANumerator
+        jnp     @@return_value
+
+        // a := ANumerator / ADenominator
+        movss   xmm2, xmm0
+        divss   xmm2, xmm1
+        // b := Floor(a)
+        roundss xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        // c := ADenominator * b
+        mulss   xmm2, xmm1
+        // Result := ANumerator - c;
+        subss   xmm0, xmm2
+        // Fall through...
+
+@@return_value:
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86x64.FloatMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+// Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are identical except for the ROUNDSD parameter. Keep in sync!
+// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
+asm
+{$if defined(TARGET_x86)}
+        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
+        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+        xorpd   xmm2, xmm2              // XMM2 <- 0
+
+        // if (ANumerator < 0) then...
+        comisd  xmm0, xmm2
+        // ...do modulus...
+        jb      @@do_mod
+
+        // if (ADenominator > ANumerator) then...
+        comisd  xmm1, xmm0
+        // ...Result := ANumerator
+        ja     @@return_value
+
+@@do_mod:
+        // if (ADenominator = 0) then...
+        ucomisd xmm1, xmm2
+        lahf                            // AH <- Status flags
+        test    ah, $44                 // Test(AH, ZF or PF)
+        // ...Result := ANumerator
+        jnp     @@return_value
+
+        // a := ANumerator / ADenominator
+        movsd   xmm2, xmm0
+        divsd   xmm2, xmm1
+        // b := Floor(a)
+        roundsd xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        // c := ADenominator * b
+        mulsd   xmm2, xmm1
+        // Result := ANumerator - c;
+        subsd   xmm0, xmm2
+        // Fall through...
+
+@@return_value:
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86x64.FloatRemainder_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are identical except for the ROUNDSS parameter. Keep in sync!
+// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
+asm
+{$if defined(TARGET_x86)}
+        movss   xmm0, ANumerator
+        movss   xmm1, ADenominator
+{$ifend}
+        xorps   xmm2, xmm2
+
+        // if (ANumerator < 0) then...
+        comiss  xmm0, xmm2
+        // ...do modulus...
+        jb      @@do_mod
+
+        // if (ADenominator > ANumerator) then...
+        comiss  xmm1, xmm0
+        // ...Result := ANumerator
+        ja     @@return_value
+
+@@do_mod:
+        // if (ADenominator = 0) then...
+        ucomiss xmm1, xmm2
+        lahf                            // AH <- Status flags
+        test    ah, $44                 // Test(AH, ZF or PF)
+        // ...Result := ANumerator
+        jnp     @@return_value
+
+        // a := ANumerator / ADenominator
+        movss   xmm2, xmm0
+        divss   xmm2, xmm1
+        // b := Round(a)
+        roundss xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
+        // c := ADenominator * b
+        mulss   xmm2, xmm1
+        // Result := ANumerator - c;
+        subss   xmm0, xmm2
+        // Fall through...
+
+@@return_value:
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86x64.FloatRemainder_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+// Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are identical except for the ROUNDSD parameter. Keep in sync!
+// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
+asm
+{$if defined(TARGET_x86)}
+        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
+        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+        xorpd   xmm2, xmm2
+
+        // if (ANumerator < 0) then...
+        comisd  xmm0, xmm2
+        // ...do modulus...
+        jb      @@do_mod
+
+        // if (ADenominator > ANumerator) then...
+        comisd  xmm1, xmm0
+        // ...Result := ANumerator
+        ja     @@return_value
+
+@@do_mod:
+        // if (ADenominator = 0) then...
+        ucomisd xmm1, xmm2
+        lahf                            // AH <- Status flags
+        test    ah, $44                 // Test(AH, ZF or PF)
+        // ...Result := ANumerator
+        jnp     @@return_value
+
+        // a := ANumerator / ADenominator
+        movsd   xmm2, xmm0
+        divsd   xmm2, xmm1
+        // b := Floor(a)
+        roundsd xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
+        // c := ADenominator * b
+        mulsd   xmm2, xmm1
+        // Result := ANumerator - c;
+        subsd   xmm0, xmm2
+        // Fall through...
+
+@@return_value:
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86x64.FMod_F_SSE2(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+// Note: FMod_F_SSE2 and FMod_D_SSE2 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
+asm
+{$if defined(TARGET_x86)}
+        movss   xmm0, ANumerator        // XMM0 <- ANumerator
+        movss   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movss   xmm2, xmm0
+        // a := ANumerator / ADenominator
+        divss   xmm2, xmm1
+        // b := Trunc(a)
+        cvttss2si ecx, xmm2
+        cvtsi2ss xmm2, ecx
+        // c := b*ADenominator
+        mulss   xmm2, xmm1
+        // Result := ANumerator - c;
+        subss   xmm0, xmm2
+
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86x64.FMod_D_SSE2(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
+        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movsd   xmm2, xmm0
+        // a := ANumerator / ADenominator
+        divsd   xmm2, xmm1
+        // b := Trunc(a)
+        cvttsd2si ecx, xmm2
+        cvtsi2sd xmm2, ecx
+        // c := b*ADenominator
+        mulsd   xmm2, xmm1
+        // Result := ANumerator - c;
+        subsd   xmm0, xmm2
+
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86x64.FMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+// Note: FMod_F_SSE41 and FMod_D_SSE41 are the exact same except the D variant uses the *d instructions and and the F
+//       variant uses the *s instructions. Keep in sync!
+asm
+{$if defined(TARGET_x86)}
+        movss   xmm0, ANumerator        // XMM0 <- ANumerator
+        movss   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movss   xmm2, xmm0
+        // a := ANumerator / ADenominator
+        divss   xmm2, xmm1
+        // b := Trunc(a)
+        roundss xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
+        // c := b*ADenominator
+        mulss   xmm2, xmm1
+        // Result := ANumerator - c;
+        subss   xmm0, xmm2
+
+{$if defined(TARGET_x86)}
+        movss   Result, xmm0
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86x64.FMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
+        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
+{$ifend}
+
+        // a := ANumerator
+        movsd   xmm2, xmm0
+        // a := ANumerator / ADenominator
+        divsd   xmm2, xmm1
+        // b := Trunc(a)
+        roundsd xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
+        // c := b*ADenominator
+        mulsd   xmm2, xmm1
+        // Result := ANumerator - c;
+        subsd   xmm0, xmm2
+
+{$if defined(TARGET_x86)}
+        movsd   Result, xmm0
+{$ifend}
+end;
+
+{$ifend not defined(OMIT_SSE2)}
+{$ifend defined(TARGET_x86) or defined(TARGET_x64)}
+
+//------------------------------------------------------------------------------
+
+
+{$if defined(TARGET_x86)}
+//------------------------------------------------------------------------------
+//
+//      TARGET_x86 implementations
+//
+//------------------------------------------------------------------------------
+// Fixed point math routines
+//------------------------------------------------------------------------------
+class function GR32Math_x86.FixedFloor(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        SAR     EAX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.FixedCeil(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        ADD     EAX, $0000FFFF
+        SAR     EAX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.FixedCombine(W, X, Y: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+// EAX <- W, EDX <- X, ECX <- Y
+asm
+        SUB     EDX, ECX
+        IMUL    EDX
+        SHRD    EAX, EDX, 16
+        ADD     EAX, ECX
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.FixedDiv(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     ECX, B
+        CDQ
+        SHLD    EDX, EAX, 16
+        SHL     EAX, 16
         IDIV    ECX
 
-{$elseif defined(TARGET_x64)}
-
-        XOR     EAX, EAX
-        MOV     EDX, 1
-        IDIV    ECX
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FixedSqr
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function FixedSqr(Value: TFixed): TFixed;
-begin
-  Result := Round(Value * FixedToFloat * Value);
-end;
-
-{$ELSE}
-
-function FixedSqr(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+class function GR32Math_x86.FixedMul(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
-
-        IMUL    EAX
+        IMUL    EDX
         SHRD    EAX, EDX, 16
 
-{$elseif defined(TARGET_x64)}
+end;
 
-        MOV     EAX, Value
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.FixedRound(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        ADD     EAX, FixedHalf
+        SAR     EAX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.FixedSqr(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
         IMUL    EAX
         SHRD    EAX, EDX, 16
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FixedSqrt
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function FixedSqrtLP(Value: TFixed): TFixed;
-begin
-  Result := Round(Sqrt(Value * FixedOneS));
-end;
-
-{$ELSE}
-
-function FixedSqrtLP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+class function GR32Math_x86.FixedSqrtHP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
-
-        PUSH    EBX
-        MOV     ECX, EAX
-        XOR     EAX, EAX
-        MOV     EBX, $40000000
-@SqrtLP1:
-        MOV     EDX, ECX
-        SUB     EDX, EBX
-        JL      @SqrtLP2
-        SUB     EDX, EAX
-        JL      @SqrtLP2
-        MOV     ECX, EDX
-        SHR     EAX, 1
-        OR      EAX, EBX
-        SHR     EBX, 2
-        JNZ     @SqrtLP1
-        SHL     EAX, 8
-        JMP     @SqrtLP3
-@SqrtLP2:
-        SHR     EAX, 1
-        SHR     EBX, 2
-        JNZ     @SqrtLP1
-        SHL     EAX, 8
-@SqrtLP3:
-        POP     EBX
-
-{$elseif defined(TARGET_x64)}
-
-        XOR     EAX, EAX
-        MOV     R8D, $40000000
-@SqrtLP1:
-        MOV     EDX, ECX
-        SUB     EDX, R8D
-        JL      @SqrtLP2
-        SUB     EDX, EAX
-        JL      @SqrtLP2
-        MOV     ECX, EDX
-        SHR     EAX, 1
-        OR      EAX, R8D
-        SHR     R8D, 2
-        JNZ     @SqrtLP1
-        SHL     EAX, 8
-        RET
-@SqrtLP2:
-        SHR     EAX, 1
-        SHR     R8D, 2
-        JNZ     @SqrtLP1
-        SHL     EAX, 8
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ENDIF}
-
-//------------------------------------------------------------------------------
-
-{$IFDEF PUREPASCAL}
-
-function FixedSqrtHP(Value: TFixed): TFixed;
-begin
-  Result := Round(Sqrt(Value * FixedOneS));
-end;
-
-{$ELSE}
-
-function FixedSqrtHP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
         PUSH    EBX
         MOV     ECX, EAX
         XOR     EAX, EAX
@@ -622,211 +1348,71 @@ asm
         JNZ     @SqrtHP3
 @SqrtHP6:
         POP     EBX
+end;
 
-{$elseif defined(TARGET_x64)}
+//------------------------------------------------------------------------------
 
+class function GR32Math_x86.FixedSqrtLP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        PUSH    EBX
+        MOV     ECX, EAX
         XOR     EAX, EAX
-        MOV     R8D, $40000000
-@SqrtHP1:
+        MOV     EBX, $40000000
+@SqrtLP1:
         MOV     EDX, ECX
-        SUB     EDX, R8D
-        JB      @SqrtHP2
+        SUB     EDX, EBX
+        JL      @SqrtLP2
         SUB     EDX, EAX
-        JB      @SqrtHP2
+        JL      @SqrtLP2
         MOV     ECX, EDX
         SHR     EAX, 1
-        OR      EAX, R8D
-        SHR     R8D, 2
-        JNZ     @SqrtHP1
-        JMP     @SqrtHP5
-@SqrtHP2:
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+        JMP     @SqrtLP3
+@SqrtLP2:
         SHR     EAX, 1
-        SHR     R8D, 2
-        JNZ     @SqrtHP1
-@SqrtHP5:
-        MOV     R8D, $00004000
-        SHL     EAX, 16
-        SHL     ECX, 16
-@SqrtHP3:
-        MOV     EDX, ECX
-        SUB     EDX, R8D
-        JB      @SqrtHP4
-        SUB     EDX, EAX
-        JB      @SqrtHP4
-        MOV     ECX, EDX
-        SHR     EAX, 1
-        OR      EAX, R8D
-        SHR     R8D, 2
-        JNZ     @SqrtHP3
-        RET
-@SqrtHP4:
-        SHR     EAX, 1
-        SHR     R8D, 2
-        JNZ     @SqrtHP3
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+@SqrtLP3:
+        POP     EBX
 
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FixedCombine
-//------------------------------------------------------------------------------
-// combine fixed value X and fixed value Y with the weight of X given in W
-// Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
-// Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function FixedCombine(W, X, Y: TFixed): TFixed;
-begin
-  Result := Round(Y + (X - Y) * FixedToFloat * W);
-end;
-
-{$ELSE}
-
-function FixedCombine(W, X, Y: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-// EAX <- W, EDX <- X, ECX <- Y
+class function GR32Math_x86.OneOver(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
-
-        SUB     EDX, ECX
-        IMUL    EDX
-        SHRD    EAX, EDX, 16
-        ADD     EAX, ECX
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, ECX
-        SUB     EDX, R8D
-        IMUL    EDX
-        SHRD    EAX, EDX, 16
-        ADD     EAX, R8D
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-
+        MOV     ECX, Value
+        XOR     EAX, EAX
+        MOV     EDX, 1
+        IDIV    ECX
 end;
-{$ENDIF}
-
 
 //------------------------------------------------------------------------------
 //
-//      Trigonometry
+//      TARGET_x86 implementations
 //
 //------------------------------------------------------------------------------
-// SinCos
+// Trigonometric routines
 //------------------------------------------------------------------------------
-{$if defined(PUREPASCAL) or defined(NATIVE_SINCOS)}
-
-procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
-var
-  S, C: Extended;
-begin
-  Math.SinCos(Theta, S, C);
-  Sin := S;
-  Cos := C;
-end;
-
-{$else}
-
-procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
-{$if defined(TARGET_x86)}
-
+class function GR32Math_x86.Hypot(const X, Y: TFloat): TFloat; {$IFDEF FPC} assembler; {$ENDIF}
 asm
-        FLD     Theta
-        FSINCOS
-        FSTP    DWORD PTR [EDX] // cosine
-        FSTP    DWORD PTR [EAX] // sine
-
-{$elseif defined(TARGET_x64)}
-
-var
-  Temp: TFloat;
-asm
-        MOVD    Temp, Theta
-        FLD     Temp
-        FSINCOS
-        FSTP    [Sin] // cosine
-        FSTP    [Cos] // sine
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
+        FLD     X
+        FMUL    ST,ST
+        FLD     Y
+        FMUL    ST,ST
+        FADDP   ST(1),ST
+        FSQRT
+        FWAIT
 end;
-
-{$ifend}
-
 
 //------------------------------------------------------------------------------
 
-{$if defined(PUREPASCAL) or defined(NATIVE_SINCOS)}
-
-procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat);
-var
-  S, C: Extended;
-begin
-  Math.SinCos(Theta, S, C);
-  Sin := S * Radius;
-  Cos := C * Radius;
-end;
-
-{$else}
-
-procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
-{$if defined(TARGET_x86)}
-
-asm
-        FLD     Theta
-        FSINCOS
-        FMUL    Radius
-        FSTP    DWORD PTR [EDX] // cosine
-        FMUL    Radius
-        FSTP    DWORD PTR [EAX] // sine
-
-{$elseif defined(TARGET_x64)}
-
-var
-  Temp: TFloat;
-asm
-        MOVD    Temp, Theta
-        FLD     Temp
-        MOVD    Temp, Radius
-        FSINCOS
-        FMUL    Temp
-        FSTP    [Cos]
-        FMUL    Temp
-        FSTP    [Sin]
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ifend}
-
-//------------------------------------------------------------------------------
-
-{$if defined(PUREPASCAL) or defined(NATIVE_SINCOS)}
-
-procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single);
-var
-  S, C: Extended;
-begin
-  Math.SinCos(Theta, S, C);
-  Sin := S * ScaleX;
-  Cos := C * ScaleY;
-end;
-
-{$else}
-
-procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single);  {$IFDEF FPC} assembler; {$ENDIF}
-{$if defined(TARGET_x86)}
-
+{$if not defined(NATIVE_SINCOS)}
+class procedure GR32Math_x86.SinCos3(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single); {$IFDEF FPC} assembler; {$ENDIF}
 asm
         FLD     Theta
         FSINCOS
@@ -834,134 +1420,63 @@ asm
         FSTP    DWORD PTR [EDX] // cosine
         FMUL    ScaleY
         FSTP    DWORD PTR [EAX] // sine
+end;
+{$ifend}
 
-{$elseif defined(TARGET_x64)}
+//------------------------------------------------------------------------------
 
-var
-  Temp: TFloat;
+{$if not defined(NATIVE_SINCOS)}
+class procedure GR32Math_x86.SinCos2(const Theta, Radius: Single; out Sin, Cos: Single); {$IFDEF FPC} assembler; {$ENDIF}
 asm
-        MOVD    Temp, Theta
-        FLD     Temp
+        FLD     Theta
         FSINCOS
-        MOVD    Temp, ScaleX
-        FMUL    Temp
-        FSTP    [Cos]
-        MOVD    Temp, ScaleY
-        FMUL    Temp
-        FSTP    [Sin]
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
+        FMUL    Radius
+        FSTP    DWORD PTR [EDX] // cosine
+        FMUL    Radius
+        FSTP    DWORD PTR [EAX] // sine
 end;
-
 {$ifend}
 
-
 //------------------------------------------------------------------------------
-// Hypot
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function Hypot(const X, Y: TFloat): TFloat;
-begin
-  Result := Sqrt(Sqr(X) + Sqr(Y));
-end;
-
-{$ELSE}
-
-function Hypot(const X, Y: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
+{$if not defined(NATIVE_SINCOS)}
+class procedure GR32Math_x86.SinCos1(const Theta: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
-
-        FLD     X
-        FMUL    ST,ST
-        FLD     Y
-        FMUL    ST,ST
-        FADDP   ST(1),ST
-        FSQRT
-        FWAIT
-
-{$elseif defined(TARGET_x64)}
-
-        MULSS   XMM0, XMM0
-        MULSS   XMM1, XMM1
-        ADDSS   XMM0, XMM1
-        SQRTSS  XMM0, XMM0
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
+        FLD     Theta
+        FSINCOS
+        FSTP    DWORD PTR [EDX] // cosine
+        FSTP    DWORD PTR [EAX] // sine
 end;
-
-{$ENDIF}
-
-//------------------------------------------------------------------------------
-
-{$if defined(PUREPASCAL) or (True)}
-
-function Hypot(const X, Y: Integer): Integer;
-begin
-  Result := Round(Math.Hypot(X, Y));
-end;
-
-{$else}
-
-// TODO : Disabled for some reason. Document why!
-function Hypot(const X, Y: Integer): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        IMUL    RAX, RCX, RDX
-
-{$elseif defined(TARGET_x64)}
-
-        FLD     X
-        FMUL    ST,ST
-        FLD     Y
-        FMUL    ST,ST
-        FADDP   ST(1),ST
-        FSQRT
-        FISTP   [ESP - 4]
-        MOV     EAX, [ESP - 4]
-        FWAIT
-{$else}
-{$error 'Missing target'}
 {$ifend}
-end;
-
-{$ifend}
-
 
 //------------------------------------------------------------------------------
 //
-//      Fast approximations
+//      TARGET_x86 implementations
 //
 //------------------------------------------------------------------------------
-// FastSqrt
+// Fast approximations
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
+class function GR32Math_x86.FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$ENDIF}
+//
+// Note: RSQRT is accurate only to ~11 bits.
+//
+asm
+        MOVSS   XMM0, [Value]
+        RSQRTSS XMM0, XMM0
+        MOVSS   [Result], XMM0
 
-function FastSqrt(const Value: TFloat): TFloat;
-var
-  I: Integer absolute Value;
-  J: Integer absolute Result;
-begin
-  J := (I - $3F800000) div 2 + $3F800000;
 end;
 
-{$ELSE}
+//------------------------------------------------------------------------------
 
-function FastSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+class function GR32Math_x86.FastSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$ENDIF}
+//
+// Sqrt(x) = x * InvSqrt(x)
+//
+// RSQRT is accurate only to ~11 bits.
+// Note: RSQRT(0) = INF, INF*0 = NAN !
+//
 asm
-{$if defined(TARGET_x86)}
-        //
-        // Sqrt(x) = x * InvSqrt(x)
-        //
-        // RSQRT is accurate only to ~11 bits.
-        // Note: RSQRT(0) = INF, INF*0 = NAN !
-        //
-
         MOV     ECX, [Value]
         MOVD    XMM0, ECX
 
@@ -994,45 +1509,14 @@ asm
         FLD     DWORD PTR [ESP - 4]
 *)
 
-{$elseif defined(TARGET_x64)}
-
-        SQRTSS  XMM0, XMM0
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FastSqrtBab1
-//------------------------------------------------------------------------------
-// See http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
-// Additionally one babylonian step added
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function FastSqrtBab1(const Value: TFloat): TFloat;
-const
-  CHalf : TFloat = 0.5;
-var
-  I: Integer absolute Value;
-  J: Integer absolute Result;
-begin
-  J := (I - $3F800000) div 2 + $3F800000;
-  Result := CHalf * (Result + Value / Result);
-end;
-
-{$ELSE}
-
-function FastSqrtBab1(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+class function GR32Math_x86.FastSqrtBab1(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$ENDIF}
 const
   CHalf : TFloat = 0.5;
 asm
-{$if defined(TARGET_x86)}
-
         MOV     EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
@@ -1042,47 +1526,14 @@ asm
         FDIV    DWORD PTR [ESP - 4]
         FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
-
-{$elseif defined(TARGET_x64)}
-
-        SQRTSS  XMM0, XMM0
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FastSqrtBab2
-//------------------------------------------------------------------------------
-// See http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
-// Additionally two babylonian steps added
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function FastSqrtBab2(const Value: TFloat): TFloat;
-const
-  CQuarter : TFloat = 0.25;
-var
-  J: Integer absolute Result;
-begin
- Result := Value;
- J := ((J - (1 shl 23)) shr 1) + (1 shl 29);
- Result := Result + Value / Result;
- Result := CQuarter * Result + Value / Result;
-end;
-
-{$ELSE}
-
-function FastSqrtBab2(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
+class function GR32Math_x86.FastSqrtBab2(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$ENDIF}
 const
   CHalf : TFloat = 0.5;
 asm
-{$if defined(TARGET_x86)}
-
         MOV     EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
@@ -1092,88 +1543,17 @@ asm
         FDIV    DWORD PTR [ESP - 4]
         FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
-
-{$elseif defined(TARGET_x64)}
-
-        MOVD    EAX, Value
-        SUB     EAX, $3F800000
-        SAR     EAX, 1
-        ADD     EAX, $3F800000
-        MOVD    XMM1, EAX
-        DIVSS   XMM0, XMM1
-        ADDSS   XMM0, XMM1
-        MOVD    XMM1, [RIP + CHalf]
-        MULSS   XMM0, XMM1
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-// FastInvSqrt
+//
+//      TARGET_x86 implementations
+//
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function FastInvSqrt(const Value: TFloat): TFloat;
-var
-  IntCst : Cardinal absolute result;
-begin
-  Result := Value;
-  IntCst := ($BE6EB50C - IntCst) shr 1;
-  Result := 0.5 * Result * (3 - Value * Sqr(Result));
-end;
-
-{$ELSE}
-
-function FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF}{$ENDIF}
-//
-// Note: RSQRT is accurate only to ~11 bits.
-//
+// Misc. Routines
+//------------------------------------------------------------------------------
+class function GR32Math_x86.MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
-
-        MOVSS   XMM0, [Value]
-        RSQRTSS XMM0, XMM0
-        MOVSS   [Result], XMM0
-
-{$elseif defined(TARGET_x64)}
-
-        RSQRTSS XMM0, XMM0
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ENDIF}
-
-
-//------------------------------------------------------------------------------
-//
-//      Misc. Routines
-//
-//------------------------------------------------------------------------------
-//
-//      MulDiv
-//
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
-begin
-  Result := (Int64(Multiplicand) * Int64(Multiplier) + Divisor div 2) div Divisor;
-end;
-
-{$ELSE}
-
-function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
         PUSH    EBX             // Imperative save
         PUSH    ESI             // of EBX and ESI
 
@@ -1217,9 +1597,466 @@ asm
 @Exit:
         POP     ESI             // Restore
         POP     EBX             // esi and EBX
+end;
 
-{$elseif defined(TARGET_x64)}
+//------------------------------------------------------------------------------
 
+class function GR32Math_x86.NextPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        DEC     EAX
+        JLE     @1
+        BSR     ECX, EAX
+        MOV     EAX, 2
+        SHL     EAX, CL
+        RET
+@1:
+        MOV     EAX, 1
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.Sign(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        { x64 algorithm provides no speed saving under 32-bit, so just use this
+          smaller one }
+        CDQ
+        NEG     EAX
+        ADC     EDX, EDX
+        MOV     EAX, EDX
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.PrevPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        BSR     ECX, EAX
+        SHR     EAX, CL
+        SHL     EAX, CL
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.Average(A, B: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     ECX, EDX
+        XOR     EDX, EAX
+        SAR     EDX, 1
+        AND     EAX, ECX
+        ADD     EAX, EDX
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x86.DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        PUSH    EDX
+        CDQ
+        IDIV    DWORD PTR [ESP]
+        ADD     ESP, $04
+        MOV     DWORD PTR [ECX], edx
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TARGET_x86 implementations
+//
+//------------------------------------------------------------------------------
+// Modulus
+//------------------------------------------------------------------------------
+// Implemented in base class
+
+//------------------------------------------------------------------------------
+//
+//      TARGET_x86 implementations
+//
+//------------------------------------------------------------------------------
+// Prefix Sum
+//------------------------------------------------------------------------------
+class procedure GR32Math_x86.CumSum(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+// Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
+asm
+
+        MOV     ECX,EDX
+        CMP     ECX,2       // if count < 2, exit
+        JL      @END
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PUSH    EBX
+        PXOR    XMM4,XMM4
+        MOV     EBX,EAX
+        AND     EBX,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     EBX,-16
+        NEG     EBX          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,EBX
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     EAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        FLD     DWORD PTR [EAX-4]
+        FADD    DWORD PTR [EAX]
+        FSTP    DWORD PTR [EAX]
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[EAX-4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        POP     EBX
+        PUSH    EBX
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[EAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB EBX,XMM5
+        CMP     EBX,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        PSHUFD  XMM1,XMM0,$e4
+        PSLLDQ  XMM1,4
+        PSHUFD  XMM2,XMM1,$90
+        PSHUFD  XMM3,XMM1,$40
+        ADDPS   XMM2,XMM3
+        ADDPS   XMM1,XMM2
+        ADDPS   XMM0,XMM1
+
+        PSHUFLW XMM4,XMM0,$E4
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [eax+16*16*2]
+        MOVAPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        POP     EBX
+        MOV     ECX,EDX
+        SAR     ECX,2
+        SHL     ECX,2
+        SUB     EDX,ECX
+        MOV     ECX,EDX
+        JZ      @END
+
+@LOOP2:
+        FLD     DWORD PTR [EAX-4]
+        FADD    DWORD PTR [EAX]
+        FSTP    DWORD PTR [EAX]
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        MOV     ECX,EDX
+        ADD     EAX,4
+        DEC     ECX
+@LOOP3:
+        FLD     DWORD PTR [EAX-4]
+        FADD    DWORD PTR [EAX]
+        FSTP    DWORD PTR [EAX]
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @LOOP3
+@END:
+end;
+{$ifend defined(TARGET_x86)}
+
+//------------------------------------------------------------------------------
+
+
+{$if defined(TARGET_x64)}
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+// Fixed point math routines
+//------------------------------------------------------------------------------
+class function GR32Math_x64.FixedFloor(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, ECX
+        SAR     EAX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedCeil(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, ECX
+        ADD     EAX, $0000FFFF
+        SAR     EAX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedCombine(W, X, Y: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, ECX
+        SUB     EDX, R8D
+        IMUL    EDX
+        SHRD    EAX, EDX, 16
+        ADD     EAX, R8D
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedDiv(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, ECX
+        MOV     ECX, EDX
+        CDQ
+        SHLD    EDX, EAX, 16
+        SHL     EAX, 16
+        IDIV    ECX
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedMul(A, B: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, ECX
+        IMUL    EDX
+        SHRD    EAX, EDX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedRound(A: TFixed): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, ECX
+        ADD     EAX, FixedHalf
+        SAR     EAX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedSqr(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, Value
+        IMUL    EAX
+        SHRD    EAX, EDX, 16
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedSqrtHP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        XOR     EAX, EAX
+        MOV     R8D, $40000000
+@SqrtHP1:
+        MOV     EDX, ECX
+        SUB     EDX, R8D
+        JB      @SqrtHP2
+        SUB     EDX, EAX
+        JB      @SqrtHP2
+        MOV     ECX, EDX
+        SHR     EAX, 1
+        OR      EAX, R8D
+        SHR     R8D, 2
+        JNZ     @SqrtHP1
+        JMP     @SqrtHP5
+@SqrtHP2:
+        SHR     EAX, 1
+        SHR     R8D, 2
+        JNZ     @SqrtHP1
+@SqrtHP5:
+        MOV     R8D, $00004000
+        SHL     EAX, 16
+        SHL     ECX, 16
+@SqrtHP3:
+        MOV     EDX, ECX
+        SUB     EDX, R8D
+        JB      @SqrtHP4
+        SUB     EDX, EAX
+        JB      @SqrtHP4
+        MOV     ECX, EDX
+        SHR     EAX, 1
+        OR      EAX, R8D
+        SHR     R8D, 2
+        JNZ     @SqrtHP3
+        RET
+@SqrtHP4:
+        SHR     EAX, 1
+        SHR     R8D, 2
+        JNZ     @SqrtHP3
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FixedSqrtLP(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        XOR     EAX, EAX
+        MOV     R8D, $40000000
+@SqrtLP1:
+        MOV     EDX, ECX
+        SUB     EDX, R8D
+        JL      @SqrtLP2
+        SUB     EDX, EAX
+        JL      @SqrtLP2
+        MOV     ECX, EDX
+        SHR     EAX, 1
+        OR      EAX, R8D
+        SHR     R8D, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+        RET
+@SqrtLP2:
+        SHR     EAX, 1
+        SHR     R8D, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.OneOver(Value: TFixed): TFixed; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        XOR     EAX, EAX
+        MOV     EDX, 1
+        IDIV    ECX
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+// Trigonometric routines
+//------------------------------------------------------------------------------
+class function GR32Math_x64.Hypot(const X, Y: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MULSS   XMM0, XMM0
+        MULSS   XMM1, XMM1
+        ADDSS   XMM0, XMM1
+        SQRTSS  XMM0, XMM0
+end;
+
+//------------------------------------------------------------------------------
+
+{$if not defined(NATIVE_SINCOS)}
+class procedure GR32Math_x64.SinCos3(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
+var
+  Temp: TFloat;
+asm
+        MOVD    Temp, Theta
+        FLD     Temp
+        FSINCOS
+        MOVD    Temp, ScaleX
+        FMUL    Temp
+        FSTP    [Cos]
+        MOVD    Temp, ScaleY
+        FMUL    Temp
+        FSTP    [Sin]
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+
+{$if not defined(NATIVE_SINCOS)}
+class procedure GR32Math_x64.SinCos2(const Theta, Radius: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
+var
+  Temp: TFloat;
+asm
+        MOVD    Temp, Theta
+        FLD     Temp
+        MOVD    Temp, Radius
+        FSINCOS
+        FMUL    Temp
+        FSTP    [Cos]
+        FMUL    Temp
+        FSTP    [Sin]
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+
+{$if not defined(NATIVE_SINCOS)}
+class procedure GR32Math_x64.SinCos1(const Theta: TFloat; out Sin, Cos: TFloat); {$IFDEF FPC} assembler; {$ENDIF}
+var
+  Temp: TFloat;
+asm
+        MOVD    Temp, Theta
+        FLD     Temp
+        FSINCOS
+        FSTP    [Sin] // cosine
+        FSTP    [Cos] // sine
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+// Fast approximations
+//------------------------------------------------------------------------------
+class function GR32Math_x64.FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+//
+// Note: RSQRT is accurate only to ~11 bits.
+//
+asm
+        RSQRTSS XMM0, XMM0
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FastSqrt(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe;{$ENDIF}
+asm
+        SQRTSS  XMM0, XMM0
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FastSqrtBab1(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe;{$ENDIF}
+asm
+        SQRTSS  XMM0, XMM0
+end;
+
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.FastSqrtBab2(const Value: TFloat): TFloat; {$IFDEF FPC} assembler; nostackframe;{$ENDIF}
+const
+  CHalf : TFloat = 0.5;
+asm
+  // TODO : Is this still worth it?
+        MOVD    EAX, Value
+        SUB     EAX, $3F800000
+        SAR     EAX, 1
+        ADD     EAX, $3F800000
+        MOVD    XMM1, EAX
+        DIVSS   XMM0, XMM1
+        ADDSS   XMM0, XMM1
+        MOVD    XMM1, [RIP + CHalf]
+        MULSS   XMM0, XMM1
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+// Misc. Routines
+//------------------------------------------------------------------------------
+class function GR32Math_x64.MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
         MOV     EAX, ECX        // Result will be negative or positive so set rounding direction
         XOR     ECX, EDX        //  Negative: substract 1 in case of rounding
         XOR     ECX, R8D        //  Positive: add 1
@@ -1258,112 +2095,12 @@ asm
         OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
                                 //  and "zero-divide" return value
 @Exit:
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-//
-//      IsPowerOf2
-//
-//------------------------------------------------------------------------------
-// Returns true when X = 1,2,4,8,16 etc.
-//------------------------------------------------------------------------------
-function IsPowerOf2(Value: Integer): Boolean;
-begin
-  Result := (Value <> 0) and (Cardinal(Value) and (Cardinal(Value) - 1) = 0);
-end;
 
-
-//------------------------------------------------------------------------------
-//
-//      PrevPowerOf2
-//
-//------------------------------------------------------------------------------
-// Returns X rounded down to the power of two
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function PrevPowerOf2(Value: Integer): Integer;
-begin
-  Result := Value;
-  Result := Result or (Result shr 1);
-  Result := Result or (Result shr 2);
-  Result := Result or (Result shr 4);
-  Result := Result or (Result shr 8);
-  Result := Result or (Result shr 16);
-  Dec(Result, Result shr 1);
-end;
-
-{$ELSE}
-
-function PrevPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+class function GR32Math_x64.NextPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
-
-        BSR     ECX, EAX
-        SHR     EAX, CL
-        SHL     EAX, CL
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, Value
-        BSR     ECX, EAX
-        SHR     EAX, CL
-        SHL     EAX, CL
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ENDIF}
-
-
-//------------------------------------------------------------------------------
-//
-//      NextPowerOf2
-//
-//------------------------------------------------------------------------------
-// Returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
-function NextPowerOf2(Value: Integer): Integer;
-begin
-  if (Value = 0) then
-    Exit(1);
-  Result := Value-1;
-  Result := Result or (Result shr 1);
-  Result := Result or (Result shr 2);
-  Result := Result or (Result shr 4);
-  Result := Result or (Result shr 8);
-  Result := Result or (Result shr 16);
-  Inc(Result);
-end;
-
-{$ELSE}
-
-function NextPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        DEC     EAX
-        JLE     @1
-        BSR     ECX, EAX
-        MOV     EAX, 2
-        SHL     EAX, CL
-        RET
-@1:
-        MOV     EAX, 1
-
-{$elseif defined(TARGET_x64)}
-
         MOV     EAX, Value
         DEC     EAX
         JLE     @1
@@ -1373,113 +2110,425 @@ asm
         RET
 @1:
         MOV     EAX, 1
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-//
-//      Average
-//
-//------------------------------------------------------------------------------
-// Fast average without overflow, useful e.g. for fixed point math
-// (A + B) / 2 = (A and B) + (A xor B) / 2
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function Average(A, B: Integer): Integer;
-begin
-  Result := (A and B) + (A xor B) div 2;
-end;
-
-{$ELSE}
-
-function Average(A, B: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+class function GR32Math_x64.Sign(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
+        XOR     EDX, EDX
+        TEST    ECX, ECX
+        SETG    DL
+        SAR     ECX, 31
+        LEA     EAX, [EDX + ECX]
+end;
 
-        MOV     ECX, EDX
-        XOR     EDX, EAX
-        SAR     EDX, 1
-        AND     EAX, ECX
-        ADD     EAX, EDX
+//------------------------------------------------------------------------------
 
-{$elseif defined(TARGET_x64)}
+class function GR32Math_x64.PrevPowerOf2(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, Value
+        BSR     ECX, EAX
+        SHR     EAX, CL
+        SHL     EAX, CL
+end;
 
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64.Average(A, B: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
         MOV     EAX, A
         MOV     ECX, EDX
         XOR     EDX, EAX
         SAR     EDX, 1
         AND     EAX, ECX
         ADD     EAX, EDX
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
-
-
 //------------------------------------------------------------------------------
-//
-//      Sign
-//
-//------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
 
-function Sign(Value: Integer): Integer;
-begin
-  // Defer to Math.Sign
-  Result := Integer(Math.Sign(Value));
-end;
-
-{$ELSE}
-
-function Sign(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+class function GR32Math_x64.DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$if defined(TARGET_x86)}
-
-        { New algorithm provides no speed saving under 32-bit, so just use this
-          smaller one }
+        MOV     EAX, ECX
+        MOV     ECX, EDX
         CDQ
-        NEG     EAX
-        ADC     EDX, EDX
-        MOV     EAX, EDX
+        IDIV    ECX
+        MOV     [R8],EDX
+end;
 
-{$elseif defined(TARGET_x64)}
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64 implementations
+//
+//------------------------------------------------------------------------------
+// Prefix Sum
+//------------------------------------------------------------------------------
+class procedure GR32Math_x64.CumSum(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+// Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
+asm
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
 
-        XOR     EDX, EDX
-        TEST    ECX, ECX
-        SETG    DL
-        SAR     ECX, 31
-        LEA     EAX, [EDX + ECX]
+        MOV     RAX,RCX
+        MOV     ECX,EDX
 
-{$elseif defined(TARGET_x64_SYSV)}
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
 
+{--- align memory ---}
+        PXOR    XMM4,XMM4
+        MOV     R8D,EAX
+        AND     R8D,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     R8D,-16
+        NEG     R8D          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,R8D
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     RAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        FLD     DWORD PTR [RAX - 4]
+        FADD    DWORD PTR [RAX]
+        FSTP    DWORD PTR [RAX]
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[RAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[RAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB R8D,XMM5
+        CMP     R8D,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        PSHUFD  XMM1,XMM0,$e4
+        PSLLDQ  XMM1,4
+        PSHUFD  XMM2,XMM1,$90
+        PSHUFD  XMM3,XMM1,$40
+        ADDPS   XMM2,XMM3
+        ADDPS   XMM1,XMM2
+        ADDPS   XMM0,XMM1
+
+        PSHUFLW XMM4,XMM0,$E4
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [RAX + 32 * 2]
+        MOVAPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        MOV     ECX,EDX
+        SAR     ECX,2
+        SHL     ECX,2
+        SUB     EDX,ECX
+        MOV     ECX,EDX
+        JZ      @END
+
+@LOOP2:
+        FLD     DWORD PTR [RAX - 4]
+        FADD    DWORD PTR [RAX]
+        FSTP    DWORD PTR [RAX]
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        ADD     RAX,4
+        DEC     ECX
+@LOOP3:
+        FLD     DWORD PTR [RAX - 4]
+        FADD    DWORD PTR [RAX]
+        FSTP    DWORD PTR [RAX]
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP3
+@END:
+end;
+{$ifend defined(TARGET_x64)}
+
+
+{$if defined(TARGET_x64_SYSV)}
+//------------------------------------------------------------------------------
+//
+//      TARGET_x64_SYSV implementations
+//
+//------------------------------------------------------------------------------
+class function GR32Math_x64SysV.Sign(Value: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
         XOR     EDX, EDX
         TEST    EDI, EDI
         SETG    DL
         SAR     EDI, 31
         LEA     EAX, [EDX + EDI]
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
 end;
 
-{$ENDIF}
+//------------------------------------------------------------------------------
+
+class function GR32Math_x64SysV.DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+        MOV     EAX, EDI
+        MOV     RDI, RDX
+        CDQ
+        IDIV    ESI
+        MOV     [RDI],EDX
+end;
+{$ifend defined(TARGET_x64_SYSV)}
 
 
 //------------------------------------------------------------------------------
 //
-//      FloatMod
+//      Fixed-point math
 //
+//------------------------------------------------------------------------------
+// FixedFloor
+//------------------------------------------------------------------------------
+function FixedFloor(A: TFixed): Integer;
+begin
+  Result := GR32Math.FixedFloor(A);
+end;
+
+
+//------------------------------------------------------------------------------
+// FixedCeil
+//------------------------------------------------------------------------------
+function FixedCeil(A: TFixed): Integer;
+begin
+  Result := GR32Math.FixedCeil(A);
+end;
+
+
+//------------------------------------------------------------------------------
+// FixedRound
+//------------------------------------------------------------------------------
+function FixedRound(A: TFixed): Integer;
+begin
+  Result := GR32Math.FixedRound(A);
+end;
+
+
+//------------------------------------------------------------------------------
+// FixedMul
+//------------------------------------------------------------------------------
+function FixedMul(A, B: TFixed): TFixed;
+begin
+  Result := GR32Math.FixedMul(A, B);
+end;
+
+
+//------------------------------------------------------------------------------
+// FixedDiv
+//------------------------------------------------------------------------------
+function FixedDiv(A, B: TFixed): TFixed;
+begin
+  Result := GR32Math.FixedDiv(A, B);
+end;
+
+
+//------------------------------------------------------------------------------
+// OneOver
+//------------------------------------------------------------------------------
+function OneOver(Value: TFixed): TFixed;
+begin
+  Result := GR32Math.OneOver(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// FixedSqr
+//------------------------------------------------------------------------------
+function FixedSqr(Value: TFixed): TFixed;
+begin
+  Result := GR32Math.FixedSqr(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// FixedSqrt
+//------------------------------------------------------------------------------
+function FixedSqrtLP(Value: TFixed): TFixed;
+begin
+  Result := GR32Math.FixedSqrtLP(Value);
+end;
+
+//------------------------------------------------------------------------------
+
+function FixedSqrtHP(Value: TFixed): TFixed;
+begin
+  Result := GR32Math.FixedSqrtHP(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// FixedCombine
+//------------------------------------------------------------------------------
+function FixedCombine(W, X, Y: TFixed): TFixed;
+begin
+  Result := GR32Math.FixedCombine(W, X, Y);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Trigonometry
+//
+//------------------------------------------------------------------------------
+// SinCos
+//------------------------------------------------------------------------------
+procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
+begin
+  GR32Math.SinCos1(Theta, Sin, Cos);
+end;
+
+procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat);
+begin
+  GR32Math.SinCos2(Theta, Radius, Sin, Cos);
+end;
+
+procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: TFloat);
+begin
+  GR32Math.SinCos3(Theta, ScaleX, ScaleY, Sin, Cos);
+end;
+
+
+//------------------------------------------------------------------------------
+// Hypot
+//------------------------------------------------------------------------------
+function Hypot(const X, Y: TFloat): TFloat;
+begin
+  Result := GR32Math.Hypot(X, Y);
+end;
+
+function Hypot(const X, Y: Integer): Integer;
+begin
+  Result := Round(Math.Hypot(X, Y));
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Fast approximations
+//
+//------------------------------------------------------------------------------
+// FastSqrt
+//------------------------------------------------------------------------------
+function FastSqrt(const Value: TFloat): TFloat;
+begin
+  Result := GR32Math.FastSqrt(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// FastSqrtBab1
+//------------------------------------------------------------------------------
+function FastSqrtBab1(const Value: TFloat): TFloat;
+begin
+  Result := GR32Math.FastSqrtBab1(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// FastSqrtBab2
+//------------------------------------------------------------------------------
+function FastSqrtBab2(const Value: TFloat): TFloat;
+begin
+  Result := GR32Math.FastSqrtBab2(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// FastInvSqrt
+//------------------------------------------------------------------------------
+function FastInvSqrt(const Value: TFloat): TFloat;
+begin
+  Result := GR32Math.FastInvSqrt(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Misc. Routines
+//
+//------------------------------------------------------------------------------
+// MulDiv
+//------------------------------------------------------------------------------
+function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
+begin
+  Result := GR32Math.MulDiv(Multiplicand, Multiplier, Divisor);
+end;
+
+
+//------------------------------------------------------------------------------
+// IsPowerOf2
+//------------------------------------------------------------------------------
+function IsPowerOf2(Value: Integer): Boolean;
+begin
+  Result := GR32Math.IsPowerOf2(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// PrevPowerOf2
+//------------------------------------------------------------------------------
+function PrevPowerOf2(Value: Integer): Integer;
+begin
+  Result := GR32Math.PrevPowerOf2(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// NextPowerOf2
+//------------------------------------------------------------------------------
+function NextPowerOf2(Value: Integer): Integer;
+begin
+  Result := GR32Math.NextPowerOf2(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+// Average
+//------------------------------------------------------------------------------
+function Average(A, B: Integer): Integer;
+begin
+  Result := GR32Math.Average(A, B);
+end;
+
+
+//------------------------------------------------------------------------------
+// Sign
+//------------------------------------------------------------------------------
+function Sign(Value: Integer): Integer;
+begin
+  Result := GR32Math.Sign(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Modulus
+//
+//------------------------------------------------------------------------------
+// FloatMod
 //------------------------------------------------------------------------------
 function FloatMod(ANumerator, ADenominator: Double): Double;
 begin
@@ -1491,131 +2540,9 @@ begin
   Result := FloatMod_F(ANumerator, ADenominator);
 end;
 
-//------------------------------------------------------------------------------
-
-function FloatMod_F_Pas(ANumerator, ADenominator: TFloat): TFloat;
-begin
-  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
-    Result := ANumerator
-  else
-    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
-end;
-
-function FloatMod_D_Pas(ANumerator, ADenominator: Double): Double;
-begin
-  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
-    Result := ANumerator
-  else
-    Result := ANumerator - ADenominator * Floor(ANumerator / ADenominator);
-end;
 
 //------------------------------------------------------------------------------
-
-{$ifndef PUREPASCAL}
-
-// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are identical except for the ROUNDSS parameter. Keep in sync!
-// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
-//       variant uses the *s instructions. Keep in sync!
-function FloatMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movss   xmm0, ANumerator
-        movss   xmm1, ADenominator
-{$ifend}
-        xorps   xmm2, xmm2
-
-        // if (ANumerator < 0) then...
-        comiss  xmm0, xmm2
-        // ...do modulus...
-        jb      @@do_mod
-
-        // if (ADenominator > ANumerator) then...
-        comiss  xmm1, xmm0
-        // ...Result := ANumerator
-        ja     @@return_value
-
-@@do_mod:
-        // if (ADenominator = 0) then...
-        ucomiss xmm1, xmm2
-        lahf                            // AH <- Status flags
-        test    ah, $44                 // Test(AH, ZF or PF)
-        // ...Result := ANumerator
-        jnp     @@return_value
-
-        // a := ANumerator / ADenominator
-        movss   xmm2, xmm0
-        divss   xmm2, xmm1
-        // b := Floor(a)
-        roundss xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
-        // c := ADenominator * b
-        mulss   xmm2, xmm1
-        // Result := ANumerator - c;
-        subss   xmm0, xmm2
-        // Fall through...
-
-@@return_value:
-{$if defined(TARGET_x86)}
-        movss   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-// Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are identical except for the ROUNDSD parameter. Keep in sync!
-// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
-//       variant uses the *s instructions. Keep in sync!
-function FloatMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
-        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
-{$ifend}
-        xorpd   xmm2, xmm2              // XMM2 <- 0
-
-        // if (ANumerator < 0) then...
-        comisd  xmm0, xmm2
-        // ...do modulus...
-        jb      @@do_mod
-
-        // if (ADenominator > ANumerator) then...
-        comisd  xmm1, xmm0
-        // ...Result := ANumerator
-        ja     @@return_value
-
-@@do_mod:
-        // if (ADenominator = 0) then...
-        ucomisd xmm1, xmm2
-        lahf                            // AH <- Status flags
-        test    ah, $44                 // Test(AH, ZF or PF)
-        // ...Result := ANumerator
-        jnp     @@return_value
-
-        // a := ANumerator / ADenominator
-        movsd   xmm2, xmm0
-        divsd   xmm2, xmm1
-        // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
-        // c := ADenominator * b
-        mulsd   xmm2, xmm1
-        // Result := ANumerator - c;
-        subsd   xmm0, xmm2
-        // Fall through...
-
-@@return_value:
-{$if defined(TARGET_x86)}
-        movsd   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$endif PUREPASCAL}
-
-
-//------------------------------------------------------------------------------
-//
-//      FloatRemainder
-//
+// FloatRemainder
 //------------------------------------------------------------------------------
 function FloatRemainder(ANumerator, ADenominator: Double): Double;
 begin
@@ -1627,131 +2554,9 @@ begin
   Result := FloatRemainder_F(ANumerator, ADenominator);
 end;
 
-//------------------------------------------------------------------------------
-
-function FloatRemainder_D_Pas(ANumerator, ADenominator: Double): Double;
-begin
-  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
-    Result := ANumerator
-  else
-    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
-end;
-
-function FloatRemainder_F_Pas(ANumerator, ADenominator: TFloat): TFloat;
-begin
-  if ((ANumerator >= 0) and (ANumerator < ADenominator)) or (ADenominator = 0) then
-    Result := ANumerator
-  else
-    Result := ANumerator - ADenominator * Round(ANumerator / ADenominator);
-end;
 
 //------------------------------------------------------------------------------
-
-{$ifndef PUREPASCAL}
-
-// Note: FloatMod_F_SSE41 and FloatRemainder_F_SSE41 are identical except for the ROUNDSS parameter. Keep in sync!
-// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
-//       variant uses the *s instructions. Keep in sync!
-function FloatRemainder_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movss   xmm0, ANumerator
-        movss   xmm1, ADenominator
-{$ifend}
-        xorps   xmm2, xmm2
-
-        // if (ANumerator < 0) then...
-        comiss  xmm0, xmm2
-        // ...do modulus...
-        jb      @@do_mod
-
-        // if (ADenominator > ANumerator) then...
-        comiss  xmm1, xmm0
-        // ...Result := ANumerator
-        ja     @@return_value
-
-@@do_mod:
-        // if (ADenominator = 0) then...
-        ucomiss xmm1, xmm2
-        lahf                            // AH <- Status flags
-        test    ah, $44                 // Test(AH, ZF or PF)
-        // ...Result := ANumerator
-        jnp     @@return_value
-
-        // a := ANumerator / ADenominator
-        movss   xmm2, xmm0
-        divss   xmm2, xmm1
-        // b := Round(a)
-        roundss xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
-        // c := ADenominator * b
-        mulss   xmm2, xmm1
-        // Result := ANumerator - c;
-        subss   xmm0, xmm2
-        // Fall through...
-
-@@return_value:
-{$if defined(TARGET_x86)}
-        movss   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-// Note: FloatMod_D_SSE41 and FloatRemainder_D_SSE41 are identical except for the ROUNDSD parameter. Keep in sync!
-// Note: Float*_D_SSE41 and Float*_F_SSE41 are the exact same except the D variant uses the *d instructions and and the F
-//       variant uses the *s instructions. Keep in sync!
-function FloatRemainder_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
-        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
-{$ifend}
-        xorpd   xmm2, xmm2
-
-        // if (ANumerator < 0) then...
-        comisd  xmm0, xmm2
-        // ...do modulus...
-        jb      @@do_mod
-
-        // if (ADenominator > ANumerator) then...
-        comisd  xmm1, xmm0
-        // ...Result := ANumerator
-        ja     @@return_value
-
-@@do_mod:
-        // if (ADenominator = 0) then...
-        ucomisd xmm1, xmm2
-        lahf                            // AH <- Status flags
-        test    ah, $44                 // Test(AH, ZF or PF)
-        // ...Result := ANumerator
-        jnp     @@return_value
-
-        // a := ANumerator / ADenominator
-        movsd   xmm2, xmm0
-        divsd   xmm2, xmm1
-        // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
-        // c := ADenominator * b
-        mulsd   xmm2, xmm1
-        // Result := ANumerator - c;
-        subsd   xmm0, xmm2
-        // Fall through...
-
-@@return_value:
-{$if defined(TARGET_x86)}
-        movsd   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$endif PUREPASCAL}
-
-
-//------------------------------------------------------------------------------
-//
-//      FMod
-//
+// FMod
 //------------------------------------------------------------------------------
 function FMod(ANumerator, ADenominator: Double): Double;
 begin
@@ -1763,185 +2568,16 @@ begin
   Result := FMod_F(ANumerator, ADenominator);
 end;
 
-//------------------------------------------------------------------------------
-
-function FMod_F_Pas(ANumerator, ADenominator: TFloat): TFloat;
-begin
-  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
-end;
-
-function FMod_D_Pas(ANumerator, ADenominator: Double): Double;
-begin
-  Result := ANumerator - ADenominator * Trunc(ANumerator / ADenominator);
-end;
-
-//------------------------------------------------------------------------------
-
-{$ifndef PUREPASCAL}
-
-// Note: FMod_F_SSE2 and FMod_D_SSE2 are the exact same except the D variant uses the *d instructions and and the F
-//       variant uses the *s instructions. Keep in sync!
-function FMod_F_SSE2(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movss   xmm0, ANumerator        // XMM0 <- ANumerator
-        movss   xmm1, ADenominator      // XMM1 <- ADenominator
-{$ifend}
-
-        // a := ANumerator
-        movss   xmm2, xmm0
-        // a := ANumerator / ADenominator
-        divss   xmm2, xmm1
-        // b := Trunc(a)
-        cvttss2si ecx, xmm2
-        cvtsi2ss xmm2, ecx
-        // c := b*ADenominator
-        mulss   xmm2, xmm1
-        // Result := ANumerator - c;
-        subss   xmm0, xmm2
-
-{$if defined(TARGET_x86)}
-        movss   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-function FMod_D_SSE2(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
-        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
-{$ifend}
-
-        // a := ANumerator
-        movsd   xmm2, xmm0
-        // a := ANumerator / ADenominator
-        divsd   xmm2, xmm1
-        // b := Trunc(a)
-        cvttsd2si ecx, xmm2
-        cvtsi2sd xmm2, ecx
-        // c := b*ADenominator
-        mulsd   xmm2, xmm1
-        // Result := ANumerator - c;
-        subsd   xmm0, xmm2
-
-{$if defined(TARGET_x86)}
-        movsd   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$endif PUREPASCAL}
-
-
-//------------------------------------------------------------------------------
-
-{$ifndef PUREPASCAL}
-
-// Note: FMod_F_SSE41 and FMod_D_SSE41 are the exact same except the D variant uses the *d instructions and and the F
-//       variant uses the *s instructions. Keep in sync!
-function FMod_F_SSE41(ANumerator, ADenominator: TFloat): TFloat; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movss   xmm0, ANumerator        // XMM0 <- ANumerator
-        movss   xmm1, ADenominator      // XMM1 <- ADenominator
-{$ifend}
-
-        // a := ANumerator
-        movss   xmm2, xmm0
-        // a := ANumerator / ADenominator
-        divss   xmm2, xmm1
-        // b := Trunc(a)
-        roundss xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
-        // c := b*ADenominator
-        mulss   xmm2, xmm1
-        // Result := ANumerator - c;
-        subss   xmm0, xmm2
-
-{$if defined(TARGET_x86)}
-        movss   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-function FMod_D_SSE41(ANumerator, ADenominator: Double): Double; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-        movsd   xmm0, ANumerator        // XMM0 <- ANumerator
-        movsd   xmm1, ADenominator      // XMM1 <- ADenominator
-{$ifend}
-
-        // a := ANumerator
-        movsd   xmm2, xmm0
-        // a := ANumerator / ADenominator
-        divsd   xmm2, xmm1
-        // b := Trunc(a)
-        roundsd xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
-        // c := b*ADenominator
-        mulsd   xmm2, xmm1
-        // Result := ANumerator - c;
-        subsd   xmm0, xmm2
-
-{$if defined(TARGET_x86)}
-        movsd   Result, xmm0
-{$elseif not defined(TARGET_x64)}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$endif PUREPASCAL}
-
 
 //------------------------------------------------------------------------------
 //
 //      DivMod
 //
 //------------------------------------------------------------------------------
-{$IFDEF PUREPASCAL}
-
 function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
 begin
-  Result := Dividend div Divisor;
-  Remainder := Dividend mod Divisor;
+  Result := GR32Math.DivMod(Dividend, Divisor, Remainder);
 end;
-
-{$ELSE}
-
-function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        PUSH    EDX
-        CDQ
-        IDIV    DWORD PTR [ESP]
-        ADD     ESP, $04
-        MOV     DWORD PTR [ECX], edx
-
-{$elseif defined(TARGET_x64)}
-
-        MOV     EAX, ECX
-        MOV     ECX, EDX
-        CDQ
-        IDIV    ECX
-        MOV     [R8],EDX
-
-{$elseif defined(TARGET_x64_SYSV)}
-
-        MOV     EAX, EDI
-        MOV     RDI, RDX
-        CDQ
-        IDIV    ESI
-        MOV     [RDI],EDX
-
-{$else}
-{$error 'Missing target'}
-{$ifend}
-end;
-
-{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -2199,26 +2835,26 @@ begin
   MathRegistry.RegisterBinding(FID_FMOD_F, @@FMod_F);
   MathRegistry.RegisterBinding(FID_FMOD_D, @@FMod_D);
 
-  // pure pascal
+  // PUREPASCAL
   MathRegistry.Add(FID_CUMSUM, @CumSum_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATMOD_F, @FloatMod_F_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATMOD_D, @FloatMod_D_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATREMAINDER_F, @FloatRemainder_F_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATREMAINDER_D, @FloatRemainder_D_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FMOD_F, @FMod_F_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FMOD_D, @FMod_D_Pas, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FLOATMOD_F, @GR32Math_Pascal.FloatMod_F, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FLOATMOD_D, @GR32Math_Pascal.FloatMod_D, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FLOATREMAINDER_F, @GR32Math_Pascal.FloatRemainder_F, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FLOATREMAINDER_D, @GR32Math_Pascal.FloatRemainder_D, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FMOD_F, @GR32Math_Pascal.FMod_F, MathBindingFlagPascal);
+  MathRegistry.Add(FID_FMOD_D, @GR32Math_Pascal.FMod_D, MathBindingFlagPascal);
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}
   MathRegistry.Add(FID_CUMSUM, @CumSum_SSE2, [isSSE2]);
-  MathRegistry.Add(FID_FLOATMOD_F, @FloatMod_F_SSE41, [isSSE41]);
-  MathRegistry.Add(FID_FLOATMOD_D, @FloatMod_D_SSE41, [isSSE41]);
-  MathRegistry.Add(FID_FLOATREMAINDER_F, @FloatRemainder_F_SSE41, [isSSE41]);
-  MathRegistry.Add(FID_FLOATREMAINDER_D, @FloatRemainder_D_SSE41, [isSSE41]);
-  MathRegistry.Add(FID_FMOD_F, @FMod_F_SSE2, [isSSE2]);
-  MathRegistry.Add(FID_FMOD_D, @FMod_D_SSE2, [isSSE2]);
-  MathRegistry.Add(FID_FMOD_F, @FMod_F_SSE41, [isSSE41]);
-  MathRegistry.Add(FID_FMOD_D, @FMod_D_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FLOATMOD_F, @GR32Math_x86x64.FloatMod_F_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FLOATMOD_D, @GR32Math_x86x64.FloatMod_D_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FLOATREMAINDER_F, @GR32Math_x86x64.FloatRemainder_F_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FLOATREMAINDER_D, @GR32Math_x86x64.FloatRemainder_D_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FMOD_F, @GR32Math_x86x64.FMod_F_SSE2, [isSSE2]);
+  MathRegistry.Add(FID_FMOD_D, @GR32Math_x86x64.FMod_D_SSE2, [isSSE2]);
+  MathRegistry.Add(FID_FMOD_F, @GR32Math_x86x64.FMod_F_SSE41, [isSSE41]);
+  MathRegistry.Add(FID_FMOD_D, @GR32Math_x86x64.FMod_D_SSE41, [isSSE41]);
 {$ENDIF}
 {$ENDIF}
 
