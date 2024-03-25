@@ -35,6 +35,7 @@ interface
 {$I GR32.inc}
 
 {-$DEFINE CheckNegativeInteger}
+{$define FAIL_NOT_IMPLEMENTED} // Fail test if function isn't implemented
 
 // VERIFY_WIN_MULDIV: Validate MulDiv against Windows' MulDiv. Otherwise validates against a floating point emulation.
 // Note though that there's a bug in Windows' MulDiv: https://devblogs.microsoft.com/oldnewthing/20120514-00/?p=7633
@@ -70,6 +71,8 @@ type
     class function PriorityProcMMX(Info: PFunctionInfo): Integer; static;
     class function PriorityProcSSE2(Info: PFunctionInfo): Integer; static;
     class function PriorityProcSSE41(Info: PFunctionInfo): Integer; static;
+
+    function Rebind(FunctionID: Integer; RequireImplementation: boolean = True): boolean;
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -208,7 +211,7 @@ begin
   if (Info^.InstructionSupport = []) then
     Result := 0
   else
-    Result := MaxInt-1;//INVALID_PRIORITY;
+    Result := INVALID_PRIORITY;
 end;
 
 class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
@@ -217,9 +220,8 @@ begin
   if (isMMX in Info^.InstructionSupport) then
     Result := 0
   else
-    Result := MaxInt-1;//INVALID_PRIORITY;
+    Result := INVALID_PRIORITY;
 {$ifend}
-  Result := MaxInt-1;
 end;
 
 class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
@@ -228,9 +230,8 @@ begin
   if (isSSE2 in Info^.InstructionSupport) then
     Result := 0
   else
-    Result := MaxInt-1;//INVALID_PRIORITY;
+    Result := INVALID_PRIORITY;
 {$ifend}
-  Result := MaxInt-1;
 end;
 
 class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
@@ -239,9 +240,36 @@ begin
   if (isSSE41 in Info^.InstructionSupport) then
     Result := 0
   else
-    Result := MaxInt-1;//INVALID_PRIORITY;
+    Result := INVALID_PRIORITY;
 {$ifend}
-  Result := MaxInt-1;
+end;
+
+function TBindingTestCase.Rebind(FunctionID: Integer; RequireImplementation: boolean): boolean;
+var
+  Proc: TFunctionPriority;
+begin
+{$ifndef FPC}
+  Proc := pointer(PriorityProc);
+{$else}
+  Proc := PriorityProc;
+{$endif}
+
+  Result := FunctionRegistry.Rebind(FunctionID, pointer(@Proc));
+
+  if (RequireImplementation) and (not Result) then
+  begin
+{$ifndef FPC}
+    Enabled := False;
+{$endif}
+{$ifdef FAIL_NOT_IMPLEMENTED}
+{$ifndef FPC}
+    // Not really an error but we need to indicate that nothing was tested
+    Fail('Not implemented');
+{$else}
+    Ignore('Not implemented');
+{$endif}
+{$endif}
+  end;
 end;
 
 procedure TBindingTestCase.SetUp;
@@ -397,6 +425,12 @@ var
   Value: Single;
   Expected, Actual: Integer;
 begin
+  if (not Rebind(FID_FAST_ROUND)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for i := 1 to 1000 do
   begin
     Value := (Random(10000)-5000) / i;
@@ -443,6 +477,12 @@ var
   SaveMXCSR: DWORD;
   NewMXCSR: DWORD;
 begin
+  if (not Rebind(FID_FAST_TRUNC)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   SaveMXCSR := GetMXCSR;
   try
     // Set Mode=Truncation
@@ -530,6 +570,12 @@ const
   CColor32Count: Integer = 1024;  // must be larger than 32!
   CFillValue: array [0..1] of Cardinal = ($12345678, $1337DEAD);
 begin
+  if (not Rebind(FID_FILLLONGWORD)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   GetMem(Data, CColor32Count * SizeOf(TColor32));
   try
     // check zero count
