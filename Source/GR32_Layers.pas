@@ -1356,12 +1356,20 @@ end;
 
 procedure TPositionedLayer.SetScaled(Value: Boolean);
 begin
-  if Value <> FScaled then
-  begin
-    Changing;
-    FScaled := Value;
-    Changed;
-  end;
+  if (Value = FScaled) then
+    exit;
+
+  // Changing Scaled can change size and position so treat it as if we did
+  Changing;
+
+  // Invalidate old location
+  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
+    Update;
+
+  FScaled := Value;
+
+  // Invalidate new location
+  Changed;
 end;
 
 procedure TPositionedLayer.Update;
