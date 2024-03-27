@@ -1412,15 +1412,17 @@ begin
   if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
   begin
     r := GetAdjustedLocation;
+    T := Area;
+    T.NormalizeRect;
 
     { TODO : Optimize me! }
     ScaleX := (r.Right - r.Left) / FBitmap.Width;
     ScaleY := (r.Bottom - r.Top) / FBitmap.Height;
 
-    T.Left := Floor(r.Left + Area.Left * ScaleX);
-    T.Top := Floor(r.Top + Area.Top * ScaleY);
-    T.Right := Ceil(r.Left + Area.Right * ScaleX);
-    T.Bottom := Ceil(r.Top + Area.Bottom * ScaleY);
+    T.Left := Floor(r.Left + T.Left * ScaleX);
+    T.Top := Floor(r.Top + T.Top * ScaleY);
+    T.Right := Ceil(r.Left + T.Right * ScaleX);
+    T.Bottom := Ceil(r.Top + T.Bottom * ScaleY);
 
     Width := Trunc(FBitmap.Resampler.Width) + 1;
     InflateArea(T, Width, Width);

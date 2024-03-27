@@ -2024,12 +2024,6 @@ begin
     if (T.Left = T.Right) or (T.Top = T.Bottom) then
       Exit; // Empty rect
 
-    // Make sure rect is positive (i.e. dX >= 0)
-    if (T.Left > T.Right) then
-    begin
-      Swap(T.Left, T.Right);
-      Swap(T.Top, T.Bottom);
-    end;
 
     // Translate the coordinates from bitmap to viewport
     T.TopLeft := BitmapToControl(T.TopLeft);
@@ -2044,6 +2038,9 @@ begin
       GR32.OffsetRect(T, OffsetX, OffsetY);
     end else
     begin
+    // Make sure rect is positive (i.e. dX >= 0)
+    T.NormalizeRect;
+
       // Rect coordinates specify the pixel corners.
       // It is assumed that (Top, Left) specify the top/left corner of the top/left pixel and
       // that (Right, Bottom) specify the bottom/right corner of the bottom/right pixel.
