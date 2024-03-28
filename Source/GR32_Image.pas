@@ -147,6 +147,7 @@ type
     FInvalidRects: TRectList;
     FUpdateRects: TRectList;
     FForceFullRepaint: Boolean;
+    FPartialRepaintQueued: boolean;
     FRepaintOptimizer: TCustomRepaintOptimizer;
     FOptions: TPaintBoxOptions;
     FUpdateCount: Integer;
@@ -437,7 +438,6 @@ type
     FMouseZoomOptions: TMouseZoomOptions;
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
-    FPartialRepaintQueued: boolean;
     FOnBitmapResize: TNotifyEvent;
     FOnInitStages: TNotifyEvent;
     FOnMouseDown: TImgMouseEvent;
@@ -1046,6 +1046,14 @@ procedure TCustomPaintBox32.DoChanged;
 begin
   if Assigned(FOnChange) then
     FOnChange(Self);
+
+  // If partial repaints hasn't been queued then we need to do a full repaint
+  if (not FPartialRepaintQueued) then
+    Invalidate;
+
+  // For RepaintMode=rmDirect any change leads to an immediate repaint
+  if (RepaintMode = rmDirect) and not(csCustomPaint in ControlState) then
+    Update;
 end;
 
 procedure TCustomPaintBox32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
@@ -1053,8 +1061,10 @@ var
   UpdateRectSupport: IUpdateRectSupport;
 begin
   if (Supports(FBuffer.Backend, IUpdateRectSupport, UpdateRectSupport)) then
-    UpdateRectSupport.InvalidateRect(Self, AArea)
-  else
+  begin
+    UpdateRectSupport.InvalidateRect(Self, AArea);
+    FPartialRepaintQueued := True;
+  end else
     inherited Invalidate;
 end;
 
@@ -1352,6 +1362,7 @@ begin
 
   ResetInvalidRects;
   FForceFullRepaint := False;
+  FPartialRepaintQueued := False;
 end;
 
 procedure TCustomPaintBox32.ResetInvalidRects;
@@ -1908,7 +1919,6 @@ var
 begin
   if (Supports(Bitmap.Backend, IUpdateRectSupport, UpdateRectSupport)) then
   begin
-    FPartialRepaintQueued := True;
     UpdateRectSupport.InvalidateRect(Self, AArea);
   end else
     Invalidate;
@@ -1918,9 +1928,6 @@ end;
 
 procedure TCustomImage32.DoChanged;
 begin
-  // If partial repaints hasn't been queued then we need to do a full repaint
-  if (not FPartialRepaintQueued) then
-    Invalidate;
 
   inherited;
 end;
@@ -2343,7 +2350,6 @@ begin
 
   // avoid calling inherited, we have a totally different behaviour here...
   BufferValid := True;
-  FPartialRepaintQueued := False;
 end;
 
 procedure TCustomImage32.DoPaintGDIOverlay;
