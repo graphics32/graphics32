@@ -175,8 +175,7 @@ type
 {$ENDIF}
   protected
     procedure BitmapChangeHandler(Sender: TObject);
-    procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
-    procedure OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
     // IUpdateRectNotification
     procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
@@ -1523,26 +1522,20 @@ begin
   inherited Invalidate;;
 end;
 
-procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
-begin
-  // Request that the area be repainted...
-  AreaUpdated(Area, Info);
-
-  if not(csCustomPaint in ControlState) then
-    // ...and process pending updates
-    Update;
-end;
-
-procedure TCustomPaintBox32.OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+procedure TCustomPaintBox32.AreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   UpdateRectNotification: IUpdateRectNotification;
 begin
   // Add the area to the optimizer
-  if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+  if (FRepaintOptimizer <> nil) and (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
     UpdateRectNotification.AreaUpdated(Area, Info);
 
-  // Request that the area be repainted
+  // Request that the area be repainted...
   AreaUpdated(Area, Info);
+
+  if (RepaintMode = rmDirect) and not(csCustomPaint in ControlState) then
+    // ...and process pending updates
+    Update;
 end;
 
 procedure TCustomPaintBox32.RepaintModeChanged;
@@ -1553,13 +1546,13 @@ begin
     case FRepaintMode of
       rmOptimizer:
         begin
-          FBuffer.OnAreaChanged := OptimizedAreaUpdateHandler;
+          FBuffer.OnAreaChanged := AreaUpdateHandler;
           FBuffer.OnChange := nil;
         end;
 
       rmDirect:
         begin
-          FBuffer.OnAreaChanged := DirectAreaUpdateHandler;
+          FBuffer.OnAreaChanged := AreaUpdateHandler;
           FBuffer.OnChange := nil;
         end;
 
