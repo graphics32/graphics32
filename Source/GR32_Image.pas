@@ -44,6 +44,7 @@ interface
 {$define CONSOLIDATE_UPDATERECTS}
 
 {-$define TRACE_BEGINENDUPDATE} // Batching trace
+{$define MOUSE_UPDATE_BATCHING}
 
 {-$define PAINT_UNCLIPPED} // Circumvent WM_PAINT/BeginDraw/EndDraw update region clipping
 {$define UPDATERECT_DEBUGDRAW} // Display update rects. See issue # 202
@@ -3117,8 +3118,10 @@ begin
   if TabStop and CanFocus then
     SetFocus;
 
+{$ifdef MOUSE_UPDATE_BATCHING}
   BeginUpdate;
   try
+{$endif MOUSE_UPDATE_BATCHING}
     if Layers.MouseEvents then
       Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
     else
@@ -3150,9 +3153,11 @@ begin
       FMousePanStartPos.X := X;
       FMousePanStartPos.Y := Y;
     end;
+{$ifdef MOUSE_UPDATE_BATCHING}
   finally
     EndUpdate;
   end;
+{$endif MOUSE_UPDATE_BATCHING}
 end;
 
 procedure TCustomImage32.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -3179,17 +3184,21 @@ begin
       Screen.Cursor := FMousePanOptions.PanCursor;
   end else
   begin
+  {$ifdef MOUSE_UPDATE_BATCHING}
     BeginUpdate;
     try
+  {$endif MOUSE_UPDATE_BATCHING}
       if Layers.MouseEvents then
         Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y)
       else
         Layer := nil;
 
       MouseMove(Shift, X, Y, Layer);
+{$ifdef MOUSE_UPDATE_BATCHING}
     finally
       EndUpdate;
     end;
+{$endif MOUSE_UPDATE_BATCHING}
   end;
 end;
 
@@ -3200,8 +3209,10 @@ var
 begin
   MouseListener := TLayerCollectionAccess(Layers).MouseListener;
 
+{$ifdef MOUSE_UPDATE_BATCHING}
   BeginUpdate;
   try
+{$endif MOUSE_UPDATE_BATCHING}
     if Layers.MouseEvents then
       Layer := TLayerCollectionAccess(Layers).MouseUp(Button, Shift, X, Y)
     else
@@ -3219,9 +3230,11 @@ begin
       if (FMousePanOptions.PanCursor <> crDefault) then
         Screen.Cursor := crDefault;
     end;
+{$ifdef MOUSE_UPDATE_BATCHING}
   finally
     EndUpdate;
   end;
+{$endif MOUSE_UPDATE_BATCHING}
 end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton;
