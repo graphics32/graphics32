@@ -43,9 +43,11 @@ interface
 // update areas into as few separate non-overlapping areas as possible.
 {$define CONSOLIDATE_UPDATERECTS}
 
+{-$define TRACE_BEGINENDUPDATE} // Batching trace
+
 {-$define PAINT_UNCLIPPED} // Circumvent WM_PAINT/BeginDraw/EndDraw update region clipping
-{-$define UPDATERECT_DEBUGDRAW} // Display update rects. See issue # 202
-{-$define UPDATERECT_DEBUGDRAW_RANDOM_COLORS} // More cow bell!
+{$define UPDATERECT_DEBUGDRAW} // Display update rects. See issue # 202
+{$define UPDATERECT_DEBUGDRAW_RANDOM_COLORS} // More cow bell!
 {-$define UPDATERECT_SLOWMOTION} // Slow everything down so we can see what's going on
 {-$define UPDATERECT_SUPERSLOWMOTION} // Matrix bullet time mode
 
@@ -973,6 +975,7 @@ end;
 
 destructor TCustomPaintBox32.Destroy;
 begin
+  FUpdateCount := -1;
   FreeAndNil(FRepaintOptimizer);
   FreeAndNil(FInvalidRects);
   FreeAndNil(FUpdateRects);
@@ -995,10 +998,16 @@ procedure TCustomPaintBox32.BeginUpdate;
 begin
   // Defer OnChange notifications
   Inc(FUpdateCount);
+{$ifdef TRACE_BEGINENDUPDATE}
+  OutputDebugString(PChar(Format('%s:%s.BeginUpdate: %d', [Name, ClassName, FUpdateCount])));
+{$endif TRACE_BEGINENDUPDATE}
 end;
 
 procedure TCustomPaintBox32.EndUpdate;
 begin
+{$ifdef TRACE_BEGINENDUPDATE}
+  OutputDebugString(PChar(Format('%s:%s.EndUpdate: %d', [Name, ClassName, FUpdateCount])));
+{$endif TRACE_BEGINENDUPDATE}
   Assert(FUpdateCount > 0, 'Unpaired EndUpdate call');
   // Re-enable OnChange generation
   if (FUpdateCount = 1) then
