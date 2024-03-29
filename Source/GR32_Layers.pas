@@ -134,7 +134,7 @@ type
     function  GetOwner: TPersistent; override;
     procedure GDIUpdate;
     procedure DoUpdateLayer(Layer: TCustomLayer);
-    procedure DoUpdateArea(const Rect: TRect);
+    procedure DoUpdateArea(const Rect: TRect; const Info: Cardinal);
     procedure Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
     procedure SetItem(Index: Integer; Value: TCustomLayer);
     function MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
@@ -249,6 +249,9 @@ type
     procedure SetLayerCollection(Value: TLayerCollection); virtual;
     procedure SetLayerOptions(Value: Cardinal); virtual;
     procedure DoChanged; overload; override;
+    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+    procedure UpdateRect(const ARect: TRect);
+    procedure Changed(const Rect: TRect; const Info: Cardinal = 0); reintroduce; overload;
     property Invalid: Boolean read GetInvalid write SetInvalid;
     property ForceUpdate: Boolean read GetForceUpdate write SetForceUpdate;
   public
@@ -257,9 +260,7 @@ type
 
     procedure BeforeDestruction; override;
     procedure BringToFront;
-    procedure Changed(const Rect: TRect); reintroduce; overload;
     procedure Update; overload; virtual;
-    procedure Update(const Rect: TRect); overload;
     function  HitTest(X, Y: Integer): Boolean;
     procedure SendToBack;
     procedure SetAsMouseListener;
@@ -841,7 +842,7 @@ begin
     FSubscribers.Remove(ASubscriber);
 end;
 
-procedure TLayerCollection.DoUpdateArea(const Rect: TRect);
+procedure TLayerCollection.DoUpdateArea(const Rect: TRect; const Info: Cardinal);
 var
   i: integer;
   UpdateRectNotification: IUpdateRectNotification;
@@ -849,10 +850,10 @@ begin
   if (FSubscribers <> nil) then
     for i := FSubscribers.Count-1 downto 0 do
       if (Supports(FSubscribers[i], IUpdateRectNotification, UpdateRectNotification)) then
-        UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
+        UpdateRectNotification.AreaUpdated(Rect, Info);
 
   if Assigned(FOnAreaUpdated) then
-    FOnAreaUpdated(Self, Rect, AREAINFO_RECT);
+    FOnAreaUpdated(Self, Rect, Info);
 
   Changed;
 end;
@@ -989,21 +990,14 @@ begin
   end;
 end;
 
-procedure TCustomLayer.Changed(const Rect: TRect);
+procedure TCustomLayer.Changed(const Rect: TRect; const Info: Cardinal);
 begin
   if UpdateCount > 0 then
     Exit;
 
   if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
   begin
-    Update(Rect);
-
-    if Visible then
-      FLayerCollection.Changed
-    else
-    if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
-      FLayerCollection.GDIUpdate;
-
+    AreaUpdated(Rect, Info);
     inherited DoChanged;
   end;
 end;
@@ -1233,11 +1227,23 @@ begin
     FLayerCollection.DoUpdateLayer(Self);
 end;
 
-procedure TCustomLayer.Update(const Rect: TRect);
+procedure TCustomLayer.UpdateRect(const ARect: TRect);
+begin
+  AreaUpdated(ARect, AREAINFO_RECT);
+end;
+
+procedure TCustomLayer.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
 begin
   // Note: Rect is in ViewPort coordinates
-  if (FLayerCollection <> nil) then
-    FLayerCollection.DoUpdateArea(Rect);
+
+  if (FLayerCollection = nil) then
+    exit;
+
+  if (Visible) then
+    FLayerCollection.DoUpdateArea(AArea, AInfo)
+  else
+  if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
+    FLayerCollection.GDIUpdate;
 end;
 
 function TCustomLayer.GetInvalid: Boolean;
@@ -1356,17 +1362,25 @@ end;
 
 procedure TPositionedLayer.SetScaled(Value: Boolean);
 begin
-  if Value <> FScaled then
-  begin
-    Changing;
-    FScaled := Value;
-    Changed;
-  end;
+  if (Value = FScaled) then
+    exit;
+
+  // Changing Scaled can change size and position so treat it as if we did
+  Changing;
+
+  // Invalidate old location
+  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
+    Update;
+
+  FScaled := Value;
+
+  // Invalidate new location
+  Changed;
 end;
 
 procedure TPositionedLayer.Update;
 begin
-  Update(GetUpdateRect);
+  UpdateRect(GetUpdateRect);
 end;
 
 { TCustomIndirectBitmapLayer }
@@ -1401,24 +1415,45 @@ begin
   if (FBitmap.Empty) then
     Exit;
 
-  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
+  if (Area.Left = Area.Right) or (Area.Top = Area.Bottom) then // Don't use IsEmpty; Rect can be negative
+    Exit; // Empty area
+
+  if (FLayerCollection = nil) or (FLayerOptions and LOB_NO_UPDATE <> 0) then
+    exit;
+
+  r := GetAdjustedLocation;
+
+  ScaleX := r.Width / FBitmap.Width;
+  ScaleY := r.Height / FBitmap.Height;
+
+  // Common case: Positive rect
+  // More rare: Negative rect (e.g. line going from right to left)
+  if (Area.Left < Area.Right) then
   begin
-    r := GetAdjustedLocation;
-
-    { TODO : Optimize me! }
-    ScaleX := (r.Right - r.Left) / FBitmap.Width;
-    ScaleY := (r.Bottom - r.Top) / FBitmap.Height;
-
     T.Left := Floor(r.Left + Area.Left * ScaleX);
-    T.Top := Floor(r.Top + Area.Top * ScaleY);
     T.Right := Ceil(r.Left + Area.Right * ScaleX);
-    T.Bottom := Ceil(r.Top + Area.Bottom * ScaleY);
-
-    Width := Trunc(FBitmap.Resampler.Width) + 1;
-    InflateArea(T, Width, Width);
-
-    Changed(T);
+  end else
+  begin
+    T.Left := Ceil(r.Left + Area.Left * ScaleX);
+    T.Right := Floor(r.Left + Area.Right * ScaleX);
   end;
+
+  if (Area.Top < Area.Bottom) then
+  begin
+    T.Top := Floor(r.Top + Area.Top * ScaleY);
+    T.Bottom := Ceil(r.Top + Area.Bottom * ScaleY);
+  end else
+  begin
+    T.Top := Ceil(r.Top + Area.Top * ScaleY);
+    T.Bottom := Floor(r.Top + Area.Bottom * ScaleY);
+  end;
+
+  // TODO : Possible scaling issue here; Should Width be scaled?
+  // See: TCustomImage32.BitmapAreaChangeHandler
+  Width := Ceil(FBitmap.Resampler.Width);
+  InflateArea(T, Width, Width);
+
+  Changed(T, Info);
 end;
 
 function TCustomIndirectBitmapLayer.DoHitTest(X, Y: Integer): Boolean;
@@ -2114,13 +2149,13 @@ end;
 procedure TRubberbandLayer.UpdateFrame(Buffer: TBitmap32; const R: TRect);
 begin
   // Left
-  Update(Rect(R.Left, R.Top, R.Left+1, R.Bottom));
+  UpdateRect(Rect(R.Left, R.Top, R.Left+1, R.Bottom));
   // Right
-  Update(Rect(R.Right-1, R.Top, R.Right, R.Bottom));
+  UpdateRect(Rect(R.Right-1, R.Top, R.Right, R.Bottom));
   // Top
-  Update(Rect(R.Left+1, R.Top, R.Right-1, R.Top+1));
+  UpdateRect(Rect(R.Left+1, R.Top, R.Right-1, R.Top+1));
   // Bottom
-  Update(Rect(R.Left+1, R.Bottom-1, R.Right-1, R.Bottom));
+  UpdateRect(Rect(R.Left+1, R.Bottom-1, R.Right-1, R.Bottom));
 end;
 
 procedure TRubberbandLayer.UpdateHandle(Buffer: TBitmap32; X, Y: TFloat);
@@ -2131,7 +2166,7 @@ begin
   HandleRect.Right := HandleRect.Left + Ceil(FHandleSize*2);
   HandleRect.Top := Floor(Y - FHandleSize);
   HandleRect.Bottom := HandleRect.Top + Ceil(FHandleSize*2);
-  Update(HandleRect);
+  UpdateRect(HandleRect);
 end;
 
 procedure TRubberbandLayer.Update;

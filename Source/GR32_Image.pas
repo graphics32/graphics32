@@ -43,9 +43,12 @@ interface
 // update areas into as few separate non-overlapping areas as possible.
 {$define CONSOLIDATE_UPDATERECTS}
 
+{-$define TRACE_BEGINENDUPDATE} // Batching trace
+{$define MOUSE_UPDATE_BATCHING}
+
 {-$define PAINT_UNCLIPPED} // Circumvent WM_PAINT/BeginDraw/EndDraw update region clipping
 {-$define UPDATERECT_DEBUGDRAW} // Display update rects. See issue # 202
-{-$define UPDATERECT_DEBUGDRAW_RANDOM_COLORS} // More cow bell!
+{$define UPDATERECT_DEBUGDRAW_RANDOM_COLORS} // More cow bell!
 {-$define UPDATERECT_SLOWMOTION} // Slow everything down so we can see what's going on
 {-$define UPDATERECT_SUPERSLOWMOTION} // Matrix bullet time mode
 
@@ -145,6 +148,7 @@ type
     FInvalidRects: TRectList;
     FUpdateRects: TRectList;
     FForceFullRepaint: Boolean;
+    FPartialRepaintQueued: boolean;
     FRepaintOptimizer: TCustomRepaintOptimizer;
     FOptions: TPaintBoxOptions;
     FUpdateCount: Integer;
@@ -170,12 +174,11 @@ type
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
 {$ENDIF}
   protected
-    procedure BitmapChangeHandler(Sender: TObject);
-    procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
-    procedure OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+    procedure FullUpdateHandler(Sender: TObject);
+    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
     // IUpdateRectNotification
-    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal); virtual;
   protected
     procedure CreateBuffer; virtual;
     function CreateRepaintOptimizer(ABuffer: TBitmap32; AInvalidRects: TRectList): TCustomRepaintOptimizer; virtual;
@@ -208,7 +211,7 @@ type
     destructor Destroy; override;
 
     procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure EndUpdate;
     procedure Changed; {$IFDEF USEINLINING} inline; {$ENDIF}
 
     procedure BeginLockUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -435,7 +438,6 @@ type
     FMouseZoomOptions: TMouseZoomOptions;
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
-    FPartialRepaintQueued: boolean;
     FOnBitmapResize: TNotifyEvent;
     FOnInitStages: TNotifyEvent;
     FOnMouseDown: TImgMouseEvent;
@@ -445,9 +447,6 @@ type
     FOnScaleChange: TNotifyEvent;
     procedure BackgroundOptionsChangeHandler(Sender: TObject);
     procedure BitmapResizeHandler(Sender: TObject);
-    procedure BitmapChangeHandler(Sender: TObject);
-    procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
-    procedure BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
     procedure LayerCollectionChangeHandler(Sender: TObject);
     procedure LayerCollectionGDIUpdateHandler(Sender: TObject);
     procedure LayerCollectionGetViewportScaleHandler(Sender: TObject; out ScaleX, ScaleY: TFloat);
@@ -508,16 +507,21 @@ type
     procedure Loaded; override;
     procedure DoChanged; override;
   protected
+    procedure BitmapChangeHandler(Sender: TObject);
+    procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+  protected
+    procedure InvalidateArea(const AArea: TRect; const AInfo: Cardinal; AOptimize: boolean);
     // IUpdateRectNotification
-    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     function  BitmapToControl(const APoint: TPoint): TPoint; overload;
     function  BitmapToControl(const APoint: TFloatPoint): TFloatPoint; overload;
-    function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
-    function  ControlToBitmap(const ARect: TRect): TRect;  overload;
+    function  BitmapToControl(const ARect: TRect): TRect; overload;
+    function  ControlToBitmap(const APoint: TPoint): TPoint; overload;
+    function  ControlToBitmap(const ARect: TRect): TRect; overload;
     function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
 
     procedure Update(const Rect: TRect); reintroduce; overload; virtual; deprecated 'Use Invalidate(Rect) instead';
@@ -973,6 +977,7 @@ end;
 
 destructor TCustomPaintBox32.Destroy;
 begin
+  FUpdateCount := -1;
   FreeAndNil(FRepaintOptimizer);
   FreeAndNil(FInvalidRects);
   FreeAndNil(FUpdateRects);
@@ -995,10 +1000,16 @@ procedure TCustomPaintBox32.BeginUpdate;
 begin
   // Defer OnChange notifications
   Inc(FUpdateCount);
+{$ifdef TRACE_BEGINENDUPDATE}
+  OutputDebugString(PChar(Format('%s:%s.BeginUpdate: %d', [Name, ClassName, FUpdateCount])));
+{$endif TRACE_BEGINENDUPDATE}
 end;
 
 procedure TCustomPaintBox32.EndUpdate;
 begin
+{$ifdef TRACE_BEGINENDUPDATE}
+  OutputDebugString(PChar(Format('%s:%s.EndUpdate: %d', [Name, ClassName, FUpdateCount])));
+{$endif TRACE_BEGINENDUPDATE}
   Assert(FUpdateCount > 0, 'Unpaired EndUpdate call');
   // Re-enable OnChange generation
   if (FUpdateCount = 1) then
@@ -1037,15 +1048,34 @@ procedure TCustomPaintBox32.DoChanged;
 begin
   if Assigned(FOnChange) then
     FOnChange(Self);
+
+  // If partial repaints hasn't been queued then we need to do a full repaint
+  if (not FPartialRepaintQueued) then
+    Invalidate;
+
+  // For RepaintMode=rmDirect any change leads to an immediate repaint
+  if (RepaintMode = rmDirect) and not(csCustomPaint in ControlState) then
+    Update;
 end;
 
 procedure TCustomPaintBox32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
 var
   UpdateRectSupport: IUpdateRectSupport;
+  R: TRect;
+  Width: integer;
 begin
   if (Supports(FBuffer.Backend, IUpdateRectSupport, UpdateRectSupport)) then
-    UpdateRectSupport.InvalidateRect(Self, AArea)
-  else
+  begin
+    R := AArea;
+    if (AInfo and AREAINFO_LINE <> 0) then
+    begin
+      Width := Max(AInfo and (not AREAINFO_MASK) - 1, 0);
+      InflateArea(R, Width, Width);
+    end;
+
+    UpdateRectSupport.InvalidateRect(Self, R);
+    FPartialRepaintQueued := True;
+  end else
     inherited Invalidate;
 end;
 
@@ -1058,7 +1088,7 @@ begin
     TCustomPaintBox32(Dest).FBufferOversize := FBufferOversize;
     TCustomPaintBox32(Dest).FBufferValid := FBufferValid;
     TCustomPaintBox32(Dest).FRepaintMode := FRepaintMode;
-    TCustomPaintBox32(Dest).FInvalidRects := FInvalidRects;
+    TCustomPaintBox32(Dest).FInvalidRects.Assign(FInvalidRects);
     TCustomPaintBox32(Dest).FForceFullRepaint := FForceFullRepaint;
     TCustomPaintBox32(Dest).FOptions := FOptions;
     TCustomPaintBox32(Dest).FOnGDIOverlay := FOnGDIOverlay;
@@ -1280,11 +1310,10 @@ begin
 {$ifdef UPDATERECT_DEBUGDRAW_RANDOM_COLORS}
   C1 := Random($7F) or (Random($7F) shl 8) or (Random($7F) shl 16);
   C2 := (C1 shl 1);
-{$ELSE}
+{$else}
   C1 := clDebugDrawFill;
   C2 := clDebugDrawFrame;
 {$endif}
-
 
   Canvas.Brush.Color := C1;
   Canvas.Brush.Style := bsSolid;
@@ -1343,6 +1372,7 @@ begin
 
   ResetInvalidRects;
   FForceFullRepaint := False;
+  FPartialRepaintQueued := False;
 end;
 
 procedure TCustomPaintBox32.ResetInvalidRects;
@@ -1495,33 +1525,31 @@ begin
   FUpdateRects.Count := 0;
 end;
 
-procedure TCustomPaintBox32.BitmapChangeHandler(Sender: TObject);
+procedure TCustomPaintBox32.FullUpdateHandler(Sender: TObject);
 begin
   FRepaintOptimizer.Reset;
   // Request that everything be repainted
-  inherited Invalidate;;
+  inherited Invalidate;
 end;
 
-procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
-begin
-  // Request that the area be repainted...
-  AreaUpdated(Area, Info);
-
-  if not(csCustomPaint in ControlState) then
-    // ...and process pending updates
-    Update;
-end;
-
-procedure TCustomPaintBox32.OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+procedure TCustomPaintBox32.AreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   UpdateRectNotification: IUpdateRectNotification;
 begin
-  // Add the area to the optimizer
-  if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+  Assert(Sender = FBuffer);
+
+  if (Area.Left = Area.Right) or (Area.Top = Area.Bottom) then // Don't use IsEmpty; Rect can be negative
+    Exit; // Empty area
+
+  // Add the area to the repaint optimizer
+  if (FRepaintOptimizer <> nil) and (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
     UpdateRectNotification.AreaUpdated(Area, Info);
 
-  // Request that the area be repainted
+  // Request that the area be repainted...
   AreaUpdated(Area, Info);
+
+  // ...and possibly process pending updates
+  Changed;
 end;
 
 procedure TCustomPaintBox32.RepaintModeChanged;
@@ -1532,20 +1560,20 @@ begin
     case FRepaintMode of
       rmOptimizer:
         begin
-          FBuffer.OnAreaChanged := OptimizedAreaUpdateHandler;
+          FBuffer.OnAreaChanged := AreaUpdateHandler;
           FBuffer.OnChange := nil;
         end;
 
       rmDirect:
         begin
-          FBuffer.OnAreaChanged := DirectAreaUpdateHandler;
+          FBuffer.OnAreaChanged := AreaUpdateHandler;
           FBuffer.OnChange := nil;
         end;
 
       rmFull:
         begin
           FBuffer.OnAreaChanged := nil;
-          FBuffer.OnChange := BitmapChangeHandler;
+          FBuffer.OnChange := FullUpdateHandler;
         end
     end;
   end;
@@ -1865,7 +1893,7 @@ begin
 
       rmDirect:
         begin
-          FBitmap.OnAreaChanged := BitmapDirectAreaChangeHandler;
+          FBitmap.OnAreaChanged := BitmapAreaChangeHandler;
           FBitmap.OnChange := nil;
         end;
 
@@ -1893,25 +1921,57 @@ begin
   TLayerCollectionAccess(Result).OnGetViewportShift := LayerCollectionGetViewportShiftHandler;
 end;
 
-procedure TCustomImage32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+procedure TCustomImage32.InvalidateArea(const AArea: TRect; const AInfo: Cardinal; AOptimize: boolean);
 var
-  UpdateRectSupport: IUpdateRectSupport;
+  UpdateRectNotification: IUpdateRectNotification;
+  Tx, Ty, I, J: Integer;
+  R: TRect;
 begin
-  if (Supports(Bitmap.Backend, IUpdateRectSupport, UpdateRectSupport)) then
+  if (AArea.Left <> AArea.Right) and (AArea.Top <> AArea.Bottom) then // Don't use IsEmpty; Rect can be negative
   begin
-    FPartialRepaintQueued := True;
-    UpdateRectSupport.InvalidateRect(Self, AArea);
-  end else
-    Invalidate;
+    if (not AOptimize) or (not RepaintOptimizer.Enabled) or (not Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+      UpdateRectNotification := nil;
+
+    if (FBitmapAlign <> baTile) then
+    begin
+      // ->Repaint optimizer
+      if (UpdateRectNotification <> nil) then
+        UpdateRectNotification.AreaUpdated(AArea, AInfo);
+      // ->Windows InvalidateRect
+      inherited AreaUpdated(AArea, AInfo);
+    end else
+    begin
+      UpdateCache; // Ensure CachedBitmapRect is up to date
+
+      with CachedBitmapRect do
+      begin
+        Tx := Buffer.Width div Right;
+        Ty := Buffer.Height div Bottom;
+        for J := 0 to Ty do
+          for I := 0 to Tx do
+          begin
+            R := AArea;
+            GR32.OffsetRect(R, Right * I, Bottom * J);
+            if (UpdateRectNotification <> nil) then
+              UpdateRectNotification.AreaUpdated(R, AInfo);
+            inherited AreaUpdated(R, AInfo);
+          end;
+      end;
+    end;
+  end;
 
   BufferValid := False;
 end;
 
+procedure TCustomImage32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+begin
+  // We're called from TLayerCollection.DoUpdateArea which also calls AreaUpdated
+  // on the repaint optimizer so don't call that from here
+  InvalidateArea(AArea, AInfo, False);
+end;
+
 procedure TCustomImage32.DoChanged;
 begin
-  // If partial repaints hasn't been queued then we need to do a full repaint
-  if (not FPartialRepaintQueued) then
-    Invalidate;
 
   inherited;
 end;
@@ -1950,7 +2010,18 @@ end;
 
 procedure TCustomImage32.BitmapChanged(const Area: TRect);
 begin
+  InvalidateArea(Area, 0, True);
   Changed;
+end;
+
+function TCustomImage32.BitmapToControl(const ARect: TRect): TRect;
+begin
+  // convert coordinates from bitmap's ref. frame to control's ref. frame
+  UpdateCache;
+  Result.Left := Trunc(ARect.Left * CachedScaleX + CachedShiftX);
+  Result.Right := Trunc(ARect.Right * CachedScaleX + CachedShiftX);
+  Result.Top := Trunc(ARect.Top * CachedScaleY + CachedShiftY);
+  Result.Bottom := Trunc(ARect.Bottom * CachedScaleY + CachedShiftY);
 end;
 
 function TCustomImage32.BitmapToControl(const APoint: TPoint): TPoint;
@@ -1991,133 +2062,66 @@ begin
   BitmapChanged(Bitmap.Boundsrect);
 end;
 
-procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject;
-  const Area: TRect; const Info: Cardinal);
+procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   NewInfo: Cardinal;
-  T, R: TRect;
-  Width, Tx, Ty, I, J: Integer;
+  T: TRect;
+  Width: Integer;
   OffsetX, OffsetY: Integer;
   WidthX, WidthY: Integer;
-  UpdateRectNotification: IUpdateRectNotification;
 begin
-  if Sender = FBitmap then
+  Assert(Sender = FBitmap);
+
+  if (Area.Left = Area.Right) or (Area.Top = Area.Bottom) then
+    Exit; // Empty area
+
+  T := Area;
+
+  UpdateCache; // Ensure CachedScaleXY is up to date
+  NewInfo := Info;
+  if (NewInfo and AREAINFO_LINE <> 0) then
   begin
-    T := Area;
+    // Unpack line width from Info param
+    Width := integer(NewInfo and (not AREAINFO_MASK));
 
-    UpdateCache; // Ensure CachedScaleXY is up to date
-    NewInfo := Info;
-    if (NewInfo and AREAINFO_LINE <> 0) then
-    begin
-      if (T.Left = T.Right) and (T.Top = T.Bottom) then
-        Exit; // Zero length line
+    // Add line and resampler width and scale value to viewport
+    Width := Ceil((Width + FBitmap.Resampler.Width) * CachedScaleX); // TODO : Should probably use Max(CachedScaleX, CachedScaleY)
 
-      // Unpack line width from Info param
-      Width := integer(NewInfo and (not AREAINFO_MASK));
+    // Pack width into Info param again
+    NewInfo := AREAINFO_LINE or Width;
+  end;
 
-      // Add line and resampler width and scale value to viewport
-      Width := Ceil((Width + FBitmap.Resampler.Width) * CachedScaleX);
+  // Translate the coordinates from bitmap to viewport
+  T := BitmapToControl(T);
 
-      // Pack width into Info param again
-      NewInfo := AREAINFO_LINE or Width;
-    end else
-    if (T.Left = T.Right) or (T.Top = T.Bottom) then
-      Exit; // Empty rect
-
+  if (NewInfo and AREAINFO_LINE <> 0) then
+  begin
+    // Line coordinates specify the center of the pixel.
+    // For example the rect (0, 0, 0, 1) is a one pixel long line while (0, 0, 0, 0) is empty.
+    OffsetX := Round(CachedScaleX / 2);
+    OffsetY := Round(CachedScaleY / 2);
+    GR32.OffsetRect(T, OffsetX, OffsetY);
+  end else
+  begin
     // Make sure rect is positive (i.e. dX >= 0)
-    if (T.Left > T.Right) then
-    begin
-      Swap(T.Left, T.Right);
-      Swap(T.Top, T.Bottom);
-    end;
+    T.NormalizeRect;
 
-    // Translate the coordinates from bitmap to viewport
-    T.TopLeft := BitmapToControl(T.TopLeft);
-    T.BottomRight := BitmapToControl(T.BottomRight);
+    // Rect coordinates specify the pixel corners.
+    // It is assumed that (Top, Left) specify the top/left corner of the top/left pixel and
+    // that (Right, Bottom) specify the bottom/right corner of the bottom/right pixel.
+    // For example the rect (0, 0, 1, 1) covers just one pixel while (0, 0, 0, 1) is empty.
+    Dec(T.Right);
+    Dec(T.Bottom);
 
-    if (NewInfo and AREAINFO_LINE <> 0) then
-    begin
-      // Line coordinates specify the center of the pixel.
-      // For example the rect (0, 0, 0, 1) is a one pixel long line while (0, 0, 0, 0) is empty.
-      OffsetX := Round(CachedScaleX / 2);
-      OffsetY := Round(CachedScaleY / 2);
-      GR32.OffsetRect(T, OffsetX, OffsetY);
-    end else
-    begin
-      // Rect coordinates specify the pixel corners.
-      // It is assumed that (Top, Left) specify the top/left corner of the top/left pixel and
-      // that (Right, Bottom) specify the bottom/right corner of the bottom/right pixel.
-      // For example the rect (0, 0, 1, 1) covers just one pixel while (0, 0, 0, 1) is empty.
-      Dec(T.Right);
-      Dec(T.Bottom);
+    WidthX := Ceil(FBitmap.Resampler.Width * CachedScaleX);
+    WidthY := Ceil(FBitmap.Resampler.Width * CachedScaleY);
 
-      WidthX := Ceil(FBitmap.Resampler.Width * CachedScaleX);
-      WidthY := Ceil(FBitmap.Resampler.Width * CachedScaleY);
-
-      InflateArea(T, WidthX, WidthY);
-    end;
-
-    if (RepaintOptimizer.Enabled) and (Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
-    begin
-      if FBitmapAlign <> baTile then
-        UpdateRectNotification.AreaUpdated(T, NewInfo)
-      else
-      begin
-        with CachedBitmapRect do
-        begin
-          Tx := Buffer.Width div Right;
-          Ty := Buffer.Height div Bottom;
-          for J := 0 to Ty do
-            for I := 0 to Tx do
-            begin
-              R := T;
-              GR32.OffsetRect(R, Right * I, Bottom * J);
-              UpdateRectNotification.AreaUpdated(R, NewInfo);
-            end;
-        end;
-      end;
-    end;
+    InflateArea(T, WidthX, WidthY);
   end;
 
-  BitmapChanged(Area);
-end;
-
-procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject;
-  const Area: TRect; const Info: Cardinal);
-var
-  T, R: TRect;
-  Width, Tx, Ty, I, J: Integer;
-begin
-  if Sender = FBitmap then
-  begin
-    T := Area;
-    Width := Trunc(FBitmap.Resampler.Width) + 1;
-    InflateArea(T, Width, Width);
-    T.TopLeft := BitmapToControl(T.TopLeft);
-    T.BottomRight := BitmapToControl(T.BottomRight);
-
-    if FBitmapAlign <> baTile then
-      InvalidRects.Add(T)
-    else
-    begin
-      with CachedBitmapRect do
-      begin
-        Tx := Buffer.Width div Right;
-        Ty := Buffer.Height div Bottom;
-        for J := 0 to Ty do
-          for I := 0 to Tx do
-          begin
-            R := T;
-            GR32.OffsetRect(R, Right * I, Bottom * J);
-            InvalidRects.Add(R);
-          end;
-      end;
-    end;
-  end;
+  InvalidateArea(T, NewInfo, True);
 
   Changed;
-  if not(csCustomPaint in ControlState) then
-    Update;
 end;
 
 function TCustomImage32.CanAutoSize(var NewWidth, NewHeight: Integer): Boolean;
@@ -2313,14 +2317,18 @@ begin
   end;
 
   Buffer.BeginLockUpdate;
-  if InvalidRects.Count = 0 then
+  if (InvalidRects.Count = 0) then
   begin
+
+    // No InvalidRects: Repaint everything
     Buffer.ClipRect := GetViewportRect;
     for I := 0 to PaintStageHandlerCount - 1 do
       FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
-  end
-  else
+
+  end else
   begin
+
+    // We have InvalidRects: Repaint each rect
     for J := 0 to InvalidRects.Count - 1 do
     begin
       Buffer.ClipRect := InvalidRects[J]^;
@@ -2329,6 +2337,7 @@ begin
     end;
 
     Buffer.ClipRect := GetViewportRect;
+
   end;
   Buffer.EndLockUpdate;
 
@@ -2337,7 +2346,6 @@ begin
 
   // avoid calling inherited, we have a totally different behaviour here...
   BufferValid := True;
-  FPartialRepaintQueued := False;
 end;
 
 procedure TCustomImage32.DoPaintGDIOverlay;
@@ -2493,7 +2501,7 @@ begin
     ((not FBackgroundOptions.DropShadowBitmap.Empty) or (FBackgroundOptions.DropShadowSize <> 0) or
      (OuterBorder <> 0) or (InnerBorder <> 0));
 
-     // Do we need to clear the area below the bitmap?
+  // Do we need to clear the area below the bitmap?
   DrawBitmapBackground := (not Bitmap.Empty) and (BitmapAlign <> baTile) and (Bitmap.DrawMode <> dmOpaque);
 
   r := CachedBitmapRect;
@@ -2734,7 +2742,7 @@ begin
 
       Buffer := nil;
       try
-        // Stretching the bitmap is very expensive so only do it once and then tile the streched bitmap
+        // Stretching the bitmap is very expensive so only do it once and then tile the stretched bitmap
         if (CachedBitmapRect.Width <> Bitmap.Width) or (CachedBitmapRect.Height <> Bitmap.Height) then
         begin
           Buffer := TBitmap32.Create(TMemoryBackend);
@@ -2950,11 +2958,8 @@ begin
 end;
 
 procedure TCustomImage32.Invalidate(const Rect: TRect);
-var
-  UpdateRectNotification: IUpdateRectNotification;
 begin
-  if (RepaintOptimizer.Enabled) and (Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
-    UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
+  InvalidateArea(Rect, AREAINFO_RECT, True);
 end;
 
 procedure TCustomImage32.InvalidateCache;
@@ -3105,8 +3110,10 @@ begin
   if TabStop and CanFocus then
     SetFocus;
 
+{$ifdef MOUSE_UPDATE_BATCHING}
   BeginUpdate;
   try
+{$endif MOUSE_UPDATE_BATCHING}
     if Layers.MouseEvents then
       Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
     else
@@ -3138,9 +3145,11 @@ begin
       FMousePanStartPos.X := X;
       FMousePanStartPos.Y := Y;
     end;
+{$ifdef MOUSE_UPDATE_BATCHING}
   finally
     EndUpdate;
   end;
+{$endif MOUSE_UPDATE_BATCHING}
 end;
 
 procedure TCustomImage32.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -3167,17 +3176,21 @@ begin
       Screen.Cursor := FMousePanOptions.PanCursor;
   end else
   begin
+  {$ifdef MOUSE_UPDATE_BATCHING}
     BeginUpdate;
     try
+  {$endif MOUSE_UPDATE_BATCHING}
       if Layers.MouseEvents then
         Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y)
       else
         Layer := nil;
 
       MouseMove(Shift, X, Y, Layer);
+{$ifdef MOUSE_UPDATE_BATCHING}
     finally
       EndUpdate;
     end;
+{$endif MOUSE_UPDATE_BATCHING}
   end;
 end;
 
@@ -3188,8 +3201,10 @@ var
 begin
   MouseListener := TLayerCollectionAccess(Layers).MouseListener;
 
+{$ifdef MOUSE_UPDATE_BATCHING}
   BeginUpdate;
   try
+{$endif MOUSE_UPDATE_BATCHING}
     if Layers.MouseEvents then
       Layer := TLayerCollectionAccess(Layers).MouseUp(Button, Shift, X, Y)
     else
@@ -3207,9 +3222,11 @@ begin
       if (FMousePanOptions.PanCursor <> crDefault) then
         Screen.Cursor := crDefault;
     end;
+{$ifdef MOUSE_UPDATE_BATCHING}
   finally
     EndUpdate;
   end;
+{$endif MOUSE_UPDATE_BATCHING}
 end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton;
