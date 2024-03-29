@@ -518,6 +518,7 @@ type
 
     function  BitmapToControl(const APoint: TPoint): TPoint; overload;
     function  BitmapToControl(const APoint: TFloatPoint): TFloatPoint; overload;
+    function  BitmapToControl(const ARect: TRect): TRect; overload;
     function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
     function  ControlToBitmap(const ARect: TRect): TRect;  overload;
     function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
@@ -1961,6 +1962,16 @@ end;
 procedure TCustomImage32.BitmapChanged(const Area: TRect);
 begin
   Changed;
+end;
+
+function TCustomImage32.BitmapToControl(const ARect: TRect): TRect;
+begin
+  // convert coordinates from bitmap's ref. frame to control's ref. frame
+  UpdateCache;
+  Result.Left := Trunc(ARect.Left * CachedScaleX + CachedShiftX);
+  Result.Right := Trunc(ARect.Right * CachedScaleX + CachedShiftX);
+  Result.Top := Trunc(ARect.Top * CachedScaleY + CachedShiftY);
+  Result.Bottom := Trunc(ARect.Bottom * CachedScaleY + CachedShiftY);
 end;
 
 function TCustomImage32.BitmapToControl(const APoint: TPoint): TPoint;
