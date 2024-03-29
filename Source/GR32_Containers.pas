@@ -153,6 +153,7 @@ type
   public
     destructor Destroy; override;
     function Add(const Rect: TRect): Integer;
+    procedure Assign(Source: TRectList);
     procedure Clear; virtual;
     procedure Delete(Index: Integer);
     procedure Exchange(Index1, Index2: Integer);
@@ -519,6 +520,13 @@ begin
     Grow;
   FList^[Result] := Rect;
   Inc(FCount);
+end;
+
+procedure TRectList.Assign(Source: TRectList);
+begin
+  SetCount(Source.Count);
+  if (FCount > 0) then
+    System.Move(Source.FList^, FList^, FCount * SizeOf(TRect));
 end;
 
 procedure TRectList.Clear;
