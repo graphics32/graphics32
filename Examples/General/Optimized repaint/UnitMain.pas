@@ -45,8 +45,11 @@ type
     procedure ButtonClearClick(Sender: TObject);
     procedure RadioGroupRepaintClick(Sender: TObject);
     procedure ButtonDrawClick(Sender: TObject);
+    procedure Image32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure PaintBox32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
   private
     FLayer: TBitmapLayer;
+    FIsDrawing: boolean;
     procedure ClearBackBuffers;
     procedure ClearBackBuffer(Buffer: TCustomBitmap32);
     procedure DrawStuff(Buffer: TCustomBitmap32);
@@ -65,6 +68,9 @@ const
   ColorNotRepainted: TColor32 = clBlack32;
   ColorRepainted: TColor32 = clGreen32;
   ColorDraw: TColor32 = clRed32;
+
+const
+  ImageScale: TFloat = 1.5;
 
 const
   sHelp = 'This example illustrates how repaint optimization works.'+#13+
@@ -101,6 +107,10 @@ begin
   Buffer.PixelS[150, 50] := ColorDraw;
   Buffer.Changed(MakeRect(150, 50, 151, 51));
 
+  // Single pixel, update rect clips right boundary
+  Buffer.PixelS[Buffer.Width-5, 220] := ColorDraw;
+  Buffer.Changed(MakeRect(Buffer.Width-5, 220, Buffer.Width-5+1, 221));
+
   // Diagonal lines
   Buffer.MoveTo(10, 10);
   Buffer.LineToAS(110, 110);
@@ -124,20 +134,47 @@ begin
   FLayer := TBitmapLayer(ImgView32Layers.Layers.Add(TBitmapLayer));
   FLayer.Bitmap.PenColor := ColorDraw;
   FLayer.OnMouseDown := PaintBox32MouseDown;
+  FLayer.Scaled := True;
 
   MemoHelp.Lines.Text := sHelp;
 end;
 
 procedure TFormMain.FormResize(Sender: TObject);
+var
+  r: TFloatRect;
 begin
   Panel1.Width := ClientWidth div 4;
   Panel3.Width := Panel1.Width;
   Panel4.Width := Panel1.Width;
 
+  Panel1.Left := 0;
+  Panel2.Left := Panel1.Left+Panel1.Width;
+  Panel3.Left := Panel2.Left+Panel2.Width;;
+  Panel4.Left := Panel3.Left+Panel3.Width;;
+
+  // Set bitmap sizes
   Image32.Bitmap.SetSize(Image32.ClientWidth, Image32.ClientHeight);
   ImgView32.Bitmap.SetSize(ImgView32.ClientWidth, ImgView32.ClientHeight);
+  // Zoom & pan doesn't work without a base bitmap
+  ImgView32Layers.Bitmap.SetSize(ImgView32.ClientWidth, ImgView32.ClientHeight);
+  ImgView32Layers.Bitmap.Clear(clWhite32);
   FLayer.Bitmap.SetSize(ImgView32Layers.ClientWidth, ImgView32Layers.ClientHeight);
-  FLayer.Location := FloatRect(FLayer.Bitmap.BoundsRect);
+
+  // Reset location & scale
+  r := FloatRect(FLayer.Bitmap.BoundsRect);
+  r.Inflate(-50, -50);
+  FLayer.Location := r;
+
+  Image32.OffsetHorz := 0;
+  Image32.OffsetVert := 0;
+  ImgView32.OffsetHorz := 0;
+  ImgView32.OffsetVert := 0;
+  ImgView32Layers.OffsetHorz := 0;
+  ImgView32Layers.OffsetVert := 0;
+
+  Image32.Scale := ImageScale;
+  ImgView32.Scale := ImageScale;
+  ImgView32Layers.Scale := ImageScale;
 
   ClearBackBuffers;
 end;
@@ -165,6 +202,9 @@ var
   Buffer: TCustomBitmap32;
   p: TPoint;
 begin
+  if (Sender is TCustomImage32) and (TCustomImage32(Sender).MousePan.MatchShiftState(Shift)) then
+    exit;
+
   if (Layer <> nil) then
     Buffer := TBitmapLayer(Layer).Bitmap
   else
@@ -179,10 +219,16 @@ begin
   if (Button = mbLeft) then
   begin
     p := Point(X, Y);
+
+    if (Layer <> nil) then
+      p := Layer.ControlToLayer(p, True)
+    else
     if (Sender is TCustomImage32) then
       p := TCustomImage32(Sender).ControlToBitmap(p);
 
+
     Buffer.MoveTo(p.X, p.Y);
+    FIsDrawing := True;
   end else
   if (Button = mbRight) then
     DrawStuff(Buffer)
@@ -195,11 +241,22 @@ begin
   end;
 end;
 
+procedure TFormMain.Image32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+begin
+  FIsDrawing := False;
+end;
+
 procedure TFormMain.ImgView32MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 var
   Buffer: TCustomBitmap32;
   p: TPoint;
 begin
+  if (not FIsDrawing) then
+    exit;
+
+  if (Sender is TCustomImage32) and ((TCustomImage32(Sender).IsMousePanning) or (TCustomImage32(Sender).MousePan.MatchShiftState(Shift))) then
+    exit;
+
   if (not (ssLeft in Shift)) then
     exit;
 
@@ -215,6 +272,10 @@ begin
     exit;
 
   p := Point(X, Y);
+
+  if (Layer <> nil) then
+    p := Layer.ControlToLayer(p, True)
+  else
   if (Sender is TCustomImage32) then
     p := TCustomImage32(Sender).ControlToBitmap(p);
 
@@ -229,6 +290,11 @@ end;
 procedure TFormMain.PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
   ImgView32MouseMove(Sender, Shift, X, Y, nil);
+end;
+
+procedure TFormMain.PaintBox32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  Image32MouseUp(Sender, Button, Shift, X, Y, nil);
 end;
 
 procedure TFormMain.PaintBox32PaintBuffer(Sender: TObject);

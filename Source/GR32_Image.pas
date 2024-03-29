@@ -505,7 +505,6 @@ type
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
     procedure Loaded; override;
-    procedure DoChanged; override;
   protected
     procedure BitmapChangeHandler(Sender: TObject);
     procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
@@ -1970,12 +1969,6 @@ begin
   InvalidateArea(AArea, AInfo, False);
 end;
 
-procedure TCustomImage32.DoChanged;
-begin
-
-  inherited;
-end;
-
 procedure TCustomImage32.DoBitmapResized;
 begin
   if Assigned(FOnBitmapResize) then
@@ -2440,9 +2433,13 @@ begin
       end, ZoomAnimateDeltaTime);
   end;
 {$ifend}
-  DoSetZoom(APivot, AScale);
-
-  ForceFullInvalidate;
+  BeginUpdate;
+  try
+    DoSetZoom(APivot, AScale);
+    ForceFullInvalidate;
+  finally
+    EndUpdate;
+  end;
 end;
 
 procedure TCustomImage32.ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer);
