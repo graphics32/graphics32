@@ -1069,7 +1069,7 @@ begin
     R := AArea;
     if (AInfo and AREAINFO_LINE <> 0) then
     begin
-      Width := Max(AInfo and (not AREAINFO_MASK) - 1, 0);
+      Width := Max((AInfo and (not AREAINFO_MASK)) - 1, 1);
       InflateArea(R, Width, Width);
     end;
 
@@ -2087,7 +2087,7 @@ begin
     Width := integer(NewInfo and (not AREAINFO_MASK));
 
     // Add line and resampler width and scale value to viewport
-    Width := Ceil((Width + FBitmap.Resampler.Width) * CachedScaleX); // TODO : Should probably use Max(CachedScaleX, CachedScaleY)
+    Width := Max(1, Ceil((Width + FBitmap.Resampler.Width) * Max(CachedScaleX, CachedScaleY)));
 
     // Pack width into Info param again
     NewInfo := AREAINFO_LINE or Width;
@@ -2112,11 +2112,14 @@ begin
     // It is assumed that (Top, Left) specify the top/left corner of the top/left pixel and
     // that (Right, Bottom) specify the bottom/right corner of the bottom/right pixel.
     // For example the rect (0, 0, 1, 1) covers just one pixel while (0, 0, 0, 1) is empty.
+    (* Disabled here as the majority of callers already take this into account and making
+    ** the adjustment here will make the update rectangle too small for those.
     Dec(T.Right);
     Dec(T.Bottom);
+    *)
 
-    WidthX := Ceil(FBitmap.Resampler.Width * CachedScaleX);
-    WidthY := Ceil(FBitmap.Resampler.Width * CachedScaleY);
+    WidthX := Max(1, Ceil(FBitmap.Resampler.Width * CachedScaleX));
+    WidthY := Max(1, Ceil(FBitmap.Resampler.Width * CachedScaleY));
 
     InflateArea(T, WidthX, WidthY);
   end;
