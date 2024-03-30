@@ -7077,7 +7077,7 @@ end;
 
 procedure TCustomBitmap32.Changed;
 begin
-  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) and (not Empty) then
     FOnAreaChanged(Self, BoundsRect, AREAINFO_RECT);
 
   if not FMeasuringMode then
@@ -7086,7 +7086,7 @@ end;
 
 procedure TCustomBitmap32.Changed(const Area: TRect; const Info: Cardinal);
 begin
-  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) and (not Empty) then
     FOnAreaChanged(Self, Area, Info);
 
   if not FMeasuringMode then

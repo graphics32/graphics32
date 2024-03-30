@@ -1039,8 +1039,7 @@ procedure TPortableNetworkGraphic32.AssignTo(Dest: TPersistent);
 begin
   if Dest is TCustomBitmap32 then
   begin
-    TCustomBitmap32(Dest).Width := ImageHeader.Width;
-    TCustomBitmap32(Dest).Height := ImageHeader.Height;
+    TCustomBitmap32(Dest).SetSize(ImageHeader.Width, ImageHeader.Height);
     DrawToBitmap32(TCustomBitmap32(Dest));
   end
   else

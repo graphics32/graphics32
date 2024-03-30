@@ -186,6 +186,7 @@ type
     procedure SetRepaintMode(const Value: TRepaintMode); virtual;
     function  CustomRepaint: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
+    procedure SetPartialRepaintQueued;
     procedure DoPrepareInvalidRects; virtual;
     procedure DoPaintBuffer; virtual;
     procedure DoPaintGDIOverlay; virtual;
@@ -1073,7 +1074,7 @@ begin
     end;
 
     UpdateRectSupport.InvalidateRect(Self, R);
-    FPartialRepaintQueued := True;
+    SetPartialRepaintQueued;
   end else
     inherited Invalidate;
 end;
@@ -1459,6 +1460,11 @@ begin
   end;
 end;
 
+procedure TCustomPaintBox32.SetPartialRepaintQueued;
+begin
+  FPartialRepaintQueued := True;
+end;
+
 procedure TCustomPaintBox32.WMEraseBkgnd(var Message: {$IFDEF FPC}TLmEraseBkgnd{$ELSE}TWmEraseBkgnd{$ENDIF});
 begin
   Message.Result := 1;
@@ -1537,7 +1543,7 @@ var
 begin
   Assert(Sender = FBuffer);
 
-  if (Area.Left = Area.Right) or (Area.Top = Area.Bottom) then // Don't use IsEmpty; Rect can be negative
+  if (Area.Left = Area.Right) and (Area.Top = Area.Bottom) then // Don't use IsEmpty; Rect can be negative
     Exit; // Empty area
 
   // Add the area to the repaint optimizer
@@ -1924,9 +1930,10 @@ procedure TCustomImage32.InvalidateArea(const AArea: TRect; const AInfo: Cardina
 var
   UpdateRectNotification: IUpdateRectNotification;
   Tx, Ty, I, J: Integer;
+  BitmapRect: TRect;
   R: TRect;
 begin
-  if (AArea.Left <> AArea.Right) and (AArea.Top <> AArea.Bottom) then // Don't use IsEmpty; Rect can be negative
+  if (AArea.Left <> AArea.Right) or (AArea.Top <> AArea.Bottom) then // Don't use IsEmpty; Rect can be negative
   begin
     if (not AOptimize) or (not RepaintOptimizer.Enabled) or (not Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
       UpdateRectNotification := nil;
@@ -1941,23 +1948,25 @@ begin
     end else
     begin
       UpdateCache; // Ensure CachedBitmapRect is up to date
+      BitmapRect := CachedBitmapRect;
 
-      with CachedBitmapRect do
-      begin
-        Tx := Buffer.Width div Right;
-        Ty := Buffer.Height div Bottom;
-        for J := 0 to Ty do
-          for I := 0 to Tx do
-          begin
-            R := AArea;
-            GR32.OffsetRect(R, Right * I, Bottom * J);
-            if (UpdateRectNotification <> nil) then
-              UpdateRectNotification.AreaUpdated(R, AInfo);
-            inherited AreaUpdated(R, AInfo);
-          end;
-      end;
+      Tx := Buffer.Width div BitmapRect.Right;
+      Ty := Buffer.Height div BitmapRect.Bottom;
+      for J := 0 to Ty do
+        for I := 0 to Tx do
+        begin
+          R := AArea;
+          GR32.OffsetRect(R, BitmapRect.Right * I, BitmapRect.Bottom * J);
+          if (UpdateRectNotification <> nil) then
+            UpdateRectNotification.AreaUpdated(R, AInfo);
+          inherited AreaUpdated(R, AInfo);
+        end;
     end;
-  end;
+  end else
+    // Pretend that a partial repaint was just queued so the fact that
+    // we just skipped the partial invalidation above doesn't end up
+    // causing a full invalidate instead.
+    SetPartialRepaintQueued;
 
   BufferValid := False;
 end;
