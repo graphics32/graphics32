@@ -186,6 +186,7 @@ type
     procedure SetRepaintMode(const Value: TRepaintMode); virtual;
     function  CustomRepaint: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
+    procedure SetPartialRepaintQueued;
     procedure DoPrepareInvalidRects; virtual;
     procedure DoPaintBuffer; virtual;
     procedure DoPaintGDIOverlay; virtual;
@@ -505,7 +506,6 @@ type
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
     procedure Loaded; override;
-    procedure DoChanged; override;
   protected
     procedure BitmapChangeHandler(Sender: TObject);
     procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
@@ -1069,12 +1069,12 @@ begin
     R := AArea;
     if (AInfo and AREAINFO_LINE <> 0) then
     begin
-      Width := Max(AInfo and (not AREAINFO_MASK) - 1, 0);
+      Width := Max((AInfo and (not AREAINFO_MASK)) - 1, 1);
       InflateArea(R, Width, Width);
     end;
 
     UpdateRectSupport.InvalidateRect(Self, R);
-    FPartialRepaintQueued := True;
+    SetPartialRepaintQueued;
   end else
     inherited Invalidate;
 end;
@@ -1460,6 +1460,11 @@ begin
   end;
 end;
 
+procedure TCustomPaintBox32.SetPartialRepaintQueued;
+begin
+  FPartialRepaintQueued := True;
+end;
+
 procedure TCustomPaintBox32.WMEraseBkgnd(var Message: {$IFDEF FPC}TLmEraseBkgnd{$ELSE}TWmEraseBkgnd{$ENDIF});
 begin
   Message.Result := 1;
@@ -1538,7 +1543,7 @@ var
 begin
   Assert(Sender = FBuffer);
 
-  if (Area.Left = Area.Right) or (Area.Top = Area.Bottom) then // Don't use IsEmpty; Rect can be negative
+  if (Area.Left = Area.Right) and (Area.Top = Area.Bottom) then // Don't use IsEmpty; Rect can be negative
     Exit; // Empty area
 
   // Add the area to the repaint optimizer
@@ -1925,9 +1930,10 @@ procedure TCustomImage32.InvalidateArea(const AArea: TRect; const AInfo: Cardina
 var
   UpdateRectNotification: IUpdateRectNotification;
   Tx, Ty, I, J: Integer;
+  BitmapRect: TRect;
   R: TRect;
 begin
-  if (AArea.Left <> AArea.Right) and (AArea.Top <> AArea.Bottom) then // Don't use IsEmpty; Rect can be negative
+  if (AArea.Left <> AArea.Right) or (AArea.Top <> AArea.Bottom) then // Don't use IsEmpty; Rect can be negative
   begin
     if (not AOptimize) or (not RepaintOptimizer.Enabled) or (not Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
       UpdateRectNotification := nil;
@@ -1942,23 +1948,25 @@ begin
     end else
     begin
       UpdateCache; // Ensure CachedBitmapRect is up to date
+      BitmapRect := CachedBitmapRect;
 
-      with CachedBitmapRect do
-      begin
-        Tx := Buffer.Width div Right;
-        Ty := Buffer.Height div Bottom;
-        for J := 0 to Ty do
-          for I := 0 to Tx do
-          begin
-            R := AArea;
-            GR32.OffsetRect(R, Right * I, Bottom * J);
-            if (UpdateRectNotification <> nil) then
-              UpdateRectNotification.AreaUpdated(R, AInfo);
-            inherited AreaUpdated(R, AInfo);
-          end;
-      end;
+      Tx := Buffer.Width div BitmapRect.Right;
+      Ty := Buffer.Height div BitmapRect.Bottom;
+      for J := 0 to Ty do
+        for I := 0 to Tx do
+        begin
+          R := AArea;
+          GR32.OffsetRect(R, BitmapRect.Right * I, BitmapRect.Bottom * J);
+          if (UpdateRectNotification <> nil) then
+            UpdateRectNotification.AreaUpdated(R, AInfo);
+          inherited AreaUpdated(R, AInfo);
+        end;
     end;
-  end;
+  end else
+    // Pretend that a partial repaint was just queued so the fact that
+    // we just skipped the partial invalidation above doesn't end up
+    // causing a full invalidate instead.
+    SetPartialRepaintQueued;
 
   BufferValid := False;
 end;
@@ -1968,12 +1976,6 @@ begin
   // We're called from TLayerCollection.DoUpdateArea which also calls AreaUpdated
   // on the repaint optimizer so don't call that from here
   InvalidateArea(AArea, AInfo, False);
-end;
-
-procedure TCustomImage32.DoChanged;
-begin
-
-  inherited;
 end;
 
 procedure TCustomImage32.DoBitmapResized;
@@ -2085,7 +2087,7 @@ begin
     Width := integer(NewInfo and (not AREAINFO_MASK));
 
     // Add line and resampler width and scale value to viewport
-    Width := Ceil((Width + FBitmap.Resampler.Width) * CachedScaleX); // TODO : Should probably use Max(CachedScaleX, CachedScaleY)
+    Width := Max(1, Ceil((Width + FBitmap.Resampler.Width) * Max(CachedScaleX, CachedScaleY)));
 
     // Pack width into Info param again
     NewInfo := AREAINFO_LINE or Width;
@@ -2110,11 +2112,14 @@ begin
     // It is assumed that (Top, Left) specify the top/left corner of the top/left pixel and
     // that (Right, Bottom) specify the bottom/right corner of the bottom/right pixel.
     // For example the rect (0, 0, 1, 1) covers just one pixel while (0, 0, 0, 1) is empty.
+    (* Disabled here as the majority of callers already take this into account and making
+    ** the adjustment here will make the update rectangle too small for those.
     Dec(T.Right);
     Dec(T.Bottom);
+    *)
 
-    WidthX := Ceil(FBitmap.Resampler.Width * CachedScaleX);
-    WidthY := Ceil(FBitmap.Resampler.Width * CachedScaleY);
+    WidthX := Max(1, Ceil(FBitmap.Resampler.Width * CachedScaleX));
+    WidthY := Max(1, Ceil(FBitmap.Resampler.Width * CachedScaleY));
 
     InflateArea(T, WidthX, WidthY);
   end;
@@ -2440,9 +2445,13 @@ begin
       end, ZoomAnimateDeltaTime);
   end;
 {$ifend}
-  DoSetZoom(APivot, AScale);
-
-  ForceFullInvalidate;
+  BeginUpdate;
+  try
+    DoSetZoom(APivot, AScale);
+    ForceFullInvalidate;
+  finally
+    EndUpdate;
+  end;
 end;
 
 procedure TCustomImage32.ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer);

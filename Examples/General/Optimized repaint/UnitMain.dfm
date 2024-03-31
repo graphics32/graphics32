@@ -174,6 +174,7 @@ object FormMain: TFormMain
       TabOrder = 0
       OnMouseDown = PaintBox32MouseDown
       OnMouseMove = PaintBox32MouseMove
+      OnMouseUp = PaintBox32MouseUp
       OnPaintBuffer = PaintBox32PaintBuffer
     end
   end
@@ -210,13 +211,19 @@ object FormMain: TFormMain
       Cursor = crCross
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
-      BitmapAlign = baTopLeft
+      BitmapAlign = baCustom
       RepaintMode = rmOptimizer
       Scale = 1.000000000000000000
-      ScaleMode = smNormal
+      ScaleMode = smScale
+      MousePan.Enabled = True
+      MousePan.ShiftState = [mssShift]
+      MouseZoom.Enabled = True
+      MouseZoom.MaintainPivot = False
       TabOrder = 0
       OnMouseDown = Image32MouseDown
       OnMouseMove = ImgView32MouseMove
+      OnMouseUp = Image32MouseUp
+      ExplicitLeft = 0
     end
   end
   object Panel3: TPanel
@@ -253,9 +260,14 @@ object FormMain: TFormMain
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baCustom
+      Centered = False
       RepaintMode = rmOptimizer
       Scale = 1.000000000000000000
-      ScaleMode = smNormal
+      ScaleMode = smScale
+      MousePan.Enabled = True
+      MousePan.ShiftState = [mssShift]
+      MouseZoom.Enabled = True
+      MouseZoom.MaintainPivot = False
       ScrollBars.ShowHandleGrip = False
       ScrollBars.Style = rbsDefault
       ScrollBars.Size = 17
@@ -265,6 +277,7 @@ object FormMain: TFormMain
       TabOrder = 0
       OnMouseDown = Image32MouseDown
       OnMouseMove = ImgView32MouseMove
+      OnMouseUp = Image32MouseUp
     end
   end
   object Panel4: TPanel
@@ -301,9 +314,14 @@ object FormMain: TFormMain
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baCustom
+      Centered = False
       RepaintMode = rmOptimizer
       Scale = 1.000000000000000000
-      ScaleMode = smNormal
+      ScaleMode = smScale
+      MousePan.Enabled = True
+      MousePan.ShiftState = [mssShift]
+      MouseZoom.Enabled = True
+      MouseZoom.MaintainPivot = False
       ScrollBars.ShowHandleGrip = False
       ScrollBars.Style = rbsDefault
       ScrollBars.Size = 17
@@ -313,6 +331,7 @@ object FormMain: TFormMain
       TabOrder = 0
       OnMouseDown = Image32MouseDown
       OnMouseMove = ImgView32MouseMove
+      OnMouseUp = Image32MouseUp
     end
   end
 end

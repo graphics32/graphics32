@@ -3845,7 +3845,7 @@ begin
   if not FMeasuringMode then
     FillLongword(Bits[X1 + Y * Width], X2 - X1 + 1, Value);
 
-  Changed(MakeRect(X1, Y, X2+1, Y+1));
+  Changed(MakeRect(X1, Y, X2+1, Y+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
 end;
 
 procedure TCustomBitmap32.HorzLineS(X1, Y, X2: Integer; Value: TColor32);
@@ -3876,7 +3876,7 @@ begin
     EMMS;
   end;
 
-  Changed(MakeRect(X1, Y, X2+1, Y+1));
+  Changed(MakeRect(X1, Y, X2+1, Y+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
 end;
 
 procedure TCustomBitmap32.HorzLineTS(X1, Y, X2: Integer; Value: TColor32);
@@ -3943,7 +3943,7 @@ begin
       end;
     end;
 
-    Changed(MakeRect(X1, Y, X2+1, Y+1));
+    Changed(MakeRect(X1, Y, X2+1, Y+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
 
     if (not FMeasuringMode) and (N > 0) then
       AdvanceStippleCounter(N);
@@ -4062,7 +4062,7 @@ begin
 
   end;
 
-  Changed(MakeRect(X, Y1, X+1, Y2+1));
+  Changed(MakeRect(X, Y1, X+1, Y2+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
 end;
 
 procedure TCustomBitmap32.VertLineS(X, Y1, Y2: Integer; Value: TColor32);
@@ -4091,7 +4091,7 @@ begin
     EMMS;
   end;
 
-  Changed(MakeRect(X, Y1, X+1, Y2+1));
+  Changed(MakeRect(X, Y1, X+1, Y2+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
 end;
 
 procedure TCustomBitmap32.VertLineTS(X, Y1, Y2: Integer; Value: TColor32);
@@ -4158,7 +4158,7 @@ begin
       end;
     end;
 
-    Changed(MakeRect(X, Y1, X+1, Y2+1));
+    Changed(MakeRect(X, Y1, X+1, Y2+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
 
     if (not FMeasuringMode) and (N > 0) then
       AdvanceStippleCounter(N);
@@ -7077,7 +7077,7 @@ end;
 
 procedure TCustomBitmap32.Changed;
 begin
-  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) and (not Empty) then
     FOnAreaChanged(Self, BoundsRect, AREAINFO_RECT);
 
   if not FMeasuringMode then
@@ -7086,7 +7086,7 @@ end;
 
 procedure TCustomBitmap32.Changed(const Area: TRect; const Info: Cardinal);
 begin
-  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) and (not Empty) then
     FOnAreaChanged(Self, Area, Info);
 
   if not FMeasuringMode then
