@@ -156,10 +156,15 @@ var
 
   procedure AddRoundedJoin(const P1, P2: TFloatPoint);
   var
-    SinA, CosA, A, d: TFloat;
+    SinA, CosA, A: TFloat;
     Steps: Integer;
-    ii, m,n: Integer;
-    C, C2, C3: TFloatPoint;
+    ii: Integer;
+    C: TFloatPoint;
+{$ifdef SUPPORT_ROUNDEX}
+    d: TFloat;
+    m,n: Integer;
+    C2, C3: TFloatPoint;
+{$endif SUPPORT_ROUNDEX}
   begin
     SinA := CrossProduct(P1, P2);
     CosA := Dot(P1, P2);
@@ -171,10 +176,16 @@ var
     else
       Dm.Y := Abs(Dm.Y);
 
+{$ifdef SUPPORT_ROUNDEX}
+    (*
+    ** Computes the inner arc for the obsolete jsRoundEx join style (both inner
+    ** and outer vertex rounded).
+    ** The implementation has been kept here in case we need it again at
+    ** some later point.
+    *)
+
     if (SinA * Delta < 0) then  // ie angle is concave
     begin
-      // Untested! I don't know how to produce the circumstances that hits this code path
-
       A := Delta / (CosA +1);
       //C = offset pt of concave vertex ...
       C.X := PX + (P1.X + P2.X) * A;
@@ -258,6 +269,7 @@ var
       end;
 
     end else
+{$endif SUPPORT_ROUNDEX}
     begin
 
       // Start of arc
