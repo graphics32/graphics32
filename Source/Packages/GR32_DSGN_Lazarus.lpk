@@ -7,10 +7,9 @@
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
-        <IncludeFiles Value="..;."/>
-        <Libraries Value="..;."/>
+        <IncludeFiles Value=".."/>
         <OtherUnitFiles Value="..;."/>
-        <UnitOutputDirectory Value="../../Unit Cache/$(TargetCPU)-$(TargetOS)/$(LCLWidgetType)"/>
+        <UnitOutputDirectory Value="./Lazarus/Lib/$(TargetCPU)-$(TargetOS)/$(LCLWidgetType)"/>
       </SearchPaths>
       <Parsing>
         <SyntaxOptions>
@@ -19,6 +18,9 @@
           <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>
+      <Other>
+        <CustomOptions Value="-Ur"/>
+      </Other>
     </CompilerOptions>
     <Description Value="Graphics32 is a library designed for fast 32-bit graphics handling on Delphi and Lazarus."/>
     <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
@@ -51,6 +53,7 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
     <RequiredPkgs Count="3">
       <Item1>
         <PackageName Value="GR32_Lazarus"/>
+        <MinVersion Major="3" Valid="True"/>
       </Item1>
       <Item2>
         <PackageName Value="LCL"/>

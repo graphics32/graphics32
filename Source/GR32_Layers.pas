@@ -310,7 +310,7 @@ type
     function GetUpdateRect: TRect;
     // GetContentSize: Size of layer content (e.g. the bitmap if is has one).
     // Used to translate between viewport (layer) and content coordinates.
-    function GetContentSize: TSize; virtual;
+    function GetContentSize: TPoint; virtual;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
 
@@ -346,7 +346,7 @@ type
   protected
     function DoHitTest(X, Y: Integer): Boolean; override;
     procedure Paint(Buffer: TBitmap32); override;
-    function GetContentSize: TSize; override;
+    function GetContentSize: TPoint; override;
   protected
     procedure BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
     procedure SetBitmap(Value: TCustomBitmap32); virtual;
@@ -1408,17 +1408,17 @@ end;
 
 //------------------------------------------------------------------------------
 
-function TPositionedLayer.GetContentSize: TSize;
+function TPositionedLayer.GetContentSize: TPoint;
 begin
-  Result.cx := 0;
-  Result.cy := 0;
+  Result.X := 0;
+  Result.Y := 0;
 end;
 
 //------------------------------------------------------------------------------
 
 function TPositionedLayer.ControlToLayer(const APoint: TPoint; AScaleToContent: boolean): TPoint;
 begin
-  Result := Point(ControlToLayer(FloatPoint(APoint), AScaleToContent));
+  Result := GR32.Point(ControlToLayer(FloatPoint(APoint), AScaleToContent));
 end;
 
 function TPositionedLayer.ControlToLayer(const ARect: TRect; AScaleToContent: boolean): TRect;
@@ -1429,7 +1429,7 @@ end;
 function TPositionedLayer.ControlToLayer(const APoint: TFloatPoint; AScaleToContent: boolean): TFloatPoint;
 var
   ViewPort: TFloatRect;
-  Size: TSize;
+  Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
 begin
   if Scaled and (FLayerCollection <> nil) then
@@ -1445,10 +1445,10 @@ begin
       Size := GetContentSize;
 
       if (not Size.IsZero) and (LayerWidth > 0.5) and (LayerHeight > 0.5) and
-        ((Size.cx <> LayerWidth) or (Size.cy <> LayerHeight)) then
+        ((Size.X <> LayerWidth) or (Size.Y <> LayerHeight)) then
       begin
-        Result.X := Result.X * Size.cx / LayerWidth;
-        Result.Y := Result.Y * Size.cy / LayerHeight;
+        Result.X := Result.X * Size.X / LayerWidth;
+        Result.Y := Result.Y * Size.Y / LayerHeight;
       end;
     end;
   end else
@@ -1458,7 +1458,7 @@ end;
 function TPositionedLayer.ControlToLayer(const ARect: TFloatRect; AScaleToContent: boolean): TFloatRect;
 var
   ViewPort: TFloatRect;
-  Size: TSize;
+  Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
 begin
   Result := ARect;
@@ -1466,7 +1466,7 @@ begin
   if Scaled and (FLayerCollection <> nil) then
   begin
     ViewPort := GetAdjustedLocation;
-    Result.Offset(-ViewPort.TopLeft);
+    Result.Offset(-ViewPort.Top, -ViewPort.Left);
 
     if (AScaleToContent) then
     begin
@@ -1476,10 +1476,10 @@ begin
       Size := GetContentSize;
 
       if (not Size.IsZero) and (LayerWidth > 0.5) and (LayerHeight > 0.5) and
-        ((Size.cx <> LayerWidth) or (Size.cy <> LayerHeight)) then
+        ((Size.X <> LayerWidth) or (Size.Y <> LayerHeight)) then
       begin
-        LayerWidth := Size.cx / LayerWidth;
-        LayerHeight := Size.cy / LayerHeight;
+        LayerWidth := Size.X / LayerWidth;
+        LayerHeight := Size.Y / LayerHeight;
 
         Result.Left := Result.Left * LayerWidth;
         Result.Top := Result.Top * LayerHeight;
@@ -1488,7 +1488,7 @@ begin
       end;
     end;
   end else
-    Result.Offset(-FLocation.TopLeft);
+    Result.Offset(-FLocation.Top, -FLocation.Left);
 end;
 
 //------------------------------------------------------------------------------
@@ -1500,13 +1500,13 @@ end;
 
 function TPositionedLayer.LayerToControl(const APoint: TPoint; AScaleFromContent: boolean): TPoint;
 begin
-  Result := Point(LayerToControl(FloatPoint(APoint), AScaleFromContent));
+  Result := GR32.Point(LayerToControl(FloatPoint(APoint), AScaleFromContent));
 end;
 
 function TPositionedLayer.LayerToControl(const APoint: TFloatPoint; AScaleFromContent: boolean): TFloatPoint;
 var
   ViewPort: TFloatRect;
-  Size: TSize;
+  Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
 begin
   Result := APoint;
@@ -1523,10 +1523,10 @@ begin
       Size := GetContentSize;
 
       if (not Size.IsZero) and (LayerWidth > 0.5) and (LayerHeight > 0.5) and
-        ((Size.cx <> LayerWidth) or (Size.cy <> LayerHeight)) then
+        ((Size.X <> LayerWidth) or (Size.Y <> LayerHeight)) then
       begin
-        Result.X := Result.X * LayerWidth / Size.cx;
-        Result.Y := Result.Y * LayerHeight / Size.cy;
+        Result.X := Result.X * LayerWidth / Size.X;
+        Result.Y := Result.Y * LayerHeight / Size.Y;
       end;
     end;
 
@@ -1538,7 +1538,7 @@ end;
 function TPositionedLayer.LayerToControl(const ARect: TFloatRect; AScaleFromContent: boolean): TFloatRect;
 var
   ViewPort: TFloatRect;
-  Size: TSize;
+  Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
 begin
   Result := ARect;
@@ -1555,10 +1555,10 @@ begin
       Size := GetContentSize;
 
       if (not Size.IsZero) and (LayerWidth > 0.5) and (LayerHeight > 0.5) and
-        ((Size.cx <> LayerWidth) or (Size.cy <> LayerHeight)) then
+        ((Size.X <> LayerWidth) or (Size.Y <> LayerHeight)) then
       begin
-        LayerWidth := LayerWidth / Size.cx;
-        LayerHeight := LayerHeight / Size.cy;
+        LayerWidth := LayerWidth / Size.X;
+        LayerHeight := LayerHeight / Size.Y;
 
         Result.Left := Result.Left * LayerWidth;
         Result.Top := Result.Top * LayerHeight;
@@ -1567,9 +1567,9 @@ begin
       end;
     end;
 
-    Result.Offset(ViewPort.TopLeft);
+    Result.Offset(ViewPort.Top, ViewPort.Left);
   end else
-    Result.Offset(FLocation.TopLeft);
+    Result.Offset(FLocation.Top, FLocation.Left);
 end;
 
 //------------------------------------------------------------------------------
@@ -1769,10 +1769,10 @@ begin
     FBitmap.OnAreaChanged := BitmapAreaChanged;
 end;
 
-function TCustomIndirectBitmapLayer.GetContentSize: TSize;
+function TCustomIndirectBitmapLayer.GetContentSize: TPoint;
 begin
-  Result.cx := Bitmap.Width;
-  Result.cy := Bitmap.Height;
+  Result.X := Bitmap.Width;
+  Result.Y := Bitmap.Height;
 end;
 
 function TCustomIndirectBitmapLayer.OwnsBitmap: boolean;
