@@ -61,6 +61,9 @@ type
     // Float
     class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
   public
+    class function SupportedJoinStyles: TJoinStyles; override;
+    class function SupportedEndStyles: TEndStyles; override;
+
     // Float
     class function BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
     class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint; overload; override;
@@ -82,6 +85,18 @@ const
   GrowScale = 1.0;
 
 //------------------------------------------------------------------------------
+
+class function PolyLineBuilderAngus.SupportedEndStyles: TEndStyles;
+begin
+  Result := [esButt, esSquare, esRound];
+end;
+
+class function PolyLineBuilderAngus.SupportedJoinStyles: TJoinStyles;
+begin
+  Result := [jsMiter, jsBevel, jsRound];
+end;
+
+//------------------------------------------------------------------------------
 //
 //      Type and value mappings
 //
@@ -91,8 +106,8 @@ type
   TEndStyle   = (esPolygon = 0, esClosed = 0, esButt, esSquare, esRound);
 
 const
-  // Note: We map Graphics32's jsBevel to jsSquare
-  JoinStyleMap: array[GR32_Polygons.TJoinStyle] of TJoinStyle = (jsMiter, jsSquare, jsRound, jsSquare);
+  // Note: We map Graphics32's jsBevel to jsSquare, and jsRoundEx to jsRound
+  JoinStyleMap: array[GR32_Polygons.TJoinStyle] of TJoinStyle = (jsMiter, jsSquare, jsRound, jsRound, jsSquare);
   EndStyleMap: array[GR32_Polygons.TEndStyle] of TEndStyle = (esButt, esSquare, esRound);
 
 type

@@ -37,6 +37,7 @@ interface
 
 {$BOOLEVAL OFF}
 
+
 uses
   GR32,
   GR32_VectorUtils,
@@ -58,6 +59,9 @@ type
     class function BuildLineEnd(const P, N: TFloatPoint; const W: TFloat; EndStyle: TEndStyle): TArrayOfFloatPoint; overload; static;
     class function BuildLineEnd(const P, N: TFixedPoint; const W: TFixed; EndStyle: TEndStyle): TArrayOfFixedPoint; overload; static;
   public
+    class function SupportedJoinStyles: TJoinStyles; override;
+    class function SupportedEndStyles: TEndStyles; override;
+
     // Float
     class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; override;
 
@@ -83,6 +87,20 @@ uses
   GR32_Math,
   GR32_Geometry,
   GR32_LowLevel;
+
+//------------------------------------------------------------------------------
+
+class function PolyLineBuilderReference.SupportedEndStyles: TEndStyles;
+begin
+  Result := [esButt, esSquare, esRound];
+end;
+
+class function PolyLineBuilderReference.SupportedJoinStyles: TJoinStyles;
+begin
+  Result := [jsMiter, jsBevel, jsRound, jsRoundEx];
+end;
+
+//------------------------------------------------------------------------------
 
 class function PolyLineBuilderReference.Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint;
   const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;
@@ -301,8 +319,9 @@ var
     PX := P.X;
     PY := P.Y;
 
-    if (CrossProduct(PA, PB) * Delta < 0)  then
+    if (JoinStyle <> jsRoundEx) and (CrossProduct(PA, PB) * Delta < 0)  then
     begin
+      // Concave angle
       AddPoint(Delta * PA.X, Delta * PA.Y);
       AddPoint(Delta * PB.X, Delta * PB.Y);
     end else
@@ -312,6 +331,9 @@ var
         jsSquare,
         jsBevel: AddBevelled(A, B);
 
+{$ifdef SUPPORT_ROUNDEX}
+        jsRoundEx,
+{$endif SUPPORT_ROUNDEX}
         jsRound: AddRoundedJoin(A, B);
       end;
   end;
@@ -343,7 +365,7 @@ begin
   SetLength(Result, BufferSize);
 
   // prepare
-  if (JoinStyle = jsRound) then
+  if (JoinStyle in [jsRound, jsRoundEx]) then
   begin
     Dm.X := 1 - 0.5 * Min(3, Sqr(MINDISTPIXEL / Abs(Delta)));
     Dm.Y := Sqrt(1 - Sqr(Dm.X));

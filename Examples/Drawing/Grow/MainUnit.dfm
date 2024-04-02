@@ -88,6 +88,10 @@ object FormGrow: TFormGrow
           GroupIndex = 2
           RadioItem = True
         end
+        object RoundExjoin2: TMenuItem
+          Action = ActionOptionJoinRoundEx
+          GroupIndex = 2
+        end
         object RoundExjoin1: TMenuItem
           Action = ActionOptionJoinSquare
           GroupIndex = 2
@@ -199,8 +203,16 @@ object FormGrow: TFormGrow
       OnExecute = ActionOptionJoinStyleExecute
       OnUpdate = ActionOptionJoinStyleUpdate
     end
-    object ActionOptionJoinSquare: TAction
+    object ActionOptionJoinRoundEx: TAction
       Tag = 3
+      Category = 'Options'
+      Caption = 'RoundEx join'
+      GroupIndex = 2
+      OnExecute = ActionOptionJoinStyleExecute
+      OnUpdate = ActionOptionJoinStyleUpdate
+    end
+    object ActionOptionJoinSquare: TAction
+      Tag = 4
       Category = 'Options'
       Caption = '&Square join'
       GroupIndex = 2

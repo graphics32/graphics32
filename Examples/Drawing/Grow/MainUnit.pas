@@ -41,6 +41,7 @@ uses
 
   GR32,
   GR32_Polygons,
+  GR32_VectorUtils,
   GR32_Image;
 
 type
@@ -86,6 +87,8 @@ type
     Clipper1: TMenuItem;
     ActionOptionGrowAngus: TAction;
     Image321: TMenuItem;
+    ActionOptionJoinRoundEx: TAction;
+    RoundExjoin2: TMenuItem;
     procedure ImageClick(Sender: TObject);
     procedure ImageResize(Sender: TObject);
     procedure ActionFileExitExecute(Sender: TObject);
@@ -105,6 +108,7 @@ type
     function GeneratePolygon(MaxWidth, MaxHeight, EdgeCount: integer): TArrayOfFloatPoint;
     procedure ApplyOptionsAndRedraw;
     procedure CreateNewPolygonAndApplyOptions;
+    function PolyLineBuilderClass: TPolyLineBuilderClass;
   public
   end;
 
@@ -122,7 +126,6 @@ implementation
 uses
   GR32_Clipper,
   GR32_Paths,
-  GR32_VectorUtils,
   GR32_VectorUtils.Reference,
   GR32_VectorUtils.Angus,
   GR32_VectorUtils.Clipper2;
@@ -213,6 +216,20 @@ begin
 
   Result := PolyPts[j];
 end;
+
+//------------------------------------------------------------------------------
+
+function TFormGrow.PolyLineBuilderClass: TPolyLineBuilderClass;
+begin
+  if (ActionOptionGrowClipper.Checked) then
+    Result := PolyLineBuilderClipper
+  else
+  if (ActionOptionGrowAngus.Checked) then
+    Result := PolyLineBuilderAngus
+  else
+    Result := PolyLineBuilderReference;
+end;
+
 //------------------------------------------------------------------------------
 
 procedure TFormGrow.ActionOptionEndStylesUpdate(Sender: TObject);
@@ -232,6 +249,7 @@ end;
 
 procedure TFormGrow.ActionOptionEndStyleUpdate(Sender: TObject);
 begin
+  TAction(Sender).Enabled := (TEndStyle(TAction(Sender).Tag) in PolyLineBuilderClass.SupportedEndStyles);
   TAction(Sender).Checked := (FEndStyle = TEndStyle(TAction(Sender).Tag));
 end;
 
@@ -248,6 +266,7 @@ end;
 
 procedure TFormGrow.ActionOptionJoinStyleUpdate(Sender: TObject);
 begin
+  TAction(Sender).Enabled := (TJoinStyle(TAction(Sender).Tag) in PolyLineBuilderClass.SupportedJoinStyles);
   TAction(Sender).Checked := (FJoinStyle = TJoinStyle(TAction(Sender).Tag));
 end;
 
@@ -283,13 +302,7 @@ begin
     PolyPolygonFS(image.Bitmap, FPolyPoints, $100000FF, pfNonZero);
   PolyPolylineFS(image.Bitmap, FPolyPoints, clBlack32, Closed, 1);
 
-  if (ActionOptionGrowClipper.Checked) then
-    Builder := PolyLineBuilderClipper
-  else
-  if (ActionOptionGrowAngus.Checked) then
-    Builder := PolyLineBuilderAngus
-  else
-    Builder := PolyLineBuilderReference;
+  Builder := PolyLineBuilderClass;
 
   PolyPts := Builder.BuildPolyPolyLine(FPolyPoints, Closed, 20, FJoinStyle, FEndStyle);
 

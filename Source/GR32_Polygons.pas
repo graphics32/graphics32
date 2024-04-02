@@ -37,24 +37,46 @@ interface
 {$I GR32.inc}
 
 uses
-  Types, GR32, GR32_Containers, GR32_VPR, GR32_Transforms, GR32_Resamplers;
+  Types,
+  GR32,
+  GR32_Containers,
+  GR32_VPR,
+  GR32_Transforms,
+  GR32_Resamplers;
 
 type
   { Polygon join style - used by GR32_VectorUtils.Grow(). }
-  TJoinStyle = (jsMiter, jsBevel, jsRound, jsSquare);
+  TJoinStyle = (
+    jsMiter,            // jsMiter: Edges are offset and extended to intersect with neighboring
+                        // edges. If an intersection is too far away from its vertice, e.g. if
+                        // the angle of the corner is small, then the corner is beveled instead.
+                        // The MiterLimit parameter specifies the maximum ratio between the
+                        // offset value and the distance from the vertice to the corner.
 
+    jsBevel,            // jsBevel: Cut corners so the point at the end of an edge is perpendicular
+                        // to the vertex that produced the corner.
+
+    jsRound,            // jsRound: Rounds convex joins.
+
+    jsRoundEx,          // jsRoundEx: Rounds both convex and concave joins unlike jsRound which
+                        // only rounds convex joins. The depth of convex join rounding is controlled
+                        // by Grow's MiterLimit parameter.
+
+    jsSquare            // jsSquare: Cut corners so the distance from the vertice producing the
+                        // corner to the midpoint of the corner is the same as the offset distrance.
+    );
+    TJoinStyles = set of TJoinStyle;
+
+{$ifndef SUPPORT_ROUNDEX}
 const
-  // jsRoundEx: Rounds both convex and concave joins unlike jsRound which
-  // only rounds convex joins. The depth of convex join rounding is controlled
-  // by Grow's MiterLimit parameter.
-  //
-  // Note: jsRoundEx was a join type implemented in Clipper1 for Graphics32.
-  // Clipper2 doesn't support this join style.
+  // The jsRoundEx join style is presently not supported.
   jsRoundEx = jsRound;
+{$endif SUPPORT_ROUNDEX}
 
 type
   { Polygon end style }
   TEndStyle = (esButt, esSquare, esRound);
+  TEndStyles = set of TEndStyle;
 
   { Polygon fill mode }
   TPolyFillMode = (pfAlternate, pfWinding, pfEvenOdd = 0, pfNonZero);
@@ -62,15 +84,11 @@ type
   { TCustomPolygonRenderer }
   TCustomPolygonRenderer = class abstract(TThreadPersistent)
   public
-    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
-      const ClipRect: TFloatRect); overload; virtual; abstract;
-    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
-      const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
+    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect); overload; virtual; abstract;
+    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
 
-    procedure PolygonFS(const Points: TArrayOfFloatPoint;
-      const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
-    procedure PolygonFS(const Points: TArrayOfFloatPoint;
-      const ClipRect: TFloatRect); overload; virtual;
+    procedure PolygonFS(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
+    procedure PolygonFS(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect); overload; virtual;
 
     // procedure PolyPolygonXS(const Points: TArrayOfArrayOfFixedPoint; const ClipRect: TFixedRect; Transformation: TTransformation); virtual; overload;
     // procedure PolyPolygonXS(const Points: TArrayOfArrayOfFixedPoint; const ClipRect: TFixedRect); virtual; overload;

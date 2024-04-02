@@ -213,6 +213,9 @@ type
     // Fixed
     class function Grow(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; virtual;
   public
+    class function SupportedJoinStyles: TJoinStyles; virtual;
+    class function SupportedEndStyles: TEndStyles; virtual;
+
     // Float
     class function Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; virtual;
     // Fixed
@@ -2713,6 +2716,18 @@ end;
 //------------------------------------------------------------------------------
 // Abstract base class for Grow and BuildPoly*line implementations.
 //------------------------------------------------------------------------------
+class function TPolyLineBuilder.SupportedEndStyles: TEndStyles;
+begin
+  Result := [];
+end;
+
+class function TPolyLineBuilder.SupportedJoinStyles: TJoinStyles;
+begin
+  Result := [];
+end;
+
+//------------------------------------------------------------------------------
+
 class function TPolyLineBuilder.BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle;
   EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
