@@ -489,6 +489,7 @@ var
   UpdateRect: PGdkRectangle;
   Count: integer;
   r: TRect;
+  i: integer;
 begin
   // TODO : How do we get the update rect with GTK?
   // TGdkWindow.get_update_area ?
@@ -499,7 +500,7 @@ begin
   Widget := PGtkWidget(AControl.Handle);
 
   UpdateRegion := gdk_window_get_update_area(Widget.window);
-  if (UpdateRegion = GDK_NONE) then
+  if (UpdateRegion = PGdkRegion(GDK_NONE)) then
     exit;
   try
 

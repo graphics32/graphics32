@@ -42,7 +42,7 @@ uses
   Classes,
   Graphics,
   GR32,
-  GR32_PNG,
+  GR32_Png,
   GR32_PortableNetworkGraphic,
   GR32.ImageFormats;
 

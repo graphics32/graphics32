@@ -39,6 +39,9 @@ interface
 implementation
 
 uses
+{$ifdef FPC}
+  LCLType,
+{$endif FPC}
   Classes,
   Graphics,
   Clipbrd,

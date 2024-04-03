@@ -60,7 +60,11 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
       Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
-    procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
+{$IFDEF FPC}
+    procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
+{$ELSE}
+    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
 
@@ -726,7 +730,11 @@ begin
 end;
 
 
-procedure TScreenColorPickerForm.WMEraseBkgnd(var Message: TWmEraseBkgnd);
+{$IFDEF FPC}
+procedure TScreenColorPickerForm.WMEraseBkgnd(var Message: TLMEraseBkgnd);
+{$ELSE}
+procedure TScreenColorPickerForm.WMEraseBkgnd(var Message: TWMEraseBkgnd);
+{$ENDIF}
 begin
   // Do not erase window background
   Message.Result := 1;
