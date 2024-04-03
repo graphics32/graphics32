@@ -77,7 +77,7 @@ object FormPolygons: TFormPolygons
     end
     object LblMiterLimit: TLabel
       Left = 16
-      Top = 396
+      Top = 413
       Width = 48
       Height = 13
       Caption = 'Miter Limit'
@@ -179,7 +179,7 @@ object FormPolygons: TFormPolygons
       Left = 16
       Top = 306
       Width = 121
-      Height = 84
+      Height = 101
       Caption = 'Join Style'
       Enabled = False
       ItemIndex = 0
@@ -187,13 +187,14 @@ object FormPolygons: TFormPolygons
         'jsMiter'
         'jsBevel'
         'jsRound'
+        'jsRoundEx'
         'jsSquare')
       TabOrder = 8
       OnClick = JointModeChange
     end
     object MiterLimit: TScrollBar
       Left = 16
-      Top = 412
+      Top = 432
       Width = 121
       Height = 16
       Max = 255

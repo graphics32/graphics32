@@ -277,7 +277,7 @@ procedure TFormPolygons.JointModeChange(Sender: TObject);
 begin
   FStroke.JoinStyle := TJoinStyle(RgpJointMode.ItemIndex);
   MiterLimit.Enabled := CbxThickOutline.Checked and
-    (FStroke.JoinStyle = jsMiter);
+    (FStroke.JoinStyle in [jsMiter, jsRoundEx]);
   Draw;
 end;
 

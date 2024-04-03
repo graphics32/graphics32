@@ -114,6 +114,7 @@ var
   PX, PY: TFloat;
   AngleInv, RMin: TFloat;
   A, B, Dm: TFloatPoint;
+  InvMiterLimit: TFloat;
 
   procedure AddPoint(const DeltaX, DeltaY: TFloat); overload;
   begin
@@ -178,11 +179,11 @@ var
     Steps: Integer;
     ii: Integer;
     C: TFloatPoint;
-{$ifdef SUPPORT_ROUNDEX}
     d: TFloat;
     m,n: Integer;
     C2, C3: TFloatPoint;
-{$endif SUPPORT_ROUNDEX}
+    SignA: Cardinal absolute Delta;
+    SignB: Cardinal absolute SinA;
   begin
     SinA := CrossProduct(P1, P2);
     CosA := Dot(P1, P2);
@@ -194,72 +195,70 @@ var
     else
       Dm.Y := Abs(Dm.Y);
 
-{$ifdef SUPPORT_ROUNDEX}
-    (*
-    ** Computes the inner arc for the obsolete jsRoundEx join style (both inner
-    ** and outer vertex rounded).
-    ** The implementation has been kept here in case we need it again at
-    ** some later point.
-    *)
+    //
+    // (SignA and $80000000) <> (SignB and $80000000) is a fast test for (SinA * Delta < 0).
+    // It tests if the sign-bit of the two 32-bit Single values are the same.
+    //
+    //   (SinA * Delta < 0)              =>
+    //   Sign(SinA) <> Sign(Delta)
+    //
+    if ((SignA and $80000000) <> (SignB and $80000000)) and ((SignB and (not $80000000)) <> 0) then
+    begin // ie angle is concave
 
-    if (SinA * Delta < 0) then  // ie angle is concave
-    begin
+      // Compute the inner arc for the jsRoundEx join style (both inner
+      // and outer vertex rounded).
+
       A := Delta / (CosA +1);
-      //C = offset pt of concave vertex ...
+      // C = offset pt of concave vertex ...
       C.X := PX + (P1.X + P2.X) * A;
       C.Y := PY + (P1.Y + P2.Y) * A;
 
       if (I = 0) then
         m := H
       else
-        m := I -1;
+        m := I-1;
 
       if (I = H) then
         n := 0
       else
-        n := I +1;
+        n := I+1;
 
       A := Min(SqrDistance(Points[m], Points[I]), SqrDistance(Points[n], Points[I]));
 
       if (SqrDistance(C, Points[I]) > A) then
       begin
-        //there's no room to draw anything ...
-        //now get the perpendic. offset from pt2 ...
-        C2.X := P1.X * Delta;
-        C2.Y := P1.Y * Delta;
-        C3.X := P2.X * Delta;
-        C3.Y := P2.Y * Delta;
-        //this will create a self-intersection but it also ensures that
-        //the offset will be maintained beyond this intersection ...
-        AddPoint(C2.X, C2.Y);
-        AddPoint(C3.X, C3.Y);
+        // There's no room to draw anything ...
+
+        // This will create a self-intersection but it also ensures that
+        // the offset will be maintained beyond this intersection ...
+        AddPoint(Delta * P1.X, Delta * P1.Y);
+        AddPoint(Delta * P2.X, Delta * P2.Y);
         Exit;
       end;
       A := Sqrt(A);
 
-      //get the point on the both edges that's same distance from
-      //the concave vertex as its closest adjacent vertex.
-      //nb: using unit normals as unit vectors here ...
+      // Get the points on both edges that's same distance from
+      // the concave vertex as its closest adjacent vertex.
+      // nb: using unit normals as unit vectors here ...
       C2.X := PX + P1.Y * A;
       C2.Y := PY - P1.X * A;
       C3.X := PX - P2.Y * A;
       C3.Y := PY + P2.X * A;
 
-      //now Delta offset these points ...
+      // Now Delta offset these points ...
       C2.X := C2.X + P1.X * Delta;
       C2.Y := C2.Y + P1.Y * Delta;
       C3.X := C3.X + P2.X * Delta;
       C3.Y := C3.Y + P2.Y * Delta;
 
-      //this will do Delta/MiterLimit radius rounding of concavities ...
-      if (SqrDistance(C2, C3) < Sqr(Delta * 2 / MiterLimit)) then
-        d := Distance(C2, C3) / 2
-        // d := Sqrt(SqrDistance(C2, C3)) / 2
-      else
-        d := Delta / MiterLimit;
+      // This will do Delta/MiterLimit radius rounding of concavities ...
+      A := SqrDistance(C2, C3);
+      d := Delta * InvMiterLimit;
+      if (A < Sqr(d * 3)) then
+        d := -Sqrt(A) / 3;
 
-      //move point(PX,PY) across the offset path so the
-      //rounding path will curve around this new point ...
+      // Move point(PX,PY) across the offset path so the
+      // rounding path will curve around this new point ...
       A := (d + Delta) / (CosA +1);
       PX := PX + (P1.X + P2.X) * A;
       PY := PY + (P1.Y + P2.Y) * A;
@@ -287,7 +286,6 @@ var
       end;
 
     end else
-{$endif SUPPORT_ROUNDEX}
     begin
 
       // Start of arc
@@ -331,9 +329,7 @@ var
         jsSquare,
         jsBevel: AddBevelled(A, B);
 
-{$ifdef SUPPORT_ROUNDEX}
         jsRoundEx,
-{$endif SUPPORT_ROUNDEX}
         jsRound: AddRoundedJoin(A, B);
       end;
   end;
@@ -347,7 +343,12 @@ begin
   if (IsZero(Delta)) then
     Exit(Points);
 
-  RMin := 2 / Sqr(MiterLimit);
+  if (MiterLimit > 0) then
+    InvMiterLimit := 1 / MiterLimit
+  else
+    InvMiterLimit := 0;
+
+  RMin := 2 * Sqr(InvMiterLimit);
 
   H := High(Points) - Ord(not Closed);
   while (H >= 0) and (Normals[H].X = 0) and (Normals[H].Y = 0) do
