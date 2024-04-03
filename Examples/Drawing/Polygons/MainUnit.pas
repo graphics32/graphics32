@@ -39,7 +39,7 @@ interface
 
 uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LResources, LCLType, Buttons, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Vcl.ComCtrls,
   GR32, GR32_Image, GR32_Layers, GR32_Polygons, GR32_Paths, GR32_Brushes;
 
 type
@@ -48,17 +48,17 @@ type
     BtnNewLine: TButton;
     CbxPattern: TCheckBox;
     CbxThickOutline: TCheckBox;
-    FillAlpha: TScrollBar;
+    FillAlpha: TTrackBar;
     Image: TImage32;
     LblFillOpacity: TLabel;
     LblLineOpacity: TLabel;
     LblMiterLimit: TLabel;
     LblOutlineThickness: TLabel;
     LblOutlineThicknessValue: TLabel;
-    LineAlpha: TScrollBar;
-    LineThickness: TScrollBar;
+    LineAlpha: TTrackBar;
+    LineThickness: TTrackBar;
     MemoHint: TMemo;
-    MiterLimit: TScrollBar;
+    MiterLimit: TTrackBar;
     PanelControl: TPanel;
     RgpFillMode: TRadioGroup;
     RgpJointMode: TRadioGroup;
@@ -230,7 +230,7 @@ end;
 
 procedure TFormPolygons.MiterLimitChange(Sender: TObject);
 begin
-  FStroke.MiterLimit := 0.1 * MiterLimit.Position;
+  FStroke.MiterLimit := MiterLimit.Position * 0.01;
   Draw;
 end;
 
