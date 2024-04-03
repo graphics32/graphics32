@@ -388,34 +388,85 @@ end;
 { ITextSupport }
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
+var
+  Extent: TSize;
+  ChangeRect: TRect;
 begin
   if Empty then
     Exit;
 
   UpdateFont;
 
-  if not FOwner.MeasuringMode then
-    Canvas.TextOut(X, Y, Text);
+  if (not FOwner.MeasuringMode) then
+  begin
+    if FOwner.Clipping then
+      Canvas.TextOut(X, Y, FOwner.ClipRect, Text)
+    else
+      Canvas.TextOut(X, Y, Text);
+  end;
+
+  Extent := TextExtent(Text);
+  ChangeRect := MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1);
+  if FOwner.Clipping then
+    ChangeRect.Intersect(FOwner.ClipRect);
+  FOwner.Changed(ChangeRect);
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
+var
+  Extent: TSize;
+  ActualClipRect: TRect;
+  ChangeRect: TRect;
 begin
   if Empty then
     Exit;
 
   UpdateFont;
 
-  LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  ActualClipRect := ClipRect;
+  if FOwner.Clipping then
+    ActualClipRect.Intersect(FOwner.ClipRect);
+
+  if (not FOwner.MeasuringMode) then
+  begin
+    LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @ActualClipRect, PChar(Text), Length(Text), nil);
+
+    CanvasChanged;
+  end;
+
+  Extent := TextExtent(Text);
+  ChangeRect := MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1);
+  ChangeRect.Intersect(ActualClipRect);
+  FOwner.Changed(ChangeRect);
 end;
 
 procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
+var
+  ChangeRect: TRect;
+  TextCopy: string;
 begin
   if Empty then
     Exit;
 
   UpdateFont;
 
-  LCLIntf.DrawText(Canvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
+  if (not FOwner.MeasuringMode) then
+  begin
+    if (Flags and DT_MODIFYSTRING <> 0) then
+      TextCopy := Copy(Text) // string must be writable
+    else
+      TextCopy := Text;
+
+    LCLIntf.DrawText(Canvas.Handle, PChar(TextCopy), Length(TextCopy), DstRect, Flags);
+
+    CanvasChanged;
+  end else
+    LCLIntf.DrawText(Canvas.Handle, PChar(TextCopy), Length(TextCopy), DstRect, (Flags or DT_CALCRECT) and (not DT_MODIFYSTRING));
+
+  ChangeRect := DstRect;
+  if FOwner.Clipping then
+    ChangeRect.Intersect(FOwner.ClipRect);
+  FOwner.Changed(ChangeRect);
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
