@@ -1068,7 +1068,9 @@ function InterlaceMethodToString(Value: TInterlaceMethod): string;
 implementation
 
 uses
-  Math;
+  Math,
+  GR32_LowLevel,
+  GR32.BigEndian;
 
 resourcestring
   RCStrAncillaryUnknownChunk = 'Unknown chunk is marked as ancillary';
@@ -1194,140 +1196,6 @@ begin
     end;
 end;
 
-
-{ Byte Ordering }
-
-type
-  T16Bit = record
-    case Integer of
-      0 :  (v: SmallInt);
-      1 :  (b: array[0..1] of Byte);
-  end;
-
-  T32Bit = record
-    case Integer of
-      0 :  (v: LongInt);
-      1 :  (b: array[0..3] of Byte);
-  end;
-
-function Swap16(Value: SmallInt): SmallInt;
-var
-  t: Byte;
-begin
-  with T16Bit(Value) do
-  begin
-    t := b[0];
-    b[0] := b[1];
-    b[1] := t;
-    Result := v;
-  end;
-end;
-
-function Swap32(Value: LongInt): LongInt;
-var
-  Temp: Byte;
-begin
-  with T32Bit(Value) do
-  begin
-    Temp := b[0];
-    b[0] := b[3];
-    b[3] := Temp;
-    Temp := b[1];
-    b[1] := b[2];
-    b[2] := Temp;
-    Result := v;
-  end;
-end;
-
-procedure Flip16(var Value);
-var
-  t: Byte;
-begin
-  with T16Bit(Value) do
-  begin
-    t := b[0];
-    b[0] := b[1];
-    b[1] := t;
-  end;
-end;
-
-procedure Flip32(var Value);
-var
-  Temp: Byte;
-begin
-  with T32Bit(Value) do
-  begin
-    Temp := b[0];
-    b[0] := b[3];
-    b[3] := Temp;
-    Temp := b[1];
-    b[1] := b[2];
-    b[2] := Temp;
-  end;
-end;
-
-
-{ Stream I/O functions }
-
-function ReadSwappedWord(Stream: TStream): Word;
-begin
-  {$IFDEF FPC}
-  Result := 0;
-  {$ENDIF}
-  {$IFDEF ValidateEveryReadOperation}
-  if Stream.Read(Result, SizeOf(Word)) <> SizeOf(Word) then
-    raise EPascalTypeStremReadError.Create(RCStrStreamReadError);
-  {$ELSE}
-  Stream.Read(Result, SizeOf(Word));
-  {$ENDIF}
-  Result := Swap16(Result);
-end;
-
-function ReadSwappedSmallInt(Stream: TStream): SmallInt;
-begin
-  {$IFDEF FPC}
-  Result := 0;
-  {$ENDIF}
-  {$IFDEF ValidateEveryReadOperation}
-  if Stream.Read(Result, SizeOf(SmallInt)) <> SizeOf(SmallInt) then
-    raise EPascalTypeStremReadError.Create(RCStrStreamReadError);
-  {$ELSE}
-  Stream.Read(Result, SizeOf(SmallInt));
-  {$ENDIF}
-  Result := Swap16(Result);
-end;
-
-function ReadSwappedCardinal(Stream: TStream): Cardinal;
-begin
-  {$IFDEF FPC}
-  Result := 0;
-  {$ENDIF}
-  {$IFDEF ValidateEveryReadOperation}
-  if Stream.Read(Result, SizeOf(Cardinal)) <> SizeOf(Cardinal) then
-    raise EPascalTypeStremReadError.Create(RCStrStreamReadError);
-  {$ELSE}
-  Stream.Read(Result, SizeOf(Cardinal));
-  {$ENDIF}
-  Result := Swap32(Result);
-end;
-
-procedure WriteSwappedWord(Stream: TStream; Value: Word);
-begin
-  Value := Swap16(Value);
-  Stream.Write(Value, SizeOf(Word));
-end;
-
-procedure WriteSwappedSmallInt(Stream: TStream; Value: SmallInt);
-begin
-  Value := Swap16(Value);
-  Stream.Write(Value, SizeOf(SmallInt));
-end;
-
-procedure WriteSwappedCardinal(Stream: TStream; Value: Cardinal);
-begin
-  Value := Swap32(Value);
-  Stream.Write(Value, SizeOf(Cardinal));
-end;
 
 { conversion }
 
@@ -1647,10 +1515,10 @@ begin
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read width
-  FWidth := ReadSwappedCardinal(Stream);
+  FWidth := BigEndian.ReadCardinal(Stream);
 
   // read height
-  FHeight := ReadSwappedCardinal(Stream);
+  FHeight := BigEndian.ReadCardinal(Stream);
 
   // read bit depth
   Stream.Read(FBitDepth, 1);
@@ -1702,10 +1570,10 @@ end;
 procedure TChunkPngImageHeader.WriteToStream(Stream: TStream);
 begin
   // write width
-  WriteSwappedCardinal(Stream, FWidth);
+  BigEndian.WriteCardinal(Stream, FWidth);
 
   // write height
-  WriteSwappedCardinal(Stream, FHeight);
+  BigEndian.WriteCardinal(Stream, FHeight);
 
   // write bit depth
   Stream.Write(FBitDepth, 1);
@@ -2023,14 +1891,14 @@ procedure TPngTransparencyFormat0.ReadFromStream(Stream: TStream);
 begin
   inherited;
 
-  FGraySampleValue := ReadSwappedWord(Stream);
+  FGraySampleValue := BigEndian.ReadWord(Stream);
 end;
 
 procedure TPngTransparencyFormat0.WriteToStream(Stream: TStream);
 begin
   inherited;
 
-  WriteSwappedWord(Stream, FGraySampleValue);
+  BigEndian.WriteWord(Stream, FGraySampleValue);
 end;
 
 
@@ -2058,18 +1926,18 @@ procedure TPngTransparencyFormat2.ReadFromStream(Stream: TStream);
 begin
   inherited;
 
-  FRedSampleValue  := ReadSwappedWord(Stream);
-  FBlueSampleValue  := ReadSwappedWord(Stream);
-  FGreenSampleValue  := ReadSwappedWord(Stream);
+  FRedSampleValue  := BigEndian.ReadWord(Stream);
+  FBlueSampleValue  := BigEndian.ReadWord(Stream);
+  FGreenSampleValue  := BigEndian.ReadWord(Stream);
 end;
 
 procedure TPngTransparencyFormat2.WriteToStream(Stream: TStream);
 begin
   inherited;
 
-  WriteSwappedWord(Stream, FRedSampleValue);
-  WriteSwappedWord(Stream, FBlueSampleValue);
-  WriteSwappedWord(Stream, FGreenSampleValue);
+  BigEndian.WriteWord(Stream, FRedSampleValue);
+  BigEndian.WriteWord(Stream, FBlueSampleValue);
+  BigEndian.WriteWord(Stream, FGreenSampleValue);
 end;
 
 
@@ -2153,10 +2021,10 @@ begin
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read pixels per unit, X axis
-  FPixelsPerUnitX := ReadSwappedCardinal(Stream);
+  FPixelsPerUnitX := BigEndian.ReadCardinal(Stream);
 
   // read pixels per unit, Y axis
-  FPixelsPerUnitY := ReadSwappedCardinal(Stream);
+  FPixelsPerUnitY := BigEndian.ReadCardinal(Stream);
 
   // read unit
   Stream.Read(FUnit, 1);
@@ -2165,10 +2033,10 @@ end;
 procedure TChunkPngPhysicalPixelDimensions.WriteToStream(Stream: TStream);
 begin
   // write pixels per unit, X axis
-  WriteSwappedCardinal(Stream, FPixelsPerUnitX);
+  BigEndian.WriteCardinal(Stream, FPixelsPerUnitX);
 
   // write pixels per unit, Y axis
-  WriteSwappedCardinal(Stream, FPixelsPerUnitY);
+  BigEndian.WriteCardinal(Stream, FPixelsPerUnitY);
 
   // write unit
   Stream.Write(FUnit, 1);
@@ -2250,8 +2118,8 @@ begin
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read image positions
-  FImagePositionX := ReadSwappedCardinal(Stream);
-  FImagePositionY := ReadSwappedCardinal(Stream);
+  FImagePositionX := BigEndian.ReadCardinal(Stream);
+  FImagePositionY := BigEndian.ReadCardinal(Stream);
 
   // read unit specifier
   Stream.Read(FUnitSpecifier, 1);
@@ -2260,8 +2128,8 @@ end;
 procedure TChunkPngImageOffset.WriteToStream(Stream: TStream);
 begin
   // write image positions
-  WriteSwappedCardinal(Stream, FImagePositionX);
-  WriteSwappedCardinal(Stream, FImagePositionY);
+  BigEndian.WriteCardinal(Stream, FImagePositionX);
+  BigEndian.WriteCardinal(Stream, FImagePositionY);
 
   // write unit specifier
   Stream.Write(FUnitSpecifier, 1);
@@ -2317,8 +2185,8 @@ begin
   end;
 
   // read original zeros
-  FOriginalZeroes[0] := ReadSwappedCardinal(Stream);
-  FOriginalZeroes[1] := ReadSwappedCardinal(Stream);
+  FOriginalZeroes[0] := BigEndian.ReadCardinal(Stream);
+  FOriginalZeroes[1] := BigEndian.ReadCardinal(Stream);
 
   // read equation type
   Stream.Read(FEquationType, 1);
@@ -2750,7 +2618,7 @@ begin
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read year
-  FYear := ReadSwappedWord(Stream);
+  FYear := BigEndian.ReadWord(Stream);
 
   // read month
   Stream.Read(FMonth, SizeOf(Byte));
@@ -2771,7 +2639,7 @@ end;
 procedure TChunkPngTime.WriteToStream(Stream: TStream);
 begin
   // write year
-  WriteSwappedWord(Stream, FYear);
+  BigEndian.WriteWord(Stream, FYear);
 
   // write month
   Stream.Write(FMonth, SizeOf(Byte));
@@ -2912,13 +2780,13 @@ begin
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read gamma
-  FGamma := ReadSwappedCardinal(Stream);
+  FGamma := BigEndian.ReadCardinal(Stream);
 end;
 
 procedure TChunkPngGamma.WriteToStream(Stream: TStream);
 begin
   // write gamma
-  WriteSwappedCardinal(Stream, FGamma);
+  BigEndian.WriteCardinal(Stream, FGamma);
 end;
 
 
@@ -3039,55 +2907,55 @@ begin
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read white point x
-  FWhiteX := ReadSwappedCardinal(Stream);
+  FWhiteX := BigEndian.ReadCardinal(Stream);
 
   // read white point y
-  FWhiteY := ReadSwappedCardinal(Stream);
+  FWhiteY := BigEndian.ReadCardinal(Stream);
 
   // read red x
-  FRedX := ReadSwappedCardinal(Stream);
+  FRedX := BigEndian.ReadCardinal(Stream);
 
   // read red y
-  FRedY := ReadSwappedCardinal(Stream);
+  FRedY := BigEndian.ReadCardinal(Stream);
 
   // read green x
-  FGreenX := ReadSwappedCardinal(Stream);
+  FGreenX := BigEndian.ReadCardinal(Stream);
 
   // read green y
-  FGreenY := ReadSwappedCardinal(Stream);
+  FGreenY := BigEndian.ReadCardinal(Stream);
 
   // read blue x
-  FBlueX := ReadSwappedCardinal(Stream);
+  FBlueX := BigEndian.ReadCardinal(Stream);
 
   // read blue y
-  FBlueY := ReadSwappedCardinal(Stream);
+  FBlueY := BigEndian.ReadCardinal(Stream);
 end;
 
 procedure TChunkPngPrimaryChromaticities.WriteToStream(Stream: TStream);
 begin
   // write white point x
-  WriteSwappedCardinal(Stream, FWhiteX);
+  BigEndian.WriteCardinal(Stream, FWhiteX);
 
   // write white point y
-  WriteSwappedCardinal(Stream, FWhiteY);
+  BigEndian.WriteCardinal(Stream, FWhiteY);
 
   // write red x
-  WriteSwappedCardinal(Stream, FRedX);
+  BigEndian.WriteCardinal(Stream, FRedX);
 
   // write red y
-  WriteSwappedCardinal(Stream, FRedY);
+  BigEndian.WriteCardinal(Stream, FRedY);
 
   // write green x
-  WriteSwappedCardinal(Stream, FGreenX);
+  BigEndian.WriteCardinal(Stream, FGreenX);
 
   // write green y
-  WriteSwappedCardinal(Stream, FGreenY);
+  BigEndian.WriteCardinal(Stream, FGreenY);
 
   // write blue x
-  WriteSwappedCardinal(Stream, FBlueX);
+  BigEndian.WriteCardinal(Stream, FBlueX);
 
   // write blue y
-  WriteSwappedCardinal(Stream, FBlueY);
+  BigEndian.WriteCardinal(Stream, FBlueY);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetBlueX(const Value: Single);
@@ -3433,12 +3301,12 @@ end;
 
 procedure TPngBackgroundColorFormat04.ReadFromStream(Stream: TStream);
 begin
-  FGraySampleValue := ReadSwappedWord(Stream);
+  FGraySampleValue := BigEndian.ReadWord(Stream);
 end;
 
 procedure TPngBackgroundColorFormat04.WriteToStream(Stream: TStream);
 begin
-  WriteSwappedWord(Stream, FGraySampleValue);
+  BigEndian.WriteWord(Stream, FGraySampleValue);
 end;
 
 
@@ -3464,16 +3332,16 @@ end;
 
 procedure TPngBackgroundColorFormat26.ReadFromStream(Stream: TStream);
 begin
-  FRedSampleValue := ReadSwappedWord(Stream);
-  FGreenSampleValue := ReadSwappedWord(Stream);
-  FBlueSampleValue := ReadSwappedWord(Stream);
+  FRedSampleValue := BigEndian.ReadWord(Stream);
+  FGreenSampleValue := BigEndian.ReadWord(Stream);
+  FBlueSampleValue := BigEndian.ReadWord(Stream);
 end;
 
 procedure TPngBackgroundColorFormat26.WriteToStream(Stream: TStream);
 begin
-  WriteSwappedWord(Stream, FRedSampleValue);
-  WriteSwappedWord(Stream, FGreenSampleValue);
-  WriteSwappedWord(Stream, FBlueSampleValue);
+  BigEndian.WriteWord(Stream, FRedSampleValue);
+  BigEndian.WriteWord(Stream, FGreenSampleValue);
+  BigEndian.WriteWord(Stream, FBlueSampleValue);
 end;
 
 
@@ -3643,7 +3511,7 @@ begin
 
   // read histogram data
   for Index := 0 to Length(FHistogram) - 1 do
-    FHistogram[Index] := ReadSwappedWord(Stream);
+    FHistogram[Index] := BigEndian.ReadWord(Stream);
 end;
 
 procedure TChunkPngImageHistogram.WriteToStream(Stream: TStream);
@@ -3652,7 +3520,7 @@ var
 begin
   // write histogram data
   for Index := 0 to Length(FHistogram) - 1 do
-    WriteSwappedWord(Stream, FHistogram[Index]);
+    BigEndian.WriteWord(Stream, FHistogram[Index]);
 end;
 
 
@@ -3722,17 +3590,17 @@ begin
         Stream.Read(Green, 1);
         Stream.Read(Blue, 1);
         Stream.Read(Alpha, 1);
-        Frequency := ReadSwappedWord(Stream);
+        Frequency := BigEndian.ReadWord(Stream);
       end
   else if FSampleDepth = 16 then
     for Index := 0 to FCount - 1 do
       with PSuggestedPalette16ByteArray(FData)^[Index] do
       begin
-        Red := ReadSwappedWord(Stream);
-        Green := ReadSwappedWord(Stream);
-        Blue := ReadSwappedWord(Stream);
-        Alpha := ReadSwappedWord(Stream);
-        Frequency := ReadSwappedWord(Stream);
+        Red := BigEndian.ReadWord(Stream);
+        Green := BigEndian.ReadWord(Stream);
+        Blue := BigEndian.ReadWord(Stream);
+        Alpha := BigEndian.ReadWord(Stream);
+        Frequency := BigEndian.ReadWord(Stream);
       end;
 end;
 
@@ -4935,7 +4803,7 @@ begin
   MemoryStream := TMemoryStream.Create;
   try
     // read image header chunk size
-    ChunkSize := ReadSwappedCardinal(Stream);
+    ChunkSize := BigEndian.ReadCardinal(Stream);
     if ChunkSize > Stream.Size - 12 then
       raise EPngError.Create(RCStrNotAValidPNGFile);
 
@@ -4964,7 +4832,7 @@ begin
     while Stream.Position < Stream.Size do
     begin
       // read image header chunk size
-      ChunkSize := ReadSwappedCardinal(Stream);
+      ChunkSize := BigEndian.ReadCardinal(Stream);
       if Stream.Position+ChunkSize+4 > Stream.Size then
         raise EPngError.Create(RCStrNotAValidPNGFile);
 
@@ -5116,7 +4984,7 @@ var
 
     // store chunk size directly to stream
     ChunkSize := Chunk.ChunkSize;
-    WriteSwappedCardinal(Stream, ChunkSize);
+    BigEndian.WriteCardinal(Stream, ChunkSize);
 
     // store chunk name to memory stream
     ChunkName := Chunk.ChunkName;
@@ -5147,7 +5015,7 @@ begin
   try
     // store chunk size directly to stream
     ChunkSize := FImageHeader.ChunkSize;
-    WriteSwappedCardinal(Stream, ChunkSize);
+    BigEndian.WriteCardinal(Stream, ChunkSize);
 
     // store chunk name to memory stream
     ChunkName := FImageHeader.ChunkName;
@@ -5204,7 +5072,7 @@ begin
   end;
 
   // write chunk size
-  WriteSwappedCardinal(Stream, 0);
+  BigEndian.WriteCardinal(Stream, 0);
 
   // write chunk ID
   ChunkName := 'IEND';
