@@ -232,8 +232,8 @@ type
   protected
     procedure AddNotification(ALayer: TCustomLayer);
     procedure Changing;
-    procedure Click;
-    procedure DblClick;
+    procedure Click; virtual;
+    procedure DblClick; virtual;
     function  DoHitTest(X, Y: Integer): Boolean; virtual;
     procedure DoPaint(Buffer: TBitmap32);
     function  GetOwner: TPersistent; override;
