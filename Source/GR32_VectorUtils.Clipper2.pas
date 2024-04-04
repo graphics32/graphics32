@@ -59,6 +59,9 @@ type
     // Fixed
     class function Grow(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; override;
   public
+    class function SupportedJoinStyles: TJoinStyles; override;
+    class function SupportedEndStyles: TEndStyles; override;
+
     // Float
     class function Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint;  overload; override;
     // Fixed
@@ -92,8 +95,20 @@ uses
   GR32_LowLevel;
 
 const
-  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtBevel, jtRound, jtSquare);
+  JoinStyleToJoinType: array[TJoinStyle] of TJoinType = (jtMiter, jtBevel, jtRound, jtRound, jtSquare);
   EndStyleToEndType: array[TEndStyle] of TEndType = (etButt, etSquare, etRound);
+
+//------------------------------------------------------------------------------
+
+class function PolyLineBuilderClipper.SupportedEndStyles: TEndStyles;
+begin
+  Result := [esButt, esSquare, esRound];
+end;
+
+class function PolyLineBuilderClipper.SupportedJoinStyles: TJoinStyles;
+begin
+  Result := [jsMiter, jsBevel, jsRound, jsSquare];
+end;
 
 //------------------------------------------------------------------------------
 
