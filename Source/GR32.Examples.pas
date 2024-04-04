@@ -83,7 +83,7 @@ end;
 
 class function TPath.Combine(const APath, BPath: string): string;
 begin
-  Result := ConcatPaths(APath, BPath);
+  Result := ConcatPaths([APath, BPath]);
 end;
 
 class function TDirectory.Exists(const AFoldername: string): boolean;
@@ -109,15 +109,18 @@ var
 function GetGraphics32MediaFolder(RaiseOnFail: boolean): boolean;
 const
   sFolderName = 'Media';
+var
+  ParentFolder: string;
+  NewParentFolder: string;
 begin
   if (not FGraphics32MediaFolderFailed) and (FGraphics32MediaFolder = '') then
   begin
-    var ParentFolder := TPath.GetDirectoryName(ParamStr(0));
+    ParentFolder := TPath.GetDirectoryName(ParamStr(0));
     FGraphics32MediaFolder := TPath.Combine(ParentFolder, sFolderName);
 
     while (not TDirectory.Exists(FGraphics32MediaFolder)) do
     begin
-      var NewParentFolder := TDirectory.GetParent(ParentFolder);
+      NewParentFolder := TDirectory.GetParent(ParentFolder);
 
       if (NewParentFolder = ParentFolder) then
       begin
