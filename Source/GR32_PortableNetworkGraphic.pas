@@ -5468,7 +5468,7 @@ begin
 end;
 
 function TPortableNetworkGraphic.CalculateCRC(Buffer: PByte; Count: Cardinal): Cardinal;
-{$IFDEF PUREPASCAL}
+{$if defined(PUREPASCAL) or (defined(FPC) and defined(TARGET_x86))} // Currently broken on 32-bit FPC
 var
   CrcValue : Cardinal;
   Pos      : Cardinal;
