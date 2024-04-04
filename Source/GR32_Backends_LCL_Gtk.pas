@@ -23,12 +23,10 @@ unit GR32_Backends_LCL_Gtk;
  * The Original Code is Backend Extension for Graphics32
  *
  * The Initial Developer of the Original Code is
- * Felipe Monteiro de Carvalho <felipemonteiro.carvalho@gmail.com>
+ * Anders Melander <anders@melander.dk>
  *
- * Portions created by the Initial Developer are Copyright (C) 2007-2012
+ * Portions created by the Initial Developer are Copyright (C) 2007-2024
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -39,9 +37,10 @@ interface
 {$DEFINE VerboseGR32GTK}
 
 uses
-  LCLIntf, LCLType, types, Controls, SysUtils, Classes,
+  LCLIntf, LCLType,
+  Types, Controls, SysUtils, Classes,
 {$IFDEF LCLGtk2}
-  gdk2, gdk2pixbuf, glib2, gtk2Def,
+  gdk2, gdk2pixbuf, glib2, gtk2Def, gtk2,
 {$ELSE}
   gdk, gdkpixbuf, glib, gtkdef,
 {$ENDIF}
@@ -125,6 +124,7 @@ type
     procedure DeleteCanvas;
   protected
     { IUpdateRectSupport }
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   protected
     property Canvas: TCanvas read GetCanvas;
@@ -140,6 +140,7 @@ type
 implementation
 
 uses
+  Math,
   GR32_LowLevel;
 
 { TLCLBackend }
@@ -387,34 +388,86 @@ end;
 { ITextSupport }
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
+var
+  Extent: TSize;
+  ChangeRect: TRect;
 begin
   if Empty then
     Exit;
 
   UpdateFont;
 
-  if not FOwner.MeasuringMode then
-    Canvas.TextOut(X, Y, Text);
+  if (not FOwner.MeasuringMode) then
+  begin
+    if FOwner.Clipping then
+    begin
+      LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @FOwner.ClipRect, PChar(Text), Length(Text), nil);
+      CanvasChanged;
+    end else
+      Canvas.TextOut(X, Y, Text);
+  end;
+
+  Extent := TextExtent(Text);
+  ChangeRect := MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1);
+  if FOwner.Clipping then
+    ChangeRect.Intersect(FOwner.ClipRect);
+  FOwner.Changed(ChangeRect);
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
+var
+  Extent: TSize;
+  ActualClipRect: TRect;
+  ChangeRect: TRect;
 begin
   if Empty then
     Exit;
 
   UpdateFont;
 
-  LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  ActualClipRect := ClipRect;
+  if FOwner.Clipping then
+    ActualClipRect.Intersect(FOwner.ClipRect);
+
+  if (not FOwner.MeasuringMode) then
+  begin
+    LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @ActualClipRect, PChar(Text), Length(Text), nil);
+
+    CanvasChanged;
+  end;
+
+  Extent := TextExtent(Text);
+  ChangeRect := MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1);
+  ChangeRect.Intersect(ActualClipRect);
+  FOwner.Changed(ChangeRect);
 end;
 
 procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
+var
+  ChangeRect: TRect;
+  TextCopy: string;
 begin
   if Empty then
     Exit;
 
   UpdateFont;
 
-  LCLIntf.DrawText(Canvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
+  if (not FOwner.MeasuringMode) then
+  begin
+    TextCopy := Text;
+    if (Flags and DT_MODIFYSTRING <> 0) then
+      UniqueString(TextCopy); // string must be writable
+
+    LCLIntf.DrawText(Canvas.Handle, PChar(TextCopy), Length(TextCopy), DstRect, Flags);
+
+    CanvasChanged;
+  end else
+    LCLIntf.DrawText(Canvas.Handle, PChar(TextCopy), Length(TextCopy), DstRect, (Flags or DT_CALCRECT) and (not DT_MODIFYSTRING));
+
+  ChangeRect := DstRect;
+  if FOwner.Clipping then
+    ChangeRect.Intersect(FOwner.ClipRect);
+  FOwner.Changed(ChangeRect);
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
@@ -432,15 +485,6 @@ end;
 function TLCLBackend.GetOnFontChange: TNotifyEvent;
 begin
   Result := Font.OnChange;
-end;
-
-procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer;
-  var AFullUpdate: boolean);
-begin
-  // TODO : How do we get the update rect with GTK?
-  // TGdkWindow.get_update_area ?
-
-  AFullUpdate := True;
 end;
 
 procedure TLCLBackend.SetOnFontChange(Handler: TNotifyEvent);
@@ -464,6 +508,80 @@ procedure TLCLBackend.UpdateFont;
 begin
   Font.OnChange := FOnFontChange;
   Canvas.Font := FFont;
+end;
+
+
+{ IUpdateRectSupport }
+procedure TLCLBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
+var
+  Widget: PGtkWidget;
+  UpdateRect: TGdkRectangle;
+begin
+  // https://lazka.github.io/pgi-docs/Gdk-3.0/classes/Window.html#Gdk.Window.invalidate_rect
+  // https://developer-old.gnome.org/pygtk/stable/class-gdkwindow.html#method-gdkwindow--invalidate-rect
+
+  // procedure gdk_window_invalidate_rect(window:PGdkWindow; rect:PGdkRectangle; invalidate_children:gboolean); cdecl; external gdklib;
+
+  Widget := PGtkWidget(AControl.Handle);
+
+  UpdateRect.x := ARect.Left;
+  UpdateRect.y := ARect.Top;
+  UpdateRect.Width := ARect.Right-ARect.Left;
+  UpdateRect.Height := ARect.Bottom-ARect.Top;
+
+  gdk_window_invalidate_rect(Widget.window, @UpdateRect, False);
+end;
+
+procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer;
+  var AFullUpdate: boolean);
+var
+  Widget: PGtkWidget;
+  UpdateRegion: PGdkRegion;
+  UpdateRects: PGdkRectangle;
+  UpdateRect: PGdkRectangle;
+  Count: integer;
+  r: TRect;
+  i: integer;
+begin
+  // TODO : How do we get the update rect with GTK?
+  // TGdkWindow.get_update_area ?
+  // https://developer-old.gnome.org/pygtk/stable/class-gdkwindow.html#method-gdkwindow--get-update-area
+
+  // function gdk_window_get_update_area(window:PGdkWindow):PGdkRegion; cdecl; external gdklib;
+
+  Widget := PGtkWidget(AControl.Handle);
+
+  UpdateRegion := gdk_window_get_update_area(Widget.window);
+  if (UpdateRegion = PGdkRegion(GDK_NONE)) then
+    exit;
+  try
+
+    if (gdk_region_empty(UpdateRegion)) then
+      exit;
+
+    gdk_region_get_rectangles(UpdateRegion, UpdateRects, @Count);
+    try
+      if (Count = 0) then
+        exit;
+
+      // Final count is known so set capacity to avoid reallocation
+      AUpdateRects.Capacity := Math.Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + Count);
+
+      UpdateRect := UpdateRects;
+      for i := 0 to Count-1 do
+      begin
+        r := MakeRect(UpdateRect.x, UpdateRect.y, UpdateRect.x+UpdateRect.Width, UpdateRect.y+UpdateRect.Height);
+        AUpdateRects.Add(r);
+        Inc(UpdateRect);
+      end;
+
+    finally
+      g_free(UpdateRects)
+    end;
+  finally
+    gdk_region_destroy(UpdateRegion);
+  end;
+
 end;
 
 

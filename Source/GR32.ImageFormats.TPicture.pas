@@ -28,8 +28,6 @@ unit GR32.ImageFormats.TPicture;
  * Portions created by the Initial Developer are Copyright (C) 2008-2022
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -40,6 +38,9 @@ implementation
 
 uses
   Classes,
+{$ifdef FPC}
+  LCLType, // LCLType must be after Classes so we get the correct THandle
+{$endif FPC}
   Graphics,
   Clipbrd,
   GR32,
