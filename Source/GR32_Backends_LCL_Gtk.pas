@@ -23,12 +23,10 @@ unit GR32_Backends_LCL_Gtk;
  * The Original Code is Backend Extension for Graphics32
  *
  * The Initial Developer of the Original Code is
- * Felipe Monteiro de Carvalho <felipemonteiro.carvalho@gmail.com>
+ * Anders Melander <anders@melander.dk>
  *
- * Portions created by the Initial Developer are Copyright (C) 2007-2012
+ * Portions created by the Initial Developer are Copyright (C) 2007-2024
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -39,9 +37,10 @@ interface
 {$DEFINE VerboseGR32GTK}
 
 uses
-  LCLIntf, LCLType, types, Controls, SysUtils, Classes,
+  LCLIntf, LCLType,
+  Types, Controls, SysUtils, Classes,
 {$IFDEF LCLGtk2}
-  gdk2, gdk2pixbuf, glib2, gtk2Def,
+  gdk2, gdk2pixbuf, glib2, gtk2Def, gtk2,
 {$ELSE}
   gdk, gdkpixbuf, glib, gtkdef,
 {$ENDIF}
@@ -141,6 +140,7 @@ type
 implementation
 
 uses
+  Math,
   GR32_LowLevel;
 
 { TLCLBackend }
@@ -400,8 +400,10 @@ begin
   if (not FOwner.MeasuringMode) then
   begin
     if FOwner.Clipping then
-      Canvas.TextOut(X, Y, FOwner.ClipRect, Text)
-    else
+    begin
+      LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @FOwner.ClipRect, PChar(Text), Length(Text), nil);
+      CanvasChanged;
+    end else
       Canvas.TextOut(X, Y, Text);
   end;
 
@@ -452,10 +454,9 @@ begin
 
   if (not FOwner.MeasuringMode) then
   begin
+    TextCopy := Text;
     if (Flags and DT_MODIFYSTRING <> 0) then
-      TextCopy := Copy(Text) // string must be writable
-    else
-      TextCopy := Text;
+      UniqueString(TextCopy); // string must be writable
 
     LCLIntf.DrawText(Canvas.Handle, PChar(TextCopy), Length(TextCopy), DstRect, Flags);
 
@@ -564,7 +565,7 @@ begin
         exit;
 
       // Final count is known so set capacity to avoid reallocation
-      AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + Count);
+      AUpdateRects.Capacity := Math.Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + Count);
 
       UpdateRect := UpdateRects;
       for i := 0 to Count-1 do
