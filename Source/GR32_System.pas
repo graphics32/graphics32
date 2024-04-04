@@ -23,16 +23,10 @@ unit GR32_System;
  * The Original Code is Graphics32
  *
  * The Initial Developer of the Original Code is
- * Alex A. Denisov
+ * Andre Beckedorf, Michael Hansen <dyster_tid@hotmail.com>
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *  Andre Beckedorf
- *  Michael Hansen <dyster_tid@hotmail.com>
- *    - CPU type & feature-set aware function binding
- *    - Runtime function template and extension binding system
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -43,12 +37,11 @@ interface
 uses
 {$IFDEF FPC}
   LCLIntf, LCLType,
-  {$IFDEF Windows}
+  {$if defined(Windows)}
     Windows,
-  {$ENDIF}
-  {$IFDEF UNIX}
+  {$elseif defined(UNIX)}
     Unix, BaseUnix,
-  {$ENDIF}
+  {$ifend}
 {$ELSE}
   Windows,
 {$ENDIF}
@@ -57,17 +50,21 @@ uses
 {$ENDIF}
   SysUtils;
 
+//------------------------------------------------------------------------------
+//
+//      Performance timer
+//
+//------------------------------------------------------------------------------
 type
   TPerfTimer = class
   private
-{$IFDEF UNIX}
+{$if defined(Windows)}
+    FFrequency, FPerformanceCountStart, FPerformanceCountStop: Int64;
+{$elseif defined(UNIX)}
   {$IFDEF FPC}
     FStart: Int64;
   {$ENDIF}
-{$ENDIF}
-{$IFDEF Windows}
-    FFrequency, FPerformanceCountStart, FPerformanceCountStop: Int64;
-{$ENDIF}
+{$ifend}
   public
     procedure Start;
     function ReadNanoseconds: string;
@@ -80,16 +77,37 @@ type
 var
   GlobalPerfTimer: TPerfTimer;
 
+
+//------------------------------------------------------------------------------
+//
+//      Portable GetTickCount
+//
+//------------------------------------------------------------------------------
 { Pseudo GetTickCount implementation for Linux - for compatibility
   This works for basic time testing, however, it doesnt work like its
   Windows counterpart, ie. it doesnt return the number of milliseconds since
   system boot. Will definitely overflow. }
 function GetTickCount: Cardinal;
 
+
+//------------------------------------------------------------------------------
+//
+//      Processor and core management
+//
+//------------------------------------------------------------------------------
 { Returns the number of processors configured by the operating system. }
 function GetProcessorCount: Cardinal;
 
+// Set process affinity to exclude efficiency cores
+function SetPerformanceAffinityMask(Force: boolean = False): boolean;
+procedure RestoreAffinityMask;
 
+
+//------------------------------------------------------------------------------
+//
+//      Legacy CPU features
+//
+//------------------------------------------------------------------------------
 (*
 ** Legacy HasInstructionSet and CPUFeatures functions
 *)
@@ -127,6 +145,13 @@ function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructio
 
 
 
+//------------------------------------------------------------------------------
+//
+//      CPU features
+//
+//------------------------------------------------------------------------------
+// For use in CPU dispatch bindings
+//------------------------------------------------------------------------------
 (*
 ** GR32.CPUID CPU feature detection
 *)
@@ -160,12 +185,26 @@ var
   CPU: TCPU;
 
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
   Classes;
 
-{$IFDEF UNIX}
+//------------------------------------------------------------------------------
+//
+//      GetTickCount
+//
+//------------------------------------------------------------------------------
+{$if defined(Windows)}
+function GetTickCount: Cardinal;
+begin
+  Result := Windows.GetTickCount;
+end;
+{$elseif defined(UNIX)}
 {$IFDEF FPC}
 function GetTickCount: Cardinal;
 var
@@ -175,46 +214,16 @@ begin
    // Build a 64 bit microsecond tick from the seconds and microsecond longints
   Result := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
 end;
-
-
-{ TPerfTimer }
-
-function TPerfTimer.ReadNanoseconds: string;
-begin
-  Result := IntToStr(ReadValue);
-end;
-
-function TPerfTimer.ReadMilliseconds: string;
-begin
-  Result := IntToStr(ReadValue div 1000);
-end;
-
-function TPerfTimer.ReadSeconds: string;
-begin
-  Result := IntToStr(ReadValue div 1000000);
-end;
-
-function TPerfTimer.ReadValue: Int64;
-begin
-  Result := GetTickCount - FStart;
-end;
-
-procedure TPerfTimer.Start;
-begin
-  FStart := GetTickCount;
-end;
 {$ENDIF}
-{$ENDIF}
-
-{$IFDEF Windows}
-function GetTickCount: Cardinal;
-begin
-  Result := Windows.GetTickCount;
-end;
+{$ifend}
 
 
-{ TPerfTimer }
-
+//------------------------------------------------------------------------------
+//
+//      Performance timer
+//
+//------------------------------------------------------------------------------
+{$if defined(Windows)}
 function TPerfTimer.ReadNanoseconds: string;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
@@ -253,25 +262,188 @@ procedure TPerfTimer.Start;
 begin
   QueryPerformanceCounter(FPerformanceCountStart);
 end;
-{$ENDIF}
-
-{$IFDEF UNIX}
+{$elseif defined(UNIX)}
 {$IFDEF FPC}
-function GetProcessorCount: Cardinal;
+function TPerfTimer.ReadNanoseconds: string;
 begin
-  Result := 1;
+  Result := IntToStr(ReadValue);
+end;
+
+function TPerfTimer.ReadMilliseconds: string;
+begin
+  Result := IntToStr(ReadValue div 1000);
+end;
+
+function TPerfTimer.ReadSeconds: string;
+begin
+  Result := IntToStr(ReadValue div 1000000);
+end;
+
+function TPerfTimer.ReadValue: Int64;
+begin
+  Result := GetTickCount - FStart;
+end;
+
+procedure TPerfTimer.Start;
+begin
+  FStart := GetTickCount;
 end;
 {$ENDIF}
-{$ENDIF}
-{$IFDEF Windows}
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
+//      Processor and core management
+//
+//------------------------------------------------------------------------------
 function GetProcessorCount: Cardinal;
+{$IFNDEF FPC}
+begin
+  Result := CPUCount;
+end;
+{$ELSE FPC}
+{$if defined(Windows)}
 var
   lpSysInfo: TSystemInfo;
 begin
   GetSystemInfo(lpSysInfo);
   Result := lpSysInfo.dwNumberOfProcessors;
 end;
+{$elseif defined(UNIX)}
+begin
+  Result := 1;
+end;
+{$ifend}
 {$ENDIF}
+
+//------------------------------------------------------------------------------
+
+{$if (defined(Windows)) and (not defined(FPC))}
+function SetPerformanceAffinityMask(Force: boolean): boolean;
+type
+  // Declaration in Delphi 11 lacks EfficiencyClass
+  TProcessorRelationship = record
+    Flags: BYTE;
+    EfficiencyClass: BYTE;
+    Reserved: array[0..19] of BYTE;
+    GroupCount: WORD;
+    GroupMask: array[0..0] of GROUP_AFFINITY;
+  end;
+
+var
+  ProcessHandle: THandle;
+  ProcessMask, SystemMask: NativeUInt;
+  NewMask: NativeUInt;
+  Size: Cardinal;
+  ProcessorInfoBuffer: TBytes;
+  ProcessorInfo: PSystemLogicalProcessorInformationEx;
+  EfficiencyMap: array[Byte] of KAFFINITY;
+  CoreMask: ^KAFFINITY;
+  i: integer;
+begin
+  Result := False;
+
+  // TProcessorRelationship.EfficiencyClass requires Windows 10
+  if (not CheckWin32Version(10, 0)) then
+    exit;
+
+  ProcessHandle := GetCurrentProcess();
+
+  GetProcessAffinityMask(ProcessHandle, ProcessMask, SystemMask);
+
+  // Punt if mask has already been modified
+  if (not Force) and (ProcessMask <> SystemMask) then
+    exit;
+
+  Size := 0;
+  if (not GetLogicalProcessorInformationEx(RelationProcessorCore, nil, Size)) then
+    if (GetLastError <> ERROR_INSUFFICIENT_BUFFER) then
+      exit;
+
+  SetLength(ProcessorInfoBuffer, Size);
+  ProcessorInfo := @ProcessorInfoBuffer[0];
+
+  if (not GetLogicalProcessorInformationEx(RelationProcessorCore, PSystemLogicalProcessorInformation(ProcessorInfo), Size)) then
+    exit;
+
+  ZeroMemory(@EfficiencyMap, SizeOf(EfficiencyMap));
+
+  // For each efficiency class create a core mask
+  while (Size > 0) do
+  begin
+    if (ProcessorInfo.Relationship = RelationProcessorCore) then
+    begin
+      CoreMask := @EfficiencyMap[TProcessorRelationship(ProcessorInfo.Processor).EfficiencyClass];
+
+      for i := 0 to ProcessorInfo.Processor.GroupCount-1 do
+        CoreMask^ := CoreMask^ or ProcessorInfo.Processor.GroupMask[i].Mask;
+    end;
+
+    Dec(Size, ProcessorInfo.Size);
+    Inc(PByte(ProcessorInfo), ProcessorInfo.Size);
+  end;
+
+  // Create a mask for performance cores
+  NewMask := 0;
+  i := 0;
+  while (i < High(EfficiencyMap)) do
+  begin
+    if (EfficiencyMap[i] <> 0) then
+    begin
+      // Assume the first performance class is "efficiency". Skip it.
+      Inc(i);
+
+      while (i <= High(EfficiencyMap)) do
+      begin
+        NewMask := NewMask or EfficiencyMap[i];
+        Inc(i);
+      end;
+
+      break;
+    end;
+    Inc(i);
+  end;
+
+  // Set the new mask
+  NewMask := SystemMask and NewMask;
+  if (NewMask <> 0) and (NewMask <> ProcessMask) then
+  begin
+    SetProcessAffinityMask(ProcessHandle, NewMask);
+    Result := True;
+  end;
+end;
+
+procedure RestoreAffinityMask;
+var
+  ProcessHandle: THandle;
+  ProcessMask, SystemMask: NativeUInt;
+begin
+  ProcessHandle := GetCurrentProcess();
+
+  GetProcessAffinityMask(ProcessHandle, ProcessMask, SystemMask);
+
+  if (ProcessMask <> SystemMask) then
+    SetProcessAffinityMask(ProcessHandle, SystemMask);
+end;
+
+{$else}
+function SetPerformanceAffinityMask(Force: boolean): boolean;
+begin
+  Result := False;
+end;
+
+procedure RestoreAffinityMask;
+begin
+end;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
+//      Legacy CPU features
+//
+//------------------------------------------------------------------------------
 
 function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructionSupport;
 var
@@ -282,6 +454,8 @@ begin
     Include(Result, InstructionSetMap[InstructionSet]);
 end;
 
+//------------------------------------------------------------------------------
+
 function HasInstructionSet(const InstructionSet: TCPUFeature): Boolean;
 begin
 {$IFNDEF PUREPASCAL}
@@ -290,6 +464,8 @@ begin
   Result := False;
 {$ENDIF}
 end;
+
+//------------------------------------------------------------------------------
 
 function CPUFeatures: TCPUFeatures;
 var
@@ -300,6 +476,10 @@ begin
     if (InstructionSetMap[InstructionSet] in CPU.InstructionSupport) then
       Include(Result, InstructionSet);
 end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 initialization
 {$IFNDEF PUREPASCAL}
