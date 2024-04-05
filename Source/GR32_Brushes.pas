@@ -262,6 +262,8 @@ end;
 
 constructor TBrushCollection.Create(AOwner: TPersistent);
 begin
+  inherited Create;
+  FOwner := AOwner;
   FItems := TList.Create;
 end;
 
@@ -490,7 +492,6 @@ end;
 
 procedure TCustomBrush.UpdateRenderer(Renderer: TCustomPolygonRenderer);
 begin
-
 end;
 
 
