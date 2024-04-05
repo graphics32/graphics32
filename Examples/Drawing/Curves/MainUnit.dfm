@@ -5,49 +5,50 @@ object MainForm: TMainForm
   ClientHeight = 560
   ClientWidth = 527
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'Tahoma'
-  Font.Style = []
-  OldCreateOrder = False
+  ParentFont = True
   OnShow = BtnDrawCurveClick
-  DesignSize = (
-    527
-    560)
-  PixelsPerInch = 96
-  TextHeight = 13
-  object Img: TImage32
+  TextHeight = 15
+  object Paintbox: TPaintBox32
+    AlignWithMargins = True
     Left = 8
     Top = 8
-    Width = 512
-    Height = 512
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    BitmapAlign = baTopLeft
-    Color = 3355443
-    ParentColor = False
-    Scale = 1.000000000000000000
-    ScaleMode = smNormal
+    Width = 511
+    Height = 503
+    Margins.Left = 8
+    Margins.Top = 8
+    Margins.Right = 8
+    Margins.Bottom = 8
+    Align = alClient
     TabOrder = 0
+    OnClick = PaintboxClick
+    OnPaintBuffer = PaintboxPaintBuffer
   end
-  object BtnDrawCurve: TButton
-    Left = 8
-    Top = 528
-    Width = 75
-    Height = 25
-    Anchors = [akLeft, akBottom]
-    Caption = 'Draw Curve'
+  object Panel1: TPanel
+    Left = 0
+    Top = 519
+    Width = 527
+    Height = 41
+    Align = alBottom
+    BevelOuter = bvNone
+    ShowCaption = False
     TabOrder = 1
-    OnClick = BtnDrawCurveClick
-  end
-  object CbxUpdate: TCheckBox
-    Left = 432
-    Top = 532
-    Width = 88
-    Height = 17
-    Anchors = [akRight, akBottom]
-    Caption = 'Timer'
-    TabOrder = 2
-    OnClick = CbxUpdateClick
+    object BtnDrawCurve: TButton
+      Left = 8
+      Top = 7
+      Width = 97
+      Height = 25
+      Caption = 'Draw Curve'
+      TabOrder = 0
+      OnClick = BtnDrawCurveClick
+    end
+    object CbxUpdate: TCheckBox
+      Left = 119
+      Top = 11
+      Width = 88
+      Height = 17
+      Caption = 'Timer'
+      TabOrder = 1
+      OnClick = CbxUpdateClick
+    end
   end
 end
