@@ -5355,7 +5355,7 @@ begin
   end;
 
   Result := (CrcValue xor $FFFFFFFF);
-{$ELSE}
+{$else}
 asm
 {$IFDEF Target_x64}
         PUSH    RBX
@@ -5419,7 +5419,7 @@ asm
         POP     EDI
         POP     EBX
 {$ENDIF}
-{$ENDIF}
+{$ifend}
 end;
 
 {$IFDEF CheckCRC}
