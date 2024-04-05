@@ -702,11 +702,13 @@ procedure TDashedBrush.PolyPolygonFS(Renderer: TCustomPolygonRenderer;
   Transformation: TTransformation; Closed: Boolean);
 var
   I: Integer;
+  DashedLines: TArrayOfArrayOfFloatPoint;
 begin
+  DashedLines := nil;
   for I := 0 to High(Points) do
-    inherited PolyPolygonFS(
-      Renderer, BuildDashedLine(Points[I], FDashArray, FDashOffset, Closed),
-      ClipRect, Transformation, False);
+    DashedLines := DashedLines + BuildDashedLine(Points[I], FDashArray, FDashOffset, Closed);
+
+  inherited PolyPolygonFS(Renderer, DashedLines, ClipRect, Transformation, False);
 end;
 
 procedure TDashedBrush.SetDashArray(const ADashArray: TArrayOfFloat);
