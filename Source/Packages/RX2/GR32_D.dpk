@@ -1,7 +1,7 @@
 package GR32_D;
 
 {$R *.res}
-{$R '..\..\GR32_Reg.dcr'}
+{$R '..\..\Design\GR32.Design.Reg.dcr'}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -10,25 +10,26 @@ package GR32_D;
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS OFF}
+{$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION ON}
+{$OPTIMIZATION OFF}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO OFF}
+{$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES OFF}
+{$STACKFRAMES ON}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE RELEASE}
+{$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Graphics32 Design Time Package'}
 {$LIBSUFFIX 'RX2'}
 {$IMPLICITBUILD ON}
+{$DESIGNONLY}
 
 requires
   DesignIde,
@@ -38,10 +39,10 @@ requires
   GR32_R;
 
 contains
-  GR32_Dsgn_Bitmap in '..\..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
-  GR32_Reg in '..\..\GR32_Reg.pas',
-  GR32_Dsgn_Color in '..\..\GR32_Dsgn_Color.pas',
-  GR32_Dsgn_ColorPicker in '..\..\GR32_Dsgn_ColorPicker.pas',
-  GR32_Dsgn_Misc in '..\..\GR32_Dsgn_Misc.pas';
+  GR32.Design.BitmapEditor in '..\..\Design\GR32.Design.BitmapEditor.pas' {PictureEditorForm},
+  GR32.Design.Reg in '..\..\Design\GR32.Design.Reg.pas',
+  GR32.Design.Color32 in '..\..\Design\GR32.Design.Color32.pas',
+  GR32.Design.Misc in '..\..\Design\GR32.Design.Misc.pas',
+  GR32.Design.ColorPicker in '..\..\Design\GR32.Design.ColorPicker.pas' {FormColorPicker};
 
 end.

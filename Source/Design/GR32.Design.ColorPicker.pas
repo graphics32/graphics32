@@ -1,4 +1,4 @@
-unit GR32_Dsgn_ColorPicker;
+unit GR32.Design.ColorPicker;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -27,9 +27,6 @@ unit GR32_Dsgn_ColorPicker;
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- * Christian-W. Budde
  *
  * ***** END LICENSE BLOCK ***** *)
 

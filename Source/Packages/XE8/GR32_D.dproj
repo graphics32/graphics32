@@ -73,19 +73,22 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\..\GR32_Reg.dcr"/>
+        <DCCReference Include="..\..\Design\GR32.Design.Reg.dcr"/>
         <DCCReference Include="DesignIde.dcp"/>
+        <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="Rtl.dcp"/>
-        <DCCReference Include="Vcl.dcp"/>
-        <DCCReference Include="VclSmp.dcp"/>
         <DCCReference Include="GR32_R.dcp"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_Bitmap.pas">
+        <DCCReference Include="VclSmp.dcp"/>
+        <DCCReference Include="..\..\Design\GR32.Design.BitmapEditor.pas">
             <Form>PictureEditorForm</Form>
         </DCCReference>
-        <DCCReference Include="..\XE3\..\..\GR32_Reg.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_Color.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_ColorPicker.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_Misc.pas"/>
+        <DCCReference Include="..\..\Design\GR32.Design.Reg.pas"/>
+        <DCCReference Include="..\..\Design\GR32.Design.Color32.pas"/>
+        <DCCReference Include="..\..\Design\GR32.Design.Misc.pas"/>
+        <DCCReference Include="..\..\Design\GR32.Design.ColorPicker.pas">
+            <Form>FormColorPicker</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
