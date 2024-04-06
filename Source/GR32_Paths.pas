@@ -841,7 +841,7 @@ begin
   begin
     for i := 0 to FBrushes.Count-1 do
       if FBrushes[i].Visible then
-        FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, Path.PathClosed);
+        FBrushes[i].PolyPolygonMixedFS(Renderer, Path.Path, ClipRect, Transformation, Path.PathClosed);
   end;
 end;
 
