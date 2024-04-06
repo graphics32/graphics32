@@ -34,6 +34,8 @@ interface
 
 {$I GR32.inc}
 
+{$define GR32_DEBUG_BRUSH}
+
 uses
   Classes, GR32, GR32_Polygons, GR32_Transforms;
 
@@ -90,11 +92,11 @@ type
       const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean): TArrayOfArrayOfFloatPoint; virtual;
 
     procedure RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
-      const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean); virtual;
+      const ClipRect: TFloatRect; Transformation: TTransformation); virtual;
 
     procedure BeginPolygon; virtual;
     procedure EndPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
-      const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean); virtual;
+      const ClipRect: TFloatRect; Transformation: TTransformation); virtual;
   public
     constructor Create(ABrushCollection: TBrushCollection); virtual;
     destructor Destroy; override;
@@ -346,11 +348,11 @@ begin
 end;
 
 procedure TCustomBrush.EndPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean);
+  const ClipRect: TFloatRect; Transformation: TTransformation);
 begin
   Assert(FBatchCount = 1);
   Dec(FBatchCount);
-  RenderPolyPolygon(Renderer, Points, ClipRect, Transformation, Closed);
+  RenderPolyPolygon(Renderer, Points, ClipRect, Transformation);
 end;
 
 procedure TCustomBrush.Changed;
@@ -376,10 +378,13 @@ begin
 end;
 
 procedure TCustomBrush.RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean);
+  const ClipRect: TFloatRect; Transformation: TTransformation);
 begin
   UpdateRenderer(Renderer);
   Renderer.PolyPolygonFS(Points, ClipRect, Transformation);
+{$ifdef GR32_DEBUG_BRUSH}
+  PolyPolylineFS(TPolygonRenderer32(Renderer).Bitmap, Points, clBlue32, True);
+{$endif GR32_DEBUG_BRUSH}
 end;
 
 procedure TCustomBrush.PolygonFS(Renderer: TCustomPolygonRenderer; const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect;
@@ -395,7 +400,7 @@ var
 begin
   BeginPolygon;
   Buffer := ProcessPolyPolygon(Renderer, Points, ClipRect, Transformation, Closed);
-  EndPolygon(Renderer, Buffer, ClipRect, Transformation, Closed);
+  EndPolygon(Renderer, Buffer, ClipRect, Transformation);
 end;
 
 procedure TCustomBrush.PolyPolygonMixedFS(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
@@ -438,7 +443,7 @@ begin
       Buffer := Buffer + ProcessPolyPolygon(Renderer, RunBuffer, ClipRect, Transformation, RunClosed);
     end;
   end;
-  EndPolygon(Renderer, Buffer, ClipRect, Transformation, True);
+  EndPolygon(Renderer, Buffer, ClipRect, Transformation);
 end;
 
 procedure TCustomBrush.SetBrushCollection(const Value: TBrushCollection);
@@ -611,7 +616,11 @@ function TStrokeBrush.ProcessPolyPolygon(Renderer: TCustomPolygonRenderer; const
   const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean): TArrayOfArrayOfFloatPoint;
 begin
   Result := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-  Result := inherited ProcessPolyPolygon(Renderer, Result, ClipRect, Transformation, Closed);
+  Result := inherited ProcessPolyPolygon(Renderer, Result, ClipRect, Transformation, True);
+
+{$ifdef GR32_DEBUG_BRUSH}
+  PolyPolylineFS(TPolygonRenderer32(Renderer).Bitmap, Points, clRed32, Closed);
+{$endif GR32_DEBUG_BRUSH}
 end;
 
 procedure TStrokeBrush.SetEndStyle(const Value: TEndStyle);
@@ -664,11 +673,15 @@ function TDashedBrush.ProcessPolyPolygon(Renderer: TCustomPolygonRenderer; const
 var
   I: Integer;
 begin
-  Result := nil;
-  for I := 0 to High(Points) do
-    Result := Result + BuildDashedLine(Points[I], FDashArray, FDashOffset, Closed);
+  if (Length(FDashArray) > 0) then
+  begin
+    Result := nil;
+    for I := 0 to High(Points) do
+      Result := Result + BuildDashedLine(Points[I], FDashArray, FDashOffset, Closed);
 
-  Result := inherited ProcessPolyPolygon(Renderer, Result, ClipRect, Transformation, Closed);
+    Result := inherited ProcessPolyPolygon(Renderer, Result, ClipRect, Transformation, False);
+  end else
+    Result := inherited ProcessPolyPolygon(Renderer, Points, ClipRect, Transformation, Closed);
 end;
 
 procedure TDashedBrush.SetDashArray(const ADashArray: TArrayOfFloat);
