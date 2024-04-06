@@ -321,6 +321,7 @@ var
     begin
       // Concave angle
       AddPoint(Delta * PA.X, Delta * PA.Y);
+      AddPoint(0, 0); // Current corner. See #106, #185
       AddPoint(Delta * PB.X, Delta * PB.Y);
     end else
       case JoinStyle of
