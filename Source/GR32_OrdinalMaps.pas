@@ -29,9 +29,6 @@ unit GR32_OrdinalMaps;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Michael Hansen
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -39,19 +36,11 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  Controls, Graphics,
-  {$IFDEF Windows}
-    Windows,
-  {$ENDIF}
-{$ELSE}
-  Windows, Controls, Graphics,
-{$ENDIF}
-  Classes, SysUtils, GR32;
+  Classes,
+  GR32;
 
 type
-  TConversionType = (ctRed, ctGreen, ctBlue, ctAlpha, ctUniformRGB,
-    ctWeightedRGB);
+  TConversionType = (ctRed, ctGreen, ctBlue, ctAlpha, ctUniformRGB, ctWeightedRGB);
 
 {$IFDEF FPC}
   PInteger = ^Integer;
@@ -248,7 +237,10 @@ type
 implementation
 
 uses
-  Math, GR32_LowLevel, GR32_Blend, GR32_Resamplers;
+  Math,
+  GR32_LowLevel,
+  GR32_Blend,
+  GR32_Resamplers;
 
 function Bytes(Bits: Integer): Integer;
 begin
