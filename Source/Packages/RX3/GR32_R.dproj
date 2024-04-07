@@ -163,6 +163,7 @@
         <DCCReference Include="..\..\GR32.ImageFormats.TPicture.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.TWICImage.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.TGraphic.pas"/>
+        <DCCReference Include="..\..\GR32_ColorSwatch.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

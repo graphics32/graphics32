@@ -129,7 +129,9 @@
     call of assembler optimized code.
 *)
 // Note: Inlining is supported by all supported compilers; This define will be deprecated.
+{$if not defined(MEDIOCRE_COMPILER)}
 {$define INLININGSUPPORTED}
+{$ifend}
 
 
 

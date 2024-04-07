@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <Name Value="GR32_DSGN_Lazarus"/>
+    <Type Value="DesignTime"/>
+    <Author Value="Team Graphics32"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <IncludeFiles Value="../.."/>
+        <OtherUnitFiles Value="../../Design;Lib/$(TargetCPU)-$(TargetOS)/$(LCLWidgetType)"/>
+        <UnitOutputDirectory Value="Design/$(TargetCPU)-$(TargetOS)/$(LCLWidgetType)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="Delphi"/>
+          <CStyleOperator Value="False"/>
+          <UseAnsiStrings Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+      <Other>
+        <CustomOptions Value="-Ur
+-dMEDIOCRE_COMPILER"/>
+        <OtherDefines Count="1">
+          <Define0 Value="MEDIOCRE_COMPILER"/>
+        </OtherDefines>
+      </Other>
+    </CompilerOptions>
+    <Description Value="Graphics32 is a library designed for fast 32-bit graphics handling on Delphi and Lazarus."/>
+    <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
+Mozilla Public License 1.1 (MPL 1.1)"/>
+    <Version Major="3"/>
+    <Files Count="5">
+      <Item1>
+        <Filename Value="../../Design/GR32.Design.Reg.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="GR32.Design.Reg"/>
+      </Item1>
+      <Item2>
+        <Filename Value="../../Design/GR32.Design.Misc.pas"/>
+        <UnitName Value="GR32.Design.Misc"/>
+      </Item2>
+      <Item3>
+        <Filename Value="../../Design/GR32.Design.ColorPicker.pas"/>
+        <UnitName Value="GR32.Design.ColorPicker"/>
+      </Item3>
+      <Item4>
+        <Filename Value="../../Design/GR32.Design.BitmapEditor.pas"/>
+        <UnitName Value="GR32.Design.BitmapEditor"/>
+      </Item4>
+      <Item5>
+        <Filename Value="../../Design/GR32.Design.Color32.pas"/>
+        <UnitName Value="GR32.Design.Color32"/>
+      </Item5>
+    </Files>
+    <CompatibilityMode Value="True"/>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="GR32_Lazarus"/>
+        <MinVersion Major="3" Valid="True"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="IDEIntf"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <CustomOptions Items="ExternHelp" Version="2">
+      <_ExternHelp Items="Count"/>
+    </CustomOptions>
+  </Package>
+</CONFIG>

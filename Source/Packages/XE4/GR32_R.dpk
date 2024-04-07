@@ -5,7 +5,7 @@ package GR32_R;
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
-{$DEBUGINFO ON}
+{$DEBUGINFO OFF}
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
@@ -20,7 +20,7 @@ package GR32_R;
 {$STACKFRAMES ON}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
-{$WRITEABLECONST ON}
+{$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
@@ -28,7 +28,7 @@ package GR32_R;
 {$DESCRIPTION 'Graphics32'}
 {$LIBSUFFIX 'XE4'}
 {$RUNONLY}
-{$IMPLICITBUILD ON}
+{$IMPLICITBUILD OFF}
 
 requires
   vcl;
@@ -85,7 +85,8 @@ contains
   GR32.ImageFormats.TMetaFile in '..\..\GR32.ImageFormats.TMetaFile.pas',
   GR32.ImageFormats.TPicture in '..\..\GR32.ImageFormats.TPicture.pas',
   GR32.ImageFormats.TWICImage in '..\..\GR32.ImageFormats.TWICImage.pas',
-  GR32.ImageFormats.TGraphic in '..\..\GR32.ImageFormats.TGraphic.pas';
+  GR32.ImageFormats.TGraphic in '..\..\GR32.ImageFormats.TGraphic.pas',
+  GR32_ColorSwatch in '..\..\GR32_ColorSwatch.pas';
 
 end.
 
