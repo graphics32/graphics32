@@ -38,17 +38,15 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  {$IFDEF Windows}
-  Windows,
-  {$ENDIF}
-{$ELSE}
+{$IFDEF Windows}
   Windows,
 {$ENDIF}
-{$IFDEF USE_GUIDS_IN_MMF}
-  ActiveX,
-{$ENDIF}
-  SysUtils, Classes, GR32;
+{$ifndef FPC}
+  System.IOUtils,
+{$endif}
+  SysUtils,
+  Classes,
+  GR32;
 
 type
   { TMemoryBackend }
@@ -92,28 +90,10 @@ uses
   GR32_LowLevel;
 
 {$IFDEF Windows}
-
-var
-  TempPath: TFileName;
-
 resourcestring
   RCStrFailedToMapFile = 'Failed to map file';
   RCStrFailedToCreateMapFile = 'Failed to create map file (%s)';
   RCStrFailedToMapViewOfFile = 'Failed to map view of file.';
-
-function GetTempPath: TFileName;
-var
-  PC: PChar;
-begin
-  PC := StrAlloc(MAX_PATH + 1);
-  try
-    Windows.GetTempPath(MAX_PATH, PC);
-    Result := TFileName(PC);
-  finally
-    StrDispose(PC);
-  end;
-end;
-
 {$ENDIF}
 
 { TMemoryBackend }
@@ -127,7 +107,7 @@ end;
 
 procedure TMemoryBackend.FinalizeSurface;
 begin
-  if Assigned(FBits) then
+  if (FBits <> nil) then
   begin
     FreeMem(FBits);
     FBits := nil;
@@ -138,7 +118,7 @@ end;
 
 { TMMFBackend }
 
-constructor TMMFBackend.Create(Owner: TCustomBitmap32; IsTemporary: Boolean = True; const MapFileName: string = '');
+constructor TMMFBackend.Create(Owner: TCustomBitmap32; IsTemporary: Boolean; const MapFileName: string);
 begin
   FMapFileName := MapFileName;
   FMapIsTemporary := IsTemporary;
@@ -198,31 +178,37 @@ class procedure TMMFBackend.CreateFileMapping(var MapHandle, MapFileHandle: THan
 var
   Flags: Cardinal;
 
-
 {$IFDEF USE_GUIDS_IN_MMF}
-
   function GetTempFileName(const Prefix: string): string;
   var
-    GUID: TGUID;
+    PathAndPrefix: string;
   begin
+{$ifdef FPC}
+    PathAndPrefix := GetTempDir + Prefix;
+{$else}
+    PathAndPrefix := TPath.GetTempPath + Prefix;
+{$endif}
     repeat
-      CoCreateGuid(GUID);
-      Result := TempPath + Prefix + GUIDToString(GUID);
+      Result := PathAndPrefix + TGUID.NewGuid.ToString;
     until not FileExists(Result);
   end;
-
 {$ELSE}
-
   function GetTempFileName(const Prefix: string): string;
   var
-    PC: PChar;
+    PathAndPrefix: string;
+    n: integer;
   begin
-    PC := StrAlloc(MAX_PATH + 1);
-    Windows.GetTempFileName(PChar(GetTempPath), PChar(Prefix), 0, PC);
-    Result := string(PC);
-    StrDispose(PC);
+{$ifdef FPC}
+    PathAndPrefix := GetTempDir + Prefix;
+{$else}
+    PathAndPrefix := TPath.GetTempPath + Prefix;
+{$endif}
+    n := 0;
+    repeat
+      Result := PathAndPrefix + IntToHex(n, 8);
+      Inc(n);
+    until not FileExists(Result);
   end;
-
 {$ENDIF}
 
 begin
@@ -284,14 +270,6 @@ begin
     raise Exception.Create(RCStrFailedToMapFile);
 end;
 
-{$ENDIF}
-
-{$IFDEF Windows}
-initialization
-  TempPath := IncludeTrailingPathDelimiter(GetTempPath);
-
-finalization
-  TempPath := '';
 {$ENDIF}
 
 end.
