@@ -42,8 +42,7 @@ uses
   RTLConsts,
   SysUtils,
   Classes,
-  TypInfo,
-  GR32;
+  TypInfo;
 
 const
   BUCKET_MASK = $FF;               
