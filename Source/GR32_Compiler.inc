@@ -200,6 +200,23 @@
 
 
 (*
+  Symbol FRAMEWORK_* :
+  -----------------
+
+    Defines the UI framework (VCL, FireMonkey, LCL)
+*)
+{$ifdef FPC}
+  {$define FRAMEWORK_LCL}
+{$else}
+  {$if declared(FireMonkeyVersion) or defined(FRAMEWORK_FMX)}
+    {$define FRAMEWORK_FMX} // Defined as of Delphi 11.1
+  {$else}
+    {$define FRAMEWORK_VCL} // Defined as of Delphi 11.1
+  {$ifend}
+{$endif}
+
+
+(*
   Symbol PUREPASCAL:
   ------------------
 
@@ -333,6 +350,14 @@
 
 // 16 byte code alignment required for SSE aligned loads from asm db blocks
   {$CODEALIGN 16}
+
+  // FireMonkey
+  {$if defined(ANDROID) or defined(IOS)}
+    {$define PLATFORM_INDEPENDENT}
+    {$define PUREPASCAL}
+    {$define NATIVE_SINCOS}
+    {$define RGBA_FORMAT}
+  {$ifend}
 
 {$else}
 (*
