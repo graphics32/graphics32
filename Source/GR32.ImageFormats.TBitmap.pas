@@ -82,11 +82,17 @@ var
   I: integer;
   DstColor: TColor32;
   FontSupport: IFontSupport;
+{$if defined(FRAMEWORK_FMX)}
+  Data: TBitmapData;
+  SrcP: PColor32;
+{$ifend}
 begin
   if (not (Source is TBitmap)) then
     Exit(False);
 
   Result := True;
+
+{$if not defined(FRAMEWORK_FMX)}
 
   AssignFromGraphicPlain(Dest, TBitmap(Source), 0, TBitmap(Source).PixelFormat <> pf32bit);
 
@@ -108,6 +114,25 @@ begin
 
   if Supports(Dest.Backend, IFontSupport, FontSupport) then // this is optional
     FontSupport.Font.Assign(TBitmap(Source).Canvas.Font);
+
+{$else}
+
+  Dest.SetSize(TBitmap(Source).Width, TBitmap(Source).Height);
+
+  TBitmap(Source).Map(TMapAccess.Read, Data);
+  try
+    for I := 0 to TBitmap(Source).Height-1 do
+    begin
+      SrcP := Data.GetScanline(I);
+      DstP := Dest.GetScanline(I);
+      Move(SrcP^, DstP^, Data.BytesPerLine);
+    end;
+  finally
+    TBitmap(Source).Unmap(Data);
+  end;
+
+{$ifend}
+
 end;
 
 //------------------------------------------------------------------------------
@@ -116,6 +141,10 @@ function TImageFormatAdapterTBitmap.AssignTo(Source: TCustomBitmap32; Dest: TPer
 var
   SavedBackend: TCustomBackend;
   FontSupport: IFontSupport;
+{$if defined(FRAMEWORK_FMX)}
+  Data: TBitmapData;
+  SrcP: PColor32;
+{$ifend}
 begin
   if (not (Dest is TBitmap)) then
     Exit(False);
@@ -139,6 +168,8 @@ begin
     if Source.Empty then
       Exit;
 
+{$if not defined(FRAMEWORK_FMX)}
+
     TBitmap(Dest).Canvas.Lock;
     try
       (Source.Backend as IDeviceContextSupport).DrawTo(TBitmap(Dest).Canvas.Handle,
@@ -146,6 +177,24 @@ begin
     finally
       TBitmap(Dest).Canvas.UnLock;
     end;
+
+{$else}
+
+  TBitmap(Dest).SetSize(Source.Width, Source.Height);
+
+  TBitmap(Dest).Map(TMapAccess.Write, Data);
+  try
+    for I := 0 to Source.Height-1 do
+    begin
+      SrcP := Source.GetScanline(I);
+      DstP := Data.GetScanline(I);
+      Move(SrcP^, DstP^, Data.BytesPerLine);
+    end;
+  finally
+    TBitmap(Dest).Unmap(Data);
+  end;
+
+{$ifend}
   finally
     RestoreBackend(Source, SavedBackend);
   end;
