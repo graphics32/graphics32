@@ -46,6 +46,10 @@ procedure Register;
 
 implementation
 
+{$IFDEF FPC}
+{$R *.dcr}
+{$ENDIF}
+
 uses
   GR32,
   GR32.Design.Color32,
@@ -64,24 +68,33 @@ uses
 { Registration }
 procedure Register;
 begin
-  RegisterComponents('Graphics32', [TPaintBox32, TImage32, TBitmap32List,
-    TRangeBar, TGaugeBar, TImgView32{$IFDEF Windows}, TSyntheticImage32{$ENDIF},
-    TColorPickerComponent, TColorPickerRGBA, TColorPickerHS, TColorPickerHSV,
-    TColorPickerGTK, TColorSwatch]);
-  RegisterPropertyEditor(TypeInfo(TColor32), nil, '', TColor32Property);
-  RegisterPropertyEditor(TypeInfo(TBitmap32), nil, '', TBitmap32Property);
+  RegisterComponents('Graphics32', [
+    TPaintBox32,
+    TImage32,
+    TBitmap32List,
+    TRangeBar,
+    TGaugeBar,
+    TImgView32,
+{$IFDEF Windows}
+    TSyntheticImage32,
+{$ENDIF}
+    TColorPickerComponent,
+    TColorPickerRGBA,
+    TColorPickerHS,
+    TColorPickerHSV,
+    TColorPickerGTK,
+    TColorSwatch
+  ]);
+
   RegisterComponentEditor(TCustomImage32, TImage32Editor);
 
+  RegisterPropertyEditor(TypeInfo(TColor32), nil, '', TColor32Property);
+  RegisterPropertyEditor(TypeInfo(TBitmap32), nil, '', TBitmap32Property);
   RegisterPropertyEditor(TypeInfo(string), TBitmap32, 'ResamplerClassName', nil);
   RegisterPropertyEditor(TypeInfo(TCustomResampler), TBitmap32, 'Resampler', TResamplerClassProperty);
   RegisterPropertyEditor(TypeInfo(string), TKernelResampler, 'KernelClassName', nil);
   RegisterPropertyEditor(TypeInfo(TCustomKernel), TKernelResampler, 'Kernel', TKernelClassProperty);
 end;
-
-initialization
-  {$IFDEF FPC}
-  {$i GR32_reg.lrs}
-  {$ENDIF}
 
 end.
 

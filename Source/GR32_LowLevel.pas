@@ -59,7 +59,7 @@ uses
 //      Clamp function restricts value to [0..255] range
 //
 //------------------------------------------------------------------------------
-function Clamp(const Value: Integer): Integer; overload; inline;
+function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ procedure FillWord(var X; Count: Cardinal; Value: Longword);
 //
 //------------------------------------------------------------------------------
 {$IFDEF USEMOVE}
-procedure MoveLongword(const Source; var Dest; Count: Integer); inline;
+procedure MoveLongword(const Source; var Dest; Count: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ELSE}
 procedure MoveLongword(const Source; var Dest; Count: Integer);
 {$ENDIF}
@@ -105,20 +105,20 @@ procedure StackFree(P: Pointer); register;
 //
 //------------------------------------------------------------------------------
 // Exchange two 32-bit values (except Swap(pointer, pointer))
-procedure Swap(var A, B: Pointer); overload; inline;
-procedure Swap(var A, B: Integer); overload; inline;
-procedure Swap(var A, B: TFixed); overload; inline;
-procedure Swap(var A, B: TColor32); overload; inline;
-procedure Swap32(var A, B); overload; inline;
+procedure Swap(var A, B: Pointer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: TFixed); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: TColor32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap32(var A, B); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Convert little-endian <-> big-endian
 function Swap16(Value: Word): Word; {$IFDEF USENATIVECODE} inline; {$ENDIF}
 function Swap32(Value: Cardinal): Cardinal; overload; {$IFDEF PUREPASCAL} inline; {$ENDIF}
-function Swap64(Value: Int64): Int64; inline;
+function Swap64(Value: Int64): Int64; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Exchange A <-> B only if B < A
-procedure TestSwap(var A, B: Integer); overload; inline;
-procedure TestSwap(var A, B: TFixed); overload; inline;
+procedure TestSwap(var A, B: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure TestSwap(var A, B: TFixed); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Exchange A <-> B only if B < A then restrict both to [0..Size-1] range.
 // Returns true if resulting range has common points with [0..Size-1] range.
@@ -142,7 +142,7 @@ function Max(const A, B, C: Integer): Integer; overload; {$IFDEF USENATIVECODE} 
 //------------------------------------------------------------------------------
 // Return value constrained to [Lo..Hi] range
 function Constrain(const Value, Lo, Hi: Integer): Integer; overload; {$IFDEF USENATIVECODE} inline; {$ENDIF}
-function Constrain(const Value, Lo, Hi: Single): Single; overload; inline;
+function Constrain(const Value, Lo, Hi: Single): Single; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Returns value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
@@ -161,7 +161,7 @@ function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFDEF USENATIVECO
 // Wrap integer value to [0..Max] range
 function Wrap(Value, Max: Integer): Integer; overload; {$IFDEF USENATIVECODE} inline; {$ENDIF}
 // Same but [Min..Max] range. Min is assumed to be <= Max
-function Wrap(Value, Min, Max: Integer): Integer; overload; inline;
+function Wrap(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Wrap single value to [0..Max) range.
   Basically the same as FloatMod except:
@@ -169,13 +169,13 @@ function Wrap(Value, Min, Max: Integer): Integer; overload; inline;
   - If Max=0,, then 0 is returned.
   Unlike the integer version of Wrap, the upper limit is exclusive.
   NAN is not checked. If Max=0, Zero is returned. }
-function Wrap(Value, Max: Single): Single; overload; inline;
+function Wrap(Value, Max: Single): Single; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 // Same as Wrap above but Value is by ref and Max is an integer
-procedure WrapMem(var Value: Single; Max: Cardinal); inline;
+procedure WrapMem(var Value: Single; Max: Cardinal); {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Fast Wrap alternatives for cases where range + 1 is a power of two
-function WrapPow2(Value, Max: Integer): Integer; overload; inline;
-function WrapPow2(Value, Min, Max: Integer): Integer; overload; inline;
+function WrapPow2(Value, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function WrapPow2(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -189,8 +189,8 @@ function Mirror(Value, Max: Integer): Integer; overload;
 function Mirror(Value, Min, Max: Integer): Integer; overload;
 
 // Fast Mirror alternatives for cases where range + 1 is a power of two
-function MirrorPow2(Value, Max: Integer): Integer; overload; inline;
-function MirrorPow2(Value, Min, Max: Integer): Integer; overload; inline;
+function MirrorPow2(Value, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function MirrorPow2(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -199,10 +199,10 @@ function MirrorPow2(Value, Min, Max: Integer): Integer; overload; inline;
 //
 //------------------------------------------------------------------------------
 // Functions to determine appropiate wrap procs (normal or power of 2 optimized)
-function GetOptimalWrap(Max: Integer): TWrapProc; overload; inline;
-function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload; inline;
-function GetOptimalMirror(Max: Integer): TWrapProc; overload; inline;
-function GetOptimalMirror(Min, Max: Integer): TWrapProcEx; overload; inline;
+function GetOptimalWrap(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GetOptimalMirror(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GetOptimalMirror(Min, Max: Integer): TWrapProcEx; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Functions to retrieve correct WrapProc given WrapMode (and range) }
 function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
@@ -223,15 +223,15 @@ const
 //------------------------------------------------------------------------------
 // Fast integer division by 255.
 // Valid for the range [0..$ffff]
-function Div255(Value: Word): Word; inline;
+function Div255(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Possibly even faster integer division by 255.
 // Valid for the range [0..255*255] }
-function FastDiv255(Value: Word): Word; experimental; inline;
+function FastDiv255(Value: Word): Word; experimental; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Fast rounded integer division by 255.
 // Valid for the range [0..255*255]
-function Div255Round(Value: Word): Word; experimental; inline;
+function Div255Round(Value: Word): Word; experimental; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
