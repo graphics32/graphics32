@@ -28,8 +28,6 @@ unit GR32_VPR;
  * Portions created by the Initial Developer are Copyright (C) 2008-2012
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -70,7 +68,10 @@ implementation
 {$ifend}
 
 uses
-  Math, GR32_Math, GR32_LowLevel, GR32_VectorUtils;
+  Math,
+  GR32_Math,
+  GR32_LowLevel,
+  GR32_VectorUtils;
 
 (* Mattias Andersson (from glmhlg$rf3$1@news.graphics32.org):
 
@@ -471,8 +472,10 @@ begin
   end;
 end;
 
+{$ifdef FPC}
 type
   TRoundingMode = Math.TFPURoundingMode;
+{$endif}
 
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
