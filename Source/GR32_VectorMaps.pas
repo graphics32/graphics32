@@ -35,6 +35,7 @@ interface
 {$I GR32.inc}
 
 uses
+  Types, // inlining
   GR32;
 
 type
@@ -107,7 +108,6 @@ type
 implementation
 
 uses
-  Types, // inlining
   SysUtils,
   GR32_Lowlevel,
   GR32_Math;
