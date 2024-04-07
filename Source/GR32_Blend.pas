@@ -35,7 +35,6 @@ interface
 {$I GR32.inc}
 
 uses
-  SysUtils,
   GR32,
   GR32_Bindings;
 
@@ -310,8 +309,9 @@ var
 implementation
 
 uses
-  GR32_LowLevel,
-  GR32.Blend.Pascal,
+{$IFNDEF PUREPASCAL}
+  GR32_System,
+{$ENDIF}
 {$IFNDEF PUREPASCAL}
   GR32.Blend.&ASM,
 {$IFNDEF OMIT_MMX}
@@ -321,7 +321,7 @@ uses
   GR32.Blend.SSE2,
 {$ENDIF}
 {$ENDIF}
-  GR32_System;
+  GR32.Blend.Pascal;
 
 {$IFDEF OMIT_MMX}
 procedure EMMS;
