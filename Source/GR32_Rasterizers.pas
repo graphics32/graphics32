@@ -28,9 +28,6 @@ unit GR32_Rasterizers;
  * Portions created by the Initial Developer are Copyright (C) 2004-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *   Steffen Binas <steffen.binas@aquasoft.de>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -38,15 +35,9 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  LCLIntf,
-  {$IFDEF Windows}
-    Windows,
-  {$ENDIF}
-{$ELSE}
-  Windows,
-{$ENDIF}
-  Classes, GR32, GR32_Blend;
+  Classes,
+  GR32,
+  GR32_Blend;
 
 type
   TAssignColor = procedure(var Dst: TColor32; Src: TColor32) of object;
@@ -183,8 +174,16 @@ var
 implementation
 
 uses
-  Math, SysUtils, GR32_Math, GR32_System, GR32_LowLevel, GR32_Resamplers,
-  GR32_Containers, GR32_OrdinalMaps;
+{$ifndef FPC}
+  System.SyncObjs,
+{$endif}
+  Math,
+  GR32_Math,
+  GR32_System,
+  GR32_LowLevel,
+  GR32_Resamplers,
+  GR32_Containers,
+  GR32_OrdinalMaps;
 
 type
   TCustomBitmap32Access = class(TCustomBitmap32);
@@ -852,7 +851,11 @@ var
   I: Integer;
   P: PColor32;
 begin
+{$ifndef FPC}
+  ScanLine := TInterlocked.Increment(Data^.ScanLine);
+{$else}
   ScanLine := InterlockedIncrement(Data^.ScanLine);
+{$endif}
   while ScanLine < DstRect.Bottom do
   begin
     P := @Dst.Bits[DstRect.Left + ScanLine * Dst.Width];
@@ -863,7 +866,11 @@ begin
       Inc(P);
     end;
 
+{$ifndef FPC}
+    ScanLine := TInterlocked.Increment(Data^.ScanLine);
+{$else}
     ScanLine := InterlockedIncrement(Data^.ScanLine);
+{$endif}
   end;
 end;
 
