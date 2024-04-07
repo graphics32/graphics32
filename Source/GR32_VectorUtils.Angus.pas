@@ -77,7 +77,6 @@ implementation
 
 uses
   Math,
-  SysUtils,
 
   GR32_Math;
 

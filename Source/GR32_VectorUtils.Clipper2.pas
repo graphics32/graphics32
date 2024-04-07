@@ -83,8 +83,6 @@ type
 implementation
 
 uses
-  SysUtils,
-
   Clipper,
   Clipper.Core,
   Clipper.Offset,

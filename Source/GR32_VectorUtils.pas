@@ -46,8 +46,7 @@ interface
 {$ifend}
 
 uses
-  Math,
-  Types,
+  Math, // Inlining
   GR32,
   GR32_Transforms,
   GR32_Polygons;
@@ -238,7 +237,7 @@ var
 implementation
 
 uses
-  SysUtils,
+  Types,
 {$if defined(GR32_OFFSET_CLIPPER)}
   GR32_VectorUtils.Clipper2,
 {$elseif defined(GR32_OFFSET_ANGUS)}
