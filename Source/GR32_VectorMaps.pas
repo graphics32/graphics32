@@ -28,24 +28,14 @@ unit GR32_VectorMaps;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Mattias Andersson <mattias@centaurix.com>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
-     
+
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  {$IFDEF Windows}
-    Windows,
-  {$ENDIF}
-{$ELSE}
-  Windows,
-{$ENDIF}
-  Classes, GR32;
+  GR32;
 
 type
   TFixedVector = TFixedPoint;
@@ -117,7 +107,10 @@ type
 implementation
 
 uses
-  GR32_Lowlevel, GR32_Math, SysUtils;
+  Types, // inlining
+  SysUtils,
+  GR32_Lowlevel,
+  GR32_Math;
 
 resourcestring
   RCStrCantAllocateVectorMap = 'Can''t allocate VectorMap!';
@@ -142,7 +135,7 @@ end;
 
 function TVectorMap.BoundsRect: TRect;
 begin
-  Result := Rect(0, 0, Width, Height);
+  Result := MakeRect(0, 0, Width, Height);
 end;
 
 procedure TVectorMap.ChangeSize(var Width, Height: Integer;
@@ -155,7 +148,8 @@ begin
   SetLength(FVectors, NewWidth * NewHeight);
   if (NewWidth > 0) and (NewHeight > 0) then
   begin
-    if FVectors = nil then raise Exception.Create(RCStrCantAllocateVectorMap);
+    if FVectors = nil then
+      raise Exception.Create(RCStrCantAllocateVectorMap);
     FillLongword(FVectors[0], NewWidth * NewHeight * 2, 0);
   end;
   Width := NewWidth;
@@ -289,11 +283,11 @@ const
 type
   {TVectorMap supports the photoshop liquify mesh fileformat .msh}
   TPSLiquifyMeshHeader = record
-    Pad0  : dword;
+    Pad0  : cardinal;
     Ident : array [0..7] of Char;
-    Pad1  : dword;
-    Width : dword;
-    Height: dword;
+    Pad1  : cardinal;
+    Width : cardinal;
+    Height: cardinal;
   end;
 
 procedure TVectorMap.LoadFromFile(const FileName: string);
@@ -346,15 +340,15 @@ var
 begin
   if Src.Empty then Exception.Create(RCStrSrcIsEmpty);
   if Empty then Exception.Create(RCStrBaseIsEmpty);
-  IntersectRect( SrcRect, Src.BoundsRect, SrcRect);
+  GR32.IntersectRect(SrcRect, Src.BoundsRect, SrcRect);
 
   DstRect.Left := DstLeft;
   DstRect.Top := DstTop;
   DstRect.Right := DstLeft + (SrcRect.Right - SrcRect.Left);
   DstRect.Bottom := DstTop + (SrcRect.Bottom - SrcRect.Top);
 
-  IntersectRect(DstRect, BoundsRect, DstRect);
-  if IsRectEmpty(DstRect) then Exit;
+  GR32.IntersectRect(DstRect, BoundsRect, DstRect);
+  if GR32.IsRectEmpty(DstRect) then Exit;
 
   P := SrcRect.Top * Src.Width;
   Progression.Y := - FixedOne;
@@ -640,8 +634,8 @@ begin
 
   end;
   RightDone:
-  if IsRectEmpty(Result) then
-    Result := Rect(0, 0, 0, 0);
+  if GR32.IsRectEmpty(Result) then
+    Result := MakeRect(0, 0, 0, 0);
 end;
 
 end.
