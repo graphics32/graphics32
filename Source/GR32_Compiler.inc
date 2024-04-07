@@ -422,3 +422,11 @@
   {$define COMPILERRX5}
   {$define COMPILERRX6}
 {$ifend}
+// FireMonkey
+{$IF Defined(ANDROID) or Defined(IOS)}
+  {$DEFINE PLATFORM_INDEPENDENT}
+  {$DEFINE PUREPASCAL}
+  {$DEFINE NATIVE_SINCOS}
+  {$DEFINE RGBA_FORMAT}
+{$IFEND}
+

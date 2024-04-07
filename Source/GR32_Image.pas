@@ -28,13 +28,6 @@ unit GR32_Image;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Mattias Andersson <mattias@centaurix.com>
- * Andre Beckedorf <Andre@metaException.de>
- * Andrew P. Rybin <aprybin@users.sourceforge.net>
- * Dieter Köhler <dieter.koehler@philo.de>
- * Michael Hansen <dyster_tid@hotmail.com>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -62,12 +55,26 @@ uses
 {$if defined(WINDOWS)}
   Windows,
 {$ifend}
-{$IFDEF FPC}
-  LCLIntf, LCLType, LMessages,
-{$ELSE}
+
+{$if defined(FRAMEWORK_VCL)}
   Messages,
-{$ENDIF}
-  Types, Graphics, Controls, Forms, Classes, SysUtils,
+{$elseif defined(FRAMEWORK_FMX)}
+{$elseif defined(FRAMEWORK_LCL)}
+  LCLIntf, LCLType, LMessages,
+{$ifend}
+
+{$if defined(FRAMEWORK_VCL)}
+  VCL.Graphics,
+  VCL.Controls,
+{$elseif defined(FRAMEWORK_FMX)}
+  FMX.Graphics,
+  FMX.Controls,
+{$elseif defined(FRAMEWORK_LCL)}
+  Graphics,
+  Controls,
+{$ifend}
+  Types,
+  Classes,
   GR32,
   GR32_Layers,
   GR32_RangeBars,
@@ -138,8 +145,16 @@ type
 
   TRepaintMode = (rmFull, rmDirect, rmOptimizer);
 
+{$if defined(FRAMEWORK_VCL)}
+  TGraphics32ControlBaseClass = TCustomControl;
+{$elseif defined(FRAMEWORK_FMX)}
+  TGraphics32ControlBaseClass = TControl;
+{$elseif defined(FRAMEWORK_LCL)}
+  TGraphics32ControlBaseClass = TCustomControl;
+{$ifend}
+
   { TCustomPaintBox32 }
-  TCustomPaintBox32 = class(TCustomControl)
+  TCustomPaintBox32 = class(TGraphics32ControlBaseClass)
   strict private
     FBuffer: TBitmap32;
     FBufferOversize: Integer;
@@ -746,7 +761,7 @@ type
     property OnDragOver;
     property OnEndDrag;
     property OnGDIOverlay;
-    property OnInitStages; 
+    property OnInitStages;
     property OnKeyDown;
     property OnKeyPress;
     property OnKeyUp;
@@ -828,15 +843,23 @@ var
 implementation
 
 uses
-  Math, TypInfo,
+  Math,
+  SysUtils,
+{$if not defined(FRAMEWORK_FMX)}
+  Forms,
+{$ifend}
 {$if defined(WINDOWS)}
-  MMSystem,
+  MMSystem, // TimeGetTime
 {$ifend}
 {$if defined(AnimatedZoom)}
   amEasing,
 {$ifend}
-  GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel,
-  GR32_Resamplers, GR32_Backends_Generic;
+  GR32_MicroTiles,
+  GR32_Backends,
+  GR32_XPThemes,
+  GR32_LowLevel,
+  GR32_Resamplers,
+  GR32_Backends_Generic;
 
 type
   TLayerAccess = class(TCustomLayer);
