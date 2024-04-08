@@ -34,7 +34,7 @@ interface
 
 {$I GR32.inc}
 
-{$define GR32_DEBUG_BRUSH}
+{-$define GR32_DEBUG_BRUSH}
 
 uses
   Classes, GR32, GR32_Polygons, GR32_Transforms;

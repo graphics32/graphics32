@@ -54,7 +54,7 @@ type
     procedure SetColor(const Value: TColor32);
   protected
     procedure RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
-      const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean); override;
+      const ClipRect: TFloatRect; Transformation: TTransformation); override;
   public
     constructor Create(BrushCollection: TBrushCollection); override;
 
@@ -132,7 +132,7 @@ begin
 end;
 
 procedure TDotBrush.RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean);
+  const ClipRect: TFloatRect; Transformation: TTransformation);
 var
   i, j: integer;
   Bitmap: TCustomBitmap32;
@@ -304,7 +304,7 @@ begin
 
   BrushCircleStroke := TStrokeBrush(FBrushCircle.Brushes.Add(TStrokeBrush));
   BrushCircleStroke.FillColor := clWhite32;
-  BrushCircleStroke.StrokeWidth := 2;
+  BrushCircleStroke.StrokeWidth := 1.5;
 end;
 
 destructor TMainForm.Destroy;
