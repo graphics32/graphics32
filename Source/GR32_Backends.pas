@@ -38,13 +38,26 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  LCLIntf, LCLType, Types, Controls, Graphics,
-{$ELSE}
-  Windows, Messages, Controls, Graphics,
-{$ENDIF}
+{$if defined(FRAMEWORK_VCL)}
+  WinApi.Windows,
+  WinApi.Messages,
+  Vcl.Controls,
+  Vcl.Graphics,
+{$elseif defined(FRAMEWORK_FMX)}
+  WinApi.Windows,
+  WinApi.Messages,
+  FMX.Controls,
+  FMX.Graphics,
+{$elseif defined(FRAMEWORK_LCL)}
+  LCLIntf, LCLType,
+  Types,
+  Controls,
+  Graphics,
+{$ifend}
+
   Classes,
   SysUtils,
+
   GR32,
   GR32_Containers,
   GR32_Image,
