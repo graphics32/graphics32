@@ -729,7 +729,14 @@ type
   strict private
     FLockCount: Integer;
   strict protected
+    // FLock *must* be a Win32 RTL_CRITICAL_SECTION as it is referenced directly
+    // via a pointer by TFont.OwnerCriticalSection in the backend.
+    // Absolutely wonderfull design Embarcadero!
+    {$IFDEF FPC}
     FLock: TCriticalSection;
+    {$ELSE}
+    FLock: TRTLCriticalSection;
+    {$ENDIF}
     property LockCount: Integer read FLockCount;
   public
     constructor Create; virtual;
@@ -2781,40 +2788,28 @@ end;
 constructor TThreadPersistent.Create;
 begin
   inherited Create;
-{$ifndef FPC}
-  FLock := TCriticalSection.Create;
-{$else}
   InitializeCriticalSection(FLock);
-{$endif}
+  // FLock := TCriticalSection.Create;
 end;
 
 destructor TThreadPersistent.Destroy;
 begin
-{$ifndef FPC}
-  FLock.Free;
-{$else}
   DeleteCriticalSection(FLock);
-{$endif}
+  // FLock.Free;
   inherited;
 end;
 
 procedure TThreadPersistent.Lock;
 begin
   InterlockedIncrement(FLockCount);
-{$ifndef FPC}
-  FLock.Enter;
-{$else}
   EnterCriticalSection(FLock);
-{$endif}
+  // FLock.Enter;
 end;
 
 procedure TThreadPersistent.Unlock;
 begin
-{$ifndef FPC}
-  FLock.Leave;
-{$else}
   LeaveCriticalSection(FLock);
-{$endif}
+  // FLock.Leave;
   InterlockedDecrement(FLockCount);
 end;
 
@@ -3064,6 +3059,8 @@ end;
 
 procedure TCustomBitmap32.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer);
 begin
+  if (Int64(Width) * Int64(Height) * SizeOf(DWORD) > MaxInt) then
+    raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = %.8X', [Width, Height, Int64(Width) * Int64(Height) * SizeOf(DWORD)]);
   FBackend.ChangeSize(Width, Height, NewWidth, NewHeight);
 end;
 

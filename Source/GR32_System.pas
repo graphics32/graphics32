@@ -201,7 +201,7 @@ var
 
 function GetTickCount: UInt64;
 begin
-  Result := UInt64(TickCounter.ElapsedTicks);
+  Result := UInt64(TickCounter.ElapsedMilliseconds);
 end;
 {$else}
 function GetTickCount: UInt64;

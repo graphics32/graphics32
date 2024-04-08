@@ -1,11 +1,11 @@
 unit Main;
 
+{$I GR32.inc}
+
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages,
-  System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Forms, Classes, Controls,
   GR32,
   GR32_Image;
 
@@ -26,9 +26,9 @@ implementation
 {$R *.dfm}
 
 uses
+  Graphics,
   GR32.Examples,
-  GR32_PNG,
-  GR32_PortableNetworkGraphic; // Required for inline expansion
+  GR32.ImageFormats.PNG32;
 
 { TFormMain }
 

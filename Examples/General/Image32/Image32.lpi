@@ -17,7 +17,6 @@
           <Version Value="11"/>
           <SearchPaths>
             <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
-            <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
             <OtherUnitFiles Value="../../../Source"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
             <ObjectPath Value="../../.."/>
@@ -98,7 +97,6 @@
     <Version Value="11"/>
     <SearchPaths>
       <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
-      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
       <OtherUnitFiles Value="../../../Source"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="../../.."/>
