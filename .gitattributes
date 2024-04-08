@@ -1,0 +1,4 @@
+# Disable line endings auto conversion.
+*.dpk -text
+*.dproj -text
+*.groupproj -text
