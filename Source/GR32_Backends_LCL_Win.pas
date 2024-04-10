@@ -335,7 +335,8 @@ end;
 
 procedure TLCLBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
 begin
-  Windows.InvalidateRect(AControl.Handle, ARect, False);
+  if (AControl.HandleAllocated) then
+    Windows.InvalidateRect(AControl.Handle, ARect, False);
 end;
 
 procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
