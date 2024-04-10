@@ -344,7 +344,6 @@
   {$define PLATFORM_INDEPENDENT}
   {$define FPC_HAS_CONSTREF}
   {$define NATIVE_SINCOS}
-  {$define USESTACKALLOC}
   // 16 byte code alignment required for SSE aligned loads from asm db blocks
   {$CODEALIGN PROC=16}
 
@@ -356,6 +355,11 @@
     // Target processor is neither x86 or x64: Use Pascal versions
     {$define PUREPASCAL}
 
+  {$ifend}
+
+  {$if defined(TARGET_x86)}
+    // StackAlloc currently only works with 32-bit FPC
+    {$define USESTACKALLOC}
   {$ifend}
 
 {$ifend}
