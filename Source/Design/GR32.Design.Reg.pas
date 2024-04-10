@@ -47,7 +47,7 @@ procedure Register;
 implementation
 
 {$IFDEF FPC}
-{$R *.dcr}
+{$R 'GR32.Design.Reg.dcr'}
 {$ENDIF}
 
 uses
@@ -59,7 +59,6 @@ uses
   {$IFDEF Windows}
   GR32_ExtImage,
   {$ENDIF}
-  GR32_Layers,
   GR32_RangeBars,
   GR32_ColorPicker,
   GR32_ColorSwatch,
