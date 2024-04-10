@@ -321,7 +321,9 @@ var
     begin
       // Concave angle
       AddPoint(Delta * PA.X, Delta * PA.Y);
-      AddPoint(0, 0); // Current corner. See #106, #185
+      // #303: Disabled since it produces self-intersections that make
+      // the result unusable for drawing polylines.
+      // AddPoint(0, 0); // Current corner. See #106, #185
       AddPoint(Delta * PB.X, Delta * PB.Y);
     end else
       case JoinStyle of
