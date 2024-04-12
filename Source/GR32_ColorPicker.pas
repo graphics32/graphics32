@@ -28,9 +28,6 @@ unit GR32_ColorPicker;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Christan-W. Budde <Christian@savioursofsoul.de>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -57,8 +54,7 @@ type
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
 {$IFDEF FPC}
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
@@ -87,10 +83,8 @@ type
     FWebSafe: Boolean;
   protected
     function GetFillLine: TFillLineEvent; override;
-    procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode); virtual;
-    procedure FillLineWebSafe(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode); virtual;
+    procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode); virtual;
+    procedure FillLineWebSafe(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode); virtual;
   public
     constructor Create(Center: TFloatPoint; WebSafe: Boolean = False);
 
@@ -105,13 +99,10 @@ type
     FValue: Single;
     procedure SetRadius(const Value: Single);
   protected
-    procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode); override;
-    procedure FillLineWebSafe(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode); override;
+    procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode); override;
+    procedure FillLineWebSafe(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode); override;
   public
-    constructor Create(Center: TFloatPoint; Radius, Value: Single;
-      WebSafe: Boolean = False);
+    constructor Create(Center: TFloatPoint; Radius, Value: Single; WebSafe: Boolean = False);
 
     property Radius: Single read FRadius write SetRadius;
     property Value: Single read FValue write FValue;
@@ -122,8 +113,7 @@ type
     FWebSafe: Boolean;
   protected
     function GetFillLine: TFillLineEvent; override;
-    procedure FillLineWebSafe(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineWebSafe(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
   public
     property WebSafe: Boolean read FWebSafe write FWebSafe;
   end;
@@ -147,6 +137,8 @@ type
     procedure Changed; virtual;
   public
     constructor Create(AOwner: TPersistent); virtual;
+
+    procedure Assign(Source: TPersistent); override;
 
     property Owner: TPersistent read FOwner;
   published
@@ -183,8 +175,9 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
     procedure Invalidate; override;
-    procedure Resize; override;
+    procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
     property Border: Boolean read FBorder write SetBorder default False;
     property VisualAidOptions: TVisualAidOptions read FVisualAidOptions;
@@ -203,13 +196,13 @@ type
     procedure SetColorComponent(const Value: TColorComponent);
   protected
     procedure PaintColorPicker; override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
   public
     constructor Create(AOwner: TComponent); override;
+
+    procedure Assign(Source: TPersistent); override;
 
     property ColorComponent: TColorComponent read FColorComponent write SetColorComponent;
   end;
@@ -226,13 +219,13 @@ type
     procedure PickRed(X, Y: Single);
   protected
     procedure PaintColorPicker; override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
   public
     constructor Create(AOwner: TComponent); override;
+
+    procedure Assign(Source: TPersistent); override;
 
     property BarHeight: Integer read FBarHeight write SetBarHeight default 24;
     property SpaceHeight: Integer read FSpaceHeight write SetSpaceHeight default 8;
@@ -253,12 +246,13 @@ type
     procedure ApplyHS;
   protected
     procedure PaintColorPicker; override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure SelectedColorChanged; override;
   public
     constructor Create(AOwner: TComponent); override;
+
+    procedure Assign(Source: TPersistent); override;
 
     property MarkerType: TMarkerType read FMarkerType write SetMarkerType;
     property Hue: Single read FHue write SetHue;
@@ -284,16 +278,15 @@ type
     procedure ApplyHSV;
   protected
     procedure PaintColorPicker; override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure SelectedColorChanged; override;
   public
     constructor Create(AOwner: TComponent); override;
 
-    procedure Resize; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
     property Hue: Single read FHue write SetHue;
     property Saturation: Single read FSaturation write SetSaturation;
@@ -324,10 +317,8 @@ type
     procedure ApplyHSV;
   protected
     procedure PaintColorPicker; override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer;
-      Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure SelectedColorChanged; override;
 
@@ -336,7 +327,8 @@ type
   public
     constructor Create(AOwner: TComponent); override;
 
-    procedure Resize; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
     property Hue: Single read FHue write SetHue;
     property Saturation: Single read FSaturation write SetSaturation;
@@ -346,10 +338,15 @@ type
 
   TColorPickerComponent = class(TCustomColorPickerComponent)
   published
-    property Align;
-    property Anchors;
     property Border;
     property ColorComponent;
+    property SelectedColor;
+    property VisualAidOptions;
+    property WebSafe default False;
+    property OnChanged;
+
+    property Align;
+    property Anchors;
     property DragCursor;
     property DragKind;
     property Enabled;
@@ -359,16 +356,12 @@ type
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
-    property SelectedColor;
     property TabOrder;
     property TabStop;
-    property VisualAidOptions;
-    property WebSafe default False;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
-    property OnChanged;
     property OnClick;
     property OnDblClick;
     property OnDragDrop;
@@ -388,10 +381,16 @@ type
 
   TColorPickerRGBA = class(TCustomColorPickerRGBA)
   published
-    property Align;
-    property Anchors;
     property BarHeight;
     property Border;
+    property SelectedColor;
+    property SpaceHeight;
+    property VisualAidOptions;
+    property WebSafe default False;
+    property OnChanged;
+
+    property Align;
+    property Anchors;
     property DragCursor;
     property DragKind;
     property Enabled;
@@ -401,17 +400,12 @@ type
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
-    property SelectedColor;
-    property SpaceHeight;
     property TabOrder;
     property TabStop;
-    property VisualAidOptions;
-    property WebSafe default False;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
-    property OnChanged;
     property OnClick;
     property OnDblClick;
     property OnDragDrop;
@@ -431,29 +425,30 @@ type
 
   TColorPickerHS = class(TCustomColorPickerHS)
   published
+    property Hue;
+    property MarkerType;
+    property Saturation;
+    property SelectedColor;
+    property WebSafe default False;
+    property OnChanged;
+
     property Align;
     property Anchors;
     property DragCursor;
     property DragKind;
     property Enabled;
-    property Hue;
-    property MarkerType;
 {$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
-    property Saturation;
-    property SelectedColor;
     property TabOrder;
     property TabStop;
-    property WebSafe default False;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
-    property OnChanged;
     property OnClick;
     property OnDblClick;
     property OnDragDrop;
@@ -473,32 +468,33 @@ type
 
   TColorPickerHSV = class(TCustomColorPickerHSV)
   published
+    property Border;
+    property Hue;
+    property Saturation;
+    property SelectedColor;
+    property Value;
+    property VisualAid default [vaHueLine, vaSaturationCircle, vaSelection];
+    property VisualAidOptions;
+    property WebSafe default False;
+    property OnChanged;
+
     property Align;
     property Anchors;
-    property Border;
     property DragCursor;
     property DragKind;
     property Enabled;
-    property Hue;
 {$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
-    property Saturation;
-    property SelectedColor;
     property TabOrder;
     property TabStop;
-    property Value;
-    property VisualAid default [vaHueLine, vaSaturationCircle, vaSelection];
-    property VisualAidOptions;
-    property WebSafe default False;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
-    property OnChanged;
     property OnClick;
     property OnDblClick;
     property OnDragDrop;
@@ -518,32 +514,33 @@ type
 
   TColorPickerGTK = class(TCustomColorPickerGTK)
   published
+    property Border;
+    property Hue;
+    property Saturation;
+    property SelectedColor;
+    property Value;
+    property VisualAid default [vagHueLine, vagSelection];
+    property VisualAidOptions;
+    property WebSafe default False;
+    property OnChanged;
+
     property Align;
     property Anchors;
-    property Border;
     property DragCursor;
     property DragKind;
     property Enabled;
-    property Hue;
 {$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
-    property Saturation;
-    property SelectedColor;
     property TabOrder;
     property TabStop;
-    property Value;
-    property VisualAid default [vagHueLine, vagSelection];
-    property VisualAidOptions;
-    property WebSafe default False;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
-    property OnChanged;
     property OnClick;
     property OnDblClick;
     property OnDragDrop;
@@ -603,9 +600,21 @@ begin
   FLineWidth := 2;
 end;
 
+procedure TVisualAidOptions.Assign(Source: TPersistent);
+begin
+  if (Source is TVisualAidOptions) then
+  begin
+    FRenderType := TVisualAidOptions(Source).RenderType;
+    FColor := TVisualAidOptions(Source).Color;
+    FLineWidth := TVisualAidOptions(Source).LineWidth;
+    Changed;
+  end else
+    inherited;
+end;
+
 procedure TVisualAidOptions.Changed;
 begin
-  if Owner is TCustomColorPicker then
+  if FOwner is TCustomColorPicker then
     TCustomColorPicker(Owner).Invalidate;
 end;
 
@@ -915,7 +924,7 @@ constructor TCustomColorPicker.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
-  ControlStyle := ControlStyle + [csOpaque];
+  ControlStyle := ControlStyle + [csOpaque] - [csAcceptsControls];
   FBuffer := TBitmap32.Create;
   FSelectedColor := clSalmon32;
   FVisualAidOptions := TVisualAidOptions.Create(Self);
@@ -928,6 +937,22 @@ begin
   inherited;
 end;
 
+procedure TCustomColorPicker.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomColorPicker) then
+  begin
+    FBorder := TCustomColorPicker(Source).Border;
+    FVisualAidOptions.Assign(TCustomColorPicker(Source).VisualAidOptions);
+    FSelectedColor := TCustomColorPicker(Source).SelectedColor;
+    FWebSafe := TCustomColorPicker(Source).WebSafe;
+    FOnChanged := TCustomColorPicker(Source).OnChanged;
+
+    Invalidate;
+  end;
+end;
+
 procedure TCustomColorPicker.Invalidate;
 begin
   FBufferValid := False;
@@ -936,7 +961,7 @@ end;
 
 procedure TCustomColorPicker.Paint;
 begin
-  if not Assigned(Parent) then
+  if (Parent = nil) then
     Exit;
 
   if not FBufferValid then
@@ -948,19 +973,11 @@ begin
   end;
 
   FBuffer.Lock;
-  with Canvas do
   try
     (FBuffer.Backend as IDeviceContextSupport).DrawTo(Canvas.Handle, 0, 0);
   finally
     FBuffer.Unlock;
   end;
-end;
-
-procedure TCustomColorPicker.Resize;
-begin
-  inherited;
-  FBuffer.SetSize(Width, Height);
-  FBufferValid := False;
 end;
 
 procedure TCustomColorPicker.SelectedColorChanged;
@@ -978,6 +995,14 @@ begin
     FBorder := Value;
     Invalidate;
   end;
+end;
+
+procedure TCustomColorPicker.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
+begin
+  inherited;
+  if (FBuffer <> nil) then
+    FBuffer.SetSize(Width, Height);
+  FBufferValid := False;
 end;
 
 procedure TCustomColorPicker.SetSelectedColor(const Value: TColor32);
@@ -1018,6 +1043,16 @@ begin
 
   FVisualAidOptions.Color := clBlack32;
   FVisualAidOptions.LineWidth := 1.5;
+end;
+
+procedure TCustomColorPickerComponent.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomColorPickerComponent) then
+  begin
+    FColorComponent := TCustomColorPickerComponent(Source).ColorComponent;
+  end;
 end;
 
 procedure TCustomColorPickerComponent.MouseDown(Button: TMouseButton;
@@ -1073,6 +1108,7 @@ var
     case FVisualAidOptions.RenderType of
       vatInvert:
         PolygonFS(FBuffer, Polygon, InvertFiller);
+
       vatBW:
         if Intensity(FSelectedColor) < 127 then
           PolygonFS(FBuffer, Polygon, clWhite32)
@@ -1114,6 +1150,7 @@ begin
           LeftColor.A := 255;
           RightColor.A := 255;
         end;
+
       ccGreen:
         begin
           Value := LeftColor.G * CByteScale;
@@ -1122,6 +1159,7 @@ begin
           LeftColor.A := 255;
           RightColor.A := 255;
         end;
+
       ccBlue:
         begin
           Value := LeftColor.B * CByteScale;
@@ -1130,6 +1168,7 @@ begin
           LeftColor.A := 255;
           RightColor.A := 255;
         end;
+
       ccAlpha:
         begin
           Value := LeftColor.A * CByteScale;
@@ -1201,6 +1240,20 @@ begin
   FSpaceHeight := 8;
   FVisualAidOptions.Color := clBlack32;
   FVisualAidOptions.LineWidth := 1.5;
+
+  Height := 4*FBarHeight + 3*FSpaceHeight;
+  Width := 3*Height;
+end;
+
+procedure TCustomColorPickerRGBA.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomColorPickerRGBA) then
+  begin
+    FBarHeight := TCustomColorPickerRGBA(Source).BarHeight;
+    FSpaceHeight := TCustomColorPickerRGBA(Source).SpaceHeight;
+  end;
 end;
 
 procedure TCustomColorPickerRGBA.PickRed(X, Y: Single);
@@ -1443,6 +1496,18 @@ begin
   RGBtoHSL(FSelectedColor, FHue, FSaturation, Luminance);
 end;
 
+procedure TCustomColorPickerHS.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomColorPickerHS) then
+  begin
+    FMarkerType := TCustomColorPickerHS(Source).MarkerType;
+    FHue := TCustomColorPickerHS(Source).Hue;
+    FSaturation := TCustomColorPickerHS(Source).Saturation;
+  end;
+end;
+
 procedure TCustomColorPickerHS.MouseDown(Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
@@ -1505,6 +1570,7 @@ begin
         case FVisualAidOptions.RenderType of
           vatSolid:
             PolyPolylineFS(FBuffer, VectorData, FVisualAidOptions.Color, False, FVisualAidOptions.LineWidth);
+
           vatInvert:
             begin
               InvertFiller := TInvertPolygonFiller.Create;
@@ -1514,10 +1580,12 @@ begin
                 InvertFiller.Free;
               end;
             end;
+
           vatBW:
             PolyPolylineFS(FBuffer, VectorData, FVisualAidOptions.Color, False, FVisualAidOptions.LineWidth);
         end;
       end;
+
     mtCircle:
       begin
         SetLength(VectorData, 1);
@@ -1527,6 +1595,7 @@ begin
         case FVisualAidOptions.RenderType of
           vatSolid:
             PolylineFS(FBuffer, VectorData[0], FVisualAidOptions.Color, True, FVisualAidOptions.LineWidth);
+
           vatInvert:
             begin
               InvertFiller := TInvertPolygonFiller.Create;
@@ -1536,6 +1605,7 @@ begin
                 InvertFiller.Free;
               end;
             end;
+
           vatBW:
             PolylineFS(FBuffer, VectorData[0], FVisualAidOptions.Color, True, 1.5);
       end;
@@ -1622,6 +1692,19 @@ begin
   Height := 192;
   Width := 256;
 {$ENDIF}
+end;
+
+procedure TCustomColorPickerHSV.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomColorPickerHSV) then
+  begin
+    FHue := TCustomColorPickerHSV(Source).Hue;
+    FSaturation := TCustomColorPickerHSV(Source).Saturation;
+    FValue := TCustomColorPickerHSV(Source).Value;
+    FVisualAid := TCustomColorPickerHSV(Source).VisualAid;
+  end;
 end;
 
 procedure TCustomColorPickerHSV.PaintColorPicker;
@@ -1780,24 +1863,6 @@ begin
   inherited;
 end;
 
-procedure TCustomColorPickerHSV.Resize;
-begin
-  inherited;
-
-  if Height < Width then
-  begin
-    FRadius := Min(0.5 * Width - 1 - 16, 0.5 * Height - 1);
-    FCircleSteps := CalculateCircleSteps(FRadius);
-    FCenter := FloatPoint(0.5 * Width - 16, 0.5 * Height);
-  end
-  else
-  begin
-    FRadius := Min(0.5 * Width - 1, 0.5 * Height - 1 - 16);
-    FCircleSteps := CalculateCircleSteps(FRadius);
-    FCenter := FloatPoint(0.5 * Width, 0.5 * Height - 16);
-  end;
-end;
-
 procedure TCustomColorPickerHSV.ApplyHSV;
 begin
   Inc(FLockValues);
@@ -1823,6 +1888,24 @@ end;
 procedure TCustomColorPickerHSV.PickValue(X, Y: Single);
 begin
   Value := 1 - EnsureRange((Y - 8) / (Height - 16), 0, 1);
+end;
+
+procedure TCustomColorPickerHSV.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
+begin
+  inherited;
+
+  if Height < Width then
+  begin
+    FRadius := Min(0.5 * Width - 1 - 16, 0.5 * Height - 1);
+    FCircleSteps := CalculateCircleSteps(FRadius);
+    FCenter := FloatPoint(0.5 * Width - 16, 0.5 * Height);
+  end
+  else
+  begin
+    FRadius := Min(0.5 * Width - 1, 0.5 * Height - 1 - 16);
+    FCircleSteps := CalculateCircleSteps(FRadius);
+    FCenter := FloatPoint(0.5 * Width, 0.5 * Height - 16);
+  end;
 end;
 
 procedure TCustomColorPickerHSV.SetHue(const Value: Single);
@@ -1893,6 +1976,19 @@ begin
   Height := 192;
   Width := 192;
 {$ENDIF}
+end;
+
+procedure TCustomColorPickerGTK.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomColorPickerGTK) then
+  begin
+    FHue := TCustomColorPickerGTK(Source).Hue;
+    FSaturation := TCustomColorPickerGTK(Source).Saturation;
+    FValue := TCustomColorPickerGTK(Source).Value;
+    FVisualAid := TCustomColorPickerGTK(Source).VisualAid;
+  end;
 end;
 
 procedure TCustomColorPickerGTK.PaintColorPicker;
@@ -2048,14 +2144,6 @@ begin
   inherited;
 end;
 
-procedure TCustomColorPickerGTK.Resize;
-begin
-  inherited;
-
-  Radius := Min(0.5 * Width - 1, 0.5 * Height - 1);
-  Center := FloatPoint(0.5 * Width, 0.5 * Height);
-end;
-
 procedure TCustomColorPickerGTK.ApplyHSV;
 begin
   Inc(FLockValues);
@@ -2112,6 +2200,14 @@ begin
 
   RGBtoHSV(Color, H, FSaturation, FValue);
   ApplyHSV;
+end;
+
+procedure TCustomColorPickerGTK.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
+begin
+  inherited;
+
+  Radius := Min(0.5 * Width - 1, 0.5 * Height - 1);
+  Center := FloatPoint(0.5 * Width, 0.5 * Height);
 end;
 
 procedure TCustomColorPickerGTK.SetHue(const Value: Single);
