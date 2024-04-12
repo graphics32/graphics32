@@ -28,9 +28,6 @@ unit GR32_ColorSwatch;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Christan-W. Budde <Christian@savioursofsoul.de>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -70,26 +67,28 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
+
     procedure Invalidate; override;
-    procedure Resize; override;
+    procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
     property Border: Boolean read FBorder write SetBorder default False;
     property Color: TColor32 read FColor write SetColor;
   end;
 
   TColorSwatch = class(TCustomColorSwatch)
+  protected
+    procedure DefineProperties(Filer: TFiler); override;
+    procedure SkipValue(Reader: TReader);
   published
-    property Align;
-    property Anchors;
     property Border;
     property Color;
+
+    property Align;
+    property Anchors;
     property DragCursor;
     property DragKind;
     property Enabled;
-{$IFNDEF FPC}
-    property ParentBackground;
-{$ENDIF}
-    property ParentColor;
     property ParentShowHint;
     property PopupMenu;
     property TabOrder;
@@ -123,11 +122,27 @@ uses
 
 { TCustomColorSwatch }
 
+procedure TCustomColorSwatch.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomColorSwatch) then
+  begin
+    FBorder := TCustomColorSwatch(Source).Border;
+    FColor := TCustomColorSwatch(Source).Color;
+
+    Invalidate;
+  end;
+end;
+
 constructor TCustomColorSwatch.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
-  ControlStyle := ControlStyle + [csOpaque];
+  ControlStyle := [csOpaque];
+  Width := 32;
+  Height := 32;
+
   FBuffer := TBitmap32.Create;
   FColor := clSalmon32;
 end;
@@ -152,11 +167,23 @@ var
 const
   CCheckerBoardColor: array [Boolean] of TColor32 = ($FFA0A0A0, $FF5F5F5F);
 begin
-  if not Assigned(Parent) then
-    Exit;
+//  if not Assigned(Parent) then
+//    Exit;
+
+
+  if (FBuffer.Empty) then
+    exit;
+
+  Canvas.Pen.Color := clRed;
+  Canvas.MoveTo(0, 0);
+  Canvas.LineTo(FBuffer.Width, FBuffer.Height);
 
   if not FBufferValid then
   begin
+  Canvas.Pen.Color := clGreen;
+  Canvas.MoveTo(Width, 0);
+  Canvas.LineTo(0, Height);
+
     (FBuffer.Backend as IPaintSupport).ImageNeeded;
 
     // draw checker board
@@ -185,20 +212,11 @@ begin
   end;
 
   FBuffer.Lock;
-  with Canvas do
   try
     (FBuffer.Backend as IDeviceContextSupport).DrawTo(Canvas.Handle, 0, 0);
   finally
     FBuffer.Unlock;
   end;
-end;
-
-procedure TCustomColorSwatch.Resize;
-begin
-  inherited;
-
-  FBuffer.SetSize(Width, Height);
-  FBufferValid := False;
 end;
 
 procedure TCustomColorSwatch.SetBorder(const Value: Boolean);
@@ -208,6 +226,15 @@ begin
     FBorder := Value;
     Invalidate;
   end;
+end;
+
+procedure TCustomColorSwatch.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
+begin
+  inherited;
+
+  if (FBuffer <> nil) then
+    FBuffer.SetSize(Width, Height);
+  FBufferValid := False;
 end;
 
 procedure TCustomColorSwatch.SetColor(const Value: TColor32);
@@ -226,8 +253,27 @@ end;
 
 procedure TCustomColorSwatch.WMGetDlgCode(var Msg: {$IFDEF FPC}TLMessage{$ELSE}TWmGetDlgCode{$ENDIF});
 begin
-  with Msg do
-    Result := Result or DLGC_WANTARROWS;
+  Msg.Result := Msg.Result or DLGC_WANTARROWS;
+end;
+
+{ TColorSwatch }
+
+procedure TColorSwatch.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+
+  // Previously, but no longer, published properties
+  Filer.DefineProperty('ParentBackground', SkipValue, nil, False);
+  Filer.DefineProperty('ParentColor', SkipValue, nil, False);
+end;
+
+procedure TColorSwatch.SkipValue(Reader: TReader);
+begin
+{$ifndef FPC}
+  Reader.SkipValue;
+{$else}
+  Reader.Driver.SkipValue;
+{$endif}
 end;
 
 end.
