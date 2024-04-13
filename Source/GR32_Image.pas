@@ -842,6 +842,7 @@ type
   TLayerAccess = class(TCustomLayer);
   TLayerCollectionAccess = class(TLayerCollection);
   TRangeBarAccess = class(TRangeBar);
+  TBitmap32Cracker = class(TCustomBitmap32);
 
 const
   DefaultRepaintOptimizerClass: TCustomRepaintOptimizerClass = TMicroTilesRepaintOptimizer;
@@ -2757,6 +2758,7 @@ begin
           Buffer := TBitmap32.Create(TMemoryBackend);
           Buffer.SetSize(CachedBitmapRect.Width, CachedBitmapRect.Height);
           StretchTransfer(Buffer, Buffer.BoundsRect, Buffer.BoundsRect, Bitmap, Bitmap.BoundsRect, Bitmap.Resampler, dmOpaque, nil);
+          TBitmap32Cracker(Bitmap).CopyPropertiesTo(Buffer);
           SourceBitmap := Buffer;
         end else
           SourceBitmap := Bitmap;
