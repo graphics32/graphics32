@@ -1933,7 +1933,7 @@ var
   BitmapRect: TRect;
   R: TRect;
 begin
-  if (AArea.Left <> AArea.Right) or (AArea.Top <> AArea.Bottom) then // Don't use IsEmpty; Rect can be negative
+  if (not Bitmap.Empty) and ((AArea.Left <> AArea.Right) or (AArea.Top <> AArea.Bottom)) then // Don't use IsEmpty; Rect can be negative
   begin
     if (not AOptimize) or (not RepaintOptimizer.Enabled) or (not Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
       UpdateRectNotification := nil;
