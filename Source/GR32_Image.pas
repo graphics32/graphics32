@@ -2750,36 +2750,55 @@ begin
       TileCountX := Dest.Width div CachedBitmapRect.Right;
       TileCountY := Dest.Height div CachedBitmapRect.Bottom;
 
-      Buffer := nil;
-      try
-        // Stretching the bitmap is very expensive so only do it once and then tile the stretched bitmap
-        if (CachedBitmapRect.Width <> Bitmap.Width) or (CachedBitmapRect.Height <> Bitmap.Height) then
-        begin
-          Buffer := TBitmap32.Create(TMemoryBackend);
+      // Stretching the bitmap is very expensive so only do it once and then tile the stretched bitmap
+      if ((TileCountX > 0) or (TileCountY > 0)) and
+        ((CachedBitmapRect.Width <> Bitmap.Width) or (CachedBitmapRect.Height <> Bitmap.Height)) then
+      begin
+        // Tile and Stretch
+        Buffer := TBitmap32.Create(TMemoryBackend);
+        try
           Buffer.SetSize(CachedBitmapRect.Width, CachedBitmapRect.Height);
           StretchTransfer(Buffer, Buffer.BoundsRect, Buffer.BoundsRect, Bitmap, Bitmap.BoundsRect, Bitmap.Resampler, dmOpaque, nil);
           TBitmap32Cracker(Bitmap).CopyPropertiesTo(Buffer);
-          SourceBitmap := Buffer;
-        end else
-          SourceBitmap := Bitmap;
 
+          TileY := CachedBitmapRect.Top;
+          for j := 0 to TileCountY do
+          begin
+            TileX := CachedBitmapRect.Left;
+            for i := 0 to TileCountX do
+            begin
+              Buffer.DrawTo(Dest, TileX, TileY);
+
+              Inc(TileX, CachedBitmapRect.Width);
+            end;
+
+            Inc(TileY, CachedBitmapRect.Height);
+          end;
+
+        finally
+          Buffer.Free;
+        end;
+      end else
+      if (CachedBitmapRect.Width = Bitmap.Width) and (CachedBitmapRect.Height = Bitmap.Height) then
+      begin
+        // No stretch, possibly Tiling,
         TileY := CachedBitmapRect.Top;
         for j := 0 to TileCountY do
         begin
           TileX := CachedBitmapRect.Left;
           for i := 0 to TileCountX do
           begin
-            SourceBitmap.DrawTo(Dest, TileX, TileY);
+            Bitmap.DrawTo(Dest, TileX, TileY);
 
             Inc(TileX, CachedBitmapRect.Width);
           end;
 
           Inc(TileY, CachedBitmapRect.Height);
         end;
+      end else
+        // Stretch, No tiling
+        Bitmap.DrawTo(Dest, CachedBitmapRect);
 
-      finally
-        Buffer.Free;
-      end;
     end;
   finally
     Bitmap.Unlock;
