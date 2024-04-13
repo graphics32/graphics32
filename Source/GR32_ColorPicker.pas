@@ -2006,8 +2006,13 @@ const
 begin
   FBuffer.Clear(Color32(Color));
 
-  Polygon := Circle(FCenter, 0.5 * (FRadius + FInnerRadius), FCircleSteps);
-  HueBand := BuildPolyPolyline(PolyPolygon(Polygon), True, FRadius - FInnerRadius);
+  // Don't use BuildPolyPolyline to build HueBand; We need both innber and outer
+  // polygons to be free of self-intersections as we use them to draw the border.
+  HueBand := [
+                              Circle(FCenter, FRadius,      FCircleSteps),
+               ReversePolygon(Circle(FCenter, FInnerRadius, FCircleSteps))
+             ];
+
   HueFiller := THueCirclePolygonFiller.Create(FCenter, FWebSafe);
   try
     PolyPolygonFS(FBuffer, HueBand, HueFiller);
@@ -2030,6 +2035,7 @@ begin
     case FVisualAidOptions.RenderType of
       vatSolid:
         PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, False, LineWidth);
+
       vatInvert:
         begin
           InvertFiller := TInvertPolygonFiller.Create;
@@ -2039,6 +2045,7 @@ begin
             InvertFiller.Free;
           end;
         end;
+
       vatBW:
         if Intensity(HSVtoRGB(FHue, 1, 1)) < 127 then
           PolylineFS(FBuffer, Polygon, $F0FFFFFF, True, LineWidth)
@@ -2047,16 +2054,19 @@ begin
     end;
   end;
 
-  GR32_Math.SinCos(2 * Pi * FHue, Pos.Y, Pos.X);
   SetLength(Polygon, 3);
+
+  GR32_Math.SinCos(2 * Pi * FHue, Pos.Y, Pos.X);
   Polygon[0] := FloatPoint(
     FCenter.X - FInnerRadius * Pos.X,
     FCenter.Y - FInnerRadius * Pos.Y);
+
   HalfInnerRadius := 0.5 * FInnerRadius;
   Pos := FloatPoint(Pos.X + CY * Pos.Y, Pos.X * CY - Pos.Y);
   Polygon[1] := FloatPoint(
     FCenter.X + HalfInnerRadius * Pos.X,
     FCenter.Y - HalfInnerRadius * Pos.Y);
+
   HalfInnerRadius := 0.5 * HalfInnerRadius;
   Pos := FloatPoint(Pos.X - CY * Pos.Y, Pos.Y + Pos.X * CY);
   Polygon[2] := FloatPoint(
@@ -2070,6 +2080,7 @@ begin
     GradientFiller.Color[1] := clWhite32;
     GradientFiller.Color[2] := clBlack32;
     GradientFiller.WebSafe := FWebSafe;
+
     PolygonFS(FBuffer, Polygon, GradientFiller);
   finally
     GradientFiller.Free;
@@ -2093,6 +2104,7 @@ begin
     case FVisualAidOptions.RenderType of
       vatSolid:
         PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, True, LineWidth);
+
       vatInvert:
         begin
           InvertFiller := TInvertPolygonFiller.Create;
@@ -2102,6 +2114,7 @@ begin
             InvertFiller.Free;
           end;
         end;
+
       vatBW:
         if Intensity(FSelectedColor) < 127 then
           PolylineFS(FBuffer, Polygon, clWhite32, True, LineWidth)
