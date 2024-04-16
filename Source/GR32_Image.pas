@@ -549,8 +549,8 @@ type
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     function GetBitmapMargin: integer; virtual;
-    procedure DoZoom(const APivot: TFloatPoint; AScale: TFloat);
-    procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
+    procedure DoZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
+    procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
     procedure DoSetPivot(const APivot: TFloatPoint); virtual;
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
@@ -594,6 +594,8 @@ type
     procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
     procedure Scroll(Dx, Dy: Integer); overload;
     procedure Scroll(Dx, Dy: Single); overload; virtual;
+    procedure Zoom(AScale: TFloat; const APivot: TFloatPoint; AAnimate: boolean = False); overload;
+    procedure Zoom(AScale: TFloat; AAnimate: boolean = False); overload;
 
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
@@ -2425,7 +2427,7 @@ begin
 
     NewScale := Scale * ZoomFactor;
 
-    DoZoom(Pivot, NewScale);
+    DoZoom(Pivot, NewScale, FMouseZoomOptions.MaintainPivot, FMouseZoomOptions.Animate);
 
     Result := True;
   end;
@@ -2526,7 +2528,7 @@ begin
   OffsetVert := APivot.Y;
 end;
 
-procedure TCustomImage32.DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
+procedure TCustomImage32.DoSetZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
 var
   DeltaScale: TFloat;
   NewOffset: TFloatPoint;
@@ -2542,7 +2544,7 @@ begin
   try
     Scale := AScale;
 
-    if (FMouseZoomOptions.MaintainPivot) and (BitmapAlign = baCustom) and (ScaleMode = smScale) then
+    if (AMaintainPivot) and (BitmapAlign = baCustom) and (ScaleMode = smScale) then
     begin
       DeltaScale := DeltaScale - Scale;
 
@@ -2558,7 +2560,7 @@ begin
   end;
 end;
 
-procedure TCustomImage32.DoZoom(const APivot: TFloatPoint; AScale: TFloat);
+procedure TCustomImage32.DoZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
 {$if defined(AnimatedZoom)}
 var
   StartValue, DeltaValue: TFloat;
@@ -2571,7 +2573,7 @@ begin
     exit;
 
 {$if defined(AnimatedZoom)}
-  if (FMouseZoomOptions.Animate) and (Showing) then
+  if (AAnimate) and (Showing) then
   begin
     StartValue := Scale;
     DeltaValue := AScale-StartValue;
@@ -2588,7 +2590,7 @@ begin
           (Abs(AScale-NewValue) >= MinZoomDelta) and
           (Scale <> NewValue) then
         begin
-          DoSetZoom(APivot, NewValue);
+          DoSetZoom(APivot, NewValue, AMaintainPivot);
 
           // Paint immediately or user will not see animation
           Repaint;
@@ -2598,11 +2600,23 @@ begin
 {$ifend}
   BeginUpdate;
   try
-    DoSetZoom(APivot, AScale);
+    DoSetZoom(APivot, AScale, AMaintainPivot);
     ForceFullInvalidate;
   finally
     EndUpdate;
   end;
+end;
+
+procedure TCustomImage32.Zoom(AScale: TFloat; const APivot: TFloatPoint; AAnimate: boolean);
+begin
+  DoZoom(APivot, AScale, True, AAnimate);
+end;
+
+procedure TCustomImage32.Zoom(AScale: TFloat; AAnimate: boolean);
+var
+  DummyPivot: TFloatPoint;
+begin
+  DoZoom(DummyPivot, AScale, False, AAnimate);
 end;
 
 procedure TCustomImage32.ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer);
