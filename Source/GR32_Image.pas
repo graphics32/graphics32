@@ -3880,29 +3880,37 @@ begin
   ScrollbarSize := GetScrollbarSize;
   ScrollbarVisible := GetScrollBarsVisible;
 
-  if (FHorScroll <> nil) then
-  begin
-    FHorScroll.BoundsRect := Rect(ViewPort.Left, ViewPort.Bottom, ViewPort.Right, ViewPort.Bottom+ScrollbarSize);
+  // Block scrollbar.OnChange in case we change their visibility.
+  Inc(FScrollLock);
+  try
 
-    if (FHorScroll.Visible <> ScrollbarVisible) then
+    if (FHorScroll <> nil) then
     begin
-      if (ScrollbarVisible) then
-        FHorScroll.Position := 0;
-      FHorScroll.Visible := ScrollbarVisible;
-      NeedResize := True;
-    end;
-  end;
+      FHorScroll.BoundsRect := Rect(ViewPort.Left, ViewPort.Bottom, ViewPort.Right, ViewPort.Bottom+ScrollbarSize);
 
-  if (FVerScroll <> nil) then
-  begin
-    FVerScroll.BoundsRect := Rect(ViewPort.Right, ViewPort.Top, ViewPort.Right+ScrollbarSize, ViewPort.Bottom);
-    if (FVerScroll.Visible <> ScrollbarVisible) then
-    begin
-      if (ScrollbarVisible) then
-        FVerScroll.Position := 0;
-      FVerScroll.Visible := ScrollbarVisible;
-      NeedResize := True;
+      if (FHorScroll.Visible <> ScrollbarVisible) then
+      begin
+        if (ScrollbarVisible) then
+          FHorScroll.Position := 0;
+        FHorScroll.Visible := ScrollbarVisible;
+        NeedResize := True;
+      end;
     end;
+
+    if (FVerScroll <> nil) then
+    begin
+      FVerScroll.BoundsRect := Rect(ViewPort.Right, ViewPort.Top, ViewPort.Right+ScrollbarSize, ViewPort.Bottom);
+      if (FVerScroll.Visible <> ScrollbarVisible) then
+      begin
+        if (ScrollbarVisible) then
+          FVerScroll.Position := 0;
+        FVerScroll.Visible := ScrollbarVisible;
+        NeedResize := True;
+      end;
+    end;
+
+  finally
+    Dec(FScrollLock);
   end;
 
   if (NeedResize) then
@@ -4245,12 +4253,10 @@ begin
   if (Sender = FHorScroll) then
   begin
     ScrollPos := Constrain(ScrollPos, 0, FHorScroll.Max-FHorScroll.PageSize);
-//    Scroll((ScrollPos - FHorScroll.Position) / ScrollScale, 0);
   end else
   if (Sender = FVerScroll) then
   begin
     ScrollPos := Constrain(ScrollPos, 0, FVerScroll.Max - FVerScroll.PageSize);
-//    Scroll(0, (ScrollPos - FVerScroll.Position) / ScrollScale);
   end;
 
   DoScroll;
