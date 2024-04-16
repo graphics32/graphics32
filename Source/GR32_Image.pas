@@ -549,7 +549,7 @@ type
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     function GetBitmapMargin: integer; virtual;
-    procedure DoZoom(APivot: TFloatPoint; AScale: TFloat);
+    procedure DoZoom(const APivot: TFloatPoint; AScale: TFloat);
     procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
     procedure DoSetPivot(const APivot: TFloatPoint); virtual;
     procedure UpdateCache; virtual;
@@ -2404,13 +2404,15 @@ begin
     MousePos := ScreenToClient(MousePos);
 {$endif FPC}
 
-    if (FMouseZoomOptions.MaintainPivot) and (not ClientRect.Contains(MousePos)) then
-      // We can't (or rather, won't) maintain a pivot outside the viewport
-      exit;
-
     r := GetBitmapRect;
-    Pivot.X := (MousePos.X - r.Left) / ScaleX;
-    Pivot.Y := (MousePos.Y - r.Top) / ScaleY;
+
+    // Constrain pivot to bitmap rect
+    Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
+    Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+
+    // Transform coordinates from Control to Bitmap
+    Pivot.X := (Pivot.X - r.Left) / ScaleX;
+    Pivot.Y := (Pivot.Y - r.Top) / ScaleY;
 
     ZoomIn := (WheelDelta > 0) xor (FMouseZoomOptions.Invert);
     WheelDelta := Abs(WheelDelta);
@@ -2556,7 +2558,7 @@ begin
   end;
 end;
 
-procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
+procedure TCustomImage32.DoZoom(const APivot: TFloatPoint; AScale: TFloat);
 {$if defined(AnimatedZoom)}
 var
   StartValue, DeltaValue: TFloat;
