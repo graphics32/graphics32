@@ -131,7 +131,6 @@ end;
 
 type
   TBitmap32Cracker = class(TBitmap32);
-  TResamplerCracker = class(TCustomResampler);
 
 type
   // A backend that allows us to create a bitmap with its own properties but
@@ -183,7 +182,7 @@ begin
     // Note: pamSafe relies on BackgroundColor
     // Resampler.PixelAccessMode := pamSafe;
 
-    TResamplerCracker(Resampler).Resample(BitmapDest, BitmapDest.BoundsRect, BitmapDest.BoundsRect, SourceGhost, SourceGhost.BoundsRect, dmOpaque, nil);
+    StretchTransfer(BitmapDest, BitmapDest.BoundsRect, BitmapDest.BoundsRect, SourceGhost, SourceGhost.BoundsRect, Resampler, dmOpaque, nil);
 
   finally
     SourceGhost.Free;
@@ -272,10 +271,16 @@ begin
           CombineInfo.CombineCallBack := nil;
           CombineInfo.TransparentColor := 0;
 
-          BitmapDest.SetSize(TransformedWidth, TransformedHeight);
-          BitmapDest.Clear(0);
-          Rasterizer.Rasterize(BitmapDest, BitmapDest.BoundsRect, CombineInfo);
+          BitmapDest.BeginUpdate;
+          try
 
+            BitmapDest.SetSize(TransformedWidth, TransformedHeight);
+            BitmapDest.Clear(0);
+            Rasterizer.Rasterize(BitmapDest, BitmapDest.BoundsRect, CombineInfo);
+
+          finally
+            BitmapDest.EndUpdate;
+          end;
         finally
           Rasterizer.Free;
         end;
