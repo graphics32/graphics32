@@ -2082,8 +2082,11 @@ var
   Tx, Ty, I, J: Integer;
   BitmapRect: TRect;
   R: TRect;
+  AreaUpdated: boolean;
 begin
-  if (not Bitmap.Empty) and ((AArea.Left <> AArea.Right) or (AArea.Top <> AArea.Bottom)) then // Don't use IsEmpty; Rect can be negative
+  AreaUpdated := False;
+
+  if (AArea.Left <> AArea.Right) or (AArea.Top <> AArea.Bottom) then // Don't use IsEmpty; Rect can be negative
   begin
     if (not AOptimize) or (not RepaintOptimizer.Enabled) or (not Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
       UpdateRectNotification := nil;
@@ -2095,24 +2098,31 @@ begin
         UpdateRectNotification.AreaUpdated(AArea, AInfo);
       // ->Windows InvalidateRect
       inherited AreaUpdated(AArea, AInfo);
+      AreaUpdated := True;
     end else
     begin
       UpdateCache; // Ensure CachedBitmapRect is up to date
       BitmapRect := CachedBitmapRect;
 
-      Tx := Buffer.Width div BitmapRect.Right;
-      Ty := Buffer.Height div BitmapRect.Bottom;
-      for J := 0 to Ty do
-        for I := 0 to Tx do
-        begin
-          R := AArea;
-          GR32.OffsetRect(R, BitmapRect.Right * I, BitmapRect.Bottom * J);
-          if (UpdateRectNotification <> nil) then
-            UpdateRectNotification.AreaUpdated(R, AInfo);
-          inherited AreaUpdated(R, AInfo);
-        end;
+      if (BitmapRect.Right <> 0) and (BitmapRect.Bottom <> 0) then
+      begin
+        Tx := Buffer.Width div BitmapRect.Right;
+        Ty := Buffer.Height div BitmapRect.Bottom;
+        for J := 0 to Ty do
+          for I := 0 to Tx do
+          begin
+            R := AArea;
+            GR32.OffsetRect(R, BitmapRect.Right * I, BitmapRect.Bottom * J);
+            if (UpdateRectNotification <> nil) then
+              UpdateRectNotification.AreaUpdated(R, AInfo);
+            inherited AreaUpdated(R, AInfo);
+            AreaUpdated := True;
+          end;
+      end;
     end;
-  end else
+  end;
+
+  if (not AreaUpdated) then
     // Pretend that a partial repaint was just queued so the fact that
     // we just skipped the partial invalidation above doesn't end up
     // causing a full invalidate instead.
