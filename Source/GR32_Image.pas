@@ -2022,8 +2022,13 @@ begin
 end;
 
 procedure TCustomImage32.BitmapChanged(const Area: TRect);
+var
+  ViewportRect: TRect;
 begin
-  InvalidateArea(Area, 0, True);
+  // Translate the coordinates from bitmap to viewport
+  ViewportRect := BitmapToControl(Area);
+
+  InvalidateArea(ViewportRect, 0, True);
   Changed;
 end;
 
