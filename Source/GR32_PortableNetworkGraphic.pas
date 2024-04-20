@@ -5336,7 +5336,7 @@ begin
 end;
 
 function TPortableNetworkGraphic.CalculateCRC(Buffer: PByte; Count: Cardinal): Cardinal;
-{$if defined(PUREPASCAL) or (defined(FPC) and defined(TARGET_x86))} // Currently broken on 32-bit FPC
+{$if defined(PUREPASCAL)}
 var
   CrcValue : Cardinal;
   Pos      : Cardinal;
@@ -5412,8 +5412,7 @@ asm
         INC     ECX
         JS      @Start
 
-        XOR     EBX, $FFFFFFFF
-        MOV     Result, EBX
+        XOR     EAX, $FFFFFFFF
 
 @Done:
         POP     EDI
