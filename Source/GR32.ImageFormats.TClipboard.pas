@@ -40,6 +40,7 @@ implementation
 
 uses
   Classes,
+  SysUtils,
   ClipBrd,
   GR32,
   GR32_Clipboard,
@@ -54,13 +55,18 @@ uses
 //------------------------------------------------------------------------------
 type
   TImageFormatAdapterTClipboard = class(TCustomImageFormatAdapter,
-    IImageFormatAdapter)
+    IImageFormatAdapter,
+    IImageFormatWriteNotification)
   strict protected
     // IImageFormatAdapter
     function CanAssignFrom(Source: TPersistent): boolean; override;
     function AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean; override;
     function CanAssignTo(Dest: TPersistent): boolean; override;
     function AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean; override;
+  private
+    // IImageFormatWriteNotification
+    procedure BeginWriting(Source: TCustomBitmap32; Dest: TPersistent);
+    procedure EndWriting(Source: TCustomBitmap32; Dest: TPersistent);
   end;
 
 //------------------------------------------------------------------------------
@@ -88,7 +94,37 @@ end;
 
 function TImageFormatAdapterTClipboard.AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean;
 begin
-  Result := (Dest is TClipboard) and CopyBitmap32ToClipboard(Source);
+  if (Dest is TClipboard) then
+  begin
+    TClipboard(Dest).Open;
+    try
+
+      Result := CopyBitmap32ToClipboard(Source);
+
+      // Note that, if PNG format is enabled, we also place a copy of the bitmap
+      // in PNG format on the clipboard.
+      // See comment in CopyBitmap32ToClipboard.
+
+    finally
+      TClipboard(Dest).Close;
+    end;
+  end else
+    Result := False;
+end;
+
+//------------------------------------------------------------------------------
+// IImageFormatWriteNotification
+//------------------------------------------------------------------------------
+procedure TImageFormatAdapterTClipboard.BeginWriting(Source: TCustomBitmap32; Dest: TPersistent);
+begin
+  if (Dest is TClipboard) then
+    TClipboard(Dest).Open;
+end;
+
+procedure TImageFormatAdapterTClipboard.EndWriting(Source: TCustomBitmap32; Dest: TPersistent);
+begin
+  if (Dest is TClipboard) then
+    TClipboard(Dest).Close;
 end;
 
 //------------------------------------------------------------------------------

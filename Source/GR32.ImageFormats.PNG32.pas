@@ -36,11 +36,31 @@ interface
 
 {$I GR32.inc}
 
+// Define GR32_CLIPBOARD_PNG to enable the "PNG" clipboard format.
+//
+// When this clipboard format is enabled, copying a TBitmap32 to the clipboard
+// will also place a copy of the bitmap in PNG format onto the clipboard and
+// pasting from the clipboard will also support the PNG format.
+{$define GR32_CLIPBOARD_PNG}
+
+const
+  ClipboardFormatNamePNG = 'PNG';
+
+var
+  CF_PNG: Word = 0;
+
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
   Classes,
   Graphics,
+{$if defined(GR32_CLIPBOARD_PNG)}
+  Clipbrd,
+  Windows,
+  GR32_Clipboard,
+{$ifend}
   GR32,
   GR32_Png,
   GR32_PortableNetworkGraphic,
@@ -62,7 +82,8 @@ type
     IImageFormatAdapter,
     IImageFormatFileInfo,
     IImageFormatReader,
-    IImageFormatWriter)
+    IImageFormatWriter,
+    IImageFormatAux)
   strict protected
     // IImageFormatAdapter
     function CanAssignFrom(Source: TPersistent): boolean; override;
@@ -80,6 +101,9 @@ type
   private
     // IImageFormatWriter
     procedure SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
+  private
+    // IImageFormatAux
+    function IsAuxFormat(Source: TCustomBitmap32; Dest: TPersistent): boolean;
   end;
 
   TPortableNetworkGraphic32Cracker = class(TPortableNetworkGraphic32);
@@ -90,11 +114,17 @@ type
 function TImageFormatAdapterPNG32.CanAssignFrom(Source: TPersistent): boolean;
 begin
   Result := (Source is TPortableNetworkGraphic);
+{$if defined(GR32_CLIPBOARD_PNG)}
+  Result := Result or ((Source is TClipboard) and (TClipboard(Source).HasFormat(CF_PNG)));
+{$ifend}
 end;
 
 function TImageFormatAdapterPNG32.AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean;
 var
   PNG32: TPortableNetworkGraphic32;
+{$if defined(GR32_CLIPBOARD_PNG)}
+  Stream: TStream;
+{$ifend}
 begin
   if (Source is TPortableNetworkGraphic32) then
   begin
@@ -113,6 +143,38 @@ begin
     end;
     Result := True;
   end else
+{$if defined(GR32_CLIPBOARD_PNG)}
+  if (Source is TClipboard) then
+  begin
+    Dest.BeginUpdate;
+    try
+{$ifndef FPC}
+      Clipboard.Open;
+{$endif FPC}
+      try
+        Stream := TClipboardMemoryStream.Create(CF_PNG);
+        try
+          PNG32 := TPortableNetworkGraphic32.Create;
+          try
+            PNG32.LoadFromStream(Stream);
+            TPortableNetworkGraphic32Cracker(PNG32).AssignTo(Dest);
+          finally
+            PNG32.Free;
+          end;
+        finally
+          Stream.Free;
+        end;
+      finally
+{$ifndef FPC}
+        Clipboard.Close;
+{$endif FPC}
+      end;
+    finally
+      Dest.EndUpdate;
+    end;
+    Result := True;
+  end else
+{$ifend}
     Result := inherited;
 end;
 
@@ -121,11 +183,17 @@ end;
 function TImageFormatAdapterPNG32.CanAssignTo(Dest: TPersistent): boolean;
 begin
   Result := (Dest is TPortableNetworkGraphic);
+{$if defined(GR32_CLIPBOARD_PNG)}
+  Result := Result or (Dest is TClipboard);
+{$ifend}
 end;
 
 function TImageFormatAdapterPNG32.AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean;
 var
   PNG32: TPortableNetworkGraphic32;
+{$if defined(GR32_CLIPBOARD_PNG)}
+  Stream: TStream;
+{$ifend}
 begin
   if (Dest is TPortableNetworkGraphic32) then
   begin
@@ -143,6 +211,32 @@ begin
     end;
     Result := True;
   end else
+{$if defined(GR32_CLIPBOARD_PNG)}
+  if (Dest is TClipboard) then
+  begin
+{$ifndef FPC}
+    Stream := TOwnedGlobalMemoryStream.Create(1024);
+{$else FPC}
+    Stream := TMemoryStream.Create;
+{$endif FPC}
+    try
+{$ifdef FPC}
+      TMemoryStreamCracker(Stream).Capacity := 1024;
+{$endif FPC}
+
+      SaveToStream(Source, Stream);
+
+{$ifndef FPC}
+      Clipboard.SetAsHandle(CF_PNG, TGlobalMemoryStream(Stream).ReleaseHandle);
+{$else FPC}
+      Clipboard.AddFormat(CF_PNG, Stream);
+{$endif FPC}
+    finally
+      Stream.Free;
+    end;
+    Result := True;
+  end else
+{$ifend}
     Result := inherited;
 end;
 
@@ -201,6 +295,14 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+// IImageFormatAux
+//------------------------------------------------------------------------------
+function TImageFormatAdapterPNG32.IsAuxFormat(Source: TCustomBitmap32; Dest: TPersistent): boolean;
+begin
+  Result := (Dest is TClipboard);
+end;
+
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -211,6 +313,9 @@ var
 
 initialization
   ImageFormatHandle := ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPNG32.Create, ImageFormatPriorityBetter);
+{$if defined(GR32_CLIPBOARD_PNG)}
+  CF_PNG := RegisterClipboardFormat(ClipboardFormatNamePNG);
+{$ifend}
 finalization
   ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
 end.
