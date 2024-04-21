@@ -1314,7 +1314,7 @@ begin
   if (FLayerCollection = nil) then
     exit;
 
-  if (Visible) then
+  if (Visible or ForceUpdate) then
     FLayerCollection.DoUpdateArea(AArea, AInfo)
   else
   if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
