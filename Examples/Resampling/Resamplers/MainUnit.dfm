@@ -191,7 +191,9 @@ object FrmResamplersExample: TFrmResamplersExample
         Height = 21
         Style = csDropDownList
         Anchors = [akTop, akRight]
+        ItemIndex = 0
         TabOrder = 2
+        Text = 'Default (precise, slow)'
         OnChange = ComboBoxKernelModeChange
         Items.Strings = (
           'Default (precise, slow)'

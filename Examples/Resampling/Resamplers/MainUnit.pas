@@ -118,12 +118,40 @@ uses
   {$ELSE}
   Jpeg,
   {$ENDIF}
+  TypInfo,
   Math,
   GR32_LowLevel;
 
 { TfmResamplersExample }
 
 procedure TFrmResamplersExample.FormCreate(Sender: TObject);
+
+  procedure LoadWrapModes;
+  var
+    WrapMode: TWrapMode;
+    s: string;
+  begin
+    ComboBoxWrapMode.Items.Clear;
+    for WrapMode := Low(TWrapMode) to High(TWrapMode) do
+    begin
+      s := GetEnumName(TypeInfo(TWrapMode), Ord(WrapMode));
+      ComboBoxWrapMode.Items.Add(s);
+    end;
+  end;
+
+  procedure LoadPixelAccessModes;
+  var
+    PixelAccessMode: TPixelAccessMode;
+    s: string;
+  begin
+    ComboBoxPixelAccessMode.Items.Clear;
+    for PixelAccessMode := Low(TPixelAccessMode) to High(TPixelAccessMode) do
+    begin
+      s := GetEnumName(TypeInfo(TPixelAccessMode), Ord(PixelAccessMode));
+      ComboBoxPixelAccessMode.Items.Add(s);
+    end;
+  end;
+
 var
   ResStream: TResourceStream;
   JPEG: TJPEGImage;
@@ -153,8 +181,14 @@ begin
 
   ResamplerList.GetClassNames(ComboBoxResamplerClassName.Items);
   KernelList.GetClassNames(ComboBoxKernelClassName.Items);
+  LoadWrapModes;
+  LoadPixelAccessModes;
+
   ComboBoxResamplerClassName.ItemIndex := 0;
+  ComboBoxWrapMode.ItemIndex := Ord(wmClamp);
+  ComboBoxPixelAccessMode.ItemIndex := Ord(pamSafe);
   ComboBoxKernelClassName.ItemIndex := 0;
+
 
   // build 16 x 16 test bitmap
   BuildTestBitmap(BitmapPattern);
@@ -233,8 +267,7 @@ begin
   GaugeBarParameter.Visible := LblParameter.Visible;
 
   SetKernelParameter(KernelResampler.Kernel);
-
-  PaintBoxCurve.Invalidate;
+  ComboBoxKernelModeChange(nil);
 end;
 
 procedure TFrmResamplersExample.PaintBoxCurvePaintBuffer(Sender: TObject);
@@ -303,12 +336,14 @@ begin
 
   BitmapPattern.BeginUpdate;
   try
+
     Resampler := TCustomResamplerClass(ResamplerList[ComboBoxResamplerClassName.ItemIndex]).Create(BitmapPattern);
     KernelClassNamesListClick(nil);
+    ComboBoxPixelAccessModeChange(nil);
+
   finally
     BitmapPattern.EndUpdate;
   end;
-  BitmapPattern.Changed;
 
   PanelKernel.Visible := (Resampler is TKernelResampler);
   TabKernel.TabVisible := (Resampler is TKernelResampler);
@@ -337,12 +372,15 @@ begin
   begin
     // manual resampling
     BitmapPattern.Resampler.PrepareSampling;
+    try
 
-    for Y := 0 to ImagePattern.Bitmap.Height - 1 do
-      for X := 0 to ImagePattern.Bitmap.Width - 1 do
-        ImagePattern.Bitmap.Pixel[X, Y] := BitmapPattern.Resampler.GetSampleFloat(X * sw - 0.5, Y * sh - 0.5);
+      for Y := 0 to ImagePattern.Bitmap.Height - 1 do
+        for X := 0 to ImagePattern.Bitmap.Width - 1 do
+          ImagePattern.Bitmap.Pixel[X, Y] := BitmapPattern.Resampler.GetSampleFloat(X * sw - 0.5, Y * sh - 0.5);
 
-    BitmapPattern.Resampler.FinalizeSampling;
+    finally
+      BitmapPattern.Resampler.FinalizeSampling;
+    end;
   end;
 
   StatusBar.Panels[0].Text := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
@@ -355,7 +393,6 @@ begin
   if (ComboBoxKernelMode.ItemIndex >= 0) and (BitmapPattern.Resampler is TKernelResampler) then
   begin
     TKernelResampler(BitmapPattern.Resampler).KernelMode := TKernelMode(ComboBoxKernelMode.ItemIndex);
-    KernelClassNamesListClick(Self);
   end;
 end;
 
@@ -488,7 +525,7 @@ begin
   finally
     SmallerBitmap.Free;
   end;
-  ResamplingPaintBox.Repaint;
+  ResamplingPaintBox.Update;
 end;
 
 end.
