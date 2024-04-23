@@ -23,8 +23,8 @@ unit MainUnit;
  * The Original Code is Resamplers Example
  *
  * The Initial Developer of the Original Code is
- * Michael Hansen <dyster_tid@hotmail.com> 
- * Mattias Andersson <mattias@centaurix.com> 
+ * Michael Hansen <dyster_tid@hotmail.com>
+ * Mattias Andersson <mattias@centaurix.com>
  * (parts of this example were taken from the previously published example,
  * FineResample Example by Alex A. Denisov)
  *
@@ -40,13 +40,11 @@ unit MainUnit;
 interface
 
 {$I GR32.inc}
-{.$DEFINE Ex}
 
 uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls, GR32_Image, GR32_System, GR32_RangeBars, GR32, GR32_Resamplers
-  {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
+  ComCtrls, GR32_Image, GR32_System, GR32_RangeBars, GR32, GR32_Resamplers;
 
 type
   TFrmResamplersExample = class(TForm)
@@ -113,13 +111,9 @@ implementation
 {$ENDIF}
 
 uses
-  {$IFDEF FPC}
-  LazJPG,
-  {$ELSE}
-  Jpeg,
-  {$ENDIF}
   TypInfo,
   Math,
+  GR32.ImageFormats.JPG,
   GR32_LowLevel;
 
 { TfmResamplersExample }
@@ -154,7 +148,6 @@ procedure TFrmResamplersExample.FormCreate(Sender: TObject);
 
 var
   ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   BitmapPattern := TBitmap32.Create;
   BitmapPattern.OuterColor := $FFFF7F7F;
@@ -166,17 +159,11 @@ begin
   BitmapSource := TBitmap32.Create;
 
   // load example image
-  JPEG := TJPEGImage.Create;
+  ResStream := TResourceStream.Create(HInstance, 'Iceland', RT_RCDATA);
   try
-    ResStream := TResourceStream.Create(HInstance, 'Iceland', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    BitmapSource.Assign(JPEG);
+    BitmapSource.LoadFromStream(ResStream);
   finally
-    JPEG.Free;
+    ResStream.Free;
   end;
 
   ResamplerList.GetClassNames(ComboBoxResamplerClassName.Items);
@@ -254,16 +241,7 @@ begin
 
   KernelResampler.Kernel := TCustomKernelClass(KernelList[Index]).Create;
 
-  LblParameter.Visible := (KernelResampler.Kernel is TAlbrechtKernel) or
-{$IFDEF Ex}
-    (KernelResampler.Kernel is TGaussianKernel) or
-    (KernelResampler.Kernel is TKaiserBesselKernel) or
-    (KernelResampler.Kernel is TNutallKernel) or
-    (KernelResampler.Kernel is TBurgessKernel) or
-    (KernelResampler.Kernel is TBlackmanHarrisKernel) or
-    (KernelResampler.Kernel is TLawreyKernel) or
-{$ENDIF}
-    (KernelResampler.Kernel is TSinshKernel);
+  LblParameter.Visible := (KernelResampler.Kernel is TAlbrechtKernel) or (KernelResampler.Kernel is TSinshKernel);
   GaugeBarParameter.Visible := LblParameter.Visible;
 
   SetKernelParameter(KernelResampler.Kernel);
@@ -437,23 +415,6 @@ begin
   else
   if Kernel is TGaussianKernel then
     TGaussianKernel(Kernel).Sigma := GaugeBarParameter.Position * 0.1 + 1
-{$IFDEF Ex}
-  else
-  if Kernel is TKaiserBesselKernel then
-    TKaiserBesselKernel(Kernel).Alpha := GaugeBarParameter.Position * 0.1 + 1
-  else
-  if Kernel is TNutallKernel then
-    TNutallKernel(Kernel).ContinousDerivationType := TCDType(GaugeBarParameter.Position > 50)
-  else
-  if Kernel is TBurgessKernel then
-    TBurgessKernel(Kernel).BurgessOpt := TBurgessOpt(GaugeBarParameter.Position > 50)
-  else
-  if Kernel is TBlackmanHarrisKernel then
-    TBlackmanHarrisKernel(Kernel).Terms := Round(GaugeBarParameter.Position * 0.1) + 1
-  else
-  if Kernel is TLawreyKernel then
-    TLawreyKernel(Kernel).Terms := Round(GaugeBarParameter.Position * 0.1) + 1
-{$ENDIF}
   else
   if Kernel is TSinshKernel then
     TSinshKernel(Kernel).Coeff := 20 / GaugeBarParameter.Position;
