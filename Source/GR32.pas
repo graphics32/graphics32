@@ -2725,7 +2725,13 @@ begin
   Assert(FUpdateCount > 0, 'Unpaired TThreadPersistent.EndUpdate');
   if (FUpdateCount = 1) and (FModified) then
   begin
-    DoChanged;
+    try
+      DoChanged;
+    except
+      // Prevent exception from breaking batching
+      Dec(FUpdateCount);
+      raise;
+    end;
     FModified := False;
   end;
   Dec(FUpdateCount);
