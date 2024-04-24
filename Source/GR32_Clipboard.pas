@@ -1,4 +1,4 @@
-unit GR32_Clipboard;
+﻿unit GR32_Clipboard;
 
 
 (* ***** BEGIN LICENSE BLOCK *****
@@ -36,6 +36,8 @@ unit GR32_Clipboard;
 interface
 
 {$WARN SYMBOL_PLATFORM OFF}
+
+{$I GR32.inc}
 
 uses
   Classes,
@@ -124,27 +126,42 @@ uses
 {$IFDEF FPC}
   LCLIntf,
 {$ELSE FPC}
+{$IFDEF WINDOWS}
   Windows,
+{$ENDIF WINDOWS}
 {$ENDIF FPC}
+{$if defined(FRAMEWORK_VCL)}
+  Vcl.Graphics,
+  Vcl.Clipbrd,
+{$elseif defined(FRAMEWORK_FMX)}
+  FMX.Graphics,
+  FMX.Clipboard,
+  FMX.Platform,
+  FMX.Surfaces,
+{$elseif defined(FRAMEWORK_LCL)}
   Graphics,
   Clipbrd,
+{$ifend}
   SysUtils,
   GR32_Resamplers;
 
-{$IFDEF FPC}
+{$if defined(FRAMEWORK_FMX)}
+type
+  EClipboardException = EClipboardError;
+{$elseif defined(FRAMEWORK_LCL)}
 const
   CF_DIBV5 = 17;
 
 type
   EClipboardException = Exception;
-{$ENDIF}
+{$ifend}
 
 //------------------------------------------------------------------------------
 //
 //      TGlobalMemoryStream
 //
 //------------------------------------------------------------------------------
-{$ifndef FPC}
+{$if defined(WINDOWS) and not defined(FPC)}
 constructor TGlobalMemoryStream.Create(const AHandle: HGlobal);
 begin
   inherited Create;
@@ -242,7 +259,7 @@ begin
   inherited;
 end;
 
-{$endif FPC}
+{$ifend}
 
 //------------------------------------------------------------------------------
 //
@@ -289,6 +306,9 @@ var
   Matte: TBitmap32;
   Bitmap: TBitmap;
   Size: integer;
+{$if defined(FRAMEWORK_FMX)}
+  ClipboardService: IFMXExtendedClipboardService;
+{$ifend}
 begin
   Result := True;
 
@@ -325,9 +345,20 @@ begin
   ** bitmap instead of the black one Windows would use.
   *)
 
+{$if defined(FRAMEWORK_FMX)}
+  if (not TPlatformServices.Current.SupportsPlatformService(IFMXExtendedClipboardService, ClipboardService)) then
+    exit;
+{$ifend}
+
+{$if not defined(FRAMEWORK_FMX)}
   Clipboard.Open;
+{$ifend}
   try
+{$if not defined(FRAMEWORK_FMX)}
     Clipboard.Clear;
+{$else}
+    ClipboardService.SetClipboard(nil);
+{$ifend}
 
     if (Source.Empty) then
       exit(False);
@@ -349,7 +380,11 @@ begin
         Matte.Free;
       end;
 
+{$if not defined(FRAMEWORK_FMX)}
       Clipboard.Assign(Bitmap);
+{$else}
+      ClipboardService.SetClipboard(Bitmap);
+{$ifend}
 
     finally
       Bitmap.Free;
@@ -357,16 +392,16 @@ begin
 
     // Preallocate the minimum that we might need and no more.
     Size := 124 {124=SizeOf(TBitmapV5Header)} + Source.Width * Source.Height * SizeOf(DWORD);
-{$ifndef FPC}
+{$if defined(FRAMEWORK_VCL)}
     // Copy the unaltered image as CF_DIBV5
     Stream := TOwnedGlobalMemoryStream.Create(Size);
-{$else FPC}
+{$else}
     Stream := TMemoryStream.Create;
-{$endif FPC}
+{$ifend}
     try
-{$ifdef FPC}
+{$if not defined(FRAMEWORK_VCL)}
       TMemoryStreamCracker(Stream).Capacity := Size;
-{$endif FPC}
+{$ifend}
 
       // The clipboard needs a v5 DIB *without* a color table.
       // Note that Firefox, at the time of writing, expects a color table for v4 and v5 DIBs
@@ -374,17 +409,21 @@ begin
       // is that this is a bug in Firefox.
       TBitmap32Cracker(Source).SaveToDIBStream(Stream, False, TCustomBitmap32.TInfoHeaderVersion.InfoHeaderVersion5, False);
 
-{$ifndef FPC}
+{$if defined(FRAMEWORK_VCL)}
       Clipboard.SetAsHandle(CF_DIBV5, TGlobalMemoryStream(Stream).ReleaseHandle);
-{$else FPC}
+{$elseif defined(FRAMEWORK_FMX)}
+      ClipboardService.SetCustomFormat('CF_DIBV5', Stream);
+{$else}
       Clipboard.AddFormat(CF_DIBV5, Stream);
-{$endif FPC}
+{$ifend}
     finally
       Stream.Free;
     end;
 
   finally
+{$if not defined(FRAMEWORK_FMX)}
     Clipboard.Close;
+{$ifend}
   end;
 end;
 
@@ -394,19 +433,40 @@ function PasteBitmap32FromClipboard(const Dest: TCustomBitmap32): boolean;
 var
   Stream: TStream;
   Bitmap: TBitmap;
+{$if defined(FRAMEWORK_FMX)}
+  ClipboardService: IFMXExtendedClipboardService;
+  BitmapSurface: TBitmapSurface;
+{$ifend}
 begin
   Result := False;
 
+{$if defined(FRAMEWORK_FMX)}
+  if (not TPlatformServices.Current.SupportsPlatformService(IFMXExtendedClipboardService, ClipboardService)) then
+    exit;
+{$ifend}
+
+{$if not defined(FRAMEWORK_FMX)}
   if (Clipboard.HasFormat(CF_DIBV5)) then
+{$else}
+  if (ClipboardService.HasCustomFormat('CF_DIBV5')) then
+{$ifend}
   begin
     Dest.BeginUpdate;
     try
-{$ifndef FPC}
+{$if defined(FRAMEWORK_VCL)}
       Clipboard.Open;
-{$endif FPC}
+{$ifend}
       try
+{$if not defined(FRAMEWORK_FMX)}
         Stream := TClipboardMemoryStream.Create(CF_DIBV5);
+{$else}
+        Stream := TMemoryStream.Create;
+{$ifend}
         try
+{$if defined(FRAMEWORK_FMX)}
+          ClipboardService.GetCustomFormat('CF_DIBV5', Stream);
+          Stream.Position := 0;
+{$ifend}
 
           Result := TBitmap32Cracker(Dest).LoadFromDIBStream(Stream, Stream.Size);
 
@@ -415,9 +475,9 @@ begin
         end;
 
       finally
-{$ifndef FPC}
+{$if defined(FRAMEWORK_VCL)}
         Clipboard.Close;
-{$endif FPC}
+{$ifend}
       end;
     finally
       Dest.EndUpdate;
@@ -428,7 +488,11 @@ begin
   // There's no need to fall back to CF_DIB since the clipboard will
   //synthesize CF_DIBV5 from CF_DIB.
 
+{$if not defined(FRAMEWORK_FMX)}
   if (not Result) and (Clipboard.HasFormat(CF_BITMAP)) then
+{$else}
+  if (not Result) and (ClipboardService.HasImage) then
+{$ifend}
   begin
     // Fall back to CF_BITMAP format.
     // Note: We must do an explicit assign to a bitmap or we risk that the
@@ -440,7 +504,12 @@ begin
     try
       Bitmap := TBitmap.Create;
       try
+{$if not defined(FRAMEWORK_FMX)}
         Bitmap.Assign(Clipboard);
+{$else}
+        BitmapSurface := ClipboardService.GetImage;
+        Bitmap.Assign(BitmapSurface);
+{$ifend}
         Dest.Assign(Bitmap);
       finally
         Bitmap.Free;
@@ -457,9 +526,18 @@ end;
 //------------------------------------------------------------------------------
 
 function CanPasteBitmap32: boolean;
+{$if defined(FRAMEWORK_FMX)}
+var
+  ClipboardService: IFMXExtendedClipboardService;
+{$ifend}
 begin
   try
+{$if not defined(FRAMEWORK_FMX)}
     Result:= Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_DIBV5);
+{$else}
+    Result := (TPlatformServices.Current.SupportsPlatformService(IFMXExtendedClipboardService, ClipboardService)) and
+      (ClipboardService.HasImage) or (ClipboardService.HasCustomFormat('CF_DIBV5'));
+{$ifend}
   except
     on E: EClipboardException do
       Result := False; // Something else has the clipboard open
@@ -469,9 +547,18 @@ end;
 //------------------------------------------------------------------------------
 
 function CanPasteBitmap32Alpha: boolean;
+{$if defined(FRAMEWORK_FMX)}
+var
+  ClipboardService: IFMXExtendedClipboardService;
+{$ifend}
 begin
   try
+{$if not defined(FRAMEWORK_FMX)}
     Result:= Clipboard.HasFormat(CF_DIBV5);
+{$else}
+    Result := (TPlatformServices.Current.SupportsPlatformService(IFMXExtendedClipboardService, ClipboardService)) and
+      (ClipboardService.HasCustomFormat('CF_DIBV5'));
+{$ifend}
   except
     on E: EClipboardException do
       Result := False; // Something else has the clipboard open

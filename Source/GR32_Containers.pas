@@ -38,17 +38,11 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  {$IFDEF Windows}
-  Windows,
-  {$ELSE}
   Types,
-  {$ENDIF}
-{$ELSE}
-  Types, Windows,
-{$ENDIF}
   RTLConsts,
-  GR32, SysUtils, Classes, TypInfo;
+  SysUtils,
+  Classes,
+  TypInfo;
 
 const
   BUCKET_MASK = $FF;               
@@ -577,7 +571,7 @@ end;
 function TRectList.IndexOf(const Rect: TRect): Integer;
 begin
   Result := 0;
-  while (Result < FCount) and not EqualRect(FList^[Result], Rect) do
+  while (Result < FCount) and not (FList^[Result] = Rect) do
     Inc(Result);
   if Result = FCount then
     Result := -1;

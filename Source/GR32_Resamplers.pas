@@ -29,9 +29,6 @@
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Michael Hansen <dyster_tid@hotmail.com>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -44,18 +41,14 @@ interface
 {$define PREMULTIPLY}
 
 
-{$IFNDEF FPC}
-{-$IFDEF USE_3DNOW}
-{$ENDIF}
-
 uses
-{$IFDEF FPC}
-  LCLIntf,
-{$ELSE}
-  Windows, Types,
-{$ENDIF}
-  Classes, SysUtils, GR32, GR32_Transforms, GR32_Containers,
-  GR32_OrdinalMaps, GR32_Blend;
+  Classes,
+  SysUtils, // Exception
+  GR32,
+  GR32_Transforms,
+  GR32_Containers,
+  GR32_OrdinalMaps,
+  GR32_Blend;
 
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -603,7 +596,7 @@ var
   ResamplerList: TClassList;
 
 const
-  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
+  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0) deprecated 'Use Default(TBufferEntry)';
 
 var
   BlockAverage: function(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
@@ -619,8 +612,13 @@ resourcestring
 implementation
 
 uses
-  GR32_System, GR32_Bindings, GR32_LowLevel, GR32_Rasterizers, GR32_Math,
-  GR32_Gamma, Math;
+  Math,
+  GR32_System,
+  GR32_Bindings,
+  GR32_LowLevel,
+  GR32_Rasterizers,
+  GR32_Math,
+  GR32_Gamma;
 
 resourcestring
   RCStrInvalidSrcRect = 'Invalid SrcRect';
@@ -3462,7 +3460,7 @@ begin
 
   end;
 
-  VertEntry := EMPTY_ENTRY;
+  VertEntry := Default(TBufferEntry);
   case PixelAccessMode of
     pamUnsafe, pamSafe, pamTransparentEdge:
       begin
@@ -3473,7 +3471,7 @@ begin
           Wv := PVertKernel[I];
           if Wv <> 0 then
           begin
-            HorzEntry := EMPTY_ENTRY;
+            HorzEntry := Default(TBufferEntry);
             for J := LoX to HiX do
             begin
               // Alpha=0 should not contribute to sample.
@@ -3522,7 +3520,7 @@ begin
               Wv := PVertKernel[I];
               if Wv <> 0 then
               begin
-                HorzEntry := EMPTY_ENTRY;
+                HorzEntry := Default(TBufferEntry);
                 for J := -KWidth to KWidth do
                   if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
                   begin
@@ -3557,7 +3555,7 @@ begin
           begin
             MappingY := WrapProcVert(clY + I, ClipRect.Top, ClipRect.Bottom - 1);
             Colors := PColor32EntryArray(Bitmap.ScanLine[MappingY]);
-            HorzEntry := EMPTY_ENTRY;
+            HorzEntry := Default(TBufferEntry);
             for J := -KWidth to KWidth do
             begin
               C := Colors[MappingX[J]];
@@ -3976,7 +3974,7 @@ var
   dX, dY, tX: TFixed;
   Buffer: TBufferEntry;
 begin
-  Buffer := EMPTY_ENTRY;
+  Buffer := Default(TBufferEntry);
   tX := X + FOffsetX;
   Inc(Y, FOffsetY);
   dX := FDistanceX;
@@ -4116,7 +4114,7 @@ begin
   I := High(FPattern[PY]);
   WrapProcHorz := GetOptimalWrap(I);
   Points := FPattern[PY][WrapProcHorz(TFixedRec(X).Int, I)];
-  Buffer := EMPTY_ENTRY;
+  Buffer := Default(TBufferEntry);
   P := @Points[0];
   for I := 0 to High(Points) do
   begin
@@ -4248,7 +4246,7 @@ constructor TKernelSampler.Create(ASampler: TCustomSampler);
 begin
   inherited;
   FKernel := TIntegerMap.Create;
-  FStartEntry := EMPTY_ENTRY;
+  FStartEntry := Default(TBufferEntry);
 end;
 
 destructor TKernelSampler.Destroy;
@@ -4428,14 +4426,14 @@ end;
 function TSelectiveConvolver.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
   FRefColor := FGetSampleFixed(X, Y);
-  FWeightSum := EMPTY_ENTRY;
+  FWeightSum := Default(TBufferEntry);
   Result := inherited GetSampleFixed(X, Y);
 end;
 
 function TSelectiveConvolver.GetSampleInt(X, Y: Integer): TColor32;
 begin
   FRefColor := FGetSampleInt(X, Y);
-  FWeightSum := EMPTY_ENTRY;
+  FWeightSum := Default(TBufferEntry);
   Result := inherited GetSampleInt(X, Y);
 end;
 

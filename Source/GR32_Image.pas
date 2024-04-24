@@ -28,16 +28,11 @@ unit GR32_Image;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Mattias Andersson <mattias@centaurix.com>
- * Andre Beckedorf <Andre@metaException.de>
- * Andrew P. Rybin <aprybin@users.sourceforge.net>
- * Dieter Köhler <dieter.koehler@philo.de>
- * Michael Hansen <dyster_tid@hotmail.com>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
+
+//------------------------------------------------------------------------------
 
 // Define CONSOLIDATE_UPDATERECTS to consolidate potentially overlapping
 // update areas into as few separate non-overlapping areas as possible.
@@ -56,21 +51,38 @@ interface
   {$define PAINT_UNCLIPPED}
 {$endif}
 
+//------------------------------------------------------------------------------
+
 {$I GR32.inc}
 
 uses
 {$if defined(WINDOWS)}
   Windows,
 {$ifend}
-{$IFDEF FPC}
-  LCLIntf, LCLType, LMessages,
-{$ELSE}
+
+{$if defined(FRAMEWORK_VCL)}
   Messages,
-{$ENDIF}
-  Types, Graphics, Controls, Forms, Classes, SysUtils,
+{$elseif defined(FRAMEWORK_FMX)}
+{$elseif defined(FRAMEWORK_LCL)}
+  LCLIntf, LCLType, LMessages,
+{$ifend}
+
+{$if defined(FRAMEWORK_VCL)}
+  VCL.Graphics,
+  VCL.Controls,
+  VCL.StdCtrls, // TScrollBar
+{$elseif defined(FRAMEWORK_FMX)}
+  FMX.Graphics,
+  FMX.Controls,
+{$elseif defined(FRAMEWORK_LCL)}
+  Graphics,
+  Controls,
+  StdCtrls, // TScrollBar
+{$ifend}
+  Types,
+  Classes,
   GR32,
   GR32_Layers,
-  GR32_RangeBars,
   GR32_Containers,
   GR32_RepaintOpt;
 
@@ -79,6 +91,11 @@ uses
 {$define AnimatedZoom}
 {$ENDIF}
 
+//------------------------------------------------------------------------------
+//
+//      TPaintStages & TPaintStage
+//
+//------------------------------------------------------------------------------
 const
   { Paint Stage Constants }
   PST_CUSTOM            = 1;   // Calls OnPaint with # of current stage in parameter
@@ -138,8 +155,31 @@ type
 
   TRepaintMode = (rmFull, rmDirect, rmOptimizer);
 
-  { TCustomPaintBox32 }
-  TCustomPaintBox32 = class(TCustomControl)
+
+//------------------------------------------------------------------------------
+//
+//      Graphics32 custom control base class
+//
+//------------------------------------------------------------------------------
+// This can be eliminated if (when) we abandon FireMonkey support
+//------------------------------------------------------------------------------
+type
+{$if defined(FRAMEWORK_VCL)}
+  TGraphics32ControlBaseClass = TCustomControl;
+{$elseif defined(FRAMEWORK_FMX)}
+  TGraphics32ControlBaseClass = TControl;
+{$elseif defined(FRAMEWORK_LCL)}
+  TGraphics32ControlBaseClass = TCustomControl;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
+//      TCustomPaintBox32
+//
+//------------------------------------------------------------------------------
+type
+  TCustomPaintBox32 = class(TGraphics32ControlBaseClass)
   strict private
     FBuffer: TBitmap32;
     FBufferOversize: Integer;
@@ -223,7 +263,6 @@ type
     procedure Flush(const SrcRect: TRect); overload;
     procedure Invalidate; override;
     procedure ForceFullInvalidate; virtual;
-    procedure Resize; override;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
     property Buffer: TBitmap32 read FBuffer;
@@ -238,7 +277,12 @@ type
     property OnGDIOverlay: TNotifyEvent read FOnGDIOverlay write FOnGDIOverlay;
   end;
 
-  { TPaintBox32 }
+//------------------------------------------------------------------------------
+//
+//      TPaintBox32
+//
+//------------------------------------------------------------------------------
+type
   TPaintBox32 = class(TCustomPaintBox32)
   strict private
     FOnPaintBuffer: TNotifyEvent;
@@ -285,7 +329,13 @@ type
     property OnStartDrag;
   end;
 
-  { TCustomImage32 }
+
+//------------------------------------------------------------------------------
+//
+//      TCustomImage32
+//
+//------------------------------------------------------------------------------
+type
   TImgMouseEvent = procedure(Sender: TObject; Button: TMouseButton;
     Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer) of object;
   TImgMouseMoveEvent = procedure(Sender: TObject; Shift: TShiftState;
@@ -471,7 +521,6 @@ type
     CachedScaleX, CachedScaleY,
     CachedRecScaleX, CachedRecScaleY: TFloat;
     CacheValid: Boolean;
-    OldSzX, OldSzY: Integer;
     PaintToMode: Boolean;
   protected
     procedure CreateBuffer; override;
@@ -499,8 +548,9 @@ type
     procedure MouseLeave; override;
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
-    procedure DoZoom(APivot: TFloatPoint; AScale: TFloat);
-    procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
+    function GetBitmapMargin: integer; virtual;
+    procedure DoZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
+    procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
     procedure DoSetPivot(const APivot: TFloatPoint); virtual;
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
@@ -536,14 +586,16 @@ type
     procedure ExecDrawBitmap(Dest: TBitmap32; StageNum: Integer); virtual;    // PST_DRAW_BITMAP
     procedure ExecDrawLayers(Dest: TBitmap32; StageNum: Integer); virtual;    // PST_DRAW_LAYERS
 
-    function  GetBitmapRect: TRect; virtual;
-    function  GetBitmapSize: TSize; virtual;
+    function GetBitmapRect: TRect; virtual;
+    function GetBitmapSize: TSize; virtual; // Note: Scaled bitmap size
 
     procedure PaintTo(Dest: TBitmap32; DestRect: TRect); virtual;
-    procedure Resize; override;
+    procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
     procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
     procedure Scroll(Dx, Dy: Integer); overload;
     procedure Scroll(Dx, Dy: Single); overload; virtual;
+    procedure Zoom(AScale: TFloat; const APivot: TFloatPoint; AAnimate: boolean = False); overload;
+    procedure Zoom(AScale: TFloat; AAnimate: boolean = False); overload;
 
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
@@ -571,6 +623,13 @@ type
     property OnScaleChange: TNotifyEvent read FOnScaleChange write FOnScaleChange;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TImage32
+//
+//------------------------------------------------------------------------------
+type
   TImage32 = class(TCustomImage32)
   published
     property Align;
@@ -625,25 +684,35 @@ type
     property OnStartDrag;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TCustomImgView32
+//
+//------------------------------------------------------------------------------
   TCustomImgView32 = class;
 
+  { TIVScrollProperties }
   TScrollBarVisibility = (svAlways, svHidden, svAuto);
 
-  { TIVScrollProperties }
-  TIVScrollProperties = class(TArrowBarAccess)
+  TImageViewScrollProperties = class(TPersistent)
   private
-    function GetIncrement: Integer;
-    function GetSize: Integer;
-    function GetVisibility: TScrollbarVisibility;
+    FOwner: TCustomImgView32;
+    FVisibility: TScrollBarVisibility;
+    FIncrement: Integer;
+    FSize: Integer;
     procedure SetIncrement(Value: Integer);
     procedure SetSize(Value: Integer);
     procedure SetVisibility(const Value: TScrollbarVisibility);
+    procedure SkipValue(Reader: TReader);
   protected
-    ImgView: TCustomImgView32;
+    procedure DefineProperties(Filer: TFiler); override;
+  public
+    constructor Create(AOwner: TCustomImgView32);
   published
-    property Increment: Integer read GetIncrement write SetIncrement default 8;
-    property Size: Integer read GetSize write SetSize default 0;
-    property Visibility: TScrollBarVisibility read GetVisibility write SetVisibility default svAlways;
+    property Increment: Integer read FIncrement write SetIncrement default 8;
+    property Size: Integer read FSize write SetSize default 0;
+    property Visibility: TScrollBarVisibility read FVisibility write SetVisibility default svAlways;
   end;
 
   TSizeGripStyle = (sgAuto, sgNone, sgAlways);
@@ -652,26 +721,40 @@ type
   TCustomImgView32 = class(TCustomImage32)
   strict private
     FCentered: Boolean;
-    FScrollBarSize: Integer;
-    FScrollBarVisibility: TScrollBarVisibility;
-    FScrollBars: TIVScrollProperties;
+    FScrollBars: TImageViewScrollProperties;
+    FHorScroll: TScrollBar;
+    FVerScroll: TScrollBar;
+    FHorScrollMax: integer;
+    FHorScrollThumbSize: integer;
+    FVerScrollMax: integer;
+    FVerScrollThumbSize: integer;
     FSizeGrip: TSizeGripStyle;
     FOnScroll: TNotifyEvent;
     FOverSize: Integer;
+    FAlignCount: integer;
+    FNeedAlign: boolean;
     procedure SetCentered(Value: Boolean);
-    procedure SetScrollBars(Value: TIVScrollProperties);
+    procedure SetScrollBars(Value: TImageViewScrollProperties);
     procedure SetSizeGrip(Value: TSizeGripStyle);
     procedure SetOverSize(const Value: Integer);
   protected
+    const ScrollScale: integer = 1; // TODO : Get rid of this. It just obfuscates the code.
+  protected
     FScrollLock: integer;
-    HScroll: TCustomRangeBar;
-    VScroll: TCustomRangeBar;
+    property HScroll: TScrollBar read FHorScroll;
+    property VScroll: TScrollBar read FVerScroll;
+    procedure DoAlign;
+    procedure BeginAlign;
     procedure AlignAll;
+    procedure EndAlign;
     procedure BitmapResized; override;
     procedure DoDrawSizeGrip(R: TRect);
     procedure DoScaleChange; override;
     function CanMousePan: boolean; override;
     procedure DoScroll; virtual;
+    function GetBitmapMargin: integer; override;
+    function GetOuterScaledBitmapSize: TSize; // Scaled bitmap + unscaled margin
+    function  CanShowScrollBars: Boolean;
     function  GetScrollBarsVisible: Boolean;
     function  GetScrollBarSize: Integer;
     function  GetSizeGripRect: TRect;
@@ -684,29 +767,31 @@ type
     procedure SetScaleMode(Value: TScaleMode); override;
     procedure DoSetPivot(const APivot: TFloatPoint); override;
     procedure ScrollHandler(Sender: TObject); virtual;
-    procedure ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
+    procedure ScrollChangingHandler(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
     procedure UpdateImage; virtual;
     procedure UpdateScrollBars; virtual;
-    // Properties for use by TIVScrollProperties
-    // TODO : Replace by interface: IScrollPropertiesOwner
-    property ScrollBarSize: Integer read FScrollBarSize write FScrollBarSize;
-    property ScrollBarVisibility: TScrollBarVisibility read FScrollBarVisibility write FScrollBarVisibility;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    function  GetViewportRect: TRect; override;
+    function GetViewportRect: TRect; override;
     procedure Loaded; override;
     procedure Resize; override;
     procedure ScrollToCenter(X, Y: Integer);
     procedure Scroll(Dx, Dy: Single); override;
     property Centered: Boolean read FCentered write SetCentered default True;
-    property ScrollBars: TIVScrollProperties read FScrollBars write SetScrollBars;
+    property ScrollBars: TImageViewScrollProperties read FScrollBars write SetScrollBars;
     property SizeGrip: TSizeGripStyle read FSizeGrip write SetSizeGrip default sgAuto;
     property OverSize: Integer read FOverSize write SetOverSize;
     property OnScroll: TNotifyEvent read FOnScroll write FOnScroll;
   end;
 
+//------------------------------------------------------------------------------
+//
+//      TImgView32
+//
+//------------------------------------------------------------------------------
+type
   TImgView32 = class(TCustomImgView32)
     property Align;
     property Anchors;
@@ -746,7 +831,7 @@ type
     property OnDragOver;
     property OnEndDrag;
     property OnGDIOverlay;
-    property OnInitStages; 
+    property OnInitStages;
     property OnKeyDown;
     property OnKeyPress;
     property OnKeyUp;
@@ -764,6 +849,13 @@ type
     property OnStartDrag;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TBitmap32List
+//
+//------------------------------------------------------------------------------
+type
   { TBitmap32Item }
   { A bitmap container designed to be inserted into TBitmap32Collection }
   TBitmap32Item = class(TCollectionItem)
@@ -812,6 +904,12 @@ type
     property Bitmaps: TBitmap32Collection read FBitmap32Collection write SetBitmap32Collection;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Global options
+//
+//------------------------------------------------------------------------------
 var
   DefaultCheckersColors: array[TBackgroundCheckerStyle] of TBackgroundOptions.TCheckersColors =
     (($FFFFFFFF, $FF000000),
@@ -825,23 +923,35 @@ var
   // Time between each zoom step. 1000 / ZoomAnimateDeltaTime = frame rate
   ZoomAnimateDeltaTime: integer = 5; // mS
 
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
-  Math, TypInfo,
+  Math,
+  SysUtils,
+{$if not defined(FRAMEWORK_FMX)}
+  Forms,
+{$ifend}
 {$if defined(WINDOWS)}
-  MMSystem,
+  MMSystem, // TimeGetTime
+  Themes,
 {$ifend}
 {$if defined(AnimatedZoom)}
   amEasing,
 {$ifend}
-  GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel,
-  GR32_Resamplers, GR32_Backends_Generic;
+  GR32_MicroTiles,
+  GR32_Backends,
+  GR32_LowLevel,
+  GR32_Resamplers,
+  GR32_Backends_Generic;
 
 type
   TLayerAccess = class(TCustomLayer);
   TLayerCollectionAccess = class(TLayerCollection);
-  TRangeBarAccess = class(TRangeBar);
   TBitmap32Cracker = class(TCustomBitmap32);
 
 const
@@ -850,8 +960,12 @@ const
 resourcestring
   RCStrInvalidStageIndex = 'Invalid stage index';
 
-{ TPaintStage }
 
+//------------------------------------------------------------------------------
+//
+//      TPaintStage
+//
+//------------------------------------------------------------------------------
 function TPaintStage.GetDesignTime: boolean;
 begin
   Result := (psmDesignTime in Mask);
@@ -878,7 +992,17 @@ begin
     Exclude(Mask, psmRunTime);
 end;
 
-{ TPaintStages }
+
+//------------------------------------------------------------------------------
+//
+//      TPaintStages
+//
+//------------------------------------------------------------------------------
+destructor TPaintStages.Destroy;
+begin
+  Clear;
+  inherited;
+end;
 
 function TPaintStages.Add: PPaintStage;
 var
@@ -917,12 +1041,6 @@ begin
   SetLength(FItems, High(FItems));
 end;
 
-destructor TPaintStages.Destroy;
-begin
-  Clear;
-  inherited;
-end;
-
 function TPaintStages.GetItem(Index: Integer): PPaintStage;
 begin
   Result := @FItems[Index];
@@ -952,11 +1070,16 @@ begin
 end;
 
 
-{ TCustomPaintBox32 }
-
+//------------------------------------------------------------------------------
+//
+//      TCustomPaintBox32
+//
+//------------------------------------------------------------------------------
 constructor TCustomPaintBox32.Create(AOwner: TComponent);
 begin
   inherited;
+
+  ControlStyle := ControlStyle - [csAcceptsControls];
 
   CreateBuffer;
 
@@ -986,16 +1109,31 @@ begin
   inherited;
 end;
 
+//------------------------------------------------------------------------------
+
+procedure TCustomPaintBox32.Loaded;
+begin
+  ResizeBuffer;
+  FBufferValid := False;
+  inherited;
+end;
+
+//------------------------------------------------------------------------------
+
 procedure TCustomPaintBox32.CreateBuffer;
 begin
   FBuffer := TBitmap32.Create;
 end;
+
+//------------------------------------------------------------------------------
 
 function TCustomPaintBox32.CreateRepaintOptimizer(ABuffer: TBitmap32;
   AInvalidRects: TRectList): TCustomRepaintOptimizer;
 begin
   Result := DefaultRepaintOptimizerClass.Create(ABuffer, AInvalidRects);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure TCustomPaintBox32.BeginUpdate;
 begin
@@ -1025,17 +1163,6 @@ begin
   Dec(FUpdateCount);
 end;
 
-procedure TCustomPaintBox32.BeginLockUpdate;
-begin
-  Inc(FLockUpdateCount);
-end;
-
-procedure TCustomPaintBox32.EndLockUpdate;
-begin
-  Assert(FLockUpdateCount > 0, 'Unpaired UnlockUpdate call');
-  Dec(FLockUpdateCount);
-end;
-
 procedure TCustomPaintBox32.Changed;
 begin
   if (FLockUpdateCount > 0) then
@@ -1059,6 +1186,21 @@ begin
     Update;
 end;
 
+//------------------------------------------------------------------------------
+
+procedure TCustomPaintBox32.BeginLockUpdate;
+begin
+  Inc(FLockUpdateCount);
+end;
+
+procedure TCustomPaintBox32.EndLockUpdate;
+begin
+  Assert(FLockUpdateCount > 0, 'Unpaired UnlockUpdate call');
+  Dec(FLockUpdateCount);
+end;
+
+//------------------------------------------------------------------------------
+
 procedure TCustomPaintBox32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
 var
   UpdateRectSupport: IUpdateRectSupport;
@@ -1080,6 +1222,8 @@ begin
     inherited Invalidate;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TCustomPaintBox32.AssignTo(Dest: TPersistent);
 begin
   inherited AssignTo(Dest);
@@ -1098,6 +1242,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TCustomPaintBox32.CMMouseEnter(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
   inherited;
@@ -1109,6 +1255,30 @@ begin
   MouseLeave;
   inherited;
 end;
+
+procedure TCustomPaintBox32.MouseDown(Button: TMouseButton; Shift: TShiftState;
+  X, Y: Integer);
+begin
+  if (pboAutoFocus in Options) and CanFocus then
+    SetFocus;
+  inherited;
+end;
+
+procedure TCustomPaintBox32.MouseEnter;
+begin
+  FMouseInControl := True;
+  if Assigned(FOnMouseEnter) then
+    FOnMouseEnter(Self);
+end;
+
+procedure TCustomPaintBox32.MouseLeave;
+begin
+  FMouseInControl := False;
+  if Assigned(FOnMouseLeave) then
+    FOnMouseLeave(Self);
+end;
+
+//------------------------------------------------------------------------------
 
 procedure TCustomPaintBox32.DoBufferResized(const OldWidth, OldHeight: Integer);
 begin
@@ -1133,6 +1303,8 @@ begin
   Result := True;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TCustomPaintBox32.DoPaintBuffer;
 begin
   // force full repaint, this is necessary when Buffer is invalid and was never painted
@@ -1141,8 +1313,7 @@ begin
   begin
     FForceFullRepaint := False;
     FInvalidRects.Clear;
-  end
-  else
+  end else
     DoPrepareInvalidRects;
 
   // descendants should override this method for painting operations,
@@ -1156,7 +1327,11 @@ begin
     FOnGDIOverlay(Self);
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TCustomPaintBox32.Flush;
+var
+  ViewportRect: TRect;
 begin
   if (FBuffer.Handle <> 0) then
   begin
@@ -1165,9 +1340,11 @@ begin
       FBuffer.Lock;
       try
         if (Canvas.Handle <> 0) then
-          with GetViewportRect do
-            BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
-              FBuffer.Handle, 0, 0, SRCCOPY);
+        begin
+          ViewportRect := GetViewportRect;
+          BitBlt(Canvas.Handle, ViewportRect.Left, ViewportRect.Top, ViewportRect.Width, ViewportRect.Height,
+            FBuffer.Handle, 0, 0, SRCCOPY);
+        end;
       finally
         FBuffer.Unlock;
       end;
@@ -1179,7 +1356,7 @@ end;
 
 procedure TCustomPaintBox32.Flush(const SrcRect: TRect);
 var
-  R: TRect;
+  ViewportRect: TRect;
 begin
   if (FBuffer.Handle <> 0) then
   begin
@@ -1187,11 +1364,10 @@ begin
     try
       FBuffer.Lock;
       try
-        R := GetViewPortRect;
+        ViewportRect := GetViewPortRect;
         if (Canvas.Handle <> 0) then
-          with SrcRect do
-            BitBlt(Canvas.Handle, Left + R.Left, Top + R.Top, Right - Left,
-              Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
+          BitBlt(Canvas.Handle, SrcRect.Left + ViewportRect.Left, SrcRect.Top + ViewportRect.Top, SrcRect.Width, SrcRect.Height,
+            FBuffer.Handle, SrcRect.Left, SrcRect.Top, SRCCOPY);
       finally
         FBuffer.Unlock;
       end;
@@ -1205,10 +1381,10 @@ function TCustomPaintBox32.GetViewportRect: TRect;
 begin
   // returns position of the buffered area within the control bounds
   // by default, the whole control is buffered
-  Result.Left := 0;
-  Result.Top := 0;
-  Result.Right := Width;
-  Result.Bottom := Height;
+  if (HandleAllocated) then
+    Result := ClientRect
+  else
+    Result := BoundsRect;
 end;
 
 procedure TCustomPaintBox32.Invalidate;
@@ -1229,35 +1405,6 @@ begin
     FRepaintOptimizer.Reset;
   FForceFullRepaint := True;
   Invalidate;
-end;
-
-procedure TCustomPaintBox32.Loaded;
-begin
-  ResizeBuffer;
-  FBufferValid := False;
-  inherited;
-end;
-
-procedure TCustomPaintBox32.MouseDown(Button: TMouseButton; Shift: TShiftState;
-  X, Y: Integer);
-begin
-  if (pboAutoFocus in Options) and CanFocus then
-    SetFocus;
-  inherited;
-end;
-
-procedure TCustomPaintBox32.MouseEnter;
-begin
-  FMouseInControl := True;
-  if Assigned(FOnMouseEnter) then
-    FOnMouseEnter(Self);
-end;
-
-procedure TCustomPaintBox32.MouseLeave;
-begin
-  FMouseInControl := False;
-  if Assigned(FOnMouseLeave) then
-    FOnMouseLeave(Self);
 end;
 
 procedure TCustomPaintBox32.Paint;
@@ -1379,14 +1526,6 @@ end;
 procedure TCustomPaintBox32.ResetInvalidRects;
 begin
   FInvalidRects.Clear;
-end;
-
-procedure TCustomPaintBox32.Resize;
-begin
-  if (not (csLoading in ComponentState)) then
-    ResizeBuffer;
-  BufferValid := False;
-  inherited;
 end;
 
 procedure TCustomPaintBox32.ResizeBuffer;
@@ -1602,8 +1741,11 @@ begin
 end;
 
 
-{ TPaintBox32 }
-
+//------------------------------------------------------------------------------
+//
+//      TPaintBox32
+//
+//------------------------------------------------------------------------------
 procedure TPaintBox32.DoPaintBuffer;
 begin
   if Assigned(FOnPaintBuffer) then
@@ -1612,8 +1754,11 @@ begin
 end;
 
 
-{ TBackgroundOptions }
-
+//------------------------------------------------------------------------------
+//
+//      TBackgroundOptions
+//
+//------------------------------------------------------------------------------
 procedure TBackgroundOptions.ChangeHandler(Sender: TObject);
 begin
   CheckFillStyle;
@@ -1827,12 +1972,16 @@ begin
   end;
 end;
 
-{ TCustomImage32 }
 
+//------------------------------------------------------------------------------
+//
+//      TCustomImage32
+//
+//------------------------------------------------------------------------------
 constructor TCustomImage32.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := [csAcceptsControls, csCaptureMouse, csClickEvents, csDoubleClicks, csReplicatable, csOpaque];
+  ControlStyle := [csCaptureMouse, csClickEvents, csDoubleClicks, csReplicatable, csOpaque];
 
   FLayers := CreateLayerCollection;
   FLayers.Subscribe(Self);
@@ -2077,7 +2226,8 @@ end;
 procedure TCustomImage32.BitmapChangeHandler(Sender: TObject);
 begin
   RepaintOptimizer.Reset;
-  BitmapChanged(Bitmap.Boundsrect);
+  UpdateCache; // Ensure CachedBitmapRect is up to date
+  BitmapChanged(CachedBitmapRect);
 end;
 
 procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
@@ -2271,13 +2421,15 @@ begin
     MousePos := ScreenToClient(MousePos);
 {$endif FPC}
 
-    if (FMouseZoomOptions.MaintainPivot) and (not ClientRect.Contains(MousePos)) then
-      // We can't (or rather, won't) maintain a pivot outside the viewport
-      exit;
-
     r := GetBitmapRect;
-    Pivot.X := (MousePos.X - r.Left) / ScaleX;
-    Pivot.Y := (MousePos.Y - r.Top) / ScaleY;
+
+    // Constrain pivot to bitmap rect
+    Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
+    Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+
+    // Transform coordinates from Control to Bitmap
+    Pivot.X := (Pivot.X - r.Left) / ScaleX;
+    Pivot.Y := (Pivot.Y - r.Top) / ScaleY;
 
     ZoomIn := (WheelDelta > 0) xor (FMouseZoomOptions.Invert);
     WheelDelta := Abs(WheelDelta);
@@ -2290,7 +2442,7 @@ begin
 
     NewScale := Scale * ZoomFactor;
 
-    DoZoom(Pivot, NewScale);
+    DoZoom(Pivot, NewScale, FMouseZoomOptions.MaintainPivot, FMouseZoomOptions.Animate);
 
     Result := True;
   end;
@@ -2391,7 +2543,7 @@ begin
   OffsetVert := APivot.Y;
 end;
 
-procedure TCustomImage32.DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
+procedure TCustomImage32.DoSetZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
 var
   DeltaScale: TFloat;
   NewOffset: TFloatPoint;
@@ -2407,7 +2559,7 @@ begin
   try
     Scale := AScale;
 
-    if (FMouseZoomOptions.MaintainPivot) and (BitmapAlign = baCustom) then
+    if (AMaintainPivot) and (BitmapAlign = baCustom) and (ScaleMode = smScale) then
     begin
       DeltaScale := DeltaScale - Scale;
 
@@ -2423,7 +2575,7 @@ begin
   end;
 end;
 
-procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
+procedure TCustomImage32.DoZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
 {$if defined(AnimatedZoom)}
 var
   StartValue, DeltaValue: TFloat;
@@ -2436,7 +2588,7 @@ begin
     exit;
 
 {$if defined(AnimatedZoom)}
-  if (FMouseZoomOptions.Animate) and (Showing) then
+  if (AAnimate) and (Showing) then
   begin
     StartValue := Scale;
     DeltaValue := AScale-StartValue;
@@ -2453,7 +2605,7 @@ begin
           (Abs(AScale-NewValue) >= MinZoomDelta) and
           (Scale <> NewValue) then
         begin
-          DoSetZoom(APivot, NewValue);
+          DoSetZoom(APivot, NewValue, AMaintainPivot);
 
           // Paint immediately or user will not see animation
           Repaint;
@@ -2463,11 +2615,23 @@ begin
 {$ifend}
   BeginUpdate;
   try
-    DoSetZoom(APivot, AScale);
+    DoSetZoom(APivot, AScale, AMaintainPivot);
     ForceFullInvalidate;
   finally
     EndUpdate;
   end;
+end;
+
+procedure TCustomImage32.Zoom(AScale: TFloat; const APivot: TFloatPoint; AAnimate: boolean);
+begin
+  DoZoom(APivot, AScale, True, AAnimate);
+end;
+
+procedure TCustomImage32.Zoom(AScale: TFloat; AAnimate: boolean);
+var
+  DummyPivot: TFloatPoint;
+begin
+  DoZoom(DummyPivot, AScale, False, AAnimate);
 end;
 
 procedure TCustomImage32.ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer);
@@ -2751,7 +2915,7 @@ var
   i, j: Integer;
   TileCountX, TileCountY: Integer;
   TileX, TileY: integer;
-  Buffer, SourceBitmap: TBitmap32;
+  Buffer: TBitmap32;
 begin
   if Bitmap.Empty or GR32.IsRectEmpty(CachedBitmapRect) then
     Exit;
@@ -2835,106 +2999,128 @@ function TCustomImage32.GetBitmapRect: TRect;
 var
   Size: TSize;
 begin
-  if Bitmap.Empty then
-    with Result do
-    begin
-      Left := 0;
-      Right := 0;
-      Top := 0;
-      Bottom := 0;
-    end
-  else
+  if not Bitmap.Empty then
   begin
     Size := GetBitmapSize;
+
     Result := Rect(0, 0, Size.Cx, Size.Cy);
+
     if BitmapAlign = baCenter then
-      GR32.OffsetRect(Result, (Width - Size.Cx) div 2, (Height - Size.Cy) div 2)
+      GR32.OffsetRect(Result, (ClientWidth - Size.Cx) div 2, (ClientHeight - Size.Cy) div 2)
     else
     if BitmapAlign = baCustom then
       GR32.OffsetRect(Result, Round(OffsetHorz), Round(OffsetVert));
-  end;
+
+  end else
+    Result := Default(TRect)
+end;
+
+function TCustomImage32.GetBitmapMargin: integer;
+begin
+  Result := 0;
 end;
 
 function TCustomImage32.GetBitmapSize: TSize;
 var
   Mode: TScaleMode;
+  ViewportRect: TRect;
   ViewportWidth, ViewportHeight: Integer;
-  RScaleX, RScaleY: TFloat;
+  BitmapMargin: integer;
+  ScaledBitmapWidth, ScaledBitmapHeight: integer;
+  ResizeScaleX, ResizeScaleY: TFloat;
 begin
+  if Bitmap.Empty or (Width = 0) or (Height = 0) then
   begin
-    if Bitmap.Empty or (Width = 0) or (Height = 0) then
-    begin
-      Result.Cx := 0;
-      Result.Cy := 0;
-      Exit;
-    end;
-
-    with GetViewportRect do
-    begin
-      ViewportWidth := Right - Left;
-      ViewportHeight := Bottom - Top;
-    end;
-
-    // check for optimal modes as these are compounds of the other modes.
-    case ScaleMode of
-      smOptimal:
-        if (Bitmap.Width > ViewportWidth) or (Bitmap.Height > ViewportHeight) then
-          Mode := smResize
-        else
-          Mode := smNormal;
-
-      smOptimalScaled:
-        if (Round(Bitmap.Width * ScaleX) > ViewportWidth) or
-          (Round(Bitmap.Height * ScaleY) > ViewportHeight) then
-          Mode := smResize
-        else
-          Mode := smScale;
-    else
-      Mode := ScaleMode;
-    end;
-
-    case Mode of
-      smNormal:
-        begin
-          Result.Cx := Bitmap.Width;
-          Result.Cy := Bitmap.Height;
-        end;
-
-      smStretch:
-        begin
-          Result.Cx := ViewportWidth;
-          Result.Cy := ViewportHeight;
-        end;
-
-      smResize:
-        begin
-          Result.Cx := Bitmap.Width;
-          Result.Cy := Bitmap.Height;
-          RScaleX := ViewportWidth / Result.Cx;
-          RScaleY := ViewportHeight / Result.Cy;
-          if (RScaleX >= RScaleY) then
-          begin
-            Result.Cx := Round(Result.Cx * RScaleY);
-            Result.Cy := ViewportHeight;
-          end
-          else
-          begin
-            Result.Cx := ViewportWidth;
-            Result.Cy := Round(Result.Cy * RScaleX);
-          end;
-        end;
-    else // smScale
-      begin
-        Result.Cx := Round(Bitmap.Width * ScaleX);
-        Result.Cy := Round(Bitmap.Height * ScaleY);
-      end;
-    end;
-
-    if (Result.Cx <= 0) then
-      Result.Cx := 0;
-    if (Result.Cy <= 0) then
-      Result.Cy := 0;
+    Result.Cx := 0;
+    Result.Cy := 0;
+    Exit;
   end;
+
+  ViewportRect := GetViewportRect;
+  ViewportWidth := ViewportRect.Width;
+  ViewportHeight := ViewportRect.Height;
+
+  BitmapMargin := GetBitmapMargin * 2;
+
+  case ScaleMode of
+    smOptimalScaled,
+    smScale:
+      begin
+        ScaledBitmapWidth := Round(Bitmap.Width * ScaleX);
+        ScaledBitmapHeight := Round(Bitmap.Height * ScaleY);
+      end;
+  else
+    ScaledBitmapWidth := Bitmap.Width;
+    ScaledBitmapHeight := Bitmap.Height;
+  end;
+
+  // Check for optimal modes as these are compounds of the other modes.
+  case ScaleMode of
+    smOptimal:
+      if (Bitmap.Width + BitmapMargin > ViewportWidth) or (Bitmap.Height + BitmapMargin > ViewportHeight) then
+        // Bitmap+margins is too big for viewport; Resize to fit
+        Mode := smResize
+      else
+        // Bitmap+margins fits within viewport; Don't resize
+        Mode := smNormal;
+
+    smOptimalScaled:
+      begin
+        if (ScaledBitmapWidth + BitmapMargin > ViewportWidth) or
+          (ScaledBitmapHeight + BitmapMargin > ViewportHeight) then
+        begin
+          // Scaled bitmap+margins is too big for viewport; Resize to fit
+          Mode := smResize;
+          ScaledBitmapWidth := Bitmap.Width;
+          ScaledBitmapHeight := Bitmap.Height;
+        end else
+          // Scaled bitmap+margins fits within viewport; Don't resize, just scale
+          Mode := smScale;
+      end
+
+  else
+    Mode := ScaleMode;
+  end;
+
+  case Mode of
+    smNormal:
+      begin
+        Result.Cx := Bitmap.Width;
+        Result.Cy := Bitmap.Height;
+      end;
+
+    smStretch:
+      begin
+        // Stretch bitmap to fit within margins
+        Result.Cx := ViewportWidth - BitmapMargin;
+        Result.Cy := ViewportHeight - BitmapMargin;
+      end;
+
+    smResize:
+      begin
+        // Scale bitmap to fit within margins
+        ResizeScaleX := (ViewportWidth - BitmapMargin) / ScaledBitmapWidth;
+        ResizeScaleY := (ViewportHeight - BitmapMargin) / ScaledBitmapHeight;
+        if (ResizeScaleX >= ResizeScaleY) then
+        begin
+          Result.Cx := Round(Bitmap.Width * ResizeScaleY);
+          Result.Cy := Round(Bitmap.Height * ResizeScaleY);
+        end else
+        begin
+          Result.Cx := Round(Bitmap.Width * ResizeScaleX);
+          Result.Cy := Round(Bitmap.Height * ResizeScaleX);
+        end;
+      end;
+
+  else // smScale
+    Result.Cx := ScaledBitmapWidth;
+    Result.Cy := ScaledBitmapHeight;
+  end;
+
+  if (Result.Cx <= 0) then
+    Result.Cx := 0;
+  if (Result.Cy <= 0) then
+    Result.Cy := 0;
 end;
 
 function TCustomImage32.GetOnPixelCombine: TPixelCombineEvent;
@@ -3363,12 +3549,6 @@ begin
   RepaintMode := OldRepaintMode;
 end;
 
-procedure TCustomImage32.Resize;
-begin
-  InvalidateCache;
-  inherited;
-end;
-
 procedure TCustomImage32.Scroll(Dx, Dy: Single);
 begin
   if (IsZero(Dx)) and (IsZero(Dy)) then
@@ -3389,9 +3569,9 @@ procedure TCustomImage32.Scroll(Dx, Dy: Integer);
 begin
   if (Dx <> 0) or (Dy <> 0) then
 {$ifndef FPC} // FPC chokes on the float conversion with an exception
-  Scroll(Single(Dx), Single(Dy));
+    Scroll(Single(Dx), Single(Dy));
 {$else FPC}
-  Scroll(Dx * 1.0, Dy * 1.0);
+    Scroll(Dx * 1.0, Dy * 1.0);
 {$endif FPC}
 end;
 
@@ -3411,6 +3591,12 @@ begin
   InvalidateCache;
   FBitmapAlign := Value;
   Changed;
+end;
+
+procedure TCustomImage32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
+begin
+  inherited;
+  InvalidateCache;
 end;
 
 procedure TCustomImage32.SetLayers(Value: TLayerCollection);
@@ -3569,150 +3755,117 @@ begin
 end;
 
 
-{ TIVScrollProperties }
-
-function TIVScrollProperties.GetIncrement: Integer;
+//------------------------------------------------------------------------------
+//
+//      TImageViewScrollProperties
+//
+//------------------------------------------------------------------------------
+constructor TImageViewScrollProperties.Create(AOwner: TCustomImgView32);
 begin
-  Result := Round(TCustomRangeBar(Master).Increment);
+  inherited Create;
+  FOwner := AOwner;
 end;
 
-function TIVScrollProperties.GetSize: Integer;
+//------------------------------------------------------------------------------
+
+procedure TImageViewScrollProperties.SkipValue(Reader: TReader);
 begin
-  Result := ImgView.ScrollBarSize;
+{$ifndef FPC}
+  Reader.SkipValue;
+{$else}
+  // Sheez!
+  Reader.Driver.SkipValue;
+{$endif}
 end;
 
-function TIVScrollProperties.GetVisibility: TScrollbarVisibility;
-begin
-  Result := ImgView.ScrollBarVisibility;
-end;
-
-procedure TIVScrollProperties.SetIncrement(Value: Integer);
-begin
-  TCustomRangeBar(Master).Increment := Value;
-  TCustomRangeBar(Slave).Increment := Value;
-end;
-
-procedure TIVScrollProperties.SetSize(Value: Integer);
-begin
-  ImgView.ScrollBarSize := Value;
-  ImgView.AlignAll;
-  ImgView.UpdateImage;
-end;
-
-procedure TIVScrollProperties.SetVisibility(const Value: TScrollbarVisibility);
-begin
-  if Value <> ImgView.ScrollBarVisibility then
-  begin
-    ImgView.ScrollBarVisibility := Value;
-    ImgView.Resize;
-  end;
-end;
-
-{ TCustomImgView32 }
-
-procedure TCustomImgView32.AlignAll;
-var
-  ScrollbarVisible: Boolean;
-  ViewPort: TRect;
-  NeedResize: boolean;
-begin
-  if (Width <= 0) or (Height <= 0) then
-    Exit;
-
-  NeedResize := False;
-  ViewPort := GetViewportRect;
-  ScrollbarVisible := GetScrollBarsVisible;
-
-  if (HScroll <> nil) then
-  begin
-    NeedResize := (HScroll.Visible <> ScrollbarVisible);
-
-    HScroll.BoundsRect := Rect(ViewPort.Left, ViewPort.Bottom, ViewPort.Right, Self.Height);
-    HScroll.Visible := ScrollbarVisible;
-  end;
-
-  if (VScroll <> nil) then
-  begin
-    NeedResize := NeedResize or (VScroll.Visible <> ScrollbarVisible);
-
-    VScroll.BoundsRect := Rect(ViewPort.Right, ViewPort.Top, Self.Width, ViewPort.Bottom);
-    VScroll.Visible := ScrollbarVisible;
-  end;
-
-  if (NeedResize) then
-  begin
-    // Scrollbars has been shown or hidden. Buffer must resize to align with new viewport.
-    // This will automatically lead to the viewport being redrawn.
-    ResizeBuffer;
-    BufferValid := False
-  end;
-end;
-
-procedure TCustomImgView32.BitmapResized;
+procedure TImageViewScrollProperties.DefineProperties(Filer: TFiler);
 begin
   inherited;
-  UpdateScrollBars;
-  if Centered then
-    ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2)
-  else
-  begin
-    HScroll.Position := 0;
-    VScroll.Position := 0;
-    UpdateImage;
-  end;
+
+  // Obsolete properties. Skipped so old projects using them doesn't fail during load.
+  Filer.DefineProperty('Backgnd', SkipValue, nil, False);
+  Filer.DefineProperty('BorderColor', SkipValue, nil, False);
+  Filer.DefineProperty('ButtonColor', SkipValue, nil, False);
+  Filer.DefineProperty('ButtonSize', SkipValue, nil, False);
+  Filer.DefineProperty('Color', SkipValue, nil, False);
+  Filer.DefineProperty('HandleColor', SkipValue, nil, False);
+  Filer.DefineProperty('HighLightColor', SkipValue, nil, False);
+  Filer.DefineProperty('ShadowColor', SkipValue, nil, False);
+  Filer.DefineProperty('ShowArrows', SkipValue, nil, False);
+  Filer.DefineProperty('ShowHandleGrip', SkipValue, nil, False);
+  Filer.DefineProperty('Style', SkipValue, nil, False);
 end;
 
-function TCustomImgView32.CanMousePan: boolean;
+//------------------------------------------------------------------------------
+
+procedure TImageViewScrollProperties.SetIncrement(Value: Integer);
 begin
-  Result := (inherited CanMousePan) and
-    (ScaleMode in [smScale,smNormal]) and
-    ((HScroll.Range > (TRangeBarAccess(HScroll).EffectiveWindow + VScroll.Width)) or
-     (VScroll.Range > (TRangeBarAccess(VScroll).EffectiveWindow + HScroll.Height)));
+  if (FIncrement = Value) then
+    exit;
+
+  FIncrement := Value;
 end;
 
+procedure TImageViewScrollProperties.SetSize(Value: Integer);
+begin
+  if (FSize = Value) then
+    exit;
+
+  FSize := Value;
+
+  FOwner.AlignAll;
+  FOwner.UpdateImage;
+end;
+
+procedure TImageViewScrollProperties.SetVisibility(const Value: TScrollbarVisibility);
+begin
+  if (FVisibility = Value) then
+    exit;
+
+  FVisibility := Value;
+
+  FOwner.Resize;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TCustomImgView32
+//
+//------------------------------------------------------------------------------
 constructor TCustomImgView32.Create(AOwner: TComponent);
 begin
-  inherited;
+  BeginAlign;
+  try
+    inherited;
 
-  FScrollBarSize := GetSystemMetrics(SM_CYHSCROLL);
+    FScrollBars := TImageViewScrollProperties.Create(Self);
 
-  HScroll := TCustomRangeBar.Create(Self);
-  VScroll := TCustomRangeBar.Create(Self);
+    FHorScroll := TScrollBar.Create(Self);
+    FHorScroll.ControlStyle := FHorScroll.ControlStyle - [csFramed];
+    FHorScroll.Visible := False;
+    FHorScroll.Parent := Self;
+    FHorScroll.Kind := sbHorizontal;
+    FHorScroll.OnChange := ScrollHandler; // Changed
+    FHorScroll.OnScroll := ScrollChangingHandler; // Changing
 
-  with HScroll do
-  begin
-    HScroll.Parent := Self;
-    BorderStyle := bsNone;
-    Centered := True;
-    OnUserChange := ScrollHandler;
-    OnUserChanging := ScrollChangingHandler;
+    FVerScroll := TScrollBar.Create(Self);
+    FVerScroll.Visible := False;
+    FVerScroll.Parent := Self;
+    FVerScroll.ControlStyle := FVerScroll.ControlStyle - [csFramed];
+    FVerScroll.Kind := sbVertical;
+    FVerScroll.OnChange := ScrollHandler;
+    FVerScroll.OnScroll := ScrollChangingHandler;
+
+    FCentered := True;
+    ScaleMode := smScale;
+    BitmapAlign := baCustom;
+
+    AlignAll;
+
+  finally
+    EndAlign;
   end;
-
-  with VScroll do
-  begin
-    Parent := Self;
-    BorderStyle := bsNone;
-    Centered := True;
-    Kind := sbVertical;
-    OnUserChange := ScrollHandler;
-    OnUserChanging := ScrollChangingHandler;
-  end;
-
-  FCentered := True;
-  ScaleMode := smScale;
-  BitmapAlign := baCustom;
-  with GetViewportRect do
-  begin
-    OldSzX := Right - Left;
-    OldSzY := Bottom - Top;
-  end;
-
-  FScrollBars := TIVScrollProperties.Create;
-  FScrollBars.ImgView := Self;
-  FScrollBars.Master := HScroll;
-  FScrollBars.Slave := VScroll;
-
-  AlignAll;
 end;
 
 destructor TCustomImgView32.Destroy;
@@ -3721,17 +3874,137 @@ begin
   inherited;
 end;
 
+//------------------------------------------------------------------------------
+
+procedure TCustomImgView32.BeginAlign;
+begin
+  Inc(FAlignCount);
+end;
+
+procedure TCustomImgView32.EndAlign;
+begin
+  if (FAlignCount = 1) and (FNeedAlign) then
+  begin
+    DoAlign;
+    FNeedAlign := False;
+  end;
+  Dec(FAlignCount);
+end;
+
+procedure TCustomImgView32.DoAlign;
+var
+  ScrollbarVisible: Boolean;
+  ViewPort: TRect;
+  ScrollbarSize: integer;
+  NeedResize: boolean;
+begin
+  if (csReading in ComponentState) then
+    exit;
+
+  if (Width <= 0) or (Height <= 0) then
+    Exit;
+
+  NeedResize := False;
+  ViewPort := GetViewportRect;
+  ScrollbarSize := GetScrollbarSize;
+  ScrollbarVisible := GetScrollBarsVisible;
+
+  // Block scrollbar.OnChange in case we change their visibility.
+  Inc(FScrollLock);
+  try
+
+    if (FHorScroll <> nil) then
+    begin
+      FHorScroll.BoundsRect := Rect(ViewPort.Left, ViewPort.Bottom, ViewPort.Right, ViewPort.Bottom+ScrollbarSize);
+
+      if (FHorScroll.Visible <> ScrollbarVisible) then
+      begin
+        if (ScrollbarVisible) then
+          FHorScroll.Position := 0;
+        FHorScroll.Visible := ScrollbarVisible;
+        NeedResize := True;
+      end;
+    end;
+
+    if (FVerScroll <> nil) then
+    begin
+      FVerScroll.BoundsRect := Rect(ViewPort.Right, ViewPort.Top, ViewPort.Right+ScrollbarSize, ViewPort.Bottom);
+      if (FVerScroll.Visible <> ScrollbarVisible) then
+      begin
+        if (ScrollbarVisible) then
+          FVerScroll.Position := 0;
+        FVerScroll.Visible := ScrollbarVisible;
+        NeedResize := True;
+      end;
+    end;
+
+  finally
+    Dec(FScrollLock);
+  end;
+
+  if (NeedResize) then
+  begin
+    // Scrollbars have been shown or hidden. Buffer must resize to align with new viewport.
+    // This will automatically lead to the viewport being redrawn.
+    ResizeBuffer;
+    BufferValid := False
+  end;
+end;
+
+procedure TCustomImgView32.AlignAll;
+begin
+  BeginAlign;
+  FNeedAlign := True;
+  EndAlign;
+end;
+
+procedure TCustomImgView32.BitmapResized;
+begin
+  inherited;
+
+  UpdateScrollBars;
+
+  if Centered then
+    ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2)
+  else
+  begin
+    FHorScroll.Position := 0;
+    FVerScroll.Position := 0;
+    UpdateImage;
+  end;
+end;
+
+function TCustomImgView32.CanMousePan: boolean;
+begin
+  Result := (inherited CanMousePan) and
+    (ScaleMode in [smScale, smNormal]) and
+    (GetScrollBarsVisible) and
+    ((FHorScrollThumbSize < FHorScrollMax) or (FVerScrollThumbSize < FVerScrollMax));
+end;
+
 procedure TCustomImgView32.DoDrawSizeGrip(R: TRect);
+{$IFDEF Windows}
+var
+  ThemedElementDetails: TThemedElementDetails;
+{$ENDIF}
 begin
 {$IFDEF Windows}
-  if USE_THEMES then
-  begin
-    Canvas.Brush.Color := clBtnFace;
-    Canvas.FillRect(R);
-    DrawThemeBackground(SCROLLBAR_THEME, Canvas.Handle, SBP_SIZEBOX, SZB_RIGHTALIGN, R, nil);
-  end
-  else
-    DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, DFCS_SCROLLSIZEGRIP)
+  Canvas.Brush.Color := clBtnFace;
+  Canvas.FillRect(R);
+
+{$ifndef FPC}
+  ThemedElementDetails := StyleServices.GetElementDetails(tsSizeBoxRightAlign);
+  if (StyleServices.DrawElement(Canvas.Handle, ThemedElementDetails, R)) then
+    exit;
+
+  DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, DFCS_SCROLLSIZEGRIP)
+{$else}
+// Doesn't appear to work. I can't be bothered to figure out why.
+//  ThemedElementDetails :=  ThemeServices.GetElementDetails(tsSizeBoxRightAlign);
+//  ThemeServices.DrawElement(Canvas.Handle, ThemedElementDetails, R);
+  DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, DFCS_SCROLLSIZEGRIP)
+{$endif}
+
 {$ENDIF}
 end;
 
@@ -3751,81 +4024,107 @@ begin
 end;
 
 procedure TCustomImgView32.DoSetPivot(const APivot: TFloatPoint);
+var
+  BitmapMargin: Integer;
 begin
   inherited;
 
-  HScroll.Position := Round(Oversize * Scale)-APivot.X;
-  VScroll.Position := Round(Oversize * Scale)-APivot.Y;
+  BitmapMargin := GetBitmapMargin;
+
+  Inc(FScrollLock);
+  FHorScroll.Position := Round((BitmapMargin - APivot.X) * ScrollScale);
+  FVerScroll.Position := Round((BitmapMargin - APivot.Y) * ScrollScale);
+  Dec(FScrollLock);
+end;
+
+function TCustomImgView32.GetBitmapMargin: integer;
+begin
+  Result := FOverSize;
+end;
+
+function TCustomImgView32.GetOuterScaledBitmapSize: TSize;
+var
+  BitmapMargin: Integer;
+begin
+  Result := GetBitmapSize;
+  BitmapMargin := 2*GetBitmapMargin;
+  Inc(Result.cx, BitmapMargin);
+  Inc(Result.cy, BitmapMargin);
 end;
 
 function TCustomImgView32.GetScrollBarSize: Integer;
 begin
-  if GetScrollBarsVisible then
+  if (CanShowScrollBars) then
   begin
-    Result := FScrollBarSize;
+    Result := FScrollBars.Size;
+
     if (Result = 0) then
       Result := GetSystemMetrics(SM_CYHSCROLL);
-  end
-  else
+  end else
     Result := 0;
+end;
+
+function TCustomImgView32.CanShowScrollBars: Boolean;
+begin
+  Result := (FScrollBars <> nil) and (FHorScroll <> nil) and (FVerScroll <> nil) and
+    (FScrollBars.Visibility <> svHidden) and
+    (BitmapAlign = baCustom) and
+    (ScaleMode in [smNormal, smScale]);
 end;
 
 function TCustomImgView32.GetScrollBarsVisible: Boolean;
 begin
-  if AutoSize then
-  begin
-    Result := False;
-    Exit;
-  end;
+  if (AutoSize) then // This doesn't seem right
+    Exit(False);
 
-  Result := True;
-  if (FScrollBars <> nil) and (HScroll <> nil) and (VScroll <> nil) then
-    case FScrollBars.Visibility of
-      svAlways:
-        Result := True;
+  if (not CanShowScrollBars) then
+    Exit(False);
 
-      svHidden:
-        Result := False;
+  if (FScrollBars.Visibility = svAlways) then
+    Exit(True);
 
-      svAuto:
-        Result := (BitmapAlign = baCustom) and (ScaleMode in [smScale,smNormal]) and
-                  ((HScroll.Range > (TRangeBarAccess(HScroll).EffectiveWindow + VScroll.Width)) or
-                   (VScroll.Range > (TRangeBarAccess(VScroll).EffectiveWindow + HScroll.Height)));
-    end;
+  Assert(FScrollBars.Visibility = svAuto);
+
+  Result := (FHorScrollThumbSize < FHorScrollMax) or (FVerScrollThumbSize < FVerScrollMax);
 end;
 
 function TCustomImgView32.GetSizeGripRect: TRect;
 var
-  Sz: Integer;
+  ScrollBarSize: Integer;
 begin
-  Sz := GetScrollBarSize;
-
   if (Parent = nil) then
     Result := BoundsRect
   else
     Result := ClientRect;
 
-  with Result do
-  begin
-    Left := Right - Sz;
-    Top := Bottom - Sz;
-  end;
+  ScrollBarSize := GetScrollBarSize;
+
+  Result.Left := Result.Right - ScrollBarSize;
+  Result.Top := Result.Bottom - ScrollBarSize;
 end;
 
 function TCustomImgView32.GetViewportRect: TRect;
 var
-  Sz: Integer;
+  ScrollBarSize: Integer;
 begin
-  Result := Rect(0, 0, Width, Height);
-  Sz := GetScrollBarSize;
-  Dec(Result.Right, Sz);
-  Dec(Result.Bottom, Sz);
+  Result := inherited;
+
+  if (GetScrollBarsVisible) then
+  begin
+    ScrollBarSize := GetScrollBarSize;
+
+    Dec(Result.Right, ScrollBarSize);
+    Dec(Result.Bottom, ScrollBarSize);
+  end;
 end;
 
 function TCustomImgView32.IsSizeGripVisible: Boolean;
+{$IFNDEF PLATFORM_INDEPENDENT}
 var
   P: TWinControl;
+{$ENDIF}
 begin
+{$IFNDEF PLATFORM_INDEPENDENT}
   case SizeGrip of
     sgAuto:
       begin
@@ -3853,6 +4152,9 @@ begin
   else { sgAlways }
     Result := True;
   end;
+{$ELSE}
+  Result := False;
+{$ENDIF}
 end;
 
 procedure TCustomImgView32.Loaded;
@@ -3893,11 +4195,14 @@ begin
 end;
 
 procedure TCustomImgView32.MouseMove(Shift: TShiftState; X, Y: Integer);
+{$IFNDEF PLATFORM_INDEPENDENT}
 var
   P: TPoint;
+{$ENDIF}
 begin
   inherited;
 
+{$IFNDEF PLATFORM_INDEPENDENT}
   if IsSizeGripVisible then
   begin
     P.X := X;
@@ -3906,10 +4211,10 @@ begin
     if GR32.PtInRect(GetSizeGripRect, P) then
       Screen.Cursor := crSizeNWSE;
   end;
+{$ENDIF}
 end;
 
-procedure TCustomImgView32.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
-  Y: Integer; Layer: TCustomLayer);
+procedure TCustomImgView32.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
   inherited;
 end;
@@ -3919,18 +4224,110 @@ begin
   if (Parent = nil) then
     Exit;
 
-  if IsSizeGripVisible then
-    DoDrawSizeGrip(GetSizeGripRect)
-  else
+  if (GetScrollBarsVisible) then
   begin
-    Canvas.Brush.Color := clBtnFace;
-    Canvas.FillRect(GetSizeGripRect);
+{$IFNDEF PLATFORM_INDEPENDENT}
+    if IsSizeGripVisible then
+      DoDrawSizeGrip(GetSizeGripRect)
+    else
+{$ENDIF}
+    begin
+      Canvas.Brush.Color := clBtnFace;
+      Canvas.FillRect(GetSizeGripRect);
+    end;
   end;
+
   inherited;
+end;
+
+procedure TCustomImgView32.Scroll(Dx, Dy: Single);
+begin
+  if (IsZero(Dx)) and (IsZero(Dy)) then
+    Exit;
+
+  BeginUpdate;
+  try
+
+    Inc(FScrollLock);
+
+    FHorScroll.Position := Constrain(Round((FHorScroll.Position + Dx * ScrollScale)), 0, (FHorScrollMax - FHorScrollThumbSize) * ScrollScale);
+    FVerScroll.Position := Constrain(Round((FVerScroll.Position + Dy * ScrollScale)), 0, (FVerScrollMax - FVerScrollThumbSize) * ScrollScale);
+
+    Dec(FScrollLock);
+
+  finally
+    EndUpdate;
+  end;
+
+  UpdateImage;
+end;
+
+procedure TCustomImgView32.ScrollHandler(Sender: TObject);
+begin
+  if (FScrollLock > 0) then
+    Exit;
+
+  TControl(Sender).Repaint;
+
+  UpdateImage;
+  DoScroll;
+  Repaint;
+end;
+
+procedure TCustomImgView32.ScrollChangingHandler(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
+begin
+  // The Constrain below is a work around for a bug the VCL TScrollBar; It misinterprets
+  // the valid Position range as [Min..Max] while in reality it is [Min..Max-PageSize+1]. So when
+  // TScrollBar Position = Max-PageSize Windows still allow the scrollbar position to be increaed.
+  if (Sender = FHorScroll) then
+  begin
+    ScrollPos := Constrain(ScrollPos, 0, FHorScroll.Max-FHorScroll.PageSize);
+  end else
+  if (Sender = FVerScroll) then
+  begin
+    ScrollPos := Constrain(ScrollPos, 0, FVerScroll.Max - FVerScroll.PageSize);
+  end;
+
+  DoScroll;
+end;
+
+procedure TCustomImgView32.ScrollToCenter(X, Y: Integer);
+var
+  BitmapMargin: Integer;
+  ViewportRect: TRect;
+begin
+  Inc(FScrollLock);
+
+  AlignAll;
+
+  BitmapMargin := GetBitmapMargin;
+  ViewportRect := GetViewportRect;
+
+  FHorScroll.Position := Round((X * Scale - ViewportRect.Width * 0.5 + BitmapMargin) * ScrollScale);
+  FVerScroll.Position := Round((Y * Scale - ViewportRect.Height * 0.5 + BitmapMargin) * ScrollScale);
+
+  Dec(FScrollLock);
+  UpdateImage;
+end;
+
+procedure TCustomImgView32.Recenter;
+begin
+  InvalidateCache;
+  UpdateScrollBars;
+  UpdateImage;
+  if FCentered then
+    ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2)
+  else
+    ScrollToCenter(0, 0);
 end;
 
 procedure TCustomImgView32.Resize;
 begin
+  inherited;
+
+  if (csReading in ComponentState) or (FHorScroll = nil) or (FVerScroll = nil) then
+    exit;
+
   AlignAll;
 
   if (Parent <> nil) then
@@ -3948,86 +4345,6 @@ begin
   UpdateScrollBars;
   UpdateImage;
   Invalidate;
-  inherited;
-end;
-
-procedure TCustomImgView32.Scroll(Dx, Dy: Single);
-begin
-  if (IsZero(Dx)) and (IsZero(Dy)) then
-    Exit;
-
-  BeginUpdate;
-  try
-
-    Inc(FScrollLock);
-    HScroll.Position := HScroll.Position + Dx;
-    VScroll.Position := VScroll.Position + Dy;
-    Dec(FScrollLock);
-
-  finally
-    EndUpdate;
-  end;
-
-  UpdateImage;
-end;
-
-procedure TCustomImgView32.ScrollHandler(Sender: TObject);
-begin
-  if (FScrollLock > 0) then
-    Exit;
-
-  if (Sender = HScroll) then
-    HScroll.Repaint
-  else
-  if (Sender = VScroll) then
-    VScroll.Repaint;
-
-  UpdateImage;
-  DoScroll;
-  Repaint;
-end;
-
-procedure TCustomImgView32.ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
-begin
-  if (Sender = HScroll) then
-    Scroll(ANewPosition - HScroll.Position, 0)
-  else
-  if (Sender = VScroll) then
-    Scroll(0, ANewPosition - VScroll.Position);
-
-  Handled := True;
-
-  DoScroll;
-end;
-
-procedure TCustomImgView32.ScrollToCenter(X, Y: Integer);
-var
-  ScaledDOversize: Integer;
-begin
-  Inc(FScrollLock);
-  AlignAll;
-
-  ScaledDOversize := Round(FOversize * Scale);
-  with GetViewportRect do
-  begin
-    HScroll.Position := X * Scale - (Right - Left) * 0.5 + ScaledDOversize;
-    VScroll.Position := Y * Scale - (Bottom - Top) * 0.5 + ScaledDOversize;
-  end;
-  Dec(FScrollLock);
-  UpdateImage;
-end;
-
-procedure TCustomImgView32.Recenter;
-begin
-  InvalidateCache;
-  HScroll.Centered := FCentered;
-  VScroll.Centered := FCentered;
-  UpdateScrollBars;
-  UpdateImage;
-  if FCentered then
-    ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2)
-  else
-    ScrollToCenter(0, 0);
 end;
 
 procedure TCustomImgView32.SetCentered(Value: Boolean);
@@ -4045,7 +4362,7 @@ begin
   end;
 end;
 
-procedure TCustomImgView32.SetScrollBars(Value: TIVScrollProperties);
+procedure TCustomImgView32.SetScrollBars(Value: TImageViewScrollProperties);
 begin
   FScrollBars.Assign(Value);
 end;
@@ -4061,36 +4378,38 @@ end;
 
 procedure TCustomImgView32.UpdateImage;
 var
-  Sz: TSize;
-  W, H: Integer;
-  ScaledOversize: Integer;
+  BitmapSize: TSize;
+  ViewportRect: TRect;
+  ViewportWidth, ViewportHeight: Integer;
+  BitmapMargin: Integer;
 begin
-  Sz := GetBitmapSize;
-  ScaledOversize := Round(FOversize * Scale);
+  if (csReading in ComponentState) then
+    exit;
 
-  with GetViewportRect do
-  begin
-    W := Right - Left;
-    H := Bottom - Top;
-  end;
+  BitmapSize := GetBitmapSize;
+  BitmapMargin := GetBitmapMargin;
+
+  ViewportRect := GetViewportRect;
+  ViewportWidth := ViewportRect.Width;
+  ViewportHeight := ViewportRect.Height;
 
   BeginUpdate;
   try
     if Centered then
     begin
-      if W > Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-        OffsetHorz := (W - Sz.Cx) * 0.5
+      if (ViewportWidth > BitmapSize.Cx + 2 * BitmapMargin) then // Viewport is bigger than scaled Bitmap
+        OffsetHorz := (ViewportWidth - BitmapSize.Cx) * 0.5 // Center
       else
-        OffsetHorz := -HScroll.Position + ScaledOversize;
+        OffsetHorz := Round(-FHorScroll.Position / ScrollScale) + BitmapMargin;
 
-      if H > Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-        OffsetVert := (H - Sz.Cy) * 0.5
+      if (ViewportHeight > BitmapSize.Cy + 2 * BitmapMargin) then // Viewport is bigger than scaled Bitmap
+        OffsetVert := (ViewportHeight - BitmapSize.Cy) * 0.5 // Center
       else
-        OffsetVert := -VScroll.Position + ScaledOversize;
+        OffsetVert := Round(-FVerScroll.Position / ScrollScale) + BitmapMargin;
     end else
     begin
-      OffsetHorz := -HScroll.Position + ScaledOversize;
-      OffsetVert := -VScroll.Position + ScaledOversize;
+      OffsetHorz := Round(-FHorScroll.Position / ScrollScale) + BitmapMargin;
+      OffsetVert := Round(-FVerScroll.Position / ScrollScale) + BitmapMargin;
     end;
 
     InvalidateCache;
@@ -4100,22 +4419,101 @@ begin
 end;
 
 procedure TCustomImgView32.UpdateScrollBars;
-var
-  Sz: TSize;
-  ScaledDOversize: Integer;
-begin
-  if (HScroll <> nil) and (VScroll <> nil) then
+
+  procedure UpdateScrollBar(ScrollBar: TScrollBar; ScrollMax, ScrollThumbSize: integer);
+  var
+    OldBitmapSize: integer;
+    OldViewportSize: integer;
+    OldPosition: integer;
+    Center: Single;
   begin
-    Sz := GetBitmapSize;
-    ScaledDOversize := Round(2 * FOversize * Scale);
+    if (ScrollBar = nil) or (not ScrollBar.Visible) then
+      exit;
 
-    HScroll.Range := Sz.Cx + ScaledDOversize;
-    VScroll.Range := Sz.Cy + ScaledDOversize;
+    if (ScrollBar.HandleAllocated) then
+      SendMessage(ScrollBar.Handle, WM_SETREDRAW, Ord(False), 0);
+    try
+      OldBitmapSize := ScrollBar.Max;
+      OldViewportSize := ScrollBar.PageSize;
+      OldPosition := ScrollBar.Position;
 
-    // call AlignAll for Visibility svAuto, because the ranges of the scrollbars
-    // may have just changed, thus we need to update the visibility of the scrollbars:
-    if (FScrollBarVisibility = svAuto) then
-      AlignAll;
+      ScrollBar.PageSize := 0; // Guard against exception if Max<PageSize
+      ScrollBar.Max := ScrollMax * ScrollScale;
+      ScrollBar.PageSize := ScrollThumbSize * ScrollScale;
+      ScrollBar.SmallChange := ScrollScale;
+      ScrollBar.LargeChange := Round(Max(2, (ScrollMax-ScrollThumbSize) / 16) * ScrollScale);
+
+      // Note: The VCL places incorrect constraints on the values of PageSize, Max and Position.
+      // The VCL requires PageSize <= Max, but Windows requires PageSize <= Max-Min+1.
+      // This means that if we set PageSize=Max then the user will still be able to scroll 1 unit
+      // up/down.
+      // We work around this here by disabling the scroll bar if PageSize=Max.
+      if (ScrollMax = ScrollThumbSize) then
+      begin
+        ScrollBar.Enabled := False;
+        ScrollBar.Position := 0;
+      end else
+      begin
+        ScrollBar.Enabled := True;
+
+        // Center scroll bar position
+        if FCentered and (ScrollMax > ScrollThumbSize) then
+        begin
+          if (OldBitmapSize > OldViewportSize) and (OldBitmapSize <> 0) then
+            // Maintain relative offset from center
+            // TODO : This doesn't work when Position=Max-PageSize
+            Center := (OldPosition + OldViewportSize * 0.5) / OldBitmapSize
+          else
+            Center := 0.5;
+
+          ScrollBar.Position := Round((Center * ScrollMax - ScrollThumbSize * 0.5) * ScrollScale);
+
+        end;
+      end;
+
+    finally
+      if (ScrollBar.HandleAllocated) then
+        SendMessage(ScrollBar.Handle, WM_SETREDRAW, Ord(True), 0);
+    end;
+    if (ScrollBar.HandleAllocated) then
+      RedrawWindow(ScrollBar.Handle, nil, 0, RDW_INVALIDATE);
+  end;
+
+var
+  ViewportRect: TRect;
+  BitmapSize: TSize;
+begin
+  ViewportRect := GetViewportRect;
+  BitmapSize := GetOuterScaledBitmapSize;
+
+  BeginUpdate;
+  try
+    BeginAlign;
+    try
+
+      Inc(FScrollLock);
+      try
+        FHorScrollMax := BitmapSize.Cx;
+        FHorScrollThumbSize := Min(BitmapSize.Cx, ViewportRect.Width);
+        UpdateScrollBar(FHorScroll, FHorScrollMax, FHorScrollThumbSize);
+
+        FVerScrollMax := BitmapSize.Cy;
+        FVerScrollThumbSize := Min(BitmapSize.Cy, ViewportRect.Height);
+        UpdateScrollBar(FVerScroll, FVerScrollMax, FVerScrollThumbSize);
+
+        // Call AlignAll for Visibility svAuto, because the ranges of the scrollbars
+        // may have just changed, thus we need to update the visibility of the scrollbars:
+        if (CanShowScrollBars) and (FScrollBars.Visibility = svAuto) then
+          AlignAll;
+      finally
+        Dec(FScrollLock);
+      end;
+
+    finally
+      EndAlign;
+    end;
+  finally
+    EndUpdate;
   end;
 end;
 
@@ -4125,8 +4523,12 @@ begin
   Recenter;
 end;
 
-{ TBitmap32Item }
 
+//------------------------------------------------------------------------------
+//
+//      TBitmap32Item
+//
+//------------------------------------------------------------------------------
 procedure TBitmap32Item.AssignTo(Dest: TPersistent);
 begin
   if Dest is TBitmap32Item then
@@ -4153,10 +4555,11 @@ begin
 end;
 
 
-
-
-{ TBitmap32Collection }
-
+//------------------------------------------------------------------------------
+//
+//      TBitmap32Collection
+//
+//------------------------------------------------------------------------------
 function TBitmap32Collection.Add: TBitmap32Item;
 begin
   Result := TBitmap32Item(inherited Add);
@@ -4184,10 +4587,11 @@ begin
 end;
 
 
-
-
-{ TBitmap32List }
-
+//------------------------------------------------------------------------------
+//
+//      TBitmap32List
+//
+//------------------------------------------------------------------------------
 constructor TBitmap32List.Create(AOwner: TComponent);
 begin
   inherited;
@@ -4215,8 +4619,12 @@ begin
   FBitmap32Collection := Value;
 end;
 
-{ TMousePanOptions }
 
+//------------------------------------------------------------------------------
+//
+//      TMousePanOptions
+//
+//------------------------------------------------------------------------------
 constructor TMousePanOptions.Create;
 begin
   inherited Create;
@@ -4236,8 +4644,12 @@ begin
 {$endif FPC}
 end;
 
-{ TMouseZoomOptions }
 
+//------------------------------------------------------------------------------
+//
+//      TMouseZoomOptions
+//
+//------------------------------------------------------------------------------
 constructor TMouseZoomOptions.Create;
 begin
   inherited Create;
@@ -4334,4 +4746,7 @@ begin
   UpdateZoomFactor;
 end;
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 end.

@@ -28,14 +28,6 @@ unit GR32;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *   Michael Hansen <dyster_tid@hotmail.com>
- *   Andre Beckedorf <Andre@metaException.de>
- *   Mattias Andersson <mattias@centaurix.com>
- *   J. Tulach <tulach at position.cz>
- *   Jouni Airaksinen <markvera at spacesynth.net>
- *   Timothy Weber <teejaydub at users.sourceforge.net>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -43,22 +35,44 @@ interface
 {$I GR32.inc}
 
 uses
+  Math,
 {$IFDEF FPC}
   LCLIntf, LCLType, Types,
 {$ELSE}
-  UITypes, Types, Windows,
+  System.UITypes,
+  System.Types,
+  System.SyncObjs,
 {$ENDIF}
-  Math,
-  Controls, Graphics, Classes, SysUtils,
+{$if defined(FRAMEWORK_VCL)}
+  {$if not defined(PLATFORM_INDEPENDENT)}
+  WinApi.Windows,
+  {$ifend}
+  VCL.Graphics,
+  VCL.Controls,
+{$elseif defined(FRAMEWORK_FMX)}
+  {$if defined(WINDOWS) and not defined(PLATFORM_INDEPENDENT)}
+  WinApi.Windows,
+  {$ifend}
+  FMX.Graphics,
+  FMX.Controls,
+{$elseif defined(FRAMEWORK_LCL)}
+  Graphics,
+  Controls,
+{$ifend}
+  Classes,
+  SysUtils,
   GR32_Bindings;
 
-{ Version Control }
+{$if defined(FRAMEWORK_FMX)}
+type
+  TControlCanvas = TCanvas;
+{$ifend}
 
+{ Version Control }
 const
   Graphics32Version = '3.0';
 
 { 32-bit Color }
-
 type
   PColor32 = ^TColor32;
   TColor32 = type Cardinal;
@@ -258,6 +272,9 @@ const
 function Color32(WinColor: TColor): TColor32; overload;
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
 function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
+{$IFNDEF FPC}
+function Color32(AlphaColor: TAlphaColor): TColor32; overload;
+{$ENDIF}
 function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 function WinColor(Color32: TColor32): TColor;
 function ArrayOfColor32(const Colors: array of TColor32): TArrayOfColor32;
@@ -387,16 +404,14 @@ function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$END
 //
 //------------------------------------------------------------------------------
 
-type
 //------------------------------------------------------------------------------
 // TPoint
 //------------------------------------------------------------------------------
 // Identical to the Windows POINT structure.
 //------------------------------------------------------------------------------
-{$if (not defined(FPC)) and (not defined(BCB))}
-  TPoint = Windows.TPoint;
-  PPoint = ^TPoint;
-{$ifend}
+type
+  TPoint = {$ifndef FPC}System.{$endif}Types.TPoint;
+  PPoint = {$ifndef FPC}System.{$endif}Types.PPoint;
 
   PPointArray = ^TPointArray;
   TPointArray = array [0..0] of TPoint;
@@ -412,9 +427,10 @@ type
 // Floating point, single precision, point
 // Identical to the RTL Types.TPointF type.
 //------------------------------------------------------------------------------
+type
 {$if defined(HAS_TPOINTF)}
 
-  TFloatPoint = Types.TPointF;
+  TFloatPoint = {$ifndef FPC}System.{$endif}Types.TPointF;
 
 {$else}
 
@@ -456,6 +472,7 @@ type
 //------------------------------------------------------------------------------
 // Fixed precision point.
 //------------------------------------------------------------------------------
+type
   TFixedPoint = record
     X, Y: TFixed;
   public
@@ -514,11 +531,8 @@ function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload; {$IFDEF USEIN
 // Identical to the Windows RECT structure.
 //------------------------------------------------------------------------------
 type
-{$IFNDEF FPC}
-  TRect = Windows.TRect;
-  PRect = Windows.PRect;
-{$ENDIF}
-
+  TRect = {$ifndef FPC}System.{$endif}Types.TRect;
+  PRect = {$ifndef FPC}System.{$endif}Types.PRect;
 
 //------------------------------------------------------------------------------
 // TFloatRect
@@ -526,9 +540,10 @@ type
 // Single precision, floating point rectangle.
 // Identical to the RTL Types.TRectF type.
 //------------------------------------------------------------------------------
+type
 {$if defined(HAS_TPOINTF)}
 
-  TFloatRect = Types.TRectF;
+  TFloatRect = {$ifndef FPC}System.{$endif}Types.TRectF;
 
 {$else}
 
@@ -714,6 +729,9 @@ type
   strict private
     FLockCount: Integer;
   strict protected
+    // FLock *must* be a Win32 RTL_CRITICAL_SECTION as it is referenced directly
+    // via a pointer by TFont.OwnerCriticalSection in the backend.
+    // Absolutely wonderfull design Embarcadero!
     {$IFDEF FPC}
     FLock: TCriticalSection;
     {$ELSE}
@@ -1135,7 +1153,7 @@ type
     function  TextExtent(const Text: string): TSize;
     function  TextHeight(const Text: string): Integer;
     function  TextWidth(const Text: string): Integer;
-    procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
+    procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32); // TODO : Deprecate AALevel; Replace with AntiAlias: boolean
 
     property  Canvas: TCanvas read GetCanvas;
     function  CanvasAllocated: Boolean;
@@ -1263,7 +1281,13 @@ resourcestring
 implementation
 
 uses
+{$if defined(FRAMEWORK_VCL)}
+  Vcl.Clipbrd,
+{$elseif defined(FRAMEWORK_FMX)}
+  Fmx.Clipboard,
+{$elseif defined(FRAMEWORK_LCL)}
   Clipbrd,
+{$ifend}
   GR32_Blend,
   GR32_LowLevel,
   GR32_System,
@@ -1274,7 +1298,11 @@ uses
   GR32_Clipboard,
   GR32_Backends,
   GR32_Backends_Generic,
-{$IFDEF FPC}
+{$if defined(FRAMEWORK_VCL)}
+  GR32_Backends_VCL,
+{$elseif defined(FRAMEWORK_FMX)}
+  GR32_Backends_FMX,
+{$elseif defined(FRAMEWORK_LCL)}
   {$IFDEF LCLWin32}
     GR32_Backends_LCL_Win,
   {$ENDIF}
@@ -1287,9 +1315,7 @@ uses
   {$IFDEF LCLCustomDrawn}
     GR32_Backends_LCL_CustomDrawn,
   {$ENDIF}
-{$ELSE}
-  GR32_Backends_VCL,
-{$ENDIF}
+{$ifend}
   GR32.ImageFormats,
   GR32.ImageFormats.Default;
 
@@ -1491,6 +1517,16 @@ function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
 begin
   Result := Palette[Index];
 end;
+
+{$IFNDEF FPC}
+function Color32(AlphaColor: TAlphaColor): TColor32;
+begin
+  TColor32Entry(Result).A := TAlphaColorRec(AlphaColor).A;
+  TColor32Entry(Result).R := TAlphaColorRec(AlphaColor).R;
+  TColor32Entry(Result).G := TAlphaColorRec(AlphaColor).G;
+  TColor32Entry(Result).B := TAlphaColorRec(AlphaColor).B;
+end;
+{$ENDIF}
 
 function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32;
 begin
@@ -2757,12 +2793,15 @@ end;
 
 constructor TThreadPersistent.Create;
 begin
+  inherited Create;
   InitializeCriticalSection(FLock);
+  // FLock := TCriticalSection.Create;
 end;
 
 destructor TThreadPersistent.Destroy;
 begin
   DeleteCriticalSection(FLock);
+  // FLock.Free;
   inherited;
 end;
 
@@ -2770,11 +2809,13 @@ procedure TThreadPersistent.Lock;
 begin
   InterlockedIncrement(FLockCount);
   EnterCriticalSection(FLock);
+  // FLock.Enter;
 end;
 
 procedure TThreadPersistent.Unlock;
 begin
   LeaveCriticalSection(FLock);
+  // FLock.Leave;
   InterlockedDecrement(FLockCount);
 end;
 
@@ -2847,9 +2888,15 @@ begin
   if Source is TCustomMap then
     Result := SetSize(TCustomMap(Source).Width, TCustomMap(Source).Height)
   else
+{$ifndef FRAMEWORK_FMX}
   if Source is TGraphic then
     Result := SetSize(TGraphic(Source).Width, TGraphic(Source).Height)
   else
+{$else}
+  if Source is TBitmap then
+    Result := SetSize(TBitmap(Source).Width, TBitmap(Source).Height)
+  else
+{$endif}
   if Source is TControl then
     Result := SetSize(TControl(Source).Width, TControl(Source).Height)
   else
@@ -3018,6 +3065,8 @@ end;
 
 procedure TCustomBitmap32.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer);
 begin
+  if (Int64(Width) * Int64(Height) * SizeOf(DWORD) > MaxInt) then
+    raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = %.8X', [Width, Height, Int64(Width) * Int64(Height) * SizeOf(DWORD)]);
   FBackend.ChangeSize(Width, Height, NewWidth, NewHeight);
 end;
 
@@ -7204,11 +7253,15 @@ end;
 
 class function TBitmap32.GetPlatformBackendClass: TCustomBackendClass;
 begin
-{$IFDEF FPC}
-  Result := TLCLBackend;
-{$ELSE}
+{$if defined(FRAMEWORK_VCL)}
   Result := TGDIBackend;
-{$ENDIF}
+{$elseif defined(FRAMEWORK_FMX)}
+  Result := TMemoryBackend;
+{$elseif defined(FRAMEWORK_LCL)}
+  Result := TLCLBackend;
+{$else}
+  Result := inherited;
+{$ifend}
 end;
 
 function TBitmap32.GetFont: TFont;
@@ -7550,8 +7603,8 @@ begin
 {$IFDEF PLATFORM_INDEPENDENT}
         Sz := StockCanvas.TextExtent(Text) + StockCanvas.TextExtent(' ');
 {$ELSE}
-        Windows.GetTextExtentPoint32(StockCanvas.Handle, PChar(Text), Length(Text), Sz);
-        Windows.GetTextExtentPoint32(StockCanvas.Handle, PChar(string(' ')), 1, SzSpace);
+        GetTextExtentPoint32(StockCanvas.Handle, PChar(Text), Length(Text), Sz);
+        GetTextExtentPoint32(StockCanvas.Handle, PChar(string(' ')), 1, SzSpace);
         Sz := Sz + SzSpace;
 {$ENDIF}
         Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;

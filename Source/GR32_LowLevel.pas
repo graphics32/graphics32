@@ -48,9 +48,16 @@ interface
 {$define WRAP_USEFLOATMOD}
 
 uses
+{$if defined(FRAMEWORK_FMX)}
+  FMX.Graphics,
+{$elseif defined(FRAMEWORK_VCL)}
+  VCL.Graphics,
+{$else}
   Graphics,
-  GR32_Math,
+{$ifend}
+  System.UITypes,
   GR32,
+  GR32_Math,
   GR32_Bindings;
 
 
@@ -313,7 +320,6 @@ uses
 {$IFDEF FPC}
   SysUtils,
 {$ENDIF}
-  Math,
   GR32_System;
 
 {$R-}{$Q-}  // switch off overflow and range checking

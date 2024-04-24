@@ -34,21 +34,10 @@ interface
 
 {$I GR32.inc}
 
-uses
-{$IFDEF FPC}
-  LCLIntf, LCLType,
-  {$if defined(Windows)}
-    Windows,
-  {$elseif defined(UNIX)}
-    Unix, BaseUnix,
-  {$ifend}
-{$ELSE}
-  Windows,
-{$ENDIF}
 {$IFNDEF PUREPASCAL}
-  GR32.CPUID,
+uses
+  GR32.CPUID;
 {$ENDIF}
-  SysUtils;
 
 //------------------------------------------------------------------------------
 //
@@ -87,7 +76,7 @@ var
   This works for basic time testing, however, it doesnt work like its
   Windows counterpart, ie. it doesnt return the number of milliseconds since
   system boot. Will definitely overflow. }
-function GetTickCount: Cardinal;
+function GetTickCount: UInt64;
 
 
 //------------------------------------------------------------------------------
@@ -192,6 +181,13 @@ var
 implementation
 
 uses
+{$ifndef FPC}
+  System.Diagnostics,
+{$endif}
+{$ifdef WINDOWS}
+  Windows,
+{$endif}
+  SysUtils,
   Classes;
 
 //------------------------------------------------------------------------------
@@ -199,22 +195,19 @@ uses
 //      GetTickCount
 //
 //------------------------------------------------------------------------------
-{$if defined(Windows)}
-function GetTickCount: Cardinal;
-begin
-  Result := Windows.GetTickCount;
-end;
-{$elseif defined(UNIX)}
-{$IFDEF FPC}
-function GetTickCount: Cardinal;
+{$if not defined(FPC)}
 var
-  t : timeval;
+  TickCounter: TStopwatch;
+
+function GetTickCount: UInt64;
 begin
-  fpgettimeofday(@t,nil);
-   // Build a 64 bit microsecond tick from the seconds and microsecond longints
-  Result := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
+  Result := UInt64(TickCounter.ElapsedMilliseconds);
 end;
-{$ENDIF}
+{$else}
+function GetTickCount: UInt64;
+begin
+  Result := SysUtils.GetTickCount64;
+end;
 {$ifend}
 
 
@@ -482,6 +475,10 @@ end;
 //------------------------------------------------------------------------------
 
 initialization
+{$if not defined(FPC)}
+  TickCounter := TStopwatch.StartNew;
+{$ifend}
+
 {$IFNDEF PUREPASCAL}
   CPU := TCPU.GetCPUInfo;
 {$ELSE}

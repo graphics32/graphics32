@@ -28,11 +28,6 @@ unit GR32_Layers;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- * Andre Beckedorf <Andre@metaException.de>
- * Michael Hansen <dyster_tid@hotmail.com>
- * Dieter Köhler <dieter.koehler@philo.de>
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -40,13 +35,28 @@ interface
 {$INCLUDE GR32.inc}
 
 uses
-{$IFDEF FPC}
-  Controls, Graphics, Forms,
-{$ELSE}
-  Windows, Controls, Graphics, Forms,
-{$ENDIF}
+{$if defined(FRAMEWORK_VCL)}
+  System.UITypes,
+  WinApi.Windows,
+  Vcl.Controls,
+  Vcl.Graphics,
+  Vcl.Forms,
+{$elseif defined(FRAMEWORK_FMX)}
+  System.UITypes,
+  WinApi.Windows,
+  FMX.Types,
+  FMX.Controls,
+  FMX.Graphics,
+  FMX.Forms,
+{$elseif defined(FRAMEWORK_LCL)}
+  Controls,
+  Graphics,
+  Forms,
+{$ifend}
   Generics.Collections,
-  Classes, SysUtils, Math,
+  Classes,
+  SysUtils,
+  Math,
   GR32;
 
 const

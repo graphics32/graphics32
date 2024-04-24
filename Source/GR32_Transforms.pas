@@ -28,13 +28,6 @@ unit GR32_Transforms;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *   Andre Beckedorf <Andre@metaException.de>
- *   Mattias Andersson <Mattias@Centaurix.com>
- *   J. Tulach <tulach@position.cz>
- *   Michael Hansen <dyster_tid@hotmail.com>
- *   Peter Larson
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -42,12 +35,15 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  LCLIntf,
-{$ELSE}
-  Windows,
+{$IFDEF DEBUG}
+  Windows, // In interface section so we don't override TFixed
 {$ENDIF}
-  SysUtils, Classes, Types, GR32, GR32_VectorMaps, GR32_Rasterizers;
+  SysUtils,
+  Classes,
+  Types,
+  GR32,
+  GR32_VectorMaps,
+  GR32_Rasterizers;
 
 type
   ETransformError = class(Exception);
@@ -351,12 +347,9 @@ type
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Reverse: boolean = True); overload;
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  const DstClip: TRect; Reverse: boolean = True); overload;
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer; Reverse: boolean = True); overload;
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer; const DstClip: TRect; Reverse: boolean = True); overload;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect; Reverse: boolean = True); overload;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer; Reverse: boolean = True); overload;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer; const DstClip: TRect; Reverse: boolean = True); overload;
 
 procedure RasterizeTransformation(Vectormap: TVectormap;
   Transformation: TTransformation; DstRect: TRect;
@@ -377,8 +370,13 @@ resourcestring
 implementation
 
 uses
-  Math, GR32_Blend, GR32_LowLevel, GR32_Math, GR32_Bindings,
-  GR32_Resamplers, GR32_Geometry;
+  Math,
+  GR32_Blend,
+  GR32_LowLevel,
+  GR32_Math,
+  GR32_Bindings,
+  GR32_Resamplers,
+  GR32_Geometry;
 
 resourcestring
   RCStrSrcRectIsEmpty = 'SrcRect is empty!';
@@ -386,7 +384,7 @@ resourcestring
   RStrStackEmpty = 'Stack empty';
 
 type
-  {provides access to proctected members of TCustomBitmap32 by typecasting}
+  {provides access to proctected members of TTransformation by typecasting}
   TTransformationAccess = class(TTransformation);
 
 var
@@ -679,8 +677,7 @@ begin
   ReverseTransformInt(P.X, P.Y, Result.X, Result.Y);
 end;
 
-procedure TTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
-  out SrcX, SrcY: TFixed);
+procedure TTransformation.ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed);
 var
   X, Y: TFloat;
 begin

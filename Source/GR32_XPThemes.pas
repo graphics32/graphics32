@@ -144,7 +144,8 @@ implementation
 {$IFDEF Windows}
 
 uses
-  Messages, Forms, Classes;
+  Messages,
+  Classes;
 
 const
   UXTHEME_DLL = 'uxtheme.dll';

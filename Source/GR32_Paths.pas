@@ -213,7 +213,6 @@ type
 implementation
 
 uses
-  Math,
   Types,
   GR32_Backends,
   GR32_VectorUtils;
