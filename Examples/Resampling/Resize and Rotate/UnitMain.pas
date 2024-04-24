@@ -41,6 +41,8 @@ type
     procedure FormResize(Sender: TObject);
   private
     FNeedUpdate: boolean;
+    FLastResized: boolean;
+    FLastRotated: boolean;
 
     procedure Status(const Msg: string);
     procedure QueueUpdate;
@@ -203,7 +205,7 @@ var
 begin
   if (Abs(Frac(Angle / 360)) < 0.1/360) then
   begin
-    BitmapDest.Assign(BitmapSource);
+    TBitmap32Cracker(BitmapSource).CopyMapTo(BitmapDest);
     exit;
   end;
 
@@ -329,17 +331,23 @@ begin
 
     StopWatch := TStopWatch.StartNew;
 
-    if NeedResize then
+    if (NeedResize) or (NeedRotate) then
     begin
-      Status('Resizing...');
-      PerformResize(ImageSource.Bitmap, BitmapResizeDest, SpinEditWidth.Value, SpinEditHeight.Value, ResamplerClass);
-    end;
+      if NeedResize then
+      begin
+        Status('Resizing...');
+        PerformResize(ImageSource.Bitmap, BitmapResizeDest, SpinEditWidth.Value, SpinEditHeight.Value, ResamplerClass);
+      end;
 
-    if NeedRotate then
-    begin
-      Status('Rotating...');
-      PerformRotate(BitmapRotateSource, ImageDest.Bitmap, TrackBarAngle.Position, ResamplerClass);
-    end;
+      if NeedRotate then
+      begin
+        Status('Rotating...');
+        PerformRotate(BitmapRotateSource, ImageDest.Bitmap, TrackBarAngle.Position, ResamplerClass);
+      end;
+
+    end else
+    if (FLastResized or FLastRotated) then
+      TBitmap32Cracker(ImageSource.Bitmap).CopyMapTo(ImageDest.Bitmap);
 
     StopWatch.Stop;
 
@@ -350,6 +358,8 @@ begin
   Status(Format('Completed in %.0n mS', [StopWatch.ElapsedMilliseconds * 1.0]));
   Cursor := crDefault;
   FNeedUpdate := False;
+  FLastResized := NeedResize;
+  FLastRotated := NeedRotate;
 end;
 
 procedure TFormMain.QueueUpdate;
