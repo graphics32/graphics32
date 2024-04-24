@@ -661,6 +661,7 @@ type
   TTransformationAccess = class(TTransformation);
   TCustomBitmap32Access = class(TCustomBitmap32);
   TCustomResamplerAccess = class(TCustomResampler);
+  TCustomKernelAccess = class(TCustomKernel);
 
   PPointRec = ^TPointRec;
   TPointRec = record
@@ -2973,11 +2974,11 @@ end;
 
 procedure TAlbrechtKernel.SetTerms(Value: Integer);
 begin
-  if (Value < 2) then Value := 2;
-  if (Value > 11) then Value := 11;
+  Value := Constrain(Value, 2, 11);
   if FTerms <> Value then
   begin
     FTerms := Value;
+
     case Value of
       2 : Move(CAlbrecht2 [0], FCoefPointer[0], Value * SizeOf(Double));
       3 : Move(CAlbrecht3 [0], FCoefPointer[0], Value * SizeOf(Double));
@@ -2990,6 +2991,8 @@ begin
      10 : Move(CAlbrecht10[0], FCoefPointer[0], Value * SizeOf(Double));
      11 : Move(CAlbrecht11[0], FCoefPointer[0], Value * SizeOf(Double));
     end;
+
+    Changed;
   end;
 end;
 
@@ -3261,25 +3264,32 @@ end;
 procedure TKernelResampler.SetKernelClassName(const Value: string);
 var
   KernelClass: TCustomKernelClass;
+  NewKernel: TCustomKernel;
 begin
-  if (Value <> '') and (FKernel.ClassName <> Value) and Assigned(KernelList) then
+  if (Value <> '') and (FKernel.ClassName <> Value) and (KernelList <> nil) then
   begin
     KernelClass := TCustomKernelClass(KernelList.Find(Value));
-    if Assigned(KernelClass) then
+    if (KernelClass <> nil) then
     begin
-      FKernel.Free;
-      FKernel := KernelClass.Create;
-      Changed;
+      NewKernel := KernelClass.Create;
+      try
+        SetKernel(NewKernel);
+      except
+        if (FKernel <> NewKernel) then
+          NewKernel.Free;
+        raise;
+      end;
     end;
   end;
 end;
 
 procedure TKernelResampler.SetKernel(const Value: TCustomKernel);
 begin
-  if Assigned(Value) and (FKernel <> Value) then
+  if (Value <> nil) and (FKernel <> Value) then
   begin
-    FKernel.Free;
+    FreeAndNil(FKernel);
     FKernel := Value;
+    TCustomKernelAccess(FKernel).FObserver := Self;
     Changed;
   end;
 end;
