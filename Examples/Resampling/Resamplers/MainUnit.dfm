@@ -12,10 +12,8 @@ object FrmResamplersExample: TFrmResamplersExample
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnClose = FormClose
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object SidePanel: TPanel
     Left = 329
@@ -228,7 +226,6 @@ object FrmResamplersExample: TFrmResamplersExample
         Visible = False
         Position = 50
         OnChange = GaugeBarParameterChange
-        OnMouseUp = GaugeBarParameterMouseUp
       end
     end
   end
@@ -237,8 +234,11 @@ object FrmResamplersExample: TFrmResamplersExample
     Top = 0
     Width = 329
     Height = 376
+    Hint = 'Downsampling using StretchTransfer resampling'
     ActivePage = TabManual
     Align = alClient
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 0
     OnChange = ComboBoxResamplerClassNameChange
     object TabManual: TTabSheet
@@ -248,6 +248,7 @@ object FrmResamplersExample: TFrmResamplersExample
         Top = 0
         Width = 321
         Height = 348
+        Hint = 'Upsampling using manual resampling'
         Align = alClient
         Bitmap.ResamplerClassName = 'TKernelResampler'
         Bitmap.Resampler.KernelClassName = 'TCosineKernel'
@@ -261,10 +262,28 @@ object FrmResamplersExample: TFrmResamplersExample
         OnResize = ImagePatternResize
       end
     end
+    object TabStretchTransfer: TTabSheet
+      Caption = 'StretchTransfer'
+      ImageIndex = 3
+      object PaintBoxStretchTransfer: TPaintBox32
+        Left = 0
+        Top = 0
+        Width = 321
+        Height = 348
+        Hint = 'Upsampling using StretchTransfer resampling'
+        Align = alClient
+        TabOrder = 0
+        OnPaintBuffer = PaintBoxStretchTransferPaintBuffer
+        ExplicitLeft = 60
+        ExplicitTop = 44
+        ExplicitWidth = 192
+        ExplicitHeight = 192
+      end
+    end
     object TabResampling: TTabSheet
-      Caption = 'Resampling'
+      Caption = 'Downsampling'
       ImageIndex = 1
-      object ResamplingPaintBox: TPaintBox32
+      object PaintBoxResampling: TPaintBox32
         Left = 0
         Top = 0
         Width = 321
@@ -272,10 +291,11 @@ object FrmResamplersExample: TFrmResamplersExample
         Align = alClient
         RepaintMode = rmOptimizer
         TabOrder = 0
-        OnResize = ResamplingPaintBoxResize
+        OnPaintBuffer = PaintBoxResamplingPaintBuffer
       end
     end
     object TabKernel: TTabSheet
+      Hint = 'Kernel curve'
       Caption = 'Curve'
       ImageIndex = 2
       TabVisible = False
@@ -299,5 +319,19 @@ object FrmResamplersExample: TFrmResamplersExample
       item
         Width = 50
       end>
+  end
+  object TimerTableSize: TTimer
+    Enabled = False
+    Interval = 100
+    OnTimer = TimerTableSizeTimer
+    Left = 144
+    Top = 144
+  end
+  object TimerParameter: TTimer
+    Enabled = False
+    Interval = 100
+    OnTimer = TimerParameterTimer
+    Left = 144
+    Top = 200
   end
 end
