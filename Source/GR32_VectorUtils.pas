@@ -106,8 +106,6 @@ function BuildDashedLine(const Points: TArrayOfFixedPoint;
 
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint; overload;
 function ClipPolygon(const Points: TArrayOfFixedPoint; const ClipRect: TFixedRect): TArrayOfFixedPoint; overload;
-function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; overload;
-function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload;
 
 function CalculateCircleSteps(Radius: TFloat): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
@@ -2212,28 +2210,6 @@ ExitProc:
 {$ELSE}
   FreeMem(Codes);
 {$ENDIF}
-end;
-
-function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
-var
-  L1, L2: Integer;
-begin
-  L1 := Length(P1);
-  L2 := Length(P2);
-  SetLength(Result, L1 + L2);
-  Move(P1[0], Result[0], L1 * SizeOf(TFloatPoint));
-  Move(P2[0], Result[L1], L2 * SizeOf(TFloatPoint));
-end;
-
-function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload;
-var
-  L1, L2: Integer;
-begin
-  L1 := Length(P1);
-  L2 := Length(P2);
-  SetLength(Result, L1 + L2);
-  Move(P1[0], Result[0], L1 * SizeOf(TFixedPoint));
-  Move(P2[0], Result[L1], L2 * SizeOf(TFixedPoint));
 end;
 
 function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect;
