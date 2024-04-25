@@ -354,11 +354,6 @@ begin
   Clipboard.Open;
 {$ifend}
   try
-{$if not defined(FRAMEWORK_FMX)}
-    Clipboard.Clear;
-{$else}
-    ClipboardService.SetClipboard(nil);
-{$ifend}
 
     if (Source.Empty) then
       exit(False);
@@ -407,6 +402,19 @@ begin
       // Note that Firefox, at the time of writing, expects a color table for v4 and v5 DIBs
       // so it will not be able to correctly read what we put on the clipboard. Our position
       // is that this is a bug in Firefox.
+      //
+      // See:
+      // - https://bugzilla.mozilla.org/show_bug.cgi?id=1866655
+      // - https://forums.getpaint.net/topic/124628-1-px-line-on-top-of-every-image-pasted-into-firefox-from-paintnet/
+      // - https://github.com/graphics32/graphics32/issues/257
+      //
+      // See also:
+      // - https://github.com/chromium/chromium/commit/e6f56636f365bdb210874bdbe63272f783792c7d
+      //
+      // A possible workaround for this problem is to *also* place the bitmap as a PNG on
+      // the clipboard. It doesn't help with Firefox but apparently some other applications
+      // give priority to the PNG format when reading from the clipboard.
+      //
       TBitmap32Cracker(Source).SaveToDIBStream(Stream, False, TCustomBitmap32.TInfoHeaderVersion.InfoHeaderVersion5, False);
 
 {$if defined(FRAMEWORK_VCL)}

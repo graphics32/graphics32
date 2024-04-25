@@ -88,6 +88,40 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      IImageFormatWriteNotification
+//
+//------------------------------------------------------------------------------
+// Notifies an IImageFormatAdapter that we are about to call CanAssignTo/AssignTo.
+// Presently just used to Open/Close the clipboard.
+//------------------------------------------------------------------------------
+type
+  IImageFormatWriteNotification = interface
+    ['{C5A8BE35-5188-4801-ACB0-612E0DE897E3}']
+    procedure BeginWriting(Source: TCustomBitmap32; Dest: TPersistent);
+    procedure EndWriting(Source: TCustomBitmap32; Dest: TPersistent);
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      IImageFormatAux
+//
+//------------------------------------------------------------------------------
+// An IImageFormatAdapter can use this interface to indicate that it is an
+// auxiliary format. An auxiliary format is an optional addition to a primary
+// format.
+// For example, when copying to the clipboard, PNG is an auxiliary format while
+// CF_DIBV5 is the primary format and we want them both on the clipboard.
+//------------------------------------------------------------------------------
+type
+  IImageFormatAux = interface
+    ['{2774D499-174D-47BC-BF9E-7FEF839C55DA}']
+    function IsAuxFormat(Source: TCustomBitmap32; Dest: TPersistent): boolean;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      IImageFormatFileInfo
 //
 //------------------------------------------------------------------------------
@@ -111,9 +145,9 @@ type
 // Reads data from the clipboard.
 //------------------------------------------------------------------------------
 // When data is read from the clipboard, we iterate all image formats that
-// IImageFormatClipboardFormat; We first try calling PasteFromClipboard on the
-// image format and if that isn't successful, we then iterate the available
-// clipboard formats and call LoadFromClipboardFormat on each in turn.
+// support IImageFormatClipboardFormat; We first try calling PasteFromClipboard
+// on the image format and if that isn't successful, we then iterate the
+// available clipboard formats and call LoadFromClipboardFormat on each in turn.
 // If both of the above methods return False, we fall back to using the
 // IImageFormatReader interface to try and read the data.
 //------------------------------------------------------------------------------
@@ -723,15 +757,44 @@ function TImageFormatManager.AssignTo(Source: TCustomBitmap32; Dest: TPersistent
 var
   Item: TImageFormatItem;
   Adapter: IImageFormatAdapter;
+  WriteNotification: IImageFormatWriteNotification;
+  ImageFormatAux: IImageFormatAux;
+  HasAuxFormats: boolean;
 begin
+  Result := False;
+
   if (FFormats = nil) then
-    exit(False);
+    Exit;
+
+  HasAuxFormats := False;
 
   for Item in FFormats do
-    if (Supports(Item.ImageFormat, IImageFormatAdapter, Adapter)) and (Adapter.AssignTo(Source, Dest)) then
-      exit(True);
+    if (Supports(Item.ImageFormat, IImageFormatAdapter)) then
+    begin
+      if (Supports(Item.ImageFormat, IImageFormatWriteNotification, WriteNotification)) then
+        WriteNotification.BeginWriting(Source, Dest);
+      if (not HasAuxFormats) and (Supports(Item.ImageFormat, IImageFormatAux, ImageFormatAux)) then
+        HasAuxFormats := ImageFormatAux.IsAuxFormat(Source, Dest);
+    end;
+  try
 
-  Result := False;
+    for Item in FFormats do
+      if (Supports(Item.ImageFormat, IImageFormatAdapter, Adapter)) and (Adapter.AssignTo(Source, Dest)) then
+      begin
+        Result := True;
+
+        // If we have auxiliary formats then we need to continue so
+        // all supported formats can be copied.
+        if (not HasAuxFormats) then
+          break;
+      end;
+
+  finally
+    for Item in FFormats do
+      if (Supports(Item.ImageFormat, IImageFormatAdapter)) and
+        (Supports(Item.ImageFormat, IImageFormatWriteNotification, WriteNotification)) then
+        WriteNotification.EndWriting(Source, Dest);
+  end;
 end;
 
 function TImageFormatManager.CanAssignFrom(Source: TPersistent): boolean;
