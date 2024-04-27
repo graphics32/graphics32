@@ -2098,6 +2098,13 @@ begin
         UpdateRectNotification.AreaUpdated(AArea, AInfo);
       // ->Windows InvalidateRect
       inherited AreaUpdated(AArea, AInfo);
+
+      // Note that even though we do a coarse InvalidateRect here, regardless of the shape of
+      // the area being invalidated, this does not spoil our repaint optimization. When
+      // processing WM_PAINT we will still only paint the repaint optimizer's fine-grained
+      // tiles.
+      // Note on the note: I'm not sure the above is correct anymore; Will have to verify.
+
       AreaUpdated := True;
     end else
     begin

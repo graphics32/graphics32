@@ -59,8 +59,14 @@ uses
   Math,
   GR32;
 
+//------------------------------------------------------------------------------
+//
+//      Layer option bit flags
+//
+//------------------------------------------------------------------------------
+// Used by TCustomLayer.LayerOptions
+//------------------------------------------------------------------------------
 const
-  { Layer Options Bits }
   LOB_VISIBLE           = $80000000; // 31-st bit: Controls the layer visibility
   LOB_GDI_OVERLAY       = $40000000; // 30-th bit: Indicates that the layer performs drawing when its owner draws its GDI Overlays.
   LOB_MOUSE_EVENTS      = $20000000; // 29-th bit: Specifies whether the layer responds to mouse messages.
@@ -71,22 +77,34 @@ const
   LOB_RESERVED_24       = $01000000; // 24-th bit
   LOB_RESERVED_MASK     = $FF000000;
 
+
 type
   TCustomLayer = class;
   TPositionedLayer = class;
-  TRubberbandLayer = class;
   TLayerClass = class of TCustomLayer;
 
   TLayerCollection = class;
 
+//------------------------------------------------------------------------------
+//
+//      Layer event types
+//
+//------------------------------------------------------------------------------
   TLayerUpdateEvent = procedure(Sender: TObject; Layer: TCustomLayer) of object;
   TAreaUpdateEvent = TAreaChangedEvent;
+
   TLayerListNotification = (lnLayerAdded, lnLayerInserted, lnLayerDeleted, lnCleared);
-  TLayerListNotifyEvent = procedure(Sender: TLayerCollection; Action: TLayerListNotification;
-    Layer: TCustomLayer; Index: Integer) of object;
+  TLayerListNotifyEvent = procedure(Sender: TLayerCollection; Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer) of object;
+
   TGetScaleEvent = procedure(Sender: TObject; out ScaleX, ScaleY: TFloat) of object;
   TGetShiftEvent = procedure(Sender: TObject; out ShiftX, ShiftY: TFloat) of object;
 
+
+//------------------------------------------------------------------------------
+//
+//      Layer notification interfaces
+//
+//------------------------------------------------------------------------------
   ILayerNotification = interface
     ['{5549DE7E-778E-4500-9F20-6455EC3BC574}']
     procedure LayerUpdated(ALayer: TCustomLayer);
@@ -109,6 +127,14 @@ type
     procedure LayerListNotify(ALayer: TCustomLayer; AAction: TLayerListNotification; AIndex: Integer);
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TLayerCollection
+//
+//------------------------------------------------------------------------------
+// A collection of layers.
+//------------------------------------------------------------------------------
   TLayerCollection = class(TPersistent)
   private
     FItems: TList;
@@ -207,6 +233,14 @@ type
      function GetEnumerator: TLayerEnum;
    end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TCustomLayer
+//
+//------------------------------------------------------------------------------
+// The layer base class.
+//------------------------------------------------------------------------------
   TLayerState = (lsMouseLeft, lsMouseRight, lsMouseMiddle);
   TLayerStates = set of TLayerState;
 
@@ -304,6 +338,14 @@ type
     property OnMouseUp: TMouseEvent read FOnMouseUp write FOnMouseUp;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TPositionedLayer
+//
+//------------------------------------------------------------------------------
+// Base class for layers that has position and size.
+//------------------------------------------------------------------------------
   TLayerGetUpdateRectEvent = procedure(Sender: TObject; var UpdateRect: TRect) of object;
 
   TPositionedLayer = class(TCustomLayer)
@@ -344,6 +386,14 @@ type
     property OnGetUpdateRect: TLayerGetUpdateRectEvent read FOnGetUpdateRect write FOnGetUpdateRect;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TCustomIndirectBitmapLayer
+//
+//------------------------------------------------------------------------------
+// Base class for layers referencing a bitmap. The layer does not own the bitmap.
+//------------------------------------------------------------------------------
   TCustomIndirectBitmapLayer = class(TPositionedLayer)
   strict private
     FAlphaHit: Boolean;
@@ -377,6 +427,14 @@ type
     property Bitmap;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TCustomBitmapLayer
+//
+//------------------------------------------------------------------------------
+// Abstract base class for layers containing a bitmap. The layer owns the bitmap.
+//------------------------------------------------------------------------------
   TCustomBitmapLayer = class abstract(TCustomIndirectBitmapLayer)
   strict protected
     function OwnsBitmap: boolean; override;
@@ -388,6 +446,14 @@ type
     constructor Create(ALayerCollection: TLayerCollection); override;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TBitmapLayer
+//
+//------------------------------------------------------------------------------
+// A layer containing a TBitmap32. The layer owns the bitmap.
+//------------------------------------------------------------------------------
   TBitmapLayer = class(TCustomBitmapLayer)
   private
   protected
@@ -398,8 +464,19 @@ type
     property Bitmap: TBitmap32 read GetBitmap write SetBitmap;
   end;
 
-  TRBDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB,
-    dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);
+
+//------------------------------------------------------------------------------
+//
+//      TCustomRubberBandLayer
+//
+//------------------------------------------------------------------------------
+// Base class for design layers displaying a stippled polygon with optional
+// selection handles at the vertices.
+//------------------------------------------------------------------------------
+type
+  TCustomRubberBandLayer = class;
+
+  TRBDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB, dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);
 
   TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame,
     rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide,
@@ -418,7 +495,7 @@ type
 
   TRubberbandPassMouse = class(TPersistent)
   private
-    FOwner: TRubberbandLayer;
+    FOwner: TCustomRubberBandLayer;
     FEnabled: Boolean;
     FToChild: Boolean;
     FLayerUnderCursor: Boolean;
@@ -426,7 +503,7 @@ type
   protected
     function GetChildUnderCursor(X, Y: Integer): TPositionedLayer;
   public
-    constructor Create(AOwner: TRubberbandLayer);
+    constructor Create(AOwner: TCustomRubberBandLayer);
 
     property Enabled: Boolean read FEnabled write FEnabled default False;
     property ToChild: Boolean read FToChild write FToChild default False;
@@ -435,120 +512,231 @@ type
   end;
 
   // TODO : Replace these with anonymous methods once FPC catches up (expected for FPC 4)
-  TRBPaintFrameHandler = procedure(Buffer: TBitmap32; const r: TRect) of object;
-  TRBPaintHandleHandler = procedure(Buffer: TBitmap32; X, Y: TFloat) of object;
+  TRubberBandPaintFrameHandler = procedure(Buffer: TBitmap32; const r: TRect) of object;
+  TRubberBandPaintHandleHandler = procedure(Buffer: TBitmap32; const r: TRect; Index: integer) of object;
+  TRubberBandPaintHandlesHandler = procedure(Buffer: TBitmap32; const r: TRect; var Handled: boolean) of object;
 
-  TRubberbandLayer = class(TPositionedLayer)
+  ILayerHitTest = interface
+    ['{5F458999-F3BE-47F1-9215-B496927D7BA9}']
+    function GetMousePosition: TPoint;
+    property MousePosition: TPoint read GetMousePosition;
+
+    function GetShift: TShiftState;
+    procedure SetShift(Value: TShiftState);
+    property Shift: TShiftState read GetShift write SetShift;
+
+    function GetCursor: integer;
+    procedure SetCursor(Value: integer);
+    property Cursor: integer read GetCursor write SetCursor;
+  end;
+
+  ILayerHitTestVertex = interface(ILayerHitTest)
+    ['{6BFC44FB-02FA-4999-BBCD-1085FC81F9DC}']
+    function GetVertex: integer;
+    property Vertex: integer read GetVertex;
+  end;
+
+  ILayerHitTestMove = interface(ILayerHitTest)
+    ['{3CA95766-7294-42FB-A5F6-85153376F0B4}']
+  end;
+
+  TCustomRubberBandLayer = class(TPositionedLayer)
   private
     FChildLayer: TPositionedLayer;
+    FVertices: TArrayOfFloatPoint;
     FFrameStipplePattern: TArrayOfColor32;
     FFrameStippleStep: TFloat;
     FFrameStippleCounter: TFloat;
     FHandleFrame: TColor32;
     FHandleFill: TColor32;
-    FHandles: TRBHandles;
     FHandleSize: TFloat;
-    FMinWidth: TFloat;
-    FMaxHeight: TFloat;
-    FMinHeight: TFloat;
-    FMaxWidth: TFloat;
     FOnUserChange: TNotifyEvent;
-    FOnResizing: TRBResizingEvent;
-    FOnConstrain: TRBConstrainEvent;
-    FOptions: TRBOptions;
     FQuantized: Integer;
     FPassMouse: TRubberbandPassMouse;
+    procedure SetFrameStipplePattern(const Value: TArrayOfColor32);
     procedure SetFrameStippleStep(const Value: TFloat);
     procedure SetFrameStippleCounter(const Value: TFloat);
     procedure SetChildLayer(Value: TPositionedLayer);
     procedure SetHandleFill(Value: TColor32);
     procedure SetHandleFrame(Value: TColor32);
-    procedure SetHandles(Value: TRBHandles);
     procedure SetHandleSize(Value: TFloat);
-    procedure SetOptions(const Value: TRBOptions);
     procedure SetQuantized(const Value: Integer);
+    procedure SetVertices(const Value: TArrayOfFloatPoint);
   protected
-    FIsDragging: Boolean;
-    FDragState: TRBDragState;
+    FIsDragging: Boolean; // For backward compatibility. Equals (FHitTest <> nil)
+    FHitTest: ILayerHitTest;
     FOldLocation: TFloatRect;
     FMouseShift: TFloatPoint;
     function  DoHitTest(X, Y: Integer): Boolean; override;
-    procedure DoResizing(var OldLocation, NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState); virtual;
-    procedure DoConstrain(var OldLocation, NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState); virtual;
     procedure DoSetLocation(const NewLocation: TFloatRect); override;
-    function  GetDragState(X, Y: Integer): TRBDragState; virtual;
-    function GetHandleCursor(DragState: TRBDragState; Angle: integer): TCursor; virtual;
+    function FindVertex(const APosition: TPoint): integer; virtual;
+    function GetHitTest(const APosition: TPoint; AShift: TShiftState = []): ILayerHitTest; virtual;
+    procedure SetHitTest(const AHitTest: ILayerHitTest); virtual;
+    procedure ApplyHitTestCursor(const AHitTest: ILayerHitTest); virtual;
+    function GetHitTestCursor(const AHitTest: ILayerHitTest): TCursor; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure Notification(ALayer: TCustomLayer); override;
     procedure Paint(Buffer: TBitmap32); override;
     procedure SetLayerOptions(Value: Cardinal); override;
-    procedure SetDragState(const Value: TRBDragState); overload;
-    procedure SetDragState(const Value: TRBDragState; const X, Y: Integer); overload;
     procedure UpdateChildLayer; virtual;
-    procedure DrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual;
-    procedure DrawFrame(Buffer: TBitmap32; const R: TRect);
-    procedure UpdateHandle(Buffer: TBitmap32; X, Y: TFloat);
-    procedure UpdateFrame(Buffer: TBitmap32; const R: TRect);
-    procedure DoHandles(Buffer: TBitmap32; const R: TRect; DoFrame: TRBPaintFrameHandler; DoHandle: TRBPaintHandleHandler);
+    function IsFrameVisible: boolean; virtual;
+    function IsVertexVisible(VertexIndex: integer): boolean; virtual;
+    function AllowMove: boolean; virtual;
+    procedure DoDrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual; // Required for backward compatibility
+    procedure DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer); virtual;
+    procedure DoDrawVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean); virtual;
+    procedure DrawFrame(Buffer: TBitmap32; const R: TRect); virtual;
+    procedure DoUpdateVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer); virtual;
+    procedure DoUpdateVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean); virtual;
+    procedure DoUpdateFrame(Buffer: TBitmap32; const R: TRect); virtual;
+    procedure DoDrawUpdate(Buffer: TBitmap32; FrameHandler: TRubberBandPaintFrameHandler;
+      VerticesHandler: TRubberBandPaintHandlesHandler; VertexHandler: TRubberBandPaintHandleHandler);
+    procedure UpdateFrame;
+    procedure UpdateVertices;
+    function ApplyOffset(const AHitTest: ILayerHitTest; AQuantize: boolean; const APoint, AOffset: TFloatPoint): boolean; virtual;
+    function IsQuantizing: boolean; virtual;
+
+    property Vertices: TArrayOfFloatPoint read FVertices write SetVertices;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
     destructor Destroy; override;
 
     procedure Update; override;
 
-    procedure SetFrameStipple(const Value: Array of TColor32);
+    procedure SetFrameStipple(const Value: array of TColor32);
     procedure Quantize;
 
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
-    property Options: TRBOptions read FOptions write SetOptions;
-    property Handles: TRBHandles read FHandles write SetHandles;
     property HandleSize: TFloat read FHandleSize write SetHandleSize;
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
     property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
+    property FrameStipple: TArrayOfColor32 read FFrameStipplePattern write SetFrameStipplePattern;
     property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;
     property FrameStippleCounter: TFloat read FFrameStippleCounter write SetFrameStippleCounter;
-    property MaxHeight: TFloat read FMaxHeight write FMaxHeight;
-    property MaxWidth: TFloat read FMaxWidth write FMaxWidth;
-    property MinHeight: TFloat read FMinHeight write FMinHeight;
-    property MinWidth: TFloat read FMinWidth write FMinWidth;
     property Quantized: Integer read FQuantized write SetQuantized default 8;
     property PassMouseToChild: TRubberbandPassMouse read FPassMouse;
 
     property OnUserChange: TNotifyEvent read FOnUserChange write FOnUserChange;
-    property OnConstrain: TRBConstrainEvent read FOnConstrain write FOnConstrain;
-    property OnResizing: TRBResizingEvent read FOnResizing write FOnResizing;
   end;
 
 type
   // Compas directions, counter clockwise, from 0 degress to 360.
   // Each one direction covers 45 degrees.
-  // Used inside TRubberbandLayer.GetCursor instead of the poorly ordered TRBDragState enum.
+  // Used inside TCustomRubberBandLayer.GetCursor instead of the poorly ordered TRBDragState enum.
   TResizeDirection = (ResizeDirectionE, ResizeDirectionNE, ResizeDirectionN, ResizeDirectionNW,
     ResizeDirectionW, ResizeDirectionSW, ResizeDirectionS, ResizeDirectionSE);
 
 var
-  // The TRubberbandLayer resize handle cursors.
-  // These are the values returned by TRubberbandLayer.GetCursor
+  // The TCustomRubberBandLayer resize handle cursors.
+  // These are the values returned by TCustomRubberBandLayer.GetCursor
   DirectionCursors: array[TResizeDirection] of TCursor = (crSizeWE, crSizeNESW, crSizeNS, crSizeNWSE, crSizeWE, crSizeNESW, crSizeNS, crSizeNWSE);
+
+type
+  TPolygonRubberbandLayer = class(TCustomRubberBandLayer)
+  public
+    property Vertices;
+  end;
+
+//------------------------------------------------------------------------------
+//
+//      TRubberbandLayer
+//
+//------------------------------------------------------------------------------
+// Rectangular rubber band selection design layer.
+//------------------------------------------------------------------------------
+const
+  VertexToDragState: array[0..7] of TRBDragState =
+    // 0         1        2
+    // 7                  3
+    // 6         5        4
+    (dsSizeTL, dsSizeT, dsSizeTR, dsSizeR, dsSizeBR, dsSizeB, dsSizeBL, dsSizeL);
+
+  DragStateToVertex: array[TRBDragState] of integer = (-1, -1, 7, 1, 3, 5, 0, 2, 6, 4);
+
+type
+  TValidDragStates = set of TRBDragState;
+
+  TRubberbandLayer = class(TCustomRubberBandLayer)
+  private
+    FHandles: TRBHandles;
+    FOptions: TRBOptions;
+    FMinWidth: TFloat;
+    FMaxHeight: TFloat;
+    FMinHeight: TFloat;
+    FMaxWidth: TFloat;
+    FOnResizing: TRBResizingEvent;
+    FOnConstrain: TRBConstrainEvent;
+  protected
+    FDragState: TRBDragState;
+    FValidDragStates: TValidDragStates;
+  protected
+    procedure SetHandles(Value: TRBHandles);
+    procedure SetOptions(const Value: TRBOptions);
+    function GetValidDragStates: TValidDragStates;
+    function IsQuantizing: boolean; override;
+    procedure DoSetLocation(const NewLocation: TFloatRect); override;
+    function GetHitTest(const APosition: TPoint; AShift: TShiftState = []): ILayerHitTest; override;
+    function GetHitTestCursor(const AHitTest: ILayerHitTest): TCursor; override;
+    function IsFrameVisible: boolean; override;
+    function IsVertexVisible(VertexIndex: integer): boolean; override;
+    function AllowMove: boolean; override;
+    procedure DrawFrame(Buffer: TBitmap32; const R: TRect); override;
+    procedure DoUpdateFrame(Buffer: TBitmap32; const R: TRect); override;
+    function ApplyOffset(const AHitTest: ILayerHitTest; AQuantize: boolean; const APoint, AOffset: TFloatPoint): boolean; override;
+    procedure DoResizing(const OldLocation: TFloatRect; var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState); virtual;
+    procedure DoConstrain(const OldLocation: TFloatRect; var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState); virtual;
+    // Backward compatibility
+    function GetDragState(X, Y: Integer): TRBDragState; overload; virtual; deprecated 'Use GetHitTest';
+    procedure DoSetDragState(const Value: TRBDragState; const X, Y: Integer); overload;
+    procedure SetDragState(const Value: TRBDragState); overload; deprecated 'Use SetHitTest';
+    procedure SetDragState(const Value: TRBDragState; const X, Y: Integer); overload; deprecated 'Use SetHitTest';
+    function GetHandleCursor(DragState: TRBDragState; Angle: integer): TCursor; virtual; // Deprecated
+  public
+    constructor Create(ALayerCollection: TLayerCollection); override;
+
+    property Options: TRBOptions read FOptions write SetOptions;
+    property Handles: TRBHandles read FHandles write SetHandles;
+    property MaxHeight: TFloat read FMaxHeight write FMaxHeight;
+    property MaxWidth: TFloat read FMaxWidth write FMaxWidth;
+    property MinHeight: TFloat read FMinHeight write FMinHeight;
+    property MinWidth: TFloat read FMinWidth write FMinWidth;
+    property OnConstrain: TRBConstrainEvent read FOnConstrain write FOnConstrain;
+    property OnResizing: TRBResizingEvent read FOnResizing write FOnResizing;
+  end;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
 uses
-  TypInfo, GR32_Image, GR32_LowLevel, GR32_Resamplers, GR32_RepaintOpt, Types;
+  TypInfo,
+  Types,
+  GR32_Image,
+  GR32_LowLevel,
+  GR32_Geometry,
+  GR32_Resamplers,
+  GR32_RepaintOpt;
 
 { mouse state mapping }
 const
   CStateMap: array [TMouseButton] of TLayerState =
-    (lsMouseLeft, lsMouseRight, lsMouseMiddle {$IFDEF FPC}, lsMouseMiddle,
-     lsMouseMiddle{$ENDIF});
+    (lsMouseLeft, lsMouseRight, lsMouseMiddle
+    {$IFDEF FPC}, lsMouseMiddle, lsMouseMiddle{$ENDIF});
 
 type
   TImage32Access = class(TCustomImage32);
 
-{ TLayerCollection }
 
+//------------------------------------------------------------------------------
+//
+//      TLayerCollection
+//
+//------------------------------------------------------------------------------
 constructor TLayerCollection.Create(AOwner: TPersistent);
 begin
   inherited Create;
@@ -961,8 +1149,11 @@ begin
 end;
 
 
-{ TCustomLayer }
-
+//------------------------------------------------------------------------------
+//
+//      TCustomLayer
+//
+//------------------------------------------------------------------------------
 constructor TCustomLayer.Create(ALayerCollection: TLayerCollection);
 begin
   LayerCollection := ALayerCollection;
@@ -1361,8 +1552,12 @@ begin
     FLayerOptions := FLayerOptions and not LOB_FORCE_UPDATE;
 end;
 
-{ TPositionedLayer }
 
+//------------------------------------------------------------------------------
+//
+//      TPositionedLayer
+//
+//------------------------------------------------------------------------------
 constructor TPositionedLayer.Create(ALayerCollection: TLayerCollection);
 begin
   inherited;
@@ -1376,11 +1571,15 @@ begin
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
 end;
 
+//------------------------------------------------------------------------------
+
 function TPositionedLayer.DoHitTest(X, Y: Integer): Boolean;
+var
+  r: TFLoatRect;
 begin
-  with GetAdjustedRect(FLocation) do
-    Result := (X >= Left) and (X < Right) and (Y >= Top) and (Y < Bottom) and
-      inherited DoHitTest(X, Y);
+  r := GetAdjustedRect(FLocation);
+  Result := (X >= r.Left) and (X < r.Right) and (Y >= r.Top) and (Y < r.Bottom) and
+    inherited DoHitTest(X, Y);
 end;
 
 procedure TPositionedLayer.DoSetLocation(const NewLocation: TFloatRect);
@@ -1438,13 +1637,30 @@ end;
 
 function TPositionedLayer.ControlToLayer(const APoint: TFloatPoint; AScaleToContent: boolean): TFloatPoint;
 var
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
   ViewPort: TFloatRect;
   Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
 begin
   if Scaled and (FLayerCollection <> nil) then
   begin
-    ViewPort := GetAdjustedLocation;
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+
+    Result.X := (APoint.X - ShiftX) / ScaleX;
+    Result.Y := (APoint.Y - ShiftY) / ScaleY;
+exit;
+
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+
+    ViewPort.Left := Location.Left * ScaleX + ShiftX;
+    ViewPort.Right := Location.Right * ScaleX + ShiftX;
+    ViewPort.Top := Location.Top * ScaleY + ShiftY;
+    ViewPort.Bottom := Location.Bottom * ScaleY + ShiftY;
+    // Same as:
+    // ViewPort := GetAdjustedLocation;
+
     Result := APoint - ViewPort.TopLeft;
 
     if (AScaleToContent) then
@@ -1462,11 +1678,15 @@ begin
       end;
     end;
   end else
-    Result := APoint - FLocation.TopLeft;
+  begin
+    Result.X := APoint.X - FLocation.Left;
+    Result.Y := APoint.Y - FLocation.Top;
+  end;
 end;
 
 function TPositionedLayer.ControlToLayer(const ARect: TFloatRect; AScaleToContent: boolean): TFloatRect;
 var
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
   ViewPort: TFloatRect;
   Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
@@ -1475,7 +1695,25 @@ begin
 
   if Scaled and (FLayerCollection <> nil) then
   begin
-    ViewPort := GetAdjustedLocation;
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+
+    Result.Left := (ARect.Left - ShiftX) / ScaleX;
+    Result.Right := (ARect.Right - ShiftX) / ScaleX;
+    Result.Top := (ARect.Top - ShiftY) / ScaleY;
+    Result.Bottom := (ARect.Bottom - ShiftY) / ScaleY;
+exit;
+
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+
+    ViewPort.Left := Location.Left * ScaleX + ShiftX;
+    ViewPort.Right := Location.Right * ScaleX + ShiftX;
+    ViewPort.Top := Location.Top * ScaleY + ShiftY;
+    ViewPort.Bottom := Location.Bottom * ScaleY + ShiftY;
+    // Same as:
+    // ViewPort := GetAdjustedLocation;
+
     Result.Offset(-ViewPort.Top, -ViewPort.Left);
 
     if (AScaleToContent) then
@@ -1498,7 +1736,12 @@ begin
       end;
     end;
   end else
-    Result.Offset(-FLocation.Top, -FLocation.Left);
+  begin
+    Result.Left := ARect.Left - FLocation.Left;
+    Result.Right := ARect.Right - FLocation.Left;
+    Result.Top := ARect.Top - FLocation.Top;
+    Result.Bottom := ARect.Bottom - FLocation.Top;
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -1515,15 +1758,27 @@ end;
 
 function TPositionedLayer.LayerToControl(const APoint: TFloatPoint; AScaleFromContent: boolean): TFloatPoint;
 var
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
   ViewPort: TFloatRect;
   Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
 begin
-  Result := APoint;
+//  Result := APoint;
 
   if Scaled and (FLayerCollection <> nil) then
   begin
-    ViewPort := GetAdjustedLocation;
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+
+    Result.X := APoint.X * ScaleX + ShiftX;
+    Result.Y := APoint.Y * ScaleY + ShiftY;
+exit;
+    ViewPort.Left := Location.Left * ScaleX + ShiftX;
+    ViewPort.Right := Location.Right * ScaleX + ShiftX;
+    ViewPort.Top := Location.Top * ScaleY + ShiftY;
+    ViewPort.Bottom := Location.Bottom * ScaleY + ShiftY;
+    // Same as:
+    // ViewPort := GetAdjustedLocation;
 
     if (AScaleFromContent) then
     begin
@@ -1540,13 +1795,21 @@ begin
       end;
     end;
 
-    Result.Offset(ViewPort.TopLeft);
+//    Result.Offset(ViewPort.TopLeft);
+
+    Result.X := (Result.X + ViewPort.Left - ShiftX) / ScaleX;
+    Result.Y := (Result.Y + ViewPort.Top - ShiftY) / ScaleY;
+
   end else
-    Result.Offset(FLocation.TopLeft);
+  begin
+    Result.X := APoint.X + Location.Left;
+    Result.Y := APoint.Y + Location.Top;
+  end;
 end;
 
 function TPositionedLayer.LayerToControl(const ARect: TFloatRect; AScaleFromContent: boolean): TFloatRect;
 var
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
   ViewPort: TFloatRect;
   Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
@@ -1555,7 +1818,21 @@ begin
 
   if Scaled and (FLayerCollection <> nil) then
   begin
-    ViewPort := GetAdjustedLocation;
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+
+    Result.Left := ARect.Left * ScaleX + ShiftX;
+    Result.Right := ARect.Right * ScaleX + ShiftX;
+    Result.Top := ARect.Top * ScaleY + ShiftY;
+    Result.Bottom := ARect.Bottom * ScaleY + ShiftY;
+exit;
+
+    ViewPort.Left := Location.Left * ScaleX + ShiftX;
+    ViewPort.Right := Location.Right * ScaleX + ShiftX;
+    ViewPort.Top := Location.Top * ScaleY + ShiftY;
+    ViewPort.Bottom := Location.Bottom * ScaleY + ShiftY;
+    // Same as:
+    // ViewPort := GetAdjustedLocation;
 
     if (AScaleFromContent) then
     begin
@@ -1577,9 +1854,19 @@ begin
       end;
     end;
 
-    Result.Offset(ViewPort.Top, ViewPort.Left);
+    Result.Left := (Result.Left + ViewPort.Left - ShiftX) / ScaleX;
+    Result.Right := (Result.Right + ViewPort.Left - ShiftX) / ScaleX;
+    Result.Top := (Result.Top + ViewPort.Top - ShiftY) / ScaleY;
+    Result.Bottom := (Result.Bottom + ViewPort.Top - ShiftY) / ScaleY;
+
+//    Result.Offset(ViewPort.Top, ViewPort.Left);
   end else
-    Result.Offset(FLocation.Top, FLocation.Left);
+  begin
+    Result.Left := ARect.Left + FLocation.Left;
+    Result.Right := ARect.Right + FLocation.Left;
+    Result.Top := ARect.Top + FLocation.Top;
+    Result.Bottom := ARect.Bottom + FLocation.Top;
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -1638,8 +1925,12 @@ begin
   UpdateRect(GetUpdateRect);
 end;
 
-{ TCustomIndirectBitmapLayer }
 
+//------------------------------------------------------------------------------
+//
+//      TCustomIndirectBitmapLayer
+//
+//------------------------------------------------------------------------------
 constructor TCustomIndirectBitmapLayer.Create(ALayerCollection: TLayerCollection);
 begin
   inherited Create(ALayerCollection);
@@ -1806,8 +2097,11 @@ begin
 end;
 
 
-{ TCustomBitmapLayer }
-
+//------------------------------------------------------------------------------
+//
+//      TCustomBitmapLayer
+//
+//------------------------------------------------------------------------------
 constructor TCustomBitmapLayer.Create(ALayerCollection: TLayerCollection);
 var
   LayerBitmap: TCustomBitmap32;
@@ -1839,8 +2133,12 @@ begin
   Bitmap.Assign(Value);
 end;
 
-{ TBitmapLayer }
 
+//------------------------------------------------------------------------------
+//
+//      TBitmapLayer
+//
+//------------------------------------------------------------------------------
 function TBitmapLayer.GetBitmap: TBitmap32;
 begin
   Result := TBitmap32(inherited Bitmap);
@@ -1857,9 +2155,10 @@ begin
 end;
 
 
-{ TRubberbandPassMouse }
-
-constructor TRubberbandPassMouse.Create(AOwner: TRubberbandLayer);
+//------------------------------------------------------------------------------
+// TRubberbandPassMouse
+//------------------------------------------------------------------------------
+constructor TRubberbandPassMouse.Create(AOwner: TCustomRubberBandLayer);
 begin
   FOwner := AOwner;
   FEnabled := False;
@@ -1887,18 +2186,95 @@ begin
 end;
 
 
-{ TRubberbandLayer }
+//------------------------------------------------------------------------------
+// ILayerHitTest and friends
+//------------------------------------------------------------------------------
+type
+  TLayerHitTest = class(TInterfacedObject, ILayerHitTest)
+  private
+    FMousePosition: TPoint;
+    FShift: TShiftState;
+    FCursor: integer;
+  protected
+    function GetMousePosition: TPoint;
+    function GetShift: TShiftState;
+    procedure SetShift(Value: TShiftState);
+    function GetCursor: integer; virtual;
+    procedure SetCursor(Value: integer);
+  public
+    constructor Create(const AMousePosition: TPoint);
+  end;
 
-constructor TRubberbandLayer.Create(ALayerCollection: TLayerCollection);
+constructor TLayerHitTest.Create(const AMousePosition: TPoint);
+begin
+  inherited Create;
+  FMousePosition := AMousePosition;
+  FCursor := crDefault;
+end;
+
+function TLayerHitTest.GetCursor: integer;
+begin
+  Result := FCursor;
+end;
+
+procedure TLayerHitTest.SetCursor(Value: integer);
+begin
+  FCursor := Value;
+end;
+
+procedure TLayerHitTest.SetShift(Value: TShiftState);
+begin
+  FShift := Value;
+end;
+
+function TLayerHitTest.GetMousePosition: TPoint;
+begin
+  Result := FMousePosition;
+end;
+
+function TLayerHitTest.GetShift: TShiftState;
+begin
+  Result := FShift;
+end;
+
+type
+  TLayerHitTestVertex = class(TLayerHitTest, ILayerHitTestVertex)
+  private
+    FVertex: integer;
+  protected
+    function GetVertex: integer;
+  public
+    constructor Create(const AMousePosition: TPoint; AVertex: integer);
+  end;
+
+constructor TLayerHitTestVertex.Create(const AMousePosition: TPoint; AVertex: integer);
+begin
+  inherited Create(AMousePosition);
+  FVertex := AVertex;
+end;
+
+function TLayerHitTestVertex.GetVertex: integer;
+begin
+  Result := FVertex;
+end;
+
+type
+  TLayerHitTestMove = class(TLayerHitTest, ILayerHitTestMove)
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TCustomRubberBandLayer
+//
+//------------------------------------------------------------------------------
+constructor TCustomRubberBandLayer.Create(ALayerCollection: TLayerCollection);
 begin
   inherited;
   FHandleFrame := clBlack32;
   FHandleFill := clWhite32;
-  FHandles := [rhCenter, rhSides, rhCorners, rhFrame];
   FHandleSize := 3;
-  FMinWidth := 10;
-  FMinHeight := 10;
-  FQuantized := 8;
+  FQuantized := 1;
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
   SetFrameStipple([clWhite32, clWhite32, clBlack32, clBlack32]);
   FPassMouse := TRubberbandPassMouse.Create(Self);
@@ -1906,102 +2282,212 @@ begin
   FFrameStippleCounter := 0;
 end;
 
-destructor TRubberbandLayer.Destroy;
+destructor TCustomRubberBandLayer.Destroy;
 begin
   FPassMouse.Free;
   inherited;
 end;
 
-function TRubberbandLayer.DoHitTest(X, Y: Integer): Boolean;
+function TCustomRubberBandLayer.DoHitTest(X, Y: Integer): Boolean;
 begin
   if (Visible) then
-    Result := (GetDragState(X, Y) <> dsNone)
+    Result := (GetHitTest(GR32.Point(X, Y)) <> nil)
   else
     Result := False;
 end;
 
-procedure TRubberbandLayer.DoResizing(var OldLocation,
-  NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
+function TCustomRubberBandLayer.IsFrameVisible: boolean;
 begin
-  if Assigned(FOnResizing) then
-    FOnResizing(Self, OldLocation, NewLocation, DragState, Shift);
+  Result := (Length(FFrameStipplePattern) > 0);
 end;
 
-procedure TRubberbandLayer.DoConstrain(var OldLocation,
-  NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
+function TCustomRubberBandLayer.IsQuantizing: boolean;
 begin
-  if Assigned(FOnConstrain) then
-    FOnConstrain(Self, OldLocation, NewLocation, DragState, Shift);
+  Result := (FQuantized > 0);
 end;
 
-procedure TRubberbandLayer.DoSetLocation(const NewLocation: TFloatRect);
+function TCustomRubberBandLayer.IsVertexVisible(VertexIndex: integer): boolean;
 begin
+  Result := (VertexIndex >= 0) and (VertexIndex <= High(Vertices));
+end;
+
+procedure TCustomRubberBandLayer.DoSetLocation(const NewLocation: TFloatRect);
+var
+  i: integer;
+  Delta: TFloatPoint;
+begin
+  Delta := Location.TopLeft;
+
   inherited;
   UpdateChildLayer;
+
+  if (Delta <> Location.TopLeft) then
+  begin
+    Delta := Location.TopLeft - Delta;
+
+    for i := 0 to High(FVertices) do
+      FVertices[i] := FVertices[i] + Delta;
+
+    Update;
+  end;
 end;
 
-function SnapAngleTo45(Angle: integer): integer;
-begin
-  Result := (((Angle + 45 div 2) div 45) * 45 + 360) mod 360;
-end;
-
-function AngleToDirection(Angle: integer): TResizeDirection;
-begin
-  Result := TResizeDirection(SnapAngleTo45(Angle) div 45);
-end;
-
-function TRubberbandLayer.GetHandleCursor(DragState: TRBDragState; Angle: integer): TCursor;
+function TCustomRubberBandLayer.FindVertex(const APosition: TPoint): integer;
 var
-  Direction: TResizeDirection;
-begin
-  if (DragState in [dsNone, dsMove]) then
-    Exit(Cursor);
-
-  Direction := AngleToDirection(Angle);
-
-  Result := DirectionCursors[Direction];
-end;
-
-function TRubberbandLayer.GetDragState(X, Y: Integer): TRBDragState;
-var
-  R: TRect;
-  dh_center, dh_sides, dh_corners: Boolean;
-  dl, dt, dr, db, dx, dy: Boolean;
-  Sz: Integer;
+  i: integer;
+  HandleRect: TFloatRect;
 const
   DragZone = 1;
 begin
-  Result := dsNone;
-  Sz := Ceil(FHandleSize + DragZone);
-  dh_center := rhCenter in FHandles;
-  dh_sides := rhSides in FHandles;
-  dh_corners := rhCorners in FHandles;
+  for i := 0 to High(Vertices) do
+    if (IsVertexVisible(i)) then
+    begin
+      HandleRect.TopLeft := LayerToControl(Vertices[i], False);
+      HandleRect.BottomRight := HandleRect.TopLeft;
+      GR32.InflateRect(HandleRect, FHandleSize + DragZone, FHandleSize + DragZone);
 
-  R := MakeRect(GetAdjustedRect(FLocation));
-  with R do
-  begin
-    Dec(Right);
-    Dec(Bottom);
-    dl := Abs(Left - X) <= Sz;
-    dr := Abs(Right - X) <= Sz;
-    dx := Abs((Left + Right) div 2 - X) <= Sz;
-    dt := Abs(Top - Y) <= Sz;
-    db := Abs(Bottom - Y) <= Sz;
-    dy := Abs((Top + Bottom) div 2 - Y) <= Sz;
-  end;
+      if (HandleRect.Contains(APosition)) then
+        Exit(i);
+    end;
 
-  if dr and db and dh_corners and not(rhNotBRCorner in FHandles) then Result := dsSizeBR
-  else if dl and db and dh_corners and not(rhNotBLCorner in FHandles) then Result := dsSizeBL
-  else if dr and dt and dh_corners and not(rhNotTRCorner in FHandles) then Result := dsSizeTR
-  else if dl and dt and dh_corners and not(rhNotTLCorner in FHandles) then Result := dsSizeTL
-  else if dr and dy and dh_sides and not(rhNotRightSide in FHandles) then Result := dsSizeR
-  else if db and dx and dh_sides and not(rhNotBottomSide in FHandles) then Result := dsSizeB
-  else if dl and dy and dh_sides and not(rhNotLeftSide in FHandles) then Result := dsSizeL
-  else if dt and dx and dh_sides and not(rhNotTopSide in FHandles) then Result := dsSizeT
-  else if dh_center and GR32.PtInRect(R, GR32.Point(X, Y)) then Result := dsMove;
+  Result := -1;
 end;
 
-procedure TRubberbandLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+function TCustomRubberBandLayer.GetHitTest(const APosition: TPoint; AShift: TShiftState): ILayerHitTest;
+var
+  Vertex: integer;
+  p: TFloatPoint;
+begin
+  Vertex := FindVertex(APosition);
+  if (Vertex <> -1) then
+  begin
+    Result := TLayerHitTestVertex.Create(APosition, Vertex);
+    Result.Shift := AShift;
+    Result.Cursor := GetHitTestCursor(Result);
+  end else
+  if AllowMove then
+  begin
+    p := FloatPoint(ControlToLayer(APosition, False));
+    if (PointInPolygon(p, FVertices)) then
+    begin
+      Result := TLayerHitTestMove.Create(APosition);
+      Result.Shift := AShift;
+      Result.Cursor := GetHitTestCursor(Result);
+    end;
+  end else
+    Result := nil;
+end;
+
+procedure TCustomRubberBandLayer.SetHitTest(const AHitTest: ILayerHitTest);
+var
+  ALoc: TFloatRect;
+begin
+  FHitTest := AHitTest;
+  FIsDragging := (FHitTest <> nil); // For backward compatibility
+
+  if (FHitTest <> nil) then
+  begin
+    FOldLocation := Location;
+
+    if Supports(FHitTest, ILayerHitTestMove) then
+    begin
+      ALoc := GetAdjustedRect(FLocation);
+      FMouseShift := FloatPoint(FHitTest.MousePosition.X - ALoc.Left, FHitTest.MousePosition.Y - ALoc.Top);
+    end else
+      FMouseShift := FloatPoint(0, 0);
+  end;
+end;
+
+function TCustomRubberBandLayer.AllowMove: boolean;
+begin
+  Result := True;
+end;
+
+procedure TCustomRubberBandLayer.ApplyHitTestCursor(const AHitTest: ILayerHitTest);
+var
+  NewCursor: TCursor;
+begin
+  NewCursor := crDefault;
+
+  if (AHitTest <> nil) then
+    NewCursor := AHitTest.Cursor;
+
+  if (NewCursor = crDefault) then
+    NewCursor := Cursor;
+
+  Screen.Cursor := NewCursor;
+end;
+
+function TCustomRubberBandLayer.GetHitTestCursor(const AHitTest: ILayerHitTest): TCursor;
+var
+  HitTestVertex: ILayerHitTestVertex;
+begin
+  Result := crDefault;
+
+  if (AHitTest <> nil) then
+  begin
+    if Supports(AHitTest, ILayerHitTestVertex, HitTestVertex) then
+    begin
+      if (IsVertexVisible(HitTestVertex.Vertex)) then
+        Result := crHandPoint;
+    end else
+    if Supports(AHitTest, ILayerHitTestMove) then
+    begin
+      if (AllowMove) then
+        Result := crSizeAll;
+    end;
+  end;
+end;
+
+function TCustomRubberBandLayer.ApplyOffset(const AHitTest: ILayerHitTest; AQuantize: boolean; const APoint, AOffset: TFloatPoint): boolean;
+var
+  NewLocation: TFloatRect;
+  NewVertex: TFloatPoint;
+  HitTestVertex: ILayerHitTestVertex;
+begin
+  Result := False;
+
+  NewLocation := FOldLocation;
+
+  if Supports(FHitTest, ILayerHitTestMove) then
+  begin
+    if AQuantize then
+    begin
+//      Offset.X := Round(Offset.X / FQuantized) * FQuantized;
+//      Offset.Y := Round(Offset.Y / FQuantized) * FQuantized;
+    end;
+    NewLocation.Right := AOffset.X + NewLocation.Width;
+    NewLocation.Bottom := AOffset.Y + NewLocation.Height;
+    NewLocation.Left := AOffset.X;
+    NewLocation.Top := AOffset.Y;
+
+    if (NewLocation <> Location) then
+    begin
+      Location := NewLocation;
+      Result := True;
+    end;
+  end else
+  if Supports(FHitTest, ILayerHitTestVertex, HitTestVertex) then
+  begin
+    NewVertex := APoint;
+    if AQuantize then
+    begin
+      NewVertex.X := Round(NewVertex.X / FQuantized) * FQuantized;
+      NewVertex.Y := Round(NewVertex.Y / FQuantized) * FQuantized;
+    end;
+
+    if (NewVertex <> FVertices[HitTestVertex.Vertex]) then
+    begin
+      Update;
+      FVertices[HitTestVertex.Vertex] := NewVertex;
+      Update;
+      Result := True;
+    end;
+  end else
+    exit;
+end;
+
+procedure TCustomRubberBandLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   PositionedLayer: TPositionedLayer;
 begin
@@ -2027,150 +2513,62 @@ begin
     end;
   end;
 
-  if FIsDragging then Exit;
-  SetDragState(GetDragState(X, Y), X, Y);
+  if (FHitTest <> nil) then
+    Exit;
+
+  SetHitTest(GetHitTest(GR32.Point(X, Y), Shift));
+
   inherited;
 end;
 
-procedure TRubberbandLayer.MouseMove(Shift: TShiftState; X, Y: Integer);
-
-  procedure IncLT(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
-  begin
-    LT := LT + Delta;
-    if RB - LT < MinSize then
-      LT := RB - MinSize;
-    if MaxSize >= MinSize then
-      if RB - LT > MaxSize then
-        LT := RB - MaxSize;
-  end;
-
-  procedure IncRB(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
-  begin
-    RB := RB + Delta;
-    if RB - LT < MinSize then
-      RB := LT + MinSize;
-    if MaxSize >= MinSize then
-      if RB - LT > MaxSize then
-        RB := LT + MaxSize;
-  end;
-
+procedure TCustomRubberBandLayer.MouseMove(Shift: TShiftState; X, Y: Integer);
 var
-  Mx, My: TFloat;
-  L, T, R, B, W, H: TFloat;
-  LQuantize: Boolean;
-  ALoc, NewLocation: TFloatRect;
-  Angle: integer;
-const
-  DragStateToAngle: array[TRBDragState] of integer = (-1, -1, 180, 90, 0, 270, 135, 45, 225, 315);
+  TempHitTest: ILayerHitTest;
+  Offset: TFloatPoint;
+  DoQuantize: Boolean;
+  r: TFloatRect;
+  p: TFloatPoint;
 begin
-  if not FIsDragging then
+  if (FHitTest = nil) then
   begin
-    FDragState := GetDragState(X, Y);
-    Angle := DragStateToAngle[FDragState];
-    Screen.Cursor := GetHandleCursor(FDragState, Angle);
-  end
-  else
+    TempHitTest := GetHitTest(GR32.Point(X, Y), Shift);
+    ApplyHitTestCursor(TempHitTest);
+
+    exit;
+  end;
+
+  FHitTest.Shift := Shift;
+  ApplyHitTestCursor(FHitTest);
+
+  Offset.X := X - FMouseShift.X;
+  Offset.Y := Y - FMouseShift.Y;
+  if Scaled then
   begin
-    Mx := X - FMouseShift.X;
-    My := Y - FMouseShift.Y;
-    if Scaled then
-    with Location do
-    begin
-      ALoc := GetAdjustedRect(FLocation);
-      if GR32.IsRectEmpty(ALoc) then Exit;
-      Mx := (Mx - ALoc.Left) / (ALoc.Right - ALoc.Left) * (Right - Left) + Left;
-      My := (My - ALoc.Top) / (ALoc.Bottom - ALoc.Top) * (Bottom - Top) + Top;
-    end;
+    r := GetAdjustedRect(FLocation);
+    if GR32.IsRectEmpty(r) then
+      Exit;
+    Offset.X := (Offset.X - r.Left) / r.Width * Location.Width + Location.Left;
+    Offset.Y := (Offset.Y - r.Top) / r.Height * Location.Height + Location.Top;
+  end;
 
-    with FOldLocation do
-    begin
-      L := Left;
-      T := Top;
-      R := Right;
-      B := Bottom;
-      W := R - L;
-      H := B - T;
-    end;
+  DoQuantize := (IsQuantizing) and not (ssAlt in FHitTest.Shift);
 
-    LQuantize := (roQuantized in Options) and not (ssAlt in Shift);
+  if DoQuantize then
+  begin
+    Offset.X := Round(Offset.X / FQuantized) * FQuantized;
+    Offset.Y := Round(Offset.Y / FQuantized) * FQuantized;
+  end;
 
-    if FDragState = dsMove then
-    begin
-      L := Mx;
-      T := My;
-      if LQuantize then
-      begin
-        L := Round(L / FQuantized) * FQuantized;
-        T := Round(T / FQuantized) * FQuantized;
-      end;
-      R := L + W;
-      B := T + H;
-    end
-    else
-    begin
-      if FDragState in [dsSizeL, dsSizeTL, dsSizeBL] then
-      begin
-        IncLT(L, R, Mx - L, MinWidth, MaxWidth);
-        if LQuantize then
-          L := Round(L / FQuantized) * FQuantized;
-      end;
+  p := ControlToLayer(FloatPoint(X, Y), False);
 
-      if FDragState in [dsSizeR, dsSizeTR, dsSizeBR] then
-      begin
-        IncRB(L, R, Mx - R, MinWidth, MaxWidth);
-        if LQuantize then
-          R := Round(R / FQuantized) * FQuantized;
-      end;
-
-      if FDragState in [dsSizeT, dsSizeTL, dsSizeTR] then
-      begin
-        IncLT(T, B, My - T, MinHeight, MaxHeight);
-        if LQuantize then
-          T := Round(T / FQuantized) * FQuantized;
-      end;
-
-      if FDragState in [dsSizeB, dsSizeBL, dsSizeBR] then
-      begin
-        IncRB(T, B, My - B, MinHeight, MaxHeight);
-        if LQuantize then
-          B := Round(B / FQuantized) * FQuantized;
-      end;
-    end;
-
-    NewLocation := FloatRect(L, T, R, B);
-
-    if roConstrained in FOptions then
-      DoConstrain(FOldLocation, NewLocation, FDragState, Shift);
-
-    if roProportional in FOptions then
-    begin
-      case FDragState of
-        dsSizeB, dsSizeBR:
-          NewLocation.Right := FOldLocation.Left + (FOldLocation.Right - FOldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (FOldLocation.Bottom - FOldLocation.Top);
-        dsSizeT, dsSizeTL:
-          NewLocation.Left := FOldLocation.Right - (FOldLocation.Right - FOldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (FOldLocation.Bottom - FOldLocation.Top);
-        dsSizeR, dsSizeBL:
-          NewLocation.Bottom := FOldLocation.Top + (FOldLocation.Bottom - FOldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (FOldLocation.Right - FOldLocation.Left);
-        dsSizeL, dsSizeTR:
-          NewLocation.Top := FOldLocation.Bottom - (FOldLocation.Bottom - FOldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (FOldLocation.Right - FOldLocation.Left);
-      end;
-    end;
-
-    DoResizing(FOldLocation, NewLocation, FDragState, Shift);
-
-    if (NewLocation.Left <> Location.Left) or
-      (NewLocation.Right <> Location.Right) or
-      (NewLocation.Top <> Location.Top) or
-      (NewLocation.Bottom <> Location.Bottom) then
-    begin
-      Location := NewLocation;
-      if Assigned(FOnUserChange) then
-        FOnUserChange(Self);
-    end;
+  if ApplyOffset(FHitTest, DoQuantize, p, Offset) then
+  begin
+    if Assigned(FOnUserChange) then
+      FOnUserChange(Self);
   end;
 end;
 
-procedure TRubberbandLayer.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure TCustomRubberBandLayer.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   PositionedLayer: TPositionedLayer;
 begin
@@ -2196,100 +2594,218 @@ begin
     end;
   end;
 
-  FIsDragging := False;
+  SetHitTest(nil);
+
   inherited;
 end;
 
-procedure TRubberbandLayer.Notification(ALayer: TCustomLayer);
+procedure TCustomRubberBandLayer.Notification(ALayer: TCustomLayer);
 begin
   if ALayer = FChildLayer then
     FChildLayer := nil;
 end;
 
-procedure TRubberbandLayer.DrawHandle(Buffer: TBitmap32; X, Y: TFloat);
+procedure TCustomRubberBandLayer.DoDrawHandle(Buffer: TBitmap32; X, Y: TFloat);
 var
+  Handle: TFloatRect;
   HandleRect: TRect;
+begin
+  Handle := FloatRect(X, Y, X, Y);
+  GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+  HandleRect := MakeRect(Handle, rrOutside);
+
+  if (AlphaComponent(FHandleFrame) > 0) then
+  begin
+    Buffer.FrameRectTS(HandleRect, FHandleFrame);
+
+    GR32.InflateRect(HandleRect, -1, -1);
+  end;
+
+  if (AlphaComponent(FHandleFill) > 0) then
+    Buffer.FillRectTS(HandleRect, FHandleFill);
+end;
+
+procedure TCustomRubberBandLayer.DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer);
+var
+  p: TFloatPoint;
 begin
   // Coordinate specifies exact center of handle. I.e. center of
   // pixel if handle is odd number of pixels wide.
 
-  HandleRect.Left := Floor(X - FHandleSize);
-  HandleRect.Right := HandleRect.Left + Ceil(FHandleSize*2);
-  HandleRect.Top := Floor(Y - FHandleSize);
-  HandleRect.Bottom := HandleRect.Top + Ceil(FHandleSize*2);
-
-  Buffer.FrameRectTS(HandleRect, FHandleFrame);
-
-  GR32.InflateRect(HandleRect, -1, -1);
-  Buffer.FillRectTS(HandleRect, FHandleFill);
+  p := LayerToControl(FVertices[VertexIndex], True);
+  DoDrawHandle(Buffer, p.X, p.Y);
 end;
 
-procedure TRubberbandLayer.DoHandles(Buffer: TBitmap32; const R: TRect;
-  DoFrame: TRBPaintFrameHandler;
-  DoHandle: TRBPaintHandleHandler);
+procedure TCustomRubberBandLayer.DoDrawVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean);
 var
-  CenterX, CenterY: TFloat;
+  i: integer;
 begin
-  with R do
-  begin
-    if rhFrame in FHandles then
-      DoFrame(Buffer, R);
+  for i := 0 to High(FVertices) do
+    if (IsVertexVisible(i)) then
+      DoDrawVertex(Buffer, R, i);
+  Handled := True;
+end;
 
-    if rhCorners in FHandles then
-    begin
-      if not(rhNotTLCorner in FHandles) then
-        DoHandle(Buffer, Left+0.5, Top+0.5);
-      if not(rhNotTRCorner in FHandles) then
-        DoHandle(Buffer, Right-0.5, Top+0.5);
-      if not(rhNotBLCorner in FHandles) then
-        DoHandle(Buffer, Left+0.5, Bottom-0.5);
-      if not(rhNotBRCorner in FHandles) then
-        DoHandle(Buffer, Right-0.5, Bottom-0.5);
-    end;
-    if rhSides in FHandles then
-    begin
-      CenterX := (Left + Right) / 2;
-      CenterY := (Top + Bottom) / 2;
-      if not(rhNotTopSide in FHandles) then
-        DoHandle(Buffer, CenterX, Top+0.5);
-      if not(rhNotLeftSide in FHandles) then
-        DoHandle(Buffer, Left+0.5, CenterY);
-      if not(rhNotRightSide in FHandles) then
-        DoHandle(Buffer, Right-0.5, CenterY);
-      if not(rhNotBottomSide in FHandles) then
-        DoHandle(Buffer, CenterX, Bottom-0.5);
-    end;
+procedure TCustomRubberBandLayer.DrawFrame(Buffer: TBitmap32; const R: TRect);
+var
+  i: integer;
+  p: TFloatPoint;
+begin
+  Buffer.SetStipple(FrameStipple);
+  Buffer.StippleCounter := 0;
+  Buffer.StippleStep := FrameStippleStep;
+  Buffer.StippleCounter := FrameStippleCounter;
+
+  if (Length(FVertices) > 0) then
+  begin
+    p := LayerToControl(FVertices[High(FVertices)], True);
+    Buffer.MoveToF(p.X, p.Y);
+  end;
+  for i := 0 to High(FVertices) do
+  begin
+    p := Point(LayerToControl(FVertices[i], True));
+    Buffer.LineToFSP(p.X, p.Y);
   end;
 end;
 
-procedure TRubberbandLayer.DrawFrame(Buffer: TBitmap32; const R: TRect);
+procedure TCustomRubberBandLayer.DoUpdateFrame(Buffer: TBitmap32; const R: TRect);
+var
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
+  DoScale: boolean;
+  i: integer;
+  Index: integer;
+  Segment: TFloatRect;
+  LineRect: TRect;
 begin
-  Buffer.SetStipple(FFrameStipplePattern);
-  Buffer.StippleCounter := 0;
-  Buffer.StippleStep := FFrameStippleStep;
-  Buffer.StippleCounter := FFrameStippleCounter;
-  Buffer.FrameRectTSP(R.Left, R.Top, R.Right, R.Bottom);
+  if (Length(FVertices) = 0) then
+    exit;
+
+  if (Scaled) and (FLayerCollection <> nil) then
+  begin
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    DoScale := True;
+  end else
+    DoScale := False;
+
+  for i := 0 to Length(FVertices) do // Note: Upper bound is Length(FVertices) on purpose
+  begin
+    Index := i mod Length(FVertices);
+
+    if (DoScale) then
+    begin
+      Segment.Right := FVertices[Index].X * ScaleX + ShiftX;
+      Segment.Bottom := FVertices[Index].Y * ScaleY + ShiftY;
+    end else
+      Segment.BottomRight := FVertices[Index];
+
+    if (i > 0) then
+    begin
+      // Invalidate segment
+      LineRect := MakeRect(Segment);
+      Changed(LineRect, AREAINFO_LINE + 1);
+    end;
+
+    Segment.TopLeft := Segment.BottomRight;
+  end;
 end;
 
-procedure TRubberbandLayer.Paint(Buffer: TBitmap32);
+procedure TCustomRubberBandLayer.DoUpdateVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer);
+var
+  p: TFloatPoint;
+  Handle: TFloatRect;
+  HandleRect: TRect;
+begin
+  p := LayerToControl(FVertices[VertexIndex], False);
+  Handle := FloatRect(p, p);
+  GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+  HandleRect := MakeRect(Handle, rrOutside);
+  UpdateRect(HandleRect);
+end;
+
+procedure TCustomRubberBandLayer.DoUpdateVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean);
+var
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
+  DoScale: boolean;
+  i: integer;
+  Handle: TFloatRect;
+  HandleRect: TRect;
+begin
+  if (Length(FVertices) = 0) then
+    exit;
+
+  if (Scaled) and (FLayerCollection <> nil) then
+  begin
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    DoScale := True;
+  end else
+    DoScale := False;
+
+  for i := 0 to High(FVertices) do
+    if (IsVertexVisible(i)) then
+    begin
+      if (DoScale) then
+      begin
+        Handle.Left := FVertices[i].X * ScaleX + ShiftX;
+        Handle.Top := FVertices[i].Y * ScaleY + ShiftY;
+      end else
+        Handle.TopLeft := FVertices[i];
+      Handle.BottomRight := Handle.TopLeft;
+      GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+      HandleRect := MakeRect(Handle, rrOutside);
+      UpdateRect(HandleRect);
+    end;
+
+  (* Or simply:
+  for i := 0 to High(FVertices) do
+    if (IsVertexVisible(i)) then
+      DoUpdateVertex(Buffer, R, i);
+  *)
+
+  Handled := True;
+end;
+
+procedure TCustomRubberBandLayer.DoDrawUpdate(Buffer: TBitmap32;
+  FrameHandler: TRubberBandPaintFrameHandler;
+  VerticesHandler: TRubberBandPaintHandlesHandler;
+  VertexHandler: TRubberBandPaintHandleHandler);
 var
   R: TRect;
+  i: integer;
+  Handled: boolean;
 begin
   R := MakeRect(GetAdjustedRect(FLocation));
 
-  DoHandles(Buffer, R, DrawFrame, DrawHandle);
+  if (Assigned(FrameHandler)) and (IsFrameVisible) then
+    FrameHandler(Buffer, R);
+
+  Handled := False;
+  if (Assigned(VerticesHandler)) then
+    VerticesHandler(Buffer, R, Handled);
+
+  if (not Handled) and (Assigned(VertexHandler)) then
+    for i := 0 to High(Vertices) do
+      if (IsVertexVisible(i)) then
+        VertexHandler(Buffer, R, i);
 end;
 
-procedure TRubberbandLayer.Quantize;
+procedure TCustomRubberBandLayer.Paint(Buffer: TBitmap32);
 begin
-  Location := FloatRect(
-    Round(Location.Left / Quantized) * Quantized,
-    Round(Location.Top / Quantized) * Quantized,
-    Round(Location.Right / Quantized) * Quantized,
-    Round(Location.Bottom / Quantized) * Quantized);
+  DoDrawUpdate(Buffer, DrawFrame, DoDrawVertices, DoDrawVertex);
 end;
 
-procedure TRubberbandLayer.SetChildLayer(Value: TPositionedLayer);
+procedure TCustomRubberBandLayer.Quantize;
+begin
+  if (Quantized <> 0) then
+    Location := FloatRect(
+      Round(Location.Left / Quantized) * Quantized,
+      Round(Location.Top / Quantized) * Quantized,
+      Round(Location.Right / Quantized) * Quantized,
+      Round(Location.Bottom / Quantized) * Quantized);
+end;
+
+procedure TCustomRubberBandLayer.SetChildLayer(Value: TPositionedLayer);
 begin
   if (FChildLayer <> nil) then
     RemoveNotification(FChildLayer);
@@ -2309,65 +2825,25 @@ begin
   end;
 end;
 
-procedure TRubberbandLayer.SetDragState(const Value: TRBDragState);
-begin
-  SetDragState(Value, 0, 0);
-end;
-
-procedure TRubberbandLayer.SetDragState(const Value: TRBDragState; const X, Y: Integer);
-var
-  ALoc: TFloatRect;
-begin
-  FDragState := Value;
-  FIsDragging := FDragState <> dsNone;
-
-  if FIsDragging then
-  begin
-    FOldLocation := Location;
-
-    ALoc := GetAdjustedRect(FLocation);
-
-    case FDragState of
-      dsMove: FMouseShift := FloatPoint(X - ALoc.Left, Y - ALoc.Top);
-    else
-      FMouseShift := FloatPoint(0, 0);
-    end;
-  end;
-end;
-
-procedure TRubberbandLayer.SetHandleFill(Value: TColor32);
+procedure TCustomRubberBandLayer.SetHandleFill(Value: TColor32);
 begin
   if Value <> FHandleFill then
   begin
     FHandleFill := Value;
-    FLayerCollection.GDIUpdate;
+    UpdateVertices;
   end;
 end;
 
-procedure TRubberbandLayer.SetHandleFrame(Value: TColor32);
+procedure TCustomRubberBandLayer.SetHandleFrame(Value: TColor32);
 begin
   if Value <> FHandleFrame then
   begin
     FHandleFrame := Value;
-    FLayerCollection.GDIUpdate;
+    UpdateVertices;
   end;
 end;
 
-procedure TRubberbandLayer.SetHandles(Value: TRBHandles);
-begin
-  if Value <> FHandles then
-  begin
-    // Erase old
-    Update;
-
-    FHandles := Value;
-
-    // Paint new
-    Update;
-  end;
-end;
-
-procedure TRubberbandLayer.SetHandleSize(Value: TFloat);
+procedure TCustomRubberBandLayer.SetHandleSize(Value: TFloat);
 begin
   if Value < 1 then
     Value := 1;
@@ -2375,61 +2851,45 @@ begin
   if Value <> FHandleSize then
   begin
     // Erase old
-    Update;
+    UpdateVertices;
 
     FHandleSize := Value;
 
     // Paint new
-    Update;
+    UpdateVertices;
   end;
 end;
 
-procedure TRubberbandLayer.SetFrameStipple(const Value: Array of TColor32);
+procedure TCustomRubberBandLayer.SetFrameStipple(const Value: array of TColor32);
 var
   L: Integer;
 begin
   L := High(Value) + 1;
   SetLength(FFrameStipplePattern, L);
   MoveLongword(Value[0], FFrameStipplePattern[0], L);
+  UpdateFrame;
 end;
 
-procedure TRubberbandLayer.SetFrameStippleStep(const Value: TFloat);
+procedure TCustomRubberBandLayer.SetFrameStippleStep(const Value: TFloat);
 begin
   if Value <> FFrameStippleStep then
   begin
     FFrameStippleStep := Value;
-
-    // Repaint
-    Update;
+    UpdateFrame;;
   end;
 end;
 
-procedure TRubberbandLayer.UpdateFrame(Buffer: TBitmap32; const R: TRect);
+procedure TCustomRubberBandLayer.UpdateFrame;
 begin
-  // Left
-  UpdateRect(Rect(R.Left, R.Top, R.Left+1, R.Bottom));
-  // Right
-  UpdateRect(Rect(R.Right-1, R.Top, R.Right, R.Bottom));
-  // Top
-  UpdateRect(Rect(R.Left+1, R.Top, R.Right-1, R.Top+1));
-  // Bottom
-  UpdateRect(Rect(R.Left+1, R.Bottom-1, R.Right-1, R.Bottom));
+  DoDrawUpdate(nil, DoUpdateFrame, nil, nil);
 end;
 
-procedure TRubberbandLayer.UpdateHandle(Buffer: TBitmap32; X, Y: TFloat);
-var
-  HandleRect: TRect;
+procedure TCustomRubberBandLayer.UpdateVertices;
 begin
-  HandleRect.Left := Floor(X - FHandleSize);
-  HandleRect.Right := HandleRect.Left + Ceil(FHandleSize*2);
-  HandleRect.Top := Floor(Y - FHandleSize);
-  HandleRect.Bottom := HandleRect.Top + Ceil(FHandleSize*2);
-  UpdateRect(HandleRect);
+  DoDrawUpdate(nil, nil, DoUpdateVertices, DoUpdateVertex);
 end;
 
-procedure TRubberbandLayer.Update;
-var
-  R: TRect;
+procedure TCustomRubberBandLayer.Update;
 begin
   // Since the handles are partially outside the layer rect we need to
   // invalidate the area covered by those.
@@ -2441,32 +2901,439 @@ begin
   // ...but instead we go for the "slightly" more complex and correct solution
   // of only invalidating the area actually covered by the frame and the handles.
 
-  R := MakeRect(GetAdjustedRect(FLocation));
-
-  DoHandles(nil, R, UpdateFrame, UpdateHandle);
+  DoDrawUpdate(nil, DoUpdateFrame, DoUpdateVertices, DoUpdateVertex);
 end;
 
-procedure TRubberbandLayer.UpdateChildLayer;
+procedure TCustomRubberBandLayer.UpdateChildLayer;
 begin
   if (FChildLayer <> nil) then
     FChildLayer.Location := Location;
 end;
 
-procedure TRubberbandLayer.SetFrameStippleCounter(const Value: TFloat);
+procedure TCustomRubberBandLayer.SetFrameStippleCounter(const Value: TFloat);
 begin
   if Value <> FFrameStippleCounter then
   begin
     FFrameStippleCounter := Value;
-    // Repaint
-    Update;
+    UpdateFrame;
   end;
 end;
 
-procedure TRubberbandLayer.SetLayerOptions(Value: Cardinal);
+procedure TCustomRubberBandLayer.SetFrameStipplePattern(const Value: TArrayOfColor32);
+begin
+  FFrameStipplePattern := Value;
+  UpdateFrame;
+end;
+
+procedure TCustomRubberBandLayer.SetLayerOptions(Value: Cardinal);
 begin
   Changing;
   FLayerOptions := Value and not LOB_NO_UPDATE; // workaround for changed behaviour
   Changed;
+end;
+
+procedure TCustomRubberBandLayer.SetQuantized(const Value: Integer);
+begin
+  if Value < 1 then
+    raise Exception.Create('Value must be larger than zero!');
+
+  FQuantized := Value;
+end;
+
+procedure TCustomRubberBandLayer.SetVertices(const Value: TArrayOfFloatPoint);
+begin
+  // Erase old
+  Update;
+
+  FVertices := Value;
+
+  // Paint new
+  Update;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TRubberbandLayer
+//
+//------------------------------------------------------------------------------
+function TRubberbandLayer.GetHitTest(const APosition: TPoint; AShift: TShiftState): ILayerHitTest;
+var
+  R: TRect;
+begin
+  Result := inherited;
+
+  if (Result = nil) and AllowMove then
+  begin
+    R := MakeRect(GetAdjustedRect(FLocation));
+
+    if (GR32.PtInRect(R, APosition)) then
+    begin
+      Result := TLayerHitTestMove.Create(APosition);
+      Result.Shift := AShift;
+      Result.Cursor := GetHitTestCursor(Result);
+    end;
+  end;
+end;
+
+function TRubberbandLayer.GetHitTestCursor(const AHitTest: ILayerHitTest): TCursor;
+
+  function SnapAngleTo45(Angle: integer): integer;
+  begin
+    Result := (((Angle + 45 div 2) div 45) * 45 + 360) mod 360;
+  end;
+
+  function AngleToDirection(Angle: integer): TResizeDirection;
+  begin
+    Result := TResizeDirection(SnapAngleTo45(Angle) div 45);
+  end;
+
+var
+  HitTestVertex: ILayerHitTestVertex;
+var
+  Angle: integer;
+  Direction: TResizeDirection;
+  NewCursor: TCursor;
+const
+  VertexToAngle: array[0..7] of integer =
+    // 0         1        2
+    // 7                  3
+    // 6         5        4
+    ( 135,  90,  45, 0, 315, 270, 225, 180);
+begin
+  Result := inherited GetHitTestCursor(AHitTest);
+
+  if (AHitTest <> nil) then
+  begin
+    if Supports(AHitTest, ILayerHitTestVertex, HitTestVertex) then
+    begin
+      Angle := VertexToAngle[HitTestVertex.Vertex];
+
+      // Call GetHandleCursor for backward compatibility in case a
+      // derived class has overridden it. It will return Low(TCursor)
+      // if GetHandleCursor has not been overridden.
+      Result := GetHandleCursor(VertexToDragState[HitTestVertex.Vertex], Angle);
+
+      if (Result = Low(TCursor)) then
+      begin
+        Direction := AngleToDirection(Angle);
+        Result := DirectionCursors[Direction];
+      end;
+    end else
+    if (Supports(AHitTest, ILayerHitTestMove)) then
+    begin
+      NewCursor := GetHandleCursor(dsMove, 0);
+      if (NewCursor <> Low(TCursor)) then
+        Result := NewCursor;
+    end;
+  end;
+end;
+
+function TRubberbandLayer.GetValidDragStates: TValidDragStates;
+begin
+  Result := [];
+
+  if (rhCenter in FHandles) then
+    Include(Result, dsMove);
+
+  if (rhSides in FHandles) then
+  begin
+    if not(rhNotRightSide in FHandles) then
+      Include(Result, dsSizeR);
+    if not(rhNotBottomSide in FHandles) then
+      Include(Result, dsSizeB);
+    if not(rhNotLeftSide in FHandles) then
+      Include(Result, dsSizeL);
+    if not(rhNotTopSide in FHandles) then
+      Include(Result, dsSizeT);
+  end;
+
+  if (rhCorners in FHandles) then
+  begin
+    if not(rhNotBRCorner in FHandles) then
+      Include(Result, dsSizeBR);
+    if not(rhNotBLCorner in FHandles) then
+      Include(Result, dsSizeBL);
+    if not(rhNotTRCorner in FHandles) then
+      Include(Result, dsSizeTR);
+    if not(rhNotTLCorner in FHandles) then
+      Include(Result, dsSizeTL);
+  end;
+
+end;
+
+function TRubberbandLayer.GetHandleCursor(DragState: TRBDragState; Angle: integer): TCursor;
+(*
+var
+  Vertex: integer;
+*)
+begin
+  Result := Low(TCursor);
+(*
+  if (DragState in [dsNone, dsMove]) then
+    Vertex := -1
+  else
+  begin
+    case Angle of
+        0 .. 22: Vertex := 3;
+       23 .. 57: Vertex := 2;
+       58 ..112: Vertex := 1;
+      113 ..157: Vertex := 0;
+      158 ..202: Vertex := 7;
+      203 ..247: Vertex := 6;
+      248 ..292: Vertex := 5;
+      293 ..337: Vertex := 4;
+      338 ..360: Vertex := 3;
+    else
+      Vertex := -1
+    end;
+  end;
+  Result := GetVertexCursor(Vertex);
+*)
+end;
+
+function TRubberbandLayer.AllowMove: boolean;
+begin
+  Result := (dsMove in FValidDragStates);
+end;
+
+function TRubberbandLayer.ApplyOffset(const AHitTest: ILayerHitTest; AQuantize: boolean; const APoint, AOffset: TFloatPoint): boolean;
+
+  procedure IncLT(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
+  begin
+    LT := LT + Delta;
+    if RB - LT < MinSize then
+      LT := RB - MinSize;
+    if MaxSize >= MinSize then
+      if RB - LT > MaxSize then
+        LT := RB - MaxSize;
+  end;
+
+  procedure IncRB(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
+  begin
+    RB := RB + Delta;
+    if RB - LT < MinSize then
+      RB := LT + MinSize;
+    if MaxSize >= MinSize then
+      if RB - LT > MaxSize then
+        RB := LT + MaxSize;
+  end;
+
+var
+  NewLocation: TFloatRect;
+  HitTestVertex: ILayerHitTestVertex;
+  DragState: TRBDragState;
+begin
+  Result := False;
+
+  NewLocation := FOldLocation;
+
+  if Supports(FHitTest, ILayerHitTestMove) then
+  begin
+    DragState := dsMove;
+
+    if AQuantize then
+    begin
+//      Offset.X := Round(Offset.X / FQuantized) * FQuantized;
+//      Offset.Y := Round(Offset.Y / FQuantized) * FQuantized;
+    end;
+    NewLocation.Right := AOffset.X + NewLocation.Width;
+    NewLocation.Bottom := AOffset.Y + NewLocation.Height;
+    NewLocation.Left := AOffset.X;
+    NewLocation.Top := AOffset.Y;
+  end else
+  if Supports(FHitTest, ILayerHitTestVertex, HitTestVertex) then
+  begin
+    DragState := VertexToDragState[HitTestVertex.Vertex];
+
+    if DragState in [dsSizeL, dsSizeTL, dsSizeBL] then
+    begin
+      IncLT(NewLocation.Left, NewLocation.Right, AOffset.X - NewLocation.Left, MinWidth, MaxWidth);
+      if AQuantize then
+        NewLocation.Left := Round(NewLocation.Left / FQuantized) * FQuantized;
+    end;
+
+    if DragState in [dsSizeR, dsSizeTR, dsSizeBR] then
+    begin
+      IncRB(NewLocation.Left, NewLocation.Right, AOffset.X - NewLocation.Right, MinWidth, MaxWidth);
+      if AQuantize then
+        NewLocation.Right := Round(NewLocation.Right / FQuantized) * FQuantized;
+    end;
+
+    if DragState in [dsSizeT, dsSizeTL, dsSizeTR] then
+    begin
+      IncLT(NewLocation.Top, NewLocation.Bottom, AOffset.Y - NewLocation.Top, MinHeight, MaxHeight);
+      if AQuantize then
+        NewLocation.Top := Round(NewLocation.Top / FQuantized) * FQuantized;
+    end;
+
+    if DragState in [dsSizeB, dsSizeBL, dsSizeBR] then
+    begin
+      IncRB(NewLocation.Top, NewLocation.Bottom, AOffset.Y - NewLocation.Bottom, MinHeight, MaxHeight);
+      if AQuantize then
+        NewLocation.Bottom := Round(NewLocation.Bottom / FQuantized) * FQuantized;
+    end;
+  end else
+    exit;
+
+  if roConstrained in FOptions then
+    DoConstrain(FOldLocation, NewLocation, DragState, FHitTest.Shift);
+
+  if roProportional in FOptions then
+  begin
+    case DragState of
+      dsSizeB, dsSizeBR:
+        NewLocation.Right := FOldLocation.Left + FOldLocation.Width * NewLocation.Height / FOldLocation.Height;
+      dsSizeT, dsSizeTL:
+        NewLocation.Left := FOldLocation.Right - FOldLocation.Width * NewLocation.Height / FOldLocation.Height;
+      dsSizeR, dsSizeBL:
+        NewLocation.Bottom := FOldLocation.Top + FOldLocation.Height * NewLocation.Width / FOldLocation.Width;
+      dsSizeL, dsSizeTR:
+        NewLocation.Top := FOldLocation.Bottom - FOldLocation.Height * NewLocation.Width / FOldLocation.Width;
+    end;
+  end;
+
+  DoResizing(FOldLocation, NewLocation, DragState, FHitTest.Shift);
+
+  if (NewLocation <> Location) then
+  begin
+    Location := NewLocation;
+    Result := True;
+  end;
+end;
+
+constructor TRubberbandLayer.Create(ALayerCollection: TLayerCollection);
+begin
+  inherited;
+
+  FHandles := [rhCenter, rhSides, rhCorners, rhFrame];
+  FValidDragStates := GetValidDragStates;
+
+  FMinWidth := 10;
+  FMinHeight := 10;
+  FQuantized := 8;
+end;
+
+procedure TRubberbandLayer.DoSetDragState(const Value: TRBDragState; const X, Y: Integer);
+var
+  HitTest: ILayerHitTest;
+  Vertex: integer;
+begin
+  HitTest := nil;
+  FDragState := Value;
+
+  if (FDragState <> dsNone) then
+  begin
+    Vertex := DragStateToVertex[FDragState];
+    if (Vertex <> -1) then
+      HitTest := TLayerHitTestVertex.Create(GR32.Point(X, Y), Vertex)
+    else
+    if (FDragState = dsMove) then
+      HitTest := TLayerHitTestMove.Create(GR32.Point(X, Y));
+  end;
+
+  inherited SetHitTest(HitTest);
+end;
+
+procedure TRubberbandLayer.SetDragState(const Value: TRBDragState; const X, Y: Integer);
+begin
+  // Indirection to avoid internal deprecated warnings
+  DoSetDragState(Value, X, Y);
+end;
+
+procedure TRubberbandLayer.SetDragState(const Value: TRBDragState);
+begin
+  // Indirection to avoid internal deprecated warnings
+  DoSetDragState(Value, 0, 0);
+end;
+
+function TRubberbandLayer.GetDragState(X, Y: Integer): TRBDragState;
+var
+  HitTest: ILayerHitTest;
+  HitTestVertex: ILayerHitTestVertex;
+begin
+  HitTest := GetHitTest(GR32.Point(X, Y));
+
+  if (HitTest = nil) then
+    Result := dsNone
+  else
+  if (Supports(HitTest, ILayerHitTestVertex, HitTestVertex)) then
+    Result := VertexToDragState[HitTestVertex.Vertex]
+  else
+  if (Supports(HitTest, ILayerHitTestMove)) then
+    Result := dsMove
+  else
+    Result := dsNone
+end;
+
+function TRubberbandLayer.IsFrameVisible: boolean;
+begin
+  Result := (inherited IsFrameVisible) and (rhFrame in FHandles);
+end;
+
+function TRubberbandLayer.IsQuantizing: boolean;
+begin
+  Result := (inherited IsQuantizing) and (roQuantized in FOptions);
+end;
+
+function TRubberbandLayer.IsVertexVisible(VertexIndex: integer): boolean;
+begin
+  Result := (inherited IsVertexVisible(VertexIndex)) and (VertexToDragState[VertexIndex] in FValidDragStates);
+end;
+
+procedure TRubberbandLayer.DoSetLocation(const NewLocation: TFloatRect);
+var
+  Handles: TArrayOfFloatPoint;
+begin
+  inherited;
+  SetLength(Handles, 8);
+
+  Handles[0].X := Location.Left;
+  Handles[0].Y := Location.Top;
+  Handles[2].X := Location.Right;
+  Handles[2].Y := Handles[0].Y;
+  Handles[4].X := Handles[2].X;
+  Handles[4].Y := Location.Bottom;
+  Handles[6].X := Handles[0].X;
+  Handles[6].Y := Handles[4].Y;
+
+  Handles[1].X := (Handles[0].X + Handles[2].X) / 2;
+  Handles[1].Y := Handles[0].Y;
+  Handles[3].X := Handles[2].X;
+  Handles[3].Y := (Handles[0].Y + Handles[4].Y) / 2;
+  Handles[5].X := Handles[1].X;
+  Handles[5].Y := Handles[4].Y;
+  Handles[7].X := Handles[0].X;
+  Handles[7].Y := Handles[3].Y;
+
+  Vertices := Handles;
+end;
+
+procedure TRubberbandLayer.DoResizing(const OldLocation: TFloatRect; var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
+begin
+  if Assigned(FOnResizing) then
+    FOnResizing(Self, OldLocation, NewLocation, DragState, Shift);
+end;
+
+procedure TRubberbandLayer.DoConstrain(const OldLocation: TFloatRect; var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
+begin
+  if Assigned(FOnConstrain) then
+    FOnConstrain(Self, OldLocation, NewLocation, DragState, Shift);
+end;
+
+procedure TRubberbandLayer.SetHandles(Value: TRBHandles);
+begin
+  if Value <> FHandles then
+  begin
+    // Erase old
+    UpdateVertices;
+
+    FHandles := Value;
+    FValidDragStates := GetValidDragStates;
+
+    // Paint new
+    UpdateVertices;
+  end;
 end;
 
 procedure TRubberbandLayer.SetOptions(const Value: TRBOptions);
@@ -2474,12 +3341,25 @@ begin
   FOptions := Value;
 end;
 
-procedure TRubberbandLayer.SetQuantized(const Value: Integer);
+procedure TRubberbandLayer.DrawFrame(Buffer: TBitmap32; const R: TRect);
 begin
-  if Value < 1 then
-    raise Exception.Create('Value must be larger than zero!');
+  Buffer.SetStipple(FrameStipple);
+  Buffer.StippleCounter := 0;
+  Buffer.StippleStep := FrameStippleStep;
+  Buffer.StippleCounter := FrameStippleCounter;
+  Buffer.FrameRectTSP(R.Left, R.Top, R.Right, R.Bottom);
+end;
 
-  FQuantized := Value;
+procedure TRubberbandLayer.DoUpdateFrame(Buffer: TBitmap32; const R: TRect);
+begin
+  // Left
+  UpdateRect(Rect(R.Left, R.Top, R.Left+1, R.Bottom));
+  // Right
+  UpdateRect(Rect(R.Right-1, R.Top, R.Right, R.Bottom));
+  // Top
+  UpdateRect(Rect(R.Left+1, R.Top, R.Right-1, R.Top+1));
+  // Bottom
+  UpdateRect(Rect(R.Left+1, R.Bottom-1, R.Right-1, R.Bottom));
 end;
 
 end.
