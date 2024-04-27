@@ -591,22 +591,23 @@ type
 //------------------------------------------------------------------------------
 
 var
-  DET32: function(a1, a2, b1, b2: Single): Single;
-  DET64: function(a1, a2, b1, b2: Double): Double;
+  DET_2x2_32: function(a1, a2, b1, b2: TFloat): TFloat;
+  DET_3x3_32: function(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat;
+  DET_2x2_64: function(a1, a2, b1, b2: Double): Double;
 
 
-function DET32_Pas(a1, a2, b1, b2: Single): Single; overload;
+function DET_2x2_32_Pas(a1, a2, b1, b2: TFloat): TFloat; overload;
 begin
   Result := a1 * b2 - a2 * b1;
 end;
 
-function DET64_Pas(a1, a2, b1, b2: Double): Double; overload;
+function DET_2x2_64_Pas(a1, a2, b1, b2: Double): Double; overload;
 begin
   Result := a1 * b2 - a2 * b1;
 end;
 
 {$IFNDEF PUREPASCAL}
-function DET32_ASM(a1, a2, b1, b2: Single): Single; overload; {$IFDEF FPC}assembler; {$IFDEF CPU64}nostackframe;{$ENDIF}{$ENDIF}
+function DET_2x2_32_ASM(a1, a2, b1, b2: TFloat): TFloat; overload; {$IFDEF FPC}assembler; {$IFDEF CPU64}nostackframe;{$ENDIF}{$ENDIF}
 asm
 {$IFDEF CPU64}
         MULSS   XMM0, XMM3
@@ -621,7 +622,7 @@ asm
 {$ENDIF}
 end;
 
-function DET64_ASM(a1, a2, b1, b2: Double): Double; overload;
+function DET_2x2_64_ASM(a1, a2, b1, b2: Double): Double; overload;
 asm
 {$IFDEF CPU64}
         MULSD   XMM0, XMM3
@@ -637,14 +638,7 @@ asm
 end;
 {$ENDIF}
 
-{ implementation of determinant for TFloat precision }
-
-function _DET(a1, a2, b1, b2: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
-begin
-  Result := a1 * b2 - a2 * b1;
-end;
-
-function _DET(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
+function DET_3x3_32_Pas(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
 begin
   Result :=
     a1 * (b2 * c3 - b3 * c2) -
@@ -664,26 +658,27 @@ var
 begin
   Tmp := M;
 
-  M[0,0] :=  _DET(Tmp[1,1], Tmp[1,2], Tmp[2,1], Tmp[2,2]);
-  M[0,1] := -_DET(Tmp[0,1], Tmp[0,2], Tmp[2,1], Tmp[2,2]);
-  M[0,2] :=  _DET(Tmp[0,1], Tmp[0,2], Tmp[1,1], Tmp[1,2]);
+  M[0,0] :=  DET_2x2_32(Tmp[1,1], Tmp[1,2], Tmp[2,1], Tmp[2,2]);
+  M[0,1] := -DET_2x2_32(Tmp[0,1], Tmp[0,2], Tmp[2,1], Tmp[2,2]);
+  M[0,2] :=  DET_2x2_32(Tmp[0,1], Tmp[0,2], Tmp[1,1], Tmp[1,2]);
 
-  M[1,0] := -_DET(Tmp[1,0], Tmp[1,2], Tmp[2,0], Tmp[2,2]);
-  M[1,1] :=  _DET(Tmp[0,0], Tmp[0,2], Tmp[2,0], Tmp[2,2]);
-  M[1,2] := -_DET(Tmp[0,0], Tmp[0,2], Tmp[1,0], Tmp[1,2]);
+  M[1,0] := -DET_2x2_32(Tmp[1,0], Tmp[1,2], Tmp[2,0], Tmp[2,2]);
+  M[1,1] :=  DET_2x2_32(Tmp[0,0], Tmp[0,2], Tmp[2,0], Tmp[2,2]);
+  M[1,2] := -DET_2x2_32(Tmp[0,0], Tmp[0,2], Tmp[1,0], Tmp[1,2]);
 
-  M[2,0] :=  _DET(Tmp[1,0], Tmp[1,1], Tmp[2,0], Tmp[2,1]);
-  M[2,1] := -_DET(Tmp[0,0], Tmp[0,1], Tmp[2,0], Tmp[2,1]);
-  M[2,2] :=  _DET(Tmp[0,0], Tmp[0,1], Tmp[1,0], Tmp[1,1]);
+  M[2,0] :=  DET_2x2_32(Tmp[1,0], Tmp[1,1], Tmp[2,0], Tmp[2,1]);
+  M[2,1] := -DET_2x2_32(Tmp[0,0], Tmp[0,1], Tmp[2,0], Tmp[2,1]);
+  M[2,2] :=  DET_2x2_32(Tmp[0,0], Tmp[0,1], Tmp[1,0], Tmp[1,1]);
 end;
 
 //------------------------------------------------------------------------------
 
 function Determinant(const M: TFloatMatrix): TFloat;
 begin
-  Result := _DET(M[0,0], M[1,0], M[2,0],
-                 M[0,1], M[1,1], M[2,1],
-                 M[0,2], M[1,2], M[2,2]);
+  Result := DET_3x3_32_Pas(
+    M[0,0], M[1,0], M[2,0],
+    M[0,1], M[1,1], M[2,1],
+    M[0,2], M[1,2], M[2,2]);
 end;
 
 //------------------------------------------------------------------------------
@@ -2903,38 +2898,44 @@ begin
   Changed;
 end;
 
-{CPU target and feature Function templates}
 
-const
-  FID_DETERMINANT32 = 0;
-  FID_DETERMINANT64 = 1;
-
-{Complete collection of unit templates}
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
 
 var
-  Registry: TFunctionRegistry;
+  TransformsRegistry: TFunctionRegistry;
 
 procedure RegisterBindings;
 begin
-  Registry := NewRegistry('GR32_Transforms bindings');
-  Registry.RegisterBinding(FID_DETERMINANT32, @@DET32);
+  TransformsRegistry := NewRegistry('GR32_Transforms bindings');
+  TransformsRegistry.RegisterBinding(@@DET_2x2_32);
+  TransformsRegistry.RegisterBinding(@@DET_3x3_32);
+  TransformsRegistry.RegisterBinding(@@DET_2x2_64);
 
-  Registry.Add(FID_DETERMINANT32, @DET32_Pas);
-  {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_DETERMINANT32, @DET32_ASM);
-//  Registry.Add(FID_DETERMINANT32, @DET32_SSE2, [isSSE2]);
-  {$ENDIF}
+  // DET_2x2_32
+  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_Pas);
+{$IFNDEF PUREPASCAL}
+  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_ASM);
+//  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_SSE2, [isSSE2]);
+{$ENDIF}
 
-  Registry.RegisterBinding(FID_DETERMINANT64, @@DET64);
+  // DET_2x2_64
+  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_Pas);
+{$IFNDEF PUREPASCAL}
+  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_ASM);
+//  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_SSE2, [isSSE2]);
+{$ENDIF}
 
-  Registry.Add(FID_DETERMINANT64, @DET64_Pas);
-  {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_DETERMINANT64, @DET64_ASM);
-//  Registry.Add(FID_DETERMINANT64, @DET64_SSE2, [isSSE2]);
-  {$ENDIF}
+  // DET_3x3_32
+  TransformsRegistry.Add(@@DET_3x3_32, @DET_3x3_32_Pas);
 
-  Registry.RebindAll;
+  TransformsRegistry.RebindAll;
 end;
+
+//------------------------------------------------------------------------------
 
 initialization
   RegisterBindings;
