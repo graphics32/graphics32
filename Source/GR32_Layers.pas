@@ -136,8 +136,10 @@ type
 // A collection of layers.
 //------------------------------------------------------------------------------
   TLayerCollection = class(TPersistent)
-  private
-    FItems: TList;
+  strict private type
+    TLayerList = TList<TCustomLayer>;
+  strict private
+    FItems: TLayerList;
     FMouseEvents: Boolean;
     FMouseListener: TCustomLayer;
     FUpdateCount: Integer;
@@ -153,11 +155,11 @@ type
     FOnAreaUpdated: TAreaUpdateEvent;
     FOnGetViewportScale: TGetScaleEvent;
     FOnGetViewportShift: TGetShiftEvent;
-    function GetCount: Integer;
+  protected
+    // Friend-methods; Used by TCustomLayer
     procedure InsertItem(Item: TCustomLayer);
-    procedure RemoveItem(Item: TCustomLayer);
-    procedure SetMouseEvents(Value: Boolean);
-    procedure SetMouseListener(Value: TCustomLayer);
+    procedure ExtractItem(Item: TCustomLayer);
+    procedure MoveItem(Item: TCustomLayer; NewIndex: Integer);
   protected
     procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -166,16 +168,20 @@ type
     procedure Changed; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure Changing; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  FindLayerAtPos(X, Y: Integer; OptionsMask: Cardinal): TCustomLayer;
-    function  GetItem(Index: Integer): TCustomLayer;
-    function  GetOwner: TPersistent; override;
     procedure GDIUpdate;
     procedure DoUpdateLayer(Layer: TCustomLayer);
     procedure DoUpdateArea(const Rect: TRect; const Info: Cardinal);
     procedure Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
-    procedure SetItem(Index: Integer; Value: TCustomLayer);
     function MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseMove(Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
+
+    function GetCount: Integer;
+    function GetItem(Index: Integer): TCustomLayer;
+    function GetOwner: TPersistent; override;
+    procedure SetItem(Index: Integer; Value: TCustomLayer);
+    procedure SetMouseEvents(Value: Boolean);
+    procedure SetMouseListener(Value: TCustomLayer);
 
     property UpdateCount: Integer read FUpdateCount;
     property LockUpdateCount: Integer read FLockUpdateCount;
@@ -193,14 +199,20 @@ type
     constructor Create(AOwner: TPersistent); virtual;
     destructor Destroy; override;
 
+    function GetEnumerator: TEnumerator<TCustomLayer>;
+
     procedure Subscribe(const ASubscriber: IInterface);
     procedure Unsubscribe(const ASubscriber: IInterface);
 
-    function  Add(ItemClass: TLayerClass): TCustomLayer;
-    procedure Assign(Source: TPersistent); override;
-    procedure Clear;
+    function Add(ItemClass: TLayerClass): TCustomLayer; overload;
+    function Add<T: TCustomLayer>: T; overload;
+    function Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer; overload;
+    function Insert<T: TCustomLayer>(Index: Integer): T; overload;
     procedure Delete(Index: Integer);
-    function  Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer;
+    procedure Clear;
+    function IndexOf(Item: TCustomLayer): integer;
+
+    procedure Assign(Source: TPersistent); override;
     function  LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
     function  ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
     procedure GetViewportScale(out ScaleX, ScaleY: TFloat); virtual;
@@ -214,24 +226,6 @@ type
   end;
 
   TLayerCollectionClass = class of TLayerCollection;
-
-  TLayerEnum = class
-   private
-     FIndex: Integer;
-     FLayerCollection: TLayerCollection;
-   public
-     constructor Create(ALayerCollection: TLayerCollection);
-
-     function GetCurrent: TCustomLayer;
-     function MoveNext: Boolean;
-
-     property Current: TCustomLayer read GetCurrent;
-   end;
-
-   TLayerCollectionHelper = class Helper for TLayerCollection
-   public
-     function GetEnumerator: TLayerEnum;
-   end;
 
 
 //------------------------------------------------------------------------------
@@ -248,12 +242,10 @@ type
   THitTestEvent = procedure(Sender: TObject; X, Y: Integer; var Passed: Boolean) of object;
 
   TCustomLayer = class(TNotifiablePersistent)
-  private
+  strict private
     FCursor: TCursor;
     FFreeNotifies: TList;
     FLayerCollection: TLayerCollection;
-    FLayerStates: TLayerStates;
-    FLayerOptions: Cardinal;
     FTag: NativeInt;
     FClicked: Boolean;
     FOnHitTest: THitTestEvent;
@@ -273,6 +265,11 @@ type
     procedure SetInvalid(Value: Boolean);
     function GetForceUpdate: Boolean;
     procedure SetForceUpdate(Value: Boolean);
+  protected
+    // Members that need friend access from TLayerCollection
+    FLayerStates: TLayerStates;
+  strict protected
+    FLayerOptions: Cardinal;
   protected
     procedure AddNotification(ALayer: TCustomLayer);
     procedure Changing;
@@ -349,7 +346,7 @@ type
   TLayerGetUpdateRectEvent = procedure(Sender: TObject; var UpdateRect: TRect) of object;
 
   TPositionedLayer = class(TCustomLayer)
-  private
+  strict private
     FLocation: TFloatRect;
     FScaled: Boolean;
     FOnGetUpdateRect: TLayerGetUpdateRectEvent;
@@ -455,7 +452,6 @@ type
 // A layer containing a TBitmap32. The layer owns the bitmap.
 //------------------------------------------------------------------------------
   TBitmapLayer = class(TCustomBitmapLayer)
-  private
   protected
     function GetBitmapClass: TCustomBitmap32Class; override;
     function GetBitmap: TBitmap32;
@@ -494,7 +490,7 @@ type
   TRBConstrainEvent = TRBResizingEvent;
 
   TRubberbandPassMouse = class(TPersistent)
-  private
+  strict private
     FOwner: TCustomRubberBandLayer;
     FEnabled: Boolean;
     FToChild: Boolean;
@@ -541,7 +537,7 @@ type
   end;
 
   TCustomRubberBandLayer = class(TPositionedLayer)
-  private
+  strict private
     FChildLayer: TPositionedLayer;
     FVertices: TArrayOfFloatPoint;
     FFrameStipplePattern: TArrayOfColor32;
@@ -659,7 +655,7 @@ type
   TValidDragStates = set of TRBDragState;
 
   TRubberbandLayer = class(TCustomRubberBandLayer)
-  private
+  strict private
     FHandles: TRBHandles;
     FOptions: TRBOptions;
     FMinWidth: TFloat;
@@ -742,15 +738,14 @@ begin
   inherited Create;
 
   FOwner := AOwner;
-  FItems := TList.Create;
+  FItems := TObjectList<TCustomLayer>.Create;
   FMouseEvents := True;
 end;
 
 destructor TLayerCollection.Destroy;
 begin
   FUpdateCount := 1; // disable update notification
-  if (FItems <> nil) then
-    Clear;
+  Clear;
   FItems.Free;
   FSubscribers.Free;
   inherited;
@@ -759,8 +754,16 @@ end;
 function TLayerCollection.Add(ItemClass: TLayerClass): TCustomLayer;
 begin
   Result := ItemClass.Create(Self);
+  Assert(Result.LayerCollection = Self);
+
   Result.Index := FItems.Count - 1;
+
   Notify(lnLayerAdded, Result, Result.Index);
+end;
+
+function TLayerCollection.Add<T>: T;
+begin
+  Result := T(Add(T));
 end;
 
 procedure TLayerCollection.Assign(Source: TPersistent);
@@ -772,7 +775,8 @@ begin
   begin
     BeginUpdate;
     try
-      while FItems.Count > 0 do TCustomLayer(FItems.Last).Free;
+      FItems.Clear;
+
       for I := 0 to TLayerCollection(Source).Count - 1 do
       begin
         Item := TLayerCollection(Source).Items[I];
@@ -831,14 +835,16 @@ begin
 end;
 
 procedure TLayerCollection.Clear;
+var
+  Item: TCustomLayer;
 begin
   BeginUpdate;
   try
-    while FItems.Count > 0 do
-    begin
-      TCustomLayer(FItems.Last).Visible := False;
-      TCustomLayer(FItems.Last).Free;
-    end;
+    for Item in FItems.ToArray do // ToArray for stability
+      Item.Visible := False;
+
+    FItems.Clear;
+
     Notify(lnCleared, nil, 0);
     Changed;
   finally
@@ -849,21 +855,23 @@ end;
 procedure TLayerCollection.Delete(Index: Integer);
 begin
   // Hide layer so the area covered by it will be invalidated
-  TCustomLayer(FItems[Index]).Visible := False;
-
-  TCustomLayer(FItems[Index]).Free;
+  FItems[Index].Visible := False;
+  FItems.Delete(Index);
 end;
 
 function TLayerCollection.FindLayerAtPos(X, Y: Integer; OptionsMask: Cardinal): TCustomLayer;
 var
-  I: Integer;
+  i: Integer;
 begin
-  for I := Count - 1 downto 0 do
+  for i := FItems.Count-1 downto 0 do
   begin
-    Result := Items[I];
+    Result := Items[i];
+
     if (Result.LayerOptions and OptionsMask) = 0 then
       Continue; // skip to the next one
-    if Result.HitTest(X, Y) then Exit;
+
+    if Result.HitTest(X, Y) then
+      Exit;
   end;
   Result := nil;
 end;
@@ -879,6 +887,11 @@ begin
   Result := FItems.Count;
 end;
 
+function TLayerCollection.GetEnumerator: TEnumerator<TCustomLayer>;
+begin
+  Result := FItems.GetEnumerator;
+end;
+
 function TLayerCollection.GetItem(Index: Integer): TCustomLayer;
 begin
   Result := FItems[Index];
@@ -887,6 +900,11 @@ end;
 function TLayerCollection.GetOwner: TPersistent;
 begin
   Result := FOwner;
+end;
+
+function TLayerCollection.IndexOf(Item: TCustomLayer): integer;
+begin
+  Result := FItems.IndexOf(Item);
 end;
 
 function TLayerCollection.Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer;
@@ -902,15 +920,45 @@ begin
   end;
 end;
 
+function TLayerCollection.Insert<T>(Index: Integer): T;
+begin
+  Result := T(Insert(Index, T));
+end;
+
 procedure TLayerCollection.InsertItem(Item: TCustomLayer);
 var
   Index: Integer;
 begin
+  // We are called from TCustomLayer.SetLayerCollection which should have already
+  // set its LayerCollection
+  Assert(Item.LayerCollection = Self);
+
   BeginUpdate;
   try
     Index := FItems.Add(Item);
-    Item.FLayerCollection := Self;
     Notify(lnLayerAdded, Item, Index);
+    Changed;
+  finally
+    EndUpdate;
+  end;
+end;
+
+procedure TLayerCollection.ExtractItem(Item: TCustomLayer);
+var
+  Index: Integer;
+begin
+  Index := FItems.IndexOf(Item);
+  if (Index = -1) then
+    exit;
+
+  // We are called from TCustomLayer.SetLayerCollection which should have already
+  // nilled its LayerCollection
+  Assert(Item.LayerCollection = nil);
+
+  BeginUpdate;
+  try
+    FItems.ExtractAt(Index);
+    Notify(lnLayerDeleted, Item, Index);
     Changed;
   finally
     EndUpdate;
@@ -956,7 +1004,7 @@ begin
   else
     Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
-  if (Result <> MouseListener) and ((Result = nil) or (Result.FLayerOptions and LOB_NO_CAPTURE = 0)) then
+  if (Result <> MouseListener) and ((Result = nil) or (Result.LayerOptions and LOB_NO_CAPTURE = 0)) then
     MouseListener := Result; // capture the mouse
 
   if (MouseListener <> nil) then
@@ -996,6 +1044,30 @@ begin
     MouseListener := nil; // reset mouse capture
 end;
 
+procedure TLayerCollection.MoveItem(Item: TCustomLayer; NewIndex: Integer);
+var
+  CurrentIndex: integer;
+begin
+  if NewIndex < 0 then
+    NewIndex := 0;
+  if NewIndex >= Count then
+    NewIndex := Count-1;
+
+  CurrentIndex := Item.Index;
+  if (CurrentIndex = NewIndex) then
+    exit;
+
+  BeginUpdate;
+  try
+    FItems.Move(CurrentIndex, NewIndex);
+
+    if Item.Visible then
+      Changed;
+  finally
+    EndUpdate;
+  end;
+end;
+
 procedure TLayerCollection.Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
 var
   i: integer;
@@ -1008,25 +1080,6 @@ begin
 
   if Assigned(FOnListNotify) then
     FOnListNotify(Self, Action, Layer, Index);
-end;
-
-procedure TLayerCollection.RemoveItem(Item: TCustomLayer);
-var
-  Index: Integer;
-begin
-  BeginUpdate;
-  try
-    Index := FItems.IndexOf(Item);
-    if Index >= 0 then
-    begin
-      FItems.Delete(Index);
-      Item.FLayerCollection := nil;
-      Notify(lnLayerDeleted, Item, Index);
-    end;
-    Changed;
-  finally
-    EndUpdate;
-  end;
 end;
 
 procedure TLayerCollection.SetItem(Index: Integer; Value: TCustomLayer);
@@ -1116,36 +1169,6 @@ begin
     ShiftX := 0;
     ShiftY := 0;
   end;
-end;
-
-
-{ TLayerEnum }
-
-constructor TLayerEnum.Create(ALayerCollection: TLayerCollection);
-begin
-  inherited Create;
-  FLayerCollection := ALayerCollection;
-  FIndex := -1;
-end;
-
-function TLayerEnum.GetCurrent: TCustomLayer;
-begin
-  Result := FLayerCollection.Items[FIndex];
-end;
-
-function TLayerEnum.MoveNext: Boolean;
-begin
-  Result := FIndex < Pred(FLayerCollection.Count);
-  if Result then
-    Inc(FIndex);
-end;
-
-
-{ TLayerCollectionHelper }
-
-function TLayerCollectionHelper.GetEnumerator: TLayerEnum;
-begin
-  Result := TLayerEnum.Create(Self);
 end;
 
 
@@ -1268,7 +1291,7 @@ end;
 function TCustomLayer.GetIndex: Integer;
 begin
   if (FLayerCollection <> nil) then
-    Result := FLayerCollection.FItems.IndexOf(Self)
+    Result := FLayerCollection.IndexOf(Self)
   else
     Result := -1;
 end;
@@ -1420,46 +1443,34 @@ begin
 end;
 
 procedure TCustomLayer.SetIndex(Value: Integer);
-var
-  CurIndex: Integer;
 begin
-  CurIndex := GetIndex;
-  if (CurIndex < 0) or (CurIndex = Value) then
+  if (FLayerCollection = nil) then
     exit;
 
-  if Value < 0 then
-    Value := 0;
-  if Value >= FLayerCollection.Count then
-    Value := FLayerCollection.Count - 1;
-
-  if Value <> CurIndex then
-  begin
-    FLayerCollection.BeginUpdate;
-    try
-      FLayerCollection.FItems.Move(CurIndex, Value);
-
-      if Visible then
-        FLayerCollection.Changed;
-    finally
-      FLayerCollection.EndUpdate;
-    end;
-  end;
+  FLayerCollection.MoveItem(Self, Value);
 end;
 
 procedure TCustomLayer.SetLayerCollection(Value: TLayerCollection);
+var
+  OldLayerCollection: TLayerCollection;
 begin
-  if FLayerCollection <> Value then
+  if (FLayerCollection = Value) then
+    exit;
+
+  OldLayerCollection := FLayerCollection;
+  FLayerCollection := nil; // Prevent recursion
+
+  if (OldLayerCollection <> nil) then
   begin
-    if (FLayerCollection <> nil) then
-    begin
-      if FLayerCollection.MouseListener = Self then
-        FLayerCollection.MouseListener := nil;
-      FLayerCollection.RemoveItem(Self);
-    end;
-    if (Value <> nil) then
-      Value.InsertItem(Self);
-    FLayerCollection := Value;
+    if OldLayerCollection.MouseListener = Self then
+      OldLayerCollection.MouseListener := nil;
+    OldLayerCollection.ExtractItem(Self);
   end;
+
+  FLayerCollection := Value;
+
+  if (FLayerCollection <> nil) then
+    FLayerCollection.InsertItem(Self);
 end;
 
 procedure TCustomLayer.SetLayerOptions(Value: Cardinal);
@@ -1598,10 +1609,10 @@ function TPositionedLayer.GetAdjustedRect(const R: TFloatRect): TFloatRect;
 var
   ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
 begin
-  if Scaled and (FLayerCollection <> nil) then
+  if Scaled and (LayerCollection <> nil) then
   begin
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
 
     with Result do
     begin
@@ -1642,17 +1653,17 @@ var
   Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
 begin
-  if Scaled and (FLayerCollection <> nil) then
+  if Scaled and (LayerCollection <> nil) then
   begin
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
 
     Result.X := (APoint.X - ShiftX) / ScaleX;
     Result.Y := (APoint.Y - ShiftY) / ScaleY;
 exit;
 
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
 
     ViewPort.Left := Location.Left * ScaleX + ShiftX;
     ViewPort.Right := Location.Right * ScaleX + ShiftX;
@@ -1693,10 +1704,10 @@ var
 begin
   Result := ARect;
 
-  if Scaled and (FLayerCollection <> nil) then
+  if Scaled and (LayerCollection <> nil) then
   begin
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
 
     Result.Left := (ARect.Left - ShiftX) / ScaleX;
     Result.Right := (ARect.Right - ShiftX) / ScaleX;
@@ -1704,8 +1715,8 @@ begin
     Result.Bottom := (ARect.Bottom - ShiftY) / ScaleY;
 exit;
 
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
 
     ViewPort.Left := Location.Left * ScaleX + ShiftX;
     ViewPort.Right := Location.Right * ScaleX + ShiftX;
@@ -1765,10 +1776,10 @@ var
 begin
 //  Result := APoint;
 
-  if Scaled and (FLayerCollection <> nil) then
+  if Scaled and (LayerCollection <> nil) then
   begin
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
 
     Result.X := APoint.X * ScaleX + ShiftX;
     Result.Y := APoint.Y * ScaleY + ShiftY;
@@ -1816,10 +1827,10 @@ var
 begin
   Result := ARect;
 
-  if Scaled and (FLayerCollection <> nil) then
+  if Scaled and (LayerCollection <> nil) then
   begin
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
 
     Result.Left := ARect.Left * ScaleX + ShiftX;
     Result.Right := ARect.Right * ScaleX + ShiftX;
@@ -1893,7 +1904,7 @@ begin
   Changing;
 
   // Invalidate old location
-  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
+  if (LayerCollection <> nil) and (LayerOptions and LOB_NO_UPDATE = 0) then
     Update;
 
   DoSetLocation(Value);
@@ -1911,7 +1922,7 @@ begin
   Changing;
 
   // Invalidate old location
-  if (FLayerCollection <> nil) and (FLayerOptions and LOB_NO_UPDATE = 0) then
+  if (LayerCollection <> nil) and (LayerOptions and LOB_NO_UPDATE = 0) then
     Update;
 
   FScaled := Value;
@@ -1964,7 +1975,7 @@ begin
   if (Area.Left = Area.Right) or (Area.Top = Area.Bottom) then // Don't use IsEmpty; Rect can be negative
     Exit; // Empty area
 
-  if (FLayerCollection = nil) or (FLayerOptions and LOB_NO_UPDATE <> 0) then
+  if (LayerCollection = nil) or (LayerOptions and LOB_NO_UPDATE <> 0) then
     exit;
 
   r := GetAdjustedLocation;
@@ -2012,7 +2023,7 @@ begin
 
   if (Result) and (AlphaHit) and (FBitmap <> nil) then
   begin
-    r := GetAdjustedRect(FLocation);
+    r := GetAdjustedLocation;
 
     LayerWidth := r.Width;
     LayerHeight := r.Height;
@@ -2038,19 +2049,19 @@ begin
   if (FBitmap = nil) or (FBitmap.Empty) then
     Exit;
 
-  DstRect := MakeRect(GetAdjustedRect(FLocation));
+  DstRect := MakeRect(GetAdjustedLocation);
   ClipRect := Buffer.ClipRect;
   GR32.IntersectRect(TempRect, ClipRect, DstRect);
   if GR32.IsRectEmpty(TempRect) then
     Exit;
 
   SrcRect := MakeRect(0, 0, FBitmap.Width, FBitmap.Height);
-  if Cropped and (LayerCollection.FOwner is TCustomImage32) and
-    not (TImage32Access(LayerCollection.FOwner).PaintToMode) then
+  if Cropped and (LayerCollection.Owner is TCustomImage32) and
+    not (TImage32Access(LayerCollection.Owner).PaintToMode) then
   begin
     if (DstRect.Width < 0.5) or (DstRect.Height < 0.5) then
       Exit;
-    ImageRect := TCustomImage32(LayerCollection.FOwner).GetBitmapRect;
+    ImageRect := TCustomImage32(LayerCollection.Owner).GetBitmapRect;
     GR32.IntersectRect(ClipRect, ClipRect, ImageRect);
   end;
   StretchTransfer(Buffer, DstRect, ClipRect, FBitmap, SrcRect, FBitmap.Resampler, FBitmap.DrawMode, FBitmap.OnPixelCombine);
@@ -2391,7 +2402,7 @@ begin
 
     if Supports(FHitTest, ILayerHitTestMove) then
     begin
-      ALoc := GetAdjustedRect(FLocation);
+      ALoc := GetAdjustedLocation;
       FMouseShift := FloatPoint(FHitTest.MousePosition.X - ALoc.Left, FHitTest.MousePosition.Y - ALoc.Top);
     end else
       FMouseShift := FloatPoint(0, 0);
@@ -2544,7 +2555,7 @@ begin
   Offset.Y := Y - FMouseShift.Y;
   if Scaled then
   begin
-    r := GetAdjustedRect(FLocation);
+    r := GetAdjustedLocation;
     if GR32.IsRectEmpty(r) then
       Exit;
     Offset.X := (Offset.X - r.Left) / r.Width * Location.Width + Location.Left;
@@ -2680,10 +2691,10 @@ begin
   if (Length(FVertices) = 0) then
     exit;
 
-  if (Scaled) and (FLayerCollection <> nil) then
+  if (Scaled) and (LayerCollection <> nil) then
   begin
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
     DoScale := True;
   end else
     DoScale := False;
@@ -2734,10 +2745,10 @@ begin
   if (Length(FVertices) = 0) then
     exit;
 
-  if (Scaled) and (FLayerCollection <> nil) then
+  if (Scaled) and (LayerCollection <> nil) then
   begin
-    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
-    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
     DoScale := True;
   end else
     DoScale := False;
@@ -2775,7 +2786,7 @@ var
   i: integer;
   Handled: boolean;
 begin
-  R := MakeRect(GetAdjustedRect(FLocation));
+  R := MakeRect(GetAdjustedLocation);
 
   if (Assigned(FrameHandler)) and (IsFrameVisible) then
     FrameHandler(Buffer, R);
@@ -2965,7 +2976,7 @@ begin
 
   if (Result = nil) and AllowMove then
   begin
-    R := MakeRect(GetAdjustedRect(FLocation));
+    R := MakeRect(GetAdjustedLocation);
 
     if (GR32.PtInRect(R, APosition)) then
     begin
@@ -3150,28 +3161,28 @@ begin
     begin
       IncLT(NewLocation.Left, NewLocation.Right, AOffset.X - NewLocation.Left, MinWidth, MaxWidth);
       if AQuantize then
-        NewLocation.Left := Round(NewLocation.Left / FQuantized) * FQuantized;
+        NewLocation.Left := Round(NewLocation.Left / Quantized) * Quantized;
     end;
 
     if DragState in [dsSizeR, dsSizeTR, dsSizeBR] then
     begin
       IncRB(NewLocation.Left, NewLocation.Right, AOffset.X - NewLocation.Right, MinWidth, MaxWidth);
       if AQuantize then
-        NewLocation.Right := Round(NewLocation.Right / FQuantized) * FQuantized;
+        NewLocation.Right := Round(NewLocation.Right / Quantized) * Quantized;
     end;
 
     if DragState in [dsSizeT, dsSizeTL, dsSizeTR] then
     begin
       IncLT(NewLocation.Top, NewLocation.Bottom, AOffset.Y - NewLocation.Top, MinHeight, MaxHeight);
       if AQuantize then
-        NewLocation.Top := Round(NewLocation.Top / FQuantized) * FQuantized;
+        NewLocation.Top := Round(NewLocation.Top / Quantized) * Quantized;
     end;
 
     if DragState in [dsSizeB, dsSizeBL, dsSizeBR] then
     begin
       IncRB(NewLocation.Top, NewLocation.Bottom, AOffset.Y - NewLocation.Bottom, MinHeight, MaxHeight);
       if AQuantize then
-        NewLocation.Bottom := Round(NewLocation.Bottom / FQuantized) * FQuantized;
+        NewLocation.Bottom := Round(NewLocation.Bottom / Quantized) * Quantized;
     end;
   end else
     exit;
@@ -3211,7 +3222,7 @@ begin
 
   FMinWidth := 10;
   FMinHeight := 10;
-  FQuantized := 8;
+  Quantized := 8;
 end;
 
 procedure TRubberbandLayer.DoSetDragState(const Value: TRBDragState; const X, Y: Integer);
