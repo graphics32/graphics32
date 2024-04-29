@@ -472,23 +472,6 @@ type
 type
   TCustomRubberBandLayer = class;
 
-  TRBDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB, dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);
-
-  TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame,
-    rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide,
-    rhNotTLCorner, rhNotTRCorner, rhNotBLCorner, rhNotBRCorner);
-
-  TRBOptions = set of (roProportional, roConstrained, roQuantized);
-
-  TRBResizingEvent = procedure(
-    Sender: TObject;
-    const OldLocation: TFloatRect;
-    var NewLocation: TFloatRect;
-    DragState: TRBDragState;
-    Shift: TShiftState) of object;
-
-  TRBConstrainEvent = TRBResizingEvent;
-
   TRubberbandPassMouse = class(TPersistent)
   strict private
     FOwner: TCustomRubberBandLayer;
@@ -506,11 +489,6 @@ type
     property ToLayerUnderCursor: Boolean read FLayerUnderCursor write FLayerUnderCursor default False;
     property CancelIfPassed: Boolean read FCancelIfPassed write FCancelIfPassed default False;
   end;
-
-  // TODO : Replace these with anonymous methods once FPC catches up (expected for FPC 4)
-  TRubberBandPaintFrameHandler = procedure(Buffer: TBitmap32; const r: TRect) of object;
-  TRubberBandPaintHandleHandler = procedure(Buffer: TBitmap32; const r: TRect; Index: integer) of object;
-  TRubberBandPaintHandlesHandler = procedure(Buffer: TBitmap32; const r: TRect; var Handled: boolean) of object;
 
   ILayerHitTest = interface
     ['{5F458999-F3BE-47F1-9215-B496927D7BA9}']
@@ -536,7 +514,18 @@ type
     ['{3CA95766-7294-42FB-A5F6-85153376F0B4}']
   end;
 
+  TRubberBandHandleEvent = procedure(Sender: TCustomRubberBandLayer; AIndex: integer) of object;
+  TRubberBandPaintHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var Handled: boolean) of object;
+  TRubberBandUpdateHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var UpdateRect: TRect; var Handled: boolean) of object;
+
+  TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared;
+
   TCustomRubberBandLayer = class(TPositionedLayer)
+  strict protected type
+    // TODO : Replace these with anonymous methods once FPC catches up (expected for FPC 4)
+    TRubberBandPaintFrameHandler = procedure(Buffer: TBitmap32; const r: TRect) of object;
+    TRubberBandPaintHandleHandler = procedure(Buffer: TBitmap32; const r: TRect; Index: integer) of object;
+    TRubberBandPaintHandlesHandler = procedure(Buffer: TBitmap32; const r: TRect; var Handled: boolean) of object;
   strict private
     FChildLayer: TPositionedLayer;
     FVertices: TArrayOfFloatPoint;
@@ -547,7 +536,12 @@ type
     FHandleFill: TColor32;
     FHandleSize: TFloat;
     FOnUserChange: TNotifyEvent;
+    FOnHandleClicked: TRubberBandHandleEvent;
+    FOnHandleMoved: TRubberBandHandleEvent;
+    FOnPaintHandle: TRubberBandPaintHandleEvent;
+    FOnUpdateHandle: TRubberBandUpdateHandleEvent;
     FQuantized: Integer;
+    FQuantizeShiftToggle: TLayerShiftState;
     FPassMouse: TRubberbandPassMouse;
     procedure SetFrameStipplePattern(const Value: TArrayOfColor32);
     procedure SetFrameStippleStep(const Value: TFloat);
@@ -570,6 +564,8 @@ type
     procedure SetHitTest(const AHitTest: ILayerHitTest); virtual;
     procedure ApplyHitTestCursor(const AHitTest: ILayerHitTest); virtual;
     function GetHitTestCursor(const AHitTest: ILayerHitTest): TCursor; virtual;
+    procedure DoHandleClicked(VertexIndex: integer); virtual;
+    procedure DoHandleMoved(VertexIndex: integer); virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -580,7 +576,7 @@ type
     function IsFrameVisible: boolean; virtual;
     function IsVertexVisible(VertexIndex: integer): boolean; virtual;
     function AllowMove: boolean; virtual;
-    procedure DoDrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual; // Required for backward compatibility
+    procedure DrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual; // Required for backward compatibility
     procedure DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer); virtual;
     procedure DoDrawVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean); virtual;
     procedure DrawFrame(Buffer: TBitmap32; const R: TRect); virtual;
@@ -592,7 +588,7 @@ type
     procedure UpdateFrame;
     procedure UpdateVertices;
     function ApplyOffset(const AHitTest: ILayerHitTest; AQuantize: boolean; const APoint, AOffset: TFloatPoint): boolean; virtual;
-    function IsQuantizing: boolean; virtual;
+    function CanQuantize: boolean; virtual;
 
     property Vertices: TArrayOfFloatPoint read FVertices write SetVertices;
   public
@@ -612,9 +608,16 @@ type
     property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;
     property FrameStippleCounter: TFloat read FFrameStippleCounter write SetFrameStippleCounter;
     property Quantized: Integer read FQuantized write SetQuantized default 8;
+    property QuantizeShiftToggle: TLayerShiftState read FQuantizeShiftToggle write FQuantizeShiftToggle default [ssAlt];
     property PassMouseToChild: TRubberbandPassMouse read FPassMouse;
 
+    property CurrentHitTest: ILayerHitTest read FHitTest;
+
     property OnUserChange: TNotifyEvent read FOnUserChange write FOnUserChange;
+    property OnHandleClicked: TRubberBandHandleEvent read FOnHandleClicked write FOnHandleClicked;
+    property OnHandleMoved: TRubberBandHandleEvent read FOnHandleMoved write FOnHandleMoved;
+    property OnPaintHandle: TRubberBandPaintHandleEvent read FOnPaintHandle write FOnPaintHandle;
+    property OnUpdateHandle: TRubberBandUpdateHandleEvent read FOnUpdateHandle write FOnUpdateHandle;
   end;
 
 type
@@ -642,6 +645,24 @@ type
 //------------------------------------------------------------------------------
 // Rectangular rubber band selection design layer.
 //------------------------------------------------------------------------------
+type
+  TRBDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB, dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);
+
+  TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame,
+    rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide,
+    rhNotTLCorner, rhNotTRCorner, rhNotBLCorner, rhNotBRCorner);
+
+  TRBOptions = set of (roProportional, roConstrained, roQuantized);
+
+  TRBResizingEvent = procedure(
+    Sender: TObject;
+    const OldLocation: TFloatRect;
+    var NewLocation: TFloatRect;
+    DragState: TRBDragState;
+    Shift: TShiftState) of object;
+
+  TRBConstrainEvent = TRBResizingEvent;
+
 const
   VertexToDragState: array[0..7] of TRBDragState =
     // 0         1        2
@@ -671,7 +692,7 @@ type
     procedure SetHandles(Value: TRBHandles);
     procedure SetOptions(const Value: TRBOptions);
     function GetValidDragStates: TValidDragStates;
-    function IsQuantizing: boolean; override;
+    function CanQuantize: boolean; override;
     procedure DoSetLocation(const NewLocation: TFloatRect); override;
     function GetHitTest(const APosition: TPoint; AShift: TShiftState = []): ILayerHitTest; override;
     function GetHitTestCursor(const AHitTest: ILayerHitTest): TCursor; override;
@@ -2286,6 +2307,7 @@ begin
   FHandleFill := clWhite32;
   FHandleSize := 3;
   FQuantized := 1;
+  FQuantizeShiftToggle := [ssAlt];
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
   SetFrameStipple([clWhite32, clWhite32, clBlack32, clBlack32]);
   FPassMouse := TRubberbandPassMouse.Create(Self);
@@ -2312,7 +2334,7 @@ begin
   Result := (Length(FFrameStipplePattern) > 0);
 end;
 
-function TCustomRubberBandLayer.IsQuantizing: boolean;
+function TCustomRubberBandLayer.CanQuantize: boolean;
 begin
   Result := (FQuantized > 0);
 end;
@@ -2498,9 +2520,23 @@ begin
     exit;
 end;
 
+procedure TCustomRubberBandLayer.DoHandleClicked(VertexIndex: integer);
+begin
+  if (Assigned(FOnHandleClicked)) then
+    FOnHandleClicked(Self, VertexIndex);
+end;
+
+procedure TCustomRubberBandLayer.DoHandleMoved(VertexIndex: integer);
+begin
+  if (Assigned(FOnHandleMoved)) then
+    FOnHandleMoved(Self, VertexIndex);
+end;
+
 procedure TCustomRubberBandLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   PositionedLayer: TPositionedLayer;
+  HitTestVertex: ILayerHitTestVertex;
+  VertexIndex: integer;
 begin
   if FPassMouse.Enabled then
   begin
@@ -2529,6 +2565,14 @@ begin
 
   SetHitTest(GetHitTest(GR32.Point(X, Y), Shift));
 
+  if (FHitTest <> nil) then
+  begin
+    VertexIndex := -1;
+    if (Supports(FHitTest, ILayerHitTestVertex, HitTestVertex)) then
+      VertexIndex := HitTestVertex.Vertex;
+    DoHandleClicked(VertexIndex);
+  end;
+
   inherited;
 end;
 
@@ -2539,6 +2583,8 @@ var
   DoQuantize: Boolean;
   r: TFloatRect;
   p: TFloatPoint;
+  HitTestVertex: ILayerHitTestVertex;
+  VertexIndex: integer;
 begin
   if (FHitTest = nil) then
   begin
@@ -2562,7 +2608,7 @@ begin
     Offset.Y := (Offset.Y - r.Top) / r.Height * Location.Height + Location.Top;
   end;
 
-  DoQuantize := (IsQuantizing) and not (ssAlt in FHitTest.Shift);
+  DoQuantize := (CanQuantize) and ((FQuantizeShiftToggle = []) or (FHitTest.Shift * [ssShift, ssAlt, ssCtrl] <> FQuantizeShiftToggle));
 
   if DoQuantize then
   begin
@@ -2574,6 +2620,14 @@ begin
 
   if ApplyOffset(FHitTest, DoQuantize, p, Offset) then
   begin
+    if (FHitTest <> nil) then
+    begin
+      VertexIndex := -1;
+      if (Supports(FHitTest, ILayerHitTestVertex, HitTestVertex)) then
+        VertexIndex := HitTestVertex.Vertex;
+      DoHandleMoved(VertexIndex);
+    end;
+
     if Assigned(FOnUserChange) then
       FOnUserChange(Self);
   end;
@@ -2616,7 +2670,7 @@ begin
     FChildLayer := nil;
 end;
 
-procedure TCustomRubberBandLayer.DoDrawHandle(Buffer: TBitmap32; X, Y: TFloat);
+procedure TCustomRubberBandLayer.DrawHandle(Buffer: TBitmap32; X, Y: TFloat);
 var
   Handle: TFloatRect;
   HandleRect: TRect;
@@ -2639,12 +2693,19 @@ end;
 procedure TCustomRubberBandLayer.DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer);
 var
   p: TFloatPoint;
+  Handled: boolean;
 begin
   // Coordinate specifies exact center of handle. I.e. center of
   // pixel if handle is odd number of pixels wide.
 
   p := LayerToControl(FVertices[VertexIndex], True);
-  DoDrawHandle(Buffer, p.X, p.Y);
+
+  Handled := False;
+  if Assigned(FOnPaintHandle) then
+    FOnPaintHandle(Self, Buffer, p, VertexIndex, Handled);
+
+  if (not Handled) then
+    DrawHandle(Buffer, p.X, p.Y);
 end;
 
 procedure TCustomRubberBandLayer.DoDrawVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean);
@@ -2726,12 +2787,20 @@ var
   p: TFloatPoint;
   Handle: TFloatRect;
   HandleRect: TRect;
+  Handled: boolean;
 begin
   p := LayerToControl(FVertices[VertexIndex], False);
-  Handle := FloatRect(p, p);
-  GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+  Handle.TopLeft := p;
+  Handle.BottomRight := Handle.TopLeft;
+  Handle.Inflate(FHandleSize, FHandleSize);
   HandleRect := MakeRect(Handle, rrOutside);
-  UpdateRect(HandleRect);
+
+  Handled := False;
+  if Assigned(FOnUpdateHandle) then
+    FOnUpdateHandle(Self, Buffer, p, VertexIndex, HandleRect, Handled);
+
+  if (not Handled) then
+    UpdateRect(HandleRect);
 end;
 
 procedure TCustomRubberBandLayer.DoUpdateVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean);
@@ -2753,26 +2822,32 @@ begin
   end else
     DoScale := False;
 
-  for i := 0 to High(FVertices) do
-    if (IsVertexVisible(i)) then
-    begin
-      if (DoScale) then
-      begin
-        Handle.Left := FVertices[i].X * ScaleX + ShiftX;
-        Handle.Top := FVertices[i].Y * ScaleY + ShiftY;
-      end else
-        Handle.TopLeft := FVertices[i];
-      Handle.BottomRight := Handle.TopLeft;
-      GR32.InflateRect(Handle, FHandleSize, FHandleSize);
-      HandleRect := MakeRect(Handle, rrOutside);
-      UpdateRect(HandleRect);
-    end;
+  if Assigned(FOnUpdateHandle) then
+  begin
 
-  (* Or simply:
-  for i := 0 to High(FVertices) do
-    if (IsVertexVisible(i)) then
-      DoUpdateVertex(Buffer, R, i);
-  *)
+    for i := 0 to High(FVertices) do
+      if (IsVertexVisible(i)) then
+        DoUpdateVertex(Buffer, R, i);
+
+  end else
+  begin
+
+    for i := 0 to High(FVertices) do
+      if (IsVertexVisible(i)) then
+      begin
+        if (DoScale) then
+        begin
+          Handle.Left := FVertices[i].X * ScaleX + ShiftX;
+          Handle.Top := FVertices[i].Y * ScaleY + ShiftY;
+        end else
+          Handle.TopLeft := FVertices[i];
+        Handle.BottomRight := Handle.TopLeft;
+        GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+        HandleRect := MakeRect(Handle, rrOutside);
+        UpdateRect(HandleRect);
+      end;
+
+  end;
 
   Handled := True;
 end;
@@ -3282,9 +3357,9 @@ begin
   Result := (inherited IsFrameVisible) and (rhFrame in FHandles);
 end;
 
-function TRubberbandLayer.IsQuantizing: boolean;
+function TRubberbandLayer.CanQuantize: boolean;
 begin
-  Result := (inherited IsQuantizing) and (roQuantized in FOptions);
+  Result := (inherited CanQuantize) and (roQuantized in FOptions);
 end;
 
 function TRubberbandLayer.IsVertexVisible(VertexIndex: integer): boolean;
