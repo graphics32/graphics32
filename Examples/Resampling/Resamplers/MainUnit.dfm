@@ -7,14 +7,8 @@ object FrmResamplersExample: TFrmResamplersExample
   Color = clBtnFace
   Constraints.MinHeight = 200
   Constraints.MinWidth = 200
-  Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'Tahoma'
-  Font.Style = []
-  OnClose = FormClose
-  OnCreate = FormCreate
-  TextHeight = 13
+  ParentFont = True
+  TextHeight = 15
   object SidePanel: TPanel
     Left = 329
     Top = 0
@@ -29,66 +23,78 @@ object FrmResamplersExample: TFrmResamplersExample
       Width = 146
       Height = 160
       Align = alTop
+      BevelKind = bkFlat
+      BevelOuter = bvNone
       TabOrder = 0
       DesignSize = (
-        146
-        160)
+        142
+        156)
       object LblResamplersClass: TLabel
-        Left = 12
+        Left = 8
         Top = 24
-        Width = 82
-        Height = 13
+        Width = 88
+        Height = 15
         Anchors = [akTop, akRight]
         Caption = 'Resampler Class:'
+        ExplicitLeft = 12
       end
       object LblPixelAccessMode: TLabel
-        Left = 12
+        Left = 8
         Top = 67
-        Width = 91
-        Height = 13
+        Width = 101
+        Height = 15
         Anchors = [akTop, akRight]
         Caption = 'Pixel Access Mode:'
+        ExplicitLeft = 12
       end
       object LblWrapMode: TLabel
-        Left = 12
+        Left = 8
         Top = 110
-        Width = 59
-        Height = 13
+        Width = 65
+        Height = 15
         Anchors = [akTop, akRight]
         Caption = 'Wrap Mode:'
+        ExplicitLeft = 12
       end
       object PnlResamplerProperties: TPanel
-        Left = 1
-        Top = 1
-        Width = 144
+        Left = 0
+        Top = 0
+        Width = 142
         Height = 16
         Align = alTop
         BevelOuter = bvNone
         Caption = 'Resampler Properties'
-        Color = clBtnShadow
+        Color = clHighlight
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindow
+        Font.Color = clHighlightText
         Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Name = 'Segoe UI'
         Font.Style = []
+        ParentBackground = False
         ParentFont = False
         TabOrder = 0
+        ExplicitLeft = 1
+        ExplicitTop = 1
+        ExplicitWidth = 144
       end
       object ComboBoxResamplerClassName: TComboBox
-        Left = 16
+        Left = 12
         Top = 40
         Width = 119
-        Height = 21
+        Height = 23
+        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 1
         OnChange = ComboBoxResamplerClassNameChange
+        ExplicitLeft = 16
       end
       object ComboBoxPixelAccessMode: TComboBox
-        Left = 16
+        Left = 12
         Top = 83
         Width = 119
-        Height = 21
+        Height = 23
+        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 2
@@ -97,12 +103,14 @@ object FrmResamplersExample: TFrmResamplersExample
           'Unsafe'
           'Safe'
           'Wrap')
+        ExplicitLeft = 16
       end
       object ComboBoxWrapMode: TComboBox
-        Left = 16
+        Left = 12
         Top = 126
         Width = 119
-        Height = 21
+        Height = 23
+        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 3
@@ -111,82 +119,100 @@ object FrmResamplersExample: TFrmResamplersExample
           'Clamp'
           'Repeat'
           'Mirror')
+        ExplicitLeft = 16
       end
     end
     object PanelKernel: TPanel
+      AlignWithMargins = True
       Left = 0
-      Top = 160
+      Top = 164
       Width = 146
       Height = 201
+      Margins.Left = 0
+      Margins.Top = 4
+      Margins.Right = 0
+      Margins.Bottom = 0
       Align = alTop
+      BevelKind = bkFlat
+      BevelOuter = bvNone
       TabOrder = 1
       Visible = False
+      ExplicitTop = 160
       DesignSize = (
-        146
-        201)
+        142
+        197)
       object LblKernelClass: TLabel
-        Left = 12
+        Left = 8
         Top = 24
-        Width = 62
-        Height = 13
+        Width = 66
+        Height = 15
         Anchors = [akTop, akRight]
         Caption = 'Kernel Class:'
+        ExplicitLeft = 12
       end
       object LblKernelMode: TLabel
-        Left = 12
+        Left = 8
         Top = 67
-        Width = 63
-        Height = 13
+        Width = 70
+        Height = 15
         Anchors = [akTop, akRight]
         Caption = 'Kernel Mode:'
+        ExplicitLeft = 12
       end
       object LblTableSize: TLabel
         Left = 8
         Top = 116
-        Width = 97
-        Height = 13
+        Width = 99
+        Height = 15
         Caption = 'Table Size (32/100):'
       end
       object LblParameter: TLabel
         Left = 8
         Top = 155
-        Width = 54
-        Height = 13
+        Width = 57
+        Height = 15
         Caption = 'Parameter:'
         Visible = False
       end
       object PnlKernelProperties: TPanel
-        Left = 1
-        Top = 1
-        Width = 144
+        Left = 0
+        Top = 0
+        Width = 142
         Height = 16
         Align = alTop
         BevelOuter = bvNone
         Caption = 'Kernel Properties'
-        Color = clBtnShadow
+        Color = clHighlight
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindow
+        Font.Color = clHighlightText
         Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Name = 'Segoe UI'
         Font.Style = []
+        ParentBackground = False
         ParentFont = False
         TabOrder = 0
+        ExplicitLeft = 1
+        ExplicitTop = 1
+        ExplicitWidth = 144
       end
       object ComboBoxKernelClassName: TComboBox
-        Left = 16
+        Left = 12
         Top = 40
         Width = 119
-        Height = 21
+        Height = 23
+        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 1
-        OnChange = KernelClassNamesListClick
+        OnChange = ComboBoxKernelClassNameChange
+        ExplicitLeft = 16
       end
       object ComboBoxKernelMode: TComboBox
-        Left = 16
+        Left = 12
         Top = 83
         Width = 119
-        Height = 21
+        Height = 23
+        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         ItemIndex = 0
@@ -197,6 +223,7 @@ object FrmResamplersExample: TFrmResamplersExample
           'Default (precise, slow)'
           'Table Nearest (truncated, fastest)'
           'Table Linear (interpolated, fast)')
+        ExplicitLeft = 16
       end
       object GaugeBarTableSize: TGaugeBar
         Left = 16
@@ -247,7 +274,7 @@ object FrmResamplersExample: TFrmResamplersExample
         Left = 0
         Top = 0
         Width = 321
-        Height = 348
+        Height = 346
         Hint = 'Upsampling using manual resampling'
         Align = alClient
         Bitmap.ResamplerClassName = 'TKernelResampler'
@@ -260,6 +287,7 @@ object FrmResamplersExample: TFrmResamplersExample
         ScaleMode = smStretch
         TabOrder = 0
         OnResize = ImagePatternResize
+        ExplicitHeight = 348
       end
     end
     object TabStretchTransfer: TTabSheet
@@ -269,15 +297,12 @@ object FrmResamplersExample: TFrmResamplersExample
         Left = 0
         Top = 0
         Width = 321
-        Height = 348
+        Height = 346
         Hint = 'Upsampling using StretchTransfer resampling'
         Align = alClient
         TabOrder = 0
         OnPaintBuffer = PaintBoxStretchTransferPaintBuffer
-        ExplicitLeft = 60
-        ExplicitTop = 44
-        ExplicitWidth = 192
-        ExplicitHeight = 192
+        ExplicitHeight = 348
       end
     end
     object TabResampling: TTabSheet
@@ -287,11 +312,12 @@ object FrmResamplersExample: TFrmResamplersExample
         Left = 0
         Top = 0
         Width = 321
-        Height = 348
+        Height = 346
         Align = alClient
         RepaintMode = rmOptimizer
         TabOrder = 0
         OnPaintBuffer = PaintBoxResamplingPaintBuffer
+        ExplicitHeight = 348
       end
     end
     object TabKernel: TTabSheet
@@ -303,10 +329,11 @@ object FrmResamplersExample: TFrmResamplersExample
         Left = 0
         Top = 0
         Width = 321
-        Height = 348
+        Height = 346
         Align = alClient
         TabOrder = 0
         OnPaintBuffer = PaintBoxCurvePaintBuffer
+        ExplicitHeight = 348
       end
     end
   end
