@@ -3631,7 +3631,7 @@ begin
 
     if (X < Width256) and (Y < Height256) then
       Result := GET_T256(X,Y)
-    else if (X = Width256) and (Y <= Height256) then
+    else if (X = Width256) and (Y <= Height256) then // TODO : Get rid of this; Doesn't work
       // We're exactly on the right border: no need to interpolate.
       Result := Pixel[FClipRect.Right - 1, Y shr 8]
     else if (X <= Width256) and (Y = Height256) then
