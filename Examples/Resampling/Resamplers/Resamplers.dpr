@@ -6,6 +6,8 @@ uses
   Forms,
   MainUnit in 'MainUnit.pas';
 
+{$R '..\..\manifest.res'}
+
 begin
   Application.Initialize;
   Application.CreateForm(TFrmResamplersExample, FrmResamplersExample);

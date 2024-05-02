@@ -26,6 +26,15 @@
  * Mattias Andersson <mattias@centaurix.com>
  * (parts of this unit were taken from GR32_Transforms.pas by Alex A. Denisov)
  *
+ * Many of the filters here were adapted from:
+ * - "Interpolated Bitmap Resampling using filters"
+ *   Anders Melander, 1997
+ * which in turn was based on:
+ * - "General Filtered Image Rescaling"
+ *   Dale Schumacher
+ *   Graphics Gems III, Academic Press, Inc.
+ *   1 July 1992
+ *
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
@@ -50,6 +59,13 @@ uses
   GR32_OrdinalMaps,
   GR32_Blend;
 
+//------------------------------------------------------------------------------
+//
+//      BlockTransfer
+//
+//------------------------------------------------------------------------------
+// Unscaled block transfer
+//------------------------------------------------------------------------------
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
@@ -60,12 +76,28 @@ procedure BlockTransferX(
   Src: TCustomBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
+
+//------------------------------------------------------------------------------
+//
+//      StretchTransfer
+//
+//------------------------------------------------------------------------------
+// Scaled block transfer using resampler
+//------------------------------------------------------------------------------
 procedure StretchTransfer(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
   Resampler: TCustomResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
+
+//------------------------------------------------------------------------------
+//
+//      BlendTransfer
+//
+//------------------------------------------------------------------------------
+// Unscaled block blend
+//------------------------------------------------------------------------------
 procedure BlendTransfer(
   Dst: TCustomBitmap32; DstX, DstY: Integer; DstClip: TRect;
   SrcF: TCustomBitmap32; SrcRectF: TRect;
@@ -78,6 +110,12 @@ procedure BlendTransfer(
   SrcB: TCustomBitmap32; SrcRectB: TRect;
   BlendCallback: TBlendRegEx; MasterAlpha: Integer); overload;
 
+
+//------------------------------------------------------------------------------
+//
+//      Resampling
+//
+//------------------------------------------------------------------------------
 const
   MAX_KERNEL_WIDTH = 16;
 
@@ -100,7 +138,15 @@ type
   TGetSampleFloat = function(X, Y: TFloat): TColor32 of object;
   TGetSampleFixed = function(X, Y: TFixed): TColor32 of object;
 
-  { TCustomKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TCustomKernel
+//
+//------------------------------------------------------------------------------
+// Abstract base class for resampler kernels.
+//------------------------------------------------------------------------------
+type
   TCustomKernel = class(TPersistent)
   protected
     FObserver: TNotifiablePersistent;
@@ -114,30 +160,67 @@ type
     function GetWidth: TFloat; virtual; abstract;
     property Observer: TNotifiablePersistent read FObserver;
   end;
+
   TCustomKernelClass = class of TCustomKernel;
 
-  { TBoxKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TBoxKernel
+//
+//------------------------------------------------------------------------------
+// Nearest neighbor interpolation filter.
+// Also known as box filter, top-hat function or a Fourier window.
+//------------------------------------------------------------------------------
+type
   TBoxKernel = class(TCustomKernel)
   public
     function Filter(Value: TFloat): TFloat; override;
     function GetWidth: TFloat; override;
   end;
 
-  { TLinearKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TLinearKernel
+//
+//------------------------------------------------------------------------------
+// Linear reconstruction filter.
+// Also known as triangle filter, tent filter, roof function, Chateau function
+// or a Bartlett window.
+//------------------------------------------------------------------------------
+type
   TLinearKernel = class(TCustomKernel)
   public
     function Filter(Value: TFloat): TFloat; override;
     function GetWidth: TFloat; override;
   end;
 
-  { TCosineKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TCosineKernel
+//
+//------------------------------------------------------------------------------
+// Cosine reconstruction filter.
+//------------------------------------------------------------------------------
+type
   TCosineKernel = class(TCustomKernel)
   public
     function Filter(Value: TFloat): TFloat; override;
     function GetWidth: TFloat; override;
   end;
 
-  { TSplineKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TSplineKernel
+//
+//------------------------------------------------------------------------------
+// B-Spline interpolation filter.
+// Not the same as the Spline windowed Sinc kernel.
+//------------------------------------------------------------------------------
+type
   TSplineKernel = class(TCustomKernel)
   protected
     function RangeCheck: Boolean; override;
@@ -146,7 +229,29 @@ type
     function GetWidth: TFloat; override;
   end;
 
-  { TMitchellKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TMitchellKernel
+//
+//------------------------------------------------------------------------------
+// An implementation of a special case of the cubic filter described by Mitchell
+// and Netravali using the parameters (B: 1/3, C: 1/3).
+//
+// References:
+//
+// - Don P. Mitchell & Arun N. Netravali
+//   AT&T Bell Laboratories
+//   "Reconstruction Filters in Computer Graphics"
+//   Computer Graphics, Volume 22, Number 4, August 1988.
+//
+// Also known as Mitchell-Netravali.
+// Many other variants of this filter, with various other values for B&C, exist.
+// Often people come up with some variation of B&C and then put their own name
+// on the filter. For example Robidoux (B:0.3782, C:0.3109), etc.
+//
+//------------------------------------------------------------------------------
+type
   TMitchellKernel = class(TCustomKernel)
   protected
     function RangeCheck: Boolean; override;
@@ -155,7 +260,23 @@ type
     function GetWidth: TFloat; override;
   end;
 
-  { TCubicKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TCubicKernel
+//
+//------------------------------------------------------------------------------
+// A reconstruction filter described by a cubic polynomial.
+//
+// References:
+//
+// - Robert G. Keys
+//   "Cubic convolution interpolation for digital image processing"
+//   IEEE Transactions on Acoustics, Speech, and Signal Processing
+//   Volume: 29, Issue: 6, December 1981
+//
+//------------------------------------------------------------------------------
+type
   TCubicKernel = class(TCustomKernel)
   private
     FCoeff: TFloat;
@@ -170,7 +291,15 @@ type
     property Coeff: TFloat read FCoeff write SetCoeff;
   end;
 
-  { THermiteKernel }
+
+//------------------------------------------------------------------------------
+//
+//      THermiteKernel
+//
+//------------------------------------------------------------------------------
+// An implementation of the hermite kernel.
+//------------------------------------------------------------------------------
+type
   THermiteKernel = class(TCustomKernel)
   private
     FBias: TFloat;
@@ -188,16 +317,53 @@ type
     property Tension: TFloat read FTension write SetTension;
   end;
 
-  { TWindowedSincKernel }
-  TWindowedSincKernel = class(TCustomKernel)
+
+//------------------------------------------------------------------------------
+//
+//      TSinshKernel
+//
+//------------------------------------------------------------------------------
+// A filter described by a hyperbolic sine, something, something.
+//------------------------------------------------------------------------------
+type
+  TSinshKernel = class(TCustomKernel)
   private
+    FWidth: TFloat;
+    FCoeff: TFloat;
+    procedure SetCoeff(const Value: TFloat);
+  protected
+    function RangeCheck: Boolean; override;
+  public
+    constructor Create; override;
+    procedure SetWidth(Value: TFloat);
+    function GetWidth: TFloat; override;
+    function Filter(Value: TFloat): TFloat; override;
+  published
+    property Coeff: TFloat read FCoeff write SetCoeff;
+    property Width: TFloat read GetWidth write SetWidth;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TWindowedKernel
+//
+//------------------------------------------------------------------------------
+// Abstract base class for windowed kernels.
+// Returns the value of the filter function constrained by a window function.
+// Descendant classes must override the Window method in order to implement a
+// custom window function.
+//------------------------------------------------------------------------------
+type
+  TWindowedKernel = class(TCustomKernel)
+  strict protected
     FWidth : TFloat;
     FWidthReciprocal : TFloat;
   protected
     function RangeCheck: Boolean; override;
     function Window(Value: TFloat): TFloat; virtual; abstract;
+    procedure DoSetWidth(Value: TFloat);
   public
-    constructor Create; override;
     function Filter(Value: TFloat): TFloat; override;
     procedure SetWidth(Value: TFloat);
     function GetWidth: TFloat; override;
@@ -206,7 +372,69 @@ type
     property Width: TFloat read FWidth write SetWidth;
   end;
 
-  { TAlbrecht-Kernel }
+
+//------------------------------------------------------------------------------
+//
+//      TGaussianKernel
+//
+//------------------------------------------------------------------------------
+// A kernel constrained by a Gaussian window function.
+//------------------------------------------------------------------------------
+type
+  TGaussianKernel = class(TWindowedKernel)
+  private
+    FSigma: TFloat;
+    FSigmaReciprocal: TFloat;
+    FNormalizationFactor: Single;
+    procedure DoSetSigma(const Value: TFloat);
+    procedure SetSigma(const Value: TFloat);
+  protected
+    function Window(Value: TFloat): TFloat; override;
+  public
+    constructor Create; override;
+  published
+    property Sigma: TFloat read FSigma write SetSigma;
+  end;
+
+//------------------------------------------------------------------------------
+//
+//      TWindowedSincKernel
+//
+//------------------------------------------------------------------------------
+// Abstract base class for windowed Sinc kernels.
+// Returns the value of the Sinc function constrained by a window function.
+// Descendant classes must override the Window method in order to implement a
+// custom window function.
+//------------------------------------------------------------------------------
+type
+  TWindowedSincKernel = class(TWindowedKernel)
+  protected
+    class function Sinc(Value: TFloat): TFloat; static;
+  public
+    constructor Create; override;
+    function Filter(Value: TFloat): TFloat; override;
+  published
+    property Width: TFloat read FWidth write SetWidth;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TAlbrecht-Kernel
+//
+//------------------------------------------------------------------------------
+// A Sinc kernel constrained by Albrecht window functions.
+//
+// References:
+//
+// - Hans-Helge Albrecht
+//   Physikalisch-Technische Bundesanstalt, Berlin, Germany
+//   "A family of cosine-sum windows for high resolution measurements"
+//   IEEE International Conference on Acoustics, Speech, and Signal Processing,
+//   Salt Lake City, May 2001.
+//
+//------------------------------------------------------------------------------
+type
   TAlbrechtKernel = class(TWindowedSincKernel)
   private
     FTerms: Integer;
@@ -220,65 +448,109 @@ type
     property Terms: Integer read FTerms write SetTerms;
   end;
 
-  { TLanczosKernel }
+
+//------------------------------------------------------------------------------
+//
+//      TLanczosKernel
+//
+//------------------------------------------------------------------------------
+// A Sinc kernel constrained by a Lanczos window function.
+// It uses three lobes of the Sinc filter as a window.
+//
+// References:
+//
+// - Claude E. Duchon
+//   School of Meteorology, University of Oklahoma, USA
+//   "Lanczos Filtering in One and Two Dimensions"
+//   Journal of Applied Meteorology and Climatology, volume 18, pp. 1016-1022
+//   1 Aug 1979
+//
+// Also known as Lanczo3.
+//------------------------------------------------------------------------------
+type
   TLanczosKernel = class(TWindowedSincKernel)
   protected
     function Window(Value: TFloat): TFloat; override;
-  public
   end;
 
-  { TGaussianKernel }
-  TGaussianKernel = class(TWindowedSincKernel)
-  private
-    FSigma: TFloat;
-    FSigmaReciprocalLn2: TFloat;
-    procedure SetSigma(const Value: TFloat);
-  protected
-    function Window(Value: TFloat): TFloat; override;
-  public
-    constructor Create; override;
-  published
-    property Sigma: TFloat read FSigma write SetSigma;
-  end;
 
-  { TBlackmanKernel }
+//------------------------------------------------------------------------------
+//
+//      TBlackmanKernel
+//
+//------------------------------------------------------------------------------
+// A Sinc kernel constrained by a Blackman window function.
+//
+// References:
+//
+// - Ralph Beebe Blackman & John Wilder Tukey
+//   "Particular Pairs of Windows"
+//   The measurement of power spectra from the point of view of communications
+//   engineering.
+//   New York: Dover, pp. 98-99, 1959.
+//
+//------------------------------------------------------------------------------
+type
   TBlackmanKernel = class(TWindowedSincKernel)
   protected
     function Window(Value: TFloat): TFloat; override;
   end;
 
-  { THannKernel }
+
+//------------------------------------------------------------------------------
+//
+//      THannKernel
+//
+//------------------------------------------------------------------------------
+// A Sinc kernel constrained by a Hann window function.
+// Also known as raised cosine.
+//
+// References:
+//
+// - Ralph Beebe Blackman & John Wilder Tukey
+//   The measurement of power spectra from the point of view of communications
+//   engineering — Part I.
+//   The Bell System Technical Journal. 37 (1), pp. 273, 1958.
+//
+// Supposedly based on work done by Julius von Hann, 1839-1921
+//
+//------------------------------------------------------------------------------
+type
   THannKernel = class(TWindowedSincKernel)
   protected
     function Window(Value: TFloat): TFloat; override;
   end;
 
-  { THammingKernel }
+
+//------------------------------------------------------------------------------
+//
+//      THammingKernel
+//
+//------------------------------------------------------------------------------
+// A Sinc kernel constrained by a Hamming window function.
+//
+// References:
+//
+// - Richard W. Hamming
+//   "Digital Filters"
+//   Prentice-Hall, 1977 pp. 226; 2nd ed. 1983; 3rd ed. 1989
+//
+//------------------------------------------------------------------------------
+type
   THammingKernel = class(TWindowedSincKernel)
   protected
     function Window(Value: TFloat): TFloat; override;
   end;
 
-  { TSinshKernel }
-  TSinshKernel = class(TCustomKernel)
-  private
-    FWidth: TFloat;
-    FCoeff: TFloat;
-    procedure SetCoeff(const Value: TFloat);
-  protected
-    function  RangeCheck: Boolean; override;
-  public
-    constructor Create; override;
-    procedure SetWidth(Value: TFloat);
-    function  GetWidth: TFloat; override;
-    function  Filter(Value: TFloat): TFloat; override;
-  published
-    property Coeff: TFloat read FCoeff write SetCoeff;
-    property Width: TFloat read GetWidth write SetWidth;
-  end;
 
-
-  { TNearestResampler }
+//------------------------------------------------------------------------------
+//
+//      TNearestResampler
+//
+//------------------------------------------------------------------------------
+// A fast resampler based on the nearest-neighbor interpolation algorithm.
+//------------------------------------------------------------------------------
+type
   TNearestResampler = class(TCustomResampler)
   private
     FGetSampleInt: TGetSampleInt;
@@ -296,7 +568,16 @@ type
     procedure PrepareSampling; override;
   end;
 
-  { TLinearResampler }
+
+//------------------------------------------------------------------------------
+//
+//      TLinearResampler
+//
+//------------------------------------------------------------------------------
+// Performance-optimized linear upsampler.
+// Falls back to using TLinearKernel for downsampling.
+//------------------------------------------------------------------------------
+type
   TLinearResampler = class(TCustomResampler)
   private
     FLinearKernel: TLinearKernel;
@@ -316,7 +597,16 @@ type
     procedure PrepareSampling; override;
   end;
 
-  { TDraftResampler }
+
+//------------------------------------------------------------------------------
+//
+//      TDraftResampler
+//
+//------------------------------------------------------------------------------
+// Performance-optimized downsampler.
+// Falls back to using TLinearResampler for upsampling.
+//------------------------------------------------------------------------------
+type
   TDraftResampler = class(TLinearResampler)
   protected
     procedure Resample(
@@ -325,12 +615,19 @@ type
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
-  { TKernelResampler }
-  { This resampler class will perform resampling by using an arbitrary
-    reconstruction kernel. By using the kmTableNearest and kmTableLinear
-    kernel modes, kernel values are precomputed in a look-up table. This
-    allows GetSample to execute faster for complex kernels. }
 
+//------------------------------------------------------------------------------
+//
+//      TKernelResampler
+//
+//------------------------------------------------------------------------------
+// This resampler class will perform resampling by using an arbitrary
+// reconstruction kernel.
+// By using the kmTableNearest and kmTableLinear kernel modes, kernel values are
+// precomputed in a look-up table. This allows GetSample to execute faster for
+// complex kernels.
+//------------------------------------------------------------------------------
+type
   TKernelMode = (kmDynamic, kmTableNearest, kmTableLinear);
 
   TKernelResampler = class(TCustomResampler)
@@ -364,7 +661,15 @@ type
     property TableSize: Integer read FTableSize write SetTableSize;
   end;
 
-  { TNestedSampler }
+
+//------------------------------------------------------------------------------
+//
+//      TNestedSampler
+//
+//------------------------------------------------------------------------------
+// TNestedSampler is a base class for chained or nested samplers.
+//------------------------------------------------------------------------------
+type
   TNestedSampler = class(TCustomSampler)
   private
     FSampler: TCustomSampler;
@@ -384,7 +689,16 @@ type
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
 
-  { TTransformer }
+
+//------------------------------------------------------------------------------
+//
+//      TTransformer
+//
+//------------------------------------------------------------------------------
+// TTransformer is a nested sampler that will transform the sampling coordinates
+// using a transformation defined by a TTransformation descendant.
+//------------------------------------------------------------------------------
+type
   TTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
   TTransformFixed = procedure(DstX, DstY: TFixed; out SrcX, SrcY: TFixed) of object;
   TTransformFloat = procedure(DstX, DstY: TFloat; out SrcX, SrcY: TFloat) of object;
@@ -409,7 +723,16 @@ type
     property ReverseTransform: boolean read FReverse write FReverse;
   end;
 
-  { TSuperSampler }
+
+//------------------------------------------------------------------------------
+//
+//      TSuperSampler
+//
+//------------------------------------------------------------------------------
+// TSuperSampler is a nested sampler that adds a mechanism for performing super
+// sampling.
+//------------------------------------------------------------------------------
+type
   TSamplingRange = 1..MaxInt;
 
   TSuperSampler = class(TNestedSampler)
@@ -431,7 +754,17 @@ type
     property SamplingY: TSamplingRange read FSamplingY write SetSamplingY;
   end;
 
-  { TAdaptiveSuperSampler }
+
+//------------------------------------------------------------------------------
+//
+//      TAdaptiveSuperSampler
+//
+//------------------------------------------------------------------------------
+// Adaptive supersampling is different from ordinary supersampling in the sense
+// that samples are choosen adaptively; It is a recursive method that collects
+// more samples at areas with rapid transitions.
+//------------------------------------------------------------------------------
+type
   TRecurseProc = function(X, Y, W: TFixed; const C1, C2: TColor32): TColor32 of object;
 
   TAdaptiveSuperSampler = class(TNestedSampler)
@@ -455,7 +788,16 @@ type
     property Tolerance: Integer read FTolerance write FTolerance;
   end;
 
-  { TPatternSampler }
+
+//------------------------------------------------------------------------------
+//
+//      TPatternSampler
+//
+//------------------------------------------------------------------------------
+// TPatternSampler provides a mechanism for performing sampling according to a
+// supplied sample pattern.
+//------------------------------------------------------------------------------
+type
   TFloatSamplePattern = array of array of TArrayOfFloatPoint;
   TFixedSamplePattern = array of array of TArrayOfFixedPoint;
 
@@ -477,7 +819,17 @@ type
     B, G, R, A: Integer;
   end;
 
-  { TKernelSampler }
+
+//------------------------------------------------------------------------------
+//
+//      TKernelSampler
+//
+//------------------------------------------------------------------------------
+// TKernelSampler is an abstract base class for samplers that compute an output
+// sample by collecting a number of samples in a local region of the actual
+// sample coordinate.
+//------------------------------------------------------------------------------
+type
   TKernelSampler = class(TNestedSampler)
   private
     FKernel: TIntegerMap;
@@ -500,14 +852,33 @@ type
     property CenterY: Integer read FCenterY write FCenterY;
   end;
 
-  { TConvolver }
+
+//------------------------------------------------------------------------------
+//
+//      TConvolver
+//
+//------------------------------------------------------------------------------
+// The TConvolver kernel sampler provides functionality for performing discrete
+// convolution within a chain of nested samplers.
+//------------------------------------------------------------------------------
+type
   TConvolver = class(TKernelSampler)
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
 
-  { TSelectiveConvolver }
+
+//------------------------------------------------------------------------------
+//
+//      TSelectiveConvolver
+//
+//------------------------------------------------------------------------------
+// TSelectiveConvolver works similarly to TConvolver, but it will exclude color
+// samples from the convolution depending on a the difference from a local
+// reference sample value.
+//------------------------------------------------------------------------------
+type
   TSelectiveConvolver = class(TConvolver)
   private
     FRefColor: TColor32;
@@ -525,20 +896,44 @@ type
     property Delta: Integer read FDelta write FDelta;
   end;
 
-  { TMorphologicalSampler }
+
+//------------------------------------------------------------------------------
+//
+//      TMorphologicalSampler
+//
+//------------------------------------------------------------------------------
+// Abstract base class for TDilater and TEroder.
+//------------------------------------------------------------------------------
+type
   TMorphologicalSampler = class(TKernelSampler)
   protected
     function ConvertBuffer(var Buffer: TBufferEntry): TColor32; override;
   end;
 
-  { TDilater }
+
+//------------------------------------------------------------------------------
+//
+//      TDilater
+//
+//------------------------------------------------------------------------------
+// TDilater is a nested sampler for performing morphological dilation.
+//------------------------------------------------------------------------------
+type
   TDilater = class(TMorphologicalSampler)
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
 
-  { TEroder }
+
+//------------------------------------------------------------------------------
+//
+//      TEroder
+//
+//------------------------------------------------------------------------------
+// TEroder is a nested sampler for performing morphological erosion
+//------------------------------------------------------------------------------
+type
   TEroder = class(TMorphologicalSampler)
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
@@ -547,14 +942,31 @@ type
     constructor Create(ASampler: TCustomSampler); override;
   end;
 
-  { TExpander }
+
+//------------------------------------------------------------------------------
+//
+//      TExpander
+//
+//------------------------------------------------------------------------------
+// TExpander implements a neighborhood operation similar to morphological
+// dilation.
+//------------------------------------------------------------------------------
+type
   TExpander = class(TKernelSampler)
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
 
-  { TContracter }
+
+//------------------------------------------------------------------------------
+//
+//      TContracter
+//
+//------------------------------------------------------------------------------
+// Similar to TExpander, but contracts instead of exanding.
+//------------------------------------------------------------------------------
+type
   TContracter = class(TExpander)
   private
     FMaxWeight: TColor32;
@@ -567,27 +979,57 @@ type
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      CreateJitteredPattern
+//
+//------------------------------------------------------------------------------
+// Create a random jitter pattern for use with TPatternSampler.
+//------------------------------------------------------------------------------
 function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
 
-{ Convolution and morphological routines }
+
+//------------------------------------------------------------------------------
+//
+//      Convolution and morphological routines
+//
+//------------------------------------------------------------------------------
+// Kernel sampler wrapper functions.
+//------------------------------------------------------------------------------
 procedure Convolve(Src, Dst: TCustomBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
 procedure Dilate(Src, Dst: TCustomBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
 procedure Erode(Src, Dst: TCustomBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
 procedure Expand(Src, Dst: TCustomBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
 procedure Contract(Src, Dst: TCustomBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
 
-{ Auxiliary routines for accumulating colors in a buffer }
+
+//------------------------------------------------------------------------------
+//
+//      Auxiliary routines for accumulating colors in a buffer
+//
+//------------------------------------------------------------------------------
 procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 function BufferToColor32(const Buffer: TBufferEntry; Shift: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 
-{ Downsample byte map }
+
+//------------------------------------------------------------------------------
+//
+//      Downsample byte map
+//
+//------------------------------------------------------------------------------
 procedure DownsampleByteMap2x(Source, Dest: TByteMap);
 procedure DownsampleByteMap3x(Source, Dest: TByteMap);
 procedure DownsampleByteMap4x(Source, Dest: TByteMap);
 
-{ Registration routines }
+
+//------------------------------------------------------------------------------
+//
+//      Registration routines
+//
+//------------------------------------------------------------------------------
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
 
@@ -598,9 +1040,18 @@ var
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0) deprecated 'Use Default(TBufferEntry)';
 
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
 var
   BlockAverage: function(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
   Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+
+
+//------------------------------------------------------------------------------
 
 resourcestring
   SDstNil = 'Destination bitmap is nil';
@@ -608,6 +1059,10 @@ resourcestring
   SSrcInvalid = 'Source rectangle is invalid';
   SSamplerNil = 'Nested sampler is nil';
   STransformationNil = 'Transformation is nil';
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -855,6 +1310,12 @@ begin
     end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      BlockTransfer
+//
+//------------------------------------------------------------------------------
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
@@ -893,6 +1354,8 @@ begin
 
   Dst.Changed(DstClip);
 end;
+
+//------------------------------------------------------------------------------
 
 {$WARNINGS OFF}
 procedure BlockTransferX(
@@ -1111,6 +1574,12 @@ begin
 end;
 {$WARNINGS ON}
 
+
+//------------------------------------------------------------------------------
+//
+//      BlendTransfer
+//
+//------------------------------------------------------------------------------
 procedure BlendTransfer(
   Dst: TCustomBitmap32; DstX, DstY: Integer; DstClip: TRect;
   SrcF: TCustomBitmap32; SrcRectF: TRect;
@@ -1159,6 +1628,8 @@ begin
   end;
   Dst.Changed(DstClip);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure BlendTransfer(
   Dst: TCustomBitmap32; DstX, DstY: Integer; DstClip: TRect;
@@ -1209,6 +1680,14 @@ begin
   Dst.Changed(DstClip);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      StretchNearest
+//
+//------------------------------------------------------------------------------
+// Used by TNearestResampler.Resample
+//------------------------------------------------------------------------------
 procedure StretchNearest(
   Dst: TCustomBitmap32; DstRect, DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
@@ -1379,6 +1858,14 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      StretchNearest
+//
+//------------------------------------------------------------------------------
+// Used by TDraftResampler.Resample (via DraftResample) and TLinearResampler.Resample
+//------------------------------------------------------------------------------
 procedure StretchHorzStretchVertLinear(
   Dst: TCustomBitmap32; DstRect, DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
@@ -1472,6 +1959,7 @@ begin
         end;
         Inc(DstLine, DstW);
       end;
+
     dmBlend:
       begin
         BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^;
@@ -1496,6 +1984,7 @@ begin
           Inc(DstLine, Dst.Width);
         end
       end;
+
     dmTransparent:
       begin
         for J := 0 to DstClipH - 1 do
@@ -1533,7 +2022,7 @@ begin
         begin    
           SrcIndex := MapHorz[I].Pos;    
           SrcPtr1 := @SrcLine[SrcIndex];    
-          SrcPtr2 := @SrcLine[SrcIndex + SrcW];    
+          SrcPtr2 := @SrcLine[SrcIndex + SrcW];
         end;
         C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
         CombineCallBack(C, DstLine[I], Src.MasterAlpha);
@@ -1544,6 +2033,14 @@ begin
   EMMS;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Resample
+//
+//------------------------------------------------------------------------------
+// Primarily used by TKernelResampler.Resample
+//------------------------------------------------------------------------------
 // Precision of TMappingTable[][].Weight.
 // Totals Cb,Cg,Cr,Ca in Resample need to be unscaled by (1 shl MappingTablePrecicionShift2).
 const
@@ -1572,6 +2069,9 @@ const
   MappingTablePremultPrecicion = 1 shl MappingTablePremultPrecicionShift;
 {$endif PREMULTIPLY}
 
+//------------------------------------------------------------------------------
+// BuildMappingTable
+//------------------------------------------------------------------------------
 function BuildMappingTable(DstLo, DstHi: Integer; ClipLo, ClipHi: Integer;
   SrcLo, SrcHi: Integer; Kernel: TCustomKernel): TMappingTable;
 var
@@ -1733,6 +2233,9 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+// Premultiply
+//------------------------------------------------------------------------------
 {$ifdef PREMULTIPLY}
 function Premultiply(Value, Alpha: integer): integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
@@ -1754,6 +2257,9 @@ begin
   Result := (Value * Alpha) div MappingTablePremultPrecicion;
 end;
 
+//------------------------------------------------------------------------------
+// Unpremultiply
+//------------------------------------------------------------------------------
 function Unpremultiply(Value, Alpha: integer): integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   // It would be best if we could do the multiplication before the division
@@ -1762,6 +2268,9 @@ begin
 end;
 {$endif PREMULTIPLY}
 
+//------------------------------------------------------------------------------
+// Resample
+//------------------------------------------------------------------------------
 procedure Resample(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
@@ -2055,8 +2564,18 @@ begin
   end;
 end;
 
-{ Draft Resample Routines }
 
+//------------------------------------------------------------------------------
+//
+//      DraftResample
+//
+//------------------------------------------------------------------------------
+// Used by TDraftResampler.Resample
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// BlockAverage_Pas
+//------------------------------------------------------------------------------
 function BlockAverage_Pas(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 var
  C: PColor32Entry;
@@ -2085,6 +2604,9 @@ begin
             iB * Area shr 24 and $FF;
 end;
 
+//------------------------------------------------------------------------------
+// BlockAverage_MMX
+//------------------------------------------------------------------------------
 {$IFNDEF PUREPASCAL}
 function BlockAverage_MMX(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 asm
@@ -2225,6 +2747,9 @@ asm
 {$ENDIF}
 end;
 
+//------------------------------------------------------------------------------
+// BlockAverage_3DNow
+//------------------------------------------------------------------------------
 {$IFDEF USE_3DNOW}
 function BlockAverage_3DNow(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 asm
@@ -2304,6 +2829,9 @@ asm
 end;
 {$ENDIF}
 
+//------------------------------------------------------------------------------
+// BlockAverage_SSE2
+//------------------------------------------------------------------------------
 function BlockAverage_SSE2(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 asm
 {$IFDEF TARGET_X64}
@@ -2440,7 +2968,9 @@ asm
 end;
 {$ENDIF}
 
-
+//------------------------------------------------------------------------------
+// DraftResample
+//------------------------------------------------------------------------------
 procedure DraftResample(Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect; Kernel: TCustomKernel;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
@@ -2558,8 +3088,16 @@ begin
   EMMS;
 end;
 
-{ Special interpolators (for sfLinear and sfDraft) }
 
+//------------------------------------------------------------------------------
+//
+//      Special interpolators (for sfLinear and sfDraft)
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Interpolator_Pas
+//------------------------------------------------------------------------------
 function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 var
   C1, C3: TColor32;
@@ -2572,6 +3110,9 @@ begin
                        CombineReg(C3, C21^, WX_256), WY_256);
 end;
 
+//------------------------------------------------------------------------------
+// Interpolator_MMX
+//------------------------------------------------------------------------------
 {$IFNDEF PUREPASCAL}
 function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
@@ -2617,6 +3158,9 @@ asm
         MOVD      EAX,MM2
 end;
 
+//------------------------------------------------------------------------------
+// Interpolator_SSE2
+//------------------------------------------------------------------------------
 function Interpolator_SSE2(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
 {$IFDEF TARGET_X64}
@@ -2662,8 +3206,12 @@ asm
 end;
 {$ENDIF}
 
-{ Stretch Transfer }
 
+//------------------------------------------------------------------------------
+//
+//      StretchTransfer
+//
+//------------------------------------------------------------------------------
 {$WARNINGS OFF}
 procedure StretchTransfer(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
@@ -2748,8 +3296,11 @@ end;
 {$WARNINGS ON}
 
 
-{ TByteMap downsample functions }
-
+//------------------------------------------------------------------------------
+//
+//      TByteMap downsample functions
+//
+//------------------------------------------------------------------------------
 procedure DownsampleByteMap2x(Source, Dest: TByteMap);
 var
   X, Y: Integer;
@@ -2766,6 +3317,8 @@ begin
         ScnLn[2, 2 * X] + ScnLn[2, 2 * X + 1]) div 4;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure DownsampleByteMap3x(Source, Dest: TByteMap);
 var
@@ -2789,6 +3342,8 @@ begin
     end;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure DownsampleByteMap4x(Source, Dest: TByteMap);
 var
@@ -2816,8 +3371,11 @@ begin
 end;
 
 
-{ TCustomKernel }
-
+//------------------------------------------------------------------------------
+//
+//      TCustomKernel
+//
+//------------------------------------------------------------------------------
 procedure TCustomKernel.AssignTo(Dst: TPersistent);
 begin
   if Dst is TCustomKernel then
@@ -2841,12 +3399,17 @@ begin
 end;
 
 
-{ TBoxKernel }
-
+//------------------------------------------------------------------------------
+//
+//      TBoxKernel
+//
+//------------------------------------------------------------------------------
 function TBoxKernel.Filter(Value: TFloat): TFloat;
 begin
-  if (Value >= -0.5) and (Value <= 0.5) then Result := 1.0
-  else Result := 0;
+  if (Value >= -0.5) and (Value <= 0.5) then
+    Result := 1.0
+  else
+    Result := 0;
 end;
 
 function TBoxKernel.GetWidth: TFloat;
@@ -2854,14 +3417,24 @@ begin
   Result := 1;
 end;
 
-{ TLinearKernel }
 
+//------------------------------------------------------------------------------
+//
+//      TLinearKernel
+//
+//------------------------------------------------------------------------------
 function TLinearKernel.Filter(Value: TFloat): TFloat;
 begin
-  if Value < -1 then Result := 0
-  else if Value < 0 then Result := 1 + Value
-  else if Value < 1 then Result := 1 - Value
-  else Result := 0;
+  if Value < -1 then
+    Result := 0
+  else
+  if Value < 0 then
+    Result := 1 + Value
+  else
+  if Value < 1 then
+    Result := 1 - Value
+  else
+    Result := 0;
 end;
 
 function TLinearKernel.GetWidth: TFloat;
@@ -2869,8 +3442,12 @@ begin
   Result := 1;
 end;
 
-{ TCosineKernel }
 
+//------------------------------------------------------------------------------
+//
+//      TCosineKernel
+//
+//------------------------------------------------------------------------------
 function TCosineKernel.Filter(Value: TFloat): TFloat;
 begin
   Result := 0;
@@ -2883,8 +3460,12 @@ begin
   Result := 1;
 end;
 
-{ TSplineKernel }
 
+//------------------------------------------------------------------------------
+//
+//      TSplineKernel
+//
+//------------------------------------------------------------------------------
 function TSplineKernel.Filter(Value: TFloat): TFloat;
 var
   tt: TFloat;
@@ -2916,121 +3497,33 @@ begin
   Result := 2;
 end;
 
-{ TWindowedSincKernel }
 
-function SInc(Value: TFloat): TFloat;
-begin
-  if Value <> 0 then
-  begin
-    Value := Value * Pi;
-    Result := Sin(Value) / Value;
-  end
-  else Result := 1;
-end;
-
-constructor TWindowedSincKernel.Create;
-begin
-  FWidth := 3;
-  FWidthReciprocal := 1 / FWidth;
-end;
-
-function TWindowedSincKernel.Filter(Value: TFloat): TFloat;
-begin
-  Value := Abs(Value);
-  if Value < FWidth then
-    Result := SInc(Value) * Window(Value)
-  else
-    Result := 0;
-end;
-
-function TWindowedSincKernel.RangeCheck: Boolean;
-begin
-  Result := True;
-end;
-
-procedure TWindowedSincKernel.SetWidth(Value: TFloat);
-begin
-  Value := Min(MAX_KERNEL_WIDTH, Value);
-  if Value <> FWidth then
-  begin
-    FWidth := Value;
-    FWidthReciprocal := 1 / FWidth;
-    Changed;
-  end;
-end;
-
-function TWindowedSincKernel.GetWidth: TFloat;
-begin
-  Result := FWidth;
-end;
-
-{ TAlbrechtKernel }
-
-constructor TAlbrechtKernel.Create;
-begin
-  inherited;
-  Terms := 7;
-end;
-
-procedure TAlbrechtKernel.SetTerms(Value: Integer);
-begin
-  Value := Constrain(Value, 2, 11);
-  if FTerms <> Value then
-  begin
-    FTerms := Value;
-
-    case Value of
-      2 : Move(CAlbrecht2 [0], FCoefPointer[0], Value * SizeOf(Double));
-      3 : Move(CAlbrecht3 [0], FCoefPointer[0], Value * SizeOf(Double));
-      4 : Move(CAlbrecht4 [0], FCoefPointer[0], Value * SizeOf(Double));
-      5 : Move(CAlbrecht5 [0], FCoefPointer[0], Value * SizeOf(Double));
-      6 : Move(CAlbrecht6 [0], FCoefPointer[0], Value * SizeOf(Double));
-      7 : Move(CAlbrecht7 [0], FCoefPointer[0], Value * SizeOf(Double));
-      8 : Move(CAlbrecht8 [0], FCoefPointer[0], Value * SizeOf(Double));
-      9 : Move(CAlbrecht9 [0], FCoefPointer[0], Value * SizeOf(Double));
-     10 : Move(CAlbrecht10[0], FCoefPointer[0], Value * SizeOf(Double));
-     11 : Move(CAlbrecht11[0], FCoefPointer[0], Value * SizeOf(Double));
-    end;
-
-    Changed;
-  end;
-end;
-
-function TAlbrechtKernel.Window(Value: TFloat): TFloat;
-var
-  cs : Double;
-  i  : Integer;
-begin
-  cs := Cos(Pi * Value * FWidthReciprocal);
-  i := FTerms - 1;
-  Result := FCoefPointer[i];
-  while i > 0 do
-  begin
-    Dec(i);
-    Result := Result * cs + FCoefPointer[i];
-  end;
-end;
-
-{ TLanczosKernel }
-
-function TLanczosKernel.Window(Value: TFloat): TFloat;
-begin
-  Result := SInc(Value * FWidthReciprocal); // Get rid of division
-end;
-
-{ TMitchellKernel }
-
+//------------------------------------------------------------------------------
+//
+//      TMitchellKernel
+//
+//------------------------------------------------------------------------------
 function TMitchellKernel.Filter(Value: TFloat): TFloat;
 var
   tt, ttt: TFloat;
-const OneEighteenth = 1 / 18;
+const
+  OneEighteenth = 1 / 18;
 begin
   Value := Abs(Value);
   tt := Sqr(Value);
   ttt := tt * Value;
-  if Value < 1 then Result := (21 * ttt - 36 * tt + 16 ) * OneEighteenth  // get rid of divisions
-  else if Value < 2 then Result := (- 7 * ttt + 36 * tt - 60 * Value + 32) * OneEighteenth // "
-  else Result := 0;
+
+  // Given B = C = 1/3
+
+  if Value < 1 then
+    // ((((12 - 9 * B - 6 * C) * ttt) + ((-18 + 12 * B + 6 * C) * tt) + (6 - 2 * B))) / 6
+    Result := (21 * ttt - 36 * tt + 16 ) * OneEighteenth
+  else
+  if Value < 2 then
+    // ((((-1 * B - 6 * C) * ttt) + ((6 * B + 30 * C) * tt) + ((-12 * B - 48 * C) * Value) + (8 * B + 24 * C))) / 6
+    Result := (- 7 * ttt + 36 * tt - 60 * Value + 32) * OneEighteenth
+  else
+    Result := 0;
 end;
 
 function TMitchellKernel.RangeCheck: Boolean;
@@ -3043,8 +3536,12 @@ begin
   Result := 2;
 end;
 
-{ TCubicKernel }
 
+//------------------------------------------------------------------------------
+//
+//      TCubicKernel
+//
+//------------------------------------------------------------------------------
 constructor TCubicKernel.Create;
 begin
   FCoeff := -0.5;
@@ -3057,9 +3554,10 @@ begin
   Value := Abs(Value);
   tt := Sqr(Value);
   ttt := tt * Value;
-  if Value < 1 then
+  if Value <= 1 then
     Result := (FCoeff + 2) * ttt - (FCoeff + 3) * tt + 1
-  else if Value < 2 then
+  else
+  if Value < 2 then
     Result := FCoeff * (ttt - 5 * tt + 8 * Value - 4)
   else
     Result := 0;
@@ -3075,30 +3573,6 @@ begin
   Result := 2;
 end;
 
-{ TGaussKernel }
-
-constructor TGaussianKernel.Create;
-begin
-  inherited;
-  FSigma := 1.33;
-  FSigmaReciprocalLn2 := -Ln(2) / FSigma;
-end;
-
-procedure TGaussianKernel.SetSigma(const Value: TFloat);
-begin
-  if (FSigma <> Value) and (FSigma <> 0) then
-  begin
-    FSigma := Value;
-    FSigmaReciprocalLn2 := -Ln(2) / FSigma;
-    Changed;
-  end;
-end;
-
-function TGaussianKernel.Window(Value: TFloat): TFloat;
-begin
-  Result := Exp(Sqr(Value) * FSigmaReciprocalLn2);       // get rid of nasty LN2 and divition
-end;
-
 procedure TCubicKernel.SetCoeff(const Value: TFloat);
 begin
   if Value <> FCoeff then
@@ -3108,74 +3582,12 @@ begin
   end
 end;
 
-{ TBlackmanKernel }
 
-function TBlackmanKernel.Window(Value: TFloat): TFloat;
-begin
-  Value := Cos(Pi * Value * FWidthReciprocal);                // get rid of division
-  Result := 0.34 + 0.5 * Value + 0.16 * sqr(Value);
-end;
-
-{ THannKernel }
-
-function THannKernel.Window(Value: TFloat): TFloat;
-begin
-  Result := 0.5 + 0.5 * Cos(Pi * Value * FWidthReciprocal);   // get rid of division
-end;
-
-{ THammingKernel }
-
-function THammingKernel.Window(Value: TFloat): TFloat;
-begin
-  Result := 0.54 + 0.46 * Cos(Pi * Value * FWidthReciprocal); // get rid of division
-end;
-
-{ TSinshKernel }
-
-constructor TSinshKernel.Create;
-begin
-  FWidth := 3;
-  FCoeff := 0.5;
-end;
-
-function TSinshKernel.Filter(Value: TFloat): TFloat;
-begin
-  if Value = 0 then
-    Result := 1
-  else
-    Result := FCoeff * Sin(Pi * Value) / Sinh(Pi * FCoeff * Value);
-end;
-
-function TSinshKernel.RangeCheck: Boolean;
-begin
-  Result := True;
-end;
-
-procedure TSinshKernel.SetWidth(Value: TFloat);
-begin
-  if FWidth <> Value then
-  begin
-    FWidth := Value;
-    Changed;
-  end;
-end;
-
-function TSinshKernel.GetWidth: TFloat;
-begin
-  Result := FWidth;
-end;
-
-procedure TSinshKernel.SetCoeff(const Value: TFloat);
-begin
-  if (FCoeff <> Value) and (FCoeff <> 0) then
-  begin
-    FCoeff := Value;
-    Changed;
-  end;
-end;
-
-{ THermiteKernel }
-
+//------------------------------------------------------------------------------
+//
+//      THermiteKernel
+//
+//------------------------------------------------------------------------------
 constructor THermiteKernel.Create;
 begin
   FBias := 0;
@@ -3240,9 +3652,294 @@ begin
 end;
 
 
+//------------------------------------------------------------------------------
+//
+//      TSinshKernel
+//
+//------------------------------------------------------------------------------
+constructor TSinshKernel.Create;
+begin
+  FWidth := 3;
+  FCoeff := 0.5;
+end;
 
-{ TKernelResampler }
+function TSinshKernel.Filter(Value: TFloat): TFloat;
+begin
+  if Value = 0 then
+    Result := 1
+  else
+    Result := FCoeff * Sin(Pi * Value) / Sinh(Pi * FCoeff * Value);
+end;
 
+function TSinshKernel.RangeCheck: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TSinshKernel.SetWidth(Value: TFloat);
+begin
+  if FWidth <> Value then
+  begin
+    FWidth := Value;
+    Changed;
+  end;
+end;
+
+function TSinshKernel.GetWidth: TFloat;
+begin
+  Result := FWidth;
+end;
+
+procedure TSinshKernel.SetCoeff(const Value: TFloat);
+begin
+  if (FCoeff <> Value) and (FCoeff <> 0) then
+  begin
+    FCoeff := Value;
+    Changed;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TWindowedKernel
+//
+//------------------------------------------------------------------------------
+procedure TWindowedKernel.DoSetWidth(Value: TFloat);
+begin
+  FWidth := Value;
+  FWidthReciprocal := 1 / FWidth;
+end;
+
+function TWindowedKernel.Filter(Value: TFloat): TFloat;
+begin
+  Value := Abs(Value);
+  if Value < FWidth then
+    Result := Window(Value)
+  else
+    Result := 0;
+end;
+
+function TWindowedKernel.RangeCheck: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TWindowedKernel.SetWidth(Value: TFloat);
+begin
+  Value := Min(MAX_KERNEL_WIDTH, Value);
+  if Value <> FWidth then
+  begin
+    DoSetWidth(Value);
+    Changed;
+  end;
+end;
+
+function TWindowedKernel.GetWidth: TFloat;
+begin
+  Result := FWidth;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TGaussianKernel
+//
+//------------------------------------------------------------------------------
+const
+  // Because the gaussian function has inifinite extent we need to limit the
+  // width of the window to something reasonable.
+  // Often the limit (width) is set to "Full Width at Half Maximum" (FWHM) by
+  // calculing the ratio between Radius and Sigma as
+  //
+  //   Ratio = 1 / FWHM
+  //         = 1 / (2 * Sqrt(2 * Ln(2)))
+  //         = 0.424660891294479
+  //
+  // however, for resampling we need the area of the curve covered by the window
+  // to be as close to 1 as possible so instead we calculate the ratio so that
+  //
+  //   Ceil(Sigma / Ratio)
+  //
+  // gives us the smallest size of a kernel containing values >= 1/255:
+  //
+  //   Ratio = 1 / Sqrt(-2 * Ln(1/255))
+  //         = 0.300386630413846
+  //
+  GaussianRadiusToSigma = 0.300386630413846;
+
+  GaussianSigmaToRadius = 1 / GaussianRadiusToSigma;
+  GaussianMinSigma = 0.4; // Sigma smaller than this causes overflow; Window(0) > 1
+
+constructor TGaussianKernel.Create;
+begin
+  inherited;
+  DoSetSigma(1 / Sqrt(2 * Pi));
+end;
+
+procedure TGaussianKernel.DoSetSigma(const Value: TFloat);
+begin
+  FSigma := Value;
+  FSigmaReciprocal := -0.5 / Sqr(FSigma);
+  FNormalizationFactor := 1 / (FSigma * Sqrt(2 * Pi));
+  DoSetWidth(FSigma * GaussianSigmaToRadius);
+end;
+
+procedure TGaussianKernel.SetSigma(const Value: TFloat);
+begin
+  if (FSigma <> Value) and (FSigma <> 0) then
+  begin
+    DoSetSigma(Value);
+    Changed;
+  end;
+end;
+
+function TGaussianKernel.Window(Value: TFloat): TFloat;
+begin
+  (*
+  **    Gauss(x, σ) = 1/(σ √ 2π) * e^( - x^2 / (2 * σ^2))
+  **
+  **    FNormalizationFactor = 1/(σ √ 2π)
+  **
+  **    FSigmaReciprocal = - 1 / (2 * σ^2)
+  *)
+  Result := FNormalizationFactor * Exp(Sqr(Value) * FSigmaReciprocal);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TWindowedSincKernel
+//
+//------------------------------------------------------------------------------
+class function TWindowedSincKernel.Sinc(Value: TFloat): TFloat;
+begin
+  if Value <> 0 then
+  begin
+    Value := Value * Pi;
+    Result := Sin(Value) / Value;
+  end
+  else Result := 1;
+end;
+
+constructor TWindowedSincKernel.Create;
+begin
+  inherited;
+  FWidth := 3;
+  FWidthReciprocal := 1 / FWidth;
+end;
+
+function TWindowedSincKernel.Filter(Value: TFloat): TFloat;
+begin
+  Value := Abs(Value);
+  if Value < FWidth then
+    Result := Sinc(Value) * Window(Value)
+  else
+    Result := 0;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TAlbrechtKernel
+//
+//------------------------------------------------------------------------------
+constructor TAlbrechtKernel.Create;
+begin
+  inherited;
+  Terms := 7;
+end;
+
+procedure TAlbrechtKernel.SetTerms(Value: Integer);
+begin
+  Value := Constrain(Value, 2, 11);
+  if FTerms <> Value then
+  begin
+    FTerms := Value;
+
+    case Value of
+      2 : Move(CAlbrecht2 [0], FCoefPointer[0], Value * SizeOf(Double));
+      3 : Move(CAlbrecht3 [0], FCoefPointer[0], Value * SizeOf(Double));
+      4 : Move(CAlbrecht4 [0], FCoefPointer[0], Value * SizeOf(Double));
+      5 : Move(CAlbrecht5 [0], FCoefPointer[0], Value * SizeOf(Double));
+      6 : Move(CAlbrecht6 [0], FCoefPointer[0], Value * SizeOf(Double));
+      7 : Move(CAlbrecht7 [0], FCoefPointer[0], Value * SizeOf(Double));
+      8 : Move(CAlbrecht8 [0], FCoefPointer[0], Value * SizeOf(Double));
+      9 : Move(CAlbrecht9 [0], FCoefPointer[0], Value * SizeOf(Double));
+     10 : Move(CAlbrecht10[0], FCoefPointer[0], Value * SizeOf(Double));
+     11 : Move(CAlbrecht11[0], FCoefPointer[0], Value * SizeOf(Double));
+    end;
+
+    Changed;
+  end;
+end;
+
+function TAlbrechtKernel.Window(Value: TFloat): TFloat;
+var
+  cs : Double;
+  i  : Integer;
+begin
+  cs := Cos(Pi * Value * FWidthReciprocal);
+  i := FTerms - 1;
+  Result := FCoefPointer[i];
+  while i > 0 do
+  begin
+    Dec(i);
+    Result := Result * cs + FCoefPointer[i];
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TLanczosKernel
+//
+//------------------------------------------------------------------------------
+function TLanczosKernel.Window(Value: TFloat): TFloat;
+begin
+  Result := Sinc(Value * FWidthReciprocal); // Get rid of division
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TBlackmanKernel
+//
+//------------------------------------------------------------------------------
+function TBlackmanKernel.Window(Value: TFloat): TFloat;
+begin
+  Value := Cos(Pi * Value * FWidthReciprocal);                // get rid of division
+  Result := 0.34 + 0.5 * Value + 0.16 * sqr(Value);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      THannKernel
+//
+//------------------------------------------------------------------------------
+function THannKernel.Window(Value: TFloat): TFloat;
+begin
+  Result := 0.5 + 0.5 * Cos(Pi * Value * FWidthReciprocal);   // get rid of division
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      THammingKernel
+//
+//------------------------------------------------------------------------------
+function THammingKernel.Window(Value: TFloat): TFloat;
+begin
+  Result := 0.54 + 0.46 * Cos(Pi * Value * FWidthReciprocal); // get rid of division
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TKernelResampler
+//
+//------------------------------------------------------------------------------
 constructor TKernelResampler.Create;
 begin
   inherited;
@@ -3424,12 +4121,14 @@ begin
         Dec(VertKernel[0], Dev);
 
       end;
+
     kmTableNearest:
       begin
         W := FWeightTable.Height - 2;
         PHorzKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Round((clX - X) * W)]^;
         PVertKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Round((clY - Y) * W)]^;
       end;
+
     kmTableLinear:
       begin
         W := (FWeightTable.Height - 2) * $10000;
@@ -3707,8 +4406,11 @@ begin
 end;
 
 
-{ TCustomBitmap32NearestResampler }
-
+//------------------------------------------------------------------------------
+//
+//      TNearestResampler
+//
+//------------------------------------------------------------------------------
 function TNearestResampler.GetSampleInt(X, Y: Integer): TColor32;
 begin
   Result := FGetSampleInt(X, Y);
@@ -3763,8 +4465,11 @@ begin
 end;
 
 
-{ TCustomBitmap32LinearResampler }
-
+//------------------------------------------------------------------------------
+//
+//      TLinearResampler
+//
+//------------------------------------------------------------------------------
 constructor TLinearResampler.Create;
 begin
   inherited;
@@ -3899,8 +4604,12 @@ begin
     CombineCallBack)
 end;
 
-{ TTransformer }
 
+//------------------------------------------------------------------------------
+//
+//      TTransformer
+//
+//------------------------------------------------------------------------------
 function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
 var
   U, V: TFixed;
@@ -3967,8 +4676,11 @@ begin
 end;
 
 
-{ TSuperSampler }
-
+//------------------------------------------------------------------------------
+//
+//      TSuperSampler
+//
+//------------------------------------------------------------------------------
 constructor TSuperSampler.Create(Sampler: TCustomSampler);
 begin
   inherited Create(Sampler);
@@ -4019,8 +4731,12 @@ begin
   FScale := Fixed(1 / (FSamplingX * FSamplingY));
 end;
 
-{ TAdaptiveSuperSampler }
 
+//------------------------------------------------------------------------------
+//
+//      TAdaptiveSuperSampler
+//
+//------------------------------------------------------------------------------
 function TAdaptiveSuperSampler.CompareColors(C1, C2: TColor32): Boolean;
 var
   Diff: TColor32Entry;
@@ -4102,8 +4818,12 @@ begin
   FMinOffset := Fixed(1 / (1 shl Value));
 end;
 
-{ TPatternSampler }
 
+//------------------------------------------------------------------------------
+//
+//      TPatternSampler
+//
+//------------------------------------------------------------------------------
 destructor TPatternSampler.Destroy;
 begin
   FPattern := nil;
@@ -4144,6 +4864,12 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      CreateJitteredPattern
+//
+//------------------------------------------------------------------------------
 function JitteredPattern(XRes, YRes: Integer): TArrayOfFixedPoint;
 var
   I, J: Integer;
@@ -4168,22 +4894,12 @@ begin
       Result[J][I] := JitteredPattern(SamplesX, SamplesY);
 end;
 
-procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
-begin
-  if (ResamplerList = nil) then
-    ResamplerList := TClassList.Create;
-  ResamplerList.Add(ResamplerClass);
-end;
 
-procedure RegisterKernel(KernelClass: TCustomKernelClass);
-begin
-  if (KernelList = nil) then
-    KernelList := TClassList.Create;
-  KernelList.Add(KernelClass);
-end;
-
-{ TNestedSampler }
-
+//------------------------------------------------------------------------------
+//
+//      TNestedSampler
+//
+//------------------------------------------------------------------------------
 procedure TNestedSampler.AssignTo(Dst: TPersistent);
 begin
   if Dst is TNestedSampler then
@@ -4240,8 +4956,11 @@ begin
 end;
 
 
-{ TKernelSampler }
-
+//------------------------------------------------------------------------------
+//
+//      TKernelSampler
+//
+//------------------------------------------------------------------------------
 function TKernelSampler.ConvertBuffer(var Buffer: TBufferEntry): TColor32;
 begin
   Buffer.A := Constrain(Buffer.A, 0, $FFFF);
@@ -4300,8 +5019,12 @@ begin
   FKernel.Assign(Value);
 end;
 
-{ TConvolver }
 
+//------------------------------------------------------------------------------
+//
+//      TConvolver
+//
+//------------------------------------------------------------------------------
 procedure TConvolver.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
   Weight: Integer);
 begin
@@ -4314,8 +5037,12 @@ begin
   end;
 end;
 
-{ TDilater }
 
+//------------------------------------------------------------------------------
+//
+//      TDilater
+//
+//------------------------------------------------------------------------------
 procedure TDilater.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
   Weight: Integer);
 begin
@@ -4328,8 +5055,12 @@ begin
   end;
 end;
 
-{ TEroder }
 
+//------------------------------------------------------------------------------
+//
+//      TEroder
+//
+//------------------------------------------------------------------------------
 constructor TEroder.Create(ASampler: TCustomSampler);
 const
   START_ENTRY: TBufferEntry = (B: $FFFF; G: $FFFF; R: $FFFF; A: $FFFF);
@@ -4350,8 +5081,12 @@ begin
   end;
 end;
 
-{ TExpander }
 
+//------------------------------------------------------------------------------
+//
+//      TExpander
+//
+//------------------------------------------------------------------------------
 procedure TExpander.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
   Weight: Integer);
 begin
@@ -4364,8 +5099,12 @@ begin
   end;
 end;
 
-{ TContracter }
 
+//------------------------------------------------------------------------------
+//
+//      TContracter
+//
+//------------------------------------------------------------------------------
 function TContracter.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
   Result := ColorSub(FMaxWeight, inherited GetSampleFixed(X, Y));
@@ -4395,8 +5134,12 @@ begin
   inherited UpdateBuffer(Buffer, Color xor $FFFFFFFF, Weight);
 end;
 
-{ TMorphologicalSampler }
 
+//------------------------------------------------------------------------------
+//
+//      TMorphologicalSampler
+//
+//------------------------------------------------------------------------------
 function TMorphologicalSampler.ConvertBuffer(
   var Buffer: TBufferEntry): TColor32;
 begin
@@ -4414,8 +5157,12 @@ begin
   end;
 end;
 
-{ TSelectiveConvolver }
 
+//------------------------------------------------------------------------------
+//
+//      TSelectiveConvolver
+//
+//------------------------------------------------------------------------------
 function TSelectiveConvolver.ConvertBuffer(var Buffer: TBufferEntry): TColor32;
 begin
   with TColor32Entry(Result) do
@@ -4475,34 +5222,55 @@ begin
   end;
 end;
 
-{CPU target and feature function templates}
+//------------------------------------------------------------------------------
+//
+//      Registration routines
+//
+//------------------------------------------------------------------------------
+procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
+begin
+  if (ResamplerList = nil) then
+    ResamplerList := TClassList.Create;
+  ResamplerList.Add(ResamplerClass);
+end;
 
-const
-  FID_BLOCKAVERAGE = 0;
-  FID_INTERPOLATOR = 1;
+procedure RegisterKernel(KernelClass: TCustomKernelClass);
+begin
+  if (KernelList = nil) then
+    KernelList := TClassList.Create;
+  KernelList.Add(KernelClass);
+end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
 var
-  Registry: TFunctionRegistry;
+  ResamplersRegistry: TFunctionRegistry;
 
 procedure RegisterBindings;
 begin
-  Registry := NewRegistry('GR32_Resamplers bindings');
-  Registry.RegisterBinding(FID_BLOCKAVERAGE, @@BlockAverage);
-  Registry.RegisterBinding(FID_INTERPOLATOR, @@Interpolator);
+  ResamplersRegistry := NewRegistry('GR32_Resamplers bindings');
+  ResamplersRegistry.RegisterBinding(@@BlockAverage);
+  ResamplersRegistry.RegisterBinding(@@Interpolator);
 
-  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_Pas);
-  Registry.ADD(FID_INTERPOLATOR, @Interpolator_Pas);
+  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_Pas);
+  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_Pas);
 {$IFNDEF PUREPASCAL}
-  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_MMX, [isMMX]);
+  ResamplersRegistry.ADD(@BlockAverage, @BlockAverage_MMX, [isMMX]);
 {$IFDEF USE_3DNOW}
-  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [is3DNow]);
+  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_3DNow, [is3DNow]);
 {$ENDIF}
-  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_SSE2, [isSSE2]);
-  Registry.ADD(FID_INTERPOLATOR, @Interpolator_MMX, [isMMX, isSSE]);
-  Registry.ADD(FID_INTERPOLATOR, @Interpolator_SSE2, [isSSE2]);
+  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_SSE2, [isSSE2]);
+  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_MMX, [isMMX, isSSE]);
+  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_SSE2, [isSSE2]);
 {$ENDIF}
-  Registry.RebindAll;
+  ResamplersRegistry.RebindAll;
 end;
+
+//------------------------------------------------------------------------------
 
 initialization
   RegisterBindings;
