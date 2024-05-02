@@ -4033,10 +4033,10 @@ begin
     Count := X2F - X1F - 1;
     if Wy > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx1) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx1) shr 24);
       Inc(PDst);
 
-      Wt := GAMMA_ENCODING_TABLE[Wy shr 8];
+      Wt := Wy shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4044,7 +4044,7 @@ begin
         Inc(PDst);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx2) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx2) shr 24);
     end;
 
     PDst := PixelPtr[X1F, YF + 1];
@@ -4052,10 +4052,10 @@ begin
     Wy := Wy xor $ffff;
     if Wy > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx1) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx1) shr 24);
       Inc(PDst);
 
-      Wt := GAMMA_ENCODING_TABLE[Wy shr 8];
+      Wt := Wy shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4063,7 +4063,7 @@ begin
         Inc(PDst);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx2) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx2) shr 24);
     end;
 
     EMMS;
@@ -4248,10 +4248,10 @@ begin
     Count := Y2F - Y1F - 1;
     if Wx > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy1) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy1) shr 24);
       Inc(PDst, FWidth);
 
-      Wt := GAMMA_ENCODING_TABLE[Wx shr 8];
+      Wt := Wx shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4259,7 +4259,7 @@ begin
         Inc(PDst, FWidth);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy2) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy2) shr 24);
     end;
 
     PDst := PixelPtr[XF + 1, Y1F];
@@ -4267,10 +4267,10 @@ begin
     Wx := Wx xor $ffff;
     if Wx > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy1) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy1) shr 24);
       Inc(PDst, FWidth);
 
-      Wt := GAMMA_ENCODING_TABLE[Wx shr 8];
+      Wt := Wx shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4278,7 +4278,7 @@ begin
         Inc(PDst, FWidth);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy2) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy2) shr 24);
     end;
 
     EMMS;
@@ -5330,10 +5330,10 @@ begin
         Inc(Y1, Sy);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI xor $FF]);
+        BlendMemEx(Value, P^, CI xor $FF);
 
         Inc(P, Sx);
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI]);
+        BlendMemEx(Value, P^, CI);
       end;
     end else // DY <= DX
     begin
@@ -5353,11 +5353,11 @@ begin
         Inc(X1, Sx);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI xor $FF]);
+        BlendMemEx(Value, P^, CI xor $FF);
 
         if Sy = 1 then
           Inc(P, Width) else Dec(P, Width);
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI]);
+        BlendMemEx(Value, P^, CI);
       end;
     end;
 
@@ -5543,7 +5543,7 @@ begin
         while xd <> term do
         begin
           Inc(xd, -Sx);
-          BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_ENCODING_TABLE[ED shr 8]);
+          BlendMemEx(Value, Bits[D1^ + D2^ * Width], ED shr 8);
           Dec(ED, EA);
         end;
 
@@ -5642,10 +5642,10 @@ begin
       begin
         CI := EC shr 8;
         P := @Bits[D1^ + D2^ * Width];
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI xor $FF]);
+        BlendMemEx(Value, P^, CI xor $FF);
 
         Inc(P, PI);
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI]);
+        BlendMemEx(Value, P^, CI);
 
         // check for overflow and jump to next line...
         D := EC;
@@ -5664,7 +5664,7 @@ begin
     begin
       while xd <> rem do
       begin
-        BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_ENCODING_TABLE[EC shr 8 xor $FF]);
+        BlendMemEx(Value, Bits[D1^ + D2^ * Width], EC shr 8 xor $FF);
         Inc(EC, EA);
         Inc(xd, Sx);
       end;
