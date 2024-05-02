@@ -4494,69 +4494,67 @@ end;
 
 function TLinearResampler.GetPixelTransparentEdge(X, Y: TFixed): TColor32;
 var
-  I, J, X1, X2, Y1, Y2, WX, R, B: TFixed;
+  PixelX, PixelY, X1, X2, Y1, Y2, WeightX, EdgeX, EdgeY: TFixed;
   C1, C2, C3, C4: TColor32;
   PSrc: PColor32Array;
 begin
-  with TCustomBitmap32Access(Bitmap), Bitmap.ClipRect do
-  begin
-    R := Right - 1;
-    B := Bottom - 1;
+  EdgeX := Bitmap.ClipRect.Right - 1;
+  EdgeY := Bitmap.ClipRect.Bottom - 1;
 
-    I := TFixedRec(X).Int;
-    J := TFixedRec(Y).Int;
+  PixelX := TFixedRec(X).Int;
+  PixelY := TFixedRec(Y).Int;
 
-    if (I >= Left) and (J >= Top) and (I < R) and (J < B) then
-    begin //Safe
-      Result := GET_T256(X shr 8, Y shr 8);
-      EMMS;
-    end
-    else
-    if (I >= Left - 1) and (J >= Top - 1) and (I <= R) and (J <= B) then
-    begin //Near edge, on edge or outside
+  if (PixelX >= Bitmap.ClipRect.Left) and (PixelY >= Bitmap.ClipRect.Top) and (PixelX < EdgeX) and (PixelY < EdgeY) then
+  begin //Safe
+    Result := TCustomBitmap32Access(Bitmap).GET_T256(X shr 8, Y shr 8);
+    EMMS;
+  end
+  else
+  if (PixelX >= Bitmap.ClipRect.Left - 1) and (PixelY >= Bitmap.ClipRect.Top - 1) and (PixelX <= EdgeX) and (PixelY <= EdgeY) then
+  begin //Near edge, on edge or outside
 
-      X1 := Clamp(I, R);
-      X2 := Clamp(I + Sign(X), R);
-      Y1 := Clamp(J, B) * Width;
-      Y2 := Clamp(J + Sign(Y), B) * Width;
+    X1 := Clamp(PixelX, EdgeX);
+    X2 := Clamp(PixelX + Sign(X), EdgeX);
+    Y1 := Clamp(PixelY, EdgeY) * Bitmap.Width;
+    Y2 := Clamp(PixelY + Sign(Y), EdgeY) * Bitmap.Width;
 
-      PSrc := @Bits[0];
-      C1 := PSrc[X1 + Y1];
-      C2 := PSrc[X2 + Y1];
-      C3 := PSrc[X1 + Y2];
-      C4 := PSrc[X2 + Y2];
+    PSrc := @Bitmap.Bits[0];
+    C1 := PSrc[X1 + Y1];
+    C2 := PSrc[X2 + Y1];
+    C3 := PSrc[X1 + Y2];
+    C4 := PSrc[X2 + Y2];
 
-      if X <= Fixed(Left) then
-      begin
-        C1 := C1 and $00FFFFFF;
-        C3 := C3 and $00FFFFFF;
-      end
-      else if I = R then
-      begin
-        C2 := C2 and $00FFFFFF;
-        C4 := C4 and $00FFFFFF;
-      end;
+    if X <= Fixed(Bitmap.ClipRect.Left) then
+    begin
+      C1 := C1 and $00FFFFFF;
+      C3 := C3 and $00FFFFFF;
+    end else
+    if PixelX = EdgeX then
+    begin
+      C2 := C2 and $00FFFFFF;
+      C4 := C4 and $00FFFFFF;
+    end;
 
-      if Y <= Fixed(Top) then
-      begin
-        C1 := C1 and $00FFFFFF;
-        C2 := C2 and $00FFFFFF;
-      end
-      else if J = B then
-      begin
-        C3 := C3 and $00FFFFFF;
-        C4 := C4 and $00FFFFFF;
-      end;
+    if Y <= Fixed(Bitmap.ClipRect.Top) then
+    begin
+      C1 := C1 and $00FFFFFF;
+      C2 := C2 and $00FFFFFF;
+    end else
+    if PixelY = EdgeY then
+    begin
+      C3 := C3 and $00FFFFFF;
+      C4 := C4 and $00FFFFFF;
+    end;
 
-      WX := GAMMA_ENCODING_TABLE[((X shr 8) and $FF) xor $FF];
-      Result := CombineReg(CombineReg(C1, C2, WX),
-                           CombineReg(C3, C4, WX),
-                           GAMMA_ENCODING_TABLE[((Y shr 8) and $FF) xor $FF]);
-      EMMS;  
-    end  
-    else  
-      Result := 0; //Nothing really makes sense here, return zero
-  end;
+    WeightX := ((X shr 8) and $FF) xor $FF;
+
+    Result := CombineReg(CombineReg(C1, C2, WeightX),
+                         CombineReg(C3, C4, WeightX),
+                         ((Y shr 8) and $FF) xor $FF);
+    EMMS;
+  end
+  else
+    Result := 0; //Nothing really makes sense here, return zero
 end;
 
 procedure TLinearResampler.PrepareSampling;
