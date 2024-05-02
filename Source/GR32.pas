@@ -3434,10 +3434,10 @@ begin
   if FCombineMode = cmBlend then
   begin
     A := C shr 24;  // opacity
-    celx := A * GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := A * GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := A * (flrx xor $FF);
+    cely := flry xor $FF;
+    flrx := A * flrx;
+    flry := flry;
 
     CombineMem(C, P^, celx * cely shr 16); Inc(P);
     CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
@@ -3446,10 +3446,10 @@ begin
   end
   else
   begin
-    celx := GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := flrx xor $FF;
+    cely := flry xor $FF;
+    flrx := flrx;
+    flry := flry;
 
     CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
     CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
@@ -3487,10 +3487,10 @@ begin
   if FCombineMode = cmBlend then
   begin
     A := C shr 24;  // opacity
-    celx := A * GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := A * GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := A * (flrx xor $FF);
+    cely := flry xor $FF;
+    flrx := A * flrx;
+    flry := flry;
 
     if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
        (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
@@ -3511,10 +3511,10 @@ begin
   end
   else
   begin
-    celx := GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := flrx xor $FF;
+    cely := flry xor $FF;
+    flrx := flrx;
+    flry := flry;
 
     if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
        (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
@@ -3615,8 +3615,8 @@ var
   Pos: Integer;
 begin
   Pos := (X shr 8) + (Y shr 8) * FWidth;
-  Result := Interpolator(GAMMA_ENCODING_TABLE[X and $FF xor $FF],
-                         GAMMA_ENCODING_TABLE[Y and $FF xor $FF],
+  Result := Interpolator(X and $FF xor $FF,
+                         Y and $FF xor $FF,
                          @Bits[Pos], @Bits[Pos + FWidth]);
 end;
 
