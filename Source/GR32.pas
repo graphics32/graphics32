@@ -3434,10 +3434,10 @@ begin
   if FCombineMode = cmBlend then
   begin
     A := C shr 24;  // opacity
-    celx := A * GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := A * GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := A * (flrx xor $FF);
+    cely := flry xor $FF;
+    flrx := A * flrx;
+    flry := flry;
 
     CombineMem(C, P^, celx * cely shr 16); Inc(P);
     CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
@@ -3446,10 +3446,10 @@ begin
   end
   else
   begin
-    celx := GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := flrx xor $FF;
+    cely := flry xor $FF;
+    flrx := flrx;
+    flry := flry;
 
     CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
     CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
@@ -3487,10 +3487,10 @@ begin
   if FCombineMode = cmBlend then
   begin
     A := C shr 24;  // opacity
-    celx := A * GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := A * GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := A * (flrx xor $FF);
+    cely := flry xor $FF;
+    flrx := A * flrx;
+    flry := flry;
 
     if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
        (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
@@ -3511,10 +3511,10 @@ begin
   end
   else
   begin
-    celx := GAMMA_ENCODING_TABLE[flrx xor $FF];
-    cely := GAMMA_ENCODING_TABLE[flry xor $FF];
-    flrx := GAMMA_ENCODING_TABLE[flrx];
-    flry := GAMMA_ENCODING_TABLE[flry];
+    celx := flrx xor $FF;
+    cely := flry xor $FF;
+    flrx := flrx;
+    flry := flry;
 
     if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
        (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
@@ -3615,32 +3615,19 @@ var
   Pos: Integer;
 begin
   Pos := (X shr 8) + (Y shr 8) * FWidth;
-  Result := Interpolator(GAMMA_ENCODING_TABLE[X and $FF xor $FF],
-                         GAMMA_ENCODING_TABLE[Y and $FF xor $FF],
+  Result := Interpolator(X and $FF xor $FF,
+                         Y and $FF xor $FF,
                          @Bits[Pos], @Bits[Pos + FWidth]);
 end;
 
 function TCustomBitmap32.GET_TS256(X, Y: Integer): TColor32;
-var
-  Width256, Height256: Integer;
 begin
-  if (X >= F256ClipRect.Left) and (Y >= F256ClipRect.Top) then
-  begin
-    Width256 := (FClipRect.Right - 1) shl 8;
-    Height256 := (FClipRect.Bottom - 1) shl 8;
-
-    if (X < Width256) and (Y < Height256) then
-      Result := GET_T256(X,Y)
-    else if (X = Width256) and (Y <= Height256) then // TODO : Get rid of this; Doesn't work
-      // We're exactly on the right border: no need to interpolate.
-      Result := Pixel[FClipRect.Right - 1, Y shr 8]
-    else if (X <= Width256) and (Y = Height256) then
-      // We're exactly on the bottom border: no need to interpolate.
-      Result := Pixel[X shr 8, FClipRect.Bottom - 1]
-    else
-      Result := FOuterColor;
-  end
+  if (X >= F256ClipRect.Left) and (Y >= F256ClipRect.Top) and
+     (X < F256ClipRect.Right-256) and (Y < F256ClipRect.Bottom-256) then
+    // (x+1, y+1) is inside cliprect
+    Result := GET_T256(X,Y)
   else
+    // Outside cliprect
     Result := FOuterColor;
 end;
 
@@ -4033,10 +4020,10 @@ begin
     Count := X2F - X1F - 1;
     if Wy > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx1) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx1) shr 24);
       Inc(PDst);
 
-      Wt := GAMMA_ENCODING_TABLE[Wy shr 8];
+      Wt := Wy shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4044,7 +4031,7 @@ begin
         Inc(PDst);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx2) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx2) shr 24);
     end;
 
     PDst := PixelPtr[X1F, YF + 1];
@@ -4052,10 +4039,10 @@ begin
     Wy := Wy xor $ffff;
     if Wy > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx1) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx1) shr 24);
       Inc(PDst);
 
-      Wt := GAMMA_ENCODING_TABLE[Wy shr 8];
+      Wt := Wy shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4063,7 +4050,7 @@ begin
         Inc(PDst);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wy * Wx2) shr 24]);
+      CombineMem(Value, PDst^, (Wy * Wx2) shr 24);
     end;
 
     EMMS;
@@ -4248,10 +4235,10 @@ begin
     Count := Y2F - Y1F - 1;
     if Wx > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy1) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy1) shr 24);
       Inc(PDst, FWidth);
 
-      Wt := GAMMA_ENCODING_TABLE[Wx shr 8];
+      Wt := Wx shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4259,7 +4246,7 @@ begin
         Inc(PDst, FWidth);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy2) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy2) shr 24);
     end;
 
     PDst := PixelPtr[XF + 1, Y1F];
@@ -4267,10 +4254,10 @@ begin
     Wx := Wx xor $ffff;
     if Wx > 0 then
     begin
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy1) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy1) shr 24);
       Inc(PDst, FWidth);
 
-      Wt := GAMMA_ENCODING_TABLE[Wx shr 8];
+      Wt := Wx shr 8;
 
       for I := 0 to Count - 1 do
       begin
@@ -4278,7 +4265,7 @@ begin
         Inc(PDst, FWidth);
       end;
 
-      CombineMem(Value, PDst^, GAMMA_ENCODING_TABLE[(Wx * Wy2) shr 24]);
+      CombineMem(Value, PDst^, (Wx * Wy2) shr 24);
     end;
 
     EMMS;
@@ -5330,10 +5317,10 @@ begin
         Inc(Y1, Sy);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI xor $FF]);
+        BlendMemEx(Value, P^, CI xor $FF);
 
         Inc(P, Sx);
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI]);
+        BlendMemEx(Value, P^, CI);
       end;
     end else // DY <= DX
     begin
@@ -5353,11 +5340,11 @@ begin
         Inc(X1, Sx);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI xor $FF]);
+        BlendMemEx(Value, P^, CI xor $FF);
 
         if Sy = 1 then
           Inc(P, Width) else Dec(P, Width);
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI]);
+        BlendMemEx(Value, P^, CI);
       end;
     end;
 
@@ -5543,7 +5530,7 @@ begin
         while xd <> term do
         begin
           Inc(xd, -Sx);
-          BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_ENCODING_TABLE[ED shr 8]);
+          BlendMemEx(Value, Bits[D1^ + D2^ * Width], ED shr 8);
           Dec(ED, EA);
         end;
 
@@ -5642,10 +5629,10 @@ begin
       begin
         CI := EC shr 8;
         P := @Bits[D1^ + D2^ * Width];
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI xor $FF]);
+        BlendMemEx(Value, P^, CI xor $FF);
 
         Inc(P, PI);
-        BlendMemEx(Value, P^, GAMMA_ENCODING_TABLE[CI]);
+        BlendMemEx(Value, P^, CI);
 
         // check for overflow and jump to next line...
         D := EC;
@@ -5664,7 +5651,7 @@ begin
     begin
       while xd <> rem do
       begin
-        BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_ENCODING_TABLE[EC shr 8 xor $FF]);
+        BlendMemEx(Value, Bits[D1^ + D2^ * Width], EC shr 8 xor $FF);
         Inc(EC, EA);
         Inc(xd, Sx);
       end;
