@@ -249,6 +249,8 @@ type
     FTag: NativeInt;
     FClicked: Boolean;
     FOnHitTest: THitTestEvent;
+    FOnKeyDown: TKeyEvent;
+    FOnKeyUp: TKeyEvent;
     FOnMouseDown: TMouseEvent;
     FOnMouseMove: TMouseMoveEvent;
     FOnMouseUp: TMouseEvent;
@@ -278,6 +280,8 @@ type
     function  DoHitTest(X, Y: Integer): Boolean; virtual;
     procedure DoPaint(Buffer: TBitmap32);
     function  GetOwner: TPersistent; override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); virtual;
+    procedure KeyUp(var Key: Word; Shift: TShiftState); virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); virtual;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); virtual;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); virtual;
@@ -330,6 +334,8 @@ type
     property OnPaint: TPaintLayerEvent read FOnPaint write FOnPaint;
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
     property OnDblClick: TNotifyEvent read FOnDblClick write FOnDblClick;
+    property OnKeyDown: TKeyEvent read FOnKeyDown write FOnKeyDown;
+    property OnKeyUp: TKeyEvent read FOnKeyUp write FOnKeyUp;
     property OnMouseDown: TMouseEvent read FOnMouseDown write FOnMouseDown;
     property OnMouseMove: TMouseMoveEvent read FOnMouseMove write FOnMouseMove;
     property OnMouseUp: TMouseEvent read FOnMouseUp write FOnMouseUp;
@@ -495,6 +501,10 @@ type
     function GetMousePosition: TPoint;
     property MousePosition: TPoint read GetMousePosition;
 
+    procedure SetLastPosition(const Value: TPoint);
+    function GetLastPosition: TPoint;
+    property LastPosition: TPoint read GetLastPosition write SetLastPosition;
+
     function GetShift: TShiftState;
     procedure SetShift(Value: TShiftState);
     property Shift: TShiftState read GetShift write SetShift;
@@ -507,7 +517,8 @@ type
   ILayerHitTestVertex = interface(ILayerHitTest)
     ['{6BFC44FB-02FA-4999-BBCD-1085FC81F9DC}']
     function GetVertex: integer;
-    property Vertex: integer read GetVertex;
+    procedure SetVertex(Value: integer);
+    property Vertex: integer read GetVertex write SetVertex;
   end;
 
   ILayerHitTestMove = interface(ILayerHitTest)
@@ -515,6 +526,7 @@ type
   end;
 
   TRubberBandHandleEvent = procedure(Sender: TCustomRubberBandLayer; AIndex: integer) of object;
+  TRubberBandHandleMoveEvent = procedure(Sender: TCustomRubberBandLayer; AIndex: integer; var APos: TFloatPoint) of object;
   TRubberBandPaintHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var Handled: boolean) of object;
   TRubberBandUpdateHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var UpdateRect: TRect; var Handled: boolean) of object;
 
@@ -537,6 +549,7 @@ type
     FHandleSize: TFloat;
     FOnUserChange: TNotifyEvent;
     FOnHandleClicked: TRubberBandHandleEvent;
+    FOnHandleMove: TRubberBandHandleMoveEvent;
     FOnHandleMoved: TRubberBandHandleEvent;
     FOnPaintHandle: TRubberBandPaintHandleEvent;
     FOnUpdateHandle: TRubberBandUpdateHandleEvent;
@@ -552,6 +565,8 @@ type
     procedure SetHandleSize(Value: TFloat);
     procedure SetQuantized(const Value: Integer);
     procedure SetVertices(const Value: TArrayOfFloatPoint);
+    procedure SetVertex(Index: integer; const Value: TFloatPoint);
+    function GetVertex(Index: integer): TFloatPoint;
   protected
     FIsDragging: Boolean; // For backward compatibility. Equals (FHitTest <> nil)
     FHitTest: ILayerHitTest;
@@ -565,7 +580,10 @@ type
     procedure ApplyHitTestCursor(const AHitTest: ILayerHitTest); virtual;
     function GetHitTestCursor(const AHitTest: ILayerHitTest): TCursor; virtual;
     procedure DoHandleClicked(VertexIndex: integer); virtual;
+    procedure DoHandleMove(VertexIndex: integer; var APos: TFloatPoint); virtual;
     procedure DoHandleMoved(VertexIndex: integer); virtual;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -601,6 +619,7 @@ type
     procedure Quantize;
 
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
+    property Vertex[Index: integer]: TFloatPoint read GetVertex write SetVertex;
     property HandleSize: TFloat read FHandleSize write SetHandleSize;
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
     property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
@@ -615,6 +634,7 @@ type
 
     property OnUserChange: TNotifyEvent read FOnUserChange write FOnUserChange;
     property OnHandleClicked: TRubberBandHandleEvent read FOnHandleClicked write FOnHandleClicked;
+    property OnHandleMove: TRubberBandHandleMoveEvent read FOnHandleMove write FOnHandleMove;
     property OnHandleMoved: TRubberBandHandleEvent read FOnHandleMoved write FOnHandleMoved;
     property OnPaintHandle: TRubberBandPaintHandleEvent read FOnPaintHandle write FOnPaintHandle;
     property OnUpdateHandle: TRubberBandUpdateHandleEvent read FOnUpdateHandle write FOnUpdateHandle;
@@ -1337,6 +1357,18 @@ begin
   Result := DoHitTest(X, Y);
   if Assigned(FOnHitTest) then
     FOnHitTest(Self, X, Y, Result);
+end;
+
+procedure TCustomLayer.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  if (Assigned(FOnKeyDown)) then
+    FOnKeyDown(Self, Key, Shift);
+end;
+
+procedure TCustomLayer.KeyUp(var Key: Word; Shift: TShiftState);
+begin
+  if (Assigned(FOnKeyUp)) then
+    FOnKeyUp(Self, Key, Shift);
 end;
 
 //------------------------------------------------------------------------------
@@ -2225,10 +2257,13 @@ type
   TLayerHitTest = class(TInterfacedObject, ILayerHitTest)
   private
     FMousePosition: TPoint;
+    FLastPosition: TPoint;
     FShift: TShiftState;
     FCursor: integer;
   protected
     function GetMousePosition: TPoint;
+    procedure SetLastPosition(const Value: TPoint);
+    function GetLastPosition: TPoint;
     function GetShift: TShiftState;
     procedure SetShift(Value: TShiftState);
     function GetCursor: integer; virtual;
@@ -2241,6 +2276,7 @@ constructor TLayerHitTest.Create(const AMousePosition: TPoint);
 begin
   inherited Create;
   FMousePosition := AMousePosition;
+  FLastPosition := FMousePosition;
   FCursor := crDefault;
 end;
 
@@ -2249,9 +2285,19 @@ begin
   Result := FCursor;
 end;
 
+function TLayerHitTest.GetLastPosition: TPoint;
+begin
+  Result := FLastPosition;
+end;
+
 procedure TLayerHitTest.SetCursor(Value: integer);
 begin
   FCursor := Value;
+end;
+
+procedure TLayerHitTest.SetLastPosition(const Value: TPoint);
+begin
+  FLastPosition := Value;
 end;
 
 procedure TLayerHitTest.SetShift(Value: TShiftState);
@@ -2275,6 +2321,7 @@ type
     FVertex: integer;
   protected
     function GetVertex: integer;
+    procedure SetVertex(Value: integer);
   public
     constructor Create(const AMousePosition: TPoint; AVertex: integer);
   end;
@@ -2288,6 +2335,11 @@ end;
 function TLayerHitTestVertex.GetVertex: integer;
 begin
   Result := FVertex;
+end;
+
+procedure TLayerHitTestVertex.SetVertex(Value: integer);
+begin
+  FVertex := Value;
 end;
 
 type
@@ -2489,7 +2541,11 @@ begin
 //      Offset.X := Round(Offset.X / FQuantized) * FQuantized;
 //      Offset.Y := Round(Offset.Y / FQuantized) * FQuantized;
     end;
-    NewLocation.Right := AOffset.X + NewLocation.Width;
+
+    NewVertex := AOffset;
+    DoHandleMove(-1, NewVertex);
+
+    NewLocation.Right := NewVertex.X + NewLocation.Width;
     NewLocation.Bottom := AOffset.Y + NewLocation.Height;
     NewLocation.Left := AOffset.X;
     NewLocation.Top := AOffset.Y;
@@ -2503,11 +2559,14 @@ begin
   if Supports(FHitTest, ILayerHitTestVertex, HitTestVertex) then
   begin
     NewVertex := APoint;
-    if AQuantize then
+
+    if AQuantize and (FQuantized <> 1) then
     begin
       NewVertex.X := Round(NewVertex.X / FQuantized) * FQuantized;
       NewVertex.Y := Round(NewVertex.Y / FQuantized) * FQuantized;
     end;
+
+    DoHandleMove(HitTestVertex.Vertex, NewVertex);
 
     if (NewVertex <> FVertices[HitTestVertex.Vertex]) then
     begin
@@ -2526,10 +2585,36 @@ begin
     FOnHandleClicked(Self, VertexIndex);
 end;
 
+procedure TCustomRubberBandLayer.DoHandleMove(VertexIndex: integer; var APos: TFloatPoint);
+begin
+  if (Assigned(FOnHandleMove)) then
+    FOnHandleMove(Self, VertexIndex, APos);
+end;
+
 procedure TCustomRubberBandLayer.DoHandleMoved(VertexIndex: integer);
 begin
   if (Assigned(FOnHandleMoved)) then
     FOnHandleMoved(Self, VertexIndex);
+end;
+
+procedure TCustomRubberBandLayer.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+
+  // Update hittest shift state
+  if (FHitTest <> nil) and (FHitTest.Shift <> Shift) then
+    // Generate mouse move
+    MouseMove(Shift, FHitTest.LastPosition.X, FHitTest.LastPosition.Y);
+end;
+
+procedure TCustomRubberBandLayer.KeyUp(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+
+  // Update hittest shift state
+  if (FHitTest <> nil) and (FHitTest.Shift <> Shift) then
+    // Generate mouse move
+    MouseMove(Shift, FHitTest.LastPosition.X, FHitTest.LastPosition.Y);
 end;
 
 procedure TCustomRubberBandLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -2595,6 +2680,7 @@ begin
   end;
 
   FHitTest.Shift := Shift;
+  FHitTest.LastPosition := GR32.Point(X, Y);
   ApplyHitTestCursor(FHitTest);
 
   Offset.X := X - FMouseShift.X;
@@ -3024,6 +3110,25 @@ begin
     raise Exception.Create('Value must be larger than zero!');
 
   FQuantized := Value;
+end;
+
+function TCustomRubberBandLayer.GetVertex(Index: integer): TFloatPoint;
+begin
+  Result := FVertices[Index];
+end;
+
+procedure TCustomRubberBandLayer.SetVertex(Index: integer; const Value: TFloatPoint);
+begin
+  if (FVertices[Index] = Value) then
+    exit;
+
+  // Erase old
+  Update;
+
+  FVertices[Index] := Value;
+
+  // Paint new
+  Update;
 end;
 
 procedure TCustomRubberBandLayer.SetVertices(const Value: TArrayOfFloatPoint);

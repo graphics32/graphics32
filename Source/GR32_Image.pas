@@ -538,6 +538,8 @@ type
     procedure InitDefaultStages; virtual;
     procedure InvalidateCache;
     function InvalidRectsAvailable: Boolean; override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
@@ -3338,6 +3340,24 @@ begin
   end;
 end;
 {$ifend}
+
+procedure TCustomImage32.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+
+  // Forward key event to any layer that has captured the mouse
+  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+end;
+
+procedure TCustomImage32.KeyUp(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+
+  // Forward key event to any layer that has captured the mouse
+  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
