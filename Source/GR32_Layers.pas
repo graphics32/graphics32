@@ -2810,7 +2810,6 @@ var
   p: TFloatPoint;
 begin
   Buffer.SetStipple(FrameStipple);
-  Buffer.StippleCounter := 0;
   Buffer.StippleStep := FrameStippleStep;
   Buffer.StippleCounter := FrameStippleCounter;
 
@@ -3086,7 +3085,10 @@ procedure TCustomRubberBandLayer.SetFrameStippleCounter(const Value: TFloat);
 begin
   if Value <> FFrameStippleCounter then
   begin
-    FFrameStippleCounter := Value;
+    if (Length(FFrameStipplePattern) > 0) then
+      FFrameStippleCounter := Wrap(Value, Length(FFrameStipplePattern))
+    else
+      FFrameStippleCounter := Value;
     UpdateFrame;
   end;
 end;
