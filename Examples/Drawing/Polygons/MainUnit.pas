@@ -52,9 +52,8 @@ type
     Image: TImage32;
     LblFillOpacity: TLabel;
     LblLineOpacity: TLabel;
-    LblMiterLimit: TLabel;
-    LblOutlineThickness: TLabel;
-    LblOutlineThicknessValue: TLabel;
+    LabelMiterLimit: TLabel;
+    LabelOutlineThickness: TLabel;
     LineAlpha: TTrackBar;
     LineThickness: TTrackBar;
     MemoHint: TMemo;
@@ -231,6 +230,7 @@ end;
 procedure TFormPolygons.MiterLimitChange(Sender: TObject);
 begin
   FStroke.MiterLimit := MiterLimit.Position * 0.01;
+  LabelMiterLimit.Caption := Format(LabelMiterLimit.Hint, [FStroke.MiterLimit]);
   Draw;
 end;
 
@@ -289,7 +289,7 @@ end;
 procedure TFormPolygons.ThicknessChanged(Sender: TObject);
 begin
   FStroke.StrokeWidth := LineThickness.Position * 0.1;
-  LblOutlineThicknessValue.Caption := Format('(%2.1f)', [FStroke.StrokeWidth]);
+  LabelOutlineThickness.Caption := Format(LabelOutlineThickness.Hint, [FStroke.StrokeWidth]);
   Draw;
 end;
 
@@ -298,8 +298,7 @@ begin
   FStroke.Visible := CbxThickOutline.Checked;
   LineThickness.Enabled := CbxThickOutline.Checked;
   RgpJointMode.Enabled := CbxThickOutline.Checked;
-  MiterLimit.Enabled := CbxThickOutline.Checked and
-    (FStroke.JoinStyle = jsMiter);
+  MiterLimit.Enabled := CbxThickOutline.Checked and (FStroke.JoinStyle = jsMiter);
   Draw;
 end;
 

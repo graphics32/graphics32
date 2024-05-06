@@ -49,26 +49,21 @@ object FormPolygons: TFormPolygons
       Height = 15
       Caption = 'Fill Opacity'
     end
-    object LblOutlineThickness: TLabel
+    object LabelOutlineThickness: TLabel
       Left = 16
       Top = 267
-      Width = 54
+      Width = 72
       Height = 15
-      Caption = 'Thickness:'
+      Hint = 'Thickness: %.1n'
+      Caption = 'Thickness: 0.0'
     end
-    object LblOutlineThicknessValue: TLabel
-      Left = 72
-      Top = 267
-      Width = 14
-      Height = 15
-      Caption = '(1)'
-    end
-    object LblMiterLimit: TLabel
+    object LabelMiterLimit: TLabel
       Left = 16
       Top = 413
-      Width = 58
+      Width = 82
       Height = 15
-      Caption = 'Miter Limit'
+      Hint = 'Miter limit: %.2n'
+      Caption = 'Miter limit: 0.00'
     end
     object LineAlpha: TTrackBar
       Left = 16
@@ -133,7 +128,6 @@ object FormPolygons: TFormPolygons
       Min = 1
       PageSize = 0
       Position = 10
-      PositionToolTip = ptTop
       ShowSelRange = False
       TabOrder = 4
       ThumbLength = 14
@@ -204,7 +198,6 @@ object FormPolygons: TFormPolygons
       Min = 1
       PageSize = 0
       Position = 20
-      PositionToolTip = ptTop
       ShowSelRange = False
       TabOrder = 9
       ThumbLength = 14
