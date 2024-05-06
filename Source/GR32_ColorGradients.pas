@@ -2877,7 +2877,7 @@ end;
 procedure TCustomCenterRadiusLutGradientSampler.SetRadius(
   const Value: TFloat);
 begin
-  if FRadius <> Value then
+  if (FRadius <> Value) and (Value > 0) then
   begin
     FRadius := Value;
     RadiusChanged;
