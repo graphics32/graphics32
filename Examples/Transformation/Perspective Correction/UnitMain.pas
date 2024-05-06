@@ -8,6 +8,7 @@ uses
 
   GR32,
   GR32_Transforms,
+  GR32_Rasterizers,
   GR32_Image,
   GR32_Layers;
 
@@ -21,6 +22,10 @@ type
     ImageDest: TImage32;
     TimerMarchingAnts: TTimer;
     TimerUpdate: TTimer;
+    LabelStats: TLabel;
+    ButtonReset: TButton;
+    Label1: TLabel;
+    ComboBoxRasterizer: TComboBox;
     procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure TimerMarchingAntsTimer(Sender: TObject);
@@ -28,10 +33,13 @@ type
     procedure TimerUpdateTimer(Sender: TObject);
     procedure CheckBoxExtrapolateClick(Sender: TObject);
     procedure CheckBoxLiveClick(Sender: TObject);
+    procedure ButtonResetClick(Sender: TObject);
+    procedure ComboBoxRasterizerChange(Sender: TObject);
   private type
     TSourceDest = (sdSource, sdDest);
   private
     FTransformation: TProjectiveTransformationEx;
+    FRasterizer: TRasterizer;
     FLayers: array[TSourceDest] of TPolygonRubberbandLayer;
     FCorners: array[TSourceDest] of TFloatQuadrilateral;
     FActiveIndex: array[TSourceDest] of integer;
@@ -63,11 +71,11 @@ implementation
 {$R *.dfm}
 
 uses
-  Math,
+  System.Math,
+  System.Diagnostics,
   GR32_Geometry,
   GR32_Polygons,
   GR32_VectorUtils,
-  GR32_Rasterizers,
   GR32.ImageFormats.JPG,
   GR32.Examples;
 
@@ -79,8 +87,28 @@ const
   ColorHandleError: TColor32 = $FFFF0000;
   ColorHandleOutline: TColor32 = $FF00007F;
 
+function RectToPolygon(const r: TFloatRect): TArrayOfFloatPoint;
+begin
+  SetLength(Result, 4);
+  Result[0].X := r.Left;
+  Result[0].Y := r.Top;
+  Result[1].X := r.Right;
+  Result[1].Y := r.Top;
+  Result[2].X := r.Right;
+  Result[2].Y := r.Bottom;
+  Result[3].X := r.Left;
+  Result[3].Y := r.Bottom;
+end;
+
 //------------------------------------------------------------------------------
+
 constructor TFormMain.Create(AOwner: TComponent);
+
+  procedure AddRasterizer(RasterizerClass: TRasterizerClass);
+  begin
+    ComboBoxRasterizer.Items.AddObject(RasterizerClass.ClassName, TObject(RasterizerClass));
+  end;
+
 var
   SourceDest: TSourceDest;
 begin
@@ -113,11 +141,24 @@ begin
   end;
 
   FTransformation := TProjectiveTransformationEx.Create;
+
+  AddRasterizer(TRegularRasterizer);
+  AddRasterizer(TThreadRegularRasterizer);
+{$if declared(TParallelRegularRasterizer)}
+  AddRasterizer(TParallelRegularRasterizer);
+{$ifend}
+{$if declared(TTaskRegularRasterizer)}
+  AddRasterizer(TTaskRegularRasterizer);
+{$ifend}
+  ComboBoxRasterizer.ItemIndex := 0;
+  ComboBoxRasterizerChange(nil);
+
 end;
 
 destructor TFormMain.Destroy;
 begin
   FTransformation.Free;
+  FRasterizer.Free;
 
   inherited;
 end;
@@ -137,50 +178,52 @@ begin
 end;
 
 procedure TFormMain.FormShow(Sender: TObject);
-
-  function RectToPolygon(const r: TFloatRect): TArrayOfFloatPoint;
-  begin
-    SetLength(Result, 4);
-    Result[0].X := r.Left;
-    Result[0].Y := r.Top;
-    Result[1].X := r.Right;
-    Result[1].Y := r.Top;
-    Result[2].X := r.Right;
-    Result[2].Y := r.Bottom;
-    Result[3].X := r.Left;
-    Result[3].Y := r.Bottom;
-  end;
-
 var
   Points: TArrayOfFloatPoint;
   SourceDest: TSourceDest;
   i: integer;
 begin
-  FLayers[sdSource].Location := FloatRect(ImageSource.GetBitmapRect);
   Points := BuildPolygonF([250.25, 45.25, 537.25, 49, 720, 532.5, 52.5, 532.5]);
   FLayers[sdSource].Vertices := TranslatePolygon(Points, FLayers[sdSource].Location.Left, FLayers[sdSource].Location.Top);
-  // FLayerSource.Vertices := RectToPolygon(FLayerSource.Location);
 
   FLayers[sdDest].Location := FloatRect(ImageDest.GetBitmapRect);
   Points := BuildPolygonF([252, 50, 534, 50, 534, 529, 252, 529]);
   FLayers[sdDest].Vertices := TranslatePolygon(Points, FLayers[sdDest].Location.Left, FLayers[sdDest].Location.Top);
-  // FLayerDest.Vertices := RectToPolygon(FLayerDest.Location);
 
   for SourceDest := Low(TSourceDest) to High(TSourceDest) do
     for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
       FCorners[SourceDest, i] := FLayers[SourceDest].Vertex[i];
 end;
 
+procedure TFormMain.ButtonResetClick(Sender: TObject);
+begin
+  // Note that handles/vertices are relative to layer
+
+  FLayers[sdSource].Location := FloatRect(ImageSource.Bitmap.BoundsRect);
+  FLayers[sdSource].Vertices := RectToPolygon(FLayers[sdSource].Location);
+
+  FLayers[sdDest].Location := FloatRect(ImageDest.Bitmap.BoundsRect);
+  FLayers[sdDest].Vertices := RectToPolygon(FLayers[sdDest].Location);
+
+  ButtonApply.Click;
+end;
+
 procedure TFormMain.CheckBoxExtrapolateClick(Sender: TObject);
 begin
-  if (CheckBoxLive.Checked) then
+  if (CheckBoxLive.State in [cbChecked, cbGrayed]) then
     ButtonApply.Click;
 end;
 
 procedure TFormMain.CheckBoxLiveClick(Sender: TObject);
 begin
-  if (CheckBoxLive.Checked) then
+  if (CheckBoxLive.State in [cbChecked, cbGrayed]) then
     ButtonApply.Click;
+end;
+
+procedure TFormMain.ComboBoxRasterizerChange(Sender: TObject);
+begin
+  FreeAndNil(FRasterizer);
+  FRasterizer := TRasterizerClass(ComboBoxRasterizer.Items.Objects[ComboBoxRasterizer.ItemIndex]).Create;
 end;
 
 procedure TFormMain.LayerHandleClicked(Sender: TCustomRubberBandLayer; AIndex: integer);
@@ -216,12 +259,6 @@ begin
       exit;
   end;
 
-  if (CheckBoxLive.Checked) then
-  begin
-    TimerUpdate.Enabled := False;
-    TimerUpdate.Enabled := True;
-  end;
-
   if (SortCorners(SourceDest)) then
   begin
     // Corners has been reordered; Update vertices and hittest
@@ -241,6 +278,17 @@ begin
       Sender.Update;
       break;
     end;
+
+  // Semi-live; Defer update until user pauses movement
+  if (CheckBoxLive.State = cbGrayed) then
+  begin
+    TimerUpdate.Enabled := False;
+    TimerUpdate.Enabled := True;
+  end;
+  // Live; Update immediately
+  if (CheckBoxLive.State = cbChecked) then
+    ButtonApply.Click;
+
 end;
 
 procedure TFormMain.LayerHandlePaint(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer;
@@ -583,7 +631,7 @@ procedure TFormMain.ButtonApplyClick(Sender: TObject);
 var
   SourceDest: TSourceDest;
   i: integer;
-  Rasterizer: TRasterizer;
+  StopWatch: TStopWatch;
 begin
   for SourceDest := Low(TSourceDest) to High(TSourceDest) do
   begin
@@ -609,15 +657,13 @@ begin
     ImageDest.Bitmap.Clear(0);
 
     FTransformation.SrcRect := FloatRect(ImageSource.Bitmap.BoundsRect);
-    (*
-    Rasterizer := TMultithreadedRegularRasterizer.Create;
-    try
-      Transform(ImageDest.Bitmap, ImageSource.Bitmap, FTransformation, Rasterizer, False); // Forward projection
-    finally
-      Rasterizer.Free;
-    end;
-    *)
-    Transform(ImageDest.Bitmap, ImageSource.Bitmap, FTransformation, False); // Forward projection
+
+    StopWatch := TStopWatch.StartNew;
+
+    Transform(ImageDest.Bitmap, ImageSource.Bitmap, FTransformation, FRasterizer, False); // Forward projection
+
+    StopWatch.Stop;
+    LabelStats.Caption := Format('Rasterized in %d mS', [StopWatch.ElapsedMilliseconds]);
 
   finally
     ImageDest.Bitmap.EndUpdate;

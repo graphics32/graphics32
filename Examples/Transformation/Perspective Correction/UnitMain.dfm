@@ -26,34 +26,79 @@ object FormMain: TFormMain
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
+    object LabelStats: TLabel
+      AlignWithMargins = True
+      Left = 760
+      Top = 0
+      Width = 327
+      Height = 39
+      Margins.Left = 0
+      Margins.Top = 0
+      Margins.Right = 16
+      Margins.Bottom = 0
+      Align = alRight
+      Alignment = taRightJustify
+      AutoSize = False
+      Caption = '-'
+      ShowAccelChar = False
+      Layout = tlCenter
+      ExplicitLeft = 776
+    end
+    object Label1: TLabel
+      Left = 412
+      Top = 12
+      Width = 53
+      Height = 15
+      Caption = 'Rasterizer:'
+    end
     object CheckBoxLive: TCheckBox
-      Left = 96
+      Left = 188
       Top = 12
       Width = 97
       Height = 17
+      AllowGrayed = True
       Caption = 'Live update'
       TabOrder = 0
       OnClick = CheckBoxLiveClick
     end
     object ButtonApply: TButton
-      Left = 8
+      Left = 100
       Top = 8
       Width = 75
       Height = 25
-      Caption = 'Apply'
-      TabOrder = 1
+      Caption = 'Rasterize'
+      TabOrder = 2
       OnClick = ButtonApplyClick
     end
     object CheckBoxExtrapolate: TCheckBox
-      Left = 204
+      Left = 296
       Top = 12
       Width = 97
       Height = 17
       Caption = 'Extrapolate'
       Checked = True
       State = cbChecked
-      TabOrder = 2
+      TabOrder = 3
       OnClick = CheckBoxExtrapolateClick
+    end
+    object ButtonReset: TButton
+      Left = 12
+      Top = 8
+      Width = 75
+      Height = 25
+      Caption = 'Reset'
+      TabOrder = 1
+      OnClick = ButtonResetClick
+    end
+    object ComboBoxRasterizer: TComboBox
+      Left = 471
+      Top = 9
+      Width = 145
+      Height = 23
+      AutoDropDownWidth = True
+      Style = csDropDownList
+      TabOrder = 4
+      OnChange = ComboBoxRasterizerChange
     end
   end
   object ImageSource: TImage32
@@ -115,7 +160,7 @@ object FormMain: TFormMain
   end
   object TimerUpdate: TTimer
     Enabled = False
-    Interval = 100
+    Interval = 50
     OnTimer = TimerUpdateTimer
     Left = 544
     Top = 336
