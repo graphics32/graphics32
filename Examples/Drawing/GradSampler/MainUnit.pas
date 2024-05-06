@@ -460,8 +460,7 @@ begin
   begin
     for Index := 0 to 2 do
     begin
-      FMesh[Index].Point := FloatPoint(PaintBox32.Width * Random,
-        PaintBox32.Height * Random);
+      FMesh[Index].Point := FloatPoint(PaintBox32.Width * Random, PaintBox32.Height * Random);
       FMesh[Index].Velocity := FloatPoint(2 * Random - 1, 2 * Random - 1);
       FMesh[Index].Color := SetAlpha(Random($FFFFFF), $FF);
       FMesh[Index].HueChange := 0.001 * (2 * Random - 1);
@@ -489,29 +488,29 @@ end;
 
 procedure TFrmGradientSampler.PaintBox32MouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
+var
+  Dist: TFloat;
 begin
-  if ssRight in Shift then
+  if (ssRight in Shift) then
   begin
-    if ssShift in Shift then
+    if (ssShift in Shift) then
       FCenter := FloatPoint(X, Y)
     else
       FGradCenter := FloatPoint(X, Y);
     PaintBox32.Invalidate;
   end else
-  if ssLeft in Shift then
+  if (ssLeft in Shift) then
   begin
-    if (Y = FGradCenter.Y) and (X = FGradCenter.X) then
-    begin
-      FRadius := 0;
-    end
-    else
+    if (Y <> FGradCenter.Y) or (X <> FGradCenter.X) then
     begin
       FAngle := FAngle - ArcTan2(Y - FGradCenter.Y, X - FGradCenter.X) +
         ArcTan2(FLastPos.Y - FGradCenter.Y, FLastPos.X - FGradCenter.X);
-      FRadius := FRadius * (Hypot(Y - FGradCenter.Y, X - FGradCenter.X) /
-        Distance(FLastPos, FGradCenter));
+      Dist := Distance(FLastPos, FGradCenter);
+      if (Dist > 0) then
+        FRadius := FRadius * (Hypot(Y - FGradCenter.Y, X - FGradCenter.X) / Dist);
+
+      PaintBox32.Invalidate;
     end;
-    PaintBox32.Invalidate;
   end;
   FLastPos := FloatPoint(X, Y);
 end;
