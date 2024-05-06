@@ -44,23 +44,17 @@ uses
 
 type
   TFormRenderText = class(TForm)
-    BtnAntialias1: TSpeedButton;
-    BtnAntialias2: TSpeedButton;
-    BtnAntialias3: TSpeedButton;
-    BtnAntialias4: TSpeedButton;
-    BtnClearType: TSpeedButton;
     BtnClickMe: TButton;
-    BtnTextOut: TSpeedButton;
     EditText: TEdit;
     Image: TImage32;
-    LblAALevel: TLabel;
     LblEnterText: TLabel;
     PnlControl: TPanel;
+    CheckBoxAntiAlias: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BtnClickMeClick(Sender: TObject);
     procedure EditTextChange(Sender: TObject);
     procedure ImageResize(Sender: TObject);
-    procedure BtnTextOutClick(Sender: TObject);
+    procedure CheckBoxAntiAliasClick(Sender: TObject);
   public
     AALevel: Integer;
     procedure Draw;
@@ -100,7 +94,7 @@ begin
   with Image do
   begin
     Bitmap.Clear;
-    Bitmap.RenderText(10, 10, EditText.Text, AALevel, $FFFFFFFF);
+    Bitmap.RenderText(10, 10, EditText.Text, $FFFFFFFF, CheckBoxAntiAlias.Checked);
     Invalidate;
   end;
 end;
@@ -131,8 +125,8 @@ begin
         Random(Width - 40),
         Random(Height - 40),
         IntToStr(Random(100)),
-        AALevel,
-        Color32(Random(255), Random(255), Random(255), Random(255)));
+        Color32(Random(255), Random(255), Random(255), Random(255)),
+        CheckBoxAntiAlias.Checked);
 {$IFNDEF FPC}
   StopWatch.Stop;
   with TBitmap32.Create do
@@ -153,9 +147,8 @@ begin
   Image.Invalidate;
 end;
 
-procedure TFormRenderText.BtnTextOutClick(Sender: TObject);
+procedure TFormRenderText.CheckBoxAntiAliasClick(Sender: TObject);
 begin
-  AALevel := TControl(Sender).Tag;
   Draw;
 end;
 

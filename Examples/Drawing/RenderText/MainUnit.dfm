@@ -45,85 +45,12 @@ object FormRenderText: TFormRenderText
     DesignSize = (
       329
       61)
-    object LblAALevel: TLabel
-      Left = 4
-      Top = 36
-      Width = 46
-      Height = 13
-      Caption = 'AA Level:'
-    end
     object LblEnterText: TLabel
       Left = 4
       Top = 6
       Width = 78
       Height = 13
       Caption = 'Enter text here:'
-    end
-    object BtnTextOut: TSpeedButton
-      Left = 116
-      Top = 32
-      Width = 22
-      Height = 22
-      GroupIndex = 1
-      Down = True
-      Caption = '0'
-      Layout = blGlyphBottom
-      OnClick = BtnTextOutClick
-    end
-    object BtnAntialias1: TSpeedButton
-      Tag = 1
-      Left = 140
-      Top = 32
-      Width = 22
-      Height = 22
-      GroupIndex = 1
-      Caption = '1'
-      Layout = blGlyphBottom
-      OnClick = BtnTextOutClick
-    end
-    object BtnAntialias2: TSpeedButton
-      Tag = 2
-      Left = 164
-      Top = 32
-      Width = 22
-      Height = 22
-      GroupIndex = 1
-      Caption = '2'
-      Layout = blGlyphBottom
-      OnClick = BtnTextOutClick
-    end
-    object BtnAntialias3: TSpeedButton
-      Tag = 3
-      Left = 188
-      Top = 32
-      Width = 22
-      Height = 22
-      GroupIndex = 1
-      Caption = '3'
-      Layout = blGlyphBottom
-      OnClick = BtnTextOutClick
-    end
-    object BtnAntialias4: TSpeedButton
-      Tag = 4
-      Left = 212
-      Top = 32
-      Width = 22
-      Height = 22
-      GroupIndex = 1
-      Caption = '4'
-      Layout = blGlyphBottom
-      OnClick = BtnTextOutClick
-    end
-    object BtnClearType: TSpeedButton
-      Tag = -1
-      Left = 92
-      Top = 32
-      Width = 22
-      Height = 22
-      GroupIndex = 1
-      Caption = '-1'
-      Layout = blGlyphBottom
-      OnClick = BtnTextOutClick
     end
     object EditText: TEdit
       Left = 92
@@ -145,6 +72,15 @@ object FormRenderText: TFormRenderText
       Caption = 'Click me!'
       TabOrder = 1
       OnClick = BtnClickMeClick
+    end
+    object CheckBoxAntiAlias: TCheckBox
+      Left = 4
+      Top = 34
+      Width = 97
+      Height = 17
+      Caption = 'Anti-alias'
+      TabOrder = 2
+      OnClick = CheckBoxAntiAliasClick
     end
   end
 end

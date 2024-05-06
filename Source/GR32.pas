@@ -1153,7 +1153,8 @@ type
     function  TextExtent(const Text: string): TSize;
     function  TextHeight(const Text: string): Integer;
     function  TextWidth(const Text: string): Integer;
-    procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32); // TODO : Deprecate AALevel; Replace with AntiAlias: boolean
+    procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32); overload; deprecated 'Use RenderText(...; AntiAlias: boolean) or TCanvas32.RenderText(...) instead';
+    procedure RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean = True); overload;
 
     property  Canvas: TCanvas read GetCanvas;
     function  CanvasAllocated: Boolean;
@@ -7538,80 +7539,41 @@ begin
   end;
 end;
 
-procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean);
 var
-  B, B2: TBitmap32;
+  B: TBitmap32;
   Sz: TSize;
-{$IFNDEF PLATFORM_INDEPENDENT}
-  SzSpace: TSize;
-{$ENDIF}
   Alpha: TColor32;
-  StockCanvas: TCanvas;
 begin
   if Empty then
     Exit;
 
-  Alpha := Color shr 24;
-  Color := Color and $00FFFFFF;
-  AALevel := Constrain(AALevel, -1, 4);
+  Alpha := TColor32Entry(Color).A;
+  TColor32Entry(Color).A := 0;
 
-  {$IFDEF FPC}
-  if AALevel > -1 then
-    Font.Quality := fqNonAntialiased
+{$IFDEF FPC}
+  if (AntiAlias) then
+    Font.Quality := fqAntialiased
   else
-    Font.Quality := fqAntialiased;
-  {$ELSE}
-  if AALevel > -1 then
-    SetFontAntialiasing(Font, NONANTIALIASED_QUALITY)
+    Font.Quality := fqNonAntialiased;
+{$ELSE}
+  if (AntiAlias) then
+    SetFontAntialiasing(Font, ANTIALIASED_QUALITY)
   else
-    SetFontAntialiasing(Font, ANTIALIASED_QUALITY);
-  {$ENDIF}
+    SetFontAntialiasing(Font, NONANTIALIASED_QUALITY);
+{$ENDIF}
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
   try
-    if AALevel <= 0 then
-    begin
-      Sz := Self.TextExtent(Text) + Self.TextExtent(' ');
-      B.SetSize(Sz.cX, Sz.cY);
-      B.Font := Font;
-      B.Clear(0);
-      B.Font.Color := clWhite;
-      B.Textout(0, 0, Text);
-      TextBlueToAlpha(B, Color);
-    end
-    else
-    begin
-      StockCanvas := StockBitmap.Canvas;
-      StockCanvas.Lock;
-      try
-        StockCanvas.Font := Font;
-        StockCanvas.Font.Size := Font.Size shl AALevel;
-{$IFDEF PLATFORM_INDEPENDENT}
-        Sz := StockCanvas.TextExtent(Text) + StockCanvas.TextExtent(' ');
-{$ELSE}
-        GetTextExtentPoint32(StockCanvas.Handle, PChar(Text), Length(Text), Sz);
-        GetTextExtentPoint32(StockCanvas.Handle, PChar(string(' ')), 1, SzSpace);
-        Sz := Sz + SzSpace;
-{$ENDIF}
-        Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
-        Sz.Cy := (Sz.cy shr AALevel + 1) shl AALevel;
-        B2 := TBitmap32.Create;
-        try
-          B2.SetSize(Sz.Cx, Sz.Cy);
-          B2.Clear(0);
-          B2.Font := StockCanvas.Font;
-          B2.Font.Color := clWhite;
-          B2.Textout(0, 0, Text);
-          B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
-          TextScaleDown(B, B2, AALevel, Color);
-        finally
-          B2.Free;
-        end;
-      finally
-        StockCanvas.Unlock;
-      end;
-    end;
+    Sz := Self.TextExtent(Text) + Self.TextExtent(' ');
+    B.SetSize(Sz.cX, Sz.cY);
+    B.Font := Font;
+    B.Clear(0);
+    B.Font.Color := clWhite;
+
+    B.Textout(0, 0, Text);
+    TextBlueToAlpha(B, Color);
 
     B.DrawMode := dmBlend;
     B.MasterAlpha := Alpha;
@@ -7622,11 +7584,16 @@ begin
     B.Free;
   end;
 
-  {$IFDEF FPC}
+{$IFDEF FPC}
   Font.Quality := fqDefault;
-  {$ELSE}
+{$ELSE}
   SetFontAntialiasing(Font, DEFAULT_QUALITY);
-  {$ENDIF}
+{$ENDIF}
+end;
+
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
+begin
+  RenderText(X, Y, Text, Color, (AALevel < 0));
 end;
 
 // -------------------------------------------------------------------

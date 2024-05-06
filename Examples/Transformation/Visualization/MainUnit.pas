@@ -315,9 +315,9 @@ begin
   begin
     SetSize(w, h);
     Font.Size := 30;
-    RenderText(CX - TextWidth(Line1) div 2, CY - 120, Line1, 4, $DEADBEEF);
+    RenderText(CX - TextWidth(Line1) div 2, CY - 120, Line1, $DEADBEEF);
     Font.Size := 20;
-    RenderText(CX - TextWidth(Line2) div 2, CY + 60, Line2, 4, $DEADF00D);
+    RenderText(CX - TextWidth(Line2) div 2, CY + 60, Line2, $DEADF00D);
   end;
   VectorMap.SetSize(w, h);
 
@@ -400,15 +400,15 @@ begin
     FillRectTS(L, T, R, B, $FF9F9F9F);
     FrameRectTS(L, T, R, B, $FFFFFFFF);
 
-    RenderText(L + W, T + H, Line1, 3, clBlack32);
+    RenderText(L + W, T + H, Line1, clBlack32);
     Inc(H, TextHeight(Line1));
-    RenderText(L + W, T + H, Line2, 3, clBlack32);
+    RenderText(L + W, T + H, Line2, clBlack32);
     Inc(H, TextHeight(Line2));
-    RenderText(L + W, T + H, Line3, 3, clBlack32);
+    RenderText(L + W, T + H, Line3, clBlack32);
     Inc(H, TextHeight(Line3));
-    RenderText(L + W, T + H, Line4, 3, clBlack32);
+    RenderText(L + W, T + H, Line4, clBlack32);
     Inc(H, TextHeight(Line4));
-    RenderText(L + W, T + H, Line5, 3, clBlack32);
+    RenderText(L + W, T + H, Line5, clBlack32);
   end;
 end;
 
