@@ -34,6 +34,10 @@ interface
 
 {$I GR32.inc}
 
+{$if defined(DCC) and (CompilerVersion >= 28.0)} // TODO : Test for PLATFORM_VCL when it is merged
+  {$define USE_PPL} // Use Delphi's Parallel Programming Library (introduced XE7)
+{$ifend}
+
 uses
   Classes,
   GR32,
@@ -51,9 +55,15 @@ type
     TransparentColor: TColor32;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TRasterizer
+//
+//------------------------------------------------------------------------------
+// A base class for TCustomBitmap32-specific rasterizers.
+//------------------------------------------------------------------------------
 type
-  { TRasterizer }
-  { A base class for TCustomBitmap32-specific rasterizers. }
   TRasterizer = class(TThreadPersistent)
   private
     FSampler: TCustomSampler;
@@ -85,8 +95,15 @@ type
 
   TRasterizerClass = class of TRasterizer;
 
-  { TRegularSamplingRasterizer }
-  { This rasterizer simply picks one sample for each pixel in the output bitmap. }
+
+//------------------------------------------------------------------------------
+//
+//      TRegularSamplingRasterizer
+//
+//------------------------------------------------------------------------------
+// This rasterizer simply picks one sample for each pixel in the output bitmap.
+//------------------------------------------------------------------------------
+type
   TRegularRasterizer = class(TRasterizer)
   private
     FUpdateRowCount: Integer;
@@ -98,12 +115,19 @@ type
     property UpdateRowCount: Integer read FUpdateRowCount write FUpdateRowCount;
   end;
 
-  { TSwizzlingRasterizer }
-  { An interesting rasterization method where sample locations are choosen
-    according to a fractal pattern called 'swizzling'. With a slight
-    modification to the algorithm this routine will actually yield the
-    well-known sierpinski triangle fractal. An advantage with this pattern
-    is that it may benefit from local coherency in the sampling method used. }
+
+//------------------------------------------------------------------------------
+//
+//      TSwizzlingRasterizer
+//
+//------------------------------------------------------------------------------
+// An interesting rasterization method where sample locations are choosen
+// according to a fractal pattern called 'swizzling'. With a slight
+// modification to the algorithm this routine will actually yield the
+// well-known sierpinski triangle fractal. An advantage with this pattern
+// is that it may benefit from local coherency in the sampling method used.
+//------------------------------------------------------------------------------
+type
   TSwizzlingRasterizer = class(TRasterizer)
   private
     FBlockSize: Integer;
@@ -116,10 +140,17 @@ type
     property BlockSize: Integer read FBlockSize write SetBlockSize default 3;
   end;
 
-  { TProgressiveRasterizer }
-  { This class will perform rasterization in a progressive manner. It performs
-    subsampling with a block size of 2^n and will successively decrease n in
-    each iteration until n equals zero.  }
+
+//------------------------------------------------------------------------------
+//
+//      TProgressiveRasterizer
+//
+//------------------------------------------------------------------------------
+// This class will perform rasterization in a progressive manner. It performs
+// subsampling with a block size of 2^n and will successively decrease n in
+// each iteration until n equals zero.
+//------------------------------------------------------------------------------
+type
   TProgressiveRasterizer = class(TRasterizer)
   private
     FSteps: Integer;
@@ -135,27 +166,110 @@ type
     property UpdateRows: Boolean read FUpdateRows write SetUpdateRows default True;
   end;
 
-  { TTesseralRasterizer }
-  { This is a recursive rasterization method. It uses a divide-and-conquer
-    scheme to subdivide blocks vertically and horizontally into smaller blocks. }
+
+//------------------------------------------------------------------------------
+//
+//      TTesseralRasterizer
+//
+//------------------------------------------------------------------------------
+// This is a recursive rasterization method. It uses a divide-and-conquer
+// scheme to subdivide blocks vertically and horizontally into smaller blocks.
+//------------------------------------------------------------------------------
+type
   TTesseralRasterizer = class(TRasterizer)
   protected
     procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   end;
 
-  { TContourRasterizer }
+
+//------------------------------------------------------------------------------
+//
+//      TContourRasterizer
+//
+//------------------------------------------------------------------------------
+type
   TContourRasterizer = class(TRasterizer)
   protected
     procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   end;
 
-  { TMultithreadedRegularRasterizer }
-  TMultithreadedRegularRasterizer = class(TRasterizer)
+
+//------------------------------------------------------------------------------
+//
+//      TThreadRegularRasterizer
+//
+//------------------------------------------------------------------------------
+// Multi-threaded rasterizer using TTread
+//------------------------------------------------------------------------------
+// Warning: This rasterizer will have terrible performance unless the
+// rasterization process is more costly than the thread setup and destruction
+// (which happens once for every call to DoRasterize).
+// Don't assume that threads will solve your performance problems; Benchmark!
+// If possible, use TParallelRegularRasterizer or TTaskRegularRasterizer instead.
+//------------------------------------------------------------------------------
+type
+  TThreadRegularRasterizer = class(TRasterizer)
+  protected
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
+  end {$if defined(USE_PPL)}deprecated 'Use TMultithreadedRegularRasterizer instead'{$ifend};
+
+//------------------------------------------------------------------------------
+//
+//      TParallelRegularRasterizer
+//
+//------------------------------------------------------------------------------
+// Multi-threaded rasterizer using TParallel.For
+// Note: First invocation can incur a performance penalty as the thread pool is
+// initialized.
+//------------------------------------------------------------------------------
+{$if defined(USE_PPL)}
+type
+  TParallelRegularRasterizer = class(TRasterizer)
   protected
     procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   end;
+{$ifend}
 
-{ Auxiliary routines }
+
+//------------------------------------------------------------------------------
+//
+//      TTaskRegularRasterizer
+//
+//------------------------------------------------------------------------------
+// Multi-threaded rasterizer using TTask
+// Note: First invocation can incur a performance penalty as the thread pool is
+// initialized.
+//------------------------------------------------------------------------------
+{$if defined(USE_PPL)}
+type
+  TTaskRegularRasterizer = class(TRasterizer)
+  protected
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
+  end;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
+//      TMultithreadedRegularRasterizer
+//
+//------------------------------------------------------------------------------
+// Multi-threaded rasterizer using whatever is available.
+//------------------------------------------------------------------------------
+type
+{$if defined(USE_PPL)}
+  TMultithreadedRegularRasterizer = class(TParallelRegularRasterizer);
+{$else}
+  TMultithreadedRegularRasterizer = class(TThreadRegularRasterizer);
+{$ifend}
+
+
+
+//------------------------------------------------------------------------------
+//
+//      Auxiliary routines
+//
+//------------------------------------------------------------------------------
 function CombineInfo(Bitmap: TCustomBitmap32): TCombineInfo;
 
 const
@@ -167,9 +281,15 @@ const
     TransparentColor: clBlack32;
   );
 
+//------------------------------------------------------------------------------
+
 var
   DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
   NumberOfProcessors: Integer = 1;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -177,6 +297,9 @@ uses
 {$ifndef FPC}
   System.SyncObjs,
 {$endif}
+{$if defined(USE_PPL)}
+  System.Threading,
+{$ifend}
   Math,
   GR32_Math,
   GR32_System,
@@ -188,21 +311,12 @@ uses
 type
   TCustomBitmap32Access = class(TCustomBitmap32);
 
-  TLineRasterizerData = record
-    ScanLine: Integer;
-  end;
-  PLineRasterizerData = ^TLineRasterizerData;
 
-  TScanLineRasterizerThread = class(TThread)
-  protected
-    Data: PLineRasterizerData;
-    DstRect: TRect;
-    Dst: TCustomBitmap32;
-    GetSample: TGetSampleInt;
-    AssignColor: TAssignColor;
-    procedure Execute; override;
-  end;
-
+//------------------------------------------------------------------------------
+//
+//      Auxiliary routines
+//
+//------------------------------------------------------------------------------
 function CombineInfo(Bitmap: TCustomBitmap32): TCombineInfo;
 begin
   with Result do
@@ -218,8 +332,11 @@ begin
 end;
 
 
-{ TRasterizer }
-
+//------------------------------------------------------------------------------
+//
+//      TRasterizer
+//
+//------------------------------------------------------------------------------
 procedure TRasterizer.AssignColorBlend(var Dst: TColor32; Src: TColor32);
 begin
   FBlendMemEx(Src, Dst, FSrcAlpha);
@@ -342,8 +459,12 @@ begin
   end;
 end;
 
-{ TRegularRasterizer }
 
+//------------------------------------------------------------------------------
+//
+//      TRegularRasterizer
+//
+//------------------------------------------------------------------------------
 constructor TRegularRasterizer.Create;
 begin
   inherited;
@@ -377,8 +498,12 @@ begin
     Dst.Changed(Rect(Left, Bottom - UpdateCount - 1, Right, Bottom));
 end;
 
-{ TSwizzlingRasterizer }
 
+//------------------------------------------------------------------------------
+//
+//      TSwizzlingRasterizer
+//
+//------------------------------------------------------------------------------
 constructor TSwizzlingRasterizer.Create;
 begin
   inherited;
@@ -474,8 +599,12 @@ begin
   end;
 end;
 
-{ TProgressiveRasterizer }
 
+//------------------------------------------------------------------------------
+//
+//      TProgressiveRasterizer
+//
+//------------------------------------------------------------------------------
 constructor TProgressiveRasterizer.Create;
 begin
   inherited;
@@ -608,8 +737,12 @@ begin
   end;
 end;
 
-{ TTesseralRasterizer }
 
+//------------------------------------------------------------------------------
+//
+//      TTesseralRasterizer
+//
+//------------------------------------------------------------------------------
 procedure TTesseralRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
 var
   W, H, I: Integer;
@@ -669,8 +802,11 @@ begin
 end;
 
 
-{ TContourRasterizer }
-
+//------------------------------------------------------------------------------
+//
+//      TContourRasterizer
+//
+//------------------------------------------------------------------------------
 procedure InflateRect(const P: TPoint; var R: TRect);
 begin
   if P.X < R.Left then R.Left := P.X;
@@ -799,9 +935,160 @@ begin
   end;
 end;
 
-{ TMultithreadedRegularRasterizer }
 
-procedure TMultithreadedRegularRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
+//------------------------------------------------------------------------------
+//
+//      TParallelRegularRasterizer
+//
+//------------------------------------------------------------------------------
+{$if defined(USE_PPL)}
+procedure TParallelRegularRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
+begin
+  TParallel.For(DstRect.Top, DstRect.Bottom-1,
+    procedure(ScanLine: integer)
+    var
+      i: Integer;
+      p: PColor32;
+    begin
+      p := @Dst.Bits[DstRect.Left + ScanLine * Dst.Width];
+
+      for i := DstRect.Left to DstRect.Right - 1 do
+      begin
+        AssignColor(p^, Sampler.GetSampleInt(i, ScanLine));
+        Inc(p);
+      end;
+    end);
+
+  Dst.Changed(DstRect);
+end;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
+//      TTaskRegularRasterizer
+//
+//------------------------------------------------------------------------------
+{$if defined(USE_PPL)}
+type
+  TScanlineProc = reference to procedure(AFromIndex, AToIndex: integer);
+
+procedure TTaskRegularRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
+
+  // Partitioning and task setup based on idea by Stefan Glienke
+  // https://stackoverflow.com/a/27542557
+
+  procedure CalcPartBounds(Low, High, Count, Index: Integer; out Min, Max: Integer);
+  var
+    Len: Integer;
+  begin
+    Len := High - Low + 1;
+    Min := (Len div Count) * Index;
+    if Index + 1 < Count then
+      Max := Len div Count * (Index + 1) - 1
+    else
+      Max := Len - 1;
+  end;
+
+  function GetWorker(const ScanlineProc: TScanlineProc; Min, Max: Integer): ITask;
+  begin
+    Result := TTask.Run(
+      procedure
+      begin
+        ScanlineProc(Min, Max);
+      end);
+  end;
+
+var
+  Workers: TArray<ITask>;
+  i: integer;
+  Min, Max: integer;
+begin
+  SetLength(Workers, NumberOfProcessors);
+
+  for i := 0 to High(Workers) do
+  begin
+    CalcPartBounds(DstRect.Top, DstRect.Bottom-1, NumberOfProcessors, i, Min, Max);
+
+    Workers[i] := GetWorker(
+      procedure (AFromScanLine, AToScanLine: integer)
+      var
+        i: Integer;
+        p: PColor32;
+      begin
+        while (AFromScanLine <= AToScanLine) do
+        begin
+          p := @Dst.Bits[DstRect.Left + AFromScanLine * Dst.Width];
+
+          for i := DstRect.Left to DstRect.Right - 1 do
+          begin
+            AssignColor(p^, Sampler.GetSampleInt(i, AFromScanLine));
+            Inc(p);
+          end;
+
+          Inc(AFromScanLine);
+        end;
+      end, Min, Max);
+  end;
+
+  TTask.WaitForAll(Workers);
+
+  Dst.Changed(DstRect);
+end;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
+//      TThreadRegularRasterizer
+//
+//------------------------------------------------------------------------------
+type
+  TLineRasterizerData = record
+    ScanLine: Integer;
+  end;
+  PLineRasterizerData = ^TLineRasterizerData;
+
+  TScanLineRasterizerThread = class(TThread)
+  protected
+    Data: PLineRasterizerData;
+    DstRect: TRect;
+    Dst: TCustomBitmap32;
+    GetSample: TGetSampleInt;
+    AssignColor: TAssignColor;
+    procedure Execute; override;
+  end;
+
+procedure TScanLineRasterizerThread.Execute;
+var
+  ScanLine: Integer;
+  I: Integer;
+  P: PColor32;
+begin
+{$ifndef FPC}
+  ScanLine := TInterlocked.Increment(Data^.ScanLine);
+{$else}
+  ScanLine := InterlockedIncrement(Data^.ScanLine);
+{$endif}
+  while ScanLine < DstRect.Bottom do
+  begin
+    P := @Dst.Bits[DstRect.Left + ScanLine * Dst.Width];
+
+    for I := DstRect.Left to DstRect.Right - 1 do
+    begin
+      AssignColor(P^, GetSample(I, ScanLine));
+      Inc(P);
+    end;
+
+{$ifndef FPC}
+    ScanLine := TInterlocked.Increment(Data^.ScanLine);
+{$else}
+    ScanLine := InterlockedIncrement(Data^.ScanLine);
+{$endif}
+  end;
+end;
+
+procedure TThreadRegularRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
 var
   I: Integer;
   Threads: array of TScanLineRasterizerThread;
@@ -843,36 +1130,10 @@ begin
   end;
 end;
 
-{ TLineRasterizerThread }
 
-procedure TScanLineRasterizerThread.Execute;
-var
-  ScanLine: Integer;
-  I: Integer;
-  P: PColor32;
-begin
-{$ifndef FPC}
-  ScanLine := TInterlocked.Increment(Data^.ScanLine);
-{$else}
-  ScanLine := InterlockedIncrement(Data^.ScanLine);
-{$endif}
-  while ScanLine < DstRect.Bottom do
-  begin
-    P := @Dst.Bits[DstRect.Left + ScanLine * Dst.Width];
-
-    for I := DstRect.Left to DstRect.Right - 1 do
-    begin
-      AssignColor(P^, GetSample(I, ScanLine));
-      Inc(P);
-    end;
-
-{$ifndef FPC}
-    ScanLine := TInterlocked.Increment(Data^.ScanLine);
-{$else}
-    ScanLine := InterlockedIncrement(Data^.ScanLine);
-{$endif}
-  end;
-end;
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 initialization
   NumberOfProcessors := GetProcessorCount;
