@@ -38,15 +38,16 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls,
+  GR32,
   GR32_Image;
 
 type
   TFormLineStippling = class(TForm)
-    Image: TImage32;
+    PaintBox: TPaintBox32;
     ScrollBar: TScrollBar;
-    procedure FormCreate(Sender: TObject);
     procedure ScrollBarChange(Sender: TObject);
+    procedure PaintBoxPaintBuffer(Sender: TObject);
   public
     procedure Spiral(X, Y: Integer);
   end;
@@ -63,41 +64,47 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Gamma, GR32_Math;
+  GR32_Gamma,
+  GR32_Math;
 
 { TFormLineStippling }
 
-procedure TFormLineStippling.FormCreate(Sender: TObject);
-begin
-  Image.SetupBitmap;
-  ScrollBarChange(Sender);
-end;
-
-procedure TFormLineStippling.ScrollBarChange(Sender: TObject);
+procedure TFormLineStippling.PaintBoxPaintBuffer(Sender: TObject);
 var
   Step: Single;
 begin
   Step := ScrollBar.Position * 0.01;
 
-  with Image.Bitmap do
-  begin
-    BeginUpdate;
-    Clear(clBlack32);
-    SetStipple([clWhite32, clWhite32, clWhite32, clWhite32, 0, 0, 0, 0]);
-    StippleStep := Step;
-    Spiral(50, 50);
+  PaintBox.Buffer.BeginUpdate;
+  try
 
-    SetStipple([clWhite32, $00FFFFFF]);
-    Spiral(150, 50);
+    PaintBox.Buffer.Clear(clBlack32);
+    PaintBox.Buffer.StippleStep := Step;
 
-    SetStipple([clWhite32, clRed32, clGreen32, 0, 0, 0]);
-    Spiral(50, 150);
+    // Note that we are not using PaintBox.Buffer.Width & Height since
+    // PaintBox.BufferOversize might cause the buffer to be bigger than
+    // the control.
 
-    SetStipple([clGreen32, clGreen32, clGreen32, 0, 0, clWhite32, 0, 0]);
-    Spiral(150, 150);
-    EndUpdate;
+    PaintBox.Buffer.SetStipple([clWhite32, clWhite32, clWhite32, clWhite32, 0, 0, 0, 0]);
+    Spiral(PaintBox.Width div 4, PaintBox.Height div 4);
+
+    PaintBox.Buffer.SetStipple([clWhite32, $00FFFFFF]);
+    Spiral(3*PaintBox.Width div 4, PaintBox.Height div 4);
+
+    PaintBox.Buffer.SetStipple([clWhite32, clRed32, clGreen32, 0, 0, 0]);
+    Spiral(PaintBox.Width div 4, 3*PaintBox.Height div 4);
+
+    PaintBox.Buffer.SetStipple([clGreen32, clGreen32, clGreen32, 0, 0, clWhite32, 0, 0]);
+    Spiral(3*PaintBox.Width div 4, 3*PaintBox.Height div 4);
+
+  finally
+    PaintBox.Buffer.EndUpdate;
   end;
-  Image.Repaint;
+end;
+
+procedure TFormLineStippling.ScrollBarChange(Sender: TObject);
+begin
+  PaintBox.Invalidate;
 end;
 
 procedure TFormLineStippling.Spiral(X, Y: Integer);
@@ -106,11 +113,11 @@ var
   Sn, Cn: TFloat;
 begin
   Theta := 0;
-  Image.Bitmap.MoveToF(X, Y);
+  PaintBox.Buffer.MoveToF(X, Y);
   while Theta < 15 * Pi do
   begin
     SinCos(Theta, Sn, Cn);
-    Image.Bitmap.LineToFSP(X + Cn * Theta, Y + Sn * Theta);
+    PaintBox.Buffer.LineToFSP(X + Cn * Theta * (PaintBox.Width / 220), Y + Sn * Theta * (PaintBox.Height / 220));
     Theta := Theta + 0.2;
   end;
 end;
