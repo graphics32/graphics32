@@ -298,6 +298,8 @@ uses
   System.SyncObjs,
 {$endif}
 {$if defined(USE_PPL)}
+  System.Types,
+  System.SysUtils,
   System.Threading,
 {$ifend}
   Math,
@@ -412,9 +414,9 @@ begin
   if Assigned(FSampler) then
   begin
     FSampler.PrepareSampling;
-    IntersectRect(R, DstRect, Dst.BoundsRect);
+    GR32.IntersectRect(R, DstRect, Dst.BoundsRect);
     if FSampler.HasBounds then
-      IntersectRect(R, DstRect, MakeRect(FSampler.GetSampleBounds, rrOutside));
+      GR32.IntersectRect(R, DstRect, MakeRect(FSampler.GetSampleBounds, rrOutside));
     try
       DoRasterize(Dst, R);
     finally
@@ -567,8 +569,8 @@ begin
   GetSample := FSampler.GetSampleInt;
 
   D := 1 shl FBlockSize;
-  PBlock := Point(L + D, T + D);
-  P1 := Point(-1, 0);
+  PBlock := GR32.Point(L + D, T + D);
+  P1 := GR32.Point(-1, 0);
 
   RowSize := Dst.Width;
   for I := 0 to Size do
@@ -843,7 +845,7 @@ begin
     Dir := East;
     NewDir := East;
 
-    PLast := Point(DstRect.Left, DstRect.Top);
+    PLast := GR32.Point(DstRect.Left, DstRect.Top);
     CLast := GetSample(PLast.X, PLast.Y);
     AssignColor(Dst.PixelPtr[PLast.X, PLast.Y]^, CLast);
 
@@ -855,8 +857,8 @@ begin
       Diff := MaxInt;
 
       // forward
-      with COORDS[Dir] do P := Point(PLast.X + X, PLast.Y + Y);
-      if PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
+      with COORDS[Dir] do P := GR32.Point(PLast.X + X, PLast.Y + Y);
+      if GR32.PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
       begin
         C := GetSample(P.X, P.Y);
         Diff := Intensity(ColorSub(C, CLast));
@@ -868,12 +870,12 @@ begin
       end;
 
       // left
-      with COORDS[LEFT[Dir]] do P := Point(PLast.X + X, PLast.Y + Y);
-      if PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
+      with COORDS[LEFT[Dir]] do P := GR32.Point(PLast.X + X, PLast.Y + Y);
+      if GR32.PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
       begin
         C := GetSample(P.X, P.Y);
         D := Intensity(ColorSub(C, CLast));
-        EMMS;        
+        EMMS;
         if D < Diff then
         begin
           NewDir := LEFT[Dir];
@@ -885,8 +887,8 @@ begin
       end;
 
       // right
-      with COORDS[RIGHT[Dir]] do P := Point(PLast.X + X, PLast.Y + Y);
-      if PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
+      with COORDS[RIGHT[Dir]] do P := GR32.Point(PLast.X + X, PLast.Y + Y);
+      if GR32.PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
       begin
         C := GetSample(P.X, P.Y);
         D := Intensity(ColorSub(C, CLast));
@@ -911,7 +913,7 @@ begin
             if not Visited[I, J] then
             begin
               Visited[I, J] := True;
-              PLast := Point(DstRect.Left + I, DstRect.Top + J);
+              PLast := GR32.Point(DstRect.Left + I, DstRect.Top + J);
               CLast := GetSample(PLast.X, PLast.Y);
               AssignColor(Dst.PixelPtr[PLast.X, PLast.Y]^, CLast);
               UpdateRect := Rect(PLast.X, PLast.Y, PLast.X + 1, PLast.Y + 1);
@@ -926,7 +928,7 @@ begin
       end;
 
       Dir := NewDir;
-      with COORDS[Dir] do PLast := Point(PLast.X + X, PLast.Y + Y);
+      with COORDS[Dir] do PLast := GR32.Point(PLast.X + X, PLast.Y + Y);
       CLast := Dst[PLast.X, PLast.Y];
     end;
 

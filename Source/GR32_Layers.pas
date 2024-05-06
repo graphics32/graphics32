@@ -755,6 +755,7 @@ uses
   Types,
   GR32_Image,
   GR32_LowLevel,
+  GR32_Math,
   GR32_Geometry,
   GR32_Resamplers,
   GR32_RepaintOpt;
