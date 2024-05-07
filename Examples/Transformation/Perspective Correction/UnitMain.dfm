@@ -100,6 +100,14 @@ object FormMain: TFormMain
       TabOrder = 4
       OnChange = ComboBoxRasterizerChange
     end
+    object CheckBoxLiveDraft: TCheckBox
+      Left = 636
+      Top = 12
+      Width = 225
+      Height = 17
+      Caption = 'Use draft rasterizer during live update'
+      TabOrder = 5
+    end
   end
   object ImageSource: TImage32
     AlignWithMargins = True
@@ -164,5 +172,12 @@ object FormMain: TFormMain
     OnTimer = TimerUpdateTimer
     Left = 544
     Top = 336
+  end
+  object TimerDraft: TTimer
+    Enabled = False
+    Interval = 200
+    OnTimer = TimerDraftTimer
+    Left = 544
+    Top = 388
   end
 end

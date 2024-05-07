@@ -26,6 +26,8 @@ type
     ButtonReset: TButton;
     Label1: TLabel;
     ComboBoxRasterizer: TComboBox;
+    CheckBoxLiveDraft: TCheckBox;
+    TimerDraft: TTimer;
     procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure TimerMarchingAntsTimer(Sender: TObject);
@@ -35,11 +37,14 @@ type
     procedure CheckBoxLiveClick(Sender: TObject);
     procedure ButtonResetClick(Sender: TObject);
     procedure ComboBoxRasterizerChange(Sender: TObject);
+    procedure TimerDraftTimer(Sender: TObject);
   private type
     TSourceDest = (sdSource, sdDest);
   private
     FTransformation: TProjectiveTransformationEx;
     FRasterizer: TRasterizer;
+    FDraftRasterizer: TRasterizer;
+    FCurrentRasterizer: TRasterizer;
     FLayers: array[TSourceDest] of TPolygonRubberbandLayer;
     FCorners: array[TSourceDest] of TFloatQuadrilateral;
     FActiveIndex: array[TSourceDest] of integer;
@@ -141,6 +146,7 @@ begin
   end;
 
   FTransformation := TProjectiveTransformationEx.Create;
+  FDraftRasterizer := TDraftRasterizer.Create;
 
   AddRasterizer(TRegularRasterizer);
   AddRasterizer(TThreadRegularRasterizer);
@@ -159,9 +165,12 @@ destructor TFormMain.Destroy;
 begin
   FTransformation.Free;
   FRasterizer.Free;
+  FDraftRasterizer.Free;
 
   inherited;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure TFormMain.FormResize(Sender: TObject);
 begin
@@ -224,7 +233,10 @@ procedure TFormMain.ComboBoxRasterizerChange(Sender: TObject);
 begin
   FreeAndNil(FRasterizer);
   FRasterizer := TRasterizerClass(ComboBoxRasterizer.Items.Objects[ComboBoxRasterizer.ItemIndex]).Create;
+  FCurrentRasterizer := FRasterizer;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure TFormMain.LayerHandleClicked(Sender: TCustomRubberBandLayer; AIndex: integer);
 var
@@ -278,6 +290,16 @@ begin
       Sender.Update;
       break;
     end;
+
+  // If draft rasterization is enabled then use fast but ugly rasterizer during move/drag
+  // and queue quality rasterize for later
+  if (CheckBoxLive.State <> cbUnchecked) and (CheckBoxLiveDraft.Checked) then
+  begin
+    FCurrentRasterizer := FDraftRasterizer;
+    TimerDraft.Enabled := False;
+    TimerDraft.Enabled := True;
+  end else
+    FCurrentRasterizer := FRasterizer;
 
   // Semi-live; Defer update until user pauses movement
   if (CheckBoxLive.State = cbGrayed) then
@@ -378,6 +400,13 @@ end;
 procedure TFormMain.TimerUpdateTimer(Sender: TObject);
 begin
   TimerUpdate.Enabled := False;
+  ButtonApply.Click;
+end;
+
+procedure TFormMain.TimerDraftTimer(Sender: TObject);
+begin
+  TimerDraft.Enabled := False;
+  FCurrentRasterizer := FRasterizer;
   ButtonApply.Click;
 end;
 
@@ -660,7 +689,7 @@ begin
 
     StopWatch := TStopWatch.StartNew;
 
-    Transform(ImageDest.Bitmap, ImageSource.Bitmap, FTransformation, FRasterizer, False); // Forward projection
+    Transform(ImageDest.Bitmap, ImageSource.Bitmap, FTransformation, FCurrentRasterizer, False); // Forward projection
 
     StopWatch.Stop;
     LabelStats.Caption := Format('Rasterized in %d mS', [StopWatch.ElapsedMilliseconds]);
