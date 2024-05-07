@@ -196,6 +196,30 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TDraftRasterizer
+//
+//------------------------------------------------------------------------------
+// A rasterizer that trades quality for performance by pixelating the output.
+// Can be used to show live preview during long operations.
+// Adapted from TBoxRasterizer by Marc Lafon, 16 oct 2005
+//------------------------------------------------------------------------------
+type
+  TDraftRasterizer = class(TRasterizer)
+  private
+    FPixelSize: Integer;
+    procedure SetPixelSize(const Value: Integer);
+  protected
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
+  public
+    constructor Create; override;
+  published
+    // Size of output pixels
+    property PixelSize: Integer read FPixelSize write SetPixelSize default 4;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TThreadRegularRasterizer
 //
 //------------------------------------------------------------------------------
@@ -934,6 +958,68 @@ begin
 
   finally
     Visited.Free;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TDraftRasterizer
+//
+//------------------------------------------------------------------------------
+constructor TDraftRasterizer.Create;
+begin
+  inherited;
+  FPixelSize := 4;
+end;
+
+procedure TDraftRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
+var
+  r: TRect;
+  GetSample: TGetSampleInt;
+begin
+  GetSample := Sampler.GetSampleInt;
+
+  Dst.BeginLockUpdate;
+  try
+
+    r.Top := DstRect.Top;
+    r.Bottom := r.Top;
+    while r.Top < DstRect.Bottom do
+    begin
+      Inc(r.Bottom, FPixelSize);
+      if (r.Bottom > DstRect.Bottom) then
+        r.Bottom := DstRect.Bottom;
+
+      r.Left := DstRect.Left;
+      r.Right := r.Left + FPixelSize;
+      while r.Right < DstRect.Right do
+      begin
+
+        Dst.FillRect(r.Left, r.Top, r.Right, r.Bottom, GetSample(r.Left, r.Top));
+
+        r.Left := r.Right;
+        Inc(r.Right, FPixelSize);
+
+      end;
+      Dst.FillRect(r.Left, r.Top, DstRect.Right, r.Bottom, GetSample(r.Left, r.Top));
+
+      r.Top := r.Bottom;
+    end;
+
+  finally
+    Dst.EndLockUpdate;
+  end;
+  if (TCustomBitmap32Access(Dst).UpdateCount = 0) and Assigned(Dst.OnAreaChanged) then
+    Dst.OnAreaChanged(Dst, DstRect, AREAINFO_RECT);
+end;
+
+procedure TDraftRasterizer.SetPixelSize(const Value: Integer);
+begin
+  if (FPixelSize <> Value) and (Value > 1) then
+  begin
+    FPixelSize := Value;
+    Changed;
   end;
 end;
 
