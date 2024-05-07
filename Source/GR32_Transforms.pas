@@ -531,6 +531,61 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSphereTransformation
+//
+//------------------------------------------------------------------------------
+// Transform a map (planisphere) into a Spherical projection.
+// By Marc LAFON (marc.lafon AT free.fr), 01 nov 2005
+//------------------------------------------------------------------------------
+type
+  TSphereTransformation = class(TTransformation)
+  private
+    FMapWidth, FMapHeight: TFloat;
+    FSquareRadius: TFloat;
+    FCenter: TFloatPoint;
+    FRadius: TFloat;
+    FLongitude: TFloat;
+    FLattitude: TFloat;
+    FLattitudeSin: TFloat;
+    FLattitudeCos: TFloat;
+    FLattitudeSinInvRadius: TFloat;
+    FLattitudeCosInvRadius: TFloat;
+    FSrcRectTop: TFloat;
+    FSrcRectLeft: TFloat;
+    procedure SetCenter(const Value: TFloatPoint);
+    procedure SetLattitude(const Value: TFloat);
+    procedure SetLongitude(const Value: TFloat);
+    procedure SetRadius(const Value: TFloat);
+  protected
+    procedure PrepareTransform; override;
+    procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
+  public
+    constructor Create; override;
+
+    function HasTransformedBounds: Boolean; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
+
+    // Return True if the (X,Y) point is in the Sphere projection
+    function IsInSphere(CartesianX, CartesianY: TFloat):boolean;
+    // Transform (X,Y) coordinate as Lattitude and Longitude coordinates in the Sphere
+    function SphericalCoordinate(CartesianX, CartesianY: TFloat):TFloatPoint;
+    // Transform Longitude and Lattitude coordinates (X,Y) into their screen projection.
+    // Returns False if this point is on visible face.
+    function ScreenCoordinate(var X, Y: TFloat):boolean;
+  published
+    // Center of the Sphere in the Destination Bitmap
+    property Center: TFloatPoint read FCenter write SetCenter;
+    // Radius of the Sphere in the Destination Bitmap
+    property Radius: TFloat read FRadius write SetRadius;
+    // Rotation of the Sphere (Y-axe rotation angle)
+    property Lattitude: TFloat read FLattitude write SetLattitude;
+    // Rotation of the Sphere (X-axe rotation angle)
+    property Longitude: TFloat read FLongitude write SetLongitude;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      Utilities
 //
 //------------------------------------------------------------------------------
@@ -2761,7 +2816,7 @@ begin
   FScalingFloat := FloatPoint(1, 1);
   FOffset := FloatPoint(0,0);
   FVectorMap := TVectorMap.Create;
-  //Ensuring initial setup to avoid exceptions
+  // Ensuring initial setup to avoid exceptions
   FVectorMap.SetSize(1, 1);
 end;
 
@@ -2770,6 +2825,8 @@ begin
   FVectorMap.Free;
   inherited;
 end;
+
+//------------------------------------------------------------------------------
 
 function TRemapTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 const
@@ -2896,6 +2953,288 @@ begin
   FOffsetInt := Point(Value);
   FOffsetFixed := FixedPoint(Value);
   Changed;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSphereTransformation
+//
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Utilities
+//------------------------------------------------------------------------------
+procedure Modulo2Pi(var Angle: TFloat); {Result is between 0 and 2PI }
+{$if defined(PUREPASCAL) or (not defined(TARGET_x86))}
+begin
+  Angle := GR32_Math.FloatMod(Angle, PI*2);
+end;
+{$else}
+asm
+        FLDPI
+        FADD    ST,ST               // 2PI
+        FLD     DWORD ptr [Angle]
+        FPREM                       // calc Modulo
+        FLDZ
+        FCOMIP  ST,ST(1)            // Compare 0 and Modulo (+pop 0)
+        JNB     @@1                 // if Modulo >= 0 then
+        FSTP    DWORD ptr [Angle]   //  return Modulo...
+        FSTP    ST(0)               //  POP the rest (2PI)
+        JMP     @@2
+@@1:    FADDP                       // add Modulo and Rest (2PI)
+        FSTP    DWORD ptr [Angle]   // Modulo+2PI...
+@@2:    FWAIT
+end;
+{$ifend}
+
+
+constructor TSphereTransformation.Create;
+begin
+  inherited;
+  FRadius := 1;
+end;
+
+//------------------------------------------------------------------------------
+
+function TSphereTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
+begin
+  // There is not direct relation between SourceRect and DestRect !
+  // During transformation process this rect will be clipped.
+  Result.Left := FCenter.X - FRadius;
+  Result.Top := FCenter.Y - FRadius;
+  Result.Bottom := FCenter.Y + FRadius;
+  Result.Right := FCenter.X + FRadius;
+end;
+
+function TSphereTransformation.HasTransformedBounds: Boolean;
+begin
+  Result := False;
+end;
+
+function TSphereTransformation.IsInSphere(CartesianX, CartesianY: TFloat): boolean;
+begin
+  if not TransformValid then
+    PrepareTransform;
+
+  CartesianX := CartesianX - FCenter.X;
+  CartesianY := CartesianY - FCenter.Y;
+
+  Result := (FSquareRadius >= (CartesianX * CartesianX + CartesianY * CartesianY));
+end;
+
+procedure TSphereTransformation.PrepareTransform;
+begin
+  // Invariants during transformation
+  FMapWidth := (SrcRect.Width - 1) / (2 * PI);
+  FMapHeight := (SrcRect.Height - 1) / PI;
+  FSquareRadius := Sqr(FRadius);
+  GR32_Math.SinCos(FLattitude, FLattitudeSin, FLattitudeCos);
+  FLattitudeSinInvRadius := -FLattitudeSin / FRadius;
+  FLattitudeCosInvRadius := FLattitudeCos / FRadius;
+  FSrcRectTop := SrcRect.Top;
+  FSrcRectLeft := SrcRect.Left;
+
+  TransformValid := True;
+end;
+
+procedure TSphereTransformation.ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat);
+{$if defined(PUREPASCAL) or (not defined(TARGET_x86))}
+var
+  Dist: TFloat;
+begin
+  // Screen projection on sphere
+  DstX := DstX - FCenter.X; // = Y
+  DstY := FCenter.Y - DstY; // = Z
+  Dist := DstX * DstX + DstY * DstY;
+
+  if (Dist > FSquareRadius) then // Not projectable on the sphere
+  begin
+    SrcX := -1;
+    SrcY := -1;
+    Exit;
+  end;
+
+  Dist := Sqrt(FSquareRadius - Dist);
+
+  // Apply rotations
+  DstX := Arctan2(DstX, Dist * FLattitudeCos + DstY * FLattitudeSin) + FLongitude;
+  Modulo2Pi(DstX);
+
+  // Map projection
+  SrcX := SrcRect.Left + DstX * FMapWidth;
+  SrcY := SrcRect.Top + ArcCos(DstY * FLattitudeCosInvRadius + Dist * FLattitudeSinInvRadius) * FMapHeight;
+end;
+{$else}
+{Assembler version (FPU) ... 4% faster on a P4 }
+asm
+// screen projection on sphere
+//  DstX := DstX - FCenterX; // = Y
+    fld   DstX               // DstX
+    fsub  [eax].FCenter.X // DstX'
+//  DstY := FCenterY - DstY; // = Z
+    fld   [eax].FCenter.Y // FCenterY | DstX'
+    fsub  DstY               // DstY'    | DstX'
+//  x := DstX * DstX + DstY * DstY;
+    fld   st(0)                    // Z    | Z    | Y
+    fmul  st(0),st(1)              // ZZ   | Z    | Y
+    fld   st(2)                    // Y    | ZZ   | Z   | Y
+    fmul  st(0),st(3)
+    faddp                          // X'   | Z    | Y
+//  if (FSquareRadius < x) then // not projetable in the sphere.
+    fld [eax].FSquareRadius
+    fcomi st(0),st(1) // st(0) < st(1)
+    jnbe   @@1
+    fstp  st(0)
+    fstp  st(0)
+    fstp  st(0)
+    fstp  st(0)
+//    SrcX := -1;
+    mov   [SrcX],$bf800000
+//    SrcY := -1;
+    mov   [SrcY],$bf800000
+//    Exit;
+    jmp @@fin
+@@1:
+//  x := sqrt(FSquareRadius - x);
+    fsubrp
+    fsqrt                          // X    | Z    | Y
+// apply rotations
+//  DstX := Arctan2(Y,X * FLattitudeCos + Z * FLattitudeSin) + FLongitude; // Lon
+    fxch  st(2)                   // Y     | Z    | Y
+    fld   st(2)                   // X     | Y    | Z    | X
+    fmul  [eax].FLattitudeCos
+    fld   st(2)                   // Z     | Xx.  | Y    | Z    | X
+    fmul  [eax].FLattitudeSin     // Zx.   | Xx.  | Y    | Z    | X
+    faddp                         // Xx+Zx | Y    | Z    | X
+    fpatan
+    fadd  [eax].FLongitude  // DstX  | Z    | X
+//  if DstX > PI2S then
+    fldpi
+    fadd  st(0),st(0)       // 2PI   | DstX | Z    | X
+    fcomi st(0),st(1) // st(0) < st(1)
+    jnb   @@test2
+//    DstX := DstX - PI2S
+    fsubp st(1),st(0)
+    jmp   @@testfin
+//  else if DstX < 0 then
+@@test2:
+    fldz
+    fcomip st(0),st(2) // st(0) < st(2)
+    jb @@test3
+//    DstX := DstX + PI2S;
+    faddp
+    jmp   @@testfin
+@@test3:
+    fstp  st(0)
+@@testfin:
+// Map projection
+//  SrcX := DstX * FMapWidth;
+    fmul  [eax].FMapWidth
+    FADD  [eax].FSrcRectLeft
+    fstp  dword ptr [SrcX]// Z    | X
+//  SrcY := ArcCos(Z * FLattitudeCosInvRadius + x * FLattitudeSinInvRadius) * FMapHeight;
+    fmul  [eax].FLattitudeCosInvRadius
+    fxch
+    fmul  [eax].FLattitudeSinInvRadius
+    faddp
+    FLD1                 // 1      | X
+    FLD   ST(1)          // X      | 1      | X
+    FMUL  ST(0),ST(0)    // X²     | 1      | X
+    FSUBP ST(1),ST(0)    // 1 - X² | X
+    FABS                 //<- avoid rounding errors...
+    FSQRT                // sqrt(.)| X
+    FXCH  st(1)
+    FPATAN               // result |
+    fmul  [eax].FMapHeight
+    FADD  [eax].FSrcRectTop
+    fstp  dword ptr [SrcY]
+@@fin:
+    fwait
+end;
+{$ifend}
+
+function TSphereTransformation.ScreenCoordinate(var X, Y: TFloat): boolean;
+var
+  SinLong, CosLong, SinLat, CosLat: TFloat;
+begin
+  if not TransformValid then
+    PrepareTransform;
+
+  GR32_Math.SinCos(X - FLongitude, SinLong, CosLong);
+  GR32_Math.SinCos(Y, SinLat, CosLat);
+
+  Result := (SinLat * CosLong * FLattitudeCos >= CosLat * FLattitudeSin);
+
+  if Result then
+  begin
+    X := FCenter.X + FRadius * SinLat * SinLong;
+    Y := FCenter.Y - FRadius * (SinLat * CosLong * FLattitudeSin + CosLat * FLattitudeCos);
+  end;
+end;
+
+procedure TSphereTransformation.SetCenter(const Value: TFloatPoint);
+begin
+  if FCenter <> Value then
+  begin
+    FCenter := Value;
+    Changed;
+  end;
+end;
+
+procedure TSphereTransformation.SetLattitude(const Value: TFloat);
+begin
+  if FLattitude <> Value then
+  begin
+    FLattitude := Value;
+    Modulo2Pi(FLattitude);
+    Changed;
+  end;
+end;
+
+procedure TSphereTransformation.SetLongitude(const Value: TFloat);
+begin
+  if FLongitude <> Value then
+  begin
+    FLongitude := Value;
+    Modulo2Pi(FLongitude);
+    Changed;
+  end;
+end;
+
+procedure TSphereTransformation.SetRadius(const Value: TFloat);
+begin
+  if (Value > 0) and (FRadius <> Value) then
+  begin
+    FRadius := Value;
+    Changed;
+  end;
+end;
+
+function TSphereTransformation.SphericalCoordinate(CartesianX, CartesianY: TFloat): TFloatPoint;
+var
+  Dist: TFloat;
+begin
+  if not TransformValid then
+    PrepareTransform;
+
+  // Screen projection on sphere
+  CartesianX := CartesianX - FCenter.X; // = Y
+  CartesianY := FCenter.Y - CartesianY; // = Z
+  Dist := CartesianX * CartesianX + CartesianY * CartesianY;
+
+  if (Dist > FSquareRadius) then // Not projectable in the sphere.
+  begin
+    Result.X := 0;
+    Result.Y := 0;
+    Exit;
+  end;
+
+  Dist := Sqrt(FSquareRadius - Dist);
+
+  // Apply rotations
+  Result.X := Arctan2(CartesianX, Dist * FLattitudeCos + CartesianY * FLattitudeSin) + FLongitude;
+  Modulo2Pi(Result.X);
+  Result.Y := ArcCos(CartesianY * FLattitudeCosInvRadius + Dist * FLattitudeSinInvRadius) - (PI / 2);
 end;
 
 
