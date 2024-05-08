@@ -188,6 +188,11 @@ begin
 {$ifend}
 end;
 
+{$ifdef FPC}
+type
+  TMemoryStreamCracker = class(TMemoryStream);
+{$endif FPC}
+
 function TImageFormatAdapterPNG32.AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean;
 var
   PNG32: TPortableNetworkGraphic32;
