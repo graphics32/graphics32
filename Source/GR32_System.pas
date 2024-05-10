@@ -34,26 +34,82 @@ interface
 
 {$I GR32.inc}
 
-{$IFNDEF PUREPASCAL}
 uses
-  GR32.CPUID;
-{$ENDIF}
+{$ifndef FPC}
+  System.Diagnostics,
+{$endif}
+{$ifndef PUREPASCAL}
+  GR32.CPUID,
+{$endif}
+  Types; // Not really needed in this unit but we do need something in this uses list
+
+
+//------------------------------------------------------------------------------
+//
+//      Delphi compatible TStopwatch-lookalike
+//
+//------------------------------------------------------------------------------
+// Differences from the Delphi TStopwatch:
+// - Does not have the Elapsed:TTimeSpan property.
+//------------------------------------------------------------------------------
+{$if not defined(FPC)}
+type
+  TStopwatch = System.Diagnostics.TStopWatch;
+{$else}
+type
+  TStopwatch = record
+  strict private
+    class var FFrequency: Int64;
+    class var FIsHighResolution: Boolean;
+    class var FTickFrequency: Double;
+  strict private
+    FElapsed: Int64;
+    FRunning: Boolean;
+    FStartTimeStamp: Int64;
+    function GetElapsedDateTimeTicks: Int64;
+    function GetElapsedMilliseconds: Int64;
+    function GetElapsedTicks: Int64;
+    class constructor Create;
+  public
+    class function Create: TStopwatch; static;
+    class function GetTimeStamp: Int64; static;
+    procedure Reset;
+    procedure Start;
+    class function StartNew: TStopwatch; static;
+    procedure Stop;
+    property ElapsedMilliseconds: Int64 read GetElapsedMilliseconds;
+    property ElapsedTicks: Int64 read GetElapsedTicks;
+    class property Frequency: Int64 read FFrequency;
+    class property IsHighResolution: Boolean read FIsHighResolution;
+    property IsRunning: Boolean read FRunning;
+  end;
+{$ifend}
+
+{$ifndef FPC}
+type
+  TStopwatchHelper = record helper for TStopwatch
+{$endif}
+  const
+    TicksPerMicrosecond = 10; // 1 tick = 100ns
+    TicksPerNanosecond = TicksPerMicrosecond / 1000;
+    TicksPerMillisecond = 1000 * Int64(TicksPerMicrosecond);
+    TicksPerSecond = 1000 * Int64(TicksPerMillisecond);
+{$ifndef FPC}
+  end;
+{$endif}
+
 
 //------------------------------------------------------------------------------
 //
 //      Performance timer
 //
 //------------------------------------------------------------------------------
+// Obsolete; Use TStopWatch instead.
+//------------------------------------------------------------------------------
 type
   TPerfTimer = class
   private
-{$if defined(Windows)}
-    FFrequency, FPerformanceCountStart, FPerformanceCountStop: Int64;
-{$elseif defined(UNIX)}
-  {$IFDEF FPC}
-    FStart: Int64;
-  {$ENDIF}
-{$ifend}
+    FStopwatch: TStopwatch;
   public
     procedure Start;
     function ReadNanoseconds: string;
@@ -61,10 +117,12 @@ type
     function ReadSeconds: string;
 
     function ReadValue: Int64;
-  end;
+  end deprecated 'Use TStopwatch';
 
 var
-  GlobalPerfTimer: TPerfTimer;
+  {$WARN SYMBOL_DEPRECATED OFF}{$ifdef FPC}{$push}{$endif}
+  GlobalPerfTimer: TPerfTimer deprecated 'Use TStopwatch';
+  {$ifndef FPC}{$WARN SYMBOL_DEPRECATED DEFAULT}{$else}{$pop}{$endif}
 
 
 //------------------------------------------------------------------------------
@@ -181,9 +239,6 @@ var
 implementation
 
 uses
-{$ifndef FPC}
-  System.Diagnostics,
-{$endif}
 {$ifdef WINDOWS}
   Windows,
 {$endif}
@@ -195,7 +250,7 @@ uses
 //      GetTickCount
 //
 //------------------------------------------------------------------------------
-{$if not defined(FPC)}
+{$ifndef FPC}
 var
   TickCounter: TStopwatch;
 
@@ -208,6 +263,112 @@ function GetTickCount: UInt64;
 begin
   Result := SysUtils.GetTickCount64;
 end;
+{$endif}
+
+
+//------------------------------------------------------------------------------
+//
+//      TStopwatch
+//
+//------------------------------------------------------------------------------
+{$if defined(FPC)}
+
+class constructor TStopwatch.Create;
+begin
+{$if defined(MSWINDOWS)}
+  if not QueryPerformanceFrequency(FFrequency) then
+  begin // Never happens on XP and later
+    FIsHighResolution := False;
+    FFrequency := TicksPerSecond;
+    FTickFrequency := 1.0;
+  end else
+  begin
+    FIsHighResolution := True;
+    FTickFrequency := 10000000.0 / FFrequency;
+  end;
+{$elseif defined(POSIX)}
+  FIsHighResolution := True;
+  FFrequency := 10000000; // 100 ns resolution
+  FTickFrequency := 10000000.0 / FFrequency;
+{$ifend}
+end;
+
+class function TStopwatch.Create: TStopwatch;
+begin
+  Result.Reset;
+end;
+
+function TStopwatch.GetElapsedDateTimeTicks: Int64;
+begin
+  Result := ElapsedTicks;
+  if FIsHighResolution then
+    Result := Trunc(Result * FTickFrequency);
+end;
+
+function TStopwatch.GetElapsedMilliseconds: Int64;
+begin
+  Result := GetElapsedDateTimeTicks div TicksPerMillisecond;
+
+end;
+
+function TStopwatch.GetElapsedTicks: Int64;
+begin
+  Result := FElapsed;
+  if FRunning then
+    Result := Result + GetTimeStamp - FStartTimeStamp;
+end;
+
+class function TStopwatch.GetTimeStamp: Int64;
+{$if defined(POSIX) and not defined(MACOS)}
+var
+  res: timespec;
+{$ifend}
+begin
+{$if defined(MSWINDOWS)}
+  if FIsHighResolution then
+    QueryPerformanceCounter(Result)
+  else
+    // TODO : This looks wrong. GetTickCount always returns ms
+    Result := GetTickCount64 * UInt64(TicksPerMillisecond);
+{$elseif defined(MACOS)}
+  Result := Int64(AbsoluteToNanoseconds(mach_absolute_time) div 100);
+{$elseif defined(POSIX)}
+  clock_gettime(CLOCK_MONOTONIC, @res);
+  Result := (Int64(1000000000) * res.tv_sec + res.tv_nsec) div 100;
+{$ifend}
+end;
+
+procedure TStopwatch.Reset;
+begin
+  FElapsed := 0;
+  FRunning := False;
+  FStartTimeStamp := 0;
+end;
+
+procedure TStopwatch.Start;
+begin
+  if not FRunning then
+  begin
+    FStartTimeStamp := GetTimeStamp;
+    FRunning := True;
+  end;
+end;
+
+class function TStopwatch.StartNew: TStopwatch;
+begin
+  Result.Reset;
+  Result.Start;
+end;
+
+procedure TStopwatch.Stop;
+begin
+  if FRunning then
+  begin
+    FElapsed := FElapsed + GetTimeStamp - FStartTimeStamp;
+    FRunning := False;
+  end;
+end;
+
 {$ifend}
 
 
@@ -216,73 +377,30 @@ end;
 //      Performance timer
 //
 //------------------------------------------------------------------------------
-{$if defined(Windows)}
 function TPerfTimer.ReadNanoseconds: string;
 begin
-  QueryPerformanceCounter(FPerformanceCountStop);
-  QueryPerformanceFrequency(FFrequency);
-  Assert(FFrequency > 0);
-
-  Result := IntToStr(Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency));
+  Result := IntToStr(Round(FStopwatch.ElapsedTicks / {$ifndef FPC}FStopwatch.{$endif}TicksPerNanosecond));
 end;
 
 function TPerfTimer.ReadMilliseconds: string;
 begin
-  QueryPerformanceCounter(FPerformanceCountStop);
-  QueryPerformanceFrequency(FFrequency);
-  Assert(FFrequency > 0);
-
-  Result := FloatToStrF(1000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency, ffFixed, 15, 3);
+  Result := FloatToStrF(FStopwatch.ElapsedTicks / {$ifndef FPC}FStopwatch.{$endif}TicksPerMillisecond, ffFixed, 15, 3);
 end;
 
 function TPerfTimer.ReadSeconds: String;
 begin
-  QueryPerformanceCounter(FPerformanceCountStop);
-  QueryPerformanceFrequency(FFrequency);
-  Result := FloatToStrF((FPerformanceCountStop - FPerformanceCountStart) / FFrequency, ffFixed, 15, 3);
+  Result := FloatToStrF(FStopwatch.ElapsedTicks / {$ifndef FPC}FStopwatch.{$endif}TicksPerSecond, ffFixed, 15, 3);
 end;
 
 function TPerfTimer.ReadValue: Int64;
 begin
-  QueryPerformanceCounter(FPerformanceCountStop);
-  QueryPerformanceFrequency(FFrequency);
-  Assert(FFrequency > 0);
-
-  Result := Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency);
+  Result := FStopwatch.ElapsedTicks;
 end;
 
 procedure TPerfTimer.Start;
 begin
-  QueryPerformanceCounter(FPerformanceCountStart);
+  FStopwatch := TStopwatch.StartNew;
 end;
-{$elseif defined(UNIX)}
-{$IFDEF FPC}
-function TPerfTimer.ReadNanoseconds: string;
-begin
-  Result := IntToStr(ReadValue);
-end;
-
-function TPerfTimer.ReadMilliseconds: string;
-begin
-  Result := IntToStr(ReadValue div 1000);
-end;
-
-function TPerfTimer.ReadSeconds: string;
-begin
-  Result := IntToStr(ReadValue div 1000000);
-end;
-
-function TPerfTimer.ReadValue: Int64;
-begin
-  Result := GetTickCount - FStart;
-end;
-
-procedure TPerfTimer.Start;
-begin
-  FStart := GetTickCount;
-end;
-{$ENDIF}
-{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -291,11 +409,11 @@ end;
 //
 //------------------------------------------------------------------------------
 function GetProcessorCount: Cardinal;
-{$IFNDEF FPC}
+{$ifndef FPC}
 begin
   Result := CPUCount;
 end;
-{$ELSE FPC}
+{$else}
 {$if defined(Windows)}
 var
   lpSysInfo: TSystemInfo;
@@ -308,7 +426,7 @@ begin
   Result := 1;
 end;
 {$ifend}
-{$ENDIF}
+{$endif}
 
 //------------------------------------------------------------------------------
 
@@ -475,18 +593,22 @@ end;
 //------------------------------------------------------------------------------
 
 initialization
-{$if not defined(FPC)}
+{$ifndef FPC}
   TickCounter := TStopwatch.StartNew;
-{$ifend}
+{$endif}
 
 {$IFNDEF PUREPASCAL}
   CPU := TCPU.GetCPUInfo;
 {$ELSE}
   CPU := Default(TCPU);
 {$ENDIF}
+{$WARN SYMBOL_DEPRECATED OFF}{$ifdef FPC}{$push}{$endif}
   GlobalPerfTimer := TPerfTimer.Create;
+{$ifndef FPC}{$WARN SYMBOL_DEPRECATED DEFAULT}{$else}{$pop}{$endif}
 
 finalization
+{$WARN SYMBOL_DEPRECATED OFF}{$ifdef FPC}{$push}{$endif}
   GlobalPerfTimer.Free;
+{$ifndef FPC}{$WARN SYMBOL_DEPRECATED DEFAULT}{$else}{$pop}{$endif}
 
 end.

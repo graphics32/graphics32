@@ -321,13 +321,14 @@ var
   X, Y: Integer;
   sw, sh: Single;
   HasResampled: boolean;
+  StopWatch: TStopWatch;
 begin
   sw := FBitmapPattern.Width / ImagePattern.Bitmap.Width;
   sh := FBitmapPattern.Height / ImagePattern.Bitmap.Height;
 
   HasResampled := False;
   Screen.Cursor := crAppStart;
-  GlobalPerfTimer.Start;
+  StopWatch := TStopWatch.StartNew;
 
   if TabResampling.Visible then
   begin
@@ -355,7 +356,7 @@ begin
   end;
 
   if (HasResampled) then
-    StatusBar.Panels[0].Text := GlobalPerfTimer.ReadMilliseconds + ' ms for resampling.';
+    StatusBar.Panels[0].Text := Format('%.0n ms for resampling.', [1.0*StopWatch.ElapsedMilliseconds]);
 
   Screen.Cursor := crDefault;
 end;
@@ -561,11 +562,13 @@ end;
 ** Upsample using StretchTransfer
 *)
 procedure TFrmResamplersExample.PaintBoxStretchTransferPaintBuffer(Sender: TObject);
+var
+  StopWatch: TStopWatch;
 begin
   Screen.Cursor := crAppStart;
-  GlobalPerfTimer.Start;
+  StopWatch := TStopWatch.StartNew;
   FBitmapPattern.DrawTo(TPaintBox32(Sender).Buffer, TPaintBox32(Sender).Buffer.BoundsRect);
-  StatusBar.Panels[0].Text := GlobalPerfTimer.ReadMilliseconds + ' ms for resampling.';
+  StatusBar.Panels[0].Text := Format('%.0n ms for resampling.', [1.0*StopWatch.ElapsedMilliseconds]);
   Screen.Cursor := crDefault;
 end;
 
@@ -597,6 +600,7 @@ var
   SmallerBitmap: TBitmap32;
   R: TRect;
   ScaleRatioX, ScaleRatioY: Single;
+  StopWatch: TStopWatch;
 begin
   if not TabResampling.Visible then
     Exit;
@@ -608,7 +612,7 @@ begin
     SetupResampler(SmallerBitmap);
     SetupResampler(FBitmapSource);
 
-    GlobalPerfTimer.Start;
+    StopWatch := TStopWatch.StartNew;
 
     PaintBoxResampling.Buffer.BeginUpdate;
     try
@@ -640,7 +644,7 @@ begin
       PaintBoxResampling.Buffer.EndUpdate;
     end;
 
-    StatusBar.Panels[0].Text := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
+    StatusBar.Panels[0].Text := Format('%.0n ms for rendering.', [1.0*StopWatch.ElapsedMilliseconds]);
 
   finally
     SmallerBitmap.Free;
