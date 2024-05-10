@@ -146,6 +146,9 @@ begin
 {$if defined(GR32_CLIPBOARD_PNG)}
   if (Source is TClipboard) then
   begin
+    if (not Clipboard.HasFormat(CF_PNG)) then
+      Exit(False);
+
     Dest.BeginUpdate;
     try
 {$ifndef FPC}
