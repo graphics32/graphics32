@@ -46,9 +46,6 @@ type
     procedure TbrBlurAngleChange(Sender: TObject);
     procedure TbrBlurRadiusChange(Sender: TObject);
   private
-    FPerfTimer: TPerfTimer;
-    FDuration: string;
-
     FReDrawFlag: Boolean;
 
     FStoneWeedImage: TBitmap32;
@@ -142,8 +139,6 @@ begin
   // Now load the real STONEWEED image ...
   LoadJPGResource('STONEWEED', FStoneWeedImage);
 
-  FPerfTimer := TPerfTimer.Create;
-
   Randomize;
   FRandBoxImage := TBitmap32.create;
   //generate an image of full of random boxes ...
@@ -161,7 +156,6 @@ end;
 
 procedure TFrmBlurs.FormDestroy(Sender: TObject);
 begin
-  FPerfTimer.Free;
   FStoneWeedImage.Free;
   FIcelandImage.Free;
   FRandBoxImage.Free;
@@ -173,6 +167,7 @@ var
   Rec, Rec2: TRect;
   Pts, Pts2: TArrayOfFloatPoint;
   WithGamma: Boolean;
+  Stopwatch: TStopwatch;
 begin
   if FReDrawFlag then
     Exit;
@@ -186,7 +181,7 @@ begin
         ImgViewPage1.BeginUpdate;
         ImgViewPage1.Bitmap.Assign(FIcelandImage);
 
-        FPerfTimer.Start;
+        Stopwatch := TStopwatch.StartNew;
         case RgpBlurType.ItemIndex of
           1:
             GaussianBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
@@ -200,7 +195,7 @@ begin
               MotionBlur(ImgViewPage1.Bitmap, Radius,
                TbrBlurAngle.Position, CbxBidirectional.Checked)
         end;
-        FDuration := FPerfTimer.ReadMilliseconds;
+        Stopwatch.Stop;
         ImgViewPage1.EndUpdate;
         ImgViewPage1.Repaint;
         Application.ProcessMessages;
@@ -213,7 +208,7 @@ begin
         Pts := Star(130, 150, 90, 5, -0.5 * Pi);
         Pts2 := Ellipse(350, 250, 100, 60);
 
-        FPerfTimer.Start;
+        Stopwatch := TStopwatch.StartNew;
         case RgpBlurType.ItemIndex of
           1:
             begin
@@ -241,7 +236,7 @@ begin
                 Pts2, CbxBidirectional.Checked);
             end;
         end;
-        FDuration := FPerfTimer.ReadMilliseconds;
+        Stopwatch.Stop;
         Application.ProcessMessages;
 
         PolylineFS(ImgViewPage2.Bitmap, Pts, clBlack32, True, 2.5);
@@ -272,7 +267,7 @@ begin
 
         Pts := Ellipse(395, 175, 60, 100);
 
-        FPerfTimer.Start;
+        Stopwatch := TStopwatch.StartNew;
         case RgpBlurType.ItemIndex of
           1:
             begin
@@ -306,7 +301,7 @@ begin
                 TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
             end;
         end;
-        FDuration := FPerfTimer.ReadMilliseconds;
+        Stopwatch.Stop;
         Application.ProcessMessages;
 
         PolylineFS(FBmpLayer.Bitmap, Pts, clBlack32, True, 2.5);
@@ -324,7 +319,7 @@ begin
         ImgViewPage3.Repaint;
       end;
   end;
-  SbrMain.SimpleText := Format('  Blur drawing time: %s ms', [FDuration]);
+  SbrMain.SimpleText := Format('  Blur drawing time: %d ms', [Stopwatch.ElapsedMilliseconds]);
   Screen.Cursor := crDefault;
   FReDrawFlag := False;
 end;

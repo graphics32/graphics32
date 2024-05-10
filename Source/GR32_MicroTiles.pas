@@ -158,7 +158,7 @@ type
     // adaptive stuff...
     FAdaptiveMode: Boolean;
 
-    FPerfTimer: TPerfTimer;
+    FPerfTimer: TStopWatch;
     FPerformanceLevel: Integer;
     FElapsedTimeForLastRepaint: Int64;
     FElapsedTimeForFullSceneRepaint: Int64;
@@ -1127,7 +1127,6 @@ begin
   inherited;
   FOldInvalidTilesMap := TMicroTilesMap.Create;
   FInvalidLayers := TList.Create;
-  FPerfTimer := TPerfTimer.Create;
 {$IFNDEF MICROTILES_DEBUGDRAW}
   {$IFNDEF MICROTILES_NO_ADAPTION}
   FAdaptiveMode := True;
@@ -1150,7 +1149,6 @@ begin
   MicroTilesDestroy(FTempTiles);
   MicroTilesDestroy(FInvalidTiles);
 
-  FPerfTimer.Free;
   FInvalidLayers.Free;
   FOldInvalidTilesMap.Free;
 
@@ -1366,7 +1364,7 @@ end;
 procedure TMicroTilesRepaintOptimizer.BeginPaintBuffer;
 begin
   if AdaptiveMode then
-    FPerfTimer.Start;
+    FPerfTimer := TStopWatch.StartNew;
 end;
 
 procedure TMicroTilesRepaintOptimizer.EndPaintBuffer;
@@ -1511,7 +1509,7 @@ var
   Level: Integer;
 begin
   // our KISS(TM) repaint mode balancing starts here...
-  TimeElapsed := FPerfTimer.ReadValue;
+  TimeElapsed := FPerfTimer.ElapsedTicks;
 
 {$IFDEF MICROTILES_DEBUGDRAW}
   if FDebugInvalidRects.Count = 0 then

@@ -118,8 +118,9 @@ procedure TMainForm.RunTest(TestProc: TTestProc; TestTime: Int64);
 var
   Canvas: TCanvas32;
   i, t: Int64;
+  StopWatch: TStopWatch;
 begin
-  TestTime := TestTime * 1000;
+  TestTime := (TestTime * TStopwatch.TicksPerSecond) div 1000;
   RandSeed := 0;
 
   Canvas := TCanvas32.Create(Img.Bitmap);
@@ -134,7 +135,7 @@ begin
         Canvas.Brushes[0].Visible := True;
         Canvas.Brushes[1].Visible := False;
         i := 0;
-        GlobalPerfTimer.Start;
+        StopWatch := TStopWatch.StartNew;
 
         repeat
           TestProc(Canvas);
@@ -147,10 +148,10 @@ begin
           TestProc(Canvas);
           TestProc(Canvas);
           TestProc(Canvas);
-          t := GlobalPerfTimer.ReadValue;
+          t := StopWatch.ElapsedTicks;
           Inc(i, 10);
         until t > TestTime;
-        WriteTestResult((i*1000000) div t);
+        WriteTestResult((i*TStopwatch.TicksPerSecond) div t);
 
         Img.Invalidate; // VPR2 and VPR2X doesn't call TBitmap32.Changed when they draw
       finally
