@@ -128,14 +128,24 @@ var
   Sensor: TCustomSensor;
   WasStarted: boolean;
 {$endif}
+var
+  s: string;
+  Size: TSize;
 begin
   Screen.Cursor := crAppStart;
+
+  PaintBox32.Buffer.Clear(clBlack32);
+  PaintBox32.Visible := True;
+
+  s := 'Loading - Please wait...';
+  Size := PaintBox32.Buffer.TextExtent(s);
+  PaintBox32.Buffer.RenderText((PaintBox32.Width-Size.cx) div 2, (PaintBox32.Height-Size.cy) div 2, s, -1, clRed32);
+  PaintBox32.Flush;
 
   FBitmap.LoadFromFile(Graphics32Examples.MediaFolder + '\Globe.jpg');
 
   FTransformation.SrcRect := MakeRect(FBitmap.BoundsRect);
 
-  PaintBox32.Visible := True;
   Screen.Cursor := crDefault;
 
   // Start with some random location, a bit more interesting than the Pacific Ocean
@@ -255,6 +265,18 @@ begin
 
   StopWatch.Stop;
   PaintBox32.Buffer.RenderText(0, 0, Format('Rasterized in %d mS', [StopWatch.ElapsedMilliseconds]), -1, clWhite32);
+
+  // While manually panning or rotating, adjust the pixel size so we are able to maintain
+  // a frame rate between 25-50 fps
+  if (FCurrentRasterizer = FDraftRasterizer) then
+  begin
+    if (StopWatch.ElapsedMilliseconds < 20) then
+      TDraftRasterizer(FDraftRasterizer).PixelSize := TDraftRasterizer(FDraftRasterizer).PixelSize - 1
+    else
+    if (StopWatch.ElapsedMilliseconds > 40) then
+      TDraftRasterizer(FDraftRasterizer).PixelSize := TDraftRasterizer(FDraftRasterizer).PixelSize + 1;
+    PaintBox32.Buffer.RenderText(0, 20, Format('Pixel size: %d', [TDraftRasterizer(FDraftRasterizer).PixelSize]), -1, clWhite32);
+  end;
 end;
 
 //------------------------------------------------------------------------------
