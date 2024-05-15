@@ -160,12 +160,13 @@ end;
 procedure TCircleBrush.PolyPolygonFS(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean);
 var
-  CirclePoints: TArrayOfFloatPoint;
+  CirclePoints: TArrayOfArrayOfFloatPoint;
   Center, LastCenter, Delta: TFloatPoint;
   i, j, k: integer;
 begin
   LastCenter := FloatPoint(0, 0);
-  CirclePoints := Circle(LastCenter, FRadius);
+  SetLength(CirclePoints, 1);
+  CirclePoints[0] := Circle(LastCenter, FRadius);
 
   for i := 0 to High(Points) do
     for j := 0 to High(Points[i]) do
@@ -173,14 +174,14 @@ begin
       Center := Points[i, j];
 
       Delta := Center - LastCenter;
+      LastCenter := Center;
 
       // Translate circle to new center in-place
-      for k := 0 to High(CirclePoints) do
-        CirclePoints[k] := CirclePoints[k] + Delta;
+      for k := 0 to High(CirclePoints[0]) do
+        CirclePoints[0, k] := CirclePoints[0, k] + Delta;
 
-      inherited PolyPolygonFS(Renderer, [CirclePoints], ClipRect, Transformation, True);
+      inherited PolyPolygonFS(Renderer, CirclePoints, ClipRect, Transformation, True);
 
-      LastCenter := Center;
     end;
 end;
 
@@ -246,8 +247,8 @@ var
     begin
       Recurse(I, P1, P, t1, Temp);
       Recurse(I, P, P2, Temp, t2);
-    end
-    else AddPoint(P);
+    end else
+      AddPoint(P);
   end;
 
 const
@@ -338,7 +339,10 @@ begin
     Points[I] := FloatPoint(Random(Paintbox.Buffer.Width), Random(Paintbox.Buffer.Height));
 
   // Create interpolation kernel
-  K := TGaussianKernel.Create;
+  // We previously used TGaussianKernel here but after that kernel was fixed
+  // it no longer gives us the curve we would like; A curve that intersects
+  // the control points.
+  K := THammingKernel.Create;
   try
     // Subdivide recursively and interpolate
     Curve := MakeCurve(Points, K, True);
