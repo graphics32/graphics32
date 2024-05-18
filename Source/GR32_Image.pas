@@ -2987,10 +2987,9 @@ end;
 procedure TCustomImage32.ExecDrawBitmap(Dest: TBitmap32; StageNum: Integer);
 var
   BitmapRect: TRect;
-  i, j: Integer;
+  TileX, TileY: Integer;
   TileCountX, TileCountY: Integer;
-  TileX, TileY: integer;
-  Buffer: TBitmap32;
+  Tile: TRect;
 begin
   if Bitmap.Empty then
     Exit;
@@ -3008,50 +3007,41 @@ begin
       TileCountX := Dest.Width div BitmapRect.Right;
       TileCountY := Dest.Height div BitmapRect.Bottom;
 
-      // Stretching the bitmap is very expensive so only do it once and then tile the stretched bitmap
       if ((TileCountX > 0) or (TileCountY > 0)) and
         ((BitmapRect.Width <> Bitmap.Width) or (BitmapRect.Height <> Bitmap.Height)) then
       begin
         // Tile and Stretch
-        Buffer := TBitmap32.Create(TMemoryBackend);
-        try
-          Buffer.SetSize(BitmapRect.Width, BitmapRect.Height);
-          StretchTransfer(Buffer, Buffer.BoundsRect, Buffer.BoundsRect, Bitmap, Bitmap.BoundsRect, Bitmap.Resampler, dmOpaque, nil);
-          TBitmap32Cracker(Bitmap).CopyPropertiesTo(Buffer);
-
-          TileY := BitmapRect.Top;
-          for j := 0 to TileCountY do
+        Tile := BitmapRect;
+        for TileY := 0 to TileCountY do
+        begin
+          for TileX := 0 to TileCountX do
           begin
-            TileX := BitmapRect.Left;
-            for i := 0 to TileCountX do
-            begin
-              Buffer.DrawTo(Dest, TileX, TileY);
-
-              Inc(TileX, BitmapRect.Width);
-            end;
-
-            Inc(TileY, BitmapRect.Height);
+            Bitmap.DrawTo(Dest, Tile);
+            GR32.OffsetRect(Tile, BitmapRect.Width, 0);
           end;
 
-        finally
-          Buffer.Free;
+          Tile.Left := BitmapRect.Left;
+          Tile.Right := BitmapRect.Right;
+
+          GR32.OffsetRect(Tile, 0, BitmapRect.Height);
         end;
       end else
       if (BitmapRect.Width = Bitmap.Width) and (BitmapRect.Height = Bitmap.Height) then
       begin
         // No stretch, possibly Tiling,
-        TileY := BitmapRect.Top;
-        for j := 0 to TileCountY do
+        Tile := BitmapRect;
+        for TileY := 0 to TileCountY do
         begin
-          TileX := BitmapRect.Left;
-          for i := 0 to TileCountX do
+          for TileX := 0 to TileCountX do
           begin
-            Bitmap.DrawTo(Dest, TileX, TileY);
-
-            Inc(TileX, BitmapRect.Width);
+            Bitmap.DrawTo(Dest, Tile.Left, Tile.Top);
+            GR32.OffsetRect(Tile, BitmapRect.Width, 0);
           end;
 
-          Inc(TileY, BitmapRect.Height);
+          Tile.Left := BitmapRect.Left;
+          Tile.Right := BitmapRect.Right;
+
+          GR32.OffsetRect(Tile, 0, BitmapRect.Height);
         end;
       end else
         // Stretch, No tiling
