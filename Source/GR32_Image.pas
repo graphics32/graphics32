@@ -555,6 +555,8 @@ type
     procedure DoScaleChange; virtual;
     procedure InitDefaultStages; virtual;
     function InvalidRectsAvailable: Boolean; override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
@@ -2140,6 +2142,13 @@ begin
         UpdateRectNotification.AreaUpdated(AArea, AInfo);
       // ->Windows InvalidateRect
       inherited AreaUpdated(AArea, AInfo);
+
+      // Note that even though we do a coarse InvalidateRect here, regardless of the shape of
+      // the area being invalidated, this does not spoil our repaint optimization. When
+      // processing WM_PAINT we will still only paint the repaint optimizer's fine-grained
+      // tiles.
+      // Note on the note: I'm not sure the above is correct anymore; Will have to verify.
+
       AreaUpdated := True;
     end else
     begin
@@ -3391,6 +3400,24 @@ begin
   end;
 end;
 {$ifend}
+
+procedure TCustomImage32.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+
+  // Forward key event to any layer that has captured the mouse
+  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+end;
+
+procedure TCustomImage32.KeyUp(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+
+  // Forward key event to any layer that has captured the mouse
+  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var

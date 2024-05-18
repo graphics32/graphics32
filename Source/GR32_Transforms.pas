@@ -1,4 +1,4 @@
-unit GR32_Transforms;
+﻿unit GR32_Transforms;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -74,6 +74,12 @@ procedure Invert(var M: TFloatMatrix);
 function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 
+
+//------------------------------------------------------------------------------
+//
+//      TTransformation
+//
+//------------------------------------------------------------------------------
 type
   TTransformation = class(TNotifiablePersistent)
   private
@@ -102,8 +108,16 @@ type
     function Transform(const P: TFloatPoint): TFloatPoint; overload; virtual;
     property SrcRect: TFloatRect read FSrcRect write SetSrcRect;
   end;
+
   TTransformationClass = class of TTransformation;
 
+
+//------------------------------------------------------------------------------
+//
+//      TNestedTransformation
+//
+//------------------------------------------------------------------------------
+type
   TNestedTransformation = class(TTransformation)
   private
     FItems: TList;
@@ -130,6 +144,13 @@ type
     property Items[Index: Integer]: TTransformation read GetItem write SetItem; default;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      T3x3Transformation
+//
+//------------------------------------------------------------------------------
+type
   T3x3Transformation = class(TTransformation)
   protected
     FMatrix, FInverseMatrix: TFloatMatrix;
@@ -143,6 +164,13 @@ type
     property Matrix: TFloatMatrix read FMatrix;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TAffineTransformation
+//
+//------------------------------------------------------------------------------
+type
   TAffineTransformation = class(T3x3Transformation)
   private
     FStack: ^TFloatMatrix;
@@ -163,6 +191,13 @@ type
     procedure Translate(Dx, Dy: TFloat);
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TProjectiveTransformation
+//
+//------------------------------------------------------------------------------
+type
   TProjectiveTransformation = class(T3x3Transformation)
   private
     FQuadX: array [0..3] of TFloat;
@@ -192,6 +227,106 @@ type
     property Y3: TFloat index 3 read GetY write SetY;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TProjectiveTransformationEx
+//
+//------------------------------------------------------------------------------
+// Performs projective transformation between two convex quadrilaterals.
+//------------------------------------------------------------------------------
+// References:
+//
+// - "Fundamentals of Texture Mapping and Image Warping"
+//   Paul S. Heckbert
+//   www.cs.cmu.edu/~ph/texfund/texfund.pdf
+//
+// - "Projective Mappings for ImageWarping"
+//   Paul S. Heckbert
+//   http://graphics.cs.cmu.edu/courses/15-463/2008_fall/Papers/proj.pdf
+//
+// - "Geometric Tools for Computer Graphics"
+//   David H. Eberly
+//   https://www.amazon.com/Geometric-Computer-Graphics-Morgan-Kaufmann/dp/1558605940
+//
+// - "Perspective Mappings"
+//   David H. Eberly
+//   https://geometrictools.com/Documentation/PerspectiveMappings.pdf
+//
+//------------------------------------------------------------------------------
+type
+  TQuadrilateral = array[0..3] of TPoint;
+  TFloatQuadrilateral = array[0..3] of TFloatPoint;
+
+  TProjectiveTransformationEx = class(T3x3Transformation)
+  private
+    FExtrapolate: boolean;
+    FSourceQuad: TFloatQuadrilateral;
+    FDestQuad: TFloatQuadrilateral;
+    procedure SetSourceQuad(const Value: TFloatQuadrilateral); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetDestQuad(const Value: TFloatQuadrilateral); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetSource(Index: Integer; const Value: TFloatPoint); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetSourceX(Index: Integer; const Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetSourceY(Index: Integer; const Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetDest(Index: Integer; const Value: TFloatPoint); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetDestX(Index: Integer; const Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetDestY(Index: Integer; const Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetSource(Index: Integer): TFloatPoint; {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetSourceX(Index: Integer): TFloat; {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetSourceY(Index: Integer): TFloat; {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetDest(Index: Integer): TFloatPoint; {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetDestX(Index: Integer): TFloat; {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetDestY(Index: Integer): TFloat; {$IFDEF UseInlining} inline; {$ENDIF}
+  protected
+    procedure PrepareTransform; override;
+    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
+    procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
+    procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); override;
+    procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
+  public
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
+
+    property SourceQuad: TFloatQuadrilateral read FSourceQuad write SetSourceQuad;
+    property Source[Index: Integer]: TFloatPoint read GetSource write SetSource;
+    property SourceX[Index: Integer]: TFloat read GetSourceX write SetSourceX;
+    property SourceY[Index: Integer]: TFloat read GetSourceY write SetSourceY;
+    property DestQuad: TFloatQuadrilateral read FDestQuad write SetDestQuad;
+    property Dest[Index: Integer]: TFloatPoint read GetDest write SetDest;
+    property DestX[Index: Integer]: TFloat read GetDestX write SetDestX;
+    property DestY[index: Integer]: TFloat read GetDestX write SetDestY;
+  published
+    // Set Extrapolate=True to have pixels beyond the destination be transformed.
+    // This is done by having GetTransformedBounds return the passed source rect,
+    // which in turn causes the rasterizer to process all pixels of the source
+    // image instead of just the pixels covered by the target quad.
+    property Extrapolate: boolean read FExtrapolate write FExtrapolate;
+
+    property DestX0: TFloat index 0 read GetDestX write SetDestX;
+    property DestX1: TFloat index 1 read GetDestX write SetDestX;
+    property DestX2: TFloat index 2 read GetDestX write SetDestX;
+    property DestX3: TFloat index 3 read GetDestX write SetDestX;
+    property DestY0: TFloat index 0 read GetDestY write SetDestY;
+    property DestY1: TFloat index 1 read GetDestY write SetDestY;
+    property DestY2: TFloat index 2 read GetDestY write SetDestY;
+    property DestY3: TFloat index 3 read GetDestY write SetDestY;
+
+    property SourceX0: TFloat index 0 read GetSourceX write SetSourceX;
+    property SourceX1: TFloat index 1 read GetSourceX write SetSourceX;
+    property SourceX2: TFloat index 2 read GetSourceX write SetSourceX;
+    property SourceX3: TFloat index 3 read GetSourceX write SetSourceX;
+    property SourceY0: TFloat index 0 read GetSourceY write SetSourceY;
+    property SourceY1: TFloat index 1 read GetSourceY write SetSourceY;
+    property SourceY2: TFloat index 2 read GetSourceY write SetSourceY;
+    property SourceY3: TFloat index 3 read GetSourceY write SetSourceY;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TTwirlTransformation
+//
+//------------------------------------------------------------------------------
+type
   TTwirlTransformation = class(TTransformation)
   private
     Frx, Fry: TFloat;
@@ -207,6 +342,13 @@ type
     property Twirl: TFloat read FTwirl write SetTwirl;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TBloatTransformation
+//
+//------------------------------------------------------------------------------
+type
   TBloatTransformation = class(TTransformation)
   private
     FBloatPower: TFloat;
@@ -223,6 +365,13 @@ type
     property BloatPower: TFloat read FBloatPower write SetBloatPower;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TDisturbanceTransformation
+//
+//------------------------------------------------------------------------------
+type
   TDisturbanceTransformation = class(TTransformation)
   private
     FDisturbance: TFloat;
@@ -235,6 +384,13 @@ type
     property Disturbance: TFloat read FDisturbance write SetDisturbance;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TFishEyeTransformation
+//
+//------------------------------------------------------------------------------
+type
   TFishEyeTransformation = class(TTransformation)
   private
     Frx, Fry: TFloat;
@@ -246,6 +402,13 @@ type
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TPolarTransformation
+//
+//------------------------------------------------------------------------------
+type
   TPolarTransformation = class(TTransformation)
   private
     FDstRect: TFloatRect;
@@ -262,6 +425,13 @@ type
     property Phase: TFloat read FPhase write SetPhase;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TPathTransformation
+//
+//------------------------------------------------------------------------------
+type
   TPathTransformation = class(TTransformation)
   private
     FTopLength: TFloat;
@@ -281,6 +451,13 @@ type
     property BottomCurve: TArrayOfFloatPoint read FBottomCurve write SetBottomCurve;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TRadialDistortionTransformation
+//
+//------------------------------------------------------------------------------
+type
   TRadialDistortionTransformation = class(TTransformation)
   protected
     FCoefficient1, FCoefficient2, FScale: TFloat;
@@ -307,6 +484,13 @@ type
     property MapElements: Integer read FMapElements write SetMapElements;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TRemapTransformation
+//
+//------------------------------------------------------------------------------
+type
   TRemapTransformation = class(TTransformation)
   private
     FVectorMap: TVectorMap;
@@ -344,6 +528,67 @@ type
     property VectorMap: TVectorMap read FVectorMap write FVectorMap;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSphereTransformation
+//
+//------------------------------------------------------------------------------
+// Transform a map (planisphere) into a Spherical projection.
+// By Marc LAFON (marc.lafon AT free.fr), 01 nov 2005
+//------------------------------------------------------------------------------
+type
+  TSphereTransformation = class(TTransformation)
+  private
+    FMapWidth, FMapHeight: TFloat;
+    FSquareRadius: TFloat;
+    FCenter: TFloatPoint;
+    FRadius: TFloat;
+    FLongitude: TFloat;
+    FLattitude: TFloat;
+    FLattitudeSin: TFloat;
+    FLattitudeCos: TFloat;
+    FLattitudeSinInvRadius: TFloat;
+    FLattitudeCosInvRadius: TFloat;
+    FSrcRectTop: TFloat;
+    FSrcRectLeft: TFloat;
+    procedure SetCenter(const Value: TFloatPoint);
+    procedure SetLattitude(const Value: TFloat);
+    procedure SetLongitude(const Value: TFloat);
+    procedure SetRadius(const Value: TFloat);
+  protected
+    procedure PrepareTransform; override;
+    procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
+  public
+    constructor Create; override;
+
+    function HasTransformedBounds: Boolean; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
+
+    // Return True if the (X,Y) point is in the Sphere projection
+    function IsInSphere(CartesianX, CartesianY: TFloat):boolean;
+    // Transform (X,Y) coordinate as Lattitude and Longitude coordinates in the Sphere
+    function SphericalCoordinate(CartesianX, CartesianY: TFloat):TFloatPoint;
+    // Transform Longitude and Lattitude coordinates (X,Y) into their screen projection.
+    // Returns False if this point is on visible face.
+    function ScreenCoordinate(var X, Y: TFloat):boolean;
+  published
+    // Center of the Sphere in the Destination Bitmap
+    property Center: TFloatPoint read FCenter write SetCenter;
+    // Radius of the Sphere in the Destination Bitmap
+    property Radius: TFloat read FRadius write SetRadius;
+    // Rotation of the Sphere (Y-axe rotation angle)
+    property Lattitude: TFloat read FLattitude write SetLattitude;
+    // Rotation of the Sphere (X-axe rotation angle)
+    property Longitude: TFloat read FLongitude write SetLongitude;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Utilities
+//
+//------------------------------------------------------------------------------
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Reverse: boolean = True); overload;
@@ -358,6 +603,8 @@ procedure RasterizeTransformation(Vectormap: TVectormap;
 
 procedure SetBorderTransparent(ABitmap: TCustomBitmap32; ARect: TRect);
 
+//------------------------------------------------------------------------------
+
 { FullEdge controls how the bitmap is resampled }
 var
   FullEdge: Boolean = True;
@@ -366,6 +613,11 @@ resourcestring
   RCStrReverseTransformationNotImplemented = 'Reverse transformation is not implemented in %s.';
   RCStrForwardTransformationNotImplemented = 'Forward transformation is not implemented in %s.';
   RCStrTopBottomCurveNil = 'Top or bottom curve is nil';
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -387,25 +639,30 @@ type
   {provides access to proctected members of TTransformation by typecasting}
   TTransformationAccess = class(TTransformation);
 
+//------------------------------------------------------------------------------
+//
+//      A bit of linear algebra
+//
+//------------------------------------------------------------------------------
+
 var
-  DET32: function(a1, a2, b1, b2: Single): Single;
-  DET64: function(a1, a2, b1, b2: Double): Double;
+  DET_2x2_32: function(a1, a2, b1, b2: TFloat): TFloat;
+  DET_3x3_32: function(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat;
+  DET_2x2_64: function(a1, a2, b1, b2: Double): Double;
 
 
-{ A bit of linear algebra }
-
-function DET32_Pas(a1, a2, b1, b2: Single): Single; overload;
+function DET_2x2_32_Pas(a1, a2, b1, b2: TFloat): TFloat; overload;
 begin
   Result := a1 * b2 - a2 * b1;
 end;
 
-function DET64_Pas(a1, a2, b1, b2: Double): Double; overload;
+function DET_2x2_64_Pas(a1, a2, b1, b2: Double): Double; overload;
 begin
   Result := a1 * b2 - a2 * b1;
 end;
 
 {$IFNDEF PUREPASCAL}
-function DET32_ASM(a1, a2, b1, b2: Single): Single; overload; {$IFDEF FPC}assembler; {$IFDEF CPU64}nostackframe;{$ENDIF}{$ENDIF}
+function DET_2x2_32_ASM(a1, a2, b1, b2: TFloat): TFloat; overload; {$IFDEF FPC}assembler; {$IFDEF CPU64}nostackframe;{$ENDIF}{$ENDIF}
 asm
 {$IFDEF CPU64}
         MULSS   XMM0, XMM3
@@ -420,7 +677,7 @@ asm
 {$ENDIF}
 end;
 
-function DET64_ASM(a1, a2, b1, b2: Double): Double; overload;
+function DET_2x2_64_ASM(a1, a2, b1, b2: Double): Double; overload;
 asm
 {$IFDEF CPU64}
         MULSD   XMM0, XMM3
@@ -436,14 +693,7 @@ asm
 end;
 {$ENDIF}
 
-{ implementation of detereminant for TFloat precision }
-
-function _DET(a1, a2, b1, b2: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
-begin
-  Result := a1 * b2 - a2 * b1;
-end;
-
-function _DET(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
+function DET_3x3_32_Pas(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
 begin
   Result :=
     a1 * (b2 * c3 - b3 * c2) -
@@ -451,31 +701,42 @@ begin
     c1 * (a2 * b3 - a3 * b2);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Utilities
+//
+//------------------------------------------------------------------------------
 procedure Adjoint(var M: TFloatMatrix);
 var
   Tmp: TFloatMatrix;
 begin
   Tmp := M;
 
-  M[0,0] :=  _DET(Tmp[1,1], Tmp[1,2], Tmp[2,1], Tmp[2,2]);
-  M[0,1] := -_DET(Tmp[0,1], Tmp[0,2], Tmp[2,1], Tmp[2,2]);
-  M[0,2] :=  _DET(Tmp[0,1], Tmp[0,2], Tmp[1,1], Tmp[1,2]);
+  M[0,0] :=  DET_2x2_32(Tmp[1,1], Tmp[1,2], Tmp[2,1], Tmp[2,2]);
+  M[0,1] := -DET_2x2_32(Tmp[0,1], Tmp[0,2], Tmp[2,1], Tmp[2,2]);
+  M[0,2] :=  DET_2x2_32(Tmp[0,1], Tmp[0,2], Tmp[1,1], Tmp[1,2]);
 
-  M[1,0] := -_DET(Tmp[1,0], Tmp[1,2], Tmp[2,0], Tmp[2,2]);
-  M[1,1] :=  _DET(Tmp[0,0], Tmp[0,2], Tmp[2,0], Tmp[2,2]);
-  M[1,2] := -_DET(Tmp[0,0], Tmp[0,2], Tmp[1,0], Tmp[1,2]);
+  M[1,0] := -DET_2x2_32(Tmp[1,0], Tmp[1,2], Tmp[2,0], Tmp[2,2]);
+  M[1,1] :=  DET_2x2_32(Tmp[0,0], Tmp[0,2], Tmp[2,0], Tmp[2,2]);
+  M[1,2] := -DET_2x2_32(Tmp[0,0], Tmp[0,2], Tmp[1,0], Tmp[1,2]);
 
-  M[2,0] :=  _DET(Tmp[1,0], Tmp[1,1], Tmp[2,0], Tmp[2,1]);
-  M[2,1] := -_DET(Tmp[0,0], Tmp[0,1], Tmp[2,0], Tmp[2,1]);
-  M[2,2] :=  _DET(Tmp[0,0], Tmp[0,1], Tmp[1,0], Tmp[1,1]);
+  M[2,0] :=  DET_2x2_32(Tmp[1,0], Tmp[1,1], Tmp[2,0], Tmp[2,1]);
+  M[2,1] := -DET_2x2_32(Tmp[0,0], Tmp[0,1], Tmp[2,0], Tmp[2,1]);
+  M[2,2] :=  DET_2x2_32(Tmp[0,0], Tmp[0,1], Tmp[1,0], Tmp[1,1]);
 end;
+
+//------------------------------------------------------------------------------
 
 function Determinant(const M: TFloatMatrix): TFloat;
 begin
-  Result := _DET(M[0,0], M[1,0], M[2,0],
-                 M[0,1], M[1,1], M[2,1],
-                 M[0,2], M[1,2], M[2,2]);
+  Result := DET_3x3_32_Pas(
+    M[0,0], M[1,0], M[2,0],
+    M[0,1], M[1,1], M[2,1],
+    M[0,2], M[1,2], M[2,2]);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure Scale(var M: TFloatMatrix; Factor: TFloat);
 var
@@ -485,6 +746,8 @@ begin
     for j := 0 to 2 do
       M[i,j] := M[i,j] * Factor;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure Invert(var M: TFloatMatrix);
 var
@@ -500,6 +763,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
 var
   i, j: Integer;
@@ -512,6 +777,8 @@ begin
         M1[2, j] * M2[i, 2];
 end;
 
+//------------------------------------------------------------------------------
+
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 begin
   Result[0] := M[0,0] * V[0] + M[1,0] * V[1] + M[2,0] * V[2];
@@ -519,83 +786,7 @@ begin
   Result[2] := M[0,2] * V[0] + M[1,2] * V[1] + M[2,2] * V[2];
 end;
 
-{ Transformation functions }
-
-function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
-var
-  I, J: Integer;
-begin
-  if Points = nil then
-    Result := nil
-  else
-  begin
-    SetLength(Result, Length(Points));
-    Transformation.PrepareTransform;
-
-    for I := 0 to High(Result) do
-    begin
-      SetLength(Result[I], Length(Points[I]));
-      if Length(Result[I]) > 0 then
-        for J := 0 to High(Result[I]) do
-          Transformation.TransformFixed(Points[I][J].X, Points[I][J].Y, Result[I][J].X, Result[I][J].Y);
-    end;
-  end;
-end;
-
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Reverse: boolean);
-var
-  Rasterizer: TRasterizer;
-begin
-  Rasterizer := DefaultRasterizerClass.Create;
-  try
-    Transform(Dst, Src, Transformation, Rasterizer, Reverse);
-  finally
-    Rasterizer.Free;
-  end;
-end;
-
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect; Reverse: boolean);
-var
-  Rasterizer: TRasterizer;
-begin
-  Rasterizer := DefaultRasterizerClass.Create;
-  try
-    Transform(Dst, Src, Transformation, Rasterizer, DstClip, Reverse);
-  finally
-    Rasterizer.Free;
-  end;
-end;
-
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer; Reverse: boolean);
-begin
-  Transform(Dst, Src, Transformation, Rasterizer, Dst.BoundsRect, Reverse);
-end;
-
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer; const DstClip: TRect; Reverse: boolean);
-var
-  DstRect: TRect;
-  Transformer: TTransformer;
-begin
-  GR32.IntersectRect(DstRect, DstClip, Dst.ClipRect);
-
-  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
-    Exit;
-
-  if not Dst.MeasuringMode then
-  begin
-    Transformer := TTransformer.Create(Src.Resampler, Transformation, Reverse);
-    try
-      Rasterizer.Sampler := Transformer;
-      Rasterizer.Rasterize(Dst, DstRect, Src);
-    finally
-      EMMS;
-      Transformer.Free;
-    end;
-  end;
-  Dst.Changed(DstRect);
-end;
+//------------------------------------------------------------------------------
 
 procedure SetBorderTransparent(ABitmap: TCustomBitmap32; ARect: TRect);
 var
@@ -623,8 +814,201 @@ begin
   end;
 end;
 
-{ TTransformation }
+//------------------------------------------------------------------------------
+// Transformation functions
+//------------------------------------------------------------------------------
+function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
+var
+  I, J: Integer;
+begin
+  if Points = nil then
+    Result := nil
+  else
+  begin
+    SetLength(Result, Length(Points));
+    Transformation.PrepareTransform;
 
+    for I := 0 to High(Result) do
+    begin
+      SetLength(Result[I], Length(Points[I]));
+      if Length(Result[I]) > 0 then
+        for J := 0 to High(Result[I]) do
+          Transformation.TransformFixed(Points[I][J].X, Points[I][J].Y, Result[I][J].X, Result[I][J].Y);
+    end;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Reverse: boolean);
+var
+  Rasterizer: TRasterizer;
+begin
+  Rasterizer := DefaultRasterizerClass.Create;
+  try
+    Transform(Dst, Src, Transformation, Rasterizer, Reverse);
+  finally
+    Rasterizer.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect; Reverse: boolean);
+var
+  Rasterizer: TRasterizer;
+begin
+  Rasterizer := DefaultRasterizerClass.Create;
+  try
+    Transform(Dst, Src, Transformation, Rasterizer, DstClip, Reverse);
+  finally
+    Rasterizer.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
+  Rasterizer: TRasterizer; Reverse: boolean);
+begin
+  Transform(Dst, Src, Transformation, Rasterizer, Dst.BoundsRect, Reverse);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
+  Rasterizer: TRasterizer; const DstClip: TRect; Reverse: boolean);
+var
+  DstRect: TRect;
+  Transformer: TTransformer;
+begin
+  GR32.IntersectRect(DstRect, DstClip, Dst.ClipRect);
+
+  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
+    Exit;
+
+  if not Dst.MeasuringMode then
+  begin
+    Transformer := TTransformer.Create(Src.Resampler, Transformation, Reverse);
+    try
+      Rasterizer.Sampler := Transformer;
+      Rasterizer.Rasterize(Dst, DstRect, Src);
+    finally
+      EMMS;
+      Transformer.Free;
+    end;
+  end;
+  Dst.Changed(DstRect);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure RasterizeTransformation(Vectormap: TVectormap;
+  Transformation: TTransformation; DstRect: TRect;
+  CombineMode: TVectorCombineMode = vcmAdd;
+  CombineCallback: TVectorCombineEvent = nil);
+var
+  I, J: Integer;
+  P, Q, Progression: TFixedVector;
+  ProgressionX, ProgressionY: TFixed;
+  MapPtr: PFixedPointArray;
+begin
+  GR32.IntersectRect(DstRect, VectorMap.BoundsRect, DstRect);
+  if GR32.IsRectEmpty(DstRect) then
+    Exit;
+
+  if not TTransformationAccess(Transformation).TransformValid then
+    TTransformationAccess(Transformation).PrepareTransform;
+
+  case CombineMode of
+    vcmAdd:
+      begin
+        with DstRect do
+        for I := Top to Bottom - 1 do
+        begin
+          MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
+          for J := Left to Right - 1 do
+          begin
+            P := FixedPoint(Integer(J - Left), Integer(I - Top));
+            Q := Transformation.ReverseTransform(P);
+            Inc(MapPtr[J].X, Q.X - P.X);
+            Inc(MapPtr[J].Y, Q.Y - P.Y);
+          end;
+        end;
+      end;
+    vcmReplace:
+      begin
+        with DstRect do
+        for I := Top to Bottom - 1 do
+        begin
+          MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
+          for J := Left to Right - 1 do
+          begin
+            P := FixedPoint(Integer(J - Left), Integer(I - Top));
+            Q := Transformation.ReverseTransform(P);
+            MapPtr[J].X := Q.X - P.X;
+            MapPtr[J].Y := Q.Y - P.Y;
+          end;
+        end;
+      end;
+  else // vcmCustom
+    ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
+    ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
+    Progression.Y := 0;
+    with DstRect do for I := Top to Bottom - 1 do
+    begin
+      Progression.X := 0;
+      MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
+      for J := Left to Right - 1 do
+      begin
+        P := FixedPoint(Integer(J - Left), Integer(I - Top));
+        Q := Transformation.ReverseTransform(P);
+        Q.X := Q.X - P.X;
+        Q.Y := Q.Y - P.Y;
+        CombineCallback(Q, Progression, MapPtr[J]);
+
+        Inc(Progression.X, ProgressionX);
+      end;
+     Inc(Progression.Y, ProgressionY);
+    end;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// Matrix conversion routines
+//------------------------------------------------------------------------------
+function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix;
+begin
+  Result[0,0] := Round(FloatMatrix[0,0] * FixedOne);
+  Result[0,1] := Round(FloatMatrix[0,1] * FixedOne);
+  Result[0,2] := Round(FloatMatrix[0,2] * FixedOne);
+  Result[1,0] := Round(FloatMatrix[1,0] * FixedOne);
+  Result[1,1] := Round(FloatMatrix[1,1] * FixedOne);
+  Result[1,2] := Round(FloatMatrix[1,2] * FixedOne);
+  Result[2,0] := Round(FloatMatrix[2,0] * FixedOne);
+  Result[2,1] := Round(FloatMatrix[2,1] * FixedOne);
+  Result[2,2] := Round(FloatMatrix[2,2] * FixedOne);
+end;
+
+function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix;
+begin
+  Result[0,0] := FixedMatrix[0,0] * FixedToFloat;
+  Result[0,1] := FixedMatrix[0,1] * FixedToFloat;
+  Result[0,2] := FixedMatrix[0,2] * FixedToFloat;
+  Result[1,0] := FixedMatrix[1,0] * FixedToFloat;
+  Result[1,1] := FixedMatrix[1,1] * FixedToFloat;
+  Result[1,2] := FixedMatrix[1,2] * FixedToFloat;
+  Result[2,0] := FixedMatrix[2,0] * FixedToFloat;
+  Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
+  Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TTransformation
+//
+//------------------------------------------------------------------------------
 function TTransformation.GetTransformedBounds: TFloatRect;
 begin
   Result := GetTransformedBounds(FSrcRect);
@@ -756,8 +1140,11 @@ begin
 end;
 
 
-{ TNestedTransformation }
-
+//------------------------------------------------------------------------------
+//
+//      TNestedTransformation
+//
+//------------------------------------------------------------------------------
 constructor TNestedTransformation.Create;
 begin
   FItems := TList.Create;
@@ -888,8 +1275,11 @@ begin
 end;
 
 
-{ T3x3Transformation }
-
+//------------------------------------------------------------------------------
+//
+//      T3x3Transformation
+//
+//------------------------------------------------------------------------------
 procedure T3x3Transformation.PrepareTransform;
 begin
   FInverseMatrix := Matrix;
@@ -937,8 +1327,11 @@ begin
 end;
 
 
-{ TAffineTransformation }
-
+//------------------------------------------------------------------------------
+//
+//      TAffineTransformation
+//
+//------------------------------------------------------------------------------
 constructor TAffineTransformation.Create;
 begin
   FStackLevel := 0;
@@ -1071,8 +1464,11 @@ begin
 end;
 
 
-{ TProjectiveTransformation }
-
+//------------------------------------------------------------------------------
+//
+//      TProjectiveTransformation
+//
+//------------------------------------------------------------------------------
 function TProjectiveTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 begin
   Result.Left   := Min(Min(FQuadX[0], FQuadX[1]), Min(FQuadX[2], FQuadX[3]));
@@ -1289,8 +1685,515 @@ begin
 end;
 
 
-{ TTwirlTransformation }
+//------------------------------------------------------------------------------
+//
+//      TProjectiveTransformationEx
+//
+//------------------------------------------------------------------------------
+// Based on amBitmapEditorToolForwardProjectiveTransform by Anders Melander
+//------------------------------------------------------------------------------
 
+function TProjectiveTransformationEx.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
+var
+  i: integer;
+begin
+  if (FExtrapolate) then
+    Exit(ASrcRect);
+
+  // Transform the coords of the source rect to find the coords of
+  // the corresponding target quad. Then return the boinding box of
+  // this quad.
+  var Bounds: TFloatQuadrilateral;
+  for i := 0 to High(Bounds) do
+    ReverseTransformFloat(FSourceQuad[i].X, FSourceQuad[i].Y, Bounds[i].X, Bounds[i].Y);
+
+  Result.Left   := Min(Min(Bounds[0].X, Bounds[1].X), Min(Bounds[2].X, Bounds[3].X));
+  Result.Right  := Max(Max(Bounds[0].X, Bounds[1].X), Max(Bounds[2].X, Bounds[3].X));
+  Result.Top    := Min(Min(Bounds[0].Y, Bounds[1].Y), Min(Bounds[2].Y, Bounds[3].Y));
+  Result.Bottom := Max(Max(Bounds[0].Y, Bounds[1].Y), Max(Bounds[2].Y, Bounds[3].Y));
+
+(* Naive; Does not take projection to DestQuad into account.
+  Result.Left   := Min(Min(FDestQuad[0].X, FDestQuad[1].X), Min(FDestQuad[2].X, FDestQuad[3].X));
+  Result.Right  := Max(Max(FDestQuad[0].X, FDestQuad[1].X), Max(FDestQuad[2].X, FDestQuad[3].X));
+  Result.Top    := Min(Min(FDestQuad[0].Y, FDestQuad[1].Y), Min(FDestQuad[2].Y, FDestQuad[3].Y));
+  Result.Bottom := Max(Max(FDestQuad[0].Y, FDestQuad[1].Y), Max(FDestQuad[2].Y, FDestQuad[3].Y));
+*)
+end;
+
+function TProjectiveTransformationEx.GetSource(Index: Integer): TFloatPoint;
+begin
+  Result := FSourceQuad[Index];
+end;
+
+function TProjectiveTransformationEx.GetSourceX(Index: Integer): TFloat;
+begin
+  Result := FSourceQuad[Index].X;
+end;
+
+function TProjectiveTransformationEx.GetSourceY(Index: Integer): TFloat;
+begin
+  Result := FSourceQuad[Index].Y;
+end;
+
+function TProjectiveTransformationEx.GetDest(Index: Integer): TFloatPoint;
+begin
+  Result := FDestQuad[Index];
+end;
+
+function TProjectiveTransformationEx.GetDestX(Index: Integer): TFloat;
+begin
+  Result := FDestQuad[Index].X;
+end;
+
+function TProjectiveTransformationEx.GetDestY(Index: Integer): TFloat;
+begin
+  Result := FDestQuad[Index].Y;
+end;
+
+procedure TProjectiveTransformationEx.SetSource(Index: Integer; const Value: TFloatPoint);
+begin
+  FSourceQuad[Index] := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.SetSourceQuad(const Value: TFloatQuadrilateral);
+begin
+  FSourceQuad := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.SetSourceX(Index: Integer; const Value: TFloat);
+begin
+  FSourceQuad[Index].Y := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.SetSourceY(Index: Integer; const Value: TFloat);
+begin
+  FSourceQuad[Index].X := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.SetDest(Index: Integer; const Value: TFloatPoint);
+begin
+  FDestQuad[Index] := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.SetDestQuad(const Value: TFloatQuadrilateral);
+begin
+  FDestQuad := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.SetDestX(Index: Integer; const Value: TFloat);
+begin
+  FDestQuad[Index].X := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.SetDestY(Index: Integer; const Value: TFloat);
+begin
+  FDestQuad[Index].Y := Value;
+  Changed;
+end;
+
+procedure TProjectiveTransformationEx.PrepareTransform;
+//------------------------------------------------------------------------------
+// From "Fundamentals of Texture Mapping and Image Warping" by Paul S. Heckbert:
+//------------------------------------------------------------------------------
+//
+// The general form of a projective mapping is a rational linear mapping:
+//
+//        au + bv + c            du + ev + f
+//   x = -------------  ,   y = -------------                                                                   [1]
+//        gu + hv + i            gu + hv + i
+//
+// Manipulation of projective mappings is much easier in the homogeneous matrix notation:
+//
+//   Pd = Ps * Msd
+//
+//        ┌    ┐   ┌         ┐┌    ┐
+//        │ x' │   │ a  d  g ││ u' │
+//      = │ y' │ = │ b  e  h ││ v' │
+//        │ w  │   │ c  f  i ││ q  │
+//        └    ┘   └         ┘└    ┘
+//
+//            T               T                     T              T
+// where (x,y) = (x'/ w, y'/w) for w ≠ 0, and (u,v) = (u'/q, v'/q) for q ≠ 0.
+//
+// Although there are 9 coefficients in the matrix above, these mappings are homogeneous, so
+// any nonzero scalar multiple of these matrices gives an equivalent mapping. Hence there are only
+// 8 degrees of freedom in a 2-D projective mapping. We can assume without loss of generality that
+// i=1 except in the special case that source point (0, 0)T maps to a point at infinity. A projective
+// mapping is affine when g=h=0.
+//
+// ...
+//
+// Projective mappings may be composed by concatenating their matrices.
+//
+// Another remarkable property is that the inverse of a projective mapping is a projective mapping.
+// This is intuitively explained by reversing the plane-to-plane mapping by which a projective mapping
+// is defined. The matrix for the inverse mapping is the inverse or adjoint of the forward mapping. (The
+// adjoint of a matrix is the transpose of the matrix of cofactors; M^-1 = adj(M)/det(M)).
+// In homogeneous algebra, the adjoint matrix can be used in place of the inverse matrix whenever an
+// inverse transform is needed, since the two are scalar multiples of each other, and the adjoint always
+// exists, while the inverse does not if the matrix is singular. The inverse transformation is thus:
+//
+//   Ps = Msd * Pd
+//
+//        ┌    ┐   ┌         ┐┌    ┐
+//        │ u' │   │ A  D  G ││ x' │
+//      = │ v' │ = │ B  E  H ││ y' │
+//        │ q  │   │ C  F  I ││ w  │
+//        └    ┘   └         ┘└    ┘
+//
+//        ┌                     ┐┌    ┐
+//        │ ei-fh  ch-bi  bf-ce ││ x' │
+//      = │ fg-di  ai-cg  cd-af ││ y' │
+//        │ dh-eg  bg-ah  ae-bd ││ w  │
+//        └                     ┘└    ┘
+//                                                                T           T
+// When mapping a point by the inverse transform we compute (u, v) from (x, y). If w ≠ 0 and
+// q ≠ 0 then we can choose w = 1 and calculate:
+//
+//        Ax + By + C            Dx + Ey + F
+//   u = -------------  ,   y = -------------                                                                   [2]
+//        Gx + Hy + I            Gx + Hy + I
+//
+// ...
+//
+// In an interactive image warper one might specify the four corners of source and destination quadrilaterals
+// with a tablet or mouse, and wish to warp one area to the other. This sort of task is an ideal
+// application of projective mappings, but how do we find the mapping matrix?
+//
+// A projective mapping has 8 degrees of freedom which can be determined from the source and
+// destination coordinates of the four corners of a quadrilateral. Let the correspondence map (uk, vk)^T
+// to (xk, yk)^T for vertices numbered cyclically k = 0,1,2,3. All coordinates are assumed to be real
+// (finite). To compute the forward mapping matrix Msd, assuming that i= 1, we have eight equations
+// in the eight unknowns a-h:
+//
+//         auk + bvk + c
+//   xk = ---------------  =>  uka + vkb + c - ukxkg - vkxkh = xk
+//         guk + hvk + 1
+//
+//         duk + evk + f
+//   yk = ---------------  =>  ukd + vke + f - ukykg - vkykh = yk
+//         guk + hvk + 1
+//
+// for k = 0,1,2,3. This can be rewritten as an 8 × 8 system:
+//
+//        ┌                                    ┐┌   ┐   ┌    ┐
+//        │ u0  v0   1   0   0   0 -u0x0 -v0x0 ││ a │   │ x0 │
+//        │ u1  v1   1   0   0   0 -u1x1 -v1x1 ││ b │   │ x1 │
+//        │ u2  v2   1   0   0   0 -u2x2 -v2x2 ││ c │   │ x2 │
+//        │ u3  v3   1   0   0   0 -u3x3 -v3x3 ││ d │ = │ x3 │
+//        │  0   0   0  u0  v0   1 -u0y0 -v0y0 ││ e │   │ y0 │
+//        │  0   0   0  u1  v1   1 -u1y1 -v1y1 ││ f │   │ y1 │
+//        │  0   0   0  u2  v2   1 -u2y2 -v2y2 ││ g │   │ y2 │
+//        │  0   0   0  u3  v3   1 -u3y3 -v3y3 ││ h │   │ y3 │
+//        └                                    ┘└   ┘   └    ┘
+//
+// This linear system can be solved using Gaussian elimination or other methods for the forward mapping
+// coefficients a-h. If the inverse mapping is desired instead, then either we compute the adjoint
+// of Msd or we follow the same procedure, starting from equation [2] instead of [1], and solve an
+// 8 × 8 system for coefficients A-H.
+//
+// In speed-critical special cases, there are more efficient formulas for computing the mapping
+// matrix. The formula above handles the case where the polygon is a general quadrilateral in both
+// source and destination spaces. We will consider three additional cases: square-to-quadrilateral,
+// quadrilateral-to-square, and (again) the general quadrilateral-to-quadrilateral mapping.
+//
+// Case 1. The system is easily solved symbolically in the special case where the uv quadrilateral
+// is a unit square. If the vertex correspondence is as follows:
+//
+//     x  y  u  v
+//   -------------
+//    x0 y0  0  0
+//    x1 y1  1  0
+//    x2 y2  1  1
+//    x3 y3  0  1
+//
+// then the eight equations reduce to
+//
+//                       c = x0
+//             a + c - gx1 = x1
+//       a + c - gx2 - hx2 = x2
+//             b + c - hx3 = x3
+//                       f = y0
+//             d + f - gy1 = y1
+//   d + e + f - gy2 - hy2 = y2
+//             e + f - hy3 = y3
+//
+// If we define
+//
+//   ∆x1 = x1 - x2,  ∆x2 = x3 - x2,  ∑x = x0 - x1 + x2 - x3                                                     [a.1]
+//   ∆y1 = y1 - y2,  ∆y2 = y3 - y2,  ∑y = y0 - y1 + y2 - y3                                                     [a.2]
+//
+// then the solution splits into two sub-cases:
+//
+//   (a) ∑x = 0 and ∑y = 0. This implies that the xy polygon is a parallelogram, so the mapping is
+//       affine, and a = x1 - x0,  b = x2 - x1,  c = x0,  d = y1 - y0,  e = y2 - y1,  f = y0,  g = 0,  h = 0.   [b]
+//
+//   (b) ∑x ≠ 0 or ∑y ≠ 0 gives a projective mapping:
+//           │ ∑x  ∆x2 │   │ ∆x1 ∆x2 │
+//       g = │         │ / │         │                                                                          [c.1]
+//           │ ∑y  ∆y2 │   │ ∆y1 ∆y2 │
+//
+//
+//           │ ∆x1  ∑x │   │ ∆x1 ∆x2 │
+//       h = │         │ / │         │                                                                          [c.2]
+//           │ ∆y1  ∑y │   │ ∆y1 ∆y2 │
+//
+//       a = x1 - x0 + gx1                                                                                      [c.3]
+//       b = x3 - x0 + hx3
+//       c = x0
+//       d = y1 - y0 + gy1
+//       e = y3 - y0 + hy3
+//       f = y0
+//
+// This computation is much faster than a straightforward 8 × 8 system solver. The mapping above is
+// easily generalized to map a rectangle to a quadrilateral by pre-multiplying with a scale and translation
+// matrix.
+//
+// Case 2. The inverse mapping, a quadrilateral to a square, can also be optimized. It turns out
+// that the most efficient algorithm for computing this is not purely symbolic, as in the previous case,
+// but numerical. We use the square-to-quadrilateral formulas just described to find the inverse of the
+// desired mapping, and then take its adjoint to compute the quadrilateral-to-square mapping.
+//
+// Case 3. Since we can compute quadrilateral-to-square and square-to-quadrilateral mappings
+// quickly, the two mappings can easily be composed to yield a general quadrilateral-to-
+// mapping. This solution method is faster than a general 8 × 8 system solver.
+//
+  procedure CreateProjectiveMapping(const Quad: TFloatQuadrilateral; var Matrix: TFloatMatrix);
+  var
+    ∑x, ∑y: TFloat;
+    ∆x1, ∆x2, ∆y1, ∆y2: TFloat;
+    g, h, k: TFloat;
+  begin
+    ∑x := Quad[0].X - Quad[1].X + Quad[2].X - Quad[3].X;                        // See [a]
+    ∑y := Quad[0].Y - Quad[1].Y + Quad[2].Y - Quad[3].Y;
+
+    if (IsZero(∑x)) and (IsZero(∑y)) then                                       // See [b]
+    begin
+      // Quadrilateral is a parallelogram - Mapping is affine
+      //   ┌         ┐
+      //   │ a  d  0 │
+      //   │ b  e  0 │
+      //   │ c  f  1 │
+      //   └         ┘
+      Matrix[0, 0] := Quad[1].X - Quad[0].X;    // a
+      Matrix[1, 0] := Quad[2].X - Quad[1].X;    // b
+      Matrix[2, 0] := Quad[0].X;                // c
+
+      Matrix[0, 1] := Quad[1].Y - Quad[0].Y;    // d
+      Matrix[1, 1] := Quad[2].Y - Quad[1].Y;    // e
+      Matrix[2, 1] := Quad[0].Y;                // f
+
+      Matrix[0, 2] := 0;                        // g
+      Matrix[1, 2] := 0;                        // h
+      Matrix[2, 2] := 1;                        // i
+    end else
+    begin
+      // Projective mapping
+      //   ┌         ┐
+      //   │ a  d  g │
+      //   │ b  e  h │
+      //   │ c  f  1 │
+      //   └         ┘
+      ∆x1 := Quad[1].X - Quad[2].X;                                             // See [a]
+      ∆x2 := Quad[3].X - Quad[2].X;
+      ∆y1 := Quad[1].Y - Quad[2].Y;
+      ∆y2 := Quad[3].Y - Quad[2].Y;
+
+      k := ∆x1 * ∆y2 - ∆x2 * ∆y1;
+
+      if (not IsZero(k)) then
+      begin
+        k := 1 / k; // Avoid (one) costly divisions below
+        g := (∑x * ∆y2 - ∑y * ∆x2) * k;                                         // See [c]
+        h := (∆x1 * ∑y - ∆y1 * ∑x) * k;
+
+        Matrix[0, 0] := Quad[1].X - Quad[0].X + g * Quad[1].X;  // a
+        Matrix[1, 0] := Quad[3].X - Quad[0].X + h * Quad[3].X;  // b
+        Matrix[2, 0] := Quad[0].X;                              // c
+
+        Matrix[0, 1] := Quad[1].Y - Quad[0].Y + g * Quad[1].Y;  // d
+        Matrix[1, 1] := Quad[3].Y - Quad[0].Y + h * Quad[3].Y;  // e
+        Matrix[2, 1] := Quad[0].Y;                              // f
+
+        Matrix[0, 2] := g;                                      // g
+        Matrix[1, 2] := h;                                      // h
+        Matrix[2, 2] := 1;                                      // i
+      end else
+        Matrix := Default(TFloatMatrix);
+    end;
+  end;
+
+var
+  SourceMatrix: TFloatMatrix;
+  DestMatrix: TFloatMatrix;
+//  R: TFloatMatrix;
+begin
+  CreateProjectiveMapping(FSourceQuad, SourceMatrix);
+
+  CreateProjectiveMapping(FDestQuad, DestMatrix);
+  Invert(DestMatrix);
+
+  FMatrix := Mult(SourceMatrix, DestMatrix);
+
+(*
+  // Denormalize texture space (u, v)
+  // Scale
+  R := IdentityMatrix;
+  R[0, 0] := 1 / (SrcRect.Right - SrcRect.Left);
+  R[1, 1] := 1 / (SrcRect.Bottom - SrcRect.Top);
+  FMatrix := Mult(FMatrix, R);
+
+  // Translate
+  R := IdentityMatrix;
+  R[2, 0] := -SrcRect.Left;
+  R[2, 1] := -SrcRect.Top;
+  FMatrix := Mult(FMatrix, R);
+*)
+
+  inherited;
+end;
+
+procedure TProjectiveTransformationEx.ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed);
+var
+  Z: TFixed;
+  Zf: TFloat;
+begin
+  Z := FixedMul(FInverseFixedMatrix[0, 2], DstX) +
+       FixedMul(FInverseFixedMatrix[1, 2], DstY) +
+                FInverseFixedMatrix[2, 2];
+
+  if Z = 0 then
+    Exit;
+
+{$IFDEF UseInlining}
+  SrcX := FixedMul(FInverseFixedMatrix[0, 0], DstX) +
+          FixedMul(FInverseFixedMatrix[1, 0], DstY) +
+                   FInverseFixedMatrix[2, 0];
+
+  SrcY := FixedMul(FInverseFixedMatrix[0, 1], DstX) +
+          FixedMul(FInverseFixedMatrix[1, 1], DstY) +
+                   FInverseFixedMatrix[2, 1];
+{$ELSE}
+  inherited;
+{$ENDIF}
+
+  if Z <> FixedOne then
+  begin
+    EMMS;
+    Zf := FixedOne / Z;
+    SrcX := Round(SrcX * Zf);
+    SrcY := Round(SrcY * Zf);
+  end;
+end;
+
+procedure TProjectiveTransformationEx.ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat);
+var
+  Z: TFloat;
+begin
+  EMMS;
+  Z := FInverseMatrix[0, 2] * DstX +
+       FInverseMatrix[1, 2] * DstY +
+       FInverseMatrix[2, 2];
+
+  if IsZero(Z) then
+    Exit;
+
+{$IFDEF UseInlining}
+  SrcX := FInverseMatrix[0, 0] * DstX +
+          FInverseMatrix[1, 0] * DstY +
+          FInverseMatrix[2, 0];
+
+  SrcY := FInverseMatrix[0, 1] * DstX +
+          FInverseMatrix[1, 1] * DstY +
+          FInverseMatrix[2, 1];
+{$ELSE}
+  inherited;
+{$ENDIF}
+
+  if Z <> 1 then
+  begin
+    Z := 1 / Z;
+    SrcX := SrcX * Z;
+    SrcY := SrcY * Z;
+  end;
+end;
+
+procedure TProjectiveTransformationEx.TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed);
+var
+  Z: TFixed;
+  Zf: TFloat;
+begin
+  Z := FixedMul(FFixedMatrix[0, 2], SrcX) +
+       FixedMul(FFixedMatrix[1, 2], SrcY) +
+                FFixedMatrix[2, 2];
+
+  if Z = 0 then
+    Exit;
+
+{$IFDEF UseInlining}
+  DstX := FixedMul(FFixedMatrix[0, 0], SrcX) +
+          FixedMul(FFixedMatrix[1, 0], SrcY) +
+                   FFixedMatrix[2, 0];
+  DstY := FixedMul(FFixedMatrix[0, 1], SrcX) +
+          FixedMul(FFixedMatrix[1, 1], SrcY) +
+                   FFixedMatrix[2, 1];
+{$ELSE}
+  inherited;
+{$ENDIF}
+
+  if Z <> FixedOne then
+  begin
+    EMMS;
+    Zf := FixedOne / Z;
+    DstX := Round(DstX * Zf);
+    DstY := Round(DstY * Zf);
+  end;
+end;
+
+procedure TProjectiveTransformationEx.TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat);
+var
+  Z: TFloat;
+begin
+  EMMS;
+  Z := FMatrix[0, 2] * SrcX +
+       FMatrix[1, 2] * SrcY +
+       FMatrix[2, 2];
+
+  if IsZero(Z) then
+    Exit;
+
+{$IFDEF UseInlining}
+  DstX := FMatrix[0, 0] * SrcX +
+          FMatrix[1, 0] * SrcY +
+          FMatrix[2, 0];
+  DstY := FMatrix[0, 1] * SrcX +
+          FMatrix[1, 1] * SrcY +
+          FMatrix[2, 1];
+{$ELSE}
+  inherited;
+{$ENDIF}
+
+  if Z <> 1 then
+  begin
+    Z := 1 / Z;
+    DstX := DstX * Z;
+    DstY := DstY * Z;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TTwirlTransformation
+//
+//------------------------------------------------------------------------------
 constructor TTwirlTransformation.Create;
 begin
   FTwirl := 0.03;
@@ -1343,8 +2246,12 @@ begin
   Changed;
 end;
 
-{ TBloatTransformation }
 
+//------------------------------------------------------------------------------
+//
+//      TBloatTransformation
+//
+//------------------------------------------------------------------------------
 constructor TBloatTransformation.Create;
 begin
   FBloatPower := 0.3;
@@ -1388,8 +2295,12 @@ begin
   Changed;
 end;
 
-{ TFishEyeTransformation }
 
+//------------------------------------------------------------------------------
+//
+//      TFishEyeTransformation
+//
+//------------------------------------------------------------------------------
 procedure TFishEyeTransformation.PrepareTransform;
 begin
   with FSrcRect do
@@ -1439,8 +2350,11 @@ begin
 end;
 
 
-{ TPolarTransformation }
-
+//------------------------------------------------------------------------------
+//
+//      TPolarTransformation
+//
+//------------------------------------------------------------------------------
 procedure TPolarTransformation.PrepareTransform;
 begin
   Sx := SrcRect.Right - SrcRect.Left;
@@ -1525,8 +2439,11 @@ begin
 end;
 
 
-{ TPathTransformation }
-
+//------------------------------------------------------------------------------
+//
+//      TPathTransformation
+//
+//------------------------------------------------------------------------------
 destructor TPathTransformation.Destroy;
 begin
   FTopHypot := nil;
@@ -1650,8 +2567,11 @@ begin
 end;
 
 
-{ TDisturbanceTransformation }
-
+//------------------------------------------------------------------------------
+//
+//      TDisturbanceTransformation
+//
+//------------------------------------------------------------------------------
 function TDisturbanceTransformation.GetTransformedBounds(
   const ASrcRect: TFloatRect): TFloatRect;
 begin
@@ -1672,6 +2592,12 @@ begin
   Changed;  
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TRadialDistortionTransformation
+//
+//------------------------------------------------------------------------------
 constructor TRadialDistortionTransformation.Create;
 begin
   FCoefficient1 := 0;
@@ -1877,8 +2803,12 @@ begin
   DstY := FFocalPoint.Y + (d.Y-FFocalPoint.Y) * r_tgt;
 end;
 
-{ TRemapTransformation }
 
+//------------------------------------------------------------------------------
+//
+//      TRemapTransformation
+//
+//------------------------------------------------------------------------------
 constructor TRemapTransformation.Create;
 begin
   inherited;
@@ -1886,7 +2816,7 @@ begin
   FScalingFloat := FloatPoint(1, 1);
   FOffset := FloatPoint(0,0);
   FVectorMap := TVectorMap.Create;
-  //Ensuring initial setup to avoid exceptions
+  // Ensuring initial setup to avoid exceptions
   FVectorMap.SetSize(1, 1);
 end;
 
@@ -1895,6 +2825,8 @@ begin
   FVectorMap.Free;
   inherited;
 end;
+
+//------------------------------------------------------------------------------
 
 function TRemapTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 const
@@ -2023,137 +2955,326 @@ begin
   Changed;
 end;
 
-procedure RasterizeTransformation(Vectormap: TVectormap;
-  Transformation: TTransformation; DstRect: TRect;
-  CombineMode: TVectorCombineMode = vcmAdd;
-  CombineCallback: TVectorCombineEvent = nil);
-var
-  I, J: Integer;
-  P, Q, Progression: TFixedVector;
-  ProgressionX, ProgressionY: TFixed;
-  MapPtr: PFixedPointArray;
+
+//------------------------------------------------------------------------------
+//
+//      TSphereTransformation
+//
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Utilities
+//------------------------------------------------------------------------------
+procedure Modulo2Pi(var Angle: TFloat); {Result is between 0 and 2PI }
+{$if defined(PUREPASCAL) or (not defined(TARGET_x86))}
 begin
-  GR32.IntersectRect(DstRect, VectorMap.BoundsRect, DstRect);
-  if GR32.IsRectEmpty(DstRect) then
+  Angle := GR32_Math.FloatMod(Angle, PI*2);
+end;
+{$else}
+asm
+        FLDPI
+        FADD    ST,ST               // 2PI
+        FLD     DWORD ptr [Angle]
+        FPREM                       // calc Modulo
+        FLDZ
+        FCOMIP  ST,ST(1)            // Compare 0 and Modulo (+pop 0)
+        JNB     @@1                 // if Modulo >= 0 then
+        FSTP    DWORD ptr [Angle]   //  return Modulo...
+        FSTP    ST(0)               //  POP the rest (2PI)
+        JMP     @@2
+@@1:    FADDP                       // add Modulo and Rest (2PI)
+        FSTP    DWORD ptr [Angle]   // Modulo+2PI...
+@@2:    FWAIT
+end;
+{$ifend}
+
+
+constructor TSphereTransformation.Create;
+begin
+  inherited;
+  FRadius := 1;
+end;
+
+//------------------------------------------------------------------------------
+
+function TSphereTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
+begin
+  // There is not direct relation between SourceRect and DestRect !
+  // During transformation process this rect will be clipped.
+  Result.Left := FCenter.X - FRadius;
+  Result.Top := FCenter.Y - FRadius;
+  Result.Bottom := FCenter.Y + FRadius;
+  Result.Right := FCenter.X + FRadius;
+end;
+
+function TSphereTransformation.HasTransformedBounds: Boolean;
+begin
+  Result := False;
+end;
+
+function TSphereTransformation.IsInSphere(CartesianX, CartesianY: TFloat): boolean;
+begin
+  if not TransformValid then
+    PrepareTransform;
+
+  CartesianX := CartesianX - FCenter.X;
+  CartesianY := CartesianY - FCenter.Y;
+
+  Result := (FSquareRadius >= (CartesianX * CartesianX + CartesianY * CartesianY));
+end;
+
+procedure TSphereTransformation.PrepareTransform;
+begin
+  // Invariants during transformation
+  FMapWidth := (SrcRect.Width - 1) / (2 * PI);
+  FMapHeight := (SrcRect.Height - 1) / PI;
+  FSquareRadius := Sqr(FRadius);
+  GR32_Math.SinCos(FLattitude, FLattitudeSin, FLattitudeCos);
+  FLattitudeSinInvRadius := -FLattitudeSin / FRadius;
+  FLattitudeCosInvRadius := FLattitudeCos / FRadius;
+  FSrcRectTop := SrcRect.Top;
+  FSrcRectLeft := SrcRect.Left;
+
+  TransformValid := True;
+end;
+
+procedure TSphereTransformation.ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat);
+{$if defined(PUREPASCAL) or (not defined(TARGET_x86))}
+var
+  Dist: TFloat;
+begin
+  // Screen projection on sphere
+  DstX := DstX - FCenter.X; // = Y
+  DstY := FCenter.Y - DstY; // = Z
+  Dist := DstX * DstX + DstY * DstY;
+
+  if (Dist > FSquareRadius) then // Not projectable on the sphere
+  begin
+    SrcX := -1;
+    SrcY := -1;
     Exit;
+  end;
 
-  if not TTransformationAccess(Transformation).TransformValid then
-    TTransformationAccess(Transformation).PrepareTransform;
+  Dist := Sqrt(FSquareRadius - Dist);
 
-  case CombineMode of
-    vcmAdd:
-      begin
-        with DstRect do
-        for I := Top to Bottom - 1 do
-        begin
-          MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
-          for J := Left to Right - 1 do
-          begin
-            P := FixedPoint(Integer(J - Left), Integer(I - Top));
-            Q := Transformation.ReverseTransform(P);
-            Inc(MapPtr[J].X, Q.X - P.X);
-            Inc(MapPtr[J].Y, Q.Y - P.Y);
-          end;
-        end;
-      end;
-    vcmReplace:
-      begin
-        with DstRect do
-        for I := Top to Bottom - 1 do
-        begin
-          MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
-          for J := Left to Right - 1 do
-          begin
-            P := FixedPoint(Integer(J - Left), Integer(I - Top));
-            Q := Transformation.ReverseTransform(P);
-            MapPtr[J].X := Q.X - P.X;
-            MapPtr[J].Y := Q.Y - P.Y;
-          end;
-        end;
-      end;
-  else // vcmCustom
-    ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
-    ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
-    Progression.Y := 0;
-    with DstRect do for I := Top to Bottom - 1 do
-    begin
-      Progression.X := 0;
-      MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
-      for J := Left to Right - 1 do
-      begin
-        P := FixedPoint(Integer(J - Left), Integer(I - Top));
-        Q := Transformation.ReverseTransform(P);
-        Q.X := Q.X - P.X;
-        Q.Y := Q.Y - P.Y;
-        CombineCallback(Q, Progression, MapPtr[J]);
+  // Apply rotations
+  DstX := Arctan2(DstX, Dist * FLattitudeCos + DstY * FLattitudeSin) + FLongitude;
+  Modulo2Pi(DstX);
 
-        Inc(Progression.X, ProgressionX);
-      end;
-     Inc(Progression.Y, ProgressionY);
-    end;
+  // Map projection
+  SrcX := SrcRect.Left + DstX * FMapWidth;
+  SrcY := SrcRect.Top + ArcCos(DstY * FLattitudeCosInvRadius + Dist * FLattitudeSinInvRadius) * FMapHeight;
+end;
+{$else}
+{Assembler version (FPU) ... 4% faster on a P4 }
+asm
+// screen projection on sphere
+//  DstX := DstX - FCenterX; // = Y
+    fld   DstX               // DstX
+    fsub  [eax].FCenter.X // DstX'
+//  DstY := FCenterY - DstY; // = Z
+    fld   [eax].FCenter.Y // FCenterY | DstX'
+    fsub  DstY               // DstY'    | DstX'
+//  x := DstX * DstX + DstY * DstY;
+    fld   st(0)                    // Z    | Z    | Y
+    fmul  st(0),st(1)              // ZZ   | Z    | Y
+    fld   st(2)                    // Y    | ZZ   | Z   | Y
+    fmul  st(0),st(3)
+    faddp                          // X'   | Z    | Y
+//  if (FSquareRadius < x) then // not projetable in the sphere.
+    fld [eax].FSquareRadius
+    fcomi st(0),st(1) // st(0) < st(1)
+    jnbe   @@1
+    fstp  st(0)
+    fstp  st(0)
+    fstp  st(0)
+    fstp  st(0)
+//    SrcX := -1;
+    mov   [SrcX],$bf800000
+//    SrcY := -1;
+    mov   [SrcY],$bf800000
+//    Exit;
+    jmp @@fin
+@@1:
+//  x := sqrt(FSquareRadius - x);
+    fsubrp
+    fsqrt                          // X    | Z    | Y
+// apply rotations
+//  DstX := Arctan2(Y,X * FLattitudeCos + Z * FLattitudeSin) + FLongitude; // Lon
+    fxch  st(2)                   // Y     | Z    | Y
+    fld   st(2)                   // X     | Y    | Z    | X
+    fmul  [eax].FLattitudeCos
+    fld   st(2)                   // Z     | Xx.  | Y    | Z    | X
+    fmul  [eax].FLattitudeSin     // Zx.   | Xx.  | Y    | Z    | X
+    faddp                         // Xx+Zx | Y    | Z    | X
+    fpatan
+    fadd  [eax].FLongitude  // DstX  | Z    | X
+//  if DstX > PI2S then
+    fldpi
+    fadd  st(0),st(0)       // 2PI   | DstX | Z    | X
+    fcomi st(0),st(1) // st(0) < st(1)
+    jnb   @@test2
+//    DstX := DstX - PI2S
+    fsubp st(1),st(0)
+    jmp   @@testfin
+//  else if DstX < 0 then
+@@test2:
+    fldz
+    fcomip st(0),st(2) // st(0) < st(2)
+    jb @@test3
+//    DstX := DstX + PI2S;
+    faddp
+    jmp   @@testfin
+@@test3:
+    fstp  st(0)
+@@testfin:
+// Map projection
+//  SrcX := DstX * FMapWidth;
+    fmul  [eax].FMapWidth
+    FADD  [eax].FSrcRectLeft
+    fstp  dword ptr [SrcX]// Z    | X
+//  SrcY := ArcCos(Z * FLattitudeCosInvRadius + x * FLattitudeSinInvRadius) * FMapHeight;
+    fmul  [eax].FLattitudeCosInvRadius
+    fxch
+    fmul  [eax].FLattitudeSinInvRadius
+    faddp
+    FLD1                 // 1      | X
+    FLD   ST(1)          // X      | 1      | X
+    FMUL  ST(0),ST(0)    // X²     | 1      | X
+    FSUBP ST(1),ST(0)    // 1 - X² | X
+    FABS                 //<- avoid rounding errors...
+    FSQRT                // sqrt(.)| X
+    FXCH  st(1)
+    FPATAN               // result |
+    fmul  [eax].FMapHeight
+    FADD  [eax].FSrcRectTop
+    fstp  dword ptr [SrcY]
+@@fin:
+    fwait
+end;
+{$ifend}
+
+function TSphereTransformation.ScreenCoordinate(var X, Y: TFloat): boolean;
+var
+  SinLong, CosLong, SinLat, CosLat: TFloat;
+begin
+  if not TransformValid then
+    PrepareTransform;
+
+  GR32_Math.SinCos(X - FLongitude, SinLong, CosLong);
+  GR32_Math.SinCos(Y, SinLat, CosLat);
+
+  Result := (SinLat * CosLong * FLattitudeCos >= CosLat * FLattitudeSin);
+
+  if Result then
+  begin
+    X := FCenter.X + FRadius * SinLat * SinLong;
+    Y := FCenter.Y - FRadius * (SinLat * CosLong * FLattitudeSin + CosLat * FLattitudeCos);
   end;
 end;
 
-{ Matrix conversion routines }
-
-function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix;
+procedure TSphereTransformation.SetCenter(const Value: TFloatPoint);
 begin
-  Result[0,0] := Round(FloatMatrix[0,0] * FixedOne);
-  Result[0,1] := Round(FloatMatrix[0,1] * FixedOne);
-  Result[0,2] := Round(FloatMatrix[0,2] * FixedOne);
-  Result[1,0] := Round(FloatMatrix[1,0] * FixedOne);
-  Result[1,1] := Round(FloatMatrix[1,1] * FixedOne);
-  Result[1,2] := Round(FloatMatrix[1,2] * FixedOne);
-  Result[2,0] := Round(FloatMatrix[2,0] * FixedOne);
-  Result[2,1] := Round(FloatMatrix[2,1] * FixedOne);
-  Result[2,2] := Round(FloatMatrix[2,2] * FixedOne);
+  if FCenter <> Value then
+  begin
+    FCenter := Value;
+    Changed;
+  end;
 end;
 
-function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix;
+procedure TSphereTransformation.SetLattitude(const Value: TFloat);
 begin
-  Result[0,0] := FixedMatrix[0,0] * FixedToFloat;
-  Result[0,1] := FixedMatrix[0,1] * FixedToFloat;
-  Result[0,2] := FixedMatrix[0,2] * FixedToFloat;
-  Result[1,0] := FixedMatrix[1,0] * FixedToFloat;
-  Result[1,1] := FixedMatrix[1,1] * FixedToFloat;
-  Result[1,2] := FixedMatrix[1,2] * FixedToFloat;
-  Result[2,0] := FixedMatrix[2,0] * FixedToFloat;
-  Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
-  Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
+  if FLattitude <> Value then
+  begin
+    FLattitude := Value;
+    Modulo2Pi(FLattitude);
+    Changed;
+  end;
 end;
 
-{CPU target and feature Function templates}
+procedure TSphereTransformation.SetLongitude(const Value: TFloat);
+begin
+  if FLongitude <> Value then
+  begin
+    FLongitude := Value;
+    Modulo2Pi(FLongitude);
+    Changed;
+  end;
+end;
 
-const
-  FID_DETERMINANT32 = 0;
-  FID_DETERMINANT64 = 1;
+procedure TSphereTransformation.SetRadius(const Value: TFloat);
+begin
+  if (Value > 0) and (FRadius <> Value) then
+  begin
+    FRadius := Value;
+    Changed;
+  end;
+end;
 
-{Complete collection of unit templates}
+function TSphereTransformation.SphericalCoordinate(CartesianX, CartesianY: TFloat): TFloatPoint;
+var
+  Dist: TFloat;
+begin
+  if not TransformValid then
+    PrepareTransform;
+
+  // Screen projection on sphere
+  CartesianX := CartesianX - FCenter.X; // = Y
+  CartesianY := FCenter.Y - CartesianY; // = Z
+  Dist := CartesianX * CartesianX + CartesianY * CartesianY;
+
+  if (Dist > FSquareRadius) then // Not projectable in the sphere.
+  begin
+    Result.X := 0;
+    Result.Y := 0;
+    Exit;
+  end;
+
+  Dist := Sqrt(FSquareRadius - Dist);
+
+  // Apply rotations
+  Result.X := Arctan2(CartesianX, Dist * FLattitudeCos + CartesianY * FLattitudeSin) + FLongitude;
+  Modulo2Pi(Result.X);
+  Result.Y := ArcCos(CartesianY * FLattitudeCosInvRadius + Dist * FLattitudeSinInvRadius) - (PI / 2);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
 
 var
-  Registry: TFunctionRegistry;
+  TransformsRegistry: TFunctionRegistry;
 
 procedure RegisterBindings;
 begin
-  Registry := NewRegistry('GR32_Transforms bindings');
-  Registry.RegisterBinding(FID_DETERMINANT32, @@DET32);
+  TransformsRegistry := NewRegistry('GR32_Transforms bindings');
+  TransformsRegistry.RegisterBinding(@@DET_2x2_32);
+  TransformsRegistry.RegisterBinding(@@DET_3x3_32);
+  TransformsRegistry.RegisterBinding(@@DET_2x2_64);
 
-  Registry.Add(FID_DETERMINANT32, @DET32_Pas);
-  {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_DETERMINANT32, @DET32_ASM);
-//  Registry.Add(FID_DETERMINANT32, @DET32_SSE2, [isSSE2]);
-  {$ENDIF}
+  // DET_2x2_32
+  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_Pas);
+{$IFNDEF PUREPASCAL}
+  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_ASM);
+//  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_SSE2, [isSSE2]);
+{$ENDIF}
 
-  Registry.RegisterBinding(FID_DETERMINANT64, @@DET64);
+  // DET_2x2_64
+  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_Pas);
+{$IFNDEF PUREPASCAL}
+  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_ASM);
+//  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_SSE2, [isSSE2]);
+{$ENDIF}
 
-  Registry.Add(FID_DETERMINANT64, @DET64_Pas);
-  {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_DETERMINANT64, @DET64_ASM);
-//  Registry.Add(FID_DETERMINANT64, @DET64_SSE2, [isSSE2]);
-  {$ENDIF}
+  // DET_3x3_32
+  TransformsRegistry.Add(@@DET_3x3_32, @DET_3x3_32_Pas);
 
-  Registry.RebindAll;
+  TransformsRegistry.RebindAll;
 end;
+
+//------------------------------------------------------------------------------
 
 initialization
   RegisterBindings;
