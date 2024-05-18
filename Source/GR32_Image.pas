@@ -110,22 +110,32 @@ type
   TPaintStageEvent = procedure(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal) of object;
 
   { TPaintStage }
-  TPaintStageMask = set of (
+  TPaintStageMaskValue = (
     psmDesignTime,              // Stage is painted at design-time
     psmRunTime,                 // Stage is painted at run-time
     psmExport                   // Stage is painted when exporting the image via PaintTo
   );
+  TPaintStageMask = set of TPaintStageMaskValue;
+
+  TPaintStages = class;
 
   TPaintStage = record
+  private
+    FPaintStages: TPaintStages;
+    FMask: TPaintStageMask;
+    FStage: Cardinal;
+    FParameter: Cardinal;
   private
     function GetDesignTime: boolean;
     function GetRunTime: boolean;
     procedure SetDesignTime(const Value: boolean);
     procedure SetRunTime(const Value: boolean);
+    procedure SetMask(const Value: TPaintStageMask);
+    procedure SetStage(const Value: Cardinal);
   public
-    Mask: TPaintStageMask;
-    Stage: Cardinal;             // a PST_* constant
-    Parameter: Cardinal;         // an optional parameter
+    property Mask: TPaintStageMask read FMask write SetMask;
+    property Stage: Cardinal read FStage write SetStage; // a PST_* constant
+    property Parameter: Cardinal read FParameter write FParameter; // an optional parameter
 
     // Backward compatibility
     property DsgnTime: boolean read GetDesignTime write SetDesignTime;
@@ -137,15 +147,18 @@ type
   TPaintStages = class
   private
     FItems: array of TPaintStage;
+    FDirty: boolean;
     function GetItem(Index: Integer): PPaintStage;
   public
+    constructor Create;
     destructor Destroy; override;
-    function  Add: PPaintStage;
+    function Add: PPaintStage;
     procedure Clear;
-    function  Count: Integer;
+    function Count: Integer;
     procedure Delete(Index: Integer);
-    function  Insert(Index: Integer): PPaintStage;
+    function Insert(Index: Integer): PPaintStage;
     property Items[Index: Integer]: PPaintStage read GetItem; default;
+    property Dirty: boolean read FDirty write FDirty;
   end;
 
   { Alignment of the bitmap in TCustomImage32 }
@@ -957,9 +970,6 @@ type
 const
   DefaultRepaintOptimizerClass: TCustomRepaintOptimizerClass = TMicroTilesRepaintOptimizer;
 
-resourcestring
-  RCStrInvalidStageIndex = 'Invalid stage index';
-
 
 //------------------------------------------------------------------------------
 //
@@ -968,36 +978,55 @@ resourcestring
 //------------------------------------------------------------------------------
 function TPaintStage.GetDesignTime: boolean;
 begin
-  Result := (psmDesignTime in Mask);
+  Result := (psmDesignTime in FMask);
 end;
 
 function TPaintStage.GetRunTime: boolean;
 begin
-  Result := (psmRunTime in Mask);
+  Result := (psmRunTime in FMask);
 end;
 
 procedure TPaintStage.SetDesignTime(const Value: boolean);
 begin
   if (Value) then
-    Include(Mask, psmDesignTime)
+    Include(FMask, psmDesignTime)
   else
-    Exclude(Mask, psmDesignTime);
+    Exclude(FMask, psmDesignTime);
+  FPaintStages.Dirty := True;
+end;
+
+procedure TPaintStage.SetMask(const Value: TPaintStageMask);
+begin
+  FMask := Value;
+  FPaintStages.Dirty := True;
 end;
 
 procedure TPaintStage.SetRunTime(const Value: boolean);
 begin
   if (Value) then
-    Include(Mask, psmRunTime)
+    Include(FMask, psmRunTime)
   else
-    Exclude(Mask, psmRunTime);
+    Exclude(FMask, psmRunTime);
 end;
 
+
+procedure TPaintStage.SetStage(const Value: Cardinal);
+begin
+  FStage := Value;
+  FPaintStages.Dirty := True;
+end;
 
 //------------------------------------------------------------------------------
 //
 //      TPaintStages
 //
 //------------------------------------------------------------------------------
+constructor TPaintStages.Create;
+begin
+  inherited Create;
+  FDirty := True;
+end;
+
 destructor TPaintStages.Destroy;
 begin
   Clear;
@@ -1013,15 +1042,18 @@ begin
   Result := @FItems[L];
   with Result^ do
   begin
-    Mask := [psmRunTime, psmExport];
-    Stage := 0;
-    Parameter := 0;
+    FPaintStages := Self;
+    FMask := [psmRunTime, psmExport];
+    FStage := 0;
+    FParameter := 0;
   end;
+  FDirty := True;
 end;
 
 procedure TPaintStages.Clear;
 begin
   FItems := nil;
+  FDirty := True;
 end;
 
 function TPaintStages.Count: Integer;
@@ -1034,11 +1066,12 @@ var
   LCount: Integer;
 begin
   if (Index < 0) or (Index > High(FItems)) then
-    raise EListError.Create(RCStrInvalidStageIndex);
+    raise EListError.Create('Invalid stage index');
   LCount := Length(FItems) - Index - 1;
   if LCount > 0 then
     Move(FItems[Index + 1], FItems[Index], LCount * SizeOf(TPaintStage));
   SetLength(FItems, High(FItems));
+  FDirty := True;
 end;
 
 function TPaintStages.GetItem(Index: Integer): PPaintStage;
@@ -1063,10 +1096,12 @@ begin
   Result := @FItems[Index];
   with Result^ do
   begin
-    Mask := [psmRunTime, psmExport];
-    Stage := 0;
-    Parameter := 0;
+    FPaintStages := Self;
+    FMask := [psmRunTime, psmExport];
+    FStage := 0;
+    FParameter := 0;
   end;
+  FDirty := True;
 end;
 
 
@@ -2452,41 +2487,47 @@ procedure TCustomImage32.DoPaintBuffer;
 var
   PaintStageHandlerCount: Integer;
   I, J: Integer;
-  PaintStageMask: TPaintStageMask;
+  PaintStageMask: TPaintStageMaskValue;
 begin
   if RepaintOptimizer.Enabled then
     RepaintOptimizer.BeginPaintBuffer;
 
   UpdateCache;
 
-  SetLength(FPaintStageHandlers, FPaintStages.Count);
-  SetLength(FPaintStageNum, FPaintStages.Count);
-  PaintStageHandlerCount := 0;
-
-  if (csDesigning in ComponentState) then
-    PaintStageMask := [psmDesignTime]
-  else
-    PaintStageMask := [psmRunTime];
-
-  // compile list of paintstage handler methods
-  for I := 0 to FPaintStages.Count - 1 do
+  if (FPaintStages.Dirty) then
   begin
-    if (FPaintStages[I].Mask * PaintStageMask <> []) then
+    SetLength(FPaintStageHandlers, FPaintStages.Count);
+    SetLength(FPaintStageNum, FPaintStages.Count);
+    PaintStageHandlerCount := 0;
+
+    if (csDesigning in ComponentState) then
+      PaintStageMask := psmDesignTime
+    else
+      PaintStageMask := psmRunTime;
+
+    // compile list of paintstage handler methods
+    for i := 0 to FPaintStages.Count - 1 do
     begin
-      FPaintStageNum[PaintStageHandlerCount] := I;
-      case FPaintStages[I].Stage of
-        PST_CUSTOM: FPaintStageHandlers[PaintStageHandlerCount] := ExecCustom;
-        PST_CLEAR_BUFFER: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBuffer;
-        PST_CLEAR_BACKGND: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBackgnd;
-        PST_DRAW_BITMAP: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawBitmap;
-        PST_DRAW_LAYERS: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawLayers;
-        PST_CONTROL_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecControlFrame;
-        PST_BITMAP_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecBitmapFrame;
-      else
-        Dec(PaintStageHandlerCount); // this should not happen .
+      if (PaintStageMask in FPaintStages[i].Mask) then
+      begin
+        FPaintStageNum[PaintStageHandlerCount] := i;
+        case FPaintStages[i].Stage of
+          PST_CUSTOM: FPaintStageHandlers[PaintStageHandlerCount] := ExecCustom;
+          PST_CLEAR_BUFFER: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBuffer;
+          PST_CLEAR_BACKGND: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBackgnd;
+          PST_DRAW_BITMAP: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawBitmap;
+          PST_DRAW_LAYERS: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawLayers;
+          PST_CONTROL_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecControlFrame;
+          PST_BITMAP_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecBitmapFrame;
+        else
+          Dec(PaintStageHandlerCount); // this should not happen .
+        end;
+        Inc(PaintStageHandlerCount);
       end;
-      Inc(PaintStageHandlerCount);
     end;
+    SetLength(FPaintStageHandlers, PaintStageHandlerCount);
+
+    FPaintStages.Dirty := False;
   end;
 
   Buffer.BeginLockUpdate;
@@ -2495,7 +2536,7 @@ begin
 
     // No InvalidRects: Repaint everything
     Buffer.ClipRect := GetViewportRect;
-    for I := 0 to PaintStageHandlerCount - 1 do
+    for i := 0 to High(FPaintStageHandlers) do
       FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
 
   end else
@@ -2505,7 +2546,7 @@ begin
     for J := 0 to InvalidRects.Count - 1 do
     begin
       Buffer.ClipRect := InvalidRects[J]^;
-      for I := 0 to PaintStageHandlerCount - 1 do
+      for i := 0 to High(FPaintStageHandlers) do
         FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
     end;
 
