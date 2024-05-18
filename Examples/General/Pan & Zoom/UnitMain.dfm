@@ -100,6 +100,7 @@ object FormMain: TFormMain
       ScrollBars.Style = rbsDefault
       ScrollBars.Size = 17
       ScrollBars.Visibility = svAuto
+      SizeGrip = sgNone
       OverSize = 0
       TabOrder = 0
       TabStop = True
