@@ -4257,6 +4257,7 @@ begin
   BeginOffset;
   try
     Recenter;
+    UpdateOffsets([ocScale, ocBitmapSize, ocControlSize]);
   finally
     EndOffset;
   end;
@@ -4554,7 +4555,8 @@ begin
     begin
       // If Visibility=svAuto then the ranges of the scrollbars may just have
       // changed, thus we need to update the visibility of the scrollbars.
-      if (CanShowScrollBars) and (FScrollBars.Visibility = svAuto) then
+      // Also, if the control is resize we need to reposition the scrollbars.
+      if (CanShowScrollBars) and (FScrollBars.Visibility in [svAlways, svAuto]) then
         UpdateScrollbarVisibility;
 
       UpdateScrollBar(FHorScroll, FBitmapSize.cx, Min(FBitmapSize.cx, FViewportSize.cx));
