@@ -530,7 +530,8 @@ type
   TRubberBandPaintHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var Handled: boolean) of object;
   TRubberBandUpdateHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var UpdateRect: TRect; var Handled: boolean) of object;
 
-  TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared;
+  TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared.
+  TRubberBandHandleStyle = (hsSquare, hsCircle, hsDiamond);
 
   TCustomRubberBandLayer = class(TPositionedLayer)
   strict protected type
@@ -547,6 +548,9 @@ type
     FHandleFrame: TColor32;
     FHandleFill: TColor32;
     FHandleSize: TFloat;
+    FHandleHitZone: TFloat;
+    FHandleFrameSize: TFloat;
+    FHandleStyle: TRubberBandHandleStyle;
     FOnUserChange: TNotifyEvent;
     FOnHandleClicked: TRubberBandHandleEvent;
     FOnHandleMove: TRubberBandHandleMoveEvent;
@@ -556,13 +560,17 @@ type
     FQuantized: Integer;
     FQuantizeShiftToggle: TLayerShiftState;
     FPassMouse: TRubberbandPassMouse;
+    FFHandleStyle: TRubberBandHandleStyle;
     procedure SetFrameStipplePattern(const Value: TArrayOfColor32);
     procedure SetFrameStippleStep(const Value: TFloat);
     procedure SetFrameStippleCounter(const Value: TFloat);
     procedure SetChildLayer(Value: TPositionedLayer);
+    procedure SetHandleStyle(const Value: TRubberBandHandleStyle);
+    procedure SetHandleSize(Value: TFloat);
+    procedure SetHandleHitZone(const Value: TFloat);
     procedure SetHandleFill(Value: TColor32);
     procedure SetHandleFrame(Value: TColor32);
-    procedure SetHandleSize(Value: TFloat);
+    procedure SetHandleFrameSize(Value: TFloat);
     procedure SetQuantized(const Value: Integer);
     procedure SetVertices(const Value: TArrayOfFloatPoint);
     procedure SetVertex(Index: integer; const Value: TFloatPoint);
@@ -620,9 +628,12 @@ type
 
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
     property Vertex[Index: integer]: TFloatPoint read GetVertex write SetVertex;
+    property HandleStyle: TRubberBandHandleStyle read FFHandleStyle write SetHandleStyle;
     property HandleSize: TFloat read FHandleSize write SetHandleSize;
+    property HandleHitZone: TFloat read FHandleHitZone write SetHandleHitZone;
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
     property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
+    property HandleFrameSize: TFloat read FHandleFrameSize write SetHandleFrameSize;
     property FrameStipple: TArrayOfColor32 read FFrameStipplePattern write SetFrameStipplePattern;
     property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;
     property FrameStippleCounter: TFloat read FFrameStippleCounter write SetFrameStippleCounter;
@@ -757,6 +768,8 @@ uses
   GR32_LowLevel,
   GR32_Math,
   GR32_Geometry,
+  GR32_VectorUtils,
+  GR32_Polygons,
   GR32_Resamplers,
   GR32_RepaintOpt;
 
@@ -2359,6 +2372,8 @@ begin
   FHandleFrame := clBlack32;
   FHandleFill := clWhite32;
   FHandleSize := 3;
+  FHandleHitZone := 1;
+  FHandleFrameSize := 1;
   FQuantized := 1;
   FQuantizeShiftToggle := [ssAlt];
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
@@ -2422,15 +2437,13 @@ function TCustomRubberBandLayer.FindVertex(const APosition: TPoint): integer;
 var
   i: integer;
   HandleRect: TFloatRect;
-const
-  DragZone = 1;
 begin
   for i := 0 to High(Vertices) do
     if (IsVertexVisible(i)) then
     begin
       HandleRect.TopLeft := LayerToControl(Vertices[i], False);
       HandleRect.BottomRight := HandleRect.TopLeft;
-      GR32.InflateRect(HandleRect, FHandleSize + DragZone, FHandleSize + DragZone);
+      GR32.InflateRect(HandleRect, FHandleSize + FHandleHitZone, FHandleSize + FHandleHitZone);
 
       if (HandleRect.Contains(APosition)) then
         Exit(i);
@@ -2758,23 +2771,105 @@ begin
 end;
 
 procedure TCustomRubberBandLayer.DrawHandle(Buffer: TBitmap32; X, Y: TFloat);
+
+  function Diamond(X, Y: TFloat; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
+  begin
+    SetLength(Result, 4);
+    Result[0] := FloatPoint(X, Y - Radius);
+    Result[1] := FloatPoint(X + Radius, Y);
+    Result[2] := FloatPoint(X, Y + Radius);
+    Result[3] := FloatPoint(X - Radius, Y);
+  end;
+
 var
   Handle: TFloatRect;
   HandleRect: TRect;
+  Shape: TArrayOfArrayOfFloatPoint;
+  Colors: array[0..1] of TColor32;
+  Renderer: TPolygonRenderer32VPR;
 begin
-  Handle := FloatRect(X, Y, X, Y);
-  GR32.InflateRect(Handle, FHandleSize, FHandleSize);
-  HandleRect := MakeRect(Handle, rrOutside);
-
-  if (AlphaComponent(FHandleFrame) > 0) then
+  if (FHandleStyle = hsSquare) and (FHandleFrameSize = 1.0) and (Frac(FHandleSize) = 0.0) then
   begin
-    Buffer.FrameRectTS(HandleRect, FHandleFrame);
+    // Simple 1px framed square
 
-    GR32.InflateRect(HandleRect, -1, -1);
+    Handle := FloatRect(X, Y, X, Y);
+    GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+    HandleRect := MakeRect(Handle);
+
+    if (AlphaComponent(FHandleFrame) > 0) then
+    begin
+      Buffer.FrameRectTS(HandleRect, FHandleFrame);
+
+      GR32.InflateRect(HandleRect, -1, -1);
+    end;
+
+    if (AlphaComponent(FHandleFill) > 0) then
+      Buffer.FillRectTS(HandleRect, FHandleFill);
+
+    exit;
   end;
 
-  if (AlphaComponent(FHandleFill) > 0) then
-    Buffer.FillRectTS(HandleRect, FHandleFill);
+  // Outer: Shape[0]
+  // Inner: Shape[1]
+  // Stroke: Shape[0]+Shape[1]
+  // Fill: Shape[1]
+  SetLength(Shape, 2);
+
+  case FHandleStyle of
+    hsSquare:
+      begin
+        Handle := FloatRect(X, Y, X, Y);
+        GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+        Shape[0] := Rectangle(Handle);
+      end;
+
+    hsCircle:
+      Shape[0] := Circle(FloatPoint(X, Y), FHandleSize);
+
+    hsDiamond:
+      Shape[0] := Diamond(X, Y, FHandleSize);
+  end;
+
+  if (FHandleFrameSize = FHandleSize) then
+  begin
+    // Frame completely covers area
+    Shape[1] := Shape[0];
+    Shape[0] := nil;
+    Colors[1] := FHandleFrame;
+  end else
+  if (FHandleFrameSize > 0) then
+  begin
+    Shape[1] := ReversePolygon(Grow(Shape[0], -FHandleFrameSize, jsBevel));
+    Colors[0] := FHandleFrame;
+    Colors[1] := FHandleFill;
+  end else
+  begin
+    // No frame
+    Shape[1] := Shape[0];
+    Shape[0] := nil;
+    Colors[1] := FHandleFill;
+  end;
+
+  Renderer := TPolygonRenderer32VPR.Create(Buffer);
+  try
+
+    // Fill
+    if (Shape[1] <> nil) and (AlphaComponent(Colors[1]) > 0) then
+    begin
+      Renderer.Color := Colors[1];
+      Renderer.PolygonFS(Shape[1]);
+    end;
+
+    // Stroke
+    if (Shape[0] <> nil) and (AlphaComponent(Colors[0]) > 0) then
+    begin
+      Renderer.Color := Colors[0];
+      Renderer.PolyPolygonFS(Shape);
+    end;
+
+  finally
+    Renderer.Free;
+  end;
 end;
 
 procedure TCustomRubberBandLayer.DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer);
@@ -2997,10 +3092,35 @@ begin
   end;
 end;
 
+procedure TCustomRubberBandLayer.SetHandleFrameSize(Value: TFloat);
+begin
+  if Value < 0.0 then
+    Value := 0
+  else
+  if Value > FHandleSize then
+    Value := FHandleSize;
+
+  if Value <> FHandleFrameSize then
+  begin
+    // Size doesn't change; No need to erase old
+
+    FHandleFrameSize := Value;
+    UpdateVertices;
+  end;
+end;
+
+procedure TCustomRubberBandLayer.SetHandleHitZone(const Value: TFloat);
+begin
+  if (Value >= 0) then
+    FHandleHitZone := Value;
+end;
+
 procedure TCustomRubberBandLayer.SetHandleFill(Value: TColor32);
 begin
   if Value <> FHandleFill then
   begin
+    // Size doesn't change; No need to erase old
+
     FHandleFill := Value;
     UpdateVertices;
   end;
@@ -3010,6 +3130,8 @@ procedure TCustomRubberBandLayer.SetHandleFrame(Value: TColor32);
 begin
   if Value <> FHandleFrame then
   begin
+    // Size doesn't change; No need to erase old
+
     FHandleFrame := Value;
     UpdateVertices;
   end;
@@ -3026,6 +3148,22 @@ begin
     UpdateVertices;
 
     FHandleSize := Value;
+    if FHandleSize < FHandleFrameSize then
+      FHandleFrameSize := FHandleSize;
+
+    // Paint new
+    UpdateVertices;
+  end;
+end;
+
+procedure TCustomRubberBandLayer.SetHandleStyle(const Value: TRubberBandHandleStyle);
+begin
+  if (FHandleStyle <> Value) then
+  begin
+    // Erase old
+    UpdateVertices;
+
+    FHandleStyle := Value;
 
     // Paint new
     UpdateVertices;
