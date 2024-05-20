@@ -95,9 +95,10 @@ object FrmNewImage: TFrmNewImage
     Top = 112
     Width = 67
     Height = 21
+    BevelKind = bkFlat
     BevelOuter = bvNone
-    BorderStyle = bsSingle
     Color = clWhite
+    ParentBackground = False
     TabOrder = 4
   end
   object BtnSelect: TButton

@@ -975,8 +975,6 @@ end;
 
 procedure TMainForm.ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-var
-  Size: TSize;
 begin
   if Layer = nil then
     Selection := nil;
@@ -989,9 +987,7 @@ begin
       ImgView.Scale := 1;
 
       // ...and Center ImgView
-      Size := ImgView.GetBitmapSize;
-      ImgView.OffsetHorz := (ImgView.Width-Size.cx) div 2;
-      ImgView.OffsetVert := (ImgView.Height-Size.cy) div 2;
+      ImgView.ScrollToCenter;
     finally
       ImgView.EndUpdate;
     end;

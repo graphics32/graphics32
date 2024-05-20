@@ -5,15 +5,11 @@ object MainForm: TMainForm
   ClientHeight = 590
   ClientWidth = 787
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'Tahoma'
-  Font.Style = []
+  ParentFont = True
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  TextHeight = 13
+  TextHeight = 15
   object ImgView: TImgView32
     Left = 0
     Top = 0
@@ -59,12 +55,13 @@ object MainForm: TMainForm
         Align = alTop
         BevelOuter = bvNone
         Caption = 'Image Properties'
-        Color = clBtnShadow
+        Color = 10178048
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindow
+        Font.Color = clWhite
         Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Name = 'Segoe UI'
         Font.Style = []
+        ParentBackground = False
         ParentFont = False
         TabOrder = 0
       end
@@ -100,8 +97,8 @@ object MainForm: TMainForm
       object LblOpacity: TLabel
         Left = 8
         Top = 24
-        Width = 41
-        Height = 13
+        Width = 44
+        Height = 15
         Caption = 'Opacity:'
       end
       object PnlBitmapLayerHeader: TPanel
@@ -112,12 +109,13 @@ object MainForm: TMainForm
         Align = alTop
         BevelOuter = bvNone
         Caption = 'Bitmap Layer Properties'
-        Color = clBtnShadow
+        Color = 10178048
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindow
+        Font.Color = clWhite
         Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Name = 'Segoe UI'
         Font.Style = []
+        ParentBackground = False
         ParentFont = False
         TabOrder = 0
       end
@@ -183,22 +181,22 @@ object MainForm: TMainForm
       object LblMagifierOpacity: TLabel
         Left = 8
         Top = 24
-        Width = 41
-        Height = 13
+        Width = 44
+        Height = 15
         Caption = 'Opacity:'
       end
       object LblMagnification: TLabel
         Left = 8
         Top = 64
-        Width = 67
-        Height = 13
+        Width = 77
+        Height = 15
         Caption = 'Magnification:'
       end
       object LblRotation: TLabel
         Left = 8
         Top = 104
-        Width = 45
-        Height = 13
+        Width = 48
+        Height = 15
         Caption = 'Rotation:'
       end
       object PnlMagnificationHeader: TPanel
@@ -209,12 +207,13 @@ object MainForm: TMainForm
         Align = alTop
         BevelOuter = bvNone
         Caption = 'Magnifier (All) Properties'
-        Color = clBtnShadow
+        Color = 10178048
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindow
+        Font.Color = clWhite
         Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Name = 'Segoe UI'
         Font.Style = []
+        ParentBackground = False
         ParentFont = False
         TabOrder = 0
       end
@@ -282,15 +281,15 @@ object MainForm: TMainForm
       object LblBorderRadius: TLabel
         Left = 8
         Top = 24
-        Width = 71
-        Height = 13
+        Width = 76
+        Height = 15
         Caption = 'Border Radius:'
       end
       object LblBorderWidth: TLabel
         Left = 8
         Top = 64
-        Width = 67
-        Height = 13
+        Width = 73
+        Height = 15
         Caption = 'Border Width:'
       end
       object PnlButtonMockupHeader: TPanel
@@ -301,12 +300,13 @@ object MainForm: TMainForm
         Align = alTop
         BevelOuter = bvNone
         Caption = 'Button (All) Properties'
-        Color = clBtnShadow
+        Color = 10178048
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindow
+        Font.Color = clWhite
         Font.Height = -11
-        Font.Name = 'Tahoma'
+        Font.Name = 'Segoe UI'
         Font.Style = []
+        ParentBackground = False
         ParentFont = False
         TabOrder = 0
       end

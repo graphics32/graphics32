@@ -4598,9 +4598,9 @@ begin
       else
       begin
 
-        if ([ocScale, ocControlSize] * FOffsetChanges <> []) then
+        if ([ocBitmapSize, ocScale, ocControlSize] * FOffsetChanges <> []) then
         begin
-          if (OldBitmapSize.cx <> 0) then
+          if (OldBitmapSize.cx <> 2*BitmapMargin) then
             // Maintain relative offset from center
             Center := (-OffsetHorz + OldViewportSize.cx * 0.5) / (OldBitmapSize.cx-2*BitmapMargin)
           else
@@ -4625,9 +4625,9 @@ begin
         OffsetVert := (FViewportSize.cy - InnerBitmapSize.cy) * 0.5
       else
       begin
-        if ([ocScale, ocControlSize] * FOffsetChanges <> []) then
+        if ([ocBitmapSize, ocScale, ocControlSize] * FOffsetChanges <> []) then
         begin
-          if (OldBitmapSize.cx <> 0) then
+          if (OldBitmapSize.cx <> 2*BitmapMargin) then
             // Maintain relative offset from center
             Center := (-OffsetVert + OldViewportSize.cy * 0.5) / (OldBitmapSize.cy-2*BitmapMargin)
           else

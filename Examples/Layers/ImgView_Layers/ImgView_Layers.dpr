@@ -8,6 +8,8 @@ uses
   NewImageUnit in 'NewImageUnit.pas',
   RGBALoaderUnit in 'RGBALoaderUnit.pas';
 
+{$R '..\..\manifest.res'}
+
 begin
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
