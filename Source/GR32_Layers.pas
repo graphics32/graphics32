@@ -596,7 +596,9 @@ type
   TRubberBandPaintHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var Handled: boolean) of object;
   TRubberBandUpdateHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var UpdateRect: TRect; var Handled: boolean) of object;
 
-  TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared
+  TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared.
+
+  TRubberBandHandleStyle = (hsSquare, hsCircle, hsDiamond);
 
   TCustomRubberBandLayer = class(TPositionedLayer)
   strict protected type
@@ -613,6 +615,9 @@ type
     FHandleFrame: TColor32;
     FHandleFill: TColor32;
     FHandleSize: TFloat;
+    FHandleHitZone: TFloat;
+    FHandleFrameSize: TFloat;
+    FHandleStyle: TRubberBandHandleStyle;
     FOnUserChange: TNotifyEvent;
     FOnHandleClicked: TRubberBandHandleEvent;
     FOnHandleMove: TRubberBandHandleMoveEvent;
@@ -627,9 +632,12 @@ type
     procedure SetFrameStippleStep(const Value: TFloat);
     procedure SetFrameStippleCounter(const Value: TFloat);
     procedure SetChildLayer(Value: TPositionedLayer);
+    procedure SetHandleStyle(const Value: TRubberBandHandleStyle);
+    procedure SetHandleSize(Value: TFloat);
+    procedure SetHandleHitZone(const Value: TFloat);
     procedure SetHandleFill(Value: TColor32);
     procedure SetHandleFrame(Value: TColor32);
-    procedure SetHandleSize(Value: TFloat);
+    procedure SetHandleFrameSize(Value: TFloat);
     procedure SetQuantized(const Value: Integer);
     procedure SetVertices(const Value: TArrayOfFloatPoint);
     procedure SetVertex(Index: integer; const Value: TFloatPoint);
@@ -686,14 +694,26 @@ type
 
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
     property Vertex[Index: integer]: TFloatPoint read GetVertex write SetVertex;
+
+    property HandleStyle: TRubberBandHandleStyle read FHandleStyle write SetHandleStyle;
+    // HandleSize: Radius of handle
     property HandleSize: TFloat read FHandleSize write SetHandleSize;
+    // HandleHitZone: Width of extra "invisible" area around handle where the handle can be clicked
+    property HandleHitZone: TFloat read FHandleHitZone write SetHandleHitZone;
+    // HandleFill: Handle fill color
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
+    // HandleFrame: Handle frame/outline color
     property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
+    // HandleFrameSize: Width of handle frame/outline
+    property HandleFrameSize: TFloat read FHandleFrameSize write SetHandleFrameSize;
+
     property FrameStipple: TArrayOfColor32 read FFrameStipplePattern write SetFrameStipple;
     property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;
     property FrameStippleCounter: TFloat read FFrameStippleCounter write SetFrameStippleCounter;
+
     property Quantized: Integer read FQuantized write SetQuantized default 1;
     property QuantizeShiftToggle: TLayerShiftState read FQuantizeShiftToggle write FQuantizeShiftToggle default [ssAlt];
+
     property PassMouseToChild: TRubberbandPassMouse read FPassMouse;
 
     property ActiveHitTest: ILayerHitTest read FHitTest;
@@ -824,6 +844,8 @@ uses
   GR32_LowLevel,
   GR32_Math,
   GR32_Geometry,
+  GR32_VectorUtils,
+  GR32_Polygons,
   GR32_Resamplers,
   GR32_RepaintOpt;
 
@@ -1611,7 +1633,7 @@ end;
 function TCustomLayer.ContentToLayer(const APoint: TPoint): TPoint;
 begin
   Result := APoint;
-end;
+  end;
 
 function TCustomLayer.ContentToLayer(const APoint: TFloatPoint): TFloatPoint;
 begin
@@ -1700,13 +1722,13 @@ begin
   if (LayerHiding) then
     ForceUpdate := True;
 
-  Changing;
-  FLayerOptions := Value;
-  Changed;
+    Changing;
+    FLayerOptions := Value;
+    Changed;
 
   if (LayerHiding) then
     ForceUpdate := False;
-end;
+  end;
 
 procedure TCustomLayer.SetMouseEvents(Value: Boolean);
 begin
@@ -1722,7 +1744,7 @@ begin
     LayerOptions := LayerOptions or LOB_VISIBLE
   else
     LayerOptions := LayerOptions and not LOB_VISIBLE;
-end;
+  end;
 
 procedure TCustomLayer.Update;
 begin
@@ -1987,7 +2009,7 @@ end;
 //------------------------------------------------------------------------------
 
 function TPositionedLayer.ContentToLayer(const APoint: TPoint): TPoint;
-begin
+    begin
   Result := GR32.Point(ContentToLayer(FloatPoint(APoint)));
 end;
 
@@ -1998,7 +2020,7 @@ var
 begin
   Result := APoint;
 
-  Size := GetContentSize;
+      Size := GetContentSize;
   if (Size.IsZero) then
     Exit;
 
@@ -2006,12 +2028,12 @@ begin
   LayerHeight := Location.Height;
 
   if (LayerWidth > 0.5) and (LayerHeight > 0.5) and
-    ((Size.X <> LayerWidth) or (Size.Y <> LayerHeight)) then
-  begin
+        ((Size.X <> LayerWidth) or (Size.Y <> LayerHeight)) then
+      begin
     Result.X := Result.X * LayerWidth / Size.X;
     Result.Y := Result.Y * LayerHeight / Size.Y;
-  end;
-end;
+      end;
+    end;
 
 function TPositionedLayer.LayerToContent(const APoint: TPoint): TPoint;
 begin
@@ -2022,7 +2044,7 @@ function TPositionedLayer.LayerToContent(const APoint: TFloatPoint): TFloatPoint
 var
   Size: TPoint;
   LayerWidth, LayerHeight: TFloat;
-begin
+  begin
   Result := APoint;
 
   Size := GetContentSize;
@@ -2504,6 +2526,8 @@ begin
   FHandleFrame := clBlack32;
   FHandleFill := clWhite32;
   FHandleSize := 3;
+  FHandleHitZone := 1; // Just a tiny bit to make it easier to hit the handle
+  FHandleFrameSize := 1;
   FQuantized := 1;
   FQuantizeShiftToggle := [ssAlt];
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
@@ -2603,14 +2627,12 @@ var
   Pos: TFloatPoint;
   HitZone: TFloatPoint;
   ScaleX, ScaleY: TFloat;
-const
-  DragZone = 1; // Just a tiny bit to make it easier to hit the handle
 begin
   // If layer has Scaled=True then vertices are relative to bitmap,
   // otherwise they are relative to control.
   Pos := LayerCollection.ViewportToLocal(APosition, Scaled);
 
-  HitZone.X := FHandleSize + DragZone;
+  HitZone.X := FHandleSize + FHandleHitZone;
   HitZone.Y := HitZone.X;
 
   if (Scaled) and (LayerCollection <> nil) then
@@ -2660,14 +2682,14 @@ begin
       Result.Cursor := GetHitTestCursor(Result);
       Result.StartLocation := Location;
     end;
-  end;
+end;
 end;
 
 procedure TCustomRubberBandLayer.SetHitTest(const AHitTest: ILayerHitTest);
 begin
   FHitTest := AHitTest;
   FIsDragging := (FHitTest <> nil); // For backward compatibility
-end;
+  end;
 
 function TCustomRubberBandLayer.AllowMove: boolean;
 begin
@@ -2785,7 +2807,7 @@ begin
       Result := True;
     end;
 
-  end;
+end;
 end;
 
 procedure TCustomRubberBandLayer.DoHandleClicked(VertexIndex: integer);
@@ -2853,12 +2875,12 @@ begin
       // ...unless it's the same as the child layer and we handled the child layer above
       if (PositionedLayer <> nil) and ((not FPassMouse.ToChild) or (PositionedLayer <> ChildLayer)) then
       begin
-        PositionedLayer.MouseDown(Button, Shift, X, Y);
+      PositionedLayer.MouseDown(Button, Shift, X, Y);
 
-        if FPassMouse.CancelIfPassed then
-          Exit;
-      end;
+      if FPassMouse.CancelIfPassed then
+        Exit;
     end;
+  end;
   end;
 
   if (ActiveHitTest <> nil) then
@@ -2874,7 +2896,7 @@ begin
     if (Supports(ActiveHitTest, ILayerHitTestVertex, HitTestVertex)) then
       VertexIndex := HitTestVertex.Vertex
     else
-      VertexIndex := -1;
+    VertexIndex := -1;
 
     // Generate an OnHandleClicked event
     DoHandleClicked(VertexIndex);
@@ -2916,12 +2938,12 @@ begin
   if ApplyOffset(ActiveHitTest, DoQuantize) then
   begin
     if (ActiveHitTest <> nil) then
-    begin
+  begin
       // Are we dragging a vertex/handle?
       if (Supports(ActiveHitTest, ILayerHitTestVertex, HitTestVertex)) then
         VertexIndex := HitTestVertex.Vertex
       else
-        VertexIndex := -1;
+      VertexIndex := -1;
 
       // Generate an OnHandleMoved event
       DoHandleMoved(VertexIndex);
@@ -2957,12 +2979,12 @@ begin
       // ...unless it's the same as the child layer and we handled the child layer above
       if (PositionedLayer <> nil) and ((not FPassMouse.ToChild) or (PositionedLayer <> ChildLayer)) then
       begin
-        PositionedLayer.MouseUp(Button, Shift, X, Y);
+      PositionedLayer.MouseUp(Button, Shift, X, Y);
 
-        if FPassMouse.CancelIfPassed then
-          Exit;
-      end;
+      if FPassMouse.CancelIfPassed then
+        Exit;
     end;
+  end;
   end;
 
   SetHitTest(nil);
@@ -2971,23 +2993,104 @@ begin
 end;
 
 procedure TCustomRubberBandLayer.DrawHandle(Buffer: TBitmap32; X, Y: TFloat);
+
+  function Diamond(X, Y: TFloat; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
+  begin
+    SetLength(Result, 4);
+    Result[0] := FloatPoint(X, Y - Radius);
+    Result[1] := FloatPoint(X + Radius, Y);
+    Result[2] := FloatPoint(X, Y + Radius);
+    Result[3] := FloatPoint(X - Radius, Y);
+  end;
+
 var
   Handle: TFloatRect;
   HandleRect: TRect;
+  Shape: TArrayOfArrayOfFloatPoint;
+  Colors: array[0..1] of TColor32;
+  Renderer: TPolygonRenderer32VPR;
 begin
-  Handle := FloatRect(X, Y, X, Y);
-  GR32.InflateRect(Handle, FHandleSize, FHandleSize);
-  HandleRect := MakeRect(Handle, rrClosest);
-
-  if (AlphaComponent(FHandleFrame) > 0) then
+  if (FHandleStyle = hsSquare) and (FHandleFrameSize = 1.0) and (Frac(FHandleSize) = 0.0) then
   begin
-    Buffer.FrameRectTS(HandleRect, FHandleFrame);
+    // Simple 1px framed square
 
-    GR32.InflateRect(HandleRect, -1, -1);
+    Handle := FloatRect(X, Y, X, Y);
+    GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+    HandleRect := MakeRect(Handle, rrClosest);
+
+    if (AlphaComponent(FHandleFrame) > 0) then
+    begin
+      Buffer.FrameRectTS(HandleRect, FHandleFrame);
+      GR32.InflateRect(HandleRect, -1, -1);
+    end;
+
+    if (AlphaComponent(FHandleFill) > 0) then
+      Buffer.FillRectTS(HandleRect, FHandleFill);
+
+    exit;
   end;
 
-  if (AlphaComponent(FHandleFill) > 0) then
-    Buffer.FillRectTS(HandleRect, FHandleFill);
+  // Outer: Shape[0]
+  // Inner: Shape[1]
+  // Stroke: Shape[0]+Shape[1]
+  // Fill: Shape[1]
+  SetLength(Shape, 2);
+
+  case FHandleStyle of
+    hsSquare:
+      begin
+        Handle := FloatRect(X, Y, X, Y);
+        GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+        Shape[0] := Rectangle(Handle);
+      end;
+
+    hsCircle:
+      Shape[0] := Circle(FloatPoint(X, Y), FHandleSize);
+
+    hsDiamond:
+      Shape[0] := Diamond(X, Y, FHandleSize);
+  end;
+
+  if (FHandleFrameSize = FHandleSize) then
+  begin
+    // Frame completely covers area
+    Shape[1] := Shape[0];
+    Shape[0] := nil;
+    Colors[1] := FHandleFrame;
+  end else
+  if (FHandleFrameSize > 0) then
+  begin
+    Shape[1] := ReversePolygon(Grow(Shape[0], -FHandleFrameSize, jsBevel));
+    Colors[0] := FHandleFrame;
+    Colors[1] := FHandleFill;
+  end else
+  begin
+    // No frame
+    Shape[1] := Shape[0];
+    Shape[0] := nil;
+    Colors[1] := FHandleFill;
+  end;
+
+  Renderer := TPolygonRenderer32VPR.Create(Buffer);
+  try
+
+    // Fill
+    if (Shape[1] <> nil) and (AlphaComponent(Colors[1]) > 0) then
+    begin
+      Renderer.Color := Colors[1];
+      Renderer.PolygonFS(Shape[1]);
+    end;
+
+    // Stroke
+    if (Shape[0] <> nil) and (AlphaComponent(Colors[0]) > 0) then
+    begin
+      Renderer.Color := Colors[0];
+      Renderer.PolyPolygonFS(Shape);
+    end;
+
+  finally
+    Renderer.Free;
+  end;
 end;
 
 procedure TCustomRubberBandLayer.DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer);
@@ -3031,7 +3134,7 @@ begin
   Buffer.StippleCounter := FrameStippleCounter;
 
   p := LayerCollection.LocalToViewport(FVertices[High(FVertices)], Scaled);
-  Buffer.MoveToF(p.X, p.Y);
+    Buffer.MoveToF(p.X, p.Y);
 
   for i := 0 to High(FVertices) do
   begin
@@ -3197,7 +3300,7 @@ procedure TCustomRubberBandLayer.SetChildLayer(Value: TPositionedLayer);
 begin
   if (FChildLayer <> nil) then
     FChildLayer.RemoveFreeNotification(Self);
-
+    
   FChildLayer := Value;
 
   if (FChildLayer <> nil) then
@@ -3213,10 +3316,35 @@ begin
   end;
 end;
 
+procedure TCustomRubberBandLayer.SetHandleFrameSize(Value: TFloat);
+begin
+  if Value < 0.0 then
+    Value := 0
+  else
+  if Value > FHandleSize then
+    Value := FHandleSize;
+
+  if Value <> FHandleFrameSize then
+  begin
+    // Size doesn't change; No need to erase old
+
+    FHandleFrameSize := Value;
+    UpdateVertices;
+  end;
+end;
+
+procedure TCustomRubberBandLayer.SetHandleHitZone(const Value: TFloat);
+begin
+  if (Value >= 0) then
+    FHandleHitZone := Value;
+end;
+
 procedure TCustomRubberBandLayer.SetHandleFill(Value: TColor32);
 begin
   if Value <> FHandleFill then
   begin
+    // Size doesn't change; No need to erase old
+
     FHandleFill := Value;
     UpdateVertices;
   end;
@@ -3226,6 +3354,8 @@ procedure TCustomRubberBandLayer.SetHandleFrame(Value: TColor32);
 begin
   if Value <> FHandleFrame then
   begin
+    // Size doesn't change; No need to erase old
+
     FHandleFrame := Value;
     UpdateVertices;
   end;
@@ -3242,6 +3372,22 @@ begin
     UpdateVertices;
 
     FHandleSize := Value;
+    if FHandleSize < FHandleFrameSize then
+      FHandleFrameSize := FHandleSize;
+
+    // Paint new
+    UpdateVertices;
+  end;
+end;
+
+procedure TCustomRubberBandLayer.SetHandleStyle(const Value: TRubberBandHandleStyle);
+begin
+  if (FHandleStyle <> Value) then
+  begin
+    // Erase old
+    UpdateVertices;
+
+    FHandleStyle := Value;
 
     // Paint new
     UpdateVertices;
@@ -3530,7 +3676,7 @@ function TRubberbandLayer.ApplyOffset(const AHitTest: ILayerHitTest; AQuantize: 
       LT := RB - MinSize;
 
     if (MaxSize >= MinSize) and (RB - LT > MaxSize) then
-      LT := RB - MaxSize;
+        LT := RB - MaxSize;
 
     if AQuantize then
       LT := Round(LT / Quantized) * Quantized;
@@ -3545,7 +3691,7 @@ function TRubberbandLayer.ApplyOffset(const AHitTest: ILayerHitTest; AQuantize: 
       RB := LT + MinSize;
 
     if (MaxSize >= MinSize) and (RB - LT > MaxSize) then
-      RB := LT + MaxSize;
+        RB := LT + MaxSize;
 
     if AQuantize then
       RB := Round(RB / Quantized) * Quantized;
@@ -3586,7 +3732,7 @@ begin
     begin
       NewLocation.Left := Round((StartLocation.Left + Delta.X) / Quantized) * Quantized;
       NewLocation.Top := Round((StartLocation.Top + Delta.Y) / Quantized) * Quantized;
-    end else
+  end else
       NewLocation.TopLeft := StartLocation.TopLeft + Delta;
 
     // Set new loaction but keep old width/height
