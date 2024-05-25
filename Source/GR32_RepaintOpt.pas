@@ -50,15 +50,17 @@ uses
 type
   { TCustomRepaintOptimizer }
   TCustomRepaintOptimizer = class(TSingletonImplementation)
+  private type
+    TLayerCollectionList = TList<TLayerCollection>;
   private
     FEnabled: Boolean;
-    FLayerCollections: TList<TLayerCollection>;
+    FLayerCollections: TLayerCollectionList;
     FInvalidRects: TRectList;
     FBuffer: TBitmap32;
   protected
     function GetEnabled: Boolean; virtual;
     procedure SetEnabled(const Value: Boolean); virtual;
-    property LayerCollections: TList<TLayerCollection> read FLayerCollections;
+    property LayerCollections: TLayerCollectionList read FLayerCollections;
     property Buffer: TBitmap32 read FBuffer write FBuffer;
     property InvalidRects: TRectList read FInvalidRects write FInvalidRects;
   public
@@ -139,7 +141,7 @@ end;
 procedure TCustomRepaintOptimizer.RegisterLayerCollection(Layers: TLayerCollection);
 begin
   if (FLayerCollections = nil) then
-    FLayerCollections := TList<TLayerCollection>.Create;
+    FLayerCollections := TLayerCollectionList.Create;
 
   if not FLayerCollections.Contains(Layers) then
   begin

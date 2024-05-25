@@ -1298,29 +1298,36 @@ var
   I, J: Integer;
   TilesPtr: PMicroTiles;
   Layer: TCustomLayer;
+  LayerCollection: TLayerCollection;
 begin
-  if not FOldInvalidTilesValid then  // check if old Invalid tiles need resize and rerendering...
-  begin
-    ValidateWorkingTiles;
+  if FOldInvalidTilesValid then  // check if old Invalid tiles need resize and rerendering...
+    exit;
 
-    if (LayerCollections <> nil) then
-      for I := 0 to LayerCollections.Count - 1 do
-      with LayerCollections[I] do
-        for J := 0 to Count - 1 do
-        begin
-          Layer := Items[J];
-          TilesPtr := FOldInvalidTilesMap.Add(Layer)^;
+  ValidateWorkingTiles;
 
-          MicroTilesSetSize(TilesPtr^, FBufferBounds);
+  if (LayerCollections <> nil) then
+    for I := 0 to LayerCollections.Count - 1 do
+    begin
+      LayerCollection := LayerCollections[I];
+
+      for J := 0 to LayerCollection.Count - 1 do
+      begin
+        Layer := LayerCollection[J];
+
+        TilesPtr := FOldInvalidTilesMap.Add(Layer)^;
+        MicroTilesSetSize(TilesPtr^, FBufferBounds);
+
+        if (Layer.Visible) then
           DrawLayerToMicroTiles(TilesPtr^, Layer);
-          TCustomLayerAccess(Layer).Invalid := False;
-        end;
 
-    FInvalidLayers.Clear;
+        TCustomLayerAccess(Layer).Invalid := False;
+      end;
+    end;
 
-    FOldInvalidTilesValid := True;
-    FUseInvalidTiles := False;
-  end;
+  FInvalidLayers.Clear;
+
+  FOldInvalidTilesValid := True;
+  FUseInvalidTiles := False;
 end;
 
 procedure TMicroTilesRepaintOptimizer.SetEnabled(const Value: Boolean);
@@ -1425,6 +1432,9 @@ begin
       for I := 0 to FInvalidLayers.Count - 1 do
       begin
         Layer := FInvalidLayers[I];
+
+        if (not Layer.Visible) then
+          continue;
 
         // Clear temporary tiles
         MicroTilesClearUsed(FTempTiles);
