@@ -143,39 +143,75 @@ end;
 //
 // Ported to Delphi by Anders Melander
 //------------------------------------------------------------------------------
-// TODO : x64 implementation
-{$ifdef TARGET_x86}
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
+// TODO : This has become a mess. Split into separate x86 and x64 implementations.
 type
-  dword = integer;
-  // Parameters:
-  // EAX <- Source
-  // EDX <- Destination
-  // ECX <- Width
-  // Stack[0] <- Height
-  // Preserves: EDI, ESI, EBX
+  dword = Cardinal;
+  // Parameters (x86):
+  //   EAX <- Source
+  //   EDX <- Destination
+  //   ECX <- Width
+  //   Stack[0] <- Height
+  //   Preserves: EDI, ESI, EBX
+  //
+  // Parameters (x64):
+  //   RCX <- Source
+  //   RDX <- Destination
+  //   R8 <- Width
+  //   R9 <- Height
+  //   Preserves: RDI, RSI, RBX, XMM4, XMM5, XMM6
 var
   Source, Destination: Pointer;
+{$if defined(TARGET_x86)}
   Width: dword;
+{$ifend}
   X4x4Required: dword;
   Y4x4Required: dword;
   remainderX: dword;
   remainderY: dword;
-  destRowSize: dword;
-  sourceRowSize: dword;
-  savedDest: dword;
+{$if defined(TARGET_x86)}
+  destRowSize: dword; // R10
+  sourceRowSize: dword; // R11
+{$ifend}
+  savedDest: Pointer;
 asm
+{$if defined(TARGET_x64)}
+{$IFNDEF FPC}
+  .PUSHNV RDI
+  .PUSHNV RSI
+  .PUSHNV RBX
+  .SAVENV XMM4
+  .SAVENV XMM5
+  .SAVENV XMM6
+{$ELSE}
+  push RDI
+  push RSI
+  push RBX
+  push XMM4
+  push XMM5
+  push XMM6
+{$ENDIF}
+{$elseif defined(TARGET_x86)}
   push edi
   push esi
   push ebx
+{$else}
+{$message fatal 'Unsupported target'}
+{$ifend}
+
+{$if defined(TARGET_x64)}
+{$elseif defined(TARGET_x86)}
+{$ifend}
 
   mov Destination, Dst
   mov Source, Src
+{$if defined(TARGET_x86)}
   mov Width, W
+{$ifend}
 
   // How many cols % 4?
-  mov eax, Width
+  mov eax, W
   mov ebx, 4
   mov edx, 0
   div ebx
@@ -192,11 +228,23 @@ asm
 
   mov eax, Height
   shl eax, 2
+{$if defined(TARGET_x86)}
   mov destRowSize, eax
+{$elseif defined(TARGET_x64)}
+  mov r10, rax
+{$ifend}
 
+{$if defined(TARGET_x86)}
   mov eax, Width
+{$elseif defined(TARGET_x64)}
+  mov eax, W
+{$ifend}
   shl eax, 2
+{$if defined(TARGET_x86)}
   mov sourceRowSize, eax
+{$elseif defined(TARGET_x64)}
+  mov r11, rax
+{$ifend}
 
   mov ebx, 0
 
@@ -206,21 +254,38 @@ asm
 
     // find starting point for source
     mov eax, ebx
+{$if defined(TARGET_x86)}
     mul sourceRowSize
+{$elseif defined(TARGET_x64)}
+    mul r11
+{$ifend}
     shl eax, 2
 
+{$if defined(TARGET_x86)}
     mov esi, Source
     add esi, eax
     mov ecx, esi // save
+{$elseif defined(TARGET_x64)}
+    mov rsi, Source
+    add rsi, rax
+    mov rcx, rsi // save
+{$ifend}
     // find starting point for destination
     mov eax, ebx
     shl eax, 4
+{$if defined(TARGET_x86)}
     mov edi, Destination
     add edi, eax
     mov savedDest, edi // save
     push ebx
+{$elseif defined(TARGET_x64)}
+    mov rdi, Destination
+    add rdi, rax
+    mov savedDest, rdi // save
+    push rbx
+{$ifend}
 
-    mov ebx,0
+    mov ebx, 0
 
     @@loop1inner:
     cmp ebx, X4x4Required// while ebx<X4x4Required
@@ -228,6 +293,7 @@ asm
 
       mov eax, ebx
       shl eax, 4
+{$if defined(TARGET_x86)}
       mov esi, ecx
       add esi, eax
       movups xmm0, [esi]
@@ -237,6 +303,17 @@ asm
       movups xmm2, [esi]
       add esi, sourceRowSize
       movups xmm3, [esi]
+{$elseif defined(TARGET_x64)}
+      mov rsi, rcx
+      add rsi, rax
+      movups xmm0, [rsi]
+      add rsi, r11
+      movups xmm1, [rsi]
+      add rsi, r11
+      movups xmm2, [rsi]
+      add rsi, r11
+      movups xmm3, [rsi]
+{$ifend}
 
       movaps      xmm4,xmm0
       movaps      xmm5,xmm2
@@ -251,12 +328,22 @@ asm
       movhlps     xmm5,xmm1
       movhlps     xmm2,xmm0
 
+{$if defined(TARGET_x86)}
       mov eax, destRowSize
+{$elseif defined(TARGET_x64)}
+      mov rax, r10
+{$ifend}
       shl eax, 2
       mul ebx
+{$if defined(TARGET_x86)}
       mov edi, savedDest
       add edi, eax
+{$elseif defined(TARGET_x64)}
+      mov rdi, savedDest
+      add rdi, rax
+{$ifend}
 
+{$if defined(TARGET_x86)}
       movups [edi], xmm4
       add edi, destRowSize
       movups [edi], xmm5
@@ -264,12 +351,25 @@ asm
       movups [edi], xmm6
       add edi, destRowSize
       movups [edi], xmm2
+{$elseif defined(TARGET_x64)}
+      movups [rdi], xmm4
+      add rdi, r10
+      movups [rdi], xmm5
+      add rdi, r10
+      movups [rdi], xmm6
+      add rdi, r10
+      movups [rdi], xmm2
+{$ifend}
 
       inc ebx
 
       jmp @@loop1inner
     @@loop1inner_exit:
+{$if defined(TARGET_x86)}
     pop ebx
+{$elseif defined(TARGET_x64)}
+    pop rbx
+{$ifend}
 
     inc ebx
 
@@ -281,14 +381,25 @@ asm
   jb @@no_extra_x
     mov eax, X4x4Required
     shl eax, 4
+{$if defined(TARGET_x86)}
     mov esi, Source
     add esi, eax
+{$elseif defined(TARGET_x64)}
+    mov rsi, Source
+    add rsi, rax
+{$ifend}
 
     mov eax, X4x4Required
     shl eax, 2
+{$if defined(TARGET_x86)}
     mul destRowSize
     mov edi, Destination
     add edi, eax
+{$elseif defined(TARGET_x64)}
+    mul r10
+    mov rdi, Destination
+    add rdi, rax
+{$ifend}
 
     mov edx, 0
 
@@ -303,16 +414,30 @@ asm
       cmp ecx, Height // while ecx < Height
       jae @@extra_x_y_exit
 
+{$if defined(TARGET_x86)}
         mov ebx, dword ptr [esi+eax]
         mov dword ptr [edi+4*ecx], ebx
+{$elseif defined(TARGET_x64)}
+        mov ebx, dword ptr [rsi+rax]
+        mov dword ptr [rdi+4*rcx], ebx
+{$ifend}
+{$if defined(TARGET_x86)}
         add eax, sourceRowSize
+{$elseif defined(TARGET_x64)}
+        add rax, r11
+{$ifend}
         inc ecx
 
         jmp @@extra_x_y
       @@extra_x_y_exit:
 
+{$if defined(TARGET_x86)}
       add esi, 4
       add edi, destRowSize
+{$elseif defined(TARGET_x64)}
+      add rsi, 4
+      add rdi, r10
+{$ifend}
       inc edx
 
       jmp @@extra_x
@@ -326,14 +451,28 @@ asm
 
     mov eax, Y4x4Required
     shl eax, 2
+{$if defined(TARGET_x86)}
     mul sourceRowSize
+{$elseif defined(TARGET_x64)}
+    mul r11
+{$ifend}
+{$if defined(TARGET_x86)}
     mov esi, Source
     add esi, eax
+{$elseif defined(TARGET_x64)}
+    mov rsi, Source
+    add rsi, rax
+{$ifend}
 
     mov eax, Y4x4Required
     shl eax, 4
+{$if defined(TARGET_x86)}
     mov edi, Destination
     add edi, eax
+{$elseif defined(TARGET_x64)}
+    mov rdi, Destination
+    add rdi, rax
+{$ifend}
 
     mov edx,0
 
@@ -345,19 +484,37 @@ asm
       mov eax, 0
 
       @@extra_y_x:
+{$if defined(TARGET_x86)}
       cmp ecx, Width // while ecx < Width
+{$elseif defined(TARGET_x64)}
+      cmp ecx, W // while ecx < Width
+{$ifend}
       jae @@extra_y_x_exit
 
+{$if defined(TARGET_x86)}
         mov ebx, dword ptr [esi+4*ecx]
         mov dword ptr [edi+eax], ebx
+{$elseif defined(TARGET_x64)}
+        mov ebx, dword ptr [rsi+4*rcx]
+        mov dword ptr [rdi+rax], ebx
+{$ifend}
+{$if defined(TARGET_x86)}
         add eax, destRowSize
+{$elseif defined(TARGET_x64)}
+        add rax, r10
+{$ifend}
         inc ecx
 
         jmp @@extra_y_x
       @@extra_y_x_exit:
 
+{$if defined(TARGET_x86)}
       add esi, sourceRowSize
       add edi, 4
+{$elseif defined(TARGET_x64)}
+      add rsi, r11
+      add rdi, 4
+{$ifend}
       inc edx
 
       jmp @@extra_y
@@ -365,12 +522,22 @@ asm
 
   @@no_extra_y:
 
+{$if defined(TARGET_x64)}
+{$IFDEF FPC}
+  pop RDI
+  pop RSI
+  pop RBX
+  pop XMM4
+  pop XMM5
+  pop XMM6
+{$ENDIF}
+{$elseif defined(TARGET_x86)}
   pop ebx
   pop esi
   pop edi
+{$ifend}
 end;
 {$ifend}
-{$endif TARGET_x86}
 
 
 //------------------------------------------------------------------------------
@@ -577,11 +744,9 @@ begin
   TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTranspose32, TransposeBindingFlagPascal, -16);
   TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTransposeEx32, TransposeBindingFlagPascal, -24);
 
-{$ifdef TARGET_x86}
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  TransposeRegistry.Add(@@_Transpose32, @SuperDuperTranspose32, [isSSE2], -32);
+  TransposeRegistry.Add(@@_Transpose32, @SuperDuperTranspose32, [isSSE2], 0, -32);
 {$ifend}
-{$endif TARGET_x86}
 
   TransposeRegistry.RebindAll;
 end;
