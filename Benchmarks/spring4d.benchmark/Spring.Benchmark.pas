@@ -2967,7 +2967,7 @@ begin
   {$IFDEF MSWINDOWS}
   if pinThread0 then
   begin
-    SetThreadAffinityMask(GetCurrentThread, 1 shl (CPUCount - 1));
+    SetThreadAffinityMask(GetCurrentThread, 1);
     SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_HIGHEST);
   end;
   {$ENDIF}
