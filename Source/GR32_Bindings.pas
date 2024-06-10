@@ -158,12 +158,12 @@ end;
 
 procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags, Priority: Integer);
 begin
-  Add(NativeInt(BindVariable), Proc, CPU.InstructionSupport, Flags, Priority);
+  Add(NativeInt(BindVariable), Proc, InstructionSupport, Flags, Priority);
 end;
 
 procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
 begin
-  Add(FunctionID, Proc, CPU.InstructionSupport, Flags, Priority);
+  Add(FunctionID, Proc, CPUFeaturesToInstructionSupport(CPUFeatures), Flags, Priority);
 end;
 
 procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; Flags: Integer; Priority: Integer = 0);
