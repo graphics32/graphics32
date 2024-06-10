@@ -22,8 +22,9 @@ unit GR32.Transpose;
  *
  * The Original Code is Transpose for Graphics32
  *
- * The Initial Developer of the Original Code is
+ * The Initial Developers of the Original Code are
  * Anders Melander <anders@melander.dk>
+ * Mattias Andersson <mattias@centaurix.com>
  *
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
@@ -33,11 +34,17 @@ unit GR32.Transpose;
 interface
 
 {$include GR32.inc}
-{$define CacheObliviousTranspose32}
+
+// Define USE_GLOBALBUFFER to use a shared, global block buffer in CacheObliviousTransposeEx32
+{$define USE_GLOBALBUFFER}
+// Define USE_MOVE to use Move() instead of MoveLongword()
+{$define USE_MOVE}
 
 uses
   Classes,
+  SyncObjs,
   GR32,
+  GR32_LowLevel,
   GR32_System,
   GR32_Bindings;
 
@@ -75,9 +82,8 @@ procedure ReferenceTranspose32(Src, Dst: Pointer; Width, Height: integer);
 // Generally you will not use these directly. Instead use the Transpose32
 // functions.
 //------------------------------------------------------------------------------
-{$ifdef CacheObliviousTranspose32}
 procedure CacheObliviousTranspose32(Src, Dst: pointer; Width, Height: integer);
-{$endif}
+procedure CacheObliviousTransposeEx32(Src, Dst: pointer; Width, Height: integer);
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
 {$ifend}
@@ -414,18 +420,19 @@ end;
 //   "Cache-Oblivious Algorithms"
 //
 //------------------------------------------------------------------------------
-{$ifdef CacheObliviousTranspose32}
+const
+  CacheObliviousBlockSize = 32;
+
 procedure CacheObliviousTranspose32(Src, Dst: pointer; Width, Height: integer);
 
-  procedure Recurse(Row, Col, RowCount, ColCount: integer);
+  procedure Recurse(Col, Row, ColCount, RowCount: integer);
   var
     y, x: integer;
     Split: integer;
-  const
-    BlockSize = 16;
   begin
-    if (RowCount <= BlockSize) and (ColCount <= BlockSize) then
+    if (RowCount <= CacheObliviousBlockSize) and (ColCount <= CacheObliviousBlockSize) then
     begin
+      // Transpose block
       for y := Row to Row+RowCount-1 do
         for x := Col to Col+ColCount-1 do
           // Dst[y, x] := Src[x, y]
@@ -433,28 +440,126 @@ procedure CacheObliviousTranspose32(Src, Dst: pointer; Width, Height: integer);
     end else
     // Subdivide the longer side
     if (RowCount >= ColCount) then
-    begin
+    begin // Split vertically
       Split := RowCount div 2;
-      Recurse(Row, Col, Split, ColCount);
+      Recurse(Col, Row, ColCount, Split);
 
       Inc(Row, Split);
       Dec(RowCount, Split);
-      Recurse(Row, Col, RowCount, ColCount);
+      Recurse(Col, Row, ColCount, RowCount);
     end else
-    begin
+    begin // Split horizontally
       Split := ColCount div 2;
-      Recurse(Row, Col, RowCount, Split);
+      Recurse(Col, Row, Split, RowCount);
 
       Inc(Col, Split);
       Dec(ColCount, Split);
-      Recurse(Row, Col, RowCount, ColCount);
+      Recurse(Col, Row, ColCount, RowCount);
     end;
   end;
 
 begin
-  Recurse(0, 0, Height, Width);
+  Recurse(0, 0, Width, Height);
 end;
-{$endif}
+
+//------------------------------------------------------------------------------
+// CacheObliviousTransposeEx32 internally transposes to a temporary block buffer
+// which is small enough to be cached by the CPU, and then copies from that
+// buffer to the destination.
+//------------------------------------------------------------------------------
+{$ifdef USE_GLOBALBUFFER}
+var
+  CacheObliviousTransposeBuffer: pointer;
+{$endif USE_GLOBALBUFFER}
+
+procedure CacheObliviousTransposeEx32(Src, Dst: pointer; Width, Height: integer);
+var
+  BlockBuffer: pointer;
+
+  procedure Recurse(Src, Dst: PColor32; X, Y: integer; ColCount, RowCount: Integer);
+  var
+    Split: Integer;
+    BlockX, BlockY: integer;
+    p: PColor32;
+  begin
+    if (ColCount <= CacheObliviousBlockSize) and (RowCount <= CacheObliviousBlockSize) then
+    begin
+      // Transpose to block buffer
+      for BlockY := 0 to RowCount-1 do
+        for BlockX := 0 to ColCount-1 do
+          // Dst[y, x] := Src[x, y]
+          PColor32Array(BlockBuffer)[BlockY + BlockX * CacheObliviousBlockSize] := PColor32Array(Src)[BlockX + BlockY * Width];
+
+      // Copy from block buffer
+      p := BlockBuffer;
+{$ifdef USE_MOVE}
+      RowCount := RowCount * SizeOf(TColor32); // Count is now in bytes
+{$endif USE_MOVE}
+      for BlockY := 0 to ColCount-1 do
+      begin
+{$ifdef USE_MOVE}
+        Move(p^, Dst^, RowCount);
+{$else  USE_MOVE}
+        MoveLongword(p^, Dst^, RowCount);
+{$endif USE_MOVE}
+        Inc(p, CacheObliviousBlockSize);
+        Inc(Dst, Height);
+      end;
+    end else
+    // Subdivide the longer side
+    if (RowCount >= ColCount) then
+    begin // Split vertically
+      Split := RowCount div 2;
+      Recurse(Src, Dst, X, Y, ColCount, Split);
+
+      Inc(Src, Split*Width);
+      Inc(Dst, Split);
+      Inc(Y, Split);
+      Dec(RowCount, Split);
+
+      Recurse(Src, Dst, X, Y, ColCount, RowCount);
+    end else
+    begin // Split horizontally
+      Split := ColCount div 2;
+      Recurse(Src, Dst, X, Y, Split, RowCount);
+
+      Inc(Src, Split);
+      Inc(Dst, Split*Height);
+      Inc(X, Split);
+      Dec(ColCount, Split);
+
+      Recurse(Src, Dst, X, Y, ColCount, RowCount);
+    end;
+  end;
+
+{$ifdef USE_GLOBALBUFFER}
+var
+  LocalBuffer: pointer;
+{$endif USE_GLOBALBUFFER}
+begin
+{$ifdef USE_GLOBALBUFFER}
+  BlockBuffer := TInterlocked.Exchange(CacheObliviousTransposeBuffer, nil);
+  if (BlockBuffer = nil) then
+  begin
+    GetMem(LocalBuffer, CacheObliviousBlockSize*CacheObliviousBlockSize*SizeOf(TColor32));
+    BlockBuffer := LocalBuffer;
+  end else
+    LocalBuffer := nil;
+{$else USE_GLOBALBUFFER}
+  GetMem(BlockBuffer, CacheObliviousBlockSize*CacheObliviousBlockSize*SizeOf(TColor32));
+{$endif USE_GLOBALBUFFER}
+
+  Recurse(Src, Dst, 0, 0, Width, Height);
+
+{$ifdef USE_GLOBALBUFFER}
+  if (LocalBuffer <> nil) then
+    FreeMem(LocalBuffer)
+  else
+    CacheObliviousTransposeBuffer := BlockBuffer;
+{$else USE_GLOBALBUFFER}
+  FreeMem(BlockBuffer)
+{$endif USE_GLOBALBUFFER}
+end;
 
 
 //------------------------------------------------------------------------------
@@ -470,6 +575,7 @@ begin
 
   TransposeRegistry.Add(@@_Transpose32, @ReferenceTranspose32, TransposeBindingFlagPascal);
   TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTranspose32, TransposeBindingFlagPascal, -16);
+  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTransposeEx32, TransposeBindingFlagPascal, -24);
 
 {$ifdef TARGET_x86}
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
@@ -486,4 +592,11 @@ end;
 
 initialization
   RegisterBindings;
+{$ifdef USE_GLOBALBUFFER}
+  GetMem(CacheObliviousTransposeBuffer, CacheObliviousBlockSize*CacheObliviousBlockSize*SizeOf(TColor32));
+{$endif USE_GLOBALBUFFER}
+finalization
+{$ifdef USE_GLOBALBUFFER}
+  FreeMem(CacheObliviousTransposeBuffer);
+{$endif USE_GLOBALBUFFER}
 end.

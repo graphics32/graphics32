@@ -7,6 +7,7 @@ program Benchmark.Transpose;
 uses
   Spring.Benchmark,
   GR32,
+  GR32_LowLevel,
   GR32.Transpose;
 
 //------------------------------------------------------------------------------
@@ -35,6 +36,17 @@ end;
 
 //------------------------------------------------------------------------------
 
+procedure NoTranspose(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
+begin
+  MoveLongword(Src^, Dst^, SrcWidth * SrcHeight);
+//  Move(Src^, Dst^, SrcWidth * SrcHeight*SizeOf(TColor32));
+end;
+
+procedure BenchmarkNoTranspose32(const state: TState);
+begin
+  BenchmarkTranspose(@NoTranspose, state);
+end;
+
 procedure BenchmarkReferenceTranspose32(const state: TState);
 begin
   BenchmarkTranspose(@ReferenceTranspose32, state);
@@ -43,6 +55,11 @@ end;
 procedure BenchmarkCacheObliviousTranspose32(const state: TState);
 begin
   BenchmarkTranspose(@CacheObliviousTranspose32, state);
+end;
+
+procedure BenchmarkCacheObliviousTransposeEx32(const state: TState);
+begin
+  BenchmarkTranspose(@CacheObliviousTransposeEx32, state);
 end;
 
 procedure BenchmarkSuperDuperTranspose32(const state: TState);
@@ -54,14 +71,17 @@ end;
 
 procedure Benchmark(BenchmarkFunc: TFunction; const Name: string);
 begin
+//  Spring.Benchmark.Benchmark(BenchmarkFunc, Name).Ranges([Range(1024, 2048), Range(1280, 5120)]).TimeUnit(kMillisecond);
   Spring.Benchmark.Benchmark(BenchmarkFunc, Name).RangeMultiplier(4).Ranges([Range(1024+1, 8192+13), Range(128, 5120)]).TimeUnit(kMillisecond);
 end;
 
 //------------------------------------------------------------------------------
 
 begin
+  Benchmark(BenchmarkNoTranspose32, 'MemCopy (no transpose)');
   Benchmark(BenchmarkReferenceTranspose32, 'ReferenceTranspose32');
   Benchmark(BenchmarkCacheObliviousTranspose32, 'CacheObliviousTranspose32');
+  Benchmark(BenchmarkCacheObliviousTransposeEx32, 'CacheObliviousTransposeEx32');
   Benchmark(BenchmarkSuperDuperTranspose32, 'SuperDuperTranspose32');
 
   Spring.Benchmark.Benchmark_Main;
