@@ -545,7 +545,7 @@ type
     procedure RepaintModeChanged; override;
     procedure DoBitmapResized; virtual;
     procedure BitmapResized; virtual;
-    procedure BitmapChanged(const Area: TRect); reintroduce; virtual;
+    procedure BitmapChanged(const Area: TRect); virtual;
     function CanMousePan: boolean; virtual;
     function CanMouseZoom: boolean; virtual;
     function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
@@ -2244,7 +2244,7 @@ end;
 procedure TCustomImage32.BitmapChangeHandler(Sender: TObject);
 begin
   RepaintOptimizer.Reset;
-  BitmapChanged(CachedBitmapRect);
+  BitmapChanged(Bitmap.BoundsRect);
 end;
 
 procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
