@@ -16,15 +16,15 @@ type
   private
   public
     procedure DoTest(Width, Height: integer; BitmapSrc, BitmapDst, ReferenceBitmap: TBitmap32; Transposer: TTranspose32);
+    procedure DoDoTest(Transposer: TTranspose32);
 
   published
     procedure TestSquareTranspose;
     procedure TestRectangularTranspose;
 
-    // Broken
-{$ifdef TestCacheObliviousTranspose32}
+    procedure TestSuperDuperTranspose32;
     procedure TestCacheObliviousTranspose32;
-{$endif}
+    procedure TestCacheObliviousTransposeEx32;
   end;
 
 implementation
@@ -37,6 +37,27 @@ uses
 
 
 { TTestTranspose }
+
+procedure TTestTranspose.DoDoTest(Transposer: TTranspose32);
+begin
+  var BitmapSrc := TBitmap32.Create;
+  var BitmapDst := TBitmap32.Create;
+  var ReferenceBitmap := TBitmap32.Create;
+  try
+    for var W := 0 to 10 do
+      for var H := 10 downto 0 do
+      begin
+        var Width := W * 13;
+        var Height := H * 133;
+
+        DoTest(Width, Height, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+      end;
+  finally
+    ReferenceBitmap.Free;
+    BitmapSrc.Free;
+    BitmapDst.Free;
+  end;
+end;
 
 procedure TTestTranspose.DoTest(Width, Height: integer; BitmapSrc, BitmapDst, ReferenceBitmap: TBitmap32; Transposer: TTranspose32);
 begin
@@ -56,28 +77,6 @@ begin
   CheckEquals(Height, BitmapDst.Width);
 
   CheckEqualsMem(ReferenceBitmap.Bits, BitmapDst.Bits, Width * Height * SizeOf(TColor32), Format('(%d, %d)', [Width, Height]));
-end;
-
-procedure TTestTranspose.TestRectangularTranspose;
-begin
-  var BitmapSrc := TBitmap32.Create;
-  var BitmapDst := TBitmap32.Create;
-  var ReferenceBitmap := TBitmap32.Create;
-  try
-    for var W := 0 to 10 do
-      for var H := 10 downto 0 do
-      begin
-        var Width := W * 33;
-        var Height := H * 13;
-
-        DoTest(Width, Height, BitmapSrc, BitmapDst, ReferenceBitmap, Transpose32);
-
-      end;
-  finally
-    ReferenceBitmap.Free;
-    BitmapSrc.Free;
-    BitmapDst.Free;
-  end;
 end;
 
 procedure TTestTranspose.TestSquareTranspose;
@@ -100,28 +99,25 @@ begin
   end;
 end;
 
-{$ifdef TestCacheObliviousTranspose32}
+procedure TTestTranspose.TestSuperDuperTranspose32;
+begin
+  DoDoTest(SuperDuperTranspose32);
+end;
+
+procedure TTestTranspose.TestRectangularTranspose;
+begin
+  DoDoTest(Transpose32);
+end;
+
 procedure TTestTranspose.TestCacheObliviousTranspose32;
 begin
-  var BitmapSrc := TBitmap32.Create;
-  var BitmapDst := TBitmap32.Create;
-  var ReferenceBitmap := TBitmap32.Create;
-  try
-    for var W := 0 to 10 do
-      for var H := 10 downto 0 do
-      begin
-        var Width := W * 13;
-        var Height := H * 133;
-
-        DoTest(Width, Height, BitmapSrc, BitmapDst, ReferenceBitmap, CacheObliviousTranspose32);
-      end;
-  finally
-    ReferenceBitmap.Free;
-    BitmapSrc.Free;
-    BitmapDst.Free;
-  end;
+  DoDoTest(CacheObliviousTranspose32);
 end;
-{$endif}
+
+procedure TTestTranspose.TestCacheObliviousTransposeEx32;
+begin
+  DoDoTest(CacheObliviousTransposeEx32);
+end;
 
 initialization
   RegisterTest(TTestTranspose.Suite);
