@@ -34,62 +34,71 @@ interface
 
 {$I GR32.inc}
 
+{$message 'The functions in the GR32_Blurs unit are being deprecated in favor of the GR32.Blur unit'}
+
 uses
   {$IFDEF FPC}
     LCLIntf,
   {$ELSE}
     Windows, Types,
   {$ENDIF}
-    SysUtils, Classes, Math, GR32;
+    SysUtils, Classes, Math, GR32, GR32.Blur;
 
 type
   TBlurFunction = procedure(Bitmap32: TBitmap32; Radius: TFloat);
-  TBlurFunctionBounds = procedure(Bitmap32: TBitmap32; Radius: TFloat;
-    const Bounds: TRect);
-  TBlurFunctionRegion = procedure(Bitmap32: TBitmap32; Radius: TFloat;
-    const BlurRegion: TArrayOfFloatPoint);
+  TBlurFunctionBounds = procedure(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect);
+  TBlurFunctionRegion = procedure(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint);
 
-procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat); overload;
+(*
+
+GaussianBlur appears to be based on Mario Klingemann's "stackblur" algorithm which
+in turn is a "reinvention" of a simple sliding-accumulator box blur. It performs what
+corresponds to a two pass box blur (i.e. a triangle blur).
+https://web.archive.org/web/20200811093037/http://incubator.quasimondo.com/processing/fast_blur_deluxe.php
+https://underdestruction.com/2004/02/25/stackblur-2004/
+
+*)
+procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use Blur32 in GR32.Blur instead';
 procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat;
-  const BlurRegion: TArrayOfFloatPoint); overload;
+procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
 
-procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat); overload;
+procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use GammaBlur32 in GR32.Blur instead';
 procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat;
-  const BlurRegion: TArrayOfFloatPoint); overload;
+procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
 
-procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat); overload;
+(*
+
+FastBlur: Three pass box blur
+
+*)
+procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use Blur32 in GR32.Blur instead';
 procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat;
-  const BlurRegion: TArrayOfFloatPoint); overload;
+procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
 
-procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat); overload;
+procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use GammaBlur32 in GR32.Blur instead';
 procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat;
-  const BlurRegion: TArrayOfFloatPoint); overload;
+procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
 
-procedure MotionBlur(Bitmap32: TBitmap32;
-  Dist, AngleDeg: TFloat; Bidirectional: Boolean = True); overload;
-procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
-  const Bounds: TRect; Bidirectional: Boolean = True); overload;
-procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
-  const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = True); overload;
+(*
 
-procedure MotionBlurGamma(Bitmap32: TBitmap32;
-  Dist, AngleDeg: TFloat; Bidirectional: Boolean = True); overload;
-procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
-  const Bounds: TRect; Bidirectional: Boolean = True); overload;
-procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
-  const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = True); overload;
+MotionBlur: One-dimensional blur with rotation (rotate, blur horizontal, rotate back)
+
+*)
+procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat; Bidirectional: Boolean = True); overload;
+procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat; const Bounds: TRect; Bidirectional: Boolean = True); overload;
+procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat; const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = True); overload;
+
+procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat; Bidirectional: Boolean = True); overload;
+procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat; const Bounds: TRect; Bidirectional: Boolean = True); overload;
+procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat; const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = True); overload;
 
 const
-  GaussianBlurSimple: array [Boolean] of TBlurFunction = (GaussianBlur, GaussianBlurGamma);
-  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (GaussianBlur, GaussianBlurGamma);
-  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (GaussianBlur, GaussianBlurGamma);
-  FastBlurSimple: array [Boolean] of TBlurFunction = (FastBlur, FastBlurGamma);
-  FastBlurBounds: array [Boolean] of TBlurFunctionBounds = (FastBlur, FastBlurGamma);
-  FastBlurRegion: array [Boolean] of TBlurFunctionRegion = (FastBlur, FastBlurGamma);
+  GaussianBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
+  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (GaussianBlur, GaussianBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
+  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (GaussianBlur, GaussianBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
+  FastBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
+  FastBlurBounds: array [Boolean] of TBlurFunctionBounds = (FastBlur, FastBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
+  FastBlurRegion: array [Boolean] of TBlurFunctionRegion = (FastBlur, FastBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
 
 implementation
 
