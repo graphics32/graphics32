@@ -1673,8 +1673,9 @@ begin
   Registry := NewRegistry('GR32_MicroTiles bindings');
   Registry.RegisterBinding(FID_MICROTILEUNION, @@MicroTileUnion);
   Registry.RegisterBinding(FID_MICROTILESUNION, @@MicroTilesU);
-  Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_Pas);
-  Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_Pas);
+
+  Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_Pas, [isPascal]);
+  Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_Pas, [isPascal]);
 
 {$IFNDEF PUREPASCAL}
 {$IFDEF TARGET_x86}

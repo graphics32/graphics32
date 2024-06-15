@@ -99,6 +99,7 @@ implementation
 
 uses
   GR32_Blend,
+  GR32_Bindings,
   GR32_LowLevel,
   GR32_System;
 
@@ -1599,20 +1600,20 @@ end;
 {$IFNDEF PUREPASCAL}
 procedure RegisterBindingFunctions;
 begin
-  BlendRegistry.Add(FID_EMMS,           @EMMS_ASM,              0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_ASM,        0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_ASM,        0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDREG,       @BlendReg_ASM,          0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDMEM,       @BlendMem_ASM,          0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDMEMS,      @BlendMems_ASM,         0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDREGEX,     @BlendRegEx_ASM,        0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_EMMS,           @EMMS_ASM,              [isAssembler], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_ASM,        [isAssembler], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_ASM,        [isAssembler], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREG,       @BlendReg_ASM,          [isAssembler], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEM,       @BlendMem_ASM,          [isAssembler], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEMS,      @BlendMems_ASM,         [isAssembler], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREGEX,     @BlendRegEx_ASM,        [isAssembler], 0, BlendRegistryPriorityASM);
 {$IFDEF TARGET_X86}
-  BlendRegistry.Add(FID_BLENDMEMEX,     @BlendMemEx_ASM,        0, BlendRegistryPriorityASM); // Implemented on x64 but broken
+  BlendRegistry.Add(FID_BLENDMEMEX,     @BlendMemEx_ASM,        [isAssembler], 0, BlendRegistryPriorityASM); // Implemented on x64 but broken
 {$ENDIF}
-  BlendRegistry.Add(FID_BLENDLINE,      @BlendLine_ASM,         0, BlendRegistryPriorityASM);
-  BlendRegistry.Add(FID_BLENDLINE1,     @BlendLine1_ASM,        0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE,      @BlendLine_ASM,         [isAssembler], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE1,     @BlendLine1_ASM,        [isAssembler], 0, BlendRegistryPriorityASM);
 {$IFNDEF TARGET_x64}
-  BlendRegistry.Add(FID_MERGEREG,       @MergeReg_ASM,          0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_MERGEREG,       @MergeReg_ASM,          [isAssembler], 0, BlendRegistryPriorityASM);
 {$ENDIF}
 end;
 {$ENDIF}

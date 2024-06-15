@@ -4707,8 +4707,8 @@ begin
   GradientRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolationProc);
 
   // pure pascal
-  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_Pas);
-  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_Pas);
+  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_Pas, [isPascal]);
+  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_Pas, [isPascal]);
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}

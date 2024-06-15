@@ -80,6 +80,10 @@ type
     procedure SetName(const Value: string);
     function GetItems(Index: Integer): PFunctionInfo;
     procedure SetItems(Index: Integer; const Value: PFunctionInfo);
+  protected
+    function FindBinding(BindVariable: PPointer): NativeInt;
+    function FindFunctionInfo(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
+    function FindFunctionInfo(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -89,10 +93,9 @@ type
     // FunctionProc: Identify bound function using function pointer
 
     procedure Add(FunctionID: NativeInt; Proc: Pointer; CPUFeatures: TCPUFeatures; Flags: Integer = 0; Priority: Integer = 0); overload; deprecated;
-    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport = []; Flags: Integer = 0; Priority: Integer = 0); overload;
-    procedure Add(FunctionID: NativeInt; Proc: Pointer; Flags: Integer; Priority: Integer = 0); overload;
-    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport = []; Flags: Integer = 0; Priority: Integer = 0); overload;
-    procedure Add(BindVariable: PPointer; Proc: Pointer; Flags: Integer; Priority: Integer = 0); overload;
+
+    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = 0); overload;
+    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = 0); overload;
 
     // Function rebinding support
     procedure RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer); overload;
@@ -151,26 +154,18 @@ end;
 
 { TFunctionRegistry }
 
-procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; Flags, Priority: Integer);
-begin
-  Add(NativeInt(BindVariable), Proc, Flags, Priority);
-end;
-
 procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags, Priority: Integer);
+var
+  FunctionID: NativeInt;
 begin
-  Add(NativeInt(BindVariable), Proc, InstructionSupport, Flags, Priority);
+  FunctionID := FindBinding(BindVariable);
+  Assert(FunctionID <> -1, 'Binding not registered');
+  Add(FunctionID, Proc, InstructionSupport, Flags, Priority);
 end;
 
 procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
 begin
   Add(FunctionID, Proc, CPUFeaturesToInstructionSupport(CPUFeatures), Flags, Priority);
-end;
-
-procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; Flags: Integer; Priority: Integer = 0);
-const
-  Nothing: TInstructionSupport = [];
-begin
-  Add(FunctionID, Proc, Nothing, Flags, Priority);
 end;
 
 procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer; Priority: Integer);
@@ -214,35 +209,85 @@ begin
   inherited;
 end;
 
-function TFunctionRegistry.FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority): Pointer;
+function TFunctionRegistry.FindBinding(BindVariable: PPointer): NativeInt;
+var
+  I: Integer;
+  P: PFunctionBinding;
 begin
-  Result := FindFunction(NativeInt(BindVariable), PriorityCallback);
+  Result := -1;
+  for I := 0 to FBindings.Count - 1 do
+  begin
+    P := PFunctionBinding(FBindings[I]);
+
+    if (P^.BindVariable = BindVariable) then
+    begin
+      Result := P.FunctionID;
+      break;
+    end;
+  end;
 end;
 
-function TFunctionRegistry.FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): Pointer;
+function TFunctionRegistry.FindFunctionInfo(BindVariable: PPointer; PriorityCallback: TFunctionPriority): PFunctionInfo;
 var
-  I, MinPriority, P: Integer;
+  FunctionID: NativeInt;
+begin
+  FunctionID := FindBinding(BindVariable);
+  Assert(FunctionID <> -1, 'Binding not registered');
+  Result := FindFunctionInfo(FunctionID, PriorityCallback);
+end;
+
+function TFunctionRegistry.FindFunctionInfo(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): PFunctionInfo;
+var
+  i, MinPriority, Priority: Integer;
   Info: PFunctionInfo;
 begin
   if not Assigned(PriorityCallback) then
     PriorityCallback := DefaultPriority;
+
   Result := nil;
+
   MinPriority := INVALID_PRIORITY;
-  for I := FItems.Count - 1 downto 0 do
+
+  for i := FItems.Count - 1 downto 0 do
   begin
-    Info := FItems[I];
+    Info := FItems[i];
 
-    if (Info^.FunctionID = FunctionID) then
+    if (Info.FunctionID = FunctionID) then
     begin
-      P := PriorityCallback(Info);
+      Priority := PriorityCallback(Info);
 
-      if (P < MinPriority) then
+      // For functions with equal priority we use the one that has the highest
+      // instruction support (e.g. ASM trumps Pascal, SSE trumps MMX, AVX
+      // trumps SSE, etc).
+      if (Priority < MinPriority) or ((Result <> nil) and (Priority = MinPriority) and (UInt64(Info.InstructionSupport) > UInt64(Result.InstructionSupport))) then
       begin
-        Result := Info^.Proc;
-        MinPriority := P;
+        Result := Info;
+        MinPriority := Priority;
       end;
     end;
   end;
+end;
+
+function TFunctionRegistry.FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority): Pointer;
+var
+  Info: PFunctionInfo;
+begin
+  Info := FindFunctionInfo(BindVariable, PriorityCallback);
+  if (Info <> nil) then
+    Result := Info.Proc
+  else
+    Result := nil;
+end;
+
+function TFunctionRegistry.FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): Pointer;
+var
+  Info: PFunctionInfo;
+begin
+  Info := FindFunctionInfo(FunctionID, PriorityCallback);
+  if (Info <> nil) then
+    Result := Info.Proc
+  else
+    Result := nil;
 end;
 
 function TFunctionRegistry.GetItems(Index: Integer): PFunctionInfo;
@@ -251,8 +296,12 @@ begin
 end;
 
 function TFunctionRegistry.Rebind(BindVariable: PPointer; PriorityCallback: TFunctionPriority): boolean;
+var
+  FunctionID: NativeInt;
 begin
-  Result := Rebind(NativeInt(BindVariable), PriorityCallback);
+  FunctionID := FindBinding(BindVariable);
+  Assert(FunctionID <> -1, 'Binding not registered');
+  Result := Rebind(FunctionID, PriorityCallback);
 end;
 
 function TFunctionRegistry.Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): boolean;

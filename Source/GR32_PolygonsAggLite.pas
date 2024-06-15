@@ -1814,9 +1814,6 @@ const
   FID_FILLSPAN = 0;
 
 const
-  FillSpanBindingFlagPascal = $0001;
-
-const
   FillSpanRegistryPriorityASM = -256;
   FillSpanRegistryPriorityMMX = -512;
   FillSpanRegistryPrioritySSE2 = -768;
@@ -1830,10 +1827,10 @@ begin
   FillSpanRegistry.RegisterBinding(FID_FILLSPAN, @@FILLSPAN);
 
   // pure pascal
-  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_Pas, FillSpanBindingFlagPascal);
+  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_Pas, [isPascal]);
 
 {$IFNDEF PUREPASCAL}
-  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_ASM, 0, FillSpanRegistryPriorityASM);
+  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_ASM, [isAssembler], FillSpanRegistryPriorityASM);
 {$IFNDEF OMIT_MMX}
   FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_MMX, [isMMX], 0, FillSpanRegistryPriorityMMX);
 {$ENDIF}

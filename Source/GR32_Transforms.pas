@@ -627,6 +627,7 @@ uses
   GR32_LowLevel,
   GR32_Math,
   GR32_Bindings,
+  GR32_System,
   GR32_Resamplers,
   GR32_Geometry;
 
@@ -3255,21 +3256,21 @@ begin
   TransformsRegistry.RegisterBinding(@@DET_2x2_64);
 
   // DET_2x2_32
-  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_Pas);
+  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_Pas, [isPascal]);
 {$IFNDEF PUREPASCAL}
-  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_ASM);
+  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_ASM, [isAssembler]);
 //  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_SSE2, [isSSE2]);
 {$ENDIF}
 
   // DET_2x2_64
-  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_Pas);
+  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_Pas, [isPascal]);
 {$IFNDEF PUREPASCAL}
-  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_ASM);
+  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_ASM, [isAssembler]);
 //  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_SSE2, [isSSE2]);
 {$ENDIF}
 
   // DET_3x3_32
-  TransformsRegistry.Add(@@DET_3x3_32, @DET_3x3_32_Pas);
+  TransformsRegistry.Add(@@DET_3x3_32, @DET_3x3_32_Pas, [isPascal]);
 
   TransformsRegistry.RebindAll;
 end;

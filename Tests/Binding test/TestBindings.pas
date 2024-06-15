@@ -14,10 +14,15 @@ uses
 type
   TTestBindings = class(TTestCase)
   private
+    FRegistry: TFunctionRegistry;
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
   published
     procedure TestNewRegistry;
     procedure TestAddByID;
     procedure TestAddByRef;
+    procedure TestRebindTiebreak;
   end;
 
 implementation
@@ -28,29 +33,6 @@ uses
   GR32_System;
 
 {$RANGECHECKS OFF}
-
-
-{ TTestBindings }
-
-
-{ TTestBindings }
-
-procedure TTestBindings.TestNewRegistry;
-begin
-  var RegistryAnonymous := NewRegistry;
-  CheckNotNull(RegistryAnonymous);
-  CheckEquals('', RegistryAnonymous.Name);
-
-  var RegistryTest1 := NewRegistry('Test');
-  CheckNotNull(RegistryTest1);
-  CheckEquals('Test', RegistryTest1.Name);
-  CheckTrue(RegistryTest1 <> RegistryAnonymous);
-
-  var RegistryTest2 := NewRegistry(RegistryTest1.Name);
-  CheckNotNull(RegistryTest2);
-  CheckEquals(RegistryTest1.Name, RegistryTest2.Name);
-  CheckTrue(RegistryTest1 <> RegistryTest2);
-end;
 
 type
   TProc = procedure(TestCase: TTestCase);
@@ -86,51 +68,81 @@ begin
 end;
 
 const
-  FlagNone = 0;
-  FlagAsm = 1;
-  FlagPascal = 2;
-  FlagTest = 4;
+  FlagTest = 1;
 
 function FunctionPriorityPascal(Info: PFunctionInfo): Integer;
 begin
   Result := DefaultPriorityProc(Info); // This takes CPU and priority into account
-  // Now handle Flag
-  if (Info.Flags and FlagPascal <> 0) then
+  // Now handle Pascal flag
+  if (isPascal in Info.InstructionSupport) then
     Dec(Result, 1024);
+end;
+
+
+procedure TTestBindings.SetUp;
+begin
+  inherited;
+
+  if (FRegistry = nil) then
+    FRegistry := NewRegistry
+  else
+    FRegistry.Clear;
+end;
+
+procedure TTestBindings.TearDown;
+begin
+  inherited;
+
+  if (FRegistry <> nil) then
+    FRegistry.Clear;
+end;
+
+procedure TTestBindings.TestNewRegistry;
+begin
+  var RegistryAnonymous := NewRegistry;
+  CheckNotNull(RegistryAnonymous);
+  CheckEquals('', RegistryAnonymous.Name);
+
+  var RegistryTest1 := NewRegistry('Test');
+  CheckNotNull(RegistryTest1);
+  CheckEquals('Test', RegistryTest1.Name);
+  CheckTrue(RegistryTest1 <> RegistryAnonymous);
+
+  var RegistryTest2 := NewRegistry(RegistryTest1.Name);
+  CheckNotNull(RegistryTest2);
+  CheckEquals(RegistryTest1.Name, RegistryTest2.Name);
+  CheckTrue(RegistryTest1 <> RegistryTest2);
 end;
 
 procedure TTestBindings.TestAddByID;
 begin
-  var Registry := NewRegistry;
-
   var Procs := Default(TProcs);
 
   for var i := 0 to High(Procs) do
-    Registry.RegisterBinding(i, @@Procs[i]);
+    FRegistry.RegisterBinding(i, @@Procs[i]);
 
-  Registry.Add(0, @ProcAsm, FlagAsm); // Flags
-  Registry.Add(0, @ProcPascal, FlagPascal, 2); // Flags, Priority
-  Registry.Add(0, @ProcPascal2, FlagPascal, 3); // Flags, Priority
-  Registry.Add(0, @ProcPascal3, FlagPascal, 1); // Flags, Priority
+  FRegistry.Add(0, @ProcAsm,     [isAssembler]);                         //
+  FRegistry.Add(0, @ProcPascal,  [isPascal],     0,              2);     // Flags, Priority
+  FRegistry.Add(0, @ProcPascal2, [isPascal],     0,              3);     // Flags, Priority
+  FRegistry.Add(0, @ProcPascal3, [isPascal],     0);                     // Flags
 
   // TCPUFeature
-  Registry.Add(1, @ProcMMX, [ciMMX]);
-  Registry.Add(1, @ProcSSE2, [ciSSE2], FlagTest); // Flags
-  Registry.Add(1, @ProcSSE, [ciSSE], FlagTest, 2); // Flags, Priority
+  FRegistry.Add(1, @ProcMMX,     [ciMMX]);                               //
+  FRegistry.Add(1, @ProcSSE2,    [ciSSE2],       FlagTest);              // Flags
+  FRegistry.Add(1, @ProcSSE,     [ciSSE],        FlagTest,       2);     // Flags, Priority
 
   // TInstructionSupport
-  Registry.Add(2, @ProcMMX, [isMMX]);
-  Registry.Add(2, @ProcSSE2, [isSSE2], FlagTest); // Flags
-  Registry.Add(2, @ProcSSE, [isSSE], FlagTest, 2); // Flags, Priority
-  const NoSupport: TInstructionSupport = [];
-  Registry.Add(2, @ProcPascal, NoSupport, FlagPascal, 3); // Flags, Priority
+  FRegistry.Add(2, @ProcMMX,     [isMMX]);                               //
+  FRegistry.Add(2, @ProcSSE2,    [isSSE2],       FlagTest);              // Flags
+  FRegistry.Add(2, @ProcSSE,     [isSSE],        FlagTest,       2);     // Flags, Priority
+  FRegistry.Add(2, @ProcPascal,  [isPascal],     0,              3);     // Flags, Priority
 
   var SaveCPU := CPU;
   try
 
-    CPU.InstructionSupport := [isSSE];
+    CPU.InstructionSupport := [isPascal, isAssembler, isSSE];
 
-    Registry.RebindAll(True);
+    FRegistry.RebindAll(True);
 
     CheckNotNull(PPointer(@@Procs[0])^);
     CheckNotNull(PPointer(@@Procs[1])^);
@@ -145,7 +157,7 @@ begin
     CheckSame(@ProcSSE, PPointer(@@Procs[2])^);
 
     // Rebind to give Pascal priority
-    Registry.RebindAll(FunctionPriorityPascal);
+    FRegistry.RebindAll(FunctionPriorityPascal);
     // Expect Pascal
     CheckSame(@ProcPascal3, PPointer(@@Procs[0])^);
     // Expect SSE; No pascal variant
@@ -162,37 +174,34 @@ procedure TTestBindings.TestAddByRef;
 begin
   // Almost the same as TestAddByID; We have just replaced the ID with a pointer to the delegate in Add
 
-  var Registry := NewRegistry;
-
   var Procs := Default(TProcs);
 
   for var i := 0 to High(Procs) do
-    Registry.RegisterBinding(@@Procs[i]);
+    FRegistry.RegisterBinding(@@Procs[i]);
 
-  Registry.Add(@@Procs[0], @ProcAsm, FlagAsm); // Flags
-  Registry.Add(@@Procs[0], @ProcPascal, FlagPascal, 2); // Flags, Priority
-  Registry.Add(@@Procs[0], @ProcPascal2, FlagPascal, 3); // Flags, Priority
-  Registry.Add(@@Procs[0], @ProcPascal3, FlagPascal, 1); // Flags, Priority
+  FRegistry.Add(@@Procs[0], @ProcAsm,    [isAssembler]);                 //
+  FRegistry.Add(@@Procs[0], @ProcPascal, [isPascal],     0,      2);     // Flags, Priority
+  FRegistry.Add(@@Procs[0], @ProcPascal2,[isPascal],     0,      3);     // Flags, Priority
+  FRegistry.Add(@@Procs[0], @ProcPascal3,[isPascal],     0);             // Flags
 
-  // TCPUFeature; Not support with this variant
+  // TCPUFeature; Not supported with this variant
 
   // TInstructionSupport
-  Registry.Add(@@Procs[1], @ProcMMX, [isMMX]);
-  Registry.Add(@@Procs[1], @ProcSSE2, [isSSE2], FlagTest); // Flags
-  Registry.Add(@@Procs[1], @ProcSSE, [isSSE], FlagTest, 2); // Flags, Priority
+  FRegistry.Add(@@Procs[1], @ProcMMX,    [isMMX]);
+  FRegistry.Add(@@Procs[1], @ProcSSE2,   [isSSE2],       0);             // Flags
+  FRegistry.Add(@@Procs[1], @ProcSSE,    [isSSE],        FlagTest, 2);   // Flags, Priority
 
-  Registry.Add(@@Procs[2], @ProcMMX, [isMMX]);
-  Registry.Add(@@Procs[2], @ProcSSE2, [isSSE2], FlagTest); // Flags
-  Registry.Add(@@Procs[2], @ProcSSE, [isSSE], FlagTest, 2); // Flags, Priority
-  const NoSupport: TInstructionSupport = [];
-  Registry.Add(@@Procs[2], @ProcPascal, NoSupport, FlagPascal, 3); // Flags, Priority
+  FRegistry.Add(@@Procs[2], @ProcMMX,    [isMMX]);
+  FRegistry.Add(@@Procs[2], @ProcSSE2,   [isSSE2],       FlagTest);      // Flags
+  FRegistry.Add(@@Procs[2], @ProcSSE,    [isSSE],        FlagTest, 2);   // Flags, Priority
+  FRegistry.Add(@@Procs[2], @ProcPascal, [isPascal],     0,      3);     // Flags, Priority
 
   var SaveCPU := CPU;
   try
 
-    CPU.InstructionSupport := [isSSE];
+    CPU.InstructionSupport := [isPascal, isAssembler, isSSE];
 
-    Registry.RebindAll(True);
+    FRegistry.RebindAll(True);
 
     CheckNotNull(PPointer(@@Procs[0])^);
     CheckNotNull(PPointer(@@Procs[1])^);
@@ -208,7 +217,7 @@ begin
 
 
     // Rebind to give Pascal priority
-    Registry.RebindAll(FunctionPriorityPascal);
+    FRegistry.RebindAll(FunctionPriorityPascal);
 
     // Expect Pascal
     CheckSame(@ProcPascal3, PPointer(@@Procs[0])^);
@@ -216,6 +225,32 @@ begin
     CheckSame(@ProcSSE, PPointer(@@Procs[1])^);
     // Expect Pascal
     CheckSame(@ProcPascal, PPointer(@@Procs[2])^);
+
+  finally
+    CPU := SaveCPU;
+  end;
+end;
+
+procedure TTestBindings.TestRebindTiebreak;
+begin
+  var Proc: TProc := nil;
+  FRegistry.RegisterBinding(@@Proc);
+
+  FRegistry.Add(@@Proc, @ProcPascal, [isPascal]);
+  FRegistry.Add(@@Proc, @ProcAsm,    [isAssembler]);
+  FRegistry.Add(@@Proc, @ProcSSE2,   [isSSE2]);
+  FRegistry.Add(@@Proc, @ProcMMX,    [isMMX]);
+  FRegistry.Add(@@Proc, @ProcSSE,    [isSSE]);
+
+  var SaveCPU := CPU;
+  try
+
+    CPU.InstructionSupport := [isPascal, isAssembler, isMMX, isSSE, isSSE2];
+
+    FRegistry.Rebind(@@Proc);
+
+    // All have same priority; Always select best CPU feature (SSE2 in this case)
+    CheckSame(@ProcSSE2, PPointer(@@Proc)^);
 
   finally
     CPU := SaveCPU;

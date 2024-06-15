@@ -306,9 +306,6 @@ const
   FID_FAST_TRUNC        = 1;
   FID_FAST_ROUND        = 2;
 
-const
-  LowLevelBindingFlagPascal = $0001;
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -1931,26 +1928,27 @@ begin
   {$WARN SYMBOL_EXPERIMENTAL OFF}
 
   LowLevelRegistry := NewRegistry('GR32_LowLevel bindings');
+
   LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
   LowLevelRegistry.RegisterBinding(FID_FAST_TRUNC, @@FastTrunc);
   LowLevelRegistry.RegisterBinding(FID_FAST_ROUND, @@FastRound);
 
-  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_Pas, LowLevelBindingFlagPascal);
-  LowLevelRegistry.Add(FID_FAST_TRUNC, @FastTrunc_Pas, LowLevelBindingFlagPascal);
-  LowLevelRegistry.Add(FID_FAST_ROUND, @FastRound_Pas, LowLevelBindingFlagPascal);
+  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_Pas,      [isPascal]);
+  LowLevelRegistry.Add(FID_FAST_TRUNC,          @FastTrunc_Pas,         [isPascal]);
+  LowLevelRegistry.Add(FID_FAST_ROUND,          @FastRound_Pas,         [isPascal]);
 
 {$IFNDEF PUREPASCAL}
-  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_ASM);
+  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_ASM,      [isAssembler]);
 {$IFNDEF OMIT_MMX}
-  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [isMMX]);
+  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_MMX,      [isMMX]);
 {$ENDIF}
 {$IFNDEF OMIT_SSE2}
-  LowLevelRegistry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [isSSE2]);
+  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongword_SSE2,     [isSSE2]);
 {$ENDIF}
 
 {$IFNDEF OMIT_SSE2}
-  LowLevelRegistry.Add(FID_FAST_TRUNC, @FastTrunc_SSE2, [isSSE2]);
-  LowLevelRegistry.Add(FID_FAST_ROUND, @FastRound_SSE41, [isSSE41]);
+  LowLevelRegistry.Add(FID_FAST_TRUNC,          @FastTrunc_SSE2,        [isSSE2]);
+  LowLevelRegistry.Add(FID_FAST_ROUND,          @FastRound_SSE41,       [isSSE41]);
 {$ENDIF}
 {$ENDIF}
 
