@@ -122,20 +122,18 @@ begin
     FRegistry.RegisterBinding(i, @@Procs[i]);
 
   FRegistry.Add(0, @ProcAsm,     [isAssembler]);                         //
-  FRegistry.Add(0, @ProcPascal,  [isPascal],     0,              2);     // Flags, Priority
-  FRegistry.Add(0, @ProcPascal2, [isPascal],     0,              3);     // Flags, Priority
-  FRegistry.Add(0, @ProcPascal3, [isPascal],     0);                     // Flags
+  FRegistry.Add(0, @ProcPascal,  [isPascal],     2,              0);     // Priority, Flags,
+  FRegistry.Add(0, @ProcPascal2, [isPascal],     3,              0);     // Priority, Flags,
+  FRegistry.Add(0, @ProcPascal3, [isPascal],     0);                     // Priority
 
-  // TCPUFeature
-  FRegistry.Add(1, @ProcMMX,     [ciMMX]);                               //
-  FRegistry.Add(1, @ProcSSE2,    [ciSSE2],       FlagTest);              // Flags
-  FRegistry.Add(1, @ProcSSE,     [ciSSE],        FlagTest,       2);     // Flags, Priority
+  FRegistry.Add(1, @ProcMMX,    [isMMX]);
+  FRegistry.Add(1, @ProcSSE2,   [isSSE2],        0);                    // Priority
+  FRegistry.Add(1, @ProcSSE,    [isSSE],         2,             FlagTest);// Priority, Flags,
 
-  // TInstructionSupport
   FRegistry.Add(2, @ProcMMX,     [isMMX]);                               //
-  FRegistry.Add(2, @ProcSSE2,    [isSSE2],       FlagTest);              // Flags
-  FRegistry.Add(2, @ProcSSE,     [isSSE],        FlagTest,       2);     // Flags, Priority
-  FRegistry.Add(2, @ProcPascal,  [isPascal],     0,              3);     // Flags, Priority
+  FRegistry.Add(2, @ProcSSE2,    [isSSE2],       0,             FlagTest);// Priority, Flags,
+  FRegistry.Add(2, @ProcSSE,     [isSSE],        2,             FlagTest);// Priority, Flags,
+  FRegistry.Add(2, @ProcPascal,  [isPascal],     3);                    // Priority
 
   var SaveCPU := CPU;
   try
@@ -180,21 +178,19 @@ begin
     FRegistry.RegisterBinding(@@Procs[i]);
 
   FRegistry.Add(@@Procs[0], @ProcAsm,    [isAssembler]);                 //
-  FRegistry.Add(@@Procs[0], @ProcPascal, [isPascal],     0,      2);     // Flags, Priority
-  FRegistry.Add(@@Procs[0], @ProcPascal2,[isPascal],     0,      3);     // Flags, Priority
-  FRegistry.Add(@@Procs[0], @ProcPascal3,[isPascal],     0);             // Flags
-
-  // TCPUFeature; Not supported with this variant
+  FRegistry.Add(@@Procs[0], @ProcPascal, [isPascal],     2,      0);     // Priority, Flags,
+  FRegistry.Add(@@Procs[0], @ProcPascal2,[isPascal],     3,      0);     // Priority, Flags,
+  FRegistry.Add(@@Procs[0], @ProcPascal3,[isPascal],     0);             // Priority
 
   // TInstructionSupport
   FRegistry.Add(@@Procs[1], @ProcMMX,    [isMMX]);
-  FRegistry.Add(@@Procs[1], @ProcSSE2,   [isSSE2],       0);             // Flags
-  FRegistry.Add(@@Procs[1], @ProcSSE,    [isSSE],        FlagTest, 2);   // Flags, Priority
+  FRegistry.Add(@@Procs[1], @ProcSSE2,   [isSSE2],       0);             // Priority
+  FRegistry.Add(@@Procs[1], @ProcSSE,    [isSSE],        2,     FlagTest);// Priority, Flags,
 
   FRegistry.Add(@@Procs[2], @ProcMMX,    [isMMX]);
-  FRegistry.Add(@@Procs[2], @ProcSSE2,   [isSSE2],       FlagTest);      // Flags
-  FRegistry.Add(@@Procs[2], @ProcSSE,    [isSSE],        FlagTest, 2);   // Flags, Priority
-  FRegistry.Add(@@Procs[2], @ProcPascal, [isPascal],     0,      3);     // Flags, Priority
+  FRegistry.Add(@@Procs[2], @ProcSSE2,   [isSSE2],       0,     FlagTest);// Priority, Flags,
+  FRegistry.Add(@@Procs[2], @ProcSSE,    [isSSE],        2,     FlagTest);// Priority, Flags,
+  FRegistry.Add(@@Procs[2], @ProcPascal, [isPascal],     3);            // Priority
 
   var SaveCPU := CPU;
   try

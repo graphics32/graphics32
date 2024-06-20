@@ -1301,7 +1301,7 @@ end;
 
 class function TTestBlendModesPas.PriorityProcPas(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.Flags and BlendBindingFlagPascal <> 0) then
+  if (isPascal in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -1396,7 +1396,7 @@ end;
 
 class function TTestBlendModesAsm.PriorityProcAsm(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.InstructionSupport = []) and (Info^.Flags and BlendBindingFlagPascal = 0) then
+  if (isAssembler in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -1492,7 +1492,7 @@ end;
 
 class function TTestBlendModesMMX.PriorityProcMMX(Info: PFunctionInfo): Integer;
 begin
-  if (isMMX in Info^.InstructionSupport) then
+  if (isMMX in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -1588,7 +1588,7 @@ end;
 
 class function TTestBlendModesSSE2.PriorityProcSSE2(Info: PFunctionInfo): Integer;
 begin
-  if (isSSE2 in Info^.InstructionSupport) then
+  if (isSSE2 in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -1764,7 +1764,7 @@ end;
 
 class function TTestBlendModesSSE41.PriorityProcSSE41(Info: PFunctionInfo): Integer;
 begin
-  if (isSSE41 in Info^.InstructionSupport) then
+  if (isSSE41 in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;

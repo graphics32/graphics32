@@ -100,9 +100,6 @@ var
 var
   TransposeRegistry: TFunctionRegistry;
 
-const
-  TransposeBindingFlagPascal = $0001;
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -740,12 +737,12 @@ begin
 
   TransposeRegistry.RegisterBinding(@@_Transpose32);
 
-  TransposeRegistry.Add(@@_Transpose32, @ReferenceTranspose32, TransposeBindingFlagPascal);
-  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTranspose32, TransposeBindingFlagPascal, -16);
-  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTransposeEx32, TransposeBindingFlagPascal, -24);
+  TransposeRegistry.Add(@@_Transpose32, @ReferenceTranspose32, [isPascal, isReference]);
+  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTranspose32, [isPascal], -16);
+  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTransposeEx32, [isPascal], -24);
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  TransposeRegistry.Add(@@_Transpose32, @SuperDuperTranspose32, [isSSE2], 0, -32);
+  TransposeRegistry.Add(@@_Transpose32, @SuperDuperTranspose32, [isSSE2]);
 {$ifend}
 
   TransposeRegistry.RebindAll;

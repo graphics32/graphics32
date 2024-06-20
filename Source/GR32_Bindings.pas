@@ -51,19 +51,19 @@ type
 
   PFunctionInfo = ^TFunctionInfo;
   TFunctionInfo = record
-    FunctionID: NativeInt; // Either an ID or a pointer
-    Proc: Pointer;
-    InstructionSupport: TInstructionSupport;
-    Flags: Integer;
-    Priority: Integer; // Smaller is better
+    FunctionID: NativeInt;      // Either an ID or a pointer
+    Proc: Pointer;              // Pointer to the implementing function
+    InstructionSupport: TInstructionSupport; // The CPU features required by this implementation
+    Priority: Integer;          // Function priority; Smaller is better. Used by default TFunctionPriority callback
+    Flags: Cardinal;            // Optional, user defined flags for use in a custom TFunctionPriority callback
   end;
 
   TFunctionPriority = function (Info: PFunctionInfo): Integer;
 
   PFunctionBinding = ^TFunctionBinding;
   TFunctionBinding = record
-    FunctionID: NativeInt;
-    BindVariable: PPointer;
+    FunctionID: NativeInt;      // Either an ID or a pointer
+    BindVariable: PPointer;     // Pointer to the function delegate
   end;
 
 const
@@ -95,14 +95,19 @@ type
     procedure Clear;
 
 
-    // Add, Identify bound function using function IDs
-    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = BindingPriorityDefault); overload;
-    // Add, Identify bound function using function pointer
-    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = BindingPriorityDefault); overload;
+    // Register function bindings;
+    // Identify bound function using function IDs
+    procedure RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer); overload;
+    // Identify bound function using pointer to binding variable
+    procedure RegisterBinding(BindVariable: PPointer); overload;
+
+    // Register function binding implementations;
+    // Identify bound function using function IDs
+    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0); overload;
+    // Identify bound function using pointer to binding variable
+    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0); overload;
 
     // Function rebinding support
-    procedure RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer); overload;
-    procedure RegisterBinding(BindVariable: PPointer); overload;
     procedure RebindAll(AForce: boolean; PriorityCallback: TFunctionPriority = nil); overload;
     procedure RebindAll(PriorityCallback: TFunctionPriority = nil); overload;
     function Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): boolean; overload;
@@ -156,16 +161,16 @@ end;
 
 { TFunctionRegistry }
 
-procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags, Priority: Integer);
+procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal);
 var
   FunctionID: NativeInt;
 begin
   FunctionID := FindBinding(BindVariable);
   Assert(FunctionID <> -1, 'Binding not registered');
-  Add(FunctionID, Proc, InstructionSupport, Flags, Priority);
+  Add(FunctionID, Proc, InstructionSupport, Priority, Flags);
 end;
 
-procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer; Priority: Integer);
+procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal);
 var
   Info: TFunctionInfo;
 begin
