@@ -239,16 +239,13 @@ const
   FID_BLENDMEMRGB128    = 37;
 {$ENDIF}
 
-const
-  BlendBindingFlagPascal = $0001;
-
 {$IFDEF OMIT_MMX}
 procedure EMMS; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 
 
 //------------------------------------------------------------------------------
-  //
+//
 //      Blending related lookup tables
 //
 //------------------------------------------------------------------------------

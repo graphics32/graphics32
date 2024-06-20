@@ -210,6 +210,9 @@ type
   TCPUInstructionSet = GR32.CPUID.TCPUInstructionSet;
 
 const
+  isPascal = GR32.CPUID.TCPUInstructionSet.isPascal;
+  isAssembler = GR32.CPUID.TCPUInstructionSet.isAssembler;
+  isReference = GR32.CPUID.TCPUInstructionSet.isReference;
   isMMX = GR32.CPUID.TCPUInstructionSet.isMMX;
   isExMMX = GR32.CPUID.TCPUInstructionSet.isExMMX;
   isSSE = GR32.CPUID.TCPUInstructionSet.isSSE;
@@ -601,6 +604,7 @@ initialization
   CPU := TCPU.GetCPUInfo;
 {$ELSE}
   CPU := Default(TCPU);
+  CPU.InstructionSupport := [isPascal];
 {$ENDIF}
 {$WARN SYMBOL_DEPRECATED OFF}{$ifdef FPC}{$push}{$endif}
   GlobalPerfTimer := TPerfTimer.Create;

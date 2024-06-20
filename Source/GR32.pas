@@ -7862,7 +7862,8 @@ end;
 procedure RegisterBindingFunctions;
 begin
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_Pas,    BlendBindingFlagPascal);
+  // For PUREPASCAL FastPrevWeight is inlined and thus doesn't use the binding system
+  GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_Pas,    [isPascal]);
   GeneralRegistry.Add(@@FastPrevWeight, @FastPrevWeight_SSE41,  [isSSE41]);
 {$ifend}
 end;

@@ -1810,36 +1810,25 @@ begin
   end;
 end;
 
-const
-  FID_FILLSPAN = 0;
-
-const
-  FillSpanBindingFlagPascal = $0001;
-
-const
-  FillSpanRegistryPriorityASM = -256;
-  FillSpanRegistryPriorityMMX = -512;
-  FillSpanRegistryPrioritySSE2 = -768;
-
 var
   FillSpanRegistry: TFunctionRegistry;
 
 procedure RegisterBindings;
 begin
   FillSpanRegistry := NewRegistry('GR32_PolygonsAggLite bindings');
-  FillSpanRegistry.RegisterBinding(FID_FILLSPAN, @@FILLSPAN);
+  FillSpanRegistry.RegisterBinding(@@FILLSPAN);
 
   // pure pascal
-  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_Pas, FillSpanBindingFlagPascal);
+  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_Pas, [isPascal]);
 
 {$IFNDEF PUREPASCAL}
-  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_ASM, 0, FillSpanRegistryPriorityASM);
+  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_ASM, [isAssembler]);
 {$IFNDEF OMIT_MMX}
-  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_MMX, [isMMX], 0, FillSpanRegistryPriorityMMX);
+  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_MMX, [isMMX]);
 {$ENDIF}
 
 {$IFNDEF OMIT_SSE2}
-  FillSpanRegistry.Add(FID_FILLSPAN, @FILLSPAN_SSE2, [isSSE2], 0, FillSpanRegistryPrioritySSE2);
+  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_SSE2, [isSSE2]);
 {$ENDIF}
 {$ENDIF}
 

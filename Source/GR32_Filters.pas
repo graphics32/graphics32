@@ -1673,20 +1673,20 @@ begin
   Registry.RegisterBinding(FID_ORLINEEX, @@LogicalMaskLineOrEx);
   Registry.RegisterBinding(FID_XORLINEEX, @@LogicalMaskLineXorEx);
 
-  Registry.Add(FID_ANDLINE, @AndLine_Pas);
-  Registry.Add(FID_ORLINE, @OrLine_Pas);
-  Registry.Add(FID_XORLINE, @XorLine_Pas);
-  Registry.Add(FID_ANDLINEEX, @AndLineEx_Pas);
-  Registry.Add(FID_ORLINEEX, @OrLineEx_Pas);
-  Registry.Add(FID_XORLINEEX, @XorLineEx_Pas);
+  Registry.Add(FID_ANDLINE, @AndLine_Pas, [isPascal]);
+  Registry.Add(FID_ORLINE, @OrLine_Pas, [isPascal]);
+  Registry.Add(FID_XORLINE, @XorLine_Pas, [isPascal]);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_Pas, [isPascal]);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_Pas, [isPascal]);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_Pas, [isPascal]);
 
 {$IFNDEF PUREPASCAL}
-  Registry.Add(FID_ANDLINE, @AndLine_ASM);
-  Registry.Add(FID_ORLINE, @OrLine_ASM);
-  Registry.Add(FID_XORLINE, @XorLine_ASM);
-  Registry.Add(FID_ANDLINEEX, @AndLineEx_ASM);
-  Registry.Add(FID_ORLINEEX, @OrLineEx_ASM);
-  Registry.Add(FID_XORLINEEX, @XorLineEx_ASM);
+  Registry.Add(FID_ANDLINE, @AndLine_ASM, [isAssembler]);
+  Registry.Add(FID_ORLINE, @OrLine_ASM, [isAssembler]);
+  Registry.Add(FID_XORLINE, @XorLine_ASM, [isAssembler]);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_ASM, [isAssembler]);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_ASM, [isAssembler]);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_ASM, [isAssembler]);
 {$IFNDEF OMIT_MMX}
   Registry.Add(FID_ANDLINEEX, @AndLineEx_MMX, [isMMX]);
   Registry.Add(FID_ORLINEEX, @OrLineEx_MMX, [isMMX]);

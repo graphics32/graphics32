@@ -5254,10 +5254,10 @@ begin
   ResamplersRegistry.RegisterBinding(@@BlockAverage);
   ResamplersRegistry.RegisterBinding(@@Interpolator);
 
-  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_Pas);
-  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_Pas);
+  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_Pas, [isPascal]);
+  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_Pas, [isPascal]);
 {$IFNDEF PUREPASCAL}
-  ResamplersRegistry.ADD(@BlockAverage, @BlockAverage_MMX, [isMMX]);
+  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_MMX, [isMMX]);
 {$IFDEF USE_3DNOW}
   ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_3DNow, [is3DNow]);
 {$ENDIF}

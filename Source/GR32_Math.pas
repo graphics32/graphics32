@@ -209,9 +209,6 @@ const
   FID_FMOD_F            = 5;
   FID_FMOD_D            = 6;
 
-const
-  MathBindingFlagPascal = $0001;
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -2200,13 +2197,13 @@ begin
   MathRegistry.RegisterBinding(FID_FMOD_D, @@FMod_D);
 
   // pure pascal
-  MathRegistry.Add(FID_CUMSUM, @CumSum_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATMOD_F, @FloatMod_F_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATMOD_D, @FloatMod_D_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATREMAINDER_F, @FloatRemainder_F_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FLOATREMAINDER_D, @FloatRemainder_D_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FMOD_F, @FMod_F_Pas, MathBindingFlagPascal);
-  MathRegistry.Add(FID_FMOD_D, @FMod_D_Pas, MathBindingFlagPascal);
+  MathRegistry.Add(FID_CUMSUM, @CumSum_Pas, [isPascal]);
+  MathRegistry.Add(FID_FLOATMOD_F, @FloatMod_F_Pas, [isPascal]);
+  MathRegistry.Add(FID_FLOATMOD_D, @FloatMod_D_Pas, [isPascal]);
+  MathRegistry.Add(FID_FLOATREMAINDER_F, @FloatRemainder_F_Pas, [isPascal]);
+  MathRegistry.Add(FID_FLOATREMAINDER_D, @FloatRemainder_D_Pas, [isPascal]);
+  MathRegistry.Add(FID_FMOD_F, @FMod_F_Pas, [isPascal]);
+  MathRegistry.Add(FID_FMOD_D, @FMod_D_Pas, [isPascal]);
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}

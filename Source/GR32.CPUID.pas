@@ -72,6 +72,12 @@ type
   );
 
   TCPUInstructionSet = (
+    // Synthetic features. Used by the binding system.
+    isReference,{ Reference implementation }
+    isPascal,   { PUREPASCAL implementation }
+    isAssembler,{ Assembler implementation, using no features beyond base x86/x64 assembler }
+
+    // CPU hardware features
     isFPU,      {80x87}
     isTSC,      {RDTSC}
     isCX8,      {CMPXCHG8B}
@@ -174,6 +180,7 @@ const
   );
 
   sInstructionSetNames: array[TCPUInstructionSet] of string = (
+    'PUREPASCAL', 'Assembler', 'Reference',
     'FPU', 'TSC', 'CX8', 'SEP', 'CMOV', 'MMX', 'FXSR', 'SSE', 'SSE2', 'SSE3',
     'MONITOR', 'CX16', 'X64', 'MMX+', '3DNow!+', '3DNow!','SSSE3','SSE4.1',
     'SSE4.2','AES','AVX','PopCnt','XSAVE','RDTSCP','TBM','FMA4','XOP','SSE4A',
@@ -722,6 +729,9 @@ var
 begin
   {initialize - just to be sure}
   Result := Default(TCPU);
+
+  // Default synthetic support properties
+  Result.InstructionSupport := [isPascal, isAssembler];
 
   try
     if not IsCPUID_Available then

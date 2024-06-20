@@ -200,7 +200,7 @@ uses
 // ----------------------------------------------------------------------------
 class function TBindingTestCase.PriorityProcPas(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.Flags and LowLevelBindingFlagPascal <> 0) then
+  if (isPascal in Info.InstructionSupport) then
     Result := 0
   else
     Result := MaxInt-1;//INVALID_PRIORITY;
@@ -208,7 +208,7 @@ end;
 
 class function TBindingTestCase.PriorityProcAsm(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.InstructionSupport = []) then
+  if (isAssembler in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -217,7 +217,7 @@ end;
 class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
 begin
 {$if not defined(PUREPASCAL)}
-  if (isMMX in Info^.InstructionSupport) then
+  if (isMMX in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -227,7 +227,7 @@ end;
 class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
 begin
 {$if not defined(PUREPASCAL)}
-  if (isSSE2 in Info^.InstructionSupport) then
+  if (isSSE2 in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
@@ -237,7 +237,7 @@ end;
 class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
 begin
 {$if not defined(PUREPASCAL)}
-  if (isSSE41 in Info^.InstructionSupport) then
+  if (isSSE41 in Info.InstructionSupport) then
     Result := 0
   else
     Result := INVALID_PRIORITY;
