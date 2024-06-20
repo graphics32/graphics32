@@ -38,6 +38,7 @@ interface
 {$I GR32.inc}
 
 uses
+  Generics.Collections,
   Classes,
 {$IFNDEF PUREPASCAL}
   GR32.CPUID,
@@ -65,6 +66,12 @@ type
     BindVariable: PPointer;
   end;
 
+const
+  BindingPriorityDefault = 0;
+  BindingPriorityBetter = -1;
+  BindingPriorityWorse = 1;
+
+type
   { TFunctionRegistry }
   { This class fascilitates a registry that allows multiple function to be
     registered together with information about their CPU requirements and
@@ -73,13 +80,11 @@ type
     A priority callback function is used to assess the most optimal function. }
   TFunctionRegistry = class(TPersistent)
   private
-    FItems: TList;
-    FBindings: TList;
+    FItems: TList<TFunctionInfo>;
+    FBindings: TList<TFunctionBinding>;
     FName: string;
     FNeedRebind: boolean;
     procedure SetName(const Value: string);
-    function GetItems(Index: Integer): PFunctionInfo;
-    procedure SetItems(Index: Integer; const Value: PFunctionInfo);
   protected
     function FindBinding(BindVariable: PPointer): NativeInt;
     function FindFunctionInfo(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
@@ -89,13 +94,11 @@ type
     destructor Destroy; override;
     procedure Clear;
 
-    // FunctionID: Identify bound function using function IDs
-    // FunctionProc: Identify bound function using function pointer
 
-    procedure Add(FunctionID: NativeInt; Proc: Pointer; CPUFeatures: TCPUFeatures; Flags: Integer = 0; Priority: Integer = 0); overload; deprecated;
-
-    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = 0); overload;
-    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = 0); overload;
+    // Add, Identify bound function using function IDs
+    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = BindingPriorityDefault); overload;
+    // Add, Identify bound function using function pointer
+    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer = 0; Priority: Integer = BindingPriorityDefault); overload;
 
     // Function rebinding support
     procedure RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer); overload;
@@ -107,9 +110,6 @@ type
 
     function FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
     function FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
-
-    // TODO : Items is useless as we have no way to determine the size of the list
-    property Items[Index: Integer]: PFunctionInfo read GetItems write SetItems;
   published
     property Name: string read FName write SetName;
   end;
@@ -130,24 +130,26 @@ uses
   Math;
 
 var
-  Registers: TList;
+  BindingRegistries: TObjectList<TFunctionRegistry>;
 
 function NewRegistry(const Name: string): TFunctionRegistry;
 begin
-  if Registers = nil then
-    Registers := TList.Create;
+  if BindingRegistries = nil then
+    BindingRegistries := TObjectList<TFunctionRegistry>.Create;
+
   Result := TFunctionRegistry.Create;
   {$IFDEF NEXTGEN}
   Result.__ObjAddRef;
   {$ENDIF}
   Result.Name := Name;
-  Registers.Add(Result);
+
+  BindingRegistries.Add(Result);
 end;
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 begin
-  if (Info^.InstructionSupport <= GR32_System.CPU.InstructionSupport) then
-    Result := Info^.Priority
+  if (Info.InstructionSupport <= GR32_System.CPU.InstructionSupport) then
+    Result := Info.Priority
   else
     Result := INVALID_PRIORITY;
 end;
@@ -163,42 +165,32 @@ begin
   Add(FunctionID, Proc, InstructionSupport, Flags, Priority);
 end;
 
-procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
-begin
-  Add(FunctionID, Proc, CPUFeaturesToInstructionSupport(CPUFeatures), Flags, Priority);
-end;
-
 procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Flags: Integer; Priority: Integer);
 var
-  Info: PFunctionInfo;
+  Info: TFunctionInfo;
 begin
-  New(Info);
-  Info^.FunctionID := FunctionID;
-  Info^.Proc := Proc;
-  Info^.InstructionSupport := InstructionSupport;
-  Info^.Flags := Flags;
-  Info^.Priority := Priority;
+  Info := Default(TFunctionInfo);
+  Info.FunctionID := FunctionID;
+  Info.Proc := Proc;
+  Info.InstructionSupport := InstructionSupport;
+  Info.Flags := Flags;
+  Info.Priority := Priority;
+
   FItems.Add(Info);
 
   FNeedRebind := True;
 end;
 
 procedure TFunctionRegistry.Clear;
-var
-  I: Integer;
 begin
-  for I := 0 to FItems.Count - 1 do
-    Dispose(PFunctionInfo(FItems[I]));
   FItems.Clear;
-  for I := 0 to FBindings.Count - 1 do
-    Dispose(PFunctionBinding(FBindings[I]));
   FBindings.Clear;
 end;
 
 constructor TFunctionRegistry.Create;
 begin
-  FItems := TList.Create;
-  FBindings := TList.Create;
+  FItems := TList<TFunctionInfo>.Create;
+  FBindings := TList<TFunctionBinding>.Create;
 end;
 
 destructor TFunctionRegistry.Destroy;
@@ -211,20 +203,15 @@ end;
 
 function TFunctionRegistry.FindBinding(BindVariable: PPointer): NativeInt;
 var
-  I: Integer;
-  P: PFunctionBinding;
+  i: Integer;
 begin
   Result := -1;
-  for I := 0 to FBindings.Count - 1 do
-  begin
-    P := PFunctionBinding(FBindings[I]);
-
-    if (P^.BindVariable = BindVariable) then
+  for i := 0 to FBindings.Count - 1 do
+    if (FBindings[i].BindVariable = BindVariable) then
     begin
-      Result := P.FunctionID;
+      Result := FBindings[i].FunctionID;
       break;
     end;
-  end;
 end;
 
 function TFunctionRegistry.FindFunctionInfo(BindVariable: PPointer; PriorityCallback: TFunctionPriority): PFunctionInfo;
@@ -250,7 +237,7 @@ begin
 
   for i := FItems.Count - 1 downto 0 do
   begin
-    Info := FItems[i];
+    Info := @FItems.List[i];
 
     if (Info.FunctionID = FunctionID) then
     begin
@@ -290,11 +277,6 @@ begin
     Result := nil;
 end;
 
-function TFunctionRegistry.GetItems(Index: Integer): PFunctionInfo;
-begin
-  Result := FItems[Index];
-end;
-
 function TFunctionRegistry.Rebind(BindVariable: PPointer; PriorityCallback: TFunctionPriority): boolean;
 var
   FunctionID: NativeInt;
@@ -307,17 +289,17 @@ end;
 function TFunctionRegistry.Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): boolean;
 var
   P: PFunctionBinding;
-  I: Integer;
+  i: Integer;
 begin
   Result := False;
-  for I := 0 to FBindings.Count - 1 do
+  for i := 0 to FBindings.Count - 1 do
   begin
-    P := PFunctionBinding(FBindings[I]);
+    P := @FBindings.List[i];
 
-    if (P^.FunctionID = FunctionID) then
+    if (P.FunctionID = FunctionID) then
     begin
-      P^.BindVariable^ := FindFunction(FunctionID, PriorityCallback);
-      Result := (P^.BindVariable^ <> nil);
+      P.BindVariable^ := FindFunction(FunctionID, PriorityCallback);
+      Result := (P.BindVariable^ <> nil);
       break;
     end;
   end;
@@ -332,16 +314,16 @@ end;
 
 procedure TFunctionRegistry.RebindAll(PriorityCallback: TFunctionPriority);
 var
-  I: Integer;
+  i: Integer;
   P: PFunctionBinding;
 begin
   if (not Assigned(PriorityCallback)) and (not FNeedRebind) then
     exit;
 
-  for I := 0 to FBindings.Count - 1 do
+  for i := 0 to FBindings.Count - 1 do
   begin
-    P := PFunctionBinding(FBindings[I]);
-    P^.BindVariable^ := FindFunction(P^.FunctionID, PriorityCallback);
+    P := @FBindings.List[i];
+    P.BindVariable^ := FindFunction(P.FunctionID, PriorityCallback);
   end;
 
   FNeedRebind := False;
@@ -354,20 +336,14 @@ end;
 
 procedure TFunctionRegistry.RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer);
 var
-  Binding: PFunctionBinding;
+  Binding: TFunctionBinding;
 begin
-  New(Binding);
-  Binding^.FunctionID := FunctionID;
-  Binding^.BindVariable := BindVariable;
+  Binding := Default(TFunctionBinding);
+  Binding.FunctionID := FunctionID;
+  Binding.BindVariable := BindVariable;
+
   FBindings.Add(Binding);
 
-  FNeedRebind := True;
-end;
-
-procedure TFunctionRegistry.SetItems(Index: Integer;
-  const Value: PFunctionInfo);
-begin
-  FItems[Index] := Value;
   FNeedRebind := True;
 end;
 
@@ -376,22 +352,15 @@ begin
   FName := Value;
 end;
 
-procedure FreeRegisters;
-var
-  I: Integer;
+procedure FreeRegistries;
 begin
-  if Assigned(Registers) then
-  begin
-    for I := Registers.Count - 1 downto 0 do
-      TFunctionRegistry(Registers[I]).Free;
-    Registers.Free;
-    Registers := nil;
-  end;
+  BindingRegistries.Free;
+  BindingRegistries := nil;
 end;
 
 initialization
 
 finalization
-  FreeRegisters;
+  FreeRegistries;
 
 end.
