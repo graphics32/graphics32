@@ -269,6 +269,7 @@ type
     procedure TestBlendLine; override;
     [MaxError(2)]
     procedure TestBlendLineEx; override;
+    [MaxError(1)]
     procedure TestBlendLine1; override;
     [MaxError(1)]
     procedure TestCombineReg; override;
@@ -700,10 +701,38 @@ begin
 end;
 
 procedure TCustomTestBlendModes.TestBlendLine;
-var
-  CombinedColor32 : TColor32Entry;
-  ExpectedColor32 : TColor32Entry;
-  Index           : Integer;
+
+  procedure DoTest(Count: integer);
+  var
+    CombinedColor32 : TColor32Entry;
+    ExpectedColor32 : TColor32Entry;
+    Index           : Integer;
+  begin
+    for Index := 0 to Count-1 do
+    begin
+      FBackground^[Index] := clBlack32;
+      FForeground^[Index] := clWhite32;
+      TColor32Entry(FForeground^[Index]).A := Index;
+    end;
+
+    BlendLine(PColor32(FForeground), PColor32(FBackground), Count);
+    EMMS;
+
+    for Index := 0 to Count-1 do
+    begin
+      ExpectedColor32.ARGB := clBlack32;
+
+      BlendMem_Reference(FForeground^[Index], ExpectedColor32.ARGB);
+
+      CombinedColor32.ARGB := FBackground^[Index];
+      // Ignore alpha for Blend
+      ExpectedColor32.A := 0;
+      CombinedColor32.A := 0;
+
+      CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+    end;
+  end;
+
 begin
   Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDLINE)) then
@@ -712,36 +741,56 @@ begin
     Exit;
   end;
 
-  for Index := 0 to High(Byte) do
-  begin
-    FBackground^[Index] := clBlack32;
-    FForeground^[Index] := clWhite32;
-    TColor32Entry(FForeground^[Index]).A := Index;
-  end;
+  // Negative
+  DoTest(-1);
 
-  BlendLine(PColor32(FForeground), PColor32(FBackground), 256);
-  EMMS;
+  // Zero
+  DoTest(0);
+  // One
+  DoTest(1);
 
-  for Index := 0 to High(Byte) do
-  begin
-    ExpectedColor32.ARGB := clBlack32;
-
-    BlendMem_Reference(FForeground^[Index], ExpectedColor32.ARGB);
-
-    CombinedColor32.ARGB := FBackground^[Index];
-    // Ignore alpha for Blend
-    ExpectedColor32.A := 0;
-    CombinedColor32.A := 0;
-
-    CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
-  end;
+  // Odd count
+  DoTest(255);
+  // Even count
+  DoTest(256);
 end;
 
 procedure TCustomTestBlendModes.TestBlendLine1;
-var
-  CombinedColor32 : TColor32Entry;
-  ExpectedColor32 : TColor32Entry;
-  Index           : Integer;
+
+  procedure DoTest(Count: integer);
+  var
+    CombinedColor32 : TColor32Entry;
+    ExpectedColor32 : TColor32Entry;
+    Index           : Integer;
+  begin
+    for Index := 0 to Count-1 do
+    begin
+      FBackground^[Index] := clBlack32;
+      TColor32Entry(FBackground^[Index]).R := Index;
+      TColor32Entry(FBackground^[Index]).G := High(Byte) - Index;
+    end;
+
+    BlendLine1(clTrWhite32, PColor32(FBackground), Count);
+
+    EMMS;
+
+    for Index := 0 to Count-1 do
+    begin
+      ExpectedColor32.ARGB := clBlack32;
+      TColor32Entry(ExpectedColor32).R := Index;
+      TColor32Entry(ExpectedColor32).G := High(Byte) - Index;
+
+      BlendMem_Reference(clTrWhite32, ExpectedColor32.ARGB);
+
+      CombinedColor32.ARGB := FBackground^[Index];
+      CombinedColor32.A := $FF;
+      ExpectedColor32.A := $FF;
+
+
+      CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+    end;
+  end;
+
 begin
   Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDLINE1)) then
@@ -750,39 +799,60 @@ begin
     Exit;
   end;
 
-  for Index := 0 to High(Byte) do
-  begin
-    FBackground^[Index] := clBlack32;
-    TColor32Entry(FBackground^[Index]).R := Index;
-    TColor32Entry(FBackground^[Index]).G := High(Byte) - Index;
-  end;
+  // Negative
+  DoTest(-1);
 
-  BlendLine1(clTrWhite32, PColor32(FBackground), 256);
+  // Zero
+  DoTest(0);
+  // One
+  DoTest(1);
 
-  EMMS;
-
-  for Index := 0 to High(Byte) do
-  begin
-    ExpectedColor32.ARGB := clBlack32;
-    TColor32Entry(ExpectedColor32).R := Index;
-    TColor32Entry(ExpectedColor32).G := High(Byte) - Index;
-
-    BlendMem_Reference(clTrWhite32, ExpectedColor32.ARGB);
-
-    CombinedColor32.ARGB := FBackground^[Index];
-    CombinedColor32.A := $FF;
-    ExpectedColor32.A := $FF;
-
-
-    CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
-  end;
+  // Odd count
+  DoTest(255);
+  // Even count
+  DoTest(256);
 end;
 
 procedure TCustomTestBlendModes.TestBlendLineEx;
-var
-  ActualColor32      : TColor32Entry;
-  ExpectedColor32    : TColor32Entry;
-  Index, MasterIndex : Integer;
+
+  procedure DoTest(Count: integer);
+  var
+    ActualColor32      : TColor32Entry;
+    ExpectedColor32    : TColor32Entry;
+    Index, MasterIndex : Integer;
+  begin
+    for Index := 0 to High(Byte) do
+    begin
+      FForeground^[Index] := clWhite32;
+      TColor32Entry(FForeground^[Index]).A := Index;
+    end;
+
+    for MasterIndex := 0 to 7 do
+    begin
+      for Index := 0 to High(Byte) do
+      begin
+        FBackground^[Index] := clBlack32;
+        FReference^[Index] := clBlack32;
+      end;
+
+      BlendLineEx_Reference(PColor32(FForeground), PColor32(FReference), 256, TColor32(MasterIndex shl 5));
+      BlendLineEx(PColor32(FForeground), PColor32(FBackground), 256, TColor32(MasterIndex shl 5));
+
+      EMMS;
+
+      for Index := 0 to High(Byte) do
+      begin
+        ExpectedColor32.ARGB := FReference^[Index];
+        ExpectedColor32.A := 0;
+
+        ActualColor32.ARGB := FBackground^[Index];
+        ActualColor32.A := 0;
+
+        CheckColor(ExpectedColor32, ActualColor32, FMaxDifferenceLimit, 'Index: %d, BlendMemEx(FG:%.8X, BG:%.8X, Master:%d)', [Index, FForeground^[Index], clBlack32, MasterIndex shl 5]);
+      end;
+    end;
+  end;
+
 begin
   Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDLINEEX)) then
@@ -791,36 +861,18 @@ begin
     Exit;
   end;
 
-  for Index := 0 to High(Byte) do
-  begin
-    FForeground^[Index] := clWhite32;
-    TColor32Entry(FForeground^[Index]).A := Index;
-  end;
+  // Negative
+  DoTest(-1);
 
-  for MasterIndex := 0 to 7 do
-  begin
-    for Index := 0 to High(Byte) do
-    begin
-      FBackground^[Index] := clBlack32;
-      FReference^[Index] := clBlack32;
-    end;
+  // Zero
+  DoTest(0);
+  // One
+  DoTest(1);
 
-    BlendLineEx_Reference(PColor32(FForeground), PColor32(FReference), 256, TColor32(MasterIndex shl 5));
-    BlendLineEx(PColor32(FForeground), PColor32(FBackground), 256, TColor32(MasterIndex shl 5));
-
-    EMMS;
-
-    for Index := 0 to High(Byte) do
-    begin
-      ExpectedColor32.ARGB := FReference^[Index];
-      ExpectedColor32.A := 0;
-
-      ActualColor32.ARGB := FBackground^[Index];
-      ActualColor32.A := 0;
-
-      CheckColor(ExpectedColor32, ActualColor32, FMaxDifferenceLimit, 'Index: %d, BlendMemEx(FG:%.8X, BG:%.8X, Master:%d)', [Index, FForeground^[Index], clBlack32, MasterIndex shl 5]);
-    end;
-  end;
+  // Odd count
+  DoTest(255);
+  // Even count
+  DoTest(256);
 end;
 
 procedure TCustomTestBlendModes.DoCheckCombine(CheckCombineProc: TCheckCombine);

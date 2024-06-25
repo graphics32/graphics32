@@ -465,7 +465,7 @@ asm
 
   // test the counter for zero or negativity
         TEST      ECX,ECX
-        JS        @4
+        JLE       @4
 
         PUSH      ESI
         PUSH      EDI
@@ -529,7 +529,7 @@ asm
 
   // test the counter for zero or negativity
         TEST      ECX,ECX
-        JS        @4
+        JLE       @4
 
         PUSH      ESI
         PUSH      EDI

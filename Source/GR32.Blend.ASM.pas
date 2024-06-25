@@ -802,7 +802,7 @@ asm
 
   // test the counter for zero or negativity
         TEST    ECX,ECX
-        JS      @4
+        JLE     @4
 
         PUSH    EBX
         PUSH    ESI
@@ -887,7 +887,7 @@ asm
 
   // test the counter for zero or negativity
         TEST    R8D,R8D
-        JS      @4
+        JLE     @4
 
         MOV     R10,RCX         // R10 <- Src
         MOV     R11,RDX         // R11 <- Dst
@@ -969,7 +969,7 @@ asm
 
   // test the counter for zero or negativity
         TEST    ECX,ECX
-        JS      @4
+        JLE     @3
 
   // test if source if fully transparent
         TEST    EAX,$FF000000
@@ -1059,7 +1059,7 @@ asm
 
   // test the counter for zero or negativity
         TEST    R8D,R8D          // R8D <- Count
-        JZ      @2
+        JLE     @2
 
   // test if source if fully transparent
         TEST    ECX,$FF000000

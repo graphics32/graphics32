@@ -57,6 +57,7 @@ function BlendRegRGB_SSE2(F, B: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} a
 procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendLine1_SSE2(Src: TColor32; Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
 procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 
@@ -937,6 +938,218 @@ end;
 
 
 //------------------------------------------------------------------------------
+// BlendLine1
+// Exactly the same as BlendLine except the Src parameter is a TColor32 instead
+// of a pointer to a TColor32.
+// Implementation below was adapted from BlendLine_SSE2. Changed lines marked *.
+//------------------------------------------------------------------------------
+procedure BlendLine1_SSE2(Src: TColor32; Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+{$IFDEF FPC}
+const
+  COpaque: QWORD = QWORD($FF000000FF000000);
+{$ENDIF}
+asm
+{$IFDEF TARGET_X86}
+  // EAX <- Src: TColor32
+  // EDX <- Dst: PColor32
+  // ECX <- Count
+
+        TEST      ECX,ECX
+        JLE       @3
+
+        PUSH      EBX
+        PXOR      XMM4,XMM4
+        MOV       EBX,[bias_ptr]
+        MOVDQA    XMM5,[EBX]
+        POP       EBX
+
+        TEST      ECX, 1
+        JZ        @2
+        // * Old:
+        // MOVD      XMM0,[EAX]
+        MOVD      XMM0,EAX                      // *
+        MOVD      XMM2, DWORD PTR [EDX]
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM0,$FF
+
+  // premultiply source pixel by its alpha
+        MOVQ      XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+  // C' = A'  B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+        MOVD      [EDX], XMM0
+
+@2:
+        // * Old:
+        // LEA       EAX, [EAX + ECX * 4]
+        LEA       EDX, [EDX + ECX * 4]
+
+        SHR       ECX,1
+        JZ        @3
+        NEG       ECX
+
+@1:
+        // * Old:
+        // MOVQ      XMM0,[EAX + ECX * 8].QWORD
+        MOVD      XMM0,EAX                      // *
+        PSHUFD    XMM0, XMM0, 0                 // * XMM0[0..3] <- XMM0[0][0..3]
+        MOVQ      XMM2,[EDX + ECX * 8].QWORD
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM0,$FF
+        PSHUFHW   XMM1,XMM1,$FF
+
+  // premultiply source pixel by its alpha
+        MOVDQA    XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+  // C' = A' + B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+        MOVQ      [EDX + ECX * 8].QWORD,XMM0
+
+        ADD       ECX,1
+        JS        @1
+@3:
+
+{$ENDIF}
+
+{$IFDEF TARGET_X64}
+  // ECX <- Src: TColor32
+  // RDX <- Dst: PColor32
+  // R8D <- Count
+
+        TEST      R8D,R8D
+        JLE       @3
+
+        PXOR      XMM4,XMM4
+{$IFNDEF FPC}
+        MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
+        MOVDQA    XMM5,[RAX]
+
+        MOV       R9D, R8D
+        SHR       R9D, 1
+        TEST      R9D, R9D
+        JZ        @2
+
+@1:
+        // * Old:
+        // MOVQ      XMM0,[RCX].QWORD
+        // MOVQ      RAX,XMM0
+        MOVQ      XMM0,RCX // *
+        PSHUFD    XMM0, XMM0, 0                 // XMM0[0..3] <- XMM0[0][0..3]
+{$IFDEF FPC}
+        MOVQ      RAX,XMM0 // *
+        AND       RAX,[RIP+COpaque]
+        JZ        @1b
+        CMP       RAX,[RIP+COpaque]
+        JZ        @1a
+{$ENDIF}
+
+        MOVQ      XMM2,[RDX].QWORD
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM0,$FF
+        PSHUFHW   XMM1,XMM1,$FF
+
+  // premultiply source pixel by its alpha
+        MOVDQA    XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+  // C' = A' + B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+@1a:    MOVQ      [RDX].QWORD,XMM0
+
+@1b:
+        // * Old:
+        //ADD       RCX,8
+        ADD       RDX,8
+
+        SUB       R9D,1
+        JNZ       @1
+
+@2:
+        AND       R8D, 1
+        JZ        @3
+
+        // * Old:
+        // MOVD      XMM0,[RCX]
+        // MOVQ      XMM0,[EAX + ECX * 8].QWORD
+        MOVQ      XMM0,RCX                      // *
+        MOVD      XMM2,[RDX]
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM0,$FF
+
+  // premultiply source pixel by its alpha
+        MOVQ      XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+  // C' = A'  B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+        MOVD      [RDX], XMM0
+@3:
+{$ENDIF}
+end;
+
+
+//------------------------------------------------------------------------------
 // BlendLineEx
 //------------------------------------------------------------------------------
 procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: Cardinal); {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
@@ -948,7 +1161,7 @@ asm
 
   // test the counter for zero or negativity
         TEST      ECX,ECX
-        JS        @4
+        JLE       @4
 
         PUSH      ESI
         PUSH      EDI
@@ -1010,7 +1223,7 @@ asm
 
   // test the counter for zero or negativity
         TEST      R8D,R8D
-        JS        @4
+        JLE        @4
         TEST      R9D,R9D
         JZ        @4
 
@@ -2167,6 +2380,7 @@ begin
   BlendRegistry.Add(FID_BLENDMEMS,      @BlendMems_SSE2,        [isSSE2]);
   BlendRegistry.Add(FID_BLENDMEMEX,     @BlendMemEx_SSE2,       [isSSE2]);
   BlendRegistry.Add(FID_BLENDLINE,      @BlendLine_SSE2,        [isSSE2]);
+  BlendRegistry.Add(FID_BLENDLINE1,     @BlendLine1_SSE2,       [isSSE2]);
   BlendRegistry.Add(FID_BLENDLINEEX,    @BlendLineEx_SSE2,      [isSSE2]);
   BlendRegistry.Add(FID_BLENDREGEX,     @BlendRegEx_SSE2,       [isSSE2]);
   BlendRegistry.Add(FID_COLORMAX,       @ColorMax_SSE2,         [isSSE2]);
