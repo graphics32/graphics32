@@ -293,8 +293,8 @@
 
 
 (*
-  Symbol: HAS_TPOINTF
-  -------------------
+  Symbol: HAS_TPOINTF, HAS_TRECTF
+  -------------------------------
 
     Use the RTL TPointF and TRectF types.
 
@@ -303,9 +303,13 @@
   GR32 will be used.
 
   The TPointF and TRectF types exists in Delphi XE2 and later, and in FPC.
+  However, the FPC implementation of TRectF is pretty pathetic so we'll use our
+  own there.
 *)
 {$define HAS_TPOINTF}
-
+{$ifndef FPC}
+{$define HAS_TRECTF}
+{$endif}
 
 
 (*

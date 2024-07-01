@@ -999,7 +999,7 @@ begin
 
   BeginUpdate;
   try
-    FItems.ExtractAt(Index);
+    FItems.Extract(Item);
     Notify(lnLayerDeleted, Item, Index);
     Changed;
   finally
@@ -2821,7 +2821,7 @@ begin
   end;
   for i := 0 to High(FVertices) do
   begin
-    p := Point(LayerToControl(FVertices[i], True));
+    p := LayerToControl(FVertices[i], True);
     Buffer.LineToFSP(p.X, p.Y);
   end;
 end;

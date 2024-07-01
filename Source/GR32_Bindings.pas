@@ -72,6 +72,10 @@ const
   BindingPriorityWorse = 1;
 
 type
+  TFunctionInfoList = TList<TFunctionInfo>;
+  TFunctionBindingList = TList<TFunctionBinding>;
+
+type
   { TFunctionRegistry }
   { This class fascilitates a registry that allows multiple function to be
     registered together with information about their CPU requirements and
@@ -80,8 +84,8 @@ type
     A priority callback function is used to assess the most optimal function. }
   TFunctionRegistry = class(TPersistent)
   private
-    FItems: TList<TFunctionInfo>;
-    FBindings: TList<TFunctionBinding>;
+    FItems: TFunctionInfoList;
+    FBindings: TFunctionBindingList;
     FName: string;
     FNeedRebind: boolean;
     procedure SetName(const Value: string);
@@ -133,6 +137,12 @@ implementation
 
 uses
   Math;
+
+{$IFDEF FPC}
+type
+  TFunctionInfoListCracker = class(TFunctionInfoList);
+  TFunctionBindingListCracker = class(TFunctionBindingList);
+{$ENDIF}
 
 var
   BindingRegistries: TObjectList<TFunctionRegistry>;
@@ -194,8 +204,8 @@ end;
 
 constructor TFunctionRegistry.Create;
 begin
-  FItems := TList<TFunctionInfo>.Create;
-  FBindings := TList<TFunctionBinding>.Create;
+  FItems := TFunctionInfoList.Create;
+  FBindings := TFunctionBindingList.Create;
 end;
 
 destructor TFunctionRegistry.Destroy;
@@ -242,7 +252,11 @@ begin
 
   for i := FItems.Count - 1 downto 0 do
   begin
+{$IFNDEF FPC}
     Info := @FItems.List[i];
+{$ELSE}
+    Info := @(TFunctionInfoListCracker(FItems).FItems[i]);
+{$ENDIF}
 
     if (Info.FunctionID = FunctionID) then
     begin
@@ -299,7 +313,11 @@ begin
   Result := False;
   for i := 0 to FBindings.Count - 1 do
   begin
+{$IFNDEF FPC}
     P := @FBindings.List[i];
+{$ELSE}
+    P := @(TFunctionBindingListCracker(FBindings).FItems[i]);
+{$ENDIF}
 
     if (P.FunctionID = FunctionID) then
     begin
@@ -327,7 +345,11 @@ begin
 
   for i := 0 to FBindings.Count - 1 do
   begin
+{$IFNDEF FPC}
     P := @FBindings.List[i];
+{$ELSE}
+    P := @(TFunctionBindingListCracker(FBindings).FItems[i]);
+{$ENDIF}
     P.BindVariable^ := FindFunction(P.FunctionID, PriorityCallback);
   end;
 
