@@ -224,7 +224,7 @@ var
 begin
   Inc(FFrameCount);
 
-  PaintBox.BeginUpdate;
+  PaintBox.Buffer.BeginUpdate;
   try
 
     if (FOptionRenderNoise) then
@@ -272,7 +272,7 @@ begin
     end;
 
   finally
-    PaintBox.EndUpdate;
+    PaintBox.Buffer.EndUpdate;
   end;
 end;
 
