@@ -3869,7 +3869,7 @@ begin
   Result := Round($FF * (Value - PrevIndex));
 end;
 
-function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; experimental; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 // Note: roundss is a SSE4.1 instruction
 const
   ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc

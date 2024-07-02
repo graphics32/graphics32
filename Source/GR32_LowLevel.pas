@@ -234,26 +234,32 @@ function Div255(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Possibly even faster integer division by 255.
 // Valid for the range [0..255*255] }
-function FastDiv255(Value: Word): Word; experimental; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FastDiv255(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Fast rounded integer division by 255.
 // Valid for the range [0..255*255]
-function Div255Round(Value: Word): Word; experimental; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Div255Round(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
 //
-//      FastRound & FastTrunc: Fast alternatives to the RTL Round & Trunc
+//      FastRound, FastTrunc, and FastFloor
+//      Fast alternatives to the RTL Round, Trunc, and Floor
 //
 //------------------------------------------------------------------------------
+function FastFloor(Value: TFloat): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FastFloor(Value: Double): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
 type
-  TFastRoundProc = function(Value: TFloat): Integer;
+  TFastRoundSingleProc = function(Value: TFloat): Integer;
+  TFastRoundDoubleProc = function(Value: Double): Integer;
 
 var
   // Trunc and Round using SSE
-  FastTrunc: TFastRoundProc experimental;
-
-  FastRound: TFastRoundProc experimental;
+  FastTrunc: TFastRoundSingleProc;
+  FastRound: TFastRoundSingleProc;
+  FastFloorSingle: TFastRoundSingleProc;
+  FastFloorDouble: TFastRoundDoubleProc;
 
 
 //------------------------------------------------------------------------------
@@ -317,6 +323,7 @@ uses
 {$IFDEF FPC}
   SysUtils,
 {$ENDIF}
+  Math,
   GR32_System;
 
 {$R-}{$Q-}  // switch off overflow and range checking
@@ -1587,6 +1594,72 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      FastFloor
+//
+//------------------------------------------------------------------------------
+function FastFloor(Value: TFloat): Integer;
+begin
+  Result := FastFloorSingle(Value);
+end;
+
+function FastFloor(Value: Double): Integer;
+begin
+  Result := FastFloorDouble(Value);
+end;
+
+//------------------------------------------------------------------------------
+// FastFloorSingle_Pas
+//------------------------------------------------------------------------------
+function FastFloorSingle_Pas(Value: TFloat): Integer;
+begin
+  Result := Integer(Trunc(Value));
+  if Frac(Value) < 0 then
+    Dec(Result);
+end;
+
+//------------------------------------------------------------------------------
+// FastFloorDouble_Pas
+//------------------------------------------------------------------------------
+function FastFloorDouble_Pas(Value: Double): Integer;
+begin
+  Result := Integer(Trunc(Value));
+  if Frac(Value) < 0 then
+    Dec(Result);
+end;
+
+{$IFNDEF PUREPASCAL}
+//------------------------------------------------------------------------------
+// FastFloorSingle_SSE41
+//------------------------------------------------------------------------------
+function FastFloorSingle_SSE41(Value: Single): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOVSS   xmm0, Value
+{$ifend}
+
+        ROUNDSS xmm0, xmm0, ROUND_TO_NEG_INF or ROUND_NO_EXC
+
+        CVTSS2SI eax, xmm0
+end;
+
+//------------------------------------------------------------------------------
+// FastFloorDouble_SSE41
+//------------------------------------------------------------------------------
+function FastFloorDouble_SSE41(Value: Double): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOVSD   xmm0, Value
+{$ifend}
+
+        ROUNDSD xmm0, xmm0, ROUND_TO_NEG_INF or ROUND_NO_EXC
+
+        CVTTSD2SI eax, xmm0
+end;
+{$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
 //      SAR: Shift right with sign conservation
 //
 //------------------------------------------------------------------------------
@@ -1932,24 +2005,30 @@ begin
   LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
   LowLevelRegistry.RegisterBinding(FID_FAST_TRUNC, @@FastTrunc);
   LowLevelRegistry.RegisterBinding(FID_FAST_ROUND, @@FastRound);
+  LowLevelRegistry.RegisterBinding(@@FastFloorSingle);
+  LowLevelRegistry.RegisterBinding(@@FastFloorDouble);
 
   LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_Pas,      [isPascal]);
   LowLevelRegistry.Add(FID_FAST_TRUNC,          @FastTrunc_Pas,         [isPascal]);
   LowLevelRegistry.Add(FID_FAST_ROUND,          @FastRound_Pas,         [isPascal]);
+  LowLevelRegistry.Add(@@FastFloorSingle,       @FastFloorSingle_Pas,   [isPascal]);
+  LowLevelRegistry.Add(@@FastFloorDouble,       @FastFloorDouble_Pas,   [isPascal]);
 
 {$IFNDEF PUREPASCAL}
   LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_ASM,      [isAssembler]);
+
 {$IFNDEF OMIT_MMX}
   LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_MMX,      [isMMX]);
 {$ENDIF}
-{$IFNDEF OMIT_SSE2}
-  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongword_SSE2,     [isSSE2]);
-{$ENDIF}
 
 {$IFNDEF OMIT_SSE2}
+  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongword_SSE2,     [isSSE2]);
   LowLevelRegistry.Add(FID_FAST_TRUNC,          @FastTrunc_SSE2,        [isSSE2]);
   LowLevelRegistry.Add(FID_FAST_ROUND,          @FastRound_SSE41,       [isSSE41]);
+  LowLevelRegistry.Add(@@FastFloorSingle,       @FastFloorSingle_SSE41, [isSSE41]);
+  LowLevelRegistry.Add(@@FastFloorDouble,       @FastFloorDouble_SSE41, [isSSE41]);
 {$ENDIF}
+
 {$ENDIF}
 
   LowLevelRegistry.RebindAll;

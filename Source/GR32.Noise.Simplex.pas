@@ -134,17 +134,17 @@ type
   T8Bytes = array[0..7] of byte;
 
 type
-  TVector3f = record
+  TVector3 = record
     case Integer of
-      0: (V: array[0..2] of Single;);
+      0: (V: array[0..2] of Double;);
       1: (X: Double;
           Y: Double;
           Z: Double;);
   end;
 
-  TVector4f = record
+  TVector4 = record
     case Integer of
-      0: (V: array[0..3] of Single;);
+      0: (V: array[0..3] of Double;);
       1: (X: Double;
           Y: Double;
           Z: Double;
@@ -153,12 +153,12 @@ type
 
 
 var
-  Gradient3D: array[0..11] of TVector3f = (
+  Gradient3D: array[0..11] of TVector3 = (
     (x: 1; y: 1; z: 0), (x:-1; y: 1; z: 0), (x: 1; y:-1; z: 0), (x:-1; y:-1; z: 0),
     (x: 1; y: 0; z: 1), (x:-1; y: 0; z: 1), (x: 1; y: 0; z:-1), (x:-1; y: 0; z:-1),
     (x: 0; y: 1; z: 1), (x: 0; y:-1; z: 1), (x: 0; y: 1; z:-1), (x: 0; y:-1; z:-1));
 
-  Gradient4D: array[0..31] of TVector4f = (
+  Gradient4D: array[0..31] of TVector4 = (
     (x: 0; y: 1; z: 1; w: 1), (x: 0; y: 1; z: 1; w:-1), (x: 0; y: 1; z:-1; w: 1), (x: 0; y: 1; z:-1; w:-1),
     (x: 0; y:-1; z: 1; w: 1), (x: 0; y:-1; z: 1; w:-1), (x: 0; y:-1; z:-1; w: 1), (x: 0; y:-1; z:-1; w:-1),
     (x: 1; y: 0; z: 1; w: 1), (x: 0; y:-1; z: 1; w:-1), (x: 0; y:-1; z:-1; w: 1), (x: 0; y:-1; z:-1; w:-1),
@@ -182,31 +182,21 @@ var
     49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
     138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180);
 
-function Dot(const v: TVector3f; const x, y: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Dot(const v: TVector3; const x, y: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result := (v.x * x) + (v.y * y);
 end;
 
-function Dot(const v: TVector3f; const x, y, z: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Dot(const v: TVector3; const x, y, z: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result:= (v.x * x) + (v.y * y) + (v.z * z);
 end;
 
-function Dot(const v: TVector4f; const x, y, z, w: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Dot(const v: TVector4; const x, y, z, w: Double): Double; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result := (v.x * x) + (v.y * y) + (v.z * z) + (v.w * w);
 end;
 
-function FastFloor(x: Double): integer; {$IFDEF USEINLINING} inline; {$ENDIF}
-var
-  xi: integer;
-begin
-  xi := FastTrunc(x);
-  if x < xi then
-    Result := xi-1
-  else
-    Result := xi;
-end;
 
 //------------------------------------------------------------------------------
 //
