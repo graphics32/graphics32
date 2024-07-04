@@ -249,7 +249,7 @@ begin
       // Fade
       if (FOptionFade) then
         // We fade out the existing image by blending black onto it. The alpha controls how fast we fade.
-        BlendLine1($09000000, PColor32(PaintBox.Buffer.Bits), PaintBox.Buffer.Width*PaintBox.Buffer.Height);
+        BlendMems($09000000, PColor32(PaintBox.Buffer.Bits), PaintBox.Buffer.Width*PaintBox.Buffer.Height);
 
       // Color cycle
       PaintBox.Buffer.PenColor := HSLtoRGB(FHue, 0.75, 0.5, 128);

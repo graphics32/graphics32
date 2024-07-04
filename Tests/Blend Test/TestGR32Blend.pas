@@ -109,10 +109,10 @@ type
     procedure TestBlendReg; virtual;
     procedure TestBlendRegEx; virtual;
     procedure TestBlendMem; virtual;
+    procedure TestBlendMems; virtual;
     procedure TestBlendMemEx; virtual;
     procedure TestBlendLine; virtual;
     procedure TestBlendLineEx; virtual;
-    procedure TestBlendLine1; virtual;
     procedure TestCombineReg; virtual;
     procedure TestCombineMem; virtual;
     procedure TestCombineLine; virtual;
@@ -121,6 +121,7 @@ type
     procedure TestMergeMem; virtual;
     procedure TestMergeMemEx; virtual;
     procedure TestMergeLine; virtual;
+    procedure TestMergeMems; virtual;
     procedure TestMergeLineEx; virtual;
 
     procedure DoCheckCombine(CheckCombineProc: TCheckCombine);
@@ -145,14 +146,14 @@ type
     procedure TestBlendRegEx; override;
     [MaxError(1)]
     procedure TestBlendMem; override;
+    [MaxError(1)]
+    procedure TestBlendMems; override;
     [MaxError(2)]
     procedure TestBlendMemEx; override;
     [MaxError(1)]
     procedure TestBlendLine; override;
     [MaxError(1)]
     procedure TestBlendLineEx; override;
-    [MaxError(1)]
-    procedure TestBlendLine1; override;
     [MaxError(1)]
     procedure TestCombineReg; override;
     [MaxError(1), MaxErrorCount(-1)]
@@ -170,6 +171,8 @@ type
     [MaxError(4)]
     procedure TestMergeLine; override;
     [MaxError(4)]
+    procedure TestMergeMems; override;
+    [MaxError(4)]
     procedure TestMergeLineEx; override;
   end;
 
@@ -185,14 +188,14 @@ type
     procedure TestBlendRegEx; override;
     [MaxError(1)]
     procedure TestBlendMem; override;
+    [MaxError(1)]
+    procedure TestBlendMems; override;
     [MaxError(2)]
     procedure TestBlendMemEx; override;
     [MaxError(1)]
     procedure TestBlendLine; override;
     [MaxError(0)]
     procedure TestBlendLineEx; override;
-    [MaxError(1)]
-    procedure TestBlendLine1; override;
     [MaxError(2)]
     procedure TestCombineReg; override;
     [MaxError(2)]
@@ -210,6 +213,8 @@ type
     [MaxError(0)]
     procedure TestMergeLine; override;
     [MaxError(0)]
+    procedure TestMergeMems; override;
+    [MaxError(0)]
     procedure TestMergeLineEx; override;
   end;
 
@@ -225,14 +230,14 @@ type
     procedure TestBlendRegEx; override;
     [MaxError(1)]
     procedure TestBlendMem; override;
+    [MaxError(1)]
+    procedure TestBlendMems; override;
     [MaxError(2)]
     procedure TestBlendMemEx; override;
     [MaxError(1)]
     procedure TestBlendLine; override;
     [MaxError(2)]
     procedure TestBlendLineEx; override;
-    [MaxError(2)]
-    procedure TestBlendLine1; override;
     [MaxError(1)]
     procedure TestCombineReg; override;
     [MaxError(1)]
@@ -248,6 +253,7 @@ type
     [MaxError(6)]
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
+    procedure TestMergeMems; override;
     procedure TestMergeLineEx; override;
   end;
 
@@ -263,14 +269,14 @@ type
     procedure TestBlendRegEx; override;
     [MaxError(1)]
     procedure TestBlendMem; override;
+    [MaxError(1)]
+    procedure TestBlendMems; override;
     [MaxError(2)]
     procedure TestBlendMemEx; override;
     [MaxError(1)]
     procedure TestBlendLine; override;
     [MaxError(2)]
     procedure TestBlendLineEx; override;
-    [MaxError(1)]
-    procedure TestBlendLine1; override;
     [MaxError(1)]
     procedure TestCombineReg; override;
     [MaxError(1)]
@@ -282,6 +288,7 @@ type
     procedure TestMergeMem; override;
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
+    procedure TestMergeMems; override;
     procedure TestMergeLineEx; override;
   end;
 
@@ -294,10 +301,10 @@ type
     procedure TestBlendReg; override;
     procedure TestBlendRegEx; override;
     procedure TestBlendMem; override;
+    procedure TestBlendMems; override;
     procedure TestBlendMemEx; override;
     procedure TestBlendLine; override;
     procedure TestBlendLineEx; override;
-    procedure TestBlendLine1; override;
     procedure TestCombineReg; override;
     [MaxError(1), MaxErrorCount(20)]
     procedure TestCombineMem; override;
@@ -307,6 +314,7 @@ type
     procedure TestMergeMem; override;
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
+    procedure TestMergeMems; override;
     procedure TestMergeLineEx; override;
   end;
 
@@ -700,6 +708,73 @@ begin
   end;
 end;
 
+procedure TCustomTestBlendModes.TestBlendMems;
+
+  procedure DoTest(Color: TColor32; Count: integer);
+  var
+    CombinedColor32 : TColor32Entry;
+    ExpectedColor32 : TColor32Entry;
+    Index           : Integer;
+  begin
+    for Index := 0 to Count-1 do
+    begin
+      FBackground^[Index] := clBlack32;
+      TColor32Entry(FBackground^[Index]).R := Index;
+      TColor32Entry(FBackground^[Index]).G := High(Byte) - Index;
+    end;
+
+    BlendMems(Color, PColor32(FBackground), Count);
+
+    EMMS;
+
+    for Index := 0 to Count-1 do
+    begin
+      ExpectedColor32.ARGB := clBlack32;
+      TColor32Entry(ExpectedColor32).R := Index;
+      TColor32Entry(ExpectedColor32).G := High(Byte) - Index;
+
+      BlendMem_Reference(Color, ExpectedColor32.ARGB);
+
+      CombinedColor32.ARGB := FBackground^[Index];
+      CombinedColor32.A := $FF;
+      ExpectedColor32.A := $FF;
+
+
+      CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+    end;
+  end;
+
+  procedure DoTestColor(Color: TColor32);
+  begin
+    // Negative
+    DoTest(Color, -1);
+
+    // Zero
+    DoTest(Color, 0);
+    // One
+    DoTest(Color, 1);
+
+    // Odd count
+    DoTest(Color, 3);
+    DoTest(Color, 255);
+    // Even count
+    DoTest(Color, 2);
+    DoTest(Color, 256);
+  end;
+
+begin
+  Rebind(FID_EMMS, False);
+  if (not Rebind(FID_BLENDMEMS)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
+  DoTestColor($00FF7F00);
+  DoTestColor($80FF7F00);
+  DoTestColor($FFFF7F00);
+end;
+
 procedure TCustomTestBlendModes.TestBlendLine;
 
   procedure DoTest(Count: integer);
@@ -736,64 +811,6 @@ procedure TCustomTestBlendModes.TestBlendLine;
 begin
   Rebind(FID_EMMS, False);
   if (not Rebind(FID_BLENDLINE)) then
-  begin
-    Check(True);
-    Exit;
-  end;
-
-  // Negative
-  DoTest(-1);
-
-  // Zero
-  DoTest(0);
-  // One
-  DoTest(1);
-
-  // Odd count
-  DoTest(255);
-  // Even count
-  DoTest(256);
-end;
-
-procedure TCustomTestBlendModes.TestBlendLine1;
-
-  procedure DoTest(Count: integer);
-  var
-    CombinedColor32 : TColor32Entry;
-    ExpectedColor32 : TColor32Entry;
-    Index           : Integer;
-  begin
-    for Index := 0 to Count-1 do
-    begin
-      FBackground^[Index] := clBlack32;
-      TColor32Entry(FBackground^[Index]).R := Index;
-      TColor32Entry(FBackground^[Index]).G := High(Byte) - Index;
-    end;
-
-    BlendLine1(clTrWhite32, PColor32(FBackground), Count);
-
-    EMMS;
-
-    for Index := 0 to Count-1 do
-    begin
-      ExpectedColor32.ARGB := clBlack32;
-      TColor32Entry(ExpectedColor32).R := Index;
-      TColor32Entry(ExpectedColor32).G := High(Byte) - Index;
-
-      BlendMem_Reference(clTrWhite32, ExpectedColor32.ARGB);
-
-      CombinedColor32.ARGB := FBackground^[Index];
-      CombinedColor32.A := $FF;
-      ExpectedColor32.A := $FF;
-
-
-      CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
-    end;
-  end;
-
-begin
-  Rebind(FID_EMMS, False);
-  if (not Rebind(FID_BLENDLINE1)) then
   begin
     Check(True);
     Exit;
@@ -1283,6 +1300,73 @@ begin
   end;
 end;
 
+procedure TCustomTestBlendModes.TestMergeMems;
+
+  procedure DoTest(Color: TColor32; Count: integer);
+  var
+    CombinedColor32 : TColor32Entry;
+    ExpectedColor32 : TColor32Entry;
+    Index           : Integer;
+  begin
+    for Index := 0 to Count-1 do
+    begin
+      FBackground^[Index] := clBlack32;
+      TColor32Entry(FBackground^[Index]).R := Index;
+      TColor32Entry(FBackground^[Index]).G := High(Byte) - Index;
+    end;
+
+    MergeMems(Color, PColor32(FBackground), Count);
+
+    EMMS;
+
+    for Index := 0 to Count-1 do
+    begin
+      ExpectedColor32.ARGB := clBlack32;
+      TColor32Entry(ExpectedColor32).R := Index;
+      TColor32Entry(ExpectedColor32).G := High(Byte) - Index;
+
+      MergeMem_Reference(Color, ExpectedColor32.ARGB);
+
+      CombinedColor32.ARGB := FBackground^[Index];
+      //CombinedColor32.A := $FF;
+      //ExpectedColor32.A := $FF;
+
+
+      CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+    end;
+  end;
+
+  procedure DoTestColor(Color: TColor32);
+  begin
+    // Negative
+    DoTest(Color, -1);
+
+    // Zero
+    DoTest(Color, 0);
+    // One
+    DoTest(Color, 1);
+
+    // Odd count
+    DoTest(Color, 3);
+    DoTest(Color, 255);
+    // Even count
+    DoTest(Color, 2);
+    DoTest(Color, 256);
+  end;
+
+begin
+  Rebind(FID_EMMS, False);
+  if (not Rebind(FID_MERGEMEMS)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
+  DoTestColor($00FF7F00);
+  DoTestColor($80FF7F00);
+  DoTestColor($FFFF7F00);
+end;
+
 procedure TCustomTestBlendModes.TestMergeLineEx;
 var
   BlendColor32    : TColor32Entry;
@@ -1379,12 +1463,12 @@ begin
   inherited;
 end;
 
-procedure TTestBlendModesPas.TestBlendLine;
+procedure TTestBlendModesPas.TestBlendMems;
 begin
   inherited;
 end;
 
-procedure TTestBlendModesPas.TestBlendLine1;
+procedure TTestBlendModesPas.TestBlendLine;
 begin
   inherited;
 end;
@@ -1434,6 +1518,11 @@ begin
   inherited;
 end;
 
+procedure TTestBlendModesPas.TestMergeMems;
+begin
+  inherited;
+end;
+
 procedure TTestBlendModesPas.TestMergeLineEx;
 begin
   inherited;
@@ -1474,12 +1563,12 @@ begin
   inherited;
 end;
 
-procedure TTestBlendModesAsm.TestBlendLine;
+procedure TTestBlendModesAsm.TestBlendMems;
 begin
   inherited;
 end;
 
-procedure TTestBlendModesAsm.TestBlendLine1;
+procedure TTestBlendModesAsm.TestBlendLine;
 begin
   inherited;
 end;
@@ -1529,6 +1618,11 @@ begin
   inherited;
 end;
 
+procedure TTestBlendModesAsm.TestMergeMems;
+begin
+  inherited;
+end;
+
 procedure TTestBlendModesAsm.TestMergeLineEx;
 begin
   inherited;
@@ -1570,12 +1664,12 @@ begin
   inherited;
 end;
 
-procedure TTestBlendModesMMX.TestBlendLine;
+procedure TTestBlendModesMMX.TestBlendMems;
 begin
   inherited;
 end;
 
-procedure TTestBlendModesMMX.TestBlendLine1;
+procedure TTestBlendModesMMX.TestBlendLine;
 begin
   inherited;
 end;
@@ -1625,6 +1719,11 @@ begin
   inherited;
 end;
 
+procedure TTestBlendModesMMX.TestMergeMems;
+begin
+  inherited;
+end;
+
 procedure TTestBlendModesMMX.TestMergeLineEx;
 begin
   inherited;
@@ -1666,12 +1765,12 @@ begin
   inherited;
 end;
 
-procedure TTestBlendModesSSE2.TestBlendLine;
+procedure TTestBlendModesSSE2.TestBlendMems;
 begin
   inherited;
 end;
 
-procedure TTestBlendModesSSE2.TestBlendLine1;
+procedure TTestBlendModesSSE2.TestBlendLine;
 begin
   inherited;
 end;
@@ -1717,6 +1816,11 @@ begin
 end;
 
 procedure TTestBlendModesSSE2.TestMergeLine;
+begin
+  inherited;
+end;
+
+procedure TTestBlendModesSSE2.TestMergeMems;
 begin
   inherited;
 end;
@@ -1828,12 +1932,6 @@ begin
 
 end;
 
-procedure TTestBlendModesSSE41.TestBlendLine1;
-begin
-  inherited;
-
-end;
-
 procedure TTestBlendModesSSE41.TestBlendLineEx;
 begin
   inherited;
@@ -1850,6 +1948,11 @@ procedure TTestBlendModesSSE41.TestBlendMemEx;
 begin
   inherited;
 
+end;
+
+procedure TTestBlendModesSSE41.TestBlendMems;
+begin
+  inherited;
 end;
 
 procedure TTestBlendModesSSE41.TestBlendReg;
@@ -1886,6 +1989,11 @@ procedure TTestBlendModesSSE41.TestMergeLine;
 begin
   inherited;
 
+end;
+
+procedure TTestBlendModesSSE41.TestMergeMems;
+begin
+  inherited;
 end;
 
 procedure TTestBlendModesSSE41.TestMergeLineEx;
