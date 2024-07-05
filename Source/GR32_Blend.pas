@@ -41,6 +41,79 @@ uses
 var
   MMX_ACTIVE: Boolean; // For backward compatibility use in asm functions.
 
+
+//------------------------------------------------------------------------------
+//
+//      Alpha Composition
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Blend
+//------------------------------------------------------------------------------
+//
+// The Blend operation mixes a foreground color (F) onto a background color (B),
+// using the alpha channel value of F:
+//
+//   Result Z = Fa * (Fargb - Bargb) + Bargb
+//            = Fa * Fargb + (1 - Fa) * Bargb
+//
+// The background color is assumed to be fully opaque (i.e. Ba=255).
+// If the alpha of the background is to be taken into account, the Merge
+// operation should be used instead.
+//
+// The blend operation is commonly just referred to as "alpha blending".
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Merge
+//------------------------------------------------------------------------------
+//
+// The Merge operation is based on a formula described in a paper by Bruce
+// Wallace in 1981.
+//
+// Merging is associative, that is, A over (B over C) = (A over B) over C.
+//
+// The formula is,
+//
+//      Ra = Fa + Ba * (1 - Fa)
+//      Rc = (Fa * (Fc - Bc * Ba) + Bc * Ba) / Ra
+//
+//    where
+//
+//      Rc is the resultant color,
+//      Ra is the resultant alpha,
+//      Fc is the foreground color,
+//      Fa is the foreground alpha,
+//      Bc is the background color,
+//      Ba is the background alpha.
+//
+//    Implementation:
+//
+//      Ra := 1 - (1 - Fa) * (1 - Ba);
+//      Wa := Fa / Ra;
+//      Rc := Bc + Wa * (Fc - Bc);
+//
+//      (1 - Fa) * (1 - Ba) = 1 - Fa - Ba + Fa * Ba = (1 - Ra)
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Combine
+//------------------------------------------------------------------------------
+//
+// The Combine operation performs linear interpolation, commonly refered to as
+// "Lerp", between two colors (X and Y), given a weight (W):
+//
+//   Result Z = W * X + (1 - W) * Y
+//            = W * (X - Y) + Y
+//
+// All channels are combined, including the alpha channel.
+//
+//------------------------------------------------------------------------------
+
+
 //------------------------------------------------------------------------------
 //
 //      Function Prototypes
@@ -62,7 +135,7 @@ type
 {$ENDIF}
   TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
   TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: Cardinal);
-  TBlendLine1  = procedure(Src: TColor32; Dst: PColor32; Count: Integer);
+  TBlendLine1  = TBlendMems deprecated 'Use TBlendMems';
 //------------------------------------------------------------------------------
 // Combine
 //------------------------------------------------------------------------------
@@ -99,20 +172,19 @@ var
 
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
-  BlendLine1: TBlendLine1;
 
 //------------------------------------------------------------------------------
 // Merge
 //------------------------------------------------------------------------------
   MergeReg: TBlendReg;
   MergeMem: TBlendMem;
+  MergeMems: TBlendMems;
 
   MergeRegEx: TBlendRegEx;
   MergeMemEx: TBlendMemEx;
 
   MergeLine: TBlendLine;
   MergeLineEx: TBlendLineEx;
-  MergeLine1: TBlendLine1;
 
 //------------------------------------------------------------------------------
 // Combine
@@ -199,7 +271,8 @@ const
   FID_MERGEREG          = 1;
   FID_MERGEMEM          = 2;
   FID_MERGELINE         = 3;
-  FID_MERGELINE1        = 4;
+  FID_MERGEMEMS         = 4;
+  FID_MERGELINE1        = FID_MERGEMEMS deprecated;
   FID_MERGEREGEX        = 5;
   FID_MERGEMEMEX        = 6;
   FID_MERGELINEEX       = 7;
@@ -214,7 +287,7 @@ const
   FID_BLENDREGEX        = 15;
   FID_BLENDMEMEX        = 16;
   FID_BLENDLINEEX       = 17;
-  FID_BLENDLINE1        = 18;
+  FID_BLENDLINE1        = 18 deprecated;
 
   FID_COLORMAX          = 19;
   FID_COLORMIN          = 20;
@@ -297,6 +370,15 @@ var
   // The entry contains the value 0080 0080.
   //
   bias_ptr: PMultEntry;
+
+
+//------------------------------------------------------------------------------
+//
+//      Backward compatibility
+//
+//------------------------------------------------------------------------------
+procedure MergeLine1(F: TColor32; B: PColor32; Count: Integer); {$IFDEF USEINLINING} inline; {$ENDIF} deprecated 'Use MergeMems';
+procedure BlendLine1(F: TColor32; B: PColor32; Count: Integer); {$IFDEF USEINLINING} inline; {$ENDIF} deprecated 'Use BlendMems';
 
 
 //------------------------------------------------------------------------------
@@ -402,6 +484,23 @@ begin
     end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Backward compatibility
+//
+//------------------------------------------------------------------------------
+procedure MergeLine1(F: TColor32; B: PColor32; Count: Integer);
+begin
+  MergeMems(F, B, Count);
+end;
+
+procedure BlendLine1(F: TColor32; B: PColor32; Count: Integer);
+begin
+  BlendMems(F, B, Count);
+end;
+
+
 //------------------------------------------------------------------------------
 //
 //      Function bindings
@@ -419,7 +518,6 @@ begin
   BlendRegistry.RegisterBinding(FID_BLENDREGEX,         @@BlendRegEx);
   BlendRegistry.RegisterBinding(FID_BLENDMEMEX,         @@BlendMemEx);
   BlendRegistry.RegisterBinding(FID_BLENDLINEEX,        @@BlendLineEx);
-  BlendRegistry.RegisterBinding(FID_BLENDLINE1,         @@BlendLine1);
   BlendRegistry.RegisterBinding(FID_BLENDREGRGB,        @@BlendRegRGB);
   BlendRegistry.RegisterBinding(FID_BLENDMEMRGB,        @@BlendMemRGB);
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
@@ -428,6 +526,7 @@ begin
 
   BlendRegistry.RegisterBinding(FID_MERGEREG,           @@MergeReg);
   BlendRegistry.RegisterBinding(FID_MERGEMEM,           @@MergeMem);
+  BlendRegistry.RegisterBinding(FID_MERGEMEMS,          @@MergeMems);
   BlendRegistry.RegisterBinding(FID_MERGELINE,          @@MergeLine);
   BlendRegistry.RegisterBinding(FID_MERGEREGEX,         @@MergeRegEx);
   BlendRegistry.RegisterBinding(FID_MERGEMEMEX,         @@MergeMemEx);

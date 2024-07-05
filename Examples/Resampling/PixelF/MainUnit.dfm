@@ -3,58 +3,51 @@ object MainForm: TMainForm
   Top = 282
   BorderStyle = bsToolWindow
   Caption = 'PixelF Example'
-  ClientHeight = 258
-  ClientWidth = 459
+  ClientHeight = 265
+  ClientWidth = 451
   Color = clBtnFace
-  Constraints.MaxHeight = 287
-  Constraints.MaxWidth = 467
-  Constraints.MinHeight = 280
-  Constraints.MinWidth = 465
-  Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
-  Font.Style = []
-  OldCreateOrder = False
+  ParentFont = True
   Position = poScreenCenter
   OnCreate = FormCreate
-  DesignSize = (
-    459
-    258)
-  PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 15
   object Image32: TImage32
-    Left = 8
-    Top = 8
-    Width = 300
-    Height = 244
-    Anchors = [akLeft, akTop, akRight, akBottom]
-    AutoSize = True
+    Left = 0
+    Top = 0
+    Width = 308
+    Height = 265
+    Align = alClient
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCenter
     Scale = 1.000000000000000000
-    ScaleMode = smNormal
+    ScaleMode = smOptimalScaled
     TabOrder = 0
     OnPaintStage = Image32PaintStage
+    ExplicitLeft = 2
+    ExplicitWidth = 300
+    ExplicitHeight = 363
   end
   object PnlSettings: TPanel
-    Left = 316
+    Left = 308
     Top = 0
     Width = 143
-    Height = 258
+    Height = 265
     Align = alRight
+    BevelEdges = [beLeft]
+    BevelKind = bkFlat
+    BevelOuter = bvNone
     TabOrder = 1
+    ExplicitHeight = 363
     object LblTwirlPower: TLabel
       Left = 8
       Top = 32
-      Width = 58
-      Height = 13
+      Width = 63
+      Height = 15
       Caption = 'Twirl Power:'
     end
     object PnlTwirlDistortion: TPanel
-      Left = 1
-      Top = 1
+      Left = 0
+      Top = 0
       Width = 141
       Height = 16
       Align = alTop
@@ -68,6 +61,8 @@ object MainForm: TMainForm
       Font.Style = []
       ParentFont = False
       TabOrder = 0
+      ExplicitLeft = 1
+      ExplicitTop = 1
     end
     object GbrTwist: TGaugeBar
       Left = 8
