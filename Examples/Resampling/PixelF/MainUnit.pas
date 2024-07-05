@@ -140,7 +140,7 @@ begin
   if RbxGetPixelFS.Checked then
    for Y := 0 to DstB do
     for X := 0 to DstR do begin
-      Radius := Hypot(X - Center.X, Y - Center.Y);
+      Radius := GR32_Math.Hypot(X - Center.X, Y - Center.Y);
       Angle := ArcTan2(Y - Center.Y, X - Center.X);
       TwirlAngle := Angle + Radius * ScaledValue;
       GR32_Math.SinCos(TwirlAngle, SinVal, CosVal);
@@ -150,7 +150,7 @@ begin
   else if RbxPixelS.Checked then
    for Y := 0 to DstB do
     for X := 0 to DstR do begin
-      Radius := Hypot(X - Center.X, Y - Center.Y);
+      Radius := GR32_Math.Hypot(X - Center.X, Y - Center.Y);
       Angle := ArcTan2(Y - Center.Y, X - Center.X);
       TwirlAngle := Angle + Radius * ScaledValue;
       GR32_Math.SinCos(TwirlAngle, SinVal, CosVal);
