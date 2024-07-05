@@ -274,7 +274,6 @@ end;
 procedure TFormGradientLines.AppEventsIdle(Sender: TObject; var Done: Boolean);
 var
   I, J: Integer;
-  P: PColor32;
 begin
   // We need to be continously called. Even when there are no
   // messages in the message queue. Otherwise the framerate calculation will
@@ -298,12 +297,7 @@ begin
     begin
       if Pass = 0 then
       begin
-        P := @PaintBox.Buffer.Bits[0];
-        for I := 0 to PaintBox.Buffer.Width * PaintBox.Buffer.Height -1 do
-        begin
-          BlendMem($10000000, P^);
-          Inc(P);
-        end;
+        BlendMems($10000000, @PaintBox.Buffer.Bits[0], PaintBox.Buffer.Width * PaintBox.Buffer.Height);
         EMMS;
       end;
       Dec(Pass);
