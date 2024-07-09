@@ -34,6 +34,11 @@ interface
 
 {$I GR32.inc}
 
+// Define GR32_SCALEMEMS_FAST to use the faster, but not very precise version of ScaleMems.
+// The fast version uses a "shr 8" as a substitute for "div 255" which is also what
+// ColorScale_Pas does.
+{$define GR32_SCALEMEMS_FAST}
+
 uses
   GR32;
 
@@ -96,6 +101,8 @@ function ColorScale_SSE2(C: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assem
 // Misc
 //------------------------------------------------------------------------------
 function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -823,12 +830,20 @@ end;
 //------------------------------------------------------------------------------
 procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
 asm
+  //
+  // Result Z = Fa * (Fargb - Bargb) + Bargb
+  //          = Fa * Fargb - Fa * Bargb + Bargb
+  //
+  // For Fa * Fargb, ((a*x) div 255) is approximated as ((((a * $101) shr 16) * x + 128) div 256)
+  // For Fa * Bargb, (x div 255) is approximated as ((x + 128) div 256)
+  //
 {$IFDEF TARGET_X86}
   // EAX <- Src: TColor32
   // EDX <- Dst: PColor32
   // ECX <- Count
 
   // Test the counter for zero or negativity
+        // JCXZ      @Done
         TEST      ECX, ECX
         JLE       @Done
 
@@ -856,12 +871,12 @@ asm
         PSHUFLW   XMM1, XMM0, $FF               // XMM1 <- 00 Fa 00 Fa 00 Fa 00 Fa
         PSHUFHW   XMM1, XMM1, $FF
 
-  // Premultiply source pixel by its alpha
+  // Premultiply source pixel by its alpha: Fa * Fargb
         MOVDQA    XMM3, XMM1                    // XMM3 <- 2*QWord(XMM1)
         PSRLQ     XMM3, 16                      // XMM3 <- 00 00 00 Fa 00 Fa 00 Fa
         PMULLW    XMM0, XMM3                    // XMM0 <- Frgb * Fa
         PADDW     XMM0, XMM5                    // XMM0 <- Frgb * Fa + Bias
-        PSRLW     XMM0, 8                       // XMM0 <- (Frgb * Fa + Bias) shr 8
+        PSRLW     XMM0, 8                       // XMM0 <- (Frgb * Fa + Bias) div 256
         PSLLQ     XMM3, 48                      // XMM3 <- 00 Fa 00 00 00 00 00 00
         POR       XMM0, XMM3                    // XMM0 <- 00 Fa 00 FR 00 FG 00 FB
 
@@ -879,12 +894,12 @@ asm
         MOVD      XMM2, DWORD PTR [EDX]         // XMM2 <- 00 00 00 00 Ba Br Bg Bb
         PUNPCKLBW XMM2, XMM4                    // XMM2 <- 00 Ba 00 Br 00 Bg 00 Bb
 
-  // C' = A'  B' - aB'
-        PMULLW    XMM1, XMM2
-        PADDW     XMM1, XMM5
-        PSRLW     XMM1, 8
-        PADDW     XMM2, XMM0
-        PSUBW     XMM2, XMM1
+  // Blend: C' = A'  B' - aB'
+        PMULLW    XMM1, XMM2                    // Z1 = Fa * Brgba
+        PADDW     XMM1, XMM5                    // Z1 = Fa * Brgba + Bias
+        PSRLW     XMM1, 8                       // Z1 = (Fa * Bargb + Bias) div 256
+        PADDW     XMM2, XMM0                    // Z2 = Brgba + FaRGB
+        PSUBW     XMM2, XMM1                    // Z2 = Z2 - Z1
 
         PACKUSWB  XMM2, XMM4
         MOVD      [EDX], XMM2
@@ -892,7 +907,7 @@ asm
 @Even:
         LEA       EDX, [EDX + ECX * 4]          // Get address of last pixel
 
-        SHR       ECX,1                         // Number of QWORDS
+        SHR       ECX,1                         // Number of QWORDs
         JZ        @Done
         NEG       ECX                           // Negate count so we can use it as an offset to move forward
 
@@ -2221,35 +2236,400 @@ end;
 function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
-        MOVD    XMM0,EAX
-        TEST    EDX,EDX
+  // EAX <- C: TColor32
+  // EDX <- Amount: integer
+  // EAX -> Result
+        MOVD    XMM0, EAX
+        TEST    EDX, EDX
         JL      @1
-        IMUL    EDX,$010101
-        MOVD    XMM1,EDX
-        PADDUSB XMM0,XMM1
-        MOVD    EAX,XMM0
+
+  // Positive: Lighten
+        IMUL    EDX, $010101
+        MOVD    XMM1, EDX
+        PADDUSB XMM0, XMM1
+        MOVD    EAX, XMM0
         RET
+
+  // Negative: Darken
 @1:     NEG     EDX
-        IMUL    EDX,$010101
-        MOVD    XMM1,EDX
-        PSUBUSB XMM0,XMM1
-        MOVD    EAX,XMM0
+        IMUL    EDX, $010101
+        MOVD    XMM1, EDX
+        PSUBUSB XMM0, XMM1
+        MOVD    EAX, XMM0
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
-        MOVD    XMM0,ECX
-        TEST    EDX,EDX
+  // ECX <- C: TColor32
+  // EDX <- Amount: integer
+  // EAX -> Result
+        MOVD    XMM0, ECX
+        TEST    EDX, EDX
         JL      @1
-        IMUL    EDX,$010101
-        MOVD    XMM1,EDX
-        PADDUSB XMM0,XMM1
-        MOVD    EAX,XMM0
+
+  // Positive: Lighten
+        IMUL    EDX, $010101
+        MOVD    XMM1, EDX
+        PADDUSB XMM0, XMM1
+        MOVD    EAX, XMM0
         RET
+
+  // Negative: Darken
 @1:     NEG     EDX
-        IMUL    EDX,$010101
-        MOVD    XMM1,EDX
-        PSUBUSB XMM0,XMM1
-        MOVD    EAX,XMM0
+        IMUL    EDX, $010101
+        MOVD    XMM1, EDX
+        PSUBUSB XMM0, XMM1
+        MOVD    EAX, XMM0
+{$ENDIF}
+end;
+
+
+//------------------------------------------------------------------------------
+// ScaleMems
+//------------------------------------------------------------------------------
+procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+asm
+  //
+  // Result Z = W * Bargb
+  //
+  // Approximates (x div 255) as ((x * $8081 + Bias) shr 23)
+  //
+{$IFDEF TARGET_X86}
+  // EAX <- Dst: PColor32
+  // EDX <- Count
+  // ECX <- Weight: Byte
+
+        // Test the counter for zero or negativity
+        TEST      EDX, EDX
+        JLE       @Done
+
+        // Test if:
+        // - Weight is 0 (i.e. clear RGB to zero)
+        // - Weight is 255 (i.e. no scale)
+        AND       ECX, $000000FF
+        JZ        @Clear
+        TEST      ECX, $000000FF
+        JE        @Done
+
+        // Weight = Weight * $8081
+        IMUL      ECX, ECX, $8081
+        MOVD      XMM0, ECX
+        // 1*Byte -> 4*DWord
+        PSHUFD    XMM0, XMM0, 0                 // XMM0[0..3] <- XMM0[0][0]
+
+        PXOR      XMM4, XMM4
+
+@Loop:
+        // Load dest
+        MOVD      XMM1, DWORD PTR [EAX]         // XMM1 <- 00 00 00 00 Ba Br Bg Bb
+        // 4*Byte -> 4*DWord
+        PMOVZXBD  XMM1, XMM1                    // XMM1[0..3] <- Color[0][0..3]
+
+        //
+        // Scale: Result = (Weight * Color)
+        //               = (($8081 * Weight * Color) shr 23)
+        //
+        PMULLD    XMM1, XMM0                    // XMM1 <- Color * Weight * $8081
+
+        // Add bias (~$7F*$8081)
+        PADDD     XMM1, DQWORD PTR [SIMD_4x003FFF7F] // XMM1 <- (Color * Weight * $8081) + Bias
+
+        // Reduce 32-bits to 9-bits
+        PSRLD     XMM1, 23                      // XMM1 <- ((Color * Weight * $8081) + Bias) shr 23
+
+        // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
+        PSHUFB    XMM1, DQWORD PTR [SIMD_4x0C080400] // XMM1[0] <- XMM1[0..3][0]
+
+        // Store dest
+        MOVD      [EAX], XMM1
+
+        ADD       EAX,4
+        DEC       EDX
+        JNZ       @Loop
+
+@Done:
+        RET
+
+@Clear:
+  // Clear RGB, leave A as-is
+        MOV       ECX, DWORD PTR [EAX]
+        AND       ECX, $FF000000
+        MOV       DWORD PTR [EAX], ECX
+        ADD       EAX, 4
+        DEC       EDX
+        JNZ       @Clear
+{$ENDIF}
+
+{$IFDEF TARGET_X64}
+  // RCX <- Dst: PColor32
+  // RDX <- Count
+  // R8D <- Weight: Byte
+
+        // Test the counter for zero or negativity
+        TEST      EDX, EDX
+        JLE       @Done
+
+        // Test if:
+        // - Weight is 0 (i.e. clear RGB to zero)
+        // - Weight is 255 (i.e. no scale)
+        AND       R8D, $000000FF
+        JZ        @Clear
+        TEST      R8D, $000000FF
+        JE        @Done
+
+        // Weight = Weight * $8081
+        IMUL      R8D, R8D, $8081
+        MOVD      XMM0, R8D                     // XMM0 <- Weight * $8081
+        // 1*Byte -> 4*DWord
+        PSHUFD    XMM0, XMM0, 0                 // XMM0[0..3] <- XMM0[0][0]
+
+        PXOR      XMM4, XMM4
+
+@Loop:
+        // Load dest
+        MOVD      XMM1, DWORD PTR [RCX]         // XMM1 <- 00 00 00 00 Ba Br Bg Bb
+        // 4*Byte -> 4*DWord
+        PMOVZXBD  XMM1, XMM1                    // XMM1[0..3] <- Color[0][0..3]
+
+        //
+        // Scale: Result = (Weight * Color)
+        //               = (($8081 * Weight * Color) shr 23)
+        //
+        PMULLD    XMM1, XMM0                    // XMM1 <- Color * Weight * $8081
+
+        // Add bias (~$7F*$8081)
+{$if (not defined(FPC))}
+        PADDD     XMM1, DQWORD PTR [SIMD_4x003FFF7F] // XMM1 <- (Color * Weight * $8081) + Bias
+{$else}
+        PADDD     XMM1, DQWORD PTR [rip+SIMD_4x003FFF7F]
+{$ifend}
+
+        // Reduce 32-bits to 9-bits
+        PSRLD     XMM1, 23                      // XMM1 <- ((Color * Weight * $8081) + Bias) shr 23
+
+        // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
+{$if (not defined(FPC))}
+        PSHUFB    XMM1, DQWORD PTR [SIMD_4x0C080400] // XMM1[0] <- XMM1[0..3][0]
+{$else}
+        PSHUFB    XMM1, DQWORD PTR [rip+SIMD_4x0C080400]
+{$ifend}
+
+        // Store dest
+        MOVD      [RCX], XMM1
+
+        ADD       RCX,4
+        DEC       EDX
+        JNZ       @Loop
+
+@Done:
+        RET
+
+@Clear:
+  // Clear RGB, leave A as-is
+        MOV       EAX, DWORD PTR [RCX]
+        AND       EAX, $FF000000
+        MOV       DWORD PTR [RCX], EAX
+        ADD       RCX, 4
+        DEC       EDX
+        JNZ       @Clear
+{$ENDIF}
+end;
+
+procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+asm
+  //
+  // Result Z = W * Bargb
+  //
+  // Approximates (x div 255) as (x shr 8); Same as ColorScale_Pas
+  //
+{$IFDEF TARGET_X86}
+  // EAX <- Dst: PColor32
+  // EDX <- Count
+  // ECX <- Weight: Byte
+
+        // Test the counter for zero or negativity
+        TEST      EDX, EDX
+        JLE       @Done
+
+        // Test if:
+        // - Weight is 0 (i.e. clear RGB to zero)
+        // - Weight is 255 (i.e. no scale)
+        AND       ECX, $000000FF
+        JZ        @Clear
+        TEST      ECX, $000000FF
+        JE        @Done
+
+        PXOR      XMM4, XMM4
+        // Duplicate Weight into 8 words so we can process two pixels at a time
+        MOVD      XMM0, ECX                     // XMM0 <- (00 00 00 00 00 00 00 WW)
+        PSHUFLW   XMM0, XMM0, 0                 //         (00 WW 00 WW 00 WW 00 WW)
+        PSHUFD    XMM0, XMM0, 0                 //         (00 WW 00 WW 00 WW 00 WW)*2
+
+  // Test for odd/even count
+        TEST      EDX, 1
+        JZ        @Even
+
+  // We have an odd number of pixels.
+  // Process a single pixel so the remaining count is even.
+
+  // Load dest
+        MOVD      XMM1, DWORD PTR [EAX]         // XMM1 <- 00 00 00 00 Ba Br Bg Bb
+        PUNPCKLBW XMM1, XMM4                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
+
+        //
+        // Scale: Result = (Weight * Color)
+        //               = ((Weight * Color) shr 8)
+        //
+        PMULLW    XMM1, XMM0
+        PSRLW     XMM1, 8
+
+  // Store dest
+        // Pack result back from word to byte components
+        PACKUSWB  XMM1, XMM1
+        MOVD      [EAX], XMM1
+
+@Even:
+        LEA       EAX, [EAX + EDX * 4]          // Get address of last pixel
+        SHR       EDX, 1                        // Number of QWORDs
+        JZ        @Done
+        NEG       EDX                           // Negate count so we can use it as an offset to move forward
+
+@Loop:
+  // Load dest
+        MOVQ      XMM1, [EAX + EDX * 8].QWORD   // XMM2 <- Ba Br Bg Bb Ba Br Bg Bb
+{-$define FASTSCALEMEMS_SKIPWRITE}
+{$ifdef FASTSCALEMEMS_SKIPWRITE}
+        // Skip scale (and thus the relatively costly write) if the color is pure black
+        PTEST     XMM1, XMM1
+        JZ        @SkipWrite
+{$endif FASTSCALEMEMS_SKIPWRITE}
+        // 8*Byte -> 8*Word
+        PUNPCKLBW XMM1, XMM4                    // XMM2 <- 00 Ba 00 Br 00 Bg 00 Bb
+
+        //
+        // Scale: Result = (Weight * Color)
+        //               = ((Weight * Color) shr 8)
+        //
+        PMULLW    XMM1, XMM0
+        PSRLW     XMM1, 8
+
+  // Store dest
+        PACKUSWB  XMM1, XMM4
+        MOVQ      [EAX + EDX * 8].QWORD, XMM1
+
+{$ifdef FASTSCALEMEMS_SKIPWRITE}
+@SkipWrite:
+{$endif FASTSCALEMEMS_SKIPWRITE}
+        ADD       EDX, 1
+        JS        @Loop
+
+@Done:
+        RET
+
+@Clear:
+  // Clear RGB, leave A as-is
+        MOV       ECX, DWORD PTR [EAX]
+        AND       ECX, $FF000000
+        MOV       DWORD PTR [EAX], ECX
+        ADD       EAX, 4
+        DEC       EDX
+        JNZ       @Clear
+{$ENDIF}
+
+{$IFDEF TARGET_X64}
+  // RCX <- Dst: PColor32
+  // RDX <- Count
+  // R8D <- Weight: Byte
+
+
+        // Test the counter for zero or negativity
+        TEST      RDX, RDX
+        JLE       @Done
+
+        // Test if:
+        // - Weight is 0 (i.e. clear RGB to zero)
+        // - Weight is 255 (i.e. no scale)
+        AND       R8D, $000000FF
+        JZ        @Clear
+        TEST      R8D, $000000FF
+        JE        @Done
+
+        PXOR      XMM4, XMM4
+        // Duplicate Weight into 8 words so we can process two pixels at a time
+        MOVD      XMM0, R8D                     // XMM0 <- (00 00 00 00 00 00 00 WW)
+        PSHUFLW   XMM0, XMM0, 0                 //         (00 WW 00 WW 00 WW 00 WW)
+        PSHUFD    XMM0, XMM0, 0                 //         (00 WW 00 WW 00 WW 00 WW)*2
+
+  // Test for odd/even count
+        TEST      EDX, 1
+        JZ        @Even
+
+  // We have an odd number of pixels.
+  // Process a single pixel so the remaining count is even.
+
+  // Load dest
+        MOVD      XMM1, DWORD PTR [RCX]         // XMM1 <- 00 00 00 00 Ba Br Bg Bb
+        PUNPCKLBW XMM1, XMM4                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
+
+        //
+        // Scale: Result = (Weight * Color)
+        //               = ((Weight * Color) shr 8)
+        //
+        PMULLW    XMM1, XMM0
+        PSRLW     XMM1, 8
+
+  // Store dest
+        // Pack result back from word to byte components
+        PACKUSWB  XMM1, XMM1
+        MOVD      [RCX], XMM1
+
+@Even:
+        LEA       RCX, [RCX + RDX * 4]          // Get address of last pixel
+        SHR       RDX, 1                        // Number of QWORDs
+        JZ        @Done
+        NEG       RDX                           // Negate count so we can use it as an offset to move forward
+
+@Loop:
+  // Load dest
+        MOVQ      XMM1, [RCX + RDX * 8].QWORD   // XMM1 <- Ba Br Bg Bb Ba Br Bg Bb
+// FASTSCALEMEMS_SKIPWRITE has been disabled as it doesn't give us enough and in some
+// cases makes the loop slower. Probably due to branch misprediction.
+{-$define FASTSCALEMEMS_SKIPWRITE}
+{$ifdef FASTSCALEMEMS_SKIPWRITE}
+        // Skip scale (and thus the relatively costly write) if the color is pure black
+        PTEST     XMM1, XMM1
+        JZ        @SkipWrite
+{$endif FASTSCALEMEMS_SKIPWRITE}
+        // 8*Byte -> 8*Word
+        PUNPCKLBW XMM1, XMM4                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
+
+        //
+        // Scale: Result = (Weight * Color)
+        //               = ((Weight * Color) shr 8)
+        //
+        PMULLW    XMM1, XMM0
+        PSRLW     XMM1, 8
+
+  // Store dest
+        PACKUSWB  XMM1, XMM4
+        MOVQ      [RCX + RDX * 8].QWORD, XMM1
+
+{$ifdef FASTSCALEMEMS_SKIPWRITE}
+@SkipWrite:
+{$endif FASTSCALEMEMS_SKIPWRITE}
+        ADD       RDX, 1
+        JS        @Loop
+
+@Done:
+        RET
+
+@Clear:
+  // Clear RGB, leave A as-is
+        MOV       ECX, DWORD PTR [RCX]
+        AND       ECX, $FF000000
+        MOV       DWORD PTR [RCX], ECX
+        ADD       RCX, 4
+        DEC       RDX
+        JNZ       @Clear
 {$ENDIF}
 end;
 
@@ -2292,6 +2672,11 @@ begin
   BlendRegistry.Add(FID_LIGHTEN,        @LightenReg_SSE2,       [isSSE]);
   BlendRegistry.Add(FID_BLENDREGRGB,    @BlendRegRGB_SSE2,      [isSSE2]);
   BlendRegistry.Add(FID_BLENDMEMRGB,    @BlendMemRGB_SSE2,      [isSSE2]);
+{$ifdef GR32_SCALEMEMS_FAST}
+  BlendRegistry.Add(@@ScaleMems,        @FastScaleMems_SSE41,[isSSE41]);
+{$else}
+  BlendRegistry.Add(@@ScaleMems,        @ScaleMems_SSE41,    [isSSE41]);
+{$endif}
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
   BlendRegistry.Add(FID_BLENDMEMRGB128, @BlendMemRGB128_SSE4,   [isSSE2]);
 {$ENDIF}
