@@ -35,6 +35,8 @@ interface
 
 {$I GR32.inc}
 
+{-$define FADE_BLEND}
+
 uses
   Messages,
   SysUtils, Classes,
@@ -107,6 +109,9 @@ type
     FFrameCount: integer;
     FLastTick: UInt64;
 
+    FBenchmark: boolean;
+    FIteration: integer;
+
     FFormHelp: TForm;
 
     procedure SetParticleCount(Value: integer);
@@ -147,6 +152,8 @@ begin
   FOptionFade := True;
   FLastTick := GetTickCount;
 
+  FBenchmark := FindCmdLineSwitch('benchmark');
+
   Application.OnIdle := AppEventsIdle;
 
   FFormHelp := TFormHelp.Create(Self);
@@ -167,6 +174,9 @@ end;
 procedure TFormMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   case Key of
+    VK_ESCAPE:
+      Close;
+
     VK_F1:
       FFormHelp.Visible := not FFormHelp.Visible;
 
@@ -212,7 +222,9 @@ procedure TFormMain.PaintBoxResize(Sender: TObject);
 begin
   // Clear to some color other than black so we avoid the ghosts caused
   // by fade using blend never reaching complete black.
+{$ifdef FADE_BLEND}
   PaintBox.Buffer.Clear(HSLtoRGB(0.0, 0.75, 0.5, 255));
+{$endif}
 end;
 
 procedure TFormMain.Render;
@@ -223,6 +235,7 @@ var
   Pixel: PColor32;
 begin
   Inc(FFrameCount);
+  Inc(FIteration);
 
   PaintBox.Buffer.BeginUpdate;
   try
@@ -233,7 +246,7 @@ begin
       // Display 3D Simplex Noise as color Hue where time is the third dimension
       z := GetTickCount * 0.0001;
       Pixel := PColor32(PaintBox.Buffer.Bits); // We could have used PaintBox.Buffer.Pixel[x, y] here
-                                                   // but the loop is slow enough without it...
+                                               // but the loop is slow enough without it...
       for y := 0 to PaintBox.Buffer.Height-1 do
         for x := 0 to PaintBox.Buffer.Width-1 do
         begin
@@ -246,13 +259,19 @@ begin
     end else
     begin
 
-      // Fade
+      // Fade to black
+      // Ideally we would fade by adjusting the L channel of a HSL color but that is far too expensive
       if (FOptionFade) then
+{$ifdef FADE_BLEND}
         // We fade out the existing image by blending black onto it. The alpha controls how fast we fade.
         BlendMems($09000000, PColor32(PaintBox.Buffer.Bits), PaintBox.Buffer.Width*PaintBox.Buffer.Height);
+{$else}
+        // Fade out by scaling the RGB: Faded = Colors * Weight / 255
+        ScaleMems(PColor32(PaintBox.Buffer.Bits), PaintBox.Buffer.Width*PaintBox.Buffer.Height, $f0);
+{$endif}
 
       // Color cycle
-      PaintBox.Buffer.PenColor := HSLtoRGB(FHue, 0.75, 0.5, 128);
+      PaintBox.Buffer.PenColor := HSLtoRGB(FHue, 0.75, 0.5, 192);
       if (FOptionAnimateColors) then
       begin
         FHue := FHue + 0.002; // Constant controls speed of color change
@@ -274,6 +293,9 @@ begin
   finally
     PaintBox.Buffer.EndUpdate;
   end;
+
+  if (FBenchmark) and (FIteration > 10000) then
+    Application.Terminate;
 end;
 
 procedure TFormMain.SetParticleCount(Value: integer);

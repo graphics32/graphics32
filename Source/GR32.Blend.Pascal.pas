@@ -115,6 +115,7 @@ function BlendColorModulate_Pas(C1, C2: TColor32): TColor32;
 // Misc
 //------------------------------------------------------------------------------
 function LightenReg_Pas(C: TColor32; Amount: Integer): TColor32;
+procedure ScaleMems_Pas(Dst: PColor32; Count: Integer; Weight: Cardinal);
 
 
 //------------------------------------------------------------------------------
@@ -1079,6 +1080,19 @@ end;
 
 
 //------------------------------------------------------------------------------
+// ScaleMems
+//------------------------------------------------------------------------------
+procedure ScaleMems_Pas(Dst: PColor32; Count: Integer; Weight: Cardinal);
+begin
+  while (Count > 0) do
+  begin
+    Dst^ := ColorScale(Dst^, Weight);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
+//------------------------------------------------------------------------------
 //
 //      Bindings
 //
@@ -1127,6 +1141,7 @@ begin
 
   BlendRegistry.Add(FID_EMMS,           @EMMS_Pas,              [isPascal]);
   BlendRegistry.Add(FID_LIGHTEN,        @LightenReg_Pas,        [isPascal]);
+  BlendRegistry.Add(@@ScaleMems,        @ScaleMems_Pas,         [isPascal]);
 end;
 
 //------------------------------------------------------------------------------

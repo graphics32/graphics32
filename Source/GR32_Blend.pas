@@ -146,6 +146,7 @@ type
 // Misc
 //------------------------------------------------------------------------------
   TLightenReg  = function(C: TColor32; Amount: Integer): TColor32;
+  TScaleMems = procedure(Dst: PColor32; Count: Integer; Weight: Cardinal);
 
 
 //------------------------------------------------------------------------------
@@ -221,6 +222,7 @@ var
 //------------------------------------------------------------------------------
   LightenReg: TLightenReg;
   Lighten: TLightenReg absolute LightenReg; // Lighten is an alias for LigthenReg
+  ScaleMems: TScaleMems;
 
 //------------------------------------------------------------------------------
 // EMMS
@@ -554,6 +556,7 @@ begin
   BlendRegistry.RegisterBinding(FID_BLENDCOLORMODULATE, @@BlendColorModulate);
 
   BlendRegistry.RegisterBinding(FID_LIGHTEN,            @@LightenReg);
+  BlendRegistry.RegisterBinding(@@ScaleMems);
 end;
 
 var

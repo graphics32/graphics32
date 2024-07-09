@@ -36,6 +36,8 @@ interface
 
 {$I GR32.inc}
 
+{-$define FADE_BLEND}
+
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes, 
   Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Types,
@@ -297,7 +299,13 @@ begin
     begin
       if Pass = 0 then
       begin
+{$ifdef FADE_BLEND}
+        // We fade out the existing image by blending black onto it. The alpha controls how fast we fade.
         BlendMems($10000000, @PaintBox.Buffer.Bits[0], PaintBox.Buffer.Width * PaintBox.Buffer.Height);
+{$else}
+        // Fade out by scaling the RGB: Faded = Colors * Weight / 255
+        ScaleMems(@PaintBox.Buffer.Bits[0], PaintBox.Buffer.Width * PaintBox.Buffer.Height, $f0);
+{$endif}
         EMMS;
       end;
       Dec(Pass);
