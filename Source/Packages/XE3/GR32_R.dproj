@@ -137,7 +137,7 @@
         <DCCReference Include="..\..\GR32_Clipboard.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.pas"/>
         <DCCReference Include="..\..\GR32.Blend.Pascal.pas"/>
-        <DCCReference Include="..\..\GR32.Blend.ASM.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.Assembler.pas"/>
         <DCCReference Include="..\..\GR32.Blend.MMX.pas"/>
         <DCCReference Include="..\..\GR32.Blend.SSE2.pas"/>
         <DCCReference Include="..\..\GR32_Gamma.pas"/>

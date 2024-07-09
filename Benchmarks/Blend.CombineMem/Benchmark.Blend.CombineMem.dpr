@@ -9,7 +9,7 @@ uses
   GR32,
   GR32_Blend,
   GR32.Blend.Pascal,
-  GR32.Blend.&ASM,
+  GR32.Blend.Assembler,
   GR32.Blend.MMX,
   GR32.Blend.SSE2;
 

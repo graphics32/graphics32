@@ -394,7 +394,7 @@ uses
   GR32_System,
 {$ENDIF}
 {$IFNDEF PUREPASCAL}
-  GR32.Blend.&ASM,
+  GR32.Blend.Assembler,
 {$IFNDEF OMIT_MMX}
   GR32.Blend.MMX,
 {$ENDIF}
