@@ -66,8 +66,23 @@ uses
 //   https://gist.github.com/smussah/118ff6b385feac2bde349dd21053e75d
 //
 //------------------------------------------------------------------------------
+const
+  ParamParticlesCount = 5000;           // Initial number of particles
+
+  ParamFade: Byte = 240;                // Fade-to-black factor: [0..255], 255 = no fade.
+  ParamColorAlpha: Byte = 192;          // Alpha of paint color
+  ParamColorHueShift = 0.002;           // Hue shift per frame
+  ParamColorSaturation = 0.75;
+  ParamColorLightness = 0.5;
+
+  ParamParticleSpaceFactor = 0.005;     // How much does the current position affect the simplex noise
+  ParamParticleTimeFactor = 0.0001;     // How much does the current time affect the simplex noise
+  ParamParticleVectorFactor = 0.25;     // Amount of randomness in vector
+  ParamParticleSpeedFactor = 0.95;      // Velocity decay; <=1, 1=none
 
 type
+  TParticleControl = (pcNone, pcAttract, pcRepulse, pcSlowmo);
+
   TParticle = record
   const
     MinLifetime = 1000;
@@ -83,7 +98,7 @@ type
     procedure Initialize(ANoise: TSimplexNoise);
 
     procedure Reset(const ABounds: TRect);
-    procedure Step(const ABounds: TRect);
+    procedure Step(const ABounds: TRect; ParticleControl: TParticleControl; const ControlPoint: TPoint);
     procedure Render(Buffer: TBitmap32);
   end;
 
@@ -215,7 +230,7 @@ begin
   ShowWindow(FFormHelp.Handle, SW_SHOWNA);
   FFormHelp.Visible := True;
 
-  SetParticleCount(5000);
+  SetParticleCount(ParamParticlesCount);
 end;
 
 procedure TFormMain.PaintBoxResize(Sender: TObject);
@@ -233,6 +248,8 @@ var
   x, y: integer;
   z: Single;
   Pixel: PColor32;
+  ParticleControl: TParticleControl;
+  MousePos: TPoint;
 begin
   Inc(FFrameCount);
   Inc(FIteration);
@@ -244,13 +261,17 @@ begin
     begin
 
       // Display 3D Simplex Noise as color Hue where time is the third dimension
-      z := GetTickCount * 0.0001;
+      z := GetTickCount * ParamParticleTimeFactor;
       Pixel := PColor32(PaintBox.Buffer.Bits); // We could have used PaintBox.Buffer.Pixel[x, y] here
                                                // but the loop is slow enough without it...
       for y := 0 to PaintBox.Buffer.Height-1 do
         for x := 0 to PaintBox.Buffer.Width-1 do
         begin
-          Pixel^ := HSLtoRGB((FNoise.Noise(X*0.005, Y*0.005, z) + 0.5) / 2, 0.75, 0.5, 255);
+          Pixel^ := HSLtoRGB(
+            (FNoise.Noise(X*ParamParticleSpaceFactor, Y*ParamParticleSpaceFactor, z) + 0.5) / 2,
+            ParamColorSaturation,
+            ParamColorLightness,
+            255);
           Inc(Pixel);
         end;
 
@@ -267,21 +288,35 @@ begin
         BlendMems($09000000, PColor32(PaintBox.Buffer.Bits), PaintBox.Buffer.Width*PaintBox.Buffer.Height);
 {$else}
         // Fade out by scaling the RGB: Faded = Colors * Weight / 255
-        ScaleMems(PColor32(PaintBox.Buffer.Bits), PaintBox.Buffer.Width*PaintBox.Buffer.Height, $f0);
+        ScaleMems(PColor32(PaintBox.Buffer.Bits), PaintBox.Buffer.Width*PaintBox.Buffer.Height, ParamFade);
 {$endif}
 
       // Color cycle
-      PaintBox.Buffer.PenColor := HSLtoRGB(FHue, 0.75, 0.5, 192);
+      PaintBox.Buffer.PenColor := HSLtoRGB(FHue, ParamColorSaturation, ParamColorLightness, ParamColorAlpha);
       if (FOptionAnimateColors) then
       begin
-        FHue := FHue + 0.002; // Constant controls speed of color change
+        FHue := FHue + ParamColorHueShift;
         FHue := FHue - Floor(FHue);
       end;
+
+
+      // Live user interaction
+      MousePos := PaintBox.ScreenToClient(Mouse.CursorPos);
+      if (GetAsyncKeyState(VK_LBUTTON) and $8000 <> 0) then
+        ParticleControl := pcAttract
+      else
+      if (GetAsyncKeyState(VK_RBUTTON) and $8000 <> 0) then
+        ParticleControl := pcRepulse
+      else
+      if (GetAsyncKeyState(VK_MBUTTON) and $8000 <> 0) then
+        ParticleControl := pcSlowmo
+      else
+        ParticleControl := pcNone;
 
       // Move and render particles
       for i := 0 to High(FParticles) do
       begin
-        FParticles[i].Step(PaintBox.Buffer.BoundsRect);
+        FParticles[i].Step(PaintBox.Buffer.BoundsRect, ParticleControl, MousePos);
         FParticles[i].Render(PaintBox.Buffer);
       end;
 
@@ -361,7 +396,7 @@ begin
   FLifetime := MinLifetime + Random(MaxLifetime-MinLifetime);
 end;
 
-procedure TParticle.Step(const ABounds: TRect);
+procedure TParticle.Step(const ABounds: TRect; ParticleControl: TParticleControl; const ControlPoint: TPoint);
 var
   x, y, z: Single;
   Angle: Single;
@@ -373,58 +408,61 @@ begin
   if (FIteration > FLifetime) then
     Reset(ABounds); // "Respawn"
 
-  x := FPosition.X * 0.005;
-  y := FPosition.Y * 0.005;
-  z := GetTickCount * 0.0001;
+  x := FPosition.X * ParamParticleSpaceFactor;
+  y := FPosition.Y * ParamParticleSpaceFactor;
+  z := GetTickCount * ParamParticleTimeFactor;
 
   Angle := Random * 2 * PI;
-  Factor := Random * 0.25;
+  Factor := Random * ParamParticleVectorFactor;
 
 
   // Calculate the new velocity based on the noise; Random velocity in a random direction
-  FVelocity.X := FVelocity.X + (Factor * Sin(Angle) + FNoise.Noise(x, y, -z));
-  FVelocity.Y := FVelocity.Y + (Factor * Cos(Angle) + FNoise.Noise(x, y,  z));
+  FVelocity.X := FVelocity.X + Factor * Sin(Angle) + FNoise.Noise(x, y, -z);
+  FVelocity.Y := FVelocity.Y + Factor * Cos(Angle) + FNoise.Noise(x, y,  z);
 
 
-  // Live user interaction:
-  if (GetAsyncKeyState(VK_LBUTTON) and $8000 <> 0) then
-  begin
-    // Add a difference between mouse pos and particle pos (a fraction of it) to the velocity.
-    FVelocity.X := FVelocity.X + (Mouse.CursorPos.X - FPosition.X) * 0.00085;
-    FVelocity.Y := FVelocity.Y + (Mouse.CursorPos.Y - FPosition.Y) * 0.00085;
-  end else
-  if (GetAsyncKeyState(VK_RBUTTON) and $8000 <> 0) then
-  begin
-    // Repulse the particles if the right mouse button is down and the distance between
-    // the mouse and particle is below an arbitrary value between 200 and 250.
+  // Alter the vector according to user interaction
+  case ParticleControl of
+    pcAttract:
+      // Add a difference between mouse pos and particle pos (a fraction of it) to the velocity.
+      begin
+        FVelocity.X := FVelocity.X + (ControlPoint.X - FPosition.X) * 0.00085;
+        FVelocity.Y := FVelocity.Y + (ControlPoint.Y - FPosition.Y) * 0.00085;
+      end;
+
+    pcRepulse:
+      // Repulse the particles if the right mouse button is down and the distance between
+      // the mouse and particle is below an arbitrary value between 200 and 250.
+      begin
 {$ifndef FPC}
-    MouseDistance := FPosition.Distance(Mouse.CursorPos);
+        MouseDistance := FPosition.Distance(ControlPoint);
 {$else FPC}
-    MouseDistance := Distance(FPosition, FloatPoint(Mouse.CursorPos));
+        MouseDistance := Distance(FPosition, FloatPoint(Mouse.CursorPos));
 {$endif FPC}
-    if (MouseDistance < 200+Random(50)) then
-    begin
-      FVelocity.X := FVelocity.X + (FPosition.X - Mouse.CursorPos.X) * 0.02;
-      FVelocity.Y := FVelocity.Y + (FPosition.Y - Mouse.CursorPos.Y) * 0.02;
-    end;
-  end else
-  if (GetAsyncKeyState(VK_MBUTTON) and $8000 <> 0) then
-  begin
-    // Time dilation field, stuff moves slower here, depending on distance
-{$ifndef FPC}
-    MouseDistance := FPosition.Distance(Mouse.CursorPos);
-{$else FPC}
-    MouseDistance := Distance(FPosition, FloatPoint(Mouse.CursorPos));
-{$endif FPC}
-    Factor := MouseDistance / (200 + Random * 50);
+        if (MouseDistance < 200+Random(50)) then
+        begin
+          FVelocity.X := FVelocity.X + (FPosition.X - ControlPoint.X) * 0.02;
+          FVelocity.Y := FVelocity.Y + (FPosition.Y - ControlPoint.Y) * 0.02;
+        end;
+      end;
 
-    if (Factor < 1) then
-    begin
-      FVelocity.X := FVelocity.X * Factor;
-      FVelocity.Y := FVelocity.Y * Factor;
-    end;
+    pcSlowmo:
+      // Time dilation field, stuff moves slower here, depending on distance
+      begin
+{$ifndef FPC}
+        MouseDistance := FPosition.Distance(ControlPoint);
+{$else FPC}
+        MouseDistance := Distance(FPosition, FloatPoint(Mouse.CursorPos));
+{$endif FPC}
+        Factor := MouseDistance / (200 + Random * 50);
+
+        if (Factor < 1) then
+        begin
+          FVelocity.X := FVelocity.X * Factor;
+          FVelocity.Y := FVelocity.Y * Factor;
+        end;
+      end;
   end;
-
 
   // Update position
   FTrail := FPosition;
@@ -433,8 +471,8 @@ begin
 
 
   // Slow down the velocity slightly
-  FVelocity.X := FVelocity.X * 0.95;
-  FVelocity.Y := FVelocity.Y * 0.95;
+  FVelocity.X := FVelocity.X * ParamParticleSpeedFactor;
+  FVelocity.Y := FVelocity.Y * ParamParticleSpeedFactor;
 
 
   // Wrap around the edges
