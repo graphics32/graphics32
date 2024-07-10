@@ -75,24 +75,38 @@ type
   TFunctionInfoList = TList<TFunctionInfo>;
   TFunctionBindingList = TList<TFunctionBinding>;
 
+
+//------------------------------------------------------------------------------
+//
+//      TFunctionRegistry
+//
+//------------------------------------------------------------------------------
+// This class fascilitates a registry that allows multiple function to be
+// registered together with information about their CPU requirements and
+// an additional 'flags' parameter. Functions that share the same FunctionID
+// can be assigned to a function variable through the rebind methods.
+// A priority callback function is used to assess the most optimal function.
+//------------------------------------------------------------------------------
 type
-  { TFunctionRegistry }
-  { This class fascilitates a registry that allows multiple function to be
-    registered together with information about their CPU requirements and
-    an additional 'flags' parameter. Functions that share the same FunctionID
-    can be assigned to a function variable through the rebind methods.
-    A priority callback function is used to assess the most optimal function. }
   TFunctionRegistry = class(TPersistent)
+  private class var
+    FBindingRegistries: TObjectList<TFunctionRegistry>;
+
   private
     FItems: TFunctionInfoList;
     FBindings: TFunctionBindingList;
     FName: string;
     FNeedRebind: boolean;
+
     procedure SetName(const Value: string);
+
+    class function NewRegistry(const Name: string): TFunctionRegistry;
+    class destructor Destroy;
   protected
     function FindBinding(BindVariable: PPointer): NativeInt;
     function FindFunctionInfo(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
     function FindFunctionInfo(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
+
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -123,7 +137,18 @@ type
     property Name: string read FName write SetName;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      NewRegistry
+//
+//------------------------------------------------------------------------------
+// Create a new binding registry
+//------------------------------------------------------------------------------
 function NewRegistry(const Name: string = ''): TFunctionRegistry;
+
+
+//------------------------------------------------------------------------------
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 
@@ -132,6 +157,11 @@ var
 
 const
   INVALID_PRIORITY: Integer = MaxInt;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -144,22 +174,12 @@ type
   TFunctionBindingListCracker = class(TFunctionBindingList);
 {$ENDIF}
 
-var
-  BindingRegistries: TObjectList<TFunctionRegistry>;
-
 function NewRegistry(const Name: string): TFunctionRegistry;
 begin
-  if BindingRegistries = nil then
-    BindingRegistries := TObjectList<TFunctionRegistry>.Create;
-
-  Result := TFunctionRegistry.Create;
-  {$IFDEF NEXTGEN}
-  Result.__ObjAddRef;
-  {$ENDIF}
-  Result.Name := Name;
-
-  BindingRegistries.Add(Result);
+  Result := TFunctionRegistry.NewRegistry(Name);
 end;
+
+//------------------------------------------------------------------------------
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 begin
@@ -169,7 +189,44 @@ begin
     Result := INVALID_PRIORITY;
 end;
 
-{ TFunctionRegistry }
+
+//------------------------------------------------------------------------------
+//
+//      TFunctionRegistry
+//
+//------------------------------------------------------------------------------
+constructor TFunctionRegistry.Create;
+begin
+  FItems := TFunctionInfoList.Create;
+  FBindings := TFunctionBindingList.Create;
+end;
+
+destructor TFunctionRegistry.Destroy;
+begin
+  Clear;
+  FItems.Free;
+  FBindings.Free;
+  inherited;
+end;
+
+class destructor TFunctionRegistry.Destroy;
+begin
+  FBindingRegistries.Free;
+  FBindingRegistries := nil;
+end;
+
+class function TFunctionRegistry.NewRegistry(const Name: string): TFunctionRegistry;
+begin
+  if (FBindingRegistries = nil) then
+    FBindingRegistries := TObjectList<TFunctionRegistry>.Create;
+
+  Result := TFunctionRegistry.Create;
+  FBindingRegistries.Add(Result);
+
+  Result.Name := Name;
+end;
+
+//------------------------------------------------------------------------------
 
 procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal);
 var
@@ -196,25 +253,15 @@ begin
   FNeedRebind := True;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TFunctionRegistry.Clear;
 begin
   FItems.Clear;
   FBindings.Clear;
 end;
 
-constructor TFunctionRegistry.Create;
-begin
-  FItems := TFunctionInfoList.Create;
-  FBindings := TFunctionBindingList.Create;
-end;
-
-destructor TFunctionRegistry.Destroy;
-begin
-  Clear;
-  FItems.Free;
-  FBindings.Free;
-  inherited;
-end;
+//------------------------------------------------------------------------------
 
 function TFunctionRegistry.FindBinding(BindVariable: PPointer): NativeInt;
 var
@@ -228,6 +275,8 @@ begin
       break;
     end;
 end;
+
+//------------------------------------------------------------------------------
 
 function TFunctionRegistry.FindFunctionInfo(BindVariable: PPointer; PriorityCallback: TFunctionPriority): PFunctionInfo;
 var
@@ -274,6 +323,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 function TFunctionRegistry.FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority): Pointer;
 var
   Info: PFunctionInfo;
@@ -295,6 +346,8 @@ begin
   else
     Result := nil;
 end;
+
+//------------------------------------------------------------------------------
 
 function TFunctionRegistry.Rebind(BindVariable: PPointer; PriorityCallback: TFunctionPriority): boolean;
 var
@@ -328,6 +381,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TFunctionRegistry.RebindAll(AForce: boolean; PriorityCallback: TFunctionPriority);
 begin
   if AForce then
@@ -356,6 +411,8 @@ begin
   FNeedRebind := False;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TFunctionRegistry.RegisterBinding(BindVariable: PPointer);
 begin
   RegisterBinding(NativeInt(BindVariable), BindVariable);
@@ -374,20 +431,13 @@ begin
   FNeedRebind := True;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TFunctionRegistry.SetName(const Value: string);
 begin
   FName := Value;
 end;
 
-procedure FreeRegistries;
-begin
-  BindingRegistries.Free;
-  BindingRegistries := nil;
-end;
-
-initialization
-
-finalization
-  FreeRegistries;
+//------------------------------------------------------------------------------
 
 end.

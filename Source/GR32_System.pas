@@ -38,9 +38,7 @@ uses
 {$ifndef FPC}
   System.Diagnostics,
 {$endif}
-{$ifndef PUREPASCAL}
   GR32.CPUID,
-{$endif}
   Types; // Not really needed in this unit but we do need something in this uses list
 
 
@@ -155,37 +153,21 @@ procedure RestoreAffinityMask;
 //      Legacy CPU features
 //
 //------------------------------------------------------------------------------
-(*
-** Legacy HasInstructionSet and CPUFeatures functions
-*)
+// Legacy HasInstructionSet and CPUFeatures functions
+//------------------------------------------------------------------------------
 type
-{$IFNDEF PUREPASCAL}
   { TCPUFeature, previously TCPUInstructionSet, defines specific CPU technologies }
   TCPUFeature = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
-{$ELSE}
-  TCPUFeature = (ciDummy);
-  {$DEFINE NO_REQUIREMENTS}
-{$ENDIF}
-
-  PCPUFeatures = ^TCPUFeatures;
   TCPUFeatures = set of TCPUFeature;
+  PCPUFeatures = ^TCPUFeatures;
 
 { General function that returns whether a particular instruction set is
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUFeature): Boolean; deprecated 'Use CPU.InstructionSupport instead';
 function CPUFeatures: TCPUFeatures; deprecated 'Use CPU.InstructionSupport instead';
 
-{$IFNDEF PUREPASCAL}
 const
   InstructionSetMap: array[TCPUFeature] of TCPUInstructionSet = (isMMX, isExMMX, isSSE, isSSE2, is3DNow, isEx3DNow);
-{$ELSE}
-type
-  TCPUInstructionSet = (siDummy);
-const
-  InstructionSetMap: array[TCPUFeature] of TCPUInstructionSet = (siDummy);
-type
-  TInstructionSupport = set of TCPUInstructionSet;
-{$ENDIF}
 
 // Migration support: TCPUFeatures->TInstructionSupport
 function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructionSupport;
@@ -199,11 +181,9 @@ function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructio
 //------------------------------------------------------------------------------
 // For use in CPU dispatch bindings
 //------------------------------------------------------------------------------
-(*
-** GR32.CPUID CPU feature detection
-*)
-// Convenience aliases. For the most common usage, this avoids the need to use GR32.CPUID directly.
-{$IFNDEF PUREPASCAL}
+
+// Convenience aliases.
+// For the most common usage, this avoids the need to use GR32.CPUID directly.
 type
   TCPU = GR32.CPUID.TCPU;
   TInstructionSupport = GR32.CPUID.TInstructionSupport;
@@ -224,12 +204,6 @@ const
   isAVX = GR32.CPUID.TCPUInstructionSet.isAVX;
   isAVX2 = GR32.CPUID.TCPUInstructionSet.isAVX2;
   isAVX512f = GR32.CPUID.TCPUInstructionSet.isAVX512f;
-{$ELSE}
-type
-  TCPU = record
-    InstructionSupport: TInstructionSupport;
-  end;
-{$ENDIF}
 
 var
   CPU: TCPU;
@@ -600,12 +574,8 @@ initialization
   TickCounter := TStopwatch.StartNew;
 {$endif}
 
-{$IFNDEF PUREPASCAL}
   CPU := TCPU.GetCPUInfo;
-{$ELSE}
-  CPU := Default(TCPU);
-  CPU.InstructionSupport := [isPascal];
-{$ENDIF}
+
 {$WARN SYMBOL_DEPRECATED OFF}{$ifdef FPC}{$push}{$endif}
   GlobalPerfTimer := TPerfTimer.Create;
 {$ifndef FPC}{$WARN SYMBOL_DEPRECATED DEFAULT}{$else}{$pop}{$endif}

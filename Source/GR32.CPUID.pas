@@ -54,10 +54,6 @@ interface
 
 {$I GR32.inc}
 
-{$IFDEF PUREPASCAL}
-{$message warn 'GR32.CPUID should not be compiled in PUREPASCAL mode}
-{$ENDIF}
-
 {$if (defined(CompilerVersion)) and (CompilerVersion >= 17.0)} // Delphi 2005
   {$WARN UNSAFE_CAST OFF}
   {$WARN UNSAFE_CODE OFF}
@@ -260,6 +256,8 @@ const
   C3EzraEffModel        = 8;
   // For a list of Intel CPU models by family, microarchitecture and core, see: https://en.wikichip.org/wiki/intel/cpuid
 
+{$IFNDEF PUREPASCAL}
+
 function IsCPUID_Available: Boolean; register;
 asm
 {$IFDEF CPUx86}
@@ -337,6 +335,25 @@ asm
   POP     RBX
 {$endif}
 end;
+
+{$ELSE}
+
+function IsCPUID_Available: Boolean;
+begin
+  Result := False;
+end;
+
+function IsFPU_Available: Boolean;
+begin
+  Result := False;
+end;
+
+procedure GetCPUID(Param: Cardinal; var Registers: TRegisters);
+begin
+  Registers := Default(TRegisters);
+end;
+
+{$ENDIF}
 
 procedure TCPU.GetCPUVendor;
 var
@@ -642,7 +659,7 @@ end;
 
 procedure TCPU.VerifyOSSupportForXMMRegisters;
 begin
-{$ifdef CPUx86}
+{$if defined(CPUx86) and not defined(PUREPASCAL)}
   {try a SSE instruction that operates on XMM registers}
   try
     asm
@@ -658,12 +675,13 @@ begin
     Exclude(InstructionSupport, isSSE42);
     Exclude(InstructionSupport, isSSE4A);
   end;
-{$ELSE}
+{$else}
   {do nothing}
-{$ENDIF}
+{$ifend}
 end;
 
 function TCPU.IsXmmYmmOSEnabled: boolean;
+{$if not defined(PUREPASCAL)}
 asm
 {$IFDEF CPUx86}
   push ebx
@@ -696,6 +714,11 @@ asm
 {$ELSE CPUx64}
   mov   rbx, r10
 {$ENDIF}
+
+{$else}
+begin
+  Result := False;
+{$ifend}
 end;
 
 // http://software.intel.com/en-us/articles/introduction-to-intel-advanced-vector-extensions/
