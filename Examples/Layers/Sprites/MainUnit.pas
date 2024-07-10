@@ -109,7 +109,6 @@ uses
   MacOSAll,
 {$ENDIF}
   GR32_Filters,
-  GR32_System,
   GR32.ImageFormats.PNG32;
 
 { TMainForm }

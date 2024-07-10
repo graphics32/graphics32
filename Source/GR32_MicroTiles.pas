@@ -55,7 +55,11 @@ uses
 {$ENDIF}
   Types,
   SysUtils, Classes,
-  GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
+  GR32,
+  GR32_System,
+  GR32_Containers,
+  GR32_Layers,
+  GR32_RepaintOpt;
 
 const
   MICROTILE_SHIFT = 5;

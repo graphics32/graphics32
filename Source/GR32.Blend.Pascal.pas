@@ -131,11 +131,10 @@ procedure EMMS_Pas;
 implementation
 
 uses
+  SysUtils,
   GR32_Blend,
   GR32_Bindings,
-  GR32_System,
-  GR32_LowLevel,
-  SysUtils;
+  GR32_LowLevel;
 
 //------------------------------------------------------------------------------
 //

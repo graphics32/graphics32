@@ -120,7 +120,11 @@ procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint
 implementation
 
 uses
-  Math, GR32_Blend, GR32_Gamma, GR32_LowLevel, GR32_System, GR32_Bindings,
+  Math,
+  GR32_Blend,
+  GR32_Gamma,
+  GR32_LowLevel,
+  GR32_Bindings,
   GR32_VectorUtils;
 
 procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;

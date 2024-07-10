@@ -193,6 +193,8 @@ uses
   GR32_LowLevel,
   GR32_Math;
 
+{$WARN SYMBOL_PLATFORM OFF}
+
 // ----------------------------------------------------------------------------
 //
 // TBindingTestCase
@@ -211,7 +213,7 @@ begin
   if (isAssembler in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
 class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
@@ -220,7 +222,7 @@ begin
   if (isMMX in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 {$ifend}
 end;
 
@@ -230,7 +232,7 @@ begin
   if (isSSE2 in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 {$ifend}
 end;
 
@@ -240,7 +242,7 @@ begin
   if (isSSE41 in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 {$ifend}
 end;
 

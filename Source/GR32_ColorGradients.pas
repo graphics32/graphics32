@@ -708,7 +708,6 @@ implementation
 
 uses
   GR32_LowLevel,
-  GR32_System,
   GR32_Math,
   GR32_Geometry;
 

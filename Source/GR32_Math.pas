@@ -217,8 +217,7 @@ const
 implementation
 
 uses
-  Math,
-  GR32_System;
+  Math;
 
 {$IFNDEF PUREPASCAL}
 const

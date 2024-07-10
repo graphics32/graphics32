@@ -170,7 +170,7 @@ const
   InstructionSetMap: array[TCPUFeature] of TCPUInstructionSet = (isMMX, isExMMX, isSSE, isSSE2, is3DNow, isEx3DNow);
 
 // Migration support: TCPUFeatures->TInstructionSupport
-function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructionSupport;
+function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructionSupport; deprecated;
 
 
 
@@ -181,30 +181,6 @@ function CPUFeaturesToInstructionSupport(CPUFeatures: TCPUFeatures): TInstructio
 //------------------------------------------------------------------------------
 // For use in CPU dispatch bindings
 //------------------------------------------------------------------------------
-
-// Convenience aliases.
-// For the most common usage, this avoids the need to use GR32.CPUID directly.
-type
-  TCPU = GR32.CPUID.TCPU;
-  TInstructionSupport = GR32.CPUID.TInstructionSupport;
-  TCPUInstructionSet = GR32.CPUID.TCPUInstructionSet;
-
-const
-  isPascal = GR32.CPUID.TCPUInstructionSet.isPascal;
-  isAssembler = GR32.CPUID.TCPUInstructionSet.isAssembler;
-  isReference = GR32.CPUID.TCPUInstructionSet.isReference;
-  isMMX = GR32.CPUID.TCPUInstructionSet.isMMX;
-  isExMMX = GR32.CPUID.TCPUInstructionSet.isExMMX;
-  isSSE = GR32.CPUID.TCPUInstructionSet.isSSE;
-  isSSE2 = GR32.CPUID.TCPUInstructionSet.isSSE2;
-  isSSE3 = GR32.CPUID.TCPUInstructionSet.isSSE3;
-  isSSSE3 = GR32.CPUID.TCPUInstructionSet.isSSSE3;
-  isSSE41 = GR32.CPUID.TCPUInstructionSet.isSSE41;
-  isSSE42 = GR32.CPUID.TCPUInstructionSet.isSSE42;
-  isAVX = GR32.CPUID.TCPUInstructionSet.isAVX;
-  isAVX2 = GR32.CPUID.TCPUInstructionSet.isAVX2;
-  isAVX512f = GR32.CPUID.TCPUInstructionSet.isAVX512f;
-
 var
   CPU: TCPU;
 

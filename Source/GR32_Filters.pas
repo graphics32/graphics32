@@ -83,7 +83,6 @@ implementation
 
 uses
   Types,
-  GR32_System,
   GR32_Bindings,
   GR32_Lowlevel;
 

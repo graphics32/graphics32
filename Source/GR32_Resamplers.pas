@@ -1068,7 +1068,7 @@ implementation
 
 uses
   Math,
-  GR32_System,
+  Types,
   GR32_Bindings,
   GR32_LowLevel,
   GR32_Rasterizers,

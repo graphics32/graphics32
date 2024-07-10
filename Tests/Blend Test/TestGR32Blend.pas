@@ -1440,7 +1440,7 @@ begin
   if (isPascal in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesPas.TestBlendReg;
@@ -1540,7 +1540,7 @@ begin
   if (isAssembler in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesAsm.TestBlendReg;
@@ -1641,7 +1641,7 @@ begin
   if (isMMX in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesMMX.TestBlendReg;
@@ -1742,7 +1742,7 @@ begin
   if (isSSE2 in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendReg;
@@ -1923,7 +1923,7 @@ begin
   if (isSSE41 in Info.InstructionSupport) then
     Result := 0
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesSSE41.TestBlendLine;

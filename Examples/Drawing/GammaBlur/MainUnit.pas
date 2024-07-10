@@ -6,7 +6,7 @@ uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Menus, Dialogs, ComCtrls,
   ExtCtrls, StdCtrls, Math,
-  GR32, GR32_Image, GR32_Layers, GR32_System, GR32_RangeBars;
+  GR32, GR32_Image, GR32_Layers, GR32_RangeBars;
 
 type
   TFormGammaBlur = class(TForm)
@@ -57,6 +57,7 @@ uses
   GR32_Polygons,
   GR32_VectorUtils,
   GR32_Gamma,
+  GR32_System,
   GR32_Blurs,
   GR32_Resamplers;
 

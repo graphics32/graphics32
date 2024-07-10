@@ -45,10 +45,9 @@ uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   ComCtrls,
-  GR32_Image,
-  GR32_System,
-  GR32_RangeBars,
   GR32,
+  GR32_Image,
+  GR32_RangeBars,
   GR32_Resamplers;
 
 type
@@ -128,7 +127,8 @@ uses
   Math,
   GR32.ImageFormats.JPG,
   GR32_Polygons,
-  GR32_LowLevel;
+  GR32_LowLevel,
+  GR32_System;
 
 { TfmResamplersExample }
 

@@ -8,8 +8,7 @@ uses
   ExtCtrls, StdCtrls, Math,
   GR32,
   GR32_Image,
-  GR32_Layers,
-  GR32_System;
+  GR32_Layers;
 
 type
   TFrmBlurs = class(TForm)
@@ -70,6 +69,7 @@ uses
   GR32.ImageFormats.JPG,
   GR32_Polygons,
   GR32_VectorUtils,
+  GR32_System,
   GR32_Blurs;
 
 {$IFDEF FPC}

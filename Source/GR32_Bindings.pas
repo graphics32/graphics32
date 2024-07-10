@@ -40,16 +40,47 @@ interface
 uses
   Generics.Collections,
   Classes,
-{$IFNDEF PUREPASCAL}
-  GR32.CPUID,
-{$ENDIF}
-  GR32_System;
+  GR32.CPUID;
 
+//------------------------------------------------------------------------------
+//
+//      CPU feature convenience aliases
+//
+//------------------------------------------------------------------------------
+// For use in CPU dispatch bindings
+// For the most common usage, these alioases avoids the need to reference the
+// GR32.CPUID unit directly.
+//------------------------------------------------------------------------------
 type
-  TFunctionName = type string;
-  TFunctionID = type Integer;
+  TCPU = GR32.CPUID.TCPU;
+  TInstructionSupport = GR32.CPUID.TInstructionSupport;
+  TCPUInstructionSet = GR32.CPUID.TCPUInstructionSet;
 
-  PFunctionInfo = ^TFunctionInfo;
+const
+  isPascal = GR32.CPUID.TCPUInstructionSet.isPascal;
+  isAssembler = GR32.CPUID.TCPUInstructionSet.isAssembler;
+  isReference = GR32.CPUID.TCPUInstructionSet.isReference;
+  isMMX = GR32.CPUID.TCPUInstructionSet.isMMX;
+  isExMMX = GR32.CPUID.TCPUInstructionSet.isExMMX;
+  isSSE = GR32.CPUID.TCPUInstructionSet.isSSE;
+  isSSE2 = GR32.CPUID.TCPUInstructionSet.isSSE2;
+  isSSE3 = GR32.CPUID.TCPUInstructionSet.isSSE3;
+  isSSSE3 = GR32.CPUID.TCPUInstructionSet.isSSSE3;
+  isSSE41 = GR32.CPUID.TCPUInstructionSet.isSSE41;
+  isSSE42 = GR32.CPUID.TCPUInstructionSet.isSSE42;
+  isAVX = GR32.CPUID.TCPUInstructionSet.isAVX;
+  isAVX2 = GR32.CPUID.TCPUInstructionSet.isAVX2;
+  isAVX512f = GR32.CPUID.TCPUInstructionSet.isAVX512f;
+
+
+//------------------------------------------------------------------------------
+//
+//      TFunctionInfo
+//
+//------------------------------------------------------------------------------
+// Describes a function implementation.
+//------------------------------------------------------------------------------
+type
   TFunctionInfo = record
     FunctionID: NativeInt;      // Either an ID or a pointer
     Proc: Pointer;              // Pointer to the implementing function
@@ -57,23 +88,18 @@ type
     Priority: Integer;          // Function priority; Smaller is better. Used by default TFunctionPriority callback
     Flags: Cardinal;            // Optional, user defined flags for use in a custom TFunctionPriority callback
   end;
+  PFunctionInfo = ^TFunctionInfo;
 
-  TFunctionPriority = function (Info: PFunctionInfo): Integer;
 
-  PFunctionBinding = ^TFunctionBinding;
-  TFunctionBinding = record
-    FunctionID: NativeInt;      // Either an ID or a pointer
-    BindVariable: PPointer;     // Pointer to the function delegate
-  end;
-
-const
-  BindingPriorityDefault = 0;
-  BindingPriorityBetter = -1;
-  BindingPriorityWorse = 1;
-
+//------------------------------------------------------------------------------
+//
+//      TFunctionPriority
+//
+//------------------------------------------------------------------------------
+// Delegate used when evaluating a binding resolution.
+//------------------------------------------------------------------------------
 type
-  TFunctionInfoList = TList<TFunctionInfo>;
-  TFunctionBindingList = TList<TFunctionBinding>;
+  TFunctionPriority = function(Info: PFunctionInfo): Integer;
 
 
 //------------------------------------------------------------------------------
@@ -87,8 +113,28 @@ type
 // can be assigned to a function variable through the rebind methods.
 // A priority callback function is used to assess the most optimal function.
 //------------------------------------------------------------------------------
+const
+  BindingPriorityDefault = 0;   // Default priority
+  BindingPriorityBetter = -1;   // Negative = Better
+  BindingPriorityWorse = 1;     // Positive = Worse
+
 type
   TFunctionRegistry = class(TPersistent)
+  private type
+    PFunctionBinding = ^TFunctionBinding;
+    TFunctionBinding = record
+      FunctionID: NativeInt;      // Either an ID or a pointer
+      BindVariable: PPointer;     // Pointer to the function delegate
+    end;
+
+  type
+    TFunctionInfoList = TList<TFunctionInfo>;
+    TFunctionBindingList = TList<TFunctionBinding>;
+{$IFDEF FPC}
+    TFunctionInfoListCracker = class(TFunctionInfoList);
+    TFunctionBindingListCracker = class(TFunctionBindingList);
+{$ENDIF}
+
   private class var
     FBindingRegistries: TObjectList<TFunctionRegistry>;
 
@@ -107,6 +153,8 @@ type
     function FindFunctionInfo(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
     function FindFunctionInfo(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
 
+  public const
+    INVALID_PRIORITY: Integer = MaxInt;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -137,6 +185,9 @@ type
     property Name: string read FName write SetName;
   end;
 
+const
+  INVALID_PRIORITY: Integer = MaxInt deprecated 'Use TFunctionRegistry.INVALID_PRIORITY';
+
 
 //------------------------------------------------------------------------------
 //
@@ -155,9 +206,6 @@ function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 var
   DefaultPriority: TFunctionPriority = DefaultPriorityProc;
 
-const
-  INVALID_PRIORITY: Integer = MaxInt;
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -166,13 +214,10 @@ const
 implementation
 
 uses
-  Math;
+  Math,
+  GR32_System;
 
-{$IFDEF FPC}
-type
-  TFunctionInfoListCracker = class(TFunctionInfoList);
-  TFunctionBindingListCracker = class(TFunctionBindingList);
-{$ENDIF}
+//------------------------------------------------------------------------------
 
 function NewRegistry(const Name: string): TFunctionRegistry;
 begin
@@ -186,7 +231,7 @@ begin
   if (Info.InstructionSupport <= GR32_System.CPU.InstructionSupport) then
     Result := Info.Priority
   else
-    Result := INVALID_PRIORITY;
+    Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
 

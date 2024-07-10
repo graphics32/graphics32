@@ -390,9 +390,7 @@ procedure BlendLine1(F: TColor32; B: PColor32; Count: Integer); {$IFDEF USEINLIN
 implementation
 
 uses
-{$IFNDEF PUREPASCAL}
   GR32_System,
-{$ENDIF}
 {$IFNDEF PUREPASCAL}
   GR32.Blend.Assembler,
 {$IFNDEF OMIT_MMX}
@@ -409,8 +407,6 @@ procedure EMMS;
 begin
 end;
 {$ENDIF}
-
-{$IFNDEF PUREPASCAL}
 
 //------------------------------------------------------------------------------
 //
@@ -455,7 +451,6 @@ begin
   if (AlphaTable <> nil) then
     FreeMem(AlphaTable);
 end;
-{$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -579,18 +574,12 @@ initialization
 
   MakeMergeTables;
 
-{$IFNDEF PUREPASCAL}
   AlphaTable := nil;
   MMX_ACTIVE := (isMMX in CPU.InstructionSupport);
   if [isMMX, isSSE2] * CPU.InstructionSupport <> [] then
     GenAlphaTable;
-{$ELSE}
-  MMX_ACTIVE := False;
-{$ENDIF}
 
 finalization
-{$IFNDEF PUREPASCAL}
   FreeAlphaTable;
-{$ENDIF}
 
 end.

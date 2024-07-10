@@ -29,8 +29,7 @@ implementation
 
 uses
   SysUtils,
-  Math,
-  GR32_System;
+  Math;
 
 {$RANGECHECKS OFF}
 

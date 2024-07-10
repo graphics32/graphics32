@@ -629,7 +629,6 @@ uses
   GR32_LowLevel,
   GR32_Math,
   GR32_Bindings,
-  GR32_System,
   GR32_Resamplers,
   GR32_Geometry;
 

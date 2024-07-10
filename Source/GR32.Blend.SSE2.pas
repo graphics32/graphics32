@@ -121,7 +121,7 @@ implementation
 uses
   GR32_Blend,
   GR32_LowLevel,
-  GR32_System;
+  GR32_Bindings;
 
 //------------------------------------------------------------------------------
 //

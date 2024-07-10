@@ -323,8 +323,7 @@ uses
 {$IFDEF FPC}
   SysUtils,
 {$ENDIF}
-  Math,
-  GR32_System;
+  Math;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
