@@ -115,8 +115,7 @@ type
     procedure TestWrapMinMax;
     procedure TestWrapPow2;
     procedure TestMirror;
-    // TODO : procedure TestMirrorMinMax;
-    procedure TestMirrorPow2;
+    procedure TestMirrorMinMax;
     procedure TestSAR;
   end;
 
@@ -220,32 +219,26 @@ end;
 
 class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
 begin
-{$if not defined(PUREPASCAL)}
   if (isMMX in Info.InstructionSupport) then
     Result := 0
   else
     Result := TFunctionRegistry.INVALID_PRIORITY;
-{$ifend}
 end;
 
 class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
 begin
-{$if not defined(PUREPASCAL)}
   if (isSSE2 in Info.InstructionSupport) then
     Result := 0
   else
     Result := TFunctionRegistry.INVALID_PRIORITY;
-{$ifend}
 end;
 
 class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
 begin
-{$if not defined(PUREPASCAL)}
   if (isSSE41 in Info.InstructionSupport) then
     Result := 0
   else
     Result := TFunctionRegistry.INVALID_PRIORITY;
-{$ifend}
 end;
 
 function TBindingTestCase.Rebind(FunctionID: Integer; RequireImplementation: boolean): boolean;
@@ -691,41 +684,23 @@ begin
   CheckEquals( 49, Mirror(149,  99));
 end;
 
-procedure TTestLowLevel.TestMirrorPow2;
-var
-  Bit: integer;
-  Max: integer;
-  Value: integer;
-  Expected: integer;
-  Actual: integer;
+procedure TTestLowLevel.TestMirrorMinMax;
 begin
-  for Bit := 1 to 15 do
-  begin
-    Max := (1 shl Bit)-1;
+  // Inside range
+  for var Value := 25 to 100 do
+    CheckEquals(Value, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
 
-    // Edge cases
-    CheckEquals(  0,   MirrorPow2(  0,   Max));
-    CheckEquals(Max,   MirrorPow2(Max,   Max));
-    CheckEquals(  1,   MirrorPow2(  1,   Max));
-    CheckEquals(Max-1, MirrorPow2(Max-1, Max));
-    if (Max > 1) then
-      CheckEquals(Max-1, MirrorPow2(Max+1, Max));
-    CheckEquals(  1,   MirrorPow2( -1,   Max));
+  // Outside range
+  for var Value := 0 to 25 do
+    CheckEquals(50-Value, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
+  for var Value := 100 to 175 do
+    CheckEquals(100+100-Value, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
+  for var Value := 175 to 225 do
+    CheckEquals(25+Value-175, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
 
-    // Note: We're using Mirror to validate MirrorPow2 so we're assuming that Mirror isn't broken...
-    for Value := 0 to 3*Max do
-    begin
-      // Positive values
-      Expected := Mirror(Value, Max);
-      Actual := MirrorPow2(Value, Max);
-      CheckEquals(Expected, Actual, Format('MirrorPow2(%d, %d)', [Value, Max]));
-
-      // Negative values
-      Expected := Mirror(-Value, Max);
-      Actual := MirrorPow2(-Value, Max);
-      CheckEquals(Expected, Actual, Format('MirrorPow2(%d, %d)', [Value, Max]));
-    end;
-  end;
+  // Negative values
+  for var Value := -50 to 0 do
+    CheckEquals(50+Abs(Value), Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
 end;
 
 procedure TTestLowLevel.TestMoveLongword;
@@ -1764,15 +1739,18 @@ initialization
 //  RegisterTest(TTestLowLevel.Suite);
 
   RegisterTest(TTestLowLevelPas.Suite);
-{$if not defined(PUREPASCAL)}
-  RegisterTest(TTestLowLevelAsm.Suite);
+
+  if isAssembler in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelAsm.Suite);
+
   if isMMX in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelMMX.Suite);
+
   if isSSE2 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelSSE2.Suite);
+
   if isSSE41 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelSSE41.Suite);
-{$ifend}
 
   RegisterTest(TTestMath.Suite);
 end.
