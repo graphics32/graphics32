@@ -195,10 +195,6 @@ function Mirror(Value, Max: Integer): Integer; overload;
 // Mirror integer value in [Min..Max] range
 function Mirror(Value, Min, Max: Integer): Integer; overload;
 
-// Fast Mirror alternatives for cases where range + 1 is a power of two
-function MirrorPow2(Value, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function MirrorPow2(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-
 
 //------------------------------------------------------------------------------
 //
@@ -206,10 +202,8 @@ function MirrorPow2(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINL
 //
 //------------------------------------------------------------------------------
 // Functions to determine appropiate wrap procs (normal or power of 2 optimized)
-function GetOptimalWrap(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function GetOptimalMirror(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function GetOptimalMirror(Min, Max: Integer): TWrapProcEx; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GetOptimalWrap(Max: Integer): TWrapProc; overload; inline;
+function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload; inline;
 
 // Functions to retrieve correct WrapProc given WrapMode (and range) }
 function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
@@ -1190,13 +1184,14 @@ end;
 
 //------------------------------------------------------------------------------
 
-function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
 {$IFDEF USENATIVECODE}
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
 begin
   Remainder := Dividend mod Divisor;
   Result := Dividend div Divisor;
+end;
 {$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
@@ -1216,8 +1211,8 @@ asm
         MOV       [RCX],EDX
         POP       RBX
 {$ENDIF}
-{$ENDIF}
 end;
+{$ENDIF}
 
 //------------------------------------------------------------------------------
 
@@ -1233,98 +1228,8 @@ begin
   Result := (Value - Min) and (Max - Min) + Min;
 end;
 
-
-//------------------------------------------------------------------------------
-//
-//      Mirror
-//
-//------------------------------------------------------------------------------
-function Mirror(Value, Max: Integer): Integer;
-{$IFDEF USENATIVECODE}
-var
-  DivResult: Integer;
-begin
-  if Value < 0 then
-  begin
-    DivResult := DivMod(Value - Max, Max + 1, Result);
-    Inc(Result, Max);
-  end
-  else
-    DivResult := DivMod(Value, Max + 1, Result);
-
-  if Odd(DivResult) then
-    Result := Max - Result;
-{$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$IFDEF TARGET_x64}
-        MOV       EAX,ECX
-        MOV       ECX,R8D
-{$ENDIF}
-        TEST      EAX,EAX
-        JNL       @@1
-        NEG       EAX
-@@1:
-        MOV       ECX,EDX
-        CDQ
-        IDIV      ECX
-        TEST      EAX,1
-        MOV       EAX,EDX
-        JZ        @Exit
-        NEG       EAX
-        ADD       EAX,ECX
-@Exit:
-{$ENDIF}
-end;
-
 //------------------------------------------------------------------------------
 
-function Mirror(Value, Min, Max: Integer): Integer;
-var
-  DivResult: Integer;
-begin
-  if Value < Min then
-  begin
-    DivResult := DivMod(Value - Max, Max - Min + 1, Result);
-    Inc(Result, Max);
-  end
-  else
-  begin
-    DivResult := DivMod(Value - Min, Max - Min + 1, Result);
-    Inc(Result, Min);
-  end;
-  if Odd(DivResult) then Result := Max + Min - Result;
-end;
-
-//------------------------------------------------------------------------------
-
-function MirrorPow2(Value, Max: Integer): Integer; overload;
-begin
-  if Value and (Max + 1) = 0 then
-    Result := Value and Max
-  else
-    Result := Max - Value and Max;
-end;
-
-//------------------------------------------------------------------------------
-
-function MirrorPow2(Value, Min, Max: Integer): Integer; overload;
-begin
-  Value := Value - Min;
-  Result := Max - Min;
-
-  if Value and (Result + 1) = 0 then
-    Result := Min + Value and Result
-  else
-    Result := Max - Value and Result;
-end;
-
-
-//------------------------------------------------------------------------------
-//
-//      Clamp/Wrap/Mirror
-//
-//------------------------------------------------------------------------------
 function GetOptimalWrap(Max: Integer): TWrapProc; overload;
 begin
   if (Max >= 0) and IsPowerOf2(Max + 1) then
@@ -1343,28 +1248,72 @@ begin
     Result := Wrap;
 end;
 
-//------------------------------------------------------------------------------
 
-function GetOptimalMirror(Max: Integer): TWrapProc; overload;
+//------------------------------------------------------------------------------
+//
+//      Mirror
+//
+//------------------------------------------------------------------------------
+{$IFDEF PUREPASCAL}
+function Mirror(Value, Max: Integer): Integer;
 begin
-  if (Max >= 0) and IsPowerOf2(Max + 1) then
-    Result := MirrorPow2
+  if Value >= 0 then
+    Result := Value
   else
-    Result := Mirror;
+    Result := -Value;
+
+  while (Result > Max) do
+    Result := Abs(Max + Max - Result);
 end;
+{$ELSE}
+// FWIW, there's little, if any, benefit of using the assembler version; The pascal version is just as fast.
+function Mirror(Value, Max: Integer): Integer; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x64}
+        MOV       EAX, ECX      // Value
+{$ENDIF}
+        // EAX: Value
+        // EDX: Max
+
+        // Max2 := 2*Max
+        LEA       ECX, [EDX+EDX]
+
+        // Result := Value
+
+@Loop:
+        // Result := Abs(Result)
+        TEST      EAX, EAX
+        JNL       @Positive
+        NEG       EAX
+
+
+@Positive:
+        // while (Result > Max) do
+        CMP       EAX, EDX
+        JLE       @Exit
+
+        // Result := 2*Max - Result
+        NEG       EAX
+        ADD       EAX, ECX
+
+        JMP       @Loop
+@Exit:
+end;
+{$ENDIF}
 
 //------------------------------------------------------------------------------
 
-function GetOptimalMirror(Min, Max: Integer): TWrapProcEx; overload;
+function Mirror(Value, Min, Max: Integer): Integer;
 begin
-  if (Min >= 0) and (Max >= Min) and IsPowerOf2(Max - Min + 1) then
-    Result := MirrorPow2
-  else
-    Result := Mirror;
-end;
+  Result := Min + Mirror(Value - Min, Max - Min);
+  end;
+
 
 //------------------------------------------------------------------------------
-
+//
+//      Clamp/Wrap/Mirror
+//
+//------------------------------------------------------------------------------
 function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
 begin
   case WrapMode of
@@ -1385,7 +1334,7 @@ begin
     wmRepeat:
       Result := GetOptimalWrap(Max);
     wmMirror:
-      Result := GetOptimalMirror(Max);
+      Result := Mirror;
     else //wmClamp:
       Result := Clamp;
   end;
@@ -1413,7 +1362,7 @@ begin
     wmRepeat:
       Result := GetOptimalWrap(Min, Max);
     wmMirror:
-      Result := GetOptimalMirror(Min, Max);
+      Result := Mirror;
     else //wmClamp:
       Result := Clamp;
   end;

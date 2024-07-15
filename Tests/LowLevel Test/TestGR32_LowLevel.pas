@@ -115,6 +115,7 @@ type
     procedure TestWrapMinMax;
     procedure TestWrapPow2;
     procedure TestMirror;
+    procedure TestMirrorMinMax;
     procedure TestSAR;
   end;
 
@@ -218,32 +219,26 @@ end;
 
 class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
 begin
-{$if not defined(PUREPASCAL)}
   if (isMMX in Info.InstructionSupport) then
     Result := 0
   else
     Result := TFunctionRegistry.INVALID_PRIORITY;
-{$ifend}
 end;
 
 class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
 begin
-{$if not defined(PUREPASCAL)}
   if (isSSE2 in Info.InstructionSupport) then
     Result := 0
   else
     Result := TFunctionRegistry.INVALID_PRIORITY;
-{$ifend}
 end;
 
 class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
 begin
-{$if not defined(PUREPASCAL)}
   if (isSSE41 in Info.InstructionSupport) then
     Result := 0
   else
     Result := TFunctionRegistry.INVALID_PRIORITY;
-{$ifend}
 end;
 
 function TBindingTestCase.Rebind(FunctionID: Integer; RequireImplementation: boolean): boolean;
@@ -673,12 +668,39 @@ end;
 
 procedure TTestLowLevel.TestMirror;
 begin
-  CheckEquals(50, Mirror(50, 100));
-  CheckEquals(51, Mirror(150, 100));
-  CheckEquals(50, Mirror(149, 99));
-  CheckEquals(64, MirrorPow2(64, 127));
-  CheckEquals(63, MirrorPow2(192, 127));
-  CheckEquals(95, MirrorPow2(160, 127));
+  // Edge cases
+  CheckEquals(  0, Mirror(  0, 100));
+  CheckEquals(100, Mirror(100, 100));
+  CheckEquals(  1, Mirror(  1, 100));
+  CheckEquals( 99, Mirror( 99, 100));
+  CheckEquals( 99, Mirror(101, 100));
+  CheckEquals(  1, Mirror( -1, 100));
+
+  CheckEquals( 50, Mirror(150, 100));
+  CheckEquals(  0, Mirror(200, 100));
+  CheckEquals( 50, Mirror(250, 100));
+  CheckEquals(100, Mirror(300, 100));
+
+  CheckEquals( 49, Mirror(149,  99));
+end;
+
+procedure TTestLowLevel.TestMirrorMinMax;
+begin
+  // Inside range
+  for var Value := 25 to 100 do
+    CheckEquals(Value, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
+
+  // Outside range
+  for var Value := 0 to 25 do
+    CheckEquals(50-Value, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
+  for var Value := 100 to 175 do
+    CheckEquals(100+100-Value, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
+  for var Value := 175 to 225 do
+    CheckEquals(25+Value-175, Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
+
+  // Negative values
+  for var Value := -50 to 0 do
+    CheckEquals(50+Abs(Value), Mirror(Value, 25, 100), Format('Mirror(%d, 25, 100)', [Value]));
 end;
 
 procedure TTestLowLevel.TestMoveLongword;
@@ -1717,15 +1739,18 @@ initialization
 //  RegisterTest(TTestLowLevel.Suite);
 
   RegisterTest(TTestLowLevelPas.Suite);
-{$if not defined(PUREPASCAL)}
-  RegisterTest(TTestLowLevelAsm.Suite);
+
+  if isAssembler in GR32_System.CPU.InstructionSupport then
+    RegisterTest(TTestLowLevelAsm.Suite);
+
   if isMMX in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelMMX.Suite);
+
   if isSSE2 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelSSE2.Suite);
+
   if isSSE41 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelSSE41.Suite);
-{$ifend}
 
   RegisterTest(TTestMath.Suite);
 end.
