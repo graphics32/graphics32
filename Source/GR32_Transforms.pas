@@ -638,7 +638,7 @@ resourcestring
   RStrStackEmpty = 'Stack empty';
 
 type
-  {provides access to proctected members of TTransformation by typecasting}
+  { provides access to proctected members of TTransformation by typecasting }
   TTransformationAccess = class(TTransformation);
 
 //------------------------------------------------------------------------------
@@ -653,48 +653,89 @@ var
   DET_2x2_64: function(a1, a2, b1, b2: Double): Double;
 
 
-function DET_2x2_32_Pas(a1, a2, b1, b2: TFloat): TFloat; overload;
+//------------------------------------------------------------------------------
+// DET_2x2_32
+//------------------------------------------------------------------------------
+function DET_2x2_32_Pas(a1, a2, b1, b2: TFloat): TFloat;
 begin
   Result := a1 * b2 - a2 * b1;
 end;
 
+{$IFNDEF PUREPASCAL}
+
+{$if defined(TARGET_x86)}
+
+function DET_2x2_32_ASM(a1, a2, b1, b2: TFloat): TFloat; {$IFDEF FPC}assembler; {$ENDIF}
+asm
+        FLD     A1.Single
+        FMUL    B2.Single
+        FLD     A2.Single
+        FMUL    B1.Single
+        FSUBP
+end;
+
+{$elseif defined(TARGET_x64)}
+
+function DET_2x2_32_SSE(a1, a2, b1, b2: TFloat): TFloat; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+  // XMM0: a1
+  // XMM1: a2
+  // XMM2: b1
+  // XMM3: b2
+
+        MULSS   XMM0, XMM3      // XMM0 <- a1 * b2
+        MULSS   XMM1, XMM2      // XMM1 <- a2 * b1
+        SUBSS   XMM0, XMM1      // Result <- (a1 * b2) - (a2 * b1)
+end;
+
+{$ifend}
+
+{$ENDIF}
+
+
+//------------------------------------------------------------------------------
+// DET_2x2_64
+//------------------------------------------------------------------------------
 function DET_2x2_64_Pas(a1, a2, b1, b2: Double): Double; overload;
 begin
   Result := a1 * b2 - a2 * b1;
 end;
 
 {$IFNDEF PUREPASCAL}
-function DET_2x2_32_ASM(a1, a2, b1, b2: TFloat): TFloat; overload; {$IFDEF FPC}assembler; {$IFDEF CPU64}nostackframe;{$ENDIF}{$ENDIF}
-asm
-{$IFDEF CPU64}
-        MULSS   XMM0, XMM3
-        MULSS   XMM1, XMM2
-        ADDSS   XMM0, XMM1
-{$ELSE}
-        FLD     A1.Single
-        FMUL    B2.Single
-        FLD     A2.Single
-        FMUL    B1.Single
-        FSUBP
-{$ENDIF}
-end;
 
-function DET_2x2_64_ASM(a1, a2, b1, b2: Double): Double; overload;
+{$if defined(TARGET_x86)}
+
+function DET_2x2_64_ASM(a1, a2, b1, b2: Double): Double; {$IFDEF FPC}assembler; {$ENDIF}
 asm
-{$IFDEF CPU64}
-        MULSD   XMM0, XMM3
-        MULSD   XMM1, XMM2
-        ADDSD   XMM0, XMM1
-{$ELSE}
         FLD     A1.Double
         FMUL    B2.Double
         FLD     A2.Double
         FMUL    B1.Double
         FSUBP
-{$ENDIF}
 end;
+
+{$elseif defined(TARGET_x64)}
+
+function DET_2x2_64_SSE(a1, a2, b1, b2: Double): Double; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+  // XMM0: a1
+  // XMM1: a2
+  // XMM2: b1
+  // XMM3: b2
+
+        MULSD   XMM0, XMM3      // XMM0 <- a1 * b2
+        MULSD   XMM1, XMM2      // XMM1 <- a2 * b1
+        SUBSD   XMM0, XMM1      // Result <- (a1 * b2) - (a2 * b1)
+end;
+
+{$ifend}
+
 {$ENDIF}
 
+
+//------------------------------------------------------------------------------
+// DET_3x3_32
+//------------------------------------------------------------------------------
 function DET_3x3_32_Pas(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
 begin
   Result :=
@@ -3260,15 +3301,21 @@ begin
   // DET_2x2_32
   TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_Pas, [isPascal]);
 {$IFNDEF PUREPASCAL}
+{$if defined(TARGET_x86)}
   TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_ASM, [isAssembler]);
-//  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_SSE2, [isSSE2]);
+{$elseif defined(TARGET_x64)}
+  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_SSE, [isSSE]);
+{$ifend}
 {$ENDIF}
 
   // DET_2x2_64
   TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_Pas, [isPascal]);
 {$IFNDEF PUREPASCAL}
+{$if defined(TARGET_x86)}
   TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_ASM, [isAssembler]);
-//  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_SSE2, [isSSE2]);
+{$elseif defined(TARGET_x64)}
+  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_SSE, [isSSE]);
+{$ifend}
 {$ENDIF}
 
   // DET_3x3_32
