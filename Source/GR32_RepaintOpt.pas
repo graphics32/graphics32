@@ -29,8 +29,6 @@ unit GR32_RepaintOpt;
  * Portions created by the Initial Developer are Copyright (C) 2005-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -45,11 +43,19 @@ uses
 {$ENDIF}
   Generics.Defaults,
   Generics.Collections,
-  Classes, SysUtils, GR32, GR32_Containers, GR32_Layers;
+  Classes, SysUtils,
+  GR32,
+  GR32_Containers,
+  GR32_Layers;
+
+{$if declared(CompilerVersion) and (CompilerVersion < 35.0)}
+type
+  TNoRefCountObject = TSingletonImplementation;
+{$ifend}
 
 type
   { TCustomRepaintOptimizer }
-  TCustomRepaintOptimizer = class(TSingletonImplementation)
+  TCustomRepaintOptimizer = class(TNoRefCountObject)
   private type
     TLayerCollectionList = TList<TLayerCollection>;
   private

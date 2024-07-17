@@ -35,20 +35,20 @@
 
     Name                   CompilerVersion
     -------------------------------------------
-    Delphi 12 Yukon 	        36.0
+    Delphi 12 Yukon             36.0
     Delphi 11 Alexandria        35.0
-    Delphi 10.4 Sydney 	        34.0
-    Delphi 10.3 Rio 	        33.0
-    Delphi 10.2 Tokyo 	        32.0
-    Delphi 10.1 Berlin 	        31.0
-    Delphi 10 Seattle 	        30.0
-    Delphi XE8 	                29.0
-    Delphi XE7 	                28.0
-    Delphi XE6 	                27.0
-    Delphi XE5 	                26.0
-    Delphi XE4 	                25.0
-    Delphi XE3 	                24.0
-    Delphi XE2 	                23.0
+    Delphi 10.4 Sydney          34.0
+    Delphi 10.3 Rio             33.0
+    Delphi 10.2 Tokyo           32.0
+    Delphi 10.1 Berlin          31.0
+    Delphi 10 Seattle           30.0
+    Delphi XE8                  29.0
+    Delphi XE7                  28.0
+    Delphi XE6                  27.0
+    Delphi XE5                  26.0
+    Delphi XE4                  25.0
+    Delphi XE3                  24.0
+    Delphi XE2                  23.0
 
     FreePascal 3.2.2
 
