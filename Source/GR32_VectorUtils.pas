@@ -333,9 +333,12 @@ begin
     for Index := FirstIndex + 1 to LastIndex - 1 do
     begin
       with Points[LastIndex] do
-        Delta := Abs((Points[Index].x - x) * (Points[FirstIndex].y - y) -
-          (Points[Index].y - y) * (Points[FirstIndex].x - x));
-      if Delta > DeltaMax then
+        Delta := Abs(
+            (Points[Index].x - x) * (Points[FirstIndex].y - y) -
+            (Points[Index].y - y) * (Points[FirstIndex].x - x)
+          );
+
+      if Delta >= DeltaMax then
       begin
         DeltaMaxIndex := Index;
         DeltaMax := Delta;
@@ -353,8 +356,7 @@ begin
       // Build the result list
       SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
       Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFloatPoint));
-      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) *
-        SizeOf(TFloatPoint));
+      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) * SizeOf(TFloatPoint));
       Exit;
     end;
   end;
