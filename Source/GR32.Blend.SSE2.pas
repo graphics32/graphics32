@@ -2316,8 +2316,6 @@ asm
         // 1*Byte -> 4*DWord
         PSHUFD    XMM0, XMM0, 0                 // XMM0[0..3] <- XMM0[0][0]
 
-        PXOR      XMM4, XMM4
-
 @Loop:
         // Load dest
         MOVD      XMM1, DWORD PTR [EAX]         // XMM1 <- 00 00 00 00 Ba Br Bg Bb
@@ -2342,7 +2340,7 @@ asm
         // Store dest
         MOVD      [EAX], XMM1
 
-        ADD       EAX,4
+        ADD       EAX, 4
         DEC       EDX
         JNZ       @Loop
 
@@ -2381,8 +2379,6 @@ asm
         MOVD      XMM0, R8D                     // XMM0 <- Weight * $8081
         // 1*Byte -> 4*DWord
         PSHUFD    XMM0, XMM0, 0                 // XMM0[0..3] <- XMM0[0][0]
-
-        PXOR      XMM4, XMM4
 
 @Loop:
         // Load dest
@@ -2458,7 +2454,8 @@ asm
         TEST      ECX, $000000FF
         JE        @Done
 
-        PXOR      XMM4, XMM4
+        PXOR      XMM2, XMM2
+
         // Duplicate Weight into 8 words so we can process two pixels at a time
         MOVD      XMM0, ECX                     // XMM0 <- (00 00 00 00 00 00 00 WW)
         PSHUFLW   XMM0, XMM0, 0                 //         (00 WW 00 WW 00 WW 00 WW)
@@ -2473,7 +2470,7 @@ asm
 
   // Load dest
         MOVD      XMM1, DWORD PTR [EAX]         // XMM1 <- 00 00 00 00 Ba Br Bg Bb
-        PUNPCKLBW XMM1, XMM4                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
+        PUNPCKLBW XMM1, XMM2                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
 
         //
         // Scale: Result = (Weight * Color)
@@ -2503,7 +2500,7 @@ asm
         JZ        @SkipWrite
 {$endif FASTSCALEMEMS_SKIPWRITE}
         // 8*Byte -> 8*Word
-        PUNPCKLBW XMM1, XMM4                    // XMM2 <- 00 Ba 00 Br 00 Bg 00 Bb
+        PUNPCKLBW XMM1, XMM2                    // XMM2 <- 00 Ba 00 Br 00 Bg 00 Bb
 
         //
         // Scale: Result = (Weight * Color)
@@ -2513,7 +2510,7 @@ asm
         PSRLW     XMM1, 8
 
   // Store dest
-        PACKUSWB  XMM1, XMM4
+        PACKUSWB  XMM1, XMM2
         MOVQ      [EAX + EDX * 8].QWORD, XMM1
 
 {$ifdef FASTSCALEMEMS_SKIPWRITE}
@@ -2553,7 +2550,8 @@ asm
         TEST      R8D, $000000FF
         JE        @Done
 
-        PXOR      XMM4, XMM4
+        PXOR      XMM2, XMM2
+
         // Duplicate Weight into 8 words so we can process two pixels at a time
         MOVD      XMM0, R8D                     // XMM0 <- (00 00 00 00 00 00 00 WW)
         PSHUFLW   XMM0, XMM0, 0                 //         (00 WW 00 WW 00 WW 00 WW)
@@ -2568,7 +2566,7 @@ asm
 
   // Load dest
         MOVD      XMM1, DWORD PTR [RCX]         // XMM1 <- 00 00 00 00 Ba Br Bg Bb
-        PUNPCKLBW XMM1, XMM4                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
+        PUNPCKLBW XMM1, XMM2                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
 
         //
         // Scale: Result = (Weight * Color)
@@ -2600,7 +2598,7 @@ asm
         JZ        @SkipWrite
 {$endif FASTSCALEMEMS_SKIPWRITE}
         // 8*Byte -> 8*Word
-        PUNPCKLBW XMM1, XMM4                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
+        PUNPCKLBW XMM1, XMM2                    // XMM1 <- 00 Ba 00 Br 00 Bg 00 Bb
 
         //
         // Scale: Result = (Weight * Color)
@@ -2610,7 +2608,7 @@ asm
         PSRLW     XMM1, 8
 
   // Store dest
-        PACKUSWB  XMM1, XMM4
+        PACKUSWB  XMM1, XMM2
         MOVQ      [RCX + RDX * 8].QWORD, XMM1
 
 {$ifdef FASTSCALEMEMS_SKIPWRITE}
