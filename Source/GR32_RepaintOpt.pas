@@ -48,7 +48,7 @@ uses
   GR32_Containers,
   GR32_Layers;
 
-{$if declared(CompilerVersion) and (CompilerVersion < 35.0)}
+{$if defined(FPC) or (CompilerVersion < 35.0)}
 type
   TNoRefCountObject = TSingletonImplementation;
 {$ifend}
