@@ -62,8 +62,8 @@ function InSignedRange(const X, X1, X2: TFixed): Boolean; overload; {$IFDEF USEI
 function Intersect(const A1, A2, B1, B2: TFloatPoint; out P: TFloatPoint): Boolean; overload;
 function Intersect(const A1, A2, B1, B2: TFixedPoint; out P: TFixedPoint): Boolean; overload;
 
-function VertexReduction(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
-function VertexReduction(Points: TArrayOfFixedPoint; Epsilon: TFixed = FixedOne): TArrayOfFixedPoint; overload;
+function VertexReduction(const Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
+function VertexReduction(const Points: TArrayOfFixedPoint; Epsilon: TFixed = FixedOne): TArrayOfFixedPoint; overload;
 
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint; overload;
 function ClosePolygon(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload;
@@ -318,166 +318,163 @@ begin
   end;
 end;
 
-function RamerDouglasPeucker(Points: TArrayOfFloatPoint; FirstIndex,
-  LastIndex: Integer; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
+
+//------------------------------------------------------------------------------
+//
+//      RamerDouglasPeucker
+//
+//------------------------------------------------------------------------------
+// Ramer-Douglas-Peucker line simplification.
+//
+// References:
+//
+// - Urs Ramer
+//   "An iterative procedure for the polygonal approximation of plane curves".
+//   Computer Graphics and Image Processing.
+//   Volume 1, Issue 3, November 1972, Pages 244-256
+//
+// - David H. Douglas & Thomas K. Peucker
+//   "Algorithms for the reduction of the number of points required to represent
+//   a digitized line or its caricature".
+//   Cartographica: The International Journal for Geographic Information and
+//   Geovisualization. Volume 10 Issue 2, December 1973, Pages 112–122.
+//
+//------------------------------------------------------------------------------
+// This implementation performs the following optimizations, compared to common
+// reference implementations:
+// - The distance calculations avoids use of Sqrt and Abs by comparing squared
+//   values.
+// - Static expressions are evaluated outside the loop.
+//------------------------------------------------------------------------------
+function RamerDouglasPeuckerSquared(const Points: TArrayOfFloatPoint; FirstIndex,
+  LastIndex: Integer; EpsilonSquared: TFloat): TArrayOfFloatPoint; overload;
 var
+  DistX, DistY, DistXY: TFloat;
+  Numerator, Denominator: TFloat;
   Index, DeltaMaxIndex: Integer;
-  Delta, DeltaMax: TFloat;
-  Parts: array [0 .. 1] of TArrayOfFloatPoint;
+  DeltaSquared, DeltaSquaredMax: TFloat;
+  Parts: array[0..1] of TArrayOfFloatPoint;
+  FirstPoint, LastPoint, p: PFloatPoint;
 begin
-  if LastIndex - FirstIndex > 1 then
+  FirstPoint := @Points[FirstIndex];
+  LastPoint := @Points[LastIndex];
+
+  if LastIndex - FirstIndex <= 1 then
   begin
-    // find the point with the maximum distance
-    DeltaMax := 0;
-    DeltaMaxIndex := 0;
-    for Index := FirstIndex + 1 to LastIndex - 1 do
-    begin
-      with Points[LastIndex] do
-        Delta := Abs((Points[Index].x - x) * (Points[FirstIndex].y - y) -
-          (Points[Index].y - y) * (Points[FirstIndex].x - x));
-      if Delta > DeltaMax then
-      begin
-        DeltaMaxIndex := Index;
-        DeltaMax := Delta;
-      end;
-    end;
+    SetLength(Result, 2);
+    Result[0] := FirstPoint^;
+    Result[1] := LastPoint^;
+    exit;
+  end;
 
-    // if max distance is greater than epsilon, recursively simplify
-    if DeltaMax >= Epsilon * GR32_Math.Hypot(Points[FirstIndex].x - Points[LastIndex].x,
-      Points[FirstIndex].y - Points[LastIndex].y) then
-    begin
-      // Recursive call
-      Parts[0] := RamerDouglasPeucker(Points, FirstIndex, DeltaMaxIndex, Epsilon);
-      Parts[1] := RamerDouglasPeucker(Points, DeltaMaxIndex, LastIndex, Epsilon);
+  DistX := LastPoint.X - FirstPoint.X;
+  DistY := LastPoint.Y - FirstPoint.Y;
+  DistXY := FirstPoint.X * LastPoint.Y - LastPoint.X * FirstPoint.Y;
+  Denominator := Sqr(DistX) + Sqr(DistY); // Squared distance
+  if (Denominator <> 0.0) then
+    Denominator := 1 / Denominator;
 
-      // Build the result list
-      SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
-      Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFloatPoint));
-      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) *
-        SizeOf(TFloatPoint));
-      Exit;
+
+  // Find the point with the maximum distance
+  DeltaSquaredMax := 0;
+  DeltaMaxIndex := 0;
+  for Index := FirstIndex + 1 to LastIndex - 1 do
+  begin
+    p := @Points[Index];
+    // Perpendicular distance, squared
+    Numerator := DistXY + DistX * p.Y - DistY * p.X;
+    DeltaSquared := Denominator * Sqr(Numerator);
+
+    if DeltaSquared >= DeltaSquaredMax then
+    begin
+      DeltaMaxIndex := Index;
+      DeltaSquaredMax := DeltaSquared;
     end;
   end;
 
-  SetLength(Result, 2);
-  Result[0] := Points[FirstIndex];
-  Result[1] := Points[LastIndex];
+
+  // If max distance is greater than Epsilon, recursively simplify
+  if (DeltaSquaredMax >= EpsilonSquared) or (Denominator = 0.0) then
+  begin
+    // Recurse
+    Parts[0] := RamerDouglasPeuckerSquared(Points, FirstIndex, DeltaMaxIndex, EpsilonSquared);
+    Parts[1] := RamerDouglasPeuckerSquared(Points, DeltaMaxIndex, LastIndex, EpsilonSquared);
+
+    // Build the result list
+    SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
+    Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFloatPoint));
+    Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) * SizeOf(TFloatPoint));
+  end else
+  begin
+    SetLength(Result, 2);
+    Result[0] := FirstPoint^;
+    Result[1] := LastPoint^;
+  end;
 end;
 
-function RamerDouglasPeucker(Points: TArrayOfFixedPoint; FirstIndex,
-  LastIndex: Integer; Epsilon: TFixed = 1): TArrayOfFixedPoint; overload;
-var
-  Index, DeltaMaxIndex: Integer;
-  Delta, DeltaMax: TFixed;
-  Parts: array [0 .. 1] of TArrayOfFixedPoint;
+//------------------------------------------------------------------------------
 
-
-  //Finds the perpendicular distance from a point to a straight line.
-  //The coordinates of the point are specified as $ptX and $ptY.
-  //The line passes through points l1 and l2, specified respectively with their
-  //coordinates $l1x and $l1y, and $l2x and $l2y
-  function PerpendicularDistance(ptX, ptY, l1x, l1y, l2x, l2y: TFixed): TFixed;
-  var
-    Slope, PassThroughY: TFixed;
-  begin
-    if (l2x = l1x) then
-    begin
-      //vertical lines - treat this case specially to avoid divide by zero
-      Result := Abs(ptX - l2x);
-    end
-    else
-    begin
-      Slope := FixedDiv(l2y-l1y, l2x-l1x);
-      PassThroughY := FixedMul(0 - l1x, Slope) + l1y;
-      Result := FixedDiv(Abs(FixedMul(Slope, ptX) - ptY + PassThroughY),
-        FixedSqrtHP(FixedSqr(Slope) + 1));
-    end;
-  end;
-
+function RamerDouglasPeucker(const Points: TArrayOfFloatPoint; FirstIndex,
+  LastIndex: Integer; Epsilon: TFloat): TArrayOfFloatPoint; overload;
 begin
-  if LastIndex - FirstIndex > 1 then
-  begin
-    // find the point with the maximum distance
-    DeltaMax := 0;
-    DeltaMaxIndex := 0;
-    for Index := FirstIndex + 1 to LastIndex - 1 do
-    begin
-      Delta := PerpendicularDistance(
-        Points[Index].x, Points[Index].y,
-        Points[FirstIndex].x, Points[FirstIndex].y,
-        Points[LastIndex].x, Points[LastIndex].y);
-      if Delta > DeltaMax then
-      begin
-        DeltaMaxIndex := Index;
-        DeltaMax := Delta;
-      end;
-    end;
-
-    // if max distance is greater than epsilon, recursively simplify
-    if DeltaMax > Epsilon then
-    begin
-      // Recursive call
-      Parts[0] := RamerDouglasPeucker(Points, FirstIndex, DeltaMaxIndex, Epsilon);
-      Parts[1] := RamerDouglasPeucker(Points, DeltaMaxIndex, LastIndex, Epsilon);
-
-      // Build the result list
-      SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
-      Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFixedPoint));
-      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) * SizeOf(TFixedPoint));
-      Exit;
-    end;
-  end;
-
-  SetLength(Result, 2);
-  Result[0] := Points[FirstIndex];
-  Result[1] := Points[LastIndex];
+  Result := RamerDouglasPeuckerSquared(Points, FirstIndex, LastIndex, Sqr(Epsilon));
 end;
 
-function VertexReduction(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint;
+
+//------------------------------------------------------------------------------
+//
+//      VertexReduction
+//
+//------------------------------------------------------------------------------
+// First do a simple and cheap line simplification and then do a regular
+// Ramer-Douglas-Peucker simplification. The first step vastly improves the
+// performance of the Ramer-Douglas-Peucker simplification for most cases.
+//------------------------------------------------------------------------------
+function VertexReduction(const Points: TArrayOfFloatPoint; Epsilon: TFloat): TArrayOfFloatPoint;
 var
   Index: Integer;
+  Count: integer;
   SqrEpsilon: TFloat;
 begin
+  if (Length(Points) = 0) then
+    Exit(nil);
+
+  // Initial line simplification; Ignore points closer than Epsilon to each other
   SqrEpsilon := Sqr(Epsilon);
-  SetLength(Result, 1);
+  SetLength(Result, Length(Points)); // Make room for all points to avoid reallocation
   Result[0] := Points[0];
+  Count := 1;
   Index := 1;
   while Index < Length(Points) do
   begin
-    if SqrDistance(Result[Length(Result) - 1], Points[Index]) > SqrEpsilon then
+    if SqrDistance(Result[Count-1], Points[Index]) > SqrEpsilon then
     begin
-      SetLength(Result, Length(Result) + 1);
-      Result[Length(Result) - 1] := Points[Index];
+      Result[Count] := Points[Index];
+      Inc(Count);
     end;
     Inc(Index);
   end;
 
-  if Length(Result) > 2 then
-    Result := RamerDouglasPeucker(Result, 0, Length(Result) - 1, Epsilon);
+  // Ramer-Douglas-Peucker line simplification
+  if Count > 2 then
+    Result := RamerDouglasPeuckerSquared(Result, 0, Count-1, SqrEpsilon)
+  else
+    SetLength(Result, Count); // Trim to actually used size
 end;
 
-function VertexReduction(Points: TArrayOfFixedPoint; Epsilon: TFixed): TArrayOfFixedPoint;
-var
-  Index: Integer;
-  SqrEpsilon: TFixed;
+//------------------------------------------------------------------------------
+
+function VertexReduction(const Points: TArrayOfFixedPoint; Epsilon: TFixed): TArrayOfFixedPoint;
 begin
-  SqrEpsilon := FixedSqr(Epsilon);
-  SetLength(Result, 1);
-  Result[0] := Points[0];
-  Index := 1;
-  while Index < Length(Points) do
-  begin
-    if SqrDistance(Result[Length(Result) - 1], Points[Index]) > SqrEpsilon then
-    begin
-      SetLength(Result, Length(Result) + 1);
-      Result[Length(Result) - 1] := Points[Index];
-    end;
-    Inc(Index);
-  end;
+  if (Length(Points) = 0) then
+    Exit(nil);
 
-  if Length(Result) > 2 then
-    Result := RamerDouglasPeucker(Points, 0, Length(Points) - 1, Epsilon);
+  // Use float points; A fixed points version of RamerDouglasPeucker is unfortunately
+  // not possible due to integer overflows.
+  Result := FloatPointToFixedPoint(VertexReduction(FixedPointToFloatPoint(Points), Epsilon*FixedToFloat));
 end;
+
+//------------------------------------------------------------------------------
 
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
 var
