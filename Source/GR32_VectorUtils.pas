@@ -346,10 +346,6 @@ end;
 //   values.
 // - Static expressions are evaluated outside the loop.
 //------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
-// Float
-//------------------------------------------------------------------------------
 function RamerDouglasPeuckerSquared(const Points: TArrayOfFloatPoint; FirstIndex,
   LastIndex: Integer; EpsilonSquared: TFloat): TArrayOfFloatPoint; overload;
 var
@@ -424,85 +420,6 @@ begin
   Result := RamerDouglasPeuckerSquared(Points, FirstIndex, LastIndex, Sqr(Epsilon));
 end;
 
-//------------------------------------------------------------------------------
-// Fixed
-//------------------------------------------------------------------------------
-function RamerDouglasPeuckerSquared(const Points: TArrayOfFixedPoint; FirstIndex,
-  LastIndex: Integer; EpsilonSquared: TFixed): TArrayOfFixedPoint; overload;
-var
-  DistX, DistY, DistXY: TFixed;
-  Numerator, Denominator: TFixed;
-  Index, DeltaMaxIndex: Integer;
-  DeltaSquared, DeltaSquaredMax: TFixed;
-  Parts: array[0..1] of TArrayOfFixedPoint;
-  FirstPoint, LastPoint, p: PFixedPoint;
-begin
-  FirstPoint := @Points[FirstIndex];
-  LastPoint := @Points[LastIndex];
-
-  if LastIndex - FirstIndex <= 1 then
-  begin
-    SetLength(Result, 2);
-    Result[0] := FirstPoint^;
-    Result[1] := LastPoint^;
-    exit;
-  end;
-
-  DistX := LastPoint.X - FirstPoint.X;
-  DistY := LastPoint.Y - FirstPoint.Y;
-  DistXY := FixedMul(FirstPoint.X, LastPoint.Y) - FixedMul(LastPoint.X, FirstPoint.Y);
-  Denominator := FixedSqr(DistX) + FixedSqr(DistY); // Squared distance
-
-
-  // Find the point with the maximum distance
-  DeltaSquaredMax := 0;
-  DeltaMaxIndex := 0;
-  for Index := FirstIndex + 1 to LastIndex - 1 do
-  begin
-    p := @Points[Index];
-    // Perpendicular distance, squared
-    Numerator := DistXY + FixedMul(DistX, p.Y) - FixedMul(DistY, p.X);
-    if (Denominator <> 0) then
-//      DeltaSquared := FixedDiv(FixedSqr(Numerator), Denominator)
-      DeltaSquared := FixedMul(Numerator, FixedDiv(Numerator, Denominator))
-    else
-      DeltaSquared := 0;
-
-    if DeltaSquared >= DeltaSquaredMax then
-    begin
-      DeltaMaxIndex := Index;
-      DeltaSquaredMax := DeltaSquared;
-    end;
-  end;
-
-
-  // If max distance is greater than Epsilon, recursively simplify
-  if (DeltaSquaredMax >= EpsilonSquared) or (Denominator = 0) then
-  begin
-    // Recurse
-    Parts[0] := RamerDouglasPeuckerSquared(Points, FirstIndex, DeltaMaxIndex, EpsilonSquared);
-    Parts[1] := RamerDouglasPeuckerSquared(Points, DeltaMaxIndex, LastIndex, EpsilonSquared);
-
-    // Build the result list
-    SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
-    Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFloatPoint));
-    Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) * SizeOf(TFloatPoint));
-  end else
-  begin
-    SetLength(Result, 2);
-    Result[0] := FirstPoint^;
-    Result[1] := LastPoint^;
-  end;
-end;
-
-//------------------------------------------------------------------------------
-
-function RamerDouglasPeucker(const Points: TArrayOfFixedPoint; FirstIndex,
-  LastIndex: Integer; Epsilon: TFixed): TArrayOfFixedPoint; overload;
-begin
-  Result := RamerDouglasPeuckerSquared(Points, FirstIndex, LastIndex, FixedSqr(Epsilon));
-end;
-
 
 //------------------------------------------------------------------------------
 //
@@ -548,35 +465,13 @@ end;
 //------------------------------------------------------------------------------
 
 function VertexReduction(const Points: TArrayOfFixedPoint; Epsilon: TFixed): TArrayOfFixedPoint;
-var
-  Index: Integer;
-  Count: integer;
-  SqrEpsilon: TFixed;
 begin
   if (Length(Points) = 0) then
     Exit(nil);
 
-  // Initial line simplification; Ignore points closer than Epsilon to each other
-  SqrEpsilon := FixedSqr(Epsilon);
-  SetLength(Result, Length(Points)); // Make room for all points to avoid reallocation
-  Result[0] := Points[0];
-  Count := 1;
-  Index := 1;
-  while Index < Length(Points) do
-  begin
-    if SqrDistance(Result[Count-1], Points[Index]) > SqrEpsilon then
-    begin
-      Result[Count] := Points[Index];
-      Inc(Count);
-    end;
-    Inc(Index);
-  end;
-
-  // Ramer-Douglas-Peucker line simplification
-  if Count > 2 then
-    Result := RamerDouglasPeuckerSquared(Result, 0, Count-1, SqrEpsilon)
-  else
-    SetLength(Result, Count); // Trim to actually used size
+  // Use float points; A fixed points version of RamerDouglasPeucker is unfortunately
+  // not possible due to integer overflows.
+  Result := FloatPointToFixedPoint(VertexReduction(FixedPointToFloatPoint(Points), Epsilon*FixedToFloat));
 end;
 
 //------------------------------------------------------------------------------
