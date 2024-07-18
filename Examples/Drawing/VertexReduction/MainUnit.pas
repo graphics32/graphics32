@@ -37,7 +37,10 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, {$ENDIF} Classes, ComCtrls, Controls, Forms,
-  GR32, GR32_Image, GR32_Polygons, GR32_Paths;
+  GR32,
+  GR32_Image,
+  GR32_Paths,
+  GR32_Brushes;
 
 type
   TFrmLineSimplification = class(TForm)
@@ -54,8 +57,11 @@ type
       Y: Integer);
   private
     FPoints: TArrayOfFloatPoint;
-    FLastEpsilon: TFloat;
-    FRenderer: TPolygonRenderer32VPR;
+    FSimplifiedPoints: TArrayOfFloatPoint;
+    FEpsilon: TFloat;
+    FCanvas: TCanvas32;
+    FSourceBrush: TStrokeBrush;
+    FSimplifiedBrush: TStrokeBrush;
   end;
 
 var
@@ -71,34 +77,67 @@ implementation
 
 uses
   Types,
+  SysUtils,
+  Windows,
   GR32_VectorUtils;
+
+const
+  StartEpsilon = 1;
+  MinEpsilon = 0.01;
+  MaxEpsilon = 500;
 
 
 { TFrmLineSimplification }
 
 procedure TFrmLineSimplification.FormCreate(Sender: TObject);
 begin
-  FRenderer := TPolygonRenderer32VPR.Create(PaintBox32.Buffer);
-  FRenderer.Color := clBlack32;
+  FCanvas := TCanvas32.Create(PaintBox32.Buffer);
+
+  FSourceBrush := FCanvas.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+  FSourceBrush.FillColor := clTrRed32;
+  FSourceBrush.StrokeWidth := 5;
+
+  FSimplifiedBrush := FCanvas.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+  FSimplifiedBrush.FillColor := clTrBlack32;
+  FSimplifiedBrush.StrokeWidth := 1;
+
+  FEpsilon := StartEpsilon;
 end;
 
 procedure TFrmLineSimplification.FormDestroy(Sender: TObject);
 begin
-  FRenderer.Free;
+  FCanvas.Free;
 end;
 
 procedure TFrmLineSimplification.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   case Key of
-    13:
+    VK_ADD, VK_SUBTRACT:
       begin
-        FLastEpsilon := 2 * FLastEpsilon;
+        case Key of
+          VK_SUBTRACT:
+            begin
+              if (FEpsilon <= MinEpsilon) then
+                exit;
+              FEpsilon := FEpsilon / 2;
+            end;
+
+          VK_ADD:
+            begin
+              if (FEpsilon >= MaxEpsilon) then
+                exit;
+              FEpsilon := FEpsilon * 2;
+            end;
+        end;
+
         if Length(FPoints) > 0 then
-          FPoints := VertexReduction(FPoints, FLastEpsilon);
+          FSimplifiedPoints := VertexReduction(FPoints, FEpsilon);
+
         PaintBox32.Invalidate;
       end;
-    27:
+
+    VK_ESCAPE: // Escape
       Close;
   end;
 end;
@@ -106,6 +145,7 @@ end;
 procedure TFrmLineSimplification.PaintBox32MouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
+  SetLength(FSimplifiedPoints, 0);
   SetLength(FPoints, 1);
   FPoints[0] := FloatPoint(X, Y);
   PaintBox32.OnMouseMove := PaintBox32MouseMove;
@@ -116,12 +156,11 @@ procedure TFrmLineSimplification.PaintBox32MouseMove(Sender: TObject;
 var
   Index: Integer;
 begin
-  Index := Length(FPoints) - 1;
+  Index := High(FPoints);
   if (FPoints[Index].X <> X) and (FPoints[Index].Y <> Y) then
   begin
-    Index := Length(FPoints);
-    SetLength(FPoints, Index + 1);
-    FPoints[Index] := FloatPoint(X, Y);
+    SetLength(FPoints, Length(FPoints)+1);
+    FPoints[High(FPoints)] := FloatPoint(X, Y);
     PaintBox32.Invalidate;
   end;
 end;
@@ -131,22 +170,18 @@ procedure TFrmLineSimplification.PaintBox32MouseUp(Sender: TObject;
 var
   Index: Integer;
 begin
-  Index := Length(FPoints) - 1;
+  Index := High(FPoints);
   if (FPoints[Index].X <> X) and (FPoints[Index].Y <> Y) then
   begin
-    Index := Length(FPoints);
-    SetLength(FPoints, Index + 1);
-    FPoints[Index] := FloatPoint(X, Y);
+    SetLength(FPoints, Length(FPoints)+1);
+    FPoints[High(FPoints)] := FloatPoint(X, Y);
   end;
 
-  FLastEpsilon := 1;
-  if ssShift in Shift then
-    FLastEpsilon := 5
-  else
-  if ssCtrl in Shift then
-    FLastEpsilon := 0.5;
+  // Enable the next line to close the polyline (i.e. a polygon). See issue #87
+  // FPoints[High(FPoints)] := FPoints[0];
 
-  FPoints := VertexReduction(FPoints, FLastEpsilon);
+  // Simplify the polyline
+  FSimplifiedPoints := VertexReduction(FPoints, FEpsilon);
 
   PaintBox32.Invalidate;
   PaintBox32.OnMouseMove := nil;
@@ -157,20 +192,64 @@ var
   Index: Integer;
   r: TRect;
   rf: TFloatRect;
+  ColorPoint: TColor32;
+resourcestring
+  sHelp = 'Use the mouse to draw an arbitrary polyline.'+#13#13+
+    'Use the + and - keys to control how aggresively the line is simplified.';
+  sInfo = 'Source points: %.0n'#13+
+    'Simplified points: %.0n'#13+
+    'Epsilon: %.2n';
 begin
-  with PaintBox32.Buffer do
-  begin
-    Clear($FFFFFFFF);
+  PaintBox32.Buffer.Clear(clWhite32);
 
-    FRenderer.PolygonFS(BuildPolyline(FPoints, 2));
+  r := PaintBox32.Buffer.BoundsRect;
+
+  if (Length(FPoints) = 0) then
+  begin
+    PaintBox32.Buffer.Textout(r, DT_CENTER or DT_NOPREFIX or DT_CALCRECT, sHelp);
+    RectCenter(r, PaintBox32.Buffer.BoundsRect);
+
+    PaintBox32.Buffer.Textout(r, DT_CENTER or DT_NOPREFIX, sHelp);
+    exit;
+  end;
+
+  PaintBox32.Buffer.Textout(r, 0, Format(sInfo, [Length(FPoints)*1.0, Length(FSimplifiedPoints)*1.0, FEpsilon]));
+
+  if (Length(FPoints) > 0) then
+  begin
+    FSourceBrush.Visible := True;
+    FSimplifiedBrush.Visible := False;
+    FCanvas.PolyLine(FPoints);
+    FCanvas.EndPath;
+
+    ColorPoint := SetAlpha(FSourceBrush.FillColor, 255);
 
     for Index := 0 to High(FPoints) do
     begin
       rf := FloatRect(FPoints[Index], FPoints[Index]);
-      rf.Inflate(4.0, 4.0);
-
+      rf.Inflate(1.0, 1.0);
       r := MakeRect(rf, rrClosest);
-      FillRectS(r, clBlack32);
+
+      PaintBox32.Buffer.FillRectTS(r, ColorPoint);
+    end;
+  end;
+
+  if (Length(FSimplifiedPoints) > 0) then
+  begin
+    FSourceBrush.Visible := False;
+    FSimplifiedBrush.Visible := True;
+    FCanvas.PolyLine(FSimplifiedPoints);
+    FCanvas.EndPath;
+
+    ColorPoint := SetAlpha(FSimplifiedBrush.FillColor, 255);
+
+    for Index := 0 to High(FSimplifiedPoints) do
+    begin
+      rf := FloatRect(FSimplifiedPoints[Index], FSimplifiedPoints[Index]);
+      rf.Inflate(4.0, 4.0);
+      r := MakeRect(rf, rrClosest);
+
+      PaintBox32.Buffer.FrameRectTS(r, ColorPoint);
     end;
   end;
 end;
