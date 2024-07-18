@@ -44,7 +44,9 @@ uses
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
   SysUtils, Classes, Clipbrd, ActnList,
-  GR32, GR32_Image, GR32_Layers, GR32_Filters;
+  GR32,
+  GR32_Image,
+  GR32_Layers;
 
 type
   TPictureEditorForm = class(TForm)
@@ -87,7 +89,6 @@ type
     ActionHelp: TAction;
     ButtonGrid: TToolButton;
     ActionGrid: TAction;
-    Bitmap32List: TBitmap32List;
     procedure ActionLoadExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
     procedure ActionHasBitmapUpdate(Sender: TObject);
@@ -101,16 +102,16 @@ type
     procedure ActionGridUpdate(Sender: TObject);
   protected
 {$IFDEF PLATFORM_INDEPENDENT}
-    OpenDialog: TOpenDialog;
-    SaveDialog: TSaveDialog;
+    FOpenDialog: TOpenDialog;
+    FSaveDialog: TSaveDialog;
 {$ELSE}
-    OpenDialog: TOpenPictureDialog;
-    SaveDialog: TSavePictureDialog;
+    FOpenDialog: TOpenPictureDialog;
+    FSaveDialog: TSavePictureDialog;
 {$ENDIF}
-    ImageAllChannels: TImage32;
-    ImageRGBChannels: TImage32;
-    ImageAlphaChannel: TImage32;
-    LayerPixelGrid: TCustomLayer;
+    FImageAllChannels: TImage32;
+    FImageRGBChannels: TImage32;
+    FImageAlphaChannel: TImage32;
+    FLayerPixelGrid: TCustomLayer;
     procedure ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImageMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImageChanged(Sender: TObject);
@@ -166,10 +167,12 @@ uses
   Math,
   Types,
   GR32.ImageFormats,
+  GR32_Filters,
   GR32_Resamplers,
   GR32_Backends_Generic;
 
 {$R *.dfm}
+{$R 'GR32.Design.BitmapEditor.res'}
 
 resourcestring
   sInfo = 'Width: %.0n, Height: %.0n';
@@ -392,12 +395,12 @@ end;
 function TPictureEditorForm.CurrentImage: TImage32;
 begin
   if PageControl.ActivePage = TabSheetRGB then
-    Result := ImageRGBChannels
+    Result := FImageRGBChannels
   else
   if PageControl.ActivePage = TabSheetAlpha then
-    Result := ImageAlphaChannel
+    Result := FImageAlphaChannel
   else
-    Result := ImageAllChannels
+    Result := FImageAllChannels
 end;
 
 procedure TPictureEditorForm.LoadFromImage(Source: TPersistent);
@@ -420,88 +423,88 @@ procedure TPictureEditorForm.LoadFromImage(Source: TPersistent);
   end;
 
 begin
-  ImageAllChannels.BeginUpdate;
-  ImageRGBChannels.BeginUpdate;
-  ImageAlphaChannel.BeginUpdate;
+  FImageAllChannels.BeginUpdate;
+  FImageRGBChannels.BeginUpdate;
+  FImageAlphaChannel.BeginUpdate;
   try
-    if CurrentImage = ImageAllChannels then
+    if CurrentImage = FImageAllChannels then
     begin
       // Load RGBA bitmap, separate into RGB and A
 
       // Load RGBA
-      ImageAllChannels.Bitmap.Assign(Source);
-      ImageAllChannels.Bitmap.DrawMode := dmBlend;
+      FImageAllChannels.Bitmap.Assign(Source);
+      FImageAllChannels.Bitmap.DrawMode := dmBlend;
 
       // Separate RGB
-      ImageRGBChannels.Bitmap.Assign(ImageAllChannels.Bitmap);
-      ImageRGBChannels.Bitmap.ResetAlpha;
+      FImageRGBChannels.Bitmap.Assign(FImageAllChannels.Bitmap);
+      FImageRGBChannels.Bitmap.ResetAlpha;
 
       // Separate A
-      AlphaToGrayscale(ImageAlphaChannel.Bitmap, ImageAllChannels.Bitmap);
-      ImageAlphaChannel.Bitmap.ResetAlpha;
+      AlphaToGrayscale(FImageAlphaChannel.Bitmap, FImageAllChannels.Bitmap);
+      FImageAlphaChannel.Bitmap.ResetAlpha;
     end else
-    if CurrentImage = ImageRGBChannels then
+    if CurrentImage = FImageRGBChannels then
     begin
       // Load RGB bitmap, keep existing A
 
       // Load RGB
       if (Source <> nil) then
       begin
-        ImageRGBChannels.Bitmap.Assign(Source);
-        ImageRGBChannels.Bitmap.ResetAlpha;
+        FImageRGBChannels.Bitmap.Assign(Source);
+        FImageRGBChannels.Bitmap.ResetAlpha;
       end else
-        ImageRGBChannels.Bitmap.Clear($FF000000);
+        FImageRGBChannels.Bitmap.Clear($FF000000);
 
       // Merge A and RGB into RGBA
-      ImageAllChannels.Bitmap.Assign(ImageRGBChannels.Bitmap);
-      ImageAllChannels.Bitmap.DrawMode := dmBlend;
-      if (not ImageAlphaChannel.Bitmap.Empty) then
-        IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap)
+      FImageAllChannels.Bitmap.Assign(FImageRGBChannels.Bitmap);
+      FImageAllChannels.Bitmap.DrawMode := dmBlend;
+      if (not FImageAlphaChannel.Bitmap.Empty) then
+        IntensityToAlpha(FImageAllChannels.Bitmap, FImageAlphaChannel.Bitmap)
       else
-        ImageAllChannels.Bitmap.ResetAlpha;
+        FImageAllChannels.Bitmap.ResetAlpha;
     end else
-    if CurrentImage = ImageAlphaChannel then
+    if CurrentImage = FImageAlphaChannel then
     begin
       // Load A bitmap, keep existing RGB
       if (Source <> nil) then
-        ImageAlphaChannel.Bitmap.Assign(Source)
+        FImageAlphaChannel.Bitmap.Assign(Source)
       else
-        ImageAlphaChannel.Bitmap.Clear($FFFFFFFF);
-      ColorToGrayscale(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
+        FImageAlphaChannel.Bitmap.Clear($FFFFFFFF);
+      ColorToGrayscale(FImageAlphaChannel.Bitmap, FImageAlphaChannel.Bitmap);
 
       // Merge A and RGB into RGBA
-      if (not ImageRGBChannels.Bitmap.Empty) then
+      if (not FImageRGBChannels.Bitmap.Empty) then
       begin
-        ImageAllChannels.Bitmap.Assign(ImageRGBChannels.Bitmap);
-        ImageAllChannels.Bitmap.DrawMode := dmBlend;
+        FImageAllChannels.Bitmap.Assign(FImageRGBChannels.Bitmap);
+        FImageAllChannels.Bitmap.DrawMode := dmBlend;
       end else
       begin
-        ImageAllChannels.Bitmap.SetSizeFrom(ImageAlphaChannel.Bitmap);
-        ImageAllChannels.Bitmap.Clear;
+        FImageAllChannels.Bitmap.SetSizeFrom(FImageAlphaChannel.Bitmap);
+        FImageAllChannels.Bitmap.Clear;
       end;
-      IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap);
+      IntensityToAlpha(FImageAllChannels.Bitmap, FImageAlphaChannel.Bitmap);
     end;
 
-    ResetZoomAndCenter(ImageAllChannels);
-    ResetZoomAndCenter(ImageRGBChannels);
-    ResetZoomAndCenter(ImageAlphaChannel);
+    ResetZoomAndCenter(FImageAllChannels);
+    ResetZoomAndCenter(FImageRGBChannels);
+    ResetZoomAndCenter(FImageAlphaChannel);
 
-    UpdateImageBackground(ImageAllChannels);
-    UpdateImageBackground(ImageRGBChannels);
-    UpdateImageBackground(ImageAlphaChannel);
+    UpdateImageBackground(FImageAllChannels);
+    UpdateImageBackground(FImageRGBChannels);
+    UpdateImageBackground(FImageAlphaChannel);
   finally
-    ImageAllChannels.EndUpdate;
-    ImageRGBChannels.EndUpdate;
-    ImageAlphaChannel.EndUpdate;
+    FImageAllChannels.EndUpdate;
+    FImageRGBChannels.EndUpdate;
+    FImageAlphaChannel.EndUpdate;
   end;
-  ImageAllChannels.Changed;
-  ImageRGBChannels.Changed;
-  ImageAlphaChannel.Changed;
+  FImageAllChannels.Changed;
+  FImageRGBChannels.Changed;
+  FImageAlphaChannel.Changed;
 
-  if (ImageAllChannels.Bitmap.Empty) then
+  if (FImageAllChannels.Bitmap.Empty) then
     StatusBar.Panels[3].Text := sInfoEmpty
   else
-    StatusBar.Panels[3].Text := Format(sInfo, [1.0*ImageAllChannels.Bitmap.Width, 1.0*ImageAllChannels.Bitmap.Height]);
+    StatusBar.Panels[3].Text := Format(sInfo, [1.0*FImageAllChannels.Bitmap.Width, 1.0*FImageAllChannels.Bitmap.Height]);
 end;
 
 procedure TPictureEditorForm.ResetZoomAndCenter(Image: TImage32);
@@ -548,9 +551,9 @@ begin
 
   LabelZoom.Caption := Format(sZoom, [CurrentImage.Scale * 100]);
 
-  DoSync(ImageAllChannels);
-  DoSync(ImageRGBChannels);
-  DoSync(ImageAlphaChannel);
+  DoSync(FImageAllChannels);
+  DoSync(FImageRGBChannels);
+  DoSync(FImageAlphaChannel);
 end;
 
 constructor TPictureEditorForm.Create(AOwner: TComponent);
@@ -582,9 +585,21 @@ constructor TPictureEditorForm.Create(AOwner: TComponent);
 
   procedure LoadGlyphs;
   var
-    i: integer;
+    ResourceName: string;
     Bitmap: TBitmap;
-begin
+    Stream: TResourceStream;
+  const
+    sBitmapNames: array[0..7] of string = (
+      'GR32_OPEN',
+      'GR32_SAVE',
+      'GR32_CLEAR',
+      'GR32_COPY',
+      'GR32_PASTE',
+      'GR32_INVERT',
+      'GR32_HELP',
+      'GR32_GRID'
+    );
+  begin
     // We're not storing bitmaps in the imagelist in order to support FPC.
     // FPC's TImageList doesn't have the ColorDepth property.
     ImageList.Clear;
@@ -593,15 +608,20 @@ begin
 {$endif FPC}
     Bitmap := TBitmap.Create;
     try
-      for i := 0 to Bitmap32List.Bitmaps.Count-1 do
+      for ResourceName in sBitmapNames do
       begin
-        Bitmap.Assign(Bitmap32List.Bitmaps[i].Bitmap);
+        Stream := TResourceStream.Create(hInstance, ResourceName, 'BITMAP32');
+        try
+          Bitmap.LoadFromStream(Stream);
+        finally
+          Stream.Free;
+        end;
+
         ImageList.AddMasked(Bitmap, -1);
       end;
     finally
       Bitmap.Free;
     end;
-    Bitmap32List.Bitmaps.Clear;
   end;
 
 begin
@@ -609,25 +629,25 @@ begin
 
   LoadGlyphs;
 
-  ImageAllChannels := CreateImage32(TabSheetRGBA);
-  ImageRGBChannels := CreateImage32(TabSheetRGB);
-  ImageAlphaChannel := CreateImage32(TabSheetAlpha);
+  FImageAllChannels := CreateImage32(TabSheetRGBA);
+  FImageRGBChannels := CreateImage32(TabSheetRGB);
+  FImageAlphaChannel := CreateImage32(TabSheetAlpha);
 
-  ImageAllChannels.Bitmap.DrawMode := dmBlend;
+  FImageAllChannels.Bitmap.DrawMode := dmBlend;
 
-  LayerPixelGrid := TPixelGridLayer.Create(ImageAllChannels.Layers, ImageAllChannels);
-  LayerPixelGrid.Visible := False;
+  FLayerPixelGrid := TPixelGridLayer.Create(FImageAllChannels.Layers, FImageAllChannels);
+  FLayerPixelGrid.Visible := False;
 
 {$IFDEF PLATFORM_INDEPENDENT}
-  OpenDialog := TOpenDialog.Create(Self);
-  SaveDialog := TSaveDialog.Create(Self);
+  FOpenDialog := TOpenDialog.Create(Self);
+  FSaveDialog := TSaveDialog.Create(Self);
 {$ELSE}
-  OpenDialog := TOpenPictureDialog.Create(Self);
-  SaveDialog := TSavePictureDialog.Create(Self);
+  FOpenDialog := TOpenPictureDialog.Create(Self);
+  FSaveDialog := TSavePictureDialog.Create(Self);
 {$ENDIF}
-  OpenDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True) +
+  FOpenDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True) +
     '|' + SDefaultFilter;
-  SaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter) +
+  FSaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter) +
     '|' + SDefaultFilter;
 end;
 
@@ -658,7 +678,7 @@ begin
     Result := (PictureEditorForm.ShowModal = mrOK);
 
     if Result then
-      FBitmap32.Assign(PictureEditorForm.ImageAllChannels.Bitmap);
+      FBitmap32.Assign(PictureEditorForm.FImageAllChannels.Bitmap);
 
   finally
     PictureEditorForm.Free;
@@ -831,12 +851,12 @@ procedure TPictureEditorForm.ActionLoadExecute(Sender: TObject);
 var
   Bitmap: TBitmap32;
 begin
-  if not OpenDialog.Execute then
+  if not FOpenDialog.Execute then
     exit;
 
   Bitmap := TBitmap32.Create(TMemoryBackend);
   try
-    Bitmap.LoadFromFile(OpenDialog.Filename);
+    Bitmap.LoadFromFile(FOpenDialog.Filename);
     LoadFromImage(Bitmap);
   finally
     Bitmap.Free;
@@ -877,15 +897,15 @@ begin
   if (CurrentImage.Bitmap.Empty) then
     exit;
 
-  SaveDialog.DefaultExt := GraphicExtension(TBitmap);
+  FSaveDialog.DefaultExt := GraphicExtension(TBitmap);
 
-  if not SaveDialog.Execute then
+  if not FSaveDialog.Execute then
     exit;
 
-  if (CurrentImage = ImageAllChannels) or
-    (not SameText(ExtractFileExt(SaveDialog.Filename), GraphicExtension(TBitmap))) then
+  if (CurrentImage = FImageAllChannels) or
+    (not SameText(ExtractFileExt(FSaveDialog.Filename), GraphicExtension(TBitmap))) then
     // Save in 32-bit RGBA bitmap (or whatever format we have chosen)
-    ImageAllChannels.Bitmap.SaveToFile(SaveDialog.Filename)
+    FImageAllChannels.Bitmap.SaveToFile(FSaveDialog.Filename)
   else
   begin
     // Save 24-bit RGB bitmap
@@ -894,7 +914,7 @@ begin
       Bitmap.Assign(CurrentImage.Bitmap);
       Bitmap.PixelFormat := pf24Bit;
 
-      Bitmap.SaveToFile(SaveDialog.Filename)
+      Bitmap.SaveToFile(FSaveDialog.Filename)
     finally
       Bitmap.Free;
     end;
@@ -908,12 +928,12 @@ end;
 
 procedure TPictureEditorForm.ActionGridExecute(Sender: TObject);
 begin
-  LayerPixelGrid.Visible := TAction(Sender).Checked;
+  FLayerPixelGrid.Visible := TAction(Sender).Checked;
 end;
 
 procedure TPictureEditorForm.ActionGridUpdate(Sender: TObject);
 begin
-  TAction(Sender).Checked := LayerPixelGrid.Visible;
+  TAction(Sender).Checked := FLayerPixelGrid.Visible;
 end;
 
 procedure TPictureEditorForm.ActionHasBitmapUpdate(Sender: TObject);
@@ -928,20 +948,20 @@ end;
 
 procedure TPictureEditorForm.ActionInvertExecute(Sender: TObject);
 begin
-  if (CurrentImage = ImageAllChannels) then
+  if (CurrentImage = FImageAllChannels) then
   begin
-    Invert(ImageAllChannels.Bitmap, ImageAllChannels.Bitmap);
-    InvertRGB(ImageRGBChannels.Bitmap, ImageRGBChannels.Bitmap);
-    InvertRGB(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
+    Invert(FImageAllChannels.Bitmap, FImageAllChannels.Bitmap);
+    InvertRGB(FImageRGBChannels.Bitmap, FImageRGBChannels.Bitmap);
+    InvertRGB(FImageAlphaChannel.Bitmap, FImageAlphaChannel.Bitmap);
   end else
-  if (CurrentImage = ImageRGBChannels) then
+  if (CurrentImage = FImageRGBChannels) then
   begin
-    InvertRGB(ImageAllChannels.Bitmap, ImageAllChannels.Bitmap);
-    InvertRGB(ImageRGBChannels.Bitmap, ImageRGBChannels.Bitmap);
+    InvertRGB(FImageAllChannels.Bitmap, FImageAllChannels.Bitmap);
+    InvertRGB(FImageRGBChannels.Bitmap, FImageRGBChannels.Bitmap);
   end else
   begin
-    Invert(ImageAllChannels.Bitmap, ImageAllChannels.Bitmap, [ccAlpha]);
-    InvertRGB(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
+    Invert(FImageAllChannels.Bitmap, FImageAllChannels.Bitmap, [ccAlpha]);
+    InvertRGB(FImageAlphaChannel.Bitmap, FImageAlphaChannel.Bitmap);
   end;
 end;
 
@@ -985,12 +1005,12 @@ begin
   begin
     Color := TColor32Entry(Image.Bitmap[P.X, P.Y]);
 
-    if (Image = ImageAllChannels) then
+    if (Image = FImageAllChannels) then
     begin
       ColorHex := Format('ARGB: $%.8X', [Color.ARGB]);
       ColorChannels := Format('A:%-3d R:%-3d G:%-3d B:%-3d', [Color.A, Color.R, Color.G, Color.B]);
     end else
-    if (Image = ImageRGBChannels) then
+    if (Image = FImageRGBChannels) then
     begin
       ColorHex := Format('RGB: $%.6X', [Color.ARGB and $00FFFFFF]);
       ColorChannels := Format('R:%-3d G:%-3d B:%-3d', [Color.R, Color.G, Color.B]);
