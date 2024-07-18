@@ -2286,7 +2286,7 @@ end;
 //------------------------------------------------------------------------------
 // ScaleMems
 //------------------------------------------------------------------------------
-procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   //
   // Result Z = W * Bargb
@@ -2434,7 +2434,7 @@ asm
 {$ENDIF}
 end;
 
-procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   //
   // Result Z = W * Bargb
