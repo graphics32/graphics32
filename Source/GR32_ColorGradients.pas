@@ -649,12 +649,10 @@ type
   protected
     function GetFillLine: TFillLineEvent; override;
     procedure EllipseBoundsChanged; override;
-    procedure FillLinePad(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode);
-    procedure FillLineRepeat(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode);
-    procedure FillLineReflect(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineClamp(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineRepeat(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineMirror(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineReflect(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
   public
     constructor Create(Radius: TFloatPoint); overload;
     constructor Create(BoundingBox: TFloatRect); overload;
@@ -3712,14 +3710,12 @@ end;
 
 { TLinearGradientPolygonFiller }
 
-constructor TLinearGradientPolygonFiller.Create(
-  ColorGradient: TColor32Gradient);
+constructor TLinearGradientPolygonFiller.Create(ColorGradient: TColor32Gradient);
 begin
   Create(ColorGradient, True);
 end;
 
-constructor TLinearGradientPolygonFiller.Create(
-  ColorGradient: TColor32Gradient; UseLookupTable: Boolean);
+constructor TLinearGradientPolygonFiller.Create(ColorGradient: TColor32Gradient; UseLookupTable: Boolean);
 begin
   // create lookup table (and set 'own' & 'use' flags)
   FGradientLUT := TColor32LookupTable.Create;
@@ -3732,23 +3728,27 @@ begin
   FGradient.OnGradientColorsChanged := GradientColorsChangedHandler;
 end;
 
-function TLinearGradientPolygonFiller.ColorStopToScanLine(Index,
-  Y: Integer): TFloat;
+function TLinearGradientPolygonFiller.ColorStopToScanLine(Index, Y: Integer): TFloat;
 var
   Offset: array [0 .. 1] of TFloat;
 begin
   Offset[0] := FGradient.FGradientColors[Index].Offset;
   Offset[1] := 1.0 - Offset[0];
-  Result := Offset[1] * FStartPoint.X + Offset[0] * FEndPoint.X + FIncline *
-    (Offset[1] * (FStartPoint.Y - Y) + Offset[0] * (FEndPoint.Y - Y));
+  Result :=
+    Offset[1] * FStartPoint.X +
+    Offset[0] * FEndPoint.X +
+    FIncline * (
+      Offset[1] * (FStartPoint.Y - Y) +
+      Offset[0] * (FEndPoint.Y - Y)
+    );
 end;
 
 procedure TLinearGradientPolygonFiller.UseLookUpTableChanged;
 begin
   inherited;
 
-  // perfect gradients are only implementd for WrapMode = wmClamp
-  if (not FUseLookUpTable) and (WrapMode in [wmRepeat, wmMirror]) then
+  // Perfect gradients are only implemented for WrapMode = wmClamp
+  if (not FUseLookUpTable) and (WrapMode <> wmClamp) then
     WrapMode := wmClamp;
 end;
 
@@ -3756,8 +3756,8 @@ procedure TLinearGradientPolygonFiller.WrapModeChanged;
 begin
   inherited;
 
-  // perfect gradients are only implementd for WrapMode = wmClamp
-  if (not FUseLookUpTable) and (WrapMode in [wmRepeat, wmMirror]) then
+  // Perfect gradients are only implemented for WrapMode = wmClamp
+  if (not FUseLookUpTable) and (WrapMode <> wmClamp) then
     UseLookUpTable := True;
 end;
 
@@ -3765,7 +3765,7 @@ function TLinearGradientPolygonFiller.GetFillLine: TFillLineEvent;
 var
   GradientCount: Integer;
 begin
-  if Assigned(FGradient) then
+  if (FGradient <> nil) then
     GradientCount := FGradient.GradientCount
   else
     GradientCount := FGradientLUT.Size;
@@ -3773,42 +3773,49 @@ begin
   case GradientCount of
     0:
       Result := FillLineNone;
+
     1:
       Result := FillLineSolid;
-    else
-      if FUseLookUpTable then
-        case FWrapMode of
-          wmClamp:
-            if FStartPoint.X = FEndPoint.X then
-              if FStartPoint.Y = FEndPoint.Y then
-                Result := FillLineVerticalPadExtreme
-              else
-                Result := FillLineVerticalPad
-            else
-            if FStartPoint.X < FEndPoint.X then
-              Result := FillLineHorizontalPadPos
-            else
-              Result := FillLineHorizontalPadNeg;
-          wmMirror, wmRepeat:
-            if FStartPoint.X = FEndPoint.X then
-              Result := FillLineVerticalWrap
-            else
-            if FStartPoint.X < FEndPoint.X then
-              Result := FillLineHorizontalWrapPos
-            else
-              Result := FillLineHorizontalWrapNeg;
-        end
-      else
-      if FStartPoint.X = FEndPoint.X then
-        if FStartPoint.Y = FEndPoint.Y then
-          Result := FillLineVerticalExtreme
+
+  else
+
+    if FUseLookUpTable then
+    begin
+      if (FWrapMode = wmClamp) then
+      begin
+        if FStartPoint.X = FEndPoint.X then
+          if FStartPoint.Y = FEndPoint.Y then
+            Result := FillLineVerticalPadExtreme
+          else
+            Result := FillLineVerticalPad
         else
-          Result := FillLineVertical
+        if FStartPoint.X < FEndPoint.X then
+          Result := FillLineHorizontalPadPos
+        else
+          Result := FillLineHorizontalPadNeg;
+      end else
+      // wmMirror, wmRepeat, wmReflect
+      begin
+        if FStartPoint.X = FEndPoint.X then
+          Result := FillLineVerticalWrap
+        else
+        if FStartPoint.X < FEndPoint.X then
+          Result := FillLineHorizontalWrapPos
+        else
+          Result := FillLineHorizontalWrapNeg;
+      end;
+    end else
+    if FStartPoint.X = FEndPoint.X then
+    begin
+      if FStartPoint.Y = FEndPoint.Y then
+        Result := FillLineVerticalExtreme
       else
-      if FStartPoint.X < FEndPoint.X then
-        Result := FillLinePositive
-      else
-        Result := FillLineNegative;
+        Result := FillLineVertical;
+    end else
+    if FStartPoint.X < FEndPoint.X then
+      Result := FillLinePositive
+    else
+      Result := FillLineNegative;
   end;
 end;
 
@@ -4365,15 +4372,22 @@ function TRadialGradientPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   case FWrapMode of
     wmClamp:
-      Result := FillLinePad;
+      Result := FillLineClamp;
+
     wmMirror:
-      Result := FillLineReflect;
+      Result := FillLineMirror;
+
     wmRepeat:
       Result := FillLineRepeat;
+
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect:
+      Result := FillLineReflect;
+{$endif}
   end;
 end;
 
-procedure TRadialGradientPolygonFiller.FillLinePad(Dst: PColor32; DstX,
+procedure TRadialGradientPolygonFiller.FillLineClamp(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   X, Index, Count, Mask: Integer;
@@ -4413,6 +4427,7 @@ begin
   for X := DstX to DstX + Length - 1 do
   begin
     SqrRelRad := (Sqr(X - FCenter.X) + YDist) * SqrInvRadius;
+    // Clamp
     if SqrRelRad > RadMax then
       Index := Mask
     else
@@ -4430,7 +4445,45 @@ procedure TRadialGradientPolygonFiller.FillLineReflect(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32;
   CombineMode: TCombineMode);
 var
-  X, Index, Mask, DivResult: Integer;
+  X, Index, Mask: Integer;
+  SqrInvRadius: TFloat;
+  YDist: TFloat;
+  ColorLUT: PColor32Array;
+  ReflectProc: TWrapProc;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+  SqrInvRadius := Sqr(FRadXInv);
+  YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+  Mask := Integer(FGradientLUT.Mask);
+  ColorLUT := FGradientLUT.Color32Ptr;
+  ReflectProc := GetOptimalReflect(FGradientLUT.Size-1);
+
+  for X := DstX to DstX + Length - 1 do
+  begin
+    Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius));
+    // Reflect
+    Index := ReflectProc(Index, FGradientLUT.Size-1);
+    (*
+    DivResult := DivMod(Index, FGradientLUT.Size, Index);
+    if Odd(DivResult) then
+      Index := Mask - Index;
+    *)
+
+    Color32 := ColorLUT^[Index];
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TRadialGradientPolygonFiller.FillLineMirror(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32;
+  CombineMode: TCombineMode);
+var
+  X, Index, Mask: Integer;
   SqrInvRadius: TFloat;
   YDist: TFloat;
   ColorLUT: PColor32Array;
@@ -4445,11 +4498,10 @@ begin
 
   for X := DstX to DstX + Length - 1 do
   begin
-    Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist)
-      * SqrInvRadius));
-    DivResult := DivMod(Index, FGradientLUT.Size, Index);
-    if Odd(DivResult) then
-      Index := Mask - Index;
+    Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius));
+    // Mirror
+    Index := Mirror(Index, FGradientLUT.Size-1);
+
     Color32 := ColorLUT^[Index];
     BlendMemEx(Color32, Dst^, AlphaValues^);
     EMMS;
@@ -4462,8 +4514,10 @@ procedure TRadialGradientPolygonFiller.FillLineRepeat(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   X, Mask: Integer;
+  Index: Integer;
   YDist, SqrInvRadius: TFloat;
   ColorLUT: PColor32Array;
+  WrapProc: TWrapProc;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
@@ -4472,10 +4526,15 @@ begin
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
+  WrapProc := GetOptimalWrap(FGradientLUT.Size-1);
+
   for X := DstX to DstX + Length - 1 do
   begin
-    Color32 := ColorLUT^[Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) *
-      SqrInvRadius)) mod FGradientLUT.Size];
+    // Wrap
+    Index := WrapProc(Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius)), FGradientLUT.Size-1);
+    // Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius)) mod FGradientLUT.Size;
+
+    Color32 := ColorLUT^[Index];
     BlendMemEx(Color32, Dst^, AlphaValues^);
     EMMS;
     Inc(Dst);

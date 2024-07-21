@@ -98,6 +98,11 @@ object FrmGradientSampler: TFrmGradientSampler
         RadioItem = True
         OnClick = MnuWrapModeMirrorClick
       end
+      object MnuWrapModeReflect: TMenuItem
+        Caption = 'Reflect'
+        RadioItem = True
+        OnClick = MnuWrapModeReflectClick
+      end
     end
     object MnuBackground: TMenuItem
       Caption = '&Background Gradient'

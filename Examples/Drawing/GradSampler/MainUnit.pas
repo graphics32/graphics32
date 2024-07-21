@@ -33,6 +33,8 @@ unit MainUnit;
 
 interface
 
+{$I GR32.inc}
+
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes,
   Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
@@ -69,6 +71,7 @@ type
     MnuBackgroundGradientVoronoi: TMenuItem;
     MnuBackgroundGradientShepards: TMenuItem;
     MnuBackgroundGradientCustomIDW: TMenuItem;
+    MnuWrapModeReflect: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -83,6 +86,7 @@ type
     procedure MnuWrapModeClampClick(Sender: TObject);
     procedure MnuWrapModeRepeatClick(Sender: TObject);
     procedure MnuWrapModeMirrorClick(Sender: TObject);
+    procedure MnuWrapModeReflectClick(Sender: TObject);
     procedure PaintBox32PaintBuffer(Sender: TObject);
     procedure PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -233,6 +237,10 @@ begin
   FEndColor := SetAlpha(Random($FFFFFF), $FF);
 
   UpdateBackgroundGradientSampler;
+
+{$ifndef GR32_WRAPMODE_REFLECT}
+  MnuWrapModeReflect.Enabled := False;
+{$endif}
 
   PaintBox32.Invalidate;
 end;
@@ -419,6 +427,15 @@ begin
   FWrapMode := wmMirror;
   MnuWrapModeMirror.Checked := True;
   PaintBox32.Invalidate;
+end;
+
+procedure TFrmGradientSampler.MnuWrapModeReflectClick(Sender: TObject);
+begin
+{$ifdef GR32_WRAPMODE_REFLECT}
+  FWrapMode := wmReflect;
+  MnuWrapModeReflect.Checked := True;
+  PaintBox32.Invalidate;
+{$endif}
 end;
 
 procedure TFrmGradientSampler.MnuWrapModeRepeatClick(Sender: TObject);

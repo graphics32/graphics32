@@ -170,40 +170,64 @@ function Wrap(Value, Max: Integer): Integer; overload; {$IFDEF USENATIVECODE} in
 // Same but [Min..Max] range. Min is assumed to be <= Max
 function Wrap(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-{ Wrap single value to [0..Max) range.
-  Basically the same as FloatMod except:
-  - The upper limit is expected to always be positive.
-  - If Max=0,, then 0 is returned.
-  Unlike the integer version of Wrap, the upper limit is exclusive.
-  NAN is not checked. If Max=0, Zero is returned. }
+// Wrap single value to [0..Max) range.
+//  Basically the same as FloatMod except:
+//  - The upper limit is expected to always be positive.
+//  - If Max=0, then 0 is returned.
+//  Unlike the integer version of Wrap, the upper limit is exclusive.
+//  NAN is not checked.
 function Wrap(Value, Max: Single): Single; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 // Same as Wrap above but Value is by ref and Max is an integer
 procedure WrapMem(var Value: Single; Max: Cardinal); {$IFDEF USEINLINING} inline; {$ENDIF}
 
-// Fast Wrap alternatives for cases where range + 1 is a power of two
+// Fast Wrap alternatives for cases where range+1 is a power of two (e.g. 3, 7, 15, etc)
 function WrapPow2(Value, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function WrapPow2(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
 //
-//      Mirror: Constrain value to range with mirroring
+//      Mirror, Reflect: Constrain value to range with mirroring
 //
 //------------------------------------------------------------------------------
+// Mirror:
+// - Has symmetry around the center of the edge value/pixel.
+// - Cycle is (2*Max).
+// - Example (Max=3): 012321012321 (2 cycles)
+// - Example (Max=4): 0123432101234321 (2 cycles)
+//
+// Reflect:
+// - Has symmetry around the end of the edge value/pixel.
+// - Cycle is (2*(Max+1)).
+// - Example (Max=3): 0123321001233210 (2 cycles)
+// - Example (Max=4): 01234432100123443210 (2 cycles)
+//------------------------------------------------------------------------------
+
 // Mirror integer value in [0..Max] range
 function Mirror(Value, Max: Integer): Integer; overload;
 // Mirror integer value in [Min..Max] range
 function Mirror(Value, Min, Max: Integer): Integer; overload;
 
+// Reflect integer value in [0..Max] range
+function Reflect(Value, Max: Integer): Integer; overload;
+// Reflect integer value in [Min..Max] range
+function Reflect(Value, Min, Max: Integer): Integer; overload;
+
+// Fast Reflect alternatives for cases where range+1 is a power of two (e.g. 3, 7, 15, etc)
+function ReflectPow2(Value, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function ReflectPow2(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
 
 //------------------------------------------------------------------------------
 //
-//      Clamp/Wrap/Mirror
+//      Clamp/Wrap/Mirror/Reflect
 //
 //------------------------------------------------------------------------------
 // Functions to determine appropiate wrap procs (normal or power of 2 optimized)
-function GetOptimalWrap(Max: Integer): TWrapProc; overload; inline;
-function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload; inline;
+function GetOptimalWrap(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GetOptimalReflect(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GetOptimalReflect(Min, Max: Integer): TWrapProcEx; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Functions to retrieve correct WrapProc given WrapMode (and range) }
 function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
@@ -213,8 +237,8 @@ function GetWrapProcEx(WrapMode: TWrapMode; Min, Max: Integer): TWrapProcEx; ove
 
 
 const
-  WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror);
-  WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror);
+  WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror{$ifdef GR32_WRAPMODE_REFLECT}, Reflect{$endif});
+  WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror{$ifdef GR32_WRAPMODE_REFLECT}, Reflect{$endif});
 
 
 //------------------------------------------------------------------------------
@@ -1306,7 +1330,86 @@ end;
 function Mirror(Value, Min, Max: Integer): Integer;
 begin
   Result := Min + Mirror(Value - Min, Max - Min);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Reflect
+//
+//------------------------------------------------------------------------------
+function Reflect(Value, Max: Integer): Integer;
+var
+  Quotient: Integer;
+begin
+  if (Value < 0) then
+  begin
+    Value := Value - Max;
+    Quotient := DivMod(Value, Max + 1, Result);
+    Inc(Result, Max);
+  end else
+    Quotient := DivMod(Value, Max + 1, Result);
+
+  if (Quotient and 1 <> 0) then
+    Result := Max - Result;
+end;
+
+//------------------------------------------------------------------------------
+
+function Reflect(Value, Min, Max: Integer): Integer;
+var
+  Quotient: Integer;
+begin
+  if (Value < Min) then
+  begin
+    Quotient := DivMod(Value - Max, Max - Min + 1, Result);
+    Inc(Result, Max);
+  end else
+  begin
+    Quotient := DivMod(Value - Min, Max - Min + 1, Result);
+    Inc(Result, Min);
   end;
+
+  if (Quotient and 1 <> 0) then
+    Result := Max + Min - Result;
+end;
+
+//------------------------------------------------------------------------------
+
+function ReflectPow2(Value, Max: Integer): Integer; overload;
+begin
+  if (Value and (Max + 1) = 0) then
+    Result := Value and Max
+  else
+    Result := Max - (Value and Max);
+end;
+
+//------------------------------------------------------------------------------
+
+function ReflectPow2(Value, Min, Max: Integer): Integer; overload;
+begin
+  Result := ReflectPow2(Value-Min, Max-Min)+Min;
+end;
+
+//------------------------------------------------------------------------------
+
+function GetOptimalReflect(Max: Integer): TWrapProc; overload;
+begin
+  if (Max >= 0) and IsPowerOf2(Max + 1) then
+    Result := ReflectPow2
+  else
+    Result := Reflect;
+end;
+
+//------------------------------------------------------------------------------
+
+function GetOptimalReflect(Min, Max: Integer): TWrapProcEx; overload;
+begin
+  if (Min > 0) and (Max >= Min) and IsPowerOf2(Max - Min + 1) then
+    Result := ReflectPow2
+  else
+    Result := Reflect;
+end;
 
 
 //------------------------------------------------------------------------------
@@ -1319,8 +1422,15 @@ begin
   case WrapMode of
     wmRepeat:
       Result := Wrap;
+
     wmMirror:
       Result := Mirror;
+
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect:
+      Result := Reflect;
+{$endif}
+
     else //wmClamp:
       Result := Clamp;
   end;
@@ -1333,8 +1443,15 @@ begin
   case WrapMode of
     wmRepeat:
       Result := GetOptimalWrap(Max);
+
     wmMirror:
       Result := Mirror;
+
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect:
+      Result := GetOptimalReflect(Max);
+{$endif}
+
     else //wmClamp:
       Result := Clamp;
   end;
@@ -1347,8 +1464,15 @@ begin
   case WrapMode of
     wmRepeat:
       Result := Wrap;
+
     wmMirror:
       Result := Mirror;
+
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect:
+      Result := Reflect;
+{$endif}
+
     else //wmClamp:
       Result := Clamp;
   end;
@@ -1361,8 +1485,15 @@ begin
   case WrapMode of
     wmRepeat:
       Result := GetOptimalWrap(Min, Max);
+
     wmMirror:
       Result := Mirror;
+
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect:
+      Result := GetOptimalReflect(Min, Max);
+{$endif}
+
     else //wmClamp:
       Result := Clamp;
   end;
