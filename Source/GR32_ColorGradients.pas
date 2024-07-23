@@ -116,12 +116,12 @@ type
     procedure FillColorLookUpTable(var ColorLUT: array of TColor32); overload;
     procedure FillColorLookUpTable(ColorLUT: PColor32Array; Count: Integer); overload;
     procedure FillColorLookUpTable(ColorLUT: TColor32LookupTable); overload;
+
     property GradientEntry[Index: Integer]: TColor32GradientStop read GetGradientEntry;
     property GradientCount: Integer read GetGradientCount;
     property StartColor: TColor32 read GetStartColor write SetStartColor;
     property EndColor: TColor32 read GetEndColor write SetEndColor;
-    property OnGradientColorsChanged: TNotifyEvent
-      read FOnGradientColorsChanged write FOnGradientColorsChanged;
+    property OnGradientColorsChanged: TNotifyEvent read FOnGradientColorsChanged write FOnGradientColorsChanged;
   end;
 
   TCustomSparsePointGradientSampler = class(TCustomSampler)
@@ -1151,7 +1151,7 @@ end;
 
 procedure TColor32Gradient.ClearColorStops(Color: TColor32);
 begin
-  SetLength(FGradientColors, 0);
+  SetLength(FGradientColors, 1);
   FGradientColors[0].Offset := 0;
   FGradientColors[0].Color32 := Color;
   GradientColorsChanged;
@@ -1168,20 +1168,20 @@ var
   Index: Integer;
   Scale: TFloat;
 begin
-  if High(GradientColors) < 0 then
+  if Length(GradientColors) = 0 then
   begin
     // no colors specified
     if Length(FGradientColors) > 0 then
       ClearColorStops;
   end else
   begin
-    SetLength(FGradientColors, High(GradientColors) + 1);
+    SetLength(FGradientColors, Length(GradientColors));
 
-    if High(GradientColors) >= 1 then
+    if Length(GradientColors) > 1 then
     begin
       // several colors (at least 2)
-      Scale := 1 / (Length(GradientColors) - 1);
-      for Index := 0 to Length(GradientColors) - 1 do
+      Scale := 1 / High(GradientColors);
+      for Index := 0 to High(GradientColors) do
       begin
         Assert(GradientColors[Index].VType = vtInteger);
         FGradientColors[Index].Color32 := GradientColors[Index].VInteger;
@@ -1211,7 +1211,7 @@ begin
   end else
   begin
     SetLength(FGradientColors, Length(GradientColors));
-    for Index := 0 to Length(GradientColors) - 1 do
+    for Index := 0 to High(GradientColors) do
       FGradientColors[Index] := GradientColors[Index];
     GradientColorsChanged;
   end;
@@ -1234,8 +1234,8 @@ begin
     if Length(GradientColors) > 1 then
     begin
       // several colors (at least 2)
-      Scale := 1 / (Length(GradientColors) - 1);
-      for Index := 0 to Length(GradientColors) - 1 do
+      Scale := 1 / High(GradientColors);
+      for Index := 0 to High(GradientColors) do
       begin
         FGradientColors[Index].Color32 := GradientColors[Index];
         FGradientColors[Index].Offset := Index * Scale;
@@ -1260,8 +1260,8 @@ begin
   // TPalette32 contains 256 colors
   SetLength(FGradientColors, Length(Palette));
 
-  Scale := 1 / (Length(Palette) - 1);
-  for Index := 0 to Length(Palette) - 1 do
+  Scale := 1 / High(Palette);
+  for Index := 0 to High(Palette) do
   begin
     FGradientColors[Index].Color32 := Palette[Index];
     FGradientColors[Index].Offset := Index * Scale;
@@ -1275,21 +1275,25 @@ var
   HasChanged: Boolean;
 begin
   HasChanged := False;
+
   if Length(FGradientColors) = 0 then
   begin
     SetLength(FGradientColors, 1);
     HasChanged := True;
   end;
+
   if FGradientColors[0].Offset <> 0 then
   begin
     FGradientColors[0].Offset := 0;
     HasChanged := True;
   end;
+
   if FGradientColors[0].Color32 <> Value then
   begin
     FGradientColors[0].Color32 := Value;
     HasChanged := True;
   end;
+
   if HasChanged then
     GradientColorsChanged;
 end;
@@ -1299,21 +1303,25 @@ var
   HasChanged: Boolean;
 begin
   HasChanged := False;
+
   if Length(FGradientColors) = 1 then
   begin
     SetLength(FGradientColors, 2);
     HasChanged := True;
   end;
+
   if FGradientColors[High(FGradientColors)].Offset <> 1 then
   begin
     FGradientColors[High(FGradientColors)].Offset := 1;
     HasChanged := True;
   end;
+
   if FGradientColors[High(FGradientColors)].Color32 <> Value then
   begin
     FGradientColors[High(FGradientColors)].Color32 := Value;
     HasChanged := True;
   end;
+
   if HasChanged then
     GradientColorsChanged;
 end;
@@ -1326,9 +1334,8 @@ end;
 function TColor32Gradient.GetGradientEntry(Index: Integer): TColor32GradientStop;
 begin
   if Index > Length(FGradientColors) then
-    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index])
-  else
-    Result := FGradientColors[Index];
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+  Result := FGradientColors[Index];
 end;
 
 function TColor32Gradient.GetStartColor: TColor32;
@@ -1357,7 +1364,8 @@ begin
   Count := GradientCount;
   if (Count = 0) or (Offset <= FGradientColors[0].Offset) then
     Result := StartColor
-  else if (Offset >= FGradientColors[Count - 1].Offset) then
+  else
+  if (Offset >= FGradientColors[Count - 1].Offset) then
     Result := EndColor
   else
   begin
@@ -1368,19 +1376,18 @@ begin
       Inc(Index);
 
     // calculate new offset (between two colors before and at 'Index')
-    Offset := (Offset - FGradientColors[Index - 1].Offset) /
-      (FGradientColors[Index].Offset - FGradientColors[Index - 1].Offset);
+    Offset := (Offset - FGradientColors[Index - 1].Offset) / (FGradientColors[Index].Offset - FGradientColors[Index - 1].Offset);
 
     // check if offset is out of bounds
     if Offset <= 0 then
       Result := FGradientColors[Index - 1].Color32
-    else if Offset >= 1 then
+    else
+    if Offset >= 1 then
       Result := FGradientColors[Index].Color32
     else
     begin
       // interpolate color
-      Result := CombineReg(FGradientColors[Index].Color32,
-        FGradientColors[Index - 1].Color32, Round($FF * Offset));
+      Result := CombineReg(FGradientColors[Index].Color32, FGradientColors[Index - 1].Color32, Round($FF * Offset));
       EMMS;
     end;
   end;
@@ -1453,19 +1460,18 @@ begin
 
     // eventually recalculate scale
     if RecalculateScale then
-      Scale := 1 / (FGradientColors[StopIndex].Offset -
-        FGradientColors[StopIndex - 1].Offset);
+      Scale := 1 / (FGradientColors[StopIndex].Offset - FGradientColors[StopIndex - 1].Offset);
 
     // calculate current color
     LocalFraction := (Fraction - FGradientColors[StopIndex - 1].Offset) * Scale;
     if LocalFraction <= 0 then
       ColorLUT^[LutIndex] := FGradientColors[StopIndex - 1].Color32
-    else if LocalFraction >= 1 then
+    else
+    if LocalFraction >= 1 then
       ColorLUT^[LutIndex] := FGradientColors[StopIndex].Color32
     else
     begin
-      ColorLUT^[LutIndex] := CombineReg(FGradientColors[StopIndex].Color32,
-        FGradientColors[StopIndex - 1].Color32, Round($FF * LocalFraction));
+      ColorLUT^[LutIndex] := CombineReg(FGradientColors[StopIndex].Color32, FGradientColors[StopIndex - 1].Color32, Round($FF * LocalFraction));
       EMMS;
     end;
     Fraction := Fraction + Delta;
