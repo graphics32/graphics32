@@ -139,7 +139,7 @@ constructor TCustomColorSwatch.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
-  ControlStyle := [csOpaque];
+  ControlStyle := [csOpaque, csClickEvents, csDoubleClicks];
   Width := 32;
   Height := 32;
 
@@ -174,16 +174,8 @@ begin
   if (FBuffer.Empty) then
     exit;
 
-  Canvas.Pen.Color := clRed;
-  Canvas.MoveTo(0, 0);
-  Canvas.LineTo(FBuffer.Width, FBuffer.Height);
-
   if not FBufferValid then
   begin
-  Canvas.Pen.Color := clGreen;
-  Canvas.MoveTo(Width, 0);
-  Canvas.LineTo(0, Height);
-
     (FBuffer.Backend as IPaintSupport).ImageNeeded;
 
     // draw checker board
