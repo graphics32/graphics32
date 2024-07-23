@@ -21,53 +21,46 @@ object FormColorPicker: TFormColorPicker
     Top = 178
     Width = 23
     Height = 13
-    Anchors = [akTop, akRight]
     Caption = 'Hex:'
   end
   object LabelRed: TLabel
     Left = 270
-    Top = 11
-    Width = 23
-    Height = 14
+    Top = 12
+    Width = 43
+    Height = 18
     AutoSize = False
     Caption = 'Red:'
   end
   object LabelGreen: TLabel
     Left = 270
-    Top = 51
-    Width = 33
-    Height = 13
+    Top = 52
+    Width = 43
+    Height = 18
+    AutoSize = False
     Caption = 'Green:'
   end
   object LabelBlue: TLabel
     Left = 270
-    Top = 91
-    Width = 19
-    Height = 14
+    Top = 92
+    Width = 43
+    Height = 18
     AutoSize = False
     Caption = 'Blue:'
   end
   object LabelAlpha: TLabel
     Left = 270
-    Top = 131
-    Width = 31
-    Height = 13
+    Top = 132
+    Width = 43
+    Height = 18
+    AutoSize = False
     Caption = 'Alpha:'
   end
   object LabelPreview: TLabel
-    Left = 311
+    Left = 270
     Top = 178
     Width = 42
     Height = 13
     Caption = 'Preview:'
-  end
-  object LabelPalette: TLabel
-    Left = 270
-    Top = 244
-    Width = 38
-    Height = 13
-    Caption = 'Palette:'
-    Visible = False
   end
   object PanelControl: TPanel
     Left = 0
@@ -133,72 +126,15 @@ object FormColorPicker: TFormColorPicker
     Text = '$00000000'
     OnChange = EditColorChange
   end
-  object ColorPickerGTK: TColorPickerGTK
+  object PanelColorPickerMain: TPanel
     Left = 8
     Top = 8
     Width = 256
     Height = 256
-    Cursor = crHandPoint
-    ParentBackground = False
-    SelectedColor = -16777216
+    BevelOuter = bvNone
+    ParentColor = True
+    ShowCaption = False
     TabOrder = 2
-    OnChanged = ColorPickerChanged
-  end
-  object ColorPickerRed: TColorPickerComponent
-    Left = 311
-    Top = 8
-    Width = 192
-    Height = 22
-    Cursor = crHandPoint
-    Anchors = [akTop, akRight]
-    Border = True
-    ColorComponent = ccRed
-    ParentBackground = False
-    SelectedColor = -16777216
-    TabOrder = 3
-    OnChanged = ColorPickerChanged
-  end
-  object ColorPickerGreen: TColorPickerComponent
-    Left = 311
-    Top = 48
-    Width = 192
-    Height = 22
-    Cursor = crHandPoint
-    Anchors = [akTop, akRight]
-    Border = True
-    ColorComponent = ccGreen
-    ParentBackground = False
-    SelectedColor = -16777216
-    TabOrder = 4
-    OnChanged = ColorPickerChanged
-  end
-  object ColorPickerBlue: TColorPickerComponent
-    Left = 311
-    Top = 88
-    Width = 192
-    Height = 22
-    Cursor = crHandPoint
-    Anchors = [akTop, akRight]
-    Border = True
-    ColorComponent = ccBlue
-    ParentBackground = False
-    SelectedColor = -16777216
-    TabOrder = 5
-    OnChanged = ColorPickerChanged
-  end
-  object ColorPickerAlpha: TColorPickerComponent
-    Left = 311
-    Top = 128
-    Width = 192
-    Height = 22
-    Cursor = crHandPoint
-    Anchors = [akTop, akRight]
-    Border = True
-    ColorComponent = ccAlpha
-    ParentBackground = False
-    SelectedColor = -16777216
-    TabOrder = 6
-    OnChanged = ColorPickerChanged
   end
   object SpinEditRed: TSpinEdit
     Left = 509
@@ -208,7 +144,7 @@ object FormColorPicker: TFormColorPicker
     Anchors = [akTop, akRight]
     MaxValue = 255
     MinValue = 0
-    TabOrder = 7
+    TabOrder = 3
     Value = 0
     OnChange = SpinEditColorChange
   end
@@ -220,7 +156,7 @@ object FormColorPicker: TFormColorPicker
     Anchors = [akTop, akRight]
     MaxValue = 255
     MinValue = 0
-    TabOrder = 8
+    TabOrder = 4
     Value = 0
     OnChange = SpinEditColorChange
   end
@@ -232,7 +168,7 @@ object FormColorPicker: TFormColorPicker
     Anchors = [akTop, akRight]
     MaxValue = 255
     MinValue = 0
-    TabOrder = 9
+    TabOrder = 5
     Value = 0
     OnChange = SpinEditColorChange
   end
@@ -244,114 +180,30 @@ object FormColorPicker: TFormColorPicker
     Anchors = [akTop, akRight]
     MaxValue = 255
     MinValue = 0
-    TabOrder = 10
+    TabOrder = 6
     Value = 0
     OnChange = SpinEditColorChange
   end
-  object ColorSwatch: TColorSwatch
-    Left = 359
-    Top = 164
-    Width = 33
+  object PanelPreview: TPanel
+    Left = 328
+    Top = 169
+    Width = 60
     Height = 32
-    Border = True
-    Color = -360334
+    BevelKind = bkFlat
+    BevelOuter = bvNone
+    Ctl3D = False
     ParentBackground = False
-    TabOrder = 11
+    ParentCtl3D = False
+    ShowCaption = False
+    TabOrder = 7
   end
-  object ColorSwatchBlack: TColorSwatch
-    Left = 321
-    Top = 238
-    Width = 24
+  object PanelSwatches: TPanel
+    Left = 270
+    Top = 240
+    Width = 285
     Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -16777216
-    ParentBackground = False
-    TabOrder = 12
-    OnClick = ColorSwatchClick
-  end
-  object ColorSwatchWhite: TColorSwatch
-    Left = 351
-    Top = 238
-    Width = 24
-    Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -1
-    ParentBackground = False
-    TabOrder = 13
-    OnClick = ColorSwatchClick
-  end
-  object ColorSwatchGreen: TColorSwatch
-    Left = 411
-    Top = 238
-    Width = 24
-    Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -16711936
-    ParentBackground = False
-    TabOrder = 14
-    OnClick = ColorSwatchClick
-  end
-  object ColorSwatchRed: TColorSwatch
-    Left = 381
-    Top = 238
-    Width = 24
-    Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -65536
-    ParentBackground = False
-    TabOrder = 15
-    OnClick = ColorSwatchClick
-  end
-  object ColorSwatchAqua: TColorSwatch
-    Left = 531
-    Top = 238
-    Width = 24
-    Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -16711681
-    ParentBackground = False
-    TabOrder = 16
-    OnClick = ColorSwatchClick
-  end
-  object ColorSwatchFuchsia: TColorSwatch
-    Left = 501
-    Top = 238
-    Width = 24
-    Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -65281
-    ParentBackground = False
-    TabOrder = 17
-    OnClick = ColorSwatchClick
-  end
-  object ColorSwatchYellow: TColorSwatch
-    Left = 471
-    Top = 238
-    Width = 24
-    Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -256
-    ParentBackground = False
-    TabOrder = 18
-    OnClick = ColorSwatchClick
-  end
-  object ColorSwatchBlue: TColorSwatch
-    Left = 441
-    Top = 238
-    Width = 24
-    Height = 24
-    Cursor = crHandPoint
-    Border = True
-    Color = -16776961
-    ParentBackground = False
-    TabOrder = 19
-    OnClick = ColorSwatchClick
+    BevelOuter = bvNone
+    ShowCaption = False
+    TabOrder = 8
   end
 end

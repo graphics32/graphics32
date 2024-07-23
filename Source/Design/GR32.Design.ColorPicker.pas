@@ -55,25 +55,11 @@ type
     ButtonOK: TButton;
     ButtonPickFromScreen: TButton;
     CheckBoxWebSafe: TCheckBox;
-    ColorPickerAlpha: TColorPickerComponent;
-    ColorPickerBlue: TColorPickerComponent;
-    ColorPickerGreen: TColorPickerComponent;
-    ColorPickerGTK: TColorPickerGTK;
-    ColorPickerRed: TColorPickerComponent;
-    ColorSwatch: TColorSwatch;
-    ColorSwatchAqua: TColorSwatch;
-    ColorSwatchBlack: TColorSwatch;
-    ColorSwatchBlue: TColorSwatch;
-    ColorSwatchFuchsia: TColorSwatch;
-    ColorSwatchGreen: TColorSwatch;
-    ColorSwatchRed: TColorSwatch;
-    ColorSwatchWhite: TColorSwatch;
-    ColorSwatchYellow: TColorSwatch;
+    PanelColorPickerMain: TPanel;
     EditColor: TEdit;
     LabelAlpha: TLabel;
     LabelBlue: TLabel;
     LabelGreen: TLabel;
-    LabelPalette: TLabel;
     LabelPreview: TLabel;
     LabelRed: TLabel;
     LabelWebColor: TLabel;
@@ -82,6 +68,8 @@ type
     SpinEditBlue: TSpinEdit;
     SpinEditGreen: TSpinEdit;
     SpinEditRed: TSpinEdit;
+    PanelPreview: TPanel;
+    PanelSwatches: TPanel;
     procedure ButtonPickFromScreenClick(Sender: TObject);
     procedure ColorPickerChanged(Sender: TObject);
     procedure SpinEditColorChange(Sender: TObject);
@@ -91,6 +79,13 @@ type
   private
     FColor: TColor32;
     FScreenColorPickerForm: TScreenColorPickerForm;
+    FColorPickerAlpha: TColorPickerComponent;
+    FColorPickerBlue: TColorPickerComponent;
+    FColorPickerGreen: TColorPickerComponent;
+    FColorPickerRed: TColorPickerComponent;
+    FColorSwatch: TColorSwatch;
+    FColorSwatchOpaque: TColorSwatch;
+    FColorPickerGTK: TColorPickerGTK;
     FLockChanged: integer;
 
     procedure UpdateColor;
@@ -99,6 +94,8 @@ type
 
     procedure SetColor32(const Value: TColor32);
   public
+    constructor Create(AOwner: TComponent); override;
+
     function Execute: boolean;
 
     property Color: TColor32 read FColor write SetColor32;
@@ -109,6 +106,92 @@ implementation
 {$R *.dfm}
 
 { TFormColorPicker }
+
+constructor TFormColorPicker.Create(AOwner: TComponent);
+
+  function CreateColorPickerComponent(ColorComponent: TColorComponent; ALabel: TLabel; AEdit: TControl): TColorPickerComponent;
+  begin
+    Result := TColorPickerComponent.Create(Self);
+    Result.Left := ALabel.Left + ALabel.Width + 1;
+    Result.Top := AEdit.Top;
+    Result.Height := AEdit.Height;
+    Result.Width := AEdit.Left - Result.Left - 8;
+
+    Result.Cursor := crHandPoint;
+    Result.Border := True;
+    Result.ColorComponent := ColorComponent;
+    Result.OnChanged := ColorPickerChanged;
+    Result.ParentBackground := False;
+
+    Result.Parent := Self;
+
+    // Resize the label now that we don't need its width to align with anymore
+    ALabel.AutoSize := True;
+  end;
+
+const
+  SwatchColors: array[0..7] of TColor32 =
+    (clBlack32, clWhite32, clRed32, clLime32, clBlue32, clYellow32, clFuchsia32, clAqua32);
+
+var
+  SwatchColor: TColor32;
+  Swatch: TColorSwatch;
+  PanelSpace: integer;
+  NextPos: integer;
+begin
+  inherited;
+
+  // Create Graphics32 controls at run-time so we don't need to
+  // have the design-time package installed before the form can
+  // be opened.
+  // This is only really done to avoid users messing up the form
+  // if they open it before the package has been installed.
+
+  FColorPickerRed := CreateColorPickerComponent(ccRed, LabelRed, SpinEditRed);
+  FColorPickerGreen := CreateColorPickerComponent(ccGreen, LabelGreen, SpinEditGreen);
+  FColorPickerBlue := CreateColorPickerComponent(ccBlue, LabelBlue, SpinEditBlue);
+  FColorPickerAlpha := CreateColorPickerComponent(ccAlpha, LabelAlpha, SpinEditAlpha);
+
+  FColorSwatch := TColorSwatch.Create(Self);
+  FColorSwatch.Border := False;
+  FColorSwatch.Width := (PanelPreview.Width-4) div 2;
+  FColorSwatch.Align := alLeft;
+  FColorSwatch.Parent := PanelPreview;
+
+  FColorSwatchOpaque := TColorSwatch.Create(Self);
+  FColorSwatchOpaque.Border := False;
+  FColorSwatchOpaque.Width := (PanelPreview.Width-4) div 2;
+  FColorSwatchOpaque.Align := alClient;
+  FColorSwatchOpaque.Parent := PanelPreview;
+
+  // Note: Swatch.Width = Swatch.Height = PanelSwatches.Height
+  PanelSpace := PanelSwatches.Height + (PanelSwatches.Width - Length(SwatchColors) * PanelSwatches.Height) div (Length(SwatchColors)-1);
+  NextPos := 0;
+
+  for SwatchColor in SwatchColors do
+  begin
+    Swatch := TColorSwatch.Create(Self);
+
+    Swatch.Cursor := crHandPoint;
+    Swatch.Border := True;
+    Swatch.Color := SwatchColor;
+    Swatch.OnClick := ColorSwatchClick;
+
+    Swatch.Height := PanelSwatches.Height;
+    Swatch.Width := Swatch.Height;
+    Swatch.Left := NextPos;
+    Swatch.Parent := PanelSwatches;
+
+    Inc(NextPos, PanelSpace);
+  end;
+
+  FColorPickerGTK := TColorPickerGTK.Create(Self);
+  FColorPickerGTK.Align := alClient;
+  FColorPickerGTK.Parent := PanelColorPickerMain;
+  FColorPickerGTK.Cursor := crHandPoint;
+  FColorPickerGTK.OnChanged := ColorPickerChanged;
+  FColorPickerGTK.ParentBackground := False;
+end;
 
 procedure TFormColorPicker.ButtonPickFromScreenClick(Sender: TObject);
 var
@@ -134,11 +217,11 @@ end;
 
 procedure TFormColorPicker.CheckBoxWebSafeClick(Sender: TObject);
 begin
-  ColorPickerGTK.WebSafe := CheckBoxWebSafe.Checked;
-  ColorPickerRed.WebSafe := CheckBoxWebSafe.Checked;
-  ColorPickerGreen.WebSafe := CheckBoxWebSafe.Checked;
-  ColorPickerBlue.WebSafe := CheckBoxWebSafe.Checked;
-  ColorPickerAlpha.WebSafe := CheckBoxWebSafe.Checked;
+  FColorPickerGTK.WebSafe := CheckBoxWebSafe.Checked;
+  FColorPickerRed.WebSafe := CheckBoxWebSafe.Checked;
+  FColorPickerGreen.WebSafe := CheckBoxWebSafe.Checked;
+  FColorPickerBlue.WebSafe := CheckBoxWebSafe.Checked;
+  FColorPickerAlpha.WebSafe := CheckBoxWebSafe.Checked;
 end;
 
 procedure TFormColorPicker.ColorPickerChanged(Sender: TObject);
@@ -148,14 +231,14 @@ begin
 
   Inc(FLockChanged);
   try
-    if (Sender = ColorPickerGTK) then
-      Color := SetAlpha(ColorPickerGTK.SelectedColor, TColor32Entry(ColorPickerAlpha.SelectedColor).A)
+    if (Sender = FColorPickerGTK) then
+      Color := SetAlpha(FColorPickerGTK.SelectedColor, TColor32Entry(FColorPickerAlpha.SelectedColor).A)
     else
       Color := Color32(
-        TColor32Entry(ColorPickerRed.SelectedColor).R,
-        TColor32Entry(ColorPickerGreen.SelectedColor).G,
-        TColor32Entry(ColorPickerBlue.SelectedColor).B,
-        TColor32Entry(ColorPickerAlpha.SelectedColor).A);
+        TColor32Entry(FColorPickerRed.SelectedColor).R,
+        TColor32Entry(FColorPickerGreen.SelectedColor).G,
+        TColor32Entry(FColorPickerBlue.SelectedColor).B,
+        TColor32Entry(FColorPickerAlpha.SelectedColor).A);
   finally
     Dec(FLockChanged);
   end;
@@ -317,12 +400,13 @@ begin
     EditColor.Text := '$' + IntToHex(FColor, 8);
     EditColor.SelStart := SelStart;
 
-    ColorPickerRed.SelectedColor := Color32(TColor32Entry(FColor).R, 0, 0);
-    ColorPickerGreen.SelectedColor := Color32(0, TColor32Entry(FColor).G, 0);
-    ColorPickerBlue.SelectedColor := Color32(0, 0, TColor32Entry(FColor).B);
-    ColorPickerAlpha.SelectedColor := SetAlpha(clWhite32, TColor32Entry(FColor).A);
-    ColorPickerGTK.SelectedColor := FColor;
-    ColorSwatch.Color := FColor;
+    FColorPickerRed.SelectedColor := Color32(TColor32Entry(FColor).R, 0, 0);
+    FColorPickerGreen.SelectedColor := Color32(0, TColor32Entry(FColor).G, 0);
+    FColorPickerBlue.SelectedColor := Color32(0, 0, TColor32Entry(FColor).B);
+    FColorPickerAlpha.SelectedColor := SetAlpha(clWhite32, TColor32Entry(FColor).A);
+    FColorPickerGTK.SelectedColor := FColor;
+    FColorSwatch.Color := FColor;
+    FColorSwatchOpaque.Color := SetAlpha(FColor, 255);
 
   finally
     // re-enable OnChange handler
