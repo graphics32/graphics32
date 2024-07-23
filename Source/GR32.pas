@@ -273,7 +273,8 @@ function Color32(WinColor: TColor): TColor32; overload;
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
 function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
 {$IFNDEF FPC}
-function Color32(AlphaColor: TAlphaColor): TColor32; overload;
+// Note: No overload for TAlphaColor since it would conflict with TColor
+function Color32(const AlphaColor: TAlphaColorRec): TColor32; overload;
 {$ENDIF}
 function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 function WinColor(Color32: TColor32): TColor;
@@ -1530,12 +1531,12 @@ begin
 end;
 
 {$IFNDEF FPC}
-function Color32(AlphaColor: TAlphaColor): TColor32;
+function Color32(const AlphaColor: TAlphaColorRec): TColor32;
 begin
-  TColor32Entry(Result).A := TAlphaColorRec(AlphaColor).A;
-  TColor32Entry(Result).R := TAlphaColorRec(AlphaColor).R;
-  TColor32Entry(Result).G := TAlphaColorRec(AlphaColor).G;
-  TColor32Entry(Result).B := TAlphaColorRec(AlphaColor).B;
+  TColor32Entry(Result).A := AlphaColor.A;
+  TColor32Entry(Result).R := AlphaColor.R;
+  TColor32Entry(Result).G := AlphaColor.G;
+  TColor32Entry(Result).B := AlphaColor.B;
 end;
 {$ENDIF}
 

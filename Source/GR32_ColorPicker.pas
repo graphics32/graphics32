@@ -34,6 +34,8 @@ interface
 
 {$I GR32.inc}
 
+{-$define GR32_FRAME3D}
+
 uses
 {$IFDEF FPC}
   LCLIntf, LCLType, LMessages, Types,
@@ -1199,7 +1201,9 @@ begin
     if FBorder then
     begin
       FBuffer.FrameRectTS(3, 0, Width - 3, Height, $DF000000);
+{$ifdef GR32_FRAME3D}
       FBuffer.RaiseRectTS(4, 0, Width - 4, Height - 1, 20);
+{$endif}
     end;
 
     SetLength(Polygon, 3);
@@ -1444,8 +1448,9 @@ begin
       if FBorder then
       begin
         FBuffer.FrameRectTS(ValueRect, $DF000000);
-        FBuffer.RaiseRectTS(ValueRect.Left + 1, ValueRect.Top + 1,
-          ValueRect.Right - 1, ValueRect.Bottom - 1, 20);
+{$ifdef GR32_FRAME3D}
+        FBuffer.RaiseRectTS(ValueRect.Left + 1, ValueRect.Top + 1, ValueRect.Right - 1, ValueRect.Bottom - 1, 20);
+{$endif}
       end;
 
       Polygon[0] := FloatPoint(3 + Value * (Width - 6), ValueRect.Bottom - BorderOffset - 5);
@@ -1822,8 +1827,9 @@ begin
     if FBorder then
     begin
       FBuffer.FrameRectTS(ValueRect, $DF000000);
-      FBuffer.RaiseRectTS(ValueRect.Left + 1, ValueRect.Top + 1,
-        ValueRect.Right - 1, ValueRect.Bottom - 1, 20);
+{$ifdef GR32_FRAME3D}
+      FBuffer.RaiseRectTS(ValueRect.Left + 1, ValueRect.Top + 1, ValueRect.Right - 1, ValueRect.Bottom - 1, 20);
+{$endif}
     end;
   finally
     InvertFiller.Free;
