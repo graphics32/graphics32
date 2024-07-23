@@ -149,12 +149,13 @@ begin
   Inc(FLockChanged);
   try
     if (Sender = ColorPickerGTK) then
-      Color := ColorPickerGTK.SelectedColor or ColorPickerAlpha.SelectedColor
+      Color := SetAlpha(ColorPickerGTK.SelectedColor, TColor32Entry(ColorPickerAlpha.SelectedColor).A)
     else
-      Color := (ColorPickerRed.SelectedColor and $00FF0000) or
-               (ColorPickerGreen.SelectedColor and $0000FF00) or
-               (ColorPickerBlue.SelectedColor and $000000FF) or
-               (ColorPickerAlpha.SelectedColor and $FF000000);
+      Color := Color32(
+        TColor32Entry(ColorPickerRed.SelectedColor).R,
+        TColor32Entry(ColorPickerGreen.SelectedColor).G,
+        TColor32Entry(ColorPickerBlue.SelectedColor).B,
+        TColor32Entry(ColorPickerAlpha.SelectedColor).A);
   finally
     Dec(FLockChanged);
   end;
@@ -289,11 +290,8 @@ begin
 
   Inc(FLockChanged);
   try
-    Color :=
-      SpinEditAlpha.Value shl 24 +
-      SpinEditRed.Value   shl 16 +
-      SpinEditGreen.Value shl 8 +
-      SpinEditBlue.Value;
+
+    Color := Color32(SpinEditRed.Value, SpinEditGreen.Value, SpinEditBlue.Value, SpinEditAlpha.Value);
 
   finally
     Dec(FLockChanged);
@@ -302,7 +300,6 @@ end;
 
 procedure TFormColorPicker.UpdateColor;
 var
-  R, G, B, A: Byte;
   SelStart: Integer;
 begin
   // disable OnChange handler
@@ -310,21 +307,20 @@ begin
   try
 
     // update spin edits
-    Color32ToRGBA(FColor, R, G, B, A);
-    SpinEditRed.Value := R;
-    SpinEditGreen.Value := G;
-    SpinEditBlue.Value := B;
-    SpinEditAlpha.Value := A;
+    SpinEditRed.Value := TColor32Entry(FColor).R;
+    SpinEditGreen.Value := TColor32Entry(FColor).G;
+    SpinEditBlue.Value := TColor32Entry(FColor).B;
+    SpinEditAlpha.Value := TColor32Entry(FColor).A;
 
     // update color edit
     SelStart := EditColor.SelStart;
-    EditColor.Text := '#' + IntToHex(FColor, 8);
+    EditColor.Text := '$' + IntToHex(FColor, 8);
     EditColor.SelStart := SelStart;
 
-    ColorPickerRed.SelectedColor := FColor and $00FF0000;
-    ColorPickerGreen.SelectedColor := FColor and $0000FF00;
-    ColorPickerBlue.SelectedColor := FColor and $000000FF;
-    ColorPickerAlpha.SelectedColor := FColor and $FF000000;
+    ColorPickerRed.SelectedColor := Color32(TColor32Entry(FColor).R, 0, 0);
+    ColorPickerGreen.SelectedColor := Color32(0, TColor32Entry(FColor).G, 0);
+    ColorPickerBlue.SelectedColor := Color32(0, 0, TColor32Entry(FColor).B);
+    ColorPickerAlpha.SelectedColor := SetAlpha(clWhite32, TColor32Entry(FColor).A);
     ColorPickerGTK.SelectedColor := FColor;
     ColorSwatch.Color := FColor;
 
