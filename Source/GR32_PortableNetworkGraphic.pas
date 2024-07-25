@@ -1136,8 +1136,9 @@ var
 
 
 const
-  CPngMagic = #$0D#$0A#$1A#$0A;
+  PNG_SIG: array[0..7] of AnsiChar = #$89'PNG'#$0D#$0A#$1A#$0A;
 
+const
   CRowStart        : array[0..6] of Integer = (0, 0, 4, 0, 2, 0, 1);
   CColumnStart     : array[0..6] of Integer = (0, 4, 0, 2, 0, 1, 0);
   CRowIncrement    : array[0..6] of Integer = (8, 8, 8, 4, 4, 2, 2);
@@ -4746,15 +4747,15 @@ end;
 
 class function TPortableNetworkGraphic.CanLoad(Stream: TStream): Boolean;
 var
-  ChunkID : TChunkName;
+  Signature: array[0..SizeOf(PNG_SIG)-1] of AnsiChar;
 begin
-  Result := Stream.Size >= 4;
+  Result := (Stream.Size >= SizeOf(Signature));
 
   if Result then
   begin
-    Stream.Read(ChunkID, 4);
-    Stream.Seek(-4, soFromCurrent);
-    Result := ChunkID = '‰PNG';
+    Stream.Read(Signature, SizeOf(Signature));
+    Stream.Seek(-SizeOf(Signature), soFromCurrent);
+    Result := CompareMem(@Signature, @PNG_SIG, SizeOf(Signature));
   end;
 end;
 
@@ -4780,25 +4781,16 @@ var
   MemoryStream : TMemoryStream;
   GotIDAT      : boolean;
   SavePos      : UInt64;
-const
-  PNG_SIG: TChunkName = (AnsiChar($89), 'P', 'N', 'G');
 begin
   GotIDAT := False;
   Clear;
 
-  // check for minimum file size
-  if Stream.Size < 8 then
+  // Check for minimum file size and signature
+  if (not CanLoad(Stream)) then
     raise EPngError.Create(RCStrNotAValidPNGFile);
 
-  // read chunk ID
-  Stream.Read(ChunkName, 4);
-  if not CompareMem(@ChunkName, @PNG_SIG, SizeOf(TChunkName)) then
-    raise EPngError.Create(RCStrNotAValidPNGFile);
-
-  // read PNG magic
-  Stream.Read(ChunkName, 4);
-  if ChunkName <> CPngMagic then
-    raise EPngError.Create(RCStrNotAValidPNGFile);
+  // Skip chunk ID and magic - We already checked them in CanLoad above
+  Stream.Seek(SizeOf(PNG_SIG), soFromCurrent);
 
   MemoryStream := TMemoryStream.Create;
   try
@@ -5003,13 +4995,8 @@ var
   end;
 
 begin
-  // write chunk ID
-  ChunkName := '‰PNG';
-  Stream.Write(ChunkName, 4);
-
-  // write PNG magic
-  ChunkName := CPngMagic;
-  Stream.Write(ChunkName, 4);
+  // Write chunk ID and PNG magic
+  Stream.Write(PNG_SIG, SizeOf(PNG_SIG));
 
   MemoryStream := TMemoryStream.Create;
   try
