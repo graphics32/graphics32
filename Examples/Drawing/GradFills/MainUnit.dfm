@@ -4,7 +4,7 @@ object MainForm: TMainForm
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Filling Polygons with Color Gradients'
-  ClientHeight = 449
+  ClientHeight = 498
   ClientWidth = 502
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -14,20 +14,18 @@ object MainForm: TMainForm
   Font.Style = []
   KeyPreview = True
   Menu = MainMenu
-  OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyPress = FormKeyPress
-  PixelsPerInch = 96
   TextHeight = 15
   object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 145
-    Height = 449
+    Height = 498
     Align = alLeft
     TabOrder = 0
-    ExplicitHeight = 445
+    ExplicitHeight = 449
     object LblColorStopsTop: TLabel
       Left = 14
       Top = 15
@@ -62,9 +60,9 @@ object MainForm: TMainForm
     end
     object RgpEllipseFillStyle: TRadioGroup
       Left = 14
-      Top = 365
+      Top = 400
       Width = 114
-      Height = 68
+      Height = 69
       Caption = 'Radial &Fill Style'
       ItemIndex = 1
       Items.Strings = (
@@ -77,13 +75,14 @@ object MainForm: TMainForm
       Left = 14
       Top = 272
       Width = 114
-      Height = 87
+      Height = 122
       Caption = '&Wrap Mode'
       ItemIndex = 0
       Items.Strings = (
         'Clamp'
         'Repeat'
-        'Mirror')
+        'Mirror'
+        'Reflect')
       TabOrder = 2
       OnClick = RgpWrapModeClick
     end
@@ -121,15 +120,14 @@ object MainForm: TMainForm
     Left = 145
     Top = 0
     Width = 357
-    Height = 449
+    Height = 498
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScaleMode = smScale
-    ScrollBars.ShowHandleGrip = True
-    ScrollBars.Style = rbsDefault
+    ScrollBars.Increment = 0
     ScrollBars.Size = 16
     ScrollBars.Visibility = svHidden
     OverSize = 0
@@ -138,8 +136,7 @@ object MainForm: TMainForm
     OnMouseDown = ImgView32MouseDown
     OnMouseMove = ImgView32MouseMove
     OnMouseUp = ImgView32MouseUp
-    ExplicitWidth = 440
-    ExplicitHeight = 445
+    ExplicitHeight = 449
   end
   object MainMenu: TMainMenu
     Left = 193
@@ -165,7 +162,7 @@ object MainForm: TMainForm
     end
     object MnuWrapMode: TMenuItem
       Caption = '&Wrap Mode'
-      object MnuPad: TMenuItem
+      object MnuClamp: TMenuItem
         Caption = '&Clamp'
         Checked = True
         RadioItem = True
@@ -177,9 +174,15 @@ object MainForm: TMainForm
         RadioItem = True
         OnClick = MnuSpreadClick
       end
-      object MnuReflect: TMenuItem
+      object MnuMirror: TMenuItem
         Tag = 2
         Caption = '&Mirror'
+        RadioItem = True
+        OnClick = MnuSpreadClick
+      end
+      object MnuReflect: TMenuItem
+        Tag = 3
+        Caption = 'Reflect'
         RadioItem = True
         OnClick = MnuSpreadClick
       end

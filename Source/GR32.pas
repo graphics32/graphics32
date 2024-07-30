@@ -674,8 +674,7 @@ type
 { TBitmap32 draw mode }
   TDrawMode = (dmOpaque, dmBlend, dmCustom, dmTransparent);
   TCombineMode = (cmBlend, cmMerge);
-
-  TWrapMode = (wmClamp, wmRepeat, wmMirror);
+  TWrapMode = (wmClamp, wmRepeat, wmMirror{$ifdef GR32_WRAPMODE_REFLECT}, wmReflect{$endif});
   TWrapProc = function(Value, Max: Integer): Integer;
   TWrapProcEx = function(Value, Min, Max: Integer): Integer;
 
