@@ -58,7 +58,8 @@ type
     destructor Destroy; override;
 
     function Empty: Boolean; override;
-    procedure Clear(FillValue: Byte);
+    procedure Clear(FillValue: Boolean = False); overload;
+    procedure Clear(FillValue: Byte); overload;
     procedure ToggleBit(X, Y: Integer);
 
     property Value[X, Y: Integer]: Boolean read GetValue write SetValue; default;
@@ -263,6 +264,14 @@ begin
   Height := NewHeight;
 end;
 
+procedure TBooleanMap.Clear(FillValue: Boolean);
+begin
+  if (FillValue) then
+    Clear($FF)
+  else
+    Clear(0);
+end;
+
 procedure TBooleanMap.Clear(FillValue: Byte);
 begin
   FillChar(FBits^, Bytes(Width * Height), FillValue);
@@ -270,24 +279,24 @@ end;
 
 destructor TBooleanMap.Destroy;
 begin
-  FBits := nil;
+  FreeMem(FBits);
   inherited;
 end;
 
 function TBooleanMap.Empty: Boolean;
 begin
-  Result := not Assigned(FBits);
+  Result := (Width = 0) or (Height = 0) or (FBits = nil);
 end;
 
 function TBooleanMap.GetValue(X, Y: Integer): Boolean;
 begin
   X := X + Y * Width;
-  Result := FBits^[X shr 3] and (1 shl (X and 7)) <> 0; //Boolean(FBits^[X shr 3] and (1 shl (X and 7)));
+  Result := FBits^[X shr 3] and (1 shl (X and 7)) <> 0;
 end;
 
 procedure TBooleanMap.SetValue(X, Y: Integer; const Value: Boolean);
 begin
-  X := Y * Width + X;
+  X := X + Y * Width;
   if Value then
     FBits^[X shr 3] := FBits^[X shr 3] or (1 shl (X and 7))
   else
@@ -296,7 +305,7 @@ end;
 
 procedure TBooleanMap.ToggleBit(X, Y: Integer);
 begin
-  X := Y * Width + X;
+  X := X + Y * Width;
   FBits^[X shr 3] := FBits^[X shr 3] xor (1 shl (X and 7));
 end;
 
@@ -463,8 +472,7 @@ end;
 
 function TByteMap.Empty: Boolean;
 begin
-  Result := False;
-  if (Width = 0) or (Height = 0) or (FBits = nil) then Result := True;
+  Result := (Width = 0) or (Height = 0) or (FBits = nil);
 end;
 
 procedure TByteMap.FlipHorz(Dst: TByteMap);
