@@ -152,6 +152,7 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
+  Math,
   GR32_Blend, GR32_LowLevel;
 
 { TMandelbrotSampler }
@@ -179,7 +180,7 @@ begin
     CY := Top + Y * (Bottom - Top) * FHeightInv;
   end;
 
-  M := Length(FPalette) - 1;
+  M := High(FPalette) - 1;
 
   { Check whether point lies in the period-2 bulb }
   ZY := Sqr(CY);
@@ -215,8 +216,8 @@ begin
   W := Round(16 * (ZX * ZX + ZY * ZY - 4));
   W := Clamp(W);
 
-  C1 := FPalette[I];
-  C2 := FPalette[I + 1];
+  C1 := FPalette[Min(I, High(FPalette)-1)];
+  C2 := FPalette[Min(I+1, High(FPalette))];
   Result := CombineReg(C1, C2, W);
   EMMS;
 end;
@@ -258,7 +259,7 @@ procedure TMandelbrotSampler.PrepareSampling;
 begin
   FWidthInv := 1 / Image.Width;
   FHeightInv := 1 / Image.Height;
-  SetLength(FPalette, MaxIterations + 1);
+  SetLength(FPalette, MaxIterations + 2);
   CalculatePalette;
 end;
 
