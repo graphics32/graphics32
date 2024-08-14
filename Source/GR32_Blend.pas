@@ -330,6 +330,11 @@ var
   //
   //   Color = DivMul255Table[Alpha, PremultColor] = PremultColor / Alpha
   //
+  {$REGION 'Documentation'}
+  /// <summary>
+  /// DivMul255Table[a, b] = Round(b * 255 / a)
+  /// </summary>
+  {$ENDREGION}
   DivMul255Table: TLUT88;
 
   //
@@ -346,6 +351,11 @@ var
   //
   //   PremultColor = MulDiv255Table[Color, Alpha] = Color * Alpha
   //
+  {$REGION 'Documentation'}
+  /// <summary>
+  /// MulDiv255Table[a, b] = Round(a * b / 255)
+  /// </summary>
+  {$ENDREGION}
   MulDiv255Table: TLUT88;
 
 
@@ -399,6 +409,7 @@ implementation
 
 uses
   GR32_System,
+  GR32_LowLevel,
 {$IFNDEF PUREPASCAL}
   GR32.Blend.Assembler,
 {$IFNDEF OMIT_SSE2}
@@ -407,6 +418,9 @@ uses
 {$ENDIF}
   GR32.Blend.Pascal;
 
+
+const
+  OneOver255x255 = 1 / (255 * 255);
 
 //------------------------------------------------------------------------------
 //
@@ -508,6 +522,7 @@ asm
   EMMS
 end;
 {$ifend}
+
 
 //------------------------------------------------------------------------------
 //
