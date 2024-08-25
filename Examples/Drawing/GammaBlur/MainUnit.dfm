@@ -6,12 +6,7 @@ object FormGammaBlur: TFormGammaBlur
   ClientHeight = 314
   ClientWidth = 263
   Color = clBtnFace
-  Font.Charset = ANSI_CHARSET
-  Font.Color = clWindowText
-  Font.Height = -12
-  Font.Name = 'Arial'
-  Font.Style = []
-  OldCreateOrder = False
+  ParentFont = True
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy

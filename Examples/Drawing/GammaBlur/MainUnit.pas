@@ -39,6 +39,8 @@ type
   private
     FTestBitmap: TBitmap32;
     procedure ComposeTestImage;
+  public
+    constructor Create(AOwner: TComponent); override;
   end;
 
 var
@@ -62,6 +64,13 @@ uses
   GR32_Resamplers;
 
 { TFrmGammaBlur }
+
+constructor TFormGammaBlur.Create(AOwner: TComponent);
+begin
+  inherited;
+  PaintBoxIncorrect.BufferOversize := 0;
+  PaintBoxCorrect.BufferOversize := 0;
+end;
 
 procedure TFormGammaBlur.FormCreate(Sender: TObject);
 begin
@@ -117,14 +126,11 @@ end;
 
 procedure TFormGammaBlur.PaintBoxCorrectPaintBuffer(Sender: TObject);
 begin
-  with PaintBoxCorrect do
-  begin
-    Buffer.Draw(0, 0, FTestBitmap);
-    if RadioButtonGaussianBlur.Checked then
-      GaussianBlurGamma(Buffer, 0.1 * GaugeBarBlurRadius.Position)
-    else
-      FastBlurGamma(Buffer, 0.1 * GaugeBarBlurRadius.Position)
-  end;
+  FTestBitmap.DrawTo(PaintBoxCorrect.Buffer);
+  if RadioButtonGaussianBlur.Checked then
+    GaussianBlurGamma(PaintBoxCorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position)
+  else
+    FastBlurGamma(PaintBoxCorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position);
 end;
 
 procedure TFormGammaBlur.ComposeTestImage;
@@ -153,14 +159,11 @@ end;
 
 procedure TFormGammaBlur.PaintBoxIncorrectPaintBuffer(Sender: TObject);
 begin
-  with PaintBoxIncorrect do
-  begin
-    Buffer.Draw(0, 0, FTestBitmap);
-    if RadioButtonGaussianBlur.Checked then
-      GaussianBlur(Buffer, 0.1 * GaugeBarBlurRadius.Position)
-    else
-      FastBlur(Buffer, 0.1 * GaugeBarBlurRadius.Position);
-  end;
+  FTestBitmap.DrawTo(PaintBoxIncorrect.Buffer);
+  if RadioButtonGaussianBlur.Checked then
+    GaussianBlur(PaintBoxIncorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position)
+  else
+    FastBlur(PaintBoxIncorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position);
 end;
 
 end.
