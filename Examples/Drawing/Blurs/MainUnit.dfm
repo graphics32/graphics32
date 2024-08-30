@@ -11,10 +11,8 @@ object FrmBlurs: TFrmBlurs
   Font.Name = 'Arial'
   Font.Style = []
   Menu = MainMenu
-  OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  PixelsPerInch = 96
   TextHeight = 15
   object PnlControl: TPanel
     Left = 0
@@ -50,7 +48,6 @@ object FrmBlurs: TFrmBlurs
       Items.Strings = (
         '&None'
         '&Gaussian'
-        'Fa&stGaussian'
         '&Motion')
       TabOrder = 0
       OnClick = RgpBlurTypeClick
@@ -132,10 +129,12 @@ object FrmBlurs: TFrmBlurs
         BitmapAlign = baCustom
         Scale = 1.000000000000000000
         ScaleMode = smScale
-        ScrollBars.ShowHandleGrip = True
-        ScrollBars.Style = rbsDefault
+        MousePan.Enabled = True
+        MouseZoom.Enabled = True
+        MouseZoom.Animate = True
+        ScrollBars.Increment = 0
         ScrollBars.Size = 16
-        ScrollBars.Visibility = svHidden
+        ScrollBars.Visibility = svAuto
         OverSize = 0
         TabOrder = 0
       end
@@ -143,10 +142,6 @@ object FrmBlurs: TFrmBlurs
     object TabSheet2: TTabSheet
       Caption = 'Page &2'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object ImgViewPage2: TImgView32
         Left = 0
         Top = 0
@@ -157,8 +152,7 @@ object FrmBlurs: TFrmBlurs
         BitmapAlign = baCustom
         Scale = 1.000000000000000000
         ScaleMode = smScale
-        ScrollBars.ShowHandleGrip = True
-        ScrollBars.Style = rbsDefault
+        ScrollBars.Increment = 0
         ScrollBars.Size = 16
         ScrollBars.Visibility = svHidden
         OverSize = 0
@@ -168,10 +162,6 @@ object FrmBlurs: TFrmBlurs
     object TabSheet3: TTabSheet
       Caption = 'Page &3'
       ImageIndex = 2
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object ImgViewPage3: TImgView32
         Left = 0
         Top = 0
@@ -182,8 +172,7 @@ object FrmBlurs: TFrmBlurs
         BitmapAlign = baCustom
         Scale = 1.000000000000000000
         ScaleMode = smScale
-        ScrollBars.ShowHandleGrip = True
-        ScrollBars.Style = rbsDefault
+        ScrollBars.Increment = 0
         ScrollBars.Size = 16
         ScrollBars.Visibility = svHidden
         OverSize = 0
@@ -218,10 +207,6 @@ object FrmBlurs: TFrmBlurs
       object MnuGaussianType: TMenuItem
         Caption = '&Gaussian'
         Checked = True
-        OnClick = MnuGaussianTypeClick
-      end
-      object MnuFastGaussian: TMenuItem
-        Caption = 'F&astGaussian'
         OnClick = MnuGaussianTypeClick
       end
       object MnuMotion: TMenuItem

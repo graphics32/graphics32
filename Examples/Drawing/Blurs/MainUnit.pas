@@ -22,7 +22,6 @@ type
     LblBlurRadius: TLabel;
     MainMenu: TMainMenu;
     MnuExit: TMenuItem;
-    MnuFastGaussian: TMenuItem;
     MnuGaussianType: TMenuItem;
     MnuMotion: TMenuItem;
     MnuNone: TMenuItem;
@@ -70,6 +69,7 @@ uses
   GR32_Polygons,
   GR32_VectorUtils,
   GR32_System,
+  GR32.Blur,
   GR32_Blurs;
 
 {$IFDEF FPC}
@@ -77,6 +77,11 @@ uses
 {$ELSE}
 {$R *.dfm}
 {$ENDIF}
+
+const
+  GaussianBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32);
+  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (GaussianBlur, GaussianBlurGamma);
+  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (GaussianBlur, GaussianBlurGamma);
 
 { Miscellaneous functions }
 
@@ -179,9 +184,6 @@ begin
             GaussianBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
 
           2:
-            FastBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
-
-          3:
             if WithGamma then
               MotionBlurGamma(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked)
             else
@@ -208,12 +210,6 @@ begin
             end;
 
           2:
-            begin
-              FastBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts);
-              FastBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts2);
-            end;
-
-          3:
             if WithGamma then
             begin
               MotionBlurGamma(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
@@ -262,13 +258,6 @@ begin
             end;
 
           2:
-            begin
-              FastBlurBounds[WithGamma](ImgViewPage3.Bitmap, Radius, Rec);
-              FastBlurBounds[WithGamma](FLayerBitmap.Bitmap, Radius, Rec2);
-              FastBlurRegion[WithGamma](FLayerBitmap.Bitmap, Radius, Pts);
-            end;
-
-          3:
             if WithGamma then
             begin
               MotionBlurGamma(ImgViewPage3.Bitmap, Radius, TbrBlurAngle.Position, Rec, CbxBidirectional.Checked);
@@ -310,8 +299,7 @@ procedure TFrmBlurs.RgpBlurTypeClick(Sender: TObject);
 begin
   MnuNone.Checked := RgpBlurType.ItemIndex = 0;
   MnuGaussianType.Checked := RgpBlurType.ItemIndex = 1;
-  MnuFastGaussian.Checked := RgpBlurType.ItemIndex = 2;
-  MnuMotion.Checked := RgpBlurType.ItemIndex = 3;
+  MnuMotion.Checked := RgpBlurType.ItemIndex = 2;
   LblBlurAngle.Enabled := MnuMotion.Checked;
   TbrBlurAngle.Enabled := MnuMotion.Checked;
   CbxBidirectional.Enabled := MnuMotion.Checked;
@@ -338,10 +326,7 @@ begin
   if Sender = MnuGaussianType then
     RgpBlurType.ItemIndex := 1
   else
-  if Sender = MnuFastGaussian then
-    RgpBlurType.ItemIndex := 2
-  else
-    RgpBlurType.ItemIndex := 3;
+    RgpBlurType.ItemIndex := 2;
 end;
 
 procedure TFrmBlurs.MnuOpenClick(Sender: TObject);
