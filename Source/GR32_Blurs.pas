@@ -59,12 +59,12 @@ https://underdestruction.com/2004/02/25/stackblur-2004/
 
 *)
 procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use Blur32 in GR32.Blur instead';
-procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
+procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload; deprecated 'Use Blur32 in GR32.Blur instead';
+procedure GaussianBlur(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload; deprecated 'Use Blur32 in GR32.Blur instead';
 
 procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use GammaBlur32 in GR32.Blur instead';
-procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
+procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload; deprecated 'Use Blur32 in GR32.Blur instead';
+procedure GaussianBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload; deprecated 'Use Blur32 in GR32.Blur instead';
 
 (*
 
@@ -72,12 +72,12 @@ FastBlur: Three pass box blur
 
 *)
 procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use Blur32 in GR32.Blur instead';
-procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
+procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload; deprecated 'Use Blur32 in GR32.Blur instead';
+procedure FastBlur(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload; deprecated 'Use Blur32 in GR32.Blur instead';
 
 procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat); overload; deprecated 'Use GammaBlur32 in GR32.Blur instead';
-procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload;
+procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload; deprecated 'Use GammaBlur32 in GR32.Blur instead';
+procedure FastBlurGamma(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint); overload; deprecated 'Use GammaBlur32 in GR32.Blur instead';
 
 (*
 
@@ -94,11 +94,11 @@ procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat; const Blu
 
 const
   GaussianBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
-  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (GaussianBlur, GaussianBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
-  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (GaussianBlur, GaussianBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
+  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
+  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
   FastBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
-  FastBlurBounds: array [Boolean] of TBlurFunctionBounds = (FastBlur, FastBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
-  FastBlurRegion: array [Boolean] of TBlurFunctionRegion = (FastBlur, FastBlurGamma) deprecated 'This const will be removed. Make a local copy of it instead';
+  FastBlurBounds: array [Boolean] of TBlurFunctionBounds = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
+  FastBlurRegion: array [Boolean] of TBlurFunctionRegion = (Blur32, GammaBlur32) deprecated 'This const will be removed. Make a local copy of it instead';
 
 implementation
 
@@ -1583,34 +1583,14 @@ end;
 
 procedure MotionBlur(Bitmap32: TBitmap32;
   Dist, AngleDeg: TFloat; Bidirectional: Boolean = True);
-var
-  Pts: TArrayOfFloatPoint;
 begin
-  SetLength(Pts, 4);
-  with Bitmap32.BoundsRect do
-  begin
-    Pts[0] := FloatPoint(Left, Top);
-    Pts[1] := FloatPoint(Right, Top);
-    Pts[2] := FloatPoint(Right, Bottom);
-    Pts[3] := FloatPoint(Left, Bottom);
-  end;
-  MotionBlur(Bitmap32, Dist, AngleDeg, Pts, Bidirectional);
+  MotionBlur(Bitmap32, Dist, AngleDeg, Rectangle(Bitmap32.BoundsRect), Bidirectional);
 end;
 
 procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
   const Bounds: TRect; Bidirectional: Boolean = True);
-var
-  Pts: TArrayOfFloatPoint;
 begin
-  SetLength(Pts, 4);
-  with Bounds do
-  begin
-    Pts[0] := FloatPoint(Left, Top);
-    Pts[1] := FloatPoint(Right, Top);
-    Pts[2] := FloatPoint(Right, Bottom);
-    Pts[3] := FloatPoint(Left, Bottom);
-  end;
-  MotionBlur(Bitmap32, Dist, AngleDeg, Pts, Bidirectional);
+  MotionBlur(Bitmap32, Dist, AngleDeg, Rectangle(Bounds), Bidirectional);
 end;
 
 procedure MotionBlur(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
@@ -1842,20 +1822,14 @@ end;
 
 procedure MotionBlurGamma(Bitmap32: TBitmap32;
   Dist, AngleDeg: TFloat; Bidirectional: Boolean = True);
-var
-  Pts: TArrayOfFloatPoint;
 begin
-  Pts := Rectangle(Bitmap32.BoundsRect);
-  MotionBlurGamma(Bitmap32, Dist, AngleDeg, Pts, Bidirectional);
+  MotionBlurGamma(Bitmap32, Dist, AngleDeg, Rectangle(Bitmap32.BoundsRect), Bidirectional);
 end;
 
 procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
   const Bounds: TRect; Bidirectional: Boolean = True);
-var
-  Pts: TArrayOfFloatPoint;
 begin
-  Pts := Rectangle(Bitmap32.BoundsRect);
-  MotionBlurGamma(Bitmap32, Dist, AngleDeg, Pts, Bidirectional);
+  MotionBlurGamma(Bitmap32, Dist, AngleDeg, Rectangle(Bounds), Bidirectional);
 end;
 
 procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;

@@ -37,15 +37,16 @@ interface
 // IIR = Infinite Input Response
 {$define IIR_BLUR_DEFAULT}              // Register as default Blur32 implementation.
 {$define IIR_BLUR_SIMD}                 // Enable forward/backward filter implemented using Streaming SIMD Extensions (SSE).
-{$define IIR_BLUR_DIV_LUT}              // Use a Look Up Table for alpha pre- and unpremultiplication and gamma correction. Slightly faster and much more precise.
 {$define IIR_BLUR_EDGE_CORRECTION}      // Apply the boundary corrections from [3]
 {$define IIR_BLUR_EDGE_CORRECTION_SIMD} // Enable SIMD implementation of [3] - significantly faster than the Pascal version but unfortunately not a hotspot
-{.$define IIR_BLUR_NORM}                // Normalize internal RGBA values to 0..1 range instead of 0..255 range
 {.$define IIR_BLUR_INKSCAPE_COEFFICIENTS}// Enable use of InkScape [7] coefficient calculation
 {.$define IIR_BLUR_GABOR_COEFFICIENTS}  // Enable use of Gabor [2] coefficient calculation
 {$define IIR_USE_HADDPS}                // Use the HADDPS SSE3 instruction instead of two ADDPS SSE instructions. See comment in code.
 {$define IIR_USE_DPPS}                  // Use the DPPS SSE4.1 instruction instead of a MULPS and two ADDPS SSE instructions. See comment in code.
 {$define IIR_BLUR_ALIGN_BUFFERS}        // Use aligned buffers (note only start of buffer is aligned; Individual rows are not)
+
+{$define IIR_BLUR_DIV_LUT}              // Use a Look Up Table for alpha pre- and unpremultiplication and gamma correction. Slightly faster and much more precise.
+                                        // Note that GammaBlur32 requires that IIR_BLUR_DIV_LUT is defined.
 
 uses
   GR32;
@@ -158,7 +159,7 @@ uses
   GR32_Bindings,
   GR32.Transpose,
   GR32.Math.Complex,
-  GR32_OrdinalMaps, //Types, Math, GR32_LowLevel, GR32_Blend;
+  GR32_OrdinalMaps,
   GR32_Blend,
   GR32_LowLevel,
   GR32_Math,
@@ -171,7 +172,6 @@ type
 
 const
   OneOver255: TFloat = 1/255;
-  OneOver64K: TFloat = 1/255/255;
 
 //------------------------------------------------------------------------------
 //
@@ -180,8 +180,8 @@ const
 //------------------------------------------------------------------------------
 // Lookup tables for alpha premultiplication.
 //
-//   Mul255Div[a,b] = Round(a * 255 / b)    Used for unpremultiplication
 //   MulDiv255[a,b] = a * b / 255           Used for premultiplication
+//   Mul255Div[a,b] = Round(a * 255 / b)    Used for unpremultiplication
 //
 // where
 //
@@ -190,7 +190,8 @@ const
 //
 // PremultiplyLUT is used for pre- and unpremultiplication.
 // GammaPremultiplyLUT rolls the gamma correction and pre-/unpremultiplication
-// operations into one for a significant gain in precision.
+// operations into one for a significant gain in precision at no extra cost in
+// performance.
 //
 //------------------------------------------------------------------------------
 {$ifdef IIR_BLUR_DIV_LUT}
@@ -251,9 +252,6 @@ end;
 class function TPremultiplyLUT.PremultiplyLUT: PPremultiplyLUT;
 var
   AlphaValue, ColorValue: Integer;
-  n: Single;
-const
-  OneDiv255: TFloat = 1 / 255;
 begin
   if (FPremultiplyLUT = nil) then
   begin
@@ -270,9 +268,8 @@ begin
 
         for AlphaValue := 1 to 255 do
         begin
-          FPremultiplyLUT.Mul255Div[ColorValue, AlphaValue] := Round(ColorValue * 255 / AlphaValue);
-          n := AlphaValue * ColorValue * OneDiv255;
-          FPremultiplyLUT.MulDiv255[AlphaValue, ColorValue] := n {$ifdef IIR_BLUR_NORM} * OneDiv255 {$endif};
+          FPremultiplyLUT.Mul255Div[ColorValue, AlphaValue] := Clamp(Round(ColorValue * 255 / AlphaValue));
+          FPremultiplyLUT.MulDiv255[ColorValue, AlphaValue] := ColorValue * AlphaValue * OneOver255;;
         end;
       end;
     end;
@@ -314,8 +311,6 @@ var
   AlphaValue, ColorValue: Integer;
   n: Single;
   ColorLinear, ColorRGB: TFloat;
-const
-  OneDiv255: TFloat = 1 / 255;
 begin
   if (FsRGB = sRGB) and ((FsRGB) or (GammaValue = FGamma)) then
     exit;
@@ -334,7 +329,7 @@ begin
     MulDiv255[ColorValue, 0] := 0.0;
 
     // sRGB -> Linear RGB / 255
-    ColorLinear := ColorValue * OneDiv255;
+    ColorLinear := ColorValue * OneOver255;
     if (FsRGB) then
     begin
       if (ColorLinear >= 0.04045) then
@@ -350,8 +345,7 @@ begin
     begin
       // Linear RGB -> Premultiplied, Linear RGB
       n := ColorLinear * AlphaValue;
-
-      MulDiv255[ColorValue, AlphaValue] := n {$ifdef IIR_BLUR_NORM} * OneDiv255 {$endif};
+      MulDiv255[ColorValue, AlphaValue] := n;
 
       // Premultiplied, Linear RGB -> Unpremultiplied, Linear RGB
       n := ColorValue / AlphaValue;
@@ -366,7 +360,7 @@ begin
       end else
         ColorRGB := Power(n, FGammaInv);
 
-      Mul255Div[ColorValue, AlphaValue] := Round(ColorRGB * 255);
+      Mul255Div[ColorValue, AlphaValue] := Clamp(Round(ColorRGB * 255));
     end;
   end;
 end;
@@ -1177,10 +1171,7 @@ begin
   if (Channel = Ord(ccAlpha)) then
   begin
     for i := 0 to Count-1 do
-    begin
-      Alpha := SourceValues[i].Planes[0];
-      DestValues[i] := Alpha {$ifdef IIR_BLUR_NORM} * OneOver255 {$endif};
-    end;
+      DestValues[i] := SourceValues[i].Planes[0];
   end else
   begin
     AlphaValues := PColor32EntryArray(@(PColor32Entry(Src.Bits).A));
@@ -1200,7 +1191,7 @@ begin
 
 {$else IIR_BLUR_DIV_LUT}
 
-        DestValues[i] := GAMMA_DECODING_TABLE[SourceValues[i].Planes[0]] {$ifdef IIR_BLUR_NORM} * OneOver255 {$endif}
+        DestValues[i] := GAMMA_DECODING_TABLE[SourceValues[i].Planes[0]]
 
 {$endif IIR_BLUR_DIV_LUT}
       else
@@ -1214,7 +1205,7 @@ begin
 
 {$else IIR_BLUR_DIV_LUT}
 
-        DestValues[i] := GAMMA_DECODING_TABLE[SourceValues[i].Planes[0]] * Alpha * {$ifdef IIR_BLUR_NORM} OneOver64K {$else} OneOver255 {$endif};
+        DestValues[i] := GAMMA_DECODING_TABLE[SourceValues[i].Planes[0]] * Alpha * OneOver255;
 
 {$endif IIR_BLUR_DIV_LUT}
     end;
@@ -1240,25 +1231,10 @@ begin
 
   if (Channel = Ord(ccAlpha)) then
   begin
+    for i := 0 to Count-1 do
     begin
-      for i := 0 to Count-1 do
-      begin
-        n := SourceValues[i] {$ifdef IIR_BLUR_NORM} * 255 {$endif};
-
-{$IFDEF PUREPASCAL}
-        if (n = 255.0) then
-          Alpha := 255
-        else
-        if (n < 0.5) then // Just as fast as testing for (n = 0.0)
-          Alpha := 0
-        else
-          Alpha := Round(n);
-{$ELSE PUREPASCAL} // FastRound outperforms the tests to avoid the Round
-          Alpha := FastRound(n);
-{$ENDIF PUREPASCAL}
-
-        DestValues[i].Planes[0] := Alpha;
-      end;
+      Alpha := Clamp(FastRound(SourceValues[i]));
+      DestValues[i].Planes[0] := Alpha;
     end;
   end else
   begin
@@ -1276,13 +1252,13 @@ begin
       begin
 {$ifdef IIR_BLUR_DIV_LUT}
 
-        n := SourceValues[i] {$ifdef IIR_BLUR_NORM} * 255 {$endif};
-        Color := FastRound(n);
+        n := SourceValues[i];
+        Color := Clamp(FastRound(n));
         Color := PremultiplyLUT.Mul255Div[Color, 255];
 
 {$else IIR_BLUR_DIV_LUT}
 
-        Color := FastRound(SourceValues[i] {$ifdef IIR_BLUR_NORM} * 255 {$endif});
+        Color := FastRound(SourceValues[i]);
         Color := GAMMA_ENCODING_TABLE[Color];
 
 {$endif IIR_BLUR_DIV_LUT}
@@ -1294,8 +1270,8 @@ begin
         // Unpremultiply: Color := ColorPremult * 255 / AlphaValues
 {$ifdef IIR_BLUR_DIV_LUT}
 
-        n := SourceValues[i] {$ifdef IIR_BLUR_NORM} * 255 {$endif};
-        Color := FastRound(n); // Warning: Loss of precision due to rounding before division
+        n := SourceValues[i];
+        Color := Clamp(FastRound(n)); // Warning: Loss of precision due to rounding before division
         Color := PremultiplyLUT.Mul255Div[Color, Alpha];
 
 {$else IIR_BLUR_DIV_LUT}
@@ -1306,7 +1282,7 @@ begin
         // down, then we will be dividing a larger value (e.g. 25.4) with a smaller (e.g. 25).
         // To avoid this rounding error we would have to keep a copy of the unrounded alpha values and
         // divide with those.
-        Color := FastRound(FastRound(SourceValues[i]) / Alpha * 255 {$ifdef IIR_BLUR_NORM} * 255 {$endif});
+        Color := FastRound(FastRound(SourceValues[i]) / Alpha * 255 );
         Color := GAMMA_ENCODING_TABLE[Color];
 
 {$endif IIR_BLUR_DIV_LUT}
