@@ -226,6 +226,7 @@ type
   protected
     function GetFillLine: TFillLineEvent; override;
   public
+    procedure BeginRendering; override;
     property FillLineEvent: TFillLineEvent read FFillLineEvent write FFillLineEvent;
   end;
 
@@ -274,6 +275,7 @@ type
     procedure FillLineCustomCombine(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
   public
+    procedure BeginRendering; override;
     property Pattern: TCustomBitmap32 read FPattern write FPattern;
     property OffsetX: Integer read FOffsetX write FOffsetX;
     property OffsetY: Integer read FOffsetY write FOffsetY;
@@ -1539,6 +1541,14 @@ end;
 
 { TCallbackPolygonFiller }
 
+procedure TCallbackPolygonFiller.BeginRendering;
+begin
+  inherited;
+
+  if (not Assigned(FFillLineEvent)) then
+    raise Exception.Create('Missing polygon filler delegate');
+end;
+
 function TCallbackPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   Result := FFillLineEvent;
@@ -1635,6 +1645,15 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
     end;
+end;
+
+procedure TBitmapPolygonFiller.BeginRendering;
+begin
+  inherited;
+
+  if (FPattern = nil) or (FPattern.DrawMode = dmTransparent) or
+    ((FPattern.DrawMode = dmCustom) and (not Assigned(FPattern.OnPixelCombine))) then
+    raise Exception.Create('Missing or invalid polygon filler pattern');
 end;
 
 procedure TBitmapPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY,
@@ -1811,6 +1830,7 @@ begin
   if (FSampler = nil) then
     raise Exception.Create(RCStrNoSamplerSpecified);
   FSampler.FinalizeSampling;
+  inherited;
 end;
 
 procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
@@ -1837,6 +1857,7 @@ end;
 
 procedure TSamplerFiller.BeginRendering;
 begin
+  inherited;
   if (FSampler = nil) then
     raise Exception.Create(RCStrNoSamplerSpecified);
   FSampler.PrepareSampling;
