@@ -736,12 +736,15 @@ begin
 
   TransposeRegistry.RegisterBinding(@@_Transpose32);
 
-  TransposeRegistry.Add(@@_Transpose32, @ReferenceTranspose32, [isPascal, isReference]);
-  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTranspose32, [isPascal], -16);
-  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTransposeEx32, [isPascal], -24);
+  TransposeRegistry.Add(@@_Transpose32, @ReferenceTranspose32,          [isReference]);
+  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTranspose32,     [isPascal],     -16);
+  TransposeRegistry.Add(@@_Transpose32, @CacheObliviousTransposeEx32,   [isPascal],     -32);
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  TransposeRegistry.Add(@@_Transpose32, @SuperDuperTranspose32, [isSSE2]);
+  // TODO : SuperDuperTranspose32 has been profiled to be on average 3 times slower
+  // than CacheObliviousTransposeEx32 in the Gaussian blur benchmark.
+  // It's still vastly faster in most real-world situations so we give it priority.
+  TransposeRegistry.Add(@@_Transpose32, @SuperDuperTranspose32,         [isSSE2],       -48);
 {$ifend}
 
   TransposeRegistry.RebindAll;
