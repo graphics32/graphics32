@@ -129,6 +129,8 @@ object FrmBlurs: TFrmBlurs
         BitmapAlign = baCustom
         Scale = 1.000000000000000000
         ScaleMode = smScale
+        Background.CheckersStyle = bcsMedium
+        Background.FillStyle = bfsCheckers
         MousePan.Enabled = True
         MouseZoom.Enabled = True
         MouseZoom.Animate = True
@@ -168,10 +170,13 @@ object FrmBlurs: TFrmBlurs
         Width = 557
         Height = 356
         Align = alClient
+        Bitmap.DrawMode = dmBlend
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baCustom
         Scale = 1.000000000000000000
         ScaleMode = smScale
+        Background.CheckersStyle = bcsMedium
+        Background.FillStyle = bfsCheckers
         ScrollBars.Increment = 0
         ScrollBars.Size = 16
         ScrollBars.Visibility = svHidden

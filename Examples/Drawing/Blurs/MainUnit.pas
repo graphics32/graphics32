@@ -80,8 +80,8 @@ uses
 
 const
   GaussianBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32);
-  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (GaussianBlur, GaussianBlurGamma);
-  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (GaussianBlur, GaussianBlurGamma);
+  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (Blur32, GammaBlur32);
+  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (Blur32, GammaBlur32);
 
 { Miscellaneous functions }
 
@@ -124,19 +124,16 @@ const
     clDarkSalmon32, clDarkSeaGreen32, clDarkSlateBlue32);
 begin
   FBitmapStoneWeed := TBitmap32.create;
-  FBitmapIceland := TBitmap32.create;
-
-  // Just use FBitmapStoneWeed momentarily to load a 600*400 image of ICELAND ...
-  FBitmapStoneWeed.LoadFromResourceName(hInstance, 'ICELAND', RT_RCDATA);
-  FBitmapIceland.SetSize(600, 400);
-  FBitmapStoneWeed.DrawTo(FBitmapIceland, FBitmapIceland.BoundsRect, FBitmapStoneWeed.BoundsRect);
-
-  // Now load the real STONEWEED image ...
+  FBitmapStoneWeed.DrawMode := dmBlend;
   FBitmapStoneWeed.LoadFromResourceName(hInstance, 'STONEWEED', RT_RCDATA);
+
+  FBitmapIceland := TBitmap32.create;
+  FBitmapIceland.DrawMode := dmBlend;
+  FBitmapIceland.LoadFromResourceName(hInstance, 'ICELAND', RT_RCDATA);
 
   Randomize;
   FBitmapRandBox := TBitmap32.create;
-  // Generate an image of full of random colored boxes ...
+  // Generate an image of full of random, semi-transparent, colored boxes ...
   FBitmapRandBox.SetSize(192, 272);
   for X := 0 to 11 do
     for Y := 0 to 16 do
@@ -232,20 +229,26 @@ begin
       begin
         ImgViewPage3.BeginUpdate;
         ImgViewPage3.SetupBitmap(True, Color32(clBtnFace));
-        FLayerBitmap.Bitmap.Clear(0);
 
         Rec := ImgViewPage3.GetBitmapRect;
         FLayerBitmap.Location := FloatRect(Rec);
         FLayerBitmap.Bitmap.SetSize(Rec.Width, Rec.Height);
+        FLayerBitmap.Bitmap.Clear(0);
+
+        // Colored squares on layer
         FLayerBitmap.Bitmap.Draw(300, 40, FBitmapRandBox);
 
+        // Beveled box on background image
         Rec := Rect(40, 40, 240, 120);
         DrawFramedBox(ImgViewPage3.Bitmap, Rec, clWhite32, clGray32, Radius div 2);
 
+        // Red rectangle on layer
         Rec2 := Rect(40, 160, 240, 320);
-        FLayerBitmap.Bitmap.FillRect(Rec2.Left, Rec2.Top, Rec2.Right, Rec2.Bottom, clRed32);
+        FLayerBitmap.Bitmap.FillRectTS(Rec2, clRed32);
+
         GR32.InflateRect(Rec2, 20, 20);
 
+        // Ellipse on top of colored squares
         Pts := Ellipse(395, 175, 60, 100);
 
         Stopwatch := TStopwatch.StartNew;
@@ -273,11 +276,14 @@ begin
         end;
         Stopwatch.Stop;
 
-        PolylineFS(FLayerBitmap.Bitmap, Pts, clBlack32, True, 2.5);
+        // Outline ellipse
+        PolylineFS(FLayerBitmap.Bitmap, Pts, clTrBlack32, True, 2.5);
 
+        // Outline red rectangle
+        GR32.InflateRect(Rec2, 1, 1);
         PolylineFS(
           FLayerBitmap.Bitmap,
-          BuildPolygonF([Rec2.Left, Rec2.Top, Rec2.Right, Rec2.Top, Rec2.Right, Rec2.Bottom, Rec2.Left, Rec2.Bottom]),
+          Rectangle(Rec2),
           clBlack32,
           True,
           0.5);
