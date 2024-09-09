@@ -59,7 +59,7 @@ procedure RenderPolygon(const Points: TArrayOfFloatPoint;
 
 implementation
 
-{$if Defined(FPC) and Defined(CPUx86_64) }
+{$if defined(FPC) and defined(CPUx86_64) }
 // Must apply work around for negative array index on FPC 64-bit.
 // See:
 //   - https://github.com/graphics32/graphics32/issues/51
@@ -72,6 +72,51 @@ uses
   GR32_Math,
   GR32_LowLevel,
   GR32_VectorUtils;
+
+// FastFloor is slow on x86 due to call overhead
+{$if (not defined(PUREPASCAL)) and defined(CPUx86_64)}
+// Use of FastFloor in VPR currently corrupts the memory manager of FPC
+// so temporarily disabled there.
+  {$if (not defined(FPC))}
+    {$define USE_POLYFLOOR}
+  {$ifend}
+{$ifend}
+
+function PolyFloor(Value: Single): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastFloorSingle(Value);
+{$else}
+  Result := Round(Value);
+{$ifend}
+end;
+
+function PolyFloor(Value: Double): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastFloorDouble(Value);
+{$else}
+  Result := Round(Value);
+{$ifend}
+end;
+
+function PolyCeil(Value: Single): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastCeilSingle(Value);
+{$else}
+  Result := -Round(-Value);
+{$ifend}
+end;
+
+function PolyCeil(Value: Double): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastCeilDouble(Value);
+{$else}
+  Result := -Round(-Value);
+{$ifend}
+end;
 
 (* Mattias Andersson (from glmhlg$rf3$1@news.graphics32.org):
 
@@ -131,7 +176,7 @@ type
 
 procedure IntegrateSegment(var P1, P2: TFloatPoint; Values: PSingleArray);
 var
-{$if Defined(NEGATIVE_INDEX_64) }
+{$if defined(NEGATIVE_INDEX_64) }
   X1, X2: Int64;
 {$else}
   X1, X2: Integer;
@@ -139,8 +184,8 @@ var
   I: Integer;
   Dx, Dy, DyDx, Sx, Y, fracX1, fracX2: TFloat;
 begin
-  X1 := Round(P1.X);
-  X2 := Round(P2.X);
+  X1 := PolyFloor(P1.X);
+  X2 := PolyFloor(P2.X);
   if X1 = X2 then
   begin
     Values[X1] := Values[X1] + 0.5 * (P2.X - P1.X) * (P1.Y + P2.Y);
@@ -188,7 +233,7 @@ procedure ExtractSingleSpan(const ScanLine: TScanLine; out Span: TValueSpan;
   SpanData: PSingleArray);
 var
   I: Integer;
-{$if Defined(NEGATIVE_INDEX_64) }
+{$if defined(NEGATIVE_INDEX_64) }
   X: Int64;
 {$else}
   X: Integer;
@@ -223,7 +268,8 @@ begin
     // Since we know X >= 0 we could have used Trunc here but unfortunately
     // Delphi's Trunc is much slower than Round because it modifies the FPU
     // control word.
-    X := Round(P.X);
+    // Note: We're using FastFloor now so the above comment is no longer relevant.
+    X := PolyFloor(P.X);
 
     // (a1) Find the lower bound of the horizontal span
     if X < Span.X1 then
@@ -305,8 +351,8 @@ begin
   ** such that y-values are between 0 and 1.
   *)
 
-  Y1 := Round(P1.Y);
-  Y2 := Round(P2.Y);
+  Y1 := PolyFloor(P1.Y);
+  Y2 := PolyFloor(P2.Y);
 
   // Special case for horizontal line; It just produces a single segment.
   if Y1 = Y2 then
@@ -363,28 +409,30 @@ end;
 procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint;
   out ScanLines: TScanLines);
 var
-  I,J,K, M,N, Y0,Y1,Y, YMin,YMax: Integer;
+  PolygonIndex, MaxPolygon, MaxVertex: Integer;
+  i,Y0,Y1,Y, YMin,YMax: Integer;
+  SegmentCount: Integer;
   PY: PSingle;
   PPt1, PPt2: PFloatPoint;
   PScanLines: PScanLineArray;
 begin
 
   (*
-  ** Determine range of Y values (i.e. scanlines)
+  ** Determine range of Y values (i.e. number of scanlines)
   *)
   YMin := MaxInt;
   YMax := -MaxInt;
-  M := High(Points);
-  for K := 0 to M do
+  MaxPolygon := High(Points);
+  for PolygonIndex := 0 to MaxPolygon do
   begin
-    N := High(Points[K]);
-    if N < 2 then
+    MaxVertex := High(Points[PolygonIndex]);
+    if MaxVertex < 2 then
       Continue;
 
-    PY := @Points[K][0].Y;
-    for I := 0 to N do
+    PY := @Points[PolygonIndex][0].Y;
+    for i := 0 to MaxVertex do
     begin
-      Y := Round(PY^);
+      Y := PolyFloor(PY^);
 
       if YMin > Y then
         YMin := Y;
@@ -406,15 +454,19 @@ begin
   (*
   ** Compute array sizes for each scanline
   *)
-  for K := 0 to M do
+  // For each polygon...
+  for PolygonIndex := 0 to MaxPolygon do
   begin
-    N := High(Points[K]);
-    if N < 2 then
-      Continue;
+    MaxVertex := High(Points[PolygonIndex]);
+    if MaxVertex < 2 then
+      Continue; // No line segments in this polygon
 
-    Y0 := Round(Points[K][N].Y);
-    PY := @Points[K][0].Y;
-    for I := 0 to N do
+    // Start with the line segment going from the last vertex to the first
+    Y0 := PolyFloor(Points[PolygonIndex][MaxVertex].Y);
+
+    PY := @Points[PolygonIndex][0].Y;
+    // For each line of the polygon...
+    for i := 0 to MaxVertex do
     begin
       // Calculate the max fragment count; Start of line vertex increments
       // the running fragment count for the start scanline and the end of
@@ -436,7 +488,7 @@ begin
       //
 
 
-      Y1 := Round(PY^);
+      Y1 := PolyFloor(PY^);
 
       // Line has positive slope
       if Y0 <= Y1 then
@@ -445,10 +497,13 @@ begin
         Dec(PScanLines[Y1 + 1].Count);
       end
       else
+      // Line has negative slope
       begin
         Inc(PScanLines[Y1].Count);
         Dec(PScanLines[Y0 + 1].Count);
       end;
+
+      // Move to next line
       Y0 := Y1;
       inc(PY, 2); // skips X value
     end;
@@ -457,30 +512,32 @@ begin
   (*
   ** Allocate memory
   *)
-  J := 0;
-  for I := 0 to High(ScanLines) do
+  SegmentCount := 0;
+  for i := 0 to High(ScanLines) do
   begin
-    Inc(J, ScanLines[I].Count);
-    GetMem(ScanLines[I].Segments, J * SizeOf(TLineSegment));
+    // Adjust running fragment count
+    Inc(SegmentCount, ScanLines[i].Count);
 
-    ScanLines[I].Count := 0;
-    ScanLines[I].Y := YMin + I;
+    GetMem(ScanLines[i].Segments, SegmentCount * SizeOf(TLineSegment));
+
+    ScanLines[i].Count := 0;
+    ScanLines[i].Y := YMin + i;
   end;
 
   (*
   ** Divide all segments of the polygon into scanline fragments
   *)
-  for K := 0 to M do
+  for PolygonIndex := 0 to MaxPolygon do
   begin
-    N := High(Points[K]);
-    if N < 2 then
+    MaxVertex := High(Points[PolygonIndex]);
+    if MaxVertex < 2 then
       Continue;
 
-    // Start with the segment going from the last vertex to the first
-    PPt1 := @Points[K][N];
-    PPt2 := @Points[K][0];
+    // Start with the line segment going from the last vertex to the first
+    PPt1 := @Points[PolygonIndex][MaxVertex];
+    PPt2 := @Points[PolygonIndex][0];
 
-    for I := 0 to N do
+    for i := 0 to MaxVertex do
     begin
       DivideSegment(PPt1^, PPt2^, PScanLines);
 
@@ -495,7 +552,7 @@ procedure RenderScanline(var ScanLine: TScanLine;
   RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; ClipX1, ClipX2: Integer);
 var
   Span: TValueSpan;
-{$if Defined(NEGATIVE_INDEX_64) }
+{$if defined(NEGATIVE_INDEX_64) }
   X: Int64;
 {$else}
   X: Integer;
@@ -505,6 +562,7 @@ begin
   begin
     ExtractSingleSpan(ScanLine, Span, SpanData);
 
+    // Clip
     if Span.X1 < ClipX1 then
       Span.X1 := ClipX1;
     if Span.X2 > ClipX2 then
@@ -530,44 +588,52 @@ var
   ScanLines: TScanLines;
   I, Len: Integer;
   Poly: TArrayOfArrayOfFloatPoint;
-  SavedRoundMode: TRoundingMode;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
+{$if not defined(USE_POLYFLOOR)}
+  SavedRoundingMode: TRoundingMode;
+{$ifend}
 begin
   Len := Length(Points);
   if Len = 0 then
     Exit;
 
-  SavedRoundMode := SetRoundMode(rmDown); // TODO : Not thread safe. Another thread can modify the mode
+  SetLength(Poly, Len);
+  for i := 0 to Len -1 do
+    Poly[i] := ClipPolygon(Points[i], ClipRect);
+
+{$if not defined(USE_POLYFLOOR)}
+  SavedRoundingMode := SetRoundMode(rmDown);
   try
-    SetLength(Poly, Len);
-    for i := 0 to Len -1 do
-      Poly[i] := ClipPolygon(Points[i], ClipRect);
+{$ifend}
 
-    BuildScanLines(Poly, ScanLines);
+  BuildScanLines(Poly, ScanLines);
 
-    if (Length(ScanLines) > 0) then
+  if (Length(ScanLines) > 0) then
+  begin
+    CX1 := PolyFloor(ClipRect.Left);
+    CX2 := PolyCeil(ClipRect.Right) - 1;
+
+    I := CX2 - CX1 + 4;
+
+    GetMem(SpanData, I * SizeOf(Single));
+
+    FillLongWord(SpanData^, I, 0);
+
+    for I := 0 to High(ScanLines) do
     begin
-      CX1 := Round(ClipRect.Left); // Round down = Floor
-      CX2 := -Round(-ClipRect.Right) - 1; // Round up = Ceil
-
-      I := CX2 - CX1 + 4;
-
-      GetMem(SpanData, I * SizeOf(Single));
-
-      FillLongWord(SpanData^, I, 0);
-
-      for I := 0 to High(ScanLines) do
-      begin
-        RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
-        FreeMem(ScanLines[I].Segments);
-      end;
-
-      FreeMem(SpanData);
+      RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
+      FreeMem(ScanLines[I].Segments);
     end;
-  finally
-    SetRoundMode(SavedRoundMode);
+
+    FreeMem(SpanData);
   end;
+
+{$if not defined(USE_POLYFLOOR)}
+  finally
+    SetRoundMode(SavedRoundingMode);
+  end
+{$ifend}
 end;
 
 procedure RenderPolygon(const Points: TArrayOfFloatPoint;

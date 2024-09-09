@@ -89,6 +89,33 @@ uses
   GR32_LowLevel,
   GR32_Blend;
 
+// FastFloor is slow on x86 due to call overhead
+{$if (not defined(PUREPASCAL)) and defined(CPUx86_64)}
+// Use of FastFloor currently corrupts the memory manager of FPC
+// so temporarily disabled there.
+  {$if (not defined(FPC))}
+    {$define USE_POLYFLOOR}
+  {$ifend}
+{$ifend}
+
+function PolyFloor(Value: Single): integer; overload; inline;
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastFloorSingle(Value);
+{$else}
+  Result := Round(Value);
+{$ifend}
+end;
+
+function PolyFloor(Value: Double): integer; overload; inline;
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastFloorDouble(Value);
+{$else}
+  Result := Round(Value);
+{$ifend}
+end;
+
 { TPolygonRenderer32VPR2 }
 
 procedure UpdateSpan(var Span: TIntSpan; Value: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -118,7 +145,7 @@ var
     dX, dY: TFloat;
   begin
     dX := (X1 + X2) * 0.5;
-    dX := dX - Round(dX);
+    dX := dX - PolyFloor(dX);
     dY := Y2 - Y1;
     dX := dX * dY;
     P[0] := P[0] + dY - dX;
@@ -149,8 +176,8 @@ begin
   dX := X2 - X1;
 {$endif}
 
-  X := Round(X1);
-  Y := Round(Y1);
+  X := PolyFloor(X1);
+  Y := PolyFloor(Y1);
 
   UpdateSpan(FYSpan, Y);
 
@@ -265,7 +292,7 @@ begin
     if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then
     begin
       Last := Coverage[I];
-      V := Abs(Round(Last * $10000));
+      V := Abs(PolyFloor(Last * $10000)); // TODO : Is Floor the correct operator here?
       if V > $10000 then V := $10000;
       V := V * M shr 24;
       C.A := V;
@@ -289,7 +316,7 @@ begin
     if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then
     begin
       Last := Coverage[I];
-      V := Abs(Round(Coverage[I] * $10000));
+      V := Abs(PolyFloor(Coverage[I] * $10000)); // TODO : Is Floor the correct operator here?
       V := V and $01ffff;
       if V >= $10000 then V := V xor $1ffff;
       V := V * M shr 24;
@@ -352,46 +379,57 @@ begin
 end;
 {$IFDEF UseStackAlloc}{$W-}{$ENDIF}
 
+{$ifdef FPC}
 type
   TRoundingMode = Math.TFPURoundingMode;
+{$endif}
 
 procedure TPolygonRenderer32VPR2.PolyPolygonFS(
   const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
 var
   APoints: TArrayOfFloatPoint;
   I, J, H: Integer;
-  SavedRoundMode: TRoundingMode;
   R: TFloatRect;
+{$if not defined(USE_POLYFLOOR)}
+  SavedRoundingMode: TRoundingMode;
+{$ifend}
 begin
   FYSpan := STARTSPAN;
-  SavedRoundMode := SetRoundMode(rmDown);
+
+{$if not defined(USE_POLYFLOOR)}
+  SavedRoundingMode := SetRoundMode(rmDown);
   try
-    FOpacityMap.SetSize(Bitmap.Width + 1, Bitmap.Height);
+{$ifend}
 
-    // temporary fix for floating point rounding errors
-    R := ClipRect;
-    R.Right := R.Right - 0.0001;
-    R.Bottom := R.Bottom - 0.0001;
+  FOpacityMap.SetSize(Bitmap.Width + 1, Bitmap.Height);
 
-    SetLength(FXSpan, Bitmap.Height);
-    for I := 0 to High(FXSpan) do
-      FXSpan[I] := STARTSPAN;
+  // temporary fix for floating point rounding errors
+  R := ClipRect;
+  R.Right := R.Right - 0.0001;
+  R.Bottom := R.Bottom - 0.0001;
 
-    for I := 0 to High(Points) do
-    begin
-      APoints := ClipPolygon(Points[I], R);
-      H := High(APoints);
-      if H <= 0 then Continue;
+  SetLength(FXSpan, Bitmap.Height);
+  for I := 0 to High(FXSpan) do
+    FXSpan[I] := STARTSPAN;
 
-      for J := 0 to H - 1 do
-        AddLineSegment(APoints[J].X, APoints[J].Y, APoints[J + 1].X, APoints[J + 1].Y);
-      AddLineSegment(APoints[H].X, APoints[H].Y, APoints[0].X, APoints[0].Y);
-    end;
+  for I := 0 to High(Points) do
+  begin
+    APoints := ClipPolygon(Points[I], R);
+    H := High(APoints);
+    if H <= 0 then Continue;
 
-    DrawBitmap;
-  finally
-    SetRoundMode(SavedRoundMode);
+    for J := 0 to H - 1 do
+      AddLineSegment(APoints[J].X, APoints[J].Y, APoints[J + 1].X, APoints[J + 1].Y);
+    AddLineSegment(APoints[H].X, APoints[H].Y, APoints[0].X, APoints[0].Y);
   end;
+
+  DrawBitmap;
+
+{$if not defined(USE_POLYFLOOR)}
+  finally
+    SetRoundMode(SavedRoundingMode);
+  end
+{$ifend}
 end;
 
 //============================================================================//
