@@ -14,6 +14,11 @@ type
     procedure RoundRect_NoArc;
   end;
 
+  TTestVPR = class(TTestCase)
+  published
+    procedure VPR;
+  end;
+
   TTestPolygonRasterizerIssues = class(TTestCase)
   private
     FPolygonRendererClass: TPolygonRenderer32Class;
@@ -63,6 +68,50 @@ uses
   GR32_VectorUtils;
 
 {$RANGECHECKS OFF}
+
+procedure TTestVPR.VPR;
+begin
+  var Bitmap := TBitmap32.Create(10, 10);
+  try
+    var PolygonRenderer := TPolygonRenderer32VPR.Create(Bitmap);
+    try
+      // Test case from GR32_VPR BuildScanLines
+
+      //    Polygon     Scanline                  Lines(Y0, Y1)              Count Sum
+      //                       (4, 0) (0, 2) (2, 1) (1, 3) (3, 7) (7, 4)
+      //
+      //       *           0      1      1                                     2   2
+      //      /\           1                    1      1                       2   4
+      //     /  \/\        2                                                   0   4
+      //    /      \       3            -1     -1             1               -1   3
+      //   /       /       4                          -1             1         0   3
+      //   \      /        5     -1                                           -1   2
+      //    \    /         6                                                   0   2
+      //     \  /          7                                                   0   2
+      //      \/           8                                 -1     -1        -2   0
+
+      var Polygon := BuildPolygonF([
+        4, 0,
+        6, 2,
+        5, 1,
+        7, 3,
+        4, 7,
+        0, 4
+        ]);
+
+
+      PolygonRenderer.Color := clRed32;
+      PolygonRenderer.PolyPolygonFS([Polygon]);
+
+    finally
+      PolygonRenderer.Free;
+    end;
+  finally
+    Bitmap.Free;
+  end;
+
+  Check(True);
+end;
 
 procedure TTestVectorUtilsIssues.RoundRect_MissingPoint;
 var
@@ -395,6 +444,8 @@ begin
 
   TestSuite := TTestSuite.Create('TPolygonRenderer32');
   RegisterTest(TestSuite);
+
+  TestSuite.AddTests(TTestVPR);
 
   for PolygonRendererClass in PolygonRendererList do
   begin
