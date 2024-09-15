@@ -612,67 +612,53 @@ var
 begin
   BeginUpdate;
   try
+
     SetSize(Source.Width, Source.Height);
-    if Empty then Exit;
+    if Empty then
+      Exit;
 
     W := Source.Width;
     H := Source.Height;
     N := W * H - 1;
-    SrcC := Source.PixelPtr[0, 0];
-    SrcB := Pointer(SrcC);
     DstB := @FBits^;
     case Conversion of
 
-      ctRed:
-        begin
-          Inc(SrcB, 2);
-          for I := 0 to N do
-          begin
-            DstB^ := SrcB^;
-            Inc(DstB);
-            Inc(SrcB, 4);
-          end;
-        end;
-
-      ctGreen:
-        begin
-          Inc(SrcB, 1);
-          for I := 0 to N do
-          begin
-            DstB^ := SrcB^;
-            Inc(DstB);
-            Inc(SrcB, 4);
-          end;
-        end;
-
-      ctBlue:
-        begin
-          for I := 0 to N do
-          begin
-            DstB^ := SrcB^;
-            Inc(DstB);
-            Inc(SrcB, 4);
-          end;
-        end;
-
+      ctRed,
+      ctGreen,
+      ctBlue,
       ctAlpha:
         begin
-          Inc(SrcB, 3);
+          case Conversion of
+            ctRed:
+              SrcB := @(PColor32Entry(Source.Bits).R);
+
+            ctGreen:
+              SrcB := @(PColor32Entry(Source.Bits).G);
+
+            ctBlue:
+              SrcB := @(PColor32Entry(Source.Bits).B);
+
+            ctAlpha:
+              SrcB := @(PColor32Entry(Source.Bits).A);
+          else
+            SrcB := nil;
+          end;
+
           for I := 0 to N do
           begin
             DstB^ := SrcB^;
             Inc(DstB);
-            Inc(SrcB, 4);
+            Inc(SrcB, SizeOf(TColor32));
           end;
         end;
 
       ctUniformRGB:
         begin
+          SrcC := PColor32(Source.Bits);
           for I := 0 to N do
           begin
             LValue := SrcC^;
-            LValue := (LValue and $00FF0000) shr 16 + (LValue and $0000FF00) shr 8 +
-              (LValue and $000000FF);
+            LValue := (LValue and $00FF0000) shr 16 + (LValue and $0000FF00) shr 8 + (LValue and $000000FF);
             LValue := LValue div 3;
             DstB^ := LValue;
             Inc(DstB);
@@ -682,6 +668,7 @@ begin
 
       ctWeightedRGB:
         begin
+          SrcC := PColor32(Source.Bits);
           for I := 0 to N do
           begin
             DstB^ := Intensity(SrcC^);
@@ -690,9 +677,11 @@ begin
           end;
         end;
     end;
+
+    Changed;
+
   finally
     EndUpdate;
-    Changed;
   end;
 end;
 
@@ -832,62 +821,50 @@ begin
   Dest.BeginUpdate;
   Resized := False;
   try
+
     Resized := Dest.SetSize(Width, Height);
-    if Empty then Exit;
+    if Empty then
+      Exit;
 
     W := Width;
     H := Height;
     N := W * H - 1;
-    DstC := Dest.PixelPtr[0, 0];
-    DstB := Pointer(DstC);
     SrcB := @FBits^;
     case Conversion of
 
-      ctRed:
-        begin
-          Inc(DstB, 2);
-          for I := 0 to N do
-          begin
-            DstB^ := SrcB^;
-            Inc(DstB, 4);
-            Inc(SrcB);
-          end;
-        end;
-
-      ctGreen:
-        begin
-          Inc(DstB, 1);
-          for I := 0 to N do
-          begin
-            DstB^ := SrcB^;
-            Inc(DstB, 4);
-            Inc(SrcB);
-          end;
-        end;
-
-      ctBlue:
-        begin
-          for I := 0 to N do
-          begin
-            DstB^ := SrcB^;
-            Inc(DstB, 4);
-            Inc(SrcB);
-          end;
-        end;
-
+      ctRed,
+      ctGreen,
+      ctBlue,
       ctAlpha:
         begin
-          Inc(DstB, 3);
+          case Conversion of
+            ctRed:
+              DstB := @(PColor32Entry(Dest.Bits).R);
+
+            ctGreen:
+              DstB := @(PColor32Entry(Dest.Bits).G);
+
+            ctBlue:
+              DstB := @(PColor32Entry(Dest.Bits).B);
+
+            ctAlpha:
+              DstB := @(PColor32Entry(Dest.Bits).A);
+          else
+            DstB := nil;
+          end;
+
           for I := 0 to N do
           begin
             DstB^ := SrcB^;
-            Inc(DstB, 4);
+            Inc(DstB, SizeOf(TColor32));
             Inc(SrcB);
           end;
         end;
 
-      ctUniformRGB, ctWeightedRGB:
+      ctUniformRGB,
+      ctWeightedRGB:
         begin
+          DstC := PColor32(Dest.Bits);
           for I := 0 to N do
           begin
             DstC^ := Gray32(SrcB^);
@@ -896,10 +873,13 @@ begin
           end;
         end;
     end;
+
+    Dest.Changed;
+
   finally
     Dest.EndUpdate;
-    Dest.Changed;
-    if Resized then Dest.Resized;
+    if Resized then
+      Dest.Resized;
   end;
 end;
 
