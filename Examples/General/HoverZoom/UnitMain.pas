@@ -41,6 +41,7 @@ type
     procedure ActionImageCustomExecute(Sender: TObject);
     procedure RadioButtonCustomDblClick(Sender: TObject);
     procedure ActionAnimateExecute(Sender: TObject);
+    procedure ImageScaleChange(Sender: TObject);
   private
     FNormalOffset: TPoint;
     FBitmapLayer: TBitmapLayer;
@@ -51,7 +52,6 @@ type
   private
     procedure LoadImage(const Filename: string; ZoomMode: TZoomMode = zmAuto);
     procedure CenterImage;
-    procedure UpdateScale;
   public
   end;
 
@@ -133,6 +133,7 @@ begin
   FBitmapLayer := Image.Layers.Add<TBitmapLayer>;
   FBitmapLayer.Scaled := False;
   FBitmapLayer.Visible := False;
+  ImageScaleChange(nil);
 
   ActionImageSmall.Execute;
 end;
@@ -152,7 +153,6 @@ begin
 
   FBitmapLayer.Visible := False;
   FZoomed := False;
-  UpdateScale;
 
   CenterImage;
 end;
@@ -182,7 +182,6 @@ begin
       Image.Scale := FZoomScale;
   end else
     Image.Scale := FZoomScale;
-  UpdateScale;
 
 
   //
@@ -216,6 +215,11 @@ end;
 procedure TFormMain.ImageResize(Sender: TObject);
 begin
   CenterImage;
+end;
+
+procedure TFormMain.ImageScaleChange(Sender: TObject);
+begin
+  StatusBar.SimpleText := Format('Scale: %.3n', [Image.Scale]);
 end;
 
 procedure TFormMain.LoadImage(const Filename: string; ZoomMode: TZoomMode);
@@ -258,7 +262,6 @@ begin
   end;
 
   Image.Scale := FNormalScale;
-  UpdateScale;
 
   CenterImage;
 end;
@@ -266,11 +269,6 @@ end;
 procedure TFormMain.RadioButtonCustomDblClick(Sender: TObject);
 begin
   ActionImageCustom.Execute;
-end;
-
-procedure TFormMain.UpdateScale;
-begin
-  StatusBar.SimpleText := Format('Scale: %.3n', [Image.Scale]);
 end;
 
 end.

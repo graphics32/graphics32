@@ -702,6 +702,7 @@ type
     property OnPaintStage;
     property OnResize;
     property OnStartDrag;
+    property OnScaleChange;
   end;
 
 
@@ -869,6 +870,7 @@ type
     property OnResize;
     property OnScroll;
     property OnStartDrag;
+    property OnScaleChange;
   end;
 
 

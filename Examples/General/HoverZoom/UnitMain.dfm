@@ -34,6 +34,7 @@ object FormMain: TFormMain
     OnMouseMove = ImageMouseMove
     OnMouseLeave = ImageMouseLeave
     OnResize = ImageResize
+    OnScaleChange = ImageScaleChange
   end
   object CheckBoxLayer: TCheckBox
     Left = 16
