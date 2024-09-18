@@ -482,6 +482,7 @@ begin
 
   Stopwatch := TStopwatch.StartNew;
   Elapsed := 0;
+  Value := 0;
   Continue := True;
 
   while (Continue) and (Elapsed <= Duration) do
@@ -498,17 +499,24 @@ begin
       Elapsed := Stopwatch.ElapsedMilliseconds;
     end;
 
-    if (Elapsed > Duration) then
-      Elapsed := Duration;
+    if (Elapsed < Duration) then
+      // Calculate tween value...
+      Value := EaseFunc(Elapsed / Duration)
+    else
+      Value := 1;
 
-    // Calculate tween value...
-    Value := EaseFunc(Elapsed / Duration);
     // ...and Ease
     Performer(Value, Continue);
 
     // Calculate time elapsed during Ease
     Elapsed := Stopwatch.ElapsedMilliseconds;
   end;
+
+  // If we exited the loop prematurely because we ran out of time then
+  // give the performer a final go so we can guarantee that we will
+  // reach the goal.
+  if (Continue) and (Value < 1) then
+    Performer(1, Continue);
 end;
 
 // -----------------------------------------------------------------------------

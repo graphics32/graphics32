@@ -147,8 +147,6 @@ begin
     Pivot := Image.ScreenToClient(Mouse.CursorPos);
     Pivot := Image.ControlToBitmap(Pivot);
     Image.Zoom(FNormalScale, Pivot, True);
-
-    Image.Scale := FNormalScale; // Work around for bug in animated Zoom
   end else
     Image.Scale := FNormalScale;
 
