@@ -125,4 +125,11 @@ object FormMain: TFormMain
       OnExecute = ActionAnimateExecute
     end
   end
+  object TimerZoom: TTimer
+    Enabled = False
+    Interval = 50
+    OnTimer = TimerZoomTimer
+    Left = 280
+    Top = 212
+  end
 end

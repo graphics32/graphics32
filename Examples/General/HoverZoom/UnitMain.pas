@@ -3,7 +3,7 @@ unit UnitMain;
 interface
 
 uses
-  System.Types,
+  System.Types, System.Diagnostics,
   System.SysUtils, System.Variants, System.Classes, System.Actions,
   Winapi.Windows, Winapi.Messages,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
@@ -30,9 +30,10 @@ type
     StatusBar: TStatusBar;
     CheckBoxAnimate: TCheckBox;
     ActionAnimate: TAction;
+    TimerZoom: TTimer;
     procedure FormCreate(Sender: TObject);
-    procedure ImageMouseLeave(Sender: TObject);
     procedure ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ImageMouseLeave(Sender: TObject);
     procedure ImageResize(Sender: TObject);
     procedure ActionImageSmallExecute(Sender: TObject);
     procedure ActionImageLargeExecute(Sender: TObject);
@@ -42,6 +43,7 @@ type
     procedure RadioButtonCustomDblClick(Sender: TObject);
     procedure ActionAnimateExecute(Sender: TObject);
     procedure ImageScaleChange(Sender: TObject);
+    procedure TimerZoomTimer(Sender: TObject);
   private
     FNormalOffset: TPoint;
     FBitmapLayer: TBitmapLayer;
@@ -49,9 +51,13 @@ type
     FZoomMode: TZoomMode;
     FNormalScale: Double;
     FZoomScale: Double;
+    FStopwatchAnimation: TStopwatch;
+
   private
     procedure LoadImage(const Filename: string; ZoomMode: TZoomMode = zmAuto);
     procedure CenterImage;
+    procedure ZoomIn(const MousePos: TPoint);
+    procedure ZoomOut(const MousePos: TPoint);
   public
   end;
 
@@ -64,6 +70,7 @@ implementation
 
 uses
   System.Math,
+  amEasing,
   GR32.Examples,
   GR32.ImageFormats,
   GR32_PNG,
@@ -140,76 +147,22 @@ end;
 
 procedure TFormMain.ImageMouseLeave(Sender: TObject);
 var
-  Pivot: TPoint;
+  MousePos: TPoint;
 begin
-  if (ActionAnimate.Checked) then
-  begin
-    // Animate zoom to normal
-    Pivot := Image.ScreenToClient(Mouse.CursorPos);
-    Pivot := Image.ControlToBitmap(Pivot);
-    Image.Zoom(FNormalScale, Pivot, True);
-  end else
-    Image.Scale := FNormalScale;
-
-  FBitmapLayer.Visible := False;
-  FZoomed := False;
-
-  CenterImage;
+  MousePos := Image.ScreenToClient(Mouse.CursorPos);
+  ZoomOut(MousePos)
 end;
 
 procedure TFormMain.ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 var
-  MousePos, BitmapPos, ViewportPos: TPoint;
+  MousePos: TPoint;
 begin
-  if (not FZoomed) then
-  begin
-    FZoomed := True;
-    FBitmapLayer.Visible := (FZoomMode = zmSmall) and ActionViewLayer.Checked;
-
-    // Save offset of bitmap with "normal" scale
-    FNormalOffset := Image.GetBitmapRect.TopLeft;
-
-    Image.ForceFullInvalidate; // Work around for bug in repaint mechanism
-  end;
-
-  // Increase zoom while we move the mouse until we reach the desired level.
-  // This is just an optional effect to make the zoom appear nicer.
-  if (ActionAnimate.Checked) then
-  begin
-    if (Abs(FZoomScale - Image.Scale) > 0.1) then
-      Image.Scale := Image.Scale + (FZoomScale - Image.Scale) / 10
-    else
-      Image.Scale := FZoomScale;
-  end else
-    Image.Scale := FZoomScale;
-
-
-  //
-  // Pan so "position in bitmap" = "position in viewport".
-  //
-  // Looking at TCustomImage32.BitmapToControl we can see that the relationship
-  // between bitmap and control position is:
-  //
-  //   ViewportPos = BitmapPos * Scale + Offset
-  //
-  // Solving the above for Offset, given ViewportPos and BitmapPos:
-  //
-  //   ViewportPos = BitmapPos * Scale + Offset
-  //   Offset = ViewportPos - BitmapPos * Scale
-  //
-
-
   MousePos := Point(X, Y);
 
-  // What is the position relative to the "normal" scaled bitmap?
-  BitmapPos.X := Round((MousePos.X - FNormalOffset.X) / FNormalScale);
-  BitmapPos.Y := Round((MousePos.Y - FNormalOffset.Y) / FNormalScale);
-
-  // What is the control (viewport) position we would like the BitmapPos to correspond to?
-  ViewportPos := MousePos;
-
-  Image.OffsetHorz := ViewportPos.X - BitmapPos.X * Image.Scale;
-  Image.OffsetVert := ViewportPos.Y - BitmapPos.Y * Image.Scale;
+  if (Image.GetBitmapRect.Contains(MousePos)) then
+    ZoomIn(MousePos)
+  else
+    ZoomOut(MousePos)
 end;
 
 procedure TFormMain.ImageResize(Sender: TObject);
@@ -269,6 +222,100 @@ end;
 procedure TFormMain.RadioButtonCustomDblClick(Sender: TObject);
 begin
   ActionImageCustom.Execute;
+end;
+
+procedure TFormMain.TimerZoomTimer(Sender: TObject);
+var
+  MousePos: TPoint;
+begin
+  if (FZoomed) and (Image.Scale <> FZoomScale) then
+  begin
+    MousePos := Image.ScreenToClient(Mouse.CursorPos);
+    ZoomIn(MousePos)
+  end else
+    TTimer(Sender).Enabled := False;
+end;
+
+procedure TFormMain.ZoomIn(const MousePos: TPoint);
+var
+  BitmapPos: TPoint;
+  Elapsed: int64;
+begin
+  if (not FZoomed) then
+  begin
+    FZoomed := True;
+    FBitmapLayer.Visible := (FZoomMode = zmSmall) and ActionViewLayer.Checked;
+
+    // Save offset of bitmap with "normal" scale
+    FNormalOffset := Image.GetBitmapRect.TopLeft;
+
+    FStopwatchAnimation := TStopwatch.StartNew;
+    Image.ForceFullInvalidate; // Work around for bug in repaint mechanism
+  end;
+
+
+  if (Image.Scale <> FZoomScale) then
+  begin
+    if (ActionAnimate.Checked) then
+    begin
+      // Animate the zoom using a "tween"
+      Elapsed := FStopwatchAnimation.ElapsedMilliseconds;
+      if (Elapsed < ZoomAnimateTime) then
+      begin
+        Image.Scale := FNormalScale + TEaseCubic.EaseInOut(Elapsed / ZoomAnimateTime) * (FZoomScale - FNormalScale);
+        // Start a timer so we animate until the desired scale is reached
+        TimerZoom.Enabled := True;
+      end else
+        Image.Scale := FZoomScale
+    end else
+      Image.Scale := FZoomScale;
+  end;
+
+
+  //
+  // Pan so "position in bitmap" = "position in viewport".
+  //
+  // Looking at TCustomImage32.BitmapToControl we can see that the relationship
+  // between bitmap and control position is:
+  //
+  //   ViewportPos = BitmapPos * Scale + Offset
+  //
+  // Solving the above for Offset, given ViewportPos and BitmapPos:
+  //
+  //   ViewportPos = BitmapPos * Scale + Offset
+  //   Offset = ViewportPos - BitmapPos * Scale
+  //
+
+
+  // Translate the position to bitmap coordinates, using the "normal" scale
+  BitmapPos.X := Round((MousePos.X - FNormalOffset.X) / FNormalScale);
+  BitmapPos.Y := Round((MousePos.Y - FNormalOffset.Y) / FNormalScale);
+
+  // Calculate the offset from bitmap coordinates using the "zoomed" scale
+  Image.OffsetHorz := MousePos.X - BitmapPos.X * Image.Scale;
+  Image.OffsetVert := MousePos.Y - BitmapPos.Y * Image.Scale;
+
+end;
+
+procedure TFormMain.ZoomOut(const MousePos: TPoint);
+var
+  Pivot: TPoint;
+begin
+  if (not FZoomed) then
+    exit;
+
+  if (ActionAnimate.Checked) then
+  begin
+    // Animate zoom to normal
+    Pivot := Image.ControlToBitmap(MousePos);
+    Image.Zoom(FNormalScale, Pivot, True);
+  end else
+    Image.Scale := FNormalScale;
+
+  FBitmapLayer.Visible := False;
+  FZoomed := False;
+
+  CenterImage;
 end;
 
 end.
