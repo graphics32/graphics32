@@ -4100,9 +4100,11 @@ end;
 
 function TCustomImgView32.CanMousePan: boolean;
 begin
+  // Unhandled case:
+  // - BitmapAlign=baCustom, Centered=False: Image can be panned out of viewport
+
   Result := (inherited CanMousePan) and
     (ScaleMode in [smScale, smNormal]) and
-    (GetScrollBarsVisible) and
     ((FViewportSize.cx < FBitmapSize.cx) or (FViewportSize.cy < FBitmapSize.cy));
 end;
 
