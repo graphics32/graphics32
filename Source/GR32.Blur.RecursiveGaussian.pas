@@ -109,6 +109,9 @@ procedure RecursiveGaussianBlurRadius(Src, Dst: TBitmap32; Radius: TFloat);
 procedure RecursiveGaussianBlurGamma(Src, Dst: TBitmap32; Sigma: TFloat);
 procedure RecursiveGaussianBlurRadiusGamma(Src, Dst: TBitmap32; Radius: TFloat);
 
+procedure RecursiveGaussianBlurHorizontalRadius(Src, Dst: TBitmap32; Radius: TFloat);
+procedure RecursiveGaussianBlurHorizontalRadiusGamma(Src, Dst: TBitmap32; Radius: TFloat);
+
 
 //------------------------------------------------------------------------------
 //
@@ -1327,7 +1330,7 @@ end;
 //------------------------------------------------------------------------------
 // Core function
 //------------------------------------------------------------------------------
-procedure InternalRecursiveGaussianBlur(Src, Dst: TBitmap32; Sigma: TFloat
+procedure InternalRecursiveGaussianBlur(Src, Dst: TBitmap32; Sigma: TFloat; TwoDimensional: boolean
   {$ifdef IIR_BLUR_DIV_LUT}; const PremultiplyLUT: TPremultiplyLUT{$endif});
 var
   B: TQuadFloat;
@@ -1412,6 +1415,14 @@ var
     Transpose32(@TransposedBuffer[0], @Buffer[0], Src.Height, Src.Width);
   end;
 
+  procedure BlurHorizontal;
+  var
+    i: integer;
+  begin
+    for i := 0 to Src.Height-1 do
+      BlurRow(i, Src.Width, Src.Height, Buffer, Buffer);
+  end;
+
 var
   Channel: integer;
   MaxRows: integer;
@@ -1449,7 +1460,8 @@ begin
   UnAlignRowBuffer := nil;
   try
     Buffer := AllocateChannelBuffer(UnAlignBuffer, Src.Width * Src.Height * SizeOf(TFloat));
-    TransposedBuffer := AllocateChannelBuffer(UnAlignTransposedBuffer, Src.Width * Src.Height * SizeOf(TFloat));
+    if (TwoDimensional) then
+      TransposedBuffer := AllocateChannelBuffer(UnAlignTransposedBuffer, Src.Width * Src.Height * SizeOf(TFloat));
     RowBuffer := AllocateChannelBuffer(UnAlignRowBuffer, MaxRows * SizeOf(TFloat));
 
     // Start with A channel so unpremult of RGB channels uses correct value
@@ -1458,7 +1470,10 @@ begin
       LoadChannel(Src, Channel, Buffer
         {$ifdef IIR_BLUR_DIV_LUT}, PremultiplyLUT{$endif});
 
-      BlurBuffer;
+      if (TwoDimensional) then
+        BlurBuffer
+      else
+        BlurHorizontal;
 
       SaveChannel(Dst, Channel, Buffer
         {$ifdef IIR_BLUR_DIV_LUT}, PremultiplyLUT{$endif});
@@ -1474,25 +1489,39 @@ end;
 
 procedure RecursiveGaussianBlur(Src, Dst: TBitmap32; Sigma: TFloat);
 begin
-  InternalRecursiveGaussianBlur(Src, Dst, Sigma
+  InternalRecursiveGaussianBlur(Src, Dst, Sigma, True
     {$ifdef IIR_BLUR_DIV_LUT}, TPremultiplyLUT.PremultiplyLUT^{$endif});
 end;
 
 procedure RecursiveGaussianBlurRadius(Src, Dst: TBitmap32; Radius: TFloat);
 begin
-  InternalRecursiveGaussianBlur(Src, Dst, Radius * GaussianRadiusToSigma
+  InternalRecursiveGaussianBlur(Src, Dst, Radius * GaussianRadiusToSigma, True
     {$ifdef IIR_BLUR_DIV_LUT}, TPremultiplyLUT.PremultiplyLUT^{$endif});
 end;
 
 procedure RecursiveGaussianBlurGamma(Src, Dst: TBitmap32; Sigma: TFloat);
 begin
-  InternalRecursiveGaussianBlur(Src, Dst, Sigma
+  InternalRecursiveGaussianBlur(Src, Dst, Sigma, True
     {$ifdef IIR_BLUR_DIV_LUT}, TPremultiplyLUT.GammaPremultiplyLUT^{$endif});
 end;
 
 procedure RecursiveGaussianBlurRadiusGamma(Src, Dst: TBitmap32; Radius: TFloat);
 begin
-  InternalRecursiveGaussianBlur(Src, Dst, Radius * GaussianRadiusToSigma
+  InternalRecursiveGaussianBlur(Src, Dst, Radius * GaussianRadiusToSigma, True
+    {$ifdef IIR_BLUR_DIV_LUT}, TPremultiplyLUT.GammaPremultiplyLUT^{$endif});
+end;
+
+//------------------------------------------------------------------------------
+
+procedure RecursiveGaussianBlurHorizontalRadius(Src, Dst: TBitmap32; Radius: TFloat);
+begin
+  InternalRecursiveGaussianBlur(Src, Dst, Radius * GaussianRadiusToSigma, False
+    {$ifdef IIR_BLUR_DIV_LUT}, TPremultiplyLUT.PremultiplyLUT^{$endif});
+end;
+
+procedure RecursiveGaussianBlurHorizontalRadiusGamma(Src, Dst: TBitmap32; Radius: TFloat);
+begin
+  InternalRecursiveGaussianBlur(Src, Dst, Radius * GaussianRadiusToSigma, False
     {$ifdef IIR_BLUR_DIV_LUT}, TPremultiplyLUT.GammaPremultiplyLUT^{$endif});
 end;
 
@@ -1522,6 +1551,9 @@ begin
   BlurRegistry.Add(@@GammaBlur32Proc,             @RecursiveGaussianBlurRadiusGamma,    [isPascal]);
 {$endif IIR_BLUR_DEFAULT}
 
+  BlurRegistry.Add(@@HorizontalBlur32,            @RecursiveGaussianBlurHorizontalRadius, [isPascal]);
+  BlurRegistry.Add(@@GammaHorizontalBlur32,       @RecursiveGaussianBlurHorizontalRadiusGamma, [isPascal]);
+
   BlurRegistry.Add(@@IIR_BlurFilterForward,       @BlurFilterForward_Pas,               [isPascal]);
   BlurRegistry.Add(@@IIR_BlurFilterBackward,      @BlurFilterBackward_Pas,              [isPascal]);
   BlurRegistry.Add(@@IIR_BlurApplyEdgeCorrection, @BlurApplyEdgeCorrection_Pas,         [isPascal]);
@@ -1546,6 +1578,7 @@ begin
 {$endif IIR_BLUR_EDGE_CORRECTION_SIMD}
 
   // Force EMMS to use MMX version
+  // TODO : WHy?
   BlendRegistry.Rebind(0, MMXPriorityProc);
 
 {$ifend}
