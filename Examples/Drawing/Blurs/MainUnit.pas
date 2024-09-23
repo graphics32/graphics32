@@ -38,6 +38,13 @@ type
     TbrBlurAngle: TTrackBar;
     TbrBlurRadius: TTrackBar;
     CheckBoxCorrectGamma: TCheckBox;
+    LabelDelta: TLabel;
+    TrackBarDelta: TTrackBar;
+    PanelSelective: TPanel;
+    MnuSelective: TMenuItem;
+    PanelMotion: TPanel;
+    TimerUpdate: TTimer;
+    PanelRadius: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MnuExitClick(Sender: TObject);
@@ -47,6 +54,8 @@ type
     procedure RgpBlurTypeClick(Sender: TObject);
     procedure TbrBlurAngleChange(Sender: TObject);
     procedure TbrBlurRadiusChange(Sender: TObject);
+    procedure TrackBarDeltaChange(Sender: TObject);
+    procedure TimerUpdateTimer(Sender: TObject);
   private
     FBitmapStoneWeed: TBitmap32;
     FBitmapIceland: TBitmap32;
@@ -56,6 +65,8 @@ type
     FRedrawFlag: Boolean;
 
     procedure Redraw;
+    procedure QueueUpdate;
+
   end;
 
 var
@@ -70,6 +81,7 @@ uses
   GR32_VectorUtils,
   GR32_System,
   GR32.Blur,
+  GR32.Blur.SelectiveGaussian,
   GR32_Blurs;
 
 {$IFDEF FPC}
@@ -143,7 +155,7 @@ begin
   FLayerBitmap := TBitmapLayer(ImgViewPage3.Layers.Add(TBitmapLayer));
   FLayerBitmap.Bitmap.DrawMode := dmBlend;
 
-  Redraw;
+  RgpBlurType.ItemIndex := 1;
 end;
 
 procedure TFrmBlurs.FormDestroy(Sender: TObject);
@@ -184,7 +196,14 @@ begin
             if WithGamma then
               MotionBlurGamma(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked)
             else
-              MotionBlur(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked)
+              MotionBlur(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked);
+
+          3:
+            if WithGamma then
+              GammaSelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position)
+            else
+              SelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position);
+
         end;
         Stopwatch.Stop;
         ImgViewPage1.EndUpdate;
@@ -302,37 +321,78 @@ begin
 end;
 
 procedure TFrmBlurs.RgpBlurTypeClick(Sender: TObject);
+
+  procedure EnableGroup(Parent: TControl; State: boolean);
+  var
+    i: integer;
+  begin
+    Parent.Enabled := State;
+    if (Parent is TWinControl) then
+      for i := 0 to TWinControl(Parent).ControlCount-1 do
+        EnableGroup(TWinControl(Parent).Controls[i], State);
+  end;
+
 begin
-  MnuNone.Checked := RgpBlurType.ItemIndex = 0;
-  MnuGaussianType.Checked := RgpBlurType.ItemIndex = 1;
-  MnuMotion.Checked := RgpBlurType.ItemIndex = 2;
-  LblBlurAngle.Enabled := MnuMotion.Checked;
-  TbrBlurAngle.Enabled := MnuMotion.Checked;
-  CbxBidirectional.Enabled := MnuMotion.Checked;
+  MnuNone.Checked := (RgpBlurType.ItemIndex = 0);
+  MnuGaussianType.Checked := (RgpBlurType.ItemIndex = 1);
+  MnuMotion.Checked := (RgpBlurType.ItemIndex = 2);
+  MnuSelective.Checked := (RgpBlurType.ItemIndex = 3);
+
+  EnableGroup(PanelRadius, (RgpBlurType.ItemIndex <> 0));
+  EnableGroup(PanelMotion, (RgpBlurType.ItemIndex = 2));
+  EnableGroup(PanelSelective, (RgpBlurType.ItemIndex = 3));
+
+  case RgpBlurType.ItemIndex of
+    1: // The current Gaussian Blur begins introducing overflow artifacts at around radius=200
+      TbrBlurRadius.Max := 200;
+    2: // Motion blur internally limits the radius to 256
+      TbrBlurRadius.Max := 256;
+    3: // Selective blur is very slow, so limit the damage
+      TbrBlurRadius.Max := 20;
+  end;
+
+  Redraw;
+end;
+
+procedure TFrmBlurs.TimerUpdateTimer(Sender: TObject);
+begin
+  TimerUpdate.Enabled := False;
   Redraw;
 end;
 
 procedure TFrmBlurs.TbrBlurRadiusChange(Sender: TObject);
 begin
   LblBlurRadius.Caption := Format('Blur &Radius (%d)', [TbrBlurRadius.Position]);
-  Redraw;
+
+  QueueUpdate;
+end;
+
+procedure TFrmBlurs.TrackBarDeltaChange(Sender: TObject);
+begin
+  LabelDelta.Caption := Format('Delta (%d)', [TrackBarDelta.Position]);
+
+  QueueUpdate;
 end;
 
 procedure TFrmBlurs.TbrBlurAngleChange(Sender: TObject);
 begin
   LblBlurAngle.Caption := Format('Blur &Angle (%d)', [TbrBlurAngle.Position]);
-  Redraw;
+
+  QueueUpdate;
 end;
 
 procedure TFrmBlurs.MnuGaussianTypeClick(Sender: TObject);
 begin
-  if Sender = MnuNone then
-    RgpBlurType.ItemIndex := 0
-  else
   if Sender = MnuGaussianType then
     RgpBlurType.ItemIndex := 1
   else
-    RgpBlurType.ItemIndex := 2;
+  if Sender = MnuMotion then
+    RgpBlurType.ItemIndex := 2
+  else
+  if Sender = MnuSelective then
+    RgpBlurType.ItemIndex := 3
+  else
+    RgpBlurType.ItemIndex := 0
 end;
 
 procedure TFrmBlurs.MnuOpenClick(Sender: TObject);
@@ -348,6 +408,12 @@ end;
 procedure TFrmBlurs.PageControlChange(Sender: TObject);
 begin
   Redraw;
+end;
+
+procedure TFrmBlurs.QueueUpdate;
+begin
+  TimerUpdate.Enabled := False;
+  TimerUpdate.Enabled := True;
 end;
 
 end.

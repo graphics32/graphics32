@@ -40,6 +40,13 @@ uses
   GR32_Bindings,
   GR32;
 
+//------------------------------------------------------------------------------
+// Note that all blur functions operate on all channels (R, G, B, and A).
+// If you don't want the Alpha channel blurred, reset/restore the Alpha of the
+// result bitmap after it has been blurred.
+//------------------------------------------------------------------------------
+
+
 
 //------------------------------------------------------------------------------
 //
@@ -113,39 +120,6 @@ var
 
 //------------------------------------------------------------------------------
 //
-//      Selective Gaussian Blur
-//
-//------------------------------------------------------------------------------
-// Definition of Selective Gaussian Blur from the GIMP User Manual:
-//
-// The Selective Gaussian Blur filter performs a mathematical region-based
-// selection of the image in small chunks, and determines the level of detail
-// within that chunk. After this it applies a Gaussian-based blur to it.
-// Selective Gaussian Blur can be very processor intensive, but produces very
-// controlled blurring.
-//
-// The Blur Radius setting affects the maximum number of pixels considered for
-// blurring. The higher the setting, the higher the number of pixels that will
-// be included in the region analysis. Be aware that a higher setting will take
-// considerably longer to compute.
-//
-// The Delta affects the level of detail that will be blurred. A higher setting
-// here will produce more smoothing of the pixels in the radius.
-//
-// A common use for the Selective Gaussian Blur filter is smoothing areas
-// affected by populations of JPEG artifacts, or bad pixelization distortions.
-//------------------------------------------------------------------------------
-// Can be used as ordinary Gaussian Blur by specifying Delta >= 255
-//------------------------------------------------------------------------------
-type
-  TSelectiveGaussian32Proc = procedure(ASource, ADest: TBitmap32; Radius: TFloat; Delta: Integer);
-
-var
-  SelectiveGaussianBlur32: TSelectiveGaussian32Proc;
-
-
-//------------------------------------------------------------------------------
-//
 //      Box Blur
 //
 //------------------------------------------------------------------------------
@@ -208,8 +182,7 @@ uses
   GR32_Resamplers,
   GR32_Polygons,
   GR32_VectorUtils,
-  GR32.Blur.RecursiveGaussian,
-  GR32.Blur.SelectiveGaussian;
+  GR32.Blur.RecursiveGaussian;
 
 
 //------------------------------------------------------------------------------
@@ -253,9 +226,8 @@ begin
 
   Dest := TBitmap32.Create(TMemoryBackend);
   try
-      Dest.DrawMode := dmCustom;
-      Dest.OnPixelCombine := TBlurCombiner.PixelCombineHandler;
-
+    Dest.DrawMode := dmCustom;
+    Dest.OnPixelCombine := TBlurCombiner.PixelCombineHandler;
 
     if (BlurBlock) then
     begin
@@ -324,7 +296,7 @@ begin
       // Copy the target area
       BlockTransfer(Dest, 0, 0, Dest.BoundsRect, Bitmap, Bounds, dmOpaque);
 
-
+      // Blur just the target area
       BlurInplaceDelegate(Dest, Radius);
 
       // Copy the blurred area back into the source bitmap
@@ -478,11 +450,6 @@ begin
   raise Exception.Create('This blur function has not been implemented');
 end;
 
-procedure SelectiveGaussian32NotImplemented(ASource, ADest: TBitmap32; Radius: TFloat; Delta: Integer);
-begin
-  raise Exception.Create('This blur function has not been implemented');
-end;
-
 //------------------------------------------------------------------------------
 
 var
@@ -499,12 +466,9 @@ begin
   FBlurRegistry.RegisterBinding(@@HorizontalBlur32);
   FBlurRegistry.RegisterBinding(@@GammaHorizontalBlur32);
 
-  FBlurRegistry.RegisterBinding(@@SelectiveGaussianBlur32);
-
   // Default fallback stubs for unimplemented functions
   FBlurRegistry.Add(@@HorizontalBlur32,         @Blur32NotImplemented,          [isPascal], FBlurRegistry.WORST_PRIORITY);
-  FBlurRegistry.Add(@@GammaHorizontalBlur32,    @BlurInplace32NotImplemented,   [isPascal], FBlurRegistry.WORST_PRIORITY);
-  FBlurRegistry.Add(@@SelectiveGaussianBlur32,  @SelectiveGaussian32NotImplemented, [isPascal], FBlurRegistry.WORST_PRIORITY);
+  FBlurRegistry.Add(@@GammaHorizontalBlur32,    @Blur32NotImplemented,          [isPascal], FBlurRegistry.WORST_PRIORITY);
 end;
 
 function BlurRegistry: TFunctionRegistry;
