@@ -65,6 +65,8 @@ uses
 //------------------------------------------------------------------------------
 // Can, in theory, be used as (a bad) ordinary Gaussian Blur by specifying
 // Delta >= 255.
+//
+// Note that the selective blur, by design, does not blur the alpha channel.
 //------------------------------------------------------------------------------
 type
   TSelectiveGaussian32Proc = procedure(ASource, ADest: TBitmap32; Radius: TFloat; Delta: Integer);
@@ -81,13 +83,11 @@ var
 // SIMD optimized versions
 //------------------------------------------------------------------------------
 // The performance of SelectiveGaussian1 is generally better than
-// SelectiveGaussian2 (25% faster on some images) but it also has a higher
-// signal loss. For example:
+// SelectiveGaussian2 (25% faster on some images) but it also has a slightly
+// higher signal loss. For example:
 // - SelectiveGaussian1 on a solid color (value=255), yields value=253.
 // - SelectiveGaussian2 on a solid color (value=255), yields value=254.
-// This is generally not a problem since such a small difference isn't visible,
-// but since we are also blurring the alpha it can become visible if the bitmap
-// is being drawn with transparency.
+// This is generally not a problem since such a small difference isn't visible.
 //------------------------------------------------------------------------------
 procedure SelectiveGaussian1(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer);
 procedure SelectiveGaussianGamma1(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer);
@@ -387,14 +387,17 @@ end;
 //------------------------------------------------------------------------------
 procedure InternalSelectiveGaussianGimp(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer; const PremultiplyLUT: TPremultiplyLUT);
 var
-  X, Y, Plane, WindowX, WindowY, SampleValue, R, MaxX, MaxY: Integer;
+  X, Y, Plane, WindowX, WindowY, R, MaxX, MaxY: Integer;
   MinValue, MaxValue: Integer;
   Kernel: TSingleDynArray;
   Sum, Fact, Weight: Single;
-  RefColor: TColor32;
+  RefColor: TColor32Entry;
   RefValue: Integer;
-  DstValue, DstAlpha: Byte;
-  PDstLine, PSrcLine: PColor32Array;
+  SampleColor: TColor32Entry;
+  SampleValue: Integer;
+  DstValue: Byte;
+  pDestColor: PColor32Entry;
+  pDstLine, pSrcLine: PColor32Array;
 begin
   ASSERT(Src <> Dst);
 
@@ -411,26 +414,25 @@ begin
   Dst.SetSizeFrom(Src);
   Kernel := GaussianKernel(Radius);
   try
-    DstAlpha := 0;
 
     for Y := 0 to MaxY do
     begin
-      PDstLine := Dst.ScanLine[Y];
+      pDstLine := Dst.ScanLine[Y];
 
       for X := 0 to MaxX do
       begin
-        RefColor := Src[X, Y];
+        RefColor := TColor32Entry(Src[X, Y]);
+        pDestColor := @(pDstLine[X]);
 
-        // Process Alpha first, then RGB
-        for Plane := 3 downto 0 do
+        // Process each of the RGB channels in turn
+        for Plane := 0 to 2 do
         begin
           Sum := 0;
           Fact := 0;
 
-          RefValue := TColor32Entry(RefColor).Planes[Plane];
-          if (Plane <> 3) then
-            // Premultiply and gamma (sRGB->LinearRGB)
-            RefValue := PremultiplyLUT.MulDiv255[RefValue, TColor32Entry(RefColor).A];
+          RefValue := RefColor.Planes[Plane];
+          // Premultiply and gamma (sRGB->LinearRGB)
+          RefValue := PremultiplyLUT.MulDiv255[RefValue, RefColor.A];
 
           MinValue := RefValue - Delta;
           MaxValue := RefValue + Delta;
@@ -442,7 +444,7 @@ begin
             if WindowY + Y > MaxY then
               Break;
 
-            PSrcLine := Src.ScanLine[WindowY + Y];
+            pSrcLine := Src.ScanLine[WindowY + Y];
             for WindowX := -R to R do
             begin
               if WindowX + X < 0 then
@@ -450,9 +452,10 @@ begin
               if WindowX + X > MaxX then
                 Break;
 
-              SampleValue := TColor32Entry(PSrcLine[WindowX + X]).Planes[Plane];
-              if (Plane <> 3) then
-                SampleValue := PremultiplyLUT.MulDiv255[SampleValue, TColor32Entry(RefColor).A];
+              SampleColor := TColor32Entry(pSrcLine[WindowX + X]);
+              SampleValue := SampleColor.Planes[Plane];
+              // Premultiply and gamma (sRGB->LinearRGB)
+              SampleValue := PremultiplyLUT.MulDiv255[SampleValue, SampleColor.A];
 
               if (SampleValue >= MinValue) and (SampleValue <= MaxValue) then
               begin
@@ -463,17 +466,15 @@ begin
             end;
           end;
 
-          DstValue := Round(Sum / Fact); // TODO : Need to Clamp. Rounding errors can cause values to grow beyond 255
+          DstValue := FastRound(Sum / Fact); // TODO : Need to Clamp. Rounding errors can cause values to grow beyond 255
+          // Unpremultiply and gamma (LinearRGB->sRGB)
+          DstValue := PremultiplyLUT.Mul255Div[DstValue, RefColor.A];
 
-          if (Plane <> 3) then
-            // Unpremultiply and gamma (LinearRGB->sRGB)
-            // Note that we're unpremultipying with the already blurred alpha
-            DstValue := PremultiplyLUT.Mul255Div[DstValue, DstAlpha]
-          else
-            DstAlpha := DstValue; // Save it so we can use it on the other planes above
-
-          TColor32Entry(PDstLine[X]).Planes[Plane] := DstValue;
+          pDestColor.Planes[Plane] := DstValue;
         end;
+
+        // Copy alpha
+        pDestColor.A := RefColor.A;
       end;
     end;
   finally
@@ -555,18 +556,20 @@ begin
 
   for X := 0 to MaxX do
   begin
-    // Process Alpha first, then RGB
-    for Plane := 3 downto 0 do
+
+    // Process each of the RGB channels in turn
+    for Plane := 0 to 2 do
     begin
-      FillLongword(LastPos[0], 256, Cardinal(Low(Integer)));
+      FillLongword(LastPos[0], Length(LastPos), Cardinal(Low(Integer)));
+
       for Y := 0 to MaxY do
       begin
+
         Color := TColor32Entry(Src[X, Y]);
         RefValue := Color.Planes[Plane];
 
         // Premultiply and gamma (sRGB->LinearRGB)
-        if (Plane <> 3) then
-          RefValue := PremultiplyLUT.MulDiv255[RefValue, Color.A];
+        RefValue := PremultiplyLUT.MulDiv255[RefValue, Color.A];
 
         MinValue := RefValue - Delta;
         MaxValue := RefValue + Delta;
@@ -586,6 +589,7 @@ begin
           Sum := 0;
           Fact := 0;
           PSrcLine := Src.Scanline[WindowY];
+
           for WindowX := -R to R do
           begin
             if WindowX + X < 0 then
@@ -595,8 +599,8 @@ begin
 
             Color := TColor32Entry(PSrcLine[WindowX + X]);
             SampleValue := Color.Planes[Plane];
-            if (Plane <> 3) then
-              SampleValue := PremultiplyLUT.MulDiv255[SampleValue, Color.A];
+            // Premultiply and gamma (sRGB->LinearRGB)
+            SampleValue := PremultiplyLUT.MulDiv255[SampleValue, Color.A];
 
             if (SampleValue >= MinValue) and (SampleValue <= MaxValue) then
             begin
@@ -605,10 +609,12 @@ begin
               Fact := Fact + Weight;
             end;
           end;
+
           PEntry := @SumCache[WindowY][RefValue];
           PEntry.Sum := Sum;
           PEntry.Fact := Fact;
         end;
+
         LastPos[RefValue] := Y + R;
       end;
 
@@ -616,8 +622,8 @@ begin
       begin
         Color := TColor32Entry(Src[X, Y]);
         RefValue := Color.Planes[Plane];
-        if (Plane <> 3) then
-          RefValue := PremultiplyLUT.MulDiv255[RefValue, Color.A];
+        // Premultiply and gamma (sRGB->LinearRGB)
+        RefValue := PremultiplyLUT.MulDiv255[RefValue, Color.A];
 
         Sum := 0;
         Fact := 0;
@@ -633,16 +639,18 @@ begin
           Fact := Fact + PEntry.Fact * Weight;
         end;
 
-        Value := Round(Sum / Fact);
         pColor := PColor32Entry(Dst.PixelPtr[X, Y]);
 
+        Value := Round(Sum / Fact);
         // Unpremultiply and gamma (LinearRGB->sRGB)
-        // Note that we're unpremultipying with the already blurred alpha
-        if (Plane <> 3) then
-          Value := PremultiplyLUT.Mul255Div[Value, pColor.A];
+        Value := PremultiplyLUT.Mul255Div[Value, pColor.A];
 
         pColor.Planes[Plane] := Value;
       end;
+
+      // Copy alpha
+      for Y := 0 to MaxY do
+        PColor32Entry(Dst.PixelPtr[X, Y]).A := TColor32Entry(Src[X, Y]).A;
     end;
   end;
 end;
@@ -706,7 +714,7 @@ begin
       for X := 0 to MaxX do
       begin
         RefColor := Src[X, Y];
-        for Plane := 0 to 3 do
+        for Plane := 0 to 2 do
         begin
           Sum := 0;
           Fact := 0;
@@ -742,7 +750,7 @@ begin
       for X := 0 to MaxX do
       begin
         RefColor := Dst[X, Y];
-        for Plane := 0 to 3 do
+        for Plane := 0 to 2 do
         begin
           Sum := 0;
           Fact := 0;
@@ -767,6 +775,7 @@ begin
           // TODO : Unpremultiply and gamma (LinearRGB->sRGB)
           TColor32Entry(PDstLine[X]).Planes[Plane] := Round(Sum / Fact);
         end;
+        TColor32Entry(PDstLine[X]).A := TColor32Entry(RefColor).A;
       end;
     end;
     Dst.Assign(Src);
@@ -1097,6 +1106,8 @@ end;
 //------------------------------------------------------------------------------
 
 procedure InternalSelectiveGaussian1(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer; const PremultiplyLUT: TPremultiplyLUT);
+const
+  SourcePlanes: array[0..2] of TConversionType = (ctBlue, ctGreen, ctRed);
 var
   X, Y, Plane, WindowY, LoY, R, MaxX, MaxY: Integer;
   XCount, ColCount: Integer;
@@ -1113,10 +1124,8 @@ var
   SumCache: array of array [Byte] of TCacheEntry;
   LastPos: array [Byte] of Integer;
 
-  Map: array[0..3] of TByteMap;
-  PMap: PByteArray;
-const
-  SourcePlanes: array[0..3] of TConversionType = (ctBlue, ctGreen, ctRed, ctAlpha);
+  Map: array[Low(SourcePlanes)..High(SourcePlanes)] of TByteMap;
+  pMap: PByteArray;
 begin
   ASSERT(Src <> Dst);
 
@@ -1137,16 +1146,22 @@ begin
   Kernel := GaussianKernelInt(Radius);
   PKernel := PWordArray(@Kernel[R]); // Note: Pointer to midpoint
 
-  for Plane := Low(SourcePlanes) to High(SourcePlanes) do
+  for Plane := Low(Map) to High(Map) do
     Map[Plane] := TByteMap.Create;
   try
 
-    // Process Alpha first, then RGB
-    for Plane := 3 downto 0 do
+    // Load RGB into separate maps
+    for Plane := Low(Map) to High(Map) do
     begin
-      // Premultiply and gamma (sRGB->LinearRGB)
       Map[Plane].ReadFrom(Src, SourcePlanes[Plane]);
-      PremultiplyLUT.Apply(PremultiplyLUT.MulDiv255, Map[Plane].Bits, Map[3].Bits, Map[Plane].Width*Map[Plane].Height);
+
+      // Premultiply and gamma (sRGB->LinearRGB)
+      pMap := Map[Plane].Bits;
+      for X := 0 to Src.Width*Src.Height-1 do
+      begin
+        TColor32Entry(Dst.Bits[X]).A := TColor32Entry(Src.Bits[X]).A;
+        pMap[X] := PremultiplyLUT.MulDiv255[pMap[X], TColor32Entry(Src.Bits[X]).A];
+      end;
     end;
 
     CFact := 0;
@@ -1158,15 +1173,15 @@ begin
       MinX := Max(-R, -X);
       XCount := Min(R, MaxX - X) - MinX;
 
-      // Process Alpha first, then RGB
-      for Plane := 3 downto 0 do
+      // Process each channel in turn
+      for Plane := Low(Map) to High(Map) do
       begin
-        PMap := PByteArray(Map[Plane].ValPtr[X + MinX, 0]);
+        pMap := PByteArray(Map[Plane].ValPtr[X + MinX, 0]);
 
-        FillLongword(LastPos[0], 256, Cardinal(Low(Integer)));
+        FillLongword(LastPos[0], Length(LastPos), Cardinal(Low(Integer)));
         for Y := 0 to MaxY do
         begin
-          RefValue := PMap[Y * ColCount - MinX];
+          RefValue := pMap[Y * ColCount - MinX];
 
           MinValue := integer(RefValue) - Delta;
           MaxValue := integer(RefValue) + Delta;
@@ -1197,7 +1212,7 @@ begin
             if WindowY > MaxY then
               Break;
 
-            SelectiveGaussianAccumulate(@PMap[WindowY * ColCount], @PKernel[MinX], XCount, MinValue, MaxValue, Sum, Fact);
+            SelectiveGaussianAccumulate(@pMap[WindowY * ColCount], @PKernel[MinX], XCount, MinValue, MaxValue, Sum, Fact);
 
             CacheEntry := @SumCache[WindowY][RefValue];
             CacheEntry.Sum := Sum;
@@ -1236,10 +1251,8 @@ begin
 
             Value := (VSum shl 8) div VFact;
 
-            if (Plane <> 3) then
-              // Unpremultiply and gamma (LinearRGB->sRGB)
-              // Note that we're unpremultipying with the already blurred alpha
-              Value := PremultiplyLUT.Mul255Div[Value, pColor.A];
+            // Unpremultiply and gamma (LinearRGB->sRGB)
+            Value := PremultiplyLUT.Mul255Div[Value, pColor.A];
 
           end;
 
@@ -1277,6 +1290,8 @@ end;
 //------------------------------------------------------------------------------
 
 procedure InternalSelectiveGaussian2(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer; const PremultiplyLUT: TPremultiplyLUT);
+const
+  SourcePlanes: array[0..2] of TConversionType = (ctBlue, ctGreen, ctRed);
 var
   Plane, LoY, R: Integer;
   X, Y, MaxX, MaxY, WindowX, WindowY: integer;
@@ -1298,10 +1313,8 @@ var
   RangeCache: array of TRangeEntry;
   LastPos: array [Byte] of Integer;
 
-  Map: array[0..3] of TByteMap;
+  Map: array[Low(SourcePlanes)..High(SourcePlanes)] of TByteMap;
   PMap: PByteArray;
-const
-  SourcePlanes: array[0..3] of TConversionType = (ctBlue, ctGreen, ctRed, ctAlpha);
 begin
   ASSERT(Src <> Dst);
 
@@ -1323,16 +1336,22 @@ begin
   Kernel := GaussianKernelInt(Radius);
   PKernel := PWordArray(@Kernel[R]);
 
-  for Plane := 0 to 3 do
+  for Plane := Low(Map) to High(Map) do
     Map[Plane] := TByteMap.Create;
   try
 
-    // Process Alpha first, then RGB
-    for Plane := 3 downto 0 do
+    // Load RGB into separate maps
+    for Plane := Low(Map) to High(Map) do
     begin
-      // Premultiply and gamma (sRGB->LinearRGB)
       Map[Plane].ReadFrom(Src, SourcePlanes[Plane]);
-      PremultiplyLUT.Apply(PremultiplyLUT.MulDiv255, Map[Plane].Bits, Map[3].Bits, Map[Plane].Width*Map[Plane].Height);
+
+      // Premultiply and gamma (sRGB->LinearRGB)
+      pMap := Map[Plane].Bits;
+      for X := 0 to Src.Width*Src.Height-1 do
+      begin
+        TColor32Entry(Dst.Bits[X]).A := TColor32Entry(Src.Bits[X]).A;
+        pMap[X] := PremultiplyLUT.MulDiv255[pMap[X], TColor32Entry(Src.Bits[X]).A];
+      end;
     end;
 
     CFact := 0;
@@ -1344,8 +1363,8 @@ begin
       KernelMinX := Max(-R, -X);
       KernelMaxX := Min(R, MaxX - X);
 
-      // Process Alpha first, then RGB
-      for Plane := 3 downto 0 do
+      // Process each channel in turn
+      for Plane := Low(Map) to High(Map) do
       begin
         PMap := PByteArray(Map[Plane].ValPtr[X, 0]);
 
@@ -1376,7 +1395,7 @@ begin
           RangeEntry.Sum := Sum shr 8;
         end;
 
-        FillLongword(LastPos[0], 256, Cardinal(Low(Integer)));
+        FillLongword(LastPos[0], Length(LastPos), Cardinal(Low(Integer)));
         for Y := 0 to MaxY do
         begin
           RefValue := PMap[Y * ColCount];
@@ -1453,10 +1472,8 @@ begin
 
             Value := (VSum shl 8) div VFact;
 
-            if (Plane <> 3) then
-              // Unpremultiply and gamma (LinearRGB->sRGB)
-              // Note that we're unpremultipying with the already blurred alpha
-              Value := PremultiplyLUT.Mul255Div[Value, pColor.A];
+            // Unpremultiply and gamma (LinearRGB->sRGB)
+            Value := PremultiplyLUT.Mul255Div[Value, pColor.A];
 
           end;
 
@@ -1528,7 +1545,6 @@ begin
   (*
   ** SelectiveGaussianBlur32
   *)
-  BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussian32NotImplemented, [isPascal], BlurRegistry.WORST_PRIORITY);
   BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussianGimp,         [isPascal], 1024);
   BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussianNew,          [isPascal], 768);
   BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussian2,            [isPascal], 0);
