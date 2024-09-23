@@ -155,6 +155,8 @@ type
 
   public const
     INVALID_PRIORITY: Integer = MaxInt;
+    BEST_PRIORITY: integer = -MaxInt;
+    WORST_PRIORITY: integer = MaxInt-1;
   public
     constructor Create; virtual;
     destructor Destroy; override;

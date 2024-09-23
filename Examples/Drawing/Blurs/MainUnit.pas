@@ -22,7 +22,6 @@ type
     LblBlurRadius: TLabel;
     MainMenu: TMainMenu;
     MnuExit: TMenuItem;
-    MnuFastGaussian: TMenuItem;
     MnuGaussianType: TMenuItem;
     MnuMotion: TMenuItem;
     MnuNone: TMenuItem;
@@ -39,6 +38,13 @@ type
     TbrBlurAngle: TTrackBar;
     TbrBlurRadius: TTrackBar;
     CheckBoxCorrectGamma: TCheckBox;
+    LabelDelta: TLabel;
+    TrackBarDelta: TTrackBar;
+    PanelSelective: TPanel;
+    MnuSelective: TMenuItem;
+    PanelMotion: TPanel;
+    TimerUpdate: TTimer;
+    PanelRadius: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MnuExitClick(Sender: TObject);
@@ -48,6 +54,8 @@ type
     procedure RgpBlurTypeClick(Sender: TObject);
     procedure TbrBlurAngleChange(Sender: TObject);
     procedure TbrBlurRadiusChange(Sender: TObject);
+    procedure TrackBarDeltaChange(Sender: TObject);
+    procedure TimerUpdateTimer(Sender: TObject);
   private
     FBitmapStoneWeed: TBitmap32;
     FBitmapIceland: TBitmap32;
@@ -57,6 +65,8 @@ type
     FRedrawFlag: Boolean;
 
     procedure Redraw;
+    procedure QueueUpdate;
+
   end;
 
 var
@@ -70,6 +80,8 @@ uses
   GR32_Polygons,
   GR32_VectorUtils,
   GR32_System,
+  GR32.Blur,
+  GR32.Blur.SelectiveGaussian,
   GR32_Blurs;
 
 {$IFDEF FPC}
@@ -77,6 +89,11 @@ uses
 {$ELSE}
 {$R *.dfm}
 {$ENDIF}
+
+const
+  GaussianBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32);
+  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (Blur32, GammaBlur32);
+  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (Blur32, GammaBlur32);
 
 { Miscellaneous functions }
 
@@ -119,19 +136,16 @@ const
     clDarkSalmon32, clDarkSeaGreen32, clDarkSlateBlue32);
 begin
   FBitmapStoneWeed := TBitmap32.create;
-  FBitmapIceland := TBitmap32.create;
-
-  // Just use FBitmapStoneWeed momentarily to load a 600*400 image of ICELAND ...
-  FBitmapStoneWeed.LoadFromResourceName(hInstance, 'ICELAND', RT_RCDATA);
-  FBitmapIceland.SetSize(600, 400);
-  FBitmapStoneWeed.DrawTo(FBitmapIceland, FBitmapIceland.BoundsRect, FBitmapStoneWeed.BoundsRect);
-
-  // Now load the real STONEWEED image ...
+  FBitmapStoneWeed.DrawMode := dmBlend;
   FBitmapStoneWeed.LoadFromResourceName(hInstance, 'STONEWEED', RT_RCDATA);
+
+  FBitmapIceland := TBitmap32.create;
+  FBitmapIceland.DrawMode := dmBlend;
+  FBitmapIceland.LoadFromResourceName(hInstance, 'ICELAND', RT_RCDATA);
 
   Randomize;
   FBitmapRandBox := TBitmap32.create;
-  // Generate an image of full of random colored boxes ...
+  // Generate an image of full of random, semi-transparent, colored boxes ...
   FBitmapRandBox.SetSize(192, 272);
   for X := 0 to 11 do
     for Y := 0 to 16 do
@@ -141,7 +155,7 @@ begin
   FLayerBitmap := TBitmapLayer(ImgViewPage3.Layers.Add(TBitmapLayer));
   FLayerBitmap.Bitmap.DrawMode := dmBlend;
 
-  Redraw;
+  RgpBlurType.ItemIndex := 1;
 end;
 
 procedure TFrmBlurs.FormDestroy(Sender: TObject);
@@ -179,13 +193,17 @@ begin
             GaussianBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
 
           2:
-            FastBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
-
-          3:
             if WithGamma then
               MotionBlurGamma(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked)
             else
-              MotionBlur(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked)
+              MotionBlur(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked);
+
+          3:
+            if WithGamma then
+              GammaSelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position)
+            else
+              SelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position);
+
         end;
         Stopwatch.Stop;
         ImgViewPage1.EndUpdate;
@@ -208,12 +226,6 @@ begin
             end;
 
           2:
-            begin
-              FastBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts);
-              FastBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts2);
-            end;
-
-          3:
             if WithGamma then
             begin
               MotionBlurGamma(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
@@ -236,20 +248,26 @@ begin
       begin
         ImgViewPage3.BeginUpdate;
         ImgViewPage3.SetupBitmap(True, Color32(clBtnFace));
-        FLayerBitmap.Bitmap.Clear(0);
 
         Rec := ImgViewPage3.GetBitmapRect;
         FLayerBitmap.Location := FloatRect(Rec);
         FLayerBitmap.Bitmap.SetSize(Rec.Width, Rec.Height);
+        FLayerBitmap.Bitmap.Clear(0);
+
+        // Colored squares on layer
         FLayerBitmap.Bitmap.Draw(300, 40, FBitmapRandBox);
 
+        // Beveled box on background image
         Rec := Rect(40, 40, 240, 120);
         DrawFramedBox(ImgViewPage3.Bitmap, Rec, clWhite32, clGray32, Radius div 2);
 
+        // Red rectangle on layer
         Rec2 := Rect(40, 160, 240, 320);
-        FLayerBitmap.Bitmap.FillRect(Rec2.Left, Rec2.Top, Rec2.Right, Rec2.Bottom, clRed32);
+        FLayerBitmap.Bitmap.FillRectTS(Rec2, clRed32);
+
         GR32.InflateRect(Rec2, 20, 20);
 
+        // Ellipse on top of colored squares
         Pts := Ellipse(395, 175, 60, 100);
 
         Stopwatch := TStopwatch.StartNew;
@@ -262,13 +280,6 @@ begin
             end;
 
           2:
-            begin
-              FastBlurBounds[WithGamma](ImgViewPage3.Bitmap, Radius, Rec);
-              FastBlurBounds[WithGamma](FLayerBitmap.Bitmap, Radius, Rec2);
-              FastBlurRegion[WithGamma](FLayerBitmap.Bitmap, Radius, Pts);
-            end;
-
-          3:
             if WithGamma then
             begin
               MotionBlurGamma(ImgViewPage3.Bitmap, Radius, TbrBlurAngle.Position, Rec, CbxBidirectional.Checked);
@@ -284,11 +295,14 @@ begin
         end;
         Stopwatch.Stop;
 
-        PolylineFS(FLayerBitmap.Bitmap, Pts, clBlack32, True, 2.5);
+        // Outline ellipse
+        PolylineFS(FLayerBitmap.Bitmap, Pts, clTrBlack32, True, 2.5);
 
+        // Outline red rectangle
+        GR32.InflateRect(Rec2, 1, 1);
         PolylineFS(
           FLayerBitmap.Bitmap,
-          BuildPolygonF([Rec2.Left, Rec2.Top, Rec2.Right, Rec2.Top, Rec2.Right, Rec2.Bottom, Rec2.Left, Rec2.Bottom]),
+          Rectangle(Rec2),
           clBlack32,
           True,
           0.5);
@@ -307,41 +321,78 @@ begin
 end;
 
 procedure TFrmBlurs.RgpBlurTypeClick(Sender: TObject);
+
+  procedure EnableGroup(Parent: TControl; State: boolean);
+  var
+    i: integer;
+  begin
+    Parent.Enabled := State;
+    if (Parent is TWinControl) then
+      for i := 0 to TWinControl(Parent).ControlCount-1 do
+        EnableGroup(TWinControl(Parent).Controls[i], State);
+  end;
+
 begin
-  MnuNone.Checked := RgpBlurType.ItemIndex = 0;
-  MnuGaussianType.Checked := RgpBlurType.ItemIndex = 1;
-  MnuFastGaussian.Checked := RgpBlurType.ItemIndex = 2;
-  MnuMotion.Checked := RgpBlurType.ItemIndex = 3;
-  LblBlurAngle.Enabled := MnuMotion.Checked;
-  TbrBlurAngle.Enabled := MnuMotion.Checked;
-  CbxBidirectional.Enabled := MnuMotion.Checked;
+  MnuNone.Checked := (RgpBlurType.ItemIndex = 0);
+  MnuGaussianType.Checked := (RgpBlurType.ItemIndex = 1);
+  MnuMotion.Checked := (RgpBlurType.ItemIndex = 2);
+  MnuSelective.Checked := (RgpBlurType.ItemIndex = 3);
+
+  EnableGroup(PanelRadius, (RgpBlurType.ItemIndex <> 0));
+  EnableGroup(PanelMotion, (RgpBlurType.ItemIndex = 2));
+  EnableGroup(PanelSelective, (RgpBlurType.ItemIndex = 3));
+
+  case RgpBlurType.ItemIndex of
+    1: // The current Gaussian Blur begins introducing overflow artifacts at around radius=200
+      TbrBlurRadius.Max := 200;
+    2: // Motion blur internally limits the radius to 256
+      TbrBlurRadius.Max := 256;
+    3: // Selective blur is very slow, so limit the damage
+      TbrBlurRadius.Max := 20;
+  end;
+
+  Redraw;
+end;
+
+procedure TFrmBlurs.TimerUpdateTimer(Sender: TObject);
+begin
+  TimerUpdate.Enabled := False;
   Redraw;
 end;
 
 procedure TFrmBlurs.TbrBlurRadiusChange(Sender: TObject);
 begin
   LblBlurRadius.Caption := Format('Blur &Radius (%d)', [TbrBlurRadius.Position]);
-  Redraw;
+
+  QueueUpdate;
+end;
+
+procedure TFrmBlurs.TrackBarDeltaChange(Sender: TObject);
+begin
+  LabelDelta.Caption := Format('Delta (%d)', [TrackBarDelta.Position]);
+
+  QueueUpdate;
 end;
 
 procedure TFrmBlurs.TbrBlurAngleChange(Sender: TObject);
 begin
   LblBlurAngle.Caption := Format('Blur &Angle (%d)', [TbrBlurAngle.Position]);
-  Redraw;
+
+  QueueUpdate;
 end;
 
 procedure TFrmBlurs.MnuGaussianTypeClick(Sender: TObject);
 begin
-  if Sender = MnuNone then
-    RgpBlurType.ItemIndex := 0
-  else
   if Sender = MnuGaussianType then
     RgpBlurType.ItemIndex := 1
   else
-  if Sender = MnuFastGaussian then
+  if Sender = MnuMotion then
     RgpBlurType.ItemIndex := 2
   else
-    RgpBlurType.ItemIndex := 3;
+  if Sender = MnuSelective then
+    RgpBlurType.ItemIndex := 3
+  else
+    RgpBlurType.ItemIndex := 0
 end;
 
 procedure TFrmBlurs.MnuOpenClick(Sender: TObject);
@@ -357,6 +408,12 @@ end;
 procedure TFrmBlurs.PageControlChange(Sender: TObject);
 begin
   Redraw;
+end;
+
+procedure TFrmBlurs.QueueUpdate;
+begin
+  TimerUpdate.Enabled := False;
+  TimerUpdate.Enabled := True;
 end;
 
 end.

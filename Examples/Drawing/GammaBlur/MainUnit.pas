@@ -24,21 +24,24 @@ type
     LabelTestImage: TLabel;
     RadioButtonRedGreen: TRadioButton;
     RadioButtonCircles: TRadioButton;
-    Panel2: TPanel;
-    LabelBlurType: TLabel;
-    RadioButtonGaussianBlur: TRadioButton;
-    RadioButtonFastBlur: TRadioButton;
+    CheckBoxUseNew: TCheckBox;
+    CheckBoxGammaSRGB: TCheckBox;
     procedure PaintBoxIncorrectPaintBuffer(Sender: TObject);
     procedure PaintBoxCorrectPaintBuffer(Sender: TObject);
     procedure GaugeBarGammaChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure GaugeBarBlurRadiusChange(Sender: TObject);
     procedure PaintBoxResize(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure RadioButtonTestImageClick(Sender: TObject);
+    procedure CheckBoxUseNewClick(Sender: TObject);
+    procedure CheckBoxGammaSRGBClick(Sender: TObject);
   private
     FTestBitmap: TBitmap32;
     procedure ComposeTestImage;
+    procedure UpdateGamma;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
   end;
 
 var
@@ -59,19 +62,33 @@ uses
   GR32_Gamma,
   GR32_System,
   GR32_Blurs,
+  GR32.Blur,
   GR32_Resamplers;
 
 { TFrmGammaBlur }
 
-procedure TFormGammaBlur.FormCreate(Sender: TObject);
+constructor TFormGammaBlur.Create(AOwner: TComponent);
 begin
-  GaugeBarGammaChange(nil);
+  inherited;
+  PaintBoxIncorrect.BufferOversize := 0;
+  PaintBoxCorrect.BufferOversize := 0;
   FTestBitmap := TBitmap32.Create;
 end;
 
-procedure TFormGammaBlur.FormDestroy(Sender: TObject);
+destructor TFormGammaBlur.Destroy;
 begin
   FTestBitmap.Free;
+
+  inherited;
+end;
+
+procedure TFormGammaBlur.FormCreate(Sender: TObject);
+begin
+  GaugeBarGammaChange(nil);
+  GaugeBarBlurRadiusChange(nil);
+  // Ensure controls are same size in case we messed up at design-time
+  PaintBoxIncorrect.Width := PaintBoxCorrect.Width;
+  PaintBoxIncorrect.Height := PaintBoxCorrect.Height;
 end;
 
 procedure TFormGammaBlur.GaugeBarBlurRadiusChange(Sender: TObject);
@@ -79,19 +96,14 @@ var
   BlurRadius: Double;
 begin
   BlurRadius := 0.1 * GaugeBarBlurRadius.Position;
-  LabelBlurValue.Caption := FloatToStrF(BlurRadius, ffFixed, 3, 1) + 'px';
+  LabelBlurValue.Caption := Format('%.1n px', [BlurRadius]);
   PaintBoxIncorrect.Invalidate;
   PaintBoxCorrect.Invalidate;
 end;
 
 procedure TFormGammaBlur.GaugeBarGammaChange(Sender: TObject);
-var
-  GammaValue: Double;
 begin
-  GammaValue := 0.001 * GaugeBarGamma.Position;
-  LabelGammaValue.Caption := FloatToStrF(GammaValue, ffFixed, 4, 3);
-  SetGamma(GammaValue);
-  PaintBoxCorrect.Invalidate;
+  UpdateGamma;
 end;
 
 procedure ComposeTestImageRedGreen(Bitmap: TBitmap32);
@@ -115,16 +127,15 @@ begin
   end;
 end;
 
-procedure TFormGammaBlur.PaintBoxCorrectPaintBuffer(Sender: TObject);
+procedure TFormGammaBlur.CheckBoxGammaSRGBClick(Sender: TObject);
 begin
-  with PaintBoxCorrect do
-  begin
-    Buffer.Draw(0, 0, FTestBitmap);
-    if RadioButtonGaussianBlur.Checked then
-      GaussianBlurGamma(Buffer, 0.1 * GaugeBarBlurRadius.Position)
-    else
-      FastBlurGamma(Buffer, 0.1 * GaugeBarBlurRadius.Position)
-  end;
+  UpdateGamma;
+end;
+
+procedure TFormGammaBlur.CheckBoxUseNewClick(Sender: TObject);
+begin
+  PaintBoxCorrect.Invalidate;
+  PaintBoxIncorrect.Invalidate;
 end;
 
 procedure TFormGammaBlur.ComposeTestImage;
@@ -137,10 +148,9 @@ end;
 
 procedure TFormGammaBlur.PaintBoxResize(Sender: TObject);
 begin
-  FTestBitmap.SetSize(
-    Max(PaintBoxCorrect.Width, PaintBoxIncorrect.Width),
-    Max(PaintBoxCorrect.Height, PaintBoxIncorrect.Height)
-    );
+  Assert(PaintBoxCorrect.Width = PaintBoxIncorrect.Width);
+  Assert(PaintBoxCorrect.Height = PaintBoxIncorrect.Height);
+  FTestBitmap.SetSize(PaintBoxCorrect.Width, PaintBoxCorrect.Height);
   ComposeTestImage;
 end;
 
@@ -151,15 +161,46 @@ begin
   PaintBoxIncorrect.Invalidate;
 end;
 
+procedure TFormGammaBlur.UpdateGamma;
+var
+  GammaValue: Double;
+begin
+  GaugeBarGamma.Enabled := (not CheckBoxGammaSRGB.Checked);
+
+  if (CheckBoxGammaSRGB.Checked) then
+  begin
+    Set_sRGB;
+    LabelGammaValue.Caption := 'sRGB';
+  end else
+  begin
+    GammaValue := 0.001 * GaugeBarGamma.Position;
+    LabelGammaValue.Caption := Format('%.3n', [GammaValue]);
+    SetGamma(GammaValue);
+  end;
+
+  PaintBoxIncorrect.Invalidate;
+  PaintBoxCorrect.Invalidate;
+end;
+
+procedure TFormGammaBlur.PaintBoxCorrectPaintBuffer(Sender: TObject);
+begin
+  if CheckBoxUseNew.Checked then
+    GammaBlur32(FTestBitmap, PaintBoxCorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position)
+  else
+  begin
+    FTestBitmap.DrawTo(PaintBoxCorrect.Buffer);
+    GaussianBlurGamma(PaintBoxCorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position);
+  end;
+end;
+
 procedure TFormGammaBlur.PaintBoxIncorrectPaintBuffer(Sender: TObject);
 begin
-  with PaintBoxIncorrect do
+  if CheckBoxUseNew.Checked then
+    Blur32(FTestBitmap, PaintBoxIncorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position)
+  else
   begin
-    Buffer.Draw(0, 0, FTestBitmap);
-    if RadioButtonGaussianBlur.Checked then
-      GaussianBlur(Buffer, 0.1 * GaugeBarBlurRadius.Position)
-    else
-      FastBlur(Buffer, 0.1 * GaugeBarBlurRadius.Position);
+    FTestBitmap.DrawTo(PaintBoxIncorrect.Buffer);
+    GaussianBlur(PaintBoxIncorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position);
   end;
 end;
 
