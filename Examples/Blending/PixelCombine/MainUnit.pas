@@ -39,7 +39,9 @@ interface
 uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  GR32, GR32_Image, GR32_Layers, GR32_Blend, GR32_RangeBars;
+  GR32,
+  GR32_Image,
+  GR32_Layers;
 
 type
   TFormPixelCombine = class(TForm)
@@ -62,9 +64,10 @@ type
     procedure PC_Blend(F: TColor32; var B: TColor32; M: Cardinal);
     procedure PC_BlendAdd(F: TColor32; var B: TColor32; M: Cardinal);
     procedure PC_BlendModulate(F: TColor32; var B: TColor32; M: Cardinal);
-  public
-    PatCount: Integer;
-    L: TBitmapLayer;
+  private
+    FPatCount: Integer;
+    FLayer1: TBitmapLayer;
+    FLayer2: TBitmapLayer;
   end;
 
 var
@@ -80,55 +83,101 @@ implementation
 
 uses
   Types,
-{$IFDEF Darwin}
-  MacOSAll,
-{$ENDIF}
-{$IFNDEF FPC}
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  GR32_Blend,
+  GR32_RangeBars;
 
 { TFormPixelCombine }
 
 procedure TFormPixelCombine.FormCreate(Sender: TObject);
+
+  procedure GenerateBitmap(Bitmap: TBitmap32);
+  var
+    X, Y: Integer;
+    SinY, SinX: Double;
+    Color: TColor32;
+  begin
+    // Just a pattern with some variation
+    for Y := 0 to Bitmap.Height-1 do
+    begin
+      SinY := Sin(Y * 0.1);
+
+      for X := 0 to Bitmap.Width-1 do
+      begin
+        SinX := Sin(X * 0.1);
+
+        Color :=  Gray32(Round(((SinX + SinY) * 0.25 + 0.5) * 255));
+        // Alpha gradient
+        Color := SetAlpha(Color, MulDiv(255, Y, Bitmap.Height-1));
+        
+        Bitmap[X, Y] := Color;    
+      end;
+    end;
+  end;
+
 var
-  I, J: Integer;
-  SinJ: Double;
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
+  RubberbandLayer: TRubberbandLayer;
+  r: TRect;
+  Viewport: TRect;
+  Location: TFloatRect;
+const
+  BitmapSize = 200;
+  BitmapOffset = 20;
 begin
   // Load background picture 'Runner'
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'Runner', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    ImgView.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  ImgView.Bitmap.LoadFromResourceName(HInstance, 'Runner', RT_RCDATA);
 
-  // Create foreground bitmap layer
-  L := TBitmapLayer.Create(ImgView.Layers);
-  L.Bitmap.SetSize(200, 200);
-  L.Bitmap.DrawMode := dmCustom;
-  L.Location := FloatRect(20, 20, 220, 220);
+  // Create foreground bitmap layers
+  
+  // First layer is unscaled
+  FLayer1 := TBitmapLayer.Create(ImgView.Layers);
+  FLayer1.Visible := False;
+  FLayer1.Bitmap.SetSize(BitmapSize, BitmapSize);
+  FLayer1.Bitmap.DrawMode := dmCustom;
+  GenerateBitmap(FLayer1.Bitmap);
+  FLayer1.Scaled := False;
+  // Position top-left
+  r := FLayer1.Bitmap.BoundsRect;
+  r.Offset(BitmapOffset, BitmapOffset);
+  if (FLayer1.Scaled) then
+    // Location is relative to bitmap
+    Location := ImgView.ControlToBitmap(r)
+  else
+    // Location is relative to viewport
+    Location := FloatRect(r);
+  FLayer1.Location := Location;
 
-  // Generate Bitmap
-  for J := 0 to 199 do
-  begin
-    SinJ := Sin(J * 0.1);
-    for I := 0 to 199 do
-      L.Bitmap[I, J] := SetAlpha(
-        Gray32(Round(((Sin(I * 0.1) + SinJ) * 0.25 + 0.5) * 255)),
-        255 * J div 199  // alpha value
-      );
-  end;
-  L.Bitmap.OnPixelCombine := nil; // none by default
+  // Second layer is scaled
+  FLayer2 := TBitmapLayer.Create(ImgView.Layers);
+  FLayer2.Visible := False;
+  FLayer2.Bitmap.Assign(FLayer1.Bitmap);
+  FLayer2.Scaled := True;
+  // Position bottom-right
+  r := FLayer1.Bitmap.BoundsRect;
+  Viewport := ImgView.GetViewportRect;
+  r.Offset(Viewport.Width-r.Width-BitmapOffset, Viewport.Height-r.Height-BitmapOffset);
+  if (FLayer2.Scaled) then
+    // Location is relative to bitmap
+    Location := ImgView.ControlToBitmap(r)
+  else
+    // Location is relative to viewport
+    Location := FloatRect(r);
+  FLayer2.Location := Location;
+
+
+  // Create rubberband layers so we can move the foreground layers around
+  RubberbandLayer := TRubberbandLayer.Create(ImgView.Layers);
+  RubberbandLayer.Visible := False;
+  RubberbandLayer.ChildLayer := FLayer1;
+  RubberbandLayer.Handles := [rhCenter, rhFrame, rhCorners];
+  RubberbandLayer.ChildLayer.Visible := True;
+  RubberbandLayer.Visible := True;
+
+  RubberbandLayer := TRubberbandLayer.Create(ImgView.Layers);
+  RubberbandLayer.Visible := False;
+  RubberbandLayer.ChildLayer := FLayer2;
+  RubberbandLayer.Handles := [rhCenter, rhFrame, rhCorners];
+  RubberbandLayer.ChildLayer.Visible := True;
+  RubberbandLayer.Visible := True;
 end;
 
 procedure TFormPixelCombine.PC_Add(F: TColor32; var B: TColor32; M: Cardinal);
@@ -153,8 +202,9 @@ end;
 
 procedure TFormPixelCombine.PC_Pattern(F: TColor32; var B: TColor32; M: Cardinal);
 begin
-  PatCount := 1 - PatCount;
-  if PatCount = 0 then B := F;
+  FPatCount := 1 - FPatCount;
+  if FPatCount = 0 then
+    B := F;
 end;
 
 procedure TFormPixelCombine.PC_Sub(F: TColor32; var B: TColor32; M: Cardinal);
@@ -206,37 +256,40 @@ procedure TFormPixelCombine.RadioGroupClick(Sender: TObject);
 begin
   case RadioGroup.ItemIndex of
     0:
-      L.Bitmap.OnPixelCombine := nil;
+      FLayer1.Bitmap.OnPixelCombine := nil;
     1:
-      L.Bitmap.OnPixelCombine := PC_Add;
+      FLayer1.Bitmap.OnPixelCombine := PC_Add;
     2:
-      L.Bitmap.OnPixelCombine := PC_Sub;
+      FLayer1.Bitmap.OnPixelCombine := PC_Sub;
     3:
-      L.Bitmap.OnPixelCombine := PC_Modulate;
+      FLayer1.Bitmap.OnPixelCombine := PC_Modulate;
     4:
-      L.Bitmap.OnPixelCombine := PC_Min;
+      FLayer1.Bitmap.OnPixelCombine := PC_Min;
     5:
-      L.Bitmap.OnPixelCombine := PC_Max;
+      FLayer1.Bitmap.OnPixelCombine := PC_Max;
     6:
-      L.Bitmap.OnPixelCombine := PC_Screen;
+      FLayer1.Bitmap.OnPixelCombine := PC_Screen;
     7:
-      L.Bitmap.OnPixelCombine := PC_ColorDodge;
+      FLayer1.Bitmap.OnPixelCombine := PC_ColorDodge;
     8:
-      L.Bitmap.OnPixelCombine := PC_ColorBurn;
+      FLayer1.Bitmap.OnPixelCombine := PC_ColorBurn;
     9:
-      L.Bitmap.OnPixelCombine := PC_Difference;
+      FLayer1.Bitmap.OnPixelCombine := PC_Difference;
     10:
-      L.Bitmap.OnPixelCombine := PC_Exclusion;
+      FLayer1.Bitmap.OnPixelCombine := PC_Exclusion;
     11:
-      L.Bitmap.OnPixelCombine := PC_Pattern;
+      FLayer1.Bitmap.OnPixelCombine := PC_Pattern;
     12:
-      L.Bitmap.OnPixelCombine := PC_Blend;
+      FLayer1.Bitmap.OnPixelCombine := PC_Blend;
     13:
-      L.Bitmap.OnPixelCombine := PC_BlendAdd;
+      FLayer1.Bitmap.OnPixelCombine := PC_BlendAdd;
     14:
-      L.Bitmap.OnPixelCombine := PC_BlendModulate;
+      FLayer1.Bitmap.OnPixelCombine := PC_BlendModulate;
   end;
-  L.Bitmap.Changed;
+  FLayer2.Bitmap.OnPixelCombine := FLayer1.Bitmap.OnPixelCombine;
+  
+  FLayer1.Changed;
+  FLayer2.Changed;
 end;
 
 end.

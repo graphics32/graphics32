@@ -530,7 +530,7 @@ type
   TRubberBandPaintHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var Handled: boolean) of object;
   TRubberBandUpdateHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var UpdateRect: TRect; var Handled: boolean) of object;
 
-  TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared;
+  TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared
 
   TCustomRubberBandLayer = class(TPositionedLayer)
   strict protected type
@@ -1665,18 +1665,15 @@ var
 begin
   if Scaled and (LayerCollection <> nil) then
   begin
-    LayerCollection.GetViewportShift(ShiftX, ShiftY);
     LayerCollection.GetViewportScale(ScaleX, ScaleY);
+    Result.Left := R.Left * ScaleX;
+    Result.Top := R.Top * ScaleY;
+    Result.Right := R.Right * ScaleX;
+    Result.Bottom := R.Bottom * ScaleY;
 
-    with Result do
-    begin
-      Left := R.Left * ScaleX + ShiftX;
-      Top := R.Top * ScaleY + ShiftY;
-      Right := R.Right * ScaleX + ShiftX;
-      Bottom := R.Bottom * ScaleY + ShiftY;
-    end;
-  end
-  else
+    LayerCollection.GetViewportShift(ShiftX, ShiftY);
+    Result.Offset(ShiftX, ShiftY);
+  end else
     Result := R;
 end;
 
@@ -2428,8 +2425,14 @@ begin
   for i := 0 to High(Vertices) do
     if (IsVertexVisible(i)) then
     begin
-      HandleRect.TopLeft := LayerToControl(Vertices[i], False);
+      // If layer has Scaled=True then vertices are relative to bitmap,
+      // otherwise vertices are relative to control.
+      if (Scaled) then
+        HandleRect.TopLeft := LayerToControl(Vertices[i], False)
+      else
+        HandleRect.TopLeft := Vertices[i];
       HandleRect.BottomRight := HandleRect.TopLeft;
+
       GR32.InflateRect(HandleRect, FHandleSize + DragZone, FHandleSize + DragZone);
 
       if (HandleRect.Contains(APosition)) then
@@ -2444,6 +2447,9 @@ var
   Vertex: integer;
   p: TFloatPoint;
 begin
+  // APosition is in control coordinates
+  Result := nil;
+
   Vertex := FindVertex(APosition);
   if (Vertex <> -1) then
   begin
@@ -2453,15 +2459,17 @@ begin
   end else
   if AllowMove then
   begin
-    p := FloatPoint(ControlToLayer(APosition, False));
-    if (PointInPolygon(p, FVertices)) then
+    // If layer has Scaled=True then vertices are relative to bitmap,
+    // otherwise vertices are relative to control.
+    p := LayerCollection.ViewportToLocal(APosition, Scaled);
+
+    if PointInPolygon(p, FVertices) then
     begin
       Result := TLayerHitTestMove.Create(APosition);
       Result.Shift := AShift;
       Result.Cursor := GetHitTestCursor(Result);
     end;
-  end else
-    Result := nil;
+  end;
 end;
 
 procedure TCustomRubberBandLayer.SetHitTest(const AHitTest: ILayerHitTest);
@@ -2785,7 +2793,7 @@ begin
   // Coordinate specifies exact center of handle. I.e. center of
   // pixel if handle is odd number of pixels wide.
 
-  p := LayerToControl(FVertices[VertexIndex], True);
+  p := LayerCollection.LocalToViewport(FVertices[VertexIndex], Scaled);
 
   Handled := False;
   if Assigned(FOnPaintHandle) then
@@ -3155,8 +3163,13 @@ function TRubberbandLayer.GetHitTest(const APosition: TPoint; AShift: TShiftStat
 var
   R: TRect;
 begin
+  // APosition is in control coordinates
+
   Result := inherited;
 
+  // Hit test against the layer bounding rectangle.
+  // This is only kept for backward compatibility as the base class
+  // already does hit testing against the vertex polygon.
   if (Result = nil) and AllowMove then
   begin
     R := MakeRect(GetAdjustedLocation);
