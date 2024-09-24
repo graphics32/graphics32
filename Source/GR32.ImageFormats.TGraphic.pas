@@ -349,9 +349,26 @@ function TImageFormatReaderTGraphic.LoadFromStream(ADest: TCustomBitmap32; AStre
 var
   Graphic: TGraphic;
 begin
+{$ifdef LOADFROMSTREAM}
+  if (not GraphicClass.CanLoadFromStream(AStream)) then
+    Exit(False);
+{$endif LOADFROMSTREAM}
+
   Graphic := GraphicClass.Create;
   try
+{$ifdef LOADFROMSTREAM}
     Graphic.LoadFromStream(AStream);
+{$else LOADFROMSTREAM}
+    try
+
+      Graphic.LoadFromStream(AStream);
+
+    except
+      on E: EInvalidGraphic do
+        Exit(False);
+    end;
+{$endif LOADFROMSTREAM}
+
     ADest.Assign(Graphic);
   finally
     Graphic.Free;
