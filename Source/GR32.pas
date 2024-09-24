@@ -1116,11 +1116,11 @@ type
 
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
-    function GetCanvas: TCanvas;         {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetCanvas: TCanvas;
 
-    function GetBitmapInfo: TBitmapInfo; {$IFDEF USEINLINING} inline; {$ENDIF}
-    function GetHandle: HBITMAP;         {$IFDEF USEINLINING} inline; {$ENDIF}
-    function GetHDC: HDC;                {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetBitmapInfo: TBitmapInfo;
+    function GetHandle: HBITMAP;
+    function GetHDC: HDC;
 
     function GetFont: TFont;
     procedure SetFont(Value: TFont);
