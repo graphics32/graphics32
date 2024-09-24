@@ -32,7 +32,7 @@ unit GR32_VectorMaps;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Types, // inlining

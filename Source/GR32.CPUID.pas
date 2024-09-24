@@ -52,7 +52,7 @@ Code and changes related to "Fastcode targets" has been removed.
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$if (defined(CompilerVersion)) and (CompilerVersion >= 17.0)} // Delphi 2005
   {$WARN UNSAFE_CAST OFF}

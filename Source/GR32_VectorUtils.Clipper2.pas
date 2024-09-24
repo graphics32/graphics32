@@ -32,7 +32,7 @@ unit GR32_VectorUtils.Clipper2;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$BOOLEVAL OFF}
 

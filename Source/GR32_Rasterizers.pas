@@ -32,7 +32,7 @@ unit GR32_Rasterizers;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$if defined(DCC) and (CompilerVersion >= 28.0)} // TODO : Test for PLATFORM_VCL when it is merged
   {$define USE_PPL} // Use Delphi's Parallel Programming Library (introduced XE7)

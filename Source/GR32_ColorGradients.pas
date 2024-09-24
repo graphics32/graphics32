@@ -34,7 +34,7 @@ unit GR32_ColorGradients;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Types, Classes, SysUtils, Math,

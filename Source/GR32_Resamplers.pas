@@ -42,7 +42,7 @@
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 // Define PREMULTIPLY to have TKernelResampler handle alpha correctly.
 // The downside of the alpha handling is that the performance and

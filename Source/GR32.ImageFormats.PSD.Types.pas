@@ -39,7 +39,7 @@ unit GR32.ImageFormats.PSD.Types;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   GR32.ImageFormats.PSD;

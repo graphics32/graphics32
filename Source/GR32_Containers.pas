@@ -35,7 +35,7 @@ unit GR32_Containers;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Types,

@@ -35,7 +35,7 @@ unit GR32_Backends;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
 {$if defined(FRAMEWORK_VCL)}

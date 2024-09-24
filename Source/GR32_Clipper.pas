@@ -34,7 +34,7 @@ unit GR32_Clipper;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Classes,

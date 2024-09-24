@@ -38,7 +38,7 @@ unit GR32_Filters;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$IFDEF TARGET_X64}
 {$DEFINE PUREPASCAL}

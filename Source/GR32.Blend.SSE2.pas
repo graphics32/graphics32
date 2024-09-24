@@ -32,7 +32,7 @@ unit GR32.Blend.SSE2;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 // Define GR32_SCALEMEMS_FAST to use the faster, but not very precise version of ScaleMems.
 // The fast version uses a "shr 8" as a substitute for "div 255" which is also what

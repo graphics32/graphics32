@@ -36,7 +36,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LResources, LCLType, Variants, {$ENDIF}

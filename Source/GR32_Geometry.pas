@@ -34,7 +34,7 @@ unit GR32_Geometry;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Math, Types, GR32;

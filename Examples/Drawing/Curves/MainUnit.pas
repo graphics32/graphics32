@@ -32,7 +32,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}

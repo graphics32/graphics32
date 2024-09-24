@@ -34,7 +34,7 @@ unit GR32.ImageFormats.PNG32;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 // Define GR32_CLIPBOARD_PNG to enable the "PNG" clipboard format.
 //

@@ -43,7 +43,7 @@ unit GR32_PolygonsAggLite;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$IFDEF FPC}
 {$DEFINE PUREPASCAL}

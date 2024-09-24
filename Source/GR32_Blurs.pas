@@ -32,7 +32,7 @@ unit GR32_Blurs;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$message 'The functions in the GR32_Blurs unit are being deprecated in favor of the GR32.Blur unit'}
 

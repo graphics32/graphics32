@@ -34,7 +34,7 @@ unit GR32_Backends_LCL_Carbon;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   { RTL and LCL }

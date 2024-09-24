@@ -32,7 +32,7 @@ unit GR32.ImageFormats.TPicture;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 implementation
 

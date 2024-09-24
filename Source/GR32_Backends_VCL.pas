@@ -35,7 +35,7 @@ unit GR32_Backends_VCL;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   System.SysUtils, System.Classes,

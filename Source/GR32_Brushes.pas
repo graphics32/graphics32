@@ -32,7 +32,7 @@ unit GR32_Brushes;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {-$define GR32_DEBUG_BRUSH}
 

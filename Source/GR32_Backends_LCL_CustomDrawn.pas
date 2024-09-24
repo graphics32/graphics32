@@ -34,7 +34,7 @@ unit GR32_Backends_LCL_CustomDrawn;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   { RTL and LCL }

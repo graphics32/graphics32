@@ -36,7 +36,7 @@ unit GR32_RangeBars;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
 {$IFDEF FPC}

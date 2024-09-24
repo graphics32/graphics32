@@ -32,7 +32,7 @@ unit GR32_LowLevel;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$IFDEF PUREPASCAL}
   {$DEFINE USENATIVECODE}

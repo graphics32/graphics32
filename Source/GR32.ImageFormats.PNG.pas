@@ -34,7 +34,7 @@ unit GR32.ImageFormats.PNG;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$ifdef FPC}
 {$message WARN 'GR32.ImageFormats.PNG does not support FreePascal. Use the GR32.ImageFormats.PNG32 unit instead'}

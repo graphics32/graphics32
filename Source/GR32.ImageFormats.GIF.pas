@@ -34,7 +34,7 @@ unit GR32.ImageFormats.GIF;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 implementation
 

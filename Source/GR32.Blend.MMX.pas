@@ -32,7 +32,7 @@ unit GR32.Blend.MMX;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   GR32;

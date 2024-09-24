@@ -33,7 +33,7 @@ unit GR32.Design.Misc;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   {$IFDEF FPC} LCLIntf, LazIDEIntf, PropEdits,{$ELSE}

@@ -36,7 +36,7 @@ unit GR32_Math_FPC;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 // TODO : This block was never enabled as TARGET_X64 isn't defined unless GR32.inc is included
 // The block has now been disabled as we can't {$mode objfpc} this late.

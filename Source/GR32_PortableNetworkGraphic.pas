@@ -34,8 +34,8 @@ unit GR32_PortableNetworkGraphic;
 
 interface
 
-{$I GR32.inc}
-{$I GR32_PngCompilerSwitches.inc}
+{$include GR32.inc}
+{$include GR32_PngCompilerSwitches.inc}
 
 // The following defines controls if the corresponding incomplete chunk
 // implementations should be enabled. They are disabled by default because

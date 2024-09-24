@@ -38,7 +38,7 @@ unit GR32.ImageFormats.JPG;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 implementation
 

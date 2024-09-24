@@ -32,7 +32,7 @@ unit GR32_Backends_LCL_Gtk;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {$DEFINE VerboseGR32GTK}
 

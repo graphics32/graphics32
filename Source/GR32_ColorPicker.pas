@@ -32,7 +32,7 @@ unit GR32_ColorPicker;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {-$define GR32_FRAME3D}
 

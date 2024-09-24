@@ -34,8 +34,8 @@ unit GR32_Png;
 
 interface
 
-{$I GR32.inc}
-{$I GR32_PngCompilerSwitches.inc}
+{$include GR32.inc}
+{$include GR32_PngCompilerSwitches.inc}
 
 uses
   Classes, Graphics, SysUtils, GR32, GR32_PortableNetworkGraphic;

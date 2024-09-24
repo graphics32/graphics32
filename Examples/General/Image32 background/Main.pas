@@ -1,6 +1,6 @@
 unit Main;
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 interface
 

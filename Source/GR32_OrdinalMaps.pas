@@ -33,7 +33,7 @@ unit GR32_OrdinalMaps;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Classes,

@@ -32,7 +32,7 @@ unit GR32.Design.Color32;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Classes, SysUtils,

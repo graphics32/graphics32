@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** *)
 
- {$I GR32_Compiler.inc}
+ {$include GR32_Compiler.inc}
 
 
 (* Symbol PUREPASCAL:

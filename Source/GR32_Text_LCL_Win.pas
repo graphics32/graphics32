@@ -34,7 +34,7 @@ unit GR32_Text_LCL_Win;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   Windows, Types, GR32, GR32_Paths;

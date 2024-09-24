@@ -34,7 +34,7 @@ unit GR32_VPR2;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 uses
   GR32, GR32_Polygons, GR32_OrdinalMaps;

@@ -35,7 +35,7 @@ unit GR32_MicroTiles;
 
 interface
 
-{$I GR32.inc}
+{$include GR32.inc}
 
 {-$DEFINE CODESITE}
 {-$DEFINE CODESITE_HIGH}
