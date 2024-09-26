@@ -1047,21 +1047,21 @@ asm
   // EDX <- PB
   // ESI <- PR
 
-  // PF := @DivTable[F.A];
-        LEA     EDI,[EAX+DivTable]
-  // PB := @DivTable[B.A];
+  // PF := @MulDiv255Table[F.A];
+        LEA     EDI,[EAX+MulDiv255Table]
+  // PB := @MulDiv255Table[B.A];
         SHL     EDX,$08
-        LEA     EDX,[EDX+DivTable]
+        LEA     EDX,[EDX+MulDiv255Table]
 
   // Result.A := B.A + F.A - PB[F.A];
         SHR     EAX,8
         ADD     ECX,EAX
         SUB     ECX,[EDX+EAX]
         MOV     [ESP+$0B],CL
-  // PR := @RcTable[Result.A];
+  // PR := @DivMul255Table[Result.A];
         SHL     ECX,$08
         AND     ECX,$0000FFFF
-        LEA     ESI,[ECX+RcTable]
+        LEA     ESI,[ECX+DivMul255Table]
 
   { Red component }
 

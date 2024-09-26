@@ -166,8 +166,8 @@ begin
     Exit;
   end;
 
-  Af := @DivTable[FA];
-  Ab := @DivTable[not FA];
+  Af := @MulDiv255Table[FA];
+  Ab := @MulDiv255Table[not FA];
   with BX do
   begin
     R := Af[FX.R] + Ab[R];
@@ -199,8 +199,8 @@ begin
     Exit;
   end;
 
-  Af := @DivTable[FA];
-  Ab := @DivTable[not FA];
+  Af := @MulDiv255Table[FA];
+  Ab := @MulDiv255Table[not FA];
   with BX do
   begin
     R := Af[FX.R] + Ab[R];
@@ -234,7 +234,7 @@ var
   BX: TColor32Entry absolute B;
   Af, Ab: PByteArray;
 begin
-  Af := @DivTable[M];
+  Af := @MulDiv255Table[M];
   M := Af[FX.A];
 
   if (M = 0) then
@@ -249,8 +249,8 @@ begin
     Exit;
   end;
 
-  Af := @DivTable[M];
-  Ab := @DivTable[255 - M];
+  Af := @MulDiv255Table[M];
+  Ab := @MulDiv255Table[255 - M];
 
   TColor32Entry(Result).R := Af[FX.R] + Ab[BX.R];
   TColor32Entry(Result).G := Af[FX.G] + Ab[BX.G];
@@ -268,7 +268,7 @@ var
   BX: TColor32Entry absolute B;
   Af, Ab: PByteArray;
 begin
-  Af := @DivTable[M];
+  Af := @MulDiv255Table[M];
   M := Af[FX.A]; // M = (M / 255) * (FX.A / 255)
 
   if (M = 0) then
@@ -280,8 +280,8 @@ begin
     Exit;
   end;
 
-  Af := @DivTable[M];
-  Ab := @DivTable[255 - M];
+  Af := @MulDiv255Table[M];
+  Ab := @MulDiv255Table[255 - M];
 
   BX.R := Af[FX.R] + Ab[BX.R];
   BX.G := Af[FX.G] + Ab[BX.G];
@@ -391,8 +391,8 @@ begin
     Exit;
   end;
 
-  Af := @DivTable[W];
-  Ab := @DivTable[255 - W];
+  Af := @MulDiv255Table[W];
+  Ab := @MulDiv255Table[255 - W];
   with Xe do
   begin
     R := Ab[Ye.R] + Af[R];
@@ -435,8 +435,8 @@ begin
     Exit;
   end;
 
-  Af := @DivTable[W];
-  Ab := @DivTable[255 - W];
+  Af := @MulDiv255Table[W];
+  Ab := @MulDiv255Table[255 - W];
   with Xe do
   begin
     R := Ab[Ye.R] + Af[R];
@@ -596,10 +596,10 @@ begin
     Result := F
   else
   begin
-    Rx.A := not DivTable[Fa xor 255, Ba xor 255]; // "xor 255" is faster than "not" for the indices because the asm is shorter
-    Wa := RcTable[Rx.A, Fa];
-    Fw := @DivTable[Wa];
-    Bw := @DivTable[Wa xor $FF];
+    Rx.A := not MulDiv255Table[Fa xor 255, Ba xor 255]; // "xor 255" is faster than "not" for the indices because the asm is shorter
+    Wa := DivMul255Table[Rx.A, Fa];
+    Fw := @MulDiv255Table[Wa];
+    Bw := @MulDiv255Table[Wa xor $FF];
     Rx.R := Fw[Fx.R] + Bw[Bx.R];
     Rx.G := Fw[Fx.G] + Bw[Bx.G];
     Rx.B := Fw[Fx.B] + Bw[Bx.B];
@@ -612,7 +612,7 @@ end;
 //------------------------------------------------------------------------------
 function MergeRegEx_Pas(F, B: TColor32; M: Cardinal): TColor32;
 begin
-  Result := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
+  Result := MergeReg(MulDiv255Table[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
 
 
@@ -630,7 +630,7 @@ end;
 //------------------------------------------------------------------------------
 procedure MergeMemEx_Pas(F: TColor32; var B: TColor32; M: Cardinal);
 begin
-  B := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
+  B := MergeReg(MulDiv255Table[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
 
 
@@ -670,7 +670,7 @@ procedure MergeLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 var
   PM: PByteArray;
 begin
-  PM := @DivTable[M];
+  PM := @MulDiv255Table[M];
   while Count > 0 do
   begin
     Dst^ := MergeReg((PM[Src^ shr 24] shl 24) or (Src^ and $00FFFFFF), Dst^);
@@ -1006,8 +1006,8 @@ var
   R: TColor32Entry absolute Result;
   Af, Ab: PByteArray;
 begin
-  Af := @DivTable[Xe.A];
-  Ab := @DivTable[not Xe.A];
+  Af := @MulDiv255Table[Xe.A];
+  Ab := @MulDiv255Table[not Xe.A];
   R.A := Af[Clamp(Xe.A + Ye.A, 255)] + Ab[Ye.A];
   R.R := Af[Clamp(Xe.R + Ye.R, 255)] + Ab[Ye.R];
   R.G := Af[Clamp(Xe.G + Ye.G, 255)] + Ab[Ye.G];
@@ -1025,8 +1025,8 @@ var
   R: TColor32Entry absolute Result;
   Af, Ab: PByteArray;
 begin
-  Af := @DivTable[C1e.A];
-  Ab := @DivTable[not C1e.A];
+  Af := @MulDiv255Table[C1e.A];
+  Ab := @MulDiv255Table[not C1e.A];
   R.A := Af[(C2e.A * C1e.A + $80) shr 8] + Ab[C2e.A];
   R.R := Af[(C2e.R * C1e.R + $80) shr 8] + Ab[C2e.R];
   R.G := Af[(C2e.G * C1e.G + $80) shr 8] + Ab[C2e.G];
