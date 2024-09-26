@@ -1887,7 +1887,7 @@ begin
       else
         Expected := 0;
 
-      Actual := RcTable[a, b];
+      Actual := DivMul255Table[a, b];
 
       if (Expected <> Actual) then
         CheckEquals(Expected, Actual, Format('%d / %d * 255', [a, b]));
@@ -1904,7 +1904,7 @@ begin
     begin
       Expected := Round(a * b / 255);
 
-      Actual := DivTable[a, b];
+      Actual := MulDiv255Table[a, b];
 
       if (Expected <> Actual) then
         CheckEquals(Expected, Actual, Format('%d * %d / 255', [a, b]));

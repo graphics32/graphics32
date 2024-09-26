@@ -324,29 +324,48 @@ procedure EMMS; {$IFDEF USEINLINING} inline; {$ENDIF}
 //      Blending related lookup tables
 //
 //------------------------------------------------------------------------------
+type
+  TLUT88 = array [Byte, Byte] of Byte;
+
 var
   //
-  // RcTable contains the result of a *division* of two bytes values, specified in the byte range:
+  // DivMul255Table contains the result of a *division* of two values, specified
+  // in the byte range:
   //
-  //   RcTable[a, b] = Round(b * 255 / a)
+  //   DivMul255Table[a, b] = Round(b * 255 / a)
   //
   // It is commonly used to perform the division of the merge operation:
   //
-  //   ResultColor = RcTable[ResultAlpha, Color] = Color / ResultAlpha
+  //   ResultColor = DivMul255Table[ResultAlpha, Color] = Color / ResultAlpha
   //
-  RcTable: array [Byte, Byte] of Byte;
+  // or unpremultiplication:
+  //
+  //   Color = DivMul255Table[Alpha, PremultColor] = PremultColor / Alpha
+  //
+  DivMul255Table: TLUT88;
 
   //
-  // The, unfortunatebly named, DivTable contains the result of a *multiplication* of two bytes
-  // values, specified in the byte range:
+  // MulDiv255Table contains the result of a *multiplication* of two values,
+  // specified in the byte range:
   //
-  //   DivTable[a, b] = Round(a * b / 255)
+  //   MulDiv255Table[a, b] = Round(a * b / 255)
   //
   // It is commonly used to perform the multiplications of the blend or merge operations:
   //
-  //   TempColor = RcTable[Color, Alpha] = Color * Alpha
+  //   TempColor = MulDiv255Table[Color, Alpha] = Color * Alpha
   //
-  DivTable: array [Byte, Byte] of Byte;
+  // or premultiplication:
+  //
+  //   PremultColor = MulDiv255Table[Color, Alpha] = Color * Alpha
+  //
+  MulDiv255Table: TLUT88;
+
+
+// RcTable and DivTable are the old names of the above two tables.
+// They are kept for backward compatibility and should be considered deprecated.
+var
+  RcTable: TLUT88 absolute DivMul255Table;
+  DivTable: TLUT88 absolute MulDiv255Table;
 
 
 //------------------------------------------------------------------------------
@@ -360,7 +379,7 @@ type
 var
   //
   // alpha_ptr: Pointer to a 16-byte aligned array[256] of 4 cardinal values.
-  // The table is used to implement division by 255:
+  // The table is used to implement vectorized division by 255 in SIMD functions:
   //
   //   (x div 255) = ((x + 128) shr 8)
   //               = ((alpha_ptr[x] + bias_ptr^) shr 8)
@@ -369,7 +388,7 @@ var
 
   //
   // bias_ptr points to the middle entry of the alpha_ptr table.
-  // The entry contains the value 0080 0080.
+  // The entry contains the 4 cardinal values 00000080 00000080 00000080 00000080.
   //
   bias_ptr: PMultEntry;
 
@@ -462,23 +481,20 @@ procedure MakeMergeTables;
 var
   i, j: Integer;
 begin
-  for i := 0 to 255 do
+  for j := 0 to 255 do
   begin
-    DivTable[0, i] := 0; // Yes, [0,0] is set twice but who cares
-    DivTable[i, 0] := 0;
-    RcTable[0, i] := 0;
-    RcTable[i, 0] := 0;
-  end;
+    MulDiv255Table[0, j] := 0;
+    DivMul255Table[0, j] := 0;
 
-  for j := 1 to 255 do
     for i := 1 to 255 do
     begin
-      DivTable[i, j] := Round(i * j * COne255th);
+      MulDiv255Table[i, j] := Round(i * j * COne255th);
       if i > j then
-        RcTable[i, j] := Round(j * 255 / i)
+        DivMul255Table[i, j] := Round(j * 255 / i)
       else
-        RcTable[i, j] := 255;
+        DivMul255Table[i, j] := 255;
     end;
+  end;
 end;
 
 

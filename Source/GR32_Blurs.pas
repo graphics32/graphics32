@@ -233,9 +233,9 @@ begin
       with ImagePixels[Q] do
       begin
         PreMulArray[X].A := A;
-        PreMulArray[X].R := DivTable[R, A];
-        PreMulArray[X].G := DivTable[G, A];
-        PreMulArray[X].B := DivTable[B, A];
+        PreMulArray[X].R := MulDiv255Table[R, A];
+        PreMulArray[X].G := MulDiv255Table[G, A];
+        PreMulArray[X].B := MulDiv255Table[B, A];
         Inc(Q);
       end;
 
@@ -284,9 +284,9 @@ begin
       with ImagePixels[RowOffset + X] do
       begin
         A := (SumRec.A div SumRec.Sum);
-        R := RcTable[A, (SumRec.R div SumRec.Sum)];
-        G := RcTable[A, (SumRec.G div SumRec.Sum)];
-        B := RcTable[A, (SumRec.B div SumRec.Sum)];
+        R := DivMul255Table[A, (SumRec.R div SumRec.Sum)];
+        G := DivMul255Table[A, (SumRec.G div SumRec.Sum)];
+        B := DivMul255Table[A, (SumRec.B div SumRec.Sum)];
       end;
     end;
     Inc(RowOffset, ImageWidth);
@@ -371,9 +371,9 @@ begin
         with ImagePixels[Q] do
         begin
           PreMulArray[X].A := A;
-          PreMulArray[X].R := DivTable[R, A];
-          PreMulArray[X].G := DivTable[G, A];
-          PreMulArray[X].B := DivTable[B, A];
+          PreMulArray[X].R := MulDiv255Table[R, A];
+          PreMulArray[X].G := MulDiv255Table[G, A];
+          PreMulArray[X].B := MulDiv255Table[B, A];
           Inc(Q);
         end;
 
@@ -426,16 +426,16 @@ begin
           if (MaskClr.A < 255) then
           begin
             Clr.A := SumRec.A div SumRec.Sum;
-            Clr.R := RcTable[Clr.A, SumRec.R div SumRec.Sum];
-            Clr.G := RcTable[Clr.A, SumRec.G div SumRec.Sum];
-            Clr.B := RcTable[Clr.A, SumRec.B div SumRec.Sum];
+            Clr.R := DivMul255Table[Clr.A, SumRec.R div SumRec.Sum];
+            Clr.G := DivMul255Table[Clr.A, SumRec.G div SumRec.Sum];
+            Clr.B := DivMul255Table[Clr.A, SumRec.B div SumRec.Sum];
             BlendMemEx(Clr.ARGB, ARGB, MaskClr.A);
           end else
           begin
             A := SumRec.A div SumRec.Sum;
-            R := RcTable[A, SumRec.R div SumRec.Sum];
-            G := RcTable[A, SumRec.G div SumRec.Sum];
-            B := RcTable[A, SumRec.B div SumRec.Sum];
+            R := DivMul255Table[A, SumRec.R div SumRec.Sum];
+            G := DivMul255Table[A, SumRec.G div SumRec.Sum];
+            B := DivMul255Table[A, SumRec.B div SumRec.Sum];
           end;
       end;
       Inc(RowOffset, ImageWidth);
@@ -505,9 +505,9 @@ begin
       with ImagePixels[Q] do
       begin
         PreMulArray[X].A := A;
-        PreMulArray[X].R := DivTable[GAMMA_DECODING_TABLE[R], A];
-        PreMulArray[X].G := DivTable[GAMMA_DECODING_TABLE[G], A];
-        PreMulArray[X].B := DivTable[GAMMA_DECODING_TABLE[B], A];
+        PreMulArray[X].R := MulDiv255Table[GAMMA_DECODING_TABLE[R], A];
+        PreMulArray[X].G := MulDiv255Table[GAMMA_DECODING_TABLE[G], A];
+        PreMulArray[X].B := MulDiv255Table[GAMMA_DECODING_TABLE[B], A];
         Inc(Q);
       end;
 
@@ -556,9 +556,9 @@ begin
       with ImagePixels[RowOffset + X] do
       begin
         A := (SumRec.A div SumRec.Sum);
-        R := GAMMA_ENCODING_TABLE[RcTable[A, (SumRec.R div SumRec.Sum)]];
-        G := GAMMA_ENCODING_TABLE[RcTable[A, (SumRec.G div SumRec.Sum)]];
-        B := GAMMA_ENCODING_TABLE[RcTable[A, (SumRec.B div SumRec.Sum)]];
+        R := GAMMA_ENCODING_TABLE[DivMul255Table[A, (SumRec.R div SumRec.Sum)]];
+        G := GAMMA_ENCODING_TABLE[DivMul255Table[A, (SumRec.G div SumRec.Sum)]];
+        B := GAMMA_ENCODING_TABLE[DivMul255Table[A, (SumRec.B div SumRec.Sum)]];
       end;
     end;
     Inc(RowOffset, ImageWidth);
@@ -643,9 +643,9 @@ begin
         with ImagePixels[Q] do
         begin
           PreMulArray[X].A := A;
-          PreMulArray[X].R := DivTable[GAMMA_DECODING_TABLE[R], A];
-          PreMulArray[X].G := DivTable[GAMMA_DECODING_TABLE[G], A];
-          PreMulArray[X].B := DivTable[GAMMA_DECODING_TABLE[B], A];
+          PreMulArray[X].R := MulDiv255Table[GAMMA_DECODING_TABLE[R], A];
+          PreMulArray[X].G := MulDiv255Table[GAMMA_DECODING_TABLE[G], A];
+          PreMulArray[X].B := MulDiv255Table[GAMMA_DECODING_TABLE[B], A];
           Inc(Q);
         end;
 
@@ -698,16 +698,16 @@ begin
           if (MaskClr.A < 255) then
           begin
             Clr.A := SumRec.A div SumRec.Sum;
-            Clr.R := GAMMA_ENCODING_TABLE[RcTable[Clr.A, SumRec.R div SumRec.Sum]];
-            Clr.G := GAMMA_ENCODING_TABLE[RcTable[Clr.A, SumRec.G div SumRec.Sum]];
-            Clr.B := GAMMA_ENCODING_TABLE[RcTable[Clr.A, SumRec.B div SumRec.Sum]];
+            Clr.R := GAMMA_ENCODING_TABLE[DivMul255Table[Clr.A, SumRec.R div SumRec.Sum]];
+            Clr.G := GAMMA_ENCODING_TABLE[DivMul255Table[Clr.A, SumRec.G div SumRec.Sum]];
+            Clr.B := GAMMA_ENCODING_TABLE[DivMul255Table[Clr.A, SumRec.B div SumRec.Sum]];
             BlendMemEx(Clr.ARGB, ARGB, MaskClr.A);
           end else
           begin
             A := SumRec.A div SumRec.Sum;
-            R := GAMMA_ENCODING_TABLE[RcTable[A, SumRec.R div SumRec.Sum]];
-            G := GAMMA_ENCODING_TABLE[RcTable[A, SumRec.G div SumRec.Sum]];
-            B := GAMMA_ENCODING_TABLE[RcTable[A, SumRec.B div SumRec.Sum]];
+            R := GAMMA_ENCODING_TABLE[DivMul255Table[A, SumRec.R div SumRec.Sum]];
+            G := GAMMA_ENCODING_TABLE[DivMul255Table[A, SumRec.G div SumRec.Sum]];
+            B := GAMMA_ENCODING_TABLE[DivMul255Table[A, SumRec.B div SumRec.Sum]];
           end;
       end;
       Inc(RowOffset, ImageWidth);
@@ -762,9 +762,9 @@ begin
     for X := RecLeft to RecRight do
       with ImgPixel^ do
       begin
-        R := DivTable[R, A];
-        G := DivTable[G, A];
-        B := DivTable[B, A];
+        R := MulDiv255Table[R, A];
+        G := MulDiv255Table[G, A];
+        B := MulDiv255Table[B, A];
         Inc(ImgPixel);
       end;
   end;
@@ -892,9 +892,9 @@ begin
     ImgPixel := PColor32Entry(@Bitmap32.ScanLine[Y][RecLeft]);
     for X := RecLeft to RecRight do
     begin
-      ImgPixel.R := RcTable[ImgPixel.A, ImgPixel.R];
-      ImgPixel.G := RcTable[ImgPixel.A, ImgPixel.G];
-      ImgPixel.B := RcTable[ImgPixel.A, ImgPixel.B];
+      ImgPixel.R := DivMul255Table[ImgPixel.A, ImgPixel.R];
+      ImgPixel.G := DivMul255Table[ImgPixel.A, ImgPixel.G];
+      ImgPixel.B := DivMul255Table[ImgPixel.A, ImgPixel.B];
       Inc(ImgPixel);
     end;
   end;
@@ -946,9 +946,9 @@ begin
     Inc(ImgPixel, RecLeft);
     for X := RecLeft to RecRight do
     begin
-      ImgPixel.R := DivTable[ImgPixel.R, ImgPixel.A];
-      ImgPixel.G := DivTable[ImgPixel.G, ImgPixel.A];
-      ImgPixel.B := DivTable[ImgPixel.B, ImgPixel.A];
+      ImgPixel.R := MulDiv255Table[ImgPixel.R, ImgPixel.A];
+      ImgPixel.G := MulDiv255Table[ImgPixel.G, ImgPixel.A];
+      ImgPixel.B := MulDiv255Table[ImgPixel.B, ImgPixel.A];
       Inc(ImgPixel);
     end;
   end;
@@ -1138,9 +1138,9 @@ begin
       Inc(ImgPixel, RecLeft);
       for X := RecLeft to RecRight do
       begin
-        ImgPixel.R := RcTable[ImgPixel.A, ImgPixel.R];
-        ImgPixel.G := RcTable[ImgPixel.A, ImgPixel.G];
-        ImgPixel.B := RcTable[ImgPixel.A, ImgPixel.B];
+        ImgPixel.R := DivMul255Table[ImgPixel.A, ImgPixel.R];
+        ImgPixel.G := DivMul255Table[ImgPixel.A, ImgPixel.G];
+        ImgPixel.B := DivMul255Table[ImgPixel.A, ImgPixel.B];
         Inc(ImgPixel);
       end;
     end;
@@ -1191,9 +1191,9 @@ begin
     for X := RecLeft to RecRight do
       with ImgPixel^ do
       begin
-        R := DivTable[GAMMA_DECODING_TABLE[R], A];
-        G := DivTable[GAMMA_DECODING_TABLE[G], A];
-        B := DivTable[GAMMA_DECODING_TABLE[B], A];
+        R := MulDiv255Table[GAMMA_DECODING_TABLE[R], A];
+        G := MulDiv255Table[GAMMA_DECODING_TABLE[G], A];
+        B := MulDiv255Table[GAMMA_DECODING_TABLE[B], A];
         Inc(ImgPixel);
       end;
   end;
@@ -1320,9 +1320,9 @@ begin
     ImgPixel := PColor32Entry(@Bitmap32.ScanLine[Y][RecLeft]);
     for X := RecLeft to RecRight do
     begin
-      ImgPixel.R := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.R]];
-      ImgPixel.G := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.G]];
-      ImgPixel.B := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.B]];
+      ImgPixel.R := GAMMA_ENCODING_TABLE[DivMul255Table[ImgPixel.A, ImgPixel.R]];
+      ImgPixel.G := GAMMA_ENCODING_TABLE[DivMul255Table[ImgPixel.A, ImgPixel.G]];
+      ImgPixel.B := GAMMA_ENCODING_TABLE[DivMul255Table[ImgPixel.A, ImgPixel.B]];
       Inc(ImgPixel);
     end;
   end;
@@ -1375,9 +1375,9 @@ begin
     Inc(ImgPixel, RecLeft);
     for X := RecLeft to RecRight do
     begin
-      ImgPixel.R := DivTable[GAMMA_DECODING_TABLE[ImgPixel.R], ImgPixel.A];
-      ImgPixel.G := DivTable[GAMMA_DECODING_TABLE[ImgPixel.G], ImgPixel.A];
-      ImgPixel.B := DivTable[GAMMA_DECODING_TABLE[ImgPixel.B], ImgPixel.A];
+      ImgPixel.R := MulDiv255Table[GAMMA_DECODING_TABLE[ImgPixel.R], ImgPixel.A];
+      ImgPixel.G := MulDiv255Table[GAMMA_DECODING_TABLE[ImgPixel.G], ImgPixel.A];
+      ImgPixel.B := MulDiv255Table[GAMMA_DECODING_TABLE[ImgPixel.B], ImgPixel.A];
       Inc(ImgPixel);
     end;
   end;
@@ -1567,9 +1567,9 @@ begin
       Inc(ImgPixel, RecLeft);
       for X := RecLeft to RecRight do
       begin
-        ImgPixel.R := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.R]];
-        ImgPixel.G := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.G]];
-        ImgPixel.B := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.B]];
+        ImgPixel.R := GAMMA_ENCODING_TABLE[DivMul255Table[ImgPixel.A, ImgPixel.R]];
+        ImgPixel.G := GAMMA_ENCODING_TABLE[DivMul255Table[ImgPixel.A, ImgPixel.G]];
+        ImgPixel.B := GAMMA_ENCODING_TABLE[DivMul255Table[ImgPixel.A, ImgPixel.B]];
         Inc(ImgPixel);
       end;
     end;
@@ -1648,9 +1648,9 @@ begin
       ImagePixel := PColor32Entry(BmpCutout.ScanLine[Y]);
       for X := 0 to BmpCutout.Width - 1 do
       begin
-        ImagePixel.R := DivTable[ImagePixel.R, ImagePixel.A];
-        ImagePixel.G := DivTable[ImagePixel.G, ImagePixel.A];
-        ImagePixel.B := DivTable[ImagePixel.B, ImagePixel.A];
+        ImagePixel.R := MulDiv255Table[ImagePixel.R, ImagePixel.A];
+        ImagePixel.G := MulDiv255Table[ImagePixel.G, ImagePixel.A];
+        ImagePixel.B := MulDiv255Table[ImagePixel.B, ImagePixel.A];
         Inc(ImagePixel);
       end;
     end;
@@ -1784,9 +1784,9 @@ begin
       ImagePixel := PColor32Entry(BmpCutout.ScanLine[Y]);
       for X := 0 to BmpCutout.Width - 1 do
       begin
-        ImagePixel.R := RcTable[ImagePixel.A, ImagePixel.R];
-        ImagePixel.G := RcTable[ImagePixel.A, ImagePixel.G];
-        ImagePixel.B := RcTable[ImagePixel.A, ImagePixel.B];
+        ImagePixel.R := DivMul255Table[ImagePixel.A, ImagePixel.R];
+        ImagePixel.G := DivMul255Table[ImagePixel.A, ImagePixel.G];
+        ImagePixel.B := DivMul255Table[ImagePixel.A, ImagePixel.B];
         Inc(ImagePixel);
       end;
     end;
@@ -1887,9 +1887,9 @@ begin
       ImagePixel := PColor32Entry(BmpCutout.ScanLine[Y]);
       for X := 0 to BmpCutout.Width - 1 do
       begin
-        ImagePixel.R := DivTable[GAMMA_DECODING_TABLE[ImagePixel.R], ImagePixel.A];
-        ImagePixel.G := DivTable[GAMMA_DECODING_TABLE[ImagePixel.G], ImagePixel.A];
-        ImagePixel.B := DivTable[GAMMA_DECODING_TABLE[ImagePixel.B], ImagePixel.A];
+        ImagePixel.R := MulDiv255Table[GAMMA_DECODING_TABLE[ImagePixel.R], ImagePixel.A];
+        ImagePixel.G := MulDiv255Table[GAMMA_DECODING_TABLE[ImagePixel.G], ImagePixel.A];
+        ImagePixel.B := MulDiv255Table[GAMMA_DECODING_TABLE[ImagePixel.B], ImagePixel.A];
         Inc(ImagePixel);
       end;
     end;
@@ -2023,9 +2023,9 @@ begin
       ImagePixel := PColor32Entry(BmpCutout.ScanLine[Y]);
       for X := 0 to BmpCutout.Width - 1 do
       begin
-        ImagePixel.R := GAMMA_ENCODING_TABLE[RcTable[ImagePixel.A, ImagePixel.R]];
-        ImagePixel.G := GAMMA_ENCODING_TABLE[RcTable[ImagePixel.A, ImagePixel.G]];
-        ImagePixel.B := GAMMA_ENCODING_TABLE[RcTable[ImagePixel.A, ImagePixel.B]];
+        ImagePixel.R := GAMMA_ENCODING_TABLE[DivMul255Table[ImagePixel.A, ImagePixel.R]];
+        ImagePixel.G := GAMMA_ENCODING_TABLE[DivMul255Table[ImagePixel.A, ImagePixel.G]];
+        ImagePixel.B := GAMMA_ENCODING_TABLE[DivMul255Table[ImagePixel.A, ImagePixel.B]];
         Inc(ImagePixel);
       end;
     end;
