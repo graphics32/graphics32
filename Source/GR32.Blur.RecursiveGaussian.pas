@@ -158,6 +158,7 @@ implementation
 
 uses
   SyncObjs, // TCriticalSection
+  Math,
   GR32.Blur,
   GR32_Bindings,
   GR32.Transpose,
@@ -167,8 +168,12 @@ uses
   GR32_LowLevel,
   GR32_Math,
   GR32_System,
-  GR32_Gamma,
-  Math;
+  GR32_Gamma;
+
+// Ensure that we use the GR32.TFloat and not FPC's Math.TFloat (which is an alias for Double!)
+type
+  TFloat = GR32.TFloat;
+  PFloat = ^TFloat;
 
 type
   TBitmap32Cracker = class(TCustomBitmap32);
@@ -414,7 +419,7 @@ asm
 {$else}
 {$message fatal 'Unsupported target'}
 {$ifend}
-  MOVUPS        XMM0, [TQuadFloatRec PTR B]             // XMM0 <-  B3 | B2 | B1 | B0
+  MOVUPS        XMM0, TQuadFloatRec PTR [B]             // XMM0 <-  B3 | B2 | B1 | B0
 
   (*
   ** Initialization of forward pass
@@ -468,7 +473,7 @@ asm
 {$if defined(TARGET_x86)}
   MOVSS         XMM2, [pIn+ECX*4]                       // XMM2[0] <- pIn
 {$elseif defined(TARGET_x64)}
-  MOVSS         XMM2, [TFloat PTR pIn+R9*4]             // XMM2[0] <- pIn
+  MOVSS         XMM2, TFloat PTR [pIn+R9*4]             // XMM2[0] <- pIn
 {$ifend}
   MOVSS         XMM1, XMM2                              // XMM1[0] <- XMM2[0]
   MOVAPS        XMM2, XMM1                              // XMM2 <- XMM1
@@ -495,7 +500,7 @@ asm
 {$if defined(TARGET_x86)}
   MOVSS         [pOut+ECX*4], XMM2
 {$elseif defined(TARGET_x64)}
-  MOVSS         [TFloat PTR pOut+R9*4], XMM2
+  MOVSS         TFloat PTR [pOut+R9*4], XMM2
 {$ifend}
 
   (*
@@ -558,7 +563,7 @@ procedure BlurFilterBackward_SSE41(pIn, pOut: PFloatArray; const B: TQuadFloat; 
   //   XMM1:  * | v1 | v2 | v3
   //   XMM2, XMM3: misc use
 asm
-  MOVUPS        XMM0, [TQuadFloatRec PTR B]             // XMM0 <-  B3 | B2 | B1 | B0
+  MOVUPS        XMM0, TQuadFloatRec PTR [B]             // XMM0 <-  B3 | B2 | B1 | B0
 
 {$if defined(TARGET_x86)}
   MOV           ECX, v
@@ -601,7 +606,7 @@ asm
 {$if defined(TARGET_x86)}
   INSERTPS      XMM1, [pIn+ECX*4], $00                  // XMM1[0] <- pIn
 {$elseif defined(TARGET_x64)}
-  INSERTPS      XMM1, [TFloat PTR pIn+R9*4], $00        // XMM1[0] <- pIn
+  INSERTPS      XMM1, TFloat PTR [pIn+R9*4], $00        // XMM1[0] <- pIn
 {$ifend}
   MOVAPS        XMM2, XMM1                              // XMM2 <- XMM1
 
@@ -622,7 +627,7 @@ asm
 {$if defined(TARGET_x86)}
   MOVSS         [pOut+ECX*4], XMM2
 {$elseif defined(TARGET_x64)}
-  MOVSS         [TFloat PTR pOut+R9*4], XMM2
+  MOVSS         TFloat PTR [pOut+R9*4], XMM2
 {$ifend}
 
   (*
@@ -644,7 +649,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats); {$IFDEF FPC}assembler;{$ENDIF}
+procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats); // {$IFDEF FPC}assembler;{$ENDIF}
   // Parameters (x86):
   //   EAX <- iPlus
   //   EDX <- B0
@@ -663,12 +668,13 @@ procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var 
   //   XMM0: B3 | B2 | B1 | B0
   //   XMM1:  * | v1 | v2 | v3
   //   XMM2, XMM3, XMM4: misc use
+{$if defined(TARGET_x64) and defined(FPC)}
+begin
+{$ifend}
 asm
 {$if defined(TARGET_x64)}
 {$IFNDEF FPC}
   .SAVENV XMM4
-{$ELSE}
-  push XMM4
 {$ENDIF}
 {$elseif defined(TARGET_x86)}
   // nothing
@@ -682,7 +688,7 @@ asm
   ** unp2 := v[3] - uPlus;
   *)
   // XMM1 = [v3 | v2 | v1 | 0]
-  MOVUPS        XMM1, [TQuadFloat PTR v] // XMM1 <-  v3 | v2 | v1 | v0
+  MOVUPS        XMM1, TQuadFloat PTR [v] // XMM1 <-  v3 | v2 | v1 | v0
   // Save v0
   MOVAPS        XMM5, XMM1
   // Now get rid of XMM1[0]
@@ -710,7 +716,7 @@ asm
   MOV           EAX, M
   MOVUPS        XMM2, [EAX]     // XMM1 <-   * | M2 | M1 | M0
 {$elseif defined(TARGET_x64)}
-  MOVUPS        XMM2, [TNineFloats PTR M] // XMM1 <-   * | M2 | M1 | M0
+  MOVUPS        XMM2, TQuadFloat PTR [M] // XMM1 <-   * | M2 | M1 | M0
 {$ifend}
   INSERTPS      XMM2, XMM2, $F8 // XMM2 <-   0 | M2 | M1 | M0
 {$if defined(TARGET_x86)}
@@ -718,7 +724,7 @@ asm
   MOVUPS        XMM3, [EAX]     // XMM3 <-   * | M5 | M4 | M3
 {$elseif defined(TARGET_x64)}
   ADD           M, 12//SizeOf(TFloat)*3
-  MOVUPS        XMM3, [TNineFloats PTR M] // XMM3 <-   * | M5 | M4 | M3
+  MOVUPS        XMM3, TQuadFloat PTR [M] // XMM3 <-   * | M5 | M4 | M3
 {$ifend}
   INSERTPS      XMM3, XMM3, $F8 // XMM3 <-   0 | M5 | M4 | M3
 {$if defined(TARGET_x86)}
@@ -726,7 +732,7 @@ asm
   MOVUPS        XMM4, [EAX]     // XMM4 <-   * | M8 | M7 | M6
 {$elseif defined(TARGET_x64)}
   ADD           M, 12//SizeOf(TFloat)*3
-  MOVUPS        XMM4, [TNineFloats PTR M] // XMM4 <-   * | M8 | M7 | M6
+  MOVUPS        XMM4, TQuadFloat PTR [M] // XMM4 <-   * | M8 | M7 | M6
 {$ifend}
   INSERTPS      XMM4, XMM4, $F8 // XMM4 <-   0 | M8 | M7 | M6
 
@@ -747,7 +753,15 @@ asm
   INSERTPS      XMM2, XMM4, $F0 // XMM2[3] <-  XMM4[3]
 
   // XMM1 = B[0]
-  MOVSS         XMM1, [TQuadFloat PTR B] // XMM1[1] <- B0
+{$IFNDEF FPC}
+  MOVSS         XMM1, TFloat PTR [B] // XMM1[1] <- B0
+{$ELSE}
+{$if defined(TARGET_x64)}
+  MOVSS         XMM1, TFloat PTR [RDX] // XMM1[1] <- B0
+{$else}
+  MOVSS         XMM1, TFloat PTR [EDX] // XMM1[1] <- B0
+{$ifend}
+{$ENDIF}
   SHUFPS        XMM1, XMM1, 0   // XMM1 <-  B0 | B0 | B0 | B0
 
   // XMM2 = XMM2 * B0
@@ -758,14 +772,10 @@ asm
 
   INSERTPS      XMM2, XMM5, $00 // XMM2[0] <-  XMM5[0]
 
-  MOVUPS        [TQuadFloat PTR v], XMM2     // XMM2 -> v
+  MOVUPS        TQuadFloat PTR [v], XMM2     // XMM2 -> v
 
-{$if defined(TARGET_x64)}
-{$IFDEF FPC}
-  pop XMM4
-{$ENDIF}
-{$elseif defined(TARGET_x86)}
-  // nothing
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4'];
 {$ifend}
 end;
 
@@ -928,10 +938,11 @@ begin
   // Here we use a binary search instead.
   qLow := 1; // Don't go lower than sigma=2 (we'd probably want a normal convolution in that case anyway)
   qHigh := 2 * Sigma;
-  if (SizeOf(TFloat) > SizeOf(Single)) then
+{$if (SizeOf(TFloat) > SizeOf(Single))}
     Limit := Sigma / (1 shl 30)
-  else
+{$else}
     Limit := Sigma / (1 shl 20);
+{$ifend}
   repeat
     q := (qLow + qHigh) / 2;
     // Compute scaled filter coefficients
