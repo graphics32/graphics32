@@ -307,7 +307,7 @@ begin
   end else
   begin
     // Masked blur via polygon filler
-    Points := Rectangle(MakeRect(Bounds));
+    Points := Rectangle(Bounds);
     BlurRegion32(Bitmap, Radius, Points, BlurDelegate, BlurInplaceDelegate);
   end;
 end;
