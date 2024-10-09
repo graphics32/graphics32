@@ -205,16 +205,22 @@ type
     procedure Unsubscribe(const ASubscriber: IInterface);
 
     function Add(ItemClass: TLayerClass): TCustomLayer; overload;
+{$ifndef FPC}
     function Add<T: TCustomLayer>: T; overload;
+{$endif}
     function Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer; overload;
+{$ifndef FPC}
     function Insert<T: TCustomLayer>(Index: Integer): T; overload;
+{$endif}
     procedure Delete(Index: Integer);
     procedure Clear;
     function IndexOf(Item: TCustomLayer): integer;
 
     procedure Assign(Source: TPersistent); override;
-    function  LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
-    function  ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
+    function LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint; overload;
+    function LocalToViewport(const APoint: TPoint; AScaled: Boolean): TFloatPoint; overload; // Needed because FPC lacks implicit TPoint<->TFloatPoint conversion
+    function ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint; overload;
+    function ViewportToLocal(const APoint: TPoint; AScaled: Boolean): TFloatPoint; overload; // Needed because FPC lacks implicit TPoint<->TFloatPoint conversion
     procedure GetViewportScale(out ScaleX, ScaleY: TFloat); virtual;
     procedure GetViewportShift(out ShiftX, ShiftY: TFloat); virtual;
 
@@ -803,10 +809,12 @@ begin
   Notify(lnLayerAdded, Result, Result.Index);
 end;
 
+{$ifndef FPC}
 function TLayerCollection.Add<T>: T;
 begin
   Result := T(Add(T));
 end;
+{$endif}
 
 procedure TLayerCollection.Assign(Source: TPersistent);
 var
@@ -962,10 +970,12 @@ begin
   end;
 end;
 
+{$ifndef FPC}
 function TLayerCollection.Insert<T>(Index: Integer): T;
 begin
   Result := T(Insert(Index, T));
 end;
+{$endif}
 
 procedure TLayerCollection.InsertItem(Item: TCustomLayer);
 var
@@ -1023,6 +1033,12 @@ begin
     Result := APoint;
 end;
 
+function TLayerCollection.LocalToViewport(const APoint: TPoint; AScaled: Boolean): TFloatPoint;
+begin
+  Result := LocalToViewport(FloatPoint(APoint), AScaled);
+end;
+
+
 function TLayerCollection.ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
 var
   ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
@@ -1037,6 +1053,11 @@ begin
   end
   else
     Result := APoint;
+end;
+
+function TLayerCollection.ViewportToLocal(const APoint: TPoint; AScaled: Boolean): TFloatPoint;
+begin
+  Result := ViewportToLocal(FloatPoint(APoint), AScaled);
 end;
 
 function TLayerCollection.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
@@ -1126,7 +1147,7 @@ end;
 
 procedure TLayerCollection.SetItem(Index: Integer; Value: TCustomLayer);
 begin
-  TCollectionItem(FItems[Index]).Assign(Value);
+  FItems[Index].Assign(Value);
 end;
 
 procedure TLayerCollection.SetMouseEvents(Value: Boolean);
