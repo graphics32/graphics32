@@ -146,6 +146,11 @@ uses
   GR32_System,
   GR32_OrdinalMaps;
 
+// Ensure that we use the GR32.TFloat and not FPC's Math.TFloat (which is an alias for Double!)
+type
+  TFloat = GR32.TFloat;
+  PFloat = ^TFloat;
+
 type
   TBitmap32Cracker = class(TCustomBitmap32);
 
@@ -862,7 +867,7 @@ asm
   db $00, $FF, $00, $FF
 end;
 
-procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Integer; out Sum, FactSum: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Integer; out Sum, FactSum: Cardinal); //{$IFDEF FPC} assembler; {$ENDIF}
   // Parameters (x86):
   //   EAX <- pSrc
   //   EDX <- pFact
@@ -890,15 +895,16 @@ procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Intege
   //   XMM5: Sum
   //   XMM6: FactSum
   //   XMM7: "Zero"
+{$if defined(TARGET_x64) and defined(FPC)}
+begin
+{$ifend}
 asm
 {$if defined(TARGET_x64)}
 {$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
   .SAVENV XMM6
   .SAVENV XMM7
-{$ELSE}
-  push XMM6
-  push XMM7
-  // nothing
 {$ENDIF}
 {$elseif defined(TARGET_x86)}
   // nothing
@@ -926,8 +932,13 @@ asm
         LEA         pFact, [pFact+Count*2]
         NEG         Count
 {$elseif defined(TARGET_x64)}
+{$IFNDEF FPC}
         LEA         pSrc, [pSrc+R8]
         LEA         pFact, [pFact+R8*2]
+{$ELSE}
+        LEA         RCX, [RCX+R8]
+        LEA         RDX, [RDX+R8*2]
+{$ENDIF}
         NEG         R8
 {$ifend}
 
@@ -992,7 +1003,11 @@ asm
         INC         R8
 {$ifend}
         // if (Count mod 4 <> 0) then goto :NextOne
+{$if defined(TARGET_x86)}
         TEST        Count, $0003
+{$elseif defined(TARGET_x64)}
+        TEST        R8, $0003
+{$ifend}
         JNZ         @NextOne
 
 {$if defined(TARGET_x86)}
@@ -1092,13 +1107,8 @@ asm
         MOVD        DWORD PTR [RAX], XMM6
 {$ifend}
 
-{$if defined(TARGET_x64)}
-{$IFDEF FPC}
-  pop XMM7
-  pop XMM6
-{$ENDIF}
-{$elseif defined(TARGET_x86)}
-  // nothing
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6', 'XMM7'];
 {$ifend}
 end;
 {$ifend}
@@ -1109,9 +1119,10 @@ procedure InternalSelectiveGaussian1(Src, Dst: TBitmap32; Radius: TFloat; Delta:
 const
   SourcePlanes: array[0..2] of TConversionType = (ctBlue, ctGreen, ctRed);
 var
-  X, Y, Plane, WindowY, LoY, R, MaxX, MaxY: Integer;
+  X, Y, WindowY, MinX: NativeInt; // NativeInt required on FPC to support negative array offset
+  Plane, LoY, R, MaxX, MaxY: Integer;
   XCount, ColCount: Integer;
-  MinValue, MaxValue, MinX: Integer;
+  MinValue, MaxValue: Integer;
   Kernel: TArrayOfWord;
   PKernel: PWordArray;
   VSum, VFact, Sum: Cardinal;
@@ -1293,10 +1304,11 @@ procedure InternalSelectiveGaussian2(Src, Dst: TBitmap32; Radius: TFloat; Delta:
 const
   SourcePlanes: array[0..2] of TConversionType = (ctBlue, ctGreen, ctRed);
 var
+  KernelMinX, KernelMaxX, WindowX, WindowY: NativeInt;
   Plane, LoY, R: Integer;
-  X, Y, MaxX, MaxY, WindowX, WindowY: integer;
+  X, Y, MaxX, MaxY: integer;
   MinValue, MaxValue: integer;
-  KernelMinX, KernelMaxX, ColCount: integer;
+  ColCount: integer;
   Kernel: TArrayOfWord;
   PKernel: PWordArray;
   VSum, VFact, Sum: Cardinal;
@@ -1531,7 +1543,9 @@ begin
   *)
   BlurRegistry.Add(@@SelectiveGaussianAccumulate, @Accumulate_Pas,              [isPascal]);
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+{$ifndef FPC} // TODO : Compiles with FPC but doesn't work
   BlurRegistry.Add(@@SelectiveGaussianAccumulate, @Accumulate_SSE2,             [isSSE2]);
+{$endif}
 {$ifend}
 
 
