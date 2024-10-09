@@ -28,7 +28,7 @@
     <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="3"/>
-    <Files Count="44">
+    <Files Count="47">
       <Item1>
         <Filename Value="..\..\GR32.inc"/>
         <Type Value="Include"/>
@@ -210,6 +210,18 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <Filename Value="..\..\GR32.Blend.Pascal.pas"/>
         <UnitName Value="GR32.Blend.Pascal"/>
       </Item44>
+      <Item45>
+        <Filename Value="..\..\GR32.Blur.pas"/>
+        <UnitName Value="GR32.Blur"/>
+      </Item45>
+      <Item46>
+        <Filename Value="..\..\GR32.Blur.RecursiveGaussian.pas"/>
+        <UnitName Value="GR32.Blur.RecursiveGaussian"/>
+      </Item46>
+      <Item47>
+        <Filename Value="..\..\GR32.Blur.SelectiveGaussian.pas"/>
+        <UnitName Value="GR32.Blur.SelectiveGaussian"/>
+      </Item47>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

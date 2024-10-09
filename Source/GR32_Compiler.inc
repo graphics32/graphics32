@@ -370,6 +370,7 @@
 *)
 
   {$MODE Delphi}
+  {$define HasParentBackground}
   {$define PLATFORM_INDEPENDENT}
   {$define FPC_HAS_CONSTREF}
   {$define NATIVE_SINCOS}

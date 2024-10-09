@@ -74,12 +74,12 @@ type
 {$ENDIF}
   )
   public
+    procedure Edit; override;
     function GetAttributes: TPropertyAttributes; override;
     function GetValue: string; override;
     procedure GetValues(Proc: TGetStrProc); override;
     procedure SetValue(const Value: string); override;
 {$IFDEF EXT_PROP_EDIT}
-    procedure Edit; override;
     { ICustomPropertyListDrawing }
     procedure ListMeasureWidth(const Value: string; ACanvas: TCanvas; var AWidth: Integer);
     procedure ListMeasureHeight(const Value: string; ACanvas: TCanvas; var AHeight: Integer);
@@ -371,7 +371,6 @@ end;
 
 { TColor32Property }
 
-{$IFDEF EXT_PROP_EDIT}
 procedure TColor32Property.Edit;
 var
   ColorPicker: TFormColorPicker;
@@ -386,11 +385,10 @@ begin
     ColorPicker.Free;
   end;
 end;
-{$ENDIF}
 
 function TColor32Property.GetAttributes: TPropertyAttributes;
 begin
-  Result := [paMultiSelect, paValueList, paRevertable {$IFDEF EXT_PROP_EDIT}, paDialog{$ENDIF}];
+  Result := [paMultiSelect, paValueList, paRevertable, paDialog];
 end;
 
 procedure TColor32Property.GetValues(Proc: TGetStrProc);
