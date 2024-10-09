@@ -84,11 +84,7 @@ uses
   GR32.Blur.SelectiveGaussian,
   GR32_Blurs;
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 const
   GaussianBlurSimple: array [Boolean] of TBlurFunction = (Blur32, GammaBlur32);
@@ -156,6 +152,21 @@ begin
   FLayerBitmap.Bitmap.DrawMode := dmBlend;
 
   RgpBlurType.ItemIndex := 1;
+
+{$ifndef FPC}
+  PnlControl.Padding.Left := 8;
+  PnlControl.Padding.Right := 8;
+  PnlControl.Padding.Top := 8;
+  PnlControl.Padding.Bottom := 8;
+  PanelSelective.Padding.Top := 8;
+  PanelMotion.Padding.Top := 8;
+  PanelRadius.Padding.Top := 8;
+{$else}
+  PnlControl.BorderSpacing.Around := 8;
+  PanelSelective.BorderSpacing.Top := 8;
+  PanelMotion.BorderSpacing.Top := 8;
+  PanelRadius.BorderSpacing.Top := 8;
+{$endif}
 end;
 
 procedure TFrmBlurs.FormDestroy(Sender: TObject);
@@ -175,144 +186,158 @@ var
 begin
   if FRedrawFlag then
     Exit;
+
   FRedrawFlag := True;
+  try
 
-  Screen.Cursor := crHourGlass;
+    Screen.Cursor := crHourGlass;
 
-  Radius := TbrBlurRadius.Position;
-  WithGamma := CheckBoxCorrectGamma.Checked;
-  case PageControl.ActivePageIndex of
-    0:
-      begin
-        ImgViewPage1.BeginUpdate;
-        ImgViewPage1.Bitmap.Assign(FBitmapIceland);
+    Radius := TbrBlurRadius.Position;
+    WithGamma := CheckBoxCorrectGamma.Checked;
+    case PageControl.ActivePageIndex of
+      0:
+        begin
+          ImgViewPage1.BeginUpdate;
+          try
+            ImgViewPage1.Bitmap.Assign(FBitmapIceland);
 
-        Stopwatch := TStopwatch.StartNew;
-        case RgpBlurType.ItemIndex of
-          1:
-            GaussianBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
+            Stopwatch := TStopwatch.StartNew;
+            case RgpBlurType.ItemIndex of
+              1:
+                GaussianBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
 
-          2:
-            if WithGamma then
-              MotionBlurGamma(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked)
-            else
-              MotionBlur(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked);
+              2:
+                if WithGamma then
+                  MotionBlurGamma(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked)
+                else
+                  MotionBlur(ImgViewPage1.Bitmap, Radius, TbrBlurAngle.Position, CbxBidirectional.Checked);
 
-          3:
-            if WithGamma then
-              GammaSelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position)
-            else
-              SelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position);
+              3:
+                if WithGamma then
+                  GammaSelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position)
+                else
+                  SelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position);
 
+            end;
+            Stopwatch.Stop;
+          finally
+            ImgViewPage1.EndUpdate;
+          end;
         end;
-        Stopwatch.Stop;
-        ImgViewPage1.EndUpdate;
-      end;
 
-    1:
-      begin
-        ImgViewPage2.BeginUpdate;
-        ImgViewPage2.Bitmap.Assign(FBitmapStoneWeed);
+      1:
+        begin
+          ImgViewPage2.BeginUpdate;
+          try
+            ImgViewPage2.Bitmap.Assign(FBitmapStoneWeed);
 
-        Pts := Star(130, 150, 90, 5, -0.5 * Pi);
-        Pts2 := Ellipse(350, 250, 100, 60);
+            Pts := Star(130, 150, 90, 5, -0.5 * Pi);
+            Pts2 := Ellipse(350, 250, 100, 60);
 
-        Stopwatch := TStopwatch.StartNew;
-        case RgpBlurType.ItemIndex of
-          1:
-            begin
-              GaussianBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts);
-              GaussianBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts2);
+            Stopwatch := TStopwatch.StartNew;
+            case RgpBlurType.ItemIndex of
+              1:
+                begin
+                  GaussianBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts);
+                  GaussianBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts2);
+                end;
+
+              2:
+                if WithGamma then
+                begin
+                  MotionBlurGamma(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
+                  MotionBlurGamma(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts2, CbxBidirectional.Checked);
+                end
+                else
+                begin
+                  MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
+                  MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts2, CbxBidirectional.Checked);
+                end;
             end;
+            Stopwatch.Stop;
 
-          2:
-            if WithGamma then
-            begin
-              MotionBlurGamma(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
-              MotionBlurGamma(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts2, CbxBidirectional.Checked);
-            end
-            else
-            begin
-              MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
-              MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts2, CbxBidirectional.Checked);
-            end;
+            PolylineFS(ImgViewPage2.Bitmap, Pts, clBlack32, True, 2.5);
+            PolylineFS(ImgViewPage2.Bitmap, Pts2, clBlack32, True, 2.5);
+          finally
+            ImgViewPage2.EndUpdate;
+          end;
         end;
-        Stopwatch.Stop;
 
-        PolylineFS(ImgViewPage2.Bitmap, Pts, clBlack32, True, 2.5);
-        PolylineFS(ImgViewPage2.Bitmap, Pts2, clBlack32, True, 2.5);
-        ImgViewPage2.EndUpdate;
-      end;
+      2:
+        begin
+          ImgViewPage3.BeginUpdate;
+          try
+            ImgViewPage3.SetupBitmap(True, Color32(clBtnFace));
 
-    2:
-      begin
-        ImgViewPage3.BeginUpdate;
-        ImgViewPage3.SetupBitmap(True, Color32(clBtnFace));
+            Rec := ImgViewPage3.GetBitmapRect;
+            FLayerBitmap.Location := FloatRect(Rec);
+            FLayerBitmap.Bitmap.SetSize(Rec.Width, Rec.Height);
+            FLayerBitmap.Bitmap.Clear(0);
 
-        Rec := ImgViewPage3.GetBitmapRect;
-        FLayerBitmap.Location := FloatRect(Rec);
-        FLayerBitmap.Bitmap.SetSize(Rec.Width, Rec.Height);
-        FLayerBitmap.Bitmap.Clear(0);
+            // Colored squares on layer
+            FLayerBitmap.Bitmap.Draw(300, 40, FBitmapRandBox);
 
-        // Colored squares on layer
-        FLayerBitmap.Bitmap.Draw(300, 40, FBitmapRandBox);
+            // Beveled box on background image
+            Rec := Rect(40, 40, 240, 120);
+            DrawFramedBox(ImgViewPage3.Bitmap, Rec, clWhite32, clGray32, Radius div 2);
 
-        // Beveled box on background image
-        Rec := Rect(40, 40, 240, 120);
-        DrawFramedBox(ImgViewPage3.Bitmap, Rec, clWhite32, clGray32, Radius div 2);
+            // Red rectangle on layer
+            Rec2 := Rect(40, 160, 240, 320);
+            FLayerBitmap.Bitmap.FillRectTS(Rec2, clRed32);
 
-        // Red rectangle on layer
-        Rec2 := Rect(40, 160, 240, 320);
-        FLayerBitmap.Bitmap.FillRectTS(Rec2, clRed32);
+            GR32.InflateRect(Rec2, 20, 20);
 
-        GR32.InflateRect(Rec2, 20, 20);
+            // Ellipse on top of colored squares
+            Pts := Ellipse(395, 175, 60, 100);
 
-        // Ellipse on top of colored squares
-        Pts := Ellipse(395, 175, 60, 100);
+            Stopwatch := TStopwatch.StartNew;
+            case RgpBlurType.ItemIndex of
+              1:
+                begin
+                  GaussianBlurBounds[WithGamma](ImgViewPage3.Bitmap, Radius, Rec);
+                  GaussianBlurBounds[WithGamma](FLayerBitmap.Bitmap, Radius, Rec2);
+                  GaussianBlurRegion[WithGamma](FLayerBitmap.Bitmap, Radius, Pts);
+                end;
 
-        Stopwatch := TStopwatch.StartNew;
-        case RgpBlurType.ItemIndex of
-          1:
-            begin
-              GaussianBlurBounds[WithGamma](ImgViewPage3.Bitmap, Radius, Rec);
-              GaussianBlurBounds[WithGamma](FLayerBitmap.Bitmap, Radius, Rec2);
-              GaussianBlurRegion[WithGamma](FLayerBitmap.Bitmap, Radius, Pts);
+              2:
+                if WithGamma then
+                begin
+                  MotionBlurGamma(ImgViewPage3.Bitmap, Radius, TbrBlurAngle.Position, Rec, CbxBidirectional.Checked);
+                  MotionBlurGamma(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Rec2, CbxBidirectional.Checked);
+                  MotionBlurGamma(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
+                end
+                else
+                begin
+                  MotionBlur(ImgViewPage3.Bitmap, Radius, TbrBlurAngle.Position, Rec, CbxBidirectional.Checked);
+                  MotionBlur(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Rec2, CbxBidirectional.Checked);
+                  MotionBlur(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
+                end;
             end;
+            Stopwatch.Stop;
 
-          2:
-            if WithGamma then
-            begin
-              MotionBlurGamma(ImgViewPage3.Bitmap, Radius, TbrBlurAngle.Position, Rec, CbxBidirectional.Checked);
-              MotionBlurGamma(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Rec2, CbxBidirectional.Checked);
-              MotionBlurGamma(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
-            end
-            else
-            begin
-              MotionBlur(ImgViewPage3.Bitmap, Radius, TbrBlurAngle.Position, Rec, CbxBidirectional.Checked);
-              MotionBlur(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Rec2, CbxBidirectional.Checked);
-              MotionBlur(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
-            end;
+            // Outline ellipse
+            PolylineFS(FLayerBitmap.Bitmap, Pts, clTrBlack32, True, 2.5);
+
+            // Outline red rectangle
+            GR32.InflateRect(Rec2, 1, 1);
+            PolylineFS(
+              FLayerBitmap.Bitmap,
+              Rectangle(Rec2),
+              clBlack32,
+              True,
+              0.5);
+
+          finally
+            ImgViewPage3.EndUpdate;
+          end;
         end;
-        Stopwatch.Stop;
+    end;
+    SbrMain.SimpleText := Format('  Blur drawing time: %d ms', [Stopwatch.ElapsedMilliseconds]);
 
-        // Outline ellipse
-        PolylineFS(FLayerBitmap.Bitmap, Pts, clTrBlack32, True, 2.5);
-
-        // Outline red rectangle
-        GR32.InflateRect(Rec2, 1, 1);
-        PolylineFS(
-          FLayerBitmap.Bitmap,
-          Rectangle(Rec2),
-          clBlack32,
-          True,
-          0.5);
-
-        ImgViewPage3.EndUpdate;
-      end;
+  finally
+    FRedrawFlag := False;
+    Screen.Cursor := crDefault;
   end;
-  SbrMain.SimpleText := Format('  Blur drawing time: %d ms', [Stopwatch.ElapsedMilliseconds]);
-  Screen.Cursor := crDefault;
-  FRedrawFlag := False;
 end;
 
 procedure TFrmBlurs.MnuExitClick(Sender: TObject);
