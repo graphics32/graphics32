@@ -140,7 +140,7 @@ end;
 // Ported to Delphi by Anders Melander
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
+procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); //{$IFDEF FPC}assembler;{$ENDIF}
 // TODO : This has become a mess. Split into separate x86 and x64 implementations.
 type
   dword = Cardinal;
@@ -171,6 +171,9 @@ var
   sourceRowSize: dword; // R11
 {$ifend}
   savedDest: Pointer;
+{$if defined(TARGET_x64) and defined(FPC)}
+begin
+{$ifend}
 asm
 {$if defined(TARGET_x64)}
 {$IFNDEF FPC}
@@ -184,9 +187,6 @@ asm
   push RDI
   push RSI
   push RBX
-  push XMM4
-  push XMM5
-  push XMM6
 {$ENDIF}
 {$elseif defined(TARGET_x86)}
   push edi
@@ -200,8 +200,13 @@ asm
 {$elseif defined(TARGET_x86)}
 {$ifend}
 
+{$if defined(TARGET_x64)}
+  mov Destination, RDX
+  mov Source, RCX
+{$elseif defined(TARGET_x86)}
   mov Destination, Dst
   mov Source, Src
+{$ifend}
 {$if defined(TARGET_x86)}
   mov Width, W
 {$ifend}
@@ -523,14 +528,14 @@ asm
   pop RDI
   pop RSI
   pop RBX
-  pop XMM4
-  pop XMM5
-  pop XMM6
 {$ENDIF}
 {$elseif defined(TARGET_x86)}
   pop ebx
   pop esi
   pop edi
+{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6'];
 {$ifend}
 end;
 {$ifend}
@@ -701,7 +706,11 @@ var
 {$endif USE_GLOBALBUFFER}
 begin
 {$ifdef USE_GLOBALBUFFER}
+{$ifndef FPC}
   BlockBuffer := TInterlocked.Exchange(CacheObliviousTransposeBuffer, nil);
+{$else}
+  BlockBuffer := InterlockedExchange(CacheObliviousTransposeBuffer, nil);
+{$endif}
   if (BlockBuffer = nil) then
   begin
     GetMem(LocalBuffer, CacheObliviousBlockSize*CacheObliviousBlockSize*SizeOf(TColor32));
