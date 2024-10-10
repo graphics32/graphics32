@@ -853,7 +853,7 @@ end;
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 // Aligned mask
-procedure SIMD_4x00FF00FF00FF00FF;
+procedure SIMD_4x00FF00FF00FF00FF; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$ifdef FPC}
   ALIGN 16
@@ -895,9 +895,7 @@ procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Intege
   //   XMM5: Sum
   //   XMM6: FactSum
   //   XMM7: "Zero"
-{$if defined(TARGET_x64) and defined(FPC)}
-begin
-{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x64)}
 {$IFNDEF FPC}
@@ -911,6 +909,9 @@ asm
 {$else}
 {$message fatal 'Unsupported target'}
 {$ifend}
+{$IFDEF FPC}
+{$define RETARD_COMPILER} // Just to make it clear what I think of FPC's assembler
+{$ENDIF}
 
   // initialize
         // M0 := Min;
@@ -932,18 +933,22 @@ asm
         LEA         pFact, [pFact+Count*2]
         NEG         Count
 {$elseif defined(TARGET_x64)}
-{$IFNDEF FPC}
+{$IFNDEF RETARD_COMPILER}
         LEA         pSrc, [pSrc+R8]
         LEA         pFact, [pFact+R8*2]
 {$ELSE}
-        LEA         RCX, [RCX+R8]
-        LEA         RDX, [RDX+R8*2]
+        LEA         ECX, [RCX+R8]
+        LEA         EDX, [RDX+R8*2]
 {$ENDIF}
         NEG         R8
 {$ifend}
 
         // if (Count mod 4 = 0) then goto :ProcessFours
+{$if defined(TARGET_x86)}
         TEST        Count, $0003
+{$elseif defined(TARGET_x64)}
+        TEST        R8, $0003
+{$ifend}
         JZ          @ProcessFours
 
         // Process Count/4 remainders
@@ -976,15 +981,27 @@ asm
         PADDD       XMM6, XMM3
 {$elseif defined(TARGET_x64)}
         // if (pSrc[Count] <= Min) or (pSrc[Count] >= Max) then goto :SkipOne
+{$IFNDEF RETARD_COMPILER}
         MOVZX       R10D, BYTE PTR[pSrc+R8] // Load single byte
+{$ELSE}
+        MOVZX       R10D, BYTE PTR[RCX+R8] // Load single byte
+{$ENDIF}
 
+{$IFNDEF RETARD_COMPILER}
         CMP         Min, R10D
+{$ELSE}
+        CMP         R9D, R10D
+{$ENDIF}
         JGE         @SkipOne
         CMP         R10D, Max
         JGE         @SkipOne
 
         // Sum := Sum + ((pSrc[Count] * pFact[Count]) shr 8);
+{$IFNDEF RETARD_COMPILER}
         MOVZX       R11D, WORD PTR[pFact+R8*2] // Load single word
+{$ELSE}
+        MOVZX       R11D, WORD PTR[RDX+R8*2] // Load single word
+{$ENDIF}
 
         IMUL        R10D, R11D
         SHR         R10D, 8
@@ -1023,7 +1040,6 @@ asm
         JCXZ        @Done
 {$elseif defined(TARGET_x64)}
         SAR         R8, 2
-        TEST        R8, R8
         JZ          @Done
 {$ifend}
 
@@ -1040,14 +1056,22 @@ asm
 {$if defined(TARGET_x86)}
         MOVD        XMM2, DWORD PTR [pSrc+Count*4] // Load four bytes
 {$elseif defined(TARGET_x64)}
+{$IFNDEF RETARD_COMPILER}
         MOVD        XMM2, DWORD PTR [pSrc+R8*4] // Load four bytes
+{$ELSE}
+        MOVD        XMM2, DWORD PTR [RCX+R8*4] // Load four bytes
+{$ENDIF}
 {$ifend}
         PUNPCKLBW   XMM2, XMM7
         // M3 := pFact[Count];
 {$if defined(TARGET_x86)}
         MOVQ        XMM3, QWORD PTR [pFact+Count*8] // Load four words
 {$elseif defined(TARGET_x64)}
+{$IFNDEF RETARD_COMPILER}
         MOVQ        XMM3, QWORD PTR [pFact+R8*8] // Load four words
+{$ELSE}
+        MOVQ        XMM3, QWORD PTR [RDX+R8*8] // Load four words
+{$ENDIF}
 {$ifend}
 
   // store threshold mask in MM4
@@ -1107,9 +1131,7 @@ asm
         MOVD        DWORD PTR [RAX], XMM6
 {$ifend}
 
-{$if defined(TARGET_x64) and defined(FPC)}
-end['XMM4', 'XMM5', 'XMM6', 'XMM7'];
-{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
 end;
 {$ifend}
 
@@ -1543,9 +1565,7 @@ begin
   *)
   BlurRegistry.Add(@@SelectiveGaussianAccumulate, @Accumulate_Pas,              [isPascal]);
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-{$ifndef FPC} // TODO : Compiles with FPC but doesn't work
   BlurRegistry.Add(@@SelectiveGaussianAccumulate, @Accumulate_SSE2,             [isSSE2]);
-{$endif}
 {$ifend}
 
 
