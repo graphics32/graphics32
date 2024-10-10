@@ -171,9 +171,7 @@ var
   sourceRowSize: dword; // R11
 {$ifend}
   savedDest: Pointer;
-{$if defined(TARGET_x64) and defined(FPC)}
-begin
-{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x64)}
 {$IFNDEF FPC}
@@ -534,9 +532,8 @@ asm
   pop esi
   pop edi
 {$ifend}
-{$if defined(TARGET_x64) and defined(FPC)}
-end['XMM4', 'XMM5', 'XMM6'];
-{$ifend}
+
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6'];{$ifend}
 end;
 {$ifend}
 
