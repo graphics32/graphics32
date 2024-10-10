@@ -668,9 +668,7 @@ procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var 
   //   XMM0: B3 | B2 | B1 | B0
   //   XMM1:  * | v1 | v2 | v3
   //   XMM2, XMM3, XMM4: misc use
-{$if defined(TARGET_x64) and defined(FPC)}
-begin
-{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x64)}
 {$IFNDEF FPC}
@@ -774,9 +772,7 @@ asm
 
   MOVUPS        TQuadFloat PTR [v], XMM2     // XMM2 -> v
 
-{$if defined(TARGET_x64) and defined(FPC)}
-end['XMM4'];
-{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4'];{$ifend}
 end;
 
 {$ifend}
