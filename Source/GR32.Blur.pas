@@ -195,8 +195,6 @@ uses
 // Pixel combiner for use by the Bitmap polygon filler
 //------------------------------------------------------------------------------
 type
-  TBitmap32Cracker = class(TCustomBitmap32);
-
   TBlurCombiner = class
   public
     class procedure PixelCombineHandler(F: TColor32; var B: TColor32; M: Cardinal);
@@ -319,7 +317,7 @@ procedure Blur32(ASource, ADest: TBitmap32; Radius: TFloat);
 begin
   if (Radius < Blur32MinRadius) then
   begin
-    TBitmap32Cracker(ASource).CopyMapTo(ADest);
+    ASource.CopyMapTo(ADest);
     exit;
   end;
 
@@ -328,7 +326,7 @@ begin
   else
   if (Assigned(BlurInplace32Proc)) then
   begin
-    TBitmap32Cracker(ASource).CopyMapTo(ADest);
+    ASource.CopyMapTo(ADest);
     BlurInplace32Proc(ADest, Radius);
   end else
     raise Exception.Create('Missing Blur32 implementation');
@@ -349,7 +347,7 @@ begin
     Dest := TBitmap32.Create(TMemoryBackend);
     try
       Blur32Proc(Bitmap, Dest, Radius);
-      TBitmap32Cracker(Dest).CopyMapTo(Bitmap);
+      Dest.CopyMapTo(Bitmap);
     finally
       Dest.Free;
     end;
@@ -380,7 +378,7 @@ procedure GammaBlur32(ASource, ADest: TBitmap32; Radius: TFloat);
 begin
   if (Radius < Blur32MinRadius) then
   begin
-    TBitmap32Cracker(ASource).CopyMapTo(ADest);
+    ASource.CopyMapTo(ADest);
     exit;
   end;
 
@@ -389,7 +387,7 @@ begin
   else
   if (Assigned(GammaBlurInplace32Proc)) then
   begin
-    TBitmap32Cracker(ASource).CopyMapTo(ADest);
+    ASource.CopyMapTo(ADest);
     GammaBlurInplace32Proc(ADest, Radius);
   end else
     raise Exception.Create('Missing GammaBlur32 implementation');
@@ -410,7 +408,7 @@ begin
     Dest := TBitmap32.Create(TMemoryBackend);
     try
       GammaBlur32Proc(Bitmap, Dest, Radius);
-      TBitmap32Cracker(Dest).CopyMapTo(Bitmap);
+      Dest.CopyMapTo(Bitmap);
     finally
       Dest.Free;
     end;

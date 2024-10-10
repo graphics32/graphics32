@@ -887,7 +887,6 @@ type
 {$ENDIF}
 
   protected
-    procedure CopyMapTo(Dst: TCustomBitmap32); virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); virtual;
 
     procedure AssignTo(Dst: TPersistent); override;
@@ -946,6 +945,7 @@ type
     procedure Changed; overload; override;
     procedure Changed(const Area: TRect; const Info: Cardinal = AREAINFO_RECT); reintroduce; overload; virtual;
 
+    procedure CopyMapTo(Dst: TCustomBitmap32); virtual;
     procedure Assign(Source: TPersistent); override;
     function  BoundsRect: TRect;
     function  Empty: Boolean; override;

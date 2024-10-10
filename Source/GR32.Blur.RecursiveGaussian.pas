@@ -170,9 +170,6 @@ uses
   GR32_Gamma,
   Math;
 
-type
-  TBitmap32Cracker = class(TCustomBitmap32);
-
 const
   OneOver255: TFloat = 1/255;
 
@@ -1432,7 +1429,7 @@ var
 begin
   if (Sigma < GaussianRadiusToSigma) then
   begin
-    TBitmap32Cracker(Src).CopyMapTo(Dst);
+    Src.CopyMapTo(Dst);
     exit;
   end;
 
