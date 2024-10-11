@@ -1793,9 +1793,23 @@ end;
 //
 //------------------------------------------------------------------------------
 procedure TPaintBox32.DoPaintBuffer;
+var
+  BackgroundColor: TColor;
 begin
+  if (csDesigning in ComponentState) then
+  begin
+    // Nothing to paint in design-mode
+    BackgroundColor := Color;
+{$ifdef FPC}
+    if (BackgroundColor = clDefault) then
+      BackgroundColor := GetDefaultColor(dctBrush);
+{$endif}
+    Buffer.Clear(Color32(BackgroundColor));
+  end;
+
   if Assigned(FOnPaintBuffer) then
     FOnPaintBuffer(Self);
+
   inherited;
 end;
 
@@ -2736,6 +2750,7 @@ var
   BitmapRect: TRect;
   r: TRect;
   Tile: TRect;
+  BackgroundColor: TColor;
   C: TColor32;
   TileX, TileY: integer;
   DrawFancyStuff: boolean;
@@ -2809,13 +2824,23 @@ begin
     // CheckersStyle=bcsNone doesn't clear the area under the bitmap so we need to do it here
     if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = bcsNone) then
     begin
-      C := Color32(Color);
+      BackgroundColor := Color;
+{$ifdef FPC}
+      if (BackgroundColor = clDefault) then
+        BackgroundColor := GetDefaultColor(dctBrush);
+{$endif}
+      C := Color32(BackgroundColor);
       Dest.FillRectS(BitmapRect, C);
     end;
   end else
   if (FBackgroundOptions.FillStyle = bfsColor) then
   begin
-    C := Color32(Color);
+    BackgroundColor := Color;
+{$ifdef FPC}
+    if (BackgroundColor = clDefault) then
+      BackgroundColor := GetDefaultColor(dctBrush);
+{$endif}
+    C := Color32(BackgroundColor);
 
     if InvalidRects.Count > 0 then
     begin
@@ -2974,6 +2999,8 @@ begin
 end;
 
 procedure TCustomImage32.ExecClearBuffer(Dest: TBitmap32; StageNum: Integer);
+var
+  BackgroundColor: TColor;
 begin
   // By default ExecClearBuffer is never called because the PST_CLEAR_BUFFER
   // paint stage isn't used by default.
@@ -2981,7 +3008,14 @@ begin
   // We skip the clear if Image.Bitmap.DrawMode=dmOpaque since the bitmap will
   // cover the area we cleared anyway.
   if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
-    Dest.Clear(Color32(Color));
+  begin
+    BackgroundColor := Color;
+{$ifdef FPC}
+    if (BackgroundColor = clDefault) then
+      BackgroundColor := GetDefaultColor(dctBrush);
+{$endif}
+    Dest.Clear(Color32(BackgroundColor));
+  end;
 end;
 
 procedure TCustomImage32.ExecControlFrame(Dest: TBitmap32; StageNum: Integer);

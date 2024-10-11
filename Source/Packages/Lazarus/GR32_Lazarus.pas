@@ -17,7 +17,7 @@ uses
   GR32_Resamplers, GR32_System, GR32_Transforms, GR32_VectorMaps, 
   GR32_VectorUtils, GR32_VPR, GR32_VPR2, GR32_XPThemes, GR32_Png, 
   GR32.Blend.Pascal, GR32.Blur, GR32.Blur.RecursiveGaussian, 
-  GR32.Blur.SelectiveGaussian;
+  GR32.Blur.SelectiveGaussian, GR32.Blend.Assembler;
 
 implementation
 

@@ -370,7 +370,6 @@
 *)
 
   {$MODE Delphi}
-  {$define HasParentBackground}
   {$define PLATFORM_INDEPENDENT}
   {$define FPC_HAS_CONSTREF}
   {$define NATIVE_SINCOS}
@@ -392,6 +391,7 @@
     {$define USESTACKALLOC}
   {$ifend}
 
+  {-$define HasParentBackground} // FPC has ParentBackground but we haven't implemented support for it
 {$ifend}
 
 
