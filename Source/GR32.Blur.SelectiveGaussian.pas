@@ -146,9 +146,6 @@ uses
   GR32_System,
   GR32_OrdinalMaps;
 
-type
-  TBitmap32Cracker = class(TCustomBitmap32);
-
 //------------------------------------------------------------------------------
 //
 //      PremultiplyLUT
@@ -403,7 +400,7 @@ begin
 
   if (Radius < GaussianRadiusToSigma) or (Delta <= 0) or (Src.Empty) then
   begin
-    TBitmap32Cracker(Src).CopyMapTo(Dst);
+    Src.CopyMapTo(Dst);
     exit;
   end;
 
@@ -542,7 +539,7 @@ begin
 
   if (Radius < GaussianRadiusToSigma) or (Delta <= 0) or (Src.Empty) then
   begin
-    TBitmap32Cracker(Src).CopyMapTo(Dst);
+    Src.CopyMapTo(Dst);
     exit;
   end;
 
@@ -696,7 +693,7 @@ begin
 
   if (Radius < GaussianRadiusToSigma) or (Delta <= 0) or (Src.Empty) then
   begin
-    TBitmap32Cracker(Src).CopyMapTo(Dst);
+    Src.CopyMapTo(Dst);
     exit;
   end;
 
@@ -1131,7 +1128,7 @@ begin
 
   if (Radius < GaussianRadiusToSigma) or (Delta <= 0) or (Src.Empty) then
   begin
-    TBitmap32Cracker(Src).CopyMapTo(Dst);
+    Src.CopyMapTo(Dst);
     exit;
   end;
 
@@ -1320,7 +1317,7 @@ begin
 
   if (Radius < GaussianRadiusToSigma) or (Delta <= 0) or (Src.Empty) then
   begin
-    TBitmap32Cracker(Src).CopyMapTo(Dst);
+    Src.CopyMapTo(Dst);
     exit;
   end;
 

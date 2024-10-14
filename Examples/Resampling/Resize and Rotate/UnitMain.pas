@@ -205,7 +205,7 @@ var
 begin
   if (Abs(Frac(Angle / 360)) < 0.1/360) then
   begin
-    TBitmap32Cracker(BitmapSource).CopyMapTo(BitmapDest);
+    BitmapSource.CopyMapTo(BitmapDest);
     exit;
   end;
 
@@ -347,7 +347,7 @@ begin
 
     end else
     if (FLastResized or FLastRotated) then
-      TBitmap32Cracker(ImageSource.Bitmap).CopyMapTo(ImageDest.Bitmap);
+      ImageSource.Bitmap.CopyMapTo(ImageDest.Bitmap);
 
     StopWatch.Stop;
 
