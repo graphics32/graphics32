@@ -63,14 +63,6 @@ uses
 
 //------------------------------------------------------------------------------
 //
-//      Clamp function restricts value to [0..255] range
-//
-//------------------------------------------------------------------------------
-function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-
-
-//------------------------------------------------------------------------------
-//
 //      FillLongword: An analogue of FillChar for 32 bit values
 //
 //------------------------------------------------------------------------------
@@ -154,6 +146,8 @@ function Constrain(const Value, Lo, Hi: Single): Single; overload; {$IFDEF USEIN
 // Returns value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 
+// Clamp integer value to [0..255] range
+function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 // Clamp integer value to [0..Max] range
 function Clamp(Value, Max: Integer): Integer; overload; {$IFDEF USENATIVECODE} inline; {$ENDIF}
 // Clamp integer value to [Min..Max] range. Same as Constrain with same parameters.
@@ -365,38 +359,6 @@ const
   MXCSR_ROUND_UP      = $00004000;
   MXCSR_ROUND_TRUNC   = $00006000;
 {$ENDIF}
-
-//------------------------------------------------------------------------------
-//
-//      Clamp
-//
-//------------------------------------------------------------------------------
-function Clamp(const Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
-begin
- Result := Value;
- if Result > 255 then
-   Result := 255
- else
- if Result < 0 then
-   Result := 0;
-{$ELSE}
-{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$IFDEF TARGET_x64}
-        // in x64 calling convention parameters are passed in ECX, EDX, R8 & R9
-        MOV     EAX,ECX
-{$ENDIF}
-        TEST    EAX,$FFFFFF00
-        JNZ     @1
-        RET
-@1:     JS      @2
-        MOV     EAX,$FF
-        RET
-@2:     XOR     EAX,EAX
-{$ENDIF}
-end;
-
 
 //------------------------------------------------------------------------------
 //
@@ -1053,6 +1015,34 @@ end;
 //      Clamp
 //
 //------------------------------------------------------------------------------
+function Clamp(const Value: Integer): Integer;
+{$IFDEF USENATIVECODE}
+begin
+ Result := Value;
+ if Result > 255 then
+   Result := 255
+ else
+ if Result < 0 then
+   Result := 0;
+{$ELSE}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x64}
+        // in x64 calling convention parameters are passed in ECX, EDX, R8 & R9
+        MOV     EAX,ECX
+{$ENDIF}
+        TEST    EAX,$FFFFFF00
+        JNZ     @1
+        RET
+@1:     JS      @2
+        MOV     EAX,$FF
+        RET
+@2:     XOR     EAX,EAX
+{$ENDIF}
+end;
+
+//------------------------------------------------------------------------------
+
 function Clamp(Value, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
