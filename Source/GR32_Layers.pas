@@ -250,7 +250,7 @@ type
   TCustomLayer = class(TNotifiablePersistent)
   strict private
     FCursor: TCursor;
-    FFreeNotifies: TList;
+    FFreeNotifies: TList<TCustomLayer>;
     FLayerCollection: TLayerCollection;
     FTag: NativeInt;
     FClicked: Boolean;
@@ -279,7 +279,13 @@ type
   strict protected
     FLayerOptions: Cardinal;
   protected
-    procedure AddNotification(ALayer: TCustomLayer);
+    procedure AddNotification(ALayer: TCustomLayer); deprecated 'Use AddFreeNotification instead';
+    procedure RemoveNotification(ALayer: TCustomLayer); deprecated 'Use RemoveFreeNotification instead';
+    procedure Notification(ALayer: TCustomLayer); deprecated 'Use FreeNotification instead'; // No longer virtual; We want to force desecendant to use FreeNotification.
+    procedure AddFreeNotification(ALayer: TCustomLayer);
+    procedure RemoveFreeNotification(ALayer: TCustomLayer);
+    procedure FreeNotification(ALayer: TCustomLayer); virtual;
+  protected
     procedure Changing;
     procedure Click; virtual;
     procedure DblClick; virtual;
@@ -291,10 +297,8 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); virtual;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); virtual;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); virtual;
-    procedure Notification(ALayer: TCustomLayer); virtual;
     procedure Paint(Buffer: TBitmap32); virtual;
     procedure PaintGDI(Canvas: TCanvas); virtual;
-    procedure RemoveNotification(ALayer: TCustomLayer);
     procedure SetIndex(Value: Integer); virtual;
     procedure SetCursor(Value: TCursor); virtual;
     procedure SetLayerCollection(Value: TLayerCollection); virtual;
@@ -593,7 +597,7 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure Notification(ALayer: TCustomLayer); override;
+    procedure FreeNotification(ALayer: TCustomLayer); override;
     procedure Paint(Buffer: TBitmap32); override;
     procedure SetLayerOptions(Value: Cardinal); override;
     procedure UpdateChildLayer; virtual;
@@ -1248,29 +1252,28 @@ end;
 
 destructor TCustomLayer.Destroy;
 var
-  I: Integer;
+//  i: Integer;
+  Subscriber: TCustomLayer;
 begin
   if (FFreeNotifies <> nil) then
   begin
-    for I := FFreeNotifies.Count - 1 downto 0 do
+    for Subscriber in FFreeNotifies.ToArray do // ToArray for stability while items are removed from the list
+//    for i := FFreeNotifies.Count - 1 downto 0 do
     begin
-      TCustomLayer(FFreeNotifies[I]).Notification(Self);
-      if FFreeNotifies = nil then
-        Break;
+      Subscriber.FreeNotification(Self);
+//      FFreeNotifies[i].FreeNotification(Self);
+
+      // When last layer unsubscribes the list is freed
+//      if FFreeNotifies = nil then
+//        Break;
     end;
+    // List might have been freed while we looped but Free can handle that
     FFreeNotifies.Free;
     FFreeNotifies := nil;
   end;
+
   SetLayerCollection(nil);
   inherited;
-end;
-
-procedure TCustomLayer.AddNotification(ALayer: TCustomLayer);
-begin
-  if (FFreeNotifies = nil) then
-    FFreeNotifies := TList.Create;
-  if FFreeNotifies.IndexOf(ALayer) < 0 then
-    FFreeNotifies.Add(ALayer);
 end;
 
 procedure TCustomLayer.BeforeDestruction;
@@ -1278,6 +1281,48 @@ begin
   if Assigned(FOnDestroy) then
     FOnDestroy(Self);
   inherited;
+end;
+
+procedure TCustomLayer.AddFreeNotification(ALayer: TCustomLayer);
+begin
+  if (FFreeNotifies = nil) then
+    FFreeNotifies := TList<TCustomLayer>.Create;
+
+  if not FFreeNotifies.Contains(ALayer) then
+    FFreeNotifies.Add(ALayer);
+end;
+
+procedure TCustomLayer.RemoveFreeNotification(ALayer: TCustomLayer);
+begin
+  if (FFreeNotifies <> nil) then
+  begin
+    FFreeNotifies.Remove(ALayer);
+
+    if FFreeNotifies.Count = 0 then
+    begin
+      FFreeNotifies.Free;
+      FFreeNotifies := nil;
+    end;
+  end;
+end;
+
+procedure TCustomLayer.FreeNotification(ALayer: TCustomLayer);
+begin
+  // do nothing by default
+end;
+
+procedure TCustomLayer.AddNotification(ALayer: TCustomLayer);
+begin
+  AddFreeNotification(ALayer);
+end;
+
+procedure TCustomLayer.RemoveNotification(ALayer: TCustomLayer);
+begin
+  RemoveFreeNotification(ALayer);
+end;
+
+procedure TCustomLayer.Notification(ALayer: TCustomLayer);
+begin
 end;
 
 procedure TCustomLayer.BringToFront;
@@ -1468,11 +1513,6 @@ begin
     FOnMouseUp(Self, Button, Shift, X, Y);
 end;
 
-procedure TCustomLayer.Notification(ALayer: TCustomLayer);
-begin
-  // do nothing by default
-end;
-
 procedure TCustomLayer.Paint(Buffer: TBitmap32);
 begin
   // descendants override this method
@@ -1481,19 +1521,6 @@ end;
 procedure TCustomLayer.PaintGDI(Canvas: TCanvas);
 begin
   // descendants override this method
-end;
-
-procedure TCustomLayer.RemoveNotification(ALayer: TCustomLayer);
-begin
-  if (FFreeNotifies <> nil) then
-  begin
-    FFreeNotifies.Remove(ALayer);
-    if FFreeNotifies.Count = 0 then
-    begin
-      FFreeNotifies.Free;
-      FFreeNotifies := nil;
-    end;
-  end;
 end;
 
 procedure TCustomLayer.SendToBack;
@@ -2388,8 +2415,15 @@ end;
 
 destructor TCustomRubberBandLayer.Destroy;
 begin
+  ChildLayer := nil;
   FPassMouse.Free;
   inherited;
+end;
+
+procedure TCustomRubberBandLayer.FreeNotification(ALayer: TCustomLayer);
+begin
+  if ALayer = FChildLayer then
+    ChildLayer := nil;
 end;
 
 function TCustomRubberBandLayer.DoHitTest(X, Y: Integer): Boolean;
@@ -2780,12 +2814,6 @@ begin
   inherited;
 end;
 
-procedure TCustomRubberBandLayer.Notification(ALayer: TCustomLayer);
-begin
-  if ALayer = FChildLayer then
-    FChildLayer := nil;
-end;
-
 procedure TCustomRubberBandLayer.DrawHandle(Buffer: TBitmap32; X, Y: TFloat);
 var
   Handle: TFloatRect;
@@ -3009,8 +3037,8 @@ end;
 procedure TCustomRubberBandLayer.SetChildLayer(Value: TPositionedLayer);
 begin
   if (FChildLayer <> nil) then
-    RemoveNotification(FChildLayer);
-    
+    FChildLayer.RemoveFreeNotification(Self);
+
   FChildLayer := Value;
 
   if (FChildLayer <> nil) then
@@ -3022,7 +3050,7 @@ begin
     finally
       EndUpdate;
     end;
-    AddNotification(FChildLayer);
+    FChildLayer.AddFreeNotification(Self);
   end;
 end;
 
