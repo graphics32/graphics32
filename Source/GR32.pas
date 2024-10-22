@@ -1164,7 +1164,8 @@ type
     function  TextHeight(const Text: string): Integer;
     function  TextWidth(const Text: string): Integer;
     procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32); overload; deprecated 'Use RenderText(...; AntiAlias: boolean) or TCanvas32.RenderText(...) instead';
-    procedure RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean = True); overload;
+    procedure RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean); overload; deprecated 'Use Bitmap.Font.Quality to set anti-aliasing instead';
+    procedure RenderText(X, Y: Integer; const Text: string; Color: TColor32); overload;
 
     property  Canvas: TCanvas read GetCanvas;
     function  CanvasAllocated: Boolean;
@@ -7471,7 +7472,7 @@ end;
 // -------------------------------------------------------------------
 
 {$IFNDEF FPC}
-procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal);
+procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal); deprecated 'Use TFont.Quality';
 var
   LogFont: TLogFont;
 begin
@@ -7586,7 +7587,7 @@ begin
   end;
 end;
 
-procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean);
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; Color: TColor32);
 var
   B: TBitmap32;
   Sz: TSize;
@@ -7598,24 +7599,12 @@ begin
   Alpha := TColor32Entry(Color).A;
   TColor32Entry(Color).A := 0;
 
-{$IFDEF FPC}
-  if (AntiAlias) then
-    Font.Quality := fqAntialiased
-  else
-    Font.Quality := fqNonAntialiased;
-{$ELSE}
-  if (AntiAlias) then
-    SetFontAntialiasing(Font, ANTIALIASED_QUALITY)
-  else
-    SetFontAntialiasing(Font, NONANTIALIASED_QUALITY);
-{$ENDIF}
-
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
   try
     Sz := Self.TextExtent(Text) + Self.TextExtent(' ');
     B.SetSize(Sz.cX, Sz.cY);
-    B.Font := Font;
+    B.Font.Assign(Font);
     B.Clear(0);
     B.Font.Color := clWhite;
 
@@ -7630,17 +7619,57 @@ begin
   finally
     B.Free;
   end;
+end;
 
-{$IFDEF FPC}
-  Font.Quality := fqDefault;
-{$ELSE}
-  SetFontAntialiasing(Font, DEFAULT_QUALITY);
-{$ENDIF}
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean);
+var
+  SaveQuality: TFontQuality;
+begin
+  if Empty then
+    Exit;
+
+  SaveQuality := Font.Quality;
+
+  if (AntiAlias) then
+    Font.Quality := fqAntialiased
+  else
+    Font.Quality := fqNonAntialiased;
+  (* Apparently Font.Quality now works with VCL
+  if (AntiAlias) then
+    SetFontAntialiasing(Font, ANTIALIASED_QUALITY)
+  else
+    SetFontAntialiasing(Font, NONANTIALIASED_QUALITY);
+  *)
+  try
+
+    RenderText(X, Y, Text, Color);
+
+  finally
+    Font.Quality := SaveQuality;
+    // SetFontAntialiasing(Font, DEFAULT_QUALITY);
+  end;
 end;
 
 procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
+var
+  SaveQuality: TFontQuality;
 begin
-  RenderText(X, Y, Text, Color, (AALevel < 0));
+  if Empty then
+    Exit;
+
+  SaveQuality := Font.Quality;
+
+  if (AALevel < 0) then
+    Font.Quality := fqAntialiased
+  else
+    Font.Quality := fqNonAntialiased;
+  try
+
+    RenderText(X, Y, Text, Color);
+
+  finally
+    Font.Quality := SaveQuality;
+  end;
 end;
 
 // -------------------------------------------------------------------
