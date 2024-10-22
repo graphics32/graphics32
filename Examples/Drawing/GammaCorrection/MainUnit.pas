@@ -41,11 +41,7 @@ uses
   GR32_VectorUtils,
   GR32_Polygons;
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 procedure TFrmGammaCorrection.FormShow(Sender: TObject);
 begin

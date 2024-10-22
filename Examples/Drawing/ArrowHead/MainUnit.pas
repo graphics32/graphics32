@@ -101,11 +101,7 @@ const
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Math, GR32_LowLevel, GR32_Geometry, GR32_VectorUtils, GR32_ColorGradients, Types;

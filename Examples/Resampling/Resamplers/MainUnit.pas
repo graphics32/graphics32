@@ -116,11 +116,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   TypInfo,
@@ -205,6 +201,17 @@ begin
   finally
     FBitmapPattern.EndUpdate;
   end;
+
+{$ifndef FPC}
+  ComboBoxResamplerClassName.AutoDropDownWidth := True;
+  ComboBoxPixelAccessMode.AutoDropDownWidth := True;
+  ComboBoxWrapMode.AutoDropDownWidth := True;
+  ComboBoxKernelClassName.AutoDropDownWidth := True;
+  ComboBoxKernelMode.AutoDropDownWidth := True;
+
+  PanelKernel.Margins.SetBounds(0, 4, 0, 0);
+  PanelKernel.AlignWithMargins := True;
+{$endif}
 end;
 
 destructor TFrmResamplersExample.Destroy;

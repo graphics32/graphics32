@@ -4,8 +4,8 @@ object MainForm: TMainForm
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Filling Polygons with Color Gradients'
-  ClientHeight = 498
-  ClientWidth = 502
+  ClientHeight = 489
+  ClientWidth = 571
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -22,10 +22,11 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 145
-    Height = 498
+    Height = 489
     Align = alLeft
+    ParentBackground = False
     TabOrder = 0
-    ExplicitHeight = 449
+    ExplicitHeight = 561
     object LblColorStopsTop: TLabel
       Left = 14
       Top = 15
@@ -68,6 +69,7 @@ object MainForm: TMainForm
       Items.Strings = (
         'Simple'
         'SVG')
+      ParentBackground = False
       TabOrder = 1
       OnClick = RgpEllipseFillStyleClick
     end
@@ -83,6 +85,7 @@ object MainForm: TMainForm
         'Repeat'
         'Mirror'
         'Reflect')
+      ParentBackground = False
       TabOrder = 2
       OnClick = RgpWrapModeClick
     end
@@ -100,6 +103,7 @@ object MainForm: TMainForm
       Top = 243
       Width = 114
       Height = 23
+      ItemIndex = 5
       TabOrder = 4
       Text = '9 (= 512 Values)'
       OnChange = CmbLUTChange
@@ -119,14 +123,14 @@ object MainForm: TMainForm
   object ImgView32: TImgView32
     Left = 145
     Top = 0
-    Width = 357
-    Height = 498
+    Width = 426
+    Height = 489
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    BitmapAlign = baCustom
+    BitmapAlign = baTile
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
-    ScaleMode = smScale
+    ScaleMode = smNormal
     ScrollBars.Increment = 0
     ScrollBars.Size = 16
     ScrollBars.Visibility = svHidden
@@ -136,7 +140,8 @@ object MainForm: TMainForm
     OnMouseDown = ImgView32MouseDown
     OnMouseMove = ImgView32MouseMove
     OnMouseUp = ImgView32MouseUp
-    ExplicitHeight = 449
+    ExplicitWidth = 542
+    ExplicitHeight = 561
   end
   object MainMenu: TMainMenu
     Left = 193

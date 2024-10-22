@@ -98,11 +98,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 {$R data.res}
 
@@ -393,13 +389,11 @@ var
 begin
 
   if Screen.PixelsPerInch > 96 then
-    FDpiScale := Screen.PixelsPerInch/ 96 else
+    FDpiScale := Screen.PixelsPerInch/ 96
+  else
     FDpiScale := 1;
 
-  ClientWidth := PnlControl.Width + DPIScale(400);
-  ClientHeight := DPIScale(500);
-
-  ImgView32.SetupBitmap(true, clCream32);
+  ImgView32.SetupBitmap(True, clCream32);
 
   FLinearBounds := DpiAwareRect(50, 50, 350, 200);
   FRadialBounds := DpiAwareRect(50, 250, 350, 400);
@@ -443,6 +437,7 @@ begin
   FKnobBitmap.SetSize(2 * FKnobRadius + 2, 2 * FKnobRadius + 2);
   FKnobBitmap.DrawMode := dmBlend;
   FKnobBitmap.CombineMode := cmMerge;
+
   Sampler := TRadialGradientSampler.Create;
   try
     Sampler.Gradient.AddColorStop(0.0, $FFFFFFFF);
@@ -474,11 +469,6 @@ begin
     FRadialY := GR32.Point(X, Y + DPIScale(40));
   end;
 
-{$ifndef GR32_WRAPMODE_REFLECT}
-  MnuReflect.Enabled := False;
-  RgpWrapMode.Items.Delete(3);
-{$endif}
-
   DrawImage;
 end;
 
@@ -490,7 +480,8 @@ end;
 
 procedure TMainForm.ImgView32DblClick(Sender: TObject);
 begin
-  case 0 of
+  // Just some test
+  case Random(4) of
     0:
       begin
         FLinearStart := DpiAwarePoint(200, 70);
@@ -527,10 +518,13 @@ procedure TMainForm.ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
   if TestHitPoint(X, Y, FLinearStart, FKnobRadius) then
-    FControlKnob := @FLinearStart;
+    FControlKnob := @FLinearStart
+  else
   if TestHitPoint(X, Y, FLinearEnd, FKnobRadius) then
-    FControlKnob := @FLinearEnd;
+    FControlKnob := @FLinearEnd
+  else
   if TestHitPoint(X, Y, FRadialX, FKnobRadius) then
+  begin
     if ssCtrl in Shift then
     begin
       FRadialX.X := FRadialOrigin.X - Abs(FRadialOrigin.Y -
@@ -539,7 +533,9 @@ begin
     end
     else
       FControlKnob := @FRadialX;
+  end else
   if TestHitPoint(X, Y, FRadialY, FKnobRadius) then
+  begin
     if ssCtrl in Shift then
     begin
       FRadialY.Y := FRadialOrigin.Y + Abs(FRadialOrigin.X - FRadialX.X);
@@ -547,6 +543,7 @@ begin
     end
     else
       FControlKnob := @FRadialY;
+  end else
   if TestHitPoint(X, Y, FRadialOrigin, FKnobRadius) then
     FControlKnob := @FRadialOrigin;
 end;
@@ -565,8 +562,8 @@ begin
     FLinearStart := GR32.Point(X, Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
-  end
-  else if FControlKnob = @FLinearEnd then
+  end else
+  if FControlKnob = @FLinearEnd then
   begin
     X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
     Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
@@ -575,8 +572,8 @@ begin
     FLinearEnd := GR32.Point(X, Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
-  end
-  else if FControlKnob = @FRadialOrigin then
+  end else
+  if FControlKnob = @FRadialOrigin then
   begin
     X := EnsureRange(X, FRadialBounds.Left, FRadialBounds.Right);
     Y := EnsureRange(Y, FRadialBounds.Top, FRadialBounds.Bottom);
@@ -588,8 +585,8 @@ begin
     FRadialY := OffsetPoint(FRadialY, Delta.X, Delta.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
-  end
-  else if FControlKnob = @FRadialX then
+  end else
+  if FControlKnob = @FRadialX then
   begin
     X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
     Delta.X := X - FRadialOrigin.X;
@@ -597,8 +594,8 @@ begin
       FRadialX := GR32.Point(FRadialOrigin.X + Delta.X, FRadialX.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
-  end
-  else if FControlKnob = @FRadialY then
+  end else
+  if FControlKnob = @FRadialY then
   begin
     Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
     Delta.Y := Y - FRadialOrigin.Y;

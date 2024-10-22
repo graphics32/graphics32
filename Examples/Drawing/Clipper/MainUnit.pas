@@ -78,11 +78,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 procedure DrawStippled(Bitmap: TBitmap32;
   const Afp: TArrayOfFloatPoint;

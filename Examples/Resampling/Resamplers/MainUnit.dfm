@@ -73,28 +73,22 @@ object FrmResamplersExample: TFrmResamplersExample
         ParentBackground = False
         ParentFont = False
         TabOrder = 0
-        ExplicitLeft = 1
-        ExplicitTop = 1
-        ExplicitWidth = 144
       end
       object ComboBoxResamplerClassName: TComboBox
         Left = 12
         Top = 40
         Width = 119
         Height = 23
-        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 1
         OnChange = ComboBoxResamplerClassNameChange
-        ExplicitLeft = 16
       end
       object ComboBoxPixelAccessMode: TComboBox
         Left = 12
         Top = 83
         Width = 119
         Height = 23
-        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 2
@@ -103,14 +97,12 @@ object FrmResamplersExample: TFrmResamplersExample
           'Unsafe'
           'Safe'
           'Wrap')
-        ExplicitLeft = 16
       end
       object ComboBoxWrapMode: TComboBox
         Left = 12
         Top = 126
         Width = 119
         Height = 23
-        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 3
@@ -119,25 +111,18 @@ object FrmResamplersExample: TFrmResamplersExample
           'Clamp'
           'Repeat'
           'Mirror')
-        ExplicitLeft = 16
       end
     end
     object PanelKernel: TPanel
-      AlignWithMargins = True
       Left = 0
-      Top = 164
+      Top = 160
       Width = 146
       Height = 201
-      Margins.Left = 0
-      Margins.Top = 4
-      Margins.Right = 0
-      Margins.Bottom = 0
       Align = alTop
       BevelKind = bkFlat
       BevelOuter = bvNone
       TabOrder = 1
       Visible = False
-      ExplicitTop = 160
       DesignSize = (
         142
         197)
@@ -191,28 +176,22 @@ object FrmResamplersExample: TFrmResamplersExample
         ParentBackground = False
         ParentFont = False
         TabOrder = 0
-        ExplicitLeft = 1
-        ExplicitTop = 1
-        ExplicitWidth = 144
       end
       object ComboBoxKernelClassName: TComboBox
         Left = 12
         Top = 40
         Width = 119
         Height = 23
-        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 1
         OnChange = ComboBoxKernelClassNameChange
-        ExplicitLeft = 16
       end
       object ComboBoxKernelMode: TComboBox
         Left = 12
         Top = 83
         Width = 119
         Height = 23
-        AutoDropDownWidth = True
         Style = csDropDownList
         Anchors = [akTop, akRight]
         ItemIndex = 0
@@ -223,7 +202,6 @@ object FrmResamplersExample: TFrmResamplersExample
           'Default (precise, slow)'
           'Table Nearest (truncated, fastest)'
           'Table Linear (interpolated, fast)')
-        ExplicitLeft = 16
       end
       object GaugeBarTableSize: TGaugeBar
         Left = 16
@@ -287,7 +265,6 @@ object FrmResamplersExample: TFrmResamplersExample
         ScaleMode = smStretch
         TabOrder = 0
         OnResize = ImagePatternResize
-        ExplicitHeight = 348
       end
     end
     object TabStretchTransfer: TTabSheet

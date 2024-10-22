@@ -39,7 +39,7 @@ interface
 
 uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LResources, LCLType, Buttons, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Vcl.ComCtrls,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls,
   GR32, GR32_Image, GR32_Layers, GR32_Polygons, GR32_Paths, GR32_Brushes;
 
 type
@@ -90,52 +90,22 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
-  Math,
-  Types,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  Math,
+  Types;
 
 { TFormPolygons }
 
 procedure TFormPolygons.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // Load the textures (note size 256x256 is implicity expected!)
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    BitmapList.Bitmap[0].Assign(JPEG);
-
-    ResStream := TResourceStream.Create(HInstance, 'TextureB', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    BitmapList.Bitmap[1].Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  BitmapList.Bitmap[0].LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
+  BitmapList.Bitmap[1].LoadFromResourceName(HInstance, 'TextureB', RT_RCDATA);
 
   Image.SetupBitmap;
 
@@ -154,6 +124,11 @@ begin
   FStroke.Visible := False;
 
   ThickOutlineChange(Self);
+
+{$ifndef FPC}
+  LineAlpha.PositionToolTip := ptTop;
+  LineThickness.PositionToolTip := ptTop;
+{$endif}
 end;
 
 procedure TFormPolygons.FormDestroy(Sender: TObject);
