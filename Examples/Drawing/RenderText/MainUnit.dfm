@@ -60,7 +60,7 @@ object FormRenderText: TFormRenderText
       Anchors = [akLeft, akTop, akRight]
       AutoSize = False
       TabOrder = 0
-      Text = 'EditText'
+      Text = 'Excellence endures'
       OnChange = EditTextChange
     end
     object BtnClickMe: TButton

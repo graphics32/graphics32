@@ -40,7 +40,8 @@ interface
 uses
   {$IFDEF FPC} LCLType, LResources, {$ELSE} Windows, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  GR32, ComCtrls, GR32_Image, Buttons;
+  Buttons,
+  GR32, GR32_Image;
 
 type
   TFormRenderText = class(TForm)
@@ -56,7 +57,6 @@ type
     procedure ImageResize(Sender: TObject);
     procedure CheckBoxAntiAliasClick(Sender: TObject);
   public
-    AALevel: Integer;
     procedure Draw;
   end;
 
@@ -65,38 +65,35 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
-{$IFNDEF FPC}
 uses
-  Diagnostics;
-{$ENDIF}
+  GR32_System;
 
 procedure TFormRenderText.FormCreate(Sender: TObject);
 begin
   Image.SetupBitmap;
-  with Image.Bitmap.Font do
-  begin
-    Name := 'Tahoma';
-    Size := 20;
-    Style := [fsBold, fsItalic];
-  end;
-  PnlControl.DoubleBuffered := True;
-  EditText.DoubleBuffered := True;
+
+  Image.Bitmap.Font.Name := 'Tahoma';
+  Image.Bitmap.Font.Size := 20;
+  Image.Bitmap.Font.Style := [fsBold, fsItalic];
 end;
 
 procedure TFormRenderText.Draw;
+var
+  SaveQuality: TFontQuality;
 begin
-  with Image do
-  begin
-    Bitmap.Clear;
-    Bitmap.RenderText(10, 10, EditText.Text, $FFFFFFFF, CheckBoxAntiAlias.Checked);
-    Invalidate;
-  end;
+  SaveQuality := Image.Bitmap.Font.Quality;
+
+  if (CheckBoxAntiAlias.Checked) then
+    Image.Bitmap.Font.Quality := TFontQuality.fqAntialiased
+  else
+    Image.Bitmap.Font.Quality := TFontQuality.fqNonAntialiased;
+
+  Image.Bitmap.Clear;
+  Image.Bitmap.RenderText(10, 10, EditText.Text, clWhite32);
+
+  Image.Bitmap.Font.Quality := SaveQuality;
 end;
 
 procedure TFormRenderText.EditTextChange(Sender: TObject);
@@ -112,37 +109,56 @@ end;
 
 procedure TFormRenderText.BtnClickMeClick(Sender: TObject);
 var
-  I: Integer;
+  SaveQuality: TFontQuality;
+  i: Integer;
   Str: string;
+  StopWatch: TStopWatch;
+  Bitmap: TBitmap32;
 begin
   Screen.Cursor := crHourGlass;
-{$IFNDEF FPC}
-  var StopWatch := TStopWatch.StartNew;
-{$ENDIF}
-  with Image.Bitmap do
-    for I := 0 to 10000 do
-      RenderText(
-        Random(Width - 40),
-        Random(Height - 40),
-        IntToStr(Random(100)),
-        Color32(Random(255), Random(255), Random(255), Random(255)),
-        CheckBoxAntiAlias.Checked);
-{$IFNDEF FPC}
+
+  SaveQuality := Image.Bitmap.Font.Quality;
+
+  if (CheckBoxAntiAlias.Checked) then
+    Image.Bitmap.Font.Quality := TFontQuality.fqAntialiased
+  else
+    Image.Bitmap.Font.Quality := TFontQuality.fqNonAntialiased;
+
+  StopWatch := TStopWatch.StartNew;
+
+  Image.Bitmap.BeginUpdate;
+
+  for i := 1 to 10000 do
+    Image.Bitmap.RenderText(
+      Random(Image.Bitmap.Width - 40),
+      Random(Image.Bitmap.Height - 40),
+      IntToStr(Random(100)),
+      Color32(Random(255), Random(255), Random(255), Random(255)));
+
+  Image.Bitmap.EndUpdate;
+
   StopWatch.Stop;
-  with TBitmap32.Create do
+
+  Image.Bitmap.Font.Quality := SaveQuality;
+
+  Bitmap := TBitmap32.Create;
   try
-    Font.Color := clWhite;
-    Font.Size := 8;
-    Font.Style := [];
-    SetSize(100,8);
-    str := '  '+StopWatch.ElapsedMilliseconds.ToString + ' ms';
-    SetSize(TextWidth(str),TextHeight(str));
-    Textout(0, 0, str);
-    DrawTo(Image.Bitmap, Image.Bitmap.Width - Width, Image.Bitmap.Height-Height);
+    str := '  ' + StopWatch.ElapsedMilliseconds.ToString + ' ms';
+
+    // Create a bitmap with the timing text
+    Bitmap.Font.Color := clWhite;
+    Bitmap.Font.Size := 8;
+    Bitmap.Font.Style := [];
+    // Size bitmap to text and draw the text
+    Bitmap.SetSize(Bitmap.TextWidth(str), Bitmap.TextHeight(str));
+    Bitmap.Textout(0, 0, str);
+
+    // Draw timing at lower, right corner
+    Bitmap.DrawTo(Image.Bitmap, Image.Bitmap.Width - Bitmap.Width, Image.Bitmap.Height-Bitmap.Height);
   finally
-    Free;
+    Bitmap.Free;
   end;
-  {$ENDIF}
+
   Screen.Cursor := crDefault;
   Image.Invalidate;
 end;
