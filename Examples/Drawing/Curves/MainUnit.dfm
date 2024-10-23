@@ -9,15 +9,10 @@ object MainForm: TMainForm
   OnShow = BtnDrawCurveClick
   TextHeight = 15
   object Paintbox: TPaintBox32
-    AlignWithMargins = True
-    Left = 8
-    Top = 8
-    Width = 511
-    Height = 503
-    Margins.Left = 8
-    Margins.Top = 8
-    Margins.Right = 8
-    Margins.Bottom = 8
+    Left = 0
+    Top = 0
+    Width = 527
+    Height = 519
     Align = alClient
     TabOrder = 0
     OnClick = PaintboxClick

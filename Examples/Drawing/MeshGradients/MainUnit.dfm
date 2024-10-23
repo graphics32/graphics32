@@ -47,6 +47,7 @@ object FrmMeshGradients: TFrmMeshGradients
       Top = 234
       Width = 16
       Height = 16
+      Cursor = crHandPoint
       Visible = False
       OnMouseDown = VertexColorShapeMouseDown
     end
@@ -183,7 +184,6 @@ object FrmMeshGradients: TFrmMeshGradients
     OnPaintBuffer = PaintBox32PaintBuffer
   end
   object ColorDialog: TColorDialog
-    Options = [cdFullOpen, cdAnyColor]
     Left = 336
     Top = 240
   end

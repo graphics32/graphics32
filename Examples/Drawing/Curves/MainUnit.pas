@@ -302,6 +302,11 @@ begin
   BrushCircleStroke := TStrokeBrush(FBrushCircle.Brushes.Add(TStrokeBrush));
   BrushCircleStroke.FillColor := clWhite32;
   BrushCircleStroke.StrokeWidth := 1.5;
+
+{$ifndef FPC}
+  Paintbox.Margins.SetBounds(8,8,8,8);
+  Paintbox.AlignWithMargins := True;
+{$endif}
 end;
 
 destructor TMainForm.Destroy;
