@@ -63,6 +63,24 @@ uses
   GR32_Image,
   GR32_Paths;
 
+// Bit flags for use with ITextToPathSupport.
+const
+  // See also Window's DrawText() flags ...
+  // http://msdn.microsoft.com/en-us/library/ms901121.aspx
+  DT_LEFT               = $00;
+  DT_CENTER             = $01;
+  DT_RIGHT              = $02;
+  DT_VCENTER            = $04;
+  DT_BOTTOM             = $08;
+  DT_WORDBREAK          = $10;
+  DT_SINGLELINE         = $20;
+  DT_NOCLIP             = $100;
+
+  //Graphics32 additions ...
+  DT_JUSTIFY            = $03;
+  DT_HORZ_ALIGN_MASK    = $03;
+
+
 type
   EBackend = class(Exception);
 
@@ -145,6 +163,21 @@ type
   end;
 
   TRequireOperatorMode = (romAnd, romOr);
+
+type
+  // Font hinting
+  // Will likely be deprecated at some point as hinting isn't really
+  // used that much anymore.
+  TTextHinting = (thNone, thNoHorz, thHinting);
+
+  IFontHintingSupport = interface(IUnknown)
+    ['{42D96689-8627-472E-A93B-A39971A1F603}']
+    function GetHinting: TTextHinting;
+    procedure SetHinting(Value: TTextHinting);
+
+    property Hinting: TTextHinting read GetHinting write SetHinting;
+  end;
+
 
 // Helper functions to temporarily switch the back-end depending on the required interfaces
 

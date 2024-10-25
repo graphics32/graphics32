@@ -91,11 +91,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
 {$IFNDEF FPC}
@@ -104,23 +100,7 @@ uses
 {$ENDIF}
   GR32_Backends,
   GR32_Gamma,
-  GR32_Polygons,
-  {$IFDEF FPC}
-  {$IFDEF LCLWin32}
-    GR32_Text_LCL_Win;
-  {$ENDIF}
-  {$IF defined(LCLGtk) or defined(LCLGtk2)}
-    GR32_Text_LCL_GTK;
-  {$IFEND}
-  {$IFDEF LCLCarbon}
-    GR32_Text_LCL_Carbon;
-  {$ENDIF}
-  {$IFDEF LCLCustomDrawn}
-    GR32_Text_LCL_CustomDrawn;
-  {$ENDIF}
-  {$ELSE}
-  GR32_Text_VCL;
-  {$ENDIF}
+  GR32_Polygons;
 
 const
   CLoremIpsum =
@@ -157,6 +137,8 @@ const
     'Suspendisse sed metus.';
 
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+  FontHinting: IFontHintingSupport;
 begin
   FPath := TFlattenedPath.Create;
 
@@ -168,7 +150,11 @@ begin
   DisplayFontInfo;
   PaintBox32.Buffer.SetSizeFrom(PaintBox32);
   PaintBox32.Buffer.Clear(clWhite32);
-  RgpHinting.ItemIndex := Ord(GetHinting);
+
+  if Supports(Img.Bitmap.Backend, IFontHintingSupport, FontHinting) then
+    RgpHinting.ItemIndex := Ord(FontHinting.GetHinting)
+  else
+    RgpHinting.Enabled := False;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -216,14 +202,17 @@ begin
     DestRect := FloatRect(Img.BoundsRect);
     GR32.InflateRect(DestRect, -10, -10);
     Flag := RgpHorzAlign.ItemIndex;
+
     case RgpVerticalAlign.ItemIndex of
       0: ;
       1: Flag := Flag or DT_VCENTER;
-      else Flag := Flag or DT_BOTTOM;
+    else
+      Flag := Flag or DT_BOTTOM;
     end;
+
     if  CbxSingleLine.Checked then
       Flag := Flag or DT_SINGLELINE;
-    if  CbxWordbreak.Checked then
+    if CbxWordbreak.Checked then
       Flag := Flag or DT_WORDBREAK;
 
     Intf.TextToPath(FPath, DestRect, CLoremIpsum, Flag);
@@ -252,19 +241,19 @@ begin
   Styles := [fsBold, fsItalic] * FontStyles;
   if Styles = [] then
     Result := ''
-  else if Styles = [fsBold] then
+  else
+  if Styles = [fsBold] then
     Result := ', Bold'
-  else if Styles = [fsItalic] then
+  else
+  if Styles = [fsItalic] then
     Result := ', Italic'
   else
-    Result := ', Bold && Italic';
+    Result := ', Bold & Italic';
 end;
 
 procedure TMainForm.DisplayFontInfo;
 begin
-  with FontDialog.Font do
-    LblFontInfo.Caption :=
-      Format('%s'#10'%d%s', [Name, Size, FontStylesToString(Style)]);
+  LblFontInfo.Caption := Format('%s'#10'%d%s', [FontDialog.Font.Name, FontDialog.Font.Size, FontStylesToString(FontDialog.Font.Style)]);
 end;
 
 procedure TMainForm.RgxMethodClick(Sender: TObject);
@@ -280,12 +269,19 @@ begin
 end;
 
 procedure TMainForm.RgpHintingClick(Sender: TObject);
+var
+  FontHinting: IFontHintingSupport;
 begin
+  if not Supports(Img.Bitmap.Backend, IFontHintingSupport, FontHinting) then
+    exit;
+
   case RgpHinting.ItemIndex of
-    0: SetHinting(thNone);
-    1: SetHinting(thNoHorz);
-    else SetHinting(thHinting)
+    0: FontHinting.SetHinting(thNone);
+    1: FontHinting.SetHinting(thNoHorz);
+  else
+    FontHinting.SetHinting(thHinting)
   end;
+
   BuildPolygonFromText;
   RenderText;
 end;

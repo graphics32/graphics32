@@ -160,6 +160,7 @@ object MainForm: TMainForm
         Alignment = taCenter
         AutoSize = False
         Caption = 'FontInfo'
+        ShowAccelChar = False
       end
       object BtnSelectFont: TButton
         Left = 11

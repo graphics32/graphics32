@@ -62,7 +62,8 @@ type
       IFontSupport,
       ICanvasSupport,
       ITextToPathSupport,
-      IUpdateRectSupport
+      IUpdateRectSupport,
+      IFontHintingSupport
     )
   private
     procedure FontChangedHandler(Sender: TObject);
@@ -149,6 +150,10 @@ type
     { IUpdateRectSupport }
     procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
+
+    { IFontHintingSupport }
+    function GetHinting: TTextHinting;
+    procedure SetHinting(Value: TTextHinting);
   end;
 
   { TGDIMMFBackend }
@@ -534,6 +539,16 @@ begin
   finally
     DeleteObject(UpdateRegion);
   end;
+end;
+
+function TGDIBackend.GetHinting: TTextHinting;
+begin
+  Result := GR32_Text_VCL.GetHinting;
+end;
+
+procedure TGDIBackend.SetHinting(Value: TTextHinting);
+begin
+  GR32_Text_VCL.SetHinting(Value);
 end;
 
 procedure TGDIBackend.SetCanvasChange(Handler: TNotifyEvent);
