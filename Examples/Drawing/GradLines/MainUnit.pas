@@ -301,19 +301,23 @@ begin
       begin
 {$ifdef FADE_BLEND}
         // We fade out the existing image by blending black onto it. The alpha controls how fast we fade.
+        // One problem with this method is that we can't ever fade to complete black due to rounding
+        // errors when working with 8 bit color values.
         BlendMems($10000000, @PaintBox.Buffer.Bits[0], PaintBox.Buffer.Width * PaintBox.Buffer.Height);
 {$else}
         // Fade out by scaling the RGB: Faded = Colors * Weight / 255
         ScaleMems(@PaintBox.Buffer.Bits[0], PaintBox.Buffer.Width * PaintBox.Buffer.Height, $f0);
 {$endif}
         EMMS;
+
+        // We're modifying the buffer directly above, so force a complete invalidation.
+        PaintBox.ForceFullInvalidate;
       end;
+
       Dec(Pass);
+
       if (Pass < 0) or (Pass > FadeCount) then
         Pass := FadeCount;
-
-      // We're modifying the buffer directly above, so force a complete invalidation.
-      PaintBox.ForceFullInvalidate;
     end;
 
   finally
@@ -366,10 +370,10 @@ end;
  
 procedure TFormGradientLines.RgpFadeClick(Sender: TObject);
 const
-  FC: array [0..2] of Integer = (0, 7, 1);
+  FC: array [0..2] of Integer = (0, 20, 1);
 begin
   FadeCount := FC[RgpFade.ItemIndex];
-  RepaintOpt.Enabled := (FadeCount = 0);
+  RepaintOpt.Enabled := (FadeCount <> 1);
 end;
 
 procedure TFormGradientLines.StartBenchmark;
