@@ -38,7 +38,7 @@ interface
 {$include GR32.inc}
 
 uses
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   Windows,
 {$ENDIF}
 {$ifndef FPC}
@@ -58,7 +58,7 @@ type
     procedure FinalizeSurface; override;
   end;
 
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 
   { TMMFBackend }
   { A backend that uses memory mapped files or mapped swap space for the
@@ -89,7 +89,7 @@ implementation
 uses
   GR32_LowLevel;
 
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 resourcestring
   RCStrFailedToMapFile = 'Failed to map file';
   RCStrFailedToCreateMapFile = 'Failed to create map file (%s)';
@@ -114,7 +114,7 @@ begin
   end;
 end;
 
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 
 { TMMFBackend }
 

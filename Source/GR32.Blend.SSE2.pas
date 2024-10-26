@@ -1058,7 +1058,12 @@ asm
         MOV       EDX, R8D
         MOV       R8D, EAX
 
+{$IFNDEF FPC}
         CALL      FillLongword // RCX:Dest, EDX:Count, R8D:Value
+{$ELSE}
+        CALL      [rip+FillLongword] // RCX:Dest, EDX:Count, R8D:Value
+{$ENDIF}
+
 {$ENDIF}
 end;
 
@@ -1612,7 +1617,7 @@ end;
 //------------------------------------------------------------------------------
 
 // Aligned bias table
-procedure SIMD_4x003FFF7F;
+procedure SIMD_4x003FFF7F; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$ifdef FPC}
   ALIGN 16
@@ -1626,7 +1631,7 @@ asm
 end;
 
 // Aligned pack table for PSHUFB: Picks low byte of 4 dwords
-procedure SIMD_4x0C080400;
+procedure SIMD_4x0C080400; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$ifdef FPC}
   ALIGN 16

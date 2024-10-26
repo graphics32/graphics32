@@ -84,10 +84,9 @@ type
   published
     property AutoRasterize: Boolean read FAutoRasterize write FAutoRasterize;
     property Rasterizer: TRasterizer read FRasterizer write SetRasterizer;
-    property Buffer;
-    property Color;
     property ClearBuffer: Boolean read FClearBuffer write FClearBuffer;
     property RenderMode: TRenderMode read FRenderMode write SetRenderMode;
+    property Color;
   end;
 
   { TRenderThread }
@@ -113,7 +112,7 @@ procedure Rasterize(Rasterizer: TRasterizer; Dst: TBitmap32; DstRect: TRect);
 implementation
 
 uses
-  Forms, SysUtils;
+  Forms, SysUtils, Graphics;
 
 procedure Rasterize(Rasterizer: TRasterizer; Dst: TBitmap32; DstRect: TRect);
 var
@@ -209,12 +208,20 @@ end;
 
 procedure TSyntheticImage32.Rasterize;
 var
+  BackgroundColor: TColor;
   R: TRect;
 begin
   { Clear buffer before rasterization }
   if FClearBuffer then
   begin
-    Buffer.Clear(Color32(Color));
+    BackgroundColor := Color;
+
+{$ifdef FPC}
+    if (BackgroundColor = clDefault) then
+      BackgroundColor := GetDefaultColor(dctBrush);
+{$endif}
+
+    Buffer.Clear(Color32(BackgroundColor));
     Invalidate;
   end;
 

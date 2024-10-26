@@ -198,7 +198,7 @@ uses
   MacOSAll,
 {$ENDIF}
   Math, Printers, ClipBrd,
-  GR32_LowLevel, GR32_Paths, GR32_VectorUtils, GR32_Backends, GR32_Text_VCL,
+  GR32_LowLevel, GR32_Paths, GR32_VectorUtils, GR32_Backends,
   GR32_ColorGradients, GR32_Polygons, GR32_Geometry, GR32_Clipboard,
   GR32.ImageFormats,
   GR32.ImageFormats.JPG,

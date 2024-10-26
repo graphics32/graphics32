@@ -128,40 +128,42 @@ type
     class function Compare(const Left, Right: TComplex): Integer; static;
     class function Equals(const Left, Right: TComplex): Boolean; static;
 
+{$IFNDEF FPC}
     class operator Round(const AValue: TComplex): Int64; static;
     class operator Trunc(const AValue: TComplex): Int64; static;
+{$ENDIF}
 
-    class operator Equal(const Left, Right: TComplex): Boolean; static;
-    class operator NotEqual(const Left, Right: TComplex): Boolean; static;
-    class operator LessThan(const Left, Right: TComplex): Boolean; static;
-    class operator LessThanOrEqual(const Left, Right: TComplex): Boolean; static;
-    class operator GreaterThan(const Left, Right: TComplex): Boolean; static;
-    class operator GreaterThanOrEqual(const Left, Right: TComplex): Boolean; static;
+    class operator Equal(const Left, Right: TComplex): Boolean; {$IFNDEF FPC}static;{$ENDIF}
+    class operator NotEqual(const Left, Right: TComplex): Boolean; {$IFNDEF FPC}static;{$ENDIF}
+    class operator LessThan(const Left, Right: TComplex): Boolean; {$IFNDEF FPC}static;{$ENDIF}
+    class operator LessThanOrEqual(const Left, Right: TComplex): Boolean; {$IFNDEF FPC}static;{$ENDIF}
+    class operator GreaterThan(const Left, Right: TComplex): Boolean; {$IFNDEF FPC}static;{$ENDIF}
+    class operator GreaterThanOrEqual(const Left, Right: TComplex): Boolean; {$IFNDEF FPC}static;{$ENDIF}
 
-    class operator Add(const Left, Right: TComplex): TComplex; static;
-    class operator Add(const Left: Double; const Right: TComplex): TComplex; static;
-    class operator Add(const Left: TComplex; const Right: Double): TComplex; static;
-    class operator Subtract(const Left, Right: TComplex): TComplex; static;
-    class operator Subtract(const Left: Double; const Right: TComplex): TComplex; static;
-    class operator Subtract(const Left: TComplex; const Right: Double): TComplex; static;
-    class operator Multiply(const Left, Right: TComplex): TComplex; static;
-    class operator Multiply(const Left: Double; const Right: TComplex): TComplex; static;
-    class operator Multiply(const Left: TComplex; const Right: Double): TComplex; static;
-    class operator Divide(const Left, Right: TComplex): TComplex; static;
-    class operator Divide(const Left: Double; const Right: TComplex): TComplex; static;
-    class operator Divide(const Left: TComplex; const Right: Double): TComplex; static;
-    class operator Negative(const AValue: TComplex): TComplex; static;
+    class operator Add(const Left, Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Add(const Left: Double; const Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Add(const Left: TComplex; const Right: Double): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Subtract(const Left, Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Subtract(const Left: Double; const Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Subtract(const Left: TComplex; const Right: Double): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Multiply(const Left, Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Multiply(const Left: Double; const Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Multiply(const Left: TComplex; const Right: Double): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Divide(const Left, Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Divide(const Left: Double; const Right: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Divide(const Left: TComplex; const Right: Double): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Negative(const AValue: TComplex): TComplex; {$IFNDEF FPC}static;{$ENDIF}
 
-    class operator Implicit(const AValue: Double): TComplex; static;
-    class operator Implicit(const AValue: Integer): TComplex; static;
-    class operator Implicit(const AValue: Int64): TComplex; static;
-    class operator Implicit(const AValue: Variant): TComplex; static;
-    class operator Implicit(const AValue: string): TComplex; static;
+    class operator Implicit(const AValue: Double): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Implicit(const AValue: Integer): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Implicit(const AValue: Int64): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Implicit(const AValue: Variant): TComplex; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Implicit(const AValue: string): TComplex; {$IFNDEF FPC}static;{$ENDIF}
 
-    class operator Explicit(const AValue: TComplex): Double; static;
-    class operator Explicit(const AValue: TComplex): Integer; static;
-    class operator Explicit(const AValue: TComplex): Int64; static;
-    class operator Explicit(const AValue: TComplex): string; static;
+    class operator Explicit(const AValue: TComplex): Double; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Explicit(const AValue: TComplex): Integer; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Explicit(const AValue: TComplex): Int64; {$IFNDEF FPC}static;{$ENDIF}
+    class operator Explicit(const AValue: TComplex): string; {$IFNDEF FPC}static;{$ENDIF}
   end;
 
 
@@ -756,6 +758,7 @@ end;
 
 //------------------------------------------------------------------------------
 
+{$IFNDEF FPC}
 class operator TComplex.Round(const AValue: TComplex): Int64;
 begin
   Result := System.Round(Double(AValue));
@@ -765,6 +768,7 @@ class operator TComplex.Trunc(const AValue: TComplex): Int64;
 begin
   Result := System.Trunc(Double(AValue));
 end;
+{$ENDIF}
 
 //------------------------------------------------------------------------------
 

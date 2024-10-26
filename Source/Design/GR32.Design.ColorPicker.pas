@@ -39,7 +39,7 @@ uses
 {$IFDEF FPC}
   RTLConsts, LazIDEIntf, PropEdits, Graphics, Dialogs, Forms, Spin, ExtCtrls,
   StdCtrls, Controls,
-  {$IFDEF Windows}
+  {$ifdef MSWINDOWS}
     Windows, Registry,
   {$ENDIF}
 {$ELSE}
@@ -121,7 +121,6 @@ constructor TFormColorPicker.Create(AOwner: TComponent);
     Result.Border := True;
     Result.ColorComponent := ColorComponent;
     Result.OnChanged := ColorPickerChanged;
-    Result.ParentBackground := False;
 
     Result.Parent := Self;
 
@@ -190,7 +189,6 @@ begin
   FColorPickerGTK.Parent := PanelColorPickerMain;
   FColorPickerGTK.Cursor := crHandPoint;
   FColorPickerGTK.OnChanged := ColorPickerChanged;
-  FColorPickerGTK.ParentBackground := False;
 end;
 
 procedure TFormColorPicker.ButtonPickFromScreenClick(Sender: TObject);

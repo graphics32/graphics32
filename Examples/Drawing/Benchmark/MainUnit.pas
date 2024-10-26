@@ -35,7 +35,7 @@ interface
 {$include GR32.inc}
 
 uses
-  {$IFDEF Windows}Windows,{$ENDIF}
+  {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
   GR32_Image, GR32_Paths, GR32, GR32_Polygons;
 
@@ -78,11 +78,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Types,
@@ -117,10 +113,9 @@ end;
 procedure TMainForm.RunTest(TestProc: TTestProc; TestTime: Int64);
 var
   Canvas: TCanvas32;
-  i, t: Int64;
+  i, ElapsedMilliseconds: Int64;
   StopWatch: TStopWatch;
 begin
-  TestTime := (TestTime * TStopwatch.TicksPerSecond) div 1000;
   RandSeed := 0;
 
   Canvas := TCanvas32.Create(Img.Bitmap);
@@ -135,6 +130,7 @@ begin
         Canvas.Brushes[0].Visible := True;
         Canvas.Brushes[1].Visible := False;
         i := 0;
+
         StopWatch := TStopWatch.StartNew;
 
         repeat
@@ -148,10 +144,12 @@ begin
           TestProc(Canvas);
           TestProc(Canvas);
           TestProc(Canvas);
-          t := StopWatch.ElapsedTicks;
+
+          ElapsedMilliseconds := StopWatch.ElapsedMilliseconds;
           Inc(i, 10);
-        until t > TestTime;
-        WriteTestResult((i*TStopwatch.TicksPerSecond) div t);
+        until ElapsedMilliseconds > TestTime;
+
+        WriteTestResult((i*1000) div ElapsedMilliseconds);
 
         Img.Invalidate; // VPR2 and VPR2X doesn't call TBitmap32.Changed when they draw
       finally

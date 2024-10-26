@@ -59,6 +59,7 @@ uses
   SysUtils,
 
   GR32,
+  GR32.Text.Types,
   GR32_Containers,
   GR32_Image,
   GR32_Paths;
@@ -89,8 +90,8 @@ type
   ITextToPathSupport = interface(IUnknown)
     ['{6C4037E4-FF4D-4EE2-9C20-B9DB9C64B42D}']
     procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string); overload;
-    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal); overload;
-    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
+    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal = 0); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal = 0): TFloatRect;
   end;
 
   ICanvasSupport = interface(IUnknown)
@@ -145,6 +146,16 @@ type
   end;
 
   TRequireOperatorMode = (romAnd, romOr);
+
+type
+  IFontHintingSupport = interface(IUnknown)
+    ['{42D96689-8627-472E-A93B-A39971A1F603}']
+    function GetHinting: TTextHinting;
+    procedure SetHinting(Value: TTextHinting);
+
+    property Hinting: TTextHinting read GetHinting write SetHinting;
+  end;
+
 
 // Helper functions to temporarily switch the back-end depending on the required interfaces
 

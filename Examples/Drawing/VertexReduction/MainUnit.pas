@@ -86,6 +86,12 @@ const
   MinEpsilon = 0.01;
   MaxEpsilon = 500;
 
+resourcestring
+  sHelp = 'Use the mouse to draw an arbitrary polyline.'+#13#13+
+    'Use the + and - keys to control how aggresively the line is simplified.';
+  sInfo = 'Source points: %.0n'#13+
+    'Simplified points: %.0n'#13+
+    'Epsilon: %.2n';
 
 { TFrmLineSimplification }
 
@@ -193,12 +199,6 @@ var
   r: TRect;
   rf: TFloatRect;
   ColorPoint: TColor32;
-resourcestring
-  sHelp = 'Use the mouse to draw an arbitrary polyline.'+#13#13+
-    'Use the + and - keys to control how aggresively the line is simplified.';
-  sInfo = 'Source points: %.0n'#13+
-    'Simplified points: %.0n'#13+
-    'Epsilon: %.2n';
 begin
   PaintBox32.Buffer.Clear(clWhite32);
 
@@ -207,7 +207,7 @@ begin
   if (Length(FPoints) = 0) then
   begin
     PaintBox32.Buffer.Textout(r, DT_CENTER or DT_NOPREFIX or DT_CALCRECT, sHelp);
-    RectCenter(r, PaintBox32.Buffer.BoundsRect);
+    GR32.OffsetRect(r, r.Left + (PaintBox32.Buffer.Width - r.Width) div 2, r.Top + (PaintBox32.Buffer.Height - r.Height) div 2);
 
     PaintBox32.Buffer.Textout(r, DT_CENTER or DT_NOPREFIX, sHelp);
     exit;

@@ -18,18 +18,15 @@ object FrmBlurs: TFrmBlurs
     Left = 0
     Top = 0
     Width = 154
-    Height = 386
+    Height = 382
     Align = alLeft
     BevelOuter = bvNone
-    Padding.Left = 8
-    Padding.Top = 8
-    Padding.Right = 8
-    Padding.Bottom = 8
+    ParentBackground = False
     TabOrder = 0
     object RgpBlurType: TRadioGroup
-      Left = 8
-      Top = 8
-      Width = 138
+      Left = 0
+      Top = 0
+      Width = 154
       Height = 116
       Align = alTop
       Caption = 'Blur Type'
@@ -39,41 +36,33 @@ object FrmBlurs: TFrmBlurs
         '&Gaussian'
         '&Motion'
         '&Selective')
+      ParentBackground = False
       TabOrder = 0
       OnClick = RgpBlurTypeClick
-      ExplicitLeft = 0
-      ExplicitTop = -2
-      ExplicitWidth = 152
     end
     object PanelSelective: TPanel
-      Left = 8
-      Top = 203
-      Width = 138
-      Height = 54
+      Left = 0
+      Top = 181
+      Width = 154
+      Height = 46
       Align = alTop
       AutoSize = True
       BevelOuter = bvNone
-      Padding.Top = 8
+      ParentBackground = False
       TabOrder = 1
-      ExplicitLeft = 1
-      ExplicitTop = 196
-      ExplicitWidth = 152
       object LabelDelta: TLabel
         Left = 0
-        Top = 8
-        Width = 138
+        Top = 0
+        Width = 54
         Height = 15
         Align = alTop
         Caption = 'Delta (10)'
         FocusControl = TrackBarDelta
-        ExplicitLeft = -1
-        ExplicitTop = 6
-        ExplicitWidth = 152
       end
       object TrackBarDelta: TTrackBar
         Left = 0
-        Top = 23
-        Width = 138
+        Top = 15
+        Width = 154
         Height = 31
         Align = alTop
         Max = 255
@@ -83,41 +72,32 @@ object FrmBlurs: TFrmBlurs
         TickMarks = tmBoth
         TickStyle = tsNone
         OnChange = TrackBarDeltaChange
-        ExplicitLeft = -5
-        ExplicitTop = 12
-        ExplicitWidth = 152
       end
     end
     object PanelMotion: TPanel
-      Left = 8
-      Top = 257
-      Width = 138
-      Height = 71
+      Left = 0
+      Top = 227
+      Width = 154
+      Height = 65
       Align = alTop
       AutoSize = True
       BevelOuter = bvNone
-      Padding.Top = 8
+      ParentBackground = False
       TabOrder = 2
-      ExplicitLeft = 1
-      ExplicitTop = 250
-      ExplicitWidth = 152
       object LblBlurAngle: TLabel
         Left = 0
-        Top = 8
-        Width = 138
+        Top = 0
+        Width = 80
         Height = 15
         Align = alTop
         Caption = 'Blur &Angle (45)'
         Enabled = False
         FocusControl = TbrBlurAngle
-        ExplicitLeft = 8
-        ExplicitTop = -4
-        ExplicitWidth = 152
       end
       object TbrBlurAngle: TTrackBar
         Left = 0
-        Top = 23
-        Width = 138
+        Top = 15
+        Width = 154
         Height = 31
         Align = alTop
         Enabled = False
@@ -127,15 +107,12 @@ object FrmBlurs: TFrmBlurs
         TabOrder = 0
         TickStyle = tsNone
         OnChange = TbrBlurAngleChange
-        ExplicitLeft = 8
-        ExplicitTop = 8
-        ExplicitWidth = 137
       end
       object CbxBidirectional: TCheckBox
         Left = 0
-        Top = 54
-        Width = 138
-        Height = 17
+        Top = 46
+        Width = 154
+        Height = 19
         Align = alTop
         Caption = 'Bi&directional motion'
         Checked = True
@@ -143,42 +120,31 @@ object FrmBlurs: TFrmBlurs
         State = cbChecked
         TabOrder = 1
         OnClick = PageControlChange
-        ExplicitLeft = 12
-        ExplicitTop = 22
-        ExplicitWidth = 136
       end
     end
     object PanelRadius: TPanel
-      Left = 8
-      Top = 124
-      Width = 138
-      Height = 79
+      Left = 0
+      Top = 116
+      Width = 154
+      Height = 65
       Align = alTop
       AutoSize = True
       BevelOuter = bvNone
-      Padding.Top = 8
+      ParentBackground = False
       TabOrder = 3
       object LblBlurRadius: TLabel
-        AlignWithMargins = True
         Left = 0
-        Top = 16
-        Width = 138
+        Top = 0
+        Width = 90
         Height = 15
-        Margins.Left = 0
-        Margins.Top = 8
-        Margins.Right = 0
-        Margins.Bottom = 0
         Align = alTop
         Caption = 'Blur &Radius (10)'
         FocusControl = TbrBlurRadius
-        ExplicitLeft = 1
-        ExplicitTop = 150
-        ExplicitWidth = 90
       end
       object TbrBlurRadius: TTrackBar
         Left = 0
-        Top = 31
-        Width = 138
+        Top = 15
+        Width = 154
         Height = 31
         Align = alTop
         Max = 50
@@ -187,30 +153,26 @@ object FrmBlurs: TFrmBlurs
         TickMarks = tmBoth
         TickStyle = tsNone
         OnChange = TbrBlurRadiusChange
-        ExplicitLeft = 8
-        ExplicitTop = 180
       end
       object CheckBoxCorrectGamma: TCheckBox
         Left = 0
-        Top = 62
-        Width = 138
-        Height = 17
+        Top = 46
+        Width = 154
+        Height = 19
         Align = alTop
         Caption = '&Correct Gamma'
         Checked = True
         State = cbChecked
         TabOrder = 1
         OnClick = PageControlChange
-        ExplicitLeft = 8
-        ExplicitTop = 132
       end
     end
   end
   object SbrMain: TStatusBar
     Left = 0
-    Top = 386
+    Top = 382
     Width = 719
-    Height = 19
+    Height = 23
     Panels = <>
     SimplePanel = True
   end
@@ -218,7 +180,7 @@ object FrmBlurs: TFrmBlurs
     Left = 154
     Top = 0
     Width = 565
-    Height = 386
+    Height = 382
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 2
@@ -229,7 +191,7 @@ object FrmBlurs: TFrmBlurs
         Left = 0
         Top = 0
         Width = 557
-        Height = 356
+        Height = 354
         Align = alClient
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baCustom
@@ -254,7 +216,7 @@ object FrmBlurs: TFrmBlurs
         Left = 0
         Top = 0
         Width = 557
-        Height = 356
+        Height = 354
         Align = alClient
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baCustom
@@ -274,7 +236,7 @@ object FrmBlurs: TFrmBlurs
         Left = 0
         Top = 0
         Width = 557
-        Height = 356
+        Height = 354
         Align = alClient
         Bitmap.DrawMode = dmBlend
         Bitmap.ResamplerClassName = 'TNearestResampler'
@@ -331,7 +293,7 @@ object FrmBlurs: TFrmBlurs
     end
   end
   object OpenDialog: TOpenDialog
-    DefaultExt = 'jpg'
+    DefaultExt = '.jpg'
     Filter = 'Image Files (*.jpg;*.bmp)|*.jpg;*.bmp;'
     Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
     Left = 188

@@ -90,7 +90,7 @@
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
       <OtherUnitFiles Value="..\..\..\Source"/>
-      <UnitOutputDirectory Value="..\..\..\Unit Cache\$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

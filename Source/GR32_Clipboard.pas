@@ -126,9 +126,9 @@ uses
 {$IFDEF FPC}
   LCLIntf,
 {$ELSE FPC}
-{$IFDEF WINDOWS}
+{$ifdef MSWINDOWS}
   Windows,
-{$ENDIF WINDOWS}
+{$ENDIF MSWINDOWS}
 {$ENDIF FPC}
 {$if defined(FRAMEWORK_VCL)}
   Vcl.Graphics,
@@ -161,7 +161,7 @@ type
 //      TGlobalMemoryStream
 //
 //------------------------------------------------------------------------------
-{$if defined(WINDOWS) and not defined(FPC)}
+{$if defined(MSWINDOWS) and not defined(FPC)}
 constructor TGlobalMemoryStream.Create(const AHandle: HGlobal);
 begin
   inherited Create;

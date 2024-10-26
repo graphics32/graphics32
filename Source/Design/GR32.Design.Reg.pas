@@ -56,7 +56,7 @@ uses
   GR32.Design.BitmapEditor,
   GR32.Design.Misc,
   GR32_Image,
-  {$IFDEF Windows}
+  {$ifdef MSWINDOWS}
   GR32_ExtImage,
   {$ENDIF}
   GR32_RangeBars,
@@ -74,7 +74,7 @@ begin
     TRangeBar,
     TGaugeBar,
     TImgView32,
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
     TSyntheticImage32,
 {$ENDIF}
     TColorPickerComponent,

@@ -146,6 +146,11 @@ uses
   GR32_System,
   GR32_OrdinalMaps;
 
+// Ensure that we use the GR32.TFloat and not FPC's Math.TFloat (which is an alias for Double!)
+type
+  TFloat = GR32.TFloat;
+  PFloat = ^TFloat;
+
 //------------------------------------------------------------------------------
 //
 //      PremultiplyLUT
@@ -845,7 +850,7 @@ end;
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 // Aligned mask
-procedure SIMD_4x00FF00FF00FF00FF;
+procedure SIMD_4x00FF00FF00FF00FF; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$ifdef FPC}
   ALIGN 16
@@ -859,7 +864,7 @@ asm
   db $00, $FF, $00, $FF
 end;
 
-procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Integer; out Sum, FactSum: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Integer; out Sum, FactSum: Cardinal); //{$IFDEF FPC} assembler; {$ENDIF}
   // Parameters (x86):
   //   EAX <- pSrc
   //   EDX <- pFact
@@ -887,21 +892,23 @@ procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Intege
   //   XMM5: Sum
   //   XMM6: FactSum
   //   XMM7: "Zero"
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x64)}
 {$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
   .SAVENV XMM6
   .SAVENV XMM7
-{$ELSE}
-  push XMM6
-  push XMM7
-  // nothing
 {$ENDIF}
 {$elseif defined(TARGET_x86)}
   // nothing
 {$else}
 {$message fatal 'Unsupported target'}
 {$ifend}
+{$IFDEF FPC}
+{$define RETARD_COMPILER} // Just to make it clear what I think of FPC's assembler
+{$ENDIF}
 
   // initialize
         // M0 := Min;
@@ -923,13 +930,22 @@ asm
         LEA         pFact, [pFact+Count*2]
         NEG         Count
 {$elseif defined(TARGET_x64)}
+{$IFNDEF RETARD_COMPILER}
         LEA         pSrc, [pSrc+R8]
         LEA         pFact, [pFact+R8*2]
+{$ELSE}
+        LEA         ECX, [RCX+R8]
+        LEA         EDX, [RDX+R8*2]
+{$ENDIF}
         NEG         R8
 {$ifend}
 
         // if (Count mod 4 = 0) then goto :ProcessFours
+{$if defined(TARGET_x86)}
         TEST        Count, $0003
+{$elseif defined(TARGET_x64)}
+        TEST        R8, $0003
+{$ifend}
         JZ          @ProcessFours
 
         // Process Count/4 remainders
@@ -962,15 +978,27 @@ asm
         PADDD       XMM6, XMM3
 {$elseif defined(TARGET_x64)}
         // if (pSrc[Count] <= Min) or (pSrc[Count] >= Max) then goto :SkipOne
+{$IFNDEF RETARD_COMPILER}
         MOVZX       R10D, BYTE PTR[pSrc+R8] // Load single byte
+{$ELSE}
+        MOVZX       R10D, BYTE PTR[RCX+R8] // Load single byte
+{$ENDIF}
 
+{$IFNDEF RETARD_COMPILER}
         CMP         Min, R10D
+{$ELSE}
+        CMP         R9D, R10D
+{$ENDIF}
         JGE         @SkipOne
         CMP         R10D, Max
         JGE         @SkipOne
 
         // Sum := Sum + ((pSrc[Count] * pFact[Count]) shr 8);
+{$IFNDEF RETARD_COMPILER}
         MOVZX       R11D, WORD PTR[pFact+R8*2] // Load single word
+{$ELSE}
+        MOVZX       R11D, WORD PTR[RDX+R8*2] // Load single word
+{$ENDIF}
 
         IMUL        R10D, R11D
         SHR         R10D, 8
@@ -989,7 +1017,11 @@ asm
         INC         R8
 {$ifend}
         // if (Count mod 4 <> 0) then goto :NextOne
+{$if defined(TARGET_x86)}
         TEST        Count, $0003
+{$elseif defined(TARGET_x64)}
+        TEST        R8, $0003
+{$ifend}
         JNZ         @NextOne
 
 {$if defined(TARGET_x86)}
@@ -1005,7 +1037,6 @@ asm
         JCXZ        @Done
 {$elseif defined(TARGET_x64)}
         SAR         R8, 2
-        TEST        R8, R8
         JZ          @Done
 {$ifend}
 
@@ -1022,14 +1053,22 @@ asm
 {$if defined(TARGET_x86)}
         MOVD        XMM2, DWORD PTR [pSrc+Count*4] // Load four bytes
 {$elseif defined(TARGET_x64)}
+{$IFNDEF RETARD_COMPILER}
         MOVD        XMM2, DWORD PTR [pSrc+R8*4] // Load four bytes
+{$ELSE}
+        MOVD        XMM2, DWORD PTR [RCX+R8*4] // Load four bytes
+{$ENDIF}
 {$ifend}
         PUNPCKLBW   XMM2, XMM7
         // M3 := pFact[Count];
 {$if defined(TARGET_x86)}
         MOVQ        XMM3, QWORD PTR [pFact+Count*8] // Load four words
 {$elseif defined(TARGET_x64)}
+{$IFNDEF RETARD_COMPILER}
         MOVQ        XMM3, QWORD PTR [pFact+R8*8] // Load four words
+{$ELSE}
+        MOVQ        XMM3, QWORD PTR [RDX+R8*8] // Load four words
+{$ENDIF}
 {$ifend}
 
   // store threshold mask in MM4
@@ -1089,14 +1128,7 @@ asm
         MOVD        DWORD PTR [RAX], XMM6
 {$ifend}
 
-{$if defined(TARGET_x64)}
-{$IFDEF FPC}
-  pop XMM7
-  pop XMM6
-{$ENDIF}
-{$elseif defined(TARGET_x86)}
-  // nothing
-{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
 end;
 {$ifend}
 
@@ -1106,9 +1138,10 @@ procedure InternalSelectiveGaussian1(Src, Dst: TBitmap32; Radius: TFloat; Delta:
 const
   SourcePlanes: array[0..2] of TConversionType = (ctBlue, ctGreen, ctRed);
 var
-  X, Y, Plane, WindowY, LoY, R, MaxX, MaxY: Integer;
+  X, Y, WindowY, MinX: NativeInt; // NativeInt required on FPC to support negative array offset
+  Plane, LoY, R, MaxX, MaxY: Integer;
   XCount, ColCount: Integer;
-  MinValue, MaxValue, MinX: Integer;
+  MinValue, MaxValue: Integer;
   Kernel: TArrayOfWord;
   PKernel: PWordArray;
   VSum, VFact, Sum: Cardinal;
@@ -1290,10 +1323,11 @@ procedure InternalSelectiveGaussian2(Src, Dst: TBitmap32; Radius: TFloat; Delta:
 const
   SourcePlanes: array[0..2] of TConversionType = (ctBlue, ctGreen, ctRed);
 var
+  KernelMinX, KernelMaxX, WindowX, WindowY: NativeInt;
   Plane, LoY, R: Integer;
-  X, Y, MaxX, MaxY, WindowX, WindowY: integer;
+  X, Y, MaxX, MaxY: integer;
   MinValue, MaxValue: integer;
-  KernelMinX, KernelMaxX, ColCount: integer;
+  ColCount: integer;
   Kernel: TArrayOfWord;
   PKernel: PWordArray;
   VSum, VFact, Sum: Cardinal;

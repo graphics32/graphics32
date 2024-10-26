@@ -73,7 +73,6 @@ object FormPolygons: TFormPolygons
       Max = 255
       PageSize = 0
       Position = 255
-      PositionToolTip = ptTop
       ShowSelRange = False
       TabOrder = 0
       ThumbLength = 14
@@ -89,7 +88,6 @@ object FormPolygons: TFormPolygons
       Max = 255
       PageSize = 0
       Position = 127
-      PositionToolTip = ptTop
       ShowSelRange = False
       TabOrder = 1
       ThumbLength = 14

@@ -171,6 +171,7 @@ type
 {$ENDIF}
   protected
     procedure Paint; override;
+    procedure PaintBackground; virtual;
     procedure PaintColorPicker; virtual; abstract;
     procedure SelectedColorChanged; virtual;
   public
@@ -353,8 +354,9 @@ type
     property DragKind;
     property Enabled;
 {$IFDEF HasParentBackground}
-    property ParentBackground;
+//    property ParentBackground;
 {$ENDIF}
+    property Color; // Background color
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -397,8 +399,9 @@ type
     property DragKind;
     property Enabled;
 {$IFDEF HasParentBackground}
-    property ParentBackground;
+//    property ParentBackground;
 {$ENDIF}
+    property Color; // Background color
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -439,10 +442,6 @@ type
     property DragCursor;
     property DragKind;
     property Enabled;
-{$IFDEF HasParentBackground}
-    property ParentBackground;
-{$ENDIF}
-    property ParentColor;
     property ParentShowHint;
     property PopupMenu;
     property TabOrder;
@@ -486,8 +485,9 @@ type
     property DragKind;
     property Enabled;
 {$IFDEF HasParentBackground}
-    property ParentBackground;
+//    property ParentBackground;
 {$ENDIF}
+    property Color; // Background color
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -532,8 +532,9 @@ type
     property DragKind;
     property Enabled;
 {$IFDEF HasParentBackground}
-    property ParentBackground;
+//    property ParentBackground;
 {$ENDIF}
+    property Color; // Background color
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -982,6 +983,20 @@ begin
   end;
 end;
 
+procedure TCustomColorPicker.PaintBackground;
+var
+  BackgroundColor: TColor;
+begin
+  BackgroundColor := Color;
+
+{$ifdef FPC}
+  if (BackgroundColor = clDefault) then
+    BackgroundColor := GetDefaultColor(dctBrush);
+{$endif}
+
+  FBuffer.Clear(Color32(BackgroundColor));
+end;
+
 procedure TCustomColorPicker.SelectedColorChanged;
 begin
   if Assigned(FOnChanged) then
@@ -1132,8 +1147,11 @@ var
 const
   CByteScale = 1 / 255;
   CCheckerBoardColor: array [Boolean] of TColor32 = ($FFA0A0A0, $FF5F5F5F);
+  // Size of indicator triangles
+  IndicatorWidth = 3;
+  IndicatorHeight = 5;
 begin
-  FBuffer.Clear(Color32(Color));
+  PaintBackground;
 
   BorderOffset := Integer(FBorder);
 
@@ -1181,7 +1199,7 @@ begin
           begin
             OddY := Odd(Y div 8);
             ScanLine := FBuffer.ScanLine[Y];
-            for X := 3 to Width - 4 do
+            for X := IndicatorWidth to Width - IndicatorWidth - 1 do
               ScanLine^[X] := CCheckerBoardColor[Odd(X shr 3) = OddY];
           end;
         end
@@ -1191,28 +1209,27 @@ begin
 
     GradientFiller := TLinearGradientPolygonFiller.Create;
     try
-      GradientFiller.SimpleGradientX(3, LeftColor.ARGB,
-        Width - 3, RightColor.ARGB);
-      PolygonFS(FBuffer, Rectangle(FloatRect(3, 0, Width - 3, Height)), GradientFiller);
+      GradientFiller.SimpleGradientX(IndicatorWidth, LeftColor.ARGB, Width - IndicatorWidth, RightColor.ARGB);
+      PolygonFS(FBuffer, Rectangle(FloatRect(IndicatorWidth, 0, Width - IndicatorWidth, Height)), GradientFiller);
     finally
       GradientFiller.Free;
     end;
 
     if FBorder then
     begin
-      FBuffer.FrameRectTS(3, 0, Width - 3, Height, $DF000000);
+      FBuffer.FrameRectTS(IndicatorWidth, 0, Width - IndicatorWidth, Height, $DF000000);
 {$ifdef GR32_FRAME3D}
-      FBuffer.RaiseRectTS(4, 0, Width - 4, Height - 1, 20);
+      FBuffer.RaiseRectTS(IndicatorWidth+1, 0, Width - IndicatorWidth - 1, Height - 1, 20);
 {$endif}
     end;
 
     SetLength(Polygon, 3);
-    Polygon[0] := FloatPoint(3 + Value * (Width - 6), Height - BorderOffset - 5);
-    Polygon[1] := FloatPoint(Polygon[0].X - 3, Polygon[0].Y + 5);
-    Polygon[2] := FloatPoint(Polygon[0].X + 3, Polygon[0].Y + 5);
+    Polygon[0] := FloatPoint(IndicatorWidth + Value * (Width - 2*IndicatorWidth), Height - BorderOffset - IndicatorHeight);
+    Polygon[1] := FloatPoint(Polygon[0].X - IndicatorWidth, Polygon[0].Y + IndicatorHeight);
+    Polygon[2] := FloatPoint(Polygon[0].X + IndicatorWidth, Polygon[0].Y + IndicatorHeight);
     RenderPolygon;
 
-    Polygon[0].Y := BorderOffset + 5;
+    Polygon[0].Y := BorderOffset + IndicatorHeight;
     Polygon[1].Y := BorderOffset;
     Polygon[2].Y := BorderOffset;
     RenderPolygon;
@@ -1377,8 +1394,11 @@ var
 const
   CByteScale = 1 / 255;
   CCheckerBoardColor: array [Boolean] of TColor32 = ($FFA0A0A0, $FF5F5F5F);
+  // Size of indicator triangles
+  IndicatorWidth = 3;
+  IndicatorHeight = 5;
 begin
-  FBuffer.Clear(Color32(Color));
+  PaintBackground;
 
   BorderOffset := Integer(FBorder);
 
@@ -1387,8 +1407,7 @@ begin
   try
     for Index := 0 to 3 do
     begin
-      ValueRect := Rect(3, Index * (FBarHeight + FSpaceHeight),
-        Width - 3, Index * (FBarHeight + FSpaceHeight) + FBarHeight);
+      ValueRect := Rect(IndicatorWidth, Index * (FBarHeight + FSpaceHeight), Width - IndicatorWidth, Index * (FBarHeight + FSpaceHeight) + FBarHeight);
 
       LeftColor := TColor32Entry(FSelectedColor);
       RightColor := TColor32Entry(FSelectedColor);
@@ -1438,8 +1457,7 @@ begin
 
       GradientFiller := TLinearGradientPolygonFiller.Create;
       try
-        GradientFiller.SimpleGradientX(ValueRect.Left, LeftColor.ARGB,
-          ValueRect.Right, RightColor.ARGB);
+        GradientFiller.SimpleGradientX(ValueRect.Left, LeftColor.ARGB, ValueRect.Right, RightColor.ARGB);
         PolygonFS(FBuffer, Rectangle(FloatRect(ValueRect)), GradientFiller);
       finally
         GradientFiller.Free;
@@ -1453,12 +1471,12 @@ begin
 {$endif}
       end;
 
-      Polygon[0] := FloatPoint(3 + Value * (Width - 6), ValueRect.Bottom - BorderOffset - 5);
-      Polygon[1] := FloatPoint(Polygon[0].X - 3, Polygon[0].Y + 5);
-      Polygon[2] := FloatPoint(Polygon[0].X + 3, Polygon[0].Y + 5);
+      Polygon[0] := FloatPoint(IndicatorWidth + Value * (Width - 2*IndicatorWidth), ValueRect.Bottom - BorderOffset - IndicatorHeight);
+      Polygon[1] := FloatPoint(Polygon[0].X - IndicatorWidth, Polygon[0].Y + IndicatorHeight);
+      Polygon[2] := FloatPoint(Polygon[0].X + IndicatorWidth, Polygon[0].Y + IndicatorHeight);
       RenderPolygon;
 
-      Polygon[0].Y := ValueRect.Top + BorderOffset + 5;
+      Polygon[0].Y := ValueRect.Top + BorderOffset + IndicatorHeight;
       Polygon[1].Y := ValueRect.Top + BorderOffset;
       Polygon[2].Y := ValueRect.Top + BorderOffset;
       RenderPolygon;
@@ -1721,11 +1739,10 @@ var
   InvertFiller: TInvertPolygonFiller;
   LineWidth: Single;
 begin
-  FBuffer.Clear(Color32(Color));
+  PaintBackground;
 
   Polygon := Circle(FCenter, FRadius, FCircleSteps);
-  HueSaturationFiller := THueSaturationCirclePolygonFiller.Create(FCenter,
-    FRadius, FValue, FWebSafe);
+  HueSaturationFiller := THueSaturationCirclePolygonFiller.Create(FCenter, FRadius, FValue, FWebSafe);
   try
     PolygonFS(FBuffer, Polygon, HueSaturationFiller);
   finally
@@ -1745,11 +1762,13 @@ begin
       case FVisualAidOptions.RenderType of
         vatInvert:
           PolylineFS(FBuffer, Polygon, InvertFiller, True, LineWidth);
+
         vatBW:
           if Intensity(FSelectedColor) < 127 then
             PolylineFS(FBuffer, Polygon, clWhite32, True, LineWidth)
           else
             PolylineFS(FBuffer, Polygon, clBlack32, True, LineWidth);
+
         else
           PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, True, LineWidth);
       end;
@@ -1766,11 +1785,13 @@ begin
       case FVisualAidOptions.RenderType of
         vatInvert:
           PolylineFS(FBuffer, Polygon, InvertFiller, False, LineWidth);
+
         vatBW:
           if Intensity(FSelectedColor) < 127 then
             PolylineFS(FBuffer, Polygon, clWhite32, False, LineWidth)
           else
             PolylineFS(FBuffer, Polygon, clBlack32, False, LineWidth);
+
         else
           PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, False, LineWidth);
       end;
@@ -1786,11 +1807,13 @@ begin
       case FVisualAidOptions.RenderType of
         vatInvert:
           PolylineFS(FBuffer, Polygon, InvertFiller, True, LineWidth);
+
         vatBW:
           if Intensity(FSelectedColor) < 127 then
             PolylineFS(FBuffer, Polygon, clWhite32, True, LineWidth)
           else
             PolylineFS(FBuffer, Polygon, clBlack32, True, LineWidth);
+
         else
           PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, True, LineWidth);
       end;
@@ -1815,11 +1838,13 @@ begin
     case FVisualAidOptions.RenderType of
       vatInvert:
         PolygonFS(FBuffer, Polygon, InvertFiller);
+
       vatBW:
         if Intensity(FSelectedColor) < 127 then
           PolygonFS(FBuffer, Polygon, clWhite32)
         else
           PolygonFS(FBuffer, Polygon, clBlack32);
+
       else
         PolygonFS(FBuffer, Polygon, FVisualAidOptions.Color);
     end;
@@ -2010,9 +2035,9 @@ var
 const
   CY = 1.7320508075688772935274463415059;
 begin
-  FBuffer.Clear(Color32(Color));
+  PaintBackground;
 
-  // Don't use BuildPolyPolyline to build HueBand; We need both innber and outer
+  // Don't use BuildPolyPolyline to build HueBand; We need both inner and outer
   // polygons to be free of self-intersections as we use them to draw the border.
   HueBand := [
                               Circle(FCenter, FRadius,      FCircleSteps),

@@ -3082,7 +3082,9 @@ begin
 end;
 
 procedure TSphereTransformation.ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat);
-{$if defined(PUREPASCAL) or (not defined(TARGET_x86))}
+// FPC currently refuses to compile the ASM version.
+// Consider deprecating it as it's not really worth the effort - or replace it with a SSE version
+{$if defined(PUREPASCAL) or (not defined(TARGET_x86)) or (defined(FPC))}
 var
   Dist: TFloat;
 begin
