@@ -114,7 +114,7 @@ begin
   begin
     SetBorderTransparent(Src, BoundsRect);
     Assign(Image32.Bitmap);
-    OuterColor := $00000000;
+    OuterColor := clNone32;
   end;
 end;
 

@@ -1010,7 +1010,6 @@ resourcestring
 
 const
   CFloatTolerance = 0.001;
-  clNone32: TColor32 = $00000000;
 
 procedure FillLineAlpha(var Dst, AlphaValues: PColor32; Count: Integer;
   Color: TColor32; CombineMode: TCombineMode); {$IFDEF USEINLINING}inline;{$ENDIF}

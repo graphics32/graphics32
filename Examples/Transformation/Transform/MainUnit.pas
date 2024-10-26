@@ -319,7 +319,7 @@ begin
   GenTransform;
   Dst.BeginUpdate;
 
-  Dst.Bitmap.Clear($00000000);
+  Dst.Bitmap.Clear(clNone32);
   Transform(Dst.Bitmap, Src.Bitmap, Transformation);
 
   Dst.EndUpdate;

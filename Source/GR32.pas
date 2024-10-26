@@ -110,6 +110,7 @@ type
 
 const
   // Some predefined color constants
+  clNone32                = TColor32($00000000);
   clBlack32               = TColor32({$IFNDEF RGBA_FORMAT} $FF000000 {$ELSE} $FF000000 {$ENDIF});
   clDimGray32             = TColor32({$IFNDEF RGBA_FORMAT} $FF3F3F3F {$ELSE} $FF3F3F3F {$ENDIF});
   clGray32                = TColor32({$IFNDEF RGBA_FORMAT} $FF7F7F7F {$ELSE} $FF7F7F7F {$ENDIF});
@@ -2969,7 +2970,7 @@ begin
 
   InitializeBackend(ABackendClass);
 
-  FOuterColor := $00000000;  // by default as full transparency black
+  FOuterColor := clNone32;  // by default as full transparency black
 
   FMasterAlpha := $FF;
   FPenColor := clWhite32;
@@ -3375,7 +3376,7 @@ begin
       I := I * SizeOf(TColor32) - 16*SizeOf(TColor32);
       Inc(P, I);
 
-      //16x enrolled loop
+      //16x unrolled loop
       I := - I;
       repeat
         P^[I] := AlphaValue;
