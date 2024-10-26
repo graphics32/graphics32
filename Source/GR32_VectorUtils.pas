@@ -2233,7 +2233,7 @@ var
   I: Integer;
 begin
   if (Length(Points) = 0) then
-    Exit(Default(TFloatRect));
+    Exit(Default(TFixedRect));
 
   Result.Left := Points[0].X;
   Result.Top := Points[0].Y;
@@ -2293,7 +2293,7 @@ var
   AnyValid: boolean;
 begin
   if (Length(Points) = 0) then
-    Exit(Default(TFloatRect));
+    Exit(Default(TFixedRect));
 
   AnyValid := False;
 
@@ -2321,7 +2321,7 @@ begin
   end;
 
   if (not AnyValid) then
-    Exit(Default(TFloatRect));
+    Exit(Default(TFixedRect));
 end;
 
 
