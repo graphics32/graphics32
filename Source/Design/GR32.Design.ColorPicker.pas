@@ -39,7 +39,7 @@ uses
 {$IFDEF FPC}
   RTLConsts, LazIDEIntf, PropEdits, Graphics, Dialogs, Forms, Spin, ExtCtrls,
   StdCtrls, Controls,
-  {$IFDEF Windows}
+  {$ifdef MSWINDOWS}
     Windows, Registry,
   {$ENDIF}
 {$ELSE}

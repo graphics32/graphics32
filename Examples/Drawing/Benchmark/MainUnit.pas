@@ -35,7 +35,7 @@ interface
 {$include GR32.inc}
 
 uses
-  {$IFDEF Windows}Windows,{$ENDIF}
+  {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
   GR32_Image, GR32_Paths, GR32, GR32_Polygons;
 

@@ -337,11 +337,12 @@
     {$EXCESSPRECISION OFF}
   {$ifend}
 
-  {$ifdef LINUX}
+  {$if defined(LINUX)}
     {$define BITS_GETTER}
-  {$else}
-    {$define Windows}
-  {$endif}
+  {$ifend}
+  {$if defined(MSWINDOWS)}
+    {$define Windows} // For backward compatibility; We use the MSWINDOWS define now
+  {$ifend}
 
   {$define EXT_PROP_EDIT}
   {$define HasParentBackground}
@@ -376,7 +377,7 @@
   // 16 byte code alignment required for SSE aligned loads from asm db blocks
   {$CODEALIGN PROC=16}
 
-  {$ifndef WINDOWS}
+  {$ifndef MSWINDOWS}
     {$define RGBA_FORMAT}
   {$endif}
 

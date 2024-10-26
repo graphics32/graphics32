@@ -56,7 +56,7 @@ interface
 {$include GR32.inc}
 
 uses
-{$if defined(WINDOWS)}
+{$if defined(MSWINDOWS)}
   Windows,
 {$ifend}
 
@@ -960,7 +960,7 @@ uses
 {$if not defined(FRAMEWORK_FMX)}
   Forms,
 {$ifend}
-{$if defined(WINDOWS)}
+{$if defined(MSWINDOWS)}
   MMSystem, // TimeGetTime
   Themes,
 {$ifend}
@@ -1436,7 +1436,7 @@ end;
 procedure TCustomPaintBox32.Invalidate;
 begin
   FBufferValid := False;
-{$if defined(FPC) and defined(WINDOWS)}
+{$if defined(FPC) and defined(MSWINDOWS)}
   // LCL TWinControl.Invalidate doesn't take csOpaque in account when calling InvalidateRect.
   if (HandleAllocated) then
     InvalidateRect(Handle, nil, not(csOpaque in ControlStyle));
@@ -3350,7 +3350,7 @@ end;
 // - The Position parameter is in screen coordinates.
 // - The mouse has already been captured.
 // - Only the left mouse button is handled.
-{$if defined(WINDOWS)}
+{$if defined(MSWINDOWS)}
 function PanDetect(Handle: THandle; Position: TPoint): boolean;
 var
   DragRect: TRect;
@@ -3484,7 +3484,7 @@ begin
       // Wait a moment, looking for a mouse-up, before we decide that this
       // is a drag and not a click. Note that we cannot use the Windows DragDetect
       // function as it eats the mouse-up event and thus break the OnClick generation.
-{$if defined(WINDOWS)}
+{$if defined(MSWINDOWS)}
       if (not PanDetect(WindowHandle, ClientToScreen(Point(X, Y)))) then
         exit;
 {$ifend}
@@ -4143,12 +4143,12 @@ begin
 end;
 
 procedure TCustomImgView32.DoDrawSizeGrip(R: TRect);
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 var
   ThemedElementDetails: TThemedElementDetails;
 {$ENDIF}
 begin
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   Canvas.Brush.Color := clBtnFace;
   Canvas.FillRect(R);
 

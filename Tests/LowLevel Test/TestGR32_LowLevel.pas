@@ -39,7 +39,7 @@ interface
 
 // VERIFY_WIN_MULDIV: Validate MulDiv against Windows' MulDiv. Otherwise validates against a floating point emulation.
 // Note though that there's a bug in Windows' MulDiv: https://devblogs.microsoft.com/oldnewthing/20120514-00/?p=7633
-{$ifdef Windows}
+{$ifdef MSWINDOWS}
 {$define VERIFY_WIN_MULDIV}
 {$endif}
 
@@ -49,7 +49,7 @@ uses
 {$ELSE}
   TestFramework,
 {$ENDIF}
-{$ifdef Windows}
+{$ifdef MSWINDOWS}
   Windows,
 {$endif}
   GR32_Bindings;

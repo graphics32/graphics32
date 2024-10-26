@@ -39,7 +39,7 @@ uses
   Generics.Collections,
 {$IFDEF FPC}
   RTLConsts, LazIDEIntf, PropEdits, Graphics, Dialogs, Forms,
-  {$IFDEF Windows}
+  {$ifdef MSWINDOWS}
     Windows, Registry,
   {$ENDIF}
 {$ELSE}

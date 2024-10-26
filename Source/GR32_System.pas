@@ -192,7 +192,7 @@ var
 implementation
 
 uses
-{$ifdef WINDOWS}
+{$ifdef MSWINDOWS}
   Windows,
 {$endif}
   SysUtils,
@@ -367,7 +367,7 @@ begin
   Result := CPUCount;
 end;
 {$else}
-{$if defined(Windows)}
+{$if defined(MSWINDOWS)}
 var
   lpSysInfo: TSystemInfo;
 begin
@@ -383,7 +383,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-{$if (defined(Windows)) and (not defined(FPC))}
+{$if (defined(MSWINDOWS)) and (not defined(FPC))}
 function SetPerformanceAffinityMask(Force: boolean): boolean;
 type
   // Declaration in Delphi 11 lacks EfficiencyClass

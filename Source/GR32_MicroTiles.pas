@@ -47,7 +47,7 @@ interface
   {-$DEFINE MICROTILES_NO_ADAPTION_FORCE_WHOLETILES}
 
 uses
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   Windows,
 {$ENDIF}
 {$IFDEF CODESITE}

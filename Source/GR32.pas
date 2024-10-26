@@ -50,7 +50,7 @@ uses
   VCL.Graphics,
   VCL.Controls,
 {$elseif defined(FRAMEWORK_FMX)}
-  {$if defined(WINDOWS) and not defined(PLATFORM_INDEPENDENT)}
+  {$if defined(MSWINDOWS) and not defined(PLATFORM_INDEPENDENT)}
   WinApi.Windows,
   {$ifend}
   FMX.Graphics,
@@ -689,9 +689,9 @@ type
   protected
     { IInterface }
 {$IFDEF FPC_HAS_CONSTREF}
-    function QueryInterface(constref iid: TGuid; out obj): HResult; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
-    function _AddRef: LongInt; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
-    function _Release: LongInt; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function QueryInterface(constref iid: TGuid; out obj): HResult; {$ifdef MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function _AddRef: LongInt; {$ifdef MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function _Release: LongInt; {$ifdef MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
 {$ELSE}
     function QueryInterface(const iid: TGuid; out obj): HResult; stdcall;
     function _AddRef: LongInt; stdcall;
@@ -881,7 +881,7 @@ type
     procedure SetBackend(const ABackend: TCustomBackend); virtual;
 
 {$IFDEF FPC_HAS_CONSTREF}
-    function QueryInterface(constref iid: TGuid; out obj): HResult; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function QueryInterface(constref iid: TGuid; out obj): HResult; {$ifdef MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
 {$ELSE}
     function QueryInterface(const iid: TGuid; out obj): HResult; stdcall;
 {$ENDIF}

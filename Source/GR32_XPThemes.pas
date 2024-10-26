@@ -40,7 +40,7 @@ interface
 uses
 {$IFDEF FPC}
   LCLIntf, LCLType,
-  {$IFDEF Windows}
+  {$ifdef MSWINDOWS}
     Windows,
   {$ENDIF}
   {$IFDEF UNIX}
@@ -52,7 +52,7 @@ uses
   SysUtils;
 
 
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 
 { Internal support for Windows XP themes }
 var
@@ -141,7 +141,7 @@ var
 
 implementation
 
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 
 uses
   Messages,

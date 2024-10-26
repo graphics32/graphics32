@@ -41,7 +41,7 @@ interface
 uses
 {$IFDEF FPC}
   LCLIntf, LMessages, LCLType, Graphics, Controls, Forms, Dialogs, ExtCtrls,
-  {$IFDEF Windows} Windows, {$ENDIF}
+  {$ifdef MSWINDOWS} Windows, {$ENDIF}
 {$ELSE}
   Windows, Messages, {$IFDEF USEINLINING}Types,{$ENDIF}
   Graphics, Controls, Forms, Dialogs, ExtCtrls,
@@ -89,7 +89,7 @@ type
     procedure CMMouseLeave(var Message: TLMessage); message CM_MOUSELEAVE;
     procedure WMNCCalcSize(var Message: TLMNCCalcSize); message LM_NCCALCSIZE;
     procedure WMEraseBkgnd(var Message: TLmEraseBkgnd); message LM_ERASEBKGND;
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
     procedure WMNCPaint(var Message: TWMNCPaint); message LM_NCPAINT;
 {$ENDIF}
 {$ELSE}
@@ -381,7 +381,7 @@ function ClrLighten(C: TColor; Amount: Integer): TColor;
 var
   R, G, B: Integer;
 begin
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   if C < 0 then C := GetSysColor(C and $000000FF);
 {$ELSE}
   C := ColorToRGB(C);
@@ -401,7 +401,7 @@ var
 begin
   Assert(W1 in [0..255]);
   W2 := W1 xor 255;
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   if Integer(C1) < 0 then C1 := GetSysColor(C1 and $000000FF);
   if Integer(C2) < 0 then C2 := GetSysColor(C2 and $000000FF);
 {$ELSE}
@@ -705,13 +705,13 @@ const
   PushedFlags: array [Boolean] of Integer = (0, DFCS_PUSHED or DFCS_FLAT);
   DirectionFlags: array [TRBDirection] of Integer = (DFCS_SCROLLLEFT, DFCS_SCROLLUP,
     DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN);
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   DirectionXPFlags: array [TRBDirection] of Cardinal = (ABS_LEFTNORMAL,
     ABS_UPNORMAL, ABS_RIGHTNORMAL, ABS_DOWNNORMAL);
 {$ENDIF}
 var
   Edges: TRBDirections;
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   Flags: Integer;
 {$ENDIF}
 begin
@@ -740,7 +740,7 @@ begin
 {$ENDIF}
 {$ENDIF}
 
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
     if USE_THEMES then
     begin
       Flags := DirectionXPFlags[Direction];
@@ -792,7 +792,7 @@ begin
 end;
 
 procedure TArrowBar.DoDrawHandle(R: TRect; Horz, Pushed, Hot: Boolean);
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 const
   PartXPFlags: array [Boolean] of Cardinal = (SBP_THUMBBTNVERT, SBP_THUMBBTNHORZ);
   GripperFlags: array [Boolean] of Cardinal = (SBP_GRIPPERVERT, SBP_GRIPPERHORZ);
@@ -804,7 +804,7 @@ begin
   case Style of
     rbsDefault:
     begin
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
       if USE_THEMES then
       begin
         Flags := SCRBS_NORMAL;
@@ -828,13 +828,13 @@ begin
 end;
 
 procedure TArrowBar.DoDrawTrack(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean);
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 const
   PartXPFlags: array [TRBDirection] of Cardinal =
     (SBP_LOWERTRACKHORZ, SBP_LOWERTRACKVERT, SBP_UPPERTRACKHORZ, SBP_UPPERTRACKVERT);
 {$ENDIF}
 var
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
   Flags: Cardinal;
 {$ENDIF}
   C: TColor;
@@ -843,7 +843,7 @@ begin
   if (R.Right <= R.Left) or (R.Bottom <= R.Top) then Exit;
   if Style = rbsDefault then
   begin
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
     if USE_THEMES then
     begin
       Flags := SCRBS_NORMAL;
@@ -1320,7 +1320,7 @@ begin
   GR32.InflateRect(Message.CalcSize_Params.rgrc[0], -Sz, -Sz);
 end;
 
-{$IFDEF Windows}
+{$ifdef MSWINDOWS}
 procedure TArrowBar.WMNCPaint(var Message: TWMNCPaint);
 
   procedure DrawNCArea(ADC: HDC; const Clip: HRGN);

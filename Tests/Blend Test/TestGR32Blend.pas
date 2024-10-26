@@ -42,7 +42,7 @@ uses
 {$ELSE}
   TestFramework,
 {$ENDIF}
-{$ifdef Windows}
+{$ifdef MSWINDOWS}
   Windows,
 {$endif}
   Controls, Types, Classes, SysUtils, Messages, Graphics,
