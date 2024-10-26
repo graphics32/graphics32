@@ -44,14 +44,14 @@ uses
 
 type
   TMainForm = class(TForm)
-    BtnExit: TButton;
-    BtnSelectFont: TButton;
-    CbxSingleLine: TCheckBox;
-    CbxWordbreak: TCheckBox;
+    ButtonExit: TButton;
+    ButtonSelectFont: TButton;
+    CheckBoxSingleLine: TCheckBox;
+    CheckBoxWordbreak: TCheckBox;
     FontDialog: TFontDialog;
-    GBxFont: TGroupBox;
-    GbxLayout: TGroupBox;
-    GbxRendering: TGroupBox;
+    GroupBoxFont: TGroupBox;
+    GroupBoxLayout: TGroupBox;
+    GroupBoxRendering: TGroupBox;
     Img: TImage32;
     LblFontInfo: TLabel;
     LblGamma: TLabel;
@@ -60,23 +60,25 @@ type
     PnlControl: TPanel;
     PnlImage: TPanel;
     PnlZoom: TPanel;
-    RgpHinting: TRadioGroup;
-    RgpHorzAlign: TRadioGroup;
-    RgpVerticalAlign: TRadioGroup;
-    RgxMethod: TRadioGroup;
+    RadioGroupHinting: TRadioGroup;
+    RadioGroupHorizontalAlign: TRadioGroup;
+    RadioGroupVerticalAlign: TRadioGroup;
+    RadioGroupMethod: TRadioGroup;
     StatusBar: TStatusBar;
     TbrGamma: TTrackBar;
+    GroupBoxGamma: TGroupBox;
+    PanelLeft: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
-    procedure BtnExitClick(Sender: TObject);
-    procedure BtnSelectFontClick(Sender: TObject);
+    procedure ButtonExitClick(Sender: TObject);
+    procedure ButtonSelectFontClick(Sender: TObject);
     procedure ImgClick(Sender: TObject);
     procedure ImgMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer;
       Layer: TCustomLayer);
-    procedure RgpHintingClick(Sender: TObject);
-    procedure RgpHorzAlignClick(Sender: TObject);
-    procedure RgxMethodClick(Sender: TObject);
+    procedure RadioGroupHintingClick(Sender: TObject);
+    procedure RadioGroupHorizontalAlignClick(Sender: TObject);
+    procedure RadioGroupMethodClick(Sender: TObject);
     procedure TbrGammaChange(Sender: TObject);
   private
     FPath: TFlattenedPath;
@@ -98,6 +100,7 @@ uses
   Types,
   System.UITypes,
 {$ENDIF}
+  GR32.Text.Types,
   GR32_Backends,
   GR32_Gamma,
   GR32_Polygons;
@@ -148,13 +151,44 @@ begin
   Img.Bitmap.Font.Size := 9;
   FontDialog.Font.Assign(Img.Bitmap.Font);
   DisplayFontInfo;
+
+  // TODO : This is a misuse of TPaintBox32; A TImage32 would have been more suitable.
   PaintBox32.Buffer.SetSizeFrom(PaintBox32);
   PaintBox32.Buffer.Clear(clWhite32);
 
   if Supports(Img.Bitmap.Backend, IFontHintingSupport, FontHinting) then
-    RgpHinting.ItemIndex := Ord(FontHinting.GetHinting)
+    RadioGroupHinting.ItemIndex := Ord(FontHinting.GetHinting)
   else
-    RgpHinting.Enabled := False;
+    RadioGroupHinting.Enabled := False;
+
+{$ifndef FPC}
+  Self.Padding.SetBounds(4,4,4,4);
+  ButtonExit.AlignWithMargins := True;
+  ButtonSelectFont.AlignWithMargins := True;
+  GroupBoxFont.AlignWithMargins := True;
+  GroupBoxLayout.AlignWithMargins := True;
+  RadioGroupHorizontalAlign.AlignWithMargins := True;
+  RadioGroupVerticalAlign.AlignWithMargins := True;
+  CheckBoxSingleLine.AlignWithMargins := True;
+  CheckBoxWordbreak.AlignWithMargins := True;
+  GroupBoxRendering.AlignWithMargins := True;
+  RadioGroupHinting.AlignWithMargins := True;
+  GroupBoxGamma.AlignWithMargins := True;
+  RadioGroupMethod.AlignWithMargins := True;
+{$else}
+  ButtonExit.BorderSpacing.Around := 4;
+  ButtonSelectFont.BorderSpacing.Around := 4;
+  GroupBoxFont.BorderSpacing.Around := 4;
+  GroupBoxLayout.BorderSpacing.Around := 4;
+  RadioGroupHorizontalAlign.BorderSpacing.Around := 4;
+  RadioGroupVerticalAlign.BorderSpacing.Around := 4;
+  CheckBoxSingleLine.BorderSpacing.Around := 4;
+  CheckBoxWordbreak.BorderSpacing.Around := 4;
+  GroupBoxRendering.BorderSpacing.Around := 4;
+  RadioGroupHinting.BorderSpacing.Around := 4;
+  GroupBoxGamma.BorderSpacing.Around := 4;
+  RadioGroupMethod.BorderSpacing.Around := 4;
+{$endif}
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -162,7 +196,7 @@ begin
   FPath.Free;
 end;
 
-procedure TMainForm.BtnSelectFontClick(Sender: TObject);
+procedure TMainForm.ButtonSelectFontClick(Sender: TObject);
 begin
   if FontDialog.Execute then
   begin
@@ -175,10 +209,10 @@ end;
 
 procedure TMainForm.ImgClick(Sender: TObject);
 begin
- if RgxMethod.ItemIndex + 1 < RgxMethod.Items.Count then
-   RgxMethod.ItemIndex := RgxMethod.ItemIndex + 1
+ if RadioGroupMethod.ItemIndex + 1 < RadioGroupMethod.Items.Count then
+   RadioGroupMethod.ItemIndex := RadioGroupMethod.ItemIndex + 1
  else
-   RgxMethod.ItemIndex := 0;
+   RadioGroupMethod.ItemIndex := 0;
 end;
 
 procedure TMainForm.ImgMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -201,18 +235,19 @@ begin
   begin
     DestRect := FloatRect(Img.BoundsRect);
     GR32.InflateRect(DestRect, -10, -10);
-    Flag := RgpHorzAlign.ItemIndex;
+    Flag := RadioGroupHorizontalAlign.ItemIndex;
 
-    case RgpVerticalAlign.ItemIndex of
+    case RadioGroupVerticalAlign.ItemIndex of
       0: ;
       1: Flag := Flag or DT_VCENTER;
     else
       Flag := Flag or DT_BOTTOM;
     end;
 
-    if  CbxSingleLine.Checked then
+    if  CheckBoxSingleLine.Checked then
       Flag := Flag or DT_SINGLELINE;
-    if CbxWordbreak.Checked then
+
+    if CheckBoxWordbreak.Checked then
       Flag := Flag or DT_WORDBREAK;
 
     Intf.TextToPath(FPath, DestRect, CLoremIpsum, Flag);
@@ -223,7 +258,7 @@ end;
 procedure TMainForm.RenderText;
 begin
   Img.SetupBitmap(True, clWhite32);
-  case RgxMethod.ItemIndex of
+  case RadioGroupMethod.ItemIndex of
     0: PolyPolygonFS(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
     1: PolyPolygonFS_LCD(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
     2: PolyPolygonFS_LCD2(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
@@ -256,7 +291,7 @@ begin
   LblFontInfo.Caption := Format('%s'#10'%d%s', [FontDialog.Font.Name, FontDialog.Font.Size, FontStylesToString(FontDialog.Font.Style)]);
 end;
 
-procedure TMainForm.RgxMethodClick(Sender: TObject);
+procedure TMainForm.RadioGroupMethodClick(Sender: TObject);
 begin
   RenderText;
 end;
@@ -268,14 +303,14 @@ begin
   RenderText;
 end;
 
-procedure TMainForm.RgpHintingClick(Sender: TObject);
+procedure TMainForm.RadioGroupHintingClick(Sender: TObject);
 var
   FontHinting: IFontHintingSupport;
 begin
   if not Supports(Img.Bitmap.Backend, IFontHintingSupport, FontHinting) then
     exit;
 
-  case RgpHinting.ItemIndex of
+  case RadioGroupHinting.ItemIndex of
     0: FontHinting.SetHinting(thNone);
     1: FontHinting.SetHinting(thNoHorz);
   else
@@ -292,13 +327,13 @@ begin
   RenderText;
 end;
 
-procedure TMainForm.RgpHorzAlignClick(Sender: TObject);
+procedure TMainForm.RadioGroupHorizontalAlignClick(Sender: TObject);
 begin
   BuildPolygonFromText;
   RenderText;
 end;
 
-procedure TMainForm.BtnExitClick(Sender: TObject);
+procedure TMainForm.ButtonExitClick(Sender: TObject);
 begin
   Close;
 end;

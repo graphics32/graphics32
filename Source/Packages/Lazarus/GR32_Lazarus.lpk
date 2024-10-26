@@ -28,7 +28,7 @@
     <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="3"/>
-    <Files Count="48">
+    <Files Count="49">
       <Item1>
         <Filename Value="..\..\GR32.inc"/>
         <Type Value="Include"/>
@@ -174,58 +174,63 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <UnitName Value="GR32_System"/>
       </Item35>
       <Item36>
-        <Filename Value="..\..\GR32_Text_LCL_Win.pas"/>
-        <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="GR32_Text_LCL_Win"/>
-      </Item36>
-      <Item37>
         <Filename Value="..\..\GR32_Transforms.pas"/>
         <UnitName Value="GR32_Transforms"/>
-      </Item37>
-      <Item38>
+      </Item36>
+      <Item37>
         <Filename Value="..\..\GR32_VectorMaps.pas"/>
         <UnitName Value="GR32_VectorMaps"/>
-      </Item38>
-      <Item39>
+      </Item37>
+      <Item38>
         <Filename Value="..\..\GR32_VectorUtils.pas"/>
         <UnitName Value="GR32_VectorUtils"/>
-      </Item39>
-      <Item40>
+      </Item38>
+      <Item39>
         <Filename Value="..\..\GR32_VPR.pas"/>
         <UnitName Value="GR32_VPR"/>
-      </Item40>
-      <Item41>
+      </Item39>
+      <Item40>
         <Filename Value="..\..\GR32_VPR2.pas"/>
         <UnitName Value="GR32_VPR2"/>
-      </Item41>
-      <Item42>
+      </Item40>
+      <Item41>
         <Filename Value="..\..\GR32_XPThemes.pas"/>
         <UnitName Value="GR32_XPThemes"/>
-      </Item42>
-      <Item43>
+      </Item41>
+      <Item42>
         <Filename Value="..\..\GR32_Png.pas"/>
         <UnitName Value="GR32_PNG"/>
-      </Item43>
-      <Item44>
+      </Item42>
+      <Item43>
         <Filename Value="..\..\GR32.Blend.Pascal.pas"/>
         <UnitName Value="GR32.Blend.Pascal"/>
-      </Item44>
-      <Item45>
+      </Item43>
+      <Item44>
         <Filename Value="..\..\GR32.Blur.pas"/>
         <UnitName Value="GR32.Blur"/>
-      </Item45>
-      <Item46>
+      </Item44>
+      <Item45>
         <Filename Value="..\..\GR32.Blur.RecursiveGaussian.pas"/>
         <UnitName Value="GR32.Blur.RecursiveGaussian"/>
-      </Item46>
-      <Item47>
+      </Item45>
+      <Item46>
         <Filename Value="..\..\GR32.Blur.SelectiveGaussian.pas"/>
         <UnitName Value="GR32.Blur.SelectiveGaussian"/>
+      </Item46>
+      <Item47>
+        <Filename Value="..\..\GR32.Blend.Assembler.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="GR32.Blend.Assembler"/>
       </Item47>
       <Item48>
-        <Filename Value="..\..\GR32.Blend.Assembler.pas"/>
-        <UnitName Value="GR32.Blend.Assembler"/>
+        <Filename Value="..\..\GR32.Text.Types.pas"/>
+        <UnitName Value="GR32.Text.Types"/>
       </Item48>
+      <Item49>
+        <Filename Value="..\..\GR32.Text.Win.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="GR32.Text.Win"/>
+      </Item49>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

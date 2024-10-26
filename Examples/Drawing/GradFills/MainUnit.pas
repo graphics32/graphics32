@@ -108,11 +108,7 @@ uses
   GR32_VectorUtils,
   GR32_Gamma,
   GR32_Paths,
-{$IFDEF FPC}
-  GR32_Text_LCL_Win
-{$ELSE}
-  GR32_Text_VCL
-{$ENDIF};
+  GR32_Backends;
 
 const
   Colors: array[0..147] of TIdentMapEntry = (
@@ -386,6 +382,7 @@ var
   Outline: TArrayOfFloatPoint;
   Filler: TSamplerFiller;
   Sampler: TRadialGradientSampler;
+  TextToPath: ITextToPathSupport;
 begin
 
   if Screen.PixelsPerInch > 96 then
@@ -405,26 +402,24 @@ begin
   FGradientLUT.OnOrderChanged := LUTOrderChangedHandler;
   FGradient.FillColorLookUpTable(FGradientLUT);
 
-  //These text paths only need to be gotten once ...
-  TextPath := TFlattenedPath.Create;
-  try
-    TextToPath(Self.Font.Handle, TextPath, DpiAwareFloatRect(50, 10, 450, 30),
-      'Click & drag control buttons to adjust gradients', 0);
-    FTextNotesPoly := TextPath.Path;
+  if (Supports(ImgView32.Bitmap.Backend, ITextToPathSupport, TextToPath)) then
+  begin
+    // These text paths only need to be gotten once ...
+    TextPath := TFlattenedPath.Create;
+    try
+      TextToPath.TextToPath(TextPath, DpiAwareFloatRect(50, 10, 450, 30), 'Click & drag control buttons to adjust gradients');
+      FTextNotesPoly := TextPath.Path;
 
-    with FLinearBounds do
-      TextToPath(Self.Font.Handle, TextPath,
-        FloatRect(Left, Bottom, Left + DPIScale(150),Bottom + DPIScale(20)),
-        'Linear gradients', 0);
-    FTextTopPoly := TextPath.Path;
+      with FLinearBounds do
+        TextToPath.TextToPath(TextPath, FloatRect(Left, Bottom, Left + DPIScale(150),Bottom + DPIScale(20)), 'Linear gradients');
+      FTextTopPoly := TextPath.Path;
 
-    with FRadialBounds do
-      TextToPath(Self.Font.Handle, TextPath,
-        FloatRect(Left, Bottom, Left + DPIScale(150), Bottom + DPIScale(20)),
-        'Radial gradients', 0);
-    FTextBottomPoly := TextPath.Path;
-  finally
-    TextPath.Free;
+      with FRadialBounds do
+        TextToPath.TextToPath(TextPath, FloatRect(Left, Bottom, Left + DPIScale(150), Bottom + DPIScale(20)), 'Radial gradients');
+      FTextBottomPoly := TextPath.Path;
+    finally
+      TextPath.Free;
+    end;
   end;
 
   FTextGR32 := LoadPolysFromResource('Graphics32_Crv');

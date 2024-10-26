@@ -202,8 +202,7 @@ type
 implementation
 
 uses
-  // The VCL/Windows function are compatible with Lazarus/Win, so just use those
-  GR32_Text_VCL;
+  GR32.Text.Win;
 
 var
   StockFont: HFONT;
@@ -540,25 +539,24 @@ var
   R: TFloatRect;
 begin
   R := FloatRect(X, Y, X, Y);
-  GR32_Text_VCL.TextToPath(Font.Handle, Path, R, Text, 0);
+  TextToolsWin.TextToPath(Font.Handle, Path, R, Text, 0);
 end;
 
 procedure TLCLBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
   const Text: string; Flags: Cardinal);
 begin
-  GR32_Text_VCL.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
+  TextToolsWin.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
 end;
 
 function TLCLBackend.MeasureText(const DstRect: TFloatRect;
   const Text: string; Flags: Cardinal): TFloatRect;
 begin
-  Result := GR32_Text_VCL.MeasureText(Font.Handle, DstRect, Text, Flags);
+  Result := TextToolsWin.MeasureText(Font.Handle, DstRect, Text, Flags);
 end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
-  Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, 0, 0,
-    SRCCOPY);
+  Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, 0, 0, SRCCOPY);
 (*
 StretchDIBits(
     hDst, DstX, DstY, FOwner.Width, FOwner.Height,

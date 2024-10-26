@@ -43,6 +43,7 @@ uses
   VCL.Graphics, VCL.Controls,
   GR32,
   GR32_Backends,
+  GR32.Text.Types,
   GR32_Containers,
   GR32_Image,
   GR32_Backends_Generic,
@@ -205,7 +206,7 @@ implementation
 uses
   System.Math,
   System.Types,
-  GR32_Text_VCL;
+  GR32.Text.Win;
 
 var
   StockFont: HFONT;
@@ -270,17 +271,19 @@ begin
   end;
 end;
 
-function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string;
-  Flags: Cardinal): TFloatRect;
+function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 begin
-  Result := GR32_Text_VCL.MeasureText(Font.Handle, DstRect, Text, Flags);
+  Result := TextToolsWin.MeasureText(Font.Handle, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.FinalizeSurface;
 begin
-  if FHDC <> 0 then DeleteDC(FHDC);
+  if FHDC <> 0 then
+    DeleteDC(FHDC);
   FHDC := 0;
-  if FBitmapHandle <> 0 then DeleteObject(FBitmapHandle);
+
+  if FBitmapHandle <> 0 then
+    DeleteObject(FBitmapHandle);
   FBitmapHandle := 0;
 
   FBits := nil;
@@ -288,7 +291,7 @@ end;
 
 procedure TGDIBackend.DeleteCanvas;
 begin
-  if Assigned(FCanvas) then
+  if (FCanvas <> nil) then
   begin
     FCanvas.Handle := 0;
     FCanvas.Free;
@@ -303,7 +306,9 @@ end;
 
 procedure TGDIBackend.Changed;
 begin
-  if FCanvas <> nil then FCanvas.Handle := Self.Handle;
+  if FCanvas <> nil then
+    FCanvas.Handle := Self.Handle;
+
   inherited;
 end;
 
@@ -379,13 +384,13 @@ var
   R: TFloatRect;
 begin
   R := FloatRect(X, Y, X, Y);
-  GR32_Text_VCL.TextToPath(Font.Handle, Path, R, Text, 0);
+  TextToolsWin.TextToPath(Font.Handle, Path, R, Text, 0);
 end;
 
 procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
   const Text: string; Flags: Cardinal);
 begin
-  GR32_Text_VCL.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
+  TextToolsWin.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.UpdateFont;
@@ -442,7 +447,7 @@ end;
 
 function TGDIBackend.GetCanvas: TCanvas;
 begin
-  if not Assigned(FCanvas) then
+  if (FCanvas = nil) then
   begin
     FCanvas := TCanvas.Create;
     FCanvas.Handle := Handle;
@@ -543,12 +548,12 @@ end;
 
 function TGDIBackend.GetHinting: TTextHinting;
 begin
-  Result := GR32_Text_VCL.GetHinting;
+  Result := TextToolsWin.GetHinting;
 end;
 
 procedure TGDIBackend.SetHinting(Value: TTextHinting);
 begin
-  GR32_Text_VCL.SetHinting(Value);
+  TextToolsWin.SetHinting(Value);
 end;
 
 procedure TGDIBackend.SetCanvasChange(Handler: TNotifyEvent);
@@ -569,7 +574,8 @@ end;
 
 procedure TGDIBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
-  if FOwner.Empty then Exit;
+  if FOwner.Empty then
+    Exit;
 
   if not FOwner.MeasuringMode then
     StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
@@ -764,8 +770,7 @@ begin
   if DeviceContext = 0 then
     exit;
   try
-    Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo, DIB_RGB_COLORS,
-      Buffer, 0, 0);
+    Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo, DIB_RGB_COLORS, Buffer, 0, 0);
 
     if Bitmap = 0 then
       raise EBackend.Create(RCStrCannotCreateCompatibleDC);
