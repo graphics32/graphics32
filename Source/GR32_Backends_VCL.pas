@@ -41,12 +41,12 @@ uses
   System.SysUtils, System.Classes,
   WinAPI.Windows,
   VCL.Graphics, VCL.Controls,
+
   GR32,
   GR32_Backends,
+  GR32_Backends_Generic,
   GR32.Text.Types,
   GR32_Containers,
-  GR32_Image,
-  GR32_Backends_Generic,
   GR32_Paths;
 
 type
@@ -98,7 +98,8 @@ type
     { IPaintSupport }
     procedure ImageNeeded;
     procedure CheckPixmap;
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas); overload;
+    procedure DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas); overload;
 
     { IBitmapContextSupport }
     function GetBitmapInfo: TBitmapInfo;
@@ -193,7 +194,8 @@ type
     { IPaintSupport }
     procedure ImageNeeded;
     procedure CheckPixmap;
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas); overload;
+    procedure DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas); overload;
 
     { IDeviceContextSupport }
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
@@ -623,8 +625,7 @@ begin
 
 end;
 
-procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
-  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas);
 var
   i: Integer;
   CanvasHandle: HDC;
@@ -632,16 +633,15 @@ var
 begin
   CanvasHandle := ACanvas.Handle;
   BufferHandle := ABuffer.Handle;
-  if AInvalidRects.Count > 0 then
-  begin
-    for i := 0 to AInvalidRects.Count - 1 do
-      with AInvalidRects[i]^ do
-        BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
-  end else
-  begin
-    with APaintBox.GetViewportRect do
+  for i := 0 to AInvalidRects.Count - 1 do
+    with AInvalidRects[i]^ do
       BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
-  end;
+end;
+
+procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);
+begin
+  BitBlt(ACanvas.Handle, AInvalidRect.Left, AInvalidRect.Top, AInvalidRect.Width, AInvalidRect.Height,
+    ABuffer.Handle, AInvalidRect.Left, AInvalidRect.Top, SRCCOPY);
 end;
 
 
@@ -702,8 +702,21 @@ begin
 
 end;
 
-procedure TGDIMemoryBackend.DoPaintRect(ABuffer: TBitmap32;
-  ARect: TRect; ACanvas: TCanvas);
+procedure TGDIMemoryBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas);
+var
+  i : Integer;
+begin
+  for i := 0 to AInvalidRects.Count - 1 do
+    DoPaintRect(ABuffer, AInvalidRects[i]^, ACanvas);
+end;
+
+procedure TGDIMemoryBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);
+begin
+  DoPaintRect(ABuffer, AInvalidRect, ACanvas);
+end;
+
+
+procedure TGDIMemoryBackend.DoPaintRect(ABuffer: TBitmap32; ARect: TRect; ACanvas: TCanvas);
 var
   Bitmap        : HBITMAP;
   DeviceContext : HDC;
@@ -837,19 +850,6 @@ function TGDIMemoryBackend.GetHandle: HDC;
 begin
   Result := 0;
 end;
-
-procedure TGDIMemoryBackend.DoPaint(ABuffer: TBitmap32;
-  AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
-var
-  i : Integer;
-begin
-  if AInvalidRects.Count > 0 then
-    for i := 0 to AInvalidRects.Count - 1 do
-      DoPaintRect(ABuffer, AInvalidRects[i]^, ACanvas)
-  else
-    DoPaintRect(ABuffer, APaintBox.GetViewportRect, ACanvas);
-end;
-
 
 initialization
   StockFont := GetStockObject(SYSTEM_FONT);

@@ -39,10 +39,14 @@ interface
 uses
   { RTL and LCL }
   LCLIntf, LCLType, types, Controls, SysUtils, Classes, Graphics,
-  { Graphics 32 }
-  GR32, GR32_Backends, GR32_Containers, GR32_Image,
+
   { CustomDrawn bindings }
-  GraphType, FPImage, IntfGraphics, LCLProc, CustomDrawnProc;
+  GraphType, FPImage, IntfGraphics, LCLProc, CustomDrawnProc,
+
+  { Graphics 32 }
+  GR32,
+  GR32_Backends,
+  GR32_Containers;
 
 type
 
@@ -86,9 +90,10 @@ type
     function Empty: Boolean; override;
   public
     { IPaintSupport }
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
     procedure ImageNeeded;
     procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas); overload;
+    procedure DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas); overload;
 
     { IDeviceContextSupport }
     function GetHandle: HDC;
@@ -217,8 +222,12 @@ begin
 
 end;
 
-procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
-  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas);
+begin
+  ACanvas.Draw(0, 0, FBitmap);
+end;
+
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);
 begin
   ACanvas.Draw(0, 0, FBitmap);
 end;

@@ -45,7 +45,10 @@ uses
   gdk, gdkpixbuf, glib, gtkdef,
 {$ENDIF}
   Graphics, GraphType, FPImage, IntfGraphics,
-  GR32, GR32_Backends, GR32_Containers, GR32_Image;
+
+  GR32,
+  GR32_Backends,
+  GR32_Containers;
 
 type
 
@@ -88,9 +91,10 @@ type
     procedure FinalizeSurface; override;
   protected
     // IPaintSupport
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
     procedure ImageNeeded;
     procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas); overload;
+    procedure DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas); overload;
   protected
     // IDeviceContextSupport
     function GetHandle: HDC;
@@ -315,8 +319,7 @@ begin
   // empty by purpose
 end;
 
-procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
-  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas);
 var
   P: TPoint;
 begin
@@ -327,6 +330,11 @@ begin
     ABuffer.Width, ABuffer.Height,
     GDK_RGB_DITHER_NONE, pguchar(ABuffer.Bits), ABuffer.Width * SizeOf(TColor32)
   );
+end;
+
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);
+begin
+  DoPaint(ABuffer, nil, ACanvas);
 end;
 
 

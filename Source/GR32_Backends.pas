@@ -61,7 +61,6 @@ uses
   GR32,
   GR32.Text.Types,
   GR32_Containers,
-  GR32_Image,
   GR32_Paths;
 
 type
@@ -136,7 +135,9 @@ type
     ['{CE64DBEE-C4A9-4E8E-ABCA-1B1FD6F45924}']
     procedure ImageNeeded;
     procedure CheckPixmap;
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas); overload;
+    procedure DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas); overload;
   end;
 
   IUpdateRectSupport = interface(IUnknown)

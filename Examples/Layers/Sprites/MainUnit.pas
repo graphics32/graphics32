@@ -41,8 +41,7 @@ uses
   {$IFDEF FPC} LCLIntf, LResources, Variants, {$ENDIF}
   {$IFNDEF FPC} AppEvnts, {$ENDIF} {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  Math, Buttons, GR32, GR32_Transforms, GR32_Image, GR32_Layers,
-  GR32_Containers;
+  Math, Buttons, GR32, GR32_Transforms, GR32_Image, GR32_Layers;
 
 const
   MAX_RUNS = 3;

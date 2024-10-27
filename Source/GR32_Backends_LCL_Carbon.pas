@@ -39,12 +39,17 @@ interface
 uses
   { RTL and LCL }
   LCLIntf, LCLType, types, Controls, SysUtils, Classes, Graphics,
-  { Graphics 32 }
-  GR32, GR32_Backends, GR32_Containers, GR32_Image,
+
   { Carbon bindings }
   MacOSAll,
+
   { Carbon lcl interface }
-  CarbonCanvas, CarbonPrivate;
+  CarbonCanvas, CarbonPrivate,
+
+  { Graphics 32 }
+  GR32,
+  GR32_Backends,
+  GR32_Containers;
 
 const
   STR_GenericRGBProfilePath = '/System/Library/ColorSync/Profiles/Generic RGB Profile.icc';
@@ -92,7 +97,8 @@ type
     { IPaintSupport }
     procedure ImageNeeded;
     procedure CheckPixmap;
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas); overload;
+    procedure DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas); overload;
 
     { IDeviceContextSupport }
     function GetHandle: HDC;
@@ -300,8 +306,7 @@ begin
 
 end;
 
-procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
-  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas);
 var
   ImageRef: CGImageRef;
 begin
@@ -320,6 +325,11 @@ begin
     if Assigned(ImageRef) then
       CGImageRelease(ImageRef);
   end;
+end;
+
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);
+begin
+  DoPaint(ABuffer, nil, ACanvas);
 end;
 
 { IDeviceContextSupport }

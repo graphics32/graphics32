@@ -1528,7 +1528,10 @@ begin
 
   FBuffer.Lock;
   try
-    PaintSupport.DoPaint(FBuffer, FUpdateRects, Canvas, Self);
+    if (FUpdateRects.Count > 0) then
+      PaintSupport.DoPaint(FBuffer, FUpdateRects, Canvas)
+    else
+      PaintSupport.DoPaint(FBuffer, GetViewportRect, Canvas);
   finally
     FBuffer.Unlock;
   end;
