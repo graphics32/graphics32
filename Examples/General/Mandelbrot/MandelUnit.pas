@@ -219,7 +219,6 @@ begin
   C1 := FPalette[Min(I, High(FPalette)-1)];
   C2 := FPalette[Min(I+1, High(FPalette))];
   Result := CombineReg(C1, C2, W);
-  EMMS;
 end;
 
 procedure TMandelbrotSampler.CalculatePalette;

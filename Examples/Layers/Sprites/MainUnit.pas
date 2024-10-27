@@ -42,7 +42,7 @@ uses
   {$IFNDEF FPC} AppEvnts, {$ENDIF} {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   Math, Buttons, GR32, GR32_Transforms, GR32_Image, GR32_Layers,
-  GR32_Containers, GR32_MicroTiles;
+  GR32_Containers;
 
 const
   MAX_RUNS = 3;
@@ -96,11 +96,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Types,
@@ -108,7 +104,6 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-  GR32_Filters,
   GR32.ImageFormats.PNG32;
 
 { TMainForm }

@@ -364,6 +364,8 @@
     {$define RGBA_FORMAT}
   {$ifend}
 
+  {$define USE_FONT_QUALITY} // Apparently Font.Quality now also works with VCL. Not sure which version fixed it though...
+
 {$else}
 (*
 ** FPC
@@ -393,6 +395,9 @@
   {$ifend}
 
   {-$define HasParentBackground} // FPC has ParentBackground but we haven't implemented support for it
+
+  {$define USE_FONT_QUALITY} // Font.Quality works on LCL
+
 {$ifend}
 
 

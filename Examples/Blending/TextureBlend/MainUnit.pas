@@ -192,8 +192,6 @@ begin
       else
         WImg^ := $FF000000 + W shl 16 + W shl 8 + W;
 
-      EMMS;
-
       D^ := D^ and $00FFFFFF or W shl 24;
       Inc(D);
       Inc(WImg);
@@ -236,9 +234,6 @@ begin
   BlendTransfer(CombImg.Bitmap, 0, 0, CombImg.Bitmap.BoundsRect, TexBImg.Bitmap,
     TexBImg.Bitmap.BoundsRect, TexAImg.Bitmap, TexAImg.Bitmap.BoundsRect,
     ABlendRegEx, MasterAlphaBar.Position);
-
-  // This is needed because we may use MMX in the custom pixelcombiners
-  EMMS;
 
   // Needed under Mac OS X
   CombImg.Invalidate;

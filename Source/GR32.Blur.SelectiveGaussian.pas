@@ -142,7 +142,6 @@ uses
   GR32.Blur,
   GR32_Bindings,
   GR32_LowLevel,
-  GR32_Blend, // EMMS
   GR32_System,
   GR32_OrdinalMaps;
 
@@ -1293,7 +1292,6 @@ begin
     end;
 
   finally
-    EMMS;
     for Plane := Low(Map) to High(Map) do
       Map[Plane].Free;
   end;
@@ -1515,7 +1513,6 @@ begin
     end;
 
   finally
-    EMMS;
     for Plane := Low(Map) to High(Map) do
       Map[Plane].Free;
   end;

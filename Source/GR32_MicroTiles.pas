@@ -37,14 +37,15 @@ interface
 
 {$include GR32.inc}
 
-{-$DEFINE CODESITE}
-{-$DEFINE CODESITE_HIGH}
-{-$DEFINE PROFILINGDRYRUN}
 {-$DEFINE MICROTILES_DEBUGDRAW}
   {-$DEFINE MICROTILES_DEBUGDRAW_RANDOM_COLORS}
   {-$DEFINE MICROTILES_DEBUGDRAW_UNOPTIMIZED}
 {-$DEFINE MICROTILES_NO_ADAPTION}
   {-$DEFINE MICROTILES_NO_ADAPTION_FORCE_WHOLETILES}
+
+// CodeSite test stuff
+{-$DEFINE CODESITE}
+{-$DEFINE CODESITE_HIGH}
 
 uses
 {$ifdef MSWINDOWS}
@@ -290,7 +291,8 @@ begin
   end;
 end;
 
-{$IFDEF TARGET_x86}
+// TODO : rewrite MMX implementations using SSE
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_MMX)) and defined(TARGET_x86)}
 procedure MicroTileUnion_EMMX(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 var
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
@@ -331,7 +333,7 @@ begin
     end;
   end;
 end;
-{$ENDIF}
+{$ifend}
 
 { MicroTiles auxiliary routines }
 
@@ -706,7 +708,8 @@ begin
   end;
 end;
 
-{$IFDEF TARGET_x86}
+// TODO : rewrite MMX implementations using SSE
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_MMX)) and defined(TARGET_x86)}
 procedure MicroTilesUnion_EMMX(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
@@ -772,7 +775,7 @@ begin
     db $0F,$77               /// EMMS
   end;
 end;
-{$ENDIF}
+{$ifend}
 
 procedure MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles; RoundToWholeTiles: Boolean);
 var
@@ -1681,12 +1684,12 @@ begin
   Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_Pas, [isPascal]);
   Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_Pas, [isPascal]);
 
-{$IFNDEF PUREPASCAL}
-{$IFDEF TARGET_x86}
+  // TODO : rewrite MMX implementations using SSE
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_MMX)) and defined(TARGET_x86)}
   Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_EMMX, [isExMMX]);
   Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_EMMX, [isExMMX]);
-{$ENDIF}
-{$ENDIF}
+{$ifend}
+
   Registry.RebindAll;
 end;
 

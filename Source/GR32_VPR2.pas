@@ -296,7 +296,6 @@ begin
 
     // 3. Blend colors
     BlendLine(@FG[P.Min], @Dst[P.Min], N);
-    EMMS;
 
     // 4. Clear opacity map
     FillLongWord(Src[P.Min], N, 0);
@@ -541,7 +540,6 @@ begin
 
     // 3. Blend colors
     BlendLine(@FG[P.Min], @Dst[P.Min], N);
-    EMMS;
 
     // 4. Clear opacity map
     FillLongWord(Src[P.Min], N, 0);

@@ -366,7 +366,6 @@ end;
 procedure TRasterizer.AssignColorBlend(var Dst: TColor32; Src: TColor32);
 begin
   FBlendMemEx(Src, Dst, FSrcAlpha);
-  EMMS;
 end;
 
 procedure TRasterizer.AssignColorOpaque(var Dst: TColor32; Src: TColor32);
@@ -886,7 +885,6 @@ begin
       begin
         C := GetSample(P.X, P.Y);
         Diff := Intensity(ColorSub(C, CLast));
-        EMMS;
         NewDir := Dir;
         AssignColor(Dst.PixelPtr[P.X, P.Y]^, C);
         Visited[P.X - DstRect.Left, P.Y - DstRect.Top] := True;
@@ -899,7 +897,6 @@ begin
       begin
         C := GetSample(P.X, P.Y);
         D := Intensity(ColorSub(C, CLast));
-        EMMS;
         if D < Diff then
         begin
           NewDir := LEFT[Dir];
@@ -916,7 +913,6 @@ begin
       begin
         C := GetSample(P.X, P.Y);
         D := Intensity(ColorSub(C, CLast));
-        EMMS;        
         if D < Diff then
         begin
           NewDir := RIGHT[Dir];

@@ -440,7 +440,6 @@ begin
       end;
       Inc(RowOffset, ImageWidth);
     end;
-    EMMS;
   finally
     Mask.Free;
   end;
@@ -712,7 +711,6 @@ begin
       end;
       Inc(RowOffset, ImageWidth);
     end;
-    EMMS;
   finally
     Mask.Free;
   end;
@@ -1127,7 +1125,6 @@ begin
           else if (MaskClr.A = 255) then
             ImagePixel^ := DivideToColor32(SumRec);
         end;
-        EMMS;
       end;
     end;
 
@@ -1556,7 +1553,6 @@ begin
           else if (MaskClr.A = 255) then
             ImagePixel^ := DivideToColor32(SumRec);
         end;
-        EMMS;
       end;
     end;
 
@@ -1768,7 +1764,6 @@ begin
           if (MaskClr.A = 255) then
             ImagePixel^ := DivideToColor32(SumRec);
         end;
-        EMMS;
       end;
 
     // un-rotate the now blurred image back into BmpCutout ...
@@ -2007,7 +2002,6 @@ begin
           if (MaskClr.A = 255) then
             ImagePixel^ := DivideToColor32(SumRec);
         end;
-        EMMS;
       end;
 
     // un-rotate the now blurred image back into BmpCutout ...
