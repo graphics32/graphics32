@@ -2747,87 +2747,6 @@ asm
 {$ENDIF}
 end;
 
-//------------------------------------------------------------------------------
-// BlockAverage_3DNow
-//------------------------------------------------------------------------------
-{$IFDEF USE_3DNOW}
-function BlockAverage_3DNow(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
-asm
-        PUSH       EBX
-        PUSH       ESI
-        PUSH       EDI
-
-        MOV        EBX,OffSrc
-        MOV        ESI,EAX
-        MOV        EDI,EDX
-
-        SHL        ESI,$02
-        SUB        EBX,ESI
-
-        PXOR       MM1,MM1
-        PXOR       MM2,MM2
-        PXOR       MM7,MM7
-
-@@LoopY:
-        MOV        ESI,EAX
-        PXOR       MM0,MM0
-        LEA        ECX,[ECX+ESI*4]
-        NEG        ESI
-        db $0F,$0D,$84,$B1,$00,$02,$00,$00 // PREFETCH [ECX + ESI * 4 + 512]
-@@LoopX:
-        MOVD       MM6,[ECX + ESI * 4]
-        PUNPCKLBW  MM6,MM7
-        PADDW      MM0,MM6
-        INC        ESI
-
-        JNZ        @@LoopX
-
-        MOVQ       MM6,MM0
-        PUNPCKLWD  MM6,MM7
-        PADDD      MM1,MM6
-        MOVQ       MM6,MM0
-        PUNPCKHWD  MM6,MM7
-        PADDD      MM2,MM6
-        ADD        ECX,EBX
-        DEC        EDX
-
-        JNZ        @@LoopY
-
-        MUL        EDI
-        MOV        ECX,EAX
-        MOV        EAX,$01000000
-        div        ECX
-        MOV        ECX,EAX
-
-        MOVD       EAX,MM1
-        MUL        ECX
-        SHR        EAX,$18
-        MOV        EDI,EAX
-
-        PSRLQ      MM1,$20
-        MOVD       EAX,MM1
-        MUL        ECX
-        SHR        EAX,$10
-        AND        EAX,$0000FF00
-        ADD        EDI,EAX
-
-        MOVD       EAX,MM2
-        MUL        ECX
-        SHR        EAX,$08
-        AND        EAX,$00FF0000
-        ADD        EDI,EAX
-
-        PSRLQ      MM2,$20
-        MOVD       EAX,MM2
-        MUL        ECX
-        AND        EAX,$FF000000
-        ADD        EAX,EDI
-
-        POP        EDI
-        POP        ESI
-        POP        EBX
-end;
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 // BlockAverage_SSE2
@@ -5258,11 +5177,8 @@ begin
   ResamplersRegistry.ADD(@@Interpolator, @Interpolator_Pas, [isPascal]);
 {$IFNDEF PUREPASCAL}
   ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_MMX, [isMMX]);
-{$IFDEF USE_3DNOW}
-  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_3DNow, [is3DNow]);
-{$ENDIF}
   ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_SSE2, [isSSE2]);
-  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_MMX, [isMMX, isSSE]);
+  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_MMX, [isMMX]);
   ResamplersRegistry.ADD(@@Interpolator, @Interpolator_SSE2, [isSSE2]);
 {$ENDIF}
   ResamplersRegistry.RebindAll;
