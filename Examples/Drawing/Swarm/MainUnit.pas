@@ -42,6 +42,7 @@ uses
   SysUtils, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Types,
   GR32,
+  GR32_System,
   GR32_Image,
   GR32.Noise.Simplex;
 
@@ -122,7 +123,7 @@ type
     FParticles: TArray<TParticle>;
     FNoise: TSimplexNoise;
     FFrameCount: integer;
-    FLastTick: UInt64;
+    FFrameRateStopwatch: TStopwatch;
 
     FBenchmark: boolean;
     FIteration: integer;
@@ -165,7 +166,7 @@ begin
 
   FOptionAnimateColors := True;
   FOptionFade := True;
-  FLastTick := GetTickCount;
+  FFrameRateStopwatch := TStopwatch.StartNew;
 
   FBenchmark := FindCmdLineSwitch('benchmark');
 
@@ -352,22 +353,23 @@ end;
 
 procedure TFormMain.TimerFrameRateTimer(Sender: TObject);
 var
-  TimeElapsed: Cardinal;
   FPS: Single;
 begin
-  TTimer(Sender).Enabled := False;
-  TimeElapsed := GetTickCount64 - FLastTick;
+  FFrameRateStopwatch.Stop;
 
-  if (TimeElapsed <> 0) then
-    FPS := 1000 * FFrameCount / TimeElapsed
+  TTimer(Sender).Enabled := False;
+
+  if (FFrameRateStopwatch.ElapsedMilliseconds <> 0) then
+    FPS := 1000 * FFrameCount / FFrameRateStopwatch.ElapsedMilliseconds
   else
     FPS := 0;
 
   Caption := Format('%.0n particles @ %.0n fps', [Length(FParticles)*1.0, FPS]);
 
   FFrameCount := 0;
-  FLastTick := GetTickCount;
   TTimer(Sender).Enabled := True;
+
+  FFrameRateStopwatch := TStopwatch.StartNew;
 end;
 
 { TParticle }

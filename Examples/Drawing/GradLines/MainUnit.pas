@@ -44,6 +44,7 @@ uses
   GR32,
   GR32_Blend,
   GR32_Image,
+  GR32_System,
   GR32_LowLevel;
 
 type
@@ -96,7 +97,7 @@ type
     Pass: Integer;
     DrawPasses: Integer;
     FrameCount: integer;
-    LastCheck: Cardinal;
+    FStopwatch: TStopwatch;
     procedure AppEventsIdle(Sender: TObject; var Done: Boolean);
     procedure StartBenchmark;
   public
@@ -339,7 +340,7 @@ begin
   RandSeed := 0;
   AddLine;
 
-  LastCheck := GetTickCount;
+  FStopwatch := TStopwatch.StartNew;
   TimerFrameRate.Enabled := True;
 end;
 
@@ -350,7 +351,7 @@ begin
   RandSeed := 0;
   AddLines(10);
 
-  LastCheck := GetTickCount;
+  FStopwatch := TStopwatch.StartNew;
   TimerFrameRate.Enabled := True;
 end;
 
@@ -390,21 +391,25 @@ end;
 
 procedure TFormGradientLines.TimerFrameRateTimer(Sender: TObject);
 var
-  TimeElapsed: Cardinal;
   FPS: Single;
 begin
-  TTimer(Sender).Enabled := False;
-  TimeElapsed := GetTickCount - LastCheck;
+  FStopwatch.Stop;
 
-  FPS := FrameCount / (TimeElapsed / 1000);
+  TTimer(Sender).Enabled := False;
+
+  if (FStopwatch.ElapsedMilliseconds <> 0) then
+    FPS := 1000 * FrameCount / FStopwatch.ElapsedMilliseconds
+  else
+    FPS := 0;
+
   if (FBenchMark) then
     Caption := Format('%.0n fps (%.0n)', [FPS, 1.0 * FBenchMarkCounter])
   else
     Caption := Format('%.0n fps', [FPS]);
 
   FrameCount := 0;
-  LastCheck := GetTickCount;
   TTimer(Sender).Enabled := True;
+  FStopwatch := TStopwatch.StartNew;
 end;
 
 procedure TFormGradientLines.RgpDrawClick(Sender: TObject);

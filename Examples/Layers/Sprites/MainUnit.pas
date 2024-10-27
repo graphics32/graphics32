@@ -41,7 +41,12 @@ uses
   {$IFDEF FPC} LCLIntf, LResources, Variants, {$ENDIF}
   {$IFNDEF FPC} AppEvnts, {$ENDIF} {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  Math, Buttons, GR32, GR32_Transforms, GR32_Image, GR32_Layers;
+  Math, Buttons,
+  GR32,
+  GR32_System,
+  GR32_Transforms,
+  GR32_Image,
+  GR32_Layers;
 
 const
   MAX_RUNS = 3;
@@ -77,7 +82,7 @@ type
   public
     Velocities: TArrayOfFloatPoint;
     FramesDrawn: Integer;
-    LastCheck: Cardinal;
+    FFramerateStopwatch: TStopwatch;
     LastSeed: Integer;
     PriorityClass, Priority: Integer;
 
@@ -253,18 +258,21 @@ end;
 
 procedure TMainForm.TimerFPSTimer(Sender: TObject);
 var
-  TimeElapsed: Cardinal;
   Diff: Integer;
   FPS: Single;
   LocalFormatSettings: TFormatSettings;
 begin
+  FFramerateStopwatch.Stop;
+
   TimerFPS.Enabled := False;
-  TimeElapsed := GetTickCount - LastCheck;
 
   LocalFormatSettings := FormatSettings;
   LocalFormatSettings.DecimalSeparator := '.';
 
-  FPS := FramesDrawn / (TimeElapsed / 1000);
+  if (FFramerateStopwatch.ElapsedMilliseconds <> 0) then
+    FPS := 1000 * FramesDrawn / FFramerateStopwatch.ElapsedMilliseconds
+  else
+    FPS := 0;
   LblFPS.Caption := Format('%.2f fps', [FPS], LocalFormatSettings);
 
   if BenchmarkMode then
@@ -275,19 +283,26 @@ begin
 
     if Image32.Layers.Count = 10 then
       Diff := 4
-    else if Image32.Layers.Count = 14 then
+    else
+    if Image32.Layers.Count = 14 then
       Diff := 6
-    else if Image32.Layers.Count < 100 then
+    else
+    if Image32.Layers.Count < 100 then
       Diff := 10
-    else if Image32.Layers.Count = 100 then
+    else
+    if Image32.Layers.Count = 100 then
       Diff := 40
-    else if Image32.Layers.Count = 140 then
+    else
+    if Image32.Layers.Count = 140 then
       Diff := 60
-    else if Image32.Layers.Count < 1000 then
+    else
+    if Image32.Layers.Count < 1000 then
       Diff := 100
-    else if Image32.Layers.Count < 2000 then
+    else
+    if Image32.Layers.Count < 2000 then
       Diff := 500
-    else if Image32.Layers.Count >= 2000 then
+    else
+    if Image32.Layers.Count >= 2000 then
     begin
       BtnBenchmarkClick(nil);
 
@@ -298,8 +313,8 @@ begin
   end;
 
   FramesDrawn := 0;
-  LastCheck := GetTickCount;
   TimerFPS.Enabled := True;
+  FFramerateStopwatch := TStopwatch.StartNew;
 end;
 
 procedure TMainForm.Image32Resize(Sender: TObject);
@@ -367,8 +382,9 @@ begin
   BenchmarkList.Clear;
   BtnClearAllClick(nil);
   AddLayers(10);
-  LastCheck := GetTickCount;
+
   TimerFPS.Interval := MAX_RUNS * 5000;
+  FFramerateStopwatch := TStopwatch.StartNew;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
