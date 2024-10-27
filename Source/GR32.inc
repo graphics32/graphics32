@@ -139,27 +139,6 @@
 
 
 
-(*
-  Symbol OMIT_MMX:
-  ----------------
-
-     If defined MMX optimizations are not used (omitted)
-
-   For faster pixel/color processing, MMX can be used which results in a huge
-   performance boost over PUREPASCAL code or native assembler code.
-   However, there's a penalty (a call to EMMS) when switching between FPU and
-   MMX registers. This call is not necessary when SSE2 is available. Though,
-   for backward compatibility it is necessary to call EMMS even if SSE2 is used.
-
-   NOTE: On every x64 system SSE2 is available and thus MMX support is not
-   necessary. In fact it is problematic in case the Delphi XE2 compiler is used.
-*)
-
-  {-$DEFINE OMIT_MMX}
-  {$IFDEF TARGET_x64}
-    {$DEFINE OMIT_MMX}
-  {$ENDIF}
-
 
 (*
   Symbol OMIT_SSE2:
@@ -260,4 +239,7 @@
 
 {-$DEFINE TEST_BLENDMEMRGB128SSE4}
 {$define GR32_WRAPMODE_REFLECT}
+
+// MMX (and EMMX) is no longer supported on any platform.
+{$define OMIT_MMX}
 

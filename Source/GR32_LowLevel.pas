@@ -406,75 +406,7 @@ asm
 {$ENDIF}
 end;
 
-procedure FillLongword_MMX(var X; Count: Cardinal; Value: Longword); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$IFDEF TARGET_x86}
-        // EAX = X;   EDX = Count;   ECX = Value
-        TEST       EDX, EDX   // if Count = 0 then
-        JZ         @Exit      //   Exit
-
-        PUSH       EDI
-        MOV        EDI, EAX
-        MOV        EAX, EDX
-
-        SHR        EAX, 1
-        SHL        EAX, 1
-        SUB        EAX, EDX
-        JE         @QLoopIni
-
-        MOV        [EDI], ECX
-        ADD        EDI, 4
-        DEC        EDX
-        JZ         @ExitPOP
-    @QLoopIni:
-        MOVD       MM1, ECX
-        PUNPCKLDQ  MM1, MM1
-        SHR        EDX, 1
-    @QLoop:
-        MOVQ       [EDI], MM1
-        ADD        EDI, 8
-        DEC        EDX
-        JNZ        @QLoop
-        EMMS
-    @ExitPOP:
-        POP        EDI
-    @Exit:
-{$ENDIF}
-{$IFDEF TARGET_x64}
-        // RCX = X;   RDX = Count;   R8 = Value
-        TEST       RDX, RDX   // if Count = 0 then
-        JZ         @Exit      //   Exit
-        MOV        RAX, RCX   // RAX = X
-
-        PUSH       RDI        // store RDI on stack
-        MOV        R9, RDX    // R9 = Count
-        MOV        RDI, RDX   // RDI = Count
-
-        SHR        RDI, 1     // RDI = RDI SHR 1
-        SHL        RDI, 1     // RDI = RDI SHL 1
-        SUB        R9, RDI    // check if extra fill is necessary
-        JE         @QLoopIni
-
-        MOV        [RAX], R8D // eventually perform extra fill
-        ADD        RAX, 4     // Inc(X, 4)
-        DEC        RDX        // Dec(Count)
-        JZ         @ExitPOP   // if (Count = 0) then Exit
-@QLoopIni:
-        MOVD       MM0, R8D   // MM0 = R8D
-        PUNPCKLDQ  MM0, MM0   // unpack MM0 register
-        SHR        RDX, 1     // RDX = RDX div 2
-@QLoop:
-        MOVQ       QWORD PTR [RAX], MM0 // perform fill
-        ADD        RAX, 8     // Inc(X, 8)
-        DEC        RDX        // Dec(X);
-        JNZ        @QLoop
-        EMMS
-@ExitPOP:
-        POP        RDI
-@Exit:
-{$ENDIF}
-end;
-
+{$IFNDEF OMIT_SSE2}
 procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
@@ -590,6 +522,7 @@ asm
 @Exit:
 {$ENDIF}
 end;
+{$ENDIF}
 {$ENDIF}
 
 
@@ -1700,6 +1633,7 @@ end;
 //------------------------------------------------------------------------------
 // FastFloorSingle_SSE41
 //------------------------------------------------------------------------------
+{$IFNDEF OMIT_SSE2}
 function FastFloorSingle_SSE41(Value: Single): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
 asm
 {$if defined(TARGET_x86)}
@@ -1710,10 +1644,12 @@ asm
 
         CVTSS2SI eax, xmm0
 end;
+{$ENDIF}
 
 //------------------------------------------------------------------------------
 // FastFloorDouble_SSE41
 //------------------------------------------------------------------------------
+{$IFNDEF OMIT_SSE2}
 function FastFloorDouble_SSE41(Value: Double): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
 asm
 {$if defined(TARGET_x86)}
@@ -1724,6 +1660,7 @@ asm
 
         CVTTSD2SI eax, xmm0
 end;
+{$ENDIF}
 {$ENDIF}
 
 
@@ -2085,10 +2022,6 @@ begin
 
 {$IFNDEF PUREPASCAL}
   LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_ASM,      [isAssembler]);
-
-{$IFNDEF OMIT_MMX}
-  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_MMX,      [isMMX]);
-{$ENDIF}
 
 {$IFNDEF OMIT_SSE2}
   LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongword_SSE2,     [isSSE2]);

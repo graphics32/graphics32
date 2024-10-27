@@ -932,7 +932,7 @@ type
     procedure SetPixelFS(X, Y: Single; Value: TColor32);
     procedure SetPixelFW(X, Y: Single; Value: TColor32);
 
-    procedure SetPixelX(X, Y: TFixed; Value: TColor32);
+    procedure SetPixelX(X, Y: TFixed; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
   public
@@ -1492,13 +1492,13 @@ begin
   if (WinColor < 0) then
     WinColor := GetSysColor(WinColor and $000000FF);
 
-{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
+{$if defined(PUREPASCAL) or defined(TARGET_X64)}
   {$IFNDEF RGBA_FORMAT}
   Result := $FF000000 or ((TColor32(WinColor) and $FF0000) shr 16) or (TColor32(WinColor) and $FF00) or ((TColor32(WinColor) and $FF) shl 16);
   {$ELSE RGBA_FORMAT}
   Result := $FF000000 or (TColor32(WinColor) and $FFFFFF);
   {$ENDIF RGBA_FORMAT}
-{$ELSE}
+{$else}
   asm
         MOV     EAX,WinColor
         BSWAP   EAX
@@ -1506,24 +1506,24 @@ begin
         ROR     EAX,8
         MOV     Result,EAX
   end;
-{$IFEND}
+{$ifend}
 end;
 
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
-{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
+{$if defined(PUREPASCAL) or defined(TARGET_X64)}
 begin
   {$IFNDEF RGBA_FORMAT}
   Result := (A shl 24) or (R shl 16) or (G shl  8) or B;
   {$ELSE RGBA_FORMAT}
   Result := (A shl 24) or (B shl 16) or (G shl  8) or R;
   {$ENDIF RGBA_FORMAT}
-{$ELSE}
+{$else}
   asm
         MOV     AH, A
         SHL     EAX, 16
         MOV     AH, DL
         MOV     AL, CL
-{$IFEND}
+{$ifend}
 end;
 
 function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
@@ -3425,24 +3425,29 @@ end;
 function TCustomBitmap32.GetPixelB(X, Y: Integer): TColor32;
 begin
   // WARNING: this function should never be used on empty bitmaps !!!
-  if X < 0 then X := 0
-  else if X >= Width then X := Width - 1;
-  if Y < 0 then Y := 0
-  else if Y >= Height then Y := Height - 1;
+  if X < 0 then
+    X := 0
+  else
+  if X >= Width then
+    X := Width - 1;
+
+  if Y < 0 then
+    Y := 0
+  else
+  if Y >= Height then
+    Y := Height - 1;
   Result := Bits[X + Y * Width];
 end;
 
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
   TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
-  EMMS;
 end;
 
 procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
   TBlendMem(BlendProc)(Value, Ptr^);
   Inc(Ptr);
-  EMMS;
 end;
 
 procedure TCustomBitmap32.SetPixelTS(X, Y: Integer; Value: TColor32);
@@ -3450,10 +3455,8 @@ begin
   if {$IFDEF CHANGED_IN_PIXELS}not FMeasuringMode and{$ENDIF}
     (X >= FClipRect.Left) and (X < FClipRect.Right) and
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
-  begin
     TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
-    EMMS;
-  end;
+
 {$IFDEF CHANGED_IN_PIXELS}
   Changed(MakeRect(X, Y, X + 1, Y + 1));
 {$ENDIF}
@@ -3465,20 +3468,18 @@ var
   P: PColor32;
   A: TColor32;
 begin
-  { Warning: EMMS should be called after using this method }
-
   flrx := X and $FF;
   flry := Y and $FF;
 
-{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
+{$if defined(PUREPASCAL) or defined(TARGET_X64)}
   X := X div 256;
   Y := Y div 256;
-{$ELSE}
+{$else}
   asm
     SAR X, 8
     SAR Y, 8
   end;
-{$IFEND}
+{$ifend}
 
   P := @Bits[X + Y * FWidth];
   if FCombineMode = cmBlend then
@@ -3514,8 +3515,6 @@ var
   P: PColor32;
   A: TColor32;
 begin
-  { Warning: EMMS should be called after using this method }
-
   // we're checking against Left - 1 and Top - 1 due to antialiased values...
   if (X < F256ClipRect.Left - 256) or (X >= F256ClipRect.Right) or
      (Y < F256ClipRect.Top - 256) or (Y >= F256ClipRect.Bottom) then Exit;
@@ -3523,15 +3522,15 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
+{$if defined(PUREPASCAL) or defined(TARGET_X64)}
   X := X div 256;
   Y := Y div 256;
-{$ELSE}
+{$else}
   asm
     SAR X, 8
     SAR Y, 8
   end;
-{$IFEND}
+{$ifend}
 
   P := @Bits[X + Y * FWidth];
   if FCombineMode = cmBlend then
@@ -3588,9 +3587,6 @@ end;
 procedure TCustomBitmap32.SetPixelF(X, Y: Single; Value: TColor32);
 begin
   SET_T256(Round(X * 256), Round(Y * 256), Value);
-{$IFNDEF OMIT_MMX}
-  EMMS;
-{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelX(X, Y: TFixed; Value: TColor32);
@@ -3598,21 +3594,16 @@ begin
   X := (X + $7F) shr 8;
   Y := (Y + $7F) shr 8;
   SET_T256(X, Y, Value);
-{$IFNDEF OMIT_MMX}
-  EMMS;
-{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelFS(X, Y: Single; Value: TColor32);
 begin
 {$IFDEF CHANGED_IN_PIXELS}
   if not FMeasuringMode then
-  begin
 {$ENDIF}
     SET_TS256(Round(X * 256), Round(Y * 256), Value);
-    EMMS;
+
 {$IFDEF CHANGED_IN_PIXELS}
-  end;
   Changed(MakeRect(FloatRect(X, Y, X + 1, Y + 1)));
 {$ENDIF}
 end;
@@ -3621,12 +3612,10 @@ procedure TCustomBitmap32.SetPixelFW(X, Y: Single; Value: TColor32);
 begin
 {$IFDEF CHANGED_IN_PIXELS}
   if not FMeasuringMode then
-  begin
 {$ENDIF}
     SetPixelXW(Round(X * FixedOne), Round(Y * FixedOne), Value);
-    EMMS;
+
 {$IFDEF CHANGED_IN_PIXELS}
-  end;
   Changed(MakeRect(FloatRect(X, Y, X + 1, Y + 1)));
 {$ENDIF}
 end;
@@ -3638,20 +3627,19 @@ begin
   begin
 {$ENDIF}
 
-{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
+{$if defined(PUREPASCAL) or not defined(TARGET_X86)}
     X := (X + $7F) div 256;
     Y := (Y + $7F) div 256;
-{$ELSE}
+{$else}
     asm
           ADD X, $7F
           ADD Y, $7F
           SAR X, 8
           SAR Y, 8
     end;
-{$IFEND}
+{$ifend}
 
     SET_TS256(X, Y, Value);
-    EMMS;
 
 {$IFDEF CHANGED_IN_PIXELS}
   end;
@@ -3684,25 +3672,16 @@ end;
 function TCustomBitmap32.GetPixelF(X, Y: Single): TColor32;
 begin
   Result := GET_T256(Round(X * 256), Round(Y * 256));
-{$IFNDEF OMIT_MMX}
-  EMMS;
-{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelFS(X, Y: Single): TColor32;
 begin
   Result := GET_TS256(Round(X * 256), Round(Y * 256));
-{$IFNDEF OMIT_MMX}
-  EMMS;
-{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelFW(X, Y: Single): TColor32;
 begin
   Result := GetPixelXW(Round(X * FixedOne), Round(Y * FixedOne));
-{$IFNDEF OMIT_MMX}
-  EMMS;
-{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelX(X, Y: TFixed): TColor32;
@@ -3710,19 +3689,15 @@ begin
   X := (X + $7F) shr 8;
   Y := (Y + $7F) shr 8;
   Result := GET_T256(X, Y);
-{$IFNDEF OMIT_MMX}
-  EMMS;
-{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelXS(X, Y: TFixed): TColor32;
-{$IFDEF PUREPASCAL}
+{$if defined(PUREPASCAL) or ((not defined(TARGET_x64)) and (not defined(TARGET_x86)))}
 begin
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
   Result := GET_TS256(X, Y);
-  EMMS;
-{$ELSE}
+{$else}
 {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x64}
@@ -3735,19 +3710,13 @@ asm
           SAR     X, 8
           SAR     Y, 8
           CALL    TCustomBitmap32.GET_TS256
-{$IFNDEF OMIT_MMX}
-          CMP     MMX_ACTIVE.Integer, $00
-          JZ      @skip_emms
-          EMMS
-@skip_emms:
-{$ENDIF}
 
 {$IFDEF TARGET_x64}
           LEA     RSP,[RBP+$30]
           POP     RBP
 {$ENDIF}
 
-{$ENDIF}
+{$ifend}
 end;
 
 function TCustomBitmap32.GetPixelFR(X, Y: Single): TColor32;
@@ -3795,7 +3764,6 @@ begin
   Result := CombineReg(CombineReg(Bits[X2 + Y2], Bits[X1 + Y2], W),
                        CombineReg(Bits[X2 + Y1], Bits[X1 + Y1], W),
                        WordRec(TFixedRec(Y).Frac).Hi);
-  EMMS;
 end;
 
 class function TCustomBitmap32.GetPlatformBackendClass: TCustomBackendClass;
@@ -3805,21 +3773,20 @@ end;
 
 procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
 begin
-{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
+{$if defined(PUREPASCAL) or defined(TARGET_X64)}
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
-{$ELSE}
+{$else}
   asm
         ADD X, $7F
         ADD Y, $7F
         SAR X, 8
         SAR Y, 8
   end;
-{$IFEND}
+{$ifend}
 
   with F256ClipRect do
     SET_T256(WrapProcHorz(X, Left, Right - 128), WrapProcVert(Y, Top, Bottom - 128), Value);
-  EMMS;
 end;
 
 
@@ -3919,16 +3886,15 @@ begin
   NextIndex := PrevIndex + 1;
   if NextIndex >= L then
     NextIndex := 0;
+
   if PrevWeight = $FF then
     Result := FStipplePattern[PrevIndex]
   else
-  begin
     Result := CombineReg(
       FStipplePattern[PrevIndex],
       FStipplePattern[NextIndex],
       PrevWeight);
-    EMMS;
-  end;
+
   FStippleCounter := FStippleCounter + FStippleStep;
 end;
 
@@ -3964,8 +3930,6 @@ begin
       BlendMem(Value, P^);
       Inc(P);
     end;
-
-    EMMS;
   end;
 
   Changed(MakeRect(X1, Y, X2+1, Y+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
@@ -4102,8 +4066,6 @@ begin
 
       CombineMem(Value, PDst^, (Wy * Wx2) shr 24);
     end;
-
-    EMMS;
   end;
 
   Changed(MakeRect(FixedRect(X1, Y, X2+1, Y+1), rrOutside), AREAINFO_LINE + 2);
@@ -4179,8 +4141,6 @@ begin
       BlendMem(Value, P^);
       Inc(P, Width);
     end;
-
-    EMMS;
   end;
 
   Changed(MakeRect(X, Y1, X+1, Y2+1)); // Don't indicate that this is a line (AREAINFO_LINE). We want it treated as a rectangle.
@@ -4317,8 +4277,6 @@ begin
 
       CombineMem(Value, PDst^, (Wx * Wy2) shr 24);
     end;
-
-    EMMS;
   end;
 
   Changed(MakeRect(FixedRect(X, Y1, X+1, Y2+1), rrOutside), AREAINFO_LINE + 2);
@@ -4760,8 +4718,6 @@ begin
 
     if L then
       BlendMem(Value, P^);
-
-    EMMS;
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 1);
@@ -4977,8 +4933,6 @@ begin
       else
         Inc(e, Dy2);
     end;
-
-    EMMS;
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 1);
@@ -5023,8 +4977,6 @@ begin
     hyp := hypl - n shl 16;
     A := A * Cardinal(hyp) shl 8 and $FF000000;
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF + A);
-
-    EMMS;
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 2); // +1 for AA
@@ -5155,8 +5107,6 @@ begin
     hyp := hypl - n shl 16;
     A := A * Cardinal(hyp) shl 8 and $FF000000;
     SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), Value and $00FFFFFF + A);
-
-    EMMS;
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 2); // +1 for AA
@@ -5198,7 +5148,6 @@ begin
       begin
         C := GetStippleColor;
         SET_T256(X1 shr 8, Y1 shr 8, C);
-        EMMS;
         X1 := X1 + nx;
         Y1 := Y1 + ny;
       end;
@@ -5209,8 +5158,6 @@ begin
     hyp := hypl - n shl 16;
     A := A * Longword(hyp) shl 8 and $FF000000;
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, C and $00FFFFFF + A);
-
-    EMMS;
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 2); // +1 for AA
@@ -5283,7 +5230,6 @@ begin
       begin
         C := GetStippleColor;
         SET_TS256(SAR_8(X1), SAR_8(Y1), C);
-        EMMS;
         X1 := X1 + nx;
         Y1 := Y1 + ny;
       end;
@@ -5294,8 +5240,6 @@ begin
     hyp := hypl - n shl 16;
     A := A * Longword(hyp) shl 8 and $FF000000;
     SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), C and $00FFFFFF + A);
-
-    EMMS;
 
     if (ex <> X2) or (ey <> Y2) then
       AdvanceStippleCounter(GR32_Math.Hypot(Integer((X2 - ex) shr 16), Integer((Y2 - ey) shr 16) - StippleInc[L]));
@@ -5397,8 +5341,6 @@ begin
         BlendMemEx(Value, P^, CI);
       end;
     end;
-
-    EMMS;
   end;
 
   Changed(MakeRect(X1, Y1, X2, Y2), AREAINFO_LINE + 2); // +1 for AA
@@ -5584,8 +5526,6 @@ begin
           Dec(ED, EA);
         end;
 
-        EMMS;
-
         if CornerAA then
         begin
           // we only needed to draw the visible antialiased part of the line,
@@ -5692,22 +5632,16 @@ begin
 
         Inc(xd, Sx);
       end;
-
-      EMMS;
     end;
 
     // draw special case horizontal line exit (draw only first half of exiting segment)
     if CheckVert then
-    begin
       while xd <> rem do
       begin
         BlendMemEx(Value, Bits[D1^ + D2^ * Width], EC shr 8 xor $FF);
         Inc(EC, EA);
         Inc(xd, Sx);
       end;
-
-      EMMS;
-    end;
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 2); // +1 for AA
@@ -5852,8 +5786,6 @@ begin
           end;
         end;
       end;
-
-      EMMS;
     end;
 
     Changed(ChangedRect);
@@ -7472,8 +7404,8 @@ end;
 
 // -------------------------------------------------------------------
 
-{$IFNDEF FPC}
-procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal); deprecated 'Use TFont.Quality';
+{$if not defined(USE_FONT_QUALITY)}
+procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal);
 var
   LogFont: TLogFont;
 begin
@@ -7520,7 +7452,7 @@ begin
   end;
   Font.Handle := CreateFontIndirect(LogFont);
 end;
-{$ENDIF}
+{$ifend}
 
 procedure TextBlueToAlpha(const B: TCustomBitmap32; Color: TColor32);
 (*
@@ -7631,23 +7563,27 @@ begin
 
   SaveQuality := Font.Quality;
 
+{$if defined(USE_FONT_QUALITY)}
   if (AntiAlias) then
     Font.Quality := fqAntialiased
   else
     Font.Quality := fqNonAntialiased;
-  (* Apparently Font.Quality now works with VCL
+{$else}
   if (AntiAlias) then
     SetFontAntialiasing(Font, ANTIALIASED_QUALITY)
   else
     SetFontAntialiasing(Font, NONANTIALIASED_QUALITY);
-  *)
+{$ifend}
   try
 
     RenderText(X, Y, Text, Color);
 
   finally
+{$if defined(USE_FONT_QUALITY)}
     Font.Quality := SaveQuality;
-    // SetFontAntialiasing(Font, DEFAULT_QUALITY);
+{$else}
+    SetFontAntialiasing(Font, DEFAULT_QUALITY);
+{$ifend}
   end;
 end;
 

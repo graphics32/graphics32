@@ -285,9 +285,6 @@ begin
       DstImg.Bitmap.Clear(0);
   end;
 
-  //This is needed because we may use MMX
-  EMMS;
-
   // Needed under Mac OS X
   DstImg.Invalidate;
 end;

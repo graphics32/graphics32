@@ -1342,14 +1342,10 @@ begin
 
   if not Dst.MeasuringMode then
   begin
-    try
-      if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
-        CombineOp := dmOpaque;
+    if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
+      CombineOp := dmOpaque;
 
-      BlendBlock(Dst, DstClip, Src, SrcRect.Left, SrcRect.Top, CombineOp, CombineCallBack);
-    finally
-      EMMS;
-    end;
+    BlendBlock(Dst, DstClip, Src, SrcRect.Left, SrcRect.Top, CombineOp, CombineCallBack);
   end;
 
   Dst.Changed(DstClip);
@@ -1564,7 +1560,6 @@ begin
         BlendMemEx(C3, DstP^, RW * BW * MA shr 16);
 
     finally
-      EMMS;
       Buffer[0] := nil;
       Buffer[1] := nil;
     end;
@@ -1613,7 +1608,6 @@ begin
     GR32.IntersectRect(DstClip, DstClip, SrcRectB);
 
     if not GR32.IsRectEmpty(DstClip) then
-    try
       for I := DstClip.Top to DstClip.Bottom - 1 do
       begin
         PSrcF := PColor32Array(SrcF.PixelPtr[SrcFX, SrcFY + I]);
@@ -1622,9 +1616,6 @@ begin
         for J := DstClip.Left to DstClip.Right - 1 do
           PDst[J] := BlendCallback(PSrcF[J], PSrcB[J]);
       end;
-    finally
-      EMMS;
-    end;
   end;
   Dst.Changed(DstClip);
 end;
@@ -1664,7 +1655,6 @@ begin
     GR32.IntersectRect(DstClip, DstClip, SrcRectB);
 
     if not GR32.IsRectEmpty(DstClip) then
-    try
       for I := DstClip.Top to DstClip.Bottom - 1 do
       begin
         PSrcF := PColor32Array(SrcF.PixelPtr[SrcFX, SrcFY + I]);
@@ -1673,9 +1663,6 @@ begin
         for J := DstClip.Left to DstClip.Right - 1 do
           PDst[J] := BlendCallback(PSrcF[J], PSrcB[J], MasterAlpha);
       end;
-    finally
-      EMMS;
-    end;
   end;
   Dst.Changed(DstClip);
 end;
@@ -1720,141 +1707,137 @@ begin
   DstH := DstRect.Bottom - DstRect.Top;
   DstClipW := DstClip.Right - DstClip.Left;
   DstClipH := DstClip.Bottom - DstClip.Top;
-  try
-    if (SrcW = DstW) and (SrcH = DstH) then
-    begin
-      { Copy without resampling }
-      BlendBlock(Dst, DstClip, Src, SrcRect.Left + DstClip.Left - DstRect.Left,
-        SrcRect.Top + DstClip.Top - DstRect.Top, CombineOp, CombineCallBack);
-    end
-    else
-    begin
-      GetMem(MapHorz, DstClipW * SizeOf(Integer));
-      try
-        if DstW > 1 then
+
+  if (SrcW = DstW) and (SrcH = DstH) then
+  begin
+    { Copy without resampling }
+    BlendBlock(Dst, DstClip, Src, SrcRect.Left + DstClip.Left - DstRect.Left,
+      SrcRect.Top + DstClip.Top - DstRect.Top, CombineOp, CombineCallBack);
+  end
+  else
+  begin
+    GetMem(MapHorz, DstClipW * SizeOf(Integer));
+    try
+      if DstW > 1 then
+      begin
+        if FullEdge then
         begin
-          if FullEdge then
-          begin
-            Scale := SrcW / DstW;
-            for I := 0 to DstClipW - 1 do
-              MapHorz^[I] := Trunc(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
-          end
-          else
-          begin
-            Scale := (SrcW - 1) / (DstW - 1);
-            for I := 0 to DstClipW - 1 do
-              MapHorz^[I] := Round(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
-          end;
-        
-          Assert(MapHorz^[0] >= SrcRect.Left);
-          Assert(MapHorz^[DstClipW - 1] < SrcRect.Right);
+          Scale := SrcW / DstW;
+          for I := 0 to DstClipW - 1 do
+            MapHorz^[I] := Trunc(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
         end
         else
-          MapHorz^[0] := (SrcRect.Left + SrcRect.Right - 1) div 2;
-
-        if DstH <= 1 then Scale := 0
-        else if FullEdge then Scale := SrcH / DstH
-        else Scale := (SrcH - 1) / (DstH - 1);
-
-        if CombineOp = dmOpaque then
         begin
-          DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-          OldSrcY := -1;
+          Scale := (SrcW - 1) / (DstW - 1);
+          for I := 0 to DstClipW - 1 do
+            MapHorz^[I] := Round(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
+        end;
         
-          for J := 0 to DstClipH - 1 do
+        Assert(MapHorz^[0] >= SrcRect.Left);
+        Assert(MapHorz^[DstClipW - 1] < SrcRect.Right);
+      end
+      else
+        MapHorz^[0] := (SrcRect.Left + SrcRect.Right - 1) div 2;
+
+      if DstH <= 1 then Scale := 0
+      else if FullEdge then Scale := SrcH / DstH
+      else Scale := (SrcH - 1) / (DstH - 1);
+
+      if CombineOp = dmOpaque then
+      begin
+        DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
+        OldSrcY := -1;
+        
+        for J := 0 to DstClipH - 1 do
+        begin
+          if DstH <= 1 then
+            SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2
+          else if FullEdge then
+            SrcY := Trunc(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale)
+          else
+            SrcY := Round(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale);
+            
+          if SrcY <> OldSrcY then
           begin
-            if DstH <= 1 then
-              SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2
-            else if FullEdge then
+            SrcLine := Src.ScanLine[SrcY];
+            DstLinePtr := @DstLine[0];
+            MapPtr := @MapHorz^[0];
+            for I := 0 to DstClipW - 1 do
+            begin
+              DstLinePtr^ := SrcLine[MapPtr^];
+              Inc(DstLinePtr);
+              Inc(MapPtr);
+            end;
+            OldSrcY := SrcY;
+          end
+          else
+            MoveLongWord(DstLine[-Dst.Width], DstLine[0], DstClipW);
+          Inc(DstLine, Dst.Width);
+        end;
+      end
+      else
+      begin
+        SetLength(Buffer, DstClipW);
+        DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
+        OldSrcY := -1;
+
+        if Src.MasterAlpha >= 255 then
+        begin
+          BlendLine := BLEND_LINE[Src.CombineMode]^;
+          BlendLineEx := nil; // stop compiler warnings...
+        end
+        else
+        begin
+          BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
+          BlendLine := nil; // stop compiler warnings...
+        end;
+
+        for J := 0 to DstClipH - 1 do
+        begin
+          if DstH > 1 then
+          begin
+            if FullEdge then
               SrcY := Trunc(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale)
             else
               SrcY := Round(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale);
-            
-            if SrcY <> OldSrcY then
-            begin
-              SrcLine := Src.ScanLine[SrcY];
-              DstLinePtr := @DstLine[0];
-              MapPtr := @MapHorz^[0];
-              for I := 0 to DstClipW - 1 do
-              begin
-                DstLinePtr^ := SrcLine[MapPtr^];
-                Inc(DstLinePtr);
-                Inc(MapPtr);
-              end;
-              OldSrcY := SrcY;
-            end
-            else
-              MoveLongWord(DstLine[-Dst.Width], DstLine[0], DstClipW);
-            Inc(DstLine, Dst.Width);
-          end;
-        end
-        else
-        begin
-          SetLength(Buffer, DstClipW);
-          DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-          OldSrcY := -1;
-
-          if Src.MasterAlpha >= 255 then
-          begin
-            BlendLine := BLEND_LINE[Src.CombineMode]^;
-            BlendLineEx := nil; // stop compiler warnings...
           end
           else
-          begin
-            BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
-            BlendLine := nil; // stop compiler warnings...
-          end;
-
-          for J := 0 to DstClipH - 1 do
-          begin
-            if DstH > 1 then
-            begin
-              EMMS;
-              if FullEdge then
-                SrcY := Trunc(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale)
-              else
-                SrcY := Round(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale);
-            end
-            else
-              SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2;
+            SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2;
             
-            if SrcY <> OldSrcY then
+          if SrcY <> OldSrcY then
+          begin
+            SrcLine := Src.ScanLine[SrcY];
+            DstLinePtr := @Buffer[0];
+            MapPtr := @MapHorz^[0];
+            for I := 0 to DstClipW - 1 do
             begin
-              SrcLine := Src.ScanLine[SrcY];
-              DstLinePtr := @Buffer[0];
-              MapPtr := @MapHorz^[0];
-              for I := 0 to DstClipW - 1 do
-              begin
-                DstLinePtr^ := SrcLine[MapPtr^];
-                Inc(DstLinePtr);
-                Inc(MapPtr);
-              end;
-              OldSrcY := SrcY;
+              DstLinePtr^ := SrcLine[MapPtr^];
+              Inc(DstLinePtr);
+              Inc(MapPtr);
             end;
-
-            case CombineOp of
-              dmBlend:
-                if Src.MasterAlpha >= 255 then
-                  BlendLine(@Buffer[0], @DstLine[0], DstClipW)
-                else
-                  BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
-              dmTransparent:
-                for I := 0 to DstClipW - 1 do
-                  if Buffer[I] <> Src.OuterColor then DstLine[I] := Buffer[I];
-              dmCustom:
-                for I := 0 to DstClipW - 1 do
-                  CombineCallBack(Buffer[I], DstLine[I], Src.MasterAlpha);
-            end;
-
-            Inc(DstLine, Dst.Width);
+            OldSrcY := SrcY;
           end;
+
+          case CombineOp of
+            dmBlend:
+              if Src.MasterAlpha >= 255 then
+                BlendLine(@Buffer[0], @DstLine[0], DstClipW)
+              else
+                BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
+            dmTransparent:
+              for I := 0 to DstClipW - 1 do
+                if Buffer[I] <> Src.OuterColor then DstLine[I] := Buffer[I];
+            dmCustom:
+              for I := 0 to DstClipW - 1 do
+                CombineCallBack(Buffer[I], DstLine[I], Src.MasterAlpha);
+          end;
+
+          Inc(DstLine, Dst.Width);
         end;
-      finally
-        FreeMem(MapHorz);
       end;
+    finally
+      FreeMem(MapHorz);
     end;
-  finally
-    EMMS;
   end;
 end;
 
@@ -2030,7 +2013,6 @@ begin
       Inc(DstLine, Dst.Width);
     end;
   end;
-  EMMS;
 end;
 
 
@@ -2358,14 +2340,67 @@ begin
   MapXHiPos := MapX[DstClipW - 1][High(MapX[DstClipW - 1])].Pos;
   SetLength(HorzBuffer, MapXHiPos - MapXLoPos + 1);
 
-  try
-    { transfer pixels }
-    for J := DstClip.Top to DstClip.Bottom - 1 do
-    begin
-      ClusterY := MapY[J - DstClip.Top];
-      ClusterWeight := ClusterY[0].Weight;
+  { transfer pixels }
+  for J := DstClip.Top to DstClip.Bottom - 1 do
+  begin
+    ClusterY := MapY[J - DstClip.Top];
+    ClusterWeight := ClusterY[0].Weight;
 
-      SourceColor := @Src.Bits[ClusterY[0].Pos * Src.Width + MapXLoPos];
+    SourceColor := @Src.Bits[ClusterY[0].Pos * Src.Width + MapXLoPos];
+    BufferEntry := @HorzBuffer[0];
+
+    X := MapXHiPos - MapXLoPos;
+    while (X >= 0) do // for X := MapXLoPos to MapXHiPos do
+    begin
+{$ifdef PREMULTIPLY}
+      // Alpha=0 should not contribute to sample.
+      Alpha := SourceColor.A;
+      if (Alpha <> 0) then
+      begin
+        Alpha := Alpha * ClusterWeight;
+        if (DoPremultiply) then
+        begin
+          // Sample premultiplied values
+          // RGB is multiplied with Alpha during premultiplication so instead of
+          //   BufferEntry.RGB := Premultiply(SourceColor.RGB * ClusterWeight, Alpha);
+          // we're doing
+          //   Alpha := Alpha * ClusterWeight;
+          //   BufferEntry.RGB := Premultiply(SourceColor.RGB, Alpha);
+          // and saving 3 multiplications.
+          BufferEntry.B := Premultiply(SourceColor.B, Alpha);
+          BufferEntry.G := Premultiply(SourceColor.G, Alpha);
+          BufferEntry.R := Premultiply(SourceColor.R, Alpha);
+        end else
+        begin
+          BufferEntry.B := SourceColor.B * ClusterWeight;
+          BufferEntry.G := SourceColor.G * ClusterWeight;
+          BufferEntry.R := SourceColor.R * ClusterWeight;
+        end;
+        BufferEntry.A := Alpha;
+      end else
+        BufferEntry^ := Default(TBufferEntry);
+{$else PREMULTIPLY}
+      // Alpha=0 should not contribute to sample.
+      if (SourceColor.A <> 0) then
+      begin
+        BufferEntry.B := SourceColor.B * ClusterWeight;
+        BufferEntry.G := SourceColor.G * ClusterWeight;
+        BufferEntry.R := SourceColor.R * ClusterWeight;
+        BufferEntry.A := SourceColor.A * ClusterWeight;
+      end else
+        BufferEntry^ := Default(TBufferEntry);
+{$endif PREMULTIPLY}
+      Inc(SourceColor);
+      Inc(BufferEntry);
+      Dec(X);
+    end;
+
+    Y := Length(ClusterY) - 1;
+    while (Y > 0) do // for Y := 1 to Length(ClusterY) - 1 do
+    begin
+      ClusterWeight := ClusterY[Y].Weight;
+
+      SourceColor := @Src.Bits[ClusterY[Y].Pos * Src.Width + MapXLoPos];
       BufferEntry := @HorzBuffer[0];
 
       X := MapXHiPos - MapXLoPos;
@@ -2380,187 +2415,128 @@ begin
           if (DoPremultiply) then
           begin
             // Sample premultiplied values
-            // RGB is multiplied with Alpha during premultiplication so instead of
-            //   BufferEntry.RGB := Premultiply(SourceColor.RGB * ClusterWeight, Alpha);
-            // we're doing
-            //   Alpha := Alpha * ClusterWeight;
-            //   BufferEntry.RGB := Premultiply(SourceColor.RGB, Alpha);
-            // and saving 3 multiplications.
-            BufferEntry.B := Premultiply(SourceColor.B, Alpha);
-            BufferEntry.G := Premultiply(SourceColor.G, Alpha);
-            BufferEntry.R := Premultiply(SourceColor.R, Alpha);
+            Inc(BufferEntry.B, Premultiply(SourceColor.B, Alpha));
+            Inc(BufferEntry.G, Premultiply(SourceColor.G, Alpha));
+            Inc(BufferEntry.R, Premultiply(SourceColor.R, Alpha));
           end else
           begin
-            BufferEntry.B := SourceColor.B * ClusterWeight;
-            BufferEntry.G := SourceColor.G * ClusterWeight;
-            BufferEntry.R := SourceColor.R * ClusterWeight;
+            Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
+            Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
+            Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
           end;
-          BufferEntry.A := Alpha;
-        end else
-          BufferEntry^ := Default(TBufferEntry);
+          Inc(BufferEntry.A, Alpha);
+        end;
 {$else PREMULTIPLY}
         // Alpha=0 should not contribute to sample.
         if (SourceColor.A <> 0) then
         begin
-          BufferEntry.B := SourceColor.B * ClusterWeight;
-          BufferEntry.G := SourceColor.G * ClusterWeight;
-          BufferEntry.R := SourceColor.R * ClusterWeight;
-          BufferEntry.A := SourceColor.A * ClusterWeight;
-        end else
-          BufferEntry^ := Default(TBufferEntry);
+          Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
+          Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
+          Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
+          Inc(BufferEntry.A, SourceColor.A * ClusterWeight);
+        end;
 {$endif PREMULTIPLY}
         Inc(SourceColor);
         Inc(BufferEntry);
         Dec(X);
       end;
+      Dec(Y);
+    end;
 
-      Y := Length(ClusterY) - 1;
-      while (Y > 0) do // for Y := 1 to Length(ClusterY) - 1 do
+    DstLine := Dst.ScanLine[J];
+    for I := DstClip.Left to DstClip.Right - 1 do
+    begin
+      Cb := 0; Cg := Cb; Cr := Cb; Ca := Cb;
+
+      ClusterX := MapX[I - DstClip.Left];
+
+      X := Length(ClusterX) - 1;
+      while (X >= 0) do // for X := 0 to Length(ClusterX) - 1 do
       begin
-        ClusterWeight := ClusterY[Y].Weight;
-
-        SourceColor := @Src.Bits[ClusterY[Y].Pos * Src.Width + MapXLoPos];
-        BufferEntry := @HorzBuffer[0];
-
-        X := MapXHiPos - MapXLoPos;
-        while (X >= 0) do // for X := MapXLoPos to MapXHiPos do
-        begin
-{$ifdef PREMULTIPLY}
-          // Alpha=0 should not contribute to sample.
-          Alpha := SourceColor.A;
-          if (Alpha <> 0) then
+        with HorzBuffer[ClusterX[X].Pos - MapXLoPos] do
+          if (A <> 0) then // If Alpha=0 then RGB=0
           begin
-            Alpha := Alpha * ClusterWeight;
-            if (DoPremultiply) then
-            begin
-              // Sample premultiplied values
-              Inc(BufferEntry.B, Premultiply(SourceColor.B, Alpha));
-              Inc(BufferEntry.G, Premultiply(SourceColor.G, Alpha));
-              Inc(BufferEntry.R, Premultiply(SourceColor.R, Alpha));
-            end else
-            begin
-              Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
-              Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
-              Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
-            end;
-            Inc(BufferEntry.A, Alpha);
+            ClusterWeight := ClusterX[X].Weight;
+            Inc(Cb, B * ClusterWeight); // Note: Fixed precision multiplication done here
+            Inc(Cg, G * ClusterWeight);
+            Inc(Cr, R * ClusterWeight);
+            Inc(Ca, A * ClusterWeight);
           end;
-{$else PREMULTIPLY}
-          // Alpha=0 should not contribute to sample.
-          if (SourceColor.A <> 0) then
-          begin
-            Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
-            Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
-            Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
-            Inc(BufferEntry.A, SourceColor.A * ClusterWeight);
-          end;
-{$endif PREMULTIPLY}
-          Inc(SourceColor);
-          Inc(BufferEntry);
-          Dec(X);
-        end;
-        Dec(Y);
+        Dec(X);
       end;
 
-      DstLine := Dst.ScanLine[J];
-      for I := DstClip.Left to DstClip.Right - 1 do
+      // Unpremultiply, unscale and round
+      if RangeCheck then
       begin
-        Cb := 0; Cg := Cb; Cr := Cb; Ca := Cb;
-
-        ClusterX := MapX[I - DstClip.Left];
-
-        X := Length(ClusterX) - 1;
-        while (X >= 0) do // for X := 0 to Length(ClusterX) - 1 do
-        begin
-          with HorzBuffer[ClusterX[X].Pos - MapXLoPos] do
-            if (A <> 0) then // If Alpha=0 then RGB=0
-            begin
-              ClusterWeight := ClusterX[X].Weight;
-              Inc(Cb, B * ClusterWeight); // Note: Fixed precision multiplication done here
-              Inc(Cg, G * ClusterWeight);
-              Inc(Cr, R * ClusterWeight);
-              Inc(Ca, A * ClusterWeight);
-            end;
-          Dec(X);
-        end;
-
-        // Unpremultiply, unscale and round
-        if RangeCheck then
-        begin
 {$ifdef PREMULTIPLY}
-          Alpha:= (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          if (Alpha <> 0) then
+        Alpha:= (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+        if (Alpha <> 0) then
+        begin
+          if (DoPremultiply) then
           begin
-            if (DoPremultiply) then
-            begin
-              C.B := (Clamp(Unpremultiply(Cb, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-              C.G := (Clamp(Unpremultiply(Cg, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-              C.R := (Clamp(Unpremultiply(Cr, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-              C.A := Alpha;
-            end else
-            begin
-              C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-              C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-              C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-              C.A := 255; // We know Alpha=255 because RangeCheck is True otherwise
-            end;
+            C.B := (Clamp(Unpremultiply(Cb, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.G := (Clamp(Unpremultiply(Cg, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.R := (Clamp(Unpremultiply(Cr, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.A := Alpha;
           end else
-            C.ARGB := 0;
-{$else PREMULTIPLY}
-          if (Ca <> 0) then
           begin
             C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
             C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
             C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-            C.A := (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          end else
-            C.ARGB := 0;
-{$endif PREMULTIPLY}
-        end else
-        begin
-{$ifdef PREMULTIPLY}
-          Alpha:= (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          if (Alpha <> 0) then
-          begin
-            C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-            C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-            C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
             C.A := 255; // We know Alpha=255 because RangeCheck is True otherwise
-          end else
-            C.ARGB := 0;
+          end;
+        end else
+          C.ARGB := 0;
 {$else PREMULTIPLY}
-          if (Ca <> 0) then
-          begin
-            C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-            C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-            C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-            C.A := (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          end else
-            C.ARGB := 0;
+        if (Ca <> 0) then
+        begin
+          C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.A := (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+        end else
+          C.ARGB := 0;
 {$endif PREMULTIPLY}
-        end;
+      end else
+      begin
+{$ifdef PREMULTIPLY}
+        Alpha:= (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+        if (Alpha <> 0) then
+        begin
+          C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.A := 255; // We know Alpha=255 because RangeCheck is True otherwise
+        end else
+          C.ARGB := 0;
+{$else PREMULTIPLY}
+        if (Ca <> 0) then
+        begin
+          C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.A := (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+        end else
+          C.ARGB := 0;
+{$endif PREMULTIPLY}
+      end;
 
-        // Combine it with the background
-        case CombineOp of
-          dmOpaque:
+      // Combine it with the background
+      case CombineOp of
+        dmOpaque:
+          DstLine[I] := C.ARGB;
+
+        dmBlend:
+          BlendMemEx(C.ARGB, DstLine[I], Src.MasterAlpha);
+
+        dmTransparent:
+          if C.ARGB <> Src.OuterColor then
             DstLine[I] := C.ARGB;
 
-          dmBlend:
-            BlendMemEx(C.ARGB, DstLine[I], Src.MasterAlpha);
-
-          dmTransparent:
-            if C.ARGB <> Src.OuterColor then
-              DstLine[I] := C.ARGB;
-
-          dmCustom:
-            CombineCallBack(C.ARGB, DstLine[I], Src.MasterAlpha);
-        end;
+        dmCustom:
+          CombineCallBack(C.ARGB, DstLine[I], Src.MasterAlpha);
       end;
     end;
-
-  finally
-    if (CombineOp in [dmBlend, dmCustom]) then
-      EMMS;
   end;
 end;
 
@@ -2604,153 +2580,11 @@ begin
             iB * Area shr 24 and $FF;
 end;
 
-//------------------------------------------------------------------------------
-// BlockAverage_MMX
-//------------------------------------------------------------------------------
-{$IFNDEF PUREPASCAL}
-function BlockAverage_MMX(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
-asm
-{$IFDEF TARGET_X64}
-        MOV        R10D,ECX
-        MOV        R11D,EDX
-
-        SHL        R10,$02
-        SUB        R9,R10
-
-        PXOR       MM1,MM1
-        PXOR       MM2,MM2
-        PXOR       MM7,MM7
-
-@@LoopY:
-        MOV        R10,RCX
-        PXOR       MM0,MM0
-        LEA        R8,[R8+R10*4]
-        NEG        R10
-@@LoopX:
-        MOVD       MM6,[R8+R10*4]
-        PUNPCKLBW  MM6,MM7
-        PADDW      MM0,MM6
-        INC        R10
-        JNZ        @@LoopX
-
-        MOVQ       MM6,MM0
-        PUNPCKLWD  MM6,MM7
-        PADDD      MM1,MM6
-        MOVQ       MM6,MM0
-        PUNPCKHWD  MM6,MM7
-        PADDD      MM2,MM6
-        ADD        R8,R9
-        DEC        EDX
-        JNZ        @@LoopY
-
-        MOV        EAX, ECX
-        MUL        R11D
-        MOV        ECX,EAX
-        MOV        EAX,$01000000
-        DIV        ECX
-        MOV        ECX,EAX
-
-        MOVD       EAX,MM1
-        MUL        ECX
-        SHR        EAX,$18
-        MOV        R11D,EAX
-
-        PSRLQ      MM1,$20
-        MOVD       EAX,MM1
-        MUL        ECX
-        SHR        EAX,$10
-        AND        EAX,$0000FF00
-        ADD        R11D,EAX
-
-        MOVD       EAX,MM2
-        MUL        ECX
-        SHR        EAX,$08
-        AND        EAX,$00FF0000
-        ADD        R11D,EAX
-
-        PSRLQ      MM2,$20
-        MOVD       EAX,MM2
-        MUL        ECX
-        AND        EAX,$FF000000
-        ADD        EAX,R11D
-{$ELSE}
-        PUSH       EBX
-        PUSH       ESI
-        PUSH       EDI
-
-        MOV        EBX,OffSrc
-        MOV        ESI,EAX
-        MOV        EDI,EDX
-
-        SHL        ESI,$02
-        SUB        EBX,ESI
-
-        PXOR       MM1,MM1
-        PXOR       MM2,MM2
-        PXOR       MM7,MM7
-
-@@LoopY:
-        MOV        ESI,EAX
-        PXOR       MM0,MM0
-        LEA        ECX,[ECX+ESI*4]
-        NEG        ESI
-@@LoopX:
-        MOVD       MM6,[ECX+ESI*4]
-        PUNPCKLBW  MM6,MM7
-        PADDW      MM0,MM6
-        INC        ESI
-        JNZ        @@LoopX
-
-        MOVQ       MM6,MM0
-        PUNPCKLWD  MM6,MM7
-        PADDD      MM1,MM6
-        MOVQ       MM6,MM0
-        PUNPCKHWD  MM6,MM7
-        PADDD      MM2,MM6
-        ADD        ECX,EBX
-        DEC        EDX
-        JNZ        @@LoopY
-
-        MUL        EDI
-        MOV        ECX,EAX
-        MOV        EAX,$01000000
-        DIV        ECX
-        MOV        ECX,EAX
-
-        MOVD       EAX,MM1
-        MUL        ECX
-        SHR        EAX,$18
-        MOV        EDI,EAX
-
-        PSRLQ      MM1,$20
-        MOVD       EAX,MM1
-        MUL        ECX
-        SHR        EAX,$10
-        AND        EAX,$0000FF00
-        ADD        EDI,EAX
-
-        MOVD       EAX,MM2
-        MUL        ECX
-        SHR        EAX,$08
-        AND        EAX,$00FF0000
-        ADD        EDI,EAX
-
-        PSRLQ      MM2,$20
-        MOVD       EAX,MM2
-        MUL        ECX
-        AND        EAX,$FF000000
-        ADD        EAX,EDI
-
-        POP        EDI
-        POP        ESI
-        POP        EBX
-{$ENDIF}
-end;
-
 
 //------------------------------------------------------------------------------
 // BlockAverage_SSE2
 //------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 function BlockAverage_SSE2(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 asm
 {$IFDEF TARGET_X64}
@@ -2885,7 +2719,8 @@ asm
         POP        EBX
 {$ENDIF}
 end;
-{$ENDIF}
+{$ifend}
+
 
 //------------------------------------------------------------------------------
 // DraftResample
@@ -2922,89 +2757,86 @@ begin
 
   BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^;
 
-  if (DstW > SrcW)or(DstH > SrcH) then begin
+  if (DstW > SrcW)or(DstH > SrcH) then
+  begin
     if (SrcW < 2) or (SrcH < 2) then
-      Resample(Dst, DstRect, DstClip, Src, SrcRect, Kernel, CombineOp,
-        CombineCallBack)
+      Resample(Dst, DstRect, DstClip, Src, SrcRect, Kernel, CombineOp, CombineCallBack)
     else
-      StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp,
-        CombineCallBack);
-    end
-  else
-    begin //Full Scaledown, ignores Fulledge - cannot be integrated into this resampling method
-      OffSrc := Src.Width * 4;
+      StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
+  end else
+  begin //Full Scaledown, ignores Fulledge - cannot be integrated into this resampling method
+    OffSrc := Src.Width * 4;
 
-      ScaleFactor:= SrcW / DstW;
-      cx := Trunc( (DstClip.Left - DstRect.Left) * ScaleFactor);
-      r2 := Trunc(ScaleFactor);
-      sr := Trunc( $10000 * ScaleFactor );
+    ScaleFactor:= SrcW / DstW;
+    cx := Trunc( (DstClip.Left - DstRect.Left) * ScaleFactor);
+    r2 := Trunc(ScaleFactor);
+    sr := Trunc( $10000 * ScaleFactor );
 
-      ScaleFactor:= SrcH / DstH;
-      cy := Trunc( (DstClip.Top - DstRect.Top) * ScaleFactor);
-      c2 := Trunc(ScaleFactor);
-      sc := Trunc( $10000 * ScaleFactor );
+    ScaleFactor:= SrcH / DstH;
+    cy := Trunc( (DstClip.Top - DstRect.Top) * ScaleFactor);
+    c2 := Trunc(ScaleFactor);
+    sc := Trunc( $10000 * ScaleFactor );
 
-      DstLine := PColor32Array(Dst.PixelPtr[0, DstClip.Top]);
-      RowSrc := Src.PixelPtr[SrcRect.Left +  cx, SrcRect.Top + cy ];
+    DstLine := PColor32Array(Dst.PixelPtr[0, DstClip.Top]);
+    RowSrc := Src.PixelPtr[SrcRect.Left +  cx, SrcRect.Top + cy ];
 
-      xs := r2;
-      c1 := 0;
-      Dec(DstClip.Left, 2);
-      Inc(DstClipW);
-      Inc(DstClipH);
+    xs := r2;
+    c1 := 0;
+    Dec(DstClip.Left, 2);
+    Inc(DstClipW);
+    Inc(DstClipH);
 
-      for J := 2  to DstClipH do
-      begin
-        dy := c2 - c1;
-        c1 := c2;
-        c2 := FixedMul(J, sc);
-        r1 := 0;
-        r2 := xs;
-        xsrc := RowSrc;
+    for J := 2  to DstClipH do
+    begin
+      dy := c2 - c1;
+      c1 := c2;
+      c2 := FixedMul(J, sc);
+      r1 := 0;
+      r2 := xs;
+      xsrc := RowSrc;
 
-        case CombineOp of
-          dmOpaque:
-            for I := 2  to DstClipW do
-            begin
-              dx := r2 - r1;  r1 := r2;
-              r2 := FixedMul(I, sr);
-              DstLine[DstClip.Left + I] := BlockAverage(dx, dy, xsrc, OffSrc);
-              Inc(xsrc, dx);
-            end;
-          dmBlend:
-            for I := 2  to DstClipW do
-            begin
-              dx := r2 - r1;  r1 := r2;
-              r2 := FixedMul(I, sr);
-              BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc),
-                DstLine[DstClip.Left + I], Src.MasterAlpha);
-              Inc(xsrc, dx);
-            end;
-          dmTransparent:
-            for I := 2  to DstClipW do
-            begin
-              dx := r2 - r1;  r1 := r2;
-              r2 := FixedMul(I, sr);
-              C := BlockAverage(dx, dy, xsrc, OffSrc);
-              if C <> Src.OuterColor then DstLine[DstClip.Left + I] := C;
-              Inc(xsrc, dx);
-            end;
-          dmCustom:
-            for I := 2  to DstClipW do
-            begin
-              dx := r2 - r1;  r1 := r2;
-              r2 := FixedMul(I, sr);
-              CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc),
-                DstLine[DstClip.Left + I], Src.MasterAlpha);
-              Inc(xsrc, dx);
-            end;
-        end;
-
-        Inc(DstLine, Dst.Width);
-        Inc(PByte(RowSrc), OffSrc * dy);
+      case CombineOp of
+        dmOpaque:
+          for I := 2  to DstClipW do
+          begin
+            dx := r2 - r1;  r1 := r2;
+            r2 := FixedMul(I, sr);
+            DstLine[DstClip.Left + I] := BlockAverage(dx, dy, xsrc, OffSrc);
+            Inc(xsrc, dx);
+          end;
+        dmBlend:
+          for I := 2  to DstClipW do
+          begin
+            dx := r2 - r1;  r1 := r2;
+            r2 := FixedMul(I, sr);
+            BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc),
+              DstLine[DstClip.Left + I], Src.MasterAlpha);
+            Inc(xsrc, dx);
+          end;
+        dmTransparent:
+          for I := 2  to DstClipW do
+          begin
+            dx := r2 - r1;  r1 := r2;
+            r2 := FixedMul(I, sr);
+            C := BlockAverage(dx, dy, xsrc, OffSrc);
+            if C <> Src.OuterColor then DstLine[DstClip.Left + I] := C;
+            Inc(xsrc, dx);
+          end;
+        dmCustom:
+          for I := 2  to DstClipW do
+          begin
+            dx := r2 - r1;  r1 := r2;
+            r2 := FixedMul(I, sr);
+            CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc),
+              DstLine[DstClip.Left + I], Src.MasterAlpha);
+            Inc(xsrc, dx);
+          end;
       end;
+
+      Inc(DstLine, Dst.Width);
+      Inc(PByte(RowSrc), OffSrc * dy);
     end;
-  EMMS;
+  end;
 end;
 
 
@@ -3029,57 +2861,11 @@ begin
                        CombineReg(C3, C21^, WX_256), WY_256);
 end;
 
-//------------------------------------------------------------------------------
-// Interpolator_MMX
-//------------------------------------------------------------------------------
-{$IFNDEF PUREPASCAL}
-function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
-asm
-{$IFDEF TARGET_X64}
-        MOV       RAX, RCX
-        MOVQ      MM1,QWORD PTR [R8]
-        MOVQ      MM2,MM1
-        MOVQ      MM3,QWORD PTR [R9]
-{$ELSE}
-        MOVQ      MM1,[ECX]
-        MOVQ      MM2,MM1
-        MOV       ECX,C21
-        MOVQ      MM3,[ECX]
-{$ENDIF}
-        PSRLQ     MM1,32
-        MOVQ      MM4,MM3
-        PSRLQ     MM3,32
-        MOVD      MM5,EAX
-        PSHUFW    MM5,MM5,0
-        PXOR      MM0,MM0
-        PUNPCKLBW MM1,MM0
-        PUNPCKLBW MM2,MM0
-        PSUBW     MM2,MM1
-        PMULLW    MM2,MM5
-        PSLLW     MM1,8
-        PADDW     MM2,MM1
-        PSRLW     MM2,8
-        PUNPCKLBW MM3,MM0
-        PUNPCKLBW MM4,MM0
-        PSUBW     MM4,MM3
-        PSLLW     MM3,8
-        PMULLW    MM4,MM5
-        PADDW     MM4,MM3
-        PSRLW     MM4,8
-        MOVD      MM5,EDX
-        PSHUFW    MM5,MM5,0
-        PSUBW     MM2,MM4
-        PMULLW    MM2,MM5
-        PSLLW     MM4,8
-        PADDW     MM2,MM4
-        PSRLW     MM2,8
-        PACKUSWB  MM2,MM0
-        MOVD      EAX,MM2
-end;
 
 //------------------------------------------------------------------------------
 // Interpolator_SSE2
 //------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 function Interpolator_SSE2(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
 {$IFDEF TARGET_X64}
@@ -3123,7 +2909,7 @@ asm
         PACKUSWB  XMM2,XMM0
         MOVD      EAX,XMM2
 end;
-{$ENDIF}
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -3198,16 +2984,10 @@ begin
     DstW := DstRect.Right - DstRect.Left;
     DstH := DstRect.Bottom - DstRect.Top;
 
-    try
-      if (SrcW = DstW) and (SrcH = DstH) then
-        BlendBlock(Dst, DstClip, Src, SrcRect.Left + DstClip.Left - DstRect.Left,
-          SrcRect.Top + DstClip.Top - DstRect.Top, CombineOp, CombineCallBack)
-      else
-        TCustomResamplerAccess(Resampler).Resample(
-          Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
-    finally
-      EMMS;
-    end;
+    if (SrcW = DstW) and (SrcH = DstH) then
+      BlendBlock(Dst, DstClip, Src, SrcRect.Left + DstClip.Left - DstRect.Left, SrcRect.Top + DstClip.Top - DstRect.Top, CombineOp, CombineCallBack)
+    else
+      TCustomResamplerAccess(Resampler).Resample(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
   end;
 
   Dst.Changed(DstRect);
@@ -4426,7 +4206,6 @@ begin
   if (PixelX >= Bitmap.ClipRect.Left) and (PixelY >= Bitmap.ClipRect.Top) and (PixelX < EdgeX) and (PixelY < EdgeY) then
   begin //Safe
     Result := TCustomBitmap32Access(Bitmap).GET_T256(X shr 8, Y shr 8);
-    EMMS;
   end
   else
   if (PixelX >= Bitmap.ClipRect.Left - 1) and (PixelY >= Bitmap.ClipRect.Top - 1) and (PixelX <= EdgeX) and (PixelY <= EdgeY) then
@@ -4470,7 +4249,6 @@ begin
     Result := CombineReg(CombineReg(C1, C2, WeightX),
                          CombineReg(C3, C4, WeightX),
                          ((Y shr 8) and $FF) xor $FF);
-    EMMS;
   end
   else
     Result := 0; //Nothing really makes sense here, return zero
@@ -4693,7 +4471,6 @@ begin
   D := FGetSampleFixed(X - FIXED_HALF, Y + FIXED_HALF);
   E := FGetSampleFixed(X, Y);
   Result := Self.DoRecurse(X, Y, 16384, A, B, C, D, E);
-  EMMS;
 end;
 
 function TAdaptiveSuperSampler.QuadrantColor(const C1, C2: TColor32; X, Y,
@@ -4710,7 +4487,6 @@ function TAdaptiveSuperSampler.RecurseAC(X, Y, Offset: TFixed; const A,
 var
   B, D, E: TColor32;
 begin
-  EMMS;
   B := FGetSampleFixed(X + Offset, Y - Offset);
   D := FGetSampleFixed(X - Offset, Y + Offset);
   E := FGetSampleFixed(X, Y);
@@ -4722,7 +4498,6 @@ function TAdaptiveSuperSampler.RecurseBD(X, Y, Offset: TFixed; const B,
 var
   A, C, E: TColor32;
 begin
-  EMMS;
   A := FGetSampleFixed(X - Offset, Y - Offset);
   C := FGetSampleFixed(X + Offset, Y + Offset);
   E := FGetSampleFixed(X, Y);
@@ -5176,10 +4951,10 @@ begin
   ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_Pas, [isPascal]);
   ResamplersRegistry.ADD(@@Interpolator, @Interpolator_Pas, [isPascal]);
 {$IFNDEF PUREPASCAL}
-  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_MMX, [isMMX]);
+{$IFNDEF OMIT_SSE2}
   ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_SSE2, [isSSE2]);
-  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_MMX, [isMMX]);
   ResamplersRegistry.ADD(@@Interpolator, @Interpolator_SSE2, [isSSE2]);
+{$ENDIF}
 {$ENDIF}
   ResamplersRegistry.RebindAll;
 end;

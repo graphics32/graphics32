@@ -68,7 +68,6 @@ type
 
     class function PriorityProcPas(Info: PFunctionInfo): Integer; static;
     class function PriorityProcAsm(Info: PFunctionInfo): Integer; static;
-    class function PriorityProcMMX(Info: PFunctionInfo): Integer; static;
     class function PriorityProcSSE2(Info: PFunctionInfo): Integer; static;
     class function PriorityProcSSE41(Info: PFunctionInfo): Integer; static;
 
@@ -127,11 +126,6 @@ type
   end;
 
   TTestLowLevelAsm = class(TTestLowLevel)
-  protected
-    class function PriorityProc: TFunctionPriority; override;
-  end;
-
-  TTestLowLevelMMX = class(TTestLowLevel)
   protected
     class function PriorityProc: TFunctionPriority; override;
   end;
@@ -219,14 +213,6 @@ begin
     Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
-class function TBindingTestCase.PriorityProcMMX(Info: PFunctionInfo): Integer;
-begin
-  if (isMMX in Info.InstructionSupport) then
-    Result := 0
-  else
-    Result := TFunctionRegistry.INVALID_PRIORITY;
-end;
-
 class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
 begin
   if (isSSE2 in Info.InstructionSupport) then
@@ -306,11 +292,6 @@ end;
 class function TTestLowLevelAsm.PriorityProc: TFunctionPriority;
 begin
   Result := PriorityProcAsm;
-end;
-
-class function TTestLowLevelMMX.PriorityProc: TFunctionPriority;
-begin
-  Result := PriorityProcMMX;
 end;
 
 class function TTestLowLevelSSE2.PriorityProc: TFunctionPriority;
@@ -1854,9 +1835,6 @@ initialization
 
   if isAssembler in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelAsm.Suite);
-
-  if isMMX in GR32_System.CPU.InstructionSupport then
-    RegisterTest(TTestLowLevelMMX.Suite);
 
   if isSSE2 in GR32_System.CPU.InstructionSupport then
     RegisterTest(TTestLowLevelSSE2.Suite);

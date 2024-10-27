@@ -1535,14 +1535,6 @@ end;
 //      Registration of internal bindings
 //
 //------------------------------------------------------------------------------
-function MMXPriorityProc(Info: PFunctionInfo): Integer;
-begin
-  if (isMMX in Info.InstructionSupport) then
-    Result := 0
-  else
-    Result := TFunctionRegistry.INVALID_PRIORITY;
-end;
-
 procedure RegisterBindings;
 begin
   BlurRegistry.RegisterBinding(@@IIR_BlurFilterForward);
@@ -1581,9 +1573,7 @@ begin
   BlurRegistry.Add(@@IIR_BlurApplyEdgeCorrection, @BlurApplyEdgeCorrection_SSE41,       [isSSE41]);
 {$endif IIR_BLUR_EDGE_CORRECTION_SIMD}
 
-  // Force EMMS to use MMX version
-  // TODO : WHy?
-  BlendRegistry.Rebind(0, MMXPriorityProc);
+  BlendRegistry.RebindAll;
 
 {$ifend}
 end;

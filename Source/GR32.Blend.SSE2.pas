@@ -105,12 +105,6 @@ procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IF
 procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 
-//------------------------------------------------------------------------------
-// EMMS
-//------------------------------------------------------------------------------
-procedure EMMS_SSE2; {$IFDEF FPC} assembler; {$ENDIF}
-
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -2228,14 +2222,6 @@ end;
 
 
 //------------------------------------------------------------------------------
-// EMMS
-//------------------------------------------------------------------------------
-procedure EMMS_SSE2; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-end;
-
-
-//------------------------------------------------------------------------------
 // LightenReg
 //------------------------------------------------------------------------------
 function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
@@ -2647,7 +2633,6 @@ procedure RegisterBindingFunctions;
 begin
 {$IFNDEF OMIT_SSE2}
 
-  BlendRegistry.Add(FID_EMMS,           @EMMS_SSE2,             [isSSE2, isSSE41]);
   BlendRegistry.Add(FID_MERGEREG,       @MergeReg_SSE2,         [isSSE2]);
   BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_SSE2,       [isSSE2]);
   BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_SSE2_128,   [isSSE2]);

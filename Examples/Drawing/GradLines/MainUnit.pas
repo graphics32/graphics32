@@ -308,7 +308,6 @@ begin
         // Fade out by scaling the RGB: Faded = Colors * Weight / 255
         ScaleMems(@PaintBox.Buffer.Bits[0], PaintBox.Buffer.Width * PaintBox.Buffer.Height, $f0);
 {$endif}
-        EMMS;
 
         // We're modifying the buffer directly above, so force a complete invalidation.
         PaintBox.ForceFullInvalidate;

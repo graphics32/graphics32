@@ -768,7 +768,7 @@ begin
     // calculate squared distance
     H := 0.5 + ArcTan2(DstY - FCenter.Y, X - FCenter.X) * CTwoPiInv;
     CombineMem(HSVtoRGB(H, 1, 1), Dst^, AlphaValues^);
-    EMMS;
+
     Inc(Dst);
     Inc(AlphaValues);
   end;
@@ -790,7 +790,7 @@ begin
     Color := HSVtoRGB(H, 1, 1);
     RoundToWebSafe(Color);
     CombineMem(Color, Dst^, AlphaValues^);
-    EMMS;
+
     Inc(Dst);
     Inc(AlphaValues);
   end;
@@ -835,7 +835,7 @@ begin
       S := 1;
 
     CombineMem(HSVtoRGB(H, S, Value), Dst^, AlphaValues^);
-    EMMS;
+
     Inc(Dst);
     Inc(AlphaValues);
   end;
@@ -863,7 +863,7 @@ begin
     RoundToWebSafe(Color);
 
     CombineMem(Color, Dst^, AlphaValues^);
-    EMMS;
+
     Inc(Dst);
     Inc(AlphaValues);
   end;
@@ -906,7 +906,7 @@ begin
     RoundToWebSafe(Color32);
 
     BlendMemEx(Color32, Dst^, AlphaValues^);
-    EMMS;
+
     Inc(Dst);
     Inc(AlphaValues);
   end;

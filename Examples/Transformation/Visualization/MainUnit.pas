@@ -435,7 +435,6 @@ begin
     Inc(PSrc);
     Inc(PDst);
   end;
-  EMMS;
 end;
 
 procedure TMainForm.TransformFrame(Sender: TObject; var Done: Boolean);
@@ -457,7 +456,6 @@ begin
     Inc(FPSMeasure);
   end;
 
-  EMMS;
   if Random > Feedback then
     BufferFeedBack(BlendLevel, BlendContrast, BlendBrightness, TimeDarkening);
 
@@ -492,7 +490,6 @@ begin
         C2 := Color and $00FFFFFF + Cardinal(L);
       Dst.PixelS[X + I, Y + J] := BlendReg(C2, C1);
     end;
-  EMMS;
 end;
 
 procedure TMainForm.RenderMovement;

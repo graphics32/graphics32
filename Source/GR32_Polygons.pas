@@ -1524,7 +1524,6 @@ begin
       Inc(I, 2);
     end
 {$ENDIF};
-  EMMS;
 end;
 
 { TCustomPolygonFiller }
@@ -1567,7 +1566,6 @@ begin
   for X := DstX to DstX + Length - 1 do
   begin
     BlendMemEx(InvertColor(Dst^), Dst^, AlphaValues^);
-    EMMS;
     Inc(Dst);
     Inc(AlphaValues);
   end;
@@ -1843,7 +1841,6 @@ begin
   for X := DstX to DstX + Length - 1 do
   begin
     BlendMemEx(FGetSample(X, DstY) and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
-    EMMS;
     Inc(Dst);
     Inc(AlphaValues);
   end;
@@ -1979,9 +1976,7 @@ begin
   GetMem(AlphaValues, Count * SizeOf(TColor32));
 {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
-  FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count,
-    PColor32(AlphaValues), Bitmap.CombineMode);
-  EMMS;
+  FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count, PColor32(AlphaValues), Bitmap.CombineMode);
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
 {$ELSE}
@@ -2054,7 +2049,6 @@ begin
     MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count)
   else
     BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count);
-  EMMS;
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
 {$ELSE}

@@ -38,9 +38,6 @@ uses
   GR32,
   GR32_Bindings;
 
-var
-  MMX_ACTIVE: Boolean; // For backward compatibility use in asm functions.
-
 
 //------------------------------------------------------------------------------
 //
@@ -224,13 +221,6 @@ var
   Lighten: TLightenReg absolute LightenReg; // Lighten is an alias for LigthenReg
   ScaleMems: TScaleMems;
 
-//------------------------------------------------------------------------------
-// EMMS
-//------------------------------------------------------------------------------
-{$IFNDEF OMIT_MMX}
-  EMMS: procedure;
-{$ENDIF}
-
 
 //------------------------------------------------------------------------------
 //
@@ -269,7 +259,7 @@ const
 function BlendRegistry: TFunctionRegistry;
 
 const
-  FID_EMMS              = 0;
+  FID_EMMS              = 0 deprecated;
   FID_MERGEREG          = 1;
   FID_MERGEMEM          = 2;
   FID_MERGELINE         = 3;
@@ -312,10 +302,6 @@ const
   FID_BLENDMEMRGB       = 36;
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
   FID_BLENDMEMRGB128    = 37;
-{$ENDIF}
-
-{$IFDEF OMIT_MMX}
-procedure EMMS; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 
 
@@ -400,6 +386,7 @@ var
 //------------------------------------------------------------------------------
 procedure MergeLine1(F: TColor32; B: PColor32; Count: Integer); {$IFDEF USEINLINING} inline; {$ENDIF} deprecated 'Use MergeMems';
 procedure BlendLine1(F: TColor32; B: PColor32; Count: Integer); {$IFDEF USEINLINING} inline; {$ENDIF} deprecated 'Use BlendMems';
+procedure EMMS; {$if defined(PUREPASCAL) or ((not defined(TARGET_X64)) and (not defined(TARGET_X86)))} {$IFDEF USEINLINING} inline; {$ENDIF} {$ifend} deprecated 'Graphics32 no longer supports MMX so calling EMMS is not necessary anymore';
 
 
 //------------------------------------------------------------------------------
@@ -412,20 +399,12 @@ uses
   GR32_System,
 {$IFNDEF PUREPASCAL}
   GR32.Blend.Assembler,
-{$IFNDEF OMIT_MMX}
-  GR32.Blend.MMX,
-{$ENDIF}
 {$IFNDEF OMIT_SSE2}
   GR32.Blend.SSE2,
 {$ENDIF}
 {$ENDIF}
   GR32.Blend.Pascal;
 
-{$IFDEF OMIT_MMX}
-procedure EMMS;
-begin
-end;
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 //
@@ -513,6 +492,16 @@ begin
   BlendMems(F, B, Count);
 end;
 
+{$if defined(PUREPASCAL) or ((not defined(TARGET_X64)) and (not defined(TARGET_X86)))}
+procedure EMMS;
+begin
+end;
+{$else}
+procedure EMMS; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  EMMS
+end;
+{$ifend}
 
 //------------------------------------------------------------------------------
 //
@@ -521,9 +510,6 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-{$IFNDEF OMIT_MMX}
-  BlendRegistry.RegisterBinding(FID_EMMS,               @@EMMS);
-{$ENDIF}
   BlendRegistry.RegisterBinding(FID_BLENDREG,           @@BlendReg);
   BlendRegistry.RegisterBinding(FID_BLENDMEM,           @@BlendMem);
   BlendRegistry.RegisterBinding(FID_BLENDMEMS,          @@BlendMems);
@@ -591,8 +577,8 @@ initialization
   MakeMergeTables;
 
   AlphaTable := nil;
-  MMX_ACTIVE := (isMMX in CPU.InstructionSupport);
-  if [isMMX, isSSE2] * CPU.InstructionSupport <> [] then
+
+  if [isSSE2] * CPU.InstructionSupport <> [] then
     GenAlphaTable;
 
 finalization

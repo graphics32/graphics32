@@ -937,7 +937,6 @@ begin
       Rasterizer.Sampler := Transformer;
       Rasterizer.Rasterize(Dst, DstRect, Src);
     finally
-      EMMS;
       Transformer.Free;
     end;
   end;
@@ -1635,7 +1634,6 @@ begin
 
   if Z <> FixedOne then
   begin
-    EMMS;
     Zf := FixedOne / Z;
     SrcX := Round(SrcX * Zf);
     SrcY := Round(SrcY * Zf);
@@ -1648,7 +1646,6 @@ procedure TProjectiveTransformation.ReverseTransformFloat(
 var
   Z: TFloat;
 begin
-  EMMS;
   Z := FInverseMatrix[0, 2] * DstX + FInverseMatrix[1, 2] * DstY +
     FInverseMatrix[2, 2];
 
@@ -1695,7 +1692,6 @@ begin
 
   if Z <> FixedOne then
   begin
-    EMMS;
     Zf := FixedOne / Z;
     DstX := Round(DstX * Zf);
     DstY := Round(DstY * Zf);
@@ -1707,7 +1703,6 @@ procedure TProjectiveTransformation.TransformFloat(SrcX, SrcY: TFloat;
 var
   Z: TFloat;
 begin
-  EMMS;
   Z := FMatrix[0, 2] * SrcX + FMatrix[1, 2] * SrcY + FMatrix[2, 2];
 
   if Z = 0 then Exit;
@@ -2129,7 +2124,6 @@ begin
 
   if Z <> FixedOne then
   begin
-    EMMS;
     Zf := FixedOne / Z;
     SrcX := Round(SrcX * Zf);
     SrcY := Round(SrcY * Zf);
@@ -2140,7 +2134,6 @@ procedure TProjectiveTransformationEx.ReverseTransformFloat(DstX, DstY: TFloat; 
 var
   Z: TFloat;
 begin
-  EMMS;
   Z := FInverseMatrix[0, 2] * DstX +
        FInverseMatrix[1, 2] * DstY +
        FInverseMatrix[2, 2];
@@ -2193,7 +2186,6 @@ begin
 
   if Z <> FixedOne then
   begin
-    EMMS;
     Zf := FixedOne / Z;
     DstX := Round(DstX * Zf);
     DstY := Round(DstY * Zf);
@@ -2204,7 +2196,6 @@ procedure TProjectiveTransformationEx.TransformFloat(SrcX, SrcY: TFloat; out Dst
 var
   Z: TFloat;
 begin
-  EMMS;
   Z := FMatrix[0, 2] * SrcX +
        FMatrix[1, 2] * SrcY +
        FMatrix[2, 2];

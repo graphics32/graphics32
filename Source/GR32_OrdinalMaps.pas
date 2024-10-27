@@ -952,7 +952,6 @@ begin
         MergeMem(NewColor, ScnLn^[IX]);
       end;
     end;
-    EMMS;
   end;
 end;
 
@@ -992,7 +991,6 @@ begin
         MergeMem(NewColor, ScnLn^[IX]);
       end;
     end;
-    EMMS;
   end;
 end;
 

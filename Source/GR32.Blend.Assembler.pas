@@ -76,12 +76,6 @@ procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: Cardinal);
 
 
 //------------------------------------------------------------------------------
-// EMMS
-//------------------------------------------------------------------------------
-procedure EMMS_ASM;
-
-
-//------------------------------------------------------------------------------
 //
 //      Bindings
 //
@@ -1422,12 +1416,6 @@ end;
 //
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-// EMMS
-//------------------------------------------------------------------------------
-procedure EMMS_ASM; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-end;
 
 
 //------------------------------------------------------------------------------
@@ -1438,7 +1426,6 @@ end;
 {$IFNDEF PUREPASCAL}
 procedure RegisterBindingFunctions;
 begin
-  BlendRegistry.Add(FID_EMMS,           @EMMS_ASM,              [isAssembler]);
   BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_ASM,        [isAssembler]);
   BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_ASM,        [isAssembler]);
   BlendRegistry.Add(FID_BLENDREG,       @BlendReg_ASM,          [isAssembler]);

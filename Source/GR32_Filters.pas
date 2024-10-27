@@ -41,7 +41,7 @@ interface
 {$include GR32.inc}
 
 {$IFDEF TARGET_X64}
-{$DEFINE PUREPASCAL}
+{$DEFINE PUREPASCAL} // It seems the asm implementations haven't been ported to 64-bit
 {$ENDIF}
 
 uses
@@ -1686,6 +1686,8 @@ begin
   Registry.Add(FID_ANDLINEEX, @AndLineEx_ASM, [isAssembler]);
   Registry.Add(FID_ORLINEEX, @OrLineEx_ASM, [isAssembler]);
   Registry.Add(FID_XORLINEEX, @XorLineEx_ASM, [isAssembler]);
+
+  // TODO : rewrite MMX implementations using SSE
 {$IFNDEF OMIT_MMX}
   Registry.Add(FID_ANDLINEEX, @AndLineEx_MMX, [isMMX]);
   Registry.Add(FID_ORLINEEX, @OrLineEx_MMX, [isMMX]);
@@ -1694,6 +1696,7 @@ begin
   Registry.Add(FID_ORLINEEX, @OrLineEx_EMMX, [isExMMX]);
   Registry.Add(FID_XORLINEEX, @XorLineEx_EMMX, [isExMMX]);
 {$ENDIF}
+
 {$ENDIF}
 
   Registry.RebindAll;

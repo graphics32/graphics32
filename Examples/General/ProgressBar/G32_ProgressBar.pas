@@ -157,7 +157,7 @@ begin
   if Contrast <> 0 then
   begin
     with ARect do
-    try
+    begin
       H := Bottom - Top;
       CY := (Top + Bottom) div 2;
       for I := Top to Bottom - 1 do
@@ -165,11 +165,10 @@ begin
         LineColor := Lighten(Clr, (CY - I) * Contrast div H);
         Buffer.HorzLineS(Left, I, Right - 1, LineColor);
       end;
-    finally
-      EMMS; // the low-level blending function was used EMMS is required
     end;
   end
-  else Buffer.FillRectS(ARect, Clr);
+  else
+    Buffer.FillRectS(ARect, Clr);
 
   Buffer.RaiseRectTS(ARect, 32);
 

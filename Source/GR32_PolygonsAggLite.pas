@@ -822,59 +822,6 @@ asm
 {$ENDIF}
 end;
 
-{$IFNDEF OMIT_MMX}
-{$IFDEF TARGET_X86}
-procedure FillSpan_MMX(Ptr: PColor32Array; Covers: PColor32; Count: Cardinal;
-  const C: TColor32);
-asm
-        JCXZ      @3
-
-        PUSH      EBX
-        PUSH      ESI
-        MOV       ESI,EAX
-        MOV       EBX,C
-
-        PXOR      MM3,MM3            // MM3 = 0
-
-        MOVD      MM1,EBX            // MM1 = C (Foreground)
-        PUNPCKLBW MM1,MM3
-
-        SHR       EBX,24
-        JZ        @2
-        INC       EBX                // 255:256 range bias
-
-@1:
-        MOVD      MM2,[ESI]          // MM2 = Dest (Background)
-        PUNPCKLBW MM2,MM3
-        MOV       EAX,[EDX]          // EAX = Alpha
-        IMUL      EAX,EBX
-        SHR       EAX,8
-        SHL       EAX,4
-        ADD       EAX,alpha_ptr
-        MOVQ      MM0,MM1
-        PSUBW     MM0,MM2
-        PMULLW    MM0,[EAX]
-        PSLLW     MM2,8
-        MOV       EAX,bias_ptr
-        PADDW     MM2,[EAX]
-        PADDW     MM0,MM2
-        PSRLW     MM0,8
-        PACKUSWB  MM0,MM3
-        MOVD      [ESI],MM0
-
-        ADD       ESI,4
-        ADD       EDX,4
-
-        DEC       ECX
-        JNZ       @1
-
-@2:     POP       ESI
-        POP       EBX
-
-@3:
-end;
-{$ENDIF}
-{$ENDIF}
 
 {$IFNDEF OMIT_SSE2}
 procedure FillSpan_SSE2(Ptr: PColor32Array; Covers: PColor32; Count: Cardinal;
@@ -1603,7 +1550,6 @@ var
 
       FillSpan(@Row^[CurX], PColor32(Covers), NumPix, Color);
     until NumSpans = 0;
-    EMMS;
   end;
 
 begin
@@ -1827,10 +1773,6 @@ begin
 
 {$IFNDEF PUREPASCAL}
   FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_ASM, [isAssembler]);
-{$IFNDEF OMIT_MMX}
-  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_MMX, [isMMX]);
-{$ENDIF}
-
 {$IFNDEF OMIT_SSE2}
   FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_SSE2, [isSSE2]);
 {$ENDIF}
