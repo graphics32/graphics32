@@ -90,7 +90,7 @@ end;
 procedure TFormMain.ImageMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 var
-  Size: TSize;
+  Pivot: TPoint;
 begin
   if (Button = mbMiddle) then
   begin
@@ -100,12 +100,17 @@ begin
       TImage32(Sender).Scale := 1;
 
       // ...and Center image
-      Size := TImage32(Sender).GetBitmapSize;
-      TImage32(Sender).OffsetHorz := (TImage32(Sender).Width-Size.cx) div 2;
-      TImage32(Sender).OffsetVert := (TImage32(Sender).Height-Size.cy) div 2;
+      TImage32(Sender).ScrollToCenter;
     finally
       TImage32(Sender).EndUpdate;
     end;
+  end else
+  if (Button = mbRight) then
+  begin
+    // Right-click centers pixel under cursor
+    Pivot := Point(X, Y);
+    Pivot := TImage32(Sender).ControlToBitmap(Pivot);
+    TImage32(Sender).ScrollToCenter(Pivot.X, Pivot.Y);
   end;
 end;
 
@@ -125,7 +130,7 @@ begin
       TImgView32(Sender).Scale := 1;
 
       // ...and Center image
-      TImgView32(Sender).ScrollToCenter(TImgView32(Sender).Bitmap.Width div 2, TImgView32(Sender).Bitmap.Height div 2);
+      TImgView32(Sender).ScrollToCenter;
     finally
       TImgView32(Sender).EndUpdate;
     end;

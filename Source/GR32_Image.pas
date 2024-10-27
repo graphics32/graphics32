@@ -614,6 +614,8 @@ type
     procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
     procedure Scroll(Dx, Dy: Integer); overload;
     procedure Scroll(Dx, Dy: Single); overload; virtual;
+    procedure ScrollToCenter; overload;
+    procedure ScrollToCenter(X, Y: Integer); overload; virtual;
     procedure Zoom(AScale: TFloat; const APivot: TFloatPoint; AAnimate: boolean = False); overload;
     procedure Zoom(AScale: TFloat; AAnimate: boolean = False); overload;
 
@@ -799,8 +801,7 @@ type
     function GetViewportRect: TRect; override;
     procedure Loaded; override;
     procedure Resize; override;
-    procedure ScrollToCenter; overload;
-    procedure ScrollToCenter(X, Y: Integer); overload;
+    procedure ScrollToCenter(X, Y: Integer); override;
     procedure Scroll(Dx, Dy: Single); override;
     property Centered: Boolean read FCentered write SetCentered default True;
     property ScrollBars: TImageViewScrollProperties read FScrollBars write SetScrollBars;
@@ -3702,6 +3703,26 @@ begin
 {$endif FPC}
 end;
 
+procedure TCustomImage32.ScrollToCenter(X, Y: Integer);
+var
+  ViewportRect: TRect;
+begin
+  BeginUpdate;
+  try
+    ViewportRect := GetViewportRect;
+
+    OffsetHorz := ViewportRect.Width * 0.5 - X * Scale;
+    OffsetVert := ViewportRect.Height * 0.5 - Y * Scale;
+  finally
+    EndUpdate;
+  end;
+end;
+
+procedure TCustomImage32.ScrollToCenter;
+begin
+  ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2);
+end;
+
 procedure TCustomImage32.SetBackgroundOptions(const Value: TBackgroundOptions);
 begin
   FBackgroundOptions.Assign(Value);
@@ -4453,17 +4474,13 @@ begin
     ScrollPos := Constrain(ScrollPos, 0, FVerScroll.Max - FVerScroll.PageSize);
 end;
 
-procedure TCustomImgView32.ScrollToCenter;
-begin
-  ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2);
-end;
-
 procedure TCustomImgView32.ScrollToCenter(X, Y: Integer);
 begin
   BeginOffset;
   try
-    OffsetHorz := FViewportSize.cx * 0.5 - X * Scale;
-    OffsetVert := FViewportSize.cy * 0.5 - Y * Scale;
+
+    inherited;
+
   finally
     EndOffset;
   end;
