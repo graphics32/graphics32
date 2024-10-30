@@ -500,6 +500,7 @@ type
     FBackgroundOptions: TBackgroundOptions;
     FMousePanOptions: TMousePanOptions;
     FMouseZoomOptions: TMouseZoomOptions;
+    FClicked: boolean;
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
     FOnBitmapResize: TNotifyEvent;
@@ -3474,6 +3475,14 @@ begin
   if TabStop and CanFocus then
     SetFocus;
 
+  if (not GetViewportRect.Contains(Point(X, Y))) then
+  begin
+    // Click outside viewport; Most likely the small rectangle in the
+    // lower right corner between the scrollbars.
+    MouseCapture := False;
+    exit;
+  end;
+
 {$ifdef MOUSE_UPDATE_BATCHING}
   BeginUpdate;
   try
@@ -3485,9 +3494,13 @@ begin
 
     // lock the capture only if mbLeft was pushed or any mouse listener was activated
     if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+      // Note that TControl will have already captured the mouse for us since we
+      // have ControlStyle=[...csCaptureMouse...]
       MouseCapture := True;
 
     MouseDown(Button, Shift, X, Y, Layer);
+    // Signal MouseUp that we handled the MouseDown
+    FClicked := True;
 
     if (Layer = nil) and (CanMousePan) and (Button = FMousePanOptions.MouseButton) and (FMousePanOptions.MatchShiftState(Shift)) then
     begin
@@ -3539,6 +3552,8 @@ begin
     if (FMousePanOptions.PanCursor <> crDefault) then
       Screen.Cursor := FMousePanOptions.PanCursor;
   end else
+  // Ignore movement outside viewport unless we have captured the mouse
+  if (MouseCapture) or (GetViewportRect.Contains(Point(X, Y))) then
   begin
   {$ifdef MOUSE_UPDATE_BATCHING}
     BeginUpdate;
@@ -3563,6 +3578,12 @@ var
   Layer: TCustomLayer;
   MouseListener: TCustomLayer;
 begin
+  // Ignore MouseUp unless we handled the MouseDown. Do not use MouseCapture
+  // for this test (see below).
+  if (not FClicked) then
+    exit;
+  FClicked := False;
+
   MouseListener := TLayerCollectionAccess(Layers).MouseListener;
 
 {$ifdef MOUSE_UPDATE_BATCHING}
@@ -3574,8 +3595,10 @@ begin
     else
       Layer := nil;
 
-    // unlock the capture using same criteria as was used to acquire it
+    // Unlock the capture using same criteria as was used to acquire it
     if (Button = mbLeft) or ((MouseListener <> nil) and (TLayerCollectionAccess(Layers).MouseListener = nil)) then
+      // Note that TControl will have already released the mouse capture since
+      // we have ControlStyle=[...csCaptureMouse...]
       MouseCapture := False;
 
     MouseUp(Button, Shift, X, Y, Layer);
