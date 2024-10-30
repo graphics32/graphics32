@@ -36,6 +36,7 @@ interface
 {$include GR32.inc}
 
 {-$define FADE_BLEND}
+{$define PARTICLE_AA}
 
 uses
   Messages,
@@ -52,7 +53,7 @@ uses
 //
 //------------------------------------------------------------------------------
 // Control the motion of a swarm of particles using 3D Simplex Noise, the third
-// dimentions being time.
+// dimension being time.
 //------------------------------------------------------------------------------
 //
 // Based on ideas by:
@@ -76,8 +77,8 @@ const
   ParamColorSaturation = 0.75;
   ParamColorLightness = 0.5;
 
-  ParamParticleSpaceFactor = 0.005;     // How much does the current position affect the simplex noise
-  ParamParticleTimeFactor = 0.0001;     // How much does the current time affect the simplex noise
+  ParamParticleSpaceFactor = 0.003;     // How much does the current position affect the simplex noise
+  ParamParticleTimeFactor = 0.001;     // How much does the current time affect the simplex noise
   ParamParticleVectorFactor = 0.25;     // Amount of randomness in vector
   ParamParticleSpeedFactor = 0.95;      // Velocity decay; <=1, 1=none
 
@@ -381,8 +382,13 @@ end;
 
 procedure TParticle.Render(Buffer: TBitmap32);
 begin
+{$if defined(PARTICLE_AA)}
   Buffer.MoveToF(FTrail.X, FTrail.Y);
   Buffer.LineToFS(FPosition.X, FPosition.Y);
+{$else}
+  Buffer.MoveTo(Round(FTrail.X), Round(FTrail.Y));
+  Buffer.LineToS(Round(FPosition.X), Round(FPosition.Y));
+{$ifend}
 end;
 
 procedure TParticle.Reset(const ABounds: TRect);
