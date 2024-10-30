@@ -2072,6 +2072,11 @@ begin
 
   Bitmap.OnResize := nil;
 
+  // Empty bitmap so we don't fail in UpdateCache when layers are
+  // hidden during destruction and calls back via LayerCollection to
+  // get the ClientRect.
+  Bitmap.Delete;
+
   FreeAndNil(FPaintStages);
   RepaintOptimizer.UnregisterLayerCollection(FLayers);
   FLayers.Unsubscribe(Self);
@@ -2080,6 +2085,7 @@ begin
   FreeAndNil(FBackgroundOptions);
   FreeAndNil(FMousePanOptions);
   FreeAndNil(FMouseZoomOptions);
+
   inherited;
 end;
 
