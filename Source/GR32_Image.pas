@@ -4444,20 +4444,24 @@ begin
 end;
 
 procedure TCustomImgView32.PaintSizeGrip;
+var
+  SizeGripRect: TRect;
 begin
   if (Parent = nil) then
     Exit;
 
   if (GetScrollBarsVisible) then
   begin
+    SizeGripRect := GetSizeGripRect;
 {$IFNDEF PLATFORM_INDEPENDENT}
     if IsSizeGripVisible then
-      DoDrawSizeGrip(GetSizeGripRect)
+      DoDrawSizeGrip(SizeGripRect)
     else
 {$ENDIF}
+    if (not SizeGripRect.IsEmpty) then
     begin
       Canvas.Brush.Color := clBtnFace;
-      Canvas.FillRect(GetSizeGripRect);
+      Canvas.FillRect(SizeGripRect);
     end;
   end;
 end;
