@@ -1088,10 +1088,7 @@ begin
     Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
   if (Result <> nil) then
-    Result.MouseMove(Shift, X, Y)
-  else
-  if FOwner is TControl then
-    Screen.Cursor := TControl(FOwner).Cursor;
+    Result.MouseMove(Shift, X, Y);
 end;
 
 function TLayerCollection.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;

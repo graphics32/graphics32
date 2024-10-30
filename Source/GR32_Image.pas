@@ -3573,8 +3573,13 @@ begin
     try
   {$endif MOUSE_UPDATE_BATCHING}
       if Layers.MouseEvents then
-        Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y)
-      else
+      begin
+        Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y);
+
+        if (Layer = nil) then
+          // Restore cursor in case we moved from a layer to outside any layer
+          Screen.Cursor := Cursor;
+      end else
         Layer := nil;
 
       MouseMove(Shift, X, Y, Layer);
@@ -3583,7 +3588,10 @@ begin
       EndUpdate;
     end;
 {$endif MOUSE_UPDATE_BATCHING}
-  end;
+  end else
+    // Restore cursor in case we moved from layer to outside viewport
+    // but inside control
+    Screen.Cursor := Cursor;
 end;
 
 procedure TCustomImage32.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
