@@ -1458,6 +1458,8 @@ end;
 procedure TCustomPaintBox32.Paint;
 var
   PaintSupport: IPaintSupport;
+  i: integer;
+  r: TRect;
 {$ifdef UPDATERECT_SLOWMOTION}
 const
 {$ifdef UPDATERECT_SUPERSLOWMOTION}
@@ -1472,8 +1474,6 @@ const
   clDebugDrawFrame = TColor32($00AF0A0A);
 var
   C1, C2: TColor32;
-  r: TRect;
-  i: integer;
 {$endif}
 {$ifdef PAINT_UNCLIPPED}
 var
@@ -1531,9 +1531,22 @@ begin
   FBuffer.Lock;
   try
     if (FUpdateRects.Count > 0) then
+    begin
+
+      // Clip update rects.
+      // Mainly so we don't paint over the ScrollBars/SizeGrip but also
+      // for possibly slightly better performance.
+      for i := 0 to FUpdateRects.Count-1 do
+        GR32.IntersectRect(FUpdateRects[i]^, FUpdateRects[i]^, FBuffer.ClipRect);
+
       PaintSupport.DoPaint(FBuffer, FUpdateRects, Canvas)
-    else
-      PaintSupport.DoPaint(FBuffer, GetViewportRect, Canvas);
+
+    end else
+    begin
+      GR32.IntersectRect(r, GetViewportRect, FBuffer.ClipRect);
+
+      PaintSupport.DoPaint(FBuffer, r, Canvas);
+    end;
   finally
     FBuffer.Unlock;
   end;
