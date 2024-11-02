@@ -1118,7 +1118,6 @@ type
   TCustomResamplerAccess = class(TCustomResampler);
   TCustomKernelAccess = class(TCustomKernel);
 
-  PPointRec = ^TPointRec;
   TPointRec = record
     Pos: Integer;
     Weight: Integer;

@@ -81,8 +81,6 @@ uses
 
 type
   TBytesArray = array of byte;
-  TSafeByteArray = array[0..MaxInt-1] of byte;
-  PByteArray = ^TSafeByteArray;
   TPhotoshopLayerCracker = class(TCustomPhotoshopLayer);
 
 //------------------------------------------------------------------------------
@@ -98,9 +96,6 @@ type
   // Write a single channels
   // Used for layer bitmaps
   TPSDChannelWriterDelegate = procedure(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopLayer; var ABuffer);
-
-  // Write a single row
-  TPSDScanlineWriterDelegate = function(AStream: TStream; const ABuffer; Width: integer): Cardinal;
 
 const
   // Number of channels

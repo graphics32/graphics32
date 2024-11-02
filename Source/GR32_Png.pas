@@ -388,46 +388,54 @@ end;
 
 
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; const Filename: string);
+var
+  PNG: TPortableNetworkGraphic32;
 begin
-  with TPortableNetworkGraphic32.Create do
+  PNG := TPortableNetworkGraphic32.Create;
   try
-    LoadFromFile(Filename);
-    AssignTo(Bitmap);
+    PNG.LoadFromFile(Filename);
+    PNG.AssignTo(Bitmap);
   finally
-    Free;
+    PNG.Free;
   end;
 end;
 
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; Stream: TStream);
+var
+  PNG: TPortableNetworkGraphic32;
 begin
-  with TPortableNetworkGraphic32.Create do
+  PNG := TPortableNetworkGraphic32.Create;
   try
-    LoadFromStream(Stream);
-    AssignTo(Bitmap);
+    PNG.LoadFromStream(Stream);
+    PNG.AssignTo(Bitmap);
   finally
-    Free;
+    PNG.Free;
   end;
 end;
 
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; const FileName: string);
+var
+  PNG: TPortableNetworkGraphic32;
 begin
-  with TPortableNetworkGraphic32.Create do
+  PNG := TPortableNetworkGraphic32.Create;
   try
-    Assign(Bitmap);
-    SaveToFile(Filename);
+    PNG.Assign(Bitmap);
+    PNG.SaveToFile(Filename);
   finally
-    Free;
+    PNG.Free;
   end;
 end;
 
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream);
+var
+  PNG: TPortableNetworkGraphic32;
 begin
-  with TPortableNetworkGraphic32.Create do
+  PNG := TPortableNetworkGraphic32.Create;
   try
-    Assign(Bitmap);
-    SaveToStream(Stream);
+    PNG.Assign(Bitmap);
+    PNG.SaveToStream(Stream);
   finally
-    Free;
+    PNG.Free;
   end;
 end;
 

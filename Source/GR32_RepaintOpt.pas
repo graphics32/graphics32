@@ -110,9 +110,6 @@ begin
   Inc(Area.Right, Dx); Inc(Area.Bottom, Dy);
 end;
 
-type
-  TLayerCollectionAccess = class(TLayerCollection);
-
 { TCustomRepaintManager }
 
 constructor TCustomRepaintOptimizer.Create(Buffer: TBitmap32; InvalidRects: TRectList);

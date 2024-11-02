@@ -1115,7 +1115,6 @@ end;
 { TMicroTilesRepaintManager }
 
 type
-  TLayerCollectionAccess = class(TLayerCollection);
   TCustomLayerAccess = class(TCustomLayer);
 
 const

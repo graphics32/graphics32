@@ -120,7 +120,6 @@ type
   PLineSegmentArray = ^TLineSegmentArray;
   TLineSegmentArray = array [0..0] of TLineSegment;
 
-  PScanLine = ^TScanLine;
   TScanLine = record
     Segments: PLineSegmentArray;
     Count: Integer;

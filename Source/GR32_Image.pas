@@ -978,7 +978,6 @@ uses
 type
   TLayerAccess = class(TCustomLayer);
   TLayerCollectionAccess = class(TLayerCollection);
-  TBitmap32Cracker = class(TCustomBitmap32);
 
 const
   DefaultRepaintOptimizerClass: TCustomRepaintOptimizerClass = TMicroTilesRepaintOptimizer;
@@ -4217,16 +4216,16 @@ begin
 end;
 
 procedure TCustomImgView32.DoDrawSizeGrip(R: TRect);
-{$ifdef MSWINDOWS}
+{$if (not defined(FPC)) and defined(MSWINDOWS)}
 var
   ThemedElementDetails: TThemedElementDetails;
-{$ENDIF}
+{$ifend}
 begin
-{$ifdef MSWINDOWS}
+{$if defined(MSWINDOWS)}
   Canvas.Brush.Color := clBtnFace;
   Canvas.FillRect(R);
 
-{$ifndef FPC}
+{$if (not defined(FPC))}
   ThemedElementDetails := StyleServices.GetElementDetails(tsSizeBoxRightAlign);
   if (StyleServices.DrawElement(Canvas.Handle, ThemedElementDetails, R)) then
     exit;
@@ -4237,9 +4236,9 @@ begin
 //  ThemedElementDetails :=  ThemeServices.GetElementDetails(tsSizeBoxRightAlign);
 //  ThemeServices.DrawElement(Canvas.Handle, ThemedElementDetails, R);
   DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, DFCS_SCROLLSIZEGRIP)
-{$endif}
+{$ifend}
 
-{$ENDIF}
+{$ifend}
 end;
 
 procedure TCustomImgView32.DoScaleChange;

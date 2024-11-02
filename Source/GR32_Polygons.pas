@@ -1381,7 +1381,6 @@ end;
 { LCD sub-pixel rendering (see http://www.grc.com/cttech.htm) }
 
 type
-  PRGBTriple = ^TRGBTriple;
   TRGBTriple = packed record
     B, G, R: Byte;
   end;

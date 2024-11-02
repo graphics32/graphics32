@@ -96,7 +96,6 @@ const
 
 type
   TKerningPairArray = array [0..0] of TKerningPair;
-  PKerningPairArray = ^TKerningPairArray;
 
 //------------------------------------------------------------------------------
 

@@ -80,7 +80,6 @@ const
 
 type
   TCustomLayer = class;
-  TPositionedLayer = class;
   TLayerClass = class of TCustomLayer;
 
   TLayerCollection = class;
@@ -205,13 +204,11 @@ type
     procedure Unsubscribe(const ASubscriber: IInterface);
 
     function Add(ItemClass: TLayerClass): TCustomLayer; overload;
-{$ifndef FPC}
-    function Add<T: TCustomLayer>: T; overload;
-{$endif}
     function Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer; overload;
-{$ifndef FPC}
+{$if (not defined(_FPC))}
+    function Add<T: TCustomLayer>: T; overload;
     function Insert<T: TCustomLayer>(Index: Integer): T; overload;
-{$endif}
+{$ifend}
     procedure Delete(Index: Integer);
     procedure Clear;
     function IndexOf(Item: TCustomLayer): integer;
@@ -359,6 +356,7 @@ type
 //------------------------------------------------------------------------------
 // Base class for layers that has position and size.
 //------------------------------------------------------------------------------
+type
   TLayerGetUpdateRectEvent = procedure(Sender: TObject; var UpdateRect: TRect) of object;
 
   TPositionedLayer = class(TCustomLayer)
@@ -407,6 +405,7 @@ type
 //------------------------------------------------------------------------------
 // Base class for layers referencing a bitmap. The layer does not own the bitmap.
 //------------------------------------------------------------------------------
+type
   TCustomIndirectBitmapLayer = class(TPositionedLayer)
   strict private
     FAlphaHit: Boolean;
@@ -448,6 +447,7 @@ type
 //------------------------------------------------------------------------------
 // Abstract base class for layers containing a bitmap. The layer owns the bitmap.
 //------------------------------------------------------------------------------
+type
   TCustomBitmapLayer = class abstract(TCustomIndirectBitmapLayer)
   strict protected
     function OwnsBitmap: boolean; override;
@@ -467,6 +467,7 @@ type
 //------------------------------------------------------------------------------
 // A layer containing a TBitmap32. The layer owns the bitmap.
 //------------------------------------------------------------------------------
+type
   TBitmapLayer = class(TCustomBitmapLayer)
   protected
     function GetBitmapClass: TCustomBitmap32Class; override;
@@ -668,6 +669,7 @@ type
     property Vertices;
   end;
 
+
 //------------------------------------------------------------------------------
 //
 //      TRubberbandLayer
@@ -813,12 +815,12 @@ begin
   Notify(lnLayerAdded, Result, Result.Index);
 end;
 
-{$ifndef FPC}
+{$if (not defined(_FPC))}
 function TLayerCollection.Add<T>: T;
 begin
   Result := T(Add(T));
 end;
-{$endif}
+{$ifend}
 
 procedure TLayerCollection.Assign(Source: TPersistent);
 var
@@ -974,12 +976,12 @@ begin
   end;
 end;
 
-{$ifndef FPC}
+{$if (not defined(_FPC))}
 function TLayerCollection.Insert<T>(Index: Integer): T;
 begin
   Result := T(Insert(Index, T));
 end;
-{$endif}
+{$ifend}
 
 procedure TLayerCollection.InsertItem(Item: TCustomLayer);
 var

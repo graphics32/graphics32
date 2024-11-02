@@ -41,7 +41,7 @@ interface
 uses
   {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Windows, Actions, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
-  ExtDlgs, StdCtrls, Buttons, Types, ActnList,
+  StdCtrls, Buttons, Types, ActnList,
   GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
   GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
