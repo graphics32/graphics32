@@ -256,7 +256,11 @@ begin
   R := ImgView.GetViewportRect;
   P := ImgView.ControlToBitmap(R.CenterPoint);
 
+  // Here's one way to add a layer:
+  Result := ImgView.Layers.Add<TPositionedLayer>;
+  (* and here's another way:
   Result := TPositionedLayer.Create(ImgView.Layers);
+  *)
   Result.Location := FloatRect(P.X - 32, P.Y - 32, P.X + 32, P.Y + 32);
   Result.Scaled := True;
   Result.MouseEvents := True;

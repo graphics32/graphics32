@@ -205,7 +205,7 @@ type
 
     function Add(ItemClass: TLayerClass): TCustomLayer; overload;
     function Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer; overload;
-{$if (not defined(_FPC))}
+{$if defined(FPC) or (CompilerVersion > 29.0)} // Delphi 10 or later
     function Add<T: TCustomLayer>: T; overload;
     function Insert<T: TCustomLayer>(Index: Integer): T; overload;
 {$ifend}
@@ -815,7 +815,7 @@ begin
   Notify(lnLayerAdded, Result, Result.Index);
 end;
 
-{$if (not defined(_FPC))}
+{$if defined(FPC) or (CompilerVersion > 29.0)}
 function TLayerCollection.Add<T>: T;
 begin
   Result := T(Add(T));
@@ -976,7 +976,7 @@ begin
   end;
 end;
 
-{$if (not defined(_FPC))}
+{$if defined(FPC) or (CompilerVersion > 29.0)}
 function TLayerCollection.Insert<T>(Index: Integer): T;
 begin
   Result := T(Insert(Index, T));
