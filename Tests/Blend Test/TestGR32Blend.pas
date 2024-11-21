@@ -491,10 +491,9 @@ begin
   BlendColor32.R := $4D;
 
   ExpectedColor32.ARGB := BlendReg_Reference(BlendColor32.ARGB, BlendColor32.ARGB);
-  CombinedColor32.ARGB := BlendReg(BlendColor32.ARGB, BlendColor32.ARGB);
-
-  CombinedColor32.A := $FF;
   ExpectedColor32.A := $FF;
+  CombinedColor32.ARGB := BlendReg(BlendColor32.ARGB, BlendColor32.ARGB);
+  CombinedColor32.A := $FF;
   CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
 
   for RefIndex := 0 to High(Byte) do
@@ -506,9 +505,9 @@ begin
     begin
       BlendColor32.A := Index;
       ExpectedColor32.ARGB := BlendReg_Reference(BlendColor32.ARGB, clBlack32);
+      ExpectedColor32.A := $FF;
       CombinedColor32.ARGB := BlendReg(BlendColor32.ARGB, clBlack32);
       CombinedColor32.A := $FF;
-      ExpectedColor32.A := $FF;
 
       CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
     end;
@@ -536,9 +535,9 @@ begin
   BlendColor32.R := $28;
 
   ExpectedColor32.ARGB := BlendRegEx_Reference(BlendColor32.ARGB, clBlack32, TColor32(7 shl 5));
+  ExpectedColor32.A := $FF;
   CombinedColor32.ARGB := BlendRegEx(BlendColor32.ARGB, clBlack32, TColor32(7 shl 5));
   CombinedColor32.A := $FF;
-  ExpectedColor32.A := $FF;
 
   CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
 
@@ -553,9 +552,9 @@ begin
       begin
         BlendColor32.A := Index;
         ExpectedColor32.ARGB := BlendRegEx_Reference(BlendColor32.ARGB, clBlack32, TColor32(MasterIndex shl 5));
+        ExpectedColor32.A := $FF;
         CombinedColor32.ARGB := BlendRegEx(BlendColor32.ARGB, clBlack32, TColor32(MasterIndex shl 5));
         CombinedColor32.A := $FF;
-        ExpectedColor32.A := $FF;
 
         CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
       end;
@@ -988,7 +987,14 @@ begin
 
   CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit, 'MergeReg(FG: %.8X, BG: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
 
-  // sample test
+  // Test for alpha-premultiplication; Color with Alpha=0 should not contribute to result
+  ExpectedColor32.ARGB := MergeReg_Reference($FF00FFFF, $00FF0000);
+  CombinedColor32.ARGB := MergeReg($FF00FFFF, $00FF0000);
+  CheckEquals(255, CombinedColor32.A);
+  CheckEquals(0, CombinedColor32.R);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+
+
   MergeColor32.ARGB := clBlack32;
   for RefIndex := 0 to High(Byte) do
   begin
@@ -1038,6 +1044,14 @@ begin
 
   CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit, 'MergeRegEx(FG: %.8X, BG: %.8X, Master: %d)', [BlendColor32.ARGB, MergeColor32.ARGB, 128]);
 
+  // Test for alpha-premultiplication; Color with Alpha=0 should not contribute to result
+  ExpectedColor32.ARGB := MergeRegEx_Reference($FF00FFFF, $00FF0000, 127);
+  CombinedColor32.ARGB := MergeRegEx($FF00FFFF, $00FF0000, 127);
+  CheckEquals(127, CombinedColor32.A);
+  CheckEquals(0, CombinedColor32.R);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+
+
   MergeColor32.ARGB := clBlack32;
   for RefIndex := 0 to High(Byte) do
   begin
@@ -1081,7 +1095,15 @@ begin
     Exit;
   end;
 
-  // sample test
+  // Test for alpha-premultiplication; Color with Alpha=0 should not contribute to result
+  ExpectedColor32.ARGB := $00FF0000;
+  CombinedColor32.ARGB := $00FF0000;
+  MergeMem_Reference($FF00FFFF, ExpectedColor32.ARGB);
+  MergeMem($FF00FFFF, CombinedColor32.ARGB);
+  CheckEquals(255, CombinedColor32.A);
+  CheckEquals(0, CombinedColor32.R);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+
   for RefIndex := 0 to High(Byte) do
   begin
     BlendColor32.B := RefIndex;
@@ -1126,6 +1148,16 @@ begin
     Check(True);
     Exit;
   end;
+
+  // Test for alpha-premultiplication; Color with Alpha=0 should not contribute to result
+  ExpectedColor32.ARGB := $00FF0000;
+  CombinedColor32.ARGB := $00FF0000;
+  MergeMemEx_Reference($FF00FFFF, ExpectedColor32.ARGB, 127);
+  MergeMemEx($FF00FFFF, CombinedColor32.ARGB, 127);
+  CheckEquals(127, CombinedColor32.A);
+  CheckEquals(0, CombinedColor32.R);
+  CheckColor(ExpectedColor32, CombinedColor32, FMaxDifferenceLimit);
+
 
   MergeColor32.ARGB := clBlack32;
   for RefIndex := 0 to High(Byte) do
@@ -1172,6 +1204,29 @@ begin
     Check(True);
     Exit;
   end;
+
+  // Test for alpha-premultiplication; Color with Alpha=0 should not contribute to result
+  for Index := 0 to High(Byte) do
+  begin
+    FBackground^[Index] := $00FF0000;
+    BlendColor32.B := Index;
+    BlendColor32.G := Index shr 1;
+    BlendColor32.R := 0;
+    BlendColor32.A := Index;
+    FForeground^[Index] := BlendColor32.ARGB;
+  end;
+  MergeLine(PColor32(FForeground), PColor32(FBackground), 256);
+  for Index := 0 to High(Byte) do
+  begin
+    ExpectedColor32.ARGB := MergeReg_Reference(FForeground^[Index], $00FF0000);
+    MergedColor32.ARGB := FBackground^[Index];
+
+    CheckEquals(Index, MergedColor32.A);
+    if (MergedColor32.A <> 0) then
+      CheckEquals(0, MergedColor32.R);
+    CheckColor(ExpectedColor32, MergedColor32, FMaxDifferenceLimit);
+  end;
+
 
   for RefIndex := 0 to High(Byte) do
   begin
