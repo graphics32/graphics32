@@ -2844,20 +2844,37 @@ end;
 //      Special interpolators (for sfLinear and sfDraft)
 //
 //------------------------------------------------------------------------------
+// Lerps between 4 pixels:
+//
+//  p11 points to the first pixel.
+//  p12 points to the pixel just below the first pixel.
+//
+//    p11->   1  2
+//    p12->   3  4
+//
+//  WX_256 is the weight in the X-direction, WY_256 in the Y direction.
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 // Interpolator_Pas
 //------------------------------------------------------------------------------
-function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+function Interpolator_Pas(WX_256, WY_256: Cardinal; p11, p12: PColor32): TColor32;
 var
   C1, C3: TColor32;
 begin
-  if WX_256 > $FF then WX_256:= $FF;
-  if WY_256 > $FF then WY_256:= $FF;
-  C1 := C11^; Inc(C11);
-  C3 := C21^; Inc(C21);
-  Result := CombineReg(CombineReg(C1, C11^, WX_256),
-                       CombineReg(C3, C21^, WX_256), WY_256);
+  if WX_256 > $FF then
+    WX_256:= $FF;
+
+  if WY_256 > $FF then
+    WY_256:= $FF;
+
+  C1 := p11^; Inc(p11);
+  C3 := p12^; Inc(p12);
+
+  C1 := CombineReg(C1, p11^, WX_256);
+  C3 := CombineReg(C3, p12^, WX_256);
+
+  Result := CombineReg(C1, C3, WY_256);
 end;
 
 
