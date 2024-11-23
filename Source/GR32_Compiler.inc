@@ -313,6 +313,31 @@
 
 
 (*
+  Symbol: CLOSURE_CAPTURES_CONST
+  -------------------------------
+
+    Can anonymous methods capture const parameters.
+
+  If this symbol is defined, the compiler is assumed to support capturing
+  record types passed as const parameters (i.e. by reference) by value.
+
+    procedure Test(const Value: TRect);
+    begin
+      DoTest(
+        procedure(Value) // E2555 Cannot capture symbol 'Value'
+        begin
+          ...do something...
+        end);
+    end;
+
+  The symbol is defined for Delphi 10.3 and later and for FPC.
+*)
+{$if defined(FPC) or (CompilerVersion >= 33.0)}
+{$define CLOSURE_CAPTURES_CONST}
+{$ifend}
+
+
+(*
   Miscellaneous Defines:
   ----------------------
 *)

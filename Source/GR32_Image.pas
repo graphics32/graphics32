@@ -572,7 +572,7 @@ type
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     function GetBitmapMargin: integer; virtual;
     procedure DoZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
-    procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
+    procedure DoSetZoom({$ifdef CLOSURE_CAPTURES_CONST}const{$endif} APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
     procedure DoSetPivot(const APivot: TFloatPoint); virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
@@ -2663,7 +2663,7 @@ begin
   OffsetVert := APivot.Y;
 end;
 
-procedure TCustomImage32.DoSetZoom(const APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
+procedure TCustomImage32.DoSetZoom({$ifdef CLOSURE_CAPTURES_CONST}const{$endif} APivot: TFloatPoint; AScale: TFloat; AMaintainPivot: boolean);
 var
   DeltaScale: TFloat;
   NewOffset: TFloatPoint;
