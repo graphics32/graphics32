@@ -120,9 +120,10 @@ begin
   inherited;
 
   ImageSource.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder + '\Notre Dame.jpg');
-  ImageSource.Bitmap.ResamplerClassName := 'TLinearResampler';
-  // ImageSource.Bitmap.ResamplerClassName := 'TDraftResampler';
+  // Use Nearest resampler for the source so we can see the individual pixels when zoomed
+  ImageSource.Bitmap.ResamplerClassName := 'TNearestResampler';
   ImageDest.Bitmap.Assign(ImageSource.Bitmap);
+  ImageDest.Bitmap.ResamplerClassName := 'TLinearResampler';
   ImageSource.Scale := 0.5;
   ImageDest.Scale := 0.5;
 
@@ -133,7 +134,7 @@ begin
   begin
     FLayers[SourceDest].Scaled := True;
     FLayers[SourceDest].Cursor := crSizeAll;
-    FLayers[SourceDest].SetFrameStipple([clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32]);
+    FLayers[SourceDest].FrameStipple := [clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32];
     FLayers[SourceDest].HandleSize := 5;
     FLayers[SourceDest].OnHandleClicked := LayerHandleClicked;
     FLayers[SourceDest].OnHandleMove := LayerHandleMove;
@@ -265,7 +266,7 @@ begin
 
   if (AIndex <> -1) then
   begin
-    Snap := (ssShift in Sender.CurrentHitTest.Shift);
+    Snap := (ssShift in Sender.ActiveHitTest.Shift);
 
     if (not MoveCorner(SourceDest, APos, Snap)) then
       exit;
@@ -277,11 +278,11 @@ begin
     for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
       FLayers[SourceDest].Vertex[i] := FCorners[SourceDest, i];
 
-    if Supports(Sender.CurrentHitTest, ILayerHitTestVertex, HitTestVertex) then
+    if Supports(Sender.ActiveHitTest, ILayerHitTestVertex, HitTestVertex) then
       HitTestVertex.Vertex := FActiveIndex[SourceDest];
   end;
 
-  // Determine if polygon is convex
+  // Determine if polygon is convex; Mark the invalid vertex if it isn't
   FInvalidIndex[SourceDest] := -1;
   for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
     if (not IsCornerValid(FCorners[SourceDest], i, FActiveIndex[SourceDest])) then
@@ -390,10 +391,10 @@ end;
 
 procedure TFormMain.TimerMarchingAntsTimer(Sender: TObject);
 begin
-  if (FLayers[sdSource].CurrentHitTest <> nil) then
+  if (FLayers[sdSource].ActiveHitTest <> nil) then
     FLayers[sdSource].FrameStippleCounter := FLayers[sdSource].FrameStippleCounter + 1.5;
 
-  if (FLayers[sdDest].CurrentHitTest <> nil) then
+  if (FLayers[sdDest].ActiveHitTest <> nil) then
     FLayers[sdDest].FrameStippleCounter := FLayers[sdDest].FrameStippleCounter + 1.5;
 end;
 
