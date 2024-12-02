@@ -3476,21 +3476,49 @@ end;
 {$ifend}
 
 procedure TCustomImage32.KeyDown(var Key: Word; Shift: TShiftState);
+var
+  FirstLayer: TCustomLayer;
+  i: integer;
 begin
   inherited;
 
-  // Forward key event to any layer that has captured the mouse
-  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
-    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+  // First forward key event to any layer that has captured the mouse...
+  FirstLayer := TLayerCollectionAccess(Layers).MouseListener;
+
+  if (FirstLayer <> nil) then
+    TLayerAccess(FirstLayer).KeyDown(Key, Shift);
+
+  // ... and the to the remaining layers in Z-order
+  i := Layers.Count-1;
+  while (Key <> 0) and (i >= 0) do
+  begin
+    if (Layers[i] <> FirstLayer) then
+      TLayerAccess(Layers[i]).KeyDown(Key, Shift);
+    Dec(i);
+  end;
 end;
 
 procedure TCustomImage32.KeyUp(var Key: Word; Shift: TShiftState);
+var
+  FirstLayer: TCustomLayer;
+  i: integer;
 begin
   inherited;
 
-  // Forward key event to any layer that has captured the mouse
-  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
-    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+  // First forward key event to any layer that has captured the mouse...
+  FirstLayer := TLayerCollectionAccess(Layers).MouseListener;
+
+  if (FirstLayer <> nil) then
+    TLayerAccess(FirstLayer).KeyUp(Key, Shift);
+
+  // ... and the to the remaining layers in Z-order
+  i := Layers.Count-1;
+  while (Key <> 0) and (i >= 0) do
+  begin
+    if (Layers[i] <> FirstLayer) then
+      TLayerAccess(Layers[i]).KeyUp(Key, Shift);
+    Dec(i);
+  end;
 end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
