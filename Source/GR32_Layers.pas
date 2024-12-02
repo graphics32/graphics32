@@ -299,6 +299,8 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); virtual;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); virtual;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); virtual;
+    procedure MouseEnter; virtual;
+    procedure MouseLeave; virtual;
     procedure Paint(Buffer: TBitmap32); virtual;
     procedure PaintGDI(Canvas: TCanvas); virtual;
     procedure SetIndex(Value: Integer); virtual;
@@ -1471,6 +1473,14 @@ begin
 
   if Assigned(FOnMouseDown) then
     FOnMouseDown(Self, Button, Shift, X, Y);
+end;
+
+procedure TCustomLayer.MouseEnter;
+begin
+end;
+
+procedure TCustomLayer.MouseLeave;
+begin
 end;
 
 procedure TCustomLayer.MouseMove(Shift: TShiftState; X, Y: Integer);

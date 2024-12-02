@@ -484,7 +484,7 @@ type
     property Animate: boolean read FAnimate write FAnimate default False;
   end;
 
-  TCustomImage32 = class(TCustomPaintBox32, IUpdateRectNotification)
+  TCustomImage32 = class(TCustomPaintBox32, IUpdateRectNotification, ILayerListNotification)
   strict private
     FBitmap: TBitmap32;
     FBitmapAlign: TBitmapAlign;
@@ -503,6 +503,7 @@ type
     FClicked: boolean;
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
+    FHotLayer: TCustomLayer;
     FOnBitmapResize: TNotifyEvent;
     FOnInitStages: TNotifyEvent;
     FOnMouseDown: TImgMouseEvent;
@@ -527,6 +528,7 @@ type
     procedure SetBackgroundOptions(const Value: TBackgroundOptions);
     procedure SetMousePanOptions(const Value: TMousePanOptions);
     procedure SetMouseZoomOptions(const Value: TMouseZoomOptions);
+    procedure SetHotTrackLayer(ALayer: TCustomLayer);
   protected
     FCachedBitmapRect: TRect;
     FCacheValid: Boolean;
@@ -565,6 +567,7 @@ type
     procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
+    procedure MouseEnter; override;
     procedure MouseLeave; override;
     procedure SetOffsetHorz(Value: TFloat); virtual;
     procedure SetOffsetVert(Value: TFloat); virtual;
@@ -584,6 +587,9 @@ type
     procedure InvalidateArea(const AArea: TRect; const AInfo: Cardinal; AOptimize: boolean);
     // IUpdateRectNotification
     procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal); override;
+  protected
+    // ILayerListNotification
+    procedure LayerListNotify(ALayer: TCustomLayer; AAction: TLayerListNotification; AIndex: Integer); virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -3362,6 +3368,15 @@ begin
   ShiftY := CachedShiftY;
 end;
 
+procedure TCustomImage32.LayerListNotify(ALayer: TCustomLayer; AAction: TLayerListNotification; AIndex: Integer);
+begin
+  case AAction of
+    lnLayerDeleted:
+      if (ALayer = FHotLayer) then
+        SetHotTrackLayer(nil);
+  end;
+end;
+
 procedure TCustomImage32.Loaded;
 begin
   inherited;
@@ -3582,15 +3597,21 @@ begin
         Layer := nil;
 
       MouseMove(Shift, X, Y, Layer);
+
+      SetHotTrackLayer(Layer);
 {$ifdef MOUSE_UPDATE_BATCHING}
     finally
       EndUpdate;
     end;
 {$endif MOUSE_UPDATE_BATCHING}
   end else
+  begin
     // Restore cursor in case we moved from layer to outside viewport
     // but inside control
     Screen.Cursor := Cursor;
+
+    SetHotTrackLayer(nil);
+  end;
 end;
 
 procedure TCustomImage32.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -3657,10 +3678,19 @@ begin
     FOnMouseUp(Self, Button, Shift, X, Y, Layer);
 end;
 
+procedure TCustomImage32.MouseEnter;
+begin
+  inherited MouseEnter;
+
+end;
+
 procedure TCustomImage32.MouseLeave;
 begin
+  SetHotTrackLayer(nil);
+
   if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
     Screen.Cursor := crDefault;
+
   inherited;
 end;
 
@@ -3794,6 +3824,20 @@ procedure TCustomImage32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
   InvalidateCache;
+end;
+
+procedure TCustomImage32.SetHotTrackLayer(ALayer: TCustomLayer);
+begin
+  if (ALayer = FHotLayer) then
+    exit;
+
+  if (FHotLayer <> nil) then
+    TLayerAccess(FHotLayer).MouseLeave;
+
+  FHotLayer := ALayer;
+
+  if (FHotLayer <> nil) then
+    TLayerAccess(FHotLayer).MouseEnter;
 end;
 
 procedure TCustomImage32.SetLayers(Value: TLayerCollection);
