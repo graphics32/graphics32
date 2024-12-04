@@ -2627,13 +2627,27 @@ begin
   end else
   begin
 
+// GR32_PAINT_ORDER_INVALIDRECTS is the classic method: For each update rect, repaint each layer.
+// The other order (for each layer, repaint each update rect) gives slightly better performance
+// but unfortunately not as much as one would think.
+{$define GR32_PAINT_ORDER_INVALIDRECTS}
+
     // We have InvalidRects: Repaint each rect
+{$if defined(GR32_PAINT_ORDER_INVALIDRECTS)}
     for j := 0 to InvalidRects.Count - 1 do
     begin
       Buffer.ClipRect := InvalidRects[j]^;
       for i := 0 to High(FPaintStageHandlers) do
         FPaintStageHandlers[i](Buffer, FPaintStageNum[i]);
     end;
+{$else}
+    for i := 0 to High(FPaintStageHandlers) do
+      for j := 0 to InvalidRects.Count - 1 do
+      begin
+        Buffer.ClipRect := InvalidRects[j]^;
+        FPaintStageHandlers[i](Buffer, FPaintStageNum[i]);
+      end;
+{$ifend}
 
     Buffer.ClipRect := GetViewportRect;
 
