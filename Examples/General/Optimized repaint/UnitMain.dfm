@@ -310,7 +310,6 @@ object FormMain: TFormMain
       Top = 15
       Width = 246
       Height = 272
-      Cursor = crCross
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baCustom
