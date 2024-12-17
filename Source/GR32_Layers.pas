@@ -535,7 +535,7 @@ type
     FLayerUnderCursor: Boolean;
     FCancelIfPassed: Boolean;
   protected
-    function GetChildUnderCursor(X, Y: Integer): TPositionedLayer;
+    function GetChildUnderCursor(X, Y: Integer; Exclude: TPositionedLayer = nil): TPositionedLayer;
   public
     constructor Create(AOwner: TCustomRubberBandLayer);
 
@@ -2337,7 +2337,7 @@ begin
   FCancelIfPassed := False;
 end;
 
-function TRubberbandPassMouse.GetChildUnderCursor(X, Y: Integer): TPositionedLayer;
+function TRubberbandPassMouse.GetChildUnderCursor(X, Y: Integer; Exclude: TPositionedLayer): TPositionedLayer;
 var
   Layer: TCustomLayer;
   Index: Integer;
@@ -2345,8 +2345,9 @@ begin
   Result := nil;
   for Index := FOwner.LayerCollection.Count - 1 downto 0 do
   begin
-    Layer := FOwner.LayerCollection.Items[Index];
-    if ((Layer.LayerOptions and LOB_MOUSE_EVENTS) > 0) and
+    Layer := FOwner.LayerCollection[Index];
+    if (Layer <> Exclude) and
+      (Layer.LayerOptions and LOB_MOUSE_EVENTS <> 0) and
       (Layer is TPositionedLayer) and Layer.HitTest(X, Y) then
     begin
       Result := TPositionedLayer(Layer);
@@ -2837,7 +2838,7 @@ begin
     // Then pass to layer under mouse cursor
     if FPassMouse.ToLayerUnderCursor then
     begin
-      PositionedLayer := FPassMouse.GetChildUnderCursor(X, Y); // TODO : Should exclude current layer
+      PositionedLayer := FPassMouse.GetChildUnderCursor(X, Y, Self);
 
       // ...unless it's the same as the child layer and we handled the child layer above
       if (PositionedLayer <> nil) and ((not FPassMouse.ToChild) or (PositionedLayer <> ChildLayer)) then
@@ -2941,7 +2942,7 @@ begin
     // Then pass to layer under mouse cursor
     if FPassMouse.ToLayerUnderCursor then
     begin
-      PositionedLayer := FPassMouse.GetChildUnderCursor(X, Y); // TODO : Should exclude current layer
+      PositionedLayer := FPassMouse.GetChildUnderCursor(X, Y, Self);
 
       // ...unless it's the same as the child layer and we handled the child layer above
       if (PositionedLayer <> nil) and ((not FPassMouse.ToChild) or (PositionedLayer <> ChildLayer)) then
