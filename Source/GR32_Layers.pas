@@ -591,14 +591,22 @@ type
     ['{3CA95766-7294-42FB-A5F6-85153376F0B4}']
   end;
 
+  TRubberBandHandleStyle = (hsSquare, hsCircle, hsDiamond);
+
+  TRubberBandHandleDrawParams = record
+    HandleStyle: TRubberBandHandleStyle;
+    HandleSize: TFloat;
+    HandleFill: TColor32;
+    HandleFrame: TColor32;
+    HandleFrameSize: TFloat;
+  end;
+
   TRubberBandHandleEvent = procedure(Sender: TCustomRubberBandLayer; AIndex: integer) of object;
   TRubberBandHandleMoveEvent = procedure(Sender: TCustomRubberBandLayer; AIndex: integer; var APos: TFloatPoint) of object;
-  TRubberBandPaintHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var Handled: boolean) of object;
+  TRubberBandPaintHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var ADrawParams: TRubberBandHandleDrawParams; var Handled: boolean) of object;
   TRubberBandUpdateHandleEvent = procedure(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var UpdateRect: TRect; var Handled: boolean) of object;
 
   TLayerShiftState = TShiftState; // Actually only [ssShift, ssAlt, ssCtrl] but we can't subtype because of the way TShiftState is declared.
-
-  TRubberBandHandleStyle = (hsSquare, hsCircle, hsDiamond);
 
   TCustomRubberBandLayer = class(TPositionedLayer)
   strict protected type
@@ -668,7 +676,7 @@ type
     function IsFrameVisible: boolean; virtual;
     function IsVertexVisible(VertexIndex: integer): boolean; virtual;
     function AllowMove: boolean; virtual;
-    procedure DrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual; // Required for backward compatibility
+    procedure DrawHandle(Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; const DrawParams: TRubberBandHandleDrawParams); virtual;
     procedure DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer); virtual;
     procedure DoDrawVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean); virtual;
     procedure DrawFrame(Buffer: TBitmap32; const R: TRect); virtual;
@@ -2992,15 +3000,15 @@ begin
   inherited;
 end;
 
-procedure TCustomRubberBandLayer.DrawHandle(Buffer: TBitmap32; X, Y: TFloat);
+procedure TCustomRubberBandLayer.DrawHandle(Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; const DrawParams: TRubberBandHandleDrawParams);
 
-  function Diamond(X, Y: TFloat; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
+  function Diamond(const p: TFloatPoint; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
   begin
     SetLength(Result, 4);
-    Result[0] := FloatPoint(X, Y - Radius);
-    Result[1] := FloatPoint(X + Radius, Y);
-    Result[2] := FloatPoint(X, Y + Radius);
-    Result[3] := FloatPoint(X - Radius, Y);
+    Result[0] := FloatPoint(p.X, p.Y - Radius);
+    Result[1] := FloatPoint(p.X + Radius, p.Y);
+    Result[2] := FloatPoint(p.X, p.Y + Radius);
+    Result[3] := FloatPoint(p.X - Radius, p.Y);
   end;
 
 var
@@ -3010,22 +3018,22 @@ var
   Colors: array[0..1] of TColor32;
   Renderer: TPolygonRenderer32VPR;
 begin
-  if (FHandleStyle = hsSquare) and (FHandleFrameSize = 1.0) and (Frac(FHandleSize) = 0.0) then
+  if (DrawParams.HandleStyle = hsSquare) and (DrawParams.HandleFrameSize = 1.0) and (Frac(DrawParams.HandleSize) = 0.0) then
   begin
     // Simple 1px framed square
 
-    Handle := FloatRect(X, Y, X, Y);
-    GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+    Handle := FloatRect(p, p);
+    GR32.InflateRect(Handle, DrawParams.HandleSize, DrawParams.HandleSize);
     HandleRect := MakeRect(Handle, rrClosest);
 
-    if (AlphaComponent(FHandleFrame) > 0) then
+    if (AlphaComponent(DrawParams.HandleFrame) > 0) then
     begin
-      Buffer.FrameRectTS(HandleRect, FHandleFrame);
+      Buffer.FrameRectTS(HandleRect, DrawParams.HandleFrame);
       GR32.InflateRect(HandleRect, -1, -1);
     end;
 
-    if (AlphaComponent(FHandleFill) > 0) then
-      Buffer.FillRectTS(HandleRect, FHandleFill);
+    if (AlphaComponent(DrawParams.HandleFill) > 0) then
+      Buffer.FillRectTS(HandleRect, DrawParams.HandleFill);
 
     exit;
   end;
@@ -3036,39 +3044,39 @@ begin
   // Fill: Shape[1]
   SetLength(Shape, 2);
 
-  case FHandleStyle of
+  case DrawParams.HandleStyle of
     hsSquare:
       begin
-        Handle := FloatRect(X, Y, X, Y);
-        GR32.InflateRect(Handle, FHandleSize, FHandleSize);
+        Handle := FloatRect(p, p);
+        GR32.InflateRect(Handle, DrawParams.HandleSize, DrawParams.HandleSize);
         Shape[0] := Rectangle(Handle);
       end;
 
     hsCircle:
-      Shape[0] := Circle(FloatPoint(X, Y), FHandleSize);
+      Shape[0] := Circle(p, DrawParams.HandleSize);
 
     hsDiamond:
-      Shape[0] := Diamond(X, Y, FHandleSize);
+      Shape[0] := Diamond(p, DrawParams.HandleSize);
   end;
 
-  if (FHandleFrameSize = FHandleSize) then
+  if (DrawParams.HandleFrameSize = DrawParams.HandleSize) then
   begin
     // Frame completely covers area
     Shape[1] := Shape[0];
     Shape[0] := nil;
-    Colors[1] := FHandleFrame;
+    Colors[1] := DrawParams.HandleFrame;
   end else
-  if (FHandleFrameSize > 0) then
+  if (DrawParams.HandleFrameSize > 0) then
   begin
-    Shape[1] := ReversePolygon(Grow(Shape[0], -FHandleFrameSize, jsBevel));
-    Colors[0] := FHandleFrame;
-    Colors[1] := FHandleFill;
+    Shape[1] := ReversePolygon(Grow(Shape[0], -DrawParams.HandleFrameSize, jsBevel));
+    Colors[0] := DrawParams.HandleFrame;
+    Colors[1] := DrawParams.HandleFill;
   end else
   begin
     // No frame
     Shape[1] := Shape[0];
     Shape[0] := nil;
-    Colors[1] := FHandleFill;
+    Colors[1] := DrawParams.HandleFill;
   end;
 
   Renderer := TPolygonRenderer32VPR.Create(Buffer);
@@ -3096,6 +3104,7 @@ end;
 procedure TCustomRubberBandLayer.DoDrawVertex(Buffer: TBitmap32; const R: TRect; VertexIndex: integer);
 var
   p: TFloatPoint;
+  DrawParams: TRubberBandHandleDrawParams;
   Handled: boolean;
 begin
   // Coordinate specifies exact center of handle. I.e. center of
@@ -3103,12 +3112,18 @@ begin
 
   p := LayerCollection.LocalToViewport(FVertices[VertexIndex], Scaled);
 
+  DrawParams.HandleStyle := HandleStyle;
+  DrawParams.HandleSize := HandleSize;
+  DrawParams.HandleFill := HandleFill;
+  DrawParams.HandleFrame := HandleFrame;
+  DrawParams.HandleFrameSize := HandleFrameSize;
+
   Handled := False;
   if Assigned(FOnPaintHandle) then
-    FOnPaintHandle(Self, Buffer, p, VertexIndex, Handled);
+    FOnPaintHandle(Self, Buffer, p, VertexIndex, DrawParams, Handled);
 
   if (not Handled) then
-    DrawHandle(Buffer, p.X, p.Y);
+    DrawHandle(Buffer, p, VertexIndex, DrawParams);
 end;
 
 procedure TCustomRubberBandLayer.DoDrawVertices(Buffer: TBitmap32; const R: TRect; var Handled: boolean);

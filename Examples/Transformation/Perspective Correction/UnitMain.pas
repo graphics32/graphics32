@@ -52,7 +52,7 @@ type
   private
     procedure LayerHandleClicked(Sender: TCustomRubberBandLayer; AIndex: integer);
     procedure LayerHandleMove(Sender: TCustomRubberBandLayer; AIndex: integer; var APos: TFloatPoint);
-    procedure LayerHandlePaint(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var Handled: boolean);
+    procedure LayerHandlePaint(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var ADrawParams: TRubberBandHandleDrawParams; var Handled: boolean);
     procedure LayerHandleUpdate(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer; var UpdateRect: TRect; var Handled: boolean);
     procedure LayerMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
   private
@@ -87,8 +87,15 @@ uses
   GR32.Examples;
 
 const
-  FirstOutlineWidth = 1.5; // Width of first handle
-  OtherOutlineWidth = 1.0; // Width of other handles
+  // Style and size of first handle
+  FirstHandleStyle = hsDiamond;
+  FirstHandleExtraSize = 1;
+  FirstOutlineWidth = 1.5;
+  // Style and size of other handles
+  OtherHandleStyle = hsCircle;
+  OtherHandleExtraSize = 0;
+  OtherOutlineWidth = 1.0;
+  // Handle fill colors
   ColorHandleFill: TColor32 = $7FFFFFFF;
   ColorHandleActive: TColor32 = $7F007FFF;
   ColorHandleError: TColor32 = $FFFF0000;
@@ -331,64 +338,57 @@ begin
 end;
 
 procedure TFormMain.LayerHandlePaint(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer;
-  var Handled: boolean);
+  var ADrawParams: TRubberBandHandleDrawParams; var Handled: boolean);
 var
   SourceDest: TSourceDest;
-  Handle: TArrayOfFloatPoint;
-  Outline: TArrayOfArrayOfFloatPoint;
-  OutlineWidth: Single;
 begin
-
   if (AIndex = -1) then
     exit;
 
   if (AIndex = 0) then
-    OutlineWidth := FirstOutlineWidth
-  else
-    OutlineWidth := OtherOutlineWidth;
-  Handle := Circle(p, Sender.HandleSize);
-  Outline := BuildPolyPolyLine(PolyPolygon(Handle), True, OutlineWidth);
+  begin
+    ADrawParams.HandleStyle := FirstHandleStyle;
+    ADrawParams.HandleSize := ADrawParams.HandleSize + FirstHandleExtraSize;
+    ADrawParams.HandleFrameSize := FirstOutlineWidth;
+  end else
+  begin
+    ADrawParams.HandleStyle := OtherHandleStyle;
+    ADrawParams.HandleSize := ADrawParams.HandleSize + OtherHandleExtraSize;
+    ADrawParams.HandleFrameSize := OtherOutlineWidth;
+  end;
 
   if (Sender = FLayers[sdSource]) then
     SourceDest := sdSource
   else
     SourceDest := sdDest;
 
-  var Renderer := TPolygonRenderer32VPR.Create(Buffer);
-  try
+  if (AIndex = FInvalidIndex[SourceDest]) then
+    ADrawParams.HandleFill := ColorHandleError
+  else
+  if (AIndex = FActiveIndex[SourceDest]) then
+    ADrawParams.HandleFill := ColorHandleActive
+  else
+    ADrawParams.HandleFill := ColorHandleFill;
 
-    if (AIndex = FInvalidIndex[SourceDest]) then
-      Renderer.Color := ColorHandleError
-    else
-    if (AIndex = FActiveIndex[SourceDest]) then
-      Renderer.Color := ColorHandleActive
-    else
-      Renderer.Color := ColorHandleFill;
-
-    Renderer.PolygonFS(Handle);
-    Renderer.Color := ColorHandleOutline;
-    Renderer.PolyPolygonFS(Outline);
-
-  finally
-    Renderer.Free;
-  end;
-
-  Handled := True;
+  ADrawParams.HandleFrame := ColorHandleOutline;
 end;
 
 procedure TFormMain.LayerHandleUpdate(Sender: TCustomRubberBandLayer; Buffer: TBitmap32; const p: TFloatPoint; AIndex: integer;
   var UpdateRect: TRect; var Handled: boolean);
 var
   HandleRect: TFloatRect;
+  HandleSize: Single;
 begin
+  // Since we alter the handle size in the handle paint event handler we also need to
+  // alter the update rect correspondingly.
+
+  HandleSize := Sender.HandleSize + Max(FirstOutlineWidth, OtherOutlineWidth) + Max(FirstHandleExtraSize, OtherHandleExtraSize);
+
   HandleRect.TopLeft := p;
   HandleRect.BottomRight := HandleRect.TopLeft;
-  HandleRect.Inflate(Sender.HandleSize+FirstOutlineWidth, Sender.HandleSize+FirstOutlineWidth);
+  HandleRect.Inflate(HandleSize, HandleSize);
 
   UpdateRect := MakeRect(HandleRect, rrOutside);
-
-  // Or simply:
-  // UpdateRect.Inflate(Ceil(FirstOutlineWidth), Ceil(FirstOutlineWidth));
 end;
 
 procedure TFormMain.LayerMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
