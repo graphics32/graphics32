@@ -167,7 +167,7 @@ type
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
-  protected
+  private
     RBLayer: TRubberbandLayer;
     function CreatePositionedLayer: TPositionedLayer;
     procedure LayerDblClick(Sender: TObject);
@@ -871,9 +871,17 @@ begin
       if RBLayer = nil then
       begin
         RBLayer := TRubberBandLayer.Create(ImgView.Layers);
-        RBLayer.MinHeight := 1;
-        RBLayer.MinWidth := 1;
-        RBLayer.SetFrameStipple([clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32]);
+
+        // Set a minimum size just to test it
+        RBLayer.MinHeight := 5;
+        RBLayer.MinWidth := 5;
+
+        // Quantization is applied unless [Alt] is pressed (and when layer is double-clicked)
+        RBLayer.Options := RBLayer.Options + [roQuantized];
+        RBLayer.QuantizeShiftToggle := [ssAlt];
+        RBLayer.Quantized := 8;
+
+        RBLayer.FrameStipple := [clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32];
       end
       else
         RBLayer.BringToFront;
@@ -903,10 +911,6 @@ begin
 end;
 
 procedure TMainForm.TimerMarchingAntsTimer(Sender: TObject);
-const
-  StippleSize = 8; // The size of our stipple pattern. The default pattern has a size of 4
-var
-  NewStippleCounter: TFloat;
 begin
   if (RBLayer = nil) or (not RBLayer.Visible) then
     exit;
@@ -915,13 +919,7 @@ begin
   if (not Application.Active) then
     exit;
 
-  NewStippleCounter := RBLayer.FrameStippleCounter+1.5;
-
-  // Handle overflow
-  if (NewStippleCounter >= StippleSize) then
-    NewStippleCounter := NewStippleCounter - StippleSize;
-
-  RBLayer.FrameStippleCounter := NewStippleCounter;
+  RBLayer.FrameStippleCounter := RBLayer.FrameStippleCounter+1.5;
 end;
 
 procedure TMainForm.MnuScaledClick(Sender: TObject);

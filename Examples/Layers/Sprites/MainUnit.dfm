@@ -91,7 +91,7 @@ object MainForm: TMainForm
   end
   object CbxUseRepaintOpt: TCheckBox
     Left = 120
-    Top = 654
+    Top = 642
     Width = 137
     Height = 17
     Anchors = [akLeft, akBottom]
@@ -136,6 +136,16 @@ object MainForm: TMainForm
     Caption = 'Benchmark'
     TabOrder = 7
     OnClick = BtnBenchmarkClick
+  end
+  object CheckBoxBatch: TCheckBox
+    Left = 120
+    Top = 659
+    Width = 137
+    Height = 17
+    Anchors = [akLeft, akBottom]
+    Caption = 'Batch updates'
+    TabOrder = 8
+    OnClick = CheckBoxBatchClick
   end
   object BitmapList: TBitmap32List
     Bitmaps = <

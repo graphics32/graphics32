@@ -59,6 +59,7 @@ type
     function IsCornerValid(const Quad: TFloatQuadrilateral; Index, ActiveIndex: integer): boolean;
     function MoveCorner(SourceDest: TSourceDest; var APos: TFloatPoint; ASnap: boolean): boolean;
     function SortCorners(SourceDest: TSourceDest): boolean;
+    procedure UpdateCorners;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -77,6 +78,7 @@ implementation
 
 uses
   System.Math,
+  System.Types,
   System.Diagnostics,
   GR32_Geometry,
   GR32_Polygons,
@@ -87,7 +89,7 @@ uses
 const
   FirstOutlineWidth = 1.5; // Width of first handle
   OtherOutlineWidth = 1.0; // Width of other handles
-  ColorHandleFill: TColor32 = $30FFFFFF;
+  ColorHandleFill: TColor32 = $7FFFFFFF;
   ColorHandleActive: TColor32 = $7F007FFF;
   ColorHandleError: TColor32 = $FFFF0000;
   ColorHandleOutline: TColor32 = $FF00007F;
@@ -120,9 +122,10 @@ begin
   inherited;
 
   ImageSource.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder + '\Notre Dame.jpg');
-  ImageSource.Bitmap.ResamplerClassName := 'TLinearResampler';
-  // ImageSource.Bitmap.ResamplerClassName := 'TDraftResampler';
+  // Use Nearest resampler for the source so we can see the individual pixels when zoomed
+  ImageSource.Bitmap.ResamplerClassName := 'TNearestResampler';
   ImageDest.Bitmap.Assign(ImageSource.Bitmap);
+  ImageDest.Bitmap.ResamplerClassName := 'TLinearResampler';
   ImageSource.Scale := 0.5;
   ImageDest.Scale := 0.5;
 
@@ -133,7 +136,7 @@ begin
   begin
     FLayers[SourceDest].Scaled := True;
     FLayers[SourceDest].Cursor := crSizeAll;
-    FLayers[SourceDest].SetFrameStipple([clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32]);
+    FLayers[SourceDest].FrameStipple := [clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32];
     FLayers[SourceDest].HandleSize := 5;
     FLayers[SourceDest].OnHandleClicked := LayerHandleClicked;
     FLayers[SourceDest].OnHandleMove := LayerHandleMove;
@@ -179,40 +182,43 @@ begin
   // Center bitmap in viewport.
   // The reason we don't just use BitmapAlign=baCenter is that
   // we would also like to be able to pan the image with the mouse.
-  ImageSource.OffsetHorz := (ImageSource.Width - ImageSource.Bitmap.Width * ImageSource.Scale) * 0.5;
-  ImageSource.OffsetVert := (ImageSource.Height - ImageSource.Bitmap.Height * ImageSource.Scale) * 0.5;
-
-  ImageDest.OffsetHorz := (ImageDest.Width - ImageDest.Bitmap.Width * ImageDest.Scale) * 0.5;
-  ImageDest.OffsetVert := (ImageDest.Height - ImageDest.Bitmap.Height * ImageDest.Scale) * 0.5;
+  ImageSource.ScrollToCenter;
+  ImageDest.ScrollToCenter;
 end;
 
 procedure TFormMain.FormShow(Sender: TObject);
 var
   Points: TArrayOfFloatPoint;
-  SourceDest: TSourceDest;
-  i: integer;
 begin
+
   Points := BuildPolygonF([250.25, 45.25, 537.25, 49, 720, 532.5, 52.5, 532.5]);
-  FLayers[sdSource].Vertices := TranslatePolygon(Points, FLayers[sdSource].Location.Left, FLayers[sdSource].Location.Top);
+  // Translate vertices so they are relative to bitmap
+  FLayers[sdSource].Vertices := TranslatePolygon(Points, ImageSource.OffsetHorz, ImageSource.OffsetVert);
 
   FLayers[sdDest].Location := FloatRect(ImageDest.GetBitmapRect);
   Points := BuildPolygonF([252, 50, 534, 50, 534, 529, 252, 529]);
-  FLayers[sdDest].Vertices := TranslatePolygon(Points, FLayers[sdDest].Location.Left, FLayers[sdDest].Location.Top);
+  // Translate vertices so they are relative to bitmap
+  FLayers[sdDest].Vertices := TranslatePolygon(Points, ImageDest.OffsetHorz, ImageDest.OffsetVert);
 
-  for SourceDest := Low(TSourceDest) to High(TSourceDest) do
-    for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
-      FCorners[SourceDest, i] := FLayers[SourceDest].Vertex[i];
+  UpdateCorners;
 end;
 
 procedure TFormMain.ButtonResetClick(Sender: TObject);
 begin
-  // Note that handles/vertices are relative to layer
+  // Layer location doesn't really matter for rubber band layers.
+  // Handles/vertices are relative to bitmap.
 
   FLayers[sdSource].Location := FloatRect(ImageSource.Bitmap.BoundsRect);
-  FLayers[sdSource].Vertices := RectToPolygon(FLayers[sdSource].Location);
+  FLayers[sdSource].Vertices := RectToPolygon(ImageSource.Bitmap.BoundsRect);
+  FActiveIndex[sdSource] := -1;
+  FInvalidIndex[sdSource] := -1;
 
   FLayers[sdDest].Location := FloatRect(ImageDest.Bitmap.BoundsRect);
-  FLayers[sdDest].Vertices := RectToPolygon(FLayers[sdDest].Location);
+  FLayers[sdDest].Vertices := RectToPolygon(ImageDest.Bitmap.BoundsRect);
+  FActiveIndex[sdDest] := -1;
+  FInvalidIndex[sdDest] := -1;
+
+  UpdateCorners;
 
   ButtonApply.Click;
 end;
@@ -263,33 +269,43 @@ begin
   else
     SourceDest := sdDest;
 
+  (*
+  ** Moving a handle
+  *)
   if (AIndex <> -1) then
   begin
-    Snap := (ssShift in Sender.CurrentHitTest.Shift);
+    Snap := (ssShift in Sender.ActiveHitTest.Shift);
 
     if (not MoveCorner(SourceDest, APos, Snap)) then
       exit;
-  end;
 
-  if (SortCorners(SourceDest)) then
-  begin
-    // Corners has been reordered; Update vertices and hittest
-    for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
-      FLayers[SourceDest].Vertex[i] := FCorners[SourceDest, i];
-
-    if Supports(Sender.CurrentHitTest, ILayerHitTestVertex, HitTestVertex) then
-      HitTestVertex.Vertex := FActiveIndex[SourceDest];
-  end;
-
-  // Determine if polygon is convex
-  FInvalidIndex[SourceDest] := -1;
-  for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
-    if (not IsCornerValid(FCorners[SourceDest], i, FActiveIndex[SourceDest])) then
+    if (SortCorners(SourceDest)) then
     begin
-      FInvalidIndex[SourceDest] := i;
-      Sender.Update;
-      break;
+      // Corners has been reordered; Update vertices and hittest
+      for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
+        FLayers[SourceDest].Vertex[i] := FCorners[SourceDest, i];
+
+      if Supports(Sender.ActiveHitTest, ILayerHitTestVertex, HitTestVertex) then
+        HitTestVertex.Vertex := FActiveIndex[SourceDest];
     end;
+
+    // Determine if polygon is convex; Mark the invalid vertex if it isn't
+    FInvalidIndex[SourceDest] := -1;
+    for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
+      if (not IsCornerValid(FCorners[SourceDest], i, FActiveIndex[SourceDest])) then
+      begin
+        FInvalidIndex[SourceDest] := i;
+        Sender.Update;
+        break;
+      end;
+
+  end else
+  (*
+  ** Moving layer
+  *)
+  begin
+    UpdateCorners;
+  end;
 
   // If draft rasterization is enabled then use fast but ugly rasterizer during move/drag
   // and queue quality rasterize for later
@@ -307,6 +323,7 @@ begin
     TimerUpdate.Enabled := False;
     TimerUpdate.Enabled := True;
   end;
+
   // Live; Update immediately
   if (CheckBoxLive.State = cbChecked) then
     ButtonApply.Click;
@@ -321,6 +338,7 @@ var
   Outline: TArrayOfArrayOfFloatPoint;
   OutlineWidth: Single;
 begin
+
   if (AIndex = -1) then
     exit;
 
@@ -390,10 +408,10 @@ end;
 
 procedure TFormMain.TimerMarchingAntsTimer(Sender: TObject);
 begin
-  if (FLayers[sdSource].CurrentHitTest <> nil) then
+  if (FLayers[sdSource].ActiveHitTest <> nil) then
     FLayers[sdSource].FrameStippleCounter := FLayers[sdSource].FrameStippleCounter + 1.5;
 
-  if (FLayers[sdDest].CurrentHitTest <> nil) then
+  if (FLayers[sdDest].ActiveHitTest <> nil) then
     FLayers[sdDest].FrameStippleCounter := FLayers[sdDest].FrameStippleCounter + 1.5;
 end;
 
@@ -656,21 +674,32 @@ end;
 
 //------------------------------------------------------------------------------
 
+procedure TFormMain.UpdateCorners;
+var
+  SourceDest: TSourceDest;
+  i: integer;
+begin
+  for SourceDest := Low(TSourceDest) to High(TSourceDest) do
+    for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
+      FCorners[SourceDest, i] := FLayers[SourceDest].Vertex[i];
+end;
+
+//------------------------------------------------------------------------------
+
 procedure TFormMain.ButtonApplyClick(Sender: TObject);
 var
   SourceDest: TSourceDest;
   i: integer;
   StopWatch: TStopWatch;
 begin
+  UpdateCorners;
+
   for SourceDest := Low(TSourceDest) to High(TSourceDest) do
   begin
-    for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
-      FCorners[SourceDest, i] := FLayers[SourceDest].Vertex[i];
-
     // Ensure that corners are stored clockwise, with first point top/left-most.
     // This enables us to do something sensible with the quad even if the user has
     // messed up the order. Unfortunately it also means that the user can't mirror
-    // my reversing the quad on purpose.
+    // by reversing the quad on purpose.
     if (SortCorners(SourceDest)) then
       for i := Low(FCorners[SourceDest]) to High(FCorners[SourceDest]) do
         FLayers[SourceDest].Vertex[i] := FCorners[SourceDest, i];

@@ -70,6 +70,7 @@ type
     LblTotal: TLabel;
     Memo: TMemo;
     TimerFPS: TTimer;
+    CheckBoxBatch: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnAddClick(Sender: TObject);
@@ -79,12 +80,14 @@ type
     procedure CbxUseRepaintOptClick(Sender: TObject);
     procedure Image32Resize(Sender: TObject);
     procedure TimerFPSTimer(Sender: TObject);
-  public
+    procedure CheckBoxBatchClick(Sender: TObject);
+  private
     Velocities: TArrayOfFloatPoint;
     FramesDrawn: Integer;
     FFramerateStopwatch: TStopwatch;
     LastSeed: Integer;
     PriorityClass, Priority: Integer;
+    BatchUpdates: boolean;
 
     BenchmarkMode: Boolean;
     TerminateOnCompletion: boolean;
@@ -190,7 +193,8 @@ begin
   if Image32.Layers.Count = 0 then
     Exit;
 
-  Image32.BeginUpdate;
+  if (BatchUpdates) then
+    Image32.BeginUpdate;
   for i := 0 to Image32.Layers.Count - 1 do
   begin
     Layer := TBitmapLayer(Image32.Layers[i]);
@@ -208,6 +212,9 @@ begin
     else
       Dec(Alpha);
 
+    if (BatchUpdates) then
+      Layer.BeginUpdate;
+
     Layer.Bitmap.MasterAlpha := Alpha;
 
     R := Layer.Location;
@@ -222,8 +229,12 @@ begin
       if (R.Bottom > Image32.Height) and (Y > 0) then Y := -1;
     end;
     Layer.Location := R;
+
+    if (BatchUpdates) then
+      Layer.EndUpdate;
   end;
-  Image32.EndUpdate;
+  if (BatchUpdates) then
+    Image32.EndUpdate;
 
   // because we're doing Invalidate in the IdleHandler and Invalidate has
   // higher priority, we can count the frames here, because we can be sure that
@@ -254,6 +265,11 @@ begin
     Image32.RepaintMode := rmOptimizer
   else
     Image32.RepaintMode := rmFull;
+end;
+
+procedure TMainForm.CheckBoxBatchClick(Sender: TObject);
+begin
+  BatchUpdates := CheckBoxBatch.Checked;
 end;
 
 procedure TMainForm.TimerFPSTimer(Sender: TObject);

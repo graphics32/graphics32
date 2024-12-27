@@ -98,6 +98,7 @@ begin
   ClearBackBuffer(PaintBox32.Buffer);
   ClearBackBuffer(Image32.Bitmap);
   ClearBackBuffer(ImgView32.Bitmap);
+  ClearBackBuffer(ImgView32Layers.Bitmap);
   ClearBackBuffer(FLayer.Bitmap);
 end;
 
@@ -130,11 +131,13 @@ begin
   ImgView32.Bitmap.PenColor := ColorDraw;
   Image32.Bitmap.PenColor := ColorDraw;
   PaintBox32.Buffer.PenColor := ColorDraw;
+  ImgView32Layers.Bitmap.PenColor := ColorDraw;
 
   FLayer := TBitmapLayer(ImgView32Layers.Layers.Add(TBitmapLayer));
   FLayer.Bitmap.PenColor := ColorDraw;
   FLayer.OnMouseDown := PaintBox32MouseDown;
   FLayer.Scaled := True;
+  FLayer.Cursor := crCross;
 
   MemoHelp.Lines.Text := sHelp;
 end;
@@ -157,7 +160,6 @@ begin
   ImgView32.Bitmap.SetSize(ImgView32.ClientWidth, ImgView32.ClientHeight);
   // Zoom & pan doesn't work without a base bitmap
   ImgView32Layers.Bitmap.SetSize(ImgView32.ClientWidth, ImgView32.ClientHeight);
-  ImgView32Layers.Bitmap.Clear(clWhite32);
   FLayer.Bitmap.SetSize(ImgView32Layers.ClientWidth, ImgView32Layers.ClientHeight);
 
   // Reset location & scale
@@ -216,13 +218,18 @@ begin
   else
     exit;
 
+  if (Buffer.Empty) then
+    exit;
+
   if (Button = mbLeft) then
   begin
     p := Point(X, Y);
 
     if (Layer <> nil) then
-      p := Layer.ControlToLayer(p, True)
-    else
+    begin
+      p := Layer.ControlToLayer(p);
+      p := Layer.LayerToContent(p);
+    end else
     if (Sender is TCustomImage32) then
       p := TCustomImage32(Sender).ControlToBitmap(p);
 
@@ -260,6 +267,9 @@ begin
   if (not (ssLeft in Shift)) then
     exit;
 
+  if (Layer <> nil) and (Layer.LayerCollection.MouseListener <> Layer) then
+    Layer := nil;
+
   if (Layer <> nil) then
     Buffer := TBitmapLayer(Layer).Bitmap
   else
@@ -274,8 +284,10 @@ begin
   p := Point(X, Y);
 
   if (Layer <> nil) then
-    p := Layer.ControlToLayer(p, True)
-  else
+  begin
+    p := Layer.ControlToLayer(p);
+    p := Layer.LayerToContent(p);
+  end else
   if (Sender is TCustomImage32) then
     p := TCustomImage32(Sender).ControlToBitmap(p);
 

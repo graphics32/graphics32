@@ -484,7 +484,7 @@ type
     property Animate: boolean read FAnimate write FAnimate default False;
   end;
 
-  TCustomImage32 = class(TCustomPaintBox32, IUpdateRectNotification)
+  TCustomImage32 = class(TCustomPaintBox32, IUpdateRectNotification, ILayerListNotification)
   strict private
     FBitmap: TBitmap32;
     FBitmapAlign: TBitmapAlign;
@@ -503,6 +503,7 @@ type
     FClicked: boolean;
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
+    FHotLayer: TCustomLayer;
     FOnBitmapResize: TNotifyEvent;
     FOnInitStages: TNotifyEvent;
     FOnMouseDown: TImgMouseEvent;
@@ -527,6 +528,7 @@ type
     procedure SetBackgroundOptions(const Value: TBackgroundOptions);
     procedure SetMousePanOptions(const Value: TMousePanOptions);
     procedure SetMouseZoomOptions(const Value: TMouseZoomOptions);
+    procedure SetHotTrackLayer(ALayer: TCustomLayer);
   protected
     FCachedBitmapRect: TRect;
     FCacheValid: Boolean;
@@ -565,6 +567,7 @@ type
     procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
+    procedure MouseEnter; override;
     procedure MouseLeave; override;
     procedure SetOffsetHorz(Value: TFloat); virtual;
     procedure SetOffsetVert(Value: TFloat); virtual;
@@ -584,6 +587,9 @@ type
     procedure InvalidateArea(const AArea: TRect; const AInfo: Cardinal; AOptimize: boolean);
     // IUpdateRectNotification
     procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal); override;
+  protected
+    // ILayerListNotification
+    procedure LayerListNotify(ALayer: TCustomLayer; AAction: TLayerListNotification; AIndex: Integer); virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -2621,13 +2627,27 @@ begin
   end else
   begin
 
+// GR32_PAINT_ORDER_INVALIDRECTS is the classic method: For each update rect, repaint each layer.
+// The other order (for each layer, repaint each update rect) gives slightly better performance
+// but unfortunately not as much as one would think.
+{$define GR32_PAINT_ORDER_INVALIDRECTS}
+
     // We have InvalidRects: Repaint each rect
+{$if defined(GR32_PAINT_ORDER_INVALIDRECTS)}
     for j := 0 to InvalidRects.Count - 1 do
     begin
       Buffer.ClipRect := InvalidRects[j]^;
       for i := 0 to High(FPaintStageHandlers) do
         FPaintStageHandlers[i](Buffer, FPaintStageNum[i]);
     end;
+{$else}
+    for i := 0 to High(FPaintStageHandlers) do
+      for j := 0 to InvalidRects.Count - 1 do
+      begin
+        Buffer.ClipRect := InvalidRects[j]^;
+        FPaintStageHandlers[i](Buffer, FPaintStageNum[i]);
+      end;
+{$ifend}
 
     Buffer.ClipRect := GetViewportRect;
 
@@ -3362,6 +3382,15 @@ begin
   ShiftY := CachedShiftY;
 end;
 
+procedure TCustomImage32.LayerListNotify(ALayer: TCustomLayer; AAction: TLayerListNotification; AIndex: Integer);
+begin
+  case AAction of
+    lnLayerDeleted:
+      if (ALayer = FHotLayer) then
+        SetHotTrackLayer(nil);
+  end;
+end;
+
 procedure TCustomImage32.Loaded;
 begin
   inherited;
@@ -3461,21 +3490,49 @@ end;
 {$ifend}
 
 procedure TCustomImage32.KeyDown(var Key: Word; Shift: TShiftState);
+var
+  FirstLayer: TCustomLayer;
+  i: integer;
 begin
   inherited;
 
-  // Forward key event to any layer that has captured the mouse
-  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
-    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+  // First forward key event to any layer that has captured the mouse...
+  FirstLayer := TLayerCollectionAccess(Layers).MouseListener;
+
+  if (FirstLayer <> nil) then
+    TLayerAccess(FirstLayer).KeyDown(Key, Shift);
+
+  // ... and the to the remaining layers in Z-order
+  i := Layers.Count-1;
+  while (Key <> 0) and (i >= 0) do
+  begin
+    if (Layers[i] <> FirstLayer) then
+      TLayerAccess(Layers[i]).KeyDown(Key, Shift);
+    Dec(i);
+  end;
 end;
 
 procedure TCustomImage32.KeyUp(var Key: Word; Shift: TShiftState);
+var
+  FirstLayer: TCustomLayer;
+  i: integer;
 begin
   inherited;
 
-  // Forward key event to any layer that has captured the mouse
-  if (TLayerCollectionAccess(Layers).MouseListener <> nil) then
-    TLayerAccess(TLayerCollectionAccess(Layers).MouseListener).KeyDown(Key, Shift);
+  // First forward key event to any layer that has captured the mouse...
+  FirstLayer := TLayerCollectionAccess(Layers).MouseListener;
+
+  if (FirstLayer <> nil) then
+    TLayerAccess(FirstLayer).KeyUp(Key, Shift);
+
+  // ... and the to the remaining layers in Z-order
+  i := Layers.Count-1;
+  while (Key <> 0) and (i >= 0) do
+  begin
+    if (Layers[i] <> FirstLayer) then
+      TLayerAccess(Layers[i]).KeyUp(Key, Shift);
+    Dec(i);
+  end;
 end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -3582,15 +3639,21 @@ begin
         Layer := nil;
 
       MouseMove(Shift, X, Y, Layer);
+
+      SetHotTrackLayer(Layer);
 {$ifdef MOUSE_UPDATE_BATCHING}
     finally
       EndUpdate;
     end;
 {$endif MOUSE_UPDATE_BATCHING}
   end else
+  begin
     // Restore cursor in case we moved from layer to outside viewport
     // but inside control
     Screen.Cursor := Cursor;
+
+    SetHotTrackLayer(nil);
+  end;
 end;
 
 procedure TCustomImage32.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -3657,10 +3720,19 @@ begin
     FOnMouseUp(Self, Button, Shift, X, Y, Layer);
 end;
 
+procedure TCustomImage32.MouseEnter;
+begin
+  inherited MouseEnter;
+
+end;
+
 procedure TCustomImage32.MouseLeave;
 begin
+  SetHotTrackLayer(nil);
+
   if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
     Screen.Cursor := crDefault;
+
   inherited;
 end;
 
@@ -3794,6 +3866,20 @@ procedure TCustomImage32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
   InvalidateCache;
+end;
+
+procedure TCustomImage32.SetHotTrackLayer(ALayer: TCustomLayer);
+begin
+  if (ALayer = FHotLayer) then
+    exit;
+
+  if (FHotLayer <> nil) then
+    TLayerAccess(FHotLayer).MouseLeave;
+
+  FHotLayer := ALayer;
+
+  if (FHotLayer <> nil) then
+    TLayerAccess(FHotLayer).MouseEnter;
 end;
 
 procedure TCustomImage32.SetLayers(Value: TLayerCollection);
