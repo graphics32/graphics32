@@ -12,6 +12,7 @@ object FormLineStippling: TFormLineStippling
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
+  ShowHint = True
   DesignSize = (
     249
     221)
@@ -21,8 +22,10 @@ object FormLineStippling: TFormLineStippling
     Top = 10
     Width = 200
     Height = 200
+    Hint = 'Click to animate'
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
+    OnClick = PaintBoxClick
     OnPaintBuffer = PaintBoxPaintBuffer
   end
   object ScrollBar: TScrollBar
@@ -37,5 +40,12 @@ object FormLineStippling: TFormLineStippling
     Position = 50
     TabOrder = 1
     OnChange = ScrollBarChange
+  end
+  object TimerAnimate: TTimer
+    Enabled = False
+    Interval = 50
+    OnTimer = TimerAnimateTimer
+    Left = 104
+    Top = 92
   end
 end
