@@ -57,45 +57,19 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Types,
-  GR32_Math,
-{$IFDEF Darwin}
-  MacOSAll,
-{$ENDIF}
-{$IFNDEF FPC}
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  GR32_Math;
 
 
 { TFormRotateExample }
 
 procedure TFormRotateExample.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // load example image
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    Src.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  Src.Bitmap.LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
 
   Dst.Bitmap.SetSize(Src.Bitmap.Width, Src.Bitmap.Height);
 
@@ -116,9 +90,12 @@ var
 begin
   SrcR := Src.Bitmap.Width - 1;
   SrcB := Src.Bitmap.Height - 1;
+
   T := TAffineTransformation.Create;
-  T.SrcRect := FloatRect(0, 0, SrcR + 1, SrcB + 1);
   try
+
+    T.SrcRect := FloatRect(0, 0, SrcR + 1, SrcB + 1);
+
     // shift the origin
     T.Clear;
 
@@ -132,7 +109,7 @@ begin
     Sx := Abs(SrcR * Cn) + Abs(SrcB * Sn);
     Sy := Abs(SrcR * Sn) + Abs(SrcB * Cn);
 
-    // calculate a new scale so that the image fits in original boundaries
+    // calculate a new scale so that the image fits in original *bitmap* boundaries
     Sx := Src.Bitmap.Width / Sx;
     Sy := Src.Bitmap.Height / Sy;
     Scale := Min(Sx, Sy);
@@ -144,10 +121,15 @@ begin
 
     // transform the bitmap
     Dst.BeginUpdate;
-    Dst.Bitmap.Clear(clBlack32);
-    Transform(Dst.Bitmap, Src.Bitmap, T);
-    Dst.EndUpdate;
-    Dst.Repaint;
+    try
+
+      Dst.Bitmap.Clear(clBlack32);
+      Transform(Dst.Bitmap, Src.Bitmap, T);
+
+    finally
+      Dst.EndUpdate;
+    end;
+
   finally
     T.Free;
   end;
