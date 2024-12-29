@@ -30,6 +30,9 @@
         <Projects Include="OrdinalMaps\OrdinalMapsTest.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Resampler test\ResamplerTest.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -119,14 +122,23 @@
     <Target Name="OrdinalMapsTest:Make">
         <MSBuild Projects="OrdinalMaps\OrdinalMapsTest.dproj" Targets="Make"/>
     </Target>
+    <Target Name="ResamplerTest">
+        <MSBuild Projects="Resampler test\ResamplerTest.dproj"/>
+    </Target>
+    <Target Name="ResamplerTest:Clean">
+        <MSBuild Projects="Resampler test\ResamplerTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ResamplerTest:Make">
+        <MSBuild Projects="Resampler test\ResamplerTest.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest;OrdinalMapsTest"/>
+        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest;OrdinalMapsTes;ResamplerTestt"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean;OrdinalMapsTest:Clean"/>
+        <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean;OrdinalMapsTest:Clean;ResamplerTest:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make;BindingTest:Make;OrdinalMapsTest:Make"/>
+        <CallTarget Targets="BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make;BindingTest:Make;OrdinalMapsTest:Make;ResamplerTest:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
