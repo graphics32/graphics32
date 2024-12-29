@@ -27,6 +27,9 @@
         <Projects Include="Binding test\BindingTest.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Resampler test\ResamplerTest.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -107,14 +110,23 @@
     <Target Name="BindingTest:Make">
         <MSBuild Projects="Binding test\BindingTest.dproj" Targets="Make"/>
     </Target>
+    <Target Name="ResamplerTest">
+        <MSBuild Projects="Resampler test\ResamplerTest.dproj"/>
+    </Target>
+    <Target Name="ResamplerTest:Clean">
+        <MSBuild Projects="Resampler test\ResamplerTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ResamplerTest:Make">
+        <MSBuild Projects="Resampler test\ResamplerTest.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest"/>
+        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest;ResamplerTest"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean"/>
+        <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean;ResamplerTest:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make;BindingTest:Make"/>
+        <CallTarget Targets="BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make;BindingTest:Make;ResamplerTest:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
