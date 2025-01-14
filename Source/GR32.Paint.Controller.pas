@@ -40,7 +40,7 @@ uses
   GR32,
   GR32_System,
   GR32_Image,
-  GR32_Layers,
+//  GR32_Layers,
   GR32.Paint.API,
   GR32.Paint.Tool,
   GR32.Paint.Tool.API,
@@ -61,20 +61,45 @@ type
     FPaintHost: IBitmap32PaintHost;
 
   private
+    // Update optimization
+    FUpdateTimer: TStopwatch;
+
+  private
+    // Tool
     FPaintTool: IBitmap32PaintTool; // The selected tool
     FActivePaintTool: IBitmap32PaintTool; // The tool that is currently handling mouse messages. Nil if none.
     FActivePaintToolContext: IBitmap32PaintToolContext;
 
+    procedure SetActivePaintTool(const Value: IBitmap32PaintTool);
+
+  private
     // Update batching
     FUpdateCount: integer;
     FLockCount: integer;
     FModified: boolean;
 
   private
+    // Cursor
+//    FCursorLayer: TCustomLayer;
+    FCursorActive: boolean;
+    FCursorVisible: boolean;
+
+    procedure ShowCursor(Show: Boolean); // TODO : This belongs in PaintHost
+    procedure UpdateToolCursor;
+    procedure SetToolCursor(NewCursor: TCursor); // TODO : This belongs in PaintHost
+
+  private
     // IBitmap32PaintController
     function BeginOperation(const Context: IBitmap32PaintToolContext): boolean;
     function ContinueOperation(const Context: IBitmap32PaintToolContext): boolean;
     procedure EndOperation(Complete: boolean);
+
+    procedure MouseDown(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
+    procedure MouseMove(const Context: IBitmap32PaintToolContext);
+    procedure MouseUp(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
+
+    procedure MouseEnter;
+    procedure MouseExit;
 
     procedure BeginUpdate;
     procedure Changed;
@@ -83,19 +108,13 @@ type
     procedure BeginLockUpdate;
     procedure EndLockUpdate;
 
+    function CreateToolContext: IBitmap32PaintToolContext;
+
     function GetPaintTool: IBitmap32PaintTool;
     procedure SetPaintTool(const Value: IBitmap32PaintTool);
 
     function GetActivePaintTool: IBitmap32PaintTool;
     function GetActivePaintToolContext: IBitmap32PaintToolContext;
-  private
-    FUpdateTimer: TStopwatch;
-
-  private
-    procedure UpdateToolCursor;
-    procedure SetToolCursor(NewCursor: TCursor);
-
-    procedure SetActivePaintTool(const Value: IBitmap32PaintTool);
 
   public
     constructor Create(AImage: TCustomImage32; const APaintHost: IBitmap32PaintHost = nil);
@@ -198,6 +217,23 @@ end;
 
 //------------------------------------------------------------------------------
 
+function TBitmap32PaintController.CreateToolContext: IBitmap32PaintToolContext;
+var
+  Tool: IBitmap32PaintTool;
+begin
+  if (FActivePaintTool <> nil) then
+    Tool := FActivePaintTool
+  else
+    Tool := FPaintTool;
+
+  if (Tool <> nil) then
+    Result := FPaintHost.CreateToolContext(Tool)
+  else
+    Result := nil;
+end;
+
+//------------------------------------------------------------------------------
+
 function TBitmap32PaintController.GetActivePaintTool: IBitmap32PaintTool;
 begin
   Result := FActivePaintTool;
@@ -262,6 +298,16 @@ end;
 
 //------------------------------------------------------------------------------
 
+procedure TBitmap32PaintController.ShowCursor(Show: Boolean);
+begin
+  FCursorActive := Show;
+
+(*
+  if (FCursorLayer <> nil) then
+    FCursorLayer.Visible := (FCursorActive) and (FCursorVisible);
+*)
+end;
+
 procedure TBitmap32PaintController.SetToolCursor(NewCursor: TCursor);
 
   procedure UpdateCursor;
@@ -286,16 +332,9 @@ end;
 procedure TBitmap32PaintController.UpdateToolCursor;
 var
   NewCursor: TCursor;
-  ParentForm: TWinControl;
 begin
   if (FPaintTool = nil) or (not FPaintTool.GetCursor(NewCursor)) then
-  begin
-    ParentForm := FImage;
-    while (ParentForm.Parent <> nil) do
-      ParentForm := ParentForm.Parent;
-
-    NewCursor := ParentForm.Cursor;
-  end;
+    NewCursor := FImage.Cursor;
 
   SetToolCursor(NewCursor);
 end;
@@ -493,6 +532,48 @@ begin
   end;
 
   FImage.Changed;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TBitmap32PaintController.MouseEnter;
+begin
+  FCursorVisible := True;
+
+  ShowCursor(FCursorActive);
+end;
+
+procedure TBitmap32PaintController.MouseExit;
+begin
+  FCursorVisible := False;
+
+  ShowCursor(FCursorActive);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TBitmap32PaintController.MouseDown(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
+begin
+  if (Context.PaintTool <> nil) then
+    Context.PaintTool.MouseDown(Context, Button);
+end;
+
+procedure TBitmap32PaintController.MouseMove(const Context: IBitmap32PaintToolContext);
+begin
+  if (Context.PaintTool <> nil) then
+    Context.PaintTool.MouseMove(Context);
+
+(*
+  // Update cursor layer with most recent position
+  if (FCursorLayer <> nil) then
+    TCursorLayer(FCursorLayer).Center := Types.Point(X, Y);
+*)
+end;
+
+procedure TBitmap32PaintController.MouseUp(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
+begin
+  if (Context.PaintTool <> nil) then
+    Context.PaintTool.MouseUp(Context, Button);
 end;
 
 //------------------------------------------------------------------------------

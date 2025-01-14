@@ -79,9 +79,9 @@ type
     procedure BeginTool(var Continue: boolean); virtual;
     procedure EndTool; virtual;
 
-    procedure MouseDown(Button: TMouseButton; const Context: IBitmap32PaintToolContext); virtual;
+    procedure MouseDown(const Context: IBitmap32PaintToolContext; Button: TMouseButton); virtual;
     procedure MouseMove(const Context: IBitmap32PaintToolContext); virtual;
-    procedure MouseUp(Button: TMouseButton; const Context: IBitmap32PaintToolContext); virtual;
+    procedure MouseUp(const Context: IBitmap32PaintToolContext; Button: TMouseButton); virtual;
     procedure MouseEnter; virtual;
     procedure MouseLeave; virtual;
     procedure KeyDown(var Key: Word; Shift: TShiftState); virtual;
@@ -270,7 +270,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCustomBitmap32PaintTool.MouseDown(Button: TMouseButton; const Context: IBitmap32PaintToolContext);
+procedure TCustomBitmap32PaintTool.MouseDown(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
 begin
 end;
 
@@ -278,7 +278,7 @@ procedure TCustomBitmap32PaintTool.MouseMove(const Context: IBitmap32PaintToolCo
 begin
 end;
 
-procedure TCustomBitmap32PaintTool.MouseUp(Button: TMouseButton; const Context: IBitmap32PaintToolContext);
+procedure TCustomBitmap32PaintTool.MouseUp(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
 begin
 end;
 

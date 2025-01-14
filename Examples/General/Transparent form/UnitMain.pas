@@ -73,7 +73,7 @@ var
 
 constructor TFormMain.Create(AOwner: TComponent);
 
-  procedure SetupBitmapEditor;
+  procedure SetupPaintTools;
   begin
     FPaintHost := TBitmap32PaintHost.Create(Image32);
     FPaintController := TBitmap32PaintController.Create(Image32, FPaintHost);
@@ -112,7 +112,7 @@ begin
     Image32.PaintStages[0].Stage := PST_CUSTOM;
 
   // Setup the paint tools so we can draw on the screen
-  SetupBitmapEditor;
+  SetupPaintTools;
 
 end;
 
@@ -181,12 +181,6 @@ begin
   else
     FPaintController.PaintTool := nil;
   end;
-
-  // Something is wrong here. Setting PaintTool should update the cursor, and it does, but the cursor isn't visible...
-  // ...and this doesn't help :-(
-  Image32.Cursor := crCross;//Image32.Cursor;
-  FPaintLayer.Cursor := Image32.Cursor;
-  Screen.Cursor := Image32.Cursor;
 end;
 
 //------------------------------------------------------------------------------

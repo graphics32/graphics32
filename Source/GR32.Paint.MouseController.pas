@@ -66,6 +66,9 @@ type
     procedure HandleMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure HandleMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 
+    procedure MouseEnter;
+    procedure MouseExit;
+
   private
     // Mouse state
     FMouseShift: TShiftState;
@@ -119,18 +122,9 @@ end;
 procedure TBitmap32PaintMouseController.HandleMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer;
   Layer: TCustomLayer);
 var
-  Tool: IBitmap32PaintTool;
   ToolContext: IBitmap32PaintToolContext;
 begin
   if (Layer <> FPaintHost.PaintLayer) then
-    exit;
-
-  if (FController.ActivePaintTool = nil) then
-    Tool := FController.PaintTool
-  else
-    Tool := FController.ActivePaintTool;
-
-  if (Tool = nil) then
     exit;
 
   // Save double-click state for use in MouseMove, MouseUp
@@ -139,8 +133,11 @@ begin
   // Save time of last mouse down message (for use in mouse movement history)
   FLastMouseMessageTime := Cardinal(GetMessageTime);
 
-  ToolContext := FPaintHost.CreateToolContext(Tool);
-  ToolContext.Update(GR32.Point(X, Y), Tool.SnapMouse);
+  ToolContext := FController.CreateToolContext;
+  if (ToolContext = nil) then
+    exit;
+
+  ToolContext.Update(GR32.Point(X, Y), ToolContext.PaintTool.SnapMouse);
 
   ToolContext.MouseParams.ShiftState := Shift;
   ToolContext.MouseParams.MouseMessageTime := FLastMouseMessageTime;
@@ -148,7 +145,7 @@ begin
   // Save last mouse pos in screen coordinates for use with GetMouseMovePointsEx stuff
   FLastMousePos := ToolContext.MouseParams.ScreenPos;
 
-  Tool.MouseDown(Button, ToolContext);
+  FController.MouseDown(ToolContext, Button);
 
   // Prevent nested operations. Happens if you start an operation with mbLeft and
   // then press mbRight during the operation.
@@ -240,9 +237,9 @@ begin
   LastViewPortPos := FController.ActivePaintToolContext.MouseParams.ViewPortPos;
   LastShiftState := FController.ActivePaintToolContext.MouseParams.ShiftState;
 
-  MouseMovePointIndex := MouseMovePointCount-1;
-
   FController.ActivePaintToolContext.MouseParams.ShiftState := Shift + FMouseShift;
+
+  MouseMovePointIndex := MouseMovePointCount-1;
 
   while (MouseMovePointIndex >= 0) do
   begin
@@ -255,7 +252,7 @@ begin
 
     if (FController.ActivePaintToolContext.MouseParams.ViewPortPos <> LastViewPortPos) or (FController.ActivePaintToolContext.MouseParams.ShiftState <> LastShiftState) then
     begin
-      FController.ActivePaintTool.MouseMove(FController.ActivePaintToolContext);
+      FController.MouseMove(FController.ActivePaintToolContext);
 
       if (FController.ActivePaintTool <> nil) then
       begin
@@ -289,13 +286,25 @@ begin
 
   FLastMousePos := FController.ActivePaintToolContext.MouseParams.ScreenPos;
 
-  FController.ActivePaintTool.MouseUp(Button, FController.ActivePaintToolContext);
+  FController.MouseUp(FController.ActivePaintToolContext, Button);
 
   if (FController.ActivePaintTool <> nil) then
   begin
     FController.EndOperation(True);
     FMouseShift := [];
   end;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TBitmap32PaintMouseController.MouseEnter;
+begin
+  FController.MouseEnter;
+end;
+
+procedure TBitmap32PaintMouseController.MouseExit;
+begin
+  FController.MouseExit;
 end;
 
 //------------------------------------------------------------------------------

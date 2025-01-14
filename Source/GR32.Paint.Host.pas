@@ -199,9 +199,9 @@ end;
 function TBitmap32PaintHost.CreateToolContext(const APaintTool: IBitmap32PaintTool): IBitmap32PaintToolContext;
 begin
   if (FPaintLayer <> nil) then
-    Result := TBitmap32PaintToolContext.Create(Self, FPaintLayer.Bitmap)
+    Result := TBitmap32PaintToolContext.Create(Self, APaintTool, FPaintLayer.Bitmap)
   else
-    Result := TBitmap32PaintToolContext.Create(Self, FImage.Bitmap);
+    Result := TBitmap32PaintToolContext.Create(Self, APaintTool, FImage.Bitmap);
 end;
 
 //------------------------------------------------------------------------------
@@ -233,6 +233,17 @@ function TBitmap32PaintHost.SetToolVectorCursor(const Polygon: TArrayOfFixedPoin
 begin
   // Not implemented in this example (yet)
   Result := False;
+(*
+  if (FCursorLayer = nil) then
+    FCursorLayer := TCursorLayer.Create(Self);
+
+  TCursorLayer(FCursorLayer).Polygon := Polygon;
+  TCursorLayer(FCursorLayer).Hotspot := Types.Point(HotspotX, HotspotY);
+  TCursorLayer(FCursorLayer).Color := Color;
+  TCursorLayer(FCursorLayer).OutlinePattern := OutlinePattern;
+
+  ShowCursor(True);
+*)
 end;
 
 //------------------------------------------------------------------------------

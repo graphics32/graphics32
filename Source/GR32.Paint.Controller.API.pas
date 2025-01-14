@@ -35,6 +35,7 @@ interface
 {$INCLUDE GR32.inc}
 
 uses
+  Controls,
   GR32,
   GR32.Paint.Tool.API;
 
@@ -53,6 +54,14 @@ type
     function ContinueOperation(const Context: IBitmap32PaintToolContext): boolean;
     procedure EndOperation(Complete: boolean);
 
+    // Mouse events forwarded from the mouse controller.
+    procedure MouseDown(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
+    procedure MouseMove(const Context: IBitmap32PaintToolContext);
+    procedure MouseUp(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
+
+    procedure MouseEnter;
+    procedure MouseExit;
+
     // TODO : Do we really need this on top of TImage32 and TBitmap32 update batching?
     procedure BeginUpdate;
     procedure Changed;
@@ -60,6 +69,11 @@ type
 
     procedure BeginLockUpdate;
     procedure EndLockUpdate;
+
+    // CreateToolContext creates a new tool context object.
+    // It is the responsibility of the caller to initialize and maintain the returned object with context values.
+    // The creation of the actual context object is delegated to the paint host.
+    function CreateToolContext: IBitmap32PaintToolContext;
 
     function GetPaintTool: IBitmap32PaintTool;
     procedure SetPaintTool(const Value: IBitmap32PaintTool);
