@@ -37,14 +37,79 @@ interface
 uses
   Classes,
   Controls,
-  GR32,
-  GR32.Paint.API;
+  GR32;
+
+
+//------------------------------------------------------------------------------
+//
+//      IBitmap32PaintExtension
+//
+//------------------------------------------------------------------------------
+// Base interface for bitmap tools (tools, actions, filters, color pickers, etc)
+//------------------------------------------------------------------------------
+type
+  IBitmap32PaintExtension = interface
+    ['{17AF7811-406F-4C58-906C-C3E6E3FC67D2}']
+    function GetIsVisible: boolean;
+    function GetIsEnabled: boolean;
+    function GetCaption: string;
+    function GetHint: string;
+    function GetDescription: string;
+    function GetAttribution: string;
+
+    // Clear instructs the extension to delete all allocated resources.
+    procedure Clear;
+    // Reset instructs the extension to reset its setting to their default values.
+    procedure Reset;
+
+    property IsVisible: boolean read GetIsVisible;
+    property IsEnabled: boolean read GetIsEnabled;
+    property Caption: string read GetCaption;
+    property Hint: string read GetHint;
+    property Description: string read GetDescription;
+    property Attribution: string read GetAttribution;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Paint tool mouse event parameters
+//
+//------------------------------------------------------------------------------
+type
+  TBitmap32PaintToolMouseParams = record
+    MouseMessageTime: Cardinal;         // Timestamp
+    ScreenPos: TPoint;                  // Screen coordinates
+    ViewPortPos: TPoint;                // Viewport coordinates
+    BitmapPos: TPoint;                  // Bitmap coordinates, rounded down
+    BitmapPosSnap: TPoint;              // Bitmap coordinates, snapped to nearest.
+    BitmapPosFloat: TFloatPoint;        // Fractional bitmap coordinates
+    ShiftState: TShiftState;            // Mouse/keyboard shift state
+  end;
+
+  PBitmap32PaintToolMouseParams = ^TBitmap32PaintToolMouseParams;
+
+type
+  IBitmap32PaintToolContext = interface
+    ['{BE0ECC3B-F27B-4689-A7A8-55958EA4047C}']
+    function GetMouseParams: PBitmap32PaintToolMouseParams;
+    // MouseParams is a pointer to avoid copy-on-read overhead.
+    // The value is static and is valid for the lifetime of the context object.
+    property MouseParams: PBitmap32PaintToolMouseParams read GetMouseParams;
+
+    function GetBuffer: TBitmap32;
+    property Buffer: TBitmap32 read GetBuffer;
+
+    procedure Update(const ViewPortPos: TPoint; SnapMouse: boolean);
+  end;
 
 
 //------------------------------------------------------------------------------
 //
 //      IBitmap32PaintTool
 //
+//------------------------------------------------------------------------------
+// A mouse-operated drawing tool. E.g. Pen, Brush, Line, Circle, Selection, etc.
 //------------------------------------------------------------------------------
 type
   // TBitmap32PaintToolFeatures:
@@ -158,11 +223,11 @@ var
   // Generic modifier (action depends on tool)
   Bitmap32PaintToolKeyStateAlternate: TShiftState = [ssCtrl]; // Must be different from the two above
 
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 implementation
-
-//------------------------------------------------------------------------------
 
 end.
