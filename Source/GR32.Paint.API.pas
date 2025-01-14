@@ -67,7 +67,7 @@ type
 //------------------------------------------------------------------------------
 // Handles coordinate space conversion, colors, layers, cursor, etc.
 //------------------------------------------------------------------------------
-// Provides the paint tools with an interface to the host application.
+// Provides the paint tools with an interface to the host application environment.
 //------------------------------------------------------------------------------
 type
   IBitmap32PaintHost = interface
@@ -118,15 +118,17 @@ type
   TBitmap32PaintToolContext = class(TInterfacedObject, IBitmap32PaintToolContext)
   private
     FPaintHost: IBitmap32PaintHost;
-    FMouseParams: TBitmap32PaintToolMouseParams;
+    FPaintTool: IBitmap32PaintTool;
     FBuffer: TBitmap32;
+    FMouseParams: TBitmap32PaintToolMouseParams;
   private
     // IBitmap32PaintToolContext
-    function GetMouseParams: PBitmap32PaintToolMouseParams;
+    function GetPaintTool: IBitmap32PaintTool;
     function GetBuffer: TBitmap32;
+    function GetMouseParams: PBitmap32PaintToolMouseParams;
     procedure Update(const ViewPortPos: TPoint; SnapMouse: boolean);
   public
-    constructor Create(const APaintHost: IBitmap32PaintHost; ABuffer: TBitmap32);
+    constructor Create(const APaintHost: IBitmap32PaintHost; const APaintTool: IBitmap32PaintTool; ABuffer: TBitmap32);
   end;
 
 //------------------------------------------------------------------------------
@@ -140,12 +142,23 @@ implementation
 //      TBitmap32PaintToolContext
 //
 //------------------------------------------------------------------------------
-constructor TBitmap32PaintToolContext.Create(const APaintHost: IBitmap32PaintHost; ABuffer: TBitmap32);
+constructor TBitmap32PaintToolContext.Create(const APaintHost: IBitmap32PaintHost; const APaintTool: IBitmap32PaintTool; ABuffer: TBitmap32);
 begin
   inherited Create;
   FPaintHost := APaintHost;
+  FPaintTool := APaintTool;
   FBuffer := ABuffer;
   FMouseParams := Default(TBitmap32PaintToolMouseParams);
+end;
+
+function TBitmap32PaintToolContext.GetPaintTool: IBitmap32PaintTool;
+begin
+  Result := FPaintTool;
+end;
+
+function TBitmap32PaintToolContext.GetBuffer: TBitmap32;
+begin
+  Result := FBuffer;
 end;
 
 function TBitmap32PaintToolContext.GetMouseParams: PBitmap32PaintToolMouseParams;
@@ -163,11 +176,6 @@ begin
   // If SnapMouse=True then we only return the snapped coordinates
   FMouseParams.BitmapPos := FPaintHost.ViewPortToBitmap(ViewPortPos, SnapMouse);
   FMouseParams.BitmapPosSnap := FPaintHost.ViewPortToBitmap(ViewPortPos, True);
-end;
-
-function TBitmap32PaintToolContext.GetBuffer: TBitmap32;
-begin
-  Result := FBuffer;
 end;
 
 //------------------------------------------------------------------------------
