@@ -1,4 +1,4 @@
-unit GR32.Paint.API;
+unit GR32.Paint.Host.API;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -48,15 +48,10 @@ uses
 //
 //------------------------------------------------------------------------------
 // Not presently implemented.
-// TODO : Move to GR32.Paint.Settings.API
+// Moved to GR32.Paint.Settings.API
 //------------------------------------------------------------------------------
 type
   ISettingValues = interface
-    ['{FD5DCE91-F768-480E-B907-FBAEAA08FEF8}']
-    function GetValue(const Name: string): Variant;
-    procedure SetValue(const Name: string; const Value: Variant);
-
-    property Values[const Name: string]: Variant read GetValue write SetValue; default;
   end;
 
 
@@ -100,83 +95,23 @@ type
     // It is the responsibility of the caller to initialize and maintain the returned object with context values.
     function CreateToolContext(const APaintTool: IBitmap32PaintTool): IBitmap32PaintToolContext;
 
+    // Cursor management
+    procedure ShowToolCursor(Show: Boolean; OnlyUpdateVectorCursor: boolean = False);
+    procedure SetToolCursor(NewCursor: TCursor);
     // SetToolVectorCursor: Called from tools to set complex cursors.
-    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; HotspotX, HotspotY: integer; Color: TColor32; const OutlinePattern: TArrayOfColor32): boolean;
+    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = []): boolean;
+    procedure MoveToolVectorCursor(const APos: TPoint);
+
     // Changed: Called from tools. Used for undo management.
     procedure Changed(const Action: string);
   end;
 
 
 //------------------------------------------------------------------------------
-//
-//      TBitmap32PaintToolContext
-//
-//------------------------------------------------------------------------------
-// Minimal, example implementation of IBitmap32PaintToolContext
-//------------------------------------------------------------------------------
-type
-  TBitmap32PaintToolContext = class(TInterfacedObject, IBitmap32PaintToolContext)
-  private
-    FPaintHost: IBitmap32PaintHost;
-    FPaintTool: IBitmap32PaintTool;
-    FBuffer: TBitmap32;
-    FMouseParams: TBitmap32PaintToolMouseParams;
-  private
-    // IBitmap32PaintToolContext
-    function GetPaintTool: IBitmap32PaintTool;
-    function GetBuffer: TBitmap32;
-    function GetMouseParams: PBitmap32PaintToolMouseParams;
-    procedure Update(const ViewPortPos: TPoint; SnapMouse: boolean);
-  public
-    constructor Create(const APaintHost: IBitmap32PaintHost; const APaintTool: IBitmap32PaintTool; ABuffer: TBitmap32);
-  end;
-
-//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 implementation
-
-//------------------------------------------------------------------------------
-//
-//      TBitmap32PaintToolContext
-//
-//------------------------------------------------------------------------------
-constructor TBitmap32PaintToolContext.Create(const APaintHost: IBitmap32PaintHost; const APaintTool: IBitmap32PaintTool; ABuffer: TBitmap32);
-begin
-  inherited Create;
-  FPaintHost := APaintHost;
-  FPaintTool := APaintTool;
-  FBuffer := ABuffer;
-  FMouseParams := Default(TBitmap32PaintToolMouseParams);
-end;
-
-function TBitmap32PaintToolContext.GetPaintTool: IBitmap32PaintTool;
-begin
-  Result := FPaintTool;
-end;
-
-function TBitmap32PaintToolContext.GetBuffer: TBitmap32;
-begin
-  Result := FBuffer;
-end;
-
-function TBitmap32PaintToolContext.GetMouseParams: PBitmap32PaintToolMouseParams;
-begin
-  Result := @FMouseParams;
-end;
-
-procedure TBitmap32PaintToolContext.Update(const ViewPortPos: TPoint; SnapMouse: boolean);
-begin
-  FMouseParams.ViewPortPos := ViewPortPos;
-  FMouseParams.ScreenPos := FPaintHost.ViewPortToScreen(ViewPortPos);
-
-  FMouseParams.BitmapPosFloat := FPaintHost.ViewPortToBitmap(FloatPoint(ViewPortPos));
-
-  // If SnapMouse=True then we only return the snapped coordinates
-  FMouseParams.BitmapPos := FPaintHost.ViewPortToBitmap(ViewPortPos, SnapMouse);
-  FMouseParams.BitmapPosSnap := FPaintHost.ViewPortToBitmap(ViewPortPos, True);
-end;
 
 //------------------------------------------------------------------------------
 

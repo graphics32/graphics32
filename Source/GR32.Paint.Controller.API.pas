@@ -62,14 +62,6 @@ type
     procedure MouseEnter;
     procedure MouseExit;
 
-    // TODO : Do we really need this on top of TImage32 and TBitmap32 update batching?
-    procedure BeginUpdate;
-    procedure Changed;
-    procedure EndUpdate;
-
-    procedure BeginLockUpdate;
-    procedure EndLockUpdate;
-
     // CreateToolContext creates a new tool context object.
     // It is the responsibility of the caller to initialize and maintain the returned object with context values.
     // The creation of the actual context object is delegated to the paint host.

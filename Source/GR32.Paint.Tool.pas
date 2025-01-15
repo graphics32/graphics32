@@ -38,7 +38,7 @@ uses
   Classes,
   Controls,
   GR32,
-  GR32.Paint.API,
+  GR32.Paint.Host.API,
   GR32.Paint.Tool.API;
 
 
@@ -51,11 +51,11 @@ uses
 //------------------------------------------------------------------------------
 type
   TCustomBitmap32PaintTool = class(TInterfacedObject, IBitmap32PaintExtension, IBitmap32PaintTool)
-  private
+  strict private
     FPaintHost: IBitmap32PaintHost;
     FSettingValues: ISettingValues;
     FActive: boolean;
-  protected
+  strict protected
     // IBitmap32PaintExtension,
     function GetIsVisible: boolean; virtual;
     function GetIsEnabled: boolean; virtual;
@@ -72,7 +72,7 @@ type
     property Description: string read GetDescription;
     property Attribution: string read GetAttribution;
 
-  protected
+  strict protected
     // IBitmap32PaintTool
     procedure Activate(var Continue: boolean); virtual;
     procedure Deactivate; virtual;
@@ -95,9 +95,8 @@ type
     function GetSnapMouse: boolean; virtual;
     property SnapMouse: boolean read GetSnapMouse;
     function GetToolFeatures: TBitmap32PaintToolFeatures; virtual;
-    procedure RenderLayer(const Viewport: IBitmap32Viewport; Buffer: TBitmap32); virtual;
 
-  protected
+  strict protected
     procedure SnapToSquare(const StartPos: TPoint; var Pos: TPoint);
 
   public
@@ -304,13 +303,6 @@ end;
 
 procedure TCustomBitmap32PaintTool.EndAction(const Context: IBitmap32PaintToolContext; var ToolState: TBitmap32PaintToolState);
 begin
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TCustomBitmap32PaintTool.RenderLayer(const Viewport: IBitmap32Viewport; Buffer: TBitmap32);
-begin
-  Viewport.Visible := False;
 end;
 
 //------------------------------------------------------------------------------

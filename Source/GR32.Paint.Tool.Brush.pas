@@ -38,7 +38,7 @@ uses
   Classes,
   Controls,
   GR32,
-  GR32.Paint.API,
+  GR32.Paint.Host.API,
   GR32.Paint.Tool,
   GR32.Paint.Tool.API,
   GR32.Paint.Brush;
@@ -55,7 +55,7 @@ type
   end;
 
   TBitmap32PaintToolBrush = class abstract(TCustomBitmap32PaintTool, IBitmap32PaintToolBrush)
-  private
+  strict private
     FBrushLineState: TPaintBrushLineState;
     FLastPos: TFloatPoint;
     FBrush: TCustomPaintBrush;
@@ -63,18 +63,11 @@ type
     FHasVectorCursor: boolean;
     FCursorSize: Single;
     FBrushSize: Single;
-  protected
+  strict protected
     // IBitmap32PaintToolBrush
     function CreateBrush(Color: TColor32): TCustomPaintBrush; virtual; abstract;
 
-  protected
-    function GetStep: integer; virtual;
-    function CreateVectorCursor: boolean; virtual;
-    procedure GetVectorCursor;
-
-    property Brush: TCustomPaintBrush read FBrush;
-    property Step: integer read GetStep;
-
+  strict protected
     function GetCaption: string; override;
 
     procedure BeginAction(const Context: IBitmap32PaintToolContext; var ToolState: TBitmap32PaintToolState); override;
@@ -82,6 +75,15 @@ type
     procedure EndAction(const Context: IBitmap32PaintToolContext; var ToolState: TBitmap32PaintToolState); override;
 
     function GetCursor(out Cursor: TCursor): boolean; override;
+
+  strict protected
+    procedure GetVectorCursor;
+    function CreateVectorCursor: boolean; virtual;
+    function GetStep: integer; virtual;
+
+    property Brush: TCustomPaintBrush read FBrush;
+    property Step: integer read GetStep;
+
   public
     constructor Create(const APaintHost: IBitmap32PaintHost); override;
     destructor Destroy; override;
@@ -104,19 +106,18 @@ type
   TBitmapBrushClass = class of TBitmapPaintBrush;
 
   TBitmap32PaintToolCircularBrush = class(TBitmap32PaintToolBrush)
-  private
+  strict private
     FBlendFunc: TPixelCombineEvent;
     FAntiAlias: boolean;
     FHardness: Single;
     FStep: integer;
-  protected
+  strict protected
     procedure BlendWrapper(F: TColor32; var B: TColor32; M: Cardinal);
     function GetStep: integer; override;
+    function CreateBrush(Color: TColor32): TCustomPaintBrush; override;
     function GetBrushClass: TBitmapBrushClass; virtual;
   public
     constructor Create(const APaintHost: IBitmap32PaintHost); override;
-
-    function CreateBrush(Color: TColor32): TCustomPaintBrush; override;
 
     property AntiAlias: boolean read FAntiAlias write FAntiAlias;
     // [0..100]
@@ -134,17 +135,16 @@ type
 //------------------------------------------------------------------------------
 type
   TBitmap32PaintToolSmudgeBrush = class(TBitmap32PaintToolCircularBrush)
-  private
+  strict private
     FPressure: integer;
-  protected
+  strict protected
     function GetCaption: string; override;
     function GetStep: integer; override;
     function GetBrushClass: TBitmapBrushClass; override;
     function GetCursor(out Cursor: TCursor): boolean; override;
+    function CreateBrush(Color: TColor32): TCustomPaintBrush; override;
   public
     constructor Create(const APaintHost: IBitmap32PaintHost); override;
-
-    function CreateBrush(Color: TColor32): TCustomPaintBrush; override;
 
     // [0..100]
     property Pressure: integer read FPressure write FPressure;
@@ -156,10 +156,15 @@ resourcestring
   sBitmap32PaintToolSmudgeCaption = 'Smudge';
 
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
   Math,
+  Types,
   SysUtils,
   GR32_VectorUtils,
   GR32_Polygons,
@@ -213,7 +218,7 @@ begin
     Stipple[4] := $80000000;
     Stipple[5] := $00000000;
 
-    Result := PaintHost.SetToolVectorCursor(Polygon, 0, 0, 0, Stipple);
+    Result := PaintHost.SetToolVectorCursor(Polygon, GR32.Point(0, 0), 0, Stipple);
   end;
 end;
 
@@ -462,8 +467,4 @@ end;
 
 //------------------------------------------------------------------------------
 
-initialization
-//  TBitmap32PaintToolFactory.Create(TBitmap32PaintToolCircularBrush, betToolBrush, betGroupPen);
-//  TBitmap32PaintToolFactory.Create(TBitmap32PaintToolSmudgeBrush, 'brush.smudge', betGroupPen);
-finalization
 end.

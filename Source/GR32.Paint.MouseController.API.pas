@@ -46,6 +46,7 @@ uses
 //
 //------------------------------------------------------------------------------
 // Processes mouse events and pass them on to IBitmap32PaintController.
+// Also responsible for constructing and updating the tool context.
 //------------------------------------------------------------------------------
 type
   IBitmap32PaintMouseController = interface

@@ -40,8 +40,7 @@ uses
   GR32,
   GR32_Image,
   GR32_Layers,
-  GR32.Paint.API,
-  GR32.Paint.Tool,
+  GR32.Paint.Host.API,
   GR32.Paint.Tool.API;
 
 
@@ -54,17 +53,25 @@ uses
 //------------------------------------------------------------------------------
 type
   TBitmap32PaintHost = class(TInterfacedObject, IBitmap32PaintHost)
-  private
+  strict private
     FImage: TCustomImage32;
 
-  private
+  strict private
     FPaintLayer: TBitmapLayer;
 
-  private
+  strict private
     FColorPrimary: TColor32;
     FColorSecondary: TColor32;
 
-  private
+  strict private
+    // Cursor
+    FCursorLayer: TCustomLayer;
+    FCursorActive: boolean;
+    FCursorVisible: boolean;
+    FDefaultCursor: TCursor;
+    FCurrentCursor: TCursor;
+
+  strict private
     // IBitmap32PaintHost
     function GetPaintLayer: TBitmapLayer;
     procedure SetPaintLayer(const Value: TBitmapLayer);
@@ -85,9 +92,13 @@ type
 
     function GetToolSettings(const AToolKey: string): ISettingValues;
 
-    function CreateToolContext(const APaintTool: IBitmap32PaintTool): IBitmap32PaintToolContext;
+    function CreateToolContext(const APaintTool: IBitmap32PaintTool): IBitmap32PaintToolContext; virtual;
 
-    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; HotspotX, HotspotY: integer; Color: TColor32; const OutlinePattern: TArrayOfColor32): boolean;
+    procedure ShowToolCursor(AShow: Boolean; OnlyUpdateVectorCursor: boolean);
+    procedure SetToolCursor(NewCursor: TCursor);
+    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32; const StipplePattern: TArrayOfColor32): boolean;
+    procedure MoveToolVectorCursor(const APos: TPoint);
+
     procedure Changed(const Action: string);
 
   public
@@ -100,6 +111,11 @@ type
 //------------------------------------------------------------------------------
 
 implementation
+
+uses
+  Windows,
+  Types,
+  GR32.Paint.ToolContext;
 
 //------------------------------------------------------------------------------
 //
@@ -218,6 +234,72 @@ end;
 
 //------------------------------------------------------------------------------
 
+procedure TBitmap32PaintHost.SetToolCursor(NewCursor: TCursor);
+
+  procedure UpdateCursor;
+  var
+    p: TPoint;
+  begin
+    GetCursorPos(p);
+    SetCursorPos(p.X, p.Y);
+  end;
+
+begin
+  if (FCurrentCursor <> FImage.Cursor) then
+    // Something else changed the cursor. Use the value as the default.
+    FDefaultCursor := FImage.Cursor;
+
+  if (NewCursor = crDefault) then
+    NewCursor := FDefaultCursor;
+
+  FCurrentCursor := NewCursor;
+
+  if (FImage.Cursor <> NewCursor) then
+  begin
+    FImage.Cursor := NewCursor;
+
+    // CM_CURSORCHANGED should force the cursor to update, but doesn't
+    // ... so we have to resort to this ugly hack:
+    UpdateCursor;
+  end;
+end;
+
+procedure TBitmap32PaintHost.ShowToolCursor(AShow: Boolean; OnlyUpdateVectorCursor: boolean);
+begin
+  if (OnlyUpdateVectorCursor) then
+    FCursorVisible := AShow
+  else
+    FCursorActive := AShow;
+
+  if (FCursorLayer <> nil) then
+    FCursorLayer.Visible := (FCursorActive) and (FCursorVisible);
+end;
+
+function TBitmap32PaintHost.SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32; const StipplePattern: TArrayOfColor32): boolean;
+begin
+  Result := True;
+
+  if (FCursorLayer = nil) then
+  begin
+    // Not implemented in this example (yet)
+(*
+    CursorLayer.Polygon := Polygon;
+    CursorLayer.Hotspot := Hotspot;
+    CursorLayer.Color := Color;
+    CursorLayer.StipplePattern := StipplePattern;
+*)
+  end;
+
+  ShowCursor(True);
+end;
+
+procedure TBitmap32PaintHost.MoveToolVectorCursor(const APos: TPoint);
+begin
+
+end;
+
+//------------------------------------------------------------------------------
+
 function TBitmap32PaintHost.GetToolSettings(const AToolKey: string): ISettingValues;
 begin
   // Not implemented in this example (yet)
@@ -226,24 +308,6 @@ end;
 
 procedure TBitmap32PaintHost.Changed(const Action: string);
 begin
-end;
-
-function TBitmap32PaintHost.SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; HotspotX, HotspotY: integer;
-  Color: TColor32; const OutlinePattern: TArrayOfColor32): boolean;
-begin
-  // Not implemented in this example (yet)
-  Result := False;
-(*
-  if (FCursorLayer = nil) then
-    FCursorLayer := TCursorLayer.Create(Self);
-
-  TCursorLayer(FCursorLayer).Polygon := Polygon;
-  TCursorLayer(FCursorLayer).Hotspot := Types.Point(HotspotX, HotspotY);
-  TCursorLayer(FCursorLayer).Color := Color;
-  TCursorLayer(FCursorLayer).OutlinePattern := OutlinePattern;
-
-  ShowCursor(True);
-*)
 end;
 
 //------------------------------------------------------------------------------

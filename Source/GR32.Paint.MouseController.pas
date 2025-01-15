@@ -38,11 +38,8 @@ uses
   Classes,
   Controls,
   GR32,
-  GR32_System,
-  GR32_Image,
   GR32_Layers,
-  GR32.Paint.API,
-  GR32.Paint.Tool,
+  GR32.Paint.Host.API,
   GR32.Paint.Tool.API,
   GR32.Paint.Controller.API,
   GR32.Paint.MouseController.API;
@@ -52,15 +49,17 @@ uses
 //      TBitmap32PaintMouseController
 //
 //------------------------------------------------------------------------------
-// An example implementation of a paint controller using TImage32 or TImgView32.
+// An example implementation of a mouse controller.
+// The mouse controller processes mouse event and passes them on to the
+// controller.
 //------------------------------------------------------------------------------
 type
   TBitmap32PaintMouseController = class(TInterfacedObject, IBitmap32PaintMouseController)
-  private
+  strict private
     FController: IBitmap32PaintController;
     FPaintHost: IBitmap32PaintHost;
 
-  private
+  strict private
     // IBitmap32PaintMouseController
     procedure HandleMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure HandleMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
@@ -69,13 +68,11 @@ type
     procedure MouseEnter;
     procedure MouseExit;
 
-  private
+  strict private
     // Mouse state
     FMouseShift: TShiftState;
     FLastMousePos: TPoint;
     FLastMouseMessageTime: Cardinal;
-
-  private
 
   public
     constructor Create(const APaintHost: IBitmap32PaintHost; const APaintController: IBitmap32PaintController);
@@ -92,11 +89,7 @@ implementation
 uses
   Windows,
   Types,
-  SysUtils,
-  GR32.Paint.Host;
-
-type
-  TImage32Cracker = class(TCustomImage32);
+  SysUtils;
 
 //------------------------------------------------------------------------------
 //

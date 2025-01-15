@@ -8,7 +8,7 @@ uses
   GR32,
   GR32_Image,
   GR32_Layers,
-  GR32.Paint.API,
+  GR32.Paint.Host.API,
   GR32.Paint.Controller.API,
   GR32.Paint.MouseController.API;
 
@@ -77,9 +77,13 @@ constructor TFormMain.Create(AOwner: TComponent);
   begin
     FPaintHost := TBitmap32PaintHost.Create(Image32);
     FPaintController := TBitmap32PaintController.Create(Image32, FPaintHost);
+    (* This also works fine
+    FPaintController := TCustomBitmap32PaintController.Create(FPaintHost);
+    *)
     FPaintMouseController := TBitmap32PaintMouseController.Create(FPaintHost, FPaintController);
 
     FPaintHost.PaintLayer := FPaintLayer;
+
     FPaintHost.ColorPrimary := clWhite32;
     FPaintHost.ColorSecondary := clBlack32;
 
