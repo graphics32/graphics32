@@ -139,8 +139,6 @@ type
 //------------------------------------------------------------------------------
 // A mouse-operated drawing tool. E.g. Pen, Brush, Line, Circle, Selection, etc.
 //------------------------------------------------------------------------------
-  IBitmap32Viewport = interface;
-
   IBitmap32PaintTool = interface(IBitmap32PaintExtension)
     ['{712D1D8A-5C4B-43C7-A16A-8D8BBA9A6818}']
     /// <summary>Activate is called when the tool is selected.</summary>
@@ -192,31 +190,7 @@ type
 
     function GetToolFeatures: TBitmap32PaintToolFeatures;
     property ToolFeatures: TBitmap32PaintToolFeatures read GetToolFeatures;
-
-    // TODO : Not yet implemented
-    procedure RenderLayer(const Viewport: IBitmap32Viewport; Buffer: TBitmap32);
   end;
-
-//------------------------------------------------------------------------------
-//
-//      IBitmap32Viewport
-//
-//------------------------------------------------------------------------------
-  IBitmap32Viewport = interface
-    ['{77A63763-D9EA-4E50-BE8E-24C73B2F8654}']
-    function BitmapToViewport(const Rect: TRect): TRect; overload;
-    function BitmapToViewport(const Pos: TPoint): TPoint; overload;
-    function ViewportToBitmap(const Rect: TRect): TRect; overload;
-    function ViewportToBitmap(const Pos: TPoint): TPoint; overload;
-    function GetViewportRect: TRect;
-    property ViewportRect: TRect read GetViewportRect;
-    function GetBitmapRect: TRect;
-    property BitmapRect: TRect read GetBitmapRect;
-    function GetVisible: boolean;
-    procedure SetVisible(Value: boolean);
-    property Visible: boolean read GetVisible write SetVisible;
-  end;
-
 
 //------------------------------------------------------------------------------
 //

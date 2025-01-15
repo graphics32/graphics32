@@ -38,7 +38,7 @@ uses
   Classes,
   Controls,
   GR32,
-  GR32.Paint.API,
+  GR32.Paint.Host.API,
   GR32.Paint.Tool,
   GR32.Paint.Tool.API;
 
@@ -49,11 +49,13 @@ uses
 //------------------------------------------------------------------------------
 type
   TCustomBitmap32PaintToolPen = class abstract(TCustomBitmap32PaintTool)
-  private
+  strict private
     FLastPos: TPoint;
-  protected
+
+  strict protected
     procedure DoAction(const Context: IBitmap32PaintToolContext);
-  protected
+
+  strict protected
     function GetTransparent: boolean; virtual;
     function GetToolFeatures: TBitmap32PaintToolFeatures; override;
 
@@ -73,11 +75,13 @@ type
 //------------------------------------------------------------------------------
 type
   TBitmap32PaintToolPen = class(TCustomBitmap32PaintToolPen)
-  private
+  strict private
     FTransparent: boolean;
-  protected
+
+  strict protected
     function GetTransparent: boolean; override;
     function GetCaption: string; override;
+
   public
     constructor Create(const APaintHost: IBitmap32PaintHost); override;
 
@@ -89,8 +93,14 @@ resourcestring
   sBitmap32PaintToolPenCaption = 'Pencil';
 
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
+uses
+  Types;
 
 //------------------------------------------------------------------------------
 //
@@ -202,8 +212,4 @@ end;
 
 //------------------------------------------------------------------------------
 
-
-initialization
-//  TBitmap32PaintToolFactory.Create(TBitmap32PaintToolPen, betToolPen, betGroupPen, beRegPriorityBetter);
-finalization
 end.
