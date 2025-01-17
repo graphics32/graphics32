@@ -27,8 +27,8 @@ type
 type
   TFormMain = class(TForm)
     Image32: TImage32;
-    procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure Image32PaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure Image32MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure Image32MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure Image32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);

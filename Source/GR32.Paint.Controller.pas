@@ -56,6 +56,9 @@ type
   TCustomBitmap32PaintController = class(TInterfacedObject, IBitmap32PaintController)
   strict private
     FPaintHost: IBitmap32PaintHost;
+    // Cached feature capabilities
+    FFeatureCursor: IBitmap32PaintFeatureCursor;
+    FFeatureVectorCursor: IBitmap32PaintFeatureVectorCursor;
 
   strict protected
     property PaintHost: IBitmap32PaintHost read FPaintHost;
@@ -74,6 +77,7 @@ type
 
   strict protected
     // Cursor
+    procedure ShowToolCursor(AShow, ATransientChange: Boolean);
     procedure UpdateToolCursor;
 
   strict protected
@@ -163,6 +167,13 @@ begin
   inherited Create;
 
   FPaintHost := APaintHost;
+
+  // Cache feature capabilities so we don't have to resolve these continously
+  if (not Supports(FPaintHost, IBitmap32PaintFeatureCursor, FFeatureCursor)) then
+    FFeatureCursor := nil;
+
+  if (not Supports(FPaintHost, IBitmap32PaintFeatureVectorCursor, FFeatureVectorCursor)) then
+    FFeatureVectorCursor := nil;
 end;
 
 destructor TCustomBitmap32PaintController.Destroy;
@@ -233,7 +244,7 @@ begin
   if (FActivePaintTool = nil) then
   begin
     // Hide old cursor
-    FPaintHost.ShowToolCursor(False);
+    ShowToolCursor(False, False);
 
     if (FPaintTool <> nil) then
     begin
@@ -259,14 +270,28 @@ end;
 
 //------------------------------------------------------------------------------
 
+procedure TCustomBitmap32PaintController.ShowToolCursor(AShow, ATransientChange: boolean);
+begin
+  if (FFeatureCursor <> nil) then
+    FFeatureCursor.ShowToolCursor(AShow, ATransientChange);
+end;
+
 procedure TCustomBitmap32PaintController.UpdateToolCursor;
 var
   NewCursor: TCursor;
 begin
+  if (FFeatureCursor = nil) then
+    exit;
+
+  // Note: Calling FPaintTool.GetCursor will automatically create
+  // a complex cursor, if the tool supplies one.
+
   if (FPaintTool = nil) or (not FPaintTool.GetCursor(NewCursor)) then
     NewCursor := crDefault;
 
-  FPaintHost.SetToolCursor(NewCursor);
+  FFeatureCursor.SetToolCursor(NewCursor);
+
+  ShowToolCursor(True, False);
 end;
 
 //------------------------------------------------------------------------------
@@ -420,13 +445,13 @@ end;
 procedure TCustomBitmap32PaintController.MouseEnter;
 begin
   // Enable vector cursor
-  FPaintHost.ShowToolCursor(True, True);
+  ShowToolCursor(True, True);
 end;
 
 procedure TCustomBitmap32PaintController.MouseExit;
 begin
   // Disable vector cursor
-  FPaintHost.ShowToolCursor(False, True);
+  ShowToolCursor(False, True);
 end;
 
 //------------------------------------------------------------------------------
@@ -443,7 +468,8 @@ begin
     Context.PaintTool.MouseMove(Context);
 
   // Update cursor layer with most recent position
-  FPaintHost.MoveToolVectorCursor(Context.MouseParams.ViewPortPos);
+  if (FFeatureVectorCursor <> nil) then
+    FFeatureVectorCursor.MoveToolVectorCursor(Context.MouseParams.ViewPortPos);
 end;
 
 procedure TCustomBitmap32PaintController.MouseUp(const Context: IBitmap32PaintToolContext; Button: TMouseButton);
@@ -501,7 +527,7 @@ begin
       SetCapture(FImage.Handle);
   end;
 
-  // Repaint immediately (almost) to avoid lag caused by continous mouse messages during the operation.
+  // Repaint ASAP to avoid lag caused by continous mouse messages during the operation.
   // The WM_PAINT messages are only generated once the message queue is otherwise empty or
   // UpdateWindow is called.
   if (not TImage32Cracker(FImage).CacheValid) or (not TImage32Cracker(FImage).BufferValid) then
@@ -535,6 +561,7 @@ begin
   inherited;
 
   // Ensure mouse capture is released (this takes care of right-button which TImage32 doesn't handle properly)
+  // TODO : I'm not sure that this is necessary anymore but there's no harm in it
   if (ActivePaintTool = nil) and (GetCapture = FImage.Handle) then
     ReleaseCapture;
 end;

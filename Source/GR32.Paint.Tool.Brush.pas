@@ -195,8 +195,12 @@ var
   Steps: integer;
   Stipple: TArrayOfColor32;
   Polygon: TArrayOfFixedPoint;
+  FeatureVectorCursor: IBitmap32PaintFeatureVectorCursor;
 begin
   Result := False;
+
+  if (not Supports(PaintHost, IBitmap32PaintFeatureVectorCursor, FeatureVectorCursor)) then
+    exit;
 
   FCursorSize := BrushSize;
 
@@ -218,7 +222,7 @@ begin
     Stipple[4] := $80000000;
     Stipple[5] := $00000000;
 
-    Result := PaintHost.SetToolVectorCursor(Polygon, GR32.Point(0, 0), 0, Stipple);
+    Result := FeatureVectorCursor.SetToolVectorCursor(Polygon, GR32.Point(0, 0), 0, Stipple);
   end;
 end;
 

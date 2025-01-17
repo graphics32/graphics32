@@ -52,7 +52,10 @@ uses
 // An example implementation of IBitmap32PaintHost using TImage32 or TImgView32.
 //------------------------------------------------------------------------------
 type
-  TBitmap32PaintHost = class(TInterfacedObject, IBitmap32PaintHost)
+  TBitmap32PaintHost = class(TInterfacedObject,
+    IBitmap32PaintHost,
+    IBitmap32PaintFeatureCursor,
+    IBitmap32PaintFeatureVectorCursor)
   strict private
     FImage: TCustomImage32;
 
@@ -66,8 +69,9 @@ type
   strict private
     // Cursor
     FCursorLayer: TCustomLayer;
-    FCursorActive: boolean;
-    FCursorVisible: boolean;
+    FToolCursorActive: boolean;
+    FHasVectorCursor: boolean;
+    FVectorCursorVisible: boolean;
     FDefaultCursor: TCursor;
     FCurrentCursor: TCursor;
 
@@ -94,12 +98,17 @@ type
 
     function CreateToolContext(const APaintTool: IBitmap32PaintTool): IBitmap32PaintToolContext; virtual;
 
-    procedure ShowToolCursor(AShow: Boolean; OnlyUpdateVectorCursor: boolean);
-    procedure SetToolCursor(NewCursor: TCursor);
-    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32; const StipplePattern: TArrayOfColor32): boolean;
-    procedure MoveToolVectorCursor(const APos: TPoint);
-
     procedure Changed(const Action: string);
+
+  private
+    // IBitmap32PaintFeatureCursor
+    procedure ShowToolCursor(AShow, ATransientChange: Boolean);
+    procedure SetToolCursor(NewCursor: TCursor);
+
+  private
+    // IBitmap32PaintFeatureVectorCursor
+    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = []): boolean;
+    procedure MoveToolVectorCursor(const APos: TPoint);
 
   public
     constructor Create(AImage: TCustomImage32);
@@ -246,7 +255,7 @@ procedure TBitmap32PaintHost.SetToolCursor(NewCursor: TCursor);
 
 begin
   if (FCurrentCursor <> FImage.Cursor) then
-    // Something else changed the cursor. Use the value as the default.
+    // Something else changed the cursor. Use the current value as the default.
     FDefaultCursor := FImage.Cursor;
 
   if (NewCursor = crDefault) then
@@ -264,16 +273,25 @@ begin
   end;
 end;
 
-procedure TBitmap32PaintHost.ShowToolCursor(AShow: Boolean; OnlyUpdateVectorCursor: boolean);
+procedure TBitmap32PaintHost.ShowToolCursor(AShow, ATransientChange: Boolean);
 begin
-  if (OnlyUpdateVectorCursor) then
-    FCursorVisible := AShow
-  else
-    FCursorActive := AShow;
+  if (not ATransientChange) then
+  begin
+    FToolCursorActive := AShow;
+
+    if (not FToolCursorActive) then
+    begin
+      FHasVectorCursor := False;
+      SetToolCursor(FDefaultCursor);
+    end;
+  end else
+    FVectorCursorVisible := AShow;
 
   if (FCursorLayer <> nil) then
-    FCursorLayer.Visible := (FCursorActive) and (FCursorVisible);
+    FCursorLayer.Visible := FToolCursorActive and FVectorCursorVisible;
 end;
+
+//------------------------------------------------------------------------------
 
 function TBitmap32PaintHost.SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32; const StipplePattern: TArrayOfColor32): boolean;
 begin
@@ -290,12 +308,13 @@ begin
 *)
   end;
 
-  ShowCursor(True);
+  FHasVectorCursor := True;
+  FVectorCursorVisible := True;
 end;
 
 procedure TBitmap32PaintHost.MoveToolVectorCursor(const APos: TPoint);
 begin
-
+  // Not implemented in this example (yet)
 end;
 
 //------------------------------------------------------------------------------

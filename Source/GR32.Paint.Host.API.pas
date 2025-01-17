@@ -95,17 +95,65 @@ type
     // It is the responsibility of the caller to initialize and maintain the returned object with context values.
     function CreateToolContext(const APaintTool: IBitmap32PaintTool): IBitmap32PaintToolContext;
 
-    // Cursor management
-    procedure ShowToolCursor(Show: Boolean; OnlyUpdateVectorCursor: boolean = False);
-    procedure SetToolCursor(NewCursor: TCursor);
-    // SetToolVectorCursor: Called from tools to set complex cursors.
-    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = []): boolean;
-    procedure MoveToolVectorCursor(const APos: TPoint);
-
     // Changed: Called from tools. Used for undo management.
     procedure Changed(const Action: string);
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Optional host features
+//
+//------------------------------------------------------------------------------
+type
+  (*
+
+    Cursor management:
+
+    Controller.SetPaintTool
+      If existing tool <> nil:
+      - Host.ShowToolCursor(False, False)
+      If new tool <> nil:
+      - PaintTool.GetCursor
+        - Host.SetToolVectorCursor
+      - Host.SetToolCursor
+      - Host.ShowToolCursor(True, False)
+
+    Controller.MouseEnter
+      - Host.ShowToolCursor(True, True)
+
+    Controller.MouseExit
+      - Host.ShowToolCursor(False, True)
+
+    Controller.MouseMove
+      - Host.MoveToolVectorCursor
+
+  *)
+  IBitmap32PaintFeatureCursor = interface
+    ['{04D7D5D7-4367-4250-942E-314C2BAD8D7A}']
+    // If TransientChange is True, ShowToolCursor controls transient cursor
+    // visibility. This is mainly used to temporarily hide the tool vector
+    // cursor when the mouse cursor moves out of the host control.
+    // If TransientChange is False, ShowToolCursor controls the platform
+    // hardware cursor. It does not change the visiblity of the cursor but
+    // instead controls if the cursor is the tool cursor (SHow=True) or the
+    // default cursor (Show=False).
+    procedure ShowToolCursor(Show, ATransientChange: Boolean);
+
+    // Set the current tool cursor.
+    // If the crDefault cursor is specified then the host TImage32 cursor
+    // will be used instead.
+    procedure SetToolCursor(NewCursor: TCursor);
+  end;
+
+  // Complex cursors
+  IBitmap32PaintFeatureVectorCursor = interface
+    ['{06CEC909-5267-4537-8F2E-F9D31EAF99CA}']
+    // SetToolVectorCursor: Called from IBitmap32PaintTool.GetCursor to set complex cursors.
+    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = []): boolean;
+
+    procedure MoveToolVectorCursor(const APos: TPoint);
+  end;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

@@ -20,7 +20,7 @@ object FormMain: TFormMain
     Top = 0
     Width = 640
     Height = 480
-    Cursor = crCross
+    Cursor = crHandPoint
     Align = alClient
     Bitmap.DrawMode = dmBlend
     Bitmap.CombineMode = cmMerge
