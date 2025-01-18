@@ -55,19 +55,12 @@ implementation
 
 uses
   Types,
+  GR32_Blend,
   GR32.Paint.Host,
   GR32.Paint.Controller,
   GR32.Paint.MouseController,
   GR32.Paint.Tool.Pen,
   GR32.Paint.Tool.Brush;
-
-type
-  TLUT8 = array[byte] of byte;
-  PLUT8 = ^TLUT8;
-
-var
-  PremultiplyLUT: array[byte] of TLUT8;
-
 
 //------------------------------------------------------------------------------
 
@@ -229,7 +222,7 @@ procedure TImage32.Paint;
     p := PColor32Entry(Bitmap.Bits);
     for i := 0 to Bitmap.Height*Bitmap.Width-1 do
     begin
-      PreMult := @PremultiplyLUT[p.A];
+      PreMult := @MulDiv255Table[p.A];
       p.R := PreMult[p.R];
       p.G := PreMult[p.G];
       p.B := PreMult[p.B];
@@ -287,19 +280,4 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure SetupPremultiplyLUT;
-var
-  Row, Col: integer;
-begin
-  for Row := 0 to 255 do
-    for Col := Row to 255 do
-    begin
-      PremultiplyLUT[Row, Col] := Row * Col div 255;
-      if (Row <> Col) then
-        PremultiplyLUT[Col, Row] := PremultiplyLUT[Row, Col]; // a*b = b*a
-    end;
-end;
-
-initialization
-  SetupPremultiplyLUT;
 end.
