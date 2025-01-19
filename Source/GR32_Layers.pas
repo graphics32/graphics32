@@ -1730,13 +1730,13 @@ begin
   if (LayerHiding) then
     ForceUpdate := True;
 
-    Changing;
-    FLayerOptions := Value;
-    Changed;
+  Changing;
+  FLayerOptions := Value;
+  Changed;
 
   if (LayerHiding) then
     ForceUpdate := False;
-  end;
+end;
 
 procedure TCustomLayer.SetMouseEvents(Value: Boolean);
 begin
@@ -2017,7 +2017,7 @@ end;
 //------------------------------------------------------------------------------
 
 function TPositionedLayer.ContentToLayer(const APoint: TPoint): TPoint;
-    begin
+begin
   Result := GR32.Point(ContentToLayer(FloatPoint(APoint)));
 end;
 
@@ -2037,11 +2037,11 @@ begin
 
   if (LayerWidth > 0.5) and (LayerHeight > 0.5) and
         ((Size.X <> LayerWidth) or (Size.Y <> LayerHeight)) then
-      begin
+  begin
     Result.X := Result.X * LayerWidth / Size.X;
     Result.Y := Result.Y * LayerHeight / Size.Y;
-      end;
-    end;
+  end;
+end;
 
 function TPositionedLayer.LayerToContent(const APoint: TPoint): TPoint;
 begin
@@ -2690,14 +2690,14 @@ begin
       Result.Cursor := GetHitTestCursor(Result);
       Result.StartLocation := Location;
     end;
-end;
+  end;
 end;
 
 procedure TCustomRubberBandLayer.SetHitTest(const AHitTest: ILayerHitTest);
 begin
   FHitTest := AHitTest;
   FIsDragging := (FHitTest <> nil); // For backward compatibility
-  end;
+end;
 
 function TCustomRubberBandLayer.AllowMove: boolean;
 begin
@@ -2815,7 +2815,7 @@ begin
       Result := True;
     end;
 
-end;
+  end;
 end;
 
 procedure TCustomRubberBandLayer.DoHandleClicked(VertexIndex: integer);
@@ -2883,12 +2883,12 @@ begin
       // ...unless it's the same as the child layer and we handled the child layer above
       if (PositionedLayer <> nil) and ((not FPassMouse.ToChild) or (PositionedLayer <> ChildLayer)) then
       begin
-      PositionedLayer.MouseDown(Button, Shift, X, Y);
+        PositionedLayer.MouseDown(Button, Shift, X, Y);
 
-      if FPassMouse.CancelIfPassed then
-        Exit;
+        if FPassMouse.CancelIfPassed then
+          Exit;
+      end;
     end;
-  end;
   end;
 
   if (ActiveHitTest <> nil) then
@@ -2904,7 +2904,7 @@ begin
     if (Supports(ActiveHitTest, ILayerHitTestVertex, HitTestVertex)) then
       VertexIndex := HitTestVertex.Vertex
     else
-    VertexIndex := -1;
+      VertexIndex := -1;
 
     // Generate an OnHandleClicked event
     DoHandleClicked(VertexIndex);
@@ -2946,7 +2946,7 @@ begin
   if ApplyOffset(ActiveHitTest, DoQuantize) then
   begin
     if (ActiveHitTest <> nil) then
-  begin
+    begin
       // Are we dragging a vertex/handle?
       if (Supports(ActiveHitTest, ILayerHitTestVertex, HitTestVertex)) then
         VertexIndex := HitTestVertex.Vertex
@@ -2987,12 +2987,12 @@ begin
       // ...unless it's the same as the child layer and we handled the child layer above
       if (PositionedLayer <> nil) and ((not FPassMouse.ToChild) or (PositionedLayer <> ChildLayer)) then
       begin
-      PositionedLayer.MouseUp(Button, Shift, X, Y);
+        PositionedLayer.MouseUp(Button, Shift, X, Y);
 
-      if FPassMouse.CancelIfPassed then
-        Exit;
+        if FPassMouse.CancelIfPassed then
+          Exit;
+      end;
     end;
-  end;
   end;
 
   SetHitTest(nil);
