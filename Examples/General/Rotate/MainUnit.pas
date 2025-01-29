@@ -61,7 +61,8 @@ implementation
 
 uses
   Types,
-  GR32_Math;
+  GR32_Math,
+  GR32.ImageFormats.JPG;
 
 
 { TFormRotateExample }

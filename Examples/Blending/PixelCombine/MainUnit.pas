@@ -80,7 +80,8 @@ implementation
 uses
   Types,
   GR32_Blend,
-  GR32_RangeBars;
+  GR32_RangeBars,
+  GR32.ImageFormats.JPG;
 
 { TFormPixelCombine }
 

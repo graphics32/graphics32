@@ -97,7 +97,8 @@ uses
   MacOSAll,
 {$ENDIF}
   Math,
-  Types;
+  Types,
+  GR32.ImageFormats.JPG;
 
 { TFormPolygons }
 
