@@ -2979,47 +2979,102 @@ end;
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 function Interpolator_SSE2(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
+  // Parameters (x86):
+  //   EAX <- WeightX_256
+  //   EDX <- WeightY_256
+  //   ECX <- p11: PColor32
+  //   Stack[0] <- p12: PColor32
+  //   Stack[1] <-
+  //   Preserves: (none)
+  //
+  // Parameters (x64):
+  //   RCX <- WeightX_256
+  //   RDX <- WeightY_256
+  //   R8  <- p11: PColor32
+  //   R9  <- p12: PColor32
+  //   Preserves: (none)
+  //
+  // SSE register usage:
+  //   XMM0: Zero
+  //   XMM1: p11^
+  //   XMM2: p11^
+  //   XMM3: p12^
+  //   XMM4: p12^
+  //   XMM5: misc
 asm
+        // Load the two p11 TColor32's into XMM1.DWORD[0..1], XMM2.DWORD[0..1]
+        // Load the two p12 TColor32's into XMM3.DWORD[0..1] (and later XMM4.DWORD[0..1])
+
 {$IFDEF TARGET_X64}
         MOV       RAX, RCX
-        MOVQ      XMM1,QWORD PTR [R8]
-        MOVQ      XMM2,XMM1
-        MOVQ      XMM3,QWORD PTR [R9]
+        MOVQ      XMM1, QWORD PTR [R8]          // XMM1.DWORD[0..1] <- p11^
+        MOVQ      XMM2, XMM1
+        MOVQ      XMM3, QWORD PTR [R9]          // XMM3.DWORD[0..1] <- p12^
 {$ELSE}
-        MOVQ      XMM1,[ECX]
-        MOVQ      XMM2,XMM1
-        MOV       ECX,p12
-        MOVQ      XMM3,[ECX]
+        MOVQ      XMM1, [ECX]                   // XMM1.DWORD[0..1] <- p11^
+        MOVQ      XMM2, XMM1
+        MOV       ECX, p12
+        MOVQ      XMM3, [ECX]                   // XMM3.DWORD[0..1] <- p12^
 {$ENDIF}
-        PSRLQ     XMM1,32
-        MOVQ      XMM4,XMM3
-        PSRLQ     XMM3,32
-        MOVD      XMM5,EAX
-        PSHUFLW   XMM5,XMM5,0
-        PXOR      XMM0,XMM0
-        PUNPCKLBW XMM1,XMM0
-        PUNPCKLBW XMM2,XMM0
-        PSUBW     XMM2,XMM1
-        PMULLW    XMM2,XMM5
-        PSLLW     XMM1,8
-        PADDW     XMM2,XMM1
-        PSRLW     XMM2,8
-        PUNPCKLBW XMM3,XMM0
-        PUNPCKLBW XMM4,XMM0
-        PSUBW     XMM4,XMM3
-        PSLLW     XMM3,8
-        PMULLW    XMM4,XMM5
-        PADDW     XMM4,XMM3
-        PSRLW     XMM4,8
-        MOVD      XMM5,EDX
-        PSHUFLW   XMM5,XMM5,0
-        PSUBW     XMM2,XMM4
-        PMULLW    XMM2,XMM5
-        PSLLW     XMM4,8
-        PADDW     XMM2,XMM4
-        PSRLW     XMM2,8
-        PACKUSWB  XMM2,XMM0
-        MOVD      EAX,XMM2
+
+
+        (*
+        ** Horizontal lerp
+        *)
+        //   Result := W * (X - Y) + Y
+        //   XMM2 := XMM5 * (XMM2 - XMM1) + XMM1
+
+        // Reduce YX to Y in XMM1, XMM3
+        PSRLQ     XMM1, 32                      // XMM1 <- XMM1 and $FFFFFFFF (XMM1 SHR 32)
+        MOVQ      XMM4, XMM3
+        PSRLQ     XMM3, 32                      // XMM3 <- XMM3 and $FFFFFFFF (XMM3 SHR 32)
+
+        // Copy WeightX_256 into XMM5.WORD[0..3]
+        MOVD      XMM5, EAX                     // XMM5.DWORD[0] <- WeightX_256
+        PSHUFLW   XMM5, XMM5, 0                 // XMM5.WORD[0..3] <- XMM5.WORD[0]
+
+        PXOR      XMM0, XMM0                    // XMM0 <- 0
+
+        // Expand XMM1,XMM2 from WORD to DWORD
+        PUNPCKLBW XMM1, XMM0                    // XMM1.DWORD[0..3] <- XMM1.WORD[0..3]
+        PUNPCKLBW XMM2, XMM0                    // XMM2.DWORD[0..3] <- XMM2.WORD[0..3]
+
+        // X - Y
+        PSUBW     XMM2, XMM1                    // XMM2.DWORD[0..1] <- 0 (XMM2 <- XMM2-XMM1)
+        // W * (X - Y)
+        PMULLW    XMM2, XMM5                    // ?
+        // W * (X - Y) + Y
+        PSLLW     XMM1, 8                       // XMM1.WORD[0..3] <- XMM1.WORD[0..3] SHL 8
+        PADDW     XMM2, XMM1                    // XMM2.WORD[0..3] <- XMM2.WORD[0..3] + XMM1.WORD[0..3]
+        // Scale from 255*256 to 255
+        PSRLW     XMM2, 8                       // XMM2.WORD[0..3] <- XMM2.WORD[0..3] SHR 8
+
+        // Expand XMM3,XMM4 from WORD to DWORD
+        PUNPCKLBW XMM3, XMM0
+        PUNPCKLBW XMM4, XMM0
+
+        // X - Y
+        PSUBW     XMM4, XMM3
+        PSLLW     XMM3, 8 // WORD[0..3] << 8
+        // W * (X - Y)
+        PMULLW    XMM4, XMM5
+        // W * (X - Y) + Y
+        PADDW     XMM4, XMM3
+        // Scale from 255*256 to 255
+        PSRLW     XMM4, 8 // WORD[0..3] >> 8
+
+        // Vertical lerp
+        MOVD      XMM5, EDX
+        PSHUFLW   XMM5, XMM5, 0
+
+        PSUBW     XMM2, XMM4
+        PMULLW    XMM2, XMM5
+        PSLLW     XMM4, 8
+        PADDW     XMM2, XMM4
+        PSRLW     XMM2, 8
+
+        PACKUSWB  XMM2, XMM0
+        MOVD      EAX, XMM2
 end;
 {$ifend}
 
@@ -5064,9 +5119,9 @@ begin
   ResamplersRegistry.RegisterBinding(@@AlphaInterpolator, 'AlphaInterpolator');
 
   ResamplersRegistry[@@BlockAverage].Add(       @BlockAverage_Pas,      [isPascal]).Name := 'BlockAverage_Pas';
-  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_Pas,      [isPascal]).Name := 'Interpolator_Pas';
+//  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_Pas,      [isPascal]).Name := 'Interpolator_Pas';
   ResamplersRegistry[@@AlphaInterpolator].Add(  @AlphaInterpolator_Pas, [isPascal]).Name := 'AlphaInterpolator_Pas';
-  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_Pas,      [isPascal]).Name := 'AlphaInterpolator_Pas';
+  ResamplersRegistry[@@Interpolator].Add(       @AlphaInterpolator_Pas, [isPascal]).Name := 'AlphaInterpolator_Pas';
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   ResamplersRegistry[@@BlockAverage].Add(       @BlockAverage_SSE2,     [isSSE2]).Name := 'BlockAverage_SSE2';
