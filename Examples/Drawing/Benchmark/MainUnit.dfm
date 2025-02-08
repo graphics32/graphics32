@@ -3,34 +3,43 @@ object MainForm: TMainForm
   Top = 77
   Caption = 'Polygon Renderer Benchmark'
   ClientHeight = 587
-  ClientWidth = 714
+  ClientWidth = 746
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
+  object Splitter1: TSplitter
+    Left = 0
+    Top = 350
+    Width = 746
+    Height = 3
+    Cursor = crVSplit
+    Align = alBottom
+    ResizeStyle = rsUpdate
+    ExplicitTop = 0
+    ExplicitWidth = 353
+  end
   object PnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 714
-    Height = 353
+    Width = 746
+    Height = 350
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 10
     TabOrder = 0
-    ExplicitWidth = 722
-    ExplicitHeight = 364
+    ExplicitWidth = 714
+    ExplicitHeight = 353
     object Img: TImage32
       Left = 10
       Top = 10
-      Width = 702
-      Height = 344
+      Width = 726
+      Height = 330
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baTopLeft
@@ -38,27 +47,31 @@ object MainForm: TMainForm
       ScaleMode = smNormal
       TabOrder = 0
       OnResize = ImgResize
+      ExplicitWidth = 694
+      ExplicitHeight = 333
     end
   end
   object PnlBottom: TPanel
     Left = 0
     Top = 353
-    Width = 714
+    Width = 746
     Height = 234
     Align = alBottom
     BevelOuter = bvNone
     BorderWidth = 10
     TabOrder = 1
-    ExplicitTop = 364
-    ExplicitWidth = 722
+    ExplicitWidth = 714
     object GbxSettings: TGroupBox
       Left = 10
       Top = 10
-      Width = 328
+      Width = 319
       Height = 214
       Align = alLeft
       Caption = 'Benchmark Settings'
       TabOrder = 0
+      DesignSize = (
+        319
+        214)
       object LblTest: TLabel
         Left = 14
         Top = 34
@@ -83,9 +96,10 @@ object MainForm: TMainForm
       end
       object BtnBenchmark: TButton
         Left = 14
-        Top = 158
+        Top = 178
         Width = 139
         Height = 25
+        Anchors = [akLeft, akBottom]
         Caption = 'Do &Benchmark'
         TabOrder = 4
         OnClick = BtnBenchmarkClick
@@ -123,10 +137,11 @@ object MainForm: TMainForm
         TabOrder = 3
       end
       object BtnExit: TButton
-        Left = 158
-        Top = 158
+        Left = 164
+        Top = 178
         Width = 139
         Height = 25
+        Anchors = [akLeft, akBottom]
         Cancel = True
         Caption = 'E&xit'
         TabOrder = 5
@@ -134,27 +149,29 @@ object MainForm: TMainForm
       end
     end
     object GbxResults: TGroupBox
-      Left = 348
+      Left = 339
       Top = 10
-      Width = 356
+      Width = 397
       Height = 214
       Align = alClient
       Caption = 'Benchmark Res&ults'
       TabOrder = 1
-      ExplicitWidth = 364
+      ExplicitLeft = 348
+      ExplicitWidth = 356
       object PnlBenchmark: TPanel
         Left = 2
         Top = 15
-        Width = 360
+        Width = 393
         Height = 197
         Align = alClient
         BevelOuter = bvNone
         BorderWidth = 10
         TabOrder = 0
+        ExplicitWidth = 352
         object MemoLog: TMemo
           Left = 10
           Top = 10
-          Width = 340
+          Width = 373
           Height = 177
           Align = alClient
           Font.Charset = ANSI_CHARSET
@@ -166,17 +183,19 @@ object MainForm: TMainForm
           ParentFont = False
           ScrollBars = ssVertical
           TabOrder = 0
+          WordWrap = False
         end
       end
     end
     object PnlSpacer: TPanel
-      Left = 338
+      Left = 329
       Top = 10
       Width = 10
       Height = 214
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 2
+      ExplicitLeft = 338
     end
   end
 end
