@@ -1,4 +1,4 @@
-unit GR32_PolygonsAggLite;
+unit GR32_Polygons.AggLite;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception

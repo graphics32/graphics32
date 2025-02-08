@@ -93,8 +93,8 @@ uses
   GR32_Brushes,
   GR32_Backends,
   GR32_VPR2,
-  GR32_PolygonsGDIPlus,
-  GR32_PolygonsAggLite;
+  GR32_Polygons.GDIPlus,
+  GR32_Polygons.AggLite;
 
 var
   TestRegistry: TStringList;
