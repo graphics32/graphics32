@@ -135,11 +135,11 @@ type
     FFillMode: TPolyFillMode;
     FColor: TColor32;
     FFiller: TCustomPolygonFiller;
-    procedure SetColor(const Value: TColor32);
-    procedure SetFillMode(const Value: TPolyFillMode);
-    procedure SetFiller(const Value: TCustomPolygonFiller);
   protected
     procedure SetBitmap(const Value: TCustomBitmap32); virtual;
+    procedure SetColor(const Value: TColor32); virtual;
+    procedure SetFillMode(const Value: TPolyFillMode); virtual;
+    procedure SetFiller(const Value: TCustomPolygonFiller); virtual;
   public
     constructor Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode = pfWinding); reintroduce; overload;
 
@@ -1904,12 +1904,11 @@ end;
 
 { TPolygonRenderer32 }
 
-constructor TPolygonRenderer32.Create(Bitmap: TCustomBitmap32;
-  Fillmode: TPolyFillMode);
+constructor TPolygonRenderer32.Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode);
 begin
   inherited Create;
-  FBitmap := Bitmap;
-  FFillMode := Fillmode;
+  SetBitmap(Bitmap);
+  SetFillMode(Fillmode);
 end;
 
 procedure TPolygonRenderer32.PolygonFS(const Points: TArrayOfFloatPoint);
