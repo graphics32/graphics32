@@ -94,6 +94,7 @@ uses
   GR32_Backends,
   GR32_VPR2,
   GR32_Polygons.GDIPlus,
+  GR32_Polygons.Direct2D,
   GR32_Polygons.AggLite;
 
 var
@@ -115,8 +116,10 @@ procedure TMainForm.RunTest(TestProc: TTestProc; TestTime: Int64);
 var
   Canvas: TCanvas32;
   StopWatch: TStopWatch;
+  WallClock: TStopWatch;
   i: integer;
   Operations: Int64;
+  PolygonRendererBatching: IPolygonRendererBatching;
 begin
   RandSeed := 0;
 
@@ -133,28 +136,51 @@ begin
         Canvas.Brushes[1].Visible := False;
         Operations := 0;
 
+        Wallclock := TStopwatch.StartNew;
         StopWatch.Reset;
 
         repeat
 
-          for i := 0 to 9 do
+          // If the rasterizer supports batching, we allow it to batch a block.
+          // This might give batching rasterizers a slight unrealistic and
+          // unfair advantage. One rasterizer that absolutely suffer if we don't
+          // batch is the Direct2D rasterizer.
+          if (Supports(Canvas.Renderer, IPolygonRendererBatching, PolygonRendererBatching)) then
           begin
-            Canvas.BeginUpdate;
-
-            // Build path
-            TestProc(Canvas);
-
             StopWatch.Start;
-
-            // Flatten path and render
-            Canvas.EndUpdate;
-
+            PolygonRendererBatching.BeginDraw;
             StopWatch.Stop;
+          end;
+          try
 
-            Inc(Operations);
+            for i := 0 to 9 do
+            begin
+              Canvas.BeginUpdate;
+
+              // Build path
+              TestProc(Canvas);
+
+              StopWatch.Start;
+
+              // Flatten path and render
+              Canvas.EndUpdate;
+
+              StopWatch.Stop;
+
+              Inc(Operations);
+            end;
+
+          finally
+            if (PolygonRendererBatching <> nil) then
+            begin
+              StopWatch.Start;
+              // For batching rasterizers, this is where the actual work will be done
+              PolygonRendererBatching.EndDraw;
+              StopWatch.Stop;
+            end;
           end;
 
-        until (StopWatch.ElapsedMilliseconds > TestTime);
+        until (Wallclock.ElapsedMilliseconds > TestTime);
 
         WriteTestResult((Operations * 1000) div StopWatch.ElapsedMilliseconds);
 
