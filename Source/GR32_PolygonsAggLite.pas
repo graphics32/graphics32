@@ -1771,12 +1771,16 @@ begin
   // pure pascal
   FillSpanRegistry[@@FILLSPAN].Add(@FILLSPAN_Pas, [isPascal]).Name := 'FILLSPAN_Pas';
 
+{$if defined(TARGET_x86)} // ASM & SSE2 implementations appears to be broken on x64. Fails with AV.
+
 {$IFNDEF PUREPASCAL}
   FillSpanRegistry[@@FILLSPAN].Add(@FILLSPAN_ASM, [isAssembler]).Name := 'FILLSPAN_ASM';
 {$IFNDEF OMIT_SSE2}
   FillSpanRegistry[@@FILLSPAN].Add(@FILLSPAN_SSE2, [isSSE2]).Name := 'FILLSPAN_SSE2';
 {$ENDIF}
 {$ENDIF}
+
+{$ifend}
 
   FillSpanRegistry.RebindAll;
 end;
