@@ -37,7 +37,11 @@ interface
 uses
   {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
-  GR32_Image, GR32_Paths, GR32, GR32_Polygons;
+  GR32_Image,
+  GR32_Paths,
+  GR32,
+  GR32_System,
+  GR32_Polygons;
 
 const
   TEST_DURATION = 4000;  // test for 4 seconds
@@ -64,6 +68,7 @@ type
     PnlBottom: TPanel;
     PnlSpacer: TPanel;
     PnlTop: TPanel;
+    Splitter1: TSplitter;
     procedure FormCreate(Sender: TObject);
     procedure BtnBenchmarkClick(Sender: TObject);
     procedure ImgResize(Sender: TObject);
@@ -83,16 +88,13 @@ implementation
 uses
   Types,
   Math,
-  GR32_System,
   GR32_LowLevel,
   GR32_Resamplers,
   GR32_Brushes,
   GR32_Backends,
   GR32_VPR2,
+  GR32_PolygonsGDIPlus,
   GR32_PolygonsAggLite;
-
-const
-  GridScale: Integer = 40;
 
 var
   TestRegistry: TStringList;
@@ -106,15 +108,15 @@ end;
 
 procedure TMainForm.WriteTestResult(OperationsPerSecond: Integer);
 begin
-  MemoLog.Lines.Add(Format('%s: %d op/s', [cmbRenderer.Text,
-    OperationsPerSecond]));
+  MemoLog.Lines.Add(Format('%-40s %8.0n', [cmbRenderer.Text, OperationsPerSecond*1.0]));
 end;
 
 procedure TMainForm.RunTest(TestProc: TTestProc; TestTime: Int64);
 var
   Canvas: TCanvas32;
-  i, ElapsedMilliseconds: Int64;
   StopWatch: TStopWatch;
+  i: integer;
+  Operations: Int64;
 begin
   RandSeed := 0;
 
@@ -129,34 +131,43 @@ begin
         Canvas.Brushes.Add(TStrokeBrush);
         Canvas.Brushes[0].Visible := True;
         Canvas.Brushes[1].Visible := False;
-        i := 0;
+        Operations := 0;
 
-        StopWatch := TStopWatch.StartNew;
+        StopWatch.Reset;
 
         repeat
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
 
-          ElapsedMilliseconds := StopWatch.ElapsedMilliseconds;
-          Inc(i, 10);
-        until ElapsedMilliseconds > TestTime;
+          for i := 0 to 9 do
+          begin
+            Canvas.BeginUpdate;
 
-        WriteTestResult((i*1000) div ElapsedMilliseconds);
+            // Build path
+            TestProc(Canvas);
 
-        Img.Invalidate; // VPR2 and VPR2X doesn't call TBitmap32.Changed when they draw
+            StopWatch.Start;
+
+            // Flatten path and render
+            Canvas.EndUpdate;
+
+            StopWatch.Stop;
+
+            Inc(Operations);
+          end;
+
+        until (StopWatch.ElapsedMilliseconds > TestTime);
+
+        WriteTestResult((Operations * 1000) div StopWatch.ElapsedMilliseconds);
+
+{$IFNDEF CHANGENOTIFICATIONS}
+        Img.Bitmap.Changed;
+{$ENDIF}
       finally
         Img.EndUpdate;
       end;
+
       Img.Update;
       Sleep(100); // Tiny delay to work around Windows 10+ deferring update while application is busy
+
     except
       MemoLog.Lines.Add(Format('%s: Failed', [cmbRenderer.Text]));
     end;
@@ -382,8 +393,7 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
   procedure TestRenderer;
   begin
-    DefaultPolygonRendererClass := TPolygonRenderer32Class(
-      PolygonRendererList[CmbRenderer.ItemIndex]);
+    DefaultPolygonRendererClass := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]);
     RunTest(TTestProc(cmbTest.Items.Objects[cmbTest.ItemIndex]));
   end;
 
@@ -401,7 +411,7 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
   procedure PerformTest;
   begin
-    MemoLog.Lines.Add(Format('=== Test: %s ===', [cmbTest.Text]));
+    MemoLog.Lines.Add(Format('=== Test: %s (operations/second) ===', [cmbTest.Text]));
     if CbxAllRenderers.Checked then
       TestAllRenderers
     else
