@@ -155,6 +155,16 @@ type
   TPolygonRenderer32Class = class of TPolygonRenderer32;
 
 
+  // IPolygonRendererBatching: A polygon renderer can implement this interface
+  // if it supports batching.
+  // Graphics32 itself does not take advantage of the interface but applications
+  // can do so. See the Benchmark example application for usage.
+  IPolygonRendererBatching = interface
+    ['{84DE8135-D134-4A4A-B015-C194FA2469F6}']
+    procedure BeginDraw;
+    procedure EndDraw;
+  end;
+
 //------------------------------------------------------------------------------
 //
 //      TPolygonRenderer32VPR
