@@ -41,13 +41,14 @@ uses
   GR32_Paths,
   GR32,
   GR32_System,
+  GR32_Brushes,
   GR32_Polygons;
 
 const
   TEST_DURATION = 4000;  // test for 4 seconds
 
 type
-  TTestProc = procedure(Canvas: TCanvas32);
+  TTestProc = procedure(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 
   { TMainForm }
 
@@ -90,9 +91,9 @@ uses
   Math,
   GR32_LowLevel,
   GR32_Resamplers,
-  GR32_Brushes,
   GR32_Backends,
   GR32_VPR2,
+  GR32_Polygons.GDI,
   GR32_Polygons.GDIPlus,
   GR32_Polygons.Direct2D,
   GR32_Polygons.AggLite;
@@ -115,6 +116,8 @@ end;
 procedure TMainForm.RunTest(TestProc: TTestProc; TestTime: Int64);
 var
   Canvas: TCanvas32;
+  FillBrush: TSolidBrush;
+  StrokeBrush: TStrokeBrush;
   StopWatch: TStopWatch;
   WallClock: TStopWatch;
   i: integer;
@@ -130,10 +133,10 @@ begin
       try
         Img.Bitmap.Clear(clWhite32);
 
-        Canvas.Brushes.Add(TSolidBrush);
-        Canvas.Brushes.Add(TStrokeBrush);
-        Canvas.Brushes[0].Visible := True;
-        Canvas.Brushes[1].Visible := False;
+        FillBrush := Canvas.Brushes.Add(TSolidBrush) as TSolidBrush;
+        StrokeBrush := Canvas.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+        FillBrush.Visible := True;
+        StrokeBrush.Visible := False;
         Operations := 0;
 
         Wallclock := TStopwatch.StartNew;
@@ -158,7 +161,7 @@ begin
               Canvas.BeginUpdate;
 
               // Build path
-              TestProc(Canvas);
+              TestProc(Canvas, FillBrush, StrokeBrush);
 
               StopWatch.Start;
 
@@ -210,32 +213,35 @@ end;
 //----------------------------------------------------------------------------//
 // ellipses
 //----------------------------------------------------------------------------//
-procedure EllipseTest(Canvas: TCanvas32);
+procedure EllipseTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H: Integer;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
+
+  FillBrush.FillColor := RandColor;
+  FillBrush.FillMode := pfNonZero;
+  StrokeBrush.Visible := False;
+
   Canvas.Ellipse(Random(W), Random(H), Random(W shr 1), Random(H shr 1));
 end;
 
 //----------------------------------------------------------------------------//
 // thin lines
 //----------------------------------------------------------------------------//
-procedure ThinLineTest(Canvas: TCanvas32);
+procedure ThinLineTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H: Integer;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  Canvas.Brushes[0].Visible := False;
-  Canvas.Brushes[1].Visible := True;
-  with Canvas.Brushes[1] as TStrokeBrush do
-  begin
-    StrokeWidth := 1;
-    FillColor := RandColor;
-  end;
+
+  FillBrush.Visible := False;
+  StrokeBrush.Visible := True;
+  StrokeBrush.StrokeWidth := 1.0;
+  StrokeBrush.FillColor := RandColor;
+
   Canvas.MoveTo(Random(W), Random(H));
   Canvas.LineTo(Random(W), Random(H));
   Canvas.EndPath;
@@ -244,19 +250,18 @@ end;
 //----------------------------------------------------------------------------//
 // thick lines
 //----------------------------------------------------------------------------//
-procedure ThickLineTest(Canvas: TCanvas32);
+procedure ThickLineTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H: Integer;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  Canvas.Brushes[0].Visible := False;
-  Canvas.Brushes[1].Visible := True;
-  with Canvas.Brushes[1] as TStrokeBrush do
-  begin
-    StrokeWidth := 10;
-    FillColor := RandColor;
-  end;
+
+  FillBrush.Visible := False;
+  StrokeBrush.Visible := True;
+  StrokeBrush.StrokeWidth := 10.0;
+  StrokeBrush.FillColor := RandColor;
+
   Canvas.MoveTo(Random(W), Random(H));
   Canvas.LineTo(Random(W), Random(H));
   Canvas.EndPath;
@@ -294,14 +299,18 @@ const
     (Name: 'Garamond'; Size: 12; Style: [])
   );
 
-procedure TextTest(Canvas: TCanvas32);
+procedure TextTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H, I: Integer;
   Font: TFont;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
+
+  FillBrush.Visible := True;
+  FillBrush.FillMode := pfAlternate;
+  FillBrush.FillColor := RandColor;
+  StrokeBrush.Visible := False;
 
   I := Random(5);
   Font := Canvas.Bitmap.Font;
@@ -373,7 +382,7 @@ begin
   end;
 end;
 
-procedure SplinesTest(Canvas: TCanvas32);
+procedure SplinesTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   Input, Points: TArrayOfFloatPoint;
   K: TSplineKernel;
@@ -393,7 +402,12 @@ begin
   finally
     K.Free;
   end;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
+
+  FillBrush.Visible := True;
+  FillBrush.FillMode := pfEvenOdd;
+  FillBrush.FillColor := RandColor;
+  StrokeBrush.Visible := False;
+
   Canvas.Polygon(Points);
 end;
 
