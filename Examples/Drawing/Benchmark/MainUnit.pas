@@ -194,11 +194,20 @@ begin
         Img.EndUpdate;
       end;
 
-      Img.Update;
-      Sleep(100); // Tiny delay to work around Windows 10+ deferring update while application is busy
+      if (GetAsyncKeyState(VK_ESCAPE) <> 0) then
+      begin
+        MemoLog.Lines.Add('Aborted');
+        Abort;
+      end;
+
+      Application.ProcessMessages; // Avoid Windows thinking we're hung and freezing UI
 
     except
-      MemoLog.Lines.Add(Format('%s: Failed', [cmbRenderer.Text]));
+      on E: EAbort do
+        raise;
+
+      on E: Exception do
+        MemoLog.Lines.Add(Format('%s: Failed', [cmbRenderer.Text]));
     end;
   finally
     Canvas.Free;
@@ -477,10 +486,19 @@ begin
     Img.Bitmap.Clear(clWhite32);
     Update;
 
-    if CbxAllTests.Checked then
-      PerformAllTests
-    else
-      PerformTest;
+    // We are calling Application.ProcessMessages inside the test loop
+    // so disable form to avoid UI recursion.
+    Enabled := False;
+    try
+
+      if CbxAllTests.Checked then
+        PerformAllTests
+      else
+        PerformTest;
+
+    finally
+      Enabled := True;
+    end;
 
   finally
     Screen.Cursor := crDefault;
