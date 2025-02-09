@@ -47,15 +47,17 @@ type
     PaintBox32_Thick: TPaintBox32;
     Label3: TLabel;
     Label4: TLabel;
-    Button1: TButton;
+    ButtonRedraw: TButton;
     Label5: TLabel;
     PaintBox32_ThickLine: TPaintBox32;
     procedure PaintBoxGDIThinPaint(Sender: TObject);
     procedure PaintBox32_ThinPaintBuffer(Sender: TObject);
     procedure PaintBoxGDIThickPaint(Sender: TObject);
     procedure PaintBox32_ThickPaintBuffer(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure ButtonRedrawClick(Sender: TObject);
     procedure PaintBox32_ThickLinePaintBuffer(Sender: TObject);
+    procedure PaintBoxClick(Sender: TObject);
+    procedure PaintBox32Click(Sender: TObject);
   private
     FDoPaint: boolean;
   public
@@ -88,7 +90,7 @@ const
 
 //------------------------------------------------------------------------------
 
-procedure TFormThickLineTest.Button1Click(Sender: TObject);
+procedure TFormThickLineTest.ButtonRedrawClick(Sender: TObject);
 begin
   FDoPaint := True;
   try
@@ -99,6 +101,32 @@ begin
     PaintBox32_ThickLine.Invalidate;
 
     Update;
+
+  finally
+    FDoPaint := False;
+  end;
+end;
+
+procedure TFormThickLineTest.PaintBoxClick(Sender: TObject);
+begin
+  FDoPaint := True;
+  try
+
+    TPaintBox(Sender).Invalidate;
+    TPaintBox(Sender).Update;
+
+  finally
+    FDoPaint := False;
+  end;
+end;
+
+procedure TFormThickLineTest.PaintBox32Click(Sender: TObject);
+begin
+  FDoPaint := True;
+  try
+
+    TPaintBox32(Sender).Invalidate;
+    TPaintBox32(Sender).Update;
 
   finally
     FDoPaint := False;
@@ -117,6 +145,7 @@ begin
     exit;
 
   Screen.Cursor := crHourGlass;
+
   PaintBoxGDIThin.Canvas.Brush.Color := clWhite;
   PaintBoxGDIThin.Canvas.Brush.Style := bsSolid;
   PaintBoxGDIThin.Canvas.FillRect(PaintBoxGDIThin.Canvas.ClipRect);
