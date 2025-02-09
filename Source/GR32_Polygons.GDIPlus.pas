@@ -66,7 +66,8 @@ type
   TCustomPolygonRenderer32GDIPlus = class(TPolygonRenderer32)
   private
     FGPGraphics: TGPGraphics;
-    FGPBrush: TGPSolidBrush;
+    FPath: TGPGraphicsPath;
+    FBrush: TGPSolidBrush;
     FQuality: TGDIPlusQuality;
 
   protected
@@ -154,13 +155,15 @@ constructor TCustomPolygonRenderer32GDIPlus.Create;
 begin
   inherited Create;
 
-  FGPBrush := TGPSolidBrush.Create(Color);
+  FPath := TGPGraphicsPath.Create;
+  FBrush := TGPSolidBrush.Create(Color);
 end;
 
 destructor TCustomPolygonRenderer32GDIPlus.Destroy;
 begin
   FGPGraphics.Free;
-  FGPBrush.Free;
+  FPath.Free;
+  FBrush.Free;
 
   inherited;
 end;
@@ -205,7 +208,7 @@ procedure TCustomPolygonRenderer32GDIPlus.SetColor(const Value: TColor32);
 begin
   inherited;
 
-  FGPBrush.SetColor(Color);
+  FBrush.SetColor(Color);
 end;
 
 //------------------------------------------------------------------------------
@@ -239,9 +242,16 @@ begin
   if (not Bitmap.MeasuringMode) then
   begin
 
+    // FPath.Reset clears the fillmode (to Alternate), so we have to apply it every time
+    FPath.SetFillMode(gdipFillMode[FillMode]);
+
     for j := 0 to High(Points) do
       if (Length(Points[j]) > 0) then
-        FGPGraphics.FillPolygon(FGPBrush, PGPPointF(@Points[j, 0]), Length(Points[j]));
+        FPath.AddPolygon(PGPPointF(@Points[j, 0]), Length(Points[j]));
+
+    FGPGraphics.FillPath(FBrush, FPath);
+
+    FPath.Reset;
 
   end;
 
