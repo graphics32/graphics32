@@ -351,7 +351,7 @@ type
   PFloat = ^TFloat;
   TFloat = Single;
 
-{ Other dynamic arrays }
+{ Various arrays }
 type
   PByteArray = ^TByteArray;
   TByteArray = array [0..0] of Byte;

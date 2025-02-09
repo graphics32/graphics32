@@ -311,7 +311,9 @@ const
 //
 //------------------------------------------------------------------------------
 type
-  TLUT88 = array [Byte, Byte] of Byte;
+  TLUT8 = array[byte] of byte;
+  PLUT8 = ^TLUT8;
+  TLUT88 = array [byte] of TLUT8;
 
 var
   //
@@ -462,12 +464,16 @@ var
 begin
   for j := 0 to 255 do
   begin
-    MulDiv255Table[0, j] := 0;
-    DivMul255Table[0, j] := 0;
-
-    for i := 1 to 255 do
+    for i := j to 255 do
     begin
       MulDiv255Table[i, j] := Round(i * j * COne255th);
+      if (i <> j) then
+        MulDiv255Table[j, i] := MulDiv255Table[i, j]; // a*b = b*a
+    end;
+
+    DivMul255Table[0, j] := 0;
+    for i := 1 to 255 do
+    begin
       if i > j then
         DivMul255Table[i, j] := Round(j * 255 / i)
       else

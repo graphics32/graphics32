@@ -1,0 +1,41 @@
+object FormMain: TFormMain
+  Left = 0
+  Top = 0
+  BorderStyle = bsNone
+  ClientHeight = 480
+  ClientWidth = 640
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Segoe UI'
+  Font.Style = []
+  KeyPreview = True
+  Position = poDesigned
+  WindowState = wsMaximized
+  OnKeyPress = FormKeyPress
+  TextHeight = 15
+  object Image32: TImage32
+    Left = 0
+    Top = 0
+    Width = 640
+    Height = 480
+    Cursor = crHandPoint
+    Align = alClient
+    Bitmap.DrawMode = dmBlend
+    Bitmap.CombineMode = cmMerge
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Scale = 1.000000000000000000
+    ScaleMode = smNormal
+    MouseZoom.Enabled = True
+    MouseZoom.Animate = True
+    TabOrder = 0
+    OnMouseDown = Image32MouseDown
+    OnMouseMove = Image32MouseMove
+    OnMouseUp = Image32MouseUp
+    OnPaintStage = Image32PaintStage
+    ExplicitLeft = 12
+    ExplicitTop = 8
+  end
+end
