@@ -15,31 +15,31 @@ object MainForm: TMainForm
   TextHeight = 13
   object Splitter1: TSplitter
     Left = 0
-    Top = 350
+    Top = 348
     Width = 746
-    Height = 3
+    Height = 5
     Cursor = crVSplit
     Align = alBottom
+    AutoSnap = False
+    Beveled = True
     ResizeStyle = rsUpdate
-    ExplicitTop = 0
-    ExplicitWidth = 353
+    ExplicitTop = 350
   end
   object PnlTop: TPanel
     Left = 0
     Top = 0
     Width = 746
-    Height = 350
+    Height = 348
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 10
     TabOrder = 0
-    ExplicitWidth = 714
-    ExplicitHeight = 353
+    ExplicitHeight = 350
     object Img: TImage32
       Left = 10
       Top = 10
       Width = 726
-      Height = 330
+      Height = 328
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baTopLeft
@@ -47,8 +47,7 @@ object MainForm: TMainForm
       ScaleMode = smNormal
       TabOrder = 0
       OnResize = ImgResize
-      ExplicitWidth = 694
-      ExplicitHeight = 333
+      ExplicitHeight = 330
     end
   end
   object PnlBottom: TPanel
@@ -60,7 +59,6 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     BorderWidth = 10
     TabOrder = 1
-    ExplicitWidth = 714
     object GbxSettings: TGroupBox
       Left = 10
       Top = 10
@@ -142,7 +140,6 @@ object MainForm: TMainForm
         Width = 139
         Height = 25
         Anchors = [akLeft, akBottom]
-        Cancel = True
         Caption = 'E&xit'
         TabOrder = 5
         OnClick = BtnExitClick
@@ -156,8 +153,6 @@ object MainForm: TMainForm
       Align = alClient
       Caption = 'Benchmark Res&ults'
       TabOrder = 1
-      ExplicitLeft = 348
-      ExplicitWidth = 356
       object PnlBenchmark: TPanel
         Left = 2
         Top = 15
@@ -167,7 +162,6 @@ object MainForm: TMainForm
         BevelOuter = bvNone
         BorderWidth = 10
         TabOrder = 0
-        ExplicitWidth = 352
         object MemoLog: TMemo
           Left = 10
           Top = 10
@@ -195,7 +189,6 @@ object MainForm: TMainForm
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 2
-      ExplicitLeft = 338
     end
   end
 end
