@@ -93,47 +93,59 @@ uses
 
 procedure UpdateSpan(var Span: TIntSpan; Value: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
-  if Value < Span.Min then Span.Min := Value;
-  if Value > Span.Max then Span.Max := Value;
+  if Value < Span.Min then
+    Span.Min := Value;
+
+  if Value > Span.Max then
+    Span.Max := Value;
 end;
 
 procedure TPolygonRenderer32VPR2.AddLineSegment(X1, Y1, X2, Y2: TFloat);
 type
   PFloatArray = ^TFloatArray;
   TFloatArray = array [0..1] of TFloat;
+
 const
   SGN: array [0..1] of Integer = (1, -1);
   EPSILON: TFloat = 0.0001;
+  EPSILON_Dx: Double = 1 / 255;
+
 var
-  Dx, Dy, DyDx, DxDy, Xm, Ym, Xn, Yn, t, tX, tY: Double;
-  X, Y, StepX, StepY: Integer;
   P: PFloatArray;
 
   procedure AddSegment(X1, Y1, X2, Y2: TFloat);
   var
-    Dx, Dy: TFloat;
+    dX, dY: TFloat;
   begin
-    Dx := (X1 + X2) * 0.5;
-    Dx := Dx - Round(Dx);
-    Dy := Y2 - Y1;
-    Dx := Dx * Dy;
-    P[0] := P[0] + Dy - Dx;
-    P[1] := P[1] + Dx;
+    dX := (X1 + X2) * 0.5;
+    dX := dX - Round(dX);
+    dY := Y2 - Y1;
+    dX := dX * dY;
+    P[0] := P[0] + dY - dX;
+    P[1] := P[1] + dX;
   end;
 
+var
+  dX, dY, dYdX, dXdY: Double;
+  PrevX, PrevY, NextX, NextY: Double;
+  Delta, DeltaX, DeltaY: Double;
+  X, Y, StepX, StepY: Integer;
+  MaxDelta: Double;
 begin
-  Dx := X2 - X1;
-  Dy := Y2 - Y1;
+  // Same as (Y2 = Y1)
+  if (PCardinal(@Y2)^ = PCardinal(@Y1)^) then
+    Exit;
 
-  if Dy = 0 then Exit;
+  dY := Double(Y2) - Double(Y1);
+  dX := Double(X2) - Double(X1);
 
   X := Round(X1);
   Y := Round(Y1);
 
   UpdateSpan(FYSpan, Y);
 
-  StepX := Ord(Dx < 0);
-  StepY := Ord(Dy < 0);
+  StepX := Ord(dX < 0);
+  StepY := Ord(dY < 0);
 
   X1 := X1 - StepX;
   Y1 := Y1 - StepY;
@@ -143,53 +155,74 @@ begin
   StepX := SGN[StepX];
   StepY := SGN[StepY];
 
-  if Dx = 0 then
+  if (Abs(dX) < EPSILON_Dx) then
   begin
-    Yn := Y1;
+
+    MaxDelta := Abs(dY) - EPSILON;
+    NextY := Y1;
+
     repeat
+
       UpdateSpan(FXSpan[Y], X);
+
       P := PFloatArray(FOpacityMap.ValPtr[X, Y]);
-      Ym := Yn;
+
+      PrevY := NextY;
       Inc(Y, StepY);
-      Yn := Y;
-      AddSegment(X1, Ym, X1, Yn);
-    until Abs(Y1 - Yn) + EPSILON >= Abs(Dy);
-    AddSegment(X1, Yn, X1, Y2);
-  end
-  else
+      NextY := Y;
+
+      AddSegment(X1, PrevY, X1, NextY);
+
+    until (Abs(Y1 - NextY) >= MaxDelta);
+
+    AddSegment(X1, NextY, X1, Y2);
+
+  end else
   begin
-    DyDx := Dy/Dx;
-    DxDy := Dx/Dy;
 
-    tX := X + StepX - X1;
-    tY := (Y + StepY - Y1) * DxDy;
+    dYdX := dY/dX;
+    dXdY := dX/dY;
 
-    Xn := X1;
-    Yn := Y1;
+    DeltaX := X + StepX - X1;
+    DeltaY := (Y + StepY - Y1) * dXdY;
+
+    MaxDelta := Abs(dX) - EPSILON;
+    NextX := X1;
+    NextY := Y1;
 
     repeat
-      Xm := Xn;
-      Ym := Yn;
+      PrevX := NextX;
+      PrevY := NextY;
 
       UpdateSpan(FXSpan[Y], X);
+
       P := PFloatArray(FOpacityMap.ValPtr[X, Y]);
-      if Abs(tX) <= Abs(tY) then
+
+      if (Abs(DeltaX) <= Abs(DeltaY)) then
       begin
+
         Inc(X, StepX);
-        t := tX;
-        tX := tX + StepX;
-      end
-      else
+        Delta := DeltaX;
+        DeltaX := DeltaX + StepX;
+
+      end else
       begin
+
         Inc(Y, StepY);
-        t := tY;
-        tY := tY + StepY * DxDy;
+        Delta := DeltaY;
+        DeltaY := DeltaY + StepY * dXdY;
+
       end;
-      Xn := X1 + t;
-      Yn := Y1 + t * DyDx;
-      AddSegment(Xm, Ym, Xn, Yn);
-    until Abs(t) + EPSILON >= Abs(Dx);
-    AddSegment(Xn, Yn, X2, Y2);
+
+      NextX := X1 + Delta;
+      NextY := Y1 + Delta * dYdX;
+
+      AddSegment(PrevX, PrevY, NextX, NextY);
+
+    until (Abs(Delta) >= MaxDelta);
+
+    AddSegment(NextX, NextY, X2, Y2);
+
   end;
 end;
 
