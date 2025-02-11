@@ -518,6 +518,7 @@ procedure FillBitmap(Bitmap: TCustomBitmap32; Filler: TCustomPolygonFiller);
 //
 //------------------------------------------------------------------------------
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
+procedure UnregisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 
 var
   PolygonRendererList: TClassList;
@@ -562,6 +563,12 @@ begin
   if (PolygonRendererList = nil) then
     PolygonRendererList := TClassList.Create;
   PolygonRendererList.Add(PolygonRendererClass);
+end;
+
+procedure UnregisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
+begin
+  if (PolygonRendererList <> nil) then
+    PolygonRendererList.Remove(PolygonRendererClass);
 end;
 
 // routines for color filling:
