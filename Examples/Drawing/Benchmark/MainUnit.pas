@@ -34,6 +34,14 @@ interface
 
 {$include GR32.inc}
 
+(*
+** Define TEST_BLEND2D to enable the Blend2D polygon rasterizer.
+**
+** The Blend2D rasterizer requires the Blend2D DLL files which can be
+** downloaded from https://github.com/neslib/DelphiBlend2D/tree/master/Bin
+*)
+{-$define TEST_BLEND2D}
+
 uses
   {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
@@ -45,7 +53,10 @@ uses
   GR32_Polygons;
 
 const
-  TEST_DURATION = 4000;  // test for 4 seconds
+  // Run <TEST_SAMPLES> iterations, each taking <TEST_DURATION> milliseconds.
+  // Use the best result of all samles as the final result.
+  TEST_DURATION = 4000;
+  TEST_SAMPLES = 4;
 
 type
   TTestProc = procedure(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
@@ -70,12 +81,14 @@ type
     PnlSpacer: TPanel;
     PnlTop: TPanel;
     Splitter1: TSplitter;
+    CheckBoxBatch: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BtnBenchmarkClick(Sender: TObject);
     procedure ImgResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
+    procedure ImgClick(Sender: TObject);
   private
-    procedure RunTest(TestProc: TTestProc; TestTime: Int64 = TEST_DURATION);
+    procedure RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples: integer = TEST_SAMPLES; TestTime: integer = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
   end;
 
@@ -89,6 +102,7 @@ implementation
 uses
   Types,
   Math,
+  GR32_VectorUtils,
   GR32_LowLevel,
   GR32_Resamplers,
   GR32_Backends,
@@ -96,6 +110,9 @@ uses
   GR32_Polygons.GDI,
   GR32_Polygons.GDIPlus,
   GR32_Polygons.Direct2D,
+{$ifdef TEST_BLEND2D}
+  GR32_Polygons.Blend2D,
+{$endif TEST_BLEND2D}
   GR32_Polygons.AggLite;
 
 var
@@ -113,7 +130,7 @@ begin
   MemoLog.Lines.Add(Format('%-40s %8.0n', [cmbRenderer.Text, OperationsPerSecond*1.0]));
 end;
 
-procedure TMainForm.RunTest(TestProc: TTestProc; TestTime: Int64);
+procedure TMainForm.RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples, TestTime: integer);
 var
   Canvas: TCanvas32;
   FillBrush: TSolidBrush;
@@ -123,11 +140,16 @@ var
   i: integer;
   Operations: Int64;
   PolygonRendererBatching: IPolygonRendererBatching;
+  Sample: integer;
+  OpsPerSecond: integer;
+  BestOpsPerSecond: integer;
 begin
   RandSeed := 0;
 
   Canvas := TCanvas32.Create(Img.Bitmap);
   try
+    Canvas.Renderer := RendererClass.Create;
+
     try
       Img.BeginUpdate;
       try
@@ -137,55 +159,69 @@ begin
         StrokeBrush := Canvas.Brushes.Add(TStrokeBrush) as TStrokeBrush;
         FillBrush.Visible := True;
         StrokeBrush.Visible := False;
-        Operations := 0;
 
-        Wallclock := TStopwatch.StartNew;
-        StopWatch.Reset;
+        BestOpsPerSecond := 0;
 
-        repeat
+        for Sample := 0 to Samples-1 do
+        begin
 
-          // If the rasterizer supports batching, we allow it to batch a block.
-          // This might give batching rasterizers a slight unrealistic and
-          // unfair advantage. One rasterizer that absolutely suffer if we don't
-          // batch is the Direct2D rasterizer.
-          if (Supports(Canvas.Renderer, IPolygonRendererBatching, PolygonRendererBatching)) then
-          begin
-            StopWatch.Start;
-            PolygonRendererBatching.BeginDraw;
-            StopWatch.Stop;
-          end;
-          try
+          Operations := 0;
+          Wallclock := TStopwatch.StartNew;
+          StopWatch.Reset;
 
-            for i := 0 to 9 do
-            begin
-              Canvas.BeginUpdate;
+          repeat
 
-              // Build path
-              TestProc(Canvas, FillBrush, StrokeBrush);
-
-              StopWatch.Start;
-
-              // Flatten path and render
-              Canvas.EndUpdate;
-
-              StopWatch.Stop;
-
-              Inc(Operations);
-            end;
-
-          finally
-            if (PolygonRendererBatching <> nil) then
+            // If the rasterizer supports batching, we allow it to batch a block.
+            // This might give batching rasterizers a slight unrealistic and
+            // unfair advantage. One rasterizer that absolutely suffer, if we don't
+            // batch, is the Direct2D rasterizer.
+            if (CheckBoxBatch.Checked) and (Supports(Canvas.Renderer, IPolygonRendererBatching, PolygonRendererBatching)) then
             begin
               StopWatch.Start;
-              // For batching rasterizers, this is where the actual work will be done
-              PolygonRendererBatching.EndDraw;
+              PolygonRendererBatching.BeginDraw;
               StopWatch.Stop;
             end;
-          end;
+            try
 
-        until (Wallclock.ElapsedMilliseconds > TestTime);
+              for i := 0 to 9 do
+              begin
+                Canvas.BeginUpdate;
 
-        WriteTestResult((Operations * 1000) div StopWatch.ElapsedMilliseconds);
+                // Build path
+                TestProc(Canvas, FillBrush, StrokeBrush);
+
+                StopWatch.Start;
+
+                // Flatten path and render
+                Canvas.EndUpdate;
+
+                StopWatch.Stop;
+
+                Inc(Operations);
+              end;
+
+            finally
+              if (PolygonRendererBatching <> nil) then
+              begin
+                StopWatch.Start;
+                // For batching rasterizers, this is usually where the actual work will be done
+                PolygonRendererBatching.EndDraw;
+                StopWatch.Stop;
+              end;
+            end;
+
+          until (Wallclock.ElapsedMilliseconds > TestTime);
+
+          OpsPerSecond := (Operations * 1000) div StopWatch.ElapsedMilliseconds;
+
+          if (OpsPerSecond > BestOpsPerSecond) then
+            BestOpsPerSecond := OpsPerSecond;
+
+          if (GetAsyncKeyState(VK_ESCAPE) <> 0) then
+            break;
+        end;
+
+        WriteTestResult(BestOpsPerSecond);
 
 {$IFNDEF CHANGENOTIFICATIONS}
         Img.Bitmap.Changed;
@@ -440,31 +476,37 @@ end;
 
 procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
-  procedure TestRenderer;
+  procedure TestRenderer(RendererClass: TPolygonRenderer32Class);
   begin
-    DefaultPolygonRendererClass := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]);
-    RunTest(TTestProc(cmbTest.Items.Objects[cmbTest.ItemIndex]));
+    RunTest(RendererClass, TTestProc(cmbTest.Items.Objects[cmbTest.ItemIndex]));
   end;
 
   procedure TestAllRenderers;
   var
     I: Integer;
+    RendererClass: TPolygonRenderer32Class;
   begin
     for I := 0 to CmbRenderer.Items.Count - 1 do
     begin
       CmbRenderer.ItemIndex := I;
-      TestRenderer;
+      RendererClass := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]);
+      TestRenderer(RendererClass);
     end;
     MemoLog.Lines.Add('');
   end;
 
   procedure PerformTest;
+  var
+    RendererClass: TPolygonRenderer32Class;
   begin
     MemoLog.Lines.Add(Format('=== Test: %s (operations/second) ===', [cmbTest.Text]));
     if CbxAllRenderers.Checked then
       TestAllRenderers
     else
-      TestRenderer;
+    begin
+      RendererClass := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]);
+      TestRenderer(RendererClass);
+    end;
   end;
 
   procedure PerformAllTests;
@@ -505,6 +547,49 @@ begin
   end;
 end;
 
+function CreateLine(const x1, y1, x2, y2, width: TFloat): TArrayOfFloatPoint;
+var
+  dx, dy, d: TFloat;
+begin
+  dx := x2 - x1;
+  dy := y2 - y1;
+  d := Sqrt(Sqr(dx) + Sqr(dy));
+  if d <> 0 then
+  begin
+    dx := width * (y2 - y1) / d;
+    dy := width * (x2 - x1) / d;
+    SetLength(Result, 4);
+    Result[0] := FloatPoint(x1 - dx, y1 + dy);
+    Result[1] := FloatPoint(x2 - dx, y2 + dy);
+    Result[2] := FloatPoint(x2 + dx, y2 - dy);
+    Result[3] := FloatPoint(x1 + dx, y1 - dy);
+  end
+  else
+  begin
+    SetLength(Result, 2);
+    Result[0] := FloatPoint(x1, y1);
+    Result[1] := FloatPoint(x2, y2);
+  end;
+end;
+
+procedure TMainForm.ImgClick(Sender: TObject);
+begin
+  var Renderer := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]).Create;
+  try
+    Img.Bitmap.Clear(clWhite32);
+    Renderer.Color := clRed32;
+    Renderer.Bitmap := Img.Bitmap;
+
+    var Line := CreateLine(0, 2, 20, 20, 1);
+    var Ellipse := GR32_VectorUtils.Ellipse(5, 3, 5, 3);
+
+    Renderer.PolyPolygonFS([Line]);
+
+  finally
+    Renderer.Free;
+  end;
+end;
+
 procedure TMainForm.ImgResize(Sender: TObject);
 begin
   Img.SetupBitmap(True, clWhite32);
@@ -516,6 +601,10 @@ begin
 end;
 
 initialization
+  // We're not interested in the ClearType rasterizers
+  UnregisterPolygonRenderer(TPolygonRenderer32LCD);
+  UnregisterPolygonRenderer(TPolygonRenderer32LCD2);
+
   RegisterTest('Ellipses', EllipseTest);
   RegisterTest('Thin Lines', ThinLineTest);
   RegisterTest('Thick Lines', ThickLineTest);
