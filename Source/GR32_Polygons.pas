@@ -2392,10 +2392,10 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUP);
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUP);
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUPF);
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUPF);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUP, 'MakeAlphaEvenOddUP');
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUP, 'MakeAlphaNonZeroUP');
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUPF, 'MakeAlphaEvenOddUPF');
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUPF, 'MakeAlphaNonZeroUPF');
 end;
 
 var
@@ -2418,13 +2418,13 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindingFunctions;
 begin
-  PolygonsRegistry.Add(@@MakeAlphaEvenOddUP,    @MakeAlphaEvenOddUP_Pas,        [isPascal]);
-  PolygonsRegistry.Add(@@MakeAlphaNonZeroUP,    @MakeAlphaNonZeroUP_Pas,        [isPascal]);
-  PolygonsRegistry.Add(@@MakeAlphaEvenOddUPF,   @MakeAlphaEvenOddUPF_Pas,       [isPascal]);
-  PolygonsRegistry.Add(@@MakeAlphaNonZeroUPF,   @MakeAlphaNonZeroUPF_Pas,       [isPascal]);
+  PolygonsRegistry.Add(@@MakeAlphaEvenOddUP,    @MakeAlphaEvenOddUP_Pas,        [isPascal]).Name := 'MakeAlphaEvenOddUP_Pas';
+  PolygonsRegistry.Add(@@MakeAlphaNonZeroUP,    @MakeAlphaNonZeroUP_Pas,        [isPascal]).Name := 'MakeAlphaNonZeroUP_Pas';
+  PolygonsRegistry.Add(@@MakeAlphaEvenOddUPF,   @MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
+  PolygonsRegistry.Add(@@MakeAlphaNonZeroUPF,   @MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  PolygonsRegistry.Add(@@MakeAlphaEvenOddUP,    @MakeAlphaNonZeroUP_SSE2,       [isSSE2]);
+  PolygonsRegistry.Add(@@MakeAlphaNonZeroUP,    @MakeAlphaNonZeroUP_SSE2,       [isSSE2]).Name := 'MakeAlphaNonZeroUP_SSE2';
 {$ifend}
 end;
 
