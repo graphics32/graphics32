@@ -79,6 +79,7 @@ const
 //
 //------------------------------------------------------------------------------
 // Describes a function implementation.
+// For internal use only.
 //------------------------------------------------------------------------------
 type
   TFunctionInfo = record
@@ -87,9 +88,61 @@ type
     InstructionSupport: TInstructionSupport; // The CPU features required by this implementation
     Priority: Integer;          // Function priority; Smaller is better. Used by default TFunctionPriority callback
     Flags: Cardinal;            // Optional, user defined flags for use in a custom TFunctionPriority callback
+    Name: string;               // Optional, implementation name
   end;
   PFunctionInfo = ^TFunctionInfo;
 
+//------------------------------------------------------------------------------
+//
+//      IFunctionInfo
+//
+//------------------------------------------------------------------------------
+// Interface that provides access to the function implementation meta data.
+// The interface is only valid while the implementation it represents is
+// registered.
+//------------------------------------------------------------------------------
+type
+  IFunctionInfo = interface
+    function GetFunctionID: NativeInt;
+    function GetProc: Pointer;
+    function GetInstructionSupport: TInstructionSupport;
+    function GetPriority: Integer;
+    function GetFlags: Cardinal;
+    procedure SetFlags(const Value: Cardinal);
+    function GetName: string;
+    procedure SetName(const Value: string);
+
+    property FunctionID: NativeInt read GetFunctionID;
+    property Proc: Pointer read GetProc;
+    property InstructionSupport: TInstructionSupport read GetInstructionSupport;
+    property Priority: Integer read GetPriority;
+    property Flags: Cardinal read GetFlags write SetFlags;
+    property Name: string read GetName write SetName;
+  end;
+
+//------------------------------------------------------------------------------
+//
+//      IBindingInfo
+//
+//------------------------------------------------------------------------------
+// Interface that provides access to the function binding meta data.
+// The interface is only valid while the binding it represents is registered.
+//------------------------------------------------------------------------------
+type
+  IBindingInfo = interface
+    function GetFunctionID: NativeInt;
+    function GetBindVariable: PPointer;
+    function GetName: string;
+    procedure SetName(const Value: string);
+
+    property FunctionID: NativeInt read GetFunctionID;
+    property BindVariable: PPointer read GetBindVariable;
+    property Name: string read GetName write SetName;
+
+    // List of implementations of this binding.
+    // Note that the enumerator is a singleton per binding.
+    function GetEnumerator: IEnumerator<IFunctionInfo>;
+  end;
 
 //------------------------------------------------------------------------------
 //
@@ -121,13 +174,13 @@ const
 type
   TFunctionRegistry = class(TPersistent)
   private type
-    PFunctionBinding = ^TFunctionBinding;
     TFunctionBinding = record
       FunctionID: NativeInt;      // Either an ID or a pointer
       BindVariable: PPointer;     // Pointer to the function delegate
+      Name: string;
     end;
+    PFunctionBinding = ^TFunctionBinding;
 
-  type
     TFunctionInfoList = TList<TFunctionInfo>;
     TFunctionBindingList = TList<TFunctionBinding>;
 {$IFDEF FPC}
@@ -144,12 +197,10 @@ type
     FName: string;
     FNeedRebind: boolean;
 
-    procedure SetName(const Value: string);
-
     class function NewRegistry(const Name: string): TFunctionRegistry;
     class destructor Destroy;
   protected
-    function FindBinding(BindVariable: PPointer): NativeInt;
+    function DoFindBinding(BindVariable: PPointer): NativeInt;
     function FindFunctionInfo(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
     function FindFunctionInfo(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): PFunctionInfo; overload;
 
@@ -165,15 +216,15 @@ type
 
     // Register function bindings;
     // Identify bound function using function IDs
-    procedure RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer); overload;
+    procedure RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer; const Name: string = ''); overload;
     // Identify bound function using pointer to binding variable
-    procedure RegisterBinding(BindVariable: PPointer); overload;
+    procedure RegisterBinding(BindVariable: PPointer; const Name: string = ''); overload;
 
     // Register function binding implementations;
     // Identify bound function using function IDs
-    procedure Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0); overload;
+    function Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0): IFunctionInfo; overload;
     // Identify bound function using pointer to binding variable
-    procedure Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0); overload;
+    function Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0): IFunctionInfo; overload;
 
     // Function rebinding support
     procedure RebindAll(AForce: boolean; PriorityCallback: TFunctionPriority = nil); overload;
@@ -183,8 +234,11 @@ type
 
     function FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
     function FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
-  published
-    property Name: string read FName write SetName;
+
+    function FindBinding(const Name: string): IBindingInfo;
+    function FindImplementation(const Name: string): IFunctionInfo;
+
+    property Name: string read FName write FName;
   end;
 
 const
@@ -237,6 +291,185 @@ begin
 end;
 
 
+
+//------------------------------------------------------------------------------
+//
+//      IFunctionInfo
+//
+//------------------------------------------------------------------------------
+type
+  TFunctionInfoWrapper = class(TInterfacedObject, IFunctionInfo)
+  private
+    FFunctionInfo: PFunctionInfo;
+  private
+    // IFunctionInfo
+    function GetFunctionID: NativeInt;
+    function GetProc: Pointer;
+    function GetInstructionSupport: TInstructionSupport;
+    function GetPriority: Integer;
+    function GetFlags: Cardinal;
+    procedure SetFlags(const Value: Cardinal);
+    function GetName: string;
+    procedure SetName(const Value: string);
+  public
+    constructor Create(AFunctionInfo: PFunctionInfo);
+  end;
+
+constructor TFunctionInfoWrapper.Create(AFunctionInfo: PFunctionInfo);
+begin
+  inherited Create;
+  FFunctionInfo := AFunctionInfo;
+end;
+
+function TFunctionInfoWrapper.GetFlags: Cardinal;
+begin
+  Result := FFunctionInfo.Flags;
+end;
+
+function TFunctionInfoWrapper.GetFunctionID: NativeInt;
+begin
+  Result := FFunctionInfo.FunctionID;
+end;
+
+function TFunctionInfoWrapper.GetInstructionSupport: TInstructionSupport;
+begin
+  Result := FFunctionInfo.InstructionSupport;
+end;
+
+function TFunctionInfoWrapper.GetName: string;
+begin
+  Result := FFunctionInfo.Name;
+end;
+
+function TFunctionInfoWrapper.GetPriority: Integer;
+begin
+  Result := FFunctionInfo.Priority;
+end;
+
+function TFunctionInfoWrapper.GetProc: Pointer;
+begin
+  Result := FFunctionInfo.Proc;
+end;
+
+procedure TFunctionInfoWrapper.SetFlags(const Value: Cardinal);
+begin
+  FFunctionInfo.Flags := Value;
+end;
+
+procedure TFunctionInfoWrapper.SetName(const Value: string);
+begin
+  FFunctionInfo.Name := Value;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      IBindingInfo
+//
+//------------------------------------------------------------------------------
+type
+  TBindingInfoWrapper = class(TInterfacedObject, IBindingInfo, IEnumerator, IEnumerator<IFunctionInfo>)
+  private
+    FFunctionRegistry: TFunctionRegistry;
+    FBindingInfo: TFunctionRegistry.PFunctionBinding;
+    FIndex: integer;
+    FCurrent: PFunctionInfo;
+  private
+    // IBindingInfo
+    function GetFunctionID: NativeInt;
+    function GetBindVariable: PPointer;
+    function GetName: string;
+    procedure SetName(const Value: string);
+    function GetEnumerator: IEnumerator<IFunctionInfo>;
+  private
+    // IEnumerator
+    function GetCurrent: TObject;
+    function MoveNext: boolean;
+    function GetCurrentFunctionInfo: IFunctionInfo;
+    procedure Reset;
+    // IEnumerator<IFunctionInfo>
+    function IEnumerator<IFunctionInfo>.GetCurrent = GetCurrentFunctionInfo;
+  public
+    constructor Create(AFunctionRegistry: TFunctionRegistry; ABindingInfo: TFunctionRegistry.PFunctionBinding);
+  end;
+
+constructor TBindingInfoWrapper.Create(AFunctionRegistry: TFunctionRegistry; ABindingInfo: TFunctionRegistry.PFunctionBinding);
+begin
+  inherited Create;
+  FFunctionRegistry := AFunctionRegistry;
+  FBindingInfo := ABindingInfo;
+end;
+
+function TBindingInfoWrapper.GetFunctionID: NativeInt;
+begin
+  Result := FBindingInfo.FunctionID;
+end;
+
+function TBindingInfoWrapper.GetBindVariable: PPointer;
+begin
+  Result := FBindingInfo.BindVariable;
+end;
+
+function TBindingInfoWrapper.GetName: string;
+begin
+  Result := FBindingInfo.Name;
+end;
+
+procedure TBindingInfoWrapper.SetName(const Value: string);
+begin
+  FBindingInfo.Name := Value;
+end;
+
+function TBindingInfoWrapper.GetEnumerator: IEnumerator<IFunctionInfo>;
+begin
+  FIndex := 0;
+  FCurrent := nil;
+  Result := Self;
+end;
+
+function TBindingInfoWrapper.GetCurrent: TObject;
+begin
+  Result := nil;
+end;
+
+function TBindingInfoWrapper.MoveNext: boolean;
+var
+  Info: PFunctionInfo;
+begin
+  FCurrent := nil;
+  Result := False;
+  while (FIndex < FFunctionRegistry.FItems.Count) do
+  begin
+{$IFNDEF FPC}
+    Info := @FFunctionRegistry.FItems.List[FIndex];
+{$ELSE}
+    Info := @(TFunctionInfoListCracker(FFunctionRegistry.FItems).FItems[FIndex]);
+{$ENDIF}
+
+    Inc(FIndex);
+
+    if (Info.FunctionID = FBindingInfo.FunctionID) then
+    begin
+      FCurrent := Info;
+      Result := True;
+      break;
+    end;
+  end;
+end;
+
+procedure TBindingInfoWrapper.Reset;
+begin
+  FIndex := 0;
+  FCurrent := nil;
+end;
+
+function TBindingInfoWrapper.GetCurrentFunctionInfo: IFunctionInfo;
+begin
+  if (FCurrent <> nil) then
+    Result := TFunctionInfoWrapper.Create(FCurrent)
+  else
+    Result := nil;
+end;
+
 //------------------------------------------------------------------------------
 //
 //      TFunctionRegistry
@@ -275,18 +508,20 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal);
+function TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal): IFunctionInfo;
 var
   FunctionID: NativeInt;
 begin
-  FunctionID := FindBinding(BindVariable);
+  FunctionID := DoFindBinding(BindVariable);
   Assert(FunctionID <> -1, 'Binding not registered');
-  Add(FunctionID, Proc, InstructionSupport, Priority, Flags);
+  Result := Add(FunctionID, Proc, InstructionSupport, Priority, Flags);
 end;
 
-procedure TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal);
+function TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal): IFunctionInfo;
 var
   Info: TFunctionInfo;
+  Index: integer;
+  FunctionInfo: PFunctionInfo;
 begin
   Info := Default(TFunctionInfo);
   Info.FunctionID := FunctionID;
@@ -295,7 +530,14 @@ begin
   Info.Flags := Flags;
   Info.Priority := Priority;
 
-  FItems.Add(Info);
+  Index := FItems.Add(Info);
+
+{$IFNDEF FPC}
+  FunctionInfo := @FItems.List[Index];
+{$ELSE}
+  FunctionInfo := @(TFunctionInfoListCracker(FItems).FItems[Index]);
+{$ENDIF}
+  Result := TFunctionInfoWrapper.Create(FunctionInfo);
 
   FNeedRebind := True;
 end;
@@ -310,7 +552,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-function TFunctionRegistry.FindBinding(BindVariable: PPointer): NativeInt;
+function TFunctionRegistry.DoFindBinding(BindVariable: PPointer): NativeInt;
 var
   i: Integer;
 begin
@@ -329,7 +571,7 @@ function TFunctionRegistry.FindFunctionInfo(BindVariable: PPointer; PriorityCall
 var
   FunctionID: NativeInt;
 begin
-  FunctionID := FindBinding(BindVariable);
+  FunctionID := DoFindBinding(BindVariable);
   Assert(FunctionID <> -1, 'Binding not registered');
   Result := FindFunctionInfo(FunctionID, PriorityCallback);
 end;
@@ -396,11 +638,59 @@ end;
 
 //------------------------------------------------------------------------------
 
+function TFunctionRegistry.FindBinding(const Name: string): IBindingInfo;
+var
+  i: Integer;
+  Info: PFunctionBinding;
+begin
+  Result := nil;
+
+  for i := FBindings.Count - 1 downto 0 do
+  begin
+{$IFNDEF FPC}
+    Info := @FBindings.List[i];
+{$ELSE}
+    Info := @(TFunctionInfoListCracker(FBindings).FItems[i]);
+{$ENDIF}
+
+    if (Info.Name = Name) then
+    begin
+      Result := TBindingInfoWrapper.Create(Self, Info);
+      break;
+    end;
+  end;
+end;
+
+function TFunctionRegistry.FindImplementation(const Name: string): IFunctionInfo;
+var
+  i: Integer;
+  Info: PFunctionInfo;
+begin
+  Result := nil;
+
+  for i := FItems.Count - 1 downto 0 do
+  begin
+{$IFNDEF FPC}
+    Info := @FItems.List[i];
+{$ELSE}
+    Info := @(TFunctionInfoListCracker(FItems).FItems[i]);
+{$ENDIF}
+
+    if (Info.Name = Name) then
+    begin
+      Result := TFunctionInfoWrapper.Create(Info);
+      break;
+    end;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
 function TFunctionRegistry.Rebind(BindVariable: PPointer; PriorityCallback: TFunctionPriority): boolean;
 var
   FunctionID: NativeInt;
 begin
-  FunctionID := FindBinding(BindVariable);
+  FunctionID := DoFindBinding(BindVariable);
   Assert(FunctionID <> -1, 'Binding not registered');
   Result := Rebind(FunctionID, PriorityCallback);
 end;
@@ -460,29 +750,23 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TFunctionRegistry.RegisterBinding(BindVariable: PPointer);
+procedure TFunctionRegistry.RegisterBinding(BindVariable: PPointer; const Name: string);
 begin
-  RegisterBinding(NativeInt(BindVariable), BindVariable);
+  RegisterBinding(NativeInt(BindVariable), BindVariable, Name);
 end;
 
-procedure TFunctionRegistry.RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer);
+procedure TFunctionRegistry.RegisterBinding(FunctionID: NativeInt; BindVariable: PPointer; const Name: string);
 var
   Binding: TFunctionBinding;
 begin
   Binding := Default(TFunctionBinding);
   Binding.FunctionID := FunctionID;
   Binding.BindVariable := BindVariable;
+  Binding.Name := Name;
 
   FBindings.Add(Binding);
 
   FNeedRebind := True;
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TFunctionRegistry.SetName(const Value: string);
-begin
-  FName := Value;
 end;
 
 //------------------------------------------------------------------------------
