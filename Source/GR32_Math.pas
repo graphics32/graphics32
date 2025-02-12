@@ -2697,44 +2697,42 @@ procedure RegisterBindings;
 begin
   MathRegistry := NewRegistry('GR32_Math bindings');
 
-  MathRegistry.RegisterBinding(FID_CUMSUM,              @@CumSum);
-  MathRegistry.RegisterBinding(FID_FLOATMOD_F,          @@FloatMod_F);
-  MathRegistry.RegisterBinding(FID_FLOATMOD_D,          @@FloatMod_D);
-  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_F,    @@FloatRemainder_F);
-  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_D,    @@FloatRemainder_D);
-  MathRegistry.RegisterBinding(FID_FMOD_F,              @@FMod_F);
-  MathRegistry.RegisterBinding(FID_FMOD_D,              @@FMod_D);
+  MathRegistry.RegisterBinding(FID_CUMSUM,              @@CumSum,               'CumSum');
+  MathRegistry.RegisterBinding(FID_FLOATMOD_F,          @@FloatMod_F,           'FloatMod_F');
+  MathRegistry.RegisterBinding(FID_FLOATMOD_D,          @@FloatMod_D,           'FloatMod_D');
+  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_F,    @@FloatRemainder_F,     'FloatRemainder_F');
+  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_D,    @@FloatRemainder_D,     'FloatRemainder_D');
+  MathRegistry.RegisterBinding(FID_FMOD_F,              @@FMod_F,               'FMod_F');
+  MathRegistry.RegisterBinding(FID_FMOD_D,              @@FMod_D,               'FMod_D');
 
   // pure pascal
-  MathRegistry.Add(@@CumSum,            @CumSum_Pas,            [isPascal]);
-  MathRegistry.Add(@@FloatMod_F,        @FloatMod_F_Pas,        [isPascal]);
-  MathRegistry.Add(@@FloatMod_D,        @FloatMod_D_Pas,        [isPascal]);
-  MathRegistry.Add(@@FloatRemainder_F,  @FloatRemainder_F_Pas,  [isPascal]);
-  MathRegistry.Add(@@FloatRemainder_D,  @FloatRemainder_D_Pas,  [isPascal]);
-  MathRegistry.Add(@@FMod_F,            @FMod_F_Pas,            [isPascal]);
-  MathRegistry.Add(@@FMod_D,            @FMod_D_Pas,            [isPascal]);
+  MathRegistry.Add(@@CumSum,            @CumSum_Pas,            [isPascal]).Name := 'CumSum_Pas';
+  MathRegistry.Add(@@FloatMod_F,        @FloatMod_F_Pas,        [isPascal]).Name := 'FloatMod_F_Pas';
+  MathRegistry.Add(@@FloatMod_D,        @FloatMod_D_Pas,        [isPascal]).Name := 'FloatMod_D_Pas';
+  MathRegistry.Add(@@FloatRemainder_F,  @FloatRemainder_F_Pas,  [isPascal]).Name := 'FloatRemainder_F_Pas';
+  MathRegistry.Add(@@FloatRemainder_D,  @FloatRemainder_D_Pas,  [isPascal]).Name := 'FloatRemainder_D_Pas';
+  MathRegistry.Add(@@FMod_F,            @FMod_F_Pas,            [isPascal]).Name := 'FMod_F_Pas';
+  MathRegistry.Add(@@FMod_D,            @FMod_D_Pas,            [isPascal]).Name := 'FMod_D_Pas';
 
-{$IFNDEF PUREPASCAL}
-{$IFNDEF OMIT_SSE2}
-//  MathRegistry.Add(@@CumSum,            @CumSum_SSE2,           [isSSE2]);
-//  MathRegistry.Add(@@CumSum,            @CumSum_SSE2_kadaif,    [isSSE2]);
-  MathRegistry.Add(@@CumSum,            @CumSum_SSE2_kadaif2,   [isSSE2]);
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+  MathRegistry.Add(@@CumSum,            @CumSum_SSE2,           [isSSE2]).Name := 'CumSum_SSE2';
+  MathRegistry.Add(@@CumSum,            @CumSum_SSE2_kadaif,    [isSSE2]).Name := 'CumSum_SSE2_kadaif';
+  MathRegistry.Add(@@CumSum,            @CumSum_SSE2_kadaif2,   [isSSE2]).Name := 'CumSum_SSE2_kadaif2';
 
-  MathRegistry.Add(@@FloatMod_F,        @FloatMod_F_SSE41,      [isSSE41]);
+  MathRegistry.Add(@@FloatMod_F,        @FloatMod_F_SSE41,      [isSSE41]).Name := 'FloatMod_F_SSE41';
 
-  MathRegistry.Add(@@FloatMod_D,        @FloatMod_D_SSE41,      [isSSE41]);
+  MathRegistry.Add(@@FloatMod_D,        @FloatMod_D_SSE41,      [isSSE41]).Name := 'FloatMod_D_SSE41';
 
-  MathRegistry.Add(@@FloatRemainder_F,  @FloatRemainder_F_SSE41, [isSSE41]);
+  MathRegistry.Add(@@FloatRemainder_F,  @FloatRemainder_F_SSE41, [isSSE41]).Name := 'FloatRemainder_F_SSE41';
 
-  MathRegistry.Add(@@FloatRemainder_D,  @FloatRemainder_D_SSE41, [isSSE41]);
+  MathRegistry.Add(@@FloatRemainder_D,  @FloatRemainder_D_SSE41, [isSSE41]).Name := 'FloatRemainder_D_SSE41';
 
-  MathRegistry.Add(@@FMod_F,            @FMod_F_SSE2,           [isSSE2]);
-  MathRegistry.Add(@@FMod_F,            @FMod_F_SSE41,          [isSSE41]);
+  MathRegistry.Add(@@FMod_F,            @FMod_F_SSE2,           [isSSE2]).Name := 'FMod_F_SSE2';
+  MathRegistry.Add(@@FMod_F,            @FMod_F_SSE41,          [isSSE41]).Name := 'FMod_F_SSE41';
 
-  MathRegistry.Add(@@FMod_D,            @FMod_D_SSE2,           [isSSE2]);
-  MathRegistry.Add(@@FMod_D,            @FMod_D_SSE41,          [isSSE41]);
-{$ENDIF}
-{$ENDIF}
+  MathRegistry.Add(@@FMod_D,            @FMod_D_SSE2,           [isSSE2]).Name := 'FMod_D_SSE2';
+  MathRegistry.Add(@@FMod_D,            @FMod_D_SSE41,          [isSSE41]).Name := 'FMod_D_SSE41';
+{$ifend}
 
   MathRegistry.RebindAll;
 end;
