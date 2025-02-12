@@ -143,6 +143,7 @@ var
   Sample: integer;
   OpsPerSecond: integer;
   BestOpsPerSecond: integer;
+  DoAbort: boolean;
 begin
   RandSeed := 0;
 
@@ -160,6 +161,7 @@ begin
         FillBrush.Visible := True;
         StrokeBrush.Visible := False;
 
+        DoAbort := False;
         BestOpsPerSecond := 0;
 
         for Sample := 0 to Samples-1 do
@@ -218,7 +220,10 @@ begin
             BestOpsPerSecond := OpsPerSecond;
 
           if (GetAsyncKeyState(VK_ESCAPE) <> 0) then
+          begin
+            DoAbort := False;
             break;
+          end;
         end;
 
         WriteTestResult(BestOpsPerSecond);
@@ -230,7 +235,7 @@ begin
         Img.EndUpdate;
       end;
 
-      if (GetAsyncKeyState(VK_ESCAPE) <> 0) then
+      if (DoAbort) or (GetAsyncKeyState(VK_ESCAPE) <> 0) then
       begin
         MemoLog.Lines.Add('Aborted');
         Abort;
