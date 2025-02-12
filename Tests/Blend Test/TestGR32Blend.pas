@@ -136,7 +136,7 @@ type
 
   TTestBlendModesPas = class(TCustomTestBlendModes)
   private
-    class function PriorityProcPas(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcPas(const Info: IFunctionInfo): Integer; static;
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
@@ -178,7 +178,7 @@ type
 
   TTestBlendModesAsm = class(TCustomTestBlendModes)
   private
-    class function PriorityProcAsm(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcAsm(const Info: IFunctionInfo): Integer; static;
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
@@ -220,7 +220,7 @@ type
 
   TTestBlendModesSSE2 = class(TCustomTestBlendModes)
   private
-    class function PriorityProcSSE2(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcSSE2(const Info: IFunctionInfo): Integer; static;
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
@@ -255,7 +255,7 @@ type
 
   TTestBlendModesSSE41 = class(TCustomTestBlendModes)
   private
-    class function PriorityProcSSE41(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcSSE41(const Info: IFunctionInfo): Integer; static;
   protected
     class function PriorityProc: TFunctionPriority; override;
   published
@@ -1385,7 +1385,7 @@ begin
   Result := PriorityProcPas;
 end;
 
-class function TTestBlendModesPas.PriorityProcPas(Info: PFunctionInfo): Integer;
+class function TTestBlendModesPas.PriorityProcPas(const Info: IFunctionInfo): Integer;
 begin
   if (isPascal in Info.InstructionSupport) then
     Result := 0
@@ -1485,7 +1485,7 @@ begin
   Result := PriorityProcAsm;
 end;
 
-class function TTestBlendModesAsm.PriorityProcAsm(Info: PFunctionInfo): Integer;
+class function TTestBlendModesAsm.PriorityProcAsm(const Info: IFunctionInfo): Integer;
 begin
   if (isAssembler in Info.InstructionSupport) then
     Result := 0
@@ -1586,7 +1586,7 @@ begin
   Result := PriorityProcSSE2;
 end;
 
-class function TTestBlendModesSSE2.PriorityProcSSE2(Info: PFunctionInfo): Integer;
+class function TTestBlendModesSSE2.PriorityProcSSE2(const Info: IFunctionInfo): Integer;
 begin
   if (isSSE2 in Info.InstructionSupport) then
     Result := 0
@@ -1767,7 +1767,7 @@ begin
   Result := PriorityProcSSE41;
 end;
 
-class function TTestBlendModesSSE41.PriorityProcSSE41(Info: PFunctionInfo): Integer;
+class function TTestBlendModesSSE41.PriorityProcSSE41(const Info: IFunctionInfo): Integer;
 begin
   if (isSSE41 in Info.InstructionSupport) then
     Result := 0

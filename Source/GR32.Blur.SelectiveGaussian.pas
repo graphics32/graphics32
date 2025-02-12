@@ -1549,17 +1549,17 @@ end;
 
 procedure RegisterBindings;
 begin
-  BlurRegistry.RegisterBinding(@@SelectiveGaussianBlur32);
-  BlurRegistry.RegisterBinding(@@GammaSelectiveGaussianBlur32);
-  BlurRegistry.RegisterBinding(@@SelectiveGaussianAccumulate);
+  BlurRegistry.RegisterBinding(@@SelectiveGaussianBlur32, 'SelectiveGaussianBlur32');
+  BlurRegistry.RegisterBinding(@@GammaSelectiveGaussianBlur32, 'GammaSelectiveGaussianBlur32');
+  BlurRegistry.RegisterBinding(@@SelectiveGaussianAccumulate, 'SelectiveGaussianAccumulate');
 
 
   (*
   ** SelectiveGaussianAccumulate
   *)
-  BlurRegistry.Add(@@SelectiveGaussianAccumulate, @Accumulate_Pas,              [isPascal]);
+  BlurRegistry[@@SelectiveGaussianAccumulate].Add(@Accumulate_Pas,              [isPascal]).Name := 'Accumulate_Pas';
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  BlurRegistry.Add(@@SelectiveGaussianAccumulate, @Accumulate_SSE2,             [isSSE2]);
+  BlurRegistry[@@SelectiveGaussianAccumulate].Add(@Accumulate_SSE2,             [isSSE2]).Name := 'Accumulate_SSE2';
 {$ifend}
 
 
@@ -1573,26 +1573,26 @@ begin
   (*
   ** SelectiveGaussianBlur32
   *)
-  BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussianGimp,         [isPascal], 1024);
-  BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussianNew,          [isPascal], 768);
-  BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussian2,            [isPascal], 0);
-  BlurRegistry.Add(@@SelectiveGaussianBlur32,           @SelectiveGaussian1,            [isPascal], -256);
+  BlurRegistry[@@SelectiveGaussianBlur32].Add(@SelectiveGaussianGimp,         [isPascal], 1024).Name := 'SelectiveGaussianGimp';
+  BlurRegistry[@@SelectiveGaussianBlur32].Add(@SelectiveGaussianNew,          [isPascal], 768).Name := 'SelectiveGaussianNew';
+  BlurRegistry[@@SelectiveGaussianBlur32].Add(@SelectiveGaussian2,            [isPascal], 0).Name := 'SelectiveGaussian2';
+  BlurRegistry[@@SelectiveGaussianBlur32].Add(@SelectiveGaussian1,            [isPascal], -256).Name := 'SelectiveGaussian1';
 
   (*
   ** GammaSelectiveGaussianBlur32
   *)
-  BlurRegistry.Add(@@GammaSelectiveGaussianBlur32,      @SelectiveGaussianGimpGamma,    [isPascal], 1024);
-  BlurRegistry.Add(@@GammaSelectiveGaussianBlur32,      @SelectiveGaussianNewGamma,     [isPascal], 768);
-  BlurRegistry.Add(@@GammaSelectiveGaussianBlur32,      @SelectiveGaussianGamma2,       [isPascal], 0);
-  BlurRegistry.Add(@@GammaSelectiveGaussianBlur32,      @SelectiveGaussianGamma1,       [isPascal], -256);
+  BlurRegistry[@@GammaSelectiveGaussianBlur32].Add(@SelectiveGaussianGimpGamma,    [isPascal], 1024).Name := 'SelectiveGaussianGimpGamma';
+  BlurRegistry[@@GammaSelectiveGaussianBlur32].Add(@SelectiveGaussianNewGamma,     [isPascal], 768).Name := 'SelectiveGaussianNewGamma';
+  BlurRegistry[@@GammaSelectiveGaussianBlur32].Add(@SelectiveGaussianGamma2,       [isPascal], 0).Name := 'SelectiveGaussianGamma2';
+  BlurRegistry[@@GammaSelectiveGaussianBlur32].Add(@SelectiveGaussianGamma1,       [isPascal], -256).Name := 'SelectiveGaussianGamma1';
 
 
   (*
   ** Rebind the above bindings
   *)
-  BlurRegistry.Rebind(@@SelectiveGaussianBlur32);
-  BlurRegistry.Rebind(@@GammaSelectiveGaussianBlur32);
-  BlurRegistry.Rebind(@@SelectiveGaussianAccumulate);
+  BlurRegistry[@@SelectiveGaussianBlur32].Rebind;
+  BlurRegistry[@@GammaSelectiveGaussianBlur32].Rebind;
+  BlurRegistry[@@SelectiveGaussianAccumulate].Rebind;
 end;
 
 initialization

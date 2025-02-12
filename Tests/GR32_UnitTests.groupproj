@@ -24,6 +24,9 @@
         <Projects Include="Transpose test\TransposeTest.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Binding test\BindingTest.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -95,14 +98,23 @@
     <Target Name="TransposeTest:Make">
         <MSBuild Projects="Transpose test\TransposeTest.dproj" Targets="Make"/>
     </Target>
+    <Target Name="BindingTest">
+        <MSBuild Projects="Binding test\BindingTest.dproj"/>
+    </Target>
+    <Target Name="BindingTest:Clean">
+        <MSBuild Projects="Binding test\BindingTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BindingTest:Make">
+        <MSBuild Projects="Binding test\BindingTest.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest"/>
+        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean"/>
+        <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make"/>
+        <CallTarget Targets="BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make;BindingTest:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

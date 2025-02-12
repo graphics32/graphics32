@@ -28,6 +28,8 @@ type
 implementation
 
 uses
+  GR32_System,
+  GR32.CPUID,
   SysUtils,
   Math;
 
@@ -65,7 +67,7 @@ end;
 const
   FlagTest = 1;
 
-function FunctionPriorityPascal(Info: PFunctionInfo): Integer;
+function FunctionPriorityPascal(const Info: IFunctionInfo): Integer;
 begin
   Result := DefaultPriorityProc(Info); // This takes CPU and priority into account
   // Now handle Pascal flag
@@ -128,12 +130,12 @@ begin
   FRegistry.Add(2, @ProcSSE,     [isSSE],        2,             FlagTest);// Priority, Flags,
   FRegistry.Add(2, @ProcPascal,  [isPascal],     3);                    // Priority
 
-  var SaveCPU := CPU;
+  var SaveCPU := GR32_System.CPU;
   try
 
     CPU.InstructionSupport := [isPascal, isAssembler, isSSE];
 
-    FRegistry.RebindAll(True);
+    FRegistry.RebindAll(nil, True);
 
     CheckNotNull(PPointer(@@Procs[0])^);
     CheckNotNull(PPointer(@@Procs[1])^);
@@ -157,7 +159,7 @@ begin
     CheckSame(@ProcPascal, PPointer(@@Procs[2])^);
 
   finally
-    CPU := SaveCPU;
+    GR32_System.CPU := SaveCPU;
   end;
 end;
 
@@ -188,7 +190,7 @@ begin
 
     CPU.InstructionSupport := [isPascal, isAssembler, isSSE];
 
-    FRegistry.RebindAll(True);
+    FRegistry.RebindAll(nil, True);
 
     CheckNotNull(PPointer(@@Procs[0])^);
     CheckNotNull(PPointer(@@Procs[1])^);
@@ -233,7 +235,7 @@ begin
 
     CPU.InstructionSupport := [isPascal, isAssembler, isSSE, isSSE2];
 
-    FRegistry.Rebind(@@Proc);
+    FRegistry.Bindings[@@Proc].Rebind;
 
     // All have same priority; Always select best CPU feature (SSE2 in this case)
     CheckSame(@ProcSSE2, PPointer(@@Proc)^);

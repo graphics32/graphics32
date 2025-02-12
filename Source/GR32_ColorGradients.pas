@@ -5152,17 +5152,17 @@ end;
 procedure RegisterBindings;
 begin
   GradientRegistry := NewRegistry('GR32_ColorGradients bindings');
-  GradientRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolationProc);
-  GradientRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolationProc);
+  GradientRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolationProc, 'Linear3PointInterpolationProc');
+  GradientRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolationProc, 'Linear4PointInterpolationProc');
 
   // pure pascal
-  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_Pas, [isPascal]);
-  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_Pas, [isPascal]);
+  GradientRegistry[FID_LINEAR3].Add(@Linear3PointInterpolation_Pas, [isPascal]).name := 'Linear3PointInterpolation_Pas';
+  GradientRegistry[FID_LINEAR4].Add(@Linear4PointInterpolation_Pas, [isPascal]).Name := 'Linear4PointInterpolation_Pas';
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}
-  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_SSE2, [isSSE2]);
-  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_SSE2, [isSSE2]);
+  GradientRegistry[FID_LINEAR3].Add(@Linear3PointInterpolation_SSE2, [isSSE2]).Name := 'Linear3PointInterpolation_SSE2';
+  GradientRegistry[FID_LINEAR4].Add(@Linear4PointInterpolation_SSE2, [isSSE2]).Name := 'Linear4PointInterpolation_SSE2';
 {$ENDIF}
 {$ENDIF}
 

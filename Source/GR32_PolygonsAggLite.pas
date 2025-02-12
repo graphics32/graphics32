@@ -1766,15 +1766,15 @@ var
 procedure RegisterBindings;
 begin
   FillSpanRegistry := NewRegistry('GR32_PolygonsAggLite bindings');
-  FillSpanRegistry.RegisterBinding(@@FILLSPAN);
+  FillSpanRegistry.RegisterBinding(@@FILLSPAN, 'FILLSPAN');
 
   // pure pascal
-  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_Pas, [isPascal]);
+  FillSpanRegistry[@@FILLSPAN].Add(@FILLSPAN_Pas, [isPascal]).Name := 'FILLSPAN_Pas';
 
 {$IFNDEF PUREPASCAL}
-  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_ASM, [isAssembler]);
+  FillSpanRegistry[@@FILLSPAN].Add(@FILLSPAN_ASM, [isAssembler]).Name := 'FILLSPAN_ASM';
 {$IFNDEF OMIT_SSE2}
-  FillSpanRegistry.Add(@@FILLSPAN, @FILLSPAN_SSE2, [isSSE2]);
+  FillSpanRegistry[@@FILLSPAN].Add(@FILLSPAN_SSE2, [isSSE2]).Name := 'FILLSPAN_SSE2';
 {$ENDIF}
 {$ENDIF}
 
