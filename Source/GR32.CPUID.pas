@@ -149,13 +149,24 @@ type
   public
     Vendor: TCPUVendor;
     Signature: Cardinal;
-    EffFamily: Byte;    // ExtendedFamily + Family
-    EffModel: Byte;     // (ExtendedModel shl 4) + Model
-    EffModelBasic: Byte;// Just Model (not ExtendedModel shl 4) + Model)
+
+    // Signature unpacked
+    Stepping: Byte;
+    Model: Byte;
+    ProcessorType: Byte;
+    Family: Byte;
+    ExtendedModel: Byte;
+    ExtendedFamily: Byte;
+
+    // Calculated fields
+    ActualFamily: Byte;
+    ActualModel: Byte;
+
     CodeL1CacheSize,    // Kilobytes, or micro-ops for Pentium 4
     DataL1CacheSize,    // Kilobytes
     L2CacheSize,        // Kilobytes
     L3CacheSize: Word;  // Kilobytes
+    PrefetchSize: Word; // Bytes
     InstructionSupport: TInstructionSupport;
 
     property VendorName: string read GetVendorName;
@@ -394,15 +405,35 @@ begin
   {get CPU signature}
   Signature:= Registers.EAX;
 
+  Stepping := Signature and $0F;
+  Model := (Signature shr 4) and $0F;
+  ProcessorType := (Signature shr 12) and $03;
+  Family := (Signature shr 8) and $0F;
+  ExtendedModel := (Signature shr 16) and $0F;
+  ExtendedFamily := (Signature shr 20) and $FF;
+
+  if Family in [6, 15] then
+    ActualModel:= (ExtendedModel shl 4) or (Model)
+  else
+    ActualModel:= Model;
+
+  if Family = 15 then
+    ActualFamily:= ExtendedFamily + Family
+  else
+    ActualFamily:= Family;
+
+  (* Old logic. Doesn't appear to be correct.
   {extract effective processor family and model}
   EffFamily:= Signature and $00000F00 shr 8;
   EffModel:= Signature and $000000F0 shr 4;
   EffModelBasic:= EffModel;
+
   if EffFamily = $F then
   begin
     EffFamily:= EffFamily + (Signature and $0FF00000 shr 20);
     EffModel:= EffModel + (Signature and $000F0000 shr 12);
   end;
+  *)
 
   {get CPU features}
   Move(Registers.EDX, _Int64(CpuFeatures).Lo, 4);
@@ -523,103 +554,122 @@ procedure TCPU.GetProcessorCacheInfo;
 {preconditions: 1. maximum CPUID must be at least $00000002
                 2. GetCPUVendor must have been called}
 type
-  TConfigDescriptor = packed array[0..15] of Byte;
+  TCacheDescriptor = record
+    case integer of
+      0: (Descriptor: packed array[0..3, 0..3] of Byte);
+      1: (Registers: TRegisters);
+  end;
+
 var
-  Registers: TRegisters;
+  CacheDescriptor: TCacheDescriptor;
   i, j: Integer;
   QueryCount: Byte;
 begin
   {call CPUID function 2}
-  GetCPUID($00000002, Registers);
-  QueryCount := Registers.EAX and $FF;
-  for i := 1 to QueryCount do
+  GetCPUID($00000002, CacheDescriptor.Registers);
+  QueryCount := CacheDescriptor.Descriptor[0, 0]; // Apparently always 1, according to wikipedia
+  CacheDescriptor.Descriptor[0, 0] := 0; // Clear count field so we don't interpret it as a descriptor
+
+  while (QueryCount > 0) do
   begin
-    for j := 1 to 15 do
-      {decode configuration descriptor byte}
-      case TConfigDescriptor(Registers)[j] of
-        $06: CodeL1CacheSize := 8;
-        $08: CodeL1CacheSize := 16;
-        $09: CodeL1CacheSize := 32;
-        $0A: DataL1CacheSize := 8;
-        $0C: DataL1CacheSize := 16;
-        $0D: DataL1CacheSize := 16;
-        $21: L2CacheSize := 256;
-        $22: L3CacheSize := 512;
-        $23: L3CacheSize := 1024;
-        $25: L3CacheSize := 2048;
-        $29: L3CacheSize := 4096;
-        $2C: DataL1CacheSize := 32;
-        $30: CodeL1CacheSize := 32;
-        $39: L2CacheSize := 128;
-        $3B: L2CacheSize := 128;
-        $3C: L2CacheSize := 256;
-        $3D: L2CacheSize := 384;
-        $3E: L2CacheSize := 512;
-        $40: {no 2nd-level cache or, if processor contains a valid 2nd-level
-              cache, no 3rd-level cache}
-          if L2CacheSize <> 0 then
-            L3CacheSize := 0;
-        $41: L2CacheSize := 128;
-        $42: L2CacheSize := 256;
-        $43: L2CacheSize := 512;
-        $44: L2CacheSize := 1024;
-        $45: L2CacheSize := 2048;
-        $46: L3CacheSize := 4096;
-        $47: L3CacheSize := 8192;
-        $48: L2CacheSize := 3072;
-        $49: if (Vendor = cvIntel) and (EffFamily = $F) and (EffModel = 6) then
-               L3CacheSize := 4096
-             else
-               L2CacheSize := 4096;
-        $4A: L3CacheSize := 6144;
-        $4B: L3CacheSize := 8192;
-        $4C: L3CacheSize := 12288;
-        $4D: L3CacheSize := 16384;
-        $4E: L2CacheSize := 6144;
-        $60: DataL1CacheSize := 16;
-        $66: DataL1CacheSize := 8;
-        $67: DataL1CacheSize := 16;
-        $68: DataL1CacheSize := 32;
-        $70: if not (Vendor in [cvCyrix, cvNSC]) then
-               CodeL1CacheSize := 12; {K micro-ops}
-        $71: CodeL1CacheSize := 16; {K micro-ops}
-        $72: CodeL1CacheSize := 32; {K micro-ops}
-        $78: L2CacheSize := 1024;
-        $79: L2CacheSize := 128;
-        $7A: L2CacheSize := 256;
-        $7B: L2CacheSize := 512;
-        $7C: L2CacheSize := 1024;
-        $7D: L2CacheSize := 2048;
-        $7F: L2CacheSize := 512;
-        $80: if Vendor in [cvCyrix, cvNSC] then
-          begin {Cyrix and NSC only - 16 KB unified L1 cache}
-            CodeL1CacheSize := 8;
-            DataL1CacheSize := 8;
-          end;
-        $82: L2CacheSize := 256;
-        $83: L2CacheSize := 512;
-        $84: L2CacheSize := 1024;
-        $85: L2CacheSize := 2048;
-        $86: L2CacheSize := 512;
-        $87: L2CacheSize := 1024;
-        $D0: L3CacheSize := 512;
-        $D1: L3CacheSize := 1024;
-        $D2: L3CacheSize := 2048;
-        $D6: L3CacheSize := 1024;
-        $D7: L3CacheSize := 2048;
-        $D8: L3CacheSize := 4096;
-        $DC: L3CacheSize := 1536;
-        $DD: L3CacheSize := 3072;
-        $DE: L3CacheSize := 6144;
-        $E2: L3CacheSize := 2048;
-        $E3: L3CacheSize := 4096;
-        $E4: L3CacheSize := 8192;
-        $EA: L3CacheSize := 12288;
-        $EB: L3CacheSize := 18432;
-        $EC: L3CacheSize := 24576;
-      end;
-    if i < QueryCount then
-      GetCPUID(2, Registers);
+    for i := 0 to 3 do
+    begin
+      if (CacheDescriptor.Descriptor[i, 3] and $80 = $80) then
+        // Block isn't valid; Skip it
+        continue;
+
+      for j := 0 to 3 do
+        {decode configuration descriptor byte}
+        case CacheDescriptor.Descriptor[i, j] of
+          $06: CodeL1CacheSize := 8;
+          $08: CodeL1CacheSize := 16;
+          $09: CodeL1CacheSize := 32;
+          $0A: DataL1CacheSize := 8;
+          $0C: DataL1CacheSize := 16;
+          $0D: DataL1CacheSize := 16;
+          $21: L2CacheSize := 256;
+          $22: L3CacheSize := 512;
+          $23: L3CacheSize := 1024;
+          $25: L3CacheSize := 2048;
+          $29: L3CacheSize := 4096;
+          $2C: DataL1CacheSize := 32;
+          $30: CodeL1CacheSize := 32;
+          $39: L2CacheSize := 128;
+          $3B: L2CacheSize := 128;
+          $3C: L2CacheSize := 256;
+          $3D: L2CacheSize := 384;
+          $3E: L2CacheSize := 512;
+          $40: {no 2nd-level cache or, if processor contains a valid 2nd-level
+                cache, no 3rd-level cache}
+            if L2CacheSize <> 0 then
+              L3CacheSize := 0;
+          $41: L2CacheSize := 128;
+          $42: L2CacheSize := 256;
+          $43: L2CacheSize := 512;
+          $44: L2CacheSize := 1024;
+          $45: L2CacheSize := 2048;
+          $46: L3CacheSize := 4096;
+          $47: L3CacheSize := 8192;
+          $48: L2CacheSize := 3072;
+          $49: if (Vendor = cvIntel) and (ActualFamily = $F) and (ActualModel = 6) then
+                 L3CacheSize := 4096
+               else
+                 L2CacheSize := 4096;
+          $4A: L3CacheSize := 6144;
+          $4B: L3CacheSize := 8192;
+          $4C: L3CacheSize := 12288;
+          $4D: L3CacheSize := 16384;
+          $4E: L2CacheSize := 6144;
+          $60: DataL1CacheSize := 16;
+          $66: DataL1CacheSize := 8;
+          $67: DataL1CacheSize := 16;
+          $68: DataL1CacheSize := 32;
+          $70: if not (Vendor in [cvCyrix, cvNSC]) then
+                 CodeL1CacheSize := 12; {i micro-ops}
+          $71: CodeL1CacheSize := 16; {i micro-ops}
+          $72: CodeL1CacheSize := 32; {i micro-ops}
+          $78: L2CacheSize := 1024;
+          $79: L2CacheSize := 128;
+          $7A: L2CacheSize := 256;
+          $7B: L2CacheSize := 512;
+          $7C: L2CacheSize := 1024;
+          $7D: L2CacheSize := 2048;
+          $7F: L2CacheSize := 512;
+          $80: if Vendor in [cvCyrix, cvNSC] then
+            begin {Cyrix and NSC only - 16 KB unified L1 cache}
+              CodeL1CacheSize := 8;
+              DataL1CacheSize := 8;
+            end;
+          $82: L2CacheSize := 256;
+          $83: L2CacheSize := 512;
+          $84: L2CacheSize := 1024;
+          $85: L2CacheSize := 2048;
+          $86: L2CacheSize := 512;
+          $87: L2CacheSize := 1024;
+          $D0: L3CacheSize := 512;
+          $D1: L3CacheSize := 1024;
+          $D2: L3CacheSize := 2048;
+          $D6: L3CacheSize := 1024;
+          $D7: L3CacheSize := 2048;
+          $D8: L3CacheSize := 4096;
+          $DC: L3CacheSize := 1536;
+          $DD: L3CacheSize := 3072;
+          $DE: L3CacheSize := 6144;
+          $E2: L3CacheSize := 2048;
+          $E3: L3CacheSize := 4096;
+          $E4: L3CacheSize := 8192;
+          $EA: L3CacheSize := 12288;
+          $EB: L3CacheSize := 18432;
+          $EC: L3CacheSize := 24576;
+          $F0: PrefetchSize := 64;
+          $F1: PrefetchSize := 128;
+        end;
+
+    end;
+
+    Dec(QueryCount);
+    if (QueryCount > 0) then
+      GetCPUID(2, CacheDescriptor.Registers);
   end;
 end;
 
@@ -650,7 +700,7 @@ begin
      Note TN-13}
     L2CacheSize := 64
   else
-  if (Vendor = cvCentaur) and (EffFamily = 6) and (EffModel in [C3Samuel2EffModel, C3EzraEffModel]) then
+  if (Vendor = cvCentaur) and (ActualFamily = 6) and (ActualModel in [C3Samuel2EffModel, C3EzraEffModel]) then
     {handle VIA (Centaur) C3 Samuel 2 and Ezra non-standard encoding}
     L2CacheSize := Registers.ECX shr 24
   else {standard encoding}
