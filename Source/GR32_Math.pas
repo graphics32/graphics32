@@ -2434,6 +2434,257 @@ asm
 {$ifend}
 end;
 
+procedure CumSum_SSE2_kadaif2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+        MOV     ECX,EDX
+        CMP     EDX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PUSH    EBX
+        PXOR    XMM4,XMM4
+        MOV     EBX,EAX
+        AND     EBX,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     EBX,-16
+        NEG     EBX          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,EBX
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     EAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS   XMM0,DWORD PTR [EAX]
+        MOVSS   DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[EAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        POP     EBX
+        PUSH    EBX
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[EAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB EBX,XMM5
+        CMP     EBX,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [EAX + 16 * 16 * 2]
+        MOVAPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        POP     EBX
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+@LOOP2:
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS    XMM0,DWORD PTR [EAX]
+        MOVSS    DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        CMP     ECX,8
+        JL      @SMALL2
+        SAR     ECX,2
+        PXOR    XMM4,XMM4
+@LOOP3:
+        MOVUPS  XMM0,[EAX]
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+        MOVUPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     EDX,4
+        SUB     ECX,1
+        JNZ     @LOOP3
+        CMP     EDX, 0
+        JZ      @END
+        MOV     ECX,EDX
+        JMP     @LOOP4
+@SMALL2:
+        ADD     EAX,4
+        SUB     ECX,1
+@LOOP4:
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS   XMM0,DWORD PTR [EAX]
+        MOVSS   DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
+
+{$elseif defined(TARGET_x64)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+
+        MOV     RAX,RCX
+        MOV     ECX,EDX
+
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PXOR    XMM4,XMM4
+        MOV     R8D,EAX
+        AND     R8D,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     R8D,-16
+        NEG     R8D          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,R8D
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     RAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[RAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[RAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB R8D,XMM5
+        CMP     R8D,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [RAX + 32 * 2]
+        MOVAPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+@LOOP2:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        CMP     ECX,8
+        JL      @SMALL2
+        SAR     ECX,2
+        PXOR    XMM4,XMM4
+@LOOP3:
+        MOVUPS  XMM0,[RAX]
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+        MOVUPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     EDX,4
+        SUB     ECX,1
+        JNZ     @LOOP3
+        CMP     EDX, 0
+        JZ      @END
+        MOV     ECX,EDX
+        JMP     @LOOP4
+
+@SMALL2:
+        ADD     RAX,4
+        DEC     ECX
+@LOOP4:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP4
+@END:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
 {$ENDIF}
 
 
@@ -2466,6 +2717,7 @@ begin
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2,           [isSSE2]).Name := 'CumSum_SSE2';
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif,    [isSSE2]).Name := 'CumSum_SSE2_kadaif';
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif2,   [isSSE2]).Name := 'CumSum_SSE2_kadaif2';
 
   MathRegistry[@@FloatMod_F].Add(       @FloatMod_F_SSE41,      [isSSE41]).Name := 'FloatMod_F_SSE41';
 
@@ -2485,30 +2737,25 @@ begin
   MathRegistry.RebindAll;
 end;
 
-(* TEST_DURATION = 8000
-32-bit                                          Pascal          CumSum_SSE2     CumSum_SSE2_kadaif
-=== Test: Ellipses (operations/second) ===
-TPolygonRenderer32VPR                           8.877           9.410           9.158
-=== Test: Thin Lines (operations/second) ===
-TPolygonRenderer32VPR                           44.160          44.602          43.997
-=== Test: Thick Lines (operations/second) ===
-TPolygonRenderer32VPR                           30.902          30.095          31.032
-=== Test: Splines (operations/second) ===
-TPolygonRenderer32VPR                           4.679           4.815           4.863
-=== Test: Text (operations/second) ===
-TPolygonRenderer32VPR                           2.500           2.514           2.524
+(*
+TEST_DURATION = 4000;
+TEST_SAMPLES = 4;
 
-64-bit                                          Pascal          CumSum_SSE2     CumSum_SSE2_kadaif
-=== Test: Ellipses (operations/second) ===
-TPolygonRenderer32VPR                           7.719           8.438           8.564
-=== Test: Thin Lines (operations/second) ===
-TPolygonRenderer32VPR                           47.576          46.610          47.699
-=== Test: Thick Lines (operations/second) ===
-TPolygonRenderer32VPR                           31.065          30.885          31.953
-=== Test: Splines (operations/second) ===
-TPolygonRenderer32VPR                           4.501           4.835           4.841
-=== Test: Text (operations/second) ===
-TPolygonRenderer32VPR                           2.847           2.857           2.882
+TPolygonRenderer32VPR
+
+32-bit          Pascal          CumSum_SSE2     kadaif          kadaif2
+Ellipses        8.347           8.976           9.085           8.753
+Thin Lines      41.925          44.750          42.228          42.235
+Thick Lines     29.331          30.136          29.745          29.936
+Splines         4.383           4.629           4.644           4.567
+Text            2.568           3.116           2.583           2.578
+
+64-bit          Pascal          CumSum_SSE2     kadaif          kadaif2
+Ellipses        7.284           8.122           8.390           8.371
+Thin Lines      45.381          45.718          45.334          44.387
+Thick Lines     29.548          29.530          30.078          30.580
+Splines         4.259           4.684           4.697           4.626
+Text            2.955           2.955           2.968           2.857
 
 *)
 
