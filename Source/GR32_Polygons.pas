@@ -645,6 +645,174 @@ begin
   end;
 end;
 
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+// Contributed by Kadaif
+procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+const
+  C_1_F: array [0 .. 3] of single = (1, 1, 1, 1);
+asm
+{$if defined(TARGET_x86)}
+
+  // EAX <- Coverage
+  // EDX <- AlphaValues
+  // ECX <- Count
+
+
+        TEST        ECX,ECX
+        JLE         @EXIT
+
+        PUSH        EBX
+        PUSH        ESI
+        PUSH        EDI
+
+        MOV         EDI,Color
+        MOV         EBX,EDI
+
+         // Prepare 0RGB: mask off alpha from Color and replicate into XMM3
+        AND         EBX,$00FFFFFF
+        MOVD        XMM3,EBX
+        PSHUFD      XMM3,XMM3,$0  // save 0RGB
+
+        // Load constant 1.0 into XMM6
+        MOVUPS      XMM5,[C_1_F]
+
+        // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
+        MOV         EBX,EDI
+        SHR         EBX,24  // alpha
+        MOVD        XMM2,EBX
+        PSHUFD      XMM2,XMM2,$0  // alphas
+        CVTDQ2PS    XMM2,XMM2  // to float
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4,1
+
+        CMP         ECX, 4
+        JL          @remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         ESI, ECX
+        SAR         ESI, 2
+        MOV         EDI, ESI
+        SAL         EDI, 2
+
+@Loop:
+        MOVUPS      XMM0,[EAX] // coverage
+        ANDPS       XMM0,XMM4  // abs
+        MINPS       XMM0,XMM5  // min (1)
+        MULPS       XMM0,XMM2  // multiply with alpha
+        CVTPS2DQ    XMM0,XMM0
+        PSLLD       XMM0,24
+        POR         XMM0,XMM3
+        MOVDQU      [EDX],XMM0
+        ADD         EDX,16
+        ADD         EAX,16
+        DEC         ESI
+        JNZ         @Loop
+        SUB         ECX,EDI
+        JZ          @END
+
+@remainder:
+        MOVSS       XMM0,[EAX]  // load coverage
+        ANDPS       XMM0,XMM4   // abs
+        MINSS       XMM0,XMM5   // min (1)
+        MULSS       XMM0,XMM2   // multiply with alpha
+        CVTPS2DQ    XMM0,XMM0
+        PSLLD       XMM0,24
+        POR         XMM0,XMM3
+        MOVD        [EDX],XMM0
+        ADD         EDX,4
+        ADD         EAX,4
+        DEC         ECX
+        JNZ         @remainder
+
+@END:
+        POP         EDI
+        POP         ESI
+        POP         EBX
+@EXIT:
+
+{$elseif defined(TARGET_x64)}
+
+  // RCX <- Coverage
+  // RDX <- AlphaValues
+  // R8D <- Count
+  // R9D <- Color
+
+        TEST        R8D,R8D
+        JLE         @Exit
+        // Prepare 0RGB: mask off alpha from Color and replicate into XMM3
+        MOV         EAX,R9D
+        AND         EAX,$00FFFFFF
+        MOVD        XMM3,EAX
+        PSHUFD      XMM3,XMM3,0
+
+        // Load constant 1.0 into XMM6
+        MOVUPS      XMM5,[C_1_F]
+
+        // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
+        MOV         EAX,R9D
+        SHR         EAX,24
+        MOVD        XMM2,EAX
+        PSHUFD      XMM2,XMM2,0
+        CVTDQ2PS    XMM2,XMM2
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4,XMM4
+        PSRLD       XMM4,1
+
+        CMP         R8D,4
+        JL          @Remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         R10,R8
+        SHR         R10,2
+        MOV         R11,R10
+        SHL         R11,2
+
+@Loop:
+        MOVUPS      XMM0,[RCX]
+        ANDPS       XMM0,XMM4
+        MINPS       XMM0,XMM5
+        MULPS       XMM0,XMM2
+        CVTPS2DQ   XMM0,XMM0
+        PSLLD       XMM0,24
+        POR         XMM0,XMM3
+        MOVDQU      [RDX],XMM0
+        ADD         RCX,16
+        ADD         RDX,16
+        DEC         R10
+        JNZ         @Loop
+
+        SUB         R8D,R11D
+        JZ          @Exit
+
+@Remainder:
+        MOVSS       XMM0,[RCX]
+        ANDPS       XMM0,XMM4
+        MINSS       XMM0,XMM5
+        MULSS       XMM0,XMM2
+        CVTSS2SI    EAX,XMM0
+        SHL         EAX,24
+        MOVD        R11D,XMM3
+        OR          EAX,R11D
+        MOV         [RDX],EAX
+        ADD         RCX,4
+        ADD         RDX,4
+        DEC         R8D
+        JNZ         @Remainder
+
+@Exit:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+{$ifend}
+
 (*
 procedure MakeAlphaNonZeroUP(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
@@ -2254,6 +2422,10 @@ begin
   PolygonsRegistry[@@MakeAlphaNonZeroUP].Add( @MakeAlphaNonZeroUP_Pas,        [isPascal]).Name := 'MakeAlphaNonZeroUP_Pas';
   PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(@MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
   PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(@MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add( @MakeAlphaNonZeroUP_SSE2,       [isSSE2]).Name := 'MakeAlphaNonZeroUP_SSE2';
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
