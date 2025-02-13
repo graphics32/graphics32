@@ -252,8 +252,12 @@ type
     function FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
     function FindFunction(BindVariable: PPointer; PriorityCallback: TFunctionPriority = nil): Pointer; overload;
 
-    function FindBinding(const Name: string): IBindingInfo;
-    function FindImplementation(const Name: string): IFunctionInfo;
+    function FindBinding(const Name: string): IBindingInfo; overload;
+    function FindBinding(BindVariable: PPointer): IBindingInfo; overload;
+    function FindBinding(FunctionID: NativeInt): IBindingInfo; overload;
+
+    function FindImplementation(const Name: string): IFunctionInfo; overload;
+    function FindImplementation(Proc: pointer): IFunctionInfo; overload;
 
     // List of bindings in this registry.
     function GetEnumerator: IBindingEnumerator;
@@ -291,6 +295,7 @@ implementation
 
 uses
   Math,
+  SysUtils,
   GR32_System;
 
 //------------------------------------------------------------------------------
@@ -359,6 +364,8 @@ end;
 function TFunctionInfoWrapper.GetName: string;
 begin
   Result := FFunctionInfo.Name;
+  if (Result = '') then
+    Result := '@'+IntToHex(NativeInt(FFunctionInfo));
 end;
 
 function TFunctionInfoWrapper.GetPriority: Integer;
@@ -437,6 +444,8 @@ end;
 function TBindingInfoWrapper.GetName: string;
 begin
   Result := FBindingInfo.Name;
+  if (Result = '') then
+    Result := '@'+IntToHex(NativeInt(FBindingInfo));
 end;
 
 procedure TBindingInfoWrapper.SetName(const Value: string);
@@ -687,6 +696,46 @@ begin
   end;
 end;
 
+function TFunctionRegistry.FindBinding(BindVariable: PPointer): IBindingInfo;
+var
+  i: Integer;
+  Info: PFunctionBinding;
+begin
+  Result := nil;
+
+  for i := FBindings.Count - 1 downto 0 do
+  begin
+    Info := FunctionBinding[i];
+
+    if (Info.BindVariable = BindVariable) then
+    begin
+      Result := TBindingInfoWrapper.Create(Self, Info);
+      break;
+    end;
+  end;
+end;
+
+function TFunctionRegistry.FindBinding(FunctionID: NativeInt): IBindingInfo;
+var
+  i: Integer;
+  Info: PFunctionBinding;
+begin
+  Result := nil;
+
+  for i := FBindings.Count - 1 downto 0 do
+  begin
+    Info := FunctionBinding[i];
+
+    if (Info.FunctionID = FunctionID) then
+    begin
+      Result := TBindingInfoWrapper.Create(Self, Info);
+      break;
+    end;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
 function TFunctionRegistry.FindImplementation(const Name: string): IFunctionInfo;
 var
   i: Integer;
@@ -699,6 +748,25 @@ begin
     Info := FunctionInfo[i];
 
     if (Info.Name = Name) then
+    begin
+      Result := TFunctionInfoWrapper.Create(Info);
+      break;
+    end;
+  end;
+end;
+
+function TFunctionRegistry.FindImplementation(Proc: pointer): IFunctionInfo;
+var
+  i: Integer;
+  Info: PFunctionInfo;
+begin
+  Result := nil;
+
+  for i := FItems.Count - 1 downto 0 do
+  begin
+    Info := FunctionInfo[i];
+
+    if (Info.Proc = Proc) then
     begin
       Result := TFunctionInfoWrapper.Create(Info);
       break;
