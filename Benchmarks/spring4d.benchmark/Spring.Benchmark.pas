@@ -709,6 +709,10 @@ var
   // Valid values: 'true'/'yes'/1, 'false'/'no'/0.  Defaults to false.
   benchmark_counters_tabular: Boolean = False;
 
+  // Whether to add formatted args to the output.
+  // Valid values: 'true'/'yes'/1, 'false'/'no'/0.  Defaults to true.
+  benchmark_format_args: Boolean = True;
+
   // The level of verbose logging to output
   log_level: Integer = 0;
 
@@ -782,6 +786,7 @@ type
   public class var
     numCpus: Integer;
     cyclesPerSecond: Double;
+    cycleDuration: Double;
     caches: TArray<TCacheInfo>;
     scaling: TScaling;
     loadAvg: TArray<Double>;
@@ -984,6 +989,17 @@ const
   kRangeMultiplier = 8;
   kMaxFamilySize = 100;
   kMaxIterations = 1000000000;
+
+
+{$IFDEF MSWINDOWS}
+
+function QueryProcessCycleTime(ProcessHandle: THandle; var CycleTime: UInt64): BOOL; stdcall;
+  external kernel32 name 'QueryProcessCycleTime';
+
+function QueryThreadCycleTime(ThreadHandle: THandle; var CycleTime: UInt64): BOOL; stdcall;
+  external kernel32 name 'QueryThreadCycleTime';
+
+{$ENDIF}
 
 
 {$REGION 'Freepascal Support'}
@@ -1338,6 +1354,7 @@ begin
           '          [--benchmark_out_format=<json|console|csv>]' + sLineBreak +
           '          [--benchmark_color={auto|true|false}]' + sLineBreak +
           '          [--benchmark_counters_tabular={true|false}]' + sLineBreak +
+          '          [--benchmark_format_args={true|false}]' + sLineBreak +
           '          [--log_level=<verbosity>]');
   Halt(0);
 end;
@@ -1371,6 +1388,8 @@ begin
         ParseStringFlag(arg, 'benchmark_color', benchmark_color) or
         ParseBoolFlag(arg, 'benchmark_counters_tabular',
                             benchmark_counters_tabular) or
+        ParseBoolFlag(arg, 'benchmark_format_args',
+                            benchmark_format_args) or
         ParseInt32Flag(arg, 'log_level', log_level)) then
       if IsFlag(arg, 'help') then
         PrintUsageAndExit
@@ -1683,11 +1702,11 @@ function ProcessCPUUsage: Double;
 {$IFDEF MSWINDOWS}
 var
   proc: THandle;
-  creationTime, exitTime, kernelTime, userTime: TFileTime;
+  cycleTime: UInt64;
 begin
   proc := GetCurrentProcess;
-  if GetProcessTimes(proc, creationTime, exitTime, kernelTime, userTime) then
-    Exit(MakeTime(kernelTime, userTime));
+  if QueryProcessCycleTime(proc, cycleTime) then
+    Exit(cycleTime * TCPUInfo.cycleDuration);
   DiagnoseAndExit('GetProccessTimes() failed');
   Result := 0;
 end;
@@ -1706,11 +1725,11 @@ function ThreadCPUUsage: Double;
 {$IFDEF MSWINDOWS}
 var
   thisThread: THandle;
-  creationTime, exitTime, kernelTime, userTime: TFileTime;
+  cycleTime: UInt64;
 begin
   thisThread := GetCurrentThread;
-  if GetThreadTimes(thisThread, creationTime, exitTime, kernelTime, userTime) then
-    Exit(MakeTime(kernelTime, userTime));
+  if QueryThreadCycleTime(thisThread, cycleTime) then
+    Exit(cycleTime * TCPUInfo.cycleDuration);
   DiagnoseAndExit('GetThreadTimes() failed');
   Result := 0;
 end;
@@ -3819,6 +3838,7 @@ class constructor TCPUInfo.Create;
 begin
   numCpus := GetNumCPUs;
   cyclesPerSecond := GetCPUCyclesPerSecond;
+  cycleDuration := 1 / cyclesPerSecond;
   caches := GetCacheSizes;
   scaling := Unknown;
   loadAvg := nil;
@@ -3988,6 +4008,7 @@ begin
 
         // Add arguments to instance name
         i := 0;
+        if benchmark_format_args then
         for arg in args do
         begin
           if instance.name.args <> '' then
@@ -4004,12 +4025,15 @@ begin
           Inc(i);
         end;
 
-        if not IsZero(family.fMinTime) then
-          instance.name.minTime := Format('minTime:%0.3f', [family.fMinTime]);
-        if family.fIterations <> 0 then
-          instance.name.iterations := Format('iterations:%u', [family.fIterations]);
-        if family.fRepetitions <> 0 then
-          instance.name.pepetitions := Format('repeats:%d', [family.fRepetitions]);
+        if benchmark_format_args then
+        begin
+          if not IsZero(family.fMinTime) then
+            instance.name.minTime := Format('minTime:%0.3f', [family.fMinTime]);
+          if family.fIterations <> 0 then
+            instance.name.iterations := Format('iterations:%u', [family.fIterations]);
+          if family.fRepetitions <> 0 then
+            instance.name.pepetitions := Format('repeats:%d', [family.fRepetitions]);
+        end;
 
         if family.fMeasureProcessCpuTime then
           instance.name.timeType := 'processTime';
