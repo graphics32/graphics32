@@ -129,6 +129,8 @@ type
 // The interface is only valid while the binding it represents is registered.
 //------------------------------------------------------------------------------
 type
+  IBindingInfoEnumerator = interface;
+
   IBindingInfo = interface
     function GetFunctionID: NativeInt;
     function GetBindVariable: PPointer;
@@ -140,8 +142,13 @@ type
     property Name: string read GetName write SetName;
 
     // List of implementations of this binding.
-    // Note that the enumerator is a singleton per binding.
-    function GetEnumerator: IEnumerator<IFunctionInfo>;
+    function GetEnumerator: IBindingInfoEnumerator;
+  end;
+
+  IBindingInfoEnumerator = interface
+    function GetCurrent: IFunctionInfo;
+    function MoveNext: Boolean;
+    property Current: IFunctionInfo read GetCurrent;
   end;
 
 //------------------------------------------------------------------------------
@@ -367,27 +374,32 @@ end;
 //
 //------------------------------------------------------------------------------
 type
-  TBindingInfoWrapper = class(TInterfacedObject, IBindingInfo, IEnumerator, IEnumerator<IFunctionInfo>)
+  TBindingInfoWrapper = class(TInterfacedObject, IBindingInfo)
+  private type
+    TBindingInfoEnumerator = class(TInterfacedObject, IBindingInfoEnumerator)
+    private
+      FFunctionRegistry: TFunctionRegistry;
+      FBindingInfo: TFunctionRegistry.PFunctionBinding;
+      FIndex: integer;
+      FCurrent: PFunctionInfo;
+    private
+      // IBindingInfoEnumerator
+      function GetCurrent: IFunctionInfo;
+      function MoveNext: Boolean;
+    public
+      constructor Create(AFunctionRegistry: TFunctionRegistry; ABindingInfo: TFunctionRegistry.PFunctionBinding);
+    end;
+
   private
     FFunctionRegistry: TFunctionRegistry;
     FBindingInfo: TFunctionRegistry.PFunctionBinding;
-    FIndex: integer;
-    FCurrent: PFunctionInfo;
   private
     // IBindingInfo
     function GetFunctionID: NativeInt;
     function GetBindVariable: PPointer;
     function GetName: string;
     procedure SetName(const Value: string);
-    function GetEnumerator: IEnumerator<IFunctionInfo>;
-  private
-    // IEnumerator
-    function GetCurrent: TObject;
-    function MoveNext: boolean;
-    function GetCurrentFunctionInfo: IFunctionInfo;
-    procedure Reset;
-    // IEnumerator<IFunctionInfo>
-    function IEnumerator<IFunctionInfo>.GetCurrent = GetCurrentFunctionInfo;
+    function GetEnumerator: IBindingInfoEnumerator;
   public
     constructor Create(AFunctionRegistry: TFunctionRegistry; ABindingInfo: TFunctionRegistry.PFunctionBinding);
   end;
@@ -419,33 +431,46 @@ begin
   FBindingInfo.Name := Value;
 end;
 
-function TBindingInfoWrapper.GetEnumerator: IEnumerator<IFunctionInfo>;
+function TBindingInfoWrapper.GetEnumerator: IBindingInfoEnumerator;
 begin
-  FIndex := 0;
-  FCurrent := nil;
-  Result := Self;
+  Result := TBindingInfoEnumerator.Create(FFunctionRegistry, FBindingInfo);
 end;
 
-function TBindingInfoWrapper.GetCurrent: TObject;
+//------------------------------------------------------------------------------
+// TBindingInfoWrapper.TBindingInfoEnumerator
+//------------------------------------------------------------------------------
+constructor TBindingInfoWrapper.TBindingInfoEnumerator.Create(AFunctionRegistry: TFunctionRegistry;
+  ABindingInfo: TFunctionRegistry.PFunctionBinding);
 begin
-  Result := nil;
+  inherited Create;
+  FFunctionRegistry := AFunctionRegistry;
+  FBindingInfo := ABindingInfo;
+  FIndex := -1;
 end;
 
-function TBindingInfoWrapper.MoveNext: boolean;
+function TBindingInfoWrapper.TBindingInfoEnumerator.GetCurrent: IFunctionInfo;
+begin
+  if (FCurrent <> nil) then
+    Result := TFunctionInfoWrapper.Create(FCurrent)
+  else
+    Result := nil;
+end;
+
+function TBindingInfoWrapper.TBindingInfoEnumerator.MoveNext: Boolean;
 var
   Info: PFunctionInfo;
 begin
   FCurrent := nil;
   Result := False;
-  while (FIndex < FFunctionRegistry.FItems.Count) do
+  while (FIndex < FFunctionRegistry.FItems.Count-1) do
   begin
+    Inc(FIndex);
+
 {$IFNDEF FPC}
     Info := @FFunctionRegistry.FItems.List[FIndex];
 {$ELSE}
     Info := @(TFunctionInfoListCracker(FFunctionRegistry.FItems).FItems[FIndex]);
 {$ENDIF}
-
-    Inc(FIndex);
 
     if (Info.FunctionID = FBindingInfo.FunctionID) then
     begin
@@ -456,19 +481,6 @@ begin
   end;
 end;
 
-procedure TBindingInfoWrapper.Reset;
-begin
-  FIndex := 0;
-  FCurrent := nil;
-end;
-
-function TBindingInfoWrapper.GetCurrentFunctionInfo: IFunctionInfo;
-begin
-  if (FCurrent <> nil) then
-    Result := TFunctionInfoWrapper.Create(FCurrent)
-  else
-    Result := nil;
-end;
 
 //------------------------------------------------------------------------------
 //
