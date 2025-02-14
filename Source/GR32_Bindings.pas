@@ -155,6 +155,7 @@ type
     property Current: IBindingInfo read GetCurrent;
   end;
 
+
 //------------------------------------------------------------------------------
 //
 //      TFunctionPriority
@@ -191,6 +192,18 @@ type
       Name: string;
     end;
     PFunctionBinding = ^TFunctionBinding;
+
+    TFunctionInfoProxy = record
+    private
+      FFunctionInfo: PFunctionInfo;
+    private
+      function GetName: string;
+      procedure SetName(const Value: string);
+      function GetInfo: IFunctionInfo;
+    public
+      property Info: IFunctionInfo read GetInfo;
+      property Name: string read GetName write SetName;
+    end;
 
     TFunctionInfoList = TList<TFunctionInfo>;
     TFunctionBindingList = TList<TFunctionBinding>;
@@ -239,9 +252,9 @@ type
 
     // Register function binding implementations;
     // Identify bound function using function IDs
-    function Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0): IFunctionInfo; overload;
+    function Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0): TFunctionInfoProxy; overload;
     // Identify bound function using pointer to binding variable
-    function Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0): IFunctionInfo; overload;
+    function Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer = BindingPriorityDefault; Flags: Cardinal = 0): TFunctionInfoProxy; overload;
 
     // Function rebinding support
     procedure RebindAll(AForce: boolean; PriorityCallback: TFunctionPriority = nil); overload;
@@ -557,7 +570,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-function TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal): IFunctionInfo;
+function TFunctionRegistry.Add(BindVariable: PPointer; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal): TFunctionInfoProxy;
 var
   FunctionID: NativeInt;
 begin
@@ -566,7 +579,7 @@ begin
   Result := Add(FunctionID, Proc, InstructionSupport, Priority, Flags);
 end;
 
-function TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal): IFunctionInfo;
+function TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; InstructionSupport: TInstructionSupport; Priority: Integer; Flags: Cardinal): TFunctionInfoProxy;
 var
   Info: TFunctionInfo;
   Index: integer;
@@ -580,7 +593,7 @@ begin
 
   Index := FItems.Add(Info);
 
-  Result := TFunctionInfoWrapper.Create(FunctionInfo[Index]);
+  Result.FFunctionInfo := FunctionInfo[Index];
 
   FNeedRebind := True;
 end;
@@ -893,6 +906,24 @@ begin
   FBindings.Add(Binding);
 
   FNeedRebind := True;
+end;
+
+//------------------------------------------------------------------------------
+// TFunctionRegistry.TFunctionInfoProxy
+//------------------------------------------------------------------------------
+function TFunctionRegistry.TFunctionInfoProxy.GetName: string;
+begin
+  Result := FFunctionInfo.Name;
+end;
+
+procedure TFunctionRegistry.TFunctionInfoProxy.SetName(const Value: string);
+begin
+  FFunctionInfo.Name := Value;
+end;
+
+function TFunctionRegistry.TFunctionInfoProxy.GetInfo: IFunctionInfo;
+begin
+  Result := TFunctionInfoWrapper.Create(FFunctionInfo);
 end;
 
 //------------------------------------------------------------------------------
