@@ -97,19 +97,53 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure Benchmark(BenchmarkFunc: TFunction; const Name: string);
+const
+  Sizes: array of integer = [256, 1024, 4096, 8192];
+  Radii: array of integer = [2, 8, 32, 64];
+  Implementations: array[0..3] of
+    record
+      Proc: TFunction;
+      Name: string;
+      Slow: boolean;
+    end = (
+      (Proc: BenchmarkNoBlur32; Name: 'MemCopy (no blur)'; Slow: False),
+      (Proc: BenchmarkBlur32; Name: 'Blur32'; Slow: False),
+      (Proc: BenchmarkOldGaussianBlur; Name: 'GaussianBlur'; Slow: True),
+      (Proc: BenchmarkOldFastBlur; Name: 'FastBlur'; Slow: False)
+    );
+
+procedure Main;
 begin
-  Spring.Benchmark.Benchmark(BenchmarkFunc, Name).RangeMultiplier(8).Ranges([Range(16, 4096), Range(16, 4096), Range(4, 64)]).TimeUnit(kMillisecond);
+  Spring.Benchmark.benchmark_format_args := False;
+
+  for var Width in Sizes do
+  for var Height in Sizes do
+  for var Radius in Radii do
+  for var Implement in Implementations do
+  begin
+    if (Implement.Slow) and ((Width > 2048) or (Height > 2048) or (Radius > 32)) then
+      continue;
+
+    var bm := Spring.Benchmark.Benchmark(Implement.Proc, Implement.Name+Format('/%d x %d, radius: %d', [Width, Height, Radius]));
+
+    bm.Args([Width, Height, Radius]);
+
+    bm.TimeUnit(kMillisecond);
+  end;
+
+  Spring.Benchmark.Benchmark_Main;
 end;
 
 //------------------------------------------------------------------------------
 
 begin
-  Benchmark(BenchmarkNoBlur32, 'MemCopy (no blur)');
-  Benchmark(BenchmarkBlur32, 'Blur32');
-  Benchmark(BenchmarkOldGaussianBlur, 'GaussianBlur');
-  Benchmark(BenchmarkOldFastBlur, 'FastBlur');
-
-  Spring.Benchmark.Benchmark_Main;
+  try
+    Main;
+    WriteLn('Done');
+    ReadLn;
+  except
+    on E: Exception do
+      Writeln(E.ClassName, ': ', E.Message);
+  end;
 end.
 

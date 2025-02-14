@@ -11,9 +11,6 @@ uses
   GR32_Math,
   GR32_Polygons;
 
-const
-  Sizes: array of integer = [256, 512, 1024, 2048, 4096, 8192];
-
 procedure BenchmarkMakeAlpha(const state: TState);
 begin
   var Proc := TFillProc(state[0]);
@@ -50,8 +47,12 @@ begin
 
 end;
 
+const
+  Sizes: array of integer = [256, 512, 1024, 2048, 4096, 8192];
+
 procedure Main;
 begin
+  Spring.Benchmark.benchmark_format_args := False;
 
   var Binding := PolygonsRegistry.FindBinding('MakeAlphaNonZeroUP');
   Assert(Binding <> nil);
@@ -61,7 +62,7 @@ begin
     for var Implement in Binding do
     begin
       var bm := Spring.Benchmark.Benchmark(BenchmarkMakeAlpha, Implement.Name + '/Size:' + Size.ToString).Args([Int64(Implement.Proc), Size]);
-      bm.Iterations(1000);
+      bm.TimeUnit(kMicrosecond);
     end;
   end;
 
@@ -71,6 +72,7 @@ end;
 begin
   try
     Main;
+    WriteLn('Done');
     ReadLn;
   except
     on E: Exception do

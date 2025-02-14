@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{7258BC99-1D9C-4D1E-8341-3A38688CE345}</ProjectGuid>
+        <ProjectGuid>{A6B460C8-209E-41C4-91FA-3053741E6A7C}</ProjectGuid>
         <ProjectVersion>20.1</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
@@ -8,8 +8,8 @@
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
-        <MainSource>Benchmark.Transpose.dpr</MainSource>
-        <ProjectName Condition="'$(ProjectName)'==''">Benchmark.Transpose</ProjectName>
+        <MainSource>Benchmark.LowLevel.FastTrunc.dpr</MainSource>
+        <ProjectName Condition="'$(ProjectName)'==''">Benchmark.LowLevel.FastTrunc</ProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -50,12 +50,6 @@
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win64)'!=''">
-        <Cfg_2_Win64>true</Cfg_2_Win64>
-        <CfgParent>Cfg_2</CfgParent>
-        <Cfg_2>true</Cfg_2>
-        <Base>true</Base>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>.\Lib\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\Bin\$(Platform)\$(Config)</DCC_ExeOutput>
@@ -65,7 +59,7 @@
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;$(DCC_Namespace)</DCC_Namespace>
-        <SanitizedProjectName>Benchmark_Transpose</SanitizedProjectName>
+        <SanitizedProjectName>Benchmark_LowLevel_FastTrunc</SanitizedProjectName>
         <DCC_UnitSearchPath>..\Spring4d.Benchmark;..\..\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Locale>1030</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
@@ -85,11 +79,12 @@
         <DCC_UsePackage>FireDACIBDriver;dxPSdxSpreadSheetLnkRS28;vclwinx;DataSnapServer;fmx;emshosting;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;DBXMSSQLDriver;FireDACCommonODBC;emsclient;FireDACCommonDriver;TeeGL9_;IndyProtocols;dxHttpIndyRequestRS28;vclx;dxTileControlRS28;cxExportRS28;IndyIPClient;vcledge;dxCloudServiceLibraryRS28;cxLibraryRS28;cxPivotGridOLAPRS28;dxGanttControlRS28;dxRichEditDocumentModelRS28;dxPScxPivotGridLnkRS28;dxPScxVGridLnkRS28;dxPSdxDBOCLnkRS28;dxPSdxMapControlLnkRS28;dxGDIPlusRS28;dxPSPrVwRibbonRS28;emsedge;DBXFirebirdDriver;madBasic_;dxCoreRS28;cxPivotGridRS28;dxPSdxPDFViewerLnkRS28;inetdb;dxSpreadSheetCoreRS28;cxSchedulerTreeBrowserRS28;dxPSCoreRS28;FireDACSqliteDriver;DbxClientDriver;dxSpreadSheetRS28;FireDACASADriver;Tee9_;dxTabbedMDIRS28;dxSkinsCoreRS28;soapmidas;dxBarRS28;GR32_R;vclactnband;dxADOServerModeRS28;dxWizardControlRS28;fmxFireDAC;dbexpress;dxFireDACServerModeRS28;FireDACInfxDriver;DBXMySQLDriver;VclSmp;inet;DataSnapCommon;dxServerModeRS28;dxPSdxLCLnkRS28;vcltouch;fmxase;cxTreeListRS28;dxBarDBNavRS28;dxdbtrRS28;DBXOdbcDriver;dbrtl;TeeImport9_;FireDACDBXDriver;FireDACOracleDriver;dxPSLnksRS28;fmxdae;dxPScxCommonRS28;dxPSdxChartControlLnkRS28;FireDACMSAccDriver;dxNavBarRS28;CustomIPTransport;FireDACMSSQLDriver;TeePro9_;dxSpreadSheetReportDesignerRS28;DataSnapConnectors;dxChartControlRS28;DBXInterBaseDriver;vcldsnap;madExcept_;FireDACMongoDBDriver;dxComnRS28;dxFlowChartDesignerRS28;IndySystem;dxSpreadSheetConditionalFormattingDialogsRS28;cxVerticalGridRS28;FireDACTDataDriver;cxFireDACAdaptersRS28;dxOrgChartAdvancedCustomizeFormRS28;vcldb;dxDBXServerModeRS28;cxSchedulerRS28;dxRibbonRS28;dxmdsRS28;dxRichEditControlRS28;cxSchedulerGridRS28;dxPScxSchedulerLnkRS28;dxFlowChartLayoutsRS28;dxPScxExtCommonRS28;dxPSdxOCLnkRS28;dxPsPrVwAdvRS28;dxdborRS28;vclFireDAC;madDisAsm_;dxRichEditControlCoreRS28;FireDACCommon;FireDACODBCDriver;dxPSdxDBTVLnkRS28;emsserverresource;dxRibbonCustomizationFormRS28;IndyCore;RESTBackendComponents;dxPScxGridLnkRS28;cxPivotGridChartRS28;dxBarExtDBItemsRS28;dxGaugeControlRS28;dxRichEditCoreRS28;cxTreeListdxBarPopupMenuRS28;rtl;FireDACMySQLDriver;TeeDB9_;dxDockingRS28;FireDACADSDriver;TeeUI9_;dxPDFViewerRS28;dxFlowChartAdvancedCustomizeFormRS28;RESTComponents;DBXSqliteDriver;vcl;IndyIPServer;dsnapxml;dsnapcon;DataSnapClient;adortl;dxBarExtItemsRS28;cxSchedulerWebServiceStorageRS28;dxtrmdRS28;DBXSybaseASEDriver;TeeLanguage9_;dxorgcRS28;dxSpreadSheetCoreConditionalFormattingDialogsRS28;DBXDb2Driver;dxPSdxFCLnkRS28;dxPSdxGaugeControlLnkRS28;dxPSRichEditControlLnkRS28;dxSpellCheckerRS28;cxGridRS28;vclimg;DataSnapFireDAC;emsclientfiredac;FireDACPgDriver;FireDAC;FireDACDSDriver;inetdbxpress;xmlrtl;tethering;TeeImage9_;dxMapControlRS28;cxADOAdaptersRS28;dsnap;CloudService;DBXSybaseASADriver;DBXOracleDriver;FireDACDb2Driver;DBXInformixDriver;cxSchedulerRibbonStyleEventEditorRS28;dxPScxTLLnkRS28;fmxobj;dxFlowChartRS28;dxPScxPCProdRS28;DatasnapConnectorsFreePascal;soaprtl;soapserver;TeeWorld9_;$(DCC_UsePackage)</DCC_UsePackage>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
         <UWP_DelphiLogo44>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_44.png</UWP_DelphiLogo44>
         <UWP_DelphiLogo150>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_150.png</UWP_DelphiLogo150>
+        <Manifest_File>(None)</Manifest_File>
+        <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <DCC_UsePackage>FireDACIBDriver;dxPSdxSpreadSheetLnkRS28;vclwinx;DataSnapServer;fmx;emshosting;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;DBXMSSQLDriver;FireDACCommonODBC;emsclient;FireDACCommonDriver;IndyProtocols;dxHttpIndyRequestRS28;vclx;dxTileControlRS28;cxExportRS28;IndyIPClient;vcledge;dxCloudServiceLibraryRS28;cxLibraryRS28;cxPivotGridOLAPRS28;dxGanttControlRS28;dxRichEditDocumentModelRS28;dxPScxPivotGridLnkRS28;dxPScxVGridLnkRS28;dxPSdxDBOCLnkRS28;dxPSdxMapControlLnkRS28;dxGDIPlusRS28;dxPSPrVwRibbonRS28;emsedge;DBXFirebirdDriver;dxCoreRS28;cxPivotGridRS28;dxPSdxPDFViewerLnkRS28;inetdb;dxSpreadSheetCoreRS28;cxSchedulerTreeBrowserRS28;dxPSCoreRS28;FireDACSqliteDriver;DbxClientDriver;dxSpreadSheetRS28;FireDACASADriver;dxTabbedMDIRS28;dxSkinsCoreRS28;soapmidas;dxBarRS28;vclactnband;dxADOServerModeRS28;dxWizardControlRS28;fmxFireDAC;dbexpress;dxFireDACServerModeRS28;FireDACInfxDriver;DBXMySQLDriver;VclSmp;inet;DataSnapCommon;dxServerModeRS28;dxPSdxLCLnkRS28;vcltouch;fmxase;cxTreeListRS28;dxBarDBNavRS28;dxdbtrRS28;DBXOdbcDriver;dbrtl;FireDACDBXDriver;FireDACOracleDriver;dxPSLnksRS28;fmxdae;dxPScxCommonRS28;dxPSdxChartControlLnkRS28;FireDACMSAccDriver;dxNavBarRS28;CustomIPTransport;FireDACMSSQLDriver;dxSpreadSheetReportDesignerRS28;DataSnapConnectors;dxChartControlRS28;DBXInterBaseDriver;vcldsnap;FireDACMongoDBDriver;dxComnRS28;dxFlowChartDesignerRS28;IndySystem;dxSpreadSheetConditionalFormattingDialogsRS28;cxVerticalGridRS28;FireDACTDataDriver;cxFireDACAdaptersRS28;dxOrgChartAdvancedCustomizeFormRS28;vcldb;dxDBXServerModeRS28;cxSchedulerRS28;dxRibbonRS28;dxmdsRS28;dxRichEditControlRS28;cxSchedulerGridRS28;dxPScxSchedulerLnkRS28;dxFlowChartLayoutsRS28;dxPScxExtCommonRS28;dxPSdxOCLnkRS28;dxPsPrVwAdvRS28;dxdborRS28;vclFireDAC;dxRichEditControlCoreRS28;FireDACCommon;FireDACODBCDriver;dxPSdxDBTVLnkRS28;emsserverresource;dxRibbonCustomizationFormRS28;IndyCore;RESTBackendComponents;dxPScxGridLnkRS28;cxPivotGridChartRS28;dxBarExtDBItemsRS28;dxGaugeControlRS28;dxRichEditCoreRS28;cxTreeListdxBarPopupMenuRS28;rtl;FireDACMySQLDriver;dxDockingRS28;FireDACADSDriver;dxPDFViewerRS28;dxFlowChartAdvancedCustomizeFormRS28;RESTComponents;DBXSqliteDriver;vcl;IndyIPServer;dsnapxml;dsnapcon;DataSnapClient;adortl;dxBarExtItemsRS28;cxSchedulerWebServiceStorageRS28;dxtrmdRS28;DBXSybaseASEDriver;dxorgcRS28;dxSpreadSheetCoreConditionalFormattingDialogsRS28;DBXDb2Driver;dxPSdxFCLnkRS28;dxPSdxGaugeControlLnkRS28;dxPSRichEditControlLnkRS28;dxSpellCheckerRS28;cxGridRS28;vclimg;DataSnapFireDAC;emsclientfiredac;FireDACPgDriver;FireDAC;FireDACDSDriver;inetdbxpress;xmlrtl;tethering;dxMapControlRS28;cxADOAdaptersRS28;dsnap;CloudService;DBXSybaseASADriver;DBXOracleDriver;FireDACDb2Driver;DBXInformixDriver;cxSchedulerRibbonStyleEventEditorRS28;dxPScxTLLnkRS28;fmxobj;dxFlowChartRS28;dxPScxPCProdRS28;DatasnapConnectorsFreePascal;soaprtl;soapserver;$(DCC_UsePackage)</DCC_UsePackage>
@@ -115,18 +110,12 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>(None)</Manifest_File>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
-        <DCC_Inlining>off</DCC_Inlining>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
-        <VerInfo_Locale>1033</VerInfo_Locale>
-        <Manifest_File>(None)</Manifest_File>
-        <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -150,7 +139,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">Benchmark.Transpose.dpr</Source>
+                    <Source Name="MainSource">Benchmark.LowLevel.FastTrunc.dpr</Source>
                 </Source>
                 <Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
@@ -173,21 +162,15 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Bin\Win32\Debug\Benchmark_Transpose.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="Bin\Win32\Debug\Benchmark.Blend.CombineMem.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>Benchmark_Transpose.exe</RemoteName>
+                        <RemoteName>Benchmark_Blend_CombineMem.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Bin\Win32\Release\Benchmark_Transpose.exe" Configuration="Release" Class="ProjectOutput">
+                <DeployFile LocalName="Bin\Win32\Release\Benchmark.Blend.CombineMem.exe" Configuration="Release" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>Benchmark_Transpose.exe</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="Bin\Win64\Release\Benchmark.Transpose.exe" Configuration="Release" Class="ProjectOutput">
-                    <Platform Name="Win64">
-                        <RemoteName>Benchmark_Transpose.exe</RemoteName>
+                        <RemoteName>Benchmark_Blend_CombineMem.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

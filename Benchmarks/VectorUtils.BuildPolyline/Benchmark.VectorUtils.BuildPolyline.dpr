@@ -5,6 +5,7 @@ program Benchmark.VectorUtils.BuildPolyline;
 {$I GR32.inc}
 
 uses
+  SysUtils,
   System.Types,
   Spring.Benchmark,
   GR32,
@@ -23,6 +24,8 @@ begin
 
   for var _ in state do
   begin
+    state.PauseTiming;
+
     RandSeed := 0;
 
     var Polyline: TArrayOfFloatPoint;
@@ -30,6 +33,8 @@ begin
 
     for var i := 0 to High(Polyline) do
       Polyline[i] := FloatPoint(Random(1000), Random(1000));
+
+    state.ResumeTiming;
 
     PolylineBuilder.BuildPolyLine(Polyline, 2.0, JoinStyle, esButt);
   end;
@@ -45,6 +50,8 @@ begin
 
   for var _ in state do
   begin
+    state.PauseTiming;
+
     RandSeed := 0;
 
     var PolyPolyline: TArrayOfArrayOfFloatPoint;
@@ -57,18 +64,36 @@ begin
         PolyPolyline[i, j] := FloatPoint(Random(1000), Random(1000));
     end;
 
+    state.ResumeTiming;
+
     PolylineBuilder.BuildPolyPolyLine(PolyPolyline, True, 2.0, JoinStyle, esButt);
   end;
 end;
 
 
+procedure Main;
 begin
-  for var PolyLineBuilderClass in [PolyLineBuilderReference, PolyLineBuilderAngus, PolyLineBuilderClipper] do
-    Spring.Benchmark.Benchmark(BM_BuildPolyline, 'BuildPolyLine').Arg(Int64(PolyLineBuilderClass)).ArgName(PolyLineBuilderClass.ClassName).TimeUnit(kMillisecond);
+  Spring.Benchmark.benchmark_format_args := False;
 
   for var PolyLineBuilderClass in [PolyLineBuilderReference, PolyLineBuilderAngus, PolyLineBuilderClipper] do
-    Spring.Benchmark.Benchmark(BM_BuildPolyPolyline, 'BuildPolyPolyLine').Arg(Int64(PolyLineBuilderClass)).ArgName(PolyLineBuilderClass.ClassName).TimeUnit(kMillisecond);
+    Spring.Benchmark.Benchmark(BM_BuildPolyline, 'BuildPolyLine/'+PolyLineBuilderClass.ClassName).Arg(Int64(PolyLineBuilderClass)).TimeUnit(kMillisecond);
+
+  for var PolyLineBuilderClass in [PolyLineBuilderReference, PolyLineBuilderAngus, PolyLineBuilderClipper] do
+    Spring.Benchmark.Benchmark(BM_BuildPolyPolyline, 'BuildPolyPolyLine/'+PolyLineBuilderClass.ClassName).Arg(Int64(PolyLineBuilderClass)).TimeUnit(kMillisecond);
+
 
   Spring.Benchmark.Benchmark_Main;
+end;
+
+
+begin
+  try
+    Main;
+    WriteLn('Done');
+    ReadLn;
+  except
+    on E: Exception do
+      Writeln(E.ClassName, ': ', E.Message);
+  end;
 end.
 

@@ -455,14 +455,14 @@ var
 
 procedure RegisterBindings;
 begin
-  FBlurRegistry.RegisterBinding(@@Blur32Proc);
-  FBlurRegistry.RegisterBinding(@@BlurInplace32Proc);
+  FBlurRegistry.RegisterBinding(@@Blur32Proc, 'Blur32Proc');
+  FBlurRegistry.RegisterBinding(@@BlurInplace32Proc, 'BlurInplace32Proc');
 
-  FBlurRegistry.RegisterBinding(@@GammaBlur32Proc);
-  FBlurRegistry.RegisterBinding(@@GammaBlurInplace32Proc);
+  FBlurRegistry.RegisterBinding(@@GammaBlur32Proc, 'GammaBlur32Proc');
+  FBlurRegistry.RegisterBinding(@@GammaBlurInplace32Proc, 'GammaBlurInplace32Proc');
 
-  FBlurRegistry.RegisterBinding(@@HorizontalBlur32);
-  FBlurRegistry.RegisterBinding(@@GammaHorizontalBlur32);
+  FBlurRegistry.RegisterBinding(@@HorizontalBlur32, 'HorizontalBlur32');
+  FBlurRegistry.RegisterBinding(@@GammaHorizontalBlur32, 'GammaHorizontalBlur32');
 
   // Default fallback stubs for unimplemented functions
   FBlurRegistry.Add(@@HorizontalBlur32,         @Blur32NotImplemented,          [isPascal], FBlurRegistry.WORST_PRIORITY);

@@ -1,0 +1,120 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{5611284B-ECBF-4D96-8C01-2A096247E16D}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Blur\Benchmark.Blur.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Transpose\Benchmark.Transpose.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="VectorUtils.BuildPolyline\Benchmark.VectorUtils.BuildPolyline.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="LowLevel.Mirror\Benchmark.Mirror.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Blend.CombineMem\Benchmark.Blend.CombineMem.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="LowLevel.FastTrunc\Benchmark.LowLevel.FastTrunc.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Math.CumSum\Benchmark.Math.CumSum.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Polygons.MakeAlpha\Benchmark.Polygons.MakeAlpha.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="Benchmark_Blur">
+        <MSBuild Projects="Blur\Benchmark.Blur.dproj"/>
+    </Target>
+    <Target Name="Benchmark_Blur:Clean">
+        <MSBuild Projects="Blur\Benchmark.Blur.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_Blur:Make">
+        <MSBuild Projects="Blur\Benchmark.Blur.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Benchmark_Transpose">
+        <MSBuild Projects="Transpose\Benchmark.Transpose.dproj"/>
+    </Target>
+    <Target Name="Benchmark_Transpose:Clean">
+        <MSBuild Projects="Transpose\Benchmark.Transpose.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_Transpose:Make">
+        <MSBuild Projects="Transpose\Benchmark.Transpose.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Benchmark_VectorUtils_BuildPolyline">
+        <MSBuild Projects="VectorUtils.BuildPolyline\Benchmark.VectorUtils.BuildPolyline.dproj"/>
+    </Target>
+    <Target Name="Benchmark_VectorUtils_BuildPolyline:Clean">
+        <MSBuild Projects="VectorUtils.BuildPolyline\Benchmark.VectorUtils.BuildPolyline.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_VectorUtils_BuildPolyline:Make">
+        <MSBuild Projects="VectorUtils.BuildPolyline\Benchmark.VectorUtils.BuildPolyline.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Benchmark_Mirror">
+        <MSBuild Projects="LowLevel.Mirror\Benchmark.Mirror.dproj"/>
+    </Target>
+    <Target Name="Benchmark_Mirror:Clean">
+        <MSBuild Projects="LowLevel.Mirror\Benchmark.Mirror.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_Mirror:Make">
+        <MSBuild Projects="LowLevel.Mirror\Benchmark.Mirror.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Benchmark_Blend_CombineMem">
+        <MSBuild Projects="Blend.CombineMem\Benchmark.Blend.CombineMem.dproj"/>
+    </Target>
+    <Target Name="Benchmark_Blend_CombineMem:Clean">
+        <MSBuild Projects="Blend.CombineMem\Benchmark.Blend.CombineMem.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_Blend_CombineMem:Make">
+        <MSBuild Projects="Blend.CombineMem\Benchmark.Blend.CombineMem.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Benchmark_LowLevel_FastTrunc">
+        <MSBuild Projects="LowLevel.FastTrunc\Benchmark.LowLevel.FastTrunc.dproj"/>
+    </Target>
+    <Target Name="Benchmark_LowLevel_FastTrunc:Clean">
+        <MSBuild Projects="LowLevel.FastTrunc\Benchmark.LowLevel.FastTrunc.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_LowLevel_FastTrunc:Make">
+        <MSBuild Projects="LowLevel.FastTrunc\Benchmark.LowLevel.FastTrunc.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Benchmark_Math_CumSum">
+        <MSBuild Projects="Math.CumSum\Benchmark.Math.CumSum.dproj"/>
+    </Target>
+    <Target Name="Benchmark_Math_CumSum:Clean">
+        <MSBuild Projects="Math.CumSum\Benchmark.Math.CumSum.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_Math_CumSum:Make">
+        <MSBuild Projects="Math.CumSum\Benchmark.Math.CumSum.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Benchmark_Polygons_MakeAlpha">
+        <MSBuild Projects="Polygons.MakeAlpha\Benchmark.Polygons.MakeAlpha.dproj"/>
+    </Target>
+    <Target Name="Benchmark_Polygons_MakeAlpha:Clean">
+        <MSBuild Projects="Polygons.MakeAlpha\Benchmark.Polygons.MakeAlpha.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_Polygons_MakeAlpha:Make">
+        <MSBuild Projects="Polygons.MakeAlpha\Benchmark.Polygons.MakeAlpha.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="Benchmark_Blur;Benchmark_Transpose;Benchmark_VectorUtils_BuildPolyline;Benchmark_Mirror;Benchmark_Blend_CombineMem;Benchmark_LowLevel_FastTrunc;Benchmark_Math_CumSum;Benchmark_Polygons_MakeAlpha"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="Benchmark_Blur:Clean;Benchmark_Transpose:Clean;Benchmark_VectorUtils_BuildPolyline:Clean;Benchmark_Mirror:Clean;Benchmark_Blend_CombineMem:Clean;Benchmark_LowLevel_FastTrunc:Clean;Benchmark_Math_CumSum:Clean;Benchmark_Polygons_MakeAlpha:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="Benchmark_Blur:Make;Benchmark_Transpose:Make;Benchmark_VectorUtils_BuildPolyline:Make;Benchmark_Mirror:Make;Benchmark_Blend_CombineMem:Make;Benchmark_LowLevel_FastTrunc:Make;Benchmark_Math_CumSum:Make;Benchmark_Polygons_MakeAlpha:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
