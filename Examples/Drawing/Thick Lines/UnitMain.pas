@@ -40,7 +40,7 @@ uses
 type
   TFormThickLineTest = class(TForm)
     PaintBoxGDIThin: TPaintBox;
-    PaintBox32_Thin: TPaintBox32;
+    PaintBox32_ThinAlpha: TPaintBox32;
     Label1: TLabel;
     Label2: TLabel;
     PaintBoxGDIThick: TPaintBox;
@@ -50,14 +50,17 @@ type
     ButtonRedraw: TButton;
     Label5: TLabel;
     PaintBox32_ThickLine: TPaintBox32;
+    Label6: TLabel;
+    PaintBox32_Thin: TPaintBox32;
     procedure PaintBoxGDIThinPaint(Sender: TObject);
-    procedure PaintBox32_ThinPaintBuffer(Sender: TObject);
+    procedure PaintBox32_ThinAlphaPaintBuffer(Sender: TObject);
     procedure PaintBoxGDIThickPaint(Sender: TObject);
     procedure PaintBox32_ThickPaintBuffer(Sender: TObject);
     procedure ButtonRedrawClick(Sender: TObject);
     procedure PaintBox32_ThickLinePaintBuffer(Sender: TObject);
     procedure PaintBoxClick(Sender: TObject);
     procedure PaintBox32Click(Sender: TObject);
+    procedure PaintBox32_ThinPaintBuffer(Sender: TObject);
   private
     FDoPaint: boolean;
   public
@@ -86,6 +89,7 @@ uses
 const
   MinLineCount = 200000;
   MinTestTime = 1000;
+  MaxTestTime = 4500; // Windows will consider the application hung after 5 seconds
   ThickLineWidth = 10;
 
 //------------------------------------------------------------------------------
@@ -96,6 +100,7 @@ begin
   try
 
     Invalidate;
+    PaintBox32_ThinAlpha.Invalidate;
     PaintBox32_Thin.Invalidate;
     PaintBox32_Thick.Invalidate;
     PaintBox32_ThickLine.Invalidate;
@@ -146,27 +151,27 @@ begin
 
   Screen.Cursor := crHourGlass;
 
-  PaintBoxGDIThin.Canvas.Brush.Color := clWhite;
-  PaintBoxGDIThin.Canvas.Brush.Style := bsSolid;
-  PaintBoxGDIThin.Canvas.FillRect(PaintBoxGDIThin.Canvas.ClipRect);
+  TPaintBox(Sender).Canvas.Brush.Color := clWhite;
+  TPaintBox(Sender).Canvas.Brush.Style := bsSolid;
+  TPaintBox(Sender).Canvas.FillRect(PaintBoxGDIThin.Canvas.ClipRect);
 
-  PaintBoxGDIThin.Canvas.Pen.Width := 1;
-  PaintBoxGDIThin.Canvas.MoveTo(0,0);
+  TPaintBox(Sender).Canvas.Pen.Width := 1;
+  TPaintBox(Sender).Canvas.MoveTo(0,0);
 
   RandSeed := 0;
   var Stopwatch := TStopwatch.StartNew;
 
   var LineCount := 0;
-  while (LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime) do
+  while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
-    PaintBoxGDIThin.Canvas.Pen.Color := Random($00FFFFFF);
-    PaintBoxGDIThin.Canvas.LineTo(Random(PaintBoxGDIThin.Width), Random(PaintBoxGDIThin.Height));
+    TPaintBox(Sender).Canvas.Pen.Color := Random($00FFFFFF);
+    TPaintBox(Sender).Canvas.LineTo(Random(TPaintBox(Sender).Width), Random(TPaintBox(Sender).Height));
   end;
 
   Stopwatch.Stop;
 
-  Label1.Caption := Format('TCanvas.LineTo, Width=1. Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  Label1.Caption := Format('TCanvas.LineTo, Width=1.'#13'Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
   Screen.Cursor := crDefault;
 end;
 
@@ -182,32 +187,32 @@ begin
     exit;
 
   Screen.Cursor := crHourGlass;
-  PaintBoxGDIThick.Canvas.Pen.Width := ThickLineWidth;
-  PaintBoxGDIThick.Canvas.MoveTo(0,0);
-  PaintBoxGDIThick.Canvas.Brush.Color := clWhite;
-  PaintBoxGDIThick.Canvas.Brush.Style := bsSolid;
-  PaintBoxGDIThick.Canvas.FillRect(PaintBoxGDIThick.Canvas.ClipRect);
+  TPaintBox(Sender).Canvas.Pen.Width := ThickLineWidth;
+  TPaintBox(Sender).Canvas.MoveTo(0,0);
+  TPaintBox(Sender).Canvas.Brush.Color := clWhite;
+  TPaintBox(Sender).Canvas.Brush.Style := bsSolid;
+  TPaintBox(Sender).Canvas.FillRect(TPaintBox(Sender).Canvas.ClipRect);
 
   RandSeed := 0;
   var Stopwatch := TStopwatch.StartNew;
 
   var LineCount := 0;
-  while (LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime) do
+  while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
-    PaintBoxGDIThick.Canvas.Pen.Color := Random($00FFFFFF);
-    PaintBoxGDIThick.Canvas.LineTo(Random(PaintBoxGDIThick.Width), Random(PaintBoxGDIThick.Height));
+    TPaintBox(Sender).Canvas.Pen.Color := Random($00FFFFFF);
+    TPaintBox(Sender).Canvas.LineTo(Random(TPaintBox(Sender).Width), Random(TPaintBox(Sender).Height));
   end;
 
   Stopwatch.Stop;
 
-  Label3.Caption := Format('TCanvas.LineTo, Width=%d. Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  Label3.Caption := Format('TCanvas.LineTo, Width=%d.'#13'Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
   Screen.Cursor := crDefault;
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TFormThickLineTest.PaintBox32_ThinPaintBuffer(Sender: TObject);
+procedure TFormThickLineTest.PaintBox32_ThinAlphaPaintBuffer(Sender: TObject);
 begin
   (*
   ** Graphics32, thin line. Anti-aliased & Alpha blended.
@@ -217,28 +222,65 @@ begin
     exit;
 
   Screen.Cursor := crHourGlass;
-  PaintBox32_Thin.Buffer.Clear(clWhite32);
-  PaintBox32_Thin.Buffer.DrawMode := dmOpaque;
-  PaintBox32_Thin.Buffer.CombineMode := cmBlend;
-  PaintBox32_Thin.Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
+  TPaintBox32(Sender).Buffer.Clear(clWhite32);
+  TPaintBox32(Sender).Buffer.DrawMode := dmOpaque;
+  TPaintBox32(Sender).Buffer.CombineMode := cmBlend;
+  TPaintBox32(Sender).Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
 
-  PaintBox32_Thin.Buffer.MoveTo(0, 0);
+  TPaintBox32(Sender).Buffer.MoveTo(0, 0);
 
   RandSeed := 0;
   var Stopwatch := TStopwatch.StartNew;
 
   var LineCount := 0;
-  while (LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime) do
+  while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
-    PaintBox32_Thin.Buffer.PenColor := Color32(Random($00FFFFFF)); // Color32 to swap R and B
-    PaintBox32_Thin.Buffer.LineToAS(Random(PaintBox32_Thin.Width), Random(PaintBox32_Thin.Height));
+    TPaintBox32(Sender).Buffer.PenColor := Color32(Random($00FFFFFF)); // Color32 to swap R and B
+    TPaintBox32(Sender).Buffer.LineToAS(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
   end;
 
   Stopwatch.Stop;
 
-  PaintBox32_Thin.Buffer.EndLockUpdate;
-  Label2.Caption := Format('TBitmap32.LineToAS, Width=1. Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  TPaintBox32(Sender).Buffer.EndLockUpdate;
+  Label2.Caption := Format('TBitmap32.LineToAS, Width=1.'#13'Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  Screen.Cursor := crDefault;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TFormThickLineTest.PaintBox32_ThinPaintBuffer(Sender: TObject);
+begin
+  (*
+  ** Graphics32, thin line. Aliased. No alpha blending.
+  *)
+
+  if (not FDoPaint) then
+    exit;
+
+  Screen.Cursor := crHourGlass;
+  TPaintBox32(Sender).Buffer.Clear(clWhite32);
+  TPaintBox32(Sender).Buffer.DrawMode := dmOpaque;
+  TPaintBox32(Sender).Buffer.CombineMode := cmBlend;
+  TPaintBox32(Sender).Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
+
+  TPaintBox32(Sender).Buffer.MoveTo(0, 0);
+
+  RandSeed := 0;
+  var Stopwatch := TStopwatch.StartNew;
+
+  var LineCount := 0;
+  while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
+  begin
+    Inc(LineCount);
+    TPaintBox32(Sender).Buffer.PenColor := Color32(Random($00FFFFFF)); // Color32 to swap R and B
+    TPaintBox32(Sender).Buffer.LineToS(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
+  end;
+
+  Stopwatch.Stop;
+
+  TPaintBox32(Sender).Buffer.EndLockUpdate;
+  Label6.Caption := Format('TBitmap32.LineToS, Width=1.'#13'Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
   Screen.Cursor := crDefault;
 end;
 
@@ -254,12 +296,12 @@ begin
     exit;
 
   Screen.Cursor := crHourGlass;
-  PaintBox32_Thick.Buffer.Clear(clWhite32);
-  PaintBox32_Thick.Buffer.DrawMode := dmOpaque;
-  PaintBox32_Thick.Buffer.CombineMode := cmBlend;
-  PaintBox32_Thick.Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
+  TPaintBox32(Sender).Buffer.Clear(clWhite32);
+  TPaintBox32(Sender).Buffer.DrawMode := dmOpaque;
+  TPaintBox32(Sender).Buffer.CombineMode := cmBlend;
+  TPaintBox32(Sender).Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
 
-  var Canvas := TCanvas32.Create(PaintBox32_Thick.Buffer);
+  var Canvas := TCanvas32.Create(TPaintBox32(Sender).Buffer);
   try
     var Stroke := TStrokeBrush(Canvas.Brushes.Add(TStrokeBrush));
     Stroke.StrokeWidth := ThickLineWidth;
@@ -270,13 +312,13 @@ begin
     var Stopwatch := TStopwatch.StartNew;
 
     var LineCount := 0;
-    while (LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime) do
+    while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
     begin
       Inc(LineCount);
       Stroke.FillColor := Color32(Random($00FFFFFF)); // Color32 to swap R and B
 
       Canvas.MoveTo(LastPoint); // EndPath clears last point so we have to set it manually
-      LastPoint := FloatPoint(Random(PaintBox32_Thick.Width), Random(PaintBox32_Thick.Height));
+      LastPoint := FloatPoint(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
 
       Canvas.LineTo(LastPoint);
 
@@ -285,8 +327,8 @@ begin
 
     Stopwatch.Stop;
 
-    PaintBox32_Thick.Buffer.EndLockUpdate;
-    Label4.Caption := Format('TCanvas32.LineTo, Width=%d. Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+    TPaintBox32(Sender).Buffer.EndLockUpdate;
+    Label4.Caption := Format('TCanvas32.LineTo, Width=%d.'#13'Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
   finally
     Canvas.Free;
   end;
@@ -305,29 +347,29 @@ begin
     exit;
 
   Screen.Cursor := crHourGlass;
-  PaintBox32_ThickLine.Buffer.Clear(clWhite32);
-  PaintBox32_ThickLine.Buffer.DrawMode := dmOpaque;
-  PaintBox32_ThickLine.Buffer.CombineMode := cmBlend;
-  PaintBox32_ThickLine.Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
+  TPaintBox32(Sender).Buffer.Clear(clWhite32);
+  TPaintBox32(Sender).Buffer.DrawMode := dmOpaque;
+  TPaintBox32(Sender).Buffer.CombineMode := cmBlend;
+  TPaintBox32(Sender).Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
   var LastPos := Point(0, 0);
 
   RandSeed := 0;
   var Stopwatch := TStopwatch.StartNew;
 
   var LineCount := 0;
-  while (LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime) do
+  while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
     var Color: TColor32 := Color32(Random($00FFFFFF)); // Color32 to swap R and B
-    var NewPos := Point(Random(PaintBox32_ThickLine.Width), Random(PaintBox32_ThickLine.Height));
-    DrawThickLine(PaintBox32_ThickLine.Buffer, LastPos.X, LastPos.Y, NewPos.X, NewPos.Y, ThickLineWidth, Color);
+    var NewPos := Point(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
+    DrawThickLine(TPaintBox32(Sender).Buffer, LastPos.X, LastPos.Y, NewPos.X, NewPos.Y, ThickLineWidth, Color);
     LastPos := NewPos;
   end;
 
   Stopwatch.Stop;
 
-  PaintBox32_ThickLine.Buffer.EndLockUpdate;
-  Label5.Caption := Format('Graphics32 DrawThickLine, Width=%d. Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  TPaintBox32(Sender).Buffer.EndLockUpdate;
+  Label5.Caption := Format('Graphics32 DrawThickLine, Width=%d.'#13'Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
   Screen.Cursor := crDefault;
 end;
 
