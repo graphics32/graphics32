@@ -108,11 +108,13 @@ uses
   GR32_Backends,
   GR32_VPR2,
   GR32_Polygons.GDI,
+{$ifndef FPC}
   GR32_Polygons.GDIPlus,
   GR32_Polygons.Direct2D,
 {$ifdef TEST_BLEND2D}
   GR32_Polygons.Blend2D,
 {$endif TEST_BLEND2D}
+{$endif}
   GR32_Polygons.AggLite;
 
 var
@@ -578,15 +580,19 @@ begin
 end;
 
 procedure TMainForm.ImgClick(Sender: TObject);
+var
+  Renderer: TPolygonRenderer32;
+  Line: TArrayOfFloatPoint;
+  Ellipse: TArrayOfFloatPoint;
 begin
-  var Renderer := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]).Create;
+  Renderer := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]).Create;
   try
     Img.Bitmap.Clear(clWhite32);
     Renderer.Color := clRed32;
     Renderer.Bitmap := Img.Bitmap;
 
-    var Line := CreateLine(0, 2, 20, 20, 1);
-    var Ellipse := GR32_VectorUtils.Ellipse(5, 3, 5, 3);
+    Line := CreateLine(0, 2, 20, 20, 1);
+    Ellipse := GR32_VectorUtils.Ellipse(5, 3, 5, 3);
 
     Renderer.PolyPolygonFS([Line]);
 
