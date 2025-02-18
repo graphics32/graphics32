@@ -132,12 +132,22 @@ var
   X, Y, StepX, StepY: Integer;
   MaxDelta: Double;
 begin
+{$ifndef FPC}
   // Same as (Y2 = Y1)
   if (PCardinal(@Y2)^ = PCardinal(@Y1)^) then
     Exit;
+{$else} // Above optimization fails on FPC
+  if (Y2 = Y1) then
+    Exit;
+{$endif}
 
+{$ifndef FPC}
   dY := Double(Y2) - Double(Y1);
   dX := Double(X2) - Double(X1);
+{$else}
+  dY := Y2 - Y1;
+  dX := X2 - X1;
+{$endif}
 
   X := Round(X1);
   Y := Round(Y1);
