@@ -686,7 +686,7 @@ begin
       BindingInfo := FindBinding(FunctionID);
   end;
 
-{$if define(BINDING_AUTO_REGISTER)}
+{$if defined(BINDING_AUTO_REGISTER)}
 
   // Auto-register the binding if it isn't already registered
   if (BindingInfo = nil) then
