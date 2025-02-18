@@ -48,21 +48,29 @@ begin
     end;
   end;
 
+  state.Counters['Rate'] := Counter(Size, [kIsRate, kIsIterationInvariant]);
+
 end;
 
 procedure Main;
 begin
+  Spring.Benchmark.benchmark_format_args := False;
 
-  var Binding := PolygonsRegistry.FindBinding('MakeAlphaNonZeroUP');
-  Assert(Binding <> nil);
-
-  for var Size in Sizes do
+  for var BindingName in ['MakeAlphaEvenOddUP', 'MakeAlphaNonZeroUP'] do
   begin
-    for var Implement in Binding do
+
+    var Binding := PolygonsRegistry.FindBinding(BindingName);
+    Assert(Binding <> nil);
+
+    for var Size in Sizes do
     begin
-      var bm := Spring.Benchmark.Benchmark(BenchmarkMakeAlpha, Implement.Name + '/Size:' + Size.ToString).Args([Int64(Implement.Proc), Size]);
-      bm.Iterations(1000);
+      for var Implement in Binding do
+      begin
+        var bm := Spring.Benchmark.Benchmark(BenchmarkMakeAlpha, Implement.Name + '/Size:' + Size.ToString).Args([Int64(Implement.Proc), Size]);
+        bm.Iterations(1000);
+      end;
     end;
+
   end;
 
   Spring.Benchmark.Benchmark_Main;
@@ -71,6 +79,7 @@ end;
 begin
   try
     Main;
+    WriteLn('Done');
     ReadLn;
   except
     on E: Exception do
