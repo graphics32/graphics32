@@ -649,9 +649,31 @@ end;
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 // Contributed by Kadaif
-procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+{-$define ALIGN_C_1_F}
+{$if (defined(ALIGN_C_1_F))}
+
+procedure C_1_F; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$ifdef FPC}
+  ALIGN 16
+{$else}
+  .ALIGN 16
+{$endif}
+  dd $3f800000 // Single: 1.0
+  dd $3f800000
+  dd $3f800000
+  dd $3f800000
+end;
+
+{$else}
+
 const
-  C_1_F: array [0 .. 3] of single = (1, 1, 1, 1);
+  C_1_F: array[0..3] of Single = (1, 1, 1, 1);
+
+{$ifend}
+
+procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
 
@@ -676,7 +698,11 @@ asm
         PSHUFD      XMM3,XMM3,$0  // save 0RGB
 
         // Load constant 1.0 into XMM6
-        MOVUPS      XMM5,[C_1_F]
+{$if (defined(ALIGN_C_1_F))}
+        MOVAPS      XMM5, DQWORD PTR [C_1_F]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [C_1_F]
+{$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
         MOV         EBX,EDI
@@ -750,7 +776,19 @@ asm
         PSHUFD      XMM3,XMM3,0
 
         // Load constant 1.0 into XMM6
-        MOVUPS      XMM5,[C_1_F]
+{$if (not defined(FPC))}
+{$if (defined(ALIGN_C_1_F))}
+        MOVAPS      XMM5, DQWORD PTR [C_1_F]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [C_1_F]
+{$ifend}
+{$else}
+{$if (defined(ALIGN_C_1_F))}
+        MOVAPS      XMM5, DQWORD PTR [rip+C_1_F]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+C_1_F]
+{$ifend}
+{$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
         MOV         EAX,R9D
