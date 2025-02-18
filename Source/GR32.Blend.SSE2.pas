@@ -2636,16 +2636,10 @@ begin
   BlendRegistry[FID_MERGEREG].Add(      @MergeReg_SSE2,         [isSSE2]).Name := 'MergeReg_SSE2';
   BlendRegistry[FID_COMBINEREG].Add(    @CombineReg_SSE2,       [isSSE2]).Name := 'CombineReg_SSE2';
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE2_128,   [isSSE2]).Name := 'CombineMem_SSE2_128';
-{$ifndef FPC} // CombineMem_SSE41_Kadaif is currently broken on FPC
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_Kadaif, [isSSE41]).Name := 'CombineMem_SSE41_Kadaif';
-{$else}
-  BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_8081, [isSSE41]).Name := 'CombineMem_SSE41_8081';
-{$endif}
 {$ifdef BENCHMARK}
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE2_Table, [isSSE2], BindingPriorityWorse).Name := 'CombineMem_SSE2_Table';
-{$ifndef FPC}
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_8081, [isSSE41], BindingPriorityWorse).Name := 'CombineMem_SSE41_8081';
-{$endif}
 {$endif}
   BlendRegistry[FID_COMBINELINE].Add(   @CombineLine_SSE2,      [isSSE2]).Name := 'CombineLine_SSE2';
   BlendRegistry[FID_BLENDREG].Add(      @BlendReg_SSE2,         [isSSE2]).Name := 'BlendReg_SSE2';
