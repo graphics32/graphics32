@@ -258,9 +258,15 @@ type
     function FindBinding(BindVariable: PPointer): IBindingInfo; overload;
     function FindBinding(FunctionID: NativeInt): IBindingInfo; overload;
 
-    property Bindings[const Name: string]: IBindingInfo read GetBinding; default;
     property Bindings[BindVariable: PPointer]: IBindingInfo read GetBinding; default;
+{$ifndef FPC}
     property Bindings[FunctionID: NativeInt]: IBindingInfo read GetBinding; default;
+    property Bindings[const Name: string]: IBindingInfo read GetBinding; default;
+{$else} // Lazarus 2.6/FPC 3.0 broke support for overloaded properties. See FPC #15384
+    property BindingsByName[const Name: string]: IBindingInfo read GetBinding;
+    property BindingsByID[FunctionID: NativeInt]: IBindingInfo read GetBinding;
+{$endif}
+
 
     // List of bindings in this registry.
     function GetEnumerator: TEnumerator<IBindingInfo>;
