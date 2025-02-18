@@ -37,11 +37,12 @@ begin
     end;
   end;
 
+  state.Counters['Rate'] := Counter(Size, [kIsRate, kIsIterationInvariant]);
 end;
 
 procedure Main;
 begin
-//  Spring.Benchmark.benchmark_format_args := False;
+  Spring.Benchmark.benchmark_format_args := False;
 
   var Binding := MathRegistry.FindBinding('CumSum');
   Assert(Binding <> nil);
@@ -61,6 +62,7 @@ end;
 begin
   try
     Main;
+    WriteLn('Done');
     ReadLn;
   except
     on E: Exception do
