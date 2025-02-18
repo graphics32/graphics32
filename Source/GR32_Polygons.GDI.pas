@@ -45,9 +45,6 @@ uses
   Types,
   Graphics,
 
-  GDIPAPI,
-  GDIPOBJ,
-
   GR32,
   GR32_Polygons;
 
@@ -157,9 +154,10 @@ var
 {$IFDEF CHANGENOTIFICATIONS}
   ChangeRect: TRect;
 {$ENDIF}
-  PolyPoints: array of TPoint;
-  PolyCount: array of integer;
+  PolyPoints: array of tagPoint;
+  PolyCount: array of longint;
   n: integer;
+  Counts: integer;
 begin
   if (Length(Points) = 0) then
     Exit;
@@ -171,30 +169,42 @@ begin
   begin
 
     n := 0;
+    Counts := 0;
     for j := 0 to High(Points) do
+    begin
+      if (Length(Points[j]) = 0) then
+        continue;
+
+      Inc(Counts);
       Inc(n, Length(Points[j]));
+    end;
 
     if (n = 0) then
       exit;
 
     SetLength(PolyPoints, n);
-    SetLength(PolyCount, Length(Points));
+    SetLength(PolyCount, Counts);
 
     n := 0;
+    Counts := 0;
     for j := 0 to High(Points) do
     begin
-      PolyCount[j] := Length(Points[j]);
+      if (Length(Points[j]) = 0) then
+        continue;
+
+      PolyCount[Counts] := Length(Points[j]);
+      Inc(Counts);
 
       for i := 0 to High(Points[j]) do
       begin
-        PolyPoints[n] := Point(Points[j, i]);
+        PolyPoints[n] := GR32.Point(Points[j, i]);
         Inc(n);
       end;
     end;
 
     SetPolyFillMode(FCanvas.Handle, GdiFillMode[FillMode]);
 
-    if (not Windows.PolyPolygon(FCanvas.Handle, PolyPoints[0], PolyCount[0], Length(PolyCount))) then
+    if (not Windows.PolyPolygon(FCanvas.Handle, PolyPoints[0], PolyCount[0], Counts)) then
       RaiseLastOSError;
 
   end;
