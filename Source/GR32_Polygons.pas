@@ -650,30 +650,12 @@ end;
 
 // Contributed by Kadaif
 
-{-$define ALIGN_C_1_F}
-{$if (defined(ALIGN_C_1_F))}
-
-procedure C_1_F; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  dd $3f800000 // Single: 1.0
-  dd $3f800000
-  dd $3f800000
-  dd $3f800000
-end;
-
-{$else}
-
-const
-  C_1_F: array[0..3] of Single = (1, 1, 1, 1);
-
-{$ifend}
-
 procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+const
+  // Note: Don't bother aligning this data so we can use MOVAPS; It gives
+  // zero performance improvement (and might be slower due to instruction
+  // size).
+  SIMD_4xFloatOne: array[0..3] of Single = (1, 1, 1, 1);
 asm
 {$if defined(TARGET_x86)}
 
@@ -699,9 +681,9 @@ asm
 
         // Load constant 1.0 into XMM6
 {$if (defined(ALIGN_C_1_F))}
-        MOVAPS      XMM5, DQWORD PTR [C_1_F]
+        MOVAPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
 {$else}
-        MOVUPS      XMM5, DQWORD PTR [C_1_F]
+        MOVUPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
 {$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
@@ -778,15 +760,15 @@ asm
         // Load constant 1.0 into XMM6
 {$if (not defined(FPC))}
 {$if (defined(ALIGN_C_1_F))}
-        MOVAPS      XMM5, DQWORD PTR [C_1_F]
+        MOVAPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
 {$else}
-        MOVUPS      XMM5, DQWORD PTR [C_1_F]
+        MOVUPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
 {$ifend}
 {$else}
 {$if (defined(ALIGN_C_1_F))}
-        MOVAPS      XMM5, DQWORD PTR [rip+C_1_F]
+        MOVAPS      XMM5, DQWORD PTR [rip+SIMD_4xFloatOne]
 {$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+C_1_F]
+        MOVUPS      XMM5, DQWORD PTR [rip+SIMD_4xFloatOne]
 {$ifend}
 {$ifend}
 
@@ -2456,14 +2438,20 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindingFunctions;
 begin
+  // EvenOddUP
   PolygonsRegistry[@@MakeAlphaEvenOddUP].Add( @MakeAlphaEvenOddUP_Pas,        [isPascal]).Name := 'MakeAlphaEvenOddUP_Pas';
-  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add( @MakeAlphaNonZeroUP_Pas,        [isPascal]).Name := 'MakeAlphaNonZeroUP_Pas';
-  PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(@MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
-  PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(@MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
 
+  // NonZeroUP
+  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add( @MakeAlphaNonZeroUP_Pas,        [isPascal]).Name := 'MakeAlphaNonZeroUP_Pas';
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add( @MakeAlphaNonZeroUP_SSE2,       [isSSE2]).Name := 'MakeAlphaNonZeroUP_SSE2';
+  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add( @MakeAlphaNonZeroUP_SSE2,       [isSSE2]).Name := 'MakeAlphaNonZeroUP_SSE2';
 {$ifend}
+
+  // EvenOddUPF
+  PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(@MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
+
+  // NonZeroUPF
+  PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(@MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
 end;
 
 //------------------------------------------------------------------------------
