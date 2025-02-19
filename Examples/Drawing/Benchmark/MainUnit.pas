@@ -42,6 +42,11 @@ interface
 *)
 {-$define TEST_BLEND2D}
 
+(*
+** Define TEST_LCD to enable the VPR LCD polygon rasterizers (ClearType style anti-aliasing).
+*)
+{-$define TEST_LCD}
+
 uses
   {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
@@ -86,7 +91,6 @@ type
     procedure BtnBenchmarkClick(Sender: TObject);
     procedure ImgResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
-    procedure ImgClick(Sender: TObject);
   private
     procedure RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples: integer = TEST_SAMPLES; TestTime: integer = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
@@ -579,28 +583,6 @@ begin
   end;
 end;
 
-procedure TMainForm.ImgClick(Sender: TObject);
-var
-  Renderer: TPolygonRenderer32;
-  Line: TArrayOfFloatPoint;
-  Ellipse: TArrayOfFloatPoint;
-begin
-  Renderer := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]).Create;
-  try
-    Img.Bitmap.Clear(clWhite32);
-    Renderer.Color := clRed32;
-    Renderer.Bitmap := Img.Bitmap;
-
-    Line := CreateLine(0, 2, 20, 20, 1);
-    Ellipse := GR32_VectorUtils.Ellipse(5, 3, 5, 3);
-
-    Renderer.PolyPolygonFS([Line]);
-
-  finally
-    Renderer.Free;
-  end;
-end;
-
 procedure TMainForm.ImgResize(Sender: TObject);
 begin
   Img.SetupBitmap(True, clWhite32);
@@ -613,8 +595,10 @@ end;
 
 initialization
   // We're not interested in the ClearType rasterizers
+{$if not defined(TEST_LCD)}
   UnregisterPolygonRenderer(TPolygonRenderer32LCD);
   UnregisterPolygonRenderer(TPolygonRenderer32LCD2);
+{$ifend}
 
   RegisterTest('Ellipses', EllipseTest);
   RegisterTest('Thin Lines', ThinLineTest);

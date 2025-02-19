@@ -47,7 +47,6 @@ object MainForm: TMainForm
       Scale = 1.000000000000000000
       ScaleMode = smNormal
       TabOrder = 0
-      OnClick = ImgClick
       OnResize = ImgResize
     end
   end
@@ -98,7 +97,6 @@ object MainForm: TMainForm
         Top = 178
         Width = 139
         Height = 25
-        Anchors = [akLeft, akBottom]
         Caption = 'Do &Benchmark'
         TabOrder = 4
         OnClick = BtnBenchmarkClick
@@ -140,7 +138,6 @@ object MainForm: TMainForm
         Top = 178
         Width = 139
         Height = 25
-        Anchors = [akLeft, akBottom]
         Caption = 'E&xit'
         TabOrder = 5
         OnClick = BtnExitClick
