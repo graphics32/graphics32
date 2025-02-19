@@ -2689,10 +2689,10 @@ procedure CumSum_SSE2_kadaif3(Values: PSingleArray; Count: Integer); {$IFDEF FPC
 asm
 {$if defined(TARGET_x86)}
 
-        MOV     ECX,EDX
-        CMP     ECX,2       // if count < 2, exit
+        CMP     EDX,2       // if count < 2, exit
         JL      @END
-        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        MOV     ECX,EDX
+        CMP     EDX,32      // if count < 32, avoid SSE2 overhead
         JL      @SMALL
 
 {--- align memory ---}
@@ -2711,18 +2711,18 @@ asm
 
         ADD     EAX,4
         DEC     ECX
-        JZ      @SETUPLAST   // one element
+        JZ      @SETUPLAST   // one element (float) before aligned. skip it.
 
 @ALIGNINGLOOP:
-        FLD     DWORD PTR [EAX-4]
-        FADD    DWORD PTR [EAX]
-        FSTP    DWORD PTR [EAX]
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS   XMM0,DWORD PTR [EAX]
+        MOVSS   DWORD PTR [EAX],XMM0
         ADD     EAX,4
         DEC     ECX
         JNZ     @ALIGNINGLOOP
 
 @SETUPLAST:
-        MOVUPS  XMM4,[EAX-4]
+        MOVUPS  XMM4,[EAX - 4]
         PSLLDQ  XMM4,12
         PSRLDQ  XMM4,12
 
@@ -2742,50 +2742,49 @@ asm
         JMP     @SKIP
 
 @NORMAL:
-        ADDPS XMM0,XMM4
-        MOVAPS XMM2,XMM0
-        PSLLDQ XMM2,4
-        ADDPS XMM0,XMM2
-        MOVAPS XMM2,XMM0
-        PSLLDQ XMM2,8
-        ADDPS XMM0,XMM2
-        MOVAPS XMM4,XMM0
-        PSRLDQ XMM4,12
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
 
 @SKIP:
-        PREFETCHNTA [eax+16*16*2]
+        PREFETCHNTA [EAX + 16 * 16 * 2]
         MOVAPS  [EAX],XMM0
         ADD     EAX,16
         SUB     ECX,1
         JNZ     @LOOP
         POP     EBX
         MOV     ECX,EDX
-        SAR     ECX,2
-        SHL     ECX,2
-        SUB     EDX,ECX
-        MOV     ECX,EDX
+        AND     ECX,3
         JZ      @END
 
+        SUB     EAX,4
+        MOVSS   XMM0,DWORD PTR [EAX]
+
 @LOOP2:
-        FLD     DWORD PTR [EAX-4]
-        FADD    DWORD PTR [EAX]
-        FSTP    DWORD PTR [EAX]
+
+        ADDSS    XMM0,DWORD PTR [EAX + 4]
+        MOVSS    DWORD PTR [EAX + 4],XMM0
         ADD     EAX,4
         DEC     ECX
         JNZ     @LOOP2
         JMP     @END
 
 @SMALL:
-        MOV     ECX,EDX
+
+        MOVSS   XMM0,DWORD PTR [EAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [EAX + 4]
+        MOVSS   DWORD PTR [EAX + 4],XMM0
         ADD     EAX,4
-        DEC     ECX
-@LOOP3:
-        FLD     DWORD PTR [EAX-4]
-        FADD    DWORD PTR [EAX]
-        FSTP    DWORD PTR [EAX]
-        ADD     EAX,4
-        DEC     ECX
-        JNZ     @LOOP3
+        SUB     ECX,1
+        JNZ     @LOOP4
 @END:
 
 {$elseif defined(TARGET_x64)}
@@ -2814,12 +2813,12 @@ asm
 
         ADD     RAX,4
         DEC     ECX
-        JZ      @SETUPLAST   // one element
+        JZ      @SETUPLAST   // one element (float) before aligned. skip it.
 
 @ALIGNINGLOOP:
-        FLD     DWORD PTR [RAX - 4]
-        FADD    DWORD PTR [RAX]
-        FSTP    DWORD PTR [RAX]
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
         ADD     RAX,4
         DEC     ECX
         JNZ     @ALIGNINGLOOP
@@ -2844,15 +2843,13 @@ asm
 
 @NORMAL:
         ADDPS   XMM0,XMM4
-        PSHUFD  XMM1,XMM0,$e4
-        PSLLDQ  XMM1,4
-        PSHUFD  XMM2,XMM1,$90
-        PSHUFD  XMM3,XMM1,$40
-        ADDPS   XMM2,XMM3
-        ADDPS   XMM1,XMM2
-        ADDPS   XMM0,XMM1
-
-        PSHUFLW XMM4,XMM0,$E4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
         PSRLDQ  XMM4,12
 
 @SKIP:
@@ -2862,33 +2859,155 @@ asm
         SUB     ECX,1
         JNZ     @LOOP
         MOV     ECX,EDX
-        SAR     ECX,2
-        SHL     ECX,2
-        SUB     EDX,ECX
-        MOV     ECX,EDX
+        AND     ECX,3
         JZ      @END
 
+        SUB     RAX,4 // result is in RAX - 4
+        MOVSS   XMM0,DWORD PTR [RAX]
 @LOOP2:
-        FLD     DWORD PTR [RAX - 4]
-        FADD    DWORD PTR [RAX]
-        FSTP    DWORD PTR [RAX]
+        ADDSS   XMM0,DWORD PTR [RAX + 4]
+        MOVSS   DWORD PTR [RAX + 4],XMM0
         ADD     RAX,4
         DEC     ECX
         JNZ     @LOOP2
         JMP     @END
 
 @SMALL:
+        MOVSS   XMM0,DWORD PTR [RAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [RAX + 4]
+        MOVSS   DWORD PTR [RAX + 4],XMM0
         ADD     RAX,4
-        DEC     ECX
-@LOOP3:
-        FLD     DWORD PTR [RAX - 4]
-        FADD    DWORD PTR [RAX]
-        FSTP    DWORD PTR [RAX]
-        ADD     RAX,4
-        DEC     ECX
-        JNZ     @LOOP3
+        SUB     ECX,1
+        JNZ     @LOOP4
 @END:
 
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+procedure CumSum_SSE2_kadaif4(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+        MOV     ECX,EDX
+        CMP     EDX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+        SHR ECX,2
+        PUSH EBX
+        PXOR    XMM4,XMM4
+
+        @LOOP:
+        MOVUPS  XMM0,[EAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB EBX,XMM5
+        CMP     EBX,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [EAX + 16 * 16 * 2]
+        MOVUPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        POP     EBX
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+        SUB     EAX,4 // result is in EAX-1
+        MOVSS   XMM0,DWORD PTR [EAX]
+        JMP @LOOP4
+
+@SMALL:
+        MOVSS   XMM0,DWORD PTR [EAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [EAX + 4]
+        MOVSS   DWORD PTR [EAX + 4],XMM0
+        ADD     EAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
+
+{$elseif defined(TARGET_x64)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+
+        MOV     RAX,RCX
+        MOV     ECX,EDX
+
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+
+        SHR ECX,2
+        PXOR    XMM4,XMM4
+
+        @LOOP:
+        MOVUPS  XMM0,[RAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB R8D,XMM5
+        CMP     R8D,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [RAX + 16 * 16 * 2]
+        MOVUPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+        SUB     RAX,4 // result is in EAX-1
+        MOVSS   XMM0,DWORD PTR [RAX]
+        JMP @LOOP4
+
+@SMALL:
+        MOVSS   XMM0,DWORD PTR [RAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [RAX + 4]
+        MOVSS   DWORD PTR [RAX + 4],XMM0
+        ADD     RAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
 {$else}
 {$error 'Missing target'}
 {$ifend}
@@ -2928,9 +3047,8 @@ begin
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2,           [isSSE2]).Name := 'CumSum_SSE2';
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif,    [isSSE2]).Name := 'CumSum_SSE2_kadaif';
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif2,   [isSSE2]).Name := 'CumSum_SSE2_kadaif2';
-{$if defined(TARGET_x86)}
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif3,   [isSSE2]).Name := 'CumSum_SSE2_kadaif3';
-{$ifend}
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif4,   [isSSE2]).Name := 'CumSum_SSE2_kadaif4';
 
   MathRegistry[@@FloatMod_F].Add(       @FloatMod_F_SSE41,      [isSSE41]).Name := 'FloatMod_F_SSE41';
 
