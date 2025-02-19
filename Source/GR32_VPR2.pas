@@ -165,7 +165,7 @@ begin
   StepX := SGN[StepX];
   StepY := SGN[StepY];
 
-  if (Abs(dX) < EPSILON_Dx) then
+  if (Abs(dX) <= EPSILON_Dx) then
   begin
 
     MaxDelta := Abs(dY) - EPSILON;
