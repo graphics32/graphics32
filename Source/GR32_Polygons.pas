@@ -558,6 +558,11 @@ resourcestring
 type
   TBitmap32Access = class(TCustomBitmap32);
 
+//------------------------------------------------------------------------------
+//
+//      Polygon Renderer registration routines
+//
+//------------------------------------------------------------------------------
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 begin
   if (PolygonRendererList = nil) then
@@ -571,8 +576,19 @@ begin
     PolygonRendererList.Remove(PolygonRendererClass);
 end;
 
-// routines for color filling:
 
+//------------------------------------------------------------------------------
+//
+//      Make Alpha NonZero UP
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// For use in pfWinding/pfNonZero fill mode with a static color.
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// MakeAlphaNonZeroUP_Pas
+//------------------------------------------------------------------------------
 procedure MakeAlphaNonZeroUP_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
@@ -645,10 +661,32 @@ begin
   end;
 end;
 
+(*
+procedure MakeAlphaNonZeroUP(Coverage: PSingleArray; AlphaValues: PColor32Array;
+  Count: Integer; Color: TColor32);
+var
+  I: Integer;
+  M, V, C: Cardinal;
+begin
+  M := Color shr 24 * $101;
+  C := Color and $00ffffff;
+  for I := 0 to Count - 1 do
+  begin
+    V := Abs(Round(Coverage[I] * $10000));
+    if V > $10000 then V := $10000;
+    AlphaValues[I] := (V * M and $ff000000) or C;
+  end;
+end;
+*)
+
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
+//------------------------------------------------------------------------------
+// MakeAlphaNonZeroUP_SSE2
+//------------------------------------------------------------------------------
 // Contributed by Kadaif
+//------------------------------------------------------------------------------
 
 procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 const
@@ -833,24 +871,19 @@ end;
 
 {$ifend}
 
-(*
-procedure MakeAlphaNonZeroUP(Coverage: PSingleArray; AlphaValues: PColor32Array;
-  Count: Integer; Color: TColor32);
-var
-  I: Integer;
-  M, V, C: Cardinal;
-begin
-  M := Color shr 24 * $101;
-  C := Color and $00ffffff;
-  for I := 0 to Count - 1 do
-  begin
-    V := Abs(Round(Coverage[I] * $10000));
-    if V > $10000 then V := $10000;
-    AlphaValues[I] := (V * M and $ff000000) or C;
-  end;
-end;
-*)
 
+//------------------------------------------------------------------------------
+//
+//      Make Alpha EvenOdd UP
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// For use in pfAlternate/pfEvenOdd fill mode with a static color.
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// MakeAlphaEvenOddUP_Pas
+//------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddUP_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
@@ -877,6 +910,11 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//
+//      Unused Make Alpha * P stuff
+//
+//------------------------------------------------------------------------------
 procedure MakeAlphaNonZeroP(Value: Single; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
@@ -909,8 +947,20 @@ begin
 end;
 
 
-// polygon filler routines (extract alpha only):
 
+//------------------------------------------------------------------------------
+//
+//      Make Alpha NonZero UPF
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// Only extracts alpha.
+// For use in pfWinding/pfNonZero fill mode with a filler.
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// MakeAlphaNonZeroUPF_Pas
+//------------------------------------------------------------------------------
 procedure MakeAlphaNonZeroUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
@@ -924,6 +974,20 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Make Alpha EvenOdd UPF
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// Only extracts alpha.
+// For use in pfAlternate/pfEvenOdd  fill mode with a filler.
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// MakeAlphaEvenOddUPF_Pas
+//------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
@@ -940,6 +1004,12 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Unused MakeAlpha * PF stuff
+//
+//------------------------------------------------------------------------------
 procedure MakeAlphaNonZeroPF(Value: Single; AlphaValues: PColor32Array;
   Count: Integer; Color: TColor32);
 var
@@ -961,6 +1031,17 @@ begin
   FillLongWord(AlphaValues[0], Count, V);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      PolyPolygon and Polygon wrappers
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Float, unclipped versions
+//------------------------------------------------------------------------------
+
 procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
 var
@@ -977,6 +1058,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
 var
@@ -992,6 +1075,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Filler: TCustomPolygonFiller; FillMode: TPolyFillMode; Transformation: TTransformation);
@@ -1011,6 +1096,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   Filler: TCustomPolygonFiller; FillMode: TPolyFillMode; Transformation: TTransformation);
 var
@@ -1028,6 +1115,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
@@ -1044,6 +1133,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolyPolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
@@ -1061,6 +1152,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure PolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
 var
@@ -1076,6 +1169,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolyPolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
@@ -1093,6 +1188,11 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// Float, clipped versions
+//------------------------------------------------------------------------------
+
 procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
   Transformation: TTransformation);
@@ -1112,6 +1212,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
   Transformation: TTransformation);
@@ -1130,6 +1232,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode;
@@ -1152,6 +1256,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode;
   Transformation: TTransformation);
@@ -1172,6 +1278,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
@@ -1191,6 +1299,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolyPolygonFS_LCD(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Color: TColor32;
@@ -1211,6 +1321,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure PolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
   Transformation: TTransformation);
@@ -1229,6 +1341,8 @@ begin
     Renderer.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolyPolygonFS_LCD2(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Color: TColor32;
@@ -1249,90 +1363,10 @@ begin
   end;
 end;
 
-procedure PolyPolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
-  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
-  MiterLimit: TFloat; Transformation: TTransformation);
-var
-  Dst: TArrayOfArrayOfFloatPoint;
-begin
-  Dst := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-  PolyPolygonFS(Bitmap, Dst, Color, pfWinding, Transformation);
-end;
 
-procedure PolyPolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
-  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
-  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
-var
-  Dst: TArrayOfArrayOfFloatPoint;
-begin
-  Dst := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-  PolyPolygonFS(Bitmap, Dst, Filler, pfWinding, Transformation);
-end;
-
-procedure PolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
-  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
-  MiterLimit: TFloat; Transformation: TTransformation);
-begin
-  PolyPolylineFS(Bitmap, PolyPolygon(Points), Color, Closed, StrokeWidth,
-    JoinStyle, EndStyle, MiterLimit, Transformation);
-end;
-
-procedure PolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
-  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
-  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
-begin
-  PolyPolylineFS(Bitmap, PolyPolygon(Points), Filler, Closed, StrokeWidth,
-    JoinStyle, EndStyle, MiterLimit, Transformation);
-end;
-
-procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  const Dashes: TArrayOfFloat; Color: TColor32;
-  Closed: Boolean = False; Width: TFloat = 1.0);
-var
-  MultiPoly: TArrayOfArrayOfFloatPoint;
-begin
-  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  PolyPolylineFS(Bitmap, MultiPoly, Color, False, Width);
-end;
-
-procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
-  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
-var
-  MultiPoly: TArrayOfArrayOfFloatPoint;
-begin
-  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
-  PolyPolygonFS(Bitmap, MultiPoly, FillColor);
-  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
-end;
-
-procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
-  Closed: Boolean = False; Width: TFloat = 1.0);
-var
-  MultiPoly: TArrayOfArrayOfFloatPoint;
-begin
-  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  PolyPolylineFS(Bitmap, MultiPoly, Filler, False, Width);
-end;
-
-procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
-  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
-var
-  MultiPoly: TArrayOfArrayOfFloatPoint;
-begin
-  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
-  PolyPolygonFS(Bitmap, MultiPoly, Filler);
-  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
-end;
-
+//------------------------------------------------------------------------------
+// Fixed, unclipped versions
+//------------------------------------------------------------------------------
 
 procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
@@ -1470,6 +1504,66 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//
+//      PolyPolyline and Polyline wrappers
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Float, PolyPolyline
+//------------------------------------------------------------------------------
+procedure PolyPolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
+  MiterLimit: TFloat; Transformation: TTransformation);
+var
+  Dst: TArrayOfArrayOfFloatPoint;
+begin
+  Dst := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  PolyPolygonFS(Bitmap, Dst, Color, pfWinding, Transformation);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure PolyPolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+var
+  Dst: TArrayOfArrayOfFloatPoint;
+begin
+  Dst := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  PolyPolygonFS(Bitmap, Dst, Filler, pfWinding, Transformation);
+end;
+
+//------------------------------------------------------------------------------
+// Float, Polyline
+//------------------------------------------------------------------------------
+
+procedure PolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
+  MiterLimit: TFloat; Transformation: TTransformation);
+begin
+  PolyPolylineFS(Bitmap, PolyPolygon(Points), Color, Closed, StrokeWidth,
+    JoinStyle, EndStyle, MiterLimit, Transformation);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure PolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+begin
+  PolyPolylineFS(Bitmap, PolyPolygon(Points), Filler, Closed, StrokeWidth,
+    JoinStyle, EndStyle, MiterLimit, Transformation);
+end;
+
+//------------------------------------------------------------------------------
+// Fixed, PolyPolyline
+//------------------------------------------------------------------------------
 procedure PolyPolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean; StrokeWidth: TFixed;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle;
@@ -1481,6 +1575,8 @@ begin
     MiterLimit);
   PolyPolygonXS(Bitmap, Dst, Color, pfWinding, Transformation);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure PolyPolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Closed: Boolean = False;
@@ -1495,6 +1591,9 @@ begin
   PolyPolygonXS(Bitmap, Dst, Filler, pfWinding, Transformation);
 end;
 
+//------------------------------------------------------------------------------
+// Fixed, Polyline
+//------------------------------------------------------------------------------
 procedure PolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean; StrokeWidth: TFixed;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle;
@@ -1505,6 +1604,8 @@ begin
     MiterLimit, Transformation);
 end;
 
+//------------------------------------------------------------------------------
+
 procedure PolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Closed: Boolean = False;
   StrokeWidth: TFixed = $10000; JoinStyle: TJoinStyle = jsMiter;
@@ -1514,6 +1615,46 @@ begin
   PolyPolylineXS(Bitmap, PolyPolygon(Points), Filler, Closed, StrokeWidth,
     JoinStyle, EndStyle, MiterLimit, Transformation);
 end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Dashed lines
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Filled only Dashes ...
+//------------------------------------------------------------------------------
+// Float
+//------------------------------------------------------------------------------
+procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Color: TColor32;
+  Closed: Boolean = False; Width: TFloat = 1.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, Color, False, Width);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolygonFS(Bitmap, MultiPoly, FillColor);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
+end;
+
+//------------------------------------------------------------------------------
+// Fixed
+//------------------------------------------------------------------------------
 
 procedure DashLineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   const Dashes: TArrayOfFixed; Color: TColor32;
@@ -1537,6 +1678,40 @@ begin
   PolyPolylineXS(Bitmap, MultiPoly, StrokeColor, True, strokeWidth);
 end;
 
+//------------------------------------------------------------------------------
+// Filled and stroked Dashes ...
+//------------------------------------------------------------------------------
+// Float
+//------------------------------------------------------------------------------
+
+procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
+  Closed: Boolean = False; Width: TFloat = 1.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, Filler, False, Width);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolygonFS(Bitmap, MultiPoly, Filler);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
+end;
+
+//------------------------------------------------------------------------------
+// Fixed
+//------------------------------------------------------------------------------
+
 procedure DashLineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller;
   Closed: Boolean = False; Width: TFixed = $10000);
@@ -1546,6 +1721,8 @@ begin
   MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
   PolyPolylineXS(Bitmap, MultiPoly, Filler, False, Width);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure DashLineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
@@ -1559,6 +1736,12 @@ begin
   PolyPolylineXS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TCustomPolygonFiller wrapper
+//
+//------------------------------------------------------------------------------
 procedure FillBitmap(Bitmap: TCustomBitmap32; Filler: TCustomPolygonFiller);
 var
   AlphaValues: PColor32;
@@ -1596,6 +1779,15 @@ type
   TMakeAlphaProcLCD = procedure(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
     Count: Integer; Color: TColor32);
 
+//------------------------------------------------------------------------------
+//
+//      Make Alpha NonZero LCD
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// Uses subpixel anti-aliasing.
+// For use in pfWinding/pfNonZero fill mode with a static color.
+//------------------------------------------------------------------------------
 procedure MakeAlphaNonZeroLCD(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
   Count: Integer; Color: TColor32);
 var
@@ -1628,6 +1820,16 @@ begin
   AlphaValues[Count + 3] := 0;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Make Alpha EvenOdd LCD
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// Uses subpixel anti-aliasing.
+// For use in pfAlternate/pfEvenOdd fill mode with a static color.
+//------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddLCD(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
   Count: Integer; Color: TColor32);
 var
@@ -1660,6 +1862,16 @@ begin
   AlphaValues[Count + 3] := 0;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Make Alpha NonZero LCD2
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// Uses subpixel anti-aliasing. Slightly softer AA transitions.
+// For use in pfWinding/pfNonZero fill mode with a static color.
+//------------------------------------------------------------------------------
 procedure MakeAlphaNonZeroLCD2(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
   Count: Integer; Color: TColor32);
 var
@@ -1676,6 +1888,16 @@ begin
   AlphaValues[0] := AlphaValues[0] div 3;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Make Alpha EvenOdd LCD2
+//
+//------------------------------------------------------------------------------
+// Coverage builders used internally by TPolygonRenderer32VPR.
+// Uses subpixel anti-aliasing. Slightly softer AA transitions.
+// For use in pfAlternate/pfEvenOdd fill mode with a static color.
+//------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddLCD2(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
   Count: Integer; Color: TColor32);
 var
@@ -1692,6 +1914,10 @@ begin
   AlphaValues[0] := AlphaValues[0] div 3;
 end;
 
+
+//------------------------------------------------------------------------------
+// CombineLineLCD
+//------------------------------------------------------------------------------
 procedure CombineLineLCD(Weights: PRGBTripleArray; Dst: PColor32Array; Color: TColor32; Count: Integer);
 var
   I: Integer;
@@ -1730,8 +1956,12 @@ begin
 {$ENDIF};
 end;
 
-{ TCustomPolygonFiller }
 
+//------------------------------------------------------------------------------
+//
+//      TCustomPolygonFiller
+//
+//------------------------------------------------------------------------------
 procedure TCustomPolygonFiller.BeginRendering;
 begin
   // implemented by descendants
@@ -1742,8 +1972,12 @@ begin
   // implemented by descendants
 end;
 
-{ TCallbackPolygonFiller }
 
+//------------------------------------------------------------------------------
+//
+//      TCallbackPolygonFiller
+//
+//------------------------------------------------------------------------------
 procedure TCallbackPolygonFiller.BeginRendering;
 begin
   inherited;
@@ -1758,8 +1992,11 @@ begin
 end;
 
 
-{ TInvertPolygonFiller }
-
+//------------------------------------------------------------------------------
+//
+//      TInvertPolygonFiller
+//
+//------------------------------------------------------------------------------
 procedure TInvertPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
@@ -1781,8 +2018,11 @@ begin
 end;
 
 
-{ TClearPolygonFiller }
-
+//------------------------------------------------------------------------------
+//
+//      TClearPolygonFiller
+//
+//------------------------------------------------------------------------------
 constructor TClearPolygonFiller.Create(Color: TColor32 = $00808080);
 begin
   inherited Create;
@@ -1801,8 +2041,11 @@ begin
 end;
 
 
-{ TBitmapPolygonFiller }
-
+//------------------------------------------------------------------------------
+//
+//      TBitmapPolygonFiller
+//
+//------------------------------------------------------------------------------
 procedure TBitmapPolygonFiller.FillLineOpaque(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
@@ -1849,6 +2092,8 @@ begin
     end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TBitmapPolygonFiller.BeginRendering;
 begin
   inherited;
@@ -1857,6 +2102,8 @@ begin
     ((FPattern.DrawMode = dmCustom) and (not Assigned(FPattern.OnPixelCombine))) then
     raise Exception.Create('Missing or invalid polygon filler pattern');
 end;
+
+//------------------------------------------------------------------------------
 
 procedure TBitmapPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
@@ -1906,6 +2153,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TBitmapPolygonFiller.FillLineBlendMasterAlpha(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32;
   CombineMode: TCombineMode);
@@ -1953,6 +2202,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TBitmapPolygonFiller.FillLineCustomCombine(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32;
   CombineMode: TCombineMode);
@@ -1997,6 +2248,8 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
 function TBitmapPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   if (FPattern = nil) then
@@ -2018,8 +2271,12 @@ begin
     Result := nil;
 end;
 
-{ TSamplerFiller }
 
+//------------------------------------------------------------------------------
+//
+//      TSamplerFiller
+//
+//------------------------------------------------------------------------------
 constructor TSamplerFiller.Create(Sampler: TCustomSampler = nil);
 begin
   inherited Create;
@@ -2079,8 +2336,11 @@ begin
 end;
 
 
-{ TCustomPolygonRenderer }
-
+//------------------------------------------------------------------------------
+//
+//      TCustomPolygonRenderer
+//
+//------------------------------------------------------------------------------
 procedure TCustomPolygonRenderer.PolygonFS(
   const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect;
   Transformation: TTransformation);
@@ -2107,8 +2367,12 @@ begin
   PolyPolygonFS(APoints, ClipRect);
 end;
 
-{ TPolygonRenderer32 }
 
+//------------------------------------------------------------------------------
+//
+//      TPolygonRenderer32
+//
+//------------------------------------------------------------------------------
 constructor TPolygonRenderer32.Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode);
 begin
   inherited Create;
@@ -2162,8 +2426,11 @@ begin
   end;
 end;
 
-{ TPolygonRenderer32VPR }
-
+//------------------------------------------------------------------------------
+//
+//      TPolygonRenderer32VPR
+//
+//------------------------------------------------------------------------------
 {$IFDEF USESTACKALLOC}
 {$W+}
 {$ENDIF}
@@ -2190,6 +2457,8 @@ end;
 {$W-}
 {$ENDIF}
 
+//------------------------------------------------------------------------------
+
 function TPolygonRenderer32VPR.GetRenderSpan: TRenderSpanEvent;
 begin
   if (FFiller <> nil) then
@@ -2197,6 +2466,8 @@ begin
   else
     Result := RenderSpan;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure TPolygonRenderer32VPR.PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
 {$IFDEF CHANGENOTIFICATIONS}
@@ -2234,6 +2505,8 @@ begin
 {$ENDIF}
 end;
 
+//------------------------------------------------------------------------------
+
 {$W+}
 procedure TPolygonRenderer32VPR.RenderSpan(const Span: TValueSpan;
   DstY: Integer);
@@ -2260,6 +2533,8 @@ begin
 end;
 {$W-}
 
+//------------------------------------------------------------------------------
+
 procedure TPolygonRenderer32VPR.GetFillProc(var AFillProc: TFillProc);
 type
   PFillProc = ^TFillProc;
@@ -2272,13 +2547,19 @@ begin
   AFillProc := FillProcs[(FFiller <> nil), FillMode]^;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TPolygonRenderer32VPR.UpdateFillProc;
 begin
   GetFillProc(FFillProc);
 end;
 
-{ TPolygonRenderer32LCD }
 
+//------------------------------------------------------------------------------
+//
+//      TPolygonRenderer32LCD
+//
+//------------------------------------------------------------------------------
 procedure TPolygonRenderer32LCD.PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
 var
   R: TFloatRect;
@@ -2313,6 +2594,8 @@ begin
   end;
 {$ENDIF}
 end;
+
+//------------------------------------------------------------------------------
 
 {$W+}
 procedure TPolygonRenderer32LCD.RenderSpan(const Span: TValueSpan;
@@ -2358,8 +2641,11 @@ end;
 {$W-}
 
 
-{ TPolygonRenderer32LCD2 }
-
+//------------------------------------------------------------------------------
+//
+//      TPolygonRenderer32LCD2
+//
+//------------------------------------------------------------------------------
 {$W+}
 procedure TPolygonRenderer32LCD2.RenderSpan(const Span: TValueSpan;
   DstY: Integer);
@@ -2405,6 +2691,7 @@ begin
 end;
 {$W-}
 
+
 //------------------------------------------------------------------------------
 //
 //      Bindings
@@ -2430,6 +2717,7 @@ begin
   end;
   Result := FPolygonsRegistry;
 end;
+
 
 //------------------------------------------------------------------------------
 //
