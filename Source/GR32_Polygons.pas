@@ -718,16 +718,11 @@ asm
         PSHUFD      XMM3,XMM3,$0  // save 0RGB
 
         // Load constant 1.0 into XMM6
-{$if (defined(ALIGN_C_1_F))}
-        MOVAPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
-{$else}
         MOVUPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
-{$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
-        MOV         EBX,EDI
-        SHR         EBX,24  // alpha
-        MOVD        XMM2,EBX
+        SHR         EDI,24  // alpha
+        MOVD        XMM2,EDI
         PSHUFD      XMM2,XMM2,$0  // alphas
         CVTDQ2PS    XMM2,XMM2  // to float
 
@@ -741,8 +736,6 @@ asm
         // Main loop: process 4 elements per iteration
         MOV         ESI, ECX
         SAR         ESI, 2
-        MOV         EDI, ESI
-        SAL         EDI, 2
 
 @Loop:
         MOVUPS      XMM0,[EAX] // coverage
@@ -757,7 +750,7 @@ asm
         ADD         EAX,16
         DEC         ESI
         JNZ         @Loop
-        SUB         ECX,EDI
+        AND         ECX, 3 // get remainder
         JZ          @END
 
 @remainder:
@@ -797,23 +790,14 @@ asm
 
         // Load constant 1.0 into XMM6
 {$if (not defined(FPC))}
-{$if (defined(ALIGN_C_1_F))}
-        MOVAPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
-{$else}
         MOVUPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
-{$ifend}
-{$else}
-{$if (defined(ALIGN_C_1_F))}
-        MOVAPS      XMM5, DQWORD PTR [rip+SIMD_4xFloatOne]
 {$else}
         MOVUPS      XMM5, DQWORD PTR [rip+SIMD_4xFloatOne]
 {$ifend}
-{$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
-        MOV         EAX,R9D
-        SHR         EAX,24
-        MOVD        XMM2,EAX
+        SHR         R9D,24
+        MOVD        XMM2,R9D
         PSHUFD      XMM2,XMM2,0
         CVTDQ2PS    XMM2,XMM2
 
@@ -827,8 +811,6 @@ asm
         // Main loop: process 4 elements per iteration
         MOV         R10,R8
         SHR         R10,2
-        MOV         R11,R10
-        SHL         R11,2
 
 @Loop:
         MOVUPS      XMM0,[RCX]
@@ -844,7 +826,7 @@ asm
         DEC         R10
         JNZ         @Loop
 
-        SUB         R8D,R11D
+        AND         R8D,3
         JZ          @Exit
 
 @Remainder:
@@ -868,7 +850,6 @@ asm
 {$error 'Missing target'}
 {$ifend}
 end;
-
 {$ifend}
 
 
