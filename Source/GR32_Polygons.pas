@@ -897,6 +897,207 @@ end;
 //------------------------------------------------------------------------------
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
+procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);  {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+const
+  C_10000_F: array [0 .. 3] of single = ($10000, $10000, $10000, $10000);
+asm
+{$if defined(TARGET_x86)}
+
+        TEST        ECX,ECX
+        JLE         @EXIT
+
+        PUSH        EBX
+        PUSH        ESI
+        PUSH        EDI
+
+        MOV         EDI,Color
+        MOV         EBX,EDI
+        AND         EBX,$00FFFFFF
+        MOVD        XMM3, EBX
+        PSHUFD      XMM3,XMM3,$0   // save 0RGB
+
+        PCMPEQD     XMM6,XMM6
+        PSRLD       XMM6,15 // 4 x $0001FFFF
+        MOVUPS      XMM5,[C_10000_F]
+
+        SHR         EDI,24
+        MOVD        XMM2,EDI
+        PUNPCKLBW   XMM2,XMM2 // alpha * 257
+        PSHUFD      XMM2,XMM2,$0  // alphas
+
+        PCMPEQD     XMM4,XMM4 // for abs
+        PSRLD       XMM4,1
+
+        CMP         ECX,4
+        JL          @remainder
+
+        MOV         ESI,ECX
+        SAR         ESI,2
+
+@Loop:
+        MOVUPS      XMM0,[EAX] // coverage
+        ANDPS       XMM0,XMM4  // abs
+        MULPS       XMM0,XMM5
+        CVTPS2DQ    XMM0,XMM0
+        PAND        XMM0,XMM6  // and with $0001FFFF
+        MOVDQA      XMM7,XMM0
+        PXOR        XMM7,XMM6
+
+        // PMINUD for SSE2
+        MOVDQA      XMM1,XMM7
+        PCMPGTD     XMM1,XMM0
+        PAND        XMM0,XMM1
+        PANDN       XMM1,XMM7
+        POR         XMM0,XMM1
+
+        // alpha * 257 * Coverage
+        PMULHUW     XMM0,XMM2
+        PSRLW       XMM0,8
+        PSLLD       XMM0, 24
+        POR         XMM0,XMM3
+        MOVDQU      [EDX],XMM0
+        ADD         EAX,16
+        ADD         EDX,16
+        DEC         ESI
+        JNZ         @Loop
+        AND         ECX,3
+        JZ          @END
+
+@remainder:
+        MOVSS       XMM0,[EAX] // coverage
+        ANDPS       XMM0,XMM4 // abs
+        MULSS       XMM0,XMM5
+        CVTPS2DQ    XMM0,XMM0
+        PAND        XMM0,XMM6 // and with $1FF
+        MOVDQA      XMM7,XMM6
+        PSUBD       XMM7,XMM0
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+        PMULHUW     XMM0,XMM2
+        PSRLW       XMM0,8
+        PSLLD       XMM0,24
+        POR         XMM0,XMM3
+        MOVD        [EDX],XMM0
+        ADD         EDX,4
+        ADD         EAX,4
+        DEC         ECX
+        JNZ         @remainder
+
+@END:
+        POP         EDI
+        POP         ESI
+        POP         EBX
+@EXIT:
+
+{$elseif defined(TARGET_x64)}
+
+        TEST        R8D,R8D
+        JLE         @EXIT
+
+        SUB         RSP, 32
+        MOVDQU      [RSP],XMM6
+        MOVDQU      [RSP + 16],XMM7
+
+        MOV         R10D,R9D
+        AND         R10D,$00FFFFFF
+        MOVD        XMM3,R10D
+        PSHUFD      XMM3,XMM3,$0   // save 0RGB
+
+        PCMPEQD     XMM6,XMM6
+        PSRLD       XMM6,15 // $0001FFFF
+
+{$if (not defined(FPC))}
+        MOVUPS      XMM5, DQWORD PTR [C_10000_F]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+C_10000_F]
+{$ifend}
+
+        SHR         R9D,24
+        MOVD        XMM2,R9D
+        PUNPCKLBW   XMM2,XMM2  // alpha * 257
+        PSHUFD      XMM2,XMM2,$0  // alphas
+
+        PCMPEQD     XMM4,XMM4 // for abs
+        PSRLD       XMM4,1
+
+        CMP         R8D,4
+        JL          @remainder
+
+        MOV         EAX, R8D
+        SAR         EAX, 2
+
+@Loop:
+        MOVUPS      XMM0,[RCX] // coverage
+        ANDPS       XMM0,XMM4 // abs
+        MULPS       XMM0,XMM5 // multiply
+        CVTPS2DQ    XMM0,XMM0
+        PAND        XMM0,XMM6 // and with $0001FFFF
+        MOVDQA      XMM7,XMM0
+        PXOR        XMM7,XMM6
+
+        // PMINUD for SSE2
+        MOVDQA      XMM1,XMM7
+        PCMPGTD     XMM1,XMM0
+        PAND        XMM0,XMM1
+        PANDN       XMM1,XMM7
+        POR         XMM0,XMM1
+
+        PMULHUW     XMM0,XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0,XMM3
+        MOVDQU      [RDX],XMM0
+        ADD         RCX,16
+        ADD         RDX,16
+        DEC         EAX
+        JNZ         @Loop
+        AND         R8D,3
+        JZ          @END
+
+@remainder:
+        MOVSS       XMM0,[RCX] // coverage
+        ANDPS       XMM0,XMM4 // abs
+        MULSS       XMM0,XMM5
+        CVTPS2DQ    XMM0,XMM0
+        PAND        XMM0,XMM6
+        MOVDQA      XMM7,XMM6
+        PSUBD       XMM7,XMM0
+
+        // PMINUD for SSE2
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+
+        PMULHUW     XMM0,XMM2
+        PSRLW       XMM0,8
+        PSLLD       XMM0,24
+        POR         XMM0,XMM3
+        MOVD        [RDX],XMM0
+        ADD         RDX,4
+        ADD         RCX,4
+        DEC         R8D
+        JNZ         @remainder
+
+@END:
+        MOVDQU      XMM7,  [RSP + 16]
+        MOVDQU      XMM6,  [RSP]
+        ADD         RSP, 32
+@EXIT:
+{$else}
+{$error 'Missing target'}
+{$ifend}
+
+end;
+//------------------------------------------------------------------------------
+// MakeAlphaEvenOddUP_SSE41
+//------------------------------------------------------------------------------
+// Contributed by Kadaif
+//------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 const
   C_10000_F: array [0 .. 3] of single = ($10000, $10000, $10000, $10000);
@@ -993,7 +1194,11 @@ asm
         PCMPEQD     XMM6,XMM6
         PSRLD       XMM6,15 // $0001FFFF
 
-        MOVUPS      XMM5,[C_10000_F]
+{$if (not defined(FPC))}
+        MOVUPS      XMM5, DQWORD PTR [C_10000_F]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+C_10000_F]
+{$ifend}
 
         SHR         R9D,24
         MOVD        XMM2,R9D
@@ -2881,22 +3086,23 @@ end;
 procedure RegisterBindingFunctions;
 begin
   // EvenOddUP
-  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add( @MakeAlphaEvenOddUP_Pas,        [isPascal]).Name := 'MakeAlphaEvenOddUP_Pas';
+  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add(   @MakeAlphaEvenOddUP_Pas,        [isPascal]).Name := 'MakeAlphaEvenOddUP_Pas';
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add( @MakeAlphaEvenOddUP_SSE41,       [isSSE2]).Name := 'MakeAlphaEvenOddUP_SSE41';
+  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add(   @MakeAlphaEvenOddUP_SSE2,       [isSSE2]).Name := 'MakeAlphaEvenOddUP_SSE2';
+  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add(   @MakeAlphaEvenOddUP_SSE41,      [isSSE2]).Name := 'MakeAlphaEvenOddUP_SSE41';
 {$ifend}
 
   // NonZeroUP
-  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add( @MakeAlphaNonZeroUP_Pas,        [isPascal]).Name := 'MakeAlphaNonZeroUP_Pas';
+  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add(   @MakeAlphaNonZeroUP_Pas,        [isPascal]).Name := 'MakeAlphaNonZeroUP_Pas';
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add( @MakeAlphaNonZeroUP_SSE2,       [isSSE2]).Name := 'MakeAlphaNonZeroUP_SSE2';
+  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add(   @MakeAlphaNonZeroUP_SSE2,       [isSSE2]).Name := 'MakeAlphaNonZeroUP_SSE2';
 {$ifend}
 
   // EvenOddUPF
-  PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(@MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
+  PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(  @MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
 
   // NonZeroUPF
-  PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(@MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
+  PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(  @MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
 end;
 
 //------------------------------------------------------------------------------
