@@ -135,11 +135,11 @@ type
     FFillMode: TPolyFillMode;
     FColor: TColor32;
     FFiller: TCustomPolygonFiller;
-    procedure SetColor(const Value: TColor32);
-    procedure SetFillMode(const Value: TPolyFillMode);
-    procedure SetFiller(const Value: TCustomPolygonFiller);
   protected
     procedure SetBitmap(const Value: TCustomBitmap32); virtual;
+    procedure SetColor(const Value: TColor32); virtual;
+    procedure SetFillMode(const Value: TPolyFillMode); virtual;
+    procedure SetFiller(const Value: TCustomPolygonFiller); virtual;
   public
     constructor Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode = pfWinding); reintroduce; overload;
 
@@ -154,6 +154,16 @@ type
 
   TPolygonRenderer32Class = class of TPolygonRenderer32;
 
+
+  // IPolygonRendererBatching: A polygon renderer can implement this interface
+  // if it supports batching.
+  // Graphics32 itself does not take advantage of the interface but applications
+  // can do so. See the Benchmark example application for usage.
+  IPolygonRendererBatching = interface
+    ['{84DE8135-D134-4A4A-B015-C194FA2469F6}']
+    procedure BeginDraw;
+    procedure EndDraw;
+  end;
 
 //------------------------------------------------------------------------------
 //
@@ -508,6 +518,7 @@ procedure FillBitmap(Bitmap: TCustomBitmap32; Filler: TCustomPolygonFiller);
 //
 //------------------------------------------------------------------------------
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
+procedure UnregisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 
 var
   PolygonRendererList: TClassList;
@@ -552,6 +563,12 @@ begin
   if (PolygonRendererList = nil) then
     PolygonRendererList := TClassList.Create;
   PolygonRendererList.Add(PolygonRendererClass);
+end;
+
+procedure UnregisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
+begin
+  if (PolygonRendererList <> nil) then
+    PolygonRendererList.Remove(PolygonRendererClass);
 end;
 
 // routines for color filling:
@@ -1904,12 +1921,11 @@ end;
 
 { TPolygonRenderer32 }
 
-constructor TPolygonRenderer32.Create(Bitmap: TCustomBitmap32;
-  Fillmode: TPolyFillMode);
+constructor TPolygonRenderer32.Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode);
 begin
   inherited Create;
-  FBitmap := Bitmap;
-  FFillMode := Fillmode;
+  SetBitmap(Bitmap);
+  SetFillMode(Fillmode);
 end;
 
 procedure TPolygonRenderer32.PolygonFS(const Points: TArrayOfFloatPoint);

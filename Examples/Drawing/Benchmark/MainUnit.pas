@@ -34,16 +34,32 @@ interface
 
 {$include GR32.inc}
 
+(*
+** Define TEST_BLEND2D to enable the Blend2D polygon rasterizer.
+**
+** The Blend2D rasterizer requires the Blend2D DLL files which can be
+** downloaded from https://github.com/neslib/DelphiBlend2D/tree/master/Bin
+*)
+{-$define TEST_BLEND2D}
+
 uses
   {$ifdef MSWINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
-  GR32_Image, GR32_Paths, GR32, GR32_Polygons;
+  GR32_Image,
+  GR32_Paths,
+  GR32,
+  GR32_System,
+  GR32_Brushes,
+  GR32_Polygons;
 
 const
-  TEST_DURATION = 4000;  // test for 4 seconds
+  // Run <TEST_SAMPLES> iterations, each taking <TEST_DURATION> milliseconds.
+  // Use the best result of all samles as the final result.
+  TEST_DURATION = 4000;
+  TEST_SAMPLES = 4;
 
 type
-  TTestProc = procedure(Canvas: TCanvas32);
+  TTestProc = procedure(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 
   { TMainForm }
 
@@ -64,12 +80,15 @@ type
     PnlBottom: TPanel;
     PnlSpacer: TPanel;
     PnlTop: TPanel;
+    Splitter1: TSplitter;
+    CheckBoxBatch: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BtnBenchmarkClick(Sender: TObject);
     procedure ImgResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
+    procedure ImgClick(Sender: TObject);
   private
-    procedure RunTest(TestProc: TTestProc; TestTime: Int64 = TEST_DURATION);
+    procedure RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples: integer = TEST_SAMPLES; TestTime: integer = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
   end;
 
@@ -83,16 +102,20 @@ implementation
 uses
   Types,
   Math,
-  GR32_System,
+  GR32_VectorUtils,
   GR32_LowLevel,
   GR32_Resamplers,
-  GR32_Brushes,
   GR32_Backends,
   GR32_VPR2,
-  GR32_PolygonsAggLite;
-
-const
-  GridScale: Integer = 40;
+  GR32_Polygons.GDI,
+{$ifndef FPC}
+  GR32_Polygons.GDIPlus,
+  GR32_Polygons.Direct2D,
+{$ifdef TEST_BLEND2D}
+  GR32_Polygons.Blend2D,
+{$endif TEST_BLEND2D}
+{$endif}
+  GR32_Polygons.AggLite;
 
 var
   TestRegistry: TStringList;
@@ -106,59 +129,128 @@ end;
 
 procedure TMainForm.WriteTestResult(OperationsPerSecond: Integer);
 begin
-  MemoLog.Lines.Add(Format('%s: %d op/s', [cmbRenderer.Text,
-    OperationsPerSecond]));
+  MemoLog.Lines.Add(Format('%-40s %8.0n', [cmbRenderer.Text, OperationsPerSecond*1.0]));
 end;
 
-procedure TMainForm.RunTest(TestProc: TTestProc; TestTime: Int64);
+procedure TMainForm.RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples, TestTime: integer);
 var
   Canvas: TCanvas32;
-  i, ElapsedMilliseconds: Int64;
+  FillBrush: TSolidBrush;
+  StrokeBrush: TStrokeBrush;
   StopWatch: TStopWatch;
+  WallClock: TStopWatch;
+  i: integer;
+  Operations: Int64;
+  PolygonRendererBatching: IPolygonRendererBatching;
+  Sample: integer;
+  OpsPerSecond: integer;
+  BestOpsPerSecond: integer;
+  DoAbort: boolean;
 begin
   RandSeed := 0;
 
   Canvas := TCanvas32.Create(Img.Bitmap);
   try
+    Canvas.Renderer := RendererClass.Create;
+
     try
       Img.BeginUpdate;
       try
         Img.Bitmap.Clear(clWhite32);
 
-        Canvas.Brushes.Add(TSolidBrush);
-        Canvas.Brushes.Add(TStrokeBrush);
-        Canvas.Brushes[0].Visible := True;
-        Canvas.Brushes[1].Visible := False;
-        i := 0;
+        FillBrush := Canvas.Brushes.Add(TSolidBrush) as TSolidBrush;
+        StrokeBrush := Canvas.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+        FillBrush.Visible := True;
+        StrokeBrush.Visible := False;
 
-        StopWatch := TStopWatch.StartNew;
+        DoAbort := False;
+        BestOpsPerSecond := 0;
 
-        repeat
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
-          TestProc(Canvas);
+        for Sample := 0 to Samples-1 do
+        begin
 
-          ElapsedMilliseconds := StopWatch.ElapsedMilliseconds;
-          Inc(i, 10);
-        until ElapsedMilliseconds > TestTime;
+          Operations := 0;
+          Wallclock := TStopwatch.StartNew;
+          StopWatch.Reset;
 
-        WriteTestResult((i*1000) div ElapsedMilliseconds);
+          repeat
 
-        Img.Invalidate; // VPR2 and VPR2X doesn't call TBitmap32.Changed when they draw
+            // If the rasterizer supports batching, we allow it to batch a block.
+            // This might give batching rasterizers a slight unrealistic and
+            // unfair advantage. One rasterizer that absolutely suffer, if we don't
+            // batch, is the Direct2D rasterizer.
+            if (CheckBoxBatch.Checked) and (Supports(Canvas.Renderer, IPolygonRendererBatching, PolygonRendererBatching)) then
+            begin
+              StopWatch.Start;
+              PolygonRendererBatching.BeginDraw;
+              StopWatch.Stop;
+            end;
+            try
+
+              for i := 0 to 9 do
+              begin
+                Canvas.BeginUpdate;
+
+                // Build path
+                TestProc(Canvas, FillBrush, StrokeBrush);
+
+                StopWatch.Start;
+
+                // Flatten path and render
+                Canvas.EndUpdate;
+
+                StopWatch.Stop;
+
+                Inc(Operations);
+              end;
+
+            finally
+              if (PolygonRendererBatching <> nil) then
+              begin
+                StopWatch.Start;
+                // For batching rasterizers, this is usually where the actual work will be done
+                PolygonRendererBatching.EndDraw;
+                StopWatch.Stop;
+              end;
+            end;
+
+          until (Wallclock.ElapsedMilliseconds > TestTime);
+
+          OpsPerSecond := (Operations * 1000) div StopWatch.ElapsedMilliseconds;
+
+          if (OpsPerSecond > BestOpsPerSecond) then
+            BestOpsPerSecond := OpsPerSecond;
+
+          if (GetAsyncKeyState(VK_ESCAPE) <> 0) then
+          begin
+            DoAbort := False;
+            break;
+          end;
+        end;
+
+        WriteTestResult(BestOpsPerSecond);
+
+{$IFNDEF CHANGENOTIFICATIONS}
+        Img.Bitmap.Changed;
+{$ENDIF}
       finally
         Img.EndUpdate;
       end;
-      Img.Update;
-      Sleep(100); // Tiny delay to work around Windows 10+ deferring update while application is busy
+
+      if (DoAbort) or (GetAsyncKeyState(VK_ESCAPE) <> 0) then
+      begin
+        MemoLog.Lines.Add('Aborted');
+        Abort;
+      end;
+
+      Application.ProcessMessages; // Avoid Windows thinking we're hung and freezing UI
+
     except
-      MemoLog.Lines.Add(Format('%s: Failed', [cmbRenderer.Text]));
+      on E: EAbort do
+        raise;
+
+      on E: Exception do
+        MemoLog.Lines.Add(Format('%s: Failed', [cmbRenderer.Text]));
     end;
   finally
     Canvas.Free;
@@ -173,32 +265,35 @@ end;
 //----------------------------------------------------------------------------//
 // ellipses
 //----------------------------------------------------------------------------//
-procedure EllipseTest(Canvas: TCanvas32);
+procedure EllipseTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H: Integer;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
+
+  FillBrush.FillColor := RandColor;
+  FillBrush.FillMode := pfNonZero;
+  StrokeBrush.Visible := False;
+
   Canvas.Ellipse(Random(W), Random(H), Random(W shr 1), Random(H shr 1));
 end;
 
 //----------------------------------------------------------------------------//
 // thin lines
 //----------------------------------------------------------------------------//
-procedure ThinLineTest(Canvas: TCanvas32);
+procedure ThinLineTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H: Integer;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  Canvas.Brushes[0].Visible := False;
-  Canvas.Brushes[1].Visible := True;
-  with Canvas.Brushes[1] as TStrokeBrush do
-  begin
-    StrokeWidth := 1;
-    FillColor := RandColor;
-  end;
+
+  FillBrush.Visible := False;
+  StrokeBrush.Visible := True;
+  StrokeBrush.StrokeWidth := 1.0;
+  StrokeBrush.FillColor := RandColor;
+
   Canvas.MoveTo(Random(W), Random(H));
   Canvas.LineTo(Random(W), Random(H));
   Canvas.EndPath;
@@ -207,19 +302,18 @@ end;
 //----------------------------------------------------------------------------//
 // thick lines
 //----------------------------------------------------------------------------//
-procedure ThickLineTest(Canvas: TCanvas32);
+procedure ThickLineTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H: Integer;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  Canvas.Brushes[0].Visible := False;
-  Canvas.Brushes[1].Visible := True;
-  with Canvas.Brushes[1] as TStrokeBrush do
-  begin
-    StrokeWidth := 10;
-    FillColor := RandColor;
-  end;
+
+  FillBrush.Visible := False;
+  StrokeBrush.Visible := True;
+  StrokeBrush.StrokeWidth := 10.0;
+  StrokeBrush.FillColor := RandColor;
+
   Canvas.MoveTo(Random(W), Random(H));
   Canvas.LineTo(Random(W), Random(H));
   Canvas.EndPath;
@@ -257,14 +351,18 @@ const
     (Name: 'Garamond'; Size: 12; Style: [])
   );
 
-procedure TextTest(Canvas: TCanvas32);
+procedure TextTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   W, H, I: Integer;
   Font: TFont;
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
+
+  FillBrush.Visible := True;
+  FillBrush.FillMode := pfAlternate;
+  FillBrush.FillColor := RandColor;
+  StrokeBrush.Visible := False;
 
   I := Random(5);
   Font := Canvas.Bitmap.Font;
@@ -336,7 +434,7 @@ begin
   end;
 end;
 
-procedure SplinesTest(Canvas: TCanvas32);
+procedure SplinesTest(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
 var
   Input, Points: TArrayOfFloatPoint;
   K: TSplineKernel;
@@ -356,7 +454,12 @@ begin
   finally
     K.Free;
   end;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
+
+  FillBrush.Visible := True;
+  FillBrush.FillMode := pfEvenOdd;
+  FillBrush.FillColor := RandColor;
+  StrokeBrush.Visible := False;
+
   Canvas.Polygon(Points);
 end;
 
@@ -380,32 +483,37 @@ end;
 
 procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
-  procedure TestRenderer;
+  procedure TestRenderer(RendererClass: TPolygonRenderer32Class);
   begin
-    DefaultPolygonRendererClass := TPolygonRenderer32Class(
-      PolygonRendererList[CmbRenderer.ItemIndex]);
-    RunTest(TTestProc(cmbTest.Items.Objects[cmbTest.ItemIndex]));
+    RunTest(RendererClass, TTestProc(cmbTest.Items.Objects[cmbTest.ItemIndex]));
   end;
 
   procedure TestAllRenderers;
   var
     I: Integer;
+    RendererClass: TPolygonRenderer32Class;
   begin
     for I := 0 to CmbRenderer.Items.Count - 1 do
     begin
       CmbRenderer.ItemIndex := I;
-      TestRenderer;
+      RendererClass := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]);
+      TestRenderer(RendererClass);
     end;
     MemoLog.Lines.Add('');
   end;
 
   procedure PerformTest;
+  var
+    RendererClass: TPolygonRenderer32Class;
   begin
-    MemoLog.Lines.Add(Format('=== Test: %s ===', [cmbTest.Text]));
+    MemoLog.Lines.Add(Format('=== Test: %s (operations/second) ===', [cmbTest.Text]));
     if CbxAllRenderers.Checked then
       TestAllRenderers
     else
-      TestRenderer;
+    begin
+      RendererClass := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]);
+      TestRenderer(RendererClass);
+    end;
   end;
 
   procedure PerformAllTests;
@@ -427,13 +535,69 @@ begin
     Img.Bitmap.Clear(clWhite32);
     Update;
 
-    if CbxAllTests.Checked then
-      PerformAllTests
-    else
-      PerformTest;
+    // We are calling Application.ProcessMessages inside the test loop
+    // so disable form to avoid UI recursion.
+    Enabled := False;
+    try
+
+      if CbxAllTests.Checked then
+        PerformAllTests
+      else
+        PerformTest;
+
+    finally
+      Enabled := True;
+    end;
 
   finally
     Screen.Cursor := crDefault;
+  end;
+end;
+
+function CreateLine(const x1, y1, x2, y2, width: TFloat): TArrayOfFloatPoint;
+var
+  dx, dy, d: TFloat;
+begin
+  dx := x2 - x1;
+  dy := y2 - y1;
+  d := Sqrt(Sqr(dx) + Sqr(dy));
+  if d <> 0 then
+  begin
+    dx := width * (y2 - y1) / d;
+    dy := width * (x2 - x1) / d;
+    SetLength(Result, 4);
+    Result[0] := FloatPoint(x1 - dx, y1 + dy);
+    Result[1] := FloatPoint(x2 - dx, y2 + dy);
+    Result[2] := FloatPoint(x2 + dx, y2 - dy);
+    Result[3] := FloatPoint(x1 + dx, y1 - dy);
+  end
+  else
+  begin
+    SetLength(Result, 2);
+    Result[0] := FloatPoint(x1, y1);
+    Result[1] := FloatPoint(x2, y2);
+  end;
+end;
+
+procedure TMainForm.ImgClick(Sender: TObject);
+var
+  Renderer: TPolygonRenderer32;
+  Line: TArrayOfFloatPoint;
+  Ellipse: TArrayOfFloatPoint;
+begin
+  Renderer := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]).Create;
+  try
+    Img.Bitmap.Clear(clWhite32);
+    Renderer.Color := clRed32;
+    Renderer.Bitmap := Img.Bitmap;
+
+    Line := CreateLine(0, 2, 20, 20, 1);
+    Ellipse := GR32_VectorUtils.Ellipse(5, 3, 5, 3);
+
+    Renderer.PolyPolygonFS([Line]);
+
+  finally
+    Renderer.Free;
   end;
 end;
 
@@ -448,6 +612,10 @@ begin
 end;
 
 initialization
+  // We're not interested in the ClearType rasterizers
+  UnregisterPolygonRenderer(TPolygonRenderer32LCD);
+  UnregisterPolygonRenderer(TPolygonRenderer32LCD2);
+
   RegisterTest('Ellipses', EllipseTest);
   RegisterTest('Thin Lines', ThinLineTest);
   RegisterTest('Thick Lines', ThickLineTest);
