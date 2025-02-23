@@ -4944,17 +4944,15 @@ var
 procedure RegisterBindings;
 begin
   ResamplersRegistry := NewRegistry('GR32_Resamplers bindings');
-  ResamplersRegistry.RegisterBinding(@@BlockAverage);
-  ResamplersRegistry.RegisterBinding(@@Interpolator);
+  ResamplersRegistry.RegisterBinding(@@BlockAverage, 'BlockAverage');
+  ResamplersRegistry.RegisterBinding(@@Interpolator, 'Interpolator');
 
-  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_Pas, [isPascal]);
-  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_Pas, [isPascal]);
-{$IFNDEF PUREPASCAL}
-{$IFNDEF OMIT_SSE2}
-  ResamplersRegistry.ADD(@@BlockAverage, @BlockAverage_SSE2, [isSSE2]);
-  ResamplersRegistry.ADD(@@Interpolator, @Interpolator_SSE2, [isSSE2]);
-{$ENDIF}
-{$ENDIF}
+  ResamplersRegistry[@@BlockAverage].ADD(@BlockAverage_Pas, [isPascal]).Name := 'BlockAverage_Pas';
+  ResamplersRegistry[@@Interpolator].ADD(@Interpolator_Pas, [isPascal]).Name := 'Interpolator_Pas';
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+  ResamplersRegistry[@@BlockAverage].ADD(@BlockAverage_SSE2, [isSSE2]).Name := 'BlockAverage_SSE2';
+  ResamplersRegistry[@@Interpolator].ADD(@Interpolator_SSE2, [isSSE2]).Name := 'Interpolator_SSE2';
+{$ifend}
   ResamplersRegistry.RebindAll;
 end;
 

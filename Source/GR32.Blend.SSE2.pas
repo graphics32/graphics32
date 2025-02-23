@@ -2633,40 +2633,46 @@ procedure RegisterBindingFunctions;
 begin
 {$IFNDEF OMIT_SSE2}
 
-  BlendRegistry.Add(FID_MERGEREG,       @MergeReg_SSE2,         [isSSE2]);
-  BlendRegistry.Add(FID_COMBINEREG,     @CombineReg_SSE2,       [isSSE2]);
-  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_SSE2_128,   [isSSE2]);
+  BlendRegistry[FID_MERGEREG].Add(      @MergeReg_SSE2,         [isSSE2]).Name := 'MergeReg_SSE2';
+  BlendRegistry[FID_COMBINEREG].Add(    @CombineReg_SSE2,       [isSSE2]).Name := 'CombineReg_SSE2';
+  BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE2_128,   [isSSE2]).Name := 'CombineMem_SSE2_128';
 {$ifndef FPC} // CombineMem_SSE41_Kadaif is currently broken on FPC
-  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_SSE41_Kadaif, [isSSE41]);
+  BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_Kadaif, [isSSE41]).Name := 'CombineMem_SSE41_Kadaif';
 {$else}
-  BlendRegistry.Add(FID_COMBINEMEM,     @CombineMem_SSE41_8081, [isSSE41]);
+  BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_8081, [isSSE41]).Name := 'CombineMem_SSE41_8081';
 {$endif}
-  BlendRegistry.Add(FID_COMBINELINE,    @CombineLine_SSE2,      [isSSE2]);
-  BlendRegistry.Add(FID_BLENDREG,       @BlendReg_SSE2,         [isSSE2]);
-  BlendRegistry.Add(FID_BLENDMEM,       @BlendMem_SSE2,         [isSSE2]);
-  BlendRegistry.Add(FID_BLENDMEMS,      @BlendMems_SSE2,        [isSSE2]);
-  BlendRegistry.Add(FID_BLENDMEMEX,     @BlendMemEx_SSE2,       [isSSE2]);
-  BlendRegistry.Add(FID_BLENDLINE,      @BlendLine_SSE2,        [isSSE2]);
-  BlendRegistry.Add(FID_BLENDLINEEX,    @BlendLineEx_SSE2,      [isSSE2]);
-  BlendRegistry.Add(FID_BLENDREGEX,     @BlendRegEx_SSE2,       [isSSE2]);
-  BlendRegistry.Add(FID_COLORMAX,       @ColorMax_SSE2,         [isSSE2]);
-  BlendRegistry.Add(FID_COLORMIN,       @ColorMin_SSE2,         [isSSE2]);
-  BlendRegistry.Add(FID_COLORADD,       @ColorAdd_SSE2,         [isSSE2]);
-  BlendRegistry.Add(FID_COLORSUB,       @ColorSub_SSE2,         [isSSE2]);
-  BlendRegistry.Add(FID_COLORMODULATE,  @ColorModulate_SSE2,    [isSSE2]);
-  BlendRegistry.Add(FID_COLORDIFFERENCE,@ColorDifference_SSE2,  [isSSE2]);
-  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_SSE2,   [isSSE2]);
-  BlendRegistry.Add(FID_COLORSCALE,     @ColorScale_SSE2,       [isSSE2]);
-  BlendRegistry.Add(FID_LIGHTEN,        @LightenReg_SSE2,       [isSSE]);
-  BlendRegistry.Add(FID_BLENDREGRGB,    @BlendRegRGB_SSE2,      [isSSE2]);
-  BlendRegistry.Add(FID_BLENDMEMRGB,    @BlendMemRGB_SSE2,      [isSSE2]);
+{$ifdef BENCHMARK}
+  BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE2_Table, [isSSE2], BindingPriorityWorse).Name := 'CombineMem_SSE2_Table';
+{$ifndef FPC}
+  BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_8081, [isSSE41], BindingPriorityWorse).Name := 'CombineMem_SSE41_8081';
+{$endif}
+{$endif}
+  BlendRegistry[FID_COMBINELINE].Add(   @CombineLine_SSE2,      [isSSE2]).Name := 'CombineLine_SSE2';
+  BlendRegistry[FID_BLENDREG].Add(      @BlendReg_SSE2,         [isSSE2]).Name := 'BlendReg_SSE2';
+  BlendRegistry[FID_BLENDMEM].Add(      @BlendMem_SSE2,         [isSSE2]).Name := 'BlendMem_SSE2';
+  BlendRegistry[FID_BLENDMEMS].Add(     @BlendMems_SSE2,        [isSSE2]).Name := 'BlendMems_SSE2';
+  BlendRegistry[FID_BLENDMEMEX].Add(    @BlendMemEx_SSE2,       [isSSE2]).Name := 'BlendMemEx_SSE2';
+  BlendRegistry[FID_BLENDLINE].Add(     @BlendLine_SSE2,        [isSSE2]).Name := 'BlendLine_SSE2';
+  BlendRegistry[FID_BLENDLINEEX].Add(   @BlendLineEx_SSE2,      [isSSE2]).Name := 'BlendLineEx_SSE2';
+  BlendRegistry[FID_BLENDREGEX].Add(    @BlendRegEx_SSE2,       [isSSE2]).Name := 'BlendRegEx_SSE2';
+  BlendRegistry[FID_COLORMAX].Add(      @ColorMax_SSE2,         [isSSE2]).Name := 'ColorMax_SSE2';
+  BlendRegistry[FID_COLORMIN].Add(      @ColorMin_SSE2,         [isSSE2]).Name := 'ColorMin_SSE2';
+  BlendRegistry[FID_COLORADD].Add(      @ColorAdd_SSE2,         [isSSE2]).Name := 'ColorAdd_SSE2';
+  BlendRegistry[FID_COLORSUB].Add(      @ColorSub_SSE2,         [isSSE2]).Name := 'ColorSub_SSE2';
+  BlendRegistry[FID_COLORMODULATE].Add( @ColorModulate_SSE2,    [isSSE2]).Name := 'ColorModulate_SSE2';
+  BlendRegistry[FID_COLORDIFFERENCE].Add(@ColorDifference_SSE2,  [isSSE2]).Name := 'ColorDifference_SSE2';
+  BlendRegistry[FID_COLOREXCLUSION].Add(@ColorExclusion_SSE2,   [isSSE2]).Name := 'ColorExclusion_SSE2';
+  BlendRegistry[FID_COLORSCALE].Add(    @ColorScale_SSE2,       [isSSE2]).Name := 'ColorScale_SSE2';
+  BlendRegistry[FID_LIGHTEN].Add(       @LightenReg_SSE2,       [isSSE]).Name := 'LightenReg_SSE2';
+  BlendRegistry[FID_BLENDREGRGB].Add(   @BlendRegRGB_SSE2,      [isSSE2]).Name := 'BlendRegRGB_SSE2';
+  BlendRegistry[FID_BLENDMEMRGB].Add(   @BlendMemRGB_SSE2,      [isSSE2]).Name := 'BlendMemRGB_SSE2';
 {$ifdef GR32_SCALEMEMS_FAST}
-  BlendRegistry.Add(@@ScaleMems,        @FastScaleMems_SSE41,[isSSE41]);
+  BlendRegistry[@@ScaleMems].Add(       @FastScaleMems_SSE41,[isSSE41]).Name := 'FastScaleMems_SSE41';
 {$else}
-  BlendRegistry.Add(@@ScaleMems,        @ScaleMems_SSE41,    [isSSE41]);
+  BlendRegistry[@@ScaleMems].Add(       @ScaleMems_SSE41,    [isSSE41]).Name := 'ScaleMems_SSE41';
 {$endif}
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
-  BlendRegistry.Add(FID_BLENDMEMRGB128, @BlendMemRGB128_SSE4,   [isSSE2]);
+  BlendRegistry[FID_BLENDMEMRGB128].Add(@BlendMemRGB128_SSE4,   [isSSE2]).Name := 'BlendMemRGB128_SSE4';
 {$ENDIF}
 
 {$ENDIF}

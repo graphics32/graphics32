@@ -3287,32 +3287,32 @@ var
 procedure RegisterBindings;
 begin
   TransformsRegistry := NewRegistry('GR32_Transforms bindings');
-  TransformsRegistry.RegisterBinding(@@DET_2x2_32);
-  TransformsRegistry.RegisterBinding(@@DET_3x3_32);
-  TransformsRegistry.RegisterBinding(@@DET_2x2_64);
+  TransformsRegistry.RegisterBinding(@@DET_2x2_32, 'DET_2x2_32');
+  TransformsRegistry.RegisterBinding(@@DET_3x3_32, 'DET_3x3_32');
+  TransformsRegistry.RegisterBinding(@@DET_2x2_64, 'DET_2x2_64');
 
   // DET_2x2_32
-  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_Pas, [isPascal]);
+  TransformsRegistry[@@DET_2x2_32].Add(@DET_2x2_32_Pas, [isPascal]).Name := 'DET_2x2_32_Pas';
 {$IFNDEF PUREPASCAL}
 {$if defined(TARGET_x86)}
-  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_ASM, [isAssembler]);
-{$elseif defined(TARGET_x64)}
-  TransformsRegistry.Add(@@DET_2x2_32, @DET_2x2_32_SSE, [isSSE]);
+  TransformsRegistry[@@DET_2x2_32].Add(@DET_2x2_32_ASM, [isAssembler]).Name := 'DET_2x2_32_ASM';
+{$elseif defined(TARGET_x64) and (not defined(OMIT_SSE2))}
+  TransformsRegistry[@@DET_2x2_32].Add(@DET_2x2_32_SSE, [isSSE]).Name := 'DET_2x2_32_SSE';
 {$ifend}
 {$ENDIF}
 
   // DET_2x2_64
-  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_Pas, [isPascal]);
+  TransformsRegistry[@@DET_2x2_64].Add(@DET_2x2_64_Pas, [isPascal]).Name := 'DET_2x2_64_Pas';
 {$IFNDEF PUREPASCAL}
 {$if defined(TARGET_x86)}
-  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_ASM, [isAssembler]);
-{$elseif defined(TARGET_x64)}
-  TransformsRegistry.Add(@@DET_2x2_64, @DET_2x2_64_SSE, [isSSE]);
+  TransformsRegistry[@@DET_2x2_64].Add(@DET_2x2_64_ASM, [isAssembler]).Name := 'DET_2x2_64_ASM';
+{$elseif defined(TARGET_x64) and (not defined(OMIT_SSE2))}
+  TransformsRegistry[@@DET_2x2_64].Add(@DET_2x2_64_SSE, [isSSE]).Name := 'DET_2x2_64_SSE';
 {$ifend}
 {$ENDIF}
 
   // DET_3x3_32
-  TransformsRegistry.Add(@@DET_3x3_32, @DET_3x3_32_Pas, [isPascal]);
+  TransformsRegistry[@@DET_3x3_32].Add(@DET_3x3_32_Pas, [isPascal]).Name := 'DET_3x3_32_Pas';
 
   TransformsRegistry.RebindAll;
 end;

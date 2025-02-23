@@ -2008,30 +2008,35 @@ begin
 
   LowLevelRegistry := NewRegistry('GR32_LowLevel bindings');
 
-  LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
-  LowLevelRegistry.RegisterBinding(FID_FAST_TRUNC, @@FastTrunc);
-  LowLevelRegistry.RegisterBinding(FID_FAST_ROUND, @@FastRound);
-  LowLevelRegistry.RegisterBinding(@@FastFloorSingle);
-  LowLevelRegistry.RegisterBinding(@@FastFloorDouble);
+  LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord, 'FillLongWord');
+  LowLevelRegistry.RegisterBinding(FID_FAST_TRUNC, @@FastTrunc, 'FastTrunc');
+  LowLevelRegistry.RegisterBinding(FID_FAST_ROUND, @@FastRound, 'FastRound');
+  LowLevelRegistry.RegisterBinding(@@FastFloorSingle, 'FastFloorSingle');
+  LowLevelRegistry.RegisterBinding(@@FastFloorDouble, 'FastFloorDouble');
 
-  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_Pas,      [isPascal]);
-  LowLevelRegistry.Add(FID_FAST_TRUNC,          @FastTrunc_Pas,         [isPascal]);
-  LowLevelRegistry.Add(FID_FAST_ROUND,          @FastRound_Pas,         [isPascal]);
-  LowLevelRegistry.Add(@@FastFloorSingle,       @FastFloorSingle_Pas,   [isPascal]);
-  LowLevelRegistry.Add(@@FastFloorDouble,       @FastFloorDouble_Pas,   [isPascal]);
+  LowLevelRegistry[@@FillLongWord].Add(         @FillLongWord_Pas,      [isPascal]).Name := 'FillLongWord_Pas';
+  LowLevelRegistry[@@FastTrunc].Add(            @FastTrunc_Pas,         [isPascal]).Name := 'FastTrunc_Pas';
+  LowLevelRegistry[@@FastRound].Add(            @FastRound_Pas,         [isPascal]).Name := 'FastRound_Pas';
+  LowLevelRegistry[@@FastFloorSingle].Add(      @FastFloorSingle_Pas,   [isPascal]).Name := 'FastFloorSingle_Pas';
+  LowLevelRegistry[@@FastFloorDouble].Add(      @FastFloorDouble_Pas,   [isPascal]).Name := 'FastFloorDouble_Pas';
 
 {$IFNDEF PUREPASCAL}
-  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongWord_ASM,      [isAssembler]);
+  LowLevelRegistry[@@FillLongWord].Add(         @FillLongWord_ASM,      [isAssembler]).Name := 'FillLongWord_ASM';
 
 {$IFNDEF OMIT_SSE2}
-  LowLevelRegistry.Add(FID_FILLLONGWORD,        @FillLongword_SSE2,     [isSSE2]);
-  LowLevelRegistry.Add(FID_FAST_TRUNC,          @FastTrunc_SSE2,        [isSSE2]);
-  LowLevelRegistry.Add(FID_FAST_ROUND,          @FastRound_SSE41,       [isSSE41]);
-  LowLevelRegistry.Add(@@FastFloorSingle,       @FastFloorSingle_SSE41, [isSSE41]);
-  LowLevelRegistry.Add(@@FastFloorDouble,       @FastFloorDouble_SSE41, [isSSE41]);
+  LowLevelRegistry[@@FillLongWord].Add(         @FillLongword_SSE2,     [isSSE2]).Name := 'FillLongword_SSE2';
+  LowLevelRegistry[@@FastTrunc].Add(            @FastTrunc_SSE2,        [isSSE2]).Name := 'FastTrunc_SSE2';
+  LowLevelRegistry[@@FastRound].Add(            @FastRound_SSE41,       [isSSE41]).Name := 'FastRound_SSE41';
+  LowLevelRegistry[@@FastFloorSingle].Add(      @FastFloorSingle_SSE41, [isSSE41]).Name := 'FastFloorSingle_SSE41';
+  LowLevelRegistry[@@FastFloorDouble].Add(      @FastFloorDouble_SSE41, [isSSE41]).Name := 'FastFloorDouble_SSE41';
 {$ENDIF}
 
 {$ENDIF}
+
+{$if defined(BENCHMARK)}
+  LowLevelRegistry[@@FastTrunc].Add(            @SlowTrunc_SSE2, [isSSE2], BindingPriorityWorse).Name := 'SlowTrunc_SSE2';
+  LowLevelRegistry[@@FastFloorSingle].Add(      @Math.Floor, [isReference], BindingPriorityWorse).Name := 'Math.Floor';
+{$ifend}
 
   LowLevelRegistry.RebindAll;
 end;

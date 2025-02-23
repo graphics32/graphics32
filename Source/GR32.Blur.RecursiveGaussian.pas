@@ -1537,40 +1537,40 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-  BlurRegistry.RegisterBinding(@@IIR_BlurFilterForward);
-  BlurRegistry.RegisterBinding(@@IIR_BlurFilterBackward);
-  BlurRegistry.RegisterBinding(@@IIR_BlurApplyEdgeCorrection);
+  BlurRegistry.RegisterBinding(@@IIR_BlurFilterForward, 'IIR_BlurFilterForward');
+  BlurRegistry.RegisterBinding(@@IIR_BlurFilterBackward, 'IIR_BlurFilterBackward');
+  BlurRegistry.RegisterBinding(@@IIR_BlurApplyEdgeCorrection, 'IIR_BlurApplyEdgeCorrection');
 
 {$ifdef IIR_BLUR_DEFAULT}
   // Register as default Blur32 implementation
-  BlurRegistry.Add(@@Blur32Proc,                  @RecursiveGaussianBlurRadius,         [isPascal]);
-  BlurRegistry.Add(@@GammaBlur32Proc,             @RecursiveGaussianBlurRadiusGamma,    [isPascal]);
+  BlurRegistry[@@Blur32Proc].Add(               @RecursiveGaussianBlurRadius,         [isPascal]).Name := 'RecursiveGaussianBlurRadius';
+  BlurRegistry[@@GammaBlur32Proc].Add(          @RecursiveGaussianBlurRadiusGamma,    [isPascal]).Name := 'RecursiveGaussianBlurRadiusGamma';
 {$endif IIR_BLUR_DEFAULT}
 
-  BlurRegistry.Add(@@HorizontalBlur32,            @RecursiveGaussianBlurHorizontalRadius, [isPascal]);
-  BlurRegistry.Add(@@GammaHorizontalBlur32,       @RecursiveGaussianBlurHorizontalRadiusGamma, [isPascal]);
+  BlurRegistry[@@HorizontalBlur32].Add(         @RecursiveGaussianBlurHorizontalRadius, [isPascal]).Name := 'RecursiveGaussianBlurHorizontalRadius';
+  BlurRegistry[@@GammaHorizontalBlur32].Add(    @RecursiveGaussianBlurHorizontalRadiusGamma, [isPascal]).Name := 'RecursiveGaussianBlurHorizontalRadiusGamma';
 
-  BlurRegistry.Add(@@IIR_BlurFilterForward,       @BlurFilterForward_Pas,               [isPascal]);
-  BlurRegistry.Add(@@IIR_BlurFilterBackward,      @BlurFilterBackward_Pas,              [isPascal]);
-  BlurRegistry.Add(@@IIR_BlurApplyEdgeCorrection, @BlurApplyEdgeCorrection_Pas,         [isPascal]);
+  BlurRegistry[@@IIR_BlurFilterForward].Add(    @BlurFilterForward_Pas,               [isPascal]).Name := 'BlurFilterForward_Pas';
+  BlurRegistry[@@IIR_BlurFilterBackward].Add(   @BlurFilterBackward_Pas,              [isPascal]).Name := 'BlurFilterBackward_Pas';
+  BlurRegistry[@@IIR_BlurApplyEdgeCorrection].Add(@BlurApplyEdgeCorrection_Pas,         [isPascal]).Name := 'BlurApplyEdgeCorrection_Pas';
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 {$ifdef IIR_BLUR_SIMD}
-  BlurRegistry.Add(@@IIR_BlurFilterForward,       @BlurFilterForward_SSE41,
+  BlurRegistry[@@IIR_BlurFilterForward].Add(    @BlurFilterForward_SSE41,
   {$if defined(IIR_USE_DPPS)}
-                                                                                        [isSSE41]);
+                                                                                        [isSSE41]).Name := 'BlurFilterForward_SSE41';
   {$elseif defined(IIR_USE_HADDPS)}
-                                                                                        [isSSE3]);
+                                                                                        [isSSE3]).Name := 'BlurFilterForward_SSE41';
   {$else}
-                                                                                        [isSSE2]);
+                                                                                        [isSSE2]).Name := 'BlurFilterForward_SSE41';
   {$ifend}
 
-  BlurRegistry.Add(@@IIR_BlurFilterBackward,      @BlurFilterBackward_SSE41,            [isSSE41]);
+  BlurRegistry[@@IIR_BlurFilterBackward].Add(   @BlurFilterBackward_SSE41,            [isSSE41]).Name := 'BlurFilterBackward_SSE41';
 
 {$endif IIR_BLUR_SIMD}
 
 {$ifdef IIR_BLUR_EDGE_CORRECTION_SIMD}
-  BlurRegistry.Add(@@IIR_BlurApplyEdgeCorrection, @BlurApplyEdgeCorrection_SSE41,       [isSSE41]);
+  BlurRegistry[@@IIR_BlurApplyEdgeCorrection].Add(@BlurApplyEdgeCorrection_SSE41,       [isSSE41]).Name := 'BlurApplyEdgeCorrection_SSE41';
 {$endif IIR_BLUR_EDGE_CORRECTION_SIMD}
 
   BlendRegistry.RebindAll;

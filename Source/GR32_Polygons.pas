@@ -2208,10 +2208,10 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUP);
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUP);
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUPF);
-  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUPF);
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUP, 'MakeAlphaEvenOddUP');
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUP, 'MakeAlphaNonZeroUP');
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaEvenOddUPF, 'MakeAlphaEvenOddUPF');
+  PolygonsRegistry.RegisterBinding(@@MakeAlphaNonZeroUPF, 'MakeAlphaNonZeroUPF');
 end;
 
 var
@@ -2234,10 +2234,10 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindingFunctions;
 begin
-  PolygonsRegistry.Add(@@MakeAlphaEvenOddUP,    @MakeAlphaEvenOddUP_Pas,        [isPascal]);
-  PolygonsRegistry.Add(@@MakeAlphaNonZeroUP,    @MakeAlphaNonZeroUP_Pas,        [isPascal]);
-  PolygonsRegistry.Add(@@MakeAlphaEvenOddUPF,   @MakeAlphaEvenOddUPF_Pas,       [isPascal]);
-  PolygonsRegistry.Add(@@MakeAlphaNonZeroUPF,   @MakeAlphaNonZeroUPF_Pas,       [isPascal]);
+  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add( @MakeAlphaEvenOddUP_Pas,        [isPascal]).Name := 'MakeAlphaEvenOddUP_Pas';
+  PolygonsRegistry[@@MakeAlphaNonZeroUP].Add( @MakeAlphaNonZeroUP_Pas,        [isPascal]).Name := 'MakeAlphaNonZeroUP_Pas';
+  PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(@MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
+  PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(@MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
 end;
 
 //------------------------------------------------------------------------------

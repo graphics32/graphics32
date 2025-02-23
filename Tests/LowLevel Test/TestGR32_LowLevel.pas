@@ -66,10 +66,10 @@ type
     class function FunctionRegistry: TFunctionRegistry; virtual; abstract;
     class function PriorityProc: TFunctionPriority; virtual; abstract;
 
-    class function PriorityProcPas(Info: PFunctionInfo): Integer; static;
-    class function PriorityProcAsm(Info: PFunctionInfo): Integer; static;
-    class function PriorityProcSSE2(Info: PFunctionInfo): Integer; static;
-    class function PriorityProcSSE41(Info: PFunctionInfo): Integer; static;
+    class function PriorityProcPas(const Info: IFunctionInfo): Integer; static;
+    class function PriorityProcAsm(const Info: IFunctionInfo): Integer; static;
+    class function PriorityProcSSE2(const Info: IFunctionInfo): Integer; static;
+    class function PriorityProcSSE41(const Info: IFunctionInfo): Integer; static;
 
     function Rebind(FunctionID: Integer; RequireImplementation: boolean = True): boolean;
   public
@@ -197,7 +197,7 @@ uses
 // TBindingTestCase
 //
 // ----------------------------------------------------------------------------
-class function TBindingTestCase.PriorityProcPas(Info: PFunctionInfo): Integer;
+class function TBindingTestCase.PriorityProcPas(const Info: IFunctionInfo): Integer;
 begin
   if (isPascal in Info.InstructionSupport) then
     Result := 0
@@ -205,7 +205,7 @@ begin
     Result := MaxInt-1;//INVALID_PRIORITY;
 end;
 
-class function TBindingTestCase.PriorityProcAsm(Info: PFunctionInfo): Integer;
+class function TBindingTestCase.PriorityProcAsm(const Info: IFunctionInfo): Integer;
 begin
   if (isAssembler in Info.InstructionSupport) then
     Result := 0
@@ -213,7 +213,7 @@ begin
     Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
-class function TBindingTestCase.PriorityProcSSE2(Info: PFunctionInfo): Integer;
+class function TBindingTestCase.PriorityProcSSE2(const Info: IFunctionInfo): Integer;
 begin
   if (isSSE2 in Info.InstructionSupport) then
     Result := 0
@@ -221,7 +221,7 @@ begin
     Result := TFunctionRegistry.INVALID_PRIORITY;
 end;
 
-class function TBindingTestCase.PriorityProcSSE41(Info: PFunctionInfo): Integer;
+class function TBindingTestCase.PriorityProcSSE41(const Info: IFunctionInfo): Integer;
 begin
   if (isSSE41 in Info.InstructionSupport) then
     Result := 0
