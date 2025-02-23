@@ -48,7 +48,7 @@ uses
 //
 //------------------------------------------------------------------------------
 // For use in CPU dispatch bindings
-// For the most common usage, these alioases avoids the need to reference the
+// For the most common usage, these aliases avoids the need to reference the
 // GR32.CPUID unit directly.
 //------------------------------------------------------------------------------
 type
@@ -96,6 +96,7 @@ type
     function GetProc: Pointer;
     function GetInstructionSupport: TInstructionSupport;
     function GetPriority: Integer;
+    procedure SetPriority(Value: Integer);
     function GetFlags: Cardinal;
     procedure DoSetFlags(const Value: Cardinal);
     function GetName: string;
@@ -118,7 +119,7 @@ type
     property InstructionSupport: TInstructionSupport read GetInstructionSupport;
 
     // Priority: Function priority; Smaller is better. Used by default TFunctionPriority callback
-    property Priority: Integer read GetPriority;
+    property Priority: Integer read GetPriority write SetPriority;
 
     // Flags: Optional, user defined flags for use in a custom TFunctionPriority callback
     property Flags: Cardinal read GetFlags write DoSetFlags;
@@ -350,6 +351,7 @@ type
     function GetProc: Pointer;
     function GetInstructionSupport: TInstructionSupport;
     function GetPriority: Integer;
+    procedure SetPriority(Value: Integer);
     function GetFlags: Cardinal;
     procedure DoSetFlags(const Value: Cardinal);
     function GetName: string;
@@ -444,6 +446,12 @@ begin
   Result := Self;
 end;
 
+
+procedure TFunctionInfo.SetPriority(Value: Integer);
+begin
+  FPriority := Value;
+  Binding.NeedRebind := True;
+end;
 
 //------------------------------------------------------------------------------
 //
