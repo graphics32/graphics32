@@ -217,7 +217,8 @@ const
 implementation
 
 uses
-  Math;
+  Math,
+  GR32_System;
 
 {$IFNDEF PUREPASCAL}
 const
@@ -2176,7 +2177,7 @@ asm
 end;
 
 // Contributed by Kadaif, based on Sanyin's aligned SSE2 version
-procedure CumSum_SSE2_kadaif(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure CumSum_SSE2_kadaif1(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$if defined(TARGET_x86)}
 
@@ -3044,11 +3045,14 @@ begin
   MathRegistry[@@FMod_D].Add(           @FMod_D_Pas,            [isPascal]).Name := 'FMod_D_Pas';
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  MathRegistry[@@CumSum].Add(           @CumSum_SSE2,           [isSSE2]).Name := 'CumSum_SSE2';
-  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif,    [isSSE2]).Name := 'CumSum_SSE2_kadaif';
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif2,   [isSSE2]).Name := 'CumSum_SSE2_kadaif2';
+
+{$if defined(BENCHMARK)}
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2,           [isSSE2]).Name := 'CumSum_SSE2';
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif1,   [isSSE2]).Name := 'CumSum_SSE2_kadaif1';
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif3,   [isSSE2]).Name := 'CumSum_SSE2_kadaif3';
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif4,   [isSSE2]).Name := 'CumSum_SSE2_kadaif4';
+{$ifend}
 
   MathRegistry[@@FloatMod_F].Add(       @FloatMod_F_SSE41,      [isSSE41]).Name := 'FloatMod_F_SSE41';
 
@@ -3063,32 +3067,27 @@ begin
 
   MathRegistry[@@FMod_D].Add(           @FMod_D_SSE2,           [isSSE2]).Name := 'FMod_D_SSE2';
   MathRegistry[@@FMod_D].Add(           @FMod_D_SSE41,          [isSSE41]).Name := 'FMod_D_SSE41';
+
+{$ifend}
+
+  // The CumSum SIMD 64-bit implementations are very slow on certain old CPUs
+  // (Sandy Bridge and presumably also Ivy Bridge) so we need to penalize them
+  // so they don't get selected by the rebind.
+  //
+  // We could detect Sandy- and Ivy Bridge by their model numbers (42 and 58)
+  // but instead we use the AVX2 feature flag since they were the last models
+  // without AVX2.
+  //
+  // Also, instead of altering the priority of the SIMD implementation we
+  // instead improve the priority of the Pascal implementation.
+
+{$if defined(TARGET_x64)}
+  if (not (isAVX2 in CPU.InstructionSupport)) then
+    MathRegistry[@@CumSum].FindImplementation(@CumSum_Pas).Priority := BindingPriorityBetter;
 {$ifend}
 
   MathRegistry.RebindAll;
 end;
-
-(*
-TEST_DURATION = 4000;
-TEST_SAMPLES = 4;
-
-TPolygonRenderer32VPR
-
-32-bit          Pascal          CumSum_SSE2     kadaif          kadaif2
-Ellipses        8.347           8.976           9.085           8.753
-Thin Lines      41.925          44.750          42.228          42.235
-Thick Lines     29.331          30.136          29.745          29.936
-Splines         4.383           4.629           4.644           4.567
-Text            2.568           3.116           2.583           2.578
-
-64-bit          Pascal          CumSum_SSE2     kadaif          kadaif2
-Ellipses        7.284           8.122           8.390           8.371
-Thin Lines      45.381          45.718          45.334          44.387
-Thick Lines     29.548          29.530          30.078          30.580
-Splines         4.259           4.684           4.697           4.626
-Text            2.955           2.955           2.968           2.857
-
-*)
 
 //------------------------------------------------------------------------------
 
