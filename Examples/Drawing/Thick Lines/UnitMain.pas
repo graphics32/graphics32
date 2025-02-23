@@ -63,6 +63,7 @@ type
     procedure PaintBox32_ThinPaintBuffer(Sender: TObject);
   private
     FDoPaint: boolean;
+    procedure NotHung;
   public
   end;
 
@@ -74,9 +75,10 @@ implementation
 {$R *.dfm}
 
 uses
-  Diagnostics,
-  Math,
+  System.Types,
+  System.Math,
 
+  GR32_System,
   GR32.Lines.Thick,
 
   GR32,
@@ -94,8 +96,21 @@ const
 
 //------------------------------------------------------------------------------
 
+procedure TFormThickLineTest.NotHung;
+var
+  Msg: TMsg;
+begin
+  // Pump WM_NULL so Windows doesn't consider application hung
+  if PeekMessage(Msg, Handle, WM_NULL, WM_NULL, PM_NOREMOVE) and (Msg.message = WM_NULL) then
+    PeekMessage(Msg, Handle, WM_NULL, WM_NULL, PM_REMOVE);
+end;
+
+//------------------------------------------------------------------------------
+
 procedure TFormThickLineTest.ButtonRedrawClick(Sender: TObject);
 begin
+  ButtonRedraw.Enabled := False;
+  ButtonRedraw.Update;
   FDoPaint := True;
   try
 
@@ -109,6 +124,7 @@ begin
 
   finally
     FDoPaint := False;
+    ButtonRedraw.Enabled := True;
   end;
 end;
 
@@ -141,6 +157,9 @@ end;
 //------------------------------------------------------------------------------
 
 procedure TFormThickLineTest.PaintBoxGDIThinPaint(Sender: TObject);
+var
+  Stopwatch: TStopwatch;
+  LineCount: integer;
 begin
   (*
   ** GDI, thin line. Aliased. No alpha blending.
@@ -159,9 +178,9 @@ begin
   TPaintBox(Sender).Canvas.MoveTo(0,0);
 
   RandSeed := 0;
-  var Stopwatch := TStopwatch.StartNew;
+  Stopwatch := TStopwatch.StartNew;
 
-  var LineCount := 0;
+  LineCount := 0;
   while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
@@ -172,12 +191,16 @@ begin
   Stopwatch.Stop;
 
   Label1.Caption := Format('TCanvas.LineTo, Width=1.'#13'Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  NotHung;
   Screen.Cursor := crDefault;
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TFormThickLineTest.PaintBoxGDIThickPaint(Sender: TObject);
+var
+  Stopwatch: TStopwatch;
+  LineCount: integer;
 begin
   (*
   ** GDI, thick line. Aliased. No alpha blending.
@@ -194,9 +217,9 @@ begin
   TPaintBox(Sender).Canvas.FillRect(TPaintBox(Sender).Canvas.ClipRect);
 
   RandSeed := 0;
-  var Stopwatch := TStopwatch.StartNew;
+  Stopwatch := TStopwatch.StartNew;
 
-  var LineCount := 0;
+  LineCount := 0;
   while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
@@ -207,12 +230,16 @@ begin
   Stopwatch.Stop;
 
   Label3.Caption := Format('TCanvas.LineTo, Width=%d.'#13'Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  NotHung;
   Screen.Cursor := crDefault;
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TFormThickLineTest.PaintBox32_ThinAlphaPaintBuffer(Sender: TObject);
+var
+  Stopwatch: TStopwatch;
+  LineCount: integer;
 begin
   (*
   ** Graphics32, thin line. Anti-aliased & Alpha blended.
@@ -230,9 +257,9 @@ begin
   TPaintBox32(Sender).Buffer.MoveTo(0, 0);
 
   RandSeed := 0;
-  var Stopwatch := TStopwatch.StartNew;
+  Stopwatch := TStopwatch.StartNew;
 
-  var LineCount := 0;
+  LineCount := 0;
   while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
@@ -244,12 +271,16 @@ begin
 
   TPaintBox32(Sender).Buffer.EndLockUpdate;
   Label2.Caption := Format('TBitmap32.LineToAS, Width=1.'#13'Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  NotHung;
   Screen.Cursor := crDefault;
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TFormThickLineTest.PaintBox32_ThinPaintBuffer(Sender: TObject);
+var
+  Stopwatch: TStopwatch;
+  LineCount: integer;
 begin
   (*
   ** Graphics32, thin line. Aliased. No alpha blending.
@@ -267,9 +298,9 @@ begin
   TPaintBox32(Sender).Buffer.MoveTo(0, 0);
 
   RandSeed := 0;
-  var Stopwatch := TStopwatch.StartNew;
+  Stopwatch := TStopwatch.StartNew;
 
-  var LineCount := 0;
+  LineCount := 0;
   while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
@@ -281,12 +312,19 @@ begin
 
   TPaintBox32(Sender).Buffer.EndLockUpdate;
   Label6.Caption := Format('TBitmap32.LineToS, Width=1.'#13'Lines per second: %.0n', [LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  NotHung;
   Screen.Cursor := crDefault;
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TFormThickLineTest.PaintBox32_ThickPaintBuffer(Sender: TObject);
+var
+  Canvas: TCanvas32;
+  Stroke: TStrokeBrush;
+  LastPoint: TFloatPoint;
+  Stopwatch: TStopwatch;
+  LineCount: integer;
 begin
   (*
   ** Graphics32, thick line via TCanvas32. Anti-aliased & Alpha blended.
@@ -301,24 +339,24 @@ begin
   TPaintBox32(Sender).Buffer.CombineMode := cmBlend;
   TPaintBox32(Sender).Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
 
-  var Canvas := TCanvas32.Create(TPaintBox32(Sender).Buffer);
+  Canvas := TCanvas32.Create(TPaintBox32(Sender).Buffer);
   try
-    var Stroke := TStrokeBrush(Canvas.Brushes.Add(TStrokeBrush));
+    Stroke := TStrokeBrush(Canvas.Brushes.Add(TStrokeBrush));
     Stroke.StrokeWidth := ThickLineWidth;
 
-    var LastPoint := FloatPoint(0, 0);
+    LastPoint := GR32.FloatPoint(0, 0);
 
     RandSeed := 0;
-    var Stopwatch := TStopwatch.StartNew;
+    Stopwatch := TStopwatch.StartNew;
 
-    var LineCount := 0;
+    LineCount := 0;
     while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
     begin
       Inc(LineCount);
       Stroke.FillColor := Color32(Random($00FFFFFF)); // Color32 to swap R and B
 
       Canvas.MoveTo(LastPoint); // EndPath clears last point so we have to set it manually
-      LastPoint := FloatPoint(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
+      LastPoint := GR32.FloatPoint(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
 
       Canvas.LineTo(LastPoint);
 
@@ -328,16 +366,23 @@ begin
     Stopwatch.Stop;
 
     TPaintBox32(Sender).Buffer.EndLockUpdate;
-    Label4.Caption := Format('TCanvas32.LineTo, Width=%d.'#13'Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
   finally
     Canvas.Free;
   end;
+
+  Label4.Caption := Format('TCanvas32.LineTo, Width=%d.'#13'Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  NotHung;
   Screen.Cursor := crDefault;
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TFormThickLineTest.PaintBox32_ThickLinePaintBuffer(Sender: TObject);
+var
+  LastPos, NewPos: TPoint;
+  Stopwatch: TStopwatch;
+  LineCount: integer;
+  Color: TColor32;
 begin
   (*
   ** Graphics32, thick line via DrawThickLine.  Aliased. No alpha blending.
@@ -351,17 +396,17 @@ begin
   TPaintBox32(Sender).Buffer.DrawMode := dmOpaque;
   TPaintBox32(Sender).Buffer.CombineMode := cmBlend;
   TPaintBox32(Sender).Buffer.BeginLockUpdate; // No need for update handling, we will redraw everything
-  var LastPos := Point(0, 0);
+  LastPos := GR32.Point(0, 0);
 
   RandSeed := 0;
-  var Stopwatch := TStopwatch.StartNew;
+  Stopwatch := TStopwatch.StartNew;
 
-  var LineCount := 0;
+  LineCount := 0;
   while ((LineCount < MinLineCount) or (Stopwatch.ElapsedMilliseconds < MinTestTime)) and (Stopwatch.ElapsedMilliseconds < MaxTestTime) do
   begin
     Inc(LineCount);
-    var Color: TColor32 := Color32(Random($00FFFFFF)); // Color32 to swap R and B
-    var NewPos := Point(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
+    Color := Color32(Random($00FFFFFF)); // Color32 to swap R and B
+    NewPos := GR32.Point(Random(TPaintBox32(Sender).Width), Random(TPaintBox32(Sender).Height));
     DrawThickLine(TPaintBox32(Sender).Buffer, LastPos.X, LastPos.Y, NewPos.X, NewPos.Y, ThickLineWidth, Color);
     LastPos := NewPos;
   end;
@@ -370,6 +415,7 @@ begin
 
   TPaintBox32(Sender).Buffer.EndLockUpdate;
   Label5.Caption := Format('Graphics32 DrawThickLine, Width=%d.'#13'Lines per second: %.0n', [ThickLineWidth, LineCount / Stopwatch.ElapsedMilliseconds * 1000]);
+  NotHung;
   Screen.Cursor := crDefault;
 end;
 
