@@ -38,8 +38,8 @@ interface
 {$include GR32.inc}
 
 uses
-  Generics.Collections,
-  Classes,
+  System.Generics.Collections,
+  System.Classes,
   GR32.CPUID;
 
 //------------------------------------------------------------------------------
@@ -299,8 +299,8 @@ var
 implementation
 
 uses
-  Math,
-  SysUtils,
+  System.Math,
+  System.SysUtils,
   GR32_System;
 
 //------------------------------------------------------------------------------
@@ -329,7 +329,7 @@ end;
 type
   TFunctionInfo = class(TInterfacedObject, IFunctionInfo)
   private
-    FBinding: IBindingInfo;
+    FBinding: pointer;// weak reference to a IBindingInfo
     FEnabled: boolean;
     FProc: Pointer;
     FInstructionSupport: TInstructionSupport;
@@ -350,6 +350,8 @@ type
     procedure DoSetName(const Value: string);
     function SetFlags(const Value: Cardinal): IFunctionInfo;
     function SetName(const Value: string): IFunctionInfo;
+  private
+    property Binding: IBindingInfo read GetBinding;
   public
     constructor Create(const ABinding: IBindingInfo; AProc: Pointer; AInstructionSupport: TInstructionSupport; APriority: Integer);
   end;
@@ -370,7 +372,7 @@ end;
 
 function TFunctionInfo.GetBinding: IBindingInfo;
 begin
-  Result := FBinding;
+  Result := IBindingInfo(FBinding);
 end;
 
 function TFunctionInfo.GetEnabled: boolean;
@@ -408,7 +410,7 @@ end;
 procedure TFunctionInfo.DoSetFlags(const Value: Cardinal);
 begin
   FFlags := Value;
-  FBinding.NeedRebind := True;
+  Binding.NeedRebind := True;
 end;
 
 procedure TFunctionInfo.DoSetName(const Value: string);
@@ -419,20 +421,20 @@ end;
 procedure TFunctionInfo.SetEnabled(Value: boolean);
 begin
   FEnabled := True;
-  FBinding.NeedRebind := True;
+  Binding.NeedRebind := True;
 end;
 
 function TFunctionInfo.SetFlags(const Value: Cardinal): IFunctionInfo;
 begin
   FFlags := Value;
-  FBinding.NeedRebind := True;
+  Binding.NeedRebind := True;
   Result := Self;
 end;
 
 function TFunctionInfo.SetName(const Value: string): IFunctionInfo;
 begin
   FName := Value;
-  FBinding.NeedRebind := True;
+  Binding.NeedRebind := True;
   Result := Self;
 end;
 
