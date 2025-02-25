@@ -128,10 +128,6 @@ begin
 end;
 
 {$IFDEF BCB}
-class function TCustomClassProperty.GetClassList: TClassList;
-begin
-  Result := nil;
-end;
 
 procedure TCustomClassProperty.SetClassName(const CustomClass: string);
 begin

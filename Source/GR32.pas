@@ -536,6 +536,23 @@ type
   TRect = {$ifndef FPC}System.{$endif}Types.TRect;
   PRect = {$ifndef FPC}System.{$endif}Types.PRect;
 
+
+{$IFDEF SupportsBoost}
+  (*$HPPEMIT '#include <boost/strong_typedef.hpp>'*)
+{$ENDIF}
+  (*$HPPEMIT 'namespace Gr32 {'*)
+{$IFDEF SupportsBoost}
+  (*$HPPEMIT 'BOOST_STRONG_TYPEDEF(int, TFixed)'*)
+{$ELSE}
+  (*$HPPEMIT 'typedef int TFixed;'*)
+{$ENDIF}
+  (*$HPPEMIT 'struct TFixedPoint { float X, Y; }; typedef struct TFixedPoint TFixedPoint;'*)
+{$if ndefined(HAS_TRECTF)}
+  (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
+{$ifend}
+  (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
+  (*$HPPEMIT '} // namespace Gr32 '*)
+
 //------------------------------------------------------------------------------
 // TFloatRect
 //------------------------------------------------------------------------------
@@ -550,19 +567,6 @@ type
 {$else}
 
   {$NODEFINE TFloatRect}
-{$IFDEF SupportsBoost}
-  (*$HPPEMIT '#include <boost/strong_typedef.hpp>'*)
-{$ENDIF}
-  (*$HPPEMIT 'namespace Gr32 {'*)
-{$IFDEF SupportsBoost}
-  (*$HPPEMIT 'BOOST_STRONG_TYPEDEF(int, TFixed)'*)
-{$ELSE}
-  (*$HPPEMIT 'typedef int TFixed;'*)
-{$ENDIF}
-  (*$HPPEMIT 'struct TFixedPoint { float X, Y; }; typedef struct TFixedPoint TFixedPoint;'*)
-  (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
-  (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
-  (*$HPPEMIT '} // namespace Gr32 '*)
 
   TFloatRect = packed record
   private
