@@ -396,6 +396,13 @@ const
 
   COne255th = 1 / $FF;
 
+  {$IFDEF BCB}
+  // This constants are excluded for the BCB part because the generated constants make it
+  // impossible to use this header in Precompiled Headers.
+  {$NODEFINE FixedToFloat}
+  {$NODEFINE COne255th}
+  {$ENDIF}
+
 function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -547,7 +554,7 @@ type
   (*$HPPEMIT 'typedef int TFixed;'*)
 {$ENDIF}
   (*$HPPEMIT 'struct TFixedPoint { float X, Y; }; typedef struct TFixedPoint TFixedPoint;'*)
-{$if ndefined(HAS_TRECTF)}
+{$if not defined(HAS_TRECTF)}
   (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
 {$ifend}
   (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
