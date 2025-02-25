@@ -391,17 +391,11 @@ const
   // Fixed point math constants
   FixedOne = $10000;
   FixedHalf = $7FFF;
-  FixedPI  = Round(PI * FixedOne);
-  FixedToFloat = 1 / FixedOne;
+  FixedPI: Double = Round(PI * FixedOne);
+  FixedToFloat: Double = 1 / FixedOne;
 
-  COne255th = 1 / $FF;
+  COne255th: Double = 1 / $FF;
 
-  {$IFDEF BCB}
-  // This constants are excluded for the BCB part because the generated constants make it
-  // impossible to use this header in Precompiled Headers.
-  {$NODEFINE FixedToFloat}
-  {$NODEFINE COne255th}
-  {$ENDIF}
 
 function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
