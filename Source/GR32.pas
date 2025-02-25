@@ -391,10 +391,11 @@ const
   // Fixed point math constants
   FixedOne = $10000;
   FixedHalf = $7FFF;
-  FixedPI  = Round(PI * FixedOne);
-  FixedToFloat = 1 / FixedOne;
+  FixedPI: Double = Round(PI * FixedOne);
+  FixedToFloat: Double = 1 / FixedOne;
 
-  COne255th = 1 / $FF;
+  COne255th: Double = 1 / $FF;
+
 
 function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -536,6 +537,23 @@ type
   TRect = {$ifndef FPC}System.{$endif}Types.TRect;
   PRect = {$ifndef FPC}System.{$endif}Types.PRect;
 
+
+{$IFDEF SupportsBoost}
+  (*$HPPEMIT '#include <boost/strong_typedef.hpp>'*)
+{$ENDIF}
+  (*$HPPEMIT 'namespace Gr32 {'*)
+{$IFDEF SupportsBoost}
+  (*$HPPEMIT 'BOOST_STRONG_TYPEDEF(int, TFixed)'*)
+{$ELSE}
+  (*$HPPEMIT 'typedef int TFixed;'*)
+{$ENDIF}
+  (*$HPPEMIT 'struct TFixedPoint { float X, Y; }; typedef struct TFixedPoint TFixedPoint;'*)
+{$if not defined(HAS_TRECTF)}
+  (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
+{$ifend}
+  (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
+  (*$HPPEMIT '} // namespace Gr32 '*)
+
 //------------------------------------------------------------------------------
 // TFloatRect
 //------------------------------------------------------------------------------
@@ -550,19 +568,6 @@ type
 {$else}
 
   {$NODEFINE TFloatRect}
-{$IFDEF SupportsBoost}
-  (*$HPPEMIT '#include <boost/strong_typedef.hpp>'*)
-{$ENDIF}
-  (*$HPPEMIT 'namespace Gr32 {'*)
-{$IFDEF SupportsBoost}
-  (*$HPPEMIT 'BOOST_STRONG_TYPEDEF(int, TFixed)'*)
-{$ELSE}
-  (*$HPPEMIT 'typedef int TFixed;'*)
-{$ENDIF}
-  (*$HPPEMIT 'struct TFixedPoint { float X, Y; }; typedef struct TFixedPoint TFixedPoint;'*)
-  (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
-  (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
-  (*$HPPEMIT '} // namespace Gr32 '*)
 
   TFloatRect = packed record
   private
