@@ -35,7 +35,7 @@ interface
 {$include GR32.inc}
 
 uses
-  SysUtils,
+  System.SysUtils,
   GR32;
 
 
@@ -136,14 +136,15 @@ procedure SelectiveGaussianHorzVert(Src, Dst: TBitmap32; Radius: TFloat; Delta: 
 implementation
 
 uses
-  Math,
-  SyncObjs, // TCriticalSection
+  System.Math,
+  System.SyncObjs, // TCriticalSection
   GR32_Gamma,
   GR32.Blur,
   GR32_Bindings,
   GR32_LowLevel,
   GR32_System,
-  GR32_OrdinalMaps;
+  GR32_OrdinalMaps,
+  GR32.Types.SIMD;
 
 // Ensure that we use the GR32.TFloat and not FPC's Math.TFloat (which is an alias for Double!)
 type
@@ -848,20 +849,6 @@ begin
 end;
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-// Aligned mask
-procedure SIMD_4x00FF00FF00FF00FF; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  db $00, $FF, $00, $FF
-  db $00, $FF, $00, $FF
-  db $00, $FF, $00, $FF
-  db $00, $FF, $00, $FF
-  db $00, $FF, $00, $FF
-end;
 
 procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Integer; out Sum, FactSum: Cardinal); //{$IFDEF FPC} assembler; {$ENDIF}
   // Parameters (x86):
@@ -1089,10 +1076,11 @@ asm
   // multiply colors and weights
         // M2 := M2 * M3;
         PMULLW      XMM2, XMM3
+        // Clear lower byte of four words
 {$if (not defined(FPC)) or (not defined(TARGET_X64))}
-        PAND        XMM2, DQWORD PTR [SIMD_4x00FF00FF00FF00FF]
+        PAND        XMM2, DQWORD PTR [SSE_FF00FF00_ALIGNED]
 {$else}
-        PAND        XMM2, DQWORD PTR [rip+SIMD_4x00FF00FF00FF00FF]
+        PAND        XMM2, DQWORD PTR [rip+SSE_FF00FF00_ALIGNED]
 {$ifend}
 
   // perform accumulation

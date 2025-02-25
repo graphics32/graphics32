@@ -333,32 +333,12 @@ implementation
 
 uses
 {$IFDEF FPC}
-  SysUtils,
+  System.SysUtils,
 {$ENDIF}
-  Math;
+  System.Math,
+  GR32.Types.SIMD;
 
 {$R-}{$Q-}  // switch off overflow and range checking
-
-{$IFNDEF PUREPASCAL}
-const
-  // Rounding control values for use with the SSE4.1 ROUNDSS instruction
-  ROUND_TO_NEAREST_INT  = $00; // Round
-  ROUND_TO_NEG_INF      = $01; // Floor
-  ROUND_TO_POS_INF      = $02; // Ceil
-  ROUND_TO_ZERO         = $03; // Trunc
-  ROUND_CUR_DIRECTION   = $04; // Rounds using default from MXCSR register
-
-  ROUND_RAISE_EXC       = $00; // Raise exceptions
-  ROUND_NO_EXC          = $08; // Suppress exceptions
-
-const
-  // SSE MXCSR rounding modes
-  MXCSR_ROUND_MASK    = $FFFF9FFF;
-  MXCSR_ROUND_NEAREST = $00000000;
-  MXCSR_ROUND_DOWN    = $00002000;
-  MXCSR_ROUND_UP      = $00004000;
-  MXCSR_ROUND_TRUNC   = $00006000;
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 //
@@ -1484,7 +1464,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT or SSE_ROUND.NO_EXC
 
         CVTSS2SI eax, xmm0
 end;
@@ -1546,14 +1526,14 @@ asm
         // Do we need to change anything?
         MOV     ECX, EAX
         NOT     ECX
-        AND     ECX, MXCSR_ROUND_TRUNC
+        AND     ECX, MXCSR.TRUNC
         JZ      @SkipSetMXCSR // Skip expensive LDMXCSR
 @SetMXCSR:
         // Save current rounding mode in ECX and flag that we need to restore it
         MOV     ECX, EAX
         // Set rounding mode to truncation
-        AND     EAX, MXCSR_ROUND_MASK
-        OR      EAX, MXCSR_ROUND_TRUNC
+        AND     EAX, MXCSR.MASK
+        OR      EAX, MXCSR.TRUNC
         // Set new rounding mode
         MOV     NewMXCSR, EAX
         LDMXCSR NewMXCSR
@@ -1588,7 +1568,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_TO_ZERO or ROUND_NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_ZERO or SSE_ROUND.NO_EXC
         CVTSS2SI eax, xmm0
 end;
 {$ENDIF}
@@ -1640,7 +1620,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEG_INF or SSE_ROUND.NO_EXC
 
         CVTSS2SI eax, xmm0
 end;
@@ -1656,7 +1636,7 @@ asm
         MOVSD   xmm0, Value
 {$ifend}
 
-        ROUNDSD xmm0, xmm0, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        ROUNDSD xmm0, xmm0, SSE_ROUND.TO_NEG_INF or SSE_ROUND.NO_EXC
 
         CVTTSD2SI eax, xmm0
 end;
@@ -2035,7 +2015,7 @@ begin
 
 {$if defined(BENCHMARK)}
   LowLevelRegistry[@@FastTrunc].Add(            @SlowTrunc_SSE2, [isSSE2], BindingPriorityWorse).Name := 'SlowTrunc_SSE2';
-  LowLevelRegistry[@@FastFloorSingle].Add(      @Math.Floor, [isReference], BindingPriorityWorse).Name := 'Math.Floor';
+  LowLevelRegistry[@@FastFloorSingle].Add(      @System.Math.Floor, [isReference], BindingPriorityWorse).Name := 'Math.Floor';
 {$ifend}
 
   LowLevelRegistry.RebindAll;

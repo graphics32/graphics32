@@ -38,8 +38,10 @@ uses
 {$ifndef FPC}
   System.Diagnostics,
 {$endif}
-  GR32.CPUID,
-  Types; // Not really needed in this unit but we do need something in this uses list
+  GR32.CPUID;
+
+  // Types; // Not really needed in this unit but we do need something in this uses list
+  // TODO : Why?
 
 
 //------------------------------------------------------------------------------
@@ -195,10 +197,10 @@ implementation
 
 uses
 {$ifdef MSWINDOWS}
-  Windows,
+  WinApi.Windows,
 {$endif}
-  SysUtils,
-  Classes;
+  System.SysUtils,
+  System.Classes;
 
 //------------------------------------------------------------------------------
 //
@@ -216,7 +218,7 @@ end;
 {$else}
 function GetTickCount: UInt64;
 begin
-  Result := SysUtils.GetTickCount64;
+  Result := System.SysUtils.GetTickCount64;
 end;
 {$endif}
 

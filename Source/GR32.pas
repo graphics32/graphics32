@@ -1301,6 +1301,7 @@ uses
 {$elseif defined(FRAMEWORK_LCL)}
   Clipbrd,
 {$ifend}
+  GR32.Types.SIMD,
   GR32_Blend,
   GR32_LowLevel,
   GR32_System,
@@ -3841,7 +3842,6 @@ end;
 function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; {$IFDEF FPC} assembler; {$ENDIF}
 // Note: roundss is a SSE4.1 instruction
 const
-  ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
   Float255 : TFloat = 255.0;
 asm
 {$if (not defined(FPC)) and (defined(TARGET_X64))}
@@ -3860,7 +3860,7 @@ asm
         MULSS   xmm0, [rip+Float255].DWORD
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_MODE
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT or SSE_ROUND.NO_EXC
         CVTSS2SI eax, xmm0
 end;
 

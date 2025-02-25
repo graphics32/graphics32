@@ -115,7 +115,8 @@ implementation
 uses
   GR32_Blend,
   GR32_LowLevel,
-  GR32_Bindings;
+  GR32_Bindings,
+  GR32.Types.SIMD;
 
 //------------------------------------------------------------------------------
 //
@@ -1610,34 +1611,6 @@ end;
 
 //------------------------------------------------------------------------------
 
-// Aligned bias table
-procedure SIMD_4x003FFF7F; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  db $7F, $FF, $3F, $0
-  db $7F, $FF, $3F, $0
-  db $7F, $FF, $3F, $0
-  db $7F, $FF, $3F, $0
-end;
-
-// Aligned pack table for PSHUFB: Picks low byte of 4 dwords
-procedure SIMD_4x0C080400; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  db $00, $04, $08, $0C
-  db $00, $04, $08, $0C
-  db $00, $04, $08, $0C
-  db $00, $04, $08, $0C
-end;
-
 procedure CombineMem_SSE41_Kadaif(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 (*
 Contributed by: Kadaif
@@ -1714,9 +1687,9 @@ asm
 
         // Add bias (~$7F*$8081)
 {$if (not defined(FPC)) or (not defined(TARGET_X64))}
-        PADDD     XMM2, DQWORD PTR [SIMD_4x003FFF7F] // XMM2 <- ((ColorX - ColorY) * Weight * $8081) + Bias
+        PADDD     XMM2, DQWORD PTR [SSE_003FFF7F_ALIGNED] // XMM2 <- ((ColorX - ColorY) * Weight * $8081) + Bias
 {$else}
-        PADDD     XMM2, DQWORD PTR [rip+SIMD_4x003FFF7F]
+        PADDD     XMM2, DQWORD PTR [rip+SSE_003FFF7F_ALIGNED]
 {$ifend}
 
         // Reduce 32-bits to 9-bits
@@ -1724,9 +1697,9 @@ asm
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
 {$if (not defined(FPC)) or (not defined(TARGET_X64))}
-        PSHUFB    XMM2, DQWORD PTR [SIMD_4x0C080400] // XMM2[0] <- XMM4[0..3][0]
+        PSHUFB    XMM2, DQWORD PTR [SSE_0C080400_ALIGNED] // XMM2[0] <- XMM4[0..3][0]
 {$else}
-        PSHUFB    XMM2, DQWORD PTR [rip+SIMD_4x0C080400]
+        PSHUFB    XMM2, DQWORD PTR [rip+SSE_0C080400_ALIGNED]
 {$ifend}
 
         // Result := Value + ColorY
@@ -2320,13 +2293,13 @@ asm
         PMULLD    XMM1, XMM0                    // XMM1 <- Color * Weight * $8081
 
         // Add bias (~$7F*$8081)
-        PADDD     XMM1, DQWORD PTR [SIMD_4x003FFF7F] // XMM1 <- (Color * Weight * $8081) + Bias
+        PADDD     XMM1, DQWORD PTR [SSE_003FFF7F_ALIGNED] // XMM1 <- (Color * Weight * $8081) + Bias
 
         // Reduce 32-bits to 9-bits
         PSRLD     XMM1, 23                      // XMM1 <- ((Color * Weight * $8081) + Bias) shr 23
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
-        PSHUFB    XMM1, DQWORD PTR [SIMD_4x0C080400] // XMM1[0] <- XMM1[0..3][0]
+        PSHUFB    XMM1, DQWORD PTR [SSE_0C080400_ALIGNED] // XMM1[0] <- XMM1[0..3][0]
 
         // Store dest
         MOVD      [EAX], XMM1
@@ -2385,9 +2358,9 @@ asm
 
         // Add bias (~$7F*$8081)
 {$if (not defined(FPC))}
-        PADDD     XMM1, DQWORD PTR [SIMD_4x003FFF7F] // XMM1 <- (Color * Weight * $8081) + Bias
+        PADDD     XMM1, DQWORD PTR [SSE_003FFF7F_ALIGNED] // XMM1 <- (Color * Weight * $8081) + Bias
 {$else}
-        PADDD     XMM1, DQWORD PTR [rip+SIMD_4x003FFF7F]
+        PADDD     XMM1, DQWORD PTR [rip+SSE_003FFF7F_ALIGNED]
 {$ifend}
 
         // Reduce 32-bits to 9-bits
@@ -2395,9 +2368,9 @@ asm
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
 {$if (not defined(FPC))}
-        PSHUFB    XMM1, DQWORD PTR [SIMD_4x0C080400] // XMM1[0] <- XMM1[0..3][0]
+        PSHUFB    XMM1, DQWORD PTR [SSE_0C080400_ALIGNED] // XMM1[0] <- XMM1[0..3][0]
 {$else}
-        PSHUFB    XMM1, DQWORD PTR [rip+SIMD_4x0C080400]
+        PSHUFB    XMM1, DQWORD PTR [rip+SSE_0C080400_ALIGNED]
 {$ifend}
 
         // Store dest

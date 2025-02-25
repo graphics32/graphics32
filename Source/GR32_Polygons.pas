@@ -35,7 +35,7 @@ interface
 {$include GR32.inc}
 
 uses
-  Types,
+  System.Types,
   GR32,
   GR32_Bindings,
   GR32_Containers,
@@ -546,11 +546,13 @@ var
 implementation
 
 uses
-  Math, SysUtils,
+  System.Math,
+  System.SysUtils,
   GR32_Math,
   GR32_LowLevel,
   GR32_Blend,
-  GR32_VectorUtils;
+  GR32_VectorUtils,
+  GR32.Types.SIMD;
 
 resourcestring
   RCStrNoSamplerSpecified = 'No sampler specified!';
@@ -689,11 +691,9 @@ end;
 //------------------------------------------------------------------------------
 
 procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-const
-  // Note: Don't bother aligning this data so we can use MOVAPS; It gives
-  // zero performance improvement (and might be slower due to instruction
-  // size).
-  SIMD_4xFloatOne: array[0..3] of Single = (1, 1, 1, 1);
+// Note: Don't bother aligning the SSE_FloatOne data so we can use
+// MOVAPS; It gives zero performance improvement (and might be slower
+// due to instruction size).
 asm
 {$if defined(TARGET_x86)}
 
@@ -718,7 +718,11 @@ asm
         PSHUFD      XMM3,XMM3,$0  // save 0RGB
 
         // Load constant 1.0 into XMM6
-        MOVUPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
+{$if (not defined(FPC))}
+        MOVUPS      XMM5, DQWORD PTR [SSE_FloatOne]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_FloatOne]
+{$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
         SHR         EDI,24  // alpha
@@ -790,9 +794,9 @@ asm
 
         // Load constant 1.0 into XMM6
 {$if (not defined(FPC))}
-        MOVUPS      XMM5, DQWORD PTR [SIMD_4xFloatOne]
+        MOVUPS      XMM5, DQWORD PTR [SSE_FloatOne]
 {$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+SIMD_4xFloatOne]
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_FloatOne]
 {$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
@@ -898,8 +902,6 @@ end;
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);  {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-const
-  C_10000_F: array [0 .. 3] of single = ($10000, $10000, $10000, $10000);
 asm
 {$if defined(TARGET_x86)}
 
@@ -918,7 +920,11 @@ asm
 
         PCMPEQD     XMM6,XMM6
         PSRLD       XMM6,15 // 4 x $0001FFFF
-        MOVUPS      XMM5,[C_10000_F]
+{$if (not defined(FPC))}
+        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
+{$ifend}
 
         SHR         EDI,24
         MOVD        XMM2,EDI
@@ -1010,9 +1016,9 @@ asm
         PSRLD       XMM6,15 // $0001FFFF
 
 {$if (not defined(FPC))}
-        MOVUPS      XMM5, DQWORD PTR [C_10000_F]
+        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
 {$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+C_10000_F]
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
 {$ifend}
 
         SHR         R9D,24
@@ -1099,8 +1105,6 @@ end;
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-const
-  C_10000_F: array [0 .. 3] of single = ($10000, $10000, $10000, $10000);
 asm
 {$if defined(TARGET_x86)}
 
@@ -1118,7 +1122,11 @@ asm
         PSHUFD      XMM3,XMM3,$0   // save 0RGB
         PCMPEQD     XMM6,XMM6
         PSRLD       XMM6,15 // $0001FFFF
-        MOVUPS      XMM5,[C_10000_F]
+{$if (not defined(FPC))}
+        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
+{$ifend}
 
         SHR         EDI,24
         MOVD        XMM2,EDI
@@ -1195,9 +1203,9 @@ asm
         PSRLD       XMM6,15 // $0001FFFF
 
 {$if (not defined(FPC))}
-        MOVUPS      XMM5, DQWORD PTR [C_10000_F]
+        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
 {$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+C_10000_F]
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
 {$ifend}
 
         SHR         R9D,24
@@ -1886,9 +1894,9 @@ end;
 //------------------------------------------------------------------------------
 
 procedure PolyPolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
-  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
-  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+  Filler: TCustomPolygonFiller; Closed: Boolean; StrokeWidth: TFloat;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat;
+  Transformation: TTransformation);
 var
   Dst: TArrayOfArrayOfFloatPoint;
 begin
@@ -1901,9 +1909,8 @@ end;
 //------------------------------------------------------------------------------
 
 procedure PolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
-  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
-  MiterLimit: TFloat; Transformation: TTransformation);
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle;
+  EndStyle: TEndStyle; MiterLimit: TFloat; Transformation: TTransformation);
 begin
   PolyPolylineFS(Bitmap, PolyPolygon(Points), Color, Closed, StrokeWidth,
     JoinStyle, EndStyle, MiterLimit, Transformation);
@@ -1912,9 +1919,9 @@ end;
 //------------------------------------------------------------------------------
 
 procedure PolylineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
-  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
-  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+  Filler: TCustomPolygonFiller; Closed: Boolean; StrokeWidth: TFloat;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat;
+  Transformation: TTransformation);
 begin
   PolyPolylineFS(Bitmap, PolyPolygon(Points), Filler, Closed, StrokeWidth,
     JoinStyle, EndStyle, MiterLimit, Transformation);
@@ -1924,9 +1931,8 @@ end;
 // Fixed, PolyPolyline
 //------------------------------------------------------------------------------
 procedure PolyPolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Closed: Boolean; StrokeWidth: TFixed;
-  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
-  MiterLimit: TFixed; Transformation: TTransformation);
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle;
+  EndStyle: TEndStyle; MiterLimit: TFixed; Transformation: TTransformation);
 var
   Dst: TArrayOfArrayOfFixedPoint;
 begin
@@ -1938,10 +1944,9 @@ end;
 //------------------------------------------------------------------------------
 
 procedure PolyPolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Filler: TCustomPolygonFiller; Closed: Boolean = False;
-  StrokeWidth: TFixed = $10000; JoinStyle: TJoinStyle = jsMiter;
-  EndStyle: TEndStyle = esButt; MiterLimit: TFixed = $40000;
-  Transformation: TTransformation = nil);
+  Filler: TCustomPolygonFiller; Closed: Boolean; StrokeWidth: TFixed;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed;
+  Transformation: TTransformation);
 var
   Dst: TArrayOfArrayOfFixedPoint;
 begin
@@ -1966,10 +1971,9 @@ end;
 //------------------------------------------------------------------------------
 
 procedure PolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
-  Filler: TCustomPolygonFiller; Closed: Boolean = False;
-  StrokeWidth: TFixed = $10000; JoinStyle: TJoinStyle = jsMiter;
-  EndStyle: TEndStyle = esButt; MiterLimit: TFixed = $40000;
-  Transformation: TTransformation = nil);
+  Filler: TCustomPolygonFiller; Closed: Boolean; StrokeWidth: TFixed;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed;
+  Transformation: TTransformation);
 begin
   PolyPolylineXS(Bitmap, PolyPolygon(Points), Filler, Closed, StrokeWidth,
     JoinStyle, EndStyle, MiterLimit, Transformation);
@@ -1988,8 +1992,7 @@ end;
 // Float
 //------------------------------------------------------------------------------
 procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  const Dashes: TArrayOfFloat; Color: TColor32;
-  Closed: Boolean = False; Width: TFloat = 1.0);
+  const Dashes: TArrayOfFloat; Color: TColor32; Closed: Boolean; Width: TFloat);
 var
   MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -2001,7 +2004,7 @@ end;
 
 procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
-  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat);
 var
   MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -2016,8 +2019,7 @@ end;
 //------------------------------------------------------------------------------
 
 procedure DashLineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
-  const Dashes: TArrayOfFixed; Color: TColor32;
-  Closed: Boolean = False; Width: TFixed = $10000);
+  const Dashes: TArrayOfFixed; Color: TColor32; Closed: Boolean; Width: TFixed);
 var
   MultiPoly: TArrayOfArrayOfFixedPoint;
 begin
@@ -2027,7 +2029,7 @@ end;
 
 procedure DashLineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   const Dashes: TArrayOfFixed; FillColor, StrokeColor: TColor32;
-  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed = $20000);
+  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed);
 var
   MultiPoly: TArrayOfArrayOfFixedPoint;
 begin
@@ -2045,7 +2047,7 @@ end;
 
 procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
-  Closed: Boolean = False; Width: TFloat = 1.0);
+  Closed: Boolean; Width: TFloat);
 var
   MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -2057,7 +2059,7 @@ end;
 
 procedure DashLineFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
-  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat);
 var
   MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -2073,7 +2075,7 @@ end;
 
 procedure DashLineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller;
-  Closed: Boolean = False; Width: TFixed = $10000);
+  Closed: Boolean; Width: TFixed);
 var
   MultiPoly: TArrayOfArrayOfFixedPoint;
 begin
@@ -2085,7 +2087,7 @@ end;
 
 procedure DashLineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
-  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed = $20000);
+  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed);
 var
   MultiPoly: TArrayOfArrayOfFixedPoint;
 begin
@@ -2128,6 +2130,9 @@ end;
 { LCD sub-pixel rendering (see http://www.grc.com/cttech.htm) }
 
 type
+  PByteArray = System.SysUtils.PByteArray;
+
+type
   TRGBTriple = packed record
     B, G, R: Byte;
   end;
@@ -2135,8 +2140,7 @@ type
   PRGBTripleArray = ^TRGBTripleArray;
   TRGBTripleArray = array [0..0] of TRGBTriple;
 
-  TMakeAlphaProcLCD = procedure(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
-    Count: Integer; Color: TColor32);
+  TMakeAlphaProcLCD = procedure(Coverage: PSingleArray; AlphaValues: PByteArray; Count: Integer; Color: TColor32);
 
 //------------------------------------------------------------------------------
 //
@@ -2147,7 +2151,7 @@ type
 // Uses subpixel anti-aliasing.
 // For use in pfWinding/pfNonZero fill mode with a static color.
 //------------------------------------------------------------------------------
-procedure MakeAlphaNonZeroLCD(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
+procedure MakeAlphaNonZeroLCD(Coverage: PSingleArray; AlphaValues: PByteArray;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -2189,7 +2193,7 @@ end;
 // Uses subpixel anti-aliasing.
 // For use in pfAlternate/pfEvenOdd fill mode with a static color.
 //------------------------------------------------------------------------------
-procedure MakeAlphaEvenOddLCD(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
+procedure MakeAlphaEvenOddLCD(Coverage: PSingleArray; AlphaValues: PByteArray;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -2231,7 +2235,7 @@ end;
 // Uses subpixel anti-aliasing. Slightly softer AA transitions.
 // For use in pfWinding/pfNonZero fill mode with a static color.
 //------------------------------------------------------------------------------
-procedure MakeAlphaNonZeroLCD2(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
+procedure MakeAlphaNonZeroLCD2(Coverage: PSingleArray; AlphaValues: PByteArray;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -2257,7 +2261,7 @@ end;
 // Uses subpixel anti-aliasing. Slightly softer AA transitions.
 // For use in pfAlternate/pfEvenOdd fill mode with a static color.
 //------------------------------------------------------------------------------
-procedure MakeAlphaEvenOddLCD2(Coverage: PSingleArray; AlphaValues: SysUtils.PByteArray;
+procedure MakeAlphaEvenOddLCD2(Coverage: PSingleArray; AlphaValues: PByteArray;
   Count: Integer; Color: TColor32);
 var
   I: Integer;
@@ -2382,7 +2386,7 @@ end;
 //      TClearPolygonFiller
 //
 //------------------------------------------------------------------------------
-constructor TClearPolygonFiller.Create(Color: TColor32 = $00808080);
+constructor TClearPolygonFiller.Create(Color: TColor32);
 begin
   inherited Create;
   FColor := Color;
@@ -2867,8 +2871,7 @@ end;
 //------------------------------------------------------------------------------
 
 {$W+}
-procedure TPolygonRenderer32VPR.RenderSpan(const Span: TValueSpan;
-  DstY: Integer);
+procedure TPolygonRenderer32VPR.RenderSpan(const Span: TValueSpan; DstY: Integer);
 var
   AlphaValues: PColor32Array;
   Count: Integer;
@@ -2962,7 +2965,7 @@ procedure TPolygonRenderer32LCD.RenderSpan(const Span: TValueSpan;
 const
   PADDING = 5;
 var
-  AlphaValues: SysUtils.PByteArray;
+  AlphaValues: PByteArray;
   Count: Integer;
   X1, Offset: Integer;
 const
@@ -3006,12 +3009,11 @@ end;
 //
 //------------------------------------------------------------------------------
 {$W+}
-procedure TPolygonRenderer32LCD2.RenderSpan(const Span: TValueSpan;
-  DstY: Integer);
+procedure TPolygonRenderer32LCD2.RenderSpan(const Span: TValueSpan; DstY: Integer);
 const
   PADDING = 5;
 var
-  AlphaValues: SysUtils.PByteArray;
+  AlphaValues: PByteArray;
   Count: Integer;
   X1, Offset: Integer;
 const
