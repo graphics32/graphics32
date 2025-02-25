@@ -1953,8 +1953,7 @@ begin
   V := Values[0];
   for I := 1 to Count - 1 do
   begin
-    if PInteger(@Values[I])^ <> 0 then // TODO : It's probably faster to just do the add than to do a test and a branch
-      V := V + Values[I];
+    V := V + Values[I];
     Values[I] := V;
   end;
 end;
