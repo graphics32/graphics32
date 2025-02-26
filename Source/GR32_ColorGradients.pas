@@ -5156,13 +5156,13 @@ begin
   GradientRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolationProc, 'Linear4PointInterpolationProc');
 
   // pure pascal
-  GradientRegistry[FID_LINEAR3].Add(@Linear3PointInterpolation_Pas, [isPascal]).name := 'Linear3PointInterpolation_Pas';
-  GradientRegistry[FID_LINEAR4].Add(@Linear4PointInterpolation_Pas, [isPascal]).Name := 'Linear4PointInterpolation_Pas';
+  GradientRegistry.BindingsByID[FID_LINEAR3].Add(@Linear3PointInterpolation_Pas, [isPascal]).name := 'Linear3PointInterpolation_Pas';
+  GradientRegistry.BindingsByID[FID_LINEAR4].Add(@Linear4PointInterpolation_Pas, [isPascal]).Name := 'Linear4PointInterpolation_Pas';
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}
-  GradientRegistry[FID_LINEAR3].Add(@Linear3PointInterpolation_SSE2, [isSSE2]).Name := 'Linear3PointInterpolation_SSE2';
-  GradientRegistry[FID_LINEAR4].Add(@Linear4PointInterpolation_SSE2, [isSSE2]).Name := 'Linear4PointInterpolation_SSE2';
+  GradientRegistry.BindingsByID[FID_LINEAR3].Add(@Linear3PointInterpolation_SSE2, [isSSE2]).Name := 'Linear3PointInterpolation_SSE2';
+  GradientRegistry.BindingsByID[FID_LINEAR4].Add(@Linear4PointInterpolation_SSE2, [isSSE2]).Name := 'Linear4PointInterpolation_SSE2';
 {$ENDIF}
 {$ENDIF}
 

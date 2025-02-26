@@ -258,9 +258,9 @@ type
     function FindBinding(BindVariable: PPointer): IBindingInfo; overload;
     function FindBinding(FunctionID: NativeInt): IBindingInfo; overload;
 
-    property Bindings[const Name: string]: IBindingInfo read GetBinding; default;
     property Bindings[BindVariable: PPointer]: IBindingInfo read GetBinding; default;
-    property Bindings[FunctionID: NativeInt]: IBindingInfo read GetBinding; default;
+    property BindingsByName[const Name: string]: IBindingInfo read GetBinding;
+    property BindingsByID[FunctionID: NativeInt]: IBindingInfo read GetBinding;
 
     // List of bindings in this registry.
     function GetEnumerator: TEnumerator<IBindingInfo>;
@@ -703,7 +703,7 @@ function TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; Instruction
 var
   BindingInfo: IBindingInfo;
 begin
-  BindingInfo := Bindings[FunctionID];
+  BindingInfo := BindingsByID[FunctionID];
 
   Result := BindingInfo.Add(Proc, InstructionSupport, Priority);
   Result.Flags := Flags;
@@ -740,7 +740,7 @@ end;
 
 function TFunctionRegistry.FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): Pointer;
 begin
-  Result := Bindings[FunctionID].FindFunction(PriorityCallback);
+  Result := BindingsByID[FunctionID].FindFunction(PriorityCallback);
 end;
 
 //------------------------------------------------------------------------------
@@ -850,7 +850,7 @@ end;
 
 function TFunctionRegistry.Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): boolean;
 begin
-  Result := Bindings[FunctionID].Rebind(PriorityCallback);
+  Result := BindingsByID[FunctionID].Rebind(PriorityCallback);
 end;
 
 //------------------------------------------------------------------------------
