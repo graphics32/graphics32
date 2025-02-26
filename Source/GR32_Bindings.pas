@@ -48,7 +48,7 @@ uses
 //
 //------------------------------------------------------------------------------
 // For use in CPU dispatch bindings
-// For the most common usage, these alioases avoids the need to reference the
+// For the most common usage, these aliases avoids the need to reference the
 // GR32.CPUID unit directly.
 //------------------------------------------------------------------------------
 type
@@ -96,6 +96,7 @@ type
     function GetProc: Pointer;
     function GetInstructionSupport: TInstructionSupport;
     function GetPriority: Integer;
+    procedure SetPriority(Value: Integer);
     function GetFlags: Cardinal;
     procedure DoSetFlags(const Value: Cardinal);
     function GetName: string;
@@ -118,7 +119,7 @@ type
     property InstructionSupport: TInstructionSupport read GetInstructionSupport;
 
     // Priority: Function priority; Smaller is better. Used by default TFunctionPriority callback
-    property Priority: Integer read GetPriority;
+    property Priority: Integer read GetPriority write SetPriority;
 
     // Flags: Optional, user defined flags for use in a custom TFunctionPriority callback
     property Flags: Cardinal read GetFlags write DoSetFlags;
@@ -258,9 +259,15 @@ type
     function FindBinding(BindVariable: PPointer): IBindingInfo; overload;
     function FindBinding(FunctionID: NativeInt): IBindingInfo; overload;
 
-    property Bindings[const Name: string]: IBindingInfo read GetBinding; default;
     property Bindings[BindVariable: PPointer]: IBindingInfo read GetBinding; default;
+{$if (not defined(FPC)) and (not defined(BCB))}
     property Bindings[FunctionID: NativeInt]: IBindingInfo read GetBinding; default;
+    property Bindings[const Name: string]: IBindingInfo read GetBinding; default;
+{$else} // Lazarus 2.6/FPC 3.0 broke support for overloaded properties. See FPC #15384
+    property BindingsByName[const Name: string]: IBindingInfo read GetBinding;
+    property BindingsByID[FunctionID: NativeInt]: IBindingInfo read GetBinding;
+{$ifend}
+
 
     // List of bindings in this registry.
     function GetEnumerator: TEnumerator<IBindingInfo>;
@@ -344,6 +351,7 @@ type
     function GetProc: Pointer;
     function GetInstructionSupport: TInstructionSupport;
     function GetPriority: Integer;
+    procedure SetPriority(Value: Integer);
     function GetFlags: Cardinal;
     procedure DoSetFlags(const Value: Cardinal);
     function GetName: string;
@@ -438,6 +446,12 @@ begin
   Result := Self;
 end;
 
+
+procedure TFunctionInfo.SetPriority(Value: Integer);
+begin
+  FPriority := Value;
+  Binding.NeedRebind := True;
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -682,7 +696,7 @@ begin
       BindingInfo := FindBinding(FunctionID);
   end;
 
-{$if define(BINDING_AUTO_REGISTER)}
+{$if defined(BINDING_AUTO_REGISTER)}
 
   // Auto-register the binding if it isn't already registered
   if (BindingInfo = nil) then
@@ -703,7 +717,7 @@ function TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; Instruction
 var
   BindingInfo: IBindingInfo;
 begin
-  BindingInfo := Bindings[FunctionID];
+  BindingInfo := GetBinding(FunctionID);
 
   Result := BindingInfo.Add(Proc, InstructionSupport, Priority);
   Result.Flags := Flags;
@@ -740,7 +754,7 @@ end;
 
 function TFunctionRegistry.FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): Pointer;
 begin
-  Result := Bindings[FunctionID].FindFunction(PriorityCallback);
+  Result := GetBinding(FunctionID).FindFunction(PriorityCallback);
 end;
 
 //------------------------------------------------------------------------------
@@ -850,7 +864,7 @@ end;
 
 function TFunctionRegistry.Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): boolean;
 begin
-  Result := Bindings[FunctionID].Rebind(PriorityCallback);
+  Result := GetBinding(FunctionID).Rebind(PriorityCallback);
 end;
 
 //------------------------------------------------------------------------------
