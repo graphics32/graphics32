@@ -1426,18 +1426,18 @@ end;
 {$IFNDEF PUREPASCAL}
 procedure RegisterBindingFunctions;
 begin
-  BlendRegistry[FID_COMBINEREG].Add(    @CombineReg_ASM,        [isAssembler]).Name := 'CombineReg_ASM';
-  BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_ASM,        [isAssembler]).Name := 'CombineMem_ASM';
-  BlendRegistry[FID_BLENDREG].Add(      @BlendReg_ASM,          [isAssembler]).Name := 'BlendReg_ASM';
-  BlendRegistry[FID_BLENDMEM].Add(      @BlendMem_ASM,          [isAssembler]).Name := 'BlendMem_ASM';
-  BlendRegistry[FID_BLENDMEMS].Add(     @BlendMems_ASM,         [isAssembler]).Name := 'BlendMems_ASM';
-  BlendRegistry[FID_BLENDREGEX].Add(    @BlendRegEx_ASM,        [isAssembler]).Name := 'BlendRegEx_ASM';
+  BlendRegistry[@@CombineReg].Add(      @CombineReg_ASM,        [isAssembler]).Name := 'CombineReg_ASM';
+  BlendRegistry[@@CombineMem].Add(      @CombineMem_ASM,        [isAssembler]).Name := 'CombineMem_ASM';
+  BlendRegistry[@@BlendReg].Add(        @BlendReg_ASM,          [isAssembler]).Name := 'BlendReg_ASM';
+  BlendRegistry[@@BlendMem].Add(        @BlendMem_ASM,          [isAssembler]).Name := 'BlendMem_ASM';
+  BlendRegistry[@@BlendMems].Add(       @BlendMems_ASM,         [isAssembler]).Name := 'BlendMems_ASM';
+  BlendRegistry[@@BlendRegEx].Add(      @BlendRegEx_ASM,        [isAssembler]).Name := 'BlendRegEx_ASM';
 {$IFDEF TARGET_X86}
-  BlendRegistry[FID_BLENDMEMEX].Add(    @BlendMemEx_ASM,        [isAssembler]).Name := 'BlendMemEx_ASM'; // Implemented on x64 but broken
+  BlendRegistry[@@BlendMemEx].Add(      @BlendMemEx_ASM,        [isAssembler]).Name := 'BlendMemEx_ASM'; // Implemented on x64 but broken
 {$ENDIF}
-  BlendRegistry[FID_BLENDLINE].Add(     @BlendLine_ASM,         [isAssembler]).Name := 'BlendLine_ASM';
+  BlendRegistry[@@BlendLine].Add(       @BlendLine_ASM,         [isAssembler]).Name := 'BlendLine_ASM';
 {$IFNDEF TARGET_x64}
-  BlendRegistry[FID_MERGEREG].Add(      @MergeReg_ASM,          [isAssembler]).Name := 'MergeReg_ASM';
+  BlendRegistry[@@MergeReg].Add(        @MergeReg_ASM,          [isAssembler]).Name := 'MergeReg_ASM';
 {$ENDIF}
 end;
 {$ENDIF}

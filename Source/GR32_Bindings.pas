@@ -260,13 +260,13 @@ type
     function FindBinding(FunctionID: NativeInt): IBindingInfo; overload;
 
     property Bindings[BindVariable: PPointer]: IBindingInfo read GetBinding; default;
-{$ifndef FPC}
+{$if (not defined(FPC)) and (not defined(BCB))}
     property Bindings[FunctionID: NativeInt]: IBindingInfo read GetBinding; default;
     property Bindings[const Name: string]: IBindingInfo read GetBinding; default;
 {$else} // Lazarus 2.6/FPC 3.0 broke support for overloaded properties. See FPC #15384
     property BindingsByName[const Name: string]: IBindingInfo read GetBinding;
     property BindingsByID[FunctionID: NativeInt]: IBindingInfo read GetBinding;
-{$endif}
+{$ifend}
 
 
     // List of bindings in this registry.
@@ -717,7 +717,7 @@ function TFunctionRegistry.Add(FunctionID: NativeInt; Proc: Pointer; Instruction
 var
   BindingInfo: IBindingInfo;
 begin
-  BindingInfo := Bindings[FunctionID];
+  BindingInfo := GetBinding(FunctionID);
 
   Result := BindingInfo.Add(Proc, InstructionSupport, Priority);
   Result.Flags := Flags;
@@ -754,7 +754,7 @@ end;
 
 function TFunctionRegistry.FindFunction(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): Pointer;
 begin
-  Result := Bindings[FunctionID].FindFunction(PriorityCallback);
+  Result := GetBinding(FunctionID).FindFunction(PriorityCallback);
 end;
 
 //------------------------------------------------------------------------------
@@ -864,7 +864,7 @@ end;
 
 function TFunctionRegistry.Rebind(FunctionID: NativeInt; PriorityCallback: TFunctionPriority): boolean;
 begin
-  Result := Bindings[FunctionID].Rebind(PriorityCallback);
+  Result := GetBinding(FunctionID).Rebind(PriorityCallback);
 end;
 
 //------------------------------------------------------------------------------
