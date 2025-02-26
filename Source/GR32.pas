@@ -48,7 +48,7 @@ uses
   WinApi.Windows,
   {$ifend}
   VCL.Graphics,
-  VCL.Controls,
+  VCL.Controls, // Required by DrawTo(TControlCanvas)
 {$elseif defined(FRAMEWORK_FMX)}
   {$if defined(MSWINDOWS) and not defined(PLATFORM_INDEPENDENT)}
   WinApi.Windows,
@@ -1299,13 +1299,6 @@ resourcestring
 implementation
 
 uses
-{$if defined(FRAMEWORK_VCL)}
-  Vcl.Clipbrd,
-{$elseif defined(FRAMEWORK_FMX)}
-  Fmx.Clipboard,
-{$elseif defined(FRAMEWORK_LCL)}
-  Clipbrd,
-{$ifend}
   GR32_Blend,
   GR32_LowLevel,
   GR32_System,
