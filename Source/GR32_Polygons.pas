@@ -539,6 +539,7 @@ var
   MakeAlphaEvenOddUPF: TFillProc;
   MakeAlphaNonZeroUPF: TFillProc;
 
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -682,42 +683,51 @@ end;
 *)
 
 
-{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-
 //------------------------------------------------------------------------------
 // MakeAlphaNonZeroUP_SSE2
 //------------------------------------------------------------------------------
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 // Note: Don't bother aligning the SSE_FloatOne data so we can use
 // MOVAPS; It gives zero performance improvement (and might be slower
 // due to instruction size).
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
 
+  // Parameters (x86):
   // EAX <- Coverage
   // EDX <- AlphaValues
   // ECX <- Count
+  // Stack[0] <- Color
 
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1:
+  //   XMM2: [Alpha * 1.0] x 4
+  //   XMM3: [Color without alpha] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM5: [1.0] x 4
 
-        TEST        ECX,ECX
+        TEST        ECX, ECX
         JLE         @EXIT
 
         PUSH        EBX
         PUSH        ESI
         PUSH        EDI
 
-        MOV         EDI,Color
-        MOV         EBX,EDI
+        MOV         EDI, Color          // save ARGB
+        MOV         EBX, EDI
 
          // Prepare 0RGB: mask off alpha from Color and replicate into XMM3
-        AND         EBX,$00FFFFFF
-        MOVD        XMM3,EBX
-        PSHUFD      XMM3,XMM3,$0  // save 0RGB
+        AND         EBX, $00FFFFFF
+        MOVD        XMM3, EBX
+        PSHUFD      XMM3, XMM3, $0      // save 0RGB
 
-        // Load constant 1.0 into XMM6
+        // Load constant 1.0 into XMM5
 {$if (not defined(FPC))}
         MOVUPS      XMM5, DQWORD PTR [SSE_FloatOne]
 {$else}
@@ -725,14 +735,14 @@ asm
 {$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
-        SHR         EDI,24  // alpha
-        MOVD        XMM2,EDI
-        PSHUFD      XMM2,XMM2,$0  // alphas
-        CVTDQ2PS    XMM2,XMM2  // to float
+        SHR         EDI, 24             // alpha
+        MOVD        XMM2, EDI
+        PSHUFD      XMM2, XMM2, $0      // alphas
+        CVTDQ2PS    XMM2, XMM2          // to float
 
         // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
         PCMPEQD     XMM4, XMM4
-        PSRLD       XMM4,1
+        PSRLD       XMM4, 1
 
         CMP         ECX, 4
         JL          @remainder
@@ -742,32 +752,33 @@ asm
         SAR         ESI, 2
 
 @Loop:
-        MOVUPS      XMM0,[EAX] // coverage
-        ANDPS       XMM0,XMM4  // abs
-        MINPS       XMM0,XMM5  // min (1)
-        MULPS       XMM0,XMM2  // multiply with alpha
-        CVTPS2DQ    XMM0,XMM0
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVDQU      [EDX],XMM0
-        ADD         EDX,16
-        ADD         EAX,16
+        MOVUPS      XMM0, [EAX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MINPS       XMM0, XMM5          // min (1)
+        MULPS       XMM0, XMM2          // multiply with alpha
+        CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger
+        PSLLD       XMM0, 24            // A -> A000
+        POR         XMM0, XMM3          // A000 or 0RGB -> ARGB
+        MOVDQU      [EDX], XMM0         // Save ARGB
+        ADD         EDX, 16
+        ADD         EAX, 16
         DEC         ESI
         JNZ         @Loop
-        AND         ECX, 3 // get remainder
+        AND         ECX, 3              // get remainder
         JZ          @END
 
 @remainder:
-        MOVSS       XMM0,[EAX]  // load coverage
-        ANDPS       XMM0,XMM4   // abs
-        MINSS       XMM0,XMM5   // min (1)
-        MULSS       XMM0,XMM2   // multiply with alpha
-        CVTPS2DQ    XMM0,XMM0
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVD        [EDX],XMM0
-        ADD         EDX,4
-        ADD         EAX,4
+        // Same as above, just on 1 dword/single at a time instead of 4
+        MOVSS       XMM0, [EAX]
+        ANDPS       XMM0, XMM4
+        MINSS       XMM0, XMM5
+        MULSS       XMM0, XMM2
+        CVTPS2DQ    XMM0, XMM0
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVD        [EDX], XMM0
+        ADD         EDX, 4
+        ADD         EAX, 4
         DEC         ECX
         JNZ         @remainder
 
@@ -779,18 +790,33 @@ asm
 
 {$elseif defined(TARGET_x64)}
 
+  // Parameters (x64):
   // RCX <- Coverage
   // RDX <- AlphaValues
   // R8D <- Count
   // R9D <- Color
 
-        TEST        R8D,R8D
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1:
+  //   XMM2: [Alpha * 1.0] x 4
+  //   XMM3: [Color without alpha] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM5: [1.0] x 4
+
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+{$ENDIF}
+
+        TEST        R8D, R8D
         JLE         @Exit
+
         // Prepare 0RGB: mask off alpha from Color and replicate into XMM3
-        MOV         EAX,R9D
-        AND         EAX,$00FFFFFF
-        MOVD        XMM3,EAX
-        PSHUFD      XMM3,XMM3,0
+        MOV         EAX, R9D
+        AND         EAX, $00FFFFFF
+        MOVD        XMM3, EAX
+        PSHUFD      XMM3, XMM3, 0       // save 0RGB
 
         // Load constant 1.0 into XMM6
 {$if (not defined(FPC))}
@@ -800,60 +826,63 @@ asm
 {$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
-        SHR         R9D,24
-        MOVD        XMM2,R9D
-        PSHUFD      XMM2,XMM2,0
-        CVTDQ2PS    XMM2,XMM2
+        SHR         R9D, 24
+        MOVD        XMM2, R9D
+        PSHUFD      XMM2, XMM2, 0
+        CVTDQ2PS    XMM2, XMM2
 
         // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
-        PCMPEQD     XMM4,XMM4
-        PSRLD       XMM4,1
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4, 1
 
-        CMP         R8D,4
+        CMP         R8D, 4
         JL          @Remainder
 
         // Main loop: process 4 elements per iteration
-        MOV         R10,R8
-        SHR         R10,2
+        MOV         R10, R8
+        SHR         R10, 2
 
 @Loop:
-        MOVUPS      XMM0,[RCX]
-        ANDPS       XMM0,XMM4
-        MINPS       XMM0,XMM5
-        MULPS       XMM0,XMM2
-        CVTPS2DQ   XMM0,XMM0
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVDQU      [RDX],XMM0
-        ADD         RCX,16
-        ADD         RDX,16
+        MOVUPS      XMM0, [RCX]
+        ANDPS       XMM0, XMM4
+        MINPS       XMM0, XMM5
+        MULPS       XMM0, XMM2
+        CVTPS2DQ    XMM0, XMM0
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVDQU      [RDX], XMM0
+        ADD         RCX, 16
+        ADD         RDX, 16
         DEC         R10
         JNZ         @Loop
 
-        AND         R8D,3
+        AND         R8D, 3
         JZ          @Exit
 
 @Remainder:
-        MOVSS       XMM0,[RCX]
-        ANDPS       XMM0,XMM4
-        MINSS       XMM0,XMM5
-        MULSS       XMM0,XMM2
-        CVTSS2SI    EAX,XMM0
-        SHL         EAX,24
-        MOVD        R11D,XMM3
-        OR          EAX,R11D
-        MOV         [RDX],EAX
-        ADD         RCX,4
-        ADD         RDX,4
+        MOVSS       XMM0, [RCX]
+        ANDPS       XMM0, XMM4
+        MINSS       XMM0, XMM5
+        MULSS       XMM0, XMM2
+        CVTSS2SI    EAX, XMM0
+        SHL         EAX, 24
+        MOVD        R11D, XMM3
+        OR          EAX, R11D
+        MOV         [RDX], EAX
+        ADD         RCX, 4
+        ADD         RDX, 4
         DEC         R8D
         JNZ         @Remainder
 
 @Exit:
 
+{$if defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
+
 {$else}
 {$error 'Missing target'}
 {$ifend}
 end;
+
 {$ifend}
 
 
@@ -895,290 +924,118 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// MakeAlphaEvenOddUP_SSE41
+//------------------------------------------------------------------------------
+// Contributed by Kadaif
+//------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-//------------------------------------------------------------------------------
-// MakeAlphaEvenOddUP_SSE41
-//------------------------------------------------------------------------------
-// Contributed by Kadaif
-//------------------------------------------------------------------------------
 procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);  {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
 
-        TEST        ECX,ECX
+  // Parameters (x86):
+  // EAX <- Coverage
+  // EDX <- AlphaValues
+  // ECX <- Count
+  // Stack[0] <- Color
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1: work
+  //   XMM2: [Alpha * 257] x 4
+  //   XMM3: [Color without alpha] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM5: [256x256] x 4
+  //   XMM6: [$0001FFFF] x 4
+  //   XMM7: work
+
+        TEST        ECX, ECX
         JLE         @EXIT
 
         PUSH        EBX
         PUSH        ESI
         PUSH        EDI
 
-        MOV         EDI,Color
-        MOV         EBX,EDI
-        AND         EBX,$00FFFFFF
+        MOV         EDI, Color
+        MOV         EBX, EDI
+        AND         EBX, $00FFFFFF
         MOVD        XMM3, EBX
-        PSHUFD      XMM3,XMM3,$0   // save 0RGB
+        PSHUFD      XMM3, XMM3, $0      // save 0RGB
 
-        PCMPEQD     XMM6,XMM6
-        PSRLD       XMM6,15 // 4 x $0001FFFF
+        PCMPEQD     XMM6, XMM6
+        PSRLD       XMM6, 15            // 4 x $0001FFFF
 {$if (not defined(FPC))}
         MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
 {$else}
         MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
 {$ifend}
 
-        SHR         EDI,24
-        MOVD        XMM2,EDI
-        PUNPCKLBW   XMM2,XMM2 // alpha * 257
-        PSHUFD      XMM2,XMM2,$0  // alphas
+        SHR         EDI, 24             // alpha
+        MOVD        XMM2, EDI
+        PUNPCKLBW   XMM2, XMM2          // alpha * 257
+        PSHUFD      XMM2, XMM2, $0      // alphas
 
-        PCMPEQD     XMM4,XMM4 // for abs
-        PSRLD       XMM4,1
+        PCMPEQD     XMM4, XMM4          // for abs
+        PSRLD       XMM4, 1
 
-        CMP         ECX,4
-        JL          @remainder
-
-        MOV         ESI,ECX
-        SAR         ESI,2
-
-@Loop:
-        MOVUPS      XMM0,[EAX] // coverage
-        ANDPS       XMM0,XMM4  // abs
-        MULPS       XMM0,XMM5
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6  // and with $0001FFFF
-        MOVDQA      XMM7,XMM0
-        PXOR        XMM7,XMM6
-
-        // PMINUD for SSE2
-        MOVDQA      XMM1,XMM7
-        PCMPGTD     XMM1,XMM0
-        PAND        XMM0,XMM1
-        PANDN       XMM1,XMM7
-        POR         XMM0,XMM1
-
-        // alpha * 257 * Coverage
-        PMULHUW     XMM0,XMM2
-        PSRLW       XMM0,8
-        PSLLD       XMM0, 24
-        POR         XMM0,XMM3
-        MOVDQU      [EDX],XMM0
-        ADD         EAX,16
-        ADD         EDX,16
-        DEC         ESI
-        JNZ         @Loop
-        AND         ECX,3
-        JZ          @END
-
-@remainder:
-        MOVSS       XMM0,[EAX] // coverage
-        ANDPS       XMM0,XMM4 // abs
-        MULSS       XMM0,XMM5
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6 // and with $1FF
-        MOVDQA      XMM7,XMM6
-        PSUBD       XMM7,XMM0
-        MOVDQA      XMM1, XMM7
-        PCMPGTD     XMM1, XMM0
-        PAND        XMM0, XMM1
-        PANDN       XMM1, XMM7
-        POR         XMM0, XMM1
-        PMULHUW     XMM0,XMM2
-        PSRLW       XMM0,8
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVD        [EDX],XMM0
-        ADD         EDX,4
-        ADD         EAX,4
-        DEC         ECX
-        JNZ         @remainder
-
-@END:
-        POP         EDI
-        POP         ESI
-        POP         EBX
-@EXIT:
-
-{$elseif defined(TARGET_x64)}
-
-        TEST        R8D,R8D
-        JLE         @EXIT
-
-        SUB         RSP, 32
-        MOVDQU      [RSP],XMM6
-        MOVDQU      [RSP + 16],XMM7
-
-        MOV         R10D,R9D
-        AND         R10D,$00FFFFFF
-        MOVD        XMM3,R10D
-        PSHUFD      XMM3,XMM3,$0   // save 0RGB
-
-        PCMPEQD     XMM6,XMM6
-        PSRLD       XMM6,15 // $0001FFFF
-
-{$if (not defined(FPC))}
-        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
-{$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
-{$ifend}
-
-        SHR         R9D,24
-        MOVD        XMM2,R9D
-        PUNPCKLBW   XMM2,XMM2  // alpha * 257
-        PSHUFD      XMM2,XMM2,$0  // alphas
-
-        PCMPEQD     XMM4,XMM4 // for abs
-        PSRLD       XMM4,1
-
-        CMP         R8D,4
-        JL          @remainder
-
-        MOV         EAX, R8D
-        SAR         EAX, 2
-
-@Loop:
-        MOVUPS      XMM0,[RCX] // coverage
-        ANDPS       XMM0,XMM4 // abs
-        MULPS       XMM0,XMM5 // multiply
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6 // and with $0001FFFF
-        MOVDQA      XMM7,XMM0
-        PXOR        XMM7,XMM6
-
-        // PMINUD for SSE2
-        MOVDQA      XMM1,XMM7
-        PCMPGTD     XMM1,XMM0
-        PAND        XMM0,XMM1
-        PANDN       XMM1,XMM7
-        POR         XMM0,XMM1
-
-        PMULHUW     XMM0,XMM2
-        PSRLW       XMM0, 8
-        PSLLD       XMM0, 24
-        POR         XMM0,XMM3
-        MOVDQU      [RDX],XMM0
-        ADD         RCX,16
-        ADD         RDX,16
-        DEC         EAX
-        JNZ         @Loop
-        AND         R8D,3
-        JZ          @END
-
-@remainder:
-        MOVSS       XMM0,[RCX] // coverage
-        ANDPS       XMM0,XMM4 // abs
-        MULSS       XMM0,XMM5
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6
-        MOVDQA      XMM7,XMM6
-        PSUBD       XMM7,XMM0
-
-        // PMINUD for SSE2
-        MOVDQA      XMM1, XMM7
-        PCMPGTD     XMM1, XMM0
-        PAND        XMM0, XMM1
-        PANDN       XMM1, XMM7
-        POR         XMM0, XMM1
-
-        PMULHUW     XMM0,XMM2
-        PSRLW       XMM0,8
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVD        [RDX],XMM0
-        ADD         RDX,4
-        ADD         RCX,4
-        DEC         R8D
-        JNZ         @remainder
-
-@END:
-        MOVDQU      XMM7,  [RSP + 16]
-        MOVDQU      XMM6,  [RSP]
-        ADD         RSP, 32
-@EXIT:
-{$else}
-{$error 'Missing target'}
-{$ifend}
-
-end;
-//------------------------------------------------------------------------------
-// MakeAlphaEvenOddUP_SSE41
-//------------------------------------------------------------------------------
-// Contributed by Kadaif
-//------------------------------------------------------------------------------
-procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$if defined(TARGET_x86)}
-
-        TEST        ECX,ECX
-        JLE         @EXIT
-
-        PUSH        EBX
-        PUSH        ESI
-        PUSH        EDI
-
-        MOV         EDI,Color
-        MOV         EBX,EDI
-        AND         EBX,$00FFFFFF
-        MOVD        XMM3, EBX
-        PSHUFD      XMM3,XMM3,$0   // save 0RGB
-        PCMPEQD     XMM6,XMM6
-        PSRLD       XMM6,15 // $0001FFFF
-{$if (not defined(FPC))}
-        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
-{$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
-{$ifend}
-
-        SHR         EDI,24
-        MOVD        XMM2,EDI
-        PUNPCKLBW   XMM2,XMM2       // alpha * 257
-        PSHUFD      XMM2,XMM2,$0   // alphas
-
-        PCMPEQD     XMM4,XMM4 // for abs
-        PSRLD       XMM4,1
-
-        CMP         ECX,4
+        CMP         ECX, 4
         JL          @remainder
 
         MOV         ESI, ECX
         SAR         ESI, 2
 
 @Loop:
-        MOVUPS      XMM0,[EAX] // coverage
-        ANDPS       XMM0,XMM4 // abs
-        MULPS       XMM0,XMM5
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6 // and with $0001FFFF
-        MOVDQA      XMM7,XMM0
-        PXOR        XMM7,XMM6
-        PMINUD      XMM0,XMM7
-        PMULHUW     XMM0,XMM2
-        PSRLW       XMM0,8
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVDQU      [EDX],XMM0
-        ADD         EAX,16
-        ADD         EDX,16
+        MOVUPS      XMM0, [EAX]         // Load overage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM5
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6          // and with $0001FFFF
+        MOVDQA      XMM7, XMM0
+        PXOR        XMM7, XMM6
+
+        // PMINUD (SSE4.1) for SSE2
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+
+        // alpha * 257 * Coverage
+        PMULHUW     XMM0, XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVDQU      [EDX], XMM0         // Save ARGB
+        ADD         EAX, 16
+        ADD         EDX, 16
         DEC         ESI
         JNZ         @Loop
-        AND         ECX,3
+        AND         ECX, 3
         JZ          @END
 
 @remainder:
-        MOVSS       XMM0,[EAX] // coverage
-        ANDPS       XMM0,XMM4 // abs
-        MULSS       XMM0,XMM5
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6 // and with $1FF
-        MOVDQA      XMM7,XMM6
-        PSUBD       XMM7,XMM0
-        PMINUD      XMM0,XMM7
-        PMULHUW     XMM0,XMM2
-        PSRLW       XMM0,8
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVD        [EDX],XMM0
-        ADD         EDX,4
-        ADD         EAX,4
+        MOVSS       XMM0, [EAX]         // coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULSS       XMM0, XMM5
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6          // and with $1FF
+        MOVDQA      XMM7, XMM6
+        PSUBD       XMM7, XMM0
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+        PMULHUW     XMM0, XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVD        [EDX], XMM0
+        ADD         EDX, 4
+        ADD         EAX, 4
         DEC         ECX
         JNZ         @remainder
 
@@ -1187,20 +1044,48 @@ asm
         POP         ESI
         POP         EBX
 @EXIT:
+
 {$elseif defined(TARGET_x64)}
-        TEST        R8D,R8D
+
+  // Parameters (x64):
+  // RCX <- Coverage
+  // RDX <- AlphaValues
+  // R8D <- Count
+  // R9D <- Color
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1: work
+  //   XMM2: [Alpha * 257] x 4
+  //   XMM3: [Color without alpha] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM5: [256x256] x 4
+  //   XMM6: [$0001FFFF] x 4
+  //   XMM7: work
+
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+  .SAVENV XMM6
+  .SAVENV XMM7
+{$ENDIF}
+
+        TEST        R8D, R8D
         JLE         @EXIT
 
-        SUB         RSP,32
-        MOVDQU      [RSP],XMM6
-        MOVDQU      [RSP + 16],XMM7
+(*
+        SUB         RSP, 32
+        MOVDQU      [RSP], XMM6
+        MOVDQU      [RSP + 16], XMM7
+*)
 
-        MOV         R10D,R9D
-        AND         R10D,$00FFFFFF
-        MOVD        XMM3,R10D
-        PSHUFD      XMM3,XMM3,$0   // save 0RGB
-        PCMPEQD     XMM6,XMM6
-        PSRLD       XMM6,15 // $0001FFFF
+        MOV         R10D, R9D
+        AND         R10D, $00FFFFFF
+        MOVD        XMM3, R10D
+        PSHUFD      XMM3, XMM3,$0       // save 0RGB
+
+        PCMPEQD     XMM6, XMM6
+        PSRLD       XMM6, 15            // $0001FFFF
 
 {$if (not defined(FPC))}
         MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
@@ -1208,67 +1093,307 @@ asm
         MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
 {$ifend}
 
-        SHR         R9D,24
-        MOVD        XMM2,R9D
-        PUNPCKLBW   XMM2,XMM2  // alpha * 257
-        PSHUFD      XMM2,XMM2,$0   // alphas
+        SHR         R9D, 24
+        MOVD        XMM2, R9D
+        PUNPCKLBW   XMM2, XMM2          // alpha * 257
+        PSHUFD      XMM2, XMM2, $0      // alphas
 
-        PCMPEQD     XMM4,XMM4 // for abs
-        PSRLD       XMM4,1
+        PCMPEQD     XMM4, XMM4          // for abs
+        PSRLD       XMM4, 1
 
-        CMP         R8D,4
+        CMP         R8D, 4
         JL          @remainder
 
-
-        MOV         EAX,R8D
-        SAR         EAX,2
+        MOV         EAX, R8D
+        SAR         EAX, 2
 
 @Loop:
-        MOVUPS      XMM0,[RCX] // coverage
-        ANDPS       XMM0,XMM4 // abs
-        MULPS       XMM0,XMM5
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6 // and with $0001FFFF
-        MOVDQA      XMM7,XMM0
-        PXOR        XMM7,XMM6
-        PMINUD      XMM0,XMM7
-        PMULHUW     XMM0,XMM2
+        MOVUPS      XMM0, [RCX]         // coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM5          // multiply
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6          // and with $0001FFFF
+        MOVDQA      XMM7, XMM0
+        PXOR        XMM7, XMM6
+
+        // PMINUD for SSE2
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+
+        PMULHUW     XMM0, XMM2
         PSRLW       XMM0, 8
         PSLLD       XMM0, 24
-        POR         XMM0,XMM3
-        MOVDQU      [RDX],XMM0
-        ADD         RCX,16
-        ADD         RDX,16
+        POR         XMM0, XMM3
+        MOVDQU      [RDX], XMM0
+        ADD         RCX, 16
+        ADD         RDX, 16
         DEC         EAX
         JNZ         @Loop
-        AND         R8D,3
+        AND         R8D, 3
         JZ          @END
 
 @remainder:
-        MOVSS       XMM0,[RCX] // coverage
-        ANDPS       XMM0,XMM4 // abs
-        MULSS       XMM0,XMM5
-        CVTPS2DQ    XMM0,XMM0
-        PAND        XMM0,XMM6 // and with $1FF
-        MOVDQA      XMM7,XMM6
-        PSUBD       XMM7,XMM0
-        PMINUD      XMM0,XMM7
-        PMULHUW     XMM0,XMM2
-        PSRLW       XMM0,8
-        PSLLD       XMM0,24
-        POR         XMM0,XMM3
-        MOVD        [RDX],XMM0
+        MOVSS       XMM0, [RCX]         // coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULSS       XMM0, XMM5
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6
+        MOVDQA      XMM7, XMM6
+        PSUBD       XMM7, XMM0
+
+        // PMINUD for SSE2
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+
+        PMULHUW     XMM0, XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVD        [RDX], XMM0
         ADD         RDX,4
         ADD         RCX,4
         DEC         R8D
         JNZ         @remainder
 
 @END:
+(*
+        MOVDQU      XMM7, [RSP + 16]
+        MOVDQU      XMM6, [RSP]
+        ADD         RSP, 32
+*)
+@EXIT:
 
+{$if defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+// MakeAlphaEvenOddUP_SSE41
+//------------------------------------------------------------------------------
+// Contributed by Kadaif
+//------------------------------------------------------------------------------
+procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
+asm
+{$if defined(TARGET_x86)}
+
+  // Parameters (x86):
+  // EAX <- Coverage
+  // EDX <- AlphaValues
+  // ECX <- Count
+  // Stack[0] <- Color
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1: work
+  //   XMM2: [Alpha * 257] x 4
+  //   XMM3: [Color without alpha] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM5: [256x256] x 4
+  //   XMM6: [$0001FFFF] x 4
+  //   XMM7: work
+
+        TEST        ECX,ECX
+        JLE         @EXIT
+
+        PUSH        EBX
+        PUSH        ESI
+        PUSH        EDI
+
+        MOV         EDI, Color
+        MOV         EBX, EDI
+        AND         EBX, $00FFFFFF
+        MOVD        XMM3, EBX
+        PSHUFD      XMM3, XMM3, $0      // save 0RGB
+        PCMPEQD     XMM6, XMM6
+        PSRLD       XMM6, 15            // $0001FFFF
+{$if (not defined(FPC))}
+        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
+{$ifend}
+
+        SHR         EDI, 24
+        MOVD        XMM2, EDI
+        PUNPCKLBW   XMM2, XMM2          // alpha * 257
+        PSHUFD      XMM2, XMM2, $0      // alphas
+
+        PCMPEQD     XMM4, XMM4          // for abs
+        PSRLD       XMM4, 1
+
+        CMP         ECX, 4
+        JL          @remainder
+
+        MOV         ESI, ECX
+        SAR         ESI, 2
+
+@Loop:
+        MOVUPS      XMM0, [EAX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM5
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6          // and with $0001FFFF
+        MOVDQA      XMM7, XMM0
+        PXOR        XMM7, XMM6
+        PMINUD      XMM0, XMM7
+        PMULHUW     XMM0, XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVDQU      [EDX], XMM0         // Save ARGB
+        ADD         EAX, 16
+        ADD         EDX, 16
+        DEC         ESI
+        JNZ         @Loop
+        AND         ECX,3
+        JZ          @END
+
+@remainder:
+        MOVSS       XMM0, [EAX]         // coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULSS       XMM0, XMM5
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6          // and with $1FF
+        MOVDQA      XMM7, XMM6
+        PSUBD       XMM7, XMM0
+        PMINUD      XMM0, XMM7
+        PMULHUW     XMM0, XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVD        [EDX], XMM0
+        ADD         EDX, 4
+        ADD         EAX, 4
+        DEC         ECX
+        JNZ         @remainder
+
+@END:
+        POP         EDI
+        POP         ESI
+        POP         EBX
+@EXIT:
+
+{$elseif defined(TARGET_x64)}
+
+  // Parameters (x64):
+  // RCX <- Coverage
+  // RDX <- AlphaValues
+  // R8D <- Count
+  // R9D <- Color
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1: work
+  //   XMM2: [Alpha * 257] x 4
+  //   XMM3: [Color without alpha] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM5: [256x256] x 4
+  //   XMM6: [$0001FFFF] x 4
+  //   XMM7: work
+
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+  .SAVENV XMM6
+  .SAVENV XMM7
+{$ENDIF}
+
+        TEST        R8D, R8D
+        JLE         @EXIT
+
+(*
+        SUB         RSP,32
+        MOVDQU      [RSP],XMM6
+        MOVDQU      [RSP + 16],XMM7
+*)
+
+        MOV         R10D, R9D
+        AND         R10D, $00FFFFFF
+        MOVD        XMM3, R10D
+        PSHUFD      XMM3, XMM3,$0       // save 0RGB
+        PCMPEQD     XMM6, XMM6
+        PSRLD       XMM6, 15            // $0001FFFF
+
+{$if (not defined(FPC))}
+        MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
+{$else}
+        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
+{$ifend}
+
+        SHR         R9D, 24
+        MOVD        XMM2, R9D
+        PUNPCKLBW   XMM2, XMM2          // alpha * 257
+        PSHUFD      XMM2, XMM2, $0      // alphas
+
+        PCMPEQD     XMM4, XMM4          // for abs
+        PSRLD       XMM4, 1
+
+        CMP         R8D, 4
+        JL          @remainder
+
+
+        MOV         EAX, R8D
+        SAR         EAX, 2
+
+@Loop:
+        MOVUPS      XMM0, [RCX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM5
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6          // and with $0001FFFF
+        MOVDQA      XMM7, XMM0
+        PXOR        XMM7, XMM6
+        PMINUD      XMM0, XMM7
+        PMULHUW     XMM0, XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVDQU      [RDX], XMM0         // Save ARGB
+        ADD         RCX, 16
+        ADD         RDX, 16
+        DEC         EAX
+        JNZ         @Loop
+        AND         R8D, 3
+        JZ          @END
+
+@remainder:
+        MOVSS       XMM0, [RCX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULSS       XMM0, XMM5
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6          // and with $1FF
+        MOVDQA      XMM7, XMM6
+        PSUBD       XMM7, XMM0
+        PMINUD      XMM0, XMM7
+        PMULHUW     XMM0, XMM2
+        PSRLW       XMM0, 8
+        PSLLD       XMM0, 24
+        POR         XMM0, XMM3
+        MOVD        [RDX], XMM0         // Save ARGB
+        ADD         RDX, 4
+        ADD         RCX, 4
+        DEC         R8D
+        JNZ         @remainder
+
+@END:
+
+(*
         MOVDQU      XMM7,[RSP + 16]
         MOVDQU      XMM6,[RSP]
         ADD         RSP,32
+*)
 @EXIT:
+
+{$if defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
 
 {$else}
 {$error 'Missing target'}
@@ -1276,6 +1401,7 @@ asm
 end;
 
 {$ifend}
+
 
 //------------------------------------------------------------------------------
 //
