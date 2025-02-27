@@ -35,7 +35,11 @@ interface
 {$include GR32.inc}
 
 uses
+{$if not defined(FPC)}
   System.Types,
+{$else}
+  Types,
+{$ifend}
   GR32,
   GR32_Bindings,
   GR32_Containers,
@@ -164,6 +168,7 @@ type
     procedure BeginDraw;
     procedure EndDraw;
   end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -319,86 +324,41 @@ type
 //------------------------------------------------------------------------------
 // Float, unclipped versions
 //------------------------------------------------------------------------------
-procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+
+procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 
 //------------------------------------------------------------------------------
 // Float, clipped versions
 //------------------------------------------------------------------------------
-procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
-  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+
+procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonFS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonFS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 
 //------------------------------------------------------------------------------
 // Fixed, unclipped versions
 //------------------------------------------------------------------------------
-procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
-  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolyPolygonXS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonXS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil);
-procedure PolyPolygonXS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil); overload;
-procedure PolygonXS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil);
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonXS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonXS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonXS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
+procedure PolygonXS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
 
 
 //------------------------------------------------------------------------------
@@ -547,8 +507,13 @@ var
 implementation
 
 uses
+{$if not defined(FPC)}
   System.Math,
   System.SysUtils,
+{$else}
+  Math,
+  SysUtils,
+{$ifend}
   GR32_Math,
   GR32_LowLevel,
   GR32_Blend,
@@ -690,7 +655,7 @@ end;
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
-procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);
 // Note: Don't bother aligning the SSE_FloatOne data so we can use
 // MOVAPS; It gives zero performance improvement (and might be slower
 // due to instruction size).
@@ -728,11 +693,7 @@ asm
         PSHUFD      XMM3, XMM3, $0      // save 0RGB
 
         // Load constant 1.0 into XMM5
-{$if (not defined(FPC))}
         MOVUPS      XMM5, DQWORD PTR [SSE_FloatOne]
-{$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+SSE_FloatOne]
-{$ifend}
 
         // Prepare alpha multiplier: extract alpha from Color, replicate and convert to float
         SHR         EDI, 24             // alpha
@@ -931,7 +892,7 @@ end;
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);  {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -967,11 +928,7 @@ asm
 
         PCMPEQD     XMM6, XMM6
         PSRLD       XMM6, 15            // 4 x $0001FFFF
-{$if (not defined(FPC))}
         MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
-{$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
-{$ifend}
 
         SHR         EDI, 24             // alpha
         MOVD        XMM2, EDI
@@ -1181,7 +1138,7 @@ end;
 //------------------------------------------------------------------------------
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
-procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -1216,11 +1173,7 @@ asm
         PSHUFD      XMM3, XMM3, $0      // save 0RGB
         PCMPEQD     XMM6, XMM6
         PSRLD       XMM6, 15            // $0001FFFF
-{$if (not defined(FPC))}
         MOVUPS      XMM5, DQWORD PTR [SSE_Float256x256]
-{$else}
-        MOVUPS      XMM5, DQWORD PTR [rip+SSE_Float256x256]
-{$ifend}
 
         SHR         EDI, 24
         MOVD        XMM2, EDI
@@ -2253,10 +2206,25 @@ begin
 end;
 
 
-{ LCD sub-pixel rendering (see http://www.grc.com/cttech.htm) }
+
+//------------------------------------------------------------------------------
+//
+//      LCD sub-pixel rendering
+//
+//------------------------------------------------------------------------------
+// References:
+// - https://en.wikipedia.org/wiki/Subpixel_rendering
+// - https://www.grc.com/cleartype.htm
+// - https://en.wikipedia.org/wiki/ClearType
+// - https://en.wikipedia.org/wiki/CoolType
+//------------------------------------------------------------------------------
 
 type
+{$if not defined(FPC)}
   PByteArray = System.SysUtils.PByteArray;
+{$else}
+  PByteArray = SysUtils.PByteArray;
+{$ifend}
 
 type
   TRGBTriple = packed record
@@ -2273,7 +2241,7 @@ type
 //      Make Alpha NonZero LCD
 //
 //------------------------------------------------------------------------------
-// Coverage builders used internally by TPolygonRenderer32VPR.
+// Coverage builders used internally by TPolygonRenderer32LCD.
 // Uses subpixel anti-aliasing.
 // For use in pfWinding/pfNonZero fill mode with a static color.
 //------------------------------------------------------------------------------
@@ -2315,7 +2283,7 @@ end;
 //      Make Alpha EvenOdd LCD
 //
 //------------------------------------------------------------------------------
-// Coverage builders used internally by TPolygonRenderer32VPR.
+// Coverage builders used internally by TPolygonRenderer32LCD.
 // Uses subpixel anti-aliasing.
 // For use in pfAlternate/pfEvenOdd fill mode with a static color.
 //------------------------------------------------------------------------------
@@ -2357,7 +2325,7 @@ end;
 //      Make Alpha NonZero LCD2
 //
 //------------------------------------------------------------------------------
-// Coverage builders used internally by TPolygonRenderer32VPR.
+// Coverage builders used internally by TPolygonRenderer32LCD2.
 // Uses subpixel anti-aliasing. Slightly softer AA transitions.
 // For use in pfWinding/pfNonZero fill mode with a static color.
 //------------------------------------------------------------------------------
@@ -2383,7 +2351,7 @@ end;
 //      Make Alpha EvenOdd LCD2
 //
 //------------------------------------------------------------------------------
-// Coverage builders used internally by TPolygonRenderer32VPR.
+// Coverage builders used internally by TPolygonRenderer32LCD2.
 // Uses subpixel anti-aliasing. Slightly softer AA transitions.
 // For use in pfAlternate/pfEvenOdd fill mode with a static color.
 //------------------------------------------------------------------------------
