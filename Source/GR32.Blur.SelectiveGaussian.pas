@@ -35,7 +35,11 @@ interface
 {$include GR32.inc}
 
 uses
-  System.SysUtils,
+{$if not defined(FPC)}
+  System.SysUtils, // Must be before GR32 so we get the correct PByteArray
+{$else}
+  SysUtils,
+{$ifend}
   GR32;
 
 
@@ -136,8 +140,13 @@ procedure SelectiveGaussianHorzVert(Src, Dst: TBitmap32; Radius: TFloat; Delta: 
 implementation
 
 uses
+{$if not defined(FPC)}
   System.Math,
   System.SyncObjs, // TCriticalSection
+{$else}
+  Math,
+  SyncObjs, // TCriticalSection
+{$ifend}
   GR32_Gamma,
   GR32.Blur,
   GR32_Bindings,

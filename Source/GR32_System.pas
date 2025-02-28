@@ -196,11 +196,19 @@ var
 implementation
 
 uses
+{$if not defined(FPC)}
 {$ifdef MSWINDOWS}
   WinApi.Windows,
 {$endif}
   System.SysUtils,
   System.Classes;
+{$else}
+{$ifdef MSWINDOWS}
+  Windows,
+{$endif}
+  SysUtils,
+  Classes;
+{$ifend}
 
 //------------------------------------------------------------------------------
 //
@@ -218,7 +226,7 @@ end;
 {$else}
 function GetTickCount: UInt64;
 begin
-  Result := System.SysUtils.GetTickCount64;
+  Result := SysUtils.GetTickCount64;
 end;
 {$endif}
 

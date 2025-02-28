@@ -332,10 +332,12 @@ const
 implementation
 
 uses
-{$IFDEF FPC}
-  System.SysUtils,
-{$ENDIF}
+{$if not defined(FPC)}
   System.Math,
+{$else}
+  SysUtils,
+  Math,
+{$ifend}
   GR32.Types.SIMD;
 
 {$R-}{$Q-}  // switch off overflow and range checking
@@ -1464,7 +1466,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT or SSE_ROUND.NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
 
         CVTSS2SI eax, xmm0
 end;
@@ -1568,7 +1570,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_ZERO or SSE_ROUND.NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_ZERO + SSE_ROUND.NO_EXC
         CVTSS2SI eax, xmm0
 end;
 {$ENDIF}
@@ -1620,7 +1622,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEG_INF or SSE_ROUND.NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
 
         CVTSS2SI eax, xmm0
 end;
@@ -1636,7 +1638,7 @@ asm
         MOVSD   xmm0, Value
 {$ifend}
 
-        ROUNDSD xmm0, xmm0, SSE_ROUND.TO_NEG_INF or SSE_ROUND.NO_EXC
+        ROUNDSD xmm0, xmm0, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
 
         CVTTSD2SI eax, xmm0
 end;

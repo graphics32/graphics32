@@ -217,7 +217,11 @@ const
 implementation
 
 uses
+{$if not defined(FPC)}
   System.Math,
+{$else}
+  Math,
+{$ifend}
   GR32_System,
   GR32.Types.SIMD;
 
@@ -712,7 +716,7 @@ procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
 var
   S, C: Extended;
 begin
-  System.Math.SinCos(Theta, S, C);
+  {$ifndef FPC}System.{$endif}Math.SinCos(Theta, S, C);
   Sin := S;
   Cos := C;
 end;
@@ -755,7 +759,7 @@ procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat);
 var
   S, C: Extended;
 begin
-  System.Math.SinCos(Theta, S, C);
+  {$ifndef FPC}System.{$endif}Math.SinCos(Theta, S, C);
   Sin := S * Radius;
   Cos := C * Radius;
 end;
@@ -802,7 +806,7 @@ procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single);
 var
   S, C: Extended;
 begin
-  System.Math.SinCos(Theta, S, C);
+  {$ifndef FPC}System.{$endif}Math.SinCos(Theta, S, C);
   Sin := S * ScaleX;
   Cos := C * ScaleY;
 end;
@@ -887,7 +891,7 @@ end;
 
 function Hypot(const X, Y: Integer): Integer;
 begin
-  Result := Round(System.Math.Hypot(X, Y));
+  Result := Round({$ifndef FPC}System.{$endif}Math.Hypot(X, Y));
 end;
 
 {$else}
@@ -1421,7 +1425,7 @@ end;
 function Sign(Value: Integer): Integer;
 begin
   // Defer to Math.Sign
-  Result := Integer(System.Math.Sign(Value));
+  Result := Integer({$ifndef FPC}System.{$endif}Math.Sign(Value));
 end;
 
 {$ELSE}
@@ -1531,7 +1535,7 @@ asm
         movss   xmm2, xmm0
         divss   xmm2, xmm1
         // b := Floor(a)
-        roundss xmm2, xmm2, SSE_ROUND.TO_NEG_INF or SSE_ROUND.NO_EXC
+        roundss xmm2, xmm2, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulss   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1579,7 +1583,7 @@ asm
         movsd   xmm2, xmm0
         divsd   xmm2, xmm1
         // b := Floor(a)
-        roundsd xmm2, xmm2, SSE_ROUND.TO_NEG_INF or SSE_ROUND.NO_EXC
+        roundsd xmm2, xmm2, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulsd   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1667,7 +1671,7 @@ asm
         movss   xmm2, xmm0
         divss   xmm2, xmm1
         // b := Round(a)
-        roundss xmm2, xmm2, SSE_ROUND.TO_NEAREST_INT or SSE_ROUND.NO_EXC
+        roundss xmm2, xmm2, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulss   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1715,7 +1719,7 @@ asm
         movsd   xmm2, xmm0
         divsd   xmm2, xmm1
         // b := Floor(a)
-        roundsd xmm2, xmm2, SSE_ROUND.TO_NEAREST_INT or SSE_ROUND.NO_EXC
+        roundsd xmm2, xmm2, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulsd   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1839,7 +1843,7 @@ asm
         // a := ANumerator / ADenominator
         divss   xmm2, xmm1
         // b := Trunc(a)
-        roundss xmm2, xmm2, SSE_ROUND.TO_ZERO or SSE_ROUND.NO_EXC
+        roundss xmm2, xmm2, SSE_ROUND.TO_ZERO + SSE_ROUND.NO_EXC
         // c := b*ADenominator
         mulss   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1864,7 +1868,7 @@ asm
         // a := ANumerator / ADenominator
         divsd   xmm2, xmm1
         // b := Trunc(a)
-        roundsd xmm2, xmm2, SSE_ROUND.TO_ZERO or SSE_ROUND.NO_EXC
+        roundsd xmm2, xmm2, SSE_ROUND.TO_ZERO + SSE_ROUND.NO_EXC
         // c := b*ADenominator
         mulsd   xmm2, xmm1
         // Result := ANumerator - c;

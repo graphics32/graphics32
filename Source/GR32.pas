@@ -3860,7 +3860,7 @@ asm
         MULSS   xmm0, [rip+Float255].DWORD
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT or SSE_ROUND.NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
         CVTSS2SI eax, xmm0
 end;
 
