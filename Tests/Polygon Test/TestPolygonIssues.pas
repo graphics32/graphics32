@@ -32,6 +32,19 @@ type
     procedure VPR2_VerticalSegments;
   end;
 
+  TTestMakeAlpha = class(TTestCase)
+  private
+    FReferenceProc: TFillProc;
+    FTestProc: TFillProc;
+
+  public
+    property ReferenceProc: TFillProc read FReferenceProc write FReferenceProc;
+    property TestProc: TFillProc read FTestProc write FTestProc;
+
+  published
+    procedure MakeAlpha;
+  end;
+
 implementation
 
 uses
@@ -279,6 +292,47 @@ begin
 
 end;
 
+{ TTestMakeAlpha }
+
+procedure TTestMakeAlpha.MakeAlpha;
+begin
+  var Coverage: PSingleArray;
+  var ExpectedAlphaValues: PColor32Array;
+  var ActualAlphaValues: PColor32Array;
+
+  for var Count: integer in [32, 96, 101, 512, 1023, 2049, 8192] do
+  begin
+    GetMem(Coverage, Count * SizeOf(Single));
+    GetMem(ExpectedAlphaValues, Count * SizeOf(TColor32));
+    GetMem(ActualAlphaValues, Count * SizeOf(TColor32));
+    try
+
+      for var i := 0 to Count-1 do
+        Coverage[i] := Random;
+
+      for var Color: TColor32 in [0, clBlack32, clWhite32, $7F7F7F7F] do
+      begin
+        FReferenceProc(Coverage, ExpectedAlphaValues, Count, Color);
+        FTestProc(Coverage, ActualAlphaValues, Count, Color);
+
+        for var i := 0 to Count-1 do
+          if (ExpectedAlphaValues[i] <> ActualAlphaValues[i]) then
+            // allow +/-1 per component
+            if (Abs(TColor32Entry(ExpectedAlphaValues[i]).A - TColor32Entry(ActualAlphaValues[i]).A) > 1) or
+               (Abs(TColor32Entry(ExpectedAlphaValues[i]).R - TColor32Entry(ActualAlphaValues[i]).R) > 1) or
+               (Abs(TColor32Entry(ExpectedAlphaValues[i]).G - TColor32Entry(ActualAlphaValues[i]).G) > 1) or
+               (Abs(TColor32Entry(ExpectedAlphaValues[i]).B - TColor32Entry(ActualAlphaValues[i]).B) > 1) then
+              CheckEquals(IntToHex(ExpectedAlphaValues[i], 8), IntToHex(ActualAlphaValues[i], 8));
+      end;
+
+    finally
+      FreeMem(Coverage);
+      FreeMem(ExpectedAlphaValues);
+      FreeMem(ActualAlphaValues);
+    end;
+  end;
+end;
+
 type
   TPolygonRendererTestSuite = class(TTestSuite)
   private
@@ -295,21 +349,91 @@ begin
     TTestPolygonRasterizerIssues(ATest).PolygonRendererClass := PolygonRendererClass;
 end;
 
+type
+  TMakeAlphaTestSuite = class(TTestSuite)
+  private
+    FReferenceProc: TFillProc;
+    FTestProc: TFillProc;
+
+  public
+    procedure AddTest(ATest: ITest); override;
+
+    property ReferenceProc: TFillProc read FReferenceProc write FReferenceProc;
+    property TestProc: TFillProc read FTestProc write FTestProc;
+  end;
+
+procedure TMakeAlphaTestSuite.AddTest(ATest: ITest);
+begin
+  inherited;
+  if (ATest is TTestMakeAlpha) then
+  begin
+    TTestMakeAlpha(ATest).ReferenceProc := ReferenceProc;
+    TTestMakeAlpha(ATest).TestProc := TestProc;
+  end;
+end;
+
+
+function PriorityCallbackPurePascal(const Info: IFunctionInfo): Integer;
+begin
+  if (Info.InstructionSupport * [isPascal, isReference] <> []) then
+    Result := 0
+  else
+    Result := TFunctionRegistry.INVALID_PRIORITY;
+end;
+
 procedure InitializeTestSuites;
 var
+  TestSuite: TTestSuite;
   PolygonRendererTestSuite: TPolygonRendererTestSuite;
   PolygonRendererClass: TPolygonRenderer32Class;
 begin
-  RegisterTest(TTestVectorUtilsIssues.Suite);
+  TestSuite := TTestSuite.Create('VectorUtils');
+  RegisterTest(TestSuite);
+
+  TestSuite.AddTests(TTestVectorUtilsIssues);
+
+
+  TestSuite := TTestSuite.Create('TPolygonRenderer32');
+  RegisterTest(TestSuite);
 
   for PolygonRendererClass in PolygonRendererList do
   begin
     PolygonRendererTestSuite := TPolygonRendererTestSuite.Create(PolygonRendererClass.ClassName);
+    TestSuite.AddSuite(PolygonRendererTestSuite);
+
     PolygonRendererTestSuite.PolygonRendererClass := PolygonRendererClass;
 
     PolygonRendererTestSuite.AddTests(TTestPolygonRasterizerIssues);
+  end;
 
-    RegisterTest(PolygonRendererTestSuite);
+  TestSuite := TTestSuite.Create('MakeAlpha');
+  RegisterTest(TestSuite);
+
+  for var BindVariable: PPointer in [@@MakeAlphaEvenOddUP, @@MakeAlphaNonZeroUP, @@MakeAlphaEvenOddUPF, @@MakeAlphaNonZeroUPF] do
+  begin
+    var BindInfo := PolygonsRegistry.FindBinding(BindVariable);
+    if (BindInfo <> nil) then
+    begin
+      var ReferenceProc := BindInfo.FindFunction(PriorityCallbackPurePascal);
+
+      var FunctionTestSuite: TTestSuite := TTestSuite.Create(BindInfo.Name);
+      TestSuite.AddSuite(FunctionTestSuite);
+
+      for var FunctionInfo in BindInfo do
+      begin
+        if (FunctionInfo.Proc = ReferenceProc) then
+          continue;
+
+        var MakeAlphaTestSuite: TMakeAlphaTestSuite := TMakeAlphaTestSuite.Create(FunctionInfo.Name);
+        FunctionTestSuite.AddSuite(MakeAlphaTestSuite);
+
+        MakeAlphaTestSuite.ReferenceProc := ReferenceProc;
+        MakeAlphaTestSuite.TestProc := FunctionInfo.Proc;
+
+        MakeAlphaTestSuite.AddTests(TTestMakeAlpha);
+      end;
+
+    end;
   end;
 end;
 
