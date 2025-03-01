@@ -13,6 +13,7 @@ object MainForm: TMainForm
   Position = poScreenCenter
   ShowHint = True
   OnCreate = FormCreate
+  OnShow = FormShow
   TextHeight = 13
   object Splitter1: TSplitter
     Left = 0
@@ -120,7 +121,7 @@ object MainForm: TMainForm
       object CbxAllTests: TCheckBox
         Left = 14
         Top = 98
-        Width = 112
+        Width = 167
         Height = 19
         Caption = 'Benchmark all tests'
         TabOrder = 2
@@ -128,7 +129,7 @@ object MainForm: TMainForm
       object CbxAllRenderers: TCheckBox
         Left = 14
         Top = 118
-        Width = 135
+        Width = 167
         Height = 19
         Caption = 'Benchmark all renderers'
         TabOrder = 3
@@ -145,7 +146,7 @@ object MainForm: TMainForm
       object CheckBoxBatch: TCheckBox
         Left = 14
         Top = 138
-        Width = 135
+        Width = 167
         Height = 19
         Hint = 'Enable batching for renderers that support it'
         Caption = 'Enable batching'

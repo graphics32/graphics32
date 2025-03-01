@@ -48,7 +48,9 @@ interface
 {-$define TEST_LCD}
 
 uses
-  {$ifdef MSWINDOWS}Windows,{$ENDIF}
+{$ifdef MSWINDOWS}
+  Windows, Messages,
+{$endif}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
   GR32_Image,
   GR32_Paths,
@@ -62,6 +64,11 @@ const
   // Use the best result of all samles as the final result.
   TEST_DURATION = 4000;
   TEST_SAMPLES = 4;
+
+{$ifdef MSWINDOWS}
+const
+  MSG_BENCHMARK = WM_USER;
+{$endif}
 
 type
   TTestProc = procedure(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
@@ -91,9 +98,13 @@ type
     procedure BtnBenchmarkClick(Sender: TObject);
     procedure ImgResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     procedure RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples: integer = TEST_SAMPLES; TestTime: integer = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
+{$ifdef MSWINDOWS}
+    procedure MsgBenchmark(var Msg: TMessage); message MSG_BENCHMARK;
+{$endif}
   end;
 
 var
@@ -472,10 +483,10 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // set priority class and thread priority for better accuracy
-{$IFDEF MSWindows}
+{$ifdef MSWINDOWS}
   SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
   SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_HIGHEST);
-{$ENDIF}
+{$endif}
 
   CmbTest.Items := TestRegistry;
   CmbTest.ItemIndex := 0;
@@ -484,6 +495,52 @@ begin
   Img.SetupBitmap(True, clWhite32);
 end;
 
+
+procedure TMainForm.FormShow(Sender: TObject);
+{$ifdef MSWINDOWS}
+var
+  s: string;
+{$endif}
+begin
+{$ifdef MSWINDOWS}
+  if (FindCmdLineSwitch('benchmark', s)) then
+    PostMessage(Handle, MSG_BENCHMARK, 0, 0);
+{$endif}
+end;
+
+{$ifdef MSWINDOWS}
+procedure TMainForm.MsgBenchmark(var Msg: TMessage);
+var
+  Iterations: integer;
+  i: integer;
+  s: string;
+begin
+  (*
+  ** Detect and initiate automated benchmark for profiling
+  *)
+
+  if (not FindCmdLineSwitch('benchmark', s)) then
+    exit;
+
+  Screen.Cursor := crHourGlass;
+
+  Iterations := StrToIntDef(s, 1);
+
+  MemoLog.Lines.Add(Format('Running benchmark: %d iterations', [Iterations]));
+
+  CbxAllTests.Checked := True;
+
+  for i := 0 to Iterations-1 do
+  begin
+    MemoLog.Lines.Add(Format('Iteration %d', [i+1]));
+    Update;
+
+    BtnBenchmark.Click;
+  end;
+
+  Application.Terminate;
+end;
+{$endif}
 
 procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
@@ -594,8 +651,8 @@ begin
 end;
 
 initialization
-  // We're not interested in the ClearType rasterizers
 {$if not defined(TEST_LCD)}
+  // We're not interested in the ClearType rasterizers
   UnregisterPolygonRenderer(TPolygonRenderer32LCD);
   UnregisterPolygonRenderer(TPolygonRenderer32LCD2);
 {$ifend}
