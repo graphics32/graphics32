@@ -1946,8 +1946,7 @@ begin
   V := Values[0];
   for I := 1 to Count - 1 do
   begin
-    if PInteger(@Values[I])^ <> 0 then // TODO : It's probably faster to just do the add than to do a test and a branch
-      V := V + Values[I];
+    V := V + Values[I];
     Values[I] := V;
   end;
 end;
@@ -1955,6 +1954,100 @@ end;
 //------------------------------------------------------------------------------
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+// Reference Pascal version of CumSum_SSE2_Simple
+procedure CumSum_Pas_Simple(Values: PSingleArray; Count: Integer);
+var
+  V: TFloat;
+begin
+  Values := pointer(@Values[Count]);
+  Count := -Count;
+  V := 0;
+  while Count <> 0 do
+  begin
+    V := V + Values[Count];
+    Values[Count] := V;
+    Inc(Count);
+  end;
+end;
+
+// Very simple SSE2 version for Sandy- and Ivy Bridge
+procedure CumSum_SSE2_Simple(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+
+  // Parameters (x86):
+  // EAX <- Values
+  // EDX <- Count
+
+  // SSE register usage:
+  //   XMM0: Running total
+
+        // while Count <> 0 do
+        TEST    EDX, EDX
+        JLE     @Done
+
+        // Values := pointer(@Values[Count]);
+        LEA     EAX, [EAX + EDX * 4]            // Get address of last entry + 1
+
+        // Count := -Count;
+        NEG     EDX                             // Negate count so we can use it as an offset to move forward
+
+        // V := 0;
+        PXOR    XMM0, XMM0                      // XMM0 <- 0
+
+@Loop:
+        // V := V + Values[Count];
+        ADDSS   XMM0, dword ptr [EAX + EDX * 4]
+        // Values[Count] := V;
+        MOVSS   dword ptr [EAX + EDX * 4], XMM0
+
+        // Inc(Count);
+        ADD       EDX, 1
+        // while Count <> 0 do
+        JS        @Loop
+
+@Done:
+
+{$elseif defined(TARGET_x64)}
+
+  // Parameters (x64):
+  // RCX <- Values
+  // RDX <- Count
+
+  // SSE register usage:
+  //   XMM0: Running total
+
+        // while Count <> 0 do
+        TEST    RDX, RDX
+        JLE     @Done
+
+        // Values := pointer(@Values[Count]);
+        LEA     RCX, [RCX + RDX * 4]            // Get address of last entry + 1
+
+        // Count := -Count;
+        NEG     RDX                             // Negate count so we can use it as an offset to move forward
+
+        // V := 0;
+        PXOR    XMM0, XMM0                      // XMM0 <- 0
+
+@Loop:
+        // V := V + Values[Count];
+        ADDSS   XMM0, dword ptr [RCX + RDX * 4]
+        // Values[Count] := V;
+        MOVSS   dword ptr [RCX + RDX * 4], XMM0
+
+        // Inc(Count);
+        ADD       RDX, 1
+        // while Count <> 0 do
+        JS        @Loop
+
+@Done:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
 
 // Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
 procedure CumSum_SSE2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
@@ -3038,6 +3131,7 @@ begin
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif2,   [isSSE2]).Name := 'CumSum_SSE2_kadaif2';
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_Simple,    [isSSE2], BindingPriorityWorse).Name := 'CumSum_SSE2_Simple';
 
 {$if defined(BENCHMARK)}
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2,           [isSSE2]).Name := 'CumSum_SSE2';
@@ -3062,21 +3156,25 @@ begin
 
 {$ifend}
 
-  // The CumSum SIMD 64-bit implementations are very slow on certain old CPUs
-  // (Sandy Bridge and presumably also Ivy Bridge) so we need to penalize them
-  // so they don't get selected by the rebind.
+  // The regular CumSum SIMD 64-bit implementations are very slow on certain
+  // old CPUs (Sandy Bridge and presumably also Ivy Bridge) so we need to
+  // penalize them so they don't get selected by the rebind.
+  //
+  // - On Sandy Bridge, 64-bit, the Pure Pascal version is faster than the
+  //   optimized SSE2 version.
+  //
+  // - On Sandy Bridge, 32-bit, the simple SSE2 version is faster than the
+  //   optimized SSE2 version.
   //
   // We could detect Sandy- and Ivy Bridge by their model numbers (42 and 58)
   // but instead we use the AVX2 feature flag since they were the last models
   // without AVX2.
   //
   // Also, instead of altering the priority of the SIMD implementation we
-  // instead improve the priority of the Pascal implementation.
+  // instead improve the priority of the replacement implementation.
 
-{$if defined(TARGET_x64)}
   if (not (isAVX2 in CPU.InstructionSupport)) then
-    MathRegistry[@@CumSum].FindImplementation(@CumSum_Pas).Priority := BindingPriorityBetter;
-{$ifend}
+    MathRegistry[@@CumSum].FindImplementation(@CumSum_SSE2_Simple).Priority := BindingPriorityBetter;
 
   MathRegistry.RebindAll;
 end;
