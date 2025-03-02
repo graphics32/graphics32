@@ -995,8 +995,8 @@ type
     procedure DrawTo(Dst: TCustomBitmap32; const DstRect: TRect); overload;
     procedure DrawTo(Dst: TCustomBitmap32; const DstRect, SrcRect: TRect); overload;
 
-    procedure SetStipple(NewStipple: TArrayOfColor32); overload;
-    procedure SetStipple(NewStipple: array of TColor32); overload;
+    procedure SetStipple(const NewStipple: TArrayOfColor32); overload;
+    procedure SetStipple(const NewStipple: array of TColor32); overload;
     procedure AdvanceStippleCounter(LengthPixels: Single);
     function  GetStippleColor: TColor32;
 
@@ -3788,18 +3788,18 @@ begin
 end;
 
 
-procedure TCustomBitmap32.SetStipple(NewStipple: TArrayOfColor32);
+procedure TCustomBitmap32.SetStipple(const NewStipple: TArrayOfColor32);
 begin
   FStippleCounter := 0;
-  FStipplePattern := Copy(NewStipple, 0, Length(NewStipple));
+  FStipplePattern := Copy(NewStipple);
 end;
 
-procedure TCustomBitmap32.SetStipple(NewStipple: array of TColor32);
+procedure TCustomBitmap32.SetStipple(const NewStipple: array of TColor32);
 var
   L: Integer;
 begin
   FStippleCounter := 0;
-  L := High(NewStipple) + 1;
+  L := Length(NewStipple);
   SetLength(FStipplePattern, L);
   MoveLongword(NewStipple[0], FStipplePattern[0], L);
 end;
