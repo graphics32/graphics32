@@ -3039,39 +3039,54 @@ asm
         PUNPCKLBW XMM1, XMM0                    // XMM1.DWORD[0..3] <- XMM1.WORD[0..3]
         PUNPCKLBW XMM2, XMM0                    // XMM2.DWORD[0..3] <- XMM2.WORD[0..3]
 
-        // X - Y
+        // Row 1
+        // r1 = X - Y
         PSUBW     XMM2, XMM1                    // XMM2.DWORD[0..1] <- 0 (XMM2 <- XMM2-XMM1)
-        // W * (X - Y)
+        // r1 = W * (X - Y)
         PMULLW    XMM2, XMM5                    // ?
-        // W * (X - Y) + Y
+        // Upscale Y by 256
         PSLLW     XMM1, 8                       // XMM1.WORD[0..3] <- XMM1.WORD[0..3] SHL 8
+        // r1 = W * (X - Y) + Y
         PADDW     XMM2, XMM1                    // XMM2.WORD[0..3] <- XMM2.WORD[0..3] + XMM1.WORD[0..3]
-        // Scale from 255*256 to 255
+        // Downscale r1 from 255*256 to 255
         PSRLW     XMM2, 8                       // XMM2.WORD[0..3] <- XMM2.WORD[0..3] SHR 8
 
         // Expand XMM3,XMM4 from WORD to DWORD
         PUNPCKLBW XMM3, XMM0
         PUNPCKLBW XMM4, XMM0
 
-        // X - Y
+        // Row 2
+        // r2 = X - Y
         PSUBW     XMM4, XMM3
+        // Upscale Y by 256
         PSLLW     XMM3, 8 // WORD[0..3] << 8
-        // W * (X - Y)
+        // r2 = W * (X - Y)
         PMULLW    XMM4, XMM5
-        // W * (X - Y) + Y
+        // r2 = W * (X - Y) + Y
         PADDW     XMM4, XMM3
-        // Scale from 255*256 to 255
+        // Downscale r2 from 255*256 to 255
         PSRLW     XMM4, 8 // WORD[0..3] >> 8
 
-        // Vertical lerp
+        (*
+        ** Vertical lerp
+        *)
+        //   Result := W * (X - Y) + Y
+        //   XMM2 := XMM5 * (XMM2 - XMM4) + XMM4
+
+        // Copy WeightY_256 into XMM5.WORD[0..3]
         MOVD      XMM5, EDX
         PSHUFLW   XMM5, XMM5, 0
 
+        // Result = r1 - r2
         PSUBW     XMM2, XMM4
+        // Result = W * (r1- r2)
         PMULLW    XMM2, XMM5
-        PSLLW     XMM4, 8
+        // Upscale r2 by 256
+        PSLLW     XMM4, 8 // WORD[0..3] << 8
+        // Result = W * (r1 - r2) + r2
         PADDW     XMM2, XMM4
-        PSRLW     XMM2, 8
+        // Downscale Result from 255*256 to 255
+        PSRLW     XMM2, 8 // WORD[0..3] >> 8
 
         PACKUSWB  XMM2, XMM0
         MOVD      EAX, XMM2
