@@ -53,12 +53,15 @@ var
 
 implementation
 
+
 uses
   Classes,
   Graphics,
 {$if defined(GR32_CLIPBOARD_PNG)}
   Clipbrd,
+{$if defined(MSWINDOWS)}
   Windows,
+{$ifend}
   GR32_Clipboard,
 {$ifend}
   GR32,
@@ -308,7 +311,11 @@ end;
 //------------------------------------------------------------------------------
 function TImageFormatAdapterPNG32.IsAuxFormat(Source: TCustomBitmap32; Dest: TPersistent): boolean;
 begin
+{$if defined(GR32_CLIPBOARD_PNG)}
   Result := (Dest is TClipboard);
+{$else}
+  Result := False;
+{$ifend}
 end;
 
 
