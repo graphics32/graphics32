@@ -183,18 +183,10 @@ implementation
 
 uses
   Types,
-  {$IFNDEF FPC}
-  JPEG,
-  {$ELSE}
-  LazJPG,
-  {$ENDIF}
-  GR32_LowLevel;
+  GR32_LowLevel,
+  GR32.ImageFormats.JPG;
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 procedure WarpDummy(var D, R: Single; Param: Single);
 begin
@@ -237,24 +229,10 @@ var
   I : TBrushToolMode;
   J: Integer;
   Item: TMenuItem;
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
-  Src := TBitmap32.Create;
-
   // load example image
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'MonaLisa', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    Src.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  Src := TBitmap32.Create;
+  Src.LoadFromResourceName(HInstance, 'MonaLisa', RT_RCDATA);
 
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;

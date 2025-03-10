@@ -3,8 +3,8 @@ program GammaCorrection;
 {$R 'Media.rc'}
 
 uses
+  Forms,
   Interfaces,
-  Forms, imagesforlazarus,
   MainUnit in 'MainUnit.pas';
 
 begin

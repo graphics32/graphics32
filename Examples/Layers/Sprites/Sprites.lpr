@@ -5,7 +5,6 @@ program Sprites;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 begin

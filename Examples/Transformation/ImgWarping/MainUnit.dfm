@@ -11,11 +11,9 @@ object MainForm: TMainForm
   Font.Name = 'Tahoma'
   Font.Style = []
   Menu = MainMenu
-  OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object PnlMain: TPanel
     Left = 482
@@ -299,8 +297,7 @@ object MainForm: TMainForm
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScaleMode = smScale
-    ScrollBars.ShowHandleGrip = True
-    ScrollBars.Style = rbsDefault
+    ScrollBars.Increment = 0
     ScrollBars.Size = 16
     ScrollBars.Visibility = svAuto
     OverSize = 0

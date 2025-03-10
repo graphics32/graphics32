@@ -67,41 +67,18 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
-  GR32_Math,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  GR32_Math;
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // load example image
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'STONES', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    Image32.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  Image32.Bitmap.LoadFromResourceName(HInstance, 'STONES', RT_RCDATA);
 
   with Image32 do
   begin

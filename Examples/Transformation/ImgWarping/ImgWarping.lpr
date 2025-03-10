@@ -5,7 +5,6 @@ program ImgWarping;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas',
   BrushAuxiliaries in 'BrushAuxiliaries.pas';
 

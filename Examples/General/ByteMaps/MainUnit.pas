@@ -38,71 +38,54 @@ interface
 
 uses
   {$IFDEF FPC}LCLIntf, {$ENDIF} SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, StdCtrls, ComCtrls, Math, Clipbrd, ExtDlgs, ToolWin,
-  ImgList, Menus, GR32, GR32_OrdinalMaps, GR32_RangeBars, GR32_Image,
+  Dialogs, ExtCtrls, StdCtrls, ComCtrls, Clipbrd, ExtDlgs,
+  Menus,
+  GR32,
+  GR32_OrdinalMaps,
+  GR32_RangeBars,
+  GR32_Image,
   GR32_Layers;
 
 type
   TMainForm = class(TForm)
-    BtnCopy: TToolButton;
-    BtnLinear: TToolButton;
-    BtnNew: TToolButton;
-    BtnOpen: TToolButton;
-    BtnSave: TToolButton;
-    {$IFDEF FPC}
-    CoolBar: TToolBar;
-    {$ELSE}
-    CoolBar: TCoolBar;
-    {$ENDIF}
     Image: TImgView32;
-    ImageList: TImageList;
-    LblPalette: TLabel;
-    LblZoom: TLabel;
     MainMenu: TMainMenu;
-    mnCopy: TMenuItem;
+    MenuItemCopy: TMenuItem;
     mnEdit: TMenuItem;
     mnExit: TMenuItem;
     mnFile: TMenuItem;
     mnNew: TMenuItem;
     mnOpen: TMenuItem;
-    mnSave: TMenuItem;
+    MenuItemSave: TMenuItem;
     N1: TMenuItem;
     OpenPictureDialog: TOpenPictureDialog;
-    PaletteCombo: TComboBox;
     PnlMain: TPanel;
-    PnlScaleBar: TPanel;
     PnlSepartator: TPanel;
-    PnlGR32: TPanel;
     SavePictureDialog: TSavePictureDialog;
+    Panel1: TPanel;
     ScaleBar: TGaugeBar;
-    BtnEdit: TToolButton;
-    BtnFile: TToolButton;
-    ToolBar1: TToolBar;
-    ToolBar2: TToolBar;
-    TbrMain: TToolBar;
-    BtnSeparator1: TToolButton;
-    BtnSeparator2: TToolButton;
+    Label1: TLabel;
+    PaletteCombo: TComboBox;
+    Label2: TLabel;
+    View1: TMenuItem;
+    MenuItemLinear: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure CheckBox1Click(Sender: TObject);
     procedure CopyClick(Sender: TObject);
-    procedure ImageMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImageMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure mnExitClick(Sender: TObject);
     procedure NewClick(Sender: TObject);
     procedure OpenClick(Sender: TObject);
     procedure PaletteComboChange(Sender: TObject);
     procedure SaveClick(Sender: TObject);
     procedure ScaleChange(Sender: TObject);
+    procedure MenuItemLinearClick(Sender: TObject);
+    procedure ImageScaleChange(Sender: TObject);
   public
     DataSet: TByteMap;
     PalGrayscale: TPalette32;
     PalGreens: TPalette32;
     PalReds: TPalette32;
     PalRainbow: TPalette32;
-    OldMousePos: TPoint;
-    MouseDragging: Boolean;
     procedure GenPalettes;
     procedure GenSampleData(W, H: Integer);
     procedure PaintData;
@@ -113,20 +96,11 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Types,
-{$IFNDEF FPC}
-  Windows,
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  Math;
 
 { TMainForm }
 
@@ -181,6 +155,11 @@ begin
     end;
 end;
 
+procedure TMainForm.ImageScaleChange(Sender: TObject);
+begin
+  ScaleBar.Position := Round(Log10(Image.Scale) * 100);
+end;
+
 procedure TMainForm.PaintData;
 var
   P: PPalette32;
@@ -204,10 +183,8 @@ procedure TMainForm.NewClick(Sender: TObject);
 begin
   GenSampleData(300, 220);
   PaintData;
-  mnSave.Enabled := True;
-  mnCopy.Enabled := True;
-  BtnSave.Enabled := True;
-  BtnCopy.Enabled := True;
+  MenuItemSave.Enabled := True;
+  MenuItemCopy.Enabled := True;
 end;
 
 procedure TMainForm.ScaleChange(Sender: TObject);
@@ -219,15 +196,6 @@ begin
   Image.Scale := NewScale;
 end;
 
-procedure TMainForm.CheckBox1Click(Sender: TObject);
-begin
-  // Don't use aux. resampler setup, pass class names directly:
-  if BtnLinear.Down then
-    Image.Bitmap.ResamplerClassName := 'TLinearResampler'
-  else
-    Image.Bitmap.ResamplerClassName := 'TNearestResampler';
-end;
-
 procedure TMainForm.CopyClick(Sender: TObject);
 begin
   Clipboard.Assign(Image.Bitmap);
@@ -235,42 +203,17 @@ end;
 
 procedure TMainForm.SaveClick(Sender: TObject);
 begin
-  Application.ProcessMessages;
   with SavePictureDialog do
     if Execute then Image.Bitmap.SaveToFile(FileName);
 end;
 
-procedure TMainForm.ImageMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+procedure TMainForm.MenuItemLinearClick(Sender: TObject);
 begin
-  if Button = mbLeft then
-  begin
-    OldMousePos := GR32.Point(X, Y);
-    MouseDragging := True;
-    Image.Cursor := crSizeAll;
-  end
-  else ReleaseCapture;
-end;
-
-procedure TMainForm.ImageMouseMove(Sender: TObject; Shift: TShiftState; X,
-  Y: Integer; Layer: TCustomLayer);
-begin
-  if MouseDragging then
-  begin
-    Image.Scroll(OldMousePos.X - X, OldMousePos.Y - Y);
-    OldMousePos := GR32.Point(X, Y);
-    Image.Update;
-  end;
-end;
-
-procedure TMainForm.ImageMouseUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-begin
-  if Button = mbLeft then
-  begin
-    MouseDragging := False;
-    Image.Cursor := crDefault;
-  end;
+  // Don't use aux. resampler setup, pass class names directly:
+  if MenuItemLinear.Checked then
+    Image.Bitmap.ResamplerClassName := 'TLinearResampler'
+  else
+    Image.Bitmap.ResamplerClassName := 'TNearestResampler';
 end;
 
 procedure TMainForm.mnExitClick(Sender: TObject);
@@ -296,10 +239,8 @@ begin
         B.Free;
       end;
       PaintData;
-      mnSave.Enabled := True;
-      mnCopy.Enabled := True;
-      BtnSave.Enabled := True;
-      BtnCopy.Enabled := True;
+      MenuItemSave.Enabled := True;
+      MenuItemCopy.Enabled := True;
     end;
 end;
 

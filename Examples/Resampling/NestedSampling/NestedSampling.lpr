@@ -5,7 +5,6 @@ program NestedSampling;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas',
   SimplePropEdit in 'SimplePropEdit.pas';
 

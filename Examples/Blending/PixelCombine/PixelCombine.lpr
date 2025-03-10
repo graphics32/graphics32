@@ -5,7 +5,6 @@ program PixelCombine;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 begin

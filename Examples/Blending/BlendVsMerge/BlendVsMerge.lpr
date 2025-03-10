@@ -5,7 +5,6 @@ program BlendVsMerge;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 begin

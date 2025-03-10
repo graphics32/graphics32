@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
+        <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="Blurs"/>
       <UseXPManifest Value="True"/>
     </General>
@@ -31,8 +31,8 @@
               <SyntaxMode Value="Delphi"/>
               <CStyleOperator Value="False"/>
               <IncludeAssertionCode Value="True"/>
-              <CPPInline Value="False"/>
               <UseAnsiStrings Value="False"/>
+              <CPPInline Value="False"/>
             </SyntaxOptions>
           </Parsing>
           <CodeGeneration>
@@ -42,6 +42,9 @@
             </Checks>
           </CodeGeneration>
           <Linking>
+            <Debugging>
+              <DebugInfoType Value="dsDwarf3"/>
+            </Debugging>
             <Options>
               <Win32>
                 <GraphicApplication Value="True"/>
@@ -62,7 +65,7 @@
     </RunParams>
     <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="ImagesForLazarus"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item1>
       <Item2>
         <PackageName Value="LCL"/>
@@ -94,8 +97,8 @@
       <SyntaxOptions>
         <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
-        <CPPInline Value="False"/>
         <UseAnsiStrings Value="False"/>
+        <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>

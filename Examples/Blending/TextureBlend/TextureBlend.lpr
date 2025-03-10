@@ -5,7 +5,6 @@ program TextureBlend;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 begin

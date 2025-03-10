@@ -5,7 +5,6 @@ program Image32;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 begin

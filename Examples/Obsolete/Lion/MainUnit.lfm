@@ -1,0 +1,177 @@
+object FrmLion: TFrmLion
+  Left = 539
+  Height = 512
+  Top = 294
+  Width = 577
+  Caption = 'Lion'
+  ClientHeight = 512
+  ClientWidth = 577
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnMouseWheel = FormMouseWheel
+  LCLVersion = '1.0.1.4'
+  object PaintBox32: TPaintBox32
+    Left = 0
+    Height = 512
+    Top = 0
+    Width = 400
+    Align = alClient
+    TabOrder = 0
+    OnMouseDown = PaintBox32MouseDown
+    OnMouseUp = PaintBox32MouseUp
+    OnPaintBuffer = PaintBox32PaintBuffer
+    OnResize = PaintBox32Resize
+  end
+  object PnlSettings: TPanel
+    Left = 400
+    Height = 512
+    Top = 0
+    Width = 177
+    Align = alRight
+    ClientHeight = 512
+    ClientWidth = 177
+    TabOrder = 1
+    object LblAlpha: TLabel
+      Left = 6
+      Height = 14
+      Top = 120
+      Width = 32
+      Caption = 'Alpha:'
+      ParentColor = False
+    end
+    object LblStrokeWidth: TLabel
+      Left = 6
+      Height = 14
+      Top = 143
+      Width = 33
+      Caption = 'Width:'
+      ParentColor = False
+      Visible = False
+    end
+    object PnlSampler: TPanel
+      Left = 1
+      Height = 16
+      Top = 1
+      Width = 175
+      Align = alTop
+      BevelOuter = bvNone
+      Caption = 'Drawing'
+      Color = clBtnShadow
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ParentColor = False
+      ParentFont = False
+      TabOrder = 0
+    end
+    object GbrAlpha: TGaugeBar
+      Left = 46
+      Height = 17
+      Top = 118
+      Width = 125
+      Anchors = [akTop, akLeft, akRight]
+      Color = clScrollBar
+      Backgnd = bgPattern
+      Max = 255
+      ShowHandleGrip = True
+      Style = rbsMac
+      Position = 255
+      OnChange = GbrAlphaChange
+    end
+    object RgpBrush: TRadioGroup
+      Left = 6
+      Height = 66
+      Top = 23
+      Width = 165
+      AutoFill = True
+      Caption = 'Brush'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 48
+      ClientWidth = 161
+      ItemIndex = 0
+      Items.Strings = (
+        'Solid'
+        'Outline'
+      )
+      OnClick = RgpBrushClick
+      TabOrder = 2
+    end
+    object CbxClearBackground: TCheckBox
+      Left = 6
+      Height = 17
+      Top = 95
+      Width = 104
+      Caption = 'Clear Background'
+      Checked = True
+      OnClick = CbxClearBackgroundClick
+      State = cbChecked
+      TabOrder = 3
+    end
+    object PnlInteraction: TPanel
+      Left = 1
+      Height = 16
+      Top = 177
+      Width = 175
+      BevelOuter = bvNone
+      Caption = 'Interaction'
+      Color = clBtnShadow
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ParentColor = False
+      ParentFont = False
+      TabOrder = 4
+    end
+    object GbrWidth: TGaugeBar
+      Left = 46
+      Height = 17
+      Top = 141
+      Width = 125
+      Anchors = [akTop, akLeft, akRight]
+      Color = clScrollBar
+      Backgnd = bgPattern
+      ShowHandleGrip = True
+      Style = rbsMac
+      Visible = False
+      Position = 20
+      OnChange = GbrWidthChange
+    end
+    object RgpMouse: TRadioGroup
+      Left = 6
+      Height = 66
+      Top = 199
+      Width = 165
+      AutoFill = True
+      Caption = 'Mouse'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 48
+      ClientWidth = 161
+      Enabled = False
+      ItemIndex = 0
+      Items.Strings = (
+        'Zoom / Rotate / Move'
+        'Lens'
+      )
+      OnClick = RgpBrushClick
+      TabOrder = 6
+    end
+  end
+end

@@ -5,7 +5,6 @@ program PixelF;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 {$R *.res}

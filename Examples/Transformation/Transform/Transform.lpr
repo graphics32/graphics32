@@ -5,10 +5,10 @@ program Transform;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 begin
+  Application.Title:='';
   Application.Initialize;
   Application.CreateForm(TFormTranformExample, FormTranformExample);
   Application.Run;

@@ -74,12 +74,11 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG,
-{$ELSE}
-  LazJPG,
-{$ENDIF}
-  GR32, GR32_Resamplers, GR32_LowLevel, GR32_Blend;
+  GR32,
+  GR32_Resamplers,
+  GR32_LowLevel,
+  GR32_Blend,
+  GR32.ImageFormats.JPG;
 
 var
   ColorAlgebraReg: TBlendReg;
@@ -108,31 +107,10 @@ end;
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // Load the textures (note size 256x256 is implicity expected!)
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'TextureA', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    TexAImg.Bitmap.Assign(JPEG);
-
-    ResStream := TResourceStream.Create(HInstance, 'TextureB', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    TexBImg.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  TexAImg.Bitmap.LoadFromResourceName(HInstance, 'TextureA', RT_RCDATA);
+  TexBImg.Bitmap.LoadFromResourceName(HInstance, 'TextureB', RT_RCDATA);
 
   BlendBox.ItemIndex := 0;
 

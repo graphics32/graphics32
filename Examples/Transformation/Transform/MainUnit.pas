@@ -189,22 +189,14 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Types,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  GR32.ImageFormats.JPG;
 
 const
   CAccessMode: array [Boolean] of TPixelAccessMode = (pamSafe, pamWrap);
@@ -218,23 +210,9 @@ begin
 end;
 
 procedure TFormTranformExample.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // load example image
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    Src.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  Src.Bitmap.LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
 
   //Setup custom paintstages ("checkerboard" and border)
   with Dst do

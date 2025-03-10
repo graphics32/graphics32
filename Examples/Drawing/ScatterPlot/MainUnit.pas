@@ -38,11 +38,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Math, GR32_Math, GR32_LowLevel, GR32_VectorUtils;

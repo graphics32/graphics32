@@ -3,9 +3,8 @@ program Blurs;
 {$R Media.rc}
 
 uses
+  Forms,
   Interfaces,
-  Variants,
-  Forms, imagesforlazarus,
   MainUnit in 'MainUnit.pas';
 
 {$R *.res}
