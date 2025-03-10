@@ -38,8 +38,13 @@ interface
 {$include GR32.inc}
 
 uses
+{$if not defined(FRAMEWORK_LCL)}
   System.Generics.Collections,
   System.Classes,
+{$else}
+  Generics.Collections,
+  Classes,
+{$ifend}
   GR32.CPUID;
 
 //------------------------------------------------------------------------------
@@ -306,8 +311,13 @@ var
 implementation
 
 uses
+{$if not defined(FRAMEWORK_LCL)}
   System.Math,
   System.SysUtils,
+{$else}
+  Math,
+  SysUtils,
+{$ifend}
   GR32_System;
 
 //------------------------------------------------------------------------------

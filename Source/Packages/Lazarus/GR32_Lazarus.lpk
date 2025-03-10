@@ -150,7 +150,7 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <UnitName Value="GR32_Polygons"/>
       </Item29>
       <Item30>
-        <Filename Value="..\..\GR32_PolygonsAggLite.pas"/>
+        <Filename Value="..\..\GR32_Polygons.AggLite.pas"/>
         <UnitName Value="GR32_PolygonsAggLite"/>
       </Item30>
       <Item31>
