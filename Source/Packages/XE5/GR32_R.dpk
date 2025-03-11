@@ -67,7 +67,6 @@ contains
   GR32_VPR in '..\..\GR32_VPR.pas',
   GR32.Text.Types in '..\..\GR32.Text.Types.pas',
   GR32.Text.Win in '..\..\GR32.Text.Win.pas',
-  GR32_XPThemes in '..\..\GR32_XPThemes.pas',
   GR32_Clipboard in '..\..\GR32_Clipboard.pas',
   GR32.ImageFormats in '..\..\GR32.ImageFormats.pas',
   GR32.Blend.Pascal in '..\..\GR32.Blend.Pascal.pas',

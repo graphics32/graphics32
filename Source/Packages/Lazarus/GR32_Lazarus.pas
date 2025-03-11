@@ -15,7 +15,7 @@ uses
   GR32_LowLevel, GR32_Math, GR32_MicroTiles, GR32_OrdinalMaps, GR32_Polygons, 
   GR32_Polygons.AggLite, GR32_RangeBars, GR32_Rasterizers, GR32_RepaintOpt, 
   GR32_Resamplers, GR32_System, GR32_Transforms, GR32_VectorMaps, 
-  GR32_VectorUtils, GR32_VPR, GR32_VPR2, GR32_XPThemes, GR32_Png, 
+  GR32_VectorUtils, GR32_VPR, GR32_VPR2, GR32_Png, 
   GR32.Blend.Pascal, GR32.Blur, GR32.Blur.RecursiveGaussian, 
   GR32.Blur.SelectiveGaussian, GR32.Text.Types;
 

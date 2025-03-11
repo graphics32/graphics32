@@ -369,7 +369,7 @@ type
 implementation
 
 uses
-  Math, GR32_XPThemes;
+  Math;
 
 const
   OppositeDirection: array [TRBDirection] of TRBDirection = (drRight, drDown, drLeft, drUp);
