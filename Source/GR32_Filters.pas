@@ -45,10 +45,6 @@ interface
 {$ENDIF}
 
 uses
-{$IFDEF FPC}
-{$ELSE}
-  Windows,
-{$ENDIF}
   Classes, SysUtils, GR32;
 
 { Basic processing }

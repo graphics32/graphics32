@@ -36,7 +36,6 @@ interface
 
 uses
   Classes,
-  Windows,
   GR32_Bindings,
   GR32;
 

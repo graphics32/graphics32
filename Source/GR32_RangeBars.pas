@@ -46,6 +46,9 @@ uses
   Windows, Messages, {$IFDEF USEINLINING}Types,{$ENDIF}
   Graphics, Controls, Forms, Dialogs, ExtCtrls,
 {$ENDIF}
+{$ifdef MSWINDOWS}
+  UxTheme,
+{$endif}
   SysUtils, Classes, GR32;
 
 type
@@ -107,6 +110,13 @@ type
     FTimerMode: Integer;
     FStored: TPoint;
     FPosBeforeDrag: Single;
+{$ifdef MSWINDOWS}
+  protected
+    FScrollBarTheme: HTHEME;
+    function GetScrollBarTheme: HTHEME;
+    property ScrollBarTheme: HTHEME read GetScrollBarTheme;
+{$endif}
+  protected
     procedure BeginLockUpdate;
     procedure EndLockUpdate;
     property LockUpdate: integer read FLockUpdate;
@@ -135,6 +145,7 @@ type
     procedure TimerHandler(Sender: TObject); virtual;
   public
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     property Color default clScrollBar;
     property Backgnd: TRBBackgnd read FBackgnd write SetBackgnd;
     property BorderStyle: TBorderStyle read FBorderStyle write SetBorderStyle default bsSingle;
@@ -672,6 +683,16 @@ begin
   FShowHandleGrip := True;
 end;
 
+destructor TArrowBar.Destroy;
+begin
+{$ifdef MSWINDOWS}
+  if (FScrollBarTheme <> 0) then
+    CloseThemeData(FScrollBarTheme);
+{$endif}
+
+  inherited;
+end;
+
 procedure TArrowBar.BeginLockUpdate;
 begin
   Inc(FLockUpdate);
@@ -741,13 +762,13 @@ begin
 {$ENDIF}
 
 {$ifdef MSWINDOWS}
-    if USE_THEMES then
+    if UseThemes then
     begin
       Flags := DirectionXPFlags[Direction];
       if not Enabled then Inc(Flags, 3)
       else if Pushed then Inc(Flags, 2)
       else if Hot then Inc(Flags);
-      DrawThemeBackground(SCROLLBAR_THEME, Canvas.Handle, SBP_ARROWBTN, Flags, R, nil);
+      DrawThemeBackground(ScrollBarTheme, Canvas.Handle, SBP_ARROWBTN, Flags, R, nil);
     end
     else
       DrawFrameControl(Canvas.Handle, R, DFC_SCROLL,
@@ -805,15 +826,15 @@ begin
     rbsDefault:
     begin
 {$ifdef MSWINDOWS}
-      if USE_THEMES then
+      if UseThemes then
       begin
         Flags := SCRBS_NORMAL;
         if not Enabled then Inc(Flags, 3)
         else if Pushed then Inc(Flags, 2)
         else if Hot then Inc(Flags);
-        DrawThemeBackground(SCROLLBAR_THEME, Canvas.Handle, PartXPFlags[Horz], Flags, R, nil);
+        DrawThemeBackground(ScrollBarTheme, Canvas.Handle, PartXPFlags[Horz], Flags, R, nil);
         if ShowHandleGrip then
-          DrawThemeBackground(SCROLLBAR_THEME, Canvas.Handle, GripperFlags[Horz], 0, R, nil);
+          DrawThemeBackground(ScrollBarTheme, Canvas.Handle, GripperFlags[Horz], 0, R, nil);
       end
       else
         DrawEdge(Canvas.Handle, R, EDGE_RAISED, BF_RECT or BF_MIDDLE);
@@ -844,11 +865,11 @@ begin
   if Style = rbsDefault then
   begin
 {$ifdef MSWINDOWS}
-    if USE_THEMES then
+    if UseThemes then
     begin
       Flags := SCRBS_NORMAL;
       if Pushed then Inc(Flags, 2);
-      DrawThemeBackground(SCROLLBAR_THEME, Canvas.Handle, PartXPFlags[Direction], Flags, R, nil);
+      DrawThemeBackground(ScrollBarTheme, Canvas.Handle, PartXPFlags[Direction], Flags, R, nil);
     end
     else
 {$ENDIF}
@@ -941,6 +962,15 @@ function TArrowBar.GetHandleRect: TRect;
 begin
   Result := Rect(0, 0, 0, 0);
 end;
+
+{$ifdef MSWINDOWS}
+function TArrowBar.GetScrollBarTheme: HTHEME;
+begin
+  if (FScrollBarTheme = 0) then
+    FScrollBarTheme := OpenThemeData(WindowHandle, 'SCROLLBAR');
+  Result := FScrollBarTheme;
+end;
+{$endif}
 
 function TArrowBar.GetTrackBoundary: TRect;
 begin

@@ -87,9 +87,37 @@ type
 implementation
 
 uses
+{$if defined(MSWINDOWS)}
   Windows,
+{$ifend}
+{$if defined(UseInlining)}
   Types,
-  SysUtils;
+{$ifend}
+  SysUtils,
+  GR32_System;
+
+{$if not defined(MSWINDOWS)}
+type
+  TMouseMovePoint = record
+    x, y: integer;
+    time: cardinal;
+  end;
+
+const
+  MaxMouseMovePointCount = 1;
+
+  GMMP_USE_DISPLAY_POINTS = 1;
+
+function GetMessageTime: integer;
+begin
+  Result := GR32_System.GetTickCount;
+end;
+
+function GetMouseMovePointsEx(cbSize: Cardinal; var lppt, lpptBuf: TMouseMovePoint; nBufPoints: Integer; resolution: Cardinal): Integer;
+begin
+  Result := -1;
+end;
+{$ifend}
 
 //------------------------------------------------------------------------------
 //

@@ -46,8 +46,10 @@ interface
 {$ifend}
 
 uses
-  Types, // Inlining
-  Math, // Inlining
+{$if defined(UseInlining)}
+  Types,
+  Math,
+{$ifend}
   GR32,
   GR32_Transforms,
   GR32_Polygons;

@@ -116,18 +116,23 @@ type
 //------------------------------------------------------------------------------
 type
   TBitmap32PaintController = class(TCustomBitmap32PaintController, IBitmap32PaintController)
-  private
+  strict private
     FImage: TCustomImage32;
 
-  private
+  strict private
     // Update optimization
     FUpdateTimer: TStopwatch;
 
-  protected
+  strict protected
+    function GetHasCapture: boolean;
+    procedure SetHasCapture(const Value: boolean);
+
+  strict protected
     // IBitmap32PaintController
     function BeginOperation(const Context: IBitmap32PaintToolContext): boolean;
     function ContinueOperation(const Context: IBitmap32PaintToolContext): boolean;
     procedure EndOperation(Complete: boolean);
+    property HasCapture: boolean read GetHasCapture write SetHasCapture;
   public
     constructor Create(AImage: TCustomImage32; const APaintHost: IBitmap32PaintHost = nil);
   end;
@@ -150,7 +155,9 @@ var
 implementation
 
 uses
+{$if defined(MSWINDOWS)}
   Windows,
+{$ifend}
   SysUtils,
   GR32.Paint.Host;
 
@@ -509,8 +516,8 @@ begin
   if (Result) then
   begin
     // Reacquire capture in case tool did something stupid that caused us to lose it (e.g. Move Select tool)
-    if (not (betfMouseCapture in PaintTool.ToolFeatures)) and (GetCapture <> FImage.Handle) then
-      SetCapture(FImage.Handle);
+    if (not (betfMouseCapture in PaintTool.ToolFeatures)) and (not HasCapture) then
+      HasCapture := True;
   end;
 end;
 
@@ -523,8 +530,8 @@ begin
   if (Result) then
   begin
     // Reacquire capture in case tool did something stupid that caused us to lose it (e.g. Move Select tool)
-    if (not (betfMouseCapture in PaintTool.ToolFeatures)) and (GetCapture <> FImage.Handle) then
-      SetCapture(FImage.Handle);
+    if (not (betfMouseCapture in PaintTool.ToolFeatures)) and (not HasCapture) then
+      HasCapture := True;
   end;
 
   // Repaint ASAP to avoid lag caused by continous mouse messages during the operation.
@@ -562,8 +569,34 @@ begin
 
   // Ensure mouse capture is released (this takes care of right-button which TImage32 doesn't handle properly)
   // TODO : I'm not sure that this is necessary anymore but there's no harm in it
-  if (ActivePaintTool = nil) and (GetCapture = FImage.Handle) then
+  if (ActivePaintTool = nil) and (HasCapture) then
+    HasCapture := False;
+end;
+
+//------------------------------------------------------------------------------
+
+function TBitmap32PaintController.GetHasCapture: boolean;
+begin
+{$if defined(MSWINDOWS)}
+  Result := (GetCapture = FImage.Handle);
+{$else}
+  Result := (GetCaptureControl = FImage);
+{$ifend}
+end;
+
+procedure TBitmap32PaintController.SetHasCapture(const Value: boolean);
+begin
+{$if defined(MSWINDOWS)}
+  if (Value) then
+    SetCapture(FImage.Handle)
+  else
     ReleaseCapture;
+{$else}
+  if (Value) then
+    SetCaptureControl(FImage)
+  else
+    SetCaptureControl(nil);
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------

@@ -88,8 +88,6 @@ uses
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
 begin
   // setup custom checker board paint stage
   with DstImg do

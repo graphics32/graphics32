@@ -2,6 +2,8 @@ unit UnitMain;
 
 interface
 
+{$include GR32.inc}
+
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
@@ -43,6 +45,9 @@ implementation
 {$R *.dfm}
 
 uses
+{$if defined(UseInlining)}
+  Types,
+{$ifend}
   GR32.Examples,
   GR32,
   GR32_PNG,
@@ -108,7 +113,7 @@ begin
   if (Button = mbRight) then
   begin
     // Right-click centers pixel under cursor
-    Pivot := Point(X, Y);
+    Pivot := GR32.Point(X, Y);
     Pivot := TImage32(Sender).ControlToBitmap(Pivot);
     TImage32(Sender).ScrollToCenter(Pivot.X, Pivot.Y);
   end;

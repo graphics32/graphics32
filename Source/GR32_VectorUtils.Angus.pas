@@ -39,9 +39,12 @@ interface
 uses
   Types,
   GR32,
+{$if defined(UseInlining)}
+  // In interface section for inlining
+  GR32_Geometry,
+{$ifend}
   GR32_Polygons,
-  GR32_VectorUtils,
-  GR32_Geometry; // In interface section for inlining
+  GR32_VectorUtils;
 
 //------------------------------------------------------------------------------
 //
@@ -78,6 +81,9 @@ implementation
 uses
   Math,
 
+{$if not defined(UseInlining)}
+  GR32_Geometry,
+{$ifend}
   GR32_Math;
 
 const

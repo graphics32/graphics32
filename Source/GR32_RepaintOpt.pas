@@ -38,8 +38,6 @@ interface
 uses
 {$IFDEF FPC}
   LCLIntf,
-{$ELSE}
-  Types, Windows,
 {$ENDIF}
   Generics.Defaults,
   Generics.Collections,
