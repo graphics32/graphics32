@@ -497,13 +497,9 @@ end;
 
 
 procedure TMainForm.FormShow(Sender: TObject);
-{$ifdef MSWINDOWS}
-var
-  s: string;
-{$endif}
 begin
 {$ifdef MSWINDOWS}
-  if (FindCmdLineSwitch('benchmark', s)) then
+  if (FindCmdLineSwitch('benchmark')) then
     PostMessage(Handle, MSG_BENCHMARK, 0, 0);
 {$endif}
 end;
@@ -513,18 +509,25 @@ procedure TMainForm.MsgBenchmark(var Msg: TMessage);
 var
   Iterations: integer;
   i: integer;
+{$if defined(FRAMEWORK_VCL)}
   s: string;
+{$ifend}
 begin
   (*
   ** Detect and initiate automated benchmark for profiling
   *)
 
+{$if defined(FRAMEWORK_VCL)}
   if (not FindCmdLineSwitch('benchmark', s)) then
     exit;
+  Iterations := StrToIntDef(s, 1);
+{$else}
+  if (not FindCmdLineSwitch('benchmark')) then
+    exit;
+  Iterations := 1;
+{$ifend}
 
   Screen.Cursor := crHourGlass;
-
-  Iterations := StrToIntDef(s, 1);
 
   MemoLog.Lines.Add(Format('Running benchmark: %d iterations', [Iterations]));
 
