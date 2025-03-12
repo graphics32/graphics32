@@ -1953,8 +1953,6 @@ end;
 
 //------------------------------------------------------------------------------
 
-{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-
 // Reference Pascal version of CumSum_SSE2_Simple
 procedure CumSum_Pas_Simple(Values: PSingleArray; Count: Integer);
 var
@@ -1970,6 +1968,8 @@ begin
     Inc(Count);
   end;
 end;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 // Very simple SSE2 version for Sandy- and Ivy Bridge
 procedure CumSum_SSE2_Simple(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
@@ -3129,7 +3129,12 @@ begin
   MathRegistry[@@FMod_F].Add(           @FMod_F_Pas,            [isPascal]).Name := 'FMod_F_Pas';
   MathRegistry[@@FMod_D].Add(           @FMod_D_Pas,            [isPascal]).Name := 'FMod_D_Pas';
 
+{$if defined(BENCHMARK)}
+  MathRegistry[@@CumSum].Add(           @CumSum_Pas_Simple,     [isPascal]).Name := 'CumSum_Pas_Simple';
+{$ifend}
+
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif2,   [isSSE2]).Name := 'CumSum_SSE2_kadaif2';
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2_Simple,    [isSSE2], BindingPriorityWorse).Name := 'CumSum_SSE2_Simple';
 
@@ -3154,8 +3159,6 @@ begin
   MathRegistry[@@FMod_D].Add(           @FMod_D_SSE2,           [isSSE2]).Name := 'FMod_D_SSE2';
   MathRegistry[@@FMod_D].Add(           @FMod_D_SSE41,          [isSSE41]).Name := 'FMod_D_SSE41';
 
-{$ifend}
-
   // The regular CumSum SIMD 64-bit implementations are very slow on certain
   // old CPUs (Sandy Bridge and presumably also Ivy Bridge) so we need to
   // penalize them so they don't get selected by the rebind.
@@ -3175,6 +3178,8 @@ begin
 
   if (not (isAVX2 in CPU.InstructionSupport)) then
     MathRegistry[@@CumSum].FindImplementation(@CumSum_SSE2_Simple).Priority := BindingPriorityBetter;
+
+{$ifend}
 
   MathRegistry.RebindAll;
 end;

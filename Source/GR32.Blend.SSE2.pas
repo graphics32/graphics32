@@ -42,6 +42,8 @@ interface
 uses
   GR32;
 
+{$if not defined(PUREPASCAL)}
+
 //------------------------------------------------------------------------------
 //
 //      SSE SIMD blend implementations
@@ -105,12 +107,15 @@ procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IF
 procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 
+{$ifend}
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 implementation
+
+{$if not defined(PUREPASCAL)}
 
 uses
   GR32_Blend,
@@ -2596,24 +2601,25 @@ asm
 end;
 
 
+{$ifend}
+
 //------------------------------------------------------------------------------
 //
 //      Bindings
 //
 //------------------------------------------------------------------------------
-{$IFNDEF PUREPASCAL}
 procedure RegisterBindingFunctions;
 begin
-{$IFNDEF OMIT_SSE2}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
   BlendRegistry[FID_MERGEREG].Add(      @MergeReg_SSE2,         [isSSE2]).Name := 'MergeReg_SSE2';
   BlendRegistry[FID_COMBINEREG].Add(    @CombineReg_SSE2,       [isSSE2]).Name := 'CombineReg_SSE2';
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE2_128,   [isSSE2]).Name := 'CombineMem_SSE2_128';
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_Kadaif, [isSSE41]).Name := 'CombineMem_SSE41_Kadaif';
-{$ifdef BENCHMARK}
+{$if defined(BENCHMARK)}
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE2_Table, [isSSE2], BindingPriorityWorse).Name := 'CombineMem_SSE2_Table';
   BlendRegistry[FID_COMBINEMEM].Add(    @CombineMem_SSE41_8081, [isSSE41], BindingPriorityWorse).Name := 'CombineMem_SSE41_8081';
-{$endif}
+{$ifend}
   BlendRegistry[FID_COMBINELINE].Add(   @CombineLine_SSE2,      [isSSE2]).Name := 'CombineLine_SSE2';
   BlendRegistry[FID_BLENDREG].Add(      @BlendReg_SSE2,         [isSSE2]).Name := 'BlendReg_SSE2';
   BlendRegistry[FID_BLENDMEM].Add(      @BlendMem_SSE2,         [isSSE2]).Name := 'BlendMem_SSE2';
@@ -2633,25 +2639,25 @@ begin
   BlendRegistry[FID_LIGHTEN].Add(       @LightenReg_SSE2,       [isSSE]).Name := 'LightenReg_SSE2';
   BlendRegistry[FID_BLENDREGRGB].Add(   @BlendRegRGB_SSE2,      [isSSE2]).Name := 'BlendRegRGB_SSE2';
   BlendRegistry[FID_BLENDMEMRGB].Add(   @BlendMemRGB_SSE2,      [isSSE2]).Name := 'BlendMemRGB_SSE2';
-{$ifdef GR32_SCALEMEMS_FAST}
-  BlendRegistry[@@ScaleMems].Add(       @FastScaleMems_SSE41,[isSSE41]).Name := 'FastScaleMems_SSE41';
-{$else}
-  BlendRegistry[@@ScaleMems].Add(       @ScaleMems_SSE41,    [isSSE41]).Name := 'ScaleMems_SSE41';
-{$endif}
-{$IFDEF TEST_BLENDMEMRGB128SSE4}
-  BlendRegistry[FID_BLENDMEMRGB128].Add(@BlendMemRGB128_SSE4,   [isSSE2]).Name := 'BlendMemRGB128_SSE4';
-{$ENDIF}
 
-{$ENDIF}
+{$if defined(GR32_SCALEMEMS_FAST) or defined(BENCHMARK)}
+  BlendRegistry[@@ScaleMems].Add(       @FastScaleMems_SSE41,[isSSE41]).Name := 'FastScaleMems_SSE41';
+{$ifend}
+{$if (not defined(GR32_SCALEMEMS_FAST)) or defined(BENCHMARK)}
+  BlendRegistry[@@ScaleMems].Add(       @ScaleMems_SSE41,    [isSSE41]).Name := 'ScaleMems_SSE41';
+{$ifend}
+
+{$if defined(TEST_BLENDMEMRGB128SSE4) or defined(BENCHMARK)}
+  BlendRegistry[FID_BLENDMEMRGB128].Add(@BlendMemRGB128_SSE4,   [isSSE2]).Name := 'BlendMemRGB128_SSE4';
+{$ifend}
+
+{$ifend}
 end;
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 initialization
-{$IFNDEF PUREPASCAL}
   RegisterBindingFunctions;
-{$ENDIF}
 end.

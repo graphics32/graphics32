@@ -2002,21 +2002,24 @@ begin
   LowLevelRegistry[@@FastFloorSingle].Add(      @FastFloorSingle_Pas,   [isPascal]).Name := 'FastFloorSingle_Pas';
   LowLevelRegistry[@@FastFloorDouble].Add(      @FastFloorDouble_Pas,   [isPascal]).Name := 'FastFloorDouble_Pas';
 
-{$IFNDEF PUREPASCAL}
+{$if (not defined(PUREPASCAL))}
   LowLevelRegistry[@@FillLongWord].Add(         @FillLongWord_ASM,      [isAssembler]).Name := 'FillLongWord_ASM';
+{$ifend}
 
-{$IFNDEF OMIT_SSE2}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   LowLevelRegistry[@@FillLongWord].Add(         @FillLongword_SSE2,     [isSSE2]).Name := 'FillLongword_SSE2';
   LowLevelRegistry[@@FastTrunc].Add(            @FastTrunc_SSE2,        [isSSE2]).Name := 'FastTrunc_SSE2';
   LowLevelRegistry[@@FastRound].Add(            @FastRound_SSE41,       [isSSE41]).Name := 'FastRound_SSE41';
   LowLevelRegistry[@@FastFloorSingle].Add(      @FastFloorSingle_SSE41, [isSSE41]).Name := 'FastFloorSingle_SSE41';
   LowLevelRegistry[@@FastFloorDouble].Add(      @FastFloorDouble_SSE41, [isSSE41]).Name := 'FastFloorDouble_SSE41';
-{$ENDIF}
-
-{$ENDIF}
 
 {$if defined(BENCHMARK)}
   LowLevelRegistry[@@FastTrunc].Add(            @SlowTrunc_SSE2, [isSSE2], BindingPriorityWorse).Name := 'SlowTrunc_SSE2';
+{$ifend}
+{$ifend}
+
+
+{$if defined(BENCHMARK)}
   LowLevelRegistry[@@FastFloorSingle].Add(      @System.Math.Floor, [isReference], BindingPriorityWorse).Name := 'Math.Floor';
 {$ifend}
 
