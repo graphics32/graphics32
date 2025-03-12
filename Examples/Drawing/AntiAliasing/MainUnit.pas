@@ -115,6 +115,26 @@ const
     end;
   end;
 
+  procedure DrawAlmostHorzVert;
+  const
+    LineCount = 20;
+  var
+    Index: Integer;
+  begin
+    Renderer.Color := clWhite32;
+    Renderer.Filler := nil;
+
+    for Index := 0 to LineCount do
+      Renderer.PolygonFS(
+        BuildPolyLine(Line(FloatPoint(20+Index*4, H-20), FloatPoint(20+Index*4 + Index/4, 200)), 0.5)
+      );
+
+    for Index := 0 to LineCount do
+      Renderer.PolygonFS(
+        BuildPolyLine(Line(FloatPoint(20, H-20-Index*4), FloatPoint(W div 2, H-20-Index*4 - Index/4)), 0.5)
+      );
+  end;
+
 begin
   Paintbox32.Buffer.Clear($FF000000);
 
@@ -222,6 +242,8 @@ begin
     end;
 
     DrawTriangles;
+
+    DrawAlmostHorzVert;
   finally
     Renderer.Free;
   end;
