@@ -2896,14 +2896,14 @@ var
   AlphaValues: PColor32Array;
   Count: Integer;
 begin
-  Count := Span.X2 - Span.X1 + 1;
+  Count := Span.HighX - Span.LowX + 1;
 {$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Count * SizeOf(TColor32));
 {$ELSE}
   GetMem(AlphaValues, Count * SizeOf(TColor32));
 {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
-  FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count, PColor32(AlphaValues), Bitmap.CombineMode);
+  FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.LowX], Span.LowX, DstY, Count, PColor32(AlphaValues), Bitmap.CombineMode);
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
 {$ELSE}
@@ -2970,7 +2970,7 @@ var
   AlphaValues: PColor32Array;
   Count: Integer;
 begin
-  Count := Span.X2 - Span.X1 + 1;
+  Count := Span.HighX - Span.LowX + 1;
 {$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Count * SizeOf(TColor32));
 {$ELSE}
@@ -2978,9 +2978,9 @@ begin
 {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
   if Bitmap.CombineMode = cmMerge then
-    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count)
+    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count)
   else
-    BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count);
+    BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
 {$ELSE}
@@ -3061,12 +3061,12 @@ const
 var
   AlphaValues: PByteArray;
   Count: Integer;
-  X1, Offset: Integer;
+  X, Offset: Integer;
 const
   MakeAlpha: array [TPolyFillMode] of TMakeAlphaProcLCD = (MakeAlphaEvenOddLCD, MakeAlphaNonZeroLCD);
 begin
-  Count := Span.X2 - Span.X1 + 1;
-  X1 := DivMod(Span.X1, 3, Offset);
+  Count := Span.HighX - Span.LowX + 1;
+  X := DivMod(Span.LowX, 3, Offset);
 
   // Left Padding + Right Padding + Filter Width = 2 + 2 + 2 = 6
 {$IFDEF USESTACKALLOC}
@@ -3076,9 +3076,9 @@ begin
 {$ENDIF}
   AlphaValues[0] := 0;
   AlphaValues[1] := 0;
-  if (X1 > 0) then
+  if (X > 0) then
   begin
-    Dec(X1);
+    Dec(X);
     Inc(Offset, 3);
     AlphaValues[2] := 0;
     AlphaValues[3] := 0;
@@ -3086,7 +3086,7 @@ begin
   end;
 
   MakeAlpha[FFillMode](Span.Values, PByteArray(@AlphaValues[PADDING]), Count, FColor);
-  CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X1]), FColor, (Count + Offset + 2) div 3);
+  CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X]), FColor, (Count + Offset + 2) div 3);
 
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
@@ -3109,12 +3109,12 @@ const
 var
   AlphaValues: PByteArray;
   Count: Integer;
-  X1, Offset: Integer;
+  X, Offset: Integer;
 const
   MakeAlpha: array [TPolyFillMode] of TMakeAlphaProcLCD = (MakeAlphaEvenOddLCD2, MakeAlphaNonZeroLCD2);
 begin
-  Count := Span.X2 - Span.X1 + 1;
-  X1 := DivMod(Span.X1, 3, Offset);
+  Count := Span.HighX - Span.LowX + 1;
+  X := DivMod(Span.LowX, 3, Offset);
 
   // Left Padding + Right Padding + Filter Width = 2 + 2 + 2 = 6
 {$IFDEF USESTACKALLOC}
@@ -3124,9 +3124,9 @@ begin
 {$ENDIF}
   AlphaValues[0] := 0;
   AlphaValues[1] := 0;
-  if (X1 > 0) then
+  if (X > 0) then
   begin
-    Dec(X1);
+    Dec(X);
     Inc(Offset, 3);
     AlphaValues[2] := 0;
     AlphaValues[3] := 0;
@@ -3136,7 +3136,7 @@ begin
   Dec(Offset, 1);
   MakeAlpha[FFillMode](Span.Values, PByteArray(@AlphaValues[PADDING]), Count, FColor);
   Inc(Count);
-  CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X1]), FColor, (Count + Offset + 2) div 3);
+  CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X]), FColor, (Count + Offset + 2) div 3);
 
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
