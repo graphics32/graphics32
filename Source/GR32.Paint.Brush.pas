@@ -146,8 +146,9 @@ type
 implementation
 
 uses
+{$if defined(UseInlining)}
   Types,
-  Windows,
+{$ifend}
   Math,
   GR32_Resamplers,
   GR32_Math,
@@ -427,7 +428,7 @@ var
   r: TRect;
 begin
   r := Self.Bitmap.BoundsRect;
-  OffsetRect(r, Ceil(x - Width/2), Ceil(y - Height/2));
+  GR32.OffsetRect(r, Ceil(x - Width/2), Ceil(y - Height/2));
 
 (*
   // Test: Blur brush

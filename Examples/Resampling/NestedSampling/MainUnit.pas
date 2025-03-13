@@ -201,23 +201,16 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Types, Math,
 {$IFDEF DARWIN}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG,
-{$ELSE}
-  LazJPG,
-{$ENDIF}
-  GR32_OrdinalMaps, GR32_LowLevel;
+  GR32.ImageFormats.JPG,
+  GR32_OrdinalMaps,
+  GR32_LowLevel;
 
 procedure SetupToolBar(ToolBar: TToolBar);
 var
@@ -245,24 +238,10 @@ end;
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // load example image
   Source := TBitmap32.Create;
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'STONEWEED', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    Source.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  Source.LoadFromResourceName(HInstance, 'STONEWEED', RT_RCDATA);
 
   ImgView.Bitmap.SetSizeFrom(Source);
   Rasterizer := TRegularRasterizer.Create;

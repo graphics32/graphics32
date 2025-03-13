@@ -81,19 +81,13 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG,
-{$ELSE}
-  LazJPG,
-{$ENDIF}
-  GR32_Resamplers, GR32_LowLevel;
+  GR32.ImageFormats.JPG,
+  GR32_Resamplers,
+  GR32_LowLevel;
 
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
   // setup custom checker board paint stage
   with DstImg do
@@ -106,28 +100,11 @@ begin
   end;
 
   // Load the textures (note size 256x256 is implicity expected!)
-  JPEG := TJPEGImage.Create;
-  try
-    ResStream := TResourceStream.Create(HInstance, 'TextureA', 'JPG');
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    FForeground := TBitmap32.Create;
-    FForeground.Assign(JPEG);
+  FForeground := TBitmap32.Create;
+  FForeground.LoadFromResourceName(HInstance, 'TextureA', 'JPG');
 
-    ResStream := TResourceStream.Create(HInstance, 'TextureB', 'JPG');
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    FBackground := TBitmap32.Create;
-    FBackground.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  FBackground := TBitmap32.Create;
+  FBackground.LoadFromResourceName(HInstance, 'TextureB', 'JPG');
 
   // clone background (= store original background without transparency)
   FBackgroundOpaque := TBitmap32.Create;

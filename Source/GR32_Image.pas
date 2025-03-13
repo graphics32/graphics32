@@ -4249,13 +4249,30 @@ begin
     ResizeBuffer;
 end;
 
+{$if defined(FPC) and(not defined(MSWINDOWS))}
+type
+  TFormCracker = class(TCustomForm);
+{$ifend}
+
 procedure TCustomImgView32.UpdateScrollBar(ScrollBar: TScrollBar; ScrollMax, ScrollThumbSize: integer);
+{$if defined(FPC) and(not defined(MSWINDOWS))}
+var
+  Form: TCustomForm;
+{$ifend}
 begin
   if (ScrollBar = nil) or (not ScrollBar.Visible) then
     exit;
 
+{$if defined(MSWINDOWS)}
   if (ScrollBar.HandleAllocated) then
     SendMessage(ScrollBar.Handle, WM_SETREDRAW, Ord(False), 0);
+{$elseif defined(FPC)}
+  Form := GetParentForm(Self, False);
+  if (Form <> nil) then
+    // BeginFormUpdate/EndFormUpdate doesn't do the same as WM_SETREDRAW at all
+    // but I'm keeping it until we have a better alternative.
+    TFormCracker(Form).BeginFormUpdate;
+{$ifend}
   try
 
     ScrollBar.PageSize := 0; // Guard against exception if Max<PageSize
@@ -4277,11 +4294,19 @@ begin
       ScrollBar.Enabled := True;
 
   finally
+{$if defined(MSWINDOWS)}
     if (ScrollBar.HandleAllocated) then
       SendMessage(ScrollBar.Handle, WM_SETREDRAW, Ord(True), 0);
+{$elseif defined(FPC)}
+    if (Form <> nil) then
+      TFormCracker(Form).EndFormUpdate;
+{$ifend}
   end;
+
+{$if defined(MSWINDOWS)}
   if (ScrollBar.HandleAllocated) then
     RedrawWindow(ScrollBar.Handle, nil, 0, RDW_INVALIDATE);
+{$ifend}
 end;
 
 procedure TCustomImgView32.BitmapResized;
@@ -4491,14 +4516,14 @@ begin
 end;
 
 procedure TCustomImgView32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-{$IFNDEF PLATFORM_INDEPENDENT}
+{$if defined(MSWINDOWS)}
 var
   P: TPoint;
   Action: Cardinal;
   Msg: TMessage;
-{$ENDIF}
+{$ifend}
 begin
-{$IFNDEF PLATFORM_INDEPENDENT}
+{$if defined(MSWINDOWS)}
   P.X := X;
   P.Y := Y;
 
@@ -4512,7 +4537,7 @@ begin
     SendMessage(TCustomForm(Owner).Handle, Msg.Msg, Msg.wParam, Msg.lParam);
     Exit;
   end;
-{$ENDIF}
+{$ifend}
 
   inherited;
 end;

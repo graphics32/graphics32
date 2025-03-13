@@ -35,7 +35,9 @@ interface
 {$include GR32.inc}
 
 uses
-  Types, // inlining
+{$if defined(UseInlining)}
+  Types,
+{$ifend}
   GR32;
 
 type

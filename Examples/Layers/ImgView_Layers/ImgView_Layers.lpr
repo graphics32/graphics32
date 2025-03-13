@@ -5,7 +5,6 @@ program ImgView_Layers;
 uses
   Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas',
   NewImageUnit in 'NewImageUnit.pas',
   RGBALoaderUnit in 'RGBALoaderUnit.pas';

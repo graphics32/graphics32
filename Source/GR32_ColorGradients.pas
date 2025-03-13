@@ -41,7 +41,10 @@ uses
   GR32,
   GR32_Polygons,
   GR32_VectorUtils,
-  GR32_Blend, // Needed in interface for inlining
+{$if defined(UseInlining)}
+  // Needed in interface for inlining
+  GR32_Blend,
+{$ifend}
   GR32_Bindings;
 
 //------------------------------------------------------------------------------
@@ -1006,6 +1009,9 @@ var
 implementation
 
 uses
+{$if not defined(UseInlining)}
+  GR32_Blend,
+{$ifend}
   GR32_LowLevel,
   GR32_Math,
   GR32_Geometry;

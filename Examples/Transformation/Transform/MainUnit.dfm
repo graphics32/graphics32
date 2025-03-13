@@ -183,7 +183,6 @@ object FormTranformExample: TFormTranformExample
           object PageNone: TPage
             Left = 0
             Top = 0
-            Caption = 'opNone'
             object LblNoOperation: TLabel
               Left = 16
               Top = 16
@@ -197,7 +196,6 @@ object FormTranformExample: TFormTranformExample
           object PageTranslate: TPage
             Left = 0
             Top = 0
-            Caption = 'opTranslate'
             object LblInfoTranslate: TLabel
               Left = 8
               Top = 8
@@ -224,8 +222,6 @@ object FormTranformExample: TFormTranformExample
               Top = 56
               Width = 57
               Height = 21
-              Ctl3D = True
-              ParentCtl3D = False
               TabOrder = 0
               Text = '0'
               OnChange = TranslationChanged
@@ -235,8 +231,6 @@ object FormTranformExample: TFormTranformExample
               Top = 88
               Width = 57
               Height = 21
-              Ctl3D = True
-              ParentCtl3D = False
               TabOrder = 1
               Text = '0'
               OnChange = TranslationChanged
@@ -269,7 +263,6 @@ object FormTranformExample: TFormTranformExample
           object PageScale: TPage
             Left = 0
             Top = 0
-            Caption = 'opScale'
             object LblSy: TLabel
               Left = 16
               Top = 91
@@ -337,7 +330,6 @@ object FormTranformExample: TFormTranformExample
           object PageRotate: TPage
             Left = 0
             Top = 0
-            Caption = 'opRotate'
             object LblInfoRotate: TLabel
               Left = 8
               Top = 8
@@ -409,7 +401,6 @@ object FormTranformExample: TFormTranformExample
           object PageSkew: TPage
             Left = 0
             Top = 0
-            Caption = 'opSkew'
             object LblInfoSkew: TLabel
               Left = 8
               Top = 8
@@ -502,9 +493,9 @@ object FormTranformExample: TFormTranformExample
       object LblProjectiveNote: TLabel
         Left = 48
         Top = 24
-        Width = 230
+        Width = 234
         Height = 26
-        Caption = 'Note:'#13#10'Only convex polygons are transormed normally!'
+        Caption = 'Note:'#13#10'Only convex polygons are transformed normally!'
       end
     end
   end

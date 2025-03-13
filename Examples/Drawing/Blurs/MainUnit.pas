@@ -1,5 +1,7 @@
 unit MainUnit;
 
+{$include GR32.inc}
+
 interface
 
 uses
@@ -75,7 +77,9 @@ var
 implementation
 
 uses
+{$if defined(UseInlining)}
   Types,
+{$ifend}
   GR32.ImageFormats.JPG,
   GR32_Polygons,
   GR32_VectorUtils,

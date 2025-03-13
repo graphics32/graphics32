@@ -48,13 +48,12 @@ interface
 {-$DEFINE CODESITE_HIGH}
 
 uses
-{$ifdef MSWINDOWS}
-  Windows,
-{$ENDIF}
 {$IFDEF CODESITE}
   CSIntf, CSAux,
 {$ENDIF}
+{$if defined(UseInlining)}
   Types,
+{$ifend}
   SysUtils, Classes,
   GR32,
   GR32_System,

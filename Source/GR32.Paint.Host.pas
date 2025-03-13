@@ -122,8 +122,12 @@ type
 implementation
 
 uses
+{$if defined(MSWINDOWS)}
   Windows,
+{$ifend}
+{$if defined(UseInlining)}
   Types,
+{$ifend}
   GR32.Paint.ToolContext;
 
 //------------------------------------------------------------------------------
@@ -246,11 +250,15 @@ end;
 procedure TBitmap32PaintHost.SetToolCursor(NewCursor: TCursor);
 
   procedure UpdateCursor;
+{$if defined(MSWINDOWS)}
   var
     p: TPoint;
+{$ifend}
   begin
+{$if defined(MSWINDOWS)}
     GetCursorPos(p);
     SetCursorPos(p.X, p.Y);
+{$ifend}
   end;
 
 begin

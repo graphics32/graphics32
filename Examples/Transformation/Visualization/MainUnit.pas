@@ -87,11 +87,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
   Math, GR32_Lowlevel, GR32_Math, GR32_Blend;

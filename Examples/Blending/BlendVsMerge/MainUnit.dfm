@@ -7,84 +7,53 @@ object MainForm: TMainForm
   ClientHeight = 456
   ClientWidth = 272
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
-  Font.Style = []
-  OldCreateOrder = False
+  ParentFont = True
   Position = poScreenCenter
   OnCreate = FormCreate
   DesignSize = (
     272
     456)
-  PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 15
   object LabelOverlay: TLabel
     Left = 8
-    Top = 169
-    Width = 256
-    Height = 17
+    Top = 171
+    Width = 40
+    Height = 15
     Anchors = [akLeft, akBottom]
-    AutoSize = False
-    Caption = ' Overlay'
-    Color = clAppWorkSpace
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWhite
-    Font.Height = -11
-    Font.Name = 'Tahoma'
-    Font.Style = [fsBold]
-    ParentColor = False
-    ParentFont = False
+    Caption = 'Overlay'
     Layout = tlCenter
-    ExplicitTop = 187
   end
   object LabelBlendSettings: TLabel
     Left = 8
-    Top = 88
-    Width = 256
-    Height = 17
-    AutoSize = False
-    Caption = ' Blend Settings'
-    Color = clAppWorkSpace
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWhite
-    Font.Height = -11
-    Font.Name = 'Tahoma'
-    Font.Style = [fsBold]
-    ParentColor = False
-    ParentFont = False
+    Top = 84
+    Width = 75
+    Height = 15
+    Caption = 'Blend Settings'
     Layout = tlCenter
   end
   object LabelVisible: TLabel
     Left = 8
     Top = 8
-    Width = 256
-    Height = 17
-    AutoSize = False
-    Caption = ' Visible Layer'
-    Color = clAppWorkSpace
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWhite
-    Font.Height = -11
-    Font.Name = 'Tahoma'
-    Font.Style = [fsBold]
-    ParentColor = False
-    ParentFont = False
+    Width = 65
+    Height = 15
+    Caption = 'Visible Layer'
     Layout = tlCenter
   end
   object LabelMergeHint: TLabel
     Left = 71
-    Top = 112
-    Width = 174
-    Height = 13
-    Caption = 'Alpha values will be merged correctly'
+    Top = 106
+    Width = 190
+    Height = 31
+    AutoSize = False
+    Caption = 'Alpha values will be merged correctly.'
+    WordWrap = True
   end
   object LabelBlendHint: TLabel
     Left = 71
-    Top = 134
-    Width = 172
-    Height = 26
+    Top = 138
+    Width = 190
+    Height = 29
+    AutoSize = False
     Caption = 
       'Alpha values of the background are assumed to be opaque -> faste' +
       'r!'
@@ -108,7 +77,7 @@ object MainForm: TMainForm
   end
   object RadioButtonBlend: TRadioButton
     Left = 8
-    Top = 134
+    Top = 138
     Width = 57
     Height = 17
     Caption = '&Blend'
@@ -117,7 +86,7 @@ object MainForm: TMainForm
   end
   object RadioButtonMerge: TRadioButton
     Left = 8
-    Top = 111
+    Top = 105
     Width = 57
     Height = 17
     Caption = '&Merge'
@@ -128,7 +97,7 @@ object MainForm: TMainForm
   end
   object CheckBoxForeground: TCheckBox
     Left = 8
-    Top = 54
+    Top = 52
     Width = 81
     Height = 17
     Caption = '&Foreground'
@@ -139,8 +108,8 @@ object MainForm: TMainForm
   end
   object CheckBoxBackground: TCheckBox
     Left = 8
-    Top = 31
-    Width = 105
+    Top = 29
+    Width = 116
     Height = 17
     Caption = 'Back&ground  --->'
     Checked = True
@@ -149,8 +118,8 @@ object MainForm: TMainForm
     OnClick = CheckBoxImageClick
   end
   object CheckBoxTransparent: TCheckBox
-    Left = 112
-    Top = 31
+    Left = 130
+    Top = 29
     Width = 113
     Height = 17
     Caption = 'with transparency'

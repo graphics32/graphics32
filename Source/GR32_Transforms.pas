@@ -35,9 +35,9 @@ interface
 {$include GR32.inc}
 
 uses
-{$IFDEF DEBUG}
-  Windows, // In interface section so we don't override TFixed
-{$ENDIF}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
+  Windows, // For OutputDebugString. In interface section so we don't override TFixed
+{$ifend}
   SysUtils,
   Classes,
   Types,
@@ -1204,9 +1204,6 @@ function TNestedTransformation.Add(
   ItemClass: TTransformationClass): TTransformation;
 begin
   Result := ItemClass.Create;
-  {$IFDEF NEXTGEN}
-  Result.__ObjAddRef;
-  {$ENDIF}
   FItems.Add(Result);
 end;
 
@@ -1623,14 +1620,14 @@ begin
   if Z = 0 then
     Exit;
 
-  {$IFDEF UseInlining}
+{$IFDEF UseInlining}
   SrcX := FixedMul(DstX, FInverseFixedMatrix[0, 0]) +
     FixedMul(DstY, FInverseFixedMatrix[1, 0]) + FInverseFixedMatrix[2, 0];
   SrcY := FixedMul(DstX, FInverseFixedMatrix[0,1]) +
     FixedMul(DstY, FInverseFixedMatrix[1, 1]) + FInverseFixedMatrix[2, 1];
-  {$ELSE}
+{$ELSE}
   inherited;
-  {$ENDIF}
+{$ENDIF}
 
   if Z <> FixedOne then
   begin
@@ -1652,14 +1649,14 @@ begin
   if Z = 0 then
     Exit;
 
-  {$IFDEF UseInlining}
+{$IFDEF UseInlining}
   SrcX := DstX * FInverseMatrix[0, 0] + DstY * FInverseMatrix[1, 0] +
     FInverseMatrix[2, 0];
   SrcY := DstX * FInverseMatrix[0, 1] + DstY * FInverseMatrix[1, 1] +
     FInverseMatrix[2, 1];
-  {$ELSE}
+{$ELSE}
   inherited;
-  {$ENDIF}
+{$ENDIF}
 
   if Z <> 1 then
   begin
@@ -1681,14 +1678,14 @@ begin
   if Z = 0 then
     Exit;
 
-  {$IFDEF UseInlining}
+{$IFDEF UseInlining}
   DstX := FixedMul(SrcX, FFixedMatrix[0, 0]) +
     FixedMul(SrcY, FFixedMatrix[1, 0]) + FFixedMatrix[2, 0];
   DstY := FixedMul(SrcX, FFixedMatrix[0, 1]) +
     FixedMul(SrcY, FFixedMatrix[1, 1]) + FFixedMatrix[2, 1];
-  {$ELSE}
+{$ELSE}
   inherited;
-  {$ENDIF}
+{$ENDIF}
 
   if Z <> FixedOne then
   begin
@@ -1707,12 +1704,12 @@ begin
 
   if Z = 0 then Exit;
 
-  {$IFDEF UseInlining}
+{$IFDEF UseInlining}
   DstX := SrcX * Matrix[0, 0] + SrcY * Matrix[1, 0] + Matrix[2, 0];
   DstY := SrcX * Matrix[0, 1] + SrcY * Matrix[1, 1] + Matrix[2, 1];
-  {$ELSE}
+{$ELSE}
   inherited;
-  {$ENDIF}
+{$ENDIF}
 
   if Z <> 1 then
   begin
@@ -2297,7 +2294,7 @@ begin
   FPiW := (Pi / (FSrcRect.Right - FSrcRect.Left));
   FPiH := (Pi / (FSrcRect.Bottom - FSrcRect.Top));
   FBP := FBloatPower * Max(FSrcRect.Right - FSrcRect.Left, FSrcRect.Bottom - FSrcRect.Top);
-  TransformValid := True;  
+  TransformValid := True;
 end;
 
 procedure TBloatTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
@@ -2650,10 +2647,10 @@ procedure TRadialDistortionTransformation.PrepareReverseMap;
 var
   i, j, LowerI, UpperI, jmax: Integer;
   r_src, r_tgt, LowerValue, UpperValue: TFloat;
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
   // some counters to evaluate the mapping
   interpolated, unset, mapToSameIndex, IndexOutOfRange: Integer;
-{$ENDIF}
+{$ifend}
 begin
   if MapElements <= 1 then
     MapElements := Trunc(r_0);
@@ -2666,10 +2663,10 @@ begin
     Map[i] := -1;
 
   jmax := 1000;
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
   mapToSameIndex := 0;
   IndexOutOfRange := 0;
-{$ENDIF}
+{$ifend}
   for j := 0 to jmax do
   begin
     r_src := j/jmax*2;
@@ -2678,39 +2675,39 @@ begin
     i := Trunc((r_tgt*r_src-r_tgt_min)/(r_tgt_max-r_tgt_min)*(High(Map)-1));
     if not InRange(i, 0, High(Map)) then
     begin
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
       Inc(IndexOutOfRange);
       // OutputDebugString(PChar(Format('PrepareReverseMap: i=%d out of range (0, MapElements=%d), r_tgt=%f', [ i, MapElements, r_tgt ])))
-{$ENDIF}
+{$ifend}
     end
     else
     if Map[i]<>-1 then
     begin
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
       Inc(mapToSameIndex);
       // OutputDebugString(PChar(Format('PrepareReverseMap: Map[i=%d] already has value %f (wanted to put %f there)', [ i, Map[i], r_tgt ])))
-{$ENDIF}
+{$ifend}
     end
     else
       Map[i] := r_tgt;
   end;
 
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
   unset := 0;
   for i := 0 to High(Map) do
   begin
     if Map[i] = -1 then
       Inc(unset);
   end;
-{$ENDIF}
+{$ifend}
 
   // linear interpolation where Map[i] == -1 (but no extrapolation)
   i := 0;
   LowerI := -1;
   LowerValue := -1;
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
   interpolated := 0;
-{$ENDIF}
+{$ifend}
   repeat
     if Map[i] = -1 then
     begin
@@ -2725,9 +2722,9 @@ begin
           for j := LowerI+1 to UpperI-1 do
           begin
             Map[j] := LowerValue + (UpperValue-LowerValue) * (j-LowerI) / (UpperI - LowerI);
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
             Inc(interpolated);
-{$ENDIF}
+{$ifend}
           end;
         end;
       end;
@@ -2739,20 +2736,20 @@ begin
     end;
     Inc(i);
   until i > High(Map);
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
   OutputDebugString(PChar(Format(
     'TRadialDistortionTransformation.PrepareReverseMap: mapToSameIndex=%d. IndexOutOfRange=%d. %d out of %d map elements were uninitialized, %d of these were interpolated',
     [ mapToSameIndex, IndexOutOfRange, unset, High(Map), interpolated ])));
-{$ENDIF}
+{$ifend}
 
   for i := 0 to High(Map) do
   begin
     if Map[i] = -1 then
       Map[i] := 1;
   end;
-{$IFDEF DEBUG}
+{$if defined(MSWINDOWS) and defined(DEBUG)}
   OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(Map), MaxValue(Map) ])));
-{$ENDIF}
+{$ifend}
 end;
 
 procedure TRadialDistortionTransformation.PrepareTransform;
