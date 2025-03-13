@@ -1299,6 +1299,7 @@ resourcestring
 implementation
 
 uses
+  GR32.Types.SIMD,
   GR32_Blend,
   GR32_LowLevel,
   GR32_System,
@@ -3836,13 +3837,15 @@ begin
   Result := Round($FF * (Value - PrevIndex));
 end;
 
-function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function FastPrevWeight_SSE41(Value: TFloat; PrevIndex: Cardinal): Cardinal; {$IFDEF FPC} assembler; {$ENDIF}
 // Note: roundss is a SSE4.1 instruction
-const
-  ROUND_MODE = $08 + $00; // $00=Round, $01=Floor, $02=Ceil, $03=Trunc
 const
   Float255 : TFloat = 255.0;
 asm
+{$if (not defined(FPC)) and (defined(TARGET_X64))}
+        .NOFRAME
+{$ifend}
+
 {$if defined(TARGET_x86)}
         MOVSS   xmm0, Value
 {$ifend}
@@ -3850,12 +3853,12 @@ asm
 
         SUBSS   xmm0, xmm1
 {$if (not defined(FPC)) or (not defined(TARGET_X64))}
-        MULSS   xmm0, Float255
+        MULSS   xmm0, DWORD PTR [Float255]
 {$else}
         MULSS   xmm0, [rip+Float255].DWORD
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_MODE
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
         CVTSS2SI eax, xmm0
 end;
 

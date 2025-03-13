@@ -42,8 +42,15 @@ interface
 *)
 {-$define TEST_BLEND2D}
 
+(*
+** Define TEST_LCD to enable the VPR LCD polygon rasterizers (ClearType style anti-aliasing).
+*)
+{-$define TEST_LCD}
+
 uses
-  {$ifdef MSWINDOWS}Windows,{$ENDIF}
+{$ifdef MSWINDOWS}
+  Windows, Messages,
+{$endif}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
   GR32_Image,
   GR32_Paths,
@@ -57,6 +64,11 @@ const
   // Use the best result of all samles as the final result.
   TEST_DURATION = 4000;
   TEST_SAMPLES = 4;
+
+{$ifdef MSWINDOWS}
+const
+  MSG_BENCHMARK = WM_USER;
+{$endif}
 
 type
   TTestProc = procedure(Canvas: TCanvas32; FillBrush: TSolidBrush; StrokeBrush: TStrokeBrush);
@@ -86,10 +98,13 @@ type
     procedure BtnBenchmarkClick(Sender: TObject);
     procedure ImgResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
-    procedure ImgClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     procedure RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples: integer = TEST_SAMPLES; TestTime: integer = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
+{$ifdef MSWINDOWS}
+    procedure MsgBenchmark(var Msg: TMessage); message MSG_BENCHMARK;
+{$endif}
   end;
 
 var
@@ -468,10 +483,10 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // set priority class and thread priority for better accuracy
-{$IFDEF MSWindows}
+{$ifdef MSWINDOWS}
   SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
   SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_HIGHEST);
-{$ENDIF}
+{$endif}
 
   CmbTest.Items := TestRegistry;
   CmbTest.ItemIndex := 0;
@@ -480,6 +495,55 @@ begin
   Img.SetupBitmap(True, clWhite32);
 end;
 
+
+procedure TMainForm.FormShow(Sender: TObject);
+begin
+{$ifdef MSWINDOWS}
+  if (FindCmdLineSwitch('benchmark')) then
+    PostMessage(Handle, MSG_BENCHMARK, 0, 0);
+{$endif}
+end;
+
+{$ifdef MSWINDOWS}
+procedure TMainForm.MsgBenchmark(var Msg: TMessage);
+var
+  Iterations: integer;
+  i: integer;
+{$if defined(FRAMEWORK_VCL)}
+  s: string;
+{$ifend}
+begin
+  (*
+  ** Detect and initiate automated benchmark for profiling
+  *)
+
+{$if defined(FRAMEWORK_VCL)}
+  if (not FindCmdLineSwitch('benchmark', s)) then
+    exit;
+  Iterations := StrToIntDef(s, 1);
+{$else}
+  if (not FindCmdLineSwitch('benchmark')) then
+    exit;
+  Iterations := 1;
+{$ifend}
+
+  Screen.Cursor := crHourGlass;
+
+  MemoLog.Lines.Add(Format('Running benchmark: %d iterations', [Iterations]));
+
+  CbxAllTests.Checked := True;
+
+  for i := 0 to Iterations-1 do
+  begin
+    MemoLog.Lines.Add(Format('Iteration %d', [i+1]));
+    Update;
+
+    BtnBenchmark.Click;
+  end;
+
+  Application.Terminate;
+end;
+{$endif}
 
 procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
@@ -579,28 +643,6 @@ begin
   end;
 end;
 
-procedure TMainForm.ImgClick(Sender: TObject);
-var
-  Renderer: TPolygonRenderer32;
-  Line: TArrayOfFloatPoint;
-  Ellipse: TArrayOfFloatPoint;
-begin
-  Renderer := TPolygonRenderer32Class(PolygonRendererList[CmbRenderer.ItemIndex]).Create;
-  try
-    Img.Bitmap.Clear(clWhite32);
-    Renderer.Color := clRed32;
-    Renderer.Bitmap := Img.Bitmap;
-
-    Line := CreateLine(0, 2, 20, 20, 1);
-    Ellipse := GR32_VectorUtils.Ellipse(5, 3, 5, 3);
-
-    Renderer.PolyPolygonFS([Line]);
-
-  finally
-    Renderer.Free;
-  end;
-end;
-
 procedure TMainForm.ImgResize(Sender: TObject);
 begin
   Img.SetupBitmap(True, clWhite32);
@@ -612,9 +654,11 @@ begin
 end;
 
 initialization
+{$if not defined(TEST_LCD)}
   // We're not interested in the ClearType rasterizers
   UnregisterPolygonRenderer(TPolygonRenderer32LCD);
   UnregisterPolygonRenderer(TPolygonRenderer32LCD2);
+{$ifend}
 
   RegisterTest('Ellipses', EllipseTest);
   RegisterTest('Thin Lines', ThinLineTest);

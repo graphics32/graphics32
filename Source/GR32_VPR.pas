@@ -41,7 +41,7 @@ type
   PSingleArray = GR32.PSingleArray;
 
   TValueSpan = record
-    X1, X2: Integer;
+    LowX, HighX: Integer;
     Values: PSingleArray;
   end;
 
@@ -59,7 +59,7 @@ procedure RenderPolygon(const Points: TArrayOfFloatPoint;
 
 implementation
 
-{$if Defined(FPC) and Defined(CPUx86_64) }
+{$if defined(FPC) and defined(CPUx86_64) }
 // Must apply work around for negative array index on FPC 64-bit.
 // See:
 //   - https://github.com/graphics32/graphics32/issues/51
@@ -72,6 +72,51 @@ uses
   GR32_Math,
   GR32_LowLevel,
   GR32_VectorUtils;
+
+// FastFloor is slow on x86 due to call overhead
+{$if (not defined(PUREPASCAL)) and defined(CPUx86_64)}
+// Use of FastFloor in VPR currently corrupts the memory manager of FPC
+// so temporarily disabled there.
+  {$if (not defined(FPC))}
+    {$define USE_POLYFLOOR}
+  {$ifend}
+{$ifend}
+
+function PolyFloor(Value: Single): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastFloorSingle(Value);
+{$else}
+  Result := Round(Value);
+{$ifend}
+end;
+
+function PolyFloor(Value: Double): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastFloorDouble(Value);
+{$else}
+  Result := Round(Value);
+{$ifend}
+end;
+
+function PolyCeil(Value: Single): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastCeilSingle(Value);
+{$else}
+  Result := -Round(-Value);
+{$ifend}
+end;
+
+function PolyCeil(Value: Double): integer; overload; {$ifndef DEBUG} inline; {$endif}
+begin
+{$if defined(USE_POLYFLOOR)}
+  Result := FastCeilDouble(Value);
+{$else}
+  Result := -Round(-Value);
+{$ifend}
+end;
 
 (* Mattias Andersson (from glmhlg$rf3$1@news.graphics32.org):
 
@@ -129,126 +174,234 @@ type
   PScanLineArray = ^TScanLineArray;
   TScanLineArray = array [0..0] of TScanLine;
 
-procedure IntegrateSegment(var P1, P2: TFloatPoint; Values: PSingleArray);
+procedure IntegrateSegment(const P1, P2: TFloatPoint; Values: PSingleArray);
 var
-{$if Defined(NEGATIVE_INDEX_64) }
+{$if defined(NEGATIVE_INDEX_64) }
   X1, X2: Int64;
 {$else}
   X1, X2: Integer;
 {$ifend}
-  I: Integer;
-  Dx, Dy, DyDx, Sx, Y, fracX1, fracX2: TFloat;
+  i: Integer;
+  Dx, Dy, DyDx, Y: TFloat;
+  fracX1, fracX2: TFloat;
 begin
-  X1 := Round(P1.X);
-  X2 := Round(P2.X);
+  (*
+  ** We have a line segment going from (X1,Y1) to (X2,Y2):
+  **
+  **        X1     X2
+  **       +---------
+  **    Y1 | *
+  **       |  *
+  **       |   *
+  **       |    *
+  **       |     *
+  **       |      *
+  **    Y2 |       *
+  **
+  ** The Y values in the segment belongs to a single scanline so the line segment is 1 pixel high.
+  ** Additionally, we know that the Y values are in the range [0..1].
+  ** In the example below, we have a segment where X2-X1=6. Each box is a pixel.
+  **
+  **        X1                       X2
+  **       +---+---+---+---+---+---+---+
+  **    Y1 | * |   |   |   |   |   |   |
+  **       |   | * |   |   |   |   |   |
+  **       |   |   | * |   |   |   |   |
+  **       |   |   |   | * |   |   |   |
+  **       |   |   |   |   | * |   |   |
+  **       |   |   |   |   |   | * |   |
+  **    Y2 |   |   |   |   |   |   | * |
+  **       +---+---+---+---+---+---+---+
+  **
+  ** For each X, we need to calculate the area below (or above) the line segment.
+  ** We do this by calculating the slope of the line, and from that we can find the Y value
+  ** given an X value.
+  ** Once we have an X and an Y value we calculate the area as X*Y/2.
+  **
+  **        X1                       X2
+  **       +---+---+---+---+---+---+---+
+  **    Y1 | * |   |   |   |   |   |   |
+  **       | * | * |   |   |   |   |   |
+  **       | * | * | * |   |   |   |   |
+  **       | * | * | * | * |   |   |   |
+  **       | * | * | * | * | * |   |   |
+  **       | * | * | * | * | * | * |   |
+  **    Y2 | * | * | * | * | * | * | * |
+  **       +---+---+---+---+---+---+---+
+  **
+  *)
+
+
+  X1 := PolyFloor(P1.X);
+  X2 := PolyFloor(P2.X);
+
+  // Vertical segment (within one pixel)
   if X1 = X2 then
   begin
+
     Values[X1] := Values[X1] + 0.5 * (P2.X - P1.X) * (P1.Y + P2.Y);
-  end
-  else
+
+  end else
+  // Everything else
   begin
-    fracX1 := P1.X - X1;
-    fracX2 := P2.X - X2;
 
     Dx := P2.X - P1.X;
     Dy := P2.Y - P1.Y;
-    DyDx := Dy/Dx;
+    DyDx := Dy/Dx; // For each X, how much does Y increment
 
     if X1 < X2 then
     begin
-      Sx := 1 - fracX1;
-      Y := P1.Y + Sx * DyDx;
-      Values[X1] := Values[X1] + 0.5 * (P1.Y + Y) * Sx;
-      for I := X1 + 1 to X2 - 1 do
+
+      fracX1 := 1 - (P1.X - X1);
+      fracX2 := P2.X - X2;
+
+      Y := P1.Y + fracX1 * DyDx;
+
+      // First fractional X (fracX1..1)
+      Values[X1] := Values[X1] + 0.5 * (P1.Y + Y) * fracX1;
+
+      // Whole Xs (1..1)
+      for i := X1 + 1 to X2 - 1 do
       begin
-        Values[I] := Values[I] + (Y + DyDx * 0.5);     // N: Sx = 1
+        Values[i] := Values[i] + (Y + DyDx * 0.5);     // N: Sx = 1
         Y := Y + DyDx;
       end;
 
-      Sx := fracX2;
-      Values[X2] := Values[X2] + 0.5 * (Y + P2.Y) * Sx;
-    end
-    else // X1 > X2
+      // Last fractional X (1..fracX2)
+      Values[X2] := Values[X2] + 0.5 * (Y + P2.Y) * fracX2;
+
+    end else // X1 > X2
     begin
-      Sx := fracX1;
-      Y := P1.Y - Sx * DyDx;
-      Values[X1] := Values[X1] - 0.5 * (P1.Y + Y) * Sx;
-      for I := X1 - 1 downto X2 + 1 do
+
+      fracX1 := P1.X - X1;
+      fracX2 := 1 - (P2.X - X2);
+
+      Y := P1.Y - fracX1 * DyDx;
+
+      // First fractional X (fracX1..1)
+      Values[X1] := Values[X1] - 0.5 * (P1.Y + Y) * fracX1;
+
+      // Whole Xs (1..1)
+      for i := X1 - 1 downto X2 + 1 do
       begin
-        Values[I] := Values[I] - (Y - DyDx * 0.5);    // N: Sx = -1
+        Values[i] := Values[i] - (Y - DyDx * 0.5);    // N: Sx = -1
         Y := Y - DyDx;
       end;
-      Sx := 1 - fracX2;
-      Values[X2] := Values[X2] - 0.5 * (Y + P2.Y) * Sx;
+
+      // Last fractional X (1..fracX2)
+      Values[X2] := Values[X2] - 0.5 * (Y + P2.Y) * fracX2;
+
     end;
+
   end;
 end;
 
-procedure ExtractSingleSpan(const ScanLine: TScanLine; out Span: TValueSpan;
-  SpanData: PSingleArray);
+procedure ExtractSingleSpan(const ScanLine: TScanLine; out Span: TValueSpan; SpanData: PSingleArray);
 var
-  I: Integer;
-{$if Defined(NEGATIVE_INDEX_64) }
+  i: Integer;
+{$if defined(NEGATIVE_INDEX_64) }
   X: Int64;
 {$else}
   X: Integer;
 {$ifend}
   P: PFloatPoint;
-  S: PLineSegment;
+  Segment: PLineSegment;
   fracX: TFloat;
   Points: PFloatPointArray;
   N: Integer;
 begin
-  N := ScanLine.Count * 2;
+  (*
+  ** Extract spans of coverage values for a scanline.
+  **
+  ** We do this by looking at the scanline segments. Each segment indicates
+  ** where on the X-axis the line, that the segment was extracted from,
+  ** crosses the scanline.
+  **
+  ** At the point where the line crosses, we update the coverage value.
+  ** For example, four crossings could produce the following coverage values:
+  **   [     1     -1    1   -1     ]
+  ** Note that the actual coverage values will be [0..1].
+  **
+  ** When all segments has been processed like this, we convert the values
+  ** to a sequence of values using the CumSum function:
+  **   [     11111111    111111     ]
+  **
+  *)
+
+  N := ScanLine.Count * 2; // Pairs of TFloatPoint, so double the count
   Points := @ScanLine.Segments[0];
-  Span.X1 := High(Integer);
-  Span.X2 := Low(Integer);
+  // Low/High bound of span
+  Span.LowX := High(Integer);
+  Span.HighX := Low(Integer);
+
+
+  (*
+  ** (a) set the length of the span to the horizontal range of that row.
+  **
+  ** (b) if a line segment goes from row Y to row Y + 1 then we need to add
+  **     or subtract 1 from the (X, X + 1) indexes at the crossing (depending on
+  **     line orientation).
+  *)
 
   P := @Points[0];
-  for I := 0 to N - 1 do
+  for i := 0 to N - 1 do
   begin
     // Since we know X >= 0 we could have used Trunc here but unfortunately
     // Delphi's Trunc is much slower than Round because it modifies the FPU
     // control word.
-    X := Round(P.X);
+    // Note: We're using FastFloor now so the above comment is no longer relevant.
+    X := PolyFloor(P.X);
 
-    if X < Span.X1 then
-      Span.X1 := X;
+    // (a1) Find the lower bound of the horizontal span
+    if X < Span.LowX then
+      Span.LowX := X;
 
+    // (b) if a line segment goes from row Y to row Y + 1 then...
     if P.Y = 1 then
     begin
       fracX := P.X - X;
-      if Odd(I) then
-      begin
-        SpanData[X] := SpanData[X] + (1 - fracX); Inc(X);
+
+      if Odd(i) then
+      begin // Right edge
+        SpanData[X] := SpanData[X] + (1 - fracX);
+        Inc(X);
         SpanData[X] := SpanData[X] + fracX;
-      end
-      else
-      begin
-        SpanData[X] := SpanData[X] - (1 - fracX); Inc(X);
+      end else
+      begin // Left edge
+        SpanData[X] := SpanData[X] - (1 - fracX);
+        Inc(X);
         SpanData[X] := SpanData[X] - fracX;
       end;
     end;
 
-    if X > Span.X2 then
-      Span.X2 := X;
+    // (a2) Find the upper bound of the horizontal span
+    if X > Span.HighX then
+      Span.HighX := X;
 
     inc(P);
   end;
 
-  X := Span.X1; // Use X so NEGATIVE_INDEX_64 is handled
+
+  (*
+  ** (c) compute cumulative sum of span values.
+  *)
+  X := Span.LowX; // Use X so NEGATIVE_INDEX_64 is handled
   Span.Values := @SpanData[X];
 
-  CumSum(Span.Values, Span.X2 - Span.X1 + 1);
+  CumSum(Span.Values, Span.HighX - Span.LowX + 1);
 
-  for I := 0 to ScanLine.Count - 1 do
+
+  (*
+  ** (d) integrate each line segment and accumulate span buffer.
+  *)
+  for i := 0 to ScanLine.Count - 1 do
   begin
-    S := @ScanLine.Segments[I];
-    IntegrateSegment(S[0], S[1], SpanData);
+    Segment := @ScanLine.Segments[i];
+    IntegrateSegment(Segment[0], Segment[1], SpanData);
   end;
 end;
 
-procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine);// {$IFDEF USEINLINING} inline; {$ENDIF}
 var
   S: PLineSegment;
   Y1bin: Cardinal absolute Y1;
@@ -259,6 +412,7 @@ begin
   // if (Y1 = 0) and (Y2 = 0) then
     Exit;  { needed for proper clipping }
 
+  // Add segment to the scanline's list of segments
   S := @ScanLine.Segments[ScanLine.Count];
   Inc(ScanLine.Count);
 
@@ -273,33 +427,43 @@ var
   Y, Y1, Y2: Integer;
   X, X2: TFloat;
   k: TFloat;
+  n: TFloat;
 begin
   (*
   ** Split each line segment into smaller segments in a vertical buffer,
   ** such that y-values are between 0 and 1.
   *)
 
-  Y1 := Round(P1.Y);
-  Y2 := Round(P2.Y);
+  Y1 := PolyFloor(P1.Y);
+  Y2 := PolyFloor(P2.Y);
 
   // Special case for horizontal line; It just produces a single segment.
-  if Y1 = Y2 then
+  if Y1 = Y2 then // TODO : Should also handle "Y1 almost equal Y2" ?
   begin
+
     AddSegment(P1.X, P1.Y - Y1, P2.X, P2.Y - Y1, ScanLines[Y1]);
-  end
-  else
+
+  end else
   begin
+
     // k: Inverse slope; For each change in Y, how much does X change
     // k is expanded below to limit rounding errors.
     k := (P2.X - P1.X) / (P2.Y - P1.Y);
 
+    // TODO : We should also special case "P1.X almost equal P2.X" ?
+
     if Y1 < Y2 then // Y is increasing
     begin
       X := P1.X + (Y1 + 1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
-      AddSegment(P1.X, P1.Y - Y1, X, 1, ScanLines[Y1]);
 
+      // First fractional scanline (n..1)
+      n := P1.Y - Y1;
+      AddSegment(P1.X, n, X, 1, ScanLines[Y1]);
+
+      // Whole scanlines (0..1)
       for Y := Y1 + 1 to Y2 - 1 do
       begin
+
         // Note: Iteratively calculating the next X value based on the previous value and an
         // increment accumulates the rounding error.
         // Ideally we would repeat the calculation of X from Y for each Y to avoid this but
@@ -313,15 +477,23 @@ begin
         X2 := Max(0, X + k);
         AddSegment(X, 0, X2, 1, ScanLines[Y]);
         X := X2;
+
       end;
 
-      AddSegment(X, 0, P2.X, P2.Y - Y2, ScanLines[Y2]);
-    end
-    else
-    begin
-      X := P1.X + (Y1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
-      AddSegment(P1.X, P1.Y - Y1, X, 0, ScanLines[Y1]);
+      // Last fractional scanline (0..n)
+      n := P2.Y - Y2;
+      AddSegment(X, 0, P2.X, n, ScanLines[Y2]);
 
+    end else
+    begin
+
+      X := P1.X + (Y1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
+
+      // First fractional scanline (n..0)
+      n := P1.Y - Y1;
+      AddSegment(P1.X, n, X, 0, ScanLines[Y1]);
+
+      // Whole scanlines (1..0)
       for Y := Y1 - 1 downto Y2 + 1 do
       begin
         X2 := Max(0, X - k);
@@ -329,43 +501,49 @@ begin
         X := X2;
       end;
 
-      AddSegment(X, 1, P2.X, P2.Y - Y2, ScanLines[Y2]);
+      // Last fractional scanline (1..n)
+      n := P2.Y - Y2;
+      AddSegment(X, 1, P2.X, n, ScanLines[Y2]);
+
     end;
+
   end;
 end;
 
 procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint;
   out ScanLines: TScanLines);
 var
-  I,J,K, M,N, Y0,Y1,Y, YMin,YMax: Integer;
-  PY: PSingle;
-  PPt1, PPt2: PFloatPoint;
-  PScanLines: PScanLineArray;
+  PolygonIndex, MaxPolygon, MaxVertex: Integer;
+  i, Y0,Y1,Y, YMin,YMax: Integer;
+  SegmentCount: Integer;
+  pY: PSingle;
+  pPoint1, PPoint2: PFloatPoint;
+  pScanLines: PScanLineArray;
 begin
 
   (*
-  ** Determine range of Y values (i.e. scanlines)
+  ** Determine range of Y values (i.e. number of scanlines)
   *)
   YMin := MaxInt;
   YMax := -MaxInt;
-  M := High(Points);
-  for K := 0 to M do
+  MaxPolygon := High(Points);
+  for PolygonIndex := 0 to MaxPolygon do
   begin
-    N := High(Points[K]);
-    if N < 2 then
+    MaxVertex := High(Points[PolygonIndex]);
+    if MaxVertex < 2 then
       Continue;
 
-    PY := @Points[K][0].Y;
-    for I := 0 to N do
+    pY := @Points[PolygonIndex][0].Y;
+    for i := 0 to MaxVertex do
     begin
-      Y := Round(PY^);
+      Y := PolyFloor(pY^);
 
       if YMin > Y then
         YMin := Y;
       if YMax < Y then
         YMax := Y;
 
-      inc(PY, 2); // skips X value
+      inc(PFloatPoint(pY)); // skips X value
     end;
   end;
 
@@ -375,70 +553,101 @@ begin
   SetLength(ScanLines, YMax - YMin + 2);
 
   // Offset scanline pointer so we don't have to offset the Y coordinate
-  PScanLines := @ScanLines[-YMin];
+  pScanLines := @ScanLines[-YMin];
 
   (*
   ** Compute array sizes for each scanline
   *)
-  for K := 0 to M do
+  // For each polygon...
+  for PolygonIndex := 0 to MaxPolygon do
   begin
-    N := High(Points[K]);
-    if N < 2 then
-      Continue;
+    MaxVertex := High(Points[PolygonIndex]);
+    if MaxVertex < 2 then
+      Continue; // No line segments in this polygon
 
-    Y0 := Round(Points[K][N].Y);
-    PY := @Points[K][0].Y;
-    for I := 0 to N do
+    // Start with the line segment going from the last vertex to the first
+    Y0 := PolyFloor(Points[PolygonIndex][MaxVertex].Y);
+
+    pY := @Points[PolygonIndex][0].Y;
+    // For each line of the polygon...
+    for i := 0 to MaxVertex do
     begin
-      Y1 := Round(PY^);
+      // Calculate the max fragment count; Start of line vertex increments
+      // the running fragment count for the start scanline and the end of
+      // line vertex decrements the running fragment count for the end
+      // scanline.
+      //
+      //    Polygon     Scanline                  Lines(Y0, Y1)              Count Sum
+      //                       (4, 0) (0, 2) (2, 1) (1, 3) (3, 7) (7, 4)
+      //
+      //       *           0      1      1                                     2   2
+      //      /\           1                    1      1                       2   4
+      //     /  \/\        2                                                   0   4
+      //    /      \       3            -1     -1             1               -1   3
+      //   /       /       4                          -1             1         0   3
+      //   \      /        5     -1                                           -1   2
+      //    \    /         6                                                   0   2
+      //     \  /          7                                                   0   2
+      //      \/           8                                 -1     -1        -2   0
+      //
+
+
+      Y1 := PolyFloor(pY^);
+
+      // Line has positive slope
       if Y0 <= Y1 then
       begin
-        Inc(PScanLines[Y0].Count);
-        Dec(PScanLines[Y1 + 1].Count);
+        Inc(pScanLines[Y0].Count);
+        Dec(pScanLines[Y1 + 1].Count);
       end
       else
+      // Line has negative slope
       begin
-        Inc(PScanLines[Y1].Count);
-        Dec(PScanLines[Y0 + 1].Count);
+        Inc(pScanLines[Y1].Count);
+        Dec(pScanLines[Y0 + 1].Count);
       end;
+
+      // Move to next line
       Y0 := Y1;
-      inc(PY, 2); // skips X value
+      inc(PFloatPoint(pY)); // skips X value
     end;
   end;
 
   (*
   ** Allocate memory
   *)
-  J := 0;
-  for I := 0 to High(ScanLines) do
+  SegmentCount := 0;
+  for i := 0 to High(ScanLines) do
   begin
-    Inc(J, ScanLines[I].Count);
-    GetMem(ScanLines[I].Segments, J * SizeOf(TLineSegment));
+    // Adjust running fragment count
+    Inc(SegmentCount, ScanLines[i].Count);
 
-    ScanLines[I].Count := 0;
-    ScanLines[I].Y := YMin + I;
+    GetMem(ScanLines[i].Segments, SegmentCount * SizeOf(TLineSegment));
+
+    ScanLines[i].Count := 0;
+    ScanLines[i].Y := YMin + i;
   end;
 
   (*
   ** Divide all segments of the polygon into scanline fragments
   *)
-  for K := 0 to M do
+  for PolygonIndex := 0 to MaxPolygon do
   begin
-    N := High(Points[K]);
-    if N < 2 then
+    MaxVertex := High(Points[PolygonIndex]);
+    if MaxVertex < 2 then
       Continue;
 
-    // Start with the segment going from the last vertex to the first
-    PPt1 := @Points[K][N];
-    PPt2 := @Points[K][0];
+    // Start with the line segment going from the last vertex to the first
+    pPoint1 := @Points[PolygonIndex][MaxVertex];
+    PPoint2 := @Points[PolygonIndex][0];
 
-    for I := 0 to N do
+    for i := 0 to MaxVertex do
     begin
-      DivideSegment(PPt1^, PPt2^, PScanLines);
+      DivideSegment(pPoint1^, PPoint2^, pScanLines);
 
       // Move on to the next segment
-      PPt1 := PPt2;
-      Inc(PPt2);
+      pPoint1 := PPoint2;
+      Inc(PPoint2);
     end;
   end;
 end;
@@ -447,28 +656,30 @@ procedure RenderScanline(var ScanLine: TScanLine;
   RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; ClipX1, ClipX2: Integer);
 var
   Span: TValueSpan;
-{$if Defined(NEGATIVE_INDEX_64) }
+{$if defined(NEGATIVE_INDEX_64) }
   X: Int64;
 {$else}
   X: Integer;
 {$ifend}
 begin
-  if ScanLine.Count > 0 then
-  begin
-    ExtractSingleSpan(ScanLine, Span, SpanData);
+  if ScanLine.Count = 0 then
+    exit;
 
-    if Span.X1 < ClipX1 then
-      Span.X1 := ClipX1;
-    if Span.X2 > ClipX2 then
-      Span.X2 := ClipX2;
-    if Span.X2 < Span.X1 then
-      Exit;
+  ExtractSingleSpan(ScanLine, Span, SpanData);
 
-    RenderProc(Data, Span, ScanLine.Y);
+  // Clip
+  if Span.LowX < ClipX1 then
+    Span.LowX := ClipX1;
+  if Span.HighX > ClipX2 then
+    Span.HighX := ClipX2;
 
-    X := Span.X1;
-    FillLongWord(SpanData[X], Span.X2 - Span.X1 + 1, 0);
-  end;
+  if Span.HighX < Span.LowX then
+    Exit;
+
+  RenderProc(Data, Span, ScanLine.Y);
+
+  X := Span.LowX;
+  FillLongWord(SpanData[X], Span.HighX - Span.LowX + 1, 0);
 end;
 
 {$ifdef FPC}
@@ -482,44 +693,52 @@ var
   ScanLines: TScanLines;
   I, Len: Integer;
   Poly: TArrayOfArrayOfFloatPoint;
-  SavedRoundMode: TRoundingMode;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
+{$if not defined(USE_POLYFLOOR)}
+  SavedRoundingMode: TRoundingMode;
+{$ifend}
 begin
   Len := Length(Points);
   if Len = 0 then
     Exit;
 
-  SavedRoundMode := SetRoundMode(rmDown); // TODO : Not thread safe. Another thread can modify the mode
+  SetLength(Poly, Len);
+  for i := 0 to Len -1 do
+    Poly[i] := ClipPolygon(Points[i], ClipRect);
+
+{$if not defined(USE_POLYFLOOR)}
+  SavedRoundingMode := SetRoundMode(rmDown);
   try
-    SetLength(Poly, Len);
-    for i := 0 to Len -1 do
-      Poly[i] := ClipPolygon(Points[i], ClipRect);
+{$ifend}
 
-    BuildScanLines(Poly, ScanLines);
+  BuildScanLines(Poly, ScanLines);
 
-    if (Length(ScanLines) > 0) then
+  if (Length(ScanLines) > 0) then
+  begin
+    CX1 := PolyFloor(ClipRect.Left);
+    CX2 := PolyCeil(ClipRect.Right) - 1;
+
+    I := CX2 - CX1 + 4;
+
+    GetMem(SpanData, I * SizeOf(Single));
+
+    FillLongWord(SpanData^, I, 0);
+
+    for I := 0 to High(ScanLines) do
     begin
-      CX1 := Round(ClipRect.Left); // Round down = Floor
-      CX2 := -Round(-ClipRect.Right) - 1; // Round up = Ceil
-
-      I := CX2 - CX1 + 4;
-
-      GetMem(SpanData, I * SizeOf(Single));
-
-      FillLongWord(SpanData^, I, 0);
-
-      for I := 0 to High(ScanLines) do
-      begin
-        RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
-        FreeMem(ScanLines[I].Segments);
-      end;
-
-      FreeMem(SpanData);
+      RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
+      FreeMem(ScanLines[I].Segments);
     end;
-  finally
-    SetRoundMode(SavedRoundMode);
+
+    FreeMem(SpanData);
   end;
+
+{$if not defined(USE_POLYFLOOR)}
+  finally
+    SetRoundMode(SavedRoundingMode);
+  end
+{$ifend}
 end;
 
 procedure RenderPolygon(const Points: TArrayOfFloatPoint;

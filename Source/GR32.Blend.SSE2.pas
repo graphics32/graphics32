@@ -42,6 +42,8 @@ interface
 uses
   GR32;
 
+{$if not defined(PUREPASCAL)}
+
 //------------------------------------------------------------------------------
 //
 //      SSE SIMD blend implementations
@@ -105,6 +107,7 @@ procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IF
 procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 
+{$ifend}
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -112,10 +115,13 @@ procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); 
 
 implementation
 
+{$if not defined(PUREPASCAL)}
+
 uses
   GR32_Blend,
   GR32_LowLevel,
-  GR32_Bindings;
+  GR32_Bindings,
+  GR32.Types.SIMD;
 
 //------------------------------------------------------------------------------
 //
@@ -1610,34 +1616,6 @@ end;
 
 //------------------------------------------------------------------------------
 
-// Aligned bias table
-procedure SIMD_4x003FFF7F; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  db $7F, $FF, $3F, $0
-  db $7F, $FF, $3F, $0
-  db $7F, $FF, $3F, $0
-  db $7F, $FF, $3F, $0
-end;
-
-// Aligned pack table for PSHUFB: Picks low byte of 4 dwords
-procedure SIMD_4x0C080400; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  db $00, $04, $08, $0C
-  db $00, $04, $08, $0C
-  db $00, $04, $08, $0C
-  db $00, $04, $08, $0C
-end;
-
 procedure CombineMem_SSE41_Kadaif(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 (*
 Contributed by: Kadaif
@@ -1714,9 +1692,9 @@ asm
 
         // Add bias (~$7F*$8081)
 {$if (not defined(FPC)) or (not defined(TARGET_X64))}
-        PADDD     XMM2, DQWORD PTR [SIMD_4x003FFF7F] // XMM2 <- ((ColorX - ColorY) * Weight * $8081) + Bias
+        PADDD     XMM2, DQWORD PTR [SSE_003FFF7F_ALIGNED] // XMM2 <- ((ColorX - ColorY) * Weight * $8081) + Bias
 {$else}
-        PADDD     XMM2, DQWORD PTR [rip+SIMD_4x003FFF7F]
+        PADDD     XMM2, DQWORD PTR [rip+SSE_003FFF7F_ALIGNED]
 {$ifend}
 
         // Reduce 32-bits to 9-bits
@@ -1724,9 +1702,9 @@ asm
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
 {$if (not defined(FPC)) or (not defined(TARGET_X64))}
-        PSHUFB    XMM2, DQWORD PTR [SIMD_4x0C080400] // XMM2[0] <- XMM4[0..3][0]
+        PSHUFB    XMM2, DQWORD PTR [SSE_0C080400_ALIGNED] // XMM2[0] <- XMM4[0..3][0]
 {$else}
-        PSHUFB    XMM2, DQWORD PTR [rip+SIMD_4x0C080400]
+        PSHUFB    XMM2, DQWORD PTR [rip+SSE_0C080400_ALIGNED]
 {$ifend}
 
         // Result := Value + ColorY
@@ -2320,13 +2298,13 @@ asm
         PMULLD    XMM1, XMM0                    // XMM1 <- Color * Weight * $8081
 
         // Add bias (~$7F*$8081)
-        PADDD     XMM1, DQWORD PTR [SIMD_4x003FFF7F] // XMM1 <- (Color * Weight * $8081) + Bias
+        PADDD     XMM1, DQWORD PTR [SSE_003FFF7F_ALIGNED] // XMM1 <- (Color * Weight * $8081) + Bias
 
         // Reduce 32-bits to 9-bits
         PSRLD     XMM1, 23                      // XMM1 <- ((Color * Weight * $8081) + Bias) shr 23
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
-        PSHUFB    XMM1, DQWORD PTR [SIMD_4x0C080400] // XMM1[0] <- XMM1[0..3][0]
+        PSHUFB    XMM1, DQWORD PTR [SSE_0C080400_ALIGNED] // XMM1[0] <- XMM1[0..3][0]
 
         // Store dest
         MOVD      [EAX], XMM1
@@ -2385,9 +2363,9 @@ asm
 
         // Add bias (~$7F*$8081)
 {$if (not defined(FPC))}
-        PADDD     XMM1, DQWORD PTR [SIMD_4x003FFF7F] // XMM1 <- (Color * Weight * $8081) + Bias
+        PADDD     XMM1, DQWORD PTR [SSE_003FFF7F_ALIGNED] // XMM1 <- (Color * Weight * $8081) + Bias
 {$else}
-        PADDD     XMM1, DQWORD PTR [rip+SIMD_4x003FFF7F]
+        PADDD     XMM1, DQWORD PTR [rip+SSE_003FFF7F_ALIGNED]
 {$ifend}
 
         // Reduce 32-bits to 9-bits
@@ -2395,9 +2373,9 @@ asm
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
 {$if (not defined(FPC))}
-        PSHUFB    XMM1, DQWORD PTR [SIMD_4x0C080400] // XMM1[0] <- XMM1[0..3][0]
+        PSHUFB    XMM1, DQWORD PTR [SSE_0C080400_ALIGNED] // XMM1[0] <- XMM1[0..3][0]
 {$else}
-        PSHUFB    XMM1, DQWORD PTR [rip+SIMD_4x0C080400]
+        PSHUFB    XMM1, DQWORD PTR [rip+SSE_0C080400_ALIGNED]
 {$ifend}
 
         // Store dest
@@ -2623,30 +2601,25 @@ asm
 end;
 
 
+{$ifend}
+
 //------------------------------------------------------------------------------
 //
 //      Bindings
 //
 //------------------------------------------------------------------------------
-{$IFNDEF PUREPASCAL}
 procedure RegisterBindingFunctions;
 begin
-{$IFNDEF OMIT_SSE2}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
   BlendRegistry[@@MergeReg].Add(      @MergeReg_SSE2,         [isSSE2]).Name := 'MergeReg_SSE2';
   BlendRegistry[@@CombineReg].Add(    @CombineReg_SSE2,       [isSSE2]).Name := 'CombineReg_SSE2';
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE2_128,   [isSSE2]).Name := 'CombineMem_SSE2_128';
-{$ifndef FPC} // CombineMem_SSE41_Kadaif is currently broken on FPC
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE41_Kadaif, [isSSE41]).Name := 'CombineMem_SSE41_Kadaif';
-{$else}
-  BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE41_8081, [isSSE41]).Name := 'CombineMem_SSE41_8081';
-{$endif}
-{$ifdef BENCHMARK}
+{$if defined(BENCHMARK)}
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE2_Table, [isSSE2], BindingPriorityWorse).Name := 'CombineMem_SSE2_Table';
-{$ifndef FPC}
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE41_8081, [isSSE41], BindingPriorityWorse).Name := 'CombineMem_SSE41_8081';
-{$endif}
-{$endif}
+{$ifend}
   BlendRegistry[@@CombineLine].Add(   @CombineLine_SSE2,      [isSSE2]).Name := 'CombineLine_SSE2';
   BlendRegistry[@@BlendReg].Add(      @BlendReg_SSE2,         [isSSE2]).Name := 'BlendReg_SSE2';
   BlendRegistry[@@BlendMem].Add(      @BlendMem_SSE2,         [isSSE2]).Name := 'BlendMem_SSE2';
@@ -2660,31 +2633,31 @@ begin
   BlendRegistry[@@ColorAdd].Add(      @ColorAdd_SSE2,         [isSSE2]).Name := 'ColorAdd_SSE2';
   BlendRegistry[@@ColorSub].Add(      @ColorSub_SSE2,         [isSSE2]).Name := 'ColorSub_SSE2';
   BlendRegistry[@@ColorModulate].Add( @ColorModulate_SSE2,    [isSSE2]).Name := 'ColorModulate_SSE2';
-  BlendRegistry[@@ColorDifference].Add(@ColorDifference_SSE2,  [isSSE2]).Name := 'ColorDifference_SSE2';
+  BlendRegistry[@@ColorDifference].Add(@ColorDifference_SSE2, [isSSE2]).Name := 'ColorDifference_SSE2';
   BlendRegistry[@@ColorExclusion].Add(@ColorExclusion_SSE2,   [isSSE2]).Name := 'ColorExclusion_SSE2';
   BlendRegistry[@@ColorScale].Add(    @ColorScale_SSE2,       [isSSE2]).Name := 'ColorScale_SSE2';
   BlendRegistry[@@LightenReg].Add(    @LightenReg_SSE2,       [isSSE]).Name := 'LightenReg_SSE2';
   BlendRegistry[@@BlendRegRGB].Add(   @BlendRegRGB_SSE2,      [isSSE2]).Name := 'BlendRegRGB_SSE2';
   BlendRegistry[@@BlendMemRGB].Add(   @BlendMemRGB_SSE2,      [isSSE2]).Name := 'BlendMemRGB_SSE2';
-{$ifdef GR32_SCALEMEMS_FAST}
-  BlendRegistry[@@ScaleMems].Add(     @FastScaleMems_SSE41,[isSSE41]).Name := 'FastScaleMems_SSE41';
-{$else}
-  BlendRegistry[@@ScaleMems].Add(     @ScaleMems_SSE41,    [isSSE41]).Name := 'ScaleMems_SSE41';
-{$endif}
-{$IFDEF TEST_BLENDMEMRGB128SSE4}
-  BlendRegistry[@@BlendMemRGB128].Add(@BlendMemRGB128_SSE4,   [isSSE2]).Name := 'BlendMemRGB128_SSE4';
-{$ENDIF}
 
-{$ENDIF}
+{$if defined(GR32_SCALEMEMS_FAST) or defined(BENCHMARK)}
+  BlendRegistry[@@ScaleMems].Add(     @FastScaleMems_SSE41,   [isSSE41]).Name := 'FastScaleMems_SSE41';
+{$ifend}
+{$if (not defined(GR32_SCALEMEMS_FAST)) or defined(BENCHMARK)}
+  BlendRegistry[@@ScaleMems].Add(     @ScaleMems_SSE41,       [isSSE41]).Name := 'ScaleMems_SSE41';
+{$ifend}
+
+{$if defined(TEST_BLENDMEMRGB128SSE4) or defined(BENCHMARK)}
+  BlendRegistry[@@BlendMemRGB128].Add(@BlendMemRGB128_SSE4,   [isSSE2]).Name := 'BlendMemRGB128_SSE4';
+{$ifend}
+
+{$ifend}
 end;
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 initialization
-{$IFNDEF PUREPASCAL}
   RegisterBindingFunctions;
-{$ENDIF}
 end.

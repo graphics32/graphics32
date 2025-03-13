@@ -13,6 +13,7 @@ object MainForm: TMainForm
   Position = poScreenCenter
   ShowHint = True
   OnCreate = FormCreate
+  OnShow = FormShow
   TextHeight = 13
   object Splitter1: TSplitter
     Left = 0
@@ -47,7 +48,6 @@ object MainForm: TMainForm
       Scale = 1.000000000000000000
       ScaleMode = smNormal
       TabOrder = 0
-      OnClick = ImgClick
       OnResize = ImgResize
     end
   end
@@ -98,7 +98,6 @@ object MainForm: TMainForm
         Top = 178
         Width = 139
         Height = 25
-        Anchors = [akLeft, akBottom]
         Caption = 'Do &Benchmark'
         TabOrder = 4
         OnClick = BtnBenchmarkClick
@@ -122,7 +121,7 @@ object MainForm: TMainForm
       object CbxAllTests: TCheckBox
         Left = 14
         Top = 98
-        Width = 112
+        Width = 167
         Height = 19
         Caption = 'Benchmark all tests'
         TabOrder = 2
@@ -130,7 +129,7 @@ object MainForm: TMainForm
       object CbxAllRenderers: TCheckBox
         Left = 14
         Top = 118
-        Width = 135
+        Width = 167
         Height = 19
         Caption = 'Benchmark all renderers'
         TabOrder = 3
@@ -140,7 +139,6 @@ object MainForm: TMainForm
         Top = 178
         Width = 139
         Height = 25
-        Anchors = [akLeft, akBottom]
         Caption = 'E&xit'
         TabOrder = 5
         OnClick = BtnExitClick
@@ -148,7 +146,7 @@ object MainForm: TMainForm
       object CheckBoxBatch: TCheckBox
         Left = 14
         Top = 138
-        Width = 135
+        Width = 167
         Height = 19
         Hint = 'Enable batching for renderers that support it'
         Caption = 'Enable batching'

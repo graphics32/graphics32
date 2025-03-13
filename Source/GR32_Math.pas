@@ -217,20 +217,13 @@ const
 implementation
 
 uses
-  Math;
-
-{$IFNDEF PUREPASCAL}
-const
-  // Rounding control values for use with the SSE4.1 ROUNDSS instruction
-  ROUND_TO_NEAREST_INT  = $00; // Round
-  ROUND_TO_NEG_INF      = $01; // Floor
-  ROUND_TO_POS_INF      = $02; // Ceil
-  ROUND_TO_ZERO         = $03; // Trunc
-  ROUND_CUR_DIRECTION   = $04; // Rounds using default from MXCSR register
-
-  ROUND_RAISE_EXC       = $00; // Raise exceptions
-  ROUND_NO_EXC          = $08; // Suppress exceptions
-{$ENDIF}
+{$if not defined(FPC)}
+  System.Math,
+{$else}
+  Math,
+{$ifend}
+  GR32_System,
+  GR32.Types.SIMD;
 
 {$IFDEF PUREPASCAL}
 const
@@ -723,7 +716,7 @@ procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
 var
   S, C: Extended;
 begin
-  Math.SinCos(Theta, S, C);
+  {$ifndef FPC}System.{$endif}Math.SinCos(Theta, S, C);
   Sin := S;
   Cos := C;
 end;
@@ -766,7 +759,7 @@ procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat);
 var
   S, C: Extended;
 begin
-  Math.SinCos(Theta, S, C);
+  {$ifndef FPC}System.{$endif}Math.SinCos(Theta, S, C);
   Sin := S * Radius;
   Cos := C * Radius;
 end;
@@ -813,7 +806,7 @@ procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single);
 var
   S, C: Extended;
 begin
-  Math.SinCos(Theta, S, C);
+  {$ifndef FPC}System.{$endif}Math.SinCos(Theta, S, C);
   Sin := S * ScaleX;
   Cos := C * ScaleY;
 end;
@@ -898,7 +891,7 @@ end;
 
 function Hypot(const X, Y: Integer): Integer;
 begin
-  Result := Round(Math.Hypot(X, Y));
+  Result := Round({$ifndef FPC}System.{$endif}Math.Hypot(X, Y));
 end;
 
 {$else}
@@ -1432,7 +1425,7 @@ end;
 function Sign(Value: Integer): Integer;
 begin
   // Defer to Math.Sign
-  Result := Integer(Math.Sign(Value));
+  Result := Integer({$ifndef FPC}System.{$endif}Math.Sign(Value));
 end;
 
 {$ELSE}
@@ -1542,7 +1535,7 @@ asm
         movss   xmm2, xmm0
         divss   xmm2, xmm1
         // b := Floor(a)
-        roundss xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        roundss xmm2, xmm2, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulss   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1590,7 +1583,7 @@ asm
         movsd   xmm2, xmm0
         divsd   xmm2, xmm1
         // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        roundsd xmm2, xmm2, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulsd   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1678,7 +1671,7 @@ asm
         movss   xmm2, xmm0
         divss   xmm2, xmm1
         // b := Round(a)
-        roundss xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
+        roundss xmm2, xmm2, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulss   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1726,7 +1719,7 @@ asm
         movsd   xmm2, xmm0
         divsd   xmm2, xmm1
         // b := Floor(a)
-        roundsd xmm2, xmm2, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
+        roundsd xmm2, xmm2, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
         // c := ADenominator * b
         mulsd   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1850,7 +1843,7 @@ asm
         // a := ANumerator / ADenominator
         divss   xmm2, xmm1
         // b := Trunc(a)
-        roundss xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
+        roundss xmm2, xmm2, SSE_ROUND.TO_ZERO + SSE_ROUND.NO_EXC
         // c := b*ADenominator
         mulss   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1875,7 +1868,7 @@ asm
         // a := ANumerator / ADenominator
         divsd   xmm2, xmm1
         // b := Trunc(a)
-        roundsd xmm2, xmm2, ROUND_TO_ZERO or ROUND_NO_EXC
+        roundsd xmm2, xmm2, SSE_ROUND.TO_ZERO + SSE_ROUND.NO_EXC
         // c := b*ADenominator
         mulsd   xmm2, xmm1
         // Result := ANumerator - c;
@@ -1960,7 +1953,101 @@ end;
 
 //------------------------------------------------------------------------------
 
-{$IFNDEF PUREPASCAL}
+// Reference Pascal version of CumSum_SSE2_Simple
+procedure CumSum_Pas_Simple(Values: PSingleArray; Count: Integer);
+var
+  V: TFloat;
+begin
+  Values := pointer(@Values[Count]);
+  Count := -Count;
+  V := 0;
+  while Count <> 0 do
+  begin
+    V := V + Values[Count];
+    Values[Count] := V;
+    Inc(Count);
+  end;
+end;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+// Very simple SSE2 version for Sandy- and Ivy Bridge
+procedure CumSum_SSE2_Simple(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+
+  // Parameters (x86):
+  // EAX <- Values
+  // EDX <- Count
+
+  // SSE register usage:
+  //   XMM0: Running total
+
+        // while Count <> 0 do
+        TEST    EDX, EDX
+        JLE     @Done
+
+        // Values := pointer(@Values[Count]);
+        LEA     EAX, [EAX + EDX * 4]            // Get address of last entry + 1
+
+        // Count := -Count;
+        NEG     EDX                             // Negate count so we can use it as an offset to move forward
+
+        // V := 0;
+        PXOR    XMM0, XMM0                      // XMM0 <- 0
+
+@Loop:
+        // V := V + Values[Count];
+        ADDSS   XMM0, dword ptr [EAX + EDX * 4]
+        // Values[Count] := V;
+        MOVSS   dword ptr [EAX + EDX * 4], XMM0
+
+        // Inc(Count);
+        ADD       EDX, 1
+        // while Count <> 0 do
+        JS        @Loop
+
+@Done:
+
+{$elseif defined(TARGET_x64)}
+
+  // Parameters (x64):
+  // RCX <- Values
+  // RDX <- Count
+
+  // SSE register usage:
+  //   XMM0: Running total
+
+        // while Count <> 0 do
+        TEST    RDX, RDX
+        JLE     @Done
+
+        // Values := pointer(@Values[Count]);
+        LEA     RCX, [RCX + RDX * 4]            // Get address of last entry + 1
+
+        // Count := -Count;
+        NEG     RDX                             // Negate count so we can use it as an offset to move forward
+
+        // V := 0;
+        PXOR    XMM0, XMM0                      // XMM0 <- 0
+
+@Loop:
+        // V := V + Values[Count];
+        ADDSS   XMM0, dword ptr [RCX + RDX * 4]
+        // Values[Count] := V;
+        MOVSS   dword ptr [RCX + RDX * 4], XMM0
+
+        // Inc(Count);
+        ADD       RDX, 1
+        // while Count <> 0 do
+        JS        @Loop
+
+@Done:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
 
 // Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
 procedure CumSum_SSE2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
@@ -2174,7 +2261,846 @@ asm
 {$ifend}
 end;
 
-{$ENDIF}
+// Contributed by Kadaif, based on Sanyin's aligned SSE2 version
+procedure CumSum_SSE2_kadaif1(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+
+        MOV     ECX,EDX
+        CMP     ECX,2       // if count < 2, exit
+        JL      @END
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PUSH    EBX
+        PXOR    XMM4,XMM4
+        MOV     EBX,EAX
+        AND     EBX,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     EBX,-16
+        NEG     EBX          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,EBX
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     EAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [EAX-4]
+        ADDSS   XMM0,DWORD PTR [EAX]
+        MOVSS   DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[EAX-4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        POP     EBX
+        PUSH    EBX
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[EAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB EBX,XMM5
+        CMP     EBX,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [eax+16*16*2]
+        MOVAPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        POP     EBX
+        MOV     ECX,EDX
+        SAR     ECX,2
+        SHL     ECX,2
+        SUB     EDX,ECX
+        MOV     ECX,EDX
+        JZ      @END
+
+@LOOP2:
+        MOVSS   XMM0,DWORD PTR [EAX-4]
+        ADDSS    XMM0,DWORD PTR [EAX]
+        MOVSS    DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        CMP     ECX,4
+        JL      @SMALL2
+        SAR     ECX,2
+        PXOR    XMM4,XMM4
+@LOOP3:
+        MOVUPS  XMM0,[EAX]
+        ADDPS   XMM0,XMM4
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+        MOVUPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     EDX,4
+        SUB     ECX,1
+        JNZ     @LOOP3
+        CMP     EDX, 0
+        JZ      @END
+        MOV     ECX,EDX
+        JMP     @LOOP4
+@SMALL2:
+        MOV     ECX,EDX
+        ADD     EAX,4
+        DEC     ECX
+@LOOP4:
+        MOVSS   XMM0,DWORD PTR [EAX-4]
+        ADDSS    XMM0,DWORD PTR [EAX]
+        MOVSS    DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @LOOP4
+@END:
+
+{$elseif defined(TARGET_x64)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+
+        MOV     RAX,RCX
+        MOV     ECX,EDX
+
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PXOR    XMM4,XMM4
+        MOV     R8D,EAX
+        AND     R8D,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     R8D,-16
+        NEG     R8D          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,R8D
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     RAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[RAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[RAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB R8D,XMM5
+        CMP     R8D,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [RAX + 32 * 2]
+        MOVAPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        MOV     ECX,EDX
+        SAR     ECX,2
+        SHL     ECX,2
+        SUB     EDX,ECX
+        MOV     ECX,EDX
+        JZ      @END
+
+@LOOP2:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        CMP     ECX,4
+        JL      @SMALL2
+        SAR     ECX,2
+        PXOR    XMM4,XMM4
+@LOOP3:
+        MOVUPS  XMM0,[RAX]
+        ADDPS   XMM0,XMM4
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVDQA  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+        MOVUPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     EDX,4
+        SUB     ECX,1
+        JNZ     @LOOP3
+        CMP     EDX, 0
+        JZ      @END
+        MOV     ECX,EDX
+        JMP     @LOOP4
+
+@SMALL2:
+        ADD     RAX,4
+        DEC     ECX
+@LOOP4:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP4
+@END:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+procedure CumSum_SSE2_kadaif2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+        MOV     ECX,EDX
+        CMP     EDX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PUSH    EBX
+        PXOR    XMM4,XMM4
+        MOV     EBX,EAX
+        AND     EBX,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     EBX,-16
+        NEG     EBX          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,EBX
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     EAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS   XMM0,DWORD PTR [EAX]
+        MOVSS   DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[EAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        POP     EBX
+        PUSH    EBX
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[EAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB EBX,XMM5
+        CMP     EBX,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [EAX + 16 * 16 * 2]
+        MOVAPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        POP     EBX
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+@LOOP2:
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS    XMM0,DWORD PTR [EAX]
+        MOVSS    DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        CMP     ECX,8
+        JL      @SMALL2
+        SAR     ECX,2
+        PXOR    XMM4,XMM4
+@LOOP3:
+        MOVUPS  XMM0,[EAX]
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+        MOVUPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     EDX,4
+        SUB     ECX,1
+        JNZ     @LOOP3
+        CMP     EDX, 0
+        JZ      @END
+        MOV     ECX,EDX
+        JMP     @LOOP4
+@SMALL2:
+        ADD     EAX,4
+        SUB     ECX,1
+@LOOP4:
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS   XMM0,DWORD PTR [EAX]
+        MOVSS   DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
+
+{$elseif defined(TARGET_x64)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+
+        MOV     RAX,RCX
+        MOV     ECX,EDX
+
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PXOR    XMM4,XMM4
+        MOV     R8D,EAX
+        AND     R8D,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     R8D,-16
+        NEG     R8D          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,R8D
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     RAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[RAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[RAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB R8D,XMM5
+        CMP     R8D,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [RAX + 32 * 2]
+        MOVAPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+@LOOP2:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        CMP     ECX,8
+        JL      @SMALL2
+        SAR     ECX,2
+        PXOR    XMM4,XMM4
+@LOOP3:
+        MOVUPS  XMM0,[RAX]
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+        MOVUPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     EDX,4
+        SUB     ECX,1
+        JNZ     @LOOP3
+        CMP     EDX, 0
+        JZ      @END
+        MOV     ECX,EDX
+        JMP     @LOOP4
+
+@SMALL2:
+        ADD     RAX,4
+        DEC     ECX
+@LOOP4:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP4
+@END:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+procedure CumSum_SSE2_kadaif3(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+        MOV     ECX,EDX
+        CMP     EDX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PUSH    EBX
+        PXOR    XMM4,XMM4
+        MOV     EBX,EAX
+        AND     EBX,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     EBX,-16
+        NEG     EBX          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,EBX
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     EAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element (float) before aligned. skip it.
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [EAX - 4]
+        ADDSS   XMM0,DWORD PTR [EAX]
+        MOVSS   DWORD PTR [EAX],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[EAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        POP     EBX
+        PUSH    EBX
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[EAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB EBX,XMM5
+        CMP     EBX,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [EAX + 16 * 16 * 2]
+        MOVAPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        POP     EBX
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+        SUB     EAX,4
+        MOVSS   XMM0,DWORD PTR [EAX]
+
+@LOOP2:
+
+        ADDSS    XMM0,DWORD PTR [EAX + 4]
+        MOVSS    DWORD PTR [EAX + 4],XMM0
+        ADD     EAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+
+        MOVSS   XMM0,DWORD PTR [EAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [EAX + 4]
+        MOVSS   DWORD PTR [EAX + 4],XMM0
+        ADD     EAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
+
+{$elseif defined(TARGET_x64)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+
+        MOV     RAX,RCX
+        MOV     ECX,EDX
+
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+{--- align memory ---}
+        PXOR    XMM4,XMM4
+        MOV     R8D,EAX
+        AND     R8D,15       // get aligned count
+        JZ      @ENDALIGNING // already aligned
+        ADD     R8D,-16
+        NEG     R8D          // get bytes to advance
+        JZ      @ENDALIGNING // already aligned
+
+        MOV     ECX,R8D
+        SAR     ECX,2        // div with 4 to get cnt
+        SUB     EDX,ECX
+
+        ADD     RAX,4
+        DEC     ECX
+        JZ      @SETUPLAST   // one element (float) before aligned. skip it.
+
+@ALIGNINGLOOP:
+        MOVSS   XMM0,DWORD PTR [RAX - 4]
+        ADDSS   XMM0,DWORD PTR [RAX]
+        MOVSS   DWORD PTR [RAX],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @ALIGNINGLOOP
+
+@SETUPLAST:
+        MOVUPS  XMM4,[RAX - 4]
+        PSLLDQ  XMM4,12
+        PSRLDQ  XMM4,12
+
+@ENDALIGNING:
+        MOV     ECX,EDX
+        SAR     ECX,2
+@LOOP:
+        MOVAPS  XMM0,[RAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB R8D,XMM5
+        CMP     R8D,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [RAX + 32 * 2]
+        MOVAPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+        SUB     RAX,4 // result is in RAX - 4
+        MOVSS   XMM0,DWORD PTR [RAX]
+@LOOP2:
+        ADDSS   XMM0,DWORD PTR [RAX + 4]
+        MOVSS   DWORD PTR [RAX + 4],XMM0
+        ADD     RAX,4
+        DEC     ECX
+        JNZ     @LOOP2
+        JMP     @END
+
+@SMALL:
+        MOVSS   XMM0,DWORD PTR [RAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [RAX + 4]
+        MOVSS   DWORD PTR [RAX + 4],XMM0
+        ADD     RAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+procedure CumSum_SSE2_kadaif4(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+        MOV     ECX,EDX
+        CMP     EDX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+        SHR ECX,2
+        PUSH EBX
+        PXOR    XMM4,XMM4
+
+        @LOOP:
+        MOVUPS  XMM0,[EAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB EBX,XMM5
+        CMP     EBX,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [EAX + 16 * 16 * 2]
+        MOVUPS  [EAX],XMM0
+        ADD     EAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        POP     EBX
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+        SUB     EAX,4 // result is in EAX-1
+        MOVSS   XMM0,DWORD PTR [EAX]
+        JMP @LOOP4
+
+@SMALL:
+        MOVSS   XMM0,DWORD PTR [EAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [EAX + 4]
+        MOVSS   DWORD PTR [EAX + 4],XMM0
+        ADD     EAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
+
+{$elseif defined(TARGET_x64)}
+
+        CMP     EDX,2       // if count < 2, exit
+        JL      @END
+
+        MOV     RAX,RCX
+        MOV     ECX,EDX
+
+        CMP     ECX,32      // if count < 32, avoid SSE2 overhead
+        JL      @SMALL
+
+
+        SHR ECX,2
+        PXOR    XMM4,XMM4
+
+        @LOOP:
+        MOVUPS  XMM0,[RAX]
+        PXOR    XMM5,XMM5
+        PCMPEQD XMM5,XMM0
+        PMOVMSKB R8D,XMM5
+        CMP     R8D,$0000FFFF
+        JNE     @NORMAL
+        PSHUFD  XMM0,XMM4,0
+        JMP     @SKIP
+
+@NORMAL:
+        ADDPS   XMM0,XMM4
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,4
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM2,XMM0
+        PSLLDQ  XMM2,8
+        ADDPS   XMM0,XMM2
+        MOVAPS  XMM4,XMM0
+        PSRLDQ  XMM4,12
+
+@SKIP:
+        PREFETCHNTA [RAX + 16 * 16 * 2]
+        MOVUPS  [RAX],XMM0
+        ADD     RAX,16
+        SUB     ECX,1
+        JNZ     @LOOP
+        MOV     ECX,EDX
+        AND     ECX,3
+        JZ      @END
+
+        SUB     RAX,4 // result is in EAX-1
+        MOVSS   XMM0,DWORD PTR [RAX]
+        JMP @LOOP4
+
+@SMALL:
+        MOVSS   XMM0,DWORD PTR [RAX]
+        SUB     ECX,1
+@LOOP4:
+        ADDSS   XMM0,DWORD PTR [RAX + 4]
+        MOVSS   DWORD PTR [RAX + 4],XMM0
+        ADD     RAX,4
+        SUB     ECX,1
+        JNZ     @LOOP4
+@END:
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+{$ifend (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
 
 
 //------------------------------------------------------------------------------
@@ -2186,13 +3112,13 @@ procedure RegisterBindings;
 begin
   MathRegistry := NewRegistry('GR32_Math bindings');
 
-  MathRegistry.RegisterBinding(FID_CUMSUM, @@CumSum, 'CumSum');
-  MathRegistry.RegisterBinding(FID_FLOATMOD_F, @@FloatMod_F, 'FloatMod_F');
-  MathRegistry.RegisterBinding(FID_FLOATMOD_D, @@FloatMod_D, 'FloatMod_D');
-  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_F, @@FloatRemainder_F, 'FloatRemainder_F');
-  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_D, @@FloatRemainder_D, 'FloatRemainder_D');
-  MathRegistry.RegisterBinding(FID_FMOD_F, @@FMod_F, 'FMod_F');
-  MathRegistry.RegisterBinding(FID_FMOD_D, @@FMod_D, 'FMod_D');
+  MathRegistry.RegisterBinding(FID_CUMSUM,              @@CumSum,               'CumSum');
+  MathRegistry.RegisterBinding(FID_FLOATMOD_F,          @@FloatMod_F,           'FloatMod_F');
+  MathRegistry.RegisterBinding(FID_FLOATMOD_D,          @@FloatMod_D,           'FloatMod_D');
+  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_F,    @@FloatRemainder_F,     'FloatRemainder_F');
+  MathRegistry.RegisterBinding(FID_FLOATREMAINDER_D,    @@FloatRemainder_D,     'FloatRemainder_D');
+  MathRegistry.RegisterBinding(FID_FMOD_F,              @@FMod_F,               'FMod_F');
+  MathRegistry.RegisterBinding(FID_FMOD_D,              @@FMod_D,               'FMod_D');
 
   // pure pascal
   MathRegistry[@@CumSum].Add(           @CumSum_Pas,            [isPascal]).Name := 'CumSum_Pas';
@@ -2203,8 +3129,21 @@ begin
   MathRegistry[@@FMod_F].Add(           @FMod_F_Pas,            [isPascal]).Name := 'FMod_F_Pas';
   MathRegistry[@@FMod_D].Add(           @FMod_D_Pas,            [isPascal]).Name := 'FMod_D_Pas';
 
+{$if defined(BENCHMARK)}
+  MathRegistry[@@CumSum].Add(           @CumSum_Pas_Simple,     [isPascal]).Name := 'CumSum_Pas_Simple';
+{$ifend}
+
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif2,   [isSSE2]).Name := 'CumSum_SSE2_kadaif2';
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_Simple,    [isSSE2], BindingPriorityWorse).Name := 'CumSum_SSE2_Simple';
+
+{$if defined(BENCHMARK)}
   MathRegistry[@@CumSum].Add(           @CumSum_SSE2,           [isSSE2]).Name := 'CumSum_SSE2';
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif1,   [isSSE2]).Name := 'CumSum_SSE2_kadaif1';
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif3,   [isSSE2]).Name := 'CumSum_SSE2_kadaif3';
+  MathRegistry[@@CumSum].Add(           @CumSum_SSE2_kadaif4,   [isSSE2]).Name := 'CumSum_SSE2_kadaif4';
+{$ifend}
 
   MathRegistry[@@FloatMod_F].Add(       @FloatMod_F_SSE41,      [isSSE41]).Name := 'FloatMod_F_SSE41';
 
@@ -2219,6 +3158,27 @@ begin
 
   MathRegistry[@@FMod_D].Add(           @FMod_D_SSE2,           [isSSE2]).Name := 'FMod_D_SSE2';
   MathRegistry[@@FMod_D].Add(           @FMod_D_SSE41,          [isSSE41]).Name := 'FMod_D_SSE41';
+
+  // The regular CumSum SIMD 64-bit implementations are very slow on certain
+  // old CPUs (Sandy Bridge and presumably also Ivy Bridge) so we need to
+  // penalize them so they don't get selected by the rebind.
+  //
+  // - On Sandy Bridge, 64-bit, the Pure Pascal version is faster than the
+  //   optimized SSE2 version.
+  //
+  // - On Sandy Bridge, 32-bit, the simple SSE2 version is faster than the
+  //   optimized SSE2 version.
+  //
+  // We could detect Sandy- and Ivy Bridge by their model numbers (42 and 58)
+  // but instead we use the AVX2 feature flag since they were the last models
+  // without AVX2.
+  //
+  // Also, instead of altering the priority of the SIMD implementation we
+  // instead improve the priority of the replacement implementation.
+
+  if (not (isAVX2 in CPU.InstructionSupport)) then
+    MathRegistry[@@CumSum].FindImplementation(@CumSum_SSE2_Simple).Priority := BindingPriorityBetter;
+
 {$ifend}
 
   MathRegistry.RebindAll;

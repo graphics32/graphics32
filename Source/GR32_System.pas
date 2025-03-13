@@ -38,8 +38,10 @@ uses
 {$ifndef FPC}
   System.Diagnostics,
 {$endif}
-  GR32.CPUID,
-  Types; // Not really needed in this unit but we do need something in this uses list
+  GR32.CPUID;
+
+  // Types; // Not really needed in this unit but we do need something in this uses list
+  // TODO : Why?
 
 
 //------------------------------------------------------------------------------
@@ -194,11 +196,19 @@ var
 implementation
 
 uses
+{$if not defined(FPC)}
+{$ifdef MSWINDOWS}
+  WinApi.Windows,
+{$endif}
+  System.SysUtils,
+  System.Classes;
+{$else}
 {$ifdef MSWINDOWS}
   Windows,
 {$endif}
   SysUtils,
   Classes;
+{$ifend}
 
 //------------------------------------------------------------------------------
 //

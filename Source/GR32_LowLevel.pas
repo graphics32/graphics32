@@ -255,23 +255,27 @@ function Div255Round(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 //------------------------------------------------------------------------------
 //
-//      FastRound, FastTrunc, and FastFloor
-//      Fast alternatives to the RTL Round, Trunc, and Floor
+//      FastRound, FastTrunc, FastFloor, and FastCeil
+//      Fast alternatives to the RTL Round, Trunc, Floor and Ceil
 //
 //------------------------------------------------------------------------------
 function FastFloor(Value: TFloat): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FastFloor(Value: Double): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FastCeil(Value: TFloat): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FastCeil(Value: Double): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 type
   TFastRoundSingleProc = function(Value: TFloat): Integer;
   TFastRoundDoubleProc = function(Value: Double): Integer;
 
 var
-  // Trunc and Round using SSE
+  // Trunc, Round, Floor, Ceil bindings
   FastTrunc: TFastRoundSingleProc;
   FastRound: TFastRoundSingleProc;
   FastFloorSingle: TFastRoundSingleProc;
   FastFloorDouble: TFastRoundDoubleProc;
+  FastCeilSingle: TFastRoundSingleProc;
+  FastCeilDouble: TFastRoundDoubleProc;
 
 
 //------------------------------------------------------------------------------
@@ -332,33 +336,15 @@ const
 implementation
 
 uses
-{$IFDEF FPC}
+{$if not defined(FPC)}
+  System.Math,
+{$else}
   SysUtils,
-{$ENDIF}
-  Math;
+  Math,
+{$ifend}
+  GR32.Types.SIMD;
 
 {$R-}{$Q-}  // switch off overflow and range checking
-
-{$IFNDEF PUREPASCAL}
-const
-  // Rounding control values for use with the SSE4.1 ROUNDSS instruction
-  ROUND_TO_NEAREST_INT  = $00; // Round
-  ROUND_TO_NEG_INF      = $01; // Floor
-  ROUND_TO_POS_INF      = $02; // Ceil
-  ROUND_TO_ZERO         = $03; // Trunc
-  ROUND_CUR_DIRECTION   = $04; // Rounds using default from MXCSR register
-
-  ROUND_RAISE_EXC       = $00; // Raise exceptions
-  ROUND_NO_EXC          = $08; // Suppress exceptions
-
-const
-  // SSE MXCSR rounding modes
-  MXCSR_ROUND_MASK    = $FFFF9FFF;
-  MXCSR_ROUND_NEAREST = $00000000;
-  MXCSR_ROUND_DOWN    = $00002000;
-  MXCSR_ROUND_UP      = $00004000;
-  MXCSR_ROUND_TRUNC   = $00006000;
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 //
@@ -1484,7 +1470,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_TO_NEAREST_INT or ROUND_NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEAREST_INT + SSE_ROUND.NO_EXC
 
         CVTSS2SI eax, xmm0
 end;
@@ -1546,14 +1532,14 @@ asm
         // Do we need to change anything?
         MOV     ECX, EAX
         NOT     ECX
-        AND     ECX, MXCSR_ROUND_TRUNC
+        AND     ECX, MXCSR.TRUNC
         JZ      @SkipSetMXCSR // Skip expensive LDMXCSR
 @SetMXCSR:
         // Save current rounding mode in ECX and flag that we need to restore it
         MOV     ECX, EAX
         // Set rounding mode to truncation
-        AND     EAX, MXCSR_ROUND_MASK
-        OR      EAX, MXCSR_ROUND_TRUNC
+        AND     EAX, MXCSR.MASK
+        OR      EAX, MXCSR.TRUNC
         // Set new rounding mode
         MOV     NewMXCSR, EAX
         LDMXCSR NewMXCSR
@@ -1588,7 +1574,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_TO_ZERO or ROUND_NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_ZERO + SSE_ROUND.NO_EXC
         CVTSS2SI eax, xmm0
 end;
 {$ENDIF}
@@ -1640,7 +1626,7 @@ asm
         MOVSS   xmm0, Value
 {$ifend}
 
-        ROUNDSS xmm0, xmm0, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
 
         CVTSS2SI eax, xmm0
 end;
@@ -1656,11 +1642,77 @@ asm
         MOVSD   xmm0, Value
 {$ifend}
 
-        ROUNDSD xmm0, xmm0, ROUND_TO_NEG_INF or ROUND_NO_EXC
+        ROUNDSD xmm0, xmm0, SSE_ROUND.TO_NEG_INF + SSE_ROUND.NO_EXC
 
         CVTTSD2SI eax, xmm0
 end;
 {$ENDIF}
+{$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
+//      FastCeil
+//
+//------------------------------------------------------------------------------
+function FastCeil(Value: TFloat): Integer;
+begin
+  Result := FastCeilSingle(Value);
+end;
+
+function FastCeil(Value: Double): Integer;
+begin
+  Result := FastCeilDouble(Value);
+end;
+
+//------------------------------------------------------------------------------
+// FastCeilSingle_Pas
+//------------------------------------------------------------------------------
+function FastCeilSingle_Pas(Value: TFloat): Integer;
+begin
+  Result := Integer(Trunc(Value));
+  if Frac(Value) > 0 then
+    Inc(Result);
+end;
+
+//------------------------------------------------------------------------------
+// FastCeilDouble_Pas
+//------------------------------------------------------------------------------
+function FastCeilDouble_Pas(Value: Double): Integer;
+begin
+  Result := Integer(Trunc(Value));
+  if Frac(Value) > 0 then
+    Inc(Result);
+end;
+
+{$IFNDEF PUREPASCAL}
+//------------------------------------------------------------------------------
+// FastCeilSingle_SSE41
+//------------------------------------------------------------------------------
+function FastCeilSingle_SSE41(Value: Single): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOVSS   xmm0, Value
+{$ifend}
+
+        ROUNDSS xmm0, xmm0, SSE_ROUND.TO_POS_INF + SSE_ROUND.NO_EXC
+
+        CVTSS2SI eax, xmm0
+end;
+
+//------------------------------------------------------------------------------
+// FastCeilDouble_SSE41
+//------------------------------------------------------------------------------
+function FastCeilDouble_SSE41(Value: Double): Integer; {$IFDEF FPC} assembler; {$IFDEF TARGET_X64} nostackframe; {$ENDIF}{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOVSD   xmm0, Value
+{$ifend}
+
+        ROUNDSD xmm0, xmm0, SSE_ROUND.TO_POS_INF + SSE_ROUND.NO_EXC
+
+        CVTTSD2SI eax, xmm0
+end;
 {$ENDIF}
 
 
@@ -2013,29 +2065,38 @@ begin
   LowLevelRegistry.RegisterBinding(FID_FAST_ROUND, @@FastRound, 'FastRound');
   LowLevelRegistry.RegisterBinding(@@FastFloorSingle, 'FastFloorSingle');
   LowLevelRegistry.RegisterBinding(@@FastFloorDouble, 'FastFloorDouble');
+  LowLevelRegistry.RegisterBinding(@@FastCeilSingle, 'FastCeilSingle');
+  LowLevelRegistry.RegisterBinding(@@FastCeilDouble, 'FastCeilDouble');
 
   LowLevelRegistry[@@FillLongWord].Add(         @FillLongWord_Pas,      [isPascal]).Name := 'FillLongWord_Pas';
   LowLevelRegistry[@@FastTrunc].Add(            @FastTrunc_Pas,         [isPascal]).Name := 'FastTrunc_Pas';
   LowLevelRegistry[@@FastRound].Add(            @FastRound_Pas,         [isPascal]).Name := 'FastRound_Pas';
   LowLevelRegistry[@@FastFloorSingle].Add(      @FastFloorSingle_Pas,   [isPascal]).Name := 'FastFloorSingle_Pas';
   LowLevelRegistry[@@FastFloorDouble].Add(      @FastFloorDouble_Pas,   [isPascal]).Name := 'FastFloorDouble_Pas';
+  LowLevelRegistry[@@FastCeilSingle].Add(       @FastCeilSingle_Pas,    [isPascal]).Name := 'FastCeilSingle_Pas';
+  LowLevelRegistry[@@FastCeilDouble].Add(       @FastCeilDouble_Pas,    [isPascal]).Name := 'FastCeilDouble_Pas';
 
-{$IFNDEF PUREPASCAL}
+{$if (not defined(PUREPASCAL))}
   LowLevelRegistry[@@FillLongWord].Add(         @FillLongWord_ASM,      [isAssembler]).Name := 'FillLongWord_ASM';
+{$ifend}
 
-{$IFNDEF OMIT_SSE2}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   LowLevelRegistry[@@FillLongWord].Add(         @FillLongword_SSE2,     [isSSE2]).Name := 'FillLongword_SSE2';
   LowLevelRegistry[@@FastTrunc].Add(            @FastTrunc_SSE2,        [isSSE2]).Name := 'FastTrunc_SSE2';
   LowLevelRegistry[@@FastRound].Add(            @FastRound_SSE41,       [isSSE41]).Name := 'FastRound_SSE41';
   LowLevelRegistry[@@FastFloorSingle].Add(      @FastFloorSingle_SSE41, [isSSE41]).Name := 'FastFloorSingle_SSE41';
   LowLevelRegistry[@@FastFloorDouble].Add(      @FastFloorDouble_SSE41, [isSSE41]).Name := 'FastFloorDouble_SSE41';
-{$ENDIF}
-
-{$ENDIF}
+  LowLevelRegistry[@@FastCeilSingle].Add(       @FastCeilSingle_SSE41,  [isSSE41]).Name := 'FastCeilSingle_SSE41';
+  LowLevelRegistry[@@FastCeilDouble].Add(       @FastCeilDouble_SSE41,  [isSSE41]).Name := 'FastCeilDouble_SSE41';
 
 {$if defined(BENCHMARK)}
   LowLevelRegistry[@@FastTrunc].Add(            @SlowTrunc_SSE2, [isSSE2], BindingPriorityWorse).Name := 'SlowTrunc_SSE2';
-  LowLevelRegistry[@@FastFloorSingle].Add(      @Math.Floor, [isReference], BindingPriorityWorse).Name := 'Math.Floor';
+{$ifend}
+{$ifend}
+
+
+{$if defined(BENCHMARK)}
+  LowLevelRegistry[@@FastFloorSingle].Add(      @System.Math.Floor, [isReference], BindingPriorityWorse).Name := 'Math.Floor';
 {$ifend}
 
   LowLevelRegistry.RebindAll;

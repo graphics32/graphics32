@@ -24,29 +24,10 @@ unit GR32.CPUID;
 
 ***** END LICENSE BLOCK *****
 
-Version  Changes
--------  ------
- 3.0.2   27 Apr 2006 : AMD X2 text changed from 'AMD_64_SSE3' to 'AMD_64X2'
- 3.0.1   18 Apr 2006 : Bug in Yohan fctPMY target fixed, was incorrectly set to fctPMD
- 3.0.0   27 Feb 2006 : Added new 2006 computed targets. Added Yonah and Presler
-                       Removed Prescott, Banias, AMD XP                    (JT)
-
 This is a merge of several different forks of the FastcodeCPUID unit.
 Common to them, compared to version 3.0.2 of the original unit, is added support
 for 64-bit and various CPU features.
 Code and changes related to "Fastcode targets" has been removed.
-
- Contributor(s):
-
- - Johan Bontes <johan@NOSPAM.digitsolutions.nl>
-   23 Mar 2016 : Added x64 code and new CPUID features
-
- - John O'Harrow <john@elmcrest.demon.co.uk>
-    1-Aug-2012 : Added VerifyOSSupportForYMMRegisters by Philipp S
-   3-juli-2012 : Added Win64 support - GetCPUID by Philipp S, IsCPUID_Available advice from Remy Lebeau,
-                 see http://www.intel.com/content/www/us/en/processors/processor-identification-cpuid-instruction-note.html
-   20-Nov-2007 : Added SSE4A, SSE4.1, SSE4.2 and SSE5 detections.
-   20-Nov-2006 : Added SSSE3 Detection
 
 }
 
@@ -61,10 +42,31 @@ interface
 
 type
   TCPUVendor = (
-    cvUnknown, cvAMD, cvCentaur, cvCyrix, cvIntel,
-    cvTransmeta, cvNexGen, cvRise, cvUMC, cvNSC, cvSiS, cvAMDEarly,
-    cvTransMeta2, cvVIA, cvVortex, cvVM_KVM, cvVM_Microsoft,
-    cvVM_Parallels, cvVM_VMWare, cvVM_XEN
+    cvUnknown,
+    cvAMD,
+    cvCentaur,
+    cvCyrix,
+    cvIntel,
+    cvTransmeta,
+    cvNexGen,
+    cvRise,
+    cvUMC,
+    cvNSC,
+    cvSiS,
+    cvAMDEarly,
+    cvVIA,
+    cvVortex,
+    cvVM_KVM,
+    cvVM_Microsoft,
+    cvVM_Parallels,
+    cvVM_VMWare,
+    cvVM_XEN,
+    cvVM_XTA,
+    cvVM_Rosetta2,
+    cvZhaoxin,
+    cvHygon,
+    cvRDC,
+    cvElbrus
   );
 
   TCPUInstructionSet = (
@@ -180,10 +182,68 @@ implementation
 
 const
   sVendorNames: array[TCPUVendor] of string = (
-    'Unknown', 'AMD', 'Centaur (VIA)', 'Cyrix', 'Intel', 'Transmeta',
-    'NexGen', 'Rise', 'UMC', 'National Semiconductor', 'SiS','AMD K5 engineering sample',
-    'TransMeta', 'VIA','Vortex', 'KVM_VM', 'Microsoft_VM',
-    'Parallels_VM', 'VMWare_VM', 'XEN_VM'
+    'Unknown',
+    'AMD',
+    'Centaur (VIA)',
+    'Cyrix',
+    'Intel',
+    'Transmeta',
+    'NexGen',
+    'Rise',
+    'UMC',
+    'National Semiconductor',
+    'SiS',
+    'AMD K5 engineering sample',
+    'VIA',
+    'Vortex',
+    'KVM VM',
+    'Microsoft VM',
+    'Parallels VM',
+    'VMWare VM',
+    'XEN VM',
+    'Microsoft X86-to-ARM VM',
+    'Apple Rosetta 2',
+    'Zhaoxin',
+    'Hygon',
+    'RDC Semiconductor Co. Ltd.',
+    'Elbrus'
+  );
+
+type
+  TVendorStr = string[12];
+
+const
+  VendorIDs: array[0..26] of record
+    ID: TCPUVendor;
+    Signature: TVendorStr;
+  end = (
+    (ID: cvUnknown;             Signature: ''),
+    (ID: cvAMD;                 Signature: 'AuthenticAMD'),
+    (ID: cvCentaur;             Signature: 'CentaurHauls'),
+    (ID: cvCyrix;               Signature: 'CyrixInstead'),
+    (ID: cvIntel;               Signature: 'GenuineIntel'),
+    (ID: cvIntel;               Signature: 'GenuineIotel'),
+    (ID: cvTransmeta;           Signature: 'GenuineTMx86'),
+    (ID: cvTransMeta;           Signature: 'TransmetaCPU'),
+    (ID: cvNexGen;              Signature: 'NexGenDriven'),
+    (ID: cvRise;                Signature: 'RiseRiseRise'),
+    (ID: cvUMC;                 Signature: 'UMC UMC UMC '),
+    (ID: cvNSC;                 Signature: 'Geode by NSC'),
+    (ID: cvSiS;                 Signature: 'SiS SiS SiS '),
+    (ID: cvAMDEarly;            Signature: 'AMDisbetter!'),
+    (ID: cvVIA;                 Signature: 'VIA VIA VIA '),
+    (ID: cvVortex;              Signature: 'Vortex86 SoC'),
+    (ID: cvVM_KVM;              Signature: 'KVMKVMKVM   '),
+    (ID: cvVM_Microsoft;        Signature: 'Microsoft Hv'),
+    (ID: cvVM_Parallels;        Signature: '  lrpepyh vr'),
+    (ID: cvVM_VMWare;           Signature: 'VMwareVMware'),
+    (ID: cvVM_XEN;              Signature: 'XenVMMXenVMM'),
+    (ID: cvVM_XTA;              Signature: 'MicrosoftXTA'),
+    (ID: cvVM_Rosetta2;         Signature: 'VirtualApple'),
+    (ID: cvZhaoxin;             Signature: '  Shanghai  '),
+    (ID: cvHygon;               Signature: 'HygonGenuine'),
+    (ID: cvRDC;                 Signature: 'Genuine  RDC'),
+    (ID: cvElbrus;              Signature: 'E2K MACHINE')
   );
 
   sInstructionSetNames: array[TCPUInstructionSet] of string = (
@@ -204,8 +264,6 @@ type
       ECX,
       EDX: Cardinal;
   end;
-
-  TVendorStr = string[12];
 
   TCpuFeatures = (
     {in EDX}
@@ -251,15 +309,6 @@ type
 
 
 const
-  VendorIDString: array[TCPUVendor] of TVendorStr = (
-    '',
-    'AuthenticAMD', 'CentaurHauls', 'CyrixInstead', 'GenuineIntel',
-    'GenuineTMx86', 'NexGenDriven', 'RiseRiseRise', 'UMC UMC UMC ',
-    'Geode by NSC', 'SiS SiS SiS ', 'AMDisbetter!', 'TransmetaCPU',
-    'VIA VIA VIA ', 'Vortex86 SoC', 'KVMKVMKVM   ', 'Microsoft Hv',
-    '  lrpepyh vr', 'VMwareVMware', 'XenVMMXenVMM'
-  );
-
   {CPU signatures}
   IntelLowestSEPSupportSignature = $633;
   K7DuronA0Signature    = $630;
@@ -370,6 +419,7 @@ procedure TCPU.GetCPUVendor;
 var
   VendorStr: TVendorStr;
   Registers: TRegisters;
+  i: integer;
 begin
   {call CPUID function 0}
   GetCPUID(0, Registers);
@@ -381,9 +431,13 @@ begin
   Move(Registers.ECX, VendorStr[9], 4);
 
   {get CPU vendor from vendor string}
-  Vendor:= High(TCPUVendor);
-  while (VendorStr <> VendorIDString[Vendor]) and (Vendor > Low(TCPUVendor)) do
-    Dec(Vendor);
+  Vendor:= cvUnknown;
+  for i := 0 to High(VendorIDs) do
+    if (VendorStr = VendorIDs[i].Signature) then
+    begin
+      Vendor := VendorIDs[i].ID;
+      break;
+    end;
 end;
 
 procedure TCPU.GetCPUFeatures;
