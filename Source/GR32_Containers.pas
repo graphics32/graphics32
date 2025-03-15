@@ -38,6 +38,7 @@ interface
 {$include GR32.inc}
 
 uses
+  Generics.Collections,
   Types,
   RTLConsts,
   SysUtils,
@@ -164,22 +165,16 @@ type
 
   { TClassList }
   { This is a class that maintains a list of classes. }
-  TClassList = class(TList)
-  protected
-    function GetItems(Index: Integer): TClass;
-    procedure SetItems(Index: Integer; AClass: TClass);
+  TCustomClassList<T> = class(TList<T>)
+  private
+    function GetClassName(Index: integer): string;
   public
-    function Add(AClass: TClass): Integer;
-    function Extract(Item: TClass): TClass;
-    function Remove(AClass: TClass): Integer;
-    function IndexOf(AClass: TClass): Integer;
-    function First: TClass;
-    function Last: TClass;
-    function Find(const AClassName: string): TClass;
+    function Find(const AClassName: string): T;
     procedure GetClassNames(Strings: TStrings);
-    procedure Insert(Index: Integer; AClass: TClass);
-    property Items[Index: Integer]: TClass read GetItems write SetItems; default;
+    property ClassNames[Index: integer]: string read GetClassName;
   end;
+
+  TClassList = class(TCustomClassList<TClass>);
 
 
   PLinkedNode = ^TLinkedNode;
@@ -641,70 +636,43 @@ end;
 
 { TClassList }
 
-function TClassList.Add(AClass: TClass): Integer;
-begin
-  Result := inherited Add(AClass);
-end;
-
-function TClassList.Extract(Item: TClass): TClass;
-begin
-  Result := TClass(inherited Extract(Item));
-end;
-
-function TClassList.Find(const AClassName: string): TClass;
+function TCustomClassList<T>.Find(const AClassName: string): T;
 var
-  I: Integer;
+  i: Integer;
 begin
-  Result := nil;
-  for I := 0 to Count - 1 do
-    if TClass(List[I]).ClassName = AClassName then
+  Result := Default(T);
+  for i := 0 to Count - 1 do
+    if ClassNames[i] = AClassName then
     begin
-      Result := TClass(List[I]);
-      Break;
+      Result := Items[i];
+      break;
     end;
 end;
 
-function TClassList.First: TClass;
-begin
-  Result := TClass(inherited First);
-end;
-
-procedure TClassList.GetClassNames(Strings: TStrings);
+function TCustomClassList<T>.GetClassName(Index: integer): string;
+{$if not defined(FRAMEWORK_LCL)}
 var
-  I: Integer;
+  List: arrayofT;
+  Item: pointer;
+{$ifend}
 begin
-  for I := 0 to Count - 1 do
-    Strings.Add(TClass(List[I]).ClassName);
+  // Yes, it's a horror but Delphi doesn't allow us to specify
+  // a meta class generic constraint :-/
+{$if not defined(FRAMEWORK_LCL)}
+  List  := Self.List;
+  Item := @List[Index];
+  Result := TClass(Item^).ClassName;
+{$else}
+  Result := TClass(FItems[Index]).ClassName;
+{$ifend}
 end;
 
-function TClassList.GetItems(Index: Integer): TClass;
+procedure TCustomClassList<T>.GetClassNames(Strings: TStrings);
+var
+  i: Integer;
 begin
-  Result := TClass(inherited Items[Index]);
-end;
-
-function TClassList.IndexOf(AClass: TClass): Integer;
-begin
-  Result := inherited IndexOf(AClass);
-end;
-
-procedure TClassList.Insert(Index: Integer; AClass: TClass);
-begin
-  inherited Insert(Index, AClass);
-end;
-
-function TClassList.Last: TClass;
-begin
-  Result := TClass(inherited Last);
-end;
-
-function TClassList.Remove(AClass: TClass): Integer;
-begin
-  Result := inherited Remove(AClass);
-end;
-
-procedure TClassList.SetItems(Index: Integer; AClass: TClass);
-begin
-  inherited Items[Index] := AClass;
+  for i := 0 to Count - 1 do
+    Strings.Add(ClassNames[i]);
 end;
 
 { TLinkedList }

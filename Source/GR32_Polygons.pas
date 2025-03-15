@@ -481,7 +481,13 @@ procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererCl
 procedure UnregisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 
 var
-  PolygonRendererList: TClassList;
+  // CustomPolygonRendererList contains all registered renderers.
+  // It corresponds to the old PolygonRendererList prior to that
+  // being changed to only contain TPolygonRenderer32 classes.
+  CustomPolygonRendererList: TCustomClassList<TCustomPolygonRendererClass>;
+
+  // PolygonRendererList contains only renderers that inherit from TPolygonRenderer32
+  PolygonRendererList: TCustomClassList<TPolygonRenderer32Class>;
   DefaultPolygonRendererClass: TPolygonRenderer32Class = TPolygonRenderer32VPR;
 
 
@@ -533,15 +539,25 @@ type
 //------------------------------------------------------------------------------
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 begin
+  if (CustomPolygonRendererList = nil) then
+    CustomPolygonRendererList := TCustomClassList<TCustomPolygonRendererClass>.Create;
+
   if (PolygonRendererList = nil) then
-    PolygonRendererList := TClassList.Create;
-  PolygonRendererList.Add(PolygonRendererClass);
+    PolygonRendererList := TCustomClassList<TPolygonRenderer32Class>.Create;
+
+  CustomPolygonRendererList.Add(PolygonRendererClass);
+
+  if (PolygonRendererClass.InheritsFrom(TPolygonRenderer32)) then
+    PolygonRendererList.Add(TPolygonRenderer32Class(PolygonRendererClass));
 end;
 
 procedure UnregisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 begin
-  if (PolygonRendererList <> nil) then
-    PolygonRendererList.Remove(PolygonRendererClass);
+  if (CustomPolygonRendererList <> nil) then
+    CustomPolygonRendererList.Remove(PolygonRendererClass);
+
+  if (PolygonRendererList <> nil) and (PolygonRendererClass.InheritsFrom(TPolygonRenderer32)) then
+    PolygonRendererList.Remove(TPolygonRenderer32Class(PolygonRendererClass));
 end;
 
 
@@ -3216,6 +3232,7 @@ initialization
 
 finalization
 
+  CustomPolygonRendererList.Free;
   PolygonRendererList.Free;
 
 end.

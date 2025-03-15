@@ -696,7 +696,7 @@ begin
     if ItemIndex >= 0 then
     begin
       Src.Bitmap.BeginUpdate;
-      R := TCustomResamplerClass(ResamplerList[ItemIndex]).Create(Src.Bitmap);
+      R := ResamplerList[ItemIndex].Create(Src.Bitmap);
 
       if CbxRepeat.Checked then
       begin
@@ -720,7 +720,7 @@ begin
   Index := CmbKernelClassNames.ItemIndex;
   if Src.Bitmap.Resampler is TKernelResampler then
   begin
-    TKernelResampler(Src.Bitmap.Resampler).Kernel := TCustomKernelClass(KernelList[Index]).Create;
+    TKernelResampler(Src.Bitmap.Resampler).Kernel := KernelList[Index].Create;
   end;
   DoTransform;
 end;

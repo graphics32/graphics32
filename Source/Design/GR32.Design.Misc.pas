@@ -143,7 +143,7 @@ end;
 
 class function TKernelClassProperty.GetClassList: TClassList;
 begin
-  Result := KernelList;
+  Result := TClassList(KernelList);
 end;
 
 function TKernelClassProperty.GetObject: TObject;
@@ -160,7 +160,7 @@ end;
 
 class function TResamplerClassProperty.GetClassList: TClassList;
 begin
-  Result := ResamplerList;
+  Result := TClassList(ResamplerList);
 end;
 
 function TResamplerClassProperty.GetObject: TObject;

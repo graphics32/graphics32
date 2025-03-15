@@ -1034,8 +1034,8 @@ procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
 
 var
-  KernelList: TClassList;
-  ResamplerList: TClassList;
+  KernelList: TCustomClassList<TCustomKernelClass>;
+  ResamplerList: TCustomClassList<TCustomResamplerClass>;
 
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0) deprecated 'Use Default(TBufferEntry)';
@@ -3663,7 +3663,7 @@ var
 begin
   if (Value <> '') and (FKernel.ClassName <> Value) and (KernelList <> nil) then
   begin
-    KernelClass := TCustomKernelClass(KernelList.Find(Value));
+    KernelClass := KernelList.Find(Value);
     if (KernelClass <> nil) then
     begin
       NewKernel := KernelClass.Create;
@@ -4921,14 +4921,14 @@ end;
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 begin
   if (ResamplerList = nil) then
-    ResamplerList := TClassList.Create;
+    ResamplerList := TCustomClassList<TCustomResamplerClass>.Create;
   ResamplerList.Add(ResamplerClass);
 end;
 
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
 begin
   if (KernelList = nil) then
-    KernelList := TClassList.Create;
+    KernelList := TCustomClassList<TCustomKernelClass>.Create;
   KernelList.Add(KernelClass);
 end;
 

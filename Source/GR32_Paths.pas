@@ -902,7 +902,7 @@ var
 begin
   if (Value <> '') and (FRenderer.ClassName <> Value) and (PolygonRendererList <> nil) then
   begin
-    RendererClass := TPolygonRenderer32Class(PolygonRendererList.Find(Value));
+    RendererClass := PolygonRendererList.Find(Value);
     if (RendererClass <> nil) then
       Renderer := RendererClass.Create;
   end;

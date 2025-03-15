@@ -381,7 +381,7 @@ begin
   FBitmapPattern.BeginUpdate;
   try
 
-    Resampler := TCustomResamplerClass(ResamplerList[ComboBoxResamplerClassName.ItemIndex]).Create(FBitmapPattern);
+    Resampler := ResamplerList[ComboBoxResamplerClassName.ItemIndex].Create(FBitmapPattern);
     ComboBoxKernelClassNameChange(nil);
     ComboBoxPixelAccessModeChange(nil);
 
@@ -427,7 +427,7 @@ begin
   FBitmapPattern.BeginUpdate;
   try
 
-    KernelResampler.Kernel := TCustomKernelClass(KernelList[Index]).Create;
+    KernelResampler.Kernel := KernelList[Index].Create;
 
     LblParameter.Visible :=
       (KernelResampler.Kernel is TAlbrechtKernel) or
@@ -588,14 +588,14 @@ procedure TFrmResamplersExample.PaintBoxResamplingPaintBuffer(Sender: TObject);
   var
     KernelResampler: TKernelResampler;
   begin
-    TCustomResamplerClass(ResamplerList[ComboBoxResamplerClassName.ItemIndex]).Create(Bitmap);
+    ResamplerList[ComboBoxResamplerClassName.ItemIndex].Create(Bitmap);
 
     // Setup kernel resampler
     if (Bitmap.Resampler is TKernelResampler) then
     begin
       KernelResampler := TKernelResampler(Bitmap.Resampler);
 
-      KernelResampler.Kernel := TCustomKernelClass(KernelList[ComboBoxKernelClassName.ItemIndex]).Create;
+      KernelResampler.Kernel := KernelList[ComboBoxKernelClassName.ItemIndex].Create;
       SetKernelParameter(KernelResampler.Kernel);
       KernelResampler.KernelMode := TKernelMode(ComboBoxKernelMode.ItemIndex);
       KernelResampler.TableSize := GaugeBarTableSize.Position;
