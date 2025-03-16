@@ -7473,16 +7473,22 @@ asm
 end;
 *)
 var
-  I: Integer;
+  i: Integer;
   P: PColor32;
+  Alpha: Byte;
 begin
-  // convert blue channel to alpha and fill the color
+  // Convert green channel to alpha and fill the color.
+  // We use the green channel instead of the blue in case the source
+  // is ClearType anti-aliased.
+
   Color := Color and $00FFFFFF;
-  P := @B.Bits[0];
-  for I := 0 to B.Width * B.Height - 1 do
+  P := PColor32(B.Bits);
+
+  for i := 0 to B.Width * B.Height - 1 do
   begin
-    if P^ <> 0 then
-        P^ := ((P^ and $FF) shl 24) or Color
+    Alpha := PColor32Entry(P).G;
+    if Alpha <> 0 then
+      P^ := (Alpha shl 24) or Color
     else
       P^ := 0;
     Inc(P);
