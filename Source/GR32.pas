@@ -1170,7 +1170,7 @@ type
     function  TextHeight(const Text: string): Integer;
     function  TextWidth(const Text: string): Integer;
     procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32); overload; deprecated 'Use RenderText(...; AntiAlias: boolean) or TCanvas32.RenderText(...) instead';
-    procedure RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean); overload; deprecated 'Use Bitmap.Font.Quality to set anti-aliasing instead';
+    procedure RenderText(X, Y: Integer; const Text: string; Color: TColor32; AntiAlias: boolean); overload;
     procedure RenderText(X, Y: Integer; const Text: string; Color: TColor32); overload;
 
     property  Canvas: TCanvas read GetCanvas;
