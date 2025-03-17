@@ -23,9 +23,8 @@ object FormRenderText: TFormRenderText
     BitmapAlign = baTopLeft
     Scale = 1.000000000000000000
     ScaleMode = smNormal
-    TabOrder = 0
+    TabOrder = 1
     OnResize = ImageResize
-    ExplicitWidth = 329
   end
   object PnlControl: TPanel
     Left = 0
@@ -40,8 +39,7 @@ object FormRenderText: TFormRenderText
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
-    TabOrder = 1
-    ExplicitWidth = 329
+    TabOrder = 0
     DesignSize = (
       566
       61)
@@ -68,19 +66,18 @@ object FormRenderText: TFormRenderText
       Anchors = [akLeft, akTop, akRight]
       AutoSize = False
       TabOrder = 0
-      Text = 'Excellence endures'
+      Text = 'Excellence endures 0123456789'
       OnChange = EditTextChange
     end
-    object BtnClickMe: TButton
-      Left = 490
+    object BtnRunBenchmark: TButton
+      Left = 418
       Top = 32
-      Width = 73
+      Width = 145
       Height = 21
       Anchors = [akTop, akRight]
-      Caption = 'Click me!'
-      TabOrder = 1
-      OnClick = BtnClickMeClick
-      ExplicitLeft = 253
+      Caption = 'Run Benchmark'
+      TabOrder = 2
+      OnClick = BtnRunBenchmarkClick
     end
     object CheckBoxAntiAlias: TCheckBox
       Left = 4
@@ -88,7 +85,7 @@ object FormRenderText: TFormRenderText
       Width = 97
       Height = 17
       Caption = 'Anti-alias'
-      TabOrder = 2
+      TabOrder = 3
       OnClick = CheckBoxAntiAliasClick
     end
     object CheckBoxCanvas32: TCheckBox
@@ -97,7 +94,7 @@ object FormRenderText: TFormRenderText
       Width = 97
       Height = 17
       Caption = 'TCanvas32'
-      TabOrder = 3
+      TabOrder = 4
       OnClick = CheckBoxCanvas32Click
     end
     object ComboBoxFont: TComboBox
@@ -106,9 +103,27 @@ object FormRenderText: TFormRenderText
       Width = 145
       Height = 21
       Anchors = [akTop, akRight]
-      TabOrder = 4
+      TabOrder = 1
       Text = 'ComboBoxFont'
       OnChange = ComboBoxFontChange
+    end
+    object CheckBoxBold: TCheckBox
+      Left = 227
+      Top = 34
+      Width = 62
+      Height = 17
+      Caption = 'Bold'
+      TabOrder = 5
+      OnClick = CheckBoxBoldClick
+    end
+    object CheckBoxItalic: TCheckBox
+      Left = 307
+      Top = 34
+      Width = 62
+      Height = 17
+      Caption = 'Italic'
+      TabOrder = 6
+      OnClick = CheckBoxItalicClick
     end
   end
 end

@@ -45,7 +45,7 @@ uses
 
 type
   TFormRenderText = class(TForm)
-    BtnClickMe: TButton;
+    BtnRunBenchmark: TButton;
     EditText: TEdit;
     Image: TImage32;
     LblEnterText: TLabel;
@@ -54,13 +54,17 @@ type
     CheckBoxCanvas32: TCheckBox;
     ComboBoxFont: TComboBox;
     Label1: TLabel;
+    CheckBoxBold: TCheckBox;
+    CheckBoxItalic: TCheckBox;
     procedure FormCreate(Sender: TObject);
-    procedure BtnClickMeClick(Sender: TObject);
+    procedure BtnRunBenchmarkClick(Sender: TObject);
     procedure EditTextChange(Sender: TObject);
     procedure ImageResize(Sender: TObject);
     procedure CheckBoxAntiAliasClick(Sender: TObject);
     procedure CheckBoxCanvas32Click(Sender: TObject);
     procedure ComboBoxFontChange(Sender: TObject);
+    procedure CheckBoxBoldClick(Sender: TObject);
+    procedure CheckBoxItalicClick(Sender: TObject);
   public
     procedure Draw;
   end;
@@ -108,16 +112,26 @@ var
   y: integer;
   Height: integer;
   Size: integer;
+  Style: TFontStyles;
   Canvas: TCanvas32;
   Brush: TSolidBrush;
 begin
   Image.Bitmap.Clear;
 
-  y := 0;
+  y := 3;
   Size := 6;
 
   Image.Bitmap.Font.Size := 20;
-  Image.Bitmap.Font.Style := [fsBold, fsItalic];
+
+  Style := [];
+
+  if CheckBoxBold.Checked then
+    Include(Style, fsBold);
+
+  if CheckBoxItalic.Checked then
+    Include(Style, fsItalic);
+
+  Image.Bitmap.Font.Style := Style;
 
   Canvas := nil;
   try
@@ -132,8 +146,6 @@ begin
     while (y < Image.Bitmap.Height) do
     begin
       Image.Bitmap.Font.Size := Size;
-      Height := Image.Bitmap.TextHeight(EditText.Text);
-      y := y + MulDiv(Height, 3, 5);
 
       if (Canvas <> nil) then
         Canvas.RenderText(10, y, Format('%d: %s', [Size, EditText.Text]))
@@ -141,6 +153,9 @@ begin
         Image.Bitmap.RenderText(10, y, Format('%d: %s', [Size, EditText.Text]), clWhite32, CheckBoxAntiAlias.Checked);
 
       Size := Trunc(Size * 1.2);
+
+      Height := Image.Bitmap.TextHeight(EditText.Text);
+      y := y + MulDiv(Height, 8, 10);
     end;
   finally
     Canvas.Free;
@@ -158,7 +173,7 @@ begin
   Draw;
 end;
 
-procedure TFormRenderText.BtnClickMeClick(Sender: TObject);
+procedure TFormRenderText.BtnRunBenchmarkClick(Sender: TObject);
 var
   SaveQuality: TFontQuality;
   i: Integer;
@@ -256,6 +271,16 @@ procedure TFormRenderText.CheckBoxCanvas32Click(Sender: TObject);
 begin
   CheckBoxAntiAlias.Enabled := not CheckBoxCanvas32.Checked;
   Update;
+  Draw;
+end;
+
+procedure TFormRenderText.CheckBoxItalicClick(Sender: TObject);
+begin
+  Draw;
+end;
+
+procedure TFormRenderText.CheckBoxBoldClick(Sender: TObject);
+begin
   Draw;
 end;
 
