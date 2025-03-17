@@ -311,6 +311,7 @@ begin
   inherited;
 end;
 
+{$ifdef FONT_CACHE_PATH}
 procedure TGlyphInfo.AssignPath(APath: TFlattenedPath; First: integer; OriginX, OriginY: Single);
 var
   i, j, i2: integer;
@@ -332,6 +333,7 @@ begin
   end;
   FPathValid := True;
 end;
+{$endif FONT_CACHE_PATH}
 
 procedure TGlyphInfo.Hit;
 begin
