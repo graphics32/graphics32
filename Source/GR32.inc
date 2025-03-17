@@ -237,6 +237,35 @@
 {-$DEFINE USEKERNING}
 
 
+(*
+  Symbol: FONT_CACHE
+  ------------------
+
+    Enables caching of glyph outlines data in the TextToPath() method.
+
+  The majority of time in TextToPath, and related functions, are used
+  retrieving glyph outline data from Windows.
+  When FONT_CACHE is defined, the TextToPath functions will cache the glyph
+  outline data returned by Windows.
+*)
+{$define FONT_CACHE}
+
+
+(*
+  Symbol: FONT_CACHE_PATH
+  -----------------------
+
+    Enables caching of glyph polygon data in the TextToPath() method.
+
+  Before a glyph can be rendered by the polygon rasterizer the glyph outline
+  data must be converted from bezier curves to polygons.
+  When FONT_CACHE_PATH is defined, the glyph cache will cache the polygons
+  instead of the glyph outline data.
+  FONT_CACHE_PATH requires that FONT_CACHE is also defined.
+*)
+{$define FONT_CACHE_PATH}
+
+
 {-$DEFINE TEST_BLENDMEMRGB128SSE4}
 {$define GR32_WRAPMODE_REFLECT}
 

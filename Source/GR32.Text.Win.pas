@@ -34,6 +34,11 @@ interface
 
 {$include GR32.inc}
 
+{$ifndef FONT_CACHE}
+  {$undef FONT_CACHE_PATH}
+{$endif FONT_CACHE}
+
+
 //------------------------------------------------------------------------------
 //
 //      This unit should be considered internal to Graphics32.
@@ -56,6 +61,16 @@ uses
 //------------------------------------------------------------------------------
 type
   TextToolsWin = record
+  private
+    // GetDC/ReleaseDC is relatively expensive and would take up the bulk of the
+    // time if used. Instead we create and cache a dedicated DC for use
+    // exclusively here.
+    class var FontDC: HDC;
+
+  private
+    class destructor Destroy;
+
+  public
     class procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0); static;
     class function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint; static;
 
@@ -67,6 +82,14 @@ type
   end;
 
 
+var
+  UseHinting: Boolean = False;
+  VertFlip_mat2: TMat2;
+
+const
+  GGO_UNHINTED = $0100;
+  GGODefaultFlags: array [Boolean] of Integer = (GGO_NATIVE or GGO_UNHINTED, GGO_NATIVE);
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -74,22 +97,20 @@ type
 implementation
 
 uses
+{$ifdef FONT_CACHE}
+  GR32.Text.Cache,
+{$else FONT_CACHE}
+{$endif FONT_CACHE}
 {$IFDEF USESTACKALLOC}
   GR32_LowLevel,
 {$ENDIF}
   SysUtils;
 
 var
-  UseHinting: Boolean;
   HorzStretch: Integer; // stretching factor when calling GetGlyphOutline()
   HorzStretch_Inv: Single;
 
-  VertFlip_mat2: TMat2;
-
 const
-  GGO_UNHINTED = $0100;
-  GGODefaultFlags: array [Boolean] of Integer = (GGO_NATIVE or GGO_UNHINTED, GGO_NATIVE);
-
   TT_PRIM_CSPLINE = 3;
 
   MaxSingle   =  3.4e+38;
@@ -116,18 +137,61 @@ end;
 {$IFDEF USESTACKALLOC}
 {$W+}
 {$ENDIF}
+{$ifdef FONT_CACHE}
+function GlyphOutlineToPath(GlyphInfo: TGlyphInfo; Path: TCustomPath; DstX, MaxX, DstY: Single): Boolean;
+{$else FONT_CACHE}
 function GlyphOutlineToPath(Handle: HDC; Path: TCustomPath; DstX, MaxX, DstY: Single; const Glyph: Integer; out Metrics: TGlyphMetrics): Boolean;
+{$endif FONT_CACHE}
 var
   I, K, S: Integer;
   Res: DWORD;
+{$ifdef FONT_CACHE}
+  BufferPtr: PTTPolygonHeader;
+{$else FONT_CACHE}
   GlyphMemPtr, BufferPtr: PTTPolygonHeader;
+{$endif FONT_CACHE}
   CurvePtr: PTTPolyCurve;
   P1, P2, P3: TFloatPoint;
+{$ifdef FONT_CACHE_PATH}
+  FirstPath: integer;
+{$endif FONT_CACHE_PATH}
 begin
   Result := False;
 
   if (Path = nil) then
     Exit;
+
+{$ifdef FONT_CACHE}
+
+  Result := (GlyphInfo.Valid) and (DstX + GlyphInfo.GlyphMetrics.gmCellIncX <= MaxX);
+  if (not Result) then
+    Exit;
+
+  BufferPtr := GlyphInfo.TTPolygonHeader;
+  Res := GlyphInfo.TTPolygonHeaderSize;
+
+{$ifdef FONT_CACHE_PATH}
+  if (GlyphInfo.PathValid) then
+  begin
+    Path.BeginUpdate;
+    for I := 0 to High(GlyphInfo.Path) do
+    begin
+      for K := 0 to High(GlyphInfo.Path[I]) do
+      begin
+        P1 := GlyphInfo.Path[I][K];
+        if (K = 0) then
+          Path.MoveTo(DstX + P1.X, DstY + P1.Y)
+        else
+          Path.LineTo(DstX + P1.X, DstY + P1.Y);
+      end;
+      Path.EndPath(GlyphInfo.PathClosed[I]);
+    end;
+    Path.EndUpdate;
+    exit;
+  end;
+{$endif FONT_CACHE_PATH}
+
+{$else FONT_CACHE}
 
   Res := GetGlyphOutline(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics, 0, nil, VertFlip_mat2);
 
@@ -146,12 +210,17 @@ begin
 
     if (Res = GDI_ERROR) or (BufferPtr.dwType <> TT_POLYGON_TYPE) then
       Exit;
+{$endif FONT_CACHE}
 
     // Batch each glyph so we're sure that the polygons are rendered as a whole (no pun...)
     // and not as individual independent polygons.
     // We're doing this here for completeness but since the path will also be batched at
     // an outer level it isn't really necessary here.
     Path.BeginUpdate;
+
+{$ifdef FONT_CACHE_PATH}
+  FirstPath := High(TFlattenedPath(Path).Path) + 1;
+{$endif FONT_CACHE_PATH}
 
     while (Res > 0) do
     begin
@@ -214,6 +283,14 @@ begin
 
     Path.EndUpdate;
 
+{$ifdef FONT_CACHE}
+
+{$ifdef FONT_CACHE_PATH}
+  GlyphInfo.AssignPath(TFlattenedPath(Path), FirstPath, DstX, DstY);
+{$endif FONT_CACHE_PATH}
+
+{$else FONT_CACHE}
+
   finally
 {$IFDEF USESTACKALLOC}
     StackFree(GlyphMemPtr);
@@ -221,6 +298,8 @@ begin
     FreeMem(GlyphMemPtr);
 {$ENDIF}
   end;
+
+{$endif FONT_CACHE}
 
   Result := True;
 end;
@@ -449,17 +528,32 @@ var
     SpcCount := 0;
   end;
 
+{$ifdef FONT_CACHE}
+  function MeasureTextX(FontCacheItem: TFontCacheItem; const S: string): Integer;
+{$else FONT_CACHE}
   function MeasureTextX(const S: string): Integer;
+{$endif FONT_CACHE}
   var
     I: Integer;
+    CharValue: Integer;
+{$ifdef FONT_CACHE}
+    GlyphInfo: TGlyphInfo;
+{$endif FONT_CACHE}
   begin
     Result := 0;
     for I := 1 to Length(S) do
     begin
       CharValue := Ord(S[I]);
+
+{$ifdef FONT_CACHE}
+      GlyphInfo := FontCacheItem.GetGlyphInfo(DC, CharValue);
+      if (GlyphInfo.Valid) then
+        Inc(Result, GlyphInfo.GlyphMetrics.gmCellIncX);
+{$else FONT_CACHE}
       if (GetGlyphOutline(DC, CharValue, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2) = GDI_ERROR) then
         RaiseLastOSError;
       Inc(Result, GlyphMetrics.gmCellIncX);
+{$endif FONT_CACHE}
     end;
   end;
 
@@ -468,6 +562,11 @@ var
     Result := (ARect.Right > ARect.Left) and (X > ARect.Right * HorzStretch);
   end;
 
+{$ifdef FONT_CACHE}
+var
+  FontCacheItem: TFontCacheItem;
+  GlyphInfo: TGlyphInfo;
+{$endif FONT_CACHE}
 begin
   SpcCount := 0;
   LineStart := 0;
@@ -489,7 +588,13 @@ begin
     end else
       TextPath := nil;
 
+{$ifdef FONT_CACHE}
+    FontCacheItem := FontCache.GetItemByDC(DC);
+    TextMetric := FontCacheItem.TextMetric;
+{$else FONT_CACHE}
     GetTextMetrics(DC, TextMetric);
+{$endif FONT_CACHE}
+
     TextLen := Length(Text);
     X := ARect.Left * HorzStretch;
     Y := ARect.Top + TextMetric.tmAscent;
@@ -504,9 +609,14 @@ begin
     CharOffsets[0] := 0;
     SetLength(CharWidths, TextLen);
 
+{$ifdef FONT_CACHE}
+    GlyphInfo := FontCacheItem.GetGlyphInfo(DC, CHAR_SP);
+    SpcX := GlyphInfo.GlyphMetrics.gmCellIncX;
+{$else FONT_CACHE}
     if (GetGlyphOutline(DC, CHAR_SP, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2) = GDI_ERROR) then
       RaiseLastOSError;
     SpcX := GlyphMetrics.gmCellIncX;
+{$endif FONT_CACHE}
 
     if (Flags and DT_SINGLELINE <> 0) or (ARect.Left = ARect.Right) then
     begin
@@ -563,7 +673,11 @@ begin
                 while (J <= TextLen) and ([Ord(Text[J])] * [CHAR_CR, CHAR_NL, CHAR_SP] = []) do
                   Inc(J);
                 S := Copy(Text, I, J - I);
+{$ifdef FONT_CACHE}
+                if NeedsNewLine(X + MeasureTextX(FontCacheItem, S)) then
+{$else FONT_CACHE}
                 if NeedsNewLine(X + MeasureTextX(S)) then
+{$endif FONT_CACHE}
                   NewLine(I)
                 else
                   AddSpace;
@@ -579,8 +693,15 @@ begin
       end
       else
       begin
+{$ifdef FONT_CACHE}
+        GlyphInfo := FontCacheItem.GetGlyphInfo(DC, CharValue);
+        if (GlyphInfo.Valid) and (GlyphOutlineToPath(GlyphInfo, TextPath, X, MaxRight, Y)) then
+        begin
+          GlyphMetrics := GlyphInfo.GlyphMetrics;
+{$else FONT_CACHE}
         if GlyphOutlineToPath(DC, TextPath, X, MaxRight, Y, CharValue, GlyphMetrics) then
         begin
+{$endif FONT_CACHE}
           if (TextPath <> nil) then
             // Save path list offset of first path of current glyph
             CharOffsets[I] := Length(TextPath.Path);
@@ -593,14 +714,26 @@ begin
             X := X - SpcX;
             Dec(SpcCount);
           end;
+
           // the current glyph doesn't fit so a word must be split since
           // it fills more than a whole line ...
           NewLine(I - 1);
-          if not GlyphOutlineToPath(DC, TextPath, X, MaxRight, Y, CharValue, GlyphMetrics) then
-            Break;
+
+{$ifdef FONT_CACHE}
+          GlyphInfo := FontCacheItem.GetGlyphInfo(DC, CharValue);
+          if (not GlyphInfo.Valid) or (not GlyphOutlineToPath(GlyphInfo, TextPath, X, MaxRight, Y)) then
+            break;
+
+          GlyphMetrics := GlyphInfo.GlyphMetrics;
+{$else FONT_CACHE}
+          if (not GlyphOutlineToPath(DC, TextPath, X, MaxRight, Y, CharValue, GlyphMetrics)) then
+            break;
+{$endif FONT_CACHE}
+
           if (TextPath <> nil) then
             // Save path list offset of first path of current glyph
             CharOffsets[I] := Length(TextPath.Path);
+
           CharWidths[I - 1]:= GlyphMetrics.gmCellIncX;
         end;
 
@@ -685,21 +818,15 @@ end;
 
 class procedure TextToolsWin.TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect; const Text: string; Flags: Cardinal);
 var
-  DC: HDC;
-  SavedFont: HFONT;
   R: TFloatRect;
 begin
-  DC := GetDC(0);
-  try
-    SavedFont := SelectObject(DC, Font);
-    R := ARect;
+  if (FontDC = 0) then
+    FontDC := CreateCompatibleDC(0);
 
-    InternalTextToPath(DC, Path, R, Text, Flags);
+  SelectObject(FontDC, Font);
+  R := ARect;
 
-    SelectObject(DC, SavedFont);
-  finally
-    ReleaseDC(0, DC);
-  end;
+  InternalTextToPath(FontDC, Path, R, Text, Flags);
 end;
 
 //------------------------------------------------------------------------------
@@ -728,35 +855,50 @@ end;
 //------------------------------------------------------------------------------
 
 class function TextToolsWin.MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
-var
-  DC: HDC;
-  SavedFont: HFONT;
 begin
-  DC := GetDC(0);
-  try
-    SavedFont := SelectObject(DC, Font);
+  if (FontDC = 0) then
+    FontDC := CreateCompatibleDC(0);
 
-    Result := MeasureTextDC(DC, ARect, Text, Flags);
+  SelectObject(FontDC, Font);
 
-    SelectObject(DC, SavedFont);
-  finally
-    ReleaseDC(0, DC);
-  end;
+  Result := MeasureTextDC(FontDC, ARect, Text, Flags);
 end;
 
 //------------------------------------------------------------------------------
 
 class procedure TextToolsWin.SetHinting(Value: TTextHinting);
+{$ifdef FONT_CACHE}
+var
+  OldHinting: TTextHinting;
+{$endif FONT_CACHE}
 begin
+{$ifdef FONT_CACHE}
+  OldHinting := GetHinting;
+{$endif FONT_CACHE}
+
   UseHinting := (Value <> thNone);
+
   if (Value = thNoHorz) then
     HorzStretch := 16
   else
     HorzStretch := 1;
+
   HorzStretch_Inv := 1 / HorzStretch;
   VertFlip_mat2 := Default(TMat2);
   VertFlip_mat2.eM11.value := HorzStretch;
   VertFlip_mat2.eM22.value := -1; // Reversed Y axis
+
+{$ifdef FONT_CACHE}
+  // Changing hinting invalidates cache
+  if (FontCache <> nil) and (OldHinting <> GetHinting) then
+    FontCache.Clear;
+{$endif FONT_CACHE}
+end;
+
+class destructor TextToolsWin.Destroy;
+begin
+  if (FontDC <> 0) then
+    DeleteDC(FontDC);
 end;
 
 class function TextToolsWin.GetHinting: TTextHinting;
@@ -789,5 +931,13 @@ end;
 
 initialization
   InitHinting;
+{$ifdef FONT_CACHE}
+  FontCache := TFontCache.Create;
+{$endif FONT_CACHE}
+
+finalization
+{$ifdef FONT_CACHE}
+  FreeAndNil(FontCache);
+{$endif FONT_CACHE}
 
 end.
