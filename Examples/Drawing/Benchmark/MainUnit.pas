@@ -100,6 +100,7 @@ type
     procedure BtnExitClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
   private
+    Profiling: boolean;
     procedure RunTest(RendererClass: TPolygonRenderer32Class; TestProc: TTestProc; Samples: integer = TEST_SAMPLES; TestTime: integer = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
 {$ifdef MSWINDOWS}
@@ -161,15 +162,25 @@ var
   OpsPerSecond: integer;
   BestOpsPerSecond: integer;
   DoAbort: boolean;
+  Iterations: integer;
 begin
   RandSeed := 0;
+
+  if (Profiling) then
+  begin
+    // For profiling we need constant work, not constant time
+    Samples := 10;
+    Iterations := 1000;
+    TestTime := 0;
+  end else
+    Iterations := 10;
 
   Canvas := TCanvas32.Create(Img.Bitmap);
   try
     Canvas.Renderer := RendererClass.Create;
 
     try
-      Img.BeginUpdate;
+      Img.Bitmap.BeginUpdate;
       try
         Img.Bitmap.Clear(clWhite32);
 
@@ -192,7 +203,7 @@ begin
 
             // If the rasterizer supports batching, we allow it to batch a block.
             // This might give batching rasterizers a slight unrealistic and
-            // unfair advantage. One rasterizer that absolutely suffer, if we don't
+            // unfair advantage. One rasterizer that absolutely suffers, if we don't
             // batch, is the Direct2D rasterizer.
             if (CheckBoxBatch.Checked) and (Supports(Canvas.Renderer, IPolygonRendererBatching, PolygonRendererBatching)) then
             begin
@@ -202,7 +213,7 @@ begin
             end;
             try
 
-              for i := 0 to 9 do
+              for i := 1 to Iterations do
               begin
                 Canvas.BeginUpdate;
 
@@ -231,7 +242,10 @@ begin
 
           until (Wallclock.ElapsedMilliseconds > TestTime);
 
-          OpsPerSecond := (Operations * 1000) div StopWatch.ElapsedMilliseconds;
+          if (StopWatch.ElapsedMilliseconds > 0) then
+            OpsPerSecond := (Operations * 1000) div StopWatch.ElapsedMilliseconds
+          else
+            OpsPerSecond := 0;
 
           if (OpsPerSecond > BestOpsPerSecond) then
             BestOpsPerSecond := OpsPerSecond;
@@ -249,7 +263,7 @@ begin
         Img.Bitmap.Changed;
 {$ENDIF}
       finally
-        Img.EndUpdate;
+        Img.Bitmap.EndUpdate;
       end;
 
       if (DoAbort) or (GetAsyncKeyState(VK_ESCAPE) <> 0) then
@@ -532,6 +546,8 @@ begin
   MemoLog.Lines.Add(Format('Running benchmark: %d iterations', [Iterations]));
 
   CbxAllTests.Checked := True;
+
+  Profiling := True;
 
   for i := 0 to Iterations-1 do
   begin
