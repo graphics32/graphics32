@@ -38,10 +38,15 @@ interface
 {$include GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLType, LResources, {$ELSE} Windows, {$ENDIF}
+  {$IFDEF FPC} LCLType, LResources, LMessages, {$ELSE} Windows, Messages, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   Buttons,
   GR32, GR32_Image;
+
+{$if defined(FPC)}
+type
+  TMessage = TLMessage;
+{$ifend}
 
 type
   TFormRenderText = class(TForm)
@@ -64,6 +69,8 @@ type
     procedure CheckBoxCanvas32Click(Sender: TObject);
   private
     function GetFontStyle: TFontStyles;
+  protected
+    procedure CMShowingChanged(var Message: TMessage); message CM_SHOWINGCHANGED;
   public
     procedure Draw;
   end;
@@ -268,6 +275,30 @@ begin
   CheckBoxAntiAlias.Enabled := not CheckBoxCanvas32.Checked;
   Update;
   Draw;
+end;
+
+procedure TFormRenderText.CMShowingChanged(var Message: TMessage);
+var
+  i: integer;
+begin
+  inherited;
+
+  if Visible and FindCmdLineSwitch('benchmark') then
+  begin
+    CheckBoxCanvas32.Checked := True;
+    Update;
+
+    for i := 20 downto 1 do
+    begin
+      Caption := IntToStr(i);
+      Update;
+
+      ButtonBenchmark.Click;
+      Update;
+    end;
+
+    Application.Terminate
+  end;
 end;
 
 end.
