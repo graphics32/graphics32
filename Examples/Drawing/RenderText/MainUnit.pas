@@ -45,26 +45,25 @@ uses
 
 type
   TFormRenderText = class(TForm)
-    BtnRunBenchmark: TButton;
+    PanelTop: TPanel;
+    LabelText: TLabel;
     EditText: TEdit;
     Image: TImage32;
-    LblEnterText: TLabel;
-    PnlControl: TPanel;
     CheckBoxAntiAlias: TCheckBox;
     CheckBoxCanvas32: TCheckBox;
-    ComboBoxFont: TComboBox;
-    Label1: TLabel;
     CheckBoxBold: TCheckBox;
     CheckBoxItalic: TCheckBox;
+    LabelFont: TLabel;
+    ComboBoxFont: TComboBox;
+    ButtonBenchmark: TButton;
+    Bevel1: TBevel;
     procedure FormCreate(Sender: TObject);
-    procedure BtnRunBenchmarkClick(Sender: TObject);
-    procedure EditTextChange(Sender: TObject);
+    procedure ButtonBenchmarkClick(Sender: TObject);
     procedure ImageResize(Sender: TObject);
-    procedure CheckBoxAntiAliasClick(Sender: TObject);
+    procedure Changed(Sender: TObject);
     procedure CheckBoxCanvas32Click(Sender: TObject);
-    procedure ComboBoxFontChange(Sender: TObject);
-    procedure CheckBoxBoldClick(Sender: TObject);
-    procedure CheckBoxItalicClick(Sender: TObject);
+  private
+    function GetFontStyle: TFontStyles;
   public
     procedure Draw;
   end;
@@ -82,6 +81,16 @@ uses
   GR32_Brushes,
   GR32_Polygons,
   GR32_System;
+
+function TFormRenderText.GetFontStyle: TFontStyles;
+begin
+  Result := [];
+  if CheckBoxBold.Checked then
+    Include(Result, fsBold);
+
+  if CheckBoxItalic.Checked then
+    Include(Result, fsItalic);
+end;
 
 procedure TFormRenderText.FormCreate(Sender: TObject);
 var
@@ -112,26 +121,13 @@ var
   y: integer;
   Height: integer;
   Size: integer;
-  Style: TFontStyles;
   Canvas: TCanvas32;
   Brush: TSolidBrush;
 begin
   Image.Bitmap.Clear;
 
-  y := 3;
-  Size := 6;
-
-  Image.Bitmap.Font.Size := 20;
-
-  Style := [];
-
-  if CheckBoxBold.Checked then
-    Include(Style, fsBold);
-
-  if CheckBoxItalic.Checked then
-    Include(Style, fsItalic);
-
-  Image.Bitmap.Font.Style := Style;
+  Image.Bitmap.Font.Style := GetFontStyle;
+  Image.Bitmap.Font.Name := ComboBoxFont.Text;
 
   Canvas := nil;
   try
@@ -143,6 +139,9 @@ begin
       Brush.FillMode := pfNonZero;
     end;
 
+    y := 3;
+    Size := 6;
+
     while (y < Image.Bitmap.Height) do
     begin
       Image.Bitmap.Font.Size := Size;
@@ -153,18 +152,12 @@ begin
         Image.Bitmap.RenderText(10, y, Format('%d: %s', [Size, EditText.Text]), clWhite32, CheckBoxAntiAlias.Checked);
 
       Size := Trunc(Size * 1.2);
-
       Height := Image.Bitmap.TextHeight(EditText.Text);
-      y := y + MulDiv(Height, 8, 10);
+      y := y + MulDiv(Height, 4, 5);
     end;
   finally
     Canvas.Free;
   end;
-end;
-
-procedure TFormRenderText.EditTextChange(Sender: TObject);
-begin
-  Draw;
 end;
 
 procedure TFormRenderText.ImageResize(Sender: TObject);
@@ -173,7 +166,7 @@ begin
   Draw;
 end;
 
-procedure TFormRenderText.BtnRunBenchmarkClick(Sender: TObject);
+procedure TFormRenderText.ButtonBenchmarkClick(Sender: TObject);
 var
   SaveQuality: TFontQuality;
   i: Integer;
@@ -184,14 +177,19 @@ var
   Canvas: TCanvas32;
   Brush: TSolidBrush;
   SaveFont: string;
+  Color: TColor32;
+  Pos: TPoint;
+const
+  MinSize = 10;
+  MaxSize = 30;
+  MaxCount = 10000;
 begin
   Screen.Cursor := crHourGlass;
 
   SaveQuality := Image.Bitmap.Font.Quality;
   SaveFont := Image.Bitmap.Font.Name;
 
-  Image.Bitmap.Font.Style := [fsBold, fsItalic];
-  Image.Bitmap.Font.Size := 20;
+  Image.Bitmap.Font.Style := GetFontStyle;
 
   if (CheckBoxAntiAlias.Checked) then
     Image.Bitmap.Font.Quality := TFontQuality.fqAntialiased
@@ -211,25 +209,23 @@ begin
     StopWatch := TStopWatch.StartNew;
     Image.Bitmap.BeginUpdate;
 
-    if (Canvas <> nil) then
+    for i := 1 to MaxCount do
     begin
-      for i := 1 to 10000 do
-      begin
-        Brush.FillColor := Color32(Random(255), Random(255), Random(255), Random(255));
+      Image.Bitmap.Font.Size := MinSize + MulDiv(MaxSize-MinSize, i, MaxCount);
+      Color := Color32(Random(255), Random(255), Random(255), 64+Random(191));
+      Pos.X := Random(Image.Bitmap.Width + 10) - 10;
+      Pos.Y := Random(Image.Bitmap.Height + 10) - 10;
 
-        Canvas.RenderText(
-          Random(Image.Bitmap.Width - 40),
-          Random(Image.Bitmap.Height - 40),
-          IntToStr(i));
-      end;
-    end else
-    begin
-      for i := 1 to 10000 do
+      if (Canvas <> nil) then
+      begin
+        Brush.FillColor := Color;
+        Canvas.RenderText(Pos.X, Pos.Y, IntToStr(i));
+      end else
         Image.Bitmap.RenderText(
-          Random(Image.Bitmap.Width - 40),
-          Random(Image.Bitmap.Height - 40),
+          Pos.X,
+          Pos.Y,
           IntToStr(i),
-          Color32(Random(255), Random(255), Random(255), Random(255)));
+          Color);
     end;
 
     Image.Bitmap.EndUpdate;
@@ -262,7 +258,7 @@ begin
   Image.Invalidate;
 end;
 
-procedure TFormRenderText.CheckBoxAntiAliasClick(Sender: TObject);
+procedure TFormRenderText.Changed(Sender: TObject);
 begin
   Draw;
 end;
@@ -271,22 +267,6 @@ procedure TFormRenderText.CheckBoxCanvas32Click(Sender: TObject);
 begin
   CheckBoxAntiAlias.Enabled := not CheckBoxCanvas32.Checked;
   Update;
-  Draw;
-end;
-
-procedure TFormRenderText.CheckBoxItalicClick(Sender: TObject);
-begin
-  Draw;
-end;
-
-procedure TFormRenderText.CheckBoxBoldClick(Sender: TObject);
-begin
-  Draw;
-end;
-
-procedure TFormRenderText.ComboBoxFontChange(Sender: TObject);
-begin
-  Image.Bitmap.Font.Name := ComboBoxFont.Text;
   Draw;
 end;
 
