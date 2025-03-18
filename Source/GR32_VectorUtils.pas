@@ -48,8 +48,8 @@ interface
 uses
 {$if defined(UseInlining)}
   Types,
-  Math,
 {$ifend}
+  Math,
   GR32,
   GR32_Transforms,
   GR32_Polygons;
