@@ -44,8 +44,10 @@ interface
 //------------------------------------------------------------------------------
 
 uses
+  Generics.Defaults,
   Generics.Collections,
   Windows,
+  Graphics,
   GR32,
   GR32_Paths;
 
@@ -69,6 +71,41 @@ type
     procedure Add(var Link: TDoubleLinked<T>); inline;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Platform independent font API
+//
+//------------------------------------------------------------------------------
+//
+//------------------------------------------------------------------------------
+type
+  TGlyphMetrics32 = record
+    Valid: boolean;
+    AdvanceWidthX: integer;
+  end;
+
+  TFontFaceMetric32 = record
+    Valid: boolean;
+    Height: integer;
+    Ascent: integer;
+    Descent: integer;
+  end;
+
+  IFontContext32 = interface
+    function Comparer: IEqualityComparer<IFontContext32>;
+
+    procedure BeginSession;
+    procedure EndSession;
+
+    function GetFontFaceMetric(var AFontFaceMetric: TFontFaceMetric32): boolean;
+    function GetGlyphMetric(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32): boolean;
+    function GetGlyphOutline(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32; APath: TCustomPath; OffsetX: Single = 0; OffsetY: Single = 0; MaxX: Single = -1): boolean;
+  end;
+
+  IFontOutlineProvider32 = interface
+    function CreateContext(AFont: TFont): IFontContext32;
+  end;
 
 //------------------------------------------------------------------------------
 //
@@ -100,7 +137,7 @@ type
     FFontCacheItem: TFontCacheItem;
     FGlyph: integer;
     FValid: boolean;
-    FGlyphMetrics: TGlyphMetrics;
+    FGlyphMetrics: TGlyphMetrics32;
     FTTPolygonHeader: PTTPolygonHeader;
     FTTPolygonHeaderSize: DWORD;
 {$ifdef FONT_CACHE_PATH}
@@ -124,7 +161,7 @@ type
     property Glyph: integer read FGlyph;
     property Valid: boolean read FValid;
 
-    property GlyphMetrics: TGlyphMetrics read FGlyphMetrics;
+    property GlyphMetrics: TGlyphMetrics32 read FGlyphMetrics;
     property TTPolygonHeader: PTTPolygonHeader read FTTPolygonHeader;
     property TTPolygonHeaderSize: DWORD read FTTPolygonHeaderSize;
 
@@ -138,8 +175,7 @@ type
   TFontCacheItem = class
   private
     FFontCache: TFontCache;
-    FLogFont: TLogFont;
-    FTextMetric: TTextMetric;
+    FFontFaceMetric: TFontFaceMetric32;
     FGlyphCache: TObjectDictionary<integer, TGlyphInfo>;
     FHits: uint64;
   protected
@@ -147,12 +183,12 @@ type
     procedure ReserveCacheSpace(Size: uint64);
     procedure UnreserveCacheSpace(Size: uint64);
   public
-    constructor Create(AFontCache: TFontCache; DC: HDC; const ALogFont: TLogFont);
+    constructor Create(AFontCache: TFontCache; DC: HDC);
     destructor Destroy; override;
 
     function GetGlyphInfo(DC: HDC; Glyph: integer): TGlyphInfo;
 
-    property TextMetric: TTextMetric read FTextMetric;
+    property FontFaceMetric: TFontFaceMetric32 read FFontFaceMetric;
   end;
 
   TFontCache = class
@@ -263,6 +299,8 @@ end;
 //
 //------------------------------------------------------------------------------
 constructor TGlyphInfo.Create(AFontCacheItem: TFontCacheItem; ADC: HDC; AGlyph: integer);
+var
+  GlyphMetrics: TGlyphMetrics;
 begin
   inherited Create;
 
@@ -270,7 +308,13 @@ begin
   FGlyph := AGlyph;
   FLRUlink.Value := Self;
 
-  FTTPolygonHeaderSize := GetGlyphOutline(ADC, FGlyph, GGODefaultFlags[UseHinting], FGlyphMetrics, 0, nil, VertFlip_mat2);
+  GlyphMetrics := Default(TGlyphMetrics);
+  FTTPolygonHeaderSize := GetGlyphOutline(ADC, FGlyph, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
+
+  if (FTTPolygonHeaderSize <> GDI_ERROR) then
+    FGlyphMetrics.AdvanceWidthX := GlyphMetrics.gmCellIncX
+  else
+    FGlyphMetrics := Default(TGlyphMetrics32);
 
   if (FTTPolygonHeaderSize <> 0) then
   begin
@@ -279,7 +323,8 @@ begin
     GetMem(FTTPolygonHeader, FTTPolygonHeaderSize);
     try
       try
-        FTTPolygonHeaderSize := GetGlyphOutline(ADC, FGlyph, GGODefaultFlags[UseHinting], FGlyphMetrics, FTTPolygonHeaderSize, FTTPolygonHeader, VertFlip_mat2);
+
+        FTTPolygonHeaderSize := GetGlyphOutline(ADC, FGlyph, GGODefaultFlags[UseHinting], GlyphMetrics, FTTPolygonHeaderSize, FTTPolygonHeader, VertFlip_mat2);
 
         FValid := (FTTPolygonHeaderSize <> GDI_ERROR) and (FTTPolygonHeader^.dwType = TT_POLYGON_TYPE);
 
@@ -346,15 +391,20 @@ end;
 //      TFontCacheItem
 //
 //------------------------------------------------------------------------------
-constructor TFontCacheItem.Create(AFontCache: TFontCache; DC: HDC; const ALogFont: TLogFont);
+constructor TFontCacheItem.Create(AFontCache: TFontCache; DC: HDC);
+var
+  FontFaceMetric: TTextMetric;
 begin
   inherited Create;
 
   FFontCache := AFontCache;
   FGlyphCache := TObjectDictionary<integer, TGlyphInfo>.Create([doOwnsValues]);
-  FLogFont := ALogFont;
 
-  GetTextMetrics(DC, FTextMetric);
+  GetTextMetrics(DC, FontFaceMetric);
+
+  FFontFaceMetric.Height := FontFaceMetric.tmHeight;
+  FFontFaceMetric.Ascent := FontFaceMetric.tmAscent;
+  FFontFaceMetric.Descent := FontFaceMetric.tmDescent;
 end;
 
 destructor TFontCacheItem.Destroy;
@@ -455,7 +505,7 @@ begin
     exit;
   end;
 
-  Result := TFontCacheItem.Create(Self, DC, LogFont);
+  Result := TFontCacheItem.Create(Self, DC);
   FCache.Add(LogFont, Result);
 end;
 

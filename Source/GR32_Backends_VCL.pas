@@ -275,7 +275,7 @@ end;
 
 function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 begin
-  Result := TextToolsWin.MeasureText(Font.Handle, DstRect, Text, Flags);
+  Result := TextToolsWin.MeasureText(Font, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.FinalizeSurface;
@@ -386,13 +386,13 @@ var
   R: TFloatRect;
 begin
   R := FloatRect(X, Y, X, Y);
-  TextToolsWin.TextToPath(Font.Handle, Path, R, Text, 0);
+  TextToolsWin.TextToPath(Font, Path, R, Text, 0);
 end;
 
 procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
   const Text: string; Flags: Cardinal);
 begin
-  TextToolsWin.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
+  TextToolsWin.TextToPath(Font, Path, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.UpdateFont;

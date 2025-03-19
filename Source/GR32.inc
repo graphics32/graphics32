@@ -248,7 +248,7 @@
   When FONT_CACHE is defined, the TextToPath functions will cache the glyph
   outline data returned by Windows.
 *)
-{$define FONT_CACHE}
+{-$define FONT_CACHE}
 
 
 (*
