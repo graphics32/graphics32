@@ -25,6 +25,7 @@ object FormRenderText: TFormRenderText
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 1
+    OnClick = ImageClick
     OnResize = ImageResize
   end
   object PanelTop: TPanel

@@ -37,6 +37,8 @@ interface
 
 {$include GR32.inc}
 
+{$define DEBUG_VERTICES}
+
 uses
   {$IFDEF FPC} LCLType, LResources, LMessages, {$ELSE} Windows, Messages, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
@@ -67,7 +69,11 @@ type
     procedure ImageResize(Sender: TObject);
     procedure Changed(Sender: TObject);
     procedure CheckBoxCanvas32Click(Sender: TObject);
+    procedure ImageClick(Sender: TObject);
   private
+{$if defined(DEBUG_VERTICES)}
+    FDisplayVertices: boolean;
+{$ifend}
     function GetFontStyle: TFontStyles;
   protected
     procedure CMShowingChanged(var Message: TMessage); message CM_SHOWINGCHANGED;
@@ -84,10 +90,49 @@ implementation
 
 uses
   Types,
+{$if defined(DEBUG_VERTICES)}
+  Math,
+{$ifend}
   GR32_Paths,
   GR32_Brushes,
+{$if defined(DEBUG_VERTICES)}
+  GR32_Transforms,
+{$ifend}
   GR32_Polygons,
-  GR32_System;
+  GR32_System,
+  GR32.Text.Types;
+
+{$if defined(DEBUG_VERTICES)}
+type
+  TVertexBrush = class(TCustomBrush)
+  private
+    FBitmap: TBitmap32;
+  protected
+    procedure RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
+      const ClipRect: TFloatRect; Transformation: TTransformation); override;
+    public
+    constructor Create(ABrushCollection: TBrushCollection; ABitmap: TBitmap32); reintroduce;
+  end;
+
+constructor TVertexBrush.Create(ABrushCollection: TBrushCollection; ABitmap: TBitmap32);
+begin
+  inherited Create(ABrushCollection);
+  FBitmap := ABitmap;
+end;
+
+procedure TVertexBrush.RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; Transformation: TTransformation);
+var
+  i, j: integer;
+const
+  Size = 1;
+begin
+  for i := 0 to High(Points) do
+    for j := 0 to High(Points[i]) do
+      FBitmap.FrameRectTS(GR32.MakeRect(Points[i, j].X-Size, Points[i, j].Y-Size, Points[i, j].X+Size, Points[i, j].Y+Size), clTrRed32);
+end;
+{$ifend}
+
 
 function TFormRenderText.GetFontStyle: TFontStyles;
 begin
@@ -121,11 +166,15 @@ begin
     Image.Bitmap.Font.Name := 'Tahoma';
 
   ComboBoxFont.Text := Image.Bitmap.Font.Name;
+
+  // Use classic metrics since we're comparing against ExtTextOut
+  // (via TBitmap32.RenderText->TBitmap32.Textout->Backend.Textout)
+  DefaultTextLayout.VerticalMetrics := vmWindows;
 end;
 
 procedure TFormRenderText.Draw;
 var
-  y: integer;
+  Y: integer;
   Height: integer;
   Size: integer;
   Canvas: TCanvas32;
@@ -141,30 +190,50 @@ begin
     if CheckboxCanvas32.Checked then
     begin
       Canvas := TCanvas32.Create(Image.Bitmap);
-      Brush := TSolidBrush(Canvas.Brushes.Add(TSolidBrush));
+
+      Brush := TSolidBrush.Create(Canvas.Brushes);
       Brush.FillColor := clWhite32;
       Brush.FillMode := pfNonZero;
+
+{$if defined(DEBUG_VERTICES)}
+      if FDisplayVertices then
+        TVertexBrush.Create(Canvas.Brushes, Image.Bitmap);
+{$ifend}
     end;
 
-    y := 3;
+    Y := 3;
     Size := 6;
 
-    while (y < Image.Bitmap.Height) do
+    while (Y < Image.Bitmap.Height) do
     begin
+
       Image.Bitmap.Font.Size := Size;
 
-      if (Canvas <> nil) then
-        Canvas.RenderText(10, y, Format('%d: %s', [Size, EditText.Text]))
-      else
-        Image.Bitmap.RenderText(10, y, Format('%d: %s', [Size, EditText.Text]), clWhite32, CheckBoxAntiAlias.Checked);
+      // Draw reference line
+      Image.Bitmap.LineTS(0, Y, Image.Bitmap.Width, Y, $80204060);
 
-      Size := Trunc(Size * 1.2);
+      if (Canvas <> nil) then
+        Canvas.RenderText(10, Y, Format('%d: %s', [Size, EditText.Text]), DT_SINGLELINE)
+      else
+        Image.Bitmap.RenderText(10, Y, Format('%d: %s', [Size, EditText.Text]), clWhite32, CheckBoxAntiAlias.Checked);
+
       Height := Image.Bitmap.TextHeight(EditText.Text);
-      y := y + MulDiv(Height, 4, 5);
+      Y := Y + MulDiv(Height, 4, 5);
+
+      Size := Round(Size * 1.2);
+
     end;
   finally
     Canvas.Free;
   end;
+end;
+
+procedure TFormRenderText.ImageClick(Sender: TObject);
+begin
+{$if defined(DEBUG_VERTICES)}
+  FDisplayVertices := not FDisplayVertices;
+  Draw;
+{$ifend}
 end;
 
 procedure TFormRenderText.ImageResize(Sender: TObject);
@@ -226,7 +295,7 @@ begin
       if (Canvas <> nil) then
       begin
         Brush.FillColor := Color;
-        Canvas.RenderText(Pos.X, Pos.Y, IntToStr(i));
+        Canvas.RenderText(Pos.X, Pos.Y, IntToStr(i), DT_SINGLELINE);
       end else
         Image.Bitmap.RenderText(
           Pos.X,
