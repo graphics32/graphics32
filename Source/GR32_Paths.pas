@@ -43,7 +43,8 @@ uses
   GR32_Polygons,
   GR32_Transforms,
   GR32_Brushes,
-  GR32_Geometry;
+  GR32_Geometry,
+  GR32.Text.Types;
 
 const
   DefaultCircleSteps = 100;
@@ -192,9 +193,14 @@ type
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
     destructor Destroy; override;
 
-    procedure RenderText(X, Y: TFloat; const Text: string); overload;
+    procedure RenderText(X, Y: TFloat; const Text: string; Flags: Cardinal); overload;
     procedure RenderText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal); overload;
-    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect; overload;
+
+    procedure RenderText(X, Y: TFloat; const Text: string); overload;
+    procedure RenderText(X, Y: TFloat; const Text: string; const Layout: TTextLayout); overload;
+    procedure RenderText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
 
     property Bitmap: TBitmap32 read FBitmap;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
@@ -203,8 +209,8 @@ type
   end;
 
 var
-  CBezierTolerance: TFloat = 0.25;
-  QBezierTolerance: TFloat = 0.25;
+  CBezierTolerance: TFloat = DefaultBezierTolerance;
+  QBezierTolerance: TFloat = DefaultBezierTolerance;
 
 type
   TAddPointEvent = procedure(const Point: TFloatPoint) of object;
@@ -849,34 +855,78 @@ begin
   Result := FRenderer.ClassName;
 end;
 
-function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
+function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect;
 var
   TextToPath: ITextToPathSupport;
+  TextToPath2: ITextToPathSupport2;
 begin
-  if (not Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
+  if (Supports(Bitmap.Backend, ITextToPathSupport2, TextToPath2)) then
+    Result := TextToPath2.MeasureText(DstRect, Text, Layout)
+  else
+  if (Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
+    Result := TextToPath.MeasureText(DstRect, Text, LayoutToTextFlags(Layout))
+  else
     raise Exception.Create(RCStrInpropriateBackend);
+end;
 
-  Result := TextToPath.MeasureText(DstRect, Text, Flags);
+function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
+var
+  Layout: TTextLayout;
+begin
+  Layout := DefaultTextLayout;
+  TextFlagsToLayout(Flags, Layout);
+  Result := MeasureText(DstRect, Text, Layout);
+end;
+
+procedure TCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout);
+var
+  TextToPath: ITextToPathSupport;
+  TextToPath2: ITextToPathSupport2;
+begin
+  if (Supports(Bitmap.Backend, ITextToPathSupport2, TextToPath2)) then
+    TextToPath2.TextToPath(Self, DstRect, Text, Layout)
+  else
+  if (Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
+    TextToPath.TextToPath(Self, DstRect, Text, LayoutToTextFlags(Layout))
+  else
+    raise Exception.Create(RCStrInpropriateBackend);
 end;
 
 procedure TCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal);
 var
-  TextToPath: ITextToPathSupport;
+  Layout: TTextLayout;
 begin
-  if (not Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
-    raise Exception.Create(RCStrInpropriateBackend);
-
-  TextToPath.TextToPath(Self, DstRect, Text, Flags);
+  Layout := DefaultTextLayout;
+  TextFlagsToLayout(Flags, Layout);
+  RenderText(DstRect, Text, Layout);
 end;
 
 procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string);
+begin
+  RenderText(X, Y, Text, DefaultTextLayout);
+end;
+
+procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string; const Layout: TTextLayout);
 var
   TextToPath: ITextToPathSupport;
+  TextToPath2: ITextToPathSupport2;
 begin
-  if (not Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
+  if (Supports(Bitmap.Backend, ITextToPathSupport2, TextToPath2)) then
+    TextToPath2.TextToPath(Self, X, Y, Text, Layout)
+  else
+  if (Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
+    TextToPath.TextToPath(Self, X, Y, Text, LayoutToTextFlags(Layout))
+  else
     raise Exception.Create(RCStrInpropriateBackend);
+end;
 
-  TextToPath.TextToPath(Self, X, Y, Text);
+procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string; Flags: Cardinal);
+var
+  Layout: TTextLayout;
+begin
+  Layout := DefaultTextLayout;
+  TextFlagsToLayout(Flags, Layout);
+  RenderText(X, Y, Text, Layout);
 end;
 
 procedure TCanvas32.SetRenderer(ARenderer: TPolygonRenderer32);

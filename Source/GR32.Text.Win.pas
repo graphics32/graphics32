@@ -34,11 +34,10 @@ interface
 
 {$include GR32.inc}
 
-{$ifndef FONT_CACHE}
-  {$undef FONT_CACHE_PATH}
-{$endif FONT_CACHE}
-
-
+//------------------------------------------------------------------------------
+//
+//      Font provider for Windows platform
+//
 //------------------------------------------------------------------------------
 //
 //      This unit should be considered internal to Graphics32.
@@ -49,53 +48,140 @@ interface
 
 uses
   Generics.Defaults,
-  Windows, Types,
+  Generics.Collections,
+  Windows,
+  Types,
   Graphics,
 
   GR32,
   GR32_Paths,
   GR32.Text.Types,
+  GR32.Text.Layout,
+  GR32.Text.FontFace,
   GR32.Text.Cache;
+
 
 //------------------------------------------------------------------------------
 //
-//      Font provider for Windows platform
+//      TFontFace32
+//
+//------------------------------------------------------------------------------
+//
+// Implements IFontFace32 for Windows.
+//
+// Besides the basic IFontFace32 functionality, which is to get font data from
+// Windows, the class employs a metadata cache. This avoids repeated calls to
+// GDI to get font and glyph metrics resulting in a factor 10 speedup.
+// The metadata cache is mandatory and data is never evicted from it but since
+// cache entries are relatively small, and each entry represents a font, it
+// shouldn't be necessary to limit the size.
+// If need be the cache can be manually cleared with the TFontFace32.ClearCache
+// method.
+//
+// In addition, the generic glyph cache is also used.
+// This reduces the impact of the second-most costly operation: Retrieving glyph
+// outlines and converting them to polygons. The result is an additional factor
+// 10 speedup.
+// The glyph cache is optional but enabled by default.
+// The glyph cache can be enabled and disabled with EnableGlyphCache and
+// DisablGlyphCache.
 //
 //------------------------------------------------------------------------------
 type
-  TFontContext = class(TInterfacedObject, IFontContext32)
+  TFontData = record
+    FontDC: HDC;
+    Font: HFONT;
+
+    LogFont: TLogFont;
+    OutlineTextMetric: TOutlineTextMetric;
+    EMSize: Cardinal;
+  end;
+
+  // Metadata cache item
+  IFontItem = interface
+    // The desired font size is specified by AFontData.LogFont.lfHeight.
+    // Returns metrics in AFontData. These metrics must then be scaled
+    // by the caller using the value returned in AScale.
+    procedure GetFontData(var AFontData: TFontData; var AScale: Double);
+  end;
+
+type
+  TFontFace32 = class(TInterfacedObject, IFontFace32)
   private class var
-    FFontDC: HDC;
+    // Font metadata cache
+    FFontCache: TDictionary<TFontKey, IFontItem>;
+
   private
-    class function GetFontDC: HDC; static;
+    class constructor Create;
     class destructor Destroy;
 
   private
-    FFont: TFont;
-    FLogFont: TLogFont;
+    // Values copied from FFontItem
+    FFontData: TFontData;
+    FScale: Double;
+    FScaleInv: Double;
+
+  private
+    // Font metadata cache
+    FFontItem: IFontItem;
+    FFontKey: TFontKey;
+
+    function GetFontKey: TFontKey;
+
+  private
+    // Obsolete stuff
     FSessionCount: integer;
 
   private
-    // IFontContext32
-    function Comparer: IEqualityComparer<IFontContext32>;
+    // Outline cache
+    FGlyphCacheItem: IGlyphCacheFontItem;
 
-    function GetFontFaceMetric(var AFontFaceMetric: TFontFaceMetric32): boolean;
-    function GetGlyphMetric(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32): boolean;
-    function GetGlyphOutline(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32; APath: TCustomPath; OffsetX: Single = 0; OffsetY: Single = 0; MaxX: Single = -1): boolean;
+  private type
+    TKerningPairs = TArray<TKerningPair>;
+  private
+    // Kerning
+    // TODO : Move to TFontItem
+    FHasKerning: boolean;
+    FKerningPairs: TKerningPairs;
+{$ifndef FPC}
+    FKerningComparer: IComparer<TKerningPair>;
+{$endif}
 
+  private
+    procedure AssignGlyphMetrics(const GlyphMetrics: TGlyphMetrics; var AGlyphMetrics: TGlyphMetrics32);
+    procedure CopyGlyphMetrics(const ASource: TGlyphMetrics32; out ADest: TGlyphMetrics32; AScale: Single);
+
+  private
+    // IFontFace32
     procedure BeginSession;
     procedure EndSession;
+
+    function GetFontFaceMetrics(const ATextLayout: TTextLayout; var AFontFaceMetrics: TFontFaceMetrics32): boolean;
+    function GetGlyphMetrics(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32): boolean;
+    function GetGlyphOutline(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32; APath: TCustomPath; AOffsetX: Single = 0; AOffsetY: Single = 0): boolean;
+    function GetKerning(AFirstGlyph, ASecondGlyph: Cardinal): Single;
+
   public
     constructor Create(AFont: TFont);
-    class property FontDC: HDC read GetFontDC;
+
+    class procedure ClearCache;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TFontFaceProvider
+//
+//------------------------------------------------------------------------------
+// Implements IFontFaceProvider32 for Windows
+//------------------------------------------------------------------------------
 type
-  TFontOutlineProvider = class(TInterfacedObject, IFontOutlineProvider32)
+  TFontFaceProvider = class(TInterfacedObject, IFontFaceProvider32)
   private
-    // IFontOutlineProvider32
-    function CreateContext(AFont: TFont): IFontContext32;
+    // IFontFaceProvider32
+    function CreateFontFace(AFont: TFont): IFontFace32;
   end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -104,38 +190,50 @@ type
 //------------------------------------------------------------------------------
 type
   TextToolsWin = record
-  private
-    // GetDC/ReleaseDC is relatively expensive and would take up the bulk of the
-    // time if used. Instead we create and cache a dedicated DC for use
-    // exclusively here.
-    class var FontDC: HDC;
+    class procedure TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0); overload; static;
+    class procedure TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout); overload; static;
 
-    class var HorizontalScale: Integer; // stretch factor when calling GetGlyphOutline()
-    class var HorizontalScaleInv: Single;
+    class function TextToPolyPolygon(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TArrayOfArrayOfFloatPoint; static; deprecated;
 
-  private
-    class destructor Destroy;
-
-    class function DoMeasureText(const FontContext: IFontContext32; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TFloatRect; static;
-    class procedure InternalTextToPath(const FontContext: IFontContext32; Path: TCustomPath; var ARect: TFloatRect; const Text: string; Flags: Cardinal); static;
-  public
-    class procedure TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0); static;
-    class function TextToPolyPolygon(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TArrayOfArrayOfFloatPoint; static;
-
-    class function MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TFloatRect; static;
-
-    class procedure SetHinting(Value: TTextHinting); static;
-    class function GetHinting: TTextHinting; static;
+    class function MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TFloatRect; overload; static;
+    class function MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect; overload; static;
   end;
 
 
-var
-  UseHinting: Boolean = False;
-  VertFlip_mat2: TMat2;
+//------------------------------------------------------------------------------
+//
+//      MaxEMSquare
+//
+//------------------------------------------------------------------------------
+// Specifies the max resolution of the glyph data retrieved from Windows and
+// later flattened to polypolygons.
+//
+// - A small value will make the rendering faster but will also distort the
+//   glyphs.
+//
+// - A large value will make the rendering slower but will also produce higher
+//   quality glyphs.
+//
+// The full font resolution (i.e. the resolution the font was designed at) is
+// usually 2048.
+// It is recommended that the max resolution not be set lower than half the
+// maximum font size that will be rendered, although even then the degredation
+// in quality can be hard to spot visually.
+//------------------------------------------------------------------------------
 
+var
+  MaxEMSquare: Cardinal = 128;
+
+//------------------------------------------------------------------------------
+
+{$ifdef IGNORE_HINTING_DEPRECATED}
 const
-  GGO_UNHINTED = $0100;
-  GGODefaultFlags: array [Boolean] of Integer = (GGO_NATIVE or GGO_UNHINTED, GGO_NATIVE);
+{$else}
+var
+{$endif}
+  UseHinting: Boolean = False {$ifndef IGNORE_HINTING_DEPRECATED}deprecated 'Hinting is no longer supported. See IGNORE_HINTING_DEPRECATED in GR32.inc'{$endif};
+
+
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -144,22 +242,23 @@ const
 implementation
 
 uses
-  Character,
-{$ifndef FPC}
-  System.Hash,
-{$endif}
-{$IFDEF USESTACKALLOC}
-  GR32_LowLevel,
-{$ENDIF}
-  SysUtils;
+  Math,
+  SysUtils,
+  GR32.Text.Unicode;
+
+const
+  VertFlip_mat2: TMat2 = (
+    eM11: (Fract: 0; Value: 1);
+    eM12: (Fract: 0; Value: 0);
+    eM21: (Fract: 0; Value: 0);
+    eM22: (Fract: 0; Value: -1); // Reversed Y axis
+  );
+
+const
+  GGO_UNHINTED = $0100;
 
 const
   TT_PRIM_CSPLINE = 3;
-
-  MaxSingle   =  3.4e+38;
-
-type
-  TKerningPairArray = array [0..0] of TKerningPair;
 
 //------------------------------------------------------------------------------
 
@@ -174,570 +273,77 @@ begin
   Result.Y := Point.Y.Value + Point.Y.Fract * FixedToFloat;
 end;
 
-
 //------------------------------------------------------------------------------
 
-function IsWhiteSpace(c: Char): boolean; {$IFDEF UseInlining} inline; {$ENDIF}
-begin
-  Result := (c.GetUnicodeCategory = TUnicodeCategory.ucSpaceSeparator);
-end;
-
-function IsBreakableWhiteSpace(c: Char): boolean; {$IFDEF UseInlining} inline; {$ENDIF}
-begin
-  case c of
-    #$00A0, #$202F, #$2060, #$FEFF:
-      Result := False;
-  else
-    Result := IsWhiteSpace(c);
-  end;
-end;
-
-class procedure TextToolsWin.InternalTextToPath(const FontContext: IFontContext32; Path: TCustomPath; var ARect: TFloatRect; const Text: string; Flags: Cardinal);
-const
-  CHAR_CR = 10;
-  CHAR_NL = 13;
-  CHAR_SP = 32;
+procedure SanitizeLogFont(var LogFont: TLogFont); {$IFDEF UseInlining} inline; {$ENDIF}
 var
-  FontFaceMetric: TFontFaceMetric32;
-  SpaceMetric: TGlyphMetrics32;
-  CharOffsets: TArrayOfInteger;
-  CharWidths: TArrayOfInteger;
-  TextPath: TFlattenedPath;
-  LineStart: Integer;
-  SpaceCount: Integer;
-
-{$IFDEF USEKERNING}
-  NextCharValue: Integer;
-  KerningPairs: PKerningPairArray;
-  KerningPairCount: Integer;
-{$ENDIF}
-
-  procedure AlignTextCenter(X: Single; CurrentI: Integer);
-  var
-    w, M, N, PathStart, PathEnd, CharStart, CharEnd: Integer;
-    Delta: TFloat;
-    i: Integer;
-    MinX, MaxX: Single;
-  begin
-    Delta := Round(((ARect.Right - ARect.Left) * HorizontalScale - X - 1) * 0.5);
-    PathStart := CharOffsets[LineStart];
-    PathEnd := CharOffsets[CurrentI] - 1;
-
-    if (Flags and DT_SINGLELINE = 0) and (Flags and DT_NOCLIP = 0) then
-    begin
-      MinX := ARect.Left + Delta;
-      MaxX := ARect.Right + Delta;
-      CharStart := LineStart;
-      CharEnd := CurrentI;
-
-      w := Round(Delta);
-      for i := LineStart to CurrentI - 1 do
-      begin
-        if w < Arect.Left then
-        begin
-          CharStart := i + 1;
-          MinX := w + CharWidths[i];
-        end;
-        w := w + CharWidths[i];
-        if w <= ARect.Right then
-        begin
-          CharEnd := i + 1;
-          MaxX := w;
-        end;
-      end;
-
-      if (Flags and DT_WORDBREAK <> 0) then
-      begin
-        if (CharStart > LineStart) then
-          while (not IsBreakableWhiteSpace(Text[CharStart])) and (CharStart < CharEnd) do
-            Inc(CharStart);
-
-        if (CharEnd < CurrentI) then
-          while (not IsBreakableWhiteSpace(Text[CharEnd])) and (CharEnd > CharStart) do
-            Dec(CharEnd);
-
-        MinX := Round(Delta);
-        for i := 0 to CharStart - 1 do
-          MinX := MinX + CharWidths[i];
-
-        MaxX := Round(Delta);
-        for i := 0 to CharEnd - 1 do
-          MaxX := MaxX + CharWidths[i];
-      end;
-
-      PathStart := CharOffsets[CharStart];
-      PathEnd := CharOffsets[CharEnd] - 1;
-
-      for M := 0 to PathStart - 1 do
-        SetLength(TextPath.Path[M], 0);
-
-      for M := PathEnd + 1 to CharOffsets[CurrentI] - 1 do
-        SetLength(TextPath.Path[M], 0);
-
-      Delta := Delta + (((MinX - ARect.Left) + (ARect.Right - MaxX)) * 0.5) - MinX;
-    end;
-
-    for M := PathStart to PathEnd do
-      for N := 0 to High(TextPath.Path[M]) do
-        TextPath.Path[M, N].X := TextPath.Path[M, N].X + Delta;
-  end;
-
-  procedure AlignTextRight(X: Single; CurrentI: Integer);
-  var
-    w, i, M, N, PathStart, PathEnd, CharStart: Integer;
-    Delta: TFloat;
-  begin
-    Delta := Round(ARect.Right * HorizontalScale - X - 1);
-    PathStart := CharOffsets[LineStart];
-    PathEnd := CharOffsets[CurrentI] - 1;
-
-    if (Flags and DT_SINGLELINE = 0) and (Flags and DT_NOCLIP = 0) then
-    begin
-      CharStart := LineStart;
-
-      w := 0;
-      for i := LineStart to CurrentI - 1 do
-      begin
-        if w + Delta < Arect.Left then
-          CharStart := i + 1;
-
-        w := w + CharWidths[i];
-      end;
-
-      if (Flags and DT_WORDBREAK <> 0) then
-        if (CharStart > LineStart) then
-          while (not IsBreakableWhiteSpace(Text[CharStart])) and (CharStart < CurrentI) do
-            Inc(CharStart);
-
-      PathStart := CharOffsets[CharStart];
-
-      for M := 0 to PathStart - 1 do
-        SetLength(TextPath.Path[M], 0);
-    end;
-
-    for M := PathStart to PathEnd do
-      for N := 0 to High(TextPath.Path[M]) do
-        TextPath.Path[M, N].X := TextPath.Path[M, N].X + Delta;
-  end;
-
-  procedure AlignTextLeft(X: Single; CurrentI: Integer);
-  var
-    w, i, M, PathEnd, CharEnd: Integer;
-  begin
-    if (Flags and DT_SINGLELINE = DT_SINGLELINE) or (Flags and DT_NOCLIP = DT_NOCLIP) then
-      exit;
-
-    CharEnd := LineStart;
-
-    w := 0;
-    for i := LineStart to CurrentI - 1 do
-    begin
-      w := w + CharWidths[i];
-
-      if w > ARect.Width then
-        break;
-
-      CharEnd := i + 1;
-    end;
-
-    if (Flags and DT_WORDBREAK <> 0) then
-      if (CharEnd < CurrentI) then
-        while (not IsBreakableWhiteSpace(Text[CharEnd])) and (CharEnd > LineStart) do
-          Dec(CharEnd);
-
-    PathEnd := CharOffsets[CharEnd] - 1;
-
-    for M := PathEnd + 1 to CharOffsets[CurrentI] - 1 do
-      SetLength(TextPath.Path[M], 0);
-  end;
-
-  procedure AlignTextJustify(X: Single; CurrentI: Integer);
-  var
-    L, M, N, PathStart, PathEnd: Integer;
-    SpcDelta, SpcDeltaInc: TFloat;
-  begin
-    if (SpaceCount < 1) or IsWhiteSpace(Text[CurrentI]) then
-      Exit;
-
-    SpcDelta := (ARect.Right * HorizontalScale - X - 1) / SpaceCount;
-    SpcDeltaInc := SpcDelta;
-    L := LineStart;
-
-    // Trim leading spaces ...
-    while (L < CurrentI) and IsWhiteSpace(Text[L]) do
-      Inc(L);
-
-    // Now find first space char in line ...
-    while (L < CurrentI) and (not IsWhiteSpace(Text[L])) do
-      Inc(L);
-
-    PathStart := CharOffsets[L - 1];
-    repeat
-      M := L + 1;
-      while (M < CurrentI) and (not IsWhiteSpace(Text[M])) do
-        Inc(M);
-
-      PathEnd := CharOffsets[M];
-      L := M;
-
-      for M := PathStart to PathEnd - 1 do
-        for N := 0 to High(TextPath.Path[M]) do
-          TextPath.Path[M, N].X := TextPath.Path[M, N].X + SpcDeltaInc;
-
-      SpcDeltaInc := SpcDeltaInc + SpcDelta;
-      PathStart := PathEnd;
-    until (L >= CurrentI);
-  end;
-
-  procedure AlignLine(X: Single; CurrentI: Integer);
-  begin
-    if (TextPath = nil) or (Length(TextPath.Path) = 0) then
-      exit;
-
-    case (Flags and DT_HORZ_ALIGN_MASK) of
-      DT_LEFT   : AlignTextLeft(X, CurrentI);
-      DT_CENTER : AlignTextCenter(X, CurrentI);
-      DT_RIGHT  : AlignTextRight(X, CurrentI);
-      DT_JUSTIFY: AlignTextJustify(X, CurrentI);
-    end;
-  end;
-
-  procedure AddSpace(var X: Single);
-  begin
-    Inc(SpaceCount);
-    X := X + SpaceMetric.AdvanceWidthX;
-  end;
-
-  procedure NewLine(var X, Y: Single; CurrentI: Integer);
-  begin
-    if (Flags and DT_SINGLELINE <> 0) then
-    begin
-      AddSpace(X);
-      Exit;
-    end;
-
-    AlignLine(X, CurrentI);
-
-    X := ARect.Left * HorizontalScale;
-    Y := Y + FontFaceMetric.Height;
-
-    LineStart := CurrentI;
-    SpaceCount := 0;
-  end;
-
-  function MeasureTextX(const S: string): Integer;
-  var
-    i: Integer;
-    CharValue: Cardinal;
-    GlyphMetric: TGlyphMetrics32;
-  begin
-    Result := 0;
-
-    for i := 1 to Length(S) do
-    begin
-      CharValue := Ord(S[i]);
-
-      if (not FontContext.GetGlyphMetric(CharValue, GlyphMetric)) then
-        RaiseLastOSError;
-
-      Inc(Result, GlyphMetric.AdvanceWidthX);
-    end;
-  end;
-
-  function NeedsNewLine(X: Single): Boolean;
-  begin
-    Result := (ARect.Right > ARect.Left) and (X > ARect.Right * HorizontalScale);
-  end;
-
-var
-  I, J, TextLen: Integer;
-  CharValue: Cardinal;
-  X, Y, XMax, YMax, MaxRight: Single;
-  S: string;
-  OwnedPath: TFlattenedPath;
-  GlyphMetric: TGlyphMetrics32;
-  UnicodeCategory: TUnicodeCategory;
-  LastUnicodeCategory: TUnicodeCategory;
+  i: integer;
+  Clear: boolean;
 begin
-  SpaceCount := 0;
-  LineStart := 0;
-  OwnedPath := nil;
-  try
-
-    if (Path <> nil) then
-    begin
-
-      if (Path is TFlattenedPath) then
-      begin
-        TextPath := TFlattenedPath(Path);
-        TextPath.Clear;
-      end else
-      begin
-        OwnedPath := TFlattenedPath.Create;
-        TextPath := OwnedPath;
-      end
-
-    end else
-      TextPath := nil;
-
-    FontContext.GetFontFaceMetric(FontFaceMetric);
-
-    TextLen := Length(Text);
-    X := ARect.Left * HorizontalScale;
-    Y := ARect.Top + FontFaceMetric.Ascent;
-    XMax := X;
-
-    if (Path = nil) or (ARect.Right = ARect.Left) then
-      MaxRight := MaxSingle //either measuring Text or unbounded Text
+  // Clear junk from LOGFONT so we can produce a consistent hash from it
+  Clear := False;
+  for i := 0 to High(LogFont.lfFaceName) do
+  begin
+    if (Clear) then
+      LogFont.lfFaceName[i] := #0
     else
-      MaxRight := ARect.Right * HorizontalScale;
-
-    SetLength(CharOffsets, TextLen + 1);
-    CharOffsets[0] := 0;
-    SetLength(CharWidths, TextLen);
-
-    if (not FontContext.GetGlyphMetric(CHAR_SP, SpaceMetric)) then
-      RaiseLastOSError;
-
-    if (Flags and DT_SINGLELINE <> 0) or (ARect.Left = ARect.Right) then
-    begin
-      // ignore justify when forcing singleline ...
-      if (Flags and DT_JUSTIFY = DT_JUSTIFY) then
-        Flags := Flags and not DT_JUSTIFY;
-
-      // ignore wordbreak when forcing singleline ...
-      //if (Flags and DT_WORDBREAK = DT_WORDBREAK) then
-      //  Flags := Flags and not DT_WORDBREAK;
-      MaxRight := MaxSingle;
-    end;
-
-{$IFDEF USEKERNING}
-    KerningPairs := nil;
-    try
-
-      KerningPairCount := GetKerningPairs(DC, 0, nil);
-      if GetLastError <> 0 then
-        RaiseLastOSError;
-
-      if KerningPairCount > 0 then
-      begin
-        GetMem(KerningPairs, KerningPairCount * SizeOf(TKerningPair));
-        GetKerningPairs(DC, KerningPairCount, PKerningPair(KerningPairs));
-      end;
-{$ENDIF}
-
-    // Batch whole path construction so we can be sure that the path isn't rendered
-    // while we're still modifying it.
-    if (TextPath <> nil) then
-      TextPath.BeginUpdate;
-
-    LastUnicodeCategory := TUnicodeCategory.ucUnassigned;
-
-    for I := 1 to TextLen do
-    begin
-
-      CharValue := Ord(Text[I]);
-
-      // $00A0  No-break space
-      // $202F  Narrow no-break space
-      // $2060  Word joiner (zero width no-break space)
-      // $FEFF  Zero width no-break space
-      case CharValue of
-        $00A0, $202F, $2060, $FEFF:
-          UnicodeCategory := TUnicodeCategory.ucUnassigned
-      else
-        UnicodeCategory := Char(CharValue).GetUnicodeCategory;
-      end;
-
-      if (UnicodeCategory in [TUnicodeCategory.ucControl, TUnicodeCategory.ucLineSeparator, TUnicodeCategory.ucParagraphSeparator, TUnicodeCategory.ucSpaceSeparator]) then
-      begin
-        if (Flags and DT_SINGLELINE = DT_SINGLELINE) then
-        begin
-          CharValue := CHAR_SP;
-          UnicodeCategory := TUnicodeCategory.ucSpaceSeparator;
-        end;
-
-        if (TextPath <> nil) then
-          // Save path list offset of first path of current glyph
-          CharOffsets[I] := Length(TextPath.Path);
-
-        CharWidths[i-1] := SpaceMetric.AdvanceWidthX;
-
-        case UnicodeCategory of
-          TUnicodeCategory.ucLineSeparator:
-            if (LastUnicodeCategory <> TUnicodeCategory.ucParagraphSeparator) then
-              NewLine(X, Y, I);
-
-          TUnicodeCategory.ucParagraphSeparator:
-            if (LastUnicodeCategory <> TUnicodeCategory.ucLineSeparator) then
-              NewLine(X, Y, I);
-
-          TUnicodeCategory.ucSpaceSeparator:
-            begin
-              if (Flags and DT_WORDBREAK = DT_WORDBREAK) then
-              begin
-
-                J := I + 1;
-                while (J <= TextLen) do
-                begin
-                  CharValue := Ord(Text[J]);
-                  if IsBreakableWhiteSpace(Char(CharValue)) or (Char(CharValue).GetUnicodeCategory in [TUnicodeCategory.ucLineSeparator, TUnicodeCategory.ucParagraphSeparator]) then
-                    Inc(J)
-                  else
-                    break;
-                end;
-
-                S := Copy(Text, I, J - I);
-
-                if NeedsNewLine(X + MeasureTextX(S)) then
-                  NewLine(X, Y, I)
-                else
-                  AddSpace(X);
-
-              end else
-              begin
-
-                if NeedsNewLine(X + SpaceMetric.AdvanceWidthX) then
-                  NewLine(X, Y, I)
-                else
-                  AddSpace(X);
-
-              end;
-            end;
-        end;
-
-      end else
-      begin
-
-        if FontContext.GetGlyphOutline(CharValue, GlyphMetric, TextPath, X, Y, MaxRight) then
-        begin
-
-          if (TextPath <> nil) then
-            // Save path list offset of first path of current glyph
-            CharOffsets[I] := Length(TextPath.Path);
-
-          CharWidths[I-1] := GlyphMetric.AdvanceWidthX;
-
-        end else
-        begin
-
-          if (I > 0) and IsWhiteSpace(Text[I-1]) then
-          begin
-            // this only happens without DT_WORDBREAK
-            X := X - SpaceMetric.AdvanceWidthX;
-            Dec(SpaceCount);
-          end;
-
-          // the current glyph doesn't fit so a word must be split since
-          // it fills more than a whole line ...
-          NewLine(X, Y, I-1);
-
-          if (not FontContext.GetGlyphOutline(CharValue, GlyphMetric, TextPath, X, Y, MaxRight)) then
-            break;
-
-          if (TextPath <> nil) then
-            // Save path list offset of first path of current glyph
-            CharOffsets[I] := Length(TextPath.Path);
-
-          CharWidths[I-1] := GlyphMetric.AdvanceWidthX;
-
-        end;
-
-        X := X + GlyphMetric.AdvanceWidthX;
-
-{$IFDEF USEKERNING}
-        if i < TextLen then
-          NextCharValue := Ord(Text[i + 1]);
-
-        for J := 0 to KerningPairCount - 1 do
-          if (KerningPairs^[J].wFirst = CharValue) and (KerningPairs^[J].wSecond = NextCharValue) then
-          begin
-            X := X + KerningPairs^[J].iKernAmount;
-            break;
-          end;
-{$ENDIF}
-
-        if (X > XMax) then
-          XMax := X;
-      end;
-
-      LastUnicodeCategory := UnicodeCategory;
-
-    end;
-
-{$IFDEF USEKERNING}
-    finally
-      if (KerningPairs <> nil) then
-        FreeMem(KerningPairs);
-    end;
-{$ENDIF}
-
-    if ((Flags and DT_HORZ_ALIGN_MASK) in [DT_LEFT, DT_CENTER, DT_RIGHT]) then
-      AlignLine(X, TextLen);
-
-    YMax := Y + FontFaceMetric.Height - FontFaceMetric.Ascent;
-
-    // Reverse HorizontalScale (if any) ...
-    if (HorizontalScale <> 1) and (TextPath <> nil) then
-      for I := 0 to High(TextPath.Path) do
-        for J := 0 to High(TextPath.Path[I]) do
-          TextPath.Path[I, J].X := TextPath.Path[I, J].X * HorizontalScaleInv;
-
-    XMax := XMax * HorizontalScaleInv;
-
-    X := ARect.Right - XMax;
-    Y := ARect.Bottom - YMax;
-
-    case (Flags and DT_HORZ_ALIGN_MASK) of
-      DT_LEFT   : ARect := FloatRect(ARect.Left, ARect.Top, XMax, YMax);
-      DT_CENTER : ARect := FloatRect(ARect.Left + X * 0.5, ARect.Top, XMax + X * 0.5, YMax);
-      DT_RIGHT  : ARect := FloatRect(ARect.Left + X, ARect.Top, ARect.Right, YMax);
-      DT_JUSTIFY: ARect := FloatRect(ARect.Left, ARect.Top, ARect.Right, YMax);
-    end;
-
-    if (Flags and (DT_VCENTER or DT_BOTTOM) <> 0) then
-    begin
-      if (Flags and DT_VCENTER <> 0) then
-        Y := Y * 0.5;
-
-      if (TextPath <> nil) then
-        for I := 0 to High(TextPath.Path) do
-          for J := 0 to High(TextPath.Path[I]) do
-            TextPath.Path[I, J].Y := TextPath.Path[I, J].Y + Y;
-
-      GR32.OffsetRect(ARect, 0, Y);
-    end;
-
-    if (Path <> nil) then
-    begin
-      TextPath.EndPath; // TODO : Why is this needed?
-
-      if (Path <> TextPath) then
-        Path.Assign(TextPath);
-
-      TextPath.EndUpdate;
-    end;
-
-  finally
-    OwnedPath.Free;
+      Clear := (LogFont.lfFaceName[i] = #0);
   end;
 end;
 
+
 //------------------------------------------------------------------------------
+//
+//      TextToolsWin
+//
+//------------------------------------------------------------------------------
+class procedure TextToolsWin.TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout);
+var
+  R: TFloatRect;
+  FontFace: IFontFace32;
+begin
+  FontFace := TFontFace32.Create(AFont);
+
+  FontFace.BeginSession;
+
+  R := ARect;
+
+  LayoutEngine.TextToPath(FontFace, APath, R, AText, ALayout);
+
+  FontFace.EndSession;
+end;
 
 class procedure TextToolsWin.TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; AFlags: Cardinal);
 var
-  R: TFloatRect;
-  FontContext: IFontContext32;
+  TextLayout: TTextLayout;
 begin
-  FontContext := TFontContext.Create(AFont);
+  TextLayout := DefaultTextLayout;
+  TextFlagsToLayout(AFlags, TextLayout);
 
-  FontContext.BeginSession;
+  TextToPath(AFont, APath, ARect, AText, TextLayout);
+end;
 
-  R := ARect;
-  InternalTextToPath(FontContext, APath, R, AText, AFlags);
+//------------------------------------------------------------------------------
 
-  FontContext.EndSession;
+class function TextToolsWin.MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect;
+var
+  FontFace: IFontFace32;
+begin
+  Result := ARect;
+
+  FontFace := TFontFace32.Create(AFont);
+
+  LayoutEngine.TextToPath(FontFace, nil, Result, AText, ALayout);
+end;
+
+class function TextToolsWin.MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal): TFloatRect;
+var
+  TextLayout: TTextLayout;
+begin
+  TextLayout := DefaultTextLayout;
+  TextFlagsToLayout(AFlags, TextLayout);
+
+  Result := MeasureText(AFont, ARect, AText, TextLayout);
 end;
 
 //------------------------------------------------------------------------------
@@ -757,210 +363,403 @@ begin
   end;
 end;
 
-//------------------------------------------------------------------------------
-
-class function TextToolsWin.DoMeasureText(const FontContext: IFontContext32; const ARect: TFloatRect; const AText: string; AFlags: Cardinal): TFloatRect;
-begin
-  Result := ARect;
-  InternalTextToPath(FontContext, nil, Result, AText, AFlags);
-end;
 
 //------------------------------------------------------------------------------
-
-class function TextToolsWin.MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal): TFloatRect;
-var
-  FontContext: IFontContext32;
-begin
-  FontContext := TFontContext.Create(AFont);
-
-  Result := DoMeasureText(FontContext, ARect, AText, AFlags);
-end;
-
+//
+//      TFontItem
+//
 //------------------------------------------------------------------------------
-
-class procedure TextToolsWin.SetHinting(Value: TTextHinting);
-{$ifdef FONT_CACHE}
-var
-  OldHinting: TTextHinting;
-{$endif FONT_CACHE}
-begin
-{$ifdef FONT_CACHE}
-  OldHinting := GetHinting;
-{$endif FONT_CACHE}
-
-  UseHinting := (Value <> thNone);
-
-  if (Value = thNoHorz) then
-    HorizontalScale := 16
-  else
-    HorizontalScale := 1;
-
-  HorizontalScaleInv := 1 / HorizontalScale;
-  VertFlip_mat2 := Default(TMat2);
-  VertFlip_mat2.eM11.value := HorizontalScale;
-  VertFlip_mat2.eM22.value := -1; // Reversed Y axis
-
-{$ifdef FONT_CACHE}
-  // Changing hinting invalidates cache
-  if (FontCache <> nil) and (OldHinting <> GetHinting) then
-    FontCache.Clear;
-{$endif FONT_CACHE}
-end;
-
-class destructor TextToolsWin.Destroy;
-begin
-  if (FontDC <> 0) then
-    DeleteDC(FontDC);
-end;
-
-class function TextToolsWin.GetHinting: TTextHinting;
-begin
-  if (HorizontalScale <> 1) then
-    Result := thNoHorz
-  else
-  if UseHinting then
-    Result := thHinting
-  else
-    Result := thNone;
-end;
-
-//------------------------------------------------------------------------------
-
-procedure InitHinting;
-begin
-{$if defined(NOHORIZONTALHINTING)}
-  TextToolsWin.SetHinting(thNoHorz);
-{$elseif defined(NOHINTING)}
-  TextToolsWin.SetHinting(thNone);
-{$else}
-  TextToolsWin.SetHinting(thHinting);
-{$ifend}
-end;
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-
-{ TFontContext }
-
 type
-  TEqualityComparer32 = class(TEqualityComparer<IFontContext32>)
+  TFontItem = class(TInterfacedObject, IFontItem)
+  strict private
+    FFontData: TFontData;
+
+  private
+    // IFontItem
+    procedure GetFontData(var AFontData: TFontData; var AScale: Double);
+
   public
-    function Equals({$ifndef FPC}const{$else}constref{$endif} Left, Right: IFontContext32): Boolean; override;
-{$ifndef FPC}
-  function GetHashCode(const Value: IFontContext32): Integer; override;
-{$else}
-  function GetHashCode(constref Value: IFontContext32): UInt32; override;
-{$endif}
+    constructor Create(AFont: HFONT; var AFontData: TFontData; var AScale: Double);
+    destructor Destroy; override;
   end;
 
-{$ifndef FPC}
-function TEqualityComparer32.Equals(const Left, Right: IFontContext32): Boolean;
-begin
-  Result := (BinaryCompare(@TFontContext(Left).FLogFont, @TFontContext(Right).FLogFont, SizeOf(TLogFont)) = 0);
-end;
-{$else}
-function TEqualityComparer32.Equals(constref Left, Right: IFontContext32): Boolean;
-begin
-  Result := (TCompare.Binary(TFontContext(Left).FLogFont, TFontContext(Right).FLogFont, SizeOf(TLogFont)) = 0);
-end;
-{$endif}
+//------------------------------------------------------------------------------
 
-{$ifndef FPC}
-function TEqualityComparer32.GetHashCode(const Value: IFontContext32): Integer;
-begin
-  Result := THashBobJenkins.GetHashValue(TFontContext(Value).FLogFont, SizeOf(TLogFont));
-end;
-{$else}
-function TEqualityComparer32.GetHashCode(constref Value: IFontContext32): UInt32;
-begin
-  Result := TDelphiHashFactory.GetHashCode(@TFontContext(Value).FLogFont, SizeOf(TLogFont));
-end;
-{$endif}
-
-constructor TFontContext.Create(AFont: TFont);
+constructor TFontItem.Create(AFont: HFONT; var AFontData: TFontData; var AScale: Double);
 var
   Size: integer;
-  i: integer;
-  Clear: boolean;
 begin
-  FFont := AFont;
+  inherited Create;
 
-  FLogFont := Default(TLogFont);
+  // It is assumed that AFontData.LogFont contains a valid LOGFONT that
+  // describes the desired metadata; It should be possible to create
+  // a font based on the values.
+  // The desired font size is specified in AFontData.LogFont.lfHeight.
+  // On exit the cached metrics is returned in AFontData. These metrics must
+  // then be scaled by the caller using the value returned in AScale.
 
-  Size := GetObject(FFont.Handle, SizeOf(TLogFont), @FLogFont);
+  FFontData.FontDC := CreateCompatibleDC(0);
+  if (FFontData.FontDC = 0) then
+    RaiseLastOSError;
+
+  (*
+  ** In order to get the most precise outline FFontData from the font, we use its
+  ** design size and then scale all values back to the desired size.
+  *)
+
+  (*
+  ** Fetch metrics for the source font so we can get the font design size (EMSquare).
+  *)
+  SelectObject(FFontData.FontDC, AFont);
+  if (GetOutlineTextMetrics(FFontData.FontDC, SizeOf(FFontData.OutlineTextMetric), @FFontData.OutlineTextMetric) = 0) then
+    RaiseLastOSError;
+
+  // Limit EMSquare to something reasonable; We will everntually flatten the glyph
+  // beziers at this resolution and if we do it at the full resolution (usually
+  // 2048*2048 usually), then we will end up with far too many vertices that we
+  // don't really need at the typical output resolution (~ 12*12-20x20)
+  FFontData.EMSize := Min(MaxEMSquare, FFontData.OutlineTextMetric.otmEMSquare);
+
+  // Return the scale that must be applied to values returned from the internal font.
+  // We cannot store this value here since all metrics here are relative to EMSquare
+  // regardless of the font size requested.
+  AScale := Abs(AFontData.LogFont.lfHeight / FFontData.EMSize);
+
+
+  (*
+  ** Create a new internal font at the design size
+  *)
+  // Change the font size but keep everything else
+  AFontData.LogFont.lfHeight := -FFontData.EMSize;
+  AFontData.LogFont.lfWidth := 0; // Use default width for the height
+
+  // Create the new font, in the new size
+  FFontData.Font := CreateFontIndirect(AFontData.LogFont);
+  if (FFontData.Font = 0) then
+    RaiseLastOSError;
+
+  (*
+  ** Fetch LOGFONT for the new internal font
+  *)
+  Size := GetObject(FFontData.Font, SizeOf(TLogFont), @FFontData.LogFont);
   if (Size <> SizeOf(TLogFont)) then
-    raise Exception.Create('Failed to retrieve LOGFONT');
+    RaiseLastOSError;
 
-  // Clear junk
-  Clear := False;
-  for i := 0 to High(FLogFont.lfFaceName) do
+  // Clear junk so we can produce a consistent hash
+  SanitizeLogFont(FFontData.LogFont);
+
+  (*
+  ** Fetch OTM for the new internal font
+  *)
+  SelectObject(FFontData.FontDC, FFontData.Font);
+  if (GetOutlineTextMetrics(FFontData.FontDC, SizeOf(FFontData.OutlineTextMetric), @FFontData.OutlineTextMetric) = 0) then
+    RaiseLastOSError;
+
+  // Return font data
+  AFontData := FFontData;
+end;
+
+//------------------------------------------------------------------------------
+
+destructor TFontItem.Destroy;
+begin
+  DeleteDC(FFontData.FontDC);
+  DeleteObject(FFontData.Font);
+
+  inherited;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TFontItem.GetFontData(var AFontData: TFontData; var AScale: Double);
+begin
+  AScale := Abs(AFontData.LogFont.lfHeight / FFontData.EMSize);
+  AFontData := FFontData;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TFontFace32
+//
+//------------------------------------------------------------------------------
+
+constructor TFontFace32.Create(AFont: TFont);
+var
+  Size: integer;
+begin
+
+  // Temporarily reuse FFontData.LogFont. We will overwrite the value below
+  Size := GetObject(AFont.Handle, SizeOf(TLogFont), @FFontData.LogFont);
+  if (Size <> SizeOf(TLogFont)) then
+    RaiseLastOSError;
+
+
+  // Clear junk from LOGFONT so we can produce a consistent hash from it
+  SanitizeLogFont(FFontData.LogFont);
+
+  // Get data from metadata cache or add
+  FFontKey := GetFontKey;
+
+  if (not FFontCache.TryGetValue(FFontKey, FFontItem)) then
   begin
-    if (Clear) then
-      FLogFont.lfFaceName[i] := #0
-    else
-      Clear := (FLogFont.lfFaceName[i] = #0);
+    FFontItem := TFontItem.Create(AFont.Handle, FFontData, FScale);
+    FFontCache.Add(FFontKey, FFontItem);
+  end else
+    FFontItem.GetFontData(FFontData, FScale);
+
+  if (FScale <> 0) then
+    FScaleInv := 1 / FScale
+  else
+    FScaleInv := 0;
+
+
+  // Register font in glyph cache
+  if (GlyphCache <> nil) then
+  begin
+
+    FGlyphCacheItem := GlyphCache.FindItem(FFontKey);
+
+    if (FGlyphCacheItem = nil) then
+      FGlyphCacheItem := GlyphCache.AddItem(FFontKey);
+
   end;
 end;
 
-class destructor TFontContext.Destroy;
+//------------------------------------------------------------------------------
+
+class constructor TFontFace32.Create;
 begin
-  if (FFontDC <> 0) then
-    DeleteDC(FFontDC);
+  FFontCache := TDictionary<TFontKey, IFontItem>.Create;
 end;
 
-function TFontContext.Comparer: IEqualityComparer<IFontContext32>;
+class destructor TFontFace32.Destroy;
 begin
-  Result := TEqualityComparer32.Create;
+  FFontCache.Free;
 end;
 
-procedure TFontContext.BeginSession;
+//------------------------------------------------------------------------------
+
+class procedure TFontFace32.ClearCache;
+begin
+  FFontCache.Clear;
+end;
+
+//------------------------------------------------------------------------------
+
+function TFontFace32.GetFontKey: TFontKey;
+var
+  Offset: NativeUInt;
+begin
+  // Both the metadata and glyph caches are size agnostic so we do not
+  // include the font size fields in the key.
+  Offset := NativeUInt(@TLogFont(nil^).lfEscapement); // OffsetOf(TLogFont, lfEscapement)
+  SetLength(Result, SizeOf(TLogFont) - Offset);
+
+  CopyMemory(@Result[0], PByte(@FFontData.LogFont) + Offset, Length(Result));
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TFontFace32.AssignGlyphMetrics(const GlyphMetrics: TGlyphMetrics; var AGlyphMetrics: TGlyphMetrics32);
+begin
+  AGlyphMetrics.Valid := True;
+
+  AGlyphMetrics.OffsetX := GlyphMetrics.gmptGlyphOrigin.X * FScale;
+  AGlyphMetrics.OffsetY := GlyphMetrics.gmptGlyphOrigin.Y * FScale;
+  AGlyphMetrics.Width := GlyphMetrics.gmBlackBoxX * FScale;
+  AGlyphMetrics.Height := GlyphMetrics.gmBlackBoxY * FScale;
+  AGlyphMetrics.AdvanceX := GlyphMetrics.gmCellIncX * FScale;
+  AGlyphMetrics.AdvanceY := GlyphMetrics.gmCellIncY * FScale;
+end;
+
+procedure TFontFace32.CopyGlyphMetrics(const ASource: TGlyphMetrics32; out ADest: TGlyphMetrics32; AScale: Single);
+begin
+  ADest.Valid := ASource.Valid;
+
+  ADest.OffsetX := ASource.OffsetX * AScale;
+  ADest.OffsetY := ASource.OffsetY * AScale;
+  ADest.Width := ASource.Width * AScale;
+  ADest.Height := ASource.Height * AScale;
+  ADest.AdvanceX := ASource.AdvanceX * AScale;
+  ADest.AdvanceY := ASource.AdvanceY * AScale;
+end;
+//------------------------------------------------------------------------------
+
+procedure TFontFace32.BeginSession;
 begin
   Inc(FSessionCount);
-
-  if (FSessionCount = 1) then
-    SelectObject(FontDC, FFont.Handle);
 end;
 
-procedure TFontContext.EndSession;
+procedure TFontFace32.EndSession;
 begin
   Dec(FSessionCount);
 end;
 
-class function TFontContext.GetFontDC: HDC;
-begin
-  if (FFontDC = 0) then
-    FFontDC := CreateCompatibleDC(0);
-  Result := FFontDC;
-end;
+//------------------------------------------------------------------------------
 
-function TFontContext.GetGlyphMetric(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32): boolean;
+function TFontFace32.GetGlyphMetrics(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32): boolean;
+
+  function ResolveFromGlyphCache: boolean;
+  var
+    GlyphCacheData: IGlyphCacheData;
+  begin
+    Result := False;
+    if (FGlyphCacheItem = nil) then
+      exit;
+
+    GlyphCacheData := FGlyphCacheItem.FindGlyphData(AGlyph);
+
+    if (GlyphCacheData <> nil) then
+    begin
+      CopyGlyphMetrics(GlyphCacheData.GlyphMetrics, AGlyphMetrics, FScale);
+      Result := True;
+    end;
+  end;
+
+  procedure UpdateGlyphCache;
+  var
+    CacheGlyphMetrics: TGlyphMetrics32;
+  begin
+    if (FGlyphCacheItem = nil) then
+      exit;
+
+    CopyGlyphMetrics(AGlyphMetrics, CacheGlyphMetrics, FScaleInv);
+
+    FGlyphCacheItem.AddGlyphData(AGlyph, CacheGlyphMetrics);
+  end;
+
 var
   GlyphMetrics: TGlyphMetrics;
   Res: DWORD;
 begin
   Result := False;
-  AGlyphMetrics := Default(TGlyphMetrics32);
+
+  (*
+  ** Try glyph cache first
+  *)
+  if (ResolveFromGlyphCache) then
+    Exit(True);
+
 
   BeginSession;
   try
 
     GlyphMetrics := Default(TGlyphMetrics);
-    Res := Windows.GetGlyphOutline(FontDC, AGlyph, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
+    Res := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_METRICS, GlyphMetrics, 0, nil, VertFlip_mat2);
 
     if (Res <> GDI_ERROR) then
     begin
-      AGlyphMetrics.Valid := True;
-      AGlyphMetrics.AdvanceWidthX := GlyphMetrics.gmCellIncX;
+      AssignGlyphMetrics(GlyphMetrics, AGlyphMetrics);
       Result := True;
-    end;
+    end else
+      AGlyphMetrics := Default(TGlyphMetrics32);
 
   finally
     EndSession;
   end;
+
+
+  (*
+  ** Add to glyph cache
+  *)
+  UpdateGlyphCache;
 end;
 
-function TFontContext.GetGlyphOutline(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32; APath: TCustomPath; OffsetX, OffsetY, MaxX: Single): boolean;
+//------------------------------------------------------------------------------
+
+function TFontFace32.GetGlyphOutline(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32; APath: TCustomPath; AOffsetX, AOffsetY: Single): boolean;
+var
+  GlyphCacheData: IGlyphCacheData;
+  FirstGlyphIndex: integer;
+
+  function ResolveFromGlyphCache: boolean;
+  var
+    i, j: integer;
+    pp: PFloatPoint;
+    P: TFloatPoint;
+  begin
+    Result := False;
+
+    if (FGlyphCacheItem = nil) then
+      exit;
+
+    GlyphCacheData := FGlyphCacheItem.FindGlyphData(AGlyph);
+
+    if (GlyphCacheData = nil) or (not GlyphCacheData.PathValid) then
+      exit;
+
+    APath.BeginUpdate;
+
+    // Replay cache data
+    for i := 0 to High(GlyphCacheData.Path) do
+      if (Length(GlyphCacheData.Path[i]) > 0) then
+      begin
+
+        // We use a pointer to avoid dynamic array overhead
+        pp := @GlyphCacheData.Path[i, 0];
+        for j := 0 to High(GlyphCacheData.Path[i]) do
+        begin
+          P := pp^ * FScale;
+          P.X := P.X + AOffsetX;
+          P.Y := p.Y + AOffsetY;
+
+          if (j = 0) then
+            APath.MoveTo(P)
+          else
+            APath.LineTo(P);
+
+          Inc(pp);
+        end;
+
+        APath.EndPath(GlyphCacheData.PathClosed[i]);
+      end;
+
+    APath.EndUpdate;
+
+    Result := True;
+  end;
+
+  procedure UpdateGlyphCache;
+  var
+    CacheGlyphMetrics: TGlyphMetrics32;
+  begin
+    if (FGlyphCacheItem = nil) then
+      exit;
+
+    // If we got to here we know that:
+    //   1) The glyph wasn't in the cache
+    // or
+    //   2) The glyph was in the cache but without path data
+
+    if (GlyphCacheData = nil) then
+    begin
+      // 1) Not in cache; Create a new entry
+      CopyGlyphMetrics(AGlyphMetrics, CacheGlyphMetrics, FScaleInv);
+      GlyphCacheData := FGlyphCacheItem.AddGlyphData(AGlyph, CacheGlyphMetrics);
+    end;
+
+    // 2) Copy path data to cache
+//    GlyphCacheData.LoadFromPath(TFlattenedPath(APath), FirstGlyphIndex, AOffsetX, AOffsetY, FScaleInv);
+    GlyphCacheData.LoadFromPath(TFlattenedPath(APath), FirstGlyphIndex, 0, 0, 1.0);
+  end;
+
+  procedure TransformPoint(var APoint: TFloatPoint);
+  begin
+    APoint.X := APoint.X * FScale + AOffsetX;
+    APoint.Y := APoint.Y * FScale + AOffsetY;
+  end;
+
+  procedure TransformGlyph;
+  var
+    i, j: integer;
+  begin
+    for i := FirstGlyphIndex to High(TFlattenedPath(APath).Path) do
+      for j := 0 to High(TFlattenedPath(APath).Path[i]) do
+        TransformPoint(TFlattenedPath(APath).Path[i, j]);
+  end;
+
+
 var
   GlyphMetrics: TGlyphMetrics;
   PolygonHeaderAlloc: PTTPolygonHeader;
@@ -970,23 +769,38 @@ var
   P1, P2, P3, PNext: TFloatPoint;
   i, k: Integer;
   Size: Integer;
+const
+  OneHalf: Single = 0.5; // Typed constant to avoid Double/Extended
 begin
-  AGlyphMetrics := Default(TGlyphMetrics32);
-
   BeginSession;
   try
 
-    GlyphMetrics := Default(TGlyphMetrics);
-    PolygonHeaderSize := Windows.GetGlyphOutline(FontDC, AGlyph, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
-
-    if (PolygonHeaderSize <> GDI_ERROR) then
+    if (APath = nil) then
     begin
-      AGlyphMetrics.Valid := True;
-      AGlyphMetrics.AdvanceWidthX := GlyphMetrics.gmCellIncX;
+      Result := GetGlyphMetrics(AGlyph, AGlyphMetrics);
+      exit;
     end;
 
-    Result := (APath <> nil) and (PolygonHeaderSize <> GDI_ERROR) and (PolygonHeaderSize <> 0) and
-      ((MaxX < 0) or (OffsetX + AGlyphMetrics.AdvanceWidthX <= MaxX));
+
+    (*
+    ** Try to resolve from glyph cache
+    *)
+    if (FGlyphCacheItem <> nil) and (ResolveFromGlyphCache) then
+      Exit(True);
+
+
+    (*
+    ** Get outline data from Windows
+    *)
+    GlyphMetrics := Default(TGlyphMetrics);
+    PolygonHeaderSize := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, 0, nil, VertFlip_mat2);
+
+    if (PolygonHeaderSize <> GDI_ERROR) then
+      AssignGlyphMetrics(GlyphMetrics, AGlyphMetrics)
+    else
+      AGlyphMetrics := Default(TGlyphMetrics32);
+
+    Result := (PolygonHeaderSize <> GDI_ERROR) and (PolygonHeaderSize <> 0);
 
     if (not Result) then
       exit;
@@ -994,16 +808,18 @@ begin
     GetMem(PolygonHeaderAlloc, PolygonHeaderSize);
     try
       PolygonHeader := PolygonHeaderAlloc;
-      PolygonHeaderSize := Windows.GetGlyphOutline(FontDC, AGlyph, GGODefaultFlags[UseHinting], GlyphMetrics, PolygonHeaderSize, PolygonHeader, VertFlip_mat2);
+      PolygonHeaderSize := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, PolygonHeaderSize, PolygonHeader, VertFlip_mat2);
 
       if (PolygonHeaderSize = GDI_ERROR) or (PolygonHeader.dwType <> TT_POLYGON_TYPE) then
         exit;
 
-      // Batch each glyph so we're sure that the polygons are rendered as a whole (no pun...)
-      // and not as individual independent polygons.
-      // We're doing this here for completeness but since the path will also be batched at
-      // an outer level it isn't really necessary here.
+      // Batch each glyph to ensure that the polypolygons of the glyph are rendered
+      // as one and not as individual independent polygons.
+      // We're doing this here for completeness but since the path will also be
+      // batched at an outer level it isn't really necessary here.
       APath.BeginUpdate;
+
+      FirstGlyphIndex := High(TFlattenedPath(APath).Path) + 1;
 
       while (PolygonHeaderSize > 0) do
       begin
@@ -1012,7 +828,8 @@ begin
 
         // First point is part of header
         P1 := PointFXtoPointF(PolygonHeader.pfxStart);
-        P1.Offset(OffsetX, OffsetY);
+        if (FGlyphCacheItem = nil) then
+          TransformPoint(P1);
         APath.MoveTo(P1);
 
         while (Size > 0) do
@@ -1022,8 +839,8 @@ begin
               for i := 0 to CurvePtr.cpfx-1 do
               begin
                 P1 := PointFXtoPointF(CurvePtr.apfx[i]);
-                P1.Offset(OffsetX, OffsetY);
-
+                if (FGlyphCacheItem = nil) then
+                  TransformPoint(P1);
                 APath.LineTo(P1);
               end;
 
@@ -1031,21 +848,23 @@ begin
               if (CurvePtr.cpfx > 1) then
               begin
                 PNext := PointFXtoPointF(CurvePtr.apfx[0]);
-                PNext.Offset(OffsetX, OffsetY);
+                if (FGlyphCacheItem = nil) then
+                  TransformPoint(PNext);
 
                 for i := 0 to CurvePtr.cpfx-2 do
                 begin
                   P1 := PNext;
 
                   P2 := PointFXtoPointF(CurvePtr.apfx[i+1]);
-                  P2.Offset(OffsetX, OffsetY);
+                  if (FGlyphCacheItem = nil) then
+                    TransformPoint(P2);
 
                   PNext := P2;
 
                   if (i < CurvePtr.cpfx-2) then
                   begin
-                    P2.x := (P1.x + P2.x) * 0.5;
-                    P2.y := (P1.y + P2.y) * 0.5;
+                    P2.x := (P1.x + P2.x) * OneHalf;
+                    P2.y := (P1.y + P2.y) * OneHalf;
                   end;
 
                   APath.ConicTo(P1, P2);
@@ -1056,7 +875,8 @@ begin
               if (CurvePtr.cpfx > 2) then
               begin
                 PNext := PointFXtoPointF(CurvePtr.apfx[0]);
-                PNext.Offset(OffsetX, OffsetY);
+                if (FGlyphCacheItem = nil) then
+                  TransformPoint(PNext);
 
                 i := 0;
                 while (i < CurvePtr.cpfx-2) do
@@ -1064,10 +884,12 @@ begin
                   P1 := PNext;
 
                   P2 := PointFXtoPointF(CurvePtr.apfx[i+1]);
-                  P2.Offset(OffsetX, OffsetY);
+                  if (FGlyphCacheItem = nil) then
+                    TransformPoint(P2);
 
                   P3 := PointFXtoPointF(CurvePtr.apfx[i+2]);
-                  P3.Offset(OffsetX, OffsetY);
+                  if (FGlyphCacheItem = nil) then
+                    TransformPoint(P3);
 
                   PNext := P3;
 
@@ -1096,6 +918,16 @@ begin
       FreeMem(PolygonHeaderAlloc);
     end;
 
+
+    (*
+    ** Update glyph cache
+    *)
+    if (FGlyphCacheItem <> nil) then
+      UpdateGlyphCache;
+
+    if (FGlyphCacheItem <> nil) then
+      TransformGlyph;
+
   finally
     EndSession;
   end;
@@ -1103,40 +935,244 @@ begin
   Result := True;
 end;
 
-function TFontContext.GetFontFaceMetric(var AFontFaceMetric: TFontFaceMetric32): boolean;
+//------------------------------------------------------------------------------
+
+{$ifdef FPC}
+
+function CompareKerningPair(A, B: PKerningPair): integer;
+begin
+  Result := (A.wFirst - B.wFirst);
+  if (Result = 0) then
+    Result := (A.wSecond - B.wSecond);
+end;
+
+// Adapted from classes.pas
+procedure SortKerningPairs(List: TFontFace32.TKerningPairs);
+
+  procedure QuickSortKerningPairs(L, R: NativeInt);
+  var
+    I, J: NativeInt;
+    T: TKerningPair;
+    P: PKerningPair;
+  begin
+    if L < R then
+    begin
+      repeat
+        if (R - L) = 1 then
+        begin
+          if CompareKerningPair(@List[L], @List[R]) > 0 then
+          begin
+            T := List[L];
+            List[L] := List[R];
+            List[R] := T;
+          end;
+          break;
+        end;
+        I := L;
+        J := R;
+        P := @List[(L + R) shr 1];
+        repeat
+          while CompareKerningPair(@List[I], P) < 0 do
+            Inc(I);
+          while CompareKerningPair(@List[J], P) > 0 do
+            Dec(J);
+          if I <= J then
+          begin
+            if I <> J then
+            begin
+              T := List[I];
+              List[I] := List[J];
+              List[J] := T;
+            end;
+            Inc(I);
+            Dec(J);
+          end;
+        until I > J;
+        if (J - L) > (R - I) then
+        begin
+          if I < R then
+            QuickSortKerningPairs(I, R);
+          R := J;
+        end
+        else
+        begin
+          if L < J then
+            QuickSortKerningPairs(L, J);
+          L := I;
+        end;
+      until L >= R;
+    end;
+  end;
+
+begin
+  if Length(List) > 1 then
+    QuickSortKerningPairs(0, High(List));
+end;
+
+function BinarySearchKerningPairs(List: TFontFace32.TKerningPairs; const Item: TKerningPair; out FoundIndex: NativeInt): boolean;
 var
-  TextMetric: TTextMetric;
+  L, H, mid: NativeInt;
+  cmp: NativeInt;
+begin
+  if Length(List) = 0 then
+  begin
+    FoundIndex := 0;
+    Exit(False);
+  end;
+
+  Result := False;
+  L := 0;
+  H := High(List);
+  while L <= H do
+  begin
+    mid := L + (H - L) div 2;
+    cmp := CompareKerningPair(@List[mid], @Item);
+    if cmp < 0 then
+      L := mid + 1
+    else
+    begin
+      H := mid - 1;
+      if cmp = 0 then
+        Result := True;
+    end;
+  end;
+  FoundIndex := L;
+end;
+
+{$endif}
+
+
+function TFontFace32.GetKerning(AFirstGlyph, ASecondGlyph: Cardinal): Single;
+var
+  Count: integer;
+  KerningPair: TKerningPair;
+  KerningIndex: NativeInt;
+begin
+  Result := 0;
+
+  if (AFirstGlyph > High(Word)) or (ASecondGlyph > High(Word)) then
+    exit;
+
+  if (not FHasKerning) then
+  begin
+    FHasKerning := True;
+
+    Count := GetKerningPairs(FFontData.FontDC, 0, nil);
+
+    if (Count > 0) then
+    begin
+
+      SetLength(FKerningPairs, Count);
+
+      Count := GetKerningPairs(FFontData.FontDC, Count, @FKerningPairs[0]);
+
+      // Second call might return a different number. This is undocumented :-/
+      SetLength(FKerningPairs, Count);
+
+      if (Count = 0) then
+        RaiseLastOSError;
+
+{$ifndef FPC}
+
+      FKerningComparer := TComparer<TKerningPair>.Construct(
+        function(const A, B: TKerningPair): integer
+        begin
+          Result := (A.wFirst - B.wFirst);
+          if (Result = 0) then
+            Result := (A.wSecond - B.wSecond);
+        end);
+
+      // The array returned by GetKerningPairs appears to be sorted on First but not
+      // on Second so we have to sort it ourselves.
+      TArray.Sort<TKerningPair>(FKerningPairs, FKerningComparer);
+
+{$else}
+
+      SortKerningPairs(FKerningPairs);
+
+{$endif}
+
+    end;
+  end;
+
+  if (Length(FKerningPairs) = 0) then
+    exit;
+
+  KerningPair.wFirst := AFirstGlyph;
+  KerningPair.wSecond := ASecondGlyph;
+
+{$ifndef FPC}
+  if TArray.BinarySearch<TKerningPair>(FKerningPairs, KerningPair, KerningIndex, FKerningComparer) then
+{$else}
+  if BinarySearchKerningPairs(FKerningPairs, KerningPair, KerningIndex) then
+{$endif}
+    Result := FKerningPairs[KerningIndex].iKernAmount * FScale;
+end;
+
+//------------------------------------------------------------------------------
+
+function TFontFace32.GetFontFaceMetrics(const ATextLayout: TTextLayout; var AFontFaceMetrics: TFontFaceMetrics32): boolean;
+var
+  GlyphMetrics: TGlyphMetrics32;
 begin
   BeginSession;
   try
 
-    Result := GetTextMetrics(FontDC, TextMetric);
+    if (not GetGlyphMetrics(Graphics32Unicode.cpEmSpace, GlyphMetrics)) then
+      // Fall back to regular space
+      GetGlyphMetrics(32, GlyphMetrics);
 
   finally
     EndSession;
   end;
 
-  if (Result) then
+  AFontFaceMetrics.Valid := True;
+
+  if (ATextLayout.VerticalMetrics = vmTypographic) then
   begin
-    AFontFaceMetric.Valid := True;
-    AFontFaceMetric.Height := TextMetric.tmHeight;
-    AFontFaceMetric.Ascent := TextMetric.tmAscent;
-    AFontFaceMetric.Descent := TextMetric.tmDescent;
+    AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmAscent * FScale;
+    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmDescent * FScale;
+    AFontFaceMetrics.LineGap := FFontData.OutlineTextMetric.otmLineGap * FScale;
   end else
-    AFontFaceMetric := Default(TFontFaceMetric32);
+  begin
+    AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmTextMetrics.tmAscent * FScale;
+    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmTextMetrics.tmDescent * FScale;
+    AFontFaceMetrics.LineGap := (FFontData.OutlineTextMetric.otmTextMetrics.tmHeight - FFontData.OutlineTextMetric.otmTextMetrics.tmAscent + FFontData.OutlineTextMetric.otmTextMetrics.tmDescent) * FScale;
+  end;
+  AFontFaceMetrics.EMSize := FFontData.EMSize;
+
+  if (GlyphMetrics.Valid) then
+    AFontFaceMetrics.EMSpaceWidth := GlyphMetrics.AdvanceX
+  else
+    AFontFaceMetrics.EMSpaceWidth := FFontData.OutlineTextMetric.otmTextMetrics.tmAveCharWidth * FScale; // Better than nothing :-/
+
+  Result := True;
 end;
 
-{ TFontOutlineProvider }
 
-function TFontOutlineProvider.CreateContext(AFont: TFont): IFontContext32;
+//------------------------------------------------------------------------------
+//
+//      TFontFaceProvider
+//
+//------------------------------------------------------------------------------
+function TFontFaceProvider.CreateFontFace(AFont: TFont): IFontFace32;
 begin
-  Result := TFontContext.Create(AFont);
+  Result := TFontFace32.Create(AFont);
 end;
 
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 initialization
-  InitHinting;
 
-finalization
+// Although the cache compiles on FPC it fails at run-time due to
+// bugs in the FPC compiler's generics codegen.
+{$ifndef _FPC}
+
+  EnableGlyphCache;
+
+{$endif}
 
 end.

@@ -20,11 +20,11 @@ unit GR32.Text.Cache;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Delphi/Windows text vectorization utilities for Graphics32
+ * The Original Code is Text Layout Engine for Graphics32
  *
  * The Initial Developer of the Original Code is Anders Melander
  *
- * Portions created by the Initial Developer are Copyright (C) 2022
+ * Portions created by the Initial Developer are Copyright (C) 2022-2025
  * the Initial Developer. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** *)
@@ -33,10 +33,6 @@ interface
 
 {$include GR32.inc}
 
-{$ifndef FONT_CACHE}
-  {$undef FONT_CACHE_PATH}
-{$endif FONT_CACHE}
-
 //------------------------------------------------------------------------------
 //
 //      This unit should be considered internal to Graphics32.
@@ -44,12 +40,11 @@ interface
 //------------------------------------------------------------------------------
 
 uses
-  Generics.Defaults,
   Generics.Collections,
-  Windows,
   Graphics,
   GR32,
-  GR32_Paths;
+  GR32_Paths,
+  GR32.Text.FontFace;
 
 
 //------------------------------------------------------------------------------
@@ -74,159 +69,212 @@ type
 
 //------------------------------------------------------------------------------
 //
-//      Platform independent font API
+//      TGlyphCache
 //
 //------------------------------------------------------------------------------
+// Implements a two level hierarchical LRU cache of font glyph outline data:
+//
+//   1) Font face.
+//      Cache identity is a byte string, typically containing font name, weight,
+//      etc.
+//      Level 1 data is never evicted from the cache.
+//
+//   2) Glyph.
+//      Cache identity is the glyph ID.
+//      Level 2 data is evicted based on LRU; The Least Recently Used
+//      items are evicted until the target criteria is met.
+//
+//  The eviction criteria is cache size in bytes.
 //
 //------------------------------------------------------------------------------
-type
-  TGlyphMetrics32 = record
-    Valid: boolean;
-    AdvanceWidthX: integer;
-  end;
-
-  TFontFaceMetric32 = record
-    Valid: boolean;
-    Height: integer;
-    Ascent: integer;
-    Descent: integer;
-  end;
-
-  IFontContext32 = interface
-    function Comparer: IEqualityComparer<IFontContext32>;
-
-    procedure BeginSession;
-    procedure EndSession;
-
-    function GetFontFaceMetric(var AFontFaceMetric: TFontFaceMetric32): boolean;
-    function GetGlyphMetric(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32): boolean;
-    function GetGlyphOutline(AGlyph: Cardinal; var AGlyphMetrics: TGlyphMetrics32; APath: TCustomPath; OffsetX: Single = 0; OffsetY: Single = 0; MaxX: Single = -1): boolean;
-  end;
-
-  IFontOutlineProvider32 = interface
-    function CreateContext(AFont: TFont): IFontContext32;
-  end;
-
-//------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------
-//
+// The cache is not thread safe.
 //------------------------------------------------------------------------------
 var
   //
-  // Default cache size:
+  // Default cache sizes:
   //
-  // CacheMaxSize       Max size of cached TrueType polygon data in bytes.
-  // CacheMinPurge      Default size to shrink below if entries need to be purged.
+  //   CacheMaxSize     Max size of cached glyph polygon data in bytes.
+  //
+  //   CacheMinPurge    Default size to shrink below if entries needs to be
+  //                    purged.
   //                    Must be less or equal to CacheMaxSize.
   //
-  // Size of a single glyph is typically 400-500 bytes
+  // The size of a single glyph is typically 500 - 1000 bytes
   //
   CacheMaxSize: uint64 = 256*1024;
   CacheMinPurge: uint64 = 256*1024;
 
+  // Initial capacity of font cache dictionary
+  CacheDefaultCount: Cardinal = 32;
+  // Initial capacity of glyph cache dictionary
+  CacheDefaultGlyphCount: Cardinal = 64;
+
 
 type
-  TFontCache = class;
-  TFontCacheItem = class;
+  IGlyphCacheData = interface
+    function GetGlyphMetrics: TGlyphMetrics32;
+    function GetPath: TArrayOfArrayOfFloatPoint;
+    function GetPathClosed: TArray<boolean>;
+    function GetPathValid: boolean;
 
-  TGlyphInfo = class
+    // Assign from path to cache
+    procedure LoadFromPath(APath: TFlattenedPath; AFirst: integer; AOriginX, AOriginY: Single; AScale: Double);
+
+    property GlyphMetrics: TGlyphMetrics32 read GetGlyphMetrics;
+    property Path: TArrayOfArrayOfFloatPoint read GetPath;
+    property PathClosed: TArray<boolean> read GetPathClosed;
+    property PathValid: boolean read GetPathValid;
+  end;
+
+  IGlyphCacheFontItem = interface
+    function FindGlyphData(AGlyph: Cardinal): IGlyphCacheData;
+    function AddGlyphData(AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32): IGlyphCacheData;
+  end;
+
+  IGlyphCache = interface
+    function FindItem(const AKey: TFontKey): IGlyphCacheFontItem;
+    function AddItem(const AKey: TFontKey): IGlyphCacheFontItem;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      GlyphCache
+//
+//------------------------------------------------------------------------------
+// Glyph cache access point.
+//------------------------------------------------------------------------------
+
+// Enable the glyph cache.
+procedure EnableGlyphCache; {$ifdef FPC}deprecated 'The Glyph Cache should not be used with FPC due to compiler codegen bugs';{$endif}
+
+// Disable the glyph cache.
+procedure DisableGlyphCache;
+
+// Returns a reference to the glyph cache, if enabled. Otherwise returns nil.
+// The cache is lazily instantiated on the first call to GlyphCache.
+function GlyphCache: IGlyphCache;
+
+// Registers a custom glyph cache and return the existing, if any.
+// Note that registering a custom glyph cache will not implicitly enable caching.
+// If AGlyphCache is nil then the default cache will be used.
+function RegisterGlyphCache(const AGlyphCache: IGlyphCache): IGlyphCache;
+
+
+//------------------------------------------------------------------------------
+//
+//      TGlyphCache
+//
+//------------------------------------------------------------------------------
+// Implements IGlyphCache
+//------------------------------------------------------------------------------
+type
+  TGlyphCache = class;
+  TGlyphCacheFontItem = class;
+
+  TGlyphCacheData = class(TInterfacedObject, IGlyphCacheData)
   private
-    FFontCacheItem: TFontCacheItem;
-    FGlyph: integer;
-    FValid: boolean;
+    FFontCacheItem: TGlyphCacheFontItem;
+    FGlyph: Cardinal;
     FGlyphMetrics: TGlyphMetrics32;
-    FTTPolygonHeader: PTTPolygonHeader;
-    FTTPolygonHeaderSize: DWORD;
-{$ifdef FONT_CACHE_PATH}
+
     FPath: TArrayOfArrayOfFloatPoint;
     FPathClosed: TArray<boolean>;
     FPathValid: boolean;
-{$endif FONT_CACHE_PATH}
-    FHits: uint64;
-    FLRUlink: TDoubleLinked<TGlyphInfo>;
+    FSizeInBytes: UInt64;
+
+    FHits: UInt64;
+    FLRUlink: TDoubleLinked<TGlyphCacheData>;
+
   protected
-    property LRUlink: TDoubleLinked<TGlyphInfo> read FLRUlink;
+    property LRUlink: TDoubleLinked<TGlyphCacheData> read FLRUlink;
     procedure Hit; // Register a cache hit
+    procedure Evict;
+
+    property SizeInBytes: UInt64 read FSizeInBytes;
+
+  private
+    // IGlyphCacheData
+    procedure LoadFromPath(APath: TFlattenedPath; AFirst: integer; AOriginX, AOriginY: Single; AScale: Double);
+    function GetGlyphMetrics: TGlyphMetrics32;
+    function GetPath: TArrayOfArrayOfFloatPoint;
+    function GetPathClosed: TArray<boolean>;
+    function GetPathValid: boolean;
   public
-    constructor Create(AFontCacheItem: TFontCacheItem; ADC: HDC; AGlyph: integer);
+    constructor Create(AFontCacheItem: TGlyphCacheFontItem; AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32);
     destructor Destroy; override;
 
-{$ifdef FONT_CACHE_PATH}
-    procedure AssignPath(APath: TFlattenedPath; First: integer; OriginX, OriginY: Single);
-{$endif FONT_CACHE_PATH}
-
-    property Glyph: integer read FGlyph;
-    property Valid: boolean read FValid;
+    property Glyph: Cardinal read FGlyph;
 
     property GlyphMetrics: TGlyphMetrics32 read FGlyphMetrics;
-    property TTPolygonHeader: PTTPolygonHeader read FTTPolygonHeader;
-    property TTPolygonHeaderSize: DWORD read FTTPolygonHeaderSize;
 
-{$ifdef FONT_CACHE_PATH}
     property Path: TArrayOfArrayOfFloatPoint read FPath;
     property PathClosed: TArray<boolean> read FPathClosed;
     property PathValid: boolean read FPathValid write FPathValid;
-{$endif FONT_CACHE_PATH}
   end;
 
-  TFontCacheItem = class
+//------------------------------------------------------------------------------
+
+  TGlyphCacheFontItem = class(TInterfacedObject, IGlyphCacheFontItem)
   private
-    FFontCache: TFontCache;
-    FFontFaceMetric: TFontFaceMetric32;
-    FGlyphCache: TObjectDictionary<integer, TGlyphInfo>;
-    FHits: uint64;
+    FFontCache: TGlyphCache;
+    FGlyphCache: TDictionary<Cardinal, IGlyphCacheData>;
+    FHits: UInt64;
+
   protected
     procedure Hit; // Register a cache hit
-    procedure ReserveCacheSpace(Size: uint64);
-    procedure UnreserveCacheSpace(Size: uint64);
+    procedure ReserveCacheSpace(Size: UInt64);
+    procedure UnreserveCacheSpace(Size: UInt64);
+    procedure EvictItem(Item: TGlyphCacheData);
+
+  private
+    // IGlyphCacheFontItem
+    function FindGlyphData(AGlyph: Cardinal): IGlyphCacheData;
+    function AddGlyphData(AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32): IGlyphCacheData;
+
   public
-    constructor Create(AFontCache: TFontCache; DC: HDC);
+    constructor Create(AFontCache: TGlyphCache);
     destructor Destroy; override;
-
-    function GetGlyphInfo(DC: HDC; Glyph: integer): TGlyphInfo;
-
-    property FontFaceMetric: TFontFaceMetric32 read FFontFaceMetric;
   end;
 
-  TFontCache = class
+//------------------------------------------------------------------------------
+
+  TGlyphCache = class(TInterfacedObject, IGlyphCache)
   private
-    FCache: TObjectDictionary<TLogFont, TFontCacheItem>;
-    FLRUList: TDoubleLinked<TGlyphInfo>;
-    FCacheHits: uint64;
-    FCacheMisses: uint64;
-    FCachePurges: uint64;
-    FCacheSize: uint64;
-    FCacheCount: uint64;
-    FCacheMaxSize: uint64;
-    FCacheMinPurge: uint64;
+    FCache: TDictionary<TFontKey, IGlyphCacheFontItem>;
+    FLRUList: TDoubleLinked<TGlyphCacheData>;
+    FCacheHits: UInt64;
+    FCacheMisses: UInt64;
+    FCachePurges: UInt64;
+    FCacheSize: UInt64;
+    FCacheCount: UInt64;
+    FCacheMaxSize: UInt64;
+    FCacheMinPurge: UInt64;
+
   protected
-    property LRUList: TDoubleLinked<TGlyphInfo> read FLRUList;
-    procedure AddCacheItem(GlyphInfo: TGlyphInfo);
-    procedure RegisterCacheHit(GlyphInfo: TGlyphInfo);
+    property LRUList: TDoubleLinked<TGlyphCacheData> read FLRUList;
+    procedure AddCacheItem(GlyphInfo: TGlyphCacheData);
+    procedure RegisterCacheHit(GlyphInfo: TGlyphCacheData);
     procedure RegisterCacheMiss;
     procedure RegisterCachePurge;
-    procedure ReserveCacheSpace(Size: uint64);
-    procedure UnreserveCacheSpace(Size: uint64);
+    procedure ReserveCacheSpace(Size: UInt64);
+    procedure UnreserveCacheSpace(Size: UInt64);
+
+  private
+    // IGlyphCache
+    function FindItem(const AKey: TFontKey): IGlyphCacheFontItem;
+    function AddItem(const AKey: TFontKey): IGlyphCacheFontItem;
+
   public
     constructor Create; overload;
-    constructor Create(AMaxSize, AMinPurge: uint64); overload;
+    constructor Create(AMaxSize, AMinPurge: UInt64); overload;
     destructor Destroy; override;
 
     procedure Clear;
 
-    function GetItemByFont(DC: HDC; Font: HFont): TFontCacheItem;
-    function GetItemByDC(DC: HDC): TFontCacheItem;
-
-    property CacheSize: uint64 read FCacheSize;
-    property CacheCount: uint64 read FCacheCount;
+    property CacheSize: UInt64 read FCacheSize;
+    property CacheCount: UInt64 read FCacheCount;
   end;
-
-var
-  FontCache: TFontCache = nil;
-
 
 
 //------------------------------------------------------------------------------
@@ -236,9 +284,7 @@ var
 implementation
 
 uses
-//  GR32_LowLevel,
-  SysUtils,
-  GR32.Text.Win;
+  SysUtils;
 
 //------------------------------------------------------------------------------
 //
@@ -293,94 +339,105 @@ begin
   Next := @Link;
 end;
 
+
 //------------------------------------------------------------------------------
 //
-//      TGlyphInfo
+//      TGlyphCacheData
 //
 //------------------------------------------------------------------------------
-constructor TGlyphInfo.Create(AFontCacheItem: TFontCacheItem; ADC: HDC; AGlyph: integer);
-var
-  GlyphMetrics: TGlyphMetrics;
+constructor TGlyphCacheData.Create(AFontCacheItem: TGlyphCacheFontItem; AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32);
 begin
   inherited Create;
 
   FFontCacheItem := AFontCacheItem;
   FGlyph := AGlyph;
+  FGlyphMetrics := AGlyphMetrics;
+
   FLRUlink.Value := Self;
 
-  GlyphMetrics := Default(TGlyphMetrics);
-  FTTPolygonHeaderSize := GetGlyphOutline(ADC, FGlyph, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
-
-  if (FTTPolygonHeaderSize <> GDI_ERROR) then
-    FGlyphMetrics.AdvanceWidthX := GlyphMetrics.gmCellIncX
-  else
-    FGlyphMetrics := Default(TGlyphMetrics32);
-
-  if (FTTPolygonHeaderSize <> 0) then
-  begin
-    FFontCacheItem.ReserveCacheSpace(FTTPolygonHeaderSize);
-
-    GetMem(FTTPolygonHeader, FTTPolygonHeaderSize);
-    try
-      try
-
-        FTTPolygonHeaderSize := GetGlyphOutline(ADC, FGlyph, GGODefaultFlags[UseHinting], GlyphMetrics, FTTPolygonHeaderSize, FTTPolygonHeader, VertFlip_mat2);
-
-        FValid := (FTTPolygonHeaderSize <> GDI_ERROR) and (FTTPolygonHeader^.dwType = TT_POLYGON_TYPE);
-
-      except
-        FValid := False;
-        raise;
-      end;
-    finally
-      if (not FValid) then
-      begin
-        FreeMem(FTTPolygonHeader);
-        FTTPolygonHeader := nil;
-      end;
-    end;
-  end else
-    FValid := False;
+  FFontCacheItem.ReserveCacheSpace(SizeOf(FGlyphMetrics));
 end;
 
-destructor TGlyphInfo.Destroy;
+destructor TGlyphCacheData.Destroy;
 begin
   FLRUlink.Unlink;
 
-  if (FValid) then
-    FreeMem(FTTPolygonHeader);
-
-  FFontCacheItem.UnreserveCacheSpace(TTPolygonHeaderSize);
+  FFontCacheItem.UnreserveCacheSpace(FSizeInBytes);
   FFontCacheItem.FGlyphCache.ExtractPair(Glyph);
 
   inherited;
 end;
 
-{$ifdef FONT_CACHE_PATH}
-procedure TGlyphInfo.AssignPath(APath: TFlattenedPath; First: integer; OriginX, OriginY: Single);
+procedure TGlyphCacheData.Evict;
+begin
+  FLRUlink.Unlink;
+  FFontCacheItem.EvictItem(Self);
+end;
+
+function TGlyphCacheData.GetGlyphMetrics: TGlyphMetrics32;
+begin
+  Result := FGlyphMetrics;
+end;
+
+function TGlyphCacheData.GetPath: TArrayOfArrayOfFloatPoint;
+begin
+  Result := FPath;
+end;
+
+function TGlyphCacheData.GetPathClosed: TArray<boolean>;
+begin
+  Result := FPathClosed;
+end;
+
+function TGlyphCacheData.GetPathValid: boolean;
+begin
+  Result := FPathValid;
+end;
+
+procedure TGlyphCacheData.LoadFromPath(APath: TFlattenedPath; AFirst: integer; AOriginX, AOriginY: Single; AScale: Double);
 var
   i, j, i2: integer;
+  pDest, pSource: PFloatPoint;
 begin
-  SetLength(FPath, Length(APath.Path)-First);
+  if (FSizeInBytes > 0) then
+  begin
+    FFontCacheItem.UnreserveCacheSpace(FSizeInBytes - SizeOf(FGlyphMetrics));
+    Dec(FSizeInBytes, SizeOf(FGlyphMetrics));
+  end;
+
+  for i := AFirst to High(APath.Path) do
+    Inc(FSizeInBytes, Length(APath.Path[i]) * (SizeOf(TFloatPoint) + SizeOf(Boolean)));
+
+  FFontCacheItem.ReserveCacheSpace(FSizeInBytes);
+
+  SetLength(FPath, Length(APath.Path) - AFirst);
   SetLength(FPathClosed, Length(FPath));
+
   i2 := 0;
-  for i := First to High(APath.Path) do
+  for i := AFirst to High(APath.Path) do
   begin
     SetLength(FPath[i2], Length(APath.Path[i]));
+
+    pDest := @FPath[i2][0];
+    pSource := @APath.Path[i][0];
+
     for j := 0 to High(APath.Path[i]) do
     begin
-      FPath[i2][j] := APath.Path[i][j];
-      FPath[i2][j].X := FPath[i2][j].X - OriginX;
-      FPath[i2][j].Y := FPath[i2][j].Y - OriginY;
+      pDest.X := (pSource.X - AOriginX) * AScale;
+      pDest.Y := (pSource.Y - AOriginY) * AScale;
+
+      Inc(pDest);
+      Inc(pSource);
     end;
+
     FPathClosed[i2] := APath.PathClosed[i];
     inc(i2);
   end;
+
   FPathValid := True;
 end;
-{$endif FONT_CACHE_PATH}
 
-procedure TGlyphInfo.Hit;
+procedure TGlyphCacheData.Hit;
 begin
   Inc(FHits);
 end;
@@ -388,26 +445,18 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TFontCacheItem
+//      TGlyphCacheFontItem
 //
 //------------------------------------------------------------------------------
-constructor TFontCacheItem.Create(AFontCache: TFontCache; DC: HDC);
-var
-  FontFaceMetric: TTextMetric;
+constructor TGlyphCacheFontItem.Create(AFontCache: TGlyphCache);
 begin
   inherited Create;
 
   FFontCache := AFontCache;
-  FGlyphCache := TObjectDictionary<integer, TGlyphInfo>.Create([doOwnsValues]);
-
-  GetTextMetrics(DC, FontFaceMetric);
-
-  FFontFaceMetric.Height := FontFaceMetric.tmHeight;
-  FFontFaceMetric.Ascent := FontFaceMetric.tmAscent;
-  FFontFaceMetric.Descent := FontFaceMetric.tmDescent;
+  FGlyphCache := TDictionary<Cardinal, IGlyphCacheData>.Create(CacheDefaultGlyphCount);
 end;
 
-destructor TFontCacheItem.Destroy;
+destructor TGlyphCacheFontItem.Destroy;
 begin
   FGlyphCache.Clear;
   FGlyphCache.Free;
@@ -415,30 +464,38 @@ begin
   inherited;
 end;
 
-function TFontCacheItem.GetGlyphInfo(DC: HDC; Glyph: integer): TGlyphInfo;
+procedure TGlyphCacheFontItem.EvictItem(Item: TGlyphCacheData);
 begin
-  if (FGlyphCache.TryGetValue(Glyph, Result)) then
-  begin
-    FFontCache.RegisterCacheHit(Result);
-    exit;
-  end;
-
-  Result := TGlyphInfo.Create(Self, DC, Glyph);
-  FGlyphCache.Add(Glyph, Result);
-  FFontCache.AddCacheItem(Result);
+  FGlyphCache.Remove(Item.Glyph);
 end;
 
-procedure TFontCacheItem.Hit;
+function TGlyphCacheFontItem.FindGlyphData(AGlyph: Cardinal): IGlyphCacheData;
+begin
+  if (FGlyphCache.TryGetValue(AGlyph, Result)) then
+    FFontCache.RegisterCacheHit(TGlyphCacheData(Result))
+  else
+    Result := nil;
+end;
+
+function TGlyphCacheFontItem.AddGlyphData(AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32): IGlyphCacheData;
+begin
+  Result := TGlyphCacheData.Create(Self, AGlyph, AGlyphMetrics);
+  FGlyphCache.Add(AGlyph, Result);
+
+  FFontCache.AddCacheItem(TGlyphCacheData(Result));
+end;
+
+procedure TGlyphCacheFontItem.Hit;
 begin
   Inc(FHits);
 end;
 
-procedure TFontCacheItem.ReserveCacheSpace(Size: uint64);
+procedure TGlyphCacheFontItem.ReserveCacheSpace(Size: UInt64);
 begin
   FFontCache.ReserveCacheSpace(Size);
 end;
 
-procedure TFontCacheItem.UnreserveCacheSpace(Size: uint64);
+procedure TGlyphCacheFontItem.UnreserveCacheSpace(Size: UInt64);
 begin
   FFontCache.UnreserveCacheSpace(Size);
 end;
@@ -446,15 +503,15 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TFontCache
+//      TGlyphCache
 //
 //------------------------------------------------------------------------------
-constructor TFontCache.Create;
+constructor TGlyphCache.Create;
 begin
   Create(CacheMaxSize, CacheMinPurge);
 end;
 
-constructor TFontCache.Create(AMaxSize, AMinPurge: uint64);
+constructor TGlyphCache.Create(AMaxSize, AMinPurge: UInt64);
 begin
   Assert(AMaxSize >= AMinPurge);
 
@@ -462,60 +519,44 @@ begin
 
   FCacheMaxSize := AMaxSize;
   FCacheMinPurge := AMinPurge;
-  FCache := TObjectDictionary<TLogFont, TFontCacheItem>.Create([doOwnsValues]);
+
+  FCache := TDictionary<TFontKey, IGlyphCacheFontItem>.Create(CacheDefaultCount);
+
   FLRUList.InitializeHead;
 end;
 
-destructor TFontCache.Destroy;
+destructor TGlyphCache.Destroy;
 begin
   FCache.Free;
   inherited;
 end;
 
-procedure TFontCache.Clear;
+procedure TGlyphCache.Clear;
 begin
   FCache.Clear;
 end;
 
-function TFontCache.GetItemByFont(DC: HDC; Font: HFont): TFontCacheItem;
-var
-  LogFont: TLogFont;
-  Size: integer;
-  i: integer;
-  Clear: boolean;
+function TGlyphCache.FindItem(const AKey: TFontKey): IGlyphCacheFontItem;
 begin
-  FillChar(LogFont, SizeOf(TLogFont), 0);
-  Size := GetObject(Font, SizeOf(TLogFont), @LogFont);
-  if (Size <> SizeOf(TLogFont)) then
-    raise Exception.Create('Failed to retrieve LOGFONT');
-
-  // Clear junk
-  Clear := False;
-  for i := 0 to High(LogFont.lfFaceName) do
-  begin
-    if (Clear) then
-      LogFont.lfFaceName[i] := #0
-    else
-      Clear := (LogFont.lfFaceName[i] = #0);
-  end;
-
-  if (FCache.TryGetValue(LogFont, Result)) then
-  begin
-    Result.Hit;
-    exit;
-  end;
-
-  Result := TFontCacheItem.Create(Self, DC);
-  FCache.Add(LogFont, Result);
+  if (FCache.TryGetValue(AKey, Result)) then
+    TGlyphCacheFontItem(Result).Hit
+  else
+    Result := nil;
 end;
 
-procedure TFontCache.AddCacheItem(GlyphInfo: TGlyphInfo);
+function TGlyphCache.AddItem(const AKey: TFontKey): IGlyphCacheFontItem;
+begin
+  Result := TGlyphCacheFontItem.Create(Self);
+  FCache.Add(AKey, Result);
+end;
+
+procedure TGlyphCache.AddCacheItem(GlyphInfo: TGlyphCacheData);
 begin
   // Insert item at start of LRU list
   FLRUList.Add(GlyphInfo.FLRUlink);
 end;
 
-procedure TFontCache.RegisterCacheHit(GlyphInfo: TGlyphInfo);
+procedure TGlyphCache.RegisterCacheHit(GlyphInfo: TGlyphCacheData);
 begin
   GlyphInfo.Hit;
   Inc(FCacheHits);
@@ -529,17 +570,20 @@ begin
   end;
 end;
 
-procedure TFontCache.RegisterCacheMiss;
+procedure TGlyphCache.RegisterCacheMiss;
 begin
   Inc(FCacheMisses);
 end;
 
-procedure TFontCache.RegisterCachePurge;
+procedure TGlyphCache.RegisterCachePurge;
 begin
   Inc(FCachePurges);
 end;
 
-procedure TFontCache.ReserveCacheSpace(Size: uint64);
+procedure TGlyphCache.ReserveCacheSpace(Size: UInt64);
+var
+  TargetPurgeSize: Int64;
+  Item: TGlyphCacheData;
 begin
   Inc(FCacheCount);
   Inc(FCacheSize, Size);
@@ -548,25 +592,103 @@ begin
   if (FCacheSize <= FCacheMaxSize) then
     exit;
 
+  TargetPurgeSize := FCacheSize - FCacheMinPurge;
+
   // Purge LRU items from cache until total size has reached threshold
-  while (FCacheSize >= FCacheMinPurge) and (not FLRUList.IsEmpty) do
-    FLRUList.Prev.Value.Free;
+  while (TargetPurgeSize > 0) and (FCacheSize >= FCacheMinPurge) and (not FLRUList.IsEmpty) do
+  begin
+
+    // The item to be evicted
+    Item := FLRUList.Prev.Value;
+
+    // The cache size potentially doesn't decrease after eviction if the
+    // cache object is being held alive by an external reference.
+    // Since we need to avoid an endless loop here, we calculate the
+    // theoretical purged size manually here instead of just monitoring
+    // the cache size.
+    Dec(TargetPurgeSize, Item.SizeInBytes);
+
+    Item.Evict;
+
+  end;
 end;
 
-procedure TFontCache.UnreserveCacheSpace(Size: uint64);
+procedure TGlyphCache.UnreserveCacheSpace(Size: UInt64);
 begin
+  Assert(Size <= FCacheSize);
   Dec(FCacheCount);
   Dec(FCacheSize, Size);
-  Assert(FCacheSize >= 0);
 end;
 
-function TFontCache.GetItemByDC(DC: HDC): TFontCacheItem;
+
+//------------------------------------------------------------------------------
+//
+//      GlyphCache
+//
+//------------------------------------------------------------------------------
 var
-  Font: HFONT;
+  FGlyphCacheEnabled: boolean = False;
+  FGlyphCache: IGlyphCache = nil;
+  FCustomGlyphCache: IGlyphCache = nil;
+
+procedure EnableGlyphCache;
 begin
-  Font := GetCurrentObject(DC, OBJ_FONT);
-  Result := GetItemByFont(DC, Font);
+  FGlyphCacheEnabled := True;
 end;
 
+//------------------------------------------------------------------------------
+
+procedure DisableGlyphCache;
+begin
+  if (FGlyphCache <> nil) then
+  begin
+    TGlyphCache(FGlyphCache).Clear;
+    FGlyphCache := nil;
+  end;
+
+  FGlyphCacheEnabled := False;
+end;
+
+//------------------------------------------------------------------------------
+
+function RegisterGlyphCache(const AGlyphCache: IGlyphCache): IGlyphCache;
+begin
+  Result := FCustomGlyphCache;
+
+  if (AGlyphCache = FCustomGlyphCache) then
+    exit;
+
+  FCustomGlyphCache := AGlyphCache;
+end;
+
+//------------------------------------------------------------------------------
+
+function GlyphCache: IGlyphCache;
+begin
+  if (FGlyphCacheEnabled) then
+  begin
+    if (FCustomGlyphCache <> nil) then
+      Result := FCustomGlyphCache
+    else
+    if (FGlyphCache <> nil) then
+      Result := FGlyphCache
+    else
+    begin
+      FGlyphCache := TGlyphCache.Create;
+      Result := FGlyphCache;
+    end;
+  end else
+    Result := nil;
+end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+initialization
+
+finalization
+
+  DisableGlyphCache;
 
 end.

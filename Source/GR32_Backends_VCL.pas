@@ -63,8 +63,8 @@ type
       IFontSupport,
       ICanvasSupport,
       ITextToPathSupport,
-      IUpdateRectSupport,
-      IFontHintingSupport
+      ITextToPathSupport2,
+      IUpdateRectSupport
     )
   private
     procedure FontChangedHandler(Sender: TObject);
@@ -134,9 +134,14 @@ type
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
 
     { ITextToPathSupport }
-    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string); overload;
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; Flags: Cardinal = 0); overload;
     procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal); overload;
-    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect; overload;
+
+    { ITextToPathSupport2 }
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; const Layout: TTextLayout); overload;
+    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
 
     { ICanvasSupport }
     function GetCanvasChange: TNotifyEvent;
@@ -153,9 +158,6 @@ type
     procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
 
-    { IFontHintingSupport }
-    function GetHinting: TTextHinting;
-    procedure SetHinting(Value: TTextHinting);
   end;
 
   { TGDIMMFBackend }
@@ -353,15 +355,18 @@ end;
 procedure TGDIBackend.Textout(X, Y: Integer; const Text: string);
 var
   Extent: TSize;
+  ClipRect: TRect;
 begin
   UpdateFont;
 
   if not FOwner.MeasuringMode then
   begin
     if FOwner.Clipping then
-      ExtTextout(Handle, X, Y, ETO_CLIPPED, @FOwner.ClipRect, PChar(Text), Length(Text), nil)
-    else
-      ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
+    begin
+      ClipRect := FOwner.ClipRect;
+      ExtTextOut(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+    end else
+      ExtTextOut(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
   end;
 
   Extent := TextExtent(Text);
@@ -375,25 +380,43 @@ begin
   UpdateFont;
 
   if not FOwner.MeasuringMode then
-    ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+    ExtTextOut(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
 
   Extent := TextExtent(Text);
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TGDIBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string);
+procedure TGDIBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; Flags: Cardinal);
 var
   R: TFloatRect;
 begin
   R := FloatRect(X, Y, X, Y);
-  TextToolsWin.TextToPath(Font, Path, R, Text, 0);
+  TextToolsWin.TextToPath(Font, Path, R, Text, Flags);
 end;
 
-procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
-  const Text: string; Flags: Cardinal);
+procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal);
 begin
   TextToolsWin.TextToPath(Font, Path, DstRect, Text, Flags);
 end;
+
+procedure TGDIBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; const Layout: TTextLayout);
+var
+  R: TFloatRect;
+begin
+  R := FloatRect(X, Y, X, Y);
+  TextToolsWin.TextToPath(Font, Path, R, Text, Layout);
+end;
+
+procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout);
+begin
+  TextToolsWin.TextToPath(Font, Path, DstRect, Text, Layout);
+end;
+
+function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect;
+begin
+  TextToolsWin.MeasureText(Font, DstRect, Text, Layout);
+end;
+
 
 procedure TGDIBackend.UpdateFont;
 begin
@@ -546,16 +569,6 @@ begin
   finally
     DeleteObject(UpdateRegion);
   end;
-end;
-
-function TGDIBackend.GetHinting: TTextHinting;
-begin
-  Result := TextToolsWin.GetHinting;
-end;
-
-procedure TGDIBackend.SetHinting(Value: TTextHinting);
-begin
-  TextToolsWin.SetHinting(Value);
 end;
 
 procedure TGDIBackend.SetCanvasChange(Handler: TNotifyEvent);

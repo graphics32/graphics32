@@ -1794,7 +1794,7 @@ end;
 
 function HSLtoRGB(H, S, L: Single; A: Integer): TColor32;
 const
-  OneOverThree = 1 / 3;
+  OneOverThree: Single = 1 / 3;
 var
   M1, M2: Single;
 

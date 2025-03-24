@@ -100,16 +100,6 @@
 
 
 
-(* Symbol XPTHEMES :
-   -----------------
-
-    Enable support for windows xp themes. Eventually undefine if GR32 should
-    be used within a DLL *)
-
-  {$DEFINE XPTHEMES}
-
-
-
 (* Symbol USEMULTITHREADING :
    --------------------------
 
@@ -193,78 +183,20 @@
 
 {-$DEFINE RGBA_FORMAT}
 
-(*
-  Symbol: NOHINTING
-  -----------------
-
-    Disables font hinting by default when using TextToPath() method.
-
-  It is usually preferrable to disable hinting when using a high quality
-  polygon renderer like VPR. However, hinting can sometimes improve
-  visual quality when rendering small text (text is adjusted to pixel
-  boundaries which makes it more crisp.)
-*)
-
-{$DEFINE NOHINTING}
-
 
 (*
-  Symbol: NOHORIZONTALHINTING
-  ---------------------------
+  Symbol: IGNORE_HINTING_DEPRECATED
+  -------------------
 
-    Disables horizontal font hinting when using TextToPath() method.
+     Hinting is no longer supported and reference to or use of the hinting
+     interfaces will produce a compiler warning.
+     If this is a problem you can define the IGNORE_HINTING_DEPRECATED
+     symbol to supress the warnings.
 
-  The following should not be used in conjunction with NOHINTING.
-  It will attempt to address the problem of extreme font hinting in the
-  GDI by disabling horizontal, but keeping vertical hinting.
+     Be aware through that the hinting stuff will be deleted sooner or
+     later.
 *)
-
-{-$DEFINE NOHORIZONTALHINTING}
-
-
-(*
-  Symbol: USEKERNING
-  -----------------
-
-    Enables font kerning when using TextToPath() method.
-
-  Kerning is the process of adjusting the spacing between characters in a
-  proportional font, usually to achieve a visually pleasing result. However,
-  parsing for kerning pairs is quite expensive in terms of CPU usage while the
-  effect is often very little. Thus kerning is not enabled by default.
-*)
-
-{-$DEFINE USEKERNING}
-
-
-(*
-  Symbol: FONT_CACHE
-  ------------------
-
-    Enables caching of glyph outlines data in the TextToPath() method.
-
-  The majority of time in TextToPath, and related functions, are used
-  retrieving glyph outline data from Windows.
-  When FONT_CACHE is defined, the TextToPath functions will cache the glyph
-  outline data returned by Windows.
-*)
-{-$define FONT_CACHE}
-
-
-(*
-  Symbol: FONT_CACHE_PATH
-  -----------------------
-
-    Enables caching of glyph polygon data in the TextToPath() method.
-
-  Before a glyph can be rendered by the polygon rasterizer the glyph outline
-  data must be converted from bezier curves to polygons.
-  When FONT_CACHE_PATH is defined, the glyph cache will cache the polygons
-  instead of the glyph outline data.
-  FONT_CACHE_PATH requires that FONT_CACHE is also defined.
-*)
-{$define FONT_CACHE_PATH}
-
+{-$define IGNORE_HINTING_DEPRECATED}
 
 {-$DEFINE TEST_BLENDMEMRGB128SSE4}
 {$define GR32_WRAPMODE_REFLECT}
