@@ -7575,20 +7575,20 @@ begin
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
   try
-    Sz := Self.TextExtent(Text) + Self.TextExtent(' ');
-    B.SetSize(Sz.cX, Sz.cY);
+    Sz := Self.TextExtent(Text);
+    B.SetSize(Sz.cX + 2, Sz.cY + 2); // (+2, +2) = Make room for AA
     B.Font.Assign(Font);
     B.Clear(0);
     B.Font.Color := clWhite;
 
-    B.Textout(0, 0, Text);
+    B.Textout(1, 1, Text); // (1,1) = offset for AA
     TextBlueToAlpha(B, Color);
 
     B.DrawMode := dmBlend;
     B.MasterAlpha := Alpha;
     B.CombineMode := CombineMode;
 
-    B.DrawTo(Self, X, Y);
+    B.DrawTo(Self, X-1, Y-1); // (-1, -1) = Offset for AA
   finally
     B.Free;
   end;
