@@ -171,7 +171,6 @@ type
     procedure DrawPath(const Path: TFlattenedPath); virtual; abstract;
   public
     property Transformation: TTransformation read FTransformation write SetTransformation;
-    function Path: TFlattenedPath; deprecated 'No longer necessary - Just reference the Canvas itself instead';
   end;
 
   { TCanvas32 }
@@ -753,11 +752,6 @@ begin
 
   DrawPath(Self);
   Clear;
-end;
-
-function TCustomCanvas.Path: TFlattenedPath;
-begin
-  Result := Self;
 end;
 
 procedure TCustomCanvas.SetTransformation(const Value: TTransformation);
