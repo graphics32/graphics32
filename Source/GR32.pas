@@ -642,6 +642,7 @@ type
   TRectRounding = (rrClosest, rrOutside, rrInside);
 
 function MakeRect(const L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function MakeRect(const L, T, R, B: TFloat; Rounding: TRectRounding = rrClosest): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function FixedRect(const L, T, R, B: TFixed): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -2264,6 +2265,37 @@ begin
     Top := T;
     Right := R;
     Bottom := B;
+  end;
+end;
+
+function MakeRect(const L, T, R, B: TFloat; Rounding: TRectRounding = rrClosest): TRect;
+begin
+  case Rounding of
+    rrClosest:
+      begin
+        Result.Left := System.Round(L);
+        Result.Top := System.Round(T);
+        Result.Right := System.Round(R);
+        Result.Bottom := System.Round(B);
+      end;
+
+    rrInside:
+      begin
+        Result.Left := Ceil(L);
+        Result.Top := Ceil(T);
+        Result.Right := Floor(R);
+        Result.Bottom := Floor(B);
+        if Result.Right < Result.Left then Result.Right := Result.Left;
+        if Result.Bottom < Result.Top then Result.Bottom := Result.Top;
+      end;
+
+    rrOutside:
+      begin
+        Result.Left := Floor(L);
+        Result.Top := Floor(T);
+        Result.Right := Ceil(R);
+        Result.Bottom := Ceil(B);
+      end;
   end;
 end;
 
@@ -7327,7 +7359,8 @@ begin
           StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, OnPixelCombine);
 
           DeviceContextSupport.DrawTo(hDst,
-            MakeRect(X + DstRect.Left, Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
+            // GR32.MakeRect(integer(), ...) is because FPC confuses integer and float... *sigh*
+            GR32.MakeRect(integer(X + DstRect.Left), Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
             Buffer.BoundsRect
           );
         end;
