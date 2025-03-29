@@ -243,49 +243,61 @@ begin
 end;
 
 procedure CubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
-var
-  P12, P23, P34, P123, P234, P1234: TFloatPoint;
-begin
-  if CubicBezierFlatness(P1, P2, P3, P4) < Tolerance then
-    AddPoint(P1)
-  else
-  begin
-    P12.X   := (P1.X + P2.X) * 0.5;
-    P12.Y   := (P1.Y + P2.Y) * 0.5;
-    P23.X   := (P2.X + P3.X) * 0.5;
-    P23.Y   := (P2.Y + P3.Y) * 0.5;
-    P34.X   := (P3.X + P4.X) * 0.5;
-    P34.Y   := (P3.Y + P4.Y) * 0.5;
-    P123.X  := (P12.X + P23.X) * 0.5;
-    P123.Y  := (P12.Y + P23.Y) * 0.5;
-    P234.X  := (P23.X + P34.X) * 0.5;
-    P234.Y  := (P23.Y + P34.Y) * 0.5;
-    P1234.X := (P123.X + P234.X) * 0.5;
-    P1234.Y := (P123.Y + P234.Y) * 0.5;
 
-    CubicBezierCurve(P1, P12, P123, P1234, AddPoint, Tolerance);
-    CubicBezierCurve(P1234, P234, P34, P4, AddPoint, Tolerance);
+  procedure DoCubicBezierCurve(const P1, P2, P3, P4: TFloatPoint);
+  var
+    P12, P23, P34, P123, P234, P1234: TFloatPoint;
+  begin
+    if CubicBezierFlatness(P1, P2, P3, P4) < Tolerance then
+      AddPoint(P1)
+    else
+    begin
+      P12.X   := (P1.X + P2.X) * 0.5;
+      P12.Y   := (P1.Y + P2.Y) * 0.5;
+      P23.X   := (P2.X + P3.X) * 0.5;
+      P23.Y   := (P2.Y + P3.Y) * 0.5;
+      P34.X   := (P3.X + P4.X) * 0.5;
+      P34.Y   := (P3.Y + P4.Y) * 0.5;
+      P123.X  := (P12.X + P23.X) * 0.5;
+      P123.Y  := (P12.Y + P23.Y) * 0.5;
+      P234.X  := (P23.X + P34.X) * 0.5;
+      P234.Y  := (P23.Y + P34.Y) * 0.5;
+      P1234.X := (P123.X + P234.X) * 0.5;
+      P1234.Y := (P123.Y + P234.Y) * 0.5;
+
+      DoCubicBezierCurve(P1, P12, P123, P1234);
+      DoCubicBezierCurve(P1234, P234, P34, P4);
+    end;
   end;
+
+begin
+  DoCubicBezierCurve(P1, P2, P3, P4);
 end;
 
 procedure QuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
-var
-  P12, P23, P123: TFloatPoint;
-begin
-  if QuadraticBezierFlatness(P1, P2, P3) < Tolerance then
-    AddPoint(P1)
-  else
-  begin
-    P12.X := (P1.X + P2.X) * 0.5;
-    P12.Y := (P1.Y + P2.Y) * 0.5;
-    P23.X := (P2.X + P3.X) * 0.5;
-    P23.Y := (P2.Y + P3.Y) * 0.5;
-    P123.X := (P12.X + P23.X) * 0.5;
-    P123.Y := (P12.Y + P23.Y) * 0.5;
 
-    QuadraticBezierCurve(P1, P12, P123, AddPoint, Tolerance);
-    QuadraticBezierCurve(P123, P23, P3, AddPoint, Tolerance);
+  procedure DoQuadraticBezierCurve(const P1, P2, P3: TFloatPoint);
+  var
+    P12, P23, P123: TFloatPoint;
+  begin
+    if QuadraticBezierFlatness(P1, P2, P3) < Tolerance then
+      AddPoint(P1)
+    else
+    begin
+      P12.X := (P1.X + P2.X) * 0.5;
+      P12.Y := (P1.Y + P2.Y) * 0.5;
+      P23.X := (P2.X + P3.X) * 0.5;
+      P23.Y := (P2.Y + P3.Y) * 0.5;
+      P123.X := (P12.X + P23.X) * 0.5;
+      P123.Y := (P12.Y + P23.Y) * 0.5;
+
+      QuadraticBezierCurve(P1, P12, P123, AddPoint, Tolerance);
+      QuadraticBezierCurve(P123, P23, P3, AddPoint, Tolerance);
+    end;
   end;
+
+begin
+  DoQuadraticBezierCurve(P1, P2, P3);
 end;
 
 
