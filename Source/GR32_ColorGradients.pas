@@ -671,8 +671,6 @@ type
     function GetFillLine: TFillLineEvent; override;
     procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32; CombineMode: TCombineMode);
-    class function Linear3PointInterpolation(A, B, C: TColor32;
-      WeightA, WeightB, WeightC: Single): TColor32;
   public
     procedure BeginRendering; override;
 
@@ -3622,12 +3620,6 @@ begin
     Result := FColorPoints[Index].Point
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
-end;
-
-class function TBarycentricGradientPolygonFiller.Linear3PointInterpolation(
-  A, B, C: TColor32; WeightA, WeightB, WeightC: Single): TColor32;
-begin
-  Result := Linear3PointInterpolation(A, B, C, WeightA, WeightB, WeightC);
 end;
 
 procedure TBarycentricGradientPolygonFiller.SetColor(Index: Integer;
