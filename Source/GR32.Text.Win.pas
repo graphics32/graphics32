@@ -700,9 +700,8 @@ var
         pp := @GlyphCacheData.Path[i, 0];
         for j := 0 to High(GlyphCacheData.Path[i]) do
         begin
-          P := pp^ * FScale;
-          P.X := P.X + AOffsetX;
-          P.Y := p.Y + AOffsetY;
+          P.X := pp.X * FScale + AOffsetX;
+          P.Y := pp.Y * FScale + AOffsetY;
 
           if (j = 0) then
             APath.MoveTo(P)
