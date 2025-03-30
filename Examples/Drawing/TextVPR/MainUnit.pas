@@ -311,6 +311,19 @@ const
     'tempus libero nec, consectetur lorem.';
 
 const
+  sExamples: array[0..4] of record
+    Text: string;
+    LineBreakIsParagraph: boolean;
+    DoubleLineBreakIsParagraph: boolean;
+  end = (
+    (Text: sLoremIpsum; LineBreakIsParagraph: True; DoubleLineBreakIsParagraph: False),
+    (Text: sMobyDick; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
+    (Text: sDonQuixote; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
+    (Text: sMaBohème; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
+    (Text: sDoOxenLowWhenMangersAreFull; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True)
+  );
+
+const
   InnerMargin = 10;
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -466,18 +479,6 @@ begin
 end;
 
 procedure TMainForm.BuildPolygonFromText;
-const
-  sExamples: array[0..4] of record
-    Text: string;
-    LineBreakIsParagraph: boolean;
-    DoubleLineBreakIsParagraph: boolean;
-  end = (
-    (Text: sLoremIpsum; LineBreakIsParagraph: True; DoubleLineBreakIsParagraph: False),
-    (Text: sMobyDick; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
-    (Text: sDonQuixote; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
-    (Text: sMaBohème; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
-    (Text: sDoOxenLowWhenMangersAreFull; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True)
-  );
 var
   DestRect: TFloatRect;
   StopWatch: TStopWatch;
@@ -488,6 +489,8 @@ begin
   DestRect := FloatRect(Img.BoundsRect);
   GR32.InflateRect(DestRect, -InnerMargin, -InnerMargin);
 
+  FTextLayout.InterLineFactor := 1.2;
+  FTextLayout.InterParagraphFactor := 1.6;
   FTextLayout.SingleLine := CheckBoxSingleLine.Checked;
   FTextLayout.WordWrap := CheckBoxWordbreak.Checked;
   FTextLayout.Kerning := CheckBoxKerning.Checked;
