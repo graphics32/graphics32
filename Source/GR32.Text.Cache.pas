@@ -116,6 +116,7 @@ type
     function GetPath: TArrayOfArrayOfFloatPoint;
     function GetPathClosed: TArray<boolean>;
     function GetPathValid: boolean;
+    function GetInstance: TObject;
 
     // Assign from path to cache
     procedure LoadFromPath(APath: TFlattenedPath; AFirst: integer; AOriginX, AOriginY: Single; AScale: Double);
@@ -124,16 +125,28 @@ type
     property Path: TArrayOfArrayOfFloatPoint read GetPath;
     property PathClosed: TArray<boolean> read GetPathClosed;
     property PathValid: boolean read GetPathValid;
+
+    // FPC doesn't support object-to-interface casting (but also doesn't warn us when we do it. Pfft!)
+    // Regardless, using an instance getter is much faster.
+    property Instance: TObject read GetInstance;
   end;
 
   IGlyphCacheFontItem = interface
+    function GetInstance: TObject;
+
     function FindGlyphData(AGlyph: Cardinal): IGlyphCacheData;
     function AddGlyphData(AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32): IGlyphCacheData;
+
+    property Instance: TObject read GetInstance;
   end;
 
   IGlyphCache = interface
+    function GetInstance: TObject;
+
     function FindItem(const AKey: TFontKey): IGlyphCacheFontItem;
     function AddItem(const AKey: TFontKey): IGlyphCacheFontItem;
+
+    property Instance: TObject read GetInstance;
   end;
 
 
@@ -146,7 +159,7 @@ type
 //------------------------------------------------------------------------------
 
 // Enable the glyph cache.
-procedure EnableGlyphCache; {$ifdef FPC}deprecated 'The Glyph Cache should not be used with FPC due to compiler codegen bugs';{$endif}
+procedure EnableGlyphCache;
 
 // Disable the glyph cache.
 procedure DisableGlyphCache;
@@ -195,11 +208,12 @@ type
 
   private
     // IGlyphCacheData
-    procedure LoadFromPath(APath: TFlattenedPath; AFirst: integer; AOriginX, AOriginY: Single; AScale: Double);
     function GetGlyphMetrics: TGlyphMetrics32;
     function GetPath: TArrayOfArrayOfFloatPoint;
     function GetPathClosed: TArray<boolean>;
     function GetPathValid: boolean;
+    function GetInstance: TObject;
+    procedure LoadFromPath(APath: TFlattenedPath; AFirst: integer; AOriginX, AOriginY: Single; AScale: Double);
   public
     constructor Create(AFontCacheItem: TGlyphCacheFontItem; AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32);
     destructor Destroy; override;
@@ -229,6 +243,7 @@ type
 
   private
     // IGlyphCacheFontItem
+    function GetInstance: TObject;
     function FindGlyphData(AGlyph: Cardinal): IGlyphCacheData;
     function AddGlyphData(AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32): IGlyphCacheData;
 
@@ -262,6 +277,7 @@ type
 
   private
     // IGlyphCache
+    function GetInstance: TObject;
     function FindItem(const AKey: TFontKey): IGlyphCacheFontItem;
     function AddItem(const AKey: TFontKey): IGlyphCacheFontItem;
 
@@ -379,6 +395,11 @@ begin
   Result := FGlyphMetrics;
 end;
 
+function TGlyphCacheData.GetInstance: TObject;
+begin
+  Result := Self;
+end;
+
 function TGlyphCacheData.GetPath: TArrayOfArrayOfFloatPoint;
 begin
   Result := FPath;
@@ -398,6 +419,7 @@ procedure TGlyphCacheData.LoadFromPath(APath: TFlattenedPath; AFirst: integer; A
 var
   i, j, i2: integer;
   pDest, pSource: PFloatPoint;
+  Path: TArrayOfArrayOfFloatPoint;
 begin
   if (FSizeInBytes > 0) then
   begin
@@ -405,23 +427,28 @@ begin
     Dec(FSizeInBytes, SizeOf(FGlyphMetrics));
   end;
 
-  for i := AFirst to High(APath.Path) do
-    Inc(FSizeInBytes, Length(APath.Path[i]) * (SizeOf(TFloatPoint) + SizeOf(Boolean)));
+  Path := APath.Path; // Avoid going through the getter repeatedly
+
+  for i := AFirst to High(Path) do
+    Inc(FSizeInBytes, Length(Path[i]) * (SizeOf(TFloatPoint) + SizeOf(Boolean)));
 
   FFontCacheItem.ReserveCacheSpace(FSizeInBytes);
 
-  SetLength(FPath, Length(APath.Path) - AFirst);
+  SetLength(FPath, Length(Path) - AFirst);
   SetLength(FPathClosed, Length(FPath));
 
   i2 := 0;
-  for i := AFirst to High(APath.Path) do
+  for i := AFirst to High(Path) do
   begin
-    SetLength(FPath[i2], Length(APath.Path[i]));
+    if (Length(Path[i]) = 0) then
+      continue;
+
+    SetLength(FPath[i2], Length(Path[i]));
 
     pDest := @FPath[i2][0];
     pSource := @APath.Path[i][0];
 
-    for j := 0 to High(APath.Path[i]) do
+    for j := 0 to High(Path[i]) do
     begin
       pDest.X := (pSource.X - AOriginX) * AScale;
       pDest.Y := (pSource.Y - AOriginY) * AScale;
@@ -433,6 +460,10 @@ begin
     FPathClosed[i2] := APath.PathClosed[i];
     inc(i2);
   end;
+
+  // Trim arrays in case any of the source arrays were empty
+  SetLength(FPath, i2);
+  SetLength(FPathClosed, i2);
 
   FPathValid := True;
 end;
@@ -472,9 +503,14 @@ end;
 function TGlyphCacheFontItem.FindGlyphData(AGlyph: Cardinal): IGlyphCacheData;
 begin
   if (FGlyphCache.TryGetValue(AGlyph, Result)) then
-    FFontCache.RegisterCacheHit(TGlyphCacheData(Result))
+    FFontCache.RegisterCacheHit(TGlyphCacheData(Result.Instance))
   else
     Result := nil;
+end;
+
+function TGlyphCacheFontItem.GetInstance: TObject;
+begin
+  Result := Self;
 end;
 
 function TGlyphCacheFontItem.AddGlyphData(AGlyph: Cardinal; const AGlyphMetrics: TGlyphMetrics32): IGlyphCacheData;
@@ -482,7 +518,7 @@ begin
   Result := TGlyphCacheData.Create(Self, AGlyph, AGlyphMetrics);
   FGlyphCache.Add(AGlyph, Result);
 
-  FFontCache.AddCacheItem(TGlyphCacheData(Result));
+  FFontCache.AddCacheItem(TGlyphCacheData(Result.Instance));
 end;
 
 procedure TGlyphCacheFontItem.Hit;
@@ -539,9 +575,14 @@ end;
 function TGlyphCache.FindItem(const AKey: TFontKey): IGlyphCacheFontItem;
 begin
   if (FCache.TryGetValue(AKey, Result)) then
-    TGlyphCacheFontItem(Result).Hit
+    TGlyphCacheFontItem(Result.Instance).Hit
   else
     Result := nil;
+end;
+
+function TGlyphCache.GetInstance: TObject;
+begin
+  Result := Self;
 end;
 
 function TGlyphCache.AddItem(const AKey: TFontKey): IGlyphCacheFontItem;
@@ -642,7 +683,7 @@ procedure DisableGlyphCache;
 begin
   if (FGlyphCache <> nil) then
   begin
-    TGlyphCache(FGlyphCache).Clear;
+    TGlyphCache(FGlyphCache.Instance).Clear;
     FGlyphCache := nil;
   end;
 

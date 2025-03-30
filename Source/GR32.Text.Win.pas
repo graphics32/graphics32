@@ -675,6 +675,7 @@ var
 
   function ResolveFromGlyphCache: boolean;
   var
+    Path: TArrayOfArrayOfFloatPoint;
     i, j: integer;
     pp: PFloatPoint;
     P: TFloatPoint;
@@ -691,28 +692,31 @@ var
 
     APath.BeginUpdate;
 
+    Path := GlyphCacheData.Path; // Avoid going through the getter repeatedly
+
     // Replay cache data
-    for i := 0 to High(GlyphCacheData.Path) do
-      if (Length(GlyphCacheData.Path[i]) > 0) then
+    for i := 0 to High(Path) do
+    begin
+      if (Length(Path[i]) = 0) then
+        continue;
+
+      // We use a pointer to avoid dynamic array overhead
+      pp := @Path[i, 0];
+      for j := 0 to High(Path[i]) do
       begin
+        P.X := pp.X * FScale + AOffsetX;
+        P.Y := pp.Y * FScale + AOffsetY;
 
-        // We use a pointer to avoid dynamic array overhead
-        pp := @GlyphCacheData.Path[i, 0];
-        for j := 0 to High(GlyphCacheData.Path[i]) do
-        begin
-          P.X := pp.X * FScale + AOffsetX;
-          P.Y := pp.Y * FScale + AOffsetY;
+        if (j = 0) then
+          APath.MoveTo(P)
+        else
+          APath.LineTo(P);
 
-          if (j = 0) then
-            APath.MoveTo(P)
-          else
-            APath.LineTo(P);
-
-          Inc(pp);
-        end;
-
-        APath.EndPath(GlyphCacheData.PathClosed[i]);
+        Inc(pp);
       end;
+
+      APath.EndPath(GlyphCacheData.PathClosed[i]);
+    end;
 
     APath.EndUpdate;
 
@@ -1166,12 +1170,6 @@ end;
 
 initialization
 
-// Although the cache compiles on FPC it fails at run-time due to
-// bugs in the FPC compiler's generics codegen.
-{$ifndef _FPC}
-
   EnableGlyphCache;
-
-{$endif}
 
 end.

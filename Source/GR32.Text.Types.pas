@@ -160,8 +160,8 @@ type
     (*
     ** Vertical line spacing
     *)
-    InterLineFactor: Single;            // Not implemented
-    InterParagraphFactor: Single;       // Not implemented
+    InterLineFactor: Single;
+    InterParagraphFactor: Single;
 
     (*
     ** Alignment
