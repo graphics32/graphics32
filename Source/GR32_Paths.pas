@@ -36,6 +36,20 @@ interface
 
 {$include GR32.inc}
 
+// Define one of the following two *QuadraticBezierCurve symbols to select
+// the algorithm used to flatten quadratic Bezier curves.
+//
+// - RecursiveQuadraticBezierCurve is the classic De Casteljau algorithm.
+//
+// - RaphLevienQuadraticBezierCurve is a new analytic algorithm which
+//   produces far less vertices for the same error tolerance.
+//
+// If none of the symbols are defined the RaphLevienQuadraticBezierCurve
+// implementation is used.
+//
+{-$define RecursiveQuadraticBezierCurve}
+{-$define RaphLevienQuadraticBezierCurve}
+
 uses
   Classes, SysUtils,
   GR32,
@@ -218,6 +232,7 @@ type
 implementation
 
 uses
+  Math,
   Types,
   GR32_Backends,
   GR32_VectorUtils;
@@ -274,7 +289,21 @@ begin
   DoCubicBezierCurve(P1, P2, P3, P4);
 end;
 
-procedure QuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+//------------------------------------------------------------------------------
+//
+//      Quadratic Bezier curve flattening
+//
+//------------------------------------------------------------------------------
+// Glyph cache access point.
+//------------------------------------------------------------------------------
+type
+  TQuadraticBezierCurve = procedure(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+
+
+//------------------------------------------------------------------------------
+// Recursive subdivision using Paul de Casteljau's algorithm
+//------------------------------------------------------------------------------
+procedure RecursiveQuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
 
   procedure DoQuadraticBezierCurve(const P1, P2, P3: TFloatPoint);
   var
@@ -291,14 +320,140 @@ procedure QuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TA
       P123.X := (P12.X + P23.X) * 0.5;
       P123.Y := (P12.Y + P23.Y) * 0.5;
 
-      QuadraticBezierCurve(P1, P12, P123, AddPoint, Tolerance);
-      QuadraticBezierCurve(P123, P23, P3, AddPoint, Tolerance);
+      DoQuadraticBezierCurve(P1, P12, P123);
+      DoQuadraticBezierCurve(P123, P23, P3);
     end;
   end;
 
 begin
   DoQuadraticBezierCurve(P1, P2, P3);
 end;
+
+
+//------------------------------------------------------------------------------
+// Analytic subdivision using Raph Levien's algorithm
+// License: Apache 2.0
+// https://www.apache.org/licenses/LICENSE-2.0
+//------------------------------------------------------------------------------
+procedure RaphLevienQuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+var
+  x0, x2, Scale: Single;
+
+  // Determine the x values and scaling to map to y=x^2
+  procedure MapToBasic;
+  var
+    ddX: Single;
+    ddY: Single;
+    u0: Single;
+    u2: Single;
+    Cross: Single;
+    OneOverCross: Single;
+  begin
+    ddX := 2 * P2.X - P1.X - P3.X;
+    ddY := 2 * P2.Y - P1.Y - P3.Y;
+    u0 := (P2.X - P1.X) * ddX + (P2.Y - P1.Y) * ddY;
+    u2 := (P3.X - P2.X) * ddX + (P3.Y - P2.Y) * ddY;
+    Cross := (P3.X - P1.X) * ddY - (P3.Y - P1.Y) * ddX;
+    OneOverCross := 1 / Cross;
+
+    x0 := u0 * OneOverCross;
+    x2 := u2 * OneOverCross;
+    // There's probably a more elegant formulation of this...
+    Scale := Abs(Cross) / (GR32_Math.Hypot(ddX, ddY) * Abs(x2 - x0));
+  end;
+
+  // Compute an approximation to int (1 + 4x^2) ^ -0.25 dx
+  // This isn't especially good but will do.
+  function ApproxMyint(x: Single): Single; {$IFDEF USEINLINING} inline; {$ENDIF}
+  const
+    d: Single = 0.67;
+  begin
+    Result := x / (1 - d + Math.Power(Math.IntPower(d, 4) + 0.25 * x * x, 0.25));
+  end;
+
+  // Approximate the inverse of the function above.
+  // This is better.
+  function ApproxInvMyint(x: Single): Single; {$IFDEF USEINLINING} inline; {$ENDIF}
+  const
+    b: Single = 0.39;
+  begin
+    Result := x * (1 - b + Sqrt(b * b + 0.25 * x * x));
+  end;
+
+  procedure Evaluate(t: Single);
+  var
+    mt: Single;
+    mt_mt: Single;
+    t_mt: Single;
+    t_t: Single;
+    Point: TFloatPoint;
+  begin
+    mt := 1 - t;
+    mt_mt := mt * mt;
+    t_mt := t * mt;
+    t_t := t * t;
+
+    Point.X := P1.X * mt_mt + 2 * P2.X * t_mt + P3.X * t_t;
+    Point.Y := P1.Y * mt_mt + 2 * P2.Y * t_mt + P3.Y * t_t;
+
+    AddPoint(Point);
+  end;
+
+var
+  a0: Single;
+  a2: Single;
+  a2_less_a0: Single;
+  Count: integer;
+  OneOverCount: Single;
+  u0: Single;
+  u2: Single;
+  u2_less_u0: Single;
+  OneOver_u2_less_u0: Single;
+  i: integer;
+  u: Single;
+  t: Single;
+begin
+  MapToBasic;
+
+  a0 := ApproxMyint(x0);
+  a2 := ApproxMyint(x2);
+  a2_less_a0 := a2 - a0;
+
+  Count := Ceil(0.5 * Abs(a2_less_a0) * Sqrt(Scale / Tolerance));
+
+  if (Count = 0) then
+    exit;
+
+  OneOverCount := 1 / Count;
+
+  u0 := ApproxInvMyint(a0);
+  u2 := ApproxInvMyint(a2);
+  u2_less_u0 := u2 - u0;
+  OneOver_u2_less_u0 := 1 / u2_less_u0;
+
+  Evaluate(0);
+
+  for i := 1 to Count-1 do
+  begin
+    u := ApproxInvMyint(a0 + ((a2_less_a0) * i) * OneOverCount);
+    t := (u - u0) * OneOver_u2_less_u0;
+    Evaluate(t);
+  end;
+
+  Evaluate(1);
+end;
+
+{$if (not defined(RecursiveQuadraticBezierCurve)) and (not defined(RaphLevienQuadraticBezierCurve))}
+  {$define RaphLevienQuadraticBezierCurve}
+{$ifend}
+
+var
+  QuadraticBezierCurve: TQuadraticBezierCurve =
+{$if defined(RecursiveQuadraticBezierCurve)}
+    RecursiveQuadraticBezierCurve;
+{$elseif defined(RaphLevienQuadraticBezierCurve)}
+    RaphLevienQuadraticBezierCurve;
+{$ifend}
 
 
 //============================================================================//
