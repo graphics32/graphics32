@@ -134,6 +134,23 @@
 {$ifend}
 
 
+(*
+  Symbol: NO_GENERIC_METACLASS_LISTS
+  -------------------------------
+
+     The C++ Builder linker has problems resolving ambiguities caused by
+     metaclass types because they all get mangled as TClass. As a result
+     of this the compiled object files end up containing duplicate
+     symbols, which in turn causes a LIB266 linker error.
+     Specifically we get into problems with TCustomClassList<T> where "T"
+     is a metaclass.
+     To work around the problem we define the NO_GENERIC_METACLASS_LISTS
+     for C++ Builder which causes us to use TClassList for all class types.
+*)
+{$if defined(BCB)}
+{$define NO_GENERIC_METACLASS_LISTS}
+{$ifend}
+
 
 (*
   Symbol TARGET_* :

@@ -480,14 +480,30 @@ procedure FillBitmap(Bitmap: TCustomBitmap32; Filler: TCustomPolygonFiller);
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 procedure UnregisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 
+type
+{$if defined(NO_GENERIC_METACLASS_LISTS)}
+  TCustomPolygonRendererList = class(TClassList)
+  public
+    function Find(const AClassName: string): TCustomPolygonRendererClass;
+  end;
+
+  TPolygonRendererList = class(TClassList)
+  public
+    function Find(const AClassName: string): TPolygonRenderer32Class;
+  end;
+{$else}
+  TCustomPolygonRendererList = TCustomClassList<TCustomPolygonRendererClass>;
+  TPolygonRendererList = TCustomClassList<TPolygonRenderer32Class>;
+{$ifend}
+
 var
   // CustomPolygonRendererList contains all registered renderers.
   // It corresponds to the old PolygonRendererList prior to that
   // being changed to only contain TPolygonRenderer32 classes.
-  CustomPolygonRendererList: TCustomClassList<TCustomPolygonRendererClass>;
+  CustomPolygonRendererList: TCustomPolygonRendererList;
 
   // PolygonRendererList contains only renderers that inherit from TPolygonRenderer32
-  PolygonRendererList: TCustomClassList<TPolygonRenderer32Class>;
+  PolygonRendererList: TPolygonRendererList;
   DefaultPolygonRendererClass: TPolygonRenderer32Class = TPolygonRenderer32VPR;
 
 
@@ -540,10 +556,10 @@ type
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 begin
   if (CustomPolygonRendererList = nil) then
-    CustomPolygonRendererList := TCustomClassList<TCustomPolygonRendererClass>.Create;
+    CustomPolygonRendererList := TCustomPolygonRendererList.Create;
 
   if (PolygonRendererList = nil) then
-    PolygonRendererList := TCustomClassList<TPolygonRenderer32Class>.Create;
+    PolygonRendererList := TPolygonRendererList.Create;
 
   CustomPolygonRendererList.Add(PolygonRendererClass);
 
@@ -3165,6 +3181,24 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      NO_GENERIC_METACLASS_LISTS
+//
+//------------------------------------------------------------------------------
+{$if defined(NO_GENERIC_METACLASS_LISTS)}
+function TCustomPolygonRendererList.Find(const AClassName: string): TCustomPolygonRendererClass;
+begin
+  Result := TCustomPolygonRendererClass(inherited Find(AClassName));
+end;
+
+function TPolygonRendererList.Find(const AClassName: string): TPolygonRenderer32Class;
+begin
+  Result := TPolygonRenderer32Class(inherited Find(AClassName));
+end;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
 //      Bindings
 //
 //------------------------------------------------------------------------------
@@ -3220,6 +3254,7 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
+
 
 initialization
 
