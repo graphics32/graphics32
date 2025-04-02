@@ -69,7 +69,7 @@ type
 
 //------------------------------------------------------------------------------
 //
-//      TGlyphCache
+//      Glyph cache
 //
 //------------------------------------------------------------------------------
 // Implements a two level hierarchical LRU cache of font glyph outline data:
@@ -110,6 +110,36 @@ var
   CacheDefaultGlyphCount: Cardinal = 64;
 
 
+//------------------------------------------------------------------------------
+//
+//      CacheEMSize
+//
+//------------------------------------------------------------------------------
+// Specifies the EM size of the glyph data stored in the cache.
+//
+// - Smaller value: Faster rendering, lower quality, less memory (negligible).
+//   glyphs.
+//
+// - Larger value: Slower rendering, higher quality, more memory (negligible).
+//
+// The font EM size (the resolution the font was designed at) is usually 2048.
+// It is recommended that the max resolution not be set lower than half the
+// maximum font size that will be rendered, although even then the degradation
+// in quality can be hard to spot visually.
+//------------------------------------------------------------------------------
+var
+  CacheEMSize: Cardinal = 128;
+
+
+//------------------------------------------------------------------------------
+//
+//      IGlyphCacheData
+//
+//------------------------------------------------------------------------------
+// Contains glyph metrics and outline data for a single glyph.
+// The scale of values returned is implementation dependent but they are usually
+// in EM size.
+//------------------------------------------------------------------------------
 type
   IGlyphCacheData = interface
     function GetGlyphMetrics: TGlyphMetrics32;
@@ -131,6 +161,15 @@ type
     property Instance: TObject read GetInstance;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      IGlyphCacheFontItem
+//
+//------------------------------------------------------------------------------
+// Represent a single font face.
+//------------------------------------------------------------------------------
+type
   IGlyphCacheFontItem = interface
     function GetInstance: TObject;
 
@@ -140,6 +179,15 @@ type
     property Instance: TObject read GetInstance;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      IGlyphCache
+//
+//------------------------------------------------------------------------------
+// Represents the glyph cache.
+//------------------------------------------------------------------------------
+type
   IGlyphCache = interface
     function GetInstance: TObject;
 
@@ -158,12 +206,6 @@ type
 // Glyph cache access point.
 //------------------------------------------------------------------------------
 
-// Enable the glyph cache.
-procedure EnableGlyphCache;
-
-// Disable the glyph cache.
-procedure DisableGlyphCache;
-
 // Returns a reference to the glyph cache, if enabled. Otherwise returns nil.
 // The cache is lazily instantiated on the first call to GlyphCache.
 function GlyphCache: IGlyphCache;
@@ -172,6 +214,12 @@ function GlyphCache: IGlyphCache;
 // Note that registering a custom glyph cache will not implicitly enable caching.
 // If AGlyphCache is nil then the default cache will be used.
 function RegisterGlyphCache(const AGlyphCache: IGlyphCache): IGlyphCache;
+
+// Enable the glyph cache.
+procedure EnableGlyphCache;
+
+// Disable the glyph cache.
+procedure DisableGlyphCache;
 
 
 //------------------------------------------------------------------------------

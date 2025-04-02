@@ -81,10 +81,8 @@ uses
 // In addition, the generic glyph cache is also used.
 // This reduces the impact of the second-most costly operation: Retrieving glyph
 // outlines and converting them to polygons. The result is an additional factor
-// 10 speedup.
-// The glyph cache is optional but enabled by default.
-// The glyph cache can be enabled and disabled with EnableGlyphCache and
-// DisablGlyphCache.
+// 10 speedup. The glyph cache is optional but enabled by default. It can be
+// enabled and disabled with EnableGlyphCache and DisablGlyphCache.
 //
 //------------------------------------------------------------------------------
 type
@@ -94,15 +92,17 @@ type
 
     LogFont: TLogFont;
     OutlineTextMetric: TOutlineTextMetric;
-    EMSize: Cardinal;
+    Scale: Double; // Scale to get from EM size to font size
+    ScaleInv: Double; // 1/Scale
   end;
 
   // Metadata cache item
   IFontItem = interface
+    // Returns font metrics in AFontData. These metrics must be scaled
+    // by the caller using the value returned in AFontData.Scale.
     // The desired font size is specified by AFontData.LogFont.lfHeight.
-    // Returns metrics in AFontData. These metrics must then be scaled
-    // by the caller using the value returned in AScale.
-    procedure GetFontData(var AFontData: TFontData; var AScale: Double);
+    // AFontData.LogFont is not modified.
+    procedure GetFontData(var AFontData: TFontData);
   end;
 
 type
@@ -118,8 +118,6 @@ type
   private
     // Values copied from FFontItem
     FFontData: TFontData;
-    FScale: Double;
-    FScaleInv: Double;
 
   private
     // Font metadata cache
@@ -135,6 +133,9 @@ type
   private
     // Outline cache
     FGlyphCacheItem: IGlyphCacheFontItem;
+    FBezierToCacheScale: Single;
+    FCacheToFontScale: Single;
+
 
   private type
     TKerningPairs = TArray<TKerningPair>;
@@ -148,8 +149,10 @@ type
 {$endif}
 
   private
-    procedure AssignGlyphMetrics(const GlyphMetrics: TGlyphMetrics; var AGlyphMetrics: TGlyphMetrics32);
+    procedure AssignGlyphMetrics(const GlyphMetrics: TGlyphMetrics; var AGlyphMetrics: TGlyphMetrics32; AScale: Single = 1.0);
     procedure CopyGlyphMetrics(const ASource: TGlyphMetrics32; out ADest: TGlyphMetrics32; AScale: Single);
+    function GetIsCaching: boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+    property IsCaching: boolean read GetIsCaching;
 
   private
     // IFontFace32
@@ -199,30 +202,6 @@ type
     class function MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect; overload; static;
   end;
 
-
-//------------------------------------------------------------------------------
-//
-//      MaxEMSquare
-//
-//------------------------------------------------------------------------------
-// Specifies the max resolution of the glyph data retrieved from Windows and
-// later flattened to polypolygons.
-//
-// - A small value will make the rendering faster but will also distort the
-//   glyphs.
-//
-// - A large value will make the rendering slower but will also produce higher
-//   quality glyphs.
-//
-// The full font resolution (i.e. the resolution the font was designed at) is
-// usually 2048.
-// It is recommended that the max resolution not be set lower than half the
-// maximum font size that will be rendered, although even then the degredation
-// in quality can be hard to spot visually.
-//------------------------------------------------------------------------------
-
-var
-  MaxEMSquare: Cardinal = 128;
 
 //------------------------------------------------------------------------------
 
@@ -376,18 +355,19 @@ type
 
   private
     // IFontItem
-    procedure GetFontData(var AFontData: TFontData; var AScale: Double);
+    procedure GetFontData(var AFontData: TFontData);
 
   public
-    constructor Create(AFont: HFONT; var AFontData: TFontData; var AScale: Double);
+    constructor Create(AFont: HFONT; var AFontData: TFontData);
     destructor Destroy; override;
   end;
 
 //------------------------------------------------------------------------------
 
-constructor TFontItem.Create(AFont: HFONT; var AFontData: TFontData; var AScale: Double);
+constructor TFontItem.Create(AFont: HFONT; var AFontData: TFontData);
 var
   Size: integer;
+  Height: integer;
 begin
   inherited Create;
 
@@ -396,7 +376,7 @@ begin
   // a font based on the values.
   // The desired font size is specified in AFontData.LogFont.lfHeight.
   // On exit the cached metrics is returned in AFontData. These metrics must
-  // then be scaled by the caller using the value returned in AScale.
+  // be scaled by the caller using the value returned in AScale.
 
   FFontData.FontDC := CreateCompatibleDC(0);
   if (FFontData.FontDC = 0) then
@@ -414,23 +394,22 @@ begin
   if (GetOutlineTextMetrics(FFontData.FontDC, SizeOf(FFontData.OutlineTextMetric), @FFontData.OutlineTextMetric) = 0) then
     RaiseLastOSError;
 
-  // Limit EMSquare to something reasonable; We will everntually flatten the glyph
-  // beziers at this resolution and if we do it at the full resolution (usually
-  // 2048*2048 usually), then we will end up with far too many vertices that we
-  // don't really need at the typical output resolution (~ 12*12-20x20)
-  FFontData.EMSize := Min(MaxEMSquare, FFontData.OutlineTextMetric.otmEMSquare);
 
-  // Return the scale that must be applied to values returned from the internal font.
-  // We cannot store this value here since all metrics here are relative to EMSquare
-  // regardless of the font size requested.
-  AScale := Abs(AFontData.LogFont.lfHeight / FFontData.EMSize);
+  // Return the scale that must be applied to the metrics to get to the
+  // font size.
+  Height := AFontData.LogFont.lfHeight;
+  FFontData.Scale := Abs(Height / FFontData.OutlineTextMetric.otmEMSquare);
+  if (FFontData.Scale <> 0) then
+    FFontData.ScaleInv := 1 / FFontData.Scale
+  else
+    FFontData.ScaleInv := 0;
 
 
   (*
   ** Create a new internal font at the design size
   *)
-  // Change the font size but keep everything else
-  AFontData.LogFont.lfHeight := -FFontData.EMSize;
+  // Change the LOGFONT font size but keep everything else
+  AFontData.LogFont.lfHeight := -FFontData.OutlineTextMetric.otmEMSquare;
   AFontData.LogFont.lfWidth := 0; // Use default width for the height
 
   // Create the new font, in the new size
@@ -457,6 +436,8 @@ begin
 
   // Return font data
   AFontData := FFontData;
+  // Restore height
+  AFontData.LogFont.lfHeight := Height;
 end;
 
 //------------------------------------------------------------------------------
@@ -471,10 +452,23 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TFontItem.GetFontData(var AFontData: TFontData; var AScale: Double);
+procedure TFontItem.GetFontData(var AFontData: TFontData);
+var
+  Height: integer;
 begin
-  AScale := Abs(AFontData.LogFont.lfHeight / FFontData.EMSize);
+  // Desired font size
+  Height := AFontData.LogFont.lfHeight;
+
   AFontData := FFontData;
+  // Restore height
+  AFontData.LogFont.lfHeight := Height;
+
+  // Calculate scale to get from EM size to font size
+  AFontData.Scale := Abs(Height / AFontData.OutlineTextMetric.otmEMSquare);
+  if (AFontData.Scale <> 0) then
+    AFontData.ScaleInv := 1 / AFontData.Scale
+  else
+    AFontData.ScaleInv := 0;
 end;
 
 
@@ -503,15 +497,10 @@ begin
 
   if (not FFontCache.TryGetValue(FFontKey, FFontItem)) then
   begin
-    FFontItem := TFontItem.Create(AFont.Handle, FFontData, FScale);
+    FFontItem := TFontItem.Create(AFont.Handle, FFontData);
     FFontCache.Add(FFontKey, FFontItem);
   end else
-    FFontItem.GetFontData(FFontData, FScale);
-
-  if (FScale <> 0) then
-    FScaleInv := 1 / FScale
-  else
-    FScaleInv := 0;
+    FFontItem.GetFontData(FFontData);
 
 
   // Register font in glyph cache
@@ -520,8 +509,15 @@ begin
 
     FGlyphCacheItem := GlyphCache.FindItem(FFontKey);
 
+    // Add to cache if not found there
     if (FGlyphCacheItem = nil) then
       FGlyphCacheItem := GlyphCache.AddItem(FFontKey);
+
+    // We could store these values in TFontData but they don't really
+    // belong there since TFontData is the meta data cache and these
+    // values relate to the glyph cache.
+    FBezierToCacheScale := CacheEMSize / FFontData.OutlineTextMetric.otmEMSquare;
+    FCacheToFontScale := Abs(FFontData.LogFont.lfHeight / CacheEMSize);
 
   end;
 end;
@@ -536,6 +532,13 @@ end;
 class destructor TFontFace32.Destroy;
 begin
   FFontCache.Free;
+end;
+
+//------------------------------------------------------------------------------
+
+function TFontFace32.GetIsCaching: boolean;
+begin
+  Result := (FGlyphCacheItem <> nil);
 end;
 
 //------------------------------------------------------------------------------
@@ -561,16 +564,16 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TFontFace32.AssignGlyphMetrics(const GlyphMetrics: TGlyphMetrics; var AGlyphMetrics: TGlyphMetrics32);
+procedure TFontFace32.AssignGlyphMetrics(const GlyphMetrics: TGlyphMetrics; var AGlyphMetrics: TGlyphMetrics32; AScale: Single);
 begin
   AGlyphMetrics.Valid := True;
 
-  AGlyphMetrics.OffsetX := GlyphMetrics.gmptGlyphOrigin.X * FScale;
-  AGlyphMetrics.OffsetY := GlyphMetrics.gmptGlyphOrigin.Y * FScale;
-  AGlyphMetrics.Width := GlyphMetrics.gmBlackBoxX * FScale;
-  AGlyphMetrics.Height := GlyphMetrics.gmBlackBoxY * FScale;
-  AGlyphMetrics.AdvanceX := GlyphMetrics.gmCellIncX * FScale;
-  AGlyphMetrics.AdvanceY := GlyphMetrics.gmCellIncY * FScale;
+  AGlyphMetrics.OffsetX := GlyphMetrics.gmptGlyphOrigin.X * AScale;
+  AGlyphMetrics.OffsetY := GlyphMetrics.gmptGlyphOrigin.Y * AScale;
+  AGlyphMetrics.Width := GlyphMetrics.gmBlackBoxX * AScale;
+  AGlyphMetrics.Height := GlyphMetrics.gmBlackBoxY * AScale;
+  AGlyphMetrics.AdvanceX := GlyphMetrics.gmCellIncX * AScale;
+  AGlyphMetrics.AdvanceY := GlyphMetrics.gmCellIncY * AScale;
 end;
 
 procedure TFontFace32.CopyGlyphMetrics(const ASource: TGlyphMetrics32; out ADest: TGlyphMetrics32; AScale: Single);
@@ -605,32 +608,22 @@ function TFontFace32.GetGlyphMetrics(AGlyph: Cardinal; var AGlyphMetrics: TGlyph
     GlyphCacheData: IGlyphCacheData;
   begin
     Result := False;
-    if (FGlyphCacheItem = nil) then
+    if (not IsCaching) then
       exit;
 
     GlyphCacheData := FGlyphCacheItem.FindGlyphData(AGlyph);
 
     if (GlyphCacheData <> nil) then
     begin
-      CopyGlyphMetrics(GlyphCacheData.GlyphMetrics, AGlyphMetrics, FScale);
+      // Cached metrics are in EM size; Scale to font size
+      CopyGlyphMetrics(GlyphCacheData.GlyphMetrics, AGlyphMetrics, FFontData.Scale);
       Result := True;
     end;
   end;
 
-  procedure UpdateGlyphCache;
-  var
-    CacheGlyphMetrics: TGlyphMetrics32;
-  begin
-    if (FGlyphCacheItem = nil) then
-      exit;
-
-    CopyGlyphMetrics(AGlyphMetrics, CacheGlyphMetrics, FScaleInv);
-
-    FGlyphCacheItem.AddGlyphData(AGlyph, CacheGlyphMetrics);
-  end;
-
 var
   GlyphMetrics: TGlyphMetrics;
+  GlyphMetrics32: TGlyphMetrics32;
   Res: DWORD;
 begin
   Result := False;
@@ -645,25 +638,37 @@ begin
   BeginSession;
   try
 
+    (*
+    ** Get metrics from Windows
+    *)
     GlyphMetrics := Default(TGlyphMetrics);
     Res := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_METRICS, GlyphMetrics, 0, nil, VertFlip_mat2);
 
-    if (Res <> GDI_ERROR) then
+    if (Res = GDI_ERROR) then
     begin
-      AssignGlyphMetrics(GlyphMetrics, AGlyphMetrics);
-      Result := True;
-    end else
       AGlyphMetrics := Default(TGlyphMetrics32);
+      exit;
+    end;
+
+    if (IsCaching) then
+    begin
+      // Get the metrics in EM size
+      AssignGlyphMetrics(GlyphMetrics, GlyphMetrics32);
+
+      // Add to glyph cache
+      FGlyphCacheItem.AddGlyphData(AGlyph, GlyphMetrics32);
+
+      // Scale and return metrics
+      CopyGlyphMetrics(GlyphMetrics32, AGlyphMetrics, FFontData.Scale);
+    end else
+      // Get the metrics in font size
+      AssignGlyphMetrics(GlyphMetrics, AGlyphMetrics, FFontData.Scale);
+
+    Result := True;
 
   finally
     EndSession;
   end;
-
-
-  (*
-  ** Add to glyph cache
-  *)
-  UpdateGlyphCache;
 end;
 
 //------------------------------------------------------------------------------
@@ -682,7 +687,7 @@ var
   begin
     Result := False;
 
-    if (FGlyphCacheItem = nil) then
+    if (not IsCaching) then
       exit;
 
     GlyphCacheData := FGlyphCacheItem.FindGlyphData(AGlyph);
@@ -704,8 +709,8 @@ var
       pp := @Path[i, 0];
       for j := 0 to High(Path[i]) do
       begin
-        P.X := pp.X * FScale + AOffsetX;
-        P.Y := pp.Y * FScale + AOffsetY;
+        P.X := pp.X * FCacheToFontScale + AOffsetX;
+        P.Y := pp.Y * FCacheToFontScale + AOffsetY;
 
         if (j = 0) then
           APath.MoveTo(P)
@@ -723,11 +728,9 @@ var
     Result := True;
   end;
 
-  procedure UpdateGlyphCache;
-  var
-    CacheGlyphMetrics: TGlyphMetrics32;
+  procedure CopyToGlyphCache(const GlyphMetrics: TGlyphMetrics32);
   begin
-    if (FGlyphCacheItem = nil) then
+    if (not IsCaching) then
       exit;
 
     // If we got to here we know that:
@@ -736,35 +739,43 @@ var
     //   2) The glyph was in the cache but without path data
 
     if (GlyphCacheData = nil) then
-    begin
       // 1) Not in cache; Create a new entry
-      CopyGlyphMetrics(AGlyphMetrics, CacheGlyphMetrics, FScaleInv);
-      GlyphCacheData := FGlyphCacheItem.AddGlyphData(AGlyph, CacheGlyphMetrics);
-    end;
+      GlyphCacheData := FGlyphCacheItem.AddGlyphData(AGlyph, GlyphMetrics);
 
-    // 2) Copy path data to cache
-//    GlyphCacheData.LoadFromPath(TFlattenedPath(APath), FirstGlyphIndex, AOffsetX, AOffsetY, FScaleInv);
+    // 2) Copy path data to cache as-is
     GlyphCacheData.LoadFromPath(TFlattenedPath(APath), FirstGlyphIndex, 0, 0, 1.0);
   end;
 
-  procedure TransformPoint(var APoint: TFloatPoint);
+  procedure TransformPointToCache(var APoint: TFloatPoint; AScale: Single);
   begin
-    APoint.X := APoint.X * FScale + AOffsetX;
-    APoint.Y := APoint.Y * FScale + AOffsetY;
+    APoint.X := APoint.X * FBezierToCacheScale;
+    APoint.Y := APoint.Y * FBezierToCacheScale;
   end;
 
-  procedure TransformGlyph;
+  procedure TransformPoint(var APoint: TFloatPoint); overload;
+  begin
+    APoint.X := APoint.X * FFontData.Scale + AOffsetX;
+    APoint.Y := APoint.Y * FFontData.Scale + AOffsetY;
+  end;
+
+  procedure TransformPoint(var APoint: TFloatPoint; AScale: Single); overload;
+  begin
+    APoint.X := APoint.X * AScale + AOffsetX;
+    APoint.Y := APoint.Y * AScale + AOffsetY;
+  end;
+
+  procedure TransformGlyphFromCache;
   var
     i, j: integer;
   begin
     for i := FirstGlyphIndex to High(TFlattenedPath(APath).Path) do
       for j := 0 to High(TFlattenedPath(APath).Path[i]) do
-        TransformPoint(TFlattenedPath(APath).Path[i, j]);
+        TransformPoint(TFlattenedPath(APath).Path[i, j], FCacheToFontScale);
   end;
-
 
 var
   GlyphMetrics: TGlyphMetrics;
+  GlyphMetrics32: TGlyphMetrics32;
   PolygonHeaderAlloc: PTTPolygonHeader;
   PolygonHeader: PTTPolygonHeader;
   PolygonHeaderSize: DWORD;
@@ -775,6 +786,61 @@ var
 const
   OneHalf: Single = 0.5; // Typed constant to avoid Double/Extended
 begin
+  (*
+
+     We get the glyph's outline beziers in the design size of the font (the EM size)
+     and then scale the beziers down to something reasonable before we flatten them
+     to polypolygons.
+
+     The reason we get the beziers in the EM size is because:
+     a) It's faster.
+     b) It's the only way to disable hinting and grid fitting of the glyph shape.
+        Why don't we want hinting, you ask? Well...
+        1) Hinting is an obsolete technology designed for aliased output. We always
+           apply anti-aliasing.
+        2) It's designed for a worse rasterizer than what we're using. Our rasterizer
+           calculates and applies perfect coverage.
+        3) The hinting and grid fitting applied is specific to the font size and
+           makes assumptions about where and how we output the glyphs. We need to
+           able to rescale the beziers to any desired font size.
+        See also: https://agg.sourceforge.net/antigrain.com/research/font_rasterization/index.html
+
+     The reason we scale before flattening instead of after is because flattening at
+     the full resolution would produce far more vertices than what we need at the
+     supposedly final smaller font sizes. Also the slowest part of text output is
+     the rasterization of the polygons so the fewer vertices the better (really!).
+
+     Strategy:
+
+     1) Are we caching and does the cache contain the glyph polypolygon?
+
+     2) Yes; Replay the polypolygon to the output path while scaling the vertices
+        from the cache font size to the font size and offsetting to the specified
+        offset.
+        Done.
+
+     3) No; Get the glyph metrics from Windows.
+
+     4) Calculate the scale we need to apply to the retrieved bezier data; If we
+        are caching then the destination size is the cache font size (MaxEMSize).
+        Otherwise it's the font size.
+
+     5) Get the glyph bezier data from Windows and convert the control points to
+        path bezier curves. For each control point we apply the scale and, in the
+        the case we aren't caching, the destination offset.
+
+     6) Once all control points has been processed the path now contains the
+        flattened bezier curves.
+
+     7) If we aren't caching then we are done.
+
+     8) If we are caching then we copy the vertices produces by flattening from
+        the path to the cache as-is. We then scale and offset the vertices in
+        the path from the cache font size to the font size.
+        Done.
+
+  *)
+
   BeginSession;
   try
 
@@ -788,33 +854,30 @@ begin
     (*
     ** Try to resolve from glyph cache
     *)
-    if (FGlyphCacheItem <> nil) and (ResolveFromGlyphCache) then
+    if (ResolveFromGlyphCache) then
       Exit(True);
 
 
     (*
-    ** Get outline data from Windows
+    ** Get bezier data (and the glyph metrics) from Windows
     *)
-    GlyphMetrics := Default(TGlyphMetrics);
     PolygonHeaderSize := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, 0, nil, VertFlip_mat2);
 
-    if (PolygonHeaderSize <> GDI_ERROR) then
-      AssignGlyphMetrics(GlyphMetrics, AGlyphMetrics)
-    else
-      AGlyphMetrics := Default(TGlyphMetrics32);
-
     Result := (PolygonHeaderSize <> GDI_ERROR) and (PolygonHeaderSize <> 0);
-
     if (not Result) then
       exit;
 
     GetMem(PolygonHeaderAlloc, PolygonHeaderSize);
     try
+
       PolygonHeader := PolygonHeaderAlloc;
       PolygonHeaderSize := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, PolygonHeaderSize, PolygonHeader, VertFlip_mat2);
 
       if (PolygonHeaderSize = GDI_ERROR) or (PolygonHeader.dwType <> TT_POLYGON_TYPE) then
         exit;
+
+      // Get the metrics in EM size
+      AssignGlyphMetrics(GlyphMetrics, GlyphMetrics32);
 
       // Batch each glyph to ensure that the polypolygons of the glyph are rendered
       // as one and not as individual independent polygons.
@@ -831,8 +894,10 @@ begin
 
         // First point is part of header
         P1 := PointFXtoPointF(PolygonHeader.pfxStart);
-        if (FGlyphCacheItem = nil) then
-          TransformPoint(P1);
+        if (not IsCaching) then
+          TransformPoint(P1)
+        else
+          TransformPointToCache(P1, FBezierToCacheScale);
         APath.MoveTo(P1);
 
         while (Size > 0) do
@@ -842,8 +907,10 @@ begin
               for i := 0 to CurvePtr.cpfx-1 do
               begin
                 P1 := PointFXtoPointF(CurvePtr.apfx[i]);
-                if (FGlyphCacheItem = nil) then
-                  TransformPoint(P1);
+                if (not IsCaching) then
+                  TransformPoint(P1)
+                else
+                  TransformPointToCache(P1, FBezierToCacheScale);
                 APath.LineTo(P1);
               end;
 
@@ -851,16 +918,20 @@ begin
               if (CurvePtr.cpfx > 1) then
               begin
                 PNext := PointFXtoPointF(CurvePtr.apfx[0]);
-                if (FGlyphCacheItem = nil) then
-                  TransformPoint(PNext);
+                if (not IsCaching) then
+                  TransformPoint(PNext)
+                else
+                  TransformPointToCache(PNext, FBezierToCacheScale);
 
                 for i := 0 to CurvePtr.cpfx-2 do
                 begin
                   P1 := PNext;
 
                   P2 := PointFXtoPointF(CurvePtr.apfx[i+1]);
-                  if (FGlyphCacheItem = nil) then
-                    TransformPoint(P2);
+                  if (not IsCaching) then
+                    TransformPoint(P2)
+                  else
+                    TransformPointToCache(P2, FBezierToCacheScale);
 
                   PNext := P2;
 
@@ -878,8 +949,10 @@ begin
               if (CurvePtr.cpfx > 2) then
               begin
                 PNext := PointFXtoPointF(CurvePtr.apfx[0]);
-                if (FGlyphCacheItem = nil) then
-                  TransformPoint(PNext);
+                if (not IsCaching) then
+                  TransformPoint(PNext)
+                else
+                  TransformPointToCache(PNext, FBezierToCacheScale);
 
                 i := 0;
                 while (i < CurvePtr.cpfx-2) do
@@ -887,12 +960,16 @@ begin
                   P1 := PNext;
 
                   P2 := PointFXtoPointF(CurvePtr.apfx[i+1]);
-                  if (FGlyphCacheItem = nil) then
-                    TransformPoint(P2);
+                  if (not IsCaching) then
+                    TransformPoint(P2)
+                  else
+                    TransformPointToCache(P2, FBezierToCacheScale);
 
                   P3 := PointFXtoPointF(CurvePtr.apfx[i+2]);
-                  if (FGlyphCacheItem = nil) then
-                    TransformPoint(P3);
+                  if (not IsCaching) then
+                    TransformPoint(P3)
+                  else
+                    TransformPointToCache(P3, FBezierToCacheScale);
 
                   PNext := P3;
 
@@ -925,11 +1002,17 @@ begin
     (*
     ** Update glyph cache
     *)
-    if (FGlyphCacheItem <> nil) then
-      UpdateGlyphCache;
+    if (IsCaching) then
+    begin
+      // The vertices we just produced are in cache font size; Copy them directly to the cache.
+      CopyToGlyphCache(GlyphMetrics32);
 
-    if (FGlyphCacheItem <> nil) then
-      TransformGlyph;
+      // Scale and offset the vertices in-place so they can be used by the caller.
+      TransformGlyphFromCache;
+    end;
+
+    // Scale and return metrics
+    CopyGlyphMetrics(GlyphMetrics32, AGlyphMetrics, FFontData.Scale);
 
   finally
     EndSession;
@@ -1109,7 +1192,7 @@ begin
 {$else}
   if BinarySearchKerningPairs(FKerningPairs, KerningPair, KerningIndex) then
 {$endif}
-    Result := FKerningPairs[KerningIndex].iKernAmount * FScale;
+    Result := FKerningPairs[KerningIndex].iKernAmount * FFontData.Scale;
 end;
 
 //------------------------------------------------------------------------------
@@ -1133,21 +1216,21 @@ begin
 
   if (ATextLayout.VerticalMetrics = vmTypographic) then
   begin
-    AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmAscent * FScale;
-    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmDescent * FScale;
-    AFontFaceMetrics.LineGap := FFontData.OutlineTextMetric.otmLineGap * FScale;
+    AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmAscent * FFontData.Scale;
+    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmDescent * FFontData.Scale;
+    AFontFaceMetrics.LineGap := FFontData.OutlineTextMetric.otmLineGap * FFontData.Scale;
   end else
   begin
-    AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmTextMetrics.tmAscent * FScale;
-    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmTextMetrics.tmDescent * FScale;
-    AFontFaceMetrics.LineGap := (FFontData.OutlineTextMetric.otmTextMetrics.tmHeight - FFontData.OutlineTextMetric.otmTextMetrics.tmAscent + FFontData.OutlineTextMetric.otmTextMetrics.tmDescent) * FScale;
+    AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmTextMetrics.tmAscent * FFontData.Scale;
+    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmTextMetrics.tmDescent * FFontData.Scale;
+    AFontFaceMetrics.LineGap := (FFontData.OutlineTextMetric.otmTextMetrics.tmHeight - FFontData.OutlineTextMetric.otmTextMetrics.tmAscent + FFontData.OutlineTextMetric.otmTextMetrics.tmDescent) * FFontData.Scale;
   end;
-  AFontFaceMetrics.EMSize := FFontData.EMSize;
+  AFontFaceMetrics.EMSize := FFontData.OutlineTextMetric.otmEMSquare;
 
   if (GlyphMetrics.Valid) then
     AFontFaceMetrics.EMSpaceWidth := GlyphMetrics.AdvanceX
   else
-    AFontFaceMetrics.EMSpaceWidth := FFontData.OutlineTextMetric.otmTextMetrics.tmAveCharWidth * FScale; // Better than nothing :-/
+    AFontFaceMetrics.EMSpaceWidth := FFontData.OutlineTextMetric.otmTextMetrics.tmAveCharWidth * FFontData.Scale; // Better than nothing :-/
 
   Result := True;
 end;
