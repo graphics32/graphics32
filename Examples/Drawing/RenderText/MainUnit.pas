@@ -64,6 +64,7 @@ type
     ComboBoxFont: TComboBox;
     ButtonBenchmark: TButton;
     Bevel1: TBevel;
+    CheckBoxShowOrigin: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure ButtonBenchmarkClick(Sender: TObject);
     procedure ImageResize(Sender: TObject);
@@ -210,7 +211,8 @@ begin
       Image.Bitmap.Font.Size := Size;
 
       // Draw reference line
-      Image.Bitmap.LineTS(0, Y, Image.Bitmap.Width, Y, $80204060);
+      if (CheckBoxShowOrigin.Checked) then
+        Image.Bitmap.LineTS(0, Y, Image.Bitmap.Width, Y, $80204060);
 
       if (Canvas <> nil) then
         Canvas.RenderText(10, Y, Format('%d: %s', [Size, EditText.Text]), DT_SINGLELINE)
