@@ -651,6 +651,10 @@ end;
 
 function TCustomClassList<T>.GetClassName(Index: integer): string;
 {$if not defined(FRAMEWORK_LCL)}
+{$if (CompilerVersion < 35.0)} // Pre-Delphi 11
+type
+  arrayofT = array of T;
+{$ifend}
 var
   List: arrayofT;
   Item: pointer;
