@@ -3235,7 +3235,7 @@ begin
   PolygonsRegistry[@@MakeAlphaEvenOddUP].Add(   @MakeAlphaEvenOddUP_Pas,        [isPascal]).Name := 'MakeAlphaEvenOddUP_Pas';
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   PolygonsRegistry[@@MakeAlphaEvenOddUP].Add(   @MakeAlphaEvenOddUP_SSE2,       [isSSE2]).Name := 'MakeAlphaEvenOddUP_SSE2';
-  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add(   @MakeAlphaEvenOddUP_SSE41,      [isSSE2]).Name := 'MakeAlphaEvenOddUP_SSE41';
+  PolygonsRegistry[@@MakeAlphaEvenOddUP].Add(   @MakeAlphaEvenOddUP_SSE41,      [isSSE41]).Name := 'MakeAlphaEvenOddUP_SSE41';
 {$ifend}
 
   // NonZeroUP
