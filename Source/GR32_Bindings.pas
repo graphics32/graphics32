@@ -379,7 +379,7 @@ type
 constructor TFunctionInfo.Create(const ABinding: IBindingInfo; AProc: Pointer; AInstructionSupport: TInstructionSupport; APriority: Integer);
 begin
   inherited Create;
-  FBinding := ABinding;
+  FBinding := pointer(ABinding);
   FEnabled := True;
   FProc := AProc;
   FInstructionSupport := AInstructionSupport;
@@ -412,7 +412,13 @@ function TFunctionInfo.GetName: string;
 begin
   Result := FName;
   if (Result = '') then
-    Result := '@'+IntToHex(NativeInt(Self));
+{$if defined(TARGET_x86)} // Issue 362: Older versions of Delphi (XE4) apparently has problems resolving NativeUInt to UInt32/UInt64
+    Result := '@'+IntToHex(UInt32(Self));
+{$elseif defined(TARGET_x64)}
+    Result := '@'+IntToHex(UInt64(Self));
+{$else}
+    Result := '@'+IntToHex(NativeUInt(Self));
+{$ifend}
 end;
 
 function TFunctionInfo.GetPriority: Integer;
@@ -534,7 +540,7 @@ begin
 
   MinPriority := TFunctionRegistry.INVALID_PRIORITY;
 
-  for FunctionInfo in IBindingInfo(Self) do
+  for FunctionInfo in FFunctions do
   begin
     if (not FunctionInfo.Enabled) then
       continue;
