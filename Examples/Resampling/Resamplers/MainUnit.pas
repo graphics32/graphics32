@@ -203,11 +203,13 @@ begin
   end;
 
 {$ifndef FPC}
+{$if (CompilerVersion >= 35.0)} // Delphi 11
   ComboBoxResamplerClassName.AutoDropDownWidth := True;
   ComboBoxPixelAccessMode.AutoDropDownWidth := True;
   ComboBoxWrapMode.AutoDropDownWidth := True;
   ComboBoxKernelClassName.AutoDropDownWidth := True;
   ComboBoxKernelMode.AutoDropDownWidth := True;
+{$ifend}
 
   PanelKernel.Margins.SetBounds(0, 4, 0, 0);
   PanelKernel.AlignWithMargins := True;

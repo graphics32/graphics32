@@ -150,7 +150,7 @@ type
   IBitmap32PaintFeatureVectorCursor = interface
     ['{06CEC909-5267-4537-8F2E-F9D31EAF99CA}']
     // SetToolVectorCursor: Called from IBitmap32PaintTool.GetCursor to set complex cursors.
-    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = []): boolean;
+    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = nil): boolean;
 
     procedure MoveToolVectorCursor(const APos: TPoint);
   end;

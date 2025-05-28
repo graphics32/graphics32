@@ -412,10 +412,10 @@ function TFunctionInfo.GetName: string;
 begin
   Result := FName;
   if (Result = '') then
-{$if defined(TARGET_x86)} // Issue 362: Older versions of Delphi (XE4) apparently has problems resolving NativeUInt to UInt32/UInt64
-    Result := '@'+IntToHex(UInt32(Self));
+{$if defined(TARGET_x86)} // Issue 362: Older versions of Delphi (XE4 at least) lacks the IntToHex(Value) overload
+    Result := '@'+IntToHex(UInt32(Self), 8);
 {$elseif defined(TARGET_x64)}
-    Result := '@'+IntToHex(UInt64(Self));
+    Result := '@'+IntToHex(UInt64(Self), 16);
 {$else}
     Result := '@'+IntToHex(NativeUInt(Self));
 {$ifend}
@@ -634,7 +634,13 @@ function TBindingInfo.GetName: string;
 begin
   Result := FName;
   if (Result = '') then
-    Result := '@'+IntToHex(NativeInt(Self));
+{$if defined(TARGET_x86)} // Issue 362: Older versions of Delphi (XE4 at least) lacks the IntToHex(Value) overload
+    Result := '@'+IntToHex(UInt32(Self), 8);
+{$elseif defined(TARGET_x64)}
+    Result := '@'+IntToHex(UInt64(Self), 16);
+{$else}
+    Result := '@'+IntToHex(NativeUInt(Self));
+{$ifend}
 end;
 
 function TBindingInfo.GetNeedRebind: boolean;

@@ -5,7 +5,10 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Menus, ComCtrls, StdCtrls, ExtCtrls, ToolWin, ActnList, StdActns,
-  ImgList, System.ImageList, System.Actions,
+  ImgList, System.Actions,
+{$if (CompilerVersion >= 29.0)} // XE8
+  ImageList,
+{$ifend}
   GR32,
   GR32_PortableNetworkGraphic,
   GR32_PNG,

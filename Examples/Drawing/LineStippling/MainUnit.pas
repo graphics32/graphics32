@@ -94,7 +94,11 @@ begin
     // the control.
 
     // Dynamic array of colors
+{$if (CompilerVersion >= 28.0)} // XE7
     Stipple := [clWhite32, clWhite32, clWhite32, clWhite32, 0, 0, 0, 0];
+{$else}
+    Stipple := ArrayOfColor32([clWhite32, clWhite32, clWhite32, clWhite32, 0, 0, 0, 0]);
+{$ifend}
     PaintBox.Buffer.SetStipple(Stipple);
     PaintBox.Buffer.StippleCounter := FStippleCounter;
     Spiral(PaintBox.Width div 4, PaintBox.Height div 4);

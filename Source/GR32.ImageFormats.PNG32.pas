@@ -257,7 +257,11 @@ end;
 
 function TImageFormatAdapterPNG32.ImageFormatFileTypes: TFileTypes;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Result := ['png'];
+{$else}
+  MakeFileTypes(['png']);
+{$ifend}
 end;
 
 function TImageFormatAdapterPNG32.ImageFormatDescription: string;

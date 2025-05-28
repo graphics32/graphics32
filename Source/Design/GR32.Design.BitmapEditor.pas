@@ -40,7 +40,10 @@ uses
   ComponentEditors,
 {$ELSE}
   Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
-  DesignEditors, VCLEditors, Actions, System.ImageList,
+  DesignEditors, VCLEditors, Actions,
+{$if (CompilerVersion >= 29.0)} // XE8
+  ImageList,
+{$ifend}
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
   SysUtils, Classes, Clipbrd, ActnList,

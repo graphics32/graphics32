@@ -652,24 +652,31 @@ end;
 function TCustomClassList<T>.GetClassName(Index: integer): string;
 {$if not defined(FRAMEWORK_LCL)}
 {$if (CompilerVersion < 35.0)} // Pre-Delphi 11
-type
-  arrayofT = array of T;
-{$ifend}
+var
+  n: T;
+  Item: pointer;
+begin
+  n := Self.List[Index];
+  Item := @n;
+  Result := TClass(Item^).ClassName;
+end;
+{$else} // Delphi 11+
 var
   List: arrayofT;
   Item: pointer;
-{$ifend}
 begin
   // Yes, it's a horror but Delphi doesn't allow us to specify
   // a meta class generic constraint :-/
-{$if not defined(FRAMEWORK_LCL)}
-  List  := Self.List;
+  List := Self.List;
   Item := @List[Index];
   Result := TClass(Item^).ClassName;
-{$else}
-  Result := TClass(FItems[Index]).ClassName;
-{$ifend}
 end;
+{$ifend}
+{$else} // FRAMEWORK_LCL
+begin
+  Result := TClass(FItems[Index]).ClassName;
+end;
+{$ifend}
 
 procedure TCustomClassList<T>.GetClassNames(Strings: TStrings);
 var

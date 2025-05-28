@@ -347,6 +347,8 @@ type
 //------------------------------------------------------------------------------
 type
   TCustomImageFormat = class abstract(TInterfacedObject, IImageFormat)
+  strict protected
+    function MakeFileTypes(const Values: array of string): TFileTypes; {$if (CompilerVersion >= 28.0)} deprecated 'Just return a dynamic array'; {$ifend}
   end;
 
 
@@ -543,6 +545,20 @@ begin
     inc(p);
   end;
   Result := CheckFileSignature(Stream, Values, Mask, Offset);
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TCustomImageFormat
+//
+//------------------------------------------------------------------------------
+function TCustomImageFormat.MakeFileTypes(const Values: array of string): TFileTypes;
+var
+  i: integer;
+begin
+  SetLength(Result, Length(Values));
+  for i := 0 to High(Values) do
+    Result[i] := Values[i];
 end;
 
 //------------------------------------------------------------------------------

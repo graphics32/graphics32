@@ -107,7 +107,7 @@ type
 
   private
     // IBitmap32PaintFeatureVectorCursor
-    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = []): boolean;
+    function SetToolVectorCursor(const Polygon: TArrayOfFixedPoint; const Hotspot: TPoint; Color: TColor32 = clTrBlack32; const StipplePattern: TArrayOfColor32 = nil): boolean;
     procedure MoveToolVectorCursor(const APos: TPoint);
 
   public
