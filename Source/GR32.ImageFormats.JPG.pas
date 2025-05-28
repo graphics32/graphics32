@@ -43,6 +43,7 @@ interface
 implementation
 
 uses
+  Classes,
 {$ifdef FPC}
   Graphics,
 {$else FPC}
@@ -52,18 +53,53 @@ uses
   GR32.ImageFormats,
   GR32.ImageFormats.TGraphic;
 
+const
+  FileSignatureJPEG: AnsiString     = #$FF#$D8+                 // SOI marker
+                                      #$FF#$E0+                 // JFIF-APP0 marker
+                                      #$00#$00+                 // Length (masked out)
+                                      #$4A#$46#$49#$46#$00+     // 'JFIF'#0
+                                      #$01;                     // Major version: 1
+
+  FileSignatureJPEGMask: AnsiString = #$ff#$ff+
+                                      #$ff#$ff+
+                                      #$00#$00+
+                                      #$ff#$ff#$ff#$ff#$ff+
+                                      #$ff;
+
 {$ifdef FPC}
 resourcestring
   sJPEGImageFile = 'JPEG Image File';
 {$endif FPC}
 
+type
+  TImageFormatAdapterJPEG = class(TImageFormatReaderWriterTGraphic)
+  strict protected
+    // IImageFormatReader
+    function CanLoadFromStream(AStream: TStream): boolean; override;
+  end;
+
+function TImageFormatAdapterJPEG.CanLoadFromStream(AStream: TStream): boolean;
+begin
+{$ifdef LOADFROMSTREAM}
+  Result := inherited;
+{$else LOADFROMSTREAM}
+  Result := CheckFileSignature(AStream, FileSignatureJPEG, FileSignatureJPEGMask);
+{$endif LOADFROMSTREAM}
+end;
+
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+var
+  ImageFormatHandle: integer = 0;
+
 initialization
-  ImageFormatManager.RegisterImageFormat(
-    TImageFormatReaderWriterTGraphic.Create(TJPEGImage, sJPEGImageFile, ['jpg', 'jpeg']),
+  ImageFormatHandle := ImageFormatManager.RegisterImageFormat(
+    TImageFormatAdapterJPEG.Create(TJPEGImage, sJPEGImageFile, ['jpg', 'jpeg']),
     ImageFormatPriorityNormal);
+finalization
+  ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
 end.
 

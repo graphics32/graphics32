@@ -96,7 +96,11 @@ begin
 
   // Create a bitmap layer we can paint on.
   // We could also just have painted directly on the TImage32.Bitmap
+{$if defined(FPC) or (CompilerVersion > 29.0)} // Delphi 10 or later
   FPaintLayer := Image32.Layers.Add<TBitmapLayer>;
+{$else}
+  FPaintLayer := TBitmapLayer.Create(Image32.Layers);
+{$ifend}
   FPaintLayer.Location := FloatRect(Image32.BoundsRect);
   FPaintLayer.Bitmap.SetSize(Image32.Width, Image32.Height);
   FPaintLayer.Bitmap.DrawMode := dmBlend;

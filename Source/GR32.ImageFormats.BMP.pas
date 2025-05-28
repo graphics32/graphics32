@@ -102,7 +102,11 @@ type
 
 function TImageFormatAdapterBMP.ImageFormatFileTypes: TFileTypes;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Result := ['bmp', 'dib', 'rle'];
+{$else}
+  MakeFileTypes(['bmp', 'dib', 'rle']);
+{$ifend}
 end;
 
 function TImageFormatAdapterBMP.ImageFormatDescription: string;

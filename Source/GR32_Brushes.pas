@@ -210,7 +210,7 @@ type
     function ProcessPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
       const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean): TArrayOfArrayOfFloatPoint; override;
   public
-    procedure SetDashArray(const ADashArray: TArrayOfFloat); deprecated 'Use DashArray property';
+    procedure SetDashArray(const ADashArray: array of TFloat); {$if (CompilerVersion >= 28.0)} deprecated 'Use DashArray property'; {$ifend}
 
     property DashArray: TArrayOfFloat read FDashArray write DoSetDashArray;
     property DashOffset: TFloat read FDashOffset write SetDashOffset;
@@ -390,7 +390,11 @@ end;
 procedure TCustomBrush.PolygonFS(Renderer: TCustomPolygonRenderer; const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect;
   Transformation: TTransformation; Closed: Boolean);
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   PolyPolygonFS(Renderer, [Points], ClipRect, Transformation, Closed);
+{$else}
+  PolyPolygonFS(Renderer, PolyPolygon(Points), ClipRect, Transformation, Closed);
+{$ifend}
 end;
 
 procedure TCustomBrush.PolyPolygonFS(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
@@ -411,6 +415,10 @@ var
   Buffer: TArrayOfArrayOfFloatPoint;
   RunBuffer: TArrayOfArrayOfFloatPoint;
   RunClosed: boolean;
+{$if (CompilerVersion < 28.0)} // XE7
+  AddBuffer: TArrayOfArrayOfFloatPoint;
+  j: integer;
+{$ifend}
 begin
   if (Length(Points) = 0) then
     exit;
@@ -440,7 +448,15 @@ begin
       end;
 
       // Process this run
+{$if (CompilerVersion >= 28.0)} // XE7
       Buffer := Buffer + ProcessPolyPolygon(Renderer, RunBuffer, ClipRect, Transformation, RunClosed);
+{$else}
+      AddBuffer := ProcessPolyPolygon(Renderer, RunBuffer, ClipRect, Transformation, RunClosed);
+      i := Length(Buffer);
+      SetLength(Buffer, Length(Buffer)+Length(AddBuffer));
+      for j := 0 to High(AddBuffer) do
+        Buffer[i + j] := AddBuffer[j];
+{$ifend}
     end;
   end;
   EndPolygon(Renderer, Buffer, ClipRect, Transformation);
@@ -671,22 +687,38 @@ end;
 function TDashedBrush.ProcessPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean): TArrayOfArrayOfFloatPoint;
 var
-  I: Integer;
+  i: Integer;
+{$if (CompilerVersion < 28.0)} // XE7
+  AddBuffer: TArrayOfArrayOfFloatPoint;
+  j, n: integer;
+{$ifend}
 begin
   if (Length(FDashArray) > 0) then
   begin
     Result := nil;
-    for I := 0 to High(Points) do
-      Result := Result + BuildDashedLine(Points[I], FDashArray, FDashOffset, Closed);
+    for i := 0 to High(Points) do
+{$if (CompilerVersion >= 28.0)} // XE7
+      Result := Result + BuildDashedLine(Points[i], FDashArray, FDashOffset, Closed);
+{$else}
+    begin
+      AddBuffer := BuildDashedLine(Points[i], FDashArray, FDashOffset, Closed);
+      n := Length(Result);
+      SetLength(Result, Length(Result)+Length(AddBuffer));
+      for j := 0 to High(AddBuffer) do
+        Result[n + j] := AddBuffer[j];
+    end;
+{$ifend}
 
     Result := inherited ProcessPolyPolygon(Renderer, Result, ClipRect, Transformation, False);
   end else
     Result := inherited ProcessPolyPolygon(Renderer, Points, ClipRect, Transformation, Closed);
 end;
 
-procedure TDashedBrush.SetDashArray(const ADashArray: TArrayOfFloat);
+procedure TDashedBrush.SetDashArray(const ADashArray: array of TFloat);
 begin
-  DoSetDashArray(ADashArray);
+  SetLength(FDashArray, Length(ADashArray));
+  Move(ADashArray[0], FDashArray[0], Length(ADashArray) * SizeOf(TFloat));
+  Changed;
 end;
 
 procedure TDashedBrush.SetDashOffset(const Value: TFloat);

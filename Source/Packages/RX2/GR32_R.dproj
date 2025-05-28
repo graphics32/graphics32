@@ -177,6 +177,13 @@
         <DCCReference Include="..\..\GR32.ImageFormats.TWICImage.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.TGraphic.pas"/>
         <DCCReference Include="..\..\GR32_ColorSwatch.pas"/>
+        <DCCReference Include="..\..\GR32.BigEndian.pas"/>
+        <DCCReference Include="..\..\GR32.Blur.pas"/>
+        <DCCReference Include="..\..\GR32.Blur.RecursiveGaussian.pas"/>
+        <DCCReference Include="..\..\GR32.Math.Complex.pas"/>
+        <DCCReference Include="..\..\GR32.Types.SIMD.pas"/>
+        <DCCReference Include="..\..\GR32_VectorUtils.Reference.pas"/>
+        <DCCReference Include="..\..\GR32.Transpose.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

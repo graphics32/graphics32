@@ -441,7 +441,7 @@ type
     X, Y: TFloat;
   public
   {$IFDEF RECORD_CONSTRUCTORS}
-    constructor Create(P: TPoint); overload;
+    constructor Create(const P: TPoint); overload;
     constructor Create(X, Y: Integer); overload;
     constructor Create(X, Y: Single); overload;
   {$ENDIF}
@@ -451,10 +451,14 @@ type
     class operator NotEqual(const Lhs, Rhs: TFloatPoint): Boolean;
     class operator Add(const Lhs, Rhs: TFloatPoint): TFloatPoint;
     class operator Subtract(const Lhs, Rhs: TFloatPoint): TFloatPoint;
-    class operator Explicit(A: TPointF): TFloatPoint;
-    class operator Implicit(A: TPointF): TFloatPoint;
+    class operator Explicit(const A: TPointF): TFloatPoint;
+    class operator Implicit(const A: TPointF): TFloatPoint;
+    class operator Implicit(const A: TPoint): TFloatPoint;
 
     class function Zero: TFloatPoint; inline; static;
+
+    function Distance(const APoint: TFloatPoint): Single;
+    function Length: Single;
   end;
 
 {$ifend}
@@ -480,7 +484,7 @@ type
     X, Y: TFixed;
   public
 {$IFDEF RECORD_CONSTRUCTORS}
-    constructor Create(P: TFloatPoint); overload;
+    constructor Create(const P: TFloatPoint); overload;
     constructor Create(X, Y: TFixed); overload;
     constructor Create(X, Y: Integer); overload;
     constructor Create(X, Y: TFloat); overload;
@@ -2111,7 +2115,7 @@ end;
 
 {$if not defined(HAS_TPOINTF)}
 {$IFDEF RECORD_CONSTRUCTORS}
-constructor TFloatPoint.Create(P: TPoint);
+constructor TFloatPoint.Create(const P: TPoint);
 begin
   Self.X := P.X;
   Self.Y := P.Y;
@@ -2153,13 +2157,19 @@ begin
   Result.Y := Lhs.Y - Rhs.Y;
 end;
 
-class operator TFloatPoint.Explicit(A: TPointF): TFloatPoint;
+class operator TFloatPoint.Explicit(const A: TPointF): TFloatPoint;
 begin
   Result.X := A.X;
   Result.Y := A.Y;
 end;
 
-class operator TFloatPoint.Implicit(A: TPointF): TFloatPoint;
+class operator TFloatPoint.Implicit(const A: TPointF): TFloatPoint;
+begin
+  Result.X := A.X;
+  Result.Y := A.Y;
+end;
+
+class operator TFloatPoint.Implicit(const A: TPoint): TFloatPoint;
 begin
   Result.X := A.X;
   Result.Y := A.Y;
@@ -2169,6 +2179,17 @@ class function TFloatPoint.Zero: TFloatPoint;
 begin
   Result := Default(TFloatPoint);
 end;
+
+function TFloatPoint.Distance(const APoint: TFloatPoint): Single;
+begin
+  Result := GR32_Math.Hypot(APoint.X - X, APoint.Y - Y);
+end;
+
+function TFloatPoint.Length: Single;
+begin
+  Result := GR32_Math.Hypot(X, Y);
+end;
+
 {$ifend}
 
 
@@ -2176,7 +2197,7 @@ end;
 // TFixedPoint
 //------------------------------------------------------------------------------
 {$IFDEF RECORD_CONSTRUCTORS}
-constructor TFixedPoint.Create(P: TFloatPoint);
+constructor TFixedPoint.Create(const P: TFloatPoint);
 begin
   Self.X := Fixed(P.X);
   Self.Y := Fixed(P.Y);

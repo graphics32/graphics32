@@ -405,7 +405,11 @@ end;
 
 function TImageFormatAdapterPSD.ImageFormatFileTypes: TFileTypes;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Result := ['psd'];
+{$else}
+  MakeFileTypes(['psd']);
+{$ifend}
 end;
 
 resourcestring

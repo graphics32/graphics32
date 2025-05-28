@@ -138,7 +138,11 @@ var
   Points64, Result64: TPaths64;
   Res: TArrayOfArrayOfFloatPoint;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Points64 := [GR32_Clipper2.FloatPointsToPath64(Points)];
+{$else}
+  Points64 := GR32_Clipper2.FloatPointsToPaths64(PolyPolygon(Points));
+{$ifend}
 
   Result64 := GrowClipper(Points64, Delta * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyle, Closed, MiterLimit);
 
@@ -160,7 +164,11 @@ var
   Points64, Result64: TPaths64;
   Res: TArrayOfArrayOfFixedPoint;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Points64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
+{$else}
+  Points64 := GR32_Clipper2.FixedPointsToPaths64(PolyPolygon(Points));
+{$ifend}
 
   Result64 := GrowClipper(Points64, Delta * FixedToFloat, JoinStyle, Closed, MiterLimit);
 
@@ -183,7 +191,11 @@ var
   Result64: TPaths64;
   Res: TArrayOfArrayOfFloatPoint;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Paths64 := [GR32_Clipper2.FloatPointsToPath64(Points)];
+{$else}
+  Paths64 := GR32_Clipper2.FloatPointsToPaths64(PolyPolygon(Points));
+{$ifend}
 
   EndType := EndStyleToEndType[EndStyle];
 
@@ -223,7 +235,11 @@ var
   Result64: TPaths64;
   Res: TArrayOfArrayOfFixedPoint;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Paths64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
+{$else}
+  Paths64 := GR32_Clipper2.FixedPointsToPaths64(PolyPolygon(Points));
+{$ifend}
 
   Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
   Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);

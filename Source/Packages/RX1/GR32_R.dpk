@@ -85,7 +85,14 @@ contains
   GR32.ImageFormats.TPicture in '..\..\GR32.ImageFormats.TPicture.pas',
   GR32.ImageFormats.TWICImage in '..\..\GR32.ImageFormats.TWICImage.pas',
   GR32.ImageFormats.TGraphic in '..\..\GR32.ImageFormats.TGraphic.pas',
-  GR32_ColorSwatch in '..\..\GR32_ColorSwatch.pas';
+  GR32_ColorSwatch in '..\..\GR32_ColorSwatch.pas',
+  GR32.BigEndian in '..\..\GR32.BigEndian.pas',
+  GR32.Blur in '..\..\GR32.Blur.pas',
+  GR32.Blur.RecursiveGaussian in '..\..\GR32.Blur.RecursiveGaussian.pas',
+  GR32.Math.Complex in '..\..\GR32.Math.Complex.pas',
+  GR32.Types.SIMD in '..\..\GR32.Types.SIMD.pas',
+  GR32_VectorUtils.Reference in '..\..\GR32_VectorUtils.Reference.pas',
+  GR32.Transpose in '..\..\GR32.Transpose.pas';
 
 end.
 

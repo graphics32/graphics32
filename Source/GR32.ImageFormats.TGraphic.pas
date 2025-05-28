@@ -109,7 +109,12 @@ type
     // IImageFormatWriter
     procedure SaveToStream(ASource: TCustomBitmap32; AStream: TStream); virtual;
   public
+{$if (CompilerVersion >= 28.0)} // XE7
     constructor Create(AGraphicClass: TGraphicClass; const ADescription: string; const AFileTypes: TFileTypes = nil);
+{$else}
+    constructor CreateEx(AGraphicClass: TGraphicClass; const ADescription: string; const AFileTypes: TFileTypes = nil);
+    constructor Create(AGraphicClass: TGraphicClass; const ADescription: string; const AFileTypes: array of string);
+{$ifend}
   end;
 
   TImageFormatReaderWriterTGraphic = class(TImageFormatReaderTGraphic, IImageFormatWriter)
@@ -298,8 +303,13 @@ end;
 //      TImageFormatReaderTGraphic
 //
 //------------------------------------------------------------------------------
+{$if (CompilerVersion >= 28.0)} // XE7
 constructor TImageFormatReaderTGraphic.Create(AGraphicClass: TGraphicClass;
   const ADescription: string; const AFileTypes: TFileTypes);
+{$else}
+constructor TImageFormatReaderTGraphic.CreateEx(AGraphicClass: TGraphicClass;
+  const ADescription: string; const AFileTypes: TFileTypes);
+{$ifend}
 var
   FileType: string;
 begin
@@ -318,6 +328,20 @@ begin
     end;
   end;
 end;
+
+{$if (CompilerVersion < 28.0)} // XE7
+constructor TImageFormatReaderTGraphic.Create(AGraphicClass: TGraphicClass;
+  const ADescription: string; const AFileTypes: array of string);
+var
+  FileTypes: TFileTypes;
+  i: integer;
+begin
+  SetLength(FileTypes, Length(AFileTypes));
+  for i := 0 to High(AFileTypes) do
+    FileTypes[i] := AFileTypes[i];
+  CreateEx(AGraphicClass, ADescription, FileTypes);
+end;
+{$ifend}
 
 //------------------------------------------------------------------------------
 // IImageFormatFileInfo

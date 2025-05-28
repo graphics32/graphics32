@@ -180,6 +180,17 @@ begin
   Result[3] := OffsetPoint(CenterPt, -Size,  Size);
 end;
 
+{$if (CompilerVersion < 28.0)} // XE7
+function ArrayOfFloat(const Data: array of TFloat): TArrayOfFloat;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(Data));
+  for i := 0 to High(Data) do
+    Result[i] := Data[i];
+end;
+{$ifend}
+
 { TFmArrowHead }
 
 procedure TFmArrowHead.FormCreate(Sender: TObject);
@@ -189,7 +200,11 @@ begin
 
   FBoxIndex := -1;
   FArrowSize := 20;
+{$if (CompilerVersion >= 28.0)} // XE7
   FDashes := [14, 3, 3, 3, 3, 3];
+{$else}
+  FDashes := ArrayOfFloat([14, 3, 3, 3, 3, 3]);
+{$ifend}
   FBoxCenter[0] := FloatPoint(120, 100);
   FBoxCenter[1] := FloatPoint(240, 300);
   FAnimationSpeed := TbrAnimationSpeed.Position;

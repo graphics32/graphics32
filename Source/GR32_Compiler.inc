@@ -322,11 +322,17 @@
   The TPointF and TRectF types exists in Delphi XE2 and later, and in FPC.
   However, the FPC implementation of TRectF is pretty pathetic so we'll use our
   own there.
+  Additionally, it seems that the first Delphi implementations of TPointF and
+  TRectF lacks the TPoint and TRect conversion operators so we'll use our own
+  there too.
 *)
-{$define HAS_TPOINTF}
-{$ifndef FPC}
-{$define HAS_TRECTF}
-{$endif}
+{$if defined(FPC) or (CompilerVersion > 25.0)} // XE4
+  {$define HAS_TPOINTF}
+{$ifend}
+
+{$if (not defined(FPC)) and (CompilerVersion > 25.0)} // XE4
+  {$define HAS_TRECTF}
+{$ifend}
 
 
 (*

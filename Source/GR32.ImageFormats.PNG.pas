@@ -58,8 +58,8 @@ uses
   GR32.ImageFormats;
 
 const
-  PngSignature: AnsiString        = #$89#$50#$4e#$47#$0d#$0a#$1a#$0a;
-  PngSignatureMask: AnsiString    = #$ff#$ff#$ff#$ff#$ff#$ff#$ff#$ff;
+  FileSignaturePNG: AnsiString        = #$89#$50#$4e#$47#$0d#$0a#$1a#$0a;
+  FileSignaturePNGMask: AnsiString    = #$ff#$ff#$ff#$ff#$ff#$ff#$ff#$ff;
 
 //------------------------------------------------------------------------------
 //
@@ -231,7 +231,11 @@ end;
 
 function TImageFormatAdapterPNG.ImageFormatFileTypes: TFileTypes;
 begin
+{$if (CompilerVersion >= 28.0)} // XE7
   Result := ['png'];
+{$else}
+  Result := MakeFileTypes(['png']);
+{$ifend}
 end;
 
 function TImageFormatAdapterPNG.ImageFormatDescription: string;
