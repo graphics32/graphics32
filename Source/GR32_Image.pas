@@ -3817,7 +3817,7 @@ end;
 procedure TCustomImage32.Scroll(Dx, Dy: Integer);
 begin
   if (Dx <> 0) or (Dy <> 0) then
-{$if (not defined(FPC)) and (CompilerVersion >= 30.0) } // FPC chokes on the float conversion with an exception, older Delphi's thinks it's a hard type cast
+{$if defined(FloatCast)}
     Scroll(Single(Dx), Single(Dy));
 {$else}
     Scroll(Dx * 1.0, Dy * 1.0);

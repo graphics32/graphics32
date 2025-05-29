@@ -41,7 +41,7 @@ uses
 {$ELSE}
   Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
   DesignEditors, VCLEditors, Actions,
-{$if (CompilerVersion >= 29.0)} // XE8
+{$if defined(NeedImageList)}
   ImageList,
 {$ifend}
 {$ENDIF}

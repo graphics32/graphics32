@@ -2,6 +2,8 @@
 
 interface
 
+{$include GR32.inc}
+
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
@@ -136,7 +138,7 @@ begin
   ImageSource.Scale := 0.5;
   ImageDest.Scale := 0.5;
 
-{$if defined(FPC) or (CompilerVersion > 29.0)} // Delphi 10 or later
+{$if defined(GenericMethods)}
   FLayers[sdSource] := ImageSource.Layers.Add<TPolygonRubberbandLayer>;
   FLayers[sdDest] := ImageDest.Layers.Add<TPolygonRubberbandLayer>;
 {$else}
@@ -148,7 +150,7 @@ begin
   begin
     FLayers[SourceDest].Scaled := True;
     FLayers[SourceDest].Cursor := crSizeAll;
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)} // XE7
     FLayers[SourceDest].FrameStipple := [clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32];
 {$else}
     FLayers[SourceDest].FrameStipple := ArrayOfColor32([clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32]);

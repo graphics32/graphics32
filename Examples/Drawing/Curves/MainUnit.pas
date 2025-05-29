@@ -286,7 +286,7 @@ begin
   FBrushDash := TDashedBrush(FCurveBrushes.Brushes.Add(TDashedBrush));
   FBrushDash.FillColor := clWhite32;
   FBrushDash.StrokeWidth := 6;
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   FBrushDash.DashArray := [10, 5];
 {$else}
   FBrushDash.SetDashArray([10, 5]);

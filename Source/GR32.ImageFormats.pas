@@ -348,7 +348,7 @@ type
 type
   TCustomImageFormat = class abstract(TInterfacedObject, IImageFormat)
   strict protected
-    function MakeFileTypes(const Values: array of string): TFileTypes; {$if (CompilerVersion >= 28.0)} deprecated 'Just return a dynamic array'; {$ifend}
+    function MakeFileTypes(const Values: array of string): TFileTypes; {$if defined(DynArrayOps)} deprecated 'Just return a dynamic array'; {$ifend}
   end;
 
 

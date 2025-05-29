@@ -405,7 +405,7 @@ end;
 
 function TImageFormatAdapterPSD.ImageFormatFileTypes: TFileTypes;
 begin
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   Result := ['psd'];
 {$else}
   MakeFileTypes(['psd']);

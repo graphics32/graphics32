@@ -210,7 +210,7 @@ type
     function ProcessPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
       const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean): TArrayOfArrayOfFloatPoint; override;
   public
-    procedure SetDashArray(const ADashArray: array of TFloat); {$if (CompilerVersion >= 28.0)} deprecated 'Use DashArray property'; {$ifend}
+    procedure SetDashArray(const ADashArray: array of TFloat); {$if defined(DynArrayOps)} deprecated 'Use DashArray property'; {$ifend}
 
     property DashArray: TArrayOfFloat read FDashArray write DoSetDashArray;
     property DashOffset: TFloat read FDashOffset write SetDashOffset;
@@ -390,7 +390,7 @@ end;
 procedure TCustomBrush.PolygonFS(Renderer: TCustomPolygonRenderer; const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect;
   Transformation: TTransformation; Closed: Boolean);
 begin
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   PolyPolygonFS(Renderer, [Points], ClipRect, Transformation, Closed);
 {$else}
   PolyPolygonFS(Renderer, PolyPolygon(Points), ClipRect, Transformation, Closed);
@@ -415,7 +415,7 @@ var
   Buffer: TArrayOfArrayOfFloatPoint;
   RunBuffer: TArrayOfArrayOfFloatPoint;
   RunClosed: boolean;
-{$if (CompilerVersion < 28.0)} // XE7
+{$if (not defined(DynArrayOps))}
   AddBuffer: TArrayOfArrayOfFloatPoint;
   j: integer;
 {$ifend}
@@ -448,7 +448,7 @@ begin
       end;
 
       // Process this run
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
       Buffer := Buffer + ProcessPolyPolygon(Renderer, RunBuffer, ClipRect, Transformation, RunClosed);
 {$else}
       AddBuffer := ProcessPolyPolygon(Renderer, RunBuffer, ClipRect, Transformation, RunClosed);
@@ -688,7 +688,7 @@ function TDashedBrush.ProcessPolyPolygon(Renderer: TCustomPolygonRenderer; const
   const ClipRect: TFloatRect; Transformation: TTransformation; Closed: Boolean): TArrayOfArrayOfFloatPoint;
 var
   i: Integer;
-{$if (CompilerVersion < 28.0)} // XE7
+{$if (not defined(DynArrayOps))}
   AddBuffer: TArrayOfArrayOfFloatPoint;
   j, n: integer;
 {$ifend}
@@ -697,7 +697,7 @@ begin
   begin
     Result := nil;
     for i := 0 to High(Points) do
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
       Result := Result + BuildDashedLine(Points[i], FDashArray, FDashOffset, Closed);
 {$else}
     begin

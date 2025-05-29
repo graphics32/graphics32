@@ -202,7 +202,7 @@ begin
     FBitmapPattern.EndUpdate;
   end;
 
-{$ifndef FPC}
+{$if defined(FRAMEWORK_VCL)}
 {$if (CompilerVersion >= 35.0)} // Delphi 11
   ComboBoxResamplerClassName.AutoDropDownWidth := True;
   ComboBoxPixelAccessMode.AutoDropDownWidth := True;
@@ -213,7 +213,7 @@ begin
 
   PanelKernel.Margins.SetBounds(0, 4, 0, 0);
   PanelKernel.AlignWithMargins := True;
-{$endif}
+{$ifend}
 end;
 
 destructor TFrmResamplersExample.Destroy;

@@ -168,7 +168,7 @@ begin
     Exit;
 {$endif}
 
-{$if (not defined(FPC)) and (CompilerVersion >= 30.0) } // FPC chokes on the float conversion with an exception, older Delphi's thinks it's a hard type cast
+{$if defined(FloatCast)}
   dY := Double(Y2) - Double(Y1);
   dX := Double(X2) - Double(X1);
 {$else}

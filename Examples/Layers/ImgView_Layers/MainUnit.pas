@@ -256,7 +256,7 @@ begin
   R := ImgView.GetViewportRect;
   P := ImgView.ControlToBitmap(R.CenterPoint);
 
-{$if defined(FPC) or (CompilerVersion > 29.0)} // Delphi 10 or later
+{$if defined(GenericMethods)}
   // Here's one way to add a layer:
   Result := ImgView.Layers.Add<TPositionedLayer>;
 {$else}
@@ -883,7 +883,7 @@ begin
         RBLayer.QuantizeShiftToggle := [ssAlt];
         RBLayer.Quantized := 8;
 
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
         RBLayer.FrameStipple := [clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32];
 {$else}
         RBLayer.FrameStipple := ArrayOfColor32([clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32]);

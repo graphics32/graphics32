@@ -138,7 +138,7 @@ var
   Points64, Result64: TPaths64;
   Res: TArrayOfArrayOfFloatPoint;
 begin
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   Points64 := [GR32_Clipper2.FloatPointsToPath64(Points)];
 {$else}
   Points64 := GR32_Clipper2.FloatPointsToPaths64(PolyPolygon(Points));
@@ -164,7 +164,7 @@ var
   Points64, Result64: TPaths64;
   Res: TArrayOfArrayOfFixedPoint;
 begin
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   Points64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
 {$else}
   Points64 := GR32_Clipper2.FixedPointsToPaths64(PolyPolygon(Points));
@@ -191,7 +191,7 @@ var
   Result64: TPaths64;
   Res: TArrayOfArrayOfFloatPoint;
 begin
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   Paths64 := [GR32_Clipper2.FloatPointsToPath64(Points)];
 {$else}
   Paths64 := GR32_Clipper2.FloatPointsToPaths64(PolyPolygon(Points));
@@ -235,7 +235,7 @@ var
   Result64: TPaths64;
   Res: TArrayOfArrayOfFixedPoint;
 begin
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   Paths64 := [GR32_Clipper2.FixedPointsToPath64(Points)];
 {$else}
   Paths64 := GR32_Clipper2.FixedPointsToPaths64(PolyPolygon(Points));

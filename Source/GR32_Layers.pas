@@ -32,7 +32,7 @@ unit GR32_Layers;
 
 interface
 
-{$INCLUDE GR32.inc}
+{$include GR32.inc}
 
 uses
 {$if defined(FRAMEWORK_VCL)}
@@ -205,7 +205,7 @@ type
 
     function Add(ItemClass: TLayerClass): TCustomLayer; overload;
     function Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer; overload;
-{$if defined(FPC) or (CompilerVersion > 29.0)} // Delphi 10 or later
+{$if defined(GenericMethods)}
     function Add<T: TCustomLayer>: T; overload;
     function Insert<T: TCustomLayer>(Index: Integer): T; overload;
 {$ifend}
@@ -901,7 +901,7 @@ begin
   Notify(lnLayerAdded, Result, Result.Index);
 end;
 
-{$if defined(FPC) or (CompilerVersion > 29.0)}
+{$if defined(GenericMethods)}
 function TLayerCollection.Add<T>: T;
 begin
   Result := T(Add(T));
@@ -1062,7 +1062,7 @@ begin
   end;
 end;
 
-{$if defined(FPC) or (CompilerVersion > 29.0)}
+{$if defined(GenericMethods)}
 function TLayerCollection.Insert<T>(Index: Integer): T;
 begin
   Result := T(Insert(Index, T));

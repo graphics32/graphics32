@@ -224,7 +224,7 @@ procedure TFormMain.MsgAfterShow(var Msg: TMessage);
 var
   r: TRect;
 begin
-{$if (CompilerVersion > 25.0)} // XE4 - exact version unknown at this point
+{$if defined(ClientToScreenRect)}
   r := ClientToScreen(ClientRect);
 {$else}
   r.TopLeft := ClientToScreen(ClientRect.TopLeft);

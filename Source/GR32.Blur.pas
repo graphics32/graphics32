@@ -245,7 +245,7 @@ begin
         Filler.OffsetX := Bounds.Left;
         Filler.OffsetY := Bounds.Top;
 
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)} // XE7
         Points := [Region];
 {$else}
         Points := PolyPolygon(Region);
@@ -265,7 +265,7 @@ begin
       try
         Filler.Pattern := Dest;
 
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)} // XE7
         Points := [Region];
 {$else}
         Points := PolyPolygon(Region);

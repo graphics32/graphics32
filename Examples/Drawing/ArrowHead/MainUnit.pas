@@ -180,7 +180,7 @@ begin
   Result[3] := OffsetPoint(CenterPt, -Size,  Size);
 end;
 
-{$if (CompilerVersion < 28.0)} // XE7
+{$if (not defined(DynArrayOps))}
 function ArrayOfFloat(const Data: array of TFloat): TArrayOfFloat;
 var
   i: Integer;
@@ -200,7 +200,7 @@ begin
 
   FBoxIndex := -1;
   FArrowSize := 20;
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   FDashes := [14, 3, 3, 3, 3, 3];
 {$else}
   FDashes := ArrayOfFloat([14, 3, 3, 3, 3, 3]);

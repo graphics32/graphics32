@@ -94,7 +94,7 @@ begin
     // the control.
 
     // Dynamic array of colors
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
     Stipple := [clWhite32, clWhite32, clWhite32, clWhite32, 0, 0, 0, 0];
 {$else}
     Stipple := ArrayOfColor32([clWhite32, clWhite32, clWhite32, clWhite32, 0, 0, 0, 0]);

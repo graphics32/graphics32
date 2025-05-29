@@ -2,6 +2,8 @@ unit UnitMain;
 
 interface
 
+{$include GR32.inc}
+
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
@@ -96,7 +98,7 @@ begin
 
   // Create a bitmap layer we can paint on.
   // We could also just have painted directly on the TImage32.Bitmap
-{$if defined(FPC) or (CompilerVersion > 29.0)} // Delphi 10 or later
+{$if defined(GenericMethods)}
   FPaintLayer := Image32.Layers.Add<TBitmapLayer>;
 {$else}
   FPaintLayer := TBitmapLayer.Create(Image32.Layers);

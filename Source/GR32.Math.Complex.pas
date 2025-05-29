@@ -41,10 +41,6 @@ uses
   SysUtils,
   Math;
 
-{$if (CompilerVersion >= 28.0) and (not defined(FPC))} // TODO : Not sure about the exact version required
-{$define STATIC_OP}
-{$ifend}
-
 //------------------------------------------------------------------------------
 //
 //      TComplex
@@ -133,41 +129,41 @@ type
     class function Equals(const Left, Right: TComplex): Boolean; static;
 
 {$IFNDEF FPC}
-    class operator Round(const AValue: TComplex): Int64;                                        {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Trunc(const AValue: TComplex): Int64;                                        {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator Round(const AValue: TComplex): Int64;                                        {$if defined(StaticOperators)}static;{$ifend}
+    class operator Trunc(const AValue: TComplex): Int64;                                        {$if defined(StaticOperators)}static;{$ifend}
 {$ENDIF}
 
-    class operator Equal(const Left, Right: TComplex): Boolean;                                 {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator NotEqual(const Left, Right: TComplex): Boolean;                              {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator LessThan(const Left, Right: TComplex): Boolean;                              {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator Equal(const Left, Right: TComplex): Boolean;                                 {$if defined(StaticOperators)}static;{$ifend}
+    class operator NotEqual(const Left, Right: TComplex): Boolean;                              {$if defined(StaticOperators)}static;{$ifend}
+    class operator LessThan(const Left, Right: TComplex): Boolean;                              {$if defined(StaticOperators)}static;{$ifend}
     class operator LessThanOrEqual(const Left, Right: TComplex): Boolean;
-    class operator GreaterThan(const Left, Right: TComplex): Boolean;                           {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator GreaterThanOrEqual(const Left, Right: TComplex): Boolean;                    {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator GreaterThan(const Left, Right: TComplex): Boolean;                           {$if defined(StaticOperators)}static;{$ifend}
+    class operator GreaterThanOrEqual(const Left, Right: TComplex): Boolean;                    {$if defined(StaticOperators)}static;{$ifend}
 
-    class operator Add(const Left, Right: TComplex): TComplex;                                  {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Add(const Left: Double; const Right: TComplex): TComplex;                    {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Add(const Left: TComplex; const Right: Double): TComplex;                    {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Subtract(const Left, Right: TComplex): TComplex;                             {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Subtract(const Left: Double; const Right: TComplex): TComplex;               {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Subtract(const Left: TComplex; const Right: Double): TComplex;               {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Multiply(const Left, Right: TComplex): TComplex;                             {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Multiply(const Left: Double; const Right: TComplex): TComplex;               {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator Add(const Left, Right: TComplex): TComplex;                                  {$if defined(StaticOperators)}static;{$ifend}
+    class operator Add(const Left: Double; const Right: TComplex): TComplex;                    {$if defined(StaticOperators)}static;{$ifend}
+    class operator Add(const Left: TComplex; const Right: Double): TComplex;                    {$if defined(StaticOperators)}static;{$ifend}
+    class operator Subtract(const Left, Right: TComplex): TComplex;                             {$if defined(StaticOperators)}static;{$ifend}
+    class operator Subtract(const Left: Double; const Right: TComplex): TComplex;               {$if defined(StaticOperators)}static;{$ifend}
+    class operator Subtract(const Left: TComplex; const Right: Double): TComplex;               {$if defined(StaticOperators)}static;{$ifend}
+    class operator Multiply(const Left, Right: TComplex): TComplex;                             {$if defined(StaticOperators)}static;{$ifend}
+    class operator Multiply(const Left: Double; const Right: TComplex): TComplex;               {$if defined(StaticOperators)}static;{$ifend}
     class operator Multiply(const Left: TComplex; const Right: Double): TComplex;
-    class operator Divide(const Left, Right: TComplex): TComplex;                               {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Divide(const Left: Double; const Right: TComplex): TComplex;                 {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Divide(const Left: TComplex; const Right: Double): TComplex;                 {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Negative(const AValue: TComplex): TComplex;                                  {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator Divide(const Left, Right: TComplex): TComplex;                               {$if defined(StaticOperators)}static;{$ifend}
+    class operator Divide(const Left: Double; const Right: TComplex): TComplex;                 {$if defined(StaticOperators)}static;{$ifend}
+    class operator Divide(const Left: TComplex; const Right: Double): TComplex;                 {$if defined(StaticOperators)}static;{$ifend}
+    class operator Negative(const AValue: TComplex): TComplex;                                  {$if defined(StaticOperators)}static;{$ifend}
 
-    class operator Implicit(const AValue: Double): TComplex;                                    {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Implicit(const AValue: Integer): TComplex;                                   {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator Implicit(const AValue: Double): TComplex;                                    {$if defined(StaticOperators)}static;{$ifend}
+    class operator Implicit(const AValue: Integer): TComplex;                                   {$if defined(StaticOperators)}static;{$ifend}
     class operator Implicit(const AValue: Int64): TComplex;
-    class operator Implicit(const AValue: Variant): TComplex;                                   {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator Implicit(const AValue: Variant): TComplex;                                   {$if defined(StaticOperators)}static;{$ifend}
     class operator Implicit(const AValue: string): TComplex;
 
-    class operator Explicit(const AValue: TComplex): Double;                                    {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Explicit(const AValue: TComplex): Integer;                                   {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Explicit(const AValue: TComplex): Int64;                                     {$IFDEF STATIC_OP}static;{$ENDIF}
-    class operator Explicit(const AValue: TComplex): string;                                    {$IFDEF STATIC_OP}static;{$ENDIF}
+    class operator Explicit(const AValue: TComplex): Double;                                    {$if defined(StaticOperators)}static;{$ifend}
+    class operator Explicit(const AValue: TComplex): Integer;                                   {$if defined(StaticOperators)}static;{$ifend}
+    class operator Explicit(const AValue: TComplex): Int64;                                     {$if defined(StaticOperators)}static;{$ifend}
+    class operator Explicit(const AValue: TComplex): string;                                    {$if defined(StaticOperators)}static;{$ifend}
   end;
 
 

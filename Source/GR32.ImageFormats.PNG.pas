@@ -231,7 +231,7 @@ end;
 
 function TImageFormatAdapterPNG.ImageFormatFileTypes: TFileTypes;
 begin
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   Result := ['png'];
 {$else}
   Result := MakeFileTypes(['png']);

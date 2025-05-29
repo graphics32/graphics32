@@ -2039,7 +2039,7 @@ begin
 
   // Don't use BuildPolyPolyline to build HueBand; We need both inner and outer
   // polygons to be free of self-intersections as we use them to draw the border.
-{$if (CompilerVersion >= 28.0)} // XE7
+{$if defined(DynArrayOps)}
   HueBand := [
                               Circle(FCenter, FRadius,      FCircleSteps),
                ReversePolygon(Circle(FCenter, FInnerRadius, FCircleSteps))
