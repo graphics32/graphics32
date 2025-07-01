@@ -23,6 +23,7 @@ type
   published
     procedure TestLoadFromFile;
     procedure TestLoadFromStream;
+    procedure TestLoadFromStreamRelative;
     procedure TestLoadFromStreamDIB;
     procedure TestLoadFromResourceName;
 
@@ -144,6 +145,33 @@ const
     // Additional
     (Name: 'rgb32fakealpha';                    Checksum: $23821D77; IgnoreRes: False)
   );
+
+{ TOffsetStream }
+
+type
+  TOffsetStream = class(TMemoryStream)
+  private
+    FOffset: Int64;
+  public
+    constructor Create(AOffset: Int64);
+    function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
+    property Offset: Int64 read FOffset;
+  end;
+
+constructor TOffsetStream.Create(AOffset: Int64);
+begin
+  inherited Create;
+  FOffset := AOffset;
+  Size := FOffset;
+  Position := FOffset;
+end;
+
+function TOffsetStream.Seek(const Offset: Int64; Origin: TSeekOrigin): Int64;
+begin
+  Result := inherited;
+  if (Result < FOffset) then
+    raise ETestFailure.CreateFmt('Seek before start of relative stream. Start: %d, Position: %d', [FOffset, Result]);
+end;
 
 type
   TBitmap32Cracker = class(TBitmap32);
@@ -289,6 +317,36 @@ begin
   Check(not FBitmap32.Empty);
 end;
 
+procedure TTestTCustomBitmap32.TestLoadFromStreamRelative;
+begin
+  // Prefix BMP data with some junk
+  var Stream := TOffsetStream.Create(Random(1024));
+  try
+
+    // Load BMP from file into relative stream position
+    var FileStream := TFileStream.Create(TestFileName, fmOpenRead or fmShareDenyWrite);
+    try
+      Stream.CopyFrom(FileStream, FileStream.Size);
+
+      Assert(Stream.Size = Stream.Offset + FileStream.Size);
+    finally
+      FileStream.Free;
+    end;
+
+    FBitmap32.Clear;
+
+    // Load BMP from relative position
+    Stream.Position := Stream.Offset;
+    FBitmap32.LoadFromStream(Stream);
+
+  finally
+    Stream.Free;
+  end;
+
+  ValidateCRC(FBitmap32);
+  Check(not FBitmap32.Empty);
+end;
+
 procedure TTestTCustomBitmap32.TestLoadFromStreamDIB;
 begin
   if (not TPath.GetFileName(TestFileName).StartsWith('bgra')) and (not TPath.GetFileName(TestFileName).StartsWith('rgba')) then
@@ -339,11 +397,10 @@ procedure TTestTCustomBitmap32.TestSaveToStream(TopDown: boolean);
 begin
   FBitmap32.LoadFromFile(TestFileName);
 
-  var Stream := TMemoryStream.Create;
+  var Stream := TOffsetStream.Create(Random(1024)); // Test relative save/load while we're at it
   try
-
     FBitmap32.SaveToStream(Stream, TopDown);
-    Stream.Position := 0;
+    Stream.Position := Stream.Offset;
 
     FBitmap32.Clear;
     FBitmap32.LoadFromStream(Stream);
@@ -352,7 +409,7 @@ begin
     // Bitmap content isn't checked.
     var Bitmap := TBitmap.Create;
     try
-      Stream.Position := 0;
+      Stream.Position := Stream.Offset;
       Bitmap.LoadFromStream(Stream);
     finally
       Bitmap.Free;
@@ -361,7 +418,7 @@ begin
     // Ditto for WIC
     var WICImage := TWICImage.Create;
     try
-      Stream.Position := 0;
+      Stream.Position := Stream.Offset;
       WICImage.LoadFromStream(Stream);
     finally
       WICImage.Free;
@@ -389,18 +446,18 @@ procedure TTestTCustomBitmap32.TestSaveToStreamDIB(TopDown: boolean);
 begin
   FBitmap32.LoadFromFile(TestFileName);
 
-  var Stream := TMemoryStream.Create;
+  var Stream := TOffsetStream.Create(Random(1024)); // Test relative save/load while we're at it
   try
 
     for var InfoHeaderVersion := Low(TBitmap32.TInfoHeaderVersion) to High(TBitmap32.TInfoHeaderVersion) do
     begin
-      Stream.Clear;
+      Stream.Size := Stream.Offset;
 
       TBitmap32Cracker(FBitmap32).SaveToDIBStream(Stream, TopDown, InfoHeaderVersion);
-      Stream.Position := 0;
+      Stream.Position := Stream.Offset;
 
       FBitmap32.Clear;
-      TBitmap32Cracker(FBitmap32).LoadFromDIBStream(Stream, Stream.Size);
+      TBitmap32Cracker(FBitmap32).LoadFromDIBStream(Stream, Stream.Size - Stream.Position);
 
       ValidateCRC(FBitmap32);
       Check(not FBitmap32.Empty);
