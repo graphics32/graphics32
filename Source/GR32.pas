@@ -6196,7 +6196,7 @@ begin
           if (Stream.Read(BitmapHeader.V2Header.bV2RedMask, ChunkSize) <> ChunkSize) then
             exit;
         end else
-          Stream.Seek(ChunkSize, soFromCurrent);
+          Stream.Seek(ChunkSize, soCurrent);
       end;
     end;
 
@@ -6404,7 +6404,7 @@ begin
   StartPos := Stream.Position;
 
   // Skip past file header. We will write it once the DIB has been written.
-  Stream.Seek(SizeOf(TBitmapFileHeader), soFromCurrent);
+  Stream.Seek(SizeOf(TBitmapFileHeader), soCurrent);
 
   // Save the DIB
   SaveToDIBStream(Stream, SaveTopDown, InfoHeaderVersion, IncludeColorTable);

@@ -125,7 +125,7 @@ end;
 function TImageFormatAdapterBMP.LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
 begin
   // Use LoadFromBMPStream instead of LoadFromStream to avoid recursion
-  Result := TBitmap32Cracker(ADest).LoadFromBMPStream(AStream, AStream.Size);
+  Result := TBitmap32Cracker(ADest).LoadFromBMPStream(AStream, AStream.Size - AStream.Position);
 end;
 
 //------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ end;
 function TImageFormatAdapterBMP.LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType;
   AStream: TStream): boolean;
 begin
-  Result := TBitmap32Cracker(ADest).LoadFromDIBStream(AStream, AStream.Size);
+  Result := TBitmap32Cracker(ADest).LoadFromDIBStream(AStream, AStream.Size - AStream.Position);
 end;
 
 //------------------------------------------------------------------------------

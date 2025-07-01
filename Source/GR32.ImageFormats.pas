@@ -479,7 +479,7 @@ begin
 
   SavePos := Stream.Position;
   try
-    Stream.Position := Offset;
+    Stream.Position := SavePos + Offset;
 
     if (Stream.Read(Buffer[0], Size) = Int64(Size)) then
     begin
@@ -886,12 +886,12 @@ begin
     if (Supports(Item.ImageFormat, IImageFormatReader, Reader)) then
     begin
       if (Reader.CanLoadFromStream(AStream)) then
-      begin
-        AStream.Position := SavePos;
-        exit(Reader);
-      end;
+        Result := Reader;
 
       AStream.Position := SavePos;
+
+      if (Result <> nil) then
+        break;
     end;
 end;
 
