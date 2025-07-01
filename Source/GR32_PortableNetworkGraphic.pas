@@ -1436,8 +1436,7 @@ end;
 
 procedure TChunkPngUnknown.WriteToStream(Stream: TStream);
 begin
-  FDataStream.Position := 0;
-  Stream.CopyFrom(FDataStream, 0);
+  Stream.CopyFrom(FDataStream);
 end;
 
 procedure TChunkPngUnknown.SetData(Index: Integer; const Value: Byte);
@@ -2547,10 +2546,10 @@ begin
   if Dest is TChunkPngImageData then
     with TChunkPngImageData(Dest) do
     begin
-      FData.Seek(0, soFromBeginning);
-      Self.FData.Seek(0, soFromBeginning);
+      FData.Position := 0;
+      Self.FData.Position := 0;
       FData.CopyFrom(Self.FData, Self.FData.Size);
-      FData.Seek(0, soFromBeginning);
+      FData.Position := 0;
     end
   else
     inherited;
@@ -2575,8 +2574,7 @@ end;
 
 procedure TChunkPngImageData.WriteToStream(Stream: TStream);
 begin
-  FData.Seek(0, soFromBeginning);
-  Stream.CopyFrom(FData, FData.Size);
+  Stream.CopyFrom(FData);
 end;
 
 
@@ -4654,10 +4652,7 @@ begin
 
     // concat current chunk to data stream
     with TChunkPngImageData(FDataChunkList[DataIndex]) do
-    begin
-      Data.Seek(0, soFromBeginning);
-      Stream.CopyFrom(Data, Data.Size);
-    end;
+      Stream.CopyFrom(Data);
   end;
 end;
 
@@ -4699,7 +4694,7 @@ begin
       raise EPngError.Create(RCStrUnsupportedCompressionMethod);
 
     // reset data stream position to zero
-    DataStream.Seek(0, soFromBeginning);
+    DataStream.Position := 0;
 
     // decompress z-stream
     ZDecompress(DataStream, Stream);
@@ -4724,7 +4719,7 @@ begin
       raise EPngError.CreateFmt(RCStrNotYetImplemented, ['source stream must be TMemoryStream']);
 
     // reset data stream position to zero
-    DataStream.Seek(0, soFromBeginning);
+    DataStream.Position := 0;
 
     // copy image data from all data chunks to one continous data stream
     StoreImageData(DataStream);
@@ -4754,7 +4749,7 @@ begin
   if Result then
   begin
     Stream.Read(Signature, SizeOf(Signature));
-    Stream.Seek(-SizeOf(Signature), soFromCurrent);
+    Stream.Seek(-SizeOf(Signature), soCurrent);
     Result := CompareMem(@Signature, @PNG_SIG, SizeOf(Signature));
   end;
 end;
@@ -4790,7 +4785,7 @@ begin
     raise EPngError.Create(RCStrNotAValidPNGFile);
 
   // Skip chunk ID and magic - We already checked them in CanLoad above
-  Stream.Seek(SizeOf(PNG_SIG), soFromCurrent);
+  Stream.Seek(SizeOf(PNG_SIG), soCurrent);
 
   MemoryStream := TMemoryStream.Create;
   try
@@ -4852,7 +4847,7 @@ begin
       MemoryStream.CopyFrom(Stream, ChunkSize + 4);
 
       // reset memory stream to beginning of the chunk
-      MemoryStream.Seek(4, soFromBeginning);
+      MemoryStream.Position := 4;
 
       if ChunkName = 'IHDR' then
         raise EPngError.Create(RCStrNotAValidPNGFile);
@@ -4986,8 +4981,7 @@ var
     Chunk.WriteToStream(MemoryStream);
 
     // copy memory stream to stream
-    MemoryStream.Position := 0;
-    Stream.CopyFrom(MemoryStream, 0);
+    Stream.CopyFrom(MemoryStream);
 
     // calculate and write CRC
     CRC := Swap32(CalculateCRC(MemoryStream));
@@ -5012,8 +5006,7 @@ begin
     FImageHeader.WriteToStream(MemoryStream);
 
     // copy memory stream to stream
-    MemoryStream.Position := 0;;
-    Stream.CopyFrom(MemoryStream, 0);
+    Stream.CopyFrom(MemoryStream);
 
     // calculate and write CRC
     CRC := Swap32(CalculateCRC(MemoryStream));
@@ -5102,7 +5095,7 @@ begin
   TempStream := TMemoryStream.Create;
   try
     DecompressImageDataToStream(TempStream);
-    TempStream.Seek(0, soFromBeginning);
+    TempStream.Position := 0;
     CompressImageDataFromStream(TempStream);
   finally
     TempStream.Free;
@@ -5126,7 +5119,7 @@ begin
   TempStream := TMemoryStream.Create;
   try
     DecompressImageDataToStream(TempStream);
-    TempStream.Seek(0, soFromBeginning);
+    TempStream.Position := 0;
 
     case FImageHeader.InterlaceMethod of
       imNone  : TranscoderClass := TPngNonInterlacedToAdam7Transcoder;
@@ -5142,7 +5135,7 @@ begin
       Free;
     end;
 
-    TempStream.Seek(0, soFromBeginning);
+    TempStream.Position := 0;
     CompressImageDataFromStream(TempStream);
   finally
     TempStream.Free;
@@ -5599,7 +5592,7 @@ begin
     end;
 
     // reset position to zero
-    FStream.Seek(0, soFromBeginning);
+    FStream.Position := 0;
 
     // The Adam7 interlacer uses 7 passes to create the complete image
     for CurrentPass := 0 to 6 do
@@ -5775,7 +5768,7 @@ begin
 
 
     // reset position to zero
-    FStream.Seek(0, soFromBeginning);
+    FStream.Position := 0;
 
 
     /////////////////////////////////
