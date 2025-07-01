@@ -81,8 +81,10 @@ type
     // - The ctzn0g04.pn fail with a CRC error.
   published
     procedure TestLoadFromFile;
+    procedure TestStreamRelative;
     procedure TestSaveToStream;
     procedure TestSaveToStreamRountrip;
+
   end;
 
   TGR32InvalidFileTest = class(TCustomGR32FileTest)
@@ -276,6 +278,33 @@ begin
   end;
 end;
 
+
+{ TOffsetStream }
+
+type
+  TOffsetStream = class(TMemoryStream)
+  private
+    FOffset: Int64;
+  public
+    constructor Create(AOffset: Int64);
+    function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
+    property Offset: Int64 read FOffset;
+  end;
+
+constructor TOffsetStream.Create(AOffset: Int64);
+begin
+  inherited Create;
+  FOffset := AOffset;
+  Size := FOffset;
+  Position := FOffset;
+end;
+
+function TOffsetStream.Seek(const Offset: Int64; Origin: TSeekOrigin): Int64;
+begin
+  Result := inherited;
+  if (Result < FOffset) then
+    raise ETestFailure.CreateFmt('Seek before start of relative stream. Start: %d, Position: %d', [FOffset, Result]);
+end;
 
 { TCustomTestPngGR32 }
 
@@ -490,6 +519,28 @@ end;
 procedure TGR32FileTest.TestLoadFromFile;
 begin
   FPortableNetworkGraphic.LoadFromFile(TestFileName);
+
+  Check(True);
+end;
+
+procedure TGR32FileTest.TestStreamRelative;
+begin
+  FPortableNetworkGraphic.LoadFromFile(TestFileName);
+
+  // Prefix PNG data with some junk
+  var Stream := TOffsetStream.Create(Random(1024));
+  try
+
+    // Save at relative position
+    FPortableNetworkGraphic.SaveToStream(Stream);
+
+    // Load from relative position
+    Stream.Position := Stream.Offset;
+    FPortableNetworkGraphic.LoadFromStream(Stream);
+
+  finally
+    Stream.Free;
+  end;
 
   Check(True);
 end;
