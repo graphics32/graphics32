@@ -41,6 +41,7 @@ implementation
 uses
   Classes,
   Graphics,
+  SysUtils,
 {$ifndef FPC}
   Windows,
 {$else FPC}
@@ -51,8 +52,13 @@ uses
   GR32.ImageFormats;
 
 const
-  FileSignatureBMP : AnsiString    = #$42#$4d;//#$00#$00#$00#$00#$00#$00#$00#$00;  // BM...and then some
-  FileSignatureBMPMask: AnsiString = #$ff#$ff;//#$00#$00#$00#$00#$ff#$ff#$ff#$ff;
+{$if defined(DynArrayOps)}
+  FileSignatureBMP: TBytes                  = [$42, $4d];  // 'BM'
+  FileSignatureBMPMask: TBytes              = [$ff, $ff];
+{$else}
+  FileSignatureBMP: array[0..1] of byte     = ($42, $4d);  // 'BM'
+  FileSignatureBMPMask: array[0..1] of byte = ($ff, $ff);
+{$ifend}
 
 resourcestring
   sImageFormatBMPName = 'Bitmaps';

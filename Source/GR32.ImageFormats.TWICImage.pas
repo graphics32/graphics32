@@ -69,9 +69,15 @@ type
   end;
 
 const
-  FileSignatureTIFFLittle : AnsiString    = #$49#$49#$2A#$00;// Little endian
-  FileSignatureTIFFBig : AnsiString       = #$4D#$4D#$00#$2A;// Big endian
-  FileSignatureTIFFMask: AnsiString       = #$ff#$ff#$ff#$ff;
+{$if defined(DynArrayOps)}
+  FileSignatureTIFFLittle: TBytes               = [$49, $49, $2A, $00]; // Little endian
+  FileSignatureTIFFBig: TBytes                  = [$4D, $4D, $00, $2A]; // Big endian
+  FileSignatureTIFFMask: TBytes                 = [$ff, $ff, $ff, $ff];
+{$else}
+  FileSignatureTIFFLittle: array[0..3] of byte  = ($49, $49, $2A, $00); // Little endian
+  FileSignatureTIFFBig: array[0..3] of byte     = ($4D, $4D, $00, $2A); // Big endian
+  FileSignatureTIFFMask: array[0..3] of byte    = ($ff, $ff, $ff, $ff);
+{$ifend}
 
 
 //------------------------------------------------------------------------------

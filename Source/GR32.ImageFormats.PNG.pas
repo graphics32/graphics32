@@ -51,6 +51,9 @@ uses
 {$else FPC}
 
 uses
+{$if defined(DynArrayOps)}
+  SysUtils,
+{$ifend}
   Classes,
   PngImage,
   Graphics,
@@ -58,8 +61,13 @@ uses
   GR32.ImageFormats;
 
 const
-  FileSignaturePNG: AnsiString        = #$89#$50#$4e#$47#$0d#$0a#$1a#$0a;
-  FileSignaturePNGMask: AnsiString    = #$ff#$ff#$ff#$ff#$ff#$ff#$ff#$ff;
+{$if defined(DynArrayOps)}
+  FileSignaturePNG: TBytes                  = [$89, $50, $4e, $47, $0d, $0a, $1a, $0a];
+  FileSignaturePNGMask: TBytes              = [$ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff];
+{$else}
+  FileSignaturePNG: array[0..7] of byte     = ($89, $50, $4e, $47, $0d, $0a, $1a, $0a);
+  FileSignaturePNGMask: array[0..7] of byte = ($ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff);
+{$ifend}
 
 //------------------------------------------------------------------------------
 //
