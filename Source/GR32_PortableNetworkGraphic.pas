@@ -1436,7 +1436,7 @@ end;
 
 procedure TChunkPngUnknown.WriteToStream(Stream: TStream);
 begin
-  Stream.CopyFrom(FDataStream);
+  Stream.CopyFrom(FDataStream, 0);
 end;
 
 procedure TChunkPngUnknown.SetData(Index: Integer; const Value: Byte);
@@ -2547,8 +2547,7 @@ begin
     with TChunkPngImageData(Dest) do
     begin
       FData.Position := 0;
-      Self.FData.Position := 0;
-      FData.CopyFrom(Self.FData, Self.FData.Size);
+      FData.CopyFrom(Self.FData, 0);
       FData.Position := 0;
     end
   else
@@ -2574,7 +2573,7 @@ end;
 
 procedure TChunkPngImageData.WriteToStream(Stream: TStream);
 begin
-  Stream.CopyFrom(FData);
+  Stream.CopyFrom(FData, 0);
 end;
 
 
@@ -4652,7 +4651,7 @@ begin
 
     // concat current chunk to data stream
     with TChunkPngImageData(FDataChunkList[DataIndex]) do
-      Stream.CopyFrom(Data);
+      Stream.CopyFrom(Data, 0);
   end;
 end;
 
@@ -4981,7 +4980,7 @@ var
     Chunk.WriteToStream(MemoryStream);
 
     // copy memory stream to stream
-    Stream.CopyFrom(MemoryStream);
+    Stream.CopyFrom(MemoryStream, 0);
 
     // calculate and write CRC
     CRC := Swap32(CalculateCRC(MemoryStream));
@@ -5006,7 +5005,7 @@ begin
     FImageHeader.WriteToStream(MemoryStream);
 
     // copy memory stream to stream
-    Stream.CopyFrom(MemoryStream);
+    Stream.CopyFrom(MemoryStream, 0);
 
     // calculate and write CRC
     CRC := Swap32(CalculateCRC(MemoryStream));
