@@ -646,6 +646,7 @@ type
   TRectRounding = (rrClosest, rrOutside, rrInside);
 
 function MakeRect(const L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function MakeRect(const L, T, R, B: TFloat; Rounding: TRectRounding = rrClosest): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function FixedRect(const L, T, R, B: TFixed): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1797,7 +1798,7 @@ end;
 
 function HSLtoRGB(H, S, L: Single; A: Integer): TColor32;
 const
-  OneOverThree = 1 / 3;
+  OneOverThree: Single = 1 / 3;
 var
   M1, M2: Single;
 
@@ -2285,6 +2286,37 @@ begin
     Top := T;
     Right := R;
     Bottom := B;
+  end;
+end;
+
+function MakeRect(const L, T, R, B: TFloat; Rounding: TRectRounding = rrClosest): TRect;
+begin
+  case Rounding of
+    rrClosest:
+      begin
+        Result.Left := System.Round(L);
+        Result.Top := System.Round(T);
+        Result.Right := System.Round(R);
+        Result.Bottom := System.Round(B);
+      end;
+
+    rrInside:
+      begin
+        Result.Left := Ceil(L);
+        Result.Top := Ceil(T);
+        Result.Right := Floor(R);
+        Result.Bottom := Floor(B);
+        if Result.Right < Result.Left then Result.Right := Result.Left;
+        if Result.Bottom < Result.Top then Result.Bottom := Result.Top;
+      end;
+
+    rrOutside:
+      begin
+        Result.Left := Floor(L);
+        Result.Top := Floor(T);
+        Result.Right := Ceil(R);
+        Result.Bottom := Ceil(B);
+      end;
   end;
 end;
 
@@ -7348,7 +7380,8 @@ begin
           StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, OnPixelCombine);
 
           DeviceContextSupport.DrawTo(hDst,
-            MakeRect(X + DstRect.Left, Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
+            // GR32.MakeRect(integer(), ...) is because FPC confuses integer and float... *sigh*
+            GR32.MakeRect(integer(X + DstRect.Left), Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
             Buffer.BoundsRect
           );
         end;
@@ -7563,20 +7596,20 @@ begin
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
   try
-    Sz := Self.TextExtent(Text) + Self.TextExtent(' ');
-    B.SetSize(Sz.cX, Sz.cY);
+    Sz := Self.TextExtent(Text);
+    B.SetSize(Sz.cX + 2, Sz.cY + 2); // (+2, +2) = Make room for AA
     B.Font.Assign(Font);
     B.Clear(0);
     B.Font.Color := clWhite;
 
-    B.Textout(0, 0, Text);
+    B.Textout(1, 1, Text); // (1,1) = offset for AA
     TextBlueToAlpha(B, Color);
 
     B.DrawMode := dmBlend;
     B.MasterAlpha := Alpha;
     B.CombineMode := CombineMode;
 
-    B.DrawTo(Self, X, Y);
+    B.DrawTo(Self, X-1, Y-1); // (-1, -1) = Offset for AA
   finally
     B.Free;
   end;

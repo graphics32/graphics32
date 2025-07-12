@@ -88,9 +88,16 @@ type
 
   ITextToPathSupport = interface(IUnknown)
     ['{6C4037E4-FF4D-4EE2-9C20-B9DB9C64B42D}']
-    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string); overload;
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; Flags: Cardinal = 0); overload;
     procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal = 0); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal = 0): TFloatRect;
+  end;
+
+  ITextToPathSupport2 = interface(ITextToPathSupport)
+    ['{80DC4DC2-1AA2-4940-9F5E-C873A35E77F2}']
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; const Layout: TTextLayout); overload;
+    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
   end;
 
   ICanvasSupport = interface(IUnknown)
@@ -146,19 +153,22 @@ type
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   end;
 
-  TRequireOperatorMode = (romAnd, romOr);
-
 type
+  TTextHinting = (thNone, thNoHorz, thHinting);
+
   IFontHintingSupport = interface(IUnknown)
     ['{42D96689-8627-472E-A93B-A39971A1F603}']
     function GetHinting: TTextHinting;
     procedure SetHinting(Value: TTextHinting);
 
     property Hinting: TTextHinting read GetHinting write SetHinting;
-  end;
+  end {$ifndef IGNORE_HINTING_DEPRECATED}deprecated 'Hinting is no longer supported. See IGNORE_HINTING_DEPRECATED in GR32.inc'{$endif};
+
 
 
 // Helper functions to temporarily switch the back-end depending on the required interfaces
+type
+  TRequireOperatorMode = (romAnd, romOr);
 
 procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
   RequiredInterfaces: array of TGUID;

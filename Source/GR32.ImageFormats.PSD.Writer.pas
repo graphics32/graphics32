@@ -468,16 +468,17 @@ var
     Result := WriteRawAnsiString(AText) + 1;
   end;
 
-  function WriteUnicodeText(const AText: string): Cardinal;
+  function WriteUnicodeText(const AText: UnicodeString): Cardinal;
+  // Note: We use UnicodeString and WideChar for Lazarus support
   var
-    c: Char;
+    c: WideChar;
   begin
     BigEndian.WriteCardinal(AStream, Length(AText));
     for c in AText do
       BigEndian.WriteWord(AStream, Ord(c));
     c := #0;
-    AStream.Write(c, SizeOf(Char));
-    Result := (Length(AText)+1) * SizeOf(Char) + SizeOf(Cardinal);
+    AStream.Write(c, SizeOf(WideChar));
+    Result := (Length(AText)+1) * SizeOf(WideChar) + SizeOf(Cardinal);
   end;
 
   procedure WriteBeginSection;
