@@ -7381,7 +7381,8 @@ begin
 
           DeviceContextSupport.DrawTo(hDst,
             // GR32.MakeRect(integer(), ...) is because FPC confuses integer and float... *sigh*
-            GR32.MakeRect(integer(X + DstRect.Left), Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
+            {$if defined(FPC) or (CompilerVersion > 25.0)}GR32.{$ifend} // XE4 cannot resolve GR32 to itself *groan*
+            MakeRect(integer(X + DstRect.Left), Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
             Buffer.BoundsRect
           );
         end;
