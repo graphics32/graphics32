@@ -54,8 +54,13 @@ uses
 //------------------------------------------------------------------------------
 type
   TDoubleLinked<T: class> = record
+{$if defined(GENERIC_POINTERS)}
     Prev: ^TDoubleLinked<T>; // From Head: Least recently used
     Next: ^TDoubleLinked<T>; // From Head: Most recently used
+{$else}
+    Prev: pointer;
+    Next: pointer;
+{$ifend}
     Value: T;
     procedure InitializeHead;
     function IsEmpty: boolean; inline; // Does not have a value
@@ -64,6 +69,7 @@ type
     function IsLRU: boolean; inline; // Is Least Recently Used
     procedure Unlink; inline;
     procedure Add(var Link: TDoubleLinked<T>); inline;
+    function PrevValue: T;
   end;
 
 
@@ -376,20 +382,44 @@ end;
 
 function TDoubleLinked<T>.IsMRU: boolean;
 begin
+{$if defined(GENERIC_POINTERS)}
   Result := (Prev <> nil) and (Prev.IsHead);
+{$else}
+  Result := (Prev <> nil) and (TDoubleLinked<T>(Prev^).IsHead);
+{$ifend}
+end;
+
+function TDoubleLinked<T>.PrevValue: T;
+begin
+{$if defined(GENERIC_POINTERS)}
+  Result := Prev.Value;
+{$else}
+  Result := TDoubleLinked<T>(Prev^).Value;
+{$ifend}
 end;
 
 function TDoubleLinked<T>.IsLRU: boolean;
 begin
+{$if defined(GENERIC_POINTERS)}
   Result := (Next <> nil) and (Next.IsHead);
+{$else}
+  Result := (Next <> nil) and (TDoubleLinked<T>(Next^).IsHead);
+{$ifend}
 end;
 
 procedure TDoubleLinked<T>.Unlink;
 begin
+{$if defined(GENERIC_POINTERS)}
   if (Prev <> nil) then
     Prev.Next := Next;
   if (Next <> nil) then
     Next.Prev := Prev;
+{$else}
+  if (Prev <> nil) then
+    TDoubleLinked<T>(Prev^).Next := Next;
+  if (Next <> nil) then
+    TDoubleLinked<T>(Next^).Prev := Prev;
+{$ifend}
   Prev := nil;
   Next := nil;
 end;
@@ -399,7 +429,11 @@ begin
   Link.Next := Next;
   Link.Prev := @Self;
 
+{$if defined(GENERIC_POINTERS)}
   Next.Prev := @Link;
+{$else}
+  TDoubleLinked<T>(Next^).Prev := @Link;
+{$ifend}
   Next := @Link;
 end;
 
@@ -688,7 +722,7 @@ begin
   begin
 
     // The item to be evicted
-    Item := FLRUList.Prev.Value;
+    Item := FLRUList.PrevValue;
 
     // The cache size potentially doesn't decrease after eviction if the
     // cache object is being held alive by an external reference.

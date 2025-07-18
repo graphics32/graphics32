@@ -119,40 +119,6 @@
 
 
 (*
-  Symbol INLININGSUPPORTED:
-  -------------------------
-
-    In modern Delphi versions procedures and functions that do not contain
-    assembler code can be inlined. This can be extremely useful for calls
-    to a small portion of code in a loop. However, depending on the instruction
-    cache size, this may or may not result in a performance boost compared to a
-    call of assembler optimized code.
-*)
-// Note: Inlining is supported by all supported compilers; This define will be deprecated.
-{$if not defined(MEDIOCRE_COMPILER)}
-{$define INLININGSUPPORTED}
-{$ifend}
-
-
-(*
-  Symbol: NO_GENERIC_METACLASS_LISTS
-  -------------------------------
-
-     The C++ Builder linker has problems resolving ambiguities caused by
-     metaclass types because they all get mangled as TClass. As a result
-     of this the compiled object files end up containing duplicate
-     symbols, which in turn causes a LIB266 linker error.
-     Specifically we get into problems with TCustomClassList<T> where "T"
-     is a metaclass.
-     To work around the problem we define the NO_GENERIC_METACLASS_LISTS
-     for C++ Builder which causes us to use TClassList for all class types.
-*)
-{$if defined(BCB)}
-{$define NO_GENERIC_METACLASS_LISTS}
-{$ifend}
-
-
-(*
   Symbol TARGET_* :
   -----------------
 
@@ -293,6 +259,23 @@
 
 
 (*
+  Symbol INLININGSUPPORTED:
+  -------------------------
+
+    In modern Delphi versions procedures and functions that do not contain
+    assembler code can be inlined. This can be extremely useful for calls
+    to a small portion of code in a loop. However, depending on the instruction
+    cache size, this may or may not result in a performance boost compared to a
+    call of assembler optimized code.
+*)
+// Note: Inlining is supported by all supported compilers; This define will be deprecated.
+{$if not defined(MEDIOCRE_COMPILER)}
+{$define INLININGSUPPORTED}
+{$ifend}
+
+
+
+(*
   Symbol: LOADFROMSTREAM
   ----------------------
 
@@ -335,6 +318,7 @@
 {$ifend}
 
 
+
 (*
   Symbol: CLOSURE_CAPTURES_CONST
   -------------------------------
@@ -358,6 +342,7 @@
 {$if defined(FPC) or (CompilerVersion >= 33.0)}
 {$define CLOSURE_CAPTURES_CONST}
 {$ifend}
+
 
 
 (*
@@ -386,6 +371,7 @@
 {$ifend}
 
 
+
 (*
   Symbol: ClientToScreenRect
   -------------------------------
@@ -402,6 +388,7 @@
 {$if defined(FPC) or (CompilerVersion > 25.0)}
 {$define ClientToScreenRect}
 {$ifend}
+
 
 
 (*
@@ -422,6 +409,7 @@
 {$if (not defined(FPC)) and (CompilerVersion >= 28.0)}
 {$define StaticOperators}
 {$ifend}
+
 
 
 (*
@@ -446,6 +434,7 @@
 {$ifend}
 
 
+
 (*
   Symbol: GenericMethods
   -------------------------------
@@ -460,6 +449,7 @@
 {$if defined(FPC) or (CompilerVersion >= 30.0)} // Delphi 10 or later
   {$define GenericMethods}
 {$ifend}
+
 
 
 (*
@@ -478,6 +468,48 @@
 {$if defined(FRAMEWORK_VCL) and (CompilerVersion >= 29.0)} // XE8
   {$define NeedImageList}
 {$ifend}
+
+
+
+(*
+  Symbol: NO_GENERIC_METACLASS_LISTS
+  -------------------------------
+
+     The C++ Builder linker has problems resolving ambiguities caused by
+     metaclass types because they all get mangled as TClass. As a result
+     of this the compiled object files end up containing duplicate
+     symbols, which in turn causes a LIB266 linker error.
+     Specifically we get into problems with TCustomClassList<T> where "T"
+     is a metaclass.
+     To work around the problem we define the NO_GENERIC_METACLASS_LISTS
+     for C++ Builder which causes us to use TClassList for all class types.
+*)
+{$if defined(BCB)}
+{$define NO_GENERIC_METACLASS_LISTS}
+{$ifend}
+
+
+
+(*
+  Symbol: GENERIC_POINTERS
+  -------------------------------
+
+    Typed pointers to generic types are supported.
+
+  Older Delphi versions cannot resolve a pointer to a generic type correctly
+  and therefore must use plan untyped pointers instead.
+  Exact Delphi version is unknown but XE4 doesn't work and Delphi 10 does.
+
+  The symbol is defined for XE5 and later, and for FPC.
+  The exact version of Delphi that supports the feature is unknown at this
+  time.
+*)
+{$if defined(FPC)}
+  {$define GENERIC_POINTERS}
+{$elseif (CompilerVersion > 25.0)}
+  {$define GENERIC_POINTERS}
+{$ifend}
+
 
 (*
   Miscellaneous Defines:
