@@ -184,6 +184,8 @@ var
   i: Integer;
   Dx, Dy, DyDx, Y: TFloat;
   fracX1, fracX2: TFloat;
+const
+  HalfFloat: TFloat = 0.5;
 begin
   (*
   ** We have a line segment going from (X1,Y1) to (X2,Y2):
@@ -239,7 +241,7 @@ begin
   if X1 = X2 then
   begin
 
-    Values[X1] := Values[X1] + 0.5 * (P2.X - P1.X) * (P1.Y + P2.Y);
+    Values[X1] := Values[X1] + HalfFloat * (P2.X - P1.X) * (P1.Y + P2.Y);
 
   end else
   // Everything else
@@ -258,17 +260,17 @@ begin
       Y := P1.Y + fracX1 * DyDx;
 
       // First fractional X (fracX1..1)
-      Values[X1] := Values[X1] + 0.5 * (P1.Y + Y) * fracX1;
+      Values[X1] := Values[X1] + HalfFloat * (P1.Y + Y) * fracX1;
 
       // Whole Xs (1..1)
       for i := X1 + 1 to X2 - 1 do
       begin
-        Values[i] := Values[i] + (Y + DyDx * 0.5);     // N: Sx = 1
+        Values[i] := Values[i] + (Y + DyDx * HalfFloat);     // N: Sx = 1
         Y := Y + DyDx;
       end;
 
       // Last fractional X (1..fracX2)
-      Values[X2] := Values[X2] + 0.5 * (Y + P2.Y) * fracX2;
+      Values[X2] := Values[X2] + HalfFloat * (Y + P2.Y) * fracX2;
 
     end else // X1 > X2
     begin
@@ -279,17 +281,17 @@ begin
       Y := P1.Y - fracX1 * DyDx;
 
       // First fractional X (fracX1..1)
-      Values[X1] := Values[X1] - 0.5 * (P1.Y + Y) * fracX1;
+      Values[X1] := Values[X1] - HalfFloat * (P1.Y + Y) * fracX1;
 
       // Whole Xs (1..1)
       for i := X1 - 1 downto X2 + 1 do
       begin
-        Values[i] := Values[i] - (Y - DyDx * 0.5);    // N: Sx = -1
+        Values[i] := Values[i] - (Y - DyDx * HalfFloat);    // N: Sx = -1
         Y := Y - DyDx;
       end;
 
       // Last fractional X (1..fracX2)
-      Values[X2] := Values[X2] - 0.5 * (Y + P2.Y) * fracX2;
+      Values[X2] := Values[X2] - HalfFloat * (Y + P2.Y) * fracX2;
 
     end;
 
@@ -408,8 +410,11 @@ var
   Y2bin: Cardinal absolute Y2;
 begin
   // Fast way of checking a Single = 0.
-  if (Y1bin shl 1 = 0) and (Y2bin shl 1 = 0) then
-  // if (Y1 = 0) and (Y2 = 0) then
+  //   if (Y1bin shl 1 = 0) and (Y2bin shl 1 = 0) then
+  // Likely even faster:
+  if ((Y1bin or Y2bin) shl 1 = 0) then
+  // Original:
+  //   if (Y1 = 0) and (Y2 = 0) then
     Exit;  { needed for proper clipping }
 
   // Add segment to the scanline's list of segments
