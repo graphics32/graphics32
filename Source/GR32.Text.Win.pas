@@ -224,7 +224,8 @@ type
     FHasKerning: boolean;
     FKerningPairs: TKerningPairs;
 {$ifndef FPC}
-    FKerningComparer: IComparer<TKerningPair>;
+  private
+    class var FKerningComparer: IComparer<TKerningPair>;
 {$endif}
 
   private
@@ -606,11 +607,25 @@ end;
 class constructor TFontFace32.Create;
 begin
   FFontCache := TDictionary<TFontKey, IFontItem>.Create;
+
+{$ifndef FPC}
+  FKerningComparer := TComparer<TKerningPair>.Construct(
+    function(const A, B: TKerningPair): integer
+    begin
+      Result := (A.wFirst - B.wFirst);
+      if (Result = 0) then
+        Result := (A.wSecond - B.wSecond);
+    end);
+{$endif}
+
 end;
 
 class destructor TFontFace32.Destroy;
 begin
   FFontCache.Free;
+{$ifndef FPC}
+  FKerningComparer := nil
+{$endif}
 end;
 
 //------------------------------------------------------------------------------
@@ -1114,9 +1129,9 @@ end;
 // Adapted from classes.pas
 procedure SortKerningPairs(List: TFontFace32.TKerningPairs);
 
-  procedure QuickSortKerningPairs(L, R: NativeInt);
+  procedure QuickSortKerningPairs(L, R: integer);
   var
-    I, J: NativeInt;
+    I, J: integer;
     T: TKerningPair;
     P: PKerningPair;
   begin
@@ -1174,10 +1189,10 @@ begin
     QuickSortKerningPairs(0, High(List));
 end;
 
-function BinarySearchKerningPairs(List: TFontFace32.TKerningPairs; const Item: TKerningPair; out FoundIndex: NativeInt): boolean;
+function BinarySearchKerningPairs(List: TFontFace32.TKerningPairs; const Item: TKerningPair; out FoundIndex: integer): boolean;
 var
-  L, H, mid: NativeInt;
-  cmp: NativeInt;
+  L, H, mid: integer;
+  cmp: integer;
 begin
   if Length(List) = 0 then
   begin
@@ -1211,7 +1226,7 @@ function TFontFace32.GetKerning(AFirstGlyph, ASecondGlyph: Cardinal): Single;
 var
   Count: integer;
   KerningPair: TKerningPair;
-  KerningIndex: NativeInt;
+  KerningIndex: integer;
 begin
   Result := 0;
 
@@ -1238,14 +1253,6 @@ begin
         RaiseLastOSError;
 
 {$ifndef FPC}
-
-      FKerningComparer := TComparer<TKerningPair>.Construct(
-        function(const A, B: TKerningPair): integer
-        begin
-          Result := (A.wFirst - B.wFirst);
-          if (Result = 0) then
-            Result := (A.wSecond - B.wSecond);
-        end);
 
       // The array returned by GetKerningPairs appears to be sorted on First but not
       // on Second so we have to sort it ourselves.
