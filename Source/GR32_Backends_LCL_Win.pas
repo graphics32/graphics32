@@ -545,19 +545,19 @@ var
   R: TFloatRect;
 begin
   R := FloatRect(X, Y, X, Y);
-  TextToolsWin.TextToPath(Font, Path, R, Text, Flags);
+  TextToolsWin.TextToPath(FFont.Handle, Path, R, Text, Flags);
 end;
 
 procedure TLCLBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
   const Text: string; Flags: Cardinal);
 begin
-  TextToolsWin.TextToPath(Font, Path, DstRect, Text, Flags);
+  TextToolsWin.TextToPath(FFont.Handle, Path, DstRect, Text, Flags);
 end;
 
 function TLCLBackend.MeasureText(const DstRect: TFloatRect;
   const Text: string; Flags: Cardinal): TFloatRect;
 begin
-  Result := TextToolsWin.MeasureText(Font, DstRect, Text, Flags);
+  Result := TextToolsWin.MeasureText(FFont.Handle, DstRect, Text, Flags);
 end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
