@@ -752,6 +752,8 @@ type
   strict private type
     TOffsetChange = (ocOffsetHorz, ocOffsetVert, ocScrollBars, ocScale, ocBitmapSize, ocControlSize);
     TOffsetChanges = set of TOffsetChange;
+  strict protected type
+    TScrollBarKind32 = (sbHorizontal, sbVertical); // Maps directly to Forms.TScrollBarKind
   strict private
     FCentered: Boolean;
     FScrollBars: TImageViewScrollProperties;
@@ -768,6 +770,7 @@ type
     procedure SetScrollBars(Value: TImageViewScrollProperties);
     procedure SetSizeGrip(Value: TSizeGripStyle);
     procedure SetOverSize(const Value: Integer);
+    procedure CMTabStopChanged(var Message: TMessage); message CM_TABSTOPCHANGED;
   protected
     property HScroll: TScrollBar read FHorScroll;
     property VScroll: TScrollBar read FVerScroll;
@@ -801,6 +804,7 @@ type
     procedure DoSetPivot(const APivot: TFloatPoint); override;
     procedure ScrollHandler(Sender: TObject); virtual;
     procedure ScrollChangingHandler(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
+    function CreateScrollbar(Kind: TScrollBarKind32): TScrollBar; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -4133,21 +4137,8 @@ begin
 
     FScrollBars := TImageViewScrollProperties.Create(Self);
 
-    FHorScroll := TScrollBar.Create(Self);
-    FHorScroll.ControlStyle := FHorScroll.ControlStyle - [csFramed];
-    FHorScroll.Visible := False;
-    FHorScroll.Parent := Self;
-    FHorScroll.Kind := sbHorizontal;
-    FHorScroll.OnChange := ScrollHandler; // Changed
-    FHorScroll.OnScroll := ScrollChangingHandler; // Changing
-
-    FVerScroll := TScrollBar.Create(Self);
-    FVerScroll.Visible := False;
-    FVerScroll.Parent := Self;
-    FVerScroll.ControlStyle := FVerScroll.ControlStyle - [csFramed];
-    FVerScroll.Kind := sbVertical;
-    FVerScroll.OnChange := ScrollHandler;
-    FVerScroll.OnScroll := ScrollChangingHandler;
+    FHorScroll := CreateScrollbar(TScrollBarKind32.sbHorizontal);
+    FVerScroll := CreateScrollbar(TScrollBarKind32.sbVertical);
 
     FCentered := True;
     ScaleMode := smScale;
@@ -4164,6 +4155,20 @@ destructor TCustomImgView32.Destroy;
 begin
   FreeAndNil(FScrollBars);
   inherited;
+end;
+
+//------------------------------------------------------------------------------
+
+function TCustomImgView32.CreateScrollbar(Kind: TScrollBarKind32): TScrollBar;
+begin
+  Result := TScrollBar.Create(Self);
+  Result.ControlStyle := Result.ControlStyle - [csFramed];
+  Result.Visible := False;
+  Result.Parent := Self;
+  Result.Kind := TScrollBarKind(Kind);
+  Result.TabStop := TabStop;
+  Result.OnChange := ScrollHandler; // Changed
+  Result.OnScroll := ScrollChangingHandler; // Changing
 end;
 
 //------------------------------------------------------------------------------
@@ -4414,6 +4419,17 @@ begin
     (FScrollBars.Visibility <> svHidden) and
     (BitmapAlign = baCustom) and
     (ScaleMode in [smNormal, smScale]);
+end;
+
+procedure TCustomImgView32.CMTabStopChanged(var Message: TMessage);
+begin
+  inherited;
+
+  if (FHorScroll <> nil) then
+    FHorScroll.TabStop := TabStop;
+
+  if (FVerScroll <> nil) then
+    FVerScroll.TabStop := TabStop;
 end;
 
 function TCustomImgView32.GetScrollBarsVisible: Boolean;
