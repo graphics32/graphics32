@@ -245,7 +245,7 @@ type
     function GetKerning(AFirstGlyph, ASecondGlyph: Cardinal): Single;
 
   public
-    constructor Create(AFont: TFont);
+    constructor Create(AFont: HFont);
 
     class procedure ClearCache;
   end;
@@ -273,13 +273,13 @@ type
 //------------------------------------------------------------------------------
 type
   TextToolsWin = record
-    class procedure TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0); overload; static;
-    class procedure TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout); overload; static;
+    class procedure TextToPath(AFont: HFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0); overload; static;
+    class procedure TextToPath(AFont: HFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout); overload; static;
 
-    class function TextToPolyPolygon(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TArrayOfArrayOfFloatPoint; static; deprecated;
+    class function TextToPolyPolygon(AFont: HFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TArrayOfArrayOfFloatPoint; static; deprecated;
 
-    class function MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TFloatRect; overload; static;
-    class function MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect; overload; static;
+    class function MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TFloatRect; overload; static;
+    class function MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect; overload; static;
   end;
 
 
@@ -356,7 +356,7 @@ end;
 //      TextToolsWin
 //
 //------------------------------------------------------------------------------
-class procedure TextToolsWin.TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout);
+class procedure TextToolsWin.TextToPath(AFont: HFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout);
 var
   R: TFloatRect;
   FontFace: IFontFace32;
@@ -372,7 +372,7 @@ begin
   FontFace.EndSession;
 end;
 
-class procedure TextToolsWin.TextToPath(AFont: TFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; AFlags: Cardinal);
+class procedure TextToolsWin.TextToPath(AFont: HFont; APath: TCustomPath; const ARect: TFloatRect; const AText: string; AFlags: Cardinal);
 var
   TextLayout: TTextLayout;
 begin
@@ -384,7 +384,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-class function TextToolsWin.MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect;
+class function TextToolsWin.MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect;
 var
   FontFace: IFontFace32;
 begin
@@ -395,7 +395,7 @@ begin
   LayoutEngine.TextToPath(FontFace, nil, Result, AText, ALayout);
 end;
 
-class function TextToolsWin.MeasureText(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal): TFloatRect;
+class function TextToolsWin.MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal): TFloatRect;
 var
   TextLayout: TTextLayout;
 begin
@@ -407,7 +407,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-class function TextToolsWin.TextToPolyPolygon(AFont: TFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal): TArrayOfArrayOfFloatPoint;
+class function TextToolsWin.TextToPolyPolygon(AFont: HFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal): TArrayOfArrayOfFloatPoint;
 var
   Path: TFlattenedPath;
 begin
@@ -558,13 +558,13 @@ end;
 //
 //------------------------------------------------------------------------------
 
-constructor TFontFace32.Create(AFont: TFont);
+constructor TFontFace32.Create(AFont: HFont);
 var
   Size: integer;
 begin
 
   // Temporarily reuse FFontData.LogFont. We will overwrite the value below
-  Size := GetObject(AFont.Handle, SizeOf(TLogFont), @FFontData.LogFont);
+  Size := GetObject(AFont, SizeOf(TLogFont), @FFontData.LogFont);
   if (Size <> SizeOf(TLogFont)) then
     RaiseLastOSError;
 
@@ -577,7 +577,7 @@ begin
 
   if (not FFontCache.TryGetValue(FFontKey, FFontItem)) then
   begin
-    FFontItem := TFontItem.Create(AFont.Handle, FFontData);
+    FFontItem := TFontItem.Create(AFont, FFontData);
     FFontCache.Add(FFontKey, FFontItem);
   end else
     FFontItem.GetFontData(FFontData);
@@ -1329,7 +1329,7 @@ end;
 //------------------------------------------------------------------------------
 function TFontFaceProvider.CreateFontFace(AFont: TFont): IFontFace32;
 begin
-  Result := TFontFace32.Create(AFont);
+  Result := TFontFace32.Create(AFont.Handle);
 end;
 
 

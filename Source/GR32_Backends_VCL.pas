@@ -277,7 +277,7 @@ end;
 
 function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 begin
-  Result := TextToolsWin.MeasureText(Font, DstRect, Text, Flags);
+  Result := TextToolsWin.MeasureText(FFont.Handle, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.FinalizeSurface;
@@ -391,12 +391,12 @@ var
   R: TFloatRect;
 begin
   R := FloatRect(X, Y, X, Y);
-  TextToolsWin.TextToPath(Font, Path, R, Text, Flags);
+  TextToolsWin.TextToPath(FFont.Handle, Path, R, Text, Flags);
 end;
 
 procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal);
 begin
-  TextToolsWin.TextToPath(Font, Path, DstRect, Text, Flags);
+  TextToolsWin.TextToPath(FFont.Handle, Path, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; const Layout: TTextLayout);
@@ -404,17 +404,17 @@ var
   R: TFloatRect;
 begin
   R := FloatRect(X, Y, X, Y);
-  TextToolsWin.TextToPath(Font, Path, R, Text, Layout);
+  TextToolsWin.TextToPath(FFont.Handle, Path, R, Text, Layout);
 end;
 
 procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout);
 begin
-  TextToolsWin.TextToPath(Font, Path, DstRect, Text, Layout);
+  TextToolsWin.TextToPath(FFont.Handle, Path, DstRect, Text, Layout);
 end;
 
 function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect;
 begin
-  TextToolsWin.MeasureText(Font, DstRect, Text, Layout);
+  TextToolsWin.MeasureText(FFont.Handle, DstRect, Text, Layout);
 end;
 
 
@@ -614,7 +614,8 @@ procedure TGDIBackend.FontChangedHandler(Sender: TObject);
 begin
   if FFontHandle <> 0 then
   begin
-    if Handle <> 0 then SelectObject(Handle, StockFont);
+    if Handle <> 0 then
+      SelectObject(Handle, StockFont);
     FFontHandle := 0;
   end;
 
