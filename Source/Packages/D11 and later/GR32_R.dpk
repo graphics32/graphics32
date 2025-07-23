@@ -92,7 +92,10 @@ contains
   GR32.Math.Complex in '..\..\GR32.Math.Complex.pas',
   GR32.Types.SIMD in '..\..\GR32.Types.SIMD.pas',
   GR32_VectorUtils.Reference in '..\..\GR32_VectorUtils.Reference.pas',
-  GR32.Transpose in '..\..\GR32.Transpose.pas';
-
+  GR32.Transpose in '..\..\GR32.Transpose.pas',
+  GR32.Text.FontFace in '..\..\GR32.Text.FontFace.pas',
+  GR32.Text.Layout in '..\..\GR32.Text.Layout.pas',
+  GR32.Text.Unicode in '..\..\GR32.Text.Unicode.pas',
+  GR32.Text.Cache in '..\..\GR32.Text.Cache.pas';
 end.
 
