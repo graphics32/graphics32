@@ -28,7 +28,7 @@
     <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="3"/>
-    <Files Count="48">
+    <Files Count="52">
       <Item1>
         <Filename Value="..\..\GR32.pas"/>
         <UnitName Value="GR32"/>
@@ -227,6 +227,22 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <Filename Value="..\..\GR32_VPR2.pas"/>
         <UnitName Value="GR32_VPR2"/>
       </Item48>
+      <Item49>
+        <Filename Value="..\..\GR32.Text.Cache.pas"/>
+        <UnitName Value="GR32.Text.Cache"/>
+      </Item49>
+      <Item50>
+        <Filename Value="..\..\GR32.Text.FontFace.pas"/>
+        <UnitName Value="GR32.Text.FontFace"/>
+      </Item50>
+      <Item51>
+        <Filename Value="..\..\GR32.Text.Layout.pas"/>
+        <UnitName Value="GR32.Text.Layout"/>
+      </Item51>
+      <Item52>
+        <Filename Value="..\..\GR32.Text.Unicode.pas"/>
+        <UnitName Value="GR32.Text.Unicode"/>
+      </Item52>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">
