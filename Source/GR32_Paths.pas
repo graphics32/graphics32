@@ -354,6 +354,14 @@ var
     u0 := (P2.X - P1.X) * ddX + (P2.Y - P1.Y) * ddY;
     u2 := (P3.X - P2.X) * ddX + (P3.Y - P2.Y) * ddY;
     Cross := (P3.X - P1.X) * ddY - (P3.Y - P1.Y) * ddX;
+
+    // Fix sporadic error with rasterization of some fonts
+    if (Cross = 0) then
+    begin
+      Scale := 0;
+      exit;
+    end;
+
     OneOverCross := 1 / Cross;
 
     x0 := u0 * OneOverCross;
