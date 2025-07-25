@@ -1308,8 +1308,10 @@ begin
   end else
   begin
     AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmTextMetrics.tmAscent * FFontData.Scale;
-    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmTextMetrics.tmDescent * FFontData.Scale;
-    AFontFaceMetrics.LineGap := (FFontData.OutlineTextMetric.otmTextMetrics.tmHeight - FFontData.OutlineTextMetric.otmTextMetrics.tmAscent + FFontData.OutlineTextMetric.otmTextMetrics.tmDescent) * FFontData.Scale;
+    AFontFaceMetrics.Descent := -FFontData.OutlineTextMetric.otmTextMetrics.tmDescent * FFontData.Scale; // Descent is negative; See: OutlineTextMetric.otmDescent
+    // tmHeight is defined as tmAscent + tmDescent so tmHeight-tmAscent-tmDescent should be zero.
+    // In case it isn't we add the difference to the line gap
+    AFontFaceMetrics.LineGap := (FFontData.OutlineTextMetric.otmTextMetrics.tmHeight - FFontData.OutlineTextMetric.otmTextMetrics.tmAscent - FFontData.OutlineTextMetric.otmTextMetrics.tmDescent + FFontData.OutlineTextMetric.otmLineGap) * FFontData.Scale;
   end;
   AFontFaceMetrics.EMSize := FFontData.OutlineTextMetric.otmEMSquare;
 
