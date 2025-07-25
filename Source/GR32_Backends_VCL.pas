@@ -414,7 +414,7 @@ end;
 
 function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect;
 begin
-  TextToolsWin.MeasureText(FFont.Handle, DstRect, Text, Layout);
+  Result := TextToolsWin.MeasureText(FFont.Handle, DstRect, Text, Layout);
 end;
 
 
