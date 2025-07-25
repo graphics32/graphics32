@@ -64,7 +64,7 @@ type
     ComboBoxFont: TComboBox;
     ButtonBenchmark: TButton;
     Bevel1: TBevel;
-    CheckBoxShowOrigin: TCheckBox;
+    CheckBoxMeasureText: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure ButtonBenchmarkClick(Sender: TObject);
     procedure ImageResize(Sender: TObject);
@@ -108,29 +108,52 @@ type
   TVertexBrush = class(TCustomBrush)
   private
     FBitmap: TBitmap32;
+    FSize: integer;
+    FColor: TColor32;
   protected
     procedure RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
       const ClipRect: TFloatRect; Transformation: TTransformation); override;
-    public
+  public
     constructor Create(ABrushCollection: TBrushCollection; ABitmap: TBitmap32); reintroduce;
+    property Size: integer read FSize write FSize;
+    property Color: TColor32 read FColor write FColor;
   end;
 
 constructor TVertexBrush.Create(ABrushCollection: TBrushCollection; ABitmap: TBitmap32);
 begin
   inherited Create(ABrushCollection);
   FBitmap := ABitmap;
+  FSize := 1;
+  FColor := clTrRed32;
 end;
 
 procedure TVertexBrush.RenderPolyPolygon(Renderer: TCustomPolygonRenderer; const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; Transformation: TTransformation);
 var
   i, j: integer;
-const
-  Size = 1;
 begin
-  for i := 0 to High(Points) do
-    for j := 0 to High(Points[i]) do
-      FBitmap.FrameRectTS(GR32.MakeRect(Points[i, j].X-Size, Points[i, j].Y-Size, Points[i, j].X+Size, Points[i, j].Y+Size), clTrRed32);
+  if (FSize <= 0) then
+  begin
+    for i := 0 to High(Points) do
+      for j := 0 to High(Points[i]) do
+        FBitmap.PixelFS[Points[i, j].X, Points[i, j].Y] := FColor;
+  end else
+  if (FSize = 1) then
+  begin
+    for i := 0 to High(Points) do
+      for j := 0 to High(Points[i]) do
+      begin
+        FBitmap.PixelFS[Points[i, j].X-0.5, Points[i, j].Y] := FColor;
+        FBitmap.PixelFS[Points[i, j].X+0.5, Points[i, j].Y] := FColor;
+        FBitmap.PixelFS[Points[i, j].X, Points[i, j].Y-0.5] := FColor;
+        FBitmap.PixelFS[Points[i, j].X, Points[i, j].Y+0.5] := FColor;
+      end;
+  end else
+  begin
+    for i := 0 to High(Points) do
+      for j := 0 to High(Points[i]) do
+        FBitmap.FrameRectTS(GR32.MakeRect(Points[i, j].X-Size, Points[i, j].Y-Size, Points[i, j].X+FSize, Points[i, j].Y+FSize), FColor);
+  end;
 end;
 {$ifend}
 
@@ -177,52 +200,102 @@ procedure TFormRenderText.Draw;
 var
   Y: integer;
   Height: integer;
-  Size: integer;
+  FontSize: integer;
   Canvas: TCanvas32;
-  Brush: TSolidBrush;
+  FillBrush: TSolidBrush;
+  StrokeBrush: TStrokeBrush;
+{$if defined(DEBUG_VERTICES)}
+  VertexBrush: TVertexBrush;
+{$ifend}
+  s: string;
+  Size: TSize;
+  r: TFloatRect;
+const
+  OffsetX = 10;
+  ColorText = clWhite32;
+  ColorBox = clCornFlowerBlue32;
+  ColorVertex = clRed32;
 begin
   Image.Bitmap.Clear;
+  Image.Bitmap.DrawMode := dmBlend;
 
   Image.Bitmap.Font.Style := GetFontStyle;
   Image.Bitmap.Font.Name := ComboBoxFont.Text;
 
   Canvas := nil;
+  FillBrush := nil;
+  StrokeBrush := nil;
   try
     if CheckboxCanvas32.Checked then
     begin
       Canvas := TCanvas32.Create(Image.Bitmap);
 
-      Brush := TSolidBrush.Create(Canvas.Brushes);
-      Brush.FillColor := clWhite32;
-      Brush.FillMode := pfNonZero;
+      FillBrush := TSolidBrush.Create(Canvas.Brushes);
+      FillBrush.FillColor := ColorText;
+      FillBrush.FillMode := pfNonZero;
 
 {$if defined(DEBUG_VERTICES)}
       if FDisplayVertices then
-        TVertexBrush.Create(Canvas.Brushes, Image.Bitmap);
+      begin
+        VertexBrush := TVertexBrush.Create(Canvas.Brushes, Image.Bitmap);
+        VertexBrush.Size := 1;
+        VertexBrush.Color := ColorVertex;
+      end;
 {$ifend}
+
+      if (CheckBoxMeasureText.Checked) then
+      begin
+        StrokeBrush := TStrokeBrush.Create(Canvas.Brushes);
+        StrokeBrush.FillColor := ColorBox;
+        StrokeBrush.StrokeWidth := 1.0;
+      end;
     end;
 
     Y := 3;
-    Size := 6;
+    FontSize := 6;
 
     while (Y < Image.Bitmap.Height) do
     begin
+      s := Format('%d: %s', [FontSize, EditText.Text]);
 
-      Image.Bitmap.Font.Size := Size;
-
-      // Draw reference line
-      if (CheckBoxShowOrigin.Checked) then
-        Image.Bitmap.LineTS(0, Y, Image.Bitmap.Width, Y, $80204060);
+      Image.Bitmap.Font.Size := FontSize;
 
       if (Canvas <> nil) then
-        Canvas.RenderText(10, Y, Format('%d: %s', [Size, EditText.Text]), DT_SINGLELINE)
-      else
-        Image.Bitmap.RenderText(10, Y, Format('%d: %s', [Size, EditText.Text]), clWhite32, CheckBoxAntiAlias.Checked);
+      begin
+
+        if (CheckBoxMeasureText.Checked) then
+        begin
+          r := FloatRect(OffsetX, Y, 0, 0);
+          r := Canvas.MeasureText(r, s, DT_SINGLELINE);
+
+          FillBrush.Visible := False;
+          StrokeBrush.Visible := True;
+
+          Canvas.Rectangle(r);
+
+          FillBrush.Visible := True;
+          StrokeBrush.Visible := False;
+        end;
+
+        Canvas.RenderText(OffsetX, Y, Format('%d: %s', [FontSize, EditText.Text]), DT_SINGLELINE);
+
+      end else
+      begin
+
+        if (CheckBoxMeasureText.Checked) then
+        begin
+          Size := Image.Bitmap.TextExtent(s);
+          Image.Bitmap.FrameRectS(OffsetX, Y, OffsetX + Size.cx + 1, Y + Size.cy + 1, ColorBox);
+        end;
+
+        Image.Bitmap.RenderText(OffsetX, Y, s, ColorText, CheckBoxAntiAlias.Checked);
+
+      end;
 
       Height := Image.Bitmap.TextHeight(EditText.Text);
       Y := Y + MulDiv(Height, 4, 5);
 
-      Size := Round(Size * 1.2);
+      FontSize := Round(FontSize * 1.2);
 
     end;
   finally
