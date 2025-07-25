@@ -742,7 +742,7 @@ begin
   (*
   ** Parameter validation
   *)
-  if (APath = nil) or (ARect.Right = ARect.Left) or (ARect.Top = ARect.Bottom)then
+  if (APath = nil) or (ARect.Right = ARect.Left) or (ARect.Top = ARect.Bottom) then
   begin
 
     // Either measuring AText or unbounded
@@ -1105,13 +1105,12 @@ begin
         if (not Skip) then
           AFontFace.GetGlyphOutline(TextCharacterString[i].CodePoint, GlyphMetrics, TextPath, X, Y);
 
-        if (X > XMax) then
-          XMax := X;
-
-
         // Advance horizontally to next char
         X := X + AdvanceX;
 
+        if (X > XMax) then
+          // TODO : XMax includes the RSB of the last character. It would be better if it didn't.
+          XMax := X;
       end;
 
 
