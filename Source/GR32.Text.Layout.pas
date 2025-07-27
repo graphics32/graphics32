@@ -729,9 +729,10 @@ var
   LineIndex: integer;
   Line: PTextParagraph;
   AdvanceX: Single;
+  LastWidth: Single;
   AlignmentHorizontal: TTextAlignmentHorizontal;
   InterCharCount: integer;
-  n: integer;
+  ParagraphCount: integer;
 const
   OneHalf: Single = 0.5; // Typed constant to avoid Double/Extended
 begin
@@ -851,16 +852,16 @@ begin
       // If line- and paragraph-spacing differs then we need to first
       // count the number of paragraphs and adjust the height according
       // to the difference in line- and paragraph spacing
-      n := 0;
+      ParagraphCount := 0;
       if (LineAdvanceY <> ParagraphAdvanceY) then
       begin
         // Note that the last line is always a paragraph but we treat it as a line.
         for i := 0 to High(Lines)-1 do
           if (Lines[i].IsParagraph) then
-            Inc(n);
+            Inc(ParagraphCount);
 
-        if (n > 0) then
-          Height := Height + n * (ParagraphAdvanceY - LineAdvanceY);
+        if (ParagraphCount > 0) then
+          Height := Height + ParagraphCount * (ParagraphAdvanceY - LineAdvanceY);
       end;
     end else
       Height := 0;
@@ -1092,9 +1093,7 @@ begin
             AdvanceX := AdvanceX * InterWordSpaceFactor
           else
           if (i < Line.LastIndex) and (TextCharacterString[i+1].UnicodeCategory <> TUnicodeCategory.ucSpaceSeparator) then
-            AdvanceX := AdvanceX + InterCharSpace
-          else
-            AdvanceX := AdvanceX;
+            AdvanceX := AdvanceX + InterCharSpace;
 
         end;
 
@@ -1108,9 +1107,10 @@ begin
         // Advance horizontally to next char
         X := X + AdvanceX;
 
-        if (X > XMax) then
-          // TODO : XMax includes the RSB of the last character. It would be better if it didn't.
-          XMax := X;
+        // Calculate max X excluding RSB
+        LastWidth := X - TextCharacterString[i].Metrics.RightSideBearing;
+        if (LastWidth > XMax) then
+          XMax := LastWidth;
       end;
 
 
