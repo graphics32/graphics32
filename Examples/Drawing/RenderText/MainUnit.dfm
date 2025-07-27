@@ -67,6 +67,7 @@ object FormRenderText: TFormRenderText
       Top = 4
       Width = 5
       Height = 51
+      Anchors = [akTop, akRight]
       Shape = bsLeftLine
     end
     object EditText: TEdit

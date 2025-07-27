@@ -211,13 +211,13 @@ var
   Size: TSize;
   r: TFloatRect;
 const
+  TextFlags: Cardinal = DT_SINGLELINE or DT_LEFT;
   OffsetX = 10;
   ColorText = clWhite32;
   ColorBox = clCornFlowerBlue32;
   ColorVertex = clRed32;
 begin
   Image.Bitmap.Clear;
-  Image.Bitmap.DrawMode := dmBlend;
 
   Image.Bitmap.Font.Style := GetFontStyle;
   Image.Bitmap.Font.Name := ComboBoxFont.Text;
@@ -265,8 +265,8 @@ begin
 
         if (CheckBoxMeasureText.Checked) then
         begin
-          r := FloatRect(OffsetX, Y, 0, 0);
-          r := Canvas.MeasureText(r, s, DT_SINGLELINE);
+          r := FloatRect(OffsetX, Y, Image.Bitmap.Width - OffsetX, Image.Bitmap.Height);
+          r := Canvas.MeasureText(r, s, TextFlags);
 
           FillBrush.Visible := False;
           StrokeBrush.Visible := True;
@@ -277,7 +277,11 @@ begin
           StrokeBrush.Visible := False;
         end;
 
-        Canvas.RenderText(OffsetX, Y, Format('%d: %s', [FontSize, EditText.Text]), DT_SINGLELINE);
+        r := FloatRect(OffsetX, Y, Image.Bitmap.Width - OffsetX, Image.Bitmap.Height);
+        // Rect
+        Canvas.RenderText(r, Format('%d: %s', [FontSize, EditText.Text]), TextFlags);
+        // Point
+        //Canvas.RenderText(OffsetX, Y, Format('%d: %s', [FontSize, EditText.Text]), TextFlags);
 
       end else
       begin
