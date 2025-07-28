@@ -740,8 +740,12 @@ begin
   (*
   ** Parameter validation
   *)
-  if (ARect.Left >= ARect.Right) or (ARect.Top >= ARect.Bottom) then
+  if ((ATextLayout.AlignmentHorizontal <> TextAlignHorCenter) and (ARect.Left = ARect.Right)) or
+    ((ATextLayout.AlignmentVertical <> TextAlignVerCenter) and (ARect.Top = ARect.Bottom)) then
     exit; // No room for anything; Nothing to do
+
+  if (ARect.Left > ARect.Right) or (ARect.Top > ARect.Bottom) then
+    exit; // Negative rect not allowed
 
   if (ATextLayout.SingleLine) then
   begin
