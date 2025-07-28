@@ -716,7 +716,7 @@ var
   TextCharacterString: TTextCharacterString;
   i: Integer;
   Skip: boolean;
-  X, Y, XMax, Height: Single;
+  X, Y, XMin, XMax, Height: Single;
   ClipRect: TFLoatRect;
   OwnedPath: TFlattenedPath;
   GlyphMetrics: TGlyphMetrics32;
@@ -737,27 +737,11 @@ const
   OneHalf: Single = 0.5; // Typed constant to avoid Double/Extended
 begin
 
-  AFontFace.GetFontFaceMetrics(ATextLayout, FontFaceMetrics);
-
-
   (*
   ** Parameter validation
   *)
-  if (APath = nil) or (ARect.Right = ARect.Left) or (ARect.Top = ARect.Bottom) then
-  begin
-
-    // Either measuring AText or unbounded
-    ARect.Right := MaxInt;
-    ARect.Bottom := MaxInt;
-
-    // We cannot align without bounds
-    ATextLayout.AlignmentHorizontal := TextAlignHorLeft;
-    ATextLayout.AlignmentVertical := TextAlignVerTop;
-
-    // Disallow wordwrap without bounds
-    ATextLayout.WordWrap := False;
-
-  end;
+  if (ARect.Left >= ARect.Right) or (ARect.Top >= ARect.Bottom) then
+    exit; // No room for anything; Nothing to do
 
   if (ATextLayout.SingleLine) then
   begin
@@ -777,8 +761,10 @@ begin
 
 
   (*
-  ** Get character metrics
+  ** Get font and character metrics
   *)
+  AFontFace.GetFontFaceMetrics(ATextLayout, FontFaceMetrics);
+
   LayoutEngine.GetGlyphMetrics(TextCharacterString, AFontFace);
 
 
@@ -899,6 +885,7 @@ begin
     // Max line width can't be easily precalculated because of
     // justification, clipping, etc. (and it's easier to just
     // find it inside the loop).
+    XMin := ARect.Right;
     XMax := ARect.Left;
 
     (*
@@ -1065,12 +1052,17 @@ begin
       if (TextPath <> nil) then
         TextPath.BeginUpdate;
 
+        // Remove LSB from first character so it aligns against the margin
+      if (Line.StartIndex <= Line.LastIndex) then
+      begin
+        if (X < XMin) then
+          XMin := X;
+
+        X := X - TextCharacterString[Line.StartIndex].Metrics.LeftSideBearing;
+      end;
+
       for i := Line.StartIndex to Line.LastIndex do
       begin
-
-        // Remove LSB from first character so it aligns against the margin
-        if (i = Line.StartIndex) then
-          X := X - TextCharacterString[i].Metrics.LeftSideBearing;
 
         if (ATextLayout.ClipLayout) then
         begin
@@ -1127,20 +1119,20 @@ begin
     ** Horizontally adjust returned output rect
     *)
     case ATextLayout.AlignmentHorizontal of
-      TextAlignHorLeft:
+
+      TextAlignHorLeft,
+      TextAlignHorJustify:
         ARect.Right := XMax;
 
       TextAlignHorCenter:
         begin
-          ARect.Left := ARect.Left + (ARect.Right - XMax) * OneHalf;
-          ARect.Right := ARect.Left + XMax;
+          ARect.Left := XMin;
+          ARect.Right := XMax;
         end;
 
       TextAlignHorRight:
-        ARect.Left := ARect.Right - (XMax - ARect.Left);
+        ARect.Left := XMin;
 
-      TextAlignHorJustify:
-        ;
     end;
 
 

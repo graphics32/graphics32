@@ -544,7 +544,7 @@ procedure TLCLBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat;
 var
   R: TFloatRect;
 begin
-  R := FloatRect(X, Y, X, Y);
+  R := FloatRect(X, Y, MaxInt, MaxInt);
   TextToolsWin.TextToPath(FFont.Handle, Path, R, Text, Flags);
 end;
 

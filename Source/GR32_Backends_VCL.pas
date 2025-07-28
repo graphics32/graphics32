@@ -390,7 +390,7 @@ procedure TGDIBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat; const Te
 var
   R: TFloatRect;
 begin
-  R := FloatRect(X, Y, X, Y);
+  R := FloatRect(X, Y, MaxInt, MaxInt);
   TextToolsWin.TextToPath(FFont.Handle, Path, R, Text, Flags);
 end;
 
@@ -403,7 +403,7 @@ procedure TGDIBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat; const Te
 var
   R: TFloatRect;
 begin
-  R := FloatRect(X, Y, X, Y);
+  R := FloatRect(X, Y, MaxInt, MaxInt);
   TextToolsWin.TextToPath(FFont.Handle, Path, R, Text, Layout);
 end;
 
