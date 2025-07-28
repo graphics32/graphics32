@@ -1300,16 +1300,26 @@ begin
 
   AFontFaceMetrics.Valid := True;
 
+  // Typographic metric come from the OpenType "OS/2" table
   if (ATextLayout.VerticalMetrics = vmTypographic) then
   begin
     AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmAscent * FFontData.Scale;
     AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmDescent * FFontData.Scale;
-    AFontFaceMetrics.LineGap := FFontData.OutlineTextMetric.otmLineGap * FFontData.Scale;
+    // otmLineGap is declared as an unsigned integer in the Win32 API but the field value
+    // comes from the signed sTypoLineGap field in the OpenType OS/2 table so negative
+    // values are technically permitted.
+    // Negative values has been observed in the following fonts: "Viner Hand ITC",
+    // "Tempus Sans ITC", "Lucida Handwriting".
+    if (integer(FFontData.OutlineTextMetric.otmLineGap) >= 0) then
+      AFontFaceMetrics.LineGap := FFontData.OutlineTextMetric.otmLineGap * FFontData.Scale
+    else
+      AFontFaceMetrics.LineGap := integer(FFontData.OutlineTextMetric.otmLineGap) * FFontData.Scale;
   end else
+  // Windows metric come from the OpenType "hhea" or "OS/2" table
   begin
     AFontFaceMetrics.Ascent := FFontData.OutlineTextMetric.otmTextMetrics.tmAscent * FFontData.Scale;
-    AFontFaceMetrics.Descent := FFontData.OutlineTextMetric.otmTextMetrics.tmDescent * FFontData.Scale;
-    AFontFaceMetrics.LineGap := (FFontData.OutlineTextMetric.otmTextMetrics.tmHeight - FFontData.OutlineTextMetric.otmTextMetrics.tmAscent + FFontData.OutlineTextMetric.otmTextMetrics.tmDescent) * FFontData.Scale;
+    AFontFaceMetrics.Descent := -FFontData.OutlineTextMetric.otmTextMetrics.tmDescent * FFontData.Scale; // Descent is negative; See: OutlineTextMetric.otmDescent
+    AFontFaceMetrics.LineGap := FFontData.OutlineTextMetric.otmTextMetrics.tmExternalLeading * FFontData.Scale;
   end;
   AFontFaceMetrics.EMSize := FFontData.OutlineTextMetric.otmEMSquare;
 

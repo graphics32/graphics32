@@ -20,6 +20,7 @@ object FormRenderText: TFormRenderText
     Top = 61
     Width = 566
     Height = 146
+    Hint = 'For TCanvas32: Click to display/hide font outline vertices'
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baTopLeft
@@ -66,6 +67,7 @@ object FormRenderText: TFormRenderText
       Top = 4
       Width = 5
       Height = 51
+      Anchors = [akTop, akRight]
       Shape = bsLeftLine
     end
     object EditText: TEdit
@@ -139,16 +141,15 @@ object FormRenderText: TFormRenderText
       TabOrder = 6
       OnClick = Changed
     end
-    object CheckBoxShowOrigin: TCheckBox
+    object CheckBoxMeasureText: TCheckBox
       Left = 163
       Top = 34
       Width = 83
       Height = 17
       Hint = 
-        'Draws lines showing the Y-coordinate of the text lines.'#13#10'Note th' +
-        'at the line is above the corresponding text.'#13#10'Do not confuse thi' +
-        's with the baseline of the font which would be below the text.'
-      Caption = 'Show origin'
+        'Displays the text bounding rectangle as returned by the MeasureT' +
+        'ext function'
+      Caption = 'MeasureText'
       TabOrder = 7
       OnClick = Changed
     end

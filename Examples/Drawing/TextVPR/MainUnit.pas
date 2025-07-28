@@ -502,7 +502,6 @@ begin
 
   StopWatch := TStopWatch.StartNew;
 
-  // FCanvas.RenderText(DestRect, sLoremIpsum, FTextLayout);
   FCanvas.RenderText(DestRect, sExamples[ComboBoxExample.ItemIndex].Text, FTextLayout);
 
   FLayoutTime := StopWatch.ElapsedMilliseconds;
@@ -629,7 +628,9 @@ begin
 
   TTrackBar(Sender).Hint := Format('%.2n', [GAMMA_VALUE]);
 
+  (*
   DoRender(nil);
+  *)
 end;
 
 procedure TMainForm.TrackBarInterCharChange(Sender: TObject);

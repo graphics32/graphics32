@@ -716,7 +716,7 @@ var
   TextCharacterString: TTextCharacterString;
   i: Integer;
   Skip: boolean;
-  X, Y, XMax, Height: Single;
+  X, Y, XMin, XMax, Height: Single;
   ClipRect: TFLoatRect;
   OwnedPath: TFlattenedPath;
   GlyphMetrics: TGlyphMetrics32;
@@ -729,34 +729,23 @@ var
   LineIndex: integer;
   Line: PTextParagraph;
   AdvanceX: Single;
+  LastWidth: Single;
   AlignmentHorizontal: TTextAlignmentHorizontal;
   InterCharCount: integer;
-  n: integer;
+  ParagraphCount: integer;
 const
   OneHalf: Single = 0.5; // Typed constant to avoid Double/Extended
 begin
 
-  AFontFace.GetFontFaceMetrics(ATextLayout, FontFaceMetrics);
-
-
   (*
   ** Parameter validation
   *)
-  if (APath = nil) or (ARect.Right = ARect.Left) or (ARect.Top = ARect.Bottom)then
-  begin
+  if ((ATextLayout.AlignmentHorizontal <> TextAlignHorCenter) and (ARect.Left = ARect.Right)) or
+    ((ATextLayout.AlignmentVertical <> TextAlignVerCenter) and (ARect.Top = ARect.Bottom)) then
+    exit; // No room for anything; Nothing to do
 
-    // Either measuring AText or unbounded
-    ARect.Right := MaxInt;
-    ARect.Bottom := MaxInt;
-
-    // We cannot align without bounds
-    ATextLayout.AlignmentHorizontal := TextAlignHorLeft;
-    ATextLayout.AlignmentVertical := TextAlignVerTop;
-
-    // Disallow wordwrap without bounds
-    ATextLayout.WordWrap := False;
-
-  end;
+  if (ARect.Left > ARect.Right) or (ARect.Top > ARect.Bottom) then
+    exit; // Negative rect not allowed
 
   if (ATextLayout.SingleLine) then
   begin
@@ -776,8 +765,10 @@ begin
 
 
   (*
-  ** Get character metrics
+  ** Get font and character metrics
   *)
+  AFontFace.GetFontFaceMetrics(ATextLayout, FontFaceMetrics);
+
   LayoutEngine.GetGlyphMetrics(TextCharacterString, AFontFace);
 
 
@@ -851,16 +842,16 @@ begin
       // If line- and paragraph-spacing differs then we need to first
       // count the number of paragraphs and adjust the height according
       // to the difference in line- and paragraph spacing
-      n := 0;
+      ParagraphCount := 0;
       if (LineAdvanceY <> ParagraphAdvanceY) then
       begin
         // Note that the last line is always a paragraph but we treat it as a line.
         for i := 0 to High(Lines)-1 do
           if (Lines[i].IsParagraph) then
-            Inc(n);
+            Inc(ParagraphCount);
 
-        if (n > 0) then
-          Height := Height + n * (ParagraphAdvanceY - LineAdvanceY);
+        if (ParagraphCount > 0) then
+          Height := Height + ParagraphCount * (ParagraphAdvanceY - LineAdvanceY);
       end;
     end else
       Height := 0;
@@ -898,6 +889,7 @@ begin
     // Max line width can't be easily precalculated because of
     // justification, clipping, etc. (and it's easier to just
     // find it inside the loop).
+    XMin := ARect.Right;
     XMax := ARect.Left;
 
     (*
@@ -1064,12 +1056,17 @@ begin
       if (TextPath <> nil) then
         TextPath.BeginUpdate;
 
+        // Remove LSB from first character so it aligns against the margin
+      if (Line.StartIndex <= Line.LastIndex) then
+      begin
+        if (X < XMin) then
+          XMin := X;
+
+        X := X - TextCharacterString[Line.StartIndex].Metrics.LeftSideBearing;
+      end;
+
       for i := Line.StartIndex to Line.LastIndex do
       begin
-
-        // Remove LSB from first character so it aligns against the margin
-        if (i = Line.StartIndex) then
-          X := X - TextCharacterString[i].Metrics.LeftSideBearing;
 
         if (ATextLayout.ClipLayout) then
         begin
@@ -1092,9 +1089,7 @@ begin
             AdvanceX := AdvanceX * InterWordSpaceFactor
           else
           if (i < Line.LastIndex) and (TextCharacterString[i+1].UnicodeCategory <> TUnicodeCategory.ucSpaceSeparator) then
-            AdvanceX := AdvanceX + InterCharSpace
-          else
-            AdvanceX := AdvanceX;
+            AdvanceX := AdvanceX + InterCharSpace;
 
         end;
 
@@ -1105,13 +1100,13 @@ begin
         if (not Skip) then
           AFontFace.GetGlyphOutline(TextCharacterString[i].CodePoint, GlyphMetrics, TextPath, X, Y);
 
-        if (X > XMax) then
-          XMax := X;
-
-
         // Advance horizontally to next char
         X := X + AdvanceX;
 
+        // Calculate max X excluding RSB
+        LastWidth := X - TextCharacterString[i].Metrics.RightSideBearing;
+        if (LastWidth > XMax) then
+          XMax := LastWidth;
       end;
 
 
@@ -1128,20 +1123,20 @@ begin
     ** Horizontally adjust returned output rect
     *)
     case ATextLayout.AlignmentHorizontal of
-      TextAlignHorLeft:
+
+      TextAlignHorLeft,
+      TextAlignHorJustify:
         ARect.Right := XMax;
 
       TextAlignHorCenter:
         begin
-          ARect.Left := ARect.Left + (ARect.Right - XMax) * OneHalf;
-          ARect.Right := ARect.Left + XMax;
+          ARect.Left := XMin;
+          ARect.Right := XMax;
         end;
 
       TextAlignHorRight:
-        ARect.Left := ARect.Right - (XMax - ARect.Left);
+        ARect.Left := XMin;
 
-      TextAlignHorJustify:
-        ;
     end;
 
 

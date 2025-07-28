@@ -253,7 +253,7 @@ end;
 //------------------------------------------------------------------------------
 function TFontFaceMetrics32.GetHeight: Single;
 begin
-  Result := Ascent - Descent;
+  Result := Ascent - Descent; // Note: "-Descent" because Descent is negative
 end;
 
 //------------------------------------------------------------------------------
