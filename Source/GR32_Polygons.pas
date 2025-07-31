@@ -182,6 +182,7 @@ type
   TPolygonRenderer32VPR = class(TPolygonRenderer32)
   private
     FFillProc: TFillProc;
+    FAlphaValues: TArray<TColor32>;
   protected
     procedure UpdateFillProc;
     procedure GetFillProc(var AFillProc: TFillProc); virtual;
@@ -213,6 +214,39 @@ type
     procedure RenderSpan(const Span: TValueSpan; DstY: Integer); override;
   end;
 
+//------------------------------------------------------------------------------
+// TPolygonRenderer32VPR_Task
+//------------------------------------------------------------------------------
+  TPolygonRenderer32VPR_Task = class(TPolygonRenderer32VPR)
+  private
+    FThreadCount: integer;
+    procedure SetThreadCount(const Value: integer);
+  protected
+    procedure RenderSpan(const Span: TValueSpan; DstY: Integer); override;
+  public
+    constructor Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode = pfWinding); reintroduce; overload;
+
+    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
+    const ClipRect: TFloatRect); override;
+    property ThreadCount: integer read FThreadCount write SetThreadCount;
+  end;
+
+//------------------------------------------------------------------------------
+// TPolygonRenderer32VPR_Thread
+//------------------------------------------------------------------------------
+  TPolygonRenderer32VPR_Thread = class(TPolygonRenderer32VPR)
+  private
+    FThreadCount: integer;
+    procedure SetThreadCount(const Value: integer);
+  protected
+    procedure RenderSpan(const Span: TValueSpan; DstY: Integer); override;
+  public
+    constructor Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode = pfWinding); reintroduce; overload;
+
+    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
+    const ClipRect: TFloatRect); override;
+    property ThreadCount: integer read FThreadCount write SetThreadCount;
+  end;
 
 //------------------------------------------------------------------------------
 //
@@ -360,6 +394,8 @@ procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint; F
 procedure PolygonXS_LCD(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
 procedure PolygonXS_LCD2(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint; Color: TColor32; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
 
+procedure PolyPolygonFS_Task(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; Color: TColor32; ThreadCount: integer; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
+procedure PolyPolygonFS_Thread(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint; Color: TColor32; ThreadCount: integer; FillMode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
 
 //------------------------------------------------------------------------------
 //
@@ -540,7 +576,8 @@ uses
   GR32_LowLevel,
   GR32_Blend,
   GR32_VectorUtils,
-  GR32.Types.SIMD;
+  GR32.Types.SIMD,
+  GR32_System;
 
 resourcestring
   RCStrNoSamplerSpecified = 'No sampler specified!';
@@ -1982,6 +2019,40 @@ begin
   end;
 end;
 
+procedure PolyPolygonFS_Task(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Color: TColor32; ThreadCount: integer; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR_Task;
+begin
+  Renderer := TPolygonRenderer32VPR_Task.Create(Bitmap, FillMode);
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    Renderer.ThreadCount := ThreadCount;
+    Renderer.PolyPolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS_Thread(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Color: TColor32; ThreadCount: integer; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR_Thread;
+begin
+  Renderer := TPolygonRenderer32VPR_Thread.Create(Bitmap, FillMode);
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    Renderer.ThreadCount := ThreadCount;
+    Renderer.PolyPolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
 //------------------------------------------------------------------------------
 //
 //      PolyPolyline and Polyline wrappers
@@ -2999,24 +3070,29 @@ end;
 {$W+}
 procedure TPolygonRenderer32VPR.RenderSpan(const Span: TValueSpan; DstY: Integer);
 var
-  AlphaValues: PColor32Array;
+  //AlphaValues: PColor32Array;
   Count: Integer;
 begin
   Count := Span.HighX - Span.LowX + 1;
 {$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Count * SizeOf(TColor32));
 {$ELSE}
-  GetMem(AlphaValues, Count * SizeOf(TColor32));
+  //GetMem(AlphaValues, Count * SizeOf(TColor32));
+  if Length(FAlphaValues)<Count then
+    SetLength(FAlphaValues, Round(Count*1.5));
 {$ENDIF}
-  FFillProc(Span.Values, AlphaValues, Count, FColor);
+  //FFillProc(Span.Values, AlphaValues, Count, FColor);
+  FFillProc(Span.Values, @FAlphaValues[0], Count, FColor);
   if Bitmap.CombineMode = cmMerge then
-    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count)
+    //MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count)
+    MergeLine(@FAlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count)
   else
-    BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
+    //BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
+    BlendLine(@FAlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
 {$ELSE}
-  FreeMem(AlphaValues);
+  //FreeMem(AlphaValues);
 {$ENDIF}
 end;
 {$W-}
@@ -3255,6 +3331,169 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+
+//------------------------------------------------------------------------------
+//
+//      TPolygonRenderer32VPR_Task
+//
+//------------------------------------------------------------------------------
+
+constructor TPolygonRenderer32VPR_Task.Create(Bitmap: TCustomBitmap32;
+  Fillmode: TPolyFillMode);
+begin
+  inherited Create(Bitmap, Fillmode);
+  FThreadCount := GetProcessorCount;
+end;
+
+procedure TPolygonRenderer32VPR_Task.PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect);
+{$IFDEF CHANGENOTIFICATIONS}
+var
+  i: Integer;
+  ChangeRect: TRect;
+{$ENDIF}
+begin
+  if (not Bitmap.MeasuringMode) then
+  begin
+
+    UpdateFillProc;
+
+    if (FFiller <> nil) then
+    begin
+      FFiller.BeginRendering;
+      RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
+      FFiller.EndRendering;
+    end else
+      RenderPolyPolygon_Task(Points, FloatRect(Bitmap.ClipRect), RenderSpan, FThreadCount);
+  end;
+
+{$IFDEF CHANGENOTIFICATIONS}
+  if (TBitmap32Access(Bitmap).LockUpdateCount = 0) and
+    ((Bitmap.MeasuringMode) or (TBitmap32Access(Bitmap).UpdateCount = 0)) then
+  begin
+    for i := 0 to High(Points) do
+      if (Length(Points[i]) > 0) then
+      begin
+        if (GR32.IntersectRect(ChangeRect, MakeRect(ClipRect, rrOutside), MakeRect(PolygonBounds(Points[i])))) then
+          Bitmap.Changed(ChangeRect);
+      end;
+  end;
+{$ENDIF}
+end;
+
+{$W+}
+procedure TPolygonRenderer32VPR_Task.RenderSpan(const Span: TValueSpan; DstY: Integer);
+var
+  AlphaValues: PColor32Array;
+  Count: Integer;
+begin
+  Count := Span.HighX - Span.LowX + 1;
+{$IFDEF USESTACKALLOC}
+  AlphaValues := StackAlloc(Count * SizeOf(TColor32));
+{$ELSE}
+  GetMem(AlphaValues, Count * SizeOf(TColor32));
+{$ENDIF}
+  FFillProc(Span.Values, AlphaValues, Count, FColor);
+  if Bitmap.CombineMode = cmMerge then
+    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count)
+  else
+    BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
+{$IFDEF USESTACKALLOC}
+  StackFree(AlphaValues);
+{$ELSE}
+  FreeMem(AlphaValues);
+{$ENDIF}
+end;
+{$W-}
+
+procedure TPolygonRenderer32VPR_Task.SetThreadCount(const Value: integer);
+begin
+  if FThreadCount<=0 then
+    FThreadCount := 1
+  else
+    FThreadCount := Value;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TPolygonRenderer32VPR_Thread
+//
+//------------------------------------------------------------------------------
+
+constructor TPolygonRenderer32VPR_Thread.Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode);
+begin
+  inherited Create(Bitmap, Fillmode);
+  FThreadCount := GetProcessorCount;
+end;
+
+procedure TPolygonRenderer32VPR_Thread.PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect);
+{$IFDEF CHANGENOTIFICATIONS}
+var
+  i: Integer;
+  ChangeRect: TRect;
+{$ENDIF}
+begin
+  if (not Bitmap.MeasuringMode) then
+  begin
+
+    UpdateFillProc;
+
+    if (FFiller <> nil) then
+    begin
+      FFiller.BeginRendering;
+      RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
+      FFiller.EndRendering;
+    end else
+      RenderPolyPolygon_Thread(Points, FloatRect(Bitmap.ClipRect), RenderSpan, FThreadCount);
+  end;
+
+{$IFDEF CHANGENOTIFICATIONS}
+  if (TBitmap32Access(Bitmap).LockUpdateCount = 0) and
+    ((Bitmap.MeasuringMode) or (TBitmap32Access(Bitmap).UpdateCount = 0)) then
+  begin
+    for i := 0 to High(Points) do
+      if (Length(Points[i]) > 0) then
+      begin
+        if (GR32.IntersectRect(ChangeRect, MakeRect(ClipRect, rrOutside), MakeRect(PolygonBounds(Points[i])))) then
+          Bitmap.Changed(ChangeRect);
+      end;
+  end;
+{$ENDIF}
+end;
+
+{$W+}
+procedure TPolygonRenderer32VPR_Thread.RenderSpan(const Span: TValueSpan; DstY: Integer);
+var
+  AlphaValues: PColor32Array;
+  Count: Integer;
+begin
+  Count := Span.HighX - Span.LowX + 1;
+{$IFDEF USESTACKALLOC}
+  AlphaValues := StackAlloc(Count * SizeOf(TColor32));
+{$ELSE}
+  GetMem(AlphaValues, Count * SizeOf(TColor32));
+{$ENDIF}
+  FFillProc(Span.Values, AlphaValues, Count, FColor);
+  if Bitmap.CombineMode = cmMerge then
+    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count)
+  else
+    BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
+{$IFDEF USESTACKALLOC}
+  StackFree(AlphaValues);
+{$ELSE}
+  FreeMem(AlphaValues);
+{$ENDIF}
+end;
+{$W-}
+
+procedure TPolygonRenderer32VPR_Thread.SetThreadCount(const Value: integer);
+begin
+  if FThreadCount<=0 then
+    FThreadCount := 1
+  else
+    FThreadCount := Value;
+end;
 
 initialization
 

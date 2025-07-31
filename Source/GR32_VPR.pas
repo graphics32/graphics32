@@ -57,6 +57,16 @@ procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
 procedure RenderPolygon(const Points: TArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
 
+procedure RenderPolyPolygon_Task(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent; ThreadCount:integer); overload;
+procedure RenderPolyPolygon_Task(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer; ThreadCount:integer); overload;
+
+procedure RenderPolyPolygon_Thread(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent; ThreadCount: integer); overload;
+procedure RenderPolyPolygon_Thread(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer; ThreadCount: integer); overload;
+
 implementation
 
 {$if defined(FPC) and defined(CPUx86_64) }
@@ -71,7 +81,11 @@ uses
   Math,
   GR32_Math,
   GR32_LowLevel,
-  GR32_VectorUtils;
+  GR32_VectorUtils,
+  Threading,
+  Classes,
+  GR32_System,
+  SyncObjs;
 
 // FastFloor is slow on x86 due to call overhead
 {$if (not defined(PUREPASCAL)) and defined(CPUx86_64)}
@@ -173,6 +187,23 @@ type
   TScanLines = array of TScanLine;
   PScanLineArray = ^TScanLineArray;
   TScanLineArray = array [0..0] of TScanLine;
+
+  type
+  TLinePolygonRasterizerData = record
+    ScanLine: Integer;
+  end;
+  PLinePolygonRasterizerData = ^TLinePolygonRasterizerData;
+
+  TScanLinePolygonRasterizerThread = class(TThread)
+  protected
+    Data: Pointer;
+    Scanlines: TScanLines;
+    ScanlineData: PLinePolygonRasterizerData;
+    CX1, CX2: Integer;
+    RenderProc: TRenderSpanProc;
+    Count: integer;
+    procedure Execute; override;
+  end;
 
 procedure IntegrateSegment(const P1, P2: TFloatPoint; Values: PSingleArray);
 var
@@ -402,6 +433,8 @@ begin
     IntegrateSegment(Segment[0], Segment[1], SpanData);
   end;
 end;
+
+
 
 procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine);// {$IFDEF USEINLINING} inline; {$ENDIF}
 var
@@ -714,6 +747,7 @@ begin
 
 {$if not defined(USE_POLYFLOOR)}
   SavedRoundingMode := SetRoundMode(rmDown);
+  SetSSERoundMode(rmDown);
   try
 {$ifend}
 
@@ -742,6 +776,7 @@ begin
 {$if not defined(USE_POLYFLOOR)}
   finally
     SetRoundMode(SavedRoundingMode);
+    SetSSERoundMode(SavedRoundingMode);
   end
 {$ifend}
 end;
@@ -762,6 +797,263 @@ procedure RenderPolygon(const Points: TArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
   RenderPolygon(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data);
+end;
+
+type
+  TScanlineRenderProc = reference to procedure(AFromIndex, AToIndex: integer);
+
+procedure RenderPolyPolygon_Task(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent; ThreadCount:integer);
+begin
+  RenderPolyPolygon_Task(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data, ThreadCount);
+end;
+
+procedure RenderPolyPolygon_Task(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer; ThreadCount:integer);
+var
+  ScanLines: TScanLines;
+  I, Len: Integer;
+  Poly: TArrayOfArrayOfFloatPoint;
+  CX1, CX2: Integer;
+  SavedRoundingMode, SavedRoundingModeSSE: TRoundingMode;
+  TaskList: array of ITask;
+  NumThreads: Integer;
+  MinIndex, MaxIndex: integer;
+
+  procedure CalcPartBounds(Low, High, Count, Index: Integer; out Min, Max: Integer);
+  var
+    Len: Integer;
+  begin
+    Len := High - Low + 1;
+    Min := (Len div Count) * Index;
+    if Index + 1 < Count then
+      Max := Len div Count * (Index + 1) - 1
+    else
+      Max := Len - 1;
+  end;
+
+  function GetWorker(const ScanlineProc: TScanlineRenderProc; Min, Max: Integer): ITask;
+  begin
+    Result := TTask.Run(
+      procedure
+      begin
+        ScanlineProc(Min, Max);
+      end);
+  end;
+
+begin
+  Len := Length(Points);
+  if Len = 0 then
+    Exit;
+
+  SetLength(Poly, Len);
+  for I := 0 to Len - 1 do
+    Poly[I] := ClipPolygon(Points[I], ClipRect);
+
+  {$IFNDEF USE_POLYFLOOR}
+  SavedRoundingMode := SetRoundMode(rmDown);
+  SavedRoundingModeSSE := SetSSERoundMode(rmDown);
+  try
+  {$ENDIF}
+
+  BuildScanLines(Poly, ScanLines);
+
+  if Length(ScanLines) > 0 then
+  begin
+    CX1 := PolyFloor(ClipRect.Left);
+    CX2 := PolyCeil(ClipRect.Right) - 1;
+
+    NumThreads := ThreadCount;
+    if NumThreads=0 then NumThreads := GR32_System.GetProcessorCount; // TODO: what to do?
+
+    if NumThreads > Length(ScanLines) then
+      NumThreads := Length(ScanLines);
+
+    SetLength(TaskList, NumThreads);
+
+    for I := 0 to NumThreads - 1 do
+    begin
+
+      CalcPartBounds(0, High(ScanLines)-1, NumThreads, I, MinIndex, MaxIndex);
+
+      TaskList[I] := GetWorker(
+      procedure (AFromScanLine, AToScanLine: integer)
+      var
+        J: Integer;
+        SpanData: PSingleArray;
+        SpanSize: Integer;
+        SavedRoundingMode_Task, SavedRoundingModeSSE_Task: TRoundingMode;
+      begin
+        {$IFNDEF USE_POLYFLOOR}
+        SavedRoundingMode_Task := SetRoundMode(rmDown);
+        SavedRoundingModeSSE_Task := SetSSERoundMode(rmDown);
+        try
+        {$ENDIF}
+          SpanSize := (CX2 - CX1 + 4) * SizeOf(Single);
+          GetMem(SpanData, SpanSize);
+          try
+            FillChar(SpanData^, SpanSize, 0);
+            for J := AFromScanLine to AToScanLine do
+            begin
+              RenderScanline(ScanLines[J], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
+              FreeMem(ScanLines[J].Segments);
+            end;
+        finally
+          FreeMem(SpanData);
+        end;
+        {$IFNDEF USE_POLYFLOOR}
+        finally
+          SetRoundMode(SavedRoundingMode_Task);
+          SetSSERoundMode(SavedRoundingModeSSE_Task);
+        end;
+        {$ENDIF}
+      end, MinIndex, MaxIndex);
+    end;
+
+    TTask.WaitForAll(TaskList);
+  end;
+
+  {$IFNDEF USE_POLYFLOOR}
+  finally
+    SetRoundMode(SavedRoundingMode);
+    SetSSERoundMode(SavedRoundingModeSSE);
+  end;
+  {$ENDIF}
+end;
+
+procedure RenderPolyPolygon_Thread(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent; ThreadCount:integer);
+begin
+  RenderPolyPolygon_Thread(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data, ThreadCount);
+end;
+
+procedure RenderPolyPolygon_Thread(const Points: TArrayOfArrayOfFloatPoint;
+  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer; ThreadCount: integer);
+var
+  ScanLines: TScanLines;
+  I, Len: Integer;
+  Poly: TArrayOfArrayOfFloatPoint;
+  CX1, CX2: Integer;
+  SavedRoundingMode, SavedRoundingModeSSE: TRoundingMode;
+  NumThreads: Integer;
+  ScanlineData: TLinePolygonRasterizerData;
+  Threads: array of TScanLinePolygonRasterizerThread;
+
+  function CreateThread: TScanLinePolygonRasterizerThread;
+  begin
+    Result := TScanLinePolygonRasterizerThread.Create(True);
+    Result.Scanlines := Scanlines;
+    Result.ScanlineData := @ScanlineData;
+    Result.CX1 := CX1;
+    Result.CX2 := CX2;
+    Result.RenderProc := RenderProc;
+    Result.Data := Data;
+    Result.Count := Length(Scanlines);
+  {$IFDEF USETHREADRESUME}
+    Result.Resume;
+  {$ELSE}
+    Result.Start;
+  {$ENDIF}
+  end;
+
+begin
+  Len := Length(Points);
+  if Len = 0 then
+    Exit;
+
+  SetLength(Poly, Len);
+  for I := 0 to Len - 1 do
+    Poly[I] := ClipPolygon(Points[I], ClipRect);
+
+  {$IFNDEF USE_POLYFLOOR}
+  SavedRoundingMode := SetRoundMode(rmDown);
+  SavedRoundingModeSSE := SetSSERoundMode(rmDown);
+  try
+  {$ENDIF}
+
+  BuildScanLines(Poly, ScanLines);
+
+  if Length(ScanLines) > 0 then
+  begin
+    CX1 := PolyFloor(ClipRect.Left);
+    CX2 := PolyCeil(ClipRect.Right) - 1;
+
+    NumThreads := ThreadCount;
+    if NumThreads<=0 then NumThreads := 1;
+
+    if NumThreads > Length(ScanLines) then
+      NumThreads := Length(ScanLines);
+
+    SetLength(Threads, NumThreads);
+
+    ScanlineData.ScanLine := -1;
+
+    for I := 0 to NumThreads - 1 do
+    begin
+      Threads[I] := CreateThread;
+    end;
+
+    for I := 0 to High(Threads) do
+    begin
+      Threads[I].WaitFor;
+      Threads[I].Free;
+    end;
+
+  end;
+
+  {$IFNDEF USE_POLYFLOOR}
+  finally
+    SetRoundMode(SavedRoundingMode);
+    SetSSERoundMode(SavedRoundingModeSSE);
+  end;
+  {$ENDIF}
+end;
+
+
+procedure TScanLinePolygonRasterizerThread.Execute;
+var
+  ScanLine: Integer;
+  SpanData: PSingleArray;
+  SavedRoundingMode: TRoundingMode;
+  SavedRoundingModeSSE: TSSERoundingMode;
+begin
+  {$IFNDEF FPC}
+  ScanLine := TInterlocked.Increment(ScanlineData^.ScanLine);
+  {$ELSE}
+  ScanLine := InterlockedIncrement(ScanlineData^.ScanLine);
+  {$ENDIF}
+
+  {$IFNDEF USE_POLYFLOOR}
+  SavedRoundingMode := SetRoundMode(rmDown);
+  SavedRoundingModeSSE := SetSSERoundMode(rmDown);
+  try
+  {$ENDIF}
+    GetMem(SpanData, (CX2 - CX1 + 4) * SizeOf(Single));
+    try
+
+      FillChar(SpanData^, CX2 - CX1 + 4, 0);
+
+      while ScanLine < Count do
+      begin
+        RenderScanline(Scanlines[ScanLine], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
+        FreeMem(Scanlines[ScanLine].Segments);
+
+        {$IFNDEF FPC}
+        ScanLine := TInterlocked.Increment(ScanlineData^.ScanLine);
+        {$ELSE}
+        ScanLine := InterlockedIncrement(ScanlineData^.ScanLine);
+        {$ENDIF}
+      end;
+
+    finally
+      FreeMem(SpanData);
+    end;
+  {$IFNDEF USE_POLYFLOOR}
+  finally
+    SetRoundMode(SavedRoundingMode);
+    SetSSERoundMode(SavedRoundingModeSSE);
+  end;
+  {$ENDIF}
 end;
 
 end.
