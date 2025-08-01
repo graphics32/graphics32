@@ -45,7 +45,8 @@ uses
   GR32_Containers,
   GR32_VPR,
   GR32_Transforms,
-  GR32_Resamplers;
+  GR32_Resamplers,
+  Threading;
 
 //------------------------------------------------------------------------------
 //
@@ -229,6 +230,7 @@ type
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
     const ClipRect: TFloatRect); override;
     property ThreadCount: integer read FThreadCount write SetThreadCount;
+
   end;
 
 //------------------------------------------------------------------------------
