@@ -930,7 +930,7 @@ begin
   begin
     TaskRenderData[i] := RenderData;
 
-    CalcPartBounds(0, High(ScanLines)-1, ThreadCount, I, TaskRenderData[i].FromScanLine, TaskRenderData[i].ToScanLine);
+    CalcPartBounds(0, High(ScanLines), ThreadCount, I, TaskRenderData[i].FromScanLine, TaskRenderData[i].ToScanLine);
 
     RenderProxy := TRenderProxy(pointer(@TaskRenderData[i]));
 
