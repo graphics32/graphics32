@@ -3505,6 +3505,8 @@ initialization
   PolygonsRegistry.RebindAll;
 
   RegisterPolygonRenderer(TPolygonRenderer32VPR);
+  RegisterPolygonRenderer(TPolygonRenderer32VPR_Task);
+  RegisterPolygonRenderer(TPolygonRenderer32VPR_Thread);
   RegisterPolygonRenderer(TPolygonRenderer32LCD);
   RegisterPolygonRenderer(TPolygonRenderer32LCD2);
 
