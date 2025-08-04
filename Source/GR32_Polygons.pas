@@ -43,6 +43,7 @@ uses
   GR32,
   GR32_Bindings,
   GR32_Containers,
+  GR32_Blend,
   GR32_VPR,
   GR32_Transforms,
   GR32_Resamplers,
@@ -221,14 +222,18 @@ type
   TPolygonRenderer32VPR_Task = class(TPolygonRenderer32VPR)
   private
     FThreadCount: integer;
+    FBlendLine: TBlendLine;
+
     procedure SetThreadCount(const Value: integer);
+
   protected
     procedure RenderSpan(const Span: TValueSpan; DstY: Integer); override;
+
   public
     constructor Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode = pfWinding); reintroduce; overload;
 
-    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
-    const ClipRect: TFloatRect); override;
+    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect); override;
+
     property ThreadCount: integer read FThreadCount write SetThreadCount;
 
   end;
@@ -576,7 +581,6 @@ uses
 {$ifend}
   GR32_Math,
   GR32_LowLevel,
-  GR32_Blend,
   GR32_VectorUtils,
   GR32.Types.SIMD,
   GR32_System;
@@ -3359,6 +3363,10 @@ begin
   begin
 
     UpdateFillProc;
+    if Bitmap.CombineMode = cmMerge then
+      FBlendLine := MergeLine
+    else
+      FBlendLine := BlendLine;
 
     if (FFiller <> nil) then
     begin
@@ -3396,10 +3404,7 @@ begin
   GetMem(AlphaValues, Count * SizeOf(TColor32));
 {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
-  if Bitmap.CombineMode = cmMerge then
-    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count)
-  else
-    BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
+  FBlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.LowX], Count);
 {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
 {$ELSE}
