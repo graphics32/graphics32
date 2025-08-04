@@ -3415,10 +3415,7 @@ end;
 
 procedure TPolygonRenderer32VPR_Task.SetThreadCount(const Value: integer);
 begin
-  if FThreadCount<=0 then
-    FThreadCount := 1
-  else
-    FThreadCount := Value;
+  FThreadCount := Max(1, Value);
 end;
 
 //------------------------------------------------------------------------------
