@@ -513,8 +513,7 @@ end;
 procedure TMainForm.FormShow(Sender: TObject);
 begin
 {$ifdef MSWINDOWS}
-  if (FindCmdLineSwitch('benchmark')) then
-    PostMessage(Handle, MSG_BENCHMARK, 0, 0);
+  PostMessage(Handle, MSG_BENCHMARK, 0, 0);
 {$endif}
 end;
 
@@ -532,6 +531,29 @@ begin
   *)
 
 {$if defined(FRAMEWORK_VCL)}
+  if (FindCmdLineSwitch('renderer', s)) then
+  begin
+    if (SameText(s, 'all')) then
+      CbxAllRenderers.Checked := True
+    else
+    begin
+      CbxAllRenderers.Checked := False;
+      CmbRenderer.ItemIndex := CmbRenderer.Items.IndexOf(s);
+    end;
+  end;
+
+  if (FindCmdLineSwitch('test', s)) then
+  begin
+    if (SameText(s, 'all')) then
+      CbxAllTests.Checked := True
+    else
+    begin
+      CbxAllTests.Checked := False;
+      CmbTest.ItemIndex := CmbTest.Items.IndexOf(s);
+    end;
+  end else
+    CbxAllTests.Checked := True;
+
   if (not FindCmdLineSwitch('benchmark', s)) then
     exit;
   Iterations := StrToIntDef(s, 1);
@@ -539,13 +561,13 @@ begin
   if (not FindCmdLineSwitch('benchmark')) then
     exit;
   Iterations := 1;
+
+  CbxAllTests.Checked := True;
 {$ifend}
 
   Screen.Cursor := crHourGlass;
 
   MemoLog.Lines.Add(Format('Running benchmark: %d iterations', [Iterations]));
-
-  CbxAllTests.Checked := True;
 
   Profiling := True;
 
