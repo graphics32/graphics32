@@ -389,12 +389,14 @@ type
     procedure SetCheckersColor(Index: integer; const Value: TColor);
     procedure SetCheckersExponent(const Value: integer);
 
-    function IsFillStyleStored: Boolean;
     function IsCheckersColorsStored(Index: integer): boolean;
     function IsDropShadowBitmapStored: boolean;
     function IsPatternBitmapStored: boolean;
 
-    procedure CheckFillStyle;
+    // ActualFillStyle: How do we clear the area *around* the bitmap
+    function ActualFillStyle: TBackgroundFillStyle;
+    // ActualClearStyle: How do we clear the area *under* the bitmap
+    function ActualClearStyle: TBackgroundFillStyle;
 
     procedure ChangeHandler(Sender: TObject);
   public
@@ -403,26 +405,37 @@ type
 
     property CheckersColors: TCheckersColors read FCheckersColors;
   published
+    // FillStyle: Specifies how to clear the area *around* the bitmap
+    property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle default bfsColor;
+
+    // PatternBitmap: Used when FillStyle=bfsPattern
     property PatternBitmap: TBitmap32 read FPatternBitmap write SetPatternBitmap stored IsPatternBitmapStored;
 
+    // OuterBorderColor: The color of a single pixel width line drawn outside
+    // the inner border.
     property OuterBorderColor: TColor read FOuterBorderColor write SetOuterBorderColor default clNone;
 
+    // InnerBorder*: The color and width of a line drawn outside the bitmap.
     property InnerBorderWidth: integer read FInnerBorderWidth write SetInnerBorderWidth default 0;
     property InnerBorderColor: TColor read FInnerBorderColor write SetInnerBorderColor default clNone;
 
+    // DropShadow*: A drop shadow drawn outside the outer border.
+    // If DropShadowBitmap is specified then that is used to draw the shadow at the specified offset.
+    // Otherwise a fixed color shadow is drawn with the specified color, size and offset.
     property DropShadowColor: TColor32 read FDropShadowColor write SetDropShadowColor default 0;
     property DropShadowOffset: integer read FDropShadowOffset write SetDropShadowOffset default 0;
     property DropShadowSize: integer read FDropShadowSize write SetDropShadowSize default 0;
     property DropShadowBitmap: TBitmap32 read FDropShadowBitmap write SetDropShadowBitmap stored IsDropShadowBitmapStored;
 
+    // CheckersStyle: Specifies how to clear the area *under* the bitmap
     property CheckersStyle: TBackgroundCheckerStyle read FCheckersStyle write SetCheckersStyle default bcsNone;
     property CheckersColorOdd: TColor index 0 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
     property CheckersColorEven: TColor index 1 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
+    // CheckersExponent: Size of a single square in the checkers pattern
+    // expressed as an exponent of 2.
+    // This means that the actual square size is 2^CheckersExponent. So
+    // if CheckersExponent=3 then the actual size is 2^3 = 8.
     property CheckersExponent: integer read FCheckersExponent write SetCheckersExponent default 3;
-
-    // Last property! We need it to be set last when loading from the DFM so the
-    // fill style rules isn't applied against incomplete property values.
-    property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle stored IsFillStyleStored;
   end;
 
   TMouseShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
@@ -1848,7 +1861,6 @@ end;
 //------------------------------------------------------------------------------
 procedure TBackgroundOptions.ChangeHandler(Sender: TObject);
 begin
-  CheckFillStyle;
   Changed;
 end;
 
@@ -1864,8 +1876,10 @@ begin
   FDropShadowBitmap.DrawMode := dmBlend;
   FDropShadowBitmap.OnChange := ChangeHandler;
 
+  FFillStyle := bfsColor;
   FOuterBorderColor := clNone;
   FInnerBorderColor := clNone;
+  FCheckersStyle := bcsCustom;
   SetCheckersStyle(bcsNone); // We need to go via the property setter
   FCheckersExponent := 3;
 end;
@@ -1877,33 +1891,30 @@ begin
   inherited;
 end;
 
-procedure TBackgroundOptions.CheckFillStyle;
+function TBackgroundOptions.ActualFillStyle: TBackgroundFillStyle;
 begin
+  Result := FFillStyle;
+
   case FFillStyle of
     bfsColor:
-      if (not FPatternBitmap.Empty) then
-        FFillStyle := bfsPattern;
+      ;
 
     bfsCheckers:
-      if (not FPatternBitmap.Empty) then
-        FFillStyle := bfsPattern
-      else
       if (FCheckersStyle = bcsNone) then
-        FFillStyle := bfsColor
-      else
-      if (FInnerBorderColor <> clNone) and (FInnerBorderWidth <> 0) then
-        FFillStyle := bfsColor
-      else
-      if (FOuterBorderColor <> clNone) then
-        FFillStyle := bfsColor
-      else
-      if (not FDropShadowBitmap.Empty) or (FDropShadowSize <> 0) then
-        FFillStyle := bfsColor;
+        Result := bfsColor;
 
     bfsPattern:
       if (FPatternBitmap.Empty) then
-        FFillStyle := bfsColor;
+        Result := bfsColor;
   end;
+end;
+
+function TBackgroundOptions.ActualClearStyle: TBackgroundFillStyle;
+begin
+  Result := ActualFillStyle;
+
+  if (FCheckersStyle <> bcsNone) then
+    Result := bfsCheckers;
 end;
 
 function TBackgroundOptions.GetCheckersColor(const Index: Integer): TColor;
@@ -1919,25 +1930,6 @@ end;
 function TBackgroundOptions.IsDropShadowBitmapStored: boolean;
 begin
   Result := (not FDropShadowBitmap.Empty);
-end;
-
-function TBackgroundOptions.IsFillStyleStored: Boolean;
-begin
-  case FFillStyle of
-    bfsColor:
-      Result := (FCheckersStyle <> bcsNone) and
-        ((FInnerBorderColor = clNone) or (FInnerBorderWidth = 0)) and
-        (FOuterBorderColor = clNone) and
-        (FDropShadowBitmap.Empty) and (FDropShadowSize = 0);
-
-    bfsCheckers:
-      Result := True;
-
-    bfsPattern:
-      Result := False;
-  else
-    Result := True;
-  end;
 end;
 
 function TBackgroundOptions.IsPatternBitmapStored: boolean;
@@ -1980,8 +1972,6 @@ begin
     if (FCheckersStyle <> bcsCustom) then
       FCheckersColors := DefaultCheckersColors[FCheckersStyle];
 
-    CheckFillStyle;
-
     Changed;
   end;
 end;
@@ -1996,7 +1986,6 @@ begin
   if (Value <> FDropShadowColor) then
   begin
     FDropShadowColor := Value;
-    CheckFillStyle;
     Changed;
   end;
 end;
@@ -2024,7 +2013,7 @@ begin
   if (Value <> FFillStyle) then
   begin
     FFillStyle := Value;
-    CheckFillStyle;
+
     Changed;
   end;
 end;
@@ -2034,7 +2023,7 @@ begin
   if (Value <> FInnerBorderColor) then
   begin
     FInnerBorderColor := Value;
-    CheckFillStyle;
+
     Changed;
   end;
 end;
@@ -2044,7 +2033,7 @@ begin
   if (Value <> FInnerBorderWidth) then
   begin
     FInnerBorderWidth := Max(0, Value);
-    CheckFillStyle;
+
     Changed;
   end;
 end;
@@ -2054,7 +2043,7 @@ begin
   if (Value <> FOuterBorderColor) then
   begin
     FOuterBorderColor := Value;
-    CheckFillStyle;
+
     Changed;
   end;
 end;
@@ -2800,15 +2789,17 @@ var
   BackgroundColor: TColor;
   C: TColor32;
   TileX, TileY: integer;
-  DrawFancyStuff: boolean;
+  DrawAdornments: boolean;
   DrawBitmapBackground: boolean;
+  FillStyle: TBackgroundFillStyle;
+  ClearStyle: TBackgroundFillStyle;
 begin
   ViewportRect := GetViewportRect;
 
   if (not Bitmap.Empty) and (Bitmap.DrawMode = dmOpaque) then
   begin
-    // No need to draw background if bitmap covers everything
-    if (BitmapAlign = baTile) or (CachedBitmapRect.Contains(ViewportRect)) then
+    // No need to draw background if bitmap is opaque and covers everything
+    if (BitmapAlign = baTile) or (ScaleMode = smStretch) or (CachedBitmapRect.Contains(ViewportRect)) then
       exit;
   end;
 
@@ -2830,87 +2821,110 @@ begin
   else
     InnerBorder := 0;
 
+  FillStyle := FBackgroundOptions.ActualFillStyle;
+  ClearStyle := FBackgroundOptions.ActualClearStyle;
+
+  // Adornments:
+  // - Inner and outer border
+  // - Drop shadow
+  // Drawn outside the bitmap.
   // If the bitmap is empty or if we're tiling it, or if the borders and dropshadow
-  // is disabled, then we only need to do a simple clear of the whole background.
-  DrawFancyStuff := (not Bitmap.Empty) and (BitmapAlign <> baTile) and
+  // are disabled, then we only need to do a simple clear of the whole background.
+  DrawAdornments :=
+    // Checkers pattern covers whole background
+    (FillStyle <> bfsCheckers) and
+    // Nothing to draw if bitmap is empty or covers whole viewport
+    (not Bitmap.Empty) and (BitmapAlign <> baTile) and
+    // Drop shadow requires a shadow bitmap or a shadow size
     ((not FBackgroundOptions.DropShadowBitmap.Empty) or (FBackgroundOptions.DropShadowSize <> 0) or
+    // Borders require color and size
      (OuterBorder <> 0) or (InnerBorder <> 0));
 
   // Do we need to clear the area below the bitmap?
-  DrawBitmapBackground := (not Bitmap.Empty) and (BitmapAlign <> baTile) and (Bitmap.DrawMode <> dmOpaque);
+  DrawBitmapBackground := (not Bitmap.Empty) and
+    // If bitmap is opaque then it covers the background
+    ((Bitmap.DrawMode <> dmOpaque) or
+    // Tile and Stretch covers the whole viewport
+     ((BitmapAlign <> baTile) and (ScaleMode <> smStretch)));
 
   BitmapRect := CachedBitmapRect;
   r := BitmapRect;
-  if (DrawFancyStuff) then
+  if (DrawAdornments) then
     GR32.InflateRect(r, OuterBorder+InnerBorder, OuterBorder+InnerBorder);
+
 
   (*
   ** Background (pattern or solid color)
   *)
-  if (FBackgroundOptions.FillStyle = bfsPattern) then
-  begin
-    Assert(not FBackgroundOptions.PatternBitmap.Empty);
+  case FillStyle of
 
-    TileX := (ViewportRect.Width + FBackgroundOptions.PatternBitmap.Width - 1) div FBackgroundOptions.PatternBitmap.Width;
-    TileY := (ViewportRect.Height + FBackgroundOptions.PatternBitmap.Height - 1) div FBackgroundOptions.PatternBitmap.Height;
-    for Y := 0 to TileY-1 do
-      for X := 0 to TileX-1 do
+    bfsPattern:
       begin
-        Tile := Rect(0, 0, FBackgroundOptions.PatternBitmap.Width, FBackgroundOptions.PatternBitmap.Height);
-        GR32.OffsetRect(Tile, X * FBackgroundOptions.PatternBitmap.Width, Y * FBackgroundOptions.PatternBitmap.Height);
+        Assert(not FBackgroundOptions.PatternBitmap.Empty);
 
-        if (DrawBitmapBackground) and (BitmapRect.Contains(Tile)) then
-          // Tile would have been obscured by bitmap/checkers
-          continue;
+        TileX := (ViewportRect.Width + FBackgroundOptions.PatternBitmap.Width - 1) div FBackgroundOptions.PatternBitmap.Width;
+        TileY := (ViewportRect.Height + FBackgroundOptions.PatternBitmap.Height - 1) div FBackgroundOptions.PatternBitmap.Height;
+        for Y := 0 to TileY-1 do
+          for X := 0 to TileX-1 do
+          begin
+            Tile := Rect(0, 0, FBackgroundOptions.PatternBitmap.Width, FBackgroundOptions.PatternBitmap.Height);
+            GR32.OffsetRect(Tile, X * FBackgroundOptions.PatternBitmap.Width, Y * FBackgroundOptions.PatternBitmap.Height);
 
-        BlockTransfer(Dest,
-          Tile.Left, Tile.Top, Dest.ClipRect,
-          FBackgroundOptions.PatternBitmap, FBackgroundOptions.PatternBitmap.BoundsRect, dmOpaque);
+            if (DrawBitmapBackground) and (ClearStyle <> bfsPattern) and (BitmapRect.Contains(Tile)) then
+              // Tile would have been obscured by bitmap/checkers
+              continue;
+
+            BlockTransfer(Dest,
+              Tile.Left, Tile.Top, Dest.ClipRect,
+              FBackgroundOptions.PatternBitmap, FBackgroundOptions.PatternBitmap.BoundsRect, dmOpaque);
+          end;
+
+        // CheckersStyle=bcsNone doesn't clear the area under the bitmap so we need to do it here
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = bcsNone) then
+        begin
+          BackgroundColor := Color;
+    {$ifdef FPC}
+          if (BackgroundColor = clDefault) then
+            BackgroundColor := GetDefaultColor(dctBrush);
+    {$endif}
+          C := Color32(BackgroundColor);
+          Dest.FillRectS(BitmapRect, C);
+        end;
       end;
 
-    // CheckersStyle=bcsNone doesn't clear the area under the bitmap so we need to do it here
-    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = bcsNone) then
-    begin
-      BackgroundColor := Color;
-{$ifdef FPC}
-      if (BackgroundColor = clDefault) then
-        BackgroundColor := GetDefaultColor(dctBrush);
-{$endif}
-      C := Color32(BackgroundColor);
-      Dest.FillRectS(BitmapRect, C);
-    end;
-  end else
-  if (FBackgroundOptions.FillStyle = bfsColor) then
-  begin
-    BackgroundColor := Color;
-{$ifdef FPC}
-    if (BackgroundColor = clDefault) then
-      BackgroundColor := GetDefaultColor(dctBrush);
-{$endif}
-    C := Color32(BackgroundColor);
-
-    if InvalidRects.Count > 0 then
-    begin
-      for i := 0 to InvalidRects.Count-1 do
+    bfsColor:
       begin
-        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (BitmapRect.Contains(InvalidRects[i]^)) then
-          continue;
+        BackgroundColor := Color;
+    {$ifdef FPC}
+        if (BackgroundColor = clDefault) then
+          BackgroundColor := GetDefaultColor(dctBrush);
+    {$endif}
+        C := Color32(BackgroundColor);
 
-        with InvalidRects[i]^ do
-          Dest.FillRectS(Left, Top, Right, Bottom, C);
+        if InvalidRects.Count > 0 then
+        begin
+          for i := 0 to InvalidRects.Count-1 do
+          begin
+            if (DrawBitmapBackground) and (ClearStyle <> bfsColor) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (BitmapRect.Contains(InvalidRects[i]^)) then
+              continue;
+
+            with InvalidRects[i]^ do
+              Dest.FillRectS(Left, Top, Right, Bottom, C);
+          end;
+        end else
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) then
+        begin
+          Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
+          Dest.FillRectS(Rect(ViewportRect.Left, r.Top, r.Left, r.Bottom), C);
+          Dest.FillRectS(Rect(r.Right, r.Top, ViewportRect.Right, r.Bottom), C);
+          Dest.FillRectS(Rect(ViewportRect.Left, r.Bottom, ViewportRect.Right, ViewportRect.Bottom), C);
+        end else
+          Dest.Clear(C);
       end;
-    end else
-    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) then
-    begin
-      Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
-      Dest.FillRectS(Rect(ViewportRect.Left, r.Top, r.Left, r.Bottom), C);
-      Dest.FillRectS(Rect(r.Right, r.Top, ViewportRect.Right, r.Bottom), C);
-      Dest.FillRectS(Rect(ViewportRect.Left, r.Bottom, ViewportRect.Right, ViewportRect.Bottom), C);
-    end else
-      Dest.Clear(C);
+
   end;
 
-  if (DrawFancyStuff) then
+  if (DrawAdornments) then
   begin
     (*
     ** Drop shadow
@@ -2996,10 +3010,10 @@ begin
   *)
   if (FBackgroundOptions.CheckersStyle <> bcsNone) and
     ((DrawBitmapBackground) or
-     ((FBackgroundOptions.FillStyle = bfsCheckers) and
+     ((FillStyle = bfsCheckers) and
       ((Bitmap.Empty) or (Bitmap.DrawMode = dmOpaque)))) then
   begin
-    if (FBackgroundOptions.FillStyle = bfsCheckers) then
+    if (FillStyle = bfsCheckers) or (BitmapAlign = baTile) then
       // Fill the whole viewport
       r := Dest.ClipRect
     else

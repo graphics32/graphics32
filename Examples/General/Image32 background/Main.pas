@@ -38,12 +38,20 @@ procedure TFormMain.FormCreate(Sender: TObject);
 begin
   ImgView.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\coffee.png');
 
+  // Draw a checkers pattern under the bitmap
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.CheckersExponent := 3; // Size of each tile becomes 2^3 = 8 pixels
+
+  // Draw a custom pattern outside the bitmap
+  ImgView.Background.FillStyle := bfsPattern;
   ImgView.Background.PatternBitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\bumps.bmp');
+
+  // Draw a filled border outside the bitmap
   ImgView.Background.OuterBorderColor := clGray;
   ImgView.Background.InnerBorderWidth := 8;
   ImgView.Background.InnerBorderColor := clWhite;
+
+  // Draw a drop shadow outside the border
   ImgView.Background.DropShadowOffset := 6;
 {$ifdef SOLID_DROPSHADOW}
   ImgView.Background.DropShadowSize := 4;
