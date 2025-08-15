@@ -520,9 +520,7 @@ begin
     Image.Scale := 1;
 
     // ...and Center image
-    Size := Image.GetBitmapSize;
-    Image.OffsetHorz := (Image.Width-Size.cx) div 2;
-    Image.OffsetVert := (Image.Height-Size.cy) div 2;
+    Image.ScrollToCenter;
   finally
     Image.EndUpdate;
   end;
