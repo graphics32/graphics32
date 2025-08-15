@@ -109,6 +109,7 @@
 {$elseif (CompilerVersion > 36.0)} // Newer than this file but we'll take it
 
   {$Message Hint 'Unknown compiler version. Assuming compatible with last known version.'}
+  {$LEGACYIFEND ON}
 
 {$else} // Delphi XE3 and later
 
