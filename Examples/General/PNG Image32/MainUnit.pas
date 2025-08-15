@@ -45,13 +45,28 @@ begin
     if not OpenDialog.Execute then
       exit;
 
+    (*
+    ** Load via TPortableNetworkGraphic32
+    *)
     PNG := TPortableNetworkGraphic32.Create;
     try
+
       PNG.LoadFromFile(OpenDialog.FileName);
+
       ImageDisplay.Bitmap.Assign(PNG);
+
     finally
       PNG.Free;
     end;
+
+    (*
+    ** Note that we could just as easily have loaded directly via TBitmap32:
+    **
+    **   ImageDisplay.Bitmap.LoadFromFile(OpenDialog.FileName);
+    **
+    ** The end-result is the same.
+    *)
+
   finally
     OpenDialog.Free;
   end;
@@ -69,15 +84,30 @@ begin
     if not SaveDialog.Execute then
       exit;
 
+    (*
+    ** Save via TPortableNetworkGraphic32
+    *)
     PNG := TPortableNetworkGraphic32.Create;
     try
+
       PNG.AdaptiveFilterMethods := [aafmSub, aafmUp, aafmAverage];
       PNG.Assign(ImageDisplay.Bitmap);
       PNG.InterlaceMethod := imAdam7;
+
       PNG.SaveToFile(SaveDialog.FileName);
+
     finally
       PNG.Free;
     end;
+
+    (*
+    ** Note that we could also have saved directly via TBitmap32:
+    **
+    **   ImageDisplay.Bitmap.SaveToFile(SaveDialog.FileName);
+    **
+    ** but that would not have allowed us to set any PNG options.
+    *)
+
   finally
     SaveDialog.Free;
   end;
@@ -105,6 +135,13 @@ begin
   ImageDisplay.Margins.Right := 8;
   ImageDisplay.AlignWithMargins := True;
 {$ENDIF}
+
+  (*
+  ** Note: This is just an example of LoadBitmap32FromPNG.
+  ** Since TBitmap32 supports PNG we could also have loaded the image with:
+  **
+  **   ImageDisplay.Bitmap.LoadFromFile(...);
+  *)
 
   if Graphics32Examples.MediaFileExists('Dice.png') then
     LoadBitmap32FromPNG(ImageDisplay.Bitmap, Graphics32Examples.MediaFolder+'\Dice.png');
