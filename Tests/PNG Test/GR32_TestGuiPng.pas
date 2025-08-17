@@ -45,6 +45,22 @@ uses
   GR32_PortableNetworkGraphic;
 
 type
+  TPortableNetworkGraphic32 = class(GR32_Png.TPortableNetworkGraphic32)
+  public
+    property ImageHeader;
+
+    property PaletteChunk;
+    property TransparencyChunk;
+    property BackgroundChunk;
+    property GammaChunk;
+    property ChromaChunk;
+    property TimeChunk;
+    property PhysicalPixelDimensionsChunk;
+    property SignificantBitsChunk;
+    property PrimaryChromaticitiesChunk;
+  end;
+
+type
   TCustomTestPngGR32 = class abstract(TTestCase)
   protected
     FPortableNetworkGraphic: TPortableNetworkGraphic32;

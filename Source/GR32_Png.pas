@@ -446,10 +446,10 @@ function TPortableNetworkGraphic32.GetBackgroundColor: TColor32;
 var
   ResultColor32: TColor32Entry absolute Result;
 begin
-  if (FBackgroundChunk <> nil) then
+  if (BackgroundChunk <> nil) then
   begin
-    if FBackgroundChunk.Background is TPngBackgroundColorFormat04 then
-      with TPngBackgroundColorFormat04(FBackgroundChunk.Background) do
+    if BackgroundChunk.Background is TPngBackgroundColorFormat04 then
+      with TPngBackgroundColorFormat04(BackgroundChunk.Background) do
       begin
         ResultColor32.R := GraySampleValue;
         ResultColor32.G := GraySampleValue;
@@ -457,8 +457,8 @@ begin
         ResultColor32.A := $FF;
       end
     else
-    if FBackgroundChunk.Background is TPngBackgroundColorFormat26 then
-      with TPngBackgroundColorFormat26(FBackgroundChunk.Background) do
+    if BackgroundChunk.Background is TPngBackgroundColorFormat26 then
+      with TPngBackgroundColorFormat26(BackgroundChunk.Background) do
       begin
         ResultColor32.R := RedSampleValue;
         ResultColor32.G := GreenSampleValue;
@@ -466,8 +466,8 @@ begin
         ResultColor32.A := $FF;
       end
     else
-    if FBackgroundChunk.Background is TPngBackgroundColorFormat3 then
-      with TPngBackgroundColorFormat3(FBackgroundChunk.Background) do
+    if BackgroundChunk.Background is TPngBackgroundColorFormat3 then
+      with TPngBackgroundColorFormat3(BackgroundChunk.Background) do
       begin
         ResultColor32.R := PaletteEntry[PaletteIndex].R;
         ResultColor32.G := PaletteEntry[PaletteIndex].R;
@@ -490,8 +490,8 @@ function TPortableNetworkGraphic32.GR32ScanlineProgress(Bitmap: TObject;
   Y: Integer): Pointer;
 begin
   Result := GR32Scanline(Bitmap, Y);
-  if FImageHeader.Height > 0 then
-    FProgressEvent(Self, 100 * Y / FImageHeader.Height)
+  if ImageHeader.Height > 0 then
+    FProgressEvent(Self, 100 * Y / ImageHeader.Height)
   else
     FProgressEvent(Self, 100);
 end;
@@ -603,7 +603,7 @@ begin
     else
       ImageHeader.BitDepth := 8;
 
-    if not (FPaletteChunk <> nil) then
+    if (PaletteChunk = nil) then
       FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
 
     FPaletteChunk.Count := Palette.Count;
@@ -617,7 +617,7 @@ begin
 
     {$IFDEF StoreGamma}
     // add linear gamma chunk
-    if not (FGammaChunk <> nil) then
+    if (FGammaChunk = nil) then
       FGammaChunk := TPngChunkGamma.Create(ImageHeader);
     FGammaChunk.GammaAsSingle := 1;
     {$ELSE}
@@ -641,7 +641,7 @@ begin
 
     DataStream := TMemoryStream.Create;
     try
-      with EncoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+      with EncoderClass.Create(DataStream, ImageHeader, GammaChunk, PaletteChunk) do
         try
           if (Assigned(FProgressEvent)) then
             EncodeFromScanline(Bitmap, GR32ScanlineProgress)
@@ -782,13 +782,13 @@ begin
         raise EPngError.Create(RCStrUnsupportedFormat);
     end;
 
-    if (FTransparencyChunk <> nil) then
-      Transparency := FTransparencyChunk.Transparency
+    if (TransparencyChunk <> nil) then
+      Transparency := TransparencyChunk.Transparency
     else
       Transparency := nil;
 
-    with DecoderClass.Create(DataStream, FImageHeader, FGammaChunk,
-      FPaletteChunk, Transparency) do
+    with DecoderClass.Create(DataStream, ImageHeader, FGammaChunk,
+      PaletteChunk, Transparency) do
     try
       if (Assigned(FProgressEvent)) then
         DecodeToScanline(Bitmap32, GR32ScanlineProgress)
@@ -956,7 +956,7 @@ begin
   begin
     Assert(Length(TempPalette) <= 256);
 
-    if not (FPaletteChunk <> nil) then
+    if (PaletteChunk = nil) then
       FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
 
     FPaletteChunk.Count := Length(TempPalette);
@@ -1020,7 +1020,7 @@ begin
 
     DataStream := TMemoryStream.Create;
     try
-      with EncoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+      with EncoderClass.Create(DataStream, ImageHeader, GammaChunk, PaletteChunk) do
         try
           if (Assigned(FProgressEvent)) then
             EncodeFromScanline(TCustomBitmap32(Source), GR32ScanlineProgress)

@@ -552,7 +552,7 @@ end;
 
 procedure TFmPngExplorer.PNGChanged;
 var
-  Index : Integer;
+  Chunk: TCustomChunk;
 begin
   with FPngFile, TreeView do
   begin
@@ -579,8 +579,8 @@ begin
       Items.AddChildObject(Items[0], 'bKGD', FBackgroundChunk);
 
     // eventually add PNG Significant Bits chunk
-    if Assigned(FSignificantBits) then
-      Items.AddChildObject(Items[0], 'sBIT', FSignificantBits);
+    if Assigned(FSignificantBitsChunk) then
+      Items.AddChildObject(Items[0], 'sBIT', FSignificantBitsChunk);
 
     // eventually add PNG Transparency chunk
     if Assigned(FTransparencyChunk) then
@@ -591,17 +591,12 @@ begin
       Items.AddChildObject(Items[0], 'cHRM', FChromaChunk);
 
     // eventually add PNG Physical Pixel Dimensions chunk
-    if Assigned(FPhysicalDimensions) then
-      Items.AddChildObject(Items[0], 'pHYs', FPhysicalDimensions);
+    if Assigned(FPhysicalDimensionsChunk) then
+      Items.AddChildObject(Items[0], 'pHYs', FPhysicalDimensionsChunk);
 
     // eventually add additional chunks
-    for Index := 0 to FAdditionalChunkList.Count - 1 do
-    begin
-      if FAdditionalChunkList[Index] is TCustomChunk then
-        Items.AddChildObject(Items[0],
-          string(TCustomChunk(FAdditionalChunkList[Index]).ChunkNameAsString),
-          FAdditionalChunkList[Index])
-    end;
+    for Chunk in AdditionalChunks do
+      Items.AddChildObject(Items[0], string(Chunk.ChunkNameAsString), Chunk);
 
     // end update
     Items.EndUpdate;

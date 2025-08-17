@@ -45,6 +45,7 @@ interface
 {-$define PNG_CHUNK_INTERNATIONAL_TEXT}
 
 uses
+  Generics.Collections,
   Classes, Graphics, SysUtils,
 {$IFDEF FPC}
   ZBase, ZDeflate, ZInflate;
@@ -121,12 +122,27 @@ type
 
   {$A4}
 
+  TCustomChunk = class;
+
+  IChunkOwner = interface
+    procedure AddChunk(AChunk: TCustomChunk);
+    procedure RemoveChunk(AChunk: TCustomChunk);
+  end;
+
   TCustomChunk = class abstract(TPersistent)
+  private
+    FOwner: IChunkOwner;
   protected
+    procedure SetOwner(const AOwner: IChunkOwner);
+
     function GetChunkNameAsString: AnsiString; virtual; abstract;
     function GetChunkName: TChunkName; virtual; abstract;
     function GetChunkSize: Cardinal; virtual; abstract;
+
+    property Owner: IChunkOwner read FOwner write SetOwner;
   public
+    destructor Destroy; override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); virtual; abstract;
     procedure WriteToStream(Stream: TStream); virtual; abstract;
 
@@ -201,6 +217,7 @@ type
 
     property Header: TPngChunkImageHeader read FHeader;
   end;
+
   TCustomDefinedChunkWithHeaderClass = class of TCustomDefinedChunkWithHeader;
 
   TPngChunkImageData = class(TCustomDefinedChunkWithHeader)
@@ -848,24 +865,55 @@ type
     property DataStream: TMemoryStream read FDataStream;
   end;
 
-  TChunkList = class(TPersistent)
+  TPngChunkUnknownClass = class of TPngChunkUnknown;
+
+  TCustomChunkList<T: TCustomChunk> = class(TObjectList<T>, IChunkOwner)
   private
-    FChunks : array of TCustomChunk;
-    function GetCount: Cardinal;
+    FHeader: TPngChunkImageHeader;
   protected
-    function GetChunk(Index: Integer): TCustomChunk;
-    procedure AssignTo(Dest: TPersistent); override;
+    procedure Add(AChunk: TCustomChunk); overload;
+    function AddClone(AChunk: TCustomChunk): TCustomChunk; virtual;
+  private
+    function _AddRef: Integer; stdcall;
+    function _Release: Integer; stdcall;
+    function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
+  private
+    // IChunkOwner
+    procedure AddChunk(AChunk: TCustomChunk);
+    procedure RemoveChunk(AChunk: TCustomChunk);
   public
-    destructor Destroy; override;
+    constructor Create(AHeader: TPngChunkImageHeader);
+    procedure Assign(Source: TCustomChunkList<T>);
+    function Add(const AChunkName: TChunkName): TPngChunkUnknown; overload;
 
-    procedure Add(Item: TCustomChunk);
-    procedure Clear; virtual;
-    procedure Delete(Index: Cardinal);
-    function IndexOf(Item: TCustomChunk): Integer;
-    procedure Remove(Item: TCustomChunk);
+    property Header: TPngChunkImageHeader read FHeader;
+  end;
 
-    property Count: Cardinal read GetCount;
-    property Chunks[Index: Integer]: TCustomChunk read GetChunk; default;
+  TChunkList = class(TCustomChunkList<TCustomChunk>);
+
+  TCustomDefinedChunkWithHeaderList<T: TCustomDefinedChunkWithHeader> = class(TCustomChunkList<T>)
+  protected
+    function AddClone(AChunk: TCustomChunk): TCustomChunk; override;
+  public
+    function Add(AChunkClass: TCustomDefinedChunkWithHeaderClass): T; overload;
+    function Add<TT: TCustomDefinedChunkWithHeader>: TT; overload;
+  end;
+
+  TDefinedChunkWithHeaderList = TCustomDefinedChunkWithHeaderList<TCustomDefinedChunkWithHeader>;
+  TChunkImageDataList = TCustomDefinedChunkWithHeaderList<TPngChunkImageData>;
+
+  TPortableNetworkGraphic = class;
+
+  TCompositeChunkList = class
+  private
+    FOwner: TPortableNetworkGraphic;
+    function GetChunk(Index: integer): TCustomChunk;
+    function GetCount: integer;
+  public
+    constructor Create(AOwner: TPortableNetworkGraphic);
+
+    property Count: integer read GetCount;
+    property Chunks[Index: integer]: TCustomChunk read GetChunk; default;
   end;
 
   TCustomPngCoder = class abstract
@@ -983,21 +1031,25 @@ type
     procedure ReadUnknownChunk(Stream: TStream; ChunkName: TChunkName; ChunkSize: Integer);
     function GetFilterMethods: TAvailableAdaptiveFilterMethods;
     procedure SetBackgroundChunk(const Value: TPngChunkBackgroundColor);
-  protected
-    FImageHeader         : TPngChunkImageHeader;
-    FPaletteChunk        : TPngChunkPalette;
-    FGammaChunk          : TPngChunkGamma;
-    FTimeChunk           : TPngChunkTime;
-    FSignificantBits     : TPngChunkSignificantBits;
-    FPhysicalDimensions  : TPngChunkPhysicalPixelDimensions;
-    FChromaChunk         : TPngChunkPrimaryChromaticities;
-    FTransparencyChunk   : TPngChunkTransparency;
-    FBackgroundChunk     : TPngChunkBackgroundColor;
-    FDataChunkList       : TChunkList;
-    FAdditionalChunkList : TChunkList;
+    function GetChunks: TCompositeChunkList;
 
+  protected
+    FImageHeader: TPngChunkImageHeader;
+    FPaletteChunk: TPngChunkPalette;
+    FGammaChunk: TPngChunkGamma;
+    FTimeChunk: TPngChunkTime;
+    FSignificantBitsChunk: TPngChunkSignificantBits;
+    FPhysicalDimensionsChunk: TPngChunkPhysicalPixelDimensions;
+    FChromaChunk: TPngChunkPrimaryChromaticities;
+    FTransparencyChunk: TPngChunkTransparency;
+    FBackgroundChunk: TPngChunkBackgroundColor;
+    FDefaultChunks: TDefinedChunkWithHeaderList;
+    FDataChunks: TChunkImageDataList;
+    FAdditionalChunks: TDefinedChunkWithHeaderList;
+    FCompositeChunkList: TCompositeChunkList;
+
+  protected
     procedure Clear; virtual;
-    procedure AssignTo(Dest: TPersistent); override;
 
     procedure CopyImageData(Stream: TStream);
     procedure StoreImageData(Stream: TStream);
@@ -1008,18 +1060,26 @@ type
     procedure AdaptiveFilterMethodsChanged; virtual;
     procedure InterlaceMethodChanged; virtual;
 
+    property DefaultChunks: TDefinedChunkWithHeaderList read FDefaultChunks;
+    property DataChunks: TChunkImageDataList read FDataChunks;
+    property AdditionalChunks: TDefinedChunkWithHeaderList read FAdditionalChunks;
+
     property ImageHeader: TPngChunkImageHeader read FImageHeader write SetImageHeader;
+
     property PaletteChunk: TPngChunkPalette read FPaletteChunk write SetPaletteChunk;
     property TransparencyChunk: TPngChunkTransparency read FTransparencyChunk write SetTransparencyChunk;
     property BackgroundChunk: TPngChunkBackgroundColor read FBackgroundChunk write SetBackgroundChunk;
     property GammaChunk: TPngChunkGamma read FGammaChunk write SetGammaChunk;
+    property ChromaChunk: TPngChunkPrimaryChromaticities read FChromaChunk write SetChromaChunk;
     property TimeChunk: TPngChunkTime read FTimeChunk write SetTimeChunk;
-    property PhysicalPixelDimensionsChunk: TPngChunkPhysicalPixelDimensions read FPhysicalDimensions write SetPhysicalDimensions;
+    property PhysicalPixelDimensionsChunk: TPngChunkPhysicalPixelDimensions read FPhysicalDimensionsChunk write SetPhysicalDimensions;
+    property SignificantBitsChunk: TPngChunkSignificantBits read FSignificantBitsChunk write SetSignificantBits;
+    property PrimaryChromaticitiesChunk: TPngChunkPrimaryChromaticities read FChromaChunk write SetChromaChunk;
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
-    procedure Assign(Source: TPersistent); override;
+    procedure Assign(ASource: TPersistent); override;
 
     procedure LoadFromStream(Stream: TStream); virtual;
     procedure SaveToStream(Stream: TStream); virtual;
@@ -1054,8 +1114,7 @@ type
     property PixelsPerUnitY: Cardinal read GetPixelsPerUnitY write SetPixelsPerUnitY;
     property PixelUnit: Byte read GetPixelUnit write SetPixelUnit;
 
-    property SignificantBitsChunk: TPngChunkSignificantBits read FSignificantBits write SetSignificantBits;
-    property PrimaryChromaticitiesChunk: TPngChunkPrimaryChromaticities read FChromaChunk write SetChromaChunk;
+    property Chunks: TCompositeChunkList read GetChunks;
   end;
 
 procedure RegisterPngChunk(ChunkClass: TCustomDefinedChunkWithHeaderClass);
@@ -3612,87 +3671,101 @@ end;
 
 { TChunkList }
 
-destructor TChunkList.Destroy;
+constructor TCustomChunkList<T>.Create(AHeader: TPngChunkImageHeader);
 begin
-  Clear;
-  inherited;
+  inherited Create;
+  FHeader := AHeader;
 end;
 
-procedure TChunkList.Add(Item: TCustomChunk);
+function TCustomChunkList<T>.QueryInterface(const IID: TGUID; out Obj): HResult;
 begin
-  SetLength(FChunks, Length(FChunks) + 1);
-  FChunks[Length(FChunks) - 1] := Item;
-end;
-
-procedure TChunkList.AssignTo(Dest: TPersistent);
-var
-  Index      : Integer;
-  ChunkClass : TCustomDefinedChunkWithHeaderClass;
-begin
-  if Dest is TChunkList then
-    with TChunkList(Dest) do
-    begin
-      Clear;
-      SetLength(FChunks, Self.Count);
-      for Index := 0 to Self.Count - 1 do
-        if Self.FChunks[Index] is TCustomDefinedChunkWithHeader then
-        begin
-          ChunkClass := TCustomDefinedChunkWithHeaderClass(Self.FChunks[Index].ClassType);
-          FChunks[Index] := ChunkClass.Create(TCustomDefinedChunkWithHeader(Self.FChunks[Index]).FHeader);
-          FChunks[Index].Assign(Self.FChunks[Index]);
-        end
-        else
-          inherited;
-    end
-    else
-      inherited;
-end;
-
-procedure TChunkList.Clear;
-var
-  Index : Integer;
-begin
-  for Index := 0 to Count - 1 do
-    FChunks[Index].Free;
-  SetLength(FChunks, 0)
-end;
-
-procedure TChunkList.Delete(Index: Cardinal);
-begin
-  if Index >= Count then
-    raise EPngError.Create(RCStrEmptyChunkList);
-  FChunks[Index].Free;
-  if Index < Count then
-    System.Move(FChunks[Index + 1], FChunks[Index], (Count - Index) * SizeOf(Pointer));
-  SetLength(FChunks, Length(FChunks) - 1);
-end;
-
-function TChunkList.GetChunk(Index: Integer): TCustomChunk;
-begin
-  if Cardinal(Index) >= Cardinal(Count) then
-    raise EPngError.CreateFmt(RCStrIndexOutOfBounds, [Index])
+  if GetInterface(IID, Obj) then
+    Result := 0
   else
-    Result := FChunks[Index];
+    Result := E_NOINTERFACE;
 end;
 
-function TChunkList.GetCount: Cardinal;
+function TCustomChunkList<T>.Add(const AChunkName: TChunkName): TPngChunkUnknown;
 begin
-  Result := Length(FChunks);
+  Result := TPngChunkUnknown.Create(AChunkName);
+  Add(Result);
 end;
 
-function TChunkList.IndexOf(Item: TCustomChunk): Integer;
+procedure TCustomChunkList<T>.Add(AChunk: TCustomChunk);
 begin
-  for Result := 0 to Count - 1 do
-    if FChunks[Result] = Item then
-      Exit;
+  inherited Add(AChunk);
+  AChunk.Owner := Self;
+end;
+
+procedure TCustomChunkList<T>.AddChunk(AChunk: TCustomChunk);
+begin
+  if (not Contains(AChunk)) then
+    Add(AChunk);
+end;
+
+procedure TCustomChunkList<T>.RemoveChunk(AChunk: TCustomChunk);
+begin
+  if (Contains(AChunk)) then
+  begin
+    inherited Extract(AChunk);
+    AChunk.Owner := nil;
+  end;
+end;
+
+function TCustomChunkList<T>._AddRef: Integer;
+begin
   Result := -1;
 end;
 
-procedure TChunkList.Remove(Item: TCustomChunk);
+function TCustomChunkList<T>._Release: Integer;
 begin
-  Delete(IndexOf(Item));
+  Result := -1;
 end;
 
+function TCustomChunkList<T>.AddClone(AChunk: TCustomChunk): TCustomChunk;
+begin
+  if (AChunk is TPngChunkUnknown) then
+    Result := Add(TPngChunkUnknown(AChunk).ChunkName)
+  else
+    raise EPngError.CreateFmt('Unable to clone PNG chunk: %s', [AChunk.ClassName]);
+end;
+
+procedure TCustomChunkList<T>.Assign(Source: TCustomChunkList<T>);
+var
+  Chunk: TCustomChunk;
+  NewChunk: TCustomChunk;
+begin
+  Clear;
+  Capacity := Source.Count;
+
+  for Chunk in Source do
+  begin
+    NewChunk := AddClone(Chunk);
+    NewChunk.Assign(Chunk);
+  end;
+end;
+
+{ TCustomDefinedChunkWithHeaderList<T> }
+
+function TCustomDefinedChunkWithHeaderList<T>.Add(AChunkClass: TCustomDefinedChunkWithHeaderClass): T;
+begin
+  Result := T(AChunkClass.Create(Header));
+  Add(Result);
+end;
+
+function TCustomDefinedChunkWithHeaderList<T>.Add<TT>: TT;
+begin
+  Result := TT.Create(Header);
+  Add(Result);
+end;
+
+function TCustomDefinedChunkWithHeaderList<T>.AddClone(AChunk: TCustomChunk): TCustomChunk;
+begin
+  if (AChunk is TCustomDefinedChunkWithHeader) then
+    Result := Add(TCustomDefinedChunkWithHeaderClass(AChunk.ClassType))
+  else
+    Result := inherited;
+end;
 
 { TCustomPngCoder }
 
@@ -4369,9 +4442,10 @@ end;
 
 constructor TPortableNetworkGraphic.Create;
 begin
-  FImageHeader         := TPngChunkImageHeader.Create;
-  FDataChunkList       := TChunkList.Create;
-  FAdditionalChunkList := TChunkList.Create;
+  FImageHeader := TPngChunkImageHeader.Create;
+  FDefaultChunks := TDefinedChunkWithHeaderList.Create(FImageHeader);
+  FDataChunks := TChunkImageDataList.Create(FImageHeader);
+  FAdditionalChunks := TDefinedChunkWithHeaderList.Create(FImageHeader);
 
   FCompressionLevel    := Z_BEST_COMPRESSION;
   inherited;
@@ -4379,26 +4453,25 @@ end;
 
 destructor TPortableNetworkGraphic.Destroy;
 begin
-  FAdditionalChunkList.Clear;
-
-  FAdditionalChunkList.Free;
-  FDataChunkList.Free;
+  FAdditionalChunks.Free;
+  FDataChunks.Free;
+  FDefaultChunks.Free;
   FImageHeader.Free;
+  FCompositeChunkList.Free;
 
-  FPaletteChunk.Free;
-  FGammaChunk.Free;
-  FTimeChunk.Free;
-  FSignificantBits.Free;
-  FPhysicalDimensions.Free;
-  FChromaChunk.Free;
-  FTransparencyChunk.Free;
-  FBackgroundChunk.Free;
+  FPaletteChunk := nil;
+  FGammaChunk := nil;
+  FTimeChunk := nil;
+  FSignificantBitsChunk := nil;
+  FPhysicalDimensionsChunk := nil;
+  FChromaChunk := nil;
+  FTransparencyChunk := nil;
+  FBackgroundChunk := nil;
 
   inherited;
 end;
 
-procedure TPortableNetworkGraphic.SetPaletteChunk(
-  const Value: TPngChunkPalette);
+procedure TPortableNetworkGraphic.SetPaletteChunk(const Value: TPngChunkPalette);
 begin
   if (FPaletteChunk <> nil) then
     if (Value <> nil) then
@@ -4407,8 +4480,8 @@ begin
       FreeAndNil(FPaletteChunk)
   else
     if (Value <> nil) then
-    begin
-      FPaletteChunk := TPngChunkPalette.Create(FImageHeader);
+    begin                                                 
+      FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
       FPaletteChunk.Assign(Value);
     end;
 end;
@@ -4416,32 +4489,31 @@ end;
 procedure TPortableNetworkGraphic.SetPhysicalDimensions(
   const Value: TPngChunkPhysicalPixelDimensions);
 begin
-  if (FPhysicalDimensions <> nil) then
+  if (FPhysicalDimensionsChunk <> nil) then
     if (Value <> nil) then
-      FPhysicalDimensions.Assign(Value)
+      FPhysicalDimensionsChunk.Assign(Value)
     else
-      FreeAndNil(FPhysicalDimensions)
+      FreeAndNil(FPhysicalDimensionsChunk)
   else
     if (Value <> nil) then
     begin
-      FPhysicalDimensions := TPngChunkPhysicalPixelDimensions.Create(FImageHeader);
-      FPhysicalDimensions.Assign(Value);
+      FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+      FPhysicalDimensionsChunk.Assign(Value);
     end;
 end;
 
-procedure TPortableNetworkGraphic.SetSignificantBits(
-  const Value: TPngChunkSignificantBits);
+procedure TPortableNetworkGraphic.SetSignificantBits(const Value: TPngChunkSignificantBits);
 begin
-  if (FSignificantBits <> nil) then
+  if (FSignificantBitsChunk <> nil) then
     if (Value <> nil) then
-      FSignificantBits.Assign(Value)
+      FSignificantBitsChunk.Assign(Value)
     else
-      FreeAndNil(FSignificantBits)
+      FreeAndNil(FSignificantBitsChunk)
   else
     if (Value <> nil) then
     begin
-      FSignificantBits := TPngChunkSignificantBits.Create(FImageHeader);
-      FSignificantBits.Assign(Value);
+      FSignificantBitsChunk := FDefaultChunks.Add<TPngChunkSignificantBits>;
+      FSignificantBitsChunk.Assign(Value);
     end;
 end;
 
@@ -4455,13 +4527,12 @@ begin
   else
     if (Value <> nil) then
     begin
-      FTimeChunk := TPngChunkTime.Create(FImageHeader);
+      FTimeChunk := FDefaultChunks.Add<TPngChunkTime>;
       FTimeChunk.Assign(Value);
     end;
 end;
 
-procedure TPortableNetworkGraphic.SetTransparencyChunk(
-  const Value: TPngChunkTransparency);
+procedure TPortableNetworkGraphic.SetTransparencyChunk(const Value: TPngChunkTransparency);
 begin
   if (FTransparencyChunk <> nil) then
     if (Value <> nil) then
@@ -4471,7 +4542,7 @@ begin
   else
     if (Value <> nil) then
     begin
-      FTransparencyChunk := TPngChunkTransparency.Create(FImageHeader);
+      FTransparencyChunk := FDefaultChunks.Add<TPngChunkTransparency>;
       FTransparencyChunk.Assign(Value);
     end;
 end;
@@ -4481,10 +4552,10 @@ begin
   if Value = 0 then
     raise EPngError.Create(RCStrWrongPixelPerUnit);
 
-  if not (FPhysicalDimensions <> nil) then
-    FPhysicalDimensions := TPngChunkPhysicalPixelDimensions.Create(FImageHeader);
+  if (FPhysicalDimensionsChunk= nil) then
+    FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
 
-  FPhysicalDimensions.PixelsPerUnitX := Value;
+  FPhysicalDimensionsChunk.PixelsPerUnitX := Value;
 end;
 
 procedure TPortableNetworkGraphic.SetPixelsPerUnitY(const Value: Cardinal);
@@ -4492,10 +4563,10 @@ begin
   if Value = 0 then
     raise EPngError.Create(RCStrWrongPixelPerUnit);
 
-  if not (FPhysicalDimensions <> nil) then
-    FPhysicalDimensions := TPngChunkPhysicalPixelDimensions.Create(FImageHeader);
+  if (FPhysicalDimensionsChunk= nil) then
+    FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
 
-  FPhysicalDimensions.PixelsPerUnitY := Value;
+  FPhysicalDimensionsChunk.PixelsPerUnitY := Value;
 end;
 
 procedure TPortableNetworkGraphic.SetPixelUnit(const Value: Byte);
@@ -4503,14 +4574,13 @@ begin
   if Value > 1 then
     raise EPngError.Create(RCStrUnspecifiedPixelUnit);
 
-  if not (FPhysicalDimensions <> nil) then
-    FPhysicalDimensions := TPngChunkPhysicalPixelDimensions.Create(FImageHeader);
+  if (FPhysicalDimensionsChunk = nil) then
+    FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
 
-  FPhysicalDimensions.PixelUnit := Value;
+  FPhysicalDimensionsChunk.PixelUnit := Value;
 end;
 
-procedure TPortableNetworkGraphic.SetChromaChunk(
-  const Value: TPngChunkPrimaryChromaticities);
+procedure TPortableNetworkGraphic.SetChromaChunk(const Value: TPngChunkPrimaryChromaticities);
 begin
   if (FChromaChunk <> nil) then
     if (Value <> nil) then
@@ -4520,7 +4590,7 @@ begin
   else
     if (Value <> nil) then
     begin
-      FChromaChunk := TPngChunkPrimaryChromaticities.Create(FImageHeader);
+      FChromaChunk := FDefaultChunks.Add<TPngChunkPrimaryChromaticities>;
       FChromaChunk.Assign(Value);
     end;
 end;
@@ -4535,13 +4605,12 @@ begin
   else
     if (Value <> nil) then
     begin
-      FGammaChunk := TPngChunkGamma.Create(FImageHeader);
+      FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
       FGammaChunk.Assign(Value);
     end;
 end;
 
-procedure TPortableNetworkGraphic.SetBackgroundChunk(
-  const Value: TPngChunkBackgroundColor);
+procedure TPortableNetworkGraphic.SetBackgroundChunk(const Value: TPngChunkBackgroundColor);
 begin
   if (FGammaChunk <> nil) then
     if (Value <> nil) then
@@ -4551,13 +4620,12 @@ begin
   else
     if (Value <> nil) then
     begin
-      FBackgroundChunk := TPngChunkBackgroundColor.Create(FImageHeader);
+      FBackgroundChunk := FDefaultChunks.Add<TPngChunkBackgroundColor>;
       FBackgroundChunk.Assign(Value);
     end;
 end;
 
-procedure TPortableNetworkGraphic.SetImageHeader(
-  const Value: TPngChunkImageHeader);
+procedure TPortableNetworkGraphic.SetImageHeader(const Value: TPngChunkImageHeader);
 begin
   if not (Value <> nil) then
     raise EPngError.Create(RCStrNewHeaderError)
@@ -4641,18 +4709,12 @@ end;
 
 procedure TPortableNetworkGraphic.CopyImageData(Stream: TStream);
 var
-  DataIndex   : Integer;
+  Chunk: TPngChunkImageData;
 begin
   // combine all data chunks first
-  for DataIndex := 0 to FDataChunkList.Count - 1 do
-  begin
-    // make sure the chunk is inded an image data chunk
-    Assert(FDataChunkList[DataIndex] is TPngChunkImageData);
-
+  for Chunk in FDataChunks do
     // concat current chunk to data stream
-    with TPngChunkImageData(FDataChunkList[DataIndex]) do
-      Stream.CopyFrom(Data, 0);
-  end;
+    Stream.CopyFrom(Chunk.Data, 0);
 end;
 
 procedure TPortableNetworkGraphic.StoreImageData(Stream: TStream);
@@ -4661,21 +4723,18 @@ var
   ChunkSize : Integer;
 begin
   // delete old image data
-  FDataChunkList.Clear;
+  FDataChunks.Clear;
 
   ChunkSize := Stream.Size;
   while Stream.Position < Stream.Size do
   begin
-    DataChunk := TPngChunkImageData.Create(ImageHeader);
+    DataChunk := FDataChunks.Add(TPngChunkImageData);
 
     if (Stream.Size - Stream.Position) < ChunkSize then
       ChunkSize := (Stream.Size - Stream.Position);
 
     // copy data to IDAT chunk
     DataChunk.Data.CopyFrom(Stream, ChunkSize);
-
-    // add data chunk to data chunk list
-    FDataChunkList.Add(DataChunk);
   end;
 end;
 
@@ -4860,67 +4919,67 @@ begin
       begin
         if (FGammaChunk <> nil) then
           raise EPngError.Create(RCStrSeveralGammaChunks);
-        FGammaChunk := TPngChunkGamma.Create(FImageHeader);
+        FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
         FGammaChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'cHRM' then
       begin
         if (FChromaChunk <> nil) then
           raise EPngError.Create(RCStrSeveralChromaChunks);
-        FChromaChunk := TPngChunkPrimaryChromaticities.Create(FImageHeader);
+        FChromaChunk := FDefaultChunks.Add<TPngChunkPrimaryChromaticities>;
         FChromaChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'tIME' then
       begin
         if (FTimeChunk <> nil) then
           raise EPngError.Create(RCStrSeveralTimeChunks);
-        FTimeChunk := TPngChunkTime.Create(FImageHeader);
+        FTimeChunk := FDefaultChunks.Add<TPngChunkTime>;
         FTimeChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'sBIT' then
       begin
-        if (FSignificantBits <> nil) then
+        if (FSignificantBitsChunk <> nil) then
           raise EPngError.Create(RCStrSeveralSignificantBitsChunksFound);
-        FSignificantBits := TPngChunkSignificantBits.Create(FImageHeader);
-        FSignificantBits.ReadFromStream(MemoryStream, ChunkSize);
+        FSignificantBitsChunk := FDefaultChunks.Add<TPngChunkSignificantBits>;
+        FSignificantBitsChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'pHYs' then
       begin
-        if (FPhysicalDimensions <> nil) then
+        if (FPhysicalDimensionsChunk <> nil) then
           raise EPngError.Create(RCStrSeveralPhysicalPixelDimensionChunks);
-        FPhysicalDimensions := TPngChunkPhysicalPixelDimensions.Create(FImageHeader);
-        FPhysicalDimensions.ReadFromStream(MemoryStream, ChunkSize);
+        FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+        FPhysicalDimensionsChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'PLTE' then
       begin
         if (FPaletteChunk <> nil) then
           raise EPngError.Create(RCStrSeveralPaletteChunks);
-        FPaletteChunk := TPngChunkPalette.Create(FImageHeader);
+        FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
         FPaletteChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'tRNS' then
       begin
         if (FTransparencyChunk <> nil) then
           raise EPngError.Create(RCStrSeveralTransparencyChunks);
-        FTransparencyChunk := TPngChunkTransparency.Create(FImageHeader);
+        FTransparencyChunk := FDefaultChunks.Add<TPngChunkTransparency>;
         FTransparencyChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'bKGD' then
       begin
         if (FBackgroundChunk <> nil) then
           raise EPngError.Create(RCStrSeveralBackgroundChunks);
-        FBackgroundChunk := TPngChunkBackgroundColor.Create(FImageHeader);
+        FBackgroundChunk := FDefaultChunks.Add<TPngChunkBackgroundColor>;
         FBackgroundChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       begin
         ChunkClass := FindPngChunkByChunkName(ChunkName);
+        
         if ChunkClass <> nil then
         begin
           Chunk := ChunkClass.Create(FImageHeader);
           Chunk.ReadFromStream(MemoryStream, ChunkSize);
-          FAdditionalChunkList.Add(Chunk);
-        end
-        else
+          FAdditionalChunks.Add(Chunk);
+        end else
         begin
           // check if chunk is ancillary
           if (Byte(ChunkName[0]) and $80) <> 0 then
@@ -5012,12 +5071,12 @@ begin
     Stream.Write(CRC, SizeOf(Cardinal));
 
     // eventually save physical pixel dimensions chunk
-    if (FPhysicalDimensions <> nil) then
-      SaveChunkToStream(FPhysicalDimensions);
+    if (FPhysicalDimensionsChunk <> nil) then
+      SaveChunkToStream(FPhysicalDimensionsChunk);
 
     // eventually save significant bits chunk
-    if (FSignificantBits <> nil) then
-      SaveChunkToStream(FSignificantBits);
+    if (FSignificantBitsChunk <> nil) then
+      SaveChunkToStream(FSignificantBitsChunk);
 
     // eventually save gamma chunk
     if (FGammaChunk <> nil) then
@@ -5040,12 +5099,12 @@ begin
       SaveChunkToStream(FBackgroundChunk);
 
     // store additional chunks
-    for Index := 0 to FAdditionalChunkList.Count - 1 do
-      SaveChunkToStream(TCustomChunk(FAdditionalChunkList[Index]));
+    for Index := 0 to FAdditionalChunks.Count - 1 do
+      SaveChunkToStream(FAdditionalChunks[Index]);
 
     // save data streams
-    for Index := 0 to FDataChunkList.Count - 1 do
-      SaveChunkToStream(TCustomChunk(FDataChunkList[Index]));
+    for Index := 0 to FDataChunks.Count - 1 do
+      SaveChunkToStream(FDataChunks[Index]);
   finally
     MemoryStream.Free;
   end;
@@ -5067,9 +5126,8 @@ procedure TPortableNetworkGraphic.ReadUnknownChunk(Stream: TStream;
 var
   UnknownChunk : TPngChunkUnknown;
 begin
-  UnknownChunk := TPngChunkUnknown.Create(ChunkName);
+  UnknownChunk := FAdditionalChunks.Add(ChunkName);
   UnknownChunk.ReadFromStream(Stream, ChunkSize);
-  FAdditionalChunkList.Add(UnknownChunk);
 end;
 
 procedure TPortableNetworkGraphic.RemoveGammaInformation;
@@ -5084,7 +5142,7 @@ end;
 
 procedure TPortableNetworkGraphic.RemovePhysicalPixelDimensionsInformation;
 begin
-  FreeAndNil(FPhysicalDimensions);
+  FreeAndNil(FPhysicalDimensionsChunk);
 end;
 
 procedure TPortableNetworkGraphic.CompressionLevelChanged;
@@ -5103,7 +5161,7 @@ end;
 
 procedure TPortableNetworkGraphic.AdaptiveFilterMethodsChanged;
 begin
-  if FDataChunkList.Count > 0 then
+  if FDataChunks.Count > 0 then
   begin
     // transcoding!
     raise EPngError.CreateFmt(RCStrNotYetImplemented, ['AdaptiveFilterMethods transcoding']);
@@ -5143,144 +5201,130 @@ end;
 
 procedure TPortableNetworkGraphic.ReadImageDataChunk(Stream: TStream; Size: Integer);
 var
-  ImageDataChunk : TPngChunkImageData;
+  Chunk : TPngChunkImageData;
 begin
-  ImageDataChunk := TPngChunkImageData.Create(FImageHeader);
-  ImageDataChunk.ReadFromStream(Stream, Size);
-  FDataChunkList.Add(ImageDataChunk);
+  Chunk := FDataChunks.Add(TPngChunkImageData);
+  Chunk.ReadFromStream(Stream, Size);
 end;
 
-procedure TPortableNetworkGraphic.Assign(Source: TPersistent);
+procedure TPortableNetworkGraphic.Assign(ASource: TPersistent);
+var
+  Source: TPortableNetworkGraphic;
 begin
-  if Source is TPortableNetworkGraphic then
-    with TPortableNetworkGraphic(Source) do
+  if ASource is TPortableNetworkGraphic then
+  begin
+    Source := TPortableNetworkGraphic(ASource);
+
+    if (FImageHeader <> nil) then
+      FImageHeader.Assign(Source.ImageHeader);
+
+    // assign palette chunk
+    if (FPaletteChunk <> nil) then
+      if (Source.FPaletteChunk <> nil) then
+        FPaletteChunk.Assign(Source.PaletteChunk)
+      else
+        FreeAndNil(FPaletteChunk)
+    else 
+    if (Source.PaletteChunk <> nil) then
     begin
-      if (Self.FImageHeader <> nil) then
-        Self.FImageHeader.Assign(FImageHeader);
+      FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
+      FPaletteChunk.Assign(Source.PaletteChunk);
+    end;
 
-      // assign palette chunk
-      if (Self.FPaletteChunk <> nil) then
-        if (FPaletteChunk <> nil) then
-          Self.FPaletteChunk.Assign(FPaletteChunk)
-        else
-          FreeAndNil(Self.FPaletteChunk)
-      else if (FPaletteChunk <> nil) then
-      begin
-        Self.FPaletteChunk := TPngChunkPalette.Create(FImageHeader);
-        Self.FPaletteChunk.Assign(FPaletteChunk);
-      end;
-
-      // assign gamma chunk
-      if (Self.FGammaChunk <> nil) then
-        if (FGammaChunk <> nil) then
-          Self.FGammaChunk.Assign(FGammaChunk)
-        else
-          FreeAndNil(Self.FGammaChunk)
-      else if (FGammaChunk <> nil) then
-      begin
-        Self.FGammaChunk := TPngChunkGamma.Create(FImageHeader);
-        Self.FGammaChunk.Assign(FGammaChunk);
-      end;
-
-      // assign time chunk
-      if (Self.FTimeChunk <> nil) then
-        if (FTimeChunk <> nil) then
-          Self.FTimeChunk.Assign(FTimeChunk)
-        else
-          FreeAndNil(Self.FTimeChunk)
-      else if (FTimeChunk <> nil) then
-      begin
-        Self.FTimeChunk := TPngChunkTime.Create(FImageHeader);
-        Self.FTimeChunk.Assign(FTimeChunk);
-      end;
-
-      // assign significant bits
-      if (Self.FSignificantBits <> nil) then
-        if (FSignificantBits <> nil) then
-          Self.FSignificantBits.Assign(FSignificantBits)
-        else
-          FreeAndNil(Self.FSignificantBits)
-      else if (FSignificantBits <> nil) then
-      begin
-        Self.FSignificantBits := TPngChunkSignificantBits.Create(FImageHeader);
-        Self.FSignificantBits.Assign(FSignificantBits);
-      end;
-
-      // assign physical dimensions
-      if (Self.FPhysicalDimensions <> nil) then
-        if (FPhysicalDimensions <> nil) then
-          Self.FPhysicalDimensions.Assign(FPhysicalDimensions)
-        else
-          FreeAndNil(Self.FPhysicalDimensions)
-      else if (FPhysicalDimensions <> nil) then
-      begin
-        Self.FPhysicalDimensions := TPngChunkPhysicalPixelDimensions.Create(FImageHeader);
-        Self.FPhysicalDimensions.Assign(FPhysicalDimensions);
-      end;
-
-      // assign primary chromaticities
-      if (Self.FChromaChunk <> nil) then
-        if (FChromaChunk <> nil) then
-          Self.FChromaChunk.Assign(FChromaChunk)
-        else
-          FreeAndNil(Self.FChromaChunk)
-      else if (FChromaChunk <> nil) then
-      begin
-        Self.FChromaChunk := TPngChunkPrimaryChromaticities.Create(FImageHeader);
-        Self.FChromaChunk.Assign(FChromaChunk);
-      end;
-
-      // assign transparency
-      if (Self.FTransparencyChunk <> nil) then
-        if (FTransparencyChunk <> nil) then
-          Self.FTransparencyChunk.Assign(FTransparencyChunk)
-        else
-          FreeAndNil(Self.FTransparencyChunk)
-      else if (FTransparencyChunk <> nil) then
-      begin
-        Self.FTransparencyChunk := TPngChunkTransparency.Create(FImageHeader);
-        Self.FTransparencyChunk.Assign(FTransparencyChunk);
-      end;
-
-      // assign background
-      if (Self.FBackgroundChunk <> nil) then
-        if (FBackgroundChunk <> nil) then
-          Self.FBackgroundChunk.Assign(FBackgroundChunk)
-        else
-          FreeAndNil(Self.FBackgroundChunk)
-      else if (FBackgroundChunk <> nil) then
-      begin
-        Self.FBackgroundChunk := TPngChunkBackgroundColor.Create(FImageHeader);
-        Self.FBackgroundChunk.Assign(FBackgroundChunk);
-      end;
-
-      if (Self.FDataChunkList <> nil) then
-        Self.FDataChunkList.Assign(FDataChunkList);
-      if (Self.FAdditionalChunkList <> nil) then
-        Self.FAdditionalChunkList.Assign(FAdditionalChunkList);
-     end
-  else
-    inherited;
-end;
-
-procedure TPortableNetworkGraphic.AssignTo(Dest: TPersistent);
-begin
-  if Dest is TPortableNetworkGraphic then
-    with TPortableNetworkGraphic(Dest) do
+    // assign gamma chunk
+    if (FGammaChunk <> nil) then
+      if (Source.GammaChunk <> nil) then
+        FGammaChunk.Assign(Source.GammaChunk)
+      else
+        FreeAndNil(FGammaChunk)
+    else 
+    if (Source.GammaChunk <> nil) then
     begin
-      FImageHeader.Assign(Self.FImageHeader);
-      FPaletteChunk.Assign(Self.FPaletteChunk);
-      FGammaChunk.Assign(Self.FGammaChunk);
-      FTimeChunk.Assign(Self.FTimeChunk);
-      FSignificantBits.Assign(Self.FSignificantBits);
-      FPhysicalDimensions.Assign(Self.FPhysicalDimensions);
-      FChromaChunk.Assign(Self.FChromaChunk);
-      FTransparencyChunk.Assign(Self.FTransparencyChunk);
-      FBackgroundChunk.Assign(Self.FBackgroundChunk);
-      FDataChunkList.Assign(Self.FDataChunkList);
-      FAdditionalChunkList.Assign(Self.FAdditionalChunkList);
-    end
-  else
+      FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
+      FGammaChunk.Assign(Source.GammaChunk);
+    end;
+
+    // assign time chunk
+    if (FTimeChunk <> nil) then
+      if (Source.TimeChunk <> nil) then
+        FTimeChunk.Assign(Source.TimeChunk)
+      else
+        FreeAndNil(FTimeChunk)
+    else 
+    if (Source.TimeChunk <> nil) then
+    begin
+      FTimeChunk := FDefaultChunks.Add<TPngChunkTime>;
+      FTimeChunk.Assign(Source.TimeChunk);
+    end;
+
+    // assign significant bits
+    if (FSignificantBitsChunk <> nil) then
+      if (Source.SignificantBitsChunk <> nil) then
+        FSignificantBitsChunk.Assign(Source.SignificantBitsChunk)
+      else
+        FreeAndNil(Self.FSignificantBitsChunk)
+    else
+    if (Source.SignificantBitsChunk <> nil) then
+    begin
+      FSignificantBitsChunk := FDefaultChunks.Add<TPngChunkSignificantBits>;
+      FSignificantBitsChunk.Assign(Source.SignificantBitsChunk);
+    end;
+
+    // assign physical dimensions
+    if (FPhysicalDimensionsChunk <> nil) then
+      if (Source.PhysicalPixelDimensionsChunk <> nil) then
+        FPhysicalDimensionsChunk.Assign(Source.PhysicalPixelDimensionsChunk)
+      else
+        FreeAndNil(FPhysicalDimensionsChunk)
+    else 
+    if (Source.PhysicalPixelDimensionsChunk <> nil) then
+    begin
+      FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+      FPhysicalDimensionsChunk.Assign(Source.PhysicalPixelDimensionsChunk);
+    end;
+
+    // assign primary chromaticities
+    if (FChromaChunk <> nil) then
+      if (Source.FChromaChunk <> nil) then
+        FChromaChunk.Assign(Source.ChromaChunk)
+      else
+        FreeAndNil(Self.FChromaChunk)
+    else 
+    if (Source.ChromaChunk <> nil) then
+    begin
+      FChromaChunk := FDefaultChunks.Add<TPngChunkPrimaryChromaticities>;
+      FChromaChunk.Assign(Source.ChromaChunk);
+    end;
+
+    // assign transparency
+    if (FTransparencyChunk <> nil) then
+      if (Source.TransparencyChunk <> nil) then
+        FTransparencyChunk.Assign(Source.TransparencyChunk)
+      else
+        FreeAndNil(FTransparencyChunk)
+    else 
+    if (Source.TransparencyChunk <> nil) then
+    begin
+      FTransparencyChunk := FDefaultChunks.Add<TPngChunkTransparency>;
+      FTransparencyChunk.Assign(Source.TransparencyChunk);
+    end;
+
+    // assign background
+    if (FBackgroundChunk <> nil) then
+      if (Source.BackgroundChunk <> nil) then
+        FBackgroundChunk.Assign(Source.BackgroundChunk)
+      else
+        FreeAndNil(Self.FBackgroundChunk)
+    else 
+    if (Source.BackgroundChunk <> nil) then
+    begin
+      FBackgroundChunk := FDefaultChunks.Add<TPngChunkBackgroundColor>;
+      FBackgroundChunk.Assign(Source.BackgroundChunk);
+    end;
+
+    FDataChunks.Assign(Source.DataChunks);
+    FAdditionalChunks.Assign(Source.AdditionalChunks);
+  end else
     inherited;
 end;
 
@@ -5412,6 +5456,14 @@ begin
   Result := FImageHeader.BitDepth;
 end;
 
+function TPortableNetworkGraphic.GetChunks: TCompositeChunkList;
+begin
+  if (FCompositeChunkList = nil) then
+    FCompositeChunkList := TCompositeChunkList.Create(Self);
+
+  Result := FCompositeChunkList;
+end;
+
 function TPortableNetworkGraphic.GetColorType: TColorType;
 begin
   Result := FImageHeader.ColorType;
@@ -5477,24 +5529,24 @@ end;
 
 function TPortableNetworkGraphic.GetPixelsPerUnitX: Cardinal;
 begin
-  if (FPhysicalDimensions <> nil) then
-    Result := FPhysicalDimensions.PixelsPerUnitX
+  if (FPhysicalDimensionsChunk <> nil) then
+    Result := FPhysicalDimensionsChunk.PixelsPerUnitX
   else
     Result := 1;
 end;
 
 function TPortableNetworkGraphic.GetPixelsPerUnitY: Cardinal;
 begin
-  if (FPhysicalDimensions <> nil) then
-    Result := FPhysicalDimensions.PixelsPerUnitY
+  if (FPhysicalDimensionsChunk <> nil) then
+    Result := FPhysicalDimensionsChunk.PixelsPerUnitY
   else
     Result := 1;
 end;
 
 function TPortableNetworkGraphic.GetPixelUnit: Byte;
 begin
-  if (FPhysicalDimensions <> nil) then
-    Result := FPhysicalDimensions.PixelUnit
+  if (FPhysicalDimensionsChunk <> nil) then
+    Result := FPhysicalDimensionsChunk.PixelUnit
   else
     Result := 0;
 end;
@@ -5516,26 +5568,27 @@ end;
 
 function TPortableNetworkGraphic.HasPhysicalPixelDimensionsInformation: Boolean;
 begin
-  Result := (FPhysicalDimensions <> nil);
+  Result := (FPhysicalDimensionsChunk <> nil);
 end;
 
 procedure TPortableNetworkGraphic.Clear;
 begin
   // clear chunk lists
-  FDataChunkList.Clear;
-  FAdditionalChunkList.Clear;
+  FDefaultChunks.Clear;
+  FDataChunks.Clear;
+  FAdditionalChunks.Clear;
+
+  FPaletteChunk := nil;
+  FGammaChunk := nil;
+  FTimeChunk := nil;
+  FSignificantBitsChunk := nil;
+  FPhysicalDimensionsChunk := nil;
+  FChromaChunk := nil;
+  FTransparencyChunk := nil;
+  FBackgroundChunk := nil;
 
   // reset image header to default
   FImageHeader.ResetToDefault;
-
-  FreeAndNil(FPaletteChunk);
-  FreeAndNil(FGammaChunk);
-  FreeAndNil(FChromaChunk);
-  FreeAndNil(FTransparencyChunk);
-  FreeAndNil(FBackgroundChunk);
-  FreeAndNil(FTimeChunk);
-  FreeAndNil(FSignificantBits);
-  FreeAndNil(FPhysicalDimensions);
 end;
 
 
@@ -5852,8 +5905,61 @@ begin
   end;
 end;
 
+{ TCustomChunk }
+
+destructor TCustomChunk.Destroy;
+begin
+  Owner := nil;
+  inherited;
+end;
+
+procedure TCustomChunk.SetOwner(const AOwner: IChunkOwner);
+begin
+  if (FOwner = AOwner) then
+    exit;
+
+  if (FOwner <> nil) then
+    FOwner.RemoveChunk(Self);
+
+  FOwner := AOwner;
+
+  if (FOwner <> nil) then
+    FOwner.AddChunk(Self);
+end;
+
+{ TCompositeChunkList }
+
+constructor TCompositeChunkList.Create(AOwner: TPortableNetworkGraphic);
+begin
+  inherited Create;
+  FOwner := AOwner;
+end;
+
+function TCompositeChunkList.GetChunk(Index: integer): TCustomChunk;
+begin
+  if (Index = 0) then
+    Exit(FOwner.ImageHeader);
+  Dec(Index);
+
+  if (Index < FOwner.DefaultChunks.Count) then
+    Exit(FOwner.DefaultChunks[Index]);
+  Dec(Index, FOwner.DefaultChunks.Count);
+
+  if (Index < FOwner.DataChunks.Count) then
+    Exit(FOwner.DataChunks[Index]);
+  Dec(Index, FOwner.DataChunks.Count);
+
+  Exit(FOwner.AdditionalChunks[Index]);
+end;
+
+function TCompositeChunkList.GetCount: integer;
+begin
+  Result := 1 + FOwner.DefaultChunks.Count + FOwner.DataChunks.Count + FOwner.AdditionalChunks.Count;
+end;
+
 initialization
   BuildCrcTable($EDB88320);
+
   RegisterPngChunks([TPngChunkImageData, TPngChunkPalette, TPngChunkGamma,
     TPngChunkStandardColorSpaceRGB, TPngChunkPrimaryChromaticities,
     TPngChunkTime, TPngChunkTransparency, TPngChunkEmbeddedIccProfile,
