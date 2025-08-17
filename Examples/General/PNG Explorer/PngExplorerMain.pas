@@ -9,12 +9,12 @@ uses
   Menus, ComCtrls, StdCtrls, ExtCtrls, ToolWin, ActnList, StdActns,
   ImgList, System.Actions,
 {$if defined(NeedImageList)}
-  System.ImageList,
+//  System.ImageList,
 {$ifend}
   GR32,
   GR32_PortableNetworkGraphic,
   GR32_PNG,
-  GR32_Image;
+  GR32_Image, System.ImageList;
 
 type
   TMyPortableNetworkGraphic = class(TPortableNetworkGraphic32);
@@ -81,21 +81,21 @@ type
     procedure ListViewColumns(Columns: Array of string);
     procedure ListViewData(Strings: Array of string);
 
-    procedure DisplayHeaderChunk(HeaderChunk: TChunkPngImageHeader);
-    procedure DisplayPaletteChunk(PaletteChunk: TChunkPngPalette);
-    procedure DisplayChromaticitiesChunk(ChromaChunk: TChunkPngPrimaryChromaticities);
-    procedure DisplayGammaChunk(GammaChunk: TChunkPngGamma);
-    procedure DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TChunkPngPhysicalPixelDimensions);
+    procedure DisplayHeaderChunk(HeaderChunk: TPngChunkImageHeader);
+    procedure DisplayPaletteChunk(PaletteChunk: TPngChunkPalette);
+    procedure DisplayChromaticitiesChunk(ChromaChunk: TPngChunkPrimaryChromaticities);
+    procedure DisplayGammaChunk(GammaChunk: TPngChunkGamma);
+    procedure DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TPngChunkPhysicalPixelDimensions);
     procedure DisplayTextChunk(TextChunk: TCustomChunkPngText);
-{$if defined(TChunkPngSuggestedPalette)} // TChunkPngSuggestedPalette is incomplete and has been disabled
-    procedure DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
+{$if defined(TPngChunkSuggestedPalette)} // TPngChunkSuggestedPalette is incomplete and has been disabled
+    procedure DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TPngChunkSuggestedPalette);
 {$ifend}
-    procedure DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
-    procedure DisplayStandardColorSpaceRGBChunk(StandardColorSpaceRGB: TChunkPngStandardColorSpaceRGB);
-    procedure DisplayBackgroundColorChunk(BackgroundColor: TChunkPngBackgroundColor);
-    procedure DisplayTransparencyChunk(TransparencyChunk: TChunkPngTransparency);
-    procedure DisplayHistogramChunk(HistogramChunk: TChunkPngImageHistogram);
-    procedure DisplayTimeChunk(TimeChunk: TChunkPngTime);
+    procedure DisplaySignificantBitsChunk(SignificantBitsChunk: TPngChunkSignificantBits);
+    procedure DisplayStandardColorSpaceRGBChunk(StandardColorSpaceRGB: TPngChunkStandardColorSpaceRGB);
+    procedure DisplayBackgroundColorChunk(BackgroundColor: TPngChunkBackgroundColor);
+    procedure DisplayTransparencyChunk(TransparencyChunk: TPngChunkTransparency);
+    procedure DisplayHistogramChunk(HistogramChunk: TPngChunkImageHistogram);
+    procedure DisplayTimeChunk(TimeChunk: TPngChunkTime);
   public
     procedure LoadFromFile(Filename: TFileName);
     procedure LoadFromStream(Stream: TStream);
@@ -199,7 +199,7 @@ begin
   CoolBar.Visible := MIToolbar.Checked;
 end;
 
-procedure TFmPngExplorer.DisplayHeaderChunk(HeaderChunk: TChunkPngImageHeader);
+procedure TFmPngExplorer.DisplayHeaderChunk(HeaderChunk: TPngChunkImageHeader);
 begin
   with HeaderChunk do
   begin
@@ -218,7 +218,7 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplayPaletteChunk(PaletteChunk: TChunkPngPalette);
+procedure TFmPngExplorer.DisplayPaletteChunk(PaletteChunk: TPngChunkPalette);
 var
   Index : Integer;
 begin
@@ -237,7 +237,7 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplayGammaChunk(GammaChunk: TChunkPngGamma);
+procedure TFmPngExplorer.DisplayGammaChunk(GammaChunk: TPngChunkGamma);
 begin
   with GammaChunk do
   begin
@@ -249,7 +249,7 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplayHistogramChunk(HistogramChunk: TChunkPngImageHistogram);
+procedure TFmPngExplorer.DisplayHistogramChunk(HistogramChunk: TPngChunkImageHistogram);
 var
   Index : Integer;
 begin
@@ -264,8 +264,8 @@ begin
   end;
 end;
 
-{$if defined(TChunkPngSuggestedPalette)}
-procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
+{$if defined(TPngChunkSuggestedPalette)}
+procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TPngChunkSuggestedPalette);
 begin
   with SuggestedPaletteChunk do
   begin
@@ -279,7 +279,7 @@ end;
 {$ifend}
 
 procedure TFmPngExplorer.DisplaySignificantBitsChunk(
-  SignificantBitsChunk: TChunkPngSignificantBits);
+  SignificantBitsChunk: TPngChunkSignificantBits);
 begin
   with SignificantBitsChunk do
   begin
@@ -322,7 +322,7 @@ end;
 
 
 procedure TFmPngExplorer.DisplayStandardColorSpaceRGBChunk(
-  StandardColorSpaceRGB: TChunkPngStandardColorSpaceRGB);
+  StandardColorSpaceRGB: TPngChunkStandardColorSpaceRGB);
 begin
   with StandardColorSpaceRGB do
   begin
@@ -353,7 +353,7 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplayTimeChunk(TimeChunk: TChunkPngTime);
+procedure TFmPngExplorer.DisplayTimeChunk(TimeChunk: TPngChunkTime);
 begin
   with TimeChunk do
   begin
@@ -366,7 +366,7 @@ begin
 end;
 
 procedure TFmPngExplorer.DisplayTransparencyChunk(
-  TransparencyChunk: TChunkPngTransparency);
+  TransparencyChunk: TPngChunkTransparency);
 var
   Index : Integer;
 begin
@@ -395,7 +395,7 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TChunkPngPhysicalPixelDimensions);
+procedure TFmPngExplorer.DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TPngChunkPhysicalPixelDimensions);
 begin
   with PhysicalDimensionsChunk do
   begin
@@ -409,7 +409,7 @@ begin
 end;
 
 procedure TFmPngExplorer.DisplayBackgroundColorChunk(
-  BackgroundColor: TChunkPngBackgroundColor);
+  BackgroundColor: TPngChunkBackgroundColor);
 begin
   with BackgroundColor do
   begin
@@ -435,7 +435,7 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplayChromaticitiesChunk(ChromaChunk: TChunkPngPrimaryChromaticities);
+procedure TFmPngExplorer.DisplayChromaticitiesChunk(ChromaChunk: TPngChunkPrimaryChromaticities);
 begin
   with ChromaChunk do
   begin
@@ -494,38 +494,38 @@ begin
         TCustomDefinedChunk(Node.Data).ChunkSize);
 
     // PNG HeaderChunk chunk
-    if TObject(Node.Data) is TChunkPngImageHeader then
-      DisplayHeaderChunk(TChunkPngImageHeader(Node.Data))
-    else if TObject(Node.Data) is TChunkPngPalette then
-      DisplayPaletteChunk(TChunkPngPalette(Node.Data))
-    else if TObject(Node.Data) is TChunkPngGamma then
-      DisplayGammaChunk(TChunkPngGamma(Node.Data))
-    else if TObject(Node.Data) is TChunkPngTime then
-      DisplayTimeChunk(TChunkPngTime(Node.Data))
+    if TObject(Node.Data) is TPngChunkImageHeader then
+      DisplayHeaderChunk(TPngChunkImageHeader(Node.Data))
+    else if TObject(Node.Data) is TPngChunkPalette then
+      DisplayPaletteChunk(TPngChunkPalette(Node.Data))
+    else if TObject(Node.Data) is TPngChunkGamma then
+      DisplayGammaChunk(TPngChunkGamma(Node.Data))
+    else if TObject(Node.Data) is TPngChunkTime then
+      DisplayTimeChunk(TPngChunkTime(Node.Data))
 (*
-    else if TObject(Node.Data) is TChunkPngPhysicalScale then
-      DisplayPhysicalScaleChunk(TChunkPngPhysicalScale(Node.Data))
+    else if TObject(Node.Data) is TPngChunkPhysicalScale then
+      DisplayPhysicalScaleChunk(TPngChunkPhysicalScale(Node.Data))
 *)
     else if TObject(Node.Data) is TCustomChunkPngText then
       DisplayTextChunk(TCustomChunkPngText(Node.Data))
-    else if TObject(Node.Data) is TChunkPngStandardColorSpaceRGB then
-      DisplayStandardColorSpaceRGBChunk(TChunkPngStandardColorSpaceRGB(Node.Data))
-    else if TObject(Node.Data) is TChunkPngImageHistogram then
-      DisplayHistogramChunk(TChunkPngImageHistogram(Node.Data))
-    else if TObject(Node.Data) is TChunkPngBackgroundColor then
-      DisplayBackgroundColorChunk(TChunkPngBackgroundColor(Node.Data))
-{$if defined(TChunkPngSuggestedPalette)}
-    else if TObject(Node.Data) is TChunkPngSuggestedPalette then
-      DisplaySuggestedPaletteChunk(TChunkPngSuggestedPalette(Node.Data))
+    else if TObject(Node.Data) is TPngChunkStandardColorSpaceRGB then
+      DisplayStandardColorSpaceRGBChunk(TPngChunkStandardColorSpaceRGB(Node.Data))
+    else if TObject(Node.Data) is TPngChunkImageHistogram then
+      DisplayHistogramChunk(TPngChunkImageHistogram(Node.Data))
+    else if TObject(Node.Data) is TPngChunkBackgroundColor then
+      DisplayBackgroundColorChunk(TPngChunkBackgroundColor(Node.Data))
+{$if defined(TPngChunkSuggestedPalette)}
+    else if TObject(Node.Data) is TPngChunkSuggestedPalette then
+      DisplaySuggestedPaletteChunk(TPngChunkSuggestedPalette(Node.Data))
 {$ifend}
-    else if TObject(Node.Data) is TChunkPngPrimaryChromaticities then
-      DisplayChromaticitiesChunk(TChunkPngPrimaryChromaticities(Node.Data))
-    else if TObject(Node.Data) is TChunkPngPhysicalPixelDimensions then
-      DisplayPhysicalDimensionsChunk(TChunkPngPhysicalPixelDimensions(Node.Data))
-    else if TObject(Node.Data) is TChunkPngSignificantBits then
-      DisplaySignificantBitsChunk(TChunkPngSignificantBits(Node.Data))
-    else if TObject(Node.Data) is TChunkPngTransparency then
-      DisplayTransparencyChunk(TChunkPngTransparency(Node.Data))
+    else if TObject(Node.Data) is TPngChunkPrimaryChromaticities then
+      DisplayChromaticitiesChunk(TPngChunkPrimaryChromaticities(Node.Data))
+    else if TObject(Node.Data) is TPngChunkPhysicalPixelDimensions then
+      DisplayPhysicalDimensionsChunk(TPngChunkPhysicalPixelDimensions(Node.Data))
+    else if TObject(Node.Data) is TPngChunkSignificantBits then
+      DisplaySignificantBitsChunk(TPngChunkSignificantBits(Node.Data))
+    else if TObject(Node.Data) is TPngChunkTransparency then
+      DisplayTransparencyChunk(TPngChunkTransparency(Node.Data))
     else
 
     // other unregistered chunks

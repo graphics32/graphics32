@@ -87,8 +87,8 @@ type
     FRowByteSize: Integer;
     procedure TransferData(Source: Pointer; Destination: PColor32); virtual; abstract;
   public
-    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+    constructor Create(Stream: TStream; Header: TPngChunkImageHeader;
+      Gamma: TPngChunkGamma = nil; Palette: TPngChunkPalette = nil;
       Transparency: TCustomPngTransparency = nil); override;
     destructor Destroy; override;
 
@@ -164,8 +164,8 @@ type
   protected
     procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); virtual; abstract;
   public
-    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+    constructor Create(Stream: TStream; Header: TPngChunkImageHeader;
+      Gamma: TPngChunkGamma = nil; Palette: TPngChunkPalette = nil;
       Transparency: TCustomPngTransparency = nil); override;
     destructor Destroy; override;
     procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
@@ -253,8 +253,8 @@ type
     function ColorInPalette(Color: TColor32): Integer; virtual;
     procedure TransferData(Source: PColor32; Destination: Pointer); virtual; abstract;
   public
-    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+    constructor Create(Stream: TStream; Header: TPngChunkImageHeader;
+      Gamma: TPngChunkGamma = nil; Palette: TPngChunkPalette = nil;
       Transparency: TCustomPngTransparency = nil); override;
     destructor Destroy; override;
     procedure EncodeFromScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
@@ -604,7 +604,7 @@ begin
       ImageHeader.BitDepth := 8;
 
     if not (FPaletteChunk <> nil) then
-      FPaletteChunk := TChunkPngPalette.Create(ImageHeader);
+      FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
 
     FPaletteChunk.Count := Palette.Count;
     for Index := 0 to Palette.Count - 1 do
@@ -618,7 +618,7 @@ begin
     {$IFDEF StoreGamma}
     // add linear gamma chunk
     if not (FGammaChunk <> nil) then
-      FGammaChunk := TChunkPngGamma.Create(ImageHeader);
+      FGammaChunk := TPngChunkGamma.Create(ImageHeader);
     FGammaChunk.GammaAsSingle := 1;
     {$ELSE}
     // delete any gama correction table
@@ -957,7 +957,7 @@ begin
     Assert(Length(TempPalette) <= 256);
 
     if not (FPaletteChunk <> nil) then
-      FPaletteChunk := TChunkPngPalette.Create(ImageHeader);
+      FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
 
     FPaletteChunk.Count := Length(TempPalette);
     for Index := 0 to Length(TempPalette) - 1 do
@@ -967,7 +967,7 @@ begin
   {$IFDEF StoreGamma}
   // add linear gamma chunk
   if not (FGammaChunk <> nil) then
-    FGammaChunk := TChunkPngGamma.Create(ImageHeader);
+    FGammaChunk := TPngChunkGamma.Create(ImageHeader);
   FGammaChunk.GammaAsSingle := 1;
   {$ELSE}
   // delete any gama correction table
@@ -1069,8 +1069,8 @@ const
 { TCustomPngNonInterlacedDecoder }
 
 constructor TCustomPngNonInterlacedDecoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette; Transparency: TCustomPngTransparency);
+  Header: TPngChunkImageHeader; Gamma: TPngChunkGamma;
+  Palette: TPngChunkPalette; Transparency: TCustomPngTransparency);
 begin
   inherited;
   FBytesPerRow := FHeader.BytesPerRow;
@@ -1513,8 +1513,8 @@ end;
 { TCustomPngAdam7Decoder }
 
 constructor TCustomPngAdam7Decoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette; Transparency: TCustomPngTransparency);
+  Header: TPngChunkImageHeader; Gamma: TPngChunkGamma;
+  Palette: TPngChunkPalette; Transparency: TCustomPngTransparency);
 begin
   inherited;
 
@@ -2013,8 +2013,8 @@ end;
 { TCustomPngNonInterlacedEncoder }
 
 constructor TCustomPngNonInterlacedEncoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette; Transparency: TCustomPngTransparency);
+  Header: TPngChunkImageHeader; Gamma: TPngChunkGamma;
+  Palette: TPngChunkPalette; Transparency: TCustomPngTransparency);
 begin
   inherited;
   FBytesPerRow := FHeader.BytesPerRow;
