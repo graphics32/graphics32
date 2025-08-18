@@ -29,7 +29,8 @@ uses
   GR32.Examples,
   GR32,
   GR32_PNG,
-  GR32_PortableNetworkGraphic;
+  GR32_PortableNetworkGraphic,
+  GR32_PortableNetworkGraphic.Types;
 
 {$R *.dfm}
 

@@ -42,7 +42,9 @@ uses
   FileTestFramework,
   GR32,
   GR32_Png,
-  GR32_PortableNetworkGraphic;
+  GR32_PortableNetworkGraphic,
+  GR32_PortableNetworkGraphic.Types,
+  GR32_PortableNetworkGraphic.Chunks.sBIT;
 
 type
   TPortableNetworkGraphic32 = class(GR32_Png.TPortableNetworkGraphic32)

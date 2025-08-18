@@ -17,6 +17,7 @@ uses
 {$ifend}
   GR32,
   GR32_PortableNetworkGraphic,
+  GR32_PortableNetworkGraphic.Chunks,
   GR32_PNG,
   GR32_Image, System.ImageList;
 
@@ -123,7 +124,19 @@ implementation
 {$R *.dfm}
 
 uses
-  Inifiles, Math, Types;
+  Inifiles, Math, Types,
+  GR32_PortableNetworkGraphic.Types,
+  GR32_PortableNetworkGraphic.Chunks.PLTE,
+  GR32_PortableNetworkGraphic.Chunks.gAMA,
+  GR32_PortableNetworkGraphic.Chunks.tRNS,
+  GR32_PortableNetworkGraphic.Chunks.tEXt,
+  GR32_PortableNetworkGraphic.Chunks.sRGB,
+  GR32_PortableNetworkGraphic.Chunks.cHRM,
+  GR32_PortableNetworkGraphic.Chunks.tIME,
+  GR32_PortableNetworkGraphic.Chunks.sBIT,
+  GR32_PortableNetworkGraphic.Chunks.bKGD,
+  GR32_PortableNetworkGraphic.Chunks.hIST,
+  GR32_PortableNetworkGraphic.Chunks.pHYs;
 
 { TFmPngExplorer }
 
@@ -134,7 +147,7 @@ end;
 
 procedure TFmPngExplorer.FormShow(Sender: TObject);
 begin
-  if FileExists(ParamStr(1)) then
+  if (ParamCount > 0) and (FileExists(ParamStr(1))) then
     LoadFromFile(ParamStr(1));
 end;
 

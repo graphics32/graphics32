@@ -38,7 +38,9 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes, Graphics, SysUtils, GR32, GR32_PortableNetworkGraphic;
+  Classes, Graphics, SysUtils,
+  GR32,
+  GR32_PortableNetworkGraphic;
 
 type
   TProgressEvent = procedure(Sender: TObject; Percent: Single) of object;
@@ -74,7 +76,14 @@ procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFD
 implementation
 
 uses
-  Math;
+  Math,
+  GR32_PortableNetworkGraphic.Types,
+  GR32_PortableNetworkGraphic.Encoding,
+  GR32_PortableNetworkGraphic.Chunks,
+  GR32_PortableNetworkGraphic.Chunks.PLTE,
+  GR32_PortableNetworkGraphic.Chunks.gAMA,
+  GR32_PortableNetworkGraphic.Chunks.tRNS,
+  GR32_PortableNetworkGraphic.Chunks.bKGD;
 
 resourcestring
   RCStrUnsupportedFormat = 'Unsupported Format';
@@ -500,6 +509,7 @@ function TPortableNetworkGraphic32.IsPremultiplied: Boolean;
 var
   TempBitmap: TBitmap32;
   Pixel: PColor32Entry;
+  i: integer;
 begin
   // this code checks whether the bitmap is *NOT* premultiplied
   // unfortunately this is just a weak check and might fail
