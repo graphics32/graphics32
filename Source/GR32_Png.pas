@@ -499,30 +499,27 @@ end;
 function TPortableNetworkGraphic32.IsPremultiplied: Boolean;
 var
   TempBitmap: TBitmap32;
-  Pointer: PColor32EntryArray;
-  Value: TColor32Entry;
-  Index: Integer;
+  Pixel: PColor32Entry;
 begin
   // this code checks whether the bitmap is *NOT* premultiplied
   // unfortunately this is just a weak check and might fail
 
-  Result := True;
   TempBitmap := TBitmap32.Create;
   try
     AssignTo(TempBitmap);
-    Pointer := PColor32EntryArray(TempBitmap.Bits);
-    for Index := 0 to TempBitmap.Width * TempBitmap.Height - 1 do
+
+    Pixel := PColor32Entry(TempBitmap.Bits);
+
+    for i := 0 to TempBitmap.Width * TempBitmap.Height - 1 do
     begin
-      Value := Pointer^[Index];
-      if (Value.R > Value.A) or (Value.G > Value.A) or (Value.B > Value.A) then
-      begin
-        Result := False;
-        Exit;
-      end;
+      if (Pixel.R > Pixel.A) or (Pixel.G > Pixel.A) or (Pixel.B > Pixel.A) then
+        Exit(False);
+      Inc(Pixel);
     end;
   finally
     TempBitmap.Free;
   end;
+  Result := True;
 end;
 
 procedure TPortableNetworkGraphic32.MakeIndexColored(MaxColorCount: Integer);
