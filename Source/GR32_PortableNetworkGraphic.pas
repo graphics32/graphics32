@@ -138,6 +138,7 @@ type
     function GetChunkNameAsString: AnsiString; virtual; abstract;
     function GetChunkName: TChunkName; virtual; abstract;
     function GetChunkSize: Cardinal; virtual; abstract;
+    function GetChunkData: pointer; virtual;
 
     property Owner: IChunkOwner read FOwner write SetOwner;
   public
@@ -149,7 +150,10 @@ type
     property ChunkName: TChunkName read GetChunkName;
     property ChunkNameAsString: AnsiString read GetChunkNameAsString;
     property ChunkSize: Cardinal read GetChunkSize;
+    property ChunkData: pointer read GetChunkData;
   end;
+
+  TCustomChunkClass = class of TCustomChunk;
 
   TCustomDefinedChunk = class abstract(TCustomChunk)
   protected
@@ -226,6 +230,7 @@ type
   protected
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
+    function GetChunkData: pointer; override;
 
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -249,6 +254,7 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
+    function GetChunkData: pointer; override;
     procedure PaletteEntriesChanged; virtual;
   public
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
@@ -852,6 +858,7 @@ type
     function GetChunkName: TChunkName; override;
     function GetChunkNameAsString: AnsiString; override;
     function GetChunkSize: Cardinal; override;
+    function GetChunkData: pointer; override;
     function CalculateChecksum: Integer;
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -864,8 +871,6 @@ type
     property Data[index : Integer]: Byte read GetData write SetData;
     property DataStream: TMemoryStream read FDataStream;
   end;
-
-  TPngChunkUnknownClass = class of TPngChunkUnknown;
 
   TCustomChunkList<T: TCustomChunk> = class(TObjectList<T>, IChunkOwner)
   private
@@ -1478,6 +1483,11 @@ begin
   Result := FChunkName;
 end;
 
+function TPngChunkUnknown.GetChunkData: pointer;
+begin
+  Result := FDataStream.Memory;
+end;
+
 function TPngChunkUnknown.GetChunkName: TChunkName;
 begin
   Result := FChunkName;
@@ -1778,6 +1788,11 @@ end;
 function TPngChunkPalette.GetCount: Cardinal;
 begin
   Result := Length(FPaletteEntries);
+end;
+
+function TPngChunkPalette.GetChunkData: pointer;
+begin
+  Result := @FPaletteEntries[0];
 end;
 
 function TPngChunkPalette.GetChunkSize: Cardinal;
@@ -2616,6 +2631,11 @@ end;
 class function TPngChunkImageData.GetClassChunkName: TChunkName;
 begin
   Result := 'IDAT';
+end;
+
+function TPngChunkImageData.GetChunkData: pointer;
+begin
+  Result := FData.Memory;
 end;
 
 function TPngChunkImageData.GetChunkSize: Cardinal;
@@ -5911,6 +5931,11 @@ destructor TCustomChunk.Destroy;
 begin
   Owner := nil;
   inherited;
+end;
+
+function TCustomChunk.GetChunkData: pointer;
+begin
+  Result := nil;
 end;
 
 procedure TCustomChunk.SetOwner(const AOwner: IChunkOwner);

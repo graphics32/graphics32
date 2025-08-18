@@ -5,9 +5,13 @@ interface
 {$include GR32.inc}
 
 uses
+  Generics.Collections,
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Menus, ComCtrls, StdCtrls, ExtCtrls, ToolWin, ActnList, StdActns,
   ImgList, System.Actions,
+
+  HexDump,
+
 {$if defined(NeedImageList)}
 //  System.ImageList,
 {$ifend}
@@ -15,6 +19,9 @@ uses
   GR32_PortableNetworkGraphic,
   GR32_PNG,
   GR32_Image, System.ImageList;
+
+type
+  TChunkRenderer = procedure(Chunk: TCustomChunk) of object;
 
 type
   TMyPortableNetworkGraphic = class(TPortableNetworkGraphic32);
@@ -51,9 +58,9 @@ type
     N2: TMenuItem;
     N3: TMenuItem;
     PnMain: TPanel;
-    PnPaintBox: TPanel;
-    SpHorizontal: TSplitter;
-    SpVertical: TSplitter;
+    PanelPreview: TPanel;
+    SplitterHorizontal: TSplitter;
+    SplitterVertical: TSplitter;
     StatusBar: TStatusBar;
     TbCopy: TToolButton;
     TbCut: TToolButton;
@@ -65,38 +72,45 @@ type
     ToolbarImages: TImageList;
     TreeView: TTreeView;
     procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure AcFileOpenAccept(Sender: TObject);
     procedure MIStatusBarClick(Sender: TObject);
     procedure MIToolbarClick(Sender: TObject);
     procedure ShowHint(Sender: TObject);
     procedure TreeViewChange(Sender: TObject; Node: TTreeNode);
-    procedure TreeViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
   private
     FPngFile : TMyPortableNetworkGraphic;
+    FChunkRenderers: TDictionary<TCustomChunkClass, TChunkRenderer>;
+    FHexDump: THexDump;
+    FChunkData: TMemoryStream;
     procedure InitializeDefaultListView;
     procedure PNGChanged;
   protected
-    procedure ListViewColumns(Columns: Array of string);
-    procedure ListViewData(Strings: Array of string);
+    procedure ListViewColumns(const Columns: array of string);
+    procedure ListViewData(const Strings: array of string);
 
-    procedure DisplayHeaderChunk(HeaderChunk: TPngChunkImageHeader);
-    procedure DisplayPaletteChunk(PaletteChunk: TPngChunkPalette);
-    procedure DisplayChromaticitiesChunk(ChromaChunk: TPngChunkPrimaryChromaticities);
-    procedure DisplayGammaChunk(GammaChunk: TPngChunkGamma);
-    procedure DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TPngChunkPhysicalPixelDimensions);
-    procedure DisplayTextChunk(TextChunk: TCustomChunkPngText);
+    procedure RegisterChunkRenderers;
+
+    procedure DisplayUnknownChunk(AChunk: TCustomChunk);
+    procedure DisplayHeaderChunk(AChunk: TCustomChunk);
+    procedure DisplayPaletteChunk(AChunk: TCustomChunk);
+    procedure DisplayChromaticitiesChunk(AChunk: TCustomChunk);
+    procedure DisplayGammaChunk(AChunk: TCustomChunk);
+    procedure DisplayPhysicalDimensionsChunk(AChunk: TCustomChunk);
+    procedure DisplayTextChunk(AChunk: TCustomChunk);
 {$if defined(TPngChunkSuggestedPalette)} // TPngChunkSuggestedPalette is incomplete and has been disabled
-    procedure DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TPngChunkSuggestedPalette);
+    procedure DisplaySuggestedPaletteChunk(AChunk: TCustomChunk);
 {$ifend}
-    procedure DisplaySignificantBitsChunk(SignificantBitsChunk: TPngChunkSignificantBits);
-    procedure DisplayStandardColorSpaceRGBChunk(StandardColorSpaceRGB: TPngChunkStandardColorSpaceRGB);
-    procedure DisplayBackgroundColorChunk(BackgroundColor: TPngChunkBackgroundColor);
-    procedure DisplayTransparencyChunk(TransparencyChunk: TPngChunkTransparency);
-    procedure DisplayHistogramChunk(HistogramChunk: TPngChunkImageHistogram);
-    procedure DisplayTimeChunk(TimeChunk: TPngChunkTime);
+    procedure DisplaySignificantBitsChunk(AChunk: TCustomChunk);
+    procedure DisplayStandardColorSpaceRGBChunk(AChunk: TCustomChunk);
+    procedure DisplayBackgroundColorChunk(AChunk: TCustomChunk);
+    procedure DisplayTransparencyChunk(AChunk: TCustomChunk);
+    procedure DisplayHistogramChunk(AChunk: TCustomChunk);
+    procedure DisplayTimeChunk(AChunk: TCustomChunk);
   public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+
     procedure LoadFromFile(Filename: TFileName);
     procedure LoadFromStream(Stream: TStream);
   end;
@@ -116,13 +130,6 @@ uses
 procedure TFmPngExplorer.FormCreate(Sender: TObject);
 begin
   Application.OnHint := ShowHint;
-  FPngFile := TMyPortableNetworkGraphic.Create;
-end;
-
-procedure TFmPngExplorer.FormDestroy(Sender: TObject);
-begin
-  // free png file
-  FreeAndNil(FPngFile);
 end;
 
 procedure TFmPngExplorer.FormShow(Sender: TObject);
@@ -137,9 +144,10 @@ begin
   ListViewColumns(['Name', 'Value']);
 end;
 
-procedure TFmPngExplorer.ListViewColumns(Columns: array of string);
+procedure TFmPngExplorer.ListViewColumns(const Columns: array of string);
 var
-  ColumnIndex : Integer;
+  i : Integer;
+  Column: TListColumn;
 begin
   // clear list view
   ListView.Clear;
@@ -148,27 +156,27 @@ begin
   ListView.Columns.Clear;
 
   // add column
-  for ColumnIndex := 0 to Length(Columns) - 1 do
-    with ListView.Columns.Add do
-    begin
-      Caption := Columns[ColumnIndex];
-      Width := Min(256, (ListView.Width - 16) div (Length(Columns)));
-      MinWidth := 64;
-      AutoSize := True;
-    end;
+  for i := 0 to Length(Columns) - 1 do
+  begin
+    Column := ListView.Columns.Add;
+
+    Column.Caption := Columns[i];
+    Column.Width := Min(256, (ListView.Width - 16) div (Length(Columns)));
+    Column.MinWidth := 64;
+    Column.AutoSize := True;
+  end;
 end;
 
-procedure TFmPngExplorer.ListViewData(Strings: array of string);
+procedure TFmPngExplorer.ListViewData(const Strings: array of string);
 var
-  ValueIndex : Integer;
+  i : Integer;
+  Item: TListItem;
 begin
   // add data
-  with ListView.Items.Add do
-  begin
-    Caption := Strings[0];
-    for ValueIndex := 1 to Length(Strings) - 1 do
-      SubItems.Add(Strings[ValueIndex]);
-  end;
+  Item := ListView.Items.Add;
+  Item.Caption := Strings[0];
+  for i := 1 to Length(Strings) - 1 do
+    Item.SubItems.Add(Strings[i]);
 end;
 
 procedure TFmPngExplorer.ShowHint(Sender: TObject);
@@ -199,414 +207,384 @@ begin
   CoolBar.Visible := MIToolbar.Checked;
 end;
 
-procedure TFmPngExplorer.DisplayHeaderChunk(HeaderChunk: TPngChunkImageHeader);
+procedure TFmPngExplorer.DisplayHeaderChunk(AChunk: TCustomChunk);
+var
+  Chunk: TPngChunkImageHeader;
 begin
-  with HeaderChunk do
-  begin
-    InitializeDefaultListView;
+  Chunk := AChunk as TPngChunkImageHeader;
+  InitializeDefaultListView;
 
-    ListViewData(['Width', IntToStr(Width)]);
-    ListViewData(['Height', IntToStr(Height)]);
-    ListViewData(['Bit Depth', IntToStr(BitDepth)]);
-    ListViewData(['Color Type', ColorTypeToString(ColorType)]);
-    ListViewData(['Compression Method', IntToStr(CompressionMethod)]);
-    ListViewData(['Filter Method', 'Adaptive']);
-    ListViewData(['Interlace Method', InterlaceMethodToString(InterlaceMethod)]);
-    ListViewData(['HasPallette', BoolToStr(HasPalette)]);
+  ListViewData(['Width', IntToStr(Chunk.Width)]);
+  ListViewData(['Height', IntToStr(Chunk.Height)]);
+  ListViewData(['Bit Depth', IntToStr(Chunk.BitDepth)]);
+  ListViewData(['Color Type', ColorTypeToString(Chunk.ColorType)]);
+  ListViewData(['Compression Method', IntToStr(Chunk.CompressionMethod)]);
+  ListViewData(['Filter Method', 'Adaptive']);
+  ListViewData(['Interlace Method', InterlaceMethodToString(Chunk.InterlaceMethod)]);
+  ListViewData(['HasPallette', BoolToStr(Chunk.HasPalette)]);
 
-    ListView.BringToFront;
-  end;
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayPaletteChunk(PaletteChunk: TPngChunkPalette);
+procedure TFmPngExplorer.DisplayPaletteChunk(AChunk: TCustomChunk);
 var
   Index : Integer;
+  Color: TRGB24;
+  Chunk: TPngChunkPalette;
 begin
-  with PaletteChunk do
+  Chunk := AChunk as TPngChunkPalette;
+
+  InitializeDefaultListView;
+
+  ListViewColumns(['Index', 'Color']);
+
+  for Index := 0 to Chunk.Count - 1 do
   begin
-    InitializeDefaultListView;
-
-    ListViewColumns(['Index', 'Color']);
-
-    for Index := 0 to Count - 1 do
-      with PaletteEntry[Index] do
-        ListViewData([IntToStr(Index), '#' + IntToHex(
-          Integer(R shl 16 + G shl 8 + B), 6)]);
-
-    ListView.BringToFront;
+    Color := Chunk.PaletteEntry[Index];
+    ListViewData([IntToStr(Index), '#' + IntToHex(Integer(Color.R shl 16 + Color.G shl 8 + Color.B), 6)]);
   end;
+
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayGammaChunk(GammaChunk: TPngChunkGamma);
+procedure TFmPngExplorer.DisplayGammaChunk(AChunk: TCustomChunk);
+var
+  Chunk: TPngChunkGamma;
 begin
-  with GammaChunk do
-  begin
-    InitializeDefaultListView;
+  Chunk := AChunk as TPngChunkGamma;
 
-    ListViewData(['Gamma', FloatToStr(GammaAsSingle)]);
+  InitializeDefaultListView;
 
-    ListView.BringToFront;
-  end;
+  ListViewData(['Gamma', FloatToStr(Chunk.GammaAsSingle)]);
+
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayHistogramChunk(HistogramChunk: TPngChunkImageHistogram);
+procedure TFmPngExplorer.DisplayHistogramChunk(AChunk: TCustomChunk);
 var
   Index : Integer;
+  Chunk: TPngChunkImageHistogram;
 begin
-  with HistogramChunk do
-  begin
-    ListViewColumns(['Index', 'Frequency']);
+  Chunk := AChunk as TPngChunkImageHistogram;
 
-    for Index := 0 to Count - 1 do
-      ListViewData([IntToStr(Index), IntToStr(Frequency[Index])]);
+  ListViewColumns(['Index', 'Frequency']);
 
-    ListView.BringToFront;
-  end;
+  for Index := 0 to Chunk.Count - 1 do
+    ListViewData([IntToStr(Index), IntToStr(Chunk.Frequency[Index])]);
+
+  ListView.BringToFront;
 end;
 
 {$if defined(TPngChunkSuggestedPalette)}
-procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TPngChunkSuggestedPalette);
+procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(Chunk: TPngChunkSuggestedPalette);
 begin
-  with SuggestedPaletteChunk do
-  begin
-    InitializeDefaultListView;
+  InitializeDefaultListView;
 
-//    ListViewData(['Palette Entries', IntToStr(Count)]);
+//    ListViewData(['Palette Entries', IntToStr(Chunk.Count)]);
 
-    ListView.BringToFront;
-  end;
+  ListView.BringToFront;
 end;
 {$ifend}
 
-procedure TFmPngExplorer.DisplaySignificantBitsChunk(
-  SignificantBitsChunk: TPngChunkSignificantBits);
+procedure TFmPngExplorer.DisplaySignificantBitsChunk(AChunk: TCustomChunk);
+var
+  Chunk: TPngChunkSignificantBits;
 begin
-  with SignificantBitsChunk do
+  Chunk := AChunk as TPngChunkSignificantBits;
+
+  InitializeDefaultListView;
+
+  if Chunk.SignificantBits is TPngSignificantBitsFormat0 then
+    ListViewData(['Greyscale Bits', IntToStr(TPngSignificantBitsFormat0(Chunk.SignificantBits).GrayBits)])
+  else
+  if Chunk.SignificantBits is TPngSignificantBitsFormat23 then
   begin
-    InitializeDefaultListView;
-
-    if SignificantBits is TPngSignificantBitsFormat0 then
-      ListViewData(['Greyscale Bits',
-        IntToStr(TPngSignificantBitsFormat0(SignificantBits).GrayBits)])
-    else if SignificantBits is TPngSignificantBitsFormat23 then
-    begin
-      ListViewData(['Red Bits',
-        IntToStr(TPngSignificantBitsFormat23(SignificantBits).RedBits)]);
-      ListViewData(['Green Bits',
-        IntToStr(TPngSignificantBitsFormat23(SignificantBits).GreenBits)]);
-      ListViewData(['Blue Bits',
-        IntToStr(TPngSignificantBitsFormat23(SignificantBits).BlueBits)]);
-    end
-    else if SignificantBits is TPngSignificantBitsFormat4 then
-    begin
-      ListViewData(['Greyscale Bits',
-        IntToStr(TPngSignificantBitsFormat4(SignificantBits).GrayBits)]);
-      ListViewData(['Alpha Bits',
-        IntToStr(TPngSignificantBitsFormat4(SignificantBits).AlphaBits)]);
-    end
-    else if SignificantBits is TPngSignificantBitsFormat6 then
-    begin
-      ListViewData(['Red Bits',
-        IntToStr(TPngSignificantBitsFormat6(SignificantBits).RedBits)]);
-      ListViewData(['Green Bits',
-        IntToStr(TPngSignificantBitsFormat6(SignificantBits).GreenBits)]);
-      ListViewData(['Blue Bits',
-        IntToStr(TPngSignificantBitsFormat6(SignificantBits).BlueBits)]);
-      ListViewData(['Alpha Bits',
-        IntToStr(TPngSignificantBitsFormat6(SignificantBits).AlphaBits)]);
-    end;
-
-    ListView.BringToFront;
+    ListViewData(['Red Bits', IntToStr(TPngSignificantBitsFormat23(Chunk.SignificantBits).RedBits)]);
+    ListViewData(['Green Bits', IntToStr(TPngSignificantBitsFormat23(Chunk.SignificantBits).GreenBits)]);
+    ListViewData(['Blue Bits', IntToStr(TPngSignificantBitsFormat23(Chunk.SignificantBits).BlueBits)]);
+  end else
+  if Chunk.SignificantBits is TPngSignificantBitsFormat4 then
+  begin
+    ListViewData(['Greyscale Bits', IntToStr(TPngSignificantBitsFormat4(Chunk.SignificantBits).GrayBits)]);
+    ListViewData(['Alpha Bits', IntToStr(TPngSignificantBitsFormat4(Chunk.SignificantBits).AlphaBits)]);
+  end else
+  if Chunk.SignificantBits is TPngSignificantBitsFormat6 then
+  begin
+    ListViewData(['Red Bits', IntToStr(TPngSignificantBitsFormat6(Chunk.SignificantBits).RedBits)]);
+    ListViewData(['Green Bits', IntToStr(TPngSignificantBitsFormat6(Chunk.SignificantBits).GreenBits)]);
+    ListViewData(['Blue Bits', IntToStr(TPngSignificantBitsFormat6(Chunk.SignificantBits).BlueBits)]);
+    ListViewData(['Alpha Bits', IntToStr(TPngSignificantBitsFormat6(Chunk.SignificantBits).AlphaBits)]);
   end;
+
+  ListView.BringToFront;
 end;
 
 
-procedure TFmPngExplorer.DisplayStandardColorSpaceRGBChunk(
-  StandardColorSpaceRGB: TPngChunkStandardColorSpaceRGB);
+procedure TFmPngExplorer.DisplayStandardColorSpaceRGBChunk(AChunk: TCustomChunk);
+var
+  Chunk: TPngChunkStandardColorSpaceRGB;
 begin
-  with StandardColorSpaceRGB do
-  begin
-    InitializeDefaultListView;
+  Chunk := AChunk as TPngChunkStandardColorSpaceRGB;
 
-    case RenderingIntent of
-      0 : ListViewData(['Rendering Indent', 'Perceptual']);
-      1 : ListViewData(['Rendering Indent', 'Relative Colorimetric']);
-      2 : ListViewData(['Rendering Indent', 'Saturation']);
-      3 : ListViewData(['Rendering Indent', 'Absolute Colorimetric']);
-      else
-        ListViewData(['Rendering Indent', IntToStr(RenderingIntent)]);
-    end;
+  InitializeDefaultListView;
 
-    ListView.BringToFront;
+  case Chunk.RenderingIntent of
+    0 : ListViewData(['Rendering Intent', 'Perceptual']);
+    1 : ListViewData(['Rendering Intent', 'Relative Colorimetric']);
+    2 : ListViewData(['Rendering Intent', 'Saturation']);
+    3 : ListViewData(['Rendering Intent', 'Absolute Colorimetric']);
+  else
+    ListViewData(['Rendering Intent', IntToStr(Chunk.RenderingIntent)]);
   end;
+
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayTextChunk(TextChunk: TCustomChunkPngText);
+procedure TFmPngExplorer.DisplayTextChunk(AChunk: TCustomChunk);
+var
+  Chunk: TCustomChunkPngText;
 begin
-  with TextChunk do
-  begin
-    InitializeDefaultListView;
+  Chunk := AChunk as TCustomChunkPngText;
 
-    ListViewData([string(Keyword), string(Text)]);
+  InitializeDefaultListView;
 
-    ListView.BringToFront;
-  end;
+  ListViewData([string(Chunk.Keyword), string(Chunk.Text)]);
+
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayTimeChunk(TimeChunk: TPngChunkTime);
+procedure TFmPngExplorer.DisplayTimeChunk(AChunk: TCustomChunk);
+var
+  Chunk: TPngChunkTime;
 begin
-  with TimeChunk do
-  begin
-    InitializeDefaultListView;
+  Chunk := AChunk as TPngChunkTime;
 
-    ListViewData(['Time', DateTimeToStr(ModifiedDateTime)]);
+  InitializeDefaultListView;
 
-    ListView.BringToFront;
-  end;
+  ListViewData(['Time', DateTimeToStr(Chunk.ModifiedDateTime)]);
+
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayTransparencyChunk(
-  TransparencyChunk: TPngChunkTransparency);
+procedure TFmPngExplorer.DisplayTransparencyChunk(AChunk: TCustomChunk);
 var
   Index : Integer;
+  Chunk: TPngChunkTransparency;
 begin
-  with TransparencyChunk do
+  Chunk := AChunk as TPngChunkTransparency;
+
+  InitializeDefaultListView;
+
+  if Chunk.Transparency is TPngTransparencyFormat0 then
+    ListViewData(['Grey Sample Value', IntToStr(TPngTransparencyFormat0(Chunk.Transparency).GraySampleValue)])
+  else
+  if Chunk.Transparency is TPngTransparencyFormat2 then
   begin
-    InitializeDefaultListView;
+    ListViewData(['Red Sample Value', IntToStr(TPngTransparencyFormat2(Chunk.Transparency).RedSampleValue)]);
+    ListViewData(['Blue Sample Value', IntToStr(TPngTransparencyFormat2(Chunk.Transparency).BlueSampleValue)]);
+    ListViewData(['Green Sample Value', IntToStr(TPngTransparencyFormat2(Chunk.Transparency).GreenSampleValue)]);
+  end else
+  if Chunk.Transparency is TPngTransparencyFormat3 then
+    for Index := 0 to TPngTransparencyFormat3(Chunk.Transparency).Count - 1 do
+      ListViewData(['Index ' + IntToStr(Index), IntToStr(TPngTransparencyFormat3(Chunk.Transparency).Transparency[Index])]);
 
-    if Transparency is TPngTransparencyFormat0 then
-      ListViewData(['Grey Sample Value',
-        IntToStr(TPngTransparencyFormat0(Transparency).GraySampleValue)])
-    else if Transparency is TPngTransparencyFormat2 then
-    begin
-      ListViewData(['Red Sample Value',
-        IntToStr(TPngTransparencyFormat2(Transparency).RedSampleValue)]);
-      ListViewData(['Blue Sample Value',
-        IntToStr(TPngTransparencyFormat2(Transparency).BlueSampleValue)]);
-      ListViewData(['Green Sample Value',
-        IntToStr(TPngTransparencyFormat2(Transparency).GreenSampleValue)]);
-    end
-    else if Transparency is TPngTransparencyFormat3 then
-      for Index := 0 to TPngTransparencyFormat3(Transparency).Count - 1 do
-        ListViewData(['Index ' + IntToStr(Index),
-          IntToStr(TPngTransparencyFormat3(Transparency).Transparency[Index])]);
-
-    ListView.BringToFront;
-  end;
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TPngChunkPhysicalPixelDimensions);
+procedure TFmPngExplorer.DisplayUnknownChunk(AChunk: TCustomChunk);
 begin
-  with PhysicalDimensionsChunk do
-  begin
-    InitializeDefaultListView;
+  InitializeDefaultListView;
 
-    ListViewData(['Pixels per unit X', IntToStr(PixelsPerUnitX)]);
-    ListViewData(['Pixels per unit Y', IntToStr(PixelsPerUnitY)]);
+  ListViewData(['Chunk Name', string(AChunk.ChunkNameAsString)]);
+  ListViewData(['Chunk Size', IntToStr(AChunk.ChunkSize)]);
 
-    ListView.BringToFront;
-  end;
+  ListView.BringToFront;
 end;
 
-procedure TFmPngExplorer.DisplayBackgroundColorChunk(
-  BackgroundColor: TPngChunkBackgroundColor);
-begin
-  with BackgroundColor do
-  begin
-    InitializeDefaultListView;
-
-    if Background is TPngBackgroundColorFormat04 then
-      ListViewData(['Grey',
-        IntToStr(TPngBackgroundColorFormat04(Background).GraySampleValue)])
-    else if Background is TPngBackgroundColorFormat26 then
-    begin
-      ListViewData(['Red',
-        IntToStr(TPngBackgroundColorFormat26(Background).RedSampleValue)]);
-      ListViewData(['Blue',
-        IntToStr(TPngBackgroundColorFormat26(Background).BlueSampleValue)]);
-      ListViewData(['Green',
-        IntToStr(TPngBackgroundColorFormat26(Background).GreenSampleValue)]);
-    end
-    else if Background is TPngBackgroundColorFormat3 then
-      ListViewData(['Palette Index',
-        IntToStr(TPngBackgroundColorFormat3(Background).PaletteIndex)]);
-
-    ListView.BringToFront;
-  end;
-end;
-
-procedure TFmPngExplorer.DisplayChromaticitiesChunk(ChromaChunk: TPngChunkPrimaryChromaticities);
-begin
-  with ChromaChunk do
-  begin
-    InitializeDefaultListView;
-
-    ListViewData(['White X', FloatToStr(WhiteXAsSingle)]);
-    ListViewData(['White Y', FloatToStr(WhiteYAsSingle)]);
-    ListViewData(['Red X', FloatToStr(RedXAsSingle)]);
-    ListViewData(['Red Y', FloatToStr(RedYAsSingle)]);
-    ListViewData(['Green X', FloatToStr(GreenXAsSingle)]);
-    ListViewData(['Green Y', FloatToStr(GreenYAsSingle)]);
-    ListViewData(['Blue X', FloatToStr(BlueXAsSingle)]);
-    ListViewData(['Blue Y', FloatToStr(BlueYAsSingle)]);
-
-    ListView.BringToFront;
-  end;
-end;
-
-procedure TFmPngExplorer.TreeViewMouseMove(Sender: TObject; Shift: TShiftState; X,
-  Y: Integer);
+procedure TFmPngExplorer.DisplayPhysicalDimensionsChunk(AChunk: TCustomChunk);
 var
-  MouseOverNode : TTreeNode;
-  ParentNode    : TTreeNode;
+  Chunk: TPngChunkPhysicalPixelDimensions;
 begin
- MouseOverNode := TreeView.GetNodeAt(X, Y);
+  Chunk := AChunk as TPngChunkPhysicalPixelDimensions;
 
- // status bar
- if Assigned(MouseOverNode) and Assigned(MouseOverNode.Data) then
+  InitializeDefaultListView;
+
+  ListViewData(['Pixels per unit X', IntToStr(Chunk.PixelsPerUnitX)]);
+  ListViewData(['Pixels per unit Y', IntToStr(Chunk.PixelsPerUnitY)]);
+
+  ListView.BringToFront;
+end;
+
+constructor TFmPngExplorer.Create(AOwner: TComponent);
+begin
+  inherited;
+
+  FChunkRenderers := TDictionary<TCustomChunkClass, TChunkRenderer>.Create;
+  FPngFile := TMyPortableNetworkGraphic.Create;
+
+  RegisterChunkRenderers;
+
+  FHexDump := THexDump.Create(Self);
+  FHexDump.Parent := PanelPreview;
+  FHexDump.Align := alClient;
+  FHexDump.Visible := False;
+  FHexDump.ReadOnly := True;
+end;
+
+destructor TFmPngExplorer.Destroy;
+begin
+  FPngFile.Free;
+  FChunkRenderers.Free;
+  FChunkData.Free;
+
+  inherited;
+end;
+
+procedure TFmPngExplorer.DisplayBackgroundColorChunk(AChunk: TCustomChunk);
+var
+  Chunk: TPngChunkBackgroundColor;
+begin
+  Chunk := AChunk as TPngChunkBackgroundColor;
+
+  InitializeDefaultListView;
+
+  if Chunk.Background is TPngBackgroundColorFormat04 then
+    ListViewData(['Grey', IntToStr(TPngBackgroundColorFormat04(Chunk.Background).GraySampleValue)])
+  else
+  if Chunk.Background is TPngBackgroundColorFormat26 then
   begin
-   ParentNode := MouseOverNode;
+    ListViewData(['Red', IntToStr(TPngBackgroundColorFormat26(Chunk.Background).RedSampleValue)]);
+    ListViewData(['Blue', IntToStr(TPngBackgroundColorFormat26(Chunk.Background).BlueSampleValue)]);
+    ListViewData(['Green', IntToStr(TPngBackgroundColorFormat26(Chunk.Background).GreenSampleValue)]);
+  end else
+  if Chunk.Background is TPngBackgroundColorFormat3 then
+    ListViewData(['Palette Index', IntToStr(TPngBackgroundColorFormat3(Chunk.Background).PaletteIndex)]);
 
-   while not (TObject(ParentNode.Data) is TCustomDefinedChunk) do
-    begin
-     ParentNode := ParentNode.Parent;
-     if not Assigned(ParentNode.Data)
-      then Exit;
-    end;
+  ListView.BringToFront;
+end;
 
-   if TObject(ParentNode.Data) is TCustomDefinedChunkWithHeader then
-    with TCustomDefinedChunkWithHeader(ParentNode.Data) do
-     begin
-//      StatusBar.SimpleText := 'Table ID: ' + TableType;
-     end;
-  end;
+procedure TFmPngExplorer.DisplayChromaticitiesChunk(AChunk: TCustomChunk);
+var
+  Chunk: TPngChunkPrimaryChromaticities;
+begin
+  Chunk := AChunk as TPngChunkPrimaryChromaticities;
+
+  InitializeDefaultListView;
+
+  ListViewData(['White X', FloatToStr(Chunk.WhiteXAsSingle)]);
+  ListViewData(['White Y', FloatToStr(Chunk.WhiteYAsSingle)]);
+  ListViewData(['Red X', FloatToStr(Chunk.RedXAsSingle)]);
+  ListViewData(['Red Y', FloatToStr(Chunk.RedYAsSingle)]);
+  ListViewData(['Green X', FloatToStr(Chunk.GreenXAsSingle)]);
+  ListViewData(['Green Y', FloatToStr(Chunk.GreenYAsSingle)]);
+  ListViewData(['Blue X', FloatToStr(Chunk.BlueXAsSingle)]);
+  ListViewData(['Blue Y', FloatToStr(Chunk.BlueYAsSingle)]);
+
+  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.TreeViewChange(Sender: TObject; Node: TTreeNode);
+var
+  Renderer: TChunkRenderer;
+  Chunk: TCustomChunk;
 begin
   Node.Expanded := True;
 
-  if Assigned(Node.Data) then
+  if (Node.Data = nil) then
   begin
-    // display chunk size
-    if TObject(Node.Data) is TCustomDefinedChunk then
-      StatusBar.SimpleText := 'Chunk Size: ' + IntToStr(
-        TCustomDefinedChunk(Node.Data).ChunkSize);
-
-    // PNG HeaderChunk chunk
-    if TObject(Node.Data) is TPngChunkImageHeader then
-      DisplayHeaderChunk(TPngChunkImageHeader(Node.Data))
-    else if TObject(Node.Data) is TPngChunkPalette then
-      DisplayPaletteChunk(TPngChunkPalette(Node.Data))
-    else if TObject(Node.Data) is TPngChunkGamma then
-      DisplayGammaChunk(TPngChunkGamma(Node.Data))
-    else if TObject(Node.Data) is TPngChunkTime then
-      DisplayTimeChunk(TPngChunkTime(Node.Data))
-(*
-    else if TObject(Node.Data) is TPngChunkPhysicalScale then
-      DisplayPhysicalScaleChunk(TPngChunkPhysicalScale(Node.Data))
-*)
-    else if TObject(Node.Data) is TCustomChunkPngText then
-      DisplayTextChunk(TCustomChunkPngText(Node.Data))
-    else if TObject(Node.Data) is TPngChunkStandardColorSpaceRGB then
-      DisplayStandardColorSpaceRGBChunk(TPngChunkStandardColorSpaceRGB(Node.Data))
-    else if TObject(Node.Data) is TPngChunkImageHistogram then
-      DisplayHistogramChunk(TPngChunkImageHistogram(Node.Data))
-    else if TObject(Node.Data) is TPngChunkBackgroundColor then
-      DisplayBackgroundColorChunk(TPngChunkBackgroundColor(Node.Data))
-{$if defined(TPngChunkSuggestedPalette)}
-    else if TObject(Node.Data) is TPngChunkSuggestedPalette then
-      DisplaySuggestedPaletteChunk(TPngChunkSuggestedPalette(Node.Data))
-{$ifend}
-    else if TObject(Node.Data) is TPngChunkPrimaryChromaticities then
-      DisplayChromaticitiesChunk(TPngChunkPrimaryChromaticities(Node.Data))
-    else if TObject(Node.Data) is TPngChunkPhysicalPixelDimensions then
-      DisplayPhysicalDimensionsChunk(TPngChunkPhysicalPixelDimensions(Node.Data))
-    else if TObject(Node.Data) is TPngChunkSignificantBits then
-      DisplaySignificantBitsChunk(TPngChunkSignificantBits(Node.Data))
-    else if TObject(Node.Data) is TPngChunkTransparency then
-      DisplayTransparencyChunk(TPngChunkTransparency(Node.Data))
-    else
-
-    // other unregistered chunks
-    if TObject(Node.Data) is TCustomChunk then
-      with TCustomChunk(Node.Data) do
-      begin
-        InitializeDefaultListView;
-
-        ListViewData(['Chunk Name', string(ChunkNameAsString)]);
-        ListViewData(['Chunk Size', IntToStr(ChunkSize)]);
-
-        ListView.BringToFront;
-      end;
-
-    PnPaintBox.Visible := False;
-    SpVertical.Visible := False;
-  end
-  else
-  begin
-    PnPaintBox.Visible := True;
-    SpVertical.Visible := True;
+    FHexDump.Visible := False;
+    ImgView32.Visible := True;
+    exit;
   end;
+
+  // display chunk size
+  if TObject(Node.Data) is TCustomDefinedChunk then
+    StatusBar.SimpleText := 'Chunk Size: ' + IntToStr(TCustomDefinedChunk(Node.Data).ChunkSize);
+
+  if TObject(Node.Data) is TCustomChunk then
+  begin
+    Chunk := TCustomChunk(Node.Data);
+
+    if (not FChunkRenderers.TryGetValue(TCustomChunkClass(Chunk.ClassType), Renderer)) then
+      Renderer := DisplayUnknownChunk;
+  end else
+  begin
+    Renderer := nil;
+    Chunk := nil;
+  end;
+
+
+  if (Chunk <> nil) then
+  begin
+    if Assigned(Renderer) then
+      Renderer(Chunk);
+
+    if (Chunk.ChunkData <> nil) then
+      FHexDump.Address := Chunk.ChunkData
+    else
+    begin
+      if (FChunkData = nil) then
+        FChunkData := TMemoryStream.Create
+      else
+        FChunkData.Position := 0;
+      FChunkData.Size := Chunk.ChunkSize;
+      Chunk.WriteToStream(FChunkData);
+
+      FHexDump.Address := FChunkData.Memory;
+    end;
+
+    FHexDump.DataSize := Chunk.ChunkSize;
+  end;
+
+  ImgView32.Visible := False;
+  FHexDump.Visible := (Chunk <> nil);
 end;
 
 procedure TFmPngExplorer.PNGChanged;
 var
+  i: integer;
   Chunk: TCustomChunk;
 begin
-  with FPngFile, TreeView do
-  begin
-    // begin update
-    Items.BeginUpdate;
+  TreeView.Items.BeginUpdate;
+  try
 
-    // add PNG Header chunk
-    Items.AddChildObject(Items[0], 'IHDR', FImageHeader);
+    for i := 0 to FPngFile.Chunks.Count-1 do
+    begin
+      Chunk := FPngFile.Chunks[i];
 
-    // eventually add Palette chunk
-    if Assigned(FPaletteChunk) then
-      Items.AddChildObject(Items[0], 'PLTE', FPaletteChunk);
+      TreeView.Items.AddChildObject(TreeView.Items[0], string(Chunk.ChunkNameAsString), Chunk);
+    end;
 
-    // eventually add PNG Gamma chunk
-    if Assigned(FGammaChunk) then
-      Items.AddChildObject(Items[0], 'gAMA', FGammaChunk);
-
-    // eventually add PNG Time chunk
-    if Assigned(FTimeChunk) then
-      Items.AddChildObject(Items[0], 'tIME', FTimeChunk);
-
-    // eventually add PNG Background chunk
-    if Assigned(FBackgroundChunk) then
-      Items.AddChildObject(Items[0], 'bKGD', FBackgroundChunk);
-
-    // eventually add PNG Significant Bits chunk
-    if Assigned(FSignificantBitsChunk) then
-      Items.AddChildObject(Items[0], 'sBIT', FSignificantBitsChunk);
-
-    // eventually add PNG Transparency chunk
-    if Assigned(FTransparencyChunk) then
-      Items.AddChildObject(Items[0], 'tRNS', FTransparencyChunk);
-
-    // eventually add PNG Chroma chunk
-    if Assigned(FChromaChunk) then
-      Items.AddChildObject(Items[0], 'cHRM', FChromaChunk);
-
-    // eventually add PNG Physical Pixel Dimensions chunk
-    if Assigned(FPhysicalDimensionsChunk) then
-      Items.AddChildObject(Items[0], 'pHYs', FPhysicalDimensionsChunk);
-
-    // eventually add additional chunks
-    for Chunk in AdditionalChunks do
-      Items.AddChildObject(Items[0], string(Chunk.ChunkNameAsString), Chunk);
-
-    // end update
-    Items.EndUpdate;
-
-    // assign png file
-    ImgView32.Bitmap.Assign(FPngFile);
-
-    // expand tree
-    Items[0].Expanded := True;
+  finally
+    TreeView.Items.EndUpdate;
   end;
+
+  ImgView32.Bitmap.Assign(FPngFile);
+
+  TreeView.Items[0].Expanded := True;
+end;
+
+procedure TFmPngExplorer.RegisterChunkRenderers;
+begin
+  // PNG HeaderChunk chunk
+  FChunkRenderers.Add(TPngChunkImageHeader, DisplayHeaderChunk);
+  FChunkRenderers.Add(TPngChunkPalette, DisplayPaletteChunk);
+  FChunkRenderers.Add(TPngChunkGamma, DisplayGammaChunk);
+  FChunkRenderers.Add(TPngChunkTime, DisplayTimeChunk);
+(*
+  FChunkRenderers.Add(TPngChunkPhysicalScale, DisplayPhysicalScaleChunk);
+*)
+  FChunkRenderers.Add(TCustomChunkPngText, DisplayTextChunk);
+  FChunkRenderers.Add(TPngChunkStandardColorSpaceRGB, DisplayStandardColorSpaceRGBChunk);
+  FChunkRenderers.Add(TPngChunkImageHistogram, DisplayHistogramChunk);
+  FChunkRenderers.Add(TPngChunkBackgroundColor, DisplayBackgroundColorChunk);
+{$if defined(TPngChunkSuggestedPalette)}
+  FChunkRenderers.Add(TPngChunkSuggestedPalette, DisplaySuggestedPaletteChunk);
+{$ifend}
+  FChunkRenderers.Add(TPngChunkPrimaryChromaticities, DisplayChromaticitiesChunk);
+  FChunkRenderers.Add(TPngChunkPhysicalPixelDimensions, DisplayPhysicalDimensionsChunk);
+  FChunkRenderers.Add(TPngChunkSignificantBits, DisplaySignificantBitsChunk);
+  FChunkRenderers.Add(TPngChunkTransparency, DisplayTransparencyChunk);
 end;
 
 procedure TFmPngExplorer.LoadFromFile(Filename: TFileName);

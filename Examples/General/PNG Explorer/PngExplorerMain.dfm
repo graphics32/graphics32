@@ -2,8 +2,8 @@ object FmPngExplorer: TFmPngExplorer
   Left = 309
   Top = 95
   Caption = 'PNG Explorer'
-  ClientHeight = 486
-  ClientWidth = 691
+  ClientHeight = 477
+  ClientWidth = 685
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,100 +11,118 @@ object FmPngExplorer: TFmPngExplorer
   Font.Name = 'Tahoma'
   Font.Style = []
   Menu = MainMenu
-  OldCreateOrder = False
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 13
-  object SpHorizontal: TSplitter
+  object SplitterHorizontal: TSplitter
     Left = 204
     Top = 24
-    Height = 440
+    Height = 431
+    ExplicitHeight = 440
   end
   object TreeView: TTreeView
     Left = 0
     Top = 24
     Width = 204
-    Height = 440
+    Height = 431
     Align = alLeft
     Indent = 19
     ReadOnly = True
     TabOrder = 0
     OnChange = TreeViewChange
-    OnMouseMove = TreeViewMouseMove
+    ExplicitHeight = 422
   end
   object PnMain: TPanel
     Left = 207
     Top = 24
-    Width = 484
-    Height = 440
+    Width = 478
+    Height = 431
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
-    object SpVertical: TSplitter
+    ExplicitWidth = 472
+    ExplicitHeight = 422
+    object SplitterVertical: TSplitter
       Left = 0
-      Top = 173
-      Width = 484
+      Top = 164
+      Width = 478
       Height = 3
       Cursor = crVSplit
       Align = alBottom
+      ExplicitTop = 173
+      ExplicitWidth = 484
     end
     object ListView: TListView
       Left = 0
       Top = 0
-      Width = 484
-      Height = 173
+      Width = 478
+      Height = 164
       Align = alClient
       Columns = <>
       ReadOnly = True
       TabOrder = 0
       ViewStyle = vsReport
     end
-    object PnPaintBox: TPanel
+    object PanelPreview: TPanel
       Left = 0
-      Top = 176
-      Width = 484
+      Top = 167
+      Width = 478
       Height = 264
       Align = alBottom
       BevelInner = bvLowered
       BevelOuter = bvNone
       Color = clWhite
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Courier New'
+      Font.Pitch = fpFixed
+      Font.Style = []
+      ParentFont = False
       TabOrder = 1
+      ExplicitTop = 158
+      ExplicitWidth = 472
       object ImgView32: TImgView32
         Left = 1
         Top = 1
-        Width = 482
+        Width = 476
         Height = 262
         Align = alClient
         Bitmap.DrawMode = dmBlend
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baCustom
         Scale = 1.000000000000000000
-        ScaleMode = smNormal
+        ScaleMode = smScale
+        Background.CheckersStyle = bcsMedium
+        Background.FillStyle = bfsCheckers
+        MousePan.Enabled = True
+        MouseZoom.Enabled = True
         ScrollBars.ShowHandleGrip = True
         ScrollBars.Style = rbsDefault
         ScrollBars.Size = 16
         ScrollBars.Visibility = svAuto
         OverSize = 0
         TabOrder = 0
+        ExplicitWidth = 470
       end
     end
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 464
-    Width = 691
+    Top = 455
+    Width = 685
     Height = 22
     Panels = <
       item
         Width = 100
       end>
+    ExplicitTop = 446
+    ExplicitWidth = 679
   end
   object CoolBar: TCoolBar
     Left = 0
     Top = 0
-    Width = 691
+    Width = 685
     Height = 24
     Bands = <
       item
@@ -112,13 +130,20 @@ object FmPngExplorer: TFmPngExplorer
         Control = ToolBar
         ImageIndex = -1
         MinHeight = 22
-        Width = 691
+        Width = 683
       end>
     EdgeBorders = [ebTop]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -15
+    Font.Name = 'Segoe UI'
+    Font.Style = []
+    ParentFont = False
+    ExplicitWidth = 679
     object ToolBar: TToolBar
-      Left = 9
+      Left = 11
       Top = 0
-      Width = 682
+      Width = 674
       Height = 22
       Caption = 'ToolBar'
       EdgeInner = esNone
