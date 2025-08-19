@@ -28,63 +28,25 @@ type
   TMyPortableNetworkGraphic = class(TPortableNetworkGraphic32);
 
   TFmPngExplorer = class(TForm)
-    AcEditCopy: TEditCopy;
-    AcEditCut: TEditCut;
-    AcEditPaste: TEditPaste;
-    AcEditUndo: TEditUndo;
-    AcFileExit: TFileExit;
-    AcFileOpen: TFileOpen;
-    AcFileSaveAs: TFileSaveAs;
-    ActionList: TActionList;
-    CoolBar: TCoolBar;
     ImgView32: TImgView32;
     ListView: TListView;
-    MainMenu: TMainMenu;
-    MIAbout: TMenuItem;
-    MiCopy: TMenuItem;
-    MICut: TMenuItem;
-    MIEdit: TMenuItem;
-    MIExit: TMenuItem;
-    MIFile: TMenuItem;
-    MIHelp: TMenuItem;
-    MIOpen: TMenuItem;
-    MIPaste: TMenuItem;
-    MISave: TMenuItem;
-    MISaveAs: TMenuItem;
-    MIStatusBar: TMenuItem;
-    MIToolbar: TMenuItem;
-    MIUndo: TMenuItem;
-    MIView: TMenuItem;
-    N1: TMenuItem;
-    N2: TMenuItem;
-    N3: TMenuItem;
     PnMain: TPanel;
     PanelPreview: TPanel;
     SplitterHorizontal: TSplitter;
     SplitterVertical: TSplitter;
-    StatusBar: TStatusBar;
-    TbCopy: TToolButton;
-    TbCut: TToolButton;
-    TbOpen: TToolButton;
-    TbPaste: TToolButton;
-    TbSplit1: TToolButton;
-    TbSplit2: TToolButton;
-    ToolBar: TToolBar;
-    ToolbarImages: TImageList;
     TreeView: TTreeView;
-    procedure FormCreate(Sender: TObject);
+    Panel1: TPanel;
+    ButtonLoad: TButton;
+    OpenDialog: TOpenDialog;
     procedure FormShow(Sender: TObject);
-    procedure AcFileOpenAccept(Sender: TObject);
-    procedure MIStatusBarClick(Sender: TObject);
-    procedure MIToolbarClick(Sender: TObject);
-    procedure ShowHint(Sender: TObject);
     procedure TreeViewChange(Sender: TObject; Node: TTreeNode);
+    procedure ButtonLoadClick(Sender: TObject);
   private
     FPngFile : TMyPortableNetworkGraphic;
     FChunkRenderers: TDictionary<TCustomChunkClass, TChunkRenderer>;
     FHexDump: THexDump;
     FChunkData: TMemoryStream;
-    procedure InitializeDefaultListView;
+    procedure InitializeDefaultListView(AChunk: TCustomChunk = nil);
     procedure PNGChanged;
   protected
     procedure ListViewColumns(const Columns: array of string);
@@ -99,9 +61,7 @@ type
     procedure DisplayGammaChunk(AChunk: TCustomChunk);
     procedure DisplayPhysicalDimensionsChunk(AChunk: TCustomChunk);
     procedure DisplayTextChunk(AChunk: TCustomChunk);
-{$if defined(TPngChunkSuggestedPalette)} // TPngChunkSuggestedPalette is incomplete and has been disabled
     procedure DisplaySuggestedPaletteChunk(AChunk: TCustomChunk);
-{$ifend}
     procedure DisplaySignificantBitsChunk(AChunk: TCustomChunk);
     procedure DisplayStandardColorSpaceRGBChunk(AChunk: TCustomChunk);
     procedure DisplayBackgroundColorChunk(AChunk: TCustomChunk);
@@ -112,8 +72,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure LoadFromFile(Filename: TFileName);
-    procedure LoadFromStream(Stream: TStream);
+    procedure LoadFromFile(const Filename: TFileName);
   end;
 
 var
@@ -125,6 +84,7 @@ implementation
 
 uses
   Inifiles, Math, Types,
+  GR32_System,
   GR32_PortableNetworkGraphic.Types,
   GR32_PortableNetworkGraphic.Chunks.PLTE,
   GR32_PortableNetworkGraphic.Chunks.gAMA,
@@ -136,13 +96,34 @@ uses
   GR32_PortableNetworkGraphic.Chunks.sBIT,
   GR32_PortableNetworkGraphic.Chunks.bKGD,
   GR32_PortableNetworkGraphic.Chunks.hIST,
-  GR32_PortableNetworkGraphic.Chunks.pHYs;
+  GR32_PortableNetworkGraphic.Chunks.pHYs,
+  GR32_PortableNetworkGraphic.Chunks.sPLT;
 
 { TFmPngExplorer }
 
-procedure TFmPngExplorer.FormCreate(Sender: TObject);
+constructor TFmPngExplorer.Create(AOwner: TComponent);
 begin
-  Application.OnHint := ShowHint;
+  inherited;
+
+  FChunkRenderers := TDictionary<TCustomChunkClass, TChunkRenderer>.Create;
+  FPngFile := TMyPortableNetworkGraphic.Create;
+
+  RegisterChunkRenderers;
+
+  FHexDump := THexDump.Create(Self);
+  FHexDump.Parent := PanelPreview;
+  FHexDump.Align := alClient;
+  FHexDump.Visible := False;
+  FHexDump.ReadOnly := True;
+end;
+
+destructor TFmPngExplorer.Destroy;
+begin
+  FPngFile.Free;
+  FChunkRenderers.Free;
+  FChunkData.Free;
+
+  inherited;
 end;
 
 procedure TFmPngExplorer.FormShow(Sender: TObject);
@@ -151,10 +132,22 @@ begin
     LoadFromFile(ParamStr(1));
 end;
 
-procedure TFmPngExplorer.InitializeDefaultListView;
+procedure TFmPngExplorer.ButtonLoadClick(Sender: TObject);
+begin
+  if (OpenDialog.Execute) then
+    LoadFromFile(OpenDialog.Filename);
+end;
+
+procedure TFmPngExplorer.InitializeDefaultListView(AChunk: TCustomChunk);
 begin
   // add columns
   ListViewColumns(['Name', 'Value']);
+
+  if (AChunk <> nil) then
+  begin
+    ListViewData(['Chunk Name', string(AChunk.ChunkNameAsString)]);
+    ListViewData(['Chunk Size', Format('%.0n', [AChunk.ChunkSize * 1.0])]);
+  end;
 end;
 
 procedure TFmPngExplorer.ListViewColumns(const Columns: array of string);
@@ -192,40 +185,12 @@ begin
     Item.SubItems.Add(Strings[i]);
 end;
 
-procedure TFmPngExplorer.ShowHint(Sender: TObject);
-begin
-  if Length(Application.Hint) > 0 then
-  begin
-    StatusBar.SimplePanel := True;
-    StatusBar.SimpleText := Application.Hint;
-  end
-  else
-    StatusBar.SimplePanel := False;
-end;
-
-procedure TFmPngExplorer.AcFileOpenAccept(Sender: TObject);
-begin
-  LoadFromFile(AcFileOpen.Dialog.Filename);
-end;
-
-procedure TFmPngExplorer.MIStatusBarClick(Sender: TObject);
-begin
-  MIStatusBar.Checked := not MIStatusBar.Checked;
-  StatusBar.Visible := MIStatusBar.Checked;
-end;
-
-procedure TFmPngExplorer.MIToolbarClick(Sender: TObject);
-begin
-  MIToolbar.Checked := not MIToolbar.Checked;
-  CoolBar.Visible := MIToolbar.Checked;
-end;
-
 procedure TFmPngExplorer.DisplayHeaderChunk(AChunk: TCustomChunk);
 var
   Chunk: TPngChunkImageHeader;
 begin
   Chunk := AChunk as TPngChunkImageHeader;
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   ListViewData(['Width', IntToStr(Chunk.Width)]);
   ListViewData(['Height', IntToStr(Chunk.Height)]);
@@ -235,8 +200,6 @@ begin
   ListViewData(['Filter Method', 'Adaptive']);
   ListViewData(['Interlace Method', InterlaceMethodToString(Chunk.InterlaceMethod)]);
   ListViewData(['HasPallette', BoolToStr(Chunk.HasPalette)]);
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayPaletteChunk(AChunk: TCustomChunk);
@@ -247,7 +210,7 @@ var
 begin
   Chunk := AChunk as TPngChunkPalette;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   ListViewColumns(['Index', 'Color']);
 
@@ -256,8 +219,6 @@ begin
     Color := Chunk.PaletteEntry[Index];
     ListViewData([IntToStr(Index), '#' + IntToHex(Integer(Color.R shl 16 + Color.G shl 8 + Color.B), 6)]);
   end;
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayGammaChunk(AChunk: TCustomChunk);
@@ -266,11 +227,9 @@ var
 begin
   Chunk := AChunk as TPngChunkGamma;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   ListViewData(['Gamma', FloatToStr(Chunk.GammaAsSingle)]);
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayHistogramChunk(AChunk: TCustomChunk);
@@ -284,20 +243,23 @@ begin
 
   for Index := 0 to Chunk.Count - 1 do
     ListViewData([IntToStr(Index), IntToStr(Chunk.Frequency[Index])]);
-
-  ListView.BringToFront;
 end;
 
+procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(AChunk: TCustomChunk);
 {$if defined(TPngChunkSuggestedPalette)}
-procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(Chunk: TPngChunkSuggestedPalette);
+var
+  Chunk: TPngChunkSuggestedPalette;
+{$ifend}
 begin
-  InitializeDefaultListView;
+// TPngChunkSuggestedPalette is incomplete and has been disabled
+{$if defined(TPngChunkSuggestedPalette)}
+  Chunk := AChunk as TPngChunkSuggestedPalette;
+
+  InitializeDefaultListView(AChunk);
 
 //    ListViewData(['Palette Entries', IntToStr(Chunk.Count)]);
-
-  ListView.BringToFront;
-end;
 {$ifend}
+end;
 
 procedure TFmPngExplorer.DisplaySignificantBitsChunk(AChunk: TCustomChunk);
 var
@@ -305,7 +267,7 @@ var
 begin
   Chunk := AChunk as TPngChunkSignificantBits;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   if Chunk.SignificantBits is TPngSignificantBitsFormat0 then
     ListViewData(['Greyscale Bits', IntToStr(TPngSignificantBitsFormat0(Chunk.SignificantBits).GrayBits)])
@@ -328,10 +290,7 @@ begin
     ListViewData(['Blue Bits', IntToStr(TPngSignificantBitsFormat6(Chunk.SignificantBits).BlueBits)]);
     ListViewData(['Alpha Bits', IntToStr(TPngSignificantBitsFormat6(Chunk.SignificantBits).AlphaBits)]);
   end;
-
-  ListView.BringToFront;
 end;
-
 
 procedure TFmPngExplorer.DisplayStandardColorSpaceRGBChunk(AChunk: TCustomChunk);
 var
@@ -339,7 +298,7 @@ var
 begin
   Chunk := AChunk as TPngChunkStandardColorSpaceRGB;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   case Chunk.RenderingIntent of
     0 : ListViewData(['Rendering Intent', 'Perceptual']);
@@ -349,8 +308,6 @@ begin
   else
     ListViewData(['Rendering Intent', IntToStr(Chunk.RenderingIntent)]);
   end;
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayTextChunk(AChunk: TCustomChunk);
@@ -359,11 +316,9 @@ var
 begin
   Chunk := AChunk as TCustomChunkPngText;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   ListViewData([string(Chunk.Keyword), string(Chunk.Text)]);
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayTimeChunk(AChunk: TCustomChunk);
@@ -372,11 +327,9 @@ var
 begin
   Chunk := AChunk as TPngChunkTime;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   ListViewData(['Time', DateTimeToStr(Chunk.ModifiedDateTime)]);
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayTransparencyChunk(AChunk: TCustomChunk);
@@ -386,7 +339,7 @@ var
 begin
   Chunk := AChunk as TPngChunkTransparency;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   if Chunk.Transparency is TPngTransparencyFormat0 then
     ListViewData(['Grey Sample Value', IntToStr(TPngTransparencyFormat0(Chunk.Transparency).GraySampleValue)])
@@ -400,18 +353,11 @@ begin
   if Chunk.Transparency is TPngTransparencyFormat3 then
     for Index := 0 to TPngTransparencyFormat3(Chunk.Transparency).Count - 1 do
       ListViewData(['Index ' + IntToStr(Index), IntToStr(TPngTransparencyFormat3(Chunk.Transparency).Transparency[Index])]);
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayUnknownChunk(AChunk: TCustomChunk);
 begin
-  InitializeDefaultListView;
-
-  ListViewData(['Chunk Name', string(AChunk.ChunkNameAsString)]);
-  ListViewData(['Chunk Size', IntToStr(AChunk.ChunkSize)]);
-
-  ListView.BringToFront;
+  InitializeDefaultListView(AChunk);
 end;
 
 procedure TFmPngExplorer.DisplayPhysicalDimensionsChunk(AChunk: TCustomChunk);
@@ -420,37 +366,10 @@ var
 begin
   Chunk := AChunk as TPngChunkPhysicalPixelDimensions;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   ListViewData(['Pixels per unit X', IntToStr(Chunk.PixelsPerUnitX)]);
   ListViewData(['Pixels per unit Y', IntToStr(Chunk.PixelsPerUnitY)]);
-
-  ListView.BringToFront;
-end;
-
-constructor TFmPngExplorer.Create(AOwner: TComponent);
-begin
-  inherited;
-
-  FChunkRenderers := TDictionary<TCustomChunkClass, TChunkRenderer>.Create;
-  FPngFile := TMyPortableNetworkGraphic.Create;
-
-  RegisterChunkRenderers;
-
-  FHexDump := THexDump.Create(Self);
-  FHexDump.Parent := PanelPreview;
-  FHexDump.Align := alClient;
-  FHexDump.Visible := False;
-  FHexDump.ReadOnly := True;
-end;
-
-destructor TFmPngExplorer.Destroy;
-begin
-  FPngFile.Free;
-  FChunkRenderers.Free;
-  FChunkData.Free;
-
-  inherited;
 end;
 
 procedure TFmPngExplorer.DisplayBackgroundColorChunk(AChunk: TCustomChunk);
@@ -459,7 +378,7 @@ var
 begin
   Chunk := AChunk as TPngChunkBackgroundColor;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   if Chunk.Background is TPngBackgroundColorFormat04 then
     ListViewData(['Grey', IntToStr(TPngBackgroundColorFormat04(Chunk.Background).GraySampleValue)])
@@ -472,8 +391,6 @@ begin
   end else
   if Chunk.Background is TPngBackgroundColorFormat3 then
     ListViewData(['Palette Index', IntToStr(TPngBackgroundColorFormat3(Chunk.Background).PaletteIndex)]);
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.DisplayChromaticitiesChunk(AChunk: TCustomChunk);
@@ -482,7 +399,7 @@ var
 begin
   Chunk := AChunk as TPngChunkPrimaryChromaticities;
 
-  InitializeDefaultListView;
+  InitializeDefaultListView(AChunk);
 
   ListViewData(['White X', FloatToStr(Chunk.WhiteXAsSingle)]);
   ListViewData(['White Y', FloatToStr(Chunk.WhiteYAsSingle)]);
@@ -492,8 +409,6 @@ begin
   ListViewData(['Green Y', FloatToStr(Chunk.GreenYAsSingle)]);
   ListViewData(['Blue X', FloatToStr(Chunk.BlueXAsSingle)]);
   ListViewData(['Blue Y', FloatToStr(Chunk.BlueYAsSingle)]);
-
-  ListView.BringToFront;
 end;
 
 procedure TFmPngExplorer.TreeViewChange(Sender: TObject; Node: TTreeNode);
@@ -507,12 +422,9 @@ begin
   begin
     FHexDump.Visible := False;
     ImgView32.Visible := True;
+    DisplayHeaderChunk(FPngFile.ImageHeader);
     exit;
   end;
-
-  // display chunk size
-  if TObject(Node.Data) is TCustomDefinedChunk then
-    StatusBar.SimpleText := 'Chunk Size: ' + IntToStr(TCustomDefinedChunk(Node.Data).ChunkSize);
 
   if TObject(Node.Data) is TCustomChunk then
   begin
@@ -525,7 +437,6 @@ begin
     Renderer := nil;
     Chunk := nil;
   end;
-
 
   if (Chunk <> nil) then
   begin
@@ -555,38 +466,34 @@ end;
 
 procedure TFmPngExplorer.PNGChanged;
 var
-  i: integer;
   Chunk: TCustomChunk;
 begin
   TreeView.Items.BeginUpdate;
   try
 
-    for i := 0 to FPngFile.Chunks.Count-1 do
-    begin
-      Chunk := FPngFile.Chunks[i];
-
+    for Chunk in FPngFile.Chunks do
       TreeView.Items.AddChildObject(TreeView.Items[0], string(Chunk.ChunkNameAsString), Chunk);
-    end;
 
   finally
     TreeView.Items.EndUpdate;
   end;
 
   ImgView32.Bitmap.Assign(FPngFile);
+  ImgView32.Scale := 1.0;
+  ImgView32.ScrollToCenter;
 
   TreeView.Items[0].Expanded := True;
 end;
 
 procedure TFmPngExplorer.RegisterChunkRenderers;
 begin
-  // PNG HeaderChunk chunk
   FChunkRenderers.Add(TPngChunkImageHeader, DisplayHeaderChunk);
   FChunkRenderers.Add(TPngChunkPalette, DisplayPaletteChunk);
   FChunkRenderers.Add(TPngChunkGamma, DisplayGammaChunk);
   FChunkRenderers.Add(TPngChunkTime, DisplayTimeChunk);
-(*
-  FChunkRenderers.Add(TPngChunkPhysicalScale, DisplayPhysicalScaleChunk);
-*)
+{$if defined(TPngChunkPhysicalScale)}
+  FChunkRenderers.Add(TPngChunkPhysicalScale, DisplayPhysicalScaleChunk); // TODO
+{$ifend}
   FChunkRenderers.Add(TCustomChunkPngText, DisplayTextChunk);
   FChunkRenderers.Add(TPngChunkStandardColorSpaceRGB, DisplayStandardColorSpaceRGBChunk);
   FChunkRenderers.Add(TPngChunkImageHistogram, DisplayHistogramChunk);
@@ -600,124 +507,49 @@ begin
   FChunkRenderers.Add(TPngChunkTransparency, DisplayTransparencyChunk);
 end;
 
-procedure TFmPngExplorer.LoadFromFile(Filename: TFileName);
+procedure TFmPngExplorer.LoadFromFile(const Filename: TFileName);
 var
-  Start, Stop, Freq : Int64;
+  Stopwatch: TStopwatch;
   MemoryFileStream  : TMemoryStream;
 begin
-  if FileExists(FileName) then
-  begin
-    // initialize listview
-    InitializeDefaultListView;
-
-    // create temporary memory strem
-    MemoryFileStream := TMemoryStream.Create;
-    try
-      // query start
-      QueryPerformanceCounter(Start);
-
-      // load data from file
-      MemoryFileStream.LoadFromFile(Filename);
-
-      // query stop
-      QueryPerformanceCounter(Stop);
-
-      // query performance frequency
-      QueryPerformanceFrequency(Freq);
-
-      // add loading TimeChunk
-      ListViewData(['loading time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
-
-      // query start
-      QueryPerformanceCounter(Start);
-
-      // load PNG file
-      FPngFile.LoadFromStream(MemoryFileStream);
-
-      // query stop
-      QueryPerformanceCounter(Stop);
-
-      // query performance frequency
-      QueryPerformanceFrequency(Freq);
-
-      // add loading TimeChunk
-      ListViewData(['interpreting time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
-
-    finally
-      FreeAndNil(MemoryFileStream);
-    end;
-
-    // clear existing items on treeview
-    TreeView.Items.Clear;
-
-    // add root item on treeview
-    TreeView.Items.AddChild(nil, ExtractFileName(FileName));
-
-    // query start
-    QueryPerformanceCounter(Start);
-
-    PNGChanged;
-
-    // query stop
-    QueryPerformanceCounter(Stop);
-
-    // add building tree TimeChunk
-    ListViewData(['building tree time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
-
-    ListView.BringToFront;
-
-    Caption := 'PNG Explorer [' + ExtractFileName(Filename) + ']';
-  end
-  else
+  if not FileExists(FileName) then
     raise Exception.Create('File does not exists');
-end;
-
-procedure TFmPngExplorer.LoadFromStream(Stream: TStream);
-var
-  Start, Stop, Freq : Int64;
-begin
-  // reset stream position
-  Stream.Position := 0;
-
-  // query start
-  QueryPerformanceCounter(Start);
-
-  // load PNG file
-  FPNGFile.LoadFromStream(Stream);
-
-  // query stop
-  QueryPerformanceCounter(Stop);
-
-  // query performance frequency
-  QueryPerformanceFrequency(Freq);
 
   // initialize listview
   InitializeDefaultListView;
 
-  // add loading TimeChunk
-  ListViewData(['loading time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
+  // Load from a temporary memory stream so we can separate the load from the parse time
+  MemoryFileStream := TMemoryStream.Create;
+  try
+
+    // load data from file
+    Stopwatch := TStopwatch.StartNew;
+    MemoryFileStream.LoadFromFile(Filename);
+    Stopwatch.Stop;
+    ListViewData(['loading time', Format('%.3f ms', [Stopwatch.ElapsedTicks / Stopwatch.TicksPerMillisecond])]);
+
+    // load PNG file
+    Stopwatch := TStopwatch.StartNew;
+    FPngFile.LoadFromStream(MemoryFileStream);
+    Stopwatch.Stop;
+    ListViewData(['interpreting time', Format('%.3f ms', [Stopwatch.ElapsedTicks / Stopwatch.TicksPerMillisecond])]);
+
+  finally
+    FreeAndNil(MemoryFileStream);
+  end;
 
   // clear existing items on treeview
   TreeView.Items.Clear;
 
   // add root item on treeview
-  TreeView.Items.AddChild(nil, '(internal PNG)');
+  TreeView.Items.AddChild(nil, ExtractFileName(FileName));
 
-  // query start
-  QueryPerformanceCounter(Start);
-
+  Stopwatch := TStopwatch.StartNew;
   PNGChanged;
+  Stopwatch.Stop;
+  ListViewData(['building tree time', Format('%.3f ms', [Stopwatch.ElapsedTicks / Stopwatch.TicksPerMillisecond])]);
 
-  // query stop
-  QueryPerformanceCounter(Stop);
-
-  // add building tree TimeChunk
-  ListViewData(['building tree time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
-
-  ListView.BringToFront;
-
-  // change caption
-  Caption := 'PNG Explorer';
+  Caption := 'PNG Explorer [' + ExtractFileName(Filename) + ']';
 end;
 
 end.
