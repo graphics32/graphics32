@@ -71,12 +71,28 @@ type
   TPortableNetworkGraphic = class;
 
   TCompositeChunkList = class
+  private type
+    TChunkEnumerator = record
+    private
+      FList: TCompositeChunkList;
+      FIndex: Integer;
+      FLastIndex: integer;
+    private
+      function GetCurrent: TCustomChunk;
+    public
+      constructor Create(AList: TCompositeChunkList);
+      property Current: TCustomChunk read GetCurrent;
+      function MoveNext: boolean; inline;
+    end;
   private
     FOwner: TPortableNetworkGraphic;
+
     function GetChunk(Index: integer): TCustomChunk;
     function GetCount: integer;
   public
     constructor Create(AOwner: TPortableNetworkGraphic);
+
+    function GetEnumerator: TChunkEnumerator;
 
     property Count: integer read GetCount;
     property Chunks[Index: integer]: TCustomChunk read GetChunk; default;
@@ -1458,6 +1474,32 @@ end;
 function TCompositeChunkList.GetCount: integer;
 begin
   Result := 1 + FOwner.DefaultChunks.Count + FOwner.DataChunks.Count + FOwner.AdditionalChunks.Count;
+end;
+
+function TCompositeChunkList.GetEnumerator: TChunkEnumerator;
+begin
+  Result := TChunkEnumerator.Create(Self);
+end;
+
+{ TCompositeChunkList.TChunkEnumerator }
+
+constructor TCompositeChunkList.TChunkEnumerator.Create(AList: TCompositeChunkList);
+begin
+  FList := AList;
+  FIndex := -1;
+  FLastIndex := FList.Count - 1;
+end;
+
+function TCompositeChunkList.TChunkEnumerator.GetCurrent: TCustomChunk;
+begin
+  Result := FList[FIndex];
+end;
+
+function TCompositeChunkList.TChunkEnumerator.MoveNext: Boolean;
+begin
+  Result := (FIndex < FList.Count - 1);
+  if (Result) then
+    Inc(FIndex);
 end;
 
 initialization
