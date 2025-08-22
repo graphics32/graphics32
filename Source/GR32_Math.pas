@@ -85,7 +85,7 @@ function FastInvSqrt(const Value: TFloat): TFloat; {$IFDEF PUREPASCAL} inline; {
 //      Misc. Routines
 //
 //------------------------------------------------------------------------------
-{ MulDiv a faster implementation of Windows.MulDiv funtion }
+{ MulDiv a faster implementation of Windows.MulDiv function }
 // The MSDN documentation for MulDiv states:
 // [...] the return value is the result of the multiplication and division, rounded
 // to the nearest integer. If the result is a positive half integer (ends in .5),
