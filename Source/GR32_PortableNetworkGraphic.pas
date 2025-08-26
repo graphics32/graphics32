@@ -157,6 +157,7 @@ type
 
   protected
     FImageHeader: TPngChunkImageHeader;
+
     FPaletteChunk: TPngChunkPalette;
     FGammaChunk: TPngChunkGamma;
     FTimeChunk: TPngChunkTime;
@@ -165,9 +166,11 @@ type
     FChromaChunk: TPngChunkPrimaryChromaticities;
     FTransparencyChunk: TPngChunkTransparency;
     FBackgroundChunk: TPngChunkBackgroundColor;
+
     FDefaultChunks: TDefinedChunkWithHeaderList;
     FDataChunks: TChunkImageDataList;
     FAdditionalChunks: TDefinedChunkWithHeaderList;
+
     FCompositeChunkList: TCompositeChunkList;
 
   protected
@@ -181,6 +184,7 @@ type
     procedure CompressionLevelChanged; virtual;
     procedure AdaptiveFilterMethodsChanged; virtual;
     procedure InterlaceMethodChanged; virtual;
+    procedure HeaderChanged; virtual;
 
     property DefaultChunks: TDefinedChunkWithHeaderList read FDefaultChunks;
     property DataChunks: TChunkImageDataList read FDataChunks;
@@ -458,6 +462,8 @@ begin
     raise EPngError.Create(RCStrNewHeaderError);
 
   FImageHeader.Assign(Value);
+
+  HeaderChanged;
 end;
 
 procedure TPortableNetworkGraphic.SetBitDepth(const Value: Byte);
@@ -477,6 +483,8 @@ begin
     begin
       FImageHeader.AdaptiveFilterMethods := Value;
       AdaptiveFilterMethodsChanged;
+
+      HeaderChanged;
     end;
 end;
 
@@ -512,8 +520,10 @@ procedure TPortableNetworkGraphic.SetInterlaceMethod(
 begin
   if Value <> FImageHeader.InterlaceMethod then
   begin
-    InterlaceMethodChanged;
     FImageHeader.InterlaceMethod := Value;
+    InterlaceMethodChanged;
+
+    HeaderChanged;
   end;
 end;
 
@@ -691,6 +701,7 @@ begin
 
     // load image header
     FImageHeader.ReadFromStream(MemoryStream, ChunkSize);
+    HeaderChanged;
 
     // read image header chunk size
     ChunkCRC := 0;
@@ -991,6 +1002,20 @@ begin
   end;
 end;
 
+procedure TPortableNetworkGraphic.HeaderChanged;
+var
+  Chunk: TCustomDefinedChunkWithHeader;
+begin
+  for Chunk in FDefaultChunks do
+    Chunk.HeaderChanged;
+
+  for Chunk in FDataChunks do
+    Chunk.HeaderChanged;
+
+  for Chunk in FAdditionalChunks do
+    Chunk.HeaderChanged;
+end;
+
 procedure TPortableNetworkGraphic.ReadImageDataChunk(Stream: TStream; Size: Integer);
 var
   Chunk : TPngChunkImageData;
@@ -1008,7 +1033,10 @@ begin
     Source := TPortableNetworkGraphic(ASource);
 
     if (FImageHeader <> nil) then
+    begin
       FImageHeader.Assign(Source.ImageHeader);
+      HeaderChanged;
+    end;
 
     // assign palette chunk
     if (FPaletteChunk <> nil) then
@@ -1389,6 +1417,7 @@ begin
 
   // reset image header to default
   FImageHeader.ResetToDefault;
+  HeaderChanged;
 end;
 
 procedure BuildCrcTable(Polynomial: Cardinal);

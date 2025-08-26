@@ -57,8 +57,9 @@ type
   protected
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -81,17 +82,16 @@ uses
 //      TPngChunkImageOffset
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkImageOffset.AssignTo(Dest: TPersistent);
+procedure TPngChunkImageOffset.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkImageOffset then
-    with TPngChunkImageOffset(Dest) do
-    begin
-      FImagePositionX := Self.FImagePositionX;
-      FImagePositionY := Self.FImagePositionY;
-      FUnitSpecifier  := Self.FUnitSpecifier;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkImageOffset) then
+  begin
+    FImagePositionX := TPngChunkImageOffset(Source).ImagePositionX;
+    FImagePositionY := TPngChunkImageOffset(Source).ImagePositionY;
+    FUnitSpecifier  := TPngChunkImageOffset(Source).UnitSpecifier;
+  end;
 end;
 
 class function TPngChunkImageOffset.GetClassChunkName: TChunkName;

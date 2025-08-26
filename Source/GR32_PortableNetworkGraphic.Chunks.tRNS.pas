@@ -70,9 +70,10 @@ type
   private
     FGraySampleValue : Word;
   protected
-    procedure AssignTo(Dest: TPersistent); override;
     function GetChunkSize: Cardinal; override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -92,9 +93,10 @@ type
     FBlueSampleValue : Word;
     FGreenSampleValue : Word;
   protected
-    procedure AssignTo(Dest: TPersistent); override;
     function GetChunkSize: Cardinal; override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -116,9 +118,10 @@ type
     function GetTransparency(Index: Cardinal): Byte;
   protected
     FTransparency : array of Byte;
-    procedure AssignTo(Dest: TPersistent); override;
     function GetChunkSize: Cardinal; override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -138,10 +141,11 @@ type
     FTransparency : TCustomPngTransparency;
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(Header: TPngChunkImageHeader); override;
     destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
@@ -165,15 +169,17 @@ uses
 //      TPngChunkTransparency
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkTransparency.AssignTo(Dest: TPersistent);
+procedure TPngChunkTransparency.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkTransparency then
-    with TPngChunkTransparency(Dest) do
-    begin
-      FTransparency.Assign(Self.FTransparency);
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkTransparency) then
+  begin
+    Assert(FTransparency <> nil);
+    Assert(FTransparency.ClassType = TPngChunkTransparency(Source).Transparency.ClassType);
+
+    FTransparency.Assign(TPngChunkTransparency(Source).Transparency);
+  end;
 end;
 
 constructor TPngChunkTransparency.Create(Header: TPngChunkImageHeader);
@@ -278,13 +284,10 @@ end;
 //      TPngTransparencyFormat0
 //
 //------------------------------------------------------------------------------
-procedure TPngTransparencyFormat0.AssignTo(Dest: TPersistent);
+procedure TPngTransparencyFormat0.Assign(Source: TPersistent);
 begin
-  if Dest is TPngTransparencyFormat0 then
-    with TPngTransparencyFormat0(Dest) do
-    begin
-      FGraySampleValue := Self.FGraySampleValue;
-    end
+  if (Source is TPngTransparencyFormat0) then
+    FGraySampleValue := TPngTransparencyFormat0(Source).GraySampleValue
   else
     inherited;
 end;
@@ -314,16 +317,14 @@ end;
 //      TPngTransparencyFormat2
 //
 //------------------------------------------------------------------------------
-procedure TPngTransparencyFormat2.AssignTo(Dest: TPersistent);
+procedure TPngTransparencyFormat2.Assign(Source: TPersistent);
 begin
-  if Dest is TPngTransparencyFormat2 then
-    with TPngTransparencyFormat2(Dest) do
-    begin
-      FRedSampleValue := Self.FRedSampleValue;
-      FBlueSampleValue := Self.FBlueSampleValue;
-      FGreenSampleValue := Self.FGreenSampleValue;
-    end
-  else
+  if (Source is TPngTransparencyFormat2) then
+  begin
+    FRedSampleValue := TPngTransparencyFormat2(Source).RedSampleValue;
+    FBlueSampleValue := TPngTransparencyFormat2(Source).BlueSampleValue;
+    FGreenSampleValue := TPngTransparencyFormat2(Source).GreenSampleValue;
+  end else
     inherited;
 end;
 
@@ -356,14 +357,10 @@ end;
 //      TPngTransparencyFormat3
 //
 //------------------------------------------------------------------------------
-procedure TPngTransparencyFormat3.AssignTo(Dest: TPersistent);
+procedure TPngTransparencyFormat3.Assign(Source: TPersistent);
 begin
-  if Dest is TPngTransparencyFormat3 then
-    with TPngTransparencyFormat3(Dest) do
-    begin
-      SetLength(FTransparency, Length(Self.FTransparency));
-      Move(Self.FTransparency[0], FTransparency, Length(FTransparency));
-    end
+  if (Source is TPngTransparencyFormat3) then
+    FTransparency := Copy(TPngTransparencyFormat3(Source).FTransparency)
   else
     inherited;
 end;

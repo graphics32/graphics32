@@ -60,8 +60,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -70,6 +71,7 @@ type
     property OriginalZeroMax: Integer read FOriginalZeroes[1] write FOriginalZeroes[1];
     property EquationType: Byte read FEquationType write FEquationType;
     property NumberOfParams: Byte read FNumberOfParams write FNumberOfParams;
+    property UnitName: AnsiString read FUnitName write FUnitName;
   end;
 
 
@@ -87,20 +89,19 @@ uses
 //      TPngChunkPixelCalibrator
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkPixelCalibrator.AssignTo(Dest: TPersistent);
+procedure TPngChunkPixelCalibrator.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkPixelCalibrator then
-    with TPngChunkPixelCalibrator(Dest) do
-    begin
-      FCalibratorName    := Self.FCalibratorName;
-      FOriginalZeroes[0] := Self.FOriginalZeroes[0];
-      FOriginalZeroes[1] := Self.FOriginalZeroes[1];
-      FEquationType      := Self.FEquationType;
-      FNumberOfParams    := Self.FNumberOfParams;
-      FUnitName          := Self.FUnitName;
-     end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkPixelCalibrator) then
+  begin
+    FCalibratorName    := TPngChunkPixelCalibrator(Source).CalibratorName;
+    FOriginalZeroes[0] := TPngChunkPixelCalibrator(Source).OriginalZeroMin;
+    FOriginalZeroes[1] := TPngChunkPixelCalibrator(Source).OriginalZeroMax;
+    FEquationType      := TPngChunkPixelCalibrator(Source).EquationType;
+    FNumberOfParams    := TPngChunkPixelCalibrator(Source).NumberOfParams;
+    FUnitName          := TPngChunkPixelCalibrator(Source).UnitName;
+  end;
 end;
 
 class function TPngChunkPixelCalibrator.GetClassChunkName: TChunkName;

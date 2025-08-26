@@ -58,8 +58,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -82,17 +83,16 @@ uses
 //      TPngChunkPhysicalPixelDimensions
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkPhysicalPixelDimensions.AssignTo(Dest: TPersistent);
+procedure TPngChunkPhysicalPixelDimensions.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkPhysicalPixelDimensions then
-    with TPngChunkPhysicalPixelDimensions(Dest) do
-    begin
-      FPixelsPerUnitX := Self.FPixelsPerUnitX;
-      FPixelsPerUnitY := Self.FPixelsPerUnitY;
-      FUnit := Self.FUnit;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkPhysicalPixelDimensions) then
+  begin
+    FPixelsPerUnitX := TPngChunkPhysicalPixelDimensions(Source).PixelsPerUnitX;
+    FPixelsPerUnitY := TPngChunkPhysicalPixelDimensions(Source).PixelsPerUnitY;
+    FUnit := TPngChunkPhysicalPixelDimensions(Source).PixelUnit;
+  end;
 end;
 
 class function TPngChunkPhysicalPixelDimensions.GetClassChunkName: TChunkName;

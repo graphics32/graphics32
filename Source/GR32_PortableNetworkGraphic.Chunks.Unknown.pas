@@ -63,10 +63,11 @@ type
     function GetChunkSize: Cardinal; override;
     function GetChunkData: pointer; override;
     function CalculateChecksum: Integer;
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ChunkName: TChunkName); virtual;
     destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
@@ -111,14 +112,20 @@ begin
     Inc(Result, PByteArray(FDataStream.Memory)[i]);
 end;
 
-procedure TPngChunkUnknown.AssignTo(Dest: TPersistent);
+procedure TPngChunkUnknown.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkUnknown then
+  inherited;
+
+  if (Source is TPngChunkUnknown) then
   begin
-    TPngChunkUnknown(Dest).FDataStream.CopyFrom(FDataStream, 0);
-    TPngChunkUnknown(Dest).FChunkName := FChunkName;
+    FDataStream.CopyFrom(TPngChunkUnknown(Source).DataStream, 0);
   end else
-    inherited AssignTo(Dest);
+  begin
+    FDataStream.Clear;
+    TCustomChunk(Source).WriteToStream(FDataStream);
+    FDataStream.Position := 0;
+  end;
+  FChunkName := TCustomChunk(Source).ChunkName;
 end;
 
 function TPngChunkUnknown.GetData(Index: Integer): Byte;

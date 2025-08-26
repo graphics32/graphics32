@@ -56,8 +56,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -75,15 +76,12 @@ implementation
 //      TPngChunkStandardColorSpaceRGB
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkStandardColorSpaceRGB.AssignTo(Dest: TPersistent);
+procedure TPngChunkStandardColorSpaceRGB.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkStandardColorSpaceRGB then
-    with TPngChunkStandardColorSpaceRGB(Dest) do
-    begin
-      FRenderingIntent := Self.FRenderingIntent;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkStandardColorSpaceRGB) then
+    FRenderingIntent := TPngChunkStandardColorSpaceRGB(Source).FRenderingIntent;
 end;
 
 class function TPngChunkStandardColorSpaceRGB.GetClassChunkName: TChunkName;

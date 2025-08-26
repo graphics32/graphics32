@@ -79,8 +79,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -122,22 +123,21 @@ begin
   Result := 'cHRM';
 end;
 
-procedure TPngChunkPrimaryChromaticities.AssignTo(Dest: TPersistent);
+procedure TPngChunkPrimaryChromaticities.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkPrimaryChromaticities then
-    with TPngChunkPrimaryChromaticities(Dest) do
-    begin
-      FWhiteX := Self.FWhiteX;
-      FWhiteY := Self.FWhiteY;
-      FRedX   := Self.FRedX;
-      FRedY   := Self.FRedY;
-      FGreenX := Self.FGreenX;
-      FGreenY := Self.FGreenY;
-      FBlueX  := Self.FBlueX;
-      FBlueY  := Self.FBlueY;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkPrimaryChromaticities) then
+  begin
+    FWhiteX := TPngChunkPrimaryChromaticities(Source).WhiteX;
+    FWhiteY := TPngChunkPrimaryChromaticities(Source).WhiteY;
+    FRedX   := TPngChunkPrimaryChromaticities(Source).RedX;
+    FRedY   := TPngChunkPrimaryChromaticities(Source).RedY;
+    FGreenX := TPngChunkPrimaryChromaticities(Source).GreenX;
+    FGreenY := TPngChunkPrimaryChromaticities(Source).GreenY;
+    FBlueX  := TPngChunkPrimaryChromaticities(Source).BlueX;
+    FBlueY  := TPngChunkPrimaryChromaticities(Source).BlueY;
+  end;
 end;
 
 function TPngChunkPrimaryChromaticities.GetBlueX: Single;

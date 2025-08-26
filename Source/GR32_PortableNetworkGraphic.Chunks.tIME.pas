@@ -63,8 +63,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -92,20 +93,19 @@ uses
 //      TPngChunkTime
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkTime.AssignTo(Dest: TPersistent);
+procedure TPngChunkTime.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkTime then
-    with TPngChunkTime(Dest) do
-    begin
-      FYear   := Self.FYear;
-      FMonth  := Self.FMonth;
-      FDay    := Self.FDay;
-      FHour   := Self.FHour;
-      FMinute := Self.FMinute;
-      FSecond := Self.FSecond;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkTime) then
+  begin
+    FYear   := TPngChunkTime(Source).Year;
+    FMonth  := TPngChunkTime(Source).Month;
+    FDay    := TPngChunkTime(Source).Day;
+    FHour   := TPngChunkTime(Source).Hour;
+    FMinute := TPngChunkTime(Source).Minute;
+    FSecond := TPngChunkTime(Source).Second;
+  end;
 end;
 
 class function TPngChunkTime.GetClassChunkName: TChunkName;

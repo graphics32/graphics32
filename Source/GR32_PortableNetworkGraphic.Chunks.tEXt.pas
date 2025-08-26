@@ -56,10 +56,11 @@ type
   protected
     FKeyword : AnsiString;
     FText    : AnsiString;
-    procedure AssignTo(Dest: TPersistent); override;
     procedure KeywordChanged; virtual;
     procedure TextChanged; virtual;
   public
+    procedure Assign(Source: TPersistent); override;
+
     property Keyword: AnsiString read FKeyword write SetKeyword;
     property Text: AnsiString read FText write SetText;
   end;
@@ -80,6 +81,10 @@ type
     procedure WriteToStream(Stream: TStream); override;
   end;
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 //------------------------------------------------------------------------------
@@ -87,15 +92,15 @@ implementation
 //      TCustomChunkPngText
 //
 //------------------------------------------------------------------------------
-procedure TCustomChunkPngText.AssignTo(Dest: TPersistent);
+procedure TCustomChunkPngText.Assign(Source: TPersistent);
 begin
- if Dest is TCustomChunkPngText then
-   with TCustomChunkPngText(Dest) do
-   begin
-    FKeyword := Self.FKeyword;
-    FText    := Self.FText;
-   end
- else inherited;
+  inherited;
+
+  if (Source is TCustomChunkPngText) then
+  begin
+    FKeyword := TCustomChunkPngText(Source).Keyword;
+    FText    := TCustomChunkPngText(Source).Text;
+  end;
 end;
 
 procedure TCustomChunkPngText.SetKeyword(const Value: AnsiString);

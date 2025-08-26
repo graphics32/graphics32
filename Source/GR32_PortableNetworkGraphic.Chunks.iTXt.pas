@@ -60,8 +60,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -84,18 +85,17 @@ implementation
 //
 //------------------------------------------------------------------------------
 {$ifdef PNG_CHUNK_INTERNATIONAL_TEXT}
-procedure TPngChunkInternationalText.AssignTo(Dest: TPersistent);
+procedure TPngChunkInternationalText.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkInternationalText then
-    with TPngChunkInternationalText(Dest) do
-    begin
-      FCompressionMethod := Self.FCompressionMethod;
-      FCompressionFlag   := Self.FCompressionFlag;
-      FLanguageString    := Self.FLanguageString;
-      FTranslatedKeyword := Self.FTranslatedKeyword;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkInternationalText) then
+  begin
+    FCompressionMethod := TPngChunkInternationalText(Source).CompressionMethod;
+    FCompressionFlag   := TPngChunkInternationalText(Source).CompressionFlag;
+    FLanguageString    := TPngChunkInternationalText(Source).LanguageString;
+    FTranslatedKeyword := TPngChunkInternationalText(Source).TranslatedKeyword;
+  end;
 end;
 
 class function TPngChunkInternationalText.GetClassChunkName: TChunkName;

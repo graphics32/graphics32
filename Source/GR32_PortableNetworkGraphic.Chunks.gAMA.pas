@@ -58,8 +58,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -81,15 +82,12 @@ uses
 //      TPngChunkGamma
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkGamma.AssignTo(Dest: TPersistent);
+procedure TPngChunkGamma.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkGamma then
-    with TPngChunkGamma(Dest) do
-    begin
-      FGamma := Self.FGamma;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkGamma) then
+    FGamma := TPngChunkGamma(Source).Gamma;
 end;
 
 class function TPngChunkGamma.GetClassChunkName: TChunkName;

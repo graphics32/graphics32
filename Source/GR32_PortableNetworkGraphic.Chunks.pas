@@ -80,6 +80,8 @@ type
   public
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); virtual; abstract;
     procedure WriteToStream(Stream: TStream); virtual; abstract;
 
@@ -109,10 +111,10 @@ type
   protected
     FHeader : TPngChunkImageHeader;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(Header: TPngChunkImageHeader); reintroduce; virtual;
 
+    procedure Assign(Source: TPersistent); override;
     procedure HeaderChanged; virtual;
 
     property Header: TPngChunkImageHeader read FHeader;
@@ -146,10 +148,10 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create; virtual;
 
+    procedure Assign(Source: TPersistent); override;
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -387,6 +389,13 @@ end;
 
 
 
+procedure TCustomChunk.Assign(Source: TPersistent);
+begin
+  // This makes it safe to call "inherited" on all derived classes
+  if not(Source is TCustomChunk) then
+    inherited;
+end;
+
 //------------------------------------------------------------------------------
 //
 //      TCustomChunk
@@ -439,17 +448,6 @@ end;
 //      TCustomDefinedChunkWithHeader
 //
 //------------------------------------------------------------------------------
-procedure TCustomDefinedChunkWithHeader.AssignTo(Dest: TPersistent);
-begin
-  if Dest is TCustomDefinedChunkWithHeader then
-    with TCustomDefinedChunkWithHeader(Dest) do
-    begin
-      FHeader.Assign(Self.FHeader);
-    end
-  else
-    inherited;
-end;
-
 constructor TCustomDefinedChunkWithHeader.Create(Header: TPngChunkImageHeader);
 begin
   if not (Header is TPngChunkImageHeader) then
@@ -457,6 +455,14 @@ begin
 
   FHeader := Header;
   inherited Create;
+end;
+
+procedure TCustomDefinedChunkWithHeader.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TCustomDefinedChunkWithHeader) then
+    FHeader.Assign(TCustomDefinedChunkWithHeader(Source).Header);
 end;
 
 procedure TCustomDefinedChunkWithHeader.HeaderChanged;
@@ -478,22 +484,21 @@ begin
   ResetToDefault;
 end;
 
-procedure TPngChunkImageHeader.AssignTo(Dest: TPersistent);
+procedure TPngChunkImageHeader.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkImageHeader then
-  with TPngChunkImageHeader(Dest) do
+  inherited;
+
+  if (Source is TPngChunkImageHeader) then
   begin
-    FWidth                 := Self.FWidth;
-    FHeight                := Self.FHeight;
-    FBitDepth              := Self.FBitDepth;
-    FColorType             := Self.FColorType;
-    FCompressionMethod     := Self.FCompressionMethod;
-    FFilterMethod          := Self.FFilterMethod;
-    FInterlaceMethod       := Self.FInterlaceMethod;
-    FAdaptiveFilterMethods := Self.FAdaptiveFilterMethods;
-  end
-  else
-    inherited;
+    FWidth                 := TPngChunkImageHeader(Source).Width;
+    FHeight                := TPngChunkImageHeader(Source).Height;
+    FBitDepth              := TPngChunkImageHeader(Source).BitDepth;
+    FColorType             := TPngChunkImageHeader(Source).ColorType;
+    FCompressionMethod     := TPngChunkImageHeader(Source).CompressionMethod;
+    FFilterMethod          := TPngChunkImageHeader(Source).FilterMethod;
+    FInterlaceMethod       := TPngChunkImageHeader(Source).InterlaceMethod;
+    FAdaptiveFilterMethods := TPngChunkImageHeader(Source).AdaptiveFilterMethods;
+  end;
 end;
 
 function TPngChunkImageHeader.GetBytesPerRow: Integer;

@@ -58,8 +58,9 @@ type
     function GetChunkSize: Cardinal; override;
     procedure SetCompressionMethod(const Value: Byte);
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -80,15 +81,12 @@ uses
 //      TPngChunkCompressedText
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkCompressedText.AssignTo(Dest: TPersistent);
+procedure TPngChunkCompressedText.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkCompressedText then
-    with TPngChunkCompressedText(Dest) do
-    begin
-      FCompressionMethod := Self.FCompressionMethod;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkCompressedText) then
+    FCompressionMethod := TPngChunkCompressedText(Source).CompressionMethod;
 end;
 
 class function TPngChunkCompressedText.GetClassChunkName: TChunkName;

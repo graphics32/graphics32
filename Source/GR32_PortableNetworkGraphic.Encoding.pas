@@ -195,13 +195,16 @@ const
 begin
   if FHeader.HasPalette then
   begin
+
     if (FPalette <> nil) then
     begin
+
       GetMem(FMappingTable, FPalette.Count * SizeOf(TRGB24));
       Palette := PRGB24Array(FMappingTable);
 
       if (FGamma <> nil) then
       begin
+
         PreCalcGamma := 1 / (FGamma.Gamma * 2.2E-5);
         for Index := 0 to FPalette.Count - 1 do
         begin
@@ -210,13 +213,16 @@ begin
           Palette[Index].G := Round(Power((Color.G * COne255th), PreCalcGamma) * 255);
           Palette[Index].B := Round(Power((Color.B * COne255th), PreCalcGamma) * 255);
         end;
-      end
-      else
+
+      end else
+      begin
         for Index := 0 to FPalette.Count - 1 do
           Palette[Index] := FPalette.PaletteEntry[Index];
-    end
-    else
+      end;
+
+    end else
     begin
+
       // create gray scale palette
       GetMem(FMappingTable, 256 * SizeOf(TRGB24));
       Palette := PRGB24Array(FMappingTable);
@@ -225,22 +231,26 @@ begin
 
       if (FGamma <> nil) then
       begin
+
         PreCalcGamma := 1 / (FGamma.Gamma * 2.2E-5);
+
         for Index := 0 to FPalette.Count - 1 do
         begin
           Palette[Index].R := Round(Power(Index * FracVal, PreCalcGamma) * 255);
           Palette[Index].G := Palette[Index].R;
           Palette[Index].B := Palette[Index].B;
         end;
-      end
-      else
+
+      end else
       begin
+
         for Index := 0 to MaxByte do
         begin
           Palette[Index].R := Round(255 * (Index * FracVal));
           Palette[Index].G := Palette[Index].R;
           Palette[Index].B := Palette[Index].R;
         end;
+
       end;
     end;
 
@@ -250,22 +260,28 @@ begin
 
    // eventually fill alpha table
    if FTransparency is TPngTransparencyFormat3 then
-     with TPngTransparencyFormat3(FTransparency) do
-       for Index := 0 to Count - 1 do
-         FAlphaTable[Index] := Transparency[Index];
-  end
-  else
+     for Index := 0 to TPngTransparencyFormat3(FTransparency).Count - 1 do
+       FAlphaTable[Index] := TPngTransparencyFormat3(FTransparency).Transparency[Index];
+
+  end else
   begin
+
     GetMem(FMappingTable, 256);
+
     if (FGamma <> nil) and (FGamma.Gamma <> 0) then
     begin
+
       PreCalcGamma := 1 / (FGamma.Gamma * 2.2E-5);
       for Index := 0 to $FF do
         FMappingTable[Index] := Round(Power((Index * COne255th), PreCalcGamma) * 255);
-    end
-    else
+
+    end else
+    begin
+
       for Index := 0 to $FF do
         FMappingTable[Index] := Index;
+
+    end;
   end;
 end;
 

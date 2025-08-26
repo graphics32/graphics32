@@ -101,7 +101,8 @@ type
     procedure TestLoadFromFile;
     procedure TestStreamRelative;
     procedure TestSaveToStream;
-    procedure TestSaveToStreamRountrip;
+    procedure TestSaveToStreamRoundtrip;
+    procedure TestAssignRoundtrip;
 
   end;
 
@@ -580,7 +581,7 @@ begin
   end;
 end;
 
-procedure TGR32FileTest.TestSaveToStreamRountrip;
+procedure TGR32FileTest.TestSaveToStreamRoundtrip;
 var
   Stream1: TMemoryStream;
   Stream2: TMemoryStream;
@@ -602,6 +603,34 @@ begin
   finally
     Stream1.Free;
     Stream2.Free;
+  end;
+end;
+
+procedure TGR32FileTest.TestAssignRoundtrip;
+var
+  Stream1: TMemoryStream;
+  Stream2: TMemoryStream;
+begin
+  FPortableNetworkGraphic.LoadFromFile(TestFileName);
+
+  var Clone := TPortableNetworkGraphic32.Create;
+  try
+    Clone.Assign(FPortableNetworkGraphic);
+
+    Stream1 := TMemoryStream.Create;
+    Stream2 := TMemoryStream.Create;
+    try
+      FPortableNetworkGraphic.SaveToStream(Stream1);
+      Clone.SaveToStream(Stream2);
+
+      CheckEquals(Stream1.Size, Stream2.Size);
+      CheckEqualsMem(Stream1.Memory, Stream2.Memory, Stream1.Size);
+    finally
+      Stream1.Free;
+      Stream2.Free;
+    end;
+  finally
+    Clone.Free;
   end;
 end;
 

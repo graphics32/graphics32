@@ -66,10 +66,10 @@ type
     FGrayBits : Byte;
   protected
     class function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(BitDepth: Integer = 8); override;
 
+    procedure Assign(Source: TPersistent); override;
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -83,10 +83,10 @@ type
     FGreenBits : Byte;
   protected
     class function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(BitDepth: Integer = 8); override;
 
+    procedure Assign(Source: TPersistent); override;
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -101,10 +101,10 @@ type
     FAlphaBits : Byte;
   protected
     class function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(BitDepth: Integer = 8); override;
 
+    procedure Assign(Source: TPersistent); override;
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -120,10 +120,10 @@ type
     FAlphaBits : Byte;
   protected
     class function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(BitDepth: Integer = 8); override;
 
+    procedure Assign(Source: TPersistent); override;
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -147,11 +147,11 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(Header: TPngChunkImageHeader); override;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -179,13 +179,10 @@ begin
   FGrayBits := BitDepth;
 end;
 
-procedure TPngSignificantBitsFormat0.AssignTo(Dest: TPersistent);
+procedure TPngSignificantBitsFormat0.Assign(Source: TPersistent);
 begin
-  if Dest is TPngSignificantBitsFormat0 then
-    with TPngSignificantBitsFormat0(Dest) do
-    begin
-      FGrayBits := Self.FGrayBits;
-    end
+  if (Source is TPngSignificantBitsFormat0) then
+    FGrayBits := TPngSignificantBitsFormat0(Source).GrayBits
   else
     inherited;
 end;
@@ -216,16 +213,14 @@ begin
   FBlueBits := BitDepth;
 end;
 
-procedure TPngSignificantBitsFormat23.AssignTo(Dest: TPersistent);
+procedure TPngSignificantBitsFormat23.Assign(Source: TPersistent);
 begin
-  if Dest is TPngSignificantBitsFormat23 then
-    with TPngSignificantBitsFormat23(Dest) do
-    begin
-      FRedBits   := Self.FRedBits;
-      FBlueBits  := Self.FBlueBits;
-      FGreenBits := Self.FGreenBits;
-    end
-  else
+  if (Source is TPngSignificantBitsFormat23) then
+  begin
+    FRedBits   := TPngSignificantBitsFormat23(Source).RedBits;
+    FBlueBits  := TPngSignificantBitsFormat23(Source).BlueBits;
+    FGreenBits := TPngSignificantBitsFormat23(Source).GreenBits;
+  end else
     inherited;
 end;
 
@@ -258,17 +253,15 @@ begin
   FAlphaBits := BitDepth;
 end;
 
-procedure TPngSignificantBitsFormat4.AssignTo(Dest: TPersistent);
+procedure TPngSignificantBitsFormat4.Assign(Source: TPersistent);
 begin
-  if Dest is TPngSignificantBitsFormat4 then
-    with TPngSignificantBitsFormat4(Dest) do
-    begin
-      FGrayBits  := Self.FGrayBits;
-      FAlphaBits := Self.FAlphaBits;
-    end
-  else if Dest is TPngSignificantBitsFormat0 then
-    with TPngSignificantBitsFormat0(Dest) do
-      FGrayBits  := Self.FGrayBits
+  if (Source is TPngSignificantBitsFormat4) then
+  begin
+    FGrayBits  := TPngSignificantBitsFormat4(Source).GrayBits;
+    FAlphaBits := TPngSignificantBitsFormat4(Source).AlphaBits;
+  end else
+  if (SOurce is TPngSignificantBitsFormat0) then
+    FGrayBits  := TPngSignificantBitsFormat0(Source).GrayBits
   else
     inherited;
 end;
@@ -302,24 +295,21 @@ begin
   FAlphaBits := BitDepth;
 end;
 
-procedure TPngSignificantBitsFormat6.AssignTo(Dest: TPersistent);
+procedure TPngSignificantBitsFormat6.Assign(Source: TPersistent);
 begin
-  if Dest is TPngSignificantBitsFormat6 then
-    with TPngSignificantBitsFormat6(Dest) do
-    begin
-      FRedBits   := Self.FRedBits;
-      FBlueBits  := Self.FBlueBits;
-      FGreenBits := Self.FGreenBits;
-      FAlphaBits := Self.FAlphaBits;
-    end
-  else if Dest is TPngSignificantBitsFormat23 then
-    with TPngSignificantBitsFormat23(Dest) do
-    begin
-      FRedBits   := Self.FRedBits;
-      FBlueBits  := Self.FBlueBits;
-      FGreenBits := Self.FGreenBits;
-    end
-  else
+  if (Source is TPngSignificantBitsFormat6) then
+  begin
+    FRedBits   := TPngSignificantBitsFormat6(Source).RedBits;
+    FBlueBits  := TPngSignificantBitsFormat6(Source).BlueBits;
+    FGreenBits := TPngSignificantBitsFormat6(Source).GreenBits;
+    FAlphaBits := TPngSignificantBitsFormat6(Source).AlphaBits;
+  end else
+  if (Source is TPngSignificantBitsFormat23) then
+  begin
+    FRedBits   := TPngSignificantBitsFormat23(Source).RedBits;
+    FBlueBits  := TPngSignificantBitsFormat23(Source).BlueBits;
+    FGreenBits := TPngSignificantBitsFormat23(Source).GreenBits;
+  end else
     inherited;
 end;
 
@@ -350,17 +340,6 @@ end;
 //      TPngChunkSignificantBits
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkSignificantBits.AssignTo(Dest: TPersistent);
-begin
-  if Dest is TPngChunkSignificantBits then
-    with TPngChunkSignificantBits(Dest) do
-    begin
-      FSignificantBits.Assign(Self.FSignificantBits);
-    end
-  else
-    inherited;
-end;
-
 constructor TPngChunkSignificantBits.Create(Header: TPngChunkImageHeader);
 begin
   inherited;
@@ -386,6 +365,14 @@ begin
   FSignificantBits.Free;
 
   inherited;
+end;
+
+procedure TPngChunkSignificantBits.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TPngChunkSignificantBits) then
+    FSignificantBits.Assign(TPngChunkSignificantBits(Source).SignificantBits);
 end;
 
 class function TPngChunkSignificantBits.GetClassChunkName: TChunkName;

@@ -59,12 +59,13 @@ type
     procedure SetCount(const Value: Cardinal);
     procedure SetPaletteEntry(Index: Cardinal; const Value: TRGB24);
   protected
-    procedure AssignTo(Dest: TPersistent); override;
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
     function GetChunkData: pointer; override;
     procedure PaletteEntriesChanged; virtual;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -83,16 +84,12 @@ implementation
 //      TPngChunkPalette
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkPalette.AssignTo(Dest: TPersistent);
+procedure TPngChunkPalette.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkPalette then
-    with TPngChunkPalette(Dest) do
-    begin
-      SetLength(FPaletteEntries, Length(Self.FPaletteEntries));
-      Move(Self.FPaletteEntries[0], FPaletteEntries[0], Length(Self.FPaletteEntries) * SizeOf(TRGB24));
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkPalette) then
+    FPaletteEntries := Copy(TPngChunkPalette(Source).FPaletteEntries)
 end;
 
 class function TPngChunkPalette.GetClassChunkName: TChunkName;

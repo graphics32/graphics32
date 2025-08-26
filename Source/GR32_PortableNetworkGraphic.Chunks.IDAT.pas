@@ -57,10 +57,11 @@ type
     function GetChunkSize: Cardinal; override;
     function GetChunkData: pointer; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(Header: TPngChunkImageHeader); override;
     destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
@@ -93,17 +94,16 @@ begin
   inherited;
 end;
 
-procedure TPngChunkImageData.AssignTo(Dest: TPersistent);
+procedure TPngChunkImageData.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkImageData then
-    with TPngChunkImageData(Dest) do
-    begin
-      FData.Position := 0;
-      FData.CopyFrom(Self.FData, 0);
-      FData.Position := 0;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkImageData) then
+  begin
+    FData.Position := 0;
+    FData.CopyFrom(TPngChunkImageData(Source).Data, 0);
+    FData.Position := 0;
+  end;
 end;
 
 class function TPngChunkImageData.GetClassChunkName: TChunkName;

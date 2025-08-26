@@ -95,17 +95,14 @@ var
 begin
   FillChar(ZStreamRecord, SizeOf(TZStreamRec), 0);
 
-  with ZStreamRecord do
-  begin
-    next_in := Data;
-    avail_in := Size;
-    {$IFNDEF FPC}
-    {$IFNDEF ZLibEx}
-    zalloc := zlibAllocMem;
-    zfree := zlibFreeMem;
-    {$ENDIF}
-    {$ENDIF}
-  end;
+  ZStreamRecord.next_in := Data;
+  ZStreamRecord.avail_in := Size;
+  {$IFNDEF FPC}
+  {$IFNDEF ZLibEx}
+  ZStreamRecord.zalloc := zlibAllocMem;
+  ZStreamRecord.zfree := zlibFreeMem;
+  {$ENDIF}
+  {$ENDIF}
 
   {$IFDEF FPC}
   if DeflateInit_(@ZStreamRecord, Level, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0 then
@@ -164,17 +161,14 @@ var
 begin
   FillChar(ZStreamRecord, SizeOf(TZStreamRec), 0);
 
-  with ZStreamRecord do
-  begin
-    next_in := Data;
-    avail_in := Size;
-    {$IFNDEF FPC}
-    {$IFNDEF ZLibEx}
-    zalloc := zlibAllocMem;
-    zfree := zlibFreeMem;
-    {$ENDIF}
-    {$ENDIF}
-  end;
+  ZStreamRecord.next_in := Data;
+  ZStreamRecord.avail_in := Size;
+  {$IFNDEF FPC}
+  {$IFNDEF ZLibEx}
+  ZStreamRecord.zalloc := zlibAllocMem;
+  ZStreamRecord.zfree := zlibFreeMem;
+  {$ENDIF}
+  {$ENDIF}
 
   {$IFDEF FPC}
   if inflateInit_(@ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0 then

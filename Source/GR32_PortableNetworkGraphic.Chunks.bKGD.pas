@@ -64,8 +64,9 @@ type
     FGraySampleValue : Word;
   protected
     class function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -79,8 +80,9 @@ type
     FGreenSampleValue : Word;
   protected
     class function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -94,8 +96,9 @@ type
     FIndex : Byte;
   protected
     class function GetChunkSize: Cardinal; override;
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -115,10 +118,11 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(Header: TPngChunkImageHeader); override;
     destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
@@ -142,13 +146,10 @@ uses
 //      TPngBackgroundColorFormat*
 //
 //------------------------------------------------------------------------------
-procedure TPngBackgroundColorFormat04.AssignTo(Dest: TPersistent);
+procedure TPngBackgroundColorFormat04.Assign(Source: TPersistent);
 begin
-  if Dest is TPngBackgroundColorFormat04 then
-    with TPngBackgroundColorFormat04(Dest) do
-    begin
-      FGraySampleValue := Self.FGraySampleValue;
-    end
+  if (Source is TPngBackgroundColorFormat04) then
+    FGraySampleValue := TPngBackgroundColorFormat04(Source).GraySampleValue
   else
     inherited;
 end;
@@ -171,16 +172,14 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TPngBackgroundColorFormat26.AssignTo(Dest: TPersistent);
+procedure TPngBackgroundColorFormat26.Assign(Source: TPersistent);
 begin
-  if Dest is TPngBackgroundColorFormat26 then
-    with TPngBackgroundColorFormat26(Dest) do
-    begin
-      FRedSampleValue := Self.FRedSampleValue;
-      FBlueSampleValue := Self.FBlueSampleValue;
-      FGreenSampleValue := Self.FGreenSampleValue;
-    end
-  else
+  if (Source is TPngBackgroundColorFormat26) then
+  begin
+    FRedSampleValue := TPngBackgroundColorFormat26(Source).RedSampleValue;
+    FBlueSampleValue := TPngBackgroundColorFormat26(Source).BlueSampleValue;
+    FGreenSampleValue := TPngBackgroundColorFormat26(Source).GreenSampleValue;
+  end else
     inherited;
 end;
 
@@ -205,13 +204,10 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TPngBackgroundColorFormat3.AssignTo(Dest: TPersistent);
+procedure TPngBackgroundColorFormat3.Assign(Source: TPersistent);
 begin
-  if Dest is TPngBackgroundColorFormat3 then
-    with TPngBackgroundColorFormat3(Dest) do
-    begin
-      FIndex := Self.FIndex;
-    end
+  if (Source is TPngBackgroundColorFormat3) then
+    FIndex := TPngBackgroundColorFormat3(Source).PaletteIndex
   else
     inherited;
 end;
@@ -237,15 +233,12 @@ end;
 //      TPngChunkBackgroundColor
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkBackgroundColor.AssignTo(Dest: TPersistent);
+procedure TPngChunkBackgroundColor.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkBackgroundColor then
-    with TPngChunkBackgroundColor(Dest) do
-    begin
-      FBackground.Assign(Self.FBackground);
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkBackgroundColor) then
+    FBackground.Assign(TPngChunkBackgroundColor(Source).Background);
 end;
 
 constructor TPngChunkBackgroundColor.Create(Header: TPngChunkImageHeader);

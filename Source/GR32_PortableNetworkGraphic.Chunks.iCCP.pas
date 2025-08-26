@@ -57,8 +57,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -77,16 +78,15 @@ implementation
 //      TPngChunkEmbeddedIccProfile
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkEmbeddedIccProfile.AssignTo(Dest: TPersistent);
+procedure TPngChunkEmbeddedIccProfile.Assign(Source: TPersistent);
 begin
-  if Dest is TPngChunkEmbeddedIccProfile then
-    with TPngChunkEmbeddedIccProfile(Dest) do
-    begin
-      FProfileName       := Self.FProfileName;
-      FCompressionMethod := Self.FCompressionMethod;
-    end
-  else
-    inherited;
+  inherited;
+
+  if (Source is TPngChunkEmbeddedIccProfile) then
+  begin
+    FProfileName       := TPngChunkEmbeddedIccProfile(Source).ProfileName;
+    FCompressionMethod := TPngChunkEmbeddedIccProfile(Source).CompressionMethod;
+  end;
 end;
 
 class function TPngChunkEmbeddedIccProfile.GetClassChunkName: TChunkName;

@@ -58,8 +58,9 @@ type
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
-    procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Assign(Source: TPersistent); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -80,22 +81,21 @@ implementation
 //      TPngChunkPhysicalScale
 //
 //------------------------------------------------------------------------------
-procedure TPngChunkPhysicalScale.AssignTo(Dest: TPersistent);
-begin
-  if Dest is TPngChunkPhysicalScale then
-    with TPngChunkPhysicalScale(Dest) do
-    begin
-      FUnitSpecifier  := Self.FUnitSpecifier;
-      FUnitsPerPixelX := Self.FUnitsPerPixelX;
-      FUnitsPerPixelY := Self.FUnitsPerPixelY;
-    end
-  else
-    inherited;
-end;
-
 class function TPngChunkPhysicalScale.GetClassChunkName: TChunkName;
 begin
   Result := 'sCAL';
+end;
+
+procedure TPngChunkPhysicalScale.Assign(Source: TPersistent);
+begin
+  inherited;
+
+  if (Source is TPngChunkPhysicalScale) then
+  begin
+    FUnitSpecifier  := TPngChunkPhysicalScale(Source).UnitSpecifier;
+    FUnitsPerPixelX := TPngChunkPhysicalScale(Source).UnitsPerPixelX;
+    FUnitsPerPixelY := TPngChunkPhysicalScale(Source).UnitsPerPixelY;
+  end;
 end;
 
 function TPngChunkPhysicalScale.GetChunkSize: Cardinal;
