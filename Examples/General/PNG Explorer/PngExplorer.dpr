@@ -4,7 +4,7 @@ program PNGExplorer;
 
 uses
   Forms,
-  PNGExplorerMain in 'PngExplorerMain.pas' {FmPngExplorer};
+  PngExplorerMain in 'PngExplorerMain.pas' {FmPngExplorer};
 
 {$R *.res}
 

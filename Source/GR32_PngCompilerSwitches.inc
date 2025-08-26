@@ -37,4 +37,10 @@
 
 {-$DEFINE StoreGamma}
 
+// The following defines controls if the corresponding incomplete chunk
+// implementations should be enabled. They are disabled by default because
+// a complete implementation is required in order to pass the roundtrip unit
+// tests.
+{-$define PNG_CHUNK_SUGGESTED_PALETTE}
+{-$define PNG_CHUNK_INTERNATIONAL_TEXT}
 

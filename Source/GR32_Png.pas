@@ -38,7 +38,9 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes, Graphics, SysUtils, GR32, GR32_PortableNetworkGraphic;
+  Classes, Graphics, SysUtils,
+  GR32,
+  GR32_PortableNetworkGraphic;
 
 type
   TProgressEvent = procedure(Sender: TObject; Percent: Single) of object;
@@ -74,7 +76,14 @@ procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFD
 implementation
 
 uses
-  Math;
+  Math,
+  GR32_PortableNetworkGraphic.Types,
+  GR32_PortableNetworkGraphic.Encoding,
+  GR32_PortableNetworkGraphic.Chunks,
+  GR32_PortableNetworkGraphic.Chunks.PLTE,
+  GR32_PortableNetworkGraphic.Chunks.gAMA,
+  GR32_PortableNetworkGraphic.Chunks.tRNS,
+  GR32_PortableNetworkGraphic.Chunks.bKGD;
 
 resourcestring
   RCStrUnsupportedFormat = 'Unsupported Format';
@@ -87,8 +96,8 @@ type
     FRowByteSize: Integer;
     procedure TransferData(Source: Pointer; Destination: PColor32); virtual; abstract;
   public
-    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+    constructor Create(Stream: TStream; Header: TPngChunkImageHeader;
+      Gamma: TPngChunkGamma = nil; Palette: TPngChunkPalette = nil;
       Transparency: TCustomPngTransparency = nil); override;
     destructor Destroy; override;
 
@@ -164,8 +173,8 @@ type
   protected
     procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); virtual; abstract;
   public
-    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+    constructor Create(Stream: TStream; Header: TPngChunkImageHeader;
+      Gamma: TPngChunkGamma = nil; Palette: TPngChunkPalette = nil;
       Transparency: TCustomPngTransparency = nil); override;
     destructor Destroy; override;
     procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
@@ -253,8 +262,8 @@ type
     function ColorInPalette(Color: TColor32): Integer; virtual;
     procedure TransferData(Source: PColor32; Destination: Pointer); virtual; abstract;
   public
-    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+    constructor Create(Stream: TStream; Header: TPngChunkImageHeader;
+      Gamma: TPngChunkGamma = nil; Palette: TPngChunkPalette = nil;
       Transparency: TCustomPngTransparency = nil); override;
     destructor Destroy; override;
     procedure EncodeFromScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
@@ -446,10 +455,10 @@ function TPortableNetworkGraphic32.GetBackgroundColor: TColor32;
 var
   ResultColor32: TColor32Entry absolute Result;
 begin
-  if (FBackgroundChunk <> nil) then
+  if (BackgroundChunk <> nil) then
   begin
-    if FBackgroundChunk.Background is TPngBackgroundColorFormat04 then
-      with TPngBackgroundColorFormat04(FBackgroundChunk.Background) do
+    if BackgroundChunk.Background is TPngBackgroundColorFormat04 then
+      with TPngBackgroundColorFormat04(BackgroundChunk.Background) do
       begin
         ResultColor32.R := GraySampleValue;
         ResultColor32.G := GraySampleValue;
@@ -457,8 +466,8 @@ begin
         ResultColor32.A := $FF;
       end
     else
-    if FBackgroundChunk.Background is TPngBackgroundColorFormat26 then
-      with TPngBackgroundColorFormat26(FBackgroundChunk.Background) do
+    if BackgroundChunk.Background is TPngBackgroundColorFormat26 then
+      with TPngBackgroundColorFormat26(BackgroundChunk.Background) do
       begin
         ResultColor32.R := RedSampleValue;
         ResultColor32.G := GreenSampleValue;
@@ -466,8 +475,8 @@ begin
         ResultColor32.A := $FF;
       end
     else
-    if FBackgroundChunk.Background is TPngBackgroundColorFormat3 then
-      with TPngBackgroundColorFormat3(FBackgroundChunk.Background) do
+    if BackgroundChunk.Background is TPngBackgroundColorFormat3 then
+      with TPngBackgroundColorFormat3(BackgroundChunk.Background) do
       begin
         ResultColor32.R := PaletteEntry[PaletteIndex].R;
         ResultColor32.G := PaletteEntry[PaletteIndex].R;
@@ -490,8 +499,8 @@ function TPortableNetworkGraphic32.GR32ScanlineProgress(Bitmap: TObject;
   Y: Integer): Pointer;
 begin
   Result := GR32Scanline(Bitmap, Y);
-  if FImageHeader.Height > 0 then
-    FProgressEvent(Self, 100 * Y / FImageHeader.Height)
+  if ImageHeader.Height > 0 then
+    FProgressEvent(Self, 100 * Y / ImageHeader.Height)
   else
     FProgressEvent(Self, 100);
 end;
@@ -499,30 +508,28 @@ end;
 function TPortableNetworkGraphic32.IsPremultiplied: Boolean;
 var
   TempBitmap: TBitmap32;
-  Pointer: PColor32EntryArray;
-  Value: TColor32Entry;
-  Index: Integer;
+  Pixel: PColor32Entry;
+  i: integer;
 begin
   // this code checks whether the bitmap is *NOT* premultiplied
   // unfortunately this is just a weak check and might fail
 
-  Result := True;
   TempBitmap := TBitmap32.Create;
   try
     AssignTo(TempBitmap);
-    Pointer := PColor32EntryArray(TempBitmap.Bits);
-    for Index := 0 to TempBitmap.Width * TempBitmap.Height - 1 do
+
+    Pixel := PColor32Entry(TempBitmap.Bits);
+
+    for i := 0 to TempBitmap.Width * TempBitmap.Height - 1 do
     begin
-      Value := Pointer^[Index];
-      if (Value.R > Value.A) or (Value.G > Value.A) or (Value.B > Value.A) then
-      begin
-        Result := False;
-        Exit;
-      end;
+      if (Pixel.R > Pixel.A) or (Pixel.G > Pixel.A) or (Pixel.B > Pixel.A) then
+        Exit(False);
+      Inc(Pixel);
     end;
   finally
     TempBitmap.Free;
   end;
+  Result := True;
 end;
 
 procedure TPortableNetworkGraphic32.MakeIndexColored(MaxColorCount: Integer);
@@ -603,8 +610,8 @@ begin
     else
       ImageHeader.BitDepth := 8;
 
-    if not (FPaletteChunk <> nil) then
-      FPaletteChunk := TChunkPngPalette.Create(ImageHeader);
+    if (PaletteChunk = nil) then
+      FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
 
     FPaletteChunk.Count := Palette.Count;
     for Index := 0 to Palette.Count - 1 do
@@ -617,8 +624,8 @@ begin
 
     {$IFDEF StoreGamma}
     // add linear gamma chunk
-    if not (FGammaChunk <> nil) then
-      FGammaChunk := TChunkPngGamma.Create(ImageHeader);
+    if (FGammaChunk = nil) then
+      FGammaChunk := TPngChunkGamma.Create(ImageHeader);
     FGammaChunk.GammaAsSingle := 1;
     {$ELSE}
     // delete any gama correction table
@@ -641,7 +648,7 @@ begin
 
     DataStream := TMemoryStream.Create;
     try
-      with EncoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+      with EncoderClass.Create(DataStream, ImageHeader, GammaChunk, PaletteChunk) do
         try
           if (Assigned(FProgressEvent)) then
             EncodeFromScanline(Bitmap, GR32ScanlineProgress)
@@ -782,13 +789,13 @@ begin
         raise EPngError.Create(RCStrUnsupportedFormat);
     end;
 
-    if (FTransparencyChunk <> nil) then
-      Transparency := FTransparencyChunk.Transparency
+    if (TransparencyChunk <> nil) then
+      Transparency := TransparencyChunk.Transparency
     else
       Transparency := nil;
 
-    with DecoderClass.Create(DataStream, FImageHeader, FGammaChunk,
-      FPaletteChunk, Transparency) do
+    with DecoderClass.Create(DataStream, ImageHeader, FGammaChunk,
+      PaletteChunk, Transparency) do
     try
       if (Assigned(FProgressEvent)) then
         DecodeToScanline(Bitmap32, GR32ScanlineProgress)
@@ -956,8 +963,8 @@ begin
   begin
     Assert(Length(TempPalette) <= 256);
 
-    if not (FPaletteChunk <> nil) then
-      FPaletteChunk := TChunkPngPalette.Create(ImageHeader);
+    if (PaletteChunk = nil) then
+      FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
 
     FPaletteChunk.Count := Length(TempPalette);
     for Index := 0 to Length(TempPalette) - 1 do
@@ -967,7 +974,7 @@ begin
   {$IFDEF StoreGamma}
   // add linear gamma chunk
   if not (FGammaChunk <> nil) then
-    FGammaChunk := TChunkPngGamma.Create(ImageHeader);
+    FGammaChunk := TPngChunkGamma.Create(ImageHeader);
   FGammaChunk.GammaAsSingle := 1;
   {$ELSE}
   // delete any gama correction table
@@ -1020,7 +1027,7 @@ begin
 
     DataStream := TMemoryStream.Create;
     try
-      with EncoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+      with EncoderClass.Create(DataStream, ImageHeader, GammaChunk, PaletteChunk) do
         try
           if (Assigned(FProgressEvent)) then
             EncodeFromScanline(TCustomBitmap32(Source), GR32ScanlineProgress)
@@ -1069,8 +1076,8 @@ const
 { TCustomPngNonInterlacedDecoder }
 
 constructor TCustomPngNonInterlacedDecoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette; Transparency: TCustomPngTransparency);
+  Header: TPngChunkImageHeader; Gamma: TPngChunkGamma;
+  Palette: TPngChunkPalette; Transparency: TCustomPngTransparency);
 begin
   inherited;
   FBytesPerRow := FHeader.BytesPerRow;
@@ -1513,8 +1520,8 @@ end;
 { TCustomPngAdam7Decoder }
 
 constructor TCustomPngAdam7Decoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette; Transparency: TCustomPngTransparency);
+  Header: TPngChunkImageHeader; Gamma: TPngChunkGamma;
+  Palette: TPngChunkPalette; Transparency: TCustomPngTransparency);
 begin
   inherited;
 
@@ -2013,8 +2020,8 @@ end;
 { TCustomPngNonInterlacedEncoder }
 
 constructor TCustomPngNonInterlacedEncoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette; Transparency: TCustomPngTransparency);
+  Header: TPngChunkImageHeader; Gamma: TPngChunkGamma;
+  Palette: TPngChunkPalette; Transparency: TCustomPngTransparency);
 begin
   inherited;
   FBytesPerRow := FHeader.BytesPerRow;
