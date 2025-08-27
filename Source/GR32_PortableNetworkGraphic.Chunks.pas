@@ -208,7 +208,9 @@ type
     function AddClone(AChunk: TCustomChunk): TCustomChunk; override;
   public
     function Add(AChunkClass: TCustomDefinedChunkWithHeaderClass): T; overload;
+{$if defined(GENERIC_FUNCTION_CLASS)}
     function Add<TT: TCustomDefinedChunkWithHeader>: TT; overload;
+{$ifend}
   end;
 
   TDefinedChunkWithHeaderList = TCustomDefinedChunkWithHeaderList<TCustomDefinedChunkWithHeader>;
@@ -373,11 +375,13 @@ begin
   Add(Result);
 end;
 
+{$if defined(GENERIC_FUNCTION_CLASS)}
 function TCustomDefinedChunkWithHeaderList<T>.Add<TT>: TT;
 begin
   Result := TT.Create(Header);
   Add(Result);
 end;
+{$ifend}
 
 function TCustomDefinedChunkWithHeaderList<T>.AddClone(AChunk: TCustomChunk): TCustomChunk;
 begin

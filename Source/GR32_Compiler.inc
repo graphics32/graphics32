@@ -490,6 +490,33 @@
 {$ifend}
 
 
+(*
+  Symbol: GENERIC_FUNCTION_CLASS
+  -------------------------------
+
+     Old versions of Delphi had problem dealing with generic functions
+     where the generic type was a class.
+     For example:
+
+       function FooBar<T: TSomeClass>: T;
+
+     For these older versions we instead have to use a regular function
+     like this:
+
+       function FooBar(SomeClass: TSomeClass>: TSomeClass;
+
+     and cast the return value to the concrete type.
+
+     The exact version of Delphi where this got fixed is unknown. Somewhere
+     between Delphi XE4 and Delphi 10.
+
+     I'm assuming that it doesn't work for FPC and C++ Builder either.
+     Let me know if I'm wrong.
+*)
+{$if (not defined(BCB)) and (not defined(FPC)) and (CompilerVersion >= 30.0)}
+{$define GENERIC_FUNCTION_CLASS}
+{$ifend}
+
 
 (*
   Symbol: GENERIC_POINTERS

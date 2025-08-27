@@ -305,7 +305,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
+{$else}
+    FPaletteChunk := TPngChunkPalette(FDefaultChunks.Add(TPngChunkPalette));
+{$ifend}
     FPaletteChunk.Assign(Value);
   end;
 end;
@@ -322,7 +326,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+{$else}
+    FPhysicalDimensionsChunk := TPngChunkPhysicalPixelDimensions(FDefaultChunks.Add(TPngChunkPhysicalPixelDimensions));
+{$ifend}
     FPhysicalDimensionsChunk.Assign(Value);
   end;
 end;
@@ -338,7 +346,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FSignificantBitsChunk := FDefaultChunks.Add<TPngChunkSignificantBits>;
+{$else}
+    FSignificantBitsChunk := TPngChunkSignificantBits(FDefaultChunks.Add(TPngChunkSignificantBits));
+{$ifend}
     FSignificantBitsChunk.Assign(Value);
   end;
 end;
@@ -354,7 +366,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FTimeChunk := FDefaultChunks.Add<TPngChunkTime>;
+{$else}
+    FTimeChunk := TPngChunkTime(FDefaultChunks.Add(TPngChunkTime));
+{$ifend}
     FTimeChunk.Assign(Value);
   end;
 end;
@@ -370,7 +386,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FTransparencyChunk := FDefaultChunks.Add<TPngChunkTransparency>;
+{$else}
+    FTransparencyChunk := TPngChunkTransparency(FDefaultChunks.Add(TPngChunkTransparency));
+{$ifend}
     FTransparencyChunk.Assign(Value);
   end;
 end;
@@ -381,7 +401,11 @@ begin
     raise EPngError.Create(RCStrWrongPixelPerUnit);
 
   if (FPhysicalDimensionsChunk= nil) then
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+{$else}
+    FPhysicalDimensionsChunk := TPngChunkPhysicalPixelDimensions(FDefaultChunks.Add(TPngChunkPhysicalPixelDimensions));
+{$ifend}
 
   FPhysicalDimensionsChunk.PixelsPerUnitX := Value;
 end;
@@ -392,7 +416,11 @@ begin
     raise EPngError.Create(RCStrWrongPixelPerUnit);
 
   if (FPhysicalDimensionsChunk= nil) then
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+{$else}
+    FPhysicalDimensionsChunk := TPngChunkPhysicalPixelDimensions(FDefaultChunks.Add(TPngChunkPhysicalPixelDimensions));
+{$ifend}
 
   FPhysicalDimensionsChunk.PixelsPerUnitY := Value;
 end;
@@ -403,7 +431,11 @@ begin
     raise EPngError.Create(RCStrUnspecifiedPixelUnit);
 
   if (FPhysicalDimensionsChunk = nil) then
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+{$else}
+    FPhysicalDimensionsChunk := TPngChunkPhysicalPixelDimensions(FDefaultChunks.Add(TPngChunkPhysicalPixelDimensions));
+{$ifend}
 
   FPhysicalDimensionsChunk.PixelUnit := Value;
 end;
@@ -419,7 +451,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FChromaChunk := FDefaultChunks.Add<TPngChunkPrimaryChromaticities>;
+{$else}
+    FChromaChunk := TPngChunkPrimaryChromaticities(FDefaultChunks.Add(TPngChunkPrimaryChromaticities));
+{$ifend}
     FChromaChunk.Assign(Value);
   end;
 end;
@@ -435,7 +471,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
+{$else}
+    FGammaChunk := TPngChunkGamma(FDefaultChunks.Add(TPngChunkGamma));
+{$ifend}
     FGammaChunk.Assign(Value);
   end;
 end;
@@ -451,7 +491,11 @@ begin
   end else
   if (Value <> nil) then
   begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
     FBackgroundChunk := FDefaultChunks.Add<TPngChunkBackgroundColor>;
+{$else}
+    FBackgroundChunk := TPngChunkBackgroundColor(FDefaultChunks.Add(TPngChunkBackgroundColor));
+{$ifend}
     FBackgroundChunk.Assign(Value);
   end;
 end;
@@ -756,56 +800,88 @@ begin
       begin
         if (FGammaChunk <> nil) then
           raise EPngError.Create(RCStrSeveralGammaChunks);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
+{$else}
+        FGammaChunk := TPngChunkGamma(FDefaultChunks.Add(TPngChunkGamma));
+{$ifend}
         FGammaChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'cHRM' then
       begin
         if (FChromaChunk <> nil) then
           raise EPngError.Create(RCStrSeveralChromaChunks);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FChromaChunk := FDefaultChunks.Add<TPngChunkPrimaryChromaticities>;
+{$else}
+        FChromaChunk := TPngChunkPrimaryChromaticities(FDefaultChunks.Add(TPngChunkPrimaryChromaticities));
+{$ifend}
         FChromaChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'tIME' then
       begin
         if (FTimeChunk <> nil) then
           raise EPngError.Create(RCStrSeveralTimeChunks);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FTimeChunk := FDefaultChunks.Add<TPngChunkTime>;
+{$else}
+        FTimeChunk := TPngChunkTime(FDefaultChunks.Add(TPngChunkTime));
+{$ifend}
         FTimeChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'sBIT' then
       begin
         if (FSignificantBitsChunk <> nil) then
           raise EPngError.Create(RCStrSeveralSignificantBitsChunksFound);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FSignificantBitsChunk := FDefaultChunks.Add<TPngChunkSignificantBits>;
+{$else}
+        FSignificantBitsChunk := TPngChunkSignificantBits(FDefaultChunks.Add(TPngChunkSignificantBits));
+{$ifend}
         FSignificantBitsChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'pHYs' then
       begin
         if (FPhysicalDimensionsChunk <> nil) then
           raise EPngError.Create(RCStrSeveralPhysicalPixelDimensionChunks);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+{$else}
+        FPhysicalDimensionsChunk := TPngChunkPhysicalPixelDimensions(FDefaultChunks.Add(TPngChunkPhysicalPixelDimensions));
+{$ifend}
         FPhysicalDimensionsChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'PLTE' then
       begin
         if (FPaletteChunk <> nil) then
           raise EPngError.Create(RCStrSeveralPaletteChunks);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
+{$else}
+        FPaletteChunk := TPngChunkPalette(FDefaultChunks.Add(TPngChunkPalette));
+{$ifend}
         FPaletteChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'tRNS' then
       begin
         if (FTransparencyChunk <> nil) then
           raise EPngError.Create(RCStrSeveralTransparencyChunks);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FTransparencyChunk := FDefaultChunks.Add<TPngChunkTransparency>;
+{$else}
+        FTransparencyChunk := TPngChunkTransparency(FDefaultChunks.Add(TPngChunkTransparency));
+{$ifend}
         FTransparencyChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       if ChunkName = 'bKGD' then
       begin
         if (FBackgroundChunk <> nil) then
           raise EPngError.Create(RCStrSeveralBackgroundChunks);
+{$if defined(GENERIC_FUNCTION_CLASS)}
         FBackgroundChunk := FDefaultChunks.Add<TPngChunkBackgroundColor>;
+{$else}
+        FBackgroundChunk := TPngChunkBackgroundColor(FDefaultChunks.Add(TPngChunkBackgroundColor));
+{$ifend}
         FBackgroundChunk.ReadFromStream(MemoryStream, ChunkSize);
       end else
       begin
@@ -1048,7 +1124,11 @@ begin
     end else
     if (Source.PaletteChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
+{$else}
+      FPaletteChunk := TPngChunkPalette(FDefaultChunks.Add(TPngChunkPalette));
+{$ifend}
       FPaletteChunk.Assign(Source.PaletteChunk);
     end;
 
@@ -1062,7 +1142,11 @@ begin
     end else
     if (Source.GammaChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
+{$else}
+      FGammaChunk := TPngChunkGamma(FDefaultChunks.Add(TPngChunkGamma));
+{$ifend}
       FGammaChunk.Assign(Source.GammaChunk);
     end;
 
@@ -1076,7 +1160,11 @@ begin
     end else
     if (Source.TimeChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FTimeChunk := FDefaultChunks.Add<TPngChunkTime>;
+{$else}
+      FTimeChunk := TPngChunkTime(FDefaultChunks.Add(TPngChunkTime));
+{$ifend}
       FTimeChunk.Assign(Source.TimeChunk);
     end;
 
@@ -1090,7 +1178,11 @@ begin
     end else
     if (Source.SignificantBitsChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FSignificantBitsChunk := FDefaultChunks.Add<TPngChunkSignificantBits>;
+{$else}
+      FSignificantBitsChunk := TPngChunkSignificantBits(FDefaultChunks.Add(TPngChunkSignificantBits));
+{$ifend}
       FSignificantBitsChunk.Assign(Source.SignificantBitsChunk);
     end;
 
@@ -1104,7 +1196,11 @@ begin
     end else
     if (Source.PhysicalPixelDimensionsChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FPhysicalDimensionsChunk := FDefaultChunks.Add<TPngChunkPhysicalPixelDimensions>;
+{$else}
+      FPhysicalDimensionsChunk := TPngChunkPhysicalPixelDimensions(FDefaultChunks.Add(TPngChunkPhysicalPixelDimensions));
+{$ifend}
       FPhysicalDimensionsChunk.Assign(Source.PhysicalPixelDimensionsChunk);
     end;
 
@@ -1118,7 +1214,11 @@ begin
     end else
     if (Source.ChromaChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FChromaChunk := FDefaultChunks.Add<TPngChunkPrimaryChromaticities>;
+{$else}
+      FChromaChunk := TPngChunkPrimaryChromaticities(FDefaultChunks.Add(TPngChunkPrimaryChromaticities));
+{$ifend}
       FChromaChunk.Assign(Source.ChromaChunk);
     end;
 
@@ -1132,7 +1232,11 @@ begin
     end else
     if (Source.TransparencyChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FTransparencyChunk := FDefaultChunks.Add<TPngChunkTransparency>;
+{$else}
+      FTransparencyChunk := TPngChunkTransparency(FDefaultChunks.Add(TPngChunkTransparency));
+{$ifend}
       FTransparencyChunk.Assign(Source.TransparencyChunk);
     end;
 
@@ -1146,7 +1250,11 @@ begin
     end else
     if (Source.BackgroundChunk <> nil) then
     begin
+{$if defined(GENERIC_FUNCTION_CLASS)}
       FBackgroundChunk := FDefaultChunks.Add<TPngChunkBackgroundColor>;
+{$else}
+      FBackgroundChunk := TPngChunkBackgroundColor(FDefaultChunks.Add(TPngChunkBackgroundColor));
+{$ifend}
       FBackgroundChunk.Assign(Source.BackgroundChunk);
     end;
 
