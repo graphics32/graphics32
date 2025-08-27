@@ -71,7 +71,7 @@ type
     property OriginalZeroMax: Integer read FOriginalZeroes[1] write FOriginalZeroes[1];
     property EquationType: Byte read FEquationType write FEquationType;
     property NumberOfParams: Byte read FNumberOfParams write FNumberOfParams;
-    property UnitName: AnsiString read FUnitName write FUnitName;
+    property Unit_Name: AnsiString read FUnitName write FUnitName;
   end;
 
 
@@ -100,7 +100,7 @@ begin
     FOriginalZeroes[1] := TPngChunkPixelCalibrator(Source).OriginalZeroMax;
     FEquationType      := TPngChunkPixelCalibrator(Source).EquationType;
     FNumberOfParams    := TPngChunkPixelCalibrator(Source).NumberOfParams;
-    FUnitName          := TPngChunkPixelCalibrator(Source).UnitName;
+    FUnitName          := TPngChunkPixelCalibrator(Source).Unit_Name;
   end;
 end;
 
