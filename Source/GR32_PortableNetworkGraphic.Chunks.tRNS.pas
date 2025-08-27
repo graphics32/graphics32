@@ -38,7 +38,6 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Generics.Collections,
   Classes,
   GR32_PortableNetworkGraphic.Types,
   GR32_PortableNetworkGraphic.Chunks;
@@ -299,15 +298,11 @@ end;
 
 procedure TPngTransparencyFormat0.ReadFromStream(Stream: TStream);
 begin
-  inherited;
-
   FGraySampleValue := BigEndian.ReadWord(Stream);
 end;
 
 procedure TPngTransparencyFormat0.WriteToStream(Stream: TStream);
 begin
-  inherited;
-
   BigEndian.WriteWord(Stream, FGraySampleValue);
 end;
 
@@ -335,8 +330,6 @@ end;
 
 procedure TPngTransparencyFormat2.ReadFromStream(Stream: TStream);
 begin
-  inherited;
-
   FRedSampleValue  := BigEndian.ReadWord(Stream);
   FBlueSampleValue  := BigEndian.ReadWord(Stream);
   FGreenSampleValue  := BigEndian.ReadWord(Stream);
@@ -344,8 +337,6 @@ end;
 
 procedure TPngTransparencyFormat2.WriteToStream(Stream: TStream);
 begin
-  inherited;
-
   BigEndian.WriteWord(Stream, FRedSampleValue);
   BigEndian.WriteWord(Stream, FBlueSampleValue);
   BigEndian.WriteWord(Stream, FGreenSampleValue);
@@ -385,16 +376,12 @@ end;
 
 procedure TPngTransparencyFormat3.ReadFromStream(Stream: TStream);
 begin
-  inherited;
-
   SetLength(FTransparency, Stream.Size - Stream.Position);
   Stream.Read(FTransparency[0], Length(FTransparency));
 end;
 
 procedure TPngTransparencyFormat3.WriteToStream(Stream: TStream);
 begin
-  inherited;
-
   Stream.Write(FTransparency[0], Length(FTransparency));
 end;
 

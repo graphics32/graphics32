@@ -18,7 +18,29 @@ uses
   GR32_Rasterizers, GR32_RepaintOpt, GR32_Resamplers, GR32_System, 
   GR32_Transforms, GR32_VectorMaps, GR32_VectorUtils, 
   GR32_VectorUtils.Reference, GR32_VPR, GR32_VPR2, GR32.Text.Cache, 
-  GR32.Text.FontFace, GR32.Text.Layout, GR32.Text.Unicode;
+  GR32.Text.FontFace, GR32.Text.Layout, GR32.Text.Unicode, 
+  GR32_PortableNetworkGraphic.Chunks.zTXt, 
+  GR32_PortableNetworkGraphic.Encoding, 
+  GR32_PortableNetworkGraphic.Transcoding, GR32_PortableNetworkGraphic.Types, 
+  GR32_PortableNetworkGraphic.ZLib, GR32_PortableNetworkGraphic.Chunks.bKGD, 
+  GR32_PortableNetworkGraphic.Chunks.cHRM, 
+  GR32_PortableNetworkGraphic.Chunks.gAMA, 
+  GR32_PortableNetworkGraphic.Chunks.hIST, 
+  GR32_PortableNetworkGraphic.Chunks.iCCP, 
+  GR32_PortableNetworkGraphic.Chunks.IDAT, 
+  GR32_PortableNetworkGraphic.Chunks.iTXt, 
+  GR32_PortableNetworkGraphic.Chunks.oFFs, GR32_PortableNetworkGraphic.Chunks, 
+  GR32_PortableNetworkGraphic.Chunks.pCAL, 
+  GR32_PortableNetworkGraphic.Chunks.pHYs, 
+  GR32_PortableNetworkGraphic.Chunks.PLTE, 
+  GR32_PortableNetworkGraphic.Chunks.sBIT, 
+  GR32_PortableNetworkGraphic.Chunks.sCAL, 
+  GR32_PortableNetworkGraphic.Chunks.sPLT, 
+  GR32_PortableNetworkGraphic.Chunks.sRGB, 
+  GR32_PortableNetworkGraphic.Chunks.tEXt, 
+  GR32_PortableNetworkGraphic.Chunks.tIME, 
+  GR32_PortableNetworkGraphic.Chunks.tRNS, 
+  GR32_PortableNetworkGraphic.Chunks.Unknown;
 
 implementation
 

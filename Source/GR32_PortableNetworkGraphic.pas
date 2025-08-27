@@ -38,10 +38,9 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Generics.Collections,
   Classes, Graphics, SysUtils,
 {$IFDEF FPC}
-  ZBase, ZDeflate, ZInflate;
+  ZBase,
 {$ELSE}
   {$IFDEF ZLibEx}
     ZLibEx, ZLibExApi,
@@ -50,7 +49,6 @@ uses
   {$ENDIF}
 {$ENDIF}
   GR32_PortableNetworkGraphic.Types,
-  GR32_PortableNetworkGraphic.Encoding,
   GR32_PortableNetworkGraphic.Chunks,
   GR32_PortableNetworkGraphic.Chunks.IDAT,
   GR32_PortableNetworkGraphic.Chunks.PLTE,
@@ -169,7 +167,7 @@ type
 
     FDefaultChunks: TDefinedChunkWithHeaderList;
     FDataChunks: TChunkImageDataList;
-    FAdditionalChunks: TDefinedChunkWithHeaderList;
+    FAdditionalChunks: TChunkList;
 
     FCompositeChunkList: TCompositeChunkList;
 
@@ -188,7 +186,7 @@ type
 
     property DefaultChunks: TDefinedChunkWithHeaderList read FDefaultChunks;
     property DataChunks: TChunkImageDataList read FDataChunks;
-    property AdditionalChunks: TDefinedChunkWithHeaderList read FAdditionalChunks;
+    property AdditionalChunks: TChunkList read FAdditionalChunks;
 
     property ImageHeader: TPngChunkImageHeader read FImageHeader write SetImageHeader;
 
@@ -250,12 +248,10 @@ type
 implementation
 
 uses
-  Math,
   GR32_LowLevel,
   GR32.BigEndian,
   GR32_PortableNetworkGraphic.Transcoding,
-  GR32_PortableNetworkGraphic.ZLib,
-  GR32_PortableNetworkGraphic.Chunks.Unknown;
+  GR32_PortableNetworkGraphic.ZLib;
 
 type
   TCrcTable = array [0..255] of Cardinal;
@@ -277,7 +273,7 @@ begin
   FImageHeader := TPngChunkImageHeader.Create;
   FDefaultChunks := TDefinedChunkWithHeaderList.Create(FImageHeader);
   FDataChunks := TChunkImageDataList.Create(FImageHeader);
-  FAdditionalChunks := TDefinedChunkWithHeaderList.Create(FImageHeader);
+  FAdditionalChunks := TChunkList.Create(FImageHeader);
 
   FCompressionLevel    := Z_BEST_COMPRESSION;
   inherited;
@@ -890,8 +886,8 @@ begin
         if ChunkClass <> nil then
         begin
           Chunk := ChunkClass.Create(FImageHeader);
-          Chunk.ReadFromStream(MemoryStream, ChunkSize);
           FAdditionalChunks.Add(Chunk);
+          Chunk.ReadFromStream(MemoryStream, ChunkSize);
         end else
         begin
           // check if chunk is ancillary
@@ -1081,6 +1077,7 @@ end;
 procedure TPortableNetworkGraphic.HeaderChanged;
 var
   Chunk: TCustomDefinedChunkWithHeader;
+  UnknownChunk: TCustomChunk;
 begin
   for Chunk in FDefaultChunks do
     Chunk.HeaderChanged;
@@ -1088,8 +1085,9 @@ begin
   for Chunk in FDataChunks do
     Chunk.HeaderChanged;
 
-  for Chunk in FAdditionalChunks do
-    Chunk.HeaderChanged;
+  for UnknownChunk in FAdditionalChunks do
+    if (UnknownChunk is TCustomDefinedChunkWithHeader) then
+      TCustomDefinedChunkWithHeader(UnknownChunk).HeaderChanged;
 end;
 
 procedure TPortableNetworkGraphic.ReadImageDataChunk(Stream: TStream; Size: Integer);

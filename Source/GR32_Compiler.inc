@@ -510,8 +510,11 @@
      The exact version of Delphi where this got fixed is unknown. Somewhere
      between Delphi XE4 and Delphi 10.
 
-     I'm assuming that it doesn't work for FPC and C++ Builder either.
+     I'm assuming that it doesn't work for C++ Builder either.
      Let me know if I'm wrong.
+
+     FPC doesn't support a generic function inside a generic class, which is
+     the concrete case we use, so no cigar there.
 *)
 {$if (not defined(BCB)) and (not defined(FPC)) and (CompilerVersion >= 30.0)}
 {$define GENERIC_FUNCTION_CLASS}

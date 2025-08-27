@@ -70,6 +70,14 @@ type
     function GetElapsedMilliseconds: Int64;
     function GetElapsedTicks: Int64;
     class constructor Create;
+  public const
+    TicksPerMicrosecond = 10; // 1 tick = 100ns
+    TicksPerNanosecond = TicksPerMicrosecond / 1000;
+    TicksPerMillisecond = 1000 * Int64(TicksPerMicrosecond);
+    TicksPerSecond = 1000 * Int64(TicksPerMillisecond);
+    TicksPerMinute = 60 * Int64(TicksPerSecond);
+    TicksPerHour = 60 * Int64(TicksPerMinute);
+    TicksPerDay = 24 * TicksPerHour;
   public
     class function Create: TStopwatch; static;
     class function GetTimeStamp: Int64; static;
@@ -88,13 +96,14 @@ type
 {$ifndef FPC}
 type
   TStopwatchHelper = record helper for TStopwatch
-{$endif}
   const
     TicksPerMicrosecond = 10; // 1 tick = 100ns
     TicksPerNanosecond = TicksPerMicrosecond / 1000;
     TicksPerMillisecond = 1000 * Int64(TicksPerMicrosecond);
     TicksPerSecond = 1000 * Int64(TicksPerMillisecond);
-{$ifndef FPC}
+    TicksPerMinute = 60 * Int64(TicksPerSecond);
+    TicksPerHour = 60 * Int64(TicksPerMinute);
+    TicksPerDay = 24 * TicksPerHour;
   end;
 {$endif}
 
@@ -344,17 +353,17 @@ end;
 //------------------------------------------------------------------------------
 function TPerfTimer.ReadNanoseconds: string;
 begin
-  Result := IntToStr(Round(FStopwatch.ElapsedTicks / {$ifndef FPC}FStopwatch.{$endif}TicksPerNanosecond));
+  Result := IntToStr(Round(FStopwatch.ElapsedTicks / TStopwatch.TicksPerNanosecond));
 end;
 
 function TPerfTimer.ReadMilliseconds: string;
 begin
-  Result := FloatToStrF(FStopwatch.ElapsedTicks / {$ifndef FPC}FStopwatch.{$endif}TicksPerMillisecond, ffFixed, 15, 3);
+  Result := FloatToStrF(FStopwatch.ElapsedTicks / TStopwatch.TicksPerMillisecond, ffFixed, 15, 3);
 end;
 
 function TPerfTimer.ReadSeconds: String;
 begin
-  Result := FloatToStrF(FStopwatch.ElapsedTicks / {$ifndef FPC}FStopwatch.{$endif}TicksPerSecond, ffFixed, 15, 3);
+  Result := FloatToStrF(FStopwatch.ElapsedTicks / TStopwatch.TicksPerSecond, ffFixed, 15, 3);
 end;
 
 function TPerfTimer.ReadValue: Int64;

@@ -28,7 +28,7 @@
     <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="3"/>
-    <Files Count="52">
+    <Files Count="77">
       <Item1>
         <Filename Value="..\..\GR32.pas"/>
         <UnitName Value="GR32"/>
@@ -243,6 +243,106 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <Filename Value="..\..\GR32.Text.Unicode.pas"/>
         <UnitName Value="GR32.Text.Unicode"/>
       </Item52>
+      <Item53>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.zTXt.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.zTXt"/>
+      </Item53>
+      <Item54>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Encoding.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Encoding"/>
+      </Item54>
+      <Item55>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Transcoding.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Transcoding"/>
+      </Item55>
+      <Item56>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Types.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Types"/>
+      </Item56>
+      <Item57>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.ZLib.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.ZLib"/>
+      </Item57>
+      <Item58>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.bKGD.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.bKGD"/>
+      </Item58>
+      <Item59>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.cHRM.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.cHRM"/>
+      </Item59>
+      <Item60>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.gAMA.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.gAMA"/>
+      </Item60>
+      <Item61>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.hIST.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.hIST"/>
+      </Item61>
+      <Item62>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.iCCP.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.iCCP"/>
+      </Item62>
+      <Item63>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.IDAT.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.IDAT"/>
+      </Item63>
+      <Item64>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.iTXt.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.iTXt"/>
+      </Item64>
+      <Item65>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.oFFs.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.oFFs"/>
+      </Item65>
+      <Item66>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks"/>
+      </Item66>
+      <Item67>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.pCAL.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.pCAL"/>
+      </Item67>
+      <Item68>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.pHYs.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.pHYs"/>
+      </Item68>
+      <Item69>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.PLTE.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.PLTE"/>
+      </Item69>
+      <Item70>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.sBIT.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.sBIT"/>
+      </Item70>
+      <Item71>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.sCAL.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.sCAL"/>
+      </Item71>
+      <Item72>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.sPLT.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.sPLT"/>
+      </Item72>
+      <Item73>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.sRGB.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.sRGB"/>
+      </Item73>
+      <Item74>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.tEXt.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.tEXt"/>
+      </Item74>
+      <Item75>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.tIME.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.tIME"/>
+      </Item75>
+      <Item76>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.tRNS.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.tRNS"/>
+      </Item76>
+      <Item77>
+        <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.Unknown.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic.Chunks.Unknown"/>
+      </Item77>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

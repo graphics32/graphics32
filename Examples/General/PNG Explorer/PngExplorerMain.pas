@@ -7,10 +7,12 @@ interface
 uses
   Generics.Collections,
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Menus, ComCtrls, StdCtrls, ExtCtrls, ToolWin, ActnList, StdActns,
-  ImgList, System.Actions,
+  Menus, ComCtrls, StdCtrls, ExtCtrls, ToolWin, ActnList,
+  ImgList,
 
+{$if (not defined(FPC))}
   HexDump,
+{$ifend}
 
 {$if defined(NeedImageList)}
 //  System.ImageList,
@@ -19,7 +21,7 @@ uses
   GR32_PortableNetworkGraphic,
   GR32_PortableNetworkGraphic.Chunks,
   GR32_PNG,
-  GR32_Image, System.ImageList;
+  GR32_Image;
 
 type
   TChunkRenderer = procedure(Chunk: TCustomChunk) of object;
@@ -44,7 +46,9 @@ type
   private
     FPngFile : TMyPortableNetworkGraphic;
     FChunkRenderers: TDictionary<TCustomChunkClass, TChunkRenderer>;
+{$if (not defined(FPC))}
     FHexDump: THexDump;
+{$ifend}
     FChunkData: TMemoryStream;
     procedure InitializeDefaultListView(AChunk: TCustomChunk = nil);
     procedure PNGChanged;
@@ -110,11 +114,13 @@ begin
 
   RegisterChunkRenderers;
 
+{$if (not defined(FPC))}
   FHexDump := THexDump.Create(Self);
   FHexDump.Parent := PanelPreview;
   FHexDump.Align := alClient;
   FHexDump.Visible := False;
   FHexDump.ReadOnly := True;
+{$ifend}
 end;
 
 destructor TFmPngExplorer.Destroy;
@@ -420,7 +426,9 @@ begin
 
   if (Node.Data = nil) then
   begin
+{$if (not defined(FPC))}
     FHexDump.Visible := False;
+{$ifend}
     ImgView32.Visible := True;
     DisplayHeaderChunk(FPngFile.ImageHeader);
     exit;
@@ -443,6 +451,7 @@ begin
     if Assigned(Renderer) then
       Renderer(Chunk);
 
+{$if (not defined(FPC))}
     if (Chunk.ChunkData <> nil) then
       FHexDump.Address := Chunk.ChunkData
     else
@@ -458,10 +467,13 @@ begin
     end;
 
     FHexDump.DataSize := Chunk.ChunkSize;
+{$ifend}
   end;
 
   ImgView32.Visible := False;
+{$if (not defined(FPC))}
   FHexDump.Visible := (Chunk <> nil);
+{$ifend}
 end;
 
 procedure TFmPngExplorer.PNGChanged;

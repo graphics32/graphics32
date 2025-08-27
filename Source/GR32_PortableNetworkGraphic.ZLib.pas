@@ -41,7 +41,7 @@ uses
   Classes,
   SysUtils,
 {$IFDEF FPC}
-  ZBase, ZDeflate, ZInflate;
+  ZBase, ZDeflate, ZInflate,
 {$ELSE}
   {$IFDEF ZLibEx}
     ZLibEx, ZLibExApi,

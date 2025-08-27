@@ -178,29 +178,51 @@ type
 //
 //------------------------------------------------------------------------------
 type
-  TCustomChunkList<T: TCustomChunk> = class(TObjectList<T>, IChunkOwner)
+  TCustomChunkList<T: TCustomChunk> = class(TObject, IChunkOwner)
   private
     FHeader: TPngChunkImageHeader;
+    FChunks: TObjectList<T>;
   protected
-    procedure Add(AChunk: TCustomChunk); overload;
     function AddClone(AChunk: TCustomChunk): TCustomChunk; virtual;
   private
-    function _AddRef: Integer; stdcall;
-    function _Release: Integer; stdcall;
-    function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
+{$IFDEF FPC_HAS_CONSTREF}
+    function QueryInterface(constref iid: TGuid; out obj): HResult; {$ifdef MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function _AddRef: LongInt; {$ifdef MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function _Release: LongInt; {$ifdef MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+{$ELSE}
+    function QueryInterface(const iid: TGuid; out obj): HResult; stdcall;
+    function _AddRef: LongInt; stdcall;
+    function _Release: LongInt; stdcall;
+{$ENDIF}
+  private
+    function GetChunk(Index: integer): T;
+    function GetCount: integer;
   private
     // IChunkOwner
     procedure AddChunk(AChunk: TCustomChunk);
     procedure RemoveChunk(AChunk: TCustomChunk);
   public
     constructor Create(AHeader: TPngChunkImageHeader);
+    destructor Destroy; override;
+
     procedure Assign(Source: TCustomChunkList<T>);
-    function Add(const AChunkName: TChunkName): TCustomChunk; overload;
+    procedure Add(AChunk: T);
+    procedure Clear;
 
     property Header: TPngChunkImageHeader read FHeader;
+
+    property Chunks[Index: integer]: T read GetChunk; default;
+    property Count: integer read GetCount;
+
+    function GetEnumerator: TEnumerator<T>;
   end;
 
-  TChunkList = class(TCustomChunkList<TCustomChunk>);
+  TChunkList = class(TCustomChunkList<TCustomChunk>)
+  protected
+    function AddClone(AChunk: TCustomChunk): TCustomChunk; override;
+  public
+    function Add(const AChunkName: TChunkName): TCustomChunk; overload;
+  end;
 
 type
   TCustomDefinedChunkWithHeaderList<T: TCustomDefinedChunkWithHeader> = class(TCustomChunkList<T>)
@@ -238,9 +260,7 @@ implementation
 
 uses
   GR32.BigEndian,
-  // All implemented chunks - excluding the header chunk:
-  GR32_PortableNetworkGraphic.Chunks.Unknown,
-  GR32_PortableNetworkGraphic.Chunks.IDAT;
+  GR32_PortableNetworkGraphic.Chunks.Unknown;
 
 //------------------------------------------------------------------------------
 //
@@ -293,9 +313,40 @@ constructor TCustomChunkList<T>.Create(AHeader: TPngChunkImageHeader);
 begin
   inherited Create;
   FHeader := AHeader;
+  FChunks := TObjectList<T>.Create;
 end;
 
-function TCustomChunkList<T>.QueryInterface(const IID: TGUID; out Obj): HResult;
+destructor TCustomChunkList<T>.Destroy;
+begin
+  FChunks.Free;
+
+  inherited;
+end;
+
+procedure TCustomChunkList<T>.Clear;
+begin
+  FChunks.Clear;
+end;
+
+function TCustomChunkList<T>.GetChunk(Index: integer): T;
+begin
+  Result := FChunks[Index];
+end;
+
+function TCustomChunkList<T>.GetCount: integer;
+begin
+  Result := FChunks.Count;
+end;
+
+function TCustomChunkList<T>.GetEnumerator: TEnumerator<T>;
+begin
+  Result := FChunks.GetEnumerator;
+end;
+
+function TCustomChunkList<T>.QueryInterface(
+  {$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF}IID: TGUID; out Obj): HResult;
+const
+  E_NOINTERFACE = HResult($80004002);
 begin
   if GetInterface(IID, Obj) then
     Result := 0
@@ -303,29 +354,23 @@ begin
     Result := E_NOINTERFACE;
 end;
 
-function TCustomChunkList<T>.Add(const AChunkName: TChunkName): TCustomChunk;
+procedure TCustomChunkList<T>.Add(AChunk: T);
 begin
-  Result := TPngChunkUnknown.Create(AChunkName);
-  Add(Result);
-end;
-
-procedure TCustomChunkList<T>.Add(AChunk: TCustomChunk);
-begin
-  inherited Add(AChunk);
+  FChunks.Add(AChunk);
   AChunk.Owner := Self;
 end;
 
 procedure TCustomChunkList<T>.AddChunk(AChunk: TCustomChunk);
 begin
-  if (not Contains(AChunk)) then
-    Add(AChunk);
+  if (not FChunks.Contains(AChunk as T)) then
+    Add(T(AChunk));
 end;
 
 procedure TCustomChunkList<T>.RemoveChunk(AChunk: TCustomChunk);
 begin
-  if (Contains(AChunk)) then
+  if (FChunks.Contains(AChunk as T)) then
   begin
-    inherited Extract(AChunk);
+    FChunks.Extract(T(AChunk));
     AChunk.Owner := nil;
   end;
 end;
@@ -342,10 +387,7 @@ end;
 
 function TCustomChunkList<T>.AddClone(AChunk: TCustomChunk): TCustomChunk;
 begin
-  if (AChunk is TPngChunkUnknown) then
-    Result := Add(TPngChunkUnknown(AChunk).ChunkName)
-  else
-    raise EPngError.CreateFmt('Unable to clone PNG chunk: %s', [AChunk.ClassName]);
+  raise EPngError.CreateFmt('Unable to clone PNG chunk: %s', [AChunk.ClassName]);
 end;
 
 procedure TCustomChunkList<T>.Assign(Source: TCustomChunkList<T>);
@@ -353,8 +395,8 @@ var
   Chunk: TCustomChunk;
   NewChunk: TCustomChunk;
 begin
-  Clear;
-  Capacity := Source.Count;
+  FChunks.Clear;
+  FChunks.Capacity := Source.Count;
 
   for Chunk in Source do
   begin
@@ -363,6 +405,25 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TChunkList
+//
+//------------------------------------------------------------------------------
+function TChunkList.Add(const AChunkName: TChunkName): TCustomChunk;
+begin
+  Result := TPngChunkUnknown.Create(AChunkName);
+  Add(Result);
+end;
+
+function TChunkList.AddClone(AChunk: TCustomChunk): TCustomChunk;
+begin
+  if (AChunk is TPngChunkUnknown) then
+    Result := Add(TPngChunkUnknown(AChunk).ChunkName)
+  else
+    Result := inherited;
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -379,7 +440,12 @@ end;
 function TCustomDefinedChunkWithHeaderList<T>.Add<TT>: TT;
 begin
   Result := TT.Create(Header);
-  Add(Result);
+
+  // "TT" is "class of T", so the result of "TT.Create" is "T"
+  // The compiler can't figure that out so we have to cheat and
+  // cast to pointer to T
+
+  Add(T(pointer(Result)));
 end;
 {$ifend}
 

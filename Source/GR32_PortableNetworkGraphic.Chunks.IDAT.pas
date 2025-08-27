@@ -123,8 +123,6 @@ end;
 
 procedure TPngChunkImageData.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
 begin
-  inherited;
-
   FData.CopyFrom(Stream, ChunkSize);
 end;
 

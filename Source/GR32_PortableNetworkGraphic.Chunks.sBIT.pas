@@ -38,7 +38,6 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Generics.Collections,
   Classes,
   GR32_PortableNetworkGraphic.Types,
   GR32_PortableNetworkGraphic.Chunks;
@@ -175,7 +174,6 @@ implementation
 
 constructor TPngSignificantBitsFormat0.Create(BitDepth: Integer = 8);
 begin
-  inherited;
   FGrayBits := BitDepth;
 end;
 
@@ -207,7 +205,6 @@ end;
 
 constructor TPngSignificantBitsFormat23.Create(BitDepth: Integer = 8);
 begin
-  inherited;
   FRedBits := BitDepth;
   FGreenBits := BitDepth;
   FBlueBits := BitDepth;
@@ -248,7 +245,6 @@ end;
 
 constructor TPngSignificantBitsFormat4.Create(BitDepth: Integer = 8);
 begin
-  inherited;
   FGrayBits := BitDepth;
   FAlphaBits := BitDepth;
 end;
@@ -288,7 +284,6 @@ end;
 
 constructor TPngSignificantBitsFormat6.Create(BitDepth: Integer = 8);
 begin
-  inherited;
   FRedBits := BitDepth;
   FGreenBits := BitDepth;
   FBlueBits := BitDepth;
