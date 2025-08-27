@@ -72,9 +72,14 @@ begin
   ImgView.MouseZoom.Animate := True;
   Image.MouseZoom.Animate := True;
 
-  // MouseWheel events aren't sent to the control unless TabStop=True
+  // For Delphi versions prior to Delphi 11, MouseWheel events aren't sent
+  // to the control unless the control is focused, which in turn requires
+  // TabStop=True.
+  // Possibly the same for FPC.
+{$if (defined(FPC)) or (CompilerVersion < 35.0)}
   ImgView.TabStop := True;
   Image.TabStop := True;
+{$ifend}
 end;
 
 procedure TFormMain.FormShow(Sender: TObject);
