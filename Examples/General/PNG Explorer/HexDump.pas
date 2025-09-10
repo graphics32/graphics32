@@ -12,6 +12,10 @@ unit HexDump;
 
 interface
 
+{$WARN SYMBOL_PLATFORM OFF}
+
+{$include GR32.inc}
+
 uses
   SysUtils, Windows, Messages, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls;

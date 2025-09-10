@@ -35,6 +35,7 @@
 
     Name                   CompilerVersion
     -------------------------------------------
+    Delphi 13 Florence          37.0
     Delphi 12 Yukon             36.0
     Delphi 11 Alexandria        35.0
     Delphi 10.4 Sydney          34.0
@@ -106,7 +107,7 @@
 
   {$Message Fatal 'Graphics32 only supports Delphi/BCB XE2 (or higher) or Free Pascal / Lazarus'}
 
-{$elseif (CompilerVersion > 36.0)} // Newer than this file but we'll take it
+{$elseif (CompilerVersion > 37.0)} // Newer than this file but we'll take it
 
   {$Message Hint 'Unknown compiler version. Assuming compatible with last known version.'}
   {$LEGACYIFEND ON}

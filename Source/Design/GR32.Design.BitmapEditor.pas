@@ -511,8 +511,6 @@ begin
 end;
 
 procedure TPictureEditorForm.ResetZoomAndCenter(Image: TImage32);
-var
-  Size: TSize;
 begin
   Image.BeginUpdate;
   try
