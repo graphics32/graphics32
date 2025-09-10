@@ -91,7 +91,6 @@ type
 
     BenchmarkMode: Boolean;
     TerminateOnCompletion: boolean;
-    BenchmarkRun: Cardinal;
     BenchmarkList: TStringList;
 
     procedure IdleHandler(Sender: TObject; var Done: Boolean);
