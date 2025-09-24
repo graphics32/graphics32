@@ -513,7 +513,7 @@ type
     FBackgroundOptions: TBackgroundOptions;
     FMousePanOptions: TMousePanOptions;
     FMouseZoomOptions: TMouseZoomOptions;
-    FClicked: boolean;
+    FClicked: set of TMouseButton;
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
     FHotLayer: TCustomLayer;
@@ -3562,7 +3562,7 @@ begin
   if TabStop and CanFocus then
     SetFocus;
 
-  if (not GetViewportRect.Contains(Point(X, Y))) then
+  if (Button = mbLeft) and (not GetViewportRect.Contains(Point(X, Y))) then
   begin
     // Click outside viewport; Most likely the small rectangle in the
     // lower right corner between the scrollbars.
@@ -3579,15 +3579,16 @@ begin
     else
       Layer := nil;
 
-    // lock the capture only if mbLeft was pushed or any mouse listener was activated
+    // Lock the capture only if mbLeft was pushed or any mouse listener was activated
     if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
       // Note that TControl will have already captured the mouse for us since we
       // have ControlStyle=[...csCaptureMouse...]
       MouseCapture := True;
 
     MouseDown(Button, Shift, X, Y, Layer);
+
     // Signal MouseUp that we handled the MouseDown
-    FClicked := True;
+    Include(FClicked, Button);
 
     if (Layer = nil) and (CanMousePan) and (Button = FMousePanOptions.MouseButton) and (FMousePanOptions.MatchShiftState(Shift)) then
     begin
@@ -3681,9 +3682,9 @@ var
 begin
   // Ignore MouseUp unless we handled the MouseDown. Do not use MouseCapture
   // for this test (see below).
-  if (not FClicked) then
+  if (not (Button in FClicked)) then
     exit;
-  FClicked := False;
+  Exclude(FClicked, Button);
 
   MouseListener := TLayerCollectionAccess(Layers).MouseListener;
 
