@@ -72,6 +72,9 @@ type
 implementation
 
 uses
+{$IFNDEF FPC}
+  SysUtils,
+{$ENDIF}
   GR32,
   GR32_Resamplers;
 
@@ -179,10 +182,118 @@ var
   GSplashScreen     : HBITMAP;
 {$ENDIF}
 
+//------------------------------------------------------------------------------
+//
+//      Branding
+//
+//------------------------------------------------------------------------------
+const
+  sProductName = 'Graphics32';
+  sProductVersion = GR32.Graphics32Version;
+  sProductCopyright = 'Copyright '#$00A9' 1997-%s'#13#10'Alex A. Denisov and the GR32 team'#13#10'All rights reserved.';
+  sProductLogo = 'GR32';
+  sProductLicense = 'Open Source: MPL 1.1 or LGPL 2.1 with linking exception';
+  sProductSKU = ''; // Will be appended, with a space before, to the product name on the splash
+  sProductRegistered = True;
+
+
+//------------------------------------------------------------------------------
+//
+//      IDE splash screen
+//
+//------------------------------------------------------------------------------
+{$IFNDEF FPC}
+type
+  SplashInfo = record
+  private
+    class var FLogoBitmap: HBITMAP;
+  public
+    class procedure Initialize; static;
+    class procedure Finalize; static;
+  end;
+
+class procedure SplashInfo.Initialize;
+var
+  Title: string;
+begin
+  FLogoBitmap := LoadBitmap(hInstance, sProductLogo);
+  if (sProductVersion <> '') then
+    Title := Format('%s %s', [sProductName, sProductVersion])
+  else
+    Title := sProductName;
+  (SplashScreenServices as IOTasplashScreenServices).AddPluginBitmap(Title, FLogoBitmap, not sProductRegistered, sProductLicense, sProductSKU);
+end;
+
+class procedure SplashInfo.Finalize;
+begin
+  DeleteObject(FLogoBitmap);
+end;
+{$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
+//      IDE about box
+//
+//------------------------------------------------------------------------------
+{$IFNDEF FPC}
+type
+  AboutInfo = record
+  private
+    class var FLogoBitmap: HBITMAP;
+    class var FAboutInfoIndex: integer;
+  public
+    class procedure Initialize; static;
+    class procedure Finalize; static;
+  end;
+
+class procedure AboutInfo.Initialize;
+var
+  AboutBoxServices: IOTAAboutBoxServices;
+  Title, Info, Copyright: string;
+begin
+  FAboutInfoIndex := -1;
+
+  if Supports(BorlandIDEServices, IOTAAboutBoxServices, AboutBoxServices) then
+  begin
+    FLogoBitmap := LoadBitmap(hInstance, sProductLogo);
+
+    if (sProductVersion <> '') then
+      Title := Format('%s %s', [sProductName, sProductVersion])
+    else
+      Title := sProductName;
+    Copyright := Format(sProductCopyright, [FormatDateTime('YYYY', Now)]);
+    Info := Format('%s %s'#13#10#13#10'%s', [sProductName, sProductVersion, Copyright]);
+
+    FAboutInfoIndex := AboutBoxServices.AddPluginInfo(Title, Info, FLogoBitmap, not sProductRegistered, sProductLicense, sProductSKU);
+  end;
+end;
+
+class procedure AboutInfo.Finalize;
+var
+  AboutBoxServices: IOTAAboutBoxServices;
+begin
+  if (FAboutInfoIndex <> -1) and Supports(BorlandIDEServices, IOTAAboutBoxServices, AboutBoxServices) and (FAboutInfoIndex <> -1) then
+  begin
+    AboutBoxServices.RemovePluginInfo(FAboutInfoIndex);
+
+    DeleteObject(FLogoBitmap);
+  end;
+end;
+{$ENDIF}
+
+//------------------------------------------------------------------------------
+
 initialization
 {$IFNDEF FPC}
-  // Add Splash Screen
-  GSplashScreen := LoadBitmap(hInstance, 'GR32');
-  (SplashScreenServices as IOTasplashScreenServices).AddPluginBitmap('Graphics32', GSplashScreen, False, 'Open Source', Graphics32Version);
+  SplashInfo.Initialize;
+  AboutInfo.Initialize;
 {$ENDIF}
+
+finalization
+{$IFNDEF FPC}
+  SplashInfo.Finalize;
+  AboutInfo.Finalize;
+{$ENDIF}
+
 end.
