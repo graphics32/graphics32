@@ -177,10 +177,6 @@ begin
   TBitmap32(GetComponent(0)).ResamplerClassName := CustomClass;
 end;
 
-{$IFNDEF FPC}
-var
-  GSplashScreen     : HBITMAP;
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 //
