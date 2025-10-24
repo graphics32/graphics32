@@ -946,9 +946,12 @@ type
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
   public
-    constructor Create(ABackendClass: TCustomBackendClass); reintroduce; overload; virtual;
-    constructor Create; reintroduce; overload; virtual;
-    constructor Create(Width, Height: Integer); reintroduce; overload; virtual;
+    // Create with specified backend
+    constructor Create(ABackendClass: TCustomBackendClass); overload; virtual;
+    // Create with platform default backend
+    constructor Create; overload; override;
+    // Create with platform default backend, and allocate bitmap of specified size
+    constructor Create(Width, Height: Integer); overload; virtual;
     destructor Destroy; override;
 
     class function GetPlatformBackendClass: TCustomBackendClass; virtual;
@@ -2926,7 +2929,7 @@ end;
 
 constructor TCustomMap.Create(Width, Height: Integer);
 begin
-  inherited Create;
+  Create;
   SetSize(Width, Height);
 end;
 
@@ -3037,6 +3040,12 @@ end;
 constructor TCustomBitmap32.Create;
 begin
   Create(GetPlatformBackendClass);
+end;
+
+constructor TCustomBitmap32.Create(Width, Height: Integer);
+begin
+  Create;
+  SetSize(Width, Height);
 end;
 
 destructor TCustomBitmap32.Destroy;
@@ -3267,12 +3276,6 @@ begin
   Dst.ResamplerClassName := ResamplerClassName;
   if (Dst.Resampler <> nil) and (Resampler <> nil) then
     Dst.Resampler.Assign(Resampler);
-end;
-
-constructor TCustomBitmap32.Create(Width, Height: Integer);
-begin
-  Create;
-  SetSize(Width, Height);
 end;
 
 {$IFDEF BITS_GETTER}
