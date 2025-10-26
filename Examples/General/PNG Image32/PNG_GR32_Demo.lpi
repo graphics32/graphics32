@@ -2,7 +2,6 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="12"/>
-    <PathDelim Value="\"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
@@ -20,14 +19,9 @@
       <Item2 Name="Debug">
         <CompilerOptions>
           <Version Value="11"/>
-          <PathDelim Value="\"/>
-          <Target>
-            <Filename Value=".\bin\PNG_GR32_Demo.exe"/>
-          </Target>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source"/>
-            <OtherUnitFiles Value="..;..\..;..\..\..\Source"/>
-            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+            <IncludeFiles Value="../../../Source"/>
+            <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -239,14 +233,9 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <PathDelim Value="\"/>
-    <Target>
-      <Filename Value=".\bin\PNG_GR32_Demo.exe"/>
-    </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source"/>
-      <OtherUnitFiles Value="..;..\..;..\..\..\Source"/>
-      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+      <IncludeFiles Value="../../../Source"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

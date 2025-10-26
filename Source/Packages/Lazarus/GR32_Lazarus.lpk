@@ -28,7 +28,7 @@
     <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="3"/>
-    <Files Count="77">
+    <Files Count="98">
       <Item1>
         <Filename Value="..\..\GR32.pas"/>
         <UnitName Value="GR32"/>
@@ -343,6 +343,90 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <Filename Value="..\..\GR32_PortableNetworkGraphic.Chunks.Unknown.pas"/>
         <UnitName Value="GR32_PortableNetworkGraphic.Chunks.Unknown"/>
       </Item77>
+      <Item78>
+        <Filename Value="..\..\GR32.Examples.pas"/>
+        <UnitName Value="GR32.Examples"/>
+      </Item78>
+      <Item79>
+        <Filename Value="..\..\GR32.ImageFormats.pas"/>
+        <UnitName Value="GR32.ImageFormats"/>
+      </Item79>
+      <Item80>
+        <Filename Value="..\..\GR32.ImageFormats.Default.pas"/>
+        <UnitName Value="GR32.ImageFormats.Default"/>
+      </Item80>
+      <Item81>
+        <Filename Value="..\..\GR32.ImageFormats.BMP.pas"/>
+        <UnitName Value="GR32.ImageFormats.BMP"/>
+      </Item81>
+      <Item82>
+        <Filename Value="..\..\GR32.ImageFormats.GIF.pas"/>
+        <UnitName Value="GR32.ImageFormats.GIF"/>
+      </Item82>
+      <Item83>
+        <Filename Value="..\..\GR32.ImageFormats.JPG.pas"/>
+        <UnitName Value="GR32.ImageFormats.JPG"/>
+      </Item83>
+      <Item84>
+        <Filename Value="..\..\GR32.ImageFormats.PNG.pas"/>
+        <UnitName Value="GR32.ImageFormats.PNG"/>
+      </Item84>
+      <Item85>
+        <Filename Value="..\..\GR32.ImageFormats.PNG32.pas"/>
+        <UnitName Value="GR32.ImageFormats.PNG32"/>
+      </Item85>
+      <Item86>
+        <Filename Value="..\..\GR32.ImageFormats.PSD.pas"/>
+        <UnitName Value="GR32.ImageFormats.PSD"/>
+      </Item86>
+      <Item87>
+        <Filename Value="..\..\GR32.ImageFormats.PSD.Types.pas"/>
+        <UnitName Value="GR32.ImageFormats.PSD.Types"/>
+      </Item87>
+      <Item88>
+        <Filename Value="..\..\GR32.ImageFormats.PSD.Writer.pas"/>
+        <UnitName Value="GR32.ImageFormats.PSD.Writer"/>
+      </Item88>
+      <Item89>
+        <Filename Value="..\..\GR32.ImageFormats.TBitmap.pas"/>
+        <UnitName Value="GR32.ImageFormats.TBitmap"/>
+      </Item89>
+      <Item90>
+        <Filename Value="..\..\GR32.ImageFormats.TClipboard.pas"/>
+        <UnitName Value="GR32.ImageFormats.TClipboard"/>
+      </Item90>
+      <Item91>
+        <Filename Value="..\..\GR32.ImageFormats.TGraphic.pas"/>
+        <UnitName Value="GR32.ImageFormats.TGraphic"/>
+      </Item91>
+      <Item92>
+        <Filename Value="..\..\GR32.ImageFormats.TIcon.pas"/>
+        <UnitName Value="GR32.ImageFormats.TIcon"/>
+      </Item92>
+      <Item93>
+        <Filename Value="..\..\GR32.ImageFormats.TMetaFile.pas"/>
+        <UnitName Value="GR32.ImageFormats.TMetaFile"/>
+      </Item93>
+      <Item94>
+        <Filename Value="..\..\GR32.ImageFormats.TPicture.pas"/>
+        <UnitName Value="GR32.ImageFormats.TPicture"/>
+      </Item94>
+      <Item95>
+        <Filename Value="..\..\GR32.ImageFormats.TWICImage.pas"/>
+        <UnitName Value="GR32.ImageFormats.TWICImage"/>
+      </Item95>
+      <Item96>
+        <Filename Value="..\..\GR32_Polygons.GDI.pas"/>
+        <UnitName Value="GR32_Polygons.GDI"/>
+      </Item96>
+      <Item97>
+        <Filename Value="..\..\GR32_Polygons.AggLite.pas"/>
+        <UnitName Value="GR32_Polygons.AggLite"/>
+      </Item97>
+      <Item98>
+        <Filename Value="..\..\GR32.Noise.Simplex.pas"/>
+        <UnitName Value="GR32.Noise.Simplex"/>
+      </Item98>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

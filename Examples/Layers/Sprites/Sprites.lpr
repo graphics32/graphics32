@@ -8,6 +8,7 @@ uses
   MainUnit in 'MainUnit.pas';
 
 begin
+  Application.Title:='Sprites Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

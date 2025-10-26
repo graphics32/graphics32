@@ -2,7 +2,6 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="9"/>
-    <PathDelim Value="\"/>
     <General>
       <Flags>
         <MainUnitHasCreateFormStatements Value="False"/>
@@ -25,8 +24,7 @@
           <Version Value="11"/>
           <PathDelim Value="/"/>
           <SearchPaths>
-            <IncludeFiles Value="../../Source;$(ProjOutDir)"/>
-            <OtherUnitFiles Value="../../../Source"/>
+            <IncludeFiles Value="../../../Source"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -92,8 +90,7 @@
     <Version Value="11"/>
     <PathDelim Value="/"/>
     <SearchPaths>
-      <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../../Source"/>
+      <IncludeFiles Value="../../../Source"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

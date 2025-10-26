@@ -299,16 +299,19 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-{$endif FPC}
 
 var
   ImageFormatHandle: integer = 0;
+
+{$endif FPC}
 
 initialization
 {$ifndef FPC}
   ImageFormatHandle := ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPNG.Create, ImageFormatPriorityWorse);
 {$endif FPC}
 finalization
+{$ifndef FPC}
   ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
+{$endif FPC}
 end.
 

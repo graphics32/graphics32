@@ -2,7 +2,6 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="12"/>
-    <PathDelim Value="\"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
@@ -20,10 +19,8 @@
       <Item Name="Release">
         <CompilerOptions>
           <Version Value="11"/>
-          <PathDelim Value="\"/>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
-            <OtherUnitFiles Value="..\..\..\Source"/>
+            <IncludeFiles Value="..\..\..\Source"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -65,6 +62,9 @@
     </RunParams>
     <RequiredPackages>
       <Item>
+        <PackageName Value="GR32_Lazarus"/>
+      </Item>
+      <Item>
         <PackageName Value="LCL"/>
       </Item>
     </RequiredPackages>
@@ -84,10 +84,8 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\Source"/>
+      <IncludeFiles Value="..\..\..\Source"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

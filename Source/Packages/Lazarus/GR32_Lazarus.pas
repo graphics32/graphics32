@@ -40,7 +40,15 @@ uses
   GR32_PortableNetworkGraphic.Chunks.tEXt, 
   GR32_PortableNetworkGraphic.Chunks.tIME, 
   GR32_PortableNetworkGraphic.Chunks.tRNS, 
-  GR32_PortableNetworkGraphic.Chunks.Unknown;
+  GR32_PortableNetworkGraphic.Chunks.Unknown, GR32.Examples, 
+  GR32.ImageFormats, GR32.ImageFormats.Default, GR32.ImageFormats.BMP, 
+  GR32.ImageFormats.GIF, GR32.ImageFormats.JPG, GR32.ImageFormats.PNG, 
+  GR32.ImageFormats.PNG32, GR32.ImageFormats.PSD, GR32.ImageFormats.PSD.Types, 
+  GR32.ImageFormats.PSD.Writer, GR32.ImageFormats.TBitmap, 
+  GR32.ImageFormats.TClipboard, GR32.ImageFormats.TGraphic, 
+  GR32.ImageFormats.TIcon, GR32.ImageFormats.TMetaFile, 
+  GR32.ImageFormats.TPicture, GR32.ImageFormats.TWICImage, GR32_Polygons.GDI, 
+  GR32_Polygons.AggLite, GR32.Noise.Simplex;
 
 implementation
 

@@ -163,6 +163,16 @@ uses
   GR32_Polygons,
   GR32_Brushes;
 
+(*
+** Various Unicode test texts
+**
+** Unsurprisingly FreePascal completely fail to handle these texts even though
+** the source code is UTF8 encoded.
+** Apparently the FPC compiler convert literal Unicode chars to UTF8 but literal
+** Unicode strings to Ansi - and good luck getting the FPC developers to admit
+** that they have a problem here.
+*)
+
 const
   sMobyDick = // ASCII breaks
     'Moby Dick'+ #13 +
@@ -195,7 +205,7 @@ const
     'better seaward peep. But these are all landsmen; of week days pent up in lath and plaster—tied to counters, nailed '+
     'to benches, clinched to desks. How then is this? Are the green fields gone? What do they here?';
 
-  sMaBohème = // Mixed breaks and No-break spaces
+  sMaBoheme = // Mixed breaks and No-break spaces
     'Ma'#$00A0'bohème'+ #$2028 +
     'Arthur'#$00A0'Rimbaud'+ #$2029 +
     // Unicode line separators
@@ -319,7 +329,7 @@ const
     (Text: sLoremIpsum; LineBreakIsParagraph: True; DoubleLineBreakIsParagraph: False),
     (Text: sMobyDick; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
     (Text: sDonQuixote; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
-    (Text: sMaBohème; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
+    (Text: sMaBoheme; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True),
     (Text: sDoOxenLowWhenMangersAreFull; LineBreakIsParagraph: False; DoubleLineBreakIsParagraph: True)
   );
 

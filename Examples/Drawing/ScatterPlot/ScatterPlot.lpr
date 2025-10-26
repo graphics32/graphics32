@@ -8,6 +8,7 @@ uses
   MainUnit in 'MainUnit.pas';
 
 begin
+  Application.Title:='Scatter Plot';
   Application.Initialize;
   Application.CreateForm(TFmScatterPlot, FmScatterPlot);
   Application.Run;

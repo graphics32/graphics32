@@ -9,7 +9,9 @@
         <MainUnitHasScaledStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="Image32 background example"/>
+      <Title Value="RotatedText"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
     </General>
     <BuildModes>
       <Item Name="Default" Default="True"/>
@@ -31,13 +33,13 @@
     </RequiredPackages>
     <Units>
       <Unit>
-        <Filename Value="Image32Background.lpr"/>
+        <Filename Value="RotatedText.dpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="Main.pas"/>
+        <Filename Value="UnitMain.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="FormMain"/>
+        <ComponentName Value="Form48"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit>
@@ -65,4 +67,17 @@
       </Options>
     </Linking>
   </CompilerOptions>
+  <Debugging>
+    <Exceptions>
+      <Item>
+        <Name Value="EAbort"/>
+      </Item>
+      <Item>
+        <Name Value="ECodetoolError"/>
+      </Item>
+      <Item>
+        <Name Value="EFOpenError"/>
+      </Item>
+    </Exceptions>
+  </Debugging>
 </CONFIG>
