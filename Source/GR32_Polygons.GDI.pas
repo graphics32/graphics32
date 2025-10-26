@@ -85,7 +85,9 @@ implementation
 uses
   Math,
   SysUtils,
+{$IFNDEF FPC}
   UITypes,
+{$ENDIF}
   Windows,
 
   GR32_VectorUtils,

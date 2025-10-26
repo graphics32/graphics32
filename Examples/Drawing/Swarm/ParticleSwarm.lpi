@@ -2,7 +2,6 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="12"/>
-    <PathDelim Value="\"/>
     <General>
       <SessionStorage Value="InProjectDir"/>
       <Title Value="ParticleSwarm"/>
@@ -46,21 +45,16 @@
         <HasResources Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\mainicon.rc"/>
+        <Filename Value="../../mainicon.rc"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <PathDelim Value="\"/>
-    <Target>
-      <Filename Value="ParticleSwarm"/>
-    </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\Source"/>
-      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      <IncludeFiles Value="../../../Source"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

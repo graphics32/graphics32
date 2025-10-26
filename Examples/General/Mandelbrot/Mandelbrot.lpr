@@ -11,6 +11,7 @@ uses
   MandelUnit in 'MandelUnit.pas';
 
 begin
+  Application.Title:='Mandelbrot Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

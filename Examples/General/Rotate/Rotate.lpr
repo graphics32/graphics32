@@ -8,6 +8,7 @@ uses
   MainUnit in 'MainUnit.pas';
 
 begin
+  Application.Title:='Rotate Example';
   Application.Initialize;
   Application.CreateForm(TFormRotateExample, FormRotateExample);
   Application.Run;

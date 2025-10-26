@@ -11,7 +11,7 @@ uses
 {$R *.res}
 
 begin
-  Application.Title := 'Nested Sampling';
+  Application.Title:='Nested Sampling';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

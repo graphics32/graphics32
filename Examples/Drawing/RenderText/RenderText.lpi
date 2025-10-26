@@ -2,7 +2,6 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="9"/>
-    <PathDelim Value="\"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
@@ -16,13 +15,9 @@
       <Item2 Name="Debug">
         <CompilerOptions>
           <Version Value="11"/>
-          <PathDelim Value="\"/>
           <SearchPaths>
-            <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
-            <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="../../../Source"/>
+            <IncludeFiles Value="../../../Source"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
-            <ObjectPath Value="..\..\.."/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -91,13 +86,9 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
-      <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
-      <OtherUnitFiles Value="../../../Source"/>
+      <IncludeFiles Value="../../../Source"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
-      <ObjectPath Value="..\..\.."/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

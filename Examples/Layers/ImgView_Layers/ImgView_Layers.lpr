@@ -10,6 +10,7 @@ uses
   RGBALoaderUnit in 'RGBALoaderUnit.pas';
 
 begin
+  Application.Title:='Image View Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TFrmNewImage, FrmNewImage);
