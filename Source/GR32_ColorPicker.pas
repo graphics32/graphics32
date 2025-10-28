@@ -583,7 +583,7 @@ var
 begin
   DC := GetWindowDC(GetDesktopWindow);
   try
-    Result := Color32(GetPixel(DC, x, y));
+    Result := SetAlpha(RGBAToColor32(GetPixel(DC, x, y)), 255);
   finally
     ReleaseDC(GetDesktopWindow, DC);
   end;
