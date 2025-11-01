@@ -1693,7 +1693,14 @@ end;
 
 procedure TCustomPaintBox32.WMEraseBkgnd(var Message: {$IFDEF FPC}TLmEraseBkgnd{$ELSE}TWmEraseBkgnd{$ENDIF});
 begin
-  Message.Result := 1;
+  if (csDesigning in ComponentState) then
+{$IFDEF FPC}
+    inherited WMEraseBkgnd(Message)
+{$ELSE}
+    inherited
+{$ENDIF}
+  else
+    Message.Result := 1;
 end;
 
 procedure TCustomPaintBox32.WMGetDlgCode(var Msg: {$IFDEF FPC}TLMessage{$ELSE}TWmGetDlgCode{$ENDIF});
@@ -1833,20 +1840,14 @@ end;
 //
 //------------------------------------------------------------------------------
 procedure TPaintBox32.DoPaintBuffer;
-var
-  BackgroundColor: TColor;
 begin
   if (csDesigning in ComponentState) then
   begin
-    // Nothing to paint in design-mode
-    BackgroundColor := Color;
-{$ifdef FPC}
-    if (BackgroundColor = clDefault) then
-      BackgroundColor := GetDefaultColor(dctBrush);
-{$endif}
-    Buffer.Clear(Color32(BackgroundColor));
-  end;
-
+    // Issue #384: TPaintBox32 isn't visible at design-time
+    Buffer.Clear(clWhite32);
+    Buffer.SetStipple([clWhite32, clWhite32, clWhite32, clBlack32]);
+    Buffer.FrameRectTSP(0, 0, Width, Height);
+  end else
   if Assigned(FOnPaintBuffer) then
     FOnPaintBuffer(Self);
 
