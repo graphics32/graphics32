@@ -36,13 +36,20 @@ unit GR32.Layers.WaterEffect;
 
 interface
 
+{.$define WATEREFFECT_COLOR_DISPERSION}
+
 uses
   GR32,
   GR32_OrdinalMaps,
   GR32_Layers;
 
 (*
-  Based on:
+  References:
+
+  - Water - wet, rippling pleasure
+    Scott Scriven, 1997
+    https://www.libsdl.org/projects/water/index.html
+    https://web.archive.org/web/20010413100813/http://www.libsdl.org/projects/water/index.html
 
   - 2D Water
     Hugo Elias, 2 dec 1998
@@ -59,8 +66,8 @@ uses
 
   - TortoiseGit
     https://github.com/TortoiseGit/TortoiseGit/blob/master/src/Utils/MiscUI/WaterEffect.cpp
-
 *)
+
 type
   TWaterEffect = class(TObject)
   private const
@@ -69,7 +76,6 @@ type
     FDistortionMap: TIntegerMap;
     FNextDistortionMap: TIntegerMap;
     FDecay: Single;
-    FLightModifier: Integer;
 
   private
     procedure SetDecay(Value: Single);
@@ -107,6 +113,7 @@ type
 
     procedure UpdateWater;
     procedure WaterDrop(X, Y: Integer; DropRadius, DropAmplitude: Integer);
+
     property WaveDecay: Single read GetWaveDecay write SetWaveDecay;
   end;
 
@@ -120,7 +127,6 @@ constructor TWaterEffect.Create;
 begin
   inherited;
 
-  FLightModifier := 10;
   FDecay := DefaultDecay;
 
   FDistortionMap := TIntegerMap.Create;
@@ -138,29 +144,58 @@ end;
 procedure TWaterEffect.Drop(X, Y: Integer; DropRadius, DropAmplitude: Integer);
 var
   SquareRadius: Integer;
-  DropX, DropY, SquareY: Integer;
-  DropRect: TRect;
+  DropX, DropY, SquareX, SquareY: Integer;
+  Amplitude: Integer;
+  SquareDist: integer;
 begin
-  if (X < 0) or (X > FDistortionMap.Width - 1) then
+  if (DropRadius = 0) or (DropAmplitude = 0) then
+    exit;
+
+  if (X < 0) or (X >= FDistortionMap.Width) then
     X := Random(FDistortionMap.Width);
 
-  if (Y < 0) or (Y > FDistortionMap.Height - 1) then
+  if (Y < 0) or (Y >= FDistortionMap.Height) then
     Y := Random(FDistortionMap.Height);
 
-  DropRect.Left := -Min(X, DropRadius);
-  DropRect.Right := Min(FDistortionMap.Width - 1 - X, DropRadius);
-  DropRect.Top := -Min(Y, DropRadius);
-  DropRect.Bottom := Min(FDistortionMap.Height - 1 - Y, DropRadius);
-
   SquareRadius := DropRadius * DropRadius;
-  for DropY := DropRect.Top to DropRect.Bottom do
+
+  for DropY := 0 to DropRadius do
   begin
     SquareY := DropY * DropY;
 
-    for DropX := DropRect.Left to DropRect.Right do
+    for DropX := 0 to DropRadius do
     begin
-      if (DropX * DropX + SquareY <= SquareRadius) then
-        Inc(FDistortionMap.ValPtr[DropX + X, DropY + Y]^, DropAmplitude);
+      SquareX := DropX * DropX;
+
+      SquareDist := SquareX + SquareY;
+
+      if (SquareDist > SquareRadius) then
+        break;
+
+      // Give the drop a parabolic shape
+      Amplitude := Round(DropAmplitude * Sqr(1.0 - Sqrt(SquareDist) / DropRadius));
+
+      if (Amplitude = 0) then
+        break;
+
+      // Apply distortion to the 4 quadrants of the drop circle
+      if (X - DropX >= 0) then
+      begin
+        if (Y - DropY >= 0) then
+          Inc(FDistortionMap.ValPtr[X - DropX, Y - DropY]^, Amplitude);
+
+        if (Y + DropX < FDistortionMap.Height) then
+          Inc(FDistortionMap.ValPtr[X - DropX, Y + DropY]^, Amplitude);
+      end;
+
+      if (X + DropX < FDistortionMap.Width) then
+      begin
+        if (Y - DropY >= 0) then
+          Inc(FDistortionMap.ValPtr[X + DropX, Y - DropY]^, Amplitude);
+
+        if (Y + DropX < FDistortionMap.Height) then
+          Inc(FDistortionMap.ValPtr[X + DropX, Y + DropY]^, Amplitude);
+      end;
     end;
   end;
 end;
@@ -176,13 +211,16 @@ var
   SourceRowAbove, SourceRow, SourceRowBelow: PIntegerArray;
   Target: PInteger;
   Temp: TIntegerMap;
+const
+  FractionlBits = 10; // Number of bits of an integer to use for fractional part
+  FractionFactor = 1 shl FractionlBits;
 begin
   Result := False;
 
-  DecayRate := Round((1.0 - FDecay) * 256 * 256);
+  DecayRate := Round((1.0 - FDecay) * FractionFactor);
 
   // Note:
-  // Reflection is implemented by using Abs() and Reflect() instead of Max() and Min().
+  // Wave reflection is implemented by using Abs() and Mirror() instead of Max() and Min().
 
   for Y := 0 to FDistortionMap.Height - 1 do
   begin
@@ -190,16 +228,35 @@ begin
 
     SourceRowAbove := FDistortionMap.Scanline[Abs(Y - 1)];
     SourceRow := FDistortionMap.Scanline[Y];
-    SourceRowBelow := FDistortionMap.Scanline[Reflect(Y + 1, FDistortionMap.Height - 1)];
+    SourceRowBelow := FDistortionMap.Scanline[Mirror(Y + 1, FDistortionMap.Height - 1)];
 
     for X := 0 to FDistortionMap.Width - 1 do
     begin
       XLeft := Abs(X - 1);
-      XRight := Reflect(X + 1, FDistortionMap.Width - 1);
+      XRight := Mirror(X + 1, FDistortionMap.Width - 1);
+
       Target := @TargetRow[X];
 
-      Amplitude := (SourceRowAbove[XLeft] + SourceRowAbove[X] + SourceRowAbove[XRight] + SourceRow[XLeft] + SourceRow[XRight] + SourceRowBelow[XLeft] + SourceRowBelow[X] + SourceRowBelow[XRight]) div 4 - Target^;
-      Target^ := (Amplitude * DecayRate) div (256 * 256);
+      // Note:
+      // The original algorithm summed the orthogonal points and divided by 2, thus doubling
+      // the value (by design).
+      // This version sums the orthogonal points plus half the diagonal points, to make the
+      // propagation less square, and then divide by 3, again doubling the value.
+      Amplitude := (
+        (
+          (                       SourceRowAbove[X] +
+            SourceRow[XLeft] +        {center}          SourceRow[XRight] +
+                                  SourceRowBelow[X]
+          ) +
+
+          (
+            SourceRowAbove[XLeft] +                     SourceRowAbove[XRight] +
+                                      {center}
+            SourceRowBelow[XLeft] +                     SourceRowBelow[XRight]
+          ) div 2 // Half of the diagonals to make the propagation more round (less square)
+        ) div 3 - Target^) * DecayRate;
+
+      Target^ := Amplitude div FractionFactor;
 
       Result := Result or (Target^ <> 0);
     end;
@@ -223,6 +280,9 @@ var
   DistortionX, DistortionY: Integer;
   DistortionAbove, Distortion, DistortionBelow: PIntegerArray;
   PixelSource, PixelDest: PColor32Entry;
+{$if defined(WATEREFFECT_COLOR_DISPERSION)}
+  ColorDispersion: integer;
+{$ifend}
 begin
   for Y := 0 to FDistortionMap.Height - 1 do
   begin
@@ -230,23 +290,36 @@ begin
 
     DistortionAbove := FDistortionMap.Scanline[Abs(Y - 1)];
     Distortion := FDistortionMap.Scanline[Y];
-    DistortionBelow := FDistortionMap.Scanline[Reflect(Y + 1, FDistortionMap.Height - 1)];
+    DistortionBelow := FDistortionMap.Scanline[Mirror(Y + 1, FDistortionMap.Height - 1)];
 
     for X := 0 to FDistortionMap.Width - 1 do
     begin
-      DistortionX := Distortion[Abs(X - 1)] - Distortion[Reflect(X + 1, FDistortionMap.Width - 1)];
+      DistortionX := Distortion[Abs(X - 1)] - Distortion[Mirror(X + 1, FDistortionMap.Width - 1)];
       DistortionY := DistortionAbove[X] - DistortionBelow[X];
 
-      SourceX := X + DistortionX;
-      SourceY := Y + DistortionY;
-
-      if (SourceX >= 0) and (SourceX < FDistortionMap.Width) and (SourceY + DistortionY >= 0) and (SourceY < FDistortionMap.Height) then
+      if (DistortionX <> 0) or (DistortionY <> 0) then
       begin
-        PixelSource := PColor32Entry(BitmapSource.PixelPtr[SourceX, SourceY]);
 
-        PixelDest.R := Clamp(PixelSource.R - DistortionX);
-        PixelDest.G := Clamp(PixelSource.G - DistortionX);
-        PixelDest.B := Clamp(PixelSource.B - DistortionX);
+        SourceX := X + DistortionX;
+        SourceY := Y + DistortionY;
+
+        if (SourceX >= 0) and (SourceX < FDistortionMap.Width) and (SourceY >= 0) and (SourceY < FDistortionMap.Height) then
+        begin
+          PixelSource := PColor32Entry(BitmapSource.PixelPtr[SourceX, SourceY]);
+
+{$if defined(WATEREFFECT_COLOR_DISPERSION)}
+          // Not really color dispersion, but good enough for this use
+          ColorDispersion := DistortionX + DistortionY;
+
+          PixelDest.R := Clamp(PixelSource.R - ColorDispersion);
+          PixelDest.G := Clamp(PixelSource.G - ColorDispersion);
+          PixelDest.B := Clamp(PixelSource.B - ColorDispersion);
+{$else}
+          PixelDest^ := PixelSource^;
+{$ifend}
+        end else
+          PixelDest^ := TColor32Entry(BitmapSource.Pixel[X, Y]);
+
       end else
         PixelDest^ := TColor32Entry(BitmapSource.Pixel[X, Y]);
 

@@ -67,30 +67,52 @@ implementation
 
 {$R *.dfm}
 
+uses
+  Types;
+
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
   FWaterEffectLayer := TWaterEffectLayer32(Image32.Layers.Add(TWaterEffectLayer32));
+
+  // We need the buffer to be the exact size of the bitmap since the
+  // water effect distortion map size is based on the layer buffer size.
+  Image32.BufferOversize := 0;
+
   Image32.Bitmap.LoadFromResourceName(HInstance, 'MonaLisa', RT_RCDATA);
 end;
 
 procedure TFormMain.Image32MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
   if (Layer = FWaterEffectLayer) then
+  begin
+    if (not Image32.BoundsRect.Contains(Point(X, Y))) then
+      exit;
+
     FWaterEffectLayer.WaterDrop(X, Y, 10, 150);
+  end;
 end;
 
 procedure TFormMain.Image32MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 var
   Multiplier: integer;
+  Sign: integer;
 begin
   if (Layer = FWaterEffectLayer) then
   begin
+    if (not Image32.BoundsRect.Contains(Point(X, Y))) then
+      exit;
+
     if (ssLeft in Shift) then
       Multiplier := 2
     else
       Multiplier := 1;
 
-    FWaterEffectLayer.WaterDrop(X, Y, 5 * Multiplier, 50 * Multiplier);
+    if (ssRight in Shift) then
+      Sign := -1
+    else
+      Sign := 1;
+
+    FWaterEffectLayer.WaterDrop(X, Y, 10 * Multiplier, 50 * Multiplier * Sign);
   end;
 end;
 
@@ -101,7 +123,7 @@ begin
   DropSize := 5 + Random(5);
   FWaterEffectLayer.WaterDrop(-1, -1, DropSize, DropSize * DropSize);
 
-  TTimer(Sender).Interval := 100 + Random(2000);
+  TTimer(Sender).Interval := 100 + Random(1000);
 end;
 
 procedure TFormMain.TimerWaterEffectTimer(Sender: TObject);

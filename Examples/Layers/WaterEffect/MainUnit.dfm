@@ -3,6 +3,7 @@ object FormMain: TFormMain
   Top = 0
   AutoSize = True
   BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
   Caption = 'Water Effect layer example'
   ClientHeight = 600
   ClientWidth = 440
