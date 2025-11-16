@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{D21C9B4D-C14D-4D9C-8F0F-123F60893510}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="GR32_CR.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="GR32_CD.cbproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="GR32_CR">
+        <MSBuild Projects="GR32_CR.cbproj"/>
+    </Target>
+    <Target Name="GR32_CR:Clean">
+        <MSBuild Projects="GR32_CR.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="GR32_CR:Make">
+        <MSBuild Projects="GR32_CR.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="GR32_CD">
+        <MSBuild Projects="GR32_CD.cbproj"/>
+    </Target>
+    <Target Name="GR32_CD:Clean">
+        <MSBuild Projects="GR32_CD.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="GR32_CD:Make">
+        <MSBuild Projects="GR32_CD.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="GR32_CR;GR32_CD"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="GR32_CR:Clean;GR32_CD:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="GR32_CR:Make;GR32_CD:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
