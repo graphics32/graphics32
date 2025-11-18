@@ -1,4 +1,4 @@
-unit GR32.ImageFormats.BMP;
+unit GR32.ImageFormats.BMP32;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception

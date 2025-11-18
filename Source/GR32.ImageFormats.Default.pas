@@ -73,7 +73,7 @@ implementation
 //------------------------------------------------------------------------------
 
 uses
-  GR32.ImageFormats.BMP,
+  GR32.ImageFormats.BMP32,
   GR32.ImageFormats.PNG32,
   GR32.ImageFormats.TClipboard,
   GR32.ImageFormats.TBitmap,

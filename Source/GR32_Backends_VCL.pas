@@ -210,7 +210,7 @@ implementation
 uses
   System.Math,
   System.Types,
-  GR32.Text.Win;
+  GR32.Text.Win32;
 
 var
   StockFont: HFONT;

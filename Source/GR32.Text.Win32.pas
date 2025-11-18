@@ -1,4 +1,4 @@
-unit GR32.Text.Win;
+unit GR32.Text.Win32;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -33,7 +33,7 @@ unit GR32.Text.Win;
 interface
 
 {$include GR32.inc}
-
+{$WEAKPACKAGEUNIT ON}
 //------------------------------------------------------------------------------
 //
 //      Font provider for Windows platform
