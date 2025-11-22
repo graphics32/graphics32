@@ -544,6 +544,22 @@
 
 
 (*
+  Symbol CanAlignForSSE:
+  -------------------------
+
+    If defined the compile/linker can align data/code for use with SSE2
+
+  Defined for Delphi, FPC, and 64-bit C++ Builder.
+  The 32-bit C++ Builder linker has a bug that prevents it from working.
+  See issue #385
+
+*)
+{$if (not defined(BCB)) or (not defined(TARGET_x86))}
+  {$define CanAlignForSSE}
+{$ifend}
+
+
+(*
   Miscellaneous Defines:
   ----------------------
 *)
@@ -584,7 +600,7 @@
   {$define RECORD_CLASS_VAR}    // Class vars in record types. Use object type instead.
   {$define CAST_INTF_TO_CLASS}  // Casting an interface to a class.
 
-// 16 byte code alignment required for SSE aligned loads from asm db blocks
+  // 16 byte code alignment required for SSE aligned loads from asm db blocks
   {$CODEALIGN 16}
 
   // FireMonkey

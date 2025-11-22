@@ -81,7 +81,9 @@ function CombineReg_SSE2(X, Y: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} as
 procedure CombineMem_SSE2_Table(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 procedure CombineMem_SSE2_128(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 procedure CombineMem_SSE41_8081(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+{$if defined(CanAlignForSSE)}
 procedure CombineMem_SSE41_Kadaif(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+{$ifend}
 
 procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
@@ -103,7 +105,9 @@ function ColorScale_SSE2(C: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assem
 // Misc
 //------------------------------------------------------------------------------
 function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+{$if defined(CanAlignForSSE)}
 procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+{$ifend}
 procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 
@@ -1616,6 +1620,7 @@ end;
 
 //------------------------------------------------------------------------------
 
+{$if defined(CanAlignForSSE)}
 procedure CombineMem_SSE41_Kadaif(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 (*
 Contributed by: Kadaif
@@ -1725,6 +1730,7 @@ asm
         MOV       [RDX], ECX                    // ColorY <- ColorX
 {$ENDIF}
 end;
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -2255,6 +2261,7 @@ end;
 //------------------------------------------------------------------------------
 // ScaleMems
 //------------------------------------------------------------------------------
+{$if defined(CanAlignForSSE)}
 procedure ScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   //
@@ -2398,6 +2405,7 @@ asm
         JNZ       @Clear
 {$ENDIF}
 end;
+{$ifend}
 
 procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -2615,11 +2623,15 @@ begin
   BlendRegistry[@@MergeReg].Add(      @MergeReg_SSE2,         [isSSE2]).Name := 'MergeReg_SSE2';
   BlendRegistry[@@CombineReg].Add(    @CombineReg_SSE2,       [isSSE2]).Name := 'CombineReg_SSE2';
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE2_128,   [isSSE2]).Name := 'CombineMem_SSE2_128';
+{$if defined(CanAlignForSSE)}
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE41_Kadaif, [isSSE41]).Name := 'CombineMem_SSE41_Kadaif';
+{$ifend}
+
 {$if defined(BENCHMARK)}
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE2_Table, [isSSE2], BindingPriorityWorse).Name := 'CombineMem_SSE2_Table';
   BlendRegistry[@@CombineMem].Add(    @CombineMem_SSE41_8081, [isSSE41], BindingPriorityWorse).Name := 'CombineMem_SSE41_8081';
 {$ifend}
+
   BlendRegistry[@@CombineLine].Add(   @CombineLine_SSE2,      [isSSE2]).Name := 'CombineLine_SSE2';
   BlendRegistry[@@BlendReg].Add(      @BlendReg_SSE2,         [isSSE2]).Name := 'BlendReg_SSE2';
   BlendRegistry[@@BlendMem].Add(      @BlendMem_SSE2,         [isSSE2]).Name := 'BlendMem_SSE2';
@@ -2640,10 +2652,10 @@ begin
   BlendRegistry[@@BlendRegRGB].Add(   @BlendRegRGB_SSE2,      [isSSE2]).Name := 'BlendRegRGB_SSE2';
   BlendRegistry[@@BlendMemRGB].Add(   @BlendMemRGB_SSE2,      [isSSE2]).Name := 'BlendMemRGB_SSE2';
 
-{$if defined(GR32_SCALEMEMS_FAST) or defined(BENCHMARK)}
+{$if defined(GR32_SCALEMEMS_FAST) or defined(BENCHMARK) or (not defined(CanAlignForSSE))}
   BlendRegistry[@@ScaleMems].Add(     @FastScaleMems_SSE41,   [isSSE41]).Name := 'FastScaleMems_SSE41';
 {$ifend}
-{$if (not defined(GR32_SCALEMEMS_FAST)) or defined(BENCHMARK)}
+{$if ((not defined(GR32_SCALEMEMS_FAST)) or defined(BENCHMARK)) and defined(CanAlignForSSE)}
   BlendRegistry[@@ScaleMems].Add(     @ScaleMems_SSE41,       [isSSE41]).Name := 'ScaleMems_SSE41';
 {$ifend}
 

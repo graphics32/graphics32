@@ -93,6 +93,7 @@ const
 //------------------------------------------------------------------------------
 // Aligned constants. Implemented as no-code assembly routines.
 //------------------------------------------------------------------------------
+{$if defined(CanAlignForSSE)}
 // 8 x $FF00
 procedure SSE_FF00FF00_ALIGNED;
 
@@ -101,6 +102,7 @@ procedure SSE_003FFF7F_ALIGNED;
 
 // Aligned pack table for PSHUFB: Picks low byte of 4 dwords
 procedure SSE_0C080400_ALIGNED;
+{$ifend}
 
 
 {$ifend}
@@ -111,6 +113,7 @@ procedure SSE_0C080400_ALIGNED;
 
 implementation
 
+{$if defined(CanAlignForSSE)}
 procedure SSE_FF00FF00_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$ifdef FPC}
@@ -149,6 +152,7 @@ asm
   db $00, $04, $08, $0C
   db $00, $04, $08, $0C
 end;
+{$ifend}
 
 end.
 
