@@ -32,8 +32,27 @@ unit GR32.Text.Win32;
 
 interface
 
+(*
+** Note: These two files were renamed from
+**
+**   GR32.ImageFormats.BMP.pas
+**   GR32.Text.Win.pas
+**
+** to
+**
+**   GR32.ImageFormats.BMP32.pas
+**   GR32.Text.Win32.pas
+**
+** to work around a bug in the C++ toolchain.
+**
+** Specifically, the design-time package could not be installed because
+** it included those two units, even though they were present in the
+** run-time package.
+** See issue #385
+*)
+
 {$include GR32.inc}
-{$WEAKPACKAGEUNIT ON}
+
 //------------------------------------------------------------------------------
 //
 //      Font provider for Windows platform

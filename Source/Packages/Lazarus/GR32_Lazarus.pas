@@ -41,7 +41,7 @@ uses
   GR32_PortableNetworkGraphic.Chunks.tIME, 
   GR32_PortableNetworkGraphic.Chunks.tRNS, 
   GR32_PortableNetworkGraphic.Chunks.Unknown, GR32.Examples, 
-  GR32.ImageFormats, GR32.ImageFormats.Default, GR32.ImageFormats.BMP, 
+  GR32.ImageFormats, GR32.ImageFormats.Default, GR32.ImageFormats.BMP32, 
   GR32.ImageFormats.GIF, GR32.ImageFormats.JPG, GR32.ImageFormats.PNG, 
   GR32.ImageFormats.PNG32, GR32.ImageFormats.PSD, GR32.ImageFormats.PSD.Types, 
   GR32.ImageFormats.PSD.Writer, GR32.ImageFormats.TBitmap, 

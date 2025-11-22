@@ -208,7 +208,7 @@ type
 implementation
 
 uses
-  GR32.Text.Win;
+  GR32.Text.Win32;
 
 var
   StockFont: HFONT;

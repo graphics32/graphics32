@@ -139,7 +139,7 @@
         <DCCReference Include="..\..\GR32_VectorUtils.pas"/>
         <DCCReference Include="..\..\GR32_VPR.pas"/>
         <DCCReference Include="..\..\GR32.Text.Types.pas"/>
-        <DCCReference Include="..\..\GR32.Text.Win.pas"/>
+        <DCCReference Include="..\..\GR32.Text.Win32.pas"/>
         <DCCReference Include="..\..\GR32.Text.Cache.pas"/>
         <DCCReference Include="..\..\GR32.Text.FontFace.pas"/>
         <DCCReference Include="..\..\GR32.Text.Layout.pas"/>
@@ -178,7 +178,8 @@
         <DCCReference Include="..\..\GR32_PortableNetworkGraphic.Chunks.Unknown.pas"/>
         <DCCReference Include="..\..\GR32_PortableNetworkGraphic.Chunks.zTXt.pas"/>
         <DCCReference Include="..\..\GR32_Blurs.pas"/>
-        <DCCReference Include="..\..\GR32.ImageFormats.BMP.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.Default.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.BMP32.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.PNG32.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.TBitmap.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.TClipboard.pas"/>

@@ -34,6 +34,26 @@ unit GR32.ImageFormats.BMP32;
 
 interface
 
+(*
+** Note: The following two units were renamed from
+**
+**   GR32.ImageFormats.BMP.pas
+**   GR32.Text.Win.pas
+**
+** to
+**
+**   GR32.ImageFormats.BMP32.pas
+**   GR32.Text.Win32.pas
+**
+** in order to work around a bug in the C++ toolchain.
+**
+** Specifically, the design-time package could not be installed because
+** it included those two units, even though they were present in the
+** run-time package.
+**
+** See issue #385
+*)
+
 {$include GR32.inc}
 
 implementation

@@ -63,9 +63,9 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <UnitName Value="GR32.Text.Types"/>
       </Item8>
       <Item9>
-        <Filename Value="..\..\GR32.Text.Win.pas"/>
+        <Filename Value="..\..\GR32.Text.Win32.pas"/>
         <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="GR32.Text.Win"/>
+        <UnitName Value="GR32.Text.Win32"/>
       </Item9>
       <Item10>
         <Filename Value="..\..\GR32_ArrowHeads.pas"/>
@@ -356,8 +356,8 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <UnitName Value="GR32.ImageFormats.Default"/>
       </Item80>
       <Item81>
-        <Filename Value="..\..\GR32.ImageFormats.BMP.pas"/>
-        <UnitName Value="GR32.ImageFormats.BMP"/>
+        <Filename Value="..\..\GR32.ImageFormats.BMP32.pas"/>
+        <UnitName Value="GR32.ImageFormats.BMP32"/>
       </Item81>
       <Item82>
         <Filename Value="..\..\GR32.ImageFormats.GIF.pas"/>
