@@ -547,7 +547,7 @@
   Symbol CanAlignForSSE:
   -------------------------
 
-    If defined the compile/linker can align data/code for use with SSE2
+    If defined the compile/linker can align data/code for use with SSE2.
 
   Defined for Delphi, FPC, and 64-bit C++ Builder.
   The 32-bit C++ Builder linker has a bug that prevents it from working.
@@ -556,6 +556,23 @@
 *)
 {$if (not defined(BCB)) or (not defined(TARGET_x86))}
   {$define CanAlignForSSE}
+{$ifend}
+
+
+(*
+  Symbol CanResolveCrossUnitStaticsFromAsm:
+  -----------------------------------------
+
+    If defined the compile/linker can resolve static symbols in other
+    units from assembler.
+
+  Defined for Delphi, FPC, and 64-bit C++ Builder.
+  The 32-bit C++ Builder linker has a bug that prevents it from working.
+  See issue #385
+
+*)
+{$if (not defined(BCB)) or (not defined(TARGET_x86))}
+  {$define CanResolveCrossUnitStaticsFromAsm}
 {$ifend}
 
 

@@ -123,9 +123,19 @@ implementation
 
 uses
   GR32_Blend,
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2)) and (not defined(CanResolveCrossUnitStaticsFromAsm))}
+  GR32_System,
+{$ifend}
   GR32_LowLevel,
   GR32_Bindings,
   GR32.Types.SIMD;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2)) and (not defined(CanResolveCrossUnitStaticsFromAsm))}
+var
+  alpha_ptr: PMultTable;
+  bias_ptr: PMultEntry;
+{$ifend}
+
 
 //------------------------------------------------------------------------------
 //
@@ -2672,4 +2682,11 @@ end;
 
 initialization
   RegisterBindingFunctions;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2)) and (not defined(CanResolveCrossUnitStaticsFromAsm))}
+  if [isSSE2] * CPU.InstructionSupport <> [] then
+    GR32_Blend.GenAlphaTable;
+  alpha_ptr := GR32_Blend.alpha_ptr;
+  bias_ptr := GR32_Blend.bias_ptr;
+{$ifend}
 end.

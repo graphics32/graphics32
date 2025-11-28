@@ -381,6 +381,12 @@ var
   bias_ptr: PMultEntry;
 
 
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2)) and (not defined(CanResolveCrossUnitStaticsFromAsm))}
+// GenAlphaTable allows other units to initialize alpha_ptr and bias_ptr.
+// See issue #385.
+procedure GenAlphaTable;
+{$ifend}
+
 //------------------------------------------------------------------------------
 //
 //      Backward compatibility
@@ -414,13 +420,16 @@ uses
 //
 //------------------------------------------------------------------------------
 var
-  AlphaTable: Pointer;
+  AlphaTable: Pointer = nil;
 
 procedure GenAlphaTable;
 var
   i: Integer;
   Color: TColor32Entry;
 begin
+  if (AlphaTable <> nil) then
+    exit;
+
   GetMem(AlphaTable, SizeOf(TMultTable) + 16); // + 16 bytes for alignment
 
   // Align to 16 bytes
@@ -581,8 +590,6 @@ initialization
   BlendRegistry.RebindAll;
 
   MakeMergeTables;
-
-  AlphaTable := nil;
 
   if [isSSE2] * CPU.InstructionSupport <> [] then
     GenAlphaTable;

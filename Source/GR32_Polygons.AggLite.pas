@@ -122,10 +122,20 @@ implementation
 uses
   Math,
   GR32_Blend,
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2)) and (not defined(CanResolveCrossUnitStaticsFromAsm))}
+  GR32_System,
+{$ifend}
   GR32_Gamma,
   GR32_LowLevel,
   GR32_Bindings,
   GR32_VectorUtils;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2)) and (not defined(CanResolveCrossUnitStaticsFromAsm))}
+var
+  alpha_ptr: PMultTable;
+  bias_ptr: PMultEntry;
+{$ifend}
+
 
 procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
@@ -1788,6 +1798,13 @@ end;
 initialization
   RegisterPolygonRenderer(TPolygonRenderer32AggLite);
   RegisterBindings;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2)) and (not defined(CanResolveCrossUnitStaticsFromAsm))}
+  if [isSSE2] * CPU.InstructionSupport <> [] then
+    GR32_Blend.GenAlphaTable;
+  alpha_ptr := GR32_Blend.alpha_ptr;
+  bias_ptr := GR32_Blend.bias_ptr;
+{$ifend}
 
 finalization
 
