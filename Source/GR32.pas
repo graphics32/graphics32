@@ -1299,10 +1299,26 @@ var
 function GeneralRegistry: TFunctionRegistry;
 
 
+//------------------------------------------------------------------------------
+//
+//      Initialization workaround for C++ Builder - Don't call these directly
+//
+//------------------------------------------------------------------------------
+{$ifdef BCB}
+procedure GR32initialization;
+procedure GR32finalization;
+{$endif}
+
+
 resourcestring
   RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
   RCStrCannotSetSize = 'Can''t set size from ''%s''';
   RCStrInpropriateBackend = 'Inappropriate Backend';
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -7946,11 +7962,20 @@ begin
 {$ifend}
 end;
 
+
 //------------------------------------------------------------------------------
+//
+//      GR32initialization
+//      GR32finalization
+//
 //------------------------------------------------------------------------------
+// Works around C++ Builder GR32 initialization not being executed from run-time
+// package.
+// See issue #385.
 //------------------------------------------------------------------------------
 
-initialization
+procedure GR32initialization;
+begin
   RegisterBindingFunctions;
   GeneralRegistry.RebindAll;
 
@@ -7958,8 +7983,33 @@ initialization
   StockBitmap := TBitmap.Create;
   StockBitmap.Width := 8;
   StockBitmap.Height := 8;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure GR32finalization;
+begin
+  StockBitmap.Free;
+end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+initialization
+
+{$ifndef BCB}
+  GR32initialization;
+{$else}
+  // Called from GR32_Blend
+{$endif}
 
 finalization
-  StockBitmap.Free;
+
+{$ifndef BCB}
+  GR32finalization;
+{$else}
+  // Called from GR32_Blend
+{$endif}
 
 end.

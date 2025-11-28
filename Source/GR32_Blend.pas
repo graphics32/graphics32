@@ -587,6 +587,13 @@ end;
 //------------------------------------------------------------------------------
 
 initialization
+
+{$ifdef BCB}
+  GR32.GR32initialization;
+{$else}
+  // Called from GR32
+{$endif}
+
   BlendRegistry.RebindAll;
 
   MakeMergeTables;
@@ -595,6 +602,13 @@ initialization
     GenAlphaTable;
 
 finalization
+
+{$ifdef BCB}
+  GR32.GR32finalization;
+{$else}
+  // Called from GR32
+{$endif}
+
   FreeAlphaTable;
 
 end.
