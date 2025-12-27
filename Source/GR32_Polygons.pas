@@ -213,6 +213,22 @@ type
     procedure RenderSpan(const Span: TValueSpan; DstY: Integer); override;
   end;
 
+//------------------------------------------------------------------------------
+// TPolygonRenderer32FSE
+//------------------------------------------------------------------------------
+ TPolygonRenderer32FSE = class(TPolygonRenderer32)
+ private
+   FStrokeColor: TColor32;
+ protected
+   procedure RenderSpan(const Span: TValueSpan; DstY: Integer); virtual;
+   function GetRenderSpan: TRenderSpanEvent; virtual;
+ public
+   procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
+     const ClipRect: TFloatRect); override;
+
+   property StrokeColor: TColor32 read FStrokeColor write FStrokeColor;
+ end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -400,6 +416,8 @@ procedure PolyPolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfF
   Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFixed = $10000;
   JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
   MiterLimit: TFixed = $40000; Transformation: TTransformation = nil); overload;
+
+procedure PolygonFSE(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; FillColor, StrokeColor: TColor32; StrokeWidth: TFloat = 1.0; JoinStyle: TJoinStyle = jsMiter; MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
 
 //------------------------------------------------------------------------------
 // Fixed, Polyline
@@ -2090,6 +2108,30 @@ begin
     JoinStyle, EndStyle, MiterLimit, Transformation);
 end;
 
+procedure PolygonFSE(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint; FillColor, StrokeColor: TColor32; StrokeWidth: TFloat; JoinStyle: TJoinStyle; MiterLimit: TFloat; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32FSE;
+  Stroked: TArrayOfArrayOfFloatPoint;
+  Combined: TArrayOfArrayOfFloatPoint;
+begin
+  Stroked := BuildPolyPolyLine(PolyPolygon(Points), true, StrokeWidth, JoinStyle, esButt, MiterLimit);
+  SetLength(Combined, Length(Stroked) + 1);
+  Combined[0] := Points;
+  if Length(Stroked) > 0 then
+    System.Move(Stroked[0], Combined[1], Length(Stroked) * SizeOf(Pointer));
+
+  Renderer := TPolygonRenderer32FSE.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := FillColor;
+    Renderer.StrokeColor := StrokeColor;
+    Renderer.FillMode := pfWinding;
+    Renderer.PolyPolygonFS(Combined, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -3020,6 +3062,52 @@ begin
 {$ENDIF}
 end;
 {$W-}
+
+//------------------------------------------------------------------------------
+// TPolygonRenderer32FSE
+//------------------------------------------------------------------------------
+function TPolygonRenderer32FSE.GetRenderSpan: TRenderSpanEvent;
+begin
+  Result := RenderSpan;
+end;
+
+procedure TPolygonRenderer32FSE.PolyPolygonFS(
+  const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
+begin
+  if not Bitmap.MeasuringMode then
+    RenderPolyPolygon(Points, ClipRect, GetRenderSpan);
+end;
+
+procedure TPolygonRenderer32FSE.RenderSpan(const Span: TValueSpan; DstY: Integer);
+var
+  I: Integer;
+  V: Integer;
+  CurColor: TColor32;
+
+  AlphaValues: PColor32Array;
+  Count: Integer;
+begin
+  Count := Span.HighX - Span.LowX + 1;
+  GetMem(AlphaValues, Count * SizeOf(TColor32));
+
+  for I := 0 to Count - 1 do
+  begin
+    V := Round(Abs(Span.Values[I]));
+    if Odd(V) then
+      CurColor := StrokeColor
+    else
+      CurColor := Color;
+
+    V := Clamp(Round(Frac(Abs(Span.Values[I])) * 256));
+    AlphaValues[I] := CurColor and $00FFFFFF or (V shl 24);
+  end;
+
+  if Bitmap.CombineMode = cmMerge then
+    MergeLine(AlphaValues, @Bitmap.Scanline[DstY][Span.LowX], Count)
+  else
+    BlendLine(AlphaValues, @Bitmap.Scanline[DstY][Span.LowX], Count);
+  FreeMem(AlphaValues);
+end;
 
 //------------------------------------------------------------------------------
 

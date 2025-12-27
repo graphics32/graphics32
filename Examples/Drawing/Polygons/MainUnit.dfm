@@ -203,6 +203,15 @@ object FormPolygons: TFormPolygons
       TickStyle = tsNone
       OnChange = MiterLimitChange
     end
+    object CbxSinglePass: TCheckBox
+      Left = 16
+      Top = 220
+      Width = 97
+      Height = 17
+      Caption = 'Single Pass'
+      TabOrder = 10
+      OnClick = ParamsChanged
+    end
   end
   object BitmapList: TBitmap32List
     Bitmaps = <

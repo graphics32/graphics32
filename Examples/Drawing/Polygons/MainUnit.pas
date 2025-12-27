@@ -48,6 +48,7 @@ type
     BtnNewLine: TButton;
     CbxPattern: TCheckBox;
     CbxThickOutline: TCheckBox;
+    CbxSinglePass: TCheckBox;
     FillAlpha: TTrackBar;
     Image: TImage32;
     LblFillOpacity: TLabel;
@@ -142,23 +143,49 @@ end;
 procedure TFormPolygons.Draw;
 var
   Index, PointIndex: Integer;
+  FloatPoints: TArrayOfFloatPoint;
 begin
   Image.Bitmap.BeginUpdate;
   try
     Image.Bitmap.Clear(clWhite32);
     Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
 
-    for Index := 0 to Length(FPoints) - 1 do
+    if CbxSinglePass.Checked then
     begin
-      if Length(FPoints[Index]) = 0 then
-        Continue;
+      for Index := 0 to High(FPoints) do
+      begin
+        if Length(FPoints[Index]) > 2 then
+        begin
+          SetLength(FloatPoints, Length(FPoints[Index]));
+          for PointIndex := 0 to High(FPoints[Index]) do
+            FloatPoints[PointIndex] := FloatPoint(FPoints[Index, PointIndex].X, FPoints[Index, PointIndex].Y);
 
-      FCanvas.MoveTo(FPoints[Index, 0].X, FPoints[Index, 0].Y);
+          PolygonFSE(
+            Image.Bitmap,
+            FloatPoints,
+            FSolid.FillColor,
+            FStroke.FillColor,
+            FStroke.StrokeWidth,
+            FStroke.JoinStyle,
+            FStroke.MiterLimit
+          );
+        end;
+      end;
+    end
+    else
+    begin
+      for Index := 0 to Length(FPoints) - 1 do
+      begin
+        if Length(FPoints[Index]) = 0 then
+          Continue;
 
-      for PointIndex := 1 to Length(FPoints[Index]) - 1 do
-        FCanvas.LineTo(FPoints[Index, PointIndex].X, FPoints[Index, PointIndex].Y);
+        FCanvas.MoveTo(FPoints[Index, 0].X, FPoints[Index, 0].Y);
 
-      FCanvas.EndPath(True);
+        for PointIndex := 1 to Length(FPoints[Index]) - 1 do
+          FCanvas.LineTo(FPoints[Index, PointIndex].X, FPoints[Index, PointIndex].Y);
+
+        FCanvas.EndPath(True);
+      end;
     end;
   finally
     Image.Bitmap.EndUpdate;
