@@ -33,6 +33,26 @@ interface
 
 {$include GR32.inc}
 
+(*
+
+        Asm register usage
+
+        32-bit, x86 stdcall calling convention
+        ------------------------------------------------
+        Parameters: EAX, EDX, ECX, Stack
+        Return value: EAX
+        Can modify: EAX, ECX, and EDX
+        Must preserve: EDI, ESI, ESP, EBP, and EBX
+
+        64-bit, x64 calling convention
+        ------------------------------------------------
+        Parameters: RCX, RDX, R8, R9 (integer) or XMMO, XMM1, XMM2, XMM3 (float), Stack
+        Return value: RAX (integer), XMM+ (float)
+        Can modify: RAX, RCX, RDX, R8, R9, R10, R11, XMMO, XMM1, XMM2, XMM3
+        Must preserve: R12, R13, R14, R15, RDI, RSI, RBX, RBP, RSP, XMM4, XMM5, XMM6, XMM7, XMM8, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, and XMM15
+
+*)
+
 {$if not defined(PUREPASCAL)}
 
 //------------------------------------------------------------------------------
@@ -86,6 +106,7 @@ type
 //------------------------------------------------------------------------------
 const
   SSE_FloatOne          : array[0..3] of Single   = (1, 1, 1, 1);
+  SSE_Float255          : array[0..3] of Single   = (255, 255, 255, 255);
   SSE_Float256x256      : array[0..3] of Single   = ($00010000, $00010000, $00010000, $00010000); // 256*256
   SSE_IntAbsMask        : array[0..3] of Cardinal = ($7FFFFFFF, $7FFFFFFF, $7FFFFFFF, $7FFFFFFF);
 
