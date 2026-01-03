@@ -49,6 +49,12 @@ interface
 // precision of the resampler suffers slightly.
 {$define PREMULTIPLY}
 
+// Define ALPHA_INTERPOLATOR to always use the alpha-aware interpolator which
+// takes alpha into account when interpolating (as one should if alpha is used).
+// The alpha-aware interpolator is slower because it performs alpha-
+// premultiplication, interpolate, and then unpremultiply the result.
+{$define ALPHA_INTERPOLATOR}
+
 
 uses
   Classes,
@@ -1090,7 +1096,8 @@ uses
   GR32_LowLevel,
   GR32_Rasterizers,
   GR32_Math,
-  GR32_Gamma;
+  GR32_Gamma,
+  GR32.Types.SIMD;
 
 resourcestring
   RCStrInvalidSrcRect = 'Invalid SrcRect';
@@ -1954,7 +1961,11 @@ begin
             SrcPtr1 := @SrcLine[SrcIndex];
             SrcPtr2 := @SrcLine[SrcIndex + SrcW];
           end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
           DstLine[I] := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$else}
+          DstLine[I] := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
         end;
         Inc(DstLine, DstW);
       end;
@@ -1977,7 +1988,11 @@ begin
               SrcPtr1 := @SrcLine[SrcIndex];
               SrcPtr2 := @SrcLine[SrcIndex + SrcW];
             end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
             C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$else}
+            C := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
             BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           end;
           Inc(DstLine, Dst.Width);
@@ -2001,29 +2016,39 @@ begin
               SrcPtr1 := @SrcLine[SrcIndex];
               SrcPtr2 := @SrcLine[SrcIndex + SrcW];
             end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
             C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
-            if C <> Src.OuterColor then DstLine[I] := C;
+{$else}
+            C := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
+            if C <> Src.OuterColor then
+              DstLine[I] := C;
           end;
           Inc(DstLine, Dst.Width);
         end
       end;
+
   else // cmCustom
     for J := 0 to DstClipH - 1 do
     begin
       SrcLine := Src.ScanLine[MapVert[J].Pos];
       WY := MapVert[J].Weight;
-      SrcIndex := MapHorz[0].Pos;    
-      SrcPtr1 := @SrcLine[SrcIndex];    
-      SrcPtr2 := @SrcLine[SrcIndex + SrcW];    
-      for I := 0 to DstClipW - 1 do    
-      begin    
-        if SrcIndex <> MapHorz[I].Pos then    
-        begin    
-          SrcIndex := MapHorz[I].Pos;    
-          SrcPtr1 := @SrcLine[SrcIndex];    
+      SrcIndex := MapHorz[0].Pos;
+      SrcPtr1 := @SrcLine[SrcIndex];
+      SrcPtr2 := @SrcLine[SrcIndex + SrcW];
+      for I := 0 to DstClipW - 1 do
+      begin
+        if SrcIndex <> MapHorz[I].Pos then
+        begin
+          SrcIndex := MapHorz[I].Pos;
+          SrcPtr1 := @SrcLine[SrcIndex];
           SrcPtr2 := @SrcLine[SrcIndex + SrcW];
         end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
         C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$else}
+        C := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
         CombineCallBack(C, DstLine[I], Src.MasterAlpha);
       end;
       Inc(DstLine, Dst.Width);
@@ -3000,7 +3025,6 @@ function Interpolator_SSE2(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor3
   //   EDX <- WeightY_256
   //   ECX <- p11: PColor32
   //   Stack[0] <- p12: PColor32
-  //   Stack[1] <-
   //   Preserves: (none)
   //
   // Parameters (x64):
@@ -5168,13 +5192,15 @@ begin
   ResamplersRegistry.RegisterBinding(@@AlphaInterpolator, 'AlphaInterpolator');
 
   ResamplersRegistry[@@BlockAverage].Add(       @BlockAverage_Pas,      [isPascal]).Name := 'BlockAverage_Pas';
-//  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_Pas,      [isPascal]).Name := 'Interpolator_Pas';
+  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_Pas,      [isPascal]).Name := 'Interpolator_Pas';
   ResamplersRegistry[@@AlphaInterpolator].Add(  @AlphaInterpolator_Pas, [isPascal]).Name := 'AlphaInterpolator_Pas';
-  ResamplersRegistry[@@Interpolator].Add(       @AlphaInterpolator_Pas, [isPascal]).Name := 'AlphaInterpolator_Pas';
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   ResamplersRegistry[@@BlockAverage].Add(       @BlockAverage_SSE2,     [isSSE2]).Name := 'BlockAverage_SSE2';
-//  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_SSE2,     [isSSE2]).Name := 'Interpolator_SSE2';
+  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_SSE2,     [isSSE2]).Name := 'Interpolator_SSE2';
+{$if declared(AlphaInterpolator_SSE2)}
+  ResamplersRegistry[@@AlphaInterpolator].Add(  @AlphaInterpolator_SSE2,[isSSE2]).Name := 'AlphaInterpolator_SSE2';
+{$ifend}
 {$ifend}
 
   ResamplersRegistry.RebindAll;
