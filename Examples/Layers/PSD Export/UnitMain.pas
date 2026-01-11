@@ -6,10 +6,12 @@ uses
   {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Winapi.Windows, {$ENDIF}
   SysUtils, Variants, Classes, Graphics,
   Controls, Forms, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  CheckLst,
   GR32,
   GR32_Image,
   GR32_Layers,
-  GR32_Polygons;
+  GR32_Polygons,
+  GR32.ImageFormats.PSD;
 
 type
   TFormMain = class(TForm)
@@ -20,13 +22,21 @@ type
     ComboBoxCompression: TComboBox;
     LabelCompression: TLabel;
     ButtonCompressionWarning: TSpeedButton;
+    ButtonLoad: TButton;
+    ListBoxLayers: TCheckListBox;
     procedure FormCreate(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
     procedure ButtonRandomClick(Sender: TObject);
     procedure ComboBoxCompressionChange(Sender: TObject);
     procedure ButtonCompressionWarningClick(Sender: TObject);
+    procedure ButtonLoadClick(Sender: TObject);
+    procedure ListBoxLayersClickCheck(Sender: TObject);
   private
     procedure Star(Opacity:integer);
+    procedure LoadLayerList(PhotoshopDocument: TPhotoshopDocument; ImgView: TImgView32); overload;
+    procedure LoadLayerList(ImgView: TImgView32); overload;
+    procedure LoadLayerListState;
+    procedure PixelCombineNone(F: TColor32; var B: TColor32; M: Cardinal);
   public
   end;
 
@@ -43,8 +53,8 @@ uses
   System.Types,
 {$endif}
   GR32.Examples,
-  GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Writer,
+  GR32.ImageFormats.PSD.Reader,
   GR32.ImageFormats.JPG;
 
 {$ifdef FPC}
@@ -83,7 +93,7 @@ var
   PhotoshopDocument: TPhotoshopDocument;
   Stream: TStream;
 begin
-  if not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True) then
+  if (not PromptForFilename(Filename, 'PhotoShop files (*.psd)|*.psd', 'psd', '', '', True)) then
     Exit;
 
   Stream := TFileStream.Create(Filename, fmCreate);
@@ -95,7 +105,7 @@ begin
       // Construct a PSD based on the layers of the TImgView32
       PhotoshopDocument.Assign(AImgView);
 
-      TPhotoshopDocumentWriter.SaveToStream(PhotoshopDocument, Stream);
+      PhotoshopDocumentWriter.SaveToStream(PhotoshopDocument, Stream);
     finally
       PhotoshopDocument.Free;
     end;
@@ -164,6 +174,37 @@ begin
   MessageDlg('Be aware that many applications only support reading RAW and RLE compressed PSD files', mtWarning, [mbOK], 0);
 end;
 
+procedure TFormMain.ButtonLoadClick(Sender: TObject);
+var
+  Filename: string;
+  Stream: TStream;
+  PhotoshopDocument: TPhotoshopDocument;
+begin
+  if (not PromptForFileName(Filename, 'PhotoShop files (*.psd)|*.psd' {$ifdef DEBUG}, '', '', Graphics32Examples.MediaFolder{$endif})) then
+    exit;
+
+  Stream := TFileStream.Create(Filename, fmOpenRead or fmShareDenyWrite);
+  try
+
+    PhotoshopDocument := TPhotoshopDocument.Create;
+    try
+
+      PhotoshopDocumentReader.LoadFromStream(PhotoshopDocument, Stream);
+
+      // Populate TImgView32 from the layers of the PSD
+      ImgView.Assign(PhotoshopDocument);
+
+      LoadLayerList(PhotoshopDocument, ImgView);
+
+    finally
+      PhotoshopDocument.Free;
+    end;
+
+  finally
+    Stream.Free;
+  end;
+end;
+
 procedure TFormMain.ButtonRandomClick(Sender: TObject);
 var
   i: Integer;
@@ -176,6 +217,8 @@ begin
 
   for i := 0 to 3 do
     Star($80); // Semi-transparent shapes
+
+  LoadLayerList(ImgView);
 end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
@@ -185,13 +228,86 @@ begin
 
   ImgView.Bitmap.DrawMode := dmBlend;
   ImgView.Bitmap.MasterAlpha := 192;
-  ImgView.Bitmap.DrawMode := dmBlend;
+  ImgView.Bitmap.OnPixelCombine := PixelCombineNone;
 
   if Graphics32Examples.MediaFileExists('Monalisa.jpg') then
     // Background is a static bitmap
     ImgView.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\Monalisa.jpg');
 
   ButtonRandom.Click;
+end;
+
+procedure TFormMain.ListBoxLayersClickCheck(Sender: TObject);
+var
+  i: integer;
+begin
+  if (ListBoxLayers.Items.Count = 0) then
+    exit;
+
+  if (ListBoxLayers.Checked[0]) then
+    ImgView.Bitmap.DrawMode := dmBlend
+  else
+    ImgView.Bitmap.DrawMode := dmCustom;
+
+  for i := 1 to ListBoxLayers.Items.Count-1 do
+    TCustomLayer(ListBoxLayers.Items.Objects[i]).Visible := ListBoxLayers.Checked[i];
+end;
+
+procedure TFormMain.PixelCombineNone(F: TColor32; var B: TColor32; M: Cardinal);
+begin
+  // Do nothing; Image becomes invisible
+end;
+
+procedure TFormMain.LoadLayerList(ImgView: TImgView32);
+var
+  i: integer;
+begin
+  ListBoxLayers.Items.Clear;
+  ListBoxLayers.Items.Add('(background)');
+
+  for i := 0 to ImgView.Layers.Count-1 do
+    ListBoxLayers.Items.AddObject(Format('Layer %d', [i]), ImgView.Layers[i]);
+
+  LoadLayerListState;
+end;
+
+procedure TFormMain.LoadLayerList(PhotoshopDocument: TPhotoshopDocument; ImgView: TImgView32);
+var
+  i: integer;
+  LayerIndex: integer;
+  HasSkipped: boolean;
+begin
+  ListBoxLayers.Items.Clear;
+  ListBoxLayers.Items.Add('(background)');
+
+  LayerIndex := 0;
+  HasSkipped := False;
+  for i := 0 to PhotoshopDocument.Layers.Count-1 do
+  begin
+    if (not(PhotoshopDocument.Layers[i] is TCustomPhotoshopBitmapLayer32)) then
+      continue;
+
+    // Skip first document layer if it has become the ImgView background
+    if (LayerIndex = 0) and (not HasSkipped) and (not ImgView.Bitmap.Empty) then
+    begin
+      HasSkipped := True;
+      continue;
+    end;
+
+    ListBoxLayers.Items.AddObject(PhotoshopDocument.Layers[i].Name, ImgView.Layers[LayerIndex]);
+    Inc(LayerIndex);
+  end;
+
+  LoadLayerListState;
+end;
+
+procedure TFormMain.LoadLayerListState;
+var
+  i: integer;
+begin
+  ListBoxLayers.Checked[0] := (ImgView.Bitmap.DrawMode <> dmCustom);
+  for i := 1 to ListBoxLayers.Items.Count-1 do
+    ListBoxLayers.Checked[i] := TCustomLayer(ListBoxLayers.Items.Objects[i]).Visible;
 end;
 
 end.

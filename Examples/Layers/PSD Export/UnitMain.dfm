@@ -13,15 +13,16 @@ object FormMain: TFormMain
   object ImgView: TImgView32
     Left = 0
     Top = 41
-    Width = 647
+    Width = 526
     Height = 473
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
     Scale = 1.000000000000000000
     ScaleMode = smScale
-    ScrollBars.ShowHandleGrip = True
-    ScrollBars.Style = rbsDefault
+    MousePan.Enabled = True
+    MouseZoom.Enabled = True
+    ScrollBars.Increment = 0
     ScrollBars.Size = 17
     OverSize = 0
     TabOrder = 0
@@ -42,7 +43,7 @@ object FormMain: TFormMain
       647
       39)
     object LabelCompression: TLabel
-      Left = 101
+      Left = 233
       Top = 11
       Width = 73
       Height = 15
@@ -50,7 +51,7 @@ object FormMain: TFormMain
       FocusControl = ComboBoxCompression
     end
     object ButtonCompressionWarning: TSpeedButton
-      Left = 336
+      Left = 468
       Top = 8
       Width = 23
       Height = 23
@@ -99,7 +100,7 @@ object FormMain: TFormMain
       Top = 7
       Width = 75
       Height = 25
-      Caption = '&Save'
+      Caption = '&Save...'
       TabOrder = 0
       OnClick = ButtonSaveClick
     end
@@ -114,7 +115,7 @@ object FormMain: TFormMain
       OnClick = ButtonRandomClick
     end
     object ComboBoxCompression: TComboBox
-      Left = 185
+      Left = 317
       Top = 8
       Width = 145
       Height = 23
@@ -128,5 +129,25 @@ object FormMain: TFormMain
         'RLE'
         'ZIP')
     end
+    object ButtonLoad: TButton
+      Left = 89
+      Top = 7
+      Width = 75
+      Height = 25
+      Caption = '&Load...'
+      TabOrder = 3
+      OnClick = ButtonLoadClick
+    end
+  end
+  object ListBoxLayers: TCheckListBox
+    Left = 526
+    Top = 41
+    Width = 121
+    Height = 473
+    Align = alRight
+    BorderStyle = bsNone
+    ItemHeight = 15
+    TabOrder = 2
+    OnClickCheck = ListBoxLayersClickCheck
   end
 end

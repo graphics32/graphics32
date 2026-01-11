@@ -430,11 +430,17 @@ uses
   GR32_Layers,
   GR32_Backends_Generic,
   GR32.ImageFormats,
-  GR32.ImageFormats.PSD.Writer;
+  GR32.ImageFormats.PSD.Writer,
+  GR32.ImageFormats.PSD.Reader;
 
 const
-  PsdSignature: AnsiString        = '8BPS'#00#01;
-  PsdSignatureMask: AnsiString    = #$ff#$ff#$ff#$ff#$ff#$ff;
+{$if defined(DynArrayOps)}
+  FileSignaturePsd: TBytes        = [$38, $42, $50, $53, $00, $01]; // '8BPS'#00#01;
+  FileSignaturePsdMask: TBytes    = [$ff, $ff, $ff, $ff, $ff, $ff];
+{$else}
+  FileSignaturePsd: array[0..5] of byte     = ($38, $42, $50, $53, $00, $01); // '8BPS'#00#01;
+  FileSignaturePsdMask: array[0..5] of byte = ($ff, $ff, $ff, $ff, $ff, $ff);
+{$ifend}
 
 //------------------------------------------------------------------------------
 //
@@ -448,7 +454,8 @@ type
   TImageFormatAdapterPSD = class(TCustomImageFormatAdapter,
     IImageFormatAdapter,
     IImageFormatFileInfo,
-    IImageFormatWriter)
+    IImageFormatWriter,
+    IImageFormatReader)
   strict protected
     // IImageFormatAdapter
     function CanAssignFrom(Source: TPersistent): boolean; override;
@@ -541,7 +548,7 @@ end;
 //------------------------------------------------------------------------------
 function TImageFormatAdapterPSD.CanLoadFromStream(AStream: TStream): boolean;
 begin
-  Result := CheckFileSignature(AStream, PsdSignature, PsdSignatureMask);
+  Result := CheckFileSignature(AStream, FileSignaturePsd, FileSignaturePsdMask);
 end;
 
 function TImageFormatAdapterPSD.LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
