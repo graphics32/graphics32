@@ -103,15 +103,45 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TPhotoshopLayerProperty
+//
+//------------------------------------------------------------------------------
+// Represents "additional information" associated with a layer.
+//------------------------------------------------------------------------------
+type
+  TCustomPhotoshopLayer = class;
+
+  TCustomPhotoshopLayerProperty = class
+  private
+    FLayer: TCustomPhotoshopLayer;
+    FKey: AnsiString;
+  public
+    constructor Create(ALayer: TCustomPhotoshopLayer; const AKey: AnsiString); virtual;
+    property Key: AnsiString read FKey;
+  end;
+
+  TPhotoshopLayerPropertyClass = class of TCustomPhotoshopLayerProperty;
+
+  TPhotoshopLayerProperty = class(TCustomPhotoshopLayerProperty)
+  private
+    FData: TBytes;
+  public
+    property Data: TBytes read FData write FData;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TCustomPhotoshopLayer
 //
 //------------------------------------------------------------------------------
 // Represents a single PSD layer
 //------------------------------------------------------------------------------
-type
   TPhotoshopDocument = class;
 
   TCustomPhotoshopLayer = class abstract
+  private type
+    TLayerProperties = TObjectList<TCustomPhotoshopLayerProperty>;
   private
     FDocument: TPhotoshopDocument;
     FTop: integer;
@@ -125,6 +155,7 @@ type
     FClipping: boolean;
     FCompression: TPSDLayerCompression;
     FUseDocumentCompression: boolean;
+    FLayerProperties: TLayerProperties;
   protected
     procedure SetDocument(const Value: TPhotoshopDocument);
     function GetIndex: integer;
@@ -134,9 +165,12 @@ type
     procedure SetCompression(const Value: TPSDLayerCompression);
     function GetCompression: TPSDLayerCompression;
     procedure SetUseDocumentCompression(const Value: boolean);
+    function AddLayerProperty(APropertyClass: TPhotoshopLayerPropertyClass; const AKey: AnsiString): TCustomPhotoshopLayerProperty;
 
-    procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes); virtual; abstract;
-    function GetHeight: Integer; virtual;
+    procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var ABytes); virtual; abstract;
+    procedure SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes); virtual; abstract;
+
+  function GetHeight: Integer; virtual;
     function GetWidth: Integer; virtual;
     procedure SetHeight(const Value: Integer); virtual;
     procedure SetWidth(const Value: Integer); virtual;
@@ -157,6 +191,8 @@ type
     property Left: integer read FLeft write FLeft;
     property Height: Integer read GetHeight write SetHeight;
     property Width: Integer read GetWidth write SetWidth;
+    property LayerHeight: Integer read FHeight;
+    property LayerWidth: Integer read FWidth;
     property Name: string read FName write FName;
     property BlendMode: TPSDLayerBlendMode read FBlendMode write FBlendMode;
     property Opacity: Byte read FOpacity write FOpacity;
@@ -164,6 +200,8 @@ type
     property Clipping: boolean read FClipping write FClipping;
     property Compression: TPSDLayerCompression read GetCompression write SetCompression;
     property UseDocumentCompression: boolean read FUseDocumentCompression write SetUseDocumentCompression;
+    // TODO : Replace LayerProperties with a proper list representation
+    property LayerProperties: TLayerProperties read FLayerProperties;
   end;
 
   TPhotoshopLayerClass = class of TCustomPhotoshopLayer;
@@ -216,6 +254,7 @@ type
     procedure SetCompression(const Value: TPSDLayerCompression);
     procedure AddLayer(ALayer: TCustomPhotoshopLayer);
     procedure RemoveLayer(ALayer: TCustomPhotoshopLayer);
+    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ABackground: TCustomPhotoshopLayer = nil);
     destructor Destroy; override;
@@ -259,39 +298,96 @@ type
 
 //------------------------------------------------------------------------------
 //
-//      TPhotoshopLayer32
+//      TCustomPhotoshopBitmapLayer32
 //
 //------------------------------------------------------------------------------
-// Layer wrapping a TBitmap32
-// Note that by default the layer only references the bitmap; It doesn't own it.
+// Abstract layer with a TBitmap32
 //------------------------------------------------------------------------------
 type
-  TPhotoshopLayer32 = class(TCustomPhotoshopLayer)
+  TCustomPhotoshopBitmapLayer32 = class abstract(TCustomPhotoshopLayer)
   private
-    FBitmap: TCustomBitmap32;
-    FOwnsBitmap: boolean;
     FSourceTop: integer;
     FSourceLeft: integer;
   protected
-    procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes); override;
+    procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var ABytes); override;
+    procedure SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes); override;
     function GetHeight: Integer; override;
     function GetWidth: Integer; override;
-    procedure SetBitmap(const Value: TCustomBitmap32);
+    function GetBitmap: TCustomBitmap32; virtual; abstract;
     function GetSourceRect: TRect;
     procedure SetSourceRect(const Value: TRect);
+
+    property SourceTop: integer read FSourceTop write FSourceTop;
+    property SourceLeft: integer read FSourceLeft write FSourceLeft;
   public
-    destructor Destroy; override;
-
-    property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
-
-    // OwnsBitmap: Specifies if the layers owns the bit referenced by
-    // the Bitmap property. Default: False
-    property OwnsBitmap: boolean read FOwnsBitmap write FOwnsBitmap;
+    property Bitmap: TCustomBitmap32 read GetBitmap;
 
     // SourceRect: The area of the bitmap used to produce the layer bitmap.
     // By default the whole bitmap is used, but SourceRect can be used to
     // only use a section of it.
     property SourceRect: TRect read GetSourceRect write SetSourceRect;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TPhotoshopLayer32
+//
+//------------------------------------------------------------------------------
+// Layer *wrapping* a TBitmap32
+// Note that by default the layer only references the bitmap; It doesn't own it.
+//------------------------------------------------------------------------------
+type
+  TPhotoshopLayer32 = class(TCustomPhotoshopBitmapLayer32)
+  private
+    FBitmap: TCustomBitmap32;
+    FOwnsBitmap: boolean;
+  protected
+    function GetBitmap: TCustomBitmap32; override;
+    procedure SetBitmap(const Value: TCustomBitmap32);
+  public
+    destructor Destroy; override;
+
+    property Bitmap: TCustomBitmap32 read GetBitmap write SetBitmap;
+
+    // OwnsBitmap: Specifies if the layers owns the bitmap referenced by
+    // the Bitmap property. Default: False
+    property OwnsBitmap: boolean read FOwnsBitmap write FOwnsBitmap;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TPhotoshopBitmapLayer32
+//
+//------------------------------------------------------------------------------
+// Layer *containing* a TBitmap32
+// The layers owns the bitmap.
+//------------------------------------------------------------------------------
+type
+  TPhotoshopBitmapLayer32 = class(TCustomPhotoshopBitmapLayer32)
+  private
+    FBitmap: TCustomBitmap32;
+  protected
+    function GetBitmap: TCustomBitmap32; override;
+  public
+    destructor Destroy; override;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TPhotoshopPlaceholderLayer
+//
+//------------------------------------------------------------------------------
+// Represents a PSD layer that doesn't have bitmap data, like an adjustment
+// layer (um... nope).
+//------------------------------------------------------------------------------
+type
+  TPhotoshopPlaceholderLayer = class(TCustomPhotoshopLayer)
+  protected
+    procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes); override;
+    procedure SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes); override;
   end;
 
 
@@ -366,6 +462,10 @@ type
   private
     // IImageFormatWriter
     procedure SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
+  private
+    // IImageFormatReader
+    function CanLoadFromStream(AStream: TStream): boolean;
+    function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
   end;
 
 
@@ -378,8 +478,24 @@ begin
 end;
 
 function TImageFormatAdapterPSD.AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean;
+var
+  PSD: TPhotoshopDocument;
+  i: Integer;
 begin
-  Result := inherited;
+  if (Source is TPhotoshopDocument) then
+  begin
+    PSD := TPhotoshopDocument(Source);
+
+    Dest.SetSize(PSD.Width, PSD.Height);
+    Dest.Clear;
+
+    for i := 0 to PSD.Layers.Count - 1 do
+      if PSD.Layers[i] is TCustomPhotoshopBitmapLayer32 then
+        TCustomPhotoshopBitmapLayer32(PSD.Layers[i]).Bitmap.DrawTo(Dest, PSD.Layers[i].Left, PSD.Layers[i].Top);
+
+    Result := True;
+  end else
+    Result := inherited;
 end;
 
 //------------------------------------------------------------------------------
@@ -421,6 +537,39 @@ begin
 end;
 
 //------------------------------------------------------------------------------
+// IImageFormatReader
+//------------------------------------------------------------------------------
+function TImageFormatAdapterPSD.CanLoadFromStream(AStream: TStream): boolean;
+begin
+  Result := CheckFileSignature(AStream, PsdSignature, PsdSignatureMask);
+end;
+
+function TImageFormatAdapterPSD.LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
+var
+  PSD: TPhotoshopDocument;
+  I: Integer;
+begin
+  if (not CanLoadFromStream(AStream)) then
+    Exit(False);
+
+  PSD := TPhotoshopDocument.Create;
+  try
+    PhotoshopDocumentReader.LoadFromStream(PSD, AStream);
+
+    ADest.SetSize(PSD.Width, PSD.Height);
+    ADest.Clear;
+
+    for I := 0 to PSD.Layers.Count - 1 do
+      if PSD.Layers[I] is TCustomPhotoshopBitmapLayer32 then
+        TCustomPhotoshopBitmapLayer32(PSD.Layers[I]).Bitmap.DrawTo(ADest, PSD.Layers[I].Left, PSD.Layers[I].Top);
+  finally
+    PSD.Free;
+  end;
+
+  Result := True;
+end;
+
+//------------------------------------------------------------------------------
 // IImageFormatWriter
 //------------------------------------------------------------------------------
 procedure TImageFormatAdapterPSD.SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
@@ -430,7 +579,7 @@ begin
   PSD := TPhotoshopDocument.Create;
   try
     CreatePhotoshopDocument(ASource, PSD);
-    TPhotoshopDocumentWriter.SaveToStream(PSD, AStream);
+    PhotoshopDocumentWriter.SaveToStream(PSD, AStream);
   finally
     PSD.Free;
   end;
@@ -582,13 +731,23 @@ begin
 end;
 
 
+//------------------------------------------------------------------------------
+//
+//      TCustomPhotoshopLayerProperty
+//
+//------------------------------------------------------------------------------
+constructor TCustomPhotoshopLayerProperty.Create(ALayer: TCustomPhotoshopLayer; const AKey: AnsiString);
+begin
+  FLayer := ALayer;
+  FKey := AKey;
+end;
+
 
 //------------------------------------------------------------------------------
 //
 //      TCustomPhotoshopLayer
 //
 //------------------------------------------------------------------------------
-
 constructor TCustomPhotoshopLayer.Create(ADocument: TPhotoshopDocument);
 begin
   inherited Create;
@@ -603,7 +762,17 @@ begin
   if (FDocument <> nil) and (FDocument.Background = Self) then
     FDocument.FBackground := nil; // Do not go through setter
   SetDocument(nil);
+  FLayerProperties.Free;
   inherited;
+end;
+
+function TCustomPhotoshopLayer.AddLayerProperty(APropertyClass: TPhotoshopLayerPropertyClass; const AKey: AnsiString): TCustomPhotoshopLayerProperty;
+begin
+  if (FLayerProperties = nil) then
+    FLayerProperties := TLayerProperties.Create;
+
+  Result := APropertyClass.Create(Self, AKey);
+  FLayerProperties.Add(Result);
 end;
 
 procedure TCustomPhotoshopLayer.BeginScan;
@@ -798,6 +967,54 @@ begin
     inherited;
 end;
 
+procedure TPhotoshopDocument.AssignTo(Dest: TPersistent);
+var
+  Image: TCustomImage32;
+  i: integer;
+  PsdLayer: TCustomPhotoshopBitmapLayer32;
+  BitmapLayer: TBitmapLayer;
+begin
+  if (Dest is TCustomImage32) then
+  begin
+
+    Image := TCustomImage32(Dest);
+    Image.Bitmap.SetSize(0, 0);
+    Image.Layers.Clear;
+
+    if (Layers.Count > 0) then
+    begin
+      for i := 0 to Layers.Count-1 do
+      begin
+        PsdLayer := TCustomPhotoshopBitmapLayer32(Layers[i]);
+        if (not (PsdLayer is TCustomPhotoshopBitmapLayer32)) then
+          continue;
+
+        if (i = 0) and (PsdLayer.Left = 0) and (PsdLayer.Top = 0) and (not PsdLayer.Bitmap.Empty) then
+        begin
+          // First layer is used as the background
+          Image.Bitmap.Assign(PsdLayer.Bitmap);
+          Image.Bitmap.DrawMode := dmBlend;
+          Image.Bitmap.MasterAlpha := PsdLayer.Opacity;
+        end else
+        begin
+          BitmapLayer := TBitmapLayer.Create(Image.Layers);
+          BitmapLayer.Bitmap.Assign(PsdLayer.Bitmap);
+          BitmapLayer.Bitmap.DrawMode := dmBlend;
+          BitmapLayer.Bitmap.MasterAlpha := PsdLayer.Opacity;
+          BitmapLayer.Location := GR32.FloatRect(PsdLayer.Left, PsdLayer.Top, PsdLayer.Left + PsdLayer.Width, PsdLayer.Top + PsdLayer.Height);
+          BitmapLayer.Scaled := True; // Layers are relative to main bitmap
+        end;
+      end;
+    end else
+    begin
+      Image.Bitmap.DrawMode := dmBlend;
+      Image.Bitmap.MasterAlpha := 255;
+    end;
+
+  end else
+    inherited;
+end;
+
 procedure TPhotoshopDocument.Clear;
 begin
   SetBackground(nil);
@@ -859,38 +1076,10 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TPhotoshopLayer32
+//      TCustomPhotoshopBitmapLayer32
 //
 //------------------------------------------------------------------------------
-destructor TPhotoshopLayer32.Destroy;
-begin
-  if (FOwnsBitmap) then
-    FBitmap.Free;
-
-  inherited;
-end;
-
-procedure TPhotoshopLayer32.SetBitmap(const Value: TCustomBitmap32);
-begin
-  if (FOwnsBitmap) and (FBitmap <> nil) then
-    FBitmap.Free;
-
-  FBitmap := Value;
-
-  FSourceTop := 0;
-  FSourceLeft := 0;
-  if (FBitmap <> nil) then
-  begin
-    Height := FBitmap.Height;
-    Width := FBitmap.Width;
-  end else
-  begin
-    Height := 0;
-    Width := 0;
-  end;
-end;
-
-procedure TPhotoshopLayer32.GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes);
+procedure TCustomPhotoshopBitmapLayer32.GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var ABytes);
 var
   Count: integer;
   pDest: PByte;
@@ -901,11 +1090,11 @@ begin
 
   if (Bitmap = nil) then
   begin
-    FillChar(Bytes, Width, $FF);
+    FillChar(ABytes, Width, $FF);
     Exit;
   end;
 
-  pDest := @Bytes;
+  pDest := @ABytes;
   pSource := @(PColor32Entry(Bitmap.ScanLine[ALine + FSourceTop]).Components[AChannel]);
   Inc(pSource, FSourceLeft * SizeOf(TColor32));
 
@@ -920,12 +1109,36 @@ begin
   end;
 end;
 
-function TPhotoshopLayer32.GetSourceRect: TRect;
+procedure TCustomPhotoshopBitmapLayer32.SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes);
+var
+  Count: integer;
+  pDest: PByte;
+  pSource: PByte;
 begin
-  if (FBitmap <> nil) then
+  if (Bitmap = nil) then
+    exit;
+
+  pSource := @ABytes;
+  pDest := @(PColor32Entry(Bitmap.ScanLine[ALine + FSourceTop]).Components[AChannel]);
+  Inc(pSource, FSourceLeft * SizeOf(TColor32));
+
+  Count := Width;
+  while (Count > 0) do
   begin
-    Result.Top :=  Min(FSourceTop, FBitmap.Height);
-    Result.Left :=  Min(FSourceLeft, FBitmap.Width);
+    pDest^ := pSource^;
+
+    Inc(pDest, SizeOf(TColor32));
+    Inc(pSource);
+    Dec(Count);
+  end;
+end;
+
+function TCustomPhotoshopBitmapLayer32.GetSourceRect: TRect;
+begin
+  if (Bitmap <> nil) then
+  begin
+    Result.Top :=  Min(FSourceTop, Bitmap.Height);
+    Result.Left :=  Min(FSourceLeft, Bitmap.Width);
   end else
   begin
     Result.Top :=  0;
@@ -935,32 +1148,32 @@ begin
   Result.Height := Height;
 end;
 
-function TPhotoshopLayer32.GetHeight: Integer;
+function TCustomPhotoshopBitmapLayer32.GetHeight: Integer;
 begin
   // Size of bitmap can have changed since assignment
   // so we need to reevaluate the size.
-  if (FBitmap <> nil) then
-    Result := Min(inherited GetHeight, Max(0, FBitmap.Height - FSourceTop))
+  if (Bitmap <> nil) then
+    Result := Min(inherited GetHeight, Max(0, Bitmap.Height - FSourceTop))
   else
     Result := 0;
 end;
 
-function TPhotoshopLayer32.GetWidth: Integer;
+function TCustomPhotoshopBitmapLayer32.GetWidth: Integer;
 begin
   // Size of bitmap can have changed since assignment
   // so we need to reevaluate the size.
-  if (FBitmap <> nil) then
-    Result := Min(inherited GetWidth, Max(0, FBitmap.Width - FSourceLeft))
+  if (Bitmap <> nil) then
+    Result := Min(inherited GetWidth, Max(0, Bitmap.Width - FSourceLeft))
   else
     Result := 0;
 end;
 
-procedure TPhotoshopLayer32.SetSourceRect(const Value: TRect);
+procedure TCustomPhotoshopBitmapLayer32.SetSourceRect(const Value: TRect);
 var
   SourceRect: TRect;
 begin
-  if (FBitmap <> nil) then
-    GR32.IntersectRect(SourceRect, Value, FBitmap.BoundsRect)
+  if (Bitmap <> nil) then
+    GR32.IntersectRect(SourceRect, Value, Bitmap.BoundsRect)
   else
   begin
     SourceRect.Top := Max(0, Value.Top);
@@ -977,6 +1190,85 @@ begin
 end;
 
 //------------------------------------------------------------------------------
+//
+//      TPhotoshopLayer32
+//
+//------------------------------------------------------------------------------
+destructor TPhotoshopLayer32.Destroy;
+begin
+  if (FOwnsBitmap) then
+    FBitmap.Free;
+
+  inherited;
+end;
+
+function TPhotoshopLayer32.GetBitmap: TCustomBitmap32;
+begin
+  Result := FBitmap;
+end;
+
+procedure TPhotoshopLayer32.SetBitmap(const Value: TCustomBitmap32);
+begin
+  if (FOwnsBitmap) and (FBitmap <> nil) then
+    FBitmap.Free;
+
+  FBitmap := Value;
+
+  SourceTop := 0;
+  SourceLeft := 0;
+
+  if (FBitmap <> nil) then
+  begin
+    Height := FBitmap.Height;
+    Width := FBitmap.Width;
+  end else
+  begin
+    Height := 0;
+    Width := 0;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TPhotoshopBitmapLayer32
+//
+//------------------------------------------------------------------------------
+destructor TPhotoshopBitmapLayer32.Destroy;
+begin
+  FBitmap.Free;
+  inherited;
+end;
+
+function TPhotoshopBitmapLayer32.GetBitmap: TCustomBitmap32;
+begin
+  if (FBitmap = nil) then
+  begin
+    FBitmap := TBitmap32.Create(LayerWidth, LayerHeight);
+    FBitmap.Clear;
+  end;
+  Result := FBitmap;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TPhotoshopPlaceholderLayer
+//
+//------------------------------------------------------------------------------
+procedure TPhotoshopPlaceholderLayer.GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes);
+begin
+  // A placeholder layer does not contain any bitmap data so we
+  // just return an empty scanline.
+  FillChar(Bytes, Width, 0);
+end;
+
+procedure TPhotoshopPlaceholderLayer.SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes);
+begin
+end;
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -984,7 +1276,7 @@ var
   ImageFormatHandle: integer = 0;
 
 initialization
-  TPhotoshopDocument.DefaultLayerClass := TPhotoshopLayer32;
+  TPhotoshopDocument.DefaultLayerClass := TCustomPhotoshopBitmapLayer32;
   TPhotoshopDocument.DefaultCompression := lcRLE;
 
   ImageFormatHandle := ImageFormatManager.RegisterImageFormat(TImageFormatAdapterPSD.Create, ImageFormatPriorityNormal);

@@ -48,21 +48,22 @@ uses
 
 //------------------------------------------------------------------------------
 //
-//      TPhotoshopDocumentWriter
+//      PhotoshopDocumentWriter
 //
 //------------------------------------------------------------------------------
 // Writes a PSD document to a stream
 //------------------------------------------------------------------------------
 type
-  TPhotoshopDocumentWriter = class abstract
+  PhotoshopDocumentWriter = record
   public
-    class procedure SaveToStream(ADocument: TPhotoshopDocument; AStream: TStream);
+    class procedure SaveToStream(ADocument: TPhotoshopDocument; AStream: TStream); static;
   end;
 
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
+
 implementation
 
 uses
@@ -269,7 +270,7 @@ begin
   RowTablePos := AStream.Position;
 
   // Make room for row table
-  AStream.Seek(ALayer.Height * SizeOf(Smallint), soFromCurrent);
+  AStream.Seek(ALayer.Height * SizeOf(Word), soFromCurrent);
   SetLength(RowTable, ALayer.Height);
 
   RLEStream := TPackBitsStream.Create(AStream);
@@ -427,10 +428,10 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TPhotoshopDocumentWriter
+//      PhotoshopDocumentWriter
 //
 //------------------------------------------------------------------------------
-class procedure TPhotoshopDocumentWriter.SaveToStream(ADocument: TPhotoshopDocument; AStream: TStream);
+class procedure PhotoshopDocumentWriter.SaveToStream(ADocument: TPhotoshopDocument; AStream: TStream);
 var
   SectionsCaptures: TStack<Int64>;
 
@@ -594,6 +595,9 @@ var
   begin
     SetLength(ScanLineBuffer, ALayer.Width);
 
+    // The PSD format supports different compression scemes per channel
+    // but we only support it per layer. Hence we use the same writer
+    // for all channels in the layer.
     LayerWriter := GetLayerWriter(ALayer);
 
     ALayer.BeginScan;
@@ -607,7 +611,7 @@ var
 
         Size := AStream.Position - SavePos;
 
-        ChannelsInfo[Channel].ChannelID := Swap16(Word(PSD_CHANNELS_IDS[Channel]));
+        ChannelsInfo[Channel].ChannelID := SmallInt(Swap16(Word(PSD_CHANNELS_IDS[Channel])));
         ChannelsInfo[Channel].ChannelSize := Swap32(Size);
       end;
     end;
@@ -718,7 +722,7 @@ var
     WriteEndSection(4);
   end;
 
-  procedure WriteLayer;
+  procedure WriteLayers;
   begin
     if ADocument.Layers.Count = 0 then
     begin
@@ -765,23 +769,23 @@ begin
   BigEndian.WriteWord(AStream, 8);// bit depth
   BigEndian.WriteWord(AStream, PSD_RGB);// color mode RGB = 3
 
-  // color mode Table
+  // Color mode table
   BigEndian.WriteCardinal(AStream, 0);
 
-  // resources
+  // Resources
   BigEndian.WriteCardinal(AStream, 0);
 
   SectionsCaptures := TStack<Int64>.Create;
   try
 
-    // layer
-    WriteLayer;
+    // Layers
+    WriteLayers;
 
   finally
     SectionsCaptures.Free;
   end;
 
-  //Image
+  // Image
   if (ADocument.Background = nil) then
     WriteEmptyImage
   else

@@ -110,8 +110,9 @@ const
 
 const
   // Channel type
-  PSD_MASK_USERDATA     = -2;   // -2 = user data mask
-  PSD_MASK_ALPHA        = -1;   // -1 = alpha channel
+  PSD_MASK_REALUSERDATA = -3;   // -3 = real user supplied layer mask (when both a user mask and a vector mask are present)
+  PSD_MASK_USERDATA     = -2;   // -2 = user data mask / user supplied layer mask
+  PSD_MASK_ALPHA        = -1;   // -1 = alpha channel / transparency mask
   PSD_MASK_RED          = 0;    //  0 = red (or gray, or cyan etc.)
   PSD_MASK_GREEN        = 1;    //  1 = green (or magenta etc.)
   PSD_MASK_BLUE         = 2;    //  2 = blue (or yellow etc.)
@@ -119,8 +120,8 @@ const
 
 type
   TPSDChannelInfo = packed record
-    ChannelID: Word;
-    ChannelSize: Cardinal;
+    ChannelID: SmallInt;        // One of PSD_MASK_*
+    ChannelSize: Cardinal;      // Size of channel in stream (i.e. after compression)
   end;
 
 
