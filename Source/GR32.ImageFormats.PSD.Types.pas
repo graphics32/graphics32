@@ -42,7 +42,8 @@ interface
 {$include GR32.inc}
 
 uses
-  GR32.ImageFormats.PSD;
+  GR32.ImageFormats.PSD,
+  GR32.ImageFormats.PSD.Model;
 
 //------------------------------------------------------------------------------
 //

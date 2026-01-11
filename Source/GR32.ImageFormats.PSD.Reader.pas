@@ -36,7 +36,8 @@ interface
 
 uses
   Classes,
-  GR32.ImageFormats.PSD;
+  GR32.ImageFormats.PSD,
+  GR32.ImageFormats.PSD.Model;
 
 //------------------------------------------------------------------------------
 //

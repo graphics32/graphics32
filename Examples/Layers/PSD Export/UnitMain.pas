@@ -11,7 +11,8 @@ uses
   GR32_Image,
   GR32_Layers,
   GR32_Polygons,
-  GR32.ImageFormats.PSD;
+  GR32.ImageFormats.PSD,
+  GR32.ImageFormats.PSD.Model;
 
 type
   TFormMain = class(TForm)
