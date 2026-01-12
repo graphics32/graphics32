@@ -34,6 +34,11 @@ interface
 
 {$I GR32.inc}
 
+// PSD_VALIDATE_IMAGE_RESOURCE_SECTION
+// If defined, the Image Resource section is parsed (the information in it
+// isn't used for anything yet).
+{$define PSD_VALIDATE_IMAGE_RESOURCE_SECTION}
+
 uses
   Classes,
   GR32.ImageFormats.PSD,
@@ -76,6 +81,20 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      Color conversion
+//
+//------------------------------------------------------------------------------
+procedure CMYKtoColor32(var AColor: TColor32Entry);
+begin
+  // Note: This is an approximation; Proper conversion isn't possible without a color profile
+  AColor.R := Round(255 * (1 - AColor.R / 255) * (1 - AColor.A / 255));
+  AColor.G := Round(255 * (1 - AColor.G / 255) * (1 - AColor.A / 255));
+  AColor.B := Round(255 * (1 - AColor.B / 255) * (1 - AColor.A / 255));
+  AColor.A := 255;
+end;
+
+//------------------------------------------------------------------------------
+//
 //      TPhotoshopDocumentReaderHelper
 //
 //------------------------------------------------------------------------------
@@ -83,14 +102,22 @@ type
 //------------------------------------------------------------------------------
 type
   TPhotoshopDocumentReaderHelper = class
+  private const
+    ccExtra: TColor32Component = TColor32Component(-1);
   private type
     TChannelInfo = record
-      ColorComponent: TColor32Component;
+      Component: SmallInt; // PSD color component value
+      HasColorComponent: boolean; // Is ColorComponent valid?
+      ColorComponent: TColor32Component; // GR32 color component value
       Size: Cardinal; // Size of channel in stream
     end;
 
+    TColor32Components = set of TColor32Component;
+
     TLayerInfo = record
       Size: Cardinal;
+      ColorComponents: TColor32Components;
+      HasExtra: boolean;
       Channels: TArray<TChannelInfo>; // One TChannelInfo per channel
     end;
 
@@ -99,8 +126,12 @@ type
     FStream: TStream;
     FDocument: TPhotoshopDocument;
     FLayers: TList<TCustomPhotoshopLayer>;
+    FMode: Word;
     FChannels: integer;
+    FDepth: Word;
     FChannelInfo: TChannelInfoList;
+    FPalette: array[byte] of TColor32;
+    FAlphaChannelBuffer: TBytes;
   protected
     function ReadByte: Byte;
     function ReadWord: Word;
@@ -109,9 +140,10 @@ type
     function ReadAnsiString(ACount: integer): AnsiString;
     function ReadPascalAnsiString(APadTo: integer = 1): AnsiString;
     function ReadUnicodeString: string;
+    function Padding(Value: Cardinal; Alignment: Cardinal = 4): Cardinal;
     procedure Skip(ACount: Int64);
 
-    function ChannelToColorComponent(AChannel: SmallInt): TColor32Component;
+    function TryChannelToColorComponent(AChannel: SmallInt; var AComponent: TColor32Component): boolean;
     procedure SetChannel(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
 
     procedure ReadHeader;
@@ -204,6 +236,11 @@ begin
     Result[I] := WideChar(ReadWord);
 end;
 
+function TPhotoshopDocumentReaderHelper.Padding(Value: Cardinal; Alignment: Cardinal): Cardinal;
+begin
+  Result := Cardinal((Alignment - (Value and (Alignment - 1))) and (Alignment - 1));
+end;
+
 procedure TPhotoshopDocumentReaderHelper.Skip(ACount: Int64);
 begin
   if (ACount <> 0) then
@@ -212,21 +249,43 @@ end;
 
 //------------------------------------------------------------------------------
 
-function TPhotoshopDocumentReaderHelper.ChannelToColorComponent(AChannel: SmallInt): TColor32Component;
+function TPhotoshopDocumentReaderHelper.TryChannelToColorComponent(AChannel: SmallInt; var AComponent: TColor32Component): boolean;
 begin
-  case AChannel of
-    PSD_MASK_ALPHA:     Result := ccAlpha;
-    PSD_MASK_RED:       Result := ccRed;
-    PSD_MASK_GREEN:     Result := ccGreen;
-    PSD_MASK_BLUE:      Result := ccBlue;
+  Result := True;
+
+  case FMode of
+
+    PSD_CMYK:
+      begin
+        case AChannel of
+          PSD_MASK_ALPHA:     AComponent := ccExtra; // Save alpha in "extra" buffer
+          PSD_MASK_RED:       AComponent := ccRed;   // Cyan
+          PSD_MASK_GREEN:     AComponent := ccGreen; // Magenta
+          PSD_MASK_BLUE:      AComponent := ccBlue;  // Yellow
+          PSD_MASK_BLACK:     AComponent := ccAlpha; // Black
+        else
+          Result := False;
+        end;
+      end;
+
   else
-    Result := ccRed;
+    case AChannel of
+      PSD_MASK_ALPHA:     AComponent := ccAlpha;
+      PSD_MASK_RED:       AComponent := ccRed;
+      PSD_MASK_GREEN:     AComponent := ccGreen;
+      PSD_MASK_BLUE:      AComponent := ccBlue;
+    else
+      Result := False;
+    end;
   end;
 end;
 
 procedure TPhotoshopDocumentReaderHelper.SetChannel(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
 begin
-  TPhotoshopLayerCracker(Layer).SetChannelScanLine(AChannel, ALine, ABytes[0]);
+  if (AChannel <> ccExtra) then
+    TPhotoshopLayerCracker(Layer).SetChannelScanLine(AChannel, ALine, ABytes[0])
+  else
+    Move(ABytes[0], FAlphaChannelBuffer[ALine * Length(ABytes)], Length(ABytes));
 end;
 
 //------------------------------------------------------------------------------
@@ -246,9 +305,8 @@ procedure TPhotoshopDocumentReaderHelper.ReadHeader;
 var
   Signature: AnsiString;
   Version: Word;
-  Channels: Word;
-  Depth: Word;
-  Mode: Word;
+  SupportedBits: set of byte;
+  SupportedChannels: set of byte;
 begin
 (* File Header Section
 +--------+----------------------------------------------------------------------+
@@ -275,7 +333,7 @@ begin
 +--------+----------------------------------------------------------------------+
 | 2      | The color mode of the file. Supported values are:                    |
 |        |   Bitmap = 0; Grayscale = 1; Indexed = 2; RGB = 3; CMYK = 4;         |
-|        |   Multichannel = 7; Duotone = 8; Lab = 9. |
+|        |   Multichannel = 7; Duotone = 8; Lab = 9.                            |
 +--------+----------------------------------------------------------------------+
 *)
 
@@ -289,35 +347,82 @@ begin
 
   Skip(6);
 
-  Channels := ReadWord;
-  if (not (Channels in [1, 3, 4])) then
-    raise EPhotoshopDocument.CreateFmt('Unsupported number of channels: %d', [Channels]);
-  FChannels := Channels;
+  FChannels := ReadWord;
 
   FDocument.Height := ReadCardinal;
   FDocument.Width := ReadCardinal;
 
-  Depth := ReadWord;
-  if (Depth <> 8) then
-    raise EPhotoshopDocument.CreateFmt('Unsupported bit depth: %d', [Depth]);
+  FDepth := ReadWord;
 
-  Mode := ReadWord;
-  case Channels of
-    1:
-      if (Mode <> PSD_GRAYSCALE) then
-        raise EPhotoshopDocument.CreateFmt('Unsupported color mode: %d', [Mode]);
+  SupportedBits := [1, 8, 16, 32];
+  SupportedChannels := [1..56];
 
-    3, 4:
-      if (Mode <> PSD_RGB) then
-        raise EPhotoshopDocument.CreateFmt('Unsupported color mode: %d', [Mode]);
+  FMode := ReadWord;
+  case FMode of
+    PSD_DUOTONE, // DuoTone isn't really supported; Treat it as grayscale
+    PSD_GRAYSCALE:
+      begin
+        SupportedChannels := [1, 2];
+        if (FChannels = 1) then
+          SupportedBits := [8, 16, 32]
+        else
+          SupportedBits := [8, 16];
+      end;
+
+    PSD_BITMAP: // Monochrome; Pixel set is white
+      begin
+        SupportedChannels := [1];
+        SupportedBits := [1];
+      end;
+
+    PSD_INDEXED:
+      begin
+        SupportedChannels := [1];
+        SupportedBits := [8];
+      end;
+
+    PSD_MULTICHANNEL,
+    PSD_RGB:
+      begin
+        SupportedChannels := [3, 4];
+        SupportedBits := [8, 16];
+      end;
+
+    PSD_CMYK:
+      begin
+        SupportedChannels := [4, 5];
+        SupportedBits := [8, 16];
+      end;
+
+    // PSD_LAB:
+
+  else
+    raise EPhotoshopDocument.CreateFmt('Unsupported color mode: %d', [FMode]);
   end;
+
+  if (not (FDepth in SupportedBits)) then
+    raise EPhotoshopDocument.CreateFmt('Unsupported bit depth (%d) for mode (%d)', [FDepth, FMode]);
+
+  if (not (FChannels in SupportedChannels)) then
+    raise EPhotoshopDocument.CreateFmt('Unsupported number of channels (%d) for mode (%d)', [FChannels, FMode]);
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TPhotoshopDocumentReaderHelper.ReadColorModeData;
+
+  procedure CreateGrayscalePalette;
+  var
+    i: integer;
+  begin
+    for i := 0 to 255 do
+      FPalette[i] := Gray32(i);
+  end;
+
 var
   Size: Cardinal;
+  Palette: array[0..2, 0..255] of byte;
+  i: integer;
 begin
 (* Color Mode Data Section
 +----------+--------------------------------------------------------------------+
@@ -325,7 +430,7 @@ begin
 +----------+--------------------------------------------------------------------+
 | 4        | The length of the following color data.                            |
 +----------+--------------------------------------------------------------------+
-| Variable | The color data; Not currently implemented.                         |
+| Variable | The color data; Only implemented for indexed color.                |
 +----------+--------------------------------------------------------------------+
 Only indexed color and duotone (see the mode field in the File header section)
 have color mode data.
@@ -342,8 +447,36 @@ duotone information when reading and writing the file.
 *)
 
   Size := ReadCardinal;
-  if (Size > 0) then
-    Skip(Size);
+
+  case FMode of
+
+    PSD_INDEXED:
+      begin
+        if (Size <> SizeOf(Palette)) then
+          raise EPhotoshopDocument.CreateFmt('Invalid palette size: %d', [Size]);
+        FStream.Read(Palette, SizeOf(Palette));
+        for i := 0 to High(FPalette) do
+        begin
+          TColor32Entry(FPalette[i]).R := Palette[0, i];
+          TColor32Entry(FPalette[i]).G := Palette[1, i];
+          TColor32Entry(FPalette[i]).B := Palette[2, i];
+          TColor32Entry(FPalette[i]).A := 255;
+        end;
+      end;
+
+    PSD_DUOTONE,
+    PSD_GRAYSCALE:
+      begin
+        CreateGrayscalePalette;
+
+        if (Size > 0) then
+          Skip(Size);
+      end;
+
+  else
+    if (Size > 0) then
+      Skip(Size);
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -351,20 +484,62 @@ end;
 procedure TPhotoshopDocumentReaderHelper.ReadImageResources;
 var
   Size: Cardinal;
+{$ifdef PSD_VALIDATE_IMAGE_RESOURCE_SECTION}
+  Next: Int64;
+  Signature: AnsiString;
+  Ident: Word;
+  Name: AnsiString;
+  DataSize: Cardinal;
+  FColorTableCount: Cardinal;
+  FTransparentColorIndex: Cardinal;
+{$endif}
 begin
 (* Image Resources Section
 +----------+--------------------------------------------------------------------+
 | Length   | Description                                                        |
 +----------+--------------------------------------------------------------------+
-| 4        | Length of the layer and mask information section.                  |
+| 4        | Length of image resource section. The length may be zero.          |
 +----------+--------------------------------------------------------------------+
 | Variable | Image resources; Not implemented.                                  |
 +----------+--------------------------------------------------------------------+
 *)
 
   Size := ReadCardinal;
+
+{$ifdef PSD_VALIDATE_IMAGE_RESOURCE_SECTION}
+  Next := FStream.Position + Size;
+
+  while (FStream.Position < Next) do
+  begin
+    Signature := ReadAnsiString(4);
+    if (Signature <> '8BIM') then
+      raise EPhotoshopDocument.Create('Invalid layer data signature');
+    Ident := ReadWord;
+    Name := ReadPascalAnsiString(2);
+    DataSize := ReadCardinal;
+    case Ident of
+      1046:
+        begin
+          FColorTableCount := ReadWord;
+          Dec(DataSize, SizeOf(Word));
+        end;
+
+      1047:
+        begin
+          FTransparentColorIndex := ReadWord;
+          Dec(DataSize, SizeOf(Word));
+        end;
+    end;
+    Skip(DataSize + Padding(DataSize, 2));
+  end;
+
+  Assert(FStream.Position <= Next);
+
+  FStream.Position := Next;
+{$else}
   if (Size > 0) then
     Skip(Size);
+{$endif}
 end;
 
 //------------------------------------------------------------------------------
@@ -466,7 +641,7 @@ begin
 
   Next := FStream.Position + Size;
 
-  Count := ReadWord;
+  Count := SmallInt(ReadWord);
   if (Count < 0) then
     // TODO : Set flag to ignore alpha channel of first layer
     Count := -Count;
@@ -501,6 +676,7 @@ function TPhotoshopDocumentReaderHelper.ReadLayerRecord: TCustomPhotoshopLayer;
 var
   LayerIndex: integer;
   Channels: Word;
+  ColorComponent: TColor32Component;
   i: integer;
   ExtraDataSize: Cardinal;
   ExtraDataPos: Int64;
@@ -509,20 +685,6 @@ var
   Key: AnsiString;
   Size: Cardinal;
   LayerProperty: TCustomPhotoshopLayerProperty;
-type
-  TLayerHeader = record
-    Top: Cardinal;
-    Left: Cardinal;
-    Height: Cardinal;
-    Width: Cardinal;
-    LayerInfo: TLayerInfo;
-    BlendMode: TPSDLayerBlendMode;
-    Opacity: Byte;
-    Clipping: boolean;
-    Options: TPSDLayerOptions;
-    Name: string;
-  end;
-
 begin
 (* Layer records
 +-------------------------+-----------------------------------------------------+
@@ -622,18 +784,28 @@ Additional Layer Information
     Result.Width := integer(ReadCardinal) - Result.Left;
 
     Channels := ReadWord;
-(*
-    if (Channels > 4) then
-      raise EPhotoshopDocument.CreateFmt('Unsupported number of channels: %d', [Channels]);
-*)
 
     // Read the FChannelInfo array
     Setlength(FChannelInfo[LayerIndex].Channels, Channels);
     FChannelInfo[LayerIndex].Size := 0;
+    FChannelInfo[LayerIndex].ColorComponents := [];
+    FChannelInfo[LayerIndex].HasExtra := False;
+
     for i := 0 to Channels-1 do
     begin
-      FChannelInfo[LayerIndex].Channels[i].ColorComponent := ChannelToColorComponent(SmallInt(ReadWord));
+      FChannelInfo[LayerIndex].Channels[i].Component := SmallInt(ReadWord);
+      FChannelInfo[LayerIndex].Channels[i].HasColorComponent := TryChannelToColorComponent(FChannelInfo[LayerIndex].Channels[i].Component, ColorComponent);
       FChannelInfo[LayerIndex].Channels[i].Size := ReadCardinal;
+
+      if (FChannelInfo[LayerIndex].Channels[i].HasColorComponent) then
+      begin
+        FChannelInfo[LayerIndex].Channels[i].ColorComponent := ColorComponent;
+
+        if (ColorComponent <> ccExtra) then
+          Include(FChannelInfo[LayerIndex].ColorComponents, ColorComponent)
+        else
+          FChannelInfo[LayerIndex].HasExtra := True;
+      end;
 
       Inc(FChannelInfo[LayerIndex].Size, FChannelInfo[LayerIndex].Channels[i].Size);
     end;
@@ -683,45 +855,91 @@ end;
 //------------------------------------------------------------------------------
 
 procedure TPhotoshopDocumentReaderHelper.ReadLayersImageData;
+
+  procedure BeginReadLayerImageData;
+  begin
+  end;
+
+  procedure EndReadLayerImageData;
+  begin
+    SetLength(FAlphaChannelBuffer, 0);
+  end;
+
 var
   i: Integer;
   StreamPos: Int64;
   Layer: TCustomPhotoshopBitmapLayer32;
 begin
-  for i := 0 to FLayers.Count - 1 do
+  BeginReadLayerImageData;
   begin
-    StreamPos := FStream.Position;
 
-    Layer := TCustomPhotoshopBitmapLayer32(FLayers[i]);
-
-    // Skip layer if it isn't a bitmap layer
-    if not (Layer is TCustomPhotoshopBitmapLayer32) then
+    for i := 0 to FLayers.Count - 1 do
     begin
+      StreamPos := FStream.Position;
+
+      Layer := TCustomPhotoshopBitmapLayer32(FLayers[i]);
+
+      // Skip layer if it isn't a bitmap layer
+      if not (Layer is TCustomPhotoshopBitmapLayer32) then
+      begin
+        FStream.Position := StreamPos + FChannelInfo[i].Size;
+        continue;
+      end;
+
+      // Ensure that the layer has a bitmap...
+      if (Layer.Bitmap = nil) and (Layer is TPhotoshopLayer32) then
+      begin
+        TPhotoshopLayer32(Layer).Bitmap := TBitmap32.Create;
+        TPhotoshopLayer32(Layer).OwnsBitmap := True;
+      end;
+      // ...and that the bitmap has the correct size
+      Layer.Bitmap.SetSize(Layer.LayerWidth, Layer.LayerHeight, False);
+
+      ReadLayerImageData(Layer);
+
       FStream.Position := StreamPos + FChannelInfo[i].Size;
-      continue;
+
+      // Postprocess layer image channels into ARGB
+      PostProcessLayerImageData(Layer);
     end;
 
-    // Ensure that the layer has a bitmap...
-    if (Layer.Bitmap = nil) and (Layer is TPhotoshopLayer32) then
-    begin
-      TPhotoshopLayer32(Layer).Bitmap := TBitmap32.Create;
-      TPhotoshopLayer32(Layer).OwnsBitmap := True;
-    end;
-    // ...and that the bitmap has the correct size
-    Layer.Bitmap.SetSize(Layer.LayerWidth, Layer.LayerHeight);
-
-    ReadLayerImageData(Layer);
-
-    FStream.Position := StreamPos + FChannelInfo[i].Size;
-
-    // Postprocess layer image channels into ARGB
-    PostProcessLayerImageData(Layer);
   end;
+  EndReadLayerImageData;
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TPhotoshopDocumentReaderHelper.ReadLayerImageData(Layer: TCustomPhotoshopBitmapLayer32);
+
+  procedure BeginReadChannelData;
+  var
+    Size: integer;
+  begin
+    if (not FChannelInfo[Layer.Index].HasExtra) then
+      exit;
+
+    Size := Layer.Height * Layer.Width;
+    if (Length(FAlphaChannelBuffer) < Size) then
+      SetLength(FAlphaChannelBuffer, Size);
+  end;
+
+  procedure EndReadChannelData;
+  var
+    i: integer;
+    Offset: integer;
+  begin
+    if (not FChannelInfo[Layer.Index].HasExtra) then
+      exit;
+
+    // Restore alpha channel
+    Offset := 0;
+    for i := 0 to Layer.Height-1 do
+    begin
+      TPhotoshopLayerCracker(Layer).SetChannelScanLine(ccAlpha, i, FAlphaChannelBuffer[Offset]);
+      Inc(Offset, Layer.Width);
+    end;
+  end;
+
 var
   i: Integer;
   StreamPos: Int64;
@@ -753,24 +971,33 @@ begin
 +----------+--------------------------------------------------------------------+
 *)
 
-  for i := 0 to FChannels - 1 do
+  BeginReadChannelData;
   begin
-    StreamPos := FStream.Position;
 
-    ColorComponent := FChannelInfo[Layer.Index].Channels[i].ColorComponent;
+    for i := 0 to High(FChannelInfo[Layer.Index].Channels) do
+    begin
+      StreamPos := FStream.Position;
 
-    Compression := ReadWord;
+      if (FChannelInfo[Layer.Index].Channels[i].HasColorComponent) then
+      begin
+        ColorComponent := FChannelInfo[Layer.Index].Channels[i].ColorComponent;
 
-    case TPSDLayerCompression(Compression) of
-      lcRAW: ReadChannelDataRaw(Layer, ColorComponent);
-      lcRLE: ReadChannelDataRLE(Layer, ColorComponent);
-      lcZIP: ReadChannelDataZIP(Layer, ColorComponent);
-    else
-      raise EPhotoshopDocument.CreateFmt('Unsupported compression: %d', [Compression]);
+        Compression := ReadWord;
+
+        case TPSDLayerCompression(Compression) of
+          lcRAW: ReadChannelDataRaw(Layer, ColorComponent);
+          lcRLE: ReadChannelDataRLE(Layer, ColorComponent);
+          lcZIP: ReadChannelDataZIP(Layer, ColorComponent);
+        else
+          raise EPhotoshopDocument.CreateFmt('Unsupported compression: %d', [Compression]);
+        end;
+      end;
+
+      FStream.Position := StreamPos + FChannelInfo[Layer.Index].Channels[i].Size;
     end;
 
-    FStream.Position := StreamPos + FChannelInfo[Layer.Index].Channels[i].Size;
   end;
+  EndReadChannelData;
 end;
 
 //------------------------------------------------------------------------------
@@ -875,28 +1102,64 @@ end;
 
 procedure TPhotoshopDocumentReaderHelper.PostProcessLayerImageData(Layer: TCustomPhotoshopBitmapLayer32);
 var
+  i: integer;
   n: integer;
-  p: PColor32Entry;
 begin
-  case FChannels of
-    1: // R -> ARGB (grayscale)
-      begin
-        n := Layer.Bitmap.Width * Layer.Bitmap.Height;
-        p := PColor32Entry(Layer.Bitmap.Bits);
-        while (n > 0) do
-        begin
-          // For PSD_GRAYSCALE images, the pixel value is stored in the red channel
-          p.G := p.R;
-          p.B := p.R;
-          p.A := 255;
+  n := Layer.Bitmap.Width * Layer.Bitmap.Height;
 
-          Inc(p);
-          Dec(n);
+  case FMode of
+    PSD_DUOTONE:
+      begin
+        for i := 0 to n-1 do
+          Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R];
+      end;
+
+    PSD_INDEXED:
+      for i := 0 to n-1 do
+        Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R];
+
+    PSD_GRAYSCALE:
+      begin
+        if (ccAlpha in FChannelInfo[Layer.Index].ColorComponents) then
+        begin
+          for i := 0 to n-1 do
+            Layer.Bitmap.Bits[i] := SetAlpha(FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R], TColor32Entry(Layer.Bitmap.Bits[i]).A);
+        end else
+        begin
+          for i := 0 to n-1 do
+            Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R];
         end;
       end;
 
-    3: // RGB -> ARGB
-      Layer.Bitmap.ResetAlpha(255);
+    PSD_BITMAP: // Monochrome; Pixel set is white
+      for i := 0 to n-1 do
+        if (TColor32Entry(Layer.Bitmap.Bits[i]).R = 0) then
+          Layer.Bitmap.Bits[i] := clWhite32
+        else
+          Layer.Bitmap.Bits[i] := clBlack32;
+
+    PSD_MULTICHANNEL,
+    PSD_RGB:
+      // RGB -> ARGB
+      if (not (ccAlpha in FChannelInfo[Layer.Index].ColorComponents)) then
+        Layer.Bitmap.ResetAlpha(255);
+
+    PSD_CMYK:
+      begin
+        for i := 0 to n-1 do
+          CMYKtoColor32(TColor32Entry(Layer.Bitmap.Bits[i]));
+      end;
+
+    PSD_LAB:
+      {not yet implemented};
+
+  end;
+
+  // Apply the layer alpha if it resides in the "extra" buffer
+  if (FChannelInfo[Layer.Index].HasExtra) then
+  begin
+    for i := 0 to n-1 do
+      TColor32Entry(Layer.Bitmap.Bits[i]).A := FAlphaChannelBuffer[i];
   end;
 end;
 
