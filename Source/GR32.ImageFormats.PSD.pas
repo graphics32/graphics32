@@ -50,6 +50,7 @@ uses
   Types,
   GR32,
   GR32_Backends_Generic,
+  GR32_Resamplers,
   GR32.ImageFormats,
   GR32.ImageFormats.PSD.Model,
   GR32.ImageFormats.PSD.Writer,
@@ -107,21 +108,10 @@ begin
 end;
 
 function TImageFormatAdapterPSD.AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean;
-var
-  PSD: TPhotoshopDocument;
-  i: Integer;
 begin
   if (Source is TPhotoshopDocument) then
   begin
-    PSD := TPhotoshopDocument(Source);
-
-    Dest.SetSize(PSD.Width, PSD.Height);
-    Dest.Clear;
-
-    for i := 0 to PSD.Layers.Count - 1 do
-      if PSD.Layers[i] is TCustomPhotoshopBitmapLayer32 then
-        TCustomPhotoshopBitmapLayer32(PSD.Layers[i]).Bitmap.DrawTo(Dest, PSD.Layers[i].Left, PSD.Layers[i].Top);
-
+    LoadBitmapFromPhotoshopDocument(Dest, TPhotoshopDocument(Source), DefaultPhotoshopImportOptions, DefaultPhotoshopImportBackground);
     Result := True;
   end else
     Result := inherited;
@@ -176,7 +166,6 @@ end;
 function TImageFormatAdapterPSD.LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
 var
   PSD: TPhotoshopDocument;
-  I: Integer;
 begin
   if (not CanLoadFromStream(AStream)) then
     Exit(False);
@@ -184,13 +173,7 @@ begin
   PSD := TPhotoshopDocument.Create;
   try
     PhotoshopDocumentReader.LoadFromStream(PSD, AStream);
-
-    ADest.SetSize(PSD.Width, PSD.Height);
-    ADest.Clear;
-
-    for I := 0 to PSD.Layers.Count - 1 do
-      if PSD.Layers[I] is TCustomPhotoshopBitmapLayer32 then
-        TCustomPhotoshopBitmapLayer32(PSD.Layers[I]).Bitmap.DrawTo(ADest, PSD.Layers[I].Left, PSD.Layers[I].Top);
+    LoadBitmapFromPhotoshopDocument(ADest, PSD, DefaultPhotoshopImportOptions, DefaultPhotoshopImportBackground);
   finally
     PSD.Free;
   end;

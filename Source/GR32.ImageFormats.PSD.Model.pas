@@ -89,11 +89,11 @@ type
   );
 
   TPSDLayerOptions = set of (
-    loTransparencyProtected,
-    loHidden,
-    loIrrelevantData,
-    loFlag3,
-    loFlag4
+    loTransparencyProtected,    // If set, layer transparency is protected
+    loHidden,                   // If set, the layer is not visible
+    loObsolete,                 // Option is obsolete
+    loIgnorePixelDataValid,     // If set, the loIgnorePixelData option is valid
+    loIgnorePixelData           // If set, the pixel data is not for display
   );
 
 
@@ -234,6 +234,7 @@ type
 
       function Add(ALayerClass: TPhotoshopLayerClass = nil): TCustomPhotoshopLayer;
       procedure Clear;
+      function GetEnumerator: TEnumerator<TCustomPhotoshopLayer>;
 
       property Count: integer read GetCount;
       property Layers[Index: integer]: TCustomPhotoshopLayer read GetLayer; default;
@@ -419,6 +420,65 @@ procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotosho
 
 
 //------------------------------------------------------------------------------
+//
+//      Load a TPhotoshopDocument into a TCustomImage32
+//
+//------------------------------------------------------------------------------
+type
+  TPhotoshopImportOptions = set of (
+    piBackgroundFromFirstLayer, // First visible layer will be imported as the
+                                // image background, if the layer isn't empty
+                                // and is positioned at (0, 0).
+
+    piBackgroundIsComposite,    // The background image is a composite of all
+                                // visible layers.
+
+    piBackgroundIsOpaque        // The background composite is an opaque blend
+                                // of all visible layers onto a background
+                                // cleared with the specified background color.
+                                // Otherwise, the background composite is a
+                                // transparent merge of all visible layers.
+  );
+
+procedure LoadImageFromPhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopImportOptions = []; ABackground: TColor32 = clBlack32);
+
+
+//------------------------------------------------------------------------------
+//
+//      Load a TPhotoshopDocument into a TCustomBitmap32
+//
+//------------------------------------------------------------------------------
+// The result bitmap is either a composite of all the layers in the document or
+// the bitmap of the first visible layer in the bitmap, depending on the
+// specified options.
+//
+// The options are interpreted slightly different from that of the
+// TCustomImage32 import:
+//
+//   piBackgroundFromFirstLayer: The first visible layer bitmap is imported.
+//                               If the options isn't set then a composite of
+//                               all visible layers is returned.
+//
+//   piBackgroundIsComposite:    This option is ignored.
+//
+//   piBackgroundIsOpaque:       If set, the returned bitmap is first cleared
+//                               with the specified background color, and then
+//                               the visible layers are blended onto it.
+//                               Otherwise the returned bitmap is a transparent
+//                               merge of all visible layers.
+//------------------------------------------------------------------------------
+procedure LoadBitmapFromPhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopImportOptions = []; ABackground: TColor32 = clBlack32);
+
+
+//------------------------------------------------------------------------------
+var
+  // Default options used when importing via TCustomBitmap32.Assign(TPhotoshopDocument),
+  // TCustomImage32.Assign(TPhotoshopDocument), and TCustomBitmap32.LoadFromStream
+  DefaultPhotoshopImportOptions: TPhotoshopImportOptions = [piBackgroundIsComposite];
+  DefaultPhotoshopImportBackground: TColor32 = clBlack32;
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -577,6 +637,117 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Load a TPhotoshopDocument into a TCustomImage32
+//
+//------------------------------------------------------------------------------
+procedure LoadImageFromPhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopImportOptions; ABackground: TColor32);
+var
+  Layer: TCustomPhotoshopLayer;
+  BitmapLayer: TBitmapLayer;
+begin
+  AImage.Bitmap.Delete;
+  AImage.Bitmap.MasterAlpha := 255;
+  AImage.Bitmap.DrawMode := dmBlend;
+  AImage.Layers.Clear;
+
+  if (piBackgroundFromFirstLayer in AOptions) then
+    Exclude(AOptions, piBackgroundIsComposite);
+
+  if (ADocument.Layers.Count > 0) then
+  begin
+    for Layer in ADocument.Layers do
+    begin
+      if (not (Layer is TCustomPhotoshopBitmapLayer32)) then
+        continue;
+
+      if (piBackgroundFromFirstLayer in AOptions) and (Layer.Left = 0) and (Layer.Top = 0) and (not (loHidden in Layer.Options)) and (not TCustomPhotoshopBitmapLayer32(Layer).Bitmap.Empty) then
+      begin
+        // First visible layer is used as the background
+        AImage.Bitmap.Assign(TCustomPhotoshopBitmapLayer32(Layer).Bitmap);
+        AImage.Bitmap.MasterAlpha := Layer.Opacity;
+
+        Exclude(AOptions, piBackgroundFromFirstLayer);
+        continue;
+      end;
+
+      BitmapLayer := TBitmapLayer.Create(AImage.Layers);
+      BitmapLayer.Bitmap.Assign(TCustomPhotoshopBitmapLayer32(Layer).Bitmap);
+      BitmapLayer.Bitmap.DrawMode := dmBlend;
+      BitmapLayer.Bitmap.MasterAlpha := Layer.Opacity;
+      BitmapLayer.Location := GR32.FloatRect(Layer.Left, Layer.Top, Layer.Left + Layer.Width, Layer.Top + Layer.Height);
+      BitmapLayer.Scaled := True; // Layers are relative to main bitmap
+      BitmapLayer.Visible := not (loHidden in Layer.Options);
+    end;
+  end;
+
+  if (piBackgroundIsComposite in AOptions) then
+    // Construct composite via the PSD image adapter
+    LoadBitmapFromPhotoshopDocument(AImage.Bitmap, ADocument, AOptions * [piBackgroundIsComposite, piBackgroundIsOpaque], ABackground);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Load a TPhotoshopDocument into a TCustomBitmap32
+//
+//------------------------------------------------------------------------------
+// The result bitmap is a composite of all the layers in the document.
+//------------------------------------------------------------------------------
+procedure LoadBitmapFromPhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopImportOptions; ABackground: TColor32);
+var
+  Layer: TCustomPhotoshopLayer;
+  SourceBitmap: TCustomBitmap32;
+  SaveCombineMode: TCombineMode;
+  SaveMasterAlpha: Cardinal;
+begin
+  ABitmap.Delete;
+
+  for Layer in ADocument.Layers do
+    if Layer is TCustomPhotoshopBitmapLayer32 then
+    begin
+      if (loHidden in Layer.Options) or (TCustomPhotoshopBitmapLayer32(Layer).Bitmap.Empty) then
+        continue;
+
+      SourceBitmap := TCustomPhotoshopBitmapLayer32(Layer).Bitmap;
+
+      if (piBackgroundFromFirstLayer in AOptions) then
+      begin
+        ABitmap.Assign(SourceBitmap);
+        break;
+      end;
+
+      if (ABitmap.Empty) then
+      begin
+        ABitmap.SetSize(ADocument.Width, ADocument.Height, not(piBackgroundIsOpaque in AOptions));
+        if (piBackgroundIsOpaque in AOptions) then
+          ABitmap.Clear(ABackground);
+        ABitmap.MasterAlpha := 255;
+      end;
+
+      SaveCombineMode := SourceBitmap.CombineMode;
+      SaveMasterAlpha := SourceBitmap.MasterAlpha;
+
+      SourceBitmap.BeginLockUpdate; // Prevent temporary source bitmap changes from triggering a Changed event
+      try
+        SourceBitmap.MasterAlpha := Layer.Opacity;
+
+        if not(piBackgroundIsOpaque in AOptions) then
+          SourceBitmap.CombineMode := cmMerge; // Must merge or background will become opaque regardless of layer alpha
+
+        SourceBitmap.DrawTo(ABitmap, Layer.Left, Layer.Top);
+
+        if not(piBackgroundIsOpaque in AOptions) then
+          SourceBitmap.CombineMode := SaveCombineMode;
+
+        SourceBitmap.MasterAlpha := SaveMasterAlpha;
+      finally
+        SourceBitmap.EndLockUpdate;
+      end;
+    end;
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -771,6 +942,11 @@ begin
   Result := FLayers.Count;
 end;
 
+function TPhotoshopDocument.TPhotoshopLayers.GetEnumerator: TEnumerator<TCustomPhotoshopLayer>;
+begin
+  Result := FLayers.GetEnumerator;
+end;
+
 function TPhotoshopDocument.TPhotoshopLayers.GetLayer(Index: integer): TCustomPhotoshopLayer;
 begin
   Result := FLayers[Index];
@@ -815,50 +991,10 @@ begin
 end;
 
 procedure TPhotoshopDocument.AssignTo(Dest: TPersistent);
-var
-  Image: TCustomImage32;
-  i: integer;
-  PsdLayer: TCustomPhotoshopBitmapLayer32;
-  BitmapLayer: TBitmapLayer;
 begin
   if (Dest is TCustomImage32) then
-  begin
-
-    Image := TCustomImage32(Dest);
-    Image.Bitmap.SetSize(0, 0);
-    Image.Layers.Clear;
-
-    if (Layers.Count > 0) then
-    begin
-      for i := 0 to Layers.Count-1 do
-      begin
-        PsdLayer := TCustomPhotoshopBitmapLayer32(Layers[i]);
-        if (not (PsdLayer is TCustomPhotoshopBitmapLayer32)) then
-          continue;
-
-        if (i = 0) and (PsdLayer.Left = 0) and (PsdLayer.Top = 0) and (not PsdLayer.Bitmap.Empty) then
-        begin
-          // First layer is used as the background
-          Image.Bitmap.Assign(PsdLayer.Bitmap);
-          Image.Bitmap.DrawMode := dmBlend;
-          Image.Bitmap.MasterAlpha := PsdLayer.Opacity;
-        end else
-        begin
-          BitmapLayer := TBitmapLayer.Create(Image.Layers);
-          BitmapLayer.Bitmap.Assign(PsdLayer.Bitmap);
-          BitmapLayer.Bitmap.DrawMode := dmBlend;
-          BitmapLayer.Bitmap.MasterAlpha := PsdLayer.Opacity;
-          BitmapLayer.Location := GR32.FloatRect(PsdLayer.Left, PsdLayer.Top, PsdLayer.Left + PsdLayer.Width, PsdLayer.Top + PsdLayer.Height);
-          BitmapLayer.Scaled := True; // Layers are relative to main bitmap
-        end;
-      end;
-    end else
-    begin
-      Image.Bitmap.DrawMode := dmBlend;
-      Image.Bitmap.MasterAlpha := 255;
-    end;
-
-  end else
+    LoadImageFromPhotoshopDocument(TCustomImage32(Dest), Self, DefaultPhotoshopImportOptions, DefaultPhotoshopImportBackground)
+  else
     inherited;
 end;
 
@@ -1092,8 +1228,9 @@ begin
   if (FBitmap = nil) then
   begin
     FBitmap := TBitmap32.Create(LayerWidth, LayerHeight);
-    FBitmap.Clear;
+    FBitmap.DrawMode := dmBlend;
   end;
+
   Result := FBitmap;
 end;
 
