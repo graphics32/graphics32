@@ -10,10 +10,20 @@ object FormMain: TFormMain
   ShowHint = True
   OnCreate = FormCreate
   TextHeight = 15
+  object Splitter1: TSplitter
+    Left = 525
+    Top = 41
+    Height = 473
+    Align = alRight
+    ResizeStyle = rsUpdate
+    ExplicitLeft = 488
+    ExplicitTop = 256
+    ExplicitHeight = 100
+  end
   object ImgView: TImgView32
     Left = 0
     Top = 41
-    Width = 526
+    Width = 525
     Height = 473
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
@@ -27,6 +37,7 @@ object FormMain: TFormMain
     OverSize = 0
     TabOrder = 0
     TabStop = True
+    OnMouseDown = ImgViewMouseDown
   end
   object Panel1: TPanel
     Left = 0
@@ -39,9 +50,6 @@ object FormMain: TFormMain
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 1
-    DesignSize = (
-      647
-      39)
     object LabelCompression: TLabel
       Left = 233
       Top = 11
@@ -104,16 +112,6 @@ object FormMain: TFormMain
       TabOrder = 0
       OnClick = ButtonSaveClick
     end
-    object ButtonRandom: TButton
-      Left = 501
-      Top = 7
-      Width = 137
-      Height = 25
-      Anchors = [akTop, akRight]
-      Caption = '&Random shapes'
-      TabOrder = 1
-      OnClick = ButtonRandomClick
-    end
     object ComboBoxCompression: TComboBox
       Left = 317
       Top = 8
@@ -121,7 +119,7 @@ object FormMain: TFormMain
       Height = 23
       Style = csDropDownList
       ItemIndex = 0
-      TabOrder = 2
+      TabOrder = 1
       Text = 'Raw (no compression)'
       OnChange = ComboBoxCompressionChange
       Items.Strings = (
@@ -135,19 +133,77 @@ object FormMain: TFormMain
       Width = 75
       Height = 25
       Caption = '&Load...'
-      TabOrder = 3
+      TabOrder = 2
       OnClick = ButtonLoadClick
     end
   end
-  object ListBoxLayers: TCheckListBox
-    Left = 526
+  object PanelLayers: TPanel
+    Left = 528
     Top = 41
-    Width = 121
+    Width = 119
     Height = 473
     Align = alRight
-    BorderStyle = bsNone
-    ItemHeight = 15
+    BevelOuter = bvNone
     TabOrder = 2
-    OnClickCheck = ListBoxLayersClickCheck
+    object ButtonAddLayer: TButton
+      Left = 0
+      Top = 0
+      Width = 119
+      Height = 25
+      Align = alTop
+      Caption = '&Add layer'
+      TabOrder = 0
+      OnClick = ButtonAddLayerClick
+    end
+    object ButtonClear: TButton
+      Left = 0
+      Top = 25
+      Width = 119
+      Height = 25
+      Align = alTop
+      Caption = '&Clear'
+      TabOrder = 1
+      OnClick = ButtonClearClick
+    end
+    object ListViewLayers: TListView
+      Left = 0
+      Top = 50
+      Width = 119
+      Height = 398
+      Align = alClient
+      BorderStyle = bsNone
+      Checkboxes = True
+      Columns = <
+        item
+          Width = -1
+          WidthType = (
+            -1)
+        end>
+      Items.ItemData = {
+        05200000000100000000000000FFFFFFFFFFFFFFFF00000000FFFFFFFF000000
+        0003780078007800}
+      ReadOnly = True
+      RowSelect = True
+      ShowColumnHeaders = False
+      TabOrder = 2
+      ViewStyle = vsReport
+      OnSelectItem = ListViewLayersSelectItem
+      OnItemChecked = ListViewLayersItemChecked
+    end
+    object TrackBarAlpha: TTrackBar
+      Left = 0
+      Top = 448
+      Width = 119
+      Height = 25
+      Align = alBottom
+      Enabled = False
+      Max = 255
+      PageSize = 32
+      PositionToolTip = ptTop
+      TabOrder = 3
+      TickMarks = tmBoth
+      TickStyle = tsNone
+      OnChange = TrackBarAlphaChange
+    end
   end
 end

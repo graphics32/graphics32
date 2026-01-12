@@ -5,8 +5,7 @@ interface
 uses
   {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Winapi.Windows, {$ENDIF}
   SysUtils, Variants, Classes, Graphics,
-  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, Buttons,
-  CheckLst,
+  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, Buttons, ComCtrls,
   GR32,
   GR32_Image,
   GR32_Layers,
@@ -19,24 +18,42 @@ type
     ImgView: TImgView32;
     ButtonSave: TButton;
     Panel1: TPanel;
-    ButtonRandom: TButton;
     ComboBoxCompression: TComboBox;
     LabelCompression: TLabel;
     ButtonCompressionWarning: TSpeedButton;
     ButtonLoad: TButton;
-    ListBoxLayers: TCheckListBox;
+    PanelLayers: TPanel;
+    ButtonAddLayer: TButton;
+    Splitter1: TSplitter;
+    ButtonClear: TButton;
+    ListViewLayers: TListView;
+    TrackBarAlpha: TTrackBar;
     procedure FormCreate(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
-    procedure ButtonRandomClick(Sender: TObject);
+    procedure ButtonAddLayerClick(Sender: TObject);
     procedure ComboBoxCompressionChange(Sender: TObject);
     procedure ButtonCompressionWarningClick(Sender: TObject);
     procedure ButtonLoadClick(Sender: TObject);
-    procedure ListBoxLayersClickCheck(Sender: TObject);
+    procedure ButtonClearClick(Sender: TObject);
+    procedure ListViewLayersItemChecked(Sender: TObject; Item: TListItem);
+    procedure ListViewLayersSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
+    procedure TrackBarAlphaChange(Sender: TObject);
+    procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
   private
-    procedure Star(Opacity:integer);
+    FSelection: TPositionedLayer;
+    FRubberbandLayer: TRubberbandLayer;
+    procedure SetSelection(Value: TPositionedLayer);
+    procedure LayerOnClick(Sender: TObject);
+
+  private
+    FLocked: integer;
+
+  private
+    procedure AddLayer(Opacity:integer);
     procedure LoadLayerList(PhotoshopDocument: TPhotoshopDocument; ImgView: TImgView32); overload;
     procedure LoadLayerList(ImgView: TImgView32); overload;
     procedure LoadLayerListState;
+    procedure InitLayers(Layer: TBitmapLayer = nil);
     procedure PixelCombineNone(F: TColor32; var B: TColor32; M: Cardinal);
   public
   end;
@@ -134,7 +151,45 @@ begin
                     64 + Random(192));
 end;
 
-procedure TFormMain.Star(Opacity: integer);
+procedure TFormMain.SetSelection(Value: TPositionedLayer);
+var
+  i: integer;
+begin
+  if (Value = FSelection) then
+    exit;
+
+  if (FRubberbandLayer <> nil) then
+  begin
+    FRubberbandLayer.ChildLayer := nil;
+    FRubberbandLayer.LayerOptions := LOB_NO_UPDATE;
+    ImgView.Invalidate;
+  end;
+
+  FSelection := Value;
+
+  if (FSelection <> nil) then
+  begin
+    if FRubberbandLayer = nil then
+    begin
+      FRubberbandLayer := TRubberBandLayer.Create(ImgView.Layers);
+      FRubberbandLayer.Handles := [rhCenter, rhSides, rhCorners];
+    end else
+      FRubberbandLayer.BringToFront;
+
+    FRubberbandLayer.ChildLayer := FSelection;
+    FRubberbandLayer.LayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS or LOB_NO_UPDATE;
+
+    for i := 0 to ListViewLayers.Items.Count-1 do
+      if (ListViewLayers.Items[i].Data = FSelection) then
+      begin
+        ListViewLayers.Items[i].Selected := True;
+        break;
+      end;
+  end else
+    ListViewLayers.Items[0].Selected := True;
+end;
+
+procedure TFormMain.AddLayer(Opacity: integer);
 var
   BitmapLayer: TBitmapLayer;
   i, Steps, nCorners ,X, Y, Diam, t2:integer;
@@ -142,6 +197,7 @@ var
   Poly:TArrayOfFloatPoint;
 begin
   BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
+
   X := Random(400);
   Y := Random(300);
   Diam := 50 + Random(100);
@@ -161,13 +217,33 @@ begin
   end;
 
   GR32_Polygons.PolygonFS(BitmapLayer.Bitmap, Poly, RandomColor());
-  GR32_Polygons.PolyLineFS(BitmapLayer.Bitmap, Poly, clBlack32,True, 2);
-
+  GR32_Polygons.PolyLineFS(BitmapLayer.Bitmap, Poly, clBlack32, True, 2);
 
   BitmapLayer.Bitmap.DrawMode := dmBlend;
   BitmapLayer.Bitmap.MasterAlpha := Opacity;
   BitmapLayer.Location := GR32.FloatRect(X, Y, X + Diam, Y + Diam);
   BitmapLayer.Scaled := True;
+
+  InitLayers(BitmapLayer);
+end;
+
+procedure TFormMain.TrackBarAlphaChange(Sender: TObject);
+begin
+  if (FLocked > 0) then
+    exit;
+
+  if (ListViewLayers.Selected.Data <> nil) then
+    TBitmapLayer(ListViewLayers.Selected.Data).Bitmap.MasterAlpha := TrackBarAlpha.Position
+  else
+    ImgView.Bitmap.MasterAlpha := TrackBarAlpha.Position;
+end;
+
+procedure TFormMain.ButtonClearClick(Sender: TObject);
+begin
+  SetSelection(nil);
+  FRubberbandLayer := nil;
+  ImgView.Layers.Clear;
+  LoadLayerList(ImgView);
 end;
 
 procedure TFormMain.ButtonCompressionWarningClick(Sender: TObject);
@@ -184,6 +260,10 @@ begin
   if (not PromptForFileName(Filename, 'PhotoShop files (*.psd)|*.psd' {$ifdef DEBUG}, '', '', Graphics32Examples.MediaFolder{$endif})) then
     exit;
 
+  SetSelection(nil);
+  FRubberbandLayer := nil;
+  ImgView.Layers.Clear;
+
   Stream := TFileStream.Create(Filename, fmOpenRead or fmShareDenyWrite);
   try
 
@@ -195,7 +275,14 @@ begin
       // Populate TImgView32 from the layers of the PSD
       ImgView.Assign(PhotoshopDocument);
 
+      // Start with background hidden
+      ImgView.Bitmap.DrawMode := dmCustom;
+
       LoadLayerList(PhotoshopDocument, ImgView);
+
+      // Update compression selection with the first one used in the document
+      ComboBoxCompression.ItemIndex := Ord(PhotoshopDocument.Compression);
+      ComboBoxCompressionChange(ComboBoxCompression); // Update warning
 
     finally
       PhotoshopDocument.Free;
@@ -204,25 +291,19 @@ begin
   finally
     Stream.Free;
   end;
+
+  InitLayers;
 end;
 
-procedure TFormMain.ButtonRandomClick(Sender: TObject);
-var
-  i: Integer;
+procedure TFormMain.ButtonAddLayerClick(Sender: TObject);
 begin
-  ImgView.Layers.Clear;
-
-  // Add a bunch of random shapes
-  for i := 0 to 3 do
-    Star($FF); // Solid shapes
-
-  for i := 0 to 3 do
-    Star($80); // Semi-transparent shapes
-
+  AddLayer(64+Random(256-64));
   LoadLayerList(ImgView);
 end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
+var
+  i: integer;
 begin
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.FillStyle := bfsCheckers;
@@ -235,23 +316,92 @@ begin
     // Background is a static bitmap
     ImgView.Bitmap.LoadFromFile(Graphics32Examples.MediaFolder+'\Monalisa.jpg');
 
-  ButtonRandom.Click;
+  Inc(FLocked);
+  try
+
+    for i := 1 to 5 do
+      ButtonAddLayer.Click;
+
+  finally
+    Dec(FLocked);
+  end;
 end;
 
-procedure TFormMain.ListBoxLayersClickCheck(Sender: TObject);
+procedure TFormMain.ImgViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+begin
+  if (Layer = nil) then
+    SetSelection(nil);
+end;
+
+procedure TFormMain.InitLayers(Layer: TBitmapLayer);
+
+  procedure DoInitLayer(Layer: TBitmapLayer);
+  begin
+    Layer.OnClick := LayerOnClick;
+    Layer.AlphaHit := True;
+    Layer.MouseEvents := Layer.Visible;
+  end;
+
 var
   i: integer;
 begin
-  if (ListBoxLayers.Items.Count = 0) then
+  if (Layer <> nil) then
+    DoInitLayer(Layer)
+  else
+    for i := 0 to ImgView.Layers.Count-1 do
+      if (ImgView.Layers[i] is TBitmapLayer) then
+        DoInitLayer(TBitmapLayer(ImgView.Layers[i]));
+end;
+
+procedure TFormMain.LayerOnClick(Sender: TObject);
+begin
+  SetSelection(Sender as TPositionedLayer);
+end;
+
+procedure TFormMain.ListViewLayersItemChecked(Sender: TObject; Item: TListItem);
+var
+  i: integer;
+begin
+  if (ListViewLayers.Items.Count = 0) then
     exit;
 
-  if (ListBoxLayers.Checked[0]) then
+  if (FLocked > 0) then
+    exit;
+
+  if (ListViewLayers.Items[0].Checked) then
     ImgView.Bitmap.DrawMode := dmBlend
   else
     ImgView.Bitmap.DrawMode := dmCustom;
 
-  for i := 1 to ListBoxLayers.Items.Count-1 do
-    TCustomLayer(ListBoxLayers.Items.Objects[i]).Visible := ListBoxLayers.Checked[i];
+  for i := 1 to ListViewLayers.Items.Count-1 do
+    if (ListViewLayers.Items[i].Data <> nil) then
+      TCustomLayer(ListViewLayers.Items[i].Data).Visible := ListViewLayers.Items[i].Checked;
+end;
+
+procedure TFormMain.ListViewLayersSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
+begin
+  if (FLocked > 0) then
+    exit;
+
+  TrackBarAlpha.Enabled := Selected;
+
+  Inc(FLocked);
+  try
+
+    if (Selected) then
+    begin
+      if (Item.Data <> nil) then
+        TrackBarAlpha.Position := TBitmapLayer(Item.Data).Bitmap.MasterAlpha
+      else
+        TrackBarAlpha.Position := ImgView.Bitmap.MasterAlpha;
+
+      SetSelection(TBitmapLayer(Item.Data));
+    end else
+      TrackBarAlpha.Position := 0;
+
+  finally
+    Dec(FLocked);
+  end;
 end;
 
 procedure TFormMain.PixelCombineNone(F: TColor32; var B: TColor32; M: Cardinal);
@@ -262,12 +412,30 @@ end;
 procedure TFormMain.LoadLayerList(ImgView: TImgView32);
 var
   i: integer;
+  Item: TListItem;
 begin
-  ListBoxLayers.Items.Clear;
-  ListBoxLayers.Items.Add('(background)');
+  ListViewLayers.Items.BeginUpdate;
+  Inc(FLocked);
+  try
 
-  for i := 0 to ImgView.Layers.Count-1 do
-    ListBoxLayers.Items.AddObject(Format('Layer %d', [i]), ImgView.Layers[i]);
+    ListViewLayers.Items.Clear;
+
+    Item := ListViewLayers.Items.Add;
+    Item.Caption := '(background)';
+    Item.Selected := (FSelection = nil);
+
+    for i := 0 to ImgView.Layers.Count-1 do
+    begin
+      Item := ListViewLayers.Items.Add;
+      Item.Caption := Format('Layer %d', [i+1]);
+      Item.Data := ImgView.Layers[i];
+      Item.Selected := (FSelection = ImgView.Layers[i]);
+    end;
+
+  finally
+    Dec(FLocked);
+    ListViewLayers.Items.EndUpdate;
+  end;
 
   LoadLayerListState;
 end;
@@ -276,27 +444,34 @@ procedure TFormMain.LoadLayerList(PhotoshopDocument: TPhotoshopDocument; ImgView
 var
   i: integer;
   LayerIndex: integer;
-  HasSkipped: boolean;
+  Item: TListItem;
 begin
-  ListBoxLayers.Items.Clear;
-  ListBoxLayers.Items.Add('(background)');
+  ListViewLayers.Items.BeginUpdate;
+  Inc(FLocked);
+  try
 
-  LayerIndex := 0;
-  HasSkipped := False;
-  for i := 0 to PhotoshopDocument.Layers.Count-1 do
-  begin
-    if (not(PhotoshopDocument.Layers[i] is TCustomPhotoshopBitmapLayer32)) then
-      continue;
+    ListViewLayers.Items.Clear;
 
-    // Skip first document layer if it has become the ImgView background
-    if (LayerIndex = 0) and (not HasSkipped) and (not ImgView.Bitmap.Empty) then
+    Item := ListViewLayers.Items.Add;
+    Item.Caption := '(background)';
+    Item.Selected := True;
+
+    LayerIndex := 0;
+    for i := 0 to PhotoshopDocument.Layers.Count-1 do
     begin
-      HasSkipped := True;
-      continue;
+      if (not(PhotoshopDocument.Layers[i] is TCustomPhotoshopBitmapLayer32)) then
+        continue;
+
+      Item := ListViewLayers.Items.Add;
+      Item.Caption := PhotoshopDocument.Layers[i].Name;
+      Item.Data := ImgView.Layers[LayerIndex];
+
+      Inc(LayerIndex);
     end;
 
-    ListBoxLayers.Items.AddObject(PhotoshopDocument.Layers[i].Name, ImgView.Layers[LayerIndex]);
-    Inc(LayerIndex);
+  finally
+    Dec(FLocked);
+    ListViewLayers.Items.EndUpdate;
   end;
 
   LoadLayerListState;
@@ -306,9 +481,24 @@ procedure TFormMain.LoadLayerListState;
 var
   i: integer;
 begin
-  ListBoxLayers.Checked[0] := (ImgView.Bitmap.DrawMode <> dmCustom);
-  for i := 1 to ListBoxLayers.Items.Count-1 do
-    ListBoxLayers.Checked[i] := TCustomLayer(ListBoxLayers.Items.Objects[i]).Visible;
+  if (ListViewLayers.Items.Count = 0) then
+    exit;
+
+  Inc(FLocked);
+  try
+
+    ListViewLayers.Items[0].Checked := (ImgView.Bitmap.DrawMode <> dmCustom);
+
+    for i := 1 to ListViewLayers.Items.Count-1 do
+    begin
+      ListViewLayers.Items[i].Checked := TCustomLayer(ListViewLayers.Items[i].Data).Visible;
+      // Update layer clickability while we're at it
+      TCustomLayer(ListViewLayers.Items[i].Data).MouseEvents := TCustomLayer(ListViewLayers.Items[i].Data).Visible;
+    end;
+
+  finally
+    Dec(FLocked);
+  end;
 end;
 
 end.
