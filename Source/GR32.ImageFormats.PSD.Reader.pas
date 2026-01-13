@@ -881,23 +881,24 @@ procedure TPhotoshopDocumentReaderHelper.ReadLayersImageData;
 var
   i: Integer;
   StreamPos: Int64;
+  NextPos: Int64;
   Layer: TCustomPhotoshopBitmapLayer32;
 begin
   BeginReadLayerImageData;
   begin
 
+    NextPos := FStream.Position;
+
     for i := 0 to FLayers.Count - 1 do
     begin
-      StreamPos := FStream.Position;
+      StreamPos := NextPos;
+      NextPos := StreamPos + FChannelInfo[i].Size;
 
       Layer := TCustomPhotoshopBitmapLayer32(FLayers[i]);
 
       // Skip layer if it isn't a bitmap layer
       if not (Layer is TCustomPhotoshopBitmapLayer32) then
-      begin
-        FStream.Position := StreamPos + FChannelInfo[i].Size;
         continue;
-      end;
 
       // Ensure that the layer has a bitmap...
       if (Layer.Bitmap = nil) and (Layer is TPhotoshopLayer32) then
@@ -910,11 +911,11 @@ begin
 
       ReadLayerImageData(Layer);
 
-      FStream.Position := StreamPos + FChannelInfo[i].Size;
-
       // Postprocess layer image channels into ARGB
       PostProcessLayerImageData(Layer);
     end;
+
+    FStream.Position := NextPos;
 
   end;
   EndReadLayerImageData;
