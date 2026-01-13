@@ -132,6 +132,8 @@ type
     FChannelInfo: TChannelInfoList;
     FPalette: array[byte] of TColor32;
     FAlphaChannelBuffer: TBytes;
+    FHasCompression: boolean;
+    FCompression: TPSDLayerCompression;
   protected
     function ReadByte: Byte;
     function ReadWord: Word;
@@ -160,10 +162,11 @@ type
     procedure       PostProcessLayerImageData(Layer: TCustomPhotoshopBitmapLayer32);
     procedure ReadCompositeImage;
 
-    procedure Read;
   public
     constructor Create(ADocument: TPhotoshopDocument; AStream: TStream);
     destructor Destroy; override;
+
+    procedure Read;
   end;
 
 //------------------------------------------------------------------------------
@@ -297,6 +300,9 @@ begin
   ReadImageResources;
   ReadLayerAndMaskInfo;
   ReadCompositeImage;
+
+  if (FHasCompression) then
+    FDocument.Compression := FCompression;
 end;
 
 //------------------------------------------------------------------------------
@@ -991,6 +997,12 @@ begin
         ColorComponent := FChannelInfo[Layer.Index].Channels[i].ColorComponent;
 
         Compression := ReadWord;
+
+        if (not FHasCompression) then
+        begin
+          FCompression := TPSDLayerCompression(Compression);
+          FHasCompression := True;
+        end;
 
         case TPSDLayerCompression(Compression) of
           lcRAW: ReadChannelDataRaw(Layer, ColorComponent);

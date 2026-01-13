@@ -256,6 +256,7 @@ var
   Filename: string;
   Stream: TStream;
   PhotoshopDocument: TPhotoshopDocument;
+  i: integer;
 begin
   if (not PromptForFileName(Filename, 'PhotoShop files (*.psd)|*.psd' {$ifdef DEBUG}, '', '', Graphics32Examples.MediaFolder{$endif})) then
     exit;
