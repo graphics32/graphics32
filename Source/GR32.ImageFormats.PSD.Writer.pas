@@ -590,8 +590,9 @@ var
     LayerWriter: TPSDChannelWriterDelegate;
     Size: Cardinal;
     Channel: TColor32Component;
-    ChannelsInfo: array[TColor32Component] of TPSDChannelInfo;
-    ScanLineBuffer: TBytesArray;
+    ChannelsInfo: array[0..PSD_CHANNELS-1] of TPSDChannelInfo;
+    ChannelIndex: integer;
+    ScanLineBuffer: TBytes;
     SavePos: Int64;
   begin
     SetLength(ScanLineBuffer, ALayer.Width);
@@ -603,7 +604,8 @@ var
 
     ALayer.BeginScan;
     begin
-      for Channel := Low(TColor32Component) to High(TColor32Component) do
+      ChannelIndex := 0;
+      for Channel in PSDPlanarOrder do
       begin
         SavePos := AStream.Position;
 
@@ -612,8 +614,9 @@ var
 
         Size := AStream.Position - SavePos;
 
-        ChannelsInfo[Channel].ChannelID := SmallInt(Swap16(Word(PSD_CHANNELS_IDS[Channel])));
-        ChannelsInfo[Channel].ChannelSize := Swap32(Size);
+        ChannelsInfo[ChannelIndex].ChannelID := SmallInt(Swap16(Word(PSD_CHANNELS_IDS[Channel])));
+        ChannelsInfo[ChannelIndex].ChannelSize := Swap32(Size);
+        Inc(ChannelIndex);
       end;
     end;
     ALayer.EndScan;
