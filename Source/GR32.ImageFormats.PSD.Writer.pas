@@ -242,6 +242,8 @@ begin
         Inc(RunCount);
         if (RunCount = MaxRun) then
           Break;
+        if (Index = Count) then
+          Break;
         RunValue := TByteArray(Buffer)[Index];
       end;
 
