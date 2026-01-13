@@ -82,7 +82,6 @@ uses
   GR32.ImageFormats.PSD.Types;
 
 type
-  TBytesArray = array of byte;
   TPhotoshopLayerCracker = class(TCustomPhotoshopLayer);
 
 //------------------------------------------------------------------------------
@@ -141,7 +140,7 @@ end;
 
 class procedure CompressionRAW.WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer);
 var
-  ScanLineBuffer: TBytesArray;
+  ScanLineBuffer: TBytes;
   Channel: TColor32Component;
   i: integer;
 begin
@@ -299,7 +298,7 @@ end;
 
 class procedure CompressionRLE.WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer);
 var
-  ScanLineBuffer: TBytesArray;
+  ScanLineBuffer: TBytes;
   Channel: TColor32Component;
   i: integer;
   RowTablePos: Int64;
@@ -372,7 +371,7 @@ end;
 
 class procedure CompressionZIP.WriteBitmap(AStream: TStream; ALayer: TCustomPhotoshopLayer);
 var
-  ScanLineBuffer: TBytesArray;
+  ScanLineBuffer: TBytes;
   Stream: TStream;
   Channel: TColor32Component;
   i: integer;
@@ -639,7 +638,7 @@ var
   procedure WriteLayerBeginExtraInfo(const AKey: AnsiString);
   begin
     if Length(AKey) <> 4 then
-       raise EPhotoshopDocument.CreateFmt('Invalid layer info key: "%s"',[string(AKey)]);
+      raise EPhotoshopDocument.CreateFmt('Invalid layer info key: "%s"',[string(AKey)]);
     WriteRawAnsiString('8BIM'); // Signature
     WriteRawAnsiString(AKey); // Key
     WriteBeginSection; // Size field

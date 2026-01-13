@@ -768,7 +768,14 @@ Additional Layer Information
 +----------+--------------------------------------------------------------------+
 | 4        | Key: a 4-character code (not documented here)                      |
 +----------+--------------------------------------------------------------------+
-| 4        | Length data below, rounded up to an even byte count.               |
+| 4        | Length of data below, rounded up to an even byte count.            |
+|          | Beware:                                                            |
+|          | - The data written by PhotoShop is always 4-byte aligned,          |
+|          |   regardless of the length alignment.                              |
+|          | - Although the length is almost always 4-byte aligned, it is not   |
+|          |   guaranteed; Some keys, such as 'LMsk' have been seen with 2-byte |
+|          |   aligned length, while others, such as 'Lr16' and 'Lr32' have been|
+|          |   seen with unaligned lengths.                                     |
 +----------+--------------------------------------------------------------------+
 | Variable | Data (not documented here)                                         |
 +----------+--------------------------------------------------------------------+
@@ -831,7 +838,7 @@ Additional Layer Information
 
     Result.Name := string(ReadPascalAnsiString(4));
 
-    // Additional Result Information
+    // Additional Layer Information
     while (FStream.Position < ExtraDataPos + ExtraDataSize) do
     begin
       Signature := ReadAnsiString(4);
@@ -968,6 +975,7 @@ begin
 |          | will be inserted at the end of the row.                            |
 |          | If the layer is an adjustment layer, the channel data is undefined |
 |          | (probably all white).                                              |
+|          | Note: PhotoShop doesn't actually apply the padding.                |
 +----------+--------------------------------------------------------------------+
 *)
 
