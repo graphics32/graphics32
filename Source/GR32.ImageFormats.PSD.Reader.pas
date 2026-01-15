@@ -72,6 +72,7 @@ uses
   Generics.Collections,
   SysUtils,
   GR32,
+  GR32_LowLevel,
   GR32.BigEndian,
   GR32.ImageFormats.PSD.Types;
 
@@ -83,14 +84,38 @@ type
 //      Color conversion
 //
 //------------------------------------------------------------------------------
+type
+  TColorCMYK = record
+{$IFNDEF RGBA_FORMAT}
+    Y, M, C, K: Byte;
+{$ELSE}
+    C, M, Y, K: Byte;
+{$ENDIF}
+  end;
+
 procedure CMYKtoColor32(var AColor: TColor32Entry);
+var
+  C, M, Y, K: Single;
+  KK: Single;
+  Result: TColor32Entry;
 begin
-  // Note: This is an approximation; Proper conversion isn't possible without a color profile
-  AColor.R := Round(255 * (1 - AColor.R / 255) * (1 - AColor.A / 255));
-  AColor.G := Round(255 * (1 - AColor.G / 255) * (1 - AColor.A / 255));
-  AColor.B := Round(255 * (1 - AColor.B / 255) * (1 - AColor.A / 255));
-  AColor.A := 255;
+  // https://graphicdesign.stackexchange.com/a/137902
+  // Note that PSD CMYK values apparently are inverse, so the algorithm below differs slightly from the source.
+
+  C := TColorCMYK(AColor).C;
+  M := TColorCMYK(AColor).M;
+  Y := TColorCMYK(AColor).Y;
+  K := TColorCMYK(AColor).K;
+  KK := K / 255;
+
+  Result.R := Clamp(Round(KK * (80 + 0.5882 * C - 0.3529 * M - 0.1373 * Y + 0.00185 * C * M + 0.00046 * Y * C))); // no YM
+  Result.G := Clamp(Round(KK * (66 - 0.1961 * C + 0.2745 * M - 0.0627 * Y + 0.00215 * C * M + 0.00008 * Y * C + 0.00062 * Y * M)));
+  Result.B := Clamp(Round(KK * (86 - 0.3255 * C - 0.1569 * M + 0.1647 * Y + 0.00046 * C * M + 0.00123 * Y * C + 0.00215 * Y * M)));
+  Result.A := 255;
+
+  AColor := Result;
 end;
+
 
 //------------------------------------------------------------------------------
 //
