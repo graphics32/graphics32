@@ -1123,7 +1123,7 @@ begin
 
   ZStream := TDecompressionStream.Create(FStream);
   try
-    for i := 0 to High(RowData) do
+    for i := 0 to Layer.Height - 1 do
     begin
       ZStream.Read(RowData[0], Length(RowData));
       SetChannel(Layer, ColorComponent, i, RowData);
