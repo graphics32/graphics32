@@ -34,10 +34,9 @@ interface
 
 {$I GR32.inc}
 
-// PSD_VALIDATE_IMAGE_RESOURCE_SECTION
-// If defined, the Image Resource section is parsed (the information in it
-// isn't used for anything yet).
-{$define PSD_VALIDATE_IMAGE_RESOURCE_SECTION}
+// PSD_PARSE_IMAGE_RESOURCE_SECTION
+// If defined, the Image Resource section is parsed.
+{$define PSD_PARSE_IMAGE_RESOURCE_SECTION}
 
 uses
   Classes,
@@ -131,6 +130,9 @@ type
     FDepth: Word;
     FChannelInfo: TChannelInfoList;
     FPalette: array[byte] of TColor32;
+{$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
+    FTransparentColorIndex: integer;
+{$endif}
     FAlphaChannelBuffer: TBytes;
     FHasCompression: boolean;
     FCompression: TPSDLayerCompression;
@@ -452,6 +454,10 @@ treat a duotone image as a gray image, and just preserve the contents of the
 duotone information when reading and writing the file.
 *)
 
+{$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
+  FTransparentColorIndex := -1;
+{$endif}
+
   Size := ReadCardinal;
 
   case FMode of
@@ -490,14 +496,13 @@ end;
 procedure TPhotoshopDocumentReaderHelper.ReadImageResources;
 var
   Size: Cardinal;
-{$ifdef PSD_VALIDATE_IMAGE_RESOURCE_SECTION}
+{$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
   Next: Int64;
   Signature: AnsiString;
   Ident: Word;
   Name: AnsiString;
   DataSize: Cardinal;
   FColorTableCount: Cardinal;
-  FTransparentColorIndex: Cardinal;
 {$endif}
 begin
 (* Image Resources Section
@@ -512,7 +517,7 @@ begin
 
   Size := ReadCardinal;
 
-{$ifdef PSD_VALIDATE_IMAGE_RESOURCE_SECTION}
+{$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
   Next := FStream.Position + Size;
 
   while (FStream.Position < Next) do
@@ -1136,8 +1141,19 @@ begin
       end;
 
     PSD_INDEXED:
-      for i := 0 to n-1 do
-        Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R];
+      begin
+        for i := 0 to n-1 do
+        begin
+{$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
+          if (TColor32Entry(Layer.Bitmap.Bits[i]).R <> FTransparentColorIndex) then
+            Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R]
+          else
+            Layer.Bitmap.Bits[i] := 0;
+{$else}
+          Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R]
+{$endif}
+        end;
+      end;
 
     PSD_GRAYSCALE:
       begin
