@@ -1,4 +1,4 @@
-unit GR32.ImageFormats.PSD.Reader;
+﻿unit GR32.ImageFormats.PSD.Reader;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -71,6 +71,7 @@ uses
 {$endif FPC}
   Generics.Collections,
   SysUtils,
+  Math,
   GR32,
   GR32_LowLevel,
   GR32.BigEndian,
@@ -84,6 +85,10 @@ type
 //      Color conversion
 //
 //------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// CMYK -> RGB
+//------------------------------------------------------------------------------
 type
   TColorCMYK = record
 {$IFNDEF RGBA_FORMAT}
@@ -93,27 +98,131 @@ type
 {$ENDIF}
   end;
 
-procedure CMYKtoColor32(var AColor: TColor32Entry);
+procedure CMYKtoColor32(const CMYK: TColorCMYK; var RGB: TColor32Entry);
 var
-  C, M, Y, K: Single;
+  C, M, Y: Single;
   KK: Single;
-  Result: TColor32Entry;
 begin
+  // Note that PSD CMYK are already inverse.
+
   // https://graphicdesign.stackexchange.com/a/137902
-  // Note that PSD CMYK values apparently are inverse, so the algorithm below differs slightly from the source.
 
-  C := TColorCMYK(AColor).C;
-  M := TColorCMYK(AColor).M;
-  Y := TColorCMYK(AColor).Y;
-  K := TColorCMYK(AColor).K;
-  KK := K / 255;
+  C := CMYK.C;
+  M := CMYK.M;
+  Y := CMYK.Y;
+  KK := CMYK.K / 255;
 
-  Result.R := Clamp(Round(KK * (80 + 0.5882 * C - 0.3529 * M - 0.1373 * Y + 0.00185 * C * M + 0.00046 * Y * C))); // no YM
-  Result.G := Clamp(Round(KK * (66 - 0.1961 * C + 0.2745 * M - 0.0627 * Y + 0.00215 * C * M + 0.00008 * Y * C + 0.00062 * Y * M)));
-  Result.B := Clamp(Round(KK * (86 - 0.3255 * C - 0.1569 * M + 0.1647 * Y + 0.00046 * C * M + 0.00123 * Y * C + 0.00215 * Y * M)));
-  Result.A := 255;
+  RGB.R := Clamp(Round(KK * (80 + 0.5882 * C - 0.3529 * M - 0.1373 * Y + 0.00185 * C * M + 0.00046 * Y * C))); // no YM
+  RGB.G := Clamp(Round(KK * (66 - 0.1961 * C + 0.2745 * M - 0.0627 * Y + 0.00215 * C * M + 0.00008 * Y * C + 0.00062 * Y * M)));
+  RGB.B := Clamp(Round(KK * (86 - 0.3255 * C - 0.1569 * M + 0.1647 * Y + 0.00046 * C * M + 0.00123 * Y * C + 0.00215 * Y * M)));
+  RGB.A := 255;
+end;
 
-  AColor := Result;
+
+//------------------------------------------------------------------------------
+// CIEL*a*b -> XYZ
+//------------------------------------------------------------------------------
+type
+  TColorLAB = record
+{$IFNDEF RGBA_FORMAT}
+    b, a, L: Byte;
+{$ELSE}
+    L, a, b: Byte;
+{$ENDIF}
+    Alpha: Byte;
+  end;
+
+type
+  TColorXYZ = record
+    X, Y, Z: Single;
+    Alpha: Byte;
+  end;
+
+procedure LABtoXYZ(const LAB: TColorLAB; var XYZ: TColorXYZ);
+var
+  X, Y, Z: Single;
+  Pow3: Single;
+begin
+  // Based on http://www.easyrgb.com
+
+  Y := ((LAB.L / 255 * 100) + 16) / 116;
+  X := (LAB.a - 128) / 500 + Y;
+  Z := Y - (LAB.b - 128) / 200;
+
+  Pow3 := Y * Y * Y;
+  if (Pow3 > 0.008856) then
+    Y := Pow3
+  else
+    Y := (Y - 16 / 116) / 7.787;
+
+  Pow3 := X * X * X;
+  if (Pow3 > 0.008856) then
+    X := Pow3
+  else
+    X := (X - 16 / 116) / 7.787;
+
+  Pow3 := Z * Z * Z;
+  if (Pow3 > 0.008856) then
+    Z := Pow3
+  else
+    Z := (Z - 16 / 116) / 7.787;
+
+  XYZ.X := 95.047 * X;	// ref_X = 95.047 (Observer= 2°, Illuminant= D65)
+  XYZ.Y := 100.000 * Y;	// ref_Y = 100.000
+  XYZ.Z := 108.883 * Z;	// ref_Z = 108.883
+  XYZ.Alpha := LAB.Alpha;
+end;
+
+//------------------------------------------------------------------------------
+// XYZ -> RGB
+//------------------------------------------------------------------------------
+procedure XYZtoColor32(const XYZ: TColorXYZ; var RGB: TColor32Entry);
+var
+  X, Y, Z: Single;
+  R, G, B: Single;
+const
+  Exponent: Single = 1 / 2.4;
+begin
+  // Based on http://www.easyrgb.com
+
+  X := XYZ.X / 100; //X from 0 to  95.047 (Observer = 2°, Illuminant = D65)
+  Y := XYZ.Y / 100; //Y from 0 to 100.000
+  Z := XYZ.Z / 100; //Z from 0 to 108.883
+
+  R := X *  3.2406 + Y * -1.5372 + Z * -0.4986;
+  G := X * -0.9689 + Y *  1.8758 + Z *  0.0415;
+  B := X *  0.0557 + Y * -0.2040 + Z *  1.0570;
+
+  if (R > 0.0031308) then
+    R := 1.055 * Power(R, Exponent) - 0.055
+  else
+    R := 12.92 * R;
+
+  if (G > 0.0031308) then
+    G := 1.055 * Power(G, Exponent) - 0.055
+  else
+    G := 12.92 * G;
+
+  if (B > 0.0031308) then
+    B := 1.055 * Power(B, Exponent) - 0.055
+  else
+    B := 12.92 * B;
+
+  RGB.R := Clamp(Round(255 * R));
+  RGB.G := Clamp(Round(255 * G));
+  RGB.B := Clamp(Round(255 * B));
+  RGB.A := XYZ.Alpha;
+end;
+
+//------------------------------------------------------------------------------
+// CIELab -> XYZ -> RGB
+//------------------------------------------------------------------------------
+procedure LABtoColor32(const LAB: TColorLAB; var RGB: TColor32Entry);
+var
+  XYZ: TColorXYZ;
+begin
+  LABtoXYZ(LAB, XYZ);
+  XYZtoColor32(XYZ, RGB);
 end;
 
 
@@ -378,9 +487,11 @@ begin
   if (Version <> 1) then
     raise EPhotoshopDocument.CreateFmt('Unsupported PSD version: %d', [Version]);
 
-  Skip(6);
+  Skip(6); // Skip reserved
 
   FChannels := ReadWord;
+  if (FChannels > PSD_MAX_CHANNELS) then
+    raise EPhotoshopDocument.CreateFmt('Invalid number of channels: %d', [FChannels]);
 
   FDocument.Height := ReadCardinal;
   FDocument.Width := ReadCardinal;
@@ -388,14 +499,14 @@ begin
   FDepth := ReadWord;
 
   SupportedBits := [1, 8, 16, 32];
-  SupportedChannels := [1..56];
+  SupportedChannels := [1..PSD_MAX_CHANNELS];
 
   FMode := ReadWord;
   case FMode of
     PSD_DUOTONE, // DuoTone isn't really supported; Treat it as grayscale
     PSD_GRAYSCALE:
       begin
-        SupportedChannels := [1, 2];
+        SupportedChannels := [1, 2..PSD_MAX_CHANNELS];
         if (FChannels = 1) then
           SupportedBits := [8, 16, 32]
         else
@@ -404,30 +515,34 @@ begin
 
     PSD_BITMAP: // Monochrome; Pixel set is white
       begin
-        SupportedChannels := [1];
+        SupportedChannels := [1..PSD_MAX_CHANNELS];
         SupportedBits := [1];
       end;
 
     PSD_INDEXED:
       begin
-        SupportedChannels := [1];
+        SupportedChannels := [1..PSD_MAX_CHANNELS];
         SupportedBits := [8];
       end;
 
     PSD_MULTICHANNEL,
     PSD_RGB:
       begin
-        SupportedChannels := [3, 4];
+        SupportedChannels := [3, 4..PSD_MAX_CHANNELS];
         SupportedBits := [8, 16];
       end;
 
     PSD_CMYK:
       begin
-        SupportedChannels := [4, 5];
+        SupportedChannels := [4, 5..PSD_MAX_CHANNELS];
         SupportedBits := [8, 16];
       end;
 
-    // PSD_LAB:
+    PSD_LAB:
+      begin
+        SupportedChannels := [3, 4..PSD_MAX_CHANNELS];
+        SupportedBits := [8, 16];
+      end;
 
   else
     raise EPhotoshopDocument.CreateFmt('Unsupported color mode: %d', [FMode]);
@@ -937,7 +1052,10 @@ begin
         TPhotoshopLayer32(Layer).OwnsBitmap := True;
       end;
       // ...and that the bitmap has the correct size
-      Layer.Bitmap.SetSize(Layer.LayerWidth, Layer.LayerHeight, False);
+      // Note that we clear the bitmap even though we will continue to
+      // read the pixels from the PSD, because the PSD might not contain
+      // data for all the channels.
+      Layer.Bitmap.SetSize(Layer.LayerWidth, Layer.LayerHeight);
 
       ReadLayerImageData(Layer);
 
@@ -1155,8 +1273,11 @@ procedure TPhotoshopDocumentReaderHelper.PostProcessLayerImageData(Layer: TCusto
 var
   i: integer;
   n: integer;
+  HasAlpha: boolean;
 begin
   n := Layer.Bitmap.Width * Layer.Bitmap.Height;
+
+  HasAlpha := (ccAlpha in FChannelInfo[Layer.Index].ColorComponents);
 
   case FMode of
     PSD_DUOTONE:
@@ -1167,6 +1288,9 @@ begin
 
     PSD_INDEXED:
       begin
+{$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
+        HasAlpha := (FTransparentColorIndex <> -1);
+{$endif}
         for i := 0 to n-1 do
         begin
 {$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
@@ -1182,7 +1306,7 @@ begin
 
     PSD_GRAYSCALE:
       begin
-        if (ccAlpha in FChannelInfo[Layer.Index].ColorComponents) then
+        if (HasAlpha) then
         begin
           for i := 0 to n-1 do
             Layer.Bitmap.Bits[i] := SetAlpha(FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R], TColor32Entry(Layer.Bitmap.Bits[i]).A);
@@ -1194,26 +1318,33 @@ begin
       end;
 
     PSD_BITMAP: // Monochrome; Pixel set is white
-      for i := 0 to n-1 do
-        if (TColor32Entry(Layer.Bitmap.Bits[i]).R = 0) then
-          Layer.Bitmap.Bits[i] := clWhite32
-        else
-          Layer.Bitmap.Bits[i] := clBlack32;
+      begin
+        for i := 0 to n-1 do
+          if (TColor32Entry(Layer.Bitmap.Bits[i]).R = 0) then
+            Layer.Bitmap.Bits[i] := clWhite32
+          else
+            Layer.Bitmap.Bits[i] := clBlack32;
+      end;
 
     PSD_MULTICHANNEL,
     PSD_RGB:
-      // RGB -> ARGB
-      if (not (ccAlpha in FChannelInfo[Layer.Index].ColorComponents)) then
-        Layer.Bitmap.ResetAlpha(255);
+      begin
+      end;
 
     PSD_CMYK:
       begin
+        // Note that this handles both CMYK and CMY.
+        // In case the PSD only contained CMY (i.e. 3 channels), the K channel will
+        // already have been cleared to zero, which is what we want.
         for i := 0 to n-1 do
-          CMYKtoColor32(TColor32Entry(Layer.Bitmap.Bits[i]));
+          CMYKtoColor32(TColorCMYK(Layer.Bitmap.Bits[i]), TColor32Entry(Layer.Bitmap.Bits[i]));
       end;
 
     PSD_LAB:
-      {not yet implemented};
+      begin
+        for i := 0 to n-1 do
+          LABtoColor32(TColorLAB(Layer.Bitmap.Bits[i]), TColor32Entry(Layer.Bitmap.Bits[i]));
+      end;
 
   end;
 
@@ -1222,6 +1353,12 @@ begin
   begin
     for i := 0 to n-1 do
       TColor32Entry(Layer.Bitmap.Bits[i]).A := FAlphaChannelBuffer[i];
+  end else
+  begin
+    // Set alpha if none of the channels contained it. This handles RGB->ARGB,
+    // LAB without alpha, etc.
+    if (not HasAlpha) then
+      Layer.Bitmap.ResetAlpha(255);
   end;
 end;
 

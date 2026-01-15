@@ -1,4 +1,4 @@
-unit GR32.ImageFormats.PSD.Types;
+﻿unit GR32.ImageFormats.PSD.Types;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -118,6 +118,9 @@ const
   PSD_MASK_GREEN        = 1;    //  1 = green (or magenta etc.)
   PSD_MASK_BLUE         = 2;    //  2 = blue (or yellow etc.)
   PSD_MASK_BLACK        = 3;    //  3 = black (for CMYK images)
+
+const
+  PSD_MAX_CHANNELS      = 56;
 
 type
   TPSDChannelInfo = packed record
