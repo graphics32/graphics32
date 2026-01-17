@@ -1429,7 +1429,7 @@ end;
 //------------------------------------------------------------------------------
 
 initialization
-  TPhotoshopDocument.DefaultLayerClass := TCustomPhotoshopBitmapLayer32;
+  TPhotoshopDocument.DefaultLayerClass := TPhotoshopLayer32;
   TPhotoshopDocument.DefaultCompression := lcRLE;
 
 finalization
