@@ -636,6 +636,7 @@ type
     procedure Scroll(Dx, Dy: Single); overload; virtual;
     procedure ScrollToCenter; overload;
     procedure ScrollToCenter(X, Y: Integer); overload; virtual;
+    procedure FitToViewport; // Scales image to fit viewport and centers
     procedure Zoom(AScale: TFloat; const APivot: TFloatPoint; AAnimate: boolean = False); overload;
     procedure Zoom(AScale: TFloat; AAnimate: boolean = False); overload;
 
@@ -3862,6 +3863,28 @@ end;
 procedure TCustomImage32.ScrollToCenter;
 begin
   ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2);
+end;
+
+procedure TCustomImage32.FitToViewport;
+var
+  ViewportRect: TRect;
+  BitmapMargin: Integer;
+begin
+  BeginUpdate;
+  try
+    if (ScaleMode = smScale) and (not Bitmap.Empty) then
+    begin
+      BitmapMargin := 2 * GetBitmapMargin;
+      ViewportRect := GetViewportRect;
+
+      if (ViewportRect.Width > BitmapMargin) and (ViewportRect.Height > BitmapMargin) then
+        Scale := Min((ViewportRect.Width - BitmapMargin) / Bitmap.Width, (ViewportRect.Height - BitmapMargin) / Bitmap.Height);
+    end;
+
+    ScrollToCenter;
+  finally
+    EndUpdate;
+  end;
 end;
 
 procedure TCustomImage32.SetBackgroundOptions(const Value: TBackgroundOptions);
