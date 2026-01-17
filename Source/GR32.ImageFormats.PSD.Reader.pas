@@ -255,12 +255,40 @@ type
     end;
 
     TChannelInfoList = TArray<TLayerInfo>; // One TLayerInfo per layer
+
+  private type
+    // Copy from buffer into scanline
+    TPSDChannelSetterDelegate = procedure(ALayer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes) of object;
+
+    // Read all channels in one go; Used for background bitmap
+    TPSDBitmapReaderDelegate = procedure(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+
+    // Read a single channels; Used for layer bitmaps
+    TPSDChannelReaderDelegate = procedure(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+
+    CompressionRAW = record
+      class procedure ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+      class procedure ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+    end;
+
+    CompressionRLE = record
+    private
+      class procedure Decode(AStream: TStream; const ABuffer: TBytes); static;
+    public
+      class procedure ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+      class procedure ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+    end;
+
+    CompressionZIP = record
+      class procedure ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+      class procedure ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+    end;
+
   private
     FStream: TStream;
     FDocument: TPhotoshopDocument;
     FLayers: TList<TCustomPhotoshopLayer>;
     FMode: Word;
-    FChannels: integer;
     FDepth: Word;
     FChannelInfo: TChannelInfoList;
     FPalette: array[byte] of TColor32;
@@ -271,6 +299,13 @@ type
     FHasCompression: boolean;
     FCompression: TPSDLayerCompression;
   protected
+    function BytesPerScanline(Width: integer): integer;
+    function GetSetChannel: TPSDChannelSetterDelegate;
+    procedure SetChannel1bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+    procedure SetChannel8bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+    procedure SetChannel16bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+    procedure SetChannel32bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+
     function ReadByte: Byte;
     function ReadWord: Word;
     function ReadCardinal: Cardinal;
@@ -280,22 +315,24 @@ type
     function ReadUnicodeString: string;
     function Padding(Value: Cardinal; Alignment: Cardinal = 4): Cardinal;
     procedure Skip(ACount: Int64);
+    procedure SetLayerChannelInfo(var LayerInfo: TLayerInfo; Channel: Cardinal; Component: SmallInt; Size: Cardinal = 0);
+    class function GetChannelReader(Compression: TPSDLayerCompression): TPSDChannelReaderDelegate;
+    class function GetBitmapReader(ALayer: TCustomPhotoshopLayer): TPSDBitmapReaderDelegate;
 
     function TryChannelToColorComponent(AChannel: SmallInt; var AComponent: TColor32Component): boolean;
-    procedure SetChannel(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
 
     procedure ReadHeader;
     procedure ReadColorModeData;
     procedure ReadImageResources;
     procedure ReadLayerAndMaskInfo;
-    procedure   ReadLayersInfo;
-    function      ReadLayerRecord: TCustomPhotoshopLayer;
-    procedure     ReadLayersImageData;
-    procedure       ReadLayerImageData(Layer: TCustomPhotoshopBitmapLayer32);
-    procedure         ReadChannelDataRLE(Layer: TCustomPhotoshopBitmapLayer32; ColorComponent: TColor32Component);
-    procedure         ReadChannelDataZIP(Layer: TCustomPhotoshopBitmapLayer32; ColorComponent: TColor32Component);
-    procedure         ReadChannelDataRaw(Layer: TCustomPhotoshopBitmapLayer32; ColorComponent: TColor32Component);
-    procedure       PostProcessLayerImageData(Layer: TCustomPhotoshopBitmapLayer32);
+    procedure   ReadLayerInfo;
+    function      ReadLayerRecord(var LayerInfo: TLayerInfo): TCustomPhotoshopLayer;
+    procedure     BeginReadLayerImageData;
+    procedure       ReadLayersImageData;
+    procedure         BeginReadChannelImageData(Layer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo);
+    procedure           ReadChannelImageData(Layer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo);
+    procedure         EndReadChannelImageData(Layer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo);
+    procedure     EndReadLayerImageData;
     procedure ReadCompositeImage;
 
   public
@@ -319,6 +356,32 @@ destructor TPhotoshopDocumentReaderHelper.Destroy;
 begin
   FLayers.Free;
   inherited;
+end;
+
+//------------------------------------------------------------------------------
+
+function TPhotoshopDocumentReaderHelper.BytesPerScanline(Width: integer): integer;
+begin
+  case FDepth of
+    1: Result := (Width + 7) div 8;
+    8: Result := Width;
+    16: Result := Width * 2;
+    32: Result := Width * 4;
+  else
+    raise EPhotoshopDocument.CreateFmt('Unsupported bit depth: %d', [FDepth]);
+  end;
+end;
+
+function TPhotoshopDocumentReaderHelper.GetSetChannel: TPSDChannelSetterDelegate;
+begin
+  case FDepth of
+    1: Result := SetChannel1bit;
+    8: Result := SetChannel8bit;
+    16: Result := SetChannel16bit;
+    32: Result := SetChannel32bit;
+  else
+    raise EPhotoshopDocument.CreateFmt('Unsupported bit depth: %d', [FDepth]);
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -419,12 +482,110 @@ begin
   end;
 end;
 
-procedure TPhotoshopDocumentReaderHelper.SetChannel(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+//------------------------------------------------------------------------------
+
+procedure TPhotoshopDocumentReaderHelper.SetChannel1bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+var
+  i: integer;
+  Bit: integer;
+  Mask: Byte;
+  Value: Byte;
+  Count: integer;
+  Offset: integer;
+begin
+  if (AChannel <> ccExtra) then
+  begin
+    Offset := 0;
+    Count := Layer.Width;
+    Mask := $80;
+
+    for i := 0 to High(ABytes) do
+    begin
+      for Bit := 0 to 7 do
+      begin
+        Value := Ord(ABytes[i] and Mask <> 0);
+
+        TPhotoshopLayerCracker(Layer).SetChannelScanlinePixel(AChannel, ALine, Offset, Value);
+
+        Dec(Count);
+        if (Count = 0) then
+          exit;
+
+        Inc(Offset);
+        Mask := Mask shr 1;
+        if (Mask = 0) then
+          Mask := $80;
+      end;
+    end;
+  end else
+    Move(ABytes[0], FAlphaChannelBuffer[ALine * Length(ABytes)], Length(ABytes));
+end;
+
+procedure TPhotoshopDocumentReaderHelper.SetChannel8bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
 begin
   if (AChannel <> ccExtra) then
     TPhotoshopLayerCracker(Layer).SetChannelScanLine(AChannel, ALine, ABytes[0])
   else
     Move(ABytes[0], FAlphaChannelBuffer[ALine * Length(ABytes)], Length(ABytes));
+end;
+
+procedure TPhotoshopDocumentReaderHelper.SetChannel16bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+var
+  i: integer;
+begin
+  // 16-bit format is stored a stream of big endian words.
+  // Since we reduce to 8-bit anyway we can just ignore the low-bytes.
+  if (AChannel <> ccExtra) then
+  begin
+    for i := 0 to (Length(ABytes) div 2)-1 do
+      TPhotoshopLayerCracker(Layer).SetChannelScanlinePixel(AChannel, ALine, i, ABytes[i*2]);
+  end else
+    Move(ABytes[0], FAlphaChannelBuffer[ALine * Length(ABytes)], Length(ABytes));
+end;
+
+procedure TPhotoshopDocumentReaderHelper.SetChannel32bit(Layer: TCustomPhotoshopBitmapLayer32; AChannel: TColor32Component; ALine: integer; const ABytes: TBytes);
+type
+  TFloats = TArray<Cardinal>;
+var
+  i: integer;
+  Value: Cardinal;
+  FloatValue: Single;
+  ByteValue: Byte;
+begin
+  if (AChannel <> ccExtra) then
+  begin
+    for i := 0 to (Length(ABytes) div 4)-1 do
+    begin
+      Value := Swap32(TFloats(ABytes)[i]);
+      FloatValue := PSingle(@Value)^;
+      ByteValue := Clamp(Round(FloatValue * 255));
+      TPhotoshopLayerCracker(Layer).SetChannelScanlinePixel(AChannel, ALine, i, ByteValue)
+    end;
+  end else
+    Move(ABytes[0], FAlphaChannelBuffer[ALine * Length(ABytes)], Length(ABytes));
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TPhotoshopDocumentReaderHelper.SetLayerChannelInfo(var LayerInfo: TLayerInfo; Channel: Cardinal; Component: SmallInt; Size: Cardinal);
+var
+  ColorComponent: TColor32Component;
+begin
+  LayerInfo.Channels[Channel].Component := Component;
+  LayerInfo.Channels[Channel].HasColorComponent := TryChannelToColorComponent(Component, ColorComponent);
+  LayerInfo.Channels[Channel].Size := Size;
+
+  if (LayerInfo.Channels[Channel].HasColorComponent) then
+  begin
+    LayerInfo.Channels[Channel].ColorComponent := ColorComponent;
+
+    if (ColorComponent <> ccExtra) then
+      Include(LayerInfo.ColorComponents, ColorComponent)
+    else
+      LayerInfo.HasExtra := True;
+  end;
+
+  Inc(LayerInfo.Size, Size);
 end;
 
 //------------------------------------------------------------------------------
@@ -489,9 +650,9 @@ begin
 
   Skip(6); // Skip reserved
 
-  FChannels := ReadWord;
-  if (FChannels > PSD_MAX_CHANNELS) then
-    raise EPhotoshopDocument.CreateFmt('Invalid number of channels: %d', [FChannels]);
+  FDocument.Channels := ReadWord;
+  if (FDocument.Channels > PSD_MAX_CHANNELS) then
+    raise EPhotoshopDocument.CreateFmt('Invalid number of channels: %d', [FDocument.Channels]);
 
   FDocument.Height := ReadCardinal;
   FDocument.Width := ReadCardinal;
@@ -507,7 +668,7 @@ begin
     PSD_GRAYSCALE:
       begin
         SupportedChannels := [1, 2..PSD_MAX_CHANNELS];
-        if (FChannels = 1) then
+        if (FDocument.Channels = 1) then
           SupportedBits := [8, 16, 32]
         else
           SupportedBits := [8, 16];
@@ -529,19 +690,19 @@ begin
     PSD_RGB:
       begin
         SupportedChannels := [3, 4..PSD_MAX_CHANNELS];
-        SupportedBits := [8, 16];
+        SupportedBits := [8, 16, 32];
       end;
 
     PSD_CMYK:
       begin
         SupportedChannels := [4, 5..PSD_MAX_CHANNELS];
-        SupportedBits := [8, 16];
+        SupportedBits := [8, 16, 32];
       end;
 
     PSD_LAB:
       begin
         SupportedChannels := [3, 4..PSD_MAX_CHANNELS];
-        SupportedBits := [8, 16];
+        SupportedBits := [8, 16, 32];
       end;
 
   else
@@ -551,8 +712,8 @@ begin
   if (not (FDepth in SupportedBits)) then
     raise EPhotoshopDocument.CreateFmt('Unsupported bit depth (%d) for mode (%d)', [FDepth, FMode]);
 
-  if (not (FChannels in SupportedChannels)) then
-    raise EPhotoshopDocument.CreateFmt('Unsupported number of channels (%d) for mode (%d)', [FChannels, FMode]);
+  if (not (FDocument.Channels in SupportedChannels)) then
+    raise EPhotoshopDocument.CreateFmt('Unsupported number of channels (%d) for mode (%d)', [FDocument.Channels, FMode]);
 end;
 
 //------------------------------------------------------------------------------
@@ -638,11 +799,12 @@ var
   Size: Cardinal;
 {$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
   Next: Int64;
+  StartPos: Int64;
   Signature: AnsiString;
   Ident: Word;
   Name: AnsiString;
   DataSize: Cardinal;
-  FColorTableCount: Cardinal;
+  // FColorTableCount: Cardinal;
 {$endif}
 begin
 (* Image Resources Section
@@ -668,19 +830,15 @@ begin
     Ident := ReadWord;
     Name := ReadPascalAnsiString(2);
     DataSize := ReadCardinal;
-    case Ident of
-      1046:
-        begin
-          FColorTableCount := ReadWord;
-          Dec(DataSize, SizeOf(Word));
-        end;
+    StartPos := FStream.Position;
+    case TPSD_ImageResourceID(Ident) of
+      PSD_IDX_COL_TAB_CNT:
+        ReadWord;
 
-      1047:
-        begin
-          FTransparentColorIndex := ReadWord;
-          Dec(DataSize, SizeOf(Word));
-        end;
+      PSD_IDX_TRANSPARENT:
+        FTransparentColorIndex := ReadWord;
     end;
+    Dec(DataSize, FStream.Position - StartPos);
     Skip(DataSize + Padding(DataSize, 2));
   end;
 
@@ -744,7 +902,7 @@ Additional Layer Information
   begin
     Next := FStream.Position + Size;
 
-    ReadLayersInfo;
+    ReadLayerInfo;
 
     // Skip "Global layer mask info"
     Size := ReadCardinal;
@@ -758,7 +916,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TPhotoshopDocumentReaderHelper.ReadLayersInfo;
+procedure TPhotoshopDocumentReaderHelper.ReadLayerInfo;
 var
   Size: Cardinal;
   Next: Int64;
@@ -797,23 +955,28 @@ begin
     // TODO : Set flag to ignore alpha channel of first layer
     Count := -Count;
 
-  // Size FChannelInfo so it can be filled with data by ReadLayerRecord
   SetLength(FChannelInfo, Count);
 
   for i := 0 to Count - 1 do
   begin
-    Layer := ReadLayerRecord;
+    Layer := ReadLayerRecord(FChannelInfo[i]);
     FLayers.Add(Layer);
   end;
 
-  ReadLayersImageData;
+  BeginReadLayerImageData;
+  begin
+
+    ReadLayersImageData;
+
+  end;
+  EndReadLayerImageData;
 
   FStream.Position := Next;
 end;
 
 //------------------------------------------------------------------------------
 
-function TPhotoshopDocumentReaderHelper.ReadLayerRecord: TCustomPhotoshopLayer;
+function TPhotoshopDocumentReaderHelper.ReadLayerRecord(var LayerInfo: TLayerInfo): TCustomPhotoshopLayer;
 
   function MapBlendMode(const ABlendMode: AnsiString): TPSDLayerBlendMode;
   begin
@@ -825,9 +988,8 @@ function TPhotoshopDocumentReaderHelper.ReadLayerRecord: TCustomPhotoshopLayer;
   end;
 
 var
-  LayerIndex: integer;
   Channels: Word;
-  ColorComponent: TColor32Component;
+  Component: SmallInt;
   i: integer;
   ExtraDataSize: Cardinal;
   ExtraDataPos: Int64;
@@ -835,6 +997,7 @@ var
   BlendMode: AnsiString;
   Key: AnsiString;
   Size: Cardinal;
+  Next: Int64;
   LayerProperty: TCustomPhotoshopLayerProperty;
 begin
 (* Layer records
@@ -886,12 +1049,14 @@ begin
 | Variable                | Layer name: Pascal string, padded to a multiple of 4|
 |                         | bytes.                                              |
 +-------------------------+-----------------------------------------------------+
-Note: The documentation contains a bug in the description of "Length of the extra
+Note 1: The documentation contains a bug in the description of "Length of the extra
 data field"; The description states that the field contains "the total length of
 the next five fields", but there are only three fields after this field. This
 means that the "extra data field" is in effect partially undocumented.
 As far as I can tell, the "extra data field" is actually the "Additional Layer
 Information" section.
+Note 2: The documentation contains a bug in the description of the "visible"
+flags bit; If the bit is set it actually indicates that the layer is "hidden".
 
 Layer mask / adjustment layer data
 +----------+--------------------------------------------------------------------+
@@ -934,8 +1099,6 @@ Additional Layer Information
 
   Result := TPhotoshopBitmapLayer32.Create(FDocument);
   try
-    LayerIndex := Result.Index;
-
     Result.Top := ReadCardinal;
     Result.Left := ReadCardinal;
     Result.Height := integer(ReadCardinal) - Result.Top;
@@ -944,28 +1107,15 @@ Additional Layer Information
     Channels := ReadWord;
 
     // Read the FChannelInfo array
-    Setlength(FChannelInfo[LayerIndex].Channels, Channels);
-    FChannelInfo[LayerIndex].Size := 0;
-    FChannelInfo[LayerIndex].ColorComponents := [];
-    FChannelInfo[LayerIndex].HasExtra := False;
+    LayerInfo := Default(TLayerInfo);
+    Setlength(LayerInfo.Channels, Channels);
 
     for i := 0 to Channels-1 do
     begin
-      FChannelInfo[LayerIndex].Channels[i].Component := SmallInt(ReadWord);
-      FChannelInfo[LayerIndex].Channels[i].HasColorComponent := TryChannelToColorComponent(FChannelInfo[LayerIndex].Channels[i].Component, ColorComponent);
-      FChannelInfo[LayerIndex].Channels[i].Size := ReadCardinal;
+      Component := SmallInt(ReadWord);
+      Size := ReadCardinal;
 
-      if (FChannelInfo[LayerIndex].Channels[i].HasColorComponent) then
-      begin
-        FChannelInfo[LayerIndex].Channels[i].ColorComponent := ColorComponent;
-
-        if (ColorComponent <> ccExtra) then
-          Include(FChannelInfo[LayerIndex].ColorComponents, ColorComponent)
-        else
-          FChannelInfo[LayerIndex].HasExtra := True;
-      end;
-
-      Inc(FChannelInfo[LayerIndex].Size, FChannelInfo[LayerIndex].Channels[i].Size);
+      SetLayerChannelInfo(LayerInfo, i, Component, Size);
     end;
 
     Signature := ReadAnsiString(4);
@@ -998,8 +1148,18 @@ Additional Layer Information
 
       Key := ReadAnsiString(4);
       Size := ReadCardinal;
-      LayerProperty := TPhotoshopLayerCracker(Result).AddLayerProperty(TPhotoshopLayerProperty, Key);
-      TPhotoshopLayerProperty(LayerProperty).Data := ReadBytes(Size);
+
+      Next := FStream.Position + Size;
+
+      if (Key = 'luni') then
+      begin
+        Result.Name := ReadUnicodeString;
+        FStream.Position := Next;
+      end else
+      begin
+        LayerProperty := TPhotoshopLayerCracker(Result).AddLayerProperty(TPhotoshopLayerProperty, Key);
+        TPhotoshopLayerProperty(LayerProperty).Data := ReadBytes(Size);
+      end;
     end;
 
     FStream.Position := ExtraDataPos + ExtraDataSize;
@@ -1013,99 +1173,70 @@ end;
 //------------------------------------------------------------------------------
 
 procedure TPhotoshopDocumentReaderHelper.ReadLayersImageData;
-
-  procedure BeginReadLayerImageData;
-  begin
-  end;
-
-  procedure EndReadLayerImageData;
-  begin
-    SetLength(FAlphaChannelBuffer, 0);
-  end;
-
 var
   i: Integer;
   StreamPos: Int64;
   NextPos: Int64;
   Layer: TCustomPhotoshopBitmapLayer32;
 begin
-  BeginReadLayerImageData;
+  NextPos := FStream.Position;
+
+  for i := 0 to FLayers.Count - 1 do
   begin
+    StreamPos := NextPos;
+    NextPos := StreamPos + FChannelInfo[i].Size;
 
-    NextPos := FStream.Position;
+    Layer := TCustomPhotoshopBitmapLayer32(FLayers[i]);
 
-    for i := 0 to FLayers.Count - 1 do
+    // Skip layer if it isn't a bitmap layer
+    if not (Layer is TCustomPhotoshopBitmapLayer32) then
+      continue;
+
+    // Ensure that the layer has a bitmap...
+    if (Layer.Bitmap = nil) and (Layer is TPhotoshopLayer32) then
     begin
-      StreamPos := NextPos;
-      NextPos := StreamPos + FChannelInfo[i].Size;
-
-      Layer := TCustomPhotoshopBitmapLayer32(FLayers[i]);
-
-      // Skip layer if it isn't a bitmap layer
-      if not (Layer is TCustomPhotoshopBitmapLayer32) then
-        continue;
-
-      // Ensure that the layer has a bitmap...
-      if (Layer.Bitmap = nil) and (Layer is TPhotoshopLayer32) then
-      begin
-        TPhotoshopLayer32(Layer).Bitmap := TBitmap32.Create;
-        TPhotoshopLayer32(Layer).OwnsBitmap := True;
-      end;
-      // ...and that the bitmap has the correct size
-      // Note that we clear the bitmap even though we will continue to
-      // read the pixels from the PSD, because the PSD might not contain
-      // data for all the channels.
-      Layer.Bitmap.SetSize(Layer.LayerWidth, Layer.LayerHeight);
-
-      ReadLayerImageData(Layer);
-
-      // Postprocess layer image channels into ARGB
-      PostProcessLayerImageData(Layer);
+      TPhotoshopLayer32(Layer).Bitmap := TBitmap32.Create;
+      TPhotoshopLayer32(Layer).OwnsBitmap := True;
     end;
+    // ...and that the bitmap has the correct size
+    // Note that we clear the bitmap even though we will continue to
+    // read the pixels from the PSD, because the PSD might not contain
+    // data for all the channels.
+    Layer.Bitmap.SetSize(Layer.LayerWidth, Layer.LayerHeight);
 
-    FStream.Position := NextPos;
+    BeginReadChannelImageData(Layer, FChannelInfo[i]);
+    begin
 
+      ReadChannelImageData(Layer, FChannelInfo[i]);
+
+    end;
+    EndReadChannelImageData(Layer, FChannelInfo[i]);
   end;
-  EndReadLayerImageData;
+
+  FStream.Position := NextPos;
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TPhotoshopDocumentReaderHelper.ReadLayerImageData(Layer: TCustomPhotoshopBitmapLayer32);
+procedure TPhotoshopDocumentReaderHelper.BeginReadLayerImageData;
+begin
+end;
 
-  procedure BeginReadChannelData;
-  var
-    Size: integer;
-  begin
-    if (not FChannelInfo[Layer.Index].HasExtra) then
-      exit;
+procedure TPhotoshopDocumentReaderHelper.EndReadLayerImageData;
+begin
+  SetLength(FAlphaChannelBuffer, 0);
+end;
 
-    Size := Layer.Height * Layer.Width;
-    if (Length(FAlphaChannelBuffer) < Size) then
-      SetLength(FAlphaChannelBuffer, Size);
-  end;
+//------------------------------------------------------------------------------
 
-  procedure EndReadChannelData;
-  var
-    i: integer;
-    Offset: integer;
-  begin
-    if (not FChannelInfo[Layer.Index].HasExtra) then
-      exit;
-
-    // Restore alpha channel
-    Offset := 0;
-    for i := 0 to Layer.Height-1 do
-    begin
-      TPhotoshopLayerCracker(Layer).SetChannelScanLine(ccAlpha, i, FAlphaChannelBuffer[Offset]);
-      Inc(Offset, Layer.Width);
-    end;
-  end;
-
+procedure TPhotoshopDocumentReaderHelper.ReadChannelImageData(Layer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo);
 var
+  SetChannel: TPSDChannelSetterDelegate;
+  RowData: TBytes;
   i: Integer;
   StreamPos: Int64;
   Compression: Word;
+  ChannelReader: TPSDChannelReaderDelegate;
   ColorComponent: TColor32Component;
 begin
 (* Channel image data
@@ -1134,155 +1265,63 @@ begin
 +----------+--------------------------------------------------------------------+
 *)
 
-  BeginReadChannelData;
+  SetChannel := GetSetChannel();
+  SetLength(RowData, BytesPerScanline(Layer.Width));
+
+  for i := 0 to High(LayerInfo.Channels) do
   begin
+    StreamPos := FStream.Position;
 
-    for i := 0 to High(FChannelInfo[Layer.Index].Channels) do
+    if (LayerInfo.Channels[i].HasColorComponent) then
     begin
-      StreamPos := FStream.Position;
+      ColorComponent := LayerInfo.Channels[i].ColorComponent;
 
-      if (FChannelInfo[Layer.Index].Channels[i].HasColorComponent) then
+      Compression := ReadWord;
+
+      if (not FHasCompression) then
       begin
-        ColorComponent := FChannelInfo[Layer.Index].Channels[i].ColorComponent;
-
-        Compression := ReadWord;
-
-        if (not FHasCompression) then
-        begin
-          FCompression := TPSDLayerCompression(Compression);
-          FHasCompression := True;
-        end;
-
-        case TPSDLayerCompression(Compression) of
-          lcRAW: ReadChannelDataRaw(Layer, ColorComponent);
-          lcRLE: ReadChannelDataRLE(Layer, ColorComponent);
-          lcZIP: ReadChannelDataZIP(Layer, ColorComponent);
-        else
-          raise EPhotoshopDocument.CreateFmt('Unsupported compression: %d', [Compression]);
-        end;
+        FCompression := TPSDLayerCompression(Compression);
+        FHasCompression := True;
       end;
 
-      FStream.Position := StreamPos + FChannelInfo[Layer.Index].Channels[i].Size;
+      ChannelReader := GetChannelReader(TPSDLayerCompression(Compression));
+
+      ChannelReader(FStream, ColorComponent, Layer, RowData, SetChannel);
     end;
 
+    FStream.Position := StreamPos + LayerInfo.Channels[i].Size;
   end;
-  EndReadChannelData;
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TPhotoshopDocumentReaderHelper.ReadChannelDataRLE(Layer: TCustomPhotoshopBitmapLayer32; ColorComponent: TColor32Component);
+procedure TPhotoshopDocumentReaderHelper.BeginReadChannelImageData(Layer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo);
 var
-  RowSizes: array of Word;
-  i: Integer;
-  StartPos: Int64;
-  RowData: TBytes;
-  RowOffset: Integer;
-  Header: Byte;
-  Filler: Byte;
   Size: integer;
 begin
-  SetLength(RowSizes, Layer.Height);
-  for i := 0 to High(RowSizes) do
-    RowSizes[i] := ReadWord;
+  if (not LayerInfo.HasExtra) then
+    exit;
 
-  SetLength(RowData, Layer.Width);
-
-  for i := 0 to Layer.Height - 1 do
-  begin
-    StartPos := FStream.Position;
-    RowOffset := 0;
-
-    // PackBits decoder
-    while (RowOffset <= High(RowData)) do
-    begin
-      Header := ReadByte;
-
-      if (Header < 128) then
-      begin
-        // Stream of bytes
-        Size := Header + 1;
-
-        if (RowOffset + Size > High(RowData)) then
-          Size := Length(RowData) - RowOffset; // Guard against buffer overrun
-
-        FStream.Read(RowData[RowOffset], Size);
-        Inc(RowOffset, Size);
-      end else
-      if (Header > 128) then
-      begin
-        // Repeat of byte
-        Filler := ReadByte;
-        Size := 257 - Header;
-
-        if (RowOffset + Size > High(RowData)) then
-          Size := Length(RowData) - RowOffset; // Guard against buffer overrun
-
-        FillChar(RowData[RowOffset], Size, Filler);
-        Inc(RowOffset, Size);
-      end;
-    end;
-
-    SetChannel(Layer, ColorComponent, i, RowData);
-
-    FStream.Position := StartPos + RowSizes[i];
-  end;
+  Size := Layer.Height * BytesPerScanline(Layer.Width);
+  if (Length(FAlphaChannelBuffer) < Size) then
+    SetLength(FAlphaChannelBuffer, Size);
 end;
 
-//------------------------------------------------------------------------------
-
-procedure TPhotoshopDocumentReaderHelper.ReadChannelDataZIP(Layer: TCustomPhotoshopBitmapLayer32; ColorComponent: TColor32Component);
-var
-  i: Integer;
-  RowData: TBytes;
-  ZStream: TDecompressionStream;
-begin
-  SetLength(RowData, Layer.Width);
-
-  ZStream := TDecompressionStream.Create(FStream);
-  try
-    for i := 0 to Layer.Height - 1 do
-    begin
-      ZStream.Read(RowData[0], Length(RowData));
-      SetChannel(Layer, ColorComponent, i, RowData);
-    end;
-  finally
-    ZStream.Free;
-  end;
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TPhotoshopDocumentReaderHelper.ReadChannelDataRaw(Layer: TCustomPhotoshopBitmapLayer32; ColorComponent: TColor32Component);
-var
-  i: Integer;
-  RowData: TBytes;
-begin
-  SetLength(RowData, Layer.Width);
-
-  for i := 0 to Layer.Height - 1 do
-  begin
-    FStream.Read(RowData[0], Length(RowData));
-    SetChannel(Layer, ColorComponent, i, RowData);
-  end;
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TPhotoshopDocumentReaderHelper.PostProcessLayerImageData(Layer: TCustomPhotoshopBitmapLayer32);
+procedure TPhotoshopDocumentReaderHelper.EndReadChannelImageData(Layer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo);
 var
   i: integer;
-  n: integer;
+  PixelCount: integer;
   HasAlpha: boolean;
+  Offset: integer;
 begin
-  n := Layer.Bitmap.Width * Layer.Bitmap.Height;
+  PixelCount := Layer.Bitmap.Width * Layer.Bitmap.Height;
 
-  HasAlpha := (ccAlpha in FChannelInfo[Layer.Index].ColorComponents);
+  HasAlpha := (ccAlpha in LayerInfo.ColorComponents);
 
   case FMode of
     PSD_DUOTONE:
       begin
-        for i := 0 to n-1 do
+        for i := 0 to PixelCount-1 do
           Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R];
       end;
 
@@ -1291,7 +1330,7 @@ begin
 {$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
         HasAlpha := (FTransparentColorIndex <> -1);
 {$endif}
-        for i := 0 to n-1 do
+        for i := 0 to PixelCount-1 do
         begin
 {$ifdef PSD_PARSE_IMAGE_RESOURCE_SECTION}
           if (TColor32Entry(Layer.Bitmap.Bits[i]).R <> FTransparentColorIndex) then
@@ -1308,18 +1347,18 @@ begin
       begin
         if (HasAlpha) then
         begin
-          for i := 0 to n-1 do
+          for i := 0 to PixelCount-1 do
             Layer.Bitmap.Bits[i] := SetAlpha(FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R], TColor32Entry(Layer.Bitmap.Bits[i]).A);
         end else
         begin
-          for i := 0 to n-1 do
+          for i := 0 to PixelCount-1 do
             Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R];
         end;
       end;
 
-    PSD_BITMAP: // Monochrome; Pixel set is white
+    PSD_BITMAP: // Monochrome; 0=white, 1=black
       begin
-        for i := 0 to n-1 do
+        for i := 0 to PixelCount-1 do
           if (TColor32Entry(Layer.Bitmap.Bits[i]).R = 0) then
             Layer.Bitmap.Bits[i] := clWhite32
           else
@@ -1333,26 +1372,31 @@ begin
 
     PSD_CMYK:
       begin
+        HasAlpha := LayerInfo.HasExtra;
         // Note that this handles both CMYK and CMY.
-        // In case the PSD only contained CMY (i.e. 3 channels), the K channel will
+        // In case the PSD only contains CMY (i.e. 3 channels), the K channel will
         // already have been cleared to zero, which is what we want.
-        for i := 0 to n-1 do
+        for i := 0 to PixelCount-1 do
           CMYKtoColor32(TColorCMYK(Layer.Bitmap.Bits[i]), TColor32Entry(Layer.Bitmap.Bits[i]));
       end;
 
     PSD_LAB:
       begin
-        for i := 0 to n-1 do
+        for i := 0 to PixelCount-1 do
           LABtoColor32(TColorLAB(Layer.Bitmap.Bits[i]), TColor32Entry(Layer.Bitmap.Bits[i]));
       end;
 
   end;
 
   // Apply the layer alpha if it resides in the "extra" buffer
-  if (FChannelInfo[Layer.Index].HasExtra) then
+  if (LayerInfo.HasExtra) then
   begin
-    for i := 0 to n-1 do
-      TColor32Entry(Layer.Bitmap.Bits[i]).A := FAlphaChannelBuffer[i];
+    Offset := 0;
+    for i := 0 to Layer.Height-1 do
+    begin
+      TPhotoshopLayerCracker(Layer).SetChannelScanLine(ccAlpha, i, FAlphaChannelBuffer[Offset]);
+      Inc(Offset, BytesPerScanline(Layer.Width));
+    end;
   end else
   begin
     // Set alpha if none of the channels contained it. This handles RGB->ARGB,
@@ -1365,6 +1409,17 @@ end;
 //------------------------------------------------------------------------------
 
 procedure TPhotoshopDocumentReaderHelper.ReadCompositeImage;
+var
+  PlanarChannelOrder: array of SmallInt;
+  ChannelCount: integer;
+  Compression: Word;
+  BitmapReader: TPSDBitmapReaderDelegate;
+  SetChannel: TPSDChannelSetterDelegate;
+  ScanlineBuffer: TBytes;
+  Layer: TPhotoshopBitmapLayer32;
+  LayerInfo: TLayerInfo;
+  i: integer;
+  Channel: SmallInt;
 begin
 (* Image Data Section
 +----------+--------------------------------------------------------------------+
@@ -1384,12 +1439,288 @@ begin
 | Variable | The image data. Planar order = RRR GGG BBB, etc.                   |
 +----------+--------------------------------------------------------------------+
 *)
-  // This section contains the flattened image data, which appears at the end of the file.
-  // We are not currently reading this data, as we are reconstructing the image from the layers.
 
-  // TODO : As I interpret the PSD specs, if the file doesn't contain any layers,
-  // we should read the image from here.
+  // As I interpret the PSD specs, if the file doesn't contain any layers,
+  // the composite image we read here should become a layer. If the file
+  // does contain layers, then the image is a composite of the layers.
+
+  // Planar order depends on mode
+  case FMode of
+    PSD_DUOTONE,
+    PSD_GRAYSCALE:
+      PlanarChannelOrder := [PSD_MASK_RED];
+
+    PSD_BITMAP: // Monochrome; Pixel set is white
+      PlanarChannelOrder := [PSD_MASK_RED, PSD_MASK_ALPHA];
+
+    PSD_INDEXED:
+      PlanarChannelOrder := [PSD_MASK_RED, PSD_MASK_ALPHA];
+
+    PSD_MULTICHANNEL,
+    PSD_RGB:
+      PlanarChannelOrder := [PSD_MASK_RED, PSD_MASK_GREEN, PSD_MASK_BLUE, PSD_MASK_ALPHA];
+
+    PSD_CMYK:
+      PlanarChannelOrder := [PSD_MASK_RED, PSD_MASK_GREEN, PSD_MASK_BLUE, PSD_MASK_BLACK, PSD_MASK_ALPHA];
+
+    PSD_LAB:
+      PlanarChannelOrder := [PSD_MASK_RED, PSD_MASK_GREEN, PSD_MASK_BLUE, PSD_MASK_ALPHA];
+
+  else
+    PlanarChannelOrder := [];
+  end;
+
+  ChannelCount := Min(FDocument.Channels, Length(PlanarChannelOrder));
+
+  Compression := ReadWord;
+
+  if (not FHasCompression) then
+  begin
+    FCompression := TPSDLayerCompression(Compression);
+    FHasCompression := True;
+  end;
+
+  LayerInfo := Default(TLayerInfo);
+  SetLength(LayerInfo.Channels, ChannelCount);
+
+  for i := 0 to High(LayerInfo.Channels) do
+  begin
+    Channel := PlanarChannelOrder[i];
+    SetLayerChannelInfo(LayerInfo, i, Channel);
+  end;
+
+  Layer := TPhotoshopBitmapLayer32.Create;
+  try
+    Layer.Width := FDocument.Width;
+    Layer.Height := FDocument.Height;
+
+    Layer.Compression := TPSDLayerCompression(Compression);
+
+    if (FDocument.Layers.Count = 0) then
+      Layer.Document := FDocument
+    else
+      FDocument.Background := Layer;
+  except
+    Layer.Free;
+    raise;
+  end;
+
+  SetChannel := GetSetChannel();
+  BitmapReader := GetBitmapReader(Layer);
+
+  BeginReadLayerImageData;
+  begin
+    BeginReadChannelImageData(Layer, LayerInfo);
+    begin
+
+      SetLength(ScanlineBuffer, BytesPerScanLine(Layer.Width));
+
+      BitmapReader(FStream, Layer, LayerInfo, ScanlineBuffer, SetChannel);
+
+      SetLength(ScanlineBuffer, 0);
+
+    end;
+    EndReadChannelImageData(Layer, LayerInfo);
+  end;
+  EndReadLayerImageData;
+
 end;
+
+//------------------------------------------------------------------------------
+//
+//      Scanline decompression
+//
+//------------------------------------------------------------------------------
+class function TPhotoshopDocumentReaderHelper.GetChannelReader(Compression: TPSDLayerCompression): TPSDChannelReaderDelegate;
+begin
+  case Compression of
+    lcRLE:
+      Result := CompressionRLE.ReadChannel;
+
+    lcZIP:
+      Result := CompressionZIP.ReadChannel;
+
+    lcRAW:
+      Result := CompressionRAW.ReadChannel;
+  else
+    raise EPhotoshopDocument.CreateFmt('Unsupported compression method: %d', [Ord(Compression)]);
+  end;
+end;
+
+class function TPhotoshopDocumentReaderHelper.GetBitmapReader(ALayer: TCustomPhotoshopLayer): TPSDBitmapReaderDelegate;
+begin
+  case ALayer.Compression of
+    lcRLE:
+      Result := CompressionRLE.ReadBitmap;
+
+    lcZIP:
+      Result := CompressionZIP.ReadBitmap;
+
+    lcRAW:
+      Result := CompressionRAW.ReadBitmap;
+  else
+    raise EPhotoshopDocument.CreateFmt('Unsupported compression method: %d', [Ord(ALayer.Compression)]);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// RAW compression (i.e. no compression)
+//------------------------------------------------------------------------------
+class procedure TPhotoshopDocumentReaderHelper.CompressionRAW.ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  i: Integer;
+begin
+  for i := 0 to ALayer.Height - 1 do
+  begin
+    AStream.Read(ABuffer[0], Length(ABuffer));
+    ASetChannel(ALayer, AChannel, i, ABuffer);
+  end;
+end;
+
+class procedure TPhotoshopDocumentReaderHelper.CompressionRAW.ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  i: integer;
+begin
+  for i := 0 to High(LayerInfo.Channels) do
+    ReadChannel(AStream, LayerInfo.Channels[i].ColorComponent, ALayer, ABuffer, ASetChannel);
+end;
+
+//------------------------------------------------------------------------------
+// RLE compression (PackBit)
+//------------------------------------------------------------------------------
+class procedure TPhotoshopDocumentReaderHelper.CompressionRLE.Decode(AStream: TStream; const ABuffer: TBytes);
+var
+  RowOffset: Integer;
+  Header: Byte;
+  Filler: Byte;
+  Size: integer;
+begin
+  RowOffset := 0;
+
+  // PackBits decoder
+  while (RowOffset <= High(ABuffer)) do
+  begin
+    Header := BigEndian.ReadByte(AStream);
+
+    if (Header < 128) then
+    begin
+      // Stream of bytes
+      Size := Header + 1;
+
+      if (RowOffset + Size > High(ABuffer)) then
+        Size := Length(ABuffer) - RowOffset; // Guard against buffer overrun
+
+      AStream.Read(ABuffer[RowOffset], Size);
+      Inc(RowOffset, Size);
+    end else
+    if (Header > 128) then
+    begin
+      // Repeat of byte
+      Filler := BigEndian.ReadByte(AStream);
+      Size := 257 - Header;
+
+      if (RowOffset + Size > High(ABuffer)) then
+        Size := Length(ABuffer) - RowOffset; // Guard against buffer overrun
+
+      FillChar(ABuffer[RowOffset], Size, Filler);
+      Inc(RowOffset, Size);
+    end;
+  end;
+end;
+
+class procedure TPhotoshopDocumentReaderHelper.CompressionRLE.ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  RowSizes: array of Word;
+  i: Integer;
+  StartPos: Int64;
+begin
+  SetLength(RowSizes, ALayer.Height);
+  for i := 0 to High(RowSizes) do
+    RowSizes[i] := BigEndian.ReadWord(AStream);
+
+  for i := 0 to ALayer.Height - 1 do
+  begin
+    StartPos := AStream.Position;
+
+    Decode(AStream, ABuffer);
+
+    ASetChannel(ALayer, AChannel, i, ABuffer);
+
+    AStream.Position := StartPos + RowSizes[i];
+  end;
+end;
+
+class procedure TPhotoshopDocumentReaderHelper.CompressionRLE.ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  RowTable: array of Word;
+  Channel: integer;
+  i: integer;
+  RowIndex: integer;
+  StartPos: Int64;
+  RowSize: integer;
+begin
+  SetLength(RowTable, ALayer.Height * ALayer.Document.Channels);
+
+  AStream.Read(RowTable[0], Length(RowTable) * SizeOf(Word));
+
+  RowIndex := 0;
+
+  for Channel := 0 to High(LayerInfo.Channels) do
+    for i := 0 to ALayer.Height - 1 do
+    begin
+      StartPos := AStream.Position;
+
+      Decode(AStream, ABuffer);
+      ASetChannel(ALayer, LayerInfo.Channels[Channel].ColorComponent, i, ABuffer);
+
+      RowSize := Swap16(RowTable[RowIndex]);
+      Inc(RowIndex);
+
+      AStream.Position := StartPos + RowSize;
+    end;
+end;
+
+//------------------------------------------------------------------------------
+// ZIP compression
+//------------------------------------------------------------------------------
+class procedure TPhotoshopDocumentReaderHelper.CompressionZIP.ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  i: Integer;
+  Stream: TDecompressionStream;
+begin
+  Stream := TDecompressionStream.Create(AStream);
+  try
+    for i := 0 to ALayer.Height - 1 do
+    begin
+      Stream.Read(ABuffer[0], Length(ABuffer));
+      ASetChannel(ALayer, AChannel, i, ABuffer);
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
+class procedure TPhotoshopDocumentReaderHelper.CompressionZIP.ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  Stream: TStream;
+  Channel: integer;
+  i: integer;
+begin
+  Stream := TDecompressionStream.Create(AStream);
+  try
+
+    for Channel := 0 to High(LayerInfo.Channels) do
+      for i := 0 to ALayer.Height - 1 do
+      begin
+        Stream.Read(ABuffer[0], Length(ABuffer));
+        ASetChannel(ALayer, LayerInfo.Channels[Channel].ColorComponent, i, ABuffer);
+      end;
+
+  finally
+    Stream.Free;
+  end;
+end;
+
 
 
 //------------------------------------------------------------------------------

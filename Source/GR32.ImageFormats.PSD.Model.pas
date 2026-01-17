@@ -1,4 +1,4 @@
-unit GR32.ImageFormats.PSD.Model;
+﻿unit GR32.ImageFormats.PSD.Model;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -169,6 +169,7 @@ type
 
     procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var ABytes); virtual; abstract;
     procedure SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes); virtual; abstract;
+    procedure SetChannelScanlinePixel(AChannel: TColor32Component; ALine, AOffset: integer; AByte: byte); virtual; abstract;
 
   function GetHeight: Integer; virtual;
     function GetWidth: Integer; virtual;
@@ -246,6 +247,7 @@ type
     FHeight: Integer;
     FBackground: TCustomPhotoshopLayer;
     FCompression: TPSDLayerCompression;
+    FChannels: integer;
   private
     class var
       FDefaultLayerClass: TPhotoshopLayerClass;
@@ -287,6 +289,10 @@ type
     // value of DefaultCompression.
     property Compression: TPSDLayerCompression read FCompression write SetCompression;
 
+    // Number of channels in document.
+    // Set by the PSD reader. The writer always uses a value of 4 (R, G, B, and A)
+    property Channels: integer read FChannels write FChannels;
+
     // DefaultLayerClass: The type of layer create when calling Layers.Add
     // with no layer type specified.
     class property DefaultLayerClass: TPhotoshopLayerClass read FDefaultLayerClass write FDefaultLayerClass;
@@ -312,6 +318,7 @@ type
   protected
     procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var ABytes); override;
     procedure SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes); override;
+    procedure SetChannelScanlinePixel(AChannel: TColor32Component; ALine, AOffset: integer; AByte: byte); override;
     function GetHeight: Integer; override;
     function GetWidth: Integer; override;
     function GetBitmap: TCustomBitmap32; virtual; abstract;
@@ -389,6 +396,7 @@ type
   protected
     procedure GetChannelScanLine(AChannel: TColor32Component; ALine: integer; var Bytes); override;
     procedure SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes); override;
+    procedure SetChannelScanlinePixel(AChannel: TColor32Component; ALine, AOffset: integer; AByte: byte); override;
   end;
 
 
@@ -397,15 +405,39 @@ type
 //      Construct a TPhotoshopDocument from a TCustomImage32
 //
 //------------------------------------------------------------------------------
-// The function produces a PSD where the background is the composite of the
-// TCustomImage32 and its layers (i.e. a flattened view of the image) and one
-// PSD layer for each bitmap layer in the TCustomImage32.
-//
-// If the TCustomImage32 does not have layers then the TCustomImage32.Bitmap
-// will be exported as the "background" in a PSD with no layers, otherwise the
-// Bitmap will be exported as a PSD layer.
+// This function produces a PSD from a TCustomImage32 bitmap and its layers.
+// The function can optionally construct a background image from a composite of
+// the TCustomImage32 bitmap and its layers (a flattened view of the image).
 //------------------------------------------------------------------------------
-procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument); overload;
+type
+  TPhotoshopExportOptions = set of (
+    peCompositeAsLayer,         // If the image has a bitmap or more than one
+                                // layer, a composite of the bitmap and all
+                                // layers will be saved as the first layer.
+
+    peCompositeAsBackground,    // Save a composite of the image (bitmap and all
+                                // layers) as the PSD background image.
+
+    peBackgroundAsLayer,        // TCustomImage32.Bitmap is saved as a layer.
+
+    peSingleAsLayer,            // Normally, if a document has a single bitmap,
+                                // this bitmap is saved as the PSD background.
+                                // This option disables that behavior and forces
+                                // the single bitmap to be saved as a PSD layer;
+                                // piSingleAsLayer will be used if the image
+                                // has a bitmap and no layers, or no bitmap and
+                                // a single layer.
+                                // The option takes precedence over the
+                                // peComposite* options meaning that if the
+                                // option is not specified, and the image only
+                                // contains a single bitmap, then this bitmap
+                                // will be saved as the PSD background image.
+
+    peIgnoreBitmap              // Do not export the image bitmap.
+
+  );
+
+procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopExportOptions = []); overload;
 
 
 //------------------------------------------------------------------------------
@@ -413,10 +445,14 @@ procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopD
 //      Construct a TPhotoshopDocument from a TBitmap32
 //
 //------------------------------------------------------------------------------
-// The function produces a PSD with no layers but with a background based on the
-// bitmap.
+// The function produces a PSD from a single bitmap.
+// The bitmap will either become:
+//  1) The PSD background image.
+//     This format is chosen if the peSingleAsLayer option is not set.
+//  2) A layer in the PSD.
+//     This format is chosen if the piSingleAsLayer option is set.
 //------------------------------------------------------------------------------
-procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument); overload;
+procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopExportOptions = []); overload;
 
 
 //------------------------------------------------------------------------------
@@ -471,6 +507,12 @@ procedure LoadBitmapFromPhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: T
 
 
 //------------------------------------------------------------------------------
+
+var
+  // Default options used when exporting via TPhotoshopDocument.Assign(TCustomBitmap32),
+  // or TPhotoshopDocument.Assign(TCustomImage32)
+  DefaultPhotoshopExportOptions: TPhotoshopExportOptions = [peCompositeAsBackground];
+
 var
   // Default options used when importing via TCustomBitmap32.Assign(TPhotoshopDocument),
   // TCustomImage32.Assign(TPhotoshopDocument), and TCustomBitmap32.LoadFromStream
@@ -490,6 +532,7 @@ uses
   GR32_Layers,
   GR32_Backends_Generic,
   GR32.ImageFormats,
+  GR32.ImageFormats.PSD.Types,
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.PSD.Reader;
 
@@ -503,111 +546,220 @@ type
 
 resourcestring
   sPSDLayerName = 'Layer %d';
+  sPSDBackgroundName = 'Background';
 
-procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument);
+procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopExportOptions);
 var
-  i: integer;
-  ImageWidth, ImageHeight: integer;
-  PSDLayer: TCustomPhotoshopLayer;
   SourceLayer: TCustomLayer;
-  BackgroundBitmap: TBitmap32;
+  BitmapLayer: TCustomIndirectBitmapLayer;
+  AnyBitmapLayers: boolean;
+  PhotoshopLayer: TCustomPhotoshopBitmapLayer32;
+  MainBitmap: TCustomBitmap32;
+  CompositeBitmap: TBitmap32;
   Location: TFloatRect;
   LayerBitmap: TCustomBitmap32;
 begin
   ADocument.Clear;
 
-  if (AImage.Bitmap.Empty) and (AImage.Layers.Count = 0) then
-    Exit;
-
-  // Add the main bitmap as a layer
-  if (not AImage.Bitmap.Empty) then
+  // Does the image only have a single bitmap?
+  BitmapLayer := nil;
+  AnyBitmapLayers := False;
+  for SourceLayer in AImage.Layers do
   begin
-    PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
-    PSDLayer.Opacity := AImage.Bitmap.MasterAlpha;
-    // Layer just references the bitmap; It doesn't own it.
-    TPhotoshopLayer32(PSDLayer).Bitmap :=  AImage.Bitmap;
+    if not (SourceLayer is TCustomIndirectBitmapLayer) then
+      continue;
 
-    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+    AnyBitmapLayers := True;
+
+    // Verify that the layer can be represented by a background image
+    if (not SourceLayer.Visible) or (TCustomIndirectBitmapLayer(SourceLayer).Bitmap.MasterAlpha <> 255) or
+      (TPositionedLayer(SourceLayer).Location.Left <> 0) or (TPositionedLayer(SourceLayer).Location.Top <> 0) then
+    begin
+      // Nope; All those properties would be lost
+      BitmapLayer := nil;
+      break;
+    end;
+
+    if (BitmapLayer <> nil) then
+    begin
+      // We already had a bitmap layer; Clear to indicate that there isn't a single bitmap layer
+      BitmapLayer := nil;
+      break;
+    end else
+      BitmapLayer := TCustomIndirectBitmapLayer(SourceLayer);
   end;
 
-  for i := 0 to AImage.Layers.Count - 1 do
+  if (peIgnoreBitmap in AOptions) or (AImage.Bitmap.Empty) then
+    MainBitmap := nil
+  else
+    MainBitmap := AImage.Bitmap;
+
+  if (MainBitmap = nil) and (not AnyBitmapLayers) then
+    // No bitmaps; Nothing to save
+    Exit;
+
+  (*
+  ** Single bitmap
+  *)
+  if (MainBitmap <> nil) xor (BitmapLayer <> nil) then
   begin
-    SourceLayer := AImage.Layers[i];
+    if (BitmapLayer <> nil) then
+      // No bitmap but a single bitmap layer
+      LayerBitmap := BitmapLayer.Bitmap
+    else
+      // A bitmap and no bitmap layers
+      LayerBitmap := MainBitmap;
+
+    PhotoshopLayer := TPhotoshopLayer32.Create;
+    TPhotoshopLayer32(PhotoshopLayer).Bitmap := LayerBitmap;
+
+    if (peSingleAsLayer in AOptions) then
+    begin
+      PhotoshopLayer.Document := ADocument;
+      PhotoshopLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+    end else
+    begin
+      ADocument.Background := PhotoshopLayer;
+      PhotoshopLayer.Name := sPSDBackgroundName;
+    end;
+
+    exit; // Done
+  end;
+
+  (*
+  ** Composite image
+  *)
+  if ([peCompositeAsLayer, peCompositeAsBackground] * AOptions <> []) then
+  begin
+    CompositeBitmap := nil;
+    try
+
+      // Construct composite
+      CompositeBitmap := TBitmap32.Create(TMemoryBackend);
+
+      if (MainBitmap = nil) then
+      begin
+        // The image has no bitmap - Calculate size from the layers instead
+        Location := FloatRect(0,0,0,0);
+
+        for SourceLayer in AImage.Layers do
+        begin
+          // TODO : This will also consider design layers; We need a TCustomLayer.IsDesign. TCustomImage32.PaintTo should also take this account.
+          if not (SourceLayer is TCustomIndirectBitmapLayer) then
+            continue;
+
+          GR32.UnionRect(Location, Location, TPositionedLayer(SourceLayer).Location);
+        end;
+
+        if (Location.Width = 0) or (Location.Height = 0) then
+          exit;
+
+        CompositeBitmap.SetSize(Ceil(Location.Width), Ceil(Location.Height), False);
+      end else
+        CompositeBitmap.SetSizeFrom(MainBitmap, False);
+
+      // We clear the background with:
+      //
+      //   $00xxxxxx to make it transparent for those that can handle transparent PSD
+      //
+      //   $xxFFFFFF to make it white for those that can't handle transparent PSD
+      //
+      // If the image contains layers and the reader can handle them then the
+      // background is ignored; The background is only used when there are no
+      // layers or if the reader cannot handle layers.
+      CompositeBitmap.Clear($00FFFFFF);
+
+      // Create flattened bitmap (composite)
+      // TODO : Hide the main bitmap while we flatten if peIgnoreBitmap is set
+      AImage.PaintTo(CompositeBitmap, CompositeBitmap.BoundsRect);
+
+      if (peCompositeAsLayer in AOptions) then
+      begin
+        PhotoshopLayer := TPhotoshopLayer32.Create(ADocument);
+        TPhotoshopLayer32(PhotoshopLayer).Bitmap := CompositeBitmap;
+        // If there is a composite background then it will own the bitmap. Otherwise
+        // this layer owns it.
+        TPhotoshopLayer32(PhotoshopLayer).OwnsBitmap := not(peCompositeAsBackground in AOptions);
+      end;
+
+      if (peCompositeAsBackground in AOptions) then
+      begin
+        PhotoshopLayer := TPhotoshopLayer32.Create;
+        TPhotoshopLayer32(PhotoshopLayer).Bitmap := CompositeBitmap;
+        TPhotoshopLayer32(PhotoshopLayer).OwnsBitmap := True;
+        CompositeBitmap := nil;
+        ADocument.Background := PhotoshopLayer;
+      end;
+
+    finally
+      CompositeBitmap.Free;
+    end;
+  end;
+
+  (*
+  ** Add the main bitmap as a layer
+  *)
+  if (peBackgroundAsLayer in AOptions) and (MainBitmap <> nil) then
+  begin
+    PhotoshopLayer := TPhotoshopLayer32.Create(ADocument);
+    PhotoshopLayer.Opacity := MainBitmap.MasterAlpha;
+    // Layer just references the bitmap; It doesn't own it.
+    TPhotoshopLayer32(PhotoshopLayer).Bitmap :=  MainBitmap;
+
+    PhotoshopLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+  end;
+
+  (*
+  ** Add layers
+  *)
+  for SourceLayer in AImage.Layers do
+  begin
     if not (SourceLayer is TCustomIndirectBitmapLayer) then
       continue;
 
     LayerBitmap := TBitmapLayerCracker(SourceLayer).Bitmap;
     Location := TBitmapLayerCracker(SourceLayer).Location;
 
-    PSDLayer := ADocument.Layers.Add(TPhotoshopLayer32);
-    PSDLayer.Opacity := LayerBitmap.MasterAlpha;
-    PSDLayer.Left := Round(Location.Left);
-    PSDLayer.Top := Round(Location.Top);
+    PhotoshopLayer := TPhotoshopLayer32.Create(ADocument);
+    PhotoshopLayer.Opacity := LayerBitmap.MasterAlpha;
+    PhotoshopLayer.Left := Round(Location.Left);
+    PhotoshopLayer.Top := Round(Location.Top);
     // Layer just references the bitmap; It doesn't own it.
-    TPhotoshopLayer32(PSDLayer).Bitmap :=  LayerBitmap;
+    TPhotoshopLayer32(PhotoshopLayer).Bitmap :=  LayerBitmap;
     if (not SourceLayer.Visible) then
-      PSDLayer.Options := PSDLayer.Options + [loHidden];
+      PhotoshopLayer.Options := PhotoshopLayer.Options + [loHidden];
 
-    PSDLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+    PhotoshopLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
   end;
 
-  BackgroundBitmap := TBitmap32.Create(TMemoryBackend);
-  try
-    if (AImage.Bitmap.Empty) then
-    begin
-      // The image has no bitmap - Calculate size from the layers instead
-      ImageWidth := 0;
-      ImageHeight := 0;
-      for i := 0 to ADocument.Layers.Count - 1 do
-      begin
-        PSDLayer := ADocument.Layers[i];
-
-        ImageWidth := Max(ImageWidth, PSDLayer.Left + PSDLayer.Width);
-        ImageHeight := Max(ImageHeight, PSDLayer.Top + PSDLayer.Height);
-      end;
-
-      if (ImageWidth = 0) and (ImageHeight = 0) then
-        exit;
-
-      BackgroundBitmap.SetSize(ImageWidth, ImageHeight);
-    end else
-      BackgroundBitmap.SetSizeFrom(AImage.Bitmap);
-
-    // We clear the background with:
-    //
-    //   $00xxxxxx to make it transparent for those that can handle transparent PSD
-    //
-    //   $xxFFFFFF to make it white for those that can't handle transparent PSD
-    //
-    // If the image contains layers and the reader can handle them then the
-    // background is ignored; The background is only used when there are no
-    // layers or if the reader cannot handle layers.
-    BackgroundBitmap.Clear($00FFFFFF);
-
-    // Create flattened bitmap for use as background
-    AImage.PaintTo(BackgroundBitmap, BackgroundBitmap.BoundsRect);
-
-    PSDLayer := TPhotoshopLayer32.Create;
+  // At this point, if we don't have a PSD background, then we mimic
+  // PhotoShop and create a background containing an opaque (not
+  // really though) white bitmap in order to "maximize compatibility".
+  if (ADocument.Background = nil) then
+  begin
+    PhotoshopLayer := TPhotoshopBitmapLayer32.Create;
     try
 
-      TPhotoshopLayer32(PSDLayer).Bitmap := BackgroundBitmap;
+      Location := FloatRect(0,0,1,1);
 
-      // We need to keep the bitmap alive when this function
-      // returns so transfer ownership to the layer.
-      TPhotoshopLayer32(PSDLayer).OwnsBitmap := True;
-      BackgroundBitmap := nil;
+      for SourceLayer in AImage.Layers do
+      begin
+        if not (SourceLayer is TCustomIndirectBitmapLayer) then
+          continue;
 
-      ADocument.Background := PSDLayer; // Document now owns the layer
+        GR32.UnionRect(Location, Location, TPositionedLayer(SourceLayer).Location);
+      end;
+
+      PhotoshopLayer.Bitmap.SetSize(Ceil(Location.Right), Ceil(Location.Bottom), False);
+      PhotoshopLayer.Bitmap.Clear($00FFFFFF);
 
     except
-      PSDLayer.Free;
+      PhotoshopLayer.Free;
       raise;
     end;
 
-  finally
-    BackgroundBitmap.Free;
+    ADocument.Background := PhotoshopLayer;
   end;
-
 end;
 
 
@@ -616,7 +768,7 @@ end;
 //      Construct a TPhotoshopDocument from a TBitmap32
 //
 //------------------------------------------------------------------------------
-procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument); overload;
+procedure CreatePhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopExportOptions); overload;
 var
   PSDLayer: TCustomPhotoshopLayer;
 begin
@@ -625,11 +777,15 @@ begin
   if ABitmap.Empty then
     Exit;
 
-  PSDLayer := TPhotoshopLayer32.Create;
+  PSDLayer := TPhotoshopLayer32.Create; // Create layer with no owner
   try
 
     TPhotoshopLayer32(PSDLayer).Bitmap := ABitmap;
-    ADocument.Background := PSDLayer; // Document now owns the layer
+
+    if (peSingleAsLayer in AOptions) then
+      PSDLayer.Document := ADocument // Document now owns the layer
+    else
+      ADocument.Background := PSDLayer; // Document now owns the layer
 
   except
     PSDLayer.Free;
@@ -972,6 +1128,7 @@ begin
   inherited Create;
   FLayers := TPhotoshopLayers.Create(Self);
   FCompression := FDefaultCompression;
+  FChannels := 4;
   FBackground := ABackground;
 end;
 
@@ -985,7 +1142,7 @@ end;
 procedure TPhotoshopDocument.Assign(Source: TPersistent);
 begin
   if (Source is TCustomImage32) then
-    CreatePhotoshopDocument(TCustomImage32(Source), Self)
+    CreatePhotoshopDocument(TCustomImage32(Source), Self, DefaultPhotoshopExportOptions)
   else
     inherited;
 end;
@@ -1114,6 +1271,17 @@ begin
     Inc(pSource);
     Dec(Count);
   end;
+end;
+
+procedure TCustomPhotoshopBitmapLayer32.SetChannelScanlinePixel(AChannel: TColor32Component; ALine, AOffset: integer; AByte: byte);
+var
+  pDest: PByte;
+begin
+  if (Bitmap = nil) then
+    exit;
+
+  pDest := @(PColor32Entry(Bitmap.PixelPtr[AOffset, ALine + FSourceTop]).Components[AChannel]);
+  pDest^ := AByte;
 end;
 
 function TCustomPhotoshopBitmapLayer32.GetSourceRect: TRect;
@@ -1248,6 +1416,10 @@ begin
 end;
 
 procedure TPhotoshopPlaceholderLayer.SetChannelScanLine(AChannel: TColor32Component; ALine: integer; const ABytes);
+begin
+end;
+
+procedure TPhotoshopPlaceholderLayer.SetChannelScanlinePixel(AChannel: TColor32Component; ALine, AOffset: integer; AByte: byte);
 begin
 end;
 
