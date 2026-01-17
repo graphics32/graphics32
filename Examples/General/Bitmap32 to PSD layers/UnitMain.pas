@@ -51,6 +51,7 @@ uses
   Types,
   GR32.ImageFormats,
   GR32.ImageFormats.PSD,
+  GR32.ImageFormats.PSD.Model,
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.JPG;
 
@@ -117,7 +118,7 @@ begin
     // Create a layer for each of the tiles
     for i := 0 to High(ARectangles) do
     begin
-      PSDLayer := PSD.Layers.Add;
+      PSDLayer := PSD.Layers.Add(TPhotoshopLayer32);
       PSDLayer.BoundsRect := ARectangles[i];
       PSDLayer.Name := Format('Layer %d', [i+1]);
 
@@ -131,7 +132,7 @@ begin
     Stream := TFileStream.Create(Filename, fmCreate);
     try
 
-      TPhotoshopDocumentWriter.SaveToStream(PSD, Stream);
+      PhotoshopDocumentWriter.SaveToStream(PSD, Stream);
 
     finally
       Stream.Free;

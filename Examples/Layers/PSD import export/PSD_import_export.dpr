@@ -1,9 +1,9 @@
-program PSD_export;
+program PSD_import_export;
 
 uses
-{$ifdef FPC}
+  {$ifdef FPC}
   Interfaces,
-{$endif FPC}
+  {$endif FPC}
   Forms,
   UnitMain in 'UnitMain.pas' {FormMain};
 

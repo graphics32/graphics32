@@ -59,8 +59,7 @@ object FormMain: TFormMain
     BitmapAlign = baCustom
     Scale = 1.000000000000000000
     ScaleMode = smOptimal
-    ScrollBars.ShowHandleGrip = True
-    ScrollBars.Style = rbsDefault
+    ScrollBars.Increment = 0
     ScrollBars.Size = 17
     OverSize = 0
     TabOrder = 1
