@@ -1,4 +1,4 @@
-unit GR32.ImageFormats.PSD.Writer;
+﻿unit GR32.ImageFormats.PSD.Writer;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -142,16 +142,11 @@ class procedure CompressionRAW.WriteBitmap(AStream: TStream; ALayer: TCustomPhot
 var
   ScanLineBuffer: TBytes;
   Channel: TColor32Component;
-  i: integer;
 begin
   SetLength(ScanLineBuffer, ALayer.Width);
 
   for Channel in PSDPlanarOrder do
-    for i := 0 to ALayer.Height - 1 do
-    begin
-      TPhotoshopLayerCracker(ALayer).GetChannelScanLine(Channel, i, ScanLineBuffer[0]);
-      WriteScanline(AStream, ScanLineBuffer[0], ALayer.Width);
-    end;
+    WriteChannel(AStream, Channel, ALayer, ScanLineBuffer[0]);
 end;
 
 //------------------------------------------------------------------------------
@@ -386,7 +381,7 @@ begin
       for i := 0 to ALayer.Height - 1 do
       begin
         TPhotoshopLayerCracker(ALayer).GetChannelScanLine(Channel, i, ScanLineBuffer[0]);
-        Stream.Write(ScanLineBuffer[0], ALayer.Width);
+        Stream.Write(ScanLineBuffer[0], Length(ScanLineBuffer));
       end;
   finally
     Stream.Free;
@@ -598,7 +593,7 @@ var
   begin
     SetLength(ScanLineBuffer, ALayer.Width);
 
-    // The PSD format supports different compression scemes per channel
+    // The PSD format supports different compression schemes per channel
     // but we only support it per layer. Hence we use the same writer
     // for all channels in the layer.
     LayerWriter := GetLayerWriter(ALayer);
