@@ -235,8 +235,13 @@ end;
 //------------------------------------------------------------------------------
 type
   TPhotoshopDocumentReaderHelper = class
+{$ifdef FPC}
+  private class var
+    ccExtra: TColor32Component;
+ {$else}
   private const
-    ccExtra: TColor32Component = TColor32Component(-1);
+    ccExtra: TColor32Component = TColor32Component(255);
+{$endif}
   private type
     TChannelInfo = record
       Component: SmallInt; // PSD color component value
@@ -1747,4 +1752,8 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+initialization
+{$ifdef FPC}
+  TPhotoshopDocumentReaderHelper.ccExtra := TColor32Component(255);
+{$endif}
 end.
