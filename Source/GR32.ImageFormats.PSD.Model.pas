@@ -427,14 +427,18 @@ type
                                 // piSingleAsLayer will be used if the image
                                 // has a bitmap and no layers, or no bitmap and
                                 // a single layer.
-                                // The option takes precedence over the
-                                // peComposite* options meaning that if the
-                                // option is not specified, and the image only
-                                // contains a single bitmap, then this bitmap
-                                // will be saved as the PSD background image.
 
-    peIgnoreBitmap              // Do not export the image bitmap.
+    peIgnoreBitmap,             // Do not export the image bitmap.
 
+    peIgnoreLayers              // Do not export the image layers.
+
+    // - peSingleAsLayer takes precedence over the peComposite* options,
+    //   meaning that if the option is not specified, and the image only
+    //   contains a single bitmap, then this bitmap will be saved as the PSD
+    //   background image.
+    //
+    // - Only one of [peIgnoreBitmap, peIgnoreLayers] can be specified.
+    //   peIgnoreBitmap has precedence.
   );
 
 procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopExportOptions = []); overload;
@@ -552,7 +556,7 @@ procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopD
 var
   SourceLayer: TCustomLayer;
   BitmapLayer: TCustomIndirectBitmapLayer;
-  AnyBitmapLayers: boolean;
+  NeedLayers: boolean;
   PhotoshopLayer: TCustomPhotoshopBitmapLayer32;
   MainBitmap: TCustomBitmap32;
   CompositeBitmap: TBitmap32;
@@ -561,47 +565,65 @@ var
 begin
   ADocument.Clear;
 
+  if (peIgnoreBitmap in AOptions) then
+    Exclude(AOptions, peIgnoreLayers);
+
   // Does the image only have a single bitmap?
   BitmapLayer := nil;
-  AnyBitmapLayers := False;
-  for SourceLayer in AImage.Layers do
+  NeedLayers := False;
+  if not(peIgnoreLayers in AOptions) then
   begin
-    if not (SourceLayer is TCustomIndirectBitmapLayer) then
-      continue;
-
-    AnyBitmapLayers := True;
-
-    // Verify that the layer can be represented by a background image
-    if (not SourceLayer.Visible) or (TCustomIndirectBitmapLayer(SourceLayer).Bitmap.MasterAlpha <> 255) or
-      (TPositionedLayer(SourceLayer).Location.Left <> 0) or (TPositionedLayer(SourceLayer).Location.Top <> 0) then
+    for SourceLayer in AImage.Layers do
     begin
-      // Nope; All those properties would be lost
-      BitmapLayer := nil;
-      break;
+      if not (SourceLayer is TCustomIndirectBitmapLayer) then
+        continue;
+
+      // Verify that the layer can be represented by a background image
+      if (not SourceLayer.Visible) or (TCustomIndirectBitmapLayer(SourceLayer).Bitmap.MasterAlpha <> 255) or
+        (TPositionedLayer(SourceLayer).Location.Left <> 0) or (TPositionedLayer(SourceLayer).Location.Top <> 0) then
+      begin
+        // Nope; All those properties would be lost
+        NeedLayers := True;
+        BitmapLayer := nil;
+        break;
+      end;
+
+      if (BitmapLayer <> nil) then
+      begin
+        // We already had a bitmap layer; Clear to indicate that there isn't a single bitmap layer
+        BitmapLayer := nil;
+        NeedLayers := True;
+        break;
+      end else
+        BitmapLayer := TCustomIndirectBitmapLayer(SourceLayer);
     end;
-
-    if (BitmapLayer <> nil) then
-    begin
-      // We already had a bitmap layer; Clear to indicate that there isn't a single bitmap layer
-      BitmapLayer := nil;
-      break;
-    end else
-      BitmapLayer := TCustomIndirectBitmapLayer(SourceLayer);
   end;
 
   if (peIgnoreBitmap in AOptions) or (AImage.Bitmap.Empty) then
     MainBitmap := nil
   else
+  begin
     MainBitmap := AImage.Bitmap;
 
-  if (MainBitmap = nil) and (not AnyBitmapLayers) then
+    // The background bitmap doesn't have an opacity property so if the main bitmap
+    // has MasterAlpha then we need to represent it as a layer.
+    if (MainBitmap.MasterAlpha <> 255) then
+      NeedLayers := True;
+
+    // TODO : Apparently the background bitmap cannot have alpha but since we
+    // haven't implemented the "background alpha in first layer" (negative layer
+    // count), we save it anyway and hope the reader can handle it (Gimp can't;
+    // it loads the channel but displays it as "Extra").
+  end;
+
+  if (MainBitmap = nil) and (BitmapLayer = nil) and (not NeedLayers) then
     // No bitmaps; Nothing to save
     Exit;
 
   (*
   ** Single bitmap
   *)
-  if (MainBitmap <> nil) xor (BitmapLayer <> nil) then
+  if (not NeedLayers) and ((MainBitmap <> nil) xor (BitmapLayer <> nil)) then
   begin
     if (BitmapLayer <> nil) then
       // No bitmap but a single bitmap layer
@@ -712,24 +734,27 @@ begin
   (*
   ** Add layers
   *)
-  for SourceLayer in AImage.Layers do
+  if not(peIgnoreLayers in AOptions) then
   begin
-    if not (SourceLayer is TCustomIndirectBitmapLayer) then
-      continue;
+    for SourceLayer in AImage.Layers do
+    begin
+      if not (SourceLayer is TCustomIndirectBitmapLayer) then
+        continue;
 
-    LayerBitmap := TBitmapLayerCracker(SourceLayer).Bitmap;
-    Location := TBitmapLayerCracker(SourceLayer).Location;
+      LayerBitmap := TBitmapLayerCracker(SourceLayer).Bitmap;
+      Location := TBitmapLayerCracker(SourceLayer).Location;
 
-    PhotoshopLayer := TPhotoshopLayer32.Create(ADocument);
-    PhotoshopLayer.Opacity := LayerBitmap.MasterAlpha;
-    PhotoshopLayer.Left := Round(Location.Left);
-    PhotoshopLayer.Top := Round(Location.Top);
-    // Layer just references the bitmap; It doesn't own it.
-    TPhotoshopLayer32(PhotoshopLayer).Bitmap :=  LayerBitmap;
-    if (not SourceLayer.Visible) then
-      PhotoshopLayer.Options := PhotoshopLayer.Options + [loHidden];
+      PhotoshopLayer := TPhotoshopLayer32.Create(ADocument);
+      PhotoshopLayer.Opacity := LayerBitmap.MasterAlpha;
+      PhotoshopLayer.Left := Round(Location.Left);
+      PhotoshopLayer.Top := Round(Location.Top);
+      // Layer just references the bitmap; It doesn't own it.
+      TPhotoshopLayer32(PhotoshopLayer).Bitmap :=  LayerBitmap;
+      if (not SourceLayer.Visible) then
+        PhotoshopLayer.Options := PhotoshopLayer.Options + [loHidden];
 
-    PhotoshopLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+      PhotoshopLayer.Name := Format(sPSDLayerName, [ADocument.Layers.Count]);
+    end;
   end;
 
   // At this point, if we don't have a PSD background, then we mimic
