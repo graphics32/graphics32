@@ -1159,6 +1159,8 @@ Additional Layer Information
       if (Key = 'luni') then
       begin
         Result.Name := ReadUnicodeString;
+        LayerProperty := TPhotoshopLayerCracker(Result).AddLayerProperty(TPhotoshopLayerPropertyUnicodeName, Key);
+        TPhotoshopLayerPropertyUnicodeName(LayerProperty).Name := Result.Name;
         FStream.Position := Next;
       end else
       begin

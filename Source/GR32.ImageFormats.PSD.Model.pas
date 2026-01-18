@@ -129,6 +129,13 @@ type
     property Data: TBytes read FData write FData;
   end;
 
+  TPhotoshopLayerPropertyUnicodeName = class(TCustomPhotoshopLayerProperty)
+  private
+    FName: string;
+  public
+    property Name: string read FName write FName;
+  end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -141,7 +148,21 @@ type
 
   TCustomPhotoshopLayer = class abstract
   private type
-    TLayerProperties = TObjectList<TCustomPhotoshopLayerProperty>;
+    TLayerProperties = class
+    private
+      FItems: TObjectList<TCustomPhotoshopLayerProperty>;
+      function GetCount: integer;
+      function GetItem(Index: integer): TCustomPhotoshopLayerProperty;
+    protected
+      procedure Add(Item: TCustomPhotoshopLayerProperty);
+    public
+      constructor Create;
+      destructor Destroy; override;
+      function FindProperty(const Key: AnsiString): TCustomPhotoshopLayerProperty;
+      function GetEnumerator: TEnumerator<TCustomPhotoshopLayerProperty>;
+      property Count: integer read GetCount;
+      property Items[Index: integer]: TCustomPhotoshopLayerProperty read GetItem; default;
+    end;
   private
     FDocument: TPhotoshopDocument;
     FTop: integer;
@@ -201,7 +222,6 @@ type
     property Clipping: boolean read FClipping write FClipping;
     property Compression: TPSDLayerCompression read GetCompression write SetCompression;
     property UseDocumentCompression: boolean read FUseDocumentCompression write SetUseDocumentCompression;
-    // TODO : Replace LayerProperties with a proper list representation
     property LayerProperties: TLayerProperties read FLayerProperties;
   end;
 
@@ -971,7 +991,14 @@ begin
     FLayerProperties := TLayerProperties.Create;
 
   Result := APropertyClass.Create(Self, AKey);
-  FLayerProperties.Add(Result);
+  try
+
+    FLayerProperties.Add(Result);
+
+  except
+    Result.Free;
+    raise;
+  end;
 end;
 
 procedure TCustomPhotoshopLayer.BeginScan;
@@ -1072,6 +1099,52 @@ end;
 procedure TCustomPhotoshopLayer.SetUseDocumentCompression(const Value: boolean);
 begin
   FUseDocumentCompression := Value;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TCustomPhotoshopLayer.TLayerProperties
+//
+//------------------------------------------------------------------------------
+constructor TCustomPhotoshopLayer.TLayerProperties.Create;
+begin
+  inherited Create;
+  FItems := TObjectList<TCustomPhotoshopLayerProperty>.Create;
+end;
+
+destructor TCustomPhotoshopLayer.TLayerProperties.Destroy;
+begin
+  FItems.Free;
+  inherited;
+end;
+
+function TCustomPhotoshopLayer.TLayerProperties.FindProperty(const Key: AnsiString): TCustomPhotoshopLayerProperty;
+begin
+  for Result in FItems do
+    if (Result.Key = Key) then
+      exit;
+  Result := nil;
+end;
+
+procedure TCustomPhotoshopLayer.TLayerProperties.Add(Item: TCustomPhotoshopLayerProperty);
+begin
+  FItems.Add(Item);
+end;
+
+function TCustomPhotoshopLayer.TLayerProperties.GetCount: integer;
+begin
+  Result := FItems.Count;
+end;
+
+function TCustomPhotoshopLayer.TLayerProperties.GetEnumerator: TEnumerator<TCustomPhotoshopLayerProperty>;
+begin
+  Result := FItems.GetEnumerator;
+end;
+
+function TCustomPhotoshopLayer.TLayerProperties.GetItem(Index: integer): TCustomPhotoshopLayerProperty;
+begin
+  Result := FItems[Index];
 end;
 
 
