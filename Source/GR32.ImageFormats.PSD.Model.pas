@@ -42,7 +42,8 @@ uses
   Classes,
   SysUtils,
   GR32,
-  GR32_Image;
+  GR32_Image,
+  GR32.ImageFormats.PSD.Types;
 
 //------------------------------------------------------------------------------
 //
@@ -50,37 +51,6 @@ uses
 //
 //------------------------------------------------------------------------------
 type
-  TPSDLayerBlendMode = (
-    lbmPass,
-    lbmNormal,
-    lbmDarken,
-    lbmLighten,
-    lbmHue,
-    lbmSaturation,
-    lbmColor,
-    lbmLuminosity,
-    lbmMultiply,
-    lbmScreen,
-    lbmDissolve,
-    lbmOverlay,
-    lbmHardLight,
-    lbmSoftLight,
-    lbmDifference,
-    lbmExclusion,
-    lbmColorDodge,
-    lbmColorBurn,
-    lbmLinearLight,
-    lbmLinearBurn,
-    lbmDarkerColor,
-    lbmLinearDodge,
-    lbmPinLight,
-    lbmVividLight,
-    lbmHardMix,
-    lbmLighterColor,
-    lbmSubtract,
-    lbmDivide
-  );
-
   TPSDLayerCompression = (
     lcRAW,
     lcRLE,
@@ -556,7 +526,6 @@ uses
   GR32_Layers,
   GR32_Backends_Generic,
   GR32.ImageFormats,
-  GR32.ImageFormats.PSD.Types,
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.PSD.Reader;
 

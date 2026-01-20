@@ -684,7 +684,7 @@ var
       WriteLayerName(AnsiString(ALayer.Name), 4);
 
       // *Layer extra info '8BIM' sequences
-      WriteLayerBeginExtraInfo('luni');
+      WriteLayerBeginExtraInfo(PSD_KEY_UnicodeLayerName);
       begin
         WriteUnicodeText(ALayer.Name); // unicode layer name sequence
       end;

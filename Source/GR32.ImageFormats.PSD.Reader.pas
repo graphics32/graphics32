@@ -1149,14 +1149,14 @@ Additional Layer Information
     begin
       Signature := ReadAnsiString(4);
       if (Signature <> '8BIM') then
-        raise EPhotoshopDocument.Create('Invalid layer extra data signature');
+        raise EPhotoshopDocument.Create('Invalid Additional Layer Information signature');
 
       Key := ReadAnsiString(4);
       Size := ReadCardinal;
 
       Next := FStream.Position + Size;
 
-      if (Key = 'luni') then
+      if (Key = PSD_KEY_UnicodeLayerName) then
       begin
         Result.Name := ReadUnicodeString;
         LayerProperty := TPhotoshopLayerCracker(Result).AddLayerProperty(TPhotoshopLayerPropertyUnicodeName, Key);

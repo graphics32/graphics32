@@ -41,10 +41,6 @@ interface
 
 {$include GR32.inc}
 
-uses
-  GR32.ImageFormats.PSD,
-  GR32.ImageFormats.PSD.Model;
-
 //------------------------------------------------------------------------------
 //
 //      PSD file format types and constants
@@ -53,13 +49,25 @@ uses
 // https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 //------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------
+// File header, Version
+//------------------------------------------------------------------------------
 const
-  // File type
   PSD_VERSION_PSD       = 1;
   PSD_VERSION_PSB       = 2;
 
+
+//------------------------------------------------------------------------------
+// File header, Channels; Max number
+//------------------------------------------------------------------------------
 const
-  // color modes
+  PSD_MAX_CHANNELS      = 56;
+
+
+//------------------------------------------------------------------------------
+// File header, Color mode
+//------------------------------------------------------------------------------
+const
   PSD_BITMAP            = 0;
   PSD_GRAYSCALE         = 1;
   PSD_INDEXED           = 2;
@@ -69,15 +77,53 @@ const
   PSD_DUOTONE           = 8;
   PSD_LAB               = 9;
 
+
+//------------------------------------------------------------------------------
+// Channel image data & Image data, Compression
+//------------------------------------------------------------------------------
 const
-  // Compression
-  PSD_COMPRESSION_NONE  = 0;
+  PSD_COMPRESSION_NONE  = 0; // RAW; No compression
   PSD_COMPRESSION_RLE   = 1; // RLE compression (a.k.a. packbits compression)
   PSD_COMPRESSION_ZIP   = 2; // ZIP compression without prediction
   PSD_COMPRESSION_ZIP_PRED = 4; // ZIP compression with prediction
 
+
+//------------------------------------------------------------------------------
+// Layer records, Blend mode key
+//------------------------------------------------------------------------------
+type
+  TPSDLayerBlendMode = (
+    lbmPass,
+    lbmNormal,
+    lbmDarken,
+    lbmLighten,
+    lbmHue,
+    lbmSaturation,
+    lbmColor,
+    lbmLuminosity,
+    lbmMultiply,
+    lbmScreen,
+    lbmDissolve,
+    lbmOverlay,
+    lbmHardLight,
+    lbmSoftLight,
+    lbmDifference,
+    lbmExclusion,
+    lbmColorDodge,
+    lbmColorBurn,
+    lbmLinearLight,
+    lbmLinearBurn,
+    lbmDarkerColor,
+    lbmLinearDodge,
+    lbmPinLight,
+    lbmVividLight,
+    lbmHardMix,
+    lbmLighterColor,
+    lbmSubtract,
+    lbmDivide
+  );
+
 const
-  // Blend modes
   PSDBlendModeMapping: array[TPSDLayerBlendMode] of PAnsiChar = (
     'pass', // Pass through
     'norm', // Normal
@@ -109,25 +155,119 @@ const
     'fdiv'  // Divide
   );
 
-const
-  // Channel type
-  PSD_MASK_REALUSERDATA = -3;   // -3 = real user supplied layer mask (when both a user mask and a vector mask are present)
-  PSD_MASK_USERDATA     = -2;   // -2 = user data mask / user supplied layer mask
-  PSD_MASK_ALPHA        = -1;   // -1 = alpha channel / transparency mask
-  PSD_MASK_RED          = 0;    //  0 = red (or gray, or cyan etc.)
-  PSD_MASK_GREEN        = 1;    //  1 = green (or magenta etc.)
-  PSD_MASK_BLUE         = 2;    //  2 = blue (or yellow etc.)
-  PSD_MASK_BLACK        = 3;    //  3 = black (for CMYK images)
 
+//------------------------------------------------------------------------------
+// Layer records, Channel type
+//------------------------------------------------------------------------------
 const
-  PSD_MAX_CHANNELS      = 56;
+  PSD_MASK_REALUSERDATA = -3;   // Real user supplied layer mask (when both a user mask and a vector mask are present)
+  PSD_MASK_USERDATA     = -2;   // User data mask / user supplied layer mask
+  PSD_MASK_ALPHA        = -1;   // Alpha channel / transparency mask
+  PSD_MASK_RED          = 0;    // Red (or gray, or cyan etc.)
+  PSD_MASK_GREEN        = 1;    // Green (or magenta etc.)
+  PSD_MASK_BLUE         = 2;    // Blue (or yellow etc.)
+  PSD_MASK_BLACK        = 3;    // Black (for CMYK images)
 
+
+//------------------------------------------------------------------------------
+// Layer records, Channel information
+//------------------------------------------------------------------------------
 type
   TPSDChannelInfo = packed record
     ChannelID: SmallInt;        // One of PSD_MASK_*
     ChannelSize: Cardinal;      // Size of channel in stream (i.e. after compression)
   end;
 
+
+//------------------------------------------------------------------------------
+// Additional Layer Information, Key
+//------------------------------------------------------------------------------
+const
+  PSD_KEY_SolidColor                = 'SoCo'; // Adjustment layer, Solid color (Photoshop 4.0)
+  PSD_KEY_Gradient                  = 'GdFl'; // Adjustment layer, Gradient (Photoshop 4.0)
+  PSD_KEY_Pattern                   = 'PtFl'; // Adjustment layer, Pattern (Photoshop 4.0)
+  PSD_KEY_BrightnessAndContrast     = 'brit'; // Adjustment layer, Brightness and contrast (Photoshop 4.0)
+  PSD_KEY_Levels                    = 'levl'; // Adjustment layer, Levels (Photoshop 4.0)
+  PSD_KEY_Curves                    = 'curv'; // Adjustment layer, Curves (Photoshop 4.0)
+  PSD_KEY_Exposure                  = 'expA'; // Adjustment layer, Exposure (Photoshop CS3)
+  PSD_KEY_Vibrance                  = 'vibA'; // Adjustment layer, Vibrance (Photoshop CS3)
+  PSD_KEY_HueSaturation             = 'hue '; // Adjustment layer, Hue/saturation (Photoshop 4.0)
+  PSD_KEY_HueSaturation2            = 'hue2'; // Adjustment layer, Hue/saturation (Photoshop 5.0)
+  PSD_KEY_ColorBalance              = 'blnc'; // Adjustment layer, Color Balance (Photoshop 4.0)
+  PSD_KEY_BlackAndWhite             = 'blwh'; // Adjustment layer, Black and white (Photoshop CS3)
+  PSD_KEY_PhotoFilter               = 'phfl'; // Adjustment layer, Photo Filter (Photoshop 4.0)
+  PSD_KEY_ChannelMixer2             = 'mixr'; // Adjustment layer, Channel Mixer (Photoshop 5.0)
+  PSD_KEY_ColorLookup               = 'clrL'; // Adjustment layer, Color Lookup (Photoshop CS6)
+  PSD_KEY_Invert                    = 'nvrt'; // Adjustment layer, Invert (Photoshop 4.0)
+  PSD_KEY_Posterize                 = 'post'; // Adjustment layer, Posterize (not documented)
+  PSD_KEY_Threshold                 = 'thrs'; // Adjustment layer, Threshold (Photoshop 4.0)
+  PSD_KEY_GradientMap               = 'grdm'; // Adjustment layer, Gradient map (Photoshop 6.0)
+  PSD_KEY_SelectiveColor            = 'selc'; // Adjustment layer, Selective color (Photoshop 4.0)
+  PSD_KEY_Effects                   = 'lrFX'; // Effects layer (Photoshop 5.0)
+  PSD_KEY_TypeToolInfo              = 'tySh'; // Type Tool Info (Photoshop 5.0 & 5.5 only)
+  PSD_KEY_UnicodeLayerName          = 'luni'; // Unicode layer name (Photoshop 5.0)
+  PSD_KEY_LayerID                   = 'lyid'; // Layer ID (Photoshop 5.0)
+  PSD_KEY_OBELayerInfo              = 'lfx2'; // Object-based effects layer info (Photoshop 6.0)
+  PSD_KEY_Patterns                  = 'Patt'; // Patterns (Photoshop 6.0 & CS 8.0)
+  PSD_KEY_Patterns2                 = 'Pat2'; // Patterns (Photoshop 6.0 & CS 8.0)
+  PSD_KEY_Patterns3                 = 'Pat3'; // Patterns (Photoshop 6.0 & CS 8.0)
+  PSD_KEY_Annotations               = 'Anno'; // Annotations (Photoshop 6.0)
+  PSD_KEY_BlendClippingElements     = 'clbl'; // Blend clipping elements (Photoshop 6.0)
+  PSD_KEY_BlendInteriorElements     = 'infx'; // Blend interior elements (Photoshop 6.0)
+  PSD_KEY_KnockoutSetting           = 'knko'; // Knockout setting (Photoshop 6.0)
+  PSD_KEY_ProtectedSetting          = 'lspf'; // Protected setting (Photoshop 6.0)
+  PSD_KEY_SheetColorSetting         = 'lclr'; // Sheet color setting (Photoshop 6.0)
+  PSD_KEY_ReferencePoint            = 'fxrp'; // Reference point (Photoshop 6.0)
+  PSD_KEY_SectionDividerSetting     = 'lsct'; // Section divider setting (Photoshop 6.0)
+  PSD_KEY_SectionDividerSetting2    = 'lsdk'; // Section divider setting ?
+  PSD_KEY_ChannelMixer1             = 'brst'; // Channel Mixer (Photoshop 4.0)
+  PSD_KEY_VectorMaskSetting         = 'vmsk'; // Vector mask setting (Photoshop 6.0)
+  PSD_KEY_VectorMaskSetting2        = 'vsms'; // Vector mask setting (Photoshop CS6)
+  PSD_KEY_FilterEffects             = 'ffxi'; // Filter effects (Photoshop 5.0)
+  PSD_KEY_LayerNameSource           = 'lnsr'; // Layer name source setting (Photoshop 6.0)
+  PSD_KEY_LayerNameSource2          = 'lnsf'; // Layer name source setting (Photoshop 6.0) ?
+  PSD_KEY_ShellAdjustmentLayer      = 'shpa'; // Shell adjustment layer (Photoshop 4.0)
+  PSD_KEY_MetaData                  = 'shmd'; // Metadata setting (Photoshop 6.0)
+  PSD_KEY_LayerVersion              = 'lyvr'; // Layer version (Photoshop 7.0)
+  PSD_KEY_TransparencyShapesLayer   = 'tsly'; // Transparency shapes layer (Photoshop 7.0)
+  PSD_KEY_LayerMaskAsGlobalMask     = 'lmgm'; // Layer mask as global mask (Photoshop 7.0)
+  PSD_KEY_VectorMaskAsGlobalMask    = 'vmgm'; // Vector mask as global mask (Photoshop 7.0)
+  PSD_KEY_PlacedLayer               = 'plLd'; // Vector mask as global mask (Photoshop 4.0, obsolete CS3)
+  PSD_KEY_LinkedLayer               = 'lnkD'; // Linked layer (Photoshop 4.0)
+  PSD_KEY_LinkedLayer2              = 'lnk2'; // Linked layer (Photoshop 4.0)
+  PSD_KEY_LinkedLayer3              = 'lnk3'; // Linked layer (Photoshop 4.0)
+  PSD_KEY_ContentGeneratorExtData   = 'CgEd'; // Content Generator Extra Data (Photoshop CS5)
+  PSD_KEY_TextEngineData            = 'Txt2'; // Text Engine Data (Photoshop CS3)
+  PSD_KEY_UnicodePathName           = 'pths'; // Unicode Path Name (Photoshop CS6)
+  PSD_KEY_AnimationEffects          = 'anFX'; // Animation Effects (Photoshop CS6)
+  PSD_KEY_FilterMask                = 'FMsk'; // Filter Mask (Photoshop CS3)
+  PSD_KEY_PlacedLayerData           = 'SoLd'; // Placed Layer Data (Photoshop CS3)
+  PSD_KEY_VectorStrokeData          = 'vstk'; // Vector Stroke Data (Photoshop CS6)
+  PSD_KEY_VectorStrokeContentData   = 'vscg'; // Vector Stroke Content Data (Photoshop CS6)
+  PSD_KEY_UsingAlignedRendering     = 'sn2P'; // Using Aligned Rendering (Photoshop CS6)
+  PSD_KEY_VectorOriginationData     = 'vogk'; // Vector Origination Data (Photoshop CC)
+  PSD_KEY_PixelSourceData           = 'PxSc'; // Pixel Source Data (Photoshop CC)
+  PSD_KEY_CompositorUsed            = 'cinf'; // Compositor Used (Photoshop 2020)
+  PSD_KEY_PixelSourceData2          = 'PxSD'; // Pixel Source Data (Photoshop CC 2015)
+  PSD_KEY_ArtboardData              = 'artb'; // Artboard Data (Photoshop CC 2015)
+  PSD_KEY_ArtboardData2             = 'artd'; // Artboard Data (Photoshop CC 2015)
+  PSD_KEY_ArtboardData3             = 'abdd'; // Artboard Data (Photoshop CC 2015)
+  PSD_KEY_SmartObjectLayerData      = 'SoLE'; // Smart Object Layer Data (Photoshop CC 2015)
+  PSD_KEY_SavingMergedTransparency  = 'Mtrn'; // Saving Merged Transparency
+  PSD_KEY_SavingMergedTransparency2 = 'Mt16'; // Saving Merged Transparency
+  PSD_KEY_SavingMergedTransparency3 = 'Mt32'; // Saving Merged Transparency
+  PSD_KEY_UserMask                  = 'LMsk'; // User Mask
+  PSD_KEY_FilterEffects2            = 'FXid'; // Filter Effects
+  PSD_KEY_FilterEffects3            = 'FEid'; // Filter Effects
+  PSD_KEY_CustomAdjustmentLayer     = 'cust'; // Custom adjustment layer (Photoshop 4.0) ?
+  PSD_KEY_LayerData                 = 'Layr'; // Layer Data ?
+  PSD_KEY_LayerData16               = 'Lr16'; // Layer Data ?
+  PSD_KEY_LayerData32               = 'Lr32'; // Layer Data ?
+
+
+//------------------------------------------------------------------------------
+// Image resource, ID
+//------------------------------------------------------------------------------
 type
   TPSD_ImageResourceID = (
     PSD_PS2_IMAGE_INFO    = 1000,         // $03e8 - Obsolete - ps 2.0 image info
