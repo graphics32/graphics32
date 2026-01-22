@@ -568,7 +568,7 @@ begin
   SetLength(Values, Length(Signature));
   SetLength(Mask, Length(Signature));
   p := @(Signature[1]);
-  for i := 1 to Length(Signature) do
+  for i := 0 to Length(Signature)-1 do
   begin
     Values[i] := p^;
     inc(p);
