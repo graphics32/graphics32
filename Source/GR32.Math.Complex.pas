@@ -506,8 +506,8 @@ end;
 
 class function TComplex.SinH(const AValue: TComplex): TComplex;
 begin
-  Result := From(Math.CosH(AValue.Real) * System.Cos(AValue.Imaginary),
-                 Math.SinH(AValue.Real) * System.Sin(AValue.Imaginary));
+  Result := From(Math.SinH(AValue.Real) * System.Cos(AValue.Imaginary),
+                 Math.CosH(AValue.Real) * System.Sin(AValue.Imaginary));
 end;
 
 class function TComplex.TanH(const AValue: TComplex): TComplex;
