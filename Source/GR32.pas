@@ -3176,8 +3176,8 @@ end;
 
 procedure TCustomBitmap32.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer);
 begin
-  if (Int64(Width) * Int64(Height) * SizeOf(DWORD) > MaxInt) then
-    raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = %.8X', [Width, Height, Int64(Width) * Int64(Height) * SizeOf(DWORD)]);
+  if (Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD) > MaxInt) then
+    raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = $%.8X bytes', [NewWidth, NewHeight, Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD)]);
   FBackend.ChangeSize(Width, Height, NewWidth, NewHeight);
 end;
 
