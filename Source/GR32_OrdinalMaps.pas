@@ -688,9 +688,7 @@ end;
 procedure TByteMap.Rotate180(Dst: TByteMap);
 var
   Count: NativeInt;
-  Src: PByteArray;
   S, D: PByte;
-  n: Integer;
   T: Byte;
 begin
   // Validate inputs
