@@ -134,7 +134,7 @@ end;
 
 procedure TMMFBackend.FinalizeSurface;
 begin
-  if Assigned(FBits) then
+  if (FBits <> nil) then
   begin
     UnmapViewOfFile(FBits);
     FBits := nil;
@@ -146,7 +146,7 @@ begin
   CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, FMapIsTemporary, NewWidth, NewHeight);
   FBits := MapViewOfFile(FMapHandle, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
-  if not Assigned(FBits) then
+  if (FBits = nil) then
     raise Exception.Create(RCStrFailedToMapViewOfFile);
 
   if ClearBuffer then
@@ -156,27 +156,30 @@ end;
 
 class procedure TMMFBackend.InitializeFileMapping(var MapHandle, MapFileHandle: THandle; var MapFileName: string);
 begin
-  MapHandle := INVALID_HANDLE_VALUE;
+  MapHandle := 0;
   MapFileHandle := INVALID_HANDLE_VALUE;
-  if MapFileName <> '' then
+  if (MapFileName <> '') then
     ForceDirectories(IncludeTrailingPathDelimiter(ExtractFilePath(MapFileName)));
 end;
 
 class procedure TMMFBackend.DeinitializeFileMapping(MapHandle, MapFileHandle: THandle; const MapFileName: string);
 begin
-  if MapFileName <> '' then
-  begin
+  // Note that MapHandle and MapFileHandle can be valid even though
+  // MapFileName is empty in case the mapping was created in the system
+  // page file.
+
+  if (MapHandle <> 0) then
     CloseHandle(MapHandle);
+
+  if (MapFileHandle <> INVALID_HANDLE_VALUE) then
     CloseHandle(MapFileHandle);
-    if FileExists(MapFileName) then
-      DeleteFile(MapFileName);
-  end;
+
+  if (MapFileName <> '') and FileExists(MapFileName) then
+    DeleteFile(MapFileName);
 end;
 
 class procedure TMMFBackend.CreateFileMapping(var MapHandle, MapFileHandle: THandle;
   var MapFileName: string; IsTemporary: Boolean; NewWidth, NewHeight: Integer);
-var
-  Flags: Cardinal;
 
 {$IFDEF USE_GUIDS_IN_MMF}
   function GetTempFileName(const Prefix: string): string;
@@ -211,24 +214,28 @@ var
   end;
 {$ENDIF}
 
+var
+  Flags: Cardinal;
+  MaxSize: LARGE_INTEGER;
 begin
-  // close previous handles
-  if MapHandle <> INVALID_HANDLE_VALUE then
+  // Close previous handles
+
+  if (MapHandle <> 0) then
   begin
     CloseHandle(MapHandle);
-    MapHandle := INVALID_HANDLE_VALUE;
+    MapHandle := 0;
   end;
 
-  if MapFileHandle <> INVALID_HANDLE_VALUE then
+  if (MapFileHandle <> INVALID_HANDLE_VALUE) then
   begin
     CloseHandle(MapFileHandle);
-    MapHandle := INVALID_HANDLE_VALUE;
+    MapFileHandle := INVALID_HANDLE_VALUE;
   end;
 
   // Do we want to use an external map file?
   if (MapFileName <> '') or IsTemporary then
   begin
-    if MapFileName = '' then
+    if (MapFileName = '') then
       MapFileName := GetTempFileName(IntToStr(NativeUInt(Self)));
 
     // delete file if exists
@@ -244,30 +251,37 @@ begin
     MapFileHandle := CreateFile(PChar(MapFileName), GENERIC_READ or GENERIC_WRITE,
       0, nil, CREATE_ALWAYS, Flags, 0);
 
-    if MapFileHandle = INVALID_HANDLE_VALUE then
+    if (MapFileHandle = INVALID_HANDLE_VALUE) then
     begin
       if not IsTemporary then
-        raise Exception.CreateFmt(RCStrFailedToCreateMapFile, [MapFileName])
-      else
-      begin
-        // Reset and fall back to allocating in the system's paging file...
+        raise Exception.CreateFmt(RCStrFailedToCreateMapFile, [MapFileName]);
 
-        // delete file if exists
-        if FileExists(MapFileName) then
-          DeleteFile(MapFileName);
-          
-        MapFileName := '';
-      end;
+      // Reset and fall back to allocating in the system's paging file...
+
+      // delete file if exists
+      if FileExists(MapFileName) then
+        DeleteFile(MapFileName);
+
+      MapFileName := '';
     end;
-  end
-  else // use the system's paging file
+  end else
+    // use the system's paging file
     MapFileHandle := INVALID_HANDLE_VALUE;
 
   // create map
-  MapHandle := Windows.CreateFileMapping(MapFileHandle, nil, PAGE_READWRITE, 0, NewWidth * NewHeight * 4, nil);
+  MaxSize.QuadPart := Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD);
+  MapHandle := Windows.CreateFileMapping(MapFileHandle, nil, PAGE_READWRITE, MaxSize.HighPart, MaxSize.LowPart, nil);
 
-  if MapHandle = 0 then
+  if (MapHandle = 0) then
+  begin
+    if (MapFileHandle <> INVALID_HANDLE_VALUE) then
+    begin
+      CloseHandle(MapFileHandle);
+      MapFileHandle := INVALID_HANDLE_VALUE;
+    end;
+
     raise Exception.Create(RCStrFailedToMapFile);
+  end;
 end;
 
 {$ENDIF}

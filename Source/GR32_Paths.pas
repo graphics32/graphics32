@@ -1041,7 +1041,7 @@ begin
   if (Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
     Result := TextToPath.MeasureText(DstRect, Text, LayoutToTextFlags(Layout))
   else
-    raise Exception.Create(RCStrInpropriateBackend);
+    raise Exception.Create(RCStrInappropriateBackend);
 end;
 
 function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
@@ -1064,7 +1064,7 @@ begin
   if (Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
     TextToPath.TextToPath(Self, DstRect, Text, LayoutToTextFlags(Layout))
   else
-    raise Exception.Create(RCStrInpropriateBackend);
+    raise Exception.Create(RCStrInappropriateBackend);
 end;
 
 procedure TCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal);
@@ -1092,7 +1092,7 @@ begin
   if (Supports(Bitmap.Backend, ITextToPathSupport, TextToPath)) then
     TextToPath.TextToPath(Self, X, Y, Text, LayoutToTextFlags(Layout))
   else
-    raise Exception.Create(RCStrInpropriateBackend);
+    raise Exception.Create(RCStrInappropriateBackend);
 end;
 
 procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string; Flags: Cardinal);

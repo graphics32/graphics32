@@ -83,7 +83,7 @@ type
 // Implements file related interfaces for the TGraphic class.
 //------------------------------------------------------------------------------
 // Note: A default implementation of the IImageFormatWriter interface is
-// provided but descedant classes has to declare implicit support for the
+// provided but descendant classes has to declare implicit support for the
 // interface if they actually support it. The TImageFormatReaderWriterTGraphic
 // class does this.
 // This is because not all TGraphic implementations support writing data (e.g.
@@ -217,7 +217,7 @@ begin
       end;
       DeviceContextSupport := nil;
     end else
-      raise Exception.Create(RCStrInpropriateBackend);
+      raise Exception.Create(RCStrInappropriateBackend);
 
     if ResetAlphaAfterDrawing then
       TargetBitmap.ResetAlpha;

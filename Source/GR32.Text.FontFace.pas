@@ -195,7 +195,7 @@ type
 //
 //------------------------------------------------------------------------------
 // Wraps a font face.
-// The plaform layer must provide a concrete implementation.
+// The platform layer must provide a concrete implementation.
 //------------------------------------------------------------------------------
 type
   IFontFace32 = interface
@@ -215,7 +215,7 @@ type
 //
 //------------------------------------------------------------------------------
 // A font face provider.
-// The plaform layer must provide a concrete implementation.
+// The platform layer must provide a concrete implementation.
 //------------------------------------------------------------------------------
 type
   IFontFaceProvider32 = interface

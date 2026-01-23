@@ -612,7 +612,7 @@ begin
     // up in an endless loop trying to break the same character again and again.
     if (Paragraph.Count > 0) and (Width - AText[Index].Metrics.RightSideBearing > AMaxWidth) then
     begin
-      // Width exceded; Step backward until we find a break opportunity.
+      // Width exceeded; Step backward until we find a break opportunity.
       // If there is none, before we reach the start of the line, just break
       // unconditionally at the current position.
       BacktrackedCount := 0;

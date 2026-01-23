@@ -208,7 +208,7 @@ begin
 
     // Note: we cant directly assign data pointer to FBits here, 
     // because the pointer will be soon disposed (see 'finally' below).
-    // Instead, we should do copy the pixels (pointer content) to FBits to keep it accesible later.
+    // Instead, we should do copy the pixels (pointer content) to FBits to keep it accessible later.
 
     // Get a pointer to the pixbuf pixel data
     SourceBits := gdk_pixbuf_get_pixels(PixBuf);

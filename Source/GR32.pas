@@ -767,7 +767,7 @@ type
   end;
 
   { TCustomMap }
-  { An ancestor for bitmaps and similar 2D distributions wich have width and
+  { An ancestor for bitmaps and similar 2D distributions which have width and
     height properties }
   TCustomMap = class(TThreadPersistent)
   protected
@@ -1302,7 +1302,7 @@ function GeneralRegistry: TFunctionRegistry;
 resourcestring
   RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
   RCStrCannotSetSize = 'Can''t set size from ''%s''';
-  RCStrInpropriateBackend = 'Inappropriate Backend';
+  RCStrInappropriateBackend = 'Inappropriate Backend';
 
 implementation
 
@@ -3176,8 +3176,8 @@ end;
 
 procedure TCustomBitmap32.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer);
 begin
-  if (Int64(Width) * Int64(Height) * SizeOf(DWORD) > MaxInt) then
-    raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = %.8X', [Width, Height, Int64(Width) * Int64(Height) * SizeOf(DWORD)]);
+  if (Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD) > MaxInt) then
+    raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = $%.8X bytes', [NewWidth, NewHeight, Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD)]);
   FBackend.ChangeSize(Width, Height, NewWidth, NewHeight);
 end;
 

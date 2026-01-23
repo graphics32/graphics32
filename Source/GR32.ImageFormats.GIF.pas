@@ -88,7 +88,7 @@ var
   i: integer;
   Color: TColor32;
   FirstColorIndex, LastColorIndex: integer;
-  TransparetIndex: integer;
+  TransparentIndex: integer;
   ColorIndex: integer;
   GIF: TGIFImage;
   Frame: TGIFFrame;
@@ -181,15 +181,15 @@ begin
         begin
           // Add transparent color.
           // The actual color doesn't matter. We just need the index of it.
-          TransparetIndex := Frame.ColorMap.Add(WinColor(clFuchsia32));
+          TransparentIndex := Frame.ColorMap.Add(WinColor(clFuchsia32));
 
           GraphicControlExtension := TGIFGraphicControlExtension.Create(Frame);
           GraphicControlExtension.Transparent := True;
-          GraphicControlExtension.TransparentColorIndex := TransparetIndex;
+          GraphicControlExtension.TransparentColorIndex := TransparentIndex;
           GraphicControlExtension.Disposal := dmNoDisposal;
         end else
           // Just default to 0. Pixel will be overwritten by later pixels
-          TransparetIndex := 0;
+          TransparentIndex := 0;
 
         Frame.ColorMap.Optimized := True;
 
@@ -203,11 +203,11 @@ begin
           begin
             ColorIndex := ColorMap[Color or $FF000000]; // Ignore alpha
             if (ColorIndex < FirstColorIndex) or (ColorIndex > LastColorIndex) then
-              ColorIndex := TransparetIndex // Transparent in this frame
+              ColorIndex := TransparentIndex // Transparent in this frame
             else
               Dec(ColorIndex, FirstColorIndex);
           end else
-            ColorIndex := TransparetIndex; // Alpha=0 -> Transparent
+            ColorIndex := TransparentIndex; // Alpha=0 -> Transparent
 
           FramePixel^ := ColorIndex;
 

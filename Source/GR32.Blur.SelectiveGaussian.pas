@@ -112,7 +112,7 @@ var
 // https://borland.public.delphi.language.basm.narkive.com/XiSH6pUn/anyone-up-for-a-selective-gaussian-optimization
 // https://web.archive.org/web/20240914225741/https://borland.public.delphi.language.basm.narkive.com/XiSH6pUn/anyone-up-for-a-selective-gaussian-optimization
 //------------------------------------------------------------------------------
-// Unoptimized reference implemention.
+// Unoptimized reference implementation.
 //------------------------------------------------------------------------------
 procedure SelectiveGaussianGimp(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer);
 procedure SelectiveGaussianGimpGamma(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer);
@@ -126,7 +126,7 @@ procedure SelectiveGaussianGimpGamma(Src, Dst: TBitmap32; Radius: TFloat; Delta:
 // https://groups.google.com/g/borland.public.delphi.language.basm/c/QXxiJZnIOa8/m/YMID8XaqzdsJ
 // https://web.archive.org/web/20240914232817/https://groups.google.com/g/borland.public.delphi.language.basm/c/QXxiJZnIOa8/m/YMID8XaqzdsJ
 //------------------------------------------------------------------------------
-// Unoptimized reference implementions.
+// Unoptimized reference implementations.
 //------------------------------------------------------------------------------
 procedure SelectiveGaussianNew(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer);
 procedure SelectiveGaussianNewGamma(Src, Dst: TBitmap32; Radius: TFloat; Delta: Integer);
@@ -517,7 +517,7 @@ end;
 //
 // Optimized algorithm that performs horizontal and vertical blurring only
 // once for each reference color at a certain position (x, y). A table is
-// used for cacheing convolution sum of the reference color values that have
+// used for caching convolution sum of the reference color values that have
 // already been visited. Vertical blurring can then be performed in a
 // single pass by looking up already cached entries for a given reference
 // color (and we can thus take advantage of the fact the gaussian is

@@ -865,7 +865,7 @@ var
   Ye: TColor32Entry absolute C2;
   R: TColor32Entry absolute Result;
 begin
-  R.A := Xe.A + Ye.A - ((Xe.A * Ye.A) shl 7);
+  R.A := Xe.A + Ye.A - ((Xe.A * Ye.A) shr 7);
   R.R := Xe.R + Ye.R - ((Xe.R * Ye.R) shr 7);
   R.G := Xe.G + Ye.G - ((Xe.G * Ye.G) shr 7);
   R.B := Xe.B + Ye.B - ((Xe.B * Ye.B) shr 7);

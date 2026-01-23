@@ -282,7 +282,7 @@ begin
 end;
 
 //------------------------------------------------------------------------------
-// Abstract blur of rectagular area.
+// Abstract blur of rectangular area.
 // Handles both with and without gamma via delegates.
 //------------------------------------------------------------------------------
 procedure BlurRect32(Bitmap: TBitmap32; Radius: TFloat; const Bounds: TRect; BlurDelegate: TBlur32Proc; BlurInplaceDelegate: TBlurInplace32Proc);

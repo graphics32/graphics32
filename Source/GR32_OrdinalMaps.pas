@@ -394,13 +394,17 @@ procedure TByteMap.Downsample(Dest: TByteMap; Factor: Byte);
   begin
     // clone destination and downsample inplace
     Temp := TByteMap.Create;
-    Temp.Assign(Self);
-    Temp.Downsample(Factor);
+    try
+      Temp.Assign(Self);
+      Temp.Downsample(Factor);
 
-    // copy downsampled result
-    Dest.SetSize(Width div Factor, Height div Factor);
-    for Y := 0 to Dest.Height - 1 do
-      Move(Temp.Scanline[Y]^, Dest.Scanline[Y]^, Dest.Width);
+      // copy downsampled result
+      Dest.SetSize(Width div Factor, Height div Factor);
+      for Y := 0 to Dest.Height - 1 do
+        Move(Temp.Scanline[Y]^, Dest.Scanline[Y]^, Dest.Width);
+    finally
+      Temp.Free;
+    end;
   end;
 
 begin
@@ -417,12 +421,14 @@ begin
         Dest.SetSize(Width div 2, Height div 2);
         DownsampleByteMap2x(Self, Dest);
       end;
+
     3:
       begin
         // downsample directly
         Dest.SetSize(Width div 3, Height div 3);
         DownsampleByteMap3x(Self, Dest);
       end;
+
     4:
       begin
         // downsample directly
