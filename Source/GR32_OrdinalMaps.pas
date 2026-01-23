@@ -687,33 +687,52 @@ end;
 
 procedure TByteMap.Rotate180(Dst: TByteMap);
 var
+  Count: NativeInt;
   Src: PByteArray;
   S, D: PByte;
-  X, Y: Integer;
+  n: Integer;
   T: Byte;
 begin
+  // Validate inputs
+  if (FBits = nil) or (Width = 0) or (Height = 0) then
+    Exit;
+
+  // Total number of pixels (bytes)
+  Count := Width * Height;
+  if (Count <= 1) then
+    Exit; // nothing to do for 0 or 1 pixels
+
   if (Dst = nil) or (Dst = Self) then
   begin
-    for Y := 0 to FHeight - 1 do
-    begin
-      Src := Scanline[Y];
-      for X := 0 to (FWidth div 2) - 1 do
-      begin
-        T := Src^[X];
-        Src^[X] := Src^[Width - 1 - X];
-        Src^[Width - 1 - X] := T;
-      end;
-    end;
-  end
-  else
-  begin
+    // Set pointers to the first and last byte and swap inwards
     S := PByte(FBits);
-    D := PByte(@Dst.Bits[FHeight * FWidth - 1]);
-    for X := 0 to FHeight * FWidth - 1 do
+    D := S + Count-1;
+
+    // Swap until pointers meet or cross
+    while (S < D) do
+    begin
+      T := S^;
+      S^ := D^;
+      D^ := T;
+
+      Inc(S); // move forward one byte
+      Dec(D); // move backward one byte
+    end;
+
+  end else
+  begin
+    Dst.SetSize(Width, Height);
+
+    S := PByte(FBits);
+    D := PByte(Dst.Bits) + Count-1;
+
+    while (Count > 0) do
     begin
       D^ := S^;
-      Dec(D);
+
       Inc(S);
+      Dec(D);
+      Dec(Count);
     end;
   end;
 end;
