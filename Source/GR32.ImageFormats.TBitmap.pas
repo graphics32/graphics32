@@ -221,7 +221,7 @@ var
 begin
   if (AResourceType = RT_BITMAP) then
   begin
-    // TBitmap does not have any (accesible) methods to read a DIB, so we have to
+    // TBitmap does not have any (accessible) methods to read a DIB, so we have to
     // "make believe" that the stream contains a BMP file.
     BitmapFileHeader := Default(TBitmapFileHeader);
     BitmapFileHeader.bfType := $4D42;

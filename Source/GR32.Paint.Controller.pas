@@ -175,7 +175,7 @@ begin
 
   FPaintHost := APaintHost;
 
-  // Cache feature capabilities so we don't have to resolve these continously
+  // Cache feature capabilities so we don't have to resolve these continuously
   if (not Supports(FPaintHost, IBitmap32PaintFeatureCursor, FFeatureCursor)) then
     FFeatureCursor := nil;
 
@@ -534,7 +534,7 @@ begin
       HasCapture := True;
   end;
 
-  // Repaint ASAP to avoid lag caused by continous mouse messages during the operation.
+  // Repaint ASAP to avoid lag caused by continuous mouse messages during the operation.
   // The WM_PAINT messages are only generated once the message queue is otherwise empty or
   // UpdateWindow is called.
   if (not TImage32Cracker(FImage).CacheValid) or (not TImage32Cracker(FImage).BufferValid) then

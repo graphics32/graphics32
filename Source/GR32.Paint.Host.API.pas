@@ -135,7 +135,7 @@ type
     // visibility. This is mainly used to temporarily hide the tool vector
     // cursor when the mouse cursor moves out of the host control.
     // If TransientChange is False, ShowToolCursor controls the platform
-    // hardware cursor. It does not change the visiblity of the cursor but
+    // hardware cursor. It does not change the visibility of the cursor but
     // instead controls if the cursor is the tool cursor (SHow=True) or the
     // default cursor (Show=False).
     procedure ShowToolCursor(Show, ATransientChange: Boolean);

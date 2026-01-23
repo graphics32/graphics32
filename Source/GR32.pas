@@ -767,7 +767,7 @@ type
   end;
 
   { TCustomMap }
-  { An ancestor for bitmaps and similar 2D distributions wich have width and
+  { An ancestor for bitmaps and similar 2D distributions which have width and
     height properties }
   TCustomMap = class(TThreadPersistent)
   protected
@@ -1302,7 +1302,7 @@ function GeneralRegistry: TFunctionRegistry;
 resourcestring
   RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
   RCStrCannotSetSize = 'Can''t set size from ''%s''';
-  RCStrInpropriateBackend = 'Inappropriate Backend';
+  RCStrInappropriateBackend = 'Inappropriate Backend';
 
 implementation
 

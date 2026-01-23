@@ -100,7 +100,7 @@ uses
 // Combine
 //------------------------------------------------------------------------------
 //
-// The Combine operation performs linear interpolation, commonly refered to as
+// The Combine operation performs linear interpolation, commonly referred to as
 // "Lerp", between two colors (X and Y), given a weight (W):
 //
 //   Result Z = W * X + (1 - W) * Y

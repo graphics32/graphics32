@@ -278,7 +278,7 @@ begin
   Bdy := B2.Y - B1.Y;
   t := (Bdy * Adx) - (Bdx * Ady);
 
-  if t = 0 then Exit; // lines are parallell
+  if t = 0 then Exit; // lines are parallel
 
   ABx := A1.X - B1.X;
   ABy := A1.Y - B1.Y;
@@ -305,7 +305,7 @@ begin
   Bdy := B2.Y - B1.Y;
   t := (Bdy * Adx) - (Bdx * Ady);
 
-  if t = 0 then Exit; // lines are parallell
+  if t = 0 then Exit; // lines are parallel
 
   ABx := A1.X - B1.X;
   ABy := A1.Y - B1.Y;

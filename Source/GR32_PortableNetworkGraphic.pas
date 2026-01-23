@@ -620,7 +620,7 @@ var
 begin
   DataStream := TMemoryStream.Create;
   try
-    // copy image data from all data chunks to one continous data stream
+    // copy image data from all data chunks to one continuous data stream
     CopyImageData(DataStream);
 
     // check whether compression method is supported
@@ -655,7 +655,7 @@ begin
     // reset data stream position to zero
     DataStream.Position := 0;
 
-    // copy image data from all data chunks to one continous data stream
+    // copy image data from all data chunks to one continuous data stream
     StoreImageData(DataStream);
   finally
     DataStream.Free;
