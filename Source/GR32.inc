@@ -40,7 +40,7 @@
       results in a performance boost it also makes the library platform
       dependent.
       By enabling the PUREPASCAL switch, only pascal code is used, avoiding
-      any assmbler code. The code is slower, but probably more platform
+      any assembler code. The code is slower, but probably more platform
       independent.
 
       (Defined by default for some targets in GR32_Compilers.INC.)
@@ -191,7 +191,7 @@
      Hinting is no longer supported and reference to or use of the hinting
      interfaces will produce a compiler warning.
      If this is a problem you can define the IGNORE_HINTING_DEPRECATED
-     symbol to supress the warnings.
+     symbol to suppress the warnings.
 
      Be aware through that the hinting stuff will be deleted sooner or
      later.

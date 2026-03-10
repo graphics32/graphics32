@@ -380,7 +380,7 @@ end;
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-// Low level, SIMD implementations
+// Low-level, SIMD implementations
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 procedure BlurFilterForward_SSE41(pIn, pOut: PFloatArray; const B: TQuadFloat; Width: Cardinal; var v: TQuadFloat); {$IFDEF FPC}assembler;{$ENDIF}
@@ -776,7 +776,7 @@ end;
 
 
 //------------------------------------------------------------------------------
-// Low level, Pascal implementations
+// Low-level, Pascal implementations
 //------------------------------------------------------------------------------
 procedure BlurFilterForward_Pas(pIn, pOut: PFloatArray; const B: TQuadFloat; Width: Cardinal; var vv: TQuadFloat); inline;
 var

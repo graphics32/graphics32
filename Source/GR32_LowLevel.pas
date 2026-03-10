@@ -217,7 +217,7 @@ function ReflectPow2(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEIN
 //      Clamp/Wrap/Mirror/Reflect
 //
 //------------------------------------------------------------------------------
-// Functions to determine appropiate wrap procs (normal or power of 2 optimized)
+// Functions to determine appropriate wrap procs (normal or power of 2 optimized)
 function GetOptimalWrap(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function GetOptimalReflect(Max: Integer): TWrapProc; overload; {$IFDEF USEINLINING} inline; {$ENDIF}

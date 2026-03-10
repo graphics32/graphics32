@@ -369,7 +369,7 @@ const
 implementation
 
 resourcestring
-  rsClipper_PrecisonErr = 'The decimal rounding value is invalid';
+  rsClipper_PrecisionErr = 'The decimal rounding value is invalid';
 
 //------------------------------------------------------------------------------
 // TRect64 methods ...
@@ -691,7 +691,7 @@ end;
 procedure CheckPrecisionRange(var precision: integer);
 begin
   if (precision < -MaxDecimalPrecision) or (precision > MaxDecimalPrecision) then
-      Raise EClipper2LibException(rsClipper_PrecisonErr);
+      Raise EClipper2LibException(rsClipper_PrecisionErr);
 end;
 //------------------------------------------------------------------------------
 

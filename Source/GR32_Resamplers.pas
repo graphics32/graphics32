@@ -761,7 +761,7 @@ type
 //
 //------------------------------------------------------------------------------
 // Adaptive supersampling is different from ordinary supersampling in the sense
-// that samples are choosen adaptively; It is a recursive method that collects
+// that samples are chosen adaptively; It is a recursive method that collects
 // more samples at areas with rapid transitions.
 //------------------------------------------------------------------------------
 type

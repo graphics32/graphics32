@@ -310,7 +310,7 @@ type
 
   The default error handler raises an exception of type EBlend2DError.
   You can disable error handling completely by setting AHandler to nil. In that
-  case, there is no way to know if and when an error occured.
+  case, there is no way to know if and when an error occurred.
 
   The following procedures can be used to set some default error handlers:
   * BLSetExceptionErrorHandler: sets the error handler to a procedure that
@@ -685,7 +685,7 @@ type
       expect it to be 16kB or 64kB depending on host operating system. }
     MmapAvoidSmall = 1,
 
-    { Do not fallback to regular read if memory mapping fails. It's worth noting
+    { Do not fallback to regular read if memory mapping fails. It's worth nothing
       that memory mapping would fail for files stored on filesystem that is not
       local (like a mounted network filesystem, etc...). }
     MmapNoFallback = 3);
@@ -3318,7 +3318,7 @@ type
     { Pixel format provides LUM component (and not RGB components). }
     LUM           = 2,
 
-    { Indexed pixel format the requres a palette (I/O only). }
+    { Indexed pixel format the requires a palette (I/O only). }
     Indexed       = 4,
 
     { RGB components are premultiplied by alpha component. }
@@ -6270,7 +6270,7 @@ type
     function HasFace(const AFace: IBLFontFace): Boolean;
 
     { Adds a font AFace to the font manager. Does nothing if the manager already
-      contans the font face.
+      contains the font face.
 
       Important conditions:
       * TBLResultCode.FontNotInitializes is raised if the font AFace is invalid.

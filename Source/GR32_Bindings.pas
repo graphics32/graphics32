@@ -114,7 +114,7 @@ type
     // Binding: The binding this function implements
     property Binding: IBindingInfo read GetBinding;
 
-    // Enabled: Used to temporaily enable or disable an implementation. Default True.
+    // Enabled: Used to temporarily enable or disable an implementation. Default True.
     property Enabled: boolean read GetEnabled write SetEnabled;
 
     // Proc: Pointer to the implementing function

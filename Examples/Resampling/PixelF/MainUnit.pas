@@ -101,7 +101,7 @@ begin
 end;
 
 procedure TMainForm.TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
-{twirl algoritm inspired by Patrick Quinn´s remap demo}
+{twirl algorithm inspired by Patrick Quinn´s remap demo}
 var
   X, Y, DstR, DstB: Integer;
   Center: TFloatPoint;

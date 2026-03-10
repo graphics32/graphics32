@@ -6062,7 +6062,7 @@ function TCustomBitmap32.LoadFromDIBStream(Stream: TStream; Size: Int64): boolea
     // Since the alpha channel of this format isn't defined we can either assume
     // that all pixels have Alpha=255 or we can assume that the alpha is
     // specified in the source pixel data.
-    // Instead of just chosing one of these and hoping for the best we make a
+    // Instead of just choosing one of these and hoping for the best we make a
     // choice based on the actual alpha values: If the bitmap contains alpha
     // values then we leave it as is. If it doesn't contain alpha values then
     // we reset the alpha of the whole bitmap to 255.

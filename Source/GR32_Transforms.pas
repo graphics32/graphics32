@@ -638,7 +638,7 @@ resourcestring
   RStrStackEmpty = 'Stack empty';
 
 type
-  { provides access to proctected members of TTransformation by typecasting }
+  { provides access to protected members of TTransformation by typecasting }
   TTransformationAccess = class(TTransformation);
 
 //------------------------------------------------------------------------------
@@ -1064,7 +1064,7 @@ end;
 
 constructor TTransformation.Create;
 begin
-  // virtual constructor to be overriden in derived classes
+  // virtual constructor to be overridden in derived classes
 end;
 
 function TTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;

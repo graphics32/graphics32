@@ -72,7 +72,7 @@ const
   LOB_MOUSE_EVENTS      = $20000000; // 29-th bit: Specifies whether the layer responds to mouse messages.
   LOB_NO_UPDATE         = $10000000; // 28-th bit: Disables automatic repainting when the layer changes its location or other properties.
   LOB_NO_CAPTURE        = $08000000; // 27-th bit: Allows to override automatic capturing of mouse messages when the left mouse is pressed on top of the layer. This bit has no effect if LOB_MOUSE_EVENTS is not set.
-  LOB_INVALID           = $04000000; // 26-th bit: Used internall by repaint optimizer.
+  LOB_INVALID           = $04000000; // 26-th bit: Used internally by repaint optimizer.
   LOB_FORCE_UPDATE      = $02000000; // 25-th bit: Used internally to force a layer to update when it is being hidden.
   LOB_RESERVED_24       = $01000000; // 24-th bit
   LOB_RESERVED_MASK     = $FF000000;
@@ -2779,7 +2779,7 @@ begin
 
     DoHandleMove(-1, NewLocation.TopLeft);
 
-    // Set new loaction but keep old width/height
+    // Set new location but keep old width/height
     NewLocation.Right := NewLocation.Left + NewLocation.Width;
     NewLocation.Bottom := NewLocation.Top + NewLocation.Height;
 
@@ -3762,7 +3762,7 @@ begin
   end else
       NewLocation.TopLeft := StartLocation.TopLeft + Delta;
 
-    // Set new loaction but keep old width/height
+    // Set new location but keep old width/height
     NewLocation.Right := NewLocation.Left + StartLocation.Width;
     NewLocation.Bottom := NewLocation.Top + StartLocation.Height;
 

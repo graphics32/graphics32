@@ -2391,7 +2391,7 @@ procedure TClipper.SwapPositionsInAEL(e1, e2: PActive);
 var
   prev, next: PActive;
 begin
-  // preconditon: e1 must be immediately to the left of e2
+  // precondition: e1 must be immediately to the left of e2
   next := e2.NextInAEL;
   if Assigned(next) then next.PrevInAEL := e1;
   prev := e1.PrevInAEL;
