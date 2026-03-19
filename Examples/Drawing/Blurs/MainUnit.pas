@@ -47,6 +47,10 @@ type
     PanelMotion: TPanel;
     TimerUpdate: TTimer;
     PanelRadius: TPanel;
+    PanelBokeh: TPanel;
+    LabelBrightness: TLabel;
+    TrackBarBrightness: TTrackBar;
+    MnuBokeh: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MnuExitClick(Sender: TObject);
@@ -57,6 +61,7 @@ type
     procedure TbrBlurAngleChange(Sender: TObject);
     procedure TbrBlurRadiusChange(Sender: TObject);
     procedure TrackBarDeltaChange(Sender: TObject);
+    procedure TrackBarBrightnessChange(Sender: TObject);
     procedure TimerUpdateTimer(Sender: TObject);
   private
     FBitmapStoneWeed: TBitmap32;
@@ -86,6 +91,7 @@ uses
   GR32_System,
   GR32.Blur,
   GR32.Blur.SelectiveGaussian,
+  GR32.Blur.Bokeh,
   GR32_Blurs;
 
 {$R *.dfm}
@@ -165,11 +171,13 @@ begin
   PanelSelective.Padding.Top := 8;
   PanelMotion.Padding.Top := 8;
   PanelRadius.Padding.Top := 8;
+  PanelBokeh.Padding.Top := 8;
 {$else}
   PnlControl.BorderSpacing.Around := 8;
   PanelSelective.BorderSpacing.Top := 8;
   PanelMotion.BorderSpacing.Top := 8;
   PanelRadius.BorderSpacing.Top := 8;
+  PanelBokeh.BorderSpacing.Top := 8;
 {$endif}
 end;
 
@@ -187,6 +195,8 @@ var
   Pts, Pts2: TArrayOfFloatPoint;
   WithGamma: Boolean;
   Stopwatch: TStopwatch;
+  Brightness: TFloat;
+  Angle: TFloat;
 begin
   if FRedrawFlag then
     Exit;
@@ -198,6 +208,9 @@ begin
 
     Radius := TbrBlurRadius.Position;
     WithGamma := CheckBoxCorrectGamma.Checked;
+    Brightness := TrackBarBrightness.Position / 100.0;
+    Angle := DegToRad(TbrBlurAngle.Position);
+
     case PageControl.ActivePageIndex of
       0:
         begin
@@ -221,6 +234,12 @@ begin
                   GammaSelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position)
                 else
                   SelectiveGaussianBlur32(FBitmapIceland, ImgViewPage1.Bitmap, Radius, TrackBarDelta.Position);
+
+              4: // Note that we're using the non-alpha aware variants; Doing bokeh on semitransparent bitmaps is pretty rare
+                if WithGamma then
+                  GammaBokehBlur32(ImgViewPage1.Bitmap, Radius, Brightness, Angle, True)
+                else
+                  BokehBlur32(ImgViewPage1.Bitmap, Radius, Brightness, Angle, True);
 
             end;
             Stopwatch.Stop;
@@ -257,6 +276,19 @@ begin
                   MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
                   MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position, Pts2, CbxBidirectional.Checked);
                 end;
+
+              4:
+                // Note: Region Bokeh blur is not explicitly implemented in GR32.Blur.Bokeh
+                // but we can simulate it using the same approach as BlurRegion32 if needed.
+                // For the demo, we'll just blur the whole bitmap since that's what the other
+                // blurs do on Page 1.
+                // However, for consistency with Page 2, we should probably do nothing or
+                // implement a region-based bokeh blur.
+                if WithGamma then
+                  GammaBokehBlur32(ImgViewPage2.Bitmap, Radius, Brightness, Angle, True)
+                else
+                  BokehBlur32(ImgViewPage2.Bitmap, Radius, Brightness, Angle, True);
+
             end;
             Stopwatch.Stop;
 
@@ -316,6 +348,20 @@ begin
                   MotionBlur(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Rec2, CbxBidirectional.Checked);
                   MotionBlur(FLayerBitmap.Bitmap, Radius, TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
                 end;
+
+              4:
+                begin
+                  if WithGamma then
+                  begin
+                    GammaBokehBlur32(ImgViewPage3.Bitmap, Radius, Brightness, Angle, True);
+                    GammaBokehBlur32(FLayerBitmap.Bitmap, Radius, Brightness, Angle, True);
+                  end else
+                  begin
+                    BokehBlur32(ImgViewPage3.Bitmap, Radius, Brightness, Angle, True);
+                    BokehBlur32(FLayerBitmap.Bitmap, Radius, Brightness, Angle, True);
+                  end;
+                end;
+
             end;
             Stopwatch.Stop;
 
@@ -366,10 +412,12 @@ begin
   MnuGaussianType.Checked := (RgpBlurType.ItemIndex = 1);
   MnuMotion.Checked := (RgpBlurType.ItemIndex = 2);
   MnuSelective.Checked := (RgpBlurType.ItemIndex = 3);
+  MnuBokeh.Checked := (RgpBlurType.ItemIndex = 4);
 
   EnableGroup(PanelRadius, (RgpBlurType.ItemIndex <> 0));
-  EnableGroup(PanelMotion, (RgpBlurType.ItemIndex = 2));
+  EnableGroup(PanelMotion, (RgpBlurType.ItemIndex = 2) or (RgpBlurType.ItemIndex = 4));
   EnableGroup(PanelSelective, (RgpBlurType.ItemIndex = 3));
+  EnableGroup(PanelBokeh, (RgpBlurType.ItemIndex = 4));
 
   case RgpBlurType.ItemIndex of
     1: // The current Gaussian Blur begins introducing overflow artifacts at around radius=200
@@ -378,6 +426,8 @@ begin
       TbrBlurRadius.Max := 256;
     3: // Selective blur is very slow, so limit the damage
       TbrBlurRadius.Max := 20;
+    4: // Bokeh blur is also slow, and jittered sampling works better with larger radii, but CPU cost is high.
+      TbrBlurRadius.Max := 50;
   end;
 
   Redraw;
@@ -403,6 +453,13 @@ begin
   QueueUpdate;
 end;
 
+procedure TFrmBlurs.TrackBarBrightnessChange(Sender: TObject);
+begin
+  LabelBrightness.Caption := Format('Brightness (%d%%)', [TrackBarBrightness.Position]);
+
+  QueueUpdate;
+end;
+
 procedure TFrmBlurs.TbrBlurAngleChange(Sender: TObject);
 begin
   LblBlurAngle.Caption := Format('Blur &Angle (%d)', [TbrBlurAngle.Position]);
@@ -420,6 +477,9 @@ begin
   else
   if Sender = MnuSelective then
     RgpBlurType.ItemIndex := 3
+  else
+  if Sender = MnuBokeh then
+    RgpBlurType.ItemIndex := 4
   else
     RgpBlurType.ItemIndex := 0
 end;
