@@ -461,22 +461,22 @@ type
     function GetContentSize: TPoint; override;
   protected
     procedure BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
+    function GetBitmap: TCustomBitmap32; virtual;
     procedure SetBitmap(Value: TCustomBitmap32); virtual;
     procedure SetCropped(Value: Boolean);
-    property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
   public
     constructor Create(ALayerCollection: TLayerCollection); overload; override;
     constructor Create(ALayerCollection: TLayerCollection; ABitmap: TCustomBitmap32); reintroduce; overload;
     destructor Destroy; override;
 
-
+    property Bitmap: TCustomBitmap32 read GetBitmap;
     property AlphaHit: Boolean read FAlphaHit write FAlphaHit;
     property Cropped: Boolean read FCropped write SetCropped;
   end;
 
   TIndirectBitmapLayer = class(TCustomIndirectBitmapLayer)
   public
-    property Bitmap;
+    property Bitmap: TCustomBitmap32 read GetBitmap write SetBitmap;
   end;
 
 
@@ -511,7 +511,7 @@ type
   TBitmapLayer = class(TCustomBitmapLayer)
   protected
     function GetBitmapClass: TCustomBitmap32Class; override;
-    function GetBitmap: TBitmap32;
+    function GetBitmap: TBitmap32; reintroduce;
     procedure SetBitmap(Value: TBitmap32); reintroduce;
   public
     property Bitmap: TBitmap32 read GetBitmap write SetBitmap;
@@ -1753,7 +1753,7 @@ begin
     LayerOptions := LayerOptions or LOB_VISIBLE
   else
     LayerOptions := LayerOptions and not LOB_VISIBLE;
-  end;
+end;
 
 procedure TCustomLayer.Update;
 begin
@@ -2281,6 +2281,11 @@ begin
     FBitmap.OnAreaChanged := BitmapAreaChanged;
 end;
 
+function TCustomIndirectBitmapLayer.GetBitmap: TCustomBitmap32;
+begin
+  Result := FBitmap;
+end;
+
 function TCustomIndirectBitmapLayer.GetContentSize: TPoint;
 begin
   Result.X := Bitmap.Width;
@@ -2352,7 +2357,7 @@ end;
 //------------------------------------------------------------------------------
 function TBitmapLayer.GetBitmap: TBitmap32;
 begin
-  Result := TBitmap32(inherited Bitmap);
+  Result := TBitmap32(inherited GetBitmap);
 end;
 
 procedure TBitmapLayer.SetBitmap(Value: TBitmap32);

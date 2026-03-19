@@ -170,6 +170,11 @@
         <DCCReference Include="..\..\GR32.ImageFormats.TPicture.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.TWICImage.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.TGraphic.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.PSD.Model.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.PSD.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.PSD.Reader.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.PSD.Types.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.PSD.Writer.pas"/>
         <DCCReference Include="..\..\GR32_ColorSwatch.pas"/>
         <DCCReference Include="..\..\GR32.BigEndian.pas"/>
         <DCCReference Include="..\..\GR32.Blur.pas"/>
