@@ -642,7 +642,7 @@ begin
     for j := 0 to fResults.Count -1 do
       AppendPath(Result, GetPath(j));
 
-    //clean up after every loop
+    //cleanup after every loop
     DisposeResults;
     fEdges := nil;
     SetLength(fEdges, 8);

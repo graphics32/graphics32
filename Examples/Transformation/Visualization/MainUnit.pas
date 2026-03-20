@@ -512,7 +512,7 @@ begin
       x := I * nrx - 1;
       y := J * nry - 1;
 
-      // back up x & y
+      // backup x & y
       sx := x;
       sy := y;
 

@@ -140,7 +140,7 @@ var
   //AutoWidthThreshold: When JoinStyle = jsAuto, this is the threshold at
   //which line joins will be rounded instead of squared. With wider strokes,
   //rounded joins generally look better, but as rounding is more complex it
-  //also requries more processing and hence is slower to execute.
+  //also requires more processing and hence is slower to execute.
   AutoWidthThreshold: double = 5.0;
   //When lines are too narrow, they become too faint to sensibly draw
   MinStrokeWidth: double = 0.5;

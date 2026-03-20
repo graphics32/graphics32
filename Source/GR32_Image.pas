@@ -2116,7 +2116,7 @@ begin
   // Beware! This is called from TCustomPaintBox32.Create
 
   // Note: We don't really need to call inherited here since we don't want the
-  // paintbox buffer event handlers set. However, since we're supressing the
+  // paintbox buffer event handlers set. However, since we're suppressing the
   // buffer change events in derived classes with BeginUpdate/EndUpdate there's
   // no harm in doing it.
   inherited;
@@ -4329,7 +4329,7 @@ begin
     // The VCL requires PageSize <= Max, but Windows requires PageSize <= Max-Min+1.
     // This means that if we set PageSize=Max then the user will still be able to scroll 1 unit
     // up/down.
-    // We work around this here by disabling the scroll bar if PageSize=Max.
+    // We work around this here by disabling the scrollbar if PageSize=Max.
     if (ScrollMax = ScrollThumbSize) then
     begin
       ScrollBar.Enabled := False;
@@ -4860,7 +4860,7 @@ begin
       // - If Visibility=svAuto then the ranges of the scrollbars may just have
       //   changed, thus we need to update the visibility of the scrollbars.
       // - If the control is resize we need to reposition the scrollbars.
-      // - If the scollbars has been hidden/shown we need to update them.
+      // - If the scrollbars has been hidden/shown we need to update them.
       UpdateScrollbarVisibility;
 
       UpdateScrollBar(FHorScroll, FBitmapSize.cx, Min(FBitmapSize.cx, FViewportSize.cx));
@@ -4888,7 +4888,7 @@ begin
 
         if (ocOffsetHorz in FOffsetChanges) then
         begin
-          // Offset has changed; Update scollbar
+          // Offset has changed; Update scrollbar
           if (FHorScroll.Visible) then
             FHorScroll.Position := Round(BitmapMargin - OffsetHorz);
         end else
@@ -4915,7 +4915,7 @@ begin
 
         if (ocOffsetVert in FOffsetChanges) then
         begin
-          // Offset has changed; Update scollbar
+          // Offset has changed; Update scrollbar
           if (FVerScroll.Visible) then
             FVerScroll.Position := Round(BitmapMargin - OffsetVert);
         end else
@@ -4925,7 +4925,7 @@ begin
       end;
     end else
     begin
-      // Offset has changed; Update scollbars
+      // Offset has changed; Update scrollbars
       if (ocOffsetHorz in FOffsetChanges) then
         FHorScroll.Position := Round(BitmapMargin - OffsetHorz);
       if (ocOffsetVert in FOffsetChanges) then
