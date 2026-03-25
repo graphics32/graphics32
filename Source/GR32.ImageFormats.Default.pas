@@ -81,6 +81,7 @@ uses
   GR32.ImageFormats.TWICImage,
   GR32.ImageFormats.TMetaFile,
 {$ENDIF}
+  GR32.ImageFormats.PSD,
   GR32.ImageFormats.TIcon,
   GR32.ImageFormats.TPicture;
 

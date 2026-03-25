@@ -78,12 +78,11 @@ type
     procedure SetFloatVectorFS(X,Y: Single; const Point: TFloatVector);
     procedure SetVectorCombineMode(const Value: TVectorCombineMode);
   protected
-    procedure ChangeSize(var Width, Height: Integer; NewWidth,
-      NewHeight: Integer); override;
+    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
   public
     destructor Destroy; override;
 
-    procedure Clear;
+    procedure Clear; override;
     procedure Merge(DstLeft, DstTop: Integer; Src: TVectorMap; SrcRect: TRect);
 
     property Vectors: PFixedPointArray read GetVectors;
@@ -135,34 +134,6 @@ begin
   B.Y := FixedCombine(Weight, B.Y, A.Y);
 end;
 
-function TVectorMap.BoundsRect: TRect;
-begin
-  Result := MakeRect(0, 0, Width, Height);
-end;
-
-procedure TVectorMap.ChangeSize(var Width, Height: Integer;
-  NewWidth, NewHeight: Integer);
-begin
-  inherited;
-  FVectors := nil;
-  Width := 0;
-  Height := 0;
-  SetLength(FVectors, NewWidth * NewHeight);
-  if (NewWidth > 0) and (NewHeight > 0) then
-  begin
-    if FVectors = nil then
-      raise Exception.Create(RCStrCantAllocateVectorMap);
-    FillLongword(FVectors[0], NewWidth * NewHeight * 2, 0);
-  end;
-  Width := NewWidth;
-  Height := NewHeight;
-end;
-
-procedure TVectorMap.Clear;
-begin
-  FillLongword(FVectors[0], Width * Height * 2, 0);
-end;
-
 destructor TVectorMap.Destroy;
 begin
   Lock;
@@ -172,6 +143,34 @@ begin
     Unlock;
   end;
   inherited;
+end;
+
+function TVectorMap.BoundsRect: TRect;
+begin
+  Result := MakeRect(0, 0, Width, Height);
+end;
+
+procedure TVectorMap.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+begin
+  inherited;
+  FVectors := nil;
+  Width := 0;
+  Height := 0;
+  SetLength(FVectors, NewWidth * NewHeight);
+  if (ClearBuffer) and (NewWidth > 0) and (NewHeight > 0) then
+  begin
+    if FVectors = nil then
+      raise Exception.Create(RCStrCantAllocateVectorMap);
+    FillLongword(FVectors[0], NewWidth * NewHeight * (SizeOf(TFixedVector) div SizeOf(Longword)), 0);
+  end;
+  Width := NewWidth;
+  Height := NewHeight;
+end;
+
+procedure TVectorMap.Clear;
+begin
+  FillLongword(FVectors[0], Width * Height * (SizeOf(TFixedVector) div SizeOf(Longword)), 0);
+  Changed;
 end;
 
 function TVectorMap.GetVectors: PFixedPointArray;
@@ -196,14 +195,13 @@ end;
 
 function TVectorMap.GetFloatVectorS(X, Y: Integer): TFloatVector;
 begin
-  if (X >= 0) and (Y >= 0) and
-   (X < Width) and (Y < Height) then
-     Result := GetFloatVector(X,Y)
-    else
-    begin
-      Result.X := 0;
-      Result.Y := 0;
-    end;
+  if (X >= 0) and (Y >= 0) and (X < Width) and (Y < Height) then
+    Result := GetFloatVector(X,Y)
+  else
+  begin
+    Result.X := 0;
+    Result.Y := 0;
+  end;
 end;
 
 function TVectorMap.GetFixedVector(X, Y: Integer): TFixedVector;
@@ -213,14 +211,13 @@ end;
 
 function TVectorMap.GetFixedVectorS(X, Y: Integer): TFixedVector;
 begin
-  if (X >= 0) and (Y >= 0) and
-    (X < Width) and (Y < Height) then
-      Result := GetFixedVector(X,Y)
-    else
-    begin
-      Result.X := 0;
-      Result.Y := 0;
-    end;
+  if (X >= 0) and (Y >= 0) and (X < Width) and (Y < Height) then
+    Result := GetFixedVector(X,Y)
+  else
+  begin
+    Result.X := 0;
+    Result.Y := 0;
+  end;
 end;
 
 function TVectorMap.GetFixedVectorX(X, Y: TFixed): TFixedVector;
@@ -238,14 +235,17 @@ begin
   if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= H - 1) then
   begin
     P := @FVectors[WX + WY * W];
+
     if (WY = H - 1) then
       W := 0
     else
       W := W * Next;
+
     if (WX = W - 1) then
       H := 0
     else
       H := Next;
+
     WX := TFixedRec(X).Frac;
     WY := TFixedRec(Y).Frac;
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
@@ -275,8 +275,7 @@ end;
 
 function TVectorMap.Empty: Boolean;
 begin
-  Result := false;
-  if (Width = 0) or (Height = 0) or (FVectors = nil) then Result := True;
+  Result := (Width = 0) or (Height = 0) or (FVectors = nil);
 end;
 
 const
