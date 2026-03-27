@@ -3206,7 +3206,7 @@ end;
 
 procedure TCustomBitmap32.Clear;
 begin
-  Clear(clBlack32);
+  Clear(0); // Clear to fully transparent. See issue #394
 end;
 
 procedure TCustomBitmap32.Clear(FillColor: TColor32);
