@@ -504,7 +504,7 @@ begin
   begin
     // Fall back to CF_BITMAP format.
     // Note: We must do an explicit assign to a bitmap or we risk that the
-    // clipboard retrives the data in some other compatible format.
+    // clipboard retrieves the data in some other compatible format.
     // E.g. if the clipboard contains CF_METAFILE and CF_BITMAP and we do a
     // TBitmap32.Assign(Clipboard), then we end grabbing the CF_METAFILE data
     // leading to a rasterized copy of a metafile capture of a bitmap... Ugh!

@@ -218,7 +218,7 @@ var
 // Misc
 //------------------------------------------------------------------------------
   LightenReg: TLightenReg;
-  Lighten: TLightenReg absolute LightenReg; // Lighten is an alias for LigthenReg
+  Lighten: TLightenReg absolute LightenReg; // Lighten is an alias for LightenReg
   ScaleMems: TScaleMems;
 
 

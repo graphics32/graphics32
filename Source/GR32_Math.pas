@@ -1167,7 +1167,7 @@ asm
         PUSH    ESI             // of EBX and ESI
 
         MOV     EBX, EAX        // Result will be negative or positive so set rounding direction
-        XOR     EBX, EDX        //  Negative: substract 1 in case of rounding
+        XOR     EBX, EDX        //  Negative: subtract 1 in case of rounding
         XOR     EBX, ECX        //  Positive: add 1
 
         OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
@@ -1191,7 +1191,7 @@ asm
 
         DIV     ECX             // Unsigned divide of product by Divisor
 
-        SUB     ECX, EDX        // Check if the result must be adjusted by adding or substracting
+        SUB     ECX, EDX        // Check if the result must be adjusted by adding or subtracting
         CMP     ECX, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
         JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
         INC     EAX             // no rounding needed; add 1 to result otherwise
@@ -1210,7 +1210,7 @@ asm
 {$elseif defined(TARGET_x64)}
 
         MOV     EAX, ECX        // Result will be negative or positive so set rounding direction
-        XOR     ECX, EDX        //  Negative: substract 1 in case of rounding
+        XOR     ECX, EDX        //  Negative: subtract 1 in case of rounding
         XOR     ECX, R8D        //  Positive: add 1
 
         OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
@@ -1234,7 +1234,7 @@ asm
 
         DIV     R8D             // Unsigned divide of product by Divisor
 
-        SUB     R8D, EDX        // Check if the result must be adjusted by adding or substracting
+        SUB     R8D, EDX        // Check if the result must be adjusted by adding or subtracting
         CMP     R8D, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
         JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
         INC     EAX             // no rounding needed; add 1 to result otherwise

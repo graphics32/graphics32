@@ -121,7 +121,7 @@ type
 //      TSwizzlingRasterizer
 //
 //------------------------------------------------------------------------------
-// An interesting rasterization method where sample locations are choosen
+// An interesting rasterization method where sample locations are chosen
 // according to a fractal pattern called 'swizzling'. With a slight
 // modification to the algorithm this routine will actually yield the
 // well-known sierpinski triangle fractal. An advantage with this pattern
