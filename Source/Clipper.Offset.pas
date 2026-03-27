@@ -617,7 +617,7 @@ begin
     fillRule := frNegative else
     fillRule := frPositive;
 
-  // cleanup self-intersections ...
+  // clean up self-intersections ...
   with TClipper64.Create do
   try
     PreserveCollinear := fPreserveCollinear;

@@ -250,7 +250,7 @@ begin
     begin
       subEl := elem.AddChild;
       if (j < i) and (s[i-1] = #32) then
-        j := i -1 else //allow a preceding space char
+        j := i -1 else //allow a preceeding space char
         j := i;
       Inc(i);
       while (i < len) and (s[i] <> '<') do inc(i);

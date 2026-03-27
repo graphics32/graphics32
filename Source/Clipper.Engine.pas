@@ -900,7 +900,7 @@ begin
       while (op2 <> op) and (op2.pt.Y > pt.Y) do op2 := op2.next;
     if (op2 = op) then break;
 
-    // must have touched or crossed the pt.Y horizontal
+    // must have touched or crossed the pt.Y horizonal
     // and this must happen an even number of times
 
     if (op2.pt.Y = pt.Y) then // touching the horizontal
@@ -1606,7 +1606,7 @@ var
 begin
   if reuseableData.FLocMinList.Count = 0 then Exit;
   // nb: reuseableData will continue to own the vertices
-  // and will remain responsible for their cleanup.
+  // and will remain responsible for their clean up.
   // Consequently, it's important that the reuseableData object isn't
   // destroyed before the Clipper object that's using the data.
   FLocMinListSorted := false;
@@ -3112,7 +3112,7 @@ begin
     end else
     begin
       or2.pts := nil;
-      if FUsingPolytree then
+      if FUsingPolytree then   
       begin
         SetOwner(or2, or1);
         MoveSplits(or2, or1); //#618
@@ -3344,7 +3344,7 @@ procedure TClipperBase.SwapPositionsInAEL(e1, e2: PActive);
 var
   prev, next: PActive;
 begin
-  // precondition: e1 must be immediately prior to e2
+  // preconditon: e1 must be immediately prior to e2
   next := e2.nextInAEL;
   if Assigned(next) then next.prevInAEL := e1;
   prev := e1.prevInAEL;
@@ -3525,7 +3525,7 @@ begin
       end;
       if IsHotEdge(horzEdge) then
       begin
-        //nb: The outrec containing the op returned by IntersectEdges
+        //nb: The outrec containining the op returned by IntersectEdges
         //above may no longer be associated with horzEdge.
         FHorzSegList.Add(GetLastOp(horzEdge));
       end;
@@ -3738,7 +3738,7 @@ begin
     if (split = nil) or 
        (split = outrec) or 
        (split.recursiveCheck = outrec) then Continue;
-
+       
     split.recursiveCheck := outrec; // prevent infinite loops
     if Assigned(split.splits) and
       CheckSplitOwner(outrec, split.splits) then Exit

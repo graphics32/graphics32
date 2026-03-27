@@ -276,7 +276,7 @@ begin
   InitializeDefaultListView(AChunk);
 
   if Chunk.SignificantBits is TPngSignificantBitsFormat0 then
-    ListViewData(['Grayscale Bits', IntToStr(TPngSignificantBitsFormat0(Chunk.SignificantBits).GrayBits)])
+    ListViewData(['Greyscale Bits', IntToStr(TPngSignificantBitsFormat0(Chunk.SignificantBits).GrayBits)])
   else
   if Chunk.SignificantBits is TPngSignificantBitsFormat23 then
   begin
@@ -286,7 +286,7 @@ begin
   end else
   if Chunk.SignificantBits is TPngSignificantBitsFormat4 then
   begin
-    ListViewData(['Grayscale Bits', IntToStr(TPngSignificantBitsFormat4(Chunk.SignificantBits).GrayBits)]);
+    ListViewData(['Greyscale Bits', IntToStr(TPngSignificantBitsFormat4(Chunk.SignificantBits).GrayBits)]);
     ListViewData(['Alpha Bits', IntToStr(TPngSignificantBitsFormat4(Chunk.SignificantBits).AlphaBits)]);
   end else
   if Chunk.SignificantBits is TPngSignificantBitsFormat6 then

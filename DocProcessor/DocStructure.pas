@@ -1286,7 +1286,7 @@ begin
       AE := AE.Ancestor;
     end;
 
-    // add hierarchy section
+    // add hierarcy section
     if AncestorName <> '' then
     begin
       S := AncestorName;
@@ -1318,7 +1318,7 @@ begin
     end;
 
 
-    // remove overridden duplicates
+    // remove overrided duplicates
     for I := 0 to Ancestors.Count - 1 do
       ClassLinks.RemoveDuplicatesFrom(TClassLinks(Ancestors[I]));
 
@@ -1790,7 +1790,7 @@ begin
     Elems.Free;
   end;
 
-  //inserts the library's description <H1>
+  //inserts the library's desciption <H1>
   InsertHeading(Body);
   InsertMenu(Body, -2, true);
 end;
