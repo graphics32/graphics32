@@ -22,17 +22,10 @@ unit GR32_Filters;
  *
  * The Original Code is Graphics32
  *
- * The Initial Developer of the Original Code is
- * Alex A. Denisov
+ * The Initial Developer of the Original Code is Alex A. Denisov
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *  Michael Hansen <dyster_tid@hotmail.com>
- *      - 2007/02/25 - Logical Mask Operations and related types
- *      - 2007/02/27 - CopyComponents
- *      - 2007/05/10 - Logical Mask Operation functions in pascal versions
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -53,27 +46,30 @@ type
   TLogicalOperator = (loXOR, loAND, loOR);
 
 procedure CopyComponents(Dst, Src: TCustomBitmap32; Components: TColor32Components);overload;
-procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
-  SrcRect: TRect; Components: TColor32Components); overload;
+procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32; SrcRect: TRect; Components: TColor32Components); overload;
 
-procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32);
-procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean = False);
+procedure AlphaToGrayscale(ABitmap: TCustomBitmap32); overload;
+procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32); overload;
+procedure ColorToGrayscale(ABitmap: TCustomBitmap32; PreserveAlpha: Boolean = False); overload;
+procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean = False); overload;
 procedure IntensityToAlpha(Dst, Src: TCustomBitmap32);
 
-procedure Invert(Dst, Src: TCustomBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
-procedure InvertRGB(Dst, Src: TCustomBitmap32);
+procedure Invert(ABitmap: TCustomBitmap32; Components: TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]); overload;
+procedure Invert(Dst, Src: TCustomBitmap32; Components: TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]); overload;
+procedure InvertRGB(ABitmap: TCustomBitmap32); overload;
+procedure InvertRGB(Dst, Src: TCustomBitmap32); overload;
 
-procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
-procedure ChromaKey(ABitmap: TCustomBitmap32; TrColor: TColor32);
+procedure ApplyLUT(ABitmap: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False); overload;
+procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False); overload;
+procedure ChromaKey(ABitmap: TCustomBitmap32; KeyColor: TColor32);
 
 function CreateBitmask(Components: TColor32Components): TColor32;
 
-procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
-  SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
-procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32;
-  LogicalOperator: TLogicalOperator); overload;
+procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32; SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
+procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
 
 procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
+
 
 implementation
 
@@ -86,6 +82,27 @@ const
   SEmptyBitmap = 'The bitmap is nil';
   SEmptySource = 'The source is nil';
   SEmptyDestination = 'Destination is nil';
+
+const // TODO : This belongs in GR32
+{$IFNDEF RGBA_FORMAT}
+  ARGB_MASK_A = $FF000000;
+  ARGB_MASK_R = $00FF0000;
+  ARGB_MASK_G = $0000FF00;
+  ARGB_MASK_B = $000000FF;
+  ARGB_SHIFT_A = 24;
+  ARGB_SHIFT_R = 16;
+  ARGB_SHIFT_G = 8;
+  ARGB_SHIFT_B = 0;
+{$ELSE}
+  ARGB_MASK_A = $FF000000;
+  ARGB_MASK_R = $000000FF;
+  ARGB_MASK_G = $0000FF00;
+  ARGB_MASK_B = $00FF0000;
+  ARGB_SHIFT_A = 24;
+  ARGB_SHIFT_R = 0;
+  ARGB_SHIFT_G = 8;
+  ARGB_SHIFT_B = 16;
+{$ENDIF}
 
 type
 { Function Prototypes }
@@ -118,20 +135,22 @@ const
     (@@LogicalMaskLineOrEx)
   );
 
-procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
+procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean);
 begin
-  if not Assigned(Src) then
+  if (Src = nil) then
     raise Exception.Create(SEmptySource);
 
-  if not Assigned(Dst) then
+  if (Dst = nil) then
     raise Exception.Create(SEmptyDestination);
 
-  if ResizeDst then Dst.SetSize(Src.Width, Src.Height);
+  if ResizeDst and (Src <> Dst) then
+    Dst.SetSize(Src.Width, Src.Height);
 end;
 
 procedure CopyComponents(Dst, Src: TCustomBitmap32; Components: TColor32Components);
 begin
-  if Components = [] then Exit;
+  if (Components = []) or (Src = Dst) then
+    Exit;
   CheckParams(Dst, Src);
   CopyComponents(Dst, 0, 0, Src, Src.BoundsRect, Components);
 end;
@@ -145,40 +164,47 @@ var
   PBDst, PBSrc: PByteArray;
   DstRect: TRect;
 begin
-  if Components = [] then Exit;
+  if (Components = []) then
+    Exit;
   CheckParams(Dst, Src, False);
 
   ComponentCount := 0;
   XOffset := 0;
   Mask := 0;
+
   if ccAlpha in Components then
   begin
     Inc(ComponentCount);
-    Inc(Mask, $FF000000);
-    XOffset := 3;
+    Inc(Mask, ARGB_MASK_A);
+    XOffset := Ord(ccAlpha);
   end;
+
   if ccRed in Components then
   begin
     Inc(ComponentCount);
-    Inc(Mask, $00FF0000);
-    XOffset := 2;
+    Inc(Mask, ARGB_MASK_R);
+    XOffset := Ord(ccRed);
   end;
+
   if ccGreen in Components then
   begin
     Inc(ComponentCount);
-    Inc(Mask, $0000FF00);
-    XOffset := 1;
+    Inc(Mask, ARGB_MASK_G);
+    XOffset := Ord(ccGreen);
   end;
+
   if ccBlue in Components then
   begin
     Inc(ComponentCount);
-    Inc(Mask, $000000FF);
+    Inc(Mask, ARGB_MASK_B);
+    XOffset := Ord(ccBlue);
   end;
 
   with Dst do
   begin
     GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
-    if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then Exit;
+    if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then
+      Exit;
 
     DstX := Clamp(DstX, 0, Width);
     DstY := Clamp(DstY, 0, Height);
@@ -189,7 +215,8 @@ begin
 
     GR32.IntersectRect(DstRect, DstRect, BoundsRect);
     GR32.IntersectRect(DstRect, DstRect, ClipRect);
-    if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
+    if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
+      Exit;
 
     if not MeasuringMode then
     begin
@@ -320,6 +347,26 @@ begin
   end;
 end;
 
+procedure AlphaToGrayscale(ABitmap: TCustomBitmap32);
+var
+  I: Integer;
+  S : PColor32EntryArray;
+  Alpha: Byte;
+begin
+  S := PColor32EntryArray(ABitmap.Bits);
+  for I := 0 to ABitmap.Height * ABitmap.Width -1 do
+  begin
+    Alpha := S[I].A;
+    with S[I] do
+    begin
+      R := Alpha;
+      G := Alpha;
+      B := Alpha;
+    end;
+  end;
+  ABitmap.Changed;
+end;
+
 procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32);
 var
   I: Integer;
@@ -327,17 +374,17 @@ var
   Alpha: Byte;
 begin
   CheckParams(Dst, Src);
-  S := PColor32EntryArray(@Src.Bits[0]);
-  D := PColor32EntryArray(@Dst.Bits[0]);
+  S := PColor32EntryArray(Src.Bits);
+  D := PColor32EntryArray(Dst.Bits);
   for I := 0 to Src.Height * Src.Width -1 do
   begin
     Alpha := S[I].A;
     with D[I] do
     begin
-      R := Alpha;  
-      G := Alpha;  
-      B := Alpha;  
-    end;  
+      R := Alpha;
+      G := Alpha;
+      B := Alpha;
+    end;
   end;
   Dst.Changed;
 end;
@@ -348,26 +395,31 @@ var
   D, S : PColor32EntryArray;
 begin
   CheckParams(Dst, Src);
-  S := PColor32EntryArray(@Src.Bits[0]);
-  D := PColor32EntryArray(@Dst.Bits[0]);
+  S := PColor32EntryArray(Src.Bits);
+  D := PColor32EntryArray(Dst.Bits);
   for I := 0 to Src.Width * Src.Height - 1 do
     D[I].A := (S[I].R * 61 + S[I].G * 174 + S[I].B * 21) shr 8;
   Dst.Changed;
 end;
 
-procedure Invert(Dst, Src: TCustomBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
+procedure Invert(ABitmap: TCustomBitmap32; Components: TColor32Components);
+begin
+  Invert(ABitmap, ABitmap, Components);
+end;
+
+procedure Invert(Dst, Src: TCustomBitmap32; Components: TColor32Components);
 var
   Mask: TColor32;
 begin
-  if Components = [] then Exit;
+  if (Components = []) then
+    Exit;
   Mask := CreateBitmask(Components);
-  if Src = Dst then
+  if (Src = Dst) then
   begin
     //Inplace
     CheckParams(Dst, Src, False);
     ApplyBitmask(Src, Src.BoundsRect, Mask, loXOR);
-  end
-  else
+  end else
   begin
     //Src -> Dst
     CheckParams(Dst, Src);
@@ -375,79 +427,99 @@ begin
   end;
 end;
 
+procedure InvertRGB(ABitmap: TCustomBitmap32);
+begin
+  Invert(ABitmap, [ccRed, ccGreen, ccBlue]);
+end;
+
 procedure InvertRGB(Dst, Src: TCustomBitmap32);
 begin
   Invert(Src, Dst, [ccRed, ccGreen, ccBlue]);
 end;
 
-procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean = False);
+procedure ColorToGrayscale(ABitmap: TCustomBitmap32; PreserveAlpha: Boolean);
+begin
+  ColorToGrayscale(ABitmap, ABitmap, PreserveAlpha);
+end;
+
+procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean);
 var
   I: Integer;
   D, S: PColor32;
 begin
   CheckParams(Dst, Src);
-  D := @Dst.Bits[0];
-  S := @Src.Bits[0];
-  
+  D := PColor32(Dst.Bits);
+  S := PColor32(Src.Bits);
+
   if PreserveAlpha then
+  begin
     for I := 0 to Src.Width * Src.Height - 1 do
     begin
       D^ := Gray32(Intensity(S^), AlphaComponent(S^));
       Inc(S); Inc(D);
-    end
-  else
+    end;
+  end else
+  begin
     for I := 0 to Src.Width * Src.Height - 1 do
     begin
       D^ := Gray32(Intensity(S^));
       Inc(S); Inc(D);
     end;
-    
+  end;
+
   Dst.Changed;
 end;
 
-procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
+procedure ApplyLUT(ABitmap: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean);
+begin
+  ApplyLUT(ABitmap, ABitmap, LUT, PreserveAlpha);
+end;
+
+procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean);
 var
   I: Integer;
   D, S: PColor32Entry;
 begin
   CheckParams(Dst, Src);
-  D := @Dst.Bits[0];
-  S := @Src.Bits[0];
+  D := PColor32Entry(Dst.Bits);
+  S := PColor32Entry(Src.Bits);
 
   if PreserveAlpha then
+  begin
     for I := 0 to Src.Width * Src.Height - 1 do
     begin
-      D.ARGB := D.ARGB and $FF000000 + LUT[S.B] + LUT[S.G] shl 8 + LUT[S.R] shl 16;
-      Inc(S);
-      Inc(D);
-    end
-  else
-    for I := 0 to Src.Width * Src.Height - 1 do
-    begin
-      D.ARGB := $FF000000 + LUT[S.B] + LUT[S.G] shl 8 + LUT[S.R] shl 16;
+      D.ARGB := (D.ARGB and ARGB_MASK_A) or (LUT[S.B] shl ARGB_SHIFT_B) or (LUT[S.G] shl ARGB_SHIFT_G) or (LUT[S.R] shl ARGB_SHIFT_R);
       Inc(S);
       Inc(D);
     end;
-    
+  end else
+  begin
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      D.ARGB := ARGB_MASK_A or (LUT[S.B] shl ARGB_SHIFT_B) or (LUT[S.G] shl ARGB_SHIFT_G) or (LUT[S.R] shl ARGB_SHIFT_R);
+      Inc(S);
+      Inc(D);
+    end;
+  end;
+
   Dst.Changed;
 end;
 
-procedure ChromaKey(ABitmap: TCustomBitmap32; TrColor: TColor32);
+procedure ChromaKey(ABitmap: TCustomBitmap32; KeyColor: TColor32);
 var
   P: PColor32;
   C: TColor32;
   I: Integer;
 begin
-  TrColor := TrColor and $00FFFFFF;
-  with ABitmap do
+  KeyColor := KeyColor and $00FFFFFF;
+
+  P := PColor32(ABitmap.Bits);
+  for I := 0 to ABitmap.Width * ABitmap.Height - 1 do
   begin
-    P := PixelPtr[0, 0];
-    for I := 0 to Width * Height - 1 do
-    begin
-      C := P^ and $00FFFFFF;
-      if C = TrColor then P^ := C;
-      Inc(P)
-    end;
+    C := P^ and $00FFFFFF;
+    if (C = KeyColor) then
+      P^ := C;
+    Inc(P)
   end;
 
   ABitmap.Changed;
@@ -456,10 +528,14 @@ end;
 function CreateBitmask(Components: TColor32Components): TColor32;
 begin
   Result := 0;
-  if ccAlpha in Components then Inc(Result, $FF000000);
-  if ccRed in Components then Inc(Result, $00FF0000);
-  if ccGreen in Components then Inc(Result, $0000FF00);
-  if ccBlue in Components then Inc(Result, $000000FF);
+  if (ccAlpha in Components) then
+    Inc(Result, ARGB_MASK_A);
+  if (ccRed in Components) then
+    Inc(Result, ARGB_MASK_R);
+  if (ccGreen in Components) then
+    Inc(Result, ARGB_MASK_G);
+  if (ccBlue in Components) then
+    Inc(Result, ARGB_MASK_B);
 end;
 
 procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
@@ -473,47 +549,46 @@ begin
 
   MaskProc := LOGICAL_MASK_LINE_EX[LogicalOperator]^;
 
-  if Assigned(MaskProc) then
-  with Dst do
+  if (not Assigned(MaskProc)) then
+    exit;
+
+  GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
+  if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then
+    Exit;
+
+  DstX := Clamp(DstX, 0, Dst.Width);
+  DstY := Clamp(DstY, 0, Dst.Height);
+
+  DstRect.TopLeft := GR32.Point(DstX, DstY);
+  DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
+  DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
+
+  GR32.IntersectRect(DstRect, DstRect, Dst.BoundsRect);
+  GR32.IntersectRect(DstRect, DstRect, Dst.ClipRect);
+  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
+    Exit;
+
+  if not Dst.MeasuringMode then
   begin
-    GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
-    if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then Exit;
-
-    DstX := Clamp(DstX, 0, Width);
-    DstY := Clamp(DstY, 0, Height);
-
-    DstRect.TopLeft := GR32.Point(DstX, DstY);
-    DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
-    DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
-
-    GR32.IntersectRect(DstRect, DstRect, Dst.BoundsRect);
-    GR32.IntersectRect(DstRect, DstRect, Dst.ClipRect);
-    if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
-      Exit;
-
-    if not MeasuringMode then
-    begin
-      BeginUpdate;
-      try
-        with DstRect do
-        if (Bottom - Top) > 0 then
-        begin
-          Count := Right - Left;
-          if Count > 0 then
-              for I := 0 to Bottom - Top - 1 do
-                MaskProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], PixelPtr[Left, Top + I], Count, Bitmask)
-        end;
-      finally
-        EndUpdate;
+    Dst.BeginUpdate;
+    try
+      with DstRect do
+      if (Bottom - Top) > 0 then
+      begin
+        Count := Right - Left;
+        if Count > 0 then
+          for I := 0 to Bottom - Top - 1 do
+            MaskProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], Dst.PixelPtr[Left, Top + I], Count, Bitmask)
       end;
+    finally
+      Dst.EndUpdate;
     end;
-
-    Changed(DstRect);
   end;
+
+  Dst.Changed(DstRect);
 end;
 
-procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32;
-  LogicalOperator: TLogicalOperator);
+procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator);
 var
   I, Count: Integer;
   MaskProc : TLogicalMaskLine;
@@ -523,37 +598,37 @@ begin
 
   MaskProc := LOGICAL_MASK_LINE[LogicalOperator]^;
 
-  if Assigned(MaskProc) then
-  with ABitmap do
+  if (not Assigned(MaskProc)) then
+    exit;
+
+  GR32.IntersectRect(ARect, ARect, ABitmap.BoundsRect);
+  GR32.IntersectRect(ARect, ARect, ABitmap.ClipRect);
+  if (ARect.Right < ARect.Left) or (ARect.Bottom < ARect.Top) then
+    Exit;
+
+  if not ABitmap.MeasuringMode then
   begin
-    GR32.IntersectRect(ARect, ARect, BoundsRect);
-    GR32.IntersectRect(ARect, ARect, ClipRect);
-    if (ARect.Right < ARect.Left) or (ARect.Bottom < ARect.Top) then Exit;
-
-    if not MeasuringMode then
-    begin
-      BeginUpdate;
-      try
-        with ARect do
-        if (Bottom - Top) > 0 then
+    ABitmap.BeginUpdate;
+    try
+      with ARect do
+      if (Bottom - Top) > 0 then
+      begin
+        Count := Right - Left;
+        if Count > 0 then
         begin
-          Count := Right - Left;
-          if Count > 0 then
-          begin
-            if Count = Width then
-              MaskProc(PixelPtr[Left, Top], Bitmask, Count * (Bottom - Top))
-            else
-              for I := Top to Bottom - 1 do
-                MaskProc(PixelPtr[Left, I], Bitmask, Count);
-          end;
+          if Count = Width then
+            MaskProc(ABitmap.PixelPtr[Left, Top], Bitmask, Count * (Bottom - Top))
+          else
+            for I := Top to Bottom - 1 do
+              MaskProc(ABitmap.PixelPtr[Left, I], Bitmask, Count);
         end;
-      finally
-        EndUpdate;
       end;
+    finally
+      ABitmap.EndUpdate;
     end;
-
-    Changed(ARect);
   end;
+
+  ABitmap.Changed(ARect);
 end;
 
 { In-place logical mask functions }
