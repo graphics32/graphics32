@@ -478,7 +478,7 @@ end;
 
 procedure TPortableNetworkGraphic.SetBackgroundChunk(const Value: TPngChunkBackgroundColor);
 begin
-  if (FGammaChunk <> nil) then
+  if (FBackgroundChunk <> nil) then
   begin
     if (Value <> nil) then
       FBackgroundChunk.Assign(Value)

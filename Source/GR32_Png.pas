@@ -610,8 +610,12 @@ begin
     else
       ImageHeader.BitDepth := 8;
 
-    if (PaletteChunk = nil) then
-      FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
+    if (FPaletteChunk = nil) then
+{$if defined(GENERIC_FUNCTION_CLASS)}
+      FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
+{$else}
+      FPaletteChunk := TPngChunkPalette(FDefaultChunks.Add(TPngChunkPalette));
+{$ifend}
 
     FPaletteChunk.Count := Palette.Count;
     for Index := 0 to Palette.Count - 1 do
@@ -622,15 +626,19 @@ begin
       FPaletteChunk.PaletteEntry[Index] := RGB24;
     end;
 
-    {$IFDEF StoreGamma}
+{$IFDEF StoreGamma}
     // add linear gamma chunk
     if (FGammaChunk = nil) then
-      FGammaChunk := TPngChunkGamma.Create(ImageHeader);
+{$if defined(GENERIC_FUNCTION_CLASS)}
+      FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
+{$else}
+      FGammaChunk := TPngChunkGamma(FDefaultChunks.Add(TPngChunkGamma));
+{$ifend}
     FGammaChunk.GammaAsSingle := 1;
-    {$ELSE}
-    // delete any gama correction table
+{$ELSE}
+    // delete any gamma correction table
     FreeAndNil(FGammaChunk);
-    {$ENDIF}
+{$ENDIF}
 
     case ImageHeader.ColorType of
       ctIndexedColor:
@@ -794,8 +802,7 @@ begin
     else
       Transparency := nil;
 
-    with DecoderClass.Create(DataStream, ImageHeader, FGammaChunk,
-      PaletteChunk, Transparency) do
+    with DecoderClass.Create(DataStream, ImageHeader, FGammaChunk, PaletteChunk, Transparency) do
     try
       if (Assigned(FProgressEvent)) then
         DecodeToScanline(Bitmap32, GR32ScanlineProgress)
@@ -958,28 +965,35 @@ begin
     ImageHeader.BitDepth := 8;
   end;
 
-  // eventually prepare palette
   if ImageHeader.HasPalette then
   begin
     Assert(Length(TempPalette) <= 256);
 
-    if (PaletteChunk = nil) then
-      FPaletteChunk := TPngChunkPalette.Create(ImageHeader);
+    if (FPaletteChunk = nil) then
+{$if defined(GENERIC_FUNCTION_CLASS)}
+      FPaletteChunk := FDefaultChunks.Add<TPngChunkPalette>;
+{$else}
+      FPaletteChunk := TPngChunkPalette(FDefaultChunks.Add(TPngChunkPalette));
+{$ifend}
 
     FPaletteChunk.Count := Length(TempPalette);
     for Index := 0 to Length(TempPalette) - 1 do
       FPaletteChunk.PaletteEntry[Index] := TempPalette[Index];
   end;
 
-  {$IFDEF StoreGamma}
+{$IFDEF StoreGamma}
   // add linear gamma chunk
-  if not (FGammaChunk <> nil) then
-    FGammaChunk := TPngChunkGamma.Create(ImageHeader);
+  if (FGammaChunk = nil) then
+{$if defined(GENERIC_FUNCTION_CLASS)}
+    FGammaChunk := FDefaultChunks.Add<TPngChunkGamma>;
+{$else}
+    FGammaChunk := TPngChunkGamma(FDefaultChunks.Add(TPngChunkGamma));
+{$ifend}
   FGammaChunk.GammaAsSingle := 1;
-  {$ELSE}
-  // delete any gama correction table
+{$ELSE}
+  // delete any gamma correction table
   FreeAndNil(FGammaChunk);
-  {$ENDIF}
+{$ENDIF}
 end;
 
 procedure TPortableNetworkGraphic32.Assign(Source: TPersistent);
