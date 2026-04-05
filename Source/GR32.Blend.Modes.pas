@@ -185,7 +185,8 @@ uses
   GR32_Blend,
   // Reference the actual blend mode units so we get them registered by default
   GR32.Blend.Modes.PhotoShop,
-  GR32.Blend.Modes.PorterDuff;
+  GR32.Blend.Modes.PorterDuff,
+  GR32.Blend.Modes.Extra;
 
 
 //------------------------------------------------------------------------------

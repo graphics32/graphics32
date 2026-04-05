@@ -1,4 +1,4 @@
-unit GR32.Blend.Modes.Extra;
+﻿unit GR32.Blend.Modes.Extra;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -57,10 +57,10 @@ type
   /// </remarks>
   TGraphics32BlenderClear = class(TCustomGraphics32Blender)
   protected
-    function GetID: string; override;
-    function GetName: string; override;
-    function BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32; override;
+    class function GetID: string; override;
+    class function GetName: string; override;
   public
+    function Blend(F: TColor32; B: TColor32): TColor32; override;
   end;
 
 const
@@ -88,10 +88,10 @@ type
   /// </remarks>
   TGraphics32BlenderMask = class(TCustomGraphics32Blender)
   protected
-    function GetID: string; override;
-    function GetName: string; override;
-    function BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32; override;
+    class function GetID: string; override;
+    class function GetName: string; override;
   public
+    function Blend(F: TColor32; B: TColor32): TColor32; override;
   end;
 
 const
@@ -116,10 +116,10 @@ type
   /// <param name="B">The backdrop/background color value.</param>
   TGraphics32BlenderAlpha = class(TCustomGraphics32Blender)
   protected
-    function GetID: string; override;
-    function GetName: string; override;
-    function BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32; override;
+    class function GetID: string; override;
+    class function GetName: string; override;
   public
+    function Blend(F: TColor32; B: TColor32): TColor32; override;
   end;
 
 const
@@ -127,6 +127,15 @@ const
 
 resourcestring
   sBlendAlpha = 'Alpha';
+
+
+//------------------------------------------------------------------------------
+//
+// Blend mode group
+//
+//------------------------------------------------------------------------------
+const
+  sExtraBlendGroup = 'Extra';
 
 
 //------------------------------------------------------------------------------
@@ -146,21 +155,21 @@ uses
 // TGraphics32BlenderClear
 //
 //------------------------------------------------------------------------------
-function TGraphics32BlenderClear.BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
+function TGraphics32BlenderClear.Blend(F: TColor32; B: TColor32): TColor32;
 begin
 {$if defined(BLEND_USE_TABLES)}
-  Result := (MulDiv255Table[bAlpha, 255-fAlpha] shl 24) or (bColor and $00FFFFFF);
+  Result := (MulDiv255Table[TColor32Entry(B).A, 255-TColor32Entry(F).A] shl 24) or (B and $00FFFFFF);
 {$else}
-  Result := (Div255(bAlpha * (255-fAlpha)) shl 24) or (bColor and $00FFFFFF);
+  Result := (Div255(TColor32Entry(B).A * (255-TColor32Entry(F).A)) shl 24) or (B and $00FFFFFF);
 {$ifend}
 end;
 
-function TGraphics32BlenderClear.GetID: string;
+class function TGraphics32BlenderClear.GetID: string;
 begin
   Result := cBlendClear;
 end;
 
-function TGraphics32BlenderClear.GetName: string;
+class function TGraphics32BlenderClear.GetName: string;
 begin
   Result := sBlendClear;
 end;
@@ -171,21 +180,21 @@ end;
 // TGraphics32BlenderMask
 //
 //------------------------------------------------------------------------------
-function TGraphics32BlenderMask.BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
+function TGraphics32BlenderMask.Blend(F: TColor32; B: TColor32): TColor32;
 begin
 {$if defined(BLEND_USE_TABLES)}
-  Result := (MulDiv255Table[bAlpha, fAlpha] shl 24) or (bColor and $00FFFFFF);
+  Result := (MulDiv255Table[TColor32Entry(B).A, TColor32Entry(F).A] shl 24) or (B and $00FFFFFF);
 {$else}
-  Result := (Div255(bAlpha * fAlpha) shl 24) or (bColor and $00FFFFFF);
+  Result := (Div255(TColor32Entry(B).A * TColor32Entry(F).A) shl 24) or (B and $00FFFFFF);
 {$ifend}
 end;
 
-function TGraphics32BlenderMask.GetID: string;
+class function TGraphics32BlenderMask.GetID: string;
 begin
   Result := cBlendMask;
 end;
 
-function TGraphics32BlenderMask.GetName: string;
+class function TGraphics32BlenderMask.GetName: string;
 begin
   Result := sBlendMask;
 end;
@@ -196,35 +205,35 @@ end;
 // TGraphics32BlenderAlpha
 //
 //------------------------------------------------------------------------------
-function TGraphics32BlenderAlpha.BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
+function TGraphics32BlenderAlpha.Blend(F: TColor32; B: TColor32): TColor32;
 var
   Alpha: Cardinal;
 begin
-  if (fAlpha <> 0) and (bAlpha <> 0) then
+  if (TColor32Entry(F).A <> 0) and (TColor32Entry(B).A <> 0) then
   begin
     // Calculate average of f components
-    Alpha := (((fColor shr 16) and $FF) + ((fColor shr 8) and $FF) + (fColor and $FF)) div 3;
+    Alpha := (TColor32Entry(F).R + TColor32Entry(F).G + TColor32Entry(F).B) div 3;
 
     // Modulate average of f components with f alpha and b alpha
-    if (fAlpha <> 255) or (bAlpha <> 255) then
+    if (TColor32Entry(F).A <> 255) or (TColor32Entry(B).A <> 255) then
 {$if defined(BLEND_USE_TABLES)}
-      Alpha := MulDiv255Table[MulDiv255Table[Alpha, fAlpha], bAlpha];
+      Alpha := MulDiv255Table[MulDiv255Table[Alpha, TColor32Entry(F).A], TColor32Entry(B).A];
 {$else}
-      Alpha := Div255(Div255(Alpha * fAlpha) * bAlpha);
+      Alpha := Div255(Div255(Alpha * TColor32Entry(F).A) * TColor32Entry(B).A);
 {$ifend}
 
     // Apply alpha to b
-    Result := (Alpha shl 24) or (bColor and $00FFFFFF);
+    Result := (Alpha shl 24) or (B and $00FFFFFF);
   end else
     Result := 0;
 end;
 
-function TGraphics32BlenderAlpha.GetID: string;
+class function TGraphics32BlenderAlpha.GetID: string;
 begin
   Result := cBlendAlpha;
 end;
 
-function TGraphics32BlenderAlpha.GetName: string;
+class function TGraphics32BlenderAlpha.GetName: string;
 begin
   Result := sBlendAlpha;
 end;
@@ -233,7 +242,7 @@ end;
 //------------------------------------------------------------------------------
 
 initialization
-  Graphics32BlendService.Register(TGraphics32BlenderClear);
-  Graphics32BlendService.Register(TGraphics32BlenderMask);
-  Graphics32BlendService.Register(TGraphics32BlenderAlpha);
+  Graphics32BlendService.Register(TGraphics32BlenderClear,      [sExtraBlendGroup]);
+  Graphics32BlendService.Register(TGraphics32BlenderMask,       [sExtraBlendGroup]);
+  Graphics32BlendService.Register(TGraphics32BlenderAlpha,      [sExtraBlendGroup]);
 end.
