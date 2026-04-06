@@ -34,6 +34,8 @@ interface
 
 {$include GR32.inc}
 
+{$define BLEND_USE_TABLES}
+
 uses
   Classes,
   GR32,
@@ -100,7 +102,7 @@ resourcestring
 
 //------------------------------------------------------------------------------
 //
-// TGraphics32BlenderSrc
+// TGraphics32BlenderSrcOver
 //
 //------------------------------------------------------------------------------
 // The source is composited over the destination.
@@ -329,7 +331,6 @@ type
     class function GetName: string; override;
   public
     function Blend(F: TColor32; B: TColor32): TColor32; override;
-    procedure Blend(F: TColor32; var B: TColor32; M: Cardinal); override;
   end;
 
 const
@@ -383,7 +384,8 @@ uses
   GR32_LowLevel;
 
 const
-  OneOver255x255 = 1 / (255 * 255);
+  OneOver255: Single = 1 / 255;
+  OneOver255x255: Single = 1 / (255 * 255);
 
 //------------------------------------------------------------------------------
 //
@@ -422,16 +424,15 @@ begin
   (*
   ** The source is composited over the destination.
   **
-  **    Result.A        = F.A * F.A   + (1 - F.A) * B.A
-  **    Result.RGB      = F.A * F.RGB + (1 - F.A) * B.RGB
+  **    Result.A        = F.A + B.A * (1 - F.A)
+  **    Result.RGB      = (F.RGB * F.A + B.RGB * B.A * (1 - F.A)) / Result.A
   *)
-  // TODO : Use Merge?
-  Result := BlendReg(F, B);
+  Result := MergeReg(F, B);
 end;
 
 procedure TGraphics32BlenderSrcOver.Blend(F: TColor32; var B: TColor32; M: Cardinal);
 begin
-  BlendMemEx(F, B, M);
+  MergeMemEx(F, B, M);
 end;
 
 class function TGraphics32BlenderSrcOver.GetID: string;
@@ -458,14 +459,18 @@ begin
   ** The part of the source lying inside of the destination replaces the destination.
   **
   **    Result.A        = F.A * B.A
-  **    Result.RGB      = F.RGB * B.A
+  **    Result.RGB      = F.RGB
   *)
-  Alpha := TColor32Entry(B).A * TColor32Entry(F).A;
+{$if defined(BLEND_USE_TABLES)}
+  Alpha := MulDiv255Table[TColor32Entry(F).A, TColor32Entry(B).A];
+{$else}
+  Alpha := Round(TColor32Entry(F).A * TColor32Entry(B).A * OneOver255);
+{$ifend}
 
-  TColor32Entry(Result).R := Round(Alpha * TColor32Entry(F).R * OneOver255x255);
-  TColor32Entry(Result).G := Round(Alpha * TColor32Entry(F).G * OneOver255x255);
-  TColor32Entry(Result).B := Round(Alpha * TColor32Entry(F).B * OneOver255x255);
-  TColor32Entry(Result).A := MulDiv255Table[TColor32Entry(F).A, TColor32Entry(B).A]; //  Round(Alpha / 255);
+  if (Alpha = 0) then
+    Result := 0
+  else
+    Result := (F and $00FFFFFF) or (Alpha shl 24);
 end;
 
 class function TGraphics32BlenderSrcIn.GetID: string;
@@ -491,17 +496,15 @@ begin
   (*
   ** The part of the source lying inside of the destination is composited onto the destination.
   **
-  **    Result.A        = F.A * B.A
-  **    Result.RGB      = F.RGB
+  **    Result.A        = B.A
+  **    Result.RGB      = F.A * F.RGB + (1 - F.A) * B.RGB
   *)
-  AlphaDest := TColor32Entry(B).A * (255 - TColor32Entry(F).A);
-  AlphaSource := TColor32Entry(B).A * TColor32Entry(F).A;
-
-  TColor32Entry(Result).R := Round((AlphaSource * TColor32Entry(F).R + AlphaDest * TColor32Entry(B).R) * OneOver255x255);
-  TColor32Entry(Result).G := Round((AlphaSource * TColor32Entry(F).G + AlphaDest * TColor32Entry(B).G) * OneOver255x255);
-  TColor32Entry(Result).B := Round((AlphaSource * TColor32Entry(F).B + AlphaDest * TColor32Entry(B).B) * OneOver255x255);
-  TColor32Entry(Result).A := Div255(AlphaSource + AlphaDest); //  Round((AlphaSource + AlphaDest) / 255);
-  // TODO : We could probably tweak the alpha and use BlendReg
+  AlphaDest := TColor32Entry(B).A;
+  if (AlphaDest = 0) then
+    Exit(0);
+  AlphaSource := TColor32Entry(F).A;
+  Result := CombineReg(F, B, AlphaSource); // Lerp
+  TColor32Entry(Result).A := AlphaDest;
 end;
 
 class function TGraphics32BlenderSrcAtop.GetID: string;
@@ -528,14 +531,18 @@ begin
   ** The part of the source lying outside of the destination replaces the destination.
   **
   **    Result.A        = F.A * (1 - B.A)
-  **    Result.RGB      = F.RGB * (1 - B.A)
+  **    Result.RGB      = F.RGB
   *)
-  Alpha := (255 - TColor32Entry(B).A) * TColor32Entry(F).A;
+{$if defined(BLEND_USE_TABLES)}
+  Alpha := MulDiv255Table[TColor32Entry(F).A, 255 - TColor32Entry(B).A];
+{$else}
+  Alpha := Round(TColor32Entry(F).A * (255 - TColor32Entry(B).A) * OneOver255);
+{$ifend}
 
-  TColor32Entry(Result).R := Round(Alpha * TColor32Entry(F).R * OneOver255x255);
-  TColor32Entry(Result).G := Round(Alpha * TColor32Entry(F).G * OneOver255x255);
-  TColor32Entry(Result).B := Round(Alpha * TColor32Entry(F).B * OneOver255x255);
-  TColor32Entry(Result).A := MulDiv255Table[TColor32Entry(F).A, 255 - TColor32Entry(B).A]; //  Round(Alpha / 255);
+  if (Alpha = 0) then
+    Result := 0
+  else
+    Result := (F and $00FFFFFF) or (Alpha shl 24);
 end;
 
 class function TGraphics32BlenderSrcOut.GetID: string;
@@ -590,16 +597,19 @@ begin
   (*
   ** The destination is composited over the source and the result replaces the destination.
   **
-  **    Result.A        = B.A * B.A + (1 - B.A) * F.A
-  **    Result.RGB      = B.A * B.RGB + (1 - B.A) * F.RGB
+  **    Result.A        = B.A + F.A * (1 - B.A)
+  **    Result.RGB      = (B.RGB * B.A + F.RGB * F.A * (1 - B.A)) / Result.A
   *)
-  Result := BlendReg(B, F);
+  Result := MergeReg(B, F); // Note that F & B has been swapped
 end;
 
 procedure TGraphics32BlenderDestOver.Blend(F: TColor32; var B: TColor32; M: Cardinal);
 begin
-  // TODO : Is this correct? MasterAlpha will be applied to B, while usually it is applied to F
-  B := BlendRegEx(B, F, M);
+  // TODO : Is this correct?
+  // With MergeRegEx(B, F, M) MasterAlpha will be applied to B, while usually it is applied to F.
+  // Hence we reverse MasterAlpha with 255-M. I haven't verified that this is correct.
+
+  B := MergeRegEx(B, F, 255-M); // Note that F & B has been swapped
 end;
 
 class function TGraphics32BlenderDestOver.GetID: string;
@@ -625,15 +635,19 @@ begin
   (*
   ** The part of the destination lying inside of the source replaces the destination.
   **
-  **    Result.A        = F.A * B.A
-  **    Result.RGB      = F.A * B.RGB
+  **    Result.A        = B.A * F.A
+  **    Result.RGB      = B.RGB
   *)
-  Alpha := TColor32Entry(B).A * TColor32Entry(F).A;
+{$if defined(BLEND_USE_TABLES)}
+  Alpha := MulDiv255Table[TColor32Entry(B).A, TColor32Entry(F).A];
+{$else}
+  Alpha := Round(TColor32Entry(B).A * TColor32Entry(F).A * OneOver255);
+{$ifend}
 
-  TColor32Entry(Result).R := Round(Alpha * TColor32Entry(B).R * OneOver255x255);
-  TColor32Entry(Result).G := Round(Alpha * TColor32Entry(B).G * OneOver255x255);
-  TColor32Entry(Result).B := Round(Alpha * TColor32Entry(B).B * OneOver255x255);
-  TColor32Entry(Result).A := MulDiv255Table[TColor32Entry(F).A, TColor32Entry(B).A]; //  Round(Alpha / 255);
+  if (Alpha = 0) then
+    Result := 0
+  else
+    Result := (B and $00FFFFFF) or (Alpha shl 24);
 end;
 
 class function TGraphics32BlenderDestIn.GetID: string;
@@ -659,17 +673,15 @@ begin
   (*
   ** The part of the destination lying inside of the source is composited over the source and replaces the destination.
   **
-  **    Result.A        = F.A * (1 - B.A) + F.A * B.A = F.A - F.A * B.A + F.A * B.A = F.A... wtf?
-  **    Result.RGB      = F.RGB * (1 - B.A) + B.RGB * F.A
+  **    Result.A        = F.A
+  **    Result.RGB      = B.A * B.RGB + (1 - B.A) * F.RGB
   *)
-  AlphaSource := (255 - TColor32Entry(B).A) * TColor32Entry(F).A;
-  AlphaDest := TColor32Entry(B).A * TColor32Entry(F).A;
-
-  TColor32Entry(Result).R := Round((AlphaSource * TColor32Entry(F).R + AlphaDest * TColor32Entry(B).R) * OneOver255x255);
-  TColor32Entry(Result).G := Round((AlphaSource * TColor32Entry(F).G + AlphaDest * TColor32Entry(B).G) * OneOver255x255);
-  TColor32Entry(Result).B := Round((AlphaSource * TColor32Entry(F).B + AlphaDest * TColor32Entry(B).B) * OneOver255x255);
-  TColor32Entry(Result).A := Div255(AlphaSource + AlphaDest); //  Round((AlphaSource + AlphaDest) / 255);
-  // TODO : We could probably tweak the alpha and use BlendReg
+  AlphaSource := TColor32Entry(F).A;
+  if (AlphaSource = 0) then
+    Exit(0);
+  AlphaDest := TColor32Entry(B).A;
+  Result := CombineReg(B, F, AlphaDest); // Lerp
+  TColor32Entry(Result).A := AlphaSource;
 end;
 
 class function TGraphics32BlenderDestAtop.GetID: string;
@@ -696,14 +708,18 @@ begin
   ** The part of the destination lying outside of the source replaces the destination.
   **
   **    Result.A        = B.A * (1 - F.A)
-  **    Result.RGB      = B.RGB * (1 - F.A)
+  **    Result.RGB      = B.RGB
   *)
-  Alpha := TColor32Entry(B).A * (255 - TColor32Entry(F).A);
+{$if defined(BLEND_USE_TABLES)}
+  Alpha := MulDiv255Table[TColor32Entry(B).A, 255 - TColor32Entry(F).A];
+{$else}
+  Alpha := Round(TColor32Entry(B).A * (255 - TColor32Entry(F).A) * OneOver255);
+{$ifend}
 
-  TColor32Entry(Result).R := Round(Alpha * TColor32Entry(B).R * OneOver255x255);
-  TColor32Entry(Result).G := Round(Alpha * TColor32Entry(B).G * OneOver255x255);
-  TColor32Entry(Result).B := Round(Alpha * TColor32Entry(B).B * OneOver255x255);
-  TColor32Entry(Result).A := MulDiv255Table[255 - TColor32Entry(F).A, TColor32Entry(B).A]; // Round(Alpha / 255);
+  if (Alpha = 0) then
+    Result := 0
+  else
+    Result := (B and $00FFFFFF) or (Alpha shl 24);
 end;
 
 class function TGraphics32BlenderDestOut.GetID: string;
@@ -733,11 +749,6 @@ begin
   Result := 0;
 end;
 
-procedure TGraphics32BlenderClear.Blend(F: TColor32; var B: TColor32; M: Cardinal);
-begin
-  B := 0;
-end;
-
 class function TGraphics32BlenderClear.GetID: string;
 begin
   Result := cBlendClear;
@@ -757,20 +768,27 @@ end;
 function TGraphics32BlenderXor.Blend(F, B: TColor32): TColor32;
 var
   AlphaSource, AlphaDest: Cardinal;
+  WeightSource, WeightDest: Cardinal;
+  AlphaResult255: Cardinal;
 begin
   (*
   ** The part of the source that lies outside of the destination is combined with the part of the destination that lies outside of the source.
   **
-  **    Result.A        = (1 - F.A) * B.A + F.A * (1 - B.A)
-  **    Result.RGB      = F.RGB * F.A * (1 - B.A) + B.RGB * (1 - F.A) * B.A
+  **    Result.A        = F.A * (1 - B.A) + B.A * (1 - F.A)
+  **    Result.RGB      = (F.RGB * F.A * (1 - B.A) + B.RGB * B.A * (1 - F.A)) / Result.A
   *)
-  AlphaDest := TColor32Entry(B).A * (255 - TColor32Entry(F).A);
-  AlphaSource := (255 - TColor32Entry(B).A) * TColor32Entry(F).A;
+  AlphaSource := TColor32Entry(F).A;
+  AlphaDest := TColor32Entry(B).A;
+  WeightSource := AlphaSource * (255 - AlphaDest);
+  WeightDest := AlphaDest * (255 - AlphaSource);
+  AlphaResult255 := WeightSource + WeightDest;
+  if (AlphaResult255 = 0) then
+    Exit(0);
 
-  TColor32Entry(Result).R := Round((AlphaSource * TColor32Entry(F).R + AlphaDest * TColor32Entry(B).R) * OneOver255x255);
-  TColor32Entry(Result).G := Round((AlphaSource * TColor32Entry(F).G + AlphaDest * TColor32Entry(B).G) * OneOver255x255);
-  TColor32Entry(Result).B := Round((AlphaSource * TColor32Entry(F).B + AlphaDest * TColor32Entry(B).B) * OneOver255x255);
-  TColor32Entry(Result).A := Div255(AlphaSource + AlphaDest); //  Round((AlphaSource + AlphaDest) / 255);
+  TColor32Entry(Result).R := (WeightSource * TColor32Entry(F).R + WeightDest * TColor32Entry(B).R) div AlphaResult255;
+  TColor32Entry(Result).G := (WeightSource * TColor32Entry(F).G + WeightDest * TColor32Entry(B).G) div AlphaResult255;
+  TColor32Entry(Result).B := (WeightSource * TColor32Entry(F).B + WeightDest * TColor32Entry(B).B) div AlphaResult255;
+  TColor32Entry(Result).A := Div255(AlphaResult255);
 end;
 
 class function TGraphics32BlenderXor.GetID: string;
