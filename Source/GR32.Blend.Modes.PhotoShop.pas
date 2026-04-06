@@ -34,9 +34,25 @@ interface
 
 {$include GR32.inc}
 
+{$define BLEND_USE_TABLES}
+
+// Define BLEND_STRICT_W3C to use the strict W3C's blend formula definitions.
+// Otherwise faster, less precise, approximations will be used.
+// Defining BLEND_STRICT_W3C implicitly also defines LUMINANCE_W3C.
+{$define BLEND_STRICT_W3C}
+
+// Define LUMINANCE_PHOTOSHOP or LUMINANCE_W3C to use Photoshop's or W3C's
+// definition of luminance.
+{$define LUMINANCE_PHOTOSHOP}
+
+// BLEND_COMPOUND: Implement compound blend modes using other blend modes
+{$define BLEND_COMPOUND}
+
 uses
   Classes,
+  Math, // Inlining
   GR32,
+  GR32_LowLevel, // Inlining
   GR32.Blend.Modes;
 
 //------------------------------------------------------------------------------
@@ -475,7 +491,7 @@ resourcestring
 type
   {$REGION 'Documentation'}
   /// <summary>
-  /// Subtracts the source color from the backdrop color.
+  /// Darkens the backdrop color to reflect the source color by decreasing the brightness.
   /// </summary>
   /// <param name="F">The source/foreground color value.</param>
   /// <param name="B">The backdrop/background color value.</param>
@@ -668,8 +684,6 @@ resourcestring
 // TGraphics32BlenderDarkerColor
 //
 //------------------------------------------------------------------------------
-// TODO: Uses incorrect color space
-//------------------------------------------------------------------------------
 type
   /// <summary>
   /// Compares the total of all channel values for the source and backdrop color
@@ -704,8 +718,6 @@ resourcestring
 // TGraphics32BlenderLighterColor
 //
 //------------------------------------------------------------------------------
-// TODO: Uses incorrect color space
-//------------------------------------------------------------------------------
 type
   /// <summary>
   /// Compares the total of all channel values for the source and backdrop color
@@ -739,12 +751,6 @@ resourcestring
 // TGraphics32BlenderHue
 //
 //------------------------------------------------------------------------------
-// TODO: Uses incorrect color space
-// See:
-// - https://en.wikipedia.org/wiki/Blend_modes#Hue,_saturation_and_luminosity
-// - https://en.wikipedia.org/wiki/HSL_and_HSV
-//------------------------------------------------------------------------------
-{.$define BLENDER_HUE_CACHE}
 type
   /// <summary>
   /// Creates a result color with the luminance and saturation of the backdrop
@@ -753,11 +759,6 @@ type
   /// <param name="F">The source/foreground color value.</param>
   /// <param name="B">The backdrop/background color value.</param>
   TGraphics32BlenderHue = class(TGraphics32ComponentBlender)
-  private
-{$ifdef BLENDER_HUE_CACHE}
-    FCacheH, FCacheS, FCacheL: Byte;
-    FCacheF, FCacheB, FCacheFB: TColor32;
-{$endif}
   protected
     class function GetID: string; override;
     class function GetName: string; override;
@@ -777,12 +778,10 @@ resourcestring
 // TGraphics32BlenderSaturation
 //
 //------------------------------------------------------------------------------
-// TODO: Uses incorrect color space
-//------------------------------------------------------------------------------
 type
   /// <summary>
   /// Creates a result color with the luminance and hue of the backdrop color
-  /// color and the hue of the source color.
+  /// color and the saturation of the source color.
   /// </summary>
   /// <param name="F">The source/foreground color value.</param>
   /// <param name="B">The backdrop/background color value.</param>
@@ -810,8 +809,6 @@ resourcestring
 //
 // TGraphics32BlenderLuminance
 //
-//------------------------------------------------------------------------------
-// TODO: Uses incorrect color space
 //------------------------------------------------------------------------------
 type
   /// <summary>
@@ -842,8 +839,6 @@ resourcestring
 //
 // TGraphics32BlenderColor
 //
-//------------------------------------------------------------------------------
-// TODO: Uses incorrect color space
 //------------------------------------------------------------------------------
 type
   /// <summary>
@@ -901,7 +896,7 @@ const
 function ColorLightness(Color: TColor32): integer; inline; overload;
 function ColorLightness(R, G, B: Byte): integer; inline; overload;
 
-// "Luma" = Luminance = 0.21 × R + 0.72 × G + 0.07 × B
+// "Luma" = Luminance = 0.3 × R + 0.59 × G + 0.11 × B
 function ColorLuminance(Color: TColor32): integer; inline; overload;
 function ColorLuminance(R, G, B: Byte): integer; inline; overload;
 
@@ -918,10 +913,8 @@ function ColorBrightness(R, G, B: Byte): integer; inline; overload;
 //      RGB to Luminance factors
 //
 // -----------------------------------------------------------------------------
-// Define LUMINANCE_PHOTOSHOP to use PhotoShop's definition of luminance
-{.$define LUMINANCE_PHOTOSHOP}
 
-{$if defined(LUMINANCE_PHOTOSHOP)}
+{$if defined(LUMINANCE_PHOTOSHOP) or defined(LUMINANCE_W3C) or defined(BLEND_STRICT_W3C)}
   {$define LUMINANCE_REC601_NTSC}
 {$else}
   {$define LUMINANCE_REC709}
@@ -934,18 +927,30 @@ const
   LuminanceMultR = 54;
   LuminanceMultG = 184;
   LuminanceMultB = 18;
+
+  LuminanceR: Single = 0.21;
+  LuminanceG: Single = 0.72;
+  LuminanceB: Single = 0.07;
 {$elseif defined(LUMINANCE_REC601_NTSC)}
   // Rec. 601 NTSC
   // Y = 0.3 × R + 0.59 × G + 0.11 × B
   LuminanceMultR = 77;
   LuminanceMultG = 151;
   LuminanceMultB = 28;
+
+  LuminanceR: Single = 0.3;
+  LuminanceG: Single = 0.59;
+  LuminanceB: Single = 0.11;
 {$else}
   // Graphics32 legacy
   // Y = 0.239 × R + 0.682 × G + 0.082 × B
   LuminanceMultR = 61;
   LuminanceMultG = 174;
   LuminanceMultB = 21;
+
+  LuminanceR: Single = 0.239;
+  LuminanceG: Single = 0.682;
+  LuminanceB: Single = 0.082;
 {$ifend}
 
 //------------------------------------------------------------------------------
@@ -955,10 +960,11 @@ const
 implementation
 
 uses
-  Math,
-  GR32_Blend,
-  GR32_LowLevel;
+  GR32_Blend;
 
+
+const
+  OneOver255: Single = 1 / 255;
 
 // -----------------------------------------------------------------------------
 //
@@ -982,13 +988,13 @@ begin
 end;
 
 // -----------------------------------------------------------------------------
-// Luminance = 0.21 × R + 0.72 × G + 0.07 × B (something like it)
+// Luminance = 0.3 × R + 0.59 × G + 0.11 × B (Rec. 601)
 function ColorLuminance(Color: TColor32): integer; inline;
 begin
   Result := (
     (Color and $00FF0000) shr 16 * LuminanceMultR +
     (Color and $0000FF00) shr 8 * LuminanceMultG +
-    (Color and $000000FF) * LuminanceMultB
+    (Color and $000000FF) * LuminanceMultB + 127
     ) shr 8;
 end;
 
@@ -997,7 +1003,7 @@ begin
   Result := (
     R * LuminanceMultR +
     G * LuminanceMultG +
-    B * LuminanceMultB ) shr 8;
+    B * LuminanceMultB + 127) shr 8;
 end;
 
 // -----------------------------------------------------------------------------
@@ -1084,15 +1090,41 @@ end;
 //
 //------------------------------------------------------------------------------
 class function TGraphics32BlenderSoftLight.BlendComponent(F, B: cardinal): cardinal;
+{$if defined(BLEND_STRICT_W3C)}
+var
+  fs, fb, dr: Single;
+{$else}
 var
   n: Cardinal;
+{$ifend}
 begin
+{$if defined(BLEND_STRICT_W3C)}
+
+  fs := F * OneOver255;
+  fb := B * OneOver255;
+  if (fs <= 0.5) then
+    dr := fb - (1.0 - 2.0 * fs) * fb * (1.0 - fb)
+  else
+  begin
+    if (fb <= 0.25) then
+      dr := ((16.0 * fb - 12.0) * fb + 4.0) * fb
+    else
+      dr := Sqrt(fb);
+    dr := fb + (2.0 * fs - 1.0) * (dr - fb);
+  end;
+
+  Result := Round(dr * 255.0);
+
+{$else}
+
 {$if defined(BLEND_USE_TABLES)}
   n := MulDiv255Table[B, F];
   Result := n + MulDiv255Table[B, Cardinal(255 - MulDiv255Table[255 - B, 255 - F]) - n];
 {$else}
   n := Div255(B * F);
   Result := n + Div255(B * (255 - Div255((255 - B) * (255 - F)) - n));
+{$ifend}
+
 {$ifend}
 end;
 
@@ -1114,17 +1146,25 @@ end;
 //------------------------------------------------------------------------------
 class function TGraphics32BlenderHardLight.BlendComponent(F, B: cardinal): cardinal;
 begin
-{$if defined(BLEND_USE_TABLES)}
-{$else}
-{$ifend}
+{$if defined(BLEND_STRICT_W3C)}
+
   if (F < 128) then
-    Result := Div127(F * B)
+    Result := (2 * F * B + 127) div 255
+  else
+    Result := 255 - (2 * (255 - F) * (255 - B) + 127) div 255;
+
+{$else}
+
+  if (F < 128) then
+    Result := Div127(F * B + 127)
   else
   begin
     F := 255 - F;
     B := 255 - B;
-    Result := 255 - Div127(F * B);
+    Result := 255 - Div127(F * B + 127);
   end;
+
+{$ifend}
 end;
 
 class function TGraphics32BlenderHardLight.GetID: string;
@@ -1145,18 +1185,26 @@ end;
 //------------------------------------------------------------------------------
 class function TGraphics32BlenderOverlay.BlendComponent(F, B: cardinal): cardinal;
 begin
-{$if defined(BLEND_USE_TABLES)}
-{$else}
-{$ifend}
+{$if defined(BLEND_STRICT_W3C)}
+
   if (B < 128) then
-    Result := Div127(B * F)
+    Result := (2 * B * F + 127) div 255
+  else
+    Result := 255 - (2 * (255 - B) * (255 - F) + 127) div 255;
+
+{$else}
+
+  if (B < 128) then
+    Result := Div127(B * F + 127)
   else
   begin
     F := 255 - F;
     B := 255 - B;
-    F := Div127(B  * F);
+    F := Div127(B * F + 127);
     Result := 255 - F;
   end;
+
+{$ifend}
 end;
 
 class function TGraphics32BlenderOverlay.GetID: string;
@@ -1175,15 +1223,14 @@ end;
 // TGraphics32BlenderLinearLight
 //
 //------------------------------------------------------------------------------
-class function TGraphics32BlenderLinearLight.BlendComponent(F,
-  B: cardinal): cardinal;
+class function TGraphics32BlenderLinearLight.BlendComponent(F, B: cardinal): cardinal;
 begin
 {$if defined(BLEND_COMPOUND)}
   if (F < 128) then
-    Result := TGraphics32BlenderLinearBurn.BlendComponent(2*F, B)
+    Result := TGraphics32BlenderLinearBurn.BlendComponent(2 * F, B)
   else
   if (F > 128) then
-    Result := TGraphics32BlenderLinearDodge.BlendComponent(2*(F-128), B)
+    Result := TGraphics32BlenderLinearDodge.BlendComponent(2 * (F - 128), B)
   else
     Result := B;
 {$else}
@@ -1200,7 +1247,7 @@ begin
   begin
     // LinearDodge(2*(F-128), B)
     Result := 2 * (F - 128) + B;
-    if (F > 255) then
+    if (Result > 255) then
       Result := 255;
   end else
     Result := B;
@@ -1510,7 +1557,15 @@ end;
 //------------------------------------------------------------------------------
 class function TGraphics32BlenderExclusion.BlendComponent(F, B: cardinal): cardinal;
 begin
-  Result := (F + B) - Div127(F * B);
+{$if defined(BLEND_STRICT_W3C)}
+
+  Result := F + B - (2 * F * B + 127) div 255;
+
+{$else}
+
+  Result := (F + B) - Div127(F * B + 127);
+
+{$ifend}
 end;
 
 class function TGraphics32BlenderExclusion.GetID: string;
@@ -1582,10 +1637,9 @@ var
   lumF, lumB: Cardinal;
   Blended: TColor32;
 begin
-  lumF := ColorLightness(fColor);
-  lumB := ColorLightness(bColor);
+  lumF := ColorLuminance(fColor);
+  lumB := ColorLuminance(bColor);
 
-  // TODO : Verify this!
   if (lumB < lumF) then
     Blended := bColor
   else
@@ -1615,10 +1669,9 @@ var
   lumF, lumB: Cardinal;
   Blended: TColor32;
 begin
-  lumF := ColorLightness(fColor);
-  lumB := ColorLightness(bColor);
+  lumF := ColorLuminance(fColor);
+  lumB := ColorLuminance(bColor);
 
-  // TODO : Verify this!
   if (lumB > lumF) then
     Blended := bColor
   else
@@ -1638,129 +1691,208 @@ begin
 end;
 
 
+// -----------------------------------------------------------------------------
+//
+//      W3C Non-separable Blending Helpers
+//
+// -----------------------------------------------------------------------------
+
+type
+  TRGBFloat = record
+  private
+    function GetLum: Single; inline;
+    procedure SetLum(l: Single);
+    function GetSat: Single; inline;
+    procedure SetSat(s: Single);
+    procedure Clip; inline;
+  public
+    R, G, B: Single;
+
+    property Lum: Single read GetLum write SetLum;
+    property Sat: Single read GetSat write SetSat;
+
+    function ToColor32: TColor32; inline;
+  end;
+
+function TRGBFloat.GetLum: Single;
+begin
+  Result := LuminanceR * R + LuminanceG * G + LuminanceB * B;
+end;
+
+function TRGBFloat.GetSat: Single;
+begin
+  Result := Max(R, Max(G, B)) - Min(R, Min(G, B));
+end;
+
+procedure TRGBFloat.Clip;
+var
+  L, n, x: Single;
+  OneOver: Single;
+begin
+  L := Lum;
+  n := Min(R, Min(G, B));
+  x := Max(R, Max(G, B));
+
+  if (n < 0) then
+  begin
+    OneOver := 1 / (L - n);
+    R := L + (((R - L) * L) * OneOver);
+    G := L + (((G - L) * L) * OneOver);
+    B := L + (((B - L) * L) * OneOver);
+  end;
+
+  if (x > 1) then
+  begin
+    OneOver := 1 / (x - L);
+    R := L + (((R - L) * (1 - L)) * OneOver);
+    G := L + (((G - L) * (1 - L)) * OneOver);
+    B := L + (((B - L) * (1 - L)) * OneOver);
+  end;
+end;
+
+procedure TRGBFloat.SetLum(l: Single);
+var
+  d: Single;
+begin
+  d := l - GetLum;
+  R := R + d;
+  G := G + d;
+  B := B + d;
+  Clip;
+end;
+
+procedure TRGBFloat.SetSat(s: Single);
+var
+  Cmin, Cmid, Cmax: Single;
+begin
+  if (R <= G) then
+  begin
+
+    if (G <= B) then
+    begin
+      Cmin := R;
+      Cmid := G;
+      Cmax := B;
+    end else
+    if (R <= B) then
+    begin
+      Cmin := R;
+      Cmid := B;
+      Cmax := G;
+    end else
+    begin
+      Cmin := B;
+      Cmid := R;
+      Cmax := G;
+    end;
+
+  end else
+  begin
+
+    if (R <= B) then
+    begin
+      Cmin := G;
+      Cmid := R;
+      Cmax := B;
+    end else
+    if (G <= B) then
+    begin
+      Cmin := G;
+      Cmid := B;
+      Cmax := R;
+    end else
+    begin
+      Cmin := B;
+      Cmid := G;
+      Cmax := R;
+    end;
+
+  end;
+
+  if (Cmax > Cmin) then
+  begin
+    Cmid := (((Cmid - Cmin) * s) / (Cmax - Cmin));
+    Cmax := s;
+  end else
+  begin
+    Cmid := 0;
+    Cmax := 0;
+  end;
+  Cmin := 0;
+
+  if (R <= G) then
+  begin
+
+    if (G <= B) then
+    begin
+      R := Cmin;
+      G := Cmid;
+      B := Cmax;
+    end else
+    if (R <= B) then
+    begin
+      R := Cmin;
+      B := Cmid;
+      G := Cmax;
+    end else
+    begin
+      B := Cmin;
+      R := Cmid;
+      G := Cmax;
+    end;
+
+  end else
+  begin
+
+    if (R <= B) then
+    begin
+      G := Cmin;
+      R := Cmid;
+      B := Cmax;
+    end else
+    if (G <= B) then
+    begin
+      G := Cmin;
+      B := Cmid;
+      R := Cmax;
+    end else
+    begin
+      B := Cmin;
+      G := Cmid;
+      R := Cmax;
+    end;
+  end;
+
+end;
+
+function TRGBFloat.ToColor32: TColor32;
+begin
+  Result := Color32(Clamp(Round(R * 255)), Clamp(Round(G * 255)), Clamp(Round(B * 255)));
+end;
+
+function Color32ToRGBFloat(Color: TColor32): TRGBFloat; inline;
+begin
+  Result.R := RedComponent(Color) * OneOver255;
+  Result.G := GreenComponent(Color) * OneOver255;
+  Result.B := BlueComponent(Color) * OneOver255;
+end;
+
 //------------------------------------------------------------------------------
 //
 // TGraphics32BlenderHue
 //
 //------------------------------------------------------------------------------
-function TGraphics32BlenderHue.BlendComponents(fColor: TColor32;
-  fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
-
-  function Max(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A > B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Min(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A < B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Hue(RGB: TColor32): Byte; inline;
-  var
-    R, G, B, Cmax, Cmin: Cardinal;
-    Delta, HL: Integer;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-
-    if Cmax = Cmin then
-      Result := 0
-    else
-    begin
-      Delta := (Cmax - Cmin) * 255;
-      Delta := Delta * 6;
-      if R = Cmax then
-        HL := integer(G - B) * 255 * 255 div Delta
-      else
-      if G = Cmax then
-        HL := 255 * 2 div 6 + integer(B - R) * 255 * 255 div Delta
-      else
-        HL := 255 * 4 div 6 + integer(R - G) * 255 * 255 div Delta;
-
-      if HL < 0 then
-        HL := HL + 255 * 2;
-      Result := HL;
-    end;
-  end;
-
-  procedure RGBtoSL(RGB: TColor32; out S, L: Byte); inline;
-  var
-    R, G, B, Delta, Cmax, Cmin: Cardinal;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-    L := (Cmax + Cmin) div 2;
-
-    if Cmax = Cmin then
-      S := 0
-    else
-    begin
-      Delta := (Cmax - Cmin) * 255;
-      if L <= $7F then
-        S := Delta div (Cmax + Cmin)
-      else
-        S := Delta div (255 * 2 - Cmax - Cmin);
-    end;
-  end;
-
+function TGraphics32BlenderHue.BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
 var
-  fH, bS, bL: Byte;
+  fs, fb: TRGBFloat;
   Blended: TColor32;
 begin
-{$ifdef BLENDER_HUE_CACHE}
-
-  if (fColor = FCacheF) and (bColor = FCacheB) then
-  begin
-    Blended := FCacheFB;
-  end else
-  begin
-    if (fColor = FCacheF) then
-      fH := FCacheH
-    else
-    begin
-      fH := Hue(fColor);
-      FCacheH := fH;
-      fCacheF := fColor;
-    end;
-
-    if (bColor = FCacheB) then
-    begin
-      bS := FCacheS;
-      bL := FCacheL;
-    end else
-    begin
-      RGBtoSL(bColor, bS, bL);
-      FCacheS := bS;
-      FCacheL := bL;
-      FCacheB := bColor;
-    end;
-
-    Blended := HSLtoRGB(fH, bS, bL);
-    FCacheFB := Blended;
-  end;
-
-{$else}
-
-  fH := Hue(fColor);
-  RGBtoSL(bColor, bS, bL);
-  Blended := HSLtoRGB(fH, bS, bL);
-
-{$endif}
+  fs := Color32ToRGBFloat(fColor);
+  fb := Color32ToRGBFloat(bColor);
+  // Keep the Hue, copy the Lum and Sat
+  fs.Sat := fb.Sat;
+  fs.Lum := fb.Lum;
+  Blended := fs.ToColor32;
 
   Result := DoBlendComponents(fColor, fAlpha, bColor, bAlpha, Blended);
 end;
@@ -1782,86 +1914,15 @@ end;
 //
 //------------------------------------------------------------------------------
 function TGraphics32BlenderSaturation.BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
-
-  function Max(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A > B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Min(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A < B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Saturation(RGB: TColor32): Byte; inline;
-  var
-    R, G, B, Delta, Cmax, Cmin, L: Cardinal;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-    L := (Cmax + Cmin) div 2;
-
-    if Cmax = Cmin then
-      Result := 0
-    else
-    begin
-      Delta := (Cmax - Cmin) * 255;
-      if L <= $7F then
-        Result := Delta div (Cmax + Cmin)
-      else
-        Result := Delta div (255 * 2 - Cmax - Cmin);
-    end;
-  end;
-
-  procedure RGBtoHL(RGB: TColor32; out H, L: Byte); inline;
-  var
-    R, G, B, Cmax, Cmin: Cardinal;
-    Delta, HL: Integer;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-    L := (Cmax + Cmin) div 2;
-
-    if Cmax = Cmin then
-      H := 0
-    else
-    begin
-      Delta := (Cmax - Cmin) * 255 * 6;
-
-      if R = Cmax then
-        HL := integer(G - B) * 255 * 255 div Delta
-      else if G = Cmax then
-        HL := 255 * 2 div 6 + integer(B - R) * 255 * 255 div Delta
-      else
-        HL := 255 * 4 div 6 + integer(R - G) * 255 * 255 div Delta;
-
-      if HL < 0 then
-        HL := HL + 255 * 2;
-      H := HL;
-    end;
-  end;
-
 var
-  fS, bH, bL: Byte;
+  fs, fb: TRGBFloat;
   Blended: TColor32;
 begin
-  fS := Saturation(fColor);
-  RGBtoHL(bColor, bH, bL);
-  Blended := HSLtoRGB(bH, fS, bL);
+  fs := Color32ToRGBFloat(fColor);
+  fb := Color32ToRGBFloat(bColor);
+  // Keep the Hue and Lum, copy the Sat
+  fb.Sat := fs.Sat;
+  Blended := fb.ToColor32;
 
   Result := DoBlendComponents(fColor, fAlpha, bColor, bAlpha, Blended);
 end;
@@ -1883,82 +1944,15 @@ end;
 //
 //------------------------------------------------------------------------------
 function TGraphics32BlenderLuminance.BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
-
-  function Max(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A > B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Min(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A < B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Lightness(RGB: TColor32): Byte; inline;
-  var
-    R, G, B, Cmax, Cmin: Cardinal;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-    Result := (Cmax + Cmin) div 2;
-  end;
-
-  procedure RGBtoHS(RGB: TColor32; out H, S: Byte); inline;
-  var
-    R, G, B, Cmax, Cmin: Cardinal;
-    Delta, HL: Integer;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-
-    if Cmax = Cmin then
-    begin
-      H := 0;
-      S := 0
-    end
-    else
-    begin
-      Delta := (Cmax - Cmin) * 255;
-      if (Cmax + Cmin) div 2 <= $7F then
-        S := Delta div integer(Cmax + Cmin)
-      else
-        S := Delta div integer(255 * 2 - Cmax - Cmin);
-
-      Delta := Delta * 6;
-      if R = Cmax then
-        HL := integer(G - B) * 255 * 255 div Delta
-      else if G = Cmax then
-        HL := 255 * 2 div 6 + integer(B - R) * 255 * 255 div Delta
-      else
-        HL := 255 * 4 div 6 + integer(R - G) * 255 * 255 div Delta;
-
-      if HL < 0 then
-        HL := HL + 255 * 2;
-      H := HL;
-    end;
-  end;
-
 var
-  fL, bH, bS: Byte;
+  fs, fb: TRGBFloat;
   Blended: TColor32;
 begin
-  fL := Lightness(fColor);
-  RGBtoHS(bColor, bH, bS);
-  Blended := HSLtoRGB(bH, bS, fL);
+  fs := Color32ToRGBFloat(fColor);
+  fb := Color32ToRGBFloat(bColor);
+  // Keep the Hue and Sat, copy the Lum
+  fb.Lum := fs.Lum;
+  Blended := fb.ToColor32;
 
   Result := DoBlendComponents(fColor, fAlpha, bColor, bAlpha, Blended);
 end;
@@ -1980,82 +1974,15 @@ end;
 //
 //------------------------------------------------------------------------------
 function TGraphics32BlenderColor.BlendComponents(fColor: TColor32; fAlpha: cardinal; bColor: TColor32; bAlpha: Cardinal): TColor32;
-
-  function Max(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A > B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Min(const A, B: Cardinal): Cardinal; inline;
-  begin
-    if A < B then
-      Result := A
-    else
-      Result := B;
-  end;
-
-  function Luminance(RGB: TColor32): Byte; inline;
-  var
-    R, G, B, Cmax, Cmin: Cardinal;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-    Result := (Cmax + Cmin) div 2;
-  end;
-
-  procedure RGBtoHS(RGB: TColor32; out H, S: Byte); inline;
-  var
-    R, G, B, Cmax, Cmin: Cardinal;
-    Delta, HL: Integer;
-  begin
-    R := (RGB shr 16) and $ff;
-    G := (RGB shr 8) and $ff;
-    B := RGB and $ff;
-
-    Cmax := Max(R, Max(G, B));
-    Cmin := Min(R, Min(G, B));
-
-    if Cmax = Cmin then
-    begin
-      H := 0;
-      S := 0
-    end
-    else
-    begin
-      Delta := (Cmax - Cmin) * 255;
-      if (Cmax + Cmin) div 2 <= $7F then
-        S := Delta div integer(Cmax + Cmin)
-      else
-        S := Delta div integer(255 * 2 - Cmax - Cmin);
-
-      Delta := Delta * 6;
-      if R = Cmax then
-        HL := integer(G - B) * 255 * 255 div Delta
-      else if G = Cmax then
-        HL := 255 * 2 div 6 + integer(B - R) * 255 * 255 div Delta
-      else
-        HL := 255 * 4 div 6 + integer(R - G) * 255 * 255 div Delta;
-
-      if HL < 0 then
-        HL := HL + 255 * 2;
-      H := HL;
-    end;
-  end;
-
 var
-  fH, fS, bL: Byte;
+  fs, fb: TRGBFloat;
   Blended: TColor32;
 begin
-  RGBtoHS(fColor, fH, fS);
-  bL := Luminance(bColor);
-  Blended := HSLtoRGB(fH, fS, bL);
+  fs := Color32ToRGBFloat(fColor);
+  fb := Color32ToRGBFloat(bColor);
+  // Keep the Hue and Sat, copy the Lum
+  fs.Lum := fb.Lum;
+  Blended := fs.ToColor32;
 
   Result := DoBlendComponents(fColor, fAlpha, bColor, bAlpha, Blended);
 end;
