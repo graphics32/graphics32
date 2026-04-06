@@ -41,7 +41,7 @@ uses
 
 //------------------------------------------------------------------------------
 //
-// TGraphics32BlenderClear
+// TGraphics32BlenderErase
 //
 //------------------------------------------------------------------------------
 type
@@ -55,7 +55,7 @@ type
   /// Only the alpha channel of the source color is used; The color channels are
   /// ignored.
   /// </remarks>
-  TGraphics32BlenderClear = class(TCustomGraphics32Blender)
+  TGraphics32BlenderErase = class(TCustomGraphics32Blender)
   protected
     class function GetID: string; override;
     class function GetName: string; override;
@@ -64,10 +64,10 @@ type
   end;
 
 const
-  cBlendClear = 'Clear';
+  cBlendErase = 'erase';
 
 resourcestring
-  sBlendClear = 'Clear';
+  sBlendErase = 'Erase';
 
 
 //------------------------------------------------------------------------------
@@ -109,11 +109,14 @@ resourcestring
 type
   /// <summary>
   /// Creates a result color from the backdrop color with the alpha channel
-  /// scaled by the source alpha channel and the average of the source color
-  /// channels.
+  /// scaled by the source alpha channel and the intensity of the source color.
   /// </summary>
   /// <param name="F">The source/foreground color value.</param>
   /// <param name="B">The backdrop/background color value.</param>
+  /// <remarks>
+  /// The source color intensity is calculated using the average of its color
+  /// channels.
+  /// </remarks>
   TGraphics32BlenderAlpha = class(TCustomGraphics32Blender)
   protected
     class function GetID: string; override;
@@ -152,10 +155,10 @@ uses
 
 //------------------------------------------------------------------------------
 //
-// TGraphics32BlenderClear
+// TGraphics32BlenderErase
 //
 //------------------------------------------------------------------------------
-function TGraphics32BlenderClear.Blend(F: TColor32; B: TColor32): TColor32;
+function TGraphics32BlenderErase.Blend(F: TColor32; B: TColor32): TColor32;
 begin
 {$if defined(BLEND_USE_TABLES)}
   Result := (MulDiv255Table[TColor32Entry(B).A, 255-TColor32Entry(F).A] shl 24) or (B and $00FFFFFF);
@@ -164,14 +167,14 @@ begin
 {$ifend}
 end;
 
-class function TGraphics32BlenderClear.GetID: string;
+class function TGraphics32BlenderErase.GetID: string;
 begin
-  Result := cBlendClear;
+  Result := cBlendErase;
 end;
 
-class function TGraphics32BlenderClear.GetName: string;
+class function TGraphics32BlenderErase.GetName: string;
 begin
-  Result := sBlendClear;
+  Result := sBlendErase;
 end;
 
 
@@ -207,25 +210,26 @@ end;
 //------------------------------------------------------------------------------
 function TGraphics32BlenderAlpha.Blend(F: TColor32; B: TColor32): TColor32;
 var
-  Alpha: Cardinal;
+  Intensity: Cardinal;
+  ResultAlpha: Cardinal;
 begin
   if (TColor32Entry(F).A <> 0) and (TColor32Entry(B).A <> 0) then
   begin
-    // Calculate average of f components
-    Alpha := (TColor32Entry(F).R + TColor32Entry(F).G + TColor32Entry(F).B) div 3;
+    // Calculate intensity (average) of foreground components
+    Intensity := (TColor32Entry(F).R + TColor32Entry(F).G + TColor32Entry(F).B) div 3;
 
-    // Modulate average of f components with f alpha and b alpha
-    if (TColor32Entry(F).A <> 255) or (TColor32Entry(B).A <> 255) then
+    // Modulate intensity with foreground and background alpha
 {$if defined(BLEND_USE_TABLES)}
-      Alpha := MulDiv255Table[MulDiv255Table[Alpha, TColor32Entry(F).A], TColor32Entry(B).A];
+    ResultAlpha := MulDiv255Table[Intensity, TColor32Entry(F).A];
+    ResultAlpha := MulDiv255Table[ResultAlpha, TColor32Entry(B).A];
 {$else}
-      Alpha := Div255(Div255(Alpha * TColor32Entry(F).A) * TColor32Entry(B).A);
+    ResultAlpha := Div255(Div255(Intensity * TColor32Entry(F).A) * TColor32Entry(B).A);
 {$ifend}
 
-    // Apply alpha to b
-    Result := (Alpha shl 24) or (B and $00FFFFFF);
+    // Apply modulated alpha to background color
+    Result := (ResultAlpha shl 24) or (B and $00FFFFFF);
   end else
-    Result := 0;
+    Result := B and $00FFFFFF;
 end;
 
 class function TGraphics32BlenderAlpha.GetID: string;
@@ -242,7 +246,7 @@ end;
 //------------------------------------------------------------------------------
 
 initialization
-  Graphics32BlendService.Register(TGraphics32BlenderClear,      [sExtraBlendGroup]);
+  Graphics32BlendService.Register(TGraphics32BlenderErase,      [sExtraBlendGroup]);
   Graphics32BlendService.Register(TGraphics32BlenderMask,       [sExtraBlendGroup]);
   Graphics32BlendService.Register(TGraphics32BlenderAlpha,      [sExtraBlendGroup]);
 end.
