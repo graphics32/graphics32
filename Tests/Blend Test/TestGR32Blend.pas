@@ -364,6 +364,9 @@ begin
   Dispose(FForeground);
   Dispose(FBackground);
   Dispose(FReference);
+
+  // Clean up so that we leave the bindings in an usable state for other unit tests
+  BlendRegistry.RebindAll(True);
 end;
 
 {$IFNDEF FPC}

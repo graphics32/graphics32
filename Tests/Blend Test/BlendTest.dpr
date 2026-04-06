@@ -21,6 +21,7 @@ uses
   TextTestRunner,
   Forms,
   TestGR32Blend in 'TestGR32Blend.pas',
+  TestGR32BlendModes in 'TestGR32BlendModes.pas',
   GR32_Blend in '..\..\Source\GR32_Blend.pas',
   GR32_BlendReference in 'GR32_BlendReference.pas';
 
