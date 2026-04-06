@@ -32,8 +32,6 @@ object FormPixelCombine: TFormPixelCombine
     Bitmap.CombineMode = cmMerge
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
-    Color = clBtnShadow
-    ParentColor = False
     Scale = 1.000000000000000000
     ScaleMode = smScale
     Background.FillStyle = bfsCheckers
@@ -43,6 +41,7 @@ object FormPixelCombine: TFormPixelCombine
     OverSize = 0
     TabOrder = 0
     OnMouseDown = ImgViewMouseDown
+    OnPaintStage = ImgViewPaintStage
   end
   object PanelOptions: TPanel
     Left = 578

@@ -64,12 +64,14 @@ type
     procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure TrackBarAlphaChange(Sender: TObject);
     procedure ButtonLayerAddClick(Sender: TObject);
+    procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
   protected
   private
     FRubberbandLayer: TRubberbandLayer;
     FBlenders: TObjectDictionary<TBitmapLayer, TCustomGraphics32Blender>;
     FCurrentItem: TListItem;
     FPatternCount: integer;
+    FLayerBuffer: TBitmap32;
 
     function AddLayer(const Name: string; DrawMode: TDrawMode): TBitmapLayer;
 
@@ -115,6 +117,8 @@ end;
 destructor TFormPixelCombine.Destroy;
 begin
   FBlenders.Free;
+  FLayerBuffer.Free;
+
   inherited;
 end;
 
@@ -222,6 +226,7 @@ procedure TFormPixelCombine.FormCreate(Sender: TObject);
   end;
 
 var
+  i: integer;
   Layer: TBitmapLayer;
   r: TRect;
   Location: TFloatRect;
@@ -232,6 +237,17 @@ var
 begin
   // Note: Layer.Scaled makes no difference in this concrete example since
   // we have no bitmap (in ImgView.Bitmap) to scale/position relative to.
+
+  (*
+  ** Hook the Layer paint stage
+  *)
+  for i := 0 to ImgView.PaintStages.Count-1 do
+    if (ImgView.PaintStages[i].Stage = PST_DRAW_LAYERS) then
+    begin
+      ImgView.PaintStages[i].Stage := PST_CUSTOM;
+      break;
+    end;
+
 
   (*
   ** Create unscaled background bitmap layer
@@ -318,6 +334,22 @@ procedure TFormPixelCombine.ImgViewMouseDown(Sender: TObject; Button: TMouseButt
 begin
   if (Layer is TBitmapLayer) then
     CurrentLayer := TBitmapLayer(Layer);
+end;
+
+procedure TFormPixelCombine.ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
+begin
+  // Paint the layers onto a fully transparent buffer so we can
+  // see the "raw" output from the Porter-Duff blens modes.
+
+  if (FLayerBuffer = nil) then
+    FLayerBuffer := TBitmap32.Create(Buffer.Width, Buffer.Height)
+  else
+    FLayerBuffer.SetSizeFrom(Buffer, True);
+
+  ImgView.ExecDrawLayers(FLayerBuffer, StageNum);
+
+  // Blend the result of the layer paint onto the buffer
+  BlendLine(PColor32(FLayerBuffer.Bits), PColor32(Buffer.Bits), FLayerBuffer.Width*FLayerBuffer.Height);
 end;
 
 procedure TFormPixelCombine.SetCurrentLayer(const Value: TBitmapLayer);
