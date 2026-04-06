@@ -181,6 +181,7 @@ function Graphics32BlendService: IGraphics32BlendService;
 implementation
 
 uses
+  Generics.Defaults,
   SysUtils,
   GR32_Blend,
   // Reference the actual blend mode units so we get them registered by default
@@ -290,8 +291,8 @@ type
 constructor TGraphics32BlendService.Create;
 begin
   inherited Create;
-  FBlenders := TDictionary<string, TGraphics32BlenderClass>.Create;
-  FGroups := TDictionary<string, IGraphics32BlendGroup>.Create;
+  FBlenders := TDictionary<string, TGraphics32BlenderClass>.Create(TIStringComparer.Ordinal);
+  FGroups := TDictionary<string, IGraphics32BlendGroup>.Create(TIStringComparer.Ordinal);
 end;
 
 destructor TGraphics32BlendService.Destroy;
@@ -308,7 +309,7 @@ procedure TGraphics32BlendService.Register(BlenderClass: TGraphics32BlenderClass
 var
   GroupName: string;
 begin
-  FBlenders.AddOrSetValue(AnsiUpperCase(BlenderClass.GetID), BlenderClass);
+  FBlenders.AddOrSetValue(BlenderClass.GetID, BlenderClass);
 
   for GroupName in AGroups do
     Groups_Register(GroupName, BlenderClass);
@@ -316,7 +317,7 @@ end;
 
 function TGraphics32BlendService.BlenderByID(const ID: string): TGraphics32BlenderClass;
 begin
-  if (not FBlenders.TryGetValue(AnsiUpperCase(ID), Result)) then
+  if (not FBlenders.TryGetValue(ID, Result)) then
     Result := nil;
 end;
 
@@ -339,7 +340,7 @@ end;
 
 function TGraphics32BlendService.Groups_GroupByName(const GroupName: string): IGraphics32BlendGroup;
 begin
-  if (not FGroups.TryGetValue(AnsiUpperCase(GroupName), Result)) then
+  if (not FGroups.TryGetValue(GroupName, Result)) then
     Result := nil;
 end;
 
@@ -347,10 +348,10 @@ procedure TGraphics32BlendService.Groups_Register(const GroupName: string; Blend
 var
   Group: IGraphics32BlendGroup;
 begin
-  if (not FGroups.TryGetValue(AnsiUpperCase(GroupName), Group)) then
+  if (not FGroups.TryGetValue(GroupName, Group)) then
   begin
     Group := TGraphics32BlendGroup.Create(GroupName);
-    FGroups.Add(AnsiUpperCase(GroupName), Group);
+    FGroups.Add(GroupName, Group);
   end;
 
   TGraphics32BlendGroup(Group).FMembers.Add(BlenderClass);
