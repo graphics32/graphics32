@@ -234,7 +234,6 @@ type
     class function GetName: string; override;
   public
     function Blend(F: TColor32; B: TColor32): TColor32; override;
-    procedure Blend(F: TColor32; var B: TColor32; M: Cardinal); override;
   end;
 
 const
@@ -603,15 +602,6 @@ begin
   Result := MergeReg(B, F); // Note that F & B has been swapped
 end;
 
-procedure TGraphics32BlenderDestOver.Blend(F: TColor32; var B: TColor32; M: Cardinal);
-begin
-  // TODO : Is this correct?
-  // With MergeRegEx(B, F, M) MasterAlpha will be applied to B, while usually it is applied to F.
-  // Hence we reverse MasterAlpha with 255-M. I haven't verified that this is correct.
-
-  B := MergeRegEx(B, F, 255-M); // Note that F & B has been swapped
-end;
-
 class function TGraphics32BlenderDestOver.GetID: string;
 begin
   Result := cBlendDestOver;
@@ -788,7 +778,7 @@ begin
   TColor32Entry(Result).R := (WeightSource * TColor32Entry(F).R + WeightDest * TColor32Entry(B).R) div AlphaResult255;
   TColor32Entry(Result).G := (WeightSource * TColor32Entry(F).G + WeightDest * TColor32Entry(B).G) div AlphaResult255;
   TColor32Entry(Result).B := (WeightSource * TColor32Entry(F).B + WeightDest * TColor32Entry(B).B) div AlphaResult255;
-  TColor32Entry(Result).A := Div255(AlphaResult255);
+  TColor32Entry(Result).A := AlphaResult255 div 255;
 end;
 
 class function TGraphics32BlenderXor.GetID: string;

@@ -749,7 +749,7 @@ var
 begin
   // rAlpha = fAlpha + (bAlpha * (1- fAlpha))
 {$if defined(BLEND_USE_TABLES)}
-  rfAlpha := fAlpha + MulDiv255Table[bAlpha, 255 - fAlpha];
+  rAlpha := fAlpha + MulDiv255Table[bAlpha, 255 - fAlpha];
 {$else}
   rAlpha := fAlpha + Div255(bAlpha * (255 - fAlpha));
 {$ifend}
@@ -796,7 +796,7 @@ var
 begin
   // rAlpha = fAlpha + (bAlpha * (1- fAlpha))
 {$if defined(BLEND_USE_TABLES)}
-  rfAlpha := fAlpha + MulDiv255Table[bAlpha, 255 - fAlpha];
+  rAlpha := fAlpha + MulDiv255Table[bAlpha, 255 - fAlpha];
 {$else}
   rAlpha := fAlpha + Div255(bAlpha * (255 - fAlpha));
 {$ifend}
@@ -847,7 +847,7 @@ end;
 
 procedure TGraphics32BlenderNormal.Blend(F: TColor32; var B: TColor32; M: Cardinal);
 begin
-  MergeRegEx(F, B, M);
+  MergeMemEx(F, B, M);
 end;
 
 class function TGraphics32BlenderNormal.GetID: string;
