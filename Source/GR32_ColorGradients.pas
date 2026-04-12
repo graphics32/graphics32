@@ -1779,7 +1779,10 @@ begin
 
     // eventually recalculate scale
     if RecalculateScale then
+    begin
       Scale := 1 / (FGradientColors[StopIndex].Offset - FGradientColors[StopIndex - 1].Offset);
+      RecalculateScale := False;
+    end;
 
     // calculate current color
     LocalFraction := (Fraction - FGradientColors[StopIndex - 1].Offset) * Scale;
