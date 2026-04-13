@@ -1,4 +1,4 @@
-unit GR32_LowLevel;
+﻿unit GR32_LowLevel;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -240,6 +240,26 @@ const
 //      Div255: Fast integer division by 255 with limited range
 //
 //------------------------------------------------------------------------------
+// References:
+//
+// - Integer Division Using Reciprocals
+//   Robert Alverson
+//   Proceedings 10th IEEE Symposium on Computer Arithmetic, pages 186-190, June 1991
+//   https://ieeexplore.ieee.org/document/145558
+//
+// - Division by Invariant Integers Using Multiplication
+//   Torbjörn Granlund, Peter Montgomery
+//   Proceedings of the ACM SIGPLAN 1994 conference on Programming language design and implementation
+//   https://dl.acm.org/doi/10.1145/178243.178249
+//   https://dl.acm.org/doi/pdf/10.1145/178243.178249
+//
+// - Integer Division by Constants
+//   Henry S. Warren, Jr.
+//   Hacker's Delight, Ch. 10
+//   Addison-Wesley, 2003
+//   http://www.hackersdelight.org/magic.htm (dead link)
+//
+//------------------------------------------------------------------------------
 // Fast integer division by 255.
 // Valid for the range [0..$ffff]
 function Div255(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -251,6 +271,14 @@ function FastDiv255(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
 // Fast rounded integer division by 255.
 // Valid for the range [0..255*255]
 function Div255Round(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
+//      Div127: Fast integer division by 127 with limited range
+//
+//------------------------------------------------------------------------------
+function Div127(Value: Word): Word; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -1445,6 +1473,18 @@ begin
   Result := ((Value + 128) * 257) shr 16;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Div127: Fast integer division by 127 with limited range
+//
+//------------------------------------------------------------------------------
+function Div127(Value: Word): Word;
+begin
+  // Input is 16 bit, intermediate result is 23-bit, result is 8 bit
+  // Note: Algorithm doesn't take sign into account!
+  Result := (Value + 127) shr 7;
+end;
 
 //------------------------------------------------------------------------------
 //
