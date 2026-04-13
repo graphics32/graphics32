@@ -1007,7 +1007,7 @@ type
     procedure SetStipple(const NewStipple: TArrayOfColor32); overload;
     procedure SetStipple(const NewStipple: array of TColor32); overload;
     procedure AdvanceStippleCounter(LengthPixels: Single);
-    function  GetStippleColor: TColor32;
+    function  GetStippleColor(Advance: Boolean = True): TColor32;
 
     procedure HorzLine(X1, Y, X2: Integer; Value: TColor32);
     procedure HorzLineS(X1, Y, X2: Integer; Value: TColor32);
@@ -3925,7 +3925,7 @@ end;
 
 {$ifend}
 
-function TCustomBitmap32.GetStippleColor: TColor32;
+function TCustomBitmap32.GetStippleColor(Advance: Boolean): TColor32;
 var
   L: Integer;
   NextIndex, PrevIndex: Integer;
@@ -3939,9 +3939,7 @@ begin
     Exit;
   end;
   WrapMem(FStippleCounter, L);
-  // Was: PrevIndex := Round(FStippleCounter - 0.5);
   PrevIndex := FastTrunc(FStippleCounter);
-  // Was: PrevWeight= $FF - Round($FF * (FStippleCounter - PrevIndex));
   PrevWeight := $FF - FastPrevWeight(FStippleCounter, PrevIndex);
   if PrevIndex < 0 then
     FStippleCounter := L - 1;
@@ -3957,7 +3955,8 @@ begin
       FStipplePattern[NextIndex],
       PrevWeight);
 
-  FStippleCounter := FStippleCounter + FStippleStep;
+  if Advance then
+    AdvanceStippleCounter(1.0);
 end;
 
 procedure TCustomBitmap32.HorzLine(X1, Y, X2: Integer; Value: TColor32);
@@ -4053,11 +4052,17 @@ begin
       if X2 >= X1 then
       begin
         for I := X1 to X2 do
-          SetPixelT(I, Y, GetStippleColor);
+        begin
+          SetPixelT(I, Y, GetStippleColor(False));
+          AdvanceStippleCounter(1.0);
+        end;
       end else
       begin
         for I := X1 downto X2 do
-          SetPixelT(I, Y, GetStippleColor);
+        begin
+          SetPixelT(I, Y, GetStippleColor(False));
+          AdvanceStippleCounter(1.0);
+        end;
       end;
     end;
 
@@ -4264,11 +4269,17 @@ begin
       if Y2 >= Y1 then
       begin
         for I := Y1 to Y2 do
-          SetPixelT(X, I, GetStippleColor)
+        begin
+          SetPixelT(X, I, GetStippleColor(False));
+          AdvanceStippleCounter(1.0);
+        end;
       end else
       begin
         for I := Y1 downto Y2 do
-          SetPixelT(X, I, GetStippleColor);
+        begin
+          SetPixelT(X, I, GetStippleColor(False));
+          AdvanceStippleCounter(1.0);
+        end;
       end;
     end;
 
@@ -5208,14 +5219,16 @@ begin
       ny := Round(ny / hyp * 65536);
       for i := 0 to n - 1 do
       begin
-        C := GetStippleColor;
+        C := GetStippleColor(False);
+        AdvanceStippleCounter(1.0);
         SET_T256(X1 shr 8, Y1 shr 8, C);
         X1 := X1 + nx;
         Y1 := Y1 + ny;
       end;
     end;
 
-    C := GetStippleColor;
+    C := GetStippleColor(False);
+    AdvanceStippleCounter((hypl - n shl 16) / 65536.0);
     A := C shr 24;
     hyp := hypl - n shl 16;
     A := A * Longword(hyp) shl 8 and $FF000000;
@@ -5231,11 +5244,10 @@ begin
 end;
 
 procedure TCustomBitmap32.LineXSP(X1, Y1, X2, Y2: TFixed; L: Boolean);
-const
-  StippleInc: array [Boolean] of Integer = (0, 1);
 var
   n, i: Integer;
   sx, sy, ex, ey, nx, ny, hyp, hypl: Integer;
+  FullLength: TFloat;
   A, C: TColor32;
   ChangedRect: TRect;
 begin
@@ -5244,13 +5256,14 @@ begin
   if not FMeasuringMode then
   begin
     sx := X1; sy := Y1; ex := X2; ey := Y2;
+    FullLength := GR32_Math.Hypot(ex - sx, ey - sy) + (Integer(L) * FixedOne);
 
     // Check for visibility and clip the coordinates
     if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
       FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
       FFixedClipRect.Right, FFixedClipRect.Bottom) then
     begin
-      AdvanceStippleCounter(GR32_Math.Hypot(Integer((X2 - X1) shr 16), Integer((Y2 - Y1) shr 16) - StippleInc[L]));
+      AdvanceStippleCounter(FullLength / 65536.0);
       Exit;
     end;
 
@@ -5265,11 +5278,13 @@ begin
        (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
     begin
       LineXP(X1, Y1, X2, Y2, L);
+      // LineXP already advanced by its hypl. Now advance for whatever was clipped at start and end.
+      AdvanceStippleCounter((FullLength - (GR32_Math.Hypot(X2 - X1, Y2 - Y1) + (Integer(L) * FixedOne))) / 65536.0);
       Exit;
     end;
 
     if (sx <> X1) or (sy <> Y1) then
-      AdvanceStippleCounter(GR32_Math.Hypot(Integer((X1 - sx) shr 16), Integer((Y1 - sy) shr 16)));
+      AdvanceStippleCounter(GR32_Math.Hypot(X1 - sx, Y1 - sy) / 65536.0);
 
     // if we are still here, it means that the line touches one or several bitmap
     // boundaries. Use the safe version of antialiased pixel routine
@@ -5278,11 +5293,18 @@ begin
 
     hyp := GR32_Math.Hypot(nx, ny);
     if hyp = 0 then
+    begin
+      // If hyp is 0, we still might need to advance for what's left
+      AdvanceStippleCounter((FullLength - GR32_Math.Hypot(X1 - 127 - sx, Y1 - 127 - sy)) / 65536.0);
       Exit;
+    end;
 
     hypl := hyp + (Integer(L) * FixedOne);
     if hypl < 256 then
+    begin
+      AdvanceStippleCounter((FullLength - GR32_Math.Hypot(X1 - 127 - sx, Y1 - 127 - sy)) / 65536.0);
       Exit;
+    end;
 
     n := hypl shr 16;
     if n > 0 then
@@ -5290,21 +5312,22 @@ begin
       nx := Round(nx / hyp * 65536); ny := Round(ny / hyp * 65536);
       for i := 0 to n - 1 do
       begin
-        C := GetStippleColor;
+        C := GetStippleColor(False);
+        AdvanceStippleCounter(1.0);
         SET_TS256(SAR_8(X1), SAR_8(Y1), C);
         X1 := X1 + nx;
         Y1 := Y1 + ny;
       end;
     end;
 
-    C := GetStippleColor;
+    C := GetStippleColor(False);
+    AdvanceStippleCounter((hypl - n shl 16) / 65536.0);
     A := C shr 24;
     hyp := hypl - n shl 16;
     A := A * Longword(hyp) shl 8 and $FF000000;
     SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), C and $00FFFFFF + A);
 
-    if (ex <> X2) or (ey <> Y2) then
-      AdvanceStippleCounter(GR32_Math.Hypot(Integer((X2 - ex) shr 16), Integer((Y2 - ey) shr 16) - StippleInc[L]));
+    AdvanceStippleCounter((FullLength - (GR32_Math.Hypot(X2 - sx, Y2 - sy) + (Integer(L) * FixedOne))) / 65536.0);
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 2); // +1 for AA
@@ -5944,7 +5967,8 @@ begin
     begin
       if Y1 = Y2 then
       begin
-        SetPixelT(X1, Y1, GetStippleColor);
+        SetPixelT(X1, Y1, GetStippleColor(False));
+        AdvanceStippleCounter(1.0);
         Changed(MakeRect(X1, Y1, X1 + 1, Y1 + 1));
       end else
         VertLineTSP(X1, Y1, Y2)
