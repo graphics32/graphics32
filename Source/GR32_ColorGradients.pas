@@ -3489,8 +3489,9 @@ function TXGradientSampler.GetEndPoint: TFloatPoint;
 var
   X, Y: TFloat;
 begin
-  GR32_Math.SinCos(Angle - 0.5 * Pi, X, Y);
-  Result := FloatPoint(FCenter.X + X, FCenter.Y + Y);
+  // Angle is perpendicular to StartPoint->EndPoint
+  GR32_Math.SinCos(Angle + 0.5 * Pi, Radius, Y, X);
+  Result := FloatPoint(FCenter.X + X, FCenter.Y - Y);
 end;
 
 procedure TXGradientSampler.SetEndPoint(const Value: TFloatPoint);
@@ -3502,7 +3503,8 @@ procedure TXGradientSampler.SetPoints(const StartPoint, EndPoint: TFloatPoint);
 begin
   FCenter := StartPoint;
   Radius := Distance(EndPoint, StartPoint);
-  Angle := 0.5 * Pi + GetAngleOfPt2FromPt1(EndPoint, StartPoint);
+  // Angle is perpendicular to StartPoint->EndPoint
+  Angle := 0.5 * Pi + GetAngleOfPt2FromPt1(StartPoint, EndPoint);
 end;
 
 procedure TXGradientSampler.SetStartPoint(const Value: TFloatPoint);
@@ -3526,7 +3528,10 @@ end;
 procedure TXGradientSampler.UpdateInternals;
 begin
   inherited;
-  FScale := FLutMask / FRadius;
+  if FRadius > 0 then
+    FScale := FLutMask / FRadius
+  else
+    FScale := 0;
 end;
 
 
@@ -3541,7 +3546,10 @@ end;
 procedure TXYGradientSampler.UpdateInternals;
 begin
   inherited;
-  FScale := FLutMask / Sqr(FRadius);
+  if FRadius > 0 then
+    FScale := FLutMask / Sqr(FRadius)
+  else
+    FScale := 0;
 end;
 
 
@@ -3556,7 +3564,10 @@ end;
 procedure TXYSqrtGradientSampler.UpdateInternals;
 begin
   inherited;
-  FScale := FLutMask / FRadius;
+  if FRadius > 0 then
+    FScale := FLutMask / FRadius
+  else
+    FScale := 0;
 end;
 
 
@@ -4193,12 +4204,19 @@ begin
 end;
 
 procedure TCustomLinearGradientPolygonFiller.UpdateIncline;
+var
+  dx, dy: TFloat;
 begin
-  if (FEndPoint.X - FStartPoint.X) <> 0 then
-    FIncline := (FEndPoint.Y - FStartPoint.Y) / (FEndPoint.X - FStartPoint.X)
+  dx := FEndPoint.X - FStartPoint.X;
+  dy := FEndPoint.Y - FStartPoint.Y;
+
+  if Abs(dx) > 1e-6 then
+    FIncline := dy / dx
   else
-  if (FEndPoint.Y - FStartPoint.Y) <> 0 then
-    FIncline := 1 / (FEndPoint.Y - FStartPoint.Y);
+  if Abs(dy) > 1e-6 then
+    FIncline := 1 / dy
+  else
+    FIncline := 0;
 end;
 
 
@@ -4277,12 +4295,13 @@ begin
     begin
       if (FWrapMode = wmClamp) then
       begin
-        if FStartPoint.X = FEndPoint.X then
-          if FStartPoint.Y = FEndPoint.Y then
+        if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
+        begin
+          if Abs(FStartPoint.Y - FEndPoint.Y) < 1e-6 then
             Result := FillLineVerticalPadExtreme
           else
-            Result := FillLineVerticalPad
-        else
+            Result := FillLineVerticalPad;
+        end else
         if FStartPoint.X < FEndPoint.X then
           Result := FillLineHorizontalPadPos
         else
@@ -4290,7 +4309,7 @@ begin
       end else
       // wmMirror, wmRepeat, wmReflect
       begin
-        if FStartPoint.X = FEndPoint.X then
+        if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
           Result := FillLineVerticalWrap
         else
         if FStartPoint.X < FEndPoint.X then
@@ -4299,9 +4318,9 @@ begin
           Result := FillLineHorizontalWrapNeg;
       end;
     end else
-    if FStartPoint.X = FEndPoint.X then
+    if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
     begin
-      if FStartPoint.Y = FEndPoint.Y then
+      if Abs(FStartPoint.Y - FEndPoint.Y) < 1e-6 then
         Result := FillLineVerticalExtreme
       else
         Result := FillLineVertical;
@@ -4356,12 +4375,14 @@ procedure TLinearGradientPolygonFiller.FillLinePositive(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   X, Index: Integer;
-  IntScale, IntValue: Integer;
+  IntScale, IntValue: Cardinal;
   Colors: array [0..1] of TColor32;
   Scale: TFloat;
   XOffset: array [0..1] of TFloat;
   XPos: array [0..2] of Integer;
   BlendMemEx: TBlendMemEx;
+const
+  nMaxInt: TFloat = $7FFFFFFF;
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
 
@@ -4402,8 +4423,8 @@ begin
     if XPos[1] > XPos[0] then
     begin
       Scale := 1 / (XOffset[1] - XOffset[0]);
-      IntScale := Round($7FFFFFFF * Scale);
-      IntValue := Round($7FFFFFFF * (XPos[0] - XOffset[0]) * Scale);
+      IntScale := Round(nMaxInt * Scale);
+      IntValue := Round(nMaxInt * (XPos[0] - XOffset[0]) * Scale);
 
       for X := XPos[0] to XPos[1] - 1 do
       begin
@@ -4438,12 +4459,14 @@ procedure TLinearGradientPolygonFiller.FillLineNegative(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   X, Index: Integer;
-  IntScale, IntValue: Integer;
+  IntScale, IntValue: Cardinal;
   Colors: array [0..1] of TColor32;
   Scale: TFloat;
   XOffset: array [0..1] of TFloat;
   XPos: array [0..2] of Integer;
   BlendMemEx: TBlendMemEx;
+const
+  nMaxInt: TFloat = $7FFFFFFF;
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
   Index := FGradient.GradientCount - 1;
@@ -4485,8 +4508,8 @@ begin
     if XPos[1] > XPos[0] then
     begin
       Scale := 1 / (XOffset[1] - XOffset[0]);
-      IntScale := Round($7FFFFFFF * Scale);
-      IntValue := Round($7FFFFFFF * (XPos[0] - XOffset[0]) * Scale);
+      IntScale := Round(nMaxInt * Scale);
+      IntValue := Round(nMaxInt * (XPos[0] - XOffset[0]) * Scale);
 
       for X := XPos[0] to XPos[1] - 1 do
       begin
