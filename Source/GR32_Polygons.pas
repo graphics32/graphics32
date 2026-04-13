@@ -303,17 +303,27 @@ type
   private
     FSampler: TCustomSampler;
     FGetSample: TGetSampleInt;
+    FOwnsSampler: boolean;
+    FBlendOpaque: boolean;
     procedure SetSampler(const Value: TCustomSampler);
   protected
     procedure SamplerChanged; virtual;
     function GetFillLine: TFillLineEvent; override;
-    procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure SampleLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+
+    property GetSample: TGetSampleInt read FGetSample write FGetSample;
   public
-    constructor Create(Sampler: TCustomSampler = nil); reintroduce; virtual;
+    constructor Create(Sampler: TCustomSampler = nil); reintroduce; overload; virtual;
+    constructor Create(Sampler: TCustomSampler; AOwnsSampler: boolean); overload;
+    destructor Destroy; override;
+
     procedure BeginRendering; override;
     procedure EndRendering; override;
+
     property Sampler: TCustomSampler read FSampler write SetSampler;
+    property OwnsSampler: boolean read FOwnsSampler write FOwnsSampler;
+    property BlendOpaque: boolean read FBlendOpaque write FBlendOpaque;
   end;
 
 
@@ -2770,7 +2780,22 @@ constructor TSamplerFiller.Create(Sampler: TCustomSampler = nil);
 begin
   inherited Create;
   FSampler := Sampler;
+  FBlendOpaque := True;
   SamplerChanged;
+end;
+
+constructor TSamplerFiller.Create(Sampler: TCustomSampler; AOwnsSampler: boolean);
+begin
+  Create(Sampler);
+  FOwnsSampler := AOwnsSampler;
+end;
+
+destructor TSamplerFiller.Destroy;
+begin
+  if (FOwnsSampler) then
+    FSampler.Free;
+
+  inherited;
 end;
 
 procedure TSamplerFiller.EndRendering;
@@ -2781,8 +2806,22 @@ begin
   inherited;
 end;
 
-procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+procedure TSamplerFiller.SampleLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+var
+  X: Integer;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGetSample(X, DstY), Dst^, AlphaValues^);
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   X: Integer;
   BlendMemEx: TBlendMemEx;
@@ -2799,7 +2838,9 @@ end;
 procedure TSamplerFiller.SamplerChanged;
 begin
   if (FSampler <> nil) then
-    FGetSample := FSampler.GetSampleInt;
+    FGetSample := FSampler.GetSampleInt
+  else
+    FGetSample := nil;
 end;
 
 procedure TSamplerFiller.BeginRendering;
@@ -2812,7 +2853,10 @@ end;
 
 function TSamplerFiller.GetFillLine: TFillLineEvent;
 begin
-  Result := SampleLineOpaque;
+  if (BlendOpaque) then
+    Result := SampleLineOpaque
+  else
+    Result := SampleLineBlend;
 end;
 
 procedure TSamplerFiller.SetSampler(const Value: TCustomSampler);
