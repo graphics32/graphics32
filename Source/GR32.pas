@@ -5256,7 +5256,7 @@ begin
   if not FMeasuringMode then
   begin
     sx := X1; sy := Y1; ex := X2; ey := Y2;
-    FullLength := GR32_Math.Hypot(ex - sx, ey - sy) + (Integer(L) * FixedOne);
+    FullLength := GR32_Math.Hypot(integer(ex - sx), ey - sy) + (Integer(L) * FixedOne); // Note: Integer cast in hypot for the benefit of FPC. Pfft!
 
     // Check for visibility and clip the coordinates
     if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
@@ -5279,12 +5279,12 @@ begin
     begin
       LineXP(X1, Y1, X2, Y2, L);
       // LineXP already advanced by its hypl. Now advance for whatever was clipped at start and end.
-      AdvanceStippleCounter((FullLength - (GR32_Math.Hypot(X2 - X1, Y2 - Y1) + (Integer(L) * FixedOne))) / 65536.0);
+      AdvanceStippleCounter((FullLength - (GR32_Math.Hypot(integer(X2 - X1), Y2 - Y1) + (Integer(L) * FixedOne))) / 65536.0);
       Exit;
     end;
 
     if (sx <> X1) or (sy <> Y1) then
-      AdvanceStippleCounter(GR32_Math.Hypot(X1 - sx, Y1 - sy) / 65536.0);
+      AdvanceStippleCounter(GR32_Math.Hypot(integer(X1 - sx), Y1 - sy) / 65536.0);
 
     // if we are still here, it means that the line touches one or several bitmap
     // boundaries. Use the safe version of antialiased pixel routine
@@ -5295,14 +5295,14 @@ begin
     if hyp = 0 then
     begin
       // If hyp is 0, we still might need to advance for what's left
-      AdvanceStippleCounter((FullLength - GR32_Math.Hypot(X1 - 127 - sx, Y1 - 127 - sy)) / 65536.0);
+      AdvanceStippleCounter((FullLength - GR32_Math.Hypot(integer(X1 - 127 - sx), Y1 - 127 - sy)) / 65536.0);
       Exit;
     end;
 
     hypl := hyp + (Integer(L) * FixedOne);
     if hypl < 256 then
     begin
-      AdvanceStippleCounter((FullLength - GR32_Math.Hypot(X1 - 127 - sx, Y1 - 127 - sy)) / 65536.0);
+      AdvanceStippleCounter((FullLength - GR32_Math.Hypot(integer(X1 - 127 - sx), Y1 - 127 - sy)) / 65536.0);
       Exit;
     end;
 
@@ -5327,7 +5327,7 @@ begin
     A := A * Longword(hyp) shl 8 and $FF000000;
     SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), C and $00FFFFFF + A);
 
-    AdvanceStippleCounter((FullLength - (GR32_Math.Hypot(X2 - sx, Y2 - sy) + (Integer(L) * FixedOne))) / 65536.0);
+    AdvanceStippleCounter((FullLength - (GR32_Math.Hypot(integer(X2 - sx), Y2 - sy) + (Integer(L) * FixedOne))) / 65536.0);
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 2); // +1 for AA
