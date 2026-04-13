@@ -97,7 +97,8 @@ object FormMain: TFormMain
       Items.Strings = (
         'Raw (no compression)'
         'RLE'
-        'ZIP')
+        'ZIP'
+        'ZIP with prediction')
     end
     object ButtonLoad: TButton
       Left = 89

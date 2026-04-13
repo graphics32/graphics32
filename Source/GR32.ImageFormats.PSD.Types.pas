@@ -85,7 +85,7 @@ const
   PSD_COMPRESSION_NONE  = 0; // RAW; No compression
   PSD_COMPRESSION_RLE   = 1; // RLE compression (a.k.a. packbits compression)
   PSD_COMPRESSION_ZIP   = 2; // ZIP compression without prediction
-  PSD_COMPRESSION_ZIP_PRED = 4; // ZIP compression with prediction
+  PSD_COMPRESSION_ZIP_PRED = 3; // ZIP compression with prediction
 
 
 //------------------------------------------------------------------------------
