@@ -416,6 +416,9 @@ type
 //      TConicGradientSampler
 //
 //------------------------------------------------------------------------------
+// Counter-clockwise progressing circular gradient.
+// The Angle property specifies the angle of gradient offset 0.
+//------------------------------------------------------------------------------
 type
   TConicGradientSampler = class(TCustomCenterLutGradientSampler)
   private
@@ -428,6 +431,33 @@ type
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
 
     property Angle: TFloat read FAngle write FAngle;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSweepGradientSampler
+//
+//------------------------------------------------------------------------------
+// Counter-clockwise progressing circular gradient.
+// The StartAngle property specifies the angle of gradient offset 0.
+// The EndAngle property specifies the angle of gradient offset 1.
+//------------------------------------------------------------------------------
+type
+  TSweepGradientSampler = class(TCustomCenterLutGradientSampler)
+  private
+    FScale: TFloat;
+    FDelta: TFloat;
+    FStartAngle: TFloat;
+    FEndAngle: TFloat;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
+    procedure UpdateInternals; override;
+  public
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+
+    property StartAngle: TFloat read FStartAngle write FStartAngle;
+    property EndAngle: TFloat read FEndAngle write FEndAngle;
   end;
 
 
@@ -1749,7 +1779,10 @@ begin
 
     // eventually recalculate scale
     if RecalculateScale then
+    begin
       Scale := 1 / (FGradientColors[StopIndex].Offset - FGradientColors[StopIndex - 1].Offset);
+      RecalculateScale := False;
+    end;
 
     // calculate current color
     LocalFraction := (Fraction - FGradientColors[StopIndex - 1].Offset) * Scale;
@@ -3003,10 +3036,14 @@ end;
 
 procedure TCustomGradientSampler.SetGradient(const Value: TColor32Gradient);
 begin
-  if not Assigned(Value) then
+  if (Value = FGradient) then
+    exit;
+
+  if (Value = nil) then
     FGradient.ClearColorStops
   else
     Value.AssignTo(Self);
+
   GradientSamplerChanged;
 end;
 
@@ -3130,19 +3167,72 @@ begin
 end;
 
 function TConicGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  RelativeAngle: TFloat;
+  Index: integer;
 begin
   Transform(X, Y);
-  Result := FLutPtr^[FWrapProc(Round(FScale * Abs(FAngle + ArcTan2(Y, X))),
-    FLutMask)];
+
+  RelativeAngle := -ArcTan2(Y, X) - FAngle;
+
+  // Note: In reality all the wrap procs produce the same result
+  Index := Round(FScale * RelativeAngle);
+  Index := FWrapProc(Index, LutMask);
+
+  Result := FLutPtr^[Index];
 end;
 
 procedure TConicGradientSampler.UpdateInternals;
 begin
   inherited;
-  FLutMask := FGradientLUT.Mask;
-  FScale := FLutMask / Pi;
+  FScale := (LutMask + 1) / (2 * PI);
 end;
 
+{ TSweepGradientSampler }
+
+procedure TSweepGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+
+  if Dest is TSweepGradientSampler then
+  begin
+    TSweepGradientSampler(Dest).FStartAngle := Self.FStartAngle;
+    TSweepGradientSampler(Dest).FEndAngle := Self.FEndAngle;
+  end;
+end;
+
+function TSweepGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  RelativeAngle: TFloat;
+  Index: integer;
+begin
+  Transform(X, Y);
+
+  RelativeAngle := -ArcTan2(Y, X) - FStartAngle;
+  RelativeAngle := RelativeAngle - 2 * Pi * Floor(RelativeAngle / (2 * Pi));
+
+  if (FDelta < 0) then
+    RelativeAngle := RelativeAngle - 2 * Pi;
+
+  Index := Round(FScale * RelativeAngle);
+  Index := FWrapProc(Index, FLutMask);
+
+  Result := FLutPtr^[Index];
+end;
+
+procedure TSweepGradientSampler.UpdateInternals;
+begin
+  inherited;
+
+  FDelta := FEndAngle - FStartAngle;
+
+  if Abs(FDelta) < 1E-8 then
+  begin
+    FDelta := 2 * Pi;
+    FScale := (LutMask + 1) / FDelta;
+  end else
+    FScale := LutMask / FDelta;
+end;
 
 { TCustomCenterRadiusLutGradientSampler }
 
