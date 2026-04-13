@@ -289,6 +289,14 @@ type
       class procedure ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
     end;
 
+    CompressionZIPPredict = record
+    private
+      class procedure DeltaDecode(var Buffer; Width: integer); static;
+    public
+      class procedure ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+      class procedure ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate); static;
+    end;
+
   private
     FStream: TStream;
     FDocument: TPhotoshopDocument;
@@ -323,6 +331,7 @@ type
     procedure SetLayerChannelInfo(var LayerInfo: TLayerInfo; Channel: Cardinal; Component: SmallInt; Size: Cardinal = 0);
     class function GetChannelReader(Compression: TPSDLayerCompression): TPSDChannelReaderDelegate;
     class function GetBitmapReader(ALayer: TCustomPhotoshopLayer): TPSDBitmapReaderDelegate;
+    class function MapCompression(ACompression: Word): TPSDLayerCompression;
 
     function TryChannelToColorComponent(AChannel: SmallInt; var AComponent: TColor32Component): boolean;
 
@@ -1287,11 +1296,11 @@ begin
 
       if (not FHasCompression) then
       begin
-        FCompression := TPSDLayerCompression(Compression);
+        FCompression := MapCompression(Compression);
         FHasCompression := True;
       end;
 
-      ChannelReader := GetChannelReader(TPSDLayerCompression(Compression));
+      ChannelReader := GetChannelReader(MapCompression(Compression));
 
       ChannelReader(FStream, ColorComponent, Layer, RowData, SetChannel);
     end;
@@ -1483,7 +1492,7 @@ begin
 
   if (not FHasCompression) then
   begin
-    FCompression := TPSDLayerCompression(Compression);
+    FCompression := MapCompression(Compression);
     FHasCompression := True;
   end;
 
@@ -1501,7 +1510,7 @@ begin
     Layer.Width := FDocument.Width;
     Layer.Height := FDocument.Height;
 
-    Layer.Compression := TPSDLayerCompression(Compression);
+    Layer.Compression := MapCompression(Compression);
 
     if (FDocument.Layers.Count = 0) then
       Layer.Document := FDocument
@@ -1547,6 +1556,9 @@ begin
     lcZIP:
       Result := CompressionZIP.ReadChannel;
 
+    lcPredictedZIP:
+      Result := CompressionZIPPredict.ReadChannel;
+
     lcRAW:
       Result := CompressionRAW.ReadChannel;
   else
@@ -1563,10 +1575,32 @@ begin
     lcZIP:
       Result := CompressionZIP.ReadBitmap;
 
+    lcPredictedZIP:
+      Result := CompressionZIPPredict.ReadBitmap;
+
     lcRAW:
       Result := CompressionRAW.ReadBitmap;
   else
     raise EPhotoshopDocument.CreateFmt('Unsupported compression method: %d', [Ord(ALayer.Compression)]);
+  end;
+end;
+
+class function TPhotoshopDocumentReaderHelper.MapCompression(ACompression: Word): TPSDLayerCompression;
+begin
+  case ACompression of
+    PSD_COMPRESSION_NONE:
+      Result := lcRAW;
+
+    PSD_COMPRESSION_RLE:
+      Result := lcRLE;
+
+    PSD_COMPRESSION_ZIP:
+      Result := lcZIP;
+
+    PSD_COMPRESSION_ZIP_PRED:
+      Result := lcPredictedZIP;
+  else
+    raise EPhotoshopDocument.CreateFmt('Unsupported compression method: %d', [ACompression]);
   end;
 end;
 
@@ -1702,6 +1736,57 @@ begin
       Stream.Read(ABuffer[0], Length(ABuffer));
       ASetChannel(ALayer, AChannel, i, ABuffer);
     end;
+  finally
+    Stream.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// ZIP compression with prediction
+//------------------------------------------------------------------------------
+class procedure TPhotoshopDocumentReaderHelper.CompressionZIPPredict.DeltaDecode(var Buffer; Width: integer);
+var
+  i: integer;
+  P: PByteArray;
+begin
+  P := @Buffer;
+  for i := 1 to Width - 1 do
+    P[i] := Byte(P[i] + P[i - 1]);
+end;
+
+class procedure TPhotoshopDocumentReaderHelper.CompressionZIPPredict.ReadChannel(AStream: TStream; AChannel: TColor32Component; ALayer: TCustomPhotoshopBitmapLayer32; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  i: Integer;
+  Stream: TDecompressionStream;
+begin
+  Stream := TDecompressionStream.Create(AStream);
+  try
+    for i := 0 to ALayer.Height - 1 do
+    begin
+      Stream.Read(ABuffer[0], Length(ABuffer));
+      DeltaDecode(ABuffer[0], Length(ABuffer));
+      ASetChannel(ALayer, AChannel, i, ABuffer);
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
+class procedure TPhotoshopDocumentReaderHelper.CompressionZIPPredict.ReadBitmap(AStream: TStream; ALayer: TCustomPhotoshopBitmapLayer32; const LayerInfo: TLayerInfo; const ABuffer: TBytes; ASetChannel: TPSDChannelSetterDelegate);
+var
+  Stream: TStream;
+  Channel: integer;
+  i: integer;
+begin
+  Stream := TDecompressionStream.Create(AStream);
+  try
+    for Channel := 0 to High(LayerInfo.Channels) do
+      for i := 0 to ALayer.Height - 1 do
+      begin
+        Stream.Read(ABuffer[0], Length(ABuffer));
+        DeltaDecode(ABuffer[0], Length(ABuffer));
+        ASetChannel(ALayer, LayerInfo.Channels[Channel].ColorComponent, i, ABuffer);
+      end;
   finally
     Stream.Free;
   end;

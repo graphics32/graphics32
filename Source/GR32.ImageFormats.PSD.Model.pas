@@ -1034,8 +1034,6 @@ end;
 
 procedure TCustomPhotoshopLayer.SetCompression(const Value: TPSDLayerCompression);
 begin
-  if (Value = lcPredictedZIP) then
-    raise EPhotoshopDocument.Create('"ZIP with prediction"-compression is not implemented');
   FCompression := Value;
   FUseDocumentCompression := False;
 end;
@@ -1269,8 +1267,6 @@ end;
 
 procedure TPhotoshopDocument.SetCompression(const Value: TPSDLayerCompression);
 begin
-  if (Value = lcPredictedZIP) then
-    raise EPhotoshopDocument.Create('"ZIP with prediction"-compression is not implemented');
   FCompression := Value;
 end;
 
