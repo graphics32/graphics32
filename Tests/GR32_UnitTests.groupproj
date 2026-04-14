@@ -132,7 +132,7 @@
         <MSBuild Projects="Resampler test\ResamplerTest.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest;OrdinalMapsTes;ResamplerTestt"/>
+        <CallTarget Targets="BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest;OrdinalMapsTest;ResamplerTest"/>
     </Target>
     <Target Name="Clean">
         <CallTarget Targets="BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean;OrdinalMapsTest:Clean;ResamplerTest:Clean"/>
