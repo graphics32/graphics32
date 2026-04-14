@@ -49,6 +49,12 @@ interface
 // precision of the resampler suffers slightly.
 {$define PREMULTIPLY}
 
+// Define ALPHA_INTERPOLATOR to always use the alpha-aware interpolator which
+// takes alpha into account when interpolating (as one should if alpha is used).
+// The alpha-aware interpolator is slower because it performs alpha-
+// premultiplication, interpolate, and then unpremultiply the result.
+{$define ALPHA_INTERPOLATOR}
+
 
 uses
   Classes,
@@ -1064,7 +1070,8 @@ const
 //------------------------------------------------------------------------------
 var
   BlockAverage: function(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
-  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+  Interpolator: function(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
+  AlphaInterpolator: function(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
 
 
 //------------------------------------------------------------------------------
@@ -1089,7 +1096,8 @@ uses
   GR32_LowLevel,
   GR32_Rasterizers,
   GR32_Math,
-  GR32_Gamma;
+  GR32_Gamma,
+  GR32.Types.SIMD;
 
 resourcestring
   RCStrInvalidSrcRect = 'Invalid SrcRect';
@@ -1953,7 +1961,11 @@ begin
             SrcPtr1 := @SrcLine[SrcIndex];
             SrcPtr2 := @SrcLine[SrcIndex + SrcW];
           end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
           DstLine[I] := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$else}
+          DstLine[I] := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
         end;
         Inc(DstLine, DstW);
       end;
@@ -1976,7 +1988,11 @@ begin
               SrcPtr1 := @SrcLine[SrcIndex];
               SrcPtr2 := @SrcLine[SrcIndex + SrcW];
             end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
             C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$else}
+            C := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
             BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           end;
           Inc(DstLine, Dst.Width);
@@ -2000,29 +2016,39 @@ begin
               SrcPtr1 := @SrcLine[SrcIndex];
               SrcPtr2 := @SrcLine[SrcIndex + SrcW];
             end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
             C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
-            if C <> Src.OuterColor then DstLine[I] := C;
+{$else}
+            C := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
+            if C <> Src.OuterColor then
+              DstLine[I] := C;
           end;
           Inc(DstLine, Dst.Width);
         end
       end;
+
   else // cmCustom
     for J := 0 to DstClipH - 1 do
     begin
       SrcLine := Src.ScanLine[MapVert[J].Pos];
       WY := MapVert[J].Weight;
-      SrcIndex := MapHorz[0].Pos;    
-      SrcPtr1 := @SrcLine[SrcIndex];    
-      SrcPtr2 := @SrcLine[SrcIndex + SrcW];    
-      for I := 0 to DstClipW - 1 do    
-      begin    
-        if SrcIndex <> MapHorz[I].Pos then    
-        begin    
-          SrcIndex := MapHorz[I].Pos;    
-          SrcPtr1 := @SrcLine[SrcIndex];    
+      SrcIndex := MapHorz[0].Pos;
+      SrcPtr1 := @SrcLine[SrcIndex];
+      SrcPtr2 := @SrcLine[SrcIndex + SrcW];
+      for I := 0 to DstClipW - 1 do
+      begin
+        if SrcIndex <> MapHorz[I].Pos then
+        begin
+          SrcIndex := MapHorz[I].Pos;
+          SrcPtr1 := @SrcLine[SrcIndex];
           SrcPtr2 := @SrcLine[SrcIndex + SrcW];
         end;
+{$if (not defined(ALPHA_INTERPOLATOR))}
         C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$else}
+        C := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+{$ifend}
         CombineCallBack(C, DstLine[I], Src.MasterAlpha);
       end;
       Inc(DstLine, Dst.Width);
@@ -2291,6 +2317,7 @@ var
 {$ifdef PREMULTIPLY}
   Alpha: integer;
   DoPremultiply: boolean;
+  HasTransparent, HasOpaque: boolean;
 {$endif PREMULTIPLY}
 begin
   if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
@@ -2313,19 +2340,31 @@ begin
 {$ifdef PREMULTIPLY}
   // Scan bitmap for alpha
   DoPremultiply := False;
+  HasTransparent := False;
+  HasOpaque := False;
   SourceColor := PColor32Entry(Src.Bits);
   I := Src.Height*Src.Width;
-  while (I > 0) do
+  while (I > 0) and (not DoPremultiply) and ((not HasTransparent) or (not HasOpaque)) do
   begin
-    if (SourceColor.A <> 255) and (SourceColor.A <> 0) then
-    begin
-      // We only need to do alpha-premultiplication if Alpha exist in range [1..254]
+    // We must do alpha-premultiplication if Alpha exist in range [1..254] or the bitmap
+    // isn't either fully opaque (all alpha=255) or fully transparent (all alpha=0).
+    case SourceColor.A of
+      0:   HasTransparent := True;
+      255: HasOpaque := True;
+    else
       DoPremultiply := True;
-      break;
     end;
+
     Inc(SourceColor);
     Dec(I);
   end;
+
+  if (HasTransparent) and (not DoPremultiply) and (not HasOpaque) then
+  begin
+    // TODO : Source is fully transparent; We could short-circuit here and completely avoid the resample.
+  end;
+
+  DoPremultiply := DoPremultiply or not(HasTransparent xor HasOpaque);
 {$endif PREMULTIPLY}
 
   ClusterX := nil;
@@ -2498,7 +2537,7 @@ begin
             C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
             C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
             C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-            C.A := 255; // We know Alpha=255 because RangeCheck is True otherwise
+            C.A := 255; // We know Alpha=255 because DoPremultiply is True otherwise
           end;
         end else
           C.ARGB := 0;
@@ -2521,7 +2560,7 @@ begin
           C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
           C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
           C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          C.A := 255; // We know Alpha=255 because RangeCheck is True otherwise
+          C.A := 255; // We know Alpha=255 because RangeCheck/DoPremultiply is True otherwise
         end else
           C.ARGB := 0;
 {$else PREMULTIPLY}
@@ -2819,6 +2858,7 @@ begin
             DstLine[DstClip.Left + I] := BlockAverage(dx, dy, xsrc, OffSrc);
             Inc(xsrc, dx);
           end;
+
         dmBlend:
           for I := 2  to DstClipW do
           begin
@@ -2828,15 +2868,18 @@ begin
               DstLine[DstClip.Left + I], Src.MasterAlpha);
             Inc(xsrc, dx);
           end;
+
         dmTransparent:
           for I := 2  to DstClipW do
           begin
             dx := r2 - r1;  r1 := r2;
             r2 := FixedMul(I, sr);
             C := BlockAverage(dx, dy, xsrc, OffSrc);
-            if C <> Src.OuterColor then DstLine[DstClip.Left + I] := C;
+            if C <> Src.OuterColor then
+              DstLine[DstClip.Left + I] := C;
             Inc(xsrc, dx);
           end;
+
         dmCustom:
           for I := 2  to DstClipW do
           begin
@@ -2846,6 +2889,7 @@ begin
               DstLine[DstClip.Left + I], Src.MasterAlpha);
             Inc(xsrc, dx);
           end;
+
       end;
 
       Inc(DstLine, Dst.Width);
@@ -2860,20 +2904,292 @@ end;
 //      Special interpolators (for sfLinear and sfDraft)
 //
 //------------------------------------------------------------------------------
+// Lerps in 2D between 4 pixels - a.k.a. bilinear interpolation:
+//
+//   p11 points to the first pixel.
+//   p12 points to the pixel just below the first pixel.
+//
+//     p11->   1  2
+//     p12->   3  4
+//
+// WeightX_256 is the weight in the X-direction, WeightY_256 in the Y direction.
+// The weights are specified in the range [0..256] to enable us to use "shr 8"
+// for division.
+//------------------------------------------------------------------------------
+// AlphaInterpolator takes alpha into account (works on alpha-premultiplied
+// colors) while Interpolator does not.
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// AlphaInterpolator_Pas
+//------------------------------------------------------------------------------
+type
+  TColor64 = record
+    B, G, R, A: Word; // 8.8 fixed precision
+  end;
+
+function AlphaInterpolator_Pas(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
+var
+  ColorCol1, ColorCol2: TColor32Entry;
+  Alpha1, Alpha2: PByteArray;
+  Weight2: Cardinal;
+  ColorRow1, ColorRow2: TColor64;
+begin
+  (*
+  ** Lerp horizontally
+  *)
+  Weight2 := 256-WeightX_256;
+
+  // Lerp first row horizontally
+  ColorCol1 := TColor32Entry(p11^);
+  Inc(p11);
+  ColorCol2 := TColor32Entry(p11^);
+  Alpha1 := @MulDiv255Table[ColorCol1.A]; // Premultiplication tables
+  Alpha2 := @MulDiv255Table[ColorCol2.A];
+
+  ColorRow1.R := (Alpha1[ColorCol1.R] * WeightX_256 + Alpha2[ColorCol2.R] * Weight2);
+  ColorRow1.G := (Alpha1[ColorCol1.G] * WeightX_256 + Alpha2[ColorCol2.G] * Weight2);
+  ColorRow1.B := (Alpha1[ColorCol1.B] * WeightX_256 + Alpha2[ColorCol2.B] * Weight2);
+  ColorRow1.A := (ColorCol1.A * WeightX_256 + ColorCol2.A * Weight2);
+
+  // Lerp second row horizontally
+  ColorCol1 := TColor32Entry(p12^);
+  Inc(p12);
+  ColorCol2 := TColor32Entry(p12^);
+  Alpha1 := @MulDiv255Table[ColorCol1.A];
+  Alpha2 := @MulDiv255Table[ColorCol2.A];
+
+  ColorRow2.R := (Alpha1[ColorCol1.R] * WeightX_256 + Alpha2[ColorCol2.R] * Weight2);
+  ColorRow2.G := (Alpha1[ColorCol1.G] * WeightX_256 + Alpha2[ColorCol2.G] * Weight2);
+  ColorRow2.B := (Alpha1[ColorCol1.B] * WeightX_256 + Alpha2[ColorCol2.B] * Weight2);
+  ColorRow2.A := (ColorCol1.A * WeightX_256 + ColorCol2.A * Weight2);
+
+  (*
+  ** Lerp vertically
+  *)
+  Weight2 := 256-WeightY_256;
+
+  // Lerp vertically between first and second row lerps
+  TColor32Entry(Result).A := (ColorRow1.A * WeightY_256 + ColorRow2.A * Weight2) shr 16;
+  // Unpremultiplication table
+  Alpha1 := @DivMul255Table[TColor32Entry(Result).A];
+  TColor32Entry(Result).R := Alpha1[(ColorRow1.R * WeightY_256 + ColorRow2.R * Weight2) shr 16];
+  TColor32Entry(Result).G := Alpha1[(ColorRow1.G * WeightY_256 + ColorRow2.G * Weight2) shr 16];
+  TColor32Entry(Result).B := Alpha1[(ColorRow1.B * WeightY_256 + ColorRow2.B * Weight2) shr 16];
+end;
+
+//------------------------------------------------------------------------------
+// AlphaInterpolator_SSE41
+//------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+function AlphaInterpolator_SSE41(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
+asm
+  // Parameters (x86):
+  //   EAX <- WeightX_256
+  //   EDX <- WeightY_256
+  //   ECX <- p11: PColor32
+  //   Stack[0] <- p12: PColor32
+  //
+  // Parameters (x64):
+  //   RCX <- WeightX_256
+  //   RDX <- WeightY_256
+  //   R8  <- p11: PColor32
+  //   R9  <- p12: PColor32
+  //   Preserves: (none)
+  //
+  // SSE register usage:
+  //   XMM0: p11[0]
+  //   XMM1: p11[1]
+  //   XMM2: p12[0]
+  //   XMM3: p12[1]
+  //   XMM4: Misc.
+  //   XMM5: SSE_FloatOne, SSE_FloatScale, misc.
+  //
+{$IFDEF TARGET_X64}
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+{$ENDIF}
+{$ENDIF}
+
+        (*
+        ** Zero-extension unpacking of the four pixels.
+        *)
+{$IFDEF TARGET_X64}
+
+        PMOVZXBD  XMM0, [R8]            // p11[0]
+        PMOVZXBD  XMM1, [R8 + 4]        // p11[1]
+        PMOVZXBD  XMM2, [R9]            // p12[0]
+        PMOVZXBD  XMM3, [R9 + 4]        // p12[1]
+
+{$ELSE}
+
+        PMOVZXBD  XMM0, [ECX]           // p11[0]
+        PMOVZXBD  XMM1, [ECX + 4]       // p11[1]
+
+        // Get p12 address from stack
+        MOV       ECX, [p12]
+
+        PMOVZXBD  XMM2, [ECX]           // p12[0]
+        PMOVZXBD  XMM3, [ECX + 4]       // p12[1]
+
+{$ENDIF}
+
+
+        (*
+        ** Conversion to floats.
+        *)
+        CVTDQ2PS  XMM0, XMM0
+        CVTDQ2PS  XMM1, XMM1
+        CVTDQ2PS  XMM2, XMM2
+        CVTDQ2PS  XMM3, XMM3
+
+{$IFNDEF FPC}
+        MOVUPS    XMM5, [SSE_FloatOne]  // Load unaligned
+{$ELSE}
+        MOVUPS    XMM5, [RIP+SSE_FloatOne]
+{$ENDIF}
+
+        (*
+        ** Premultiply RGB by Alpha using BLENDPS with multiplier mask [A, A, A, 1.0].
+        *)
+
+        // p11[0]
+        PSHUFD    XMM4, XMM0, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM0, XMM4
+        // p11[1]
+        PSHUFD    XMM4, XMM1, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM1, XMM4
+        // p12[0]
+        PSHUFD    XMM4, XMM2, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM2, XMM4
+        // p12[1]
+        PSHUFD    XMM4, XMM3, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM3, XMM4
+
+
+        (*
+        ** Horizontal Interpolation.
+        *)
+{$IFDEF TARGET_X64}
+        CVTSI2SS  XMM4, ECX
+        PSHUFD    XMM4, XMM4, 0
+        MOV       EAX, 256
+        SUB       EAX, ECX
+{$ELSE}
+        CVTSI2SS  XMM4, EAX             // WeightX = Single(WeightX)
+{$ENDIF}
+        PSHUFD    XMM4, XMM4, 0         // Broadcast WeightX
+
+{$IFDEF TARGET_X64}
+        MOV       EAX, 256
+        SUB       EAX, ECX
+{$ELSE}
+        NEG       EAX                   // WeightXi = 256-WeightX
+        ADD       EAX, 256
+{$ENDIF}
+        CVTSI2SS  XMM5, EAX             // WeightXi = Single(WeightXi)
+        PSHUFD    XMM5, XMM5, 0         // Broadcast 256-WeightX
+
+        // Lerp(p11[0], p11[1], WeightX)
+        MULPS     XMM0, XMM4
+        MULPS     XMM1, XMM5
+        ADDPS     XMM0, XMM1            // XMM0 <- Row 0 sum
+
+        // Lerp(p12[0], p12[1], WeightX)
+        MULPS     XMM2, XMM4
+        MULPS     XMM3, XMM5
+        ADDPS     XMM2, XMM3            // XMM2 <- Row 1 sum
+
+        (*
+        ** Vertical Interpolation.
+        *)
+        CVTSI2SS  XMM4, EDX             // WeightY = Single(WeightY)
+        PSHUFD    XMM4, XMM4, 0         // Broadcast WeightY
+
+        NEG       EDX                   // WeightYi = 256-WeightY
+        ADD       EDX, 256
+        CVTSI2SS  XMM5, EDX             // WeightYi = Single(WeightYi)
+        PSHUFD    XMM5, XMM5, 0         // Broadcast 256-WeightY
+
+        // Lerp(Row[0], Row[1], WeightY)
+        MULPS     XMM0, XMM4
+        MULPS     XMM2, XMM5
+        ADDPS     XMM0, XMM2            // XMM0 <- sum
+
+        (*
+        ** Unpremultiplication and Alpha normalization.
+        *)
+        PSHUFD    XMM1, XMM0, $FF       // Accumulated Alpha.
+        PXOR      XMM2, XMM2
+        MOVDQA    XMM3, XMM1
+        CMPPS     XMM3, XMM2, 0         // Zero Alpha mask.
+        DIVPS     XMM0, XMM1            // Normalize RGB.
+
+{$IFNDEF FPC}
+        MOVUPS    XMM5, [SSE_FloatScale]// Load unaligned
+{$ELSE}
+        MOVUPS    XMM5, [RIP+SSE_FloatScale]
+{$ENDIF}
+        MULPS     XMM1, XMM5            // Scale Alpha back to 8-bit range.
+        BLENDPS   XMM0, XMM1, $08       // Combine RGB and A.
+        ANDNPS    XMM3, XMM0            // Handle zero Alpha.
+
+        (*
+        ** Float -> integer
+        *)
+        CVTPS2DQ  XMM0, XMM3            // Round
+        PACKSSDW  XMM0, XMM2            // DWORD -> WORD
+        PACKUSWB  XMM0, XMM2            // WORD -> BYTE
+        MOVD      EAX, XMM0             // Result in EAX
+
+{$IFDEF TARGET_X64}
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+{$ENDIF}
+{$ENDIF}
+end;
+{$ifend}
+
 
 //------------------------------------------------------------------------------
 // Interpolator_Pas
 //------------------------------------------------------------------------------
-function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+function Interpolator_Pas(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
 var
   C1, C3: TColor32;
 begin
-  if WX_256 > $FF then WX_256:= $FF;
-  if WY_256 > $FF then WY_256:= $FF;
-  C1 := C11^; Inc(C11);
-  C3 := C21^; Inc(C21);
-  Result := CombineReg(CombineReg(C1, C11^, WX_256),
-                       CombineReg(C3, C21^, WX_256), WY_256);
+  // Note that we're using CombineReg which expects the weight to be
+  // in the range [0..255].
+  // Since our weights are in the range [0..256] this means that the
+  // result will be slightly off :-/
+
+  C1 := p11^; Inc(p11);
+  C3 := p12^; Inc(p12);
+
+  if (WeightX_256 > 255) then
+  begin
+    C1 := p11^;
+    C3 := p12^;
+  end else
+  if (WeightX_256 <> 0) then
+  begin
+    C1 := CombineReg(C1, p11^, WeightX_256);
+    C3 := CombineReg(C3, p12^, WeightX_256);
+  end;
+
+  if (WeightY_256 > 255) then
+    Result := C3
+  else
+  if (WeightY_256 = 0) then
+    Result := C1
+  else
+    Result := CombineReg(C1, C3, WeightY_256)
 end;
 
 
@@ -2881,48 +3197,117 @@ end;
 // Interpolator_SSE2
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-function Interpolator_SSE2(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+function Interpolator_SSE2(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
+  // Parameters (x86):
+  //   EAX <- WeightX_256
+  //   EDX <- WeightY_256
+  //   ECX <- p11: PColor32
+  //   Stack[0] <- p12: PColor32
+  //   Preserves: (none)
+  //
+  // Parameters (x64):
+  //   RCX <- WeightX_256
+  //   RDX <- WeightY_256
+  //   R8  <- p11: PColor32
+  //   R9  <- p12: PColor32
+  //   Preserves: (none)
+  //
+  // SSE register usage:
+  //   XMM0: Zero
+  //   XMM1: p11^
+  //   XMM2: p11^
+  //   XMM3: p12^
+  //   XMM4: p12^
+  //   XMM5: misc
 asm
+        // Load the two p11 TColor32's into XMM1.DWORD[0..1], XMM2.DWORD[0..1]
+        // Load the two p12 TColor32's into XMM3.DWORD[0..1] (and later XMM4.DWORD[0..1])
+
 {$IFDEF TARGET_X64}
         MOV       RAX, RCX
-        MOVQ      XMM1,QWORD PTR [R8]
-        MOVQ      XMM2,XMM1
-        MOVQ      XMM3,QWORD PTR [R9]
+        MOVQ      XMM1, QWORD PTR [R8]          // XMM1.DWORD[0..1] <- p11^
+        MOVQ      XMM2, XMM1
+        MOVQ      XMM3, QWORD PTR [R9]          // XMM3.DWORD[0..1] <- p12^
 {$ELSE}
-        MOVQ      XMM1,[ECX]
-        MOVQ      XMM2,XMM1
-        MOV       ECX,C21
-        MOVQ      XMM3,[ECX]
+        MOVQ      XMM1, [ECX]                   // XMM1.DWORD[0..1] <- p11^
+        MOVQ      XMM2, XMM1
+        MOV       ECX, p12
+        MOVQ      XMM3, [ECX]                   // XMM3.DWORD[0..1] <- p12^
 {$ENDIF}
-        PSRLQ     XMM1,32
-        MOVQ      XMM4,XMM3
-        PSRLQ     XMM3,32
-        MOVD      XMM5,EAX
-        PSHUFLW   XMM5,XMM5,0
-        PXOR      XMM0,XMM0
-        PUNPCKLBW XMM1,XMM0
-        PUNPCKLBW XMM2,XMM0
-        PSUBW     XMM2,XMM1
-        PMULLW    XMM2,XMM5
-        PSLLW     XMM1,8
-        PADDW     XMM2,XMM1
-        PSRLW     XMM2,8
-        PUNPCKLBW XMM3,XMM0
-        PUNPCKLBW XMM4,XMM0
-        PSUBW     XMM4,XMM3
-        PSLLW     XMM3,8
-        PMULLW    XMM4,XMM5
-        PADDW     XMM4,XMM3
-        PSRLW     XMM4,8
-        MOVD      XMM5,EDX
-        PSHUFLW   XMM5,XMM5,0
-        PSUBW     XMM2,XMM4
-        PMULLW    XMM2,XMM5
-        PSLLW     XMM4,8
-        PADDW     XMM2,XMM4
-        PSRLW     XMM2,8
-        PACKUSWB  XMM2,XMM0
-        MOVD      EAX,XMM2
+
+
+        (*
+        ** Horizontal lerp
+        *)
+        //   Result := W * (X - Y) + Y
+        //   XMM2 := XMM5 * (XMM2 - XMM1) + XMM1
+
+        // Reduce YX to Y in XMM1, XMM3
+        PSRLQ     XMM1, 32                      // XMM1 <- XMM1 and $FFFFFFFF (XMM1 SHR 32)
+        MOVQ      XMM4, XMM3
+        PSRLQ     XMM3, 32                      // XMM3 <- XMM3 and $FFFFFFFF (XMM3 SHR 32)
+
+        // Copy WeightX_256 into XMM5.WORD[0..3]
+        MOVD      XMM5, EAX                     // XMM5.DWORD[0] <- WeightX_256
+        PSHUFLW   XMM5, XMM5, 0                 // XMM5.WORD[0..3] <- XMM5.WORD[0]
+
+        PXOR      XMM0, XMM0                    // XMM0 <- 0
+
+        // Expand XMM1,XMM2 from WORD to DWORD
+        PUNPCKLBW XMM1, XMM0                    // XMM1.DWORD[0..3] <- XMM1.WORD[0..3]
+        PUNPCKLBW XMM2, XMM0                    // XMM2.DWORD[0..3] <- XMM2.WORD[0..3]
+
+        // Row 1
+        // r1 = X - Y
+        PSUBW     XMM2, XMM1                    // XMM2.DWORD[0..1] <- 0 (XMM2 <- XMM2-XMM1)
+        // r1 = W * (X - Y)
+        PMULLW    XMM2, XMM5                    // ?
+        // Upscale Y by 256
+        PSLLW     XMM1, 8                       // XMM1.WORD[0..3] <- XMM1.WORD[0..3] SHL 8
+        // r1 = W * (X - Y) + Y
+        PADDW     XMM2, XMM1                    // XMM2.WORD[0..3] <- XMM2.WORD[0..3] + XMM1.WORD[0..3]
+        // Downscale r1 from 255*256 to 255
+        PSRLW     XMM2, 8                       // XMM2.WORD[0..3] <- XMM2.WORD[0..3] SHR 8
+
+        // Expand XMM3,XMM4 from WORD to DWORD
+        PUNPCKLBW XMM3, XMM0
+        PUNPCKLBW XMM4, XMM0
+
+        // Row 2
+        // r2 = X - Y
+        PSUBW     XMM4, XMM3
+        // Upscale Y by 256
+        PSLLW     XMM3, 8 // WORD[0..3] << 8
+        // r2 = W * (X - Y)
+        PMULLW    XMM4, XMM5
+        // r2 = W * (X - Y) + Y
+        PADDW     XMM4, XMM3
+        // Downscale r2 from 255*256 to 255
+        PSRLW     XMM4, 8 // WORD[0..3] >> 8
+
+        (*
+        ** Vertical lerp
+        *)
+        //   Result := W * (X - Y) + Y
+        //   XMM2 := XMM5 * (XMM2 - XMM4) + XMM4
+
+        // Copy WeightY_256 into XMM5.WORD[0..3]
+        MOVD      XMM5, EDX
+        PSHUFLW   XMM5, XMM5, 0
+
+        // Result = r1 - r2
+        PSUBW     XMM2, XMM4
+        // Result = W * (r1- r2)
+        PMULLW    XMM2, XMM5
+        // Upscale r2 by 256
+        PSLLW     XMM4, 8 // WORD[0..3] << 8
+        // Result = W * (r1 - r2) + r2
+        PADDW     XMM2, XMM4
+        // Downscale Result from 255*256 to 255
+        PSRLW     XMM2, 8 // WORD[0..3] >> 8
+
+        PACKUSWB  XMM2, XMM0
+        MOVD      EAX, XMM2
 end;
 {$ifend}
 
@@ -2987,9 +3372,11 @@ begin
   begin
     GR32.IntersectRect(DstClip, DstClip, Dst.BoundsRect);
     GR32.IntersectRect(DstClip, DstClip, DstRect);
-    if GR32.IsRectEmpty(DstClip) then Exit;
+    if GR32.IsRectEmpty(DstClip) then
+      Exit;
     GR32.IntersectRect(R, DstClip, DstRect);
-    if GR32.IsRectEmpty(R) then Exit;
+    if GR32.IsRectEmpty(R) then
+      Exit;
 
     if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
       CombineOp := dmOpaque;
@@ -4980,13 +5367,20 @@ begin
   ResamplersRegistry := NewRegistry('GR32_Resamplers bindings');
   ResamplersRegistry.RegisterBinding(@@BlockAverage, 'BlockAverage');
   ResamplersRegistry.RegisterBinding(@@Interpolator, 'Interpolator');
+  ResamplersRegistry.RegisterBinding(@@AlphaInterpolator, 'AlphaInterpolator');
 
-  ResamplersRegistry[@@BlockAverage].ADD(@BlockAverage_Pas, [isPascal]).Name := 'BlockAverage_Pas';
-  ResamplersRegistry[@@Interpolator].ADD(@Interpolator_Pas, [isPascal]).Name := 'Interpolator_Pas';
+  ResamplersRegistry[@@BlockAverage].Add(       @BlockAverage_Pas,      [isPascal]).Name := 'BlockAverage_Pas';
+  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_Pas,      [isPascal]).Name := 'Interpolator_Pas';
+  ResamplersRegistry[@@AlphaInterpolator].Add(  @AlphaInterpolator_Pas, [isPascal]).Name := 'AlphaInterpolator_Pas';
+
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  ResamplersRegistry[@@BlockAverage].ADD(@BlockAverage_SSE2, [isSSE2]).Name := 'BlockAverage_SSE2';
-  ResamplersRegistry[@@Interpolator].ADD(@Interpolator_SSE2, [isSSE2]).Name := 'Interpolator_SSE2';
+  ResamplersRegistry[@@BlockAverage].Add(       @BlockAverage_SSE2,     [isSSE2]).Name := 'BlockAverage_SSE2';
+  ResamplersRegistry[@@Interpolator].Add(       @Interpolator_SSE2,     [isSSE2]).Name := 'Interpolator_SSE2';
+{$if declared(AlphaInterpolator_SSE41)}
+  ResamplersRegistry[@@AlphaInterpolator].Add(  @AlphaInterpolator_SSE41,[isSSE41]).Name := 'AlphaInterpolator_SSE41';
 {$ifend}
+{$ifend}
+
   ResamplersRegistry.RebindAll;
 end;
 
