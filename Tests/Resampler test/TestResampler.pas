@@ -34,6 +34,12 @@ uses
 
 {$RANGECHECKS OFF}
 
+type
+  TColorGrid = record
+    Row1: array[0..1] of TColor32;
+    Row2: array[0..1] of TColor32;
+  end;
+
 { TTestResamplerPremultiplication }
 
 type
@@ -197,12 +203,15 @@ type
     B, G, R, A: Word; // 8.8 fixed precision
   end;
 
+  TColorFloat = record
+    B, G, R, A: Single;
+  end;
+
   function AlphaInterpolator_Reference(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
   var
     ColorCol1, ColorCol2: TColor32Entry;
-    Alpha1, Alpha2: PByteArray;
     Weight2: Cardinal;
-    ColorRow1, ColorRow2: TColor64;
+    ColorRow1, ColorRow2: TColorFloat;
   begin
     (*
     ** Lerp horizontally
@@ -213,24 +222,20 @@ type
     ColorCol1 := TColor32Entry(p11^);
     Inc(p11);
     ColorCol2 := TColor32Entry(p11^);
-    Alpha1 := @MulDiv255Table[ColorCol1.A]; // Premultiplication tables
-    Alpha2 := @MulDiv255Table[ColorCol2.A];
 
-    ColorRow1.R := (Alpha1[ColorCol1.R] * WeightX_256 + Alpha2[ColorCol2.R] * Weight2);
-    ColorRow1.G := (Alpha1[ColorCol1.G] * WeightX_256 + Alpha2[ColorCol2.G] * Weight2);
-    ColorRow1.B := (Alpha1[ColorCol1.B] * WeightX_256 + Alpha2[ColorCol2.B] * Weight2);
+    ColorRow1.R := (ColorCol1.R * ColorCol1.A / 255 * WeightX_256 + ColorCol2.R * ColorCol2.A / 255 * Weight2) * 255;
+    ColorRow1.G := (ColorCol1.G * ColorCol1.A / 255 * WeightX_256 + ColorCol2.G * ColorCol2.A / 255 * Weight2) * 255;
+    ColorRow1.B := (ColorCol1.B * ColorCol1.A / 255 * WeightX_256 + ColorCol2.B * ColorCol2.A / 255 * Weight2) * 255;
     ColorRow1.A := (ColorCol1.A * WeightX_256 + ColorCol2.A * Weight2);
 
     // Lerp second row horizontally
     ColorCol1 := TColor32Entry(p12^);
     Inc(p12);
     ColorCol2 := TColor32Entry(p12^);
-    Alpha1 := @MulDiv255Table[ColorCol1.A];
-    Alpha2 := @MulDiv255Table[ColorCol2.A];
 
-    ColorRow2.R := (Alpha1[ColorCol1.R] * WeightX_256 + Alpha2[ColorCol2.R] * Weight2);
-    ColorRow2.G := (Alpha1[ColorCol1.G] * WeightX_256 + Alpha2[ColorCol2.G] * Weight2);
-    ColorRow2.B := (Alpha1[ColorCol1.B] * WeightX_256 + Alpha2[ColorCol2.B] * Weight2);
+    ColorRow2.R := (ColorCol1.R * ColorCol1.A / 255 * WeightX_256 + ColorCol2.R * ColorCol2.A / 255 * Weight2) * 255;
+    ColorRow2.G := (ColorCol1.G * ColorCol1.A / 255 * WeightX_256 + ColorCol2.G * ColorCol2.A / 255 * Weight2) * 255;
+    ColorRow2.B := (ColorCol1.B * ColorCol1.A / 255 * WeightX_256 + ColorCol2.B * ColorCol2.A / 255 * Weight2) * 255;
     ColorRow2.A := (ColorCol1.A * WeightX_256 + ColorCol2.A * Weight2);
 
     (*
@@ -239,42 +244,59 @@ type
     Weight2 := 256-WeightY_256;
 
     // Lerp vertically between first and second row lerps
-    TColor32Entry(Result).A := (ColorRow1.A * WeightY_256 + ColorRow2.A * Weight2) shr 16;
-    // Unpremultiplication table
-    Alpha1 := @DivMul255Table[TColor32Entry(Result).A];
-    TColor32Entry(Result).R := Alpha1[(ColorRow1.R * WeightY_256 + ColorRow2.R * Weight2) shr 16];
-    TColor32Entry(Result).G := Alpha1[(ColorRow1.G * WeightY_256 + ColorRow2.G * Weight2) shr 16];
-    TColor32Entry(Result).B := Alpha1[(ColorRow1.B * WeightY_256 + ColorRow2.B * Weight2) shr 16];
+    ColorRow1.A := (ColorRow1.A * WeightY_256 + ColorRow2.A * Weight2);
+    ColorRow1.R := (ColorRow1.R * WeightY_256 + ColorRow2.R * Weight2);
+    ColorRow1.G := (ColorRow1.G * WeightY_256 + ColorRow2.G * Weight2);
+    ColorRow1.B := (ColorRow1.B * WeightY_256 + ColorRow2.B * Weight2);
+    if (ColorRow1.A <> 0) then
+    begin
+      TColor32Entry(Result).R := Round(ColorRow1.R / ColorRow1.A);
+      TColor32Entry(Result).G := Round(ColorRow1.G / ColorRow1.A);
+      TColor32Entry(Result).B := Round(ColorRow1.B / ColorRow1.A);
+      TColor32Entry(Result).A := Round(ColorRow1.A / 65536);
+    end else
+      Result := 0;
+  end;
+
+  procedure CheckAlmostEquals(Excepted, Actual: integer; const Msg: string; Epsilon: integer = 0);
+  begin
+    if (Abs(Excepted-Actual) > Epsilon) then
+      CheckEquals(Excepted, Actual, Msg);
+  end;
+
+  procedure DoTest(const Testcase: TColorGrid);
+  begin
+    for var WeightX_256 := 0 to 256 do
+    begin
+      for var WeightY_256 := 0 to 256 do
+      begin
+        var ColorExpected: TColor32Entry;
+        ColorExpected.ARGB := AlphaInterpolator_Reference(WeightX_256, WeightY_256, @Testcase.Row1[0], @Testcase.Row2[0]);
+
+        var ColorActual: TColor32Entry;
+        ColorActual.ARGB := GR32_Resamplers.AlphaInterpolator(WeightX_256, WeightY_256, @Testcase.Row1[0], @Testcase.Row2[0]);
+
+        CheckAlmostEquals(ColorExpected.A, ColorActual.A, Format('[A] WeightX_256: %d, WeightY_256: %d', [WeightX_256, WeightY_256]));
+        CheckAlmostEquals(ColorExpected.R, ColorActual.R, Format('[R] WeightX_256: %d, WeightY_256: %d', [WeightX_256, WeightY_256]));
+        CheckAlmostEquals(ColorExpected.G, ColorActual.G, Format('[G] WeightX_256: %d, WeightY_256: %d', [WeightX_256, WeightY_256]));
+        CheckAlmostEquals(ColorExpected.B, ColorActual.B, Format('[B] WeightX_256: %d, WeightY_256: %d', [WeightX_256, WeightY_256]));
+      end;
+    end;
   end;
 
 const
-  ColorOpaque: TColor32 = $FF00FF00; // Opaque green
-  ColorTransparent: TColor32 = $00FF00FF; // Transparent Red/Blue
-var
-  Color11: array[0..1] of TColor32;
-  Color12: array[0..1] of TColor32;
+  Testcase1: TColorGrid = (
+    Row1: ($FF00FF00, $00FF00FF);
+    Row2: ($00FF00FF, $FF00FF00)
+  );
+
+  Testcase2: TColorGrid = (
+    Row1: ($FF000000, $FF0000FF);
+    Row2: ($FF00FF00, $FFFFFFFF)
+  );
 begin
-  for var WeightX_256 := 0 to 256 do
-  begin
-    for var WeightY_256 := 0 to 256 do
-    begin
-      Color11[0] := ColorOpaque;
-      Color11[1] := ColorTransparent;
-      Color12[0] := ColorTransparent;
-      Color12[1] := ColorOpaque;
-
-      var ColorExpected: TColor32Entry;
-      ColorExpected.ARGB := AlphaInterpolator_Reference(WeightX_256, WeightY_256, @Color11[0], @Color12[0]);
-
-      var ColorActual: TColor32Entry;
-      ColorActual.ARGB := GR32_Resamplers.AlphaInterpolator(WeightX_256, WeightY_256, @Color11[0], @Color12[0]);
-
-      CheckEquals(ColorExpected.A, ColorActual.A);
-      CheckEquals(ColorExpected.R, ColorActual.R);
-      CheckEquals(ColorExpected.G, ColorActual.G, Format('WeightX_256: %d, WeightY_256: %d', [WeightX_256, WeightY_256]));
-      CheckEquals(ColorExpected.B, ColorActual.B);
-    end;
-  end;
+  DoTest(Testcase1);
+  DoTest(Testcase2);
 end;
 
 procedure TTestResamplerPremultiplication.Interpolator;
@@ -314,35 +336,39 @@ procedure TTestResamplerPremultiplication.Interpolator;
       Result := Lerp(C1, C3, WeightY_256);
   end;
 
-
-const
-  ColorOpaque: TColor32 = $FF00FF00; // Opaque green
-  ColorTransparent: TColor32 = $00FF00FF; // Transparent Red/Blue
-var
-  Color11: array[0..1] of TColor32;
-  Color12: array[0..1] of TColor32;
-begin
-  for var WeightX_256 := 0 to 256 do
+  procedure DoTest(const Testcase: TColorGrid);
   begin
-    for var WeightY_256 := 0 to 256 do
+    for var WeightX_256 := 0 to 256 do
     begin
-      Color11[0] := ColorOpaque;
-      Color11[1] := ColorTransparent;
-      Color12[0] := ColorTransparent;
-      Color12[1] := ColorOpaque;
+      for var WeightY_256 := 0 to 256 do
+      begin
+        var ColorExpected: TColor32Entry;
+        ColorExpected.ARGB := Interpolator_Reference(WeightX_256, WeightY_256, @Testcase.Row1[0], @Testcase.Row2[0]);
 
-      var ColorExpected: TColor32Entry;
-      ColorExpected.ARGB := Interpolator_Reference(WeightX_256, WeightY_256, @Color11[0], @Color12[0]);
+        var ColorActual: TColor32Entry;
+        ColorActual.ARGB := GR32_Resamplers.Interpolator(WeightX_256, WeightY_256, @Testcase.Row1[0], @Testcase.Row2[0]);
 
-      var ColorActual: TColor32Entry;
-      ColorActual.ARGB := GR32_Resamplers.Interpolator(WeightX_256, WeightY_256, @Color11[0], @Color12[0]);
-
-      CheckEquals(ColorExpected.A, ColorActual.A);
-      CheckEquals(ColorExpected.R, ColorActual.R);
-      CheckEquals(ColorExpected.G, ColorActual.G);
-      CheckEquals(ColorExpected.B, ColorActual.B);
+        CheckEquals(ColorExpected.A, ColorActual.A);
+        CheckEquals(ColorExpected.R, ColorActual.R);
+        CheckEquals(ColorExpected.G, ColorActual.G);
+        CheckEquals(ColorExpected.B, ColorActual.B);
+      end;
     end;
   end;
+
+const
+  Testcase1: TColorGrid = (
+    Row1: ($FF00FF00, $00FF00FF);
+    Row2: ($00FF00FF, $FF00FF00)
+  );
+
+  Testcase2: TColorGrid = (
+    Row1: ($FF000000, $FF0000FF);
+    Row2: ($FF00FF00, $FFFFFFFF)
+  );
+begin
+  DoTest(Testcase1);
+  DoTest(Testcase2);
 end;
 
 procedure TTestResamplerPremultiplication.StretchTransferBlock;

@@ -2978,6 +2978,184 @@ begin
   TColor32Entry(Result).B := Alpha1[(ColorRow1.B * WeightY_256 + ColorRow2.B * Weight2) shr 16];
 end;
 
+//------------------------------------------------------------------------------
+// AlphaInterpolator_SSE41
+//------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+function AlphaInterpolator_SSE41(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
+asm
+  // Parameters (x86):
+  //   EAX <- WeightX_256
+  //   EDX <- WeightY_256
+  //   ECX <- p11: PColor32
+  //   Stack[0] <- p12: PColor32
+  //
+  // Parameters (x64):
+  //   RCX <- WeightX_256
+  //   RDX <- WeightY_256
+  //   R8  <- p11: PColor32
+  //   R9  <- p12: PColor32
+  //   Preserves: (none)
+  //
+  // SSE register usage:
+  //   XMM0: p11[0]
+  //   XMM1: p11[1]
+  //   XMM2: p12[0]
+  //   XMM3: p12[1]
+  //   XMM4: Misc.
+  //   XMM5: SSE_FloatOne, SSE_FloatScale, misc.
+  //
+{$IFDEF TARGET_X64}
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+{$ENDIF}
+{$ENDIF}
+
+        (*
+        ** Zero-extension unpacking of the four pixels.
+        *)
+{$IFDEF TARGET_X64}
+
+        PMOVZXBD  XMM0, [R8]            // p11[0]
+        PMOVZXBD  XMM1, [R8 + 4]        // p11[1]
+        PMOVZXBD  XMM2, [R9]            // p12[0]
+        PMOVZXBD  XMM3, [R9 + 4]        // p12[1]
+
+{$ELSE}
+
+        PMOVZXBD  XMM0, [ECX]           // p11[0]
+        PMOVZXBD  XMM1, [ECX + 4]       // p11[1]
+
+        // Get p12 address from stack
+        MOV       ECX, [p12]
+
+        PMOVZXBD  XMM2, [ECX]           // p12[0]
+        PMOVZXBD  XMM3, [ECX + 4]       // p12[1]
+
+{$ENDIF}
+
+
+        (*
+        ** Conversion to floats.
+        *)
+        CVTDQ2PS  XMM0, XMM0
+        CVTDQ2PS  XMM1, XMM1
+        CVTDQ2PS  XMM2, XMM2
+        CVTDQ2PS  XMM3, XMM3
+
+{$IFNDEF FPC}
+        MOVUPS    XMM5, [SSE_FloatOne]  // Load unaligned
+{$ELSE}
+        MOVUPS    XMM5, [RIP+SSE_FloatOne]
+{$ENDIF}
+
+        (*
+        ** Premultiply RGB by Alpha using BLENDPS with multiplier mask [A, A, A, 1.0].
+        *)
+
+        // p11[0]
+        PSHUFD    XMM4, XMM0, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM0, XMM4
+        // p11[1]
+        PSHUFD    XMM4, XMM1, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM1, XMM4
+        // p12[0]
+        PSHUFD    XMM4, XMM2, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM2, XMM4
+        // p12[1]
+        PSHUFD    XMM4, XMM3, $FF
+        BLENDPS   XMM4, XMM5, $08
+        MULPS     XMM3, XMM4
+
+
+        (*
+        ** Horizontal Interpolation.
+        *)
+{$IFDEF TARGET_X64}
+        CVTSI2SS  XMM4, ECX
+        PSHUFD    XMM4, XMM4, 0
+        MOV       EAX, 256
+        SUB       EAX, ECX
+{$ELSE}
+        CVTSI2SS  XMM4, EAX             // WeightX = Single(WeightX)
+{$ENDIF}
+        PSHUFD    XMM4, XMM4, 0         // Broadcast WeightX
+
+{$IFDEF TARGET_X64}
+        MOV       EAX, 256
+        SUB       EAX, ECX
+{$ELSE}
+        NEG       EAX                   // WeightXi = 256-WeightX
+        ADD       EAX, 256
+{$ENDIF}
+        CVTSI2SS  XMM5, EAX             // WeightXi = Single(WeightXi)
+        PSHUFD    XMM5, XMM5, 0         // Broadcast 256-WeightX
+
+        // Lerp(p11[0], p11[1], WeightX)
+        MULPS     XMM0, XMM4
+        MULPS     XMM1, XMM5
+        ADDPS     XMM0, XMM1            // XMM0 <- Row 0 sum
+
+        // Lerp(p12[0], p12[1], WeightX)
+        MULPS     XMM2, XMM4
+        MULPS     XMM3, XMM5
+        ADDPS     XMM2, XMM3            // XMM2 <- Row 1 sum
+
+        (*
+        ** Vertical Interpolation.
+        *)
+        CVTSI2SS  XMM4, EDX             // WeightY = Single(WeightY)
+        PSHUFD    XMM4, XMM4, 0         // Broadcast WeightY
+
+        NEG       EDX                   // WeightYi = 256-WeightY
+        ADD       EDX, 256
+        CVTSI2SS  XMM5, EDX             // WeightYi = Single(WeightYi)
+        PSHUFD    XMM5, XMM5, 0         // Broadcast 256-WeightY
+
+        // Lerp(Row[0], Row[1], WeightY)
+        MULPS     XMM0, XMM4
+        MULPS     XMM2, XMM5
+        ADDPS     XMM0, XMM2            // XMM0 <- sum
+
+        (*
+        ** Unpremultiplication and Alpha normalization.
+        *)
+        PSHUFD    XMM1, XMM0, $FF       // Accumulated Alpha.
+        PXOR      XMM2, XMM2
+        MOVDQA    XMM3, XMM1
+        CMPPS     XMM3, XMM2, 0         // Zero Alpha mask.
+        DIVPS     XMM0, XMM1            // Normalize RGB.
+
+{$IFNDEF FPC}
+        MOVUPS    XMM5, [SSE_FloatScale]// Load unaligned
+{$ELSE}
+        MOVUPS    XMM5, [RIP+SSE_FloatScale]
+{$ENDIF}
+        MULPS     XMM1, XMM5            // Scale Alpha back to 8-bit range.
+        BLENDPS   XMM0, XMM1, $08       // Combine RGB and A.
+        ANDNPS    XMM3, XMM0            // Handle zero Alpha.
+
+        (*
+        ** Float -> integer
+        *)
+        CVTPS2DQ  XMM0, XMM3            // Round
+        PACKSSDW  XMM0, XMM2            // DWORD -> WORD
+        PACKUSWB  XMM0, XMM2            // WORD -> BYTE
+        MOVD      EAX, XMM0             // Result in EAX
+
+{$IFDEF TARGET_X64}
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+{$ENDIF}
+{$ENDIF}
+end;
+{$ifend}
+
 
 //------------------------------------------------------------------------------
 // Interpolator_Pas
@@ -5198,8 +5376,8 @@ begin
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   ResamplersRegistry[@@BlockAverage].Add(       @BlockAverage_SSE2,     [isSSE2]).Name := 'BlockAverage_SSE2';
   ResamplersRegistry[@@Interpolator].Add(       @Interpolator_SSE2,     [isSSE2]).Name := 'Interpolator_SSE2';
-{$if declared(AlphaInterpolator_SSE2)}
-  ResamplersRegistry[@@AlphaInterpolator].Add(  @AlphaInterpolator_SSE2,[isSSE2]).Name := 'AlphaInterpolator_SSE2';
+{$if declared(AlphaInterpolator_SSE41)}
+  ResamplersRegistry[@@AlphaInterpolator].Add(  @AlphaInterpolator_SSE41,[isSSE41]).Name := 'AlphaInterpolator_SSE41';
 {$ifend}
 {$ifend}
 

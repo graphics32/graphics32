@@ -108,6 +108,7 @@ const
   SSE_FloatOne          : array[0..3] of Single   = (1, 1, 1, 1);
   SSE_Float255          : array[0..3] of Single   = (255, 255, 255, 255);
   SSE_Float256x256      : array[0..3] of Single   = ($00010000, $00010000, $00010000, $00010000); // 256*256
+  SSE_FloatScale        : array[0..3] of Single   = (1/65536.0, 1/65536.0, 1/65536.0, 1/65536.0);
   SSE_IntAbsMask        : array[0..3] of Cardinal = ($7FFFFFFF, $7FFFFFFF, $7FFFFFFF, $7FFFFFFF);
 
 
