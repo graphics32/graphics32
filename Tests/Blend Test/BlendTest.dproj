@@ -107,6 +107,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
+        <DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -114,6 +115,7 @@
         </DelphiCompile>
         <DCCReference Include="TestGR32Blend.pas"/>
         <DCCReference Include="TestGR32BlendModes.pas"/>
+        <DCCReference Include="TestGR32Premultiply.pas"/>
         <DCCReference Include="..\..\Source\GR32_Blend.pas"/>
         <DCCReference Include="GR32_BlendReference.pas"/>
         <BuildConfiguration Include="Base">
