@@ -119,6 +119,13 @@ procedure ScaleMems_Pas(Dst: PColor32; Count: Integer; Weight: Cardinal);
 
 
 //------------------------------------------------------------------------------
+// Premultiply/Unpremultiply
+//------------------------------------------------------------------------------
+procedure PremultiplyMem_Pas(Pixels: PColor32Entry; Count: Integer);
+procedure UnpremultiplyMem_Pas(Pixels: PColor32Entry; Count: Integer);
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -1076,6 +1083,63 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+// Premultiply/Unpremultiply
+//------------------------------------------------------------------------------
+procedure PremultiplyMem_Pas(Pixels: PColor32Entry; Count: Integer);
+var
+  Div255: PLUT8;
+begin
+  while Count > 0 do
+  begin
+    if (Pixels.A = 0) then
+      Pixels.ARGB := 0
+    else
+    if (Pixels.A < 255) then
+    begin
+      Div255 := @MulDiv255Table[Pixels.A];
+      Pixels.R := Div255[Pixels.R];
+      Pixels.G := Div255[Pixels.G];
+      Pixels.B := Div255[Pixels.B];
+(*
+      Pixels.R := MulDiv255Table[Pixels.R, Pixels.A];
+      Pixels.G := MulDiv255Table[Pixels.G, Pixels.A];
+      Pixels.B := MulDiv255Table[Pixels.B, Pixels.A];
+*)
+    end;
+    Inc(Pixels);
+    Dec(Count);
+  end;
+end;
+
+procedure UnpremultiplyMem_Pas(Pixels: PColor32Entry; Count: Integer);
+var
+  Mul255: PLUT8;
+begin
+  while Count > 0 do
+  begin
+    if (Pixels.A = 0) then
+      Pixels.ARGB := 0
+    else
+    if (Pixels.A < 255) then
+    begin
+      Mul255 := @DivMul255Table[Pixels.A];
+      Pixels.R := Mul255[Pixels.R];
+      Pixels.G := Mul255[Pixels.G];
+      Pixels.B := Mul255[Pixels.B];
+(*
+      Pixels.R := DivMul255Table[Pixels.A, Pixels.R];
+      Pixels.G := DivMul255Table[Pixels.A, Pixels.G];
+      Pixels.B := DivMul255Table[Pixels.A, Pixels.B];
+*)
+    end;
+    Inc(Pixels);
+    Dec(Count);
+  end;
+end;
+
+
 //------------------------------------------------------------------------------
 //
 //      Bindings
@@ -1129,6 +1193,9 @@ begin
 
   BlendRegistry[@@LightenReg].Add(    @LightenReg_Pas,        [isPascal]).Name := 'LightenReg_Pas';
   BlendRegistry[@@ScaleMems].Add(     @ScaleMems_Pas,         [isPascal]).Name := 'ScaleMems_Pas';
+
+  BlendRegistry[@@PremultiplyMem].Add(@PremultiplyMem_Pas,    [isPascal]).Name := 'PremultiplyMem_Pas';
+  BlendRegistry[@@UnpremultiplyMem].Add(@UnpremultiplyMem_Pas,[isPascal]).Name := 'UnpremultiplyMem_Pas';
 end;
 
 //------------------------------------------------------------------------------

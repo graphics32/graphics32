@@ -144,6 +144,10 @@ type
 //------------------------------------------------------------------------------
   TLightenReg  = function(C: TColor32; Amount: Integer): TColor32;
   TScaleMems = procedure(Dst: PColor32; Count: Integer; Weight: Cardinal);
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+  TPremultiplyMem = procedure(Pixels: PColor32; Count: Integer);
 
 
 //------------------------------------------------------------------------------
@@ -221,6 +225,33 @@ var
   Lighten: TLightenReg absolute LightenReg; // Lighten is an alias for LightenReg
   ScaleMems: TScaleMems;
 
+//------------------------------------------------------------------------------
+// Premultiply/Unpremultiply
+//------------------------------------------------------------------------------
+// Alpha Premultiplication:
+//   In a premultiplied alpha color format, the RGB components are multiplied
+//   by the alpha component:
+//
+//     C' = C * A
+//
+//     C' = (C * A + 127) div 255
+//
+//   This operation is commonly used to simplify compositing and filtering.
+//
+// Alpha Unpremultiplication:
+//   Converts premultiplied alpha colors back to straight alpha:
+//
+//     C = C' / A
+//
+//     C = (C' * 255 + A/2) div A
+//
+//   RGB result is defined as 0 if A = 0.
+//
+// The original Alpha channel is always preserved for both premultiplication and
+// unpremultiplication.
+//------------------------------------------------------------------------------
+  PremultiplyMem: TPremultiplyMem;
+  UnpremultiplyMem: TPremultiplyMem;
 
 //------------------------------------------------------------------------------
 //
@@ -392,6 +423,13 @@ var
 
 
 //------------------------------------------------------------------------------
+// Premultiply/Unpremultiply utilities
+//------------------------------------------------------------------------------
+procedure Premultiply32(Bitmap: TCustomBitmap32);
+procedure Unpremultiply32(Bitmap: TCustomBitmap32);
+
+
+//------------------------------------------------------------------------------
 //
 //      Backward compatibility
 //
@@ -525,6 +563,23 @@ end;
 
 
 //------------------------------------------------------------------------------
+// Premultiply/Unpremultiply utilities
+//------------------------------------------------------------------------------
+procedure Premultiply32(Bitmap: TCustomBitmap32);
+begin
+  PremultiplyMem(pointer(Bitmap.Bits), Bitmap.Width*Bitmap.Height);
+  Bitmap.Changed;
+end;
+
+procedure Unpremultiply32(Bitmap: TCustomBitmap32);
+begin
+  UnpremultiplyMem(pointer(Bitmap.Bits), Bitmap.Width*Bitmap.Height);
+  Bitmap.Changed;
+end;
+
+
+
+//------------------------------------------------------------------------------
 //
 //      Function bindings
 //
@@ -575,6 +630,9 @@ begin
 
   BlendRegistry.RegisterBinding(FID_LIGHTEN,            @@LightenReg,   'LightenReg');
   BlendRegistry.RegisterBinding(@@ScaleMems,                            'ScaleMems');
+
+  BlendRegistry.RegisterBinding(@@PremultiplyMem,                       'PremultiplyMem');
+  BlendRegistry.RegisterBinding(@@UnpremultiplyMem,                     'UnpremultiplyMem');
 end;
 
 var
@@ -599,7 +657,7 @@ initialization
 
   AlphaTable := nil;
 
-  if [isSSE2] * CPU.InstructionSupport <> [] then
+  if (isSSE2 in CPU.InstructionSupport) then
     GenAlphaTable;
 
 finalization
