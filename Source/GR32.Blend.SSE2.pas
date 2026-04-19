@@ -2647,7 +2647,7 @@ begin
   BlendRegistry[@@ScaleMems].Add(     @ScaleMems_SSE41,       [isSSE41]).Name := 'ScaleMems_SSE41';
 {$ifend}
 
-{$if defined(TEST_BLENDMEMRGB128SSE4) or defined(BENCHMARK)}
+{$if defined(TEST_BLENDMEMRGB128SSE4)}
   BlendRegistry[@@BlendMemRGB128].Add(@BlendMemRGB128_SSE4,   [isSSE2]).Name := 'BlendMemRGB128_SSE4';
 {$ifend}
 
