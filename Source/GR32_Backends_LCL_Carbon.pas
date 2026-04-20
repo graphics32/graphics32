@@ -263,7 +263,7 @@ begin
 
   { clear the image }
   if ClearBuffer then
-    FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
+    FillLongword(FBits[0], NewWidth * NewHeight, 0);
 
   {$IFDEF VerboseGR32Carbon}
     WriteLn('[TLCLBackend.InitializeSurface] END');

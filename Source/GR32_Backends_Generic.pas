@@ -102,7 +102,7 @@ procedure TMemoryBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBu
 begin
   GetMem(FBits, NewWidth * NewHeight * 4);
   if ClearBuffer then
-    FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
+    FillLongword(FBits[0], NewWidth * NewHeight, 0);
 end;
 
 procedure TMemoryBackend.FinalizeSurface;
@@ -150,7 +150,7 @@ begin
     raise Exception.Create(RCStrFailedToMapViewOfFile);
 
   if ClearBuffer then
-    FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
+    FillLongword(FBits[0], NewWidth * NewHeight, 0);
 end;
 
 

@@ -273,6 +273,8 @@ begin
     FBits := nil;
     raise EBackend.Create(RCStrCannotSelectAnObjectIntoDC);
   end;
+
+  // No need to handle ClearBuffer; News DIB created by CreateDIBSection are guaranteed to be zero initialized.
 end;
 
 function TGDIBackend.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
