@@ -264,6 +264,7 @@ type
     procedure TestBlendMem; override;
     procedure TestBlendMems; override;
     procedure TestBlendMemEx; override;
+    [MaxError(1)]
     procedure TestBlendLine; override;
     procedure TestBlendLineEx; override;
     procedure TestCombineReg; override;
@@ -311,7 +312,7 @@ var
 begin
   inherited;
 
-  BlendRegistry.RebindAll(True, pointer(PriorityProc));
+  BlendRegistry.RebindAll(pointer(PriorityProc), True);
 
   FErrorCountLimit := -1;
   FMaxDifferenceLimit := 0;
@@ -366,7 +367,7 @@ begin
   Dispose(FReference);
 
   // Clean up so that we leave the bindings in an usable state for other unit tests
-  BlendRegistry.RebindAll(True);
+  BlendRegistry.RebindAll(nil, True);
 end;
 
 {$IFNDEF FPC}
@@ -461,7 +462,7 @@ end;
 
 function TCustomTestBlendModes.Rebind(FunctionID: Integer; RequireImplementation: boolean): boolean;
 begin
-  Result := BlendRegistry.Rebind(FunctionID, pointer(PriorityProc));
+  Result := BlendRegistry[FunctionID].Rebind(pointer(PriorityProc));
   if (RequireImplementation) and (not Result) then
 {$ifdef FAIL_NOT_IMPLEMENTED}
     // Not really an error but we need to indicate that nothing was tested

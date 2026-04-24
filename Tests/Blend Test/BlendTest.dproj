@@ -113,6 +113,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="TestGR32Blend.pas"/>
+        <DCCReference Include="TestGR32BlendModes.pas"/>
         <DCCReference Include="..\..\Source\GR32_Blend.pas"/>
         <DCCReference Include="GR32_BlendReference.pas"/>
         <BuildConfiguration Include="Base">
