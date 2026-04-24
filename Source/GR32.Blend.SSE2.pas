@@ -64,6 +64,9 @@ function BlendRegRGB_SSE2(F, B: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} a
 procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
+{$if not defined(FPC)}
+procedure BlendLine_SSE41(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
+{$ifend}
 procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
 
 
@@ -636,6 +639,371 @@ end;
 
 //------------------------------------------------------------------------------
 // BlendLine
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// BlendLine_SSE41
+//
+// - Estimates x * alpha / 255 as ((x * alpha * 0x8081) + bias) >> 23.
+//
+// - Uses PTEST for 4-pixel early exit (skipping entirely transparent blocks or
+//   copying entirely opaque blocks).
+//
+// - Uses PMOVZXBW for efficient unpacking of byte components to words.
+//
+// - Unrolls the main loop to process 4 pixels per iteration.
+//
+// - FPC is not supported.
+//------------------------------------------------------------------------------
+{$if not defined(FPC)}
+procedure BlendLine_SSE41(Src, Dst: PColor32; Count: Integer);
+asm
+{$if defined(TARGET_X86)}
+  //
+  // Parameters (x86):
+  //   EAX <- Src
+  //   EDX <- Dst
+  //   ECX <- Count
+  //
+  // SSE register usage:
+  //   XMM0: 4 pixels
+  //   XMM1: Misc.
+  //   XMM2: Misc.
+  //   XMM3: Misc.
+  //   XMM4: Zero
+  //   XMM5: Bias
+  //   XMM6: Alpha Mask
+  //   XMM7: Misc.
+  //
+
+        TEST      ECX,ECX
+        JLE       @Done
+
+        PUSH      EBX
+        PUSH      ESI
+
+        MOV       ESI, [bias_ptr]
+        MOVDQA    XMM5, [ESI]      // XMM5 = Bias constant ($0080 per word) for (x + 128) div 256
+
+        PXOR      XMM4, XMM4       // XMM4 = Zero
+        PCMPEQD   XMM6, XMM6
+        PSLLD     XMM6, 24         // XMM6 = Alpha Mask ($FF000000 per dword)
+
+        SUB       ECX, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQU    XMM0, [EAX]      // Load 4 source pixels: [s4 s3 s2 s1]
+        // Early exit: If all pixels in the block are fully transparent (Alpha=0), skip them.
+        PTEST     XMM0, XMM6
+        JZ        @Next4           // ZF=1: All alphas are 0
+
+        MOVDQU    XMM1, [EDX]      // Load 4 destination pixels: [d4 d3 d2 d1]
+        // Early exit: If all pixels in the block are fully opaque (Alpha=255), direct copy.
+        // PTEST sets CF if (NOT XMM0 AND XMM6) == 0. With XMM6 as alpha mask,
+        // this means all alpha bits in XMM0 are set.
+        JC        @Opaque4         // CF=1: All alphas are 255
+
+        // --- Pixels 1 & 2 ---
+        // Unpack pixels 1 and 2 to 16-bit words using SSE4.1 zero-extension
+        PMOVZXBW  XMM2, XMM0       // XMM2 = [00sa 00sr 00sg 00sb | 00sa 00sr 00sg 00sb] (pixels 1 & 2)
+        PMOVZXBW  XMM3, XMM1       // XMM3 = [00da 00dr 00dg 00db | 00da 00dr 00dg 00db] (pixels 1 & 2)
+
+        // Broadcast alpha for pixels 1 and 2
+        PSHUFLW   XMM7, XMM2, $FF
+        PSHUFHW   XMM7, XMM7, $FF  // XMM7 = [sa sa sa sa | sa sa sa sa] (broadcasted)
+
+        // Src pre-multiplication: Src_pre = (Src * Alpha + 128) >> 8
+        MOVDQA    XMM4, XMM7
+        PSRLQ     XMM4, 16         // Shift multipliers to clear Alpha channel: [00 sa sa sa]
+        PMULLW    XMM2, XMM4       // Multiply RGB components by alpha
+        PADDW     XMM2, XMM5       // Add rounding bias ($0080 per word)
+        PSRLW     XMM2, 8          // Divide by 256
+        PSLLQ     XMM4, 48         // Restore alpha component: [sa 00 00 00]
+        POR       XMM2, XMM4       // XMM2 = [sa sr' sg' sb'] (Source pre-multiplied)
+
+        // Blend: Result = Src_pre + Dst - (Dst * Alpha + 128) >> 8
+        // This is equivalent to Porter-Duff 'Over': Src + Dst * (1 - Alpha)
+        MOVDQA    XMM4, XMM3       // Keep copy of unpacked Destination
+        PMULLW    XMM3, XMM7       // Dst * Alpha (including Alpha channel)
+        PADDW     XMM3, XMM5       // Add bias
+        PSRLW     XMM3, 8          // Divide by 256
+        PADDW     XMM2, XMM4       // Add Src_pre and Dst
+        PSUBW     XMM2, XMM3       // Subtract (Dst * Alpha) part
+
+        // --- Pixels 3 & 4 ---
+        // Access high 64-bits of previously loaded pixels using shuffles
+        PSHUFD    XMM3, XMM0, $EE  // Src pixels 3 & 4
+        PSHUFD    XMM4, XMM1, $EE  // Dst pixels 3 & 4
+        PMOVZXBW  XMM3, XMM3       // Unpack to words
+        PMOVZXBW  XMM4, XMM4
+
+        PSHUFLW   XMM7, XMM3, $FF
+        PSHUFHW   XMM7, XMM7, $FF  // Alpha multipliers 3 & 4
+
+        // Src pre-multiplication 3 & 4
+        MOVDQA    XMM1, XMM7
+        PSRLQ     XMM1, 16
+        PMULLW    XMM3, XMM1
+        PADDW     XMM3, XMM5
+        PSRLW     XMM3, 8
+        PSLLQ     XMM1, 48
+        POR       XMM3, XMM1       // XMM3 = Src_pre 3 & 4
+
+        // Result 3 & 4
+        MOVDQA    XMM1, XMM4       // Copy Dst
+        PMULLW    XMM4, XMM7       // Dst * Alpha
+        PADDW     XMM4, XMM5
+        PSRLW     XMM4, 8
+        PADDW     XMM3, XMM1
+        PSUBW     XMM3, XMM4       // XMM3 = Result 3 & 4
+
+        // Pack 4 pixels (from words back to bytes) and store
+        PACKUSWB  XMM2, XMM3       // Pack XMM2 (1 & 2) and XMM3 (3 & 4) into XMM2
+        MOVDQU    [EDX], XMM2
+        PXOR      XMM4,XMM4        // Re-zero XMM4 for tail or next iteration
+
+@Next4:
+        ADD       EAX, 16
+        ADD       EDX, 16
+        SUB       ECX, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       ECX, 4
+        JZ        @Exit
+
+@TailLoop:
+        // Scalar fallback for remaining 1-3 pixels
+        MOV       EBX, [EAX]       // EBX = Current Source pixel
+        TEST      EBX, $FF000000   // Check alpha
+        JZ        @TailNext        // Skip if fully transparent
+        CMP       EBX, $FF000000
+        JNC       @TailOpaque      // Direct copy if fully opaque
+
+        // Blend individual pixel
+        MOVD      XMM0, EBX        // XMM0 = Src
+        MOVD      XMM1, [EDX]      // XMM1 = Dst
+        PUNPCKLBW XMM0, XMM4       // Unpack Src to words
+        PUNPCKLBW XMM1, XMM4       // Unpack Dst to words
+        PSHUFLW   XMM2, XMM0, $FF  // Broadcast Alpha multiplier
+
+        // Pre-multiply Source: Src_pre = (Src * Alpha + 128) >> 8
+        MOVDQA    XMM3, XMM2
+        PSRLQ     XMM3, 16         // RGB multiplier
+        PMULLW    XMM0, XMM3
+        PADDW     XMM0, XMM5
+        PSRLW     XMM0, 8
+        PSLLQ     XMM3, 48         // Alpha for restore
+        POR       XMM0, XMM3       // XMM0 = Src_pre
+
+        // Blend: Result = Src_pre + Dst - (Dst * Alpha + 128) >> 8
+        PMULLW    XMM2, XMM1
+        PADDW     XMM2, XMM5
+        PSRLW     XMM2, 8
+        PADDW     XMM0, XMM1
+        PSUBW     XMM0, XMM2
+        PACKUSWB  XMM0, XMM4       // Pack result word -> byte
+        MOVD      [EDX], XMM0
+        JMP       @TailNext
+
+@Opaque4:
+        MOVDQU    [EDX], XMM0      // All opaque, direct copy source to destination
+        JMP       @Next4
+
+@TailOpaque:
+        MOV       [EDX], EBX       // All opaque, direct copy
+
+@TailNext:
+        ADD       EAX, 4
+        ADD       EDX, 4
+        DEC       ECX
+        JNZ       @TailLoop
+        // Fall through to @Exit
+
+@Exit:
+        POP       ESI
+        POP       EBX
+
+@Done:
+
+{$elseif defined(TARGET_X64)}
+  //
+  // Parameters (x64):
+  //   RCX <- Src
+  //   RDX <- Dst
+  //   R8D <- Count
+  //
+  // SSE register usage:
+  //   XMM0: 4 pixels
+  //   XMM1: Misc.
+  //   XMM2: Misc.
+  //   XMM3: Misc.
+  //   XMM4: Zero
+  //   XMM5: Bias
+  //   XMM6: Alpha Mask
+  //   XMM7: Misc.
+  //   XMM8: Misc.
+  //   XMM9: Misc.
+  //   XMM10: Misc.
+  //
+
+        TEST      R8D,R8D
+        JLE       @Done
+
+        .SAVENV XMM4
+        .SAVENV XMM5
+        .SAVENV XMM6
+        .SAVENV XMM7
+        .SAVENV XMM8
+        .SAVENV XMM9
+        .SAVENV XMM10
+
+        PXOR      XMM4, XMM4       // XMM4 = Zero
+        MOV       RAX, bias_ptr
+        MOVDQA    XMM5, [RAX]      // XMM5 = Bias constant ($0080 per word)
+
+        PCMPEQD   XMM6, XMM6
+        PSLLD     XMM6, 24         // XMM6 = Alpha Mask ($FF000000 per dword)
+
+        SUB       R8D, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQU    XMM0, [RCX]      // Load 4 source pixels
+        // Early exit: If all pixels in the block are fully transparent (Alpha=0), skip them.
+        PTEST     XMM0, XMM6
+        JZ        @Next4           // All transparent
+
+        MOVDQU    XMM1, [RDX]      // Load 4 destination pixels
+        // Early exit: If all pixels in the block are fully opaque (Alpha=255), direct copy.
+        JC        @Opaque4         // All opaque
+
+        // --- Pixels 1 & 2 ---
+        // Unpack pixels to words using SSE4.1 zero-extension
+        PMOVZXBW  XMM2, XMM0       // XMM2 = Src 1 & 2 unpacked
+        PMOVZXBW  XMM3, XMM1       // XMM3 = Dst 1 & 2 unpacked
+        PSHUFLW   XMM7, XMM2, $FF
+        PSHUFHW   XMM7, XMM7, $FF  // Alpha multipliers 1 & 2
+
+        // Src pre-multiplication 1 & 2
+        MOVDQA    XMM8, XMM7
+        PSRLQ     XMM8, 16
+        PMULLW    XMM2, XMM8
+        PADDW     XMM2, XMM5
+        PSRLW     XMM2, 8
+        PSLLQ     XMM8, 48
+        POR       XMM2, XMM8       // XMM2 = Src_pre 1 & 2
+
+        // Blend: Result = Src_pre + Dst - (Dst * Alpha + 128) >> 8
+        MOVDQA    XMM8, XMM3       // Dst 1 & 2 copy
+        PMULLW    XMM3, XMM7       // Dst * Alpha
+        PADDW     XMM3, XMM5
+        PSRLW     XMM3, 8
+        PADDW     XMM2, XMM8
+        PSUBW     XMM2, XMM3       // XMM2 = Result 1 & 2
+
+        // --- Pixels 3 & 4 ---
+        // Access high 64-bits of previously loaded pixels
+        PSHUFD    XMM8, XMM0, $EE  // Src 3 & 4
+        PSHUFD    XMM9, XMM1, $EE  // Dst 3 & 4
+        PMOVZXBW  XMM8, XMM8
+        PMOVZXBW  XMM9, XMM9
+        PSHUFLW   XMM7, XMM8, $FF
+        PSHUFHW   XMM7, XMM7, $FF  // Alpha multipliers 3 & 4
+
+        // Src pre-multiplication 3 & 4
+        MOVDQA    XMM10, XMM7
+        PSRLQ     XMM10, 16
+        PMULLW    XMM8, XMM10
+        PADDW     XMM8, XMM5
+        PSRLW     XMM8, 8
+        PSLLQ     XMM10, 48
+        POR       XMM8, XMM10      // XMM8 = Src_pre 3 & 4
+
+        // Result 3 & 4
+        MOVDQA    XMM10, XMM9      // Dst 3 & 4 copy
+        PMULLW    XMM9, XMM7       // Dst * Alpha
+        PADDW     XMM9, XMM5
+        PSRLW     XMM9, 8
+        PADDW     XMM8, XMM10
+        PSUBW     XMM8, XMM9       // XMM8 = Result 3 & 4
+
+        // Pack 4 pixels (from words back to bytes) and store
+        PACKUSWB  XMM2, XMM8       // Pack XMM2 (1 & 2) and XMM8 (3 & 4) into XMM2
+        MOVDQU    [RDX], XMM2
+
+@Next4:
+        ADD       RCX, 16
+        ADD       RDX, 16
+        SUB       R8D, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       R8D, 4
+        JZ        @Done
+
+        PXOR      XMM4,XMM4        // Re-zero XMM4 for tail fallback
+
+@TailLoop:
+        // Scalar fallback for remaining pixels
+        MOV       EAX, [RCX]       // EAX = Current Source pixel
+        TEST      EAX, $FF000000   // Check alpha
+        JZ        @TailNext        // Skip if fully transparent
+        CMP       EAX, $FF000000
+        JNC       @TailOpaque      // Direct copy if fully opaque
+
+        // Blend individual pixel
+        MOVD      XMM0, EAX        // XMM0 = Src
+        MOVD      XMM1, [RDX]      // XMM1 = Dst
+        PUNPCKLBW XMM0, XMM4       // Unpack Src to words
+        PUNPCKLBW XMM1, XMM4       // Unpack Dst to words
+        PSHUFLW   XMM2, XMM0, $FF  // Broadcast Alpha multiplier
+
+        // Pre-multiply Source: Src_pre = (Src * Alpha + 128) >> 8
+        MOVDQA    XMM3, XMM2
+        PSRLQ     XMM3, 16         // RGB multiplier
+        PMULLW    XMM0, XMM3
+        PADDW     XMM0, XMM5
+        PSRLW     XMM0, 8
+        PSLLQ     XMM3, 48         // Alpha for restore
+        POR       XMM0, XMM3       // XMM0 = Src_pre
+
+        // Blend: Result = Src_pre + Dst - (Dst * Alpha + 128) >> 8
+        PMULLW    XMM2, XMM1
+        PADDW     XMM2, XMM5
+        PSRLW     XMM2, 8
+        PADDW     XMM0, XMM1
+        PSUBW     XMM0, XMM2
+        PACKUSWB  XMM0, XMM4       // Pack result word -> byte
+        MOVD      [RDX], XMM0
+        JMP       @TailNext
+
+@Opaque4:
+        MOVDQU    [RDX], XMM0      // All opaque, direct copy source to destination
+        JMP       @Next4
+
+@TailOpaque:
+        MOV       [RDX], EAX       // All opaque, direct copy
+
+@TailNext:
+        ADD       RCX, 4
+        ADD       RDX, 4
+        DEC       R8D
+        JNZ       @TailLoop
+        // Fall through to @Done
+        // JMP       @Done
+
+@Done:
+
+{$else}
+{$message fatal 'Unsupported target'}
+{$ifend}
+
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+// BlendLine_SSE2
 //------------------------------------------------------------------------------
 procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 {$IFDEF FPC}
@@ -2626,6 +2994,9 @@ begin
   BlendRegistry[@@BlendMems].Add(     @BlendMems_SSE2,        [isSSE2]).Name := 'BlendMems_SSE2';
   BlendRegistry[@@BlendMemEx].Add(    @BlendMemEx_SSE2,       [isSSE2]).Name := 'BlendMemEx_SSE2';
   BlendRegistry[@@BlendLine].Add(     @BlendLine_SSE2,        [isSSE2]).Name := 'BlendLine_SSE2';
+{$if not defined(FPC)}
+  BlendRegistry[@@BlendLine].Add(     @BlendLine_SSE41,       [isSSE41]).Name := 'BlendLine_SSE41';
+{$ifend}
   BlendRegistry[@@BlendLineEx].Add(   @BlendLineEx_SSE2,      [isSSE2]).Name := 'BlendLineEx_SSE2';
   BlendRegistry[@@BlendRegEx].Add(    @BlendRegEx_SSE2,       [isSSE2]).Name := 'BlendRegEx_SSE2';
   BlendRegistry[@@ColorMax].Add(      @ColorMax_SSE2,         [isSSE2]).Name := 'ColorMax_SSE2';

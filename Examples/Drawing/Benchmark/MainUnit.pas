@@ -170,7 +170,7 @@ begin
   begin
     // For profiling we need constant work, not constant time
     Samples := 10;
-    Iterations := 1000;
+    Iterations := 5000;
     TestTime := 0;
   end else
     Iterations := 10;
