@@ -104,6 +104,7 @@ type
     procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; MaxDifferenceLimit: Byte; const AExtra: string; const AExtraParams: array of const); overload;
 
     function Rebind(FunctionID: Integer; RequireImplementation: boolean = True): boolean;
+    function RebindFallback(FunctionID: Integer): boolean;
     class function PriorityProc: TFunctionPriority; virtual; abstract;
 
     procedure TestBlendReg; virtual;
@@ -462,11 +463,34 @@ end;
 
 function TCustomTestBlendModes.Rebind(FunctionID: Integer; RequireImplementation: boolean): boolean;
 begin
-  Result := BlendRegistry[FunctionID].Rebind(pointer(PriorityProc));
+  Result := BlendRegistry[FunctionID].Rebind(pointer(PriorityProc), True);
   if (RequireImplementation) and (not Result) then
 {$ifdef FAIL_NOT_IMPLEMENTED}
     // Not really an error but we need to indicate that nothing was tested
-    Fail('Not implemented');
+    Fail('Not implemented: '+BlendRegistry[FunctionID].Name);
+{$else}
+    Enabled := False;
+{$endif}
+end;
+
+function TCustomTestBlendModes.RebindFallback(FunctionID: Integer): boolean;
+begin
+  // A fallback is a function that is used by a blend function when an actual
+  // implementation isn't available.
+  //
+  // For example, MergeMems_Pas and MergeLine_Pas are implemented as loops that
+  // call MergeReg.
+  // This means that if, for example, MergeReg_SSE2 is implemented but
+  // MergeLine_SSE2 isn't implemented, then calling MergeLine will in effect
+  // call MergeLine_Pas which will then call MergeReg_SSE2.
+
+  Result := BlendRegistry[FunctionID].Rebind(pointer(PriorityProc), True);
+  if (not Result) then
+    Result := BlendRegistry[FunctionID].Rebind(nil, True);
+
+  if (not Result) then
+{$ifdef FAIL_NOT_IMPLEMENTED}
+    Status('Fallback not implemented: '+BlendRegistry[FunctionID].Name);
 {$else}
     Enabled := False;
 {$endif}
@@ -1034,12 +1058,14 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_MERGEREG);
   if (not Rebind(FID_MERGEREGEX)) then
   begin
     Check(True);
     Exit;
   end;
+
+  // Rebind fallback functions
+  RebindFallback(FID_MERGEREG);
 
   BlendColor32.ARGB := TColor32($1002050B);
   MergeColor32.ARGB := TColor32($01000000);
@@ -1145,13 +1171,15 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_MERGEREG);
-  Rebind(FID_MERGEMEM);
   if (not Rebind(FID_MERGEMEMEX)) then
   begin
     Check(True);
     Exit;
   end;
+
+  // Rebind fallback functions
+  RebindFallback(FID_MERGEREG);
+  RebindFallback(FID_MERGEMEM);
 
   // Test for alpha-premultiplication; Color with Alpha=0 should not contribute to result
   ExpectedColor32.ARGB := $00FF0000;
@@ -1202,12 +1230,13 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
-  Rebind(FID_MERGEREG);
   if (not Rebind(FID_MERGELINE)) then
   begin
     Check(True);
     Exit;
   end;
+
+  RebindFallback(FID_MERGEREG);
 
   // Test for alpha-premultiplication; Color with Alpha=0 should not contribute to result
   for Index := 0 to High(Byte) do
