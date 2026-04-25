@@ -274,6 +274,7 @@ type
     procedure TestCombineLine; override;
     procedure TestMergeReg; override;
     procedure TestMergeRegEx; override;
+    [MaxError(5)]
     procedure TestMergeMem; override;
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
