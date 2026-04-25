@@ -27,6 +27,9 @@
         <Projects Include="Polygons.MakeAlpha\Benchmark.Polygons.MakeAlpha.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Blend.Merge\Benchmark.Blend.MergeMem.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -107,14 +110,23 @@
     <Target Name="Benchmark_Polygons_MakeAlpha:Make">
         <MSBuild Projects="Polygons.MakeAlpha\Benchmark.Polygons.MakeAlpha.dproj" Targets="Make"/>
     </Target>
+    <Target Name="Benchmark_Blend_MergeMem">
+        <MSBuild Projects="Blend.Merge\Benchmark.Blend.MergeMem.dproj"/>
+    </Target>
+    <Target Name="Benchmark_Blend_MergeMem:Clean">
+        <MSBuild Projects="Blend.Merge\Benchmark.Blend.MergeMem.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Benchmark_Blend_MergeMem:Make">
+        <MSBuild Projects="Blend.Merge\Benchmark.Blend.MergeMem.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="Benchmark_Blur;Benchmark_Transpose;Benchmark_VectorUtils_BuildPolyline;Benchmark_Mirror;Benchmark_Blend_CombineMem;Benchmark_LowLevel_FastTrunc;Benchmark_Math_CumSum;Benchmark_Polygons_MakeAlpha"/>
+        <CallTarget Targets="Benchmark_Blur;Benchmark_Transpose;Benchmark_VectorUtils_BuildPolyline;Benchmark_Mirror;Benchmark_Blend_CombineMem;Benchmark_LowLevel_FastTrunc;Benchmark_Math_CumSum;Benchmark_Polygons_MakeAlpha;Benchmark_Blend_MergeMem"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="Benchmark_Blur:Clean;Benchmark_Transpose:Clean;Benchmark_VectorUtils_BuildPolyline:Clean;Benchmark_Mirror:Clean;Benchmark_Blend_CombineMem:Clean;Benchmark_LowLevel_FastTrunc:Clean;Benchmark_Math_CumSum:Clean;Benchmark_Polygons_MakeAlpha:Clean"/>
+        <CallTarget Targets="Benchmark_Blur:Clean;Benchmark_Transpose:Clean;Benchmark_VectorUtils_BuildPolyline:Clean;Benchmark_Mirror:Clean;Benchmark_Blend_CombineMem:Clean;Benchmark_LowLevel_FastTrunc:Clean;Benchmark_Math_CumSum:Clean;Benchmark_Polygons_MakeAlpha:Clean;Benchmark_Blend_MergeMem:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="Benchmark_Blur:Make;Benchmark_Transpose:Make;Benchmark_VectorUtils_BuildPolyline:Make;Benchmark_Mirror:Make;Benchmark_Blend_CombineMem:Make;Benchmark_LowLevel_FastTrunc:Make;Benchmark_Math_CumSum:Make;Benchmark_Polygons_MakeAlpha:Make"/>
+        <CallTarget Targets="Benchmark_Blur:Make;Benchmark_Transpose:Make;Benchmark_VectorUtils_BuildPolyline:Make;Benchmark_Mirror:Make;Benchmark_Blend_CombineMem:Make;Benchmark_LowLevel_FastTrunc:Make;Benchmark_Math_CumSum:Make;Benchmark_Polygons_MakeAlpha:Make;Benchmark_Blend_MergeMem:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
