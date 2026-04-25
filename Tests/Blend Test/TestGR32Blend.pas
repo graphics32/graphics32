@@ -1254,10 +1254,13 @@ begin
     ExpectedColor32.ARGB := MergeReg_Reference(FForeground^[Index], $00FF0000);
     MergedColor32.ARGB := FBackground^[Index];
 
-    CheckEquals(Index, MergedColor32.A);
-    if (MergedColor32.A <> 0) then
-      CheckEquals(0, MergedColor32.R);
-    CheckColor(ExpectedColor32, MergedColor32, FMaxDifferenceLimit);
+    if (Index <> MergedColor32.A) then
+      CheckEquals(Index, MergedColor32.A, Format('Incorrect alpha (Index: %d, Merge(FG: %.8X, BG: %.8X) -> %.8X)', [Index, FForeground^[Index], $00FF0000, MergedColor32.ARGB]));
+
+    if (MergedColor32.A <> 0) and (MergedColor32.R <> 0) then
+      CheckEquals(0, MergedColor32.R, Format('Incorrect color (Index: %d, Merge(FG: %.8X, BG: %.8X) -> %.8X)', [Index, FForeground^[Index], $00FF0000, MergedColor32.ARGB]));
+
+    CheckColor(ExpectedColor32, MergedColor32, FMaxDifferenceLimit, 'Incorrect result (Index: %d, Merge(FG: %.8X, BG: %.8X) -> %.8X)', [Index, FForeground^[Index], $00FF0000, MergedColor32.ARGB]);
   end;
 
 
@@ -1285,7 +1288,7 @@ begin
         ExpectedColor32.ARGB := MergeReg_Reference(FForeground^[Index], BlendColor32.ARGB);
         MergedColor32.ARGB := FBackground^[Index];
 
-        CheckColor(ExpectedColor32, MergedColor32, FMaxDifferenceLimit);
+        CheckColor(ExpectedColor32, MergedColor32, FMaxDifferenceLimit, 'Incorrect result (Index: %d, Merge(FG: %.8X, BG: %.8X) -> %.8X)', [Index, FForeground^[Index], BlendColor32.ARGB, MergedColor32.ARGB]);
       end;
     end;
   end;
