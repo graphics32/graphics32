@@ -2468,6 +2468,40 @@ end;
 
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
 begin
+  (*
+      Note that, for historic reasons and due to poor documentation of the
+      Win32 IntersectRect, there is a difference in what the GR32 and Win32
+      IntersectRect implementations considers an empty rect.
+
+      See issue #77.
+
+      The Win32 IntersectRect is, literally (but transcribed in Pascal),
+      implemented as:
+
+        Dst.Left  := Max(R1.Left, R2.Left);
+        Dst.Right := Min(R1.Right, R2.Right);
+
+        // check for empty rect
+        if (Dst.Left < Dst.Right) then
+        begin
+          Dst.Top    := Max(R1.Top, R2.Top);
+          Dst.Bottom := Min(R1.Bottom, R2.Bottom);
+
+          // check for empty rect
+          if (Dst.Top < Dst.Bottom) then
+            Exit(True); // not empty
+        end;
+
+        // empty rect
+        Dst := Default(TRect);
+        Result := False;
+
+      So Win32 IntersectRect considers an intersection that produces a zero
+      area rect (Left=Right) or (Top=Bottom) as a non-intersection, while the
+      GR32 implementation considers the same rect as an intersection.
+
+  *)
+
   if R1.Left >= R2.Left then
     Dst.Left := R1.Left
   else
