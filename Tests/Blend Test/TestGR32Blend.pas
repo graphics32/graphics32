@@ -87,8 +87,12 @@ type
 
   TCustomTestBlendModes = class abstract(TTestCase)
   strict private
-    FForeground : PColor32Array;
-    FBackground : PColor32Array;
+    FForeground: PColor32Array;
+    FBackground: PColor32Array;
+    FForegroundPreguard: PColor32;
+    FBackgroundPreguard: PColor32;
+    FForegroundPostguard: PColor32;
+    FBackgroundPostguard: PColor32;
     FReference: PColor32Array;
   protected
     FMaxDifferenceLimit: Byte;
@@ -340,13 +344,34 @@ begin
   FMaxAbsoluteDifference := 0;
   FDifferenceCount := 0;
   FDifferenceSum := 0;
-  GetMem(FForeground, 256 * SizeOf(TColor32));
-  GetMem(FBackground, 256 * SizeOf(TColor32));
+
+  GetMem(FForegroundPreguard, (256 + 2) * SizeOf(TColor32));
+  GetMem(FBackgroundPreguard, (256 + 2) * SizeOf(TColor32));
   GetMem(FReference, 256 * SizeOf(TColor32));
+
+  FForeground := pointer(FForegroundPreguard);
+  Inc(PColor32(FForeground));
+  FBackground := pointer(FBackgroundPreguard);
+  Inc(PColor32(FBackground));
+
+  FForegroundPostguard := PColor32(FForeground);
+  Inc(FForegroundPostguard, 256);
+  FBackgroundPostguard := PColor32(FBackground);
+  Inc(FBackgroundPostguard, 256);
+
+  FForegroundPreguard^ := $315191e1;
+  FBackgroundPreguard^ := $3456789a;
+  FForegroundPostguard^ := $3456789a;
+  FBackgroundPostguard^ := $315191e1;
 end;
 
 procedure TCustomTestBlendModes.TearDown;
 begin
+  CheckEquals($315191e1, FForegroundPreguard^, 'Memory underrun in foreground bytes');
+  CheckEquals($3456789a, FBackgroundPreguard^, 'Memory underrun in background bytes');
+  CheckEquals($3456789a, FForegroundPostguard^, 'Memory overrun in foreground bytes');
+  CheckEquals($315191e1, FBackgroundPostguard^, 'Memory overrun in background bytes');
+
   if (FDifferenceCount > 0) then
     Status(Format(
       'Errors: %.0n = %.1n %% (Limit: %d)'#13+
@@ -364,8 +389,8 @@ begin
   *)
 
   inherited;
-  Dispose(FForeground);
-  Dispose(FBackground);
+  Dispose(FForegroundPreguard);
+  Dispose(FBackgroundPreguard);
   Dispose(FReference);
 
   // Clean up so that we leave the bindings in an usable state for other unit tests
