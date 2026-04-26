@@ -110,7 +110,7 @@ begin
   for var Implement in Binding do
   begin
     var bm := Spring.Benchmark.Benchmark(BM_BlendMemExit, Implement.Name+'(early exit)').Args([Int64(Implement.Proc)]);
-    bm.Iterations(1000);
+    bm.MinTime(10); // seconds
     bm.TimeUnit(kMillisecond);
   end;
 
@@ -130,7 +130,7 @@ begin
   for var Implement in Binding do
   begin
     var bm := Spring.Benchmark.Benchmark(BM_BlendRegExit, Implement.Name+'(early exit)').Args([Int64(Implement.Proc)]);
-    bm.Iterations(1000);
+    bm.MinTime(10); // seconds
     bm.TimeUnit(kMillisecond);
   end;
 
