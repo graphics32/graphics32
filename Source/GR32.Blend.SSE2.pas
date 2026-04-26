@@ -76,6 +76,7 @@ procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: Cardinal); {$I
 function MergeReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 
 {$if not defined(FPC)}
+function MergeReg_SSE41(F, B: TColor32): TColor32;
 procedure MergeMem_SSE41(F: TColor32; var B: TColor32);
 {$ifend}
 
@@ -2345,14 +2346,209 @@ end;
 
 
 //------------------------------------------------------------------------------
+// MergeReg
+//------------------------------------------------------------------------------
+{$if not defined(FPC)}
+function MergeReg_SSE41(F, B: TColor32): TColor32;
+asm
+{$if defined(TARGET_X86)}
+  //
+  // Parameters (x86):
+  //   EAX <- F (Foreground)
+  //   EDX <- B (Background)
+  //
+  // SSE register usage:
+  //   XMM0:
+  //   XMM1:
+  //   XMM2:
+  //   XMM3:
+  //   XMM4:
+  //   XMM5:
+  //   XMM6:
+  //   XMM7:
+  //
+
+        TEST      EAX, $FF000000   // Foreground completely transparent?
+        JZ        @ReturnB         // Yes, result = background
+        CMP       EAX, $FF000000   // Foreground completely opaque?
+        JNC       @Exit            // Yes, result = foreground (EAX)
+        TEST      EDX, $FF000000   // Background completely transparent?
+        JZ        @Exit            // Yes, result = foreground (EAX)
+
+        PUSH      EBX
+        PUSH      ESI
+
+        // Load Bias ($0080 per word)
+        MOV       ESI, bias_ptr
+        MOVDQA    XMM5, [ESI]
+
+        PXOR      XMM4, XMM4       // Zero
+        MOVD      XMM0, EAX        // XMM0 <- [0 0 0 0 | Fa Fr Fg Fb]
+        MOVD      XMM1, EDX        // XMM1 <- [0 0 0 0 | Ba Br Bg Bb]
+
+        // Unpack pixels to 16-bit words using SSE4.1 zero-extension
+        PMOVZXBW  XMM0, XMM0       // XMM0 <- [00Fa 00Fr 00Fg 00Fb]
+        PMOVZXBW  XMM1, XMM1       // XMM1 <- [00Ba 00Br 00Bg 00Bb]
+
+        // Calculate Result Alpha: Ra = Fa + Ba * (255 - Fa) / 255
+        // Ra = 255 - Round((255 - Fa) * (255 - Ba) / 255)
+        PEXTRW    EAX, XMM0, 3     // EAX <- Fa
+        PEXTRW    ECX, XMM1, 3     // ECX <- Ba
+        MOV       EBX, EAX         // EBX <- Fa (save)
+        XOR       EAX, $FF         // EAX <- (255 - Fa)
+        XOR       ECX, $FF         // ECX <- (255 - Ba)
+        IMUL      EAX, ECX         // EAX <- (255 - Fa) * (255 - Ba) = y
+
+        // div 255 trick: Ra = 255 - Round( y / 255 )
+        ADD       EAX, 128
+        MOV       ECX, EAX
+        SHR       ECX, 8
+        ADD       EAX, ECX
+        SHR       EAX, 8           // EAX <- Round(y / 255)
+        XOR       EAX, $FF         // EAX <- Ra (Result Alpha)
+
+        // Calculate Weight: Wa = Round(Fa * 255 / Ra)
+        SHL       EAX, 8
+        LEA       ESI, [EAX + DivMul255Table]
+        MOVZX     ESI, BYTE PTR [ESI + EBX] // ESI <- Wa
+        SHR       EAX, 8           // Restore Ra
+
+        // Result Color: Rc = Bc + Wa * (Fc - Bc) / 255
+        // We use the approximation: ( (F - B) * Wa + B * 256 + 128 ) >> 8
+        MOVD      XMM3, ESI
+        PSHUFLW   XMM3, XMM3, $00  // XMM3 <- [Wa Wa Wa Wa]
+        PSUBW     XMM0, XMM1       // XMM0 <- [Fa-Ba Fr-Br Fg-Bg Fb-Bb]
+        PMULLW    XMM0, XMM3       // XMM0 <- Wa * (Fc - Bc)
+        PSLLW     XMM1, 8          // XMM1 <- B * 256
+        PADDW     XMM1, XMM5       // XMM1 <- B * 256 + 128
+        PADDW     XMM0, XMM1       // XMM0 <- Wa * (Fc - Bc) + B * 256 + 128
+        PSRLW     XMM0, 8
+
+        // Correct the Alpha channel: Insert the pre-calculated Ra
+        PINSRW    XMM0, EAX, 3     // XMM0.word[3] <- Ra
+
+        PACKUSWB  XMM0, XMM4
+        MOVD      EAX, XMM0        // Result color in EAX
+
+        POP       ESI
+        POP       EBX
+        JMP       @Exit
+
+@ReturnB:
+        MOV       EAX, EDX
+@Exit:
+
+{$elseif defined(TARGET_X64)}
+  //
+  // Parameters (x64):
+  //   RCX <- F (Foreground)
+  //   RDX <- B (Background)
+  //
+  // SSE register usage:
+  //   XMM0:
+  //   XMM1:
+  //   XMM2:
+  //   XMM3:
+  //   XMM4:
+  //   XMM5:
+  //
+
+        TEST      ECX, $FF000000   // Foreground completely transparent?
+        JZ        @ReturnB         // Yes, result = background
+        CMP       ECX, $FF000000   // Foreground completely opaque?
+        JNC       @ReturnF         // Yes, result = foreground
+        TEST      EDX, $FF000000   // Background completely transparent?
+        JZ        @ReturnF         // Yes, result = foreground
+
+        MOVD      XMM0, ECX        // XMM0 <- [0 0 0 0 | Fa Fr Fg Fb]
+        MOVD      XMM1, EDX        // XMM1 <- [0 0 0 0 | Ba Br Bg Bb]
+
+        // Unpack pixels to 16-bit words using SSE4.1 zero-extension
+        PMOVZXBW  XMM0, XMM0       // XMM0 <- [00Fa 00Fr 00Fg 00Fb]
+        PMOVZXBW  XMM1, XMM1       // XMM1 <- [00Ba 00Br 00Bg 00Bb]
+
+        // Calculate Result Alpha: Ra = 255 - Round((255 - Fa) * (255 - Ba) / 255)
+        PEXTRW    EAX, XMM0, 3     // EAX <- Fa
+        PEXTRW    R8D, XMM1, 3     // R8D <- Ba
+        MOV       R9D, EAX         // R9D <- Fa (save)
+        XOR       EAX, 255         // EAX <- (255 - Fa)
+        XOR       R8D, 255         // R8D <- (255 - Ba)
+        IMUL      EAX, R8D         // EAX <- (255 - Fa) * (255 - Ba) = y
+
+        // div 255 trick: Ra = 255 - Round( y / 255 )
+        ADD       EAX, 128
+        MOV       R8D, EAX
+        SHR       R8D, 8
+        ADD       EAX, R8D
+        SHR       EAX, 8           // EAX <- Round(y / 255)
+        XOR       EAX, 255         // EAX <- Ra (Result Alpha)
+
+        MOV       R11D, EAX        // R11D <- Ra (save)
+
+        // Calculate Weight: Wa = Round(Fa * 255 / Ra)
+        SHL       RAX, 8
+        ADD       RAX, R9          // RAX = Ra * 256 + Fa
+        LEA       R10, [DivMul255Table]
+        MOVZX     R10D, BYTE PTR [R10 + RAX] // R10D <- Wa
+
+        // Result Color: Rc = Bc + Wa * (Fc - Bc) / 255
+        MOVD      XMM3, R10D
+        PSHUFLW   XMM3, XMM3, $00  // XMM3 <- [Wa Wa Wa Wa]
+        PSUBW     XMM0, XMM1       // XMM0 <- [Fa-Ba Fr-Br Fg-Bg Fb-Bb]
+        PMULLW    XMM0, XMM3       // XMM0 <- Wa * (Fc - Bc)
+        PSLLW     XMM1, 8          // XMM1 <- B * 256
+
+        // Create 0x0080 in XMM2 for rounding (using XMM2 to avoid preservation)
+        PCMPEQW   XMM2, XMM2
+        PSRLW     XMM2, 15
+        PSLLW     XMM2, 7
+
+        PADDW     XMM1, XMM2       // XMM1 <- B * 256 + 128
+        PADDW     XMM0, XMM1       // XMM0 <- Wa * (Fc - Bc) + B * 256 + 128
+        PSRLW     XMM0, 8
+
+        // Correct the Alpha channel: Insert the pre-calculated Ra
+        PINSRW    XMM0, R11D, 3    // XMM0.word[3] <- Ra
+
+        PXOR      XMM2, XMM2       // Zero
+        PACKUSWB  XMM0, XMM2
+        MOVD      EAX, XMM0        // Result color in EAX
+        JMP       @Exit
+
+@ReturnB:
+        MOV       EAX, EDX
+        JMP       @Exit
+
+@ReturnF:
+        MOV       EAX, ECX
+@Exit:
+{$ifend}
+
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
 // MergeMem
 //------------------------------------------------------------------------------
 {$if not defined(FPC)}
 procedure MergeMem_SSE41(F: TColor32; var B: TColor32);
 asm
-{$IFDEF TARGET_X86}
-  // EAX <- F (Foreground)
-  // EDX <- B (Background pointer)
+{$if defined(TARGET_X86)}
+  //
+  // Parameters (x86):
+  //   EAX <- F (Foreground)
+  //   EDX <- B (Background pointer)
+  //
+  // SSE register usage:
+  //   XMM0:
+  //   XMM1:
+  //   XMM2:
+  //   XMM3:
+  //   XMM4:
+  //   XMM5:
+  //   XMM6:
+  //   XMM7:
+  //
 
         TEST      EAX, $FF000000   // Foreground completely transparent?
         JZ        @Exit            // Yes, result = background (no-op)
@@ -2378,18 +2574,20 @@ asm
         PMOVZXBW  XMM1, XMM1       // XMM1 <- [00Ba 00Br 00Bg 00Bb]
 
         // Calculate Result Alpha: Ra = Fa + Ba * (255 - Fa) / 255
-        // Ra = 255 - (255 - Fa) * (255 - Ba) / 255
+        // Ra = 255 - Round((255 - Fa) * (255 - Ba) / 255)
         PEXTRW    EAX, XMM0, 3     // EAX <- Fa
         PEXTRW    ECX, XMM1, 3     // ECX <- Ba
         MOV       EBX, EAX         // EBX <- Fa (save)
         XOR       EAX, $FF         // EAX <- (255 - Fa)
         XOR       ECX, $FF         // ECX <- (255 - Ba)
-        IMUL      EAX, ECX         // EAX <- (255 - Fa) * (255 - Ba)
+        IMUL      EAX, ECX         // EAX <- (255 - Fa) * (255 - Ba) = y
+
+        // div 255 trick: Ra = 255 - Round( y / 255 )
         ADD       EAX, 128
         MOV       ECX, EAX
         SHR       ECX, 8
         ADD       EAX, ECX
-        SHR       EAX, 8           // EAX <- Round((255-Fa)*(255-Ba)/255)
+        SHR       EAX, 8           // EAX <- Round(y / 255)
         XOR       EAX, $FF         // EAX <- Ra (Result Alpha)
 
         // Calculate Weight: Wa = Round(Fa * 255 / Ra)
@@ -2419,16 +2617,26 @@ asm
 
         POP       ESI
         POP       EBX
-@Exit:  RET
+        JMP       @Exit
 
 @Opaque:
         MOV       [EDX], EAX
-        RET
-{$ENDIF}
+@Exit:
 
-{$IFDEF TARGET_X64}
-  // ECX <- F (Foreground)
-  // RDX <- B (Background pointer)
+{$elseif defined(TARGET_X64)}
+  //
+  // Parameters (x64):
+  //   RCX <- F (Foreground)
+  //   RDX <- B (Background pointer)
+  //
+  // SSE register usage:
+  //   XMM0:
+  //   XMM1:
+  //   XMM2:
+  //   XMM3:
+  //   XMM4:
+  //   XMM5:
+  //
 
         TEST      ECX, $FF000000   // Foreground completely transparent?
         JZ        @Exit            // Yes, result = background (no-op)
@@ -2438,11 +2646,6 @@ asm
         TEST      EAX, $FF000000   // Background completely transparent?
         JZ        @Opaque          // Yes, result = foreground
 
-        // Load Bias ($0080 per word)
-        MOV       RAX, bias_ptr
-        MOVDQA    XMM5, [RAX]
-
-        PXOR      XMM4, XMM4       // Zero
         MOVD      XMM0, ECX        // XMM0 <- [0 0 0 0 | Fa Fr Fg Fb]
         MOVD      XMM1, [RDX]      // XMM1 <- [0 0 0 0 | Ba Br Bg Bb]
 
@@ -2450,27 +2653,29 @@ asm
         PMOVZXBW  XMM0, XMM0       // XMM0 <- [00Fa 00Fr 00Fg 00Fb]
         PMOVZXBW  XMM1, XMM1       // XMM1 <- [00Ba 00Br 00Bg 00Bb]
 
-        // Calculate Result Alpha: Ra = 255 - (255 - Fa) * (255 - Ba) / 255
+        // Calculate Result Alpha: Ra = 255 - Round((255 - Fa) * (255 - Ba) / 255)
         PEXTRW    EAX, XMM0, 3     // EAX <- Fa
         PEXTRW    R8D, XMM1, 3     // R8D <- Ba
         MOV       R9D, EAX         // R9D <- Fa (save)
-        XOR       EAX, $FF         // EAX <- (255 - Fa)
-        XOR       R8D, $FF         // R8D <- (255 - Ba)
-        IMUL      EAX, R8D         // EAX <- (255 - Fa) * (255 - Ba)
+        XOR       EAX, 255         // EAX <- (255 - Fa)
+        XOR       R8D, 255         // R8D <- (255 - Ba)
+        IMUL      EAX, R8D         // EAX <- (255 - Fa) * (255 - Ba) = y
+
+        // div 255 trick: Ra = 255 - Round( y / 255 )
         ADD       EAX, 128
         MOV       R8D, EAX
         SHR       R8D, 8
         ADD       EAX, R8D
-        SHR       EAX, 8           // EAX <- Round((255-Fa)*(255-Ba)/255)
-        XOR       EAX, $FF         // EAX <- Ra (Result Alpha)
+        SHR       EAX, 8           // EAX <- Round(y / 255)
+        XOR       EAX, 255         // EAX <- Ra (Result Alpha)
+
+        MOV       R11D, EAX        // R11D <- Ra (save)
 
         // Calculate Weight: Wa = Round(Fa * 255 / Ra)
-        MOV       RAX, RAX         // Ensure RAX is zero-extended
         SHL       RAX, 8
-        LEA       R8, [DivMul255Table]
-        LEA       R8, [R8 + RAX]
-        MOVZX     R10D, BYTE PTR [R8 + R9] // R10D <- DivMul255Table[Ra, Fa] = Wa
-        SHR       RAX, 8           // Restore Ra
+        ADD       RAX, R9          // RAX = Ra * 256 + Fa
+        LEA       R10, [DivMul255Table]
+        MOVZX     R10D, BYTE PTR [R10 + RAX] // R10D <- Wa
 
         // Result Color: Rc = Bc + Wa * (Fc - Bc) / 255
         // We use the approximation: ( (F - B) * Wa + B * 256 + 128 ) >> 8
@@ -2481,22 +2686,29 @@ asm
         // PMULLW also multiplies the alpha channel: Wa * (Fa - Ba)
         // This is not needed because we overwrite alpha later, but it doesn't hurt.
         PSLLW     XMM1, 8          // XMM1 <- B * 256
-        PADDW     XMM1, XMM5       // XMM1 <- B * 256 + 128
+
+        // Create 0x0080 in XMM2 for rounding (using XMM2 to avoid preservation)
+        PCMPEQW   XMM2, XMM2
+        PSRLW     XMM2, 15
+        PSLLW     XMM2, 7
+
+        PADDW     XMM1, XMM2       // XMM1 <- B * 256 + 128
         PADDW     XMM0, XMM1       // XMM0 <- Wa * (Fc - Bc) + B * 256 + 128
         PSRLW     XMM0, 8
 
         // Correct the Alpha channel: Insert the pre-calculated Ra
-        PINSRW    XMM0, EAX, 3     // XMM0.word[3] <- Ra
+        PINSRW    XMM0, R11D, 3    // XMM0.word[3] <- Ra
 
-        PACKUSWB  XMM0, XMM4
+        PXOR      XMM2, XMM2       // Zero
+        PACKUSWB  XMM0, XMM2
         MOVD      [RDX], XMM0      // Store result
-
-@Exit:  RET
+        JMP       @Exit
 
 @Opaque:
         MOV       [RDX], ECX
-        RET
-{$ENDIF}
+@Exit:
+{$ifend}
+
 end;
 {$ifend}
 
@@ -3144,6 +3356,7 @@ begin
   BlendRegistry[@@MergeReg].Add(      @MergeReg_SSE2,         [isSSE2]).Name := 'MergeReg_SSE2';
 
 {$if not defined(FPC)}
+  BlendRegistry[@@MergeReg].Add(      @MergeReg_SSE41,        [isSSE41]).Name := 'MergeReg_SSE41';
   BlendRegistry[@@MergeMem].Add(      @MergeMem_SSE41,        [isSSE41]).Name := 'MergeMem_SSE41';
 {$ifend}
 

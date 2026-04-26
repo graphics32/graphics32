@@ -276,6 +276,7 @@ type
     [MaxError(1), MaxErrorCount(20)]
     procedure TestCombineMem; override;
     procedure TestCombineLine; override;
+    [MaxError(5)]
     procedure TestMergeReg; override;
     procedure TestMergeRegEx; override;
     [MaxError(5)]

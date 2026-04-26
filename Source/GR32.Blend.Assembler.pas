@@ -1436,7 +1436,9 @@ begin
   BlendRegistry[@@BlendMemEx].Add(      @BlendMemEx_ASM,        [isAssembler]).Name := 'BlendMemEx_ASM'; // Implemented on x64 but broken
 {$ENDIF}
   BlendRegistry[@@BlendLine].Add(       @BlendLine_ASM,         [isAssembler]).Name := 'BlendLine_ASM';
-{$IFNDEF TARGET_x64}
+
+{$IFDEF TARGET_x86}
+  // TODO : MergeReg_ASM is often slower than MergeReg_Pas and horribly imprecise. Consider deprecating.
   BlendRegistry[@@MergeReg].Add(        @MergeReg_ASM,          [isAssembler]).Name := 'MergeReg_ASM';
 {$ENDIF}
 end;
