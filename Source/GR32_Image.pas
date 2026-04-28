@@ -2297,7 +2297,7 @@ var
 begin
   Assert(Sender = FBitmap);
 
-  if (Area.Left = Area.Right) or (Area.Top = Area.Bottom) then
+  if (Area.Left = Area.Right) and (Area.Top = Area.Bottom) then
     Exit; // Empty area
 
   T := Area;
