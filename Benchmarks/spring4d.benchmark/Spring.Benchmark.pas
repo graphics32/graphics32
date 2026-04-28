@@ -719,6 +719,9 @@ var
   // separator used for the csv file
   csv_separator: Char = ';';
 
+  // Whether parameter parsing allows any custom parameters
+  benchmark_strict_parameters: Boolean = True;
+
 {$ENDREGION}
 
 implementation
@@ -807,7 +810,7 @@ type
     args: string;
     minTime: string;
     iterations: string;
-    pepetitions: string;
+    repetitions: string;
     timeType: string;
     threads: string;
 
@@ -1393,9 +1396,9 @@ begin
         ParseInt32Flag(arg, 'log_level', log_level)) then
       if IsFlag(arg, 'help') then
         PrintUsageAndExit
-      else
+      else if benchmark_strict_parameters then
       begin
-        WriteLine('error: unrecognozed command-line flag: ' + arg);
+        WriteLine('error: unrecognized command-line flag: ' + arg);
         Halt(1);
       end;
   end;
@@ -1707,7 +1710,7 @@ begin
   proc := GetCurrentProcess;
   if QueryProcessCycleTime(proc, cycleTime) then
     Exit(cycleTime * TCPUInfo.cycleDuration);
-  DiagnoseAndExit('GetProccessTimes() failed');
+  DiagnoseAndExit('GetProcessTimes() failed');
   Result := 0;
 end;
 {$ELSE}
@@ -2212,7 +2215,7 @@ begin
 end;
 
 // This data structure will contain the result returned by MinimalLeastSq
-//   - coef        : Estimated coeficient for the high-order term as
+//   - coef        : Estimated coefficient for the high-order term as
 //                   interpolated from data.
 //   - rms         : Normalized Root Mean Squared Error.
 //   - complexity  : Scalability form (e.g. oN, oNLogN). In case a scalability
@@ -3882,7 +3885,7 @@ function TBenchmarkName.Str: string;
   end;
 
 begin
-  Result := join('/', [functionName, args, minTime, iterations, pepetitions, timeType, threads]);
+  Result := join('/', [functionName, args, minTime, iterations, repetitions, timeType, threads]);
 end;
 
 {$ENDREGION}
@@ -4032,7 +4035,7 @@ begin
           if family.fIterations <> 0 then
             instance.name.iterations := Format('iterations:%u', [family.fIterations]);
           if family.fRepetitions <> 0 then
-            instance.name.pepetitions := Format('repeats:%d', [family.fRepetitions]);
+            instance.name.repetitions := Format('repeats:%d', [family.fRepetitions]);
         end;
 
         if family.fMeasureProcessCpuTime then
@@ -4106,7 +4109,7 @@ begin
 
   if info.loadAvg <> nil then
   begin
-    Write('Load Averge: ');
+    Write('Load Average: ');
     for i := 0 to High(info.loadAvg) do
     begin
       Write('%.2f', [info.loadAvg[i]]);
@@ -4307,7 +4310,9 @@ begin
       if kInvert in result.counters[i].counter.flags then
         u := 's'
       else
-        u := '/s';
+        u := '/s'
+    else
+      u := '';
     if ooTabular in fOutputOptions then
       Write(' %*s%s', [nameLen - Length(u), s, u])
     else
@@ -4315,7 +4320,7 @@ begin
   end;
 
   if result.reportLabel <> '' then
-    Write(result.reportLabel);
+    Write(' %s', [result.reportLabel]);
 
   WriteLine;
 end;
@@ -4433,8 +4438,8 @@ begin
   fOutputStream.WriteData(CsvEscape(run.BenchmarkName) + csv_separator);
   if run.errorOccurred then
   begin
-    fOutputStream.WriteData((Length(elements) - 3).ToString + csv_separator);
-    fOutputStream.WriteData('true,');
+    fOutputStream.WriteData(DupeString(csv_separator, Length(elements) - 3));
+    fOutputStream.WriteData('true' + csv_separator);
     fOutputStream.WriteData(CsvEscape(run.errorMessage));
     fOutputStream.WriteData(sLineBreak);
     Exit;
@@ -4644,7 +4649,7 @@ begin
     fOutputStream.WriteData(indent + FormatKV('aggregate_name', run.aggregateName) + ',' + sLineBreak);
   if run.errorOccurred then
   begin
-    fOutputStream.WriteData(indent + FormatKV('error_occured', run.errorOccurred) + ',' + sLineBreak);
+    fOutputStream.WriteData(indent + FormatKV('error_occurred', run.errorOccurred) + ',' + sLineBreak);
     fOutputStream.WriteData(indent + FormatKV('error_message', run.errorMessage) + ',' + sLineBreak);
   end;
   if not run.reportBigO and not run.reportRms then
@@ -4909,7 +4914,7 @@ begin
 //      memory_manager->Stop(&memory_result);
 //    }
 
-  // Ok, now actualy report.
+  // Ok, now actually report.
   report := CreateRunReport(benchmark, i.results, memoryIterations,{ memory_result,}
                             i.seconds, repetitionIndex);
 

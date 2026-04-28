@@ -79,6 +79,7 @@ function MergeReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDI
 {$if not defined(FPC)}
 function MergeReg_SSE41(F, B: TColor32): TColor32;
 procedure MergeMem_SSE41(F: TColor32; var B: TColor32);
+procedure MergeLine_SSE41(Src, Dst: PColor32; Count: Integer);
 {$ifend}
 
 
@@ -2777,6 +2778,550 @@ asm
 end;
 {$ifend}
 
+//------------------------------------------------------------------------------
+// MergeLine
+//------------------------------------------------------------------------------
+{$if not defined(FPC)}
+//------------------------------------------------------------------------------
+// MergeLine_SSE41
+//
+// - Uses Bruce Wallace's merge formula:
+//   Ra = Fa + Ba * (255 - Fa) / 255
+//   Wa = Fa * 255 / Ra
+//   Rc = Bc + Wa * (Fc - Bc) / 255
+//
+// - Uses PTEST for 4-pixel early exit (skipping transparent blocks or
+//   copying opaque blocks).
+//
+// - Uses PMOVZXBW for unpacking of byte components to words.
+//
+// - Unrolls the main loop to process 4 pixels per iteration.
+//
+// - FPC is not supported.
+//------------------------------------------------------------------------------
+procedure MergeLine_SSE41(Src, Dst: PColor32; Count: Integer);
+asm
+{$if defined(TARGET_X86)}
+  //
+  // Parameters (x86):
+  //   EAX <- Src
+  //   EDX <- Dst
+  //   ECX <- Count
+  //
+  // SSE register usage:
+  //   XMM0: Loaded Src 4 pixels / Temp
+  //   XMM1: Loaded Dst 4 pixels / Temp
+  //   XMM2: Unpacked pixels / Work
+  //   XMM3: Unpacked pixels / Work
+  //   XMM4: Multipliers / Work
+  //   XMM5: Bias ($0080 per word)
+  //   XMM6: Alpha Mask ($FF000000 per dword)
+  //   XMM7: Wa / Ra storage (word[0]=Wa1, word[1]=Ra1, word[2]=Wa2, word[3]=Ra2, ...)
+  //
+
+        TEST      ECX, ECX
+        JLE       @Done
+
+        PUSH      EBX
+        PUSH      ESI
+        PUSH      EDI
+        PUSH      EBP
+
+        MOV       ESI, [bias_ptr]
+        MOVDQA    XMM5, [ESI]
+
+        PXOR      XMM4, XMM4
+        PCMPEQD   XMM6, XMM6
+        PSLLD     XMM6, 24
+
+        SUB       ECX, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQU    XMM0, [EAX]      // Load 4 source pixels
+        PTEST     XMM0, XMM6
+        JZ        @Next4           // All source transparent
+
+        MOVDQU    XMM1, [EDX]      // Load 4 destination pixels
+        JC        @Opaque4         // All source opaque
+
+        // Save pointers and count for scalar operations
+        PUSH      EAX
+        PUSH      EDX
+        PUSH      ECX
+
+        LEA       EBP, [DivMul255Table]
+
+        // --- Calculate Ra/Wa for all 4 pixels ---
+        // Pixel 1
+        PMOVZXBW  XMM2, XMM0
+        PMOVZXBW  XMM3, XMM1
+        PEXTRW    EAX, XMM2, 3     // Fa1
+        PEXTRW    EDX, XMM3, 3     // Ba1
+        MOV       EBX, EAX         // Save Fa1
+        XOR       EAX, $FF
+        XOR       EDX, $FF
+        IMUL      EAX, EDX
+        ADD       EAX, 128
+        MOV       EDX, EAX
+        SHR       EDX, 8
+        ADD       EAX, EDX
+        SHR       EAX, 8
+        XOR       EAX, $FF         // Ra1
+        MOV       ESI, EAX         // Save Ra1
+        SHL       EAX, 8
+        ADD       EAX, EBX         // Index
+        MOVZX     EAX, BYTE PTR [EBP + EAX] // Wa1
+        PINSRW    XMM7, EAX, 0
+        PINSRW    XMM7, ESI, 1
+
+        // Pixel 2
+        PEXTRW    EAX, XMM2, 7     // Fa2
+        PEXTRW    EDX, XMM3, 7     // Ba2
+        MOV       EBX, EAX
+        XOR       EAX, $FF
+        XOR       EDX, $FF
+        IMUL      EAX, EDX
+        ADD       EAX, 128
+        MOV       EDX, EAX
+        SHR       EDX, 8
+        ADD       EAX, EDX
+        SHR       EAX, 8
+        XOR       EAX, $FF         // Ra2
+        MOV       ESI, EAX
+        SHL       EAX, 8
+        ADD       EAX, EBX
+        MOVZX     EAX, BYTE PTR [EBP + EAX] // Wa2
+        PINSRW    XMM7, EAX, 2
+        PINSRW    XMM7, ESI, 3
+
+        // Pixels 3 & 4
+        PSHUFD    XMM2, XMM0, $EE
+        PMOVZXBW  XMM2, XMM2
+        PSHUFD    XMM3, XMM1, $EE
+        PMOVZXBW  XMM3, XMM3
+
+        // Pixel 3
+        PEXTRW    EAX, XMM2, 3
+        PEXTRW    EDX, XMM3, 3
+        MOV       EBX, EAX
+        XOR       EAX, $FF
+        XOR       EDX, $FF
+        IMUL      EAX, EDX
+        ADD       EAX, 128
+        MOV       EDX, EAX
+        SHR       EDX, 8
+        ADD       EAX, EDX
+        SHR       EAX, 8
+        XOR       EAX, $FF         // Ra3
+        MOV       ESI, EAX
+        SHL       EAX, 8
+        ADD       EAX, EBX
+        MOVZX     EAX, BYTE PTR [EBP + EAX] // Wa3
+        PINSRW    XMM7, EAX, 4
+        PINSRW    XMM7, ESI, 5
+
+        // Pixel 4
+        PEXTRW    EAX, XMM2, 7
+        PEXTRW    EDX, XMM3, 7
+        MOV       EBX, EAX
+        XOR       EAX, $FF
+        XOR       EDX, $FF
+        IMUL      EAX, EDX
+        ADD       EAX, 128
+        MOV       EDX, EAX
+        SHR       EDX, 8
+        ADD       EAX, EDX
+        SHR       EAX, 8
+        XOR       EAX, $FF         // Ra4
+        MOV       ESI, EAX
+        SHL       EAX, 8
+        ADD       EAX, EBX
+        MOVZX     EAX, BYTE PTR [EBP + EAX] // Wa4
+        PINSRW    XMM7, EAX, 6
+        PINSRW    XMM7, ESI, 7
+
+        // Restore pointers and count
+        POP       ECX
+        POP       EDX
+        POP       EAX
+
+        // --- Merge step ---
+        // 1 & 2
+        PMOVZXBW  XMM2, XMM0
+        PMOVZXBW  XMM3, XMM1
+        PSHUFLW   XMM4, XMM7, $00
+        MOVDQA    XMM0, XMM7
+        PSHUFLW   XMM0, XMM0, $AA
+        PUNPCKLQDQ XMM4, XMM0      // Wa 1&2 multipliers
+        PSUBW     XMM2, XMM3
+        PMULLW    XMM2, XMM4
+        PSLLW     XMM3, 8
+        PADDW     XMM3, XMM5
+        PADDW     XMM2, XMM3
+        PSRLW     XMM2, 8
+        PEXTRW    ESI, XMM7, 1
+        PINSRW    XMM2, ESI, 3
+        PEXTRW    ESI, XMM7, 3
+        PINSRW    XMM2, ESI, 7
+        MOVDQA    XMM4, XMM2       // Result 1&2 in XMM4
+
+        // 3 & 4
+        MOVDQU    XMM0, [EAX]      // Reload Src for shuffles
+        PSHUFD    XMM2, XMM0, $EE
+        PMOVZXBW  XMM2, XMM2
+        PSHUFD    XMM3, XMM1, $EE
+        PMOVZXBW  XMM3, XMM3
+        PSHUFHW   XMM0, XMM7, $00
+        PSHUFHW   XMM1, XMM7, $AA
+        PUNPCKHQDQ XMM0, XMM1      // Wa 3&4 multipliers
+        PSUBW     XMM2, XMM3
+        PMULLW    XMM2, XMM0
+        PSLLW     XMM3, 8
+        PADDW     XMM3, XMM5
+        PADDW     XMM2, XMM3
+        PSRLW     XMM2, 8
+        PEXTRW    ESI, XMM7, 5
+        PINSRW    XMM2, ESI, 3
+        PEXTRW    ESI, XMM7, 7
+        PINSRW    XMM2, ESI, 7
+
+        PACKUSWB  XMM4, XMM2
+        MOVDQU    [EDX], XMM4
+        MOVDQU    XMM0, [EAX]      // Reset XMM0 for Next4 check
+
+@Next4:
+        ADD       EAX, 16
+        ADD       EDX, 16
+        SUB       ECX, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       ECX, 4
+        JZ        @Exit
+
+@TailLoop:
+        MOV       EBX, [EAX]
+        TEST      EBX, $FF000000
+        JZ        @TailNext
+        CMP       EBX, $FF000000
+        JNC       @TailOpaque
+
+        MOVD      XMM0, EBX
+        MOVD      XMM1, [EDX]
+        PMOVZXBW  XMM0, XMM0
+        PMOVZXBW  XMM1, XMM1
+        PEXTRW    ESI, XMM0, 3     // Fa
+        PEXTRW    EDI, XMM1, 3     // Ba
+        MOV       EBX, ESI         // Save Fa
+        XOR       ESI, $FF
+        XOR       EDI, $FF
+        IMUL      ESI, EDI
+        ADD       ESI, 128
+        MOV       EDI, ESI
+        SHR       EDI, 8
+        ADD       ESI, EDI
+        SHR       ESI, 8
+        XOR       ESI, $FF         // Ra
+        MOV       EBP, ESI         // Save Ra
+        SHL       ESI, 8
+        ADD       ESI, EBX         // Ra*256 + Fa
+        LEA       EDI, [DivMul255Table]
+        MOVZX     ESI, BYTE PTR [EDI + ESI] // Wa
+        MOVD      XMM2, ESI
+        PSHUFLW   XMM2, XMM2, $00
+        PMOVZXBW  XMM1, [EDX]      // Reload Dst unpacked
+        PSUBW     XMM0, XMM1
+        PMULLW    XMM0, XMM2
+        PSLLW     XMM1, 8
+        PADDW     XMM1, XMM5
+        PADDW     XMM0, XMM1
+        PSRLW     XMM0, 8
+        PINSRW    XMM0, EBP, 3     // Insert Ra
+        PXOR      XMM2, XMM2
+        PACKUSWB  XMM0, XMM2
+        MOVD      [EDX], XMM0
+        JMP       @TailNext
+
+@Opaque4:
+        MOVDQU    [EDX], XMM0
+        JMP       @Next4
+
+@TailOpaque:
+        MOV       [EDX], EBX
+
+@TailNext:
+        ADD       EAX, 4
+        ADD       EDX, 4
+        DEC       ECX
+        JNZ       @TailLoop
+
+@Exit:
+        POP       EBP
+        POP       EDI
+        POP       ESI
+        POP       EBX
+@Done:
+
+{$elseif defined(TARGET_X64)}
+  //
+  // Parameters (x64):
+  //   RCX <- Src
+  //   RDX <- Dst
+  //   R8D <- Count
+  //
+  // SSE register usage:
+  //   XMM0: Loaded Src / Temp / Merged Result
+  //   XMM1: Loaded Dst / Temp
+  //   XMM2: Work register
+  //   XMM3: Work / Mask
+  //   XMM4: Wa / Ra storage (8 words)
+  //   XMM5: Bias ($0080 per word)
+  //
+  // Volatile GPRs: RAX, RCX, RDX, R8, R9, R10, R11
+  //
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+{$ENDIF}
+
+        TEST      R8D, R8D
+        JLE       @Done
+
+        PXOR      XMM4, XMM4
+        MOV       RAX, [bias_ptr]
+        MOVDQA    XMM5, [RAX]
+
+        SUB       R8D, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQU    XMM0, [RCX]      // Load 4 source pixels
+        PCMPEQD   XMM3, XMM3
+        PSLLD     XMM3, 24         // Alpha Mask = $FF000000
+        PTEST     XMM0, XMM3
+        JZ        @Next4           // All source transparent
+
+        MOVDQU    XMM1, [RDX]      // Load 4 destination pixels
+        JC        @Opaque4         // All source opaque
+
+        // --- Calculate Ra/Wa for all 4 pixels ---
+        LEA       R10, [DivMul255Table]
+
+        // Pixel 1
+        PEXTRB    EAX, XMM0, 3     // Fa1
+        PEXTRB    R9D, XMM1, 3     // Ba1
+        MOV       R11D, EAX        // Fa1 save
+        XOR       EAX, 255
+        XOR       R9D, 255
+        IMUL      EAX, R9D
+        ADD       EAX, 128
+        MOV       R9D, EAX
+        SHR       R9D, 8
+        ADD       EAX, R9D
+        SHR       EAX, 8
+        XOR       EAX, 255         // Ra1
+        MOV       R9D, EAX         // Ra1 save
+        SHL       RAX, 8
+        ADD       RAX, R11         // Ra1 * 256 + Fa1
+        MOVZX     EAX, BYTE PTR [R10 + RAX] // Wa1
+        PINSRW    XMM4, EAX, 0
+        PINSRW    XMM4, R9D, 1
+
+        // Pixel 2
+        PEXTRB    EAX, XMM0, 7     // Fa2
+        PEXTRB    R9D, XMM1, 7     // Ba2
+        MOV       R11D, EAX        // Fa2 save
+        XOR       EAX, 255
+        XOR       R9D, 255
+        IMUL      EAX, R9D
+        ADD       EAX, 128
+        MOV       R9D, EAX
+        SHR       R9D, 8
+        ADD       EAX, R9D
+        SHR       EAX, 8
+        XOR       EAX, 255         // Ra2
+        MOV       R9D, EAX         // Ra2 save
+        SHL       RAX, 8
+        ADD       RAX, R11
+        MOVZX     EAX, BYTE PTR [R10 + RAX] // Wa2
+        PINSRW    XMM4, EAX, 2
+        PINSRW    XMM4, R9D, 3
+
+        // Pixel 3
+        PEXTRB    EAX, XMM0, 11    // Fa3
+        PEXTRB    R9D, XMM1, 11    // Ba3
+        MOV       R11D, EAX
+        XOR       EAX, 255
+        XOR       R9D, 255
+        IMUL      EAX, R9D
+        ADD       EAX, 128
+        MOV       R9D, EAX
+        SHR       R9D, 8
+        ADD       EAX, R9D
+        SHR       EAX, 8
+        XOR       EAX, 255         // Ra3
+        MOV       R9D, EAX
+        SHL       RAX, 8
+        ADD       RAX, R11
+        MOVZX     EAX, BYTE PTR [R10 + RAX] // Wa3
+        PINSRW    XMM4, EAX, 4
+        PINSRW    XMM4, R9D, 5
+
+        // Pixel 4
+        PEXTRB    EAX, XMM0, 15    // Fa4
+        PEXTRB    R9D, XMM1, 15    // Ba4
+        MOV       R11D, EAX
+        XOR       EAX, 255
+        XOR       R9D, 255
+        IMUL      EAX, R9D
+        ADD       EAX, 128
+        MOV       R9D, EAX
+        SHR       R9D, 8
+        ADD       EAX, R9D
+        SHR       EAX, 8
+        XOR       EAX, 255         // Ra4
+        MOV       R9D, EAX
+        SHL       RAX, 8
+        ADD       RAX, R11
+        MOVZX     EAX, BYTE PTR [R10 + RAX] // Wa4
+        PINSRW    XMM4, EAX, 6
+        PINSRW    XMM4, R9D, 7
+
+        // --- Merge step ---
+        // Merge 1&2
+        PMOVZXBW  XMM2, XMM0       // Unpack Src 1&2
+        PMOVZXBW  XMM3, XMM1       // Unpack Dst 1&2
+        PEXTRW    EAX, XMM4, 0     // Wa1
+        MOVD      XMM0, EAX
+        PSHUFLW   XMM0, XMM0, 0
+        PEXTRW    EAX, XMM4, 2     // Wa2
+        MOVD      XMM1, EAX
+        PSHUFLW   XMM1, XMM1, 0
+        PUNPCKLQDQ XMM0, XMM1      // Wa 1&2 multipliers in XMM0
+        PSUBW     XMM2, XMM3
+        PMULLW    XMM2, XMM0
+        PSLLW     XMM3, 8
+        PADDW     XMM3, XMM5
+        PADDW     XMM2, XMM3
+        PSRLW     XMM2, 8
+        PEXTRW    EAX, XMM4, 1
+        PINSRW    XMM2, EAX, 3
+        PEXTRW    EAX, XMM4, 3
+        PINSRW    XMM2, EAX, 7
+        // Result 1&2 now in XMM2. Save it to XMM1.
+        MOVDQA    XMM1, XMM2
+
+        // Merge 3&4
+        MOVDQU    XMM0, [RCX]
+        PSHUFD    XMM0, XMM0, $EE
+        PMOVZXBW  XMM0, XMM0       // Unpack Src 3&4
+        MOVDQU    XMM2, [RDX]
+        PSHUFD    XMM2, XMM2, $EE
+        PMOVZXBW  XMM3, XMM2       // Unpack Dst 3&4
+        PEXTRW    EAX, XMM4, 4     // Wa3
+        MOVD      XMM2, EAX
+        PSHUFLW   XMM2, XMM2, 0
+        PEXTRW    EAX, XMM4, 6     // Wa4
+        // Use R9D as temp
+        MOV       R9D, EAX
+        PEXTRW    R10D, XMM4, 5    // Ra3
+        PEXTRW    R11D, XMM4, 7    // Ra4
+        MOVD      XMM4, R9D
+        PSHUFLW   XMM4, XMM4, 0
+        PUNPCKLQDQ XMM2, XMM4      // Wa 3&4 multipliers in XMM2
+
+        PSUBW     XMM0, XMM3
+        PMULLW    XMM0, XMM2
+        PSLLW     XMM3, 8
+        PADDW     XMM3, XMM5
+        PADDW     XMM0, XMM3
+        PSRLW     XMM0, 8
+        // Insert Ra3, Ra4
+        PINSRW    XMM0, R10D, 3
+        PINSRW    XMM0, R11D, 7
+        // Result 3&4 in XMM0. Result 1&2 in XMM1.
+
+        PACKUSWB  XMM1, XMM0
+        MOVDQU    [RDX], XMM1
+
+        PXOR      XMM4, XMM4       // Reset XMM4 for next iteration
+
+@Next4:
+        ADD       RCX, 16
+        ADD       RDX, 16
+        SUB       R8D, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       R8D, 4
+        JZ        @Done
+
+@TailLoop:
+        // Scalar fallback
+        MOV       EAX, [RCX]
+        TEST      EAX, $FF000000
+        JZ        @TailNext
+        CMP       EAX, $FF000000
+        JNC       @TailOpaque
+
+        MOVD      XMM0, EAX
+        MOVD      XMM1, [RDX]
+        PMOVZXBW  XMM0, XMM0
+        PMOVZXBW  XMM1, XMM1
+        PEXTRW    R10D, XMM0, 3    // Fa
+        PEXTRW    R9D, XMM1, 3     // Ba
+        MOV       R11D, R10D       // Fa
+        XOR       R10D, 255
+        XOR       R9D, 255
+        IMUL      R10D, R9D
+        ADD       R10D, 128
+        MOV       R9D, R10D
+        SHR       R9D, 8
+        ADD       R10D, R9D
+        SHR       R10D, 8
+        XOR       R10D, 255        // Ra in R10D
+        MOV       R9D, R10D        // Save Ra
+        SHL       R10D, 8
+        ADD       R10D, R11D       // Ra*256 + Fa
+        LEA       RAX, [DivMul255Table]
+        MOVZX     EAX, BYTE PTR [RAX + R10] // Wa
+        MOVD      XMM2, EAX
+        PSHUFLW   XMM2, XMM2, $00
+        PMOVZXBW  XMM1, [RDX]      // Reload Dst unpacked
+        PSUBW     XMM0, XMM1
+        PMULLW    XMM0, XMM2
+        PSLLW     XMM1, 8
+        PADDW     XMM1, XMM5
+        PADDW     XMM0, XMM1
+        PSRLW     XMM0, 8
+        PINSRW    XMM0, R9D, 3
+        PXOR      XMM2, XMM2
+        PACKUSWB  XMM0, XMM2
+        MOVD      [RDX], XMM0
+        JMP       @TailNext
+
+@Opaque4:
+        MOVDQU    [RDX], XMM0
+        JMP       @Next4
+
+@TailOpaque:
+        MOV       [RDX], EAX
+
+@TailNext:
+        ADD       RCX, 4
+        ADD       RDX, 4
+        DEC       R8D
+        JNZ       @TailLoop
+
+@Done:
+{$else}
+        RET
+{$ifend}
+
+end;
+{$ifend}
+
 
 //------------------------------------------------------------------------------
 //
@@ -3717,6 +4262,7 @@ begin
 {$if not defined(FPC)}
   BlendRegistry[@@MergeReg].Add(       @MergeReg_SSE41,         [isSSE41]).Name := 'MergeReg_SSE41';
   BlendRegistry[@@MergeMem].Add(       @MergeMem_SSE41,         [isSSE41]).Name := 'MergeMem_SSE41';
+  BlendRegistry[@@MergeLine].Add(      @MergeLine_SSE41,        [isSSE41]).Name := 'MergeLine_SSE41';
 {$ifend}
 
   BlendRegistry[@@CombineReg].Add(     @CombineReg_SSE2,        [isSSE2]).Name := 'CombineReg_SSE2';
