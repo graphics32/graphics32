@@ -3971,7 +3971,7 @@ begin
   if Value < 0.001 then
     Value := 0.001;
 
-  if Value <> FScaleX then
+  if (Value <> FScaleX) or (Value <> FScaleY) then
   begin
     InvalidateCache;
     FScaleX := Value;
