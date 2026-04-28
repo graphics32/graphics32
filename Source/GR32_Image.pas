@@ -2778,10 +2778,10 @@ procedure TCustomImage32.ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer);
 var
   OuterBorder: integer;
   InnerBorder: integer;
-  Width: integer;
-  OddRow, EvenRow: TArrayOfColor32;
-  ColorEven, ColorOdd: PColor32;
   X, Y: integer;
+  Len: integer;
+  BlockSize: integer;
+  RowPtr: PColor32Array;
   i: Integer;
   Parity: integer;
   ViewportRect: TRect;
@@ -3022,37 +3022,31 @@ begin
       // Fill the area under the bitmap
       GR32.IntersectRect(r, BitmapRect, Dest.ClipRect);
 
-    Width := r.Width;
-
-    if (Width > 0) then
+    if (r.Width > 0) and (r.Bottom > r.Top) then
     begin
       if (FBackgroundOptions.CheckersStyle <> bcsCustom) or (FBackgroundOptions.CheckersColors[0] <> FBackgroundOptions.CheckersColors[1]) then
       begin
-        SetLength(OddRow, Width);
-        SetLength(EvenRow, Width);
-
-        ColorEven := @EvenRow[0];
-        ColorOdd := @OddRow[0];
-        for X := 0 to Width-1 do
+        BlockSize := 1 shl FBackgroundOptions.CheckersExponent;
+        for Y := r.Top to r.Bottom - 1 do
         begin
-          Parity := ((r.Left+X) shr FBackgroundOptions.CheckersExponent) and $1;
-          ColorEven^ := FBackgroundOptions.CheckersColors[Parity];
-          ColorOdd^ := FBackgroundOptions.CheckersColors[1-Parity];
-          inc(ColorEven);
-          inc(ColorOdd);
-        end;
+          RowPtr := Dest.ScanLine[Y];
+          X := r.Left;
+          // BlockSize is $00000010, $00000100, $00001000, $00010000, etc. so
+          // BlockSize-1 is $00000001, $00000011, $00000111, $00001111, etc.
+          Len := BlockSize - (X and (BlockSize - 1)); // (X and (BlockSize - 1)) = (X mod BlockSize)
+          if (Len > r.Right - X) then
+            Len := r.Right - X;
+          Parity := ((X shr FBackgroundOptions.CheckersExponent) xor (Y shr FBackgroundOptions.CheckersExponent)) and 1;
 
-        // Note: For ((DrawMode<>dmOpaque) and (FillStyle=bfsCheckers)) we should
-        // exclude filling the area covered by the bitmap. For simplicity we're
-        // not doing that.
-
-        for Y := r.Top to r.Bottom-1 do
-        begin
-          Parity := (Y shr FBackgroundOptions.CheckersExponent) and $1;
-          if (Parity = 0) then
-            MoveLongword(EvenRow[0], Dest.PixelPtr[r.Left, Y]^, Width)
-          else
-            MoveLongword(OddRow[0], Dest.PixelPtr[r.Left, Y]^, Width);
+          while (X < r.Right) do
+          begin
+            FillLongword(RowPtr[X], Len, FBackgroundOptions.CheckersColors[Parity]);
+            Inc(X, Len);
+            Parity := 1 - Parity;
+            Len := BlockSize;
+            if (Len > r.Right - X) then
+              Len := r.Right - X;
+          end;
         end;
       end else
         // Odd color = Even color -> Just clear with the color
