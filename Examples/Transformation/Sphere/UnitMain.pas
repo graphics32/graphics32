@@ -19,6 +19,7 @@ type
   TFormMain = class(TForm)
     PaintBox32: TPaintBox32;
     TimerRotate: TTimer;
+    TimerMove: TTimer;
     procedure FormResize(Sender: TObject);
     procedure PaintBox32PaintBuffer(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -29,6 +30,8 @@ type
     procedure PaintBox32DblClick(Sender: TObject);
     procedure PaintBox32MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
       var Handled: Boolean);
+    procedure TimerMoveTimer(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     FBitmap: TBitmap32;
     FTransformation: TSphereTransformation;
@@ -37,9 +40,12 @@ type
 
     FCurrentRasterizer: TRasterizer;
     FLastMousePos: TPoint;
+    FShowStarfield: boolean;
+    FRotationDelta: Single;
 
     procedure MsgAfterShow(var Msg: TMessage); message MSG_AFTER_SHOW;
     procedure MsgAfterResize(var Msg: TMessage); message MSG_AFTER_RESIZE;
+    procedure Reset;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -57,10 +63,11 @@ implementation
 {$R *.dfm}
 
 {$if defined(DCC) and (CompilerVersion >= 26.0)} // XE5 and later?
-  {-$define USE_GEOLOCATION}
+  {$define USE_GEOLOCATION}
 {$ifend}
 
 uses
+  System.Types,
   System.Math,
   System.Diagnostics,
 {$ifdef USE_GEOLOCATION}
@@ -69,6 +76,10 @@ uses
   GR32_Backends_Generic,
   GR32.ImageFormats.JPG,
   GR32.Examples;
+
+const
+  DefaultLongitude: Double =    12.052785473578014 / 180 * PI + PI;
+  DefaultLatitude: Double =     55.29952826015878 / 180 * PI;
 
 //------------------------------------------------------------------------------
 
@@ -85,6 +96,7 @@ begin
   FDraftRasterizer := TDraftRasterizer.Create;
 
   FCurrentRasterizer := FRasterizer;
+  FRotationDelta := 0.001;
 
   PaintBox32.Visible := False;
 end;
@@ -100,6 +112,29 @@ begin
 end;
 
 //------------------------------------------------------------------------------
+
+procedure TFormMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  case Key of
+    VK_ESCAPE:
+      Close;
+
+    Ord('S'), Ord('s'):
+      begin
+        FShowStarfield := not FShowStarfield;
+        PaintBox32.Invalidate;
+      end;
+
+    Ord('R'), Ord('r'):
+      Reset;
+
+    VK_ADD:
+      FRotationDelta := Min(0.1, FRotationDelta * 2);
+
+    VK_SUBTRACT:
+      FRotationDelta := Max(0.001, FRotationDelta / 2);
+  end;
+end;
 
 procedure TFormMain.FormResize(Sender: TObject);
 begin
@@ -139,7 +174,7 @@ begin
 
   s := 'Loading - Please wait...';
   Size := PaintBox32.Buffer.TextExtent(s);
-  PaintBox32.Buffer.RenderText((PaintBox32.Width-Size.cx) div 2, (PaintBox32.Height-Size.cy) div 2, s, -1, clRed32);
+  PaintBox32.Buffer.RenderText((PaintBox32.Width-Size.cx) div 2, (PaintBox32.Height-Size.cy) div 2, s, clRed32);
   PaintBox32.Flush;
 
   FBitmap.LoadFromFile(Graphics32Examples.MediaFolder + '\Globe.jpg');
@@ -148,9 +183,9 @@ begin
 
   Screen.Cursor := crDefault;
 
-  // Start with some random location, a bit more interesting than the Pacific Ocean
-  FTransformation.Longitude := 55.29952826015878 / 90 * PI*2; // TODO : Something wrong here
-  FTransformation.Lattitude := -12.052785473578014 / 90 * PI*2;
+  // Start with some "random location", a bit more interesting than the Pacific Ocean
+  FTransformation.Longitude := DefaultLongitude;
+  FTransformation.Latitude := DefaultLatitude;
 
 {$ifdef USE_GEOLOCATION}
   // Try to get current location. Unfortunately this doesn't seem to work without
@@ -168,8 +203,8 @@ begin
     if (not Sensor.Started) then
       continue;
 
-    FTransformation.Longitude := TCustomLocationSensor(Sensor).Longitude / 180 * PI;
-    FTransformation.Lattitude := TCustomLocationSensor(Sensor).Latitude / 90 * PI*2;
+    FTransformation.Longitude := TCustomLocationSensor(Sensor).Longitude / 180 * PI + PI;
+    FTransformation.Latitude := TCustomLocationSensor(Sensor).Latitude / 180 * PI;
 
     if (not WasStarted) then
       Sensor.Stop;
@@ -195,13 +230,14 @@ begin
     Exit;
 
   // Store current mouse position and switch to the draft rasterizer
-  FLastMousePos := Point(X, Y);
+  FLastMousePos := GR32.Point(X, Y);
   FCurrentRasterizer := FDraftRasterizer;
 end;
 
 procedure TFormMain.PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 var
   DeltaX, DeltaY: Integer;
+  P1, P2: TFloatPoint;
 begin
   if (FBitmap = nil) or (FBitmap.Empty) then
     Exit;
@@ -210,26 +246,39 @@ begin
     Exit;
 
   TimerRotate.Enabled := False;
-
   DeltaX := X - FLastMousePos.X;
   DeltaY := Y - FLastMousePos.Y;
 
   if (Abs(DeltaX) <= 5) and (Abs(DeltaY) <= 5) then
     Exit;
 
-  FLastMousePos := Point(X, Y);
+  TimerMove.Enabled := False;
 
   if (ssLeft in Shift) then
   begin
     // Rotate
-    FTransformation.Longitude := FTransformation.Longitude - (DeltaX / FTransformation.Radius) * (PI / 2);
-    FTransformation.Lattitude := FTransformation.Lattitude - (DeltaY / FTransformation.Radius) * (PI / 2);
+    P1 := FTransformation.SphericalCoordinate(FLastMousePos.X, FLastMousePos.Y);
+    P2 := FTransformation.SphericalCoordinate(X, Y);
+
+    if FTransformation.IsInSphere(FLastMousePos.X, FLastMousePos.Y) and FTransformation.IsInSphere(X, Y) then
+    begin
+      FTransformation.Longitude := FTransformation.Longitude - (P2.X - P1.X);
+      FTransformation.Latitude := FTransformation.Latitude - (P2.Y - P1.Y);
+    end else
+    begin
+      FTransformation.Longitude := FTransformation.Longitude - (DeltaX / FTransformation.Radius);
+      FTransformation.Latitude := FTransformation.Latitude + (DeltaY / FTransformation.Radius);
+    end;
   end else
   if (ssRight in Shift) then
     // Pan
     FTransformation.Center := FloatPoint(FTransformation.Center.X + DeltaX, FTransformation.Center.Y + DeltaY);
 
+  FLastMousePos := GR32.Point(X, Y);
   PaintBox32.Invalidate;
+
+  // Start timer that detects if user pauses movement
+  TimerMove.Enabled := True;
 end;
 
 procedure TFormMain.PaintBox32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -237,6 +286,7 @@ begin
   if (FBitmap = nil) or (FBitmap.Empty) then
     Exit;
 
+  TimerMove.Enabled := False;
   FCurrentRasterizer := FRasterizer;
   PaintBox32.Invalidate;
 end;
@@ -255,6 +305,9 @@ end;
 procedure TFormMain.PaintBox32PaintBuffer(Sender: TObject);
 var
   StopWatch: TStopWatch;
+  i: integer;
+  x, y: integer;
+  r: TRect;
 begin
   PaintBox32.Buffer.Clear(clBlack32);
 
@@ -264,7 +317,21 @@ begin
     Transform(PaintBox32.Buffer, FBitmap, FTransformation, FCurrentRasterizer);
 
   StopWatch.Stop;
-  PaintBox32.Buffer.RenderText(0, 0, Format('Rasterized in %d mS', [StopWatch.ElapsedMilliseconds]), -1, clWhite32);
+  PaintBox32.Buffer.RenderText(0, 0, Format('Rasterized in %d mS', [StopWatch.ElapsedMilliseconds]), clWhite32);
+
+  // Paint a random starfield
+  if (FShowStarfield) then
+  begin
+    RandSeed := 0;
+    for i := 1 to 200 do
+    begin
+      x := Random(PaintBox32.Width);
+      y := Random(PaintBox32.Height);
+      if (FTransformation.IsInSphere(x, y)) then
+        continue;
+      PaintBox32.Buffer.Pixel[x, y] := clWhite32;
+    end;
+  end;
 
   // While manually panning or rotating, adjust the pixel size so we are able to maintain
   // a frame rate between 25-50 fps
@@ -275,15 +342,54 @@ begin
     else
     if (StopWatch.ElapsedMilliseconds > 40) then
       TDraftRasterizer(FDraftRasterizer).PixelSize := TDraftRasterizer(FDraftRasterizer).PixelSize + 1;
-    PaintBox32.Buffer.RenderText(0, 20, Format('Pixel size: %d', [TDraftRasterizer(FDraftRasterizer).PixelSize]), -1, clWhite32);
+    PaintBox32.Buffer.RenderText(0, 20, Format('Pixel size: %d', [TDraftRasterizer(FDraftRasterizer).PixelSize]), clWhite32);
   end;
+
+  r := Rect(0, 8, ClientWidth-8, ClientHeight);
+  PaintBox32.Buffer.Font.Color := clSkyBlue;
+  PaintBox32.Buffer.Textout(r, DT_RIGHT or DT_TOP,
+    'Mouse-left: Rotate'#13+
+    'Mouse-right: Pan'#13+
+    'Mouse-scroll: Zoom'#13+
+    'Dbl-click: Animate'#13+
+    'S: Start field'#13+
+    'R: Reset to origin'#13+
+    '+ / -: Faster/Slower animate'#13+
+    '[Esc]: Quit'
+    );
 end;
 
 //------------------------------------------------------------------------------
 
+procedure TFormMain.Reset;
+begin
+  FTransformation.Longitude := DefaultLongitude;
+  FTransformation.Latitude := DefaultLatitude;
+  FTransformation.Center := FloatPoint(PaintBox32.Width / 2, PaintBox32.Height / 2);
+  FTransformation.Radius := Min(PaintBox32.Width, PaintBox32.Height) / 2;
+  FRotationDelta := 0.001;
+  PaintBox32.Invalidate;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TFormMain.TimerMoveTimer(Sender: TObject);
+begin
+  TimerMove.Enabled := False;
+
+  FCurrentRasterizer := FRasterizer;
+  try
+
+    PaintBox32.Repaint;
+
+  finally
+    FCurrentRasterizer := FDraftRasterizer;
+  end;
+end;
+
 procedure TFormMain.TimerRotateTimer(Sender: TObject);
 begin
-  FTransformation.Longitude := FTransformation.Longitude - 0.001;
+  FTransformation.Longitude := FTransformation.Longitude - FRotationDelta;
 
   PaintBox32.Invalidate;
 end;
