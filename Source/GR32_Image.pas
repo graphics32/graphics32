@@ -1281,9 +1281,13 @@ begin
   if (Supports(FBuffer.Backend, IUpdateRectSupport, UpdateRectSupport)) then
   begin
     R := AArea;
+
+    // Ensure Area describes a valid rectangle (e.g. lines in quadrant 2, 3, & 4 does not)
+    R.NormalizeRect;
+
     if (AInfo and AREAINFO_LINE <> 0) then
     begin
-      Width := Max((AInfo and (not AREAINFO_MASK)) - 1, 1);
+      Width := Max((AInfo and (not AREAINFO_MASK)) + 1, 2); // 2 = 1 for the line width + 1 for AA
       InflateArea(R, Width, Width);
     end;
 
@@ -1717,7 +1721,9 @@ var
   FullRepaint: boolean;
   UpdateRectSupport: IUpdateRectSupport;
   i: integer;
+{$ifdef CONSOLIDATE_UPDATERECTS}
   Tiles: TMicroTiles;
+{$endif CONSOLIDATE_UPDATERECTS}
 begin
   // Update the InvalidRects
   if CustomRepaint then
@@ -2420,7 +2426,8 @@ end;
 
 function TCustomImage32.ControlToBitmap(const ARect: TRect; Rounding: TRectRounding): TRect;
 begin
-  // It is assumed that ARect.Top<=ARect.Bottom and ARect.Left<=ARect.Right
+  // See TRectRounding for input constraints
+
   UpdateCache;
 
   if (CachedRecScaleX = 0) then
@@ -2446,6 +2453,24 @@ begin
         begin
           Result.Left := Ceil((ARect.Left - CachedShiftX) * CachedRecScaleX);
           Result.Right := Floor((ARect.Right - CachedShiftX) * CachedRecScaleX);
+        end;
+
+      rrLine:
+        begin
+          if (ARect.Left < ARect.Right) then
+          begin
+            Result.Left := Floor((ARect.Left - CachedShiftX) * CachedRecScaleX);
+            Result.Right := Ceil((ARect.Right - CachedShiftX) * CachedRecScaleX);
+          end else
+          if (ARect.Left > ARect.Right) then
+          begin
+            Result.Left := Ceil((ARect.Left - CachedShiftX) * CachedRecScaleX);
+            Result.Right := Floor((ARect.Right - CachedShiftX) * CachedRecScaleX);
+          end else
+          begin
+            Result.Left := Round((ARect.Left - CachedShiftX) * CachedRecScaleX);
+            Result.Right := Result.Left;
+          end;
         end;
     end;
   end;
@@ -2473,6 +2498,24 @@ begin
         begin
           Result.Top := Ceil((ARect.Top - CachedShiftY) * CachedRecScaleY);
           Result.Bottom := Floor((ARect.Bottom - CachedShiftY) * CachedRecScaleY);
+        end;
+
+      rrLine:
+        begin
+          if (ARect.Top < ARect.Bottom) then
+          begin
+            Result.Top := Floor((ARect.Top - CachedShiftY) * CachedRecScaleY);
+            Result.Bottom := Ceil((ARect.Bottom - CachedShiftY) * CachedRecScaleY);
+          end else
+          if (ARect.Top > ARect.Bottom) then
+          begin
+            Result.Top := Ceil((ARect.Top - CachedShiftY) * CachedRecScaleY);
+            Result.Bottom := Floor((ARect.Bottom - CachedShiftY) * CachedRecScaleY);
+          end else
+          begin
+            Result.Top := Round((ARect.Top - CachedShiftY) * CachedRecScaleY);
+            Result.Bottom := Result.Top;
+          end;
         end;
     end;
   end;

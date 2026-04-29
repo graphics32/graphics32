@@ -3199,8 +3199,8 @@ begin
     if (i > 0) then
     begin
       // Invalidate segment
-      LineRect := MakeRect(Segment, rrOutside);
-      Changed(LineRect, AREAINFO_LINE + 1);
+      LineRect := MakeRect(Segment, rrLine);
+      Changed(LineRect, AREAINFO_LINE + 2); // +2 = 1 for the line width + 1 for AA
     end;
 
     Segment.TopLeft := Segment.BottomRight;

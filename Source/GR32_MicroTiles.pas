@@ -1286,7 +1286,7 @@ begin
   FOldInvalidTilesValid := False;  // force resizing and rerendering of invalid tiles
   UpdateOldInvalidTiles;
 
-  // mark whole buffer area invalid... 
+  // mark whole buffer area invalid...
   MicroTilesClear(FForcedInvalidTiles, MICROTILE_FULL);
   FForcedInvalidTiles.BoundsUsedTiles := MakeRect(0, 0, FForcedInvalidTiles.Columns, FForcedInvalidTiles.Rows);
   FUseInvalidTiles := True;
