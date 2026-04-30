@@ -557,15 +557,15 @@ type
     FCenter: TFloatPoint;
     FRadius: TFloat;
     FLongitude: TFloat;
-    FLattitude: TFloat;
-    FLattitudeSin: TFloat;
-    FLattitudeCos: TFloat;
-    FLattitudeSinInvRadius: TFloat;
-    FLattitudeCosInvRadius: TFloat;
+    FLatitude: TFloat;
+    FLatitudeSin: TFloat;
+    FLatitudeCos: TFloat;
+    FLatitudeSinInvRadius: TFloat;
+    FLatitudeCosInvRadius: TFloat;
     FSrcRectTop: TFloat;
     FSrcRectLeft: TFloat;
     procedure SetCenter(const Value: TFloatPoint);
-    procedure SetLattitude(const Value: TFloat);
+    procedure SetLatitude(const Value: TFloat);
     procedure SetLongitude(const Value: TFloat);
     procedure SetRadius(const Value: TFloat);
   protected
@@ -579,9 +579,9 @@ type
 
     // Return True if the (X,Y) point is in the Sphere projection
     function IsInSphere(CartesianX, CartesianY: TFloat):boolean;
-    // Transform (X,Y) coordinate as Lattitude and Longitude coordinates in the Sphere
+    // Transform (X,Y) coordinate as Latitude and Longitude coordinates in the Sphere
     function SphericalCoordinate(CartesianX, CartesianY: TFloat):TFloatPoint;
-    // Transform Longitude and Lattitude coordinates (X,Y) into their screen projection.
+    // Transform Longitude and Latitude coordinates (X,Y) into their screen projection.
     // Returns False if this point is on visible face.
     function ScreenCoordinate(var X, Y: TFloat):boolean;
 
@@ -589,9 +589,9 @@ type
     property Center: TFloatPoint read FCenter write SetCenter;
     // Radius of the Sphere in the Destination Bitmap
     property Radius: TFloat read FRadius write SetRadius;
-    // Rotation of the Sphere (Y-axe rotation angle)
-    property Lattitude: TFloat read FLattitude write SetLattitude;
     // Rotation of the Sphere (X-axe rotation angle)
+    property Latitude: TFloat read FLatitude write SetLatitude;
+    // Rotation of the Sphere (Y-axe rotation angle)
     property Longitude: TFloat read FLongitude write SetLongitude;
   end;
 
@@ -3064,9 +3064,9 @@ begin
   FMapWidth := (SrcRect.Width - 1) / (2 * PI);
   FMapHeight := (SrcRect.Height - 1) / PI;
   FSquareRadius := Sqr(FRadius);
-  GR32_Math.SinCos(FLattitude, FLattitudeSin, FLattitudeCos);
-  FLattitudeSinInvRadius := -FLattitudeSin / FRadius;
-  FLattitudeCosInvRadius := FLattitudeCos / FRadius;
+  GR32_Math.SinCos(FLatitude, FLatitudeSin, FLatitudeCos);
+  FLatitudeSinInvRadius := FLatitudeSin / FRadius;
+  FLatitudeCosInvRadius := FLatitudeCos / FRadius;
   FSrcRectTop := SrcRect.Top;
   FSrcRectLeft := SrcRect.Left;
 
@@ -3074,9 +3074,6 @@ begin
 end;
 
 procedure TSphereTransformation.ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat);
-// FPC currently refuses to compile the ASM version.
-// Consider deprecating it as it's not really worth the effort - or replace it with a SSE version
-{$if defined(PUREPASCAL) or (not defined(TARGET_x86)) or (defined(FPC))}
 var
   Dist: TFloat;
 begin
@@ -3095,105 +3092,18 @@ begin
   Dist := Sqrt(FSquareRadius - Dist);
 
   // Apply rotations
-  DstX := Arctan2(DstX, Dist * FLattitudeCos + DstY * FLattitudeSin) + FLongitude;
+  DstX := Arctan2(DstX, Dist * FLatitudeCos - DstY * FLatitudeSin) + FLongitude;
   Modulo2Pi(DstX);
 
   // Map projection
   SrcX := SrcRect.Left + DstX * FMapWidth;
-  SrcY := SrcRect.Top + ArcCos(DstY * FLattitudeCosInvRadius + Dist * FLattitudeSinInvRadius) * FMapHeight;
+  SrcY := SrcRect.Top + ArcCos(DstY * FLatitudeCosInvRadius + Dist * FLatitudeSinInvRadius) * FMapHeight;
 end;
-{$else}
-{Assembler version (FPU) ... 4% faster on a P4 }
-asm
-// screen projection on sphere
-//  DstX := DstX - FCenterX; // = Y
-    fld   DstX               // DstX
-    fsub  [eax].FCenter.X // DstX'
-//  DstY := FCenterY - DstY; // = Z
-    fld   [eax].FCenter.Y // FCenterY | DstX'
-    fsub  DstY               // DstY'    | DstX'
-//  x := DstX * DstX + DstY * DstY;
-    fld   st(0)                    // Z    | Z    | Y
-    fmul  st(0),st(1)              // ZZ   | Z    | Y
-    fld   st(2)                    // Y    | ZZ   | Z   | Y
-    fmul  st(0),st(3)
-    faddp                          // X'   | Z    | Y
-//  if (FSquareRadius < x) then // not projetable in the sphere.
-    fld [eax].FSquareRadius
-    fcomi st(0),st(1) // st(0) < st(1)
-    jnbe   @@1
-    fstp  st(0)
-    fstp  st(0)
-    fstp  st(0)
-    fstp  st(0)
-//    SrcX := -1;
-    mov   [SrcX],$bf800000
-//    SrcY := -1;
-    mov   [SrcY],$bf800000
-//    Exit;
-    jmp @@fin
-@@1:
-//  x := sqrt(FSquareRadius - x);
-    fsubrp
-    fsqrt                          // X    | Z    | Y
-// apply rotations
-//  DstX := Arctan2(Y,X * FLattitudeCos + Z * FLattitudeSin) + FLongitude; // Lon
-    fxch  st(2)                   // Y     | Z    | Y
-    fld   st(2)                   // X     | Y    | Z    | X
-    fmul  [eax].FLattitudeCos
-    fld   st(2)                   // Z     | Xx.  | Y    | Z    | X
-    fmul  [eax].FLattitudeSin     // Zx.   | Xx.  | Y    | Z    | X
-    faddp                         // Xx+Zx | Y    | Z    | X
-    fpatan
-    fadd  [eax].FLongitude  // DstX  | Z    | X
-//  if DstX > PI2S then
-    fldpi
-    fadd  st(0),st(0)       // 2PI   | DstX | Z    | X
-    fcomi st(0),st(1) // st(0) < st(1)
-    jnb   @@test2
-//    DstX := DstX - PI2S
-    fsubp st(1),st(0)
-    jmp   @@testfin
-//  else if DstX < 0 then
-@@test2:
-    fldz
-    fcomip st(0),st(2) // st(0) < st(2)
-    jb @@test3
-//    DstX := DstX + PI2S;
-    faddp
-    jmp   @@testfin
-@@test3:
-    fstp  st(0)
-@@testfin:
-// Map projection
-//  SrcX := DstX * FMapWidth;
-    fmul  [eax].FMapWidth
-    FADD  [eax].FSrcRectLeft
-    fstp  dword ptr [SrcX]// Z    | X
-//  SrcY := ArcCos(Z * FLattitudeCosInvRadius + x * FLattitudeSinInvRadius) * FMapHeight;
-    fmul  [eax].FLattitudeCosInvRadius
-    fxch
-    fmul  [eax].FLattitudeSinInvRadius
-    faddp
-    FLD1                 // 1      | X
-    FLD   ST(1)          // X      | 1      | X
-    FMUL  ST(0),ST(0)    // X²     | 1      | X
-    FSUBP ST(1),ST(0)    // 1 - X² | X
-    FABS                 //<- avoid rounding errors...
-    FSQRT                // sqrt(.)| X
-    FXCH  st(1)
-    FPATAN               // result |
-    fmul  [eax].FMapHeight
-    FADD  [eax].FSrcRectTop
-    fstp  dword ptr [SrcY]
-@@fin:
-    fwait
-end;
-{$ifend}
 
 function TSphereTransformation.ScreenCoordinate(var X, Y: TFloat): boolean;
 var
   SinLong, CosLong, SinLat, CosLat: TFloat;
+  XX, YY, ZZ: TFloat;
 begin
   if not TransformValid then
     PrepareTransform;
@@ -3201,12 +3111,20 @@ begin
   GR32_Math.SinCos(X - FLongitude, SinLong, CosLong);
   GR32_Math.SinCos(Y, SinLat, CosLat);
 
-  Result := (SinLat * CosLong * FLattitudeCos >= CosLat * FLattitudeSin);
+  // Spherical to Cartesian
+  XX := CosLat * CosLong;
+  YY := CosLat * SinLong;
+  ZZ := SinLat;
+
+  // Rotation around Y axis (Latitude)
+  // X' = X * cos(Lat) + Z * sin(Lat)
+  // Z' = -X * sin(Lat) + Z * cos(Lat)
+  Result := (XX * FLatitudeCos + ZZ * FLatitudeSin >= 0);
 
   if Result then
   begin
-    X := FCenter.X + FRadius * SinLat * SinLong;
-    Y := FCenter.Y - FRadius * (SinLat * CosLong * FLattitudeSin + CosLat * FLattitudeCos);
+    X := FCenter.X + FRadius * YY;
+    Y := FCenter.Y - FRadius * (ZZ * FLatitudeCos - XX * FLatitudeSin);
   end;
 end;
 
@@ -3219,12 +3137,12 @@ begin
   end;
 end;
 
-procedure TSphereTransformation.SetLattitude(const Value: TFloat);
+procedure TSphereTransformation.SetLatitude(const Value: TFloat);
 begin
-  if FLattitude <> Value then
+  if FLatitude <> Value then
   begin
-    FLattitude := Value;
-    Modulo2Pi(FLattitude);
+    FLatitude := Value;
+    Modulo2Pi(FLatitude);
     Changed;
   end;
 end;
@@ -3270,9 +3188,9 @@ begin
   Dist := Sqrt(FSquareRadius - Dist);
 
   // Apply rotations
-  Result.X := Arctan2(CartesianX, Dist * FLattitudeCos + CartesianY * FLattitudeSin) + FLongitude;
+  Result.X := Arctan2(CartesianX, Dist * FLatitudeCos - CartesianY * FLatitudeSin) + FLongitude;
   Modulo2Pi(Result.X);
-  Result.Y := ArcCos(CartesianY * FLattitudeCosInvRadius + Dist * FLattitudeSinInvRadius) - (PI / 2);
+  Result.Y := (PI / 2) - ArcCos(CartesianY * FLatitudeCosInvRadius + Dist * FLatitudeSinInvRadius);
 end;
 
 
