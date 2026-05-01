@@ -608,6 +608,8 @@ procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; 
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer; Reverse: boolean = True); overload;
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer; const DstClip: TRect; Reverse: boolean = True); overload;
 
+procedure Modulo2Pi(var Angle: TFloat); {Result is between 0 and 2PI }
+
 procedure RasterizeTransformation(Vectormap: TVectormap;
   Transformation: TTransformation; DstRect: TRect;
   CombineMode: TVectorCombineMode = vcmAdd;
