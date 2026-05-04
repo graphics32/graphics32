@@ -87,6 +87,7 @@ type
   private
     FRotation: TQuaternion;
     FRotationMatrix: TFloatMatrix;
+    FInvRadius: TFloat;
     procedure UpdateMatrix;
   protected
     procedure PrepareTransform; override;
@@ -250,10 +251,10 @@ end;
 
 function TQuaternion.Multiply(const Q: TQuaternion): TQuaternion;
 begin
-  Result.W := W * Q.W - X * Q.X - Y * Q.Y - Z * Q.Z;
-  Result.X := W * Q.X + X * Q.W + Y * Q.Z - Z * Q.Y;
-  Result.Y := W * Q.Y - X * Q.Z + Y * Q.W + Z * Q.X;
-  Result.Z := W * Q.Z + X * Q.Y - Y * Q.X + Z * Q.W;
+  Result.X := (W * Q.X) + (X * Q.W) + (Y * Q.Z) - (Z * Q.Y);
+  Result.Y := (W * Q.Y) + (Y * Q.W) + (Z * Q.X) - (X * Q.Z);
+  Result.Z := (W * Q.Z) + (Z * Q.W) + (X * Q.Y) - (Y * Q.X);
+  Result.W := (W * Q.W) - (X * Q.X) - (Y * Q.Y) - (Z * Q.Z);
 end;
 
 function TQuaternion.Normalize: TQuaternion;
@@ -347,6 +348,7 @@ end;
 procedure TArcballSphereTransformation.SyncToAngles;
 var
   L: TVector3f;
+  LocalLongitude: TFloat;
 begin
   // Extract Latitude/Longitude from the rotation matrix.
   // The viewer is located at World X = [1, 0, 0].
@@ -358,7 +360,7 @@ begin
 
   // Map local vector L back to spherical coordinates.
   Latitude := ArcSin(L[2]); // Z component determines Latitude
-  var LocalLongitude: TFloat := PI - Arctan2(L[1], L[0]); // X, Y determine Longitude
+  LocalLongitude := PI - Arctan2(L[1], L[0]); // X, Y determine Longitude
   Modulo2Pi(LocalLongitude);
   Longitude := LocalLongitude;
 end;
@@ -366,13 +368,17 @@ end;
 procedure TArcballSphereTransformation.PrepareTransform;
 begin
   inherited PrepareTransform;
+
+  if Radius <> 0 then
+    FInvRadius := 1.0 / Radius
+  else
+    FInvRadius := 0;
 end;
 
 procedure TArcballSphereTransformation.ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat);
 var
   Dist: TFloat;
   W, L: TVector3f;
-  InvRadius: TFloat;
 const
   OneOverPI: TFloat = 1 / PI;
 begin
@@ -395,10 +401,9 @@ begin
   Dist := Sqrt(Sqr(Radius) - Dist); // Calculate World X (Depth/Screen Forward)
 
   // Normalize W to unit length
-  InvRadius := 1 / Radius;
-  W[0] := Dist * InvRadius;
-  W[1] := DstX * InvRadius;
-  W[2] := DstY * InvRadius;
+  W[0] := Dist * FInvRadius;
+  W[1] := DstX * FInvRadius;
+  W[2] := DstY * FInvRadius;
 
   // 2. Transformation: Map World Space W to Sphere Local Space L.
   // L = R^-1 * W. Since R is an orthogonal rotation matrix, R^-1 = R^T (Transpose).
@@ -587,8 +592,9 @@ begin
     // a smooth transition with no continuity jump.
     d := Sqrt(Dist);
     Angle := (d - R) * OneOverR; // Angular displacement from the edge
-    CosAngleOverDist := Cos(Angle) / d;
-    Result[0] := -Sin(Angle); // Depth component (starting from 0 and going negative)
+    GR32_Math.SinCos(Angle, Result[0], CosAngleOverDist);
+    CosAngleOverDist := CosAngleOverDist / d;
+    Result[0] := -Result[0]; // Depth component (starting from 0 and going negative)
     Result[1] := DX * CosAngleOverDist; // Horizontal component (starting from edge)
     Result[2] := DY * CosAngleOverDist; // Vertical component (starting from edge)
   end else
