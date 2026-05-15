@@ -1881,7 +1881,7 @@ begin
     H := H * R6;
 
     if H < 0 then
-      H := H + 1
+      H := H + 1;
   end;
 end;
 
@@ -6398,7 +6398,7 @@ begin
               Stream.ReadBuffer(Scanline[i]^, ChunkSize);
           end else
             // Bitmap is stored top-down: Read all rows in one go
-            Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD))
+            Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD));
         end;
     end;
 

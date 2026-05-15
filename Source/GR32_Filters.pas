@@ -519,7 +519,7 @@ begin
     C := P^ and $00FFFFFF;
     if (C = KeyColor) then
       P^ := C;
-    Inc(P)
+    Inc(P);
   end;
 
   ABitmap.Changed;
@@ -578,7 +578,7 @@ begin
         Count := Right - Left;
         if Count > 0 then
           for I := 0 to Bottom - Top - 1 do
-            MaskProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], Dst.PixelPtr[Left, Top + I], Count, Bitmask)
+            MaskProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], Dst.PixelPtr[Left, Top + I], Count, Bitmask);
       end;
     finally
       Dst.EndUpdate;

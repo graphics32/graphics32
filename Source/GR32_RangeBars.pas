@@ -1689,7 +1689,7 @@ var
     if Result.X < 0 then Result.X := 0;
     if Result.Y < 0 then Result.Y := 0;
     if Result.X >= ClientWidth then Result.X := ClientWidth - 1;
-    if Result.Y >= ClientHeight then Result.Y := ClientHeight - 1
+    if Result.Y >= ClientHeight then Result.Y := ClientHeight - 1;
   end;
 
 begin
@@ -1966,7 +1966,7 @@ var
     if Result.X < 0 then Result.X := 0;
     if Result.Y < 0 then Result.Y := 0;
     if Result.X >= ClientWidth then Result.X := ClientWidth - 1;
-    if Result.Y >= ClientHeight then Result.Y := ClientHeight - 1
+    if Result.Y >= ClientHeight then Result.Y := ClientHeight - 1;
   end;
 
 begin

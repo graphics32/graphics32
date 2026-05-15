@@ -2063,7 +2063,7 @@ begin
                   AddLocalMinPoly(e1, e2, pt, false, orientationCheckRequired);
         ctXor:
           AddLocalMinPoly(e1, e2, pt, false, orientationCheckRequired);
-      end
+      end;
   end;
 end;
 //------------------------------------------------------------------------------
@@ -2795,7 +2795,7 @@ begin
   dx := dx * inverseHypot;
   dy := dy * inverseHypot;
   Result.X := dy;
-  Result.Y := -dx
+  Result.Y := -dx;
 end;
 
 //------------------------------------------------------------------------------

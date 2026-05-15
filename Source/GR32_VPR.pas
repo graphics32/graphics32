@@ -742,7 +742,7 @@ begin
 {$if not defined(USE_POLYFLOOR)}
   finally
     SetRoundMode(SavedRoundingMode);
-  end
+  end;
 {$ifend}
 end;
 

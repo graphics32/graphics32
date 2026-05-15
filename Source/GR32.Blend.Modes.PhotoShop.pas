@@ -1469,7 +1469,7 @@ begin
     else
       Result := 255-FF;
   end else
-    Result := 0
+    Result := 0;
 end;
 
 class function TGraphics32BlenderColorBurn.GetID: string;

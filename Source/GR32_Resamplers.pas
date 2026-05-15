@@ -1296,7 +1296,7 @@ begin
           BlendLineEx(SrcP, DstP, W, Src.MasterAlpha);
           Inc(SrcP, Src.Width);
           Inc(DstP, Dst.Width);
-        end
+        end;
       end;
     dmTransparent:
       begin
@@ -1993,10 +1993,10 @@ begin
 {$else}
             C := AlphaInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
 {$ifend}
-            BlendMemEx(C, DstLine[I], Src.MasterAlpha)
+            BlendMemEx(C, DstLine[I], Src.MasterAlpha);
           end;
           Inc(DstLine, Dst.Width);
-        end
+        end;
       end;
 
     dmTransparent:
@@ -2025,7 +2025,7 @@ begin
               DstLine[I] := C;
           end;
           Inc(DstLine, Dst.Width);
-        end
+        end;
       end;
 
   else // cmCustom
@@ -3189,7 +3189,7 @@ begin
   if (WeightY_256 = 0) then
     Result := C1
   else
-    Result := CombineReg(C1, C3, WeightY_256)
+    Result := CombineReg(C1, C3, WeightY_256);
 end;
 
 
@@ -3680,7 +3680,7 @@ begin
   begin
     FCoeff := Value;
     Changed;
-  end
+  end;
 end;
 
 
@@ -4345,7 +4345,7 @@ begin
                 Inc(VertEntry.G, HorzEntry.G * Wv);
                 Inc(VertEntry.B, HorzEntry.B * Wv);
               end;
-            end
+            end;
           end;
         end;
       end;
@@ -4562,7 +4562,7 @@ procedure TNearestResampler.Resample(
   Src: TCustomBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 begin
-  StretchNearest(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
+  StretchNearest(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
 end;
 
 
@@ -4698,7 +4698,7 @@ procedure TDraftResampler.Resample(
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 begin
   DraftResample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp,
-    CombineCallBack)
+    CombineCallBack);
 end;
 
 

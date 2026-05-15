@@ -150,7 +150,7 @@ var
   MousePos: TPoint;
 begin
   MousePos := Image.ScreenToClient(Mouse.CursorPos);
-  ZoomOut(MousePos)
+  ZoomOut(MousePos);
 end;
 
 procedure TFormMain.ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
@@ -162,7 +162,7 @@ begin
   if (Image.GetBitmapRect.Contains(MousePos)) then
     ZoomIn(MousePos)
   else
-    ZoomOut(MousePos)
+    ZoomOut(MousePos);
 end;
 
 procedure TFormMain.ImageResize(Sender: TObject);

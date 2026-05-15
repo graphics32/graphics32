@@ -183,7 +183,7 @@ begin
     Inc(P);
     while AnsiChar(P^) in CValidNameChar do Inc(P);
     Result := SubString(Start, P);
-  end
+  end;
 end;
 
 function GetEq(var P: PChar): Boolean;
@@ -254,7 +254,7 @@ begin
   for I := 0 to Count - 1 do
   begin
     Result := Items[I];
-    if SameText(Result.Name, AName) then Exit
+    if SameText(Result.Name, AName) then Exit;
   end;
   Result := nil;
 end;
@@ -294,7 +294,7 @@ end;
 
 procedure TAttributeList.SetItems(Index: Integer; Attribute: TAttribute);
 begin
-  inherited Items[Index] := Attribute
+  inherited Items[Index] := Attribute;
 end;
 
 { TDomNodeList }

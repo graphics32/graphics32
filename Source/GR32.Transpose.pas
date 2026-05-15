@@ -726,7 +726,7 @@ begin
   else
     CacheObliviousTransposeBuffer := BlockBuffer;
 {$else USE_GLOBALBUFFER}
-  FreeMem(BlockBuffer)
+  FreeMem(BlockBuffer);
 {$endif USE_GLOBALBUFFER}
 end;
 

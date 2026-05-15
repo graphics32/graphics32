@@ -2087,7 +2087,7 @@ begin
         if Intensity(HSVtoRGB(FHue, 1, 1)) < 127 then
           PolylineFS(FBuffer, Polygon, $F0FFFFFF, True, LineWidth)
         else
-          PolylineFS(FBuffer, Polygon, $F0000000, True, LineWidth)
+          PolylineFS(FBuffer, Polygon, $F0000000, True, LineWidth);
     end;
   end;
 
@@ -2157,7 +2157,7 @@ begin
           PolylineFS(FBuffer, Polygon, clWhite32, True, LineWidth)
         else
           PolylineFS(FBuffer, Polygon, clBlack32, True, LineWidth)
-    end
+    end;
   end;
 
   inherited;

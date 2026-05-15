@@ -432,7 +432,7 @@ begin
     BtnLayerResetScaleClick(Self);
   end;
 
-  ImgView.GetBitmapRect
+  ImgView.GetBitmapRect;
 end;
 
 procedure TMainForm.BtnLayerResetScaleClick(Sender: TObject);

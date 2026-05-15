@@ -760,7 +760,7 @@ begin
                Inc(TileX, TileWidth);
              end;
              Inc(TileY, TileHeight);
-           end
+           end;
          end;
       2: Buffer.FrameRectS(R , $FF000000); //Draw Frame
     end;

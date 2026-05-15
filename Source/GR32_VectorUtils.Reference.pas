@@ -154,7 +154,7 @@ var
     end else
     begin
       R := Delta / R;
-      AddPoint(CX * R, CY * R)
+      AddPoint(CX * R, CY * R);
     end;
   end;
 

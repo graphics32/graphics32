@@ -421,7 +421,7 @@ begin
   if Sender = MnuSelective then
     RgpBlurType.ItemIndex := 3
   else
-    RgpBlurType.ItemIndex := 0
+    RgpBlurType.ItemIndex := 0;
 end;
 
 procedure TFrmBlurs.MnuOpenClick(Sender: TObject);

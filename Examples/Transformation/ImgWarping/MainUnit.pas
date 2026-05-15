@@ -637,7 +637,7 @@ begin
     btFlower: Result := Round(ParamBar.Position * 0.16 + 1);
     btZoom: Result := 1 - ParamBar.Position * 0.01;
   else Result := ParamBar.Position * 0.01
-  end
+  end;
 end;
 
 procedure TMainForm.PressureBarChange(Sender: TObject);
@@ -668,7 +668,7 @@ begin
    if Lowercase(ExtractFileExt(Filename)) <> '.bmp' then
      Filename:= Filename + '.bmp';
    DstImg.Bitmap.SaveToFile(Filename);
- end
+ end;
 end;
 
 procedure TMainForm.MnuResetMeshClick(Sender: TObject);
@@ -686,7 +686,7 @@ begin
    if Lowercase(ExtractFileExt(Filename)) <> '.msh' then
      Filename:= Filename + '.msh';
    Remapper.VectorMap.SaveToFile(Filename);
- end
+ end;
 end;
 
 procedure TMainForm.MnuFileOpenMeshClick(Sender: TObject);

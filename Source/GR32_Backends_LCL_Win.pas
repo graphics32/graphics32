@@ -412,7 +412,7 @@ begin
 
     else
       // Error - Ignore it
-      AFullUpdate := True
+      AFullUpdate := True;
     end;
   finally
     DeleteObject(UpdateRegion);
@@ -771,13 +771,13 @@ begin
     end;
   end;
   {$ELSE}
-  raise Exception.Create('"SetDIBitsToDevice" is only included in windows unit!')
+  raise Exception.Create('"SetDIBitsToDevice" is only included in windows unit!');
   {$ENDIF}
 end;
 
 procedure TLCLMemoryBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);
 begin
-  DoPaintRect(ABuffer, AInvalidRect, ACanvas)
+  DoPaintRect(ABuffer, AInvalidRect, ACanvas);
 end;
 
 procedure TLCLMemoryBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas);
@@ -848,7 +848,7 @@ begin
     end;
   end;
   {$ELSE}
-  raise Exception.Create('"SetDIBitsToDevice" is only included in windows unit!')
+  raise Exception.Create('"SetDIBitsToDevice" is only included in windows unit!');
   {$ENDIF}
 end;
 
@@ -893,7 +893,7 @@ begin
     end;
   end;
   {$ELSE}
-  raise Exception.Create('"SetDIBitsToDevice" is only included in windows unit!')
+  raise Exception.Create('"SetDIBitsToDevice" is only included in windows unit!');
   {$ENDIF}
 end;
 
