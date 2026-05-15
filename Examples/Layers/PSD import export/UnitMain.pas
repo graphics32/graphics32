@@ -225,7 +225,7 @@ end;
 
 procedure TFormMain.ComboBoxCompressionChange(Sender: TObject);
 begin
-  ActionCompressionWarning.Visible := (TPsdLayerCompression(ComboBoxCompression.ItemIndex) >= lcZIP)
+  ActionCompressionWarning.Visible := (TPsdLayerCompression(ComboBoxCompression.ItemIndex) >= lcZIP);
 end;
 
 function RandomColor():TColor32;

@@ -1683,7 +1683,7 @@ begin
   begin
     FBufferOversize := Value;
     ResizeBuffer;
-    FBufferValid := False
+    FBufferValid := False;
   end;
 end;
 
@@ -1813,7 +1813,7 @@ begin
         begin
           FBuffer.OnAreaChanged := nil;
           FBuffer.OnChange := FullUpdateHandler;
-        end
+        end;
     end;
   end;
 end;
@@ -3183,7 +3183,7 @@ begin
       GR32.OffsetRect(Result, Round(OffsetHorz), Round(OffsetVert));
 
   end else
-    Result := Default(TRect)
+    Result := Default(TRect);
 end;
 
 function TCustomImage32.GetBitmapMargin: integer;
@@ -4384,7 +4384,7 @@ begin
 // Doesn't appear to work. I can't be bothered to figure out why.
 //  ThemedElementDetails :=  ThemeServices.GetElementDetails(tsSizeBoxRightAlign);
 //  ThemeServices.DrawElement(Canvas.Handle, ThemedElementDetails, R);
-  DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, DFCS_SCROLLSIZEGRIP)
+  DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, DFCS_SCROLLSIZEGRIP);
 {$ifend}
 
 {$ifend}
@@ -4975,7 +4975,7 @@ end;
 
 procedure TBitmap32Item.SetBitmap(ABitmap: TBitmap32);
 begin
-  FBitmap.Assign(ABitmap)
+  FBitmap.Assign(ABitmap);
 end;
 
 

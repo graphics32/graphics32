@@ -380,7 +380,7 @@ begin
     end
     else Invalidate;
   end;
-  SetCaretPos
+  SetCaretPos;
 end;
 
 { Painting Related }
@@ -517,7 +517,7 @@ begin
     OffsetRect(R, 0, (FCurrentLine - FTopLine) * FItemHeight);
     Windows.InvalidateRect(Handle, @R, True);
     ScrollIntoView;
-    SetCaretPos
+    SetCaretPos;
   end;
 end;
 
@@ -664,7 +664,7 @@ begin
   finally
     if Focused then
       ShowCaret (handle)
-  end
+  end;
 end;
 
 { Event Overrides }
@@ -697,7 +697,7 @@ begin
                end
                else
                  LowNibble := True;
-    VK_TAB : EditCharacters := not EditCharacters
+    VK_TAB : EditCharacters := not EditCharacters;
   end;
 end;
 
@@ -937,7 +937,7 @@ begin
   begin
     fReadOnly := Value;
     RecreateWnd
-  end
+  end;
 end;
 
 procedure THexDump.WMSetFocus(var Message: TWMSetFocus);
@@ -945,14 +945,14 @@ begin
   inherited;
   Win32Check(CreateCaret(Handle, 0, FItemWidth, FItemHeight));
   SetCaretPos;
-  ShowCaret(Handle)
+  ShowCaret(Handle);
 end;
 
 procedure THexDump.WMKillFocus(var Message: TWMKillFocus);
 begin
   inherited;
   HideCaret(Handle);
-  DestroyCaret
+  DestroyCaret;
 end;
 
 procedure THexDump.SetCurrentLinePos(const Value: Integer);
@@ -966,7 +966,7 @@ begin
     while (V >= FBytesPerLine) and (CurrentLine < FLineCount - 1) do
     begin
       CurrentLine := CurrentLine + 1;
-      Dec (V, FBytesPerLine)
+      Dec (V, FBytesPerLine);
     end;
 
     if (CurrentLine = FLineCount-1) then
@@ -980,24 +980,24 @@ begin
     if V >= MaxPos then
     begin
       V := MaxPos-1;
-      FLowNibble := True
+      FLowNibble := True;
     end;
 
     while (V < 0) and (CurrentLine > 0) do
     begin
       CurrentLine := CurrentLine - 1;
-      Inc(V, FBytesPerLine)
+      Inc(V, FBytesPerLine);
     end;
 
     if V < 0 then
     begin
       V := 0;
-      FLowNibble := False
+      FLowNibble := False;
     end;
 
     FCurrentLinePos := V;
     SetCaretPos
-  end
+  end;
 end;
 
 procedure THexDump.SetCaretPos;
@@ -1019,10 +1019,10 @@ begin
     begin
       inc(p.X, FItemWidth * 3 * CurrentLinePos);
       if FLowNibble then
-        inc(p.X, FItemWidth)
+        inc(p.X, FItemWidth);
     end;
     Windows.SetCaretPos(p.X, p.Y)
-  end
+  end;
 end;
 
 procedure THexDump.SetEditCharacters(const Value: boolean);
@@ -1031,7 +1031,7 @@ begin
   begin
     FEditCharacters := Value and ShowCharacters;
     SetCaretPos
-  end
+  end;
 end;
 
 procedure THexDump.SetLeftAnsiMargin(const Value: integer);
@@ -1058,7 +1058,7 @@ begin
   begin
     FLowNibble := Value;
     SetCaretPos
-  end
+  end;
 end;
 
 procedure THexDump.WMChar(var Message: TWMChar);

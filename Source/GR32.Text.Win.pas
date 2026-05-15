@@ -624,7 +624,7 @@ class destructor TFontFace32.Destroy;
 begin
   FFontCache.Free;
 {$ifndef FPC}
-  FKerningComparer := nil
+  FKerningComparer := nil;
 {$endif}
 end;
 

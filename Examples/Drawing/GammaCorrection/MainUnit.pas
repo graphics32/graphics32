@@ -112,7 +112,7 @@ begin
     begin
       DeltaY := GAMMA_ENCODING_TABLE[Index];
 
-      Outline[Index] := FloatPoint(StartPnt.X + Index, StartPnt.Y + 255 - DeltaY)
+      Outline[Index] := FloatPoint(StartPnt.X + Index, StartPnt.Y + 255 - DeltaY);
     end;
     Renderer.PolygonFS(BuildPolyline(Outline, Thickness));
 

@@ -288,7 +288,7 @@ class function LayoutEngine.TextToParagraphs(const AText: string; var AParagraph
 
           TUnicodeCategory.ucLineSeparator,
           TUnicodeCategory.ucParagraphSeparator:
-            CodePoint := 32
+            CodePoint := 32;
 
         end;
 

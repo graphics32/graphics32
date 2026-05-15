@@ -3879,7 +3879,7 @@ begin
   if (Supports(HitTest, ILayerHitTestMove)) then
     Result := dsMove
   else
-    Result := dsNone
+    Result := dsNone;
 end;
 
 function TRubberbandLayer.IsFrameVisible: boolean;

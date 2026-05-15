@@ -445,7 +445,7 @@ begin
       Update;
     end;
 
-    Application.Terminate
+    Application.Terminate;
   end;
 end;
 

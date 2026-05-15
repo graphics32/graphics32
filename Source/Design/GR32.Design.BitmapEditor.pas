@@ -403,7 +403,7 @@ begin
   if PageControl.ActivePage = TabSheetAlpha then
     Result := FImageAlphaChannel
   else
-    Result := FImageAllChannels
+    Result := FImageAllChannels;
 end;
 
 procedure TPictureEditorForm.LoadFromImage(Source: TPersistent);

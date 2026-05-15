@@ -2370,7 +2370,7 @@ begin
     Faw := ArcSin(Constrain(FMinR * Fsr, -1, 1));
     if Faw <> 0 then
       Faw := 1 / Faw;
-    Faw := Faw * FMinR
+    Faw := Faw * FMinR;
   end;
   TransformValid := True;
 end;

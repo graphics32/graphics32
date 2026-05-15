@@ -3103,7 +3103,7 @@ begin
     begin
       FGradientLUT.Assign(Self.FGradientLUT);
       FWrapProc := Self.FWrapProc;
-    end
+    end;
 end;
 
 constructor TCustomGradientLookUpTableSampler.Create(WrapMode: TWrapMode = wmMirror);
@@ -4120,7 +4120,7 @@ begin
       if Assigned(FGradientLUT) then
         FreeAndNil(FGradientLUT);
       FOwnsLUT := False;
-    end
+    end;
 end;
 
 procedure TCustomGradientLookupTablePolygonFiller.LookUpTableChangedHandler(Sender: TObject);
@@ -5251,7 +5251,7 @@ begin
           else
             Color32 := ColorLUT^[Round(Mask * FastSqrtBab1(Rad / Rad2))];
         end else
-          Color32 := ColorLUT^[Mask]
+          Color32 := ColorLUT^[Mask];
       end;
     end;
 

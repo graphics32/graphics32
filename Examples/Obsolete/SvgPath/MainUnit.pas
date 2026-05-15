@@ -437,7 +437,7 @@ begin
           if Relative then
             FCanvas32.ConicToRelative(Current.X, Current.Y)
           else
-            FCanvas32.ConicTo(Current.X, Current.Y)
+            FCanvas32.ConicTo(Current.X, Current.Y);
         end;
 
       pcQuadTo:

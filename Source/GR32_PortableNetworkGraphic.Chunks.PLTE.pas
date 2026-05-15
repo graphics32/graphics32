@@ -88,7 +88,7 @@ begin
   inherited;
 
   if (Source is TPngChunkPalette) then
-    FPaletteEntries := Copy(TPngChunkPalette(Source).FPaletteEntries)
+    FPaletteEntries := Copy(TPngChunkPalette(Source).FPaletteEntries);
 end;
 
 class function TPngChunkPalette.GetClassChunkName: TChunkName;

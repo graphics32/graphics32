@@ -1170,7 +1170,7 @@ begin
               RaiseLastOSError;
 {$endif FPC}
             if (ImageFormatClipboard.LoadFromClipboardFormat(ADest, ClipboardFormat, Data, Palette)) then
-              Exit(True)
+              Exit(True);
           end;
         end;
       end;

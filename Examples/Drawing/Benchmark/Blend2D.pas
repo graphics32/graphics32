@@ -13549,7 +13549,7 @@ begin
   if (AOther = nil) then
     Result := (Self = nil)
   else
-    Result := blPatternEquals(@FHandle, AOther.Handle)
+    Result := blPatternEquals(@FHandle, AOther.Handle);
 end;
 
 function TBLPattern.GetArea: TBLRectI;
@@ -14638,7 +14638,7 @@ begin
   if (AOther = nil) then
     Result := (Self = nil)
   else
-    Result := blFontDataEquals(@FHandle, AOther.Handle)
+    Result := blFontDataEquals(@FHandle, AOther.Handle);
 end;
 
 function TBLFontData.GetFaceCount: Integer;
@@ -14766,7 +14766,7 @@ begin
   if (AOther = nil) then
     Result := (Self = nil)
   else
-    Result := blFontFaceEquals(@FHandle, AOther.Handle)
+    Result := blFontFaceEquals(@FHandle, AOther.Handle);
 end;
 
 function TBLFontFace.Equals(Obj: TObject): Boolean;
@@ -15071,7 +15071,7 @@ begin
   if (AOther = nil) then
     Result := (Self = nil)
   else
-    Result := blFontEquals(@FHandle, AOther.Handle)
+    Result := blFontEquals(@FHandle, AOther.Handle);
 end;
 
 function TBLFont.GetDesignMetrics: TBLFontDesignMetrics;
@@ -15865,7 +15865,7 @@ begin
   if (AOther = nil) then
     Result := (Self = nil)
   else
-    Result := (FHandle.impl = AOther.Handle.impl)
+    Result := (FHandle.impl = AOther.Handle.impl);
 end;
 
 procedure TBLContext.FillAll;

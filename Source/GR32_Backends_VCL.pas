@@ -566,7 +566,7 @@ begin
 
     else
       // Error - Ignore it
-      AFullUpdate := True
+      AFullUpdate := True;
     end;
   finally
     DeleteObject(UpdateRegion);

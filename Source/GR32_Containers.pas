@@ -482,7 +482,7 @@ begin
     begin
       Result := False;
       Exit;
-    end
+    end;
   end;
 
   Result := True;

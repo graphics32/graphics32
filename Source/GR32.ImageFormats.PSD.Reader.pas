@@ -573,7 +573,7 @@ begin
       Value := Swap32(TFloats(ABytes)[i]);
       FloatValue := PSingle(@Value)^;
       ByteValue := Clamp(Round(FloatValue * 255));
-      TPhotoshopLayerCracker(Layer).SetChannelScanlinePixel(AChannel, ALine, i, ByteValue)
+      TPhotoshopLayerCracker(Layer).SetChannelScanlinePixel(AChannel, ALine, i, ByteValue);
     end;
   end else
     Move(ABytes[0], FAlphaChannelBuffer[ALine * Length(ABytes)], Length(ABytes));
@@ -1354,7 +1354,7 @@ begin
           else
             Layer.Bitmap.Bits[i] := 0;
 {$else}
-          Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R]
+          Layer.Bitmap.Bits[i] := FPalette[TColor32Entry(Layer.Bitmap.Bits[i]).R];
 {$endif}
         end;
       end;

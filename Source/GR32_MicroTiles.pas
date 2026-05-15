@@ -368,7 +368,7 @@ begin
   MicroTiles.Count := (MicroTiles.Columns + 1) * (MicroTiles.Rows + 1);
   ReallocMem(MicroTiles.Tiles, MicroTiles.Count * SizeOf(TMicroTile));
 
-  MicroTilesClear(MicroTiles)
+  MicroTilesClear(MicroTiles);
 end;
 
 procedure MicroTilesClearUsed(var MicroTiles: TMicroTiles; const Value: TMicroTile);
@@ -411,7 +411,7 @@ begin
     MoveLongword(SrcTilePtr^, DstTilePtr^, Width);
     Inc(DstTilePtr, DstTiles.Columns);
     Inc(SrcTilePtr, SrcTiles.Columns);
-  end
+  end;
 end;
 
 procedure MicroTilesAddLine(var MicroTiles: TMicroTiles; X1, Y1, X2, Y2: Integer; LineWidth: Integer; RoundToWholeTiles: Boolean = False);

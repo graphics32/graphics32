@@ -99,7 +99,7 @@ begin
 
   Result := True;
 
-  AssignFromGraphicMasked(Dest, TGraphic(Source))
+  AssignFromGraphicMasked(Dest, TGraphic(Source));
 {$ENDIF}
 end;
 

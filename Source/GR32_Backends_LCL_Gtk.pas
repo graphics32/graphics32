@@ -584,7 +584,7 @@ begin
       end;
 
     finally
-      g_free(UpdateRects)
+      g_free(UpdateRects);
     end;
   finally
     gdk_region_destroy(UpdateRegion);

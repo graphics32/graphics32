@@ -181,7 +181,7 @@ const
     if P.Y >= FormGradientLines.PaintBox.Height then
     begin
       P.Y := FormGradientLines.PaintBox.Height - 1;
-      V.Y := - V.Y
+      V.Y := - V.Y;
     end;
 
     { change velocity a little bit }
