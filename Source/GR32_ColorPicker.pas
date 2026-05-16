@@ -174,6 +174,11 @@ type
     procedure PaintBackground; virtual;
     procedure PaintColorPicker; virtual; abstract;
     procedure SelectedColorChanged; virtual;
+{$IFDEF HasParentBackground}
+    // Ignore previously published ParentBackground property
+    procedure ReadAndIgnoreParentBackground(Reader: TReader);
+    procedure DefineProperties(Filer: TFiler); override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -1050,6 +1055,19 @@ begin
   with Msg do
     Result := Result or DLGC_WANTARROWS;
 end;
+
+{$IFDEF HasParentBackground}
+procedure TCustomColorPicker.ReadAndIgnoreParentBackground(Reader: TReader);
+begin
+  Reader.ReadBoolean;
+end;
+
+procedure TCustomColorPicker.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+  Filer.DefineProperty('ParentBackground', ReadAndIgnoreParentBackground, nil, False);
+end;
+{$ENDIF}
 
 
 { TCustomColorPickerComponent }

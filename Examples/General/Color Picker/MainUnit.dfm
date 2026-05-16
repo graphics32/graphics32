@@ -88,7 +88,6 @@ object FormMain: TFormMain
         Height = 238
         Border = True
         Hue = 0.017156863585114480
-        ParentBackground = False
         Saturation = 0.544000029563903800
         SelectedColor = -360334
         TabOrder = 0
@@ -110,7 +109,6 @@ object FormMain: TFormMain
         Height = 248
         Border = True
         Hue = 0.017156863585114480
-        ParentBackground = False
         Saturation = 0.544000029563903800
         SelectedColor = -360334
         TabOrder = 0
@@ -132,7 +130,6 @@ object FormMain: TFormMain
         Height = 249
         Align = alClient
         Border = True
-        ParentBackground = False
         SelectedColor = -360334
         TabOrder = 0
         OnChanged = ColorPickerRGBAChanged
@@ -176,7 +173,6 @@ object FormMain: TFormMain
         Height = 30
         Border = True
         ColorComponent = ccRed
-        ParentBackground = False
         SelectedColor = -360334
         TabOrder = 0
         OnChanged = ColorPickerRedChanged
@@ -188,7 +184,6 @@ object FormMain: TFormMain
         Height = 30
         Border = True
         ColorComponent = ccGreen
-        ParentBackground = False
         SelectedColor = -360334
         TabOrder = 1
         OnChanged = ColorPickerGreenChanged
@@ -200,7 +195,6 @@ object FormMain: TFormMain
         Height = 30
         Border = True
         ColorComponent = ccAlpha
-        ParentBackground = False
         SelectedColor = -360334
         TabOrder = 2
         OnChanged = ColorPickerAlphaChanged
@@ -212,7 +206,6 @@ object FormMain: TFormMain
         Height = 30
         Border = True
         ColorComponent = ccBlue
-        ParentBackground = False
         SelectedColor = -360334
         TabOrder = 3
         OnChanged = ColorPickerBlueChanged
@@ -295,7 +288,6 @@ object FormMain: TFormMain
     Height = 34
     Border = True
     Color = -360334
-    ParentBackground = False
     TabOrder = 7
   end
 end
