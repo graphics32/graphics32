@@ -620,6 +620,7 @@ type
     FFrameStipplePattern: TArrayOfColor32;
     FFrameStippleStep: TFloat;
     FFrameStippleCounter: TFloat;
+    FFrameStippleSegmented: boolean;
     FHandleFrame: TColor32;
     FHandleFill: TColor32;
     FHandleSize: TFloat;
@@ -640,6 +641,7 @@ type
     procedure SetFrameStipplePattern(const Value: TArrayOfColor32);
     procedure SetFrameStippleStep(const Value: TFloat);
     procedure SetFrameStippleCounter(const Value: TFloat);
+    procedure SetFrameStippleSegmented(const Value: boolean);
     procedure SetChildLayer(Value: TPositionedLayer);
     procedure SetHandleStyle(const Value: TRubberBandHandleStyle);
     procedure SetHandleSize(Value: TFloat);
@@ -719,6 +721,7 @@ type
     property FrameStipple: TArrayOfColor32 read FFrameStipplePattern write SetFrameStipplePattern;
     property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;
     property FrameStippleCounter: TFloat read FFrameStippleCounter write SetFrameStippleCounter;
+    property FrameStippleSegmented: boolean read FFrameStippleSegmented write SetFrameStippleSegmented;
 
     property Quantized: Integer read FQuantized write SetQuantized default 1;
     property QuantizeShiftToggle: TLayerShiftState read FQuantizeShiftToggle write FQuantizeShiftToggle default [ssAlt];
@@ -2549,6 +2552,7 @@ begin
   FPassMouse := TRubberbandPassMouse.Create(Self);
   FFrameStippleStep := 1;
   FFrameStippleCounter := 0;
+  FFrameStippleSegmented := True;
 end;
 
 destructor TCustomRubberBandLayer.Destroy;
@@ -3152,13 +3156,16 @@ begin
 
   Buffer.SetStipple(FrameStipple);
   Buffer.StippleStep := FrameStippleStep;
-  Buffer.StippleCounter := FrameStippleCounter;
+  if (not FrameStippleSegmented) then
+    Buffer.StippleCounter := FrameStippleCounter;
 
   p := LayerCollection.LocalToViewport(FVertices[High(FVertices)], Scaled);
-    Buffer.MoveToF(p.X, p.Y);
+  Buffer.MoveToF(p.X, p.Y);
 
   for i := 0 to High(FVertices) do
   begin
+    if (FrameStippleSegmented) then
+      Buffer.StippleCounter := FrameStippleCounter;
     p := LayerCollection.LocalToViewport(FVertices[i], Scaled);
     Buffer.LineToFSP(p.X, p.Y);
   end;
@@ -3433,9 +3440,18 @@ begin
   UpdateFrame;
 end;
 
+procedure TCustomRubberBandLayer.SetFrameStippleSegmented(const Value: boolean);
+begin
+  if (Value <> FFrameStippleSegmented) then
+  begin
+    FFrameStippleSegmented := Value;
+    UpdateFrame;;
+  end;
+end;
+
 procedure TCustomRubberBandLayer.SetFrameStippleStep(const Value: TFloat);
 begin
-  if Value <> FFrameStippleStep then
+  if (Value <> FFrameStippleStep) then
   begin
     FFrameStippleStep := Value;
     UpdateFrame;;
