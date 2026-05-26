@@ -418,7 +418,7 @@ procedure MicroTilesAddLine(var MicroTiles: TMicroTiles; X1, Y1, X2, Y2: Integer
 var
   i: Integer;
   DeltaX, DeltaY: Integer;
-  SignX, SignY: Integer;
+  SignY: Integer;
   Rects: Integer;
   NewX, NewY: Integer;
   TempRect: TRect;
@@ -426,62 +426,52 @@ begin
   LineWidth := (LineWidth + 1) shr 1; // Half line width rounded up
 
   DeltaX := X2 - X1;
+  DeltaY := Y2 - Y1;
 
-  if DeltaX < 0 then
+  if (DeltaX = 0) or (DeltaY = 0) then
   begin
-    // Make sure DeltaX*Sign is positive
+    TempRect := MakeRect(X1, Y1, X2, Y2);
+    InflateArea(TempRect, LineWidth, LineWidth);
+    MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
+
+    Exit;
+  end;
+
+  if (DeltaX < 0) then
+  begin
+    // Make sure DeltaX is positive
     Swap(X1, X2);
     Swap(Y1, Y2);
     DeltaX := -DeltaX;
-    SignX := 1
-  end else
-  if DeltaX > 0 then
-    SignX := 1
-  else // DeltaX = 0
-  begin
-    TempRect := MakeRect(X1, Y1, X2, Y2);
-    InflateArea(TempRect, LineWidth, LineWidth);
-    MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
-
-    Exit;
+    DeltaY := -DeltaY;
   end;
 
-  DeltaY := Y2 - Y1;
-
-  if DeltaY > 0 then
-    SignY := 1
-  else
-  if DeltaY < 0 then
+  if (DeltaY < 0) then
   begin
     DeltaY := -DeltaY;
     SignY := -1;
-  end else // DeltaY = 0
-  begin
-    TempRect := MakeRect(X1, Y1, X2, Y2);
-    InflateArea(TempRect, LineWidth, LineWidth);
-    MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
+  end else
+    SignY := 1;
 
-    Exit;
-  end;
-
-  X1 := X1 * FixedOne;
-  Y1 := Y1 * FixedOne;
+  // Convert to fixed precision and move to center of pixel
+  X1 := X1 * FixedOne + FixedHalf;
+  Y1 := Y1 * FixedOne + FixedHalf;
 
   DeltaX := DeltaX * FixedOne;
   DeltaY := DeltaY * FixedOne;
 
-  if DeltaX >= DeltaY then
+  if (DeltaX >= DeltaY) then
   begin
     Rects := DeltaX div MICROTILE_SIZE;
 
-    DeltaX := SignX * MICROTILE_SIZE * FixedOne;
+    DeltaX := MICROTILE_SIZE * FixedOne;
     DeltaY := SignY * FixedDiv(DeltaY, Rects);
   end else
   begin
     Rects := DeltaY div MICROTILE_SIZE;
 
-    DeltaY := SignY * MICROTILE_SIZE * FixedOne;
-    DeltaX := SignX * FixedDiv(DeltaX, Rects);
+    DeltaY := MICROTILE_SIZE * FixedOne * SignY;
+    DeltaX := FixedDiv(DeltaX, Rects);
   end;
 
   for i := 1 to FixedCeil(Rects) do
