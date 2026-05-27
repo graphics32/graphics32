@@ -643,7 +643,18 @@ type
 // Rectangle construction/conversion functions
 //------------------------------------------------------------------------------
 type
-  TRectRounding = (rrClosest, rrOutside, rrInside);
+  TRectRounding = (
+    rrClosest,  // Round all coordinates.
+
+    rrOutside,  // Return inner rectangle.
+                // Input rect is assumed to be normalized (Left <= Right, Top <= Bottom).
+
+    rrInside,   // Return outer rectangle.
+                // Input rect is assumed to be normalized.
+
+    rrLine      // Assuming a line that goes from TopLeft to BottomRight, return
+                // the outer rectangle.
+  );
 
 function MakeRect(const L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function MakeRect(const L, T, R, B: TFloat; Rounding: TRectRounding = rrClosest): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -2321,6 +2332,39 @@ begin
         Result.Right := Ceil(R);
         Result.Bottom := Ceil(B);
       end;
+
+    rrLine:
+      begin
+        if (L < R) then
+        begin
+          Result.Left := Floor(L);
+          Result.Right := Ceil(R);
+        end else
+        if (L > R) then
+        begin
+          Result.Left := Ceil(L);
+          Result.Right := Floor(R);
+        end else
+        begin
+          Result.Left := System.Round(L);
+          Result.Right := Result.Left;
+        end;
+
+        if (T < B) then
+        begin
+          Result.Top := Floor(T);
+          Result.Bottom := Ceil(B);
+        end else
+        if (T > B) then
+        begin
+          Result.Top := Ceil(T);
+          Result.Bottom := Floor(B);
+        end else
+        begin
+          Result.Top := System.Round(T);
+          Result.Bottom := Result.Top;
+        end;
+      end;
   end;
 end;
 
@@ -2353,6 +2397,39 @@ begin
           Result.Right := Ceil(Right);
           Result.Bottom := Ceil(Bottom);
         end;
+
+      rrLine:
+        begin
+          if (Left < Right) then
+          begin
+            Result.Left := Floor(Left);
+            Result.Right := Ceil(Right);
+          end else
+          if (Left > Right) then
+          begin
+            Result.Left := Ceil(Left);
+            Result.Right := Floor(Right);
+          end else
+          begin
+            Result.Left := System.Round(Left);
+            Result.Right := Result.Left;
+          end;
+
+          if (Top < Bottom) then
+          begin
+            Result.Top := Floor(Top);
+            Result.Bottom := Ceil(Bottom);
+          end else
+          if (Top > Bottom) then
+          begin
+            Result.Top := Ceil(Top);
+            Result.Bottom := Floor(Bottom);
+          end else
+          begin
+            Result.Top := System.Round(Top);
+            Result.Bottom := Result.Top;
+          end;
+        end;
     end;
 end;
 
@@ -2384,6 +2461,39 @@ begin
           Result.Top := FixedFloor(Top);
           Result.Right := FixedCeil(Right);
           Result.Bottom := FixedCeil(Bottom);
+        end;
+
+      rrLine:
+        begin
+          if (Left < Right) then
+          begin
+            Result.Left := FixedFloor(Left);
+            Result.Right := FixedCeil(Right);
+          end else
+          if (Left > Right) then
+          begin
+            Result.Left := FixedCeil(Left);
+            Result.Right := FixedFloor(Right);
+          end else
+          begin
+            Result.Left := FixedRound(Left);
+            Result.Right := Result.Left;
+          end;
+
+          if (Top < Bottom) then
+          begin
+            Result.Top := FixedFloor(Top);
+            Result.Bottom := FixedCeil(Bottom);
+          end else
+          if (Top > Bottom) then
+          begin
+            Result.Top := FixedCeil(Top);
+            Result.Bottom := FixedFloor(Bottom);
+          end else
+          begin
+            Result.Top := FixedRound(Top);
+            Result.Bottom := Result.Top;
+          end;
         end;
     end;
 end;
