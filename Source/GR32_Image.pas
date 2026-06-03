@@ -260,6 +260,7 @@ type
     property UpdateCount: Integer read FUpdateCount;
     property LockUpdateCount: Integer read FLockUpdateCount;
     property Modified: boolean read FModified;
+    property ForceFullRepaint: Boolean read FForceFullRepaint write FForceFullRepaint;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -502,6 +503,10 @@ type
     FBitmap: TBitmap32;
     FBitmapAlign: TBitmapAlign;
     FLayers: TLayerCollection;
+    FTransparent: Boolean;
+{$if defined(TRANSPARENT_TIMAGE32)}
+    FPaintingBackground: Boolean;
+{$ifend}
     FOffsetHorz: TFloat;
     FOffsetVert: TFloat;
     FPaintStages: TPaintStages;
@@ -556,6 +561,8 @@ type
     property CacheValid: Boolean read FCacheValid;
     function GetCachedBitmapRect: TRect;
     property CachedBitmapRect: TRect read GetCachedBitmapRect;
+    function GetIsTransparent: Boolean;
+    property IsTransparent: Boolean read GetIsTransparent;
   protected
     procedure CreateBuffer; override;
     procedure RepaintModeChanged; override;
@@ -585,6 +592,12 @@ type
     procedure SetOffsetHorz(Value: TFloat); virtual;
     procedure SetOffsetVert(Value: TFloat); virtual;
     procedure SetScaleMode(Value: TScaleMode); virtual;
+    procedure SetTransparent(Value: Boolean); virtual;
+    procedure CreateParams(var Params: TCreateParams); override;
+{$if defined(TRANSPARENT_TIMAGE32)}
+    procedure WMPrint(var Message: TWMPrint); message WM_PRINT;
+    procedure WMPrintClient(var Message: TWMPrint); message WM_PRINTCLIENT;
+{$ifend}
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     function GetBitmapMargin: integer; virtual;
     procedure DoZoom({$ifdef CLOSURE_CAPTURES_CONST}const{$endif} APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
@@ -655,6 +668,7 @@ type
     property MousePan: TMousePanOptions read FMousePanOptions write SetMousePanOptions;
     property MouseZoom: TMouseZoomOptions read FMouseZoomOptions write SetMouseZoomOptions;
     property IsMousePanning: boolean read FIsMousePanning;
+    property Transparent: Boolean read FTransparent write SetTransparent default False;
 
     property OnBitmapResize: TNotifyEvent read FOnBitmapResize write FOnBitmapResize;
     property OnBitmapPixelCombine: TPixelCombineEvent read GetOnPixelCombine write SetOnPixelCombine;
@@ -694,6 +708,7 @@ type
     property Background;
     property MousePan;
     property MouseZoom;
+    property Transparent;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -842,6 +857,7 @@ type
 //------------------------------------------------------------------------------
 type
   TImgView32 = class(TCustomImgView32)
+  published
     property Align;
     property Anchors;
     property AutoSize;
@@ -862,6 +878,7 @@ type
     property Background;
     property MousePan;
     property MouseZoom;
+    property Transparent;
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
@@ -1363,13 +1380,12 @@ end;
 
 function TCustomPaintBox32.CustomRepaint: Boolean;
 begin
-  Result := FRepaintOptimizer.Enabled and not FForceFullRepaint and
-    FRepaintOptimizer.UpdatesAvailable;
+  Result := FRepaintOptimizer.Enabled and (not FForceFullRepaint) and FRepaintOptimizer.UpdatesAvailable;
 end;
 
 procedure TCustomPaintBox32.DoPrepareInvalidRects;
 begin
-  if FRepaintOptimizer.Enabled and not FForceFullRepaint then
+  if FRepaintOptimizer.Enabled and (not FForceFullRepaint) then
     FRepaintOptimizer.PerformOptimization;
 end;
 
@@ -2225,6 +2241,17 @@ begin
     SetPartialRepaintQueued;
 
   BufferValid := False;
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+  if IsTransparent then
+  begin
+    // Force parent to repaint so we can update the background
+    R := AArea;
+    GR32.OffsetRect(R, Left, Top);
+
+    InvalidateRect(Parent.Handle, @R, True);
+  end;
+{$ifend}
 end;
 
 procedure TCustomImage32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
@@ -2612,6 +2639,16 @@ var
   i, j: Integer;
   PaintStageMask: TPaintStageMaskValue;
 begin
+  if IsTransparent then
+    // Full repaint in case the background is animated
+    ForceFullRepaint := True;
+
+  if ForceFullRepaint then
+  begin
+    ForceFullRepaint := False;
+    InvalidRects.Clear;
+  end;
+
   if RepaintOptimizer.Enabled then
     RepaintOptimizer.BeginPaintBuffer;
 
@@ -2838,7 +2875,46 @@ var
   DrawBitmapBackground: boolean;
   FillStyle: TBackgroundFillStyle;
   ClearStyle: TBackgroundFillStyle;
+{$if defined(TRANSPARENT_TIMAGE32)}
+  SaveIndex: Integer;
+  P: TPoint;
+{$ifend}
 begin
+{$if defined(TRANSPARENT_TIMAGE32)}
+  if (IsTransparent) then
+  begin
+    SaveIndex := SaveDC(Dest.Handle);
+    try
+      // The parent's WM_PRINT paints the background starting from the parent's
+      // window origin (including the non-client area).
+      // We need to calculate the offset between our client origin and the
+      // parent's window origin.
+      GetWindowRect(Parent.Handle, r);
+      P := ClientToScreen(Point(0, 0));
+      X := P.X - r.Left;
+      Y := P.Y - r.Top;
+
+      SetViewportOrgEx(Dest.Handle, -X, -Y, nil);
+      IntersectClipRect(Dest.Handle, X, Y, X + Width, Y + Height);
+
+      // WM_PRINT the parent and all our siblings to produce the background.
+      // We set FPaintingBackground to exclude ourself from this.
+      FPaintingBackground := True;
+      try
+
+        Parent.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_CHILDREN or PRF_ERASEBKGND);
+
+      finally
+        FPaintingBackground := False;
+      end;
+    finally
+      RestoreDC(Dest.Handle, SaveIndex);
+    end;
+
+    exit;
+  end;
+{$ifend}
+
   ViewportRect := GetViewportRect;
 
   if (not Bitmap.Empty) and (Bitmap.DrawMode = dmOpaque) then
@@ -3391,9 +3467,22 @@ begin
 end;
 
 procedure TCustomImage32.Invalidate;
+{$if defined(TRANSPARENT_TIMAGE32)}
+var
+  R: TRect;
+{$ifend}
 begin
   FCacheValid := False;
+
   inherited;
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+  if IsTransparent then
+  begin
+    R := BoundsRect;
+    InvalidateRect(Parent.Handle, @R, True);
+  end;
+{$ifend}
 end;
 
 procedure TCustomImage32.Update(const Rect: TRect);
@@ -4064,6 +4153,56 @@ begin
   end;
 end;
 
+procedure TCustomImage32.SetTransparent(Value: Boolean);
+begin
+  if Value <> FTransparent then
+  begin
+    FTransparent := Value;
+
+    (* This is nonsense; Even though we "look" transparent, from the POW of
+    ** Windows, we are still opaque since we cover everything behind us.
+
+    if FTransparent then
+      ControlStyle := ControlStyle - [csOpaque]
+    else
+      ControlStyle := ControlStyle + [csOpaque];
+
+    RecreateWnd;
+    *)
+    Invalidate;
+  end;
+end;
+
+procedure TCustomImage32.CreateParams(var Params: TCreateParams);
+begin
+  inherited;
+
+  (* See SetTransparent.
+  ** Also, WS_EX_TRANSPARENT makes Windows paint and display whatever is underneath
+  ** us before we are being painted. This causes flicker and is unnecessary since
+  ** we are opaque.
+
+  if FTransparent then
+    Params.ExStyle := Params.ExStyle or WS_EX_TRANSPARENT;
+  *)
+end;
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+procedure TCustomImage32.WMPrint(var Message: TWMPrint);
+begin
+  if FPaintingBackground then
+    Exit; // Avoid endless recursion when we call Parent.Perform(WM_PRINT, PRF_CHILDREN)
+  inherited;
+end;
+
+procedure TCustomImage32.WMPrintClient(var Message: TWMPrint);
+begin
+  if FPaintingBackground then
+    Exit; // Avoid endless recursion when we call Parent.Perform(WM_PRINT, PRF_CHILDREN)
+  inherited;
+end;
+{$ifend}
+
 procedure TCustomImage32.SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000);
 begin
   BeginUpdate;
@@ -4125,6 +4264,21 @@ function TCustomImage32.GetCachedBitmapRect: TRect;
 begin
   UpdateCache;
   Result := FCachedBitmapRect;
+end;
+
+function TCustomImage32.GetIsTransparent: Boolean;
+begin
+  // Transparency is only supported if:
+  // - We have a parent (the parent supplies the background).
+  // - We aren't painting to produce a flattened image.
+  // - We do not have a bitmap, or we have a bitmap and:
+  //   - We aren't tiling.
+  //   - We aren't stretching.
+{$if defined(TRANSPARENT_TIMAGE32)}
+  Result := (FTransparent) and (Parent <> nil) and (not PaintToMode) and ((Bitmap = nil) or ((BitmapAlign <> baTile) and (ScaleMode <> smStretch)));
+{$else}
+  Result := False;
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------

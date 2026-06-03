@@ -544,6 +544,19 @@
 
 
 (*
+  Symbol: TRANSPARENT_TIMAGE32
+  -------------------------------
+
+     If defined, TCustomImage32 supports background transparency (a.k.a. ParentBackground).
+
+  The symbol is only defined for Delphi on Windows.
+*)
+{$if (not defined(FPC)) and defined(MSWINDOWS)}
+  {$define TRANSPARENT_TIMAGE32}
+{$ifend}
+
+
+(*
   Miscellaneous Defines:
   ----------------------
 *)
