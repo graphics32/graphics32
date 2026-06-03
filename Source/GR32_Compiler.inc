@@ -446,9 +446,11 @@
   If this symbol is defined, the compiler supports declaration of
   generic methods in non-generic classes.
 
-  The symbol is defined for Delphi 10 and later, and for FPC.
+  The symbol is defined for Delphi 10.2 and later, and for FPC.
+  Generic methods are actually supported from Delphi 10.0 but we don't use them
+  until Delphi 10.2 due to compiler bugs in the constraint declaration.
 *)
-{$if defined(FPC) or (CompilerVersion >= 30.0)} // Delphi 10 or later
+{$if defined(FPC) or (CompilerVersion >= 32.0)} // Delphi 10.2 or later
   {$define GenericMethods}
 {$ifend}
 

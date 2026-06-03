@@ -1586,8 +1586,9 @@ begin
       ctTrueColorAlpha:
         RowByteSize := (PixelPerRow * FHeader.BitDepth * 4) div 8;
     else
-      Continue;
+      RowByteSize := 0; // Silence bogus Delphi 10.0/10.1 compiler hint
     end;
+
     if RowByteSize = 0 then
       Continue;
 
