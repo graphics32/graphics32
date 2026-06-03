@@ -103,7 +103,7 @@
 
   {...}
 
-{$elseif (CompilerVersion < 23.0)} // Delphi XE2 and later
+{$elseif (CompilerVersion < 23.0)} // Prior to Delphi XE2
 
   {$Message Fatal 'Graphics32 only supports Delphi/BCB XE2 (or higher) or Free Pascal / Lazarus'}
 
@@ -112,7 +112,7 @@
   {$Message Hint 'Unknown compiler version. Assuming compatible with last known version.'}
   {$LEGACYIFEND ON}
 
-{$else} // Delphi XE3 and later
+{$elseif (CompilerVersion>= 24.0)} // Delphi XE3 and later
 
   {$LEGACYIFEND ON} // Stupid. Required for XE4+ but introduced in XE3.
 
