@@ -2890,7 +2890,7 @@ begin
       // We need to calculate the offset between our client origin and the
       // parent's window origin.
       GetWindowRect(Parent.Handle, r);
-      P := ClientToScreen(Point(0, 0));
+      P := ClientOrigin;
       X := P.X - r.Left;
       Y := P.Y - r.Top;
 
@@ -2898,9 +2898,38 @@ begin
       IntersectClipRect(Dest.Handle, X, Y, X + Width, Y + Height);
 
       // WM_PRINT the parent and all our siblings to produce the background.
-      // We set FPaintingBackground to exclude ourself from this.
+      // We set FPaintingBackground to exclude ourself from this to avoid infinite recursion.
       FPaintingBackground := True;
       try
+
+        // Note that Windows paints controls in Z-order, top-to-bottom, and
+        // uses clipping to avoid incorrect overlaps [*].
+        //
+        //   +--------+                     +--------+                    +--------+
+        //   |  Top   |                     |  Top   |                    |  Top   |
+        //   |        |---+   is painted    |        |         +---+      |        |---+
+        //   |        |   |   by WM_PAINT   |        |         |   |      |        |   |
+        //   +--------+   |        as       +--------+    +----+   | -->  +--------+   |
+        //       |        |                               |        |          |        |
+        //       | Bottom |                               | Bottom |          | Bottom |
+        //       +--------+                               +--------+          +--------+
+        //
+        // Unfortunately WM_PRINT does not apply clipping so when we paint
+        // controls with WM_PRINT, stacked/overlapping controls will appear
+        // in reverse Z-order.
+        //
+        //   +--------+                     +--------+                    +--------+
+        //   |  Top   |                     |  Top   |                    |  Top   |
+        //   |        |---+   is painted    |        |    +--------+      |   +--------+
+        //   |        |   |   by WM_PRINT   |        |    |        |      |   |        |
+        //   +--------+   |        as       +--------+    |        | -->  +---|        |
+        //       |        |                               |        |          |        |
+        //       | Bottom |                               | Bottom |          | Bottom |
+        //       +--------+                               +--------+          +--------+
+        //
+        // [*] Controls with the WS_EX_TRANSPARENT style obviously does
+        //     things a bit differently.
+        //
 
         Parent.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_CHILDREN or PRF_ERASEBKGND);
 

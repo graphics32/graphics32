@@ -8,7 +8,7 @@ uses
   Forms, Classes, Controls,
   Vcl.StdCtrls, Vcl.Imaging.pngimage, Vcl.ExtCtrls,
   GR32,
-  GR32_Image {, GR32_ImageTransparent};
+  GR32_Image;
 
 type
   TFormMain = class(TForm)
