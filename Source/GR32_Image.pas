@@ -504,9 +504,6 @@ type
     FBitmapAlign: TBitmapAlign;
     FLayers: TLayerCollection;
     FTransparent: Boolean;
-{$if defined(TRANSPARENT_TIMAGE32)}
-    FPaintingBackground: Boolean;
-{$ifend}
     FOffsetHorz: TFloat;
     FOffsetVert: TFloat;
     FPaintStages: TPaintStages;
@@ -594,10 +591,6 @@ type
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetTransparent(Value: Boolean); virtual;
     procedure CreateParams(var Params: TCreateParams); override;
-{$if defined(TRANSPARENT_TIMAGE32)}
-    procedure WMPrint(var Message: TWMPrint); message WM_PRINT;
-    procedure WMPrintClient(var Message: TWMPrint); message WM_PRINTCLIENT;
-{$ifend}
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     function GetBitmapMargin: integer; virtual;
     procedure DoZoom({$ifdef CLOSURE_CAPTURES_CONST}const{$endif} APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
@@ -2877,65 +2870,89 @@ var
   ClearStyle: TBackgroundFillStyle;
 {$if defined(TRANSPARENT_TIMAGE32)}
   SaveIndex: Integer;
+  SaveIndex2: Integer;
   P: TPoint;
+  Sibling: TControl;
+  ControlIndex: Integer;
 {$ifend}
 begin
 {$if defined(TRANSPARENT_TIMAGE32)}
   if (IsTransparent) then
   begin
+
     SaveIndex := SaveDC(Dest.Handle);
     try
       // The parent's WM_PRINT paints the background starting from the parent's
-      // window origin (including the non-client area).
+      // client origin.
       // We need to calculate the offset between our client origin and the
-      // parent's window origin.
-      GetWindowRect(Parent.Handle, r);
-      P := ClientOrigin;
-      X := P.X - r.Left;
-      Y := P.Y - r.Top;
+      // parent's client origin.
+      P := ClientOrigin - Parent.ClientOrigin;
 
-      SetViewportOrgEx(Dest.Handle, -X, -Y, nil);
-      IntersectClipRect(Dest.Handle, X, Y, X + Width, Y + Height);
+      SetViewportOrgEx(Dest.Handle, -P.X, -P.Y, nil);
+      IntersectClipRect(Dest.Handle, P.X, P.Y, P.X + Width, P.Y + Height);
 
-      // WM_PRINT the parent and all our siblings to produce the background.
-      // We set FPaintingBackground to exclude ourself from this to avoid infinite recursion.
-      FPaintingBackground := True;
-      try
+      // Note that Windows, contrary to common belief, paints controls in Z-order,
+      // top-to-bottom, and uses clipping to give the impression that controls are
+      // painted bottom-to-top [*].
+      //
+      //   +--------+                     +--------+                    +--------+
+      //   |  Top   |                     |  Top   |                    |  Top   |
+      //   |        |---+   is painted    |        |         +---+      |        |---+
+      //   |        |   |   by WM_PAINT   |        |         |   |      |        |   |
+      //   +--------+   |        as       +--------+    +----+   | -->  +--------+   |
+      //       |        |                               |        |          |        |
+      //       | Bottom |                               | Bottom |          | Bottom |
+      //       +--------+                               +--------+          +--------+
+      //
+      // Unfortunately WM_PRINT does not apply clipping so when we paint controls
+      // with WM_PRINT, stacked/overlapping controls will appear in reverse
+      // Z-order.
+      //
+      //   +--------+                     +--------+                    +--------+
+      //   |  Top   |                     |  Top   |                    |  Top   |
+      //   |        |---+   is painted    |        |    +--------+      |   +--------+
+      //   |        |   |   by WM_PRINT   |        |    |        |      |   |        |
+      //   +--------+   |        as       +--------+    |        | -->  +---|        |
+      //       |        |                               |        |          |        |
+      //       | Bottom |                               | Bottom |          | Bottom |
+      //       +--------+                               +--------+          +--------+
+      //
+      // To work around this we manually iterate the siblings and paint them from
+      // back to front.
+      //
+      // [*] Controls with the WS_EX_TRANSPARENT style obviously does things
+      //     a bit differently. We do not handle that case here.
+      //
 
-        // Note that Windows paints controls in Z-order, top-to-bottom, and
-        // uses clipping to avoid incorrect overlaps [*].
-        //
-        //   +--------+                     +--------+                    +--------+
-        //   |  Top   |                     |  Top   |                    |  Top   |
-        //   |        |---+   is painted    |        |         +---+      |        |---+
-        //   |        |   |   by WM_PAINT   |        |         |   |      |        |   |
-        //   +--------+   |        as       +--------+    +----+   | -->  +--------+   |
-        //       |        |                               |        |          |        |
-        //       | Bottom |                               | Bottom |          | Bottom |
-        //       +--------+                               +--------+          +--------+
-        //
-        // Unfortunately WM_PRINT does not apply clipping so when we paint
-        // controls with WM_PRINT, stacked/overlapping controls will appear
-        // in reverse Z-order.
-        //
-        //   +--------+                     +--------+                    +--------+
-        //   |  Top   |                     |  Top   |                    |  Top   |
-        //   |        |---+   is painted    |        |    +--------+      |   +--------+
-        //   |        |   |   by WM_PRINT   |        |    |        |      |   |        |
-        //   +--------+   |        as       +--------+    |        | -->  +---|        |
-        //       |        |                               |        |          |        |
-        //       | Bottom |                               | Bottom |          | Bottom |
-        //       +--------+                               +--------+          +--------+
-        //
-        // [*] Controls with the WS_EX_TRANSPARENT style obviously does
-        //     things a bit differently.
-        //
+      (*
+      ** WM_PRINT the parent to produce the background and paint TGraphicControls.
+      *)
+      Parent.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_ERASEBKGND);
 
-        Parent.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_CHILDREN or PRF_ERASEBKGND);
+      (*
+      ** Paint TWinControl siblings that are below us in the Z-order.
+      *)
+      for i := 0 to Parent.ControlCount-1 do
+      begin
+        Sibling := Parent.Controls[i];
 
-      finally
-        FPaintingBackground := False;
+        if (Sibling = Self) then
+          break;
+
+        if (Sibling is TWinControl) and Sibling.Visible then
+        begin
+          SaveIndex2 := SaveDC(Dest.Handle);
+          try
+            SetViewportOrgEx(Dest.Handle, Sibling.Left - P.X, Sibling.Top - P.Y, nil);
+            IntersectClipRect(Dest.Handle, 0, 0, Sibling.Width, Sibling.Height);
+
+            Sibling.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_ERASEBKGND or PRF_CHILDREN);
+          finally
+            RestoreDC(Dest.Handle, SaveIndex2);
+          end;
+        end;
       end;
+
     finally
       RestoreDC(Dest.Handle, SaveIndex);
     end;
@@ -3506,7 +3523,7 @@ begin
   inherited;
 
 {$if defined(TRANSPARENT_TIMAGE32)}
-  if IsTransparent then
+  if IsTransparent and Visible then
   begin
     R := BoundsRect;
     InvalidateRect(Parent.Handle, @R, True);
@@ -4064,6 +4081,9 @@ procedure TCustomImage32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
   InvalidateCache;
+
+  if (IsTransparent) and (not BufferValid) then
+    ForceFullInvalidate;
 end;
 
 procedure TCustomImage32.SetHotTrackLayer(ALayer: TCustomLayer);
@@ -4215,22 +4235,6 @@ begin
     Params.ExStyle := Params.ExStyle or WS_EX_TRANSPARENT;
   *)
 end;
-
-{$if defined(TRANSPARENT_TIMAGE32)}
-procedure TCustomImage32.WMPrint(var Message: TWMPrint);
-begin
-  if FPaintingBackground then
-    Exit; // Avoid endless recursion when we call Parent.Perform(WM_PRINT, PRF_CHILDREN)
-  inherited;
-end;
-
-procedure TCustomImage32.WMPrintClient(var Message: TWMPrint);
-begin
-  if FPaintingBackground then
-    Exit; // Avoid endless recursion when we call Parent.Perform(WM_PRINT, PRF_CHILDREN)
-  inherited;
-end;
-{$ifend}
 
 procedure TCustomImage32.SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000);
 begin
