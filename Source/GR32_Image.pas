@@ -2873,7 +2873,6 @@ var
   SaveIndex2: Integer;
   P: TPoint;
   Sibling: TControl;
-  ControlIndex: Integer;
 {$ifend}
 begin
 {$if defined(TRANSPARENT_TIMAGE32)}

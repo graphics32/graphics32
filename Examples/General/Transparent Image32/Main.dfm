@@ -43,7 +43,7 @@ object FormMain: TFormMain
     Anchors = [akRight, akBottom]
     BevelInner = bvNone
     BevelOuter = bvNone
-    Color = clCrimson
+    Color = 4071127
     Ctl3D = False
     Lines.Strings = (
       'Sed ut perspiciatis unde omnis iste natus error sit voluptatem '
@@ -197,10 +197,10 @@ object FormMain: TFormMain
     Height = 364
     Anchors = [akLeft, akTop, akRight, akBottom]
     Bitmap.DrawMode = dmBlend
-    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.ResamplerClassName = 'TLinearResampler'
     BitmapAlign = baCustom
     Scale = 1.000000000000000000
-    ScaleMode = smScale
+    ScaleMode = smResize
     MousePan.Enabled = True
     MouseZoom.Enabled = True
     MouseZoom.Animate = True
@@ -214,7 +214,7 @@ object FormMain: TFormMain
     Anchors = [akRight, akBottom]
     BevelInner = bvNone
     BevelOuter = bvNone
-    Color = clSkyBlue
+    Color = 15780006
     Ctl3D = False
     Lines.Strings = (
       'Sed ut perspiciatis unde omnis '
