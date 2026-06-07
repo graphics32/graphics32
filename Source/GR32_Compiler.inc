@@ -383,11 +383,11 @@
   If this symbol is defined, TControl implements the ClientToScreen(TRect)
   overload. Otherwise only TControl.ClientToScreen(TPoint) is implemented.
 
-  The symbol is defined for Delphi XE5 and later, and for FPC.
+  The symbol is defined for Delphi 10.3 and later, and for FPC.
   The exact version of Delphi that introduced the overload is unknown at this
   time.
 *)
-{$if defined(FPC) or (CompilerVersion > 25.0)}
+{$if defined(FPC) or (CompilerVersion >= 33.0)}
 {$define ClientToScreenRect}
 {$ifend}
 
