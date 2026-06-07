@@ -667,7 +667,7 @@ begin
         end;
 
       // reset data stream position
-      DataStream.Seek(0, soFromBeginning);
+      DataStream.Position := 0;
 
       // compress image data from data stream
       CompressImageDataFromStream(DataStream);
@@ -691,7 +691,7 @@ begin
     DecompressImageDataToStream(DataStream);
 
     // reset data stream position
-    DataStream.Seek(0, soFromBeginning);
+    DataStream.Position := 0;
 
     case ImageHeader.InterlaceMethod of
       imNone:
@@ -1052,7 +1052,7 @@ begin
         end;
 
       // reset data stream position
-      DataStream.Seek(0, soFromBeginning);
+      DataStream.Position := 0;
 
       // compress image data from data stream
       CompressImageDataFromStream(DataStream);

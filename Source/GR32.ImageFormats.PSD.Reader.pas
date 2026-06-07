@@ -460,7 +460,7 @@ end;
 procedure TPhotoshopDocumentReaderHelper.Skip(ACount: Int64);
 begin
   if (ACount <> 0) then
-    FStream.Seek(ACount, soFromCurrent);
+    FStream.Seek(ACount, soCurrent);
 end;
 
 //------------------------------------------------------------------------------
