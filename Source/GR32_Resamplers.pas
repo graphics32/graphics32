@@ -3128,6 +3128,16 @@ asm
         PXOR      XMM2, XMM2
         MOVDQA    XMM3, XMM1
         CMPPS     XMM3, XMM2, 0         // Zero Alpha mask.
+
+        // Avoid division by zero
+{$IFNDEF FPC}
+        MOVUPS    XMM4, [SSE_FloatOne]
+{$ELSE}
+        MOVUPS    XMM4, [RIP+SSE_FloatOne]
+{$ENDIF}
+        ANDPS     XMM4, XMM3            // XMM4 = 1.0 where Alpha == 0, else 0.0
+        ORPS      XMM1, XMM4            // Alpha = 1.0 where it was 0.0
+
         DIVPS     XMM0, XMM1            // Normalize RGB.
 
 {$IFNDEF FPC}
