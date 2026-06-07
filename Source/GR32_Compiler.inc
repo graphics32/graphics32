@@ -103,7 +103,7 @@
 
   {...}
 
-{$elseif (CompilerVersion < 23.0)} // Delphi XE2 and later
+{$elseif (CompilerVersion < 23.0)} // Prior to Delphi XE2
 
   {$Message Fatal 'Graphics32 only supports Delphi/BCB XE2 (or higher) or Free Pascal / Lazarus'}
 
@@ -112,7 +112,7 @@
   {$Message Hint 'Unknown compiler version. Assuming compatible with last known version.'}
   {$LEGACYIFEND ON}
 
-{$else} // Delphi XE3 and later
+{$elseif (CompilerVersion>= 24.0)} // Delphi XE3 and later
 
   {$LEGACYIFEND ON} // Stupid. Required for XE4+ but introduced in XE3.
 
@@ -383,11 +383,11 @@
   If this symbol is defined, TControl implements the ClientToScreen(TRect)
   overload. Otherwise only TControl.ClientToScreen(TPoint) is implemented.
 
-  The symbol is defined for Delphi XE5 and later, and for FPC.
+  The symbol is defined for Delphi 10.3 and later, and for FPC.
   The exact version of Delphi that introduced the overload is unknown at this
   time.
 *)
-{$if defined(FPC) or (CompilerVersion > 25.0)}
+{$if defined(FPC) or (CompilerVersion >= 33.0)}
 {$define ClientToScreenRect}
 {$ifend}
 
@@ -446,9 +446,11 @@
   If this symbol is defined, the compiler supports declaration of
   generic methods in non-generic classes.
 
-  The symbol is defined for Delphi 10 and later, and for FPC.
+  The symbol is defined for Delphi 10.2 and later, and for FPC.
+  Generic methods are actually supported from Delphi 10.0 but we don't use them
+  until Delphi 10.2 due to compiler bugs in the constraint declaration.
 *)
-{$if defined(FPC) or (CompilerVersion >= 30.0)} // Delphi 10 or later
+{$if defined(FPC) or (CompilerVersion >= 32.0)} // Delphi 10.2 or later
   {$define GenericMethods}
 {$ifend}
 

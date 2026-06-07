@@ -95,7 +95,6 @@ object FormMain: TFormMain
       Top = 9
       Width = 145
       Height = 23
-      AutoDropDownWidth = True
       Style = csDropDownList
       TabOrder = 4
       OnChange = ComboBoxRasterizerChange
