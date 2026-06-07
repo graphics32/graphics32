@@ -70,7 +70,7 @@ type
 
 { Version Control }
 const
-  Graphics32Version = '3.0';
+  Graphics32Version = '4.0';
 
 { 32-bit Color }
 type
