@@ -888,10 +888,17 @@ type
   strict protected
     procedure BackendChangedHandler(Sender: TObject); virtual;
     procedure BackendChangingHandler(Sender: TObject); virtual;
+  strict protected type
+    // Identical to the types in GR32_Blend. Redeclared here to avoid circular dependencies.
+    TBlendMem = procedure(F: TColor32; var B: TColor32);
+    PBlendMem = ^TBlendMem;
+    TBlendMemEx = procedure(F: TColor32; var B: TColor32; M: Cardinal);
+    PBlendMemEx = ^TBlendMemEx;
   strict protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
-    BlendProc: Pointer;
+    BlendProc: TBlendMem;
+    BlendProcEx: TBlendMemEx;
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
@@ -957,6 +964,7 @@ type
     procedure SetPixelX(X, Y: TFixed; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
+
   public
     // Create with specified backend
     constructor Create(ABackendClass: TCustomBackendClass); overload; virtual;
@@ -3183,6 +3191,7 @@ begin
   FStippleStep := 1;
   FCombineMode := cmBlend;
   BlendProc := @BLEND_MEM[FCombineMode]^;
+  BlendProcEx := @BLEND_MEM_EX[FCombineMode]^;
   WrapProcHorz := GetWrapProcEx(WrapMode);
   WrapProcVert := GetWrapProcEx(WrapMode);
   FResampler := TNearestResampler.Create(Self);
@@ -3645,12 +3654,12 @@ end;
 
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
-  TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
+  BlendProc(Value, Bits[X + Y * Width]);
 end;
 
 procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
-  TBlendMem(BlendProc)(Value, Ptr^);
+  BlendProc(Value, Ptr^);
   Inc(Ptr);
 end;
 
@@ -3659,7 +3668,7 @@ begin
   if {$IFDEF CHANGED_IN_PIXELS}not FMeasuringMode and{$ENDIF}
     (X >= FClipRect.Left) and (X < FClipRect.Right) and
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
-    TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
+    BlendProc(Value, Bits[X + Y * Width]);
 
 {$IFDEF CHANGED_IN_PIXELS}
   Changed(MakeRect(X, Y, X + 1, Y + 1));
@@ -3970,11 +3979,6 @@ begin
                        WordRec(TFixedRec(Y).Frac).Hi);
 end;
 
-class function TCustomBitmap32.GetPlatformBackendClass: TCustomBackendClass;
-begin
-  Result := TMemoryBackend;
-end;
-
 procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
 begin
 {$if defined(PUREPASCAL) or defined(TARGET_X64)}
@@ -3993,6 +3997,10 @@ begin
     SET_T256(WrapProcHorz(X, Left, Right - 128), WrapProcVert(Y, Top, Bottom - 128), Value);
 end;
 
+class function TCustomBitmap32.GetPlatformBackendClass: TCustomBackendClass;
+begin
+  Result := TMemoryBackend;
+end;
 
 procedure TCustomBitmap32.SetStipple(const NewStipple: TArrayOfColor32);
 begin
@@ -4129,7 +4137,7 @@ begin
   if not FMeasuringMode then
   begin
     P := PixelPtr[X1, Y];
-    BlendMem := TBlendMem(BlendProc);
+    BlendMem := BlendProc;
     for i := X1 to X2 do
     begin
       BlendMem(Value, P^);
@@ -4345,7 +4353,7 @@ begin
   if not FMeasuringMode then
   begin
     P := PixelPtr[X, Y1];
-    BlendMem := TBlendMem(BlendProc);
+    BlendMem := BlendProc;
 
     for i := Y1 to Y2 do
     begin
@@ -4897,7 +4905,7 @@ begin
     P := PixelPtr[X1, Y1];
     Sy := Sy * Width;
 
-    BlendMem := TBlendMem(BlendProc);
+    BlendMem := BlendProc;
 
     if Dx > Dy then
     begin
@@ -5135,7 +5143,8 @@ begin
         Inc(term);
     end;
 
-    BlendMem := BLEND_MEM[FCombineMode]^;
+    BlendMem := BlendProc;
+
     while xd <> term do
     begin
       Inc(xd, Sx);
@@ -5518,8 +5527,8 @@ begin
     end;
 
     EC := 0;
-    BLEND_MEM[FCombineMode]^(Value, Bits[X1 + Y1 * Width]);
-    BlendMemEx := BLEND_MEM_EX[FCombineMode]^;
+    Blendproc(Value, Bits[X1 + Y1 * Width]);
+    BlendMemEx := BlendProcEx;
 
     if Dy > Dx then
     begin
@@ -5691,7 +5700,7 @@ begin
     xd := X1; yd := Y1;
     CheckVert := True;
     CornerAA := False;
-    BlendMemEx := BLEND_MEM_EX[FCombineMode]^;
+    BlendMemEx := BlendProcEx;
 
     // clipping rect horizontal entry
     if Y1 < Cy1 then
@@ -6965,6 +6974,7 @@ begin
   begin
     FCombineMode := Value;
     BlendProc := @BLEND_MEM[FCombineMode]^;
+    BlendProcEx := @BLEND_MEM_EX[FCombineMode]^;
     Changed;
   end;
 end;
