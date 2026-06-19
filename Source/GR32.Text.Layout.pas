@@ -801,7 +801,8 @@ begin
       if (APath is TFlattenedPath) then
       begin
         TextPath := TFlattenedPath(APath);
-        TextPath.Clear;
+        // Issue 401: Do not clear path; It may already contain data
+        // TextPath.Clear;
       end else
       begin
         OwnedPath := TFlattenedPath.Create;
