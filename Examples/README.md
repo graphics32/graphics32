@@ -34,6 +34,7 @@
 | [HoverZoom](./General/HoverZoom) | `TImage32` zooming and panning.<br /> | <img src="./General/HoverZoom/screenshot.png" style="zoom: 25%;" /> |
 | [Image32](./General/Image32) | Various `TImage32` features. | <img src="./General/Image32/screenshot.png" style="zoom: 25%;" /> |
 | [Image32 background](./General/Image32%20background) | Custom `TImage32` background. | <img src="./General/Image32%20background/screenshot.png" style="zoom: 25%;" /> |
+| [Transparent TImage32](./General/Transparent%20Image32) | TImage32 control transparency.<br />Animation.<br />Layers. | <img src="./General/Transparent%20Image32/screenshot.png" style="zoom: 25%;" /> |
 | [Mandelbrot](./General/Mandelbrot) | `TSyntheticImage32`<br />Samplers and rasterizers. | <img src="./General/Mandelbrot/screenshot.png" style="zoom: 25%;" /> |
 | [Optimized repaint](./General/Optimized%20repaint) | Optimized repaint visualizer. | <img src="./General/Optimized%20repaint/screenshot.png" style="zoom: 25%;" /> |
 | [PNG Explorer](./General/PNG%20Explorer) | `TPortableNetworkGraphic32` | <img src="./General/PNG%20Explorer/screenshot.png" style="zoom: 25%;" /> |
