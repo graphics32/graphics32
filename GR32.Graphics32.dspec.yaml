@@ -1,0 +1,73 @@
+# DPM package spec file
+min dpm client version: 1.0.0
+metadata:
+  id: GR32.Graphics32
+  version: 4.0.0-preview.1
+  description: 'Fast 32-bit graphics library. Anti-aliased and alpha blended operations with pixel, vector, and polygon graphic primitives.'
+  icon: ./Examples/Media/GR32.png
+  authors:
+    - Alex A. Denisov
+  projectUrl: https://github.com/graphics32
+  repositoryUrl: https://github.com/graphics32/graphics32
+  repositoryBranch: master
+  license: 'MPL-1.1, LGPL-2.1'
+  copyright: Alex A. Denisov and the Graphics32 team
+  tags:
+    - bitmap
+    - raster
+    - graphics
+    - anti-alias
+    - alpha blending
+    - polygon
+  readme: README.md
+variables:
+  packagesource: $compilernoprefix$
+targetPlatforms:
+  - compiler: delphi10.2
+    platforms:
+      - win32
+      - win64
+    variables:
+      packagesource: D102
+  - compiler: delphi10.3
+    platforms:
+      - win32
+      - win64
+    variables:
+      packagesource: D103
+  - compiler: delphi10.4
+    platforms:
+      - win32
+      - win64
+    variables:
+      packagesource: D104
+  - compiler from: delphi11.0
+    compiler to: delphi13.0
+    platforms:
+      - win32
+      - win64
+    variables:
+      packagesource: D11 and later
+templates:
+  - name: default
+    source:
+      - src: ./LICENSE-MPL-1.1
+      - src: ./LICENSE-LGPL-2.1
+      - src: ./Source/*.inc
+      - src: ./Source/*.pas
+      - src: ./Source/Design/*.pas
+      - src: ./Source/Design/*.dfm
+      - src: ./Source/Design/*.dcr
+      - src: ./Source/Design/*.res
+      - src: ./Source/Packages/$packageSource$/*.dpk
+      - src: ./Source/Packages/$packageSource$/*.dproj
+    build:
+      - project: ./Source/Packages/$packageSource$/GR32_R.dproj
+        platforms:
+          - win32
+          - win64
+    design:
+      - project: ./Source/Packages/$packageSource$/GR32_D.dproj
+        platforms:
+          - win32
+          - win64
