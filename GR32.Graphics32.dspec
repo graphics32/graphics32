@@ -2,7 +2,7 @@
 min dpm client version: 1.0.0
 metadata:
   id: GR32.Graphics32
-  version: 4.0.0-preview.1
+  version: 4.0.0-preview.2
   description: 'Fast 32-bit graphics library. Anti-aliased and alpha blended operations with pixel, vector, and polygon graphic primitives.'
   icon: ./Examples/Media/GR32.png
   authors:
