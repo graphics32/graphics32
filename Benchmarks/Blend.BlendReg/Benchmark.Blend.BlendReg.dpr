@@ -520,15 +520,15 @@ end;
 // Sanyin's BlendReg using the `(x + (x shr 8)) shr 8`  formula for lossless
 // div255 calculation.
 //------------------------------------------------------------------------------
-procedure SSE_80008000_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure SSE_00800080_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$ifdef FPC}
   ALIGN 16
 {$else}
   .ALIGN 16
 {$endif}
-  dw $8000, $8000, $8000, $8000
-  dw $8000, $8000, $8000, $8000
+  dw $0080, $0080, $0080, $0080
+  dw $0080, $0080, $0080, $0080
 end;
 
 function BlendReg_SSE41_Sanyin(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
@@ -548,17 +548,18 @@ asm
 {$ENDIF}
         PMOVZXBW  XMM0, XMM0          // Components of F (word)
         PMOVZXBW  XMM1, XMM1          // Components of B (word)
-        //PSHUFLW   XMM2, XMM0, $FF     // Broadcast Fa into words
-        PSHUFD XMM2,XMM0,$FF // faster?
-        MOVDQA    XMM3, DQWORD PTR [SSE_FF00FF00_ALIGNED]
-        // Make $00FF
-        //PCMPEQD XMM3, XMM3            // $FFFFFFFF
-        //PSRLW   XMM3, 8               // $00FF
+        PSHUFLW   XMM2, XMM0, $FF     // Broadcast Fa into words
+        PCMPEQW   XMM3, XMM3
+        PSRLW     XMM3, 8             // XMM3 = $00FF
         PSUBW     XMM3, XMM2          // 255 - Fa
         PMULLW    XMM0, XMM2          // Fa * F
         PMULLW    XMM1, XMM3          // (255 - Fa) * B
         PADDW     XMM0, XMM1          // x = Fa * F + (255 - Fa) * B
-        PADDW     XMM0, DQWORD PTR [SSE_80008000_ALIGNED]        // x + 128
+{$if defined(FPC) and defined(TARGET_x64)}
+        PADDW     XMM0, DQWORD PTR [RIP + SSE_00800080_ALIGNED] // x + 128
+{$else}
+        PADDW     XMM0, DQWORD PTR [SSE_00800080_ALIGNED]        // x + 128
+{$ifend}
         MOVDQA    XMM1, XMM0
         PSRLW     XMM1, 8
         PADDW     XMM0, XMM1
