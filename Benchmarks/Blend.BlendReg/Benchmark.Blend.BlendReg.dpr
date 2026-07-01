@@ -573,12 +573,14 @@ end;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+{-$define TEST_BOUNDARY}
 {-$define TEST_OPAQUE}
 
 procedure BM_BlendReg(const state: TState);
 begin
   var BlendRegProc: TBlendReg := TBlendReg(state[0]);
 
+{$ifdef TEST_BOUNDARY} // Validate handling of boundary conditions
   var BoundaryTest := ' Boundary: ';
   if (BlendRegProc(0, clRed32) = clRed32) then
     BoundaryTest := BoundaryTest + 'Pass'
@@ -589,6 +591,7 @@ begin
   else
     BoundaryTest := BoundaryTest + ', Fail';
   state.SetLabel(BoundaryTest);
+{$endif}
 
   for var _ in state do
   begin
