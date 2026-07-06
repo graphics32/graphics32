@@ -4,10 +4,19 @@ program Benchmark.Blend.BlendReg;
 
 {$I GR32.inc}
 
+// TEST_BOUNDARY: Validate handling of boundary conditions: F.A=0 and F.A=255
+{-$define TEST_BOUNDARY}
+// TEST_OPAQUE: Benchmark blend opaque onto opaque
+{-$define TEST_OPAQUE}
+// TEST_REFERENCE: Validate result against reference blend
+{-$define TEST_REFERENCE}
+
 uses
   SysUtils,
+  Math,
   Spring.Benchmark,
   GR32,
+  GR32_LowLevel,
   GR32_Bindings,
   GR32_Blend,
   GR32.Blend.Pascal,
@@ -570,11 +579,195 @@ asm
 end;
 
 //------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
+
+procedure SSE_00FF00FF_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$ifdef FPC}
+  ALIGN 16
+{$else}
+  .ALIGN 16
+{$endif}
+  dw $00FF, $00FF, $00FF, $00FF
+  dw $00FF, $00FF, $00FF, $00FF
+end;
+
+function BlendReg_SSE41_Sanyin2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+  // blend foreground color (F) onto a background color (B),
+  // using alpha channel value of F
+  // Result Z = (Fa * Fargb + (255 - Fa) * Bargb + 128) / 255
+  //  t = x + 128;
+  // Result = (t + (t shr 8)) shr 8;
+asm
+{$IFDEF TARGET_x64}
+        MOVD      XMM0, ECX
+        MOVD      XMM1, EDX
+{$ENDIF}
+{$IFDEF TARGET_x86}
+        MOVD      XMM0, EAX
+        MOVD      XMM1, EDX
+{$ENDIF}
+        PMOVZXBW  XMM0, XMM0          // Components of F (word)
+        PMOVZXBW  XMM1, XMM1          // Components of B (word)
+        PSHUFLW   XMM2, XMM0, $FF     // Broadcast Fa into words
+        MOVDQA    XMM3, DQWORD PTR [SSE_00FF00FF_ALIGNED]
+        PSUBW     XMM3, XMM2          // 255 - Fa
+        PMULLW    XMM0, XMM2          // Fa * F
+        PMULLW    XMM1, XMM3          // (255 - Fa) * B
+        PADDW     XMM0, XMM1          // x = Fa * F + (255 - Fa) * B
+        PADDW     XMM0, DQWORD PTR [SSE_00800080_ALIGNED]        // x + 128
+        MOVDQA    XMM1, XMM0
+        PSRLW     XMM1, 8
+        PADDW     XMM0, XMM1
+        PSRLW     XMM0, 8
+        PACKUSWB  XMM0, XMM0          // word -> byte
+        MOVD      EAX, XMM0
+        OR        EAX, $FF000000
+end;
+
 //------------------------------------------------------------------------------
 
-{-$define TEST_BOUNDARY}
-{-$define TEST_OPAQUE}
+function BlendReg_SSE2_Sanyin2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+  // blend foreground color (F) onto a background color (B),
+  // using alpha channel value of F
+  // Result Z = (Fa * Fargb + (255 - Fa) * Bargb + 128) / 255
+  //  t = x + 128;
+  // Result = (t + (t shr 8)) shr 8;
+asm
+{$IFDEF TARGET_x64}
+        MOVD      XMM0, ECX
+        MOVD      XMM1, EDX
+{$ENDIF}
+{$IFDEF TARGET_x86}
+        MOVD      XMM0, EAX
+        MOVD      XMM1, EDX
+{$ENDIF}
+        PXOR      XMM7, XMM7
+        PUNPCKLBW XMM0, XMM7          // Components of F (word)
+        PUNPCKLBW XMM1, XMM7          // Components of B (word)
+        PSHUFLW   XMM2, XMM0, $FF     // Broadcast Fa into words
+        MOVDQA    XMM3, DQWORD PTR [SSE_00FF00FF_ALIGNED]
+        PSUBW     XMM3, XMM2          // 255 - Fa
+        PMULLW    XMM0, XMM2          // Fa * F
+        PMULLW    XMM1, XMM3          // (255 - Fa) * B
+        PADDW     XMM0, XMM1          // x = Fa * F + (255 - Fa) * B
+        PADDW     XMM0, DQWORD PTR [SSE_00800080_ALIGNED]  // x + 128
+        MOVDQA    XMM1, XMM0
+        PSRLW     XMM1, 8
+        PADDW     XMM0, XMM1
+        PSRLW     XMM0, 8
+        PACKUSWB  XMM0, XMM0          // words -> bytes
+        MOVD      EAX, XMM0
+        OR        EAX, $FF000000
+end;
+
+//------------------------------------------------------------------------------
+
+// 8 x 257
+procedure SSE_01010101_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$ifdef FPC}
+ALIGN 16
+{$else}
+.ALIGN 16
+{$endif}
+  dw $0101, $0101, $0101, $0101
+  dw $0101, $0101, $0101, $0101
+end;
+
+function BlendReg_SSE41_Sanyin_257(F, B: TColor32): TColor32;
+  // blend foreground color (F) onto a background color (B),
+  // using alpha channel value of F
+  // Result Z = (Fa * Fargb + (255 - Fa) * Bargb + 128) / 255
+  // Result = (x + 128) * 257;
+asm
+{$IFDEF TARGET_x64}
+        MOVD      XMM0, ECX
+        MOVD      XMM1, EDX
+{$ENDIF}
+{$IFDEF TARGET_x86}
+        MOVD      XMM0, EAX
+        MOVD      XMM1, EDX
+{$ENDIF}
+        PMOVZXBW  XMM0, XMM0
+        PMOVZXBW  XMM1, XMM1
+        PSHUFLW   XMM2, XMM0, $FF
+        MOVDQA    XMM3, DQWORD PTR [SSE_00FF00FF_ALIGNED]
+        PSUBW     XMM3, XMM2
+        PMULLW    XMM0, XMM2
+        PMULLW    XMM1, XMM3
+        PADDW     XMM0, XMM1
+        PADDW     XMM0, DQWORD PTR [SSE_00800080_ALIGNED]
+        PMULHUW   XMM0, DQWORD PTR [SSE_01010101_ALIGNED]
+        PACKUSWB  XMM0, XMM0
+        MOVD      EAX, XMM0
+        OR        EAX, $FF000000
+end;
+
+//------------------------------------------------------------------------------
+
+function BlendReg_SSE2_Sanyin_257(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+  // blend foreground color (F) onto a background color (B),
+  // using alpha channel value of F
+  // Result Z = (Fa * Fargb + (255 - Fa) * Bargb + 128) / 255
+  // Result = (x + 128) * 257;
+asm
+{$IFDEF TARGET_x64}
+        MOVD      XMM0, ECX
+        MOVD      XMM1, EDX
+{$ENDIF}
+{$IFDEF TARGET_x86}
+        MOVD      XMM0, EAX
+        MOVD      XMM1, EDX
+{$ENDIF}
+        PXOR      XMM7, XMM7
+        PUNPCKLBW XMM0, XMM7          // Components of F (word)
+        PUNPCKLBW XMM1, XMM7          // Components of B (word)
+        PSHUFLW   XMM2, XMM0, $FF     // Broadcast Fa into words
+        MOVDQA    XMM3, DQWORD PTR [SSE_00FF00FF_ALIGNED]
+        PSUBW     XMM3, XMM2
+        PMULLW    XMM0, XMM2
+        PMULLW    XMM1, XMM3
+        PADDW     XMM0, XMM1
+        PADDW     XMM0, DQWORD PTR [SSE_00800080_ALIGNED]
+        PMULHUW   XMM0, DQWORD PTR [SSE_01010101_ALIGNED]
+        PACKUSWB  XMM0, XMM0
+        MOVD      EAX, XMM0
+        OR        EAX, $FF000000
+end;
+
+//------------------------------------------------------------------------------
+
+function BlendReg_Reference(Foreground, Background: TColor32): TColor32;
+const
+  COne255th: Double = 1 / 255;
+var
+  ForegroundColor: TColor32Entry absolute Foreground;
+  BackgroundColor: TColor32Entry absolute Background;
+  ScaleF: Double;
+  ScaleB: Double;
+begin
+  if ForegroundColor.A = 0 then
+  begin
+    Result := Background;
+  end else
+  if ForegroundColor.A = $FF then
+  begin
+    Result := Foreground;
+  end else
+  begin
+    ScaleF := ForegroundColor.A * COne255th;
+    ScaleB := 1 - ScaleF;
+
+    TColor32Entry(Result).R := Clamp(Round(ScaleB * BackgroundColor.R + ScaleF * ForegroundColor.R));
+    TColor32Entry(Result).G := Clamp(Round(ScaleB * BackgroundColor.G + ScaleF * ForegroundColor.G));
+    TColor32Entry(Result).B := Clamp(Round(ScaleB * BackgroundColor.B + ScaleF * ForegroundColor.B));
+  end;
+  TColor32Entry(Result).A := 255;
+end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 procedure BM_BlendReg(const state: TState);
 begin
@@ -593,6 +786,12 @@ begin
   state.SetLabel(BoundaryTest);
 {$endif}
 
+{$ifdef TEST_REFERENCE}
+  var Failures := 0;
+  var MaxDiff := 0;
+  var AlphaFailures := 0;
+{$endif}
+
   for var _ in state do
   begin
 {$ifdef TEST_OPAQUE} // Benchmark blend opaque onto opaque
@@ -607,10 +806,44 @@ begin
         for var B := 0 to $FF do
         begin
           var ColorBG: TColor32 := $FF000000 or B or (B shl 8) or (B shl 16);
-          BlendRegProc(ColorFG, ColorBG);
+          var Actual: TColor32Entry := TColor32Entry(BlendRegProc(ColorFG, ColorBG));
+
+{$ifdef TEST_REFERENCE}
+          var Expected: TColor32Entry := TColor32Entry(BlendReg_Reference(ColorFG, ColorBG));
+          if (Actual.ARGB <> Expected.ARGB) then
+          begin
+            if (Actual.A <> 255) then
+              Inc(AlphaFailures);
+
+            var Diff := Abs(Actual.R-Expected.R);
+            if (Diff <> 0) then
+            begin
+              MaxDiff := Max(MaxDiff, Diff);
+              Inc(Failures);
+            end;
+
+            Diff := Abs(Actual.G-Expected.G);
+            if (Diff <> 0) then
+            begin
+              MaxDiff := Max(MaxDiff, Diff);
+              Inc(Failures);
+            end;
+
+            Diff := Abs(Actual.B-Expected.B);
+            if (Diff <> 0) then
+            begin
+              MaxDiff := Max(MaxDiff, Diff);
+              Inc(Failures);
+            end;
+          end;
+{$endif}
         end;
       end;
   end;
+{$ifdef TEST_REFERENCE}
+  if (Failures > 0) or (AlphaFailures > 0) then
+    state.SetLabel(Format(' Failures: %10.0n (%4.1n%%%%), Max: %d, Alpha: %.0n', [Failures * 1.0, 100/(state.Iterations*256*256*256*3)*Failures, MaxDiff, AlphaFailures * 1.0]));
+{$endif}
 end;
 
 procedure Main;
@@ -624,17 +857,24 @@ begin
   begin
     var bm := Spring.Benchmark.Benchmark(BM_BlendReg, Implement.Name).Args([Int64(Implement.Proc)]);
     bm.TimeUnit(kMillisecond);
+{$if (not defined(TEST_REFERENCE)) and (not defined(TEST_BOUNDARY))} // No point in waiting 10 seconds when we can't use the timing
     bm.MinTime(10); // seconds
+{$ifend}
   end;
 
   Spring.Benchmark.Benchmark_Main;
 end;
 
 begin
-  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_Sanyin, [isSSE2], 1).Name := 'BlendReg_SSE41_Sanyin';
-  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_8081, [isSSE2], 1).Name := 'BlendReg_SSE41_8081';
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_Sanyin, [isSSE41], 1).Name := 'BlendReg_SSE41_Sanyin';
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_Sanyin2, [isSSE41], 1).Name := 'BlendReg_SSE41_Sanyin2';
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_Sanyin2, [isSSE2], 1).Name := 'BlendReg_SSE2_Sanyin2';
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_Sanyin_257, [isSSE41], 1).Name := 'BlendReg_SSE41_Sanyin_257';
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_Sanyin_257, [isSSE2], 1).Name := 'BlendReg_SSE2_Sanyin_257';
+
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_8081, [isSSE41], 1).Name := 'BlendReg_SSE41_8081';
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_8081, [isSSE2], 1).Name := 'BlendReg_SSE2_8081';
-  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_No_bias_ptr, [isSSE2], 1).Name := 'BlendReg_SSE41_No_bias_ptr';
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_No_bias_ptr, [isSSE41], 1).Name := 'BlendReg_SSE41_No_bias_ptr';
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_No_bias_ptr, [isSSE2], 1).Name := 'BlendReg_SSE2_No_bias_ptr';
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_BoundaryFixes, [isSSE2], 1).Name := 'BlendReg_SSE2_BoundaryFixes';
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_Org, [isSSE2], 1).Name := 'BlendReg_SSE2 (Original)';
