@@ -375,7 +375,8 @@ procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustom
   SrcRect: TRect; Components: TColor32Components);
 var
   I, J, Count, ComponentCount, XOffset: Integer;
-  Mask: TColor32;
+  OriginalDstX, OriginalDstY: Integer;
+  Mask, NotMask: TColor32;
   SrcRow, DstRow: PColor32Array;
   PBDst, PBSrc: PByteArray;
   DstRect: TRect;
@@ -416,155 +417,149 @@ begin
     XOffset := Ord(ccBlue);
   end;
 
-  with Dst do
+  GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
+  if (SrcRect.Right <= SrcRect.Left) or (SrcRect.Bottom <= SrcRect.Top) then
+    exit;
+
+  OriginalDstX := DstX;
+  OriginalDstY := DstY;
+
+  DstRect.Left := DstX;
+  DstRect.Top := DstY;
+  DstRect.Right := DstX + (SrcRect.Right - SrcRect.Left);
+  DstRect.Bottom := DstY + (SrcRect.Bottom - SrcRect.Top);
+
+  GR32.IntersectRect(DstRect, DstRect, Dst.BoundsRect);
+  GR32.IntersectRect(DstRect, DstRect, Dst.ClipRect);
+
+  if (DstRect.Right <= DstRect.Left) or (DstRect.Bottom <= DstRect.Top) then
+    exit;
+
+  Inc(SrcRect.Left, DstRect.Left - OriginalDstX);
+  Inc(SrcRect.Top, DstRect.Top - OriginalDstY);
+
+  if not Dst.MeasuringMode then
   begin
-    GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
-    if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then
-      Exit;
+    Dst.BeginUpdate;
+    try
+      Count := DstRect.Right - DstRect.Left;
+      SrcRow := Pointer(Src.PixelPtr[SrcRect.Left, SrcRect.Top]);
+      DstRow := Pointer(Dst.PixelPtr[DstRect.Left, DstRect.Top]);
 
-    DstX := Clamp(DstX, 0, Width);
-    DstY := Clamp(DstY, 0, Height);
+      if Count > 16 then
+      begin
 
-    DstRect.TopLeft := GR32.Point(DstX, DstY);
-    DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
-    DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
-
-    GR32.IntersectRect(DstRect, DstRect, BoundsRect);
-    GR32.IntersectRect(DstRect, DstRect, ClipRect);
-    if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
-      Exit;
-
-    if not MeasuringMode then
-    begin
-      BeginUpdate;
-      try
-        with DstRect do
-        if (Bottom - Top) > 0 then
-        begin
-          SrcRow := Pointer(Src.PixelPtr[SrcRect.Left, SrcRect.Top]);
-          DstRow := Pointer(PixelPtr[Left, Top]);
-          Count := Right - Left;
-          if Count > 16 then
-          case ComponentCount of
-            1://Byte ptr approach
-              begin
-                PBSrc := Pointer(SrcRow);
-                Inc(PBSrc, XOffset); // shift the pointer to the given component of the first pixel
-                PBDst := Pointer(DstRow);
-                Inc(PBDst, XOffset);
-
-                Count := Count * 4 - 64;
-                Inc(PBSrc, Count);
-                Inc(PBDst, Count);
-
-                for I := 0 to Bottom - Top - 1 do
-                begin
-                  //16x enrolled loop
-                  J := - Count;
-                  repeat
-                    PBDst[J] := PBSrc[J];
-                    PBDst[J +  4] := PBSrc[J +  4];
-                    PBDst[J +  8] := PBSrc[J +  8];
-                    PBDst[J + 12] := PBSrc[J + 12];
-                    PBDst[J + 16] := PBSrc[J + 16];
-                    PBDst[J + 20] := PBSrc[J + 20];
-                    PBDst[J + 24] := PBSrc[J + 24];
-                    PBDst[J + 28] := PBSrc[J + 28];
-                    PBDst[J + 32] := PBSrc[J + 32];
-                    PBDst[J + 36] := PBSrc[J + 36];
-                    PBDst[J + 40] := PBSrc[J + 40];
-                    PBDst[J + 44] := PBSrc[J + 44];
-                    PBDst[J + 48] := PBSrc[J + 48];
-                    PBDst[J + 52] := PBSrc[J + 52];
-                    PBDst[J + 56] := PBSrc[J + 56];
-                    PBDst[J + 60] := PBSrc[J + 60];
-                    Inc(J, 64)
-                  until J > 0;
-
-                  //The rest
-                  Dec(J, 64);
-                  while J < 0 do
-                  begin
-                    PBDst[J + 64] := PBSrc[J + 64];
-                    Inc(J, 4);
-                  end;
-                  Inc(PBSrc, Src.Width * 4);
-                  Inc(PBDst, Width * 4);
-                end;
-              end;
-
-            2, 3: //Masked approach
-              begin
-                Count := Count - 8;
-                Inc(DstRow, Count);
-                Inc(SrcRow, Count);
-                for I := 0 to Bottom - Top - 1 do
-                begin
-                  //8x enrolled loop
-                  J := - Count;
-                  repeat
-                    Mask := not Mask;
-                    DstRow[J] := DstRow[J] and Mask;
-                    DstRow[J + 1] := DstRow[J + 1] and Mask;
-                    DstRow[J + 2] := DstRow[J + 2] and Mask;
-                    DstRow[J + 3] := DstRow[J + 3] and Mask;
-                    DstRow[J + 4] := DstRow[J + 4] and Mask;
-                    DstRow[J + 5] := DstRow[J + 5] and Mask;
-                    DstRow[J + 6] := DstRow[J + 6] and Mask;
-                    DstRow[J + 7] := DstRow[J + 7] and Mask;
-
-                    Mask := not Mask;
-                    DstRow[J] := DstRow[J] or SrcRow[J] and Mask;
-                    DstRow[J + 1] := DstRow[J + 1] or SrcRow[J + 1] and Mask;
-                    DstRow[J + 2] := DstRow[J + 2] or SrcRow[J + 2] and Mask;
-                    DstRow[J + 3] := DstRow[J + 3] or SrcRow[J + 3] and Mask;
-                    DstRow[J + 4] := DstRow[J + 4] or SrcRow[J + 4] and Mask;
-                    DstRow[J + 5] := DstRow[J + 5] or SrcRow[J + 5] and Mask;
-                    DstRow[J + 6] := DstRow[J + 6] or SrcRow[J + 6] and Mask;
-                    DstRow[J + 7] := DstRow[J + 7] or SrcRow[J + 7] and Mask;
-
-                    Inc(J, 8);
-                  until J > 0;
-
-                  //The rest
-                  Dec(J, 8);
-                  while J < 0 do
-                  begin
-                    DstRow[J + 8] := DstRow[J + 8] and not Mask or SrcRow[J + 8] and Mask;
-                    Inc(J);
-                  end;
-                  Inc(SrcRow, Src.Width);
-                  Inc(DstRow, Width);
-                end;
-              end;
-
-            4: //full copy approach approach, use MoveLongWord
-              for I := 0 to Bottom - Top - 1 do
-              begin
-                MoveLongWord(SrcRow^, DstRow^, Count);
-                Inc(SrcRow, Src.Width);
-                Inc(DstRow, Width);
-              end;
-          end
-          else
-          begin
-            for I := 0 to Bottom - Top - 1 do
+        case ComponentCount of
+          1: // Byte ptr approach
             begin
-              for J := 0 to Count - 1 do
-                DstRow[J] := DstRow[J] and not Mask or SrcRow[J] and Mask;
-              Inc(SrcRow, Src.Width);
-              Inc(DstRow, Width);
-            end;
-          end;
-        end;
-      finally
-        EndUpdate;
-      end;
-    end;
-    Changed(DstRect);
-  end;
-end;
+              PBSrc := Pointer(SrcRow);
+              Inc(PBSrc, XOffset); // shift the pointer to the given component of the first pixel
+              PBDst := Pointer(DstRow);
+              Inc(PBDst, XOffset);
 
+              Count := Count * 4 - 64;
+              Inc(PBSrc, Count);
+              Inc(PBDst, Count);
+
+              for I := 0 to DstRect.Bottom - DstRect.Top - 1 do
+              begin
+                //16x unrolled loop
+                J := - Count;
+                repeat
+                  PBDst[J] := PBSrc[J];
+                  PBDst[J +  4] := PBSrc[J +  4];
+                  PBDst[J +  8] := PBSrc[J +  8];
+                  PBDst[J + 12] := PBSrc[J + 12];
+                  PBDst[J + 16] := PBSrc[J + 16];
+                  PBDst[J + 20] := PBSrc[J + 20];
+                  PBDst[J + 24] := PBSrc[J + 24];
+                  PBDst[J + 28] := PBSrc[J + 28];
+                  PBDst[J + 32] := PBSrc[J + 32];
+                  PBDst[J + 36] := PBSrc[J + 36];
+                  PBDst[J + 40] := PBSrc[J + 40];
+                  PBDst[J + 44] := PBSrc[J + 44];
+                  PBDst[J + 48] := PBSrc[J + 48];
+                  PBDst[J + 52] := PBSrc[J + 52];
+                  PBDst[J + 56] := PBSrc[J + 56];
+                  PBDst[J + 60] := PBSrc[J + 60];
+                  Inc(J, 64)
+                until J > 0;
+
+                //The rest
+                Dec(J, 64);
+                while J < 0 do
+                begin
+                  PBDst[J + 64] := PBSrc[J + 64];
+                  Inc(J, 4);
+                end;
+                Inc(PBSrc, Src.Width * 4);
+                Inc(PBDst, Dst.Width * 4);
+              end;
+            end;
+
+          2, 3: // Masked approach
+            begin
+              NotMask := not Mask;
+              Count := Count - 8;
+              Inc(DstRow, Count);
+              Inc(SrcRow, Count);
+              for I := 0 to DstRect.Bottom - DstRect.Top - 1 do
+              begin
+                //8x unrolled loop
+                J := - Count;
+                repeat
+                  DstRow[J] := (DstRow[J] and NotMask) or (SrcRow[J] and Mask);
+                  DstRow[J + 1] := (DstRow[J + 1] and NotMask) or (SrcRow[J + 1] and Mask);
+                  DstRow[J + 2] := (DstRow[J + 2] and NotMask) or (SrcRow[J + 2] and Mask);
+                  DstRow[J + 3] := (DstRow[J + 3] and NotMask) or (SrcRow[J + 3] and Mask);
+                  DstRow[J + 4] := (DstRow[J + 4] and NotMask) or (SrcRow[J + 4] and Mask);
+                  DstRow[J + 5] := (DstRow[J + 5] and NotMask) or (SrcRow[J + 5] and Mask);
+                  DstRow[J + 6] := (DstRow[J + 6] and NotMask) or (SrcRow[J + 6] and Mask);
+                  DstRow[J + 7] := (DstRow[J + 7] and NotMask) or (SrcRow[J + 7] and Mask);
+
+                  Inc(J, 8);
+                until J > 0;
+
+                //The rest
+                Dec(J, 8);
+                while J < 0 do
+                begin
+                  DstRow[J + 8] := (DstRow[J + 8] and NotMask) or (SrcRow[J + 8] and Mask);
+                  Inc(J);
+                end;
+                Inc(SrcRow, Src.Width);
+                Inc(DstRow, Dst.Width);
+              end;
+            end;
+
+          4: // Full copy approach approach, use MoveLongword
+            for I := 0 to DstRect.Bottom - DstRect.Top - 1 do
+            begin
+              MoveLongword(SrcRow^, DstRow^, Count);
+              Inc(SrcRow, Src.Width);
+              Inc(DstRow, Dst.Width);
+            end;
+        end;
+
+      end else
+      begin
+
+        NotMask := not Mask;
+        for I := 0 to DstRect.Bottom - DstRect.Top - 1 do
+        begin
+          for J := 0 to Count - 1 do
+            DstRow[J] := (DstRow[J] and NotMask) or (SrcRow[J] and Mask);
+          Inc(SrcRow, Src.Width);
+          Inc(DstRow, Dst.Width);
+        end;
+
+      end;
+    finally
+      Dst.EndUpdate;
+    end;
+  end;
+  Dst.Changed(DstRect);
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -822,7 +817,7 @@ end;
 procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator);
 var
-  I, Count: Integer;
+  I, Count, OriginalDstX, OriginalDstY: Integer;
   DstRect: TRect;
   MaskProc : TLogicalMaskLineEx;
 begin
@@ -834,32 +829,37 @@ begin
     exit;
 
   GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
-  if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then
-    Exit;
+  if (SrcRect.Right <= SrcRect.Left) or (SrcRect.Bottom <= SrcRect.Top) then
+    exit;
 
-  DstX := Clamp(DstX, 0, Dst.Width);
-  DstY := Clamp(DstY, 0, Dst.Height);
+  OriginalDstX := DstX;
+  OriginalDstY := DstY;
 
-  DstRect.TopLeft := GR32.Point(DstX, DstY);
-  DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
-  DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
+  DstRect.Left := DstX;
+  DstRect.Top := DstY;
+  DstRect.Right := DstX + (SrcRect.Right - SrcRect.Left);
+  DstRect.Bottom := DstY + (SrcRect.Bottom - SrcRect.Top);
 
   GR32.IntersectRect(DstRect, DstRect, Dst.BoundsRect);
   GR32.IntersectRect(DstRect, DstRect, Dst.ClipRect);
-  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
-    Exit;
+
+  if (DstRect.Right <= DstRect.Left) or (DstRect.Bottom <= DstRect.Top) then
+    exit;
+
+  Inc(SrcRect.Left, DstRect.Left - OriginalDstX);
+  Inc(SrcRect.Top, DstRect.Top - OriginalDstY);
 
   if not Dst.MeasuringMode then
   begin
     Dst.BeginUpdate;
     try
-      with DstRect do
-      if (Bottom - Top) > 0 then
+      if (DstRect.Bottom - DstRect.Top) > 0 then
       begin
-        Count := Right - Left;
+        Count := DstRect.Right - DstRect.Left;
+
         if Count > 0 then
-          for I := 0 to Bottom - Top - 1 do
-            MaskProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], Dst.PixelPtr[Left, Top + I], Count, Bitmask);
+          for I := 0 to DstRect.Bottom - DstRect.Top - 1 do
+            MaskProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], Dst.PixelPtr[DstRect.Left, DstRect.Top + I], Count, Bitmask);
       end;
     finally
       Dst.EndUpdate;
@@ -886,24 +886,24 @@ begin
 
   GR32.IntersectRect(ARect, ARect, ABitmap.BoundsRect);
   GR32.IntersectRect(ARect, ARect, ABitmap.ClipRect);
-  if (ARect.Right < ARect.Left) or (ARect.Bottom < ARect.Top) then
-    Exit;
+  if (ARect.Right <= ARect.Left) or (ARect.Bottom <= ARect.Top) then
+    exit;
 
   if not ABitmap.MeasuringMode then
   begin
     ABitmap.BeginUpdate;
     try
-      with ARect do
-      if (Bottom - Top) > 0 then
+      if (ARect.Bottom - ARect.Top) > 0 then
       begin
-        Count := Right - Left;
+        Count := ARect.Right - ARect.Left;
+
         if Count > 0 then
         begin
-          if Count = Width then
-            MaskProc(ABitmap.PixelPtr[Left, Top], Bitmask, Count * (Bottom - Top))
+          if Count = ABitmap.Width then
+            MaskProc(ABitmap.PixelPtr[ARect.Left, ARect.Top], Bitmask, Count * (ARect.Bottom - ARect.Top))
           else
-            for I := Top to Bottom - 1 do
-              MaskProc(ABitmap.PixelPtr[Left, I], Bitmask, Count);
+            for I := ARect.Top to ARect.Bottom - 1 do
+              MaskProc(ABitmap.PixelPtr[ARect.Left, I], Bitmask, Count);
         end;
       end;
     finally
