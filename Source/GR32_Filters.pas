@@ -68,7 +68,21 @@ function CreateBitmask(Components: TColor32Components): TColor32;
 procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32; SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
 procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
 
-procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
+(*
+** CheckParams is used by the various filter functions to validate the bitmap parameters
+** and, optionally, to ensure that the destination bitmap has the required dimensions.
+**
+** - If either Dst or Src is nil, then an exception is raised.
+**
+** - If ResizeDst=True (the default), and the dimensions of Src and Dst differ, then Dst
+**   is resized to the size of Src.
+**
+** - If ClearDst=True (the default), and Dst must be resized, then Dst is cleared as part
+**   of the resize operation.
+**
+** The function returns True if the Dst bitmap was resized, False otherwise.
+*)
+function CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True; ClearDst: boolean = True): boolean;
 
 
 implementation
@@ -135,7 +149,7 @@ const
     (@@LogicalMaskLineOrEx)
   );
 
-procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean);
+function CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean; ClearDst: boolean): boolean;
 begin
   if (Src = nil) then
     raise Exception.Create(SEmptySource);
@@ -143,8 +157,12 @@ begin
   if (Dst = nil) then
     raise Exception.Create(SEmptyDestination);
 
-  if ResizeDst and (Src <> Dst) then
-    Dst.SetSize(Src.Width, Src.Height);
+  if ResizeDst and (Src <> Dst) and ((Src.Width <> Dst.Width) or (Src.Height <> Dst.Height)) then
+  begin
+    Dst.SetSize(Src.Width, Src.Height, ClearDst);
+    Result := True;
+  end else
+    Result := False;
 end;
 
 procedure CopyComponents(Dst, Src: TCustomBitmap32; Components: TColor32Components);
