@@ -45,29 +45,209 @@ type
   TLUT8 = array [Byte] of Byte;
   TLogicalOperator = (loXOR, loAND, loOR);
 
+
+//------------------------------------------------------------------------------
+//
+//      CopyComponents
+//
+//------------------------------------------------------------------------------
+(*
+** CopyComponents copies specified color components from a source bitmap to a
+** destination bitmap.
+**
+** - If the source and destination bitmaps are the same, or if no components
+**   are specified, the function exits without performing any operation.
+**
+** - In the first overload, the destination bitmap is automatically resized to
+**   match the dimensions of the source bitmap, if their size differ.
+**
+** - In the second overload, the specified Rect of the source bitmap is copied
+**   to the destination at the given coordinates (DstX, DstY). The destination
+**   is not resized.
+**
+** - The Components parameter determines which of the ARGB channels are
+**   transferred from source to destination.
+*)
 procedure CopyComponents(Dst, Src: TCustomBitmap32; Components: TColor32Components);overload;
 procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32; SrcRect: TRect; Components: TColor32Components); overload;
 
+
+//------------------------------------------------------------------------------
+//
+//      AlphaToGrayscale
+//
+//------------------------------------------------------------------------------
+(*
+** AlphaToGrayscale converts a bitmap to grayscale by copying the alpha
+** component of each pixel to its red, green, and blue components.
+**
+** - In the first overload, the operation is performed in-place.
+**
+** - In the second overload, the alpha channel of the source bitmap is
+**   copied to the RGB channels of the destination bitmap. The destination
+**   is resized if necessary.
+**
+** - The alpha channel of the destination bitmap remains intact provided that
+**   the bitmap isn't resized.
+**
+** TODO: AlphaToGrayscale should sey the Destination alpha to 255 if the bitmap is resized.
+*)
 procedure AlphaToGrayscale(ABitmap: TCustomBitmap32); overload;
 procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32); overload;
+
+
+//------------------------------------------------------------------------------
+//
+//      ColorToGrayscale
+//
+//------------------------------------------------------------------------------
+(*
+** ColorToGrayscale converts a color bitmap to grayscale based on the luminance
+** (intensity) of each pixel.
+**
+** - In the first overload, the operation is performed in-place.
+**
+** - In the second overload, the source bitmap is converted and stored in the
+**   destination bitmap. The destination is resized if necessary.
+**
+** - If PreserveAlpha is True, the source alpha values are copied to the
+**   destination. If False (the default), the alpha channel is set to opaque ($FF).
+*)
 procedure ColorToGrayscale(ABitmap: TCustomBitmap32; PreserveAlpha: Boolean = False); overload;
 procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean = False); overload;
+
+
+//------------------------------------------------------------------------------
+//
+//      IntensityToAlpha
+//
+//------------------------------------------------------------------------------
+(*
+** IntensityToAlpha maps the weighted intensity (luminance) of each source
+** pixel to the alpha channel of the corresponding destination pixel.
+**
+** - The destination bitmap is resized to match the source dimensions if
+**   necessary.
+
+** - The RGB channels of the destination bitmap remains intact provided that
+**   the bitmap isn't resized.
+*)
 procedure IntensityToAlpha(Dst, Src: TCustomBitmap32);
 
+
+//------------------------------------------------------------------------------
+//
+//      Invert
+//
+//------------------------------------------------------------------------------
+(*
+** Invert inverts (negates) the specified color components of a bitmap.
+**
+** - In the first overload, the operation is performed in-place.
+**
+** - In the second overload, the inverted result of the source bitmap is
+**   stored in the destination bitmap. The destination is resized if necessary.
+**
+** - The Components parameter (defaulting to all components, including the alpha)
+**   determines which channels are inverted.
+*)
 procedure Invert(ABitmap: TCustomBitmap32; Components: TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]); overload;
 procedure Invert(Dst, Src: TCustomBitmap32; Components: TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]); overload;
+
+
+//------------------------------------------------------------------------------
+//
+//      InvertRGB
+//
+//------------------------------------------------------------------------------
+(*
+** InvertRGB is a convenience function that inverts only the red, green, and
+** blue color channels, leaving the alpha channel untouched.
+*)
 procedure InvertRGB(ABitmap: TCustomBitmap32); overload;
 procedure InvertRGB(Dst, Src: TCustomBitmap32); overload;
 
+
+//------------------------------------------------------------------------------
+//
+//      ApplyLUT
+//
+//------------------------------------------------------------------------------
+(*
+** ApplyLUT transforms the color channels of a bitmap using a Look-Up Table (LUT).
+**
+** - In the first overload, the operation is performed in-place.
+**
+** - In the second overload, the source bitmap is transformed and stored in
+**   the destination bitmap. The destination is resized if necessary.
+**
+** - If PreserveAlpha is True, the alpha component of each pixel is copied
+**   unchanged from source to destination. If False (the default), the alpha
+**   channel is set to opaque ($FF).
+*)
 procedure ApplyLUT(ABitmap: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False); overload;
 procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False); overload;
+
+
+//------------------------------------------------------------------------------
+//
+//      ChromaKey
+//
+//------------------------------------------------------------------------------
+(*
+** ChromaKey makes pixels that match a specific color transparent.
+**
+** - The comparison between pixel colors and KeyColor ignores the alpha channel,
+**   matching only the RGB components.
+**
+** - Matching pixels have their alpha component set to 0 (transparent).
+*)
 procedure ChromaKey(ABitmap: TCustomBitmap32; KeyColor: TColor32);
 
+
+//------------------------------------------------------------------------------
+//
+//      CreateBitmask
+//
+//------------------------------------------------------------------------------
+(*
+** CreateBitmask generates a TColor32 bitmask based on the specified color
+** components. For example for use with ApplyBitmask.
+**
+** - The resulting mask has the bits corresponding to the selected channels
+**   set to 1, and all other bits set to 0.
+*)
 function CreateBitmask(Components: TColor32Components): TColor32;
 
+
+//------------------------------------------------------------------------------
+//
+//      ApplyBitmask
+//
+//------------------------------------------------------------------------------
+(*
+** ApplyBitmask performs a bitwise logical operation between bitmap pixels
+** and a mask.
+**
+** - In the first overload, the logical operation is performed between the
+**   source bitmap and the destination bitmap, using the specified source
+**   rectangle and destination coordinates.
+**
+** - In the second overload, the operation is performed in-place on the
+**   specified rectangle of the bitmap.
+**
+** - The LogicalOperator determines whether an AND, OR, or XOR operation
+**   is applied using the Bitmask.
+*)
 procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32; SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
 procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
 
+
+//------------------------------------------------------------------------------
+//
+//      CheckParams
+//
+//------------------------------------------------------------------------------
 (*
 ** CheckParams is used by the various filter functions to validate the bitmap parameters
 ** and, optionally, to ensure that the destination bitmap has the required dimensions.
@@ -85,6 +265,10 @@ procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32
 function CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True; ClearDst: boolean = True): boolean;
 
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
@@ -93,9 +277,9 @@ uses
   GR32_Lowlevel;
 
 const
-  SEmptyBitmap = 'The bitmap is nil';
-  SEmptySource = 'The source is nil';
-  SEmptyDestination = 'Destination is nil';
+  sEmptyBitmap = 'The bitmap is nil';
+  sEmptySource = 'The source is nil';
+  sEmptyDestination = 'Destination is nil';
 
 const // TODO : This belongs in GR32
 {$IFNDEF RGBA_FORMAT}
@@ -118,14 +302,14 @@ const // TODO : This belongs in GR32
   ARGB_SHIFT_B = 16;
 {$ENDIF}
 
-type
 { Function Prototypes }
+type
   TLogicalMaskLine  = procedure(Dst: PColor32; Mask: TColor32; Count: Integer); //Inplace
   TLogicalMaskLineEx  = procedure(Src, Dst: PColor32; Count: Integer; Mask: TColor32); //"Src To Dst"
 
 {$HINTS OFF}
-var
 { masked logical operation functions }
+var
   LogicalMaskLineXor: TLogicalMaskLine;
   LogicalMaskLineOr: TLogicalMaskLine;
   LogicalMaskLineAnd: TLogicalMaskLine;
@@ -149,13 +333,19 @@ const
     (@@LogicalMaskLineOrEx)
   );
 
+
+//------------------------------------------------------------------------------
+//
+//      CheckParams
+//
+//------------------------------------------------------------------------------
 function CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean; ClearDst: boolean): boolean;
 begin
   if (Src = nil) then
-    raise Exception.Create(SEmptySource);
+    raise Exception.Create(sEmptySource);
 
   if (Dst = nil) then
-    raise Exception.Create(SEmptyDestination);
+    raise Exception.Create(sEmptyDestination);
 
   if ResizeDst and (Src <> Dst) and ((Src.Width <> Dst.Width) or (Src.Height <> Dst.Height)) then
   begin
@@ -165,6 +355,12 @@ begin
     Result := False;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      CopyComponents
+//
+//------------------------------------------------------------------------------
 procedure CopyComponents(Dst, Src: TCustomBitmap32; Components: TColor32Components);
 begin
   if (Components = []) or (Src = Dst) then
@@ -172,6 +368,8 @@ begin
   CheckParams(Dst, Src);
   CopyComponents(Dst, 0, 0, Src, Src.BoundsRect, Components);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Components: TColor32Components);
@@ -294,6 +492,7 @@ begin
                   Inc(PBDst, Width * 4);
                 end;
               end;
+
             2, 3: //Masked approach
               begin
                 Count := Count - 8;
@@ -338,6 +537,7 @@ begin
                   Inc(DstRow, Width);
                 end;
               end;
+
             4: //full copy approach approach, use MoveLongWord
               for I := 0 to Bottom - Top - 1 do
               begin
@@ -365,6 +565,12 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      AlphaToGrayscale
+//
+//------------------------------------------------------------------------------
 procedure AlphaToGrayscale(ABitmap: TCustomBitmap32);
 var
   I: Integer;
@@ -384,6 +590,8 @@ begin
   end;
   ABitmap.Changed;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32);
 var
@@ -407,6 +615,12 @@ begin
   Dst.Changed;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      IntensityToAlpha
+//
+//------------------------------------------------------------------------------
 procedure IntensityToAlpha(Dst, Src: TCustomBitmap32);
 var
   I: Integer;
@@ -420,10 +634,18 @@ begin
   Dst.Changed;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      Invert
+//
+//------------------------------------------------------------------------------
 procedure Invert(ABitmap: TCustomBitmap32; Components: TColor32Components);
 begin
   Invert(ABitmap, ABitmap, Components);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure Invert(Dst, Src: TCustomBitmap32; Components: TColor32Components);
 var
@@ -445,20 +667,35 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//
+//      InvertRGB
+//
+//------------------------------------------------------------------------------
 procedure InvertRGB(ABitmap: TCustomBitmap32);
 begin
   Invert(ABitmap, [ccRed, ccGreen, ccBlue]);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure InvertRGB(Dst, Src: TCustomBitmap32);
 begin
   Invert(Dst, Src, [ccRed, ccGreen, ccBlue]);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      ColorToGrayscale
+//
+//------------------------------------------------------------------------------
 procedure ColorToGrayscale(ABitmap: TCustomBitmap32; PreserveAlpha: Boolean);
 begin
   ColorToGrayscale(ABitmap, ABitmap, PreserveAlpha);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean);
 var
@@ -488,10 +725,18 @@ begin
   Dst.Changed;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      ApplyLUT
+//
+//------------------------------------------------------------------------------
 procedure ApplyLUT(ABitmap: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean);
 begin
   ApplyLUT(ABitmap, ABitmap, LUT, PreserveAlpha);
 end;
+
+//------------------------------------------------------------------------------
 
 procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean);
 var
@@ -528,6 +773,12 @@ begin
   Dst.Changed;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      ChromaKey
+//
+//------------------------------------------------------------------------------
 procedure ChromaKey(ABitmap: TCustomBitmap32; KeyColor: TColor32);
 var
   P: PColor32;
@@ -548,6 +799,12 @@ begin
   ABitmap.Changed;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      CreateBitmask
+//
+//------------------------------------------------------------------------------
 function CreateBitmask(Components: TColor32Components): TColor32;
 begin
   Result := 0;
@@ -561,6 +818,12 @@ begin
     Inc(Result, ARGB_MASK_B);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      ApplyBitmask
+//
+//------------------------------------------------------------------------------
 procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator);
 var
@@ -611,13 +874,15 @@ begin
   Dst.Changed(DstRect);
 end;
 
+//------------------------------------------------------------------------------
+
 procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator);
 var
   I, Count: Integer;
   MaskProc : TLogicalMaskLine;
 begin
   if not Assigned(ABitmap) then
-    raise Exception.Create(SEmptyBitmap);
+    raise Exception.Create(sEmptyBitmap);
 
   MaskProc := LOGICAL_MASK_LINE[LogicalOperator]^;
 
@@ -654,9 +919,16 @@ begin
   ABitmap.Changed(ARect);
 end;
 
-{ In-place logical mask functions }
-{ Non - MMX versions}
 
+//------------------------------------------------------------------------------
+//
+//      In-place logical mask functions
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Pascal versions
+//------------------------------------------------------------------------------
 procedure XorLine_Pas(Dst: PColor32; Mask: TColor32; Count: Integer);
 var
   DstRow: PColor32Array absolute Dst;
@@ -669,6 +941,8 @@ begin
   until Count = 0;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure OrLine_Pas(Dst: PColor32; Mask: TColor32; Count: Integer);
 var
   DstRow: PColor32Array absolute Dst;
@@ -680,6 +954,8 @@ begin
     Inc(Count);
   until Count = 0;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure AndLine_Pas(Dst: PColor32; Mask: TColor32; Count: Integer);
 var
@@ -695,6 +971,9 @@ end;
 
 {$IFNDEF PUREPASCAL}
 
+//------------------------------------------------------------------------------
+// ASM versions
+//------------------------------------------------------------------------------
 procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer); {$IFDEF FPC}assembler;{$ENDIF}
 // No speedup achieveable using MMX
 asm
@@ -813,6 +1092,8 @@ asm
 {$ENDIF}
 end;
 
+//------------------------------------------------------------------------------
+
 procedure OrLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
@@ -930,6 +1211,8 @@ asm
 @Exit:
 {$ENDIF}
 end;
+
+//------------------------------------------------------------------------------
 
 procedure AndLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
@@ -1051,9 +1334,16 @@ end;
 
 {$ENDIF}
 
-{ extended logical mask functions Src -> Dst }
-{ Non - MMX versions}
 
+//------------------------------------------------------------------------------
+//
+//      Extended logical mask functions Src -> Dst
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Pascal versions
+//------------------------------------------------------------------------------
 procedure XorLineEx_Pas(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 var
   SrcRow: PColor32Array absolute Src;
@@ -1068,6 +1358,8 @@ begin
   until Count = 0;
 end;
 
+//------------------------------------------------------------------------------
+
 procedure OrLineEx_Pas(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 var
   SrcRow: PColor32Array absolute Src;
@@ -1081,6 +1373,8 @@ begin
     Inc(Count);
   until Count = 0;
 end;
+
+//------------------------------------------------------------------------------
 
 procedure AndLineEx_Pas(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 var
@@ -1098,6 +1392,9 @@ end;
 
 {$IFNDEF PUREPASCAL}
 
+//------------------------------------------------------------------------------
+// ASM versions
+//------------------------------------------------------------------------------
 procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32); {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
@@ -1139,6 +1436,8 @@ asm
 @Exit:
 {$ENDIF}
 end;
+
+//------------------------------------------------------------------------------
 
 procedure OrLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
@@ -1183,6 +1482,8 @@ asm
 {$ENDIF}
 end;
 
+//------------------------------------------------------------------------------
+
 procedure AndLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
 {$IFDEF TARGET_x86}
@@ -1226,8 +1527,9 @@ asm
 {$ENDIF}
 end;
 
-{ MMX versions}
-
+//------------------------------------------------------------------------------
+// MMX versions
+//------------------------------------------------------------------------------
 {$IFNDEF OMIT_MMX}
 procedure XorLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
@@ -1314,6 +1616,8 @@ asm
         POP       EBX
 end;
 
+//------------------------------------------------------------------------------
+
 procedure OrLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
@@ -1399,6 +1703,8 @@ asm
         POP       EBX
 end;
 
+//------------------------------------------------------------------------------
+
 procedure AndLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
@@ -1483,7 +1789,10 @@ asm
         POP       EBX
 end;
 
-{ Extended MMX versions}
+
+//------------------------------------------------------------------------------
+// Extended MMX versions
+//------------------------------------------------------------------------------
 
 procedure XorLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
@@ -1570,6 +1879,8 @@ asm
         POP   EBX
 end;
 
+//------------------------------------------------------------------------------
+
 procedure OrLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
 var
@@ -1654,6 +1965,8 @@ asm
         POP       EDI
         POP       EBX
 end;
+
+//------------------------------------------------------------------------------
 
 procedure AndLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
@@ -1743,8 +2056,12 @@ end;
 {$ENDIF}
 {$ENDIF}
 
-{CPU target and feature Function templates}
 
+//------------------------------------------------------------------------------
+//
+//      CPU target and feature Function templates
+//
+//------------------------------------------------------------------------------
 var
   Registry: TFunctionRegistry;
 
