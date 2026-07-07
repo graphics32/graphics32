@@ -1775,12 +1775,12 @@ begin
 
   // TODO : rewrite MMX implementations using SSE
 {$IFNDEF OMIT_MMX}
-  Registry[@@LogicalMaskLin].Add(@AndLineEx_MMX, [isMMX]).Name := 'AndLineEx_MMX';
-  Registry[@@LogicalMaskLineOrLi].Add(@OrLineEx_MMX, [isMMX]).Name := 'OrLineEx_MMX';
-  Registry[@@LogicalMaskLineXorLi].Add(@XorLineEx_MMX, [isMMX]).Name := 'XorLineEx_MMX';
-  Registry[@@LogicalMaskLineAndEx].Add(@AndLineEx_EMMX, [isExMMX]).Name := 'AndLineEx_EMMX';
-  Registry[@@LogicalMaskLineOrEx].Add(@OrLineEx_EMMX, [isExMMX]).Name := 'OrLineEx_EMMX';
-  Registry[@@LogicalMaskLineXorEx].Add(@XorLineEx_EMMX, [isExMMX]).Name := 'XorLineEx_EMMX';
+  Registry[@@LogicalMaskLineAndEx].Add( @AndLineEx_MMX, [isMMX]).Name := 'AndLineEx_MMX';
+  Registry[@@LogicalMaskLineOrEx].Add(  @OrLineEx_MMX,  [isMMX]).Name := 'OrLineEx_MMX';
+  Registry[@@LogicalMaskLineXorEx].Add( @XorLineEx_MMX, [isMMX]).Name := 'XorLineEx_MMX';
+  Registry[@@LogicalMaskLineAndEx].Add( @AndLineEx_EMMX,[isExMMX]).Name := 'AndLineEx_EMMX';
+  Registry[@@LogicalMaskLineOrEx].Add(  @OrLineEx_EMMX, [isExMMX]).Name := 'OrLineEx_EMMX';
+  Registry[@@LogicalMaskLineXorEx].Add( @XorLineEx_EMMX,[isExMMX]).Name := 'XorLineEx_EMMX';
 {$ENDIF}
 
 {$ENDIF}
