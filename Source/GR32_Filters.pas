@@ -452,7 +452,7 @@ end;
 
 procedure InvertRGB(Dst, Src: TCustomBitmap32);
 begin
-  Invert(Src, Dst, [ccRed, ccGreen, ccBlue]);
+  Invert(Dst, Src, [ccRed, ccGreen, ccBlue]);
 end;
 
 procedure ColorToGrayscale(ABitmap: TCustomBitmap32; PreserveAlpha: Boolean);
