@@ -465,7 +465,7 @@ var
   I: Integer;
   D, S: PColor32;
 begin
-  CheckParams(Dst, Src);
+  CheckParams(Dst, Src, True, False);
   D := PColor32(Dst.Bits);
   S := PColor32(Src.Bits);
 
@@ -498,7 +498,12 @@ var
   I: Integer;
   D, S: PColor32Entry;
 begin
-  CheckParams(Dst, Src);
+  //
+  // If CheckParams has to resize the destination bitmap then the bitmap
+  // is will be cleared and there is no alpha to preserve. Therefore we
+  // only preserve alpha if the bitmap is not resized.
+  //
+  PreserveAlpha := not CheckParams(Dst, Src, True, False) and PreserveAlpha;
   D := PColor32Entry(Dst.Bits);
   S := PColor32Entry(Src.Bits);
 
