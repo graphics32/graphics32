@@ -386,7 +386,7 @@ begin
   ResName := ResName.Replace('-', '_', [rfReplaceAll]);
 
   FBitmap32.Clear;
-  FBitmap32.LoadFromResourceName(HInstance, ResName);
+  FBitmap32.LoadFromResourceName(HInstance, ResName, RT_RCDATA); // We must use RCDATA as the various resource compilers doesn't support all the bitmap versions we supply
 
   if (not FIgnoreRes) then
     ValidateCRC(FBitmap32);
@@ -565,7 +565,7 @@ begin
     var Name := TPath.GetFileNameWithoutExtension(Filename).Replace('-', '_').ToUpper;
 
     // Output the text that needs to be added to the RC script
-    TFile.AppendAllText('rc_script.txt', Format('%-40s BITMAP "%s"'#13#10, [Name, Filename.Replace('\', '\\', [rfReplaceAll])]));
+    TFile.AppendAllText('rc_script.txt', Format('%-40s RCDATA "%s"'#13#10, [Name, Filename.Replace('\', '\\', [rfReplaceAll])]));
   end;
 end;
 {$ifend}
