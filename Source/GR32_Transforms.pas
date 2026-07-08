@@ -848,24 +848,27 @@ var
   I: Integer;
 begin
   GR32.IntersectRect(ARect, ARect, ABitmap.BoundsRect);
-  with ARect, ABitmap do
-  if (Right > Left) and (Bottom > Top) and
-    (Left < ClipRect.Right) and (Top < ClipRect.Bottom) and
-    (Right > ClipRect.Left) and (Bottom > ClipRect.Top) then
+
+  if (ARect.Right > ARect.Left) and (ARect.Bottom > ARect.Top) and
+    (ARect.Left < ABitmap.ClipRect.Right) and (ARect.Top < ABitmap.ClipRect.Bottom) and
+    (ARect.Right > ABitmap.ClipRect.Left) and (ARect.Bottom > ABitmap.ClipRect.Top) then
   begin
-    Dec(Right);
-    Dec(Bottom);
-    for I := Left to Right do
-      begin
-      ABitmap[I, Top] := ABitmap[I, Top] and $00FFFFFF;
-      ABitmap[I, Bottom] := ABitmap[I, Bottom] and $00FFFFFF;
-      end;
-    for I := Top to Bottom do
+    Dec(ARect.Right);
+    Dec(ARect.Bottom);
+
+    for I := ARect.Left to ARect.Right do
     begin
-      ABitmap[Left, I] := ABitmap[Left, I] and $00FFFFFF;
-      ABitmap[Right, I] := ABitmap[Right, I] and $00FFFFFF;
+      ABitmap[I, ARect.Top] := ABitmap[I, ARect.Top] and $00FFFFFF;
+      ABitmap[I, ARect.Bottom] := ABitmap[I, ARect.Bottom] and $00FFFFFF;
     end;
-    Changed;
+
+    for I := ARect.Top to ARect.Bottom do
+    begin
+      ABitmap[ARect.Left, I] := ABitmap[ARect.Left, I] and $00FFFFFF;
+      ABitmap[ARect.Right, I] := ABitmap[ARect.Right, I] and $00FFFFFF;
+    end;
+
+    ABitmap.Changed;
   end;
 end;
 
@@ -2889,28 +2892,24 @@ begin
     raise Exception.Create(RCStrSrcRectIsEmpty);
   if GR32.IsRectEmpty(FMappingRect) then
     raise Exception.Create(RCStrMappingRectIsEmpty);
-  with SrcRect do
-  begin
-    FSrcTranslationFloat.X := Left;
-    FSrcTranslationFloat.Y := Top;
-    FSrcScaleFloat.X := (Right - Left) / (FVectorMap.Width - 1);
-    FSrcScaleFloat.Y := (Bottom - Top) / (FVectorMap.Height - 1);
-    FSrcTranslationFixed := FixedPoint(FSrcTranslationFloat);
-    FSrcScaleFixed := FixedPoint(FSrcScaleFloat);
-  end;
 
-  with FMappingRect do
-  begin
-    FDstTranslationFloat.X := Left;
-    FDstTranslationFloat.Y := Top;
-    FDstScaleFloat.X := (FVectorMap.Width - 1) / (Right - Left);
-    FDstScaleFloat.Y := (FVectorMap.Height - 1) / (Bottom - Top);
-    FCombinedScalingFloat.X := FDstScaleFloat.X * FScalingFloat.X;
-    FCombinedScalingFloat.Y := FDstScaleFloat.Y * FScalingFloat.Y;
-    FCombinedScalingFixed := FixedPoint(FCombinedScalingFloat);
-    FDstTranslationFixed := FixedPoint(FDstTranslationFloat);
-    FDstScaleFixed := FixedPoint(FDstScaleFloat);
-  end;
+  FSrcTranslationFloat.X := SrcRect.Left;
+  FSrcTranslationFloat.Y := SrcRect.Top;
+  FSrcScaleFloat.X := (SrcRect.Right - SrcRect.Left) / (FVectorMap.Width - 1);
+  FSrcScaleFloat.Y := (SrcRect.Bottom - SrcRect.Top) / (FVectorMap.Height - 1);
+  FSrcTranslationFixed := FixedPoint(FSrcTranslationFloat);
+  FSrcScaleFixed := FixedPoint(FSrcScaleFloat);
+
+  FDstTranslationFloat.X := FMappingRect.Left;
+  FDstTranslationFloat.Y := FMappingRect.Top;
+  FDstScaleFloat.X := (FVectorMap.Width - 1) / (FMappingRect.Right - FMappingRect.Left);
+  FDstScaleFloat.Y := (FVectorMap.Height - 1) / (FMappingRect.Bottom - FMappingRect.Top);
+  FCombinedScalingFloat.X := FDstScaleFloat.X * FScalingFloat.X;
+  FCombinedScalingFloat.Y := FDstScaleFloat.Y * FScalingFloat.Y;
+  FCombinedScalingFixed := FixedPoint(FCombinedScalingFloat);
+  FDstTranslationFixed := FixedPoint(FDstTranslationFloat);
+  FDstScaleFixed := FixedPoint(FDstScaleFloat);
+
   TransformValid := True;
 end;
 

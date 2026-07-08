@@ -4536,14 +4536,11 @@ function TNearestResampler.GetPixelTransparentEdge(X,Y: Integer): TColor32;
 var
   I, J: Integer;
 begin
-  with Bitmap, Bitmap.ClipRect do
-  begin
-    I := Clamp(X, Left, Right - 1);
-    J := Clamp(Y, Top, Bottom - 1);
-    Result := Pixel[I, J];
-    if (I <> X) or (J <> Y) then
-      Result := Result and $00FFFFFF;
-  end;
+  I := Clamp(X, Bitmap.ClipRect.Left, Bitmap.ClipRect.Right - 1);
+  J := Clamp(Y, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom - 1);
+  Result := Bitmap.Pixel[I, J];
+  if (I <> X) or (J <> Y) then
+    Result := Result and $00FFFFFF;
 end;
 
 procedure TNearestResampler.PrepareSampling;

@@ -210,38 +210,28 @@ begin
 end;
 
 procedure TFormTranformExample.FormCreate(Sender: TObject);
+var
+  PaintStage: PPaintStage;
 begin
   // load example image
   Src.Bitmap.LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
 
   //Setup custom paintstages ("checkerboard" and border)
-  with Dst do
-  begin
-    with PaintStages[0]^ do //Set up custom paintstage to draw checkerboard
-    begin
-      Stage := PST_CUSTOM;
-      Parameter := 1; // use parameter to tag the stage, we inspect this in OnPaintStage
-    end;
-    with PaintStages.Add^ do  //Insert new paintstage on top of everything else, we use this to draw border
-    begin
-      Stage := PST_CUSTOM;
-      Parameter := 2;
-    end;
-  end;
 
-  with Src do
-  begin
-    with PaintStages[0]^ do
-    begin
-      Stage := PST_CUSTOM;
-      Parameter := 1;
-    end;
-    with PaintStages.Add^ do
-    begin
-      Stage := PST_CUSTOM;
-      Parameter := 2;
-    end;
-  end;
+  //Set up custom paintstage to draw checkerboard
+  Dst.PaintStages[0].Stage := PST_CUSTOM;
+  Dst.PaintStages[0].Parameter := 1; // use parameter to tag the stage, we inspect this in OnPaintStage
+
+  PaintStage := Dst.PaintStages.Add;  //Insert new paintstage on top of everything else, we use this to draw border
+  PaintStage.Stage := PST_CUSTOM;
+  PaintStage.Parameter := 2;
+
+  Src.PaintStages[0].Stage := PST_CUSTOM;
+  Src.PaintStages[0].Parameter := 1;
+
+  PaintStage := Src.PaintStages.Add;
+  PaintStage.Stage := PST_CUSTOM;
+  PaintStage.Parameter := 2;
 
   ResamplerList.GetClassNames(CmbResamplerClassNames.Items);
   KernelList.GetClassNames(CmbKernelClassNames.Items);
@@ -251,10 +241,7 @@ begin
   SrcRubberBandLayer := TRubberBandLayer.Create(Src.Layers);
   SrcRubberBandLayer.OnResizing := SrcRBResizingEvent;
   SrcRubberBandLayer.Location := FloatRect(0, 0, Src.Bitmap.Width - 1, Src.Bitmap.Height - 1);
-  with TCustomLayer.Create(Dst.Layers) do
-  begin
-    OnPaint := PaintHandles;
-  end;
+  TCustomLayer.Create(Dst.Layers).OnPaint := PaintHandles;
 
   DraggedVertex := -1;
   Dst.SetupBitmap; // set the destination bitmap size to match the image size

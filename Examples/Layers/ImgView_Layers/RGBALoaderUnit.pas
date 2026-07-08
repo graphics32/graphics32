@@ -80,18 +80,17 @@ implementation
 
 procedure TRGBALoaderForm.BtnLoadImageClick(Sender: TObject);
 begin
-  with OpenPictureDialog do
-    if Execute then ImgRGB.Bitmap.LoadFromFile(FileName);
+  if OpenPictureDialog.Execute then
+    ImgRGB.Bitmap.LoadFromFile(OpenPictureDialog.FileName);
 end;
 
 procedure TRGBALoaderForm.BtnLoadAlphaClick(Sender: TObject);
 begin
-  with OpenPictureDialog, ImgAlpha do
-    if Execute then
-    begin
-      Bitmap.LoadFromFile(FileName);
-      ColorToGrayscale(Bitmap, Bitmap);
-    end;
+  if OpenPictureDialog.Execute then
+  begin
+    ImgAlpha.Bitmap.LoadFromFile(OpenPictureDialog.FileName);
+    ColorToGrayscale(ImgAlpha.Bitmap, ImgAlpha.Bitmap);
+  end;
 end;
 
 procedure TRGBALoaderForm.BtnZoomInImageClick(Sender: TObject);
