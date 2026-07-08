@@ -33,10 +33,6 @@ interface
 
 {$include GR32.inc}
 
-{$IFDEF TARGET_X64}
-{$DEFINE PUREPASCAL} // It seems the asm implementations haven't been ported to 64-bit
-{$ENDIF}
-
 uses
   Classes, SysUtils, GR32;
 
@@ -969,10 +965,10 @@ end;
 //------------------------------------------------------------------------------
 // ASM versions
 //------------------------------------------------------------------------------
-procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer); {$IFDEF FPC}assembler;{$ENDIF}
+procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 // No speedup achieveable using MMX
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
         TEST    ECX, ECX
         JZ      @Exit
 
@@ -1029,70 +1025,66 @@ asm
         POP     EBX
 
 @Exit:
-{$ENDIF}
-
-{$IFDEF TARGET_x64}
+{$elseif defined(TARGET_x64)}
         TEST    R8D, R8D
         JZ      @Exit
 
         MOV     EAX, R8D
         SHR     R8D, 4
-        SHL     R8D, 4
         JZ      @PrepSingleLoop
-        LEA     RCX, [RCX + R8D * 4]
-        SHL     R8D, 2
-        NEG     R8D
+        SHL     R8D, 4
+
+        MOV     R9, R8
+        SHL     R9, 2
+        ADD     RCX, R9
+        NEG     R9
 
 @ChunkLoop:
         //16x unrolled loop
-        XOR     [RCX + R8D], EDX
-        XOR     [RCX + R8D + 4], EDX
-        XOR     [RCX + R8D + 8], EDX
-        XOR     [RCX + R8D + 12], EDX
+        XOR     [RCX + R9], EDX
+        XOR     [RCX + R9 + 4], EDX
+        XOR     [RCX + R9 + 8], EDX
+        XOR     [RCX + R9 + 12], EDX
 
-        XOR     [RCX + R8D + 16], EDX
-        XOR     [RCX + R8D + 20], EDX
-        XOR     [RCX + R8D + 24], EDX
-        XOR     [RCX + R8D + 28], EDX
+        XOR     [RCX + R9 + 16], EDX
+        XOR     [RCX + R9 + 20], EDX
+        XOR     [RCX + R9 + 24], EDX
+        XOR     [RCX + R9 + 28], EDX
 
-        XOR     [RCX + R8D + 32], EDX
-        XOR     [RCX + R8D + 36], EDX
-        XOR     [RCX + R8D + 40], EDX
-        XOR     [RCX + R8D + 44], EDX
+        XOR     [RCX + R9 + 32], EDX
+        XOR     [RCX + R9 + 36], EDX
+        XOR     [RCX + R9 + 40], EDX
+        XOR     [RCX + R9 + 44], EDX
 
-        XOR     [RCX + R8D + 48], EDX
-        XOR     [RCX + R8D + 52], EDX
-        XOR     [RCX + R8D + 56], EDX
-        XOR     [RCX + R8D + 60], EDX
+        XOR     [RCX + R9 + 48], EDX
+        XOR     [RCX + R9 + 52], EDX
+        XOR     [RCX + R9 + 56], EDX
+        XOR     [RCX + R9 + 60], EDX
 
-        ADD     R8D, 16 * 4
+        ADD     R9, 16 * 4
         JNZ     @ChunkLoop
 
 @PrepSingleLoop:
-        MOV     R8D, EAX
-        SHR     EAX, 4
-        SHL     EAX, 4
-        SUB     R8D, EAX
+        AND     EAX, $0F
         JZ      @Exit
-
-        LEA     RCX, [RCX + R8D * 4]
-        NEG     R8D
+        MOV     R8D, EAX
 
 @SingleLoop:
-        XOR     [RCX + R8D * 4], EDX
-        INC     R8D
+        XOR     [RCX], EDX
+        ADD     RCX, 4
+        DEC     R8D
         JNZ     @SingleLoop
 
 @Exit:
-{$ENDIF}
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
 
-procedure OrLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
+procedure OrLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 // No speedup achieveable using MMX
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
         TEST    ECX, ECX
         JZ      @Exit
 
@@ -1149,70 +1141,66 @@ asm
         POP     EBX
 
 @Exit:
-{$ENDIF}
-
-{$IFDEF TARGET_x64}
+{$elseif defined(TARGET_x64)}
         TEST    R8D, R8D
         JZ      @Exit
 
         MOV     EAX, R8D
         SHR     R8D, 4
-        SHL     R8D, 4
         JZ      @PrepSingleLoop
-        LEA     RCX, [RCX + R8D * 4]
-        SHL     R8D, 2
-        NEG     R8D
+        SHL     R8D, 4
+
+        MOV     R9, R8
+        SHL     R9, 2
+        ADD     RCX, R9
+        NEG     R9
 
 @ChunkLoop:
         //16x unrolled loop
-        OR      [RCX + R8D], EDX
-        OR      [RCX + R8D + 4], EDX
-        OR      [RCX + R8D + 8], EDX
-        OR      [RCX + R8D + 12], EDX
+        OR      [RCX + R9], EDX
+        OR      [RCX + R9 + 4], EDX
+        OR      [RCX + R9 + 8], EDX
+        OR      [RCX + R9 + 12], EDX
 
-        OR      [RCX + R8D + 16], EDX
-        OR      [RCX + R8D + 20], EDX
-        OR      [RCX + R8D + 24], EDX
-        OR      [RCX + R8D + 28], EDX
+        OR      [RCX + R9 + 16], EDX
+        OR      [RCX + R9 + 20], EDX
+        OR      [RCX + R9 + 24], EDX
+        OR      [RCX + R9 + 28], EDX
 
-        OR      [RCX + R8D + 32], EDX
-        OR      [RCX + R8D + 36], EDX
-        OR      [RCX + R8D + 40], EDX
-        OR      [RCX + R8D + 44], EDX
+        OR      [RCX + R9 + 32], EDX
+        OR      [RCX + R9 + 36], EDX
+        OR      [RCX + R9 + 40], EDX
+        OR      [RCX + R9 + 44], EDX
 
-        OR      [RCX + R8D + 48], EDX
-        OR      [RCX + R8D + 52], EDX
-        OR      [RCX + R8D + 56], EDX
-        OR      [RCX + R8D + 60], EDX
+        OR      [RCX + R9 + 48], EDX
+        OR      [RCX + R9 + 52], EDX
+        OR      [RCX + R9 + 56], EDX
+        OR      [RCX + R9 + 60], EDX
 
-        ADD     R8D, 16 * 4
+        ADD     R9, 16 * 4
         JNZ     @ChunkLoop
 
 @PrepSingleLoop:
-        MOV     R8D, EAX
-        SHR     EAX, 4
-        SHL     EAX, 4
-        SUB     R8D, EAX
+        AND     EAX, $0F
         JZ      @Exit
-
-        LEA     RCX, [RCX + R8D * 4]
-        NEG     R8D
+        MOV     R8D, EAX
 
 @SingleLoop:
-        OR      [RCX + R8D * 4], EDX
-        INC     R8D
+        OR      [RCX], EDX
+        ADD     RCX, 4
+        DEC     R8D
         JNZ     @SingleLoop
 
 @Exit:
-{$ENDIF}
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
 
-procedure AndLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
+procedure AndLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 // No speedup achieveable using MMX
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
         TEST    ECX, ECX
         JZ      @Exit
 
@@ -1269,62 +1257,58 @@ asm
         POP     EBX
 
 @Exit:
-{$ENDIF}
-
-{$IFDEF TARGET_x64}
+{$elseif defined(TARGET_x64)}
         TEST    R8D, R8D
         JZ      @Exit
 
         MOV     EAX, R8D
         SHR     R8D, 4
-        SHL     R8D, 4
         JZ      @PrepSingleLoop
-        LEA     RCX, [RCX + R8D * 4]
-        SHL     R8D, 2
-        NEG     R8D
+        SHL     R8D, 4
+
+        MOV     R9, R8
+        SHL     R9, 2
+        ADD     RCX, R9
+        NEG     R9
 
 @ChunkLoop:
         //16x unrolled loop
-        AND     [RCX + R8D], EDX
-        AND     [RCX + R8D + 4], EDX
-        AND     [RCX + R8D + 8], EDX
-        AND     [RCX + R8D + 12], EDX
+        AND     [RCX + R9], EDX
+        AND     [RCX + R9 + 4], EDX
+        AND     [RCX + R9 + 8], EDX
+        AND     [RCX + R9 + 12], EDX
 
-        AND     [RCX + R8D + 16], EDX
-        AND     [RCX + R8D + 20], EDX
-        AND     [RCX + R8D + 24], EDX
-        AND     [RCX + R8D + 28], EDX
+        AND     [RCX + R9 + 16], EDX
+        AND     [RCX + R9 + 20], EDX
+        AND     [RCX + R9 + 24], EDX
+        AND     [RCX + R9 + 28], EDX
 
-        AND     [RCX + R8D + 32], EDX
-        AND     [RCX + R8D + 36], EDX
-        AND     [RCX + R8D + 40], EDX
-        AND     [RCX + R8D + 44], EDX
+        AND     [RCX + R9 + 32], EDX
+        AND     [RCX + R9 + 36], EDX
+        AND     [RCX + R9 + 40], EDX
+        AND     [RCX + R9 + 44], EDX
 
-        AND     [RCX + R8D + 48], EDX
-        AND     [RCX + R8D + 52], EDX
-        AND     [RCX + R8D + 56], EDX
-        AND     [RCX + R8D + 60], EDX
+        AND     [RCX + R9 + 48], EDX
+        AND     [RCX + R9 + 52], EDX
+        AND     [RCX + R9 + 56], EDX
+        AND     [RCX + R9 + 60], EDX
 
-        ADD     R8D, 16 * 4
+        ADD     R9, 16 * 4
         JNZ     @ChunkLoop
 
 @PrepSingleLoop:
-        MOV     R8D, EAX
-        SHR     EAX, 4
-        SHL     EAX, 4
-        SUB     R8D, EAX
+        AND     EAX, $0F
         JZ      @Exit
-
-        LEA     RCX, [RCX + R8D * 4]
-        NEG     R8D
+        MOV     R8D, EAX
 
 @SingleLoop:
-        AND     [RCX + R8D * 4], EDX
-        INC     R8D
+        AND     [RCX], EDX
+        ADD     RCX, 4
+        DEC     R8D
         JNZ     @SingleLoop
 
 @Exit:
-{$ENDIF}
+{$ifend}
 end;
 
 {$ENDIF}
@@ -1390,9 +1374,9 @@ end;
 //------------------------------------------------------------------------------
 // ASM versions
 //------------------------------------------------------------------------------
-procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32); {$IFDEF FPC}assembler;{$ENDIF}
+procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
         PUSH    EBX
         PUSH    EDI
 
@@ -1413,30 +1397,32 @@ asm
 @Exit:
         POP     EDI
         POP     EBX
-{$ENDIF}
-
-{$IFDEF TARGET_x64}
-        LEA     RCX, [RCX + R8D * 4]
-        LEA     RDX, [RDX + R8D * 4]
-        NEG     R8D
+{$elseif defined(TARGET_x64)}
+        TEST    R8D, R8D
         JZ      @Exit
 
+        MOV     R10, R8
+        SHL     R10, 2
+        ADD     RCX, R10
+        ADD     RDX, R10
+        NEG     R10
+
 @Loop:
-        MOV     EAX, [RCX + R8D * 4]
+        MOV     EAX, [RCX + R10]
         XOR     EAX, R9D
-        MOV     [RDX + R8D * 4], EAX
-        INC     R8D
+        MOV     [RDX + R10], EAX
+        ADD     R10, 4
         JNZ     @Loop
 
 @Exit:
-{$ENDIF}
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
 
-procedure OrLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure OrLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
         PUSH    EBX
         PUSH    EDI
 
@@ -1458,30 +1444,32 @@ asm
 
         POP     EDI
         POP     EBX
-{$ENDIF}
-
-{$IFDEF TARGET_x64}
-        LEA     RCX, [RCX + R8D * 4]
-        LEA     RDX, [RDX + R8D * 4]
-        NEG     R8D
+{$elseif defined(TARGET_x64)}
+        TEST    R8D, R8D
         JZ      @Exit
 
+        MOV     R10, R8
+        SHL     R10, 2
+        ADD     RCX, R10
+        ADD     RDX, R10
+        NEG     R10
+
 @Loop:
-        MOV     EBX, [RCX + R8D * 4]
-        OR      EBX, R9D
-        MOV     [RDX + R8D * 4], EBX
-        INC     R8D
+        MOV     EAX, [RCX + R10]
+        OR      EAX, R9D
+        MOV     [RDX + R10], EAX
+        ADD     R10, 4
         JNZ     @Loop
 
 @Exit:
-{$ENDIF}
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
 
-procedure AndLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure AndLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
         PUSH    EBX
         PUSH    EDI
 
@@ -1503,23 +1491,25 @@ asm
 
         POP     EDI
         POP     EBX
-{$ENDIF}
-
-{$IFDEF TARGET_x64}
-        LEA     RCX, [RCX + R8D * 4]
-        LEA     RDX, [RDX + R8D * 4]
-        NEG     R8D
+{$elseif defined(TARGET_x64)}
+        TEST    R8D, R8D
         JZ      @Exit
 
+        MOV     R10, R8
+        SHL     R10, 2
+        ADD     RCX, R10
+        ADD     RDX, R10
+        NEG     R10
+
 @Loop:
-        MOV     EAX, [RCX + R8D * 4]
+        MOV     EAX, [RCX + R10]
         AND     EAX, R9D
-        MOV     [RDX + R8D * 4], EAX
-        INC     R8D
+        MOV     [RDX + R10], EAX
+        ADD     R10, 4
         JNZ     @Loop
 
 @Exit:
-{$ENDIF}
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------

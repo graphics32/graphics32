@@ -14,6 +14,8 @@ type
     procedure TearDown; override;
   published
     procedure TestInPlaceXor;
+    procedure TestInPlaceAnd;
+    procedure TestInPlaceOr;
     procedure TestSourceToDestAnd;
     procedure TestSourceToDestOr;
   end;
@@ -42,6 +44,34 @@ begin
   ApplyBitmask(FSrc, FSrc.BoundsRect, $00FF00FF, loXOR);
 
   CheckEquals($AAEE22CC, FSrc.Pixel[0, 0]);
+end;
+
+procedure TTestApplyBitmask.TestInPlaceAnd;
+var
+  I: Integer;
+begin
+  FSrc.SetSize(20, 1);
+  for I := 0 to 19 do
+    FSrc.Pixel[I, 0] := $AA112233;
+
+  ApplyBitmask(FSrc, FSrc.BoundsRect, $FF00FF00, loAND);
+
+  for I := 0 to 19 do
+    CheckEquals($AA002200, FSrc.Pixel[I, 0]);
+end;
+
+procedure TTestApplyBitmask.TestInPlaceOr;
+var
+  I: Integer;
+begin
+  FSrc.SetSize(20, 1);
+  for I := 0 to 19 do
+    FSrc.Pixel[I, 0] := $AA112233;
+
+  ApplyBitmask(FSrc, FSrc.BoundsRect, $00FF0000, loOR);
+
+  for I := 0 to 19 do
+    CheckEquals($AAFF2233, FSrc.Pixel[I, 0]);
 end;
 
 procedure TTestApplyBitmask.TestSourceToDestAnd;
