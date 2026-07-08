@@ -61,7 +61,7 @@ uses
   GR32_VectorUtils,
   GR32_Gamma,
   GR32_System,
-  GR32_Blurs,
+  GR32_Blurs, // Deprecated
   GR32.Blur,
   GR32_Resamplers;
 
@@ -189,7 +189,9 @@ begin
   else
   begin
     FTestBitmap.DrawTo(PaintBoxCorrect.Buffer);
+{$WARN SYMBOL_DEPRECATED OFF} // Suppress deprecation message
     GaussianBlurGamma(PaintBoxCorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position);
+{$WARN SYMBOL_DEPRECATED DEFAULT}
   end;
 end;
 
@@ -200,7 +202,9 @@ begin
   else
   begin
     FTestBitmap.DrawTo(PaintBoxIncorrect.Buffer);
+{$WARN SYMBOL_DEPRECATED OFF} // Suppress deprecation message
     GaussianBlur(PaintBoxIncorrect.Buffer, 0.1 * GaugeBarBlurRadius.Position);
+{$WARN SYMBOL_DEPRECATED DEFAULT}
   end;
 end;
 

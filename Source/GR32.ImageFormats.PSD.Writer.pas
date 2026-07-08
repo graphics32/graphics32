@@ -180,8 +180,7 @@ end;
 
 function TPackBitsStream.Read(var Buffer; Count: Longint): Longint;
 begin
-  Assert(False, 'Not implemented');
-  Result := 0;
+  raise Exception.Create('Not implemented');
 end;
 
 function TPackBitsStream.Write(const Buffer; Count: Longint): Longint;

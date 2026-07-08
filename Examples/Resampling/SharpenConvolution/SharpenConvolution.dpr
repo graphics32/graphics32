@@ -6,8 +6,6 @@ uses
   Vcl.Forms,
   MainUnit in 'MainUnit.pas' {FormMain};
 
-{$R *.res}
-
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
