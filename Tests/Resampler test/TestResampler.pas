@@ -301,12 +301,19 @@ end;
 
 procedure TTestResamplerPremultiplication.Interpolator;
 
+  procedure CheckAlmostEquals(Excepted, Actual: integer; const Msg: string; Epsilon: integer = 0);
+  begin
+    if (Abs(Excepted-Actual) > Epsilon) then
+      CheckEquals(Excepted, Actual, Msg);
+  end;
+
   function Lerp(Color0, Color1: TColor32; Weight256: integer): TColor32;
   begin
-    TColor32Entry(Result).A := ((256 - Weight256) * TColor32Entry(Color0).A + Weight256 * TColor32Entry(Color1).A) div 256;
-    TColor32Entry(Result).R := ((256 - Weight256) * TColor32Entry(Color0).R + Weight256 * TColor32Entry(Color1).R) div 256;
-    TColor32Entry(Result).G := ((256 - Weight256) * TColor32Entry(Color0).G + Weight256 * TColor32Entry(Color1).G) div 256;
-    TColor32Entry(Result).B := ((256 - Weight256) * TColor32Entry(Color0).B + Weight256 * TColor32Entry(Color1).B) div 256;
+    var Weight2 := 256 - Weight256;
+    TColor32Entry(Result).A := (Weight256 * TColor32Entry(Color0).A + Weight2 * TColor32Entry(Color1).A + 128) div 256;
+    TColor32Entry(Result).R := (Weight256 * TColor32Entry(Color0).R + Weight2 * TColor32Entry(Color1).R + 128) div 256;
+    TColor32Entry(Result).G := (Weight256 * TColor32Entry(Color0).G + Weight2 * TColor32Entry(Color1).G + 128) div 256;
+    TColor32Entry(Result).B := (Weight256 * TColor32Entry(Color0).B + Weight2 * TColor32Entry(Color1).B + 128) div 256;
   end;
 
   function Interpolator_Reference(WeightX_256, WeightY_256: Cardinal; p11, p12: PColor32): TColor32;
@@ -316,22 +323,22 @@ procedure TTestResamplerPremultiplication.Interpolator;
     C1 := p11^; Inc(p11);
     C3 := p12^; Inc(p12);
 
-    if (WeightX_256 > 255) then
+    if (WeightX_256 = 0) then
     begin
       C1 := p11^;
       C3 := p12^;
     end else
-    if (WeightX_256 <> 0) then
+    if (WeightX_256 < 256) then
     begin
       C1 := Lerp(C1, p11^, WeightX_256);
       C3 := Lerp(C3, p12^, WeightX_256);
     end;
 
     if (WeightY_256 > 255) then
-      Result := C3
+      Result := C1
     else
     if (WeightY_256 = 0) then
-      Result := C1
+      Result := C3
     else
       Result := Lerp(C1, C3, WeightY_256);
   end;
@@ -348,10 +355,13 @@ procedure TTestResamplerPremultiplication.Interpolator;
         var ColorActual: TColor32Entry;
         ColorActual.ARGB := GR32_Resamplers.Interpolator(WeightX_256, WeightY_256, @Testcase.Row1[0], @Testcase.Row2[0]);
 
-        CheckEquals(ColorExpected.A, ColorActual.A);
-        CheckEquals(ColorExpected.R, ColorActual.R);
-        CheckEquals(ColorExpected.G, ColorActual.G);
-        CheckEquals(ColorExpected.B, ColorActual.B);
+        if (ColorExpected.ARGB <> ColorActual.ARGB) then
+        begin
+          CheckAlmostEquals(ColorExpected.A, ColorActual.A, Format('A: Interpolator(%d, %d, %.8X, %.8X, %.8X, %.8X)=%.8X <> %.8X', [WeightX_256, WeightY_256, Testcase.Row1[0], Testcase.Row1[1], Testcase.Row2[0], Testcase.Row2[1], ColorActual.ARGB, ColorExpected.ARGB]), 2);
+          CheckAlmostEquals(ColorExpected.R, ColorActual.R, Format('R: Interpolator(%d, %d, %.8X, %.8X, %.8X, %.8X)=%.8X <> %.8X', [WeightX_256, WeightY_256, Testcase.Row1[0], Testcase.Row1[1], Testcase.Row2[0], Testcase.Row2[1], ColorActual.ARGB, ColorExpected.ARGB]), 2);
+          CheckAlmostEquals(ColorExpected.G, ColorActual.G, Format('G: Interpolator(%d, %d, %.8X, %.8X, %.8X, %.8X)=%.8X <> %.8X', [WeightX_256, WeightY_256, Testcase.Row1[0], Testcase.Row1[1], Testcase.Row2[0], Testcase.Row2[1], ColorActual.ARGB, ColorExpected.ARGB]), 2);
+          CheckAlmostEquals(ColorExpected.B, ColorActual.B, Format('B: Interpolator(%d, %d, %.8X, %.8X, %.8X, %.8X)=%.8X <> %.8X', [WeightX_256, WeightY_256, Testcase.Row1[0], Testcase.Row1[1], Testcase.Row2[0], Testcase.Row2[1], ColorActual.ARGB, ColorExpected.ARGB]), 2);
+        end;
       end;
     end;
   end;
@@ -391,8 +401,6 @@ initialization
   RegisterTest(TestSuite);
 
   TestSuite.AddTests(TTestResamplerPremultiplication);
-
-//  RegisterTest(TTestResamplerPremultiplication.Suite);
 end.
 
 

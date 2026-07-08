@@ -2970,12 +2970,12 @@ begin
   Weight2 := 256-WeightY_256;
 
   // Lerp vertically between first and second row lerps
-  TColor32Entry(Result).A := (ColorRow1.A * WeightY_256 + ColorRow2.A * Weight2) shr 16;
+  TColor32Entry(Result).A := (ColorRow1.A * WeightY_256 + ColorRow2.A * Weight2 + 32768) shr 16;
   // Unpremultiplication table
   Alpha1 := @DivMul255Table[TColor32Entry(Result).A];
-  TColor32Entry(Result).R := Alpha1[(ColorRow1.R * WeightY_256 + ColorRow2.R * Weight2) shr 16];
-  TColor32Entry(Result).G := Alpha1[(ColorRow1.G * WeightY_256 + ColorRow2.G * Weight2) shr 16];
-  TColor32Entry(Result).B := Alpha1[(ColorRow1.B * WeightY_256 + ColorRow2.B * Weight2) shr 16];
+  TColor32Entry(Result).R := Alpha1[(ColorRow1.R * WeightY_256 + ColorRow2.R * Weight2 + 32768) shr 16];
+  TColor32Entry(Result).G := Alpha1[(ColorRow1.G * WeightY_256 + ColorRow2.G * Weight2 + 32768) shr 16];
+  TColor32Entry(Result).B := Alpha1[(ColorRow1.B * WeightY_256 + ColorRow2.B * Weight2 + 32768) shr 16];
 end;
 
 //------------------------------------------------------------------------------
@@ -3172,22 +3172,22 @@ begin
   C1 := p11^; Inc(p11);
   C3 := p12^; Inc(p12);
 
-  if (WeightX_256 > 255) then
+  if (WeightX_256 = 0) then
   begin
     C1 := p11^;
     C3 := p12^;
   end else
-  if (WeightX_256 <> 0) then
+  if (WeightX_256 < 256) then
   begin
     C1 := CombineReg(C1, p11^, WeightX_256);
     C3 := CombineReg(C3, p12^, WeightX_256);
   end;
 
   if (WeightY_256 > 255) then
-    Result := C3
+    Result := C1
   else
   if (WeightY_256 = 0) then
-    Result := C1
+    Result := C3
   else
     Result := CombineReg(C1, C3, WeightY_256);
 end;
