@@ -520,7 +520,7 @@ begin
         ArcTan2(FLastPos.Y - FGradCenter.Y, FLastPos.X - FGradCenter.X);
       Dist := Distance(FLastPos, FGradCenter);
       if (Dist > 0) then
-        FRadius := FRadius * (Hypot(Y - FGradCenter.Y, X - FGradCenter.X) / Dist);
+        FRadius := FRadius * (GR32_Math.Hypot(Y - FGradCenter.Y, X - FGradCenter.X) / Dist);
 
       PaintBox32.Invalidate;
     end;

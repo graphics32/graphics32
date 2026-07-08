@@ -248,10 +248,12 @@ begin
       begin
         // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
         SubDst := TPersistent(GetObjectProp(Dst, string(Name)));
-        if not Assigned(SubDst) then Continue;
+        if not Assigned(SubDst) then
+          Continue;
 
         SubSrc := TPersistent(GetObjectProp(Src, string(Name)));
-        if Assigned(SubSrc) then SubDst.Assign(SubSrc);
+        if Assigned(SubSrc) then
+          SubDst.Assign(SubSrc);
       end
       else
         SetPropValue(Dst, string(Name), GetPropValue(Src, string(Name), True));
@@ -315,33 +317,32 @@ begin
   end
   else
   begin
-    with FBuckets[BucketIndex] do
+    Capacity := Length(FBuckets[BucketIndex].Items);
+
+    // enlarge capacity if completely used
+    if FBuckets[BucketIndex].Count = Capacity then
     begin
-      Capacity := Length(Items);
+      if Capacity > 64 then
+        Inc(Capacity, Capacity div 4)
+      else
+      if Capacity > 8 then
+        Inc(Capacity, 16)
+      else
+        Inc(Capacity, 4);
 
-      // enlarge capacity if completely used
-      if Count = Capacity then
-      begin
-        if Capacity > 64 then
-          Inc(Capacity, Capacity div 4)
-        else if Capacity > 8 then
-          Inc(Capacity, 16)
-        else
-          Inc(Capacity, 4);
-
-        SetLength(Items, Capacity);
-      end;
-
-      with Items[Count] do
-      begin
-        Item := NewItem;
-        Data := NewData;
-        Result := @Data;
-      end;
-
-      Inc(Count);
-      IsNew := True;
+      SetLength(FBuckets[BucketIndex].Items, Capacity);
     end;
+
+    with FBuckets[BucketIndex].Items[Count] do
+    begin
+      Item := NewItem;
+      Data := NewData;
+      Result := @Data;
+    end;
+
+    Inc(FBuckets[BucketIndex].Count);
+    IsNew := True;
+
     Inc(FCount);
   end;
 end;
@@ -353,13 +354,12 @@ begin
   FCount := 0;
 
   for BucketIndex := 0 to BUCKET_MASK do
-  with FBuckets[BucketIndex] do
   begin
-    for ItemIndex := Count - 1 downto 0 do
+    for ItemIndex := FBuckets[BucketIndex].Count - 1 downto 0 do
       Delete(BucketIndex, ItemIndex);
 
-    Count := 0;
-    SetLength(Items, 0);
+    FBuckets[BucketIndex].Count := 0;
+    SetLength(FBuckets[BucketIndex].Items, 0);
   end;
 end;
 
@@ -371,19 +371,18 @@ end;
 
 function TPointerMap.Delete(BucketIndex, ItemIndex: Integer): PData;
 begin
-  with FBuckets[BucketIndex] do
-  begin
-    Result := Items[ItemIndex].Data;
+  Result := FBuckets[BucketIndex].Items[ItemIndex].Data;
 
-    if FCount = 0 then Exit;
+  if FCount = 0 then
+    Exit;
 
-    Dec(Count);
-    if Count = 0 then
-      SetLength(Items, 0)
-    else
-    if (ItemIndex < Count) then
-      Move(Items[ItemIndex + 1], Items[ItemIndex], (Count - ItemIndex) * SizeOf(TPointerBucketItem));
-  end;
+  Dec(FBuckets[BucketIndex].Count);
+  if FBuckets[BucketIndex].Count = 0 then
+    SetLength(FBuckets[BucketIndex].Items, 0)
+  else
+  if (ItemIndex < FBuckets[BucketIndex].Count) then
+    Move(FBuckets[BucketIndex].Items[ItemIndex + 1], FBuckets[BucketIndex].Items[ItemIndex], (FBuckets[BucketIndex].Count - ItemIndex) * SizeOf(TPointerBucketItem));
+
   Dec(FCount);
 end;
 
@@ -424,9 +423,8 @@ begin
   // one bucket to be saturated whereas the other buckets are almost empty...
 
   Result := False;
-  with FBuckets[BucketIndex] do
-  for I := 0 to Count - 1 do
-    if Items[I].Item = Item then
+  for I := 0 to FBuckets[BucketIndex].Count - 1 do
+    if FBuckets[BucketIndex].Items[I].Item = Item then
     begin
       ItemIndex := I;
       Result := True;

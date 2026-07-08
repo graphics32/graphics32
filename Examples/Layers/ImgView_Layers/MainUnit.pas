@@ -1091,31 +1091,28 @@ var
   var
     srcWidth, srcHeight, dstWidth, dstHeight, ScaledSide: Integer;
   begin
-    with src do begin
-      srcWidth := Right - Left;
-      srcHeight := Bottom - Top;
-    end;
-    with dst do begin
-      dstWidth := Right - Left;
-      dstHeight := Bottom - Top;
-    end;
-    if (srcWidth = 0) or (srcHeight = 0) then exit;
-    if srcWidth / srcHeight > dstWidth / dstHeight then begin
+    srcWidth := src.Right - src.Left;
+    srcHeight := src.Bottom - src.Top;
+
+    dstWidth := dst.Right - dst.Left;
+    dstHeight := dst.Bottom - dst.Top;
+
+    if (srcWidth = 0) or (srcHeight = 0) then
+      exit;
+    if srcWidth / srcHeight > dstWidth / dstHeight then
+    begin
       ScaledSide := Round(dstWidth * srcHeight / srcWidth);
-      with Result do begin
-        Left := dst.Left;
-        Top := dst.Top + (dstHeight - ScaledSide) div 2;
-        Right := dst.Right;
-        Bottom := Top + ScaledSide;
-      end;
-    end else begin
+      Result.Left := dst.Left;
+      Result.Top := dst.Top + (dstHeight - ScaledSide) div 2;
+      Result.Right := dst.Right;
+      Result.Bottom := Top + ScaledSide;
+    end else
+    begin
       ScaledSide := Round(dstHeight * srcWidth / srcHeight);
-      with Result do begin
-        Left := dst.Left + (dstWidth - ScaledSide) div 2;
-        Top := dst.Top;
-        Right := Left + ScaledSide;
-        Bottom := dst.Bottom;
-      end;
+      Result.Left := dst.Left + (dstWidth - ScaledSide) div 2;
+      Result.Top := dst.Top;
+      Result.Right := Left + ScaledSide;
+      Result.Bottom := dst.Bottom;
     end;
   end;
 

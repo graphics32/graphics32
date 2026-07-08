@@ -185,10 +185,12 @@ var
   RecLeft, RecTop, RecRight, RecBottom: Integer;
   ImagePixels: PColor32EntryArray;
   RadiusSq, RadiusRevSq, KernelSize: Integer;
-  SumRec: TSumRecInt64;
+  SumRec, SumRec2: TSumRecInt64;
   PreMulArray: array of TColor32Entry;
   SumArray: array of TSumRecInt64;
   GaussLUT: array of array of Cardinal;
+  Color: TColor32Entry;
+  pColor: PColor32Entry;
 begin
   RadiusI := Round(Radius);
   if RadiusI < 1 then
@@ -230,14 +232,14 @@ begin
     // initialize PreMulArray for the row ...
     Q := (Y * ImageWidth) + RecLeft;
     for X := RecLeft to RecRight do
-      with ImagePixels[Q] do
-      begin
-        PreMulArray[X].A := A;
-        PreMulArray[X].R := MulDiv255Table[R, A];
-        PreMulArray[X].G := MulDiv255Table[G, A];
-        PreMulArray[X].B := MulDiv255Table[B, A];
-        Inc(Q);
-      end;
+    begin
+      Color := ImagePixels[Q];
+      PreMulArray[X].A := Color.A;
+      PreMulArray[X].R := MulDiv255Table[Color.R, Color.A];
+      PreMulArray[X].G := MulDiv255Table[Color.G, Color.A];
+      PreMulArray[X].B := MulDiv255Table[Color.B, Color.A];
+      Inc(Q);
+    end;
 
     for X := RecLeft to RecRight do
     begin
@@ -246,15 +248,15 @@ begin
       I := Max(X - RadiusI, RecLeft);
       Q := I - (X - RadiusI);
       for I := I to Min(X + RadiusI, RecRight) do
-        with PreMulArray[I] do
-        begin
-          Inc(SumRec.A, GaussLUT[Q][A]);
-          Inc(SumRec.R, GaussLUT[Q][R]);
-          Inc(SumRec.G, GaussLUT[Q][G]);
-          Inc(SumRec.B, GaussLUT[Q][B]);
-          Inc(SumRec.Sum, GaussLUT[Q][1]);
-          Inc(Q);
-        end;
+      begin
+        Color := PreMulArray[I];
+        Inc(SumRec.A, GaussLUT[Q][Color.A]);
+        Inc(SumRec.R, GaussLUT[Q][Color.R]);
+        Inc(SumRec.G, GaussLUT[Q][Color.G]);
+        Inc(SumRec.B, GaussLUT[Q][Color.B]);
+        Inc(SumRec.Sum, GaussLUT[Q][1]);
+        Inc(Q);
+      end;
       Q := RowOffset + X;
       SumArray[Q] := Divide(SumRec);
     end;
@@ -271,23 +273,21 @@ begin
       I := Max(Y - RadiusI, RecTop);
       Q := I - (Y - RadiusI);
       for I := I to Min(Y + RadiusI, RecBottom) do
-        with SumArray[X + I * ImageWidth] do
-        begin
-          Inc(SumRec.A, GaussLUT[Q][A]);
-          Inc(SumRec.R, GaussLUT[Q][R]);
-          Inc(SumRec.G, GaussLUT[Q][G]);
-          Inc(SumRec.B, GaussLUT[Q][B]);
-          Inc(SumRec.Sum, GaussLUT[Q][1]);
-          Inc(Q);
-        end;
-
-      with ImagePixels[RowOffset + X] do
       begin
-        A := (SumRec.A div SumRec.Sum);
-        R := DivMul255Table[A, (SumRec.R div SumRec.Sum)];
-        G := DivMul255Table[A, (SumRec.G div SumRec.Sum)];
-        B := DivMul255Table[A, (SumRec.B div SumRec.Sum)];
+        SumRec2 := SumArray[X + I * ImageWidth];
+        Inc(SumRec.A, GaussLUT[Q][SumRec2.A]);
+        Inc(SumRec.R, GaussLUT[Q][SumRec2.R]);
+        Inc(SumRec.G, GaussLUT[Q][SumRec2.G]);
+        Inc(SumRec.B, GaussLUT[Q][SumRec2.B]);
+        Inc(SumRec.Sum, GaussLUT[Q][1]);
+        Inc(Q);
       end;
+
+      pColor := @ImagePixels[RowOffset + X];
+      pColor.A := (SumRec.A div SumRec.Sum);
+      pColor.R := DivMul255Table[pColor.A, (SumRec.R div SumRec.Sum)];
+      pColor.G := DivMul255Table[pColor.A, (SumRec.G div SumRec.Sum)];
+      pColor.B := DivMul255Table[pColor.A, (SumRec.B div SumRec.Sum)];
     end;
     Inc(RowOffset, ImageWidth);
   end;

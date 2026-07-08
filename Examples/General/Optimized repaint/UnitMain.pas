@@ -64,6 +64,9 @@ implementation
 
 {$R *.dfm}
 
+uses
+  Types;
+
 const
   ColorNotRepainted: TColor32 = clBlack32;
   ColorRepainted: TColor32 = clGreen32;
@@ -223,7 +226,7 @@ begin
 
   if (Button = mbLeft) then
   begin
-    p := Point(X, Y);
+    p := GR32.Point(X, Y);
 
     if (Layer <> nil) then
     begin
@@ -281,7 +284,7 @@ begin
   else
     exit;
 
-  p := Point(X, Y);
+  p := GR32.Point(X, Y);
 
   if (Layer <> nil) then
   begin

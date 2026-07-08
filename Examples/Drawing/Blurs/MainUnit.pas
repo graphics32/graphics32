@@ -80,13 +80,13 @@ uses
 {$if defined(UseInlining)}
   Types,
 {$ifend}
+  GR32_Blurs, // Deprecated
   GR32.ImageFormats.JPG,
   GR32_Polygons,
   GR32_VectorUtils,
   GR32_System,
   GR32.Blur,
-  GR32.Blur.SelectiveGaussian,
-  GR32_Blurs;
+  GR32.Blur.SelectiveGaussian;
 
 {$R *.dfm}
 

@@ -170,7 +170,9 @@ begin
   FDraftRasterizer := TDraftRasterizer.Create;
 
   AddRasterizer(TRegularRasterizer);
+{$WARN SYMBOL_DEPRECATED OFF} // Suppress deprecation message
   AddRasterizer(TThreadRegularRasterizer);
+{$WARN SYMBOL_DEPRECATED DEFAULT}
 {$if declared(TParallelRegularRasterizer)}
   AddRasterizer(TParallelRegularRasterizer);
 {$ifend}

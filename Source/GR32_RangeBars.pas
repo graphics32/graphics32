@@ -393,7 +393,8 @@ var
   R, G, B: Integer;
 begin
 {$ifdef MSWINDOWS}
-  if C < 0 then C := GetSysColor(C and $000000FF);
+  if C < 0 then
+    C := GetSysColor(C and $000000FF);
 {$ELSE}
   C := ColorToRGB(C);
 {$ENDIF}
@@ -436,7 +437,8 @@ var
   Brush: HBRUSH;
 {$ENDIF}
 begin
-  if GR32.IsRectEmpty(R) then Exit;
+  if GR32.IsRectEmpty(R) then
+    Exit;
 {$IFDEF FPC}
   Brush := TBrush.Create;
   try
@@ -486,25 +488,34 @@ end;
 
 procedure DrawRectEx(Canvas: TCanvas; var R: TRect; Sides: TRBDirections; C: TColor);
 begin
-  if Sides <> [] then with Canvas, R do
+  if Sides = [] then
+    exit;
+
+  Canvas.Pen.Color := C;
+
+  if drUp in Sides then
   begin
-    Pen.Color := C;
-    if drUp in Sides then
-    begin
-      MoveTo(Left, Top); LineTo(Right, Top); Inc(Top);
-    end;
-    if drDown in Sides then
-    begin
-      Dec(Bottom); MoveTo(Left, Bottom); LineTo(Right, Bottom);
-    end;
-    if drLeft in Sides then
-    begin
-      MoveTo(Left, Top); LineTo(Left, Bottom); Inc(Left);
-    end;
-    if drRight in Sides then
-    begin
-      Dec(Right); MoveTo(Right, Top); LineTo(Right, Bottom);
-    end;
+    Canvas.MoveTo(R.Left, R.Top);
+    Canvas.LineTo(R.Right, R.Top);
+    Inc(R.Top);
+  end;
+  if drDown in Sides then
+  begin
+    Dec(R.Bottom);
+    Canvas.MoveTo(R.Left, R.Bottom);
+    Canvas.LineTo(R.Right, R.Bottom);
+  end;
+  if drLeft in Sides then
+  begin
+    Canvas.MoveTo(R.Left, R.Top);
+    Canvas.LineTo(R.Left, R.Bottom);
+    Inc(R.Left);
+  end;
+  if drRight in Sides then
+  begin
+    Dec(R.Right);
+    Canvas.MoveTo(R.Right, R.Top);
+    Canvas.LineTo(R.Right, R.Bottom);
   end;
 end;
 
@@ -512,27 +523,27 @@ procedure Frame3D(Canvas: TCanvas; var ARect: TRect; TopColor, BottomColor: TCol
 var
   TopRight, BottomLeft: TPoint;
 begin
-  with Canvas, ARect do
+  Canvas.Pen.Width := 1;
+  Dec(ARect.Bottom);
+  Dec(ARect.Right);
+  TopRight.X := ARect.Right;
+  TopRight.Y := ARect.Top;
+  BottomLeft.X := ARect.Left;
+  BottomLeft.Y := ARect.Bottom;
+  Canvas.Pen.Color := TopColor;
+  Canvas.PolyLine([BottomLeft, ARect.TopLeft, TopRight]);
+  Canvas.Pen.Color := BottomColor;
+  Dec(ARect.Left);
+  Canvas.PolyLine([TopRight, ARect.BottomRight, BottomLeft]);
+  if AdjustRect then
   begin
-    Pen.Width := 1;
-    Dec(Bottom); Dec(Right);
-    TopRight.X := Right;
-    TopRight.Y := Top;
-    BottomLeft.X := Left;
-    BottomLeft.Y := Bottom;
-    Pen.Color := TopColor;
-    PolyLine([BottomLeft, TopLeft, TopRight]);
-    Pen.Color := BottomColor;
-    Dec(Left);
-    PolyLine([TopRight, BottomRight, BottomLeft]);
-    if AdjustRect then
-    begin
-      Inc(Top); Inc(Left, 2);
-    end
-    else
-    begin
-      Inc(Left); Inc(Bottom); Inc(Right);
-    end;
+    Inc(ARect.Top);
+    Inc(ARect.Left, 2);
+  end else
+  begin
+    Inc(ARect.Left);
+    Inc(ARect.Bottom);
+    Inc(ARect.Right);
   end;
 end;
 
@@ -549,8 +560,10 @@ begin
   FrameRect(Canvas.Handle, R, Canvas.Brush.Handle);
 
   GR32.InflateRect(R, -1, -1);
-  if Pushed then Frame3D(Canvas, R, CLo, Color)
-  else Frame3D(Canvas, R, CHi, MixColors(ColorBorder, Color, 96));
+  if Pushed then
+    Frame3D(Canvas, R, CLo, Color)
+  else
+    Frame3D(Canvas, R, CHi, MixColors(ColorBorder, Color, 96));
   Canvas.Brush.Color := Color;
   Canvas.FillRect(R);
 
@@ -606,9 +619,12 @@ begin
   X := (R.Left + R.Right - 1) div 2;
   Y := (R.Top + R.Bottom - 1) div 2;
   Sz := (Min(X - R.Left, Y - R.Top)) * 3 div 4 - 1;
-  if Sz = 0 then Sz := 1;
-  if Direction in [drUp, drLeft] then Shift := (Sz + 1) * 1 div 3
-  else Shift := Sz * 1 div 3;
+  if Sz = 0 then
+    Sz := 1;
+  if Direction in [drUp, drLeft] then
+    Shift := (Sz + 1) * 1 div 3
+  else
+    Shift := Sz * 1 div 3;
   Canvas.Pen.Color := Color;
   Canvas.Brush.Color := Color;
   case Direction of
@@ -617,16 +633,19 @@ begin
         Inc(Y, Shift);
         Canvas.Polygon([Point(X + Sz, Y), Point(X, Y - Sz), Point(X - Sz, Y)]);
       end;
+
     drDown:
       begin
         Dec(Y, Shift);
         Canvas.Polygon([Point(X + Sz, Y), Point(X, Y + Sz), Point(X - Sz, Y)]);
       end;
+
     drLeft:
       begin
         Inc(X, Shift);
         Canvas.Polygon([Point(X, Y + Sz), Point(X - Sz, Y), Point(X, Y - Sz)]);
       end;
+
     drRight:
       begin
         Dec(X, Shift);
@@ -724,11 +743,9 @@ procedure TArrowBar.DoDrawButton(R: TRect; Direction: TRBDirection; Pushed, Enab
 const
   EnabledFlags: array [Boolean] of Integer = (DFCS_INACTIVE, 0);
   PushedFlags: array [Boolean] of Integer = (0, DFCS_PUSHED or DFCS_FLAT);
-  DirectionFlags: array [TRBDirection] of Integer = (DFCS_SCROLLLEFT, DFCS_SCROLLUP,
-    DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN);
+  DirectionFlags: array [TRBDirection] of Integer = (DFCS_SCROLLLEFT, DFCS_SCROLLUP, DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN);
 {$ifdef MSWINDOWS}
-  DirectionXPFlags: array [TRBDirection] of Cardinal = (ABS_LEFTNORMAL,
-    ABS_UPNORMAL, ABS_RIGHTNORMAL, ABS_DOWNNORMAL);
+  DirectionXPFlags: array [TRBDirection] of Cardinal = (ABS_LEFTNORMAL, ABS_UPNORMAL, ABS_RIGHTNORMAL, ABS_DOWNNORMAL);
 {$ENDIF}
 var
   Edges: TRBDirections;
@@ -765,9 +782,14 @@ begin
     if UseThemes then
     begin
       Flags := DirectionXPFlags[Direction];
-      if not Enabled then Inc(Flags, 3)
-      else if Pushed then Inc(Flags, 2)
-      else if Hot then Inc(Flags);
+      if not Enabled then
+        Inc(Flags, 3)
+      else
+      if Pushed then
+        Inc(Flags, 2)
+      else
+      if Hot then
+        Inc(Flags);
       DrawThemeBackground(ScrollBarTheme, Canvas.Handle, SBP_ARROWBTN, Flags, R, nil);
     end
     else
@@ -821,7 +843,8 @@ var
   Flags: Cardinal;
 {$ENDIF}
 begin
-  if GR32.IsRectEmpty(R) then Exit;
+  if GR32.IsRectEmpty(R) then
+    Exit;
   case Style of
     rbsDefault:
     begin
@@ -829,9 +852,14 @@ begin
       if UseThemes then
       begin
         Flags := SCRBS_NORMAL;
-        if not Enabled then Inc(Flags, 3)
-        else if Pushed then Inc(Flags, 2)
-        else if Hot then Inc(Flags);
+        if not Enabled then
+          Inc(Flags, 3)
+        else
+        if Pushed then
+          Inc(Flags, 2)
+        else
+        if Hot then
+          Inc(Flags);
         DrawThemeBackground(ScrollBarTheme, Canvas.Handle, PartXPFlags[Horz], Flags, R, nil);
         if ShowHandleGrip then
           DrawThemeBackground(ScrollBarTheme, Canvas.Handle, GripperFlags[Horz], 0, R, nil);
@@ -861,7 +889,8 @@ var
   C: TColor;
   Edges: set of TRBDirection;
 begin
-  if (R.Right <= R.Left) or (R.Bottom <= R.Top) then Exit;
+  if (R.Right <= R.Left) or (R.Bottom <= R.Top) then
+    Exit;
   if Style = rbsDefault then
   begin
 {$ifdef MSWINDOWS}
@@ -879,43 +908,57 @@ begin
     end;
   end
   else
-  with Canvas, R do
   begin
-    if DrawEnabled then C := FBorderColor
-    else C := FShadowColor;
+    if DrawEnabled then
+      C := FBorderColor
+    else
+      C := FShadowColor;
     Edges := [drLeft, drUp, drRight, drDown];
     Exclude(Edges, OppositeDirection[Direction]);
     DrawRectEx(Canvas, R, Edges, C);
-    if Pushed then DitherRect(Canvas, R, fBorderColor,fBorderColor)
-    else if not GR32.IsRectEmpty(R) then with R do
+    if Pushed then
+      DitherRect(Canvas, R, fBorderColor,fBorderColor)
+    else
+    if not GR32.IsRectEmpty(R) then
     begin
       if DrawEnabled then
       begin
-        Pen.Color := MixColors(fBorderColor, MixColors(fHighLightColor, Color, 127), 32);
+        Canvas.Pen.Color := MixColors(fBorderColor, MixColors(fHighLightColor, Color, 127), 32);
+
         case Direction of
           drLeft, drUp:
             begin
-              MoveTo(Left, Bottom - 1); LineTo(Left, Top); LineTo(Right, Top);
-              Inc(Top); Inc(Left);
+              Canvas.MoveTo(R.Left, R.Bottom - 1);
+              Canvas.LineTo(R.Left, R.Top);
+              Canvas.LineTo(R.Right, R.Top);
+              Inc(R.Top);
+              Inc(R.Left);
             end;
+
           drRight:
             begin
-              MoveTo(Left, Top); LineTo(Right, Top);
-              Inc(Top);
+              Canvas.MoveTo(R.Left, R.Top);
+              Canvas.LineTo(R.Right, R.Top);
+              Inc(R.Top);
             end;
+
           drDown:
             begin
-              MoveTo(Left, Top); LineTo(Left, Bottom);
-              Inc(Left);
+              Canvas.MoveTo(R.Left, R.Top);
+              Canvas.LineTo(R.Left, R.Bottom);
+              Inc(R.Left);
             end;
         end;
-        if Backgnd = bgPattern then DitherRect(Canvas, R, fHighLightColor, Color)
-        else DitherRect(Canvas, R, Color, Color);
+
+        if Backgnd = bgPattern then
+          DitherRect(Canvas, R, fHighLightColor, Color)
+        else
+          DitherRect(Canvas, R, Color, Color);
       end
       else
       begin
         Brush.Color := fButtonColor;
-        FillRect(R);
+        Canvas.FillRect(R);
       end;
     end;
   end;
@@ -937,7 +980,8 @@ function TArrowBar.GetButtonSize: Integer;
 var
   W, H: Integer;
 begin
-  if not ShowArrows then Result := 0
+  if not ShowArrows then
+    Result := 0
   else
   begin
     Result := ButtonSize;
@@ -951,10 +995,14 @@ begin
       W := ClientHeight;
       H := ClientWidth;
     end;
-    if Result = 0 then Result := Min(H, 32);
-    if Result * 2 >= W then Result := W div 2;
-    if Style = rbsMac then Dec(Result);
-    if Result < 2 then Result := 0;
+    if Result = 0 then
+      Result := Min(H, 32);
+    if Result * 2 >= W then
+      Result := W div 2;
+    if Style = rbsMac then
+      Dec(Result);
+    if Result < 2 then
+      Result := 0;
   end;
 end;
 
@@ -975,8 +1023,10 @@ end;
 function TArrowBar.GetTrackBoundary: TRect;
 begin
   Result := ClientRect;
-  if Kind = sbHorizontal then GR32.InflateRect(Result, -GetButtonSize, 0)
-  else GR32.InflateRect(Result, 0, -GetButtonSize);
+  if Kind = sbHorizontal then
+    GR32.InflateRect(Result, -GetButtonSize, 0)
+  else
+    GR32.InflateRect(Result, 0, -GetButtonSize);
 end;
 
 function TArrowBar.GetZone(X, Y: Integer): TRBZone;
@@ -989,30 +1039,35 @@ begin
 
   P := Point(X, Y);
   R := ClientRect;
-  if not GR32.PtInrect(R, P) then Exit;
+  if not GR32.PtInrect(R, P) then
+    Exit;
 
   Sz := GetButtonSize;
   R1 := R;
   if Kind = sbHorizontal then
   begin
     R1.Right := R1.Left + Sz;
-    if GR32.PtInRect(R1, P) then Result := zBtnPrev
+    if GR32.PtInRect(R1, P) then
+      Result := zBtnPrev
     else
     begin
       R1.Right := R.Right;
       R1.Left := R.Right - Sz;
-      if GR32.PtInRect(R1, P) then Result := zBtnNext;
+      if GR32.PtInRect(R1, P) then
+        Result := zBtnNext;
     end;
   end
   else
   begin
     R1.Bottom := R1.Top + Sz;
-    if GR32.PtInRect(R1, P) then Result := zBtnPrev
+    if GR32.PtInRect(R1, P) then
+      Result := zBtnPrev
     else
     begin
       R1.Bottom := R.Bottom;
       R1.Top := R.Bottom - Sz;
-      if GR32.PtInRect(R1, P) then Result := zBtnNext;
+      if GR32.PtInRect(R1, P) then
+        Result := zBtnNext;
     end;
   end;
 
@@ -1020,18 +1075,25 @@ begin
   begin
     R := GetHandleRect;
     P := Point(X, Y);
-    if GR32.PtInRect(R, P) then Result := zHandle
+    if GR32.PtInRect(R, P) then
+      Result := zHandle
     else
     begin
       if Kind = sbHorizontal then
       begin
-        if (X > 0) and (X < R.Left) then Result := zTrackPrev
-        else if (X >= R.Right) and (X < ClientWidth - 1) then Result := zTrackNext;
+        if (X > 0) and (X < R.Left) then
+          Result := zTrackPrev
+        else
+        if (X >= R.Right) and (X < ClientWidth - 1) then
+          Result := zTrackNext;
       end
       else
       begin
-        if (Y > 0) and (Y < R.Top) then Result := zTrackPrev
-        else if (Y >= R.Bottom) and (Y < ClientHeight - 1) then Result := zTrackNext;
+        if (Y > 0) and (Y < R.Top) then
+          Result := zTrackPrev
+        else
+        if (Y >= R.Bottom) and (Y < ClientHeight - 1) then
+          Result := zTrackNext;
       end;
     end;
   end;
@@ -1049,12 +1111,16 @@ begin
   BtnSize:= GetButtonSize;
   case Zone of
     zNone: Result := CEmptyRect;
+
     zBtnPrev:
       begin
         Result := ClientRect;
-        if Horz then Result.Right := Result.Left + BtnSize
-        else Result.Bottom := Result.Top + BtnSize;
+        if Horz then
+          Result.Right := Result.Left + BtnSize
+        else
+          Result.Bottom := Result.Top + BtnSize;
       end;
+
     zTrackPrev..zTrackNext:
       begin
         Result := GetTrackBoundary;
@@ -1068,20 +1134,29 @@ begin
         end;
         case Zone of
           zTrackPrev:
-            if Horz then Result.Right := R.Left
-            else Result.Bottom := R.Top;
+            if Horz then
+              Result.Right := R.Left
+            else
+              Result.Bottom := R.Top;
+
           zHandle:
             Result := R;
+
           zTrackNext:
-            if Horz then Result.Left := R.Right
-            else Result.Top := R.Bottom;
+            if Horz then
+              Result.Left := R.Right
+            else
+              Result.Top := R.Bottom;
         end;
       end;
+
     zBtnNext:
       begin
         Result := ClientRect;
-        if Horz then Result.Left := Result.Right - BtnSize
-        else Result.Top := Result.Bottom - BtnSize;
+        if Horz then
+          Result.Left := Result.Right - BtnSize
+        else
+          Result.Top := Result.Bottom - BtnSize;
       end;
   end;
 end;
@@ -1113,7 +1188,8 @@ begin
     if NewHotZone <> FHotZone then
     begin
       FHotZone := NewHotZone;
-      if FHotZone <> zNone then StartHotTracking;
+      if FHotZone <> zNone then
+        StartHotTracking;
       Invalidate;
     end;
   end;
@@ -1146,23 +1222,33 @@ begin
   begin
     { left / top button }
     BtnRect := R;
-    with BtnRect do if Horz then Right := Left + BSize else Bottom := Top + BSize;
+    if Horz then
+      BtnRect.Right := BtnRect.Left + BSize
+    else
+      BtnRect.Bottom := BtnRect.Top + BSize;
     DoDrawButton(BtnRect, CPrevDirs[Horz], FDragZone = zBtnPrev, ShowEnabled, FHotZone = zBtnPrev);
 
     { right / bottom button }
     BtnRect := R;
-    with BtnRect do if Horz then Left := Right - BSize else Top := Bottom - BSize;
+    if Horz then
+      BtnRect.Left := BtnRect.Right - BSize
+    else
+      BtnRect.Top := BtnRect.Bottom - BSize;
     DoDrawButton(BtnRect, CNextDirs[Horz], FDragZone = zBtnNext, ShowEnabled, FHotZone = zBtnNext);
   end;
 
-  if Horz then GR32.InflateRect(R, -BSize, 0) else GR32.InflateRect(R, 0, -BSize);
-  if ShowEnabled then HandleRect := GetHandleRect
-  else HandleRect := Rect(0, 0, 0, 0);
+  if Horz then
+    GR32.InflateRect(R, -BSize, 0) else GR32.InflateRect(R, 0, -BSize);
+  if ShowEnabled then
+    HandleRect := GetHandleRect
+  else
+    HandleRect := Rect(0, 0, 0, 0);
   ShowHandle := not GR32.IsRectEmpty(HandleRect);
 
   DoDrawTrack(GetZoneRect(zTrackPrev), CPrevDirs[Horz], FDragZone = zTrackPrev, ShowEnabled, FHotZone = zTrackPrev);
   DoDrawTrack(GetZoneRect(zTrackNext), CNextDirs[Horz], FDragZone = zTrackNext, ShowEnabled, FHotZone = zTrackNext);
-  if ShowHandle then DoDrawHandle(HandleRect, Horz, FDragZone = zHandle, FHotZone = zHandle);
+  if ShowHandle then
+    DoDrawHandle(HandleRect, Horz, FDragZone = zHandle, FHotZone = zHandle);
 end;
 
 procedure TArrowBar.SetBackgnd(Value: TRBBackgnd);
@@ -1324,6 +1410,7 @@ begin
         FTimer.Interval := SCROLL_INTERVAL;
         FTimerMode := tmScroll;
       end;
+
     tmHotTrack:
       begin
         Pt := ScreenToClient(Mouse.CursorPos);
@@ -1397,15 +1484,19 @@ procedure TArrowBar.WMNCPaint(var Message: TWMNCPaint);
     DC: HDC;
     R: TRect;
   begin
-    if BorderStyle = bsNone then Exit;
-    if ADC = 0 then DC := GetWindowDC(Handle)
-    else DC := ADC;
+    if BorderStyle = bsNone then
+      Exit;
+    if ADC = 0 then
+      DC := GetWindowDC(Handle)
+    else
+      DC := ADC;
     try
       GetWindowRect(Handle, R);
       GR32.OffsetRect(R, -R.Left, -R.Top);
       DrawEdge(DC, R, BDR_SUNKENOUTER, BF_RECT);
     finally
-      if ADC = 0 then ReleaseDC(Handle, DC);
+      if ADC = 0 then
+        ReleaseDC(Handle, DC);
     end;
   end;
 
@@ -1457,7 +1548,8 @@ function TCustomRangeBar.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
 const OneHundredTwenteenth = 1 / 120;
 begin
   Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
-  if not Result then Position := Position + Increment * WheelDelta * OneHundredTwenteenth;
+  if not Result then
+    Position := Position + Increment * WheelDelta * OneHundredTwenteenth;
   Result := True;
 end;
 
@@ -1495,7 +1587,8 @@ begin
   if Range > EffectiveWindow then
   begin
     HandleSz := Round(ClientSz * EffectiveWindow / Range);
-    if HandleSz >= MIN_SIZE then HandlePos := Round(ClientSz * Position / Range)
+    if HandleSz >= MIN_SIZE then
+      HandlePos := Round(ClientSz * Position / Range)
     else
     begin
       HandleSz := MIN_SIZE;
@@ -1513,7 +1606,8 @@ begin
       Result.Bottom := R.Top + HandlePos + HandleSz;
     end;
   end
-  else Result := R;
+  else
+    Result := R;
 end;
 
 function TCustomRangeBar.IsPositionStored: Boolean;
@@ -1524,7 +1618,8 @@ end;
 procedure TCustomRangeBar.MouseDown(Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  if Range <= EffectiveWindow then FDragZone := zNone
+  if Range <= EffectiveWindow then
+    FDragZone := zNone
   else
   begin
     inherited;
@@ -1547,16 +1642,24 @@ begin
   begin
     WinSz := EffectiveWindow;
 
-    if Range <= WinSz then Exit;
-    if Kind = sbHorizontal then Delta := X - FStored.X else Delta := Y - FStored.Y;
+    if Range <= WinSz then
+      Exit;
+    if Kind = sbHorizontal then
+      Delta := X - FStored.X else Delta := Y - FStored.Y;
 
-    if Kind = sbHorizontal then ClientSz := ClientWidth  else ClientSz := ClientHeight;
+    if Kind = sbHorizontal then
+      ClientSz := ClientWidth
+    else
+      ClientSz := ClientHeight;
     Dec(ClientSz, GetButtonSize * 2);
-    if BorderStyle = bsSingle then Dec(ClientSz, 2);
+    if BorderStyle = bsSingle then
+      Dec(ClientSz, 2);
     HandleSz := Round(ClientSz * WinSz / Range);
 
-    if HandleSz < MIN_SIZE then Delta := Round(Delta * (Range - WinSz) / (ClientSz - MIN_SIZE))
-    else Delta := Delta * Range / ClientSz;
+    if HandleSz < MIN_SIZE then
+      Delta := Round(Delta * (Range - WinSz) / (ClientSz - MIN_SIZE))
+    else
+      Delta := Delta * Range / ClientSz;
 
     try
       FGenChange := True;

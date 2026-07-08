@@ -2418,8 +2418,7 @@ begin
     Exit;
   end;
 
-  with FColorPoints[0] do
-    Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
+  Temp := Sqr(X - FColorPoints[0].Point.X) + Sqr(Y - FColorPoints[0].Point.Y);
   if FUsePower then
     Temp := Math.Power(Temp, FScaledPower);
   if Abs(Temp) > MaxSingle then
@@ -2429,17 +2428,16 @@ begin
   DistSum := FDists[0];
 
   for Index := 1 to Count - 1 do
-    with FColorPoints[Index] do
-    begin
-      Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
-      if FUsePower then
-        Temp := Math.Power(Temp, FScaledPower);
-      if Abs(Temp) > MaxSingle then
-        FDists[Index] := 0
-      else
-        FDists[Index] := 1 / Max(1.0, Temp);
-      DistSum := DistSum + FDists[Index];
-    end;
+  begin
+    Temp := Sqr(X - FColorPoints[Index].Point.X) + Sqr(Y - FColorPoints[Index].Point.Y);
+    if FUsePower then
+      Temp := Math.Power(Temp, FScaledPower);
+    if Abs(Temp) > MaxSingle then
+      FDists[Index] := 0
+    else
+      FDists[Index] := 1 / Max(1.0, Temp);
+    DistSum := DistSum + FDists[Index];
+  end;
 
   DistSum := 1.0 / (1E-30 + DistSum);
   Scale := FDists[0] * DistSum;
