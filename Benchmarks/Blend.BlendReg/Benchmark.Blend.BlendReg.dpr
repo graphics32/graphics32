@@ -83,7 +83,7 @@ asm
 end;
 
 //------------------------------------------------------------------------------
-// BlendReg_SSE2_Org
+// BlendReg_SSE2_BoundaryFixes
 //
 // BlendReg_SSE2_Org modified with early exits on fully transparent or fully
 // opaque foreground.
@@ -529,17 +529,6 @@ end;
 // Sanyin's BlendReg using the `(x + (x shr 8)) shr 8`  formula for lossless
 // div255 calculation.
 //------------------------------------------------------------------------------
-procedure SSE_00800080_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  dw $0080, $0080, $0080, $0080
-  dw $0080, $0080, $0080, $0080
-end;
-
 function BlendReg_SSE41_Sanyin(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) onto a background color (B),
@@ -579,17 +568,6 @@ asm
 end;
 
 //------------------------------------------------------------------------------
-
-procedure SSE_00FF00FF_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-  ALIGN 16
-{$else}
-  .ALIGN 16
-{$endif}
-  dw $00FF, $00FF, $00FF, $00FF
-  dw $00FF, $00FF, $00FF, $00FF
-end;
 
 function BlendReg_SSE41_Sanyin2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
   // blend foreground color (F) onto a background color (B),
@@ -661,18 +639,6 @@ asm
 end;
 
 //------------------------------------------------------------------------------
-
-// 8 x 257
-procedure SSE_01010101_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-asm
-{$ifdef FPC}
-ALIGN 16
-{$else}
-.ALIGN 16
-{$endif}
-  dw $0101, $0101, $0101, $0101
-  dw $0101, $0101, $0101, $0101
-end;
 
 function BlendReg_SSE41_Sanyin_257(F, B: TColor32): TColor32;
   // blend foreground color (F) onto a background color (B),
