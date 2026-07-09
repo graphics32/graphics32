@@ -117,6 +117,12 @@ const
 //------------------------------------------------------------------------------
 // 8 x $FF00
 procedure SSE_FF00FF00_ALIGNED;
+// 8 x $00FF
+procedure SSE_00FF00FF_ALIGNED;
+// 8 x 257 for use in x div 255 = ((x + 128) * 257) >> 16
+procedure SSE_01010101_ALIGNED;
+// 8 x 128 for use in x div 255 = ((x + 128) * 257) >> 16
+procedure SSE_00800080_ALIGNED;
 
 // x/255 bias table ($7F * $8101)
 procedure SSE_003FFF7F_ALIGNED;
@@ -133,6 +139,7 @@ procedure SSE_0C080400_ALIGNED;
 
 implementation
 
+// 8 x $FF00
 procedure SSE_FF00FF00_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$ifdef FPC}
@@ -142,6 +149,42 @@ asm
 {$endif}
   dw $FF00, $FF00, $FF00, $FF00
   dw $FF00, $FF00, $FF00, $FF00
+end;
+
+// 8 x $00FF
+procedure SSE_00FF00FF_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$ifdef FPC}
+  ALIGN 16
+{$else}
+  .ALIGN 16
+{$endif}
+  dw $00FF, $00FF, $00FF, $00FF
+  dw $00FF, $00FF, $00FF, $00FF
+end;
+
+// 8 x 257
+procedure SSE_01010101_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$ifdef FPC}
+ALIGN 16
+{$else}
+.ALIGN 16
+{$endif}
+  dw $0101, $0101, $0101, $0101
+  dw $0101, $0101, $0101, $0101
+end;
+
+// 8 x 128
+procedure SSE_00800080_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$ifdef FPC}
+  ALIGN 16
+{$else}
+  .ALIGN 16
+{$endif}
+  dw $0080, $0080, $0080, $0080
+  dw $0080, $0080, $0080, $0080
 end;
 
 // Aligned bias table
