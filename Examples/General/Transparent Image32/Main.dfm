@@ -11,6 +11,7 @@ object FormMain: TFormMain
   Font.Name = 'Segoe UI'
   Font.Style = []
   OnCreate = FormCreate
+  OnResize = FormResize
   DesignSize = (
     796
     462)
@@ -123,71 +124,89 @@ object FormMain: TFormMain
     end
     object CheckBoxSprite: TCheckBox
       Left = 8
-      Top = 102
+      Top = 119
       Width = 268
       Height = 17
       Align = alTop
       Caption = 'Animated alien: TImage32 (TWinControl)'
-      TabOrder = 0
+      TabOrder = 3
       OnClick = CheckBoxSpriteClick
+      ExplicitTop = 102
     end
     object CheckBoxDice: TCheckBox
       Left = 8
-      Top = 136
+      Top = 153
       Width = 268
       Height = 17
       Align = alTop
       Caption = 'Dice: TImage (TGraphicControl)'
       Checked = True
       State = cbChecked
-      TabOrder = 1
+      TabOrder = 5
       OnClick = CheckBoxDiceClick
+      ExplicitTop = 136
     end
     object CheckBoxRedText: TCheckBox
       Left = 8
-      Top = 119
+      Top = 136
       Width = 268
       Height = 17
       Align = alTop
       Caption = 'Red text: TMemo (TWinControl)'
       Checked = True
       State = cbChecked
-      TabOrder = 2
+      TabOrder = 4
       OnClick = CheckBoxRedTextClick
+      ExplicitTop = 119
     end
     object CheckBoxCoffeeCup: TCheckBox
       Left = 8
-      Top = 85
+      Top = 102
       Width = 268
       Height = 17
       Align = alTop
       Caption = 'Coffee cup: TImage32 (TWinControl)'
       Checked = True
       State = cbChecked
-      TabOrder = 3
+      TabOrder = 2
       OnClick = CheckBoxCoffeeCupClick
+      ExplicitTop = 85
     end
     object CheckBoxBlueText: TCheckBox
       Left = 8
-      Top = 68
+      Top = 85
       Width = 268
       Height = 17
       Align = alTop
       Caption = 'Blue text: TMemo (TWinControl)'
       Checked = True
       State = cbChecked
-      TabOrder = 4
+      TabOrder = 1
       OnClick = CheckBoxBlueTextClick
+      ExplicitTop = 68
     end
     object CheckBoxShape: TCheckBox
       Left = 8
-      Top = 153
+      Top = 170
       Width = 268
       Height = 17
       Align = alTop
       Caption = 'Hatch pattern: TShape (TGraphicControl)'
-      TabOrder = 5
+      TabOrder = 6
       OnClick = CheckBoxShapeClick
+      ExplicitTop = 153
+    end
+    object CheckBoxPaintBox: TCheckBox
+      Left = 8
+      Top = 68
+      Width = 268
+      Height = 17
+      Align = alTop
+      Caption = 'Clock: TPaintBox32 (TWinControl)'
+      Checked = True
+      State = cbChecked
+      TabOrder = 0
+      OnClick = CheckBoxPaintBoxClick
     end
   end
   object Image32: TImage32
@@ -253,6 +272,15 @@ object FormMain: TFormMain
     ReadOnly = True
     TabOrder = 3
     WantReturns = False
+  end
+  object PaintBox32: TPaintBox32
+    Left = 112
+    Top = 70
+    Width = 265
+    Height = 209
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    TabOrder = 5
+    OnPaintBuffer = PaintBox32PaintBuffer
   end
   object TimerAnimate: TTimer
     Enabled = False
