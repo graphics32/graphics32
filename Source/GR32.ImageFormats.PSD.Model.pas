@@ -38,7 +38,11 @@ interface
 {$include GR32.inc}
 
 uses
+{$IFDEF FPC}
   Generics.Collections,
+{$ELSE}
+  System.Generics.Collections,
+{$ENDIF}
   Classes,
   SysUtils,
   GR32,
@@ -109,13 +113,53 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TCustomPhotoshopResource
+//
+//------------------------------------------------------------------------------
+// Represents a single PSD image resource
+//------------------------------------------------------------------------------
+  TPhotoshopDocument = class;
+
+  TCustomPhotoshopResource = class abstract
+  private
+    FDocument: TPhotoshopDocument;
+    FResourceID: TPSD_ImageResourceID;
+    FName: string;
+  protected
+    procedure SetDocument(const Value: TPhotoshopDocument);
+  public
+    constructor Create(ADocument: TPhotoshopDocument = nil); virtual;
+    destructor Destroy; override;
+
+    procedure SaveToStream(AStream: TStream); virtual; abstract;
+
+    property Document: TPhotoshopDocument read FDocument write SetDocument;
+    property ResourceID: TPSD_ImageResourceID read FResourceID write FResourceID;
+    property Name: string read FName write FName;
+  end;
+
+  TPhotoshopResourceClass = class of TCustomPhotoshopResource;
+
+  TPhotoshopThumbnailResource = class(TCustomPhotoshopResource)
+  private
+    FBitmap: TBitmap32;
+  public
+    constructor Create(ADocument: TPhotoshopDocument = nil); override;
+    destructor Destroy; override;
+
+    procedure SaveToStream(AStream: TStream); override;
+
+    property Bitmap: TBitmap32 read FBitmap;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TCustomPhotoshopLayer
 //
 //------------------------------------------------------------------------------
 // Represents a single PSD layer
 //------------------------------------------------------------------------------
-  TPhotoshopDocument = class;
-
   TCustomPhotoshopLayer = class abstract
   private type
     TLayerProperties = class
@@ -231,8 +275,30 @@ type
       property Layers[Index: integer]: TCustomPhotoshopLayer read GetLayer; default;
     end;
 
+    TPhotoshopResources = class
+    private
+      FDocument: TPhotoshopDocument;
+      FResources: TObjectList<TCustomPhotoshopResource>;
+    protected
+      function GetCount: integer;
+      function GetResource(Index: integer): TCustomPhotoshopResource;
+      procedure AddResource(AResource: TCustomPhotoshopResource);
+      procedure RemoveResource(AResource: TCustomPhotoshopResource);
+    public
+      constructor Create(ADocument: TPhotoshopDocument);
+      destructor Destroy; override;
+
+      function Add(AResourceClass: TPhotoshopResourceClass): TCustomPhotoshopResource;
+      procedure Clear;
+      function GetEnumerator: TEnumerator<TCustomPhotoshopResource>;
+
+      property Count: integer read GetCount;
+      property Resources[Index: integer]: TCustomPhotoshopResource read GetResource; default;
+    end;
+
   private
     FLayers: TPhotoshopLayers;
+    FResources: TPhotoshopResources;
     FWidth: Integer;
     FHeight: Integer;
     FBackground: TCustomPhotoshopLayer;
@@ -263,6 +329,9 @@ type
 
     // Layers: The individual PSD layers
     property Layers: TPhotoshopLayers read FLayers;
+
+    // Resources: The PSD image resources
+    property Resources: TPhotoshopResources read FResources;
 
     // Background: A composite of the flattened image.
     // If the document contains no layers this is the primary image. Otherwise
@@ -408,6 +477,8 @@ type
     peCompositeAsBackground,    // Save a composite of the image (bitmap and all
                                 // layers) as the PSD background image.
 
+    peCompositeThumbnail,       // Save a composite of the image as a PSD thumbnail.
+
     peBackgroundAsLayer,        // TCustomImage32.Bitmap is saved as a layer.
 
     peSingleAsLayer,            // Normally, if a document has a single bitmap,
@@ -505,13 +576,17 @@ procedure LoadBitmapFromPhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: T
 var
   // Default options used when exporting via TPhotoshopDocument.Assign(TCustomBitmap32),
   // or TPhotoshopDocument.Assign(TCustomImage32)
-  DefaultPhotoshopExportOptions: TPhotoshopExportOptions = [peCompositeAsBackground];
+  DefaultPhotoshopExportOptions: TPhotoshopExportOptions = [peCompositeAsBackground, peCompositeThumbnail];
 
 var
   // Default options used when importing via TCustomBitmap32.Assign(TPhotoshopDocument),
   // TCustomImage32.Assign(TPhotoshopDocument), and TCustomBitmap32.LoadFromStream
   DefaultPhotoshopImportOptions: TPhotoshopImportOptions = [piBackgroundIsComposite];
   DefaultPhotoshopImportBackground: TColor32 = clBlack32;
+
+var
+  // Max width or height of a thumbnail image
+  PhotoshopMaxThumbnailSize: integer = 256;
 
 
 //------------------------------------------------------------------------------
@@ -524,8 +599,11 @@ uses
   Math,
   Types,
   GR32_Layers,
+  GR32_Resamplers,
   GR32_Backends_Generic,
+  GR32.BigEndian,
   GR32.ImageFormats,
+  GR32.ImageFormats.JPG, // Needed for thumbnail
   GR32.ImageFormats.PSD.Writer,
   GR32.ImageFormats.PSD.Reader;
 
@@ -540,6 +618,32 @@ type
 resourcestring
   sPSDLayerName = 'Layer %d';
   sPSDBackgroundName = 'Background';
+
+procedure GenerateThumbnail(ADocument: TPhotoshopDocument; ASource: TCustomBitmap32);
+var
+  Thumbnail: TPhotoshopThumbnailResource;
+  Scale: Single;
+  Resampler: TCustomResampler;
+begin
+  Thumbnail := TPhotoshopThumbnailResource(ADocument.Resources.Add(TPhotoshopThumbnailResource));
+
+  Scale := Min(PhotoshopMaxThumbnailSize / ASource.Width, PhotoshopMaxThumbnailSize / ASource.Height);
+
+  if (Scale < 1.0) then
+  begin
+    Thumbnail.Bitmap.SetSize(Round(ASource.Width * Scale), Round(ASource.Height * Scale), False);
+
+    Resampler := TDraftResampler.Create;
+    try
+      StretchTransfer(Thumbnail.Bitmap, Thumbnail.Bitmap.BoundsRect, Thumbnail.Bitmap.BoundsRect,
+        ASource, ASource.BoundsRect,
+        Resampler, dmOpaque);
+    finally
+      Resampler.Free;
+    end;
+  end else
+    Thumbnail.Bitmap.Assign(ASource);
+end;
 
 procedure CreatePhotoshopDocument(AImage: TCustomImage32; ADocument: TPhotoshopDocument; AOptions: TPhotoshopExportOptions);
 var
@@ -634,13 +738,16 @@ begin
       PhotoshopLayer.Name := sPSDBackgroundName;
     end;
 
+    if (peCompositeThumbnail in AOptions) then
+      GenerateThumbnail(ADocument, LayerBitmap);
+
     exit; // Done
   end;
 
   (*
   ** Composite image
   *)
-  if ([peCompositeAsLayer, peCompositeAsBackground] * AOptions <> []) then
+  if ([peCompositeAsLayer, peCompositeAsBackground, peCompositeThumbnail] * AOptions <> []) then
   begin
     CompositeBitmap := nil;
     try
@@ -684,6 +791,9 @@ begin
       // TODO : Hide the main bitmap while we flatten if peIgnoreBitmap is set
       AImage.PaintTo(CompositeBitmap, CompositeBitmap.BoundsRect);
 
+      if (peCompositeThumbnail in AOptions) then
+        GenerateThumbnail(ADocument, CompositeBitmap);
+
       if (peCompositeAsLayer in AOptions) then
       begin
         PhotoshopLayer := TPhotoshopLayer32.Create(ADocument);
@@ -691,6 +801,8 @@ begin
         // If there is a composite background then it will own the bitmap. Otherwise
         // this layer owns it.
         TPhotoshopLayer32(PhotoshopLayer).OwnsBitmap := not(peCompositeAsBackground in AOptions);
+        if (TPhotoshopLayer32(PhotoshopLayer).OwnsBitmap) then
+          CompositeBitmap := nil;
       end;
 
       if (peCompositeAsBackground in AOptions) then
@@ -800,6 +912,9 @@ begin
       PSDLayer.Document := ADocument // Document now owns the layer
     else
       ADocument.Background := PSDLayer; // Document now owns the layer
+
+    if (peCompositeThumbnail in AOptions) then
+      GenerateThumbnail(ADocument, ABitmap);
 
   except
     PSDLayer.Free;
@@ -928,6 +1043,110 @@ constructor TCustomPhotoshopLayerProperty.Create(ALayer: TCustomPhotoshopLayer; 
 begin
   FLayer := ALayer;
   FKey := AKey;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TCustomPhotoshopResource
+//
+//------------------------------------------------------------------------------
+constructor TCustomPhotoshopResource.Create(ADocument: TPhotoshopDocument);
+begin
+  inherited Create;
+  SetDocument(ADocument);
+end;
+
+destructor TCustomPhotoshopResource.Destroy;
+begin
+  SetDocument(nil);
+  inherited;
+end;
+
+procedure TCustomPhotoshopResource.SetDocument(const Value: TPhotoshopDocument);
+begin
+  if (FDocument = Value) then
+    exit;
+
+  if (FDocument <> nil) then
+    FDocument.Resources.RemoveResource(Self);
+
+  FDocument := Value;
+
+  if (FDocument <> nil) then
+    FDocument.Resources.AddResource(Self);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TPhotoshopThumbnailResource
+//
+//------------------------------------------------------------------------------
+constructor TPhotoshopThumbnailResource.Create(ADocument: TPhotoshopDocument);
+begin
+  inherited Create(ADocument);
+  FResourceID := PSD_THUMB_RES2;
+  FBitmap := TBitmap32.Create;
+end;
+
+destructor TPhotoshopThumbnailResource.Destroy;
+begin
+  FBitmap.Free;
+  inherited;
+end;
+
+procedure TPhotoshopThumbnailResource.SaveToStream(AStream: TStream);
+var
+  Writer: IImageFormatWriter;
+  WidthBytes: Cardinal;
+  SavePos: Int64;
+  SizeAfterCompressionPos: Int64;
+  SizeAfterCompression: Cardinal;
+begin
+  if (FBitmap = nil) or (FBitmap.Empty) then
+    exit;
+
+  Writer := ImageFormatManager.Writers.FindWriter('jpg');
+  if (Writer = nil) then
+    raise EPhotoshopDocument.Create('JPEG writer not found; Unable to write PSD thumbnail');
+
+  // PSD_THUMB_RES2 (ID 1036) data:
+  // 4 bytes: Format (1 = kJpegRGB, 28 = kRawRGB)
+  // 4 bytes: Width
+  // 4 bytes: Height
+  // 4 bytes: WidthBytes: (Width * bits_per_pixel + 31) / 32 * 4
+  // 4 bytes: TotalSize: WidthBytes * Height * Planes
+  // 4 bytes: SizeAfterCompression
+  // 2 bytes: BitsPerPixel: 24
+  // 2 bytes: NumberOfPlanes: 1
+  // Variable: JPEG data
+
+  WidthBytes := (Cardinal(FBitmap.Width) * 24 + 31) div 32 * 4;
+
+  BigEndian.WriteCardinal(AStream, 1); // Format: 1 = kJpegRGB
+  BigEndian.WriteCardinal(AStream, FBitmap.Width);
+  BigEndian.WriteCardinal(AStream, FBitmap.Height);
+
+  // WidthBytes: (Width * bits_per_pixel + 31) / 32 * 4
+  BigEndian.WriteCardinal(AStream, WidthBytes);
+  BigEndian.WriteCardinal(AStream, WidthBytes * Cardinal(FBitmap.Height)); // TotalSize: Specs say "Total size: WidthBytes * Height * Planes"
+  SizeAfterCompressionPos := AStream.Position;
+  BigEndian.WriteCardinal(AStream, 0); // SizeAfterCompression (placeholder)
+
+  BigEndian.WriteWord(AStream, 24); // Bits per pixel
+  BigEndian.WriteWord(AStream, 1); // Number of planes
+
+  // The JPEG data follows
+  SavePos := AStream.Position;
+  Writer.SaveToStream(FBitmap, AStream);
+
+  // Update thumbnail SizeAfterCompression
+  SizeAfterCompression := AStream.Position - SavePos;
+  SavePos := AStream.Position;
+  AStream.Position := SizeAfterCompressionPos;
+  BigEndian.WriteCardinal(AStream, SizeAfterCompression);
+  AStream.Position := SavePos
 end;
 
 
@@ -1183,6 +1402,62 @@ begin
   FLayers.Move(OldIndex, NewIndex);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TPhotoshopDocument.TPhotoshopResources
+//
+//------------------------------------------------------------------------------
+constructor TPhotoshopDocument.TPhotoshopResources.Create(ADocument: TPhotoshopDocument);
+begin
+  inherited Create;
+  FDocument := ADocument;
+  FResources := TObjectList<TCustomPhotoshopResource>.Create;
+end;
+
+destructor TPhotoshopDocument.TPhotoshopResources.Destroy;
+begin
+  FResources.Free;
+  inherited;
+end;
+
+procedure TPhotoshopDocument.TPhotoshopResources.Clear;
+begin
+  FResources.Clear;
+end;
+
+procedure TPhotoshopDocument.TPhotoshopResources.AddResource(AResource: TCustomPhotoshopResource);
+begin
+  if (not FResources.Contains(AResource)) then
+    FResources.Add(AResource);
+end;
+
+procedure TPhotoshopDocument.TPhotoshopResources.RemoveResource(AResource: TCustomPhotoshopResource);
+begin
+  FResources.Extract(AResource);
+end;
+
+function TPhotoshopDocument.TPhotoshopResources.Add(AResourceClass: TPhotoshopResourceClass): TCustomPhotoshopResource;
+begin
+  Result := AResourceClass.Create(FDocument);
+end;
+
+function TPhotoshopDocument.TPhotoshopResources.GetCount: integer;
+begin
+  Result := FResources.Count;
+end;
+
+function TPhotoshopDocument.TPhotoshopResources.GetEnumerator: TEnumerator<TCustomPhotoshopResource>;
+begin
+  Result := FResources.GetEnumerator;
+end;
+
+function TPhotoshopDocument.TPhotoshopResources.GetResource(Index: integer): TCustomPhotoshopResource;
+begin
+  Result := FResources[Index];
+end;
+
+
 //------------------------------------------------------------------------------
 //
 //      TPhotoshopDocument
@@ -1192,6 +1467,7 @@ constructor TPhotoshopDocument.Create(ABackground: TCustomPhotoshopLayer);
 begin
   inherited Create;
   FLayers := TPhotoshopLayers.Create(Self);
+  FResources := TPhotoshopResources.Create(Self);
   FCompression := FDefaultCompression;
   FChannels := 4;
   FBackground := ABackground;
@@ -1201,6 +1477,7 @@ destructor TPhotoshopDocument.Destroy;
 begin
   FBackground.Free;
   FLayers.Free;
+  FResources.Free;
   inherited;
 end;
 
@@ -1224,6 +1501,7 @@ procedure TPhotoshopDocument.Clear;
 begin
   SetBackground(nil);
   FLayers.Clear;
+  FResources.Clear;
   SetSize(0, 0);
 end;
 
