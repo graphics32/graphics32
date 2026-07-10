@@ -333,7 +333,7 @@ begin
       SetLength(FBuckets[BucketIndex].Items, Capacity);
     end;
 
-    with FBuckets[BucketIndex].Items[Count] do
+    with FBuckets[BucketIndex].Items[FBuckets[BucketIndex].Count] do
     begin
       Item := NewItem;
       Data := NewData;
