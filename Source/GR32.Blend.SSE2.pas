@@ -196,7 +196,12 @@ function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostac
 
           x div 255 = ((x + 128) * 257) >> 16
 *)
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
+{$if defined(TARGET_x64) and not defined(FPC)}
+        .SAVENV XMM4
+{$ifend}
+
 {$if defined(TARGET_x86)}
         MOVD      XMM0, EAX
         MOVD      XMM1, EDX
@@ -205,9 +210,9 @@ asm
         MOVD      XMM1, EDX
 {$ifend}
 
-        PXOR      XMM7, XMM7
-        PUNPCKLBW XMM0, XMM7          // Components of F (word)
-        PUNPCKLBW XMM1, XMM7          // Components of B (word)
+        PXOR      XMM4, XMM4
+        PUNPCKLBW XMM0, XMM4          // Components of F (word)
+        PUNPCKLBW XMM1, XMM4          // Components of B (word)
         PSHUFLW   XMM2, XMM0, $FF     // Broadcast Fa into words
         MOVDQA    XMM3, DQWORD PTR [SSE_00FF00FF_ALIGNED]
         PSUBW     XMM3, XMM2
@@ -219,6 +224,8 @@ asm
         PACKUSWB  XMM0, XMM0
         MOVD      EAX, XMM0
         OR        EAX, $FF000000
+
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4'];{$ifend}
 end;
 
 

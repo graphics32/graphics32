@@ -678,6 +678,7 @@ function BlendReg_SSE2_Sanyin_257(F, B: TColor32): TColor32; {$IFDEF FPC} assemb
   // Result = (x + 128) * 257;
 asm
 {$IFDEF TARGET_x64}
+        .SAVENV XMM4
         MOVD      XMM0, ECX
         MOVD      XMM1, EDX
 {$ENDIF}
@@ -685,9 +686,9 @@ asm
         MOVD      XMM0, EAX
         MOVD      XMM1, EDX
 {$ENDIF}
-        PXOR      XMM7, XMM7
-        PUNPCKLBW XMM0, XMM7          // Components of F (word)
-        PUNPCKLBW XMM1, XMM7          // Components of B (word)
+        PXOR      XMM4, XMM4
+        PUNPCKLBW XMM0, XMM4          // Components of F (word)
+        PUNPCKLBW XMM1, XMM4          // Components of B (word)
         PSHUFLW   XMM2, XMM0, $FF     // Broadcast Fa into words
         MOVDQA    XMM3, DQWORD PTR [SSE_00FF00FF_ALIGNED]
         PSUBW     XMM3, XMM2
@@ -697,6 +698,31 @@ asm
         PADDW     XMM0, DQWORD PTR [SSE_00800080_ALIGNED]
         PMULHUW   XMM0, DQWORD PTR [SSE_01010101_ALIGNED]
         PACKUSWB  XMM0, XMM0
+        MOVD      EAX, XMM0
+        OR        EAX, $FF000000
+end;
+
+//------------------------------------------------------------------------------
+
+function BlendReg_SSE41_Sanyin_257_2(F, B: TColor32): TColor32;
+asm
+{$if defined(TARGET_x86)}
+        MOVD      XMM0, ECX
+        MOVD      XMM1, EDX
+{$elseif defined(TARGET_x64)}
+        MOVD      XMM0, EAX
+        MOVD      XMM1, EDX
+{$ifend}
+        PMOVZXBW  XMM0, XMM0
+        PMOVZXBW  XMM1, XMM1
+        PSHUFLW   XMM2, XMM0, $FF          // Fa broadcast
+        PMULLW    XMM0, XMM2                // Fa*F
+        PSUBW     XMM2, DQWORD PTR [SSE_00FF00FF_ALIGNED]   // XMM2 = Fa - 255
+        PMULLW    XMM1, XMM2                // B * (Fa - 255) = -(255 - Fa) * B
+        PSUBW     XMM0, XMM1                // x = Fa * F - [-(255 - Fa) * B] = Fa * F + (255 - Fa) * B
+        PADDW     XMM0, DQWORD PTR [SSE_00800080_ALIGNED]
+        PMULHUW   XMM0, DQWORD PTR [SSE_01010101_ALIGNED]
+        PACKUSWB  XMM0, XMM0                // words -> bytes
         MOVD      EAX, XMM0
         OR        EAX, $FF000000
 end;
@@ -836,6 +862,7 @@ begin
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_Sanyin2, [isSSE41], 1).Name := 'BlendReg_SSE41_Sanyin2';
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_Sanyin2, [isSSE2], 1).Name := 'BlendReg_SSE2_Sanyin2';
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_Sanyin_257, [isSSE41], 1).Name := 'BlendReg_SSE41_Sanyin_257';
+  BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_Sanyin_257_2, [isSSE41], 1).Name := 'BlendReg_SSE41_Sanyin_257_2';
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE2_Sanyin_257, [isSSE2], 1).Name := 'BlendReg_SSE2_Sanyin_257';
 
   BlendRegistry[@@BlendReg].Add(@BlendReg_SSE41_8081, [isSSE41], 1).Name := 'BlendReg_SSE41_8081';
