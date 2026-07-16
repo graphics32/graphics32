@@ -111,12 +111,21 @@ object FormMain: TFormMain
     end
     object CheckBoxSaveBackground: TCheckBox
       Left = 497
-      Top = 11
+      Top = 2
       Width = 108
       Height = 17
       Caption = 'Save background'
       TabOrder = 3
       OnClick = CheckBoxSaveBackgroundClick
+    end
+    object CheckBoxSaveThumbnail: TCheckBox
+      Left = 497
+      Top = 18
+      Width = 108
+      Height = 17
+      Caption = 'Save thumbnail'
+      TabOrder = 4
+      OnClick = CheckBoxSaveThumbnailClick
     end
   end
   object PanelLayers: TPanel

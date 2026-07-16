@@ -727,6 +727,50 @@ var
     WriteEndSection(4);
   end;
 
+  procedure WriteResources;
+  var
+    Resource: TCustomPhotoshopResource;
+    DataStartPos: Int64;
+    Size: Cardinal;
+    SavePos: Int64;
+    Name: AnsiString;
+  begin
+    if ADocument.Resources.Count = 0 then
+    begin
+      BigEndian.WriteCardinal(AStream, 0);
+      exit;
+    end;
+
+    WriteBeginSection;
+    begin
+      for Resource in ADocument.Resources do
+      begin
+        WriteRawAnsiString('8BIM');
+        BigEndian.WriteWord(AStream, Word(Resource.ResourceID));
+        Name := AnsiString(Resource.Name);
+        Size := WriteAnsiText(Name);
+        WritePadToAlignment(Size, 2);
+
+        BigEndian.WriteCardinal(AStream, 0); // Data size slot
+        DataStartPos := AStream.Position;
+
+        Resource.SaveToStream(AStream);
+
+        Size := AStream.Position - DataStartPos;
+
+        // Pad data to even boundary
+        WritePadToAlignment(Size, 2);
+
+        // Update resource size
+        SavePos := AStream.Position;
+        AStream.Position := DataStartPos - SizeOf(Cardinal);
+        BigEndian.WriteCardinal(AStream, Size);
+        AStream.Position := SavePos;
+      end;
+    end;
+    WriteEndSection(2); // Specs say aligned to 2 for Resource section
+  end;
+
   procedure WriteLayerRecord(ALayer: TCustomPhotoshopLayer; var AChannelsInfoPos: Int64);
   begin
     BigEndian.WriteCardinal(AStream, ALayer.Top); // Top
@@ -847,15 +891,13 @@ begin
   // Color mode table
   BigEndian.WriteCardinal(AStream, 0);
 
-  // Resources
-  BigEndian.WriteCardinal(AStream, 0);
-
   SectionsCaptures := TStack<Int64>.Create;
   try
+    // Resources
+    WriteResources;
 
     // Layers
     WriteLayers;
-
   finally
     SectionsCaptures.Free;
   end;
