@@ -477,7 +477,15 @@ type
     peCompositeAsBackground,    // Save a composite of the image (bitmap and all
                                 // layers) as the PSD background image.
 
-    peCompositeThumbnail,       // Save a composite of the image as a PSD thumbnail.
+    peCompositeThumbnail,       // Save a composite of the image as a PSD
+                                // thumbnail (in JPG format).
+                                // The dimensions of the thumbnail is controlled
+                                // by the PhotoshopMaxThumbnailSize variable.
+                                // Note that most applications that can read PSD
+                                // files will just ignore the thumbnail resource.
+                                // So in most cases the inclusion of a thumbnail
+                                // will just increase the file size slightly with
+                                // no added benefit.
 
     peBackgroundAsLayer,        // TCustomImage32.Bitmap is saved as a layer.
 
@@ -576,7 +584,7 @@ procedure LoadBitmapFromPhotoshopDocument(ABitmap: TCustomBitmap32; ADocument: T
 var
   // Default options used when exporting via TPhotoshopDocument.Assign(TCustomBitmap32),
   // or TPhotoshopDocument.Assign(TCustomImage32)
-  DefaultPhotoshopExportOptions: TPhotoshopExportOptions = [peCompositeAsBackground, peCompositeThumbnail];
+  DefaultPhotoshopExportOptions: TPhotoshopExportOptions = [peCompositeAsBackground];
 
 var
   // Default options used when importing via TCustomBitmap32.Assign(TPhotoshopDocument),

@@ -42,6 +42,7 @@ type
     ButtonLayerDown: TSpeedButton;
     ActionLayerDown: TAction;
     ActionLayerUp: TAction;
+    CheckBoxSaveThumbnail: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
@@ -66,6 +67,7 @@ type
     procedure ActionLayerUpUpdate(Sender: TObject);
     procedure ActionLayerDownExecute(Sender: TObject);
     procedure ActionLayerDownUpdate(Sender: TObject);
+    procedure CheckBoxSaveThumbnailClick(Sender: TObject);
   private
     FSelection: TPositionedLayer;
     FRubberbandLayer: TRubberbandLayer;
@@ -211,6 +213,14 @@ begin
     DefaultPhotoshopExportOptions := DefaultPhotoshopExportOptions + [peBackgroundAsLayer]
   else
     DefaultPhotoshopExportOptions := DefaultPhotoshopExportOptions - [peBackgroundAsLayer];
+end;
+
+procedure TFormMain.CheckBoxSaveThumbnailClick(Sender: TObject);
+begin
+  if (TCheckBox(Sender).Checked) then
+    DefaultPhotoshopExportOptions := DefaultPhotoshopExportOptions + [peCompositeThumbnail]
+  else
+    DefaultPhotoshopExportOptions := DefaultPhotoshopExportOptions - [peCompositeThumbnail];
 end;
 
 procedure TFormMain.Clear;
