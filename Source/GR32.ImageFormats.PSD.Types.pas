@@ -275,7 +275,7 @@ type
     PSD_PS2_COLOR_TAB     = 1003,         // $03eb - Obsolete - ps 2.0 indexed color table
     PSD_RESN_INFO         = 1005,         // $03ed - ResolutionInfo structure
     PSD_ALPHA_NAMES       = 1006,         // $03ee - Alpha channel names
-    PSD_DISPLAY_INFO      = 1007,         // $03ef - Superceded by PSD_DISPLAY_INFO_NEW for ps CS3 and higher - DisplayInfo structure
+    PSD_DISPLAY_INFO      = 1007,         // $03ef - Supercsded by PSD_DISPLAY_INFO_NEW for ps CS3 and higher - DisplayInfo structure
     PSD_CAPTION           = 1008,         // $03f0 - Optional - Caption string
     PSD_BORDER_INFO       = 1009,         // $03f1 - Border info
     PSD_BACKGROUND_COL    = 1010,         // $03f2 - Background color
@@ -304,8 +304,8 @@ type
     PSD_COPYRIGHT_FLG     = 1034,         // $040a - Copyright flag
     PSD_URL               = 1035,         // $040b - URL string
     PSD_THUMB_RES2        = 1036,         // $040c - Thumbnail resource
-    PSD_GLOBAL_ANGLE      = 1037,         // $040d - Superceded by PSD_NEW_COLOR_SAMPLER for ps CS3 and higher - Global angle
-    PSD_COLOR_SAMPLER     = 1038,         // $040e - Superceded by PSD_NEW_COLOR_SAMPLER for ps CS3 and higher - Color samplers resource
+    PSD_GLOBAL_ANGLE      = 1037,         // $040d - Superseded by PSD_NEW_COLOR_SAMPLER for ps CS3 and higher - Global angle
+    PSD_COLOR_SAMPLER     = 1038,         // $040e - Superseded by PSD_NEW_COLOR_SAMPLER for ps CS3 and higher - Color samplers resource
     PSD_ICC_PROFILE       = 1039,         // $040f - ICC Profile
     PSD_WATERMARK         = 1040,         // $0410 - Watermark
     PSD_ICC_UNTAGGED      = 1041,         // $0411 - Do not use ICC profile flag

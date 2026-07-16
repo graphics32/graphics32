@@ -140,8 +140,8 @@ var
 //
 //------------------------------------------------------------------------------
 { Pseudo GetTickCount implementation for Linux - for compatibility
-  This works for basic time testing, however, it doesnt work like its
-  Windows counterpart, ie. it doesnt return the number of milliseconds since
+  This works for basic time testing, however, it doesn't work like its
+  Windows counterpart, ie. it doesn't return the number of milliseconds since
   system boot. Will definitely overflow. }
 function GetTickCount: UInt64;
 

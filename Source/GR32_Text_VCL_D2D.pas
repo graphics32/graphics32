@@ -143,7 +143,7 @@ type
 
     function GetGDICompatibleGlyphMetrics(emSize: Single; pixelsPerDip: Single;
       transform: PDwriteMatrix; useGdiNatural: BOOL;
-      glyphIndicies: PWord; glpyhCount: Cardinal;
+      glyphIndices: PWord; glpyhCount: Cardinal;
       out glyphMetrics: TDwriteGlyphMetrics; isSideways: BOOL = FALSE): HResult; stdcall;
   end;
 

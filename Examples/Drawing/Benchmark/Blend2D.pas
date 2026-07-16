@@ -4563,7 +4563,7 @@ type
     DarkBackgroundPalette     = BL_FONT_STRING_DARK_BACKGROUND_PALETTE,
 
     { Variations PostScript name prefix. }
-    VariationsPostSciptPrefix = BL_FONT_STRING_VARIATIONS_POST_SCRIPT_PREFIX);
+    VariationsPostScriptPrefix = BL_FONT_STRING_VARIATIONS_POST_SCRIPT_PREFIX);
 
 type
   { Bit positions in TBLFontUnicodeCoverage record.

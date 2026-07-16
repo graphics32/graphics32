@@ -53,7 +53,7 @@ type
     procedure Clear; override;
   end;
 
-  TReuseableDataContainer64 = class
+  TReusableDataContainer64 = class
   private
     FLocMinList         : TLocMinList;
     FVertexArrayList    : TList;
@@ -278,7 +278,7 @@ type
       pathType: TPathType; isOpen: Boolean);
     procedure AddPaths(const paths: TPaths64;
       pathType: TPathType; isOpen: Boolean);
-    procedure AddReuseableData(const reuseableData: TReuseableDataContainer64);
+    procedure AddReusableData(const reusableData: TReusableDataContainer64);
     function ClearSolutionOnly: Boolean;
     procedure ExecuteInternal(clipType: TClipType;
       fillRule: TFillRule; usingPolytree: Boolean);
@@ -303,7 +303,7 @@ type
 
   TClipper64 = class(TClipperBase) // for integer coordinates
   public
-    procedure AddReuseableData(const reuseableData: TReuseableDataContainer64);
+    procedure AddReusableData(const reusableData: TReusableDataContainer64);
     procedure AddSubject(const subject: TPath64); overload;
     procedure AddSubject(const subjects: TPaths64); overload;
     procedure AddOpenSubject(const subject: TPath64); overload;
@@ -900,7 +900,7 @@ begin
       while (op2 <> op) and (op2.pt.Y > pt.Y) do op2 := op2.next;
     if (op2 = op) then break;
 
-    // must have touched or crossed the pt.Y horizonal
+    // must have touched or crossed the pt.Y horizontal
     // and this must happen an even number of times
 
     if (op2.pt.Y = pt.Y) then // touching the horizontal
@@ -1337,17 +1337,17 @@ begin
 end;
 
 //------------------------------------------------------------------------------
-// TReuseableDataContainer64 methods ...
+// TReusableDataContainer64 methods ...
 //------------------------------------------------------------------------------
 
-constructor TReuseableDataContainer64.Create;
+constructor TReusableDataContainer64.Create;
 begin
   FLocMinList := TLocMinList.Create;
   FVertexArrayList := TList.Create;
 end;
 //------------------------------------------------------------------------------
 
-destructor TReuseableDataContainer64.Destroy;
+destructor TReusableDataContainer64.Destroy;
 begin
   Clear;
   FLocMinList.Free;
@@ -1356,7 +1356,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure TReuseableDataContainer64.Clear;
+procedure TReusableDataContainer64.Clear;
 var
   i: integer;
 begin
@@ -1367,7 +1367,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure TReuseableDataContainer64.AddPaths(const paths: TPaths64;
+procedure TReusableDataContainer64.AddPaths(const paths: TPaths64;
   pathType: TPathType; isOpen: Boolean);
 begin
   AddPathsToVertexList(paths, pathType, isOpen,
@@ -1599,19 +1599,19 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure TClipperBase.AddReuseableData(const reuseableData: TReuseableDataContainer64);
+procedure TClipperBase.AddReusableData(const reusableData: TReusableDataContainer64);
 var
   i: integer;
   lm: PLocalMinima;
 begin
-  if reuseableData.FLocMinList.Count = 0 then Exit;
-  // nb: reuseableData will continue to own the vertices
+  if reusableData.FLocMinList.Count = 0 then Exit;
+  // nb: reusableData will continue to own the vertices
   // and will remain responsible for their clean up.
-  // Consequently, it's important that the reuseableData object isn't
+  // Consequently, it's important that the reusableData object isn't
   // destroyed before the Clipper object that's using the data.
   FLocMinListSorted := false;
-  for i := 0 to reuseableData.FLocMinList.Count -1 do
-    with PLocalMinima(reuseableData.FLocMinList[i])^ do
+  for i := 0 to reusableData.FLocMinList.Count -1 do
+    with PLocalMinima(reusableData.FLocMinList[i])^ do
     begin
       lm := self.FLocMinList.Add;
       lm.vertex := vertex;
@@ -2899,7 +2899,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function HorzontalsOverlap(const horz1a, horz1b, horz2a, horz2b: TPoint64): boolean;
+function HorizontalsOverlap(const horz1a, horz1b, horz2a, horz2b: TPoint64): boolean;
   {$IFDEF INLINING} inline; {$ENDIF}
 begin
   if horz1a.X < horz1b.X then
@@ -3344,7 +3344,7 @@ procedure TClipperBase.SwapPositionsInAEL(e1, e2: PActive);
 var
   prev, next: PActive;
 begin
-  // preconditon: e1 must be immediately prior to e2
+  // precondition: e1 must be immediately prior to e2
   next := e2.nextInAEL;
   if Assigned(next) then next.prevInAEL := e1;
   prev := e1.prevInAEL;
@@ -3525,7 +3525,7 @@ begin
       end;
       if IsHotEdge(horzEdge) then
       begin
-        //nb: The outrec containining the op returned by IntersectEdges
+        //nb: The outrec containing the op returned by IntersectEdges
         //above may no longer be associated with horzEdge.
         FHorzSegList.Add(GetLastOp(horzEdge));
       end;
@@ -3857,9 +3857,9 @@ end;
 // TClipper methods
 //------------------------------------------------------------------------------
 
-procedure TClipper64.AddReuseableData(const reuseableData: TReuseableDataContainer64);
+procedure TClipper64.AddReusableData(const reusableData: TReusableDataContainer64);
 begin
-  inherited AddReuseableData(reuseableData);
+  inherited AddReusableData(reusableData);
 end;
 //------------------------------------------------------------------------------
 
