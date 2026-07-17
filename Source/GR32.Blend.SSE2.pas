@@ -53,7 +53,7 @@ uses
 //------------------------------------------------------------------------------
 // Blend
 //------------------------------------------------------------------------------
-function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function BlendReg_SSE2(F, B: TColor32): TColor32;
 function BlendReg_SSE41(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 procedure BlendMem_SSE2(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
@@ -191,7 +191,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendReg_SSE2(F, B: TColor32): TColor32;
 (*
         BlendReg_SSE2_Sanyin_257
         Contributed by: Sanyin

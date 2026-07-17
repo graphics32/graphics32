@@ -646,7 +646,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats); // {$IFDEF FPC}assembler;{$ENDIF}
+procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats);
   // Parameters (x86):
   //   EAX <- iPlus
   //   EDX <- B0

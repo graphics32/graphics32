@@ -140,7 +140,7 @@ end;
 // Ported to Delphi by Anders Melander
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); //{$IFDEF FPC}assembler;{$ENDIF}
+procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
 // TODO : This has become a mess. Split into separate x86 and x64 implementations.
 type
   dword = Cardinal;

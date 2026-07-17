@@ -46,14 +46,21 @@ uses
   Windows,
 {$endif}
   Controls, Types, Classes, SysUtils, Messages, Graphics,
+{$IFDEF FPC}
+  Rtti,
+  TypInfo,
+{$ELSE}
   System.Rtti,
   System.TypInfo,
+{$ENDIF}
   GR32,
   GR32_Blend,
   GR32_Bindings;
 
 {$M+}
 
+// The released version of FPC does not currently declare TCustomAttribute
+// https://wiki.freepascal.org/Custom_Attributes
 type
   MaxErrorAttribute = class(TCustomAttribute)
   private
