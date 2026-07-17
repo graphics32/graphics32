@@ -214,7 +214,7 @@ type
     procedure TestCombineMem; override;
     [MaxError(0)]
     procedure TestCombineLine; override;
-    [MaxError(9)] // Pretty bad :-(
+    [MaxError(0)]
     procedure TestMergeReg; override;
     [MaxError(0)]
     procedure TestMergeRegEx; override;
