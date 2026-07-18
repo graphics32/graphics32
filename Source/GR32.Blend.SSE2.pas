@@ -59,7 +59,7 @@ procedure BlendMem_SSE2(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; {
 procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
 
 function BlendRegEx_SSE2(F, B: TColor32; M: Cardinal): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
-procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: Cardinal); {$IFDEF FPC} assembler; {$ENDIF} deprecated 'Slower than Pascal version!';
 
 function BlendRegRGB_SSE2(F, B: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: Cardinal); {$IFDEF FPC} assembler; {$ENDIF}
@@ -396,6 +396,7 @@ end;
 
 //------------------------------------------------------------------------------
 // BlendMemEx
+// TODO : Slower than Pascal version!
 //------------------------------------------------------------------------------
 // B.argb := M * F.a * (F.argb - B.argb) + B.argb
 //------------------------------------------------------------------------------
@@ -4277,7 +4278,8 @@ begin
   BlendRegistry[@@BlendReg].Add(       @BlendReg_SSE41,         [isSSE41]).Name := 'BlendReg_SSE41';
   BlendRegistry[@@BlendMem].Add(       @BlendMem_SSE2,          [isSSE2]).Name := 'BlendMem_SSE2';
   BlendRegistry[@@BlendMems].Add(      @BlendMems_SSE2,         [isSSE2]).Name := 'BlendMems_SSE2';
-  BlendRegistry[@@BlendMemEx].Add(     @BlendMemEx_SSE2,        [isSSE2]).Name := 'BlendMemEx_SSE2';
+  // TODO : BlendMemEx_SSE2 slower than Pascal version!
+  // BlendRegistry[@@BlendMemEx].Add(     @BlendMemEx_SSE2,        [isSSE2]).Name := 'BlendMemEx_SSE2';
   BlendRegistry[@@BlendLine].Add(      @BlendLine_SSE2,         [isSSE2]).Name := 'BlendLine_SSE2';
 {$if not defined(FPC)}
   BlendRegistry[@@BlendLine].Add(      @BlendLine_SSE41,        [isSSE41]).Name := 'BlendLine_SSE41';
