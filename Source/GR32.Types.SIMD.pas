@@ -130,7 +130,14 @@ procedure SSE_003FFF7F_ALIGNED;
 // Aligned pack table for PSHUFB: Picks low byte of 4 dwords
 procedure SSE_0C080400_ALIGNED;
 
+// Four aligned 0.5 floats
+procedure SSE_FloatHalf_ALIGNED;
 
+// Four aligned 1.0 floats
+procedure SSE_FloatOne_ALIGNED;
+
+// 1 x $80000000
+procedure SSE_80000000_ALIGNED;
 {$ifend}
 
 //------------------------------------------------------------------------------
@@ -213,6 +220,48 @@ asm
   db $00, $04, $08, $0C
   db $00, $04, $08, $0C
   db $00, $04, $08, $0C
+end;
+
+// Four aligned 0.5 floats
+procedure SSE_FloatHalf_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  {$IFDEF FPC}
+  ALIGN 16
+  {$ELSE}
+  .ALIGN 16
+  {$ENDIF}
+  db $00, $00, $00, $3F
+  db $00, $00, $00, $3F
+  db $00, $00, $00, $3F
+  db $00, $00, $00, $3F
+end;
+
+// Four aligned 1.0 floats
+procedure SSE_FloatOne_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  {$IFDEF FPC}
+  ALIGN 16
+  {$ELSE}
+  .ALIGN 16
+  {$ENDIF}
+  db $00, $00, $80, $3F
+  db $00, $00, $80, $3F
+  db $00, $00, $80, $3F
+  db $00, $00, $80, $3F
+end;
+
+// 1 x $80000000
+procedure SSE_80000000_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  {$IFDEF FPC}
+  ALIGN 16
+  {$ELSE}
+  .ALIGN 16
+  {$ENDIF}
+  db $00, $00, $00, $80
+  db $00, $00, $00, $00
+  db $00, $00, $00, $00
+  db $00, $00, $00, $00
 end;
 
 end.

@@ -48,18 +48,24 @@ type
   TRenderSpanEvent = procedure(const Span: TValueSpan; DstY: Integer) of object;
   TRenderSpanProc = procedure(Data: Pointer; const Span: TValueSpan; DstY: Integer);
 
-procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
-procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
+//------------------------------------------------------------------------------
+//
+//      RenderPolyPolygon / RenderPolygon
+//
+//------------------------------------------------------------------------------
+procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
+procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
-{$if defined(FPC) and defined(CPUx86_64) }
+{$if defined(FPC) and defined(TARGET_x64) }
 // Must apply work around for negative array index on FPC 64-bit.
 // See:
 //   - https://github.com/graphics32/graphics32/issues/51
@@ -71,10 +77,28 @@ uses
   Math,
   GR32_Math,
   GR32_LowLevel,
-  GR32_VectorUtils;
+  GR32_VectorUtils,
+  GR32.Types.SIMD,
+  GR32_Bindings;
+
+
+//------------------------------------------------------------------------------
+//
+//      Binding delegates
+//
+//------------------------------------------------------------------------------
+var
+  IntegrateSegment: procedure (const P1, P2: TFloatPoint; Values: PSingleArray);
+
+
+//------------------------------------------------------------------------------
+//
+//      PolyFloor / PolyCeil
+//
+//------------------------------------------------------------------------------
 
 // FastFloor is slow on x86 due to call overhead
-{$if (not defined(PUREPASCAL)) and defined(CPUx86_64)}
+{$if (not defined(PUREPASCAL)) and defined(TARGET_x64)}
 // Use of FastFloor in VPR currently corrupts the memory manager of FPC
 // so temporarily disabled there.
   {$if (not defined(FPC))}
@@ -118,6 +142,12 @@ begin
 {$ifend}
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      VPR
+//
+//------------------------------------------------------------------------------
 (* Mattias Andersson (from glmhlg$rf3$1@news.graphics32.org):
 
 > Which algorithm are you using for coverage calculation?
@@ -174,7 +204,353 @@ type
   PScanLineArray = ^TScanLineArray;
   TScanLineArray = array [0..0] of TScanLine;
 
-procedure IntegrateSegment(const P1, P2: TFloatPoint; Values: PSingleArray);
+
+//------------------------------------------------------------------------------
+//
+//      IntegrateSegment
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// IntegrateSegment_SSE2
+//------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+{$if defined(TARGET_x64)}
+{$define AUTO_STACK_STUFF}
+{$ifend}
+
+procedure IntegrateSegment_SSE2(const P1, P2: TFloatPoint; Values: PSingleArray);
+{$if defined(AUTO_STACK_STUFF) and defined(FPC)}begin{$ifend}
+asm
+{$if defined(TARGET_x86)}
+  // EAX <- P1
+  // EDX <- P2
+  // ECX <- Count
+        PUSH EDI
+        PUSH ESI
+        MOVQ      XMM0, [EAX]                   // P1
+        MOVQ      XMM1, [EDX]                   // P2
+        MOV       EDX, ECX                      // EDX <- Values
+        MOVLHPS   XMM0, XMM1                    // XMM0 <- P2.Y P2.X P1.Y P1.Y
+        CVTPS2DQ  XMM1, XMM0                    // XMM1 <- Rounded Y2 X2 Y1 X1
+        PSHUFD    XMM7 ,XMM1, $EE               // XMM7 <- Y2, X2, Y2, X2
+        MOVD      EDI, XMM7                     // ECX <- X2
+        MOVD      ESI, XMM1                     // EAX <- X1
+        CMP       EDI, ESI
+        JE        @Equals
+
+        CVTDQ2PS  XMM3, XMM1
+        MOVAPS    XMM2, XMM0
+        SUBPS     XMM2, XMM3                    // XMM2 <- [. fracX2 . fracX1]
+        PSHUFD    XMM3, XMM0, $EE
+        SUBPS     XMM3, XMM0                    // XMM3 <- [. . Dy Dx]
+        MOVAPS    XMM4, XMM3
+        PSHUFD    XMM3, XMM3, $55
+        DIVSS     XMM3, XMM4                    // XMM3 <- [. . . DyDx]
+        CMP       ESI, EDI
+        JG        @X1_Greater                   // if X1 < X2
+
+@X1_Smaller:                                    // X1 < X2
+        // Sx := 1 - fracX1;
+        MOVAPS    XMM4, DQWORD PTR [SSE_FloatOne_ALIGNED]
+        SUBPS     XMM4, XMM2                    // XMM4 <- [. . . Sx]
+        MOVAPS    XMM5, XMM4                    // Sx
+        // Y := P1.Y + Sx * DyDx;
+        MULPS     XMM4, XMM3                    // XMM4 <- [. . . Sx * DyDx]
+        PSHUFD    XMM6, XMM0, $55               // XMM6 <- P1.Y P1.Y P1.Y P1.Y
+        ADDPS     XMM4, XMM6                    // XMM4 <- [. . . Y]
+        // Values[X1] := Values[X1] + 0.5 * (P1.Y + Y) * Sx;
+        ADDPS     XMM6, XMM4                    // XMM6 <- (P1.Y + Y)
+        MULPS     XMM5, XMM6                    // XMM5 <- (P1.Y + Y) * Sx
+        MULPS     XMM5, DQWORD PTR [SSE_FloatHalf_ALIGNED] // XMM5 <- 0.5 * (P1.Y + Y) * Sx
+        MOVSS     XMM6, [EDX + ESI * 4]         // Offset to Values[X1]
+        ADDSS     XMM6, XMM5                    // XMM6 <- Values[X1] + 0.5 * (P1.Y + Y) * Sx
+        MOVSS     [EDX + ESI * 4], XMM6         // Values[X1] := XMM6
+        INC       ESI
+        DEC       EDI
+        CMP       EDI, ESI
+        JL        @Last1
+
+        MOVAPS    XMM6, XMM3                    // XMM6 <- DyDx
+        MULPS     XMM6, DQWORD PTR [SSE_FloatHalf_ALIGNED] // XMM6 <- dydx * 0.5
+
+@Loop1:
+        // Values[I] := Values[I] + (Y + DyDx * 0.5);
+        MOVAPS    XMM7, XMM6                    // XMM7 <- DyDx * 0.5
+        ADDPS     XMM7, XMM4                    // + Y
+        ADDSS     XMM7, [EDX + ESI * 4]         // + Values[I]
+        MOVSS     [EDX + ESI * 4], XMM7
+        ADDPS     XMM4, XMM3                    // Y := Y + DyDx;
+        INC       ESI
+        CMP       EDI, ESI
+        JGE       @Loop1
+
+@Last1:
+        // Sx := fracX2;
+        // Values[X2] := Values[X2] + 0.5 * (Y + P2.Y) * Sx;
+        SUB       ESI, 1
+        PSHUFD    XMM2, XMM2, $AA               // XMM2 <- frac2
+        PSHUFD    XMM0, XMM0, $FF
+        ADDPS     XMM0, XMM4
+        MULSS     XMM0, XMM2
+        ADD       EDI, 1
+        MULPS     XMM0, DQWORD PTR [SSE_FloatHalf_ALIGNED]
+        MOVSS     XMM6, [EDX + EDI * 4]
+        ADDPS     XMM6, XMM0
+        MOVSS     [EDX + EDI * 4], XMM6
+        JMP       @Done
+
+@X1_Greater:                                    // X1 > X2
+        MOVAPS    XMM4, XMM2                    // Sx, fracX1
+        // Sx := fracX1;
+        // Y := P1.Y - Sx * DyDx;
+        MULSS     XMM4, XMM3                    // XMM4 <- [. . . Sx * DyDx]
+        PSHUFD    XMM6, XMM0, $55               // XMM6 <- P1.Y P1.Y P1.Y P1.Y
+        MOVAPS    XMM5, XMM6                    // XMM5 <- P1.Y
+        SUBSS     XMM6, XMM4                    // XMM6 <- Y
+        // Values[X1] := Values[X1] - 0.5 * (P1.Y + Y) * Sx;
+        ADDSS     XMM5, XMM6                    // XMM6 <- (P1.Y + Y)
+        MULSS     XMM5, XMM2                    // XMM6 <- (P1.Y + Y) * Sx
+        MULPS     XMM5, DQWORD PTR [SSE_FloatHalf_ALIGNED] // XMM6 <- 0.5 * (P1.Y + Y) * Sx
+        MOVSS     XMM4, [EDX + ESI * 4]         // Offset to Values[X1]
+        SUBSS     XMM4, XMM5                    // XMM4 <- Values[X1] - 0.5 * (P1.Y + Y) * Sx
+        MOVSS     [EDX + ESI * 4], XMM4         // Values[X1] := XMM6
+        // for I := X1 - 1 downto X2 + 1 do
+        DEC       ESI
+        INC       EDI
+        CMP       ESI, EDI
+        JL        @Last2
+
+        MOVAPS    XMM4, XMM3                    // XMM4 <- DyDx
+        MULPS     XMM4, DQWORD PTR [SSE_FloatHalf_ALIGNED] // XMM4 <- DyDx * 0.5
+
+@Loop2:
+        // Values[I] := Values[I] - (Y - DyDx * 0.5);
+        MOVSS     XMM5, [EDX + ESI * 4]         // XMM5 <- Values[I]
+        SUBSS     XMM5, XMM6                    // - Y
+        ADDSS     XMM5, XMM4                    // + DyDx * 0.5 (Changed sign)
+        MOVSS     [EDX + ESI * 4], XMM5
+        // Y := Y - DyDx;
+        SUBPS     XMM6, XMM3
+        DEC       ESI
+        CMP       EDI, ESI
+        JLE       @Loop2
+
+@Last2:
+        // Sx := 1 - fracX2;
+        // Values[X2] := Values[X2] - 0.5 * (Y + P2.Y) * Sx;
+        PSHUFD    XMM3, XMM2, $AA               // XMM2 <- frac2
+        MOVAPS    XMM2, DQWORD PTR [SSE_FloatOne_ALIGNED]
+        SUBPS     XMM2, XMM3                    // XMM2 <- Sx
+        PSHUFD    XMM0, XMM0, $FF               // XMM0 <- P2.Y P2.Y P2.Y P2.Y
+        ADDPS     XMM0, XMM6
+        MULSS     XMM0, XMM2
+        MULPS     XMM0, DQWORD PTR [SSE_FloatHalf_ALIGNED]
+        MOVSS     XMM6, [EDX + ESI * 4]
+        SUBSS     XMM6, XMM0
+        MOVSS     [EDX + ESI * 4], XMM6
+        JMP       @Done
+
+(*
+@Equals:
+  // Values[X1] := Values[X1] + 0.5 * (P2.X - P1.X) * (P1.Y + P2.Y);
+  // XMM0 <- (P2.Y P2.X P1.Y P1.X)  * (1 1 1 -1) (XMM6)
+        XORPS     XMM0, DQWORD PTR [SSE_80000000_ALIGNED] // P1.X sign change: XMM0 <- (P2.Y P2.X P1.Y -P1.X)
+        PSHUFD    XMM1, XMM0, $EE               // XMM1 <- P2.Y P2.X P2.Y P2.X
+        ADDPS     XMM0, XMM1                    // Add
+        PSHUFD    XMM1, XMM0, $55               // XMM1 <- (P2.X - P1.X), (P1.Y + P2.Y), (P2.X - P1.X), (P1.Y + P2.Y)
+        MULPS     XMM0, XMM1
+        MULPS     XMM0, DQWORD PTR [SSE_FloatHalf_ALIGNED] // * 0.5
+        ADDSS     XMM0, [EDX + ESI * 4]
+        MOVSS     [EDX + ESI * 4], XMM0
+*)
+
+@Equals:
+        // XMM0 contains [Y2, X2, Y1, X1]
+        PSHUFD    XMM1, XMM0, $EE               // XMM1 = [Y2, X2, Y2, X2]
+        MOVAPS    XMM2, XMM1                    // XMM2 = [Y2, X2, Y2, X2]
+        SUBSS     XMM1, XMM0                    // XMM1[0] = X2 - X1
+        ADDPS     XMM0, XMM2                    // XMM0 = [Y2+Y2, X2+X2, Y1+Y2, X1+X2]
+        PSHUFD    XMM0, XMM0, $55               // XMM0 = [Y1+Y2, Y1+Y2, Y1+Y2, Y1+Y2]
+        MULSS     XMM0, XMM1                    // XMM0[0] = (Y1 + Y2) * (X2 - X1)
+        MULPS     XMM0, DQWORD PTR [SSE_FloatHalf_ALIGNED] // XMM0[0] = (Y1 + Y2) * (X2 - X1) * 0.5
+        ADDSS     XMM0, [EDX + ESI * 4]
+        MOVSS     [EDX + ESI * 4], XMM0
+
+@Done:
+        POP       ESI
+        POP       EDI
+
+{$elseif defined(TARGET_x64)}
+
+{$if defined(AUTO_STACK_STUFF)}
+{$if not defined(FPC)}
+  .SAVENV XMM4
+  .SAVENV XMM5
+  .SAVENV XMM6
+  .SAVENV XMM7
+{$ifend}
+{$else}
+        SUB       RSP, 40
+        MOVUPS    [RSP], XMM6
+        MOVUPS    [RSP + 16], XMM7
+{$ifend}
+
+        MOVQ      XMM0, [RCX]                   // P1
+        MOVQ      XMM1, [RDX]                   // P2
+        MOVLHPS   XMM0, XMM1                    // XMM0 <- P2.Y P2.X P1.Y P1.Y
+        CVTPS2DQ  XMM1, XMM0                    // XMM1 <- Rounded Y2 X2 Y1 X1
+        PSHUFD    XMM7, XMM1, $EE               // XMM7 <- Y2, X2, Y2, X2
+        MOVD      R11D, XMM7                    // R11D <- X2
+        MOVSXD    R11, R11D                     // R11 <- X2 extend sign
+        MOVD      R10D, XMM1
+        MOVSXD    R10, R10D                     // R10 <= X1 extend sign
+        CMP       R11, R10
+        JE        @Equals
+
+        CVTDQ2PS  XMM3, XMM1
+        MOVAPS    XMM2, XMM0
+        SUBPS     XMM2, XMM3                    // XMM2 <- [. fracX2 . fracX1]
+        PSHUFD    XMM3, XMM0, $EE
+        SUBPS     XMM3, XMM0                    // XMM3 <- [. . Dy Dx]
+        MOVAPS    XMM4, XMM3
+        PSHUFD    XMM3, XMM3, $55
+        DIVSS     XMM3, XMM4                    // XMM3[0] = DyDx
+        CMP       R10, R11
+        JG        @X1_Greater                   // if X1 < X2
+
+@X1_Smaller:                                    // X1 < X2
+        // Sx := 1 - fracX1;
+        MOVAPS    XMM4, DQWORD PTR [SSE_FloatOne_ALIGNED]
+        SUBPS     XMM4, XMM2                    // XMM4 <- [. . . Sx]
+        MOVAPS    XMM5, XMM4                    // Sx
+        // Y := P1.Y + Sx * DyDx;
+        MULPS     XMM4, XMM3                    // XMM4 <- [. . . Sx * DyDx]
+        PSHUFD    XMM6, XMM0, $55               // XMM6 <- P1.Y P1.Y P1.Y P1.Y
+        ADDPS     XMM4, XMM6                    // XMM4 <- [. . . Y]
+        // Values[X1] := Values[X1] + 0.5 * (P1.Y + Y) * Sx;
+        ADDPS     XMM6, XMM4                    // XMM6 <- (P1.Y + Y)
+        MULPS     XMM5, XMM6                    // XMM5 <- (P1.Y + Y) * Sx
+        MOVAPS    XMM6, DQWORD PTR [SSE_FloatHalf_ALIGNED]
+        MULPS     XMM5, XMM6
+        MOVSS     XMM7, [R8 + R10 * 4]          // Offset to Values[X1]
+        ADDSS     XMM7, XMM5                    // XMM6 <- Values[X1] + 0.5 * (P1.Y + Y) * Sx
+        MOVSS     [R8 + R10 * 4], XMM7          // Values[X1] := XMM6
+        INC       R10
+        DEC       R11
+        CMP       R11, R10
+        JL        @Last1
+        MOVAPS    XMM7, XMM3                    // XMM6 <- DyDx
+        MULPS     XMM7, XMM6                    // XMM7 <- dydx * 0.5
+
+@Loop1:
+        // Values[I] := Values[I] + (Y + DyDx * 0.5);
+        MOVAPS    XMM5, XMM7                    // XMM7 <- DyDx * 0.5
+        ADDPS     XMM5, XMM4                    // + Y
+        ADDSS     XMM5, [R8 + R10 * 4]          // + Values[I]
+        MOVSS     [R8 + R10 * 4], XMM5
+        ADDPS     XMM4, XMM3                    // Y := Y + DyDx;
+        INC       R10
+        CMP       R11, R10
+        JGE       @Loop1
+
+@Last1:
+        // Sx := fracX2;
+        // Values[X2] := Values[X2] + 0.5 * (Y + P2.Y) * Sx;
+        DEC       R10
+        PSHUFD    XMM2, XMM2, $AA               // XMM2 <- frac2
+        PSHUFD    XMM0, XMM0, $FF
+        ADDPS     XMM0, XMM4
+        MULSS     XMM0, XMM2
+        MULPS     XMM0, XMM6
+        INC       R11
+        MOVSS     XMM5, [R8 + R11 * 4]
+        ADDPS     XMM5, XMM0
+        MOVSS     [R8 + R11 * 4], XMM5
+        JMP       @Done
+
+@X1_Greater:                                    // X1 > X2
+        MOVAPS    XMM4, XMM2                    // sx, fracX1
+        // Sx := fracX1;
+        // Y := P1.Y - Sx * DyDx;
+        MULSS     XMM4, XMM3                    // XMM4 <- [. . . Sx * DyDx]
+        PSHUFD    XMM5, XMM0, $55               // XMM6 <- P1.Y P1.Y P1.Y P1.Y
+        MOVAPS    XMM6, XMM5                    // XMM5 <- P1.Y
+        SUBSS     XMM6, XMM4                    // XMM6 <- Y
+        // Values[X1] := Values[X1] - 0.5 * (P1.Y + Y) * Sx;
+        ADDSS     XMM5, XMM6                    // XMM6 <- (P1.Y + Y)
+        MULSS     XMM5, XMM2                    // XMM6 <- (P1.Y + Y) * Sx
+        MOVAPS    XMM4, DQWORD PTR [SSE_FloatHalf_ALIGNED]
+        MULPS     XMM5, XMM4                    // XMM6 <- 0.5 * (P1.Y + Y) * Sx
+        MOVSS     XMM7, [R8 + R10 * 4]          // Offset to Values[X1]
+        SUBSS     XMM7, XMM5                    // XMM4 <- Values[X1] - 0.5 * (P1.Y + Y) * Sx
+        MOVSS     [R8 + R10 * 4], XMM7          // Values[X1] := XMM6
+        // for I := X1 - 1 downto X2 + 1 do
+        DEC       R10
+        INC       R11
+        CMP       R10, R11
+        JL        @Last2
+
+        MOVAPS    XMM5, XMM3                    // XMM4 <- DyDx
+        MULPS     XMM5, XMM4                    // XMM4 <- DyDx * 0.5
+
+@Loop2:
+        // Values[I] := Values[I] - (Y - DyDx * 0.5);
+        MOVSS     XMM7, [R8 + R10 * 4]          // XMM5 <- Values[I]
+        SUBSS     XMM7, XMM6                    // - Y
+        ADDSS     XMM7, XMM5                    // + DyDx * 0.5 (Changed sign)
+        MOVSS     [R8 + R10 * 4], XMM7
+        SUBPS     XMM6, XMM3
+        DEC       R10
+        CMP       R11, R10
+        JLE       @Loop2
+
+@Last2:
+        // Sx := 1 - fracX2;
+        // Values[X2] := Values[X2] - 0.5 * (Y + P2.Y) * Sx;
+        PSHUFD    XMM3, XMM2, $AA
+        MOVAPS    XMM2, DQWORD PTR [SSE_FloatOne_ALIGNED]
+        SUBPS     XMM2, XMM3                    // XMM2 <- 1 - Sx
+        PSHUFD    XMM0, XMM0, $FF               // XMM0 <- P2.Y P2.Y P2.Y P2.Y
+        ADDPS     XMM0, XMM6
+        MULSS     XMM0, XMM2
+        MULPS     XMM0, XMM4
+        MOVSS     XMM7, [R8 + R10 * 4]
+        SUBSS     XMM7, XMM0
+        MOVSS     [R8 + R10 * 4], XMM7
+        JMP       @Done
+
+@Equals:
+        // Values[X1] := Values[X1] + 0.5 * (P2.X - P1.X) * (P1.Y + P2.Y);
+        // XMM0 <- (P2.Y P2.X P1.Y P1.X)  * (1 1 1 -1) (XMM6)
+        PSHUFD    XMM1, XMM0, $EE               // XMM1 <- P2.Y P2.X P2.Y P2.X
+        MOVAPS    XMM2, XMM1                    // Add
+        SUBSS     XMM1, XMM0                    // XMM1 <- (P2.X - P1.X), (P1.Y + P2.Y), (P2.X - P1.X), (P1.Y + P2.Y)
+        ADDPS     XMM0, XMM2
+        PSHUFD    XMM0, XMM0, $55
+        MULSS     XMM0, XMM1                    // * 0.5
+        MOVAPS    XMM4, DQWORD PTR [SSE_FloatHalf_ALIGNED]
+        MULSS     XMM0, XMM4
+        ADDSS     XMM0, [R8 + R10 * 4]
+        MOVSS     [R8 + R10 * 4], XMM0
+
+@Done:
+{$if not defined(AUTO_STACK_STUFF)}
+        MOVUPS    XMM6, [RSP]
+        MOVUPS    XMM7, [RSP + 16]
+        ADD       RSP, 40
+{$ifend}
+
+{$if defined(AUTO_STACK_STUFF) and defined(FPC)}end['XMM4', 'XMM5', 'XMM5', 'XMM7'];{$ifend}
+{$ifend}
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+// IntegrateSegment_Pas
+//------------------------------------------------------------------------------
+procedure IntegrateSegment_Pas(const P1, P2: TFloatPoint; Values: PSingleArray);
 var
 {$if defined(NEGATIVE_INDEX_64) }
   X1, X2: Int64;
@@ -298,6 +674,12 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      ExtractSingleSpan
+//
+//------------------------------------------------------------------------------
 procedure ExtractSingleSpan(const ScanLine: TScanLine; out Span: TValueSpan; SpanData: PSingleArray);
 var
   i: Integer;
@@ -403,6 +785,12 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      AddSegment
+//
+//------------------------------------------------------------------------------
 procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine);// {$IFDEF USEINLINING} inline; {$ENDIF}
 var
   S: PLineSegment;
@@ -427,6 +815,12 @@ begin
   S[1].Y := Y2;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      DivideSegment
+//
+//------------------------------------------------------------------------------
 procedure DivideSegment(var P1, P2: TFloatPoint; const ScanLines: PScanLineArray);
 var
   Y, Y1, Y2: Integer;
@@ -515,8 +909,13 @@ begin
   end;
 end;
 
-procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint;
-  out ScanLines: TScanLines);
+
+//------------------------------------------------------------------------------
+//
+//      BuildScanLines
+//
+//------------------------------------------------------------------------------
+procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint; out ScanLines: TScanLines);
 var
   PolygonIndex, MaxPolygon, MaxVertex: Integer;
   i, Y0,Y1,Y, YMin,YMax: Integer;
@@ -657,8 +1056,13 @@ begin
   end;
 end;
 
-procedure RenderScanline(var ScanLine: TScanLine;
-  RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; ClipX1, ClipX2: Integer);
+
+//------------------------------------------------------------------------------
+//
+//      RenderScanline
+//
+//------------------------------------------------------------------------------
+procedure RenderScanline(var ScanLine: TScanLine; RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; ClipX1, ClipX2: Integer);
 var
   Span: TValueSpan;
 {$if defined(NEGATIVE_INDEX_64) }
@@ -687,11 +1091,12 @@ begin
   FillLongWord(SpanData[X], Span.HighX - Span.LowX + 1, 0);
 end;
 
-{$ifdef FPC}
-type
-  TRoundingMode = Math.TFPURoundingMode;
-{$endif}
 
+//------------------------------------------------------------------------------
+//
+//      RenderPolyPolygon
+//
+//------------------------------------------------------------------------------
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
 var
@@ -700,8 +1105,9 @@ var
   Poly: TArrayOfArrayOfFloatPoint;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
-{$if not defined(USE_POLYFLOOR)}
   SavedRoundingMode: TRoundingMode;
+{$if (not defined(TARGET_x64))}
+  SavedRoundingModeSSE2: TRoundingMode;
 {$ifend}
 begin
   Len := Length(Points);
@@ -712,56 +1118,95 @@ begin
   for i := 0 to Len -1 do
     Poly[i] := ClipPolygon(Points[i], ClipRect);
 
-{$if not defined(USE_POLYFLOOR)}
+{$if defined(TARGET_x64)}
+  SavedRoundingMode := SetRoundMode(rmDown); // Note: On x64 SetRoundMode=SetSSERoundMode
+{$elseif defined(TARGET_x86)}
+  // IntegrateSegment_SSE2 uses CVTPS2DQ so we must set the SSE2 rounding mode (MXCSR)
+  SavedRoundingModeSSE2 := SetSSERoundMode(rmDown);
+
+{$if (not defined(USE_POLYFLOOR))}
+  // Set x87 FPU rounding mode so Round() behaves like Floor()
   SavedRoundingMode := SetRoundMode(rmDown);
-  try
 {$ifend}
+{$ifend}
+  try
 
-  BuildScanLines(Poly, ScanLines);
+    BuildScanLines(Poly, ScanLines);
 
-  if (Length(ScanLines) > 0) then
-  begin
-    CX1 := PolyFloor(ClipRect.Left);
-    CX2 := PolyCeil(ClipRect.Right) - 1;
-
-    I := CX2 - CX1 + 4;
-
-    GetMem(SpanData, I * SizeOf(Single));
-
-    FillLongWord(SpanData^, I, 0);
-
-    for I := 0 to High(ScanLines) do
+    if (Length(ScanLines) > 0) then
     begin
-      RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
-      FreeMem(ScanLines[I].Segments);
+      CX1 := PolyFloor(ClipRect.Left);
+      CX2 := PolyCeil(ClipRect.Right) - 1;
+
+      I := CX2 - CX1 + 4;
+
+      GetMem(SpanData, I * SizeOf(Single));
+
+      FillLongWord(SpanData^, I, 0);
+
+      for I := 0 to High(ScanLines) do
+      begin
+        RenderScanline(ScanLines[I], RenderProc, Data, @SpanData[-CX1 + 1], CX1, CX2);
+        FreeMem(ScanLines[I].Segments);
+      end;
+
+      FreeMem(SpanData);
     end;
 
-    FreeMem(SpanData);
-  end;
-
-{$if not defined(USE_POLYFLOOR)}
   finally
     SetRoundMode(SavedRoundingMode);
-  end;
+{$if defined(TARGET_x86)}
+    SetSSERoundMode(SavedRoundingModeSSE2);
 {$ifend}
+  end;
 end;
 
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
+//------------------------------------------------------------------------------
+
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
 begin
   RenderPolyPolygon(PolyPolygon(Points), ClipRect, RenderProc, Data);
 end;
 
-procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
+//------------------------------------------------------------------------------
+
+procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
   RenderPolyPolygon(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data);
 end;
 
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
+//------------------------------------------------------------------------------
+
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
   RenderPolygon(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data);
 end;
+
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
+var
+  Registry: TFunctionRegistry;
+
+procedure RegisterBindings;
+begin
+
+  Registry := NewRegistry('GR32_VPR bindings');
+  Registry.RegisterBinding(@@IntegrateSegment, 'IntegrateSergment');
+
+  Registry[@@IntegrateSegment].Add(   @IntegrateSegment_Pas,        [isPascal]).Name := 'IntegrateSegment_Pas';
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+  Registry[@@IntegrateSegment].Add(   @IntegrateSegment_SSE2,       [isSSE2]).Name := 'IntegrateSegment_SSE2';
+{$ifend}
+
+  Registry.RebindAll;
+end;
+
+//------------------------------------------------------------------------------
+
+initialization
+  RegisterBindings;
 
 end.

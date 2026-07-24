@@ -118,6 +118,7 @@ type
     procedure TestReflect;
     procedure TestReflectMinMax;
     procedure TestSAR;
+    procedure TestSetSSERoundMode;
   end;
 
   TTestLowLevelPas = class(TTestLowLevel)
@@ -900,6 +901,28 @@ begin
   CheckEquals(SAR_14(CValue), CValue div 16384, 'Error in function SAR_14');
   CheckEquals(SAR_15(CValue), CValue div 32768, 'Error in function SAR_15');
   CheckEquals(SAR_16(CValue), CValue div 65536, 'Error in function SAR_16');
+end;
+
+procedure TTestLowLevel.TestSetSSERoundMode;
+var
+  SavedMode, OldMode: TRoundingMode;
+begin
+  SavedMode := SetSSERoundMode(rmNearest);
+  try
+    OldMode := SetSSERoundMode(rmDown);
+    CheckEquals(Ord(rmNearest), Ord(OldMode), 'Previous mode should be rmNearest');
+
+    OldMode := SetSSERoundMode(rmUp);
+    CheckEquals(Ord(rmDown), Ord(OldMode), 'Previous mode should be rmDown');
+
+    OldMode := SetSSERoundMode(rmTruncate);
+    CheckEquals(Ord(rmUp), Ord(OldMode), 'Previous mode should be rmUp');
+
+    OldMode := SetSSERoundMode(rmNearest);
+    CheckEquals(Ord(rmTruncate), Ord(OldMode), 'Previous mode should be rmTruncate');
+  finally
+    SetSSERoundMode(SavedMode);
+  end;
 end;
 
 {$IFDEF USESTACKALLOC}

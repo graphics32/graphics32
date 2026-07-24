@@ -56,6 +56,7 @@ uses
   Graphics,
 {$ifend}
   System.UITypes,
+  Math,
   GR32,
   GR32_Math,
   GR32_Bindings;
@@ -308,6 +309,21 @@ var
 
 //------------------------------------------------------------------------------
 //
+//      SetSSERoundMode
+//
+//------------------------------------------------------------------------------
+// Mirrors the Delphi Math.SetSSERoundMode function
+//------------------------------------------------------------------------------
+{$IFDEF FPC}
+type
+  TRoundingMode = Math.TFPURoundingMode;
+{$ENDIF}
+
+function SetSSERoundMode(const RoundMode: TRoundingMode): TRoundingMode; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
 //      SAR: Shift right with sign conservation
 //
 //------------------------------------------------------------------------------
@@ -364,12 +380,7 @@ const
 implementation
 
 uses
-{$if not defined(FPC)}
-  System.Math,
-{$else}
   SysUtils,
-  Math,
-{$ifend}
   GR32.Types.SIMD;
 
 {$R-}{$Q-}  // switch off overflow and range checking
@@ -1752,6 +1763,43 @@ asm
         ROUNDSD xmm0, xmm0, SSE_ROUND.TO_POS_INF + SSE_ROUND.NO_EXC
 
         CVTTSD2SI eax, xmm0
+end;
+{$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
+//      SetSSERoundMode
+//
+//------------------------------------------------------------------------------
+function SetSSERoundMode(const RoundMode: TRoundingMode): TRoundingMode;
+{$IFNDEF FPC}
+{$WARN SYMBOL_PLATFORM OFF}
+begin
+  Result := Math.SetSSERoundMode(RoundMode);
+end;
+{$ELSE}
+var
+  MXCSR: Cardinal;
+begin
+  MXCSR := Math.GetMXCSR;
+  case (MXCSR and $6000) of
+    $0000: Result := rmNearest;
+    $2000: Result := rmDown;
+    $4000: Result := rmUp;
+    $6000: Result := rmTruncate;
+  else
+    Result := rmNearest;
+  end;
+
+  MXCSR := MXCSR and not $6000;
+  case RoundMode of
+    rmNearest:  ; // already 00
+    rmDown:     MXCSR := MXCSR or $2000;
+    rmUp:       MXCSR := MXCSR or $4000;
+    rmTruncate: MXCSR := MXCSR or $6000;
+  end;
+  Math.SetMXCSR(MXCSR);
 end;
 {$ENDIF}
 
