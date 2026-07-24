@@ -48,18 +48,24 @@ type
   TRenderSpanEvent = procedure(const Span: TValueSpan; DstY: Integer) of object;
   TRenderSpanProc = procedure(Data: Pointer; const Span: TValueSpan; DstY: Integer);
 
-procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
-procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
+//------------------------------------------------------------------------------
+//
+//      RenderPolyPolygon / RenderPolygon
+//
+//------------------------------------------------------------------------------
+procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
+procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer = nil); overload;
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent); overload;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
-{$if defined(FPC) and defined(CPUx86_64) }
+{$if defined(FPC) and defined(TARGET_x64) }
 // Must apply work around for negative array index on FPC 64-bit.
 // See:
 //   - https://github.com/graphics32/graphics32/issues/51
@@ -76,11 +82,23 @@ uses
   GR32_Bindings;
 
 
+//------------------------------------------------------------------------------
+//
+//      Binding delegates
+//
+//------------------------------------------------------------------------------
 var
   IntegrateSegment: procedure (const P1, P2: TFloatPoint; Values: PSingleArray);
 
+
+//------------------------------------------------------------------------------
+//
+//      PolyFloor / PolyCeil
+//
+//------------------------------------------------------------------------------
+
 // FastFloor is slow on x86 due to call overhead
-{$if (not defined(PUREPASCAL)) and defined(CPUx86_64)}
+{$if (not defined(PUREPASCAL)) and defined(TARGET_x64)}
 // Use of FastFloor in VPR currently corrupts the memory manager of FPC
 // so temporarily disabled there.
   {$if (not defined(FPC))}
@@ -124,6 +142,12 @@ begin
 {$ifend}
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      VPR
+//
+//------------------------------------------------------------------------------
 (* Mattias Andersson (from glmhlg$rf3$1@news.graphics32.org):
 
 > Which algorithm are you using for coverage calculation?
@@ -180,9 +204,26 @@ type
   PScanLineArray = ^TScanLineArray;
   TScanLineArray = array [0..0] of TScanLine;
 
-procedure IntegrateSegment_SSE2(const P1, P2: TFloatPoint; Values: PSingleArray); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+
+//------------------------------------------------------------------------------
+//
+//      IntegrateSegment
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// IntegrateSegment_SSE2
+//------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+{$if defined(TARGET_x64)}
+{$define AUTO_STACK_STUFF}
+{$ifend}
+
+procedure IntegrateSegment_SSE2(const P1, P2: TFloatPoint; Values: PSingleArray);
+{$if defined(AUTO_STACK_STUFF) and defined(FPC)}begin{$ifend}
 asm
-{$IFDEF TARGET_x86}
+{$if defined(TARGET_x86)}
   // EAX <- P1
   // EDX <- P2
   // ECX <- Count
@@ -340,11 +381,21 @@ asm
 @Done:
         POP       ESI
         POP       EDI
-{$ENDIF TARGET_x86}
-{$IFDEF CPUX64}
+
+{$elseif defined(TARGET_x64)}
+
+{$if defined(AUTO_STACK_STUFF)}
+{$if not defined(FPC)}
+  .SAVENV XMM4
+  .SAVENV XMM5
+  .SAVENV XMM6
+  .SAVENV XMM7
+{$ifend}
+{$else}
         SUB       RSP, 40
         MOVUPS    [RSP], XMM6
         MOVUPS    [RSP + 16], XMM7
+{$ifend}
 
         MOVQ      XMM0, [RCX]                   // P1
         MOVQ      XMM1, [RDX]                   // P2
@@ -485,12 +536,20 @@ asm
         MOVSS     [R8 + R10 * 4], XMM0
 
 @Done:
+{$if not defined(AUTO_STACK_STUFF)}
         MOVUPS    XMM6, [RSP]
         MOVUPS    XMM7, [RSP + 16]
         ADD       RSP, 40
-{$ENDIF}
-end;
+{$ifend}
 
+{$if defined(AUTO_STACK_STUFF) and defined(FPC)}end['XMM4', 'XMM5', 'XMM5', 'XMM7'];{$ifend}
+{$ifend}
+end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+// IntegrateSegment_Pas
+//------------------------------------------------------------------------------
 procedure IntegrateSegment_Pas(const P1, P2: TFloatPoint; Values: PSingleArray);
 var
 {$if defined(NEGATIVE_INDEX_64) }
@@ -615,6 +674,12 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      ExtractSingleSpan
+//
+//------------------------------------------------------------------------------
 procedure ExtractSingleSpan(const ScanLine: TScanLine; out Span: TValueSpan; SpanData: PSingleArray);
 var
   i: Integer;
@@ -720,6 +785,12 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      AddSegment
+//
+//------------------------------------------------------------------------------
 procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine);// {$IFDEF USEINLINING} inline; {$ENDIF}
 var
   S: PLineSegment;
@@ -744,6 +815,12 @@ begin
   S[1].Y := Y2;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      DivideSegment
+//
+//------------------------------------------------------------------------------
 procedure DivideSegment(var P1, P2: TFloatPoint; const ScanLines: PScanLineArray);
 var
   Y, Y1, Y2: Integer;
@@ -832,8 +909,13 @@ begin
   end;
 end;
 
-procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint;
-  out ScanLines: TScanLines);
+
+//------------------------------------------------------------------------------
+//
+//      BuildScanLines
+//
+//------------------------------------------------------------------------------
+procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint; out ScanLines: TScanLines);
 var
   PolygonIndex, MaxPolygon, MaxVertex: Integer;
   i, Y0,Y1,Y, YMin,YMax: Integer;
@@ -974,8 +1056,13 @@ begin
   end;
 end;
 
-procedure RenderScanline(var ScanLine: TScanLine;
-  RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; ClipX1, ClipX2: Integer);
+
+//------------------------------------------------------------------------------
+//
+//      RenderScanline
+//
+//------------------------------------------------------------------------------
+procedure RenderScanline(var ScanLine: TScanLine; RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; ClipX1, ClipX2: Integer);
 var
   Span: TValueSpan;
 {$if defined(NEGATIVE_INDEX_64) }
@@ -1004,11 +1091,12 @@ begin
   FillLongWord(SpanData[X], Span.HighX - Span.LowX + 1, 0);
 end;
 
-{$ifdef FPC}
-type
-  TRoundingMode = Math.TFPURoundingMode;
-{$endif}
 
+//------------------------------------------------------------------------------
+//
+//      RenderPolyPolygon
+//
+//------------------------------------------------------------------------------
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
 var
@@ -1017,10 +1105,10 @@ var
   Poly: TArrayOfArrayOfFloatPoint;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
-{$if not defined(USE_POLYFLOOR)}
   SavedRoundingMode: TRoundingMode;
+{$if (not defined(TARGET_x64))}
+  SavedRoundingModeSSE2: TRoundingMode;
 {$ifend}
-  SavedSSERoundingMode: TSSERoundingMode;
 begin
   Len := Length(Points);
   if Len = 0 then
@@ -1030,12 +1118,19 @@ begin
   for i := 0 to Len -1 do
     Poly[i] := ClipPolygon(Points[i], ClipRect);
 
-{$if not defined(USE_POLYFLOOR)}
+{$if defined(TARGET_x64)}
+  SavedRoundingMode := SetRoundMode(rmDown); // Note: On x64 SetRoundMode=SetSSERoundMode
+{$elseif defined(TARGET_x86)}
+  // IntegrateSegment_SSE2 uses CVTPS2DQ so we must set the SSE2 rounding mode (MXCSR)
+  SavedRoundingModeSSE2 := SetSSERoundMode(rmDown);
+
+{$if (not defined(USE_POLYFLOOR))}
+  // Set x87 FPU rounding mode so Round() behaves like Floor()
   SavedRoundingMode := SetRoundMode(rmDown);
-  try
 {$ifend}
-    SavedSSERoundingMode := SetSSERoundMode(rmDown);
-    try
+{$ifend}
+  try
+
     BuildScanLines(Poly, ScanLines);
 
     if (Length(ScanLines) > 0) then
@@ -1058,51 +1153,58 @@ begin
       FreeMem(SpanData);
     end;
 
-    finally
-      SetSSERoundMode(SavedSSERoundingMode);
-    end;
-
-{$if not defined(USE_POLYFLOOR)}
   finally
     SetRoundMode(SavedRoundingMode);
-  end;
+{$if defined(TARGET_x86)}
+    SetSSERoundMode(SavedRoundingModeSSE2);
 {$ifend}
+  end;
 end;
 
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
+//------------------------------------------------------------------------------
+
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
 begin
   RenderPolyPolygon(PolyPolygon(Points), ClipRect, RenderProc, Data);
 end;
 
-procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
+//------------------------------------------------------------------------------
+
+procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
   RenderPolyPolygon(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data);
 end;
 
-procedure RenderPolygon(const Points: TArrayOfFloatPoint;
-  const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
+//------------------------------------------------------------------------------
+
+procedure RenderPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
   RenderPolygon(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data);
 end;
 
+//------------------------------------------------------------------------------
+//
+//      Bindings
+//
+//------------------------------------------------------------------------------
 var
   Registry: TFunctionRegistry;
 
 procedure RegisterBindings;
 begin
 
-  Registry := NewRegistry('GR32_VPRs bindings');
+  Registry := NewRegistry('GR32_VPR bindings');
   Registry.RegisterBinding(@@IntegrateSegment, 'IntegrateSergment');
 
-  Registry[@@IntegrateSegment].Add(   @IntegrateSegment_Pas,       [isPascal]).Name := 'IntegrateSegment_Pas';
+  Registry[@@IntegrateSegment].Add(   @IntegrateSegment_Pas,        [isPascal]).Name := 'IntegrateSegment_Pas';
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   Registry[@@IntegrateSegment].Add(   @IntegrateSegment_SSE2,       [isSSE2]).Name := 'IntegrateSegment_SSE2';
 {$ifend}
 
   Registry.RebindAll;
 end;
+
+//------------------------------------------------------------------------------
 
 initialization
   RegisterBindings;
