@@ -987,7 +987,6 @@ uses
   Forms,
 {$ifend}
 {$if defined(MSWINDOWS)}
-  MMSystem, // TimeGetTime
   Themes,
 {$ifend}
 {$if defined(AnimatedZoom)}
@@ -3464,7 +3463,7 @@ function PanDetect(Handle: THandle; Position: TPoint): boolean;
 var
   DragRect: TRect;
   Msg: TMsg;
-  StartTime: DWORD;
+  StartTime: integer;
 const
   PM_QS_INPUT = QS_INPUT shl 16;
   PM_QS_KEY = QS_KEY shl 16;
@@ -3484,7 +3483,10 @@ begin
   DragRect.BottomRight := Position;
   GR32.InflateRect(DragRect, GetSystemMetrics(SM_CXDRAG), GetSystemMetrics(SM_CYDRAG));
 
-  StartTime := TimeGetTime;
+  // Issue 407
+  // The source of the value in MSG.time is GetTickCount
+  // See: https://devblogs.microsoft.com/oldnewthing/20140122-00/?p=2013
+  StartTime := GetTickCount;
 
   // Abort if we haven't captured the mouse.
   if (GetCapture <> Handle) then
@@ -3523,7 +3525,7 @@ begin
         // time has elapsed.
         // Note that we ignore time warp (wrap around) and that Msg.Time
         // might be smaller than StartTime.
-        Result := (not GR32.PtInRect(DragRect, Msg.pt)) and (Msg.time >= StartTime + DWORD(100));
+        Result := (not GR32.PtInRect(DragRect, Msg.pt)) and (integer(Msg.time) - StartTime >= 100);
 
       // [Esc] cancels drag detection.
       WM_KEYDOWN:
