@@ -1193,7 +1193,7 @@ var
 procedure RegisterBindings;
 begin
 
-  Registry := NewRegistry('GR32_VPR bindings');
+  Registry := NewRegistry('GR32_VPR');
   Registry.RegisterBinding(@@IntegrateSegment, 'IntegrateSergment');
 
   Registry[@@IntegrateSegment].Add(   @IntegrateSegment_Pas,        [isPascal]).Name := 'IntegrateSegment_Pas';

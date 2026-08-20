@@ -3261,7 +3261,7 @@ function PolygonsRegistry: TFunctionRegistry;
 begin
   if (FPolygonsRegistry = nil) then
   begin
-    FPolygonsRegistry := NewRegistry('GR32_Polygons bindings');
+    FPolygonsRegistry := NewRegistry('GR32_Polygons');
     RegisterBindings;
   end;
   Result := FPolygonsRegistry;
