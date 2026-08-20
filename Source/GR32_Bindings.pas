@@ -214,7 +214,6 @@ type
     FBindings: TBindingInfoList;
     FName: string;
 
-    class function NewRegistry(const Name: string): TFunctionRegistry;
     class destructor Destroy;
 
   protected
@@ -228,6 +227,15 @@ type
     INVALID_PRIORITY: Integer = MaxInt;
     BEST_PRIORITY: integer = -MaxInt;
     WORST_PRIORITY: integer = MaxInt-1;
+
+  public
+    // Create and register a new binding registry.
+    // The name is optional and need not be unique.
+    class function NewRegistry(const Name: string = ''): TFunctionRegistry;
+
+    // Search the registry list for a registry with the specified name.
+    // Returns the first match or nil if none are found.
+    class function FindRegistry(const Name: string): TFunctionRegistry;
 
   public
     constructor Create; virtual;
@@ -291,7 +299,8 @@ const
 //      NewRegistry
 //
 //------------------------------------------------------------------------------
-// Create a new binding registry
+// Create a new binding registry.
+// Same as calling TFunctionRegistry.NewRegistry
 //------------------------------------------------------------------------------
 function NewRegistry(const Name: string = ''): TFunctionRegistry;
 
@@ -700,6 +709,16 @@ begin
   FBindingRegistries.Add(Result);
 
   Result.Name := Name;
+end;
+
+class function TFunctionRegistry.FindRegistry(const Name: string): TFunctionRegistry;
+begin
+  if (FBindingRegistries <> nil) then
+    for Result in FBindingRegistries do
+      if (SameText(Result.Name, Name)) then
+        exit;
+
+  Result := nil;
 end;
 
 //------------------------------------------------------------------------------
