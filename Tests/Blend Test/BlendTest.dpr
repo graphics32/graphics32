@@ -2,12 +2,8 @@ program BlendTest;
 
 {
 
-  Delphi DUnit-Testprojekt
-  -------------------------
-  Dieses Projekt enthlt das DUnit-Test-Framework und die GUI/Konsolen-Test-Runner.
-  Zum Verwenden des Konsolen-Test-Runners fgen Sie den konditinalen Definitionen
-  in den Projektoptionen "CONSOLE_TESTRUNNER" hinzu. Ansonsten wird standardmig
-  der GUI-Test-Runner verwendet.
+  Delphi DUnitX Test Project
+  ---------------------------
 
 }
 
@@ -16,23 +12,30 @@ program BlendTest;
 {$ENDIF}
 
 uses
-  TestFramework,
-  GUITestRunner,
-  TextTestRunner,
   Forms,
+  DUnitX.TestFramework,
+  DUnitX.Loggers.GUI.VCL,
+  DUnitX.Loggers.Console,
+  GR32.DUnitx in '..\Tools\GR32.DUnitx.pas',
   TestGR32Blend in 'TestGR32Blend.pas',
   TestGR32BlendModes in 'TestGR32BlendModes.pas',
   TestGR32Premultiply in 'TestGR32Premultiply.pas',
   GR32_Blend in '..\..\Source\GR32_Blend.pas',
   GR32_BlendReference in 'GR32_BlendReference.pas';
 
-{ *.RES}
+{$R *.res}
 
 begin
   Application.Initialize;
   if IsConsole then
-    with TextTestRunner.RunRegisteredTests do
-      Free
+  begin
+    var Runner := TDUnitX.CreateRunner;
+    var ConsoleLogger := TDUnitXConsoleLogger.Create(True);
+    Runner.AddLogger(ConsoleLogger);
+    var Results := Runner.Execute;
+    if not Results.AllPassed then
+      System.ExitCode := 1;
+  end
   else
-    GUITestRunner.RunRegisteredTests;
+    DUnitX.Loggers.GUI.VCL.Run;
 end.

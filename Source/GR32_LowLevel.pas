@@ -2146,7 +2146,7 @@ procedure RegisterBindings;
 begin
   {$WARN SYMBOL_EXPERIMENTAL OFF}
 
-  LowLevelRegistry := NewRegistry('GR32_LowLevel bindings');
+  LowLevelRegistry := NewRegistry('GR32_LowLevel');
 
   LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord, 'FillLongWord');
   LowLevelRegistry.RegisterBinding(FID_FAST_TRUNC, @@FastTrunc, 'FastTrunc');

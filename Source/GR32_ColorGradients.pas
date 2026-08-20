@@ -5262,7 +5262,7 @@ end;
 
 procedure RegisterBindings;
 begin
-  GradientRegistry := NewRegistry('GR32_ColorGradients bindings');
+  GradientRegistry := NewRegistry('GR32_ColorGradients');
   GradientRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolation, 'Linear3PointInterpolation');
   GradientRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolation, 'Linear4PointInterpolation');
 

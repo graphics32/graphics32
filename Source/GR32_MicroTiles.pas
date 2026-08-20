@@ -1661,7 +1661,7 @@ var
 
 procedure RegisterBindings;
 begin
-  Registry := NewRegistry('GR32_MicroTiles bindings');
+  Registry := NewRegistry('GR32_MicroTiles');
   Registry.RegisterBinding(@@MicroTileUnion, 'MicroTileUnion');
   Registry.RegisterBinding(@@MicroTilesU, 'MicroTilesU');
 

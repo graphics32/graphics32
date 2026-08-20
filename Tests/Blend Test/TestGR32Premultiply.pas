@@ -5,38 +5,36 @@ interface
 {$I ..\..\Source\GR32.inc}
 
 uses
+  DUnitX.TestFramework,
+  Classes, SysUtils, Math,
 {$IFDEF FPC}
-  fpcunit, testregistry,
+  Generics.Collections,
 {$ELSE}
-  TestFramework,
+  System.Generics.Collections,
 {$ENDIF}
-  SysUtils, Math,
   GR32,
   GR32_Blend,
-  GR32_LowLevel;
+  GR32_Bindings,
+  GR32_LowLevel,
+  GR32.DUnitx;
 
 type
-  TTestPremultiply = class(TTestCase)
+  [TestFixture]
+  TTestPremultiply = class
   private
     procedure ReferencePremultiply(Color: PColor32Entry; Count: Integer);
     procedure ReferenceUnpremultiply(Color: PColor32Entry; Count: Integer);
     procedure CheckImplementation(const Name: string; PremultProc, UnpremultProc: TPremultiplyMem);
-  published
-    procedure TestBinding;
-    procedure TestPascal;
-{$if not defined(PUREPASCAL)}
-    procedure TestSSE2;
-    procedure TestSSE41;
-{$ifend}
+  public
+    [Test]
+    [TestCaseSource('GR32_Blend', 'PremultiplyMem')]
+    procedure TestPremultiplyVariant(const ImplName: string);
   end;
 
 implementation
 
 uses
-  GR32_Bindings,
-  GR32_System,
-  GR32.Blend.Pascal,
-  GR32.Blend.SSE2;
+  GR32_System;
 
 { TTestPremultiply }
 
@@ -144,7 +142,7 @@ begin
            (Abs(Pixel_Exp.R - Pixel_Act.R) > MaxPremultiplyLoss) or
            (Abs(Pixel_Exp.G - Pixel_Act.G) > MaxPremultiplyLoss) or
            (Abs(Pixel_Exp.B - Pixel_Act.B) > MaxPremultiplyLoss) then
-          Fail(Format('%s: Premultiply failure [%.8X] at (%d,%d). Expected %.8X, Actual %.8X', [Name, Source.Pixel[x, y], x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
+          Assert.Fail(Format('%s: Premultiply failure [%.8X] at (%d,%d). Expected %.8X, Actual %.8X', [Name, Source.Pixel[x, y], x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
       end;
 
     // Unpremultiply reference's multiplied to avoid error accumulation
@@ -168,7 +166,7 @@ begin
            (Abs(Pixel_Exp.R - Pixel_Act.R) > MaxUnpremultiplyLoss) or
            (Abs(Pixel_Exp.G - Pixel_Act.G) > MaxUnpremultiplyLoss) or
            (Abs(Pixel_Exp.B - Pixel_Act.B) > MaxUnpremultiplyLoss) then
-          Fail(Format('%s: Unpremultiply failure [%.8X] at (%d,%d). Expected %.8X, Actual %.8X', [Name, Source.Pixel[x, y], x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
+          Assert.Fail(Format('%s: Unpremultiply failure [%.8X] at (%d,%d). Expected %.8X, Actual %.8X', [Name, Source.Pixel[x, y], x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
       end;
 
     // 8. Compare reference bitmap against actual (Round-trip check)
@@ -180,16 +178,15 @@ begin
 
         // Alpha should always be perfectly preserved
         if Pixel_Ref.A <> Pixel_Act.A then
-          Fail(Format('%s: Alpha preservation failure [%.8X] at (%d,%d). RefAlpha %d, ActAlpha %d', [Name, Reference.Pixel[x, y], x, y, Pixel_Ref.A, Pixel_Act.A]));
+          Assert.Fail(Format('%s: Alpha preservation failure [%.8X] at (%d,%d). RefAlpha %d, ActAlpha %d', [Name, Reference.Pixel[x, y], x, y, Pixel_Ref.A, Pixel_Act.A]));
 
         if Pixel_Ref.A = 0 then
         begin
           if Pixel_Act.ARGB <> 0 then
-            Fail(Format('%s: Zero Alpha failure at %d,%d. Expected 0, Actual %.8X', [Name, Reference.Pixel[x, y], x, y, Pixel_Act.ARGB]));
+            Assert.Fail(Format('%s: Zero Alpha failure at %d,%d. Expected 0, Actual %.8X', [Name, Reference.Pixel[x, y], x, y, Pixel_Act.ARGB]));
         end else
         begin
           var MaxLoss: integer;
-          // Check lossy round-trip only for high enough alpha
           case Pixel_Ref.A of
             0..5:
               MaxLoss := 255;
@@ -214,7 +211,7 @@ begin
           if (Abs(Pixel_Ref.R - Pixel_Act.R) > MaxLoss) or
              (Abs(Pixel_Ref.G - Pixel_Act.G) > MaxLoss) or
              (Abs(Pixel_Ref.B - Pixel_Act.B) > MaxLoss) then
-            Fail(Format('%s: Lossy Premult/Unpremult failure [%.8X] at (%d,%d). Ref %.8X, Actual %.8X', [Name, Reference.Pixel[x, y], x, y, Pixel_Ref.ARGB, Pixel_Act.ARGB]));
+            Assert.Fail(Format('%s: Lossy Premult/Unpremult failure [%.8X] at (%d,%d). Ref %.8X, Actual %.8X', [Name, Reference.Pixel[x, y], x, y, Pixel_Ref.ARGB, Pixel_Act.ARGB]));
         end;
       end;
 
@@ -226,52 +223,42 @@ begin
   end;
 end;
 
-procedure TTestPremultiply.TestBinding;
+procedure TTestPremultiply.TestPremultiplyVariant(const ImplName: string);
+var
+  PremultBinding, UnpremultBinding: IBindingInfo;
+  PremultImpl, UnpremultImpl: IFunctionInfo;
+  UnpremultImplName: string;
+  PProc, UProc: TPremultiplyMem;
 begin
-  CheckImplementation('Auto', TPremultiplyMem(@PremultiplyMem), TPremultiplyMem(@UnpremultiplyMem));
-end;
+  PremultBinding := BlendRegistry.FindBinding('PremultiplyMem');
+  UnpremultBinding := BlendRegistry.FindBinding('UnpremultiplyMem');
 
-procedure TTestPremultiply.TestPascal;
-begin
-{$if declared(PremultiplyMem_Pas) and declared(UnpremultiplyMem_Pas)}
-  if (isPascal in CPU.InstructionSupport) then
-    CheckImplementation('Pascal', TPremultiplyMem(@PremultiplyMem_Pas), TPremultiplyMem(@UnpremultiplyMem_Pas))
-  else
-    Status('Pascal not supported');
-{$else}
-  Fail('PremultiplyMem_Pas or UnpremultiplyMem_Pas not implemented');
-{$ifend}
+  Assert.IsNotNull(PremultBinding, 'Premultiply bindings not registered');
+  Assert.IsNotNull(UnpremultBinding, 'Unpremultiply bindings not registered');
 
-  CheckImplementation('Pascal', TPremultiplyMem(@PremultiplyMem_Pas), TPremultiplyMem(@UnpremultiplyMem_Pas));
-end;
+  PremultImpl := PremultBinding.FindImplementation(ImplName);
+  Assert.IsNotNull(PremultImpl, 'Implementation not found: ' + ImplName);
 
-{$if not defined(PUREPASCAL)}
-procedure TTestPremultiply.TestSSE2;
-begin
-{$if declared(PremultiplyMem_SSE2) and declared(UnpremultiplyMem_SSE2)}
-  if (isSSE2 in CPU.InstructionSupport) then
-    CheckImplementation('SSE2', TPremultiplyMem(@PremultiplyMem_SSE2), TPremultiplyMem(@UnpremultiplyMem_SSE2))
-  else
-    Status('SSE2 not supported');
-{$else}
-  Fail('PremultiplyMem_SSE2 or UnpremultiplyMem_SSE2 not implemented');
-{$ifend}
-end;
+  if not (PremultImpl.InstructionSupport <= CPU.InstructionSupport) then
+  begin
+    Assert.Pass('Unsupported CPU instruction set for ' + ImplName);
+    Exit;
+  end;
 
-procedure TTestPremultiply.TestSSE41;
-begin
-{$if declared(PremultiplyMem_SSE41) and declared(UnpremultiplyMem_SSE41)}
-  if (isSSE41 in CPU.InstructionSupport) then
-    CheckImplementation('SSE4.1', TPremultiplyMem(@PremultiplyMem_SSE41), TPremultiplyMem(@UnpremultiplyMem_SSE41))
-  else
-    Status('SSE4.1 not supported');
-{$else}
-  Fail('PremultiplyMem_SSE41 or UnpremultiplyMem_SSE41 not implemented');
-{$ifend}
+  UnpremultImplName := StringReplace(ImplName, 'Premultiply', 'Unpremultiply', [rfReplaceAll]);
+  UnpremultImpl := UnpremultBinding.FindImplementation(UnpremultImplName);
+  // if UnpremultImpl = nil then
+  //  UnpremultImpl := UnpremultBinding.FindImplementation('UnpremultiplyMem_Pas');
+
+  Assert.IsNotNull(UnpremultImpl, 'Unpremultiply implementation not found for ' + ImplName);
+
+  PProc := TPremultiplyMem(PremultImpl.Proc);
+  UProc := TPremultiplyMem(UnpremultImpl.Proc);
+
+  CheckImplementation(ImplName, PProc, UProc);
 end;
-{$ifend}
 
 initialization
-  RegisterTest(TTestPremultiply.Suite);
+  TDUnitX.RegisterTestFixture(TTestPremultiply);
 
 end.

@@ -738,7 +738,7 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-  TransposeRegistry := NewRegistry('GR32.Transpose bindings');
+  TransposeRegistry := NewRegistry('GR32.Transpose');
 
   TransposeRegistry.RegisterBinding(@@_Transpose32, '_Transpose32');
 

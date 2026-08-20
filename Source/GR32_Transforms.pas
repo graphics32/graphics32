@@ -3206,7 +3206,7 @@ var
 
 procedure RegisterBindings;
 begin
-  TransformsRegistry := NewRegistry('GR32_Transforms bindings');
+  TransformsRegistry := NewRegistry('GR32_Transforms');
   TransformsRegistry.RegisterBinding(@@DET_2x2_32, 'DET_2x2_32');
   TransformsRegistry.RegisterBinding(@@DET_3x3_32, 'DET_3x3_32');
   TransformsRegistry.RegisterBinding(@@DET_2x2_64, 'DET_2x2_64');
