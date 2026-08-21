@@ -38,6 +38,12 @@
           <Mode Name="Release"/>
         </BuildModes>
       </Target>
+      <Target FileName="Layers\Space Invaders\Invaders32.lpi">
+        <BuildModes>
+          <Mode Name="Debug" Compile="True"/>
+          <Mode Name="Release"/>
+        </BuildModes>
+      </Target>
       <Target FileName="Drawing\Blurs\Blurs.lpi">
         <BuildModes>
           <Mode Name="Release"/>
