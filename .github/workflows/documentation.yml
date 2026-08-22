@@ -1,0 +1,39 @@
+name: Deploy Documentation to Staging
+
+on:
+  push:
+    branches:
+      - documentation
+#      - master
+#      - main
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-docs-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build VitePress Site
+        run: npm run docs:build
+
+      - name: Deploy to Staging Branch on graphics32.github.io
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+          external_repository: graphics32/graphics32.github.io
+          publish_branch: staging
+          publish_dir: docs/.vitepress/dist
+          commit_message: "Automated staging build from graphics32 main repository"
