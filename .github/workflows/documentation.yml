@@ -1,6 +1,7 @@
 name: Deploy Documentation to Staging
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - documentation
