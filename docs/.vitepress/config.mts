@@ -1,0 +1,258 @@
+import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
+import fs from 'fs'
+import path from 'path'
+import { generateSidebarForDir } from './sidebar'
+import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
+
+const stackOverflowSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M18.986 21.865v-6.404h2.134V24H1.844v-8.539h2.13v6.404h15.012zM6.111 19.731h10.657v-2.134H6.111v2.134zm.284-5.263l10.42 2.217.447-2.086-10.42-2.217-.447 2.086zm1.393-5.021l9.467 4.908.974-1.89-9.467-4.908-.974 1.89zm3.018-4.703l7.808 7.272 1.442-1.551-7.808-7.272-1.442 1.551zm5.228-3.911l-1.821 1.09 5.485 9.155 1.821-1.09-5.485-9.155z"/>
+</svg>`
+
+// Load Delphi-PRAXIS English & German favicon SVGs
+let delphiPraxisEnSvg = ''
+let delphiPraxisDeSvg = ''
+try {
+  delphiPraxisEnSvg = fs.readFileSync(path.resolve(__dirname, '../public/delphipraxis-en.svg'), 'utf-8')
+  delphiPraxisDeSvg = fs.readFileSync(path.resolve(__dirname, '../public/delphipraxis-de.svg'), 'utf-8')
+} catch (e) {
+  delphiPraxisEnSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>`
+  delphiPraxisDeSvg = delphiPraxisEnSvg
+}
+
+const apiDir = path.resolve(__dirname, '../api')
+/* Dynamic Guide sidebar list. Disabled as we currently hardcode the list.
+const guideDir = path.resolve(__dirname, '../guide')
+*/
+const examplesDir = path.resolve(__dirname, '../examples')
+
+const symbolMap = buildSymbolMap(apiDir)
+
+/*
+** Hard coded sidebars
+*/
+const guideSidebar = [
+  {
+    text: 'Guide',
+    items: [
+      { text: 'Features', link: '/guide/features' },
+      { text: 'Requirements', link: '/guide/requirements' },
+      { text: 'Installation', link: '/guide/installation' }
+    ]
+  }
+]
+
+const conceptsSidebar = [
+  {
+    text: 'Concepts',
+    items: [
+      { text: 'Drawing and Blending', link: '/guide/drawing-and-blending' },
+      { text: 'Resampling and Transforms', link: '/guide/resampling-and-transforms' },
+      { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
+      { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
+      { text: 'Alpha Composition', link: '/guide/alpha-composition' },
+      { text: 'Line Patterns', link: '/guide/line-patterns' },
+      { text: 'Color Gradients', link: '/guide/color-gradients' },
+      { text: 'Sampling and Rasterization', link: '/guide/sampling-and-rasterization' },
+      { text: 'Back-Ends', link: '/guide/back-ends' },
+      { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
+      { text: 'Naming Conventions', link: '/guide/naming-conventions' },
+      {
+        text: 'Using TImage32',
+        items: [
+          { text: 'Overview', link: '/guide/using-timage32/overview' },
+          { text: 'Bitmap Image', link: '/guide/using-timage32/bitmap-image' },
+          { text: 'Using Layers', link: '/guide/using-timage32/using-layers' },
+          { text: 'Paint Stages', link: '/guide/using-timage32/paint-stages' }
+        ]
+      }
+    ]
+  }
+]
+
+const aboutSidebar = [
+  {
+    text: 'About',
+    items: [
+      { text: 'Contact', link: '/guide/contact' },
+      { text: 'License', link: '/guide/license' },
+      { text: 'Generator Guide', link: '/how_to_generate_documentation' },
+      { text: 'API Generator Guide', link: '/how_to_generate_API_documentation' }
+    ]
+  }
+]
+
+export default withMermaid(defineConfig({
+  title: "Graphics32",
+  description: "A high-performance 32-bit graphics library for Delphi and Lazarus/FPC",
+  cleanUrls: true,
+  lastUpdated: true,
+  ignoreDeadLinks: true, // Keep this until we get our act together and fix all the dead links
+
+  head: [
+    ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }]
+  ],
+
+  vite: {
+    ssr: {
+      noExternal: ['@lando/vitepress-theme-default-plus']
+    }
+  },
+
+  markdown: {
+    math: true,
+    config: (md) => {
+      apiSymbolLinksPlugin(md, symbolMap)
+    }
+  },
+
+  themeConfig: {
+  /* Do we need this?
+    lastUpdated: {
+      text: 'Last updated',
+      formatOptions: {
+        dateStyle: 'full',
+        timeStyle: 'medium'
+      }
+    },
+*/
+    editLink: {
+      pattern: 'https://github.com/graphics32/graphics32/edit/master/docs/:path',
+      text: 'Edit this page on GitHub'
+    },
+
+    nav: [
+      { text: 'Home', link: '/' },
+      {
+        text: 'Guide',
+        items: [
+          { text: 'Features', link: '/guide/features' },
+          { text: 'Requirements', link: '/guide/requirements' },
+          { text: 'Installation', link: '/guide/installation' }
+        ]
+      },
+      {
+        text: 'Concepts',
+        items: [
+          { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
+          { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
+          { text: 'Alpha composition', link: '/guide/alpha-composition' },
+          { text: 'Line Patterns', link: '/guide/line-patterns' },
+          { text: 'Color Gradients', link: '/guide/color-gradients' },
+          { text: 'Sampling and Rasterization', link: '/guide/sampling-and-rasterization' },
+          { text: 'Back-Ends', link: '/guide/back-ends' },
+          { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
+          { text: 'Naming Conventions', link: '/guide/naming-conventions' },
+          {
+            text: 'Using TImage32',
+            items: [
+              { text: 'Overview', link: '/guide/using-timage32/overview' },
+              { text: 'Bitmap Image', link: '/guide/using-timage32/bitmap-image' },
+              { text: 'Using Layers', link: '/guide/using-timage32/using-layers' },
+              { text: 'Paint Stages', link: '/guide/using-timage32/paint-stages' }
+            ]
+          }
+        ]
+      },
+      { text: 'API Reference', link: '/api/' },
+      { text: 'Examples', link: '/examples/' },
+      {
+        text: 'About',
+        items: [
+          { text: 'Contact', link: '/guide/contact' },
+          { text: 'License', link: '/guide/license' },
+          {
+            text: 'About the documentation',
+            items: [
+              { text: 'Generator Guide', link: '/how_to_generate_documentation' },
+              { text: 'API Generator Guide', link: '/how_to_generate_API_documentation' }
+            ]
+          }
+        ]
+      }
+    ],
+
+    sidebar: {
+/* Dynamic Guide sidebar; Disabled
+      '/guide/': [
+        {
+          text: 'Guide',
+          items: [
+            { text: 'Overview', link: '/guide/' },
+            ...generateSidebarForDir(guideDir, '', { collapsed: false })
+          ]
+        }
+      ],
+*/    
+/*
+** Hard coded Guide sidebar
+*/
+
+      '/guide/features': guideSidebar,
+      '/guide/requirements': guideSidebar,
+      '/guide/installation': guideSidebar,
+      '/guide/bitmaps-and-colors': conceptsSidebar,
+      '/guide/drawing-and-blending': conceptsSidebar,
+      '/guide/resampling-and-transforms': conceptsSidebar,
+      '/guide/cpu-feature-detection': conceptsSidebar,
+      '/guide/simd-optimizations': conceptsSidebar,
+      '/guide/alpha-composition': conceptsSidebar,
+      '/guide/line-patterns': conceptsSidebar,
+      '/guide/color-gradients': conceptsSidebar,
+      '/guide/sampling-and-rasterization': conceptsSidebar,
+      '/guide/back-ends': conceptsSidebar,
+      '/guide/repaint-optimization': conceptsSidebar,
+      '/guide/naming-conventions': conceptsSidebar,
+      '/guide/using-timage32': conceptsSidebar,
+      '/guide/bitmap-image': conceptsSidebar,
+      '/guide/using-layers': conceptsSidebar,
+      '/guide/paint-stages': conceptsSidebar,
+      '/guide/contact': aboutSidebar,
+      '/guide/license': aboutSidebar,
+      '/how_to_generate_documentation': aboutSidebar,
+      '/how_to_generate_API_documentation': aboutSidebar,
+      '/guide/': guideSidebar,
+      '/api/': [
+        {
+          text: 'API Reference',
+          items: [
+            { text: 'API Overview', link: '/api/' },
+            ...generateSidebarForDir(apiDir, '', { collapsed: true })
+          ]
+        }
+      ],
+      '/examples/': [
+        {
+          text: 'Examples & Tutorials',
+          items: [
+            { text: 'Overview', link: '/examples/' },
+            ...generateSidebarForDir(examplesDir, '', { collapsed: false })
+          ]
+        }
+      ]
+    },
+
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/graphics32/graphics32' },
+      {
+        icon: { svg: stackOverflowSvg },
+        link: 'https://stackoverflow.com/questions/tagged/graphics32',
+        ariaLabel: 'Stack Overflow'
+      },
+      {
+        icon: { svg: delphiPraxisEnSvg },
+        link: 'https://en.delphipraxis.net/search/?q=graphics32',
+        ariaLabel: 'Delphi-PRAXIS (English)'
+      },
+      {
+        icon: { svg: delphiPraxisDeSvg },
+        link: 'https://www.delphipraxis.net/dp_search.php?do=process&query=graphics32',
+        ariaLabel: 'Delphi-PRAXIS (German)'
+      }
+    ],
+
+    search: {
+      provider: 'local'
+    }
+  }
+}))

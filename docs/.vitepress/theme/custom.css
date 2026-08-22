@@ -1,0 +1,12 @@
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+}
+
+.VPHero .name {
+  background: var(--vp-home-hero-name-background);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: var(--vp-home-hero-name-color);
+  color: transparent;
+}

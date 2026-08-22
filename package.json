@@ -1,0 +1,19 @@
+{
+  "name": "graphics32-docs",
+  "version": "1.0.0",
+  "description": "Graphics32 Documentation built with VitePress",
+  "private": true,
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "@lando/vitepress-theme-default-plus": "^1.2.0",
+    "markdown-it-mathjax3": "^4.3.2",
+    "medium-zoom": "^1.1.0",
+    "mermaid": "^11.17.0",
+    "vitepress": "^1.5.0",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  }
+}

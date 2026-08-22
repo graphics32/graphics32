@@ -1,0 +1,387 @@
+# API Documentation Generation & Maintenance Guide
+
+This document contains comprehensive instructions for human maintainers and AI agents to author, update, and maintain the API documentation for the **Graphics32** library using **VitePress**. It is designed to be complete and self-contained so any maintainer or agent can create, update, and audit API documentation accurately without additional instructions.
+
+---
+
+## 1. Overview & Document Purpose
+
+This guide details how Pascal source units in `Source/` are parsed and converted into VitePress Markdown pages in `docs/api/`.
+
+It defines:
+1. **Filename Sanitization Rules**: Safe cross-platform mapping for generic types (e.g. `TList<T>` $\rightarrow$ `TList(T).md`).
+2. **Custom Vue Layout Architecture**: Separating structured machine data (YAML frontmatter) from human-editable Markdown body.
+3. **Progress Checklist**: A flat tracking list of all Pascal units in `Source/`.
+
+**Notes:**
+
+- **Custom Vue Layout (`docs/.vitepress/theme/components/ApiPage.vue`)**: Structured YAML frontmatter for API pages is rendered in the `#doc-before` slot of `DefaultTheme.Layout`.
+- **CSS Styling (`vp-doc`)**: All API page elements (`ApiPage.vue`) are wrapped in the `.vp-doc` class to inherit VitePress typography, table gridlines, and code block styling.
+
+---
+
+## 2. Generic Identifier, Directory & File Naming Rules
+
+API documentation files reside under `docs/api/` matching unit, class, and member hierarchies:
+
+```
+docs/api/
+  index.md                      # Overall API Overview
+  <UnitName>/
+    index.md                    # Unit Overview (e.g. docs/api/GR32/index.md)
+    <ClassName>/
+      index.md                  # Class Overview (e.g. docs/api/GR32/TBitmap32/index.md)
+      Constructors/
+        <MethodName>.md         # Constructor doc (e.g. docs/api/GR32/TBitmap32/Constructors/Create.md)
+      Methods/
+        <MethodName>.md         # Method doc (e.g. docs/api/GR32/TBitmap32/Methods/Draw.md)
+      Properties/
+        <PropertyName>.md       # Property doc (e.g. docs/api/GR32/TBitmap32/Properties/Pixel.md)
+```
+
+
+### A. The Naming Problem
+Pascal generics and advanced types can contain angle brackets `<` and `>`. For example: `TList<T>`, `TDictionary<TKey, TValue>`.
+
+- Angle brackets (`< >`) are **illegal file system characters** on Windows, macOS, and Linux.
+- Replacing `< >` with underscores (`_`) creates **silent name collision risks** because `_` is a valid identifier character in Pascal (e.g., `TList_1` vs `TList<1>`).
+- Replacing `< >` with square brackets (`[ ]`) conflicts with **VitePress / Vue Router dynamic route parameters** (where `[id].md` is treated as a dynamic parameter route).
+
+### B. The `TList(T)` Parentheses Solution
+To ensure 100% collision-free filenames that work across all operating systems without Vue Router conflicts:
+
+1. **Filename Mapping**: Replace `<` with `(` and `>` with `)` in Markdown filenames:
+   - `TList<T>` $\rightarrow$ `docs/api/GR32_Containers/TList(T).md`
+   - `TDictionary<TKey, TValue>` $\rightarrow$ `docs/api/GR32_Containers/TDictionary(TKey,TValue).md`
+
+2. **Display Name in Frontmatter**: Set the exact Pascal declaration name in YAML frontmatter:
+   ```yaml
+   ---
+   layout: api
+   unit: GR32_Containers
+   entity: TList<T>
+   kind: Class
+   ---
+   ```
+   VitePress will display the exact formatted identifier `TList<T>` in page headers, search results, and sidebars, while the filesystem safely stores `TList(T).md`.
+
+---
+
+## 3. Frontmatter Schemas & Guidelines
+
+All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
+
+### Structure
+- **YAML Frontmatter**: Machine-readable metadata (`unit`, `parent`, `entity`, `kind`, etc.).
+- **Markdown Body**: Human-editable content (usage explanations, remarks, edge cases, code examples).
+
+
+### Required & Optional Frontmatter Fields
+| Field | Type | Description |
+|---|---|---|
+| `layout` | String | Must be `doc`. |
+| `docType` | String | Must be `api`. |
+| `unit` | String | Name of the unit (e.g., `GR32`). |
+| `parent` | String | Optional. Name of parent class/record (e.g., `TBitmap32`). Enables 3-level breadcrumbs: `GR32 > TBitmap32 > Member`. |
+| `entity` | String | Full entity identifier (e.g., `TBitmap32.Draw`). |
+| `kind` | String | Entity classification (`Class`, `Method`, `Constructor`, `Property`, `Function`, `Type`, `Constant`). |
+| `summary` | String | High-level summary description. |
+| `declaration` | String | Pascal procedure/function/type signature for single-signature pages. |
+| `parameters` | Array | Parameter list objects `[ { name, type, description } ]`. |
+| `overloads` | Array | Array of overload objects for overloaded methods/routines. |
+
+---
+
+### Schema A: Single Signature Page
+```yaml
+---
+layout: doc
+docType: api
+unit: GR32
+parent: TBitmap32
+entity: TBitmap32.Clear
+kind: Method
+declaration: "procedure Clear(Color: TColor32);"
+summary: "Fills the entire pixel buffer with a specified TColor32 value."
+parameters:
+  - name: Color
+    type: TColor32
+    description: "32-bit ARGB color value to fill the bitmap with."
+---
+```
+
+## Example
+
+```pascal
+var
+  Bmp: TBitmap32;
+begin
+  // Create a 800x600 bitmap and fill it with the color red
+  Bmp := TBitmap32.Create(800, 600);
+  try
+    Bmp.Clear(clRed32);
+  finally
+    Bmp.Free;
+  end;
+end;
+```
+
+---
+
+### Schema B: Overloaded Method Page
+When a method or function has multiple signatures with differing parameters, use the `overloads` array schema. This displays a grouped `Declarations` block at the top, followed by separate parameter tables for each overload:
+
+```yaml
+---
+layout: doc
+docType: api
+unit: GR32
+parent: TBitmap32
+entity: TBitmap32.Draw
+kind: Method
+summary: "Draws a source bitmap or sub-rectangle onto this bitmap using current DrawMode and CombineMode."
+overloads:
+  - signature: "procedure Draw(DstX, DstY: Integer; Src: TCustomBitmap32); overload;"
+    summary: "Draws the entire source bitmap at top-left pixel position (DstX, DstY)."
+    parameters:
+      - name: DstX, DstY
+        type: Integer
+        description: "Top-left destination coordinate on this bitmap."
+      - name: Src
+        type: TCustomBitmap32
+        description: "Source bitmap to draw."
+
+  - signature: "procedure Draw(const DstRect, SrcRect: TRect; Src: TCustomBitmap32); overload;"
+    summary: "Stretches and blends a sub-rectangle from the source bitmap into a destination rectangle."
+    parameters:
+      - name: DstRect
+        type: TRect
+        description: "Target destination rectangle on this bitmap."
+      - name: SrcRect
+        type: TRect
+        description: "Source sub-rectangle on the source bitmap."
+      - name: Src
+        type: TCustomBitmap32
+        description: "Source bitmap to copy or blend pixels from."
+---
+```
+
+---
+
+## 4. How an AI Agent Populates Unit Members
+
+To manage token limits effectively, member lists are populated **in small batches** when an agent begins work on a unit:
+
+1. **Inspect Unit Source**: Read the `interface` section of `Source/<UnitName>.pas`.
+2. **Expand the Unit Item**: Under `- [ ] <UnitName>`, insert nested checklist sections for Classes, Functions, Records, Interfaces, Constants, and Other Types.
+3. **Check Off Completed Items**: Check off items (`- [x]`) as Markdown files are created.
+4. **Mark Unit Complete**: Mark `- [x] <UnitName>` when all members are fully documented.
+
+### Rules
+- When tasked to document a class, do not include class members inherited from `TObject` or `TPersistent` (including `Destroy`, `Assign`, and `AssignTo`) unless instructed otherwise.
+- Protected methods and properties that are promoted in a derived class must be documented on the base class. Apart from this, protected members are not documented unless instructed otherwise.
+- If the existing documentation is found to be incorrect, outdated or obsolete (e.g. a topic is no longer valid because the item it documents no longer exist), notify the user and ask for confirmation before fixing the problem.
+
+---
+
+## 5. Source Signature Extraction Rules
+
+When populating API documentation from Pascal source code in `Source/`:
+
+1. Locate public interface declarations in the `.pas` file.
+2. Group all overloads under the single member document (e.g., `TBitmap32.Draw`).
+3. Preserve Pascal keywords (`const`, `var`, `out`, `overload`, `override`, `virtual`).
+4. Ensure parameter names, types, and defaults match source code interface signatures accurately.
+
+---
+
+## 6. Unit Progress Checklist
+
+Below is the complete, canonical list of all Pascal source units in `Source/`. AI agents and maintainers must use this checklist when populating or auditing API documentation coverage:
+
+- [ ] **GR32**
+  - **Classes**:
+    - [ ] `TBitmap32` -> `docs/api/GR32/TBitmap32/index.md`
+      - [x] Constructors/`Create` -> `docs/api/GR32/TBitmap32/Constructors/Create.md`
+      - [x] Constructors/`Destroy` -> `docs/api/GR32/TBitmap32/Constructors/Destroy.md`
+      - [x] Methods/`Clear` -> `docs/api/GR32/TBitmap32/Methods/Clear.md`
+      - [x] Methods/`Draw` -> `docs/api/GR32/TBitmap32/Methods/Draw.md`
+      - [x] Properties/`Pixel` -> `docs/api/GR32/TBitmap32/Properties/Pixel.md`
+    - [ ] `TCustomBitmap32` -> `docs/api/GR32/TCustomBitmap32/index.md`
+    - [ ] `TNotifiablePersistent` -> `docs/api/GR32/TNotifiablePersistent/index.md`
+    - [ ] `TCustomSampler` -> `docs/api/GR32/TCustomSampler/index.md`
+    - [ ] `TCustomResampler` -> `docs/api/GR32/TCustomResampler/index.md`
+    - [ ] `TCustomBackend`
+    - [ ] `TCustomBackendClass`
+    - [ ] `TCustomBitmap32Class`
+    - [ ] `TCustomResamplerClass`
+    - [ ] `TPlainInterfacedPersistent`
+    - [ ] `TThreadPersistent`
+  - **Functions**:
+    - [ ] `Color32`
+    - [ ] `AlphaComponent`
+    - [ ] `RedComponent`
+    - [ ] `GreenComponent`
+    - [ ] `BlueComponent`
+    - [ ] `SetAlpha`
+    - [ ] `Intensity`
+    - [ ] `RGBtoHSV` / `HSVtoRGB`
+  - **Records**:
+    - [ ] `TColor32Entry`
+    - [ ] `TFixedPoint`
+    - [ ] `TFixedRec`
+    - [ ] `TFixedRect`
+    - [ ] `TFloatPoint`
+    - [ ] `TFloatRect`
+  - **Interfaces**:
+    - *(None)*
+  - **Constants**:
+    - [ ] `clBlack32`, `clWhite32`, `clRed32`, `clGreen32`, `clBlue32`, `clTrColor32`
+  - **Other Types**:
+    - [ ] `TColor32`
+    - [ ] `TArrayOfColor32`
+    - [ ] `PColor32`
+    - [ ] `TFixed`
+- [ ] **GR32.BigEndian**
+- [ ] **GR32.Blend.Assembler** (document only at unit level)
+- [ ] **GR32.Blend.Modes**
+- [ ] **GR32.Blend.Modes.Extra**
+- [ ] **GR32.Blend.Modes.PhotoShop**
+- [ ] **GR32.Blend.Modes.PorterDuff**
+- [ ] **GR32.Blend.Pascal** (document only at unit level)
+- [ ] **GR32.Blend.SSE2** (document only at unit level)
+- [ ] **GR32.Blur**
+- [ ] **GR32.Blur.RecursiveGaussian**
+- [ ] **GR32.Blur.SelectiveGaussian**
+- [ ] **GR32.CPUID**
+- [ ] **GR32.Examples**
+- [ ] **GR32.ImageFormats**
+- [ ] **GR32.ImageFormats.BMP**
+- [ ] **GR32.ImageFormats.Default**
+- [ ] **GR32.ImageFormats.GIF**
+- [ ] **GR32.ImageFormats.JPG**
+- [ ] **GR32.ImageFormats.PNG**
+- [ ] **GR32.ImageFormats.PNG32**
+- [ ] **GR32.ImageFormats.PSD**
+- [ ] **GR32.ImageFormats.PSD.Model** (document only at unit level)
+- [ ] **GR32.ImageFormats.PSD.Reader** (document only at unit level)
+- [ ] **GR32.ImageFormats.PSD.Types** (document only at unit level)
+- [ ] **GR32.ImageFormats.PSD.Writer** (document only at unit level)
+- [ ] **GR32.ImageFormats.SVG**
+- [ ] **GR32.ImageFormats.TBitmap**
+- [ ] **GR32.ImageFormats.TClipboard**
+- [ ] **GR32.ImageFormats.TGraphic**
+- [ ] **GR32.ImageFormats.TIcon**
+- [ ] **GR32.ImageFormats.TMetaFile**
+- [ ] **GR32.ImageFormats.TPicture**
+- [ ] **GR32.ImageFormats.TWICImage**
+- [ ] **GR32.Math.Complex**
+- [ ] **GR32.Noise.Simplex**
+- [ ] **GR32.Paint.Brush**
+- [ ] **GR32.Paint.Controller**
+- [ ] **GR32.Paint.Controller.API**
+- [ ] **GR32.Paint.Host**
+- [ ] **GR32.Paint.Host.API**
+- [ ] **GR32.Paint.MouseController**
+- [ ] **GR32.Paint.MouseController.API**
+- [ ] **GR32.Paint.Tool**
+- [ ] **GR32.Paint.Tool.API**
+- [ ] **GR32.Paint.Tool.Brush**
+- [ ] **GR32.Paint.Tool.Pen**
+- [ ] **GR32.Paint.ToolContext**
+- [ ] **GR32.Text.Cache** (document only at unit level)
+- [ ] **GR32.Text.FontFace** (document only at unit level)
+- [ ] **GR32.Text.Layout** (document only at unit level)
+- [ ] **GR32.Text.Types**
+- [ ] **GR32.Text.Unicode** (document only at unit level)
+- [ ] **GR32.Text.Win** (document only at unit level)
+- [ ] **GR32.Transpose**
+- [ ] **GR32.Types.SIMD** (document only at unit level)
+- [ ] **GR32_ArrowHeads**
+- [ ] **GR32_Backends**
+- [ ] **GR32_Backends_Generic**
+- [ ] **GR32_Backends_LCL_Carbon** (document only at unit level)
+- [ ] **GR32_Backends_LCL_CustomDrawn** (document only at unit level)
+- [ ] **GR32_Backends_LCL_Gtk** (document only at unit level)
+- [ ] **GR32_Backends_LCL_Win** (document only at unit level)
+- [ ] **GR32_Backends_VCL** (document only at unit level)
+- [ ] **GR32_Bindings**
+- [ ] **GR32_Blend**
+- [ ] **GR32_Blurs**
+- [ ] **GR32_Brushes**
+- [ ] **GR32_Clipboard**
+- [ ] **GR32_Clipper**
+- [ ] **GR32_Clipper1**
+- [ ] **GR32_Clipper2**
+- [ ] **GR32_ColorGradients**
+- [ ] **GR32_ColorPicker**
+- [ ] **GR32_ColorSwatch**
+- [ ] **GR32_Containers**
+- [ ] **GR32_ExtImage**
+- [ ] **GR32_Filters**
+- [ ] **GR32_Gamma**
+- [ ] **GR32_Geometry**
+- [ ] **GR32_Image**
+- [ ] **GR32_Layers**
+- [ ] **GR32_LowLevel**
+- [ ] **GR32_Math**
+- [ ] **GR32_Math_FPC**
+- [ ] **GR32_MicroTiles**
+- [ ] **GR32_OrdinalMaps**
+- [ ] **GR32_Paths**
+- [ ] **GR32_Png**
+- [ ] **GR32_Polygons**
+- [ ] **GR32_Polygons.AggLite** (document only at unit level)
+- [ ] **GR32_Polygons.Direct2D** (document only at unit level)
+- [ ] **GR32_Polygons.GDI** (document only at unit level)
+- [ ] **GR32_Polygons.GDIPlus** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic**
+- [ ] **GR32_PortableNetworkGraphic.Chunks** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.IDAT** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.PLTE** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.Unknown** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.bKGD** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.cHRM** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.gAMA** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.hIST** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.iCCP** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.iTXt** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.oFFs** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.pCAL** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.pHYs** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.sBIT** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.sCAL** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.sPLT** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.sRGB** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.tEXt** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.tIME** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.tRNS** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Chunks.zTXt** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Encoding** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Transcoding** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.Types** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic.ZLib** (document only at unit level)
+- [ ] **GR32_RangeBars**
+- [ ] **GR32_Rasterizers**
+- [ ] **GR32_RepaintOpt**
+- [ ] **GR32_Resamplers**
+- [ ] **GR32_System**
+- [ ] **GR32_Text_VCL_D2D**
+- [ ] **GR32_Transforms**
+- [ ] **GR32_VPR**
+- [ ] **GR32_VPR2**
+- [ ] **GR32_VectorMaps**
+- [ ] **GR32_VectorUtils**
+- [ ] **GR32_VectorUtils.Angus** (document only at unit level)
+- [ ] **GR32_VectorUtils.Clipper2** (document only at unit level)
+- [ ] **GR32_VectorUtils.Reference** (document only at unit level)
+- [ ] **amEasing**
+
+The following files will not be documented. Either because they are externals (copied from other libraries) or because they are internal to Graphics32:
+
+- **Clipper**
+- **Clipper.Core**
+- **Clipper.Engine**
+- **Clipper.Minkowski**
+- **Clipper.Offset**
+- **Clipper.RectClip**
