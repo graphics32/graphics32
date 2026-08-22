@@ -2,43 +2,123 @@
 
 In computer graphics, a [color gradient](https://en.wikipedia.org/wiki/Color_gradient) (sometimes called a _color ramp_ or _color progression_) specifies a range of position-dependent colors, usually used to fill a region. The colors produced by a gradient vary continuously with position, producing smooth color transitions.
 
-With version 2.0 of the Graphics32 library, color gradients are now possible in many different ways. There are hardly any limitations in the number of color stops or number of interpolation steps. Also for all gradients different wrap modes have been implemented (where possible). Furthermore several useful geometric distortions have been implemented such as linear, radial, conical, diamond, X, XY, and Squared(XY). Finally some sparse point color interpolators have been implemented that can be used for simple mesh gradients.
+Graphics32 supports many different types of color gradients such as linear, radial, conical, diamond, X, XY, and Squared(XY) to name a few.
+
+::: center
+![](./images/img_052.png) ![](./images/img_050.png) ![](./images/img_047.png) ![](./images/img_041.png) ![](./images/img_044.png)
+:::
+
+When defining the gradient color transitions there are hardly any limitations in the number of color stops or interpolation steps possible. Furthermore, for all gradients different [wrap modes](#wrap_modes) have been implemented (where possible). Finally some sparse point color interpolators have been implemented that can be used for simple mesh gradients.
 
 ## Simple 2-Point Linear Gradients
 
-Classic color gradients only use 2 colors with a linear transition from one color to the other color, as can be seen in Figure 1.
+Classic color gradients only use 2 colors, with a linear transition from one color to the other color, as can be seen in Figure 1.
 
-![](/images/img_069.png) ![](/images/img_070.png) ![](/images/img_071.png) ![](/images/img_072.png) **Figure 1:** Simple 2-point linear gradients
+::: center
+![](./images/img_069.png) ![](./images/img_070.png) ![](./images/img_071.png) ![](./images/img_072.png)
+**Figure 1:** Simple 2-point linear gradients
+:::
 
-The code, which is necessary to build the above gradients is very simple; A _linear_ gradient sampler is created and the values for each pixels are calculated:
+The code that built the above gradients is very simple; A *linear* gradient sampler is created and the values for each pixel is calculated:
 
-123456789101112131415161718192021| `var`` ``X, Y: ``Integer``;`` ``Sampler: TLinearGradientSampler;``begin`` ``Bitmap``.``SetSize(``100``, ``100``);`` ` ` ``Sampler := TLinearGradientSampler``.``Create;`` ``try` ` ``Sampler``.``SimpleGradient(FloatPoint(``0``, ``0``), clBlue32, FloatPoint(``0``, ``100``), clRed32);` ` ``Sampler``.``PrepareSampling;` ` ``for` `Y := ``0` `to` `Bitmap``.``Width - ``1` `do`` ``for` `X := ``0` `to` `Bitmap``.``Height - ``1` `do`` ``Bitmap``.``Pixel[X, Y] := Sampler``.``GetSampleInt(X, Y);` ` ``finally`` ``Sampler``.``Free;`` ``end``;``end``;`
----|---
+```pascal:line-numbers
+var
+  X, Y: Integer;
+  Sampler: TLinearGradientSampler;
+begin
+  Bitmap.SetSize(100, 100);
+  
+  Sampler := TLinearGradientSampler.Create;
+  try
+ 
+    Sampler.SimpleGradient(FloatPoint(0, 0), clBlue32, FloatPoint(0, 100), clRed32);
+ 
+    Sampler.PrepareSampling;
+ 
+    for Y := 0 to Bitmap.Width - 1 do
+      for X := 0 to Bitmap.Height - 1 do
+        Bitmap.Pixel[X, Y] := Sampler.GetSampleInt(X, Y);
+ 
+  finally
+    Sampler.Free;
+  end;
+end;
+```
 
 ## Simple 2-Point Radial Gradients
 
-Another classical color gradient supported by Graphics32 is the circular gradient. A circular gradient is specified as a circle that has one color and a focus (the center of the circle) that has another. Colors are calculated by linear interpolation based on distance from the focus. The distance from the focus is mapped using a radius property.
+Another classic color gradient supported by Graphics32 is the *circular gradient*. A circular gradient is specified as a circle that has one color at its circumference and another at its focus (the center, for a perfect circle). Colors are calculated by linear interpolation based on distance from the focus. The distance from the focus is mapped using a radius property.
 
-![](/images/img_073.png) ![](/images/img_074.png) ![](/images/img_075.png) ![](/images/img_076.png) **Figure 2:** Simple 2-point circular gradients
+::: center
+![](./images/img_073.png) ![](./images/img_074.png) ![](./images/img_075.png) ![](./images/img_076.png)
+**Figure 2:** Simple 2-point circular gradients
+:::
 
-The code, which is necessary to build the above gradients is also very simple; A _radial_ gradient sampler is created and the values for each pixels are calculated:
+The code that built these gradients is also very simple; A _radial_ gradient sampler is created and the values for each pixel is calculated:
 
-123456789101112131415161718192021222324| `var`` ``X, Y: ``Integer``;`` ``Sampler: TRadialGradientSampler;``begin`` ``Bitmap``.``SetSize(``100``, ``100``);`` ` ` ``Sampler := TRadialGradientSampler``.``Create;`` ``try` ` ``Sampler``.``Center := FloatPoint(Bitmap``.``Width ``div` `2``, Bitmap``.``Height ``div` `2``);`` ``Sampler``.``Radius := Bitmap``.``Width ``div` `2``;`` ``Sampler``.``Gradient``.``StartColor := clBlue32;`` ``Sampler``.``Gradient``.``EndColor := clRed32;` ` ``Sampler``.``PrepareSampling;` ` ``for` `Y := ``0` `to` `Bitmap``.``Width - ``1` `do`` ``for` `X := ``0` `to` `Bitmap``.``Height - ``1` `do`` ``Bitmap``.``Pixel[X, Y] := Sampler``.``GetSampleInt(X, Y);` ` ``finally`` ``Sampler``.``Free;`` ``end``;``end``; `
----|---
+```pascal:line-numbers
+var
+  X, Y: Integer;
+  Sampler: TRadialGradientSampler;
+begin
+  Bitmap.SetSize(100, 100);
+  
+  Sampler := TRadialGradientSampler.Create;
+  try
+ 
+    Sampler.Center := FloatPoint(Bitmap.Width div 2, Bitmap.Height div 2);
+    Sampler.Radius := Bitmap.Width div 2;
+    Sampler.Gradient.StartColor := clBlue32;
+    Sampler.Gradient.EndColor := clRed32;
+ 
+    Sampler.PrepareSampling;
+ 
+    for Y := 0 to Bitmap.Width - 1 do
+      for X := 0 to Bitmap.Height - 1 do
+        Bitmap.Pixel[X, Y] := Sampler.GetSampleInt(X, Y);
+ 
+  finally
+    Sampler.Free;
+  end;
+end;
+```
 
 ## Wrap Modes
 
-As can be seen in Figure 2, the color outside the defined radius is clamped. While this might be desired and sufficient for typical cases, it is also possible to use other wrap modes. Figure 3 shows the differences between all the different wrap modes available:
+As can be seen in Figure 2, the color outside the defined sample radius is clamped. While this might be desired and sufficient for typical cases, it is also possible to use other wrap modes. Figure 3 shows the red/blue radial gradient with the **Clamp**, **Repeat**, and **Mirror** wrap modes:
 
-![](/images/img_073.png) ![](/images/img_077.png) ![](/images/img_078.png) **Figure 3:** Different wrap modes: clamp, mirror, repeat
+| Clamp | Repeat | Mirror |
+| --- | --- | --- |
+| ![](./images/img_073.png) | ![](./images/img_078.png) | ![](./images/img_077.png) |
 
-Please note, that the repeat wrap mode may cause rough and pixelized edges rather than smooth transitions, when the color starts to repeat. This can be corrected either by super sampling the gradient sampler (if a sampler is used as opposed to a polygon filler) or by adding further color stops.
+**Figure 3:** Different wrap modes: Clamp, Repeat, Mirror
 
-![](/images/img_079.png) ![](/images/img_080.png) **Figure 4:** Fixing rough edges with wrap mode=repeat.
-On the left: supersampled. On the right: corrected using a 3-point gradient.
+Note that the repeat wrap mode may cause rough and pixelized edges rather than smooth transitions when the color starts to repeat. This can be corrected either by using a super-sampling gradient sampler (if a sampler is used as opposed to a polygon filler) or by adding further color stops:
+
+| Normal | Super-sampled | 3-point gradient |
+| --- | --- | --- |
+| ![](./images/img_078.png) | ![](./images/img_079.png) | ![](./images/img_080.png) |
+
+**Figure 4:** Fixing rough edges caused by wrap mode=repeat.
+
+In addition to the above 3 wrap modes, there also a **Reflect** wrap mode that should be mentioned for completeness. Reflect is almost identical to the Mirror wrap mode. The difference lies on how the two behave at the point where they wrap. The four gradients below illustrate the difference between Clamp, Repeat, Mirror, and Reflect. Can you spot the difference?
+::: center
+![Clamp](./images/gradient-clamp-512.png) ![Repeat](./images/gradient-repeat-512.png) ![Mirror](./images/gradient-mirror-512.png) ![Reflect](./images/gradient-reflect-512.png)
+:::
+
+No, right? But what if we reduce the number of interpolation steps from 512 to just 16?
+::: center
+![Clamp](./images/gradient-clamp-16.png) ![Repeat](./images/gradient-repeat-16.png) ![Mirror](./images/gradient-mirror-16.png) ![Reflect](./images/gradient-reflect-16.png)
+:::
+
+And if we plot the sample function as a color ramp, the difference between the Mirror and Reflect modes becomes unmistakable:
+![Mirror](./images/WrapMode-mirror.png) ![Reflect](./images/WrapMode-reflect.png)
+
+In summary, the difference between Mirror and Reflect only really manifests itself with few color steps or if the gradient wraps many times.
+
 
 ## More than 2 colors
 
-So far, the presented figures only featured 2 colors, but as it has already been mentioned with Graphics32 there are hardly any limitations in the number of color stops. Further color stops can simply be added at any time using the AddColorStop() method. Or the gradient can be defined directly using the SetColors() method. Both are members of the TColor32Gradient class, which is responsible for managing the color stops.
+As was mentioned previously, there are hardly any limitations in the number of color stops that can be used in a gradient.
 
-![](/images/img_052.png) ![](/images/img_050.png) ![](/images/img_047.png) ![](/images/img_041.png) ![](/images/img_044.png)
+The class responsible for managing color stops is `TColor32Gradient`. When defining a gradient, color stops can either be added one at a time with the `AddColorStop` method - or the whole gradient can be defined directly with a dynamic array of color stops, using the `SetColors` method.
