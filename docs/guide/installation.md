@@ -1,6 +1,6 @@
 # Installation
 
-#### Get the source code
+## Get the source code
 
 You can get the latest source code from the Graphics32 Git repository. Either using a Git client to clone the repository or by simply downloading a zip file with the latest snapshot.
 
@@ -8,10 +8,9 @@ You can get the latest source code from the Graphics32 Git repository. Either us
   * Zip file: <https://github.com/graphics32/graphics32/archive/refs/heads/master.zip>
 
 
-
 Copy the source code to a location of your choice. In the installation procedures below we use the location `C:\Projects\Graphics32` as an example.
 
-#### Installation procedure for Delphi / C++ Builder / RAD Studio
+## Installation procedure for Delphi / C++ Builder / RAD Studio
 
 Note: While the following procedure only mentions Delphi it applies to both Delphi and C++ Builder.
 
@@ -30,28 +29,26 @@ The project group contains two projects:
      * The Graphics32 run-time package: `GR32_R`
      * The Graphics32 design-time package: `GR32_D`
   6. From the Delphi project manager, activate the Graphics32 run-time package and compile it.
-![](/images/GR32_R-compile.png)
+     ![](./images/GR32_R-compile.png)
   7. From the Delphi project manager, activate the Graphics32 design-time package and install it.
-![](/images/GR32_D-install.png)
+     ![](./images/GR32_D-install.png)
   8. You should now get a message box notifying you of the package installation and the components it contains:
-![](/images/GR32_D-after-install.png)
+     ![](./images/GR32_D-after-install.png)
 
 
-
-#### Installation procedure for Lazarus
+## Installation procedure for Lazarus
 
 The installation procedure for Lazarus is pretty horrible due to deficiencies in the FreePascal compiler or the Lazarus build system.
 
   1. Open the `GR32_Lazarus` run-time package. .
-Select **Recompile clean** from the **More** package toolbar menu.
-![](/images/LazarusRecompileClean.png)
+     Select **Recompile clean** from the **More** package toolbar menu.
+     ![](./images/LazarusRecompileClean.png)
   2. Compile `GR32_Lazarus` again.
-Repeat this 3-4 times until the compile completes without any messages.
-![](/images/LazarusCompileResult.png)
+     Repeat this 3-4 times until the compile completes without any messages.
+     ![](./images/LazarusCompileResult.png)
   3. Open the `GR32_DSGN_Lazarus` design-time package.
-Select **Use** →**Install** from the package toolbar.
-![](/images/LazarusUseInstall.png)
-
+     Select **Use** →**Install** from the package toolbar.
+     ![](./images/LazarusUseInstall.png)
 
 
 See also:
