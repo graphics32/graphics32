@@ -8,6 +8,7 @@ declaration: "TNotifiablePersistent = class(TPersistent)"
 inheritance:
   - TObject
   - TPersistent
+  - TPlainInterfacedPersistent
   - TNotifiablePersistent
-summary: "Persistent object subclass that manages change notifications (OnChange events) and update lock counters (BeginUpdate / EndUpdate)."
+summary: "Persistent object subclass that manages change notifications (`OnChange` events) and change batching (`BeginUpdate` / `EndUpdate`)."
 ---

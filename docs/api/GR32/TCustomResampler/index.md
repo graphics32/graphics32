@@ -8,8 +8,9 @@ declaration: "TCustomResampler = class(TCustomSampler)"
 inheritance:
   - TObject
   - TPersistent
+  - TPlainInterfacedPersistent
   - TNotifiablePersistent
   - TCustomSampler
   - TCustomResampler
-summary: "Abstract base class for pixel resampling and filtering algorithms attached to TBitmap32."
+summary: "Abstract base class for pixel resampling and filtering algorithms attached to `TBitmap32`."
 ---

@@ -8,7 +8,10 @@ declaration: "TBitmap32 = class(TCustomBitmap32)"
 inheritance:
   - TObject
   - TPersistent
+  - TPlainInterfacedPersistent
   - TNotifiablePersistent
+  - TThreadPersistent
+  - TCustomMap
   - TCustomBitmap32
   - TBitmap32
 summary: "Primary 32-bit ARGB bitmap container class in Graphics32."

@@ -17,6 +17,19 @@ overloads:
         type: TCustomBitmap32
         description: "Source bitmap to draw."
 
+  - signature: "procedure Draw(DstX, DstY: Integer; const SrcRect: TRect; Src: TCustomBitmap32); overload;"
+    summary: "Draws a sub-rectangle from the source bitmap at top-left pixel position (DstX, DstY)."
+    parameters:
+      - name: DstX, DstY
+        type: Integer
+        description: "Top-left destination coordinate on this bitmap."
+      - name: SrcRect
+        type: TRect
+        description: "Source sub-rectangle on the source bitmap."
+      - name: Src
+        type: TCustomBitmap32
+        description: "Source bitmap to copy or blend pixels from."
+
   - signature: "procedure Draw(const DstRect, SrcRect: TRect; Src: TCustomBitmap32); overload;"
     summary: "Stretches and blends a sub-rectangle from the source bitmap into a destination rectangle."
     parameters:
