@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from '@lando/vitepress-theme-default-plus/config'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import fs from 'fs'
 import path from 'path'
