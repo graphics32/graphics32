@@ -8,13 +8,13 @@ Graphics32 supports three fundamental blend operations: **[Blend](#blend)**, **[
 
 The Blend operation mixes a foreground color **F** with a background color **B** using the alpha component of the foreground color.
 
-<center>$S_{RGB} = F_A * F_{RGB} + (1 – F_A) * B_{RGB}$</center><br>
+$$S_{RGB} = F_A * F_{RGB} + (1 – F_A) * B_{RGB}$$
 
 The blend operation is a simplification of the [merge](#merge) operation; It is an optimization that, by assuming that **the background is fully opaque** (i.e. has an alpha value A = 255), avoids the merge operation’s costly calculation of the result alpha.
 
 Note that while the blend operation assume that the background alpha is 255, for performance reasons, many blend functions still calculate the result alpha using the blend formula:
 
-<center>$S_A = F_A * F_A + (1 – F_A) * B_A$</center><br>
+$$S_A = F_A * F_A + (1 – F_A) * B_A$$
 
 In most cases this alpha calculation only makes sense when the background is opaque.
 
@@ -27,8 +27,8 @@ If you are drawing onto a semi-transparent background then the **Merge** operati
 
 The Merge operation merges a foreground color **F** with the background color **B** using the alpha component of both. It merges both the RGB and alpha-channels.
 
-<center>$S_A = 1 – (1 – F_A) * (1 – B_A)$</center><br>
-<center>$S_{RGB} = \frac{ F_A * F_{RGB} + B_A * (1 – F_A) * B_{RGB} }{S_A}$</center><br>
+$$S_A = 1 – (1 – F_A) * (1 – B_A)$$
+$$S_{RGB} = \frac{ F_A * F_{RGB} + B_A * (1 – F_A) * B_{RGB} }{S_A}$$
 
 ::: info Note
 The **Merge** operation is expensive. If you are drawing onto a fully opaque (i.e. non-transparent) background then it is much more efficient to use the **Blend** operation instead.
@@ -38,8 +38,8 @@ The **Merge** operation is expensive. If you are drawing onto a fully opaque (i.
 
 The Combine operation performs _linear interpolation_ between two colors: **X** and **Y**. The **W** parameter, which must be in [0..255] range, specifies the weight of the first color (**X**). The alpha channel is interpolated as well.
 
-<center>$S_{RGBA} = W * X_{RGBA} + (1 – W) * Y_{RGBA} \Leftrightarrow$</center>
-<center>$S_{RGBA} = W * (X_{RGBA} – Y_{RGBA}) + Y_{RGBA}$</center><br>
+$$S_{RGBA} = W * X_{RGBA} + (1 – W) * Y_{RGBA} \Leftrightarrow$$
+$$S_{RGBA} = W * (X_{RGBA} – Y_{RGBA}) + Y_{RGBA}$$
 
 The Combine operation is also known as _Lerp_ or _Cross-fade_.
 
@@ -88,12 +88,12 @@ Some blend functions, notably those with the **Ex** suffix, takes an extra param
 
 This master alpha is used to scale the alpha values used in the Blend or Merge operations. Thus the Blend operation becomes:
 
-<center>$S_{ARGB} = (M * F_A) * F_{ARGB} + (1 – (M * F_A)) * B_{ARGB}$</center><br>
+$$S_{ARGB} = (M * F_A) * F_{ARGB} + (1 – (M * F_A)) * B_{ARGB}$$
 
 and the Merge operation becomes:
 
-<center>$S_A = 1 – (1 – (M * F_A)) * (1 – B_A)$</center><br>
-<center>$S_{RGB} = \frac{ (M * F_A) * F_{RGB} + B_A * (1 – (M * F_A)) * B_{RGB} }{S_A}$</center><br>
+$$S_A = 1 – (1 – (M * F_A)) * (1 – B_A)$$
+$$S_{RGB} = \frac{ (M * F_A) * F_{RGB} + B_A * (1 – (M * F_A)) * B_{RGB} }{S_A}$$
 
 ::: info Note
 While **M** is declared as a `Cardinal`, it should only contain values in the [0..255] range when used with the standard blend and merge functions; They do not perform range checking and the result for `M > 255` is undefined. For custom blend functions, such as those you write yourself, there are no restriction on the value of **M** ; The interpretation of the value depends entirely on the function.
@@ -103,7 +103,7 @@ While **M** is declared as a `Cardinal`, it should only contain values in the [0
 
 Most blend functions applies a single alpha value to each of the R, G, and B channels. However in some situations it is necessary to blend each channel independently and for this we have the functions with the **RGB** suffix; These functions do not use the alpha channel of **F** when blending. Instead they use the individual R, G, and B components of the **W** parameter as the alpha value:
 
-<center>$S_{RGB} = (F_{RGB} – B_{RGB}) * W_{RGB} + B_{RGB}$</center><br>
+$$S_{RGB} = (F_{RGB} – B_{RGB}) * W_{RGB} + B_{RGB}$$
 
 ::: info Note
 The **W** parameter, while declared as a `Cardinal`, is in fact a `TColor32` value where the A channel is ignored.

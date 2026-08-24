@@ -21,7 +21,7 @@ A general algorithm used for reconstructing samples is to perform convolution in
 
 Graphics32 includes a class called [TCustomKernel](/api/GR32_Resamplers/TCustomKernel) which is used as an ancestor class for various convolution kernels. For high quality resampling, one should consider using a kernel that approximates the ideal low-pass filter. The ideal low-pass filter is often referred to as a _sinc_ filter. It can be described by the formula
 
-<center>$sinc(x) = {sin(π x) \over π x}$</center><br>
+$$sinc(x) = {sin(π x) \over π x}$$
 
 Since this function has infinite extent, it is not practical for using as a convolution kernel (because of the computational overhead). [TWindowedSincKernel](/api/GR32_Resamplers/TWindowedSincKernel) is a base class for kernels that use the _sinc_ function together with a _[window function](https://en.wikipedia.org/wiki/Window_function)_ (also known as _[tapering function](https://en.wikipedia.org/wiki/Tapering_\(mathematics\))_ or _[apodization function](https://en.wikipedia.org/wiki/Apodization)_). This way the kernel can be constrained to a certain width and reduce the amount of computations.
 
