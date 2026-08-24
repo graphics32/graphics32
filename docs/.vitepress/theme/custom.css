@@ -10,3 +10,9 @@
   -webkit-text-fill-color: var(--vp-home-hero-name-color);
   color: transparent;
 }
+
+/* Default top-alignment for documentation tables */
+.vp-doc td,
+.vp-doc th {
+  vertical-align: top;
+}
