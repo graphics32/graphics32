@@ -102,6 +102,10 @@ export default withMermaid(defineConfig({
 
   markdown: {
     math: true,
+    languageAlias: {
+      pas: 'pascal',
+      delphi: 'pascal'
+    },
     config: (md) => {
       md.use(mathjax3)
       apiSymbolLinksPlugin(md, symbolMap)
