@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import fs from 'fs'
 import path from 'path'
+import mathjax3 from 'markdown-it-mathjax3'
 import { generateSidebarForDir } from './sidebar'
 import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
 
@@ -102,6 +103,7 @@ export default withMermaid(defineConfig({
   markdown: {
     math: true,
     config: (md) => {
+      md.use(mathjax3)
       apiSymbolLinksPlugin(md, symbolMap)
     }
   },
