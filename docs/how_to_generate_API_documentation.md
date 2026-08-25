@@ -300,8 +300,24 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
         - [x] `Draw` -> `docs/api/GR32/TBitmap32/Methods/Draw.md`
       - **Properties**
         - [x] `Pixel` -> `docs/api/GR32/TBitmap32/Properties/Pixel.md`
-    - [ ] `TCustomSampler` -> `docs/api/GR32/TCustomSampler/index.md`
-    - [ ] `TCustomResampler` -> `docs/api/GR32/TCustomResampler/index.md`
+    - [x] `TCustomSampler` -> `docs/api/GR32/TCustomSampler/index.md`
+      - **Methods**
+        - [x] `GetSampleInt` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleInt.md`
+        - [x] `GetSampleFixed` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleFixed.md`
+        - [x] `GetSampleFloat` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleFloat.md`
+        - [x] `PrepareSampling` -> `docs/api/GR32/TCustomSampler/Methods/PrepareSampling.md`
+        - [x] `FinalizeSampling` -> `docs/api/GR32/TCustomSampler/Methods/FinalizeSampling.md`
+        - [x] `HasBounds` -> `docs/api/GR32/TCustomSampler/Methods/HasBounds.md`
+        - [x] `GetSampleBounds` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleBounds.md`
+    - [x] `TCustomResampler` -> `docs/api/GR32/TCustomResampler/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32/TCustomResampler/Constructors/Create.md`
+      - **Methods**
+        - [x] `Resample` -> `docs/api/GR32/TCustomResampler/Methods/Resample.md`
+      - **Properties**
+        - [x] `Bitmap` -> `docs/api/GR32/TCustomResampler/Properties/Bitmap.md`
+        - [x] `Width` -> `docs/api/GR32/TCustomResampler/Properties/Width.md`
+        - [x] `PixelAccessMode` -> `docs/api/GR32/TCustomResampler/Properties/PixelAccessMode.md`
     - [ ] `TCustomBackend`
     - [ ] `TCustomBackendClass`
     - [ ] `TCustomBitmap32Class`
