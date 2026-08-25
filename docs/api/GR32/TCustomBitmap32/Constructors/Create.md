@@ -1,21 +1,23 @@
 ---
+inheritedFrom: TCustomMap.Create
 layout: doc
 docType: api
 unit: GR32
-parent: TBitmap32
-entity: TBitmap32.Create
+parent: TCustomBitmap32
+entity: TCustomBitmap32.Create
 kind: Constructor
-summary: "Instantiates a new TBitmap32 object."
+scope: Public
+summary: "Instantiates a new 32-bit bitmap object."
 overloads:
   - signature: "constructor Create; overload; override;"
-    summary: "Creates an empty TBitmap32 object with default dimensions (0x0)."
-  - signature: "constructor Create(Width, Height: Integer); overload;"
-    summary: "Creates a TBitmap32 object initialized with the specified width and height."
+    summary: "Creates an empty bitmap object with default dimensions (0x0)."
+  - signature: "constructor Create(AWidth, AHeight: Integer); overload;"
+    summary: "Creates a bitmap object initialized with the specified width and height."
     parameters:
-      - name: Width
+      - name: AWidth
         type: Integer
         description: "Initial width of the bitmap in pixels."
-      - name: Height
+      - name: AHeight
         type: Integer
         description: "Initial height of the bitmap in pixels."
   - signature: "constructor Create(ABackendClass: TCustomBackendClass); overload;"
@@ -26,6 +28,7 @@ overloads:
         description: "Custom memory surface backend class (e.g. Memory, GDI, or MMF backend)."
 ---
 
+`Create` allocates memory for the pixel buffer and initializes internal backend interfaces.
 ## Example
 
 ```pascal

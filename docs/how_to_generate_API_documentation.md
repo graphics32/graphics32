@@ -246,6 +246,51 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 
 - [ ] **GR32**
   - **Classes**:
+    - [x] `TPlainInterfacedPersistent` -> `docs/api/GR32/TPlainInterfacedPersistent/index.md`
+      - **Properties**
+        - [x] `RefCount` -> `docs/api/GR32/TPlainInterfacedPersistent/Properties/RefCount.md`
+        - [x] `RefCounted` -> `docs/api/GR32/TPlainInterfacedPersistent/Properties/RefCounted.md`
+    - [x] `TNotifiablePersistent` -> `docs/api/GR32/TNotifiablePersistent/index.md`
+      - **Methods**
+        - [x] `BeginUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/BeginUpdate.md`
+        - [x] `EndUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/EndUpdate.md`
+        - [x] `BeginLockUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/BeginLockUpdate.md`
+        - [x] `EndLockUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/EndLockUpdate.md`
+        - [x] `Changed` -> `docs/api/GR32/TNotifiablePersistent/Methods/Changed.md`
+        - [x] `DoChanged` -> `docs/api/GR32/TNotifiablePersistent/Methods/DoChanged.md`
+      - **Properties**
+        - [x] `UpdateCount` -> `docs/api/GR32/TNotifiablePersistent/Properties/UpdateCount.md`
+        - [x] `LockUpdateCount` -> `docs/api/GR32/TNotifiablePersistent/Properties/LockUpdateCount.md`
+        - [x] `Modified` -> `docs/api/GR32/TNotifiablePersistent/Properties/Modified.md`
+      - **Events**
+        - [x] `OnChange` -> `docs/api/GR32/TNotifiablePersistent/Events/OnChange.md`
+    - [x] `TThreadPersistent` -> `docs/api/GR32/TThreadPersistent/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32/TThreadPersistent/Constructors/Create.md`
+      - **Methods**
+        - [x] `Lock` -> `docs/api/GR32/TThreadPersistent/Methods/Lock.md`
+        - [x] `Unlock` -> `docs/api/GR32/TThreadPersistent/Methods/Unlock.md`
+      - **Properties**
+        - [x] `LockCount` -> `docs/api/GR32/TThreadPersistent/Properties/LockCount.md`
+    - [x] `TCustomMap` -> `docs/api/GR32/TCustomMap/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32/TCustomMap/Constructors/Create.md`
+      - **Methods**
+        - [x] `Clear` -> `docs/api/GR32/TCustomMap/Methods/Clear.md`
+        - [x] `Delete` -> `docs/api/GR32/TCustomMap/Methods/Delete.md`
+        - [x] `Empty` -> `docs/api/GR32/TCustomMap/Methods/Empty.md`
+        - [x] `Resized` -> `docs/api/GR32/TCustomMap/Methods/Resized.md`
+        - [x] `SetSize` -> `docs/api/GR32/TCustomMap/Methods/SetSize.md`
+        - [x] `SetSizeFrom` -> `docs/api/GR32/TCustomMap/Methods/SetSizeFrom.md`
+        - [x] `ChangeSize` -> `docs/api/GR32/TCustomMap/Methods/ChangeSize.md`
+        - [x] `SetHeight` -> `docs/api/GR32/TCustomMap/Methods/SetHeight.md`
+        - [x] `SetWidth` -> `docs/api/GR32/TCustomMap/Methods/SetWidth.md`
+      - **Properties**
+        - [x] `Height` -> `docs/api/GR32/TCustomMap/Properties/Height.md`
+        - [x] `Width` -> `docs/api/GR32/TCustomMap/Properties/Width.md`
+      - **Events**
+        - [x] `OnResize` -> `docs/api/GR32/TCustomMap/Events/OnResize.md`
+    - [ ] `TCustomBitmap32` -> `docs/api/GR32/TCustomBitmap32/index.md`
     - [ ] `TBitmap32` -> `docs/api/GR32/TBitmap32/index.md`
       - **Constructors**
         - [x] `Create` -> `docs/api/GR32/TBitmap32/Constructors/Create.md`
@@ -255,16 +300,12 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
         - [x] `Draw` -> `docs/api/GR32/TBitmap32/Methods/Draw.md`
       - **Properties**
         - [x] `Pixel` -> `docs/api/GR32/TBitmap32/Properties/Pixel.md`
-    - [ ] `TCustomBitmap32` -> `docs/api/GR32/TCustomBitmap32/index.md`
-    - [ ] `TNotifiablePersistent` -> `docs/api/GR32/TNotifiablePersistent/index.md`
     - [ ] `TCustomSampler` -> `docs/api/GR32/TCustomSampler/index.md`
     - [ ] `TCustomResampler` -> `docs/api/GR32/TCustomResampler/index.md`
     - [ ] `TCustomBackend`
     - [ ] `TCustomBackendClass`
     - [ ] `TCustomBitmap32Class`
     - [ ] `TCustomResamplerClass`
-    - [ ] `TPlainInterfacedPersistent`
-    - [ ] `TThreadPersistent`
   - **Functions**:
     - [ ] `Color32`
     - [ ] `AlphaComponent`
