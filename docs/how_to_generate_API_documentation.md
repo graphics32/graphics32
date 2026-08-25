@@ -11,7 +11,8 @@ This guide details how Pascal source units in `Source/` are parsed and converted
 It defines:
 1. **Filename Sanitization Rules**: Safe cross-platform mapping for generic types (e.g. `TList<T>` $\rightarrow$ `TList(T).md`).
 2. **Custom Vue Layout Architecture**: Separating structured machine data (YAML frontmatter) from human-editable Markdown body.
-3. **Progress Checklist**: A flat tracking list of all Pascal units in `Source/`.
+3. **Documentation Inheritance**: Virtual route member generation and inherited sidebar merging.
+4. **Progress Checklist**: A flat tracking list of all Pascal units in `Source/`.
 
 **Notes:**
 
@@ -89,11 +90,12 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 | `declaration` | String | Pascal procedure/function/type signature for single-signature pages. |
 | `parameters` | Array | Parameter list objects `[ { name, type, description } ]`. |
 | `overloads` | Array | Array of overload objects for overloaded methods/routines. |
+| `inheritedFrom` | String | Optional. Full identifier of base class member if inherited (e.g., `TCustomBitmap32.Width`). |
 
 ---
 
 ### Schema A: Single Signature Page
-```yaml
+````yaml
 ---
 layout: doc
 docType: api
@@ -108,7 +110,6 @@ parameters:
     type: TColor32
     description: "32-bit ARGB color value to fill the bitmap with."
 ---
-```
 
 ## Example
 
@@ -125,6 +126,7 @@ begin
   end;
 end;
 ```
+````
 
 ---
 
@@ -184,7 +186,19 @@ To manage token limits effectively, member lists are populated **in small batche
 
 ---
 
-## 5. Source Signature Extraction Rules
+## 5. Documentation Inheritance (Virtual Routes)
+
+To avoid duplicating property/method documentation files across derived class hierarchies (`TCustomMap` $\rightarrow$ `TCustomBitmap32` $\rightarrow$ `TBitmap32`):
+
+1. **Single Authoring Location**: Maintainers write member documentation **once** on the ancestor class where the member is declared (e.g. `TCustomBitmap32/Properties/Width.md`).
+2. **Virtual Member Route Generation**: At build time, the Virtual Member plugin (`docs/.vitepress/virtualMembers.ts`) checks the `inheritance` list in derived class `index.md` files (e.g., `TBitmap32/index.md`).
+3. **Automatic Inheritance**: If `TBitmap32/Properties/Width.md` does not exist physically on disk, a virtual route `/api/GR32/TBitmap32/Properties/Width` is generated automatically, inheriting `summary`, `parameters`, and `overloads` from `TCustomBitmap32.Width`.
+4. **Inherited Sidebar Merger**: The sidebar builder (`docs/.vitepress/sidebar.ts`) traces class inheritance chains and automatically merges inherited properties and methods into derived class sidebars with clean URLs (`/api/GR32/TBitmap32/Properties/Width`).
+5. **Inheritance Badge**: `ApiPage.vue` displays an `Inherited from TCustomBitmap32.Width` badge and link whenever `inheritedFrom` is present.
+
+---
+
+## 6. Source Signature Extraction Rules
 
 When populating API documentation from Pascal source code in `Source/`:
 
@@ -195,18 +209,51 @@ When populating API documentation from Pascal source code in `Source/`:
 
 ---
 
-## 6. Unit Progress Checklist
+## 7. Documentation authorities
+
+When authoring documentation from scratch, the following sources can be used:
+
+1. The Single Source of Truth is the source code in `/source`.
+   The code might contain comments that describe the topic. Otherwise the code can be analyzed to determine what it does.
+2. The secondary source is the old documentation: https://github.com/graphics32/graphics32.github.io/tree/master/Docs/Units (and below).
+   This source is largely outdated and should not be trusted without verification against the source code.
+3. Issue discussions at the Github issue tracker often contain explanations of features: https://github.com/graphics32/graphics32/issues?q=is%3Aissue
+4. Google (but beware of AI feedback loops).
+
+---
+
+## 8. Building & Verification Commands
+
+To verify changes and build the static site:
+
+```bash
+# Start local development server with hot reload
+npm run docs:dev
+
+# Build static production site to docs/.vitepress/dist
+npm run docs:build
+
+# Preview static production build on http://localhost:4173
+npm run docs:preview
+```
+
+---
+
+## 9. Exhaustive Unit Progress Checklist
 
 Below is the complete, canonical list of all Pascal source units in `Source/`. AI agents and maintainers must use this checklist when populating or auditing API documentation coverage:
 
 - [ ] **GR32**
   - **Classes**:
     - [ ] `TBitmap32` -> `docs/api/GR32/TBitmap32/index.md`
-      - [x] Constructors/`Create` -> `docs/api/GR32/TBitmap32/Constructors/Create.md`
-      - [x] Constructors/`Destroy` -> `docs/api/GR32/TBitmap32/Constructors/Destroy.md`
-      - [x] Methods/`Clear` -> `docs/api/GR32/TBitmap32/Methods/Clear.md`
-      - [x] Methods/`Draw` -> `docs/api/GR32/TBitmap32/Methods/Draw.md`
-      - [x] Properties/`Pixel` -> `docs/api/GR32/TBitmap32/Properties/Pixel.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32/TBitmap32/Constructors/Create.md`
+        - [x] `Destroy` -> `docs/api/GR32/TBitmap32/Constructors/Destroy.md`
+      - **Methods**
+        - [x] `Clear` -> `docs/api/GR32/TBitmap32/Methods/Clear.md`
+        - [x] `Draw` -> `docs/api/GR32/TBitmap32/Methods/Draw.md`
+      - **Properties**
+        - [x] `Pixel` -> `docs/api/GR32/TBitmap32/Properties/Pixel.md`
     - [ ] `TCustomBitmap32` -> `docs/api/GR32/TCustomBitmap32/index.md`
     - [ ] `TNotifiablePersistent` -> `docs/api/GR32/TNotifiablePersistent/index.md`
     - [ ] `TCustomSampler` -> `docs/api/GR32/TCustomSampler/index.md`
@@ -236,7 +283,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Interfaces**:
     - *(None)*
   - **Constants**:
-    - [ ] `clBlack32`, `clWhite32`, `clRed32`, `clGreen32`, `clBlue32`, `clTrColor32`
+    - [ ] `clBlack32`, `clWhite32`, `clRed32`, `clGreen32`, `clBlue32`, etc.
   - **Other Types**:
     - [ ] `TColor32`
     - [ ] `TArrayOfColor32`
@@ -254,10 +301,10 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Blur.RecursiveGaussian**
 - [ ] **GR32.Blur.SelectiveGaussian**
 - [ ] **GR32.CPUID**
-- [ ] **GR32.Examples**
+- [ ] **GR32.Examples** (document only at unit level)
 - [ ] **GR32.ImageFormats**
 - [ ] **GR32.ImageFormats.BMP**
-- [ ] **GR32.ImageFormats.Default**
+- [ ] **GR32.ImageFormats.Default** (document only at unit level)
 - [ ] **GR32.ImageFormats.GIF**
 - [ ] **GR32.ImageFormats.JPG**
 - [ ] **GR32.ImageFormats.PNG**
@@ -307,12 +354,12 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Backends_VCL** (document only at unit level)
 - [ ] **GR32_Bindings**
 - [ ] **GR32_Blend**
-- [ ] **GR32_Blurs**
+- [ ] **GR32_Blurs** (document only at unit level)
 - [ ] **GR32_Brushes**
 - [ ] **GR32_Clipboard**
 - [ ] **GR32_Clipper**
-- [ ] **GR32_Clipper1**
-- [ ] **GR32_Clipper2**
+- [ ] **GR32_Clipper1** (document only at unit level)
+- [ ] **GR32_Clipper2** (document only at unit level)
 - [ ] **GR32_ColorGradients**
 - [ ] **GR32_ColorPicker**
 - [ ] **GR32_ColorSwatch**
@@ -325,7 +372,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Layers**
 - [ ] **GR32_LowLevel**
 - [ ] **GR32_Math**
-- [ ] **GR32_Math_FPC**
+- [ ] **GR32_Math_FPC** (document only at unit level)
 - [ ] **GR32_MicroTiles**
 - [ ] **GR32_OrdinalMaps**
 - [ ] **GR32_Paths**
@@ -363,13 +410,13 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_PortableNetworkGraphic.ZLib** (document only at unit level)
 - [ ] **GR32_RangeBars**
 - [ ] **GR32_Rasterizers**
-- [ ] **GR32_RepaintOpt**
+- [ ] **GR32_RepaintOpt** (document only at unit level)
 - [ ] **GR32_Resamplers**
 - [ ] **GR32_System**
-- [ ] **GR32_Text_VCL_D2D**
+- [ ] **GR32_Text_VCL_D2D** (document only at unit level)
 - [ ] **GR32_Transforms**
 - [ ] **GR32_VPR**
-- [ ] **GR32_VPR2**
+- [ ] **GR32_VPR2** (document only at unit level)
 - [ ] **GR32_VectorMaps**
 - [ ] **GR32_VectorUtils**
 - [ ] **GR32_VectorUtils.Angus** (document only at unit level)
