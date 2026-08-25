@@ -407,15 +407,22 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
       - **Events**
         - [x] `OnPixelCombine` -> `docs/api/GR32/TCustomBitmap32/Events/OnPixelCombine.md`
         - [x] `OnAreaChanged` -> `docs/api/GR32/TCustomBitmap32/Events/OnAreaChanged.md`
-    - [ ] `TBitmap32` -> `docs/api/GR32/TBitmap32/index.md`
+    - [x] `TBitmap32` -> `docs/api/GR32/TBitmap32/index.md`
       - **Constructors**
         - [x] `Create` -> `docs/api/GR32/TBitmap32/Constructors/Create.md`
-        - [x] `Destroy` -> `docs/api/GR32/TBitmap32/Constructors/Destroy.md`
       - **Methods**
-        - [x] `Clear` -> `docs/api/GR32/TBitmap32/Methods/Clear.md`
         - [x] `Draw` -> `docs/api/GR32/TBitmap32/Methods/Draw.md`
+        - [x] `DrawTo` -> `docs/api/GR32/TBitmap32/Methods/DrawTo.md`
+        - [x] `GetPlatformBackendClass` -> `docs/api/GR32/TBitmap32/Methods/GetPlatformBackendClass.md`
+        - [x] `TileTo` -> `docs/api/GR32/TBitmap32/Methods/TileTo.md`
       - **Properties**
-        - [x] `Pixel` -> `docs/api/GR32/TBitmap32/Properties/Pixel.md`
+        - [x] `BitmapInfo` -> `docs/api/GR32/TBitmap32/Properties/BitmapInfo.md`
+        - [x] `Canvas` -> `docs/api/GR32/TBitmap32/Properties/Canvas.md`
+        - [x] `Font` -> `docs/api/GR32/TBitmap32/Properties/Font.md`
+        - [x] `Handle` -> `docs/api/GR32/TBitmap32/Properties/Handle.md`
+        - [x] `HDC` -> `docs/api/GR32/TBitmap32/Properties/HDC.md`
+      - **Events**
+        - [x] `OnHandleChanged` -> `docs/api/GR32/TBitmap32/Events/OnHandleChanged.md`
     - [x] `TCustomSampler` -> `docs/api/GR32/TCustomSampler/index.md`
       - **Methods**
         - [x] `GetSampleInt` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleInt.md`
