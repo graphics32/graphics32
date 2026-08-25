@@ -94,11 +94,15 @@ export function generateVirtualMembers(apiRootDir: string) {
     const fm = parseFrontmatter(indexMd)
     const ancestors = fm.inheritance || []
 
+    const generatedForClass = new Set<string>()
+
     for (const ancestorName of ancestors) {
       if (ancestorName === className || !classMap[ancestorName]) continue
 
       const ancestorInfo = classMap[ancestorName]
       for (const [relMemberPath, ancestorMemberPath] of Object.entries(ancestorInfo.members)) {
+        if (generatedForClass.has(relMemberPath)) continue
+
         const targetMemberPath = path.join(info.classDir, relMemberPath)
 
         // Create or regenerate virtual page if member does NOT physically exist on derived class (or is an existing virtual page)
@@ -107,23 +111,30 @@ export function generateVirtualMembers(apiRootDir: string) {
             const ancestorContent = fs.readFileSync(ancestorMemberPath, 'utf-8')
             const memberName = path.basename(relMemberPath, '.md')
 
-            // Inject inheritedFrom into frontmatter
             let newContent = ancestorContent
             if (ancestorContent.startsWith('---')) {
               const secondDash = ancestorContent.indexOf('---', 3)
               if (secondDash > 0) {
-                const headFm = ancestorContent.slice(3, secondDash)
+                let headFm = ancestorContent.slice(3, secondDash)
                 const body = ancestorContent.slice(secondDash)
-                const updatedFm = headFm
-                  .replace(/^parent:\s*.*$/m, `parent: ${className}`)
-                  .replace(/^entity:\s*.*$/m, `entity: ${className}.${memberName}`)
 
-                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\n${updatedFm}${body}`
+                // Clean existing inheritedFrom, isVirtual, parent, entity from headFm to avoid duplicate key errors
+                headFm = headFm
+                  .replace(/^inheritedFrom:\s*.*$/m, '')
+                  .replace(/^isVirtual:\s*.*$/m, '')
+                  .replace(/^parent:\s*.*$/m, '')
+                  .replace(/^entity:\s*.*$/m, '')
+                  .split(/\r?\n/)
+                  .filter(l => l.trim().length > 0)
+                  .join('\n')
+
+                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\n${headFm}${body}`
               }
             }
 
             fs.mkdirSync(path.dirname(targetMemberPath), { recursive: true })
             fs.writeFileSync(targetMemberPath, newContent, 'utf-8')
+            generatedForClass.add(relMemberPath)
           } catch (e) {
             // ignore
           }
