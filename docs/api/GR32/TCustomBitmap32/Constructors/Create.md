@@ -1,5 +1,4 @@
 ---
-inheritedFrom: TCustomMap.Create
 layout: doc
 docType: api
 unit: GR32
@@ -28,7 +27,10 @@ overloads:
         description: "Custom memory surface backend class (e.g. Memory, GDI, or MMF backend)."
 ---
 
+## Description
+
 `Create` allocates memory for the pixel buffer and initializes internal backend interfaces.
+
 ## Example
 
 ```pascal
