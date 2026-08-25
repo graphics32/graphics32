@@ -86,6 +86,7 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 | `parent` | String | Optional. Name of parent class/record (e.g., `TBitmap32`). Enables 3-level breadcrumbs: `GR32 > TBitmap32 > Member`. |
 | `entity` | String | Full entity identifier (e.g., `TBitmap32.Draw`). |
 | `kind` | String | Entity classification (`Class`, `Method`, `Constructor`, `Property`, `Function`, `Type`, `Constant`). |
+| `scope` | String | Optional. Member visibility scope (`Public`, `Protected`, `Published`). Renders a styled scope badge in headers. |
 | `summary` | String | High-level summary description. |
 | `declaration` | String | Pascal procedure/function/type signature for single-signature pages. |
 | `parameters` | Array | Parameter list objects `[ { name, type, description } ]`. |

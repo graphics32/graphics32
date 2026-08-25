@@ -27,7 +27,15 @@ const declarationsText = computed(() => {
         <span class="sep">&gt;</span>
         <span class="breadcrumb-current">{{ frontmatter.entity ? frontmatter.entity.split('.').pop() : page.title }}</span>
         <span class="kind-badge" v-if="frontmatter.kind">{{ frontmatter.kind }}</span>
+        <span class="scope-badge" v-if="frontmatter.scope" :class="`scope-${frontmatter.scope.toLowerCase()}`">{{ frontmatter.scope }}</span>
       </div>
+
+      <!-- Inherited Member Banner -->
+      <div class="inherited-from-banner" v-if="frontmatter.inheritedFrom">
+        <span class="inherited-label">Inherited from:</span>
+        <code>{{ frontmatter.inheritedFrom }}</code>
+      </div>
+
       <h1 class="api-title" v-if="frontmatter.entity">{{ frontmatter.entity }}</h1>
       <p class="api-summary" v-if="frontmatter.summary">{{ frontmatter.summary }}</p>
     </header>
@@ -161,6 +169,50 @@ const declarationsText = computed(() => {
   border-radius: 12px;
   font-size: 0.8em;
   font-weight: 600;
+}
+
+.scope-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+  border: 1px solid var(--vp-c-divider);
+}
+
+.scope-protected {
+  background-color: var(--vp-c-yellow-soft, #fef3c7);
+  color: var(--vp-c-yellow-dark, #b45309);
+  border-color: var(--vp-c-yellow-dim, #fde68a);
+}
+
+.scope-public {
+  background-color: var(--vp-c-green-soft, #d1fae5);
+  color: var(--vp-c-green-dark, #047857);
+  border-color: var(--vp-c-green-dim, #a7f3d0);
+}
+
+.scope-published {
+  background-color: var(--vp-c-brand-soft, #e0e7ff);
+  color: var(--vp-c-brand-1, #4338ca);
+  border-color: var(--vp-c-brand-dim, #c7d2fe);
+}
+
+.inherited-from-banner {
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-brand-1);
+  color: var(--vp-c-text-1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+.inherited-label {
+  font-weight: 600;
+  margin-right: 6px;
+  color: var(--vp-c-brand-1);
 }
 
 .api-title {
