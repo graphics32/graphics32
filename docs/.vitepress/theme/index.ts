@@ -11,12 +11,16 @@ export default {
   extends: DefaultPlusTheme,
   Layout() {
     const { frontmatter } = useData()
-    if (frontmatter.value?.docType === 'api' || frontmatter.value?.unit) {
-      return h(DefaultTheme.Layout, null, {
-        'doc-before': () => h(ApiPage)
-      })
-    }
-    return h(DefaultTheme.Layout)
+    const isApi = frontmatter.value?.docType === 'api' || !!frontmatter.value?.unit
+    const layoutNode = isApi
+      ? h(DefaultTheme.Layout, null, {
+          'doc-before': () => h(ApiPage)
+        })
+      : h(DefaultTheme.Layout)
+
+    return isApi
+      ? h('div', { class: 'api-page-doc' }, [layoutNode])
+      : layoutNode
   },
   enhanceApp({ app }) {
     app.component('ApiPage', ApiPage)

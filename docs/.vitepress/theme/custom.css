@@ -16,3 +16,17 @@
 .vp-doc th {
   vertical-align: top;
 }
+
+/* API pages specific styling */
+.api-page-doc {
+  font-size: 15px;
+  --vp-code-color: var(--vp-c-text-1);
+}
+
+.api-page-doc .vp-doc {
+  font-size: 15px;
+}
+
+.api-page-doc :not(pre) > code {
+  color: var(--vp-c-text-1);
+}

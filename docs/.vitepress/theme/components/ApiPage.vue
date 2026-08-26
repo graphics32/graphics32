@@ -10,6 +10,18 @@ const declarationsText = computed(() => {
   }
   return frontmatter.value?.declaration || ''
 })
+
+function renderInlineMarkdown(text: string | undefined | null): string {
+  if (!text) return ''
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+  return html
+}
 </script>
 
 <template>
@@ -37,7 +49,7 @@ const declarationsText = computed(() => {
       </div>
 
       <h1 class="api-title" v-if="frontmatter.entity">{{ frontmatter.entity }}</h1>
-      <p class="api-summary" v-if="frontmatter.summary">{{ frontmatter.summary }}</p>
+      <p class="api-summary" v-if="frontmatter.summary" v-html="renderInlineMarkdown(frontmatter.summary)"></p>
     </header>
 
     <!-- Inheritance Breadcrumbs -->
@@ -74,7 +86,7 @@ const declarationsText = computed(() => {
             <span class="lang">pascal</span>
             <pre class="shiki"><code>{{ ov.signature }}</code></pre>
           </div>
-          <p class="overload-summary" v-if="ov.summary">{{ ov.summary }}</p>
+          <p class="overload-summary" v-if="ov.summary" v-html="renderInlineMarkdown(ov.summary)"></p>
 
           <table v-if="ov.parameters && ov.parameters.length">
             <thead>
@@ -86,9 +98,9 @@ const declarationsText = computed(() => {
             </thead>
             <tbody>
               <tr v-for="param in ov.parameters" :key="param.name">
-                <td><code>{{ param.name }}</code></td>
-                <td><code>{{ param.type }}</code></td>
-                <td>{{ param.description }}</td>
+                <td><code v-html="renderInlineMarkdown(param.name)"></code></td>
+                <td><code v-html="renderInlineMarkdown(param.type)"></code></td>
+                <td v-html="renderInlineMarkdown(param.description)"></td>
               </tr>
             </tbody>
           </table>
@@ -121,9 +133,9 @@ const declarationsText = computed(() => {
           </thead>
           <tbody>
             <tr v-for="param in frontmatter.parameters" :key="param.name">
-              <td><code>{{ param.name }}</code></td>
-              <td><code>{{ param.type }}</code></td>
-              <td>{{ param.description }}</td>
+              <td><code v-html="renderInlineMarkdown(param.name)"></code></td>
+              <td><code v-html="renderInlineMarkdown(param.type)"></code></td>
+              <td v-html="renderInlineMarkdown(param.description)"></td>
             </tr>
           </tbody>
         </table>
