@@ -8,27 +8,29 @@ function parseFrontmatter(filePath: string): Record<string, any> {
   const result: Record<string, any> = {}
   try {
     const content = fs.readFileSync(filePath, 'utf-8')
-    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
-    if (match) {
-      const yaml = match[1]
-      const lines = yaml.split(/\r?\n/)
-      for (const line of lines) {
-        const colonIdx = line.indexOf(':')
-        if (colonIdx > 0 && !line.trim().startsWith('-')) {
-          const key = line.slice(0, colonIdx).trim()
-          let val = line.slice(colonIdx + 1).trim()
-          if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
-          if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1)
-          result[key] = val
+    if (content.startsWith('---')) {
+      const secondDash = content.indexOf('---', 3)
+      if (secondDash > 0) {
+        const yaml = content.slice(3, secondDash)
+        const lines = yaml.split(/\r?\n/)
+        for (const line of lines) {
+          const colonIdx = line.indexOf(':')
+          if (colonIdx > 0 && !line.trim().startsWith('-')) {
+            const key = line.slice(0, colonIdx).trim()
+            let val = line.slice(colonIdx + 1).trim()
+            if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
+            if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1)
+            result[key] = val
+          }
         }
-      }
-      // Extract inheritance array
-      const inhMatch = yaml.match(/inheritance:\r?\n((?:\s*-\s*.*\r?\n?)+)/)
-      if (inhMatch) {
-        result.inheritance = inhMatch[1]
-          .split(/\r?\n/)
-          .map(l => l.replace(/^\s*-\s*/, '').trim())
-          .filter(Boolean)
+        // Extract inheritance array
+        const inhMatch = yaml.match(/inheritance:\r?\n((?:\s*-\s*.*\r?\n?)+)/)
+        if (inhMatch) {
+          result.inheritance = inhMatch[1]
+            .split(/\r?\n/)
+            .map(l => l.replace(/^\s*-\s*/, '').trim())
+            .filter(Boolean)
+        }
       }
     }
   } catch (e) {
@@ -96,7 +98,7 @@ export function generateVirtualMembers(apiRootDir: string) {
 
     const generatedForClass = new Set<string>()
 
-    for (const ancestorName of ancestors) {
+    for (const ancestorName of [...ancestors].reverse()) {
       if (ancestorName === className || !classMap[ancestorName]) continue
 
       const ancestorInfo = classMap[ancestorName]
@@ -128,7 +130,8 @@ export function generateVirtualMembers(apiRootDir: string) {
                   .filter(l => l.trim().length > 0)
                   .join('\n')
 
-                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\n${headFm}${body}`
+                const headFmPart = headFm.length > 0 ? `\n${headFm}` : ''
+                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}${headFmPart}\n${body}`
               }
             }
 
