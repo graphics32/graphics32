@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useData } from 'vitepress'
-import { computed } from 'vue'
+import { useData, useRoute } from 'vitepress'
+import { computed, watchEffect, watch, onMounted } from 'vue'
 
 const { page, frontmatter } = useData()
+const route = useRoute()
 
 const declarationsText = computed(() => {
   if (frontmatter.value?.overloads?.length) {
@@ -22,6 +23,73 @@ function renderInlineMarkdown(text: string | undefined | null): string {
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
   return html
 }
+
+watchEffect(() => {
+  if (!page.value) return
+  const extraHeaders: any[] = []
+
+  const hasOverloads = !!(frontmatter.value?.overloads && frontmatter.value.overloads.length)
+  const hasDeclaration = !!(frontmatter.value?.declaration || hasOverloads)
+  const hasParameters = !!(!hasOverloads && frontmatter.value?.parameters && frontmatter.value.parameters.length)
+
+  if (hasOverloads) {
+    extraHeaders.push({
+      level: 2,
+      title: 'Declarations',
+      slug: 'declarations',
+      link: '#declarations'
+    })
+    extraHeaders.push({
+      level: 2,
+      title: 'Overload Details',
+      slug: 'overload-details',
+      link: '#overload-details'
+    })
+  } else if (hasDeclaration) {
+    extraHeaders.push({
+      level: 2,
+      title: 'Declaration',
+      slug: 'declaration',
+      link: '#declaration'
+    })
+    if (hasParameters) {
+      extraHeaders.push({
+        level: 2,
+        title: 'Parameters',
+        slug: 'parameters',
+        link: '#parameters'
+      })
+    }
+  }
+
+  const existingHeaders = page.value.headers || []
+  const existingSlugs = new Set(existingHeaders.map((h: any) => h.slug))
+  const newHeaders = extraHeaders.filter(h => !existingSlugs.has(h.slug))
+
+  page.value.headers = [...newHeaders, ...existingHeaders]
+})
+
+watch(
+  () => route.hash,
+  (newHash) => {
+    if (newHash === '#overload-details') {
+      const el = document.querySelector('details.api-overloads-section') as HTMLDetailsElement | null
+      if (el) el.open = true
+    }
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null
+    const anchor = target?.closest('a')
+    if (anchor && anchor.getAttribute('href') === '#overload-details') {
+      const el = document.querySelector('details.api-overloads-section') as HTMLDetailsElement | null
+      if (el) el.open = true
+    }
+  })
+})
 </script>
 
 <template>
@@ -69,7 +137,10 @@ function renderInlineMarkdown(text: string | undefined | null): string {
     <template v-if="frontmatter.overloads && frontmatter.overloads.length">
       <!-- Declarations List -->
       <section class="api-declaration-section">
-        <h2>Declarations</h2>
+        <h2 id="declarations" tabindex="-1">
+          Declarations
+          <a class="header-anchor" href="#declarations" aria-label="Permalink to &quot;Declarations&quot;">&#8203;</a>
+        </h2>
         <div class="language-pascal vp-adaptive-theme">
           <button title="Copy Code" class="copy"></button>
           <span class="lang">pascal</span>
@@ -79,7 +150,9 @@ function renderInlineMarkdown(text: string | undefined | null): string {
 
       <!-- Overload Details (Collapsible) -->
       <details class="details custom-block api-overloads-section">
-        <summary>Overload Details</summary>
+        <summary>
+          <h2 id="overload-details" tabindex="-1">Overload Details</h2>
+        </summary>
         <div v-for="(ov, idx) in frontmatter.overloads" :key="idx" class="overload-block">
           <h3>Overload {{ idx + 1 }}</h3>
           <div class="language-pascal vp-adaptive-theme">
@@ -112,7 +185,10 @@ function renderInlineMarkdown(text: string | undefined | null): string {
     <template v-else>
       <!-- Declaration Block -->
       <section class="api-declaration-section" v-if="frontmatter.declaration">
-        <h2>Declaration</h2>
+        <h2 id="declaration" tabindex="-1">
+          Declaration
+          <a class="header-anchor" href="#declaration" aria-label="Permalink to &quot;Declaration&quot;">&#8203;</a>
+        </h2>
         <div class="language-pascal vp-adaptive-theme">
           <button title="Copy Code" class="copy"></button>
           <span class="lang">pascal</span>
@@ -122,7 +198,10 @@ function renderInlineMarkdown(text: string | undefined | null): string {
 
       <!-- Parameters Table -->
       <section class="api-parameters-section" v-if="frontmatter.parameters && frontmatter.parameters.length">
-        <h2>Parameters</h2>
+        <h2 id="parameters" tabindex="-1">
+          Parameters
+          <a class="header-anchor" href="#parameters" aria-label="Permalink to &quot;Parameters&quot;">&#8203;</a>
+        </h2>
         <table>
           <thead>
             <tr>
@@ -262,6 +341,16 @@ function renderInlineMarkdown(text: string | undefined | null): string {
 
 .api-declaration-section, .api-parameters-section, .api-overloads-section {
   margin-bottom: 24px;
+}
+
+.details.api-overloads-section summary h2 {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 1.05em;
+  font-weight: 600;
+  color: inherit;
 }
 
 .overload-block {
