@@ -13,7 +13,7 @@ export function apiShortcodesPlugin(md: MarkdownIt) {
         }
 
         const text = token.content
-        const regex = /\[(constructors|methods|properties|events|members)\](?!\()/gi
+        const regex = /\[(constructors|methods|properties|events|members|classes|types|routines|constants|interfaces)\](?!\()/gi
         let lastIndex = 0
         let match: RegExpExecArray | null
 

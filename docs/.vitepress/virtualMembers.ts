@@ -58,10 +58,24 @@ export function generateVirtualMembers(apiRootDir: string) {
 
   for (const unit of units) {
     const unitDir = path.join(apiRootDir, unit.name)
-    const entries = fs.readdirSync(unitDir, { withFileTypes: true }).filter(e => e.isDirectory())
+      // Scan classes directly under unit or under unit/Classes/
+      const candidateClassDirs: { className: string; classDir: string }[] = []
 
-    for (const cls of entries) {
-      const classDir = path.join(unitDir, cls.name)
+      const categoryFolders = ['Classes', 'Types', 'Interfaces']
+      const directDirs = fs.readdirSync(unitDir, { withFileTypes: true }).filter(e => e.isDirectory())
+      for (const dir of directDirs) {
+        if (categoryFolders.includes(dir.name)) {
+          const catSubDir = path.join(unitDir, dir.name)
+          const subDirs = fs.readdirSync(catSubDir, { withFileTypes: true }).filter(e => e.isDirectory())
+          for (const subItem of subDirs) {
+            candidateClassDirs.push({ className: subItem.name, classDir: path.join(catSubDir, subItem.name) })
+          }
+        } else if (!['Routines', 'Constants', 'Variables'].includes(dir.name)) {
+          candidateClassDirs.push({ className: dir.name, classDir: path.join(unitDir, dir.name) })
+        }
+      }
+
+      for (const { className, classDir } of candidateClassDirs) {
       const indexMd = path.join(classDir, 'index.md')
       if (!fs.existsSync(indexMd)) continue
 
@@ -82,7 +96,7 @@ export function generateVirtualMembers(apiRootDir: string) {
         }
       }
 
-      classMap[cls.name] = {
+        classMap[className] = {
         unit: unit.name,
         classDir,
         members

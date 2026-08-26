@@ -91,6 +91,17 @@ export default withMermaid(defineConfig({
   title: "Graphics32",
   description: "A high-performance 32-bit graphics library for Delphi and Lazarus/FPC",
   cleanUrls: true,
+  rewrites: {
+    // Strips category subfolders from public URLs while preserving physical category organization on disk
+    // e.g. api/GR32/Classes/TBitmap32/Methods/Draw.md -> api/GR32/TBitmap32/Draw
+    // e.g. api/GR32_Filters/Routines/Invert.md -> api/GR32_Filters/Invert
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events)/:member': 'api/:unit/:class/:member',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events)/:member.md': 'api/:unit/:class/:member.md',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/index.md': 'api/:unit/:class/index.md',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class': 'api/:unit/:class',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:item': 'api/:unit/:item',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:item.md': 'api/:unit/:item.md'
+  },
   lastUpdated: true,
   ignoreDeadLinks: true, // Keep this until we get our act together and fix all the dead links
 

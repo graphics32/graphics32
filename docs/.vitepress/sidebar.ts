@@ -70,8 +70,14 @@ export function generateSidebarForDir(
     const title = fs.existsSync(indexMd) ? getTitleFromFile(indexMd, folder.name) : folder.name
     const subItems = generateSidebarForDir(rootDir, subRel, options)
 
+    // Strip organizational category folders from folder index links to match clean rewrites
+    const cleanSubRel = subRel
+      .split(/[/\\]/)
+      .filter(segment => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events'].includes(segment))
+      .join('/')
+
     const folderLink = fs.existsSync(indexMd)
-      ? '/' + path.join(path.basename(rootDir), subRel, '/').replace(/\\/g, '/').replace(/\/+/g, '/')
+      ? '/' + path.join(path.basename(rootDir), cleanSubRel).replace(/\\/g, '/').replace(/\/+/g, '/')
       : undefined
 
     const entry: SidebarItem = {
@@ -95,7 +101,14 @@ export function generateSidebarForDir(
     const nameNoExt = file.name.slice(0, -3)
     const fileAbs = path.join(absPath, file.name)
     const title = getTitleFromFile(fileAbs, nameNoExt)
-    const link = '/' + path.join(path.basename(rootDir), relPath, nameNoExt).replace(/\\/g, '/')
+
+    // Strip organizational category folders from sidebar links to match clean rewrites
+    const cleanRelPath = relPath
+      .split(/[/\\]/)
+      .filter(segment => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events'].includes(segment))
+      .join('/')
+
+    const link = '/' + path.join(path.basename(rootDir), cleanRelPath, nameNoExt).replace(/\\/g, '/').replace(/\/+/g, '/')
     items.push({ text: title, link })
   }
 

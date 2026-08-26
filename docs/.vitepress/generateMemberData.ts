@@ -99,7 +99,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
         const scope = fm.scope || 'Public'
         const isVirtual = fm.isVirtual === 'true' || fm.isVirtual === true || !!fm.inheritedFrom
         const isProtected = scope.toLowerCase() === 'protected'
-        const link = `/api/${unitName}/${className}/${category}/${name}`
+        const link = `/api/${unitName}/${className}/${name}`
         const propertyType = extractPropertyType(fm.declaration || '')
 
         const info: MemberInfo = {
@@ -128,11 +128,25 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
   const units = fs.readdirSync(apiRootDir, { withFileTypes: true }).filter(e => e.isDirectory())
   for (const unit of units) {
     const unitDir = path.join(apiRootDir, unit.name)
-    const entries = fs.readdirSync(unitDir, { withFileTypes: true }).filter(e => e.isDirectory())
-    for (const cls of entries) {
-      const classDir = path.join(unitDir, cls.name)
+    const candidateClassDirs: { className: string; classDir: string }[] = []
+
+    const categoryFolders = ['Classes', 'Types', 'Interfaces']
+    const directDirs = fs.readdirSync(unitDir, { withFileTypes: true }).filter(e => e.isDirectory())
+    for (const dir of directDirs) {
+      if (categoryFolders.includes(dir.name)) {
+        const catSubDir = path.join(unitDir, dir.name)
+        const subDirs = fs.readdirSync(catSubDir, { withFileTypes: true }).filter(e => e.isDirectory())
+        for (const subItem of subDirs) {
+          candidateClassDirs.push({ className: subItem.name, classDir: path.join(catSubDir, subItem.name) })
+        }
+      } else if (!['Routines', 'Constants', 'Variables'].includes(dir.name)) {
+        candidateClassDirs.push({ className: dir.name, classDir: path.join(unitDir, dir.name) })
+      }
+    }
+
+    for (const { className, classDir } of candidateClassDirs) {
       if (fs.existsSync(path.join(classDir, 'index.md'))) {
-        scanClassDir(classDir, unit.name, cls.name)
+        scanClassDir(classDir, unit.name, className)
       }
     }
   }

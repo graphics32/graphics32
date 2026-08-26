@@ -25,7 +25,9 @@ export function buildSymbolMap(apiRootDir: string): SymbolMap {
           const entityMatch = content.match(/^entity:\s*["']?(.*?)["']?$/m)
           const unitMatch = content.match(/^unit:\s*["']?(.*?)["']?$/m)
 
-          let relLink = '/' + path.relative(path.resolve(apiRootDir, '..'), fullPath).replace(/\\/g, '/').replace(/\.md$/, '')
+          let relParts = path.relative(path.resolve(apiRootDir, '..'), fullPath).split(/[/\\]/)
+          relParts = relParts.filter(part => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events'].includes(part))
+          let relLink = '/' + relParts.join('/').replace(/\.md$/, '')
           if (relLink.endsWith('/index')) {
             relLink = relLink.slice(0, -5)
           }
