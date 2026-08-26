@@ -546,7 +546,22 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_ColorSwatch**
 - [ ] **GR32_Containers**
 - [ ] **GR32_ExtImage**
-- [ ] **GR32_Filters**
+- [x] **GR32_Filters** -> `docs/api/GR32_Filters/index.md`
+  - **Types**
+    - [x] `TLUT8` -> `docs/api/GR32_Filters/Types/TLUT8.md`
+    - [x] `TLogicalOperator` -> `docs/api/GR32_Filters/Types/TLogicalOperator.md`
+  - **Routines**
+    - [x] `AlphaToGrayscale` -> `docs/api/GR32_Filters/Routines/AlphaToGrayscale.md`
+    - [x] `ApplyBitmask` -> `docs/api/GR32_Filters/Routines/ApplyBitmask.md`
+    - [x] `ApplyLUT` -> `docs/api/GR32_Filters/Routines/ApplyLUT.md`
+    - [x] `CheckParams` -> `docs/api/GR32_Filters/Routines/CheckParams.md`
+    - [x] `ChromaKey` -> `docs/api/GR32_Filters/Routines/ChromaKey.md`
+    - [x] `ColorToGrayscale` -> `docs/api/GR32_Filters/Routines/ColorToGrayscale.md`
+    - [x] `CopyComponents` -> `docs/api/GR32_Filters/Routines/CopyComponents.md`
+    - [x] `CreateBitmask` -> `docs/api/GR32_Filters/Routines/CreateBitmask.md`
+    - [x] `IntensityToAlpha` -> `docs/api/GR32_Filters/Routines/IntensityToAlpha.md`
+    - [x] `Invert` -> `docs/api/GR32_Filters/Routines/Invert.md`
+    - [x] `InvertRGB` -> `docs/api/GR32_Filters/Routines/InvertRGB.md`
 - [ ] **GR32_Gamma**
 - [ ] **GR32_Geometry**
 - [ ] **GR32_Image**
