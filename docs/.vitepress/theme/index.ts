@@ -5,6 +5,10 @@ import { h, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useData } from 'vitepress'
 import mediumZoom from 'medium-zoom'
 import ApiPage from './components/ApiPage.vue'
+import ApiFilterControls from './components/ApiFilterControls.vue'
+import ApiMembers from './components/ApiMembers.vue'
+import { applySidebarFilter } from './sidebarFilter'
+import { showInherited, showProtected } from './apiFilterState'
 import './custom.css'
 
 export default {
@@ -14,9 +18,12 @@ export default {
     const isApi = frontmatter.value?.docType === 'api' || !!frontmatter.value?.unit
     const layoutNode = isApi
       ? h(DefaultTheme.Layout, null, {
-          'doc-before': () => h(ApiPage)
+          'doc-before': () => h(ApiPage),
+          'aside-top': () => h(ApiFilterControls)
         })
-      : h(DefaultTheme.Layout)
+      : h(DefaultTheme.Layout, null, {
+          'aside-top': () => h(ApiFilterControls)
+        })
 
     return isApi
       ? h('div', { class: 'api-page-doc' }, [layoutNode])
@@ -24,6 +31,8 @@ export default {
   },
   enhanceApp({ app }) {
     app.component('ApiPage', ApiPage)
+    app.component('ApiFilterControls', ApiFilterControls)
+    app.component('ApiMembers', ApiMembers)
   },
   setup() {
     const route = useRoute()
@@ -32,10 +41,11 @@ export default {
     }
     onMounted(() => {
       initZoom()
+      nextTick(() => setTimeout(applySidebarFilter, 50))
     })
     watch(
-      () => route.path,
-      () => nextTick(() => initZoom())
+      [() => route.path, showInherited, showProtected],
+      () => nextTick(() => setTimeout(applySidebarFilter, 50))
     )
   }
 } satisfies Theme
