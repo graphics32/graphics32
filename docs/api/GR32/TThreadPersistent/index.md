@@ -24,21 +24,4 @@ Inheriting from `TThreadPersistent` does not automatically make an object thread
 Likewise, even though many Graphics32 classes inherit from `TThreadPersistent`, use of these classes are not inherently thread safe.
 :::
 
-## Constructors
-
-| Name | Description |
-| --- | --- |
-| [Create](Constructors/Create.md) | Initializes a new instance of `TThreadPersistent` and creates its internal critical section. |
-
-## Methods
-
-| Name | Description |
-| --- | --- |
-| [Lock](Methods/Lock.md) | Acquires the internal critical section lock. |
-| [Unlock](Methods/Unlock.md) | Releases the internal critical section lock. |
-
-## Properties
-
-| Name | Type | Scope | Description |
-| --- | --- | --- | --- |
-| [LockCount](Properties/LockCount.md) | `Integer` | Protected | Returns the current recursion level of critical section locks. |
+[members]

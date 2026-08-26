@@ -22,14 +22,4 @@ Sampler implementations can represent procedurally generated patterns, color gra
 
 Before performing intensive sampling loops, callers must call `PrepareSampling` to allow the sampler (and any nested child samplers) to initialize internal caches or lookup tables. After sampling is complete, `FinalizeSampling` should be called to release temporary resources.
 
-## Methods
-
-| Name | Description |
-| --- | --- |
-| [GetSampleInt](Methods/GetSampleInt.md) | Evaluates and returns a `TColor32` sample at integer coordinates (X, Y). |
-| [GetSampleFixed](Methods/GetSampleFixed.md) | Evaluates and returns a `TColor32` sample at fixed-point 16.16 coordinates (X, Y). |
-| [GetSampleFloat](Methods/GetSampleFloat.md) | Evaluates and returns a `TColor32` sample at floating-point coordinates (X, Y). |
-| [PrepareSampling](Methods/PrepareSampling.md) | Prepares internal state, caches, and nested samplers before a sampling sequence begins. |
-| [FinalizeSampling](Methods/FinalizeSampling.md) | Finalizes sampling state and cleans up temporary resources allocated during `PrepareSampling`. |
-| [HasBounds](Methods/HasBounds.md) | Returns `True` if the sampler has defined spatial boundary limits. |
-| [GetSampleBounds](Methods/GetSampleBounds.md) | Returns the spatial boundary rectangle (`TFloatRect`) within which valid samples exist. |
+[members]

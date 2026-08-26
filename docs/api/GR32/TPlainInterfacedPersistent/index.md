@@ -18,9 +18,4 @@ summary: "Base class that provides lightweight IInterface implementation for TPe
 
 Reference counting can be enabled per-instance by setting the protected `RefCounted` property to `True`.
 
-## Properties
-
-| Name | Type | Description |
-| --- | --- | --- |
-| [RefCount](Properties/RefCount.md) | `Integer` | Returns the current reference count of the object instance. |
-| [RefCounted](Properties/RefCounted.md) | `Boolean` | Controls whether COM-style reference counting manages the instance lifetime. |
+[members]
