@@ -16,18 +16,11 @@ export default {
   Layout() {
     const { frontmatter } = useData()
     const isApi = frontmatter.value?.docType === 'api' || !!frontmatter.value?.unit
-    const layoutNode = isApi
-      ? h(DefaultTheme.Layout, null, {
-          'doc-before': () => h(ApiPage),
-          'aside-top': () => h(ApiFilterControls)
-        })
-      : h(DefaultTheme.Layout, null, {
-          'aside-top': () => h(ApiFilterControls)
-        })
 
-    return isApi
-      ? h('div', { class: 'api-page-doc' }, [layoutNode])
-      : layoutNode
+    return h(DefaultTheme.Layout, null, {
+      'doc-before': () => (isApi ? h(ApiPage) : null),
+      'aside-top': () => h(ApiFilterControls)
+    })
   },
   enhanceApp({ app }) {
     app.component('ApiPage', ApiPage)
@@ -36,16 +29,31 @@ export default {
   },
   setup() {
     const route = useRoute()
+    const { frontmatter } = useData()
+
     const initZoom = () => {
       mediumZoom('.vp-doc img, .content img, main img', { background: 'var(--vp-c-bg)' })
     }
+
+    const updateApiPageClass = () => {
+      if (typeof document !== 'undefined') {
+        const isApi = frontmatter.value?.docType === 'api' || !!frontmatter.value?.unit
+        document.body.classList.toggle('api-page-doc', isApi)
+      }
+    }
+
     onMounted(() => {
       initZoom()
+      updateApiPageClass()
       nextTick(() => setTimeout(applySidebarFilter, 50))
     })
+
     watch(
       [() => route.path, showInherited, showProtected],
-      () => nextTick(() => setTimeout(applySidebarFilter, 50))
+      () => {
+        updateApiPageClass()
+        nextTick(() => setTimeout(applySidebarFilter, 50))
+      }
     )
   }
 } satisfies Theme
