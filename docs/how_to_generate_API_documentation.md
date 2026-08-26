@@ -441,7 +441,21 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
         - [x] `Bitmap` -> `docs/api/GR32/TCustomResampler/Properties/Bitmap.md`
         - [x] `Width` -> `docs/api/GR32/TCustomResampler/Properties/Width.md`
         - [x] `PixelAccessMode` -> `docs/api/GR32/TCustomResampler/Properties/PixelAccessMode.md`
-    - [ ] `TCustomBackend`
+    - [x] `TCustomBackend` -> `docs/api/GR32/TCustomBackend/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32/TCustomBackend/Constructors/Create.md`
+      - **Methods**
+        - [x] `Assign` -> `docs/api/GR32/TCustomBackend/Methods/Assign.md`
+        - [x] `ChangeSize` -> `docs/api/GR32/TCustomBackend/Methods/ChangeSize.md`
+        - [x] `Changing` -> `docs/api/GR32/TCustomBackend/Methods/Changing.md`
+        - [x] `Clear` -> `docs/api/GR32/TCustomBackend/Methods/Clear.md`
+        - [x] `Empty` -> `docs/api/GR32/TCustomBackend/Methods/Empty.md`
+        - [x] `FinalizeSurface` -> `docs/api/GR32/TCustomBackend/Methods/FinalizeSurface.md`
+        - [x] `InitializeSurface` -> `docs/api/GR32/TCustomBackend/Methods/InitializeSurface.md`
+      - **Properties**
+        - [x] `Bits` -> `docs/api/GR32/TCustomBackend/Properties/Bits.md`
+      - **Events**
+        - [x] `OnChanging` -> `docs/api/GR32/TCustomBackend/Events/OnChanging.md`
     - [ ] `TCustomBackendClass`
     - [ ] `TCustomBitmap32Class`
     - [ ] `TCustomResamplerClass`
