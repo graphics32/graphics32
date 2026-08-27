@@ -59,7 +59,7 @@ export function getGitBranch(): string {
   return branch
 }
 
-function buildTemplateFrontmatterValue(ancestorContent: string, className: string, memberName: string): string {
+export function buildTemplateFrontmatterValue(ancestorContent: string, className: string, memberName: string): string {
   const fm = parseFrontmatterContent(ancestorContent)
 
   const lines = ['---']
@@ -238,7 +238,6 @@ export function generateVirtualMembers(apiRootDir: string) {
             const fileName = path.basename(targetRelPath)
 
             const valueStr = buildTemplateFrontmatterValue(ancestorContent, className, memberName)
-            const addFileUrl = `https://github.com/graphics32/graphics32/new/${branch}/docs/${dirPath}?filename=${encodeURIComponent(fileName)}&value=${encodeURIComponent(valueStr)}`
 
             let newContent = ancestorContent
             if (ancestorContent.startsWith('---')) {
@@ -247,19 +246,19 @@ export function generateVirtualMembers(apiRootDir: string) {
                 let headFm = ancestorContent.slice(3, secondDash)
                 const body = ancestorContent.slice(secondDash)
 
-                // Clean existing inheritedFrom, isVirtual, parent, entity, editLink from headFm to avoid duplicate key errors
+                // Clean existing inheritedFrom, isVirtual, parent, entity, templateValue from headFm to avoid duplicate key errors
                 headFm = headFm
                   .replace(/^inheritedFrom:\s*.*$/m, '')
                   .replace(/^isVirtual:\s*.*$/m, '')
                   .replace(/^parent:\s*.*$/m, '')
                   .replace(/^entity:\s*.*$/m, '')
-                  .replace(/^editLink:\r?\n(\s+.*\r?\n?)*/gm, '')
+                  .replace(/^templateValue:\s*.*$/m, '')
                   .split(/\r?\n/)
                   .filter(l => l.trim().length > 0)
                   .join('\n')
 
                 const headFmPart = headFm.length > 0 ? `\n${headFm}` : ''
-                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\neditLink:\n  text: "Create this page on GitHub"\n  url: "${addFileUrl}"${headFmPart}\n${body}`
+                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\ntemplateValue: ${JSON.stringify(valueStr)}${headFmPart}\n${body}`
               }
             }
 

@@ -1,7 +1,7 @@
 import DefaultPlusTheme from '@lando/vitepress-theme-default-plus'
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
-import { h, onMounted, watch, nextTick } from 'vue'
+import { h, onMounted, watch, watchEffect, nextTick } from 'vue'
 import { useRoute, useData } from 'vitepress'
 import mediumZoom from 'medium-zoom'
 import ApiPage from './components/ApiPage.vue'
@@ -29,7 +29,33 @@ export default {
   },
   setup() {
     const route = useRoute()
-    const { frontmatter } = useData()
+    const { frontmatter, theme, page } = useData()
+
+    watchEffect(() => {
+      if (theme.value?.editLink) {
+        if (frontmatter.value?.isVirtual === 'true' || frontmatter.value?.isVirtual === true) {
+          const filePath = page.value?.filePath || ''
+          const lastSlash = filePath.lastIndexOf('/')
+          const dirPath = lastSlash >= 0 ? filePath.slice(0, lastSlash) : ''
+          const fileName = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath
+          const valueStr = frontmatter.value?.templateValue || ''
+
+          const basePattern = typeof theme.value.editLink.pattern === 'string' ? theme.value.editLink.pattern : ''
+          const match = basePattern.match(/^https:\/\/github\.com\/[^\/]+\/[^\/]+\/(?:edit|new)\/([^\/]+)\//)
+          const branch = match ? match[1] : 'documentation'
+
+          theme.value.editLink.pattern = `https://github.com/graphics32/graphics32/new/${branch}/docs/${dirPath}?filename=${encodeURIComponent(fileName)}&value=${encodeURIComponent(valueStr)}`
+          theme.value.editLink.text = 'Create this page on GitHub'
+        } else {
+          const basePattern = typeof theme.value.editLink.pattern === 'string' ? theme.value.editLink.pattern : ''
+          const match = basePattern.match(/^https:\/\/github\.com\/[^\/]+\/[^\/]+\/(?:edit|new)\/([^\/]+)\//)
+          const branch = match ? match[1] : 'documentation'
+
+          theme.value.editLink.pattern = `https://github.com/graphics32/graphics32/edit/${branch}/docs/:path`
+          theme.value.editLink.text = 'Edit this page on GitHub'
+        }
+      }
+    })
 
     const initZoom = () => {
       mediumZoom('.vp-doc img, .content img, main img', { background: 'var(--vp-c-bg)' })
