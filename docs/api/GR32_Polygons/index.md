@@ -1,3 +1,12 @@
+---
+layout: doc
+docType: api
+unit: GR32_Polygons
+entity: GR32_Polygons
+kind: Unit
+summary: "Contains classes and algorithms for sub-pixel vector polygon rendering, path stroking, filling, and antialiased rasterization."
+---
+
 # Unit GR32_Polygons
 
 The `GR32_Polygons` unit contains classes and algorithms for sub-pixel vector polygon rendering, path stroking, filling, and antialiased rasterization.

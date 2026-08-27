@@ -1,3 +1,12 @@
+---
+layout: doc
+docType: api
+unit: GR32_Backends
+entity: GR32_Backends
+kind: Unit
+summary: "Provides surface backend implementations abstraction layer for TBitmap32."
+---
+
 # Unit GR32_Backends
 
 The `GR32_Backends` unit provides surface backend implementations abstraction layer for `TBitmap32`.

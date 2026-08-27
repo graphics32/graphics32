@@ -51,11 +51,77 @@ export function buildSymbolMap(apiRootDir: string): SymbolMap {
   return map
 }
 
+export interface SymbolContext {
+  parent?: string
+  entity?: string
+  unit?: string
+  inheritance?: string[]
+}
+
+/**
+  Helper function to resolve symbol in given page context using hierarchical scoping rules:
+  1. If page has parent class 'Class' or entity 'Class' (e.g. TBitmap32), check 'Class.Symbol'
+  2. Check ancestor classes from inheritance array
+  3. If page has unit 'Unit' (e.g. GR32), check 'Unit.Symbol'
+  4. Check global 'Symbol'
+ */
+export function resolveSymbol(
+  rawSymbol: string,
+  symbolMap: SymbolMap,
+  context?: SymbolContext
+): string | undefined {
+  let targetClass = context?.parent
+  if (!targetClass && context?.entity && !context.entity.includes('.')) {
+    targetClass = context.entity
+  }
+
+  if (targetClass) {
+    const classScoped = `${targetClass}.${rawSymbol}`
+    if (symbolMap[classScoped]) {
+      return symbolMap[classScoped]
+    }
+
+    if (context?.inheritance && Array.isArray(context.inheritance)) {
+      const ancestors = [...context.inheritance].reverse()
+      for (const ancestor of ancestors) {
+        if (ancestor === targetClass) continue
+        const ancestorScoped = `${ancestor}.${rawSymbol}`
+        if (symbolMap[ancestorScoped]) {
+          return symbolMap[ancestorScoped]
+        }
+      }
+    }
+  }
+
+  if (context?.unit) {
+    const unitScoped = `${context.unit}.${rawSymbol}`
+    if (symbolMap[unitScoped]) {
+      return symbolMap[unitScoped]
+    }
+  }
+
+  if (symbolMap[rawSymbol]) {
+    return symbolMap[rawSymbol]
+  }
+
+  return undefined
+}
+
 /**
   Markdown-it plugin to resolve [[SymbolName]] or [[SymbolName|Label]] short links
  */
 export function apiSymbolLinksPlugin(md: MarkdownIt, symbolMap: SymbolMap) {
   md.core.ruler.after('inline', 'api-symbol-links', (state) => {
+    // Extract frontmatter metadata from markdown-it environment
+    const env = state.env || {}
+    const frontmatter = env.frontmatter || {}
+    const context: SymbolContext = {
+      parent: frontmatter.parent,
+      entity: frontmatter.entity,
+      unit: frontmatter.unit,
+      inheritance: frontmatter.inheritance
+    }
+
     for (const blockToken of state.tokens) {
       if (blockToken.type !== 'inline' || !blockToken.children) continue
 
@@ -73,9 +139,9 @@ export function apiSymbolLinksPlugin(md: MarkdownIt, symbolMap: SymbolMap) {
 
         while ((match = regex.exec(text)) !== null) {
           const matchIndex = match.index
-          const fullMatch = match[0]
           const rawSymbol = match[1].trim()
-          const label = match[2] ? match[2].trim() : rawSymbol
+          const customLabel = match[2] ? match[2].trim() : undefined
+          const label = customLabel !== undefined ? customLabel : rawSymbol
 
           // Push text prior to match
           if (matchIndex > lastIndex) {
@@ -84,7 +150,7 @@ export function apiSymbolLinksPlugin(md: MarkdownIt, symbolMap: SymbolMap) {
             newChildren.push(textToken)
           }
 
-          const targetUrl = symbolMap[rawSymbol]
+          const targetUrl = resolveSymbol(rawSymbol, symbolMap, context)
           if (targetUrl) {
             const linkOpen = new state.Token('link_open', 'a', 1)
             linkOpen.attrs = [['href', targetUrl]]
@@ -96,10 +162,19 @@ export function apiSymbolLinksPlugin(md: MarkdownIt, symbolMap: SymbolMap) {
 
             newChildren.push(linkOpen, linkText, linkClose)
           } else {
-            // If symbol not found, render label or raw match as code/text
-            const unmappedText = new state.Token('text', '', 0)
-            unmappedText.content = label
-            newChildren.push(unmappedText)
+            console.warn(`[symbolMap] Warning: Unresolved symbolic link '[[${rawSymbol}${customLabel ? '|' + customLabel : ''}]]' in ${env.relativePath || 'unknown page'}`)
+
+            if (customLabel !== undefined) {
+              // If custom label was explicitly provided, render as plain text
+              const unmappedText = new state.Token('text', '', 0)
+              unmappedText.content = customLabel
+              newChildren.push(unmappedText)
+            } else {
+              // If only symbol was provided, render as code block
+              const codeToken = new state.Token('code_inline', 'code', 0)
+              codeToken.content = rawSymbol
+              newChildren.push(codeToken)
+            }
           }
 
           lastIndex = regex.lastIndex
