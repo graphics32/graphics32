@@ -6,7 +6,7 @@ import mathjax3 from 'markdown-it-mathjax3'
 import { generateSidebarForDir } from './sidebar'
 import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
 import { apiShortcodesPlugin } from './shortcodePlugin'
-import { generateVirtualMembers } from './virtualMembers'
+import { generateVirtualMembers, getGitBranch } from './virtualMembers'
 import { generateMemberData } from './generateMemberData'
 
 const stackOverflowSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -26,6 +26,8 @@ try {
 
 const apiDir = path.resolve(__dirname, '../api')
 const examplesDir = path.resolve(__dirname, '../examples')
+
+const currentBranch = getGitBranch()
 
 // Generate virtual member routes for class inheritance before building symbol map and sidebar
 generateVirtualMembers(apiDir)
@@ -130,7 +132,7 @@ export default withMermaid(defineConfig({
 
   themeConfig: {
     editLink: {
-      pattern: 'https://github.com/graphics32/graphics32/edit/master/docs/:path',
+      pattern: `https://github.com/graphics32/graphics32/edit/${currentBranch}/docs/:path`,
       text: 'Edit this page on GitHub'
     },
 

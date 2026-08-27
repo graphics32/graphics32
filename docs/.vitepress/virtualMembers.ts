@@ -45,6 +45,108 @@ function isVirtualFile(filePath: string): boolean {
   return fm.isVirtual === 'true' || fm.isVirtual === true
 }
 
+export function getGitBranch(): string {
+  let branch = process.env.DOCS_BRANCH
+  if (!branch) {
+    try {
+      const { execSync } = require('child_process')
+      branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim()
+    } catch (e) {
+      // fallback
+    }
+  }
+  if (!branch || branch === 'HEAD') branch = 'documentation'
+  return branch
+}
+
+function buildTemplateFrontmatterValue(ancestorContent: string, className: string, memberName: string): string {
+  const fm = parseFrontmatterContent(ancestorContent)
+
+  const lines = ['---']
+  lines.push('layout: doc')
+  lines.push('docType: api')
+
+  if (fm.unit) lines.push(`unit: ${fm.unit}`)
+  lines.push(`parent: ${className}`)
+  lines.push(`entity: ${className}.${memberName}`)
+
+  if (fm.kind) lines.push(`kind: ${fm.kind}`)
+  if (fm.scope) lines.push(`scope: ${fm.scope}`)
+
+  if (fm.summary) {
+    lines.push(`summary: "${fm.summary}"`)
+  } else {
+    lines.push('summary: "<required>"')
+  }
+
+  if (fm.overloadsBlock) {
+    lines.push(fm.overloadsBlock)
+  } else {
+    if (fm.declaration) {
+      lines.push(`declaration: "${fm.declaration}"`)
+    } else {
+      lines.push('declaration: "<required>"')
+    }
+
+    if (fm.parametersBlock) {
+      lines.push(fm.parametersBlock)
+    } else {
+      lines.push('parameters:')
+      lines.push('  - name: <required>')
+      lines.push('    type: <required>')
+      lines.push('    description: "<required>"')
+    }
+  }
+
+  lines.push('---')
+  lines.push('')
+  lines.push('## Remarks')
+  lines.push('')
+  lines.push('<required>')
+
+  return lines.join('\n')
+}
+
+function parseFrontmatterContent(content: string): Record<string, any> {
+  const result: Record<string, any> = {}
+  if (!content.startsWith('---')) return result
+  const secondDash = content.indexOf('---', 3)
+  if (secondDash <= 0) return result
+  const yaml = content.slice(3, secondDash)
+
+  const lines = yaml.split(/\r?\n/)
+  for (const line of lines) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx > 0 && !line.trim().startsWith('-')) {
+      const key = line.slice(0, colonIdx).trim()
+      let val = line.slice(colonIdx + 1).trim()
+      if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
+      if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1)
+      result[key] = val
+    }
+  }
+
+  const declMatch = yaml.match(/^declaration:\s*(.*)$/m)
+  if (declMatch) {
+    let decl = declMatch[1].trim()
+    if (decl.startsWith('"') && decl.endsWith('"')) decl = decl.slice(1, -1)
+    if (decl.startsWith("'") && decl.endsWith("'")) decl = decl.slice(1, -1)
+    result.declaration = decl
+  }
+
+  const paramMatch = yaml.match(/parameters:\r?\n((?:\s*-\s*.*\r?\n?)+)/)
+  if (paramMatch) {
+    result.parametersBlock = paramMatch[0].trim()
+  }
+
+  const ovMatch = yaml.match(/overloads:\r?\n([\s\S]*?)(?=\n[a-zA-Z0-9_-]+:|$)/)
+  if (ovMatch) {
+    result.overloadsBlock = ovMatch[0].trim()
+  }
+
+  return result
+}
+
 /**
   Generates virtual member files for derived classes based on ancestor class member files.
  */
@@ -127,6 +229,17 @@ export function generateVirtualMembers(apiRootDir: string) {
             const ancestorContent = fs.readFileSync(ancestorMemberPath, 'utf-8')
             const memberName = path.basename(relMemberPath, '.md')
 
+            const branch = getGitBranch()
+
+            // Calculate relPath relative to docs/ folder (e.g. api/GR32/TBitmap32/Methods/Clear.md)
+            const docsDir = path.resolve(apiRootDir, '..')
+            const targetRelPath = path.relative(docsDir, targetMemberPath).replace(/\\/g, '/')
+            const dirPath = path.dirname(targetRelPath).replace(/\\/g, '/')
+            const fileName = path.basename(targetRelPath)
+
+            const valueStr = buildTemplateFrontmatterValue(ancestorContent, className, memberName)
+            const addFileUrl = `https://github.com/graphics32/graphics32/new/${branch}/docs/${dirPath}?filename=${encodeURIComponent(fileName)}&value=${encodeURIComponent(valueStr)}`
+
             let newContent = ancestorContent
             if (ancestorContent.startsWith('---')) {
               const secondDash = ancestorContent.indexOf('---', 3)
@@ -134,18 +247,19 @@ export function generateVirtualMembers(apiRootDir: string) {
                 let headFm = ancestorContent.slice(3, secondDash)
                 const body = ancestorContent.slice(secondDash)
 
-                // Clean existing inheritedFrom, isVirtual, parent, entity from headFm to avoid duplicate key errors
+                // Clean existing inheritedFrom, isVirtual, parent, entity, editLink from headFm to avoid duplicate key errors
                 headFm = headFm
                   .replace(/^inheritedFrom:\s*.*$/m, '')
                   .replace(/^isVirtual:\s*.*$/m, '')
                   .replace(/^parent:\s*.*$/m, '')
                   .replace(/^entity:\s*.*$/m, '')
+                  .replace(/^editLink:\r?\n(\s+.*\r?\n?)*/gm, '')
                   .split(/\r?\n/)
                   .filter(l => l.trim().length > 0)
                   .join('\n')
 
                 const headFmPart = headFm.length > 0 ? `\n${headFm}` : ''
-                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}${headFmPart}\n${body}`
+                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\neditLink:\n  text: "Create this page on GitHub"\n  url: "${addFileUrl}"${headFmPart}\n${body}`
               }
             }
 
