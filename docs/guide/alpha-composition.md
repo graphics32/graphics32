@@ -111,7 +111,7 @@ The **W** parameter, while declared as a `Cardinal`, is in fact a `TColor32` val
 
 ## Alpha composition function overview
 
-For a complete list of available composition functions, see the `GR32_Blend` unit [API documentation](/api/GR32_Blend).
+For a complete list of available composition functions, see the `GR32_Blend` unit [[GR32_Blend|API documentation]].
 
 ### Blend function naming conventions
 

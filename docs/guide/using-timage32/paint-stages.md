@@ -10,11 +10,11 @@ For example, the default sequence of operations includes:
   * Framing the area of the scaled bitmap image with the dotted frame (design-time only).
   * Drawing layers.
 
-It is possible to change the order in which stages execute at run-time, add new stages, delete old ones, etc., using the [PaintStages](/api/GR32_Image/TCustomImage32/Properties/PaintStages) property of `TImage32`, which is basically a dynamic indexed list of stages.
+It is possible to change the order in which stages execute at run-time, add new stages, delete old ones, etc., using the [[TCustomImage32.PaintStages|PaintStages]] property of `TImage32`, which is basically a dynamic indexed list of stages.
 
 ## TPaintStage Record
 
-Each paint stage is defined with a [TPaintStage](/api/GR32_Image/Types/TPaintStage) record:
+Each paint stage is defined with a [[TPaintStage]] record:
 
 ```pascal
 type
@@ -40,13 +40,13 @@ By default, `TImage32` contains the following stages:
 3| False | True | `PST_BITMAP_FRAME` | not used
 4| True | True | `PST_DRAW_LAYERS` | $80000000
 
-See ‘[Using Layers](Using%20Layers)‘ for an explanation of the parameter value in `PST_DRAW_LAYERS` stage.
+See ‘[Using Layers](using-layers)‘ for an explanation of the parameter value in `PST_DRAW_LAYERS` stage.
 
 ## Customizing TImage32 at Run-Time
 
-The `PST_CUSTOM` stage deserves a little bit deeper explanation. It causes the control to issue an [OnPaintStage](/api/GR32_Image/TCustomImage32/Events/OnPaintStage) event, thus allowing you to change `TImage32` behavior at run-time.
+The `PST_CUSTOM` stage deserves a little bit deeper explanation. It causes the control to issue an [[TCustomImage32.OnPaintStage|OnPaintStage]] event, thus allowing you to change `TImage32` behavior at run-time.
 
-The `OnPaintStage` event is declared as a `TPaintStageEvent` delegate type:
+The `OnPaintStage` event is declared as a [[TPaintStageEvent]] delegate type:
 
 ```pascal
 type
@@ -55,7 +55,7 @@ type
 
 In the `OnPaintStage` event handler, the application can draw on the back-buffer (the `Dest` parameter) of the control.
 
-Note, that by default, TImage32 does not generate [OnPaintStage](/api/GR32_Image/TCustomImage32/Events/OnPaintStage) events. In order to make it do so, you have to insert a new stage in the [PaintStages](/api/GR32_Image/TCustomImage32/Properties/PaintStages) list, and set its Stage to PST_CUSTOM, or change one of the existing stages, for example:
+Note, that by default, TImage32 does not generate `OnPaintStage` events. In order to make it do so, you have to insert a new stage in the [[TCustomImage32.PaintStages|PaintStages]] list, and set its Stage to `PST_CUSTOM`, or change one of the existing stages, for example:
 
 ```pascal:line-numbers
 type

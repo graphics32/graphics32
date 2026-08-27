@@ -1,7 +1,7 @@
 # Overview
 
 ::: info
-This section describes the behavior and properties of the [TCustomImage32](/api/GR32_Image/TCustomImage32) base class and its derived class, the [TImage32](/api/GR32_Image/TImage32) control, as well as their realization of layers.
+This section describes the behavior and properties of the [[TCustomImage32]] base class and its derived class, the [[TImage32]] control, as well as their realization of layers.
 
 Since `TCustomImage32` and `TImage32` share the same behavior, we will denote both of them here as `TImage32`. Most of the description applies to the `TImgView32` control as well.
 :::
@@ -16,4 +16,4 @@ When the image paints itself, it runs through several [Paint Stages](paint-stage
 
 To avoid flicker and to speed-up scaling and blending operations, each layer and the bitmap image is painted to a back-buffer of the control. See the description of [Repaint Optimization](repaint-optimization) for details on this.
 
-Finally, `TImage32` supports change notification via the [OnChange](/api/GR32_Image/TCustomImage32/Events/OnChange) event, which is done similar to change notification in `TBitmap32`. Basically, it redirects change notification from its layers and the bitmap image.
+Finally, `TImage32` supports change notification via the [[TCustomImage32.OnChange|OnChange]] event, which is done similar to change notification in `TBitmap32`. Basically, it redirects change notification from its layers and the bitmap image.

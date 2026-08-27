@@ -29,29 +29,29 @@ Ancestor Class: [[TCustomBitmap32]]
 
 | Name | Description |
 | --- | --- |
-| [Create](Constructors/Create.md) | Inherited constructor that instantiates a new `TBitmap32` bitmap instance. |
+| [[Create]] | Inherited constructor that instantiates a new `TBitmap32` bitmap instance. |
 
 ## Methods
 
 | Name | Description |
 | --- | --- |
-| [Draw](Methods/Draw.md) | Draws a source bitmap, sub-rectangle, or GDI DC onto this bitmap. |
-| [DrawTo](Methods/DrawTo.md) | Draws this bitmap onto a destination bitmap or GDI device context (HDC). |
-| [GetPlatformBackendClass](Methods/GetPlatformBackendClass.md) | Returns the platform-default backend class used for surface management. |
-| [TileTo](Methods/TileTo.md) | Tiles a source bitmap sub-rectangle repeatedly onto a target GDI device context (HDC). |
+| [[Draw]] | Draws a source bitmap, sub-rectangle, or GDI DC onto this bitmap. |
+| [[DrawTo]] | Draws this bitmap onto a destination bitmap or GDI device context (HDC). |
+| [[GetPlatformBackendClass]] | Returns the platform-default backend class used for surface management. |
+| [[TileTo]] | Tiles a source bitmap sub-rectangle repeatedly onto a target GDI device context (HDC). |
 
 ## Properties
 
 | Name | Type | Scope | Description |
 | --- | --- | --- | --- |
-| [BitmapInfo](Properties/BitmapInfo.md) | `TBitmapInfo` | Public | Read-only GDI bitmap header information structure. |
-| [Canvas](Properties/Canvas.md) | `TCanvas` | Public | VCL/LCL drawing canvas bound to the bitmap's device context (HDC). |
-| [Font](Properties/Font.md) | `TFont` | Public | Font instance used for canvas text rendering operations. |
-| [Handle](Properties/Handle.md) | `HBITMAP` | Public | OS GDI bitmap surface handle. |
-| [HDC](Properties/HDC.md) | `HDC` | Public | OS GDI device context handle bound to pixel buffer surface. |
+| [[BitmapInfo]] | `TBitmapInfo` | Public | Read-only GDI bitmap header information structure. |
+| [[Canvas]] | `TCanvas` | Public | VCL/LCL drawing canvas bound to the bitmap's device context (HDC). |
+| [[Font]] | `TFont` | Public | Font instance used for canvas text rendering operations. |
+| [[Handle]] | `HBITMAP` | Public | OS GDI bitmap surface handle. |
+| [[HDC]] | `HDC` | Public | OS GDI device context handle bound to pixel buffer surface. |
 
 ## Events
 
 | Name | Type | Description |
 | --- | --- | --- |
-| [OnHandleChanged](Events/OnHandleChanged.md) | `TNotifyEvent` | Fired when the OS GDI bitmap surface handle (`Handle`) changes or is re-allocated. |
+| [[OnHandleChanged]] | `TNotifyEvent` | Fired when the OS GDI bitmap surface handle (`Handle`) changes or is re-allocated. |

@@ -10,10 +10,10 @@ The complete list of types and functions in `GR32` is too big to list here, but 
 
 | Class | Description |
 |---|---|
-| [TBitmap32](./TBitmap32/) | Primary 32-bit ARGB bitmap container class. |
-| [TCustomBitmap32](./TCustomBitmap32/) | Abstract base class for 32-bit bitmaps with backend rendering support. |
-| [TCustomSampler](./TCustomSampler/) | Abstract base class for pixel color sampling algorithms. |
-| [TCustomResampler](./TCustomResampler/) | Abstract base class for bitmap pixel resampling and interpolation. |
+| [[TBitmap32]] | Primary 32-bit ARGB bitmap container class. |
+| [[TCustomBitmap32]] | Abstract base class for 32-bit bitmaps with backend rendering support. |
+| [[TCustomSampler]] | Abstract base class for pixel color sampling algorithms. |
+| [[TCustomResampler]] | Abstract base class for bitmap pixel resampling and interpolation. |
 
 ---
 

@@ -2,17 +2,17 @@
 
 ## Introduction
 
-Two basic controls for on screen display exist in Graphics32: [TCustomPaintBox32](/api/GR32_Image/TCustomPaintBox32) and [TCustomImage32](/api/GR32_Image/TCustomImage32). These two classes provide the functionality all other graphical controls in Graphics32 are based on.
+Two basic controls for on screen display exist in Graphics32: [[TCustomPaintBox32]] and [[TCustomImage32]]. These two classes provide the functionality all other graphical controls in Graphics32 are based on.
 
 ::: info Note
-While this article focuses on the [TCustomPaintBox32](/api/GR32_Image/TCustomPaintBox32) and [TCustomImage32](/api/GR32_Image/TCustomImage32) base classes. The problems and solutions they outline extends to the derived controls that you would actually use, such as [TPaintBox32](/api/GR32_Image/TPaintBox32), [TImage32](/api/GR32_Image/TImage32), and [TImgView32](/api/GR32_Image/TImgView32).
+While this article focuses on the [[TCustomPaintBox32]] and [[TCustomImage32]] base classes. The problems and solutions they outline extends to the derived controls that you would actually use, such as [[TPaintBox32]], [[TImage32]], and [[TImgView32]].
 :::
 
 ### Double buffering in TCustomPaintBox32
 `TCustomPaintBox32` implements a control similar to the `TPaintBox` control known from Delphi’s Visual Component Library (VCL). It differs from the latter in the way it handles repaints: While `TPaintBox` directly draws to the display context whenever it needs to update, `TCustomPaintBox32` uses an in-memory backbuffer. This technique, generally called [*double buffering*](https://en.wikipedia.org/wiki/Multiple_buffering#Double_buffering_in_computer_graphics), has its up and downsides: While it provides a convenient and simple way to avoid flickering by reducing many on-screen paint operations to just one synchronized buffer transfer (blit) from memory to screen, it also require a significant amount of memory and bus bandwidth which in turn effectively limits the number of possible updates per second depending on the hardware used. The main problem with a too simplistic approach to double buffering, is that the whole buffer is transferred to screen even if just a small fraction of its area has changed. Thus there is a lot of potential to improve on - more on this later.
 
 ### Repaints in TCustomImage32
-The `TCustomImage32` control extends `TCustomPaintBox32` by replacing the direct painting to the back buffer with so called stacked [*Paint Stages*](Paint%20Stages.htm). Upon repaint these paint stages are executed in a succesive fashion, from bottom to top – each stage drawing onto the result of the previous to produce the final output.
+The `TCustomImage32` control extends `TCustomPaintBox32` by replacing the direct painting to the back buffer with so called stacked [*Paint Stages*](./using-timage32/paint-stages). Upon repaint these paint stages are executed in a succesive fashion, from bottom to top – each stage drawing onto the result of the previous to produce the final output.
 
 ![Paintstages at runtime](./images/rp_001.png)
 **Figure 1:** Paintstages at runtime
@@ -31,7 +31,7 @@ To sum up, we have two main problems to overcome, i.e. to optimize away:
 
 In order to resolve the two problems outline above, `TCustomPaintBox32` and `TCustomImage32` employs an internal *repaint optimizer* object that takes care of the aspect of managing and optimizing changed areas.
 
-To control how updates and repaint are handled, `TCustomPaintBox32` (and by inheritance `TCustomImage32`) provides the [RepaintMode](/api/GR32_Image/TCustomPaintBox32/Properties/RepaintMode) property.
+To control how updates and repaint are handled, `TCustomPaintBox32` (and by inheritance `TCustomImage32`) provides the [[TCustomPaintBox32.RepaintMode|RepaintMode]] property.
 `RepaintMode` controls what algorithm is used to manage repaints:
 
 * **`rmFull`** means that no repaint optimization will be used; Every change, no matter how small, produces a full scene repaint.
@@ -44,7 +44,7 @@ Figure 2 shows an example comparison of a `rmFull` full scene repaint and an `rm
 
 ::: info
  In addition to `rmFull` and `rmOptimizer`, there is an addition repaint mode named `rmDirect` which provides a method for direct repainting to screen.
- In this mode the deferred repaint technique is replaced by an immediate repaint. The use cases for this technique are very limited, but is especially useful for something like the [TSyntheticImage](/api/GR32_ExtImage/TSyntheticImage) class, which provides incremental painting of the result while still rendering.
+ In this mode the deferred repaint technique is replaced by an immediate repaint. The use cases for this technique are very limited, but is especially useful for something like the [[TSyntheticImage]] class, which provides incremental painting of the result while still rendering.
  :::
 
 ## Measuring Mode
@@ -116,7 +116,7 @@ For instance with many small rectangles (500+) the MicroTiles based optimization
 
 ## Benchmarks
 
-The [Sprites_Ex](/Examples#Sprites%20Example) project was the most important performance test case of all because it is exceptional in the way that it shows both the strengths and weaknesses of the MicroTiles based approach. For our tests we’ve extended the project slightly to be able to measure the effective frames (or updates) per second.
+The [[Sprites_Ex]] project was the most important performance test case of all because it is exceptional in the way that it shows both the strengths and weaknesses of the MicroTiles based approach. For our tests we’ve extended the project slightly to be able to measure the effective frames (or updates) per second.
 
 ![](./images/rp_005a.png) ![](./images/rp_005b.png)
 **Figure 5:** Benchmark results with Sprites_Ex

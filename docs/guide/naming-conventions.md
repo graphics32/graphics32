@@ -14,7 +14,7 @@ Graphics32 follows standard Delphi/FPC identifier naming practices:
 
 ## Line and Pixel methods
 
-The [TBitmap32](/api/GR32/TBitmap32) class provides a large number of methods for single pixel access and single pixel width line drawing. While the prefix of these methods indicate _what_ they do (draw a line, access a pixel, etc.), the postfix denotes _how_ they behave. The methods can include one or more of the following postfixes:
+The [[TBitmap32]] class provides a large number of methods for single pixel access and single pixel width line drawing. While the prefix of these methods indicate _what_ they do (draw a line, access a pixel, etc.), the postfix denotes _how_ they behave. The methods can include one or more of the following postfixes:
 
 | Postfix| Name| Description| Sample (magnified x4)| Examples |
 | --- | --- | --- | --- | --- |
@@ -28,7 +28,7 @@ The [TBitmap32](/api/GR32/TBitmap32) class provides a large number of methods fo
 
 :::info Note
 For lines, all the methods listed above draw line segments that are **a single pixel wide**.
-To draw thicker lines, see the [Polyline](/api/GR32_Polygons/Routines/Polyline) and [PolyPolyline](/api/GR32_Polygons/Routines/PolyPolyline) functions in the [GR32_Polygons](/api/GR32_Polygons) unit. Those functions also produce better anti-aliased blending over fully transparent backgrounds (when compared with X & F modified methods above).
+To draw thicker lines, see the [[Polyline]] and [[PolyPolyline]] functions in the [[GR32_Polygons]] unit. Those functions also produce better anti-aliased blending over fully transparent backgrounds (when compared with X & F modified methods above).
 ![](./images/LineQ.png)
 :::
 

@@ -2,13 +2,13 @@
 
 Graphics32 defines several functions to support non-uniform lines. This includes gradient lines, dashed lines etc.
 
-The concept is pretty simple: Each [TBitmap32](/api/GR32/TBitmap32) object contains a dynamic array of colors, and a color index which ‘crawls’ along the array. The line drawing algorithm samples colors from the color array, at the current color position. The color index is automatically incremented after each sample.
+The concept is pretty simple: Each [[TBitmap32]] object contains a dynamic array of colors, and a color index which ‘crawls’ along the array. The line drawing algorithm samples colors from the color array, at the current color position. The color index is automatically incremented after each sample.
 
-The color index, accessed through the [StippleCounter](/api/GR32/TBitmap32/TCustomBitmap32/Properties/StippleCounter) property, wraps itself automatically at the edges of the color array. It can move in both directions depending on the value of the [StippleStep](/api/GR32/TBitmap32/TCustomBitmap32/Properties/StippleStep) property, which in turn can be positive or negative. Its value may even be fractional in which case the resulting color is interpolated between two colors of the color array.
+The color index, accessed through the [[TCustomBitmap32.StippleCounter|StippleCounter]] property, wraps itself automatically at the edges of the color array. It can move in both directions depending on the value of the [[TCustomBitmap32.StippleStep|StippleStep]] property, which in turn can be positive or negative. Its value may even be fractional in which case the resulting color is interpolated between two colors of the color array.
 
-The [AdvanceStippleCounter](/api/GR32/TBitmap32/TCustomBitmap32/Methods/AdvanceStippleCounter) method advances `StippleCounter` by the value of `StippleStep`.
+The [[TCustomBitmap32.AdvanceStippleCounter|AdvanceStippleCounter]] method advances `StippleCounter` by the value of `StippleStep`.
 
-The [GetStippleColor](/api/GR32/TBitmap32/TCustomBitmap32/Methods/GetStippleColor) function returns the color at the current color index position and then, by default, advances the color index position by calling `AdvanceStippleCounter` so that the next `GetStippleColor` call will return a color value from the next position.
+The [[TCustomBitmap32.GetStippleColor|GetStippleColor]] function returns the color at the current color index position and then, by default, advances the color index position by calling `AdvanceStippleCounter` so that the next `GetStippleColor` call will return a color value from the next position.
 
 ::: info Note
 The stippled line drawing functions internally calls `GetStippleColor` and `AdvanceStippleCounter` for each pixel, so you do not need to do that manually.
