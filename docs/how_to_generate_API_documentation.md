@@ -12,7 +12,8 @@ It defines:
 1. **Filename Sanitization Rules**: Safe cross-platform mapping for generic types (e.g. `TList<T>` $\rightarrow$ `TList(T).md`).
 2. **Custom Vue Layout Architecture**: Separating structured machine data (YAML frontmatter) from human-editable Markdown body.
 3. **Documentation Inheritance**: Virtual route member generation and inherited sidebar merging.
-4. **Progress Checklist**: A flat tracking list of all Pascal units in `Source/`.
+4. **Categories & Sub-categories Reference**: The complete hierarchy of unit member categories and sub-categories supported by VitePress configuration, plugins, and Vue components.
+5. **Progress Checklist**: A flat tracking list of all Pascal units in `Source/`.
 
 **Notes:**
 
@@ -21,7 +22,55 @@ It defines:
 
 ---
 
-## 2. Generic Identifier, Directory & File Naming Rules
+## 2. Unit Member Categories & Sub-Categories Reference
+
+Based on `.vitepress/config.mts`, `.vitepress/generateMemberData.ts`, `.vitepress/sidebar.ts`, `.vitepress/virtualMembers.ts`, and `.vitepress/theme/components/ApiMembers.vue`, the documentation build system recognizes the following top-level unit member categories and member sub-categories:
+
+### Supported Unit Member Categories
+Top-level categories organizational folders directly under `docs/api/<UnitName>/`:
+1. **Classes** (`/api/<UnitName>/Classes/`)
+2. **Interfaces** (`/api/<UnitName>/Interfaces/`)
+3. **Types** (`/api/<UnitName>/Types/`)
+4. **Routines** (`/api/<UnitName>/Routines/`)
+5. **Constants** (`/api/<UnitName>/Constants/`)
+6. **Variables** (`/api/<UnitName>/Variables/`)
+
+### Supported Member Sub-Categories
+Sub-categories exist under individual container entities (such as individual `Classes`, `Interfaces`, or complex record structures):
+1. **Constructors** (`Constructors/`) - Supported under `Classes`. **Note:** Destructors (e.g., `destroy`) are categorized under **Constructors** to group instance lifecycle methods together.
+2. **Methods** (`Methods/`) - Supported under `Classes` and `Interfaces`.
+3. **Properties** (`Properties/`) - Supported under `Classes` and `Interfaces`.
+4. **Events** (`Events/`) - Supported under `Classes`.
+5. **Operators** (`Operators/`) - Operator overloads (e.g. `operator Implicit`, `operator Add`) belong as a member sub-category under `Classes` or complex record types.
+
+### Category to Frontmatter `kind` Mapping Table
+
+The table below defines the mapping from organizational member categories to their corresponding YAML frontmatter `kind` values:
+
+| Category / Sub-Category | Frontmatter `kind` Value | Description |
+|---|---|---|
+| **Classes** | `Class` | Class overview pages (`index.md`). |
+| **Interfaces** | `Interface` | Interface overview pages (`index.md`). |
+| **Types** | `Type` | Enums, aliases, sets, procedural pointers, and simple records. |
+| **Routines** | `Function` or `Procedure` | Standalone unit functions and procedures. |
+| **Constants** | `Constant` | Unit constants and typed constants. |
+| **Variables** | `Variable` | Unit global variables and threadvars. |
+| **Constructors** | `Constructor` | Constructors and destructors for classes/records. |
+| **Methods** | `Method` | Member procedures and functions (including class methods). |
+| **Properties** | `Property` | Member properties (including class properties). |
+| **Events** | `Event` | Delegation event properties (e.g., `notify` events). |
+| **Operators** | `Operator` | Overloaded record and class operators. |
+
+### Public API Constructs Requiring Special Consideration
+- **Record Types & Fields**: Simple record types (e.g., `TFixedRect`, `TFloatPoint`) are placed under `Types/`. Complex records containing methods, properties, or operator overloads may be grouped under `<UnitName>/Records/` or `<UnitName>/Types/`.
+- **Destructors**: Destructors are documented under the **Constructors** sub-category (`Constructors/<Name>.md`) with `kind: Constructor`.
+- **Operator Overloads**: Documented under the `Operators/` sub-category with `kind: Operator`.
+- **Class Methods & Class Properties**: Documented under `Methods/` and `Properties/` with `class` included in the declaration signature.
+- **Resourcestrings**: `resourcestrings` are intentional library internal/localized assets and are **omitted** from API documentation.
+
+---
+
+## 3. Generic Identifier, Directory & File Naming Rules
 
 API documentation files reside under `docs/api/` matching unit, class, and member hierarchies:
 
@@ -68,7 +117,7 @@ To ensure 100% collision-free filenames that work across all operating systems w
 
 ---
 
-## 3. Frontmatter Schemas & Guidelines
+## 4. Frontmatter Schemas & Guidelines
 
 All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 
@@ -171,7 +220,7 @@ overloads:
 
 ---
 
-## 4. How an AI Agent Populates Unit Members
+## 5. How an AI Agent Populates Unit Members
 
 To manage token limits effectively, member lists are populated **in small batches** when an agent begins work on a unit:
 
@@ -183,11 +232,52 @@ To manage token limits effectively, member lists are populated **in small batche
 ### Rules
 - When tasked to document a class, do not include class members inherited from `TObject` or `TPersistent` (including `Destroy`, `Assign`, and `AssignTo`) unless instructed otherwise.
 - Protected methods and properties that are promoted in a derived class must be documented on the base class. Apart from this, protected members are not documented unless instructed otherwise.
+- Class methods that implement an interface member are not documented, unless the method is public.
+  It is assumed that interface members are documented on the interface type.
 - If the existing documentation is found to be incorrect, outdated or obsolete (e.g. a topic is no longer valid because the item it documents no longer exist), notify the user and ask for confirmation before fixing the problem.
+- If an item in the unit list is marked "(document only at unit level)", then only an `index.md` file should be generated for that unit; The individual types, constants, or variables in the unit are not to be documented indivually.
+
+### Layout
+- **Enumeration types** must be formatted as one table per enumeration type, one row per values.
+  For example, for `TLogicalOperator`:
+  | Value | Description |
+  | --- | --- |
+  | `loXOR` | Performs a bitwise Exclusive-OR (`xor`) operation between pixel colors and bitmask. |
+  | `loAND` | Performs a bitwise AND (`and`) operation between pixel colors and bitmask. |
+  | `loOR` | Performs a bitwise OR (`or`) operation between pixel colors and bitmask. |
+- **Simple record types** can be formatted as one table per record type, one row per field.
+  For example, for `TFixedPoint`:
+  | Field | Type | Description |
+  | --- | --- | --- |
+  | `X` | TFixed | X-coordinate in fixed precision. |
+  | `Y` | TFixed | Y-coordinate in fixed precision. |
+- **Variant record types** can be formatted as one table for the invariant part (if any), and one table per variant.
+  For example, for `TFixedRec` (no invariant part):
+  **case 0**
+  | Field | Type | Description |
+  | --- | --- | --- |
+  | `Fixed` | TFixed | Value in [16:16] fixed precision format. |
+
+  **case 1**
+  | Field | Type | Description |
+  | --- | --- | --- |
+  | `Frac` | SmallInt | Fractional part of fixed precision value. |
+  | `Int` | SmallInt | Integer part of fixed precision value. |
+- **Complex record members** are documented as classes with regard to methods and properties.
+- **Pointer types** are generally documented along with the type they point to.
+  For example, `PByteArray` together with `TByteArray`.
+- **Interfaces** implemented by a class are documented on the class as a table, with one row per interface.
+  For example, for `TGDIMemoryBackend`:
+  **Implements**
+  | Interface | Description |
+  | --- | --- |
+  | `IPaintSupport` | Interface for backends handling control repainting and invalid rect transfer to TCanvas. |
+  | `IDeviceContextSupport` | Interface for backends providing native OS device context handles (HDC) and bit-blitting operations. |
+
 
 ---
 
-## 5. Documentation Inheritance (Virtual Routes)
+## 6. Documentation Inheritance (Virtual Routes)
 
 To avoid duplicating property/method documentation files across derived class hierarchies (`TCustomMap` $\rightarrow$ `TCustomBitmap32` $\rightarrow$ `TBitmap32`):
 
@@ -199,7 +289,7 @@ To avoid duplicating property/method documentation files across derived class hi
 
 ---
 
-## 6. Source Signature Extraction Rules
+## 7. Source Signature Extraction Rules
 
 When populating API documentation from Pascal source code in `Source/`:
 
@@ -210,7 +300,7 @@ When populating API documentation from Pascal source code in `Source/`:
 
 ---
 
-## 7. Documentation authorities
+## 8. Documentation authorities
 
 When authoring documentation from scratch, the following sources can be used:
 
@@ -223,7 +313,7 @@ When authoring documentation from scratch, the following sources can be used:
 
 ---
 
-## 8. Building & Verification Commands
+## 9. Building & Verification Commands
 
 To verify changes and build the static site:
 
@@ -240,7 +330,7 @@ npm run docs:preview
 
 ---
 
-## 9. Exhaustive Unit Progress Checklist
+## 10. Exhaustive Unit Progress Checklist
 
 Below is the complete, canonical list of all Pascal source units in `Source/`. AI agents and maintainers must use this checklist when populating or auditing API documentation coverage:
 
