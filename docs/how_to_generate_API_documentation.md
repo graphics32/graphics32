@@ -630,13 +630,44 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Transpose**
 - [ ] **GR32.Types.SIMD** (document only at unit level)
 - [ ] **GR32_ArrowHeads**
-- [ ] **GR32_Backends**
-- [ ] **GR32_Backends_Generic**
+- [x] **GR32_Backends** -> `docs/api/GR32_Backends/index.md`
+  - **Classes**
+    - [x] `EBackend` -> `docs/api/GR32_Backends/Classes/EBackend/index.md`
+  - **Interfaces**
+    - [x] `ITextSupport` -> `docs/api/GR32_Backends/Interfaces/ITextSupport.md`
+    - [x] `IFontSupport` -> `docs/api/GR32_Backends/Interfaces/IFontSupport.md`
+    - [x] `ITextToPathSupport` -> `docs/api/GR32_Backends/Interfaces/ITextToPathSupport.md`
+    - [x] `ITextToPathSupport2` -> `docs/api/GR32_Backends/Interfaces/ITextToPathSupport2.md`
+    - [x] `ICanvasSupport` -> `docs/api/GR32_Backends/Interfaces/ICanvasSupport.md`
+    - [x] `IInteroperabilitySupport` -> `docs/api/GR32_Backends/Interfaces/IInteroperabilitySupport.md`
+    - [x] `IDeviceContextSupport` -> `docs/api/GR32_Backends/Interfaces/IDeviceContextSupport.md`
+    - [x] `IBitmapContextSupport` -> `docs/api/GR32_Backends/Interfaces/IBitmapContextSupport.md`
+    - [x] `IPaintSupport` -> `docs/api/GR32_Backends/Interfaces/IPaintSupport.md`
+    - [x] `IUpdateRectSupport` -> `docs/api/GR32_Backends/Interfaces/IUpdateRectSupport.md`
+    - [x] `IFontHintingSupport` -> `docs/api/GR32_Backends/Interfaces/IFontHintingSupport.md`
+  - **Types**
+    - [x] `TTextHinting` -> `docs/api/GR32_Backends/Types/TTextHinting.md`
+    - [x] `TRequireOperatorMode` -> `docs/api/GR32_Backends/Types/TRequireOperatorMode.md`
+  - **Routines**
+    - [x] `RequireBackendSupport` -> `docs/api/GR32_Backends/Routines/RequireBackendSupport.md`
+    - [x] `RestoreBackend` -> `docs/api/GR32_Backends/Routines/RestoreBackend.md`
+- [x] **GR32_Backends_Generic** -> `docs/api/GR32_Backends_Generic/index.md`
+  - **Classes**
+    - [x] `TMemoryBackend` -> `docs/api/GR32_Backends_Generic/Classes/TMemoryBackend/index.md`
+    - [x] `TMMFBackend` -> `docs/api/GR32_Backends_Generic/Classes/TMMFBackend/index.md`
 - [ ] **GR32_Backends_LCL_Carbon** (document only at unit level)
 - [ ] **GR32_Backends_LCL_CustomDrawn** (document only at unit level)
 - [ ] **GR32_Backends_LCL_Gtk** (document only at unit level)
-- [ ] **GR32_Backends_LCL_Win** (document only at unit level)
-- [ ] **GR32_Backends_VCL** (document only at unit level)
+- [x] **GR32_Backends_LCL_Win** -> `docs/api/GR32_Backends_LCL_Win/index.md`
+  - **Classes**
+    - [x] `TLCLBackend` -> `docs/api/GR32_Backends_LCL_Win/Classes/TLCLBackend/index.md`
+    - [x] `TLCLMMFBackend` -> `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMMFBackend/index.md`
+    - [x] `TLCLMemoryBackend` -> `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMemoryBackend/index.md`
+- [x] **GR32_Backends_VCL** -> `docs/api/GR32_Backends_VCL/index.md`
+  - **Classes**
+    - [x] `TGDIBackend` -> `docs/api/GR32_Backends_VCL/Classes/TGDIBackend/index.md`
+    - [x] `TGDIMMFBackend` -> `docs/api/GR32_Backends_VCL/Classes/TGDIMMFBackend/index.md`
+    - [x] `TGDIMemoryBackend` -> `docs/api/GR32_Backends_VCL/Classes/TGDIMemoryBackend/index.md`
 - [ ] **GR32_Bindings**
 - [ ] **GR32_Blend**
 - [ ] **GR32_Blurs** (document only at unit level)
