@@ -77,7 +77,7 @@ export function generateSidebarForDir(
       .join('/')
 
     const folderLink = fs.existsSync(indexMd)
-      ? '/' + path.join(path.basename(rootDir), cleanSubRel).replace(/\\/g, '/').replace(/\/+/g, '/')
+      ? '/' + path.join(path.basename(rootDir), cleanSubRel, '/').replace(/\\/g, '/').replace(/\/+/g, '/')
       : undefined
 
     const entry: SidebarItem = {
