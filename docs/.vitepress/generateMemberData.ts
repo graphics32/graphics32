@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { generateVirtualMembers } from './virtualMembers'
 
 export interface MemberInfo {
   unit: string
@@ -25,29 +26,38 @@ export interface ClassMembersData {
   Events: MemberInfo[]
 }
 
+export interface UnitMembersData {
+  Classes: MemberInfo[]
+  Interfaces: MemberInfo[]
+  Types: MemberInfo[]
+  Routines: MemberInfo[]
+  Constants: MemberInfo[]
+  Variables: MemberInfo[]
+}
+
 export interface MemberDataFile {
   byLink: Record<string, MemberInfo>
   byClass: Record<string, ClassMembersData>
+  byUnit: Record<string, UnitMembersData>
 }
 
 function parseFrontmatter(filePath: string): Record<string, any> {
   const result: Record<string, any> = {}
   try {
     const content = fs.readFileSync(filePath, 'utf-8')
-    if (content.startsWith('---')) {
-      const secondDash = content.indexOf('---', 3)
-      if (secondDash > 0) {
-        const yaml = content.slice(3, secondDash)
-        const lines = yaml.split(/\r?\n/)
-        for (const line of lines) {
-          const colonIdx = line.indexOf(':')
-          if (colonIdx > 0 && !line.trim().startsWith('-')) {
-            const key = line.slice(0, colonIdx).trim()
-            let val = line.slice(colonIdx + 1).trim()
-            if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
-            if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1)
-            result[key] = val
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)
+    if (match) {
+      const yaml = match[1]
+      const lines = yaml.split(/\r?\n/)
+      for (const line of lines) {
+        const colonIdx = line.indexOf(':')
+        if (colonIdx > 0 && !line.trim().startsWith('-')) {
+          const key = line.slice(0, colonIdx).trim()
+          let val = line.slice(colonIdx + 1).trim()
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1)
           }
+          result[key] = val
         }
       }
     }
@@ -71,10 +81,28 @@ function extractPropertyType(declaration: string): string {
 export function generateMemberData(apiRootDir: string, outputFile: string) {
   if (!fs.existsSync(apiRootDir)) return
 
+  generateVirtualMembers(apiRootDir)
+
   const byLink: Record<string, MemberInfo> = {}
   const byClass: Record<string, ClassMembersData> = {}
+  const byUnit: Record<string, UnitMembersData> = {}
 
   const memberCategories = ['Constructors', 'Methods', 'Properties', 'Events'] as const
+  const unitCategories = ['Classes', 'Interfaces', 'Types', 'Routines', 'Constants', 'Variables'] as const
+
+  function singularizeKind(cat: string): string {
+    if (cat === 'Properties') return 'Property'
+    if (cat === 'Classes') return 'Class'
+    if (cat === 'Interfaces') return 'Interface'
+    if (cat === 'Types') return 'Type'
+    if (cat === 'Routines') return 'Routine'
+    if (cat === 'Constants') return 'Constant'
+    if (cat === 'Variables') return 'Variable'
+    if (cat === 'Constructors') return 'Constructor'
+    if (cat === 'Methods') return 'Method'
+    if (cat === 'Events') return 'Event'
+    return cat.endsWith('s') ? cat.slice(0, -1) : cat
+  }
 
   function scanClassDir(classDir: string, unitName: string, className: string) {
     if (!byClass[className]) {
@@ -107,7 +135,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
           parent: className,
           entity: fm.entity || `${className}.${name}`,
           name,
-          kind: fm.kind || category.slice(0, -1),
+          kind: fm.kind || singularizeKind(category),
           category,
           scope,
           summary: fm.summary || '',
@@ -128,6 +156,82 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
   const units = fs.readdirSync(apiRootDir, { withFileTypes: true }).filter(e => e.isDirectory())
   for (const unit of units) {
     const unitDir = path.join(apiRootDir, unit.name)
+    const unitName = unit.name
+
+    if (!byUnit[unitName]) {
+      byUnit[unitName] = {
+        Classes: [],
+        Interfaces: [],
+        Types: [],
+        Routines: [],
+        Constants: [],
+        Variables: []
+      }
+    }
+
+    // 1. Scan unit-level categories (Routines, Types, Constants, Variables, etc.)
+    for (const catFolder of unitCategories) {
+      const catDir = path.join(unitDir, catFolder)
+      if (!fs.existsSync(catDir)) continue
+
+      const entries = fs.readdirSync(catDir, { withFileTypes: true })
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.endsWith('.md')) {
+          const fullPath = path.join(catDir, entry.name)
+          const name = path.basename(entry.name, '.md')
+          const fm = parseFrontmatter(fullPath)
+
+          const scope = fm.scope || 'Public'
+          const link = `/api/${unitName}/${name}`
+          const info: MemberInfo = {
+            unit: unitName,
+            parent: '',
+            entity: fm.entity || name,
+            name,
+            kind: fm.kind || singularizeKind(catFolder),
+            category: catFolder,
+            scope,
+            summary: fm.summary || '',
+            declaration: fm.declaration,
+            isVirtual: false,
+            isProtected: scope.toLowerCase() === 'protected',
+            link
+          }
+
+          byLink[link] = info
+          byUnit[unitName][catFolder].push(info)
+        } else if (entry.isDirectory() && (catFolder === 'Classes' || catFolder === 'Interfaces' || catFolder === 'Types')) {
+          const itemDir = path.join(catDir, entry.name)
+          const indexMd = path.join(itemDir, 'index.md')
+          if (fs.existsSync(indexMd)) {
+            const name = entry.name
+            const fm = parseFrontmatter(indexMd)
+
+            const scope = fm.scope || 'Public'
+            const link = `/api/${unitName}/${name}`
+            const info: MemberInfo = {
+              unit: unitName,
+              parent: '',
+              entity: fm.entity || name,
+              name,
+              kind: fm.kind || singularizeKind(catFolder),
+              category: catFolder,
+              scope,
+              summary: fm.summary || '',
+              declaration: fm.declaration,
+              isVirtual: false,
+              isProtected: scope.toLowerCase() === 'protected',
+              link
+            }
+
+            byLink[link] = info
+            byUnit[unitName][catFolder].push(info)
+          }
+        }
+      }
+    }
+
+    // 2. Scan classes & container items for class-level member scan
     const candidateClassDirs: { className: string; classDir: string }[] = []
 
     const categoryFolders = ['Classes', 'Types', 'Interfaces']
@@ -151,7 +255,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
     }
   }
 
-  const result: MemberDataFile = { byLink, byClass }
+  const result: MemberDataFile = { byLink, byClass, byUnit }
   fs.mkdirSync(path.dirname(outputFile), { recursive: true })
   fs.writeFileSync(outputFile, JSON.stringify(result, null, 2), 'utf-8')
 }

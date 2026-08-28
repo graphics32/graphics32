@@ -8,29 +8,28 @@ function parseFrontmatter(filePath: string): Record<string, any> {
   const result: Record<string, any> = {}
   try {
     const content = fs.readFileSync(filePath, 'utf-8')
-    if (content.startsWith('---')) {
-      const secondDash = content.indexOf('---', 3)
-      if (secondDash > 0) {
-        const yaml = content.slice(3, secondDash)
-        const lines = yaml.split(/\r?\n/)
-        for (const line of lines) {
-          const colonIdx = line.indexOf(':')
-          if (colonIdx > 0 && !line.trim().startsWith('-')) {
-            const key = line.slice(0, colonIdx).trim()
-            let val = line.slice(colonIdx + 1).trim()
-            if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
-            if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1)
-            result[key] = val
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)
+    if (match) {
+      const yaml = match[1]
+      const lines = yaml.split(/\r?\n/)
+      for (const line of lines) {
+        const colonIdx = line.indexOf(':')
+        if (colonIdx > 0 && !line.trim().startsWith('-')) {
+          const key = line.slice(0, colonIdx).trim()
+          let val = line.slice(colonIdx + 1).trim()
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1)
           }
+          result[key] = val
         }
-        // Extract inheritance array
-        const inhMatch = yaml.match(/inheritance:\r?\n((?:\s*-\s*.*\r?\n?)+)/)
-        if (inhMatch) {
-          result.inheritance = inhMatch[1]
-            .split(/\r?\n/)
-            .map(l => l.replace(/^\s*-\s*/, '').trim())
-            .filter(Boolean)
-        }
+      }
+      // Extract inheritance array
+      const inhMatch = yaml.match(/inheritance:\r?\n((?:\s*-\s*.*\r?\n?)+)/)
+      if (inhMatch) {
+        result.inheritance = inhMatch[1]
+          .split(/\r?\n/)
+          .map(l => l.replace(/^\s*-\s*/, '').trim())
+          .filter(Boolean)
       }
     }
   } catch (e) {
@@ -109,10 +108,9 @@ export function buildTemplateFrontmatterValue(ancestorContent: string, className
 
 function parseFrontmatterContent(content: string): Record<string, any> {
   const result: Record<string, any> = {}
-  if (!content.startsWith('---')) return result
-  const secondDash = content.indexOf('---', 3)
-  if (secondDash <= 0) return result
-  const yaml = content.slice(3, secondDash)
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)
+  if (!match) return result
+  const yaml = match[1]
 
   const lines = yaml.split(/\r?\n/)
   for (const line of lines) {
@@ -120,8 +118,9 @@ function parseFrontmatterContent(content: string): Record<string, any> {
     if (colonIdx > 0 && !line.trim().startsWith('-')) {
       const key = line.slice(0, colonIdx).trim()
       let val = line.slice(colonIdx + 1).trim()
-      if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
-      if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1)
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1)
+      }
       result[key] = val
     }
   }
@@ -129,8 +128,9 @@ function parseFrontmatterContent(content: string): Record<string, any> {
   const declMatch = yaml.match(/^declaration:\s*(.*)$/m)
   if (declMatch) {
     let decl = declMatch[1].trim()
-    if (decl.startsWith('"') && decl.endsWith('"')) decl = decl.slice(1, -1)
-    if (decl.startsWith("'") && decl.endsWith("'")) decl = decl.slice(1, -1)
+    if ((decl.startsWith('"') && decl.endsWith('"')) || (decl.startsWith("'") && decl.endsWith("'"))) {
+      decl = decl.slice(1, -1)
+    }
     result.declaration = decl
   }
 
@@ -240,26 +240,24 @@ export function generateVirtualMembers(apiRootDir: string) {
             const valueStr = buildTemplateFrontmatterValue(ancestorContent, className, memberName)
 
             let newContent = ancestorContent
-            if (ancestorContent.startsWith('---')) {
-              const secondDash = ancestorContent.indexOf('---', 3)
-              if (secondDash > 0) {
-                let headFm = ancestorContent.slice(3, secondDash)
-                const body = ancestorContent.slice(secondDash)
+            const match = ancestorContent.match(/^---\r?\n([\s\S]*?)\r?\n---(\r?\n[\s\S]*)?$/)
+            if (match) {
+              let headFm = match[1]
+              const body = match[2] || ''
 
-                // Clean existing inheritedFrom, isVirtual, parent, entity, templateValue from headFm to avoid duplicate key errors
-                headFm = headFm
-                  .replace(/^inheritedFrom:\s*.*$/m, '')
-                  .replace(/^isVirtual:\s*.*$/m, '')
-                  .replace(/^parent:\s*.*$/m, '')
-                  .replace(/^entity:\s*.*$/m, '')
-                  .replace(/^templateValue:\s*.*$/m, '')
-                  .split(/\r?\n/)
-                  .filter(l => l.trim().length > 0)
-                  .join('\n')
+              // Clean existing inheritedFrom, isVirtual, parent, entity, templateValue from headFm to avoid duplicate key errors
+              headFm = headFm
+                .replace(/^inheritedFrom:\s*.*$/m, '')
+                .replace(/^isVirtual:\s*.*$/m, '')
+                .replace(/^parent:\s*.*$/m, '')
+                .replace(/^entity:\s*.*$/m, '')
+                .replace(/^templateValue:\s*.*$/m, '')
+                .split(/\r?\n/)
+                .filter(l => l.trim().length > 0)
+                .join('\n')
 
-                const headFmPart = headFm.length > 0 ? `\n${headFm}` : ''
-                newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\ntemplateValue: ${JSON.stringify(valueStr)}${headFmPart}\n${body}`
-              }
+              const headFmPart = headFm.length > 0 ? `${headFm}\n` : ''
+              newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\n${headFmPart}templateValue: ${JSON.stringify(valueStr)}\n---${body}`
             }
 
             fs.mkdirSync(path.dirname(targetMemberPath), { recursive: true })

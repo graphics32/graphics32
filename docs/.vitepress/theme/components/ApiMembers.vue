@@ -35,22 +35,50 @@ interface ClassMembersData {
   Events: MemberInfo[]
 }
 
+interface UnitMembersData {
+  Classes: MemberInfo[]
+  Interfaces: MemberInfo[]
+  Types: MemberInfo[]
+  Routines: MemberInfo[]
+  Constants: MemberInfo[]
+  Variables: MemberInfo[]
+}
+
 const memberData = memberDataRaw as {
   byLink: Record<string, MemberInfo>
   byClass: Record<string, ClassMembersData>
+  byUnit?: Record<string, UnitMembersData>
 }
 
 const targetClassName = computed(() => {
   if (props.cls) return props.cls
   const fm = frontmatter.value
-  if (fm?.entity) return fm.entity
   if (fm?.parent) return fm.parent
-  if (fm?.title) return fm.title.replace(/^Unit\s+/, '')
+  if (fm?.entity) {
+    if (fm.entity.includes('.')) return fm.entity.split('.')[0]
+    if (memberData.byClass[fm.entity]) return fm.entity
+  }
+  if (fm?.title && memberData.byClass[fm.title]) return fm.title
   return ''
+})
+
+const targetUnitName = computed(() => {
+  const fm = frontmatter.value
+  if (fm?.unit) return fm.unit
+  if (fm?.title && !targetClassName.value) return fm.title.replace(/^Unit\s+/, '')
+  return ''
+})
+
+const isUnitContext = computed(() => {
+  return !targetClassName.value && !!targetUnitName.value
 })
 
 const classInfo = computed<ClassMembersData | undefined>(() => {
   return memberData.byClass[targetClassName.value]
+})
+
+const unitInfo = computed<UnitMembersData | undefined>(() => {
+  return memberData.byUnit ? memberData.byUnit[targetUnitName.value] : undefined
 })
 
 function filterMembers(list: MemberInfo[] = []): MemberInfo[] {
@@ -62,27 +90,51 @@ function filterMembers(list: MemberInfo[] = []): MemberInfo[] {
 }
 
 const activeCategories = computed(() => {
-  if (!classInfo.value) return []
-
   const requestedType = (props.type || 'all').toLowerCase().trim()
 
-  const categories = [
-    { key: 'Constructors', label: 'Constructors', items: classInfo.value.Constructors || [] },
-    { key: 'Methods', label: 'Methods', items: classInfo.value.Methods || [] },
-    { key: 'Properties', label: 'Properties', items: classInfo.value.Properties || [] },
-    { key: 'Events', label: 'Events', items: classInfo.value.Events || [] }
-  ]
+  if (isUnitContext.value && unitInfo.value) {
+    const categories = [
+      { key: 'Classes', label: 'Classes', items: unitInfo.value.Classes || [] },
+      { key: 'Interfaces', label: 'Interfaces', items: unitInfo.value.Interfaces || [] },
+      { key: 'Types', label: 'Types', items: unitInfo.value.Types || [] },
+      { key: 'Routines', label: 'Functions & Routines', items: unitInfo.value.Routines || [] },
+      { key: 'Constants', label: 'Constants', items: unitInfo.value.Constants || [] },
+      { key: 'Variables', label: 'Variables', items: unitInfo.value.Variables || [] }
+    ]
 
-  return categories
-    .filter((cat) => {
-      if (requestedType === 'all' || requestedType === 'members') return true
-      return cat.key.toLowerCase() === requestedType || cat.key.toLowerCase().slice(0, -1) === requestedType
-    })
-    .map((cat) => ({
-      ...cat,
-      filteredItems: filterMembers(cat.items)
-    }))
-    .filter((cat) => cat.filteredItems.length > 0)
+    return categories
+      .filter((cat) => {
+        if (requestedType === 'all' || requestedType === 'members') return true
+        return cat.key.toLowerCase() === requestedType || cat.key.toLowerCase().slice(0, -1) === requestedType
+      })
+      .map((cat) => ({
+        ...cat,
+        filteredItems: filterMembers(cat.items)
+      }))
+      .filter((cat) => cat.filteredItems.length > 0)
+  }
+
+  if (classInfo.value) {
+    const categories = [
+      { key: 'Constructors', label: 'Constructors', items: classInfo.value.Constructors || [] },
+      { key: 'Methods', label: 'Methods', items: classInfo.value.Methods || [] },
+      { key: 'Properties', label: 'Properties', items: classInfo.value.Properties || [] },
+      { key: 'Events', label: 'Events', items: classInfo.value.Events || [] }
+    ]
+
+    return categories
+      .filter((cat) => {
+        if (requestedType === 'all' || requestedType === 'members') return true
+        return cat.key.toLowerCase() === requestedType || cat.key.toLowerCase().slice(0, -1) === requestedType
+      })
+      .map((cat) => ({
+        ...cat,
+        filteredItems: filterMembers(cat.items)
+      }))
+      .filter((cat) => cat.filteredItems.length > 0)
+  }
+
+  return []
 })
 
 function renderInlineMarkdown(text: string | undefined | null): string {
