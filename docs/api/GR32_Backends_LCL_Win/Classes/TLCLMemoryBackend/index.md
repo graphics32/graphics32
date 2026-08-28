@@ -17,11 +17,9 @@ inheritance:
 summary: "Heap memory backend for Lazarus LCL rendering directly to TCanvas controls without allocating GDI handles."
 ---
 
-# TLCLMemoryBackend
+## Description
 
 `TLCLMemoryBackend` combines heap memory pixel allocations (`TMemoryBackend`) with Lazarus LCL repainting support.
-
-## Description
 
 `TLCLMemoryBackend` does not allocate GDI bitmap section handles or memory device contexts. When repainting onto an LCL `TCanvas`, it outputs pixel data directly using `SetDIBitsToDevice` on Windows LCL targets.
 

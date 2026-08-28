@@ -8,7 +8,7 @@ declaration: "TTextHinting = (thNone, thNoHorz, thHinting);"
 summary: "Enumeration specifying text font hinting modes."
 ---
 
-# Type TTextHinting
+## Description
 
 `TTextHinting` specifies hinting options for text rendering.
 
@@ -19,3 +19,6 @@ summary: "Enumeration specifying text font hinting modes."
 | `thNone` | Disable font hinting. |
 | `thNoHorz` | Disable horizontal font hinting. |
 | `thHinting` | Enable full font hinting. |
+
+## See also
+[[IFontHintingSupport]]

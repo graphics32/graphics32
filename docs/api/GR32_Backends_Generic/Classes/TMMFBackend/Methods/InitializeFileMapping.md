@@ -20,6 +20,6 @@ parameters:
     description: "File path for mapping; directory path is created if missing."
 ---
 
-# TMMFBackend.InitializeFileMapping
+## Description
 
 `InitializeFileMapping` prepares handle variables prior to creating file mappings and ensures destination folder paths exist.

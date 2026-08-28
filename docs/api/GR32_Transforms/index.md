@@ -7,7 +7,7 @@ kind: Unit
 summary: "Provides affine matrix transformations, inverse mapping, and geometric projection for bitmaps and vector paths."
 ---
 
-# Unit GR32_Transforms
+## Description
 
 The `GR32_Transforms` unit provides affine matrix transformations, inverse mapping, and geometric projection for bitmaps and vector paths.
 

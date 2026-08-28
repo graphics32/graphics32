@@ -8,7 +8,7 @@ declaration: "IInteroperabilitySupport = interface(IUnknown)"
 summary: "Interface for surface backends supporting direct pixel copying from TGraphic objects."
 ---
 
-# Interface IInteroperabilitySupport
+## Description
 
 `IInteroperabilitySupport` enables direct copying of graphical images from VCL/LCL `TGraphic` objects into the backend surface buffer.
 

@@ -8,7 +8,7 @@ declaration: "ITextSupport = interface(IUnknown)"
 summary: "Interface for surface backends capable of rendering string text and calculating text extents."
 ---
 
-# Interface ITextSupport
+## Description
 
 `ITextSupport` defines the contract for backends that support native string text rendering (`Textout`) and text measurement (`TextExtent`).
 

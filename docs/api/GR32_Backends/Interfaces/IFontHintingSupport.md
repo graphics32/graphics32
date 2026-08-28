@@ -8,7 +8,7 @@ declaration: "IFontHintingSupport = interface(IUnknown)"
 summary: "Interface for configuring text font hinting modes (deprecated)."
 ---
 
-# Interface IFontHintingSupport
+## Description
 
 `IFontHintingSupport` provides text hinting options (`TTextHinting`).
 

@@ -26,6 +26,6 @@ parameters:
     description: "Dimensions used to calculate required buffer byte size."
 ---
 
-# TMMFBackend.CreateFileMapping
+## Description
 
 `CreateFileMapping` opens or creates the disk file (or system page file allocation) and invokes `Windows.CreateFileMapping` to allocate memory for `NewWidth * NewHeight * 4` bytes.

@@ -8,7 +8,7 @@ declaration: "ITextToPathSupport = interface(IUnknown)"
 summary: "Interface for converting text string character glyphs into vector path contours."
 ---
 
-# Interface ITextToPathSupport
+## Description
 
 `ITextToPathSupport` allows converting text glyph outlines into Graphics32 vector paths (`TCustomPath`) and measuring text bounding boxes in floating-point coordinates.
 

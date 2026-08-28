@@ -7,7 +7,7 @@ kind: Unit
 summary: "Contains resampling kernels and interpolation filters used for bitmap scaling and transformations."
 ---
 
-# Unit GR32_Resamplers
+## Description
 
 The `GR32_Resamplers` unit contains resampling kernels and interpolation filters used for bitmap scaling and transformations.
 

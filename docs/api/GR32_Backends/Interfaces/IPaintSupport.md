@@ -8,7 +8,7 @@ declaration: "IPaintSupport = interface(IUnknown)"
 summary: "Interface for backends handling control repainting and invalid rect transfer to TCanvas."
 ---
 
-# Interface IPaintSupport
+## Description
 
 `IPaintSupport` handles repainting a `TBitmap32` buffer onto a target GUI control's `TCanvas`.
 

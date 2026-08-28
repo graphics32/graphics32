@@ -8,7 +8,7 @@ declaration: "TRequireOperatorMode = (romAnd, romOr);"
 summary: "Enumeration specifying logical operator mode when matching backend interface requirements."
 ---
 
-# Type TRequireOperatorMode
+## Description
 
 `TRequireOperatorMode` specifies whether all required interface GUIDs must be supported (`romAnd`) or if supporting any single interface is sufficient (`romOr`) when calling [[RequireBackendSupport]].
 

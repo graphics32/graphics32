@@ -11,7 +11,7 @@ inheritance:
 summary: "Exception class raised for errors originating within Graphics32 surface backends."
 ---
 
-# EBackend
+## Description
 
 `EBackend` is the exception type raised when a surface backend encounters an error during initialization, memory allocation, device context creation, or GDI handle operations.
 

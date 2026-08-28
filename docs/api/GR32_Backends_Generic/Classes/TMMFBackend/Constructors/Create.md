@@ -19,6 +19,6 @@ parameters:
     description: "Optional path to an external disk file used for mapping. If empty, system swap file or auto-generated temp file is used."
 ---
 
-# TMMFBackend.Create
+## Description
 
 `Create` initializes a memory-mapped file backend. If `MapFileName` is provided, the backend maps pixel data to that specific file on disk. If `IsTemporary` is `True` and `MapFileName` is empty, a temporary disk file is generated in the system temporary directory.

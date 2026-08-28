@@ -8,7 +8,7 @@ declaration: "ICanvasSupport = interface(IUnknown)"
 summary: "Interface for backends providing VCL/LCL TCanvas allocation and management."
 ---
 
-# Interface ICanvasSupport
+## Description
 
 `ICanvasSupport` provides access to a standard VCL/LCL `TCanvas` bound to the backend surface device context.
 

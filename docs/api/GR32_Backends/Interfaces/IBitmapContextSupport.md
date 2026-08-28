@@ -8,7 +8,7 @@ declaration: "IBitmapContextSupport = interface(IUnknown)"
 summary: "Interface for backends managing DIB bitmap headers and GDI bitmap handles."
 ---
 
-# Interface IBitmapContextSupport
+## Description
 
 `IBitmapContextSupport` exposes platform bitmap header metadata (`TBitmapInfo`) and GDI/LCL bitmap handles (`THandle`/`HBITMAP`).
 

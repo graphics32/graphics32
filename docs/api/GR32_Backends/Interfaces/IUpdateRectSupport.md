@@ -8,7 +8,7 @@ declaration: "IUpdateRectSupport = interface(IUnknown)"
 summary: "Interface for querying window update regions and invalidating control areas."
 ---
 
-# Interface IUpdateRectSupport
+## Description
 
 `IUpdateRectSupport` provides control invalidation and update region retrieval routines for GUI controls (`TWinControl`).
 

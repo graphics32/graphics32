@@ -16,11 +16,9 @@ inheritance:
 summary: "Default surface backend for Graphics32 on Windows under Lazarus LCL, utilizing LCLIntf DIB sections and device contexts."
 ---
 
-# TLCLBackend
+## Description
 
 `TLCLBackend` is the default backend implementation for Graphics32 on Windows under Lazarus LCL (`LCLWin32` / `LCLWin64`).
-
-## Description
 
 `TLCLBackend` manages 32-bit DIB surface buffers created via `LCLIntf.CreateDIBSection` and binds them to an LCL Memory Device Context (`HDC`).
 

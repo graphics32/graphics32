@@ -15,6 +15,6 @@ parameters:
     description: "Backend instance previously returned by RequireBackendSupport."
 ---
 
-# Routine RestoreBackend
+## Description
 
 `RestoreBackend` assigns `SavedBackend` back to `TargetBitmap.Backend` if `SavedBackend` is non-nil, reversing a temporary backend switch.

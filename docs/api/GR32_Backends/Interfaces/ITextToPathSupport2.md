@@ -8,7 +8,7 @@ declaration: "ITextToPathSupport2 = interface(ITextToPathSupport)"
 summary: "Extended interface for text-to-path conversion with advanced TTextLayout configuration."
 ---
 
-# Interface ITextToPathSupport2
+## Description
 
 `ITextToPathSupport2` extends `ITextToPathSupport` by accepting a structured `TTextLayout` object for advanced text alignment, line wrapping, and multi-line formatting.
 

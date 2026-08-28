@@ -7,7 +7,7 @@ kind: Unit
 summary: "Provides visual Delphi/LCL GUI controls for displaying, scrolling, zooming, and interacting with 32-bit bitmaps."
 ---
 
-# Unit GR32_Image
+## Description
 
 The `GR32_Image` unit provides visual Delphi/LCL GUI controls for displaying, scrolling, zooming, and interacting with 32-bit bitmaps.
 

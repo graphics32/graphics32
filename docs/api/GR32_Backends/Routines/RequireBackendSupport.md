@@ -24,7 +24,7 @@ parameters:
     description: "Outputs the previous backend instance if replaced, or nil if no switch was performed."
 ---
 
-# Routine RequireBackendSupport
+## Description
 
 `RequireBackendSupport` inspects `TargetBitmap.Backend` to check if it supports the interface GUIDs in `RequiredInterfaces`. If unsupported, it releases the existing backend and instantiates a compatible platform backend.
 

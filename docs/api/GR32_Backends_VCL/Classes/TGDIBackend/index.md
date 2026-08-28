@@ -16,11 +16,9 @@ inheritance:
 summary: "Default surface backend for Graphics32 on Windows, utilizing GDI DIB sections and device contexts."
 ---
 
-# TGDIBackend
+## Description
 
 `TGDIBackend` is the default backend implementation for Graphics32 on Windows VCL platforms.
-
-## Description
 
 `TGDIBackend` manages 32-bit Device Independent Bitmaps (DIB sections) created via Windows `CreateDIBSection` and pairs them with a GDI Memory Device Context (`HDC`) created via `CreateCompatibleDC`.
 

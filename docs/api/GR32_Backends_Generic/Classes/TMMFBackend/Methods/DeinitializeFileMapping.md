@@ -20,6 +20,6 @@ parameters:
     description: "Path of temporary file to delete if existing."
 ---
 
-# TMMFBackend.DeinitializeFileMapping
+## Description
 
 `DeinitializeFileMapping` closes open file mapping handles and file handles, deleting temporary disk files created during surface allocation.

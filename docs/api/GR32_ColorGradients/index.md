@@ -7,7 +7,7 @@ kind: Unit
 summary: "Provides linear, radial, conic, and polygon color gradient samplers for filled vector paths and bitmaps."
 ---
 
-# Unit GR32_ColorGradients
+## Description
 
 The `GR32_ColorGradients` unit provides linear, radial, conic, and polygon color gradient samplers for filled vector paths and bitmaps.
 

@@ -8,7 +8,7 @@ declaration: "IDeviceContextSupport = interface(IUnknown)"
 summary: "Interface for backends providing native OS device context handles (HDC) and bit-blitting operations."
 ---
 
-# Interface IDeviceContextSupport
+## Description
 
 `IDeviceContextSupport` provides access to native OS GDI/LCL device context handles (`HDC`) and blitting/drawing routines.
 

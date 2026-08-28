@@ -8,7 +8,7 @@ declaration: "IFontSupport = interface(IUnknown)"
 summary: "Interface for surface backends providing font object access and font change notification management."
 ---
 
-# Interface IFontSupport
+## Description
 
 `IFontSupport` provides access to a `TFont` object owned by the backend, allowing callers to configure typeface, size, style, and color, and subscribe to font modification events.
 

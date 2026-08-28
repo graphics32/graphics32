@@ -7,7 +7,7 @@ kind: Unit
 summary: "Implements a layer management system for TImage32, supporting image overlays, vector shapes, rubber-banding, and interactive positioning."
 ---
 
-# Unit GR32_Layers
+## Description
 
 The `GR32_Layers` unit implements a layer management system for `TImage32`, supporting image overlays, vector shapes, rubber-banding, and interactive positioning.
 
