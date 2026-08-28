@@ -4,7 +4,12 @@ docType: api
 unit: GR32
 entity: TCustomResampler
 kind: Class
-declaration: "TCustomResampler = class(TCustomSampler)"
+declaration: |
+  type
+    TCustomResampler = class(TCustomSampler)
+      ...
+    TCustomResamplerClass = class of TCustomResampler;
+aliases: [TCustomResampler]
 inheritance:
   - TObject
   - TPersistent

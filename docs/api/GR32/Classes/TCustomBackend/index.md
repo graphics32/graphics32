@@ -4,7 +4,12 @@ docType: api
 unit: GR32
 entity: TCustomBackend
 kind: Class
-declaration: "TCustomBackend = class(TThreadPersistent)"
+declaration: |
+  type
+    TCustomBackend = class(TThreadPersistent)
+      ...
+    TCustomBackendClass = class of TCustomBackend;
+aliases: [TCustomBackendClass]
 inheritance:
   - TObject
   - TPersistent

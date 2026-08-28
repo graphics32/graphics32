@@ -364,7 +364,7 @@ npm run docs:preview
 
 Below is the complete, canonical list of all Pascal source units in `Source/`. AI agents and maintainers must use this checklist when populating or auditing API documentation coverage:
 
-- [ ] **GR32**
+- [x] **GR32**
   - **Classes**:
     - [x] `TPlainInterfacedPersistent` -> `docs/api/GR32/TPlainInterfacedPersistent/index.md`
       - **Properties**
@@ -576,34 +576,34 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
         - [x] `Bits` -> `docs/api/GR32/TCustomBackend/Properties/Bits.md`
       - **Events**
         - [x] `OnChanging` -> `docs/api/GR32/TCustomBackend/Events/OnChanging.md`
-    - [ ] `TCustomBackendClass`
-    - [ ] `TCustomBitmap32Class`
-    - [ ] `TCustomResamplerClass`
+    - [x] `TCustomBackendClass`
+    - [x] `TCustomBitmap32Class`
+    - [x] `TCustomResamplerClass`
   - **Functions**:
-    - [ ] `Color32`
-    - [ ] `AlphaComponent`
-    - [ ] `RedComponent`
-    - [ ] `GreenComponent`
-    - [ ] `BlueComponent`
-    - [ ] `SetAlpha`
-    - [ ] `Intensity`
-    - [ ] `RGBtoHSV` / `HSVtoRGB`
+    - [x] `Color32`
+    - [x] `AlphaComponent`
+    - [x] `RedComponent`
+    - [x] `GreenComponent`
+    - [x] `BlueComponent`
+    - [x] `SetAlpha`
+    - [x] `Intensity`
+    - [x] `RGBtoHSV` / `HSVtoRGB`
   - **Records**:
-    - [ ] `TColor32Entry`
-    - [ ] `TFixedPoint`
-    - [ ] `TFixedRec`
-    - [ ] `TFixedRect`
-    - [ ] `TFloatPoint`
-    - [ ] `TFloatRect`
+    - [x] `TColor32Entry`
+    - [x] `TFixedPoint`
+    - [x] `TFixedRec`
+    - [x] `TFixedRect`
+    - [x] `TFloatPoint`
+    - [x] `TFloatRect`
   - **Interfaces**:
     - *(None)*
   - **Constants**:
-    - [ ] `clBlack32`, `clWhite32`, `clRed32`, `clGreen32`, `clBlue32`, etc.
+    - [x] `clBlack32`, `clWhite32`, `clRed32`, `clGreen32`, `clBlue32`, etc.
   - **Other Types**:
-    - [ ] `TColor32`
-    - [ ] `TArrayOfColor32`
-    - [ ] `PColor32`
-    - [ ] `TFixed`
+    - [x] `TColor32`
+    - [x] `TArrayOfColor32`
+    - [x] `PColor32`
+    - [x] `TFixed`
 - [ ] **GR32.BigEndian**
 - [ ] **GR32.Blend.Assembler** (document only at unit level)
 - [ ] **GR32.Blend.Modes**

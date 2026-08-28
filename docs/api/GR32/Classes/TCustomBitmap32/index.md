@@ -4,7 +4,12 @@ docType: api
 unit: GR32
 entity: TCustomBitmap32
 kind: Class
-declaration: "TCustomBitmap32 = class(TCustomMap)"
+declaration: |
+  type
+    TCustomBitmap32 = class(TCustomMap)
+      ...
+    TCustomBitmap32Class = class of TCustomBitmap32;
+aliases: [TCustomBitmap32Class]
 inheritance:
   - TObject
   - TPersistent
