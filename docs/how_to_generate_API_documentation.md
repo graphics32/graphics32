@@ -738,7 +738,104 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_OrdinalMaps**
 - [ ] **GR32_Paths**
 - [ ] **GR32_Png**
-- [ ] **GR32_Polygons**
+- [x] **GR32_Polygons** -> `docs/api/GR32_Polygons/index.md`
+  - **Classes**
+    - [x] `TCustomPolygonRenderer` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/index.md`
+      - **Methods**
+        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/Methods/PolyPolygonFS.md`
+        - [x] `PolygonFS` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/Methods/PolygonFS.md`
+    - [x] `TPolygonRenderer32` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Constructors/Create.md`
+      - **Methods**
+        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Methods/PolyPolygonFS.md`
+        - [x] `PolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Methods/PolygonFS.md`
+      - **Properties**
+        - [x] `Bitmap` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Bitmap.md`
+        - [x] `Color` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Color.md`
+        - [x] `FillMode` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/FillMode.md`
+        - [x] `Filler` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Filler.md`
+    - [x] `TPolygonRenderer32VPR` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32VPR/index.md`
+      - **Methods**
+        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32VPR/Methods/PolyPolygonFS.md`
+    - [x] `TPolygonRenderer32LCD` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD/index.md`
+      - **Methods**
+        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD/Methods/PolyPolygonFS.md`
+    - [x] `TPolygonRenderer32LCD2` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD2/index.md`
+    - [x] `TCustomPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/index.md`
+      - **Methods**
+        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Methods/BeginRendering.md`
+        - [x] `EndRendering` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Methods/EndRendering.md`
+      - **Properties**
+        - [x] `FillLine` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Properties/FillLine.md`
+    - [x] `TCallbackPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/index.md`
+      - **Methods**
+        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/Methods/BeginRendering.md`
+      - **Properties**
+        - [x] `FillLineEvent` -> `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/Properties/FillLineEvent.md`
+    - [x] `TInvertPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TInvertPolygonFiller/index.md`
+    - [x] `TClearPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/Constructors/Create.md`
+      - **Properties**
+        - [x] `Color` -> `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/Properties/Color.md`
+    - [x] `TBitmapPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/index.md`
+      - **Methods**
+        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Methods/BeginRendering.md`
+      - **Properties**
+        - [x] `Pattern` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/Pattern.md`
+        - [x] `OffsetX` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/OffsetX.md`
+        - [x] `OffsetY` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/OffsetY.md`
+    - [x] `TSamplerFiller` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Constructors/Create.md`
+      - **Methods**
+        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Methods/BeginRendering.md`
+        - [x] `EndRendering` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Methods/EndRendering.md`
+      - **Properties**
+        - [x] `Sampler` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/Sampler.md`
+        - [x] `OwnsSampler` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/OwnsSampler.md`
+        - [x] `BlendOpaque` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/BlendOpaque.md`
+  - **Interfaces**
+    - [x] `IPolygonRendererBatching` -> `docs/api/GR32_Polygons/Interfaces/IPolygonRendererBatching.md`
+  - **Types**
+    - [x] `TJoinStyle` -> `docs/api/GR32_Polygons/Types/TJoinStyle.md`
+    - [x] `TJoinStyles` -> `docs/api/GR32_Polygons/Types/TJoinStyles.md`
+    - [x] `TEndStyle` -> `docs/api/GR32_Polygons/Types/TEndStyle.md`
+    - [x] `TEndStyles` -> `docs/api/GR32_Polygons/Types/TEndStyles.md`
+    - [x] `TPolyFillMode` -> `docs/api/GR32_Polygons/Types/TPolyFillMode.md`
+    - [x] `TFillProc` -> `docs/api/GR32_Polygons/Types/TFillProc.md`
+    - [x] `TFillLineEvent` -> `docs/api/GR32_Polygons/Types/TFillLineEvent.md`
+    - [x] `TCustomPolygonRendererList` -> `docs/api/GR32_Polygons/Types/TCustomPolygonRendererList.md`
+    - [x] `TPolygonRendererList` -> `docs/api/GR32_Polygons/Types/TPolygonRendererList.md`
+  - **Routines**
+    - [x] `PolygonFS` -> `docs/api/GR32_Polygons/Routines/PolygonFS.md`
+    - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Routines/PolyPolygonFS.md`
+    - [x] `PolygonFS_LCD` -> `docs/api/GR32_Polygons/Routines/PolygonFS_LCD.md`
+    - [x] `PolyPolygonFS_LCD` -> `docs/api/GR32_Polygons/Routines/PolyPolygonFS_LCD.md`
+    - [x] `PolygonFS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolygonFS_LCD2.md`
+    - [x] `PolyPolygonFS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolyPolygonFS_LCD2.md`
+    - [x] `PolygonXS` -> `docs/api/GR32_Polygons/Routines/PolygonXS.md`
+    - [x] `PolyPolygonXS` -> `docs/api/GR32_Polygons/Routines/PolyPolygonXS.md`
+    - [x] `PolygonXS_LCD` -> `docs/api/GR32_Polygons/Routines/PolygonXS_LCD.md`
+    - [x] `PolyPolygonXS_LCD` -> `docs/api/GR32_Polygons/Routines/PolyPolygonXS_LCD.md`
+    - [x] `PolygonXS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolygonXS_LCD2.md`
+    - [x] `PolyPolygonXS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolyPolygonXS_LCD2.md`
+    - [x] `PolylineFS` -> `docs/api/GR32_Polygons/Routines/PolylineFS.md`
+    - [x] `PolyPolylineFS` -> `docs/api/GR32_Polygons/Routines/PolyPolylineFS.md`
+    - [x] `PolylineXS` -> `docs/api/GR32_Polygons/Routines/PolylineXS.md`
+    - [x] `PolyPolylineXS` -> `docs/api/GR32_Polygons/Routines/PolyPolylineXS.md`
+    - [x] `DashLineFS` -> `docs/api/GR32_Polygons/Routines/DashLineFS.md`
+    - [x] `DashLineXS` -> `docs/api/GR32_Polygons/Routines/DashLineXS.md`
+    - [x] `FillBitmap` -> `docs/api/GR32_Polygons/Routines/FillBitmap.md`
+    - [x] `RegisterPolygonRenderer` -> `docs/api/GR32_Polygons/Routines/RegisterPolygonRenderer.md`
+    - [x] `UnregisterPolygonRenderer` -> `docs/api/GR32_Polygons/Routines/UnregisterPolygonRenderer.md`
+    - [x] `PolygonsRegistry` -> `docs/api/GR32_Polygons/Routines/PolygonsRegistry.md`
+  - **Variables**
+    - [x] `CustomPolygonRendererList` -> `docs/api/GR32_Polygons/Variables/CustomPolygonRendererList.md`
+    - [x] `PolygonRendererList` -> `docs/api/GR32_Polygons/Variables/PolygonRendererList.md`
+    - [x] `DefaultPolygonRendererClass` -> `docs/api/GR32_Polygons/Variables/DefaultPolygonRendererClass.md`
+    - [x] `CoverageBuilderVariables` -> `docs/api/GR32_Polygons/Variables/CoverageBuilderVariables.md`
 - [ ] **GR32_Polygons.AggLite** (document only at unit level)
 - [ ] **GR32_Polygons.Direct2D** (document only at unit level)
 - [ ] **GR32_Polygons.GDI** (document only at unit level)
