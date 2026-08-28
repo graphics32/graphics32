@@ -136,11 +136,12 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 | `entity` | String | Full entity identifier (e.g., `TBitmap32.Draw`). |
 | `kind` | String | Entity classification (`Class`, `Method`, `Constructor`, `Property`, `Function`, `Type`, `Constant`). |
 | `scope` | String | Optional. Member visibility scope (`Public`, `Protected`, `Published`). Renders a styled scope badge in headers. |
-| `summary` | String | High-level summary description. |
+| `summary` | String | High-level summary description. Keep short. Avoid details that are better described in the content. Often used in tables. |
 | `declaration` | String | Pascal procedure/function/type signature for single-signature pages. |
 | `parameters` | Array | Parameter list objects `[ { name, type, description } ]`. |
 | `overloads` | Array | Array of overload objects for overloaded methods/routines. |
 | `inheritedFrom` | String | Optional. Full identifier of base class member if inherited (e.g., `TCustomBitmap32.Width`). |
+| `aliases` | Array / String | Optional. List of additional symbol names mapped to this page for `[[symbol]]` resolution (e.g. `aliases: [clBlack32, clWhite32]`). |
 
 ---
 
@@ -234,10 +235,24 @@ To manage token limits effectively, member lists are populated **in small batche
 - Protected methods and properties that are promoted in a derived class must be documented on the base class. Apart from this, protected members are not documented unless instructed otherwise.
 - Class methods that implement an interface member are not documented, unless the method is public.
   It is assumed that interface members are documented on the interface type.
+- Metaclass types (`class of T`) are documented together with the concrete class type.
+  It is often sufficient to show the metaclass declaration together with the class declaration, and add a symbol alias for the metaclass name:
+  ```
+  entity: TCustomBitmap32
+  kind: Class
+  aliases: [TCustomBitmap32Class])
+  ```
+
 - If the existing documentation is found to be incorrect, outdated or obsolete (e.g. a topic is no longer valid because the item it documents no longer exist), notify the user and ask for confirmation before fixing the problem.
 - If an item in the unit list is marked "(document only at unit level)", then only an `index.md` file should be generated for that unit; The individual types, constants, or variables in the unit are not to be documented indivually.
+- Do not edit the `docs/.vitepress/theme/memberData.json` file.
+  The file is generated automatically by Vitepress at build and startup time and does not need to be kept up to date with other edits.
 
 ### Layout
+- The Frontmatter `entity` value is automatically inserted as a `<h1>` header, at the top of the page. Do not add it manually in the markup.
+- The Frontmatter `summary` value is automatically inserted just below the `entity` header..
+- Other generated content is automatically inserted below `summary`.
+- Normally, the first thing in the markup of an API page, is a `## Description` section.
 - **Enumeration types** must be formatted as one table per enumeration type, one row per values.
   For example, for `TLogicalOperator`:
   | Value | Description |
@@ -264,16 +279,31 @@ To manage token limits effectively, member lists are populated **in small batche
   | `Frac` | SmallInt | Fractional part of fixed precision value. |
   | `Int` | SmallInt | Integer part of fixed precision value. |
 - **Complex record members** are documented as classes with regard to methods and properties.
-- **Pointer types** are generally documented along with the type they point to.
-  For example, `PByteArray` together with `TByteArray`.
-- **Interfaces** implemented by a class are documented on the class as a table, with one row per interface.
+- **Pointer types** are generally documented along with the type they point to. For example:
+  ```
+  aliases: [PByteArray]
+  declaration: |
+    TByteArray = array [0..0] of Byte;
+    PByteArray = ^TByteArray;
+  ```
+
+- **Set types** are generally documented together with the enumeration type they consist of, the enumeration being the main topic. A frontmatter symbol alias should be added for the set type. For example:
+  ```
+  aliases: [TEndStyles]
+  declaration: |
+    TEndStyle = (esButt, esSquare, esRound);
+    TEndStyles = set of TEndStyle;
+  ```
+
+- The **interfaces** implemented by a class are documented on the class as a table, with one row per interface.
   For example, for `TGDIMemoryBackend`:
   **Implements**
   | Interface | Description |
   | --- | --- |
   | `IPaintSupport` | Interface for backends handling control repainting and invalid rect transfer to TCanvas. |
   | `IDeviceContextSupport` | Interface for backends providing native OS device context handles (HDC) and bit-blitting operations. |
-
+- Lists of **related constants** can be documented together in separate markdown files.
+  For example, all color constants are documented together in `GR32/Constants/Color Constants.md`.
 
 ---
 

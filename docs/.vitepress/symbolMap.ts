@@ -32,13 +32,45 @@ export function buildSymbolMap(apiRootDir: string): SymbolMap {
             relLink = relLink.slice(0, -5)
           }
 
+          const aliases: string[] = []
+          const aliasInlineMatch = content.match(/^aliases:\s*(.*)$/m)
+          if (aliasInlineMatch) {
+            const lineVal = aliasInlineMatch[1].trim()
+            if (lineVal.startsWith('[')) {
+              const inner = lineVal.slice(1, lineVal.endsWith(']') ? -1 : undefined)
+              inner.split(',').forEach(s => {
+                const item = s.trim().replace(/^["']|["']$/g, '')
+                if (item) aliases.push(item)
+              })
+            } else if (lineVal.length > 0 && !lineVal.startsWith('#')) {
+              lineVal.split(',').forEach(s => {
+                const item = s.trim().replace(/^["']|["']$/g, '')
+                if (item) aliases.push(item)
+              })
+            } else {
+              const aliasBlockMatch = content.match(/aliases:\r?\n((?:\s*-\s*.*\r?\n?)+)/)
+              if (aliasBlockMatch) {
+                aliasBlockMatch[1].split(/\r?\n/).forEach(line => {
+                  const item = line.replace(/^\s*-\s*/, '').trim().replace(/^["']|["']$/g, '')
+                  if (item) aliases.push(item)
+                })
+              }
+            }
+          }
+
+          const unit = unitMatch && unitMatch[1] ? unitMatch[1].trim() : undefined
+
           if (entityMatch && entityMatch[1]) {
             const entity = entityMatch[1].trim()
             map[entity] = relLink
-            if (unitMatch && unitMatch[1]) {
-              const unit = unitMatch[1].trim()
+            if (unit) {
               map[`${unit}.${entity}`] = relLink
             }
+          }
+
+          for (const alias of aliases) {
+            if (!map[alias]) map[alias] = relLink
+            if (unit && !map[`${unit}.${alias}`]) map[`${unit}.${alias}`] = relLink
           }
         } catch (e) {
           // ignore
