@@ -63,6 +63,7 @@ const conceptsSidebar = [
       { text: 'Sampling and Rasterization', link: '/guide/sampling-and-rasterization' },
       { text: 'Back-Ends', link: '/guide/back-ends' },
       { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
+      { text: 'Vectorial Polygon Rasterizer', link: '/guide/vpr' },
       { text: 'Naming Conventions', link: '/guide/naming-conventions' },
       {
         text: 'Using TImage32',
@@ -158,6 +159,7 @@ export default withMermaid(defineConfig({
           { text: 'Back-Ends', link: '/guide/back-ends' },
           { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
           { text: 'Naming Conventions', link: '/guide/naming-conventions' },
+          { text: 'Vectorial Polygon Rasterizer', link: '/guide/vpr' },
           {
             text: 'Using TImage32',
             items: [
@@ -218,6 +220,7 @@ export default withMermaid(defineConfig({
       '/guide/back-ends': conceptsSidebar,
       '/guide/repaint-optimization': conceptsSidebar,
       '/guide/naming-conventions': conceptsSidebar,
+      '/guide/vpr': conceptsSidebar,
       '/guide/using-timage32': conceptsSidebar,
       '/guide/bitmap-image': conceptsSidebar,
       '/guide/using-layers': conceptsSidebar,
