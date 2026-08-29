@@ -897,10 +897,66 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_VPR**
 - [ ] **GR32_VPR2** (document only at unit level)
 - [ ] **GR32_VectorMaps**
-- [ ] **GR32_VectorUtils**
-- [ ] **GR32_VectorUtils.Angus** (document only at unit level)
-- [ ] **GR32_VectorUtils.Clipper2** (document only at unit level)
-- [ ] **GR32_VectorUtils.Reference** (document only at unit level)
+- [x] **GR32_VectorUtils** -> `docs/api/GR32_VectorUtils/index.md`
+  - **Classes**
+    - [x] `TPolyLineBuilder` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/index.md`
+      - **Methods**
+        - [x] `BuildPolyLine` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/BuildPolyLine.md`
+        - [x] `BuildPolyPolyLine` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/BuildPolyPolyLine.md`
+        - [x] `Grow` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/Grow.md`
+        - [x] `SupportedEndStyles` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/SupportedEndStyles.md`
+        - [x] `SupportedJoinStyles` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/SupportedJoinStyles.md`
+  - **Types**
+    - [x] `TTriangleVertexIndices` -> `docs/api/GR32_VectorUtils/Types/TTriangleVertexIndices.md`
+    - [x] `TArrayOfTriangleVertexIndices` -> `docs/api/GR32_VectorUtils/Types/TArrayOfTriangleVertexIndices.md`
+  - **Routines**
+    - [x] `BuildArc` -> `docs/api/GR32_VectorUtils/Routines/BuildArc.md`
+    - [x] `BuildDashedLine` -> `docs/api/GR32_VectorUtils/Routines/BuildDashedLine.md`
+    - [x] `BuildNormals` -> `docs/api/GR32_VectorUtils/Routines/BuildNormals.md`
+    - [x] `BuildPolygonF` -> `docs/api/GR32_VectorUtils/Routines/BuildPolygon.md`
+    - [x] `BuildPolyLine` -> `docs/api/GR32_VectorUtils/Routines/BuildPolyLine.md`
+    - [x] `BuildPolyPolyLine` -> `docs/api/GR32_VectorUtils/Routines/BuildPolyPolyLine.md`
+    - [x] `CalculateCircleSteps` -> `docs/api/GR32_VectorUtils/Routines/CalculateCircleSteps.md`
+    - [x] `Circle` -> `docs/api/GR32_VectorUtils/Routines/Circle.md`
+    - [x] `ClipLine` -> `docs/api/GR32_VectorUtils/Routines/ClipLine.md`
+    - [x] `ClipPolygon` -> `docs/api/GR32_VectorUtils/Routines/ClipPolygon.md`
+    - [x] `ClosePolygon` -> `docs/api/GR32_VectorUtils/Routines/ClosePolygon.md`
+    - [x] `DelaunayTriangulation` -> `docs/api/GR32_VectorUtils/Routines/DelaunayTriangulation.md`
+    - [x] `Ellipse` -> `docs/api/GR32_VectorUtils/Routines/Ellipse.md`
+    - [x] `FixedPointToFloatPoint` -> `docs/api/GR32_VectorUtils/Routines/FixedPointToFloatPoint.md`
+    - [x] `FloatPointToFixedPoint` -> `docs/api/GR32_VectorUtils/Routines/FloatPointToFixedPoint.md`
+    - [x] `Grow` -> `docs/api/GR32_VectorUtils/Routines/Grow.md`
+    - [x] `HorzLine` -> `docs/api/GR32_VectorUtils/Routines/HorzLine.md`
+    - [x] `VertLine` -> `docs/api/GR32_VectorUtils/Routines/VertLine.md`
+    - [x] `Line` -> `docs/api/GR32_VectorUtils/Routines/Line.md`
+    - [x] `InSignedRange` -> `docs/api/GR32_VectorUtils/Routines/InSignedRange.md`
+    - [x] `Intersect` -> `docs/api/GR32_VectorUtils/Routines/Intersect.md`
+    - [x] `Pie` -> `docs/api/GR32_VectorUtils/Routines/Pie.md`
+    - [x] `PointToFixedPoint` -> `docs/api/GR32_VectorUtils/Routines/PointToFixedPoint.md`
+    - [x] `PointToFloatPoint` -> `docs/api/GR32_VectorUtils/Routines/PointToFloatPoint.md`
+    - [x] `PolygonBounds` -> `docs/api/GR32_VectorUtils/Routines/PolygonBounds.md`
+    - [x] `PolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/PolyPolygon.md`
+    - [x] `PolyPolygonBounds` -> `docs/api/GR32_VectorUtils/Routines/PolyPolygonBounds.md`
+    - [x] `Rectangle` -> `docs/api/GR32_VectorUtils/Routines/Rectangle.md`
+    - [x] `ReversePolygon` -> `docs/api/GR32_VectorUtils/Routines/ReversePolygon.md`
+    - [x] `RoundRect` -> `docs/api/GR32_VectorUtils/Routines/RoundRect.md`
+    - [x] `ScalePolygon` -> `docs/api/GR32_VectorUtils/Routines/ScalePolygon.md`
+    - [x] `ScalePolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/ScalePolygonInplace.md`
+    - [x] `ScalePolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/ScalePolyPolygon.md`
+    - [x] `ScalePolyPolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/ScalePolyPolygonInplace.md`
+    - [x] `Star` -> `docs/api/GR32_VectorUtils/Routines/Star.md`
+    - [x] `TransformPolygon` -> `docs/api/GR32_VectorUtils/Routines/TransformPolygon.md`
+    - [x] `TransformPolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/TransformPolyPolygon.md`
+    - [x] `TranslatePolygon` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolygon.md`
+    - [x] `TranslatePolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolygonInplace.md`
+    - [x] `TranslatePolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolyPolygon.md`
+    - [x] `TranslatePolyPolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolyPolygonInplace.md`
+    - [x] `VertexReduction` -> `docs/api/GR32_VectorUtils/Routines/VertexReduction.md`
+  - **Variables**
+    - [x] `PolylineBuilder` -> `docs/api/GR32_VectorUtils/Variables/PolylineBuilder.md`
+- [x] **GR32_VectorUtils.Angus** -> `docs/api/GR32_VectorUtils.Angus/index.md` (document only at unit level)
+- [x] **GR32_VectorUtils.Clipper2** -> `docs/api/GR32_VectorUtils.Clipper2/index.md` (document only at unit level)
+- [x] **GR32_VectorUtils.Reference** -> `docs/api/GR32_VectorUtils.Reference/index.md` (document only at unit level)
 - [ ] **amEasing**
 
 The following files will not be documented. Either because they are externals (copied from other libraries) or because they are internal to Graphics32:
