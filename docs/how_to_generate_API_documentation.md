@@ -728,7 +728,28 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `Invert` -> `docs/api/GR32_Filters/Routines/Invert.md`
     - [x] `InvertRGB` -> `docs/api/GR32_Filters/Routines/InvertRGB.md`
 - [ ] **GR32_Gamma**
-- [ ] **GR32_Geometry**
+- [x] **GR32_Geometry** -> `docs/api/GR32_Geometry/index.md`
+  - **Types**
+    - [x] `TLinePos` -> `docs/api/GR32_Geometry/Types/TLinePos.md`
+  - **Constants**
+    - [x] `Geometry Constants` -> `docs/api/GR32_Geometry/Constants/Geometry Constants.md`
+  - **Routines**
+    - [x] `Average` -> `docs/api/GR32_Geometry/Routines/Average.md`
+    - [x] `CrossProduct` -> `docs/api/GR32_Geometry/Routines/CrossProduct.md`
+    - [x] `Dot` -> `docs/api/GR32_Geometry/Routines/Dot.md`
+    - [x] `Distance` -> `docs/api/GR32_Geometry/Routines/Distance.md`
+    - [x] `SqrDistance` -> `docs/api/GR32_Geometry/Routines/SqrDistance.md`
+    - [x] `GetPointAtAngleFromPoint` -> `docs/api/GR32_Geometry/Routines/GetPointAtAngleFromPoint.md`
+    - [x] `GetAngleOfPt2FromPt1` -> `docs/api/GR32_Geometry/Routines/GetAngleOfPt2FromPt1.md`
+    - [x] `GetUnitNormal` -> `docs/api/GR32_Geometry/Routines/GetUnitNormal.md`
+    - [x] `GetUnitVector` -> `docs/api/GR32_Geometry/Routines/GetUnitVector.md`
+    - [x] `OffsetPoint` -> `docs/api/GR32_Geometry/Routines/OffsetPoint.md`
+    - [x] `OffsetRect` -> `docs/api/GR32_Geometry/Routines/OffsetRect.md`
+    - [x] `Shorten` -> `docs/api/GR32_Geometry/Routines/Shorten.md`
+    - [x] `PointInPolygon` -> `docs/api/GR32_Geometry/Routines/PointInPolygon.md`
+    - [x] `SegmentIntersect` -> `docs/api/GR32_Geometry/Routines/SegmentIntersect.md`
+    - [x] `PerpendicularDistance` -> `docs/api/GR32_Geometry/Routines/PerpendicularDistance.md`
+    - [x] `SamePoint` -> `docs/api/GR32_Geometry/Routines/SamePoint.md`
 - [ ] **GR32_Image**
 - [ ] **GR32_Layers**
 - [ ] **GR32_LowLevel**
