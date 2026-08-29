@@ -17,6 +17,11 @@ jobs:
     steps:
       - name: Checkout Source Repository
         uses: actions/checkout@v4
+# Enable this to get full Git history on fetch (otherwise shallow close)
+# Without this Vitepress cannot determine the time of "last edit" of files
+# and will display "just now" for all files.
+#        with:
+#          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
