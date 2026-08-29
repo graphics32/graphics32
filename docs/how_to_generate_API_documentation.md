@@ -893,7 +893,117 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Resamplers**
 - [ ] **GR32_System**
 - [ ] **GR32_Text_VCL_D2D** (document only at unit level)
-- [ ] **GR32_Transforms**
+- [x] **GR32_Transforms** -> `docs/api/GR32_Transforms/index.md`
+  - **Classes**
+    - [x] `TTransformation` -> `docs/api/GR32_Transforms/Classes/TTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TTransformation/Constructors/Create.md`
+      - **Methods**
+        - [x] `Changed` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/Changed.md`
+        - [x] `HasTransformedBounds` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/HasTransformedBounds.md`
+        - [x] `GetTransformedBounds` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/GetTransformedBounds.md`
+        - [x] `ReverseTransform` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/ReverseTransform.md`
+        - [x] `Transform` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/Transform.md`
+      - **Properties**
+        - [x] `SrcRect` -> `docs/api/GR32_Transforms/Classes/TTransformation/Properties/SrcRect.md`
+    - [x] `TNestedTransformation` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Constructors/Create.md`
+      - **Methods**
+        - [x] `Add` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Add.md`
+        - [x] `Clear` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Clear.md`
+        - [x] `Delete` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Delete.md`
+        - [x] `Insert` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Insert.md`
+      - **Properties**
+        - [x] `Count` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Properties/Count.md`
+        - [x] `Items` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Properties/Items.md`
+    - [x] `T3x3Transformation` -> `docs/api/GR32_Transforms/Classes/T3x3Transformation/index.md`
+      - **Properties**
+        - [x] `Matrix` -> `docs/api/GR32_Transforms/Classes/T3x3Transformation/Properties/Matrix.md`
+    - [x] `TAffineTransformation` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Constructors/Create.md`
+      - **Methods**
+        - [x] `Clear` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Clear.md`
+        - [x] `Push` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Push.md`
+        - [x] `Pop` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Pop.md`
+        - [x] `Rotate` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Rotate.md`
+        - [x] `Scale` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Scale.md`
+        - [x] `Skew` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Skew.md`
+        - [x] `Translate` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Translate.md`
+    - [x] `TProjectiveTransformation` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/index.md`
+      - **Properties**
+        - [x] `X` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/X.md`
+        - [x] `Y` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/Y.md`
+        - [x] `X0` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/X0.md`
+    - [x] `TProjectiveTransformationEx` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/index.md`
+      - **Properties**
+        - [x] `Extrapolate` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/Extrapolate.md`
+        - [x] `SourceQuad` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/SourceQuad.md`
+        - [x] `DestQuad` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/DestQuad.md`
+        - [x] `Source` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/Source.md`
+    - [x] `TTwirlTransformation` -> `docs/api/GR32_Transforms/Classes/TTwirlTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TTwirlTransformation/Constructors/Create.md`
+      - **Properties**
+        - [x] `Twirl` -> `docs/api/GR32_Transforms/Classes/TTwirlTransformation/Properties/Twirl.md`
+    - [x] `TBloatTransformation` -> `docs/api/GR32_Transforms/Classes/TBloatTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TBloatTransformation/Constructors/Create.md`
+      - **Properties**
+        - [x] `BloatPower` -> `docs/api/GR32_Transforms/Classes/TBloatTransformation/Properties/BloatPower.md`
+    - [x] `TDisturbanceTransformation` -> `docs/api/GR32_Transforms/Classes/TDisturbanceTransformation/index.md`
+      - **Properties**
+        - [x] `Disturbance` -> `docs/api/GR32_Transforms/Classes/TDisturbanceTransformation/Properties/Disturbance.md`
+    - [x] `TFishEyeTransformation` -> `docs/api/GR32_Transforms/Classes/TFishEyeTransformation/index.md`
+    - [x] `TPolarTransformation` -> `docs/api/GR32_Transforms/Classes/TPolarTransformation/index.md`
+      - **Properties**
+        - [x] `DstRect` -> `docs/api/GR32_Transforms/Classes/TPolarTransformation/Properties/DstRect.md`
+        - [x] `Phase` -> `docs/api/GR32_Transforms/Classes/TPolarTransformation/Properties/Phase.md`
+    - [x] `TPathTransformation` -> `docs/api/GR32_Transforms/Classes/TPathTransformation/index.md`
+      - **Properties**
+        - [x] `TopCurve` -> `docs/api/GR32_Transforms/Classes/TPathTransformation/Properties/TopCurve.md`
+    - [x] `TRadialDistortionTransformation` -> `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/Constructors/Create.md`
+      - **Properties**
+        - [x] `Coefficient1` -> `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/Properties/Coefficient1.md`
+    - [x] `TRemapTransformation` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/Constructors/Create.md`
+      - **Methods**
+        - [x] `Scale` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/Methods/Scale.md`
+      - **Properties**
+        - [x] `MappingRect` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/Properties/MappingRect.md`
+    - [x] `TSphereTransformation` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/index.md`
+      - **Constructors**
+        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Constructors/Create.md`
+      - **Methods**
+        - [x] `IsInSphere` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/IsInSphere.md`
+        - [x] `SphericalCoordinate` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/SphericalCoordinate.md`
+        - [x] `ScreenCoordinate` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/ScreenCoordinate.md`
+      - **Properties**
+        - [x] `Center` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Properties/Center.md`
+  - **Types**
+    - [x] `Matrix Types` -> `docs/api/GR32_Transforms/Types/Matrix Types.md`
+    - [x] `Vector Types` -> `docs/api/GR32_Transforms/Types/Vector Types.md`
+    - [x] `Quadrilateral Types` -> `docs/api/GR32_Transforms/Types/Quadrilateral Types.md`
+  - **Routines**
+    - [x] `FixedMatrix` -> `docs/api/GR32_Transforms/Routines/FixedMatrix.md`
+    - [x] `FloatMatrix` -> `docs/api/GR32_Transforms/Routines/FloatMatrix.md`
+    - [x] `Adjoint` -> `docs/api/GR32_Transforms/Routines/Adjoint.md`
+    - [x] `Determinant` -> `docs/api/GR32_Transforms/Routines/Determinant.md`
+    - [x] `Scale` -> `docs/api/GR32_Transforms/Routines/Scale.md`
+    - [x] `Invert` -> `docs/api/GR32_Transforms/Routines/Invert.md`
+    - [x] `Mult` -> `docs/api/GR32_Transforms/Routines/Mult.md`
+    - [x] `VectorTransform` -> `docs/api/GR32_Transforms/Routines/VectorTransform.md`
+    - [x] `TransformPoints` -> `docs/api/GR32_Transforms/Routines/TransformPoints.md`
+    - [x] `Transform` -> `docs/api/GR32_Transforms/Routines/Transform.md`
+    - [x] `Modulo2Pi` -> `docs/api/GR32_Transforms/Routines/Modulo2Pi.md`
+    - [x] `RasterizeTransformation` -> `docs/api/GR32_Transforms/Routines/RasterizeTransformation.md`
+    - [x] `SetBorderTransparent` -> `docs/api/GR32_Transforms/Routines/SetBorderTransparent.md`
+  - **Variables**
+    - [x] `FullEdge` -> `docs/api/GR32_Transforms/Variables/FullEdge.md`
 - [ ] **GR32_VPR**
 - [ ] **GR32_VPR2** (document only at unit level)
 - [ ] **GR32_VectorMaps**
