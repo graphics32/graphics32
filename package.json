@@ -4,8 +4,9 @@
   "description": "Graphics32 Documentation built with VitePress",
   "private": true,
   "scripts": {
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
+    "sync-screenshots": "node docs/.vitepress/syncScreenshots.js",
+    "docs:dev": "node docs/.vitepress/syncScreenshots.js && vitepress dev docs",
+    "docs:build": "node docs/.vitepress/syncScreenshots.js && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
@@ -18,5 +19,8 @@
   },
   "overrides": {
     "@xmldom/xmldom": "^0.9.12"
+  },
+  "dependencies": {
+    "swiper": "^14.2.0"
   }
 }

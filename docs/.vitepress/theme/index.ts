@@ -7,6 +7,7 @@ import mediumZoom from 'medium-zoom'
 import ApiPage from './components/ApiPage.vue'
 import ApiFilterControls from './components/ApiFilterControls.vue'
 import ApiMembers from './components/ApiMembers.vue'
+import HeroCarousel from './components/HeroCarousel.vue'
 import { applySidebarFilter } from './sidebarFilter'
 import { showInherited, showProtected } from './apiFilterState'
 import './custom.css'
@@ -19,13 +20,15 @@ export default {
 
     return h(DefaultTheme.Layout, null, {
       'doc-before': () => (isApi ? h(ApiPage) : null),
-      'aside-top': () => h(ApiFilterControls)
+      'aside-top': () => h(ApiFilterControls),
+      'home-hero-image': () => h(HeroCarousel)
     })
   },
   enhanceApp({ app }) {
     app.component('ApiPage', ApiPage)
     app.component('ApiFilterControls', ApiFilterControls)
     app.component('ApiMembers', ApiMembers)
+    app.component('HeroCarousel', HeroCarousel)
   },
   setup() {
     const route = useRoute()

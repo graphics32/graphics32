@@ -6,6 +6,9 @@ hero:
   name: "Graphics32"
   text: "High-Performance 2D Graphics for Delphi & FPC"
   tagline: Fast 32-bit pixel manipulations, anti-aliased polygon rendering, resampling, blending, and transformations.
+  image:
+    src: /favicon.png
+    alt: Graphics32 Carousel
   actions:
     - theme: brand
       text: Get Started
