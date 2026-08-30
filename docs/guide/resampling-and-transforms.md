@@ -1,3 +1,9 @@
+::: danger
+This page is outdated!
+
+The information on this page was written for an ancient version of Graphics32 and might not be accurate.
+:::
+
 # Resampling & Transforms
 
 Graphics32 features an extensible sampling and resampling pipeline for scaling, filtering, and transforming images with high visual quality.

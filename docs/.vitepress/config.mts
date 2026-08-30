@@ -52,6 +52,7 @@ const guideSidebar = [
   {
     text: 'Guide',
     items: [
+      { text: 'Getting Started', link: '/guide/' },
       { text: 'Features', link: '/guide/features' },
       { text: 'Requirements', link: '/guide/requirements' },
       { text: 'Installation', link: '/guide/installation' }
@@ -158,6 +159,7 @@ export default withMermaid(defineConfig({
       {
         text: 'Guide',
         items: [
+          { text: 'Getting Started', link: '/guide/' },
           { text: 'Features', link: '/guide/features' },
           { text: 'Requirements', link: '/guide/requirements' },
           { text: 'Installation', link: '/guide/installation' }

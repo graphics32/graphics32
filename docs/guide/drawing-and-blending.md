@@ -1,3 +1,9 @@
+::: danger
+This page is outdated!
+
+The information on this page was written for an ancient version of Graphics32 and might not be accurate.
+:::
+
 # Drawing & Blending
 
 Graphics32 supports high-speed line drawing, polygon fill, and alpha-blending primitives.
