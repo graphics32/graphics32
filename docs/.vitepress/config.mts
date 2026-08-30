@@ -6,6 +6,7 @@ import mathjax3 from 'markdown-it-mathjax3'
 import { generateSidebarForDir } from './sidebar'
 import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
 import { apiShortcodesPlugin } from './shortcodePlugin'
+import { execSync } from 'child_process'
 import { generateVirtualMembers, getGitBranch } from './virtualMembers'
 import { generateMemberData } from './generateMemberData'
 
@@ -28,6 +29,15 @@ const apiDir = path.resolve(__dirname, '../api')
 const examplesDir = path.resolve(__dirname, '../examples')
 
 const currentBranch = getGitBranch()
+
+let shortCommit = ''
+try {
+  shortCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim()
+} catch (e) {
+  shortCommit = 'unknown'
+}
+
+const buildTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
 
 // Generate virtual member routes for class inheritance before building symbol map and sidebar
 generateVirtualMembers(apiDir)
@@ -132,6 +142,12 @@ export default withMermaid(defineConfig({
   },
 
   themeConfig: {
+    buildInfo: {
+      branch: currentBranch,
+      commit: shortCommit,
+      timestamp: buildTimestamp
+    },
+
     editLink: {
       pattern: `https://github.com/graphics32/graphics32/edit/${currentBranch}/docs/:path`,
       text: 'Edit this page on GitHub'
