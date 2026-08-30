@@ -1006,7 +1006,26 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `FullEdge` -> `docs/api/GR32_Transforms/Variables/FullEdge.md`
 - [ ] **GR32_VPR**
 - [ ] **GR32_VPR2** (document only at unit level)
-- [ ] **GR32_VectorMaps**
+- [x] **GR32_VectorMaps** -> `docs/api/GR32_VectorMaps/index.md`
+  - **Classes**
+    - [x] `TVectorMap` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/index.md`
+      - **Methods**
+        - [x] `Clear` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Clear.md`
+        - [x] `Merge` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Merge.md`
+        - [x] `BoundsRect` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/BoundsRect.md`
+        - [x] `GetTrimmedBounds` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/GetTrimmedBounds.md`
+        - [x] `Empty` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Empty.md`
+        - [x] `LoadFromFile` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/LoadFromFile.md`
+        - [x] `SaveToFile` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/SaveToFile.md`
+      - **Properties**
+        - [x] `Vectors` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/Vectors.md`
+        - [x] `FixedVector` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/FixedVector.md`
+        - [x] `FloatVector` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/FloatVector.md`
+        - [x] `VectorCombineMode` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/VectorCombineMode.md`
+        - [x] `OnVectorCombine` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/OnVectorCombine.md`
+  - **Types**
+    - [x] `Vector Types` -> `docs/api/GR32_VectorMaps/Types/Vector Types.md`
+    - [x] `TVectorCombineMode` -> `docs/api/GR32_VectorMaps/Types/TVectorCombineMode.md`
 - [x] **GR32_VectorUtils** -> `docs/api/GR32_VectorUtils/index.md`
   - **Classes**
     - [x] `TPolyLineBuilder` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/index.md`
