@@ -71,9 +71,11 @@ To set up the documentation environment from scratch:
 2. **Required Packages**:
    - `vitepress`
    - `@lando/vitepress-theme-default-plus`
+   - `mermaid`
    - `vitepress-plugin-mermaid`
    - `medium-zoom`
    - `markdown-it-mathjax3`
+   - `swiper`
 
 ---
 
