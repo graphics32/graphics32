@@ -8,6 +8,14 @@ Each layer is an entity, which basically ‘knows’ how to paint itself onto th
 
 All layers inherit from the [[TCustomLayer]] class. This class implements behavior and properties common to all layer types.
 
+:::: right
+::: tip
+In most cases you don't really have to concern yourself with "Layer Option Bits".
+
+Instead the visibility of a layer can be controlled directly via its `Visible` property, and mouse tracking via its `MouseEvents` property. In the vast majority of cases, these are the only two options you need to be concerned about.
+:::
+::::
+
 The basic layer’s behavior is controlled by its [[TCustomImage32.LayerOptions|LayerOptions]] property, which is a 32-bit unsigned integer value composed of [Layer Options Bits](/api/GR32_Layers/Constants/Layer%20Options%20Bits). This property allows for fast and relatively simple referencing of layers and groups of layers.
 
 Consider, for example, the `LOB_VISIBLE` bit (31-st bit in layer options). When `TImage32` repaints its layers at the `PST_DRAW_LAYERS` stage, it uses the stage parameter from corresponding [[TPaintStage]] record as a bit-mask (default value is `LOB_VISIBLE=$80000000`). Being compared (logical AND operation) with `LayerOptions` of each layer, this mask determines whether the layer should be painted or not.
