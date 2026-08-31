@@ -71,6 +71,7 @@ To set up the documentation environment from scratch:
 2. **Required Packages**:
    - `vitepress`
    - `@lando/vitepress-theme-default-plus`
+   - `@nolebase/vitepress-plugin-enhanced-readabilities`
    - `mermaid`
    - `vitepress-plugin-mermaid`
    - `medium-zoom`

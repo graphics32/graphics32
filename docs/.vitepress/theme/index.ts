@@ -4,6 +4,12 @@ import type { Theme } from 'vitepress'
 import { h, onMounted, watch, watchEffect, nextTick } from 'vue'
 import { useRoute, useData } from 'vitepress'
 import mediumZoom from 'medium-zoom'
+import {
+  NolebaseEnhancedReadabilitiesMenu,
+  NolebaseEnhancedReadabilitiesScreenMenu,
+} from '@nolebase/vitepress-plugin-enhanced-readabilities/client'
+import '@nolebase/vitepress-plugin-enhanced-readabilities/client/style.css'
+
 import ApiPage from './components/ApiPage.vue'
 import ApiFilterControls from './components/ApiFilterControls.vue'
 import ApiMembers from './components/ApiMembers.vue'
@@ -25,7 +31,9 @@ export default {
       'doc-before': () => (isApi ? h(ApiPage) : null),
       'aside-top': () => h(ApiFilterControls),
       'home-hero-image': () => h(HeroCarousel),
-      'layout-bottom': () => (isHome ? h(BuildFooter) : null)
+      'layout-bottom': () => (isHome ? h(BuildFooter) : null),
+      'nav-bar-content-after': () => h(NolebaseEnhancedReadabilitiesMenu),
+      'nav-screen-content-after': () => h(NolebaseEnhancedReadabilitiesScreenMenu)
     })
   },
   enhanceApp({ app }) {
