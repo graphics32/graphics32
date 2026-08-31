@@ -30,7 +30,7 @@ The core object in Graphics32 is `TBitmap32`. Unlike `TBitmap` of the standard f
 
 :::: right
 ::: tip
-All the source code in this tutorial is available as read-to-run projects in the Graphics32 [`Examples\Getting Started`](https://github.com/graphics32/graphics32/tree/documentation/Examples/Getting%20Started) folder.
+All the source code in this tutorial is available as read-to-run projects in the Graphics32 [`Examples\Getting Started`](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Getting%20Started) folder.
 
 We suggest that, for each tutorial section, you start by reading the text and then experiment with the code afterwards.
 :::
@@ -68,7 +68,7 @@ begin
 end;
 ```
 ::: box-blue
-[Example source code](https://github.com/graphics32/graphics32/tree/documentation/Examples/Getting%20Started/1.%20Creating%20and%20Managing%20Bitmaps)
+[Example source code](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Getting%20Started/1.%20Creating%20and%20Managing%20Bitmaps)
 :::
 
 :::: thumbnail
@@ -124,7 +124,7 @@ begin
 end;
 ```
 ::: box-blue
-[Example source code](https://github.com/graphics32/graphics32/tree/documentation/Examples/Getting%20Started/2.%20Direct%20Pixel%20Access)
+[Example source code](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Getting%20Started/2.%20Direct%20Pixel%20Access)
 :::
 
 :::: thumbnail
@@ -167,7 +167,7 @@ begin
 end;
 ```
 ::: box-blue
-[Example source code](https://github.com/graphics32/graphics32/tree/documentation/Examples/Getting%20Started/3.%20Drawing%20Shapes%20and%20Alpha%20Blending)
+[Example source code](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Getting%20Started/3.%20Drawing%20Shapes%20and%20Alpha%20Blending)
 :::
 
 :::: thumbnail
@@ -244,7 +244,7 @@ begin
 end;
 ```
 ::: box-blue
-[Example source code](https://github.com/graphics32/graphics32/tree/documentation/Examples/Getting%20Started/4.%20Vector%20Graphics%20and%20Text%20with%20TCanvas32)
+[Example source code](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Getting%20Started/4.%20Vector%20Graphics%20and%20Text%20with%20TCanvas32)
 :::
 
 :::: thumbnail
@@ -348,7 +348,7 @@ begin
 end;
 ```
 ::: box-blue
-[Example source code](https://github.com/graphics32/graphics32/tree/documentation/Examples/Getting%20Started/5.%20Resampling%20and%20Bitmap%20Rotation)
+[Example source code](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Getting%20Started/5.%20Resampling%20and%20Bitmap%20Rotation)
 :::
 
 :::: thumbnail
@@ -548,7 +548,7 @@ end;
 And presto! We can now move and resize both layers.
 
 ::: box-blue
-[Example source code](https://github.com/graphics32/graphics32/tree/documentation/Examples/Getting%20Started/6.%20Image%20Display%20and%20Interactive%20Layers%20with%20TImage32)
+[Example source code](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Getting%20Started/6.%20Image%20Display%20and%20Interactive%20Layers%20with%20TImage32)
 :::
 
 :::: thumbnail

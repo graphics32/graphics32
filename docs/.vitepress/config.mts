@@ -6,6 +6,7 @@ import mathjax3 from 'markdown-it-mathjax3'
 import { generateSidebarForDir } from './sidebar'
 import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
 import { apiShortcodesPlugin } from './shortcodePlugin'
+import { branchShortcodePlugin } from './branchShortcodePlugin'
 import { execSync } from 'child_process'
 import { generateVirtualMembers, getGitBranch } from './virtualMembers'
 import { generateMemberData } from './generateMemberData'
@@ -139,6 +140,7 @@ export default withMermaid(defineConfig({
       md.use(mathjax3)
       apiSymbolLinksPlugin(md, symbolMap)
       apiShortcodesPlugin(md)
+      branchShortcodePlugin(md)
     }
   },
 
