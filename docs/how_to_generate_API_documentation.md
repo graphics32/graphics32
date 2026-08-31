@@ -618,25 +618,25 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.CPUID**
 - [ ] **GR32.Examples** (document only at unit level)
 - [ ] **GR32.ImageFormats**
-- [ ] **GR32.ImageFormats.BMP**
+- [ ] **GR32.ImageFormats.BMP** (document only at unit level)
 - [ ] **GR32.ImageFormats.Default** (document only at unit level)
-- [ ] **GR32.ImageFormats.GIF**
-- [ ] **GR32.ImageFormats.JPG**
-- [ ] **GR32.ImageFormats.PNG**
-- [ ] **GR32.ImageFormats.PNG32**
-- [ ] **GR32.ImageFormats.PSD**
+- [ ] **GR32.ImageFormats.GIF** (document only at unit level)
+- [ ] **GR32.ImageFormats.JPG** (document only at unit level)
+- [ ] **GR32.ImageFormats.PNG** (document only at unit level)
+- [ ] **GR32.ImageFormats.PNG32** (document only at unit level)
+- [ ] **GR32.ImageFormats.PSD** (document only at unit level)
 - [ ] **GR32.ImageFormats.PSD.Model** (document only at unit level)
 - [ ] **GR32.ImageFormats.PSD.Reader** (document only at unit level)
 - [ ] **GR32.ImageFormats.PSD.Types** (document only at unit level)
 - [ ] **GR32.ImageFormats.PSD.Writer** (document only at unit level)
-- [ ] **GR32.ImageFormats.SVG**
-- [ ] **GR32.ImageFormats.TBitmap**
-- [ ] **GR32.ImageFormats.TClipboard**
-- [ ] **GR32.ImageFormats.TGraphic**
-- [ ] **GR32.ImageFormats.TIcon**
-- [ ] **GR32.ImageFormats.TMetaFile**
-- [ ] **GR32.ImageFormats.TPicture**
-- [ ] **GR32.ImageFormats.TWICImage**
+- [ ] **GR32.ImageFormats.SVG** (document only at unit level)
+- [ ] **GR32.ImageFormats.TBitmap** (document only at unit level)
+- [ ] **GR32.ImageFormats.TClipboard** (document only at unit level)
+- [ ] **GR32.ImageFormats.TGraphic** (document only at unit level)
+- [ ] **GR32.ImageFormats.TIcon** (document only at unit level)
+- [ ] **GR32.ImageFormats.TMetaFile** (document only at unit level)
+- [ ] **GR32.ImageFormats.TPicture** (document only at unit level)
+- [ ] **GR32.ImageFormats.TWICImage** (document only at unit level)
 - [ ] **GR32.Math.Complex**
 - [ ] **GR32.Noise.Simplex**
 - [ ] **GR32.Paint.Brush**
@@ -706,7 +706,49 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Clipper**
 - [ ] **GR32_Clipper1** (document only at unit level)
 - [ ] **GR32_Clipper2** (document only at unit level)
-- [ ] **GR32_ColorGradients**
+- [x] **GR32_ColorGradients**: `docs/api/GR32_ColorGradients/index.md`
+  - **Classes**:
+    - [x] `TColor32LookupTable`: `docs/api/GR32_ColorGradients/Classes/TColor32LookupTable/index.md`
+    - [x] `TColor32Gradient`: `docs/api/GR32_ColorGradients/Classes/TColor32Gradient/index.md`
+    - [x] `TCustomGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TCustomGradientSampler/index.md`
+    - [x] `TCustomGradientLookUpTableSampler`: `docs/api/GR32_ColorGradients/Classes/TCustomGradientLookUpTableSampler/index.md`
+    - [x] `TCustomCenterLutGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TCustomCenterLutGradientSampler/index.md`
+    - [x] `TCustomCenterRadiusLutGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TCustomCenterRadiusLutGradientSampler/index.md`
+    - [x] `TCustomCenterRadiusAngleLutGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TCustomCenterRadiusAngleLutGradientSampler/index.md`
+    - [x] `TConicGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TConicGradientSampler/index.md`
+    - [x] `TSweepGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TSweepGradientSampler/index.md`
+    - [x] `TRadialGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TRadialGradientSampler/index.md`
+    - [x] `TRadialExGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TRadialExGradientSampler/index.md`
+    - [x] `TDiamondGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TDiamondGradientSampler/index.md`
+    - [x] `TXGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TXGradientSampler/index.md`
+    - [x] `TLinearGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TLinearGradientSampler/index.md`
+    - [x] `TXYGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TXYGradientSampler/index.md`
+    - [x] `TXYSqrtGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TXYSqrtGradientSampler/index.md`
+    - [x] `TCustomSparsePointGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TCustomSparsePointGradientSampler/index.md`
+    - [x] `TCustomArbitrarySparsePointGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TCustomArbitrarySparsePointGradientSampler/index.md`
+    - [x] `TBarycentricGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TBarycentricGradientSampler/index.md`
+    - [x] `TBilinearGradientSampler`: `docs/api/GR32_ColorGradients/Classes/TBilinearGradientSampler/index.md`
+    - [x] `TInvertedDistanceWeightingSampler`: `docs/api/GR32_ColorGradients/Classes/TInvertedDistanceWeightingSampler/index.md`
+    - [x] `TVoronoiSampler`: `docs/api/GR32_ColorGradients/Classes/TVoronoiSampler/index.md`
+    - [x] `TGourandShadedDelaunayTrianglesSampler`: `docs/api/GR32_ColorGradients/Classes/TGourandShadedDelaunayTrianglesSampler/index.md`
+    - [x] `TCustomGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TCustomGradientPolygonFiller/index.md`
+    - [x] `TCustomGradientLookupTablePolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TCustomGradientLookupTablePolygonFiller/index.md`
+    - [x] `TCustomLinearGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TCustomLinearGradientPolygonFiller/index.md`
+    - [x] `TLinearGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TLinearGradientPolygonFiller/index.md`
+    - [x] `TCustomRadialGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TCustomRadialGradientPolygonFiller/index.md`
+    - [x] `TRadialGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TRadialGradientPolygonFiller/index.md`
+    - [x] `TSVGRadialGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TSVGRadialGradientPolygonFiller/index.md`
+    - [x] `TCustomSparsePointGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TCustomSparsePointGradientPolygonFiller/index.md`
+    - [x] `TBarycentricGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TBarycentricGradientPolygonFiller/index.md`
+    - [x] `TCustomArbitrarySparsePointGradientPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TCustomArbitrarySparsePointGradientPolygonFiller/index.md`
+    - [x] `TGourandShadedDelaunayTrianglesPolygonFiller`: `docs/api/GR32_ColorGradients/Classes/TGourandShadedDelaunayTrianglesPolygonFiller/index.md`
+  - **Types**:
+    - [x] `TColor32GradientStop`: `docs/api/GR32_ColorGradients/Types/TColor32GradientStop.md`
+    - [x] `TColor32FloatPoint`: `docs/api/GR32_ColorGradients/Types/TColor32FloatPoint.md`
+    - [x] `TVoronoiMetric`: `docs/api/GR32_ColorGradients/Types/TVoronoiMetric.md`
+  - **Routines**:
+    - [x] `Color32FloatPoint`: `docs/api/GR32_ColorGradients/Routines/Color32FloatPoint.md`
+    - [x] `Color32GradientStop`: `docs/api/GR32_ColorGradients/Routines/Color32GradientStop.md`- [ ] **GR32_ColorPicker**
 - [ ] **GR32_ColorPicker**
 - [ ] **GR32_ColorSwatch**
 - [ ] **GR32_Containers**
@@ -1137,12 +1179,12 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `VertexReduction`: `docs/api/GR32_VectorUtils/Routines/VertexReduction.md`
   - **Variables**
     - [x] `PolylineBuilder`: `docs/api/GR32_VectorUtils/Variables/PolylineBuilder.md`
-- [x] **GR32_VectorUtils.Angus** -> `docs/api/GR32_VectorUtils.Angus/index.md` (document only at unit level)
-- [x] **GR32_VectorUtils.Clipper2** -> `docs/api/GR32_VectorUtils.Clipper2/index.md` (document only at unit level)
-- [x] **GR32_VectorUtils.Reference** -> `docs/api/GR32_VectorUtils.Reference/index.md` (document only at unit level)
+- [x] **GR32_VectorUtils.Angus**`: ``docs/api/GR32_VectorUtils.Angus/index.md` (document only at unit level)
+- [x] **GR32_VectorUtils.Clipper2**`: ``docs/api/GR32_VectorUtils.Clipper2/index.md` (document only at unit level)
+- [x] **GR32_VectorUtils.Reference**`: ``docs/api/GR32_VectorUtils.Reference/index.md` (document only at unit level)
 - [ ] **amEasing**
 
-The following files will not be documented. Either because they are externals (copied from other libraries) or because they are internal to Graphics32:
+The following files will not be documented. Either because they are externals (copied from other libraries), because they are internal to Graphics32 or because I can't be assed to do so:
 
 - **Clipper**
 - **Clipper.Core**
