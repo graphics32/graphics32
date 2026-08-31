@@ -125,8 +125,19 @@ export default withMermaid(defineConfig({
   ],
 
   vite: {
+    optimizeDeps: {
+      exclude: [
+        '@nolebase/vitepress-plugin-enhanced-readabilities/client',
+        'vitepress',
+        '@nolebase/ui',
+      ],
+    },
     ssr: {
-      noExternal: ['@lando/vitepress-theme-default-plus']
+      noExternal: [
+        '@lando/vitepress-theme-default-plus',
+        '@nolebase/vitepress-plugin-enhanced-readabilities',
+        '@nolebase/ui',
+      ]
     }
   },
 
