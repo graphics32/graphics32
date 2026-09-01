@@ -16,7 +16,7 @@ import ApiMembers from './components/ApiMembers.vue'
 import HeroCarousel from './components/HeroCarousel.vue'
 import BuildFooter from './components/BuildFooter.vue'
 import { applySidebarFilter } from './sidebarFilter'
-import { showInherited, showProtected } from './apiFilterState'
+import { showInherited, showProtected, showAbstract } from './apiFilterState'
 import './custom.css'
 
 export default {
@@ -91,7 +91,7 @@ export default {
     })
 
     watch(
-      [() => route.path, showInherited, showProtected],
+      [() => route.path, showInherited, showProtected, showAbstract],
       () => {
         updateApiPageClass()
         nextTick(() => setTimeout(applySidebarFilter, 50))

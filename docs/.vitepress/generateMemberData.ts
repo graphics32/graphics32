@@ -15,6 +15,7 @@ export interface MemberInfo {
   inheritedFrom?: string
   isVirtual: boolean
   isProtected: boolean
+  isAbstract?: boolean
   propertyType?: string
   link: string
 }
@@ -183,6 +184,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
 
           const scope = fm.scope || 'Public'
           const link = `/api/${unitName}/${name}`
+          const isAbstract = fm.abstract === 'true' || fm.abstract === true
           const info: MemberInfo = {
             unit: unitName,
             parent: '',
@@ -195,6 +197,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
             declaration: fm.declaration,
             isVirtual: false,
             isProtected: scope.toLowerCase() === 'protected',
+            isAbstract,
             link
           }
 
@@ -209,6 +212,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
 
             const scope = fm.scope || 'Public'
             const link = `/api/${unitName}/${name}`
+            const isAbstract = fm.abstract === 'true' || fm.abstract === true
             const info: MemberInfo = {
               unit: unitName,
               parent: '',
@@ -221,6 +225,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
               declaration: fm.declaration,
               isVirtual: false,
               isProtected: scope.toLowerCase() === 'protected',
+              isAbstract,
               link
             }
 
