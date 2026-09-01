@@ -1,8 +1,8 @@
-import { showInherited, showProtected } from './apiFilterState'
+import { showInherited, showProtected, showAbstract } from './apiFilterState'
 import memberDataRaw from './memberData.json'
 
 const memberData = memberDataRaw as {
-  byLink: Record<string, { isVirtual: boolean; isProtected: boolean }>
+  byLink: Record<string, { isVirtual: boolean; isProtected: boolean; isAbstract?: boolean }>
 }
 
 function normalizePath(path: string): string {
@@ -36,6 +36,9 @@ export function applySidebarFilter() {
         shouldHide = true
       }
       if (info.isProtected && !showProtected.value) {
+        shouldHide = true
+      }
+      if (info.isAbstract && !showAbstract.value) {
         shouldHide = true
       }
 

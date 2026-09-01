@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useData } from 'vitepress'
 import { computed } from 'vue'
-import { showInherited, showProtected } from '../apiFilterState'
+import { showInherited, showProtected, showAbstract } from '../apiFilterState'
 import memberDataRaw from '../memberData.json'
 
 const props = defineProps<{
@@ -24,6 +24,7 @@ interface MemberInfo {
   inheritedFrom?: string
   isVirtual: boolean
   isProtected: boolean
+  isAbstract?: boolean
   propertyType?: string
   link: string
 }
@@ -85,6 +86,7 @@ function filterMembers(list: MemberInfo[] = []): MemberInfo[] {
   return list.filter((m) => {
     if (m.isVirtual && !showInherited.value) return false
     if (m.isProtected && !showProtected.value) return false
+    if (m.isAbstract && !showAbstract.value) return false
     return true
   })
 }

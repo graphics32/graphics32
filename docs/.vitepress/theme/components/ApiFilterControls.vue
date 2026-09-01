@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { showInherited, showProtected } from '../apiFilterState'
+import { showInherited, showProtected, showAbstract } from '../apiFilterState'
 import { useData } from 'vitepress'
 import { computed } from 'vue'
 
@@ -27,6 +27,13 @@ const isApiPage = computed(() => {
         <span class="slider"></span>
       </label>
       <span class="label-text">Show Protected</span>
+    </div>
+    <div class="filter-option">
+      <label class="toggle-switch">
+        <input type="checkbox" v-model="showAbstract" />
+        <span class="slider"></span>
+      </label>
+      <span class="label-text">Show abstract</span>
     </div>
   </div>
 </template>
