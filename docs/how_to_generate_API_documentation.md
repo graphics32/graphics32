@@ -366,216 +366,216 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 
 - [x] **GR32**
   - **Classes**:
-    - [x] `TPlainInterfacedPersistent` -> `docs/api/GR32/TPlainInterfacedPersistent/index.md`
+    - [x] `TPlainInterfacedPersistent`: `docs/api/GR32/TPlainInterfacedPersistent/index.md`
       - **Properties**
-        - [x] `RefCount` -> `docs/api/GR32/TPlainInterfacedPersistent/Properties/RefCount.md`
-        - [x] `RefCounted` -> `docs/api/GR32/TPlainInterfacedPersistent/Properties/RefCounted.md`
-    - [x] `TNotifiablePersistent` -> `docs/api/GR32/TNotifiablePersistent/index.md`
+        - [x] `RefCount`: `docs/api/GR32/TPlainInterfacedPersistent/Properties/RefCount.md`
+        - [x] `RefCounted`: `docs/api/GR32/TPlainInterfacedPersistent/Properties/RefCounted.md`
+    - [x] `TNotifiablePersistent`: `docs/api/GR32/TNotifiablePersistent/index.md`
       - **Methods**
-        - [x] `BeginUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/BeginUpdate.md`
-        - [x] `EndUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/EndUpdate.md`
-        - [x] `BeginLockUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/BeginLockUpdate.md`
-        - [x] `EndLockUpdate` -> `docs/api/GR32/TNotifiablePersistent/Methods/EndLockUpdate.md`
-        - [x] `Changed` -> `docs/api/GR32/TNotifiablePersistent/Methods/Changed.md`
-        - [x] `DoChanged` -> `docs/api/GR32/TNotifiablePersistent/Methods/DoChanged.md`
+        - [x] `BeginUpdate`: `docs/api/GR32/TNotifiablePersistent/Methods/BeginUpdate.md`
+        - [x] `EndUpdate`: `docs/api/GR32/TNotifiablePersistent/Methods/EndUpdate.md`
+        - [x] `BeginLockUpdate`: `docs/api/GR32/TNotifiablePersistent/Methods/BeginLockUpdate.md`
+        - [x] `EndLockUpdate`: `docs/api/GR32/TNotifiablePersistent/Methods/EndLockUpdate.md`
+        - [x] `Changed`: `docs/api/GR32/TNotifiablePersistent/Methods/Changed.md`
+        - [x] `DoChanged`: `docs/api/GR32/TNotifiablePersistent/Methods/DoChanged.md`
       - **Properties**
-        - [x] `UpdateCount` -> `docs/api/GR32/TNotifiablePersistent/Properties/UpdateCount.md`
-        - [x] `LockUpdateCount` -> `docs/api/GR32/TNotifiablePersistent/Properties/LockUpdateCount.md`
-        - [x] `Modified` -> `docs/api/GR32/TNotifiablePersistent/Properties/Modified.md`
+        - [x] `UpdateCount`: `docs/api/GR32/TNotifiablePersistent/Properties/UpdateCount.md`
+        - [x] `LockUpdateCount`: `docs/api/GR32/TNotifiablePersistent/Properties/LockUpdateCount.md`
+        - [x] `Modified`: `docs/api/GR32/TNotifiablePersistent/Properties/Modified.md`
       - **Events**
-        - [x] `OnChange` -> `docs/api/GR32/TNotifiablePersistent/Events/OnChange.md`
-    - [x] `TThreadPersistent` -> `docs/api/GR32/TThreadPersistent/index.md`
+        - [x] `OnChange`: `docs/api/GR32/TNotifiablePersistent/Events/OnChange.md`
+    - [x] `TThreadPersistent`: `docs/api/GR32/TThreadPersistent/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32/TThreadPersistent/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32/TThreadPersistent/Constructors/Create.md`
       - **Methods**
-        - [x] `Lock` -> `docs/api/GR32/TThreadPersistent/Methods/Lock.md`
-        - [x] `Unlock` -> `docs/api/GR32/TThreadPersistent/Methods/Unlock.md`
+        - [x] `Lock`: `docs/api/GR32/TThreadPersistent/Methods/Lock.md`
+        - [x] `Unlock`: `docs/api/GR32/TThreadPersistent/Methods/Unlock.md`
       - **Properties**
-        - [x] `LockCount` -> `docs/api/GR32/TThreadPersistent/Properties/LockCount.md`
-    - [x] `TCustomMap` -> `docs/api/GR32/TCustomMap/index.md`
+        - [x] `LockCount`: `docs/api/GR32/TThreadPersistent/Properties/LockCount.md`
+    - [x] `TCustomMap`: `docs/api/GR32/TCustomMap/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32/TCustomMap/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32/TCustomMap/Constructors/Create.md`
       - **Methods**
-        - [x] `Clear` -> `docs/api/GR32/TCustomMap/Methods/Clear.md`
-        - [x] `Delete` -> `docs/api/GR32/TCustomMap/Methods/Delete.md`
-        - [x] `Empty` -> `docs/api/GR32/TCustomMap/Methods/Empty.md`
-        - [x] `Resized` -> `docs/api/GR32/TCustomMap/Methods/Resized.md`
-        - [x] `SetSize` -> `docs/api/GR32/TCustomMap/Methods/SetSize.md`
-        - [x] `SetSizeFrom` -> `docs/api/GR32/TCustomMap/Methods/SetSizeFrom.md`
-        - [x] `ChangeSize` -> `docs/api/GR32/TCustomMap/Methods/ChangeSize.md`
-        - [x] `SetHeight` -> `docs/api/GR32/TCustomMap/Methods/SetHeight.md`
-        - [x] `SetWidth` -> `docs/api/GR32/TCustomMap/Methods/SetWidth.md`
+        - [x] `Clear`: `docs/api/GR32/TCustomMap/Methods/Clear.md`
+        - [x] `Delete`: `docs/api/GR32/TCustomMap/Methods/Delete.md`
+        - [x] `Empty`: `docs/api/GR32/TCustomMap/Methods/Empty.md`
+        - [x] `Resized`: `docs/api/GR32/TCustomMap/Methods/Resized.md`
+        - [x] `SetSize`: `docs/api/GR32/TCustomMap/Methods/SetSize.md`
+        - [x] `SetSizeFrom`: `docs/api/GR32/TCustomMap/Methods/SetSizeFrom.md`
+        - [x] `ChangeSize`: `docs/api/GR32/TCustomMap/Methods/ChangeSize.md`
+        - [x] `SetHeight`: `docs/api/GR32/TCustomMap/Methods/SetHeight.md`
+        - [x] `SetWidth`: `docs/api/GR32/TCustomMap/Methods/SetWidth.md`
       - **Properties**
-        - [x] `Height` -> `docs/api/GR32/TCustomMap/Properties/Height.md`
-        - [x] `Width` -> `docs/api/GR32/TCustomMap/Properties/Width.md`
+        - [x] `Height`: `docs/api/GR32/TCustomMap/Properties/Height.md`
+        - [x] `Width`: `docs/api/GR32/TCustomMap/Properties/Width.md`
       - **Events**
-        - [x] `OnResize` -> `docs/api/GR32/TCustomMap/Events/OnResize.md`
-    - [x] `TCustomBitmap32` -> `docs/api/GR32/TCustomBitmap32/index.md`
+        - [x] `OnResize`: `docs/api/GR32/TCustomMap/Events/OnResize.md`
+    - [x] `TCustomBitmap32`: `docs/api/GR32/TCustomBitmap32/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32/TCustomBitmap32/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32/TCustomBitmap32/Constructors/Create.md`
       - **Methods**
-        - [x] `Assign` -> `docs/api/GR32/TCustomBitmap32/Methods/Assign.md`
-        - [x] `BeginMeasuring` -> `docs/api/GR32/TCustomBitmap32/Methods/BeginMeasuring.md`
-        - [x] `BoundsRect` -> `docs/api/GR32/TCustomBitmap32/Methods/BoundsRect.md`
-        - [x] `Changed` -> `docs/api/GR32/TCustomBitmap32/Methods/Changed.md`
-        - [x] `Clear` -> `docs/api/GR32/TCustomBitmap32/Methods/Clear.md`
-        - [x] `CopyMapTo` -> `docs/api/GR32/TCustomBitmap32/Methods/CopyMapTo.md`
-        - [x] `Delete` -> `docs/api/GR32/TCustomBitmap32/Methods/Delete.md`
-        - [x] `Empty` -> `docs/api/GR32/TCustomBitmap32/Methods/Empty.md`
-        - [x] `EndMeasuring` -> `docs/api/GR32/TCustomBitmap32/Methods/EndMeasuring.md`
-        - [x] `GetPlatformBackendClass` -> `docs/api/GR32/TCustomBitmap32/Methods/GetPlatformBackendClass.md`
-        - [x] `PropertyChanged` -> `docs/api/GR32/TCustomBitmap32/Methods/PropertyChanged.md`
-        - [x] `ReleaseBackend` -> `docs/api/GR32/TCustomBitmap32/Methods/ReleaseBackend.md`
-        - [x] `ResetClipRect` -> `docs/api/GR32/TCustomBitmap32/Methods/ResetClipRect.md`
-        - [x] `LoadFromFile` -> `docs/api/GR32/TCustomBitmap32/Methods/LoadFromFile.md`
-        - [x] `LoadFromResourceID` -> `docs/api/GR32/TCustomBitmap32/Methods/LoadFromResourceID.md`
-        - [x] `LoadFromResourceName` -> `docs/api/GR32/TCustomBitmap32/Methods/LoadFromResourceName.md`
-        - [x] `LoadFromStream` -> `docs/api/GR32/TCustomBitmap32/Methods/LoadFromStream.md`
-        - [x] `SaveToFile` -> `docs/api/GR32/TCustomBitmap32/Methods/SaveToFile.md`
-        - [x] `SaveToStream` -> `docs/api/GR32/TCustomBitmap32/Methods/SaveToStream.md`
-        - [x] `Draw` -> `docs/api/GR32/TCustomBitmap32/Methods/Draw.md`
-        - [x] `DrawTo` -> `docs/api/GR32/TCustomBitmap32/Methods/DrawTo.md`
-        - [x] `ResetAlpha` -> `docs/api/GR32/TCustomBitmap32/Methods/ResetAlpha.md`
-        - [x] `SetPixelT` -> `docs/api/GR32/TCustomBitmap32/Methods/SetPixelT.md`
-        - [x] `SetPixelTS` -> `docs/api/GR32/TCustomBitmap32/Methods/SetPixelTS.md`
-        - [x] `HorzLine` -> `docs/api/GR32/TCustomBitmap32/Methods/HorzLine.md`
-        - [x] `HorzLineS` -> `docs/api/GR32/TCustomBitmap32/Methods/HorzLineS.md`
-        - [x] `HorzLineT` -> `docs/api/GR32/TCustomBitmap32/Methods/HorzLineT.md`
-        - [x] `HorzLineTS` -> `docs/api/GR32/TCustomBitmap32/Methods/HorzLineTS.md`
-        - [x] `HorzLineTSP` -> `docs/api/GR32/TCustomBitmap32/Methods/HorzLineTSP.md`
-        - [x] `HorzLineX` -> `docs/api/GR32/TCustomBitmap32/Methods/HorzLineX.md`
-        - [x] `HorzLineXS` -> `docs/api/GR32/TCustomBitmap32/Methods/HorzLineXS.md`
-        - [x] `VertLine` -> `docs/api/GR32/TCustomBitmap32/Methods/VertLine.md`
-        - [x] `VertLineS` -> `docs/api/GR32/TCustomBitmap32/Methods/VertLineS.md`
-        - [x] `VertLineT` -> `docs/api/GR32/TCustomBitmap32/Methods/VertLineT.md`
-        - [x] `VertLineTS` -> `docs/api/GR32/TCustomBitmap32/Methods/VertLineTS.md`
-        - [x] `VertLineTSP` -> `docs/api/GR32/TCustomBitmap32/Methods/VertLineTSP.md`
-        - [x] `VertLineX` -> `docs/api/GR32/TCustomBitmap32/Methods/VertLineX.md`
-        - [x] `VertLineXS` -> `docs/api/GR32/TCustomBitmap32/Methods/VertLineXS.md`
-        - [x] `Line` -> `docs/api/GR32/TCustomBitmap32/Methods/Line.md`
-        - [x] `LineS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineS.md`
-        - [x] `LineT` -> `docs/api/GR32/TCustomBitmap32/Methods/LineT.md`
-        - [x] `LineTS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineTS.md`
-        - [x] `LineA` -> `docs/api/GR32/TCustomBitmap32/Methods/LineA.md`
-        - [x] `LineAS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineAS.md`
-        - [x] `LineX` -> `docs/api/GR32/TCustomBitmap32/Methods/LineX.md`
-        - [x] `LineF` -> `docs/api/GR32/TCustomBitmap32/Methods/LineF.md`
-        - [x] `LineXS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineXS.md`
-        - [x] `LineFS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineFS.md`
-        - [x] `LineXP` -> `docs/api/GR32/TCustomBitmap32/Methods/LineXP.md`
-        - [x] `LineFP` -> `docs/api/GR32/TCustomBitmap32/Methods/LineFP.md`
-        - [x] `LineXSP` -> `docs/api/GR32/TCustomBitmap32/Methods/LineXSP.md`
-        - [x] `LineFSP` -> `docs/api/GR32/TCustomBitmap32/Methods/LineFSP.md`
-        - [x] `MoveTo` -> `docs/api/GR32/TCustomBitmap32/Methods/MoveTo.md`
-        - [x] `MoveToX` -> `docs/api/GR32/TCustomBitmap32/Methods/MoveToX.md`
-        - [x] `MoveToF` -> `docs/api/GR32/TCustomBitmap32/Methods/MoveToF.md`
-        - [x] `LineToS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineToS.md`
-        - [x] `LineToTS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineToTS.md`
-        - [x] `LineToAS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineToAS.md`
-        - [x] `LineToXS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineToXS.md`
-        - [x] `LineToFS` -> `docs/api/GR32/TCustomBitmap32/Methods/LineToFS.md`
-        - [x] `LineToXSP` -> `docs/api/GR32/TCustomBitmap32/Methods/LineToXSP.md`
-        - [x] `LineToFSP` -> `docs/api/GR32/TCustomBitmap32/Methods/LineToFSP.md`
-        - [x] `FillRect` -> `docs/api/GR32/TCustomBitmap32/Methods/FillRect.md`
-        - [x] `FillRectS` -> `docs/api/GR32/TCustomBitmap32/Methods/FillRectS.md`
-        - [x] `FillRectT` -> `docs/api/GR32/TCustomBitmap32/Methods/FillRectT.md`
-        - [x] `FillRectTS` -> `docs/api/GR32/TCustomBitmap32/Methods/FillRectTS.md`
-        - [x] `FrameRectS` -> `docs/api/GR32/TCustomBitmap32/Methods/FrameRectS.md`
-        - [x] `FrameRectTS` -> `docs/api/GR32/TCustomBitmap32/Methods/FrameRectTS.md`
-        - [x] `FrameRectTSP` -> `docs/api/GR32/TCustomBitmap32/Methods/FrameRectTSP.md`
-        - [x] `RaiseRectTS` -> `docs/api/GR32/TCustomBitmap32/Methods/RaiseRectTS.md`
-        - [x] `Roll` -> `docs/api/GR32/TCustomBitmap32/Methods/Roll.md`
-        - [x] `FlipHorz` -> `docs/api/GR32/TCustomBitmap32/Methods/FlipHorz.md`
-        - [x] `FlipVert` -> `docs/api/GR32/TCustomBitmap32/Methods/FlipVert.md`
-        - [x] `Rotate90` -> `docs/api/GR32/TCustomBitmap32/Methods/Rotate90.md`
-        - [x] `Rotate180` -> `docs/api/GR32/TCustomBitmap32/Methods/Rotate180.md`
-        - [x] `Rotate270` -> `docs/api/GR32/TCustomBitmap32/Methods/Rotate270.md`
-        - [x] `SetStipple` -> `docs/api/GR32/TCustomBitmap32/Methods/SetStipple.md`
-        - [x] `AdvanceStippleCounter` -> `docs/api/GR32/TCustomBitmap32/Methods/AdvanceStippleCounter.md`
-        - [x] `GetStippleColor` -> `docs/api/GR32/TCustomBitmap32/Methods/GetStippleColor.md`
+        - [x] `Assign`: `docs/api/GR32/TCustomBitmap32/Methods/Assign.md`
+        - [x] `BeginMeasuring`: `docs/api/GR32/TCustomBitmap32/Methods/BeginMeasuring.md`
+        - [x] `BoundsRect`: `docs/api/GR32/TCustomBitmap32/Methods/BoundsRect.md`
+        - [x] `Changed`: `docs/api/GR32/TCustomBitmap32/Methods/Changed.md`
+        - [x] `Clear`: `docs/api/GR32/TCustomBitmap32/Methods/Clear.md`
+        - [x] `CopyMapTo`: `docs/api/GR32/TCustomBitmap32/Methods/CopyMapTo.md`
+        - [x] `Delete`: `docs/api/GR32/TCustomBitmap32/Methods/Delete.md`
+        - [x] `Empty`: `docs/api/GR32/TCustomBitmap32/Methods/Empty.md`
+        - [x] `EndMeasuring`: `docs/api/GR32/TCustomBitmap32/Methods/EndMeasuring.md`
+        - [x] `GetPlatformBackendClass`: `docs/api/GR32/TCustomBitmap32/Methods/GetPlatformBackendClass.md`
+        - [x] `PropertyChanged`: `docs/api/GR32/TCustomBitmap32/Methods/PropertyChanged.md`
+        - [x] `ReleaseBackend`: `docs/api/GR32/TCustomBitmap32/Methods/ReleaseBackend.md`
+        - [x] `ResetClipRect`: `docs/api/GR32/TCustomBitmap32/Methods/ResetClipRect.md`
+        - [x] `LoadFromFile`: `docs/api/GR32/TCustomBitmap32/Methods/LoadFromFile.md`
+        - [x] `LoadFromResourceID`: `docs/api/GR32/TCustomBitmap32/Methods/LoadFromResourceID.md`
+        - [x] `LoadFromResourceName`: `docs/api/GR32/TCustomBitmap32/Methods/LoadFromResourceName.md`
+        - [x] `LoadFromStream`: `docs/api/GR32/TCustomBitmap32/Methods/LoadFromStream.md`
+        - [x] `SaveToFile`: `docs/api/GR32/TCustomBitmap32/Methods/SaveToFile.md`
+        - [x] `SaveToStream`: `docs/api/GR32/TCustomBitmap32/Methods/SaveToStream.md`
+        - [x] `Draw`: `docs/api/GR32/TCustomBitmap32/Methods/Draw.md`
+        - [x] `DrawTo`: `docs/api/GR32/TCustomBitmap32/Methods/DrawTo.md`
+        - [x] `ResetAlpha`: `docs/api/GR32/TCustomBitmap32/Methods/ResetAlpha.md`
+        - [x] `SetPixelT`: `docs/api/GR32/TCustomBitmap32/Methods/SetPixelT.md`
+        - [x] `SetPixelTS`: `docs/api/GR32/TCustomBitmap32/Methods/SetPixelTS.md`
+        - [x] `HorzLine`: `docs/api/GR32/TCustomBitmap32/Methods/HorzLine.md`
+        - [x] `HorzLineS`: `docs/api/GR32/TCustomBitmap32/Methods/HorzLineS.md`
+        - [x] `HorzLineT`: `docs/api/GR32/TCustomBitmap32/Methods/HorzLineT.md`
+        - [x] `HorzLineTS`: `docs/api/GR32/TCustomBitmap32/Methods/HorzLineTS.md`
+        - [x] `HorzLineTSP`: `docs/api/GR32/TCustomBitmap32/Methods/HorzLineTSP.md`
+        - [x] `HorzLineX`: `docs/api/GR32/TCustomBitmap32/Methods/HorzLineX.md`
+        - [x] `HorzLineXS`: `docs/api/GR32/TCustomBitmap32/Methods/HorzLineXS.md`
+        - [x] `VertLine`: `docs/api/GR32/TCustomBitmap32/Methods/VertLine.md`
+        - [x] `VertLineS`: `docs/api/GR32/TCustomBitmap32/Methods/VertLineS.md`
+        - [x] `VertLineT`: `docs/api/GR32/TCustomBitmap32/Methods/VertLineT.md`
+        - [x] `VertLineTS`: `docs/api/GR32/TCustomBitmap32/Methods/VertLineTS.md`
+        - [x] `VertLineTSP`: `docs/api/GR32/TCustomBitmap32/Methods/VertLineTSP.md`
+        - [x] `VertLineX`: `docs/api/GR32/TCustomBitmap32/Methods/VertLineX.md`
+        - [x] `VertLineXS`: `docs/api/GR32/TCustomBitmap32/Methods/VertLineXS.md`
+        - [x] `Line`: `docs/api/GR32/TCustomBitmap32/Methods/Line.md`
+        - [x] `LineS`: `docs/api/GR32/TCustomBitmap32/Methods/LineS.md`
+        - [x] `LineT`: `docs/api/GR32/TCustomBitmap32/Methods/LineT.md`
+        - [x] `LineTS`: `docs/api/GR32/TCustomBitmap32/Methods/LineTS.md`
+        - [x] `LineA`: `docs/api/GR32/TCustomBitmap32/Methods/LineA.md`
+        - [x] `LineAS`: `docs/api/GR32/TCustomBitmap32/Methods/LineAS.md`
+        - [x] `LineX`: `docs/api/GR32/TCustomBitmap32/Methods/LineX.md`
+        - [x] `LineF`: `docs/api/GR32/TCustomBitmap32/Methods/LineF.md`
+        - [x] `LineXS`: `docs/api/GR32/TCustomBitmap32/Methods/LineXS.md`
+        - [x] `LineFS`: `docs/api/GR32/TCustomBitmap32/Methods/LineFS.md`
+        - [x] `LineXP`: `docs/api/GR32/TCustomBitmap32/Methods/LineXP.md`
+        - [x] `LineFP`: `docs/api/GR32/TCustomBitmap32/Methods/LineFP.md`
+        - [x] `LineXSP`: `docs/api/GR32/TCustomBitmap32/Methods/LineXSP.md`
+        - [x] `LineFSP`: `docs/api/GR32/TCustomBitmap32/Methods/LineFSP.md`
+        - [x] `MoveTo`: `docs/api/GR32/TCustomBitmap32/Methods/MoveTo.md`
+        - [x] `MoveToX`: `docs/api/GR32/TCustomBitmap32/Methods/MoveToX.md`
+        - [x] `MoveToF`: `docs/api/GR32/TCustomBitmap32/Methods/MoveToF.md`
+        - [x] `LineToS`: `docs/api/GR32/TCustomBitmap32/Methods/LineToS.md`
+        - [x] `LineToTS`: `docs/api/GR32/TCustomBitmap32/Methods/LineToTS.md`
+        - [x] `LineToAS`: `docs/api/GR32/TCustomBitmap32/Methods/LineToAS.md`
+        - [x] `LineToXS`: `docs/api/GR32/TCustomBitmap32/Methods/LineToXS.md`
+        - [x] `LineToFS`: `docs/api/GR32/TCustomBitmap32/Methods/LineToFS.md`
+        - [x] `LineToXSP`: `docs/api/GR32/TCustomBitmap32/Methods/LineToXSP.md`
+        - [x] `LineToFSP`: `docs/api/GR32/TCustomBitmap32/Methods/LineToFSP.md`
+        - [x] `FillRect`: `docs/api/GR32/TCustomBitmap32/Methods/FillRect.md`
+        - [x] `FillRectS`: `docs/api/GR32/TCustomBitmap32/Methods/FillRectS.md`
+        - [x] `FillRectT`: `docs/api/GR32/TCustomBitmap32/Methods/FillRectT.md`
+        - [x] `FillRectTS`: `docs/api/GR32/TCustomBitmap32/Methods/FillRectTS.md`
+        - [x] `FrameRectS`: `docs/api/GR32/TCustomBitmap32/Methods/FrameRectS.md`
+        - [x] `FrameRectTS`: `docs/api/GR32/TCustomBitmap32/Methods/FrameRectTS.md`
+        - [x] `FrameRectTSP`: `docs/api/GR32/TCustomBitmap32/Methods/FrameRectTSP.md`
+        - [x] `RaiseRectTS`: `docs/api/GR32/TCustomBitmap32/Methods/RaiseRectTS.md`
+        - [x] `Roll`: `docs/api/GR32/TCustomBitmap32/Methods/Roll.md`
+        - [x] `FlipHorz`: `docs/api/GR32/TCustomBitmap32/Methods/FlipHorz.md`
+        - [x] `FlipVert`: `docs/api/GR32/TCustomBitmap32/Methods/FlipVert.md`
+        - [x] `Rotate90`: `docs/api/GR32/TCustomBitmap32/Methods/Rotate90.md`
+        - [x] `Rotate180`: `docs/api/GR32/TCustomBitmap32/Methods/Rotate180.md`
+        - [x] `Rotate270`: `docs/api/GR32/TCustomBitmap32/Methods/Rotate270.md`
+        - [x] `SetStipple`: `docs/api/GR32/TCustomBitmap32/Methods/SetStipple.md`
+        - [x] `AdvanceStippleCounter`: `docs/api/GR32/TCustomBitmap32/Methods/AdvanceStippleCounter.md`
+        - [x] `GetStippleColor`: `docs/api/GR32/TCustomBitmap32/Methods/GetStippleColor.md`
       - **Properties**
-        - [x] `Pixel` -> `docs/api/GR32/TCustomBitmap32/Properties/Pixel.md`
-        - [x] `PixelS` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelS.md`
-        - [x] `PixelW` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelW.md`
-        - [x] `PixelX` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelX.md`
-        - [x] `PixelXS` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelXS.md`
-        - [x] `PixelXW` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelXW.md`
-        - [x] `PixelF` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelF.md`
-        - [x] `PixelFS` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelFS.md`
-        - [x] `PixelFW` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelFW.md`
-        - [x] `PixelFR` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelFR.md`
-        - [x] `PixelXR` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelXR.md`
-        - [x] `PenColor` -> `docs/api/GR32/TCustomBitmap32/Properties/PenColor.md`
-        - [x] `PenPos` -> `docs/api/GR32/TCustomBitmap32/Properties/PenPos.md`
-        - [x] `PenPosF` -> `docs/api/GR32/TCustomBitmap32/Properties/PenPosF.md`
-        - [x] `StippleCounter` -> `docs/api/GR32/TCustomBitmap32/Properties/StippleCounter.md`
-        - [x] `StippleStep` -> `docs/api/GR32/TCustomBitmap32/Properties/StippleStep.md`
-        - [x] `Backend` -> `docs/api/GR32/TCustomBitmap32/Properties/Backend.md`
-        - [x] `Bits` -> `docs/api/GR32/TCustomBitmap32/Properties/Bits.md`
-        - [x] `ClipRect` -> `docs/api/GR32/TCustomBitmap32/Properties/ClipRect.md`
-        - [x] `Clipping` -> `docs/api/GR32/TCustomBitmap32/Properties/Clipping.md`
-        - [x] `MeasuringMode` -> `docs/api/GR32/TCustomBitmap32/Properties/MeasuringMode.md`
-        - [x] `PixelPtr` -> `docs/api/GR32/TCustomBitmap32/Properties/PixelPtr.md`
-        - [x] `ScanLine` -> `docs/api/GR32/TCustomBitmap32/Properties/ScanLine.md`
-        - [x] `DrawMode` -> `docs/api/GR32/TCustomBitmap32/Properties/DrawMode.md`
-        - [x] `CombineMode` -> `docs/api/GR32/TCustomBitmap32/Properties/CombineMode.md`
-        - [x] `WrapMode` -> `docs/api/GR32/TCustomBitmap32/Properties/WrapMode.md`
-        - [x] `MasterAlpha` -> `docs/api/GR32/TCustomBitmap32/Properties/MasterAlpha.md`
-        - [x] `OuterColor` -> `docs/api/GR32/TCustomBitmap32/Properties/OuterColor.md`
-        - [x] `ResamplerClassName` -> `docs/api/GR32/TCustomBitmap32/Properties/ResamplerClassName.md`
-        - [x] `Resampler` -> `docs/api/GR32/TCustomBitmap32/Properties/Resampler.md`
+        - [x] `Pixel`: `docs/api/GR32/TCustomBitmap32/Properties/Pixel.md`
+        - [x] `PixelS`: `docs/api/GR32/TCustomBitmap32/Properties/PixelS.md`
+        - [x] `PixelW`: `docs/api/GR32/TCustomBitmap32/Properties/PixelW.md`
+        - [x] `PixelX`: `docs/api/GR32/TCustomBitmap32/Properties/PixelX.md`
+        - [x] `PixelXS`: `docs/api/GR32/TCustomBitmap32/Properties/PixelXS.md`
+        - [x] `PixelXW`: `docs/api/GR32/TCustomBitmap32/Properties/PixelXW.md`
+        - [x] `PixelF`: `docs/api/GR32/TCustomBitmap32/Properties/PixelF.md`
+        - [x] `PixelFS`: `docs/api/GR32/TCustomBitmap32/Properties/PixelFS.md`
+        - [x] `PixelFW`: `docs/api/GR32/TCustomBitmap32/Properties/PixelFW.md`
+        - [x] `PixelFR`: `docs/api/GR32/TCustomBitmap32/Properties/PixelFR.md`
+        - [x] `PixelXR`: `docs/api/GR32/TCustomBitmap32/Properties/PixelXR.md`
+        - [x] `PenColor`: `docs/api/GR32/TCustomBitmap32/Properties/PenColor.md`
+        - [x] `PenPos`: `docs/api/GR32/TCustomBitmap32/Properties/PenPos.md`
+        - [x] `PenPosF`: `docs/api/GR32/TCustomBitmap32/Properties/PenPosF.md`
+        - [x] `StippleCounter`: `docs/api/GR32/TCustomBitmap32/Properties/StippleCounter.md`
+        - [x] `StippleStep`: `docs/api/GR32/TCustomBitmap32/Properties/StippleStep.md`
+        - [x] `Backend`: `docs/api/GR32/TCustomBitmap32/Properties/Backend.md`
+        - [x] `Bits`: `docs/api/GR32/TCustomBitmap32/Properties/Bits.md`
+        - [x] `ClipRect`: `docs/api/GR32/TCustomBitmap32/Properties/ClipRect.md`
+        - [x] `Clipping`: `docs/api/GR32/TCustomBitmap32/Properties/Clipping.md`
+        - [x] `MeasuringMode`: `docs/api/GR32/TCustomBitmap32/Properties/MeasuringMode.md`
+        - [x] `PixelPtr`: `docs/api/GR32/TCustomBitmap32/Properties/PixelPtr.md`
+        - [x] `ScanLine`: `docs/api/GR32/TCustomBitmap32/Properties/ScanLine.md`
+        - [x] `DrawMode`: `docs/api/GR32/TCustomBitmap32/Properties/DrawMode.md`
+        - [x] `CombineMode`: `docs/api/GR32/TCustomBitmap32/Properties/CombineMode.md`
+        - [x] `WrapMode`: `docs/api/GR32/TCustomBitmap32/Properties/WrapMode.md`
+        - [x] `MasterAlpha`: `docs/api/GR32/TCustomBitmap32/Properties/MasterAlpha.md`
+        - [x] `OuterColor`: `docs/api/GR32/TCustomBitmap32/Properties/OuterColor.md`
+        - [x] `ResamplerClassName`: `docs/api/GR32/TCustomBitmap32/Properties/ResamplerClassName.md`
+        - [x] `Resampler`: `docs/api/GR32/TCustomBitmap32/Properties/Resampler.md`
       - **Events**
-        - [x] `OnPixelCombine` -> `docs/api/GR32/TCustomBitmap32/Events/OnPixelCombine.md`
-        - [x] `OnAreaChanged` -> `docs/api/GR32/TCustomBitmap32/Events/OnAreaChanged.md`
-    - [x] `TBitmap32` -> `docs/api/GR32/TBitmap32/index.md`
+        - [x] `OnPixelCombine`: `docs/api/GR32/TCustomBitmap32/Events/OnPixelCombine.md`
+        - [x] `OnAreaChanged`: `docs/api/GR32/TCustomBitmap32/Events/OnAreaChanged.md`
+    - [x] `TBitmap32`: `docs/api/GR32/TBitmap32/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32/TBitmap32/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32/TBitmap32/Constructors/Create.md`
       - **Methods**
-        - [x] `Draw` -> `docs/api/GR32/TBitmap32/Methods/Draw.md`
-        - [x] `DrawTo` -> `docs/api/GR32/TBitmap32/Methods/DrawTo.md`
-        - [x] `GetPlatformBackendClass` -> `docs/api/GR32/TBitmap32/Methods/GetPlatformBackendClass.md`
-        - [x] `TileTo` -> `docs/api/GR32/TBitmap32/Methods/TileTo.md`
+        - [x] `Draw`: `docs/api/GR32/TBitmap32/Methods/Draw.md`
+        - [x] `DrawTo`: `docs/api/GR32/TBitmap32/Methods/DrawTo.md`
+        - [x] `GetPlatformBackendClass`: `docs/api/GR32/TBitmap32/Methods/GetPlatformBackendClass.md`
+        - [x] `TileTo`: `docs/api/GR32/TBitmap32/Methods/TileTo.md`
       - **Properties**
-        - [x] `BitmapInfo` -> `docs/api/GR32/TBitmap32/Properties/BitmapInfo.md`
-        - [x] `Canvas` -> `docs/api/GR32/TBitmap32/Properties/Canvas.md`
-        - [x] `Font` -> `docs/api/GR32/TBitmap32/Properties/Font.md`
-        - [x] `Handle` -> `docs/api/GR32/TBitmap32/Properties/Handle.md`
-        - [x] `HDC` -> `docs/api/GR32/TBitmap32/Properties/HDC.md`
+        - [x] `BitmapInfo`: `docs/api/GR32/TBitmap32/Properties/BitmapInfo.md`
+        - [x] `Canvas`: `docs/api/GR32/TBitmap32/Properties/Canvas.md`
+        - [x] `Font`: `docs/api/GR32/TBitmap32/Properties/Font.md`
+        - [x] `Handle`: `docs/api/GR32/TBitmap32/Properties/Handle.md`
+        - [x] `HDC`: `docs/api/GR32/TBitmap32/Properties/HDC.md`
       - **Events**
-        - [x] `OnHandleChanged` -> `docs/api/GR32/TBitmap32/Events/OnHandleChanged.md`
-    - [x] `TCustomSampler` -> `docs/api/GR32/TCustomSampler/index.md`
+        - [x] `OnHandleChanged`: `docs/api/GR32/TBitmap32/Events/OnHandleChanged.md`
+    - [x] `TCustomSampler`: `docs/api/GR32/TCustomSampler/index.md`
       - **Methods**
-        - [x] `GetSampleInt` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleInt.md`
-        - [x] `GetSampleFixed` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleFixed.md`
-        - [x] `GetSampleFloat` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleFloat.md`
-        - [x] `PrepareSampling` -> `docs/api/GR32/TCustomSampler/Methods/PrepareSampling.md`
-        - [x] `FinalizeSampling` -> `docs/api/GR32/TCustomSampler/Methods/FinalizeSampling.md`
-        - [x] `HasBounds` -> `docs/api/GR32/TCustomSampler/Methods/HasBounds.md`
-        - [x] `GetSampleBounds` -> `docs/api/GR32/TCustomSampler/Methods/GetSampleBounds.md`
-    - [x] `TCustomResampler` -> `docs/api/GR32/TCustomResampler/index.md`
+        - [x] `GetSampleInt`: `docs/api/GR32/TCustomSampler/Methods/GetSampleInt.md`
+        - [x] `GetSampleFixed`: `docs/api/GR32/TCustomSampler/Methods/GetSampleFixed.md`
+        - [x] `GetSampleFloat`: `docs/api/GR32/TCustomSampler/Methods/GetSampleFloat.md`
+        - [x] `PrepareSampling`: `docs/api/GR32/TCustomSampler/Methods/PrepareSampling.md`
+        - [x] `FinalizeSampling`: `docs/api/GR32/TCustomSampler/Methods/FinalizeSampling.md`
+        - [x] `HasBounds`: `docs/api/GR32/TCustomSampler/Methods/HasBounds.md`
+        - [x] `GetSampleBounds`: `docs/api/GR32/TCustomSampler/Methods/GetSampleBounds.md`
+    - [x] `TCustomResampler`: `docs/api/GR32/TCustomResampler/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32/TCustomResampler/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32/TCustomResampler/Constructors/Create.md`
       - **Methods**
-        - [x] `Resample` -> `docs/api/GR32/TCustomResampler/Methods/Resample.md`
+        - [x] `Resample`: `docs/api/GR32/TCustomResampler/Methods/Resample.md`
       - **Properties**
-        - [x] `Bitmap` -> `docs/api/GR32/TCustomResampler/Properties/Bitmap.md`
-        - [x] `Width` -> `docs/api/GR32/TCustomResampler/Properties/Width.md`
-        - [x] `PixelAccessMode` -> `docs/api/GR32/TCustomResampler/Properties/PixelAccessMode.md`
-    - [x] `TCustomBackend` -> `docs/api/GR32/TCustomBackend/index.md`
+        - [x] `Bitmap`: `docs/api/GR32/TCustomResampler/Properties/Bitmap.md`
+        - [x] `Width`: `docs/api/GR32/TCustomResampler/Properties/Width.md`
+        - [x] `PixelAccessMode`: `docs/api/GR32/TCustomResampler/Properties/PixelAccessMode.md`
+    - [x] `TCustomBackend`: `docs/api/GR32/TCustomBackend/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32/TCustomBackend/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32/TCustomBackend/Constructors/Create.md`
       - **Methods**
-        - [x] `Assign` -> `docs/api/GR32/TCustomBackend/Methods/Assign.md`
-        - [x] `ChangeSize` -> `docs/api/GR32/TCustomBackend/Methods/ChangeSize.md`
-        - [x] `Changing` -> `docs/api/GR32/TCustomBackend/Methods/Changing.md`
-        - [x] `Clear` -> `docs/api/GR32/TCustomBackend/Methods/Clear.md`
-        - [x] `Empty` -> `docs/api/GR32/TCustomBackend/Methods/Empty.md`
-        - [x] `FinalizeSurface` -> `docs/api/GR32/TCustomBackend/Methods/FinalizeSurface.md`
-        - [x] `InitializeSurface` -> `docs/api/GR32/TCustomBackend/Methods/InitializeSurface.md`
+        - [x] `Assign`: `docs/api/GR32/TCustomBackend/Methods/Assign.md`
+        - [x] `ChangeSize`: `docs/api/GR32/TCustomBackend/Methods/ChangeSize.md`
+        - [x] `Changing`: `docs/api/GR32/TCustomBackend/Methods/Changing.md`
+        - [x] `Clear`: `docs/api/GR32/TCustomBackend/Methods/Clear.md`
+        - [x] `Empty`: `docs/api/GR32/TCustomBackend/Methods/Empty.md`
+        - [x] `FinalizeSurface`: `docs/api/GR32/TCustomBackend/Methods/FinalizeSurface.md`
+        - [x] `InitializeSurface`: `docs/api/GR32/TCustomBackend/Methods/InitializeSurface.md`
       - **Properties**
-        - [x] `Bits` -> `docs/api/GR32/TCustomBackend/Properties/Bits.md`
+        - [x] `Bits`: `docs/api/GR32/TCustomBackend/Properties/Bits.md`
       - **Events**
-        - [x] `OnChanging` -> `docs/api/GR32/TCustomBackend/Events/OnChanging.md`
+        - [x] `OnChanging`: `docs/api/GR32/TCustomBackend/Events/OnChanging.md`
     - [x] `TCustomBackendClass`
     - [x] `TCustomBitmap32Class`
     - [x] `TCustomResamplerClass`
@@ -662,42 +662,42 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_ArrowHeads**
 - [x] **GR32_Backends** -> `docs/api/GR32_Backends/index.md`
   - **Classes**
-    - [x] `EBackend` -> `docs/api/GR32_Backends/Classes/EBackend/index.md`
+    - [x] `EBackend`: `docs/api/GR32_Backends/Classes/EBackend/index.md`
   - **Interfaces**
-    - [x] `ITextSupport` -> `docs/api/GR32_Backends/Interfaces/ITextSupport.md`
-    - [x] `IFontSupport` -> `docs/api/GR32_Backends/Interfaces/IFontSupport.md`
-    - [x] `ITextToPathSupport` -> `docs/api/GR32_Backends/Interfaces/ITextToPathSupport.md`
-    - [x] `ITextToPathSupport2` -> `docs/api/GR32_Backends/Interfaces/ITextToPathSupport2.md`
-    - [x] `ICanvasSupport` -> `docs/api/GR32_Backends/Interfaces/ICanvasSupport.md`
-    - [x] `IInteroperabilitySupport` -> `docs/api/GR32_Backends/Interfaces/IInteroperabilitySupport.md`
-    - [x] `IDeviceContextSupport` -> `docs/api/GR32_Backends/Interfaces/IDeviceContextSupport.md`
-    - [x] `IBitmapContextSupport` -> `docs/api/GR32_Backends/Interfaces/IBitmapContextSupport.md`
-    - [x] `IPaintSupport` -> `docs/api/GR32_Backends/Interfaces/IPaintSupport.md`
-    - [x] `IUpdateRectSupport` -> `docs/api/GR32_Backends/Interfaces/IUpdateRectSupport.md`
-    - [x] `IFontHintingSupport` -> `docs/api/GR32_Backends/Interfaces/IFontHintingSupport.md`
+    - [x] `ITextSupport`: `docs/api/GR32_Backends/Interfaces/ITextSupport.md`
+    - [x] `IFontSupport`: `docs/api/GR32_Backends/Interfaces/IFontSupport.md`
+    - [x] `ITextToPathSupport`: `docs/api/GR32_Backends/Interfaces/ITextToPathSupport.md`
+    - [x] `ITextToPathSupport2`: `docs/api/GR32_Backends/Interfaces/ITextToPathSupport2.md`
+    - [x] `ICanvasSupport`: `docs/api/GR32_Backends/Interfaces/ICanvasSupport.md`
+    - [x] `IInteroperabilitySupport`: `docs/api/GR32_Backends/Interfaces/IInteroperabilitySupport.md`
+    - [x] `IDeviceContextSupport`: `docs/api/GR32_Backends/Interfaces/IDeviceContextSupport.md`
+    - [x] `IBitmapContextSupport`: `docs/api/GR32_Backends/Interfaces/IBitmapContextSupport.md`
+    - [x] `IPaintSupport`: `docs/api/GR32_Backends/Interfaces/IPaintSupport.md`
+    - [x] `IUpdateRectSupport`: `docs/api/GR32_Backends/Interfaces/IUpdateRectSupport.md`
+    - [x] `IFontHintingSupport`: `docs/api/GR32_Backends/Interfaces/IFontHintingSupport.md`
   - **Types**
-    - [x] `TTextHinting` -> `docs/api/GR32_Backends/Types/TTextHinting.md`
-    - [x] `TRequireOperatorMode` -> `docs/api/GR32_Backends/Types/TRequireOperatorMode.md`
+    - [x] `TTextHinting`: `docs/api/GR32_Backends/Types/TTextHinting.md`
+    - [x] `TRequireOperatorMode`: `docs/api/GR32_Backends/Types/TRequireOperatorMode.md`
   - **Routines**
-    - [x] `RequireBackendSupport` -> `docs/api/GR32_Backends/Routines/RequireBackendSupport.md`
-    - [x] `RestoreBackend` -> `docs/api/GR32_Backends/Routines/RestoreBackend.md`
+    - [x] `RequireBackendSupport`: `docs/api/GR32_Backends/Routines/RequireBackendSupport.md`
+    - [x] `RestoreBackend`: `docs/api/GR32_Backends/Routines/RestoreBackend.md`
 - [x] **GR32_Backends_Generic** -> `docs/api/GR32_Backends_Generic/index.md`
   - **Classes**
-    - [x] `TMemoryBackend` -> `docs/api/GR32_Backends_Generic/Classes/TMemoryBackend/index.md`
-    - [x] `TMMFBackend` -> `docs/api/GR32_Backends_Generic/Classes/TMMFBackend/index.md`
+    - [x] `TMemoryBackend`: `docs/api/GR32_Backends_Generic/Classes/TMemoryBackend/index.md`
+    - [x] `TMMFBackend`: `docs/api/GR32_Backends_Generic/Classes/TMMFBackend/index.md`
 - [ ] **GR32_Backends_LCL_Carbon** (document only at unit level)
 - [ ] **GR32_Backends_LCL_CustomDrawn** (document only at unit level)
 - [ ] **GR32_Backends_LCL_Gtk** (document only at unit level)
 - [x] **GR32_Backends_LCL_Win** -> `docs/api/GR32_Backends_LCL_Win/index.md`
   - **Classes**
-    - [x] `TLCLBackend` -> `docs/api/GR32_Backends_LCL_Win/Classes/TLCLBackend/index.md`
-    - [x] `TLCLMMFBackend` -> `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMMFBackend/index.md`
-    - [x] `TLCLMemoryBackend` -> `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMemoryBackend/index.md`
+    - [x] `TLCLBackend`: `docs/api/GR32_Backends_LCL_Win/Classes/TLCLBackend/index.md`
+    - [x] `TLCLMMFBackend`: `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMMFBackend/index.md`
+    - [x] `TLCLMemoryBackend`: `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMemoryBackend/index.md`
 - [x] **GR32_Backends_VCL** -> `docs/api/GR32_Backends_VCL/index.md`
   - **Classes**
-    - [x] `TGDIBackend` -> `docs/api/GR32_Backends_VCL/Classes/TGDIBackend/index.md`
-    - [x] `TGDIMMFBackend` -> `docs/api/GR32_Backends_VCL/Classes/TGDIMMFBackend/index.md`
-    - [x] `TGDIMemoryBackend` -> `docs/api/GR32_Backends_VCL/Classes/TGDIMemoryBackend/index.md`
+    - [x] `TGDIBackend`: `docs/api/GR32_Backends_VCL/Classes/TGDIBackend/index.md`
+    - [x] `TGDIMMFBackend`: `docs/api/GR32_Backends_VCL/Classes/TGDIMMFBackend/index.md`
+    - [x] `TGDIMemoryBackend`: `docs/api/GR32_Backends_VCL/Classes/TGDIMemoryBackend/index.md`
 - [ ] **GR32_Bindings**
 - [ ] **GR32_Blend**
 - [ ] **GR32_Blurs** (document only at unit level)
@@ -713,43 +713,43 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_ExtImage**
 - [x] **GR32_Filters** -> `docs/api/GR32_Filters/index.md`
   - **Types**
-    - [x] `TLUT8` -> `docs/api/GR32_Filters/Types/TLUT8.md`
-    - [x] `TLogicalOperator` -> `docs/api/GR32_Filters/Types/TLogicalOperator.md`
+    - [x] `TLUT8`: `docs/api/GR32_Filters/Types/TLUT8.md`
+    - [x] `TLogicalOperator`: `docs/api/GR32_Filters/Types/TLogicalOperator.md`
   - **Routines**
-    - [x] `AlphaToGrayscale` -> `docs/api/GR32_Filters/Routines/AlphaToGrayscale.md`
-    - [x] `ApplyBitmask` -> `docs/api/GR32_Filters/Routines/ApplyBitmask.md`
-    - [x] `ApplyLUT` -> `docs/api/GR32_Filters/Routines/ApplyLUT.md`
-    - [x] `CheckParams` -> `docs/api/GR32_Filters/Routines/CheckParams.md`
-    - [x] `ChromaKey` -> `docs/api/GR32_Filters/Routines/ChromaKey.md`
-    - [x] `ColorToGrayscale` -> `docs/api/GR32_Filters/Routines/ColorToGrayscale.md`
-    - [x] `CopyComponents` -> `docs/api/GR32_Filters/Routines/CopyComponents.md`
-    - [x] `CreateBitmask` -> `docs/api/GR32_Filters/Routines/CreateBitmask.md`
-    - [x] `IntensityToAlpha` -> `docs/api/GR32_Filters/Routines/IntensityToAlpha.md`
-    - [x] `Invert` -> `docs/api/GR32_Filters/Routines/Invert.md`
-    - [x] `InvertRGB` -> `docs/api/GR32_Filters/Routines/InvertRGB.md`
+    - [x] `AlphaToGrayscale`: `docs/api/GR32_Filters/Routines/AlphaToGrayscale.md`
+    - [x] `ApplyBitmask`: `docs/api/GR32_Filters/Routines/ApplyBitmask.md`
+    - [x] `ApplyLUT`: `docs/api/GR32_Filters/Routines/ApplyLUT.md`
+    - [x] `CheckParams`: `docs/api/GR32_Filters/Routines/CheckParams.md`
+    - [x] `ChromaKey`: `docs/api/GR32_Filters/Routines/ChromaKey.md`
+    - [x] `ColorToGrayscale`: `docs/api/GR32_Filters/Routines/ColorToGrayscale.md`
+    - [x] `CopyComponents`: `docs/api/GR32_Filters/Routines/CopyComponents.md`
+    - [x] `CreateBitmask`: `docs/api/GR32_Filters/Routines/CreateBitmask.md`
+    - [x] `IntensityToAlpha`: `docs/api/GR32_Filters/Routines/IntensityToAlpha.md`
+    - [x] `Invert`: `docs/api/GR32_Filters/Routines/Invert.md`
+    - [x] `InvertRGB`: `docs/api/GR32_Filters/Routines/InvertRGB.md`
 - [ ] **GR32_Gamma**
 - [x] **GR32_Geometry** -> `docs/api/GR32_Geometry/index.md`
   - **Types**
-    - [x] `TLinePos` -> `docs/api/GR32_Geometry/Types/TLinePos.md`
+    - [x] `TLinePos`: `docs/api/GR32_Geometry/Types/TLinePos.md`
   - **Constants**
-    - [x] `Geometry Constants` -> `docs/api/GR32_Geometry/Constants/Geometry Constants.md`
+    - [x] `Geometry Constants`: `docs/api/GR32_Geometry/Constants/Geometry Constants.md`
   - **Routines**
-    - [x] `Average` -> `docs/api/GR32_Geometry/Routines/Average.md`
-    - [x] `CrossProduct` -> `docs/api/GR32_Geometry/Routines/CrossProduct.md`
-    - [x] `Dot` -> `docs/api/GR32_Geometry/Routines/Dot.md`
-    - [x] `Distance` -> `docs/api/GR32_Geometry/Routines/Distance.md`
-    - [x] `SqrDistance` -> `docs/api/GR32_Geometry/Routines/SqrDistance.md`
-    - [x] `GetPointAtAngleFromPoint` -> `docs/api/GR32_Geometry/Routines/GetPointAtAngleFromPoint.md`
-    - [x] `GetAngleOfPt2FromPt1` -> `docs/api/GR32_Geometry/Routines/GetAngleOfPt2FromPt1.md`
-    - [x] `GetUnitNormal` -> `docs/api/GR32_Geometry/Routines/GetUnitNormal.md`
-    - [x] `GetUnitVector` -> `docs/api/GR32_Geometry/Routines/GetUnitVector.md`
-    - [x] `OffsetPoint` -> `docs/api/GR32_Geometry/Routines/OffsetPoint.md`
-    - [x] `OffsetRect` -> `docs/api/GR32_Geometry/Routines/OffsetRect.md`
-    - [x] `Shorten` -> `docs/api/GR32_Geometry/Routines/Shorten.md`
-    - [x] `PointInPolygon` -> `docs/api/GR32_Geometry/Routines/PointInPolygon.md`
-    - [x] `SegmentIntersect` -> `docs/api/GR32_Geometry/Routines/SegmentIntersect.md`
-    - [x] `PerpendicularDistance` -> `docs/api/GR32_Geometry/Routines/PerpendicularDistance.md`
-    - [x] `SamePoint` -> `docs/api/GR32_Geometry/Routines/SamePoint.md`
+    - [x] `Average`: `docs/api/GR32_Geometry/Routines/Average.md`
+    - [x] `CrossProduct`: `docs/api/GR32_Geometry/Routines/CrossProduct.md`
+    - [x] `Dot`: `docs/api/GR32_Geometry/Routines/Dot.md`
+    - [x] `Distance`: `docs/api/GR32_Geometry/Routines/Distance.md`
+    - [x] `SqrDistance`: `docs/api/GR32_Geometry/Routines/SqrDistance.md`
+    - [x] `GetPointAtAngleFromPoint`: `docs/api/GR32_Geometry/Routines/GetPointAtAngleFromPoint.md`
+    - [x] `GetAngleOfPt2FromPt1`: `docs/api/GR32_Geometry/Routines/GetAngleOfPt2FromPt1.md`
+    - [x] `GetUnitNormal`: `docs/api/GR32_Geometry/Routines/GetUnitNormal.md`
+    - [x] `GetUnitVector`: `docs/api/GR32_Geometry/Routines/GetUnitVector.md`
+    - [x] `OffsetPoint`: `docs/api/GR32_Geometry/Routines/OffsetPoint.md`
+    - [x] `OffsetRect`: `docs/api/GR32_Geometry/Routines/OffsetRect.md`
+    - [x] `Shorten`: `docs/api/GR32_Geometry/Routines/Shorten.md`
+    - [x] `PointInPolygon`: `docs/api/GR32_Geometry/Routines/PointInPolygon.md`
+    - [x] `SegmentIntersect`: `docs/api/GR32_Geometry/Routines/SegmentIntersect.md`
+    - [x] `PerpendicularDistance`: `docs/api/GR32_Geometry/Routines/PerpendicularDistance.md`
+    - [x] `SamePoint`: `docs/api/GR32_Geometry/Routines/SamePoint.md`
 - [ ] **GR32_Image**
 - [ ] **GR32_Layers**
 - [ ] **GR32_LowLevel**
@@ -761,102 +761,102 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Png**
 - [x] **GR32_Polygons** -> `docs/api/GR32_Polygons/index.md`
   - **Classes**
-    - [x] `TCustomPolygonRenderer` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/index.md`
+    - [x] `TCustomPolygonRenderer`: `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/index.md`
       - **Methods**
-        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/Methods/PolyPolygonFS.md`
-        - [x] `PolygonFS` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/Methods/PolygonFS.md`
-    - [x] `TPolygonRenderer32` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/index.md`
+        - [x] `PolyPolygonFS`: `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/Methods/PolyPolygonFS.md`
+        - [x] `PolygonFS`: `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/Methods/PolygonFS.md`
+    - [x] `TPolygonRenderer32`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Constructors/Create.md`
       - **Methods**
-        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Methods/PolyPolygonFS.md`
-        - [x] `PolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Methods/PolygonFS.md`
+        - [x] `PolyPolygonFS`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Methods/PolyPolygonFS.md`
+        - [x] `PolygonFS`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Methods/PolygonFS.md`
       - **Properties**
-        - [x] `Bitmap` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Bitmap.md`
-        - [x] `Color` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Color.md`
-        - [x] `FillMode` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/FillMode.md`
-        - [x] `Filler` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Filler.md`
-    - [x] `TPolygonRenderer32VPR` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32VPR/index.md`
+        - [x] `Bitmap`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Bitmap.md`
+        - [x] `Color`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Color.md`
+        - [x] `FillMode`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/FillMode.md`
+        - [x] `Filler`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32/Properties/Filler.md`
+    - [x] `TPolygonRenderer32VPR`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32VPR/index.md`
       - **Methods**
-        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32VPR/Methods/PolyPolygonFS.md`
-    - [x] `TPolygonRenderer32LCD` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD/index.md`
+        - [x] `PolyPolygonFS`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32VPR/Methods/PolyPolygonFS.md`
+    - [x] `TPolygonRenderer32LCD`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD/index.md`
       - **Methods**
-        - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD/Methods/PolyPolygonFS.md`
-    - [x] `TPolygonRenderer32LCD2` -> `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD2/index.md`
-    - [x] `TCustomPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/index.md`
+        - [x] `PolyPolygonFS`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD/Methods/PolyPolygonFS.md`
+    - [x] `TPolygonRenderer32LCD2`: `docs/api/GR32_Polygons/Classes/TPolygonRenderer32LCD2/index.md`
+    - [x] `TCustomPolygonFiller`: `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/index.md`
       - **Methods**
-        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Methods/BeginRendering.md`
-        - [x] `EndRendering` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Methods/EndRendering.md`
+        - [x] `BeginRendering`: `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Methods/BeginRendering.md`
+        - [x] `EndRendering`: `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Methods/EndRendering.md`
       - **Properties**
-        - [x] `FillLine` -> `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Properties/FillLine.md`
-    - [x] `TCallbackPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/index.md`
+        - [x] `FillLine`: `docs/api/GR32_Polygons/Classes/TCustomPolygonFiller/Properties/FillLine.md`
+    - [x] `TCallbackPolygonFiller`: `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/index.md`
       - **Methods**
-        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/Methods/BeginRendering.md`
+        - [x] `BeginRendering`: `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/Methods/BeginRendering.md`
       - **Properties**
-        - [x] `FillLineEvent` -> `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/Properties/FillLineEvent.md`
-    - [x] `TInvertPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TInvertPolygonFiller/index.md`
-    - [x] `TClearPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/index.md`
+        - [x] `FillLineEvent`: `docs/api/GR32_Polygons/Classes/TCallbackPolygonFiller/Properties/FillLineEvent.md`
+    - [x] `TInvertPolygonFiller`: `docs/api/GR32_Polygons/Classes/TInvertPolygonFiller/index.md`
+    - [x] `TClearPolygonFiller`: `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/Constructors/Create.md`
       - **Properties**
-        - [x] `Color` -> `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/Properties/Color.md`
-    - [x] `TBitmapPolygonFiller` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/index.md`
+        - [x] `Color`: `docs/api/GR32_Polygons/Classes/TClearPolygonFiller/Properties/Color.md`
+    - [x] `TBitmapPolygonFiller`: `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/index.md`
       - **Methods**
-        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Methods/BeginRendering.md`
+        - [x] `BeginRendering`: `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Methods/BeginRendering.md`
       - **Properties**
-        - [x] `Pattern` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/Pattern.md`
-        - [x] `OffsetX` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/OffsetX.md`
-        - [x] `OffsetY` -> `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/OffsetY.md`
-    - [x] `TSamplerFiller` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/index.md`
+        - [x] `Pattern`: `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/Pattern.md`
+        - [x] `OffsetX`: `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/OffsetX.md`
+        - [x] `OffsetY`: `docs/api/GR32_Polygons/Classes/TBitmapPolygonFiller/Properties/OffsetY.md`
+    - [x] `TSamplerFiller`: `docs/api/GR32_Polygons/Classes/TSamplerFiller/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Polygons/Classes/TSamplerFiller/Constructors/Create.md`
       - **Methods**
-        - [x] `BeginRendering` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Methods/BeginRendering.md`
-        - [x] `EndRendering` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Methods/EndRendering.md`
+        - [x] `BeginRendering`: `docs/api/GR32_Polygons/Classes/TSamplerFiller/Methods/BeginRendering.md`
+        - [x] `EndRendering`: `docs/api/GR32_Polygons/Classes/TSamplerFiller/Methods/EndRendering.md`
       - **Properties**
-        - [x] `Sampler` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/Sampler.md`
-        - [x] `OwnsSampler` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/OwnsSampler.md`
-        - [x] `BlendOpaque` -> `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/BlendOpaque.md`
+        - [x] `Sampler`: `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/Sampler.md`
+        - [x] `OwnsSampler`: `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/OwnsSampler.md`
+        - [x] `BlendOpaque`: `docs/api/GR32_Polygons/Classes/TSamplerFiller/Properties/BlendOpaque.md`
   - **Interfaces**
-    - [x] `IPolygonRendererBatching` -> `docs/api/GR32_Polygons/Interfaces/IPolygonRendererBatching.md`
+    - [x] `IPolygonRendererBatching`: `docs/api/GR32_Polygons/Interfaces/IPolygonRendererBatching.md`
   - **Types**
-    - [x] `TJoinStyle` -> `docs/api/GR32_Polygons/Types/TJoinStyle.md`
-    - [x] `TJoinStyles` -> `docs/api/GR32_Polygons/Types/TJoinStyles.md`
-    - [x] `TEndStyle` -> `docs/api/GR32_Polygons/Types/TEndStyle.md`
-    - [x] `TEndStyles` -> `docs/api/GR32_Polygons/Types/TEndStyles.md`
-    - [x] `TPolyFillMode` -> `docs/api/GR32_Polygons/Types/TPolyFillMode.md`
-    - [x] `TFillProc` -> `docs/api/GR32_Polygons/Types/TFillProc.md`
-    - [x] `TFillLineEvent` -> `docs/api/GR32_Polygons/Types/TFillLineEvent.md`
-    - [x] `TCustomPolygonRendererList` -> `docs/api/GR32_Polygons/Types/TCustomPolygonRendererList.md`
-    - [x] `TPolygonRendererList` -> `docs/api/GR32_Polygons/Types/TPolygonRendererList.md`
+    - [x] `TJoinStyle`: `docs/api/GR32_Polygons/Types/TJoinStyle.md`
+    - [x] `TJoinStyles`: `docs/api/GR32_Polygons/Types/TJoinStyles.md`
+    - [x] `TEndStyle`: `docs/api/GR32_Polygons/Types/TEndStyle.md`
+    - [x] `TEndStyles`: `docs/api/GR32_Polygons/Types/TEndStyles.md`
+    - [x] `TPolyFillMode`: `docs/api/GR32_Polygons/Types/TPolyFillMode.md`
+    - [x] `TFillProc`: `docs/api/GR32_Polygons/Types/TFillProc.md`
+    - [x] `TFillLineEvent`: `docs/api/GR32_Polygons/Types/TFillLineEvent.md`
+    - [x] `TCustomPolygonRendererList`: `docs/api/GR32_Polygons/Types/TCustomPolygonRendererList.md`
+    - [x] `TPolygonRendererList`: `docs/api/GR32_Polygons/Types/TPolygonRendererList.md`
   - **Routines**
-    - [x] `PolygonFS` -> `docs/api/GR32_Polygons/Routines/PolygonFS.md`
-    - [x] `PolyPolygonFS` -> `docs/api/GR32_Polygons/Routines/PolyPolygonFS.md`
-    - [x] `PolygonFS_LCD` -> `docs/api/GR32_Polygons/Routines/PolygonFS_LCD.md`
-    - [x] `PolyPolygonFS_LCD` -> `docs/api/GR32_Polygons/Routines/PolyPolygonFS_LCD.md`
-    - [x] `PolygonFS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolygonFS_LCD2.md`
-    - [x] `PolyPolygonFS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolyPolygonFS_LCD2.md`
-    - [x] `PolygonXS` -> `docs/api/GR32_Polygons/Routines/PolygonXS.md`
-    - [x] `PolyPolygonXS` -> `docs/api/GR32_Polygons/Routines/PolyPolygonXS.md`
-    - [x] `PolygonXS_LCD` -> `docs/api/GR32_Polygons/Routines/PolygonXS_LCD.md`
-    - [x] `PolyPolygonXS_LCD` -> `docs/api/GR32_Polygons/Routines/PolyPolygonXS_LCD.md`
-    - [x] `PolygonXS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolygonXS_LCD2.md`
-    - [x] `PolyPolygonXS_LCD2` -> `docs/api/GR32_Polygons/Routines/PolyPolygonXS_LCD2.md`
-    - [x] `PolylineFS` -> `docs/api/GR32_Polygons/Routines/PolylineFS.md`
-    - [x] `PolyPolylineFS` -> `docs/api/GR32_Polygons/Routines/PolyPolylineFS.md`
-    - [x] `PolylineXS` -> `docs/api/GR32_Polygons/Routines/PolylineXS.md`
-    - [x] `PolyPolylineXS` -> `docs/api/GR32_Polygons/Routines/PolyPolylineXS.md`
-    - [x] `DashLineFS` -> `docs/api/GR32_Polygons/Routines/DashLineFS.md`
-    - [x] `DashLineXS` -> `docs/api/GR32_Polygons/Routines/DashLineXS.md`
-    - [x] `FillBitmap` -> `docs/api/GR32_Polygons/Routines/FillBitmap.md`
-    - [x] `RegisterPolygonRenderer` -> `docs/api/GR32_Polygons/Routines/RegisterPolygonRenderer.md`
-    - [x] `UnregisterPolygonRenderer` -> `docs/api/GR32_Polygons/Routines/UnregisterPolygonRenderer.md`
-    - [x] `PolygonsRegistry` -> `docs/api/GR32_Polygons/Routines/PolygonsRegistry.md`
+    - [x] `PolygonFS`: `docs/api/GR32_Polygons/Routines/PolygonFS.md`
+    - [x] `PolyPolygonFS`: `docs/api/GR32_Polygons/Routines/PolyPolygonFS.md`
+    - [x] `PolygonFS_LCD`: `docs/api/GR32_Polygons/Routines/PolygonFS_LCD.md`
+    - [x] `PolyPolygonFS_LCD`: `docs/api/GR32_Polygons/Routines/PolyPolygonFS_LCD.md`
+    - [x] `PolygonFS_LCD2`: `docs/api/GR32_Polygons/Routines/PolygonFS_LCD2.md`
+    - [x] `PolyPolygonFS_LCD2`: `docs/api/GR32_Polygons/Routines/PolyPolygonFS_LCD2.md`
+    - [x] `PolygonXS`: `docs/api/GR32_Polygons/Routines/PolygonXS.md`
+    - [x] `PolyPolygonXS`: `docs/api/GR32_Polygons/Routines/PolyPolygonXS.md`
+    - [x] `PolygonXS_LCD`: `docs/api/GR32_Polygons/Routines/PolygonXS_LCD.md`
+    - [x] `PolyPolygonXS_LCD`: `docs/api/GR32_Polygons/Routines/PolyPolygonXS_LCD.md`
+    - [x] `PolygonXS_LCD2`: `docs/api/GR32_Polygons/Routines/PolygonXS_LCD2.md`
+    - [x] `PolyPolygonXS_LCD2`: `docs/api/GR32_Polygons/Routines/PolyPolygonXS_LCD2.md`
+    - [x] `PolylineFS`: `docs/api/GR32_Polygons/Routines/PolylineFS.md`
+    - [x] `PolyPolylineFS`: `docs/api/GR32_Polygons/Routines/PolyPolylineFS.md`
+    - [x] `PolylineXS`: `docs/api/GR32_Polygons/Routines/PolylineXS.md`
+    - [x] `PolyPolylineXS`: `docs/api/GR32_Polygons/Routines/PolyPolylineXS.md`
+    - [x] `DashLineFS`: `docs/api/GR32_Polygons/Routines/DashLineFS.md`
+    - [x] `DashLineXS`: `docs/api/GR32_Polygons/Routines/DashLineXS.md`
+    - [x] `FillBitmap`: `docs/api/GR32_Polygons/Routines/FillBitmap.md`
+    - [x] `RegisterPolygonRenderer`: `docs/api/GR32_Polygons/Routines/RegisterPolygonRenderer.md`
+    - [x] `UnregisterPolygonRenderer`: `docs/api/GR32_Polygons/Routines/UnregisterPolygonRenderer.md`
+    - [x] `PolygonsRegistry`: `docs/api/GR32_Polygons/Routines/PolygonsRegistry.md`
   - **Variables**
-    - [x] `CustomPolygonRendererList` -> `docs/api/GR32_Polygons/Variables/CustomPolygonRendererList.md`
-    - [x] `PolygonRendererList` -> `docs/api/GR32_Polygons/Variables/PolygonRendererList.md`
-    - [x] `DefaultPolygonRendererClass` -> `docs/api/GR32_Polygons/Variables/DefaultPolygonRendererClass.md`
-    - [x] `CoverageBuilderVariables` -> `docs/api/GR32_Polygons/Variables/CoverageBuilderVariables.md`
+    - [x] `CustomPolygonRendererList`: `docs/api/GR32_Polygons/Variables/CustomPolygonRendererList.md`
+    - [x] `PolygonRendererList`: `docs/api/GR32_Polygons/Variables/PolygonRendererList.md`
+    - [x] `DefaultPolygonRendererClass`: `docs/api/GR32_Polygons/Variables/DefaultPolygonRendererClass.md`
+    - [x] `CoverageBuilderVariables`: `docs/api/GR32_Polygons/Variables/CoverageBuilderVariables.md`
 - [ ] **GR32_Polygons.AggLite** (document only at unit level)
 - [ ] **GR32_Polygons.Direct2D** (document only at unit level)
 - [ ] **GR32_Polygons.GDI** (document only at unit level)
@@ -890,199 +890,253 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_RangeBars**
 - [ ] **GR32_Rasterizers**
 - [ ] **GR32_RepaintOpt** (document only at unit level)
-- [ ] **GR32_Resamplers**
+- [x] **GR32_Resamplers** -> `docs/api/GR32_Resamplers/index.md`
+  - **Classes**
+    - [x] `TCustomKernel`: `docs/api/GR32_Resamplers/Classes/TCustomKernel/index.md`
+    - [x] `TBoxKernel`: `docs/api/GR32_Resamplers/Classes/TBoxKernel/index.md`
+    - [x] `TLinearKernel`: `docs/api/GR32_Resamplers/Classes/TLinearKernel/index.md`
+    - [x] `TCosineKernel`: `docs/api/GR32_Resamplers/Classes/TCosineKernel/index.md`
+    - [x] `TSplineKernel`: `docs/api/GR32_Resamplers/Classes/TSplineKernel/index.md`
+    - [x] `TMitchellKernel`: `docs/api/GR32_Resamplers/Classes/TMitchellKernel/index.md`
+    - [x] `TCubicKernel`: `docs/api/GR32_Resamplers/Classes/TCubicKernel/index.md`
+    - [x] `THermiteKernel`: `docs/api/GR32_Resamplers/Classes/THermiteKernel/index.md`
+    - [x] `TSinshKernel`: `docs/api/GR32_Resamplers/Classes/TSinshKernel/index.md`
+    - [x] `TWindowedKernel`: `docs/api/GR32_Resamplers/Classes/TWindowedKernel/index.md`
+    - [x] `TGaussianKernel`: `docs/api/GR32_Resamplers/Classes/TGaussianKernel/index.md`
+    - [x] `TWindowedSincKernel`: `docs/api/GR32_Resamplers/Classes/TWindowedSincKernel/index.md`
+    - [x] `TAlbrechtKernel`: `docs/api/GR32_Resamplers/Classes/TAlbrechtKernel/index.md`
+    - [x] `TLanczosKernel`: `docs/api/GR32_Resamplers/Classes/TLanczosKernel/index.md`
+    - [x] `TBlackmanKernel`: `docs/api/GR32_Resamplers/Classes/TBlackmanKernel/index.md`
+    - [x] `THannKernel`: `docs/api/GR32_Resamplers/Classes/THannKernel/index.md`
+    - [x] `THammingKernel`: `docs/api/GR32_Resamplers/Classes/THammingKernel/index.md`
+    - [x] `TNearestResampler`: `docs/api/GR32_Resamplers/Classes/TNearestResampler/index.md`
+    - [x] `TLinearResampler`: `docs/api/GR32_Resamplers/Classes/TLinearResampler/index.md`
+    - [x] `TDraftResampler`: `docs/api/GR32_Resamplers/Classes/TDraftResampler/index.md`
+    - [x] `TKernelResampler`: `docs/api/GR32_Resamplers/Classes/TKernelResampler/index.md`
+    - [x] `TNestedSampler`: `docs/api/GR32_Resamplers/Classes/TNestedSampler/index.md`
+    - [x] `TTransformer`: `docs/api/GR32_Resamplers/Classes/TTransformer/index.md`
+    - [x] `TSuperSampler`: `docs/api/GR32_Resamplers/Classes/TSuperSampler/index.md`
+    - [x] `TAdaptiveSuperSampler`: `docs/api/GR32_Resamplers/Classes/TAdaptiveSuperSampler/index.md`
+    - [x] `TPatternSampler`: `docs/api/GR32_Resamplers/Classes/TPatternSampler/index.md`
+    - [x] `TKernelSampler`: `docs/api/GR32_Resamplers/Classes/TKernelSampler/index.md`
+    - [x] `TConvolver`: `docs/api/GR32_Resamplers/Classes/TConvolver/index.md`
+    - [x] `TSelectiveConvolver`: `docs/api/GR32_Resamplers/Classes/TSelectiveConvolver/index.md`
+    - [x] `TMorphologicalSampler`: `docs/api/GR32_Resamplers/Classes/TMorphologicalSampler/index.md`
+    - [x] `TDilater`: `docs/api/GR32_Resamplers/Classes/TDilater/index.md`
+    - [x] `TEroder`: `docs/api/GR32_Resamplers/Classes/TEroder/index.md`
+    - [x] `TExpander`: `docs/api/GR32_Resamplers/Classes/TExpander/index.md`
+    - [x] `TContracter`: `docs/api/GR32_Resamplers/Classes/TContracter/index.md`
+  - **Types**
+    - [x] `TKernelMode`: `docs/api/GR32_Resamplers/Types/TKernelMode.md`
+    - [x] `TFixedSamplePattern`: `docs/api/GR32_Resamplers/Types/TFixedSamplePattern.md`
+    - [x] `TSamplingRange`: `docs/api/GR32_Resamplers/Types/TSamplingRange.md`
+    - [x] `TKernelList` (included with `KernelList`)
+    - [x] `TResamplerList` (included with `ResamplerList`)
+  - **Routines**
+    - [x] `BlockTransfer`: `docs/api/GR32_Resamplers/Routines/BlockTransfer.md`
+    - [x] `StretchTransfer`: `docs/api/GR32_Resamplers/Routines/StretchTransfer.md`
+    - [x] `BlendTransfer`: `docs/api/GR32_Resamplers/Routines/BlendTransfer.md`
+    - [x] `Morphological Operators`: `docs/api/GR32_Resamplers/Routines/Morphological Operators.md`
+    - [x] `CreateJitteredPattern`: `docs/api/GR32_Resamplers/Routines/CreateJitteredPattern.md`
+    - [x] `RegisterResampler`: `docs/api/GR32_Resamplers/Routines/RegisterResampler.md`
+    - [x] `RegisterKernel`: `docs/api/GR32_Resamplers/Routines/RegisterKernel.md`
+  - **Constants**
+    - [x] `MAX_KERNEL_WIDTH`: `docs/api/GR32_Resamplers/Constants/MAX_KERNEL_WIDTH.md`
+  - **Variables**
+    - [x] `KernelList`: `docs/api/GR32_Resamplers/Variables/KernelList.md`
+    - [x] `ResamplerList`: `docs/api/GR32_Resamplers/Variables/ResamplerList.md`
 - [ ] **GR32_System**
 - [ ] **GR32_Text_VCL_D2D** (document only at unit level)
 - [x] **GR32_Transforms** -> `docs/api/GR32_Transforms/index.md`
   - **Classes**
-    - [x] `TTransformation` -> `docs/api/GR32_Transforms/Classes/TTransformation/index.md`
+    - [x] `TTransformation`: `docs/api/GR32_Transforms/Classes/TTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TTransformation/Constructors/Create.md`
       - **Methods**
-        - [x] `Changed` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/Changed.md`
-        - [x] `HasTransformedBounds` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/HasTransformedBounds.md`
-        - [x] `GetTransformedBounds` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/GetTransformedBounds.md`
-        - [x] `ReverseTransform` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/ReverseTransform.md`
-        - [x] `Transform` -> `docs/api/GR32_Transforms/Classes/TTransformation/Methods/Transform.md`
+        - [x] `Changed`: `docs/api/GR32_Transforms/Classes/TTransformation/Methods/Changed.md`
+        - [x] `HasTransformedBounds`: `docs/api/GR32_Transforms/Classes/TTransformation/Methods/HasTransformedBounds.md`
+        - [x] `GetTransformedBounds`: `docs/api/GR32_Transforms/Classes/TTransformation/Methods/GetTransformedBounds.md`
+        - [x] `ReverseTransform`: `docs/api/GR32_Transforms/Classes/TTransformation/Methods/ReverseTransform.md`
+        - [x] `Transform`: `docs/api/GR32_Transforms/Classes/TTransformation/Methods/Transform.md`
       - **Properties**
-        - [x] `SrcRect` -> `docs/api/GR32_Transforms/Classes/TTransformation/Properties/SrcRect.md`
-    - [x] `TNestedTransformation` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/index.md`
+        - [x] `SrcRect`: `docs/api/GR32_Transforms/Classes/TTransformation/Properties/SrcRect.md`
+    - [x] `TNestedTransformation`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/Constructors/Create.md`
       - **Methods**
-        - [x] `Add` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Add.md`
-        - [x] `Clear` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Clear.md`
-        - [x] `Delete` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Delete.md`
-        - [x] `Insert` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Insert.md`
+        - [x] `Add`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Add.md`
+        - [x] `Clear`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Clear.md`
+        - [x] `Delete`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Delete.md`
+        - [x] `Insert`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/Methods/Insert.md`
       - **Properties**
-        - [x] `Count` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Properties/Count.md`
-        - [x] `Items` -> `docs/api/GR32_Transforms/Classes/TNestedTransformation/Properties/Items.md`
-    - [x] `T3x3Transformation` -> `docs/api/GR32_Transforms/Classes/T3x3Transformation/index.md`
+        - [x] `Count`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/Properties/Count.md`
+        - [x] `Items`: `docs/api/GR32_Transforms/Classes/TNestedTransformation/Properties/Items.md`
+    - [x] `T3x3Transformation`: `docs/api/GR32_Transforms/Classes/T3x3Transformation/index.md`
       - **Properties**
-        - [x] `Matrix` -> `docs/api/GR32_Transforms/Classes/T3x3Transformation/Properties/Matrix.md`
-    - [x] `TAffineTransformation` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/index.md`
+        - [x] `Matrix`: `docs/api/GR32_Transforms/Classes/T3x3Transformation/Properties/Matrix.md`
+    - [x] `TAffineTransformation`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Constructors/Create.md`
       - **Methods**
-        - [x] `Clear` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Clear.md`
-        - [x] `Push` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Push.md`
-        - [x] `Pop` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Pop.md`
-        - [x] `Rotate` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Rotate.md`
-        - [x] `Scale` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Scale.md`
-        - [x] `Skew` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Skew.md`
-        - [x] `Translate` -> `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Translate.md`
-    - [x] `TProjectiveTransformation` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/index.md`
+        - [x] `Clear`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Clear.md`
+        - [x] `Push`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Push.md`
+        - [x] `Pop`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Pop.md`
+        - [x] `Rotate`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Rotate.md`
+        - [x] `Scale`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Scale.md`
+        - [x] `Skew`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Skew.md`
+        - [x] `Translate`: `docs/api/GR32_Transforms/Classes/TAffineTransformation/Methods/Translate.md`
+    - [x] `TProjectiveTransformation`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/index.md`
       - **Properties**
-        - [x] `X` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/X.md`
-        - [x] `Y` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/Y.md`
-        - [x] `X0` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/X0.md`
-    - [x] `TProjectiveTransformationEx` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/index.md`
+        - [x] `X`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/X.md`
+        - [x] `Y`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/Y.md`
+        - [x] `X0`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformation/Properties/X0.md`
+    - [x] `TProjectiveTransformationEx`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/index.md`
       - **Properties**
-        - [x] `Extrapolate` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/Extrapolate.md`
-        - [x] `SourceQuad` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/SourceQuad.md`
-        - [x] `DestQuad` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/DestQuad.md`
-        - [x] `Source` -> `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/Source.md`
-    - [x] `TTwirlTransformation` -> `docs/api/GR32_Transforms/Classes/TTwirlTransformation/index.md`
+        - [x] `Extrapolate`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/Extrapolate.md`
+        - [x] `SourceQuad`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/SourceQuad.md`
+        - [x] `DestQuad`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/DestQuad.md`
+        - [x] `Source`: `docs/api/GR32_Transforms/Classes/TProjectiveTransformationEx/Properties/Source.md`
+    - [x] `TTwirlTransformation`: `docs/api/GR32_Transforms/Classes/TTwirlTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TTwirlTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TTwirlTransformation/Constructors/Create.md`
       - **Properties**
-        - [x] `Twirl` -> `docs/api/GR32_Transforms/Classes/TTwirlTransformation/Properties/Twirl.md`
-    - [x] `TBloatTransformation` -> `docs/api/GR32_Transforms/Classes/TBloatTransformation/index.md`
+        - [x] `Twirl`: `docs/api/GR32_Transforms/Classes/TTwirlTransformation/Properties/Twirl.md`
+    - [x] `TBloatTransformation`: `docs/api/GR32_Transforms/Classes/TBloatTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TBloatTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TBloatTransformation/Constructors/Create.md`
       - **Properties**
-        - [x] `BloatPower` -> `docs/api/GR32_Transforms/Classes/TBloatTransformation/Properties/BloatPower.md`
-    - [x] `TDisturbanceTransformation` -> `docs/api/GR32_Transforms/Classes/TDisturbanceTransformation/index.md`
+        - [x] `BloatPower`: `docs/api/GR32_Transforms/Classes/TBloatTransformation/Properties/BloatPower.md`
+    - [x] `TDisturbanceTransformation`: `docs/api/GR32_Transforms/Classes/TDisturbanceTransformation/index.md`
       - **Properties**
-        - [x] `Disturbance` -> `docs/api/GR32_Transforms/Classes/TDisturbanceTransformation/Properties/Disturbance.md`
-    - [x] `TFishEyeTransformation` -> `docs/api/GR32_Transforms/Classes/TFishEyeTransformation/index.md`
-    - [x] `TPolarTransformation` -> `docs/api/GR32_Transforms/Classes/TPolarTransformation/index.md`
+        - [x] `Disturbance`: `docs/api/GR32_Transforms/Classes/TDisturbanceTransformation/Properties/Disturbance.md`
+    - [x] `TFishEyeTransformation`: `docs/api/GR32_Transforms/Classes/TFishEyeTransformation/index.md`
+    - [x] `TPolarTransformation`: `docs/api/GR32_Transforms/Classes/TPolarTransformation/index.md`
       - **Properties**
-        - [x] `DstRect` -> `docs/api/GR32_Transforms/Classes/TPolarTransformation/Properties/DstRect.md`
-        - [x] `Phase` -> `docs/api/GR32_Transforms/Classes/TPolarTransformation/Properties/Phase.md`
-    - [x] `TPathTransformation` -> `docs/api/GR32_Transforms/Classes/TPathTransformation/index.md`
+        - [x] `DstRect`: `docs/api/GR32_Transforms/Classes/TPolarTransformation/Properties/DstRect.md`
+        - [x] `Phase`: `docs/api/GR32_Transforms/Classes/TPolarTransformation/Properties/Phase.md`
+    - [x] `TPathTransformation`: `docs/api/GR32_Transforms/Classes/TPathTransformation/index.md`
       - **Properties**
-        - [x] `TopCurve` -> `docs/api/GR32_Transforms/Classes/TPathTransformation/Properties/TopCurve.md`
-    - [x] `TRadialDistortionTransformation` -> `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/index.md`
+        - [x] `TopCurve`: `docs/api/GR32_Transforms/Classes/TPathTransformation/Properties/TopCurve.md`
+    - [x] `TRadialDistortionTransformation`: `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/Constructors/Create.md`
       - **Properties**
-        - [x] `Coefficient1` -> `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/Properties/Coefficient1.md`
-    - [x] `TRemapTransformation` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/index.md`
+        - [x] `Coefficient1`: `docs/api/GR32_Transforms/Classes/TRadialDistortionTransformation/Properties/Coefficient1.md`
+    - [x] `TRemapTransformation`: `docs/api/GR32_Transforms/Classes/TRemapTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TRemapTransformation/Constructors/Create.md`
       - **Methods**
-        - [x] `Scale` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/Methods/Scale.md`
+        - [x] `Scale`: `docs/api/GR32_Transforms/Classes/TRemapTransformation/Methods/Scale.md`
       - **Properties**
-        - [x] `MappingRect` -> `docs/api/GR32_Transforms/Classes/TRemapTransformation/Properties/MappingRect.md`
-    - [x] `TSphereTransformation` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/index.md`
+        - [x] `MappingRect`: `docs/api/GR32_Transforms/Classes/TRemapTransformation/Properties/MappingRect.md`
+    - [x] `TSphereTransformation`: `docs/api/GR32_Transforms/Classes/TSphereTransformation/index.md`
       - **Constructors**
-        - [x] `Create` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Constructors/Create.md`
+        - [x] `Create`: `docs/api/GR32_Transforms/Classes/TSphereTransformation/Constructors/Create.md`
       - **Methods**
-        - [x] `IsInSphere` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/IsInSphere.md`
-        - [x] `SphericalCoordinate` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/SphericalCoordinate.md`
-        - [x] `ScreenCoordinate` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/ScreenCoordinate.md`
+        - [x] `IsInSphere`: `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/IsInSphere.md`
+        - [x] `SphericalCoordinate`: `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/SphericalCoordinate.md`
+        - [x] `ScreenCoordinate`: `docs/api/GR32_Transforms/Classes/TSphereTransformation/Methods/ScreenCoordinate.md`
       - **Properties**
-        - [x] `Center` -> `docs/api/GR32_Transforms/Classes/TSphereTransformation/Properties/Center.md`
+        - [x] `Center`: `docs/api/GR32_Transforms/Classes/TSphereTransformation/Properties/Center.md`
   - **Types**
-    - [x] `Matrix Types` -> `docs/api/GR32_Transforms/Types/Matrix Types.md`
-    - [x] `Vector Types` -> `docs/api/GR32_Transforms/Types/Vector Types.md`
-    - [x] `Quadrilateral Types` -> `docs/api/GR32_Transforms/Types/Quadrilateral Types.md`
+    - [x] `Matrix Types`: `docs/api/GR32_Transforms/Types/Matrix Types.md`
+    - [x] `Vector Types`: `docs/api/GR32_Transforms/Types/Vector Types.md`
+    - [x] `Quadrilateral Types`: `docs/api/GR32_Transforms/Types/Quadrilateral Types.md`
   - **Routines**
-    - [x] `FixedMatrix` -> `docs/api/GR32_Transforms/Routines/FixedMatrix.md`
-    - [x] `FloatMatrix` -> `docs/api/GR32_Transforms/Routines/FloatMatrix.md`
-    - [x] `Adjoint` -> `docs/api/GR32_Transforms/Routines/Adjoint.md`
-    - [x] `Determinant` -> `docs/api/GR32_Transforms/Routines/Determinant.md`
-    - [x] `Scale` -> `docs/api/GR32_Transforms/Routines/Scale.md`
-    - [x] `Invert` -> `docs/api/GR32_Transforms/Routines/Invert.md`
-    - [x] `Mult` -> `docs/api/GR32_Transforms/Routines/Mult.md`
-    - [x] `VectorTransform` -> `docs/api/GR32_Transforms/Routines/VectorTransform.md`
-    - [x] `TransformPoints` -> `docs/api/GR32_Transforms/Routines/TransformPoints.md`
-    - [x] `Transform` -> `docs/api/GR32_Transforms/Routines/Transform.md`
-    - [x] `Modulo2Pi` -> `docs/api/GR32_Transforms/Routines/Modulo2Pi.md`
-    - [x] `RasterizeTransformation` -> `docs/api/GR32_Transforms/Routines/RasterizeTransformation.md`
-    - [x] `SetBorderTransparent` -> `docs/api/GR32_Transforms/Routines/SetBorderTransparent.md`
+    - [x] `FixedMatrix`: `docs/api/GR32_Transforms/Routines/FixedMatrix.md`
+    - [x] `FloatMatrix`: `docs/api/GR32_Transforms/Routines/FloatMatrix.md`
+    - [x] `Adjoint`: `docs/api/GR32_Transforms/Routines/Adjoint.md`
+    - [x] `Determinant`: `docs/api/GR32_Transforms/Routines/Determinant.md`
+    - [x] `Scale`: `docs/api/GR32_Transforms/Routines/Scale.md`
+    - [x] `Invert`: `docs/api/GR32_Transforms/Routines/Invert.md`
+    - [x] `Mult`: `docs/api/GR32_Transforms/Routines/Mult.md`
+    - [x] `VectorTransform`: `docs/api/GR32_Transforms/Routines/VectorTransform.md`
+    - [x] `TransformPoints`: `docs/api/GR32_Transforms/Routines/TransformPoints.md`
+    - [x] `Transform`: `docs/api/GR32_Transforms/Routines/Transform.md`
+    - [x] `Modulo2Pi`: `docs/api/GR32_Transforms/Routines/Modulo2Pi.md`
+    - [x] `RasterizeTransformation`: `docs/api/GR32_Transforms/Routines/RasterizeTransformation.md`
+    - [x] `SetBorderTransparent`: `docs/api/GR32_Transforms/Routines/SetBorderTransparent.md`
   - **Variables**
-    - [x] `FullEdge` -> `docs/api/GR32_Transforms/Variables/FullEdge.md`
+    - [x] `FullEdge`: `docs/api/GR32_Transforms/Variables/FullEdge.md`
 - [ ] **GR32_VPR**
 - [ ] **GR32_VPR2** (document only at unit level)
 - [x] **GR32_VectorMaps** -> `docs/api/GR32_VectorMaps/index.md`
   - **Classes**
-    - [x] `TVectorMap` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/index.md`
+    - [x] `TVectorMap`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/index.md`
       - **Methods**
-        - [x] `Clear` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Clear.md`
-        - [x] `Merge` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Merge.md`
-        - [x] `BoundsRect` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/BoundsRect.md`
-        - [x] `GetTrimmedBounds` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/GetTrimmedBounds.md`
-        - [x] `Empty` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Empty.md`
-        - [x] `LoadFromFile` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/LoadFromFile.md`
-        - [x] `SaveToFile` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/SaveToFile.md`
+        - [x] `Clear`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Clear.md`
+        - [x] `Merge`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Merge.md`
+        - [x] `BoundsRect`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/BoundsRect.md`
+        - [x] `GetTrimmedBounds`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/GetTrimmedBounds.md`
+        - [x] `Empty`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/Empty.md`
+        - [x] `LoadFromFile`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/LoadFromFile.md`
+        - [x] `SaveToFile`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Methods/SaveToFile.md`
       - **Properties**
-        - [x] `Vectors` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/Vectors.md`
-        - [x] `FixedVector` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/FixedVector.md`
-        - [x] `FloatVector` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/FloatVector.md`
-        - [x] `VectorCombineMode` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/VectorCombineMode.md`
-        - [x] `OnVectorCombine` -> `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/OnVectorCombine.md`
+        - [x] `Vectors`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/Vectors.md`
+        - [x] `FixedVector`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/FixedVector.md`
+        - [x] `FloatVector`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/FloatVector.md`
+        - [x] `VectorCombineMode`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/VectorCombineMode.md`
+        - [x] `OnVectorCombine`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/Properties/OnVectorCombine.md`
   - **Types**
-    - [x] `Vector Types` -> `docs/api/GR32_VectorMaps/Types/Vector Types.md`
-    - [x] `TVectorCombineMode` -> `docs/api/GR32_VectorMaps/Types/TVectorCombineMode.md`
+    - [x] `Vector Types`: `docs/api/GR32_VectorMaps/Types/Vector Types.md`
+    - [x] `TVectorCombineMode`: `docs/api/GR32_VectorMaps/Types/TVectorCombineMode.md`
 - [x] **GR32_VectorUtils** -> `docs/api/GR32_VectorUtils/index.md`
   - **Classes**
-    - [x] `TPolyLineBuilder` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/index.md`
+    - [x] `TPolyLineBuilder`: `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/index.md`
       - **Methods**
-        - [x] `BuildPolyLine` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/BuildPolyLine.md`
-        - [x] `BuildPolyPolyLine` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/BuildPolyPolyLine.md`
-        - [x] `Grow` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/Grow.md`
-        - [x] `SupportedEndStyles` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/SupportedEndStyles.md`
-        - [x] `SupportedJoinStyles` -> `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/SupportedJoinStyles.md`
+        - [x] `BuildPolyLine`: `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/BuildPolyLine.md`
+        - [x] `BuildPolyPolyLine`: `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/BuildPolyPolyLine.md`
+        - [x] `Grow`: `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/Grow.md`
+        - [x] `SupportedEndStyles`: `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/SupportedEndStyles.md`
+        - [x] `SupportedJoinStyles`: `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/Methods/SupportedJoinStyles.md`
   - **Types**
-    - [x] `TTriangleVertexIndices` -> `docs/api/GR32_VectorUtils/Types/TTriangleVertexIndices.md`
-    - [x] `TArrayOfTriangleVertexIndices` -> `docs/api/GR32_VectorUtils/Types/TArrayOfTriangleVertexIndices.md`
+    - [x] `TTriangleVertexIndices`: `docs/api/GR32_VectorUtils/Types/TTriangleVertexIndices.md`
+    - [x] `TArrayOfTriangleVertexIndices`: `docs/api/GR32_VectorUtils/Types/TArrayOfTriangleVertexIndices.md`
   - **Routines**
-    - [x] `BuildArc` -> `docs/api/GR32_VectorUtils/Routines/BuildArc.md`
-    - [x] `BuildDashedLine` -> `docs/api/GR32_VectorUtils/Routines/BuildDashedLine.md`
-    - [x] `BuildNormals` -> `docs/api/GR32_VectorUtils/Routines/BuildNormals.md`
-    - [x] `BuildPolygonF` -> `docs/api/GR32_VectorUtils/Routines/BuildPolygon.md`
-    - [x] `BuildPolyLine` -> `docs/api/GR32_VectorUtils/Routines/BuildPolyLine.md`
-    - [x] `BuildPolyPolyLine` -> `docs/api/GR32_VectorUtils/Routines/BuildPolyPolyLine.md`
-    - [x] `CalculateCircleSteps` -> `docs/api/GR32_VectorUtils/Routines/CalculateCircleSteps.md`
-    - [x] `Circle` -> `docs/api/GR32_VectorUtils/Routines/Circle.md`
-    - [x] `ClipLine` -> `docs/api/GR32_VectorUtils/Routines/ClipLine.md`
-    - [x] `ClipPolygon` -> `docs/api/GR32_VectorUtils/Routines/ClipPolygon.md`
-    - [x] `ClosePolygon` -> `docs/api/GR32_VectorUtils/Routines/ClosePolygon.md`
-    - [x] `DelaunayTriangulation` -> `docs/api/GR32_VectorUtils/Routines/DelaunayTriangulation.md`
-    - [x] `Ellipse` -> `docs/api/GR32_VectorUtils/Routines/Ellipse.md`
-    - [x] `FixedPointToFloatPoint` -> `docs/api/GR32_VectorUtils/Routines/FixedPointToFloatPoint.md`
-    - [x] `FloatPointToFixedPoint` -> `docs/api/GR32_VectorUtils/Routines/FloatPointToFixedPoint.md`
-    - [x] `Grow` -> `docs/api/GR32_VectorUtils/Routines/Grow.md`
-    - [x] `HorzLine` -> `docs/api/GR32_VectorUtils/Routines/HorzLine.md`
-    - [x] `VertLine` -> `docs/api/GR32_VectorUtils/Routines/VertLine.md`
-    - [x] `Line` -> `docs/api/GR32_VectorUtils/Routines/Line.md`
-    - [x] `InSignedRange` -> `docs/api/GR32_VectorUtils/Routines/InSignedRange.md`
-    - [x] `Intersect` -> `docs/api/GR32_VectorUtils/Routines/Intersect.md`
-    - [x] `Pie` -> `docs/api/GR32_VectorUtils/Routines/Pie.md`
-    - [x] `PointToFixedPoint` -> `docs/api/GR32_VectorUtils/Routines/PointToFixedPoint.md`
-    - [x] `PointToFloatPoint` -> `docs/api/GR32_VectorUtils/Routines/PointToFloatPoint.md`
-    - [x] `PolygonBounds` -> `docs/api/GR32_VectorUtils/Routines/PolygonBounds.md`
-    - [x] `PolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/PolyPolygon.md`
-    - [x] `PolyPolygonBounds` -> `docs/api/GR32_VectorUtils/Routines/PolyPolygonBounds.md`
-    - [x] `Rectangle` -> `docs/api/GR32_VectorUtils/Routines/Rectangle.md`
-    - [x] `ReversePolygon` -> `docs/api/GR32_VectorUtils/Routines/ReversePolygon.md`
-    - [x] `RoundRect` -> `docs/api/GR32_VectorUtils/Routines/RoundRect.md`
-    - [x] `ScalePolygon` -> `docs/api/GR32_VectorUtils/Routines/ScalePolygon.md`
-    - [x] `ScalePolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/ScalePolygonInplace.md`
-    - [x] `ScalePolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/ScalePolyPolygon.md`
-    - [x] `ScalePolyPolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/ScalePolyPolygonInplace.md`
-    - [x] `Star` -> `docs/api/GR32_VectorUtils/Routines/Star.md`
-    - [x] `TransformPolygon` -> `docs/api/GR32_VectorUtils/Routines/TransformPolygon.md`
-    - [x] `TransformPolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/TransformPolyPolygon.md`
-    - [x] `TranslatePolygon` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolygon.md`
-    - [x] `TranslatePolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolygonInplace.md`
-    - [x] `TranslatePolyPolygon` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolyPolygon.md`
-    - [x] `TranslatePolyPolygonInplace` -> `docs/api/GR32_VectorUtils/Routines/TranslatePolyPolygonInplace.md`
-    - [x] `VertexReduction` -> `docs/api/GR32_VectorUtils/Routines/VertexReduction.md`
+    - [x] `BuildArc`: `docs/api/GR32_VectorUtils/Routines/BuildArc.md`
+    - [x] `BuildDashedLine`: `docs/api/GR32_VectorUtils/Routines/BuildDashedLine.md`
+    - [x] `BuildNormals`: `docs/api/GR32_VectorUtils/Routines/BuildNormals.md`
+    - [x] `BuildPolygonF`: `docs/api/GR32_VectorUtils/Routines/BuildPolygon.md`
+    - [x] `BuildPolyLine`: `docs/api/GR32_VectorUtils/Routines/BuildPolyLine.md`
+    - [x] `BuildPolyPolyLine`: `docs/api/GR32_VectorUtils/Routines/BuildPolyPolyLine.md`
+    - [x] `CalculateCircleSteps`: `docs/api/GR32_VectorUtils/Routines/CalculateCircleSteps.md`
+    - [x] `Circle`: `docs/api/GR32_VectorUtils/Routines/Circle.md`
+    - [x] `ClipLine`: `docs/api/GR32_VectorUtils/Routines/ClipLine.md`
+    - [x] `ClipPolygon`: `docs/api/GR32_VectorUtils/Routines/ClipPolygon.md`
+    - [x] `ClosePolygon`: `docs/api/GR32_VectorUtils/Routines/ClosePolygon.md`
+    - [x] `DelaunayTriangulation`: `docs/api/GR32_VectorUtils/Routines/DelaunayTriangulation.md`
+    - [x] `Ellipse`: `docs/api/GR32_VectorUtils/Routines/Ellipse.md`
+    - [x] `FixedPointToFloatPoint`: `docs/api/GR32_VectorUtils/Routines/FixedPointToFloatPoint.md`
+    - [x] `FloatPointToFixedPoint`: `docs/api/GR32_VectorUtils/Routines/FloatPointToFixedPoint.md`
+    - [x] `Grow`: `docs/api/GR32_VectorUtils/Routines/Grow.md`
+    - [x] `HorzLine`: `docs/api/GR32_VectorUtils/Routines/HorzLine.md`
+    - [x] `VertLine`: `docs/api/GR32_VectorUtils/Routines/VertLine.md`
+    - [x] `Line`: `docs/api/GR32_VectorUtils/Routines/Line.md`
+    - [x] `InSignedRange`: `docs/api/GR32_VectorUtils/Routines/InSignedRange.md`
+    - [x] `Intersect`: `docs/api/GR32_VectorUtils/Routines/Intersect.md`
+    - [x] `Pie`: `docs/api/GR32_VectorUtils/Routines/Pie.md`
+    - [x] `PointToFixedPoint`: `docs/api/GR32_VectorUtils/Routines/PointToFixedPoint.md`
+    - [x] `PointToFloatPoint`: `docs/api/GR32_VectorUtils/Routines/PointToFloatPoint.md`
+    - [x] `PolygonBounds`: `docs/api/GR32_VectorUtils/Routines/PolygonBounds.md`
+    - [x] `PolyPolygon`: `docs/api/GR32_VectorUtils/Routines/PolyPolygon.md`
+    - [x] `PolyPolygonBounds`: `docs/api/GR32_VectorUtils/Routines/PolyPolygonBounds.md`
+    - [x] `Rectangle`: `docs/api/GR32_VectorUtils/Routines/Rectangle.md`
+    - [x] `ReversePolygon`: `docs/api/GR32_VectorUtils/Routines/ReversePolygon.md`
+    - [x] `RoundRect`: `docs/api/GR32_VectorUtils/Routines/RoundRect.md`
+    - [x] `ScalePolygon`: `docs/api/GR32_VectorUtils/Routines/ScalePolygon.md`
+    - [x] `ScalePolygonInplace`: `docs/api/GR32_VectorUtils/Routines/ScalePolygonInplace.md`
+    - [x] `ScalePolyPolygon`: `docs/api/GR32_VectorUtils/Routines/ScalePolyPolygon.md`
+    - [x] `ScalePolyPolygonInplace`: `docs/api/GR32_VectorUtils/Routines/ScalePolyPolygonInplace.md`
+    - [x] `Star`: `docs/api/GR32_VectorUtils/Routines/Star.md`
+    - [x] `TransformPolygon`: `docs/api/GR32_VectorUtils/Routines/TransformPolygon.md`
+    - [x] `TransformPolyPolygon`: `docs/api/GR32_VectorUtils/Routines/TransformPolyPolygon.md`
+    - [x] `TranslatePolygon`: `docs/api/GR32_VectorUtils/Routines/TranslatePolygon.md`
+    - [x] `TranslatePolygonInplace`: `docs/api/GR32_VectorUtils/Routines/TranslatePolygonInplace.md`
+    - [x] `TranslatePolyPolygon`: `docs/api/GR32_VectorUtils/Routines/TranslatePolyPolygon.md`
+    - [x] `TranslatePolyPolygonInplace`: `docs/api/GR32_VectorUtils/Routines/TranslatePolyPolygonInplace.md`
+    - [x] `VertexReduction`: `docs/api/GR32_VectorUtils/Routines/VertexReduction.md`
   - **Variables**
-    - [x] `PolylineBuilder` -> `docs/api/GR32_VectorUtils/Variables/PolylineBuilder.md`
+    - [x] `PolylineBuilder`: `docs/api/GR32_VectorUtils/Variables/PolylineBuilder.md`
 - [x] **GR32_VectorUtils.Angus** -> `docs/api/GR32_VectorUtils.Angus/index.md` (document only at unit level)
 - [x] **GR32_VectorUtils.Clipper2** -> `docs/api/GR32_VectorUtils.Clipper2/index.md` (document only at unit level)
 - [x] **GR32_VectorUtils.Reference** -> `docs/api/GR32_VectorUtils.Reference/index.md` (document only at unit level)
