@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TThreadPersistent
 kind: Class
+abstract: true
 declaration: "TThreadPersistent = class(TNotifiablePersistent)"
 inheritance:
   - TObject

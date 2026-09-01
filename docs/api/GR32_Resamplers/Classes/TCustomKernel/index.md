@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Resamplers
 entity: TCustomKernel
 kind: Class
+abstract: true
 aliases: [TCustomKernelClass]
 declaration: |
   type

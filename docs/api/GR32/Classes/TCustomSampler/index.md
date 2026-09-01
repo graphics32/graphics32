@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TCustomSampler
 kind: Class
+abstract: true
 declaration: "TCustomSampler = class(TNotifiablePersistent)"
 inheritance:
   - TObject

@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Resamplers
 entity: TWindowedKernel
 kind: Class
+abstract: true
 declaration: "TWindowedKernel = class(TCustomKernel)"
 inheritance:
   - TObject

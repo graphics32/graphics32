@@ -8,6 +8,7 @@ aliases: [TPolylineBuilderClass]
 declaration: "TPolyLineBuilder = class abstract"
 summary: "Abstract base class for polyline stroking and polygon inflation/offsetting backends."
 ---
+<!-- Abstract but not tagged as such because the concrete classes are undocumented -->
 
 ## Description
 

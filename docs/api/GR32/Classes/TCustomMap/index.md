@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TCustomMap
 kind: Class
+abstract: true
 declaration: "TCustomMap = class(TThreadPersistent)"
 inheritance:
   - TObject

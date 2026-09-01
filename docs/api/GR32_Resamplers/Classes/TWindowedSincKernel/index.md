@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Resamplers
 entity: TWindowedSincKernel
 kind: Class
+abstract: true
 summary: "Base class for Sinc spatial reconstruction kernels constrained by window functions."
 declaration: "TWindowedSincKernel = class(TWindowedKernel)"
 inheritance:

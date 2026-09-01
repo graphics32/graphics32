@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomGradientLookUpTableSampler
 kind: Class
+abstract: true
 summary: "Base class for gradient samplers utilizing a fast pre-calculated color lookup table."
 declaration: "TCustomGradientLookUpTableSampler = class(TCustomGradientSampler)"
 inheritance:

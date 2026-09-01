@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomSparsePointGradientSampler
 kind: Class
+abstract: true
 summary: "Abstract base class for sparse point color gradient samplers based on scattered vertex colors."
 declaration: "TCustomSparsePointGradientSampler = class(TCustomSampler)"
 inheritance:

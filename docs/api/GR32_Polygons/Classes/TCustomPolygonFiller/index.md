@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Polygons
 entity: TCustomPolygonFiller
 kind: Class
+abstract: true
 declaration: "TCustomPolygonFiller = class abstract"
 summary: "Abstract base class for custom polygon scanline fillers."
 ---

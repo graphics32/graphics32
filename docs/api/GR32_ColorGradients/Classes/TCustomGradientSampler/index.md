@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomGradientSampler
 kind: Class
+abstract: true
 summary: "Abstract base class for all continuous 2D color gradient samplers."
 declaration: "TCustomGradientSampler = class(TCustomSampler)"
 inheritance:

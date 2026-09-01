@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TCustomBackend
 kind: Class
+abstract: true
 declaration: |
   type
     TCustomBackend = class(TThreadPersistent)

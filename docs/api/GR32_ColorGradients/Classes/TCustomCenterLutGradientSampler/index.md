@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomCenterLutGradientSampler
 kind: Class
+abstract: true
 summary: "Base class for lookup table gradient samplers anchored around a 2D center point."
 declaration: "TCustomCenterLutGradientSampler = class(TCustomGradientLookUpTableSampler)"
 inheritance:

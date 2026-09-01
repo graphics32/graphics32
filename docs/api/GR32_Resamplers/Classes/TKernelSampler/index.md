@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Resamplers
 entity: TKernelSampler
 kind: Class
+abstract: true
 summary: "Abstract base class for neighborhood samplers using an integer kernel map."
 declaration: "TKernelSampler = class(TNestedSampler)"
 inheritance:

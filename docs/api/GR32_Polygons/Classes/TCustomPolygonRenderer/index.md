@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Polygons
 entity: TCustomPolygonRenderer
 kind: Class
+abstract: true
 aliases: [TCustomPolygonRendererClass]
 declaration: "TCustomPolygonRenderer = class abstract(TThreadPersistent)"
 inheritance:

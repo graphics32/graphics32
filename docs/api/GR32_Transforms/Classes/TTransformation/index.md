@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Transforms
 entity: TTransformation
 kind: Class
+abstract: true
 aliases: [TTransformationClass]
 declaration: "TTransformation = class abstract(TNotifiablePersistent)"
 inheritance:

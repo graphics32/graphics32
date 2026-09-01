@@ -136,6 +136,7 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 | `entity` | String | Full entity identifier (e.g., `TBitmap32.Draw`). |
 | `kind` | String | Entity classification (`Class`, `Method`, `Constructor`, `Property`, `Function`, `Type`, `Constant`). |
 | `scope` | String | Optional. Member visibility scope (`Public`, `Protected`, `Published`). Renders a styled scope badge in headers. |
+| `abstract` | Boolean | Optional. Set to `true` for Category 1, 2, or 3 abstract classes (see: `abstract-classes.md`). Used by VitePress member filters to toggle abstract class visibility. |
 | `summary` | String | High-level summary description. Keep short. Avoid details that are better described in the content. Often used in tables. |
 | `declaration` | String | Pascal procedure/function/type signature for single-signature pages. |
 | `parameters` | Array | Parameter list objects `[ { name, type, description } ]`. |
