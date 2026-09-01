@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomCenterRadiusLutGradientSampler
 kind: Class
+abstract: true
 summary: "Base class for centered gradient samplers bounded by a radial scaling factor."
 declaration: "TCustomCenterRadiusLutGradientSampler = class(TCustomCenterLutGradientSampler)"
 inheritance:

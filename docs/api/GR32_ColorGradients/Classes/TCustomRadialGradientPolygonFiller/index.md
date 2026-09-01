@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomRadialGradientPolygonFiller
 kind: Class
+abstract: true
 summary: "Base class for radial gradient polygon fillers bounded by an ellipse rectangle."
 declaration: "TCustomRadialGradientPolygonFiller = class(TCustomGradientLookupTablePolygonFiller)"
 inheritance:

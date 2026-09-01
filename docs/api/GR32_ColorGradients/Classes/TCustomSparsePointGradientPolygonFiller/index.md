@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomSparsePointGradientPolygonFiller
 kind: Class
+abstract: true
 summary: "Abstract base class for sparse point polygon gradient fillers."
 declaration: "TCustomSparsePointGradientPolygonFiller = class(TCustomPolygonFiller)"
 inheritance:

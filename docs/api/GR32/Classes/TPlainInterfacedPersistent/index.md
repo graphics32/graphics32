@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TPlainInterfacedPersistent
 kind: Class
+abstract: true
 declaration: "TPlainInterfacedPersistent = class(TPersistent, IInterface)"
 inheritance:
   - TObject

@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomArbitrarySparsePointGradientPolygonFiller
 kind: Class
+abstract: true
 summary: "Base class for polygon fillers supporting arbitrary count scatter point vertices."
 declaration: "TCustomArbitrarySparsePointGradientPolygonFiller = class(TCustomSparsePointGradientPolygonFiller)"
 inheritance:

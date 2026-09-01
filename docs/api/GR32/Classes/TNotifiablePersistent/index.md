@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TNotifiablePersistent
 kind: Class
+abstract: true
 declaration: "TNotifiablePersistent = class(TPlainInterfacedPersistent)"
 inheritance:
   - TObject

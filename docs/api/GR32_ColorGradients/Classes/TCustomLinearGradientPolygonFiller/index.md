@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomLinearGradientPolygonFiller
 kind: Class
+abstract: true
 summary: "Base class for 2D linear gradient polygon fillers defined by StartPoint and EndPoint."
 declaration: "TCustomLinearGradientPolygonFiller = class(TCustomGradientLookupTablePolygonFiller)"
 inheritance:

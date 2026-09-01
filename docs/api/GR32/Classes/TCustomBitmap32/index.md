@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TCustomBitmap32
 kind: Class
+abstract: true
 declaration: |
   type
     TCustomBitmap32 = class(TCustomMap)

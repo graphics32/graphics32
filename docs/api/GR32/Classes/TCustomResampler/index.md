@@ -4,6 +4,7 @@ docType: api
 unit: GR32
 entity: TCustomResampler
 kind: Class
+abstract: true
 declaration: |
   type
     TCustomResampler = class(TCustomSampler)

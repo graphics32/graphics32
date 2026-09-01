@@ -4,6 +4,7 @@ docType: api
 unit: GR32_ColorGradients
 entity: TCustomGradientPolygonFiller
 kind: Class
+abstract: true
 summary: "Abstract base class for high-performance polygon gradient fillers in Graphics32."
 declaration: "TCustomGradientPolygonFiller = class(TCustomPolygonFiller)"
 inheritance:
