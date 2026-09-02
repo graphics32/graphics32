@@ -7,12 +7,13 @@ kind: Type
 summary: "Packed record overlaying a 16.16 fixed-point integer with integer and fractional parts."
 declaration: |
   type
-    PFixedRec = ^TFixedRec;
     TFixedRec = packed record
       case Integer of
         0: (Fixed: TFixed);
         1: (Frac: Word; Int: SmallInt);
     end;
+    PFixedRec = ^TFixedRec;
+aliases: [PFixedRec]
 ---
 
 ## Description

@@ -7,7 +7,6 @@ kind: Type
 summary: "2D single-precision floating-point point structure."
 declaration: |
   type
-    PFloatPoint = ^TFloatPoint;
     TFloatPoint = record
       X, Y: TFloat;
     public
@@ -24,6 +23,8 @@ declaration: |
       function Distance(const APoint: TFloatPoint): Single;
       function Length: Single;
     end;
+    PFloatPoint = ^TFloatPoint;
+aliases: [PFloatPoint]
 ---
 
 ## Description

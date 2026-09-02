@@ -5,7 +5,11 @@ unit: GR32
 entity: TFixed
 kind: Type
 summary: "32-bit signed integer type representing numbers in 16.16 fixed-point precision."
-declaration: "type TFixed = type Integer;"
+declaration: |
+  type
+    TFixed = type Integer;
+    PFixed = ^TFixed;
+aliases: [PFixed]
 ---
 
 ## Description
@@ -18,6 +22,10 @@ declaration: "type TFixed = type Integer;"
 | --- | --- | --- |
 | `PFixed` | `^TFixed` | Pointer to a `TFixed` value. |
 | `PFixedArray` | `^TFixedArray` | Pointer to an un-sized array of fixed-point values. |
-| `TFixedArray` | `array [0..0] of TFixed` | Static un-sized array type. |
-| `TArrayOfFixed` | `array of TFixed` | Dynamic array of 16.16 fixed-point values. |
-| `TArrayOfArrayOfFixed` | `array of TArrayOfFixed` | 2D dynamic array of fixed-point values. |
+| [[TFixedArray]] | `array [0..0] of TFixed` | Static un-sized array type. |
+| [[TArrayOfFixed]] | `array of TFixed` | Dynamic array of 16.16 fixed-point values. |
+| [[TArrayOfArrayOfFixed]] | `array of TArrayOfFixed` | 2D dynamic array of fixed-point values. |
+
+## See also
+
+- [Fixed-point arithmetic (Wikipedia)](https://en.wikipedia.org/wiki/Fixed-point_arithmetic)

@@ -7,12 +7,13 @@ kind: Type
 summary: "Rectangle structure using 16.16 fixed-point coordinates."
 declaration: |
   type
-    PFixedRect = ^TFixedRect;
     TFixedRect = record
       case Integer of
         0: (Left, Top, Right, Bottom: TFixed);
         1: (TopLeft, BottomRight: TFixedPoint);
     end;
+    PFixedRect = ^TFixedRect;
+aliases: [PFixedRect]
 ---
 
 ## Description
