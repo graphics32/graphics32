@@ -957,7 +957,53 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_PortableNetworkGraphic.Types** (document only at unit level)
 - [ ] **GR32_PortableNetworkGraphic.ZLib** (document only at unit level)
 - [ ] **GR32_RangeBars**
-- [ ] **GR32_Rasterizers**
+- [x] **GR32_Rasterizers**: `docs/api/GR32_Rasterizers/index.md`
+  - **Classes**
+    - [x] `TRasterizer`: `docs/api/GR32_Rasterizers/Classes/TRasterizer/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Rasterizers/Classes/TRasterizer/Constructors/Create.md`
+      - **Methods**
+        - [x] `Assign`: `docs/api/GR32_Rasterizers/Classes/TRasterizer/Methods/Assign.md`
+        - [x] `Rasterize`: `docs/api/GR32_Rasterizers/Classes/TRasterizer/Methods/Rasterize.md`
+      - **Properties**
+        - [x] `Sampler`: `docs/api/GR32_Rasterizers/Classes/TRasterizer/Properties/Sampler.md`
+    - [x] `TRegularRasterizer`: `docs/api/GR32_Rasterizers/Classes/TRegularRasterizer/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Rasterizers/Classes/TRegularRasterizer/Constructors/Create.md`
+      - **Properties**
+        - [x] `UpdateRowCount`: `docs/api/GR32_Rasterizers/Classes/TRegularRasterizer/Properties/UpdateRowCount.md`
+    - [x] `TSwizzlingRasterizer`: `docs/api/GR32_Rasterizers/Classes/TSwizzlingRasterizer/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Rasterizers/Classes/TSwizzlingRasterizer/Constructors/Create.md`
+      - **Properties**
+        - [x] `BlockSize`: `docs/api/GR32_Rasterizers/Classes/TSwizzlingRasterizer/Properties/BlockSize.md`
+    - [x] `TProgressiveRasterizer`: `docs/api/GR32_Rasterizers/Classes/TProgressiveRasterizer/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Rasterizers/Classes/TProgressiveRasterizer/Constructors/Create.md`
+      - **Properties**
+        - [x] `Steps`: `docs/api/GR32_Rasterizers/Classes/TProgressiveRasterizer/Properties/Steps.md`
+        - [x] `UpdateRows`: `docs/api/GR32_Rasterizers/Classes/TProgressiveRasterizer/Properties/UpdateRows.md`
+    - [x] `TTesseralRasterizer`: `docs/api/GR32_Rasterizers/Classes/TTesseralRasterizer/index.md`
+    - [x] `TContourRasterizer`: `docs/api/GR32_Rasterizers/Classes/TContourRasterizer/index.md`
+    - [x] `TDraftRasterizer`: `docs/api/GR32_Rasterizers/Classes/TDraftRasterizer/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Rasterizers/Classes/TDraftRasterizer/Constructors/Create.md`
+      - **Properties**
+        - [x] `PixelSize`: `docs/api/GR32_Rasterizers/Classes/TDraftRasterizer/Properties/PixelSize.md`
+    - [x] `TThreadRegularRasterizer`: `docs/api/GR32_Rasterizers/Classes/TThreadRegularRasterizer/index.md`
+    - [x] `TParallelRegularRasterizer`: `docs/api/GR32_Rasterizers/Classes/TParallelRegularRasterizer/index.md`
+    - [x] `TTaskRegularRasterizer`: `docs/api/GR32_Rasterizers/Classes/TTaskRegularRasterizer/index.md`
+    - [x] `TMultithreadedRegularRasterizer`: `docs/api/GR32_Rasterizers/Classes/TMultithreadedRegularRasterizer/index.md`
+  - **Types**
+    - [x] `TAssignColor`: `docs/api/GR32_Rasterizers/Types/TAssignColor.md`
+    - [x] `TCombineInfo`: `docs/api/GR32_Rasterizers/Types/TCombineInfo.md`
+  - **Routines**
+    - [x] `CombineInfo`: `docs/api/GR32_Rasterizers/Routines/CombineInfo.md`
+  - **Constants**
+    - [x] `DEFAULT_COMBINE_INFO`: `docs/api/GR32_Rasterizers/Constants/DEFAULT_COMBINE_INFO.md`
+  - **Variables**
+    - [x] `DefaultRasterizerClass`: `docs/api/GR32_Rasterizers/Variables/DefaultRasterizerClass.md`
+    - [x] `NumberOfProcessors`: `docs/api/GR32_Rasterizers/Variables/NumberOfProcessors.md`
 - [ ] **GR32_RepaintOpt** (document only at unit level)
 - [x] **GR32_Resamplers**: `docs/api/GR32_Resamplers/index.md`
   - **Classes**
