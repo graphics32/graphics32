@@ -7,12 +7,13 @@ kind: Type
 summary: "Rectangle structure using single-precision floating-point coordinates."
 declaration: |
   type
-    PFloatRect = ^TFloatRect;
     TFloatRect = record
       case Integer of
         0: (Left, Top, Right, Bottom: TFloat);
         1: (TopLeft, BottomRight: TFloatPoint);
     end;
+    PFloatRect = ^TFloatRect;
+aliases: [PFloatRect]
 ---
 
 ## Description

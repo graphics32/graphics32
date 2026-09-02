@@ -7,7 +7,6 @@ kind: Type
 summary: "32-bit ARGB color record."
 declaration: |
   type
-    PColor32Entry = ^TColor32Entry;
     TColor32Entry = packed record
       case Integer of
   {$IFNDEF RGBA_FORMAT}
@@ -19,6 +18,8 @@ declaration: |
         2: (Planes: array[0..3] of Byte);
         3: (Components: array[TColor32Component] of Byte);
     end;
+    PColor32Entry = ^TColor32Entry;
+aliases: [PColor32Entry]
 ---
 
 ## Description

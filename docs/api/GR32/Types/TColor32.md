@@ -5,7 +5,11 @@ unit: GR32
 entity: TColor32
 kind: Type
 summary: "32-bit unsigned integer type representing an ARGB color value."
-declaration: "type TColor32 = type Cardinal;"
+declaration: |
+  type
+    TColor32 = type Cardinal;
+    PColor32 = ^TColor32;
+aliases: [PColor32]
 ---
 
 ## Description
