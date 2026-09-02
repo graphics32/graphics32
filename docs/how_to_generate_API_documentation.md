@@ -618,26 +618,52 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Blur.SelectiveGaussian**
 - [ ] **GR32.CPUID**
 - [ ] **GR32.Examples** (document only at unit level)
-- [ ] **GR32.ImageFormats**
-- [ ] **GR32.ImageFormats.BMP** (document only at unit level)
-- [ ] **GR32.ImageFormats.Default** (document only at unit level)
-- [ ] **GR32.ImageFormats.GIF** (document only at unit level)
-- [ ] **GR32.ImageFormats.JPG** (document only at unit level)
-- [ ] **GR32.ImageFormats.PNG** (document only at unit level)
-- [ ] **GR32.ImageFormats.PNG32** (document only at unit level)
-- [ ] **GR32.ImageFormats.PSD** (document only at unit level)
-- [ ] **GR32.ImageFormats.PSD.Model** (document only at unit level)
-- [ ] **GR32.ImageFormats.PSD.Reader** (document only at unit level)
-- [ ] **GR32.ImageFormats.PSD.Types** (document only at unit level)
-- [ ] **GR32.ImageFormats.PSD.Writer** (document only at unit level)
-- [ ] **GR32.ImageFormats.SVG** (document only at unit level)
-- [ ] **GR32.ImageFormats.TBitmap** (document only at unit level)
-- [ ] **GR32.ImageFormats.TClipboard** (document only at unit level)
-- [ ] **GR32.ImageFormats.TGraphic** (document only at unit level)
-- [ ] **GR32.ImageFormats.TIcon** (document only at unit level)
-- [ ] **GR32.ImageFormats.TMetaFile** (document only at unit level)
-- [ ] **GR32.ImageFormats.TPicture** (document only at unit level)
-- [ ] **GR32.ImageFormats.TWICImage** (document only at unit level)
+- [x] **GR32.ImageFormats**: `docs/api/GR32.ImageFormats/index.md`
+  - **Interfaces**:
+    - [x] `IImageFormat`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormat/index.md`
+    - [x] `IImageFormatAdapter`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatAdapter/index.md`
+    - [x] `IImageFormatWriteNotification`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatWriteNotification/index.md`
+    - [x] `IImageFormatAux`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatAux/index.md`
+    - [x] `IImageFormatFileInfo`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatFileInfo/index.md`
+    - [x] `IImageFormatClipboardFormat`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatClipboardFormat/index.md`
+    - [x] `IImageFormatReader`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatReader/index.md`
+    - [x] `IImageFormatFileReader`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatFileReader/index.md`
+    - [x] `IImageFormatResourceReader`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatResourceReader/index.md`
+    - [x] `IImageFormatWriter`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatWriter/index.md`
+    - [x] `IImageFormatClipboardFormats`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatClipboardFormats/index.md`
+    - [x] `IImageFormatReaders`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatReaders/index.md`
+    - [x] `IImageFormatWriters`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatWriters/index.md`
+    - [x] `IImageFormatEnumerator`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatEnumerator/index.md`
+    - [x] `IImageFormats`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormats/index.md`
+    - [x] `IImageFormatManager`: `docs/api/GR32.ImageFormats/Interfaces/IImageFormatManager/index.md`
+  - **Classes**:
+    - [x] `TCustomImageFormat`: `docs/api/GR32.ImageFormats/Classes/TCustomImageFormat/index.md`
+    - [x] `TCustomImageFormatAdapter`: `docs/api/GR32.ImageFormats/Classes/TCustomImageFormatAdapter/index.md`
+  - **Types**:
+    - [x] `TFileTypes`: `docs/api/GR32.ImageFormats/Types/TFileTypes.md`
+    - [x] `TClipboardFormat`: `docs/api/GR32.ImageFormats/Types/TClipboardFormat.md`
+  - **Routines**:
+    - [x] `ImageFormatManager`: `docs/api/GR32.ImageFormats/Routines/ImageFormatManager.md`
+    - [x] `CheckFileSignature`: `docs/api/GR32.ImageFormats/Routines/CheckFileSignature.md`
+- [x] **GR32.ImageFormats.BMP**: `docs/api/GR32.ImageFormats.BMP/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.Default**: `docs/api/GR32.ImageFormats.Default/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.GIF**: `docs/api/GR32.ImageFormats.GIF/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.JPG**: `docs/api/GR32.ImageFormats.JPG/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.PNG**: `docs/api/GR32.ImageFormats.PNG/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.PNG32**: `docs/api/GR32.ImageFormats.PNG32/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.PSD**: `docs/api/GR32.ImageFormats.PSD/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.PSD.Model**: `docs/api/GR32.ImageFormats.PSD.Model/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.PSD.Reader**: `docs/api/GR32.ImageFormats.PSD.Reader/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.PSD.Types**: `docs/api/GR32.ImageFormats.PSD.Types/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.PSD.Writer**: `docs/api/GR32.ImageFormats.PSD.Writer/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.SVG**: `docs/api/GR32.ImageFormats.SVG/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.TBitmap**: `docs/api/GR32.ImageFormats.TBitmap/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.TClipboard**: `docs/api/GR32.ImageFormats.TClipboard/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.TGraphic**: `docs/api/GR32.ImageFormats.TGraphic/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.TIcon**: `docs/api/GR32.ImageFormats.TIcon/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.TMetaFile**: `docs/api/GR32.ImageFormats.TMetaFile/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.TPicture**: `docs/api/GR32.ImageFormats.TPicture/index.md` (document only at unit level)
+- [x] **GR32.ImageFormats.TWICImage**: `docs/api/GR32.ImageFormats.TWICImage/index.md` (document only at unit level)
 - [ ] **GR32.Math.Complex**
 - [ ] **GR32.Noise.Simplex**
 - [ ] **GR32.Paint.Brush**
@@ -661,7 +687,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Transpose**
 - [ ] **GR32.Types.SIMD** (document only at unit level)
 - [ ] **GR32_ArrowHeads**
-- [x] **GR32_Backends** -> `docs/api/GR32_Backends/index.md`
+- [x] **GR32_Backends**: `docs/api/GR32_Backends/index.md`
   - **Classes**
     - [x] `EBackend`: `docs/api/GR32_Backends/Classes/EBackend/index.md`
   - **Interfaces**
@@ -682,19 +708,19 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Routines**
     - [x] `RequireBackendSupport`: `docs/api/GR32_Backends/Routines/RequireBackendSupport.md`
     - [x] `RestoreBackend`: `docs/api/GR32_Backends/Routines/RestoreBackend.md`
-- [x] **GR32_Backends_Generic** -> `docs/api/GR32_Backends_Generic/index.md`
+- [x] **GR32_Backends_Generic**: `docs/api/GR32_Backends_Generic/index.md`
   - **Classes**
     - [x] `TMemoryBackend`: `docs/api/GR32_Backends_Generic/Classes/TMemoryBackend/index.md`
     - [x] `TMMFBackend`: `docs/api/GR32_Backends_Generic/Classes/TMMFBackend/index.md`
 - [ ] **GR32_Backends_LCL_Carbon** (document only at unit level)
 - [ ] **GR32_Backends_LCL_CustomDrawn** (document only at unit level)
 - [ ] **GR32_Backends_LCL_Gtk** (document only at unit level)
-- [x] **GR32_Backends_LCL_Win** -> `docs/api/GR32_Backends_LCL_Win/index.md`
+- [x] **GR32_Backends_LCL_Win**: `docs/api/GR32_Backends_LCL_Win/index.md`
   - **Classes**
     - [x] `TLCLBackend`: `docs/api/GR32_Backends_LCL_Win/Classes/TLCLBackend/index.md`
     - [x] `TLCLMMFBackend`: `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMMFBackend/index.md`
     - [x] `TLCLMemoryBackend`: `docs/api/GR32_Backends_LCL_Win/Classes/TLCLMemoryBackend/index.md`
-- [x] **GR32_Backends_VCL** -> `docs/api/GR32_Backends_VCL/index.md`
+- [x] **GR32_Backends_VCL**: `docs/api/GR32_Backends_VCL/index.md`
   - **Classes**
     - [x] `TGDIBackend`: `docs/api/GR32_Backends_VCL/Classes/TGDIBackend/index.md`
     - [x] `TGDIMMFBackend`: `docs/api/GR32_Backends_VCL/Classes/TGDIMMFBackend/index.md`
@@ -754,7 +780,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_ColorSwatch**
 - [ ] **GR32_Containers**
 - [ ] **GR32_ExtImage**
-- [x] **GR32_Filters** -> `docs/api/GR32_Filters/index.md`
+- [x] **GR32_Filters**: `docs/api/GR32_Filters/index.md`
   - **Types**
     - [x] `TLUT8`: `docs/api/GR32_Filters/Types/TLUT8.md`
     - [x] `TLogicalOperator`: `docs/api/GR32_Filters/Types/TLogicalOperator.md`
@@ -771,7 +797,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `Invert`: `docs/api/GR32_Filters/Routines/Invert.md`
     - [x] `InvertRGB`: `docs/api/GR32_Filters/Routines/InvertRGB.md`
 - [ ] **GR32_Gamma**
-- [x] **GR32_Geometry** -> `docs/api/GR32_Geometry/index.md`
+- [x] **GR32_Geometry**: `docs/api/GR32_Geometry/index.md`
   - **Types**
     - [x] `TLinePos`: `docs/api/GR32_Geometry/Types/TLinePos.md`
   - **Constants**
@@ -802,7 +828,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_OrdinalMaps**
 - [ ] **GR32_Paths**
 - [ ] **GR32_Png**
-- [x] **GR32_Polygons** -> `docs/api/GR32_Polygons/index.md`
+- [x] **GR32_Polygons**: `docs/api/GR32_Polygons/index.md`
   - **Classes**
     - [x] `TCustomPolygonRenderer`: `docs/api/GR32_Polygons/Classes/TCustomPolygonRenderer/index.md`
       - **Methods**
@@ -933,7 +959,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_RangeBars**
 - [ ] **GR32_Rasterizers**
 - [ ] **GR32_RepaintOpt** (document only at unit level)
-- [x] **GR32_Resamplers** -> `docs/api/GR32_Resamplers/index.md`
+- [x] **GR32_Resamplers**: `docs/api/GR32_Resamplers/index.md`
   - **Classes**
     - [x] `TCustomKernel`: `docs/api/GR32_Resamplers/Classes/TCustomKernel/index.md`
     - [x] `TBoxKernel`: `docs/api/GR32_Resamplers/Classes/TBoxKernel/index.md`
@@ -990,7 +1016,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `ResamplerList`: `docs/api/GR32_Resamplers/Variables/ResamplerList.md`
 - [ ] **GR32_System**
 - [ ] **GR32_Text_VCL_D2D** (document only at unit level)
-- [x] **GR32_Transforms** -> `docs/api/GR32_Transforms/index.md`
+- [x] **GR32_Transforms**: `docs/api/GR32_Transforms/index.md`
   - **Classes**
     - [x] `TTransformation`: `docs/api/GR32_Transforms/Classes/TTransformation/index.md`
       - **Constructors**
@@ -1103,7 +1129,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `FullEdge`: `docs/api/GR32_Transforms/Variables/FullEdge.md`
 - [ ] **GR32_VPR**
 - [ ] **GR32_VPR2** (document only at unit level)
-- [x] **GR32_VectorMaps** -> `docs/api/GR32_VectorMaps/index.md`
+- [x] **GR32_VectorMaps**: `docs/api/GR32_VectorMaps/index.md`
   - **Classes**
     - [x] `TVectorMap`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/index.md`
       - **Methods**
@@ -1123,7 +1149,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Types**
     - [x] `Vector Types`: `docs/api/GR32_VectorMaps/Types/Vector Types.md`
     - [x] `TVectorCombineMode`: `docs/api/GR32_VectorMaps/Types/TVectorCombineMode.md`
-- [x] **GR32_VectorUtils** -> `docs/api/GR32_VectorUtils/index.md`
+- [x] **GR32_VectorUtils**: `docs/api/GR32_VectorUtils/index.md`
   - **Classes**
     - [x] `TPolyLineBuilder`: `docs/api/GR32_VectorUtils/Classes/TPolyLineBuilder/index.md`
       - **Methods**
