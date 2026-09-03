@@ -140,7 +140,9 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 | `summary` | String | High-level summary description. Keep short. Avoid details that are better described in the content. Often used in tables. |
 | `declaration` | String | Pascal procedure/function/type signature for single-signature pages. |
 | `parameters` | Array | Parameter list objects `[ { name, type, description } ]`. |
-| `overloads` | Array | Array of overload objects for overloaded methods/routines. |
+| `returns` | Array / Object | Return value object or list `[ { type, description } ]` for functions or methods returning a value. |
+| `seealso` | Array / String | Optional. List of cross-reference symbol names or markdown links (e.g. `[ClipPolygon, GR32_VectorUtils]`), automatically rendered as a `## See also` bulleted list at the bottom of the page. |
+| `overloads` | Array | Array of overload objects for overloaded methods/routines. Each overload entry contains `signature`, `summary`, `parameters`, and `returns`. |
 | `inheritedFrom` | String | Optional. Full identifier of base class member if inherited (e.g., `TCustomBitmap32.Width`). |
 | `aliases` | Array / String | Optional. List of additional symbol names mapped to this page for `[[symbol]]` resolution (e.g. `aliases: [clBlack32, clWhite32]`). |
 
@@ -151,16 +153,21 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 ---
 layout: doc
 docType: api
-unit: GR32
-parent: TBitmap32
-entity: TBitmap32.Clear
-kind: Method
-declaration: "procedure Clear(Color: TColor32);"
-summary: "Fills the entire pixel buffer with a specified TColor32 value."
+unit: GR32_VectorUtils
+entity: DelaunayTriangulation
+kind: Function
+declaration: "function DelaunayTriangulation(Points: TArrayOfFloatPoint): TArrayOfTriangleVertexIndices;"
+summary: "Generates a Delaunay triangulation mesh from a set of 2D floating-point points."
 parameters:
-  - name: Color
-    type: TColor32
-    description: "32-bit ARGB color value to fill the bitmap with."
+  - name: Points
+    type: TArrayOfFloatPoint
+    description: "Array of 2D input points."
+returns:
+  - type: TArrayOfTriangleVertexIndices
+    description: "An array of triangle index triplets."
+seealso:
+  - ClipPolygon
+  - GR32_VectorUtils
 ---
 
 ## Example
@@ -793,9 +800,6 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Types**
     - [x] `TBooleanArray`: `docs/api/GR32_Brushes/Types/TBooleanArray.md`
 - [ ] **GR32_Clipboard**
-- [ ] **GR32_Clipper**
-- [ ] **GR32_Clipper1** (document only at unit level)
-- [ ] **GR32_Clipper2** (document only at unit level)
 - [x] **GR32_ColorGradients**: `docs/api/GR32_ColorGradients/index.md`
   - **Classes**:
     - [x] `TColor32LookupTable`: `docs/api/GR32_ColorGradients/Classes/TColor32LookupTable/index.md`
@@ -886,71 +890,9 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Layers**
 - [ ] **GR32_LowLevel**
 - [ ] **GR32_Math**
-- [ ] **GR32_Math_FPC** (document only at unit level)
 - [ ] **GR32_MicroTiles**
 - [ ] **GR32_OrdinalMaps**
-- [x] **GR32_Paths**: `docs/api/GR32_Paths/index.md`
-  - **Classes**:
-    - [x] `TCustomPath`: `docs/api/GR32_Paths/Classes/TCustomPath/index.md`
-      - **Constructors**
-        - [x] `Create`: `docs/api/GR32_Paths/Classes/TCustomPath/Constructors/Create.md`
-      - **Methods**
-        - [x] `Clear`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Clear.md`
-        - [x] `EndPath`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/EndPath.md`
-        - [x] `MoveTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/MoveTo.md`
-        - [x] `MoveToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/MoveToRelative.md`
-        - [x] `LineTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/LineTo.md`
-        - [x] `LineToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/LineToRelative.md`
-        - [x] `HorizontalLineTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/HorizontalLineTo.md`
-        - [x] `HorizontalLineToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/HorizontalLineToRelative.md`
-        - [x] `VerticalLineTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/VerticalLineTo.md`
-        - [x] `VerticalLineToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/VerticalLineToRelative.md`
-        - [x] `CurveTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/CurveTo.md`
-        - [x] `CurveToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/CurveToRelative.md`
-        - [x] `ConicTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/ConicTo.md`
-        - [x] `ConicToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/ConicToRelative.md`
-        - [x] `Arc`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Arc.md`
-        - [x] `PolyLine`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/PolyLine.md`
-        - [x] `PolyPolyLine`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/PolyPolyLine.md`
-        - [x] `Rectangle`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Rectangle.md`
-        - [x] `RoundRect`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/RoundRect.md`
-        - [x] `Ellipse`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Ellipse.md`
-        - [x] `Circle`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Circle.md`
-        - [x] `Polygon`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Polygon.md`
-        - [x] `PolyPolygon`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/PolyPolygon.md`
-      - **Properties**
-        - [x] `CurrentPoint`: `docs/api/GR32_Paths/Classes/TCustomPath/Properties/CurrentPoint.md`
-    - [x] `TFlattenedPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/index.md`
-      - **Methods**
-        - [x] `Clear`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Methods/Clear.md`
-        - [x] `EndPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Methods/EndPath.md`
-        - [x] `MoveTo`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Methods/MoveTo.md`
-      - **Properties**
-        - [x] `Path`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Properties/Path.md`
-        - [x] `PathClosed`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Properties/PathClosed.md`
-      - **Events**
-        - [x] `OnBeginPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Events/OnBeginPath.md`
-        - [x] `OnEndPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Events/OnEndPath.md`
-    - [x] `TCustomCanvas`: `docs/api/GR32_Paths/Classes/TCustomCanvas/index.md`
-      - **Properties**
-        - [x] `Transformation`: `docs/api/GR32_Paths/Classes/TCustomCanvas/Properties/Transformation.md`
-    - [x] `TCanvas32`: `docs/api/GR32_Paths/Classes/TCanvas32/index.md`
-      - **Constructors**
-        - [x] `Create`: `docs/api/GR32_Paths/Classes/TCanvas32/Constructors/Create.md`
-      - **Methods**
-        - [x] `RenderText`: `docs/api/GR32_Paths/Classes/TCanvas32/Methods/RenderText.md`
-        - [x] `MeasureText`: `docs/api/GR32_Paths/Classes/TCanvas32/Methods/MeasureText.md`
-      - **Properties**
-        - [x] `Bitmap`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/Bitmap.md`
-        - [x] `Renderer`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/Renderer.md`
-        - [x] `RendererClassName`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/RendererClassName.md`
-        - [x] `Brushes`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/Brushes.md`
-  - **Constants**:
-    - [x] `DefaultCircleSteps`: `docs/api/GR32_Paths/Constants/DefaultCircleSteps.md`
-    - [x] `DefaultBezierTolerance`: `docs/api/GR32_Paths/Constants/DefaultBezierTolerance.md`
-  - **Variables**:
-    - [x] `CBezierTolerance`: `docs/api/GR32_Paths/Variables/CBezierTolerance.md`
-    - [x] `QBezierTolerance`: `docs/api/GR32_Paths/Variables/QBezierTolerance.md`
+- [ ] **GR32_Paths**
 - [ ] **GR32_Png**
 - [x] **GR32_Polygons**: `docs/api/GR32_Polygons/index.md`
   - **Classes**
@@ -1050,36 +992,41 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `PolygonRendererList`: `docs/api/GR32_Polygons/Variables/PolygonRendererList.md`
     - [x] `DefaultPolygonRendererClass`: `docs/api/GR32_Polygons/Variables/DefaultPolygonRendererClass.md`
     - [x] `CoverageBuilderVariables`: `docs/api/GR32_Polygons/Variables/CoverageBuilderVariables.md`
-- [ ] **GR32_Polygons.AggLite** (document only at unit level)
-- [ ] **GR32_Polygons.Direct2D** (document only at unit level)
-- [ ] **GR32_Polygons.GDI** (document only at unit level)
-- [ ] **GR32_Polygons.GDIPlus** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic**
-- [ ] **GR32_PortableNetworkGraphic.Chunks** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.IDAT** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.PLTE** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.Unknown** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.bKGD** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.cHRM** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.gAMA** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.hIST** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.iCCP** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.iTXt** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.oFFs** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.pCAL** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.pHYs** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.sBIT** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.sCAL** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.sPLT** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.sRGB** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.tEXt** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.tIME** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.tRNS** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Chunks.zTXt** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Encoding** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Transcoding** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.Types** (document only at unit level)
-- [ ] **GR32_PortableNetworkGraphic.ZLib** (document only at unit level)
+  - **Other concrete polygon rasterizers**
+    - [ ] **GR32_Polygons.AggLite** (document only at unit level)
+    - [ ] **GR32_Polygons.Direct2D** (document only at unit level)
+    - [ ] **GR32_Polygons.GDI** (document only at unit level)
+    - [ ] **GR32_Polygons.GDIPlus** (document only at unit level)
+- [ ] **GR32_PortableNetworkGraphic** (document only at unit level)
+  - **Chunks**
+    - [ ] **GR32_PortableNetworkGraphic.Chunks** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.IDAT** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.PLTE** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.Unknown** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.bKGD** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.cHRM** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.gAMA** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.hIST** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.iCCP** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.iTXt** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.oFFs** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.pCAL** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.pHYs** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.sBIT** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.sCAL** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.sPLT** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.sRGB** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.tEXt** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.tIME** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.tRNS** (document only at unit level)
+      - [ ] **GR32_PortableNetworkGraphic.Chunks.zTXt** (document only at unit level)
+  - **Encoding and Decoding**
+    - [ ] **GR32_PortableNetworkGraphic.Encoding** (document only at unit level)
+  - **Transcoding**
+    - [ ] **GR32_PortableNetworkGraphic.Transcoding** (document only at unit level)
+  - **Other**
+    - [ ] **GR32_PortableNetworkGraphic.Types** (document only at unit level)
+    - [ ] **GR32_PortableNetworkGraphic.ZLib** (document only at unit level)
 - [ ] **GR32_RangeBars**
 - [x] **GR32_Rasterizers**: `docs/api/GR32_Rasterizers/index.md`
   - **Classes**
@@ -1185,7 +1132,6 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `KernelList`: `docs/api/GR32_Resamplers/Variables/KernelList.md`
     - [x] `ResamplerList`: `docs/api/GR32_Resamplers/Variables/ResamplerList.md`
 - [ ] **GR32_System**
-- [ ] **GR32_Text_VCL_D2D** (document only at unit level)
 - [x] **GR32_Transforms**: `docs/api/GR32_Transforms/index.md`
   - **Classes**
     - [x] `TTransformation`: `docs/api/GR32_Transforms/Classes/TTransformation/index.md`
@@ -1381,7 +1327,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [x] **GR32_VectorUtils.Reference**`: ``docs/api/GR32_VectorUtils.Reference/index.md` (document only at unit level)
 - [ ] **amEasing**
 
-The following files will not be documented. Either because they are externals (copied from other libraries), because they are internal to Graphics32 or because I can't be assed to do so:
+The following files will not be documented. Either because they are externals (copied from other libraries), because they are internal to Graphics32, because they are obsolete, or because I can't be assed to do so:
 
 - **Clipper**
 - **Clipper.Core**
@@ -1389,3 +1335,8 @@ The following files will not be documented. Either because they are externals (c
 - **Clipper.Minkowski**
 - **Clipper.Offset**
 - **Clipper.RectClip**
+- **GR32_Clipper**
+- **GR32_Clipper1**
+- **GR32_Clipper2**
+- **GR32_Math_FPC**
+- **GR32_Text_VCL_D2D**

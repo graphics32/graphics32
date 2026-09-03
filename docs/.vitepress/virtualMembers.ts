@@ -95,6 +95,10 @@ export function buildTemplateFrontmatterValue(ancestorContent: string, className
       lines.push('    type: <required>')
       lines.push('    description: "<required>"')
     }
+
+    if (fm.returnsBlock) {
+      lines.push(fm.returnsBlock)
+    }
   }
 
   lines.push('---')
@@ -137,6 +141,11 @@ function parseFrontmatterContent(content: string): Record<string, any> {
   const paramMatch = yaml.match(/parameters:\r?\n((?:\s*-\s*.*\r?\n?)+)/)
   if (paramMatch) {
     result.parametersBlock = paramMatch[0].trim()
+  }
+
+  const retMatch = yaml.match(/returns:\r?\n([\s\S]*?)(?=\n[a-zA-Z0-9_-]+:|$)/)
+  if (retMatch) {
+    result.returnsBlock = retMatch[0].trim()
   }
 
   const ovMatch = yaml.match(/overloads:\r?\n([\s\S]*?)(?=\n[a-zA-Z0-9_-]+:|$)/)

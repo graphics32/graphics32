@@ -24,6 +24,13 @@ function renderInlineMarkdown(text: string | undefined | null): string {
   return html
 }
 
+function normalizedReturns(returns: any): Array<{ type: string; description: string }> {
+  if (!returns) return []
+  if (Array.isArray(returns)) return returns
+  if (typeof returns === 'object') return [returns]
+  return []
+}
+
 watchEffect(() => {
   if (!page.value) return
   const extraHeaders: any[] = []
@@ -31,6 +38,8 @@ watchEffect(() => {
   const hasOverloads = !!(frontmatter.value?.overloads && frontmatter.value.overloads.length)
   const hasDeclaration = !!(frontmatter.value?.declaration || hasOverloads)
   const hasParameters = !!(!hasOverloads && frontmatter.value?.parameters && frontmatter.value.parameters.length)
+  const singleReturns = normalizedReturns(frontmatter.value?.returns)
+  const hasReturns = !!(!hasOverloads && singleReturns.length)
 
   if (hasOverloads) {
     extraHeaders.push({
@@ -58,6 +67,14 @@ watchEffect(() => {
         title: 'Parameters',
         slug: 'parameters',
         link: '#parameters'
+      })
+    }
+    if (hasReturns) {
+      extraHeaders.push({
+        level: 2,
+        title: 'Returns',
+        slug: 'returns',
+        link: '#returns'
       })
     }
   }
@@ -177,6 +194,21 @@ onMounted(() => {
               </tr>
             </tbody>
           </table>
+
+          <table v-if="ov.returns && normalizedReturns(ov.returns).length">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(ret, rIdx) in normalizedReturns(ov.returns)" :key="rIdx">
+                <td><code v-html="renderInlineMarkdown(ret.type)"></code></td>
+                <td v-html="renderInlineMarkdown(ret.description)"></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </details>
     </template>
@@ -215,6 +247,28 @@ onMounted(() => {
               <td><code v-html="renderInlineMarkdown(param.name)"></code></td>
               <td><code v-html="renderInlineMarkdown(param.type)"></code></td>
               <td v-html="renderInlineMarkdown(param.description)"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Returns Table -->
+      <section class="api-returns-section" v-if="frontmatter.returns && normalizedReturns(frontmatter.returns).length">
+        <h2 id="returns" tabindex="-1">
+          Returns
+          <a class="header-anchor" href="#returns" aria-label="Permalink to &quot;Returns&quot;">&#8203;</a>
+        </h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(ret, rIdx) in normalizedReturns(frontmatter.returns)" :key="rIdx">
+              <td><code v-html="renderInlineMarkdown(ret.type)"></code></td>
+              <td v-html="renderInlineMarkdown(ret.description)"></td>
             </tr>
           </tbody>
         </table>
@@ -339,7 +393,7 @@ onMounted(() => {
   color: var(--vp-c-text-3);
 }
 
-.api-declaration-section, .api-parameters-section, .api-overloads-section {
+.api-declaration-section, .api-parameters-section, .api-returns-section, .api-overloads-section {
   margin-bottom: 24px;
 }
 

@@ -7,6 +7,7 @@ import { generateSidebarForDir } from './sidebar'
 import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
 import { apiShortcodesPlugin } from './shortcodePlugin'
 import { branchShortcodePlugin } from './branchShortcodePlugin'
+import { seeAlsoPlugin } from './seeAlsoPlugin'
 import { execSync } from 'child_process'
 import { generateVirtualMembers, getGitBranch } from './virtualMembers'
 import { generateMemberData } from './generateMemberData'
@@ -152,6 +153,7 @@ export default withMermaid(defineConfig({
     },
     config: (md) => {
       md.use(mathjax3)
+      seeAlsoPlugin(md)
       apiSymbolLinksPlugin(md, symbolMap)
       apiShortcodesPlugin(md)
       branchShortcodePlugin(md)
