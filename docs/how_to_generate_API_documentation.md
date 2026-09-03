@@ -889,7 +889,68 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Math_FPC** (document only at unit level)
 - [ ] **GR32_MicroTiles**
 - [ ] **GR32_OrdinalMaps**
-- [ ] **GR32_Paths**
+- [x] **GR32_Paths**: `docs/api/GR32_Paths/index.md`
+  - **Classes**:
+    - [x] `TCustomPath`: `docs/api/GR32_Paths/Classes/TCustomPath/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Paths/Classes/TCustomPath/Constructors/Create.md`
+      - **Methods**
+        - [x] `Clear`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Clear.md`
+        - [x] `EndPath`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/EndPath.md`
+        - [x] `MoveTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/MoveTo.md`
+        - [x] `MoveToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/MoveToRelative.md`
+        - [x] `LineTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/LineTo.md`
+        - [x] `LineToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/LineToRelative.md`
+        - [x] `HorizontalLineTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/HorizontalLineTo.md`
+        - [x] `HorizontalLineToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/HorizontalLineToRelative.md`
+        - [x] `VerticalLineTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/VerticalLineTo.md`
+        - [x] `VerticalLineToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/VerticalLineToRelative.md`
+        - [x] `CurveTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/CurveTo.md`
+        - [x] `CurveToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/CurveToRelative.md`
+        - [x] `ConicTo`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/ConicTo.md`
+        - [x] `ConicToRelative`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/ConicToRelative.md`
+        - [x] `Arc`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Arc.md`
+        - [x] `PolyLine`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/PolyLine.md`
+        - [x] `PolyPolyLine`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/PolyPolyLine.md`
+        - [x] `Rectangle`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Rectangle.md`
+        - [x] `RoundRect`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/RoundRect.md`
+        - [x] `Ellipse`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Ellipse.md`
+        - [x] `Circle`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Circle.md`
+        - [x] `Polygon`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/Polygon.md`
+        - [x] `PolyPolygon`: `docs/api/GR32_Paths/Classes/TCustomPath/Methods/PolyPolygon.md`
+      - **Properties**
+        - [x] `CurrentPoint`: `docs/api/GR32_Paths/Classes/TCustomPath/Properties/CurrentPoint.md`
+    - [x] `TFlattenedPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/index.md`
+      - **Methods**
+        - [x] `Clear`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Methods/Clear.md`
+        - [x] `EndPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Methods/EndPath.md`
+        - [x] `MoveTo`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Methods/MoveTo.md`
+      - **Properties**
+        - [x] `Path`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Properties/Path.md`
+        - [x] `PathClosed`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Properties/PathClosed.md`
+      - **Events**
+        - [x] `OnBeginPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Events/OnBeginPath.md`
+        - [x] `OnEndPath`: `docs/api/GR32_Paths/Classes/TFlattenedPath/Events/OnEndPath.md`
+    - [x] `TCustomCanvas`: `docs/api/GR32_Paths/Classes/TCustomCanvas/index.md`
+      - **Properties**
+        - [x] `Transformation`: `docs/api/GR32_Paths/Classes/TCustomCanvas/Properties/Transformation.md`
+    - [x] `TCanvas32`: `docs/api/GR32_Paths/Classes/TCanvas32/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Paths/Classes/TCanvas32/Constructors/Create.md`
+      - **Methods**
+        - [x] `RenderText`: `docs/api/GR32_Paths/Classes/TCanvas32/Methods/RenderText.md`
+        - [x] `MeasureText`: `docs/api/GR32_Paths/Classes/TCanvas32/Methods/MeasureText.md`
+      - **Properties**
+        - [x] `Bitmap`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/Bitmap.md`
+        - [x] `Renderer`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/Renderer.md`
+        - [x] `RendererClassName`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/RendererClassName.md`
+        - [x] `Brushes`: `docs/api/GR32_Paths/Classes/TCanvas32/Properties/Brushes.md`
+  - **Constants**:
+    - [x] `DefaultCircleSteps`: `docs/api/GR32_Paths/Constants/DefaultCircleSteps.md`
+    - [x] `DefaultBezierTolerance`: `docs/api/GR32_Paths/Constants/DefaultBezierTolerance.md`
+  - **Variables**:
+    - [x] `CBezierTolerance`: `docs/api/GR32_Paths/Variables/CBezierTolerance.md`
+    - [x] `QBezierTolerance`: `docs/api/GR32_Paths/Variables/QBezierTolerance.md`
 - [ ] **GR32_Png**
 - [x] **GR32_Polygons**: `docs/api/GR32_Polygons/index.md`
   - **Classes**
