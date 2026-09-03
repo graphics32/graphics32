@@ -728,7 +728,70 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Bindings**
 - [ ] **GR32_Blend**
 - [ ] **GR32_Blurs** (document only at unit level)
-- [ ] **GR32_Brushes**
+- [x] **GR32_Brushes**: `docs/api/GR32_Brushes/index.md`
+  - **Classes**
+    - [x] `TBrushCollection`: `docs/api/GR32_Brushes/Classes/TBrushCollection/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Constructors/Create.md`
+      - **Methods**
+        - [x] `Add`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Methods/Add.md`
+        - [x] `Clear`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Methods/Clear.md`
+        - [x] `Delete`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Methods/Delete.md`
+        - [x] `IndexOf`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Methods/IndexOf.md`
+        - [x] `Insert`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Methods/Insert.md`
+      - **Properties**
+        - [x] `Count`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Properties/Count.md`
+        - [x] `Items`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Properties/Items.md`
+        - [x] `Owner`: `docs/api/GR32_Brushes/Classes/TBrushCollection/Properties/Owner.md`
+    - [x] `TCustomBrush`: `docs/api/GR32_Brushes/Classes/TCustomBrush/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Constructors/Create.md`
+      - **Methods**
+        - [x] `Changed`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Methods/Changed.md`
+        - [x] `PolygonFS`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Methods/PolygonFS.md`
+        - [x] `PolyPolygonFS`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Methods/PolyPolygonFS.md`
+        - [x] `PolyPolygonMixedFS`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Methods/PolyPolygonMixedFS.md`
+      - **Properties**
+        - [x] `BrushCollection`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Properties/BrushCollection.md`
+        - [x] `Index`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Properties/Index.md`
+        - [x] `Visible`: `docs/api/GR32_Brushes/Classes/TCustomBrush/Properties/Visible.md`
+    - [x] `TSolidBrush`: `docs/api/GR32_Brushes/Classes/TSolidBrush/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Brushes/Classes/TSolidBrush/Constructors/Create.md`
+      - **Properties**
+        - [x] `FillColor`: `docs/api/GR32_Brushes/Classes/TSolidBrush/Properties/FillColor.md`
+        - [x] `Filler`: `docs/api/GR32_Brushes/Classes/TSolidBrush/Properties/Filler.md`
+        - [x] `FillMode`: `docs/api/GR32_Brushes/Classes/TSolidBrush/Properties/FillMode.md`
+    - [x] `TNestedBrush`: `docs/api/GR32_Brushes/Classes/TNestedBrush/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Brushes/Classes/TNestedBrush/Constructors/Create.md`
+      - **Methods**
+        - [x] `PolygonFS`: `docs/api/GR32_Brushes/Classes/TNestedBrush/Methods/PolygonFS.md`
+        - [x] `PolyPolygonFS`: `docs/api/GR32_Brushes/Classes/TNestedBrush/Methods/PolyPolygonFS.md`
+        - [x] `PolyPolygonMixedFS`: `docs/api/GR32_Brushes/Classes/TNestedBrush/Methods/PolyPolygonMixedFS.md`
+      - **Properties**
+        - [x] `Brushes`: `docs/api/GR32_Brushes/Classes/TNestedBrush/Properties/Brushes.md`
+    - [x] `TStrokeBrush`: `docs/api/GR32_Brushes/Classes/TStrokeBrush/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Brushes/Classes/TStrokeBrush/Constructors/Create.md`
+      - **Properties**
+        - [x] `EndStyle`: `docs/api/GR32_Brushes/Classes/TStrokeBrush/Properties/EndStyle.md`
+        - [x] `JoinStyle`: `docs/api/GR32_Brushes/Classes/TStrokeBrush/Properties/JoinStyle.md`
+        - [x] `MiterLimit`: `docs/api/GR32_Brushes/Classes/TStrokeBrush/Properties/MiterLimit.md`
+        - [x] `StrokeWidth`: `docs/api/GR32_Brushes/Classes/TStrokeBrush/Properties/StrokeWidth.md`
+    - [x] `TGrowBrush`: `docs/api/GR32_Brushes/Classes/TGrowBrush/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_Brushes/Classes/TGrowBrush/Constructors/Create.md`
+      - **Properties**
+        - [x] `GrowAmount`: `docs/api/GR32_Brushes/Classes/TGrowBrush/Properties/GrowAmount.md`
+        - [x] `JoinStyle`: `docs/api/GR32_Brushes/Classes/TGrowBrush/Properties/JoinStyle.md`
+        - [x] `MiterLimit`: `docs/api/GR32_Brushes/Classes/TGrowBrush/Properties/MiterLimit.md`
+    - [x] `TDashedBrush`: `docs/api/GR32_Brushes/Classes/TDashedBrush/index.md`
+      - **Properties**
+        - [x] `DashArray`: `docs/api/GR32_Brushes/Classes/TDashedBrush/Properties/DashArray.md`
+        - [x] `DashOffset`: `docs/api/GR32_Brushes/Classes/TDashedBrush/Properties/DashOffset.md`
+  - **Types**
+    - [x] `TBooleanArray`: `docs/api/GR32_Brushes/Types/TBooleanArray.md`
 - [ ] **GR32_Clipboard**
 - [ ] **GR32_Clipper**
 - [ ] **GR32_Clipper1** (document only at unit level)
