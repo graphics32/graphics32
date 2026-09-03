@@ -7,13 +7,13 @@ kind: Class
 declaration: "TBitmapPolygonFiller = class(TCustomPolygonFiller)"
 inheritance:
   - TCustomPolygonFiller
-  - TObject
+  - TBitmapPolygonFiller
 summary: "Polygon filler that paints tiled bitmap patterns onto polygon spans."
 ---
 
 ## Description
 
-`TBitmapPolygonFiller` tiles a pattern bitmap (`Pattern`) across rendered polygon shapes, with optional pattern offsets (`OffsetX` and `OffsetY`).
+`TBitmapPolygonFiller` tiles a pattern bitmap ([[Pattern]]) across rendered polygon shapes, with optional pattern offsets ([[OffsetX]] and [[OffsetY]]).
 
 ---
 

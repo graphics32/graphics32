@@ -6,13 +6,17 @@ entity: TCustomPolygonRenderer
 kind: Class
 abstract: true
 aliases: [TCustomPolygonRendererClass]
-declaration: "TCustomPolygonRenderer = class abstract(TThreadPersistent)"
+declaration: |
+  type
+    TCustomPolygonRenderer = class abstract(TThreadPersistent)
+      ...
+    TCustomPolygonRendererClass = class of TCustomPolygonRenderer;
 inheritance:
-  - TThreadPersistent
-  - TNotifiablePersistent
-  - TPlainInterfacedPersistent
   - TPersistent
-  - TObject
+  - TPlainInterfacedPersistent
+  - TNotifiablePersistent
+  - TThreadPersistent
+  - TCustomPolygonRenderer
 summary: "Abstract base class for all vector polygon renderers."
 ---
 
