@@ -7,13 +7,13 @@ kind: Class
 declaration: "TCallbackPolygonFiller = class(TCustomPolygonFiller)"
 inheritance:
   - TCustomPolygonFiller
-  - TObject
+  - TCallbackPolygonFiller
 summary: "Polygon filler delegating line rendering to a custom event callback."
 ---
 
 ## Description
 
-`TCallbackPolygonFiller` allows applications to specify a custom method callback (`FillLineEvent`) for painting polygon scanline spans.
+`TCallbackPolygonFiller` allows applications to specify a custom method callback ([[FillLineEvent]]) for painting polygon scanline spans.
 
 ---
 

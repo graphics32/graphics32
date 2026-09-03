@@ -7,7 +7,7 @@ kind: Class
 declaration: "TInvertPolygonFiller = class(TCustomPolygonFiller)"
 inheritance:
   - TCustomPolygonFiller
-  - TObject
+  - TInvertPolygonFiller
 summary: "Polygon filler that inverts destination pixel colors inside polygon boundaries."
 ---
 
