@@ -26,6 +26,14 @@ export function buildSymbolMap(apiRootDir: string): SymbolMap {
           const unitMatch = content.match(/^unit:\s*["']?(.*?)["']?$/m)
 
           let relParts = path.relative(path.resolve(apiRootDir, '..'), fullPath).split(/[/\\]/)
+          const fileNameNoExt = path.basename(entry.name, '.md')
+          const parentDirName = path.basename(path.dirname(fullPath))
+          const isMemberIndex = fileNameNoExt.toLowerCase() === 'index' && ['Constructors', 'Methods', 'Properties', 'Events'].includes(parentDirName)
+
+          if (isMemberIndex) {
+            relParts[relParts.length - 1] = `${parentDirName}-${fileNameNoExt}.md`
+          }
+
           relParts = relParts.filter(part => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events'].includes(part))
           let relLink = '/' + relParts.join('/').replace(/\.md$/, '')
           if (relLink.endsWith('/index')) {

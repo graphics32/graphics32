@@ -110,6 +110,9 @@ export default withMermaid(defineConfig({
     // Strips category subfolders from public URLs while preserving physical category organization on disk
     // e.g. api/GR32/Classes/TBitmap32/Methods/Draw.md -> api/GR32/TBitmap32/Draw
     // e.g. api/GR32_Filters/Routines/Invert.md -> api/GR32_Filters/Invert
+    // Special rule for members named Index/index to prevent route and SSR temp chunk collision with class overview index.md pages
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events)/:member(Index|index)': 'api/:unit/:class/:memcat-:member',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events)/:member(Index|index).md': 'api/:unit/:class/:memcat-:member.md',
     'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events)/:member': 'api/:unit/:class/:member',
     'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events)/:member.md': 'api/:unit/:class/:member.md',
     'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/index.md': 'api/:unit/:class/index.md',

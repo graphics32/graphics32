@@ -108,7 +108,11 @@ export function generateSidebarForDir(
       .filter(segment => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events'].includes(segment))
       .join('/')
 
-    const link = '/' + path.join(path.basename(rootDir), cleanRelPath, nameNoExt).replace(/\\/g, '/').replace(/\/+/g, '/')
+    const parentDirName = path.basename(path.dirname(fileAbs))
+    const isMemberIndex = nameNoExt.toLowerCase() === 'index' && ['Constructors', 'Methods', 'Properties', 'Events'].includes(parentDirName)
+    const targetName = isMemberIndex ? `${parentDirName}-${nameNoExt}` : nameNoExt
+
+    const link = '/' + path.join(path.basename(rootDir), cleanRelPath, targetName).replace(/\\/g, '/').replace(/\/+/g, '/')
     items.push({ text: title, link })
   }
 

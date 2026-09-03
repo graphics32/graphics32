@@ -128,7 +128,8 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
         const scope = fm.scope || 'Public'
         const isVirtual = fm.isVirtual === 'true' || fm.isVirtual === true || !!fm.inheritedFrom
         const isProtected = scope.toLowerCase() === 'protected'
-        const link = `/api/${unitName}/${className}/${name}`
+        const linkName = name.toLowerCase() === 'index' ? `${category}-${name}` : name
+        const link = `/api/${unitName}/${className}/${linkName}`
         const propertyType = extractPropertyType(fm.declaration || '')
 
         const info: MemberInfo = {
