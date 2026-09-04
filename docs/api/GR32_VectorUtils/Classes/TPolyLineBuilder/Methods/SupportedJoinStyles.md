@@ -7,6 +7,9 @@ entity: TPolyLineBuilder.SupportedJoinStyles
 kind: Method
 declaration: "class function SupportedJoinStyles: TJoinStyles; virtual;"
 summary: "Returns the set of corner join styles (TJoinStyles) supported by this builder backend."
+returns:
+  - type: TJoinStyles
+    description: "A set of [[TJoinStyles]] enum flags representing supported corner join styles."
 ---
 
 ## Description

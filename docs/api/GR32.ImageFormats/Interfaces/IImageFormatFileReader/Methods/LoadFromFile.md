@@ -15,6 +15,9 @@ parameters:
   - name: AFilename
     type: String
     description: "Full file path to the image."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

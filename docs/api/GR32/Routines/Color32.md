@@ -21,6 +21,9 @@ overloads:
       - name: A
         type: Byte
         description: "Alpha component (0..255, defaults to $FF / opaque)."
+    returns:
+      - type: TColor32
+        description: "The constructed 32-bit ARGB `TColor32` value."
 
   - signature: "function Color32(WinColor: TColor): TColor32; overload;"
     summary: "Converts a native VCL/FCL TColor value to a 32-bit TColor32 value with 100% opacity (Alpha = $FF)."
@@ -28,6 +31,9 @@ overloads:
       - name: WinColor
         type: TColor
         description: "VCL/FCL 24-bit color value."
+    returns:
+      - type: TColor32
+        description: "The converted opaque 32-bit ARGB `TColor32` value."
 
   - signature: "function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;"
     summary: "Retrieves a TColor32 value from a 256-color TPalette32 array by index."
@@ -38,6 +44,9 @@ overloads:
       - name: Palette
         type: TPalette32
         description: "Palette lookup table."
+    returns:
+      - type: TColor32
+        description: "The 32-bit ARGB `TColor32` value stored at `Index` in the palette table."
 ---
 
 ## Description

@@ -11,6 +11,9 @@ parameters:
   - name: ItemClass
     type: TBrushClass
     description: "Specific TCustomBrush class type to instantiate."
+returns:
+  - type: TCustomBrush
+    description: "The newly created [[TCustomBrush]] instance added to the collection."
 ---
 
 ## Description

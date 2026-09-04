@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfFixedPoint
         description: "Fixed-point vertices."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFloatPoint; overload;"
     summary: "Converts a multi-contour TArrayOfArrayOfFixedPoint to TArrayOfArrayOfFloatPoint."
     parameters:
       - name: Points
         type: TArrayOfArrayOfFixedPoint
         description: "Fixed-point polygon contours."
+
+    returns:
+      - type: TArrayOfArrayOfFloatPoint
+        description: "A [[TArrayOfArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

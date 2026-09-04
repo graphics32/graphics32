@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function GetAdapters: IImageFormatAdapter;"
 summary: "Getter method for the Adapters property."
+returns:
+  - type: IImageFormatAdapter
+    description: "The calculated [[IImageFormatAdapter]] result."
 ---
 
 ## Description

@@ -10,6 +10,9 @@ parameters:
   - name: X, Y1, Y2
     type: TFloat
     description: "X, start Y, and end Y coordinates."
+returns:
+  - type: TArrayOfFloatPoint
+    description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

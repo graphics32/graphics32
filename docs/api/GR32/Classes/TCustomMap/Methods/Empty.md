@@ -7,6 +7,9 @@ entity: TCustomMap.Empty
 kind: Method
 declaration: "function Empty: Boolean; virtual;"
 summary: "Determines whether the map has zero area."
+returns:
+  - type: Boolean
+    description: "Returns `True` if map dimensions are zero or buffer is unallocated; otherwise `False`."
 ---
 
 ## Description

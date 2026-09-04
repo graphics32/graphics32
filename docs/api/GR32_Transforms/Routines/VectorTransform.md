@@ -13,6 +13,10 @@ parameters:
   - name: V
     type: TVector3f
     description: "Input vector."
+returns:
+  - type: TVector3f
+    description: |
+      The transformed [[TVector3f]] vector result of $M \times V$.
 ---
 
 ## Description

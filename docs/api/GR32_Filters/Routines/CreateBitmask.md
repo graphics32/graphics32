@@ -10,6 +10,9 @@ parameters:
   - name: Components
     type: TColor32Components
     description: "Set of ARGB channels to include in mask."
+returns:
+  - type: TColor32
+    description: "A 32-bit `TColor32` bitmask where specified ARGB channel bytes are set to `$FF` and unselected channels are `$00`."
 ---
 
 ## Description

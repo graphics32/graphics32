@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function ImageFormatFileTypes: TFileTypes;"
 summary: "Returns an array of file extension strings associated with the image format."
+returns:
+  - type: TFileTypes
+    description: "The calculated [[TFileTypes]] result."
 ---
 
 ## Description

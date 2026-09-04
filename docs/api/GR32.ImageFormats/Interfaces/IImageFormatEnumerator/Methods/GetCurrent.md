@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function GetCurrent: IImageFormat;"
 summary: "Returns the current IImageFormat element in the enumeration."
+returns:
+  - type: IImageFormat
+    description: "The calculated [[IImageFormat]] result."
 ---
 
 ## Description

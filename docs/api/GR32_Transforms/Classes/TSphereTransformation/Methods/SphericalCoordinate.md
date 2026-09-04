@@ -11,6 +11,9 @@ parameters:
   - name: CartesianX, CartesianY
     type: TFloat
     description: "Cartesian screen coordinates."
+returns:
+  - type: TFloatPoint
+    description: "A [[TFloatPoint]] record containing the calculated latitude and longitude angles."
 ---
 
 ## Description

@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function GetReaders: IImageFormatReaders;"
 summary: "Getter method for the Readers property."
+returns:
+  - type: IImageFormatReaders
+    description: "The calculated [[IImageFormatReaders]] result."
 ---
 
 ## Description

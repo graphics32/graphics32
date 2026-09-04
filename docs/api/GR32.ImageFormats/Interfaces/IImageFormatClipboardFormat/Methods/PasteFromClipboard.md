@@ -12,6 +12,9 @@ parameters:
   - name: ADest
     type: TCustomBitmap32
     description: "Target bitmap to receive clipboard pixel data."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

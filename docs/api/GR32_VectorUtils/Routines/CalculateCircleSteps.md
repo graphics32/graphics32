@@ -10,6 +10,9 @@ parameters:
   - name: Radius
     type: TFloat
     description: "Circle radius in pixels."
+returns:
+  - type: Cardinal
+    description: "The calculated number of sampling steps."
 ---
 
 ## Description

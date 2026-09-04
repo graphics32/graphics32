@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function GetWriters: IImageFormatWriters;"
 summary: "Getter method for the Writers property."
+returns:
+  - type: IImageFormatWriters
+    description: "The calculated [[IImageFormatWriters]] result."
 ---
 
 ## Description

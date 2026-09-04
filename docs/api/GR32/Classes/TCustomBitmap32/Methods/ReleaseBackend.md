@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function ReleaseBackend: TCustomBackend;"
 summary: "Detaches and returns the active TCustomBackend instance without freeing it."
+returns:
+  - type: TCustomBackend
+    description: "The previous [[TCustomBackend]] instance detached from the bitmap."
 ---
 
 ## Description

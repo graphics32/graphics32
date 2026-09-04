@@ -13,12 +13,19 @@ overloads:
       - name: AFileType
         type: String
         description: "File extension string (e.g. 'png')."
+    returns:
+      - type: IImageFormatReader
+        description: "The calculated [[IImageFormatReader]] result."
   - signature: "function FindReader(AStream: TStream): IImageFormatReader; overload;"
     summary: "Inspects stream magic numbers/signatures to find a matching IImageFormatReader."
     parameters:
       - name: AStream
         type: TStream
         description: "Stream containing image data."
+
+    returns:
+      - type: IImageFormatReader
+        description: "The calculated [[IImageFormatReader]] result."
 ---
 
 ## Description

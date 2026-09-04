@@ -11,6 +11,9 @@ parameters:
   - name: X, Y
     type: TFloat
     description: "Input longitude and latitude coordinates; modified in place to screen coordinates."
+returns:
+  - type: boolean
+    description: "Returns `True` if the projected point lies on the visible hemisphere face; otherwise `False`."
 ---
 
 ## Description

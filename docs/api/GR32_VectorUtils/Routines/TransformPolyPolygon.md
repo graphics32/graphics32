@@ -16,6 +16,9 @@ overloads:
         type: TTransformation
         description: "Geometric transformation instance."
 
+    returns:
+      - type: TArrayOfArrayOfFloatPoint
+        description: "A [[TArrayOfArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function TransformPolyPolygon(const Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint; overload;"
     summary: "Applies Transformation to multi-contour fixed-point polygons."
     parameters:
@@ -25,6 +28,10 @@ overloads:
       - name: Transformation
         type: TTransformation
         description: "Geometric transformation instance."
+
+    returns:
+      - type: TArrayOfArrayOfFixedPoint
+        description: "A [[TArrayOfArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

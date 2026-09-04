@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function GetSampleBounds: TFloatRect; virtual;"
 summary: "Returns the spatial boundary rectangle (TFloatRect) within which valid samples exist."
+returns:
+  - type: TFloatRect
+    description: "The bounding rectangle of valid sample coordinates in floating-point units."
 ---
 
 ## Description

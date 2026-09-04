@@ -7,6 +7,9 @@ entity: TTransformation.HasTransformedBounds
 kind: Method
 declaration: "function HasTransformedBounds: Boolean; virtual;"
 summary: "Returns True if the transformation can calculate well-defined bounding boxes."
+returns:
+  - type: Boolean
+    description: "Returns `True` if the transformation can calculate transformed bounds; otherwise `False`."
 ---
 
 ## Description

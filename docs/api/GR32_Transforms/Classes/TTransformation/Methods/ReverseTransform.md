@@ -13,18 +13,27 @@ overloads:
       - name: P
         type: TPoint
         description: "Destination point in integer coordinates."
+    returns:
+      - type: TPoint
+        description: "The inverse-transformed source point in integer coordinates."
   - signature: "function ReverseTransform(const P: TFixedPoint): TFixedPoint; overload; virtual;"
     summary: "Maps destination fixed-point coordinate back to source fixed-point coordinate."
     parameters:
       - name: P
         type: TFixedPoint
         description: "Destination point in fixed-point coordinates."
+    returns:
+      - type: TFixedPoint
+        description: "The inverse-transformed source point in fixed-point coordinates."
   - signature: "function ReverseTransform(const P: TFloatPoint): TFloatPoint; overload; virtual;"
     summary: "Maps destination floating-point coordinate back to source floating-point coordinate."
     parameters:
       - name: P
         type: TFloatPoint
         description: "Destination point in floating-point coordinates."
+    returns:
+      - type: TFloatPoint
+        description: "The inverse-transformed source point in floating-point coordinates."
 ---
 
 ## Description

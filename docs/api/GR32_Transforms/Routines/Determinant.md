@@ -10,6 +10,10 @@ parameters:
   - name: M
     type: TFloatMatrix
     description: "Input 3x3 matrix."
+returns:
+  - type: TFloat
+    description: |
+      The scalar determinant $\det(M)$ of matrix `M`.
 ---
 
 ## Description

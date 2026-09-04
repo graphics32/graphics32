@@ -14,6 +14,9 @@ parameters:
   - name: ClearBuffer
     type: Boolean
     description: "When True (default), clears buffer contents on resize."
+returns:
+  - type: Boolean
+    description: "Returns `True` if map dimensions were updated to match the source object; otherwise `False`."
 ---
 
 ## Description

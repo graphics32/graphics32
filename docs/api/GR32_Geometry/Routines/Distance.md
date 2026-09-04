@@ -15,6 +15,9 @@ overloads:
       - name: V2
         type: TFloatPoint
         description: "Second point."
+    returns:
+      - type: TFloat
+        description: "The Euclidean distance between V1 and V2."
   - signature: "function Distance(const V1, V2: TFixedPoint): TFixed; overload;"
     summary: "Calculates Euclidean distance between two fixed-point coordinates."
     parameters:
@@ -24,6 +27,9 @@ overloads:
       - name: V2
         type: TFixedPoint
         description: "Second point."
+    returns:
+      - type: TFixed
+        description: "The Euclidean distance between V1 and V2."
   - signature: "function Distance(const V1, V2: TPoint): TFloat; overload;"
     summary: "Calculates Euclidean distance between two integer coordinates."
     parameters:
@@ -33,6 +39,10 @@ overloads:
       - name: V2
         type: TPoint
         description: "Second point."
+
+    returns:
+      - type: TFloat
+        description: "The Euclidean distance between V1 and V2."
 ---
 
 ## Description

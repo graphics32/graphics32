@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfPoint
         description: "Integer point array."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function PointToFloatPoint(const Points: TArrayOfArrayOfPoint): TArrayOfArrayOfFloatPoint; overload;"
     summary: "Converts a multi-contour TArrayOfArrayOfPoint to TArrayOfArrayOfFloatPoint."
     parameters:
       - name: Points
         type: TArrayOfArrayOfPoint
         description: "Multi-contour integer point array."
+
+    returns:
+      - type: TArrayOfArrayOfFloatPoint
+        description: "A [[TArrayOfArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

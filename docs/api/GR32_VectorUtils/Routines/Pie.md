@@ -22,6 +22,9 @@ overloads:
         type: Integer
         description: "Number of linear steps."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint; overload;"
     summary: "Generates a pie wedge centered at P with automatically computed steps."
     parameters:
@@ -35,6 +38,9 @@ overloads:
         type: TFloat
         description: "Wedge arc angle and starting offset angle in radians."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;"
     summary: "Generates a pie wedge centered at P."
     parameters:
@@ -51,6 +57,9 @@ overloads:
         type: Integer
         description: "Number of linear steps."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Pie(const X, Y, Radius: TFloat; const Angle, Offset: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;"
     summary: "Generates a pie wedge centered at (X, Y)."
     parameters:
@@ -67,6 +76,9 @@ overloads:
         type: Integer
         description: "Number of linear steps."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Pie(const X, Y, Radius: TFloat; const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint; overload;"
     summary: "Generates a pie wedge centered at (X, Y)."
     parameters:
@@ -80,6 +92,9 @@ overloads:
         type: TFloat
         description: "Wedge arc angle and starting offset angle in radians."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Pie(const X, Y, Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;"
     summary: "Generates a pie wedge centered at (X, Y)."
     parameters:
@@ -95,6 +110,10 @@ overloads:
       - name: Steps
         type: Integer
         description: "Number of linear steps."
+
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

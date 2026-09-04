@@ -17,6 +17,9 @@ parameters:
   - name: ClearBuffer
     type: Boolean
     description: "When True (default), clears buffer contents on resize."
+returns:
+  - type: Boolean
+    description: "Returns `True` if dimensions were modified or buffer reallocated; otherwise `False`."
 ---
 
 ## Description

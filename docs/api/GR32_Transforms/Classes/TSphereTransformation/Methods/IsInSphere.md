@@ -11,6 +11,9 @@ parameters:
   - name: CartesianX, CartesianY
     type: TFloat
     description: "Cartesian screen coordinates."
+returns:
+  - type: boolean
+    description: "Returns `True` if coordinate `(CartesianX, CartesianY)` falls within the sphere projection circle; otherwise `False`."
 ---
 
 ## Description

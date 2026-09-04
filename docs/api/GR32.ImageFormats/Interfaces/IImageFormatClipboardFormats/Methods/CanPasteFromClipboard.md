@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function CanPasteFromClipboard: Boolean;"
 summary: "Determines whether valid graphics data supported by any registered format is currently present on the system clipboard."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

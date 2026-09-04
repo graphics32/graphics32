@@ -7,6 +7,9 @@ entity: TVectorMap.BoundsRect
 kind: Method
 declaration: "function BoundsRect: TRect;"
 summary: "Returns the rectangular bounds (0, 0, Width, Height) of the vector map."
+returns:
+  - type: TRect
+    description: "A [[TRect]] structure representing the full pixel bounds `(0, 0, Width, Height)` of the vector map."
 ---
 
 ## Description

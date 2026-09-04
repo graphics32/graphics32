@@ -22,6 +22,9 @@ overloads:
         type: TFloat
         description: "Initial rotation angle in radians."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Star(const X, Y, InnerRadius, OuterRadius: TFloat; Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload;"
     summary: "Generates a star centered at (X, Y)."
     parameters:
@@ -38,6 +41,9 @@ overloads:
         type: TFloat
         description: "Initial rotation angle in radians."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Star(const P: TFloatPoint; const Radius: TFloat; Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload;"
     summary: "Generates a regular star centered at P."
     parameters:
@@ -54,6 +60,9 @@ overloads:
         type: TFloat
         description: "Rotation angle in radians."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Star(const X, Y, Radius: TFloat; Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload;"
     summary: "Generates a regular star centered at (X, Y)."
     parameters:
@@ -69,6 +78,10 @@ overloads:
       - name: Rotation
         type: TFloat
         description: "Rotation angle in radians."
+
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

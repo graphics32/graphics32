@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfPoint
         description: "Integer point array."
 
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
   - signature: "function PointToFixedPoint(const Points: TArrayOfArrayOfPoint): TArrayOfArrayOfFixedPoint; overload;"
     summary: "Converts a multi-contour TArrayOfArrayOfPoint to TArrayOfArrayOfFixedPoint."
     parameters:
       - name: Points
         type: TArrayOfArrayOfPoint
         description: "Multi-contour integer point array."
+
+    returns:
+      - type: TArrayOfArrayOfFixedPoint
+        description: "A [[TArrayOfArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

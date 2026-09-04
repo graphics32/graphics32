@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfFloatPoint
         description: "Polygon vertices."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function BuildNormals(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload;"
     summary: "Computes fixed-point vertex unit normal vectors."
     parameters:
       - name: Points
         type: TArrayOfFixedPoint
         description: "Fixed-point polygon vertices."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

@@ -12,6 +12,9 @@ parameters:
   - name: Value
     type: TFloat
     description: "Distance offset x from kernel center in sampling units."
+returns:
+  - type: TFloat
+    description: "The evaluated 1D weighting factor for distance offset `Value`."
 ---
 
 ## Description

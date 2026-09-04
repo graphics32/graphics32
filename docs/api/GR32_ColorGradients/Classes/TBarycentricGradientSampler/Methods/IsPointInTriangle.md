@@ -13,12 +13,18 @@ overloads:
       - name: X, Y
         type: TFloat
         description: "Point coordinates."
+    returns:
+      - type: Boolean
+        description: "Returns `True` if coordinate `(X, Y)` lies inside the triangle; otherwise `False`."
   - signature: "function IsPointInTriangle(const Point: TFloatPoint): Boolean; overload;"
     summary: "Tests TFloatPoint record."
     parameters:
       - name: Point
         type: TFloatPoint
         description: "Point record."
+    returns:
+      - type: Boolean
+        description: "Returns `True` if `Point` lies inside the triangle; otherwise `False`."
 ---
 
 ## Description

@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function GetClipboardFormats: IImageFormatClipboardFormats;"
 summary: "Getter method for the ClipboardFormats property."
+returns:
+  - type: IImageFormatClipboardFormats
+    description: "The calculated [[IImageFormatClipboardFormats]] result."
 ---
 
 ## Description

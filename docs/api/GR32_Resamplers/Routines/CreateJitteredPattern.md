@@ -13,6 +13,9 @@ parameters:
   - name: SamplesX, SamplesY
     type: Integer
     description: "Number of sub-pixel sample points per grid tile axis."
+returns:
+  - type: TFixedSamplePattern
+    description: "A [[TFixedSamplePattern]] record containing jittered sub-pixel sample point arrays."
 ---
 
 ## Description

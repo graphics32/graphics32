@@ -21,6 +21,9 @@ parameters:
   - name: APalette
     type: THandle
     description: "Optional palette handle."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

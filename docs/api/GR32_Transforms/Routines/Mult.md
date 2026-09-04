@@ -13,6 +13,10 @@ parameters:
   - name: M2
     type: TFloatMatrix
     description: "Right factor matrix."
+returns:
+  - type: TFloatMatrix
+    description: |
+      The resulting [[TFloatMatrix]] matrix product $M_1 \times M_2$.
 ---
 
 ## Description

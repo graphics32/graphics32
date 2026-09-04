@@ -16,6 +16,9 @@ overloads:
         type: TFloat
         description: "Horizontal and vertical offsets."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function TranslatePolygon(const Points: TArrayOfFixedPoint; Offsetx, OffsetY: TFixed): TArrayOfFixedPoint; overload;"
     summary: "Translates a fixed-point polygon by (OffsetX, OffsetY)."
     parameters:
@@ -25,6 +28,10 @@ overloads:
       - name: Offsetx, OffsetY
         type: TFixed
         description: "Horizontal and vertical offsets."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

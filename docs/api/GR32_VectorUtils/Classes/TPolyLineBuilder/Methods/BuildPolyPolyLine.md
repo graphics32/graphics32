@@ -29,6 +29,9 @@ overloads:
         type: TFloat
         description: "Miter ratio limit for sharp corners."
 
+    returns:
+      - type: TArrayOfArrayOfFloatPoint
+        description: "A [[TArrayOfArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "class function BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload; virtual;"
     summary: "Builds fixed-point stroked outline polygon contours from multi-contour paths."
     parameters:
@@ -50,6 +53,10 @@ overloads:
       - name: MiterLimit
         type: TFixed
         description: "Miter ratio limit in fixed point format."
+
+    returns:
+      - type: TArrayOfArrayOfFixedPoint
+        description: "A [[TArrayOfArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

@@ -18,6 +18,9 @@ overloads:
       - name: IntersectPoint
         type: TFloatPoint
         description: "Output point receiving intersection coordinates."
+    returns:
+      - type: Boolean
+        description: "Returns `True` if the line segments intersect; otherwise `False`."
   - signature: "function SegmentIntersect(const P1, P2, P3, P4: TFixedPoint; out IntersectPoint: TFixedPoint): Boolean; overload;"
     summary: "Calculates intersection point between fixed-point line segments P1-P2 and P3-P4."
     parameters:
@@ -30,6 +33,10 @@ overloads:
       - name: IntersectPoint
         type: TFixedPoint
         description: "Output point receiving intersection coordinates."
+
+    returns:
+      - type: Boolean
+        description: "Returns `True` if the line segments intersect; otherwise `False`."
 ---
 
 ## Description

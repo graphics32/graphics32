@@ -15,6 +15,9 @@ overloads:
       - name: Pt2
         type: TFloatPoint
         description: "End point."
+    returns:
+      - type: TFloatPoint
+        description: "A [[TFloatPoint]] unit vector pointing in the direction from Pt1 to Pt2."
   - signature: "function GetUnitVector(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;"
     summary: "Returns unit vector pointing from fixed-point Pt1 to Pt2."
     parameters:
@@ -24,6 +27,10 @@ overloads:
       - name: Pt2
         type: TFixedPoint
         description: "End point."
+
+    returns:
+      - type: TFloatPoint
+        description: "A [[TFloatPoint]] unit vector pointing in the direction from Pt1 to Pt2."
 ---
 
 ## Description

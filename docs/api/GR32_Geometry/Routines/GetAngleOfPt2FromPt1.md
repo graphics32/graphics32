@@ -15,6 +15,9 @@ overloads:
       - name: Pt2
         type: TFloatPoint
         description: "Target point."
+    returns:
+      - type: Single
+        description: "The directional angle in radians from Pt1 to Pt2 in range [0..2pi)."
   - signature: "function GetAngleOfPt2FromPt1(Pt1, Pt2: TFixedPoint): Single; overload;"
     summary: "Calculates angle in radians from fixed-point Pt1 to Pt2."
     parameters:
@@ -24,6 +27,10 @@ overloads:
       - name: Pt2
         type: TFixedPoint
         description: "Target point."
+
+    returns:
+      - type: Single
+        description: "The directional angle in radians from Pt1 to Pt2 in range [0..2pi)."
 ---
 
 ## Description

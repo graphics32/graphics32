@@ -15,6 +15,9 @@ overloads:
       - name: Pt2
         type: TFloatPoint
         description: "End point of line segment."
+    returns:
+      - type: TFloatPoint
+        description: "A [[TFloatPoint]] unit normal vector perpendicular to line segment Pt1 -> Pt2."
   - signature: "procedure GetUnitNormal(const Pt1, Pt2: TFloatPoint; out Result: TFloatPoint); overload;"
     summary: "Calculates the perpendicular unit normal vector using an out parameter."
     parameters:
@@ -36,6 +39,10 @@ overloads:
       - name: Pt2
         type: TFixedPoint
         description: "End point of line segment."
+
+    returns:
+      - type: TFloatPoint
+        description: "A [[TFloatPoint]] unit normal vector perpendicular to line segment Pt1 -> Pt2."
 ---
 
 ## Description

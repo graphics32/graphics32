@@ -22,6 +22,9 @@ overloads:
         type: Boolean
         description: "True if polyline is a closed loop."
 
+    returns:
+      - type: TArrayOfArrayOfFloatPoint
+        description: "A [[TArrayOfArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function BuildDashedLine(const Points: TArrayOfFixedPoint; const DashArray: TArrayOfFixed; DashOffset: TFixed = 0; Closed: Boolean = False): TArrayOfArrayOfFixedPoint; overload;"
     summary: "Splits a fixed-point polyline into dashed segments according to DashArray lengths."
     parameters:
@@ -37,6 +40,10 @@ overloads:
       - name: Closed
         type: Boolean
         description: "True if polyline is a closed loop."
+
+    returns:
+      - type: TArrayOfArrayOfFixedPoint
+        description: "A [[TArrayOfArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

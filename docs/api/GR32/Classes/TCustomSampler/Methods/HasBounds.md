@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function HasBounds: Boolean; virtual;"
 summary: "Returns True if the sampler has defined spatial boundary limits."
+returns:
+  - type: Boolean
+    description: "Returns `True` if the sampler enforces sampling coordinate boundaries; otherwise `False`."
 ---
 
 ## Description

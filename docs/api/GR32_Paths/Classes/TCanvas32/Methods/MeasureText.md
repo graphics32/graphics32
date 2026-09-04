@@ -19,6 +19,9 @@ overloads:
       - name: Flags
         type: Cardinal
         description: "Formatting flags controlling text alignment and wrapping."
+    returns:
+      - type: TFloatRect
+        description: "The bounding rectangle required to render the text under the given formatting flags."
 
   - signature: "function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;"
     summary: "Measures text bounding rectangle using a TTextLayout structure."
@@ -32,6 +35,9 @@ overloads:
       - name: Layout
         type: TTextLayout
         description: "Text layout configuration."
+    returns:
+      - type: TFloatRect
+        description: "The bounding rectangle required to render the text using the specified text layout."
 ---
 
 ## Description

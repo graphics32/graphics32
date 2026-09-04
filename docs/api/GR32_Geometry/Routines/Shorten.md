@@ -18,6 +18,9 @@ overloads:
       - name: LinePos
         type: TLinePos
         description: "Endpoint selection (`lpStart`, `lpEnd`, `lpBoth`, `lpNeither`)."
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] containing the shortened polyline points."
   - signature: "function Shorten(const Pts: TArrayOfFixedPoint; Delta: TFloat; LinePos: TLinePos): TArrayOfFixedPoint; overload;"
     summary: "Shortens fixed-point polyline array endpoints by Delta distance."
     parameters:
@@ -30,6 +33,10 @@ overloads:
       - name: LinePos
         type: TLinePos
         description: "Endpoint selection (`lpStart`, `lpEnd`, `lpBoth`, `lpNeither`)."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] containing the shortened polyline points."
 ---
 
 ## Description

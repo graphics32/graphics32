@@ -16,6 +16,9 @@ overloads:
         type: TFloat
         description: "Minimal distance threshold."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function VertexReduction(const Points: TArrayOfFixedPoint; Epsilon: TFixed = FixedOne): TArrayOfFixedPoint; overload;"
     summary: "Simplifies a fixed-point polygon by removing vertices closer than Epsilon distance."
     parameters:
@@ -25,6 +28,10 @@ overloads:
       - name: Epsilon
         type: TFixed
         description: "Minimal distance threshold."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

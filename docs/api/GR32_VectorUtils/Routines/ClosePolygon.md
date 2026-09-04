@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfFloatPoint
         description: "Polygon vertices."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function ClosePolygon(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload;"
     summary: "Closes a fixed-point polygon vertex array."
     parameters:
       - name: Points
         type: TArrayOfFixedPoint
         description: "Polygon vertices."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

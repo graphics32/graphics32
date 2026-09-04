@@ -16,6 +16,9 @@ overloads:
         type: TFloat
         description: "Scale multipliers."
 
+    returns:
+      - type: TArrayOfArrayOfFloatPoint
+        description: "A [[TArrayOfArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function ScalePolyPolygon(const Points: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfArrayOfFixedPoint; overload;"
     summary: "Returns a scaled copy of a multi-contour fixed-point polygon."
     parameters:
@@ -25,6 +28,10 @@ overloads:
       - name: ScaleX, ScaleY
         type: TFixed
         description: "Scale multipliers."
+
+    returns:
+      - type: TArrayOfArrayOfFixedPoint
+        description: "A [[TArrayOfArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description
