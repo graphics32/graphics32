@@ -266,7 +266,7 @@ export function generateVirtualMembers(apiRootDir: string) {
                 .join('\n')
 
               const headFmPart = headFm.length > 0 ? `${headFm}\n` : ''
-              newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\n${headFmPart}templateValue: ${JSON.stringify(valueStr)}\n---${body}`
+              newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\n${headFmPart}---${body}`
             }
 
             fs.mkdirSync(path.dirname(targetMemberPath), { recursive: true })

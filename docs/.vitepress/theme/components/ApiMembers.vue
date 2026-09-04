@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useData } from 'vitepress'
-import { computed } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { showInherited, showProtected, showAbstract } from '../apiFilterState'
-import memberDataRaw from '../memberData.json'
+import { getMemberData, memberDataRef, type MemberInfo, type ClassMembersData, type UnitMembersData } from '../memberDataLoader'
 
 const props = defineProps<{
   type?: string
@@ -11,55 +11,22 @@ const props = defineProps<{
 
 const { frontmatter } = useData()
 
-interface MemberInfo {
-  unit: string
-  parent: string
-  entity: string
-  name: string
-  kind: string
-  category: string
-  scope: string
-  summary: string
-  declaration?: string
-  inheritedFrom?: string
-  isVirtual: boolean
-  isProtected: boolean
-  isAbstract?: boolean
-  propertyType?: string
-  link: string
-}
+onMounted(() => {
+  getMemberData()
+})
 
-interface ClassMembersData {
-  Constructors: MemberInfo[]
-  Methods: MemberInfo[]
-  Properties: MemberInfo[]
-  Events: MemberInfo[]
-}
-
-interface UnitMembersData {
-  Classes: MemberInfo[]
-  Interfaces: MemberInfo[]
-  Types: MemberInfo[]
-  Routines: MemberInfo[]
-  Constants: MemberInfo[]
-  Variables: MemberInfo[]
-}
-
-const memberData = memberDataRaw as {
-  byLink: Record<string, MemberInfo>
-  byClass: Record<string, ClassMembersData>
-  byUnit?: Record<string, UnitMembersData>
-}
+const memberData = computed(() => memberDataRef.value)
 
 const targetClassName = computed(() => {
+  if (!memberData.value) return ''
   if (props.cls) return props.cls
   const fm = frontmatter.value
   if (fm?.parent) return fm.parent
   if (fm?.entity) {
     if (fm.entity.includes('.')) return fm.entity.split('.')[0]
-    if (memberData.byClass[fm.entity]) return fm.entity
+    if (memberData.value.byClass && memberData.value.byClass[fm.entity]) return fm.entity
   }
-  if (fm?.title && memberData.byClass[fm.title]) return fm.title
+  if (fm?.title && memberData.value.byClass && memberData.value.byClass[fm.title]) return fm.title
   return ''
 })
 
@@ -75,11 +42,13 @@ const isUnitContext = computed(() => {
 })
 
 const classInfo = computed<ClassMembersData | undefined>(() => {
-  return memberData.byClass[targetClassName.value]
+  if (!memberData.value || !targetClassName.value) return undefined
+  return memberData.value.byClass ? memberData.value.byClass[targetClassName.value] : undefined
 })
 
 const unitInfo = computed<UnitMembersData | undefined>(() => {
-  return memberData.byUnit ? memberData.byUnit[targetUnitName.value] : undefined
+  if (!memberData.value || !targetUnitName.value) return undefined
+  return memberData.value.byUnit ? memberData.value.byUnit[targetUnitName.value] : undefined
 })
 
 function filterMembers(list: MemberInfo[] = []): MemberInfo[] {
@@ -157,7 +126,7 @@ function renderInlineMarkdown(text: string | undefined | null): string {
     <div
       v-for="cat in activeCategories"
       :key="cat.key"
-       class="api-member-category"
+      class="api-member-category"
     >
       <h2 :id="cat.key.toLowerCase()">{{ cat.label }}</h2>
 
