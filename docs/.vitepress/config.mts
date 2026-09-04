@@ -45,6 +45,23 @@ const buildTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19) +
 generateVirtualMembers(apiDir)
 generateMemberData(apiDir, path.resolve(__dirname, '../public/memberData.json'))
 
+// Generate full API sidebar data as static JSON asset for dynamic client-side hydration
+const fullApiSidebar = [
+  {
+    text: 'API Reference',
+    items: [
+      { text: 'API Overview', link: '/api/' },
+      ...generateSidebarForDir(apiDir, '', { collapsed: true })
+    ]
+  }
+]
+fs.mkdirSync(path.resolve(__dirname, '../public'), { recursive: true })
+fs.writeFileSync(
+  path.resolve(__dirname, '../public/sidebarData.json'),
+  JSON.stringify(fullApiSidebar, null, 2),
+  'utf-8'
+)
+
 const symbolMap = buildSymbolMap(apiDir)
 
 /*
@@ -270,8 +287,7 @@ export default withMermaid(defineConfig({
         {
           text: 'API Reference',
           items: [
-            { text: 'API Overview', link: '/api/' },
-            ...generateSidebarForDir(apiDir, '', { collapsed: true })
+            { text: 'API Overview', link: '/api/' }
           ]
         }
       ],
