@@ -19,6 +19,41 @@ import { applySidebarFilter } from './sidebarFilter'
 import { showInherited, showProtected, showAbstract } from './apiFilterState'
 import './custom.css'
 
+let siteDataRefInstance: any = null
+let sidebarLoaded = false
+
+const loadApiSidebar = () => {
+  if (sidebarLoaded || typeof window === 'undefined') return
+  sidebarLoaded = true
+
+  const baseUrl = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/'
+  const sidebarUrl = `${baseUrl}sidebarData.json`
+
+  fetch(sidebarUrl)
+    .then((res) => {
+      if (!res.ok) throw new Error(`Failed to fetch ${sidebarUrl}`)
+      return res.json()
+    })
+    .then((data) => {
+      if (siteDataRefInstance && siteDataRefInstance.value) {
+        siteDataRefInstance.value = {
+          ...siteDataRefInstance.value,
+          themeConfig: {
+            ...siteDataRefInstance.value.themeConfig,
+            sidebar: {
+              ...siteDataRefInstance.value.themeConfig?.sidebar,
+              '/api/': data
+            }
+          }
+        }
+        nextTick(() => setTimeout(applySidebarFilter, 50))
+      }
+    })
+    .catch((err) => {
+      console.warn('[theme] Error loading sidebarData.json:', err)
+    })
+}
+
 export default {
   extends: DefaultPlusTheme,
   Layout() {
@@ -36,7 +71,8 @@ export default {
       'nav-screen-content-after': () => h(NolebaseEnhancedReadabilitiesScreenMenu)
     })
   },
-  enhanceApp({ app }) {
+  enhanceApp({ app, siteData }) {
+    siteDataRefInstance = siteData
     app.component('ApiPage', ApiPage)
     app.component('ApiFilterControls', ApiFilterControls)
     app.component('ApiMembers', ApiMembers)
@@ -139,33 +175,6 @@ export default {
         const isApi = frontmatter.value?.docType === 'api' || !!frontmatter.value?.unit
         document.body.classList.toggle('api-page-doc', isApi)
       }
-    }
-
-    let sidebarLoaded = false
-    const loadApiSidebar = () => {
-      if (sidebarLoaded || typeof window === 'undefined') return
-      sidebarLoaded = true
-
-      const baseUrl = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/'
-      const sidebarUrl = `${baseUrl}sidebarData.json`
-
-      fetch(sidebarUrl)
-        .then((res) => {
-          if (!res.ok) throw new Error(`Failed to fetch ${sidebarUrl}`)
-          return res.json()
-        })
-        .then((data) => {
-          if (theme.value) {
-            theme.value.sidebar = {
-              ...theme.value.sidebar,
-              '/api/': data
-            }
-            nextTick(() => setTimeout(applySidebarFilter, 50))
-          }
-        })
-        .catch((err) => {
-          console.warn('[theme] Error loading sidebarData.json:', err)
-        })
     }
 
     onMounted(() => {
