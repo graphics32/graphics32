@@ -12,6 +12,9 @@ parameters:
   - name: AFormat
     type: TClipboardFormat
     description: "System clipboard format handle/ID to test."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

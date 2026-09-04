@@ -19,6 +19,7 @@ overloads:
       - name: AHandle
         type: Integer
         description: "Handle returned by RegisterImageFormat."
+
 ---
 
 ## Description

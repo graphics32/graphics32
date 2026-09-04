@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function Empty: Boolean; override;"
 summary: "Returns True if either Width or Height of the bitmap is zero."
+returns:
+  - type: Boolean
+    description: "Returns `True` if the bitmap has zero area or an unallocated pixel buffer; otherwise `False`."
 ---
 
 ## Description

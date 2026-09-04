@@ -15,6 +15,9 @@ overloads:
       - name: V2
         type: TFloatPoint
         description: "Second point."
+    returns:
+      - type: TFloat
+        description: "The squared Euclidean distance between V1 and V2."
   - signature: "function SqrDistance(const V1, V2: TFixedPoint): TFixed; overload;"
     summary: "Calculates squared Euclidean distance between two fixed-point points."
     parameters:
@@ -24,6 +27,9 @@ overloads:
       - name: V2
         type: TFixedPoint
         description: "Second point."
+    returns:
+      - type: TFixed
+        description: "The squared Euclidean distance between V1 and V2."
   - signature: "function SqrDistance(const V1, V2: TPoint): Integer; overload;"
     summary: "Calculates squared Euclidean distance between two integer points."
     parameters:
@@ -33,6 +39,10 @@ overloads:
       - name: V2
         type: TPoint
         description: "Second point."
+
+    returns:
+      - type: Integer
+        description: "The squared Euclidean distance between V1 and V2."
 ---
 
 ## Description

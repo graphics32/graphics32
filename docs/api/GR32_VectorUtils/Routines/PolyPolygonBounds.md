@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfArrayOfFloatPoint
         description: "Polygon contours."
 
+    returns:
+      - type: TFloatRect
+        description: "The [[TFloatRect]] bounding rectangle."
   - signature: "function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect; overload;"
     summary: "Computes the TFixedRect bounds enclosing all fixed-point polygon contours."
     parameters:
       - name: Points
         type: TArrayOfArrayOfFixedPoint
         description: "Fixed-point polygon contours."
+
+    returns:
+      - type: TFixedRect
+        description: "The [[TFixedRect]] bounding rectangle."
 ---
 
 ## Description

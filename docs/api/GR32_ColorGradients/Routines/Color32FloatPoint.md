@@ -15,6 +15,9 @@ overloads:
       - name: Point
         type: TFloatPoint
         description: "2D floating-point position point."
+    returns:
+      - type: TColor32FloatPoint
+        description: "A [[TColor32FloatPoint]] record initialized with the specified color and point location."
   - signature: "function Color32FloatPoint(Color: TColor32; X, Y: TFloat): TColor32FloatPoint; overload;"
     summary: "Creates a TColor32FloatPoint record from a TColor32 color and scalar X, Y float coordinates."
     parameters:
@@ -24,6 +27,9 @@ overloads:
       - name: X, Y
         type: TFloat
         description: "Horizontal and vertical floating-point coordinates."
+    returns:
+      - type: TColor32FloatPoint
+        description: "A [[TColor32FloatPoint]] record initialized with the specified color and scalar (X, Y) coordinates."
 ---
 
 ## Description

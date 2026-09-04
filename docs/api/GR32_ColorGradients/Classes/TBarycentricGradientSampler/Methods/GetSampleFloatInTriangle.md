@@ -11,6 +11,9 @@ parameters:
   - name: X, Y
     type: TFloat
     description: "Sampling coordinates."
+returns:
+  - type: TColor32
+    description: "The interpolated 32-bit ARGB `TColor32` color at coordinate `(X, Y)`."
 ---
 
 ## Description

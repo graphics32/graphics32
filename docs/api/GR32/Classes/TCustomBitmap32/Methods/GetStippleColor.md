@@ -12,6 +12,9 @@ parameters:
   - name: Advance
     type: Boolean
     description: "If True, advances StippleCounter after reading color."
+returns:
+  - type: TColor32
+    description: "The 32-bit ARGB `TColor32` stipple pattern color at the current position."
 ---
 
 ## Description

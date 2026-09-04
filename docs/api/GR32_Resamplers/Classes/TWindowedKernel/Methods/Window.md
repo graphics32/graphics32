@@ -12,6 +12,9 @@ parameters:
   - name: Value
     type: TFloat
     description: "The normalized distance from the kernel center (in pixels)."
+returns:
+  - type: TFloat
+    description: "The calculated window weighting factor $w(x)$ for the given radial offset `Value`."
 ---
 
 ## Description

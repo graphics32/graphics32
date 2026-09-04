@@ -15,6 +15,9 @@ parameters:
   - name: IncludeAll
     type: Boolean
     description: "Whether to prepend an 'All supported files' filter entry."
+returns:
+  - type: String
+    description: "The calculated [[String]] result."
 ---
 
 ## Description

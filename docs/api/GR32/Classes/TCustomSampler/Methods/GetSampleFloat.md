@@ -15,6 +15,9 @@ parameters:
   - name: Y
     type: TFloat
     description: "Vertical sub-pixel coordinate of the sample position."
+returns:
+  - type: TColor32
+    description: "The sampled 32-bit ARGB `TColor32` color at floating-point coordinate `(X, Y)`."
 ---
 
 ## Description

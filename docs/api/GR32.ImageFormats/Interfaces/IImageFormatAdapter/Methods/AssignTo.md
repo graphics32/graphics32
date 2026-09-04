@@ -15,6 +15,9 @@ parameters:
   - name: Dest
     type: TPersistent
     description: "Destination target object."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

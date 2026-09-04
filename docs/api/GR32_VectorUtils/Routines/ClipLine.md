@@ -16,6 +16,9 @@ overloads:
         type: Integer
         description: "Bounding clip box."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
   - signature: "function ClipLine(var X1, Y1, X2, Y2: TFloat; MinX, MinY, MaxX, MaxY: TFloat): Boolean; overload;"
     summary: "Clips a floating-point line segment to min/max float bounds."
     parameters:
@@ -26,6 +29,9 @@ overloads:
         type: TFloat
         description: "Bounding clip box."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
   - signature: "function ClipLine(var X1, Y1, X2, Y2: TFixed; MinX, MinY, MaxX, MaxY: TFixed): Boolean; overload;"
     summary: "Clips a fixed-point line segment to min/max fixed bounds."
     parameters:
@@ -36,6 +42,9 @@ overloads:
         type: TFixed
         description: "Bounding clip box."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
   - signature: "function ClipLine(var P1, P2: TPoint; const ClipRect: TRect): Boolean; overload;"
     summary: "Clips integer points P1, P2 to TRect ClipRect."
     parameters:
@@ -46,6 +55,9 @@ overloads:
         type: TRect
         description: "Clipping rectangle."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
   - signature: "function ClipLine(var P1, P2: TFloatPoint; const ClipRect: TFloatRect): Boolean; overload;"
     summary: "Clips float points P1, P2 to TFloatRect ClipRect."
     parameters:
@@ -56,6 +68,9 @@ overloads:
         type: TFloatRect
         description: "Clipping rectangle."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
   - signature: "function ClipLine(var P1, P2: TFixedPoint; const ClipRect: TFixedRect): Boolean; overload;"
     summary: "Clips fixed points P1, P2 to TFixedRect ClipRect."
     parameters:
@@ -65,6 +80,10 @@ overloads:
       - name: ClipRect
         type: TFixedRect
         description: "Clipping rectangle."
+
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
 ---
 
 ## Description

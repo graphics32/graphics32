@@ -6,6 +6,9 @@ entity: PolygonsRegistry
 kind: Function
 declaration: "function PolygonsRegistry: TFunctionRegistry;"
 summary: "Returns the global TFunctionRegistry instance managing GR32_Polygons function bindings."
+returns:
+  - type: TFunctionRegistry
+    description: "The global [[TFunctionRegistry]] instance managing function implementations and CPU optimization bindings for polygon rendering routines."
 ---
 
 ## Description

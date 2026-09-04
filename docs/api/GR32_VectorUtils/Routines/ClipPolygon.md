@@ -16,6 +16,9 @@ overloads:
         type: TFloatRect
         description: "Clipping rectangle."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function ClipPolygon(const Points: TArrayOfFixedPoint; const ClipRect: TFixedRect): TArrayOfFixedPoint; overload;"
     summary: "Clips a fixed-point polygon to a TFixedRect."
     parameters:
@@ -25,6 +28,10 @@ overloads:
       - name: ClipRect
         type: TFixedRect
         description: "Clipping rectangle."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

@@ -13,12 +13,19 @@ overloads:
         type: TRect
         description: "Input rectangle."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Rectangle(const R: TFloatRect): TArrayOfFloatPoint; overload;"
     summary: "Generates a floating-point rectangular polygon from TFloatRect R."
     parameters:
       - name: R
         type: TFloatRect
         description: "Input float rectangle."
+
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

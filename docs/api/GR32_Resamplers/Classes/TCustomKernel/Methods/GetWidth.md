@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function GetWidth: TFloat; virtual; abstract;"
 summary: "Returns the effective spatial radius (half-width) of the kernel."
+returns:
+  - type: TFloat
+    description: "The effective spatial radius (half-width) of the kernel in pixels."
 ---
 
 ## Description

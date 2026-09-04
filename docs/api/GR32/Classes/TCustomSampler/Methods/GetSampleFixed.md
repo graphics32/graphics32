@@ -15,6 +15,9 @@ parameters:
   - name: Y
     type: TFixed
     description: "Vertical coordinate of the sample position in 16.16 fixed-point format."
+returns:
+  - type: TColor32
+    description: "The sampled 32-bit ARGB `TColor32` color at fixed-point coordinate `(X, Y)`."
 ---
 
 ## Description

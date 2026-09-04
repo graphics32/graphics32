@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfFloatPoint
         description: "Polygon vertices."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function ReversePolygon(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload;"
     summary: "Reverses the order of vertices in a fixed-point polygon."
     parameters:
       - name: Points
         type: TArrayOfFixedPoint
         description: "Fixed-point polygon vertices."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

@@ -22,6 +22,9 @@ overloads:
         type: Int64
         description: "Byte offset from stream start (defaults to 0)."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
   - signature: "function CheckFileSignature(Stream: TStream; const Signature: array of Byte; Offset: Int64 = 0): Boolean; overload;"
     summary: "Checks if a stream matches a byte array signature at the specified offset."
     parameters:
@@ -35,6 +38,9 @@ overloads:
         type: Int64
         description: "Byte offset from stream start (defaults to 0)."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
   - signature: "function CheckFileSignature(Stream: TStream; const Signature, Mask: TBytes; Offset: Int64 = 0): Boolean; overload;"
     summary: "Checks if a stream matches a dynamic byte array signature and bitmask."
     parameters:
@@ -51,6 +57,9 @@ overloads:
         type: Int64
         description: "Stream offset."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
   - signature: "function CheckFileSignature(Stream: TStream; const Signature: TBytes; Offset: Int64 = 0): Boolean; overload;"
     summary: "Checks if a stream matches a dynamic byte array signature."
     parameters:
@@ -64,6 +73,9 @@ overloads:
         type: Int64
         description: "Stream offset."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
   - signature: "function CheckFileSignature(Stream: TStream; const Signature; Size: Cardinal; const Mask; MaskSize: Cardinal; Offset: Int64 = 0): Boolean; overload;"
     summary: "Checks raw untyped memory buffer signatures and masks against a stream."
     parameters:
@@ -86,6 +98,9 @@ overloads:
         type: Int64
         description: "Stream offset."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
   - signature: "function CheckFileSignature(Stream: TStream; const Signature; Size: Cardinal; Offset: Int64): Boolean; overload;"
     summary: "Checks raw untyped memory buffer signatures against a stream."
     parameters:
@@ -101,6 +116,10 @@ overloads:
       - name: Offset
         type: Int64
         description: "Stream offset."
+
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
 ---
 
 ## Description

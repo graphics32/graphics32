@@ -19,6 +19,9 @@ overloads:
         type: Integer
         description: "Number of linear steps."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Circle(const P: TFloatPoint; const Radius: TFloat): TArrayOfFloatPoint; overload;"
     summary: "Generates a circular polygon centered at P with automatically computed step count."
     parameters:
@@ -29,6 +32,9 @@ overloads:
         type: TFloat
         description: "Circle radius."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Circle(const X, Y, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;"
     summary: "Generates a circular polygon centered at (X, Y) with specified steps."
     parameters:
@@ -42,6 +48,9 @@ overloads:
         type: Integer
         description: "Number of linear steps."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Circle(const X, Y, Radius: TFloat): TArrayOfFloatPoint; overload;"
     summary: "Generates a circular polygon centered at (X, Y)."
     parameters:
@@ -52,6 +61,9 @@ overloads:
         type: TFloat
         description: "Circle radius."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Circle(const R: TRect): TArrayOfFloatPoint; overload;"
     summary: "Generates a circular polygon inscribed within integer TRect R."
     parameters:
@@ -59,6 +71,9 @@ overloads:
         type: TRect
         description: "Bounding rectangle."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Circle(const R: TRect; Steps: Integer): TArrayOfFloatPoint; overload;"
     summary: "Generates a circular polygon inscribed within integer TRect R with specified steps."
     parameters:
@@ -69,6 +84,9 @@ overloads:
         type: Integer
         description: "Number of linear steps."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Circle(const R: TFloatRect): TArrayOfFloatPoint; overload;"
     summary: "Generates a circular polygon inscribed within TFloatRect R."
     parameters:
@@ -76,6 +94,9 @@ overloads:
         type: TFloatRect
         description: "Bounding rectangle."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Circle(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint; overload;"
     summary: "Generates a circular polygon inscribed within TFloatRect R with specified steps."
     parameters:
@@ -85,6 +106,10 @@ overloads:
       - name: Steps
         type: Integer
         description: "Number of linear steps."
+
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

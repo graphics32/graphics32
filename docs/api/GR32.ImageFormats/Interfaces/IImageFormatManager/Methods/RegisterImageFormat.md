@@ -15,6 +15,9 @@ parameters:
   - name: APriority
     type: Integer
     description: "Priority weight determining order in format resolution."
+returns:
+  - type: Integer
+    description: "The calculated integer value or count."
 ---
 
 ## Description

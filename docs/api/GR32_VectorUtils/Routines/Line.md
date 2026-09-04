@@ -13,12 +13,19 @@ overloads:
         type: TFloatPoint
         description: "Start and end coordinates."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function Line(const X1, Y1, X2, Y2: TFloat): TArrayOfFloatPoint; overload;"
     summary: "Generates a line segment contour from (X1, Y1) to (X2, Y2)."
     parameters:
       - name: X1, Y1, X2, Y2
         type: TFloat
         description: "Start and end coordinates."
+
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

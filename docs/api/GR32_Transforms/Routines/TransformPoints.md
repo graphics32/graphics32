@@ -13,6 +13,9 @@ parameters:
   - name: Transformation
     type: TTransformation
     description: "Transformation object to apply."
+returns:
+  - type: TArrayOfArrayOfFixedPoint
+    description: "A newly allocated [[TArrayOfArrayOfFixedPoint]] containing the transformed vertex contours."
 ---
 
 ## Description

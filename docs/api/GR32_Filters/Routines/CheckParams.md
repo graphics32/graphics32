@@ -19,6 +19,9 @@ parameters:
   - name: ClearDst
     type: Boolean
     description: "If True (default) and Dst is resized, clears Dst buffer."
+returns:
+  - type: Boolean
+    description: "Returns `True` if the destination bitmap was resized to match source dimensions; otherwise `False`."
 ---
 
 ## Description

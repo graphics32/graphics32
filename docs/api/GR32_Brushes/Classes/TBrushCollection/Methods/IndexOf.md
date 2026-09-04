@@ -11,6 +11,9 @@ parameters:
   - name: Item
     type: TCustomBrush
     description: "Brush instance to locate."
+returns:
+  - type: Integer
+    description: "The zero-based position index of the specified brush in the collection, or `-1` if not found."
 ---
 
 ## Description

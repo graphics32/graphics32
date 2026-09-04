@@ -15,6 +15,9 @@ parameters:
   - name: AStream
     type: TStream
     description: "Stream containing encoded image data."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

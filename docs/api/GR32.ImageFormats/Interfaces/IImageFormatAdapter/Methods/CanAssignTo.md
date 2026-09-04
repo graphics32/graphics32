@@ -12,6 +12,9 @@ parameters:
   - name: Dest
     type: TPersistent
     description: "Destination object to test."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

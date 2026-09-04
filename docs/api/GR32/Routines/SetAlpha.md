@@ -13,6 +13,9 @@ parameters:
   - name: NewAlpha
     type: Integer
     description: "New alpha channel value (0..255)."
+returns:
+  - type: TColor32
+    description: "The 32-bit ARGB `TColor32` value updated with the specified alpha value."
 ---
 
 ## Description

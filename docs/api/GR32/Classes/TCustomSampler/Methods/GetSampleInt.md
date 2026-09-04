@@ -15,6 +15,9 @@ parameters:
   - name: Y
     type: Integer
     description: "Vertical coordinate of the sample position."
+returns:
+  - type: TColor32
+    description: "The sampled 32-bit ARGB `TColor32` color at integer coordinate `(X, Y)`."
 ---
 
 ## Description

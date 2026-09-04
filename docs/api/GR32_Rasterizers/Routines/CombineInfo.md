@@ -10,6 +10,9 @@ parameters:
   - name: Bitmap
     type: TCustomBitmap32
     description: "Source bitmap whose master alpha, draw mode, combine mode, outer color, and pixel combine event are queried."
+returns:
+  - type: TCombineInfo
+    description: "A [[TCombineInfo]] record containing drawing modes, master alpha, combine callbacks, and transparent color extracted from the specified bitmap."
 ---
 
 ## Description

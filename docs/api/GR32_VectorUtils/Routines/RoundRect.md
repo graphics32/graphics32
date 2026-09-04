@@ -13,6 +13,9 @@ parameters:
   - name: Radius
     type: TFloat
     description: "Corner rounding radius in pixels."
+returns:
+  - type: TArrayOfFloatPoint
+    description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

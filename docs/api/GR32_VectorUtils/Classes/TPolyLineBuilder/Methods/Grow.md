@@ -26,6 +26,9 @@ overloads:
         type: TFloat
         description: "Miter ratio limit."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "class function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; virtual; abstract;"
     summary: "Offsets floating-point polygon vertices using precomputed vertex normal vectors."
     parameters:
@@ -48,6 +51,9 @@ overloads:
         type: TFloat
         description: "Miter ratio limit."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "class function Grow(const Points: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; virtual;"
     summary: "Offsets fixed-point polygon vertices by Delta distance."
     parameters:
@@ -67,6 +73,9 @@ overloads:
         type: TFixed
         description: "Miter ratio limit in fixed point format."
 
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
   - signature: "class function Grow(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedPoint; const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; virtual;"
     summary: "Offsets fixed-point polygon vertices using precomputed vertex normal vectors."
     parameters:
@@ -88,6 +97,10 @@ overloads:
       - name: MiterLimit
         type: TFixed
         description: "Miter ratio limit in fixed point format."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

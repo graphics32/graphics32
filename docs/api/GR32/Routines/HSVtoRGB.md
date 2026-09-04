@@ -19,6 +19,9 @@ parameters:
   - name: A
     type: Integer
     description: "Alpha opacity channel value (0..255, defaults to 255 for opaque)."
+returns:
+  - type: TColor32
+    description: "The 32-bit ARGB `TColor32` color converted from HSV inputs."
 ---
 
 ## Description

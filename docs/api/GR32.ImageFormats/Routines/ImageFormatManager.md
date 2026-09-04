@@ -6,6 +6,9 @@ entity: ImageFormatManager
 kind: Function
 declaration: "function ImageFormatManager: IImageFormatManager;"
 summary: "Returns the global singleton IImageFormatManager instance for Graphics32."
+returns:
+  - type: IImageFormatManager
+    description: "The calculated [[IImageFormatManager]] result."
 ---
 
 ## Description

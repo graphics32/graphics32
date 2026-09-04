@@ -15,6 +15,9 @@ overloads:
       - name: Pts
         type: TArrayOfFloatPoint
         description: "Vertices of closed polygon."
+    returns:
+      - type: Boolean
+        description: "Returns `True` if `Pt` lies inside the polygon; otherwise `False`."
   - signature: "function PointInPolygon(const Pt: TFixedPoint; const Pts: array of TFixedPoint): Boolean; overload;"
     summary: "Tests if a fixed-point coordinate lies inside a fixed-point polygon."
     parameters:
@@ -24,6 +27,10 @@ overloads:
       - name: Pts
         type: array of TFixedPoint
         description: "Vertices of closed polygon."
+
+    returns:
+      - type: Boolean
+        description: "Returns `True` if `Pt` lies inside the polygon; otherwise `False`."
 ---
 
 ## Description

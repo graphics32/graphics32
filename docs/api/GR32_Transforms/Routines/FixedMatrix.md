@@ -10,6 +10,9 @@ parameters:
   - name: FloatMatrix
     type: TFloatMatrix
     description: "Input 3x3 floating-point matrix."
+returns:
+  - type: TFixedMatrix
+    description: "The converted [[TFixedMatrix]] 16.16 fixed-point matrix."
 ---
 
 ## Description

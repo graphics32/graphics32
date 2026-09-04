@@ -13,12 +13,19 @@ overloads:
         type: TArrayOfFloatPoint
         description: "Polygon vertices."
 
+    returns:
+      - type: TArrayOfArrayOfFloatPoint
+        description: "A [[TArrayOfArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function PolyPolygon(const Points: TArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload;"
     summary: "Wraps a TArrayOfFixedPoint into a TArrayOfArrayOfFixedPoint."
     parameters:
       - name: Points
         type: TArrayOfFixedPoint
         description: "Fixed-point polygon vertices."
+
+    returns:
+      - type: TArrayOfArrayOfFixedPoint
+        description: "A [[TArrayOfArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

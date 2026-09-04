@@ -15,6 +15,9 @@ overloads:
       - name: SqrDist
         type: Double
         description: "Squared distance threshold."
+    returns:
+      - type: Boolean
+        description: "Returns `True` if points A and B are closer than `SqrDist` threshold; otherwise `False`."
   - signature: "function SamePoint(const A, B: TFixedPoint; SqrDist: TFixed): Boolean; overload;"
     summary: "Tests if fixed-point points A and B are closer than SqrDist tolerance."
     parameters:
@@ -24,6 +27,9 @@ overloads:
       - name: SqrDist
         type: TFixed
         description: "Squared distance threshold."
+    returns:
+      - type: Boolean
+        description: "Returns `True` if points A and B are closer than `SqrDist` threshold; otherwise `False`."
   - signature: "function SamePoint(const A, B: TPoint; SqrDist: integer): Boolean; overload;"
     summary: "Tests if integer points A and B are closer than SqrDist tolerance."
     parameters:
@@ -33,6 +39,10 @@ overloads:
       - name: SqrDist
         type: Integer
         description: "Squared distance threshold."
+
+    returns:
+      - type: Boolean
+        description: "Returns `True` if points A and B are closer than `SqrDist` threshold; otherwise `False`."
 ---
 
 ## Description

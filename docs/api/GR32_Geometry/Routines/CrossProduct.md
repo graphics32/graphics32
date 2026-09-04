@@ -15,6 +15,9 @@ overloads:
       - name: V2
         type: TFloatPoint
         description: "Second vector."
+    returns:
+      - type: TFloat
+        description: "The calculated 2D cross product scalar of vectors V1 and V2."
   - signature: "function CrossProduct(const V1, V2: TFixedPoint): TFixed; overload;"
     summary: "Computes the 2D cross product of two fixed-point vectors."
     parameters:
@@ -24,6 +27,9 @@ overloads:
       - name: V2
         type: TFixedPoint
         description: "Second vector."
+    returns:
+      - type: TFixed
+        description: "The calculated 2D cross product scalar of vectors V1 and V2."
   - signature: "function CrossProduct(const V1, V2: TPoint): Integer; overload;"
     summary: "Computes the 2D cross product of two integer vectors."
     parameters:
@@ -33,6 +39,10 @@ overloads:
       - name: V2
         type: TPoint
         description: "Second vector."
+
+    returns:
+      - type: Integer
+        description: "The calculated 2D cross product scalar of vectors V1 and V2."
 ---
 
 ## Description

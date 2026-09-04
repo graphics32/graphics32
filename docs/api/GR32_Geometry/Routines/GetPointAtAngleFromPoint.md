@@ -18,6 +18,9 @@ overloads:
       - name: Radians
         type: Single
         description: "Angle in radians."
+    returns:
+      - type: TFloatPoint
+        description: "The calculated [[TFloatPoint]] point at specified distance and angle from origin."
   - signature: "function GetPointAtAngleFromPoint(const Pt: TFixedPoint; const Dist, Radians: Single): TFixedPoint; overload;"
     summary: "Calculates target fixed-point coordinate at specified distance and angle in radians."
     parameters:
@@ -30,6 +33,10 @@ overloads:
       - name: Radians
         type: Single
         description: "Angle in radians."
+
+    returns:
+      - type: TFixedPoint
+        description: "The calculated [[TFixedPoint]] point at specified distance and angle from origin."
 ---
 
 ## Description

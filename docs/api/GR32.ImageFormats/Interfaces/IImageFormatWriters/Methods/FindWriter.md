@@ -12,6 +12,9 @@ parameters:
   - name: AFileType
     type: String
     description: "File extension string (e.g. 'png')."
+returns:
+  - type: IImageFormatWriter
+    description: "The calculated [[IImageFormatWriter]] result."
 ---
 
 ## Description

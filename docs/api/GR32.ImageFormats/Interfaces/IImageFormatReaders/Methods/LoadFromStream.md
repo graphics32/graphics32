@@ -16,6 +16,9 @@ overloads:
       - name: AStream
         type: TStream
         description: "Input image stream."
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
   - signature: "function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream; const AFilename: String): Boolean; overload;"
     summary: "Loads and decodes image stream contents into ADest using AFilename's extension to narrow format discovery."
     parameters:
@@ -28,6 +31,10 @@ overloads:
       - name: AFilename
         type: String
         description: "Filename or extension context."
+
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or valid; otherwise `False`."
 ---
 
 ## Description

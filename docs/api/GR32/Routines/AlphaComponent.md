@@ -10,6 +10,9 @@ parameters:
   - name: Color32
     type: TColor32
     description: "Source 32-bit ARGB color."
+returns:
+  - type: Integer
+    description: "The alpha channel component value in range [0..255]."
 ---
 
 ## Description

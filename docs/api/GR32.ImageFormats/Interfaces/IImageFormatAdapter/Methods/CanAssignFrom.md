@@ -12,6 +12,9 @@ parameters:
   - name: Source
     type: TPersistent
     description: "Source graphic or object to test."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

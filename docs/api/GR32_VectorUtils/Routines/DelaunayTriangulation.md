@@ -10,6 +10,9 @@ parameters:
   - name: Points
     type: TArrayOfFloatPoint
     description: "Array of 2D input points."
+returns:
+  - type: TArrayOfTriangleVertexIndices
+    description: "A [[TArrayOfTriangleVertexIndices]] array containing generated polygon coordinates."
 ---
 
 ## Description

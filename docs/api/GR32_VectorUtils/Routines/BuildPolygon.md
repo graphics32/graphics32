@@ -14,12 +14,19 @@ overloads:
         type: array of TFloat
         description: "Array of alternating X, Y coordinate values."
 
+    returns:
+      - type: TArrayOfFloatPoint
+        description: "A [[TArrayOfFloatPoint]] array containing generated polygon coordinates."
   - signature: "function BuildPolygonX(const Data: array of TFixed): TArrayOfFixedPoint; overload;"
     summary: "Constructs a TArrayOfFixedPoint from an array of alternating X, Y fixed-point values."
     parameters:
       - name: Data
         type: array of TFixed
         description: "Array of alternating X, Y fixed-point values."
+
+    returns:
+      - type: TArrayOfFixedPoint
+        description: "A [[TArrayOfFixedPoint]] array containing generated polygon coordinates."
 ---
 
 ## Description

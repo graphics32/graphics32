@@ -11,6 +11,9 @@ parameters:
   - name: Offset
     type: TFloat
     description: "Normalized position offset in range [0.0, 1.0]."
+returns:
+  - type: TColor32
+    description: "The interpolated 32-bit ARGB `TColor32` color at the given offset position."
 ---
 
 ## Description

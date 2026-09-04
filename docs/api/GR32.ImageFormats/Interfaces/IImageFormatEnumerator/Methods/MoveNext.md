@@ -8,6 +8,9 @@ kind: Method
 scope: Public
 declaration: "function MoveNext: Boolean;"
 summary: "Advances the enumerator to the next registered image format."
+returns:
+  - type: Boolean
+    description: "Returns `True` if successful or supported; otherwise `False`."
 ---
 
 ## Description

@@ -19,6 +19,9 @@ overloads:
         type: TFloatPoint
         description: "Output intersection point."
 
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
   - signature: "function Intersect(const A1, A2, B1, B2: TFixedPoint; out P: TFixedPoint): Boolean; overload;"
     summary: "Computes the fixed-point intersection point P of segment (A1, A2) and segment (B1, B2)."
     parameters:
@@ -31,6 +34,10 @@ overloads:
       - name: P
         type: TFixedPoint
         description: "Output intersection point."
+
+    returns:
+      - type: Boolean
+        description: "Returns `True` if successful or intersecting; otherwise `False`."
 ---
 
 ## Description

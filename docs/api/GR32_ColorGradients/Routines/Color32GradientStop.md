@@ -13,6 +13,9 @@ parameters:
   - name: Color
     type: TColor32
     description: "32-bit ARGB color value."
+returns:
+  - type: TColor32GradientStop
+    description: "A [[TColor32GradientStop]] record initialized with the specified offset and color."
 ---
 
 ## Description

@@ -11,6 +11,9 @@ parameters:
   - name: ItemClass
     type: TTransformationClass
     description: "Transformation class to instantiate and append."
+returns:
+  - type: TTransformation
+    description: "The newly created [[TTransformation]] instance appended to the chain."
 ---
 
 ## Description
