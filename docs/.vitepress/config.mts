@@ -322,7 +322,90 @@ export default withMermaid(defineConfig({
     ],
 
     search: {
-      provider: 'local'
+      provider: 'local',
+      options: (() => {
+        const splitSections = async (file: string, html: string) => {
+          let frontmatterTitle: string | null = null
+          try {
+            const content = fs.readFileSync(file, 'utf-8')
+            const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+            if (match) {
+              const yamlStr = match[1]
+              const entityMatch = yamlStr.match(/^entity:\s*([^\r\n]+)/m)
+              const titleMatch = yamlStr.match(/^title:\s*([^\r\n]+)/m)
+              const unitMatch = yamlStr.match(/^unit:\s*([^\r\n]+)/m)
+
+              const rawVal = entityMatch?.[1] || titleMatch?.[1] || unitMatch?.[1]
+              if (rawVal) {
+                frontmatterTitle = rawVal.trim().replace(/^["']|["']$/g, '')
+              }
+            }
+          } catch (e) {
+            // ignore file read error
+          }
+
+          const headingRegex = /<h(\d*).*?>(.*?<a.*? href="#.*?".*?>.*?<\/a>)<\/h\1>/gi
+          const headingContentRegex = /(.*?)<a.*? href="#(.*?)".*?>.*?<\/a>/i
+
+          const clearHtmlTags = (str: string) => str.replace(/<[^>]*>/g, '')
+          const getSearchableText = (content: string) => clearHtmlTags(content).trim()
+
+          const result = html.split(headingRegex)
+          const topContent = result.shift()
+
+          const sections: { anchor: string; titles: string[]; text: string }[] = []
+          let rootTitle = frontmatterTitle
+
+          const topText = getSearchableText(topContent || '')
+          if (topText && rootTitle) {
+            sections.push({
+              anchor: '',
+              titles: [rootTitle],
+              text: topText
+            })
+          }
+
+          let parentTitles: string[] = rootTitle ? [rootTitle] : []
+
+          for (let i = 0; i < result.length; i += 3) {
+            const level = parseInt(result[i]) - 1
+            const heading = result[i + 1]
+            const headingResult = headingContentRegex.exec(heading)
+            const title = clearHtmlTags(headingResult?.[1] ?? '').trim()
+            const anchor = headingResult?.[2] ?? ''
+            const content = result[i + 2]
+            if (!title) continue
+
+            if (level === 0) {
+              rootTitle = title
+              parentTitles = [rootTitle]
+              const text = getSearchableText(content)
+              if (text || rootTitle) {
+                sections.push({ anchor, titles: [rootTitle], text })
+              }
+            } else {
+              let titles = parentTitles.slice(0, level)
+              if (!titles[0] && rootTitle) {
+                titles[0] = rootTitle
+              }
+              titles[level] = title
+              titles = titles.filter(Boolean)
+              const text = getSearchableText(content)
+              sections.push({ anchor, titles, text })
+              parentTitles[level] = title
+            }
+          }
+
+          return sections
+        }
+
+        return {
+          _splitIntoSections: splitSections,
+          miniSearch: {
+            _splitIntoSections: splitSections
+          }
+        }
+      })()
     }
   }
 }))
