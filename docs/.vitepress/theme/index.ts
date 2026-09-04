@@ -141,9 +141,37 @@ export default {
       }
     }
 
+    let sidebarLoaded = false
+    const loadApiSidebar = () => {
+      if (sidebarLoaded || typeof window === 'undefined') return
+      sidebarLoaded = true
+
+      const baseUrl = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/'
+      const sidebarUrl = `${baseUrl}sidebarData.json`
+
+      fetch(sidebarUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error(`Failed to fetch ${sidebarUrl}`)
+          return res.json()
+        })
+        .then((data) => {
+          if (theme.value) {
+            theme.value.sidebar = {
+              ...theme.value.sidebar,
+              '/api/': data
+            }
+            nextTick(() => setTimeout(applySidebarFilter, 50))
+          }
+        })
+        .catch((err) => {
+          console.warn('[theme] Error loading sidebarData.json:', err)
+        })
+    }
+
     onMounted(() => {
       initZoom()
       updateApiPageClass()
+      loadApiSidebar()
       nextTick(() => setTimeout(applySidebarFilter, 50))
     })
 
