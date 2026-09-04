@@ -43,7 +43,7 @@ const buildTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19) +
 
 // Generate virtual member routes for class inheritance before building symbol map and sidebar
 generateVirtualMembers(apiDir)
-generateMemberData(apiDir, path.resolve(__dirname, 'theme/memberData.json'))
+generateMemberData(apiDir, path.resolve(__dirname, '../public/memberData.json'))
 
 const symbolMap = buildSymbolMap(apiDir)
 

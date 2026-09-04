@@ -54,7 +54,64 @@ export default {
           const lastSlash = filePath.lastIndexOf('/')
           const dirPath = lastSlash >= 0 ? filePath.slice(0, lastSlash) : ''
           const fileName = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath
-          const valueStr = frontmatter.value?.templateValue || ''
+
+          const fm = frontmatter.value || {}
+          const lines = ['---']
+          lines.push('layout: doc')
+          lines.push('docType: api')
+          if (fm.unit) lines.push(`unit: ${fm.unit}`)
+          if (fm.parent) lines.push(`parent: ${fm.parent}`)
+          if (fm.entity) lines.push(`entity: ${fm.entity}`)
+          if (fm.kind) lines.push(`kind: ${fm.kind}`)
+          if (fm.scope) lines.push(`scope: ${fm.scope}`)
+          if (fm.summary) {
+            lines.push(`summary: "${fm.summary}"`)
+          } else {
+            lines.push('summary: "<required>"')
+          }
+
+          if (fm.overloads && Array.isArray(fm.overloads)) {
+            lines.push('overloads:')
+            for (const ov of fm.overloads) {
+              lines.push(`  - declaration: "${ov.declaration || ''}"`)
+              lines.push('    parameters:')
+              if (ov.parameters && Array.isArray(ov.parameters)) {
+                for (const p of ov.parameters) {
+                  lines.push(`      - name: ${p.name || '<required>'}`)
+                  lines.push(`        type: ${p.type || '<required>'}`)
+                  lines.push(`        description: "${p.description || '<required>'}"`)
+                }
+              }
+            }
+          } else {
+            if (fm.declaration) {
+              lines.push(`declaration: "${fm.declaration}"`)
+            } else {
+              lines.push('declaration: "<required>"')
+            }
+
+            if (fm.parameters && Array.isArray(fm.parameters)) {
+              lines.push('parameters:')
+              for (const p of fm.parameters) {
+                lines.push(`  - name: ${p.name || '<required>'}`)
+                lines.push(`    type: ${p.type || '<required>'}`)
+                lines.push(`    description: "${p.description || '<required>'}"`)
+              }
+            } else {
+              lines.push('parameters:')
+              lines.push('  - name: <required>')
+              lines.push('    type: <required>')
+              lines.push('    description: "<required>"')
+            }
+          }
+
+          lines.push('---')
+          lines.push('')
+          lines.push('## Remarks')
+          lines.push('')
+          lines.push('<required>')
+
+          const valueStr = lines.join('\n')
 
           const basePattern = typeof theme.value.editLink.pattern === 'string' ? theme.value.editLink.pattern : ''
           const match = basePattern.match(/^https:\/\/github\.com\/[^\/]+\/[^\/]+\/(?:edit|new)\/([^\/]+)\//)

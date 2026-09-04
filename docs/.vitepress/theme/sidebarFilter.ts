@@ -1,9 +1,5 @@
 import { showInherited, showProtected, showAbstract } from './apiFilterState'
-import memberDataRaw from './memberData.json'
-
-const memberData = memberDataRaw as {
-  byLink: Record<string, { isVirtual: boolean; isProtected: boolean; isAbstract?: boolean }>
-}
+import { getMemberData, onMemberDataLoaded } from './memberDataLoader'
 
 function normalizePath(path: string): string {
   if (!path) return ''
@@ -19,6 +15,12 @@ function normalizePath(path: string): string {
 
 export function applySidebarFilter() {
   if (typeof window === 'undefined') return
+
+  const memberData = getMemberData()
+  if (!memberData || !memberData.byLink) {
+    onMemberDataLoaded(applySidebarFilter)
+    return
+  }
 
   const links = document.querySelectorAll('.VPSidebar a.VPLink, .VPSidebar a.link, nav.VPSidebar a')
 
