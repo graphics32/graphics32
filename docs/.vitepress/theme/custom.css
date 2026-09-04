@@ -30,3 +30,27 @@
 .api-page-doc :not(pre) > code {
   color: var(--vp-c-text-1);
 }
+
+.api-page-doc .vp-doc h2 {
+  margin: 20px 0 10px;
+  border-top: none;
+  padding-top: 4px;
+  font-size: 20px;
+  line-height: 20px;
+}
+
+.api-page-doc .vp-doc h2 .header-anchor {
+  top: 0px;
+}
+
+.api-page-doc .vp-doc div[class*="language-"],
+.api-page-doc .vp-doc table,
+.api-page-doc .vp-doc ul,
+.api-page-doc .vp-doc p {
+  margin-top: 10px;
+}
+
+.api-page-doc .vp-doc .api-member-category h2 {
+  border-bottom: none;
+  padding-bottom: 0px;
+}
