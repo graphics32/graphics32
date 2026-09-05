@@ -166,8 +166,15 @@ export default {
       }
     })
 
+    let zoomInstance: ReturnType<typeof mediumZoom> | null = null
+
     const initZoom = () => {
-      mediumZoom('.vp-doc img, .content img, main img', { background: 'var(--vp-c-bg)' })
+      if (typeof window === 'undefined') return
+      if (!zoomInstance) {
+        zoomInstance = mediumZoom({ background: 'var(--vp-c-bg)' })
+      }
+      zoomInstance.detach()
+      zoomInstance.attach('.vp-doc img, .content img, main img:not(.hero-slide img)')
     }
 
     const updateApiPageClass = () => {
@@ -178,7 +185,7 @@ export default {
     }
 
     onMounted(() => {
-      initZoom()
+      nextTick(() => initZoom())
       updateApiPageClass()
       loadApiSidebar()
       nextTick(() => setTimeout(applySidebarFilter, 50))
@@ -188,7 +195,10 @@ export default {
       [() => route.path, showInherited, showProtected, showAbstract],
       () => {
         updateApiPageClass()
-        nextTick(() => setTimeout(applySidebarFilter, 50))
+        nextTick(() => {
+          initZoom()
+          setTimeout(applySidebarFilter, 50)
+        })
       }
     )
   }
