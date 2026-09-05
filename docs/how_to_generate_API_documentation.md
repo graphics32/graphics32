@@ -1252,7 +1252,14 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `SetBorderTransparent`: `docs/api/GR32_Transforms/Routines/SetBorderTransparent.md`
   - **Variables**
     - [x] `FullEdge`: `docs/api/GR32_Transforms/Variables/FullEdge.md`
-- [ ] **GR32_VPR**
+- [x] **GR32_VPR**: `docs/api/GR32_VPR/index.md`
+  - **Types**
+    - [x] `TValueSpan`: `docs/api/GR32_VPR/Types/TValueSpan.md`
+    - [x] `TRenderSpanProc`: `docs/api/GR32_VPR/Types/TRenderSpanProc.md`
+  - **Routines**
+    - [x] `RenderPolygon`: `docs/api/GR32_VPR/Routines/RenderPolygon.md`
+    - [x] `RenderPolyPolygon`: `docs/api/GR32_VPR/Routines/RenderPolyPolygon.md`
+- [ ] **GR32_VPR2** (document only at unit level)
 - [x] **GR32_VectorMaps**: `docs/api/GR32_VectorMaps/index.md`
   - **Classes**
     - [x] `TVectorMap`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/index.md`
