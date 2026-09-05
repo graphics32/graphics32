@@ -1,5 +1,10 @@
 <template>
-  <div class="hero-carousel-container" v-if="isMounted && screenshots.length > 0">
+  <div
+    class="hero-carousel-container"
+    v-if="isMounted && screenshots.length > 0"
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+  >
     <Swiper
       :modules="modules"
       effect="coverflow"
@@ -29,11 +34,25 @@
         :key="index"
         class="hero-slide"
       >
-        <div class="image-wrapper">
+        <div class="image-wrapper" @click="handleImageClick($event, item)">
           <img :src="item.src" :alt="item.alt" />
         </div>
       </SwiperSlide>
     </Swiper>
+
+    <Teleport to="body">
+      <div
+        v-if="zoomedItem"
+        class="hero-zoom-overlay"
+        @click="closeZoom"
+      >
+        <img
+          :src="zoomedItem.src"
+          :alt="zoomedItem.alt"
+          class="hero-zoomed-image"
+        />
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -53,10 +72,70 @@ const initialSlideIndex = ref(0);
 const preloadedIndexes = new Set<number>();
 let swiperInstance: SwiperClass | null = null;
 
+const zoomedItem = ref<{ src: string; alt: string } | null>(null);
+
+let pointerStartX = 0;
+let pointerStartY = 0;
+let isDragging = false;
+
+function onPointerDown(e: PointerEvent) {
+  pointerStartX = e.clientX;
+  pointerStartY = e.clientY;
+  isDragging = false;
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (Math.abs(e.clientX - pointerStartX) > 6 || Math.abs(e.clientY - pointerStartY) > 6) {
+    isDragging = true;
+  }
+}
+
+function handleImageClick(e: MouseEvent, item: { src: string; alt: string }) {
+  if (isDragging) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
+  const wrapper = e.currentTarget as HTMLElement;
+  const slideEl = wrapper.closest('.hero-slide');
+  if (!slideEl || !slideEl.classList.contains('swiper-slide-active')) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
+  zoomedItem.value = item;
+  if (swiperInstance && swiperInstance.autoplay) {
+    swiperInstance.autoplay.stop();
+  }
+}
+
+function closeZoom() {
+  zoomedItem.value = null;
+  if (swiperInstance && swiperInstance.autoplay) {
+    swiperInstance.autoplay.start();
+  }
+}
+
+function handleKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
+    if (zoomedItem.value) {
+      closeZoom();
+    }
+  }
+}
+
+function handleScroll() {
+  if (zoomedItem.value) {
+    closeZoom();
+  }
+}
+
 function handleVisibilityOrFocusChange() {
   if (!swiperInstance || !swiperInstance.autoplay) return;
 
-  if (document.hidden || !document.hasFocus()) {
+  if (document.hidden || !document.hasFocus() || zoomedItem.value) {
     swiperInstance.autoplay.stop();
   } else {
     swiperInstance.autoplay.start();
@@ -111,6 +190,8 @@ onMounted(async () => {
     document.addEventListener('visibilitychange', handleVisibilityOrFocusChange);
     window.addEventListener('blur', handleVisibilityOrFocusChange);
     window.addEventListener('focus', handleVisibilityOrFocusChange);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleScroll, { passive: true });
   }
 });
 
@@ -119,6 +200,8 @@ onUnmounted(() => {
     document.removeEventListener('visibilitychange', handleVisibilityOrFocusChange);
     window.removeEventListener('blur', handleVisibilityOrFocusChange);
     window.removeEventListener('focus', handleVisibilityOrFocusChange);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('scroll', handleScroll);
   }
 });
 </script>
@@ -171,6 +254,53 @@ onUnmounted(() => {
   border-radius: 8px;
 }
 
+.hero-slide.swiper-slide-active .image-wrapper img {
+  cursor: zoom-in;
+}
+
+.hero-zoom-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 99999;
+  background-color: var(--vp-c-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-out;
+  padding: 20px;
+  animation: heroZoomFadeIn 0.25s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.hero-zoomed-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  cursor: zoom-out;
+  animation: heroZoomScaleIn 0.25s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+@keyframes heroZoomFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes heroZoomScaleIn {
+  from {
+    transform: scale(0.92);
+  }
+  to {
+    transform: scale(1);
+  }
+}
 
 @media (min-width: 640px) {
   .hero-carousel-container {
