@@ -8,6 +8,7 @@ import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
 import { apiShortcodesPlugin } from './shortcodePlugin'
 import { branchShortcodePlugin } from './branchShortcodePlugin'
 import { seeAlsoPlugin } from './seeAlsoPlugin'
+import { apiFrontmatterPlugin } from './apiFrontmatterPlugin'
 import { execSync } from 'child_process'
 import { generateVirtualMembers, getGitBranch } from './virtualMembers'
 import { generateMemberData } from './generateMemberData'
@@ -170,6 +171,7 @@ export default withMermaid(defineConfig({
     },
     config: (md) => {
       md.use(mathjax3)
+      apiFrontmatterPlugin(md)
       seeAlsoPlugin(md)
       apiSymbolLinksPlugin(md, symbolMap)
       apiShortcodesPlugin(md)
