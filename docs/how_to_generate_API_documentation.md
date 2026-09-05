@@ -691,7 +691,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Text.Types**
 - [ ] **GR32.Text.Unicode** (document only at unit level)
 - [ ] **GR32.Text.Win** (document only at unit level)
-- [ ] **GR32.Transpose**
+- [X] **GR32.Transpose**
 - [ ] **GR32.Types.SIMD** (document only at unit level)
 - [x] **GR32_ArrowHeads**: `docs/api/GR32_ArrowHeads/index.md`
   - **Classes**
@@ -731,9 +731,6 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Classes**
     - [x] `TMemoryBackend`: `docs/api/GR32_Backends_Generic/Classes/TMemoryBackend/index.md`
     - [x] `TMMFBackend`: `docs/api/GR32_Backends_Generic/Classes/TMMFBackend/index.md`
-- [ ] **GR32_Backends_LCL_Carbon** (document only at unit level)
-- [ ] **GR32_Backends_LCL_CustomDrawn** (document only at unit level)
-- [ ] **GR32_Backends_LCL_Gtk** (document only at unit level)
 - [x] **GR32_Backends_LCL_Win**: `docs/api/GR32_Backends_LCL_Win/index.md`
   - **Classes**
     - [x] `TLCLBackend`: `docs/api/GR32_Backends_LCL_Win/Classes/TLCLBackend/index.md`
@@ -904,7 +901,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_Math**
 - [ ] **GR32_MicroTiles**
 - [ ] **GR32_OrdinalMaps**
-- [ ] **GR32_Paths**
+- [X] **GR32_Paths**
 - [ ] **GR32_Png**
 - [x] **GR32_Polygons**: `docs/api/GR32_Polygons/index.md`
   - **Classes**
@@ -1256,7 +1253,6 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Variables**
     - [x] `FullEdge`: `docs/api/GR32_Transforms/Variables/FullEdge.md`
 - [ ] **GR32_VPR**
-- [ ] **GR32_VPR2** (document only at unit level)
 - [x] **GR32_VectorMaps**: `docs/api/GR32_VectorMaps/index.md`
   - **Classes**
     - [x] `TVectorMap`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/index.md`
@@ -1352,3 +1348,7 @@ The following files will not be documented. Either because they are externals (c
 - **GR32_Clipper2**
 - **GR32_Math_FPC**
 - **GR32_Text_VCL_D2D**
+- **GR32_Backends_LCL_Carbon**
+- **GR32_Backends_LCL_CustomDrawn**
+- **GR32_Backends_LCL_Gtk**
+- **GR32_VPR2**
