@@ -27,6 +27,16 @@ export function apiFrontmatterPlugin(md: MarkdownIt) {
 
     // Only process API pages with 'docType: api'
     if (frontmatter.docType !== 'api') return
+
+    // Ensure title is populated for VitePress <head><title> rendering
+    if (!frontmatter.title) {
+      if (frontmatter.entity) {
+        frontmatter.title = frontmatter.entity
+      } else if (frontmatter.unit) {
+        frontmatter.title = frontmatter.unit
+      }
+    }
+
     if (env._apiFrontmatterInjected) return
 
     env._apiFrontmatterInjected = true
