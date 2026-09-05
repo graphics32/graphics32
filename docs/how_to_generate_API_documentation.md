@@ -139,9 +139,10 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 | `abstract` | Boolean | Optional. Set to `true` for Category 1, 2, or 3 abstract classes (see: `abstract-classes.md`). Used by VitePress member filters to toggle abstract class visibility. |
 | `summary` | String | High-level summary description. Keep short. Avoid details that are better described in the content. Often used in tables. |
 | `declaration` | String | Pascal procedure/function/type signature for single-signature pages. |
+| `inheritance` | Array | Required for Class entities. Inheritance chain, starting from base class (`TObject` is omitted) and ending in the class itself. |
 | `parameters` | Array | Parameter list objects `[ { name, type, description } ]`. |
-| `returns` | Array / Object | Return value object or list `[ { type, description } ]` for functions or methods returning a value. |
-| `seealso` | Array / String | Optional. List of cross-reference symbol names or markdown links (e.g. `[ClipPolygon, GR32_VectorUtils]`), automatically rendered as a `## See also` bulleted list at the bottom of the page. |
+| `returns` | Array / Object | Return value object or list `[ { type, description } ]` for functions or methods returning a value. `description can contain Markdown (quoted or `|` literal). |
+| `seealso` | Array / String | Optional. List of cross-references. Can contain symbolic links (e.g. `"[[GR32_VectorUtils]]"`) and other Markdown (quoted or `|` literal). Automatically rendered as a `## See also` bulleted list at the bottom of the page. |
 | `overloads` | Array | Array of overload objects for overloaded methods/routines. Each overload entry contains `signature`, `summary`, `parameters`, and `returns`. |
 | `inheritedFrom` | String | Optional. Full identifier of base class member if inherited (e.g., `TCustomBitmap32.Width`). |
 | `aliases` | Array / String | Optional. List of additional symbol names mapped to this page for `[[symbol]]` resolution (e.g. `aliases: [clBlack32, clWhite32]`). |
@@ -166,8 +167,9 @@ returns:
   - type: TArrayOfTriangleVertexIndices
     description: "An array of triangle index triplets."
 seealso:
-  - ClipPolygon
-  - GR32_VectorUtils
+  - "[[ClipPolygon]]"
+  - "[[GR32_VectorUtils]]"
+  - "[Delaunay triangulation (Wikipedia)](https://en.wikipedia.org/wiki/Delaunay_triangulation)"
 ---
 
 ## Example
@@ -900,8 +902,18 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32_LowLevel**
 - [ ] **GR32_Math**
 - [ ] **GR32_MicroTiles**
-- [ ] **GR32_OrdinalMaps**
 - [X] **GR32_Paths**
+- [x] **GR32_OrdinalMaps**: `docs/api/GR32_OrdinalMaps/index.md`
+  - **Classes**
+    - [x] `TBooleanMap`: `docs/api/GR32_OrdinalMaps/Classes/TBooleanMap/index.md`
+    - [x] `TByteMap`: `docs/api/GR32_OrdinalMaps/Classes/TByteMap/index.md`
+    - [x] `TWordMap`: `docs/api/GR32_OrdinalMaps/Classes/TWordMap/index.md`
+    - [x] `TIntegerMap`: `docs/api/GR32_OrdinalMaps/Classes/TIntegerMap/index.md`
+    - [x] `TCardinalMap`: `docs/api/GR32_OrdinalMaps/Classes/TCardinalMap/index.md`
+    - [x] `TFloatMap`: `docs/api/GR32_OrdinalMaps/Classes/TFloatMap/index.md`
+    - [x] `TGenericMap<T>`: `docs/api/GR32_OrdinalMaps/Classes/TGenericMap(T)/index.md`
+  - **Types**
+    - [x] `TConversionType`: `docs/api/GR32_OrdinalMaps/Types/TConversionType.md`
 - [ ] **GR32_Png**
 - [x] **GR32_Polygons**: `docs/api/GR32_Polygons/index.md`
   - **Classes**
