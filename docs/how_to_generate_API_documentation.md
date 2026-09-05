@@ -693,7 +693,19 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Text.Win** (document only at unit level)
 - [ ] **GR32.Transpose**
 - [ ] **GR32.Types.SIMD** (document only at unit level)
-- [ ] **GR32_ArrowHeads**
+- [x] **GR32_ArrowHeads**: `docs/api/GR32_ArrowHeads/index.md`
+  - **Classes**
+    - [x] `TArrowHeadAbstract`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadAbstract/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadAbstract/Constructors/Create.md`
+      - **Methods**
+        - [x] `GetPoints`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadAbstract/Methods/GetPoints.md`
+      - **Properties**
+        - [x] `Size`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadAbstract/Properties/Size.md`
+    - [x] `TArrowHeadSimple`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadSimple/index.md`
+    - [x] `TArrowHeadFourPt`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadFourPt/index.md`
+    - [x] `TArrowHeadCircle`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadCircle/index.md`
+    - [x] `TArrowHeadDiamond`: `docs/api/GR32_ArrowHeads/Classes/TArrowHeadDiamond/index.md`
 - [x] **GR32_Backends**: `docs/api/GR32_Backends/index.md`
   - **Classes**
     - [x] `EBackend`: `docs/api/GR32_Backends/Classes/EBackend/index.md`
