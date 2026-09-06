@@ -54,3 +54,17 @@
   border-bottom: none;
   padding-bottom: 0px;
 }
+
+/* PhotoSwipe discrete overlay & backdrop blur */
+.pswp__bg {
+  background: rgba(15, 15, 20, 0.75) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Interactive cursor for document images */
+.vp-doc img,
+.content img,
+main img:not(.hero-slide img) {
+  cursor: pointer;
+}

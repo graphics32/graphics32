@@ -3,7 +3,7 @@ import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import { h, onMounted, watch, watchEffect, nextTick } from 'vue'
 import { useRoute, useData } from 'vitepress'
-import mediumZoom from 'medium-zoom'
+import 'photoswipe/style.css'
 import {
   NolebaseEnhancedReadabilitiesMenu,
   NolebaseEnhancedReadabilitiesScreenMenu,
@@ -166,15 +166,53 @@ export default {
       }
     })
 
-    let zoomInstance: ReturnType<typeof mediumZoom> | null = null
+    let pswpListenerAttached = false
 
-    const initZoom = () => {
-      if (typeof window === 'undefined') return
-      if (!zoomInstance) {
-        zoomInstance = mediumZoom({ background: 'var(--vp-c-bg)' })
-      }
-      zoomInstance.detach()
-      zoomInstance.attach('.vp-doc img, .content img, main img:not(.hero-slide img)')
+    const initPhotoSwipe = () => {
+      if (typeof window === 'undefined' || pswpListenerAttached) return
+      pswpListenerAttached = true
+
+      document.body.addEventListener('click', (e: MouseEvent) => {
+        const target = e.target as HTMLElement | null
+        if (!target || target.tagName !== 'IMG') return
+
+        if (!target.matches('.vp-doc img, .content img, main img:not(.hero-slide img)')) return
+
+        const img = target as HTMLImageElement
+        if (!img.src) return
+
+        e.preventDefault()
+
+        const allImages = Array.from(
+          document.querySelectorAll<HTMLImageElement>('.vp-doc img, .content img, main img:not(.hero-slide img)')
+        ).filter((i) => i.src)
+
+        const index = allImages.indexOf(img)
+        const dataSource = (allImages.length > 0 ? allImages : [img]).map((i) => ({
+          src: i.currentSrc || i.src,
+          msrc: i.currentSrc || i.src,
+          w: i.naturalWidth || i.clientWidth || 800,
+          h: i.naturalHeight || i.clientHeight || 600,
+          element: i,
+          alt: i.alt || ''
+        }))
+
+        import('photoswipe').then(({ default: PhotoSwipe }) => {
+          const pswp = new PhotoSwipe({
+            dataSource,
+            index: index >= 0 ? index : 0,
+            showHideAnimationType: 'zoom',
+            bgOpacity: 0.8,
+            close: true,
+            zoom: false,
+            counter: false,
+            arrowKeys: false,
+            arrowPrev: false,
+            arrowNext: false,
+          })
+          pswp.init()
+        })
+      })
     }
 
     const updateApiPageClass = () => {
@@ -185,7 +223,7 @@ export default {
     }
 
     onMounted(() => {
-      nextTick(() => initZoom())
+      nextTick(() => initPhotoSwipe())
       updateApiPageClass()
       loadApiSidebar()
       nextTick(() => setTimeout(applySidebarFilter, 50))
@@ -196,7 +234,6 @@ export default {
       () => {
         updateApiPageClass()
         nextTick(() => {
-          initZoom()
           setTimeout(applySidebarFilter, 50)
         })
       }

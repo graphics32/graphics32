@@ -21,7 +21,7 @@ The Graphics32 documentation is built as a static site using [VitePress](https:/
 │   │   ├── symbolMap.ts           # Markdown-it plugin for [[SymbolName]] short API links
 │   │   ├── virtualMembers.ts      # Option B virtual member route generator
 │   │   └── theme/
-│   │       ├── index.ts           # Custom theme setup (@lando/vitepress-theme-default-plus, medium-zoom)
+│   │       ├── index.ts           # Custom theme setup (@lando/vitepress-theme-default-plus, photoswipe)
 │   │       ├── custom.css         # CSS variables, hero gradient, and layout overrides
 │   │       └── components/
 │   │           └── ApiPage.vue    # Custom Vue Layout component for API reference pages
@@ -74,7 +74,7 @@ To set up the documentation environment from scratch:
    - `@nolebase/vitepress-plugin-enhanced-readabilities`
    - `mermaid`
    - `vitepress-plugin-mermaid`
-   - `medium-zoom`
+   - `photoswipe`
    - `markdown-it-mathjax3`
    - `swiper`
 
