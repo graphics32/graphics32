@@ -9,7 +9,11 @@ summary: "Provides image format adapter support for Scalable Vector Graphics (SV
 
 ## Description
 
-The `GR32.ImageFormats.SVG` unit implements image format adapters for Scalable Vector Graphics (`.svg`) files.
+The `GR32.ImageFormats.SVG` unit implements image format adapters for Scalable Vector Graphics (`.svg`) files, using the `Image32` library.
+
+::: warning
+The `Image32` library is an independent library similar to Graphics32. It is not included with Graphics32.
+:::
 
 ---
 

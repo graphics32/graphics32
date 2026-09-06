@@ -9,7 +9,7 @@ summary: "Provides image format adapter support for Adobe Photoshop (PSD) docume
 
 ## Description
 
-The `GR32.ImageFormats.PSD` unit implements image format adapters and readers for Adobe Photoshop (`.psd`) files.
+The `GR32.ImageFormats.PSD` unit implements image format adapters and readers for Adobe Photoshop (`.psd`) files using Graphics32's native PSD library: [[TPhotoshopDocument]].
 
 ---
 

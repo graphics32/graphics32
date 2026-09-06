@@ -9,7 +9,7 @@ summary: "Provides specialized 32-bit alpha channel PNG image format adapter sup
 
 ## Description
 
-The `GR32.ImageFormats.PNG32` unit implements high-precision 32-bit RGBA image format adapters and readers using [[TPortableNetworkGraphic32]].
+The `GR32.ImageFormats.PNG32` unit implements high-precision 32-bit RGBA image format adapters and readers using Graphics32's native PNG library: [[TPortableNetworkGraphic32]].
 
 ---
 
