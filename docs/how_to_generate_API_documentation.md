@@ -616,7 +616,9 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `TArrayOfColor32`
     - [x] `PColor32`
     - [x] `TFixed`
-- [ ] **GR32.BigEndian**
+- [x] **GR32.BigEndian**: `docs/api/GR32.BigEndian/index.md`
+  - **Types**
+    - [x] `BigEndian`: `docs/api/GR32.BigEndian/Types/BigEndian.md`
 - [ ] **GR32.Blend.Assembler** (document only at unit level)
 - [ ] **GR32.Blend.Modes**
 - [ ] **GR32.Blend.Modes.Extra**
