@@ -627,7 +627,11 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Blur**
 - [ ] **GR32.Blur.RecursiveGaussian**
 - [ ] **GR32.Blur.SelectiveGaussian**
-- [ ] **GR32.CPUID**
+- [x] **GR32.CPUID**: `docs/api/GR32.CPUID/index.md`
+  - **Types**
+    - [x] `TCPUVendor`: `docs/api/GR32.CPUID/Types/TCPUVendor.md`
+    - [x] `TCPUInstructionSet`: `docs/api/GR32.CPUID/Types/TCPUInstructionSet.md`
+    - [x] `TCPU`: `docs/api/GR32.CPUID/Types/TCPU.md`
 - [ ] **GR32.Examples** (document only at unit level)
 - [x] **GR32.ImageFormats**: `docs/api/GR32.ImageFormats/index.md`
   - **Interfaces**:
@@ -1163,7 +1167,15 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Variables**
     - [x] `KernelList`: `docs/api/GR32_Resamplers/Variables/KernelList.md`
     - [x] `ResamplerList`: `docs/api/GR32_Resamplers/Variables/ResamplerList.md`
-- [ ] **GR32_System**
+- [x] **GR32_System**: `docs/api/GR32_System/index.md`
+  - **Types**
+    - [x] `TStopwatch`: `docs/api/GR32_System/Types/TStopwatch.md`
+  - **Routines**
+    - [x] `GetTickCount`: `docs/api/GR32_System/Routines/GetTickCount.md`
+    - [x] `GetProcessorCount`: `docs/api/GR32_System/Routines/GetProcessorCount.md`
+    - [x] `SetPerformanceAffinityMask`: `docs/api/GR32_System/Routines/SetPerformanceAffinityMask.md`
+  - **Variables**
+    - [x] `CPU`: `docs/api/GR32_System/Variables/CPU.md`
 - [x] **GR32_Transforms**: `docs/api/GR32_Transforms/index.md`
   - **Classes**
     - [x] `TTransformation`: `docs/api/GR32_Transforms/Classes/TTransformation/index.md`
