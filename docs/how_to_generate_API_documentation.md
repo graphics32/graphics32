@@ -674,7 +674,16 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [x] **GR32.ImageFormats.TPicture**: `docs/api/GR32.ImageFormats.TPicture/index.md` (document only at unit level)
 - [x] **GR32.ImageFormats.TWICImage**: `docs/api/GR32.ImageFormats.TWICImage/index.md` (document only at unit level)
 - [ ] **GR32.Math.Complex**
-- [ ] **GR32.Noise.Simplex**
+- [x] **GR32.Noise.Simplex**: `docs/api/GR32.Noise.Simplex/index.md`
+  - **Classes**:
+    - [x] `TSimplexNoise`: `docs/api/GR32.Noise.Simplex/Classes/TSimplexNoise/index.md`
+      - **Constructors**
+        - [x] `Create`: `docs/api/GR32.Noise.Simplex/Classes/TSimplexNoise/Constructors/Create.md`
+      - **Methods**
+        - [x] `Noise`: `docs/api/GR32.Noise.Simplex/Classes/TSimplexNoise/Methods/Noise.md`
+      - **Properties**
+        - [x] `Seed`: `docs/api/GR32.Noise.Simplex/Classes/TSimplexNoise/Properties/Seed.md`
+        - [x] `SeedMult`: `docs/api/GR32.Noise.Simplex/Classes/TSimplexNoise/Properties/SeedMult.md`
 - [ ] **GR32.Paint.Brush**
 - [ ] **GR32.Paint.Controller**
 - [ ] **GR32.Paint.Controller.API**
