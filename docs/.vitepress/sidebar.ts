@@ -73,7 +73,7 @@ export function generateSidebarForDir(
     // Strip organizational category folders from folder index links to match clean rewrites
     const cleanSubRel = subRel
       .split(/[/\\]/)
-      .filter(segment => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events'].includes(segment))
+      .filter(segment => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events', 'Fields'].includes(segment))
       .join('/')
 
     const folderLink = fs.existsSync(indexMd)
@@ -105,11 +105,11 @@ export function generateSidebarForDir(
     // Strip organizational category folders from sidebar links to match clean rewrites
     const cleanRelPath = relPath
       .split(/[/\\]/)
-      .filter(segment => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events'].includes(segment))
+      .filter(segment => !['Classes', 'Types', 'Routines', 'Constants', 'Variables', 'Interfaces', 'Constructors', 'Methods', 'Properties', 'Events', 'Fields'].includes(segment))
       .join('/')
 
     const parentDirName = path.basename(path.dirname(fileAbs))
-    const isMemberIndex = nameNoExt.toLowerCase() === 'index' && ['Constructors', 'Methods', 'Properties', 'Events'].includes(parentDirName)
+    const isMemberIndex = nameNoExt.toLowerCase() === 'index' && ['Constructors', 'Methods', 'Properties', 'Events', 'Fields'].includes(parentDirName)
     const targetName = isMemberIndex ? `${parentDirName}-${nameNoExt}` : nameNoExt
 
     const link = '/' + path.join(path.basename(rootDir), cleanRelPath, targetName).replace(/\\/g, '/').replace(/\/+/g, '/')

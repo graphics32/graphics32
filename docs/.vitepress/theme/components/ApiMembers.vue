@@ -90,7 +90,8 @@ const activeCategories = computed(() => {
       { key: 'Constructors', label: 'Constructors', items: classInfo.value.Constructors || [] },
       { key: 'Methods', label: 'Methods', items: classInfo.value.Methods || [] },
       { key: 'Properties', label: 'Properties', items: classInfo.value.Properties || [] },
-      { key: 'Events', label: 'Events', items: classInfo.value.Events || [] }
+      { key: 'Events', label: 'Events', items: classInfo.value.Events || [] },
+      { key: 'Fields', label: 'Fields', items: classInfo.value.Fields || [] }
     ]
 
     return categories
@@ -130,8 +131,8 @@ function renderInlineMarkdown(text: string | undefined | null): string {
     >
       <h2 :id="cat.key.toLowerCase()">{{ cat.label }}</h2>
 
-      <!-- Properties Table with Type & Scope -->
-      <table v-if="cat.key === 'Properties'">
+      <!-- Properties & Fields Table with Type & Scope -->
+      <table v-if="cat.key === 'Properties' || cat.key === 'Fields'">
         <thead>
           <tr>
             <th>Name</th>

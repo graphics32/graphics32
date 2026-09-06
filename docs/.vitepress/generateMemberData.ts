@@ -25,6 +25,7 @@ export interface ClassMembersData {
   Methods: MemberInfo[]
   Properties: MemberInfo[]
   Events: MemberInfo[]
+  Fields: MemberInfo[]
 }
 
 export interface UnitMembersData {
@@ -88,7 +89,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
   const byClass: Record<string, ClassMembersData> = {}
   const byUnit: Record<string, UnitMembersData> = {}
 
-  const memberCategories = ['Constructors', 'Methods', 'Properties', 'Events'] as const
+  const memberCategories = ['Constructors', 'Methods', 'Properties', 'Events', 'Fields'] as const
   const unitCategories = ['Classes', 'Interfaces', 'Types', 'Routines', 'Constants', 'Variables'] as const
 
   function singularizeKind(cat: string): string {
@@ -102,6 +103,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
     if (cat === 'Constructors') return 'Constructor'
     if (cat === 'Methods') return 'Method'
     if (cat === 'Events') return 'Event'
+    if (cat === 'Fields') return 'Field'
     return cat.endsWith('s') ? cat.slice(0, -1) : cat
   }
 
@@ -111,7 +113,8 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
         Constructors: [],
         Methods: [],
         Properties: [],
-        Events: []
+        Events: [],
+        Fields: []
       }
     }
 

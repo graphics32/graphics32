@@ -41,6 +41,7 @@ Sub-categories exist under individual container entities (such as individual `Cl
 2. **Methods** (`Methods/`) - Supported under `Classes` and `Interfaces`.
 3. **Properties** (`Properties/`) - Supported under `Classes` and `Interfaces`.
 4. **Events** (`Events/`) - Supported under `Classes`.
+4. **Fields** (`Fields/`) - Supported under `Classes` and `Records`.
 5. **Operators** (`Operators/`) - Operator overloads (e.g. `operator Implicit`, `operator Add`) belong as a member sub-category under `Classes` or complex record types.
 
 ### Category to Frontmatter `kind` Mapping Table
@@ -59,6 +60,7 @@ The table below defines the mapping from organizational member categories to the
 | **Methods** | `Method` | Member procedures and functions (including class methods). |
 | **Properties** | `Property` | Member properties (including class properties). |
 | **Events** | `Event` | Delegation event properties (e.g., `notify` events). |
+| **Fields** | `Field` | Class fields (variables). |
 | **Operators** | `Operator` | Overloaded record and class operators. |
 
 ### Public API Constructs Requiring Special Consideration
@@ -134,7 +136,7 @@ All API pages must use `layout: doc` and `docType: api` in YAML frontmatter.
 | `unit` | String | Name of the unit (e.g., `GR32`). |
 | `parent` | String | Optional. Name of parent class/record (e.g., `TBitmap32`). Enables 3-level breadcrumbs: `GR32 > TBitmap32 > Member`. |
 | `entity` | String | Full entity identifier (e.g., `TBitmap32.Draw`). |
-| `kind` | String | Entity classification (`Class`, `Method`, `Constructor`, `Property`, `Function`, `Type`, `Constant`). |
+| `kind` | String | Entity classification (`Class`, `Method`, `Constructor`, `Property`, `Function`, `Type`, `Constant`, `Field`). |
 | `scope` | String | Optional. Member visibility scope (`Public`, `Protected`, `Published`). Renders a styled scope badge in headers. |
 | `abstract` | Boolean | Optional. Set to `true` for Category 1, 2, or 3 abstract classes (see: `abstract-classes.md`). Used by VitePress member filters to toggle abstract class visibility. |
 | `summary` | String | High-level summary description. Keep short. Avoid details that are better described in the content. Often used in tables. |
