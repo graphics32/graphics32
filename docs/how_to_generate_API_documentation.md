@@ -915,7 +915,42 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `PerpendicularDistance`: `docs/api/GR32_Geometry/Routines/PerpendicularDistance.md`
     - [x] `SamePoint`: `docs/api/GR32_Geometry/Routines/SamePoint.md`
 - [ ] **GR32_Image**
-- [ ] **GR32_Layers**
+- [x] **GR32_Layers**: `docs/api/GR32_Layers/index.md`
+  - **Classes**
+    - [x] `TLayerCollection`: `docs/api/GR32_Layers/Classes/TLayerCollection/index.md`
+    - [x] `TCustomLayer`: `docs/api/GR32_Layers/Classes/TCustomLayer/index.md`
+    - [x] `TPositionedLayer`: `docs/api/GR32_Layers/Classes/TPositionedLayer/index.md`
+    - [x] `TCustomIndirectBitmapLayer`: `docs/api/GR32_Layers/Classes/TCustomIndirectBitmapLayer/index.md`
+    - [x] `TIndirectBitmapLayer`: `docs/api/GR32_Layers/Classes/TIndirectBitmapLayer/index.md`
+    - [x] `TCustomBitmapLayer`: `docs/api/GR32_Layers/Classes/TCustomBitmapLayer/index.md`
+    - [x] `TBitmapLayer`: `docs/api/GR32_Layers/Classes/TBitmapLayer/index.md`
+    - [x] `TRubberbandPassMouse`: `docs/api/GR32_Layers/Classes/TRubberbandPassMouse/index.md`
+    - [x] `TCustomRubberBandLayer`: `docs/api/GR32_Layers/Classes/TCustomRubberBandLayer/index.md`
+    - [x] `TPolygonRubberbandLayer`: `docs/api/GR32_Layers/Classes/TPolygonRubberbandLayer/index.md`
+    - [x] `TRubberbandLayer`: `docs/api/GR32_Layers/Classes/TRubberbandLayer/index.md`
+  - **Interfaces**
+    - [x] `ILayerNotification`: `docs/api/GR32_Layers/Interfaces/ILayerNotification.md`
+    - [x] `IUpdateRectNotification`: `docs/api/GR32_Layers/Interfaces/IUpdateRectNotification.md`
+    - [x] `ILayerUpdateNotification`: `docs/api/GR32_Layers/Interfaces/ILayerUpdateNotification.md`
+    - [x] `ILayerListNotification`: `docs/api/GR32_Layers/Interfaces/ILayerListNotification.md`
+    - [x] `ILayerHitTest`: `docs/api/GR32_Layers/Interfaces/ILayerHitTest.md`
+    - [x] `ILayerHitTestVertex`: `docs/api/GR32_Layers/Interfaces/ILayerHitTestVertex.md`
+    - [x] `ILayerHitTestMove`: `docs/api/GR32_Layers/Interfaces/ILayerHitTestMove.md`
+  - **Constants**
+    - [x] `Layer Option Bits`: `docs/api/GR32_Layers/Constants/Layer Option Bits.md`
+    - [x] `Rubberband Mapping Constants`: `docs/api/GR32_Layers/Constants/Rubberband Mapping Constants.md`
+  - **Variables**
+    - [x] `DirectionCursors`: `docs/api/GR32_Layers/Variables/DirectionCursors.md`
+  - **Types**
+    - [x] `TLayerState`: `docs/api/GR32_Layers/Types/TLayerState.md`
+    - [x] `TLayerListNotification`: `docs/api/GR32_Layers/Types/TLayerListNotification.md`
+    - [x] `TRubberBandHandleStyle`: `docs/api/GR32_Layers/Types/TRubberBandHandleStyle.md`
+    - [x] `TRubberBandHandleDrawParams`: `docs/api/GR32_Layers/Types/TRubberBandHandleDrawParams.md`
+    - [x] `TResizeDirection`: `docs/api/GR32_Layers/Types/TResizeDirection.md`
+    - [x] `TRBDragState`: `docs/api/GR32_Layers/Types/TRBDragState.md`
+    - [x] `TRBHandles`: `docs/api/GR32_Layers/Types/TRBHandles.md`
+    - [x] `TRBOptions`: `docs/api/GR32_Layers/Types/TRBOptions.md`
+    - [x] `Layer Event Types`: `docs/api/GR32_Layers/Types/Layer Event Types.md`
 - [ ] **GR32_LowLevel**
 - [ ] **GR32_Math**
 - [ ] **GR32_MicroTiles**
