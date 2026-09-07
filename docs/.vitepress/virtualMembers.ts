@@ -256,14 +256,8 @@ export function generateVirtualMembers(apiRootDir: string) {
 
               // Clean existing inheritedFrom, isVirtual, parent, entity, templateValue from headFm to avoid duplicate key errors
               headFm = headFm
-                .replace(/^inheritedFrom:\s*.*$/m, '')
-                .replace(/^isVirtual:\s*.*$/m, '')
-                .replace(/^parent:\s*.*$/m, '')
-                .replace(/^entity:\s*.*$/m, '')
-                .replace(/^templateValue:\s*.*$/m, '')
-                .split(/\r?\n/)
-                .filter(l => l.trim().length > 0)
-                .join('\n')
+                .replace(/^(inheritedFrom|isVirtual|parent|entity|templateValue):\s*.*\r?\n?/gm, '')
+                .trim()
 
               const headFmPart = headFm.length > 0 ? `${headFm}\n` : ''
               newContent = `---\ninheritedFrom: ${ancestorName}.${memberName}\nisVirtual: true\nparent: ${className}\nentity: ${className}.${memberName}\n${headFmPart}---${body}`
