@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="100%" height="100%">
+  <line x1="60" y1="250.0" x2="560" y2="250.0" stroke="#7f7f7f" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="56" y1="250.0" x2="60" y2="250.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="52" y="254.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="end">0</text>
+  <line x1="60" y1="190.0" x2="560" y2="190.0" stroke="#7f7f7f" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="56" y1="190.0" x2="60" y2="190.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="52" y="194.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="end">1</text>
+  <line x1="60" y1="130.0" x2="560" y2="130.0" stroke="#7f7f7f" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="56" y1="130.0" x2="60" y2="130.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="52" y="134.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="end">2</text>
+  <line x1="60" y1="70.0" x2="560" y2="70.0" stroke="#7f7f7f" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4,4" />
+  <line x1="56" y1="70.0" x2="60" y2="70.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="52" y="74.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="end">3</text>
+  <line x1="60.0" y1="250.0" x2="60.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="60.0" y="268.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">0</text>
+  <line x1="85.0" y1="250.0" x2="85.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="110.0" y1="250.0" x2="110.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="135.0" y1="250.0" x2="135.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="160.0" y1="250.0" x2="160.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="185.0" y1="250.0" x2="185.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="185.0" y="268.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">5</text>
+  <line x1="210.0" y1="250.0" x2="210.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="235.0" y1="250.0" x2="235.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="260.0" y1="250.0" x2="260.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="285.0" y1="250.0" x2="285.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="310.0" y1="250.0" x2="310.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="310.0" y="268.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">10</text>
+  <line x1="335.0" y1="250.0" x2="335.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="360.0" y1="250.0" x2="360.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="385.0" y1="250.0" x2="385.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="410.0" y1="250.0" x2="410.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="435.0" y1="250.0" x2="435.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="435.0" y="268.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">15</text>
+  <line x1="460.0" y1="250.0" x2="460.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="485.0" y1="250.0" x2="485.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="510.0" y1="250.0" x2="510.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="535.0" y1="250.0" x2="535.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <line x1="560.0" y1="250.0" x2="560.0" y2="254.0" stroke="#7f7f7f" stroke-width="1" />
+  <text x="560.0" y="268.0" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">20</text>
+  <line x1="60" y1="250.0" x2="560" y2="250.0" stroke="#7f7f7f" stroke-width="1.5" />
+  <line x1="60" y1="30" x2="60" y2="250.0" stroke="#7f7f7f" stroke-width="1.5" />
+  <text x="300.0" y="22" fill="#7f7f7f" font-size="13" font-weight="bold" font-family="sans-serif" text-anchor="middle">Mirror(x, 0, 3)</text>
+  <path d="M 60.0,250.0 L 85.0,190.0 L 110.0,130.0 L 135.0,70.0 L 160.0,130.0 L 185.0,190.0 L 210.0,250.0 L 235.0,190.0 L 260.0,130.0 L 285.0,70.0 L 310.0,130.0 L 335.0,190.0 L 360.0,250.0 L 385.0,190.0 L 410.0,130.0 L 435.0,70.0 L 460.0,130.0 L 485.0,190.0 L 510.0,250.0 L 535.0,190.0 L 560.0,130.0" fill="none" stroke="#0066cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="60.0" cy="250.0" r="3.5" fill="#D40000" />
+  <circle cx="85.0" cy="190.0" r="3.5" fill="#D40000" />
+  <circle cx="110.0" cy="130.0" r="3.5" fill="#D40000" />
+  <circle cx="135.0" cy="70.0" r="3.5" fill="#D40000" />
+  <circle cx="160.0" cy="130.0" r="3.5" fill="#D40000" />
+  <circle cx="185.0" cy="190.0" r="3.5" fill="#D40000" />
+  <circle cx="210.0" cy="250.0" r="3.5" fill="#D40000" />
+  <circle cx="235.0" cy="190.0" r="3.5" fill="#D40000" />
+  <circle cx="260.0" cy="130.0" r="3.5" fill="#D40000" />
+  <circle cx="285.0" cy="70.0" r="3.5" fill="#D40000" />
+  <circle cx="310.0" cy="130.0" r="3.5" fill="#D40000" />
+  <circle cx="335.0" cy="190.0" r="3.5" fill="#D40000" />
+  <circle cx="360.0" cy="250.0" r="3.5" fill="#D40000" />
+  <circle cx="385.0" cy="190.0" r="3.5" fill="#D40000" />
+  <circle cx="410.0" cy="130.0" r="3.5" fill="#D40000" />
+  <circle cx="435.0" cy="70.0" r="3.5" fill="#D40000" />
+  <circle cx="460.0" cy="130.0" r="3.5" fill="#D40000" />
+  <circle cx="485.0" cy="190.0" r="3.5" fill="#D40000" />
+  <circle cx="510.0" cy="250.0" r="3.5" fill="#D40000" />
+  <circle cx="535.0" cy="190.0" r="3.5" fill="#D40000" />
+  <circle cx="560.0" cy="130.0" r="3.5" fill="#D40000" />
+</svg>
