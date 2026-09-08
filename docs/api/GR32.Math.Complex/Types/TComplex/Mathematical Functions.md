@@ -6,7 +6,7 @@ parent: TComplex
 entity: TComplex Mathematical Functions
 kind: Method
 summary: "Comprehensive suite of mathematical, polar, trigonometric, hyperbolic, exponential, logarithmic, and string parsing functions for TComplex."
-aliases: [From, Parse, ToString, IsZero, IsInfinite, IsComplexInfinite, IsNaN, Modulus, Phase, Abs, AbsSqr, Angle, Sign, Conjugate, Inverse, Frac, Int, Compare, Equals, Exp, Ln, Log10, Log2, LogN, Sqr, Sqrt, Power, Cos, Sin, Tan, Cot, Csc, Sec, ArcCos, ArcSin, ArcTan, ArcCot, ArcCsc, ArcSec, CosH, SinH, TanH, CotH, CscH, SecH, ArcCosH, ArcSinH, ArcTanH, ArcCotH, ArcCscH, ArcSecH]
+aliases: [TComplex.From, TComplex.Parse, TComplex.ToString, TComplex.IsZero, TComplex.IsInfinite, TComplex.IsComplexInfinite, TComplex.IsNaN, TComplex.Modulus, TComplex.Phase, TComplex.Abs, TComplex.AbsSqr, TComplex.Angle, TComplex.Sign, TComplex.Conjugate, TComplex.Inverse, TComplex.Frac, TComplex.Int, TComplex.Compare, TComplex.Equals, TComplex.Exp, TComplex.Ln, TComplex.Log10, TComplex.Log2, TComplex.LogN, TComplex.Sqr, TComplex.Sqrt, TComplex.Power, TComplex.Cos, TComplex.Sin, TComplex.Tan, TComplex.Cot, TComplex.Csc, TComplex.Sec, TComplex.ArcCos, TComplex.ArcSin, TComplex.ArcTan, TComplex.ArcCot, TComplex.ArcCsc, TComplex.ArcSec, TComplex.CosH, TComplex.SinH, TComplex.TanH, TComplex.CotH, TComplex.CscH, TComplex.SecH, TComplex.ArcCosH, TComplex.ArcSinH, TComplex.ArcTanH, TComplex.ArcCotH, TComplex.ArcCscH, TComplex.ArcSecH]
 ---
 
 ## Description

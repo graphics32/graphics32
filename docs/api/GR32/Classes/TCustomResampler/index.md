@@ -10,7 +10,7 @@ declaration: |
     TCustomResampler = class(TCustomSampler)
       ...
     TCustomResamplerClass = class of TCustomResampler;
-aliases: [TCustomResampler]
+aliases: [TCustomResamplerClass]
 inheritance:
   - TObject
   - TPersistent
@@ -27,6 +27,6 @@ summary: "Abstract base class for pixel resampling and filtering algorithms atta
 
 Resamplers provide spatial filtering and interpolation algorithms (such as Nearest Neighbor, Linear, Cubic, or Kernel resamplers) used when stretching, transforming, or sampling bitmaps.
 
-The `Bitmap` property associates the resampler with its source bitmap. The `PixelAccessMode` property controls out-of-bounds pixel sampling behavior (`pamUnsafe`, `pamSafe`, `pamWrap`, or `pamTransparentEdge`).
+The [[Bitmap]] property associates the resampler with its source bitmap. The [[PixelAccessMode]] property controls out-of-bounds pixel sampling behavior (`pamUnsafe`, `pamSafe`, `pamWrap`, or `pamTransparentEdge`).
 
 [members]

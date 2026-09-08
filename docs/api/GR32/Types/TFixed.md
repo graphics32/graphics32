@@ -9,7 +9,7 @@ declaration: |
   type
     TFixed = type Integer;
     PFixed = ^TFixed;
-aliases: [PFixed]
+aliases: [PFixed, PFixedArray, TFixedArray, TArrayOfFixed, TArrayOfArrayOfFixed]
 ---
 
 ## Description
@@ -21,10 +21,10 @@ aliases: [PFixed]
 | Type | Declaration | Description |
 | --- | --- | --- |
 | `PFixed` | `^TFixed` | Pointer to a `TFixed` value. |
+| `TFixedArray` | `array [0..0] of TFixed` | Static un-sized array type. |
 | `PFixedArray` | `^TFixedArray` | Pointer to an un-sized array of fixed-point values. |
-| [[TFixedArray]] | `array [0..0] of TFixed` | Static un-sized array type. |
-| [[TArrayOfFixed]] | `array of TFixed` | Dynamic array of 16.16 fixed-point values. |
-| [[TArrayOfArrayOfFixed]] | `array of TArrayOfFixed` | 2D dynamic array of fixed-point values. |
+| `TArrayOfFixed` | `array of TFixed` | Dynamic array of 16.16 fixed-point values. |
+| `TArrayOfArrayOfFixed` | `array of TArrayOfFixed` | 2D dynamic array of fixed-point values. |
 
 ## See also
 

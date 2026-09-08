@@ -64,20 +64,19 @@ Another important class of nested samplers is _kernel samplers_. Kernel samplers
 The following is a list of some of the different nested samplers that are included in Graphics32.
 
 **Transformers**
-* [[TTransformer]] — transforms coordinates using an associated [[TTransformation]] object;
-* [[TNearestTransformer]] — the same as above, but for nearest neighbor resampling.
+* [[TTransformer]] — transforms coordinates using an associated [[TTransformation]] object.
 
 **Super samplers**
-* [[TSuperSampler]] — performs regular supersampling;
-* [[TAdaptiveSuperSampler]] — performs adaptive supersampling;
+* [[TSuperSampler]] — performs regular supersampling.
+* [[TAdaptiveSuperSampler]] — performs adaptive supersampling.
 * [[TPatternSampler]] — performs sampling according to a predefined pattern.
 
 **Kernel samplers**
-* [[TConvolver]] — performs convolution;
-* [[TSelectiveConvolver]] — performs selective convolution;
-* [[TDilater]] — performs morphological dilation;
-* [[TEroder]] — performs morphological erosion;
-* [[TExpander]] — special expansion operation;
+* [[TConvolver]] — performs convolution.
+* [[TSelectiveConvolver]] — performs selective convolution.
+* [[TDilater]] — performs morphological dilation.
+* [[TEroder]] — performs morphological erosion.
+* [[TExpander]] — special expansion operation.
 * [[TContracter]] — special contraction operation.
 
 

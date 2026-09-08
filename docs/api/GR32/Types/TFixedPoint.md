@@ -22,6 +22,7 @@ declaration: |
 
       class function Zero: TFixedPoint; static;
     end;
+aliases: [PFixedPoint, PFixedPointArray, TFixedPointArray, TArrayOfFixedPoint, TArrayOfArrayOfFixedPoint]
 ---
 
 ## Description
@@ -34,3 +35,13 @@ declaration: |
 | --- | --- | --- |
 | `X` | `TFixed` | X-coordinate in 16.16 fixed-point format. |
 | `Y` | `TFixed` | Y-coordinate in 16.16 fixed-point format. |
+
+## Related Types & Arrays
+
+| Type | Declaration | Description |
+| --- | --- | --- |
+| `PFixedPoint` | `^TFixedPoint` | Pointer to a `TFixedPoint` record. |
+| `TFixedPointArray` | `array [0..0] of TFixedPoint` | Static un-sized array type. |
+| `PFixedPointArray` | `^TFixedPointArray` | Pointer to an un-sized array of fixed-point records. |
+| `TArrayOfFixedPoint` | `array of TFixedPoint` | Dynamic array of 16.16 fixed-point records; A polyline/polygon. |
+| `TArrayOfArrayOfFixedPoint` | `array of TArrayOfFixedPoint` | 2D dynamic array of fixed-point records; A poly-polyline/poly-polygon; |

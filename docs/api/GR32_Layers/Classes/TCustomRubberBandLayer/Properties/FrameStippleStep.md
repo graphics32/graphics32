@@ -9,7 +9,7 @@ scope: Public
 declaration: "property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;"
 summary: "Step increment applied per pixel along the frame stipple pattern."
 seealso:
-  - "[[line-patterns]]"
+  - "[Line patterns](/guide/line-patterns)"
 ---
 
 ## Description

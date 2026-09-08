@@ -34,4 +34,4 @@ parameters:
 
 ## Description
 
-`OnConstrain` allows enforcing custom spatial constraints on `NewLocation`. The event is fired during interactive sizing when [[roConstrained]] is specified in the layer [[Options]].
+`OnConstrain` allows enforcing custom spatial constraints on `NewLocation`. The event is fired during interactive sizing when [[TRBOptions.roConstrained|roConstrained]] is specified in the layer [[Options]].

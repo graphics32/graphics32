@@ -12,7 +12,7 @@ This approach maintains backwards compatibility with the library before the cros
 
 ## Switching the back-end
 
-The back-end instance is switchable during the life-cycle of a [[TCustomBitmap32]] instance. Transition from one back-end instance to another is handled transparently, i.e. without losing the bitmap’s surface contents. This, for instance, allows for temporarily switching a handle-less memory-only bitmap to a GDI bitmap with a handle and vice versa. [[TCustomBitmap32]] exposes the current back-end via its [[Backend]] property.
+The back-end instance is switchable during the life-cycle of a [[TCustomBitmap32]] instance. Transition from one back-end instance to another is handled transparently, i.e. without losing the bitmap’s surface contents. This, for instance, allows for temporarily switching a handle-less memory-only bitmap to a GDI bitmap with a handle and vice versa. [[TCustomBitmap32]] exposes the current back-end via its [[TCustomBitmap32.Backend|Backend]] property.
 
 ```pascal:line-numbers
 begin
@@ -75,7 +75,7 @@ Note that switching back-end is a relative expensive operation, even when the bi
 
 ## Class and interface overview
 
-Currently Graphics32 ships with the following back-end classes which are subclasses of [[TBackend]] and implement several interfaces (see below):
+Currently Graphics32 ships with the following back-end classes which are subclasses of [[TCustomBackend]] and implement several interfaces (see below):
 
   * **Generic back-ends**
     * [[TMemoryBackend]] (default for [[TCustomBitmap32]])
@@ -85,9 +85,9 @@ Currently Graphics32 ships with the following back-end classes which are subclas
     * [[TGDIMMFBackend]]
     * [[TGDIMemoryBackend]]
   * **Lazarus back-ends (currently Windows, OS X Carbon, GTK, Custom Drawn)**
-    * TLCLBackend (default for [[TBitmap32]])
-    * TLCLMMFBackend (Windows only)
-    * TLCLMemoryBackend (Windows only)
+    * [[TLCLBackend]] (default for [[TBitmap32]])
+    * [[TLCLMMFBackend]] (Windows only)
+    * [[TLCLMemoryBackend]] (Windows only)
 
 
 To summarize, [[TBitmap32]] by default uses the back-end class `TGDIBackend` on Delphi/VCL/Windows and `TLCLBackend` on FreePascal/LCL.

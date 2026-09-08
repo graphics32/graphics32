@@ -9,7 +9,7 @@ scope: Public
 declaration: "property FrameStippleCounter: TFloat read FFrameStippleCounter write SetFrameStippleCounter;"
 summary: "Initial offset phase in the stipple color pattern."
 seealso:
-  - "[[line-patterns]]"
+  - "[Line patterns](/guide/line-patterns)"
 ---
 
 ## Description
@@ -17,7 +17,7 @@ seealso:
 `FrameStippleCounter` shifts the phase offset of the frame stipple pattern.
 
 ::: tip
-By using a timer (`TTimer`) and modifying the value of `FrameStippleCounter`, it is possible to animate the rubberband. This effect if often called [marching ants or marquee](https://en.wikipedia.org/wiki/Marching_ants).
+By using a timer (`TTimer`) and modifying the value of `FrameStippleCounter`, it is possible to animate the rubberband. This effect is often called [marching ants](https://en.wikipedia.org/wiki/Marching_ants) or marquee.
 
 ```pascal
 //

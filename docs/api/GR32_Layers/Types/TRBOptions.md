@@ -6,6 +6,7 @@ entity: TRBOptions
 kind: Type
 declaration: "TRBOptions = set of (roProportional, roConstrained, roQuantized);"
 summary: "Behavioral options for rectangular rubberband layer resizing."
+alias: [roProportional, roConstrained, roQuantized]
 ---
 
 ## Description
@@ -17,5 +18,5 @@ summary: "Behavioral options for rectangular rubberband layer resizing."
 | Value | Description |
 | --- | --- |
 | `roProportional` | Maintains original aspect ratio when resizing. |
-| `roConstrained` | Triggers `OnConstrain` event during resizing to enforce custom position bounds. |
-| `roQuantized` | Snaps handle positions and layer dimensions to discrete `Quantized` grid steps. |
+| `roConstrained` | Triggers [[TRubberbandLayer.OnConstrain|OnConstrain]] event during resizing to enforce custom position bounds. |
+| `roQuantized` | Snaps handle positions and layer dimensions to discrete [[Quantized]] grid steps. |
