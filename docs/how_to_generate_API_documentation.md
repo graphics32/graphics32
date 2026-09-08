@@ -870,7 +870,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `TVoronoiMetric`: `docs/api/GR32_ColorGradients/Types/TVoronoiMetric.md`
   - **Routines**:
     - [x] `Color32FloatPoint`: `docs/api/GR32_ColorGradients/Routines/Color32FloatPoint.md`
-    - [x] `Color32GradientStop`: `docs/api/GR32_ColorGradients/Routines/Color32GradientStop.md`- [ ] **GR32_ColorPicker**
+    - [x] `Color32GradientStop`: `docs/api/GR32_ColorGradients/Routines/Color32GradientStop.md`
 - [ ] **GR32_ColorPicker**
 - [ ] **GR32_ColorSwatch**
 - [ ] **GR32_Containers**
@@ -952,7 +952,35 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `TRBOptions`: `docs/api/GR32_Layers/Types/TRBOptions.md`
     - [x] `Layer Event Types`: `docs/api/GR32_Layers/Types/Layer Event Types.md`
 - [ ] **GR32_LowLevel**
-- [ ] **GR32_Math**
+- [x] **GR32_Math**: `docs/api/GR32_Math/index.md`
+  - **Routines**
+    - [x] `FixedFloor`: `docs/api/GR32_Math/Routines/FixedFloor.md`
+    - [x] `FixedCeil`: `docs/api/GR32_Math/Routines/FixedCeil.md`
+    - [x] `FixedMul`: `docs/api/GR32_Math/Routines/FixedMul.md`
+    - [x] `FixedDiv`: `docs/api/GR32_Math/Routines/FixedDiv.md`
+    - [x] `OneOver`: `docs/api/GR32_Math/Routines/OneOver.md`
+    - [x] `FixedRound`: `docs/api/GR32_Math/Routines/FixedRound.md`
+    - [x] `FixedSqr`: `docs/api/GR32_Math/Routines/FixedSqr.md`
+    - [x] `FixedSqrtLP`: `docs/api/GR32_Math/Routines/FixedSqrtLP.md`
+    - [x] `FixedSqrtHP`: `docs/api/GR32_Math/Routines/FixedSqrtHP.md`
+    - [x] `FixedCombine`: `docs/api/GR32_Math/Routines/FixedCombine.md`
+    - [x] `SinCos`: `docs/api/GR32_Math/Routines/SinCos.md`
+    - [x] `Hypot`: `docs/api/GR32_Math/Routines/Hypot.md`
+    - [x] `FastSqrt`: `docs/api/GR32_Math/Routines/FastSqrt.md`
+    - [x] `FastSqrtBab1`: `docs/api/GR32_Math/Routines/FastSqrtBab1.md`
+    - [x] `FastSqrtBab2`: `docs/api/GR32_Math/Routines/FastSqrtBab2.md`
+    - [x] `FastInvSqrt`: `docs/api/GR32_Math/Routines/FastInvSqrt.md`
+    - [x] `MulDiv`: `docs/api/GR32_Math/Routines/MulDiv.md`
+    - [x] `DivMod`: `docs/api/GR32_Math/Routines/DivMod.md`
+    - [x] `IsPowerOf2`: `docs/api/GR32_Math/Routines/IsPowerOf2.md`
+    - [x] `PrevPowerOf2`: `docs/api/GR32_Math/Routines/PrevPowerOf2.md`
+    - [x] `NextPowerOf2`: `docs/api/GR32_Math/Routines/NextPowerOf2.md`
+    - [x] `Average`: `docs/api/GR32_Math/Routines/Average.md`
+    - [x] `Sign`: `docs/api/GR32_Math/Routines/Sign.md`
+    - [x] `FMod`: `docs/api/GR32_Math/Routines/FMod.md`
+    - [x] `FloatMod`: `docs/api/GR32_Math/Routines/FloatMod.md`
+    - [x] `FloatRemainder`: `docs/api/GR32_Math/Routines/FloatRemainder.md`
+    - [x] `CumSum`: `docs/api/GR32_Math/Routines/CumSum.md`
 - [ ] **GR32_MicroTiles**
 - [X] **GR32_Paths**
 - [x] **GR32_OrdinalMaps**: `docs/api/GR32_OrdinalMaps/index.md`
@@ -1331,7 +1359,6 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Routines**
     - [x] `RenderPolygon`: `docs/api/GR32_VPR/Routines/RenderPolygon.md`
     - [x] `RenderPolyPolygon`: `docs/api/GR32_VPR/Routines/RenderPolyPolygon.md`
-- [ ] **GR32_VPR2** (document only at unit level)
 - [x] **GR32_VectorMaps**: `docs/api/GR32_VectorMaps/index.md`
   - **Classes**
     - [x] `TVectorMap`: `docs/api/GR32_VectorMaps/Classes/TVectorMap/index.md`
