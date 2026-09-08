@@ -182,6 +182,8 @@ export default withMermaid(defineConfig({
   },
 
   themeConfig: {
+    contributors: false,
+
     buildInfo: {
       branch: currentBranch,
       commit: shortCommit,
