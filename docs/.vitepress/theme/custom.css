@@ -57,9 +57,12 @@
 
 /* PhotoSwipe discrete overlay & backdrop blur */
 .pswp__bg {
+  background: rgba(15, 15, 20, 0.99) !important;
+/*
   background: rgba(15, 15, 20, 0.75) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+*/
 }
 
 /* Interactive cursor for document images */

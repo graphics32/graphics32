@@ -188,29 +188,91 @@ export default {
         ).filter((i) => i.src)
 
         const index = allImages.indexOf(img)
-        const dataSource = (allImages.length > 0 ? allImages : [img]).map((i) => ({
-          src: i.currentSrc || i.src,
-          msrc: i.currentSrc || i.src,
-          w: i.naturalWidth || i.clientWidth || 800,
-          h: i.naturalHeight || i.clientHeight || 600,
-          element: i,
-          alt: i.alt || ''
-        }))
+        const getSvgDimensions = (imageEl: HTMLImageElement): { w: number; h: number } | null => {
+          try {
+            const src = imageEl.currentSrc || imageEl.src || ''
+            if (!src.includes('.svg') && !src.startsWith('data:image/svg+xml')) {
+              return null
+            }
 
-        import('photoswipe').then(({ default: PhotoSwipe }) => {
-          const pswp = new PhotoSwipe({
-            dataSource,
-            index: index >= 0 ? index : 0,
-            showHideAnimationType: 'zoom',
-            bgOpacity: 0.8,
-            close: true,
-            zoom: false,
-            counter: false,
-            arrowKeys: false,
-            arrowPrev: false,
-            arrowNext: false,
+            let w = imageEl.naturalWidth
+            let h = imageEl.naturalHeight
+
+            if ((w === 300 && h === 150) || !w || !h) {
+              const attrWidth = imageEl.getAttribute('width')
+              const attrHeight = imageEl.getAttribute('height')
+              if (attrWidth && attrHeight && !attrWidth.includes('%') && !attrHeight.includes('%')) {
+                const parsedW = parseFloat(attrWidth)
+                const parsedH = parseFloat(attrHeight)
+                if (parsedW > 0 && parsedH > 0) {
+                  return { w: parsedW, h: parsedH }
+                }
+              }
+            } else {
+              return { w, h }
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+          return null
+        }
+
+        const dataSource = (allImages.length > 0 ? allImages : [img]).map((i) => {
+          const svgDims = getSvgDimensions(i)
+          return {
+            src: i.currentSrc || i.src,
+            msrc: i.currentSrc || i.src,
+            w: svgDims?.w || i.naturalWidth || i.clientWidth || 800,
+            h: svgDims?.h || i.naturalHeight || i.clientHeight || 600,
+            element: i,
+            alt: i.alt || ''
+          }
+        })
+
+        const updateSvgDimensionsFromFetch = async (items: typeof dataSource) => {
+          const fetchPromises = items.map(async (item) => {
+            if (item.src && (item.src.includes('.svg') || item.src.startsWith('data:image/svg+xml'))) {
+              if (item.w === 300 && item.h === 150) {
+                try {
+                  const res = await fetch(item.src)
+                  if (res.ok) {
+                    const text = await res.text()
+                    const match = text.match(/viewBox=["']\s*([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s*["']/)
+                    if (match && match[3] && match[4]) {
+                      const vbWidth = parseFloat(match[3])
+                      const vbHeight = parseFloat(match[4])
+                      if (vbWidth > 0 && vbHeight > 0) {
+                        item.w = vbWidth
+                        item.h = vbHeight
+                      }
+                    }
+                  }
+                } catch (e) {
+                  // Ignore fetch errors
+                }
+              }
+            }
           })
-          pswp.init()
+          await Promise.all(fetchPromises)
+        }
+
+        updateSvgDimensionsFromFetch(dataSource).then(() => {
+          import('photoswipe').then(({ default: PhotoSwipe }) => {
+            const pswp = new PhotoSwipe({
+              dataSource,
+              index: index >= 0 ? index : 0,
+              showHideAnimationType: 'zoom',
+              bgOpacity: 0.99,
+              close: true,
+              zoom: false,
+              wheelToZoom: true,
+              counter: false,
+              arrowKeys: false,
+              arrowPrev: false,
+              arrowNext: false,
+            })
+            pswp.init()
+          })
         })
       })
     }
