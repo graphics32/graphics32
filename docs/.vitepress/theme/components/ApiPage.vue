@@ -24,11 +24,11 @@ function renderInlineMarkdown(text: string | undefined | null): string {
         <span class="breadcrumb-item">
           <a :href="`/api/${frontmatter.unit}/`" class="unit-link">{{ frontmatter.unit }}</a>
         </span>
-        <span class="sep" v-if="frontmatter.parent">&gt;</span>
+        <span class="sep" v-if="frontmatter.parent">&#x1F782;</span>
         <span class="breadcrumb-item" v-if="frontmatter.parent">
           <a :href="`/api/${frontmatter.unit}/${frontmatter.parent}/`" class="parent-link">{{ frontmatter.parent }}</a>
         </span>
-        <span class="sep">&gt;</span>
+        <span class="sep">&#x1F782;</span>
         <span class="breadcrumb-current">{{ frontmatter.entity ? frontmatter.entity.split('.').pop() : page.title }}</span>
         <span class="kind-badge" v-if="frontmatter.kind">{{ frontmatter.kind }}</span>
         <span class="scope-badge" v-if="frontmatter.scope" :class="`scope-${frontmatter.scope.toLowerCase()}`">{{ frontmatter.scope }}</span>
@@ -53,7 +53,7 @@ function renderInlineMarkdown(text: string | undefined | null): string {
         class="inheritance-item"
       >
         <code>{{ item }}</code>
-        <span v-if="index < frontmatter.inheritance.length - 1" class="sep"> &gt; </span>
+        <span v-if="index < frontmatter.inheritance.length - 1" class="sep">&nbsp;&#x1F782; </span>
       </span>
     </div>
   </div>
