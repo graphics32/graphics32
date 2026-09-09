@@ -77,20 +77,8 @@ Derived Class: [[TBitmap32]]
 ### Lines & Drawing Primitives
 | Name | Description |
 | --- | --- |
-| [[HorzLine]] | Draws an unclipped horizontal line at integer coordinates. |
-| [[HorzLineS]] | Draws a clipped horizontal line at integer coordinates. |
-| [[HorzLineT]] | Draws an unclipped blended horizontal line at integer coordinates. |
-| [[HorzLineTS]] | Draws a clipped blended horizontal line at integer coordinates. |
-| [[HorzLineTSP]] | Draws a clipped blended horizontal line using current stipple pattern. |
-| [[HorzLineX]] | Draws an unclipped horizontal line at fixed-point coordinates. |
-| [[HorzLineXS]] | Draws a clipped horizontal line at fixed-point coordinates. |
-| [[VertLine]] | Draws an unclipped vertical line at integer coordinates. |
-| [[VertLineS]] | Draws a clipped vertical line at integer coordinates. |
-| [[VertLineT]] | Draws an unclipped blended vertical line at integer coordinates. |
-| [[VertLineTS]] | Draws a clipped blended vertical line at integer coordinates. |
-| [[VertLineTSP]] | Draws a clipped blended vertical line using current stipple pattern. |
-| [[VertLineX]] | Draws an unclipped vertical line at fixed-point coordinates. |
-| [[VertLineXS]] | Draws a clipped vertical line at fixed-point coordinates. |
+| [[HorzLine]] | Draws fast horizontal 1-pixel wide lines across integer or fixed-point coordinates with optional boundary clipping, alpha blending, and stippling. |
+| [[VertLine]] | Draws fast vertical 1-pixel wide lines across integer or fixed-point coordinates with optional boundary clipping, alpha blending, and stippling. |
 | [[Line]] | Draws 1-pixel wide line segments between specified coordinates using integer, fixed-point, or floating-point positioning with optional clipping, blending, anti-aliasing, and stippling. |
 | [[MoveTo]] | Sets current pen position for subsequent `LineTo` drawing operations using integer, fixed-point, or floating-point coordinates. |
 | [[LineTo]] | Draws 1-pixel wide line segments from current pen position to target coordinates using integer, fixed-point, or floating-point positioning, updating pen position afterwards. |
@@ -98,13 +86,8 @@ Derived Class: [[TBitmap32]]
 ### Rectangles & Shapes
 | Name | Description |
 | --- | --- |
-| [[FillRect]] | Fills an unclipped rectangular region with a specified color. |
-| [[FillRectS]] | Fills a clipped rectangular region with a specified color. |
-| [[FillRectT]] | Fills an unclipped rectangular region using alpha blending. |
-| [[FillRectTS]] | Fills a clipped rectangular region using alpha blending. |
-| [[FrameRectS]] | Draws a 1-pixel clipped rectangular frame. |
-| [[FrameRectTS]] | Draws a 1-pixel clipped alpha-blended rectangular frame. |
-| [[FrameRectTSP]] | Draws a 1-pixel clipped stippled rectangular frame. |
+| [[FillRect]] | Fills a rectangular area with a specified 32-bit ARGB color using integer coordinates or TRect bounds, supporting optional boundary clipping and alpha blending. |
+| [[FrameRect]] | Draws 1-pixel wide rectangular outline frames around specified coordinates or TRect bounds with optional clipping, alpha blending, and stippling. |
 | [[RaiseRectTS]] | Draws a 3D bevelled button/panel edge. |
 
 ### Transformations
