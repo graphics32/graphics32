@@ -91,30 +91,9 @@ Derived Class: [[TBitmap32]]
 | [[VertLineTSP]] | Draws a clipped blended vertical line using current stipple pattern. |
 | [[VertLineX]] | Draws an unclipped vertical line at fixed-point coordinates. |
 | [[VertLineXS]] | Draws a clipped vertical line at fixed-point coordinates. |
-| [[Line]] | Draws an unclipped arbitrary line segment at integer coordinates. |
-| [[LineS]] | Draws a clipped arbitrary line segment at integer coordinates. |
-| [[LineT]] | Draws an unclipped blended line segment at integer coordinates. |
-| [[LineTS]] | Draws a clipped blended line segment at integer coordinates. |
-| [[LineA]] | Draws an unclipped anti-aliased line segment at integer coordinates. |
-| [[LineAS]] | Draws a clipped anti-aliased line segment at integer coordinates. |
-| [[LineX]] | Draws an unclipped line segment at fixed-point coordinates. |
-| [[LineF]] | Draws an unclipped line segment at floating-point coordinates. |
-| [[LineXS]] | Draws a clipped line segment at fixed-point coordinates. |
-| [[LineFS]] | Draws a clipped line segment at floating-point coordinates. |
-| [[LineXP]] | Draws an unclipped line segment using stipple pattern at fixed-point coordinates. |
-| [[LineFP]] | Draws an unclipped line segment using stipple pattern at floating-point coordinates. |
-| [[LineXSP]] | Draws a clipped line segment using stipple pattern at fixed-point coordinates. |
-| [[LineFSP]] | Draws a clipped line segment using stipple pattern at floating-point coordinates. |
-| [[MoveTo]] | Sets current pen position for subsequent `LineTo` drawing operations. |
-| [[MoveToX]] | Sets current fixed-point pen position for subsequent `LineTo` drawing operations. |
-| [[MoveToF]] | Sets current floating-point pen position for subsequent `LineTo` drawing operations. |
-| [[LineToS]] | Draws a clipped line from current pen position to target integer point. |
-| [[LineToTS]] | Draws a clipped blended line from current pen position to target integer point. |
-| [[LineToAS]] | Draws a clipped anti-aliased line from current pen position to target integer point. |
-| [[LineToXS]] | Draws a clipped line from current fixed-point pen position to target point. |
-| [[LineToFS]] | Draws a clipped line from current floating-point pen position to target point. |
-| [[LineToXSP]] | Draws a clipped stippled line from current fixed-point pen position to target point. |
-| [[LineToFSP]] | Draws a clipped stippled line from current floating-point pen position to target point. |
+| [[Line]] | Draws 1-pixel wide line segments between specified coordinates using integer, fixed-point, or floating-point positioning with optional clipping, blending, anti-aliasing, and stippling. |
+| [[MoveTo]] | Sets current pen position for subsequent `LineTo` drawing operations using integer, fixed-point, or floating-point coordinates. |
+| [[LineTo]] | Draws 1-pixel wide line segments from current pen position to target coordinates using integer, fixed-point, or floating-point positioning, updating pen position afterwards. |
 
 ### Rectangles & Shapes
 | Name | Description |
@@ -150,17 +129,7 @@ Derived Class: [[TBitmap32]]
 ### Pixel Accessors
 | Name | Type | Scope | Description |
 | --- | --- | --- | --- |
-| [[Pixel]] | `TColor32` | Public | Default indexed accessor for reading and writing pixels at integer coordinates `[X, Y]`. |
-| [[PixelS]] | `TColor32` | Public | Boundary-clipped pixel accessor at integer coordinates `[X, Y]`. |
-| [[PixelW]] | `TColor32` | Public | Wrapped pixel accessor at integer coordinates `[X, Y]`. |
-| [[PixelX]] | `TColor32` | Public | Pixel accessor at fixed-point coordinates `[X, Y]`. |
-| [[PixelXS]] | `TColor32` | Public | Boundary-clipped pixel accessor at fixed-point coordinates `[X, Y]`. |
-| [[PixelXW]] | `TColor32` | Public | Wrapped pixel accessor at fixed-point coordinates `[X, Y]`. |
-| [[PixelF]] | `TColor32` | Public | Sub-pixel accessor at floating-point coordinates `[X, Y]`. |
-| [[PixelFS]] | `TColor32` | Public | Boundary-clipped sub-pixel accessor at floating-point coordinates `[X, Y]`. |
-| [[PixelFW]] | `TColor32` | Public | Wrapped sub-pixel accessor at floating-point coordinates `[X, Y]`. |
-| [[PixelFR]] | `TColor32` | Public | Read-only resampled sub-pixel accessor at floating-point coordinates `[X, Y]`. |
-| [[PixelXR]] | `TColor32` | Public | Read-only resampled sub-pixel accessor at fixed-point coordinates `[X, Y]`. |
+| [[Pixel]] | `TColor32` | Public | Indexed pixel access properties for reading and writing 32-bit ARGB pixel values across integer, fixed-point, and floating-point coordinates. |
 
 ### Pen & Stipple Properties
 | Name | Type | Scope | Description |

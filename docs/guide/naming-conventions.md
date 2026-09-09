@@ -25,10 +25,12 @@ The [[TBitmap32]] class provides a large number of methods for single pixel acce
 | X | Fixed | Coordinates are in fixed point (`TFixed`) format.<br>These methods also employ a more sophisticated anti-aliasing algorithm than that used in the ‘A’ methods above. | ![](./images/LineF.png) | `LineX`<br>`LineXS`<br>`PixelXS` |
 | F | Float | Coordinates are in floating point (`TFloat`) format.<br>These methods employ the same anti-aliasing algorithm used in the ‘X’ methods.| ![](./images/LineF.png) | `LineFS`<br>`PixelFS` |
 | P | Stippling | Lines are drawn using a [stippling pattern](line-patterns).<br>This modifier must be combined with either the ‘X’ or ‘F’ modifiers above. | ![](./images/LineFP.png) | `LineFSP`<br>`LineXSP` |
+| W | Wrapped | Coordinate-wrapped pixel access modulo bitmap dimensions (`Width` and `Height`) |  | `PixelW`<br>`PixelFW` |
+| R | Resampled | Resampled pixel access at floating-point coordinates evaluated using the active resampler. |  | `PixelFR`<br>`PixelXR` |
 
 :::info Note
 For lines, all the methods listed above draw line segments that are **a single pixel wide**.
-To draw thicker lines, see the [[Polyline]] and [[PolyPolyline]] functions in the [[GR32_Polygons]] unit. Those functions also produce better anti-aliased blending over fully transparent backgrounds (when compared with X & F modified methods above).
+To draw thicker (or thinner) lines, see the [[Polyline]] and [[PolyPolyline]] functions in the [[GR32_Polygons]] unit. Those functions also produce better anti-aliased blending over fully transparent backgrounds (when compared with X & F modifier methods above).
 ![](./images/LineQ.png)
 :::
 
