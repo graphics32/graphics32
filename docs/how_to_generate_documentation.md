@@ -76,6 +76,7 @@ To set up the documentation environment from scratch:
    - `vitepress-plugin-mermaid`
    - `photoswipe`
    - `markdown-it-mathjax3`
+   - `markdown-it-footnote`
    - `swiper`
 
 ---

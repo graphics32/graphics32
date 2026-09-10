@@ -3,6 +3,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 import fs from 'fs'
 import path from 'path'
 import mathjax3 from 'markdown-it-mathjax3'
+import footnote from 'markdown-it-footnote'
 import { generateSidebarForDir } from './sidebar'
 import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
 import { apiShortcodesPlugin } from './shortcodePlugin'
@@ -172,6 +173,7 @@ export default withMermaid(defineConfig({
       delphi: 'pascal'
     },
     config: (md) => {
+      md.use(footnote)
       md.use(mathjax3)
       apiFrontmatterPlugin(md)
       seeAlsoPlugin(md)
