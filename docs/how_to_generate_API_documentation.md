@@ -914,7 +914,27 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `SegmentIntersect`: `docs/api/GR32_Geometry/Routines/SegmentIntersect.md`
     - [x] `PerpendicularDistance`: `docs/api/GR32_Geometry/Routines/PerpendicularDistance.md`
     - [x] `SamePoint`: `docs/api/GR32_Geometry/Routines/SamePoint.md`
-- [ ] **GR32_Image**
+- [x] **GR32_Image**: `docs/api/GR32_Image/index.md`
+  - **Classes**
+    - [x] `TPaintStages`: `docs/api/GR32_Image/Classes/TPaintStages/index.md`
+    - [x] `TCustomPaintBox32`: `docs/api/GR32_Image/Classes/TCustomPaintBox32/index.md`
+    - [x] `TPaintBox32`: `docs/api/GR32_Image/Classes/TPaintBox32/index.md`
+  - **Types**
+    - [x] `TPaintStageEvent`: `docs/api/GR32_Image/Types/TPaintStageEvent.md`
+    - [x] `TBitmapAlign`: `docs/api/GR32_Image/Types/TBitmapAlign.md`
+    - [x] `TScaleMode`: `docs/api/GR32_Image/Types/TScaleMode.md`
+    - [x] `TPaintBoxOptions`: `docs/api/GR32_Image/Types/TPaintBoxOptions.md`
+    - [x] `TRepaintMode`: `docs/api/GR32_Image/Types/TRepaintMode.md`
+    - [x] `TBackgroundCheckerStyle`: `docs/api/GR32_Image/Types/TBackgroundCheckerStyle.md`
+    - [x] `TBackgroundFillStyle`: `docs/api/GR32_Image/Types/TBackgroundFillStyle.md`
+    - [x] `TMouseShiftState`: `docs/api/GR32_Image/Types/TMouseShiftState.md`
+    - [x] `TScrollBarVisibility`: `docs/api/GR32_Image/Types/TScrollBarVisibility.md`
+    - [x] `TSizeGripStyle`: `docs/api/GR32_Image/Types/TSizeGripStyle.md`
+    - [x] `TImgMouseEvent`: `docs/api/GR32_Image/Types/TImgMouseEvent.md`
+    - [x] `TImgMouseMoveEvent`: `docs/api/GR32_Image/Types/TImgMouseMoveEvent.md`
+  - **Constants**
+    - [x] `DefaultCheckersColors`: `docs/api/GR32_Image/Constants/DefaultCheckersColors.md`
+    - [x] `Zoom Animation Constants`: `docs/api/GR32_Image/Constants/Zoom Animation Constants.md`
 - [x] **GR32_Layers**: `docs/api/GR32_Layers/index.md`
   - **Classes**
     - [x] `TLayerCollection`: `docs/api/GR32_Layers/Classes/TLayerCollection/index.md`

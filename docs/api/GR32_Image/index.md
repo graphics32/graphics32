@@ -4,19 +4,19 @@ docType: api
 unit: GR32_Image
 entity: GR32_Image
 kind: Unit
-summary: "Provides visual Delphi/LCL GUI controls for displaying, scrolling, zooming, and interacting with 32-bit bitmaps."
+summary: "Provides visual controls for displaying, scrolling, zooming, and interacting with 32-bit bitmaps."
 ---
 
 ## Description
 
-The `GR32_Image` unit provides visual Delphi/LCL GUI controls for displaying, scrolling, zooming, and interacting with 32-bit bitmaps.
+The `GR32_Image` unit provides visual controls for displaying, scrolling, zooming, and interacting with 32-bit bitmaps.
 
 ---
 
-## Classes
+## Core Classes
 
 | Class | Description |
 |---|---|
-| `TImage32` | Primary visual control providing scrolling, zooming, layers, and interactive mouse events. |
-| `TPaintBox32` | Lightweight paint box control for custom rendering onto a `TBitmap32` surface. |
-| `TCustomImage32` | Base class for interactive bitmap viewports. |
+| `TImage32` | Primary visual 32-bit bitmap control supporting interactive panning, wheel zooming, layers, and custom backgrounds. |
+| `TPaintBox32` | Lightweight paint box control for double-buffered flicker-free custom painting. |
+| `TImgView32` | Visual image viewer control featuring integrated scrollbars, automatic centering, panning, zooming, and size grip. |
