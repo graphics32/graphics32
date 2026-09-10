@@ -5,7 +5,7 @@ unit: GR32.ImageFormats.PNG32
 entity: GR32.ImageFormats.PNG32
 kind: Unit
 summary: "Provides specialized 32-bit alpha channel PNG image format adapter support."
-alias: [TImageFormatAdapterPNG32, TPortableNetworkGraphic32]
+aliases: [TImageFormatAdapterPNG32, TPortableNetworkGraphic32]
 ---
 
 ## Description

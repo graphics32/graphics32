@@ -5,7 +5,7 @@ unit: GR32.ImageFormats.PSD.Model
 entity: GR32.ImageFormats.PSD.Model
 kind: Unit
 summary: "Provides structural object models, layer trees, and image resources for Photoshop PSD files."
-alias: [TPhotoshopDocument]
+aliases: [TPhotoshopDocument]
 ---
 
 ## Description

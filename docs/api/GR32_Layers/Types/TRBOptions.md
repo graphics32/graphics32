@@ -6,7 +6,7 @@ entity: TRBOptions
 kind: Type
 declaration: "TRBOptions = set of (roProportional, roConstrained, roQuantized);"
 summary: "Behavioral options for rectangular rubberband layer resizing."
-alias: [roProportional, roConstrained, roQuantized]
+aliases: [roProportional, roConstrained, roQuantized]
 ---
 
 ## Description
