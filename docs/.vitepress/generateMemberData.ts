@@ -16,6 +16,7 @@ export interface MemberInfo {
   isVirtual: boolean
   isProtected: boolean
   isAbstract?: boolean
+  isHidden?: boolean
   propertyType?: string
   link: string
 }
@@ -131,6 +132,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
         const scope = fm.scope || 'Public'
         const isVirtual = fm.isVirtual === 'true' || fm.isVirtual === true || !!fm.inheritedFrom
         const isProtected = scope.toLowerCase() === 'protected'
+        const isHidden = fm.hidden === 'true' || fm.hidden === true
         const linkName = name.toLowerCase() === 'index' ? `${category}-${name}` : name
         const link = `/api/${unitName}/${className}/${linkName}`
         const propertyType = extractPropertyType(fm.declaration || '')
@@ -148,6 +150,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
           inheritedFrom: fm.inheritedFrom,
           isVirtual,
           isProtected,
+          isHidden,
           propertyType,
           link
         }
@@ -189,6 +192,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
           const scope = fm.scope || 'Public'
           const link = `/api/${unitName}/${name}`
           const isAbstract = fm.abstract === 'true' || fm.abstract === true
+          const isHidden = fm.hidden === 'true' || fm.hidden === true
           const info: MemberInfo = {
             unit: unitName,
             parent: '',
@@ -202,6 +206,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
             isVirtual: false,
             isProtected: scope.toLowerCase() === 'protected',
             isAbstract,
+            isHidden,
             link
           }
 
@@ -217,6 +222,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
             const scope = fm.scope || 'Public'
             const link = `/api/${unitName}/${name}`
             const isAbstract = fm.abstract === 'true' || fm.abstract === true
+            const isHidden = fm.hidden === 'true' || fm.hidden === true
             const info: MemberInfo = {
               unit: unitName,
               parent: '',
@@ -230,6 +236,7 @@ export function generateMemberData(apiRootDir: string, outputFile: string) {
               isVirtual: false,
               isProtected: scope.toLowerCase() === 'protected',
               isAbstract,
+              isHidden,
               link
             }
 

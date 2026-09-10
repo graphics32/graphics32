@@ -34,6 +34,9 @@ export function applySidebarFilter() {
 
     if (info) {
       let shouldHide = false
+      if (info.isHidden) {
+        shouldHide = true
+      }
       if (info.isVirtual && !showInherited.value) {
         shouldHide = true
       }

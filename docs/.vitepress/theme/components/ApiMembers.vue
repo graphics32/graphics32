@@ -53,6 +53,7 @@ const unitInfo = computed<UnitMembersData | undefined>(() => {
 
 function filterMembers(list: MemberInfo[] = []): MemberInfo[] {
   return list.filter((m) => {
+    if (m.isHidden) return false
     if (m.isVirtual && !showInherited.value) return false
     if (m.isProtected && !showProtected.value) return false
     if (m.isAbstract && !showAbstract.value) return false
