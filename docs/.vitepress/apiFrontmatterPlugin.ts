@@ -49,8 +49,8 @@ export function apiFrontmatterPlugin(md: MarkdownIt) {
       const declarations = frontmatter.overloads.map((ov: any) => ov.signature).join('\n')
       injectedMarkdown += `\n\n## Declarations\n\n\`\`\`pascal\n${declarations}\n\`\`\`\n`
 
-      // Overload Details section
-      injectedMarkdown += `\n\n## Overload Details\n\n`
+      // Overload Details section wrapped in collapsible details container
+      injectedMarkdown += `\n\n::: details Overload Details\n\n`
       frontmatter.overloads.forEach((ov: any, idx: number) => {
         injectedMarkdown += `### Overload ${idx + 1}\n\n\`\`\`pascal\n${ov.signature}\n\`\`\`\n`
         if (ov.summary) {
@@ -72,6 +72,7 @@ export function apiFrontmatterPlugin(md: MarkdownIt) {
           }
         }
       })
+      injectedMarkdown += `\n:::\n`
     }
     // 2. SINGLE SIGNATURE
     else {
