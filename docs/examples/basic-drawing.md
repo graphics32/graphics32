@@ -1,40 +1,41 @@
 # Basic Drawing & Alpha Blending Example
 
-This example demonstrates creating a `TBitmap32`, drawing translucent shapes, and rendering text or lines.
+This example demonstrates creating a `TBitmap32` and drawing translucent shapes.
 
 ```pascal
 program BasicDrawingExample;
 
-{$MODE DELPHI}
-
 uses
-  Classes, SysUtils, GR32, GR32_Polygons;
+  Classes, SysUtils, GR32;
 
 var
-  Bmp: TBitmap32;
+  Bitmap: TBitmap32;
 begin
-  Bmp := TBitmap32.Create;
+  Bitmap := TBitmap32.Create;
   try
     // 1. Set dimensions and clear background to white
-    Bmp.SetSize(600, 400);
-    Bmp.Clear(clWhite32);
+    Bitmap.SetSize(600, 400, False);
+    Bitmap.Clear(clWhite32);
 
-    // 2. Enable standard alpha blending
-    Bmp.DrawMode := dmBlend;
+    // 2. Draw semi-transparent box (Red, 50% opacity)
+    //    The pixels below the box are replaced.
+    Bitmap.FillRectS(50, 50, 250, 250, clTrRed32);
 
-    // 3. Draw semi-transparent rectangle (Red, 50% opacity)
-    Bmp.FillRect(50, 50, 250, 250, Color32(128, 255, 0, 0));
+    // 3. Draw overlapping semi-transparent box (Blue, 50% opacity)
+    //    The box is blended with the pixels below it.
+    Bitmap.FillRectTS(150, 150, 350, 350, clTrBlue32);
 
-    // 4. Draw overlapping semi-transparent rectangle (Blue, 50% opacity)
-    Bmp.FillRect(150, 150, 350, 350, Color32(128, 0, 0, 255));
+    // 4. Draw antialiased triangle
+    Bitmap.PenColor := clBlack32;
+    Bitmap.MoveTo(150, 100);
+    Bitmap.LineToAS(350, 100);
+    Bitmap.LineToAS(250, 273);
+    Bitmap.LineToAS(150, 100);
 
-    // 5. Draw antialiased line
-    Bmp.LineA(20, 20, 580, 380, clBlack32);
-
-    // 6. Save bitmap
-    Bmp.SaveToFile('output.png');
+    // 5. Save bitmap as a PNG
+    Bitmap.SaveToFile('output.png');
   finally
-    Bmp.Free;
+    Bitmap.Free;
   end;
 end.
 ```
