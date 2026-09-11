@@ -891,7 +891,25 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `IntensityToAlpha`: `docs/api/GR32_Filters/Routines/IntensityToAlpha.md`
     - [x] `Invert`: `docs/api/GR32_Filters/Routines/Invert.md`
     - [x] `InvertRGB`: `docs/api/GR32_Filters/Routines/InvertRGB.md`
-- [ ] **GR32_Gamma**
+- [x] **GR32_Gamma**: `docs/api/GR32_Gamma/index.md`
+  - **Types**
+    - [x] `TGammaTable8Bit`: `docs/api/GR32_Gamma/Types/TGammaTable8Bit.md`
+  - **Constants**
+    - [x] `DEFAULT_GAMMA`: `docs/api/GR32_Gamma/Constants/DEFAULT_GAMMA.md`
+  - **Variables**
+    - [x] `GAMMA_IS_SRGB`: `docs/api/GR32_Gamma/Variables/GAMMA_IS_SRGB.md`
+    - [x] `GAMMA_VALUE`: `docs/api/GR32_Gamma/Variables/GAMMA_VALUE.md`
+    - [x] `GAMMA_ENCODING_TABLE`: `docs/api/GR32_Gamma/Variables/GAMMA_ENCODING_TABLE.md`
+    - [x] `GAMMA_DECODING_TABLE`: `docs/api/GR32_Gamma/Variables/GAMMA_DECODING_TABLE.md`
+  - **Routines**
+    - [x] `SetGamma`: `docs/api/GR32_Gamma/Routines/SetGamma.md`
+    - [x] `Set_sRGB`: `docs/api/GR32_Gamma/Routines/Set_sRGB.md`
+    - [x] `SetInv_sRGB`: `docs/api/GR32_Gamma/Routines/SetInv_sRGB.md`
+    - [x] `ApplyGamma`: `docs/api/GR32_Gamma/Routines/ApplyGamma.md`
+    - [x] `ApplyInvGamma`: `docs/api/GR32_Gamma/Routines/ApplyInvGamma.md`
+    - [x] `ApplyCustomGamma`: `docs/api/GR32_Gamma/Routines/ApplyCustomGamma.md`
+    - [x] `RegisterGammaChangeNotification`: `docs/api/GR32_Gamma/Routines/RegisterGammaChangeNotification.md`
+    - [x] `UnregisterGammaChangeNotification`: `docs/api/GR32_Gamma/Routines/UnregisterGammaChangeNotification.md`
 - [x] **GR32_Geometry**: `docs/api/GR32_Geometry/index.md`
   - **Types**
     - [x] `TLinePos`: `docs/api/GR32_Geometry/Types/TLinePos.md`
