@@ -122,7 +122,7 @@ const aboutSidebar = [
   }
 ]
 
-export default withMermaid(defineConfig({
+export default withMermaid(await defineConfig({
   title: "Graphics32",
   description: "A high-performance 32-bit graphics library for Delphi and Lazarus/FPC",
   cleanUrls: true,
