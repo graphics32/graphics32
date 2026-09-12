@@ -137,7 +137,7 @@ Derived Class: [[TBitmap32]]
 ### Drawing Modes & Resampling
 | Name | Type | Scope | Description |
 | --- | --- | --- | --- |
-| [[CombineMode]] | `TCombineMode` | Published | Pixel combination mode (`cmBlend`, `cmMerge`, `cmModulo`, etc.). |
+| [[CombineMode]] | `TCombineMode` | Published | Pixel combination mode (`cmBlend`, `cmMerge`). |
 | [[DrawMode]] | `TDrawMode` | Published | Draw mode (`dmOpaque`, `dmBlend`, `dmCustom`). |
 | [[MasterAlpha]] | `Cardinal` | Published | Global alpha scaling factor (`0` to `255`) applied to draw operations. |
 | [[OuterColor]] | `TColor32` | Published | Color returned when sampling outside bitmap bounds in safe/transparent mode. |
