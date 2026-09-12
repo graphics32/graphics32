@@ -39,6 +39,8 @@ Method variants provide boundary clipping against [[ClipRect]] (`S`), alpha blen
 By convention, `FrameRect` includes the left and top borders, but **excludes** the right and bottom borders of the rectangle.
 
 This means that if `X1 >= X2` or `Y1 >= Y2`, then nothing is drawn.
+
+See also: [Why are RECTs endpoint-exclusive? - The Old New Thing](https://devblogs.microsoft.com/oldnewthing/20040218-00/?p=40563)
 :::
 
 ## Variants
