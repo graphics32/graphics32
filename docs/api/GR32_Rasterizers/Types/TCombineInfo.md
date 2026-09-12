@@ -25,7 +25,7 @@ summary: "Record structure holding pixel combination parameters, alpha transpare
 | --- | --- | --- |
 | `SrcAlpha` | Integer | Master alpha transparency multiplier (0–255) applied during blending. |
 | `DrawMode` | TDrawMode | Drawing mode specifying pixel combination logic (`dmOpaque`, `dmBlend`, `dmTransparent`, or `dmCustom`). |
-| `CombineMode` | TCombineMode | Alpha combine mode selected when `DrawMode` is `dmBlend` (`cmBlend`, `cmMerge`, etc.). |
+| `CombineMode` | TCombineMode | Alpha combine mode selected when `DrawMode` is `dmBlend` (`cmBlend`, `cmMerge`). |
 | `CombineCallBack` | TPixelCombineEvent | Custom pixel combination callback procedure executed when `DrawMode` is `dmCustom`. |
 | `TransparentColor` | TColor32 | Transparent key color ignored during rasterization when `DrawMode` is `dmTransparent`. |
 

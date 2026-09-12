@@ -12,4 +12,4 @@ summary: "Specifies pixel color combination blend mode."
 
 ## Description
 
-`CombineMode` selects blend function (`cmBlend`, `cmMerge`, `cmModulo`, etc.).
+`CombineMode` selects blend function (`cmBlend`, `cmMerge`).
