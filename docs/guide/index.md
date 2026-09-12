@@ -323,9 +323,6 @@ var
 begin
   Transform := TAffineTransformation.Create;
   try
-    // Set original source rectangle bounding box
-    Transform.SrcRect := FloatRect(Source.BoundsRect);
-
     // Translate origin to center, rotate by angle, and translate back.
     // In other words: Rotate around center point (X, Y) by specified angle in degrees
     Transform.Rotate(Source.Width / 2, Source.Height / 2, AngleDegrees);
