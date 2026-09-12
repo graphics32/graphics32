@@ -85,8 +85,10 @@ type
   TTransformation = class abstract(TNotifiablePersistent)
   private
     FSrcRect: TFloatRect;
+    FHasSrcRect: boolean;
     FTransformValid: Boolean;
     procedure SetSrcRect(const Value: TFloatRect);
+    procedure SetHasSrcRect(const Value: boolean);
 
   protected
     procedure PrepareTransform; virtual;
@@ -113,6 +115,10 @@ type
     function Transform(const P: TFixedPoint): TFixedPoint; overload; virtual;
     function Transform(const P: TFloatPoint): TFloatPoint; overload; virtual;
     property SrcRect: TFloatRect read FSrcRect write SetSrcRect;
+    // HasSrcRect is True if SrcRect has been explicitly set and signals that SrcRect
+    // should be taken into consideration when calculating the sampler bounds.
+    // Setting SrcRect to False automatically clears SrcRect.
+    property HasSrcRect: boolean read FHasSrcRect write SetHasSrcRect;
   end;
 
   TTransformationClass = class of TTransformation;
@@ -1142,9 +1148,17 @@ begin
   SrcY := FixedRound(Y);
 end;
 
+procedure TTransformation.SetHasSrcRect(const Value: boolean);
+begin
+  FHasSrcRect := Value;
+  if (not FHasSrcRect) then
+    FSrcRect := Default(TFloatRect);
+end;
+
 procedure TTransformation.SetSrcRect(const Value: TFloatRect);
 begin
   FSrcRect := Value;
+  FHasSrcRect := True;
   Changed;
 end;
 

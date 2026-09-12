@@ -4760,7 +4760,9 @@ end;
 
 function TTransformer.GetSampleBounds: TFloatRect;
 begin
-  GR32.IntersectRect(Result, inherited GetSampleBounds, FTransformation.SrcRect);
+  Result := inherited GetSampleBounds;
+  if (FTransformation.HasSrcRect) then
+    GR32.IntersectRect(Result, Result, FTransformation.SrcRect);
   Result := FTransformation.GetTransformedBounds(Result);
 end;
 
