@@ -41,6 +41,8 @@ Method variants provide combinations of direct unclipped memory fill (`FillRect`
 By convention, `FillRect` includes the left and top borders, but **excludes** the right and bottom borders of the rectangle.
 
 This means that if `X1 >= X2` or `Y1 >= Y2`, then nothing is drawn.
+
+See also: [Why are RECTs endpoint-exclusive? - The Old New Thing](https://devblogs.microsoft.com/oldnewthing/20040218-00/?p=40563)
 :::
 
 ## Variants
