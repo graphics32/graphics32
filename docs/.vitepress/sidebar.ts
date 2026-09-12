@@ -46,21 +46,41 @@ function getTitleFromFile(filePath: string, fallback: string): string {
 export function generateSidebarForDir(
   rootDir: string,
   relPath: string = '',
-  options: { collapsed?: boolean } = {}
+  options: { collapsed?: boolean; sortBy?: 'filename' | 'title' } = {}
 ): SidebarItem[] {
   const absPath = path.join(rootDir, relPath)
   if (!fs.existsSync(absPath)) return []
 
   const entries = fs.readdirSync(absPath, { withFileTypes: true })
 
+  const sortBy = options.sortBy ?? 'filename'
+
   // Sort entries: directories first, then files
   const folders = entries
     .filter(e => e.isDirectory() && !e.name.startsWith('.'))
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+    .sort((a, b) => {
+      if (sortBy === 'title') {
+        const titleA = fs.existsSync(path.join(rootDir, relPath, a.name, 'index.md'))
+          ? getTitleFromFile(path.join(rootDir, relPath, a.name, 'index.md'), a.name)
+          : a.name
+        const titleB = fs.existsSync(path.join(rootDir, relPath, b.name, 'index.md'))
+          ? getTitleFromFile(path.join(rootDir, relPath, b.name, 'index.md'), b.name)
+          : b.name
+        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' })
+      }
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    })
 
   const files = entries
     .filter(e => e.isFile() && e.name.endsWith('.md') && !e.name.startsWith('.'))
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+    .sort((a, b) => {
+      if (sortBy === 'title') {
+        const titleA = getTitleFromFile(path.join(absPath, a.name), a.name.slice(0, -3))
+        const titleB = getTitleFromFile(path.join(absPath, b.name), b.name.slice(0, -3))
+        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' })
+      }
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    })
 
   const items: SidebarItem[] = []
 

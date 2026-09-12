@@ -304,7 +304,7 @@ export default withMermaid(await defineConfig({
           text: 'Examples & Tutorials',
           items: [
             { text: 'Overview', link: '/examples/' },
-            ...generateSidebarForDir(examplesDir, '', { collapsed: false })
+            ...generateSidebarForDir(examplesDir, '', { collapsed: false, sortBy: 'title' })
           ]
         }
       ]
