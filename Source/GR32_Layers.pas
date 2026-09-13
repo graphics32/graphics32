@@ -3326,9 +3326,16 @@ end;
 
 procedure TCustomRubberBandLayer.SetChildLayer(Value: TPositionedLayer);
 begin
+  if (Value = Self) then
+    // Common mistake; Let's handle it as best we can (unhandled->stack overflow)
+    Value := nil;
+
+  if (Value = FChildLayer) then
+    exit;
+
   if (FChildLayer <> nil) then
     FChildLayer.RemoveFreeNotification(Self);
-    
+
   FChildLayer := Value;
 
   if (FChildLayer <> nil) then
