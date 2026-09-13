@@ -1,6 +1,7 @@
 {
   "name": "graphics32-docs",
   "version": "1.0.0",
+  "type": "module",
   "description": "Graphics32 Documentation built with VitePress",
   "private": true,
   "scripts": {
