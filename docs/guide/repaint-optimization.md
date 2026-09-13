@@ -116,7 +116,7 @@ For instance with many small rectangles (500+) the MicroTiles based optimization
 
 ## Benchmarks
 
-The [[Sprites_Ex]] project was the most important performance test case of all because it is exceptional in the way that it shows both the strengths and weaknesses of the MicroTiles based approach. For our tests we’ve extended the project slightly to be able to measure the effective frames (or updates) per second.
+The [Sprites](https://github.com/graphics32/graphics32/tree/[branch]/Examples/Layers/Sprites) example project was the most important performance test case of all because it is exceptional in the way that it shows both the strengths and weaknesses of the MicroTiles based approach. For our tests we’ve extended the project slightly to be able to measure the effective frames (or updates) per second.
 
 ![](./images/rp_005a.png) ![](./images/rp_005b.png)
 **Figure 5:** Benchmark results with Sprites_Ex

@@ -7,10 +7,10 @@ entity: TCustomBitmap32.BoundsRect
 kind: Method
 scope: Public
 declaration: "function BoundsRect: TRect;"
-summary: "Returns a TRect structure representing the full pixel bounds of the bitmap (0, 0, Width, Height)."
+summary: "Returns a TRect structure representing the full pixel bounds of the bitmap."
 returns:
   - type: TRect
-    description: "A [[TRect]] structure representing the full pixel bounds `(0, 0, Width, Height)` of the bitmap."
+    description: "A TRect structure representing the full pixel bounds `(0, 0, Width, Height)` of the bitmap."
 ---
 
 ## Description

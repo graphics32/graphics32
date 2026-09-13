@@ -17,7 +17,7 @@ parameters:
     description: "Whether to prepend an 'All supported files' filter entry."
 returns:
   - type: String
-    description: "The calculated [[String]] result."
+    description: "The file filter string."
 ---
 
 ## Description

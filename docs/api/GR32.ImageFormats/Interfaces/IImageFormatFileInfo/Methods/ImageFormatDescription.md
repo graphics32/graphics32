@@ -10,7 +10,7 @@ declaration: "function ImageFormatDescription: String;"
 summary: "Returns a human-readable text description of the image format."
 returns:
   - type: String
-    description: "The calculated [[String]] result."
+    description: "The description string."
 ---
 
 ## Description

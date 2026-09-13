@@ -19,4 +19,4 @@ aliases: [roProportional, roConstrained, roQuantized]
 | --- | --- |
 | `roProportional` | Maintains original aspect ratio when resizing. |
 | `roConstrained` | Triggers [[TRubberbandLayer.OnConstrain|OnConstrain]] event during resizing to enforce custom position bounds. |
-| `roQuantized` | Snaps handle positions and layer dimensions to discrete [[Quantized]] grid steps. |
+| `roQuantized` | Snaps handle positions and layer dimensions to discrete [[TCustomRubberBandLayer.Quantized|Quantized]] grid steps. |

@@ -9,7 +9,7 @@ declaration: "function GetTrimmedBounds: TRect;"
 summary: "Calculates the minimal bounding rectangle containing all non-zero displacement vectors."
 returns:
   - type: TRect
-    description: "A [[TRect]] bounding box encompassing all non-zero displacement vectors, or `(0, 0, 0, 0)` if empty."
+    description: "A TRect bounding box encompassing all non-zero displacement vectors, or `(0, 0, 0, 0)` if empty."
 ---
 
 ## Description

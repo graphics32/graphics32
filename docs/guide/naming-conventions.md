@@ -30,7 +30,7 @@ The [[TBitmap32]] class provides a large number of methods for single pixel acce
 
 :::info Note
 For lines, all the methods listed above draw line segments that are **a single pixel wide**.
-To draw thicker (or thinner) lines, see the [[Polyline]] and [[PolyPolyline]] functions in the [[GR32_Polygons]] unit. Those functions also produce better anti-aliased blending over fully transparent backgrounds (when compared with X & F modifier methods above).
+To draw thicker (or thinner) lines, see the [[PolylineFS|Polyline]] and [[PolyPolylineFS|PolyPolyline]] functions in the [[GR32_Polygons]] unit. Those functions also produce better anti-aliased blending over fully transparent backgrounds (when compared with X & F modifier methods above).
 ![](./images/LineQ.png)
 :::
 

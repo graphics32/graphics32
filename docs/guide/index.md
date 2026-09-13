@@ -183,7 +183,7 @@ Shapes with Transparency and Alpha Blending
 - [Alpha Composition (alpha blending)](alpha-composition)
 - [Naming conventions, Line and Pixel methods](naming-conventions#line-and-pixel-methods)
 - [[TBitmap32.DrawMode]]
-- [[TBitmap32.LineA]]
+- [[TBitmap32.Line]]
 - [[TBitmap32.FillRect]]
 
 ---

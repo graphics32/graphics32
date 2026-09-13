@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Resamplers
 entity: BlockTransfer
 kind: Function
+aliases: [BlockTransferX]
 summary: "Performs unscaled block pixel transfer between source and destination bitmaps."
 overloads:
   - signature: "procedure BlockTransfer(Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect; Src: TCustomBitmap32; SrcRect: TRect; CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);"

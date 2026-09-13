@@ -17,7 +17,7 @@ overloads:
         description: "Horizontal and vertical displacement."
     returns:
       - type: TFloatPoint
-        description: "The offset [[TFloatPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
   - signature: "function OffsetPoint(const Pt, Delta: TFloatPoint): TFloatPoint; overload;"
     summary: "Translates floating-point Pt by delta point offset."
     parameters:
@@ -29,7 +29,7 @@ overloads:
         description: "Displacement vector."
     returns:
       - type: TFloatPoint
-        description: "The offset [[TFloatPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
   - signature: "function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFixed): TFixedPoint; overload;"
     summary: "Translates fixed-point Pt by fixed-point DeltaX and DeltaY offsets."
     parameters:
@@ -41,7 +41,7 @@ overloads:
         description: "Fixed-point displacement."
     returns:
       - type: TFixedPoint
-        description: "The offset [[TFixedPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
   - signature: "function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFloat): TFixedPoint; overload;"
     summary: "Translates fixed-point Pt by floating-point DeltaX and DeltaY offsets."
     parameters:
@@ -53,7 +53,7 @@ overloads:
         description: "Floating-point displacement."
     returns:
       - type: TFixedPoint
-        description: "The offset [[TFixedPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
   - signature: "function OffsetPoint(const Pt: TFixedPoint; const Delta: TFixedPoint): TFixedPoint; overload;"
     summary: "Translates fixed-point Pt by fixed-point Delta vector."
     parameters:
@@ -65,7 +65,7 @@ overloads:
         description: "Fixed-point displacement vector."
     returns:
       - type: TFixedPoint
-        description: "The offset [[TFixedPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
   - signature: "function OffsetPoint(const Pt: TFixedPoint; const Delta: TFloatPoint): TFixedPoint; overload;"
     summary: "Translates fixed-point Pt by floating-point Delta vector."
     parameters:
@@ -77,7 +77,7 @@ overloads:
         description: "Floating-point displacement vector."
     returns:
       - type: TFixedPoint
-        description: "The offset [[TFixedPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
   - signature: "function OffsetPoint(const Pt: TPoint; DeltaX, DeltaY: Integer): TPoint; overload;"
     summary: "Translates integer Pt by integer DeltaX and DeltaY offsets."
     parameters:
@@ -89,7 +89,7 @@ overloads:
         description: "Integer displacement."
     returns:
       - type: TPoint
-        description: "The offset [[TPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
   - signature: "function OffsetPoint(const Pt, Delta: TPoint): TPoint; overload;"
     summary: "Translates integer Pt by integer Delta point offset."
     parameters:
@@ -102,7 +102,7 @@ overloads:
 
     returns:
       - type: TPoint
-        description: "The offset [[TPoint]] point shifted by specified displacement."
+        description: "The point shifted by specified displacement."
 ---
 
 ## Description

@@ -17,7 +17,7 @@ overloads:
         description: "Second point."
     returns:
       - type: TFloatPoint
-        description: "The calculated [[TFloatPoint]] midpoint between V1 and V2."
+        description: "The calculated midpoint between V1 and V2."
   - signature: "function Average(const V1, V2: TFixedPoint): TFixedPoint; overload;"
     summary: "Calculates the midpoint between two fixed-point vectors."
     parameters:
@@ -29,7 +29,7 @@ overloads:
         description: "Second point."
     returns:
       - type: TFixedPoint
-        description: "The calculated [[TFixedPoint]] midpoint between V1 and V2."
+        description: "The calculated midpoint between V1 and V2."
   - signature: "function Average(const V1, V2: TPoint): TPoint; overload;"
     summary: "Calculates the midpoint between two integer points."
     parameters:
@@ -42,7 +42,7 @@ overloads:
 
     returns:
       - type: TPoint
-        description: "The calculated [[TPoint]] midpoint between V1 and V2."
+        description: "The calculated midpoint between V1 and V2."
 ---
 
 ## Description
