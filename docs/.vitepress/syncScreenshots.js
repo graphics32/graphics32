@@ -40,11 +40,51 @@ function syncScreenshots() {
 
         fs.copyFileSync(fullPath, targetFilePath);
 
-        const categoryAndName = relativePath.replace(/\\/g, '/').replace('/screenshot.png', '');
+        const relativeFolder = path.dirname(relativePath).replace(/\\/g, '/');
+        const folderName = path.basename(relativeFolder);
+
+        // Read metadata from index.md if present
+        const indexPath = path.join(dir, 'index.md');
+        let concept = '';
+        let techniques = '';
+        let api = [];
+
+        if (fs.existsSync(indexPath)) {
+          try {
+            const indexContent = fs.readFileSync(indexPath, 'utf-8');
+            const match = indexContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+            if (match) {
+              const yamlStr = match[1];
+
+              const conceptMatch = yamlStr.match(/^Concept:\s*(.*)$/m);
+              if (conceptMatch) {
+                concept = conceptMatch[1].trim().replace(/^["']|["']$/g, '');
+              }
+
+              const techMatch = yamlStr.match(/^Techniques:\s*(.*)$/m);
+              if (techMatch) {
+                techniques = techMatch[1].trim().replace(/^["']|["']$/g, '');
+              }
+
+              const apiMatches = yamlStr.matchAll(/^\s*-\s*["']?\[\[(.*?)\]\]["']?/gm);
+              for (const apiMatch of apiMatches) {
+                api.push(apiMatch[1].trim());
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to parse index.md at ${indexPath}:`, e);
+          }
+        }
+
         screenshots.push({
           src: `/examples/${targetFileName}`,
-          alt: categoryAndName,
-          path: relativePath.replace(/\\/g, '/')
+          alt: folderName,
+          name: folderName,
+          path: relativePath.replace(/\\/g, '/'),
+          folder: relativeFolder,
+          concept,
+          techniques,
+          api
         });
       }
     }
