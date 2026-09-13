@@ -5,7 +5,10 @@ unit: GR32_Polygons
 entity: TFillLineEvent
 kind: Type
 declaration: "TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode) of object;"
-summary: "Method event signature for span rendering in custom polygon fillers."
+summary: "Event type for span rendering in custom polygon fillers."
+seealso:
+  - "[[TCustomPolygonFiller.FillLineEvent]]"
+  - "[[TCallbackPolygonFiller.FillLineEvent]]"
 ---
 
 ## Description

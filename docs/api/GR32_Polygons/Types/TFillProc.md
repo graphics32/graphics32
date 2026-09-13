@@ -4,6 +4,7 @@ docType: api
 unit: GR32_Polygons
 entity: TFillProc
 kind: Type
+hidden: true
 declaration: "TFillProc = procedure(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: Integer; Color: TColor32);"
 summary: "Procedural pointer type for internal alpha coverage span calculation functions."
 ---
