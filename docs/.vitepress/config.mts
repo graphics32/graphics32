@@ -300,6 +300,14 @@ export default withMermaid(await defineConfig({
       '/how_to_generate_documentation': aboutSidebar,
       '/how_to_generate_API_documentation': aboutSidebar,
       '/guide/': guideSidebar,
+      '/examples/': [
+        {
+          text: 'Examples',
+          items: [
+            { text: 'Example Projects', link: '/examples/' }
+          ]
+        }
+      ],
       '/api/': [
         {
           text: 'API Reference',
