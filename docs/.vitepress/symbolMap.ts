@@ -195,7 +195,7 @@ export function apiSymbolLinksPlugin(md: MarkdownIt, symbolMap: SymbolMap) {
             const linkOpen = new state.Token('link_open', 'a', 1)
             linkOpen.attrs = [['href', targetUrl]]
 
-            const linkText = new state.Token('text', '', 0)
+            const linkText = new state.Token('code_inline', 'code', 0)
             linkText.content = label
 
             const linkClose = new state.Token('link_close', 'a', -1)
