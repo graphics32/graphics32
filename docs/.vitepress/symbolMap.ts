@@ -204,17 +204,9 @@ export function apiSymbolLinksPlugin(md: MarkdownIt, symbolMap: SymbolMap) {
           } else {
             console.warn(`[symbolMap] Warning: Unresolved symbolic link '[[${rawSymbol}${customLabel ? '|' + customLabel : ''}]]' in ${env.relativePath || 'unknown page'}`)
 
-            if (customLabel !== undefined) {
-              // If custom label was explicitly provided, render as plain text
-              const unmappedText = new state.Token('text', '', 0)
-              unmappedText.content = customLabel
-              newChildren.push(unmappedText)
-            } else {
-              // If only symbol was provided, render as code block
-              const codeToken = new state.Token('code_inline', 'code', 0)
-              codeToken.content = rawSymbol
-              newChildren.push(codeToken)
-            }
+            const codeToken = new state.Token('code_inline', 'code', 0)
+            codeToken.content = label
+            newChildren.push(codeToken)
           }
 
           lastIndex = regex.lastIndex
