@@ -564,7 +564,7 @@ More cow bell!
 Now that you have a grasp of the fundamentals, explore the rest of the documentation to dive deeper into Graphics32's capabilities:
 
 - **[Installation Guide](/guide/installation)**: Learn how to set up Graphics32 packages in RAD Studio / Delphi and Lazarus.
-- **[Tutorial](/examples)**: Learn the basics in 10 easy  steps.
+- **[Tutorial](tutorial)**: Learn the basics in 10 easy  steps.
 - **[Color Gradients](/guide/color-gradients)**: Explore radial, linear, and multi-stop gradient samplers and wrap modes.
 - **[Alpha Blending](/guide/alpha-composition)**: Discover alpha composition in all its forms.
 - **[Sampling, Resampling & Rasterization](/guide/sampling-and-rasterization)**: Master high-quality image resampling, spatial filtering, and neighborhood sampling.

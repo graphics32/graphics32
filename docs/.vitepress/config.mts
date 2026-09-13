@@ -30,7 +30,7 @@ try {
 }
 
 const apiDir = path.resolve(__dirname, '../api')
-const examplesDir = path.resolve(__dirname, '../examples')
+const tutorialDir = path.resolve(__dirname, '../guide/tutorial')
 
 const currentBranch = getGitBranch()
 
@@ -74,6 +74,7 @@ const guideSidebar = [
     text: 'Guide',
     items: [
       { text: 'Getting Started', link: '/guide/' },
+      { text: 'Tutorials', link: '/guide/tutorial/' },
       { text: 'Features', link: '/guide/features' },
       { text: 'Requirements', link: '/guide/requirements' },
       { text: 'Installation', link: '/guide/installation' }
@@ -203,6 +204,7 @@ export default withMermaid(await defineConfig({
         text: 'Guide',
         items: [
           { text: 'Getting Started', link: '/guide/' },
+          { text: 'Tutorials', link: '/guide/tutorial/' },
           { text: 'Features', link: '/guide/features' },
           { text: 'Requirements', link: '/guide/requirements' },
           { text: 'Installation', link: '/guide/installation' }
@@ -211,8 +213,6 @@ export default withMermaid(await defineConfig({
       {
         text: 'Concepts',
         items: [
-          { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
-          { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
           { text: 'Alpha composition', link: '/guide/alpha-composition' },
           { text: 'Line Patterns', link: '/guide/line-patterns' },
           { text: 'Color Gradients', link: '/guide/color-gradients' },
@@ -220,6 +220,8 @@ export default withMermaid(await defineConfig({
           { text: 'Back-Ends', link: '/guide/back-ends' },
           { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
           { text: 'Naming Conventions', link: '/guide/naming-conventions' },
+          { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
+          { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
           { text: 'Vectorial Polygon Rasterizer', link: '/guide/vpr' },
           {
             text: 'Using TImage32',
@@ -269,11 +271,16 @@ export default withMermaid(await defineConfig({
       '/guide/features': guideSidebar,
       '/guide/requirements': guideSidebar,
       '/guide/installation': guideSidebar,
+      '/guide/tutorial/': [
+        {
+          text: 'Tutorials',
+          items: [
+            { text: 'Overview', link: '/guide/tutorial/' },
+            ...generateSidebarForDir(tutorialDir, '', { collapsed: false, sortBy: 'title' })
+          ]
+        }
+      ],
       '/guide/bitmaps-and-colors': conceptsSidebar,
-      '/guide/drawing-and-blending': conceptsSidebar,
-      '/guide/resampling-and-transforms': conceptsSidebar,
-      '/guide/cpu-feature-detection': conceptsSidebar,
-      '/guide/simd-optimizations': conceptsSidebar,
       '/guide/alpha-composition': conceptsSidebar,
       '/guide/line-patterns': conceptsSidebar,
       '/guide/color-gradients': conceptsSidebar,
@@ -281,6 +288,8 @@ export default withMermaid(await defineConfig({
       '/guide/back-ends': conceptsSidebar,
       '/guide/repaint-optimization': conceptsSidebar,
       '/guide/naming-conventions': conceptsSidebar,
+      '/guide/cpu-feature-detection': conceptsSidebar,
+      '/guide/simd-optimizations': conceptsSidebar,
       '/guide/vpr': conceptsSidebar,
       '/guide/using-timage32': conceptsSidebar,
       '/guide/bitmap-image': conceptsSidebar,
@@ -296,15 +305,6 @@ export default withMermaid(await defineConfig({
           text: 'API Reference',
           items: [
             { text: 'API Overview', link: '/api/' }
-          ]
-        }
-      ],
-      '/examples/': [
-        {
-          text: 'Examples & Tutorials',
-          items: [
-            { text: 'Overview', link: '/examples/' },
-            ...generateSidebarForDir(examplesDir, '', { collapsed: false, sortBy: 'title' })
           ]
         }
       ]

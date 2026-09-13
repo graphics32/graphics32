@@ -1,6 +1,6 @@
-# Examples & Tutorials
+# Tutorials
 
-Welcome to the Graphics32 Examples & Tutorials section! Whether you are completely new to Graphics32 or looking for practical code snippets to perform common graphics tasks, these beginner-friendly guides provide step-by-step explanations and Pascal code examples.
+Welcome to the Graphics32 Tutorials section! Whether you are completely new to Graphics32 or looking for practical code snippets to perform common graphics tasks, these beginner-friendly guides provide step-by-step explanations and Pascal code snippets to introduce you to the most common usage patterns.
 
 ---
 

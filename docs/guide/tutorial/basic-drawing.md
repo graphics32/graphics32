@@ -96,7 +96,8 @@ Bitmap.FillRectTS(120, 100, 300, 240, clTrBlue32);
 - **`*S` suffix** (e.g., `FillRectS`, `FrameRectS`): Performs automatic boundary checking (clipping) against bitmap boundaries, preventing out-of-bounds crashes.
 - **`*TS` suffix** (e.g., `FillRectTS`): Performs boundary checking **and** alpha blending with existing pixels.
 
-see also: [Naming Conventions](/docs/naming-conventions)
+See also: [Naming Conventions](/docs/naming-conventions)
+
 ---
 
 ## Summary

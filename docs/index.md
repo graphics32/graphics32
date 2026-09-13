@@ -17,7 +17,7 @@ hero:
       text: API Reference
       link: /api/
     - theme: alt
-      text: Download Zip
+      text: Download Source
       link: https://github.com/graphics32/graphics32/archive/refs/heads/master.zip
     - theme: alt
       text: Clone in Git
