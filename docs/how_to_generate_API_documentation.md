@@ -598,6 +598,10 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `GreenComponent`
     - [x] `BlueComponent`
     - [x] `SetAlpha`
+    - [x] `ModifyAlpha`
+    - [x] `ScaleAlpha`
+    - [x] `InvertColor`
+    - [x] `Gray32`
     - [x] `Intensity`
     - [x] `RGBtoHSV` / `HSVtoRGB`
   - **Records**:
@@ -607,6 +611,10 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `TFixedRect`
     - [x] `TFloatPoint`
     - [x] `TFloatRect`
+  - **Routines**:
+    - [x] `MakeRect`
+    - [x] `FixedRect`
+    - [x] `FloatRect`
   - **Interfaces**:
     - *(None)*
   - **Constants**:
@@ -616,6 +624,14 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `TArrayOfColor32`
     - [x] `PColor32`
     - [x] `TFixed`
+    - [x] `TPalette32` / `PPalette32`
+    - [x] `TRectRounding`
+    - [x] `TDrawMode`
+    - [x] `TCombineMode`
+    - [x] `TWrapMode`
+    - [x] `TPixelAccessMode`
+    - [x] `TPixelCombineEvent`
+    - [x] `TAreaChangedEvent`
 - [x] **GR32.BigEndian**: `docs/api/GR32.BigEndian/index.md`
   - **Types**
     - [x] `BigEndian`: `docs/api/GR32.BigEndian/Types/BigEndian.md`
