@@ -4,6 +4,6 @@ Techniques: "Multi-texture composition and custom blend modes"
 API:
   - "[[TImage32]]"
   - "[[BlendRegEx]]"
-  - "[[Color Algebra]]"
+  - "[[ColorAlgebra|Color Algebra]]"
   - "[[BlendTransfer]]"
 ---

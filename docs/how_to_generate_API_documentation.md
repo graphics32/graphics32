@@ -761,7 +761,38 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `TGDIMMFBackend`: `docs/api/GR32_Backends_VCL/Classes/TGDIMMFBackend/index.md`
     - [x] `TGDIMemoryBackend`: `docs/api/GR32_Backends_VCL/Classes/TGDIMemoryBackend/index.md`
 - [ ] **GR32_Bindings**
-- [ ] **GR32_Blend**
+- [x] **GR32_Blend**: `docs/api/GR32_Blend/index.md`
+  - **Types**
+    - [x] `TBlendReg`: `docs/api/GR32_Blend/Types/TBlendReg.md`
+    - [x] `TBlendMem`: `docs/api/GR32_Blend/Types/TBlendMem.md`
+    - [x] `TBlendMems`: `docs/api/GR32_Blend/Types/TBlendMems.md`
+    - [x] `TBlendRegEx`: `docs/api/GR32_Blend/Types/TBlendRegEx.md`
+    - [x] `TBlendMemEx`: `docs/api/GR32_Blend/Types/TBlendMemEx.md`
+    - [x] `TBlendRegRGB`: `docs/api/GR32_Blend/Types/TBlendRegRGB.md`
+    - [x] `TBlendMemRGB`: `docs/api/GR32_Blend/Types/TBlendMemRGB.md`
+    - [x] `TBlendLine`: `docs/api/GR32_Blend/Types/TBlendLine.md`
+    - [x] `TBlendLineEx`: `docs/api/GR32_Blend/Types/TBlendLineEx.md`
+    - [x] `TCombineReg`: `docs/api/GR32_Blend/Types/TCombineReg.md`
+    - [x] `TCombineMem`: `docs/api/GR32_Blend/Types/TCombineMem.md`
+    - [x] `TCombineLine`: `docs/api/GR32_Blend/Types/TCombineLine.md`
+    - [x] `TLightenReg`: `docs/api/GR32_Blend/Types/TLightenReg.md`
+    - [x] `TScaleMems`: `docs/api/GR32_Blend/Types/TScaleMems.md`
+    - [x] `TPremultiplyMem`: `docs/api/GR32_Blend/Types/TPremultiplyMem.md`
+    - [x] `TLUT8`: `docs/api/GR32_Blend/Types/TLUT8.md`
+    - [x] `TMultTable`: `docs/api/GR32_Blend/Types/TMultTable.md`
+    - [x] `Blend Mode Pointer Arrays`: `docs/api/GR32_Blend/Types/Blend Mode Pointer Arrays.md`
+  - **Routines**
+    - [x] `BlendReg`: `docs/api/GR32_Blend/Routines/BlendReg.md`
+    - [x] `MergeReg`: `docs/api/GR32_Blend/Routines/MergeReg.md`
+    - [x] `CombineReg`: `docs/api/GR32_Blend/Routines/CombineReg.md`
+    - [x] `ColorAlgebra`: `docs/api/GR32_Blend/Routines/ColorAlgebra.md`
+    - [x] `LightenReg`: `docs/api/GR32_Blend/Routines/LightenReg.md`
+    - [x] `Premultiply32`: `docs/api/GR32_Blend/Routines/Premultiply32.md`
+  - **Constants**
+    - [x] `BLEND_REG`: `docs/api/GR32_Blend/Constants/BLEND_REG.md`
+  - **Variables**
+    - [x] `MulDiv255Table`: `docs/api/GR32_Blend/Variables/MulDiv255Table.md`
+    - [x] `alpha_ptr`: `docs/api/GR32_Blend/Variables/alpha_ptr.md`
 - [ ] **GR32_Blurs** (document only at unit level)
 - [x] **GR32_Brushes**: `docs/api/GR32_Brushes/index.md`
   - **Classes**
