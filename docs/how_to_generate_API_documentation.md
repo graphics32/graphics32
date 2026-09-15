@@ -672,7 +672,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `Graphics32BlendService`: `docs/api/GR32.Blend.Modes/Routines/Graphics32BlendService.md`
 - [ ] **GR32.Blend.Modes.Extra**
 - [ ] **GR32.Blend.Modes.PhotoShop**
-- [ ] **GR32.Blend.Modes.PorterDuff**
+- [x] **GR32.Blend.Modes.PorterDuff**: `docs/api/GR32.Blend.Modes.PorterDuff/index.md` (document only at unit level)
 - [ ] **GR32.Blend.Pascal** (document only at unit level)
 - [ ] **GR32.Blend.SSE2** (document only at unit level)
 - [x] **GR32.Blur**: `docs/api/GR32.Blur/index.md`

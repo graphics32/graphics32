@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="90" height="78.886" font-family="verdana" version="1.2">
+  <defs>
+    <radialGradient id="a" cx="0" cy="0" r="1.5" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#fe0"/>
+      <stop offset="1" stop-color="#f80"/>
+    </radialGradient>
+    <radialGradient id="b" cx="0" cy="0" r="1.5" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#0ef"/>
+      <stop offset="1" stop-color="#08f"/>
+    </radialGradient>
+    <radialGradient xlink:href="#b" id="d" cx="-.453" cy="-.552" r="76.131" fx="-.453" fy="-.552" gradientTransform="matrix(1.10335 0 0 .90633 25 35)" gradientUnits="userSpaceOnUse"/>
+    <radialGradient xlink:href="#a" id="c" cx="-30.5" cy="-30.5" r="91.5" fx="-30.5" fy="-30.5" gradientTransform="translate(30 40)" gradientUnits="userSpaceOnUse"/>
+    <clipPath id="destClip">
+      <circle cx="30" cy="40" r="30"/>
+    </clipPath>
+    <clipPath id="srcClip">
+      <path d="M25 35h55v45H25z"/>
+    </clipPath>
+    <mask id="notDest">
+      <rect x="-20" y="-20" width="140" height="140" fill="#fff"/>
+      <circle cx="30" cy="40" r="30" fill="#000"/>
+    </mask>
+    <mask id="notSrc">
+      <rect x="-20" y="-20" width="140" height="140" fill="#fff"/>
+      <path d="M25 35h55v45H25z" fill="#000"/>
+    </mask>
+  </defs>
+  <g transform="translate(5 -5.558)">
+    <g clip-path="url(#srcClip)">
+      <circle cx="30" cy="40" r="30" fill="url(#a)" opacity=".5" style="opacity:.91;fill:url(#c);stroke:none;stroke-dasharray:1,1;stroke-dashoffset:0"/>
+    </g>
+  </g>
+  <g stroke="#000" style="display:inline" transform="translate(5 -5.558)">
+    <circle cx="30" cy="40" r="30" fill="url(#a)" opacity=".5" style="opacity:.91;fill:none;stroke-dasharray:1,1;stroke-dashoffset:0"/>
+    <path fill="url(#b)" d="M25 35h55v45H25z" opacity=".5" style="opacity:1;fill:none;stroke-dasharray:1,1;stroke-dashoffset:0"/>
+  </g>
+</svg>
