@@ -652,7 +652,10 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
   - **Variables**
     - [x] `Blur32MinRadius`: `docs/api/GR32.Blur/Variables/Blur32MinRadius.md`
 - [ ] **GR32.Blur.RecursiveGaussian**
-- [ ] **GR32.Blur.SelectiveGaussian**
+- [x] **GR32.Blur.SelectiveGaussian**: `docs/api/GR32.Blur.SelectiveGaussian/index.md`
+  - **Routines**
+    - [x] `SelectiveGaussianBlur32`: `docs/api/GR32.Blur.SelectiveGaussian/Routines/SelectiveGaussianBlur32.md`
+    - [x] `GammaSelectiveGaussianBlur32`: `docs/api/GR32.Blur.SelectiveGaussian/Routines/GammaSelectiveGaussianBlur32.md`
 - [x] **GR32.CPUID**: `docs/api/GR32.CPUID/index.md`
   - **Types**
     - [x] `TCPUVendor`: `docs/api/GR32.CPUID/Types/TCPUVendor.md`
