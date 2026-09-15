@@ -637,7 +637,7 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
     - [x] `BigEndian`: `docs/api/GR32.BigEndian/Types/BigEndian.md`
 - [ ] **GR32.Blend.Assembler** (document only at unit level)
 - [ ] **GR32.Blend.Modes**
-- [ ] **GR32.Blend.Modes.Extra**
+- [x] **GR32.Blend.Modes.Extra**: `docs/api/GR32.Blend.Modes.Extra/index.md` (document only at unit level)
 - [x] **GR32.Blend.Modes.PhotoShop**: `docs/api/GR32.Blend.Modes.PhotoShop/index.md` (document only at unit level)
 - [x] **GR32.Blend.Modes.PorterDuff**: `docs/api/GR32.Blend.Modes.PorterDuff/index.md` (document only at unit level)
 - [ ] **GR32.Blend.Pascal** (document only at unit level)
