@@ -642,7 +642,15 @@ Below is the complete, canonical list of all Pascal source units in `Source/`. A
 - [ ] **GR32.Blend.Modes.PorterDuff**
 - [ ] **GR32.Blend.Pascal** (document only at unit level)
 - [ ] **GR32.Blend.SSE2** (document only at unit level)
-- [ ] **GR32.Blur**
+- [x] **GR32.Blur**: `docs/api/GR32.Blur/index.md`
+  - **Routines**
+    - [x] `Blur32`: `docs/api/GR32.Blur/Routines/Blur32.md`
+    - [x] `GammaBlur32`: `docs/api/GR32.Blur/Routines/GammaBlur32.md`
+    - [x] `HorizontalBlur32`: `docs/api/GR32.Blur/Routines/HorizontalBlur32.md`
+  - **Constants**
+    - [x] `Gaussian Constants`: `docs/api/GR32.Blur/Constants/Gaussian Constants.md`
+  - **Variables**
+    - [x] `Blur32MinRadius`: `docs/api/GR32.Blur/Variables/Blur32MinRadius.md`
 - [ ] **GR32.Blur.RecursiveGaussian**
 - [ ] **GR32.Blur.SelectiveGaussian**
 - [x] **GR32.CPUID**: `docs/api/GR32.CPUID/index.md`
