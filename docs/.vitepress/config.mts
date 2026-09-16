@@ -13,6 +13,7 @@ import { apiFrontmatterPlugin } from './apiFrontmatterPlugin'
 import { execSync } from 'child_process'
 import { generateVirtualMembers, getGitBranch } from './virtualMembers'
 import { generateMemberData } from './generateMemberData'
+import { generateLlmsTxt } from './generateLlmsTxt'
 
 const stackOverflowSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
   <path d="M18.986 21.865v-6.404h2.134V24H1.844v-8.539h2.13v6.404h15.012zM6.111 19.731h10.657v-2.134H6.111v2.134zm.284-5.263l10.42 2.217.447-2.086-10.42-2.217-.447 2.086zm1.393-5.021l9.467 4.908.974-1.89-9.467-4.908-.974 1.89zm3.018-4.703l7.808 7.272 1.442-1.551-7.808-7.272-1.442 1.551zm5.228-3.911l-1.821 1.09 5.485 9.155 1.821-1.09-5.485-9.155z"/>
@@ -46,6 +47,7 @@ const buildTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19) +
 // Generate virtual member routes for class inheritance before building symbol map and sidebar
 generateVirtualMembers(apiDir)
 generateMemberData(apiDir, path.resolve(__dirname, '../public/memberData.json'))
+generateLlmsTxt(apiDir, path.resolve(__dirname, '../public'))
 
 // Generate full API sidebar data as static JSON asset for dynamic client-side hydration
 const fullApiSidebar = [
