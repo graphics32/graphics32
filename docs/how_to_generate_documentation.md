@@ -275,5 +275,5 @@ jobs:
 
 ## 11. Transitioning from Legacy Documentation Tools
 
-- The legacy `DocProcessor/` tool and `Documentation/Source/` folder are preserved for reference during initial migration, but will be decommissioned once all content is transferred to VitePress.
+- The legacy `DocProcessor/` tool and `Documentation/Source/` folder have been decommissioned.
 - No external Pascal parsing executables or Windows-only CHM compilers are required to maintain or build this site.
