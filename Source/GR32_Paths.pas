@@ -65,8 +65,18 @@ const
   DefaultBezierTolerance = 0.25;
 
 type
+  TArcPart = (
+    apMajor,  // "Large arc" >= pi (180 degrees)
+    apMinor   // "Small arc" =< pi (180 degrees)
+  );
+  TArcDirection = (
+    adPositive,  // Positive angle direction
+    adNegative   // Negative angle direction
+  );
+
   TControlPointOrigin = (cpNone, cpCubic, cpConic);
 
+type
   { TCustomPath }
   TCustomPath = class(TThreadPersistent)
   private
@@ -81,17 +91,26 @@ type
 
     procedure Clear; virtual;
 
-    procedure BeginPath; deprecated 'No longer necessary. Path is started automatically';
+    // BeginPath does nothing [*]; Path is started automatically'.
+    // However, we have kept it as it may be more intuitive for the user to
+    // wrap their polyline calls in BeginPath/EndPath.
+    // [*] It actually calls EndPath internally to ensure that any path
+    //     currently in progress is committed before we begin a new one.
+    procedure BeginPath;
     procedure EndPath(Close: boolean = False); virtual;
     procedure ClosePath; deprecated 'Use EndPath(True) instead';
 
-    // Movement
+    (*
+    ** Movement
+    *)
     procedure MoveTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure MoveTo(const P: TFloatPoint); overload; virtual;
     procedure MoveToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure MoveToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-    // Lines and Curves
+    (*
+    ** Lines and Curves
+    *)
     procedure LineTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure LineTo(const P: TFloatPoint); overload; virtual;
     procedure LineToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -118,13 +137,19 @@ type
     procedure ConicToRelative(const P1, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-
-    // Polylines
+    // Arcs
     procedure Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
+    // - HTML 5 style Elliptical Arc
+    procedure EllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean = False); overload;
+    // - SVG style Elliptical Arc
+    procedure EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); overload;
+    // Polylines
     procedure PolyLine(const APoints: TArrayOfFloatPoint; AOffset: integer = 0); virtual;
     procedure PolyPolyLine(const APoints: TArrayOfArrayOfFloatPoint); virtual;
 
-    // Closed Polygons
+    (*
+    ** Closed Polygons
+    *)
     procedure Rectangle(const Rect: TFloatRect); virtual;
     procedure RoundRect(const Rect: TFloatRect; const Radius: TFloat); virtual;
     procedure Ellipse(Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
@@ -134,6 +159,9 @@ type
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
     procedure PolyPolygon(const APoints: TArrayOfArrayOfFloatPoint); virtual;
 
+    (*
+    ** State
+    *)
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
   end;
 
@@ -481,6 +509,248 @@ end;
 procedure TCustomPath.Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
 begin
   PolyLine(BuildArc(P, StartAngle, EndAngle, Radius));
+end;
+
+procedure TCustomPath.EllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean);
+var
+  SweepAngle: TFloat;
+  Steps: Integer;
+  StepAngle: TFloat;
+  SinRot, CosRot: TFloat;
+  Ux, Uy, Vx, Vy: TFloat;
+  CosStep, SinStep: TFloat;
+  CosA, SinA, NewCosA: TFloat;
+  I: Integer;
+  Pt: TFloatPoint;
+  EffectiveRadius: TFloat;
+const
+  MINSTEPS = 6;
+  SQUAREDMINSTEPS = Sqr(MINSTEPS);
+  OneOver2Pi: Single = 1 / (2 * Pi);
+begin
+  ARadiusX := Abs(ARadiusX);
+  ARadiusY := Abs(ARadiusY);
+
+  if (ARadiusX < 1e-6) or (ARadiusY < 1e-6) then
+  begin
+    LineTo(ACenter);
+    Exit;
+  end;
+
+  // Compute sweep angle according to HTML5 canvas specification
+  SweepAngle := AEndAngle - AStartAngle;
+  if ACounterclockwise then
+  begin
+    if SweepAngle > 0 then
+      SweepAngle := SweepAngle - 2 * Pi * (Trunc(SweepAngle * OneOver2Pi) + 1);
+    if SweepAngle <= -2 * Pi then
+      SweepAngle := -2 * Pi;
+  end else
+  begin
+    if SweepAngle < 0 then
+      SweepAngle := SweepAngle + 2 * Pi * (Trunc(-SweepAngle * OneOver2Pi) + 1);
+    if SweepAngle >= 2 * Pi then
+      SweepAngle := 2 * Pi;
+  end;
+
+  if Abs(SweepAngle) < 1e-6 then
+  begin
+    GR32_Math.SinCos(ARotation, SinRot, CosRot);
+    GR32_Math.SinCos(AStartAngle, SinA, CosA);
+    Ux := ARadiusX * CosRot;
+    Uy := ARadiusX * SinRot;
+    Vx := -ARadiusY * SinRot;
+    Vy := ARadiusY * CosRot;
+    Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
+    Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
+    LineTo(Pt);
+    Exit;
+  end;
+
+  EffectiveRadius := Max(ARadiusX, ARadiusY);
+  StepAngle := Sqr(SweepAngle) * EffectiveRadius;
+
+  if StepAngle < SQUAREDMINSTEPS then
+    Steps := MINSTEPS
+  else
+    Steps := Round(Sqrt(StepAngle));
+  if Steps < 2 then
+    Steps := 2;
+
+  StepAngle := SweepAngle / Steps;
+
+  GR32_Math.SinCos(ARotation, SinRot, CosRot);
+  Ux := ARadiusX * CosRot;
+  Uy := ARadiusX * SinRot;
+  Vx := -ARadiusY * SinRot;
+  Vy := ARadiusY * CosRot;
+
+  GR32_Math.SinCos(StepAngle, SinStep, CosStep);
+  GR32_Math.SinCos(AStartAngle, SinA, CosA);
+
+  BeginUpdate;
+  try
+    Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
+    Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
+    LineTo(Pt);
+
+    for I := 1 to Steps do
+    begin
+      NewCosA := CosA * CosStep - SinA * SinStep;
+      SinA    := SinA * CosStep + CosA * SinStep;
+      CosA    := NewCosA;
+
+      Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
+      Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
+
+      LineTo(Pt);
+    end;
+  finally
+    EndUpdate;
+  end;
+end;
+
+procedure TCustomPath.EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);
+const
+  MINSTEPS = 6;
+  SQUAREDMINSTEPS = Sqr(MINSTEPS);
+var
+  p1, p2: TFloatPoint;
+  dx, dy: TFloat;
+  rx, ry: TFloat;
+  SinPhi, CosPhi: TFloat;
+  dpx, dpy: TFloat;
+  ux, uy, uLength: TFloat;
+  s, Factor: TFloat;
+  wx, wy: TFloat;
+  rwx, rwy: TFloat;
+  c: TFloatPoint;
+  e1x, e1y, e2x, e2y: TFloat;
+  StartAngle, DeltaAngle: TFloat;
+  LargeArcFlag, SweepFlag: Boolean;
+  EffectiveRadius, StepAngle: TFloat;
+  Steps, I: Integer;
+  U_x, U_y, V_x, V_y: TFloat;
+  SinStep, CosStep: TFloat;
+  SinA, CosA, NewCosA: TFloat;
+  Pt: TFloatPoint;
+begin
+  p1 := FCurrentPoint;
+  p2 := AEndPoint;
+
+  // If start point equals end point, nothing to draw
+  if (Abs(p1.X - p2.X) < 1e-6) and (Abs(p1.Y - p2.Y) < 1e-6) then
+    Exit;
+
+  rx := Abs(ARadiusX);
+  ry := Abs(ARadiusY);
+
+  // If radii are degenerate (0), draw straight line to target
+  if (rx < 1e-6) or (ry < 1e-6) then
+  begin
+    LineTo(p2);
+    Exit;
+  end;
+
+  LargeArcFlag := (APart = apMajor);
+  SweepFlag    := (ASweep = adPositive);
+
+  // Half-distance vector d = (p1 - p2) / 2
+  dx := (p1.X - p2.X) * 0.5;
+  dy := (p1.Y - p2.Y) * 0.5;
+
+  // d' = R(-phi) * d (rotate by -phi)
+  GR32_Math.SinCos(ARotation, SinPhi, CosPhi);
+  dpx := CosPhi * dx + SinPhi * dy;
+  dpy := -SinPhi * dx + CosPhi * dy;
+
+  // u = d' / r (scale by 1/r)
+  ux := dpx / rx;
+  uy := dpy / ry;
+
+  // Check u length
+  uLength := Sqrt(ux * ux + uy * uy);
+  if uLength > 1.0 then
+  begin
+    // Radii scaling factor if points are too far apart for radii
+    rx := rx * uLength;
+    ry := ry * uLength;
+    ux := ux / uLength;
+    uy := uy / uLength;
+    uLength := 1.0;
+  end;
+
+  // Center displacement factor s in scaled parameter space
+  if LargeArcFlag <> SweepFlag then
+    s := 1.0
+  else
+    s := -1.0;
+
+  Factor := s * Sqrt(Max(0, 1.0 - uLength * uLength)) / uLength;
+  wx := Factor * uy;
+  wy := -Factor * ux;
+
+  // Reconstruct ellipse center c = (p1 + p2)/2 + R(phi) * (r * w)
+  rwx := rx * wx;
+  rwy := ry * wy;
+  c.X := (p1.X + p2.X) * 0.5 + (CosPhi * rwx - SinPhi * rwy);
+  c.Y := (p1.Y + p2.Y) * 0.5 + (SinPhi * rwx + CosPhi * rwy);
+
+  // Start vector e1 = u - w, End vector e2 = -u - w on parameter unit circle
+  e1x := ux - wx;
+  e1y := uy - wy;
+  e2x := -ux - wx;
+  e2y := -uy - wy;
+
+  StartAngle := ArcTan2(e1y, e1x);
+  DeltaAngle := ArcTan2(e1x * e2y - e1y * e2x, e1x * e2x + e1y * e2y);
+
+  if SweepFlag then
+  begin
+    if (DeltaAngle < 0) then
+      DeltaAngle := DeltaAngle + 2 * Pi;
+  end else
+  begin
+    if (DeltaAngle > 0) then
+      DeltaAngle := DeltaAngle - 2 * Pi;
+  end;
+
+  // Direct polyline generation using matrix recurrence
+  EffectiveRadius := Max(rx, ry);
+  StepAngle := Sqr(DeltaAngle) * EffectiveRadius;
+
+  if StepAngle < SQUAREDMINSTEPS then
+    Steps := MINSTEPS
+  else
+    Steps := Round(Sqrt(StepAngle));
+  if Steps < 2 then
+    Steps := 2;
+
+  StepAngle := DeltaAngle / Steps;
+
+  U_x := rx * CosPhi;
+  U_y := rx * SinPhi;
+  V_x := -ry * SinPhi;
+  V_y := ry * CosPhi;
+
+  GR32_Math.SinCos(StepAngle, SinStep, CosStep);
+  GR32_Math.SinCos(StartAngle, SinA, CosA);
+
+  BeginUpdate;
+  try
+    for I := 1 to Steps do
+    begin
+      NewCosA := CosA * CosStep - SinA * SinStep;
+      SinA := SinA * CosStep + CosA * SinStep;
+      CosA := NewCosA;
+
+      Pt.X := c.X + U_x * CosA + V_x * SinA;
+      Pt.Y := c.Y + U_y * CosA + V_y * SinA;
+      LineTo(Pt);
+    end;
+  finally
+    EndUpdate;
+  end;
 end;
 
 procedure TCustomPath.AssignTo(Dest: TPersistent);

@@ -137,6 +137,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="TestPolygonIssues.pas"/>
+        <DCCReference Include="TestCanvas32.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
