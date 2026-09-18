@@ -48,7 +48,7 @@
         <DCC_S>false</DCC_S>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
-        <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
         <UsingDelphiRTL>true</UsingDelphiRTL>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>

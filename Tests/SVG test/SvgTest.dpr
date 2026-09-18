@@ -9,7 +9,8 @@ uses
   GUITestRunner,
   TextTestRunner,
   Forms,
-  GR32.Tests.SVG.Xml in 'GR32.Tests.SVG.Xml.pas';
+  GR32.Tests.SVG.Xml in 'GR32.Tests.SVG.Xml.pas',
+  GR32.Tests.SVG.Types in 'GR32.Tests.SVG.Types.pas';
 
 {$R *.RES}
 
