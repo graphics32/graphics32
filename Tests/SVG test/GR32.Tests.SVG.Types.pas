@@ -56,6 +56,9 @@ type
 
 implementation
 
+uses
+  Types;
+
 { TTestSvgTypes }
 
 procedure TTestSvgTypes.TestSvgLengthParseAndToPixels;

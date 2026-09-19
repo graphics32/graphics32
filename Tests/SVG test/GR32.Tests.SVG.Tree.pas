@@ -58,6 +58,9 @@ type
 
 implementation
 
+uses
+  Types;
+
 { TTestSvgTree }
 
 procedure TTestSvgTree.TestNodeHierarchy;

@@ -12,7 +12,8 @@ uses
   GR32.Tests.SVG.Xml in 'GR32.Tests.SVG.Xml.pas',
   GR32.Tests.SVG.Types in 'GR32.Tests.SVG.Types.pas',
   GR32.Tests.SVG.Path in 'GR32.Tests.SVG.Path.pas',
-  GR32.Tests.SVG.Tree in 'GR32.Tests.SVG.Tree.pas';
+  GR32.Tests.SVG.Tree in 'GR32.Tests.SVG.Tree.pas',
+  GR32.Tests.SVG.Css in 'GR32.Tests.SVG.Css.pas';
 
 {$R *.RES}
 

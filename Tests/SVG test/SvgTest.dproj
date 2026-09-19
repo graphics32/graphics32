@@ -102,6 +102,7 @@
         <DCCReference Include="GR32.Tests.SVG.Types.pas"/>
         <DCCReference Include="GR32.Tests.SVG.Path.pas"/>
         <DCCReference Include="GR32.Tests.SVG.Tree.pas"/>
+        <DCCReference Include="GR32.Tests.SVG.Css.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
