@@ -1,0 +1,1674 @@
+unit GR32.SVG.Tree;
+
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
+ *
+ * The Original Code is Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Anders Melander <anders@melander.dk>
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2008-2026
+ * the Initial Developer. All Rights Reserved.
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
+interface
+
+{$include GR32.inc}
+
+uses
+  SysUtils, Classes, Generics.Collections,
+  GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils, GR32.SVG.Types;
+
+type
+  TSvgNodeClass = class of TSvgNode;
+
+  TSvgSpreadMethod = (smPad, smReflect, smRepeat);
+  TSvgGradientUnits = (guObjectBoundingBox, guUserSpaceOnUse);
+
+  TSvgGradientStop = record
+    Offset: Single;
+    Color: TSvgColor;
+    Opacity: Single;
+    class function Create(AOffset: Single; AColor: TSvgColor; AOpacity: Single = 1.0): TSvgGradientStop; static;
+  end;
+
+  TSvgFill = record
+    Color: TSvgColor;
+    Opacity: Single;
+    FillRule: TPolyFillMode;
+    Url: string;
+    class function Default: TSvgFill; static;
+  end;
+
+  TSvgStroke = record
+    Color: TSvgColor;
+    Width: TSvgLength;
+    Opacity: Single;
+    JoinStyle: TJoinStyle;
+    EndStyle: TEndStyle;
+    MiterLimit: Single;
+    DashArray: TArrayOfFloat;
+    DashOffset: Single;
+    Url: string;
+    class function Default: TSvgStroke; static;
+  end;
+
+  TSvgNode = class(TObject)
+  private
+    FID: string;
+    FCssClassName: string;
+    FStyleAttr: string; // Stores raw inline style="..." string for deferred cascade evaluation
+    FTransform: TFloatMatrix;
+    FVisible: Boolean;
+    FParent: TSvgNode;
+    FFill: TSvgFill;
+    FStroke: TSvgStroke;
+    FResolving: Boolean;
+  public
+    constructor Create(AParent: TSvgNode = nil); virtual;
+    destructor Destroy; override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; virtual;
+    function FindNodeById(const AId: string): TSvgNode; virtual;
+    procedure Render(ACanvas: TObject); virtual;
+    procedure ParseAttribute(const AName, AValue: string); virtual;
+    procedure ParseStyleAttribute(const AStyleStr: string);
+    property ID: string read FID write FID;
+    property CssClassName: string read FCssClassName write FCssClassName;
+    property StyleAttr: string read FStyleAttr write FStyleAttr;
+    property Transform: TFloatMatrix read FTransform write FTransform;
+    property Visible: Boolean read FVisible write FVisible;
+    property Parent: TSvgNode read FParent write FParent;
+    property Fill: TSvgFill read FFill write FFill;
+    property Stroke: TSvgStroke read FStroke write FStroke;
+  end;
+
+  TSvgGroupNode = class(TSvgNode)
+  private
+    FChildren: TObjectList<TSvgNode>;
+    FOpacity: Single;
+    FClipPathID: string;
+    FMaskID: string;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    destructor Destroy; override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function FindNodeById(const AId: string): TSvgNode; override;
+    procedure AddChild(AChild: TSvgNode);
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property Children: TObjectList<TSvgNode> read FChildren;
+    property Opacity: Single read FOpacity write FOpacity;
+    property ClipPathID: string read FClipPathID write FClipPathID;
+    property MaskID: string read FMaskID write FMaskID;
+  end;
+
+  TSvgGradientNode = class(TSvgGroupNode)
+  private
+    FStops: TList<TSvgGradientStop>;
+    FSpreadMethod: TSvgSpreadMethod;
+    FGradientUnits: TSvgGradientUnits;
+    FHref: string;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    destructor Destroy; override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure AddStop(const AStop: TSvgGradientStop);
+    procedure InheritFrom(ParentGradient: TSvgGradientNode); virtual;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property Stops: TList<TSvgGradientStop> read FStops;
+    property SpreadMethod: TSvgSpreadMethod read FSpreadMethod write FSpreadMethod;
+    property GradientUnits: TSvgGradientUnits read FGradientUnits write FGradientUnits;
+    property Href: string read FHref write FHref;
+  end;
+
+  TSvgLinearGradientNode = class(TSvgGradientNode)
+  private
+    FX1: TSvgLength;
+    FY1: TSvgLength;
+    FX2: TSvgLength;
+    FY2: TSvgLength;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property X1: TSvgLength read FX1 write FX1;
+    property Y1: TSvgLength read FY1 write FY1;
+    property X2: TSvgLength read FX2 write FX2;
+    property Y2: TSvgLength read FY2 write FY2;
+  end;
+
+  TSvgRadialGradientNode = class(TSvgGradientNode)
+  private
+    FCx: TSvgLength;
+    FCy: TSvgLength;
+    FR: TSvgLength;
+    FFx: TSvgLength;
+    FFy: TSvgLength;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property Cx: TSvgLength read FCx write FCx;
+    property Cy: TSvgLength read FCy write FCy;
+    property R: TSvgLength read FR write FR;
+    property Fx: TSvgLength read FFx write FFx;
+    property Fy: TSvgLength read FFy write FFy;
+  end;
+
+  TSvgClipPathNode = class(TSvgGroupNode)
+  private
+    FClipPathUnits: TSvgGradientUnits;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property ClipPathUnits: TSvgGradientUnits read FClipPathUnits write FClipPathUnits;
+  end;
+
+  TSvgMaskNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FMaskUnits: TSvgGradientUnits;
+    FMaskContentUnits: TSvgGradientUnits;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property MaskUnits: TSvgGradientUnits read FMaskUnits write FMaskUnits;
+    property MaskContentUnits: TSvgGradientUnits read FMaskContentUnits write FMaskContentUnits;
+  end;
+
+  TSvgDocumentNode = class(TSvgGroupNode)
+  private
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ResolveUseNodes;
+    procedure ResolveGradients;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
+  TSvgPathNode = class(TSvgNode)
+  private
+    FPathData: TArrayOfArrayOfFloatPoint;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    property PathData: TArrayOfArrayOfFloatPoint read FPathData write FPathData;
+  end;
+
+  TSvgDefsNode = class(TSvgGroupNode)
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+  end;
+
+  TSvgUseNode = class(TSvgGroupNode)
+  private
+    FHref: string;
+    FX: Single;
+    FY: Single;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property Href: string read FHref write FHref;
+    property X: Single read FX write FX;
+    property Y: Single read FY write FY;
+  end;
+
+// Primitive Shape Converters
+function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
+function CreatePolylinePath(const APointsStr: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
+
+// Transform Parser
+function ParseSvgTransform(const AStr: string): TFloatMatrix;
+
+// XML Parsing
+function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode; overload;
+function ParseSvgXml(const AXmlText: UTF8String): TSvgDocumentNode; overload;
+
+implementation
+
+uses
+  Types, Math, GR32_Paths, GR32.SVG.Path, GR32.SVG.Xml, GR32.SVG.Css;
+
+{ TSvgGradientStop }
+
+class function TSvgGradientStop.Create(AOffset: Single; AColor: TSvgColor; AOpacity: Single): TSvgGradientStop;
+begin
+  Result.Offset := EnsureRange(AOffset, 0.0, 1.0);
+  Result.Color := AColor;
+  Result.Opacity := EnsureRange(AOpacity, 0.0, 1.0);
+end;
+
+{ TSvgFill }
+
+class function TSvgFill.Default: TSvgFill;
+begin
+  Result.Color := TSvgColor.Create(clBlack32);
+  Result.Opacity := 1.0;
+  Result.FillRule := pfWinding;
+  Result.Url := '';
+end;
+
+{ TSvgStroke }
+
+class function TSvgStroke.Default: TSvgStroke;
+begin
+  Result.Color := TSvgColor.None;
+  Result.Width := TSvgLength.Create(1.0, suPx);
+  Result.Opacity := 1.0;
+  Result.JoinStyle := jsMiter;
+  Result.EndStyle := esButt;
+  Result.MiterLimit := 4.0;
+  Result.DashArray := nil;
+  Result.DashOffset := 0.0;
+  Result.Url := '';
+end;
+
+{ TSvgNode }
+
+constructor TSvgNode.Create(AParent: TSvgNode);
+begin
+  inherited Create;
+  FParent := AParent;
+  FTransform := IdentityMatrix;
+  FVisible := True;
+  FCssClassName := '';
+  FResolving := False;
+  if AParent <> nil then
+  begin
+    FFill := AParent.Fill;
+    FStroke := AParent.Stroke;
+  end
+  else
+  begin
+    FFill := TSvgFill.Default;
+    FStroke := TSvgStroke.Default;
+  end;
+end;
+
+destructor TSvgNode.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TSvgNode.Clone(AParent: TSvgNode): TSvgNode;
+begin
+  Result := TSvgNodeClass(ClassType).Create(AParent);
+  Result.FID := FID;
+  Result.FCssClassName := FCssClassName;
+  Result.FStyleAttr := FStyleAttr;
+  Result.FTransform := FTransform;
+  Result.FVisible := FVisible;
+  Result.FFill := FFill;
+  Result.FStroke := FStroke;
+  Result.FResolving := False;
+end;
+
+function TSvgNode.FindNodeById(const AId: string): TSvgNode;
+var
+  cleanId: string;
+begin
+  cleanId := AId;
+  if (cleanId <> '') and (cleanId[1] = '#') then
+    Delete(cleanId, 1, 1);
+
+  if FID = cleanId then
+    Exit(Self);
+  Result := nil;
+end;
+
+procedure TSvgNode.Render(ACanvas: TObject);
+begin
+  // Base implementation does nothing
+end;
+
+procedure TSvgNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+  valFloat: Single;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'id' then
+    FID := lowerVal
+  else if (lowerName = 'class') or (lowerName = 'classname') then
+    FCssClassName := lowerVal
+  else if lowerName = 'transform' then
+    FTransform := ParseSvgTransform(lowerVal)
+  else if (lowerName = 'display') or (lowerName = 'visibility') then
+  begin
+    lowerVal := LowerCase(lowerVal);
+    if (lowerVal = 'none') or (lowerVal = 'hidden') then
+      FVisible := False
+    else if (lowerVal = 'inline') or (lowerVal = 'visible') then
+      FVisible := True;
+  end
+  else if lowerName = 'fill' then
+  begin
+    if LowerCase(lowerVal) = 'none' then
+      FFill.Color := TSvgColor.None
+    else if Pos('url(', LowerCase(lowerVal)) = 1 then
+      FFill.Url := lowerVal
+    else
+      FFill.Color := TSvgColor.Parse(lowerVal);
+  end
+  else if lowerName = 'fill-opacity' then
+  begin
+    if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
+      FFill.Opacity := EnsureRange(valFloat, 0.0, 1.0);
+  end
+  else if lowerName = 'fill-rule' then
+  begin
+    if LowerCase(lowerVal) = 'evenodd' then
+      FFill.FillRule := pfAlternate
+    else
+      FFill.FillRule := pfWinding;
+  end
+  else if lowerName = 'stroke' then
+  begin
+    if LowerCase(lowerVal) = 'none' then
+      FStroke.Color := TSvgColor.None
+    else if Pos('url(', LowerCase(lowerVal)) = 1 then
+      FStroke.Url := lowerVal
+    else
+      FStroke.Color := TSvgColor.Parse(lowerVal);
+  end
+  else if lowerName = 'stroke-opacity' then
+  begin
+    if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
+      FStroke.Opacity := EnsureRange(valFloat, 0.0, 1.0);
+  end
+  else if lowerName = 'stroke-width' then
+    FStroke.Width := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'stroke-linecap' then
+  begin
+    lowerVal := LowerCase(lowerVal);
+    if lowerVal = 'round' then
+      FStroke.EndStyle := esRound
+    else if lowerVal = 'square' then
+      FStroke.EndStyle := esSquare
+    else
+      FStroke.EndStyle := esButt;
+  end
+  else if lowerName = 'stroke-linejoin' then
+  begin
+    lowerVal := LowerCase(lowerVal);
+    if lowerVal = 'round' then
+      FStroke.JoinStyle := jsRound
+    else if lowerVal = 'bevel' then
+      FStroke.JoinStyle := jsBevel
+    else
+      FStroke.JoinStyle := jsMiter;
+  end
+  else if lowerName = 'stroke-miterlimit' then
+  begin
+    if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
+      FStroke.MiterLimit := valFloat;
+  end
+  else if lowerName = 'style' then
+    // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
+    FStyleAttr := lowerVal;
+end;
+
+procedure TSvgNode.ParseStyleAttribute(const AStyleStr: string);
+var
+  declarations: TStringList;
+  decl: string;
+  colonPos: Integer;
+  k, v: string;
+  i: Integer;
+begin
+  declarations := TStringList.Create;
+  try
+    declarations.Delimiter := ';';
+    declarations.StrictDelimiter := True;
+    declarations.DelimitedText := AStyleStr;
+    for i := 0 to declarations.Count - 1 do
+    begin
+      decl := Trim(declarations[i]);
+      if decl = '' then Continue;
+      colonPos := Pos(':', decl);
+      if colonPos > 0 then
+      begin
+        k := Trim(Copy(decl, 1, colonPos - 1));
+        v := Trim(Copy(decl, colonPos + 1, Length(decl) - colonPos));
+        ParseAttribute(k, v);
+      end;
+    end;
+  finally
+    declarations.Free;
+  end;
+end;
+
+{ TSvgGroupNode }
+
+constructor TSvgGroupNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FChildren := TObjectList<TSvgNode>.Create(True);
+  FOpacity := 1.0;
+  FClipPathID := '';
+  FMaskID := '';
+end;
+
+destructor TSvgGroupNode.Destroy;
+begin
+  FChildren.Free;
+  inherited Destroy;
+end;
+
+function TSvgGroupNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  groupRes: TSvgGroupNode;
+  i: Integer;
+begin
+  groupRes := TSvgGroupNode(inherited Clone(AParent));
+  groupRes.FOpacity := FOpacity;
+  groupRes.FClipPathID := FClipPathID;
+  groupRes.FMaskID := FMaskID;
+  for i := 0 to FChildren.Count - 1 do
+    groupRes.AddChild(FChildren[i].Clone(groupRes));
+  Result := groupRes;
+end;
+
+function TSvgGroupNode.FindNodeById(const AId: string): TSvgNode;
+var
+  i: Integer;
+  found: TSvgNode;
+begin
+  Result := inherited FindNodeById(AId);
+  if Result <> nil then
+    Exit;
+
+  for i := 0 to FChildren.Count - 1 do
+  begin
+    found := FChildren[i].FindNodeById(AId);
+    if found <> nil then
+      Exit(found);
+  end;
+  Result := nil;
+end;
+
+procedure TSvgGroupNode.AddChild(AChild: TSvgNode);
+begin
+  if AChild <> nil then
+  begin
+    AChild.Parent := Self;
+    FChildren.Add(AChild);
+  end;
+end;
+
+procedure TSvgGroupNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+  valFloat: Single;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'opacity' then
+  begin
+    if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
+      FOpacity := EnsureRange(valFloat, 0.0, 1.0);
+  end
+  else if lowerName = 'clip-path' then
+    FClipPathID := lowerVal
+  else if lowerName = 'mask' then
+    FMaskID := lowerVal
+  else
+    inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgGradientNode }
+
+constructor TSvgGradientNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FStops := TList<TSvgGradientStop>.Create;
+  FSpreadMethod := smPad;
+  FGradientUnits := guObjectBoundingBox;
+  FHref := '';
+end;
+
+destructor TSvgGradientNode.Destroy;
+begin
+  FStops.Free;
+  inherited Destroy;
+end;
+
+function TSvgGradientNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  gradRes: TSvgGradientNode;
+  i: Integer;
+begin
+  gradRes := TSvgGradientNode(inherited Clone(AParent));
+  gradRes.FSpreadMethod := FSpreadMethod;
+  gradRes.FGradientUnits := FGradientUnits;
+  gradRes.FHref := FHref;
+  for i := 0 to FStops.Count - 1 do
+    gradRes.AddStop(FStops[i]);
+  Result := gradRes;
+end;
+
+procedure TSvgGradientNode.AddStop(const AStop: TSvgGradientStop);
+begin
+  FStops.Add(AStop);
+end;
+
+procedure TSvgGradientNode.InheritFrom(ParentGradient: TSvgGradientNode);
+var
+  i: Integer;
+begin
+  if ParentGradient = nil then Exit;
+  if FStops.Count = 0 then
+  begin
+    for i := 0 to ParentGradient.FStops.Count - 1 do
+      FStops.Add(ParentGradient.FStops[i]);
+  end;
+end;
+
+procedure TSvgGradientNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if (lowerName = 'href') or (lowerName = 'xlink:href') then
+    FHref := lowerVal
+  else if lowerName = 'spreadmethod' then
+  begin
+    lowerVal := LowerCase(lowerVal);
+    if lowerVal = 'reflect' then FSpreadMethod := smReflect
+    else if lowerVal = 'repeat' then FSpreadMethod := smRepeat
+    else FSpreadMethod := smPad;
+  end
+  else if lowerName = 'gradientunits' then
+  begin
+    if LowerCase(lowerVal) = 'userspaceonuse' then
+      FGradientUnits := guUserSpaceOnUse
+    else
+      FGradientUnits := guObjectBoundingBox;
+  end
+  else
+    inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgLinearGradientNode }
+
+constructor TSvgLinearGradientNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX1 := TSvgLength.Create(0.0, suPercent);
+  FY1 := TSvgLength.Create(0.0, suPercent);
+  FX2 := TSvgLength.Create(100.0, suPercent);
+  FY2 := TSvgLength.Create(0.0, suPercent);
+end;
+
+function TSvgLinearGradientNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  linRes: TSvgLinearGradientNode;
+begin
+  linRes := TSvgLinearGradientNode(inherited Clone(AParent));
+  linRes.FX1 := FX1;
+  linRes.FY1 := FY1;
+  linRes.FX2 := FX2;
+  linRes.FY2 := FY2;
+  Result := linRes;
+end;
+
+procedure TSvgLinearGradientNode.InheritFrom(ParentGradient: TSvgGradientNode);
+var
+  parentLin: TSvgLinearGradientNode;
+begin
+  inherited InheritFrom(ParentGradient);
+  if ParentGradient is TSvgLinearGradientNode then
+  begin
+    parentLin := TSvgLinearGradientNode(ParentGradient);
+    FX1 := parentLin.FX1;
+    FY1 := parentLin.FY1;
+    FX2 := parentLin.FX2;
+    FY2 := parentLin.FY2;
+  end;
+end;
+
+procedure TSvgLinearGradientNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'x1' then FX1 := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'y1' then FY1 := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'x2' then FX2 := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'y2' then FY2 := TSvgLength.Parse(lowerVal)
+  else inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgRadialGradientNode }
+
+constructor TSvgRadialGradientNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FCx := TSvgLength.Create(50.0, suPercent);
+  FCy := TSvgLength.Create(50.0, suPercent);
+  FR := TSvgLength.Create(50.0, suPercent);
+  FFx := TSvgLength.Create(50.0, suPercent);
+  FFy := TSvgLength.Create(50.0, suPercent);
+end;
+
+function TSvgRadialGradientNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  radRes: TSvgRadialGradientNode;
+begin
+  radRes := TSvgRadialGradientNode(inherited Clone(AParent));
+  radRes.FCx := FCx;
+  radRes.FCy := FCy;
+  radRes.FR := FR;
+  radRes.FFx := FFx;
+  radRes.FFy := FFy;
+  Result := radRes;
+end;
+
+procedure TSvgRadialGradientNode.InheritFrom(ParentGradient: TSvgGradientNode);
+var
+  parentRad: TSvgRadialGradientNode;
+begin
+  inherited InheritFrom(ParentGradient);
+  if ParentGradient is TSvgRadialGradientNode then
+  begin
+    parentRad := TSvgRadialGradientNode(ParentGradient);
+    FCx := parentRad.FCx;
+    FCy := parentRad.FCy;
+    FR := parentRad.FR;
+    FFx := parentRad.FFx;
+    FFy := parentRad.FFy;
+  end;
+end;
+
+procedure TSvgRadialGradientNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'cx' then FCx := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'cy' then FCy := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'r' then FR := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'fx' then FFx := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'fy' then FFy := TSvgLength.Parse(lowerVal)
+  else inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgClipPathNode }
+
+constructor TSvgClipPathNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FClipPathUnits := guUserSpaceOnUse;
+end;
+
+function TSvgClipPathNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  clipRes: TSvgClipPathNode;
+begin
+  clipRes := TSvgClipPathNode(inherited Clone(AParent));
+  clipRes.FClipPathUnits := FClipPathUnits;
+  Result := clipRes;
+end;
+
+procedure TSvgClipPathNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'clippathunits' then
+  begin
+    if LowerCase(lowerVal) = 'objectboundingbox' then
+      FClipPathUnits := guObjectBoundingBox
+    else
+      FClipPathUnits := guUserSpaceOnUse;
+  end
+  else
+    inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgMaskNode }
+
+constructor TSvgMaskNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX := TSvgLength.Create(-10.0, suPercent);
+  FY := TSvgLength.Create(-10.0, suPercent);
+  FWidth := TSvgLength.Create(120.0, suPercent);
+  FHeight := TSvgLength.Create(120.0, suPercent);
+  FMaskUnits := guObjectBoundingBox;
+  FMaskContentUnits := guUserSpaceOnUse;
+end;
+
+function TSvgMaskNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  maskRes: TSvgMaskNode;
+begin
+  maskRes := TSvgMaskNode(inherited Clone(AParent));
+  maskRes.FX := FX;
+  maskRes.FY := FY;
+  maskRes.FWidth := FWidth;
+  maskRes.FHeight := FHeight;
+  maskRes.FMaskUnits := FMaskUnits;
+  maskRes.FMaskContentUnits := FMaskContentUnits;
+  Result := maskRes;
+end;
+
+procedure TSvgMaskNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'x' then FX := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'y' then FY := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'width' then FWidth := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'height' then FHeight := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'maskunits' then
+  begin
+    if LowerCase(lowerVal) = 'userspaceonuse' then FMaskUnits := guUserSpaceOnUse
+    else FMaskUnits := guObjectBoundingBox;
+  end
+  else if lowerName = 'maskcontentunits' then
+  begin
+    if LowerCase(lowerVal) = 'objectboundingbox' then FMaskContentUnits := guObjectBoundingBox
+    else FMaskContentUnits := guUserSpaceOnUse;
+  end
+  else inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgDocumentNode }
+
+constructor TSvgDocumentNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FWidth := TSvgLength.Create(100.0, suPercent);
+  FHeight := TSvgLength.Create(100.0, suPercent);
+  FViewBox.IsDefined := False;
+  FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
+end;
+
+function TSvgDocumentNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  docRes: TSvgDocumentNode;
+begin
+  docRes := TSvgDocumentNode(inherited Clone(AParent));
+  docRes.FWidth := FWidth;
+  docRes.FHeight := FHeight;
+  docRes.FViewBox := FViewBox;
+  docRes.FPreserveAspectRatio := FPreserveAspectRatio;
+  Result := docRes;
+end;
+
+procedure TSvgDocumentNode.ResolveUseNodes;
+const
+  // Maximum recursion depth limit to prevent stack overflow from deep <use> structures
+  MaxUseDepth = 32;
+
+  procedure ProcessNode(ANode: TSvgNode; ADepth: Integer);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    useNode: TSvgUseNode;
+    targetNode, clonedNode: TSvgNode;
+    transHelper: TFloatMatrixHelper;
+    targetId: string;
+  begin
+    // Abort if node is nil, already being resolved (cycle detected), or max depth reached
+    if (ANode = nil) or ANode.FResolving or (ADepth > MaxUseDepth) then
+      Exit;
+
+    // Mark current node as active in the resolution call stack
+    ANode.FResolving := True;
+    try
+      if ANode is TSvgUseNode then
+      begin
+        useNode := TSvgUseNode(ANode);
+        // Only attempt expansion if useNode has a non-empty href and no children cloned yet
+        if (useNode.Href <> '') and (useNode.Children.Count = 0) then
+        begin
+          targetId := useNode.Href;
+          // Strip leading '#' from element ID reference if present
+          if (targetId <> '') and (targetId[1] = '#') then
+            Delete(targetId, 1, 1);
+
+          if targetId <> '' then
+          begin
+            targetNode := FindNodeById(targetId);
+            // W3C SVG Circular Reference Prevention:
+            // Only clone target if targetNode exists and is not currently being resolved (O(1), zero-allocation)
+            if (targetNode <> nil) and not targetNode.FResolving then
+            begin
+              // Keep targetNode.FResolving = True active while cloning AND resolving the cloned subtree
+              targetNode.FResolving := True;
+              try
+                clonedNode := targetNode.Clone(useNode);
+                if (useNode.X <> 0) or (useNode.Y <> 0) then
+                begin
+                  transHelper.Matrix := clonedNode.Transform;
+                  transHelper.Translate(useNode.X, useNode.Y);
+                  clonedNode.Transform := transHelper.Matrix;
+                end;
+                useNode.AddChild(clonedNode);
+
+                // Recursively resolve cloned subtree while targetNode remains marked as resolving
+                ProcessNode(clonedNode, ADepth + 1);
+              finally
+                targetNode.FResolving := False;
+              end;
+            end;
+          end;
+        end;
+      end else
+      if ANode is TSvgGroupNode then
+      begin
+        // Recurse into children of regular container groups
+        group := TSvgGroupNode(ANode);
+        for i := 0 to group.Children.Count - 1 do
+          ProcessNode(group.Children[i], ADepth + 1);
+      end;
+    finally
+      // Reset resolving flag upon exiting node resolution traversal
+      ANode.FResolving := False;
+    end;
+  end;
+
+begin
+  ProcessNode(Self, 0);
+end;
+
+procedure TSvgDocumentNode.ResolveGradients;
+
+  procedure ProcessNode(ANode: TSvgNode);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    gradNode, targetGrad: TSvgGradientNode;
+    parentTarget: TSvgNode;
+  begin
+    if ANode is TSvgGradientNode then
+    begin
+      gradNode := TSvgGradientNode(ANode);
+      if gradNode.Href <> '' then
+      begin
+        parentTarget := FindNodeById(gradNode.Href);
+        if parentTarget is TSvgGradientNode then
+        begin
+          targetGrad := TSvgGradientNode(parentTarget);
+          gradNode.InheritFrom(targetGrad);
+        end;
+      end;
+    end;
+
+    if ANode is TSvgGroupNode then
+    begin
+      group := TSvgGroupNode(ANode);
+      for i := 0 to group.Children.Count - 1 do
+        ProcessNode(group.Children[i]);
+    end;
+  end;
+
+begin
+  ProcessNode(Self);
+end;
+
+procedure TSvgDocumentNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'width' then
+    FWidth := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'height' then
+    FHeight := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'viewbox' then
+    FViewBox := TSvgViewBox.Parse(lowerVal)
+  else if lowerName = 'preserveaspectratio' then
+    FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(lowerVal)
+  else
+    inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgPathNode }
+
+constructor TSvgPathNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FPathData := nil;
+end;
+
+function TSvgPathNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  pathRes: TSvgPathNode;
+  i: Integer;
+begin
+  pathRes := TSvgPathNode(inherited Clone(AParent));
+  SetLength(pathRes.FPathData, Length(FPathData));
+  for i := 0 to High(FPathData) do
+    pathRes.FPathData[i] := Copy(FPathData[i], 0, Length(FPathData[i]));
+  Result := pathRes;
+end;
+
+{ TSvgDefsNode }
+
+constructor TSvgDefsNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+end;
+
+{ TSvgUseNode }
+
+constructor TSvgUseNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FHref := '';
+  FX := 0;
+  FY := 0;
+end;
+
+function TSvgUseNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  useRes: TSvgUseNode;
+begin
+  useRes := TSvgUseNode(inherited Clone(AParent));
+  useRes.FHref := FHref;
+  useRes.FX := FX;
+  useRes.FY := FY;
+  Result := useRes;
+end;
+
+procedure TSvgUseNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+  valFloat: Single;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if (lowerName = 'href') or (lowerName = 'xlink:href') then
+    FHref := lowerVal
+  else if lowerName = 'x' then
+  begin
+    if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
+      FX := valFloat;
+  end
+  else if lowerName = 'y' then
+  begin
+    if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
+      FY := valFloat;
+  end
+  else
+    inherited ParseAttribute(AName, AValue);
+end;
+
+{ Primitive Shape Converters }
+
+function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+var
+  path: TFlattenedPath;
+begin
+  Result := nil;
+  if (Width <= 0) or (Height <= 0) then Exit;
+
+  if (Rx <= 0) and (Ry <= 0) then
+  begin
+    path := TFlattenedPath.Create;
+    try
+      path.Rectangle(FloatRect(X, Y, X + Width, Y + Height));
+      Result := path.Path;
+    finally
+      path.Free;
+    end;
+    Exit;
+  end;
+
+  if Rx <= 0 then Rx := Ry;
+  if Ry <= 0 then Ry := Rx;
+  Rx := Min(Rx, Width * 0.5);
+  Ry := Min(Ry, Height * 0.5);
+
+  path := TFlattenedPath.Create;
+  try
+    path.MoveTo(X + Rx, Y);
+    path.LineTo(X + Width - Rx, Y);
+    path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Ry), Rx, Ry, 0, -Pi * 0.5, 0);
+    path.LineTo(X + Width, Y + Height - Ry);
+    path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Height - Ry), Rx, Ry, 0, 0, Pi * 0.5);
+    path.LineTo(X + Rx, Y + Height);
+    path.EllipticalArc(FloatPoint(X + Rx, Y + Height - Ry), Rx, Ry, 0, Pi * 0.5, Pi);
+    path.LineTo(X, Y + Ry);
+    path.EllipticalArc(FloatPoint(X + Rx, Y + Ry), Rx, Ry, 0, Pi, Pi * 1.5);
+    path.EndPath(True);
+    Result := path.Path;
+  finally
+    path.Free;
+  end;
+end;
+
+function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
+var
+  path: TFlattenedPath;
+begin
+  Result := nil;
+  if Radius <= 0 then Exit;
+  path := TFlattenedPath.Create;
+  try
+    path.Circle(Cx, Cy, Radius);
+    path.EndPath(True);
+    Result := path.Path;
+  finally
+    path.Free;
+  end;
+end;
+
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+var
+  path: TFlattenedPath;
+begin
+  Result := nil;
+  if (Rx <= 0) or (Ry <= 0) then Exit;
+  path := TFlattenedPath.Create;
+  try
+    path.Ellipse(Cx, Cy, Rx, Ry);
+    path.EndPath(True);
+    Result := path.Path;
+  finally
+    path.Free;
+  end;
+end;
+
+function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
+var
+  path: TFlattenedPath;
+begin
+  path := TFlattenedPath.Create;
+  try
+    path.MoveTo(X1, Y1);
+    path.LineTo(X2, Y2);
+    path.EndPath(False);
+    Result := path.Path;
+  finally
+    path.Free;
+  end;
+end;
+
+function CreatePolylinePath(const APointsStr: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
+var
+  scannerStr: string;
+  i, len: Integer;
+  pts: array of TFloatPoint;
+  ptCount: Integer;
+  sVal1, sVal2: Single;
+  numStr: string;
+  startPos: Integer;
+
+  function ReadNextNum(var AIndex: Integer; out AValue: Single): Boolean;
+  begin
+    while (AIndex <= len) and (scannerStr[AIndex] in [' ', #9, #10, #13, ',']) do
+      Inc(AIndex);
+    if AIndex > len then Exit(False);
+
+    startPos := AIndex;
+    if scannerStr[AIndex] in ['+', '-'] then Inc(AIndex);
+    while (AIndex <= len) and (scannerStr[AIndex] in ['0'..'9', '.']) do Inc(AIndex);
+    if (AIndex <= len) and (scannerStr[AIndex] in ['e', 'E']) and
+       (AIndex < len) and (scannerStr[AIndex + 1] in ['0'..'9', '+', '-']) then
+    begin
+      Inc(AIndex);
+      if scannerStr[AIndex] in ['+', '-'] then Inc(AIndex);
+      while (AIndex <= len) and (scannerStr[AIndex] in ['0'..'9']) do Inc(AIndex);
+    end;
+
+    if AIndex = startPos then Exit(False);
+    numStr := Copy(scannerStr, startPos, AIndex - startPos);
+    Result := TryStrToFloat(numStr, AValue, SvgFormatSettings);
+  end;
+
+var
+  path: TFlattenedPath;
+  idx: Integer;
+begin
+  Result := nil;
+  scannerStr := APointsStr;
+  len := Length(scannerStr);
+  i := 1;
+  ptCount := 0;
+  SetLength(pts, 16);
+
+  while ReadNextNum(i, sVal1) do
+  begin
+    if not ReadNextNum(i, sVal2) then Break;
+    if ptCount >= Length(pts) then
+      SetLength(pts, Length(pts) * 2);
+    pts[ptCount] := FloatPoint(sVal1, sVal2);
+    Inc(ptCount);
+  end;
+
+  if ptCount < 2 then Exit;
+
+  path := TFlattenedPath.Create;
+  try
+    path.MoveTo(pts[0]);
+    for idx := 1 to ptCount - 1 do
+      path.LineTo(pts[idx]);
+    path.EndPath(AClosed);
+    Result := path.Path;
+  finally
+    path.Free;
+  end;
+end;
+
+{ Transform Parser }
+
+function ParseSvgTransform(const AStr: string): TFloatMatrix;
+var
+  s, cmdStr, paramsStr: string;
+  i, len, pStart, pEnd: Integer;
+  helper: TFloatMatrixHelper;
+  params: array of Single;
+  pCount: Integer;
+
+  procedure ExtractParams(const AParamsText: string);
+  var
+    pIdx, pLen, startPos: Integer;
+    val: Single;
+    numStr: string;
+  begin
+    pLen := Length(AParamsText);
+    pIdx := 1;
+    pCount := 0;
+    SetLength(params, 6);
+    while pIdx <= pLen do
+    begin
+      while (pIdx <= pLen) and (AParamsText[pIdx] in [' ', #9, #10, #13, ',']) do
+        Inc(pIdx);
+      if pIdx > pLen then Break;
+
+      startPos := pIdx;
+      if AParamsText[pIdx] in ['+', '-'] then Inc(pIdx);
+      while (pIdx <= pLen) and (AParamsText[pIdx] in ['0'..'9', '.']) do Inc(pIdx);
+      if (pIdx <= pLen) and (AParamsText[pIdx] in ['e', 'E']) and
+         (pIdx < pLen) and (AParamsText[pIdx + 1] in ['0'..'9', '+', '-']) then
+      begin
+        Inc(pIdx);
+        if AParamsText[pIdx] in ['+', '-'] then Inc(pIdx);
+        while (pIdx <= pLen) and (AParamsText[pIdx] in ['0'..'9']) do Inc(pIdx);
+      end;
+
+      if pIdx > startPos then
+      begin
+        numStr := Copy(AParamsText, startPos, pIdx - startPos);
+        if TryStrToFloat(numStr, val, SvgFormatSettings) then
+        begin
+          if pCount >= Length(params) then
+            SetLength(params, Length(params) * 2);
+          params[pCount] := val;
+          Inc(pCount);
+        end;
+      end;
+    end;
+  end;
+
+var
+  mMat: TFloatMatrix;
+begin
+  helper.Matrix := IdentityMatrix;
+  s := Trim(AStr);
+  len := Length(s);
+  i := 1;
+
+  while i <= len do
+  begin
+    while (i <= len) and (s[i] in [' ', #9, #10, #13, ',']) do
+      Inc(i);
+    if i > len then Break;
+
+    pStart := Pos('(', Copy(s, i, len - i + 1));
+    if pStart = 0 then Break;
+    pStart := i + pStart - 1;
+
+    cmdStr := LowerCase(Trim(Copy(s, i, pStart - i)));
+    pEnd := Pos(')', Copy(s, pStart, len - pStart + 1));
+    if pEnd = 0 then Break;
+    pEnd := pStart + pEnd - 1;
+
+    paramsStr := Copy(s, pStart + 1, pEnd - pStart - 1);
+    ExtractParams(paramsStr);
+
+    if cmdStr = 'translate' then
+    begin
+      if pCount >= 2 then
+        helper.Translate(params[0], params[1])
+      else if pCount = 1 then
+        helper.Translate(params[0], 0);
+    end
+    else if cmdStr = 'scale' then
+    begin
+      if pCount >= 2 then
+        helper.Scale(params[0], params[1])
+      else if pCount = 1 then
+        helper.Scale(params[0], params[0]);
+    end
+    else if cmdStr = 'rotate' then
+    begin
+      if pCount >= 3 then
+        helper.Rotate(params[1], params[2], params[0])
+      else if pCount >= 1 then
+        helper.Rotate(params[0]);
+    end
+    else if cmdStr = 'skewx' then
+    begin
+      if pCount >= 1 then
+        helper.Skew(Tan(DegToRad(params[0])), 0);
+    end
+    else if cmdStr = 'skewy' then
+    begin
+      if pCount >= 1 then
+        helper.Skew(0, Tan(DegToRad(params[0])));
+    end
+    else if cmdStr = 'matrix' then
+    begin
+      if pCount >= 6 then
+      begin
+        mMat[0, 0] := params[0];
+        mMat[0, 1] := params[1];
+        mMat[0, 2] := 0;
+        mMat[1, 0] := params[2];
+        mMat[1, 1] := params[3];
+        mMat[1, 2] := 0;
+        mMat[2, 0] := params[4];
+        mMat[2, 1] := params[5];
+        mMat[2, 2] := 1;
+        helper.Matrix := Mult(helper.Matrix, mMat);
+      end;
+    end;
+
+    i := pEnd + 1;
+  end;
+
+  Result := helper.Matrix;
+end;
+
+{ XML Parsing }
+
+function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode;
+var
+  cssStyleSheet: TSvgCssStyleSheet;
+
+  procedure ParseAttributes(ANode: TSvgNode; var AParser: TXmlParser);
+  var
+    attrName, attrVal: string;
+  begin
+    while AParser.ParseNext = xtAttribute do
+    begin
+      attrName := AParser.Name.ToString;
+      attrVal := TValuePUtf8Char(AParser.Value).ToString;
+      ANode.ParseAttribute(attrName, attrVal);
+    end;
+  end;
+
+  function ParseSubtree(var AParser: TXmlParser; AParent: TSvgNode): TSvgNode;
+  var
+    tagName: string;
+    node: TSvgNode;
+    groupNode: TSvgGroupNode;
+    pathNode: TSvgPathNode;
+    docNode: TSvgDocumentNode;
+    useNode: TSvgUseNode;
+    linGrad: TSvgLinearGradientNode;
+    radGrad: TSvgRadialGradientNode;
+    clipNode: TSvgClipPathNode;
+    maskNode: TSvgMaskNode;
+    parentGrad: TSvgGradientNode;
+    startDepth: Byte;
+    x, y, w, h, rx, ry, cx, cy, r, x1, y1, x2, y2, stopOffset, stopOp: Single;
+    ptsStr, dStr, cssText, stopColorStr, attrN, attrV: string;
+    childNode: TSvgNode;
+    rawCss: RawUtf8;
+    stopVal: TSvgGradientStop;
+  begin
+    Result := nil;
+    node := nil;
+    if AParser.Kind <> xtElementStart then Exit;
+    tagName := LowerCase(AParser.Name.ToString);
+    startDepth := AParser.Depth;
+
+    if (tagName = 'svg') then
+    begin
+      docNode := TSvgDocumentNode.Create(AParent);
+      node := docNode;
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'g') then
+    begin
+      groupNode := TSvgGroupNode.Create(AParent);
+      node := groupNode;
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'defs') then
+    begin
+      node := TSvgDefsNode.Create(AParent);
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'use') then
+    begin
+      useNode := TSvgUseNode.Create(AParent);
+      node := useNode;
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'lineargradient') then
+    begin
+      linGrad := TSvgLinearGradientNode.Create(AParent);
+      node := linGrad;
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'radialgradient') then
+    begin
+      radGrad := TSvgRadialGradientNode.Create(AParent);
+      node := radGrad;
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'stop') then
+    begin
+      if (AParent <> nil) and (AParent is TSvgGradientNode) then
+      begin
+        parentGrad := TSvgGradientNode(AParent);
+        stopOffset := 0.0;
+        stopOp := 1.0;
+        stopColorStr := 'black';
+        while AParser.ParseNext = xtAttribute do
+        begin
+          attrN := LowerCase(AParser.Name.ToString);
+          attrV := TValuePUtf8Char(AParser.Value).ToString;
+          if attrN = 'offset' then
+          begin
+            if (attrV <> '') and (attrV[Length(attrV)] = '%') then
+              TryStrToFloat(Copy(attrV, 1, Length(attrV) - 1), stopOffset, SvgFormatSettings)
+            else
+              TryStrToFloat(attrV, stopOffset, SvgFormatSettings);
+            if (attrV <> '') and (attrV[Length(attrV)] = '%') then
+              stopOffset := stopOffset * 0.01;
+          end;
+          if attrN = 'stop-color' then stopColorStr := attrV;
+          if attrN = 'stop-opacity' then TryStrToFloat(attrV, stopOp, SvgFormatSettings);
+        end;
+        stopVal := TSvgGradientStop.Create(stopOffset, TSvgColor.Parse(stopColorStr), stopOp);
+        parentGrad.AddStop(stopVal);
+      end
+      else
+      begin
+        while AParser.ParseNext = xtAttribute do ;
+      end;
+
+      if AParser.Kind = xtElementEnd then
+        AParser.ParseNext;
+      Exit(nil);
+    end else
+    if (tagName = 'clippath') then
+    begin
+      clipNode := TSvgClipPathNode.Create(AParent);
+      node := clipNode;
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'mask') then
+    begin
+      maskNode := TSvgMaskNode.Create(AParent);
+      node := maskNode;
+      ParseAttributes(node, AParser);
+    end else
+    if (tagName = 'style') then
+    begin
+      AParser.ConsumeText(rawCss);
+      cssText := string(rawCss);
+      if (cssText <> '') and (cssStyleSheet <> nil) then
+        cssStyleSheet.ParseCss(cssText);
+      Exit(nil);
+    end else
+    if (tagName = 'path') then
+    begin
+      pathNode := TSvgPathNode.Create(AParent);
+      node := pathNode;
+      dStr := '';
+      while AParser.ParseNext = xtAttribute do
+      begin
+        if LowerCase(AParser.Name.ToString) = 'd' then
+          dStr := TValuePUtf8Char(AParser.Value).ToString
+        else
+          pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+      end;
+      if dStr <> '' then
+        pathNode.PathData := SvgPathDataToPoints(dStr);
+    end else
+    if (tagName = 'rect') then
+    begin
+      pathNode := TSvgPathNode.Create(AParent);
+      node := pathNode;
+      x := 0; y := 0; w := 0; h := 0; rx := 0; ry := 0;
+      while AParser.ParseNext = xtAttribute do
+      begin
+        if LowerCase(AParser.Name.ToString) = 'x' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'y' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'width' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, w, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'height' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, h, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
+        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+      end;
+      pathNode.PathData := CreateRectPath(x, y, w, h, rx, ry);
+    end else
+    if (tagName = 'circle') then
+    begin
+      pathNode := TSvgPathNode.Create(AParent);
+      node := pathNode;
+      cx := 0; cy := 0; r := 0;
+      while AParser.ParseNext = xtAttribute do
+      begin
+        if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'r' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, r, SvgFormatSettings)
+        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+      end;
+      pathNode.PathData := CreateCirclePath(cx, cy, r);
+    end else
+    if (tagName = 'ellipse') then
+    begin
+      pathNode := TSvgPathNode.Create(AParent);
+      node := pathNode;
+      cx := 0; cy := 0; rx := 0; ry := 0;
+      while AParser.ParseNext = xtAttribute do
+      begin
+        if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
+        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+      end;
+      pathNode.PathData := CreateEllipsePath(cx, cy, rx, ry);
+    end else
+    if (tagName = 'line') then
+    begin
+      pathNode := TSvgPathNode.Create(AParent);
+      node := pathNode;
+      x1 := 0; y1 := 0; x2 := 0; y2 := 0;
+      while AParser.ParseNext = xtAttribute do
+      begin
+        if LowerCase(AParser.Name.ToString) = 'x1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x1, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'y1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y1, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'x2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x2, SvgFormatSettings)
+        else if LowerCase(AParser.Name.ToString) = 'y2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y2, SvgFormatSettings)
+        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+      end;
+      pathNode.PathData := CreateLinePath(x1, y1, x2, y2);
+    end else
+    if (tagName = 'polyline') or (tagName = 'polygon') then
+    begin
+      pathNode := TSvgPathNode.Create(AParent);
+      node := pathNode;
+      ptsStr := '';
+      while AParser.ParseNext = xtAttribute do
+      begin
+        if LowerCase(AParser.Name.ToString) = 'points' then
+          ptsStr := TValuePUtf8Char(AParser.Value).ToString
+        else
+          pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+      end;
+      pathNode.PathData := CreatePolylinePath(ptsStr, tagName = 'polygon');
+    end;
+
+    if node = nil then
+    begin
+      node := TSvgNode.Create(AParent);
+      ParseAttributes(node, AParser);
+    end;
+
+    // CSS Specificity Cascade Hierarchy (W3C SVG 1.1 / CSS2):
+    // 1. XML Presentation Attributes (e.g., fill="green") are parsed first (lowest priority).
+    // 2. CSS Stylesheet Rules (* -> tag -> .class -> #id) are applied next via ApplyToNode,
+    //    allowing stylesheet selectors to override presentation attributes.
+    // 3. Inline style="..." attributes (specificity 1000) are parsed LAST, ensuring inline
+    //    styles override stylesheet rules and presentation attributes (highest priority).
+    if cssStyleSheet <> nil then
+      cssStyleSheet.ApplyToNode(node, tagName, node.CssClassName, node.ID);
+
+    // Apply deferred inline style attribute after stylesheet rules to enforce inline specificity dominance
+    if (node <> nil) and (node.StyleAttr <> '') then
+      node.ParseStyleAttribute(node.StyleAttr);
+
+    if node is TSvgGroupNode then
+    begin
+      groupNode := TSvgGroupNode(node);
+      while AParser.Kind not in [xtEof, xtError] do
+      begin
+        if (AParser.Kind = xtElementEnd) and (AParser.Depth < startDepth) then
+        begin
+          AParser.ParseNext;
+          Break;
+        end;
+        if AParser.Kind = xtElementStart then
+        begin
+          childNode := ParseSubtree(AParser, groupNode);
+          if childNode <> nil then
+            groupNode.AddChild(childNode);
+        end
+        else
+          AParser.ParseNext;
+      end;
+    end;
+
+    if not (node is TSvgGroupNode) then
+    begin
+      while (AParser.Kind not in [xtEof, xtError]) and (AParser.Depth >= startDepth) do
+        AParser.ParseNext;
+      if AParser.Kind = xtElementEnd then
+        AParser.ParseNext;
+    end;
+
+    Result := node;
+  end;
+
+var
+  parser: TXmlParser;
+  rootNode: TSvgNode;
+  docRes: TSvgDocumentNode;
+begin
+  Result := nil;
+  if (Text = nil) or (TextLen <= 0) then
+    Exit;
+
+  cssStyleSheet := TSvgCssStyleSheet.Create;
+  try
+    parser.Init(Text, TextLen, [xpoNoException]);
+
+    while parser.ParseNext not in [xtEof, xtError] do
+    begin
+      if parser.Kind = xtElementStart then
+      begin
+        rootNode := ParseSubtree(parser, nil);
+        if rootNode is TSvgDocumentNode then
+          docRes := TSvgDocumentNode(rootNode)
+        else
+        if rootNode is TSvgGroupNode then
+        begin
+          docRes := TSvgDocumentNode.Create(nil);
+          docRes.AddChild(rootNode);
+        end else
+        if rootNode <> nil then
+        begin
+          docRes := TSvgDocumentNode.Create(nil);
+          docRes.AddChild(rootNode);
+        end else
+          docRes := nil;
+
+        if docRes <> nil then
+        begin
+          docRes.ResolveGradients;
+          docRes.ResolveUseNodes;
+          Exit(docRes);
+        end;
+      end;
+    end;
+  finally
+    cssStyleSheet.Free;
+  end;
+end;
+
+function ParseSvgXml(const AXmlText: UTF8String): TSvgDocumentNode;
+begin
+  Result := ParseSvgXml(PAnsiChar(AXmlText), Length(AXmlText));
+end;
+
+end.
