@@ -53,6 +53,7 @@ type
     procedure TestGroupOpacityCompositing;
     procedure TestClipPathCompositing;
     procedure TestMaskCompositing;
+    procedure TestBitmapPool;
   end;
 
 implementation
@@ -96,6 +97,48 @@ begin
     end;
   finally
     bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestBitmapPool;
+var
+  pool: TSvgBitmapPool;
+  bmp1, bmp2, bmp3: TCustomBitmap32;
+begin
+  pool := TSvgBitmapPool.Create;
+  try
+    pool.BitmapMaxExcess := 128*1024; // Larger than 200*200*4-100*100*4
+
+    // 1. Acquire new bitmap
+    bmp1 := pool.Acquire(200, 200, True);
+    Check(bmp1 <> nil, 'Acquire should return a valid TBitmap32');
+    CheckEquals(200, bmp1.Width, 'Bitmap width should be 200');
+    CheckEquals(200, bmp1.Height, 'Bitmap height should be 200');
+    CheckEquals(0, Integer(bmp1.Pixel[0, 0]), 'Bitmap should be cleared');
+
+    // Paint pixels to verify reuse on re-acquisition
+    bmp1.Clear(clRed32);
+
+    // 2. Release bitmap back to pool
+    pool.Release(bmp1);
+
+    // 3. Acquire smaller surface (100x100) -> Pool candidate (200x200) has sufficient buffer size
+    bmp2 := pool.Acquire(100, 100, False);
+    Check(bmp2 = bmp1, 'Pool should reuse candidate bitmap bmp1');
+    CheckEquals(100, bmp2.Width, 'Bitmap physical width should be 100');
+    CheckEquals(100, bmp2.Height, 'Bitmap physical height should be 100');
+    CheckEquals(clRed32, bmp2.Pixel[10, 10], 'Surface should survive resize');
+
+    // 4. Acquire surface requiring larger buffer (300x300) -> Candidate (200x200) is too small
+    bmp3 := pool.Acquire(300, 300, False);
+    Check(bmp3 <> bmp2, 'Pool should instantiate a new bitmap when candidate buffer is too small');
+    CheckEquals(300, bmp3.Width, 'New bitmap width should be 300');
+    CheckEquals(300, bmp3.Height, 'New bitmap height should be 300');
+
+    pool.Release(bmp2);
+    pool.Release(bmp3);
+  finally
+    pool.Free;
   end;
 end;
 

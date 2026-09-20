@@ -42,6 +42,21 @@ uses
 function IsIdentityMatrix(const Matrix: TFloatMatrix): Boolean;
 
 type
+  { TSvgBitmapPool: Reusable pool of intermediate TBitmap32 offscreen surfaces to eliminate
+    frequent heap allocations/deallocations during nested group opacity, clip path, and mask compositing. }
+  TSvgBitmapPool = class(TObject)
+  private
+    FPool: TObjectList<TCustomBitmap32>;
+    FBitmapMaxExcess: NativeInt;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Acquire(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
+    procedure Release(ABitmap: TCustomBitmap32);
+    procedure Clear;
+    property BitmapMaxExcess: NativeInt read FBitmapMaxExcess write FBitmapMaxExcess;
+  end;
+
   TSvgRenderer = class(TObject)
   private
     FTarget: TCustomBitmap32;
@@ -49,6 +64,7 @@ type
     FCurrentMatrix: TFloatMatrix;
     FViewportRect: TFloatRect;
     FDocumentRoot: TSvgDocumentNode;
+    FBitmapPool: TSvgBitmapPool;
   protected
     procedure RenderPathNode(APathNode: TSvgPathNode); virtual;
     procedure RenderGroupNode(AGroupNode: TSvgGroupNode); virtual;
@@ -58,6 +74,8 @@ type
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
     function ExtractUrlId(const AUrlStr: string): string;
+    function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
+    procedure ReleaseOffscreenBitmap(ABitmap: TCustomBitmap32);
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
@@ -78,7 +96,11 @@ type
 implementation
 
 uses
-  Math, GR32_Blend, GR32_Math, GR32_LowLevel;
+  Math,
+  GR32_Blend,
+  GR32_Math,
+  GR32_LowLevel,
+  GR32_Backends_Generic;
 
 function IsIdentityMatrix(const Matrix: TFloatMatrix): Boolean;
 var
@@ -91,6 +113,79 @@ begin
   Result := True;
 end;
 
+{ TSvgBitmapPool }
+
+constructor TSvgBitmapPool.Create;
+begin
+  inherited Create;
+  FPool := TObjectList<TCustomBitmap32>.Create(True);
+end;
+
+destructor TSvgBitmapPool.Destroy;
+begin
+  FPool.Free;
+  inherited Destroy;
+end;
+
+function TSvgBitmapPool.Acquire(AWidth, AHeight: Integer; AClear: Boolean): TCustomBitmap32;
+var
+  i, BestIndex: Integer;
+  TargetSize, CandidateSize, Delta, BestDelta: Integer;
+  Candidate: TCustomBitmap32;
+begin
+  Result := nil;
+  TargetSize := AWidth * AHeight;
+  BestDelta := MaxInt;
+  BestIndex := -1;
+
+  // Search pool for Candidate surface with existing buffer dimensions sufficient
+  // for requested bounds (Width >= AWidth, Height >= AHeight) to avoid costly
+  // buffer reallocations. Pick Candidate with smallest excess area (BestDelta).
+  for i := 0 to FPool.Count - 1 do
+  begin
+    Candidate := FPool[i];
+
+    CandidateSize := Candidate.Width * Candidate.Height;
+    Delta := CandidateSize - TargetSize;
+
+    if (Delta < 0) then
+      Continue;
+
+    if Delta < BestDelta then
+    begin
+      Result := Candidate;
+      BestIndex := i;
+      if Delta = 0 then
+        Break;
+      BestDelta := Delta;
+    end;
+  end;
+
+  if Result = nil then
+  begin
+    // Instantiate a new surface with TMemoryBackend if no Candidate with
+    // sufficient buffer dimensions exists in pool
+    Result := TBitmap32.Create(TMemoryBackend);
+    TMemoryBackend(Result.Backend).MaxExcess := BitmapMaxExcess;
+    Result.SetSize(AWidth, AHeight, AClear);
+  end else
+  begin
+    FPool.ExtractAt(BestIndex);
+    Result.SetSize(AWidth, AHeight, AClear);
+  end;
+end;
+
+procedure TSvgBitmapPool.Release(ABitmap: TCustomBitmap32);
+begin
+  if ABitmap <> nil then
+    FPool.Add(ABitmap);
+end;
+
+procedure TSvgBitmapPool.Clear;
+begin
+  FPool.Clear;
+end;
+
 { TSvgRenderer }
 
 constructor TSvgRenderer.Create(ATarget: TCustomBitmap32);
@@ -101,12 +196,25 @@ begin
   FCurrentMatrix := IdentityMatrix;
   FViewportRect := FloatRect(0, 0, 0, 0);
   FDocumentRoot := nil;
+  FBitmapPool := TSvgBitmapPool.Create;
+  FBitmapPool.BitmapMaxExcess := 1024; // Magic!
 end;
 
 destructor TSvgRenderer.Destroy;
 begin
+  FBitmapPool.Free;
   FMatrixStack.Free;
   inherited Destroy;
+end;
+
+function TSvgRenderer.GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean): TCustomBitmap32;
+begin
+  Result := FBitmapPool.Acquire(AWidth, AHeight, AClear);
+end;
+
+procedure TSvgRenderer.ReleaseOffscreenBitmap(ABitmap: TCustomBitmap32);
+begin
+  FBitmapPool.Release(ABitmap);
 end;
 
 procedure TSvgRenderer.PushMatrix;
@@ -499,9 +607,11 @@ begin
   // Offscreen rendering required if Opacity < 1.0, ClipPathID <> '', or MaskID <> ''
   if (AGroupNode.Opacity < 1.0) or (AGroupNode.ClipPathID <> '') or (AGroupNode.MaskID <> '') then
   begin
-    if FTarget = nil then Exit;
+    if (FTarget = nil) then
+      Exit;
 
-    offscreenBmp := TCustomBitmap32.Create;
+    // Acquire reusable offscreen scratchpad surface from bitmap pool
+    offscreenBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
     clipMaskBmp := nil;
     maskBmp := nil;
     try
@@ -524,8 +634,7 @@ begin
         if clipTargetNode is TSvgClipPathNode then
         begin
           clipNodeTarget := TSvgClipPathNode(clipTargetNode);
-          clipMaskBmp := TCustomBitmap32.Create;
-          clipMaskBmp.SetSize(FTarget.Width, FTarget.Height, False);
+          clipMaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
 
           oldMatrix := FCurrentMatrix;
           RenderClipPathNode(clipNodeTarget, clipMaskBmp);
@@ -533,7 +642,7 @@ begin
 
           srcP := PColor32(offscreenBmp.Bits);
           dstP := PColor32(clipMaskBmp.Bits);
-          for x := 0 to offscreenBmp.Height*offscreenBmp.Width - 1 do
+          for x := 0 to offscreenBmp.PixelCount - 1 do
           begin
             alphaVal := AlphaComponent(dstP^);
             if alphaVal < 255 then
@@ -552,8 +661,7 @@ begin
         if maskTargetNode is TSvgMaskNode then
         begin
           maskNodeTarget := TSvgMaskNode(maskTargetNode);
-          maskBmp := TCustomBitmap32.Create;
-          maskBmp.SetSize(FTarget.Width, FTarget.Height, False);
+          maskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, False);
 
           oldMatrix := FCurrentMatrix;
           RenderMaskNode(maskNodeTarget, maskBmp);
@@ -561,7 +669,7 @@ begin
 
           srcP := PColor32(offscreenBmp.Bits);
           dstP := PColor32(maskBmp.Bits);
-          for x := 0 to offscreenBmp.Height*offscreenBmp.Width - 1 do
+          for x := 0 to offscreenBmp.PixelCount - 1 do
           begin
             // Grayscale luminance conversion: Y = 0.299 R + 0.587 G + 0.114 B
             gray := Intensity(dstP^);
@@ -577,7 +685,7 @@ begin
       if AGroupNode.Opacity < 1.0 then
       begin
         srcP := PColor32(offscreenBmp.Bits);
-        for x := 0 to offscreenBmp.Height*offscreenBmp.Width - 1 do
+        for x := 0 to offscreenBmp.PixelCount - 1 do
         begin
           ScaleAlpha(srcP^, AGroupNode.Opacity);
           Inc(srcP);
@@ -590,9 +698,10 @@ begin
       offscreenBmp.DrawTo(FTarget, 0, 0);
 
     finally
-      offscreenBmp.Free;
-      if clipMaskBmp <> nil then clipMaskBmp.Free;
-      if maskBmp <> nil then maskBmp.Free;
+      // Release surfaces back to bitmap surface pool for reuse in subsequent groups/frames
+      ReleaseOffscreenBitmap(offscreenBmp);
+      ReleaseOffscreenBitmap(clipMaskBmp);
+      ReleaseOffscreenBitmap(maskBmp);
     end;
     Exit;
   end;
