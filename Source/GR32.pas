@@ -908,6 +908,7 @@ type
     RasterXF, RasterYF: TFixed;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
     function GetByteCount: integer; override;
+    function GetPixelCount: integer;
     function  Equal(B: TCustomBitmap32): Boolean;
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
@@ -1122,6 +1123,7 @@ type
 {$ELSE}
     property Bits: PColor32Array read FBits;
 {$ENDIF}
+    property PixelCount: integer read GetPixelCount;
 
     property ClipRect: TRect read FClipRect write SetClipRect;
     property Clipping: Boolean read FClipping;
@@ -3490,6 +3492,12 @@ function TCustomBitmap32.GetByteCount: integer;
 begin
   Result := Width * Height * SizeOf(TColor32);
 end;
+
+function TCustomBitmap32.GetPixelCount: integer;
+begin
+  Result := Width * Height;
+end;
+
 function TCustomBitmap32.GetPenPos: TPoint;
 begin
   Result.X := RasterX;
