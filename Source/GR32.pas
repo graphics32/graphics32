@@ -1252,6 +1252,9 @@ type
     procedure Clear; virtual;
     function Empty: Boolean; virtual;
 
+    // Finalize existing surface (if any) and initialize a new surface.
+    // Note: The backend is allowed to resize or reuse the existing surface
+    // (if any) in order to minimize reallocations.
     procedure ChangeSize(out Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual;
 
 {$IFDEF BITS_GETTER}

@@ -53,9 +53,29 @@ type
   { A backend that keeps the backing buffer entirely in memory.}
 
   TMemoryBackend = class(TCustomBackend)
+  private
+    FSize: NativeInt;
+    FMaxOversize: NativeInt;
+  public class var
+    // DefaultMaxOversize: Default value of MaxOversize for new instances of TMemoryBackend.
+    DefaultMaxOversize: NativeInt;
   protected
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); override;
     procedure FinalizeSurface; override;
+  public
+    constructor Create; override;
+
+    procedure ChangeSize(out Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+
+    property Size: NativeInt read FSize;
+
+    // Max Oversize = Max allowed difference between allocated size and required
+    // size before we reallocate the buffer. This property enables shrinking a
+    // bitmap's dimensions without the backend buffer being free'd and reallocated
+    // (which is expensive).
+    // The unit is bytes and the default value is 0 (or whatever DefaultMaxOversize
+    // has been set to).
+    property MaxOversize: NativeInt read FMaxOversize write FMaxOversize;
   end;
 
 {$ifdef MSWINDOWS}
@@ -99,10 +119,52 @@ resourcestring
 { TMemoryBackend }
 
 procedure TMemoryBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+var
+  NewSize: NativeInt;
 begin
-  GetMem(FBits, NewWidth * NewHeight * 4);
-  if ClearBuffer then
+  Assert(FBits = nil, 'TMemoryBackend buffer leaked');
+
+  NewSize := NewWidth * NewHeight * 4;
+  if (NewSize > 0) then
+    GetMem(FBits, NewSize);
+
+  FSize := NewSize;
+
+  if ClearBuffer and (NewSize > 0) then
     FillLongword(FBits[0], NewWidth * NewHeight, 0);
+end;
+
+procedure TMemoryBackend.ChangeSize(out Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+var
+  NewSize: NativeInt;
+begin
+  NewSize := NewWidth * NewHeight * 4;
+
+  // Can we reuse the existing buffer?
+  if (NewSize <= FSize) and (FSize - NewSize <= FMaxOversize) then
+  begin
+    try
+      Changing;
+
+      Width := 0;
+      Height := 0;
+
+      if (ClearBuffer) and (NewWidth > 0) and (NewHeight > 0) then
+        FillLongword(FBits[0], NewWidth * NewHeight, 0);
+
+      Width := NewWidth;
+      Height := NewHeight;
+    finally
+      Changed;
+    end;
+  end else
+    inherited;
+end;
+
+constructor TMemoryBackend.Create;
+begin
+  inherited;
+  FMaxOversize := DefaultMaxOversize;
 end;
 
 procedure TMemoryBackend.FinalizeSurface;
@@ -111,6 +173,7 @@ begin
   begin
     FreeMem(FBits);
     FBits := nil;
+    FSize := 0;
   end;
 end;
 
