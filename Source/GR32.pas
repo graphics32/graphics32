@@ -129,6 +129,9 @@ const
   clFuchsia32             = TColor32({$IFNDEF RGBA_FORMAT} $FFFF00FF {$ELSE} $FFFF00FF {$ENDIF});
   clAqua32                = TColor32({$IFNDEF RGBA_FORMAT} $FF00FFFF {$ELSE} $FFFFFF00 {$ENDIF});
 
+  clCyan32                = clAqua32;
+  clMagenta32             = clFuchsia32;
+
   clAliceBlue32           = TColor32({$IFNDEF RGBA_FORMAT} $FFF0F8FF {$ELSE} $FFFFF8F0 {$ENDIF});
   clAntiqueWhite32        = TColor32({$IFNDEF RGBA_FORMAT} $FFFAEBD7 {$ELSE} $FFD7EBFA {$ENDIF});
   clAquamarine32          = TColor32({$IFNDEF RGBA_FORMAT} $FF7FFFD4 {$ELSE} $FFD4FF7F {$ENDIF});
@@ -170,6 +173,7 @@ const
   clDodgerBlue32          = TColor32({$IFNDEF RGBA_FORMAT} $FF1E90FF {$ELSE} $FFFF901E {$ENDIF});
   clFireBrick32           = TColor32({$IFNDEF RGBA_FORMAT} $FFB22222 {$ELSE} $FF2222B2 {$ENDIF});
   clFloralWhite32         = TColor32({$IFNDEF RGBA_FORMAT} $FFFFFAF0 {$ELSE} $FFF0FAFF {$ENDIF});
+  clForestGreen32         = TColor32({$IFNDEF RGBA_FORMAT} $FF228B22 {$ELSE} $FF228B22 {$ENDIF});
   clGainsBoro32           = TColor32({$IFNDEF RGBA_FORMAT} $FFDCDCDC {$ELSE} $FFDCDCDC {$ENDIF});
   clGhostWhite32          = TColor32({$IFNDEF RGBA_FORMAT} $FFF8F8FF {$ELSE} $FFFFF8F8 {$ENDIF});
   clGold32                = TColor32({$IFNDEF RGBA_FORMAT} $FFFFD700 {$ELSE} $FF00D7FF {$ENDIF});
@@ -234,6 +238,7 @@ const
   clPapayaWhip32          = TColor32({$IFNDEF RGBA_FORMAT} $FFFFEFD5 {$ELSE} $FFD5EFFF {$ENDIF});
   clPeachPuff32           = TColor32({$IFNDEF RGBA_FORMAT} $FFFFDAB9 {$ELSE} $FFB9DAFF {$ENDIF});
   clPeru32                = TColor32({$IFNDEF RGBA_FORMAT} $FFCD853F {$ELSE} $FF3F85CD {$ENDIF});
+  clPink32                = TColor32({$IFNDEF RGBA_FORMAT} $FFFFC0CB {$ELSE} $FFC0CBFF {$ENDIF});
   clPlum32                = TColor32({$IFNDEF RGBA_FORMAT} $FFDDA0DD {$ELSE} $FFDDA0DD {$ENDIF});
   clPowderBlue32          = TColor32({$IFNDEF RGBA_FORMAT} $FFB0E0E6 {$ELSE} $FFE6E0B0 {$ENDIF});
   clRosyBrown32           = TColor32({$IFNDEF RGBA_FORMAT} $FFBC8F8F {$ELSE} $FF8F8FBC {$ENDIF});
