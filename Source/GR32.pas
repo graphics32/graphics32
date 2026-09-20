@@ -785,7 +785,7 @@ type
   { TCustomMap }
   { An ancestor for bitmaps and similar 2D distributions which have width and
     height properties }
-  TCustomMap = class(TThreadPersistent)
+  TCustomMap = class abstract(TThreadPersistent)
   protected
     FHeight: Integer;
     FWidth: Integer;
@@ -794,6 +794,7 @@ type
     procedure SetHeight(NewHeight: Integer); virtual;
     procedure SetWidth(NewWidth: Integer); virtual;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual;
+    function GetByteCount: integer; virtual;
   public
     constructor Create(Width, Height: Integer); reintroduce; overload;
     destructor Destroy; override;
@@ -807,6 +808,12 @@ type
 
     property Height: Integer read FHeight write SetHeight;
     property Width: Integer read FWidth write SetWidth;
+
+    // If the map encapsulates a contiguous block of memory, then ByteCount returns
+    // the size of this memory. Otherwise returns 0 (e.g. TVectorMap which wraps a
+    // dynamic array).
+    property ByteCount: integer read GetByteCount;
+
     property OnResize: TNotifyEvent read FOnResize write FOnResize;
   end;
 
@@ -900,6 +907,7 @@ type
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
     function  Equal(B: TCustomBitmap32): Boolean;
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
@@ -3109,6 +3117,11 @@ begin
   Result := (Width = 0) or (Height = 0);
 end;
 
+function TCustomMap.GetByteCount: integer;
+begin
+  Result := 0;
+end;
+
 procedure TCustomMap.Resized;
 begin
   if Assigned(FOnResize) then
@@ -3473,6 +3486,10 @@ begin
   Result := @Bits[Y * FWidth];
 end;
 
+function TCustomBitmap32.GetByteCount: integer;
+begin
+  Result := Width * Height * SizeOf(TColor32);
+end;
 function TCustomBitmap32.GetPenPos: TPoint;
 begin
   Result.X := RasterX;
