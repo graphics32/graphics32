@@ -20,15 +20,13 @@ unit GR32.ImageFormats.SVG;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is SVG Image Format support for Graphics32
+ * The Original Code is Native SVG Image Format support for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Anders Melander <anders@melander.dk>
  *
- * Portions created by the Initial Developer are Copyright (C) 2008-2022
+ * Portions created by the Initial Developer are Copyright (C) 2026
  * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -36,87 +34,11 @@ interface
 
 {$include GR32.inc}
 
-implementation
-
 uses
   Classes,
-  Graphics,
-
-  // Image32 must be in your library search path
-  Img32,
-  Img32.Fmt.SVG,
-
   GR32,
   GR32.ImageFormats;
 
-resourcestring
-  sImageFormatSVGName = 'SVG images';
-
-//------------------------------------------------------------------------------
-//
-//      TImage32Backend
-//
-//------------------------------------------------------------------------------
-// Minimal TBitmap32 backend using a TImage32 as storage.
-//------------------------------------------------------------------------------
-type
-  TImage32Backend = class(TCustomBackend)
-  private
-    FImage32: TImage32;
-  private
-    procedure Image32Changed(Sender: TObject);
-  public
-    constructor Create(AOwner: TCustomBitmap32; AImage32: TImage32);
-    destructor Destroy; override;
-
-    function Empty: Boolean; override;
-
-    property Image32: TImage32 read FImage32;
-  end;
-
-constructor TImage32Backend.Create(AOwner: TCustomBitmap32; AImage32: TImage32);
-begin
-  inherited Create(AOwner);
-
-  FImage32 := AImage32;
-  FImage32.OnChange := Image32Changed;
-end;
-
-destructor TImage32Backend.Destroy;
-begin
-  FImage32.OnChange := nil;
-
-  inherited;
-end;
-
-procedure TImage32Backend.Image32Changed(Sender: TObject);
-begin
-  BeginUpdate;
-  try
-    FBits := pointer(FImage32.PixelBase);
-    // TImage32 doesn't fire OnResized when being resized from within SVG.LoadFromStream
-    // so we have to handle the resize manually.
-    FOwner.SetSize(FImage32.Width, FImage32.Height);
-
-    Changed;
-  finally
-    EndUpdate;
-  end;
-end;
-
-function TImage32Backend.Empty: Boolean;
-begin
-  Result := FImage32.IsEmpty;
-end;
-
-//------------------------------------------------------------------------------
-//
-//      TImageFormatAdapterSVG
-//
-//------------------------------------------------------------------------------
-// Implements IImageFormatReader for the SVG image format using the Image32
-// library's SVG reading and rendering capabilities.
-//------------------------------------------------------------------------------
 type
   TImageFormatAdapterSVG = class(TCustomImageFormat,
     IImageFormatFileInfo,
@@ -127,79 +49,110 @@ type
     function ImageFormatFileTypes: TFileTypes;
   private
     // IImageFormatReader
-    function CanLoadFromStream(AStream: TStream): boolean;
-    function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
+    function CanLoadFromStream(AStream: TStream): Boolean;
+    function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): Boolean;
   end;
 
-//------------------------------------------------------------------------------
-// IImageFormatFileInfo
-//------------------------------------------------------------------------------
+implementation
 
-function TImageFormatAdapterSVG.ImageFormatFileTypes: TFileTypes;
-begin
-  Result := ['svg'];
-end;
+uses
+  Types,
+  SysUtils,
+  GR32.SVG;
+
+resourcestring
+  sImageFormatSVGName = 'Scalable Vector Graphics';
+
+{ TImageFormatAdapterSVG }
 
 function TImageFormatAdapterSVG.ImageFormatDescription: string;
 begin
   Result := sImageFormatSVGName;
 end;
 
-//------------------------------------------------------------------------------
-// IImageFormatReader
-//------------------------------------------------------------------------------
-function TImageFormatAdapterSVG.CanLoadFromStream(AStream: TStream): boolean;
+function TImageFormatAdapterSVG.ImageFormatFileTypes: TFileTypes;
 begin
-  Result := TImageFormat_SVG.IsValidImageStream(AStream);
+  Result := ['svg'];
 end;
 
-function TImageFormatAdapterSVG.LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
+function TImageFormatAdapterSVG.CanLoadFromStream(AStream: TStream): Boolean;
 var
-  SVG: TImageFormat_SVG;
-  Bitmap: TBitmap32;
-  Image32: TImage32;
+  SavedPos: Int64;
+  BytesRead: Integer;
+  Buffer: AnsiString;
 begin
-  if (not TImageFormat_SVG.IsValidImageStream(AStream)) then
-    Exit(False);
+  Result := False;
+  if (AStream = nil) then
+    Exit;
 
-  Image32 := TImage32.Create;
+  SavedPos := AStream.Position;
   try
+    SetLength(Buffer, 255);
+    BytesRead := AStream.Read(Buffer[1], Length(Buffer));
 
-    Bitmap := TBitmap32.Create;
-    try
+    // We need at least 4 characters to match '<svg' and 6 for a minimal valid svg: '<svg/>'
+    if (BytesRead >= 6) then
+    begin
+      // First a quick test for the common case: Document starts with '<svg'
+      if (Buffer[1] = '<') and (Buffer[2] = 's') and (Buffer[3] = 'v') and (Buffer[4] = 'g') then
+        Exit(True);
 
-      TImage32Backend.Create(Bitmap, Image32); // Bitmap now owns the backend
-
-      SVG := TImageFormat_SVG.Create;
-      try
-        SVG.LoadFromStream(AStream, Image32);
-      finally
-        SVG.Free;
-      end;
-
-      ADest.Assign(Bitmap);
-
-    finally
-      Bitmap.Free;
+      // Then the more generic case
+      SetLength(Buffer, BytesRead);
+      Buffer := LowerCase(Buffer);
+      if (Pos('<svg', Buffer) > 0) or (Pos('<?xml', Buffer) > 0) then
+        Result := True;
     end;
-
   finally
-    Image32.Free;
+    AStream.Position := SavedPos;
   end;
-
-  Result := True;
 end;
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
+function TImageFormatAdapterSVG.LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): Boolean;
+var
+  doc: TSvgDocument;
+  w, h: Integer;
+begin
+  Result := False;
+  if (ADest = nil) or (AStream = nil) then
+    Exit;
+
+  doc := TSvgDocument.Create;
+  try
+    doc.LoadFromStream(AStream);
+    if doc.Root <> nil then
+    begin
+      w := Round(doc.Width.ToPixels(800));
+      h := Round(doc.Height.ToPixels(600));
+
+      if (w <= 0) and doc.ViewBox.IsValid then
+        w := Round(doc.ViewBox.Width);
+      if (h <= 0) and doc.ViewBox.IsValid then
+        h := Round(doc.ViewBox.Height);
+
+      if w <= 0 then
+        w := 800;
+      if h <= 0 then
+        h := 600;
+
+      ADest.SetSize(w, h);
+      doc.Draw(ADest, FloatRect(0, 0, w, h));
+
+      Result := True;
+    end;
+  finally
+    doc.Free;
+  end;
+end;
 
 var
-  ImageFormatHandle: integer = 0;
+  ImageFormatHandle: Integer = 0;
 
 initialization
   ImageFormatHandle := ImageFormatManager.RegisterImageFormat(TImageFormatAdapterSVG.Create, ImageFormatPriorityBetter);
-finalization
-  ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
-end.
 
+finalization
+  if ImageFormatHandle <> 0 then
+    ImageFormatManager.UnregisterImageFormat(ImageFormatHandle);
+
+end.
