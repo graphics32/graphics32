@@ -271,8 +271,25 @@ type
     procedure Pop;
     procedure Clear; overload;
     procedure Clear(const BaseMatrix: TFloatMatrix); overload;
-    procedure Rotate(Alpha: TFloat); overload; // degrees
-    procedure Rotate(Cx, Cy, Alpha: TFloat); overload; // degrees
+
+    (*
+    ** Note: TAffineTransformation.Rotate rotates counter-clockwise!
+    **
+    ** In a screen space where X increases to the right and Y increases downwards:
+    **
+    ** - Positive angles (Alpha > 0) rotate counter-clockwise on screen.
+    **   Example: Rotating point (1, 0) (to the right of origin) by 90 degress (Pi/2)
+    **   transforms it to (0, -1); Above origin on screen.
+    **
+    ** - Negative Angles (-Alpha) rotate clockwise on screen.
+    **   Example: Rotating point (1, 0) by -90 degrees (-Pi/2) transforms it to
+    **   (0, 1); Below origin on screen.
+    **
+    ** Many other 2D graphics APIs (such as Direct2D, GDI+, HTML5 Canvas, SVG, Cairo,
+    ** and Skia) define positive angles as clockwise rotation in screen space.
+    *)
+    procedure Rotate(Alpha: TFloat); overload; // degrees, not radians
+    procedure Rotate(Cx, Cy, Alpha: TFloat); overload; // degrees, not radians
     procedure Skew(Fx, Fy: TFloat);
     procedure Scale(Sx, Sy: TFloat); overload;
     procedure Scale(Value: TFloat); overload;
