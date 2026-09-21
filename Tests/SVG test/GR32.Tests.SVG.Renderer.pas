@@ -387,35 +387,41 @@ begin
       docNode.Free;
     end;
 
-    // Test Rectangle stroke width
+    // Test User complete SVG snippet with viewBox scale (12cm x 5.25cm, viewBox 1200x400)
     bmp.Clear(clWhite32);
-    xml := '<svg width="1200" height="400">' +
+    bmp.SetSize(454, 198); // 12cm x 5.25cm at 96 DPI
+    xml := '<?xml version="1.0" standalone="no"?>' +
+           '<svg width="12cm" height="5.25cm" viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg" version="1.1">' +
            '  <rect x="10" y="5" width="1140" height="390" fill="white" stroke="green" stroke-width="10" />' +
+           '  <path d="M300,200 h-150 a150,150 0 1,0 150,-150 z" fill="red" stroke="blue" stroke-width="5" />' +
            '</svg>';
 
-    bmp.SetSize(1200, 400);
     docNode := ParseSvgXml(xml);
-    Check(docNode <> nil, 'rect docNode should not be nil');
+    Check(docNode <> nil, 'user snippet docNode should not be nil');
     try
       renderer := TSvgRenderer.Create(bmp);
       try
         renderer.RenderDocument(docNode);
 
-        // Top edge: rect y=5, stroke-width=10 -> expected green from y=0 to y=10
-        minY := 400;
+        // Rect top edge: rect y=5 in viewBox 1200x400 scaled to 454x198 bitmap under xMidYMid meet alignment.
+        // scale = Min(454/1200, 198/400) = 0.378333.
+        // Vertical offset ty = (198 - 400 * 0.378333) / 2 = 23.33 pixels.
+        // Rect y=5 in viewBox -> bitmap y = 23.33 + 5 * 0.378333 = 25.22.
+        // stroke-width 10 in viewBox -> ~3.8 pixels on bitmap (y = 23..27).
+        minY := 198;
         maxY := -1;
-        for y := 0 to 30 do
+        for y := 0 to 50 do
         begin
-          if bmp.Pixel[500, y] = clGreen32 then
+          if bmp.Pixel[200, y] = clGreen32 then
           begin
             if y < minY then minY := y;
             if y > maxY then maxY := y;
           end;
         end;
 
-        Check(minY >= 0, Format('Rect top minY was %d', [minY]));
-        Check(maxY <= 11, Format('Rect top maxY was %d', [maxY]));
-        Check((maxY - minY + 1) <= 12, Format('Rect top stroke height was %d, expected ~10', [maxY - minY + 1]));
+        Check(minY >= 21, Format('ViewBox scaled rect top minY was %d, expected ~23', [minY]));
+        Check(maxY <= 29, Format('ViewBox scaled rect top maxY was %d, expected ~27', [maxY]));
+        Check((maxY - minY + 1) <= 6, Format('ViewBox scaled stroke height was %d, expected ~4 pixels', [maxY - minY + 1]));
 
       finally
         renderer.Free;
