@@ -55,6 +55,7 @@ type
     procedure TestNonSelfClosingElements;
     procedure TestCyclicUseProtection;
     procedure TestPatternParsingAndInheritance;
+    procedure TestDocTypeParsing;
   end;
 
 implementation
@@ -88,6 +89,28 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestDocTypeParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+begin
+  xml := '<?xml version="1.0" encoding="UTF-8"?>' +
+         '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' +
+         '<svg width="100" height="100">' +
+         '  <rect x="0" y="0" width="10" height="10"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode when input contains DOCTYPE');
+  try
+    CheckEquals(100.0, docNode.Width.Value, 1E-4);
+    CheckEquals(100.0, docNode.Height.Value, 1E-4);
+    CheckEquals(1, docNode.Children.Count, 'Document should parse root svg children successfully past DOCTYPE');
   finally
     docNode.Free;
   end;

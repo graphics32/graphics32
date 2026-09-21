@@ -53,6 +53,7 @@ type
     procedure TestUnescape;
     procedure TestValuePUtf8CharMethods;
     procedure TestErrorHandling;
+    procedure TestDocType;
   end;
 
 implementation
@@ -272,6 +273,46 @@ begin
       raised := True;
   end;
   Check(raised, 'Expected EXmlException for mismatched closing tag');
+end;
+
+procedure TTestSvgXmlParser.TestDocType;
+var
+  parser: TXmlParser;
+  xml: RawUtf8;
+  valStr: RawUtf8;
+  token: TXmlToken;
+begin
+  // 1. Standard SVG DOCTYPE (skipped when xpoKeepDocType not set)
+  xml := '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg><rect/></svg>';
+  parser.Init(xml);
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtElementStart), Ord(token));
+  CheckEquals('svg', string(parser.Name.ToUtf8));
+
+  // 2. DOCTYPE kept when xpoKeepDocType option is set
+  xml := '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg/>';
+  parser.Init(xml, [xpoKeepDocType]);
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtDocType), Ord(token));
+  parser.ValueToUtf8(valStr);
+  CheckEquals(' svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"', string(valStr));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtElementStart), Ord(token));
+
+  // 3. DOCTYPE with inline DTD subset [...]
+  xml := '<!DOCTYPE svg [ <!ENTITY foo "bar"> ]><svg/>';
+  parser.Init(xml, [xpoKeepDocType]);
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtDocType), Ord(token));
+  parser.ValueToUtf8(valStr);
+  CheckEquals(' svg [ <!ENTITY foo "bar"> ]', string(valStr));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtElementStart), Ord(token));
 end;
 
 initialization

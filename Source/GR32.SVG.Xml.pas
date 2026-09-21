@@ -121,7 +121,8 @@ type
     xtText,
     xtCData,
     xtComment,
-    xtPI);
+    xtPI,
+    xtDocType);
 
   /// parsing errors as recognized during TXmlParser process
   TXmlParserError = (
@@ -141,6 +142,7 @@ type
     xpeWrongEndTag,
     xpeEofInComment,
     xpeEofInCdata,
+    xpeEofInDocType,
     xpeUnsupportedMarkup,
     xpeVoidPiName,
     xpeEofInPi,
@@ -156,6 +158,7 @@ type
     xpoDontCheckEndTagName,
     xpoKeepComments,
     xpoKeepPI,
+    xpoKeepDocType,
     xpoKeepWhiteSpace,
     xpoVariantGuessType);
 
@@ -266,6 +269,7 @@ const
     'wrong end tag name',                        // xpeWrongEndTag
     'unexpected end of input within comment',    // xpeEofInComment
     'unexpected end of input within CDATA',      // xpeEofInCdata
+    'unexpected end of input within DOCTYPE',    // xpeEofInDocType
     'unsupported markup syntax',                 // xpeUnsupportedMarkup
     'void processing instruction name',          // xpeVoidPiName
     'unexpected end of input within PI',         // xpeEofInPi
@@ -1020,6 +1024,8 @@ end;
 function TXmlParser.ParseNext: TXmlToken;
 var
   p, e: PUtf8Char;
+  quoteCh: AnsiChar;
+  inSubset: Boolean;
 begin
   Name.Text := nil;
   Name.Len := 0;
@@ -1184,6 +1190,66 @@ begin
                   end;
                   LastError := xpeEofInCdata;
                 end
+                else if (e - p >= 7) and
+                   ((p[0] = 'D') or (p[0] = 'd')) and
+                   ((p[1] = 'O') or (p[1] = 'o')) and
+                   ((p[2] = 'C') or (p[2] = 'c')) and
+                   ((p[3] = 'T') or (p[3] = 't')) and
+                   ((p[4] = 'Y') or (p[4] = 'y')) and
+                   ((p[5] = 'P') or (p[5] = 'p')) and
+                   ((p[6] = 'E') or (p[6] = 'e')) then
+                begin
+                  Inc(p, 7);
+                  fCur := p;
+                  quoteCh := #0;
+                  inSubset := False;
+                  while p < e do
+                  begin
+                    if inSubset then
+                    begin
+                      if quoteCh <> #0 then
+                      begin
+                        if p^ = quoteCh then
+                          quoteCh := #0;
+                      end
+                      else if p^ in ['"', ''''] then
+                        quoteCh := p^
+                      else if p^ = ']' then
+                        inSubset := False;
+                    end
+                    else
+                    begin
+                      if quoteCh <> #0 then
+                      begin
+                        if p^ = quoteCh then
+                          quoteCh := #0;
+                      end
+                      else if p^ in ['"', ''''] then
+                        quoteCh := p^
+                      else if p^ = '[' then
+                        inSubset := True
+                      else if p^ = '>' then
+                        Break;
+                    end;
+                    Inc(p);
+                  end;
+                  if (p >= e) or (p^ <> '>') then
+                  begin
+                    LastError := xpeEofInDocType;
+                    Break;
+                  end;
+
+                  if xpoKeepDocType in Options then
+                  begin
+                    Value.Buffer := fCur;
+                    Value.Len := p - fCur;
+                    Inc(p);
+                    Kind := xtDocType;
+                    Break;
+                  end;
+                  Inc(p);
+                  Continue;
+                end
                 else
                   LastError := xpeUnsupportedMarkup;
               end;
@@ -1300,7 +1366,7 @@ var
   oldLen: PtrInt;
 begin
   valBuf := PUtf8Char(Value.Buffer);
-  if Kind in [xtCData, xtComment] then
+  if Kind in [xtCData, xtComment, xtDocType] then
     amp := nil
   else
     amp := PosChar(valBuf, Value.Len, '&');
