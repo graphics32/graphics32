@@ -1,4 +1,4 @@
-unit GR32.Tests.SVG.Path;
+﻿unit GR32.Tests.SVG.Path;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -51,6 +51,7 @@ type
     procedure TestBeziers;
     procedure TestArc;
     procedure TestPieSliceArc;
+    procedure TestSmallCoordinateCubicBezier;
     procedure TestClosePath;
     procedure TestMultipleSubpaths;
   end;
@@ -124,6 +125,22 @@ begin
   midIdx := Length(pts[0]) div 2;
   CheckEquals(17.322, pts[0][midIdx].X, 0.5);
   CheckEquals(27.678, pts[0][midIdx].Y, 0.5);
+end;
+
+procedure TTestSvgPath.TestSmallCoordinateCubicBezier;
+var
+  pts: TArrayOfArrayOfFloatPoint;
+begin
+  // Cubic bezier with small coordinates (span ~0.8 units)
+  pts := SvgPathDataToPoints('M 0.0,0.0 C 0.201843,0.201843 0.403515,0.403513 0.609067,0.572102');
+  CheckEquals(1, Length(pts));
+
+  // Should generate multiple flattened points (subdivided curve), not just start and end points
+  Check(Length(pts[0]) >= 6, 'Small coordinate cubic bezier should subdivide smoothly into multiple points');
+  CheckEquals(0.0, pts[0][0].X, 1E-3);
+  CheckEquals(0.0, pts[0][0].Y, 1E-3);
+  CheckEquals(0.609067, pts[0][High(pts[0])].X, 1E-3);
+  CheckEquals(0.572102, pts[0][High(pts[0])].Y, 1E-3);
 end;
 
 procedure TTestSvgPath.TestPieSliceArc;
