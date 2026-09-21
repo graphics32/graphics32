@@ -324,12 +324,15 @@ const
   WrapMode: array[TSvgSpreadMethod] of TWrapMode = (wmClamp, wmReflect, wmRepeat);
 begin
   Result := nil;
-  if (AGradNode = nil) or (AGradNode.Stops.Count = 0) then Exit;
+  if (AGradNode = nil) or (AGradNode.Stops.Count = 0) then
+    Exit;
 
   bWidth := ABounds.Right - ABounds.Left;
   bHeight := ABounds.Bottom - ABounds.Top;
-  if bWidth <= 0 then bWidth := 1.0;
-  if bHeight <= 0 then bHeight := 1.0;
+  if bWidth <= 0 then
+    bWidth := 1.0;
+  if bHeight <= 0 then
+    bHeight := 1.0;
 
   gradTransform := AGradNode.Transform;
 
@@ -343,8 +346,7 @@ begin
       y1 := ABounds.Top + linNode.Y1.ToPixels(bHeight);
       x2 := ABounds.Left + linNode.X2.ToPixels(bWidth);
       y2 := ABounds.Top + linNode.Y2.ToPixels(bHeight);
-    end
-    else
+    end else
     begin
       x1 := linNode.X1.ToPixels(FViewportRect.Right - FViewportRect.Left);
       y1 := linNode.Y1.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
@@ -378,7 +380,7 @@ begin
     end;
 
     Result := linFiller;
-  end;
+  end else
 
   if AGradNode is TSvgRadialGradientNode then
   begin
@@ -391,8 +393,7 @@ begin
       r := radNode.R.ToPixels(Sqrt(bWidth * bWidth + bHeight * bHeight) * Sqrt(0.5));
       fx := ABounds.Left + radNode.Fx.ToPixels(bWidth);
       fy := ABounds.Top + radNode.Fy.ToPixels(bHeight);
-    end
-    else
+    end else
     begin
       cx := radNode.Cx.ToPixels(FViewportRect.Right - FViewportRect.Left);
       cy := radNode.Cy.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
@@ -443,37 +444,47 @@ var
   targetGradNode: TSvgGradientNode;
   urlId: string;
 begin
-  if (APathNode = nil) or (Length(APathNode.PathData) = 0) or (FTarget = nil) then Exit;
+  if (APathNode = nil) or (Length(APathNode.PathData) = 0) or (FTarget = nil) then
+    Exit;
 
   transformedPts := GetTransformedPoints(APathNode.PathData);
   bounds := GetPathBounds(transformedPts);
 
+  // TODO : Cache the polygon renderer. There's no need to create it more than once.
   polyRenderer := DefaultPolygonRendererClass.Create(FTarget);
   try
     // 1. Fill Rendering
     if APathNode.Fill.Url <> '' then
     begin
       urlId := ExtractUrlId(APathNode.Fill.Url);
+
       if (FDocumentRoot <> nil) then
       begin
-        targetGradNode := TSvgGradientNode(FDocumentRoot.FindNodeById(urlId));
+        // TODO : It is an invalid assumption that the node returned is always a TSvgGradientNode
+        targetGradNode := (FDocumentRoot.FindNodeById(urlId) as TSvgGradientNode);
+
         if targetGradNode <> nil then
         begin
           filler := CreateGradientFiller(targetGradNode, bounds);
+
           if filler <> nil then
           begin
             try
               polyRenderer.Filler := filler;
-              polyRenderer.FillMode := APathNode.Fill.FillRule;
-              polyRenderer.PolyPolygonFS(transformedPts);
+              try
+                polyRenderer.FillMode := APathNode.Fill.FillRule;
+                polyRenderer.PolyPolygonFS(transformedPts);
+              finally
+                polyRenderer.Filler := nil;
+              end;
             finally
               filler.Free;
             end;
           end;
         end;
       end;
-    end
-    else if not APathNode.Fill.Color.IsNone then
+    end else
+    if not APathNode.Fill.Color.IsNone then
     begin
       fillColor := APathNode.Fill.Color.Color;
       if APathNode.Fill.Opacity < 1.0 then
@@ -492,9 +503,12 @@ begin
     begin
       urlId := ExtractUrlId(APathNode.Stroke.Url);
       strokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Right - FViewportRect.Left);
+
       if (strokeWidth > 0) and (FDocumentRoot <> nil) then
       begin
-        targetGradNode := TSvgGradientNode(FDocumentRoot.FindNodeById(urlId));
+        // TODO : It is an invalid assumption that the node returned is always a TSvgGradientNode
+        targetGradNode := (FDocumentRoot.FindNodeById(urlId) as TSvgGradientNode);
+
         if targetGradNode <> nil then
         begin
           if Length(APathNode.Stroke.DashArray) > 0 then
@@ -503,25 +517,29 @@ begin
             for i := 0 to High(transformedPts) do
               dashedPts := dashedPts + BuildDashedLine(transformedPts[i], APathNode.Stroke.DashArray, APathNode.Stroke.DashOffset);
             strokePts := BuildPolyPolyLine(dashedPts, False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
-          end
-          else
+          end else
             strokePts := BuildPolyPolyLine(transformedPts, False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
 
           filler := CreateGradientFiller(targetGradNode, bounds);
+
           if filler <> nil then
           begin
             try
               polyRenderer.Filler := filler;
-              polyRenderer.FillMode := pfWinding;
-              polyRenderer.PolyPolygonFS(strokePts);
+              try
+                polyRenderer.FillMode := pfWinding;
+                polyRenderer.PolyPolygonFS(strokePts);
+              finally
+                polyRenderer.Filler := nil;
+              end;
             finally
               filler.Free;
             end;
           end;
         end;
       end;
-    end
-    else if not APathNode.Stroke.Color.IsNone then
+    end else
+    if not APathNode.Stroke.Color.IsNone then
     begin
       strokeColor := APathNode.Stroke.Color.Color;
       if APathNode.Stroke.Opacity < 1.0 then
