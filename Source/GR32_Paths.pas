@@ -50,6 +50,11 @@ interface
 {-$define RecursiveQuadraticBezierCurve}
 {-$define RaphLevienQuadraticBezierCurve}
 
+// Define PATH_ADDPOINT_PACKING to have the path classes pack sequences
+// of duplicate points being added to a path, to a single point.
+// Define PATH_ADDPOINT_NOPACKING to disable PATH_ADDPOINT_PACKING.
+{$define PATH_ADDPOINT_PACKING}
+
 uses
   Classes, SysUtils,
   GR32,
@@ -84,7 +89,11 @@ type
     FLastControlPoint: TFloatPoint;
     FControlPointOrigin: TControlPointOrigin;
   protected
-    procedure AddPoint(const Point: TFloatPoint); virtual;
+    // AddPoint returns False *if* the point equals the previous point in
+    // the buffer. Otherwise returns True.
+    // If PATH_ADDPOINT_PACKING is defined then False also implies that
+    // the point wasn't added, and True that the point was added.
+    function AddPoint(const APoint: TFloatPoint): boolean; virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create; override;
@@ -179,7 +188,7 @@ type
     function GetPoints: TArrayOfFloatPoint;
   protected
     procedure AssignTo(Dest: TPersistent); override;
-    procedure AddPoint(const Point: TFloatPoint); override;
+    function AddPoint(const APoint: TFloatPoint): boolean; override;
     procedure DoBeginPath; virtual;
     procedure DoEndPath; virtual;
     procedure ClearPoints;
@@ -255,7 +264,7 @@ var
   QBezierTolerance: TFloat = DefaultBezierTolerance;
 
 type
-  TAddPointEvent = procedure(const Point: TFloatPoint) of object;
+  TAddPointEvent = function(const APoint: TFloatPoint): boolean of object;
 
 implementation
 
@@ -551,8 +560,9 @@ begin
   FControlPointOrigin := cpNone;
 end;
 
-procedure TCustomPath.AddPoint(const Point: TFloatPoint);
+function TCustomPath.AddPoint(const APoint: TFloatPoint): boolean;
 begin
+  Result := True;
 end;
 
 procedure TCustomPath.Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
@@ -1176,16 +1186,24 @@ begin
   AddPoint(P);
 end;
 
-procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
+function TFlattenedPath.AddPoint(const APoint: TFloatPoint): boolean;
 var
   p: TFloatPoint;
 begin
   if (FPointIndex = 0) then
     DoBeginPath;
 
+  // Is the point different from the last one added to the buffer?
+  Result := (FPointIndex = 0) or (APoint <> FPoints[FPointIndex-1]);
+
+{$if (defined(PATH_ADDPOINT_PACKING)) and (not defined(PATH_ADDPOINT_NOPACKING))}
+  if (not Result) then
+    exit;
+{$ifend}
+
   // Work around for Delphi compiler bug.
   // We'll get an AV on the assignment below without it.
-  p := Point;
+  p := APoint;
 
   // Grow buffer if required
   if (FPointIndex > High(FPoints)) then
