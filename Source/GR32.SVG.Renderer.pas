@@ -258,7 +258,7 @@ end;
 
 procedure TSvgRenderer.ApplyMatrix(const AMatrix: TFloatMatrix);
 begin
-  FCurrentMatrix := Mult(AMatrix, FCurrentMatrix);
+  FCurrentMatrix := Mult(FCurrentMatrix, AMatrix);
 end;
 
 function TSvgRenderer.ExtractUrlId(const AUrlStr: string): string;

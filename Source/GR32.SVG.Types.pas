@@ -854,8 +854,8 @@ begin
   GR32_Math.SinCos(Alpha, S, C);
 
   M := IdentityMatrix;
-  M[0, 0] := C;   M[1, 0] := S;
-  M[0, 1] := -S;  M[1, 1] := C;
+  M[0, 0] := C;   M[1, 0] := -S;
+  M[0, 1] := S;   M[1, 1] := C;
   Matrix := Mult(M, Matrix);
 end;
 
@@ -871,8 +871,8 @@ begin
   GR32_Math.SinCos(Alpha, S, C);
 
   M := IdentityMatrix;
-  M[0, 0] := C;   M[1, 0] := S;
-  M[0, 1] := -S;  M[1, 1] := C;
+  M[0, 0] := C;   M[1, 0] := -S;
+  M[0, 1] := S;   M[1, 1] := C;
   Matrix := Mult(M, Matrix);
 
   if (Cx <> 0) or (Cy <> 0) then

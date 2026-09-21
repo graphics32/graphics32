@@ -56,6 +56,7 @@ type
     procedure TestCyclicUseProtection;
     procedure TestPatternParsingAndInheritance;
     procedure TestDocTypeParsing;
+    procedure TestUseNodeStyleInheritance;
   end;
 
 implementation
@@ -89,6 +90,36 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestUseNodeStyleInheritance;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  useNode: TSvgUseNode;
+  clonedPath: TSvgNode;
+begin
+  xml := '<svg width="150" height="100">' +
+         '  <g fill="grey">' +
+         '    <path id="heart" d="M 10,30 A 20,20 0,0,1 50,30 A 20,20 0,0,1 90,30 Q 90,60 50,90 Q 10,60 10,30 z"/>' +
+         '  </g>' +
+         '  <use id="heart_use" href="#heart" fill="none" stroke="red"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    useNode := TSvgUseNode(docNode.FindNodeById('heart_use'));
+    Check(useNode <> nil, 'heart_use node should exist');
+    CheckEquals(1, useNode.Children.Count, 'useNode should contain 1 cloned child');
+
+    clonedPath := useNode.Children[0];
+    Check(clonedPath.Fill.Color.IsNone, 'Cloned path should inherit fill="none" from <use>');
+    Check(not clonedPath.Stroke.Color.IsNone, 'Cloned path should inherit stroke="red" from <use>');
+    CheckEquals(clRed32, clonedPath.Stroke.Color.Color, 'Cloned path stroke should be red');
   finally
     docNode.Free;
   end;
@@ -165,10 +196,28 @@ begin
   pt := FloatPoint(5, 5);
   resPt := helper.TransformPoint(pt);
 
-  // SVG transform list 'translate(10, 20) scale(2, 3)' applies translate first, then scale:
-  // (5 + 10) * 2 = 30, (5 + 20) * 3 = 75
-  CheckEquals(30.0, resPt.X, 1E-4);
-  CheckEquals(75.0, resPt.Y, 1E-4);
+  // SVG transform list 'translate(10, 20) scale(2, 3)' applies scale first, then translate:
+  // (5 * 2) + 10 = 20, (5 * 3) + 20 = 35
+  CheckEquals(20.0, resPt.X, 1E-4);
+  CheckEquals(35.0, resPt.Y, 1E-4);
+
+  // Test complex multi-transform list: 'rotate(-10 50 100) translate(-36 45.5) skewX(40) scale(1 0.5)'
+  mat := ParseSvgTransform('rotate(-10 50 100) translate(-36 45.5) skewX(40) scale(1 0.5)');
+  helper.Matrix := mat;
+  pt := FloatPoint(10, 30);
+  resPt := helper.TransformPoint(pt);
+
+  // Evaluate step by step right-to-left:
+  // 1. scale(1, 0.5): (10, 30) -> (10, 15)
+  // 2. skewX(40): tan(40deg) ≈ 0.8390996, x' = 10 + 15 * 0.8390996 = 22.586494, y' = 15
+  // 3. translate(-36, 45.5): x' = 22.586494 - 36 = -13.413506, y' = 15 + 45.5 = 60.5
+  // 4. rotate(-10deg, 50, 100):
+  //    dx = -13.413506 - 50 = -63.413506, dy = 60.5 - 100 = -39.5
+  //    rad = -10deg, cos(-10deg) ≈ 0.98480775, sin(-10deg) ≈ -0.17364818
+  //    x'' = -63.413506 * cos - -39.5 * sin + 50 = -62.450125 - 6.859103 + 50 = -19.309228
+  //    y'' = -63.413506 * sin + -39.5 * cos + 100 = 11.011642 - 38.899906 + 100 = 72.111736
+  CheckEquals(-19.309228, resPt.X, 1E-3);
+  CheckEquals(72.111736, resPt.Y, 1E-3);
 end;
 
 procedure TTestSvgTree.TestXmlParsingContainer;

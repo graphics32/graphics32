@@ -51,24 +51,70 @@ type
     class function Create(AOffset: Single; AColor: TSvgColor; AOpacity: Single = 1.0): TSvgGradientStop; static;
   end;
 
+  TSvgFillProperty = (fpColor, fpOpacity, fpFillRule);
+  TSvgFillProperties = set of TSvgFillProperty;
+
   TSvgFill = record
-    Color: TSvgColor;
-    Opacity: Single;
-    FillRule: TPolyFillMode;
-    Url: string;
+  private
+    FColor: TSvgColor;
+    FOpacity: Single;
+    FFillRule: TPolyFillMode;
+    FUrl: string;
+    procedure SetColor(const Value: TSvgColor);
+    procedure SetFillRule(const Value: TPolyFillMode);
+    procedure SetOpacity(const Value: Single);
+    procedure SetUrl(const Value: string);
+  public
+    Specified: TSvgFillProperties;
+
+    procedure ApplySpecified(var ADest: TSvgFill);
+
+    property Color: TSvgColor read FColor write SetColor;
+    property Opacity: Single read FOpacity write SetOpacity;
+    property FillRule: TPolyFillMode read FFillRule write SetFillRule;
+    property Url: string read FUrl write SetUrl;
+
     class function Default: TSvgFill; static;
   end;
 
+  TSvgStrokeProperty = (spColor, spWidth, spOpacity, spJoinStyle, spEndStyle, spMiterLimit, spDashArray, spDashOffset);
+  TSvgStrokeProperties = set of TSvgStrokeProperty;
+
   TSvgStroke = record
-    Color: TSvgColor;
-    Width: TSvgLength;
-    Opacity: Single;
-    JoinStyle: TJoinStyle;
-    EndStyle: TEndStyle;
-    MiterLimit: Single;
-    DashArray: TArrayOfFloat;
-    DashOffset: Single;
-    Url: string;
+    FColor: TSvgColor;
+    FWidth: TSvgLength;
+    FOpacity: Single;
+    FJoinStyle: TJoinStyle;
+    FEndStyle: TEndStyle;
+    FMiterLimit: Single;
+    FDashArray: TArrayOfFloat;
+    FDashOffset: Single;
+    FUrl: string;
+  private
+    procedure SetColor(const Value: TSvgColor);
+    procedure SetDashArray(const Value: TArrayOfFloat);
+    procedure SetDashOffset(const Value: Single);
+    procedure SetEndStyle(const Value: TEndStyle);
+    procedure SetJoinStyle(const Value: TJoinStyle);
+    procedure SetMiterLimit(const Value: Single);
+    procedure SetOpacity(const Value: Single);
+    procedure SetUrl(const Value: string);
+    procedure SetWidth(const Value: TSvgLength);
+  public
+    Specified: TSvgStrokeProperties;
+
+    procedure ApplySpecified(var ADest: TSvgStroke);
+
+    property Color: TSvgColor read FColor write SetColor;
+    property Width: TSvgLength read FWidth write SetWidth;
+    property Opacity: Single read FOpacity write SetOpacity;
+    property JoinStyle: TJoinStyle read FJoinStyle write SetJoinStyle;
+    property EndStyle: TEndStyle read FEndStyle write SetEndStyle;
+    property MiterLimit: Single read FMiterLimit write SetMiterLimit;
+    property DashArray: TArrayOfFloat read FDashArray write SetDashArray;
+    property DashOffset: Single read FDashOffset write SetDashOffset;
+    property Url: string read FUrl write SetUrl;
+
     class function Default: TSvgStroke; static;
   end;
 
@@ -326,27 +372,152 @@ end;
 
 { TSvgFill }
 
+procedure TSvgFill.ApplySpecified(var ADest: TSvgFill);
+begin
+  if fpColor in Specified then
+  begin
+    ADest.Color := FColor;
+    ADest.Url := FUrl;
+  end;
+
+  if fpOpacity in Specified then
+    ADest.Opacity := FOpacity;
+
+  if fpFillRule in Specified then
+    ADest.FillRule := FFillRule;
+end;
+
 class function TSvgFill.Default: TSvgFill;
 begin
-  Result.Color := TSvgColor.Create(clBlack32);
-  Result.Opacity := 1.0;
-  Result.FillRule := pfWinding;
-  Result.Url := '';
+  Result.FColor := TSvgColor.Create(clBlack32);
+  Result.FOpacity := 1.0;
+  Result.FFillRule := pfWinding;
+  Result.FUrl := '';
+  Result.Specified := [];
+end;
+
+procedure TSvgFill.SetColor(const Value: TSvgColor);
+begin
+  FColor := Value;
+  Include(Specified, fpColor);
+end;
+
+procedure TSvgFill.SetFillRule(const Value: TPolyFillMode);
+begin
+  FFillRule := Value;
+  Include(Specified, fpFillRule);
+end;
+
+procedure TSvgFill.SetOpacity(const Value: Single);
+begin
+  FOpacity := Value;
+  Include(Specified, fpOpacity);
+end;
+
+procedure TSvgFill.SetUrl(const Value: string);
+begin
+  FUrl := Value;
+  Include(Specified, fpColor);
 end;
 
 { TSvgStroke }
 
+procedure TSvgStroke.ApplySpecified(var ADest: TSvgStroke);
+begin
+  if (spColor in Specified) then
+  begin
+    ADest.Color := FColor;
+    ADest.Url := FUrl;
+  end;
+
+  if (spWidth in Specified) then
+    ADest.Width := FWidth;
+
+  if (spOpacity in Specified) then
+    ADest.Opacity := FOpacity;
+
+  if (spJoinStyle in Specified) then
+    ADest.JoinStyle := FJoinStyle;
+
+  if (spEndStyle in Specified) then
+    ADest.EndStyle := FEndStyle;
+
+  if (spMiterLimit in Specified) then
+    ADest.MiterLimit := FMiterLimit;
+
+  if (spDashArray in Specified) then
+    ADest.DashArray := FDashArray;
+
+  if (spDashOffset in Specified) then
+    ADest.DashOffset := FDashOffset;
+end;
+
 class function TSvgStroke.Default: TSvgStroke;
 begin
-  Result.Color := TSvgColor.None;
-  Result.Width := TSvgLength.Create(1.0, suPx);
-  Result.Opacity := 1.0;
-  Result.JoinStyle := jsMiter;
-  Result.EndStyle := esButt;
-  Result.MiterLimit := 4.0;
-  Result.DashArray := nil;
-  Result.DashOffset := 0.0;
-  Result.Url := '';
+  Result.FColor := TSvgColor.None;
+  Result.FWidth := TSvgLength.Create(1.0, suPx);
+  Result.FOpacity := 1.0;
+  Result.FJoinStyle := jsMiter;
+  Result.FEndStyle := esButt;
+  Result.FMiterLimit := 4.0;
+  Result.FDashArray := nil;
+  Result.FDashOffset := 0.0;
+  Result.FUrl := '';
+  Result.Specified := [];
+end;
+
+procedure TSvgStroke.SetColor(const Value: TSvgColor);
+begin
+  FColor := Value;
+  Include(Specified, spColor);
+end;
+
+procedure TSvgStroke.SetDashArray(const Value: TArrayOfFloat);
+begin
+  FDashArray := Value;
+  Include(Specified, spDashArray);
+end;
+
+procedure TSvgStroke.SetDashOffset(const Value: Single);
+begin
+  FDashOffset := Value;
+  Include(Specified, spDashOffset);
+end;
+
+procedure TSvgStroke.SetEndStyle(const Value: TEndStyle);
+begin
+  FEndStyle := Value;
+  Include(Specified, spEndStyle);
+end;
+
+procedure TSvgStroke.SetJoinStyle(const Value: TJoinStyle);
+begin
+  FJoinStyle := Value;
+  Include(Specified, spJoinStyle);
+end;
+
+procedure TSvgStroke.SetMiterLimit(const Value: Single);
+begin
+  FMiterLimit := Value;
+  Include(Specified, spMiterLimit);
+end;
+
+procedure TSvgStroke.SetOpacity(const Value: Single);
+begin
+  FOpacity := Value;
+  Include(Specified, spOpacity);
+end;
+
+procedure TSvgStroke.SetUrl(const Value: string);
+begin
+  FUrl := Value;
+  Include(Specified, spColor);
+end;
+
+procedure TSvgStroke.SetWidth(const Value: TSvgLength);
+begin
+  FWidth := Value;
+  Include(Specified, spWidth);
 end;
 
 { TSvgNode }
@@ -368,8 +539,9 @@ begin
   begin
     FFill := AParent.Fill;
     FStroke := AParent.Stroke;
-  end
-  else
+    FFill.Specified := [];
+    FStroke.Specified := [];
+  end else
   begin
     FFill := TSvgFill.Default;
     FStroke := TSvgStroke.Default;
@@ -389,9 +561,10 @@ begin
   Result.FStyleAttr := FStyleAttr;
   Result.FTransform := FTransform;
   Result.FVisible := FVisible;
-  Result.FFill := FFill;
-  Result.FStroke := FStroke;
   Result.FResolving := False;
+
+  FFill.ApplySpecified(Result.FFill);
+  FStroke.ApplySpecified(Result.FStroke);
 end;
 
 function TSvgNode.FindNodeById(const AId: string): TSvgNode;
@@ -422,81 +595,90 @@ begin
 
   if lowerName = 'id' then
     FID := lowerVal
-  else if (lowerName = 'class') or (lowerName = 'classname') then
+  else
+  if (lowerName = 'class') or (lowerName = 'classname') then
     FCssClassName := lowerVal
-  else if lowerName = 'transform' then
+  else
+  if lowerName = 'transform' then
     FTransform := ParseSvgTransform(lowerVal)
-  else if (lowerName = 'display') or (lowerName = 'visibility') then
+  else
+  if (lowerName = 'display') or (lowerName = 'visibility') then
   begin
     lowerVal := LowerCase(lowerVal);
     if (lowerVal = 'none') or (lowerVal = 'hidden') then
       FVisible := False
     else if (lowerVal = 'inline') or (lowerVal = 'visible') then
       FVisible := True;
-  end
-  else if lowerName = 'fill' then
+  end else
+  if lowerName = 'fill' then
   begin
     if LowerCase(lowerVal) = 'none' then
       FFill.Color := TSvgColor.None
-    else if Pos('url(', LowerCase(lowerVal)) = 1 then
+    else
+    if Pos('url(', LowerCase(lowerVal)) = 1 then
       FFill.Url := lowerVal
     else
       FFill.Color := TSvgColor.Parse(lowerVal);
-  end
-  else if lowerName = 'fill-opacity' then
+  end else
+  if lowerName = 'fill-opacity' then
   begin
     if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
       FFill.Opacity := EnsureRange(valFloat, 0.0, 1.0);
-  end
-  else if lowerName = 'fill-rule' then
+  end else
+  if lowerName = 'fill-rule' then
   begin
     if LowerCase(lowerVal) = 'evenodd' then
       FFill.FillRule := pfAlternate
     else
       FFill.FillRule := pfWinding;
-  end
-  else if lowerName = 'stroke' then
+  end else
+  if lowerName = 'stroke' then
   begin
     if LowerCase(lowerVal) = 'none' then
       FStroke.Color := TSvgColor.None
-    else if Pos('url(', LowerCase(lowerVal)) = 1 then
+    else
+    if Pos('url(', LowerCase(lowerVal)) = 1 then
       FStroke.Url := lowerVal
     else
       FStroke.Color := TSvgColor.Parse(lowerVal);
-  end
-  else if lowerName = 'stroke-opacity' then
+  end else
+  if lowerName = 'stroke-opacity' then
   begin
     if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
       FStroke.Opacity := EnsureRange(valFloat, 0.0, 1.0);
-  end
-  else if lowerName = 'stroke-width' then
-    FStroke.Width := TSvgLength.Parse(lowerVal)
-  else if lowerName = 'stroke-linecap' then
+  end else
+  if lowerName = 'stroke-width' then
+  begin
+    FStroke.Width := TSvgLength.Parse(lowerVal);
+  end else
+  if lowerName = 'stroke-linecap' then
   begin
     lowerVal := LowerCase(lowerVal);
     if lowerVal = 'round' then
       FStroke.EndStyle := esRound
-    else if lowerVal = 'square' then
+    else
+    if lowerVal = 'square' then
       FStroke.EndStyle := esSquare
     else
       FStroke.EndStyle := esButt;
-  end
-  else if lowerName = 'stroke-linejoin' then
+  end else
+  if lowerName = 'stroke-linejoin' then
   begin
     lowerVal := LowerCase(lowerVal);
     if lowerVal = 'round' then
       FStroke.JoinStyle := jsRound
-    else if lowerVal = 'bevel' then
+    else
+    if lowerVal = 'bevel' then
       FStroke.JoinStyle := jsBevel
     else
       FStroke.JoinStyle := jsMiter;
-  end
-  else if lowerName = 'stroke-miterlimit' then
+  end else
+  if lowerName = 'stroke-miterlimit' then
   begin
     if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
       FStroke.MiterLimit := valFloat;
-  end
-  else if lowerName = 'style' then
+  end else
+  if lowerName = 'style' then
     // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
     FStyleAttr := lowerVal;
 end;
@@ -1415,7 +1597,7 @@ function ParseSvgTransform(const AStr: string): TFloatMatrix;
 var
   s, cmdStr, paramsStr: string;
   i, len, pStart, pEnd: Integer;
-  helper: TFloatMatrixHelper;
+  cmdHelper: TFloatMatrixHelper;
   params: array of Single;
   pCount: Integer;
 
@@ -1463,7 +1645,7 @@ var
 var
   mMat: TFloatMatrix;
 begin
-  helper.Matrix := IdentityMatrix;
+  Result := IdentityMatrix;
   s := Trim(AStr);
   len := Length(s);
   i := 1;
@@ -1486,36 +1668,38 @@ begin
     paramsStr := Copy(s, pStart + 1, pEnd - pStart - 1);
     ExtractParams(paramsStr);
 
+    cmdHelper.Matrix := IdentityMatrix;
+
     if cmdStr = 'translate' then
     begin
       if pCount >= 2 then
-        helper.Translate(params[0], params[1])
+        cmdHelper.Translate(params[0], params[1])
       else if pCount = 1 then
-        helper.Translate(params[0], 0);
+        cmdHelper.Translate(params[0], 0);
     end
     else if cmdStr = 'scale' then
     begin
       if pCount >= 2 then
-        helper.Scale(params[0], params[1])
+        cmdHelper.Scale(params[0], params[1])
       else if pCount = 1 then
-        helper.Scale(params[0], params[0]);
+        cmdHelper.Scale(params[0], params[0]);
     end
     else if cmdStr = 'rotate' then
     begin
       if pCount >= 3 then
-        helper.Rotate(params[1], params[2], params[0])
+        cmdHelper.Rotate(params[1], params[2], params[0])
       else if pCount >= 1 then
-        helper.Rotate(params[0]);
+        cmdHelper.Rotate(params[0]);
     end
     else if cmdStr = 'skewx' then
     begin
       if pCount >= 1 then
-        helper.Skew(Tan(DegToRad(params[0])), 0);
+        cmdHelper.Skew(Tan(DegToRad(params[0])), 0);
     end
     else if cmdStr = 'skewy' then
     begin
       if pCount >= 1 then
-        helper.Skew(0, Tan(DegToRad(params[0])));
+        cmdHelper.Skew(0, Tan(DegToRad(params[0])));
     end
     else if cmdStr = 'matrix' then
     begin
@@ -1530,14 +1714,16 @@ begin
         mMat[2, 0] := params[4];
         mMat[2, 1] := params[5];
         mMat[2, 2] := 1;
-        helper.Matrix := Mult(helper.Matrix, mMat);
+        cmdHelper.Matrix := mMat;
       end;
     end;
 
+    // In SVG, transform functions in a transform list are applied right-to-left (innermost to outermost).
+    // Pre-multiplying cmdHelper.Matrix onto Result achieves the correct right-to-left evaluation order.
+    Result := Mult(Result, cmdHelper.Matrix);
+
     i := pEnd + 1;
   end;
-
-  Result := helper.Matrix;
 end;
 
 { XML Parsing }
