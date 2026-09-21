@@ -68,11 +68,85 @@ type
 function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix; overload;
 function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix; overload;
 
+//------------------------------------------------------------------------------
+//
+//      Adjoint(M): Replaces M with its adjugate (classical adjoint) matrix.
+//
+//------------------------------------------------------------------------------
+// Calculates the matrix of cofactors transposed for a 3x3 matrix.
+// Used as an intermediate step in matrix inversion (M^-1 = Adjoint(M) / Det(M)).
+//------------------------------------------------------------------------------
 procedure Adjoint(var M: TFloatMatrix);
+
+//------------------------------------------------------------------------------
+//
+//      Determinant(M): Calculates the scalar determinant of a 3x3 matrix M.
+//
+//------------------------------------------------------------------------------
+// Returns the determinant using 3x3 cofactor expansion.
+// A non-zero determinant indicates that M is invertible (non-singular).
+//------------------------------------------------------------------------------
 function Determinant(const M: TFloatMatrix): TFloat;
+
+//------------------------------------------------------------------------------
+//
+//      Scale(M, Factor): Scales all components of matrix M by Factor.
+//
+//------------------------------------------------------------------------------
+// Multiplies each 3x3 entry M[i, j] in-place by the scalar Factor.
+//------------------------------------------------------------------------------
 procedure Scale(var M: TFloatMatrix; Factor: TFloat);
+
+//------------------------------------------------------------------------------
+//
+//      Invert(M): Replaces matrix M with its inverse M^-1.
+//
+//------------------------------------------------------------------------------
+// Calculates the inverse matrix M^-1 using Adjoint(M) and Determinant(M).
+// If the determinant is near zero (|Det| < 1E-5), M is set to IdentityMatrix.
+//------------------------------------------------------------------------------
 procedure Invert(var M: TFloatMatrix);
+
+//------------------------------------------------------------------------------
+//
+//      Mult(M1, M2): Multiplies two transformation matrices.
+//
+//------------------------------------------------------------------------------
+// Note on parameter order and row-vector transformation convention:
+//
+// In Graphics32, 2D points are represented as row vectors V = [x, y, 1] and
+// transformed via V' = V * M (see VectorTransform).
+//
+// In row-vector notation, sequential transformations are post-multiplied:
+// applying transformation A followed by transformation B yields:
+//   V' = (V * A) * B = V * (A * B)
+// Thus, the combined matrix for "A then B" is mathematically (A * B).
+//
+// However, implementation-wise, Mult(M1, M2) computes:
+//   Result[i, j] = M1[0, j] * M2[i, 0] + M1[1, j] * M2[i, 1] + M1[2, j] * M2[i, 2]
+//
+// Indexing Result[i, j] calculates standard column-by-row matrix multiplication
+// of M2 * M1 (i.e. M2 is on the left, M1 on the right).
+//
+// Therefore:
+// - Mult(A, B) computes B * A.
+// - To compute the combined matrix (A * B) for "apply A, then apply B", you must
+//   call Mult(B, A) [or Matrix := Mult(NewTransform, Matrix)].
+//------------------------------------------------------------------------------
 function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
+
+//------------------------------------------------------------------------------
+//
+//      VectorTransform(M, V): Transforms 3D homogeneous point V by matrix M.
+//
+//------------------------------------------------------------------------------
+// Evaluates row-vector transformation V' = V * M:
+//   V'[0] = M[0,0]*V[0] + M[1,0]*V[1] + M[2,0]*V[2]
+//   V'[1] = M[0,1]*V[0] + M[1,1]*V[1] + M[2,1]*V[2]
+//   V'[2] = M[0,2]*V[0] + M[1,2]*V[1] + M[2,2]*V[2]
+// For 2D affine points where V = [x, y, 1], V'[0] and V'[1] give the transformed
+// (x', y') coordinates.
+//------------------------------------------------------------------------------
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 
 
