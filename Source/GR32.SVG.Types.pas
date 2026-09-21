@@ -856,7 +856,7 @@ begin
   M := IdentityMatrix;
   M[0, 0] := C;   M[1, 0] := S;
   M[0, 1] := -S;  M[1, 1] := C;
-  Matrix := Mult(Matrix, M);
+  Matrix := Mult(M, Matrix);
 end;
 
 procedure TFloatMatrixHelper.Rotate(Cx, Cy, Alpha: TFloat);
@@ -873,7 +873,7 @@ begin
   M := IdentityMatrix;
   M[0, 0] := C;   M[1, 0] := S;
   M[0, 1] := -S;  M[1, 1] := C;
-  Matrix := Mult(Matrix, M);
+  Matrix := Mult(M, Matrix);
 
   if (Cx <> 0) or (Cy <> 0) then
     Translate(Cx, Cy);
@@ -886,7 +886,7 @@ begin
   M := IdentityMatrix;
   M[0, 0] := Sx;
   M[1, 1] := Sy;
-  Matrix := Mult(Matrix, M);
+  Matrix := Mult(M, Matrix);
 end;
 
 procedure TFloatMatrixHelper.Scale(Value: TFloat);
@@ -896,7 +896,7 @@ begin
   M := IdentityMatrix;
   M[0, 0] := Value;
   M[1, 1] := Value;
-  Matrix := Mult(Matrix, M);
+  Matrix := Mult(M, Matrix);
 end;
 
 procedure TFloatMatrixHelper.Skew(Fx, Fy: TFloat);
@@ -906,7 +906,7 @@ begin
   M := IdentityMatrix;
   M[1, 0] := Fx;
   M[0, 1] := Fy;
-  Matrix := Mult(Matrix, M);
+  Matrix := Mult(M, Matrix);
 end;
 
 procedure TFloatMatrixHelper.Translate(Dx, Dy: TFloat);
@@ -916,7 +916,7 @@ begin
   M := IdentityMatrix;
   M[2, 0] := Dx;
   M[2, 1] := Dy;
-  Matrix := Mult(Matrix, M);
+  Matrix := Mult(M, Matrix);
 end;
 
 function TFloatMatrixHelper.TransformPoint(const P: TFloatPoint): TFloatPoint;

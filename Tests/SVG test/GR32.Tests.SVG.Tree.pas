@@ -142,9 +142,10 @@ begin
   pt := FloatPoint(5, 5);
   resPt := helper.TransformPoint(pt);
 
-  // Translate then scale: (5*2 + 10, 5*3 + 20) = (20, 35)
-  CheckEquals(20.0, resPt.X, 1E-4);
-  CheckEquals(35.0, resPt.Y, 1E-4);
+  // SVG transform list 'translate(10, 20) scale(2, 3)' applies translate first, then scale:
+  // (5 + 10) * 2 = 30, (5 + 20) * 3 = 75
+  CheckEquals(30.0, resPt.X, 1E-4);
+  CheckEquals(75.0, resPt.Y, 1E-4);
 end;
 
 procedure TTestSvgTree.TestXmlParsingContainer;
