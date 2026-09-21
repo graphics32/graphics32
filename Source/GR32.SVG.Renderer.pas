@@ -57,6 +57,15 @@ type
     property BitmapMaxExcess: NativeInt read FBitmapMaxExcess write FBitmapMaxExcess;
   end;
 
+  TSvgPatternPolygonFiller = class(TBitmapPolygonFiller)
+  private
+    FPatternBmp: TBitmap32;
+  public
+    constructor Create(APatternBmp: TBitmap32); reintroduce;
+    destructor Destroy; override;
+    property PatternBmp: TBitmap32 read FPatternBmp;
+  end;
+
   TSvgRenderer = class(TObject)
   private
     FTarget: TCustomBitmap32;
@@ -73,6 +82,7 @@ type
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
+    function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect): TCustomPolygonFiller;
     function ExtractUrlId(const AUrlStr: string): string;
     function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
     procedure ReleaseOffscreenBitmap(ABitmap: TCustomBitmap32);
@@ -111,6 +121,21 @@ begin
       if (Matrix[a, b] <> IdentityMatrix[a, b]) then
         Exit(False);
   Result := True;
+end;
+
+{ TSvgPatternPolygonFiller }
+
+constructor TSvgPatternPolygonFiller.Create(APatternBmp: TBitmap32);
+begin
+  inherited Create;
+  FPatternBmp := APatternBmp;
+  Pattern := FPatternBmp;
+end;
+
+destructor TSvgPatternPolygonFiller.Destroy;
+begin
+  FPatternBmp.Free;
+  inherited Destroy;
 end;
 
 { TSvgBitmapPool }
@@ -431,6 +456,113 @@ begin
   end;
 end;
 
+function TSvgRenderer.CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect): TCustomPolygonFiller;
+var
+  bWidth, bHeight, vpWidth, vpHeight: Single;
+  tileX, tileY, tileW, tileH: Single;
+  patternBmp: TBitmap32;
+  i, bmpW, bmpH: Integer;
+  savedTarget: TCustomBitmap32;
+  savedMatrix: TFloatMatrix;
+  savedViewport: TFloatRect;
+  contentMat, patTransMat: TFloatMatrix;
+  transHelper, contentHelper: TFloatMatrixHelper;
+  origPt: TFloatPoint;
+  tileViewBox: TSvgViewBox;
+begin
+  Result := nil;
+  if (APatternNode = nil) or (APatternNode.Children.Count = 0) then
+    Exit;
+
+  bWidth := ABounds.Right - ABounds.Left;
+  bHeight := ABounds.Bottom - ABounds.Top;
+  if bWidth <= 0 then
+    bWidth := 1.0;
+  if bHeight <= 0 then
+    bHeight := 1.0;
+
+  vpWidth := FViewportRect.Right - FViewportRect.Left;
+  vpHeight := FViewportRect.Bottom - FViewportRect.Top;
+  if vpWidth <= 0 then
+    vpWidth := 1.0;
+  if vpHeight <= 0 then
+    vpHeight := 1.0;
+
+  if APatternNode.PatternUnits = guObjectBoundingBox then
+  begin
+    tileX := ABounds.Left + APatternNode.X.ToPixels(bWidth);
+    tileY := ABounds.Top + APatternNode.Y.ToPixels(bHeight);
+    tileW := APatternNode.Width.ToPixels(bWidth);
+    tileH := APatternNode.Height.ToPixels(bHeight);
+  end else
+  begin
+    tileX := APatternNode.X.ToPixels(vpWidth);
+    tileY := APatternNode.Y.ToPixels(vpHeight);
+    tileW := APatternNode.Width.ToPixels(vpWidth);
+    tileH := APatternNode.Height.ToPixels(vpHeight);
+  end;
+
+  patTransMat := APatternNode.PatternTransform;
+  if not IsIdentityMatrix(patTransMat) then
+  begin
+    transHelper.Matrix := patTransMat;
+    origPt := transHelper.TransformPoint(FloatPoint(tileX, tileY));
+    tileX := origPt.X;
+    tileY := origPt.Y;
+  end;
+
+  bmpW := Round(tileW);
+  bmpH := Round(tileH);
+  if (bmpW <= 0) or (bmpH <= 0) then
+    Exit;
+
+  patternBmp := TBitmap32.Create;
+  try
+    patternBmp.SetSize(bmpW, bmpH);
+    patternBmp.DrawMode := dmBlend;
+
+    savedTarget := FTarget;
+    savedMatrix := FCurrentMatrix;
+    savedViewport := FViewportRect;
+
+    FTarget := patternBmp;
+    FCurrentMatrix := IdentityMatrix;
+    FViewportRect := FloatRect(0, 0, bmpW, bmpH);
+
+    contentMat := IdentityMatrix;
+    if APatternNode.ViewBox.IsValid then
+    begin
+      tileViewBox := APatternNode.ViewBox;
+      contentMat := tileViewBox.GetTransform(FloatRect(0, 0, tileW, tileH), APatternNode.PreserveAspectRatio);
+    end else
+    if APatternNode.PatternContentUnits = guObjectBoundingBox then
+    begin
+      contentHelper.Matrix := IdentityMatrix;
+      contentHelper.Scale(bWidth, bHeight);
+      contentMat := contentHelper.Matrix;
+    end;
+
+    PushMatrix;
+    try
+      ApplyMatrix(contentMat);
+      for i := 0 to APatternNode.Children.Count - 1 do
+        RenderNode(APatternNode.Children[i]);
+    finally
+      PopMatrix;
+      FTarget := savedTarget;
+      FCurrentMatrix := savedMatrix;
+      FViewportRect := savedViewport;
+    end;
+
+    Result := TSvgPatternPolygonFiller.Create(patternBmp);
+    TSvgPatternPolygonFiller(Result).OffsetX := Round(tileX);
+    TSvgPatternPolygonFiller(Result).OffsetY := Round(tileY);
+  except
+    patternBmp.Free;
+    raise;
+  end;
+end;
+
 procedure TSvgRenderer.RenderPathNode(APathNode: TSvgPathNode);
 var
   transformedPts: TArrayOfArrayOfFloatPoint;
@@ -440,8 +572,8 @@ var
   strokePts, dashedPts: TArrayOfArrayOfFloatPoint;
   i: Integer;
   filler: TCustomPolygonFiller;
-  bounds: TFloatRect;
-  targetGradNode: TSvgGradientNode;
+  bounds, strokeBounds: TFloatRect;
+  targetNode: TSvgNode;
   urlId: string;
 begin
   if (APathNode = nil) or (Length(APathNode.PathData) = 0) or (FTarget = nil) then
@@ -460,26 +592,27 @@ begin
 
       if (FDocumentRoot <> nil) then
       begin
-        // TODO : It is an invalid assumption that the node returned is always a TSvgGradientNode
-        targetGradNode := (FDocumentRoot.FindNodeById(urlId) as TSvgGradientNode);
+        targetNode := FDocumentRoot.FindNodeById(urlId);
 
-        if targetGradNode <> nil then
+        filler := nil;
+        if targetNode is TSvgGradientNode then
+          filler := CreateGradientFiller(TSvgGradientNode(targetNode), bounds)
+        else
+        if targetNode is TSvgPatternNode then
+          filler := CreatePatternFiller(TSvgPatternNode(targetNode), bounds);
+
+        if filler <> nil then
         begin
-          filler := CreateGradientFiller(targetGradNode, bounds);
-
-          if filler <> nil then
-          begin
+          try
+            polyRenderer.Filler := filler;
             try
-              polyRenderer.Filler := filler;
-              try
-                polyRenderer.FillMode := APathNode.Fill.FillRule;
-                polyRenderer.PolyPolygonFS(transformedPts);
-              finally
-                polyRenderer.Filler := nil;
-              end;
+              polyRenderer.FillMode := APathNode.Fill.FillRule;
+              polyRenderer.PolyPolygonFS(transformedPts);
             finally
-              filler.Free;
+              polyRenderer.Filler := nil;
             end;
+          finally
+            filler.Free;
           end;
         end;
       end;
@@ -506,10 +639,9 @@ begin
 
       if (strokeWidth > 0) and (FDocumentRoot <> nil) then
       begin
-        // TODO : It is an invalid assumption that the node returned is always a TSvgGradientNode
-        targetGradNode := (FDocumentRoot.FindNodeById(urlId) as TSvgGradientNode);
+        targetNode := FDocumentRoot.FindNodeById(urlId);
 
-        if targetGradNode <> nil then
+        if targetNode <> nil then
         begin
           if Length(APathNode.Stroke.DashArray) > 0 then
           begin
@@ -520,7 +652,13 @@ begin
           end else
             strokePts := BuildPolyPolyLine(transformedPts, False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
 
-          filler := CreateGradientFiller(targetGradNode, bounds);
+          strokeBounds := GetPathBounds(strokePts); // TODO : We can likely use Bounds instead of strokeBounds and eliminate this line
+          filler := nil;
+          if targetNode is TSvgGradientNode then
+            filler := CreateGradientFiller(TSvgGradientNode(targetNode), strokeBounds)
+          else
+          if targetNode is TSvgPatternNode then
+            filler := CreatePatternFiller(TSvgPatternNode(targetNode), strokeBounds);
 
           if filler <> nil then
           begin
@@ -620,7 +758,8 @@ var
   oldMatrix: TFloatMatrix;
   clipId, maskId: string;
 begin
-  if AGroupNode = nil then Exit;
+  if AGroupNode = nil then
+    Exit;
 
   // Offscreen rendering required if Opacity < 1.0, ClipPathID <> '', or MaskID <> ''
   if (AGroupNode.Opacity < 1.0) or (AGroupNode.ClipPathID <> '') or (AGroupNode.MaskID <> '') then
@@ -730,7 +869,8 @@ end;
 
 procedure TSvgRenderer.RenderNode(ANode: TSvgNode);
 begin
-  if (ANode = nil) or (not ANode.Visible) then Exit;
+  if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) then
+    Exit;
 
   PushMatrix;
   try
@@ -738,7 +878,8 @@ begin
 
     if ANode is TSvgPathNode then
       RenderPathNode(TSvgPathNode(ANode))
-    else if ANode is TSvgGroupNode then
+    else
+    if ANode is TSvgGroupNode then
       RenderGroupNode(TSvgGroupNode(ANode));
   finally
     PopMatrix;
@@ -751,7 +892,8 @@ var
   viewBox: TSvgViewBox;
   docW, docH: Single;
 begin
-  if (ADoc = nil) or (FTarget = nil) then Exit;
+  if (ADoc = nil) or (FTarget = nil) then
+    Exit;
 
   FDocumentRoot := ADoc;
   FViewportRect := ATargetRect;

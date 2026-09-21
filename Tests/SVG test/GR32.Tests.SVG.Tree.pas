@@ -1,4 +1,4 @@
-unit GR32.Tests.SVG.Tree;
+﻿unit GR32.Tests.SVG.Tree;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -54,6 +54,7 @@ type
     procedure TestFillAndStrokeParsing;
     procedure TestNonSelfClosingElements;
     procedure TestCyclicUseProtection;
+    procedure TestPatternParsingAndInheritance;
   end;
 
 implementation
@@ -126,7 +127,7 @@ begin
   // Polygon
   pts := CreatePolylinePath('10,10 20,20 30,10', True);
   Check(Length(pts) > 0, 'Polygon path should produce points');
-  CheckEquals(3, Length(pts[0]));
+  CheckEquals(4, Length(pts[0])); // Closing path adds start point
 end;
 
 procedure TTestSvgTree.TestTransformParsing;
@@ -234,6 +235,45 @@ begin
 
     groupNode := TSvgGroupNode(docNode.Children[0]);
     CheckEquals(2, groupNode.Children.Count, 'Group should contain both path and rect children');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestPatternParsingAndInheritance;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  p1, p2: TSvgPatternNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <pattern id="basePat" width="20" height="20" patternUnits="userSpaceOnUse">' +
+         '      <rect width="10" height="10" fill="red"/>' +
+         '    </pattern>' +
+         '    <pattern id="derivedPat" href="#basePat" x="5" y="5"/>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    p1 := TSvgPatternNode(docNode.FindNodeById('basePat'));
+    p2 := TSvgPatternNode(docNode.FindNodeById('derivedPat'));
+
+    Check(p1 <> nil, 'basePat should exist');
+    Check(p2 <> nil, 'derivedPat should exist');
+
+    CheckEquals(20.0, p1.Width.Value, 1E-4);
+    CheckEquals(20.0, p1.Height.Value, 1E-4);
+    CheckEquals(1, p1.Children.Count, 'basePat should contain 1 child node');
+
+    // Test pattern inheritance via href
+    CheckEquals(20.0, p2.Width.Value, 1E-4, 'derivedPat should inherit Width');
+    CheckEquals(20.0, p2.Height.Value, 1E-4, 'derivedPat should inherit Height');
+    CheckEquals(5.0, p2.X.Value, 1E-4);
+    CheckEquals(5.0, p2.Y.Value, 1E-4);
+    CheckEquals(1, p2.Children.Count, 'derivedPat should inherit children from basePat');
   finally
     docNode.Free;
   end;

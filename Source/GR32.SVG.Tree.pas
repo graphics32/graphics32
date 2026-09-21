@@ -83,6 +83,8 @@ type
     FFill: TSvgFill;
     FStroke: TSvgStroke;
     FResolving: Boolean;
+  protected
+    function GetIsRenderable: Boolean; virtual;
   public
     constructor Create(AParent: TSvgNode = nil); virtual;
     destructor Destroy; override;
@@ -99,6 +101,7 @@ type
     property Parent: TSvgNode read FParent write FParent;
     property Fill: TSvgFill read FFill write FFill;
     property Stroke: TSvgStroke read FStroke write FStroke;
+    property IsRenderable: Boolean read GetIsRenderable;
   end;
 
   TSvgGroupNode = class(TSvgNode)
@@ -126,6 +129,8 @@ type
     FSpreadMethod: TSvgSpreadMethod;
     FGradientUnits: TSvgGradientUnits;
     FHref: string;
+  protected
+    function GetIsRenderable: Boolean; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     destructor Destroy; override;
@@ -178,6 +183,8 @@ type
   TSvgClipPathNode = class(TSvgGroupNode)
   private
     FClipPathUnits: TSvgGradientUnits;
+  protected
+    function GetIsRenderable: Boolean; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -193,6 +200,8 @@ type
     FHeight: TSvgLength;
     FMaskUnits: TSvgGradientUnits;
     FMaskContentUnits: TSvgGradientUnits;
+  protected
+    function GetIsRenderable: Boolean; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -203,6 +212,37 @@ type
     property Height: TSvgLength read FHeight write FHeight;
     property MaskUnits: TSvgGradientUnits read FMaskUnits write FMaskUnits;
     property MaskContentUnits: TSvgGradientUnits read FMaskContentUnits write FMaskContentUnits;
+  end;
+
+  TSvgPatternNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FPatternUnits: TSvgGradientUnits;
+    FPatternContentUnits: TSvgGradientUnits;
+    FPatternTransform: TFloatMatrix;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+    FHref: string;
+  protected
+    function GetIsRenderable: Boolean; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure InheritFrom(ParentPattern: TSvgPatternNode); virtual;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property PatternUnits: TSvgGradientUnits read FPatternUnits write FPatternUnits;
+    property PatternContentUnits: TSvgGradientUnits read FPatternContentUnits write FPatternContentUnits;
+    property PatternTransform: TFloatMatrix read FPatternTransform write FPatternTransform;
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+    property Href: string read FHref write FHref;
   end;
 
   TSvgDocumentNode = class(TSvgGroupNode)
@@ -216,6 +256,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ResolveUseNodes;
     procedure ResolveGradients;
+    procedure ResolvePatterns;
     procedure ParseAttribute(const AName, AValue: string); override;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
@@ -233,6 +274,8 @@ type
   end;
 
   TSvgDefsNode = class(TSvgGroupNode)
+  protected
+    function GetIsRenderable: Boolean; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
   end;
@@ -305,6 +348,11 @@ begin
 end;
 
 { TSvgNode }
+
+function TSvgNode.GetIsRenderable: Boolean;
+begin
+  Result := True;
+end;
 
 constructor TSvgNode.Create(AParent: TSvgNode);
 begin
@@ -562,6 +610,11 @@ end;
 
 { TSvgGradientNode }
 
+function TSvgGradientNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
 constructor TSvgGradientNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
@@ -745,6 +798,11 @@ end;
 
 { TSvgClipPathNode }
 
+function TSvgClipPathNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
 constructor TSvgClipPathNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
@@ -779,6 +837,11 @@ begin
 end;
 
 { TSvgMaskNode }
+
+function TSvgMaskNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
 
 constructor TSvgMaskNode.Create(AParent: TSvgNode);
 begin
@@ -826,6 +889,98 @@ begin
     if LowerCase(lowerVal) = 'objectboundingbox' then FMaskContentUnits := guObjectBoundingBox
     else FMaskContentUnits := guUserSpaceOnUse;
   end
+  else inherited ParseAttribute(AName, AValue);
+end;
+
+{ TSvgPatternNode }
+
+function TSvgPatternNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
+constructor TSvgPatternNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX := TSvgLength.Create(0.0, suPx);
+  FY := TSvgLength.Create(0.0, suPx);
+  FWidth := TSvgLength.Create(0.0, suPx);
+  FHeight := TSvgLength.Create(0.0, suPx);
+  FPatternUnits := guObjectBoundingBox;
+  FPatternContentUnits := guUserSpaceOnUse;
+  FPatternTransform := IdentityMatrix;
+  FViewBox.IsDefined := False;
+  FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
+  FHref := '';
+end;
+
+function TSvgPatternNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  patRes: TSvgPatternNode;
+begin
+  patRes := TSvgPatternNode(inherited Clone(AParent));
+  patRes.FX := FX;
+  patRes.FY := FY;
+  patRes.FWidth := FWidth;
+  patRes.FHeight := FHeight;
+  patRes.FPatternUnits := FPatternUnits;
+  patRes.FPatternContentUnits := FPatternContentUnits;
+  patRes.FPatternTransform := FPatternTransform;
+  patRes.FViewBox := FViewBox;
+  patRes.FPreserveAspectRatio := FPreserveAspectRatio;
+  patRes.FHref := FHref;
+  Result := patRes;
+end;
+
+procedure TSvgPatternNode.InheritFrom(ParentPattern: TSvgPatternNode);
+var
+  i: Integer;
+begin
+  if ParentPattern = nil then Exit;
+
+  if (FWidth.Value = 0) and (FWidth.UnitType = suPx) and (ParentPattern.FWidth.Value > 0) then
+    FWidth := ParentPattern.FWidth;
+  if (FHeight.Value = 0) and (FHeight.UnitType = suPx) and (ParentPattern.FHeight.Value > 0) then
+    FHeight := ParentPattern.FHeight;
+  if not FViewBox.IsDefined and ParentPattern.FViewBox.IsDefined then
+    FViewBox := ParentPattern.FViewBox;
+
+  if (Children.Count = 0) and (ParentPattern.Children.Count > 0) then
+  begin
+    for i := 0 to ParentPattern.Children.Count - 1 do
+      AddChild(ParentPattern.Children[i].Clone(Self));
+  end;
+end;
+
+procedure TSvgPatternNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if (lowerName = 'href') or (lowerName = 'xlink:href') then
+    FHref := lowerVal
+  else if lowerName = 'x' then FX := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'y' then FY := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'width' then FWidth := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'height' then FHeight := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'patternunits' then
+  begin
+    if LowerCase(lowerVal) = 'userspaceonuse' then FPatternUnits := guUserSpaceOnUse
+    else FPatternUnits := guObjectBoundingBox;
+  end
+  else if lowerName = 'patterncontentunits' then
+  begin
+    if LowerCase(lowerVal) = 'objectboundingbox' then FPatternContentUnits := guObjectBoundingBox
+    else FPatternContentUnits := guUserSpaceOnUse;
+  end
+  else if lowerName = 'patterntransform' then
+    FPatternTransform := ParseSvgTransform(lowerVal)
+  else if lowerName = 'viewbox' then
+    FViewBox := TSvgViewBox.Parse(lowerVal)
+  else if lowerName = 'preserveaspectratio' then
+    FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(lowerVal)
   else inherited ParseAttribute(AName, AValue);
 end;
 
@@ -964,6 +1119,41 @@ begin
   ProcessNode(Self);
 end;
 
+procedure TSvgDocumentNode.ResolvePatterns;
+
+  procedure ProcessNode(ANode: TSvgNode);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    patNode, targetPat: TSvgPatternNode;
+    parentTarget: TSvgNode;
+  begin
+    if ANode is TSvgPatternNode then
+    begin
+      patNode := TSvgPatternNode(ANode);
+      if patNode.Href <> '' then
+      begin
+        parentTarget := FindNodeById(patNode.Href);
+        if parentTarget is TSvgPatternNode then
+        begin
+          targetPat := TSvgPatternNode(parentTarget);
+          patNode.InheritFrom(targetPat);
+        end;
+      end;
+    end;
+
+    if ANode is TSvgGroupNode then
+    begin
+      group := TSvgGroupNode(ANode);
+      for i := 0 to group.Children.Count - 1 do
+        ProcessNode(group.Children[i]);
+    end;
+  end;
+
+begin
+  ProcessNode(Self);
+end;
+
 procedure TSvgDocumentNode.ParseAttribute(const AName, AValue: string);
 var
   lowerName, lowerVal: string;
@@ -1004,6 +1194,11 @@ begin
 end;
 
 { TSvgDefsNode }
+
+function TSvgDefsNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
 
 constructor TSvgDefsNode.Create(AParent: TSvgNode);
 begin
@@ -1470,6 +1665,11 @@ var
       node := maskNode;
       ParseAttributes(node, AParser);
     end else
+    if (tagName = 'pattern') then
+    begin
+      node := TSvgPatternNode.Create(AParent);
+      ParseAttributes(node, AParser);
+    end else
     if (tagName = 'style') then
     begin
       AParser.ConsumeText(rawCss);
@@ -1656,6 +1856,7 @@ begin
         if docRes <> nil then
         begin
           docRes.ResolveGradients;
+          docRes.ResolvePatterns;
           docRes.ResolveUseNodes;
           Exit(docRes);
         end;

@@ -54,6 +54,8 @@ type
     procedure TestClipPathCompositing;
     procedure TestMaskCompositing;
     procedure TestBitmapPool;
+    procedure TestPatternFillAndStrokeRendering;
+    procedure TestStrokeWidthRendering;
   end;
 
 implementation
@@ -283,6 +285,145 @@ begin
     finally
       docNode.Free;
     end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestPatternFillAndStrokeRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">' +
+           '  <defs>' +
+           '    <pattern id="star" viewBox="0,0,10,10" width="10" height="10" patternUnits="userSpaceOnUse">' +
+           '      <polygon points="0,0 2,5 0,10 5,8 10,10 8,5 10,0 5,2" fill="red"/>' +
+           '    </pattern>' +
+           '  </defs>' +
+           '  <circle cx="50" cy="50" r="40" fill="url(#star)"/>' +
+           '  <circle cx="150" cy="50" r="30" fill="none" stroke-width="20" stroke="url(#star)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Pattern fill/stroke docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Check top-left corner (0,0) where <defs> was placed - must remain white background!
+        CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Top-left corner where <defs> is defined must not render directly');
+
+        // Pattern fill check on the left circle
+        Check(bmp.Pixel[50, 50] <> clWhite32, 'Center of left circle should be painted by pattern fill');
+
+        // Pattern stroke check on the right circle (ring region around r=30)
+        Check(bmp.Pixel[150, 20] <> clWhite32, 'Stroke ring of right circle top edge should be painted by pattern stroke');
+        Check(bmp.Pixel[150, 50] = clWhite32, 'Center of hollow stroked circle should remain white background');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestStrokeWidthRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  minY, maxY, y: Integer;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+
+    // Line from x=10 to x=90 at y=50 with stroke-width 10
+    xml := '<svg width="100" height="100">' +
+           '  <line x1="10" y1="50" x2="90" y2="50" stroke="green" stroke-width="10"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        minY := 100;
+        maxY := -1;
+        for y := 0 to 99 do
+        begin
+          if bmp.Pixel[50, y] = clGreen32 then
+          begin
+            if y < minY then minY := y;
+            if y > maxY then maxY := y;
+          end;
+        end;
+
+        // Line y=50, stroke-width=10 -> expected green pixels from y=45 to y=55 (height 10 or 11)
+        Check(minY >= 44, Format('minY was %d, expected >= 44', [minY]));
+        Check(maxY <= 55, Format('maxY was %d, expected <= 55', [maxY]));
+        Check((maxY - minY + 1) <= 12, Format('Stroke height was %d, expected ~10', [maxY - minY + 1]));
+
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Test Rectangle stroke width
+    bmp.Clear(clWhite32);
+    xml := '<svg width="1200" height="400">' +
+           '  <rect x="10" y="5" width="1140" height="390" fill="white" stroke="green" stroke-width="10" />' +
+           '</svg>';
+
+    bmp.SetSize(1200, 400);
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'rect docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Top edge: rect y=5, stroke-width=10 -> expected green from y=0 to y=10
+        minY := 400;
+        maxY := -1;
+        for y := 0 to 30 do
+        begin
+          if bmp.Pixel[500, y] = clGreen32 then
+          begin
+            if y < minY then minY := y;
+            if y > maxY then maxY := y;
+          end;
+        end;
+
+        Check(minY >= 0, Format('Rect top minY was %d', [minY]));
+        Check(maxY <= 11, Format('Rect top maxY was %d', [maxY]));
+        Check((maxY - minY + 1) <= 12, Format('Rect top stroke height was %d, expected ~10', [maxY - minY + 1]));
+
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
   finally
     bmp.Free;
   end;
