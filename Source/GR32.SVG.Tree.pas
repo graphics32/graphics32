@@ -306,7 +306,9 @@ function ParseSvgTransform(const AStr: string): TFloatMatrix;
 
 // XML Parsing
 function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode; overload;
+function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode; overload;
 function ParseSvgXml(const AXmlText: UTF8String): TSvgDocumentNode; overload;
+function ParseSvgXml(const AXmlText: UTF8String; var AErrorMessage: string): TSvgDocumentNode; overload;
 
 implementation
 
@@ -1540,7 +1542,7 @@ end;
 
 { XML Parsing }
 
-function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode;
+function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode;
 var
   cssStyleSheet: TSvgCssStyleSheet;
 
@@ -1827,11 +1829,15 @@ var
 begin
   Result := nil;
   if (Text = nil) or (TextLen <= 0) then
+  begin
+    AErrorMessage := 'No document';
     Exit;
+  end;
+
+  parser.Init(Text, TextLen, [xpoNoException]);
 
   cssStyleSheet := TSvgCssStyleSheet.Create;
   try
-    parser.Init(Text, TextLen, [xpoNoException]);
 
     while parser.ParseNext not in [xtEof, xtError] do
     begin
@@ -1862,14 +1868,32 @@ begin
         end;
       end;
     end;
+
   finally
     cssStyleSheet.Free;
   end;
+
+  if (parser.Kind = xtError) then
+    AErrorMessage := Format('%d: %s', [parser.LastErrorLine, XML_ERROR[parser.LastError]])
+  else
+    AErrorMessage := '';
+end;
+
+function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode;
+var
+  ErrorMessage: string;
+begin
+  Result := ParseSvgXml(Text, TextLen, ErrorMessage);
 end;
 
 function ParseSvgXml(const AXmlText: UTF8String): TSvgDocumentNode;
 begin
   Result := ParseSvgXml(PAnsiChar(AXmlText), Length(AXmlText));
+end;
+
+function ParseSvgXml(const AXmlText: UTF8String; var AErrorMessage: string): TSvgDocumentNode;
+begin
+  Result := ParseSvgXml(PAnsiChar(AXmlText), Length(AXmlText), AErrorMessage);
 end;
 
 end.
