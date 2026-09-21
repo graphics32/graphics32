@@ -12,6 +12,7 @@ type
     procedure EllipticalArc_HTML5;
     procedure EllipticalArc_SVG;
     procedure EllipticalArc_SVG_OffCenter;
+    procedure CubicBezier_SmallCoordinates;
   end;
 
 
@@ -86,6 +87,25 @@ begin
       dist := Sqrt(Sqr(Points[i].X - 300.0) + Sqr(Points[i].Y - 200.0));
       CheckEquals(150.0, dist, 1.0);
     end;
+  finally
+    Path.Free;
+  end;
+end;
+
+procedure TTestCanvas32.CubicBezier_SmallCoordinates;
+var
+  Path: TFlattenedPath;
+  Points: TArrayOfFloatPoint;
+begin
+  Path := TFlattenedPath.Create;
+  try
+    Path.MoveTo(0.0, 0.0);
+    Path.CurveTo(FloatPoint(0.201843, 0.201843), FloatPoint(0.403515, 0.403513), FloatPoint(0.609067, 0.572102));
+    Path.EndPath;
+
+    Check(Length(Path.Path) > 0, 'Path should not be empty');
+    Points := Path.Path[0];
+    Check(Length(Points) >= 6, 'Cubic bezier in small coordinates should flatten smoothly into multiple points');
   finally
     Path.Free;
   end;

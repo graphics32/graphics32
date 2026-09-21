@@ -286,12 +286,17 @@ begin
 end;
 
 procedure CubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+const
+  MaxRecursionDepth = 16;
+var
+  EffectiveTolerance, Span: TFloat;
+  Depth: Integer;
 
   procedure DoCubicBezierCurve(const P1, P2, P3, P4: TFloatPoint);
   var
     P12, P23, P34, P123, P234, P1234: TFloatPoint;
   begin
-    if CubicBezierFlatness(P1, P2, P3, P4) < Tolerance then
+    if (Depth >= MaxRecursionDepth) or (CubicBezierFlatness(P1, P2, P3, P4) < EffectiveTolerance) then
       AddPoint(P1)
     else
     begin
@@ -308,12 +313,29 @@ procedure CubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TA
       P1234.X := (P123.X + P234.X) * 0.5;
       P1234.Y := (P123.Y + P234.Y) * 0.5;
 
+      if (P1234.X = P1.X) and (P1234.Y = P1.Y) then
+      begin
+        AddPoint(P1);
+        Exit;
+      end;
+
+      Inc(Depth);
       DoCubicBezierCurve(P1, P12, P123, P1234);
       DoCubicBezierCurve(P1234, P234, P34, P4);
+      Dec(Depth);
     end;
   end;
 
 begin
+  EffectiveTolerance := Tolerance;
+  Span := Abs(P4.X - P1.X) + Abs(P4.Y - P1.Y) +
+          Abs(P2.X - P1.X) + Abs(P2.Y - P1.Y) +
+          Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y) +
+          Abs(P4.X - P3.X) + Abs(P4.Y - P3.Y);
+  if Span > 0 then
+    EffectiveTolerance := Min(EffectiveTolerance, Max(1e-4, Span * 1e-3));
+
+  Depth := 0;
   DoCubicBezierCurve(P1, P2, P3, P4);
 end;
 
@@ -321,8 +343,6 @@ end;
 //
 //      Quadratic Bezier curve flattening
 //
-//------------------------------------------------------------------------------
-// Glyph cache access point.
 //------------------------------------------------------------------------------
 type
   TQuadraticBezierCurve = procedure(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
@@ -332,12 +352,17 @@ type
 // Recursive subdivision using Paul de Casteljau's algorithm
 //------------------------------------------------------------------------------
 procedure RecursiveQuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+const
+  MaxRecursionDepth = 16;
+var
+  EffectiveTolerance, Span: TFloat;
+  Depth: integer;
 
   procedure DoQuadraticBezierCurve(const P1, P2, P3: TFloatPoint);
   var
     P12, P23, P123: TFloatPoint;
   begin
-    if QuadraticBezierFlatness(P1, P2, P3) < Tolerance then
+    if (Depth >= MaxRecursionDepth) or (QuadraticBezierFlatness(P1, P2, P3) < EffectiveTolerance) then
       AddPoint(P1)
     else
     begin
@@ -348,12 +373,28 @@ procedure RecursiveQuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const Add
       P123.X := (P12.X + P23.X) * 0.5;
       P123.Y := (P12.Y + P23.Y) * 0.5;
 
+      if (P123.X = P1.X) and (P123.Y = P1.Y) then
+      begin
+        AddPoint(P1);
+        Exit;
+      end;
+
+      Inc(Depth);
       DoQuadraticBezierCurve(P1, P12, P123);
       DoQuadraticBezierCurve(P123, P23, P3);
+      Dec(Depth);
     end;
   end;
 
 begin
+  EffectiveTolerance := Tolerance;
+  Span := Abs(P3.X - P1.X) + Abs(P3.Y - P1.Y) +
+          Abs(P2.X - P1.X) + Abs(P2.Y - P1.Y) +
+          Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y);
+  if Span > 0 then
+    EffectiveTolerance := Min(EffectiveTolerance, Max(1e-4, Span * 1e-3));
+
+  Depth := 0;
   DoQuadraticBezierCurve(P1, P2, P3);
 end;
 
@@ -365,6 +406,7 @@ end;
 //------------------------------------------------------------------------------
 procedure RaphLevienQuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
 var
+  EffectiveTolerance, Span: TFloat;
   x0, x2, Scale: Single;
 
   // Determine the x values and scaling to map to y=x^2
@@ -451,11 +493,18 @@ var
 begin
   MapToBasic;
 
+  EffectiveTolerance := Tolerance;
+  Span := Abs(P3.X - P1.X) + Abs(P3.Y - P1.Y) +
+          Abs(P2.X - P1.X) + Abs(P2.Y - P1.Y) +
+          Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y);
+  if Span > 0 then
+    EffectiveTolerance := Min(EffectiveTolerance, Max(1e-4, Span * 1e-3));
+
   a0 := ApproxMyint(x0);
   a2 := ApproxMyint(x2);
   a2_less_a0 := a2 - a0;
 
-  Count := Ceil(0.5 * Abs(a2_less_a0) * Sqrt(Scale / Tolerance));
+  Count := Ceil(0.5 * Abs(a2_less_a0) * Sqrt(Scale / EffectiveTolerance));
 
   if (Count = 0) then
     exit;
