@@ -39,8 +39,6 @@ uses
   GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils, GR32_ColorGradients,
   GR32.SVG.Types, GR32.SVG.Tree;
 
-function IsIdentityMatrix(const Matrix: TFloatMatrix): Boolean;
-
 type
   { TSvgBitmapPool: Reusable pool of intermediate TBitmap32 offscreen surfaces to eliminate
     frequent heap allocations/deallocations during nested group opacity, clip path, and mask compositing. }
@@ -111,17 +109,6 @@ uses
   GR32_Math,
   GR32_LowLevel,
   GR32_Backends_Generic;
-
-function IsIdentityMatrix(const Matrix: TFloatMatrix): Boolean;
-var
-  a, b: Integer;
-begin
-  for b := Low(Matrix) to High(Matrix) do
-    for a := Low(Matrix[0]) to High(Matrix[0]) do
-      if (Matrix[a, b] <> IdentityMatrix[a, b]) then
-        Exit(False);
-  Result := True;
-end;
 
 function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
 var
@@ -360,10 +347,10 @@ var
   linNode: TSvgLinearGradientNode;
   radNode: TSvgRadialGradientNode;
   x1, y1, x2, y2: Single;
-  cx, cy, r, fx, fy: Single;
+  cx, cy, r, fx, fy, rx, ry, scaleX, scaleY: Single;
   linFiller: TLinearGradientPolygonFiller;
   radFiller: TSVGRadialGradientPolygonFiller;
-  gradTransform: TFloatMatrix;
+  gradTransform, totalTransform: TFloatMatrix;
   ptStart, ptEnd, ptC, ptF: TFloatPoint;
   transHelper: TFloatMatrixHelper;
 const
@@ -392,20 +379,22 @@ begin
       y1 := ABounds.Top + linNode.Y1.ToPixels(bHeight);
       x2 := ABounds.Left + linNode.X2.ToPixels(bWidth);
       y2 := ABounds.Top + linNode.Y2.ToPixels(bHeight);
+      totalTransform := gradTransform;
     end else
     begin
       x1 := linNode.X1.ToPixels(FViewportRect.Right - FViewportRect.Left);
       y1 := linNode.Y1.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
       x2 := linNode.X2.ToPixels(FViewportRect.Right - FViewportRect.Left);
       y2 := linNode.Y2.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
+      totalTransform := Mult(FCurrentMatrix, gradTransform);
     end;
 
     ptStart := FloatPoint(x1, y1);
     ptEnd := FloatPoint(x2, y2);
 
-    if not IsIdentityMatrix(gradTransform) then
+    if not IsIdentityMatrix(totalTransform) then
     begin
-      transHelper.Matrix := gradTransform;
+      transHelper.Matrix := totalTransform;
       ptStart := transHelper.TransformPoint(ptStart);
       ptEnd := transHelper.TransformPoint(ptEnd);
     end;
@@ -439,6 +428,7 @@ begin
       r := radNode.R.ToPixels(Sqrt(bWidth * bWidth + bHeight * bHeight) * Sqrt(0.5));
       fx := ABounds.Left + radNode.Fx.ToPixels(bWidth);
       fy := ABounds.Top + radNode.Fy.ToPixels(bHeight);
+      totalTransform := gradTransform;
     end else
     begin
       cx := radNode.Cx.ToPixels(FViewportRect.Right - FViewportRect.Left);
@@ -446,20 +436,29 @@ begin
       r := radNode.R.ToPixels(Sqrt(Sqr(FViewportRect.Right - FViewportRect.Left) + Sqr(FViewportRect.Bottom - FViewportRect.Top)) * Sqrt(0.5));
       fx := radNode.Fx.ToPixels(FViewportRect.Right - FViewportRect.Left);
       fy := radNode.Fy.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
+      totalTransform := Mult(FCurrentMatrix, gradTransform);
     end;
 
     ptC := FloatPoint(cx, cy);
     ptF := FloatPoint(fx, fy);
 
-    if not IsIdentityMatrix(gradTransform) then
+    rx := r;
+    ry := r;
+
+    if not IsIdentityMatrix(totalTransform) then
     begin
-      transHelper.Matrix := gradTransform;
+      transHelper.Matrix := totalTransform;
       ptC := transHelper.TransformPoint(ptC);
       ptF := transHelper.TransformPoint(ptF);
+
+      scaleX := Sqrt(Sqr(totalTransform[0, 0]) + Sqr(totalTransform[0, 1]));
+      scaleY := Sqrt(Sqr(totalTransform[1, 0]) + Sqr(totalTransform[1, 1]));
+      if scaleX > 0 then rx := rx * scaleX;
+      if scaleY > 0 then ry := ry * scaleY;
     end;
 
     radFiller := TSVGRadialGradientPolygonFiller.Create;
-    radFiller.EllipseBounds := FloatRect(ptC.X - r, ptC.Y - r, ptC.X + r, ptC.Y + r);
+    radFiller.EllipseBounds := FloatRect(ptC.X - rx, ptC.Y - ry, ptC.X + rx, ptC.Y + ry);
     radFiller.FocalPoint := ptF;
     radFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
 

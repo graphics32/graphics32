@@ -56,6 +56,7 @@ type
     procedure TestBitmapPool;
     procedure TestPatternFillAndStrokeRendering;
     procedure TestStrokeWidthRendering;
+    procedure TestRadialGradientReflect;
   end;
 
 implementation
@@ -472,6 +473,108 @@ begin
     finally
       docNode.Free;
     end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestRadialGradientReflect;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  p1, p2, p3: TColor32;
+  differentColors: Boolean;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<?xml version="1.0" encoding="UTF-8"?>' +
+           '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <linearGradient id="baseGrad">' +
+           '      <stop offset="0" stop-color="black"/>' +
+           '      <stop offset="1" stop-color="white"/>' +
+           '    </linearGradient>' +
+           '    <radialGradient id="radReflect" href="#baseGrad" cx="10" cy="10" r="10" spreadMethod="reflect" gradientUnits="userSpaceOnUse"/>' +
+           '  </defs>' +
+           '  <rect x="0" y="0" width="200" height="200" fill="url(#radReflect)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Radial reflect docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center near (10, 10) is dark/black (stop 0)
+        // Distance 10 (e.g. 20, 10) is white (stop 1)
+        // Distance 20 (e.g. 30, 10) reflects back to black (stop 0)
+        p1 := bmp.Pixel[10, 10];
+        p2 := bmp.Pixel[20, 10];
+        p3 := bmp.Pixel[30, 10];
+
+        Check(RedComponent(p1) < 50, 'Center at (10,10) should be near black');
+        Check(RedComponent(p2) > 200, 'Radius at (20,10) should be near white');
+        Check(RedComponent(p3) < 50, 'Reflected radius at (30,10) should reflect back to near black');
+
+        differentColors := (p1 <> p2) and (p2 <> p3);
+        Check(differentColors, 'Radial gradient with spreadMethod="reflect" must render varying reflection wave colors across canvas');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Test user Inkscape wave pattern snippet with gradientTransform, spreadMethod="reflect", and style="..." on <stop> tags
+    bmp.Clear(clWhite32);
+    bmp.SetSize(406, 206);
+    xml := '<?xml version="1.0" encoding="UTF-8"?>' +
+           '<svg width="406.25" height="206.25">' +
+           '  <defs>' +
+           '    <linearGradient id="g1">' +
+           '      <stop offset="0" style="stop-color: rgb(50, 50, 50); stop-opacity: 1;"/>' +
+           '      <stop offset="1" style="stop-color: rgb(150, 150, 150); stop-opacity: 1;"/>' +
+           '    </linearGradient>' +
+           '    <radialGradient id="r1" href="#g1" gradientUnits="userSpaceOnUse" ' +
+           '      gradientTransform="matrix(0.793492, 0, 0, 1.26025, -124.125, -349.237)" ' +
+           '      spreadMethod="reflect" cx="195.33907" cy="367.99432" r="10.189606"/>' +
+           '  </defs>' +
+           '  <rect x="25.875" y="3.125" width="375" height="200" fill="url(#r1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'User snippet docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center is at (30.875, 114.528) -> rgb(50,50,50)
+        // Radii rx ~ 8, ry ~ 12.8 -> alternating rgb(150,150,150) and rgb(50,50,50) wave rings
+        p1 := bmp.Pixel[31, 115];
+        p2 := bmp.Pixel[39, 115];
+        p3 := bmp.Pixel[47, 115];
+
+        Check(RedComponent(p1) < 80, 'User snippet center at (31,115) should be near rgb(50,50,50)');
+        Check(RedComponent(p2) > 120, 'User snippet radius at (39,115) should be near rgb(150,150,150)');
+        Check(RedComponent(p3) < 80, 'User snippet reflected radius at (47,115) should reflect back to near rgb(50,50,50)');
+
+        differentColors := (p1 <> p2) and (p2 <> p3);
+        Check(differentColors, 'Inkscape wave snippet must render varying stop colors across canvas');
+
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
   finally
     bmp.Free;
   end;

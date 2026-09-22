@@ -51,11 +51,11 @@ type
     class function Create(AOffset: Single; AColor: TSvgColor; AOpacity: Single = 1.0): TSvgGradientStop; static;
   end;
 
-  TSvgFillProperty = (fpColor, fpOpacity, fpFillRule);
-  TSvgFillProperties = set of TSvgFillProperty;
-
   TSvgFill = record
+  private type
+    TSvgFillProperties = set of (fpColor, fpOpacity, fpFillRule);
   private
+    FSpecified: TSvgFillProperties;
     FColor: TSvgColor;
     FOpacity: Single;
     FFillRule: TPolyFillMode;
@@ -65,7 +65,6 @@ type
     procedure SetOpacity(const Value: Single);
     procedure SetUrl(const Value: string);
   public
-    Specified: TSvgFillProperties;
 
     procedure ApplySpecified(var ADest: TSvgFill);
 
@@ -77,10 +76,12 @@ type
     class function Default: TSvgFill; static;
   end;
 
-  TSvgStrokeProperty = (spColor, spWidth, spOpacity, spJoinStyle, spEndStyle, spMiterLimit, spDashArray, spDashOffset);
-  TSvgStrokeProperties = set of TSvgStrokeProperty;
 
   TSvgStroke = record
+  private type
+    TSvgStrokeProperties = set of (spColor, spWidth, spOpacity, spJoinStyle, spEndStyle, spMiterLimit, spDashArray, spDashOffset);
+  private
+    FSpecified: TSvgStrokeProperties;
     FColor: TSvgColor;
     FWidth: TSvgLength;
     FOpacity: Single;
@@ -101,8 +102,6 @@ type
     procedure SetUrl(const Value: string);
     procedure SetWidth(const Value: TSvgLength);
   public
-    Specified: TSvgStrokeProperties;
-
     procedure ApplySpecified(var ADest: TSvgStroke);
 
     property Color: TSvgColor read FColor write SetColor;
@@ -208,22 +207,32 @@ type
   end;
 
   TSvgRadialGradientNode = class(TSvgGradientNode)
+  private type
+    TSvgRadialGradientProperties = set of (gpFocalX, gpFocalY);
   private
+    FSpecified: TSvgRadialGradientProperties;
     FCx: TSvgLength;
     FCy: TSvgLength;
     FR: TSvgLength;
     FFx: TSvgLength;
     FFy: TSvgLength;
+    function GetFx: TSvgLength;
+    function GetFy: TSvgLength;
+    procedure SetFx(const Value: TSvgLength);
+    procedure SetFy(const Value: TSvgLength);
   public
     constructor Create(AParent: TSvgNode = nil); override;
+
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
     procedure ParseAttribute(const AName, AValue: string); override;
+
     property Cx: TSvgLength read FCx write FCx;
     property Cy: TSvgLength read FCy write FCy;
     property R: TSvgLength read FR write FR;
-    property Fx: TSvgLength read FFx write FFx;
-    property Fy: TSvgLength read FFy write FFy;
+    // Focal point; Falls back to Center if not specified
+    property Fx: TSvgLength read GetFx write SetFx;
+    property Fy: TSvgLength read GetFy write SetFy;
   end;
 
   TSvgClipPathNode = class(TSvgGroupNode)
@@ -376,16 +385,16 @@ end;
 
 procedure TSvgFill.ApplySpecified(var ADest: TSvgFill);
 begin
-  if fpColor in Specified then
+  if fpColor in FSpecified then
   begin
     ADest.Color := FColor;
     ADest.Url := FUrl;
   end;
 
-  if fpOpacity in Specified then
+  if fpOpacity in FSpecified then
     ADest.Opacity := FOpacity;
 
-  if fpFillRule in Specified then
+  if fpFillRule in FSpecified then
     ADest.FillRule := FFillRule;
 end;
 
@@ -395,62 +404,62 @@ begin
   Result.FOpacity := 1.0;
   Result.FFillRule := pfWinding;
   Result.FUrl := '';
-  Result.Specified := [];
+  Result.FSpecified := [];
 end;
 
 procedure TSvgFill.SetColor(const Value: TSvgColor);
 begin
   FColor := Value;
-  Include(Specified, fpColor);
+  Include(FSpecified, fpColor);
 end;
 
 procedure TSvgFill.SetFillRule(const Value: TPolyFillMode);
 begin
   FFillRule := Value;
-  Include(Specified, fpFillRule);
+  Include(FSpecified, fpFillRule);
 end;
 
 procedure TSvgFill.SetOpacity(const Value: Single);
 begin
   FOpacity := Value;
-  Include(Specified, fpOpacity);
+  Include(FSpecified, fpOpacity);
 end;
 
 procedure TSvgFill.SetUrl(const Value: string);
 begin
   FUrl := Value;
-  Include(Specified, fpColor);
+  Include(FSpecified, fpColor);
 end;
 
 { TSvgStroke }
 
 procedure TSvgStroke.ApplySpecified(var ADest: TSvgStroke);
 begin
-  if (spColor in Specified) then
+  if (spColor in FSpecified) then
   begin
     ADest.Color := FColor;
     ADest.Url := FUrl;
   end;
 
-  if (spWidth in Specified) then
+  if (spWidth in FSpecified) then
     ADest.Width := FWidth;
 
-  if (spOpacity in Specified) then
+  if (spOpacity in FSpecified) then
     ADest.Opacity := FOpacity;
 
-  if (spJoinStyle in Specified) then
+  if (spJoinStyle in FSpecified) then
     ADest.JoinStyle := FJoinStyle;
 
-  if (spEndStyle in Specified) then
+  if (spEndStyle in FSpecified) then
     ADest.EndStyle := FEndStyle;
 
-  if (spMiterLimit in Specified) then
+  if (spMiterLimit in FSpecified) then
     ADest.MiterLimit := FMiterLimit;
 
-  if (spDashArray in Specified) then
+  if (spDashArray in FSpecified) then
     ADest.DashArray := FDashArray;
 
-  if (spDashOffset in Specified) then
+  if (spDashOffset in FSpecified) then
     ADest.DashOffset := FDashOffset;
 end;
 
@@ -465,61 +474,61 @@ begin
   Result.FDashArray := nil;
   Result.FDashOffset := 0.0;
   Result.FUrl := '';
-  Result.Specified := [];
+  Result.FSpecified := [];
 end;
 
 procedure TSvgStroke.SetColor(const Value: TSvgColor);
 begin
   FColor := Value;
-  Include(Specified, spColor);
+  Include(FSpecified, spColor);
 end;
 
 procedure TSvgStroke.SetDashArray(const Value: TArrayOfFloat);
 begin
   FDashArray := Value;
-  Include(Specified, spDashArray);
+  Include(FSpecified, spDashArray);
 end;
 
 procedure TSvgStroke.SetDashOffset(const Value: Single);
 begin
   FDashOffset := Value;
-  Include(Specified, spDashOffset);
+  Include(FSpecified, spDashOffset);
 end;
 
 procedure TSvgStroke.SetEndStyle(const Value: TEndStyle);
 begin
   FEndStyle := Value;
-  Include(Specified, spEndStyle);
+  Include(FSpecified, spEndStyle);
 end;
 
 procedure TSvgStroke.SetJoinStyle(const Value: TJoinStyle);
 begin
   FJoinStyle := Value;
-  Include(Specified, spJoinStyle);
+  Include(FSpecified, spJoinStyle);
 end;
 
 procedure TSvgStroke.SetMiterLimit(const Value: Single);
 begin
   FMiterLimit := Value;
-  Include(Specified, spMiterLimit);
+  Include(FSpecified, spMiterLimit);
 end;
 
 procedure TSvgStroke.SetOpacity(const Value: Single);
 begin
   FOpacity := Value;
-  Include(Specified, spOpacity);
+  Include(FSpecified, spOpacity);
 end;
 
 procedure TSvgStroke.SetUrl(const Value: string);
 begin
   FUrl := Value;
-  Include(Specified, spColor);
+  Include(FSpecified, spColor);
 end;
 
 procedure TSvgStroke.SetWidth(const Value: TSvgLength);
 begin
   FWidth := Value;
-  Include(Specified, spWidth);
+  Include(FSpecified, spWidth);
 end;
 
 { TSvgNode }
@@ -541,8 +550,8 @@ begin
   begin
     FFill := AParent.Fill;
     FStroke := AParent.Stroke;
-    FFill.Specified := [];
-    FStroke.Specified := [];
+    FFill.FSpecified := [];
+    FStroke.FSpecified := [];
   end else
   begin
     FFill := TSvgFill.Default;
@@ -847,12 +856,15 @@ procedure TSvgGradientNode.InheritFrom(ParentGradient: TSvgGradientNode);
 var
   i: Integer;
 begin
-  if ParentGradient = nil then Exit;
+  if ParentGradient = nil then
+    Exit;
   if FStops.Count = 0 then
   begin
     for i := 0 to ParentGradient.FStops.Count - 1 do
       FStops.Add(ParentGradient.FStops[i]);
   end;
+  if IsIdentityMatrix(FTransform) and not IsIdentityMatrix(ParentGradient.FTransform) then
+    FTransform := ParentGradient.FTransform;
 end;
 
 procedure TSvgGradientNode.ParseAttribute(const AName, AValue: string);
@@ -864,20 +876,27 @@ begin
 
   if (lowerName = 'href') or (lowerName = 'xlink:href') then
     FHref := lowerVal
-  else if lowerName = 'spreadmethod' then
+  else
+  if lowerName = 'spreadmethod' then
   begin
     lowerVal := LowerCase(lowerVal);
-    if lowerVal = 'reflect' then FSpreadMethod := smReflect
-    else if lowerVal = 'repeat' then FSpreadMethod := smRepeat
-    else FSpreadMethod := smPad;
-  end
-  else if lowerName = 'gradientunits' then
+    if lowerVal = 'reflect' then
+      FSpreadMethod := smReflect
+    else
+    if lowerVal = 'repeat' then
+      FSpreadMethod := smRepeat
+    else
+      FSpreadMethod := smPad;
+  end else
+  if lowerName = 'gradientunits' then
   begin
     if LowerCase(lowerVal) = 'userspaceonuse' then
       FGradientUnits := guUserSpaceOnUse
     else
       FGradientUnits := guObjectBoundingBox;
-  end
+  end else
+  if (lowerName = 'gradienttransform') or (lowerName = 'transform') then
+    FTransform := ParseSvgTransform(lowerVal)
   else
     inherited ParseAttribute(AName, AValue);
 end;
@@ -944,6 +963,23 @@ begin
   FR := TSvgLength.Create(50.0, suPercent);
   FFx := TSvgLength.Create(50.0, suPercent);
   FFy := TSvgLength.Create(50.0, suPercent);
+  FSpecified := [];
+end;
+
+function TSvgRadialGradientNode.GetFx: TSvgLength;
+begin
+  if (gpFocalX in FSpecified) then
+    Result := FFx
+  else
+    Result := FCx;
+end;
+
+function TSvgRadialGradientNode.GetFy: TSvgLength;
+begin
+  if (gpFocalY in FSpecified) then
+    Result := FFy
+  else
+    Result := FCy;
 end;
 
 function TSvgRadialGradientNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -956,6 +992,7 @@ begin
   radRes.FR := FR;
   radRes.FFx := FFx;
   radRes.FFy := FFy;
+  radRes.FSpecified := FSpecified;
   Result := radRes;
 end;
 
@@ -972,6 +1009,7 @@ begin
     FR := parentRad.FR;
     FFx := parentRad.FFx;
     FFy := parentRad.FFy;
+    FSpecified := parentRad.FSpecified;
   end;
 end;
 
@@ -982,12 +1020,35 @@ begin
   lowerName := LowerCase(Trim(AName));
   lowerVal := Trim(AValue);
 
-  if lowerName = 'cx' then FCx := TSvgLength.Parse(lowerVal)
-  else if lowerName = 'cy' then FCy := TSvgLength.Parse(lowerVal)
-  else if lowerName = 'r' then FR := TSvgLength.Parse(lowerVal)
-  else if lowerName = 'fx' then FFx := TSvgLength.Parse(lowerVal)
-  else if lowerName = 'fy' then FFy := TSvgLength.Parse(lowerVal)
-  else inherited ParseAttribute(AName, AValue);
+  // Note: We go through property setters to get FSpecified updated
+  if lowerName = 'cx' then
+    Cx := TSvgLength.Parse(lowerVal)
+  else
+  if lowerName = 'cy' then
+    Cy := TSvgLength.Parse(lowerVal)
+  else
+  if lowerName = 'r' then
+    R := TSvgLength.Parse(lowerVal)
+  else
+  if lowerName = 'fx' then
+    Fx := TSvgLength.Parse(lowerVal)
+  else
+  if lowerName = 'fy' then
+    Fy := TSvgLength.Parse(lowerVal)
+  else
+    inherited ParseAttribute(AName, AValue);
+end;
+
+procedure TSvgRadialGradientNode.SetFx(const Value: TSvgLength);
+begin
+  FFx := Value;
+  Include(FSpecified, gpFocalX);
+end;
+
+procedure TSvgRadialGradientNode.SetFy(const Value: TSvgLength);
+begin
+  FFy := Value;
+  Include(FSpecified, gpFocalY);
 end;
 
 { TSvgClipPathNode }
@@ -1442,6 +1503,41 @@ begin
   end
   else
     inherited ParseAttribute(AName, AValue);
+end;
+
+procedure ParseStopStyle(const AStyleStr: string; var AStopColorStr: string; var AStopOp: Single);
+var
+  declarations: TStringList;
+  decl, k, v: string;
+  colonPos, i: Integer;
+  valFloat: Single;
+begin
+  declarations := TStringList.Create;
+  try
+    declarations.Delimiter := ';';
+    declarations.StrictDelimiter := True;
+    declarations.DelimitedText := AStyleStr;
+    for i := 0 to declarations.Count - 1 do
+    begin
+      decl := Trim(declarations[i]);
+      if decl = '' then Continue;
+      colonPos := Pos(':', decl);
+      if colonPos > 0 then
+      begin
+        k := LowerCase(Trim(Copy(decl, 1, colonPos - 1)));
+        v := Trim(Copy(decl, colonPos + 1, Length(decl) - colonPos));
+        if k = 'stop-color' then
+          AStopColorStr := v
+        else if k = 'stop-opacity' then
+        begin
+          if TryStrToFloat(v, valFloat, SvgFormatSettings) then
+            AStopOp := EnsureRange(valFloat, 0.0, 1.0);
+        end;
+      end;
+    end;
+  finally
+    declarations.Free;
+  end;
 end;
 
 { Primitive Shape Converters }
@@ -1911,6 +2007,7 @@ var
           end;
           if attrN = 'stop-color' then stopColorStr := attrV;
           if attrN = 'stop-opacity' then TryStrToFloat(attrV, stopOp, SvgFormatSettings);
+          if attrN = 'style' then ParseStopStyle(attrV, stopColorStr, stopOp);
         end;
         stopVal := TSvgGradientStop.Create(stopOffset, TSvgColor.Parse(stopColorStr), stopOp);
         parentGrad.AddStop(stopVal);
