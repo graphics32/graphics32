@@ -35,7 +35,12 @@ interface
 {$include GR32.inc}
 
 uses
-  SysUtils, Classes, Math, GR32, GR32_Transforms, GR32_Math, GR32_LowLevel;
+  SysUtils, Classes, Math,
+  GR32,
+  GR32_Transforms,
+  GR32_Math,
+  GR32_LowLevel,
+  GR32.SVG.Utf8;
 
 var
   SvgFormatSettings: TFormatSettings;
@@ -43,7 +48,7 @@ var
 // HSLtoRGB overload for float Alpha in the range [0.0..1.0]
 function HSLtoRGB(H, S, L, A: Single): TColor32;
 
-function SvgColorNameToColor(const AName: string; ADefault: TColor32): TColor32;
+function SvgColorNameToColor(const AName: TValuePUtf8Char; ADefault: TColor32): TColor32;
 
 type
   TSvgUnitType = (
@@ -73,7 +78,8 @@ type
     class function Create(AColor: TColor32): TSvgColor; static;
     class function None: TSvgColor; static;
     class function CurrentColor: TSvgColor; static;
-    class function Parse(const AStr: UTF8String): TSvgColor; static;
+    class function Parse(const AStr: UTF8String): TSvgColor; overload; static;
+    class function Parse(AColorStr: TValuePUtf8Char): TSvgColor; overload; static;
   end;
 
   TSvgAlign = (
@@ -131,11 +137,32 @@ type
     function GetTransform(const ATargetRect: TFloatRect; const AAspect: TSvgPreserveAspectRatio): TFloatMatrix;
   end;
 
+type
+  TSvgKeywordDictionary<T> = record
+  private type
+    TKeyword = record
+      Keyword: AnsiString;
+      Value: T;
+    end;
+  private
+    FLengths: TArray<integer>;                  // Array of Keywords[] indices, indexed by keyword length.
+                                                // 0 means no keywords for that length.
+
+    FKeywords: TArray<TArray<TKeyword>>;        // Sparse array of keyword arrays.
+                                                // All keywords within a keyword array has the same
+                                                // length and are sorted alphabetically.
+  public
+    // Add a keyword to the dictionary
+    procedure Add(const AKeyword: AnsiString; AValue: T);
+    // Lookup a keyword in the dictionary. Return Value if found, Default(T) otherwise.
+    function Lookup(const AKeyword: TValuePUtf8Char; var AValue: T): boolean; overload;
+    function Lookup(const AKeyword: TValuePUtf8Char): T; overload;
+  end;
+
 implementation
 
 uses
-  AnsiStrings,
-  GR32.SVG.Xml;
+  AnsiStrings;
 
 function HSLtoRGB(H, S, L, A: Single): TColor32;
 begin
@@ -147,400 +174,246 @@ begin
   );
 end;
 
-function SvgColorNameToColor(const AName: string; ADefault: TColor32): TColor32;
+procedure TSvgKeywordDictionary<T>.Add(const AKeyword: AnsiString; AValue: T);
 var
-  s: string;
+  Len: integer;
+  Index: integer;
 begin
-  s := LowerCase(AName);
-  case Length(s) of
-    3:
-      if s = 'red' then Exit(clRed32)
-      else if s = 'tan' then Exit(clTan32)
-      ;
+  Len := Length(AKeyword);
+  if (Len = 0) then
+    exit;
 
-    4:
-      case s[1] of
-        'a':
-          if s = 'aqua' then Exit(clAqua32)
-          ;
-        'b':
-          if s = 'blue' then Exit(clBlue32)
-          ;
-        'c':
-          if s = 'cyan' then Exit(clAqua32)
-          ;
-        'g':
-          if s = 'gold' then Exit(clGold32)
-          else if s = 'gray' then Exit(clGray32)
-          else if s = 'grey' then Exit(clGrey32)
-          ;
-        'l':
-          if s = 'lime' then Exit(clLime32)
-          ;
-        'n':
-          if s = 'navy' then Exit(clNavy32)
-          ;
-        'p':
-          if s = 'peru' then Exit(clPeru32)
-          else if s = 'pink' then Exit(clPink32)
-          else if s = 'plum' then Exit(clPlum32)
-          ;
-        's':
-          if s = 'snow' then Exit(clSnow32)
-          ;
-        't':
-          if s = 'teal' then Exit(clTeal32)
-          ;
-      end;
-
-    5:
-      case s[1] of
-        'a':
-          if s = 'azure' then Exit(clAzure32)
-          ;
-        'b':
-          if s = 'beige' then Exit(clBeige32)
-          else if s = 'black' then Exit(clBlack32)
-          else if s = 'brown' then Exit(clBrown32)
-          ;
-        'c':
-          if s = 'coral' then Exit(clCoral32)
-          ;
-        'g':
-          if s = 'green' then Exit(clGreen32)
-          ;
-        'i':
-          if s = 'ivory' then Exit(clIvory32)
-          ;
-        'k':
-          if s = 'khaki' then Exit(clKhaki32)
-          ;
-        'l':
-          if s = 'linen' then Exit(clLinen32)
-          ;
-        'o':
-          if s = 'olive' then Exit(clOlive32)
-          ;
-        'w':
-          if s = 'wheat' then Exit(clWheat32)
-          else if s = 'white' then Exit(clWhite32)
-          ;
-      end;
-
-    6:
-      case s[1] of
-        'b':
-          if s = 'bisque' then Exit(clBisque32)
-          ;
-        'i':
-          if s = 'indigo' then Exit(clIndigo32)
-          ;
-        'm':
-          if s = 'maroon' then Exit(clMaroon32)
-          ;
-        'o':
-          if s = 'orange' then Exit(clOrange32)
-          else if s = 'orchid' then Exit(clOrchid32)
-          ;
-        'p':
-          if s = 'purple' then Exit(clPurple32)
-          ;
-        's':
-          if s = 'salmon' then Exit(clSalmon32)
-          else if s = 'sienna' then Exit(clSienna32)
-          else if s = 'silver' then Exit(clSilver32)
-          ;
-        't':
-          if s = 'tomato' then Exit(clTomato32)
-          ;
-        'v':
-          if s = 'violet' then Exit(clViolet32)
-          ;
-        'y':
-          if s = 'yellow' then Exit(clYellow32)
-          ;
-      end;
-
-    7:
-      case s[1] of
-        'c':
-          if s = 'crimson' then Exit(clCrimson32)
-          ;
-        'd':
-          if s = 'darkred' then Exit(clDarkRed32)
-          else if s = 'dimgray' then Exit(clDimGray32)
-          else if s = 'dimgrey' then Exit(clDimGray32)
-          ;
-        'f':
-          if s = 'fuchsia' then Exit(clFuchsia32)
-          ;
-        'h':
-          if s = 'hotpink' then Exit(clHotPink32)
-          ;
-        'm':
-          if s = 'magenta' then Exit(clFuchsia32)
-          ;
-        'o':
-          if s = 'oldlace' then Exit(clOldLace32)
-          ;
-        's':
-          if s = 'skyblue' then Exit(clSkyblue32)
-          ;
-        't':
-          if s = 'thistle' then Exit(clThistle32)
-          ;
-      end;
-
-    8:
-      case s[1] of
-        'c':
-          if s = 'cornsilk' then Exit(clCornSilk32)
-          ;
-        'd':
-          if s = 'darkblue' then Exit(clDarkBlue32)
-          else if s = 'darkcyan' then Exit(clDarkCyan32)
-          else if s = 'darkgray' then Exit(clDarkGray32)
-          else if s = 'darkgrey' then Exit(clDarkGrey32)
-          else if s = 'deeppink' then Exit(clDeepPink32)
-          ;
-        'h':
-          if s = 'honeydew' then Exit(clHoneyDew32)
-          ;
-        'l':
-          if s = 'lavender' then Exit(clLavender32)
-          ;
-        'm':
-          if s = 'moccasin' then Exit(clMoccasin32)
-          ;
-        's':
-          if s = 'seagreen' then Exit(clSeaGreen32)
-          else if s = 'seashell' then Exit(clSeaShell32)
-          ;
-      end;
-
-    9:
-      case s[1] of
-        'a':
-          if s = 'aliceblue' then Exit(clAliceBlue32)
-          ;
-        'b':
-          if s = 'burlywood' then Exit(clBurlyWood32)
-          ;
-        'c':
-          if s = 'cadetblue' then Exit(clCadetblue32)
-          else if s = 'chocolate' then Exit(clChocolate32)
-          ;
-        'd':
-          if s = 'darkgreen' then Exit(clDarkGreen32)
-          else if s = 'darkkhaki' then Exit(clDarkKhaki32)
-          ;
-        'f':
-          if s = 'firebrick' then Exit(clFireBrick32)
-          ;
-        'g':
-          if s = 'gainsboro' then Exit(clGainsBoro32)
-          else if s = 'goldenrod' then Exit(clGoldenRod32)
-          ;
-        'i':
-          if s = 'indianred' then Exit(clIndianRed32)
-          ;
-        'l':
-          case s[2] of
-            'a':
-              if s = 'lawngreen' then Exit(clLawnGreen32)
-              ;
-            'i':
-              case s[3] of
-                'g':
-                  if s = 'lightblue' then Exit(clLightBlue32)
-                  else if s = 'lightcyan' then Exit(clLightCyan32)
-                  else if s = 'lightgray' then Exit(clLightGray32)
-                  else if s = 'lightgrey' then Exit(clLightGrey32)
-                  else if s = 'lightpink' then Exit(clLightPink32)
-                  ;
-                'm':
-                  if s = 'limegreen' then Exit(clLimeGreen32)
-                  ;
-              end;
-          end;
-        'm':
-          if s = 'mintcream' then Exit(clMintCream32)
-          else if s = 'mistyrose' then Exit(clMistyRose32)
-          ;
-        'o':
-          if s = 'olivedrab' then Exit(clOliveDrab32)
-          else if s = 'orangered' then Exit(clOrangeRed32)
-          ;
-        'p':
-          if s = 'palegreen' then Exit(clPaleGreen32)
-          else if s = 'peachpuff' then Exit(clPeachPuff32)
-          ;
-        'r':
-          if s = 'rosybrown' then Exit(clRosyBrown32)
-          else if s = 'royalblue' then Exit(clRoyalBlue32)
-          ;
-        's':
-          if s = 'slateblue' then Exit(clSlateBlue32)
-          else if s = 'slategray' then Exit(clSlateGray32)
-          else if s = 'slategrey' then Exit(clSlateGrey32)
-          else if s = 'steelblue' then Exit(clSteelblue32)
-          ;
-        't':
-          if s = 'turquoise' then Exit(clTurquoise32)
-          ;
-      end;
-
-    10:
-      case s[1] of
-        'a':
-          if s = 'aquamarine' then Exit(clAquamarine32)
-          ;
-        'b':
-          if s = 'blueviolet' then Exit(clBlueViolet32)
-          ;
-        'c':
-          if s = 'chartreuse' then Exit(clChartReuse32)
-          ;
-        'd':
-          if s = 'darkorange' then Exit(clDarkOrange32)
-          else if s = 'darkorchid' then Exit(clDarkOrchid32)
-          else if s = 'darksalmon' then Exit(clDarkSalmon32)
-          else if s = 'darkviolet' then Exit(clDarkViolet32)
-          else if s = 'dodgerblue' then Exit(clDodgerBlue32)
-          ;
-        'g':
-          if s = 'ghostwhite' then Exit(clGhostWhite32)
-          ;
-        'l':
-          if s = 'lightcoral' then Exit(clLightCoral32)
-          else if s = 'lightgreen' then Exit(clLightGreen32)
-          ;
-        'm':
-          if s = 'mediumblue' then Exit(clMediumBlue32)
-          ;
-        'p':
-          if s = 'papayawhip' then Exit(clPapayaWhip32)
-          else if s = 'powderblue' then Exit(clPowderBlue32)
-          ;
-        's':
-          if s = 'sandybrown' then Exit(clSandyBrown32)
-          ;
-        'w':
-          if s = 'whitesmoke' then Exit(clWhitesmoke32)
-          ;
-      end;
-
-    11:
-      case s[1] of
-        'd':
-          if s = 'darkmagenta' then Exit(clDarkMagenta32)
-          else if s = 'deepskyblue' then Exit(clDeepSkyBlue32)
-          ;
-        'f':
-          if s = 'floralwhite' then Exit(clFloralWhite32)
-          else if s = 'forestgreen' then Exit(clForestGreen32)
-          ;
-        'g':
-          if s = 'greenyellow' then Exit(clGreenYellow32)
-          ;
-        'l':
-          if s = 'lightsalmon' then Exit(clLightSalmon32)
-          else if s = 'lightyellow' then Exit(clLightYellow32)
-          ;
-        'n':
-          if s = 'navajowhite' then Exit(clNavajoWhite32)
-          ;
-        's':
-          if s = 'saddlebrown' then Exit(clSaddleBrown32)
-          else if s = 'springgreen' then Exit(clSpringgreen32)
-          ;
-        't':
-          if s = 'transparent' then Exit(clNone32)
-          ;
-        'y':
-          if s = 'yellowgreen' then Exit(clYellowgreen32)
-          ;
-      end;
-
-    12:
-      case s[1] of
-        'a':
-          if s = 'antiquewhite' then Exit(clAntiqueWhite32)
-          ;
-        'd':
-          if s = 'darkseagreen' then Exit(clDarkSeaGreen32)
-          ;
-        'l':
-          if s = 'lemonchiffon' then Exit(clLemonChiffon32)
-          else if s = 'lightskyblue' then Exit(clLightSkyblue32)
-          ;
-        'm':
-          if s = 'mediumorchid' then Exit(clMediumOrchid32)
-          else if s = 'mediumpurple' then Exit(clMediumPurple32)
-          else if s = 'midnightblue' then Exit(clMidnightBlue32)
-          ;
-      end;
-
-    13:
-      case s[1] of
-        'd':
-          if s = 'darkgoldenrod' then Exit(clDarkGoldenRod32)
-          else if s = 'darkslateblue' then Exit(clDarkSlateBlue32)
-          else if s = 'darkslategray' then Exit(clDarkSlateGray32)
-          else if s = 'darkslategrey' then Exit(clDarkSlateGrey32)
-          else if s = 'darkturquoise' then Exit(clDarkTurquoise32)
-          ;
-        'l':
-          if s = 'lavenderblush' then Exit(clLavenderBlush32)
-          else if s = 'lightseagreen' then Exit(clLightSeagreen32)
-          ;
-        'p':
-          if s = 'palegoldenrod' then Exit(clPaleGoldenRod32)
-          else if s = 'paleturquoise' then Exit(clPaleTurquoise32)
-          else if s = 'palevioletred' then Exit(clPaleVioletred32)
-          ;
-      end;
-
-    14:
-      case s[1] of
-        'b':
-          if s = 'blanchedalmond' then Exit(clBlancheDalmond32)
-          ;
-        'c':
-          if s = 'cornflowerblue' then Exit(clCornFlowerBlue32)
-          ;
-        'd':
-          if s = 'darkolivegreen' then Exit(clDarkOliveGreen32)
-          ;
-        'l':
-          if s = 'lightslategray' then Exit(clLightSlategray32)
-          else if s = 'lightslategrey' then Exit(clLightSlategrey32)
-          else if s = 'lightsteelblue' then Exit(clLightSteelblue32)
-          ;
-        'm':
-          if s = 'mediumseagreen' then Exit(clMediumSeaGreen32)
-          ;
-      end;
-
-    15:
-      if s = 'mediumslateblue' then Exit(clMediumSlateBlue32)
-      else if s = 'mediumturquoise' then Exit(clMediumTurquoise32)
-      else if s = 'mediumvioletred' then Exit(clMediumVioletRed32)
-      ;
-
-    16:
-      if s = 'mediumaquamarine' then Exit(clMediumAquamarine32)
-      ;
-
-    17:
-      if s = 'mediumspringgreen' then Exit(clMediumSpringGreen32)
-      ;
-
-    20:
-      if s = 'lightgoldenrodyellow' then Exit(clLightGoldenRodYellow32)
-      ;
+  // Make room in length index
+  if (Len >= High(FLengths)) then
+  begin
+    if (Len < 16) then
+      SetLength(FLengths, 16)
+    else
+      SetLength(FLengths, Len * 2);
   end;
-  Result := ADefault;
+
+  // Get the keyword list for this length
+  Index := FLengths[Len-1];
+
+  // Do we have a list allocated for this length?
+  if (Index = 0) then
+  begin
+    // Allocate a new keyword list
+    Index := Length(FKeywords)+1; // 0=no entry, so first index is 1
+    SetLength(FKeywords, Index);
+    // Update the index
+    FLengths[Len-1] := Index;
+  end;
+
+  Dec(Index); // Normalize index
+
+  // Insert the new keyword in the keyword list
+  SetLength(FKeywords[Index], Length(FKeywords[Index]) + 1);
+  FKeywords[Index, High(FKeywords[Index])].Keyword := AKeyword;
+  FKeywords[Index, High(FKeywords[Index])].Value := AValue;
+end;
+
+function TSvgKeywordDictionary<T>.Lookup(const AKeyword: TValuePUtf8Char): T;
+begin
+  if (not Lookup(AKeyword, Result)) then
+    Result := Default(T);
+end;
+
+function TSvgKeywordDictionary<T>.Lookup(const AKeyword: TValuePUtf8Char; var AValue: T): boolean;
+var
+  Index: integer;
+  i: integer;
+begin
+  Result := False;
+  if (AKeyword.Len = 0) then
+    exit;
+
+  if (AKeyword.Len >= High(FLengths)) then
+    exit;
+
+  // Get the keyword list for this length
+  Index := FLengths[AKeyword.Len-1];
+
+  // Do we have a list allocated for this length?
+  if (Index = 0) then
+    exit;
+
+  Dec(Index); // Normalize index
+
+  // Find the keyword in the keyword list
+  for i := 0 to High(FKeywords[Index]) do
+    if (AKeyword.CompareText(FKeywords[Index, i].Keyword)) then
+    begin
+      AValue := FKeywords[Index, i].Value;
+      Exit(True);
+    end;
+end;
+
+type
+  TColorName = record
+    Name: AnsiString;
+    Color: TColor32;
+  end;
+
+var
+  SvgColorNameDictionary: TSvgKeywordDictionary<TColor32>;
+
+const
+  sColorNames: array[0..147] of TColorName = (
+    (Name: 'red'; Color: clRed32),
+    (Name: 'tan'; Color: clTan32),
+    (Name: 'aqua'; Color: clAqua32),
+    (Name: 'blue'; Color: clBlue32),
+    (Name: 'cyan'; Color: clAqua32),
+    (Name: 'gold'; Color: clGold32),
+    (Name: 'gray'; Color: clGray32),
+    (Name: 'grey'; Color: clGrey32),
+    (Name: 'lime'; Color: clLime32),
+    (Name: 'navy'; Color: clNavy32),
+    (Name: 'peru'; Color: clPeru32),
+    (Name: 'pink'; Color: clPink32),
+    (Name: 'plum'; Color: clPlum32),
+    (Name: 'snow'; Color: clSnow32),
+    (Name: 'teal'; Color: clTeal32),
+    (Name: 'azure'; Color: clAzure32),
+    (Name: 'beige'; Color: clBeige32),
+    (Name: 'black'; Color: clBlack32),
+    (Name: 'brown'; Color: clBrown32),
+    (Name: 'coral'; Color: clCoral32),
+    (Name: 'green'; Color: clGreen32),
+    (Name: 'ivory'; Color: clIvory32),
+    (Name: 'khaki'; Color: clKhaki32),
+    (Name: 'linen'; Color: clLinen32),
+    (Name: 'olive'; Color: clOlive32),
+    (Name: 'wheat'; Color: clWheat32),
+    (Name: 'white'; Color: clWhite32),
+    (Name: 'bisque'; Color: clBisque32),
+    (Name: 'indigo'; Color: clIndigo32),
+    (Name: 'maroon'; Color: clMaroon32),
+    (Name: 'orange'; Color: clOrange32),
+    (Name: 'orchid'; Color: clOrchid32),
+    (Name: 'purple'; Color: clPurple32),
+    (Name: 'salmon'; Color: clSalmon32),
+    (Name: 'sienna'; Color: clSienna32),
+    (Name: 'silver'; Color: clSilver32),
+    (Name: 'tomato'; Color: clTomato32),
+    (Name: 'violet'; Color: clViolet32),
+    (Name: 'yellow'; Color: clYellow32),
+    (Name: 'crimson'; Color: clCrimson32),
+    (Name: 'darkred'; Color: clDarkRed32),
+    (Name: 'dimgray'; Color: clDimGray32),
+    (Name: 'dimgrey'; Color: clDimGray32),
+    (Name: 'fuchsia'; Color: clFuchsia32),
+    (Name: 'hotpink'; Color: clHotPink32),
+    (Name: 'magenta'; Color: clFuchsia32),
+    (Name: 'oldlace'; Color: clOldLace32),
+    (Name: 'skyblue'; Color: clSkyblue32),
+    (Name: 'thistle'; Color: clThistle32),
+    (Name: 'cornsilk'; Color: clCornSilk32),
+    (Name: 'darkblue'; Color: clDarkBlue32),
+    (Name: 'darkcyan'; Color: clDarkCyan32),
+    (Name: 'darkgray'; Color: clDarkGray32),
+    (Name: 'darkgrey'; Color: clDarkGrey32),
+    (Name: 'deeppink'; Color: clDeepPink32),
+    (Name: 'honeydew'; Color: clHoneyDew32),
+    (Name: 'lavender'; Color: clLavender32),
+    (Name: 'moccasin'; Color: clMoccasin32),
+    (Name: 'seagreen'; Color: clSeaGreen32),
+    (Name: 'seashell'; Color: clSeaShell32),
+    (Name: 'aliceblue'; Color: clAliceBlue32),
+    (Name: 'burlywood'; Color: clBurlyWood32),
+    (Name: 'cadetblue'; Color: clCadetblue32),
+    (Name: 'chocolate'; Color: clChocolate32),
+    (Name: 'darkgreen'; Color: clDarkGreen32),
+    (Name: 'darkkhaki'; Color: clDarkKhaki32),
+    (Name: 'firebrick'; Color: clFireBrick32),
+    (Name: 'gainsboro'; Color: clGainsBoro32),
+    (Name: 'goldenrod'; Color: clGoldenRod32),
+    (Name: 'indianred'; Color: clIndianRed32),
+    (Name: 'lawngreen'; Color: clLawnGreen32),
+    (Name: 'lightblue'; Color: clLightBlue32),
+    (Name: 'lightcyan'; Color: clLightCyan32),
+    (Name: 'lightgray'; Color: clLightGray32),
+    (Name: 'lightgrey'; Color: clLightGrey32),
+    (Name: 'lightpink'; Color: clLightPink32),
+    (Name: 'limegreen'; Color: clLimeGreen32),
+    (Name: 'mintcream'; Color: clMintCream32),
+    (Name: 'mistyrose'; Color: clMistyRose32),
+    (Name: 'olivedrab'; Color: clOliveDrab32),
+    (Name: 'orangered'; Color: clOrangeRed32),
+    (Name: 'palegreen'; Color: clPaleGreen32),
+    (Name: 'peachpuff'; Color: clPeachPuff32),
+    (Name: 'rosybrown'; Color: clRosyBrown32),
+    (Name: 'royalblue'; Color: clRoyalBlue32),
+    (Name: 'slateblue'; Color: clSlateBlue32),
+    (Name: 'slategray'; Color: clSlateGray32),
+    (Name: 'slategrey'; Color: clSlateGrey32),
+    (Name: 'steelblue'; Color: clSteelblue32),
+    (Name: 'turquoise'; Color: clTurquoise32),
+    (Name: 'aquamarine'; Color: clAquamarine32),
+    (Name: 'blueviolet'; Color: clBlueViolet32),
+    (Name: 'chartreuse'; Color: clChartReuse32),
+    (Name: 'darkorange'; Color: clDarkOrange32),
+    (Name: 'darkorchid'; Color: clDarkOrchid32),
+    (Name: 'darksalmon'; Color: clDarkSalmon32),
+    (Name: 'darkviolet'; Color: clDarkViolet32),
+    (Name: 'dodgerblue'; Color: clDodgerBlue32),
+    (Name: 'ghostwhite'; Color: clGhostWhite32),
+    (Name: 'lightcoral'; Color: clLightCoral32),
+    (Name: 'lightgreen'; Color: clLightGreen32),
+    (Name: 'mediumblue'; Color: clMediumBlue32),
+    (Name: 'papayawhip'; Color: clPapayaWhip32),
+    (Name: 'powderblue'; Color: clPowderBlue32),
+    (Name: 'sandybrown'; Color: clSandyBrown32),
+    (Name: 'whitesmoke'; Color: clWhitesmoke32),
+    (Name: 'darkmagenta'; Color: clDarkMagenta32),
+    (Name: 'deepskyblue'; Color: clDeepSkyBlue32),
+    (Name: 'floralwhite'; Color: clFloralWhite32),
+    (Name: 'forestgreen'; Color: clForestGreen32),
+    (Name: 'greenyellow'; Color: clGreenYellow32),
+    (Name: 'lightsalmon'; Color: clLightSalmon32),
+    (Name: 'lightyellow'; Color: clLightYellow32),
+    (Name: 'navajowhite'; Color: clNavajoWhite32),
+    (Name: 'saddlebrown'; Color: clSaddleBrown32),
+    (Name: 'springgreen'; Color: clSpringgreen32),
+    (Name: 'transparent'; Color: clNone32),
+    (Name: 'yellowgreen'; Color: clYellowgreen32),
+    (Name: 'antiquewhite'; Color: clAntiqueWhite32),
+    (Name: 'darkseagreen'; Color: clDarkSeaGreen32),
+    (Name: 'lemonchiffon'; Color: clLemonChiffon32),
+    (Name: 'lightskyblue'; Color: clLightSkyblue32),
+    (Name: 'mediumorchid'; Color: clMediumOrchid32),
+    (Name: 'mediumpurple'; Color: clMediumPurple32),
+    (Name: 'midnightblue'; Color: clMidnightBlue32),
+    (Name: 'darkgoldenrod'; Color: clDarkGoldenRod32),
+    (Name: 'darkslateblue'; Color: clDarkSlateBlue32),
+    (Name: 'darkslategray'; Color: clDarkSlateGray32),
+    (Name: 'darkslategrey'; Color: clDarkSlateGrey32),
+    (Name: 'darkturquoise'; Color: clDarkTurquoise32),
+    (Name: 'lavenderblush'; Color: clLavenderBlush32),
+    (Name: 'lightseagreen'; Color: clLightSeagreen32),
+    (Name: 'palegoldenrod'; Color: clPaleGoldenRod32),
+    (Name: 'paleturquoise'; Color: clPaleTurquoise32),
+    (Name: 'palevioletred'; Color: clPaleVioletred32),
+    (Name: 'blanchedalmond'; Color: clBlancheDalmond32),
+    (Name: 'cornflowerblue'; Color: clCornFlowerBlue32),
+    (Name: 'darkolivegreen'; Color: clDarkOliveGreen32),
+    (Name: 'lightslategray'; Color: clLightSlategray32),
+    (Name: 'lightslategrey'; Color: clLightSlategrey32),
+    (Name: 'lightsteelblue'; Color: clLightSteelblue32),
+    (Name: 'mediumseagreen'; Color: clMediumSeaGreen32),
+    (Name: 'mediumslateblue'; Color: clMediumSlateBlue32),
+    (Name: 'mediumturquoise'; Color: clMediumTurquoise32),
+    (Name: 'mediumvioletred'; Color: clMediumVioletRed32),
+    (Name: 'mediumaquamarine'; Color: clMediumAquamarine32),
+    (Name: 'mediumspringgreen'; Color: clMediumSpringGreen32),
+    (Name: 'lightgoldenrodyellow'; Color: clLightGoldenRodYellow32)
+  );
+
+function SvgColorNameToColor(const AName: TValuePUtf8Char; ADefault: TColor32): TColor32;
+begin
+  if (not SvgColorNameDictionary.Lookup(AName, Result)) then
+    Result := ADefault;
 end;
 
 
@@ -661,6 +534,7 @@ begin
   Result.IsCurrentColor := False;
 end;
 
+
 class function TSvgColor.CurrentColor: TSvgColor;
 begin
   Result.Color := clBlack32;
@@ -668,101 +542,128 @@ begin
   Result.IsCurrentColor := True;
 end;
 
-class function TSvgColor.Parse(const AStr: UTF8String): TSvgColor;
+class function TSvgColor.Parse(AColorStr: TValuePUtf8Char): TSvgColor;
 
-  function ParseHexByte(const h: UTF8String): Byte;
+  function ParseHexByte(Twins: boolean = False): Byte;
   begin
-    Result := StrToIntDef('$' + h, 0);
+    // First digit
+    case AColorStr.Text^ of
+      '0'..'9': Result := Ord(AColorStr.Text^) - Ord('0');
+      'a'..'f': Result := Ord(AColorStr.Text^) - Ord('a') + 10;
+      'A'..'F': Result := Ord(AColorStr.Text^) - Ord('A') + 10;
+    else
+      Exit(0);
+    end;
+    AColorStr.Skip;
+
+    if Twins then
+    begin
+      Result := Result shl 4 + Result;
+      exit;
+    end;
+
+    if (AColorStr.Len = 0) then
+      exit;
+    // Optional second digit
+    case AColorStr.Text^ of
+      '0'..'9': Result := Result shl 4 + Ord(AColorStr.Text^) - Ord('0');
+      'a'..'f': Result := Result shl 4 + Ord(AColorStr.Text^) - Ord('a') + 10;
+      'A'..'F': Result := Result shl 4 + Ord(AColorStr.Text^) - Ord('A') + 10;
+    else
+      exit;
+    end;
+    AColorStr.Skip;
   end;
 
 var
-  s, lowerStr: UTF8String;
+  HasRGB: boolean;
+  HasRGBA: boolean;
+  n: Double;
+//  sRGB: TValuePUtf8Char;
   r, g, b, a: Byte;
-  parts: TStringList;
-  valFloat: Single;
-  pStart, pEnd: Integer;
 begin
-  if (AStr = '') then
+  // Trim
+  AColorStr.Trim;
+
+  if (AColorStr.Len = 0) then
     Exit(None);
 
-  s := AnsiStrings.Trim(AStr);
-  lowerStr := AnsiStrings.LowerCase(s);
-
-  if (lowerStr = '') or (lowerStr = 'none') then
+  if (AColorStr.CompareText('none')) then
     Exit(None);
 
-  if lowerStr = 'currentcolor' then
+  if (AColorStr.CompareText('currentcolor')) then
     Exit(CurrentColor);
 
-  if (Length(s) > 0) and (s[1] = '#') then
+  if (AColorStr.Text^ = '#') then
   begin
-    Delete(s, 1, 1);
-    if Length(s) = 3 then
-    begin
-      r := ParseHexByte(s[1] + s[1]);
-      g := ParseHexByte(s[2] + s[2]);
-      b := ParseHexByte(s[3] + s[3]);
-      Exit(Create(Color32(r, g, b, 255)));
-    end
-    else if Length(s) = 6 then
-    begin
-      r := ParseHexByte(Copy(s, 1, 2));
-      g := ParseHexByte(Copy(s, 3, 2));
-      b := ParseHexByte(Copy(s, 5, 2));
-      Exit(Create(Color32(r, g, b, 255)));
-    end
-    else if Length(s) = 8 then
-    begin
-      r := ParseHexByte(Copy(s, 1, 2));
-      g := ParseHexByte(Copy(s, 3, 2));
-      b := ParseHexByte(Copy(s, 5, 2));
-      a := ParseHexByte(Copy(s, 7, 2));
-      Exit(Create(Color32(r, g, b, a)));
-    end;
-  end;
+    AColorStr.Skip;
 
-  if (Pos('rgb(', lowerStr) = 1) or (Pos('rgba(', lowerStr) = 1) then
-  begin
-    pStart := Pos('(', s);
-    pEnd := Pos(')', s);
-    if (pStart > 0) and (pEnd > pStart) then
-      s := Copy(s, pStart + 1, pEnd - pStart - 1)
-    else
-      s := '';
-    s := StringReplace(s, ',', ' ', [rfReplaceAll]);
-    parts := TStringList.Create;
-    try
-      parts.Delimiter := ' ';
-      parts.DelimitedText := s;
-      if Pos('rgb(', lowerStr) = 1 then
-      begin
-        if parts.Count >= 3 then
+    case AColorStr.Len of
+      3:
         begin
-          r := StrToIntDef(Trim(parts[0]), 0);
-          g := StrToIntDef(Trim(parts[1]), 0);
-          b := StrToIntDef(Trim(parts[2]), 0);
+          r := ParseHexByte(True);
+          g := ParseHexByte(True);
+          b := ParseHexByte(True);
           Exit(Create(Color32(r, g, b, 255)));
         end;
-      end
-      else if Pos('rgba(', lowerStr) = 1 then
-      begin
-        if parts.Count >= 4 then
+
+      6:
         begin
-          r := StrToIntDef(Trim(parts[0]), 0);
-          g := StrToIntDef(Trim(parts[1]), 0);
-          b := StrToIntDef(Trim(parts[2]), 0);
-          valFloat := 1.0;
-          TryStrToFloat(Trim(parts[3]), valFloat, SvgFormatSettings);
-          a := Round(EnsureRange(valFloat, 0.0, 1.0) * 255.0);
+          r := ParseHexByte;
+          g := ParseHexByte;
+          b := ParseHexByte;
+          Exit(Create(Color32(r, g, b, 255)));
+        end;
+
+      8:
+        begin
+          r := ParseHexByte;
+          g := ParseHexByte;
+          b := ParseHexByte;
+          a := ParseHexByte;
           Exit(Create(Color32(r, g, b, a)));
         end;
-      end;
-    finally
-      parts.Free;
+    end;
+    Exit(None); // Invalid
+  end;
+
+  // Smallest possible 'rgb' string is rgb(0,0,0) -> length=10
+  // Must be rgb(...) or rgba(...)
+  if (AColorStr.Len >= 10) and (AColorStr.Text[AColorStr.Len-1] = ')') then
+  begin
+    HasRGBA := AColorStr.StartsText('rgba(', True);
+    HasRGB := HasRGBA or AColorStr.StartsText('rgb(', True);
+
+    if (HasRGB) then
+    begin
+      AColorStr.Trim;
+      r := AColorStr.ToCardinalAndSkip;
+      AColorStr.Trim([' ', ',']);
+      g := AColorStr.ToCardinalAndSkip;
+      AColorStr.Trim([' ', ',']);
+      b := AColorStr.ToCardinalAndSkip;
+      if HasRGBA then
+      begin
+        AColorStr.Trim([' ', ',']);
+        GetExtended(AColorStr.Text, AColorStr.Len, n);
+        a := Clamp(Round(n * 255.0));
+      end else
+        a := 255;
+      Result := Create(Color32(r, g, b, a));
+      exit;
     end;
   end;
 
-  Result := Create(SvgColorNameToColor(lowerStr, clBlack32));
+  Result := Create(SvgColorNameToColor(AColorStr, clBlack32));
+end;
+
+class function TSvgColor.Parse(const AStr: UTF8String): TSvgColor;
+var
+  Value: TValuePUtf8Char;
+begin
+  Value.Text := pointer(AStr);
+  Value.Len := Length(AStr);
+  Result := Parse(Value);
 end;
 
 { TSvgPreserveAspectRatio }
@@ -1030,6 +931,14 @@ begin
   Result := helper.Matrix;
 end;
 
+procedure InitializeKeywordDictionaries;
+var
+  i: integer;
+begin
+  for i := 0 to High(sColorNames) do
+    SvgColorNameDictionary.Add(sColorNames[i].Name, sColorNames[i].Color);
+end;
+
 initialization
 {$IFDEF FPC}
   SvgFormatSettings := DefaultFormatSettings;
@@ -1038,4 +947,5 @@ initialization
 {$ENDIF}
   SvgFormatSettings.DecimalSeparator := '.';
 
+  InitializeKeywordDictionaries;
 end.

@@ -36,7 +36,9 @@ interface
 
 uses
   SysUtils, Classes, Generics.Collections,
-  GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils, GR32.SVG.Types;
+  GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils,
+  GR32.SVG.Types,
+  GR32.SVG.Utf8;
 
 type
   TSvgNodeClass = class of TSvgNode;
@@ -362,15 +364,45 @@ function ParseStrokeDashArray(const AStr: string): TArrayOfFloat;
 function ParseSvgTransform(const AStr: string): TFloatMatrix;
 
 // XML Parsing
-function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode; overload;
-function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode; overload;
-function ParseSvgXml(const AXmlText: UTF8String): TSvgDocumentNode; overload;
-function ParseSvgXml(const AXmlText: UTF8String; var AErrorMessage: string): TSvgDocumentNode; overload;
+function ParseSvgXml(AText: TValuePUtf8Char): TSvgDocumentNode; overload;
+function ParseSvgXml(AText: TValuePUtf8Char; var AErrorMessage: string): TSvgDocumentNode; overload;
+function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode; overload;
+function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode; overload;
+function ParseSvgXml(const AText: UTF8String): TSvgDocumentNode; overload;
+function ParseSvgXml(const AText: UTF8String; var AErrorMessage: string): TSvgDocumentNode; overload;
 
 implementation
 
 uses
-  Types, Math, GR32_Paths, GR32.SVG.Path, GR32.SVG.Xml, GR32.SVG.Css;
+  Types,
+  Math,
+  GR32_Paths,
+  GR32.SVG.Path,
+  GR32.SVG.Xml,
+  GR32.SVG.Css;
+
+type
+  TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
+    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagEllipse, tagPolyline, tagPolygon);
+
+const
+  sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
+    '', 'Svg', 'G', 'Use', 'Defs', 'Stop', 'Mask', 'Path', 'Rect', 'Line', 'Style', 'Circle',
+    'Lineargradient', 'Radialgradient', 'Clippath', 'Pattern', 'Ellipse', 'Polyline', 'Polygon'
+  );
+
+var
+  SvgKeywordDictionary: TSvgKeywordDictionary<TSvgTagKeyword>;
+
+
+type
+  TSvgStopTagKeyword = (stopTagNone, stopTagOffset, stopTagStopColor, stopTagStopOpacity, stopTagStyle);
+
+const
+  sSvgStopTagKeywords: array[TSvgStopTagKeyword] of AnsiString = ('', 'offset', 'stop-color', 'stop-opacity', 'style');
+
+var
+  SvgStopTagDictionary: TSvgKeywordDictionary<TSvgStopTagKeyword>;
 
 { TSvgGradientStop }
 
@@ -1505,38 +1537,33 @@ begin
     inherited ParseAttribute(AName, AValue);
 end;
 
-procedure ParseStopStyle(const AStyleStr: string; var AStopColorStr: string; var AStopOp: Single);
+function ParseStopStyle(AStyle: TValuePUtf8Char; var AOpacity: Single): TSvgColor;
 var
-  declarations: TStringList;
-  decl, k, v: string;
-  colonPos, i: Integer;
-  valFloat: Single;
+  n: Double;
+  OneProp: TValuePUtf8Char;
 begin
-  declarations := TStringList.Create;
-  try
-    declarations.Delimiter := ';';
-    declarations.StrictDelimiter := True;
-    declarations.DelimitedText := AStyleStr;
-    for i := 0 to declarations.Count - 1 do
+  Result := TSvgColor.Create(clBlack32);
+  AOpacity := 1.0;
+
+  OneProp := AStyle.Split(';', True);
+  OneProp.Trim; // Trim spaces after ';'
+
+  while (OneProp.Len > 0) do
+  begin
+    if OneProp.StartsText('stop-color:', True) then
     begin
-      decl := Trim(declarations[i]);
-      if decl = '' then Continue;
-      colonPos := Pos(':', decl);
-      if colonPos > 0 then
-      begin
-        k := LowerCase(Trim(Copy(decl, 1, colonPos - 1)));
-        v := Trim(Copy(decl, colonPos + 1, Length(decl) - colonPos));
-        if k = 'stop-color' then
-          AStopColorStr := v
-        else if k = 'stop-opacity' then
-        begin
-          if TryStrToFloat(v, valFloat, SvgFormatSettings) then
-            AStopOp := EnsureRange(valFloat, 0.0, 1.0);
-        end;
-      end;
+      Result := TSvgColor.Parse(OneProp);
+    end else
+    if OneProp.StartsText('stop-opacity:', True) then
+    begin
+      n := 1.0;
+      GetExtended(OneProp.Text, OneProp.Len, n);
+      AOpacity := n;
     end;
-  finally
-    declarations.Free;
+
+    // Move on to the next property
+    OneProp := AStyle.Split(';', True);
+    OneProp.Trim;
   end;
 end;
 
@@ -1907,7 +1934,7 @@ end;
 
 { XML Parsing }
 
-function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode;
+function ParseSvgXml(AText: TValuePUtf8Char; var AErrorMessage: string): TSvgDocumentNode;
 var
   cssStyleSheet: TSvgCssStyleSheet;
 
@@ -1925,6 +1952,8 @@ var
 
   function ParseSubtree(var AParser: TXmlParser; AParent: TSvgNode): TSvgNode;
   var
+    tagKeyword: TSvgTagKeyword;
+    StopTag: TSvgStopTagKeyword;
     tagName: string;
     node: TSvgNode;
     groupNode: TSvgGroupNode;
@@ -1937,205 +1966,236 @@ var
     maskNode: TSvgMaskNode;
     parentGrad: TSvgGradientNode;
     startDepth: Byte;
-    x, y, w, h, rx, ry, cx, cy, r, x1, y1, x2, y2, stopOffset, stopOp: Single;
-    ptsStr, dStr, cssText, stopColorStr, attrN, attrV: string;
+    n: Double;
+    x, y, w, h, rx, ry, cx, cy, r, x1, y1, x2, y2, stopOffset, stopOpacity: Single;
+    ptsStr, dStr, cssText: string;
     childNode: TSvgNode;
     rawCss: RawUtf8;
     stopVal: TSvgGradientStop;
+    Color: TSvgColor;
   begin
     Result := nil;
     node := nil;
-    if AParser.Kind <> xtElementStart then Exit;
-    tagName := LowerCase(AParser.Name.ToString);
+    if (AParser.Kind <> xtElementStart) then
+      exit;
     startDepth := AParser.Depth;
 
-    if (tagName = 'svg') then
-    begin
-      docNode := TSvgDocumentNode.Create(AParent);
-      node := docNode;
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'g') then
-    begin
-      groupNode := TSvgGroupNode.Create(AParent);
-      node := groupNode;
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'defs') then
-    begin
-      node := TSvgDefsNode.Create(AParent);
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'use') then
-    begin
-      useNode := TSvgUseNode.Create(AParent);
-      node := useNode;
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'lineargradient') then
-    begin
-      linGrad := TSvgLinearGradientNode.Create(AParent);
-      node := linGrad;
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'radialgradient') then
-    begin
-      radGrad := TSvgRadialGradientNode.Create(AParent);
-      node := radGrad;
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'stop') then
-    begin
-      if (AParent <> nil) and (AParent is TSvgGradientNode) then
-      begin
-        parentGrad := TSvgGradientNode(AParent);
-        stopOffset := 0.0;
-        stopOp := 1.0;
-        stopColorStr := 'black';
-        while AParser.ParseNext = xtAttribute do
-        begin
-          attrN := LowerCase(AParser.Name.ToString);
-          attrV := TValuePUtf8Char(AParser.Value).ToString;
-          if attrN = 'offset' then
+    if (SvgKeywordDictionary.Lookup(AParser.Name, tagKeyword)) then
+      case tagKeyword of
+        tagSvg:
           begin
-            if (attrV <> '') and (attrV[Length(attrV)] = '%') then
-              TryStrToFloat(Copy(attrV, 1, Length(attrV) - 1), stopOffset, SvgFormatSettings)
-            else
-              TryStrToFloat(attrV, stopOffset, SvgFormatSettings);
-            if (attrV <> '') and (attrV[Length(attrV)] = '%') then
-              stopOffset := stopOffset * 0.01;
+            docNode := TSvgDocumentNode.Create(AParent);
+            node := docNode;
+            ParseAttributes(node, AParser);
           end;
-          if attrN = 'stop-color' then stopColorStr := attrV;
-          if attrN = 'stop-opacity' then TryStrToFloat(attrV, stopOp, SvgFormatSettings);
-          if attrN = 'style' then ParseStopStyle(attrV, stopColorStr, stopOp);
-        end;
-        stopVal := TSvgGradientStop.Create(stopOffset, TSvgColor.Parse(stopColorStr), stopOp);
-        parentGrad.AddStop(stopVal);
-      end
-      else
-      begin
-        while AParser.ParseNext = xtAttribute do ;
-      end;
 
-      if AParser.Kind = xtElementEnd then
-        AParser.ParseNext;
-      Exit(nil);
-    end else
-    if (tagName = 'clippath') then
-    begin
-      clipNode := TSvgClipPathNode.Create(AParent);
-      node := clipNode;
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'mask') then
-    begin
-      maskNode := TSvgMaskNode.Create(AParent);
-      node := maskNode;
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'pattern') then
-    begin
-      node := TSvgPatternNode.Create(AParent);
-      ParseAttributes(node, AParser);
-    end else
-    if (tagName = 'style') then
-    begin
-      AParser.ConsumeText(rawCss);
-      cssText := string(rawCss);
-      if (cssText <> '') and (cssStyleSheet <> nil) then
-        cssStyleSheet.ParseCss(cssText);
-      Exit(nil);
-    end else
-    if (tagName = 'path') then
-    begin
-      pathNode := TSvgPathNode.Create(AParent);
-      node := pathNode;
-      dStr := '';
-      while AParser.ParseNext = xtAttribute do
-      begin
-        if LowerCase(AParser.Name.ToString) = 'd' then
-          dStr := TValuePUtf8Char(AParser.Value).ToString
-        else
-          pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+        tagG:
+          begin
+            groupNode := TSvgGroupNode.Create(AParent);
+            node := groupNode;
+            ParseAttributes(node, AParser);
+          end;
+
+        tagUse:
+          begin
+            useNode := TSvgUseNode.Create(AParent);
+            node := useNode;
+            ParseAttributes(node, AParser);
+          end;
+
+        tagDefs:
+          begin
+            node := TSvgDefsNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagStop:
+          begin
+            if (AParent <> nil) and (AParent is TSvgGradientNode) then
+            begin
+              parentGrad := TSvgGradientNode(AParent);
+              stopOffset := 0.0;
+              stopOpacity := 1.0;
+              Color := TSvgColor.Create(clBlack32);
+              while AParser.ParseNext = xtAttribute do
+              begin
+                if (SvgStopTagDictionary.Lookup(AParser.Name, StopTag)) then
+                  case StopTag of
+                    stopTagOffset:
+                      begin
+                        n := stopOffset;
+                        if (AParser.Value.Len > 0) and (PAnsiChar(AParser.Value.Buffer)[AParser.Value.Len-1] = '%') then
+                        begin
+                          if (GetExtended(AParser.Value.Buffer, AParser.Value.Len-1, n)) then
+                            n := n * 0.01;
+                        end else
+                          GetExtended(AParser.Value.Buffer, AParser.Value.Len, n);
+                        stopOffset := n;
+                      end;
+
+                    stopTagStopColor:
+                      Color := TSvgColor.Parse(TValuePUtf8Char(AParser.Value));
+
+                    stopTagStopOpacity:
+                      begin
+                        n := stopOpacity;
+                        GetExtended(AParser.Value.Buffer, AParser.Value.Len, n);
+                        stopOpacity := n;
+                      end;
+
+                    stopTagStyle:
+                      Color := ParseStopStyle(TValuePUtf8Char(AParser.Value), stopOpacity);
+                  end;
+              end;
+              stopVal := TSvgGradientStop.Create(stopOffset, Color, stopOpacity);
+              parentGrad.AddStop(stopVal);
+            end else
+              while AParser.ParseNext = xtAttribute do ;
+
+            if AParser.Kind = xtElementEnd then
+              AParser.ParseNext;
+            Exit(nil);
+          end;
+
+        tagMask:
+          begin
+            maskNode := TSvgMaskNode.Create(AParent);
+            node := maskNode;
+            ParseAttributes(node, AParser);
+          end;
+
+        tagPath:
+          begin
+            pathNode := TSvgPathNode.Create(AParent);
+            node := pathNode;
+            dStr := '';
+            while AParser.ParseNext = xtAttribute do
+            begin
+              if LowerCase(AParser.Name.ToString) = 'd' then
+                dStr := TValuePUtf8Char(AParser.Value).ToString
+              else
+                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+            end;
+            if dStr <> '' then
+              pathNode.PathData := SvgPathDataToPoints(dStr);
+          end;
+
+        tagRect:
+          begin
+            pathNode := TSvgPathNode.Create(AParent);
+            node := pathNode;
+            x := 0; y := 0; w := 0; h := 0; rx := 0; ry := 0;
+            while AParser.ParseNext = xtAttribute do
+            begin
+              if LowerCase(AParser.Name.ToString) = 'x' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'y' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'width' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, w, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'height' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, h, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
+              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+            end;
+            pathNode.PathData := CreateRectPath(x, y, w, h, rx, ry);
+          end;
+
+        tagLine:
+          begin
+            pathNode := TSvgPathNode.Create(AParent);
+            node := pathNode;
+            x1 := 0; y1 := 0; x2 := 0; y2 := 0;
+            while AParser.ParseNext = xtAttribute do
+            begin
+              if LowerCase(AParser.Name.ToString) = 'x1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x1, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'y1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y1, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'x2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x2, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'y2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y2, SvgFormatSettings)
+              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+            end;
+            pathNode.PathData := CreateLinePath(x1, y1, x2, y2);
+          end;
+
+        tagStyle:
+          begin
+            AParser.ConsumeText(rawCss);
+            cssText := string(rawCss);
+            if (cssText <> '') and (cssStyleSheet <> nil) then
+              cssStyleSheet.ParseCss(cssText);
+            Exit(nil);
+          end;
+
+        tagCircle:
+          begin
+            pathNode := TSvgPathNode.Create(AParent);
+            node := pathNode;
+            cx := 0; cy := 0; r := 0;
+            while AParser.ParseNext = xtAttribute do
+            begin
+              if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'r' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, r, SvgFormatSettings)
+              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+            end;
+            pathNode.PathData := CreateCirclePath(cx, cy, r);
+          end;
+
+        tagLineargradient:
+          begin
+            linGrad := TSvgLinearGradientNode.Create(AParent);
+            node := linGrad;
+            ParseAttributes(node, AParser);
+          end;
+
+        tagRadialgradient:
+          begin
+            radGrad := TSvgRadialGradientNode.Create(AParent);
+            node := radGrad;
+            ParseAttributes(node, AParser);
+          end;
+
+        tagClippath:
+          begin
+            clipNode := TSvgClipPathNode.Create(AParent);
+            node := clipNode;
+            ParseAttributes(node, AParser);
+          end;
+
+        tagPattern:
+          begin
+            node := TSvgPatternNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagEllipse:
+          begin
+            pathNode := TSvgPathNode.Create(AParent);
+            node := pathNode;
+            cx := 0; cy := 0; rx := 0; ry := 0;
+            while AParser.ParseNext = xtAttribute do
+            begin
+              if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
+              else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
+              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+            end;
+            pathNode.PathData := CreateEllipsePath(cx, cy, rx, ry);
+          end;
+
+        tagPolyline, tagPolygon:
+          begin
+            pathNode := TSvgPathNode.Create(AParent);
+            node := pathNode;
+            ptsStr := '';
+            while AParser.ParseNext = xtAttribute do
+            begin
+              if LowerCase(AParser.Name.ToString) = 'points' then
+                ptsStr := TValuePUtf8Char(AParser.Value).ToString
+              else
+                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+            end;
+            pathNode.PathData := CreatePolylinePath(ptsStr, (tagKeyword = tagPolygon));
+          end;
       end;
-      if dStr <> '' then
-        pathNode.PathData := SvgPathDataToPoints(dStr);
-    end else
-    if (tagName = 'rect') then
-    begin
-      pathNode := TSvgPathNode.Create(AParent);
-      node := pathNode;
-      x := 0; y := 0; w := 0; h := 0; rx := 0; ry := 0;
-      while AParser.ParseNext = xtAttribute do
-      begin
-        if LowerCase(AParser.Name.ToString) = 'x' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'y' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'width' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, w, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'height' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, h, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
-        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
-      end;
-      pathNode.PathData := CreateRectPath(x, y, w, h, rx, ry);
-    end else
-    if (tagName = 'circle') then
-    begin
-      pathNode := TSvgPathNode.Create(AParent);
-      node := pathNode;
-      cx := 0; cy := 0; r := 0;
-      while AParser.ParseNext = xtAttribute do
-      begin
-        if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'r' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, r, SvgFormatSettings)
-        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
-      end;
-      pathNode.PathData := CreateCirclePath(cx, cy, r);
-    end else
-    if (tagName = 'ellipse') then
-    begin
-      pathNode := TSvgPathNode.Create(AParent);
-      node := pathNode;
-      cx := 0; cy := 0; rx := 0; ry := 0;
-      while AParser.ParseNext = xtAttribute do
-      begin
-        if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
-        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
-      end;
-      pathNode.PathData := CreateEllipsePath(cx, cy, rx, ry);
-    end else
-    if (tagName = 'line') then
-    begin
-      pathNode := TSvgPathNode.Create(AParent);
-      node := pathNode;
-      x1 := 0; y1 := 0; x2 := 0; y2 := 0;
-      while AParser.ParseNext = xtAttribute do
-      begin
-        if LowerCase(AParser.Name.ToString) = 'x1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x1, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'y1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y1, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'x2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x2, SvgFormatSettings)
-        else if LowerCase(AParser.Name.ToString) = 'y2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y2, SvgFormatSettings)
-        else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
-      end;
-      pathNode.PathData := CreateLinePath(x1, y1, x2, y2);
-    end else
-    if (tagName = 'polyline') or (tagName = 'polygon') then
-    begin
-      pathNode := TSvgPathNode.Create(AParent);
-      node := pathNode;
-      ptsStr := '';
-      while AParser.ParseNext = xtAttribute do
-      begin
-        if LowerCase(AParser.Name.ToString) = 'points' then
-          ptsStr := TValuePUtf8Char(AParser.Value).ToString
-        else
-          pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
-      end;
-      pathNode.PathData := CreatePolylinePath(ptsStr, tagName = 'polygon');
-    end;
 
     if node = nil then
     begin
@@ -2150,7 +2210,10 @@ var
     // 3. Inline style="..." attributes (specificity 1000) are parsed LAST, ensuring inline
     //    styles override stylesheet rules and presentation attributes (highest priority).
     if cssStyleSheet <> nil then
+    begin
+      tagName := LowerCase(AParser.Name.ToString);
       cssStyleSheet.ApplyToNode(node, tagName, node.CssClassName, node.ID);
+    end;
 
     // Apply deferred inline style attribute after stylesheet rules to enforce inline specificity dominance
     if (node <> nil) and (node.StyleAttr <> '') then
@@ -2194,13 +2257,13 @@ var
   docRes: TSvgDocumentNode;
 begin
   Result := nil;
-  if (Text = nil) or (TextLen <= 0) then
+  if (AText.Text = nil) or (AText.Len <= 0) then
   begin
     AErrorMessage := 'No document';
     Exit;
   end;
 
-  parser.Init(Text, TextLen, [xpoNoException]);
+  parser.Init(AText.Text, AText.Len, [xpoNoException]);
 
   cssStyleSheet := TSvgCssStyleSheet.Create;
   try
@@ -2210,6 +2273,7 @@ begin
       if parser.Kind = xtElementStart then
       begin
         rootNode := ParseSubtree(parser, nil);
+
         if rootNode is TSvgDocumentNode then
           docRes := TSvgDocumentNode(rootNode)
         else
@@ -2245,21 +2309,54 @@ begin
     AErrorMessage := '';
 end;
 
-function ParseSvgXml(Text: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode;
+function ParseSvgXml(AText: TValuePUtf8Char): TSvgDocumentNode;
 var
   ErrorMessage: string;
 begin
-  Result := ParseSvgXml(Text, TextLen, ErrorMessage);
+  Result := ParseSvgXml(AText, ErrorMessage);
 end;
 
-function ParseSvgXml(const AXmlText: UTF8String): TSvgDocumentNode;
+function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode;
+var
+  UTF8: TValuePUtf8Char;
 begin
-  Result := ParseSvgXml(PAnsiChar(AXmlText), Length(AXmlText));
+  UTF8.Text := AText;
+  UTF8.Len := TextLen;
+  Result := ParseSvgXml(UTF8, AErrorMessage);
 end;
 
-function ParseSvgXml(const AXmlText: UTF8String; var AErrorMessage: string): TSvgDocumentNode;
+function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode;
+var
+  ErrorMessage: string;
+  UTF8: TValuePUtf8Char;
 begin
-  Result := ParseSvgXml(PAnsiChar(AXmlText), Length(AXmlText), AErrorMessage);
+  UTF8.Text := AText;
+  UTF8.Len := TextLen;
+  Result := ParseSvgXml(UTF8, ErrorMessage);
 end;
 
+function ParseSvgXml(const AText: UTF8String): TSvgDocumentNode;
+begin
+  Result := ParseSvgXml(PAnsiChar(AText), Length(AText));
+end;
+
+function ParseSvgXml(const AText: UTF8String; var AErrorMessage: string): TSvgDocumentNode;
+begin
+  Result := ParseSvgXml(PAnsiChar(AText), Length(AText), AErrorMessage);
+end;
+
+procedure InitializeKeywordDictionaries;
+var
+  Tag: TSvgTagKeyword;
+  StopTag: TSvgStopTagKeyword;
+begin
+  for Tag := Low(TSvgTagKeyword) to High(TSvgTagKeyword) do
+    SvgKeywordDictionary.Add(sSvgTagKeywords[Tag], Tag);
+
+  for StopTag := Low(TSvgStopTagKeyword) to High(TSvgStopTagKeyword) do
+    SvgStopTagDictionary.Add(sSvgStopTagKeywords[StopTag], StopTag);
+end;
+
+initialization
+  InitializeKeywordDictionaries;
 end.
