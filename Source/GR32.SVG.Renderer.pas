@@ -589,9 +589,10 @@ var
   transformedPts: TArrayOfArrayOfFloatPoint;
   polyRenderer: TPolygonRenderer32;
   fillColor, strokeColor: TColor32;
-  strokeWidth: Single;
+  strokeWidth, matScale, scaledOffset: Single;
   strokePts, dashedPts: TArrayOfArrayOfFloatPoint;
-  i, j: Integer;
+  scaledDashArray: TArrayOfFloat;
+  i, j, k: Integer;
   filler: TCustomPolygonFiller;
   bounds, strokeBounds: TFloatRect;
   targetNode: TSvgNode;
@@ -655,74 +656,87 @@ begin
     // 2. Stroke Rendering
     strokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Right - FViewportRect.Left);
     if strokeWidth > 0 then
-      strokeWidth := strokeWidth * GetMatrixScale(FCurrentMatrix);
-
-    if (strokeWidth > 0) and (APathNode.Stroke.Url <> '') and (FDocumentRoot <> nil) then
     begin
-      urlId := ExtractUrlId(APathNode.Stroke.Url);
-      targetNode := FDocumentRoot.FindNodeById(urlId);
+      matScale := GetMatrixScale(FCurrentMatrix);
+      strokeWidth := strokeWidth * matScale;
 
-      if targetNode <> nil then
+      scaledDashArray := nil;
+      scaledOffset := 0;
+      if Length(APathNode.Stroke.DashArray) > 0 then
       begin
-        strokePts := nil;
-        for i := 0 to High(transformedPts) do
+        SetLength(scaledDashArray, Length(APathNode.Stroke.DashArray));
+        for k := 0 to High(APathNode.Stroke.DashArray) do
+          scaledDashArray[k] := APathNode.Stroke.DashArray[k] * matScale;
+        scaledOffset := APathNode.Stroke.DashOffset * matScale;
+      end;
+
+      if (APathNode.Stroke.Url <> '') and (FDocumentRoot <> nil) then
+      begin
+        urlId := ExtractUrlId(APathNode.Stroke.Url);
+        targetNode := FDocumentRoot.FindNodeById(urlId);
+
+        if targetNode <> nil then
         begin
-          if Length(APathNode.Stroke.DashArray) > 0 then
+          strokePts := nil;
+          for i := 0 to High(transformedPts) do
           begin
-            dashedPts := BuildDashedLine(transformedPts[i], APathNode.Stroke.DashArray, APathNode.Stroke.DashOffset, IsClosedContour(transformedPts[i]));
-            for j := 0 to High(dashedPts) do
-              strokePts := strokePts + BuildPolyPolyLine([dashedPts[j]], False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
-          end else
-            strokePts := strokePts + BuildPolyPolyLine([transformedPts[i]], IsClosedContour(transformedPts[i]), strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
-        end;
+            if Length(scaledDashArray) > 0 then
+            begin
+              dashedPts := BuildDashedLine(transformedPts[i], scaledDashArray, scaledOffset, IsClosedContour(transformedPts[i]));
+              for j := 0 to High(dashedPts) do
+                strokePts := strokePts + BuildPolyPolyLine([dashedPts[j]], False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+            end else
+              strokePts := strokePts + BuildPolyPolyLine([transformedPts[i]], IsClosedContour(transformedPts[i]), strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+          end;
 
-        strokeBounds := GetPathBounds(strokePts);
-        filler := nil;
-        if targetNode is TSvgGradientNode then
-          filler := CreateGradientFiller(TSvgGradientNode(targetNode), strokeBounds)
-        else
-        if targetNode is TSvgPatternNode then
-          filler := CreatePatternFiller(TSvgPatternNode(targetNode), strokeBounds);
+          strokeBounds := GetPathBounds(strokePts);
+          filler := nil;
+          if targetNode is TSvgGradientNode then
+            filler := CreateGradientFiller(TSvgGradientNode(targetNode), strokeBounds)
+          else
+          if targetNode is TSvgPatternNode then
+            filler := CreatePatternFiller(TSvgPatternNode(targetNode), strokeBounds);
 
-        if filler <> nil then
-        begin
-          try
-            polyRenderer.Filler := filler;
+          if filler <> nil then
+          begin
             try
-              polyRenderer.FillMode := pfWinding;
-              polyRenderer.PolyPolygonFS(strokePts);
+              polyRenderer.Filler := filler;
+              try
+                polyRenderer.FillMode := pfWinding;
+                polyRenderer.PolyPolygonFS(strokePts);
+              finally
+                polyRenderer.Filler := nil;
+              end;
             finally
-              polyRenderer.Filler := nil;
+              filler.Free;
             end;
-          finally
-            filler.Free;
           end;
         end;
-      end;
-    end else
-    if (strokeWidth > 0) and (not APathNode.Stroke.Color.IsNone) then
-    begin
-      strokeColor := APathNode.Stroke.Color.Color;
-      if APathNode.Stroke.Opacity < 1.0 then
-        ScaleAlpha(strokeColor, APathNode.Stroke.Opacity);
-
-      if AlphaComponent(strokeColor) > 0 then
+      end else
+      if not APathNode.Stroke.Color.IsNone then
       begin
-        strokePts := nil;
-        for i := 0 to High(transformedPts) do
-        begin
-          if Length(APathNode.Stroke.DashArray) > 0 then
-          begin
-            dashedPts := BuildDashedLine(transformedPts[i], APathNode.Stroke.DashArray, APathNode.Stroke.DashOffset, IsClosedContour(transformedPts[i]));
-            for j := 0 to High(dashedPts) do
-              strokePts := strokePts + BuildPolyPolyLine([dashedPts[j]], False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
-          end else
-            strokePts := strokePts + BuildPolyPolyLine([transformedPts[i]], IsClosedContour(transformedPts[i]), strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
-        end;
+        strokeColor := APathNode.Stroke.Color.Color;
+        if APathNode.Stroke.Opacity < 1.0 then
+          ScaleAlpha(strokeColor, APathNode.Stroke.Opacity);
 
-        polyRenderer.Color := strokeColor;
-        polyRenderer.FillMode := pfWinding;
-        polyRenderer.PolyPolygonFS(strokePts);
+        if AlphaComponent(strokeColor) > 0 then
+        begin
+          strokePts := nil;
+          for i := 0 to High(transformedPts) do
+          begin
+            if Length(scaledDashArray) > 0 then
+            begin
+              dashedPts := BuildDashedLine(transformedPts[i], scaledDashArray, scaledOffset, IsClosedContour(transformedPts[i]));
+              for j := 0 to High(dashedPts) do
+                strokePts := strokePts + BuildPolyPolyLine([dashedPts[j]], False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+            end else
+              strokePts := strokePts + BuildPolyPolyLine([transformedPts[i]], IsClosedContour(transformedPts[i]), strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+          end;
+
+          polyRenderer.Color := strokeColor;
+          polyRenderer.FillMode := pfWinding;
+          polyRenderer.PolyPolygonFS(strokePts);
+        end;
       end;
     end;
   finally

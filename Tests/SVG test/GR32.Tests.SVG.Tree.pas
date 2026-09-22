@@ -57,6 +57,7 @@ type
     procedure TestPatternParsingAndInheritance;
     procedure TestDocTypeParsing;
     procedure TestUseNodeStyleInheritance;
+    procedure TestStrokeDashArrayAndOffsetParsing;
   end;
 
 implementation
@@ -442,6 +443,49 @@ begin
   Check(docNode <> nil, 'ParseSvgXml should process cyclic groups referenced from an outer container group safely');
   try
     CheckEquals(3, docNode.Children.Count);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestStrokeDashArrayAndOffsetParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  p1, p2, p3: TSvgNode;
+begin
+  xml := '<svg width="600" height="240">' +
+         '  <path id="p1" stroke="blue" stroke-dasharray="0.15, 0.025" stroke-dashoffset="0.01"/>' +
+         '  <path id="p2" stroke="red" stroke-dasharray="1 2 3" stroke-dashoffset="5px"/>' +
+         '  <path id="p3" stroke="green" style="stroke-dasharray: none; stroke-dashoffset: 0;"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    p1 := docNode.FindNodeById('p1');
+    Check(p1 <> nil, 'p1 should exist');
+    CheckEquals(2, Length(p1.Stroke.DashArray), 'p1 dash array length should be 2');
+    CheckEquals(0.15, p1.Stroke.DashArray[0], 1E-4);
+    CheckEquals(0.025, p1.Stroke.DashArray[1], 1E-4);
+    CheckEquals(0.01, p1.Stroke.DashOffset, 1E-4);
+
+    p2 := docNode.FindNodeById('p2');
+    Check(p2 <> nil, 'p2 should exist');
+    // Odd number of values (3) in stroke-dasharray should double array length to 6 per SVG spec
+    CheckEquals(6, Length(p2.Stroke.DashArray), 'p2 dash array should double length from 3 to 6 for odd-count input');
+    CheckEquals(1.0, p2.Stroke.DashArray[0], 1E-4);
+    CheckEquals(2.0, p2.Stroke.DashArray[1], 1E-4);
+    CheckEquals(3.0, p2.Stroke.DashArray[2], 1E-4);
+    CheckEquals(1.0, p2.Stroke.DashArray[3], 1E-4);
+    CheckEquals(2.0, p2.Stroke.DashArray[4], 1E-4);
+    CheckEquals(3.0, p2.Stroke.DashArray[5], 1E-4);
+    CheckEquals(5.0, p2.Stroke.DashOffset, 1E-4);
+
+    p3 := docNode.FindNodeById('p3');
+    Check(p3 <> nil, 'p3 should exist');
+    CheckEquals(0, Length(p3.Stroke.DashArray), 'p3 dash array should be empty for "none"');
+    CheckEquals(0.0, p3.Stroke.DashOffset, 1E-4);
   finally
     docNode.Free;
   end;

@@ -347,6 +347,8 @@ function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
 function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
 function CreatePolylinePath(const APointsStr: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
 
+function ParseStrokeDashArray(const AStr: string): TArrayOfFloat;
+
 // Transform Parser
 function ParseSvgTransform(const AStr: string): TFloatMatrix;
 
@@ -677,6 +679,14 @@ begin
   begin
     if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
       FStroke.MiterLimit := valFloat;
+  end else
+  if lowerName = 'stroke-dasharray' then
+  begin
+    FStroke.DashArray := ParseStrokeDashArray(lowerVal);
+  end else
+  if lowerName = 'stroke-dashoffset' then
+  begin
+    FStroke.DashOffset := TSvgLength.Parse(UTF8String(lowerVal)).ToPixels;
   end else
   if lowerName = 'style' then
     // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
@@ -1588,6 +1598,79 @@ begin
     Result := path.Path;
   finally
     path.Free;
+  end;
+end;
+
+function ParseStrokeDashArray(const AStr: string): TArrayOfFloat;
+var
+  s, numStr: string;
+  len, i, count, startPos, dIdx: Integer;
+  valLength: TSvgLength;
+  valPixels: Single;
+  tempArr: TArrayOfFloat;
+begin
+  Result := nil;
+  s := LowerCase(Trim(AStr));
+  if (s = '') or (s = 'none') then
+    Exit;
+
+  len := Length(s);
+  i := 1;
+  count := 0;
+  SetLength(tempArr, 8);
+
+  while i <= len do
+  begin
+    while (i <= len) and (s[i] in [' ', #9, #10, #13, ',']) do
+      Inc(i);
+    if i > len then Break;
+
+    startPos := i;
+    if s[i] in ['+', '-'] then Inc(i);
+    while (i <= len) and (s[i] in ['0'..'9', '.']) do Inc(i);
+    if (i <= len) and (s[i] in ['e', 'E']) and
+       (i < len) and (s[i + 1] in ['0'..'9', '+', '-']) then
+    begin
+      Inc(i);
+      if s[i] in ['+', '-'] then Inc(i);
+      while (i <= len) and (s[i] in ['0'..'9']) do Inc(i);
+    end;
+    // Consume unit suffix if present (px, pt, mm, cm, in, pc, %)
+    while (i <= len) and (s[i] in ['a'..'z', '%']) do Inc(i);
+
+    if i > startPos then
+    begin
+      numStr := Copy(s, startPos, i - startPos);
+      valLength := TSvgLength.Parse(UTF8String(numStr));
+      valPixels := valLength.ToPixels;
+      if valPixels < 0 then
+        valPixels := 0;
+
+      if count >= Length(tempArr) then
+        SetLength(tempArr, Length(tempArr) * 2);
+      tempArr[count] := valPixels;
+      Inc(count);
+    end;
+  end;
+
+  if count = 0 then
+    Exit;
+
+  // Per W3C SVG 1.1 Specification Section 11.4:
+  // If an odd number of values is provided, then the list of values is repeated to yield an even number of values.
+  if Odd(count) then
+  begin
+    SetLength(Result, count * 2);
+    for dIdx := 0 to count - 1 do
+    begin
+      Result[dIdx] := tempArr[dIdx];
+      Result[dIdx + count] := tempArr[dIdx];
+    end;
+  end else
+  begin
+    SetLength(Result, count);
+    for dIdx := 0 to count - 1 do
+      Result[dIdx] := tempArr[dIdx];
   end;
 end;
 
