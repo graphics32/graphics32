@@ -64,7 +64,19 @@ type
   TVector3f = array [0..2] of TFloat;
   TVector3i = array [0..2] of Integer;
 
-// Matrix conversion routines
+//------------------------------------------------------------------------------
+//
+//      Test for identity matrix
+//
+//------------------------------------------------------------------------------
+function IsIdentityMatrix(const AMatrix: TFloatMatrix): boolean; overload;
+function IsIdentityMatrix(const AMatrix: TFixedMatrix): boolean; overload;
+
+//------------------------------------------------------------------------------
+//
+//      Fixed <-> Float matrix conversion
+//
+//------------------------------------------------------------------------------
 function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix; overload;
 function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix; overload;
 
@@ -752,6 +764,75 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      Test for identity matrix
+//
+//------------------------------------------------------------------------------
+function IsIdentityMatrix(const AMatrix: TFloatMatrix): boolean;
+type
+  TFloatMatrixArray = array [0..8] of TFloat; // 3x3 TFloat precision unpacked into a linear array
+begin
+  Result :=
+    (TFloatMatrixArray(AMatrix)[0] = 1) and
+    (TFloatMatrixArray(AMatrix)[1] = 0) and
+    (TFloatMatrixArray(AMatrix)[2] = 0) and
+    (TFloatMatrixArray(AMatrix)[3] = 0) and
+    (TFloatMatrixArray(AMatrix)[4] = 1) and
+    (TFloatMatrixArray(AMatrix)[5] = 0) and
+    (TFloatMatrixArray(AMatrix)[6] = 0) and
+    (TFloatMatrixArray(AMatrix)[7] = 0) and
+    (TFloatMatrixArray(AMatrix)[8] = 1);
+end;
+
+function IsIdentityMatrix(const AMatrix: TFixedMatrix): boolean;
+type
+  TFixedMatrixArray = array [0..8] of TFixed; // 3x3 TFixed precision unpacked into a linear array
+begin
+  Result :=
+    (TFixedMatrixArray(AMatrix)[0] = FixedOne) and
+    (TFixedMatrixArray(AMatrix)[1] = 0) and
+    (TFixedMatrixArray(AMatrix)[2] = 0) and
+    (TFixedMatrixArray(AMatrix)[3] = 0) and
+    (TFixedMatrixArray(AMatrix)[4] = FixedOne) and
+    (TFixedMatrixArray(AMatrix)[5] = 0) and
+    (TFixedMatrixArray(AMatrix)[6] = 0) and
+    (TFixedMatrixArray(AMatrix)[7] = 0) and
+    (TFixedMatrixArray(AMatrix)[8] = FixedOne);
+end;
+
+//------------------------------------------------------------------------------
+//
+//      Fixed <-> Float matrix conversion
+//
+//------------------------------------------------------------------------------
+function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix;
+begin
+  Result[0,0] := Round(FloatMatrix[0,0] * FixedOne);
+  Result[0,1] := Round(FloatMatrix[0,1] * FixedOne);
+  Result[0,2] := Round(FloatMatrix[0,2] * FixedOne);
+  Result[1,0] := Round(FloatMatrix[1,0] * FixedOne);
+  Result[1,1] := Round(FloatMatrix[1,1] * FixedOne);
+  Result[1,2] := Round(FloatMatrix[1,2] * FixedOne);
+  Result[2,0] := Round(FloatMatrix[2,0] * FixedOne);
+  Result[2,1] := Round(FloatMatrix[2,1] * FixedOne);
+  Result[2,2] := Round(FloatMatrix[2,2] * FixedOne);
+end;
+
+function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix;
+begin
+  Result[0,0] := FixedMatrix[0,0] * FixedToFloat;
+  Result[0,1] := FixedMatrix[0,1] * FixedToFloat;
+  Result[0,2] := FixedMatrix[0,2] * FixedToFloat;
+  Result[1,0] := FixedMatrix[1,0] * FixedToFloat;
+  Result[1,1] := FixedMatrix[1,1] * FixedToFloat;
+  Result[1,2] := FixedMatrix[1,2] * FixedToFloat;
+  Result[2,0] := FixedMatrix[2,0] * FixedToFloat;
+  Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
+  Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      A bit of linear algebra
 //
 //------------------------------------------------------------------------------
@@ -1127,36 +1208,6 @@ begin
     end;
   end;
 end;
-
-//------------------------------------------------------------------------------
-// Matrix conversion routines
-//------------------------------------------------------------------------------
-function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix;
-begin
-  Result[0,0] := Round(FloatMatrix[0,0] * FixedOne);
-  Result[0,1] := Round(FloatMatrix[0,1] * FixedOne);
-  Result[0,2] := Round(FloatMatrix[0,2] * FixedOne);
-  Result[1,0] := Round(FloatMatrix[1,0] * FixedOne);
-  Result[1,1] := Round(FloatMatrix[1,1] * FixedOne);
-  Result[1,2] := Round(FloatMatrix[1,2] * FixedOne);
-  Result[2,0] := Round(FloatMatrix[2,0] * FixedOne);
-  Result[2,1] := Round(FloatMatrix[2,1] * FixedOne);
-  Result[2,2] := Round(FloatMatrix[2,2] * FixedOne);
-end;
-
-function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix;
-begin
-  Result[0,0] := FixedMatrix[0,0] * FixedToFloat;
-  Result[0,1] := FixedMatrix[0,1] * FixedToFloat;
-  Result[0,2] := FixedMatrix[0,2] * FixedToFloat;
-  Result[1,0] := FixedMatrix[1,0] * FixedToFloat;
-  Result[1,1] := FixedMatrix[1,1] * FixedToFloat;
-  Result[1,2] := FixedMatrix[1,2] * FixedToFloat;
-  Result[2,0] := FixedMatrix[2,0] * FixedToFloat;
-  Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
-  Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
-end;
-
 
 //------------------------------------------------------------------------------
 //
