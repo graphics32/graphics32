@@ -684,7 +684,8 @@ begin
   begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create(FGradientLUT);
     try
-      SVGStyleRadGradFiller.EllipseBounds := DpiAwareFloatRect(100, 265, 300, 385);
+      SVGStyleRadGradFiller.WrapMode := TWrapMode(RgpWrapMode.ItemIndex);
+      SVGStyleRadGradFiller.EllipseBounds := DpiAwareFloatRect(120, 190, 300, 370);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOrigin);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
     finally

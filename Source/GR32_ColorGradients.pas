@@ -5066,7 +5066,7 @@ end;
 
 procedure TSVGRadialGradientPolygonFiller.SetFocalPoint(const Value: TFloatPoint);
 begin
-  if (FFocalPointNative.X <> Value.X) and (FFocalPointNative.Y <> Value.Y) then
+  if (FFocalPointNative.X <> Value.X) or (FFocalPointNative.Y <> Value.Y) then
   begin
     FFocalPointNative := Value;
     GradientFillerChanged;
@@ -5147,15 +5147,15 @@ begin
   begin
     if FUseLookUpTable then
     begin
-      if not Assigned(FGradientLUT) then
+      if (FGradientLUT = nil) then
         raise Exception.Create(RCStrNoTColor32LookupTable);
 
-      if Assigned(FGradient) then
+      if (FGradient <> nil) then
         FGradient.FillColorLookUpTable(FGradientLUT);
-    end
-    else
-      if not Assigned(FGradient) then
-        raise Exception.Create(RCStrNoTColor32Gradient);
+    end else
+    if (FGradient = nil) then
+      raise Exception.Create(RCStrNoTColor32Gradient);
+
     inherited;
   end;
   InitMembers;
@@ -5170,67 +5170,89 @@ procedure TSVGRadialGradientPolygonFiller.FillLineEllipse(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32;
   CombineMode: TCombineMode);
 var
-  X, Mask: Integer;
+  X, Mask, Index, UnclippedIndex: Integer;
   ColorLUT: PColor32Array;
   Rad, Rad2, X2, Y2: TFloat;
-  m, b, Qa, Qb, Qc, Qz, XSqr: Double;
+  m, b, Qa, Qb, Qc, Qz, XSqr, YSqr: Double;
   RelPos: TFloatPoint;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+  WrapProc: TWrapProc;
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
   if (FRadius.X = 0) or (FRadius.Y = 0) then
     Exit;
 
   ColorLUT := FGradientLUT.Color32Ptr;
-
-  RelPos.Y := DstY - FCenter.Y - FFocalPt.Y;
   Mask := Integer(FGradientLUT.Mask);
 
+  RelPos.Y := DstY - FCenter.Y - FFocalPt.Y;
+
+  case FWrapMode of
+    wmClamp: WrapProc := nil;
+    wmRepeat: WrapProc := GetOptimalWrap(Mask);
+    wmMirror: WrapProc := GetOptimalReflect(Mask);
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect: WrapProc := GetOptimalReflect(Mask);
+{$endif}
+  else
+    WrapProc := nil;
+  end;
+
   // check if out of bounds (vertically)
-  if (DstY < FOffset.Y) or (DstY >= (FRadius.Y * 2) + 1 + FOffset.Y) then
+  if (FWrapMode = wmClamp) and ((DstY < FOffset.Y) or (DstY >= (FRadius.Y * 2) + 1 + FOffset.Y)) then
   begin
     FillLineAlpha(Dst, AlphaValues, Length, ColorLUT^[Mask], CombineMode);
     Exit;
   end;
 
+  XSqr := Sqr(FRadius.X);
+  YSqr := Sqr(FRadius.Y);
+
   for X := DstX to DstX + Length - 1 do
   begin
     // check if out of bounds (horizontally)
-    if (X < FOffset.X) or (X >= (FRadius.X * 2) + 1 + FOffset.X) then
+    if (FWrapMode = wmClamp) and ((X < FOffset.X) or (X >= (FRadius.X * 2) + 1 + FOffset.X)) then
       Color32 := ColorLUT^[Mask]
     else
     begin
+
       RelPos.X := X - FCenter.X - FFocalPt.X;
 
-      if Abs(RelPos.X) < CFloatTolerance then //ie on the vertical line (see above)
+      if Abs(RelPos.X) < CFloatTolerance then // ie on the vertical line
       begin
-        Assert(Abs(X - FCenter.X) <= FRadius.X);
-
         Rad := Abs(RelPos.Y);
-        if Abs(Abs(X - FCenter.X)) <= FRadius.X then
+        if RelPos.Y < 0 then
+          Rad2 := Abs(-FVertDist - FFocalPt.Y)
+        else
+          Rad2 := Abs(FVertDist - FFocalPt.Y);
+
+        if Rad2 = 0 then
+          Index := 0
+        else
+        if (FWrapMode = wmClamp) and (Rad >= Rad2) then
+          Index := Mask
+        else
         begin
-          if RelPos.Y < 0 then
-            Rad2 := Abs(-FVertDist - FFocalPt.Y)
+          UnclippedIndex := Round(Mask * Rad / Rad2);
+          if Assigned(WrapProc) then
+            Index := WrapProc(UnclippedIndex, Mask)
           else
-            Rad2 := Abs( FVertDist - FFocalPt.Y);
-          if Rad >= Rad2 then
-            Color32 := ColorLUT^[Mask]
-          else
-            Color32 := ColorLUT^[Round(Mask * Rad / Rad2)];
-        end else
-          Color32 := ColorLUT^[Mask];
-      end
-      else
+            Index := Min(UnclippedIndex, Mask);
+        end;
+
+        Color32 := ColorLUT^[Index];
+
+      end else
       begin
+
         m := RelPos.Y / RelPos.X;
         b := FFocalPt.Y - m * FFocalPt.X;
-        XSqr := Sqr(FRadius.X);
 
         // apply quadratic equation ...
-        Qa := 2 * (Sqr(FRadius.Y) + XSqr * m * m);
+        Qa := 2 * (YSqr + XSqr * m * m);
         Qb := XSqr * 2 * m * b;
-        Qc := XSqr * (b * b - Sqr(FRadius.Y));
+        Qc := XSqr * (b * b - YSqr);
         Qz := Qb * Qb - 2 * Qa * Qc;
 
         if Qz >= 0 then
@@ -5244,12 +5266,31 @@ begin
           Rad := Sqr(RelPos.X) + Sqr(RelPos.Y);
           Rad2 := Sqr(X2 - FFocalPt.X) + Sqr(Y2 - FFocalPt.Y);
 
-          if Rad >= Rad2 then
+          if Rad2 = 0 then
+            Index := 0
+          else
+          if (FWrapMode = wmClamp) and (Rad >= Rad2) then
+            Index := Mask
+          else
+          begin
+            UnclippedIndex := Round(Mask * FastSqrtBab1(Rad / Rad2));
+            if Assigned(WrapProc) then
+              Index := WrapProc(UnclippedIndex, Mask)
+            else
+              Index := Min(UnclippedIndex, Mask);
+          end;
+
+          Color32 := ColorLUT^[Index];
+
+        end else
+        begin
+
+          if (FWrapMode = wmClamp) or not Assigned(WrapProc) then
             Color32 := ColorLUT^[Mask]
           else
-            Color32 := ColorLUT^[Round(Mask * FastSqrtBab1(Rad / Rad2))];
-        end else
-          Color32 := ColorLUT^[Mask];
+            Color32 := ColorLUT^[WrapProc(Mask, Mask)];
+
+        end;
       end;
     end;
 
