@@ -1,0 +1,13 @@
+--- SVG ---
+<svg width="100" height="100">
+  <defs>
+    <rect id="rect1" x="0" y="0" width="20" height="20" fill="red"/>
+  </defs>
+  <use id="u1" href="#rect1" x="10" y="10"/>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=100px, height=100px)
+  TSvgDefsNode
+    TSvgPathNode (id="rect1") (fill=#FFFF0000)
+  TSvgUseNode (id="u1") (href="#rect1")
+    TSvgPathNode (id="rect1") (fill=#FFFF0000)

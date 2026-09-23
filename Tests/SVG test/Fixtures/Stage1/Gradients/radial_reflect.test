@@ -1,0 +1,21 @@
+--- SVG ---
+<svg width="406.25" height="206.25">
+  <defs>
+    <linearGradient id="g1">
+      <stop offset="0" style="stop-color: rgb(50, 50, 50); stop-opacity: 1;"/>
+      <stop offset="1" style="stop-color: rgb(150, 150, 150); stop-opacity: 1;"/>
+    </linearGradient>
+    <radialGradient id="r1" href="#g1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.793492, 0, 0, 1.26025, -124.125, -349.237)" spreadMethod="reflect" cx="195.33907" cy="367.99432" r="10.189606"/>
+  </defs>
+  <rect x="25.875" y="3.125" width="375" height="200" fill="url(#r1)"/>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=406.25px, height=206.25px)
+  TSvgDefsNode
+    TSvgLinearGradientNode (id="g1") (spreadMethod=smPad, units=guObjectBoundingBox) (x1=0%, y1=0%, x2=100%, y2=0%)
+      TSvgGradientStop (offset=0, color=#FF323232, opacity=1)
+      TSvgGradientStop (offset=1, color=#FF969696, opacity=1)
+    TSvgRadialGradientNode (id="r1") (spreadMethod=smReflect, units=guUserSpaceOnUse) (cx=195.339px, cy=367.994px, r=10.1896px, fx=195.339px, fy=367.994px)
+      TSvgGradientStop (offset=0, color=#FF323232, opacity=1)
+      TSvgGradientStop (offset=1, color=#FF969696, opacity=1)
+  TSvgPathNode (fillUrl=url(#r1))

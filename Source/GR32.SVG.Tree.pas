@@ -132,6 +132,8 @@ type
     FResolving: Boolean;
   protected
     function GetIsRenderable: Boolean; virtual;
+    function DumpNode(Indent: Integer = 0): string; virtual;
+    function DumpChildren(Indent: Integer = 0): string; virtual;
   public
     constructor Create(AParent: TSvgNode = nil); virtual;
     destructor Destroy; override;
@@ -140,6 +142,7 @@ type
     procedure Render(ACanvas: TObject); virtual;
     procedure ParseAttribute(const AName, AValue: string); virtual;
     procedure ParseStyleAttribute(const AStyleStr: string);
+    function Dump(Indent: Integer = 0): string;
     property ID: string read FID write FID;
     property CssClassName: string read FCssClassName write FCssClassName;
     property StyleAttr: string read FStyleAttr write FStyleAttr;
@@ -157,6 +160,9 @@ type
     FOpacity: Single;
     FClipPathID: string;
     FMaskID: string;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+    function DumpChildren(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     destructor Destroy; override;
@@ -178,6 +184,8 @@ type
     FHref: string;
   protected
     function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+    function DumpChildren(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     destructor Destroy; override;
@@ -197,6 +205,8 @@ type
     FY1: TSvgLength;
     FX2: TSvgLength;
     FY2: TSvgLength;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -222,6 +232,8 @@ type
     function GetFy: TSvgLength;
     procedure SetFx(const Value: TSvgLength);
     procedure SetFy(const Value: TSvgLength);
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
 
@@ -242,6 +254,7 @@ type
     FClipPathUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -259,6 +272,7 @@ type
     FMaskContentUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -285,6 +299,7 @@ type
     FHref: string;
   protected
     function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -308,6 +323,8 @@ type
     FHeight: TSvgLength;
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -324,6 +341,8 @@ type
   TSvgPathNode = class(TSvgNode)
   private
     FPathData: TArrayOfArrayOfFloatPoint;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -342,6 +361,8 @@ type
     FHref: string;
     FX: Single;
     FY: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -403,6 +424,205 @@ const
 
 var
   SvgStopTagDictionary: TSvgKeywordDictionary<TSvgStopTagKeyword>;
+
+function FloatToString(Value: Single; const PostFix: string = ''): string;
+begin
+  Result := Format('%.3f', [Value], SvgFormatSettings);
+  while (Result[Length(Result)] = '0') do
+    SetLength(Result, Length(Result)-1);
+  if (Result[Length(Result)] = '.') then
+    SetLength(Result, Length(Result)-1);
+  if (PostFix <> '') then
+    Result := Result + PostFix;
+end;
+
+function SvgLengthToString(const L: TSvgLength): string;
+begin
+  case L.UnitType of
+    suPercent: Result := FloatToString(L.Value, '%');
+    suPt: Result := FloatToString(L.Value, 'pt');
+    suMm: Result := FloatToString(L.Value, 'mm');
+    suCm: Result := FloatToString(L.Value, 'cm');
+    suIn: Result := FloatToString(L.Value, 'in');
+    suPc: Result := FloatToString(L.Value, 'pc');
+    suEm: Result := FloatToString(L.Value, 'em');
+    suEx: Result := FloatToString(L.Value, 'ex');
+  else
+    Result := FloatToString(L.Value, 'px');
+  end;
+end;
+
+function SvgColorToString(const C: TSvgColor): string;
+begin
+  if C.IsNone then
+    Result := 'none'
+  else
+  if C.IsCurrentColor then
+    Result := 'currentColor'
+  else
+    Result := '#' + IntToHex(C.Color, 8);
+end;
+
+function TSvgNode.DumpNode(Indent: Integer): string;
+begin
+  Result := StringOfChar(' ', Indent * 2) + ClassName;
+  if FID <> '' then
+    Result := Result + Format(' (id="%s")', [FID]);
+end;
+
+function TSvgNode.Dump(Indent: Integer): string;
+begin
+  Result := DumpNode(Indent);
+  Result := Result + DumpChildren(Indent);
+end;
+
+function TSvgNode.DumpChildren(Indent: Integer): string;
+begin
+end;
+
+function TSvgGroupNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  if FOpacity < 1.0 then
+    Result := Result + Format(' (opacity=%s)', [FloatToString(FOpacity)]);
+end;
+
+function TSvgGroupNode.DumpChildren(Indent: Integer): string;
+var
+  i: Integer;
+begin
+  Result := Result + inherited DumpChildren(Indent);
+  for i := 0 to FChildren.Count - 1 do
+    Result := Result + sLineBreak + FChildren[i].Dump(Indent + 1);
+end;
+
+function TSvgDocumentNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  Result := Result + Format(' (width=%s, height=%s)', [SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
+end;
+
+function TSvgGradientNode.DumpChildren(Indent: Integer): string;
+var
+  indentStr: string;
+  i: Integer;
+  stop: TSvgGradientStop;
+begin
+  indentStr := StringOfChar(' ', (Indent + 1) * 2);
+  for i := 0 to FStops.Count - 1 do
+  begin
+    stop := FStops[i];
+    Result := Result + sLineBreak + indentStr +
+      Format('TSvgGradientStop (offset=%s, color=%s, opacity=%s)',
+        [FloatToString(stop.Offset), SvgColorToString(stop.Color), FloatToString(stop.Opacity)]);
+  end;
+end;
+
+function TSvgGradientNode.DumpNode(Indent: Integer): string;
+var
+  spreadStr, unitsStr: string;
+begin
+  Result := inherited DumpNode(Indent);
+  case FSpreadMethod of
+    smReflect: spreadStr := 'smReflect';
+    smRepeat: spreadStr := 'smRepeat';
+  else
+    spreadStr := 'smPad';
+  end;
+  case FGradientUnits of
+    guUserSpaceOnUse: unitsStr := 'guUserSpaceOnUse';
+  else
+    unitsStr := 'guObjectBoundingBox';
+  end;
+  Result := Result + Format(' (spreadMethod=%s, units=%s)', [spreadStr, unitsStr]);
+end;
+
+function TSvgLinearGradientNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  Result := Result + Format(' (x1=%s, y1=%s, x2=%s, y2=%s)',
+    [SvgLengthToString(FX1), SvgLengthToString(FY1), SvgLengthToString(FX2), SvgLengthToString(FY2)]);
+end;
+
+function TSvgRadialGradientNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  Result := Result + Format(' (cx=%s, cy=%s, r=%s, fx=%s, fy=%s)',
+    [SvgLengthToString(FCx), SvgLengthToString(FCy), SvgLengthToString(FR), SvgLengthToString(Fx), SvgLengthToString(Fy)]);
+end;
+
+function TSvgPathNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  if not FFill.Color.IsNone then
+    Result := Result + Format(' (fill=%s)', [SvgColorToString(FFill.Color)]);
+  if FFill.Url <> '' then
+    Result := Result + Format(' (fillUrl=%s)', [FFill.Url]);
+  if not FStroke.Color.IsNone then
+    Result := Result + Format(' (stroke=%s)', [SvgColorToString(FStroke.Color)]);
+end;
+
+function TSvgUseNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  if FHref <> '' then
+    Result := Result + Format(' (href="%s")', [FHref]);
+end;
+
+function TSvgClipPathNode.DumpNode(Indent: Integer): string;
+var
+  unitsStr: string;
+begin
+  Result := inherited DumpNode(Indent);
+  case FClipPathUnits of
+    guObjectBoundingBox: unitsStr := 'guObjectBoundingBox';
+  else
+    unitsStr := 'guUserSpaceOnUse';
+  end;
+  Result := Result + Format(' (clipPathUnits=%s)', [unitsStr]);
+end;
+
+function TSvgMaskNode.DumpNode(Indent: Integer): string;
+var
+  maskUnitsStr, contentUnitsStr: string;
+begin
+  Result := inherited DumpNode(Indent);
+  case FMaskUnits of
+    guUserSpaceOnUse: maskUnitsStr := 'guUserSpaceOnUse';
+  else
+    maskUnitsStr := 'guObjectBoundingBox';
+  end;
+  case FMaskContentUnits of
+    guObjectBoundingBox: contentUnitsStr := 'guObjectBoundingBox';
+  else
+    contentUnitsStr := 'guUserSpaceOnUse';
+  end;
+  Result := Result + Format(' (x=%s, y=%s, width=%s, height=%s, maskUnits=%s, maskContentUnits=%s)',
+    [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight), maskUnitsStr, contentUnitsStr]);
+end;
+
+function TSvgPatternNode.DumpNode(Indent: Integer): string;
+var
+  patUnitsStr, contentUnitsStr: string;
+begin
+  Result := inherited DumpNode(Indent);
+  case FPatternUnits of
+    guUserSpaceOnUse: patUnitsStr := 'guUserSpaceOnUse';
+  else
+    patUnitsStr := 'guObjectBoundingBox';
+  end;
+  case FPatternContentUnits of
+    guObjectBoundingBox: contentUnitsStr := 'guObjectBoundingBox';
+  else
+    contentUnitsStr := 'guUserSpaceOnUse';
+  end;
+  Result := Result + Format(' (x=%s, y=%s, width=%s, height=%s, patternUnits=%s, patternContentUnits=%s)',
+    [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight), patUnitsStr, contentUnitsStr]);
+  if FHref <> '' then
+    Result := Result + ' (href="' + FHref + '")';
+end;
+
+
 
 { TSvgGradientStop }
 

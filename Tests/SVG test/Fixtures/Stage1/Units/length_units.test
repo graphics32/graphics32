@@ -1,0 +1,7 @@
+--- SVG ---
+<svg width="10in" height="5cm">
+  <rect x="10mm" y="2pt" width="50%" height="20px"/>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=10in, height=5cm)
+  TSvgPathNode
