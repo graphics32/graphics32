@@ -143,6 +143,8 @@ type
     FStyleAttr: string; // Stores raw inline style="..." string for deferred cascade evaluation
     FTransform: TFloatMatrix;
     FVisible: Boolean;
+    FMixBlendMode: TSvgBlendMode;
+    FIsolation: TSvgIsolation;
     FParent: TSvgNode;
     FFill: TSvgFill;
     FStroke: TSvgStroke;
@@ -172,6 +174,8 @@ type
     property StyleAttr: string read FStyleAttr write FStyleAttr;
     property Transform: TFloatMatrix read FTransform write FTransform;
     property Visible: Boolean read FVisible write FVisible;
+    property MixBlendMode: TSvgBlendMode read FMixBlendMode write FMixBlendMode;
+    property Isolation: TSvgIsolation read FIsolation write FIsolation;
     property Parent: TSvgNode read FParent write FParent;
     property Fill: TSvgFill read FFill write FFill;
     property Stroke: TSvgStroke read FStroke write FStroke;
@@ -550,6 +554,10 @@ begin
   Result := StringOfChar(' ', Indent * 2) + ClassName;
   if FID <> '' then
     Result := Result + Format(' (id="%s")', [FID]);
+  if FMixBlendMode <> bmNormal then
+    Result := Result + Format(' (mix-blend-mode=%s)', [SvgBlendModeToString(FMixBlendMode)]);
+  if FIsolation <> isoAuto then
+    Result := Result + Format(' (isolation=%s)', [SvgIsolationToString(FIsolation)]);
 end;
 
 function TSvgNode.Dump(Indent: Integer): string;
@@ -880,6 +888,8 @@ begin
   FParent := AParent;
   FTransform := IdentityMatrix;
   FVisible := True;
+  FMixBlendMode := bmNormal;
+  FIsolation := isoAuto;
   FCssClassName := '';
   FResolving := False;
   if AParent <> nil then
@@ -914,6 +924,8 @@ begin
   Result.FStyleAttr := FStyleAttr;
   Result.FTransform := FTransform;
   Result.FVisible := FVisible;
+  Result.FMixBlendMode := FMixBlendMode;
+  Result.FIsolation := FIsolation;
   Result.FResolving := False;
 
   FFill.ApplySpecified(Result.FFill);
@@ -1064,6 +1076,12 @@ begin
     FMarkerMid := lowerVal;
     FMarkerEnd := lowerVal;
   end else
+  if lowerName = 'mix-blend-mode' then
+    FMixBlendMode := ParseSvgBlendMode(lowerVal)
+  else
+  if lowerName = 'isolation' then
+    FIsolation := ParseSvgIsolation(lowerVal)
+  else
   if lowerName = 'style' then
     // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
     FStyleAttr := lowerVal;

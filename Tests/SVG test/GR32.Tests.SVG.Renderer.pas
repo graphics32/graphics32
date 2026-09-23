@@ -59,6 +59,7 @@ type
     procedure TestRadialGradientReflect;
     procedure TestMarkerRendering;
     procedure TestObjectBoundingBoxMaskAndGradient;
+    procedure TestMixBlendModeAndIsolationRendering;
   end;
 
 implementation
@@ -435,6 +436,114 @@ begin
 
   finally
     bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestMixBlendModeAndIsolationRendering;
+var
+  bmpAuto, bmpIsolate: TBitmap32;
+  docNodeAuto, docNodeIsolate: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xmlAuto, xmlIsolate: UTF8String;
+  overlapPixel: TColor32;
+  pixelAuto, pixelIsolate: TColor32;
+begin
+  bmpAuto := TBitmap32.Create;
+  bmpIsolate := TBitmap32.Create;
+  try
+    bmpAuto.SetSize(100, 100);
+    bmpIsolate.SetSize(100, 100);
+
+    // 1. Multiply blend mode test: Red (255,0,0) * Blue (0,0,255) = Black (0,0,0)
+    bmpAuto.Clear(clWhite32);
+    xmlAuto := '<svg width="100" height="100">' +
+               '  <rect x="0" y="0" width="100" height="100" fill="red"/>' +
+               '  <rect x="0" y="0" width="100" height="100" fill="blue" mix-blend-mode="multiply"/>' +
+               '</svg>';
+
+    docNodeAuto := ParseSvgXml(xmlAuto);
+    Check(docNodeAuto <> nil, 'Multiply blend docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmpAuto);
+      try
+        renderer.RenderDocument(docNodeAuto);
+        overlapPixel := bmpAuto.Pixel[50, 50];
+        CheckEquals(clBlack32, overlapPixel, 'Red multiplied by Blue should yield Black');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNodeAuto.Free;
+    end;
+
+    // 2. Screen blend mode test: Red (255,0,0) + Blue (0,0,255) = Magenta (255,0,255)
+    bmpAuto.Clear(clWhite32);
+    xmlAuto := '<svg width="100" height="100">' +
+               '  <rect x="0" y="0" width="100" height="100" fill="red"/>' +
+               '  <rect x="0" y="0" width="100" height="100" fill="blue" mix-blend-mode="screen"/>' +
+               '</svg>';
+
+    docNodeAuto := ParseSvgXml(xmlAuto);
+    Check(docNodeAuto <> nil, 'Screen blend docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmpAuto);
+      try
+        renderer.RenderDocument(docNodeAuto);
+        overlapPixel := bmpAuto.Pixel[50, 50];
+        CheckEquals(Color32(255, 0, 255, 255), overlapPixel, 'Red screened with Blue should yield Magenta');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNodeAuto.Free;
+    end;
+
+    // 3. Compare isolation="auto" vs isolation="isolate" on a group with mix-blend-mode="multiply"
+    xmlAuto := '<svg width="100" height="100">' +
+               '  <rect width="100" height="100" fill="#CCCCCC"/>' +
+               '  <g style="isolation: auto; mix-blend-mode: multiply;">' +
+               '    <rect width="100" height="100" fill="#00FFFF"/>' +
+               '  </g>' +
+               '</svg>';
+
+    xmlIsolate := '<svg width="100" height="100">' +
+                 '  <rect width="100" height="100" fill="#CCCCCC"/>' +
+                 '  <g style="isolation: isolate; mix-blend-mode: multiply;">' +
+                 '    <rect width="100" height="100" fill="#00FFFF"/>' +
+                 '  </g>' +
+                 '</svg>';
+
+    docNodeAuto := ParseSvgXml(xmlAuto);
+    docNodeIsolate := ParseSvgXml(xmlIsolate);
+    try
+      bmpAuto.Clear(clWhite32);
+      renderer := TSvgRenderer.Create(bmpAuto);
+      try
+        renderer.RenderDocument(docNodeAuto);
+      finally
+        renderer.Free;
+      end;
+
+      bmpIsolate.Clear(clWhite32);
+      renderer := TSvgRenderer.Create(bmpIsolate);
+      try
+        renderer.RenderDocument(docNodeIsolate);
+      finally
+        renderer.Free;
+      end;
+
+      pixelAuto := bmpAuto.Pixel[50, 50];
+      pixelIsolate := bmpIsolate.Pixel[50, 50];
+
+      CheckEquals(pixelAuto, pixelIsolate, 'Single child inside group should match under both isolation modes');
+    finally
+      docNodeAuto.Free;
+      docNodeIsolate.Free;
+    end;
+
+  finally
+    bmpAuto.Free;
+    bmpIsolate.Free;
   end;
 end;
 

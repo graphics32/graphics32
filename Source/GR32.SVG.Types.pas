@@ -51,6 +51,34 @@ function HSLtoRGB(H, S, L, A: Single): TColor32;
 function SvgColorNameToColor(const AName: TValuePUtf8Char; ADefault: TColor32): TColor32;
 
 type
+  TSvgBlendMode = (
+    bmNormal,
+    bmMultiply,
+    bmScreen,
+    bmOverlay,
+    bmDarken,
+    bmLighten,
+    bmColorDodge,
+    bmColorBurn,
+    bmHardLight,
+    bmSoftLight,
+    bmDifference,
+    bmExclusion
+  );
+
+  TSvgIsolation = (
+    isoAuto,
+    isoIsolate
+  );
+
+function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode; overload;
+function ParseSvgBlendMode(const AName: AnsiString): TSvgBlendMode; overload;
+function ParseSvgIsolation(const AName: TValuePUtf8Char): TSvgIsolation; overload;
+function ParseSvgIsolation(const AName: AnsiString): TSvgIsolation; overload;
+function SvgBlendModeToString(AMode: TSvgBlendMode): string;
+function SvgIsolationToString(AIsolation: TSvgIsolation): string;
+
+type
   TSvgUnitType = (
     suPx,
     suPt,
@@ -184,6 +212,95 @@ implementation
 uses
   AnsiStrings;
 
+type
+  TBlendModeName = record
+    Name: AnsiString;
+    Value: TSvgBlendMode;
+  end;
+
+var
+  SvgBlendModeDictionary: TSvgKeywordDictionary<TSvgBlendMode>;
+
+const
+  sBlendModes: array[0..11] of TBlendModeName = (
+    (Name: ''; Value: bmNormal),
+    (Name: 'multiply'; Value: bmMultiply),
+    (Name: 'screen'; Value: bmScreen),
+    (Name: 'overlay'; Value: bmOverlay),
+    (Name: 'darken'; Value: bmDarken),
+    (Name: 'lighten'; Value: bmLighten),
+    (Name: 'color-dodge'; Value: bmColorDodge),
+    (Name: 'color-burn'; Value: bmColorBurn),
+    (Name: 'hard-light'; Value: bmHardLight),
+    (Name: 'soft-light'; Value: bmSoftLight),
+    (Name: 'difference'; Value: bmDifference),
+    (Name: 'exclusion'; Value: bmExclusion)
+  );
+
+function ParseSvgBlendMode(const AName: AnsiString): TSvgBlendMode;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgBlendMode(Name);
+end;
+
+function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode;
+begin
+  if (not SvgBlendModeDictionary.Lookup(AName, Result)) then
+    Result := bmNormal;
+end;
+
+function ParseSvgIsolation(const AName: AnsiString): TSvgIsolation;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgIsolation(Name);
+end;
+
+function ParseSvgIsolation(const AName: TValuePUtf8Char): TSvgIsolation;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name := AName;
+  Name.Trim;
+  if (Name.StartsText('isolate')) then
+    Result := isoIsolate
+  else
+    Result := isoAuto;
+end;
+
+function SvgBlendModeToString(AMode: TSvgBlendMode): string;
+begin
+  case AMode of
+    bmMultiply: Result := 'multiply';
+    bmScreen: Result := 'screen';
+    bmOverlay: Result := 'overlay';
+    bmDarken: Result := 'darken';
+    bmLighten: Result := 'lighten';
+    bmColorDodge: Result := 'color-dodge';
+    bmColorBurn: Result := 'color-burn';
+    bmHardLight: Result := 'hard-light';
+    bmSoftLight: Result := 'soft-light';
+    bmDifference: Result := 'difference';
+    bmExclusion: Result := 'exclusion';
+  else
+    Result := 'normal';
+  end;
+end;
+
+function SvgIsolationToString(AIsolation: TSvgIsolation): string;
+begin
+  case AIsolation of
+    isoIsolate: Result := 'isolate';
+  else
+    Result := 'auto';
+  end;
+end;
+
 function HSLtoRGB(H, S, L, A: Single): TColor32;
 begin
   Result := GR32.HSLtoRGB(
@@ -272,7 +389,7 @@ end;
 type
   TColorName = record
     Name: AnsiString;
-    Color: TColor32;
+    Value: TColor32;
   end;
 
 var
@@ -280,154 +397,154 @@ var
 
 const
   sColorNames: array[0..147] of TColorName = (
-    (Name: 'red'; Color: clRed32),
-    (Name: 'tan'; Color: clTan32),
-    (Name: 'aqua'; Color: clAqua32),
-    (Name: 'blue'; Color: clBlue32),
-    (Name: 'cyan'; Color: clAqua32),
-    (Name: 'gold'; Color: clGold32),
-    (Name: 'gray'; Color: clGray32),
-    (Name: 'grey'; Color: clGrey32),
-    (Name: 'lime'; Color: clLime32),
-    (Name: 'navy'; Color: clNavy32),
-    (Name: 'peru'; Color: clPeru32),
-    (Name: 'pink'; Color: clPink32),
-    (Name: 'plum'; Color: clPlum32),
-    (Name: 'snow'; Color: clSnow32),
-    (Name: 'teal'; Color: clTeal32),
-    (Name: 'azure'; Color: clAzure32),
-    (Name: 'beige'; Color: clBeige32),
-    (Name: 'black'; Color: clBlack32),
-    (Name: 'brown'; Color: clBrown32),
-    (Name: 'coral'; Color: clCoral32),
-    (Name: 'green'; Color: clGreen32),
-    (Name: 'ivory'; Color: clIvory32),
-    (Name: 'khaki'; Color: clKhaki32),
-    (Name: 'linen'; Color: clLinen32),
-    (Name: 'olive'; Color: clOlive32),
-    (Name: 'wheat'; Color: clWheat32),
-    (Name: 'white'; Color: clWhite32),
-    (Name: 'bisque'; Color: clBisque32),
-    (Name: 'indigo'; Color: clIndigo32),
-    (Name: 'maroon'; Color: clMaroon32),
-    (Name: 'orange'; Color: clOrange32),
-    (Name: 'orchid'; Color: clOrchid32),
-    (Name: 'purple'; Color: clPurple32),
-    (Name: 'salmon'; Color: clSalmon32),
-    (Name: 'sienna'; Color: clSienna32),
-    (Name: 'silver'; Color: clSilver32),
-    (Name: 'tomato'; Color: clTomato32),
-    (Name: 'violet'; Color: clViolet32),
-    (Name: 'yellow'; Color: clYellow32),
-    (Name: 'crimson'; Color: clCrimson32),
-    (Name: 'darkred'; Color: clDarkRed32),
-    (Name: 'dimgray'; Color: clDimGray32),
-    (Name: 'dimgrey'; Color: clDimGray32),
-    (Name: 'fuchsia'; Color: clFuchsia32),
-    (Name: 'hotpink'; Color: clHotPink32),
-    (Name: 'magenta'; Color: clFuchsia32),
-    (Name: 'oldlace'; Color: clOldLace32),
-    (Name: 'skyblue'; Color: clSkyblue32),
-    (Name: 'thistle'; Color: clThistle32),
-    (Name: 'cornsilk'; Color: clCornSilk32),
-    (Name: 'darkblue'; Color: clDarkBlue32),
-    (Name: 'darkcyan'; Color: clDarkCyan32),
-    (Name: 'darkgray'; Color: clDarkGray32),
-    (Name: 'darkgrey'; Color: clDarkGrey32),
-    (Name: 'deeppink'; Color: clDeepPink32),
-    (Name: 'honeydew'; Color: clHoneyDew32),
-    (Name: 'lavender'; Color: clLavender32),
-    (Name: 'moccasin'; Color: clMoccasin32),
-    (Name: 'seagreen'; Color: clSeaGreen32),
-    (Name: 'seashell'; Color: clSeaShell32),
-    (Name: 'aliceblue'; Color: clAliceBlue32),
-    (Name: 'burlywood'; Color: clBurlyWood32),
-    (Name: 'cadetblue'; Color: clCadetblue32),
-    (Name: 'chocolate'; Color: clChocolate32),
-    (Name: 'darkgreen'; Color: clDarkGreen32),
-    (Name: 'darkkhaki'; Color: clDarkKhaki32),
-    (Name: 'firebrick'; Color: clFireBrick32),
-    (Name: 'gainsboro'; Color: clGainsBoro32),
-    (Name: 'goldenrod'; Color: clGoldenRod32),
-    (Name: 'indianred'; Color: clIndianRed32),
-    (Name: 'lawngreen'; Color: clLawnGreen32),
-    (Name: 'lightblue'; Color: clLightBlue32),
-    (Name: 'lightcyan'; Color: clLightCyan32),
-    (Name: 'lightgray'; Color: clLightGray32),
-    (Name: 'lightgrey'; Color: clLightGrey32),
-    (Name: 'lightpink'; Color: clLightPink32),
-    (Name: 'limegreen'; Color: clLimeGreen32),
-    (Name: 'mintcream'; Color: clMintCream32),
-    (Name: 'mistyrose'; Color: clMistyRose32),
-    (Name: 'olivedrab'; Color: clOliveDrab32),
-    (Name: 'orangered'; Color: clOrangeRed32),
-    (Name: 'palegreen'; Color: clPaleGreen32),
-    (Name: 'peachpuff'; Color: clPeachPuff32),
-    (Name: 'rosybrown'; Color: clRosyBrown32),
-    (Name: 'royalblue'; Color: clRoyalBlue32),
-    (Name: 'slateblue'; Color: clSlateBlue32),
-    (Name: 'slategray'; Color: clSlateGray32),
-    (Name: 'slategrey'; Color: clSlateGrey32),
-    (Name: 'steelblue'; Color: clSteelblue32),
-    (Name: 'turquoise'; Color: clTurquoise32),
-    (Name: 'aquamarine'; Color: clAquamarine32),
-    (Name: 'blueviolet'; Color: clBlueViolet32),
-    (Name: 'chartreuse'; Color: clChartReuse32),
-    (Name: 'darkorange'; Color: clDarkOrange32),
-    (Name: 'darkorchid'; Color: clDarkOrchid32),
-    (Name: 'darksalmon'; Color: clDarkSalmon32),
-    (Name: 'darkviolet'; Color: clDarkViolet32),
-    (Name: 'dodgerblue'; Color: clDodgerBlue32),
-    (Name: 'ghostwhite'; Color: clGhostWhite32),
-    (Name: 'lightcoral'; Color: clLightCoral32),
-    (Name: 'lightgreen'; Color: clLightGreen32),
-    (Name: 'mediumblue'; Color: clMediumBlue32),
-    (Name: 'papayawhip'; Color: clPapayaWhip32),
-    (Name: 'powderblue'; Color: clPowderBlue32),
-    (Name: 'sandybrown'; Color: clSandyBrown32),
-    (Name: 'whitesmoke'; Color: clWhitesmoke32),
-    (Name: 'darkmagenta'; Color: clDarkMagenta32),
-    (Name: 'deepskyblue'; Color: clDeepSkyBlue32),
-    (Name: 'floralwhite'; Color: clFloralWhite32),
-    (Name: 'forestgreen'; Color: clForestGreen32),
-    (Name: 'greenyellow'; Color: clGreenYellow32),
-    (Name: 'lightsalmon'; Color: clLightSalmon32),
-    (Name: 'lightyellow'; Color: clLightYellow32),
-    (Name: 'navajowhite'; Color: clNavajoWhite32),
-    (Name: 'saddlebrown'; Color: clSaddleBrown32),
-    (Name: 'springgreen'; Color: clSpringgreen32),
-    (Name: 'transparent'; Color: clNone32),
-    (Name: 'yellowgreen'; Color: clYellowgreen32),
-    (Name: 'antiquewhite'; Color: clAntiqueWhite32),
-    (Name: 'darkseagreen'; Color: clDarkSeaGreen32),
-    (Name: 'lemonchiffon'; Color: clLemonChiffon32),
-    (Name: 'lightskyblue'; Color: clLightSkyblue32),
-    (Name: 'mediumorchid'; Color: clMediumOrchid32),
-    (Name: 'mediumpurple'; Color: clMediumPurple32),
-    (Name: 'midnightblue'; Color: clMidnightBlue32),
-    (Name: 'darkgoldenrod'; Color: clDarkGoldenRod32),
-    (Name: 'darkslateblue'; Color: clDarkSlateBlue32),
-    (Name: 'darkslategray'; Color: clDarkSlateGray32),
-    (Name: 'darkslategrey'; Color: clDarkSlateGrey32),
-    (Name: 'darkturquoise'; Color: clDarkTurquoise32),
-    (Name: 'lavenderblush'; Color: clLavenderBlush32),
-    (Name: 'lightseagreen'; Color: clLightSeagreen32),
-    (Name: 'palegoldenrod'; Color: clPaleGoldenRod32),
-    (Name: 'paleturquoise'; Color: clPaleTurquoise32),
-    (Name: 'palevioletred'; Color: clPaleVioletred32),
-    (Name: 'blanchedalmond'; Color: clBlancheDalmond32),
-    (Name: 'cornflowerblue'; Color: clCornFlowerBlue32),
-    (Name: 'darkolivegreen'; Color: clDarkOliveGreen32),
-    (Name: 'lightslategray'; Color: clLightSlategray32),
-    (Name: 'lightslategrey'; Color: clLightSlategrey32),
-    (Name: 'lightsteelblue'; Color: clLightSteelblue32),
-    (Name: 'mediumseagreen'; Color: clMediumSeaGreen32),
-    (Name: 'mediumslateblue'; Color: clMediumSlateBlue32),
-    (Name: 'mediumturquoise'; Color: clMediumTurquoise32),
-    (Name: 'mediumvioletred'; Color: clMediumVioletRed32),
-    (Name: 'mediumaquamarine'; Color: clMediumAquamarine32),
-    (Name: 'mediumspringgreen'; Color: clMediumSpringGreen32),
-    (Name: 'lightgoldenrodyellow'; Color: clLightGoldenRodYellow32)
+    (Name: 'red'; Value: clRed32),
+    (Name: 'tan'; Value: clTan32),
+    (Name: 'aqua'; Value: clAqua32),
+    (Name: 'blue'; Value: clBlue32),
+    (Name: 'cyan'; Value: clAqua32),
+    (Name: 'gold'; Value: clGold32),
+    (Name: 'gray'; Value: clGray32),
+    (Name: 'grey'; Value: clGrey32),
+    (Name: 'lime'; Value: clLime32),
+    (Name: 'navy'; Value: clNavy32),
+    (Name: 'peru'; Value: clPeru32),
+    (Name: 'pink'; Value: clPink32),
+    (Name: 'plum'; Value: clPlum32),
+    (Name: 'snow'; Value: clSnow32),
+    (Name: 'teal'; Value: clTeal32),
+    (Name: 'azure'; Value: clAzure32),
+    (Name: 'beige'; Value: clBeige32),
+    (Name: 'black'; Value: clBlack32),
+    (Name: 'brown'; Value: clBrown32),
+    (Name: 'coral'; Value: clCoral32),
+    (Name: 'green'; Value: clGreen32),
+    (Name: 'ivory'; Value: clIvory32),
+    (Name: 'khaki'; Value: clKhaki32),
+    (Name: 'linen'; Value: clLinen32),
+    (Name: 'olive'; Value: clOlive32),
+    (Name: 'wheat'; Value: clWheat32),
+    (Name: 'white'; Value: clWhite32),
+    (Name: 'bisque'; Value: clBisque32),
+    (Name: 'indigo'; Value: clIndigo32),
+    (Name: 'maroon'; Value: clMaroon32),
+    (Name: 'orange'; Value: clOrange32),
+    (Name: 'orchid'; Value: clOrchid32),
+    (Name: 'purple'; Value: clPurple32),
+    (Name: 'salmon'; Value: clSalmon32),
+    (Name: 'sienna'; Value: clSienna32),
+    (Name: 'silver'; Value: clSilver32),
+    (Name: 'tomato'; Value: clTomato32),
+    (Name: 'violet'; Value: clViolet32),
+    (Name: 'yellow'; Value: clYellow32),
+    (Name: 'crimson'; Value: clCrimson32),
+    (Name: 'darkred'; Value: clDarkRed32),
+    (Name: 'dimgray'; Value: clDimGray32),
+    (Name: 'dimgrey'; Value: clDimGray32),
+    (Name: 'fuchsia'; Value: clFuchsia32),
+    (Name: 'hotpink'; Value: clHotPink32),
+    (Name: 'magenta'; Value: clFuchsia32),
+    (Name: 'oldlace'; Value: clOldLace32),
+    (Name: 'skyblue'; Value: clSkyblue32),
+    (Name: 'thistle'; Value: clThistle32),
+    (Name: 'cornsilk'; Value: clCornSilk32),
+    (Name: 'darkblue'; Value: clDarkBlue32),
+    (Name: 'darkcyan'; Value: clDarkCyan32),
+    (Name: 'darkgray'; Value: clDarkGray32),
+    (Name: 'darkgrey'; Value: clDarkGrey32),
+    (Name: 'deeppink'; Value: clDeepPink32),
+    (Name: 'honeydew'; Value: clHoneyDew32),
+    (Name: 'lavender'; Value: clLavender32),
+    (Name: 'moccasin'; Value: clMoccasin32),
+    (Name: 'seagreen'; Value: clSeaGreen32),
+    (Name: 'seashell'; Value: clSeaShell32),
+    (Name: 'aliceblue'; Value: clAliceBlue32),
+    (Name: 'burlywood'; Value: clBurlyWood32),
+    (Name: 'cadetblue'; Value: clCadetblue32),
+    (Name: 'chocolate'; Value: clChocolate32),
+    (Name: 'darkgreen'; Value: clDarkGreen32),
+    (Name: 'darkkhaki'; Value: clDarkKhaki32),
+    (Name: 'firebrick'; Value: clFireBrick32),
+    (Name: 'gainsboro'; Value: clGainsBoro32),
+    (Name: 'goldenrod'; Value: clGoldenRod32),
+    (Name: 'indianred'; Value: clIndianRed32),
+    (Name: 'lawngreen'; Value: clLawnGreen32),
+    (Name: 'lightblue'; Value: clLightBlue32),
+    (Name: 'lightcyan'; Value: clLightCyan32),
+    (Name: 'lightgray'; Value: clLightGray32),
+    (Name: 'lightgrey'; Value: clLightGrey32),
+    (Name: 'lightpink'; Value: clLightPink32),
+    (Name: 'limegreen'; Value: clLimeGreen32),
+    (Name: 'mintcream'; Value: clMintCream32),
+    (Name: 'mistyrose'; Value: clMistyRose32),
+    (Name: 'olivedrab'; Value: clOliveDrab32),
+    (Name: 'orangered'; Value: clOrangeRed32),
+    (Name: 'palegreen'; Value: clPaleGreen32),
+    (Name: 'peachpuff'; Value: clPeachPuff32),
+    (Name: 'rosybrown'; Value: clRosyBrown32),
+    (Name: 'royalblue'; Value: clRoyalBlue32),
+    (Name: 'slateblue'; Value: clSlateBlue32),
+    (Name: 'slategray'; Value: clSlateGray32),
+    (Name: 'slategrey'; Value: clSlateGrey32),
+    (Name: 'steelblue'; Value: clSteelblue32),
+    (Name: 'turquoise'; Value: clTurquoise32),
+    (Name: 'aquamarine'; Value: clAquamarine32),
+    (Name: 'blueviolet'; Value: clBlueViolet32),
+    (Name: 'chartreuse'; Value: clChartReuse32),
+    (Name: 'darkorange'; Value: clDarkOrange32),
+    (Name: 'darkorchid'; Value: clDarkOrchid32),
+    (Name: 'darksalmon'; Value: clDarkSalmon32),
+    (Name: 'darkviolet'; Value: clDarkViolet32),
+    (Name: 'dodgerblue'; Value: clDodgerBlue32),
+    (Name: 'ghostwhite'; Value: clGhostWhite32),
+    (Name: 'lightcoral'; Value: clLightCoral32),
+    (Name: 'lightgreen'; Value: clLightGreen32),
+    (Name: 'mediumblue'; Value: clMediumBlue32),
+    (Name: 'papayawhip'; Value: clPapayaWhip32),
+    (Name: 'powderblue'; Value: clPowderBlue32),
+    (Name: 'sandybrown'; Value: clSandyBrown32),
+    (Name: 'whitesmoke'; Value: clWhitesmoke32),
+    (Name: 'darkmagenta'; Value: clDarkMagenta32),
+    (Name: 'deepskyblue'; Value: clDeepSkyBlue32),
+    (Name: 'floralwhite'; Value: clFloralWhite32),
+    (Name: 'forestgreen'; Value: clForestGreen32),
+    (Name: 'greenyellow'; Value: clGreenYellow32),
+    (Name: 'lightsalmon'; Value: clLightSalmon32),
+    (Name: 'lightyellow'; Value: clLightYellow32),
+    (Name: 'navajowhite'; Value: clNavajoWhite32),
+    (Name: 'saddlebrown'; Value: clSaddleBrown32),
+    (Name: 'springgreen'; Value: clSpringgreen32),
+    (Name: 'transparent'; Value: clNone32),
+    (Name: 'yellowgreen'; Value: clYellowgreen32),
+    (Name: 'antiquewhite'; Value: clAntiqueWhite32),
+    (Name: 'darkseagreen'; Value: clDarkSeaGreen32),
+    (Name: 'lemonchiffon'; Value: clLemonChiffon32),
+    (Name: 'lightskyblue'; Value: clLightSkyblue32),
+    (Name: 'mediumorchid'; Value: clMediumOrchid32),
+    (Name: 'mediumpurple'; Value: clMediumPurple32),
+    (Name: 'midnightblue'; Value: clMidnightBlue32),
+    (Name: 'darkgoldenrod'; Value: clDarkGoldenRod32),
+    (Name: 'darkslateblue'; Value: clDarkSlateBlue32),
+    (Name: 'darkslategray'; Value: clDarkSlateGray32),
+    (Name: 'darkslategrey'; Value: clDarkSlateGrey32),
+    (Name: 'darkturquoise'; Value: clDarkTurquoise32),
+    (Name: 'lavenderblush'; Value: clLavenderBlush32),
+    (Name: 'lightseagreen'; Value: clLightSeagreen32),
+    (Name: 'palegoldenrod'; Value: clPaleGoldenRod32),
+    (Name: 'paleturquoise'; Value: clPaleTurquoise32),
+    (Name: 'palevioletred'; Value: clPaleVioletred32),
+    (Name: 'blanchedalmond'; Value: clBlancheDalmond32),
+    (Name: 'cornflowerblue'; Value: clCornFlowerBlue32),
+    (Name: 'darkolivegreen'; Value: clDarkOliveGreen32),
+    (Name: 'lightslategray'; Value: clLightSlategray32),
+    (Name: 'lightslategrey'; Value: clLightSlategrey32),
+    (Name: 'lightsteelblue'; Value: clLightSteelblue32),
+    (Name: 'mediumseagreen'; Value: clMediumSeaGreen32),
+    (Name: 'mediumslateblue'; Value: clMediumSlateBlue32),
+    (Name: 'mediumturquoise'; Value: clMediumTurquoise32),
+    (Name: 'mediumvioletred'; Value: clMediumVioletRed32),
+    (Name: 'mediumaquamarine'; Value: clMediumAquamarine32),
+    (Name: 'mediumspringgreen'; Value: clMediumSpringGreen32),
+    (Name: 'lightgoldenrodyellow'; Value: clLightGoldenRodYellow32)
   );
 
 function SvgColorNameToColor(const AName: TValuePUtf8Char; ADefault: TColor32): TColor32;
@@ -961,7 +1078,10 @@ var
   i: integer;
 begin
   for i := 0 to High(sColorNames) do
-    SvgColorNameDictionary.Add(sColorNames[i].Name, sColorNames[i].Color);
+    SvgColorNameDictionary.Add(sColorNames[i].Name, sColorNames[i].Value);
+
+  for i := 0 to High(sBlendModes) do
+    SvgBlendModeDictionary.Add(sBlendModes[i].Name, sBlendModes[i].Value);
 end;
 
 initialization

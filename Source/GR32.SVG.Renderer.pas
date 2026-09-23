@@ -79,6 +79,7 @@ type
     procedure RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
     procedure RenderMarker(AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); virtual; // Angle is in radians!
     procedure RenderMarkers(APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single); virtual;
+    procedure BlendOffscreenSurface(ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode); virtual;
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
@@ -110,7 +111,9 @@ uses
   GR32_Blend,
   GR32_Math,
   GR32_LowLevel,
-  GR32_Backends_Generic;
+  GR32_Backends_Generic,
+  GR32.Blend.Modes,
+  GR32.Blend.Modes.PhotoShop;
 
 function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
 var
@@ -131,6 +134,49 @@ begin
     Exit(False);
   Result := (Abs(AContour[0].X - AContour[len - 1].X) < 0.001) and
             (Abs(AContour[0].Y - AContour[len - 1].Y) < 0.001);
+end;
+
+function SvgBlendModeToBlenderClass(ABlendMode: TSvgBlendMode): TGraphics32BlenderClass;
+const
+  cBlendModeMap: array[TSvgBlendMode] of string = (
+    '',
+    cBlendMultiply,
+    cBlendScreen,
+    cBlendOverlay,
+    cBlendDarken,
+    cBlendLighten,
+    cBlendColorDodge,
+    cBlendColorBurn,
+    cBlendHardLight,
+    cBlendSoftLight,
+    cBlendDifference,
+    cBlendExclusion
+  );
+begin
+  Result := Graphics32BlendService.BlenderByID(cBlendModeMap[ABlendMode]);
+  if (Result = nil) then
+    Result := TGraphics32BlenderNormal;
+end;
+
+function GetEffectiveMixBlendMode(ANode: TSvgNode): TSvgBlendMode;
+var
+  Node: TSvgNode;
+begin
+  if ANode = nil then
+    Exit(bmNormal);
+
+  Node := ANode;
+  while (Node <> nil) do
+  begin
+    if (Node.MixBlendMode <> bmNormal) then
+      Exit(Node.MixBlendMode);
+
+    if (Node is TSvgGroupNode) and (TSvgGroupNode(Node).Isolation = isoIsolate) then
+      Break;
+
+    Node := Node.Parent;
+  end;
+  Result := bmNormal;
 end;
 
 { TSvgPatternPolygonFiller }
@@ -208,12 +254,19 @@ begin
     FPool.ExtractAt(BestIndex);
     Result.SetSize(AWidth, AHeight, AClear);
   end;
+
+  Result.MasterAlpha := 255;
+  Result.DrawMode := dmBlend;
+  Result.CombineMode := cmBlend;
 end;
 
 procedure TSvgBitmapPool.Release(ABitmap: TCustomBitmap32);
 begin
-  if ABitmap <> nil then
-    FPool.Add(ABitmap);
+  if ABitmap = nil then
+    exit;
+
+  FPool.Add(ABitmap);
+  ABitmap.OnPixelCombine := nil;
 end;
 
 procedure TSvgBitmapPool.Clear;
@@ -269,6 +322,45 @@ end;
 procedure TSvgRenderer.ApplyMatrix(const AMatrix: TFloatMatrix);
 begin
   FCurrentMatrix := Mult(FCurrentMatrix, AMatrix);
+end;
+
+procedure TSvgRenderer.BlendOffscreenSurface(ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode);
+var
+  BlenderClass: TGraphics32BlenderClass;
+  Blender: TCustomGraphics32Blender;
+  Combiner: TPixelCombineEvent;
+begin
+  if (ASource = nil) or (FTarget = nil) then
+    Exit;
+
+  if (ABlendMode <> bmNormal) then
+  begin
+    BlenderClass := SvgBlendModeToBlenderClass(ABlendMode);
+    if (BlenderClass <> nil) and (BlenderClass <> TGraphics32BlenderNormal) then
+    begin
+      Blender := BlenderClass.Create;
+      try
+        Blender.GetPixelCombiner(Combiner);
+
+        if Assigned(Combiner) then
+        begin
+          ASource.DrawMode := dmCustom;
+          ASource.OnPixelCombine := Combiner;
+
+          ASource.DrawTo(FTarget, 0, 0);
+
+          ASource.OnPixelCombine := nil;
+          exit;
+        end;
+      finally
+        Blender.Free;
+      end;
+    end;
+  end;
+
+  ASource.DrawMode := dmBlend;
+  ASource.CombineMode := cmBlend;
+  ASource.DrawTo(FTarget, 0, 0);
 end;
 
 
@@ -980,126 +1072,134 @@ end;
 procedure TSvgRenderer.RenderGroupNode(AGroupNode: TSvgGroupNode);
 var
   i, k: Integer;
-  offscreenBmp, clipMaskBmp, maskBmp: TCustomBitmap32;
-  savedTarget: TCustomBitmap32;
+  OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
+  SavedTarget: TCustomBitmap32;
   x: Integer;
-  srcP, dstP: PColor32;
-  gray: Byte;
-  clipNodeTarget: TSvgClipPathNode;
-  maskNodeTarget: TSvgMaskNode;
-  alphaVal: Byte;
-  oldMatrix: TFloatMatrix;
-  groupBounds, targetWorldBounds: TFloatRect;
-  pts: array[0..3] of TFloatPoint;
+  SourceP, DestP: PColor32;
+  Gray: Byte;
+  ClipNodeTarget: TSvgClipPathNode;
+  MaskNodeTarget: TSvgMaskNode;
+  AlphaVal: Byte;
+  OldMatrix: TFloatMatrix;
+  GroupBounds, TargetWorldBounds: TFloatRect;
+  Points: array[0..3] of TFloatPoint;
+const
+  OneOver255: Single = 1 / 255;
 begin
-  if AGroupNode = nil then
+  if (AGroupNode = nil) then
     Exit;
 
-  // Offscreen rendering required if Opacity < 1.0, ClipPathID <> '', or MaskID <> ''
-  if (AGroupNode.Opacity < 1.0) or (AGroupNode.ResolvedClipPath <> nil) or (AGroupNode.ResolvedMask <> nil) then
+  // Offscreen rendering required if we have transparency, a ClipPath, a Mask, or if Isolation = isoIsolate
+  if (AGroupNode.Opacity < 1.0) or (AGroupNode.ResolvedClipPath <> nil) or (AGroupNode.ResolvedMask <> nil) or
+     (AGroupNode.Isolation = isoIsolate) then
   begin
     if (FTarget = nil) then
       Exit;
 
     // Calculate group bounding box in world space for objectBoundingBox units
-    groupBounds := AGroupNode.GetObjectBoundingBox;
-    pts[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Top));
-    pts[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Top));
-    pts[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Bottom));
-    pts[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Bottom));
+    GroupBounds := AGroupNode.GetObjectBoundingBox;
+    Points[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Left, GroupBounds.Top));
+    Points[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Right, GroupBounds.Top));
+    Points[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Right, GroupBounds.Bottom));
+    Points[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Left, GroupBounds.Bottom));
 
-    targetWorldBounds := FloatRect(pts[0].X, pts[0].Y, pts[0].X, pts[0].Y);
+    TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
     for k := 1 to 3 do
     begin
-      if pts[k].X < targetWorldBounds.Left then targetWorldBounds.Left := pts[k].X;
-      if pts[k].X > targetWorldBounds.Right then targetWorldBounds.Right := pts[k].X;
-      if pts[k].Y < targetWorldBounds.Top then targetWorldBounds.Top := pts[k].Y;
-      if pts[k].Y > targetWorldBounds.Bottom then targetWorldBounds.Bottom := pts[k].Y;
+      if (Points[k].X < TargetWorldBounds.Left) then
+        TargetWorldBounds.Left := Points[k].X;
+      if (Points[k].X > TargetWorldBounds.Right) then
+        TargetWorldBounds.Right := Points[k].X;
+      if (Points[k].Y < TargetWorldBounds.Top) then
+        TargetWorldBounds.Top := Points[k].Y;
+      if (Points[k].Y > TargetWorldBounds.Bottom) then
+        TargetWorldBounds.Bottom := Points[k].Y;
     end;
 
     // Acquire reusable offscreen scratchpad surface from bitmap pool
-    offscreenBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
-    clipMaskBmp := nil;
-    maskBmp := nil;
+    OffscreenBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+    ClipMaskBmp := nil;
+    MaskBmp := nil;
     try
-      offscreenBmp.SetSize(FTarget.Width, FTarget.Height);
+      OffscreenBmp.SetSize(FTarget.Width, FTarget.Height);
 
-      savedTarget := FTarget;
-      FTarget := offscreenBmp;
+      SavedTarget := FTarget;
+      FTarget := OffscreenBmp;
       try
         for i := 0 to AGroupNode.Children.Count - 1 do
           RenderNode(AGroupNode.Children[i]);
       finally
-        FTarget := savedTarget;
+        FTarget := SavedTarget;
       end;
 
       // Apply ClipPath
-      if AGroupNode.ResolvedClipPath <> nil then
+      if (AGroupNode.ResolvedClipPath <> nil) then
       begin
-        clipNodeTarget := AGroupNode.ResolvedClipPath;
-        clipMaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        ClipNodeTarget := AGroupNode.ResolvedClipPath;
+        ClipMaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
 
-        oldMatrix := FCurrentMatrix;
-        RenderClipPathNode(clipNodeTarget, targetWorldBounds, clipMaskBmp);
-        FCurrentMatrix := oldMatrix;
+        OldMatrix := FCurrentMatrix;
+        RenderClipPathNode(ClipNodeTarget, TargetWorldBounds, ClipMaskBmp);
+        FCurrentMatrix := OldMatrix;
 
-        srcP := PColor32(offscreenBmp.Bits);
-        dstP := PColor32(clipMaskBmp.Bits);
-        for x := 0 to offscreenBmp.PixelCount - 1 do
+        SourceP := PColor32(OffscreenBmp.Bits);
+        DestP := PColor32(ClipMaskBmp.Bits);
+        for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
-          alphaVal := AlphaComponent(dstP^);
-          if alphaVal < 255 then
-            ScaleAlpha(srcP^, alphaVal / 255.0);
-          Inc(srcP);
-          Inc(dstP);
+          AlphaVal := AlphaComponent(DestP^);
+          if AlphaVal < 255 then
+            ScaleAlpha(SourceP^, AlphaVal * OneOver255);
+          Inc(SourceP);
+          Inc(DestP);
         end;
       end;
 
       // Apply Alpha Mask
-      if AGroupNode.ResolvedMask <> nil then
+      if (AGroupNode.ResolvedMask <> nil) then
       begin
-        maskNodeTarget := AGroupNode.ResolvedMask;
-        maskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, False);
+        MaskNodeTarget := AGroupNode.ResolvedMask;
+        MaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, False);
 
-        oldMatrix := FCurrentMatrix;
-        RenderMaskNode(maskNodeTarget, targetWorldBounds, maskBmp);
-        FCurrentMatrix := oldMatrix;
+        OldMatrix := FCurrentMatrix;
+        RenderMaskNode(MaskNodeTarget, TargetWorldBounds, MaskBmp);
+        FCurrentMatrix := OldMatrix;
 
-        srcP := PColor32(offscreenBmp.Bits);
-        dstP := PColor32(maskBmp.Bits);
-        for x := 0 to offscreenBmp.PixelCount - 1 do
+        SourceP := PColor32(OffscreenBmp.Bits);
+        DestP := PColor32(MaskBmp.Bits);
+        for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
           // Grayscale luminance conversion: Y = 0.299 R + 0.587 G + 0.114 B
-          gray := Intensity(dstP^);
-          gray := Round(gray * (AlphaComponent(dstP^) / 255.0));
-          ScaleAlpha(srcP^, gray / 255.0);
-          Inc(srcP);
-          Inc(dstP);
+          Gray := Intensity(DestP^);
+          Gray := Round(Gray * (AlphaComponent(DestP^) / 255.0));
+          ScaleAlpha(SourceP^, Gray / 255.0);
+          Inc(SourceP);
+          Inc(DestP);
         end;
       end;
 
       // Apply Group Opacity and blend to parent target
-      if AGroupNode.Opacity < 1.0 then
+      // TODO : We could use OffscreenBmp.MasterAlpha for this but it's probably more
+      // efficient, and precise, do do it here.
+      if (AGroupNode.Opacity < 1.0) then
       begin
-        srcP := PColor32(offscreenBmp.Bits);
-        for x := 0 to offscreenBmp.PixelCount - 1 do
+        SourceP := PColor32(OffscreenBmp.Bits);
+        for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
-          ScaleAlpha(srcP^, AGroupNode.Opacity);
-          Inc(srcP);
+          ScaleAlpha(SourceP^, AGroupNode.Opacity);
+          Inc(SourceP);
         end;
       end;
 
-      // Blend offscreen surface onto main target
-      offscreenBmp.DrawMode := dmBlend;
-      offscreenBmp.CombineMode := cmBlend;
-      offscreenBmp.DrawTo(FTarget, 0, 0);
+      // Blend offscreen surface onto main target using group's MixBlendMode
+      BlendOffscreenSurface(OffscreenBmp, AGroupNode.MixBlendMode);
 
     finally
       // Release surfaces back to bitmap surface pool for reuse in subsequent groups/frames
-      ReleaseOffscreenBitmap(offscreenBmp);
-      ReleaseOffscreenBitmap(clipMaskBmp);
-      ReleaseOffscreenBitmap(maskBmp);
+      ReleaseOffscreenBitmap(OffscreenBmp);
+      ReleaseOffscreenBitmap(ClipMaskBmp);
+      ReleaseOffscreenBitmap(MaskBmp);
     end;
+
     Exit;
   end;
 
@@ -1108,12 +1208,48 @@ begin
 end;
 
 procedure TSvgRenderer.RenderNode(ANode: TSvgNode);
+var
+  OffscreenBmp, SavedTarget: TCustomBitmap32;
+  EffectiveBlendMode: TSvgBlendMode;
 begin
   if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) then
     Exit;
 
+  EffectiveBlendMode := GetEffectiveMixBlendMode(ANode);
+
+  // Non-group renderable nodes with non-normal effective blend mode composite via an offscreen surface
+  if (not (ANode is TSvgGroupNode)) and (EffectiveBlendMode <> bmNormal) and (FTarget <> nil) then
+  begin
+    OffscreenBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+    try
+      SavedTarget := FTarget;
+      FTarget := OffscreenBmp;
+      try
+        PushMatrix;
+        try
+
+          ApplyMatrix(ANode.Transform);
+
+          if ANode is TSvgPathNode then
+            RenderPathNode(TSvgPathNode(ANode));
+
+        finally
+          PopMatrix;
+        end;
+      finally
+        FTarget := SavedTarget;
+      end;
+
+      BlendOffscreenSurface(OffscreenBmp, EffectiveBlendMode);
+    finally
+      ReleaseOffscreenBitmap(OffscreenBmp);
+    end;
+    Exit;
+  end;
+
   PushMatrix;
   try
+
     ApplyMatrix(ANode.Transform);
 
     if ANode is TSvgPathNode then
@@ -1121,6 +1257,7 @@ begin
     else
     if ANode is TSvgGroupNode then
       RenderGroupNode(TSvgGroupNode(ANode));
+
   finally
     PopMatrix;
   end;

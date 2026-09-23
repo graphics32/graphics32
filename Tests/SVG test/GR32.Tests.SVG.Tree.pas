@@ -61,6 +61,7 @@ type
     procedure TestMarkerParsingAndTreeStructure;
     procedure TestGetObjectBoundingBox;
     procedure TestResolvedReferencesInTree;
+    procedure TestMixBlendModeAndIsolationParsing;
   end;
 
 implementation
@@ -649,6 +650,55 @@ begin
     CheckEquals(20.0, box.Top, 1E-4, 'docNode Top');
     CheckEquals(230.0, box.Right, 1E-4, 'docNode Right');
     CheckEquals(230.0, box.Bottom, 1E-4, 'docNode Bottom');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestMixBlendModeAndIsolationParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  g1, g2, p1, p2, p3: TSvgNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <style>' +
+         '    .multiply-style { mix-blend-mode: multiply; }' +
+         '    .isolate-style { isolation: isolate; }' +
+         '  </style>' +
+         '  <g id="g1" mix-blend-mode="screen" isolation="isolate">' +
+         '    <rect id="p1" width="10" height="10" mix-blend-mode="color-dodge"/>' +
+         '    <rect id="p2" class="multiply-style" width="10" height="10"/>' +
+         '  </g>' +
+         '  <g id="g2" class="isolate-style">' +
+         '    <rect id="p3" width="10" height="10" style="mix-blend-mode: hard-light; isolation: isolate;"/>' +
+         '  </g>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    g1 := docNode.FindNodeById('g1');
+    Check(g1 <> nil, 'g1 should exist');
+    CheckEquals(Ord(bmScreen), Ord(g1.MixBlendMode), 'g1 mix-blend-mode should be screen');
+    CheckEquals(Ord(isoIsolate), Ord(g1.Isolation), 'g1 isolation should be isolate');
+
+    p1 := docNode.FindNodeById('p1');
+    Check(p1 <> nil, 'p1 should exist');
+    CheckEquals(Ord(bmColorDodge), Ord(p1.MixBlendMode), 'p1 mix-blend-mode should be color-dodge');
+
+    p2 := docNode.FindNodeById('p2');
+    Check(p2 <> nil, 'p2 should exist');
+    CheckEquals(Ord(bmMultiply), Ord(p2.MixBlendMode), 'p2 mix-blend-mode should be multiply from CSS stylesheet');
+
+    g2 := docNode.FindNodeById('g2');
+    Check(g2 <> nil, 'g2 should exist');
+    CheckEquals(Ord(isoIsolate), Ord(g2.Isolation), 'g2 isolation should be isolate from CSS stylesheet');
+
+    p3 := docNode.FindNodeById('p3');
+    Check(p3 <> nil, 'p3 should exist');
+    CheckEquals(Ord(bmHardLight), Ord(p3.MixBlendMode), 'p3 mix-blend-mode should be hard-light from inline style');
+    CheckEquals(Ord(isoIsolate), Ord(p3.Isolation), 'p3 isolation should be isolate from inline style');
   finally
     docNode.Free;
   end;
