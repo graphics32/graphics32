@@ -128,6 +128,7 @@ object FormSVGviewer: TFormSVGviewer
           ScrollBars = ssBoth
           TabOrder = 2
           OnChange = MemoSourceChange
+          OnKeyPress = MemoSourceKeyPress
         end
         object Button1: TButton
           Left = 559
@@ -159,6 +160,7 @@ object FormSVGviewer: TFormSVGviewer
           ScrollBars = ssBoth
           TabOrder = 0
           OnChange = MemoSourceChange
+          OnKeyPress = MemoSourceKeyPress
         end
       end
       object TabSheetDump: TTabSheet
@@ -170,6 +172,7 @@ object FormSVGviewer: TFormSVGviewer
           Width = 637
           Height = 553
           Align = alClient
+          BorderStyle = bsNone
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
@@ -179,6 +182,7 @@ object FormSVGviewer: TFormSVGviewer
           ReadOnly = True
           ScrollBars = ssBoth
           TabOrder = 0
+          OnKeyPress = MemoSourceKeyPress
         end
       end
     end

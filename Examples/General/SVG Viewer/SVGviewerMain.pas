@@ -68,6 +68,7 @@ type
     procedure Button1Click(Sender: TObject);
     procedure SplitterMemoCanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
     procedure SplitterMemoBeforeResize(Sender: TObject);
+    procedure MemoSourceKeyPress(Sender: TObject; var Key: Char);
   private
     FDocNode: TSvgDocumentNode;
     FLockUpdate: integer;
@@ -83,6 +84,7 @@ var
 implementation
 
 uses
+  Messages,
   IOUtils,
   GR32_System,
   GR32.SVG.Types,
@@ -156,28 +158,34 @@ begin
   end;
 end;
 
+procedure TFormSVGviewer.MemoSourceKeyPress(Sender: TObject; var Key: Char);
+begin
+  if (Key = ^A) then
+  begin
+    TMemo(Sender).SelStart := Length(TMemo(Sender).Text);
+    TMemo(Sender).Perform(EM_SCROLLCARET, 0, 0);
+    TMemo(Sender).SelectAll;
+    Key := #0;
+  end;
+end;
+
 procedure TFormSVGviewer.RenderSvg(const ASource: string);
 var
   xmlText: UTF8String;
   renderer: TSvgRenderer;
-  drawWidth, drawHeight: Integer;
   ErrorMessage: string;
   StopWatch: TStopWatch;
   TimeParse, TimeRender: Int64;
+  NaturalWidth, NaturalHeight: Single;
 begin
   if FDocNode <> nil then
     FreeAndNil(FDocNode);
 
   xmlText := UTF8String(ASource);
 
-  drawWidth := Image32.ClientWidth;
-  drawHeight := Image32.ClientHeight;
-  if drawWidth <= 0 then
-    drawWidth := 600;
-  if drawHeight <= 0 then
-    drawHeight := 600;
+  Image32.Scale := 1.0;
+  Image32.SetupBitmap(True, 0);
 
-  Image32.Bitmap.SetSize(drawWidth, drawHeight);
   Image32.ScrollToCenter;
 
   StopWatch := TStopWatch.StartNew;
@@ -217,14 +225,26 @@ begin
   try
     StopWatch := TStopWatch.StartNew;
 
-    renderer.RenderDocument(FDocNode, FloatRect(0, 0, drawWidth, drawHeight));
+    renderer.RenderDocument(FDocNode, Image32.GetBitmapRect);
 
     TimeRender := StopWatch.ElapsedMilliseconds;
   finally
     renderer.Free;
   end;
 
-  StatusBar.SimpleText := Format('Parsed in %d mS, Rendered in %d mS', [TimeParse, TimeRender]);
+
+  // Convert width and height presentation attributes to pixels
+  NaturalWidth := FDocNode.Width.ToPixels(0, Self.Monitor.PixelsPerInch);
+  NaturalHeight := FDocNode.Height.ToPixels(0, Self.Monitor.PixelsPerInch);
+
+  // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
+  if (NaturalWidth <= 0) and FDocNode.ViewBox.IsValid then
+    NaturalWidth := FDocNode.ViewBox.Width;
+
+  if (NaturalHeight <= 0) and FDocNode.ViewBox.IsValid then
+    NaturalHeight := FDocNode.ViewBox.Height;
+
+  StatusBar.SimpleText := Format('Parsed in %d mS, Rendered in %d mS. Size: %.1n x %.1n', [TimeParse, TimeRender, NaturalWidth, NaturalHeight]);
 end;
 
 procedure TFormSVGviewer.SplitterClicked(Sender: TObject);
