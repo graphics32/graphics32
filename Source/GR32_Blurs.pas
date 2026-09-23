@@ -45,9 +45,9 @@ uses
     SysUtils, Classes, Math, GR32, GR32.Blur;
 
 type
-  TBlurFunction = procedure(Bitmap32: TBitmap32; Radius: TFloat);
-  TBlurFunctionBounds = procedure(Bitmap32: TBitmap32; Radius: TFloat; const Bounds: TRect);
-  TBlurFunctionRegion = procedure(Bitmap32: TBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint);
+  TBlurFunction = procedure(Bitmap32: TCustomBitmap32; Radius: TFloat);
+  TBlurFunctionBounds = procedure(Bitmap32: TCustomBitmap32; Radius: TFloat; const Bounds: TRect);
+  TBlurFunctionRegion = procedure(Bitmap32: TCustomBitmap32; Radius: TFloat; const BlurRegion: TArrayOfFloatPoint);
 
 (*
 

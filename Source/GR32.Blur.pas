@@ -72,16 +72,16 @@ uses
 //   Sigma = Radius * GaussianRadiusToSigma
 //
 //------------------------------------------------------------------------------
-procedure Blur32(ASource, ADest: TBitmap32; Radius: TFloat); overload;
-procedure Blur32(Bitmap: TBitmap32; Radius: TFloat); overload;
-procedure Blur32(Bitmap: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure Blur32(Bitmap: TBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint); overload;
+procedure Blur32(ASource, ADest: TCustomBitmap32; Radius: TFloat); overload;
+procedure Blur32(Bitmap: TCustomBitmap32; Radius: TFloat); overload;
+procedure Blur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Bounds: TRect); overload;
+procedure Blur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint); overload;
 
 // Variants that take Gamma into acount
-procedure GammaBlur32(ASource, ADest: TBitmap32; Radius: TFloat); overload;
-procedure GammaBlur32(Bitmap: TBitmap32; Radius: TFloat); overload;
-procedure GammaBlur32(Bitmap: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
-procedure GammaBlur32(Bitmap: TBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint); overload;
+procedure GammaBlur32(ASource, ADest: TCustomBitmap32; Radius: TFloat); overload;
+procedure GammaBlur32(Bitmap: TCustomBitmap32; Radius: TFloat); overload;
+procedure GammaBlur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Bounds: TRect); overload;
+procedure GammaBlur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint); overload;
 
 
 const
@@ -94,8 +94,8 @@ var
 
 // Bindings
 type
-  TBlur32Proc = procedure(ASource, ADest: TBitmap32; Radius: TFloat);
-  TBlurInplace32Proc = procedure(Bitmap: TBitmap32; Radius: TFloat);
+  TBlur32Proc = procedure(ASource, ADest: TCustomBitmap32; Radius: TFloat);
+  TBlurInplace32Proc = procedure(Bitmap: TCustomBitmap32; Radius: TFloat);
 
 var
   Blur32Proc: TBlur32Proc;
@@ -149,8 +149,8 @@ var
 ** implementations has not been included and the bindings are not made available.
 
 type
-  TBoxBlur32Proc = procedure(ASource, ADest: TBitmap32; Radius: integer);
-  TBoxBlurDiscrete32Proc = procedure(ASource, ADest: TBitmap32; Radius: integer; Passes: integer = 3);
+  TBoxBlur32Proc = procedure(ASource, ADest: TCustomBitmap32; Radius: integer);
+  TBoxBlurDiscrete32Proc = procedure(ASource, ADest: TCustomBitmap32; Radius: integer; Passes: integer = 3);
 
 var
   BoxBlur32: TBoxBlur32Proc deprecated;
@@ -208,11 +208,11 @@ end;
 // Abstract blur of region.
 // Handles both with and without gamma via delegates.
 //------------------------------------------------------------------------------
-procedure BlurRegion32(Bitmap: TBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint; BlurDelegate: TBlur32Proc; BlurInplaceDelegate: TBlurInplace32Proc);
+procedure BlurRegion32(Bitmap: TCustomBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint; BlurDelegate: TBlur32Proc; BlurInplaceDelegate: TBlurInplace32Proc);
 var
   Bounds: TRect;
   BlurBlock: boolean;
-  Dest: TBitmap32;
+  Dest: TCustomBitmap32;
   Points: TArrayOfArrayOfFloatPoint;
   Filler: TBitmapPolygonFiller;
 begin
@@ -285,9 +285,9 @@ end;
 // Abstract blur of rectangular area.
 // Handles both with and without gamma via delegates.
 //------------------------------------------------------------------------------
-procedure BlurRect32(Bitmap: TBitmap32; Radius: TFloat; const Bounds: TRect; BlurDelegate: TBlur32Proc; BlurInplaceDelegate: TBlurInplace32Proc);
+procedure BlurRect32(Bitmap: TCustomBitmap32; Radius: TFloat; const Bounds: TRect; BlurDelegate: TBlur32Proc; BlurInplaceDelegate: TBlurInplace32Proc);
 var
-  Dest: TBitmap32;
+  Dest: TCustomBitmap32;
   Points: TArrayOfFloatPoint;
 begin
   // If we are blurring less than 75% of the bitmap, do it via a temporary bitmap
@@ -320,7 +320,7 @@ end;
 //------------------------------------------------------------------------------
 // Blur32 API
 //------------------------------------------------------------------------------
-procedure Blur32(ASource, ADest: TBitmap32; Radius: TFloat);
+procedure Blur32(ASource, ADest: TCustomBitmap32; Radius: TFloat);
 begin
   if (Radius < Blur32MinRadius) then
   begin
@@ -339,9 +339,9 @@ begin
     raise Exception.Create('Missing Blur32 implementation');
 end;
 
-procedure Blur32(Bitmap: TBitmap32; Radius: TFloat);
+procedure Blur32(Bitmap: TCustomBitmap32; Radius: TFloat);
 var
-  Dest: TBitmap32;
+  Dest: TCustomBitmap32;
 begin
   if (Radius < Blur32MinRadius) then
     exit;
@@ -362,7 +362,7 @@ begin
     raise Exception.Create('Missing Blur32 implementation');
 end;
 
-procedure Blur32(Bitmap: TBitmap32; Radius: TFloat; const Bounds: TRect);
+procedure Blur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Bounds: TRect);
 begin
   if (Radius < Blur32MinRadius) then
     exit;
@@ -371,7 +371,7 @@ begin
 end;
 
 
-procedure Blur32(Bitmap: TBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint);
+procedure Blur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint);
 begin
   if (Radius < Blur32MinRadius) then
     exit;
@@ -381,7 +381,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure GammaBlur32(ASource, ADest: TBitmap32; Radius: TFloat);
+procedure GammaBlur32(ASource, ADest: TCustomBitmap32; Radius: TFloat);
 begin
   if (Radius < Blur32MinRadius) then
   begin
@@ -400,9 +400,9 @@ begin
     raise Exception.Create('Missing GammaBlur32 implementation');
 end;
 
-procedure GammaBlur32(Bitmap: TBitmap32; Radius: TFloat);
+procedure GammaBlur32(Bitmap: TCustomBitmap32; Radius: TFloat);
 var
-  Dest: TBitmap32;
+  Dest: TCustomBitmap32;
 begin
   if (Radius < Blur32MinRadius) then
     exit;
@@ -423,7 +423,7 @@ begin
     raise Exception.Create('Missing GammaBlur32 implementation');
 end;
 
-procedure GammaBlur32(Bitmap: TBitmap32; Radius: TFloat; const Bounds: TRect);
+procedure GammaBlur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Bounds: TRect);
 begin
   if (Radius < Blur32MinRadius) then
     exit;
@@ -431,7 +431,7 @@ begin
   BlurRect32(Bitmap, Radius, Bounds, GammaBlur32, GammaBlur32);
 end;
 
-procedure GammaBlur32(Bitmap: TBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint);
+procedure GammaBlur32(Bitmap: TCustomBitmap32; Radius: TFloat; const Region: TArrayOfFloatPoint);
 begin
   if (Radius < Blur32MinRadius) then
     exit;
@@ -445,12 +445,12 @@ end;
 //      Bindings
 //
 //------------------------------------------------------------------------------
-procedure Blur32NotImplemented(ASource, ADest: TBitmap32; Radius: TFloat);
+procedure Blur32NotImplemented(ASource, ADest: TCustomBitmap32; Radius: TFloat);
 begin
   raise Exception.Create('This blur function has not been implemented');
 end;
 
-procedure BlurInplace32NotImplemented(Bitmap: TBitmap32; Radius: TFloat);
+procedure BlurInplace32NotImplemented(Bitmap: TCustomBitmap32; Radius: TFloat);
 begin
   raise Exception.Create('This blur function has not been implemented');
 end;
