@@ -62,6 +62,7 @@ type
     procedure TestGetObjectBoundingBox;
     procedure TestResolvedReferencesInTree;
     procedure TestMixBlendModeAndIsolationParsing;
+    procedure TestSymbolParsingAndUseResolution;
   end;
 
 implementation
@@ -699,6 +700,46 @@ begin
     Check(p3 <> nil, 'p3 should exist');
     CheckEquals(Ord(bmHardLight), Ord(p3.MixBlendMode), 'p3 mix-blend-mode should be hard-light from inline style');
     CheckEquals(Ord(isoIsolate), Ord(p3.Isolation), 'p3 isolation should be isolate from inline style');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestSymbolParsingAndUseResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  symNode: TSvgSymbolNode;
+  useNode: TSvgUseNode;
+  clonedInstance: TSvgNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <symbol id="mySymbol" viewBox="0 0 20 20" width="20" height="20">' +
+         '      <circle id="symCircle" cx="10" cy="10" r="10" fill="red"/>' +
+         '    </symbol>' +
+         '  </defs>' +
+         '  <use id="symUse" href="#mySymbol" x="50" y="50" width="40" height="40"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    symNode := TSvgSymbolNode(docNode.FindNodeById('mySymbol'));
+    Check(symNode <> nil, 'mySymbol node should exist');
+    Check(not symNode.IsRenderable, 'Symbol template should not be renderable directly');
+    Check(symNode.ViewBox.IsValid, 'Symbol viewBox should be valid');
+    CheckEquals(20.0, symNode.ViewBox.Width, 1E-4);
+    CheckEquals(20.0, symNode.ViewBox.Height, 1E-4);
+
+    useNode := TSvgUseNode(docNode.FindNodeById('symUse'));
+    Check(useNode <> nil, 'symUse node should exist');
+    CheckEquals(1, useNode.Children.Count, 'useNode should contain 1 expanded symbol instance child');
+
+    clonedInstance := useNode.Children[0];
+    Check(clonedInstance.IsRenderable, 'Symbol instance child inside <use> should be renderable');
+    Check(clonedInstance is TSvgGroupNode, 'Symbol instance should be a TSvgGroupNode container');
+    CheckEquals(1, TSvgGroupNode(clonedInstance).Children.Count, 'Symbol instance should contain circle child');
   finally
     docNode.Free;
   end;

@@ -60,6 +60,7 @@ type
     procedure TestMarkerRendering;
     procedure TestObjectBoundingBoxMaskAndGradient;
     procedure TestMixBlendModeAndIsolationRendering;
+    procedure TestSymbolRendering;
   end;
 
 implementation
@@ -810,6 +811,53 @@ begin
       docNode.Free;
     end;
 
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestSymbolRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <symbol id="mySymbol" viewBox="0 0 20 20">' +
+           '      <circle cx="10" cy="10" r="10" fill="red"/>' +
+           '    </symbol>' +
+           '  </defs>' +
+           '  <use href="#mySymbol" x="50" y="50" width="100" height="100"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Check top-left corner (0,0) where <defs> symbol template was defined - must remain white background!
+        CheckEquals(clWhite32, bmp.Pixel[10, 10], 'Unreferenced symbol template must not render at top-left origin');
+
+        // Check center of instantiated symbol at x=50, y=50, width=100, height=100 (center at 100, 100)
+        CheckEquals(clRed32, bmp.Pixel[100, 100], 'Center of instantiated symbol at (100,100) should be rendered red');
+
+        // Check outside instantiated symbol bounds (e.g. 10, 100)
+        CheckEquals(clWhite32, bmp.Pixel[10, 100], 'Outside instantiated symbol bounds must remain white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
   finally
     bmp.Free;
   end;

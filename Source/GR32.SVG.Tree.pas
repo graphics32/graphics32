@@ -442,11 +442,41 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
   end;
 
+  TSvgSymbolNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
+  TSvgSymbolInstanceNode = class(TSvgGroupNode)
+  protected
+    function GetIsRenderable: Boolean; override;
+  end;
+
   TSvgUseNode = class(TSvgGroupNode)
   private
     FHref: string;
     FX: Single;
     FY: Single;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
   public
@@ -456,6 +486,8 @@ type
     property Href: string read FHref write FHref;
     property X: Single read FX write FX;
     property Y: Single read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
   end;
 
 // Primitive Shape Converters
@@ -490,12 +522,12 @@ uses
 
 type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
-    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon);
+    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'Svg', 'G', 'Use', 'Defs', 'Stop', 'Mask', 'Path', 'Rect', 'Line', 'Style', 'Circle',
-    'Lineargradient', 'Radialgradient', 'Clippath', 'Pattern', 'Marker', 'Ellipse', 'Polyline', 'Polygon'
+    'Lineargradient', 'Radialgradient', 'Clippath', 'Pattern', 'Marker', 'Ellipse', 'Polyline', 'Polygon', 'Symbol'
   );
 
 var
@@ -2180,12 +2212,150 @@ end;
 
 { TSvgUseNode }
 
+{ TSvgSymbolNode }
+
+function TSvgSymbolNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
+constructor TSvgSymbolNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX := TSvgLength.Create(0.0, suPx);
+  FY := TSvgLength.Create(0.0, suPx);
+  FWidth := TSvgLength.Create(0.0, suPx);
+  FHeight := TSvgLength.Create(0.0, suPx);
+  FViewBox.IsDefined := False;
+  FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
+end;
+
+function TSvgSymbolNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  Instance: TSvgSymbolInstanceNode;
+  SymbolClone: TSvgSymbolNode;
+  i: Integer;
+  UseNode: TSvgUseNode;
+  w, h: Single;
+  ViewMat: TFloatMatrix;
+  TargetRect: TFloatRect;
+begin
+  if AParent is TSvgUseNode then
+  begin
+    UseNode := TSvgUseNode(AParent);
+    Instance := TSvgSymbolInstanceNode.Create(AParent);
+    Instance.FID := FID;
+    Instance.FCssClassName := FCssClassName;
+    Instance.FStyleAttr := FStyleAttr;
+    Instance.FTransform := FTransform;
+    Instance.FVisible := FVisible;
+    Instance.FMixBlendMode := FMixBlendMode;
+    Instance.FIsolation := FIsolation;
+    Instance.FOpacity := FOpacity;
+
+    FFill.ApplySpecified(Instance.FFill);
+    FStroke.ApplySpecified(Instance.FStroke);
+
+    w := 0;
+    h := 0;
+    if UseNode <> nil then
+    begin
+      if UseNode.Width.Value > 0 then
+        w := UseNode.Width.ToPixels
+      else
+        w := FWidth.ToPixels;
+
+      if UseNode.Height.Value > 0 then
+        h := UseNode.Height.ToPixels
+      else
+        h := FHeight.ToPixels;
+    end;
+
+    if (w <= 0) and FViewBox.IsValid then
+      w := FViewBox.Width;
+    if (h <= 0) and FViewBox.IsValid then
+      h := FViewBox.Height;
+
+    if FViewBox.IsValid and (w > 0) and (h > 0) then
+    begin
+      TargetRect := FloatRect(0, 0, w, h);
+      ViewMat := FViewBox.GetTransform(TargetRect, FPreserveAspectRatio);
+      Instance.FTransform := ViewMat * TFloatMatrixHelper(Instance.FTransform);
+    end;
+
+    for i := 0 to Children.Count - 1 do
+      Instance.AddChild(Children[i].Clone(Instance));
+
+    Result := Instance;
+  end else
+  begin
+    SymbolClone := TSvgSymbolNode.Create(AParent);
+    SymbolClone.FID := FID;
+    SymbolClone.FCssClassName := FCssClassName;
+    SymbolClone.FStyleAttr := FStyleAttr;
+    SymbolClone.FTransform := FTransform;
+    SymbolClone.FVisible := FVisible;
+    SymbolClone.FMixBlendMode := FMixBlendMode;
+    SymbolClone.FIsolation := FIsolation;
+    SymbolClone.FOpacity := FOpacity;
+    SymbolClone.FX := FX;
+    SymbolClone.FY := FY;
+    SymbolClone.FWidth := FWidth;
+    SymbolClone.FHeight := FHeight;
+    SymbolClone.FViewBox := FViewBox;
+    SymbolClone.FPreserveAspectRatio := FPreserveAspectRatio;
+
+    FFill.ApplySpecified(SymbolClone.FFill);
+    FStroke.ApplySpecified(SymbolClone.FStroke);
+
+    for i := 0 to Children.Count - 1 do
+      SymbolClone.AddChild(Children[i].Clone(SymbolClone));
+
+    Result := SymbolClone;
+  end;
+end;
+
+procedure TSvgSymbolNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'x' then FX := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'y' then FY := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'width' then FWidth := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'height' then FHeight := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'viewbox' then FViewBox := TSvgViewBox.Parse(lowerVal)
+  else if lowerName = 'preserveaspectratio' then FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(lowerVal)
+  else inherited ParseAttribute(AName, AValue);
+end;
+
+function TSvgSymbolNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  if FViewBox.IsValid then
+    Result := Result + Format(' (viewBox="%s %s %s %s")',
+      [FloatToString(FViewBox.X), FloatToString(FViewBox.Y), FloatToString(FViewBox.Width), FloatToString(FViewBox.Height)]);
+end;
+
+{ TSvgSymbolInstanceNode }
+
+function TSvgSymbolInstanceNode.GetIsRenderable: Boolean;
+begin
+  Result := True;
+end;
+
+{ TSvgUseNode }
+
 constructor TSvgUseNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
   FHref := '';
   FX := 0;
   FY := 0;
+  FWidth := TSvgLength.Create(0.0, suPx);
+  FHeight := TSvgLength.Create(0.0, suPx);
 end;
 
 function TSvgUseNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -2196,6 +2366,8 @@ begin
   useRes.FHref := FHref;
   useRes.FX := FX;
   useRes.FY := FY;
+  useRes.FWidth := FWidth;
+  useRes.FHeight := FHeight;
   Result := useRes;
 end;
 
@@ -2209,16 +2381,22 @@ begin
 
   if (lowerName = 'href') or (lowerName = 'xlink:href') then
     FHref := lowerVal
-  else if lowerName = 'x' then
+  else
+  if lowerName = 'x' then
   begin
     if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
       FX := valFloat;
-  end
-  else if lowerName = 'y' then
+  end else
+  if lowerName = 'y' then
   begin
     if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
       FY := valFloat;
-  end
+  end else
+  if lowerName = 'width' then
+    FWidth := TSvgLength.Parse(lowerVal)
+  else
+  if lowerName = 'height' then
+    FHeight := TSvgLength.Parse(lowerVal)
   else
     inherited ParseAttribute(AName, AValue);
 end;
@@ -2851,6 +3029,12 @@ var
         tagMarker:
           begin
             node := TSvgMarkerNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagSymbol:
+          begin
+            node := TSvgSymbolNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
