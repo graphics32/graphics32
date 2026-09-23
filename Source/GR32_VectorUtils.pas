@@ -1708,6 +1708,13 @@ begin
   V := 0;
   for I := 0 to High(DashArray) do
     V := V + DashArray[I];
+  // Guard against DashArray=[0, 0] -> Out of Memory
+  if (V = 0) then
+  begin
+    Setlength(Result, 1);
+    Result[0] := Points;
+    Exit;
+  end;
   DashOffset := Wrap(DashOffset, V);
 
   DashOffset := DashOffset - V;
