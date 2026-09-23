@@ -83,7 +83,6 @@ type
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
     function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect): TCustomPolygonFiller;
-    function ExtractUrlId(const AUrlStr: string): string;
     function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
     procedure ReleaseOffscreenBitmap(ABitmap: TCustomBitmap32);
   public
@@ -272,29 +271,6 @@ begin
   FCurrentMatrix := Mult(FCurrentMatrix, AMatrix);
 end;
 
-function TSvgRenderer.ExtractUrlId(const AUrlStr: string): string;
-var
-  pStart, pEnd: Integer;
-begin
-  Result := Trim(AUrlStr);
-  pStart := Pos('url(', LowerCase(Result));
-  if pStart > 0 then
-  begin
-    Delete(Result, 1, pStart + 3);
-    pEnd := Pos(')', Result);
-    if pEnd > 0 then
-      Result := Copy(Result, 1, pEnd - 1);
-    Result := Trim(Result);
-    if (Length(Result) > 0) and (Result[1] in ['"', '''']) then
-    begin
-      Delete(Result, 1, 1);
-      if (Length(Result) > 0) and (Result[Length(Result)] in ['"', '''']) then
-        Delete(Result, Length(Result), 1);
-    end;
-  end;
-  if (Length(Result) > 0) and (Result[1] = '#') then
-    Delete(Result, 1, 1);
-end;
 
 function TSvgRenderer.GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 var
@@ -617,34 +593,28 @@ begin
   polyRenderer := DefaultPolygonRendererClass.Create(FTarget);
   try
     // 1. Fill Rendering
-    if APathNode.Fill.Url <> '' then
+    if APathNode.Fill.ResolvedPaintServer <> nil then
     begin
-      urlId := ExtractUrlId(APathNode.Fill.Url);
+      targetNode := TSvgNode(APathNode.Fill.ResolvedPaintServer);
+      filler := nil;
+      if targetNode is TSvgGradientNode then
+        filler := CreateGradientFiller(TSvgGradientNode(targetNode), bounds)
+      else
+      if targetNode is TSvgPatternNode then
+        filler := CreatePatternFiller(TSvgPatternNode(targetNode), bounds);
 
-      if (FDocumentRoot <> nil) then
+      if filler <> nil then
       begin
-        targetNode := FDocumentRoot.FindNodeById(urlId);
-
-        filler := nil;
-        if targetNode is TSvgGradientNode then
-          filler := CreateGradientFiller(TSvgGradientNode(targetNode), bounds)
-        else
-        if targetNode is TSvgPatternNode then
-          filler := CreatePatternFiller(TSvgPatternNode(targetNode), bounds);
-
-        if filler <> nil then
-        begin
+        try
+          polyRenderer.Filler := filler;
           try
-            polyRenderer.Filler := filler;
-            try
-              polyRenderer.FillMode := APathNode.Fill.FillRule;
-              polyRenderer.PolyPolygonFS(transformedPts);
-            finally
-              polyRenderer.Filler := nil;
-            end;
+            polyRenderer.FillMode := APathNode.Fill.FillRule;
+            polyRenderer.PolyPolygonFS(transformedPts);
           finally
-            filler.Free;
+            polyRenderer.Filler := nil;
           end;
+        finally
+          filler.Free;
         end;
       end;
     end else
@@ -680,46 +650,41 @@ begin
         scaledOffset := APathNode.Stroke.DashOffset * matScale;
       end;
 
-      if (APathNode.Stroke.Url <> '') and (FDocumentRoot <> nil) then
+      if APathNode.Stroke.ResolvedPaintServer <> nil then
       begin
-        urlId := ExtractUrlId(APathNode.Stroke.Url);
-        targetNode := FDocumentRoot.FindNodeById(urlId);
-
-        if targetNode <> nil then
+        targetNode := TSvgNode(APathNode.Stroke.ResolvedPaintServer);
+        strokePts := nil;
+        for i := 0 to High(transformedPts) do
         begin
-          strokePts := nil;
-          for i := 0 to High(transformedPts) do
+          if Length(scaledDashArray) > 0 then
           begin
-            if Length(scaledDashArray) > 0 then
-            begin
-              dashedPts := BuildDashedLine(transformedPts[i], scaledDashArray, scaledOffset, IsClosedContour(transformedPts[i]));
-              for j := 0 to High(dashedPts) do
-                strokePts := strokePts + BuildPolyPolyLine([dashedPts[j]], False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
-            end else
-              strokePts := strokePts + BuildPolyPolyLine([transformedPts[i]], IsClosedContour(transformedPts[i]), strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
-          end;
+            dashedPts := BuildDashedLine(transformedPts[i], scaledDashArray, scaledOffset, IsClosedContour(transformedPts[i]));
+            for j := 0 to High(dashedPts) do
+              strokePts := strokePts + BuildPolyPolyLine([dashedPts[j]], False, strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+          end else
+            strokePts := strokePts + BuildPolyPolyLine([transformedPts[i]], IsClosedContour(transformedPts[i]), strokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+        end;
 
-          strokeBounds := GetPathBounds(strokePts);
-          filler := nil;
-          if targetNode is TSvgGradientNode then
-            filler := CreateGradientFiller(TSvgGradientNode(targetNode), strokeBounds)
-          else
-          if targetNode is TSvgPatternNode then
-            filler := CreatePatternFiller(TSvgPatternNode(targetNode), strokeBounds);
+        strokeBounds := GetPathBounds(strokePts);
+        filler := nil;
+        if targetNode is TSvgGradientNode then
+          filler := CreateGradientFiller(TSvgGradientNode(targetNode), strokeBounds)
+        else
+        if targetNode is TSvgPatternNode then
+          filler := CreatePatternFiller(TSvgPatternNode(targetNode), strokeBounds);
 
-          if filler <> nil then
-          begin
+        if filler <> nil then
+        begin
+          try
+            polyRenderer.Filler := filler;
             try
-              polyRenderer.Filler := filler;
-              try
-                polyRenderer.FillMode := pfWinding;
-                polyRenderer.PolyPolygonFS(strokePts);
-              finally
-                polyRenderer.Filler := nil;
-              end;
+              polyRenderer.FillMode := pfWinding;
+              polyRenderer.PolyPolygonFS(strokePts);
             finally
-              filler.Free;
+              polyRenderer.Filler := nil;
             end;
+          finally
+            filler.Free;
           end;
         end;
       end else
@@ -1022,10 +987,8 @@ var
   gray: Byte;
   clipNodeTarget: TSvgClipPathNode;
   maskNodeTarget: TSvgMaskNode;
-  clipTargetNode, maskTargetNode: TSvgNode;
   alphaVal: Byte;
   oldMatrix: TFloatMatrix;
-  clipId, maskId: string;
   groupBounds, targetWorldBounds: TFloatRect;
   pts: array[0..3] of TFloatPoint;
 begin
@@ -1033,7 +996,7 @@ begin
     Exit;
 
   // Offscreen rendering required if Opacity < 1.0, ClipPathID <> '', or MaskID <> ''
-  if (AGroupNode.Opacity < 1.0) or (AGroupNode.ClipPathID <> '') or (AGroupNode.MaskID <> '') then
+  if (AGroupNode.Opacity < 1.0) or (AGroupNode.ResolvedClipPath <> nil) or (AGroupNode.ResolvedMask <> nil) then
   begin
     if (FTarget = nil) then
       Exit;
@@ -1071,57 +1034,47 @@ begin
       end;
 
       // Apply ClipPath
-      if (AGroupNode.ClipPathID <> '') and (FDocumentRoot <> nil) then
+      if AGroupNode.ResolvedClipPath <> nil then
       begin
-        clipId := ExtractUrlId(AGroupNode.ClipPathID);
-        clipTargetNode := FDocumentRoot.FindNodeById(clipId);
-        if clipTargetNode is TSvgClipPathNode then
+        clipNodeTarget := AGroupNode.ResolvedClipPath;
+        clipMaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+
+        oldMatrix := FCurrentMatrix;
+        RenderClipPathNode(clipNodeTarget, targetWorldBounds, clipMaskBmp);
+        FCurrentMatrix := oldMatrix;
+
+        srcP := PColor32(offscreenBmp.Bits);
+        dstP := PColor32(clipMaskBmp.Bits);
+        for x := 0 to offscreenBmp.PixelCount - 1 do
         begin
-          clipNodeTarget := TSvgClipPathNode(clipTargetNode);
-          clipMaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
-
-          oldMatrix := FCurrentMatrix;
-          RenderClipPathNode(clipNodeTarget, targetWorldBounds, clipMaskBmp);
-          FCurrentMatrix := oldMatrix;
-
-          srcP := PColor32(offscreenBmp.Bits);
-          dstP := PColor32(clipMaskBmp.Bits);
-          for x := 0 to offscreenBmp.PixelCount - 1 do
-          begin
-            alphaVal := AlphaComponent(dstP^);
-            if alphaVal < 255 then
-              ScaleAlpha(srcP^, alphaVal / 255.0);
-            Inc(srcP);
-            Inc(dstP);
-          end;
+          alphaVal := AlphaComponent(dstP^);
+          if alphaVal < 255 then
+            ScaleAlpha(srcP^, alphaVal / 255.0);
+          Inc(srcP);
+          Inc(dstP);
         end;
       end;
 
       // Apply Alpha Mask
-      if (AGroupNode.MaskID <> '') and (FDocumentRoot <> nil) then
+      if AGroupNode.ResolvedMask <> nil then
       begin
-        maskId := ExtractUrlId(AGroupNode.MaskID);
-        maskTargetNode := FDocumentRoot.FindNodeById(maskId);
-        if maskTargetNode is TSvgMaskNode then
+        maskNodeTarget := AGroupNode.ResolvedMask;
+        maskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, False);
+
+        oldMatrix := FCurrentMatrix;
+        RenderMaskNode(maskNodeTarget, targetWorldBounds, maskBmp);
+        FCurrentMatrix := oldMatrix;
+
+        srcP := PColor32(offscreenBmp.Bits);
+        dstP := PColor32(maskBmp.Bits);
+        for x := 0 to offscreenBmp.PixelCount - 1 do
         begin
-          maskNodeTarget := TSvgMaskNode(maskTargetNode);
-          maskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, False);
-
-          oldMatrix := FCurrentMatrix;
-          RenderMaskNode(maskNodeTarget, targetWorldBounds, maskBmp);
-          FCurrentMatrix := oldMatrix;
-
-          srcP := PColor32(offscreenBmp.Bits);
-          dstP := PColor32(maskBmp.Bits);
-          for x := 0 to offscreenBmp.PixelCount - 1 do
-          begin
-            // Grayscale luminance conversion: Y = 0.299 R + 0.587 G + 0.114 B
-            gray := Intensity(dstP^);
-            gray := Round(gray * (AlphaComponent(dstP^) / 255.0));
-            ScaleAlpha(srcP^, gray / 255.0);
-            Inc(srcP);
-            Inc(dstP);
-          end;
+          // Grayscale luminance conversion: Y = 0.299 R + 0.587 G + 0.114 B
+          gray := Intensity(dstP^);
+          gray := Round(gray * (AlphaComponent(dstP^) / 255.0));
+          ScaleAlpha(srcP^, gray / 255.0);
+          Inc(srcP);
+          Inc(dstP);
         end;
       end;
 

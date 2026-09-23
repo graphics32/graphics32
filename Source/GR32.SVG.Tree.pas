@@ -73,6 +73,7 @@ type
     FOpacity: Single;
     FFillRule: TPolyFillMode;
     FUrl: string;
+    FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
     procedure SetColor(const Value: TSvgColor);
     procedure SetFillRule(const Value: TPolyFillMode);
     procedure SetOpacity(const Value: Single);
@@ -85,6 +86,7 @@ type
     property Opacity: Single read FOpacity write SetOpacity;
     property FillRule: TPolyFillMode read FFillRule write SetFillRule;
     property Url: string read FUrl write SetUrl;
+    property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgFill; static;
   end;
@@ -104,6 +106,7 @@ type
     FDashArray: TArrayOfFloat;
     FDashOffset: Single;
     FUrl: string;
+    FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
   private
     procedure SetColor(const Value: TSvgColor);
     procedure SetDashArray(const Value: TArrayOfFloat);
@@ -126,6 +129,7 @@ type
     property DashArray: TArrayOfFloat read FDashArray write SetDashArray;
     property DashOffset: Single read FDashOffset write SetDashOffset;
     property Url: string read FUrl write SetUrl;
+    property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgStroke; static;
   end;
@@ -180,12 +184,17 @@ type
     property IsRenderable: Boolean read GetIsRenderable;
   end;
 
+  TSvgClipPathNode = class;
+  TSvgMaskNode = class;
+
   TSvgGroupNode = class(TSvgNode)
   private
     FChildren: TObjectList<TSvgNode>;
     FOpacity: Single;
     FClipPathID: string;
     FMaskID: string;
+    FResolvedClipPath: TSvgClipPathNode;
+    FResolvedMask: TSvgMaskNode;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
@@ -201,6 +210,8 @@ type
     property Opacity: Single read FOpacity write FOpacity;
     property ClipPathID: string read FClipPathID write FClipPathID;
     property MaskID: string read FMaskID write FMaskID;
+    property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
+    property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
   end;
 
   TSvgGradientNode = class(TSvgGroupNode)
@@ -399,6 +410,8 @@ type
     procedure ResolveGradients;
     procedure ResolvePatterns;
     procedure ResolveMarkers;
+    procedure ResolveClipPathsAndMasks;
+    procedure ResolvePaintServers;
     procedure ParseAttribute(const AName, AValue: string); override;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
@@ -710,6 +723,7 @@ begin
   begin
     ADest.Color := FColor;
     ADest.Url := FUrl;
+    ADest.ResolvedPaintServer := FResolvedPaintServer;
   end;
 
   if fpOpacity in FSpecified then
@@ -760,6 +774,7 @@ begin
   begin
     ADest.Color := FColor;
     ADest.Url := FUrl;
+    ADest.ResolvedPaintServer := FResolvedPaintServer;
   end;
 
   if (spWidth in FSpecified) then
@@ -1134,6 +1149,8 @@ begin
   groupRes.FOpacity := FOpacity;
   groupRes.FClipPathID := FClipPathID;
   groupRes.FMaskID := FMaskID;
+  groupRes.FResolvedClipPath := FResolvedClipPath;
+  groupRes.FResolvedMask := FResolvedMask;
   for i := 0 to FChildren.Count - 1 do
     groupRes.AddChild(FChildren[i].Clone(groupRes));
   Result := groupRes;
@@ -1875,6 +1892,95 @@ procedure TSvgDocumentNode.ResolveGradients;
           targetGrad := TSvgGradientNode(parentTarget);
           gradNode.InheritFrom(targetGrad);
         end;
+      end;
+    end;
+
+    if ANode is TSvgGroupNode then
+    begin
+      group := TSvgGroupNode(ANode);
+      for i := 0 to group.Children.Count - 1 do
+        ProcessNode(group.Children[i]);
+    end;
+  end;
+
+begin
+  ProcessNode(Self);
+end;
+
+procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
+
+  procedure ProcessNode(ANode: TSvgNode);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    targetNode: TSvgNode;
+    idStr: string;
+  begin
+    if ANode = nil then Exit;
+
+    if ANode is TSvgGroupNode then
+    begin
+      group := TSvgGroupNode(ANode);
+
+      if group.ClipPathID <> '' then
+      begin
+        idStr := ExtractUrlIdStr(group.ClipPathID);
+        targetNode := FindNodeById(idStr);
+        if targetNode is TSvgClipPathNode then
+          group.ResolvedClipPath := TSvgClipPathNode(targetNode);
+      end;
+
+      if group.MaskID <> '' then
+      begin
+        idStr := ExtractUrlIdStr(group.MaskID);
+        targetNode := FindNodeById(idStr);
+        if targetNode is TSvgMaskNode then
+          group.ResolvedMask := TSvgMaskNode(targetNode);
+      end;
+
+      for i := 0 to group.Children.Count - 1 do
+        ProcessNode(group.Children[i]);
+    end;
+  end;
+
+begin
+  ProcessNode(Self);
+end;
+
+procedure TSvgDocumentNode.ResolvePaintServers;
+
+  procedure ProcessNode(ANode: TSvgNode);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    fillRef: TSvgFill;
+    strokeStruct: TSvgStroke;
+    targetNode: TSvgNode;
+    idStr: string;
+  begin
+    if ANode = nil then Exit;
+
+    if ANode.Fill.Url <> '' then
+    begin
+      idStr := ExtractUrlIdStr(ANode.Fill.Url);
+      targetNode := FindNodeById(idStr);
+      if (targetNode is TSvgGradientNode) or (targetNode is TSvgPatternNode) then
+      begin
+        fillRef := ANode.Fill;
+        fillRef.ResolvedPaintServer := targetNode;
+        ANode.Fill := fillRef;
+      end;
+    end;
+
+    if ANode.Stroke.Url <> '' then
+    begin
+      idStr := ExtractUrlIdStr(ANode.Stroke.Url);
+      targetNode := FindNodeById(idStr);
+      if (targetNode is TSvgGradientNode) or (targetNode is TSvgPatternNode) then
+      begin
+        strokeStruct := ANode.Stroke;
+        strokeStruct.ResolvedPaintServer := targetNode;
+        ANode.Stroke := strokeStruct;
       end;
     end;
 
@@ -2860,6 +2966,8 @@ begin
           docRes.ResolvePatterns;
           docRes.ResolveUseNodes;
           docRes.ResolveMarkers;
+          docRes.ResolveClipPathsAndMasks;
+          docRes.ResolvePaintServers;
           Exit(docRes);
         end;
       end;

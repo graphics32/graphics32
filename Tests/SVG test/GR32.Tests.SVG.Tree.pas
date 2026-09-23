@@ -60,6 +60,7 @@ type
     procedure TestStrokeDashArrayAndOffsetParsing;
     procedure TestMarkerParsingAndTreeStructure;
     procedure TestGetObjectBoundingBox;
+    procedure TestResolvedReferencesInTree;
   end;
 
 implementation
@@ -511,6 +512,45 @@ begin
     Check(path2.ResolvedMarkerStart <> nil, 'ResolvedMarkerStart on p2 should not be nil');
     Check(path2.ResolvedMarkerMid <> nil, 'ResolvedMarkerMid on p2 should not be nil');
     Check(path2.ResolvedMarkerEnd <> nil, 'ResolvedMarkerEnd on p2 should not be nil');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestResolvedReferencesInTree;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  groupNode: TSvgGroupNode;
+  rectNode: TSvgPathNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <linearGradient id="g1"><stop offset="0" stop-color="red"/></linearGradient>' +
+         '    <clipPath id="c1"><rect width="10" height="10"/></clipPath>' +
+         '    <mask id="m1"><rect width="10" height="10" fill="white"/></mask>' +
+         '  </defs>' +
+         '  <g id="g_test" clip-path="url(#c1)" mask="url(#m1)">' +
+         '    <rect id="r_test" width="50" height="50" fill="url(#g1)" stroke="url(#g1)"/>' +
+         '  </g>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    groupNode := TSvgGroupNode(docNode.FindNodeById('g_test'));
+    Check(groupNode <> nil, 'g_test should exist');
+    Check(groupNode.ResolvedClipPath <> nil, 'ResolvedClipPath on groupNode should not be nil');
+    CheckEquals('c1', groupNode.ResolvedClipPath.ID);
+    Check(groupNode.ResolvedMask <> nil, 'ResolvedMask on groupNode should not be nil');
+    CheckEquals('m1', groupNode.ResolvedMask.ID);
+
+    rectNode := TSvgPathNode(docNode.FindNodeById('r_test'));
+    Check(rectNode <> nil, 'r_test should exist');
+    Check(rectNode.Fill.ResolvedPaintServer <> nil, 'ResolvedPaintServer on fill should not be nil');
+    Check(rectNode.Stroke.ResolvedPaintServer <> nil, 'ResolvedPaintServer on stroke should not be nil');
+    CheckEquals('g1', TSvgNode(rectNode.Fill.ResolvedPaintServer).ID);
+    CheckEquals('g1', TSvgNode(rectNode.Stroke.ResolvedPaintServer).ID);
   finally
     docNode.Free;
   end;
