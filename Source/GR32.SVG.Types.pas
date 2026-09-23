@@ -108,10 +108,29 @@ type
   end;
 
   { TFloatMatrixHelper }
+  (*
+    Note that while TFloatMatrixHelper CAN be used independently:
+
+      var Helper: TFloatMatrixHelper;
+      Helper.Matrix := IdentityMatrix;
+      Helper.Scale(a, b);
+      ...
+
+    it is actually meant to be used as a type cast helper for TFloatMatrix:
+
+      var MatrixA: TFloatMatrix;
+      var MatrixB: TFloatMatrix;
+      ...
+      TFloatMatrixHelper(MatrixA).Scale(a, b);
+      MatrixB := MatrixB * TFloatMatrixHelper(MatrixA);
+      ...
+  *)
   TFloatMatrixHelper = record
     // Beware that Matrix is Row-Major!
     Matrix: TFloatMatrix;
 
+    // Note: operator Multiply(Left, Right) internally calls Mult(Right, Left) so
+    // the result matches normal algebraic expectations: matRes := matA x matB
     class operator Multiply(const Left, Right: TFloatMatrixHelper): TFloatMatrixHelper; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
     class operator Multiply(const Left: TFloatMatrixHelper; const Right: TFloatMatrix): TFloatMatrixHelper; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
     class operator Multiply(const Left: TFloatMatrix; const Right: TFloatMatrixHelper): TFloatMatrix; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
@@ -123,6 +142,7 @@ type
     procedure Scale(Sx, Sy: TFloat); overload;
     procedure Scale(Value: TFloat); overload;
     function TransformPoint(const P: TFloatPoint): TFloatPoint;
+    function IsIdentity: boolean;
   end;
 
   TSvgViewBox = record
@@ -733,17 +753,22 @@ end;
 
 class operator TFloatMatrixHelper.Multiply(const Left, Right: TFloatMatrixHelper): TFloatMatrixHelper;
 begin
-  Result.Matrix := Mult(Left.Matrix, Right.Matrix);
+  Result.Matrix := Mult(Right.Matrix, Left.Matrix);
 end;
 
 class operator TFloatMatrixHelper.Multiply(const Left: TFloatMatrixHelper; const Right: TFloatMatrix): TFloatMatrixHelper;
 begin
-  Result.Matrix := Mult(Left.Matrix, Right);
+  Result.Matrix := Mult(Right, Left.Matrix);
+end;
+
+function TFloatMatrixHelper.IsIdentity: boolean;
+begin
+  Result := IsIdentityMatrix(Matrix);
 end;
 
 class operator TFloatMatrixHelper.Multiply(const Left: TFloatMatrix; const Right: TFloatMatrixHelper): TFloatMatrix;
 begin
-  Result := Mult(Left, Right.Matrix);
+  Result := Mult(Right.Matrix, Left);
 end;
 
 procedure TFloatMatrixHelper.Rotate(Alpha: TFloat);
