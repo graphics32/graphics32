@@ -1,4 +1,4 @@
-unit GR32.Tests.SVG.Renderer;
+﻿unit GR32.Tests.SVG.Renderer;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -57,6 +57,7 @@ type
     procedure TestPatternFillAndStrokeRendering;
     procedure TestStrokeWidthRendering;
     procedure TestRadialGradientReflect;
+    procedure TestMarkerRendering;
     procedure TestObjectBoundingBoxMaskAndGradient;
   end;
 
@@ -468,6 +469,88 @@ begin
         renderer.RenderDocument(docNode);
         CheckEquals(clBlue32, bmp.Pixel[25, 50], 'Masked region inside should be blue');
         CheckEquals(clWhite32, bmp.Pixel[75, 50], 'Masked region outside should remain white background');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestMarkerRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="100" height="100">' +
+           '  <defs>' +
+           '    <marker id="dot" refX="5" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse">' +
+           '      <circle cx="5" cy="5" r="5" fill="red"/>' +
+           '    </marker>' +
+           '    <marker id="arrow" refX="0" refY="5" markerWidth="10" markerHeight="10" orient="auto" markerUnits="userSpaceOnUse">' +
+           '      <rect x="0" y="0" width="10" height="10" fill="green"/>' +
+           '    </marker>' +
+           '  </defs>' +
+           '  <path d="M 20 20 L 80 20 L 80 80" stroke="blue" stroke-width="2" marker-start="url(#dot)" marker-mid="url(#dot)" marker-end="url(#dot)"/>' +
+           '  <path d="M 10 90 L 90 90" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Marker docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Check top-left corner where <defs> is defined - must remain white background!
+        CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Top-left corner where <defs> is defined must not render directly');
+
+        // Check marker position 1 (start vertex at 20, 20)
+        CheckEquals(clRed32, bmp.Pixel[20, 20], 'Marker start vertex at (20,20) should render red dot');
+
+        // Check marker position 2 (mid vertex at 80, 20)
+        CheckEquals(clRed32, bmp.Pixel[80, 20], 'Marker mid vertex at (80,20) should render red dot');
+
+        // Check marker position 3 (end vertex at 80, 80)
+        CheckEquals(clRed32, bmp.Pixel[80, 80], 'Marker end vertex at (80,80) should render red dot');
+
+        // Check angled marker position 4 (end vertex at 90, 90)
+        CheckEquals(clGreen32, bmp.Pixel[95, 90], 'Angled arrow marker at (90,90) should render green rect at target location');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Additional check: Marker with viewBox (0 0 20 20) scaling to markerWidth 10 height 10 and refX="10" refY="10"
+    bmp.Clear(clWhite32);
+    xml := '<svg width="100" height="100">' +
+           '  <defs>' +
+           '    <marker id="vb_marker" viewBox="0 0 20 20" refX="10" refY="10" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse">' +
+           '      <circle cx="10" cy="10" r="10" fill="red"/>' +
+           '    </marker>' +
+           '  </defs>' +
+           '  <path d="M 50 50 L 90 50" stroke="blue" stroke-width="2" marker-start="url(#vb_marker)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'viewBox marker docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        CheckEquals(clRed32, bmp.Pixel[50, 50], 'viewBox marker with refX=10, refY=10 should center red dot at (50,50)');
       finally
         renderer.Free;
       end;

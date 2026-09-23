@@ -46,6 +46,17 @@ type
   TSvgSpreadMethod = (smPad, smReflect, smRepeat);
   TSvgGradientUnits = (guObjectBoundingBox, guUserSpaceOnUse);
 
+  { TSvgMarkerUnits defines coordinate scaling modes for SVG <marker> elements:
+    - muStrokeWidth: Marker coordinates and dimensions scale with stroke-width (default).
+    - muUserSpaceOnUse: Marker coordinates evaluate directly in user coordinate space. }
+  TSvgMarkerUnits = (muStrokeWidth, muUserSpaceOnUse);
+
+  { TSvgMarkerOrient defines orientation modes for SVG <marker> elements:
+    - moAuto: Marker automatically rotates to align with path segment direction vector.
+    - moAutoStartReverse: Start vertex marker rotates 180 degrees relative to start segment.
+    - moAngle: Marker rotates by an explicit fixed angle in degrees (OrientAngle). }
+  TSvgMarkerOrient = (moAuto, moAutoStartReverse, moAngle);
+
   TSvgGradientStop = record
     Offset: Single;
     Color: TSvgColor;
@@ -119,6 +130,8 @@ type
     class function Default: TSvgStroke; static;
   end;
 
+  TSvgMarkerNode = class;
+
   TSvgNode = class(TObject)
   private
     FID: string;
@@ -129,6 +142,12 @@ type
     FParent: TSvgNode;
     FFill: TSvgFill;
     FStroke: TSvgStroke;
+    FMarkerStart: string;
+    FMarkerMid: string;
+    FMarkerEnd: string;
+    FResolvedMarkerStart: TSvgMarkerNode;
+    FResolvedMarkerMid: TSvgMarkerNode;
+    FResolvedMarkerEnd: TSvgMarkerNode;
     FResolving: Boolean;
   protected
     function GetIsRenderable: Boolean; virtual;
@@ -152,6 +171,12 @@ type
     property Parent: TSvgNode read FParent write FParent;
     property Fill: TSvgFill read FFill write FFill;
     property Stroke: TSvgStroke read FStroke write FStroke;
+    property MarkerStart: string read FMarkerStart write FMarkerStart;
+    property MarkerMid: string read FMarkerMid write FMarkerMid;
+    property MarkerEnd: string read FMarkerEnd write FMarkerEnd;
+    property ResolvedMarkerStart: TSvgMarkerNode read FResolvedMarkerStart write FResolvedMarkerStart;
+    property ResolvedMarkerMid: TSvgMarkerNode read FResolvedMarkerMid write FResolvedMarkerMid;
+    property ResolvedMarkerEnd: TSvgMarkerNode read FResolvedMarkerEnd write FResolvedMarkerEnd;
     property IsRenderable: Boolean read GetIsRenderable;
   end;
 
@@ -319,6 +344,46 @@ type
     property Href: string read FHref write FHref;
   end;
 
+  { TSvgMarkerNode represents an SVG <marker> container element used for rendering
+    vertex markers (arrowheads, dots, icons) along path contours. Markers are non-renderable
+    definition nodes checked via GetIsRenderable returning False. }
+  TSvgMarkerNode = class(TSvgGroupNode)
+  private
+    FRefX: TSvgLength;
+    FRefY: TSvgLength;
+    FMarkerWidth: TSvgLength;
+    FMarkerHeight: TSvgLength;
+    FMarkerUnits: TSvgMarkerUnits;
+    FOrient: TSvgMarkerOrient;
+    FOrientAngle: Single;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  protected
+    function GetIsRenderable: Boolean; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    { X-coordinate reference origin inside marker coordinate system }
+    property RefX: TSvgLength read FRefX write FRefX;
+    { Y-coordinate reference origin inside marker coordinate system }
+    property RefY: TSvgLength read FRefY write FRefY;
+    { Marker viewport width }
+    property MarkerWidth: TSvgLength read FMarkerWidth write FMarkerWidth;
+    { Marker viewport height }
+    property MarkerHeight: TSvgLength read FMarkerHeight write FMarkerHeight;
+    { Marker coordinate units scaling mode (strokeWidth vs userSpaceOnUse) }
+    property MarkerUnits: TSvgMarkerUnits read FMarkerUnits write FMarkerUnits;
+    { Orientation angle mode (auto, auto-start-reverse, or explicit angle) }
+    property Orient: TSvgMarkerOrient read FOrient write FOrient;
+    { Explicit orientation angle in degrees when Orient is moAngle }
+    property OrientAngle: Single read FOrientAngle write FOrientAngle;
+    { Optional viewBox for marker contents }
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    { Aspect ratio preservation settings for marker viewBox }
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
   TSvgDocumentNode = class(TSvgGroupNode)
   private
     FWidth: TSvgLength;
@@ -333,6 +398,7 @@ type
     procedure ResolveUseNodes;
     procedure ResolveGradients;
     procedure ResolvePatterns;
+    procedure ResolveMarkers;
     procedure ParseAttribute(const AName, AValue: string); override;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
@@ -407,12 +473,12 @@ uses
 
 type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
-    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagEllipse, tagPolyline, tagPolygon);
+    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'Svg', 'G', 'Use', 'Defs', 'Stop', 'Mask', 'Path', 'Rect', 'Line', 'Style', 'Circle',
-    'Lineargradient', 'Radialgradient', 'Clippath', 'Pattern', 'Ellipse', 'Polyline', 'Polygon'
+    'Lineargradient', 'Radialgradient', 'Clippath', 'Pattern', 'Marker', 'Ellipse', 'Polyline', 'Polygon'
   );
 
 var
@@ -805,12 +871,18 @@ begin
   begin
     FFill := AParent.Fill;
     FStroke := AParent.Stroke;
+    FMarkerStart := AParent.MarkerStart;
+    FMarkerMid := AParent.MarkerMid;
+    FMarkerEnd := AParent.MarkerEnd;
     FFill.FSpecified := [];
     FStroke.FSpecified := [];
   end else
   begin
     FFill := TSvgFill.Default;
     FStroke := TSvgStroke.Default;
+    FMarkerStart := '';
+    FMarkerMid := '';
+    FMarkerEnd := '';
   end;
 end;
 
@@ -831,6 +903,9 @@ begin
 
   FFill.ApplySpecified(Result.FFill);
   FStroke.ApplySpecified(Result.FStroke);
+  Result.FMarkerStart := FMarkerStart;
+  Result.FMarkerMid := FMarkerMid;
+  Result.FMarkerEnd := FMarkerEnd;
 end;
 
 function TSvgNode.GetObjectBoundingBox: TFloatRect;
@@ -959,9 +1034,48 @@ begin
   begin
     FStroke.DashOffset := TSvgLength.Parse(UTF8String(lowerVal)).ToPixels;
   end else
+  if lowerName = 'marker-start' then
+    FMarkerStart := lowerVal
+  else
+  if lowerName = 'marker-mid' then
+    FMarkerMid := lowerVal
+  else
+  if lowerName = 'marker-end' then
+    FMarkerEnd := lowerVal
+  else
+  if lowerName = 'marker' then
+  begin
+    FMarkerStart := lowerVal;
+    FMarkerMid := lowerVal;
+    FMarkerEnd := lowerVal;
+  end else
   if lowerName = 'style' then
     // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
     FStyleAttr := lowerVal;
+end;
+
+function ExtractUrlIdStr(const AUrlStr: string): string;
+var
+  pStart, pEnd: Integer;
+begin
+  Result := Trim(AUrlStr);
+  pStart := Pos('url(', LowerCase(Result));
+  if pStart > 0 then
+  begin
+    Delete(Result, 1, pStart + 3);
+    pEnd := Pos(')', Result);
+    if pEnd > 0 then
+      Result := Copy(Result, 1, pEnd - 1);
+    Result := Trim(Result);
+    if (Length(Result) > 0) and (Result[1] in ['"', '''']) then
+    begin
+      Delete(Result, 1, 1);
+      if (Length(Result) > 0) and (Result[Length(Result)] in ['"', '''']) then
+        Delete(Result, Length(Result), 1);
+    end;
+  end;
+  if (Length(Result) > 0) and (Result[1] = '#') then
+    Delete(Result, 1, 1);
 end;
 
 procedure TSvgNode.ParseStyleAttribute(const AStyleStr: string);
@@ -1570,6 +1684,84 @@ begin
   else inherited ParseAttribute(AName, AValue);
 end;
 
+{ TSvgMarkerNode }
+
+function TSvgMarkerNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
+constructor TSvgMarkerNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FRefX := TSvgLength.Create(0.0, suPx);
+  FRefY := TSvgLength.Create(0.0, suPx);
+  FMarkerWidth := TSvgLength.Create(3.0, suPx);
+  FMarkerHeight := TSvgLength.Create(3.0, suPx);
+  FMarkerUnits := muStrokeWidth;
+  FOrient := moAngle;
+  FOrientAngle := 0.0;
+  FViewBox.IsDefined := False;
+  FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
+end;
+
+function TSvgMarkerNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  markerRes: TSvgMarkerNode;
+begin
+  markerRes := TSvgMarkerNode(inherited Clone(AParent));
+  markerRes.FRefX := FRefX;
+  markerRes.FRefY := FRefY;
+  markerRes.FMarkerWidth := FMarkerWidth;
+  markerRes.FMarkerHeight := FMarkerHeight;
+  markerRes.FMarkerUnits := FMarkerUnits;
+  markerRes.FOrient := FOrient;
+  markerRes.FOrientAngle := FOrientAngle;
+  markerRes.FViewBox := FViewBox;
+  markerRes.FPreserveAspectRatio := FPreserveAspectRatio;
+  Result := markerRes;
+end;
+
+procedure TSvgMarkerNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+  valFloat: Single;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'refx' then FRefX := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'refy' then FRefY := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'markerwidth' then FMarkerWidth := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'markerheight' then FMarkerHeight := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'markerunits' then
+  begin
+    if LowerCase(lowerVal) = 'userspaceonuse' then FMarkerUnits := muUserSpaceOnUse
+    else FMarkerUnits := muStrokeWidth;
+  end
+  else if lowerName = 'orient' then
+  begin
+    lowerVal := LowerCase(lowerVal);
+    if lowerVal = 'auto' then
+      FOrient := moAuto
+    else if lowerVal = 'auto-start-reverse' then
+      FOrient := moAutoStartReverse
+    else
+    begin
+      FOrient := moAngle;
+      if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
+        FOrientAngle := valFloat
+      else
+        FOrientAngle := 0.0;
+    end;
+  end
+  else if lowerName = 'viewbox' then
+    FViewBox := TSvgViewBox.Parse(lowerVal)
+  else if lowerName = 'preserveaspectratio' then
+    FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(lowerVal)
+  else inherited ParseAttribute(AName, AValue);
+end;
+
 { TSvgDocumentNode }
 
 constructor TSvgDocumentNode.Create(AParent: TSvgNode);
@@ -1691,6 +1883,53 @@ procedure TSvgDocumentNode.ResolveGradients;
           gradNode.InheritFrom(targetGrad);
         end;
       end;
+    end;
+
+    if ANode is TSvgGroupNode then
+    begin
+      group := TSvgGroupNode(ANode);
+      for i := 0 to group.Children.Count - 1 do
+        ProcessNode(group.Children[i]);
+    end;
+  end;
+
+begin
+  ProcessNode(Self);
+end;
+
+procedure TSvgDocumentNode.ResolveMarkers;
+
+  procedure ProcessNode(ANode: TSvgNode);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    targetNode: TSvgNode;
+    idStr: string;
+  begin
+    if ANode = nil then Exit;
+
+    if ANode.MarkerStart <> '' then
+    begin
+      idStr := ExtractUrlIdStr(ANode.MarkerStart);
+      targetNode := FindNodeById(idStr);
+      if targetNode is TSvgMarkerNode then
+        ANode.ResolvedMarkerStart := TSvgMarkerNode(targetNode);
+    end;
+
+    if ANode.MarkerMid <> '' then
+    begin
+      idStr := ExtractUrlIdStr(ANode.MarkerMid);
+      targetNode := FindNodeById(idStr);
+      if targetNode is TSvgMarkerNode then
+        ANode.ResolvedMarkerMid := TSvgMarkerNode(targetNode);
+    end;
+
+    if ANode.MarkerEnd <> '' then
+    begin
+      idStr := ExtractUrlIdStr(ANode.MarkerEnd);
+      targetNode := FindNodeById(idStr);
+      if targetNode is TSvgMarkerNode then
+        ANode.ResolvedMarkerEnd := TSvgMarkerNode(targetNode);
     end;
 
     if ANode is TSvgGroupNode then
@@ -2495,6 +2734,12 @@ var
             ParseAttributes(node, AParser);
           end;
 
+        tagMarker:
+          begin
+            node := TSvgMarkerNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
         tagEllipse:
           begin
             pathNode := TSvgPathNode.Create(AParent);
@@ -2624,6 +2869,7 @@ begin
           docRes.ResolveGradients;
           docRes.ResolvePatterns;
           docRes.ResolveUseNodes;
+          docRes.ResolveMarkers;
           Exit(docRes);
         end;
       end;

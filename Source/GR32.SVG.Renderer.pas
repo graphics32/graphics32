@@ -77,6 +77,8 @@ type
     procedure RenderGroupNode(AGroupNode: TSvgGroupNode); virtual;
     procedure RenderClipPathNode(AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
     procedure RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
+    procedure RenderMarker(AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); virtual; // Angle is in radians!
+    procedure RenderMarkers(APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single); virtual;
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
@@ -104,6 +106,7 @@ type
 implementation
 
 uses
+  Types,
   Math,
   GR32_Blend,
   GR32_Math,
@@ -662,6 +665,7 @@ begin
 
     // 2. Stroke Rendering
     strokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Right - FViewportRect.Left);
+
     if strokeWidth > 0 then
     begin
       matScale := GetMatrixScale(FCurrentMatrix);
@@ -746,6 +750,13 @@ begin
         end;
       end;
     end;
+
+    // 3. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
+    if (APathNode.MarkerStart <> '') or (APathNode.MarkerMid <> '') or (APathNode.MarkerEnd <> '') then
+    begin
+      strokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Right - FViewportRect.Left);
+      RenderMarkers(APathNode, APathNode.PathData, strokeWidth);
+    end;
   finally
     polyRenderer.Free;
   end;
@@ -824,6 +835,185 @@ begin
   finally
     FTarget := savedTarget;
     FCurrentMatrix := savedMatrix;
+  end;
+end;
+
+procedure TSvgRenderer.RenderMarker(AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single);
+var
+  mw, mh, rx, ry, scaleX, scaleY: Single;
+  markerMat: TFloatMatrixHelper;
+  viewMat: TFloatMatrix;
+  vpW, vpH: Single;
+  i: Integer;
+  markerViewBox: TSvgViewBox;
+begin
+  if (AMarker = nil) or (AMarker.Children.Count = 0) then
+    Exit;
+
+  vpW := FViewportRect.Right - FViewportRect.Left;
+  vpH := FViewportRect.Bottom - FViewportRect.Top;
+  if vpW <= 0 then
+    vpW := 1.0;
+  if vpH <= 0 then
+    vpH := 1.0;
+
+  mw := AMarker.MarkerWidth.ToPixels(vpW);
+  mh := AMarker.MarkerHeight.ToPixels(vpH);
+
+  if AMarker.MarkerUnits = muStrokeWidth then
+  begin
+    if AStrokeWidth <= 0 then
+      AStrokeWidth := 1.0;
+    scaleX := mw * AStrokeWidth;
+    scaleY := mh * AStrokeWidth;
+  end else
+  begin
+    scaleX := mw;
+    scaleY := mh;
+  end;
+
+  rx := AMarker.RefX.ToPixels(mw);
+  ry := AMarker.RefY.ToPixels(mh);
+
+  // SVG Marker transformation sequence (innermost to outermost):
+  // 1. Local marker content -> Shift by (-refX, -refY) in viewBox user space
+  // 2. Map viewBox (0, 0, vbW, vbH) onto marker viewport (0, 0, mw, mh)
+  // 3. Scale by AStrokeWidth if markerUnits="strokeWidth"
+  // 4. Rotate by AAngle around origin (refX, refY)
+  // 5. Translate origin (refX, refY) to path vertex AVertex
+  if AMarker.ViewBox.IsValid then
+  begin
+    markerViewBox := AMarker.ViewBox;
+    viewMat := markerViewBox.GetTransform(FloatRect(0, 0, mw, mh), AMarker.PreserveAspectRatio);
+    markerMat.Matrix := IdentityMatrix;
+    markerMat.Translate(-AMarker.RefX.Value, -AMarker.RefY.Value);
+    markerMat := markerMat * viewMat;
+    if AMarker.MarkerUnits = muStrokeWidth then
+      markerMat.Scale(AStrokeWidth, AStrokeWidth);
+  end else
+  begin
+    markerMat.Matrix := IdentityMatrix;
+    markerMat.Translate(-rx, -ry);
+    markerMat.Scale(scaleX / mw, scaleY / mh);
+  end;
+
+  if (AAngle <> 0) then
+    markerMat.Rotate(RadToDeg(AAngle));
+  markerMat.Translate(AVertex.X, AVertex.Y);
+
+  PushMatrix;
+  try
+    ApplyMatrix(markerMat.Matrix);
+    for i := 0 to AMarker.Children.Count - 1 do
+      RenderNode(AMarker.Children[i]);
+  finally
+    PopMatrix;
+  end;
+end;
+
+procedure TSvgRenderer.RenderMarkers(APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single);
+
+  function GetVectorAngle(const P1, P2: TFloatPoint): Single;
+  var
+    dx, dy: Single;
+  begin
+    dx := P2.X - P1.X;
+    dy := P2.Y - P1.Y;
+    if (Abs(dx) < 1E-6) and (Abs(dy) < 1E-6) then
+      Result := 0.0
+    else
+      Result := ArcTan2(dy, dx);
+  end;
+
+  function BisectAngles(const InAngle, OutAngle: Single): Single;
+  var
+    SinIn, CosIn: Single;
+    SinOut, CosOut: Single;
+  begin
+    GR32_Math.SinCos(InAngle, SinIn, CosIn);
+    GR32_Math.SinCos(OutAngle, SinOut, CosOut);
+
+    Result := ArcTan2(SinIn + SinOut, CosIn + CosOut);
+  end;
+
+var
+  startMarker, midMarker, endMarker: TSvgMarkerNode;
+  contourIdx, ptCount, i: Integer;
+  contour: TArrayOfFloatPoint;
+  inAngle, outAngle, vAngle: Single;
+begin
+  if (APathNode = nil) or (Length(APoints) = 0) then
+    Exit;
+
+  startMarker := APathNode.ResolvedMarkerStart;
+  midMarker := APathNode.ResolvedMarkerMid;
+  endMarker := APathNode.ResolvedMarkerEnd;
+
+  if (startMarker = nil) and (midMarker = nil) and (endMarker = nil) then
+    Exit;
+
+  for contourIdx := 0 to High(APoints) do
+  begin
+    contour := APoints[contourIdx];
+    ptCount := Length(contour);
+    if ptCount < 2 then
+      Continue;
+
+    // Start Vertex Marker
+    if startMarker <> nil then
+    begin
+      case startMarker.Orient of
+        moAuto:
+          vAngle := GetVectorAngle(contour[0], contour[1]);
+
+        moAutoStartReverse:
+          vAngle := GetVectorAngle(contour[0], contour[1]) + Pi;
+
+        moAngle:
+          vAngle := DegToRad(startMarker.OrientAngle);
+      else
+        vAngle := 0;
+      end;
+      RenderMarker(startMarker, contour[0], vAngle, AStrokeWidth);
+    end;
+
+    // Mid Vertices Markers
+    if (midMarker <> nil) and (ptCount > 2) then
+    begin
+      for i := 1 to ptCount - 2 do
+      begin
+        case midMarker.Orient of
+          moAuto, moAutoStartReverse:
+            begin
+              inAngle := GetVectorAngle(contour[i - 1], contour[i]);
+              outAngle := GetVectorAngle(contour[i], contour[i + 1]);
+              // Bisector angle of incoming and outgoing segment vectors
+              vAngle := BisectAngles(inAngle, outAngle);
+            end;
+
+          moAngle:
+            vAngle := DegToRad(midMarker.OrientAngle);
+        else
+          vAngle := 0;
+        end;
+        RenderMarker(midMarker, contour[i], vAngle, AStrokeWidth);
+      end;
+    end;
+
+    // End Vertex Marker
+    if endMarker <> nil then
+    begin
+      case endMarker.Orient of
+        moAuto, moAutoStartReverse:
+          vAngle := GetVectorAngle(contour[ptCount - 2], contour[ptCount - 1]);
+
+        moAngle:
+          vAngle := DegToRad(endMarker.OrientAngle);
+      else
+        vAngle := 0;
+      end;
+      RenderMarker(endMarker, contour[ptCount - 1], vAngle, AStrokeWidth);
+    end;
   end;
 end;
 

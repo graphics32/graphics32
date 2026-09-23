@@ -58,6 +58,7 @@ type
     procedure TestDocTypeParsing;
     procedure TestUseNodeStyleInheritance;
     procedure TestStrokeDashArrayAndOffsetParsing;
+    procedure TestMarkerParsingAndTreeStructure;
     procedure TestGetObjectBoundingBox;
   end;
 
@@ -444,6 +445,72 @@ begin
   Check(docNode <> nil, 'ParseSvgXml should process cyclic groups referenced from an outer container group safely');
   try
     CheckEquals(3, docNode.Children.Count);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestMarkerParsingAndTreeStructure;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  markerNode: TSvgMarkerNode;
+  path1, path2: TSvgNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <marker id="arrow" refX="2" refY="3" markerWidth="6" markerHeight="6" orient="auto" markerUnits="strokeWidth">' +
+         '      <path d="M 0 0 L 10 5 L 0 10 z" fill="red"/>' +
+         '    </marker>' +
+         '    <marker id="dot" refX="5" refY="5" markerWidth="10" markerHeight="10" orient="90" markerUnits="userSpaceOnUse">' +
+         '      <circle cx="5" cy="5" r="5" fill="blue"/>' +
+         '    </marker>' +
+         '  </defs>' +
+         '  <path id="p1" d="M 10 10 L 50 10 L 50 50" marker-start="url(#arrow)" marker-mid="url(#dot)" marker-end="url(#arrow)"/>' +
+         '  <path id="p2" d="M 0 0 L 100 100" marker="url(#arrow)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    markerNode := TSvgMarkerNode(docNode.FindNodeById('arrow'));
+    Check(markerNode <> nil, 'markerNode "arrow" should exist');
+    Check(not markerNode.IsRenderable, 'Marker node should not be renderable directly');
+    CheckEquals(2.0, markerNode.RefX.Value, 1E-4);
+    CheckEquals(3.0, markerNode.RefY.Value, 1E-4);
+    CheckEquals(6.0, markerNode.MarkerWidth.Value, 1E-4);
+    CheckEquals(6.0, markerNode.MarkerHeight.Value, 1E-4);
+    CheckEquals(Ord(moAuto), Ord(markerNode.Orient));
+    CheckEquals(Ord(muStrokeWidth), Ord(markerNode.MarkerUnits));
+    CheckEquals(1, markerNode.Children.Count, 'arrow marker should have 1 child');
+
+    markerNode := TSvgMarkerNode(docNode.FindNodeById('dot'));
+    Check(markerNode <> nil, 'markerNode "dot" should exist');
+    CheckEquals(5.0, markerNode.RefX.Value, 1E-4);
+    CheckEquals(5.0, markerNode.RefY.Value, 1E-4);
+    CheckEquals(Ord(moAngle), Ord(markerNode.Orient));
+    CheckEquals(90.0, markerNode.OrientAngle, 1E-4);
+    CheckEquals(Ord(muUserSpaceOnUse), Ord(markerNode.MarkerUnits));
+
+    path1 := docNode.FindNodeById('p1');
+    Check(path1 <> nil, 'path p1 should exist');
+    CheckEquals('url(#arrow)', path1.MarkerStart);
+    CheckEquals('url(#dot)', path1.MarkerMid);
+    CheckEquals('url(#arrow)', path1.MarkerEnd);
+    Check(path1.ResolvedMarkerStart <> nil, 'ResolvedMarkerStart on p1 should not be nil');
+    Check(path1.ResolvedMarkerMid <> nil, 'ResolvedMarkerMid on p1 should not be nil');
+    Check(path1.ResolvedMarkerEnd <> nil, 'ResolvedMarkerEnd on p1 should not be nil');
+    CheckEquals('arrow', path1.ResolvedMarkerStart.ID);
+    CheckEquals('dot', path1.ResolvedMarkerMid.ID);
+
+    path2 := docNode.FindNodeById('p2');
+    Check(path2 <> nil, 'path p2 should exist');
+    CheckEquals('url(#arrow)', path2.MarkerStart);
+    CheckEquals('url(#arrow)', path2.MarkerMid);
+    CheckEquals('url(#arrow)', path2.MarkerEnd);
+    Check(path2.ResolvedMarkerStart <> nil, 'ResolvedMarkerStart on p2 should not be nil');
+    Check(path2.ResolvedMarkerMid <> nil, 'ResolvedMarkerMid on p2 should not be nil');
+    Check(path2.ResolvedMarkerEnd <> nil, 'ResolvedMarkerEnd on p2 should not be nil');
   finally
     docNode.Free;
   end;
