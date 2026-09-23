@@ -299,16 +299,14 @@ end;
 function TSvgRenderer.GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 var
   i, j, len: Integer;
-  helper: TFloatMatrixHelper;
 begin
-  helper.Matrix := FCurrentMatrix;
   SetLength(Result, Length(APoints));
   for i := 0 to High(APoints) do
   begin
     len := Length(APoints[i]);
     SetLength(Result[i], len);
     for j := 0 to len - 1 do
-      Result[i][j] := helper.TransformPoint(APoints[i][j]);
+      Result[i][j] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(APoints[i][j]);
   end;
 end;
 
@@ -353,9 +351,8 @@ var
   cx, cy, r, fx, fy, rx, ry, scaleX, scaleY: Single;
   linFiller: TLinearGradientPolygonFiller;
   radFiller: TSVGRadialGradientPolygonFiller;
-  gradTransform, totalTransform: TFloatMatrix;
+  totalTransform, gradTransform, bboxMat: TFloatMatrixHelper;
   ptStart, ptEnd, ptC, ptF: TFloatPoint;
-  transHelper: TFloatMatrixHelper;
 const
   WrapMode: array[TSvgSpreadMethod] of TWrapMode = (wmClamp, wmReflect, wmRepeat);
 begin
@@ -370,7 +367,7 @@ begin
   if bHeight <= 0 then
     bHeight := 1.0;
 
-  gradTransform := AGradNode.Transform;
+  gradTransform.Matrix := AGradNode.Transform;
 
   if AGradNode is TSvgLinearGradientNode then
   begin
@@ -383,27 +380,26 @@ begin
       x2 := linNode.X2.ToPixels(1.0);
       y2 := linNode.Y2.ToPixels(1.0);
 
-      transHelper.Matrix := IdentityMatrix;
-      transHelper.Scale(bWidth, bHeight);
-      transHelper.Translate(ABounds.Left, ABounds.Top);
-      totalTransform := Mult(gradTransform, transHelper.Matrix);
+      bboxMat.Matrix := IdentityMatrix;
+      bboxMat.Scale(bWidth, bHeight);
+      bboxMat.Translate(ABounds.Left, ABounds.Top);
+      totalTransform := bboxMat * gradTransform;
     end else
     begin
       x1 := linNode.X1.ToPixels(FViewportRect.Right - FViewportRect.Left);
       y1 := linNode.Y1.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
       x2 := linNode.X2.ToPixels(FViewportRect.Right - FViewportRect.Left);
       y2 := linNode.Y2.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
-      totalTransform := Mult(FCurrentMatrix, gradTransform);
+      totalTransform := gradTransform * FCurrentMatrix;
     end;
 
     ptStart := FloatPoint(x1, y1);
     ptEnd := FloatPoint(x2, y2);
 
-    if not IsIdentityMatrix(totalTransform) then
+    if (not totalTransform.IsIdentity) then
     begin
-      transHelper.Matrix := totalTransform;
-      ptStart := transHelper.TransformPoint(ptStart);
-      ptEnd := transHelper.TransformPoint(ptEnd);
+      ptStart := totalTransform.TransformPoint(ptStart);
+      ptEnd := totalTransform.TransformPoint(ptEnd);
     end;
 
     linFiller := TLinearGradientPolygonFiller.Create;
@@ -436,10 +432,10 @@ begin
       fx := radNode.Fx.ToPixels(1.0);
       fy := radNode.Fy.ToPixels(1.0);
 
-      transHelper.Matrix := IdentityMatrix;
-      transHelper.Scale(bWidth, bHeight);
-      transHelper.Translate(ABounds.Left, ABounds.Top);
-      totalTransform := Mult(gradTransform, transHelper.Matrix);
+      bboxMat.Matrix := IdentityMatrix;
+      bboxMat.Scale(bWidth, bHeight);
+      bboxMat.Translate(ABounds.Left, ABounds.Top);
+      totalTransform := bboxMat * gradTransform;
     end else
     begin
       cx := radNode.Cx.ToPixels(FViewportRect.Right - FViewportRect.Left);
@@ -447,7 +443,7 @@ begin
       r := radNode.R.ToPixels(Sqrt(Sqr(FViewportRect.Right - FViewportRect.Left) + Sqr(FViewportRect.Bottom - FViewportRect.Top)) * Sqrt(0.5));
       fx := radNode.Fx.ToPixels(FViewportRect.Right - FViewportRect.Left);
       fy := radNode.Fy.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
-      totalTransform := Mult(FCurrentMatrix, gradTransform);
+      totalTransform := gradTransform * FCurrentMatrix;
     end;
 
     ptC := FloatPoint(cx, cy);
@@ -456,31 +452,37 @@ begin
     rx := r;
     ry := r;
 
-    if not IsIdentityMatrix(totalTransform) then
+    if (not totalTransform.IsIdentity) then
     begin
-      transHelper.Matrix := totalTransform;
-      ptC := transHelper.TransformPoint(ptC);
-      ptF := transHelper.TransformPoint(ptF);
+      ptC := totalTransform.TransformPoint(ptC);
+      ptF := totalTransform.TransformPoint(ptF);
 
-      scaleX := Sqrt(Sqr(totalTransform[0, 0]) + Sqr(totalTransform[0, 1]));
-      scaleY := Sqrt(Sqr(totalTransform[1, 0]) + Sqr(totalTransform[1, 1]));
-      if scaleX > 0 then rx := rx * scaleX;
-      if scaleY > 0 then ry := ry * scaleY;
+      scaleX := GR32_Math.Hypot(totalTransform.Matrix[0, 0], totalTransform.Matrix[0, 1]);
+      scaleY := GR32_Math.Hypot(totalTransform.Matrix[1, 0], totalTransform.Matrix[1, 1]);
+      if scaleX > 0 then
+        rx := rx * scaleX;
+      if scaleY > 0 then
+        ry := ry * scaleY;
     end;
 
     radFiller := TSVGRadialGradientPolygonFiller.Create;
-    radFiller.EllipseBounds := FloatRect(ptC.X - rx, ptC.Y - ry, ptC.X + rx, ptC.Y + ry);
-    radFiller.FocalPoint := ptF;
-    radFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
+    try
+      radFiller.EllipseBounds := FloatRect(ptC.X - rx, ptC.Y - ry, ptC.X + rx, ptC.Y + ry);
+      radFiller.FocalPoint := ptF;
+      radFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
 
-    radFiller.Gradient.ClearColorStops;
-    for i := 0 to AGradNode.Stops.Count - 1 do
-    begin
-      stop := AGradNode.Stops[i];
-      stopColor := stop.Color.Color;
-      if stop.Opacity < 1.0 then
-        ScaleAlpha(stopColor, stop.Opacity);
-      radFiller.Gradient.AddColorStop(stop.Offset, stopColor);
+      radFiller.Gradient.ClearColorStops;
+      for i := 0 to AGradNode.Stops.Count - 1 do
+      begin
+        stop := AGradNode.Stops[i];
+        stopColor := stop.Color.Color;
+        if stop.Opacity < 1.0 then
+          ScaleAlpha(stopColor, stop.Opacity);
+        radFiller.Gradient.AddColorStop(stop.Offset, stopColor);
+      end;
+    except
+      radFiller.Free;
+      raise;
     end;
 
     Result := radFiller;
@@ -497,7 +499,6 @@ var
   savedMatrix: TFloatMatrix;
   savedViewport: TFloatRect;
   contentMat, patTransMat: TFloatMatrix;
-  transHelper, contentHelper: TFloatMatrixHelper;
   origPt: TFloatPoint;
   tileViewBox: TSvgViewBox;
 begin
@@ -536,8 +537,7 @@ begin
   patTransMat := APatternNode.PatternTransform;
   if not IsIdentityMatrix(patTransMat) then
   begin
-    transHelper.Matrix := patTransMat;
-    origPt := transHelper.TransformPoint(FloatPoint(tileX, tileY));
+    origPt := TFloatMatrixHelper(patTransMat).TransformPoint(FloatPoint(tileX, tileY));
     tileX := origPt.X;
     tileY := origPt.Y;
   end;
@@ -568,9 +568,8 @@ begin
     end else
     if APatternNode.PatternContentUnits = guObjectBoundingBox then
     begin
-      contentHelper.Matrix := IdentityMatrix;
-      contentHelper.Scale(bWidth, bHeight);
-      contentMat := contentHelper.Matrix;
+      contentMat := IdentityMatrix;
+      TFloatMatrixHelper(contentMat).Scale(bWidth, bHeight);
     end;
 
     PushMatrix;
@@ -767,7 +766,6 @@ var
   savedTarget: TCustomBitmap32;
   savedMatrix: TFloatMatrix;
   bWidth, bHeight: Single;
-  transHelper: TFloatMatrixHelper;
   i: Integer;
 begin
   { Renders child nodes of a <clipPath> onto a temporary alpha surface.
@@ -785,10 +783,9 @@ begin
       if bWidth <= 0 then bWidth := 1.0;
       if bHeight <= 0 then bHeight := 1.0;
 
-      transHelper.Matrix := IdentityMatrix;
-      transHelper.Scale(bWidth, bHeight);
-      transHelper.Translate(ATargetBounds.Left, ATargetBounds.Top);
-      FCurrentMatrix := transHelper.Matrix;
+      FCurrentMatrix := IdentityMatrix;
+      TFloatMatrixHelper(FCurrentMatrix).Scale(bWidth, bHeight);
+      TFloatMatrixHelper(FCurrentMatrix).Translate(ATargetBounds.Left, ATargetBounds.Top);
     end;
 
     AMaskBmp.Clear(0); // Clear to 0 transparent so filled shapes paint non-zero alpha inside clip region
@@ -805,7 +802,6 @@ var
   savedTarget: TCustomBitmap32;
   savedMatrix: TFloatMatrix;
   bWidth, bHeight: Single;
-  transHelper: TFloatMatrixHelper;
   i: Integer;
 begin
   { Renders child nodes of a <mask> onto a temporary luminance/alpha surface.
@@ -823,10 +819,9 @@ begin
       if bWidth <= 0 then bWidth := 1.0;
       if bHeight <= 0 then bHeight := 1.0;
 
-      transHelper.Matrix := IdentityMatrix;
-      transHelper.Scale(bWidth, bHeight);
-      transHelper.Translate(ATargetBounds.Left, ATargetBounds.Top);
-      FCurrentMatrix := transHelper.Matrix;
+      FCurrentMatrix := IdentityMatrix;
+      TFloatMatrixHelper(FCurrentMatrix).Scale(bWidth, bHeight);
+      TFloatMatrixHelper(FCurrentMatrix).Translate(ATargetBounds.Left, ATargetBounds.Top);
     end;
 
     AMaskBmp.Clear(clBlack32);
@@ -1032,7 +1027,6 @@ var
   oldMatrix: TFloatMatrix;
   clipId, maskId: string;
   groupBounds, targetWorldBounds: TFloatRect;
-  transHelper: TFloatMatrixHelper;
   pts: array[0..3] of TFloatPoint;
 begin
   if AGroupNode = nil then
@@ -1046,11 +1040,10 @@ begin
 
     // Calculate group bounding box in world space for objectBoundingBox units
     groupBounds := AGroupNode.GetObjectBoundingBox;
-    transHelper.Matrix := FCurrentMatrix;
-    pts[0] := transHelper.TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Top));
-    pts[1] := transHelper.TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Top));
-    pts[2] := transHelper.TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Bottom));
-    pts[3] := transHelper.TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Bottom));
+    pts[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Top));
+    pts[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Top));
+    pts[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Bottom));
+    pts[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Bottom));
 
     targetWorldBounds := FloatRect(pts[0].X, pts[0].Y, pts[0].X, pts[0].Y);
     for k := 1 to 3 do

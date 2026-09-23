@@ -1147,7 +1147,6 @@ var
   first: Boolean;
   pts: array[0..3] of TFloatPoint;
   pt: TFloatPoint;
-  transHelper: TFloatMatrixHelper;
 begin
   { Calculates the object bounding box for a group node by uniting the bounding boxes
     of all renderable child nodes. Child node transformations are applied to transform
@@ -1165,11 +1164,10 @@ begin
       begin
         if not IsIdentityMatrix(child.Transform) then
         begin
-          transHelper.Matrix := child.Transform;
-          pts[0] := transHelper.TransformPoint(FloatPoint(childBox.Left, childBox.Top));
-          pts[1] := transHelper.TransformPoint(FloatPoint(childBox.Right, childBox.Top));
-          pts[2] := transHelper.TransformPoint(FloatPoint(childBox.Right, childBox.Bottom));
-          pts[3] := transHelper.TransformPoint(FloatPoint(childBox.Left, childBox.Bottom));
+          pts[0] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Left, childBox.Top));
+          pts[1] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Right, childBox.Top));
+          pts[2] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Right, childBox.Bottom));
+          pts[3] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Left, childBox.Bottom));
 
           for k := 0 to 3 do
           begin
@@ -1796,7 +1794,6 @@ const
     group: TSvgGroupNode;
     useNode: TSvgUseNode;
     targetNode, clonedNode: TSvgNode;
-    transHelper: TFloatMatrixHelper;
     targetId: string;
   begin
     // Abort if node is nil, already being resolved (cycle detected), or max depth reached
@@ -1829,11 +1826,7 @@ const
               try
                 clonedNode := targetNode.Clone(useNode);
                 if (useNode.X <> 0) or (useNode.Y <> 0) then
-                begin
-                  transHelper.Matrix := clonedNode.Transform;
-                  transHelper.Translate(useNode.X, useNode.Y);
-                  clonedNode.Transform := transHelper.Matrix;
-                end;
+                  TFloatMatrixHelper(clonedNode.FTransform).Translate(useNode.X, useNode.Y);
                 useNode.AddChild(clonedNode);
 
                 // Recursively resolve cloned subtree while targetNode remains marked as resolving
@@ -2372,7 +2365,7 @@ function ParseSvgTransform(const AStr: string): TFloatMatrix;
 var
   s, cmdStr, paramsStr: string;
   i, len, pStart, pEnd: Integer;
-  cmdHelper: TFloatMatrixHelper;
+  cmdMat: TFloatMatrix;
   params: array of Single;
   pCount: Integer;
 
@@ -2417,8 +2410,6 @@ var
     end;
   end;
 
-var
-  mMat: TFloatMatrix;
 begin
   Result := IdentityMatrix;
   s := Trim(AStr);
@@ -2443,59 +2434,58 @@ begin
     paramsStr := Copy(s, pStart + 1, pEnd - pStart - 1);
     ExtractParams(paramsStr);
 
-    cmdHelper.Matrix := IdentityMatrix;
+    cmdMat := IdentityMatrix;
 
     if cmdStr = 'translate' then
     begin
       if pCount >= 2 then
-        cmdHelper.Translate(params[0], params[1])
+        TFloatMatrixHelper(cmdMat).Translate(params[0], params[1])
       else if pCount = 1 then
-        cmdHelper.Translate(params[0], 0);
+        TFloatMatrixHelper(cmdMat).Translate(params[0], 0);
     end
     else if cmdStr = 'scale' then
     begin
       if pCount >= 2 then
-        cmdHelper.Scale(params[0], params[1])
+        TFloatMatrixHelper(cmdMat).Scale(params[0], params[1])
       else if pCount = 1 then
-        cmdHelper.Scale(params[0], params[0]);
+        TFloatMatrixHelper(cmdMat).Scale(params[0], params[0]);
     end
     else if cmdStr = 'rotate' then
     begin
       if pCount >= 3 then
-        cmdHelper.Rotate(params[1], params[2], params[0])
+        TFloatMatrixHelper(cmdMat).Rotate(params[1], params[2], params[0])
       else if pCount >= 1 then
-        cmdHelper.Rotate(params[0]);
+        TFloatMatrixHelper(cmdMat).Rotate(params[0]);
     end
     else if cmdStr = 'skewx' then
     begin
       if pCount >= 1 then
-        cmdHelper.Skew(Tan(DegToRad(params[0])), 0);
+        TFloatMatrixHelper(cmdMat).Skew(Tan(DegToRad(params[0])), 0);
     end
     else if cmdStr = 'skewy' then
     begin
       if pCount >= 1 then
-        cmdHelper.Skew(0, Tan(DegToRad(params[0])));
+        TFloatMatrixHelper(cmdMat).Skew(0, Tan(DegToRad(params[0])));
     end
     else if cmdStr = 'matrix' then
     begin
       if pCount >= 6 then
       begin
-        mMat[0, 0] := params[0];
-        mMat[0, 1] := params[1];
-        mMat[0, 2] := 0;
-        mMat[1, 0] := params[2];
-        mMat[1, 1] := params[3];
-        mMat[1, 2] := 0;
-        mMat[2, 0] := params[4];
-        mMat[2, 1] := params[5];
-        mMat[2, 2] := 1;
-        cmdHelper.Matrix := mMat;
+        cmdMat[0, 0] := params[0];
+        cmdMat[0, 1] := params[1];
+        cmdMat[0, 2] := 0;
+        cmdMat[1, 0] := params[2];
+        cmdMat[1, 1] := params[3];
+        cmdMat[1, 2] := 0;
+        cmdMat[2, 0] := params[4];
+        cmdMat[2, 1] := params[5];
+        cmdMat[2, 2] := 1;
       end;
     end;
 
     // In SVG, transform functions in a transform list are applied right-to-left (innermost to outermost).
-    // Pre-multiplying cmdHelper.Matrix onto Result achieves the correct right-to-left evaluation order.
-    Result := Mult(Result, cmdHelper.Matrix);
+    // Pre-multiplying cmdMat onto Result achieves the correct right-to-left evaluation order.
+    TFloatMatrixHelper(Result) := TFloatMatrixHelper(cmdMat) * Result;
 
     i := pEnd + 1;
   end;
