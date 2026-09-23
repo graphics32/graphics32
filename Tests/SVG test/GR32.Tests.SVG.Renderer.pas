@@ -61,6 +61,9 @@ type
     procedure TestObjectBoundingBoxMaskAndGradient;
     procedure TestMixBlendModeAndIsolationRendering;
     procedure TestSymbolRendering;
+    procedure TestFilterRendering;
+    procedure TestFeColorMatrixRendering;
+    procedure TestFeCompositeArithmeticRendering;
   end;
 
 implementation
@@ -839,7 +842,7 @@ begin
 
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
-    try
+      try
       renderer := TSvgRenderer.Create(bmp);
       try
         renderer.RenderDocument(docNode);
@@ -855,11 +858,129 @@ begin
       finally
         renderer.Free;
       end;
-    finally
+      finally
       docNode.Free;
-    end;
-  finally
+      end;
+    finally
     bmp.Free;
+    end;
+end;
+
+procedure TTestSvgRenderer.TestFilterRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pCenter, pOffset: TColor32;
+begin
+  // Test feGaussianBlur, feOffset, feFlood, feComposite, feBlend, feMerge primitive rendering
+  xml := '<svg width="100" height="100">' +
+         '  <defs>' +
+         '    <filter id="f_offset">' +
+         '      <feOffset in="SourceGraphic" dx="10" dy="10" result="off1"/>' +
+         '      <feMerge>' +
+         '        <feMergeNode in="off1"/>' +
+         '        <feMergeNode in="SourceGraphic"/>' +
+         '      </feMerge>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect x="10" y="10" width="30" height="30" fill="blue" filter="url(#f_offset)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    pCenter := bmp.Pixel[20, 20];
+    pOffset := bmp.Pixel[35, 35];
+
+    CheckEquals(clBlue32, pCenter, 'Original rect position should be painted blue');
+    CheckEquals(clBlue32, pOffset, 'Offset merged rect position should also be painted blue');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+
+procedure TTestSvgRenderer.TestFeColorMatrixRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pPixel: TColor32;
+begin
+  // Test 1: Custom diagonal values in feColorMatrix (swap Red and Blue channels)
+  xml := '<svg width="10" height="10">' +
+         '  <defs>' +
+         '    <filter id="f_swap">' +
+         '      <feColorMatrix type="matrix" values="0 0 1 0 0  0 1 0 0 0  1 0 0 0 0  0 0 0 1 0"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect width="10" height="10" fill="red" filter="url(#f_swap)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(10, 10);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    pPixel := bmp.Pixel[5, 5];
+    CheckEquals(clBlue32, pPixel, 'Red channel swapped to Blue should render clBlue32');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeCompositeArithmeticRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pPixel: TColor32;
+begin
+  // Test 2: Arithmetic compositing with K2=0.5, K3=0.5
+  xml := '<svg width="10" height="10">' +
+         '  <defs>' +
+         '    <filter id="f_arith">' +
+         '      <feFlood flood-color="blue" result="blue_bg"/>' +
+         '      <feComposite in="SourceGraphic" in2="blue_bg" operator="arithmetic" k1="0" k2="0.5" k3="0.5" k4="0"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect width="10" height="10" fill="red" filter="url(#f_arith)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(10, 10);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    pPixel := bmp.Pixel[5, 5];
+    CheckEquals(128, RedComponent(pPixel), 'Arithmetic K2=0.5 of Red (255) should give 128 Red');
+    CheckEquals(128, BlueComponent(pPixel), 'Arithmetic K3=0.5 of Blue (255) should give 128 Blue');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
   end;
 end;
 

@@ -79,6 +79,8 @@ type
     procedure RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
     procedure RenderMarker(AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); virtual; // Angle is in radians!
     procedure RenderMarkers(APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single); virtual;
+    procedure RenderFilter(AFilterNode: TSvgFilterNode; ANode: TSvgNode); virtual;
+    procedure RenderNodeUnfiltered(ANode: TSvgNode); virtual;
     procedure BlendOffscreenSurface(ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode); virtual;
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
@@ -112,7 +114,9 @@ uses
   GR32_Math,
   GR32_LowLevel,
   GR32_Backends_Generic,
+  GR32.Blur,
   GR32.Blend.Modes,
+  GR32.Blend.Modes.PorterDuff,
   GR32.Blend.Modes.PhotoShop;
 
 function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
@@ -222,7 +226,8 @@ begin
   // Search pool for Candidate surface with existing buffer dimensions sufficient
   // for requested bounds (Width >= AWidth, Height >= AHeight) to avoid costly
   // buffer reallocations. Pick Candidate with smallest excess area (BestDelta).
-  for i := 0 to FPool.Count - 1 do
+  // Scan from most recent (most likely to match size) to least recent.
+  for i := FPool.Count - 1 downto 0 do
   begin
     Candidate := FPool[i];
 
@@ -257,7 +262,7 @@ begin
 
   Result.MasterAlpha := 255;
   Result.DrawMode := dmBlend;
-  Result.CombineMode := cmBlend;
+  Result.CombineMode := cmMerge;
 end;
 
 procedure TSvgBitmapPool.Release(ABitmap: TCustomBitmap32);
@@ -359,7 +364,7 @@ begin
   end;
 
   ASource.DrawMode := dmBlend;
-  ASource.CombineMode := cmBlend;
+  ASource.CombineMode := cmMerge;
   ASource.DrawTo(FTarget, 0, 0);
 end;
 
@@ -1207,6 +1212,527 @@ begin
     RenderNode(AGroupNode.Children[i]);
 end;
 
+procedure TSvgRenderer.RenderFilter(AFilterNode: TSvgFilterNode; ANode: TSvgNode);
+
+  function ResolveSurface(const AInput: TSvgFilterInput; SourceGraphic, SourceAlpha, CurrentSurface, DefaultFallback: TCustomBitmap32; const NamedSurfaces: TArray<TCustomBitmap32>): TCustomBitmap32;
+  begin
+    Result := DefaultFallback;
+
+    case AInput.Kind of
+      fikSourceGraphic:
+        Result := SourceGraphic;
+
+      fikSourceAlpha:
+        Result := SourceAlpha;
+
+      fikNamedResult:
+        if (AInput.Index >= 0) and (AInput.Index <= High(NamedSurfaces)) and (NamedSurfaces[AInput.Index] <> nil) then
+          Result := NamedSurfaces[AInput.Index];
+    end;
+  end;
+
+  procedure ApplyColorMatrix(ASrc, ADest: TCustomBitmap32; AType: TSvgFeColorMatrixType; const AValues: TArrayOfFloat);
+  var
+    i: Integer;
+    pSource, pDest: PColor32Entry;
+    M: array[0..19] of integer;
+    CosVal, SinVal: Single;
+    Lum: integer;
+    n: integer;
+    LastSource, LastDest: TColor32;
+    HasLast: Boolean;
+  begin
+    pSource := PColor32Entry(ASrc.Bits);
+    pDest := PColor32Entry(ADest.Bits);
+
+    // Cache last procesed pixel; If the new input is the same as the previous, the new output will be the same as the previous
+    HasLast := False;
+    LastSource := 0;
+    LastDest := 0;
+
+    case AType of
+      cmMatrix:
+        if (Length(AValues) > 0) then
+        begin
+          n := Min(High(M), High(AValues));
+          for i := 0 to n do
+          begin
+            case i of
+              4, 9, 14, 19:
+                // Column index 4, 9, 14, 19 are constant offsets scaled by 255
+                M[i] := Round(AValues[i] * 16711680);
+            else
+              M[i] := Round(AValues[i] * 65536);
+            end;
+          end;
+          for i := n + 1 to High(M) do
+          begin
+            case i of
+              0, 6, 12, 18:
+                // R = R, G = G, B = B, A = A
+                M[i] := 65536;
+            else
+              M[i] := 0;
+            end;
+          end;
+
+          for i := 0 to ASrc.PixelCount - 1 do
+          begin
+            if (not HasLast) or (pSource.ARGB <> LastSource) then
+            begin
+              pDest.R := Clamp((M[0]  * pSource.R + M[1]  * pSource.G + M[2]  * pSource.B + M[3]  * pSource.A + M[4])  div 65536);
+              pDest.G := Clamp((M[5]  * pSource.R + M[6]  * pSource.G + M[7]  * pSource.B + M[8]  * pSource.A + M[9])  div 65536);
+              pDest.B := Clamp((M[10] * pSource.R + M[11] * pSource.G + M[12] * pSource.B + M[13] * pSource.A + M[14]) div 65536);
+              pDest.A := Clamp((M[15] * pSource.R + M[16] * pSource.G + M[17] * pSource.B + M[18] * pSource.A + M[19]) div 65536);
+
+              LastSource := pSource.ARGB;
+              LastDest := pDest.ARGB;
+              HasLast := True;
+            end else
+              pDest.ARGB := LastDest;
+
+            Inc(pSource);
+            Inc(pDest);
+          end;
+
+          exit;
+        end;
+
+      cmSaturate:
+        if (Length(AValues) > 0) and (AValues[0] <> 1.0) then
+        begin
+          // For Saturate, W3C SVG specifies interpolating each pixel's color
+          // towards its luminance based on saturation:
+          //
+          //   ColorOut = Y + Saturation x (ColorIn - Y)
+          //
+          // W3C NTSC/Rec. 601 luminance:
+          //
+          //   Y = 0.213 x R + 0.715 x G + 0.072 x B
+          //
+          // We convert 0.213, 0.715, 0.072 to Q16 fixed-point
+          //   13959 + 46858 + 4719 = 65536
+          // and store Saturation as a Q8 fixed-point factor
+          //   Round(n * 256)
+
+          // Coefficient (Q8)
+          n := Clamp(Round(AValues[0] * 256), 0, 65535);
+
+          for i := 0 to ASrc.PixelCount - 1 do
+          begin
+            if (not HasLast) or ((pSource.ARGB and $00FFFFFF) <> LastSource) then
+            begin
+              // Rec. 601 W3C NTSC Luminance (Q8)
+              Lum := (integer(13959 * pSource.R) + integer(46858 * pSource.G) + integer(4719 * pSource.B)) div 65536;
+
+              // Output = Luminance + Saturation * (Channel - Luminance)
+              pDest.R := Clamp(Lum + ((n * (integer(pSource.R) - Lum)) div 256));
+              pDest.G := Clamp(Lum + ((n * (integer(pSource.G) - Lum)) div 256));
+              pDest.B := Clamp(Lum + ((n * (integer(pSource.B) - Lum)) div 256));
+              pDest.A := pSource.A; // Preserve alpha
+
+              LastSource := pSource.ARGB and $00FFFFFF;
+              LastDest := pDest.ARGB and $00FFFFFF;
+              HasLast := True;
+            end else
+              pDest.ARGB := LastDest or (pSource.ARGB and $FF000000);
+
+            Inc(pSource);
+            Inc(pDest);
+          end;
+
+          exit;
+        end;
+
+      cmLuminanceToAlpha:
+        begin
+          for i := 0 to ASrc.PixelCount - 1 do
+          begin
+            // W3C SVG / Rec. 709 luminance: Y = 0.2126*R + 0.7152*G + 0.0722*B
+            // Note: Do not use ColorLightness as that depends on various compiler defines
+            pDest.ARGB := ((13933 * pSource.R + 46871 * pSource.G + 4732 * pSource.B) div 65536) shl 24;
+
+            Inc(pSource);
+            Inc(pDest);
+          end;
+
+          exit;
+        end;
+
+      cmHueRotate:
+        if (Length(AValues) > 0) and (AValues[0] <> 0.0) then
+        begin
+          // For Hue Rotate, the W3C matrix rotates linear RGB around the luminance
+          // axis. Since the 5x4 matrix is constant across all pixels for a
+          // given angle, we can pre-compute the 3 RGB row linear equations in
+          // Q16 fixed-point math once per filter step.
+
+          GR32_Math.SinCos(DegToRad(AValues[0]), SinVal, CosVal);
+
+          // Scale matrix coefficients to Q16 integer (65536 = 1.0)
+          M[0] := Round((0.213 + CosVal * 0.787 - SinVal * 0.213) * 65536);
+          M[1] := Round((0.715 - CosVal * 0.715 - SinVal * 0.715) * 65536);
+          M[2] := Round((0.072 - CosVal * 0.072 + SinVal * 0.928) * 65536);
+
+          M[3] := Round((0.213 - CosVal * 0.213 + SinVal * 0.143) * 65536);
+          M[4] := Round((0.715 + CosVal * 0.285 + SinVal * 0.140) * 65536);
+          M[5] := Round((0.072 - CosVal * 0.072 - SinVal * 0.283) * 65536);
+
+          M[6] := Round((0.213 - CosVal * 0.213 - SinVal * 0.787) * 65536);
+          M[7] := Round((0.715 - CosVal * 0.715 + SinVal * 0.715) * 65536);
+          M[8] := Round((0.072 + CosVal * 0.928 + SinVal * 0.072) * 65536);
+
+          for i := 0 to ASrc.PixelCount - 1 do
+          begin
+            if (not HasLast) or ((pSource.ARGB and $00FFFFFF) <> LastSource) then
+            begin
+              pDest.R := Clamp((M[0] * pSource.R + M[1] * pSource.G + M[2] * pSource.B) div 65536);
+              pDest.G := Clamp((M[3] * pSource.R + M[4] * pSource.G + M[5] * pSource.B) div 65536);
+              pDest.B := Clamp((M[6] * pSource.R + M[7] * pSource.G + M[8] * pSource.B) div 65536);
+              pDest.A := pSource.A; // Preserve alpha
+
+              LastSource := pSource.ARGB and $00FFFFFF;
+              LastDest := pDest.ARGB and $00FFFFFF;
+              HasLast := True;
+            end else
+              pDest.ARGB := LastDest or (pSource.ARGB and $FF000000);
+
+            Inc(pSource);
+            Inc(pDest);
+          end;
+
+          exit;
+        end;
+    end;
+
+    // Default: Pass-through
+    Move(pSource^, pDest^, ASrc.ByteCount);
+  end;
+
+  procedure ApplyComposite(ASrc1, ASrc2, ADest: TCustomBitmap32; AOp: TSvgCompositeOperator; K1, K2, K3, K4: Single);
+  type
+    TPixelCombiner = function(F: TColor32; B: TColor32): TColor32 of object;
+  var
+    i, Count: integer;
+    pSource1, pSource2, pDest: PColor32Entry;
+    Blender: TCustomGraphics32Blender;
+    Combiner: TPixelCombiner;
+    c1, c2, c3, c4: Int64;
+    vR, vG, vB, vA: integer;
+  const
+    OneOver255: Single = 1 / 255;
+  begin
+    Count := ASrc1.PixelCount;
+    pSource1 := PColor32Entry(ASrc1.Bits);
+    pSource2 := PColor32Entry(ASrc2.Bits);
+    pDest := PColor32Entry(ADest.Bits);
+
+    case AOp of
+      coOver:
+        begin
+          // ASrc1 (in) composited over ASrc2 (in2) onto ADest
+          ASrc2.DrawTo(ADest, 0, 0);
+          ASrc1.DrawTo(ADest, 0, 0);
+        end;
+
+      coIn:
+        begin
+          Blender := TGraphics32BlenderSrcIn.Create;
+          try
+            Combiner := Blender.Blend;
+            for i := 0 to Count - 1 do
+            begin
+              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
+              Inc(pSource1); Inc(pSource2); Inc(pDest);
+            end;
+          finally
+            Blender.Free;
+          end;
+        end;
+
+      coOut:
+        begin
+          Blender := TGraphics32BlenderSrcOut.Create;
+          try
+            Combiner := Blender.Blend;
+            for i := 0 to Count - 1 do
+            begin
+              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
+              Inc(pSource1); Inc(pSource2); Inc(pDest);
+            end;
+          finally
+            Blender.Free;
+          end;
+        end;
+
+      coAtop:
+        begin
+          Blender := TGraphics32BlenderSrcAtop.Create;
+          try
+            Combiner := Blender.Blend;
+            for i := 0 to Count - 1 do
+            begin
+              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
+              Inc(pSource1); Inc(pSource2); Inc(pDest);
+            end;
+          finally
+            Blender.Free;
+          end;
+        end;
+
+      coXor:
+        begin
+          Blender := TGraphics32BlenderXor.Create;
+          try
+            Combiner := Blender.Blend;
+            for i := 0 to Count - 1 do
+            begin
+              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
+              Inc(pSource1); Inc(pSource2); Inc(pDest);
+            end;
+          finally
+            Blender.Free;
+          end;
+        end;
+
+      coLighter:
+        begin
+          for i := 0 to Count - 1 do
+          begin
+            pDest.ARGB := ColorAdd(pSource1.ARGB, pSource2.ARGB);
+            Inc(pSource1); Inc(pSource2); Inc(pDest);
+          end;
+        end;
+
+      coArithmetic:
+        begin
+          // W3C SVG arithmetic composite operator formula:
+          // result = K1 * in1 * in2 + K2 * in1 + K3 * in2 + K4
+          // Inputs and outputs normalized to [0, 1]. For byte values in [0, 255]:
+          // result_byte = K1 * (F * B / 255) + K2 * F + K3 * B + K4 * 255
+          // We precalculate Q16 fixed-point factors scaled by 65536.
+          c1 := Round((K1 * OneOver255) * 65536.0);
+          c2 := Round(K2 * 65536.0);
+          c3 := Round(K3 * 65536.0);
+          c4 := Round(K4 * 255.0 * 65536.0);
+
+          for i := 0 to Count - 1 do
+          begin
+            vR := (c1 * pSource1.R * pSource2.R + c2 * pSource1.R + c3 * pSource2.R + c4) div 65536;
+            vG := (c1 * pSource1.G * pSource2.G + c2 * pSource1.G + c3 * pSource2.G + c4) div 65536;
+            vB := (c1 * pSource1.B * pSource2.B + c2 * pSource1.B + c3 * pSource2.B + c4) div 65536;
+            // Note: The W3C SVG specs require that the same formula is used on all four channels.
+            // Some implementations incorrectly uses the Porter-Duff alpha formula:
+            //   1 - (1-F.A) * (1-B.A) = (((F.A xor 255) * (B.A xor 255)) shr 8) xor 255
+            vA := (c1 * pSource1.A * pSource2.A + c2 * pSource1.A + c3 * pSource2.A + c4) div 65536;
+
+            pDest.R := Clamp(vR);
+            pDest.G := Clamp(vG);
+            pDest.B := Clamp(vB);
+            pDest.A := Clamp(vA);
+
+            Inc(pSource1); Inc(pSource2); Inc(pDest);
+          end;
+        end;
+    end;
+  end;
+
+var
+  SourceGraphic, SourceAlpha, CurrentSurface, Input1, Input2, TempSurface, DestSurface, CachedSurface: TCustomBitmap32;
+  SavedTarget: TCustomBitmap32;
+  NamedSurfaces: TArray<TCustomBitmap32>;
+  i, Count: Integer;
+  Node, ChildNode: TSvgNode;
+  pSource, pDest: PColor32;
+  FloodColor: TColor32;
+  dxInt, dyInt: Integer;
+begin
+  if (AFilterNode = nil) or (ANode = nil) or (FTarget = nil) then
+    Exit;
+
+  SourceGraphic := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+  SourceAlpha := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+  NamedSurfaces := nil;
+  try
+    // 1. Render element into SourceGraphic offscreen surface
+    SavedTarget := FTarget;
+    FTarget := SourceGraphic;
+    try
+      RenderNodeUnfiltered(ANode);
+    finally
+      FTarget := SavedTarget;
+    end;
+
+    // 2. Derive SourceAlpha from SourceGraphic
+    pSource := PColor32(SourceGraphic.Bits);
+    pDest := PColor32(SourceAlpha.Bits);
+    for i := 0 to SourceGraphic.PixelCount - 1 do
+    begin
+      PColor32Entry(pDest).ARGB := PColor32Entry(pSource).A shl 24;
+      Inc(pSource);
+      Inc(pDest);
+    end;
+
+    CurrentSurface := SourceGraphic;
+
+    // Count number of named surfaces so we can preallocate the surface array
+    Count := 0;
+    for Node in AFilterNode.Children do
+      if (Node is TSvgFilterPrimitiveNode) and TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
+        Inc(Count);
+    SetLength(NamedSurfaces, Count);
+    Count := 0;
+
+      // 3. Process filter primitive nodes sequentially
+    CachedSurface := nil;
+    for Node in AFilterNode.Children do
+    begin
+      if not (Node is TSvgFilterPrimitiveNode) then
+        Continue;
+
+      if Node is TSvgFeGaussianBlurNode then
+      begin
+        Input1 := ResolveSurface(TSvgFeGaussianBlurNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+        ReleaseOffscreenBitmap(CachedSurface);
+        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+
+        if TSvgFeGaussianBlurNode(Node).StdDeviationX > 0 then
+          Blur32(Input1, DestSurface, TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius)
+        else
+          Input1.DrawTo(DestSurface, 0, 0);
+
+        CurrentSurface := DestSurface;
+      end else
+
+      if Node is TSvgFeColorMatrixNode then
+      begin
+        Input1 := ResolveSurface(TSvgFeColorMatrixNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+        ReleaseOffscreenBitmap(CachedSurface);
+        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+
+        ApplyColorMatrix(Input1, DestSurface, TSvgFeColorMatrixNode(Node).MatrixType, TSvgFeColorMatrixNode(Node).Values);
+        CurrentSurface := DestSurface;
+      end else
+
+      if Node is TSvgFeBlendNode then
+      begin
+        Input1 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+        Input2 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
+        ReleaseOffscreenBitmap(CachedSurface);
+        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+
+        Input2.DrawTo(DestSurface, 0, 0);
+        SavedTarget := FTarget;
+        FTarget := DestSurface;
+        try
+          BlendOffscreenSurface(Input1, TSvgFeBlendNode(Node).Mode);
+        finally
+          FTarget := SavedTarget;
+        end;
+
+        CurrentSurface := DestSurface;
+      end else
+
+      if Node is TSvgFeCompositeNode then
+      begin
+        Input1 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+        Input2 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
+        ReleaseOffscreenBitmap(CachedSurface);
+        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+
+        ApplyComposite(Input1, Input2, DestSurface, TSvgFeCompositeNode(Node).CompositeOperator,
+          TSvgFeCompositeNode(Node).K1, TSvgFeCompositeNode(Node).K2, TSvgFeCompositeNode(Node).K3, TSvgFeCompositeNode(Node).K4);
+        CurrentSurface := DestSurface;
+      end else
+
+      if Node is TSvgFeMergeNode then
+      begin
+        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+
+        for ChildNode in TSvgFeMergeNode(Node).Children do
+        begin
+          if ChildNode is TSvgFeMergeNodeChild then
+          begin
+            Input1 := ResolveSurface(TSvgFeMergeNodeChild(ChildNode).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+
+            SavedTarget := FTarget;
+            FTarget := DestSurface;
+            try
+              BlendOffscreenSurface(Input1, bmNormal);
+            finally
+              FTarget := SavedTarget;
+            end;
+          end;
+        end;
+        ReleaseOffscreenBitmap(CachedSurface);
+        CurrentSurface := DestSurface;
+      end else
+
+      if Node is TSvgFeOffsetNode then
+      begin
+        Input1 := ResolveSurface(TSvgFeOffsetNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+        ReleaseOffscreenBitmap(CachedSurface);
+        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+
+        dxInt := Round(TSvgFeOffsetNode(Node).Dx);
+        dyInt := Round(TSvgFeOffsetNode(Node).Dy);
+        Input1.DrawTo(DestSurface, dxInt, dyInt);
+        CurrentSurface := DestSurface;
+      end else
+
+      if Node is TSvgFeFloodNode then
+      begin
+        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        ReleaseOffscreenBitmap(CachedSurface);
+
+        FloodColor := TSvgFeFloodNode(Node).FloodColor.Color;
+        if TSvgFeFloodNode(Node).FloodOpacity < 1.0 then
+          ScaleAlpha(FloodColor, TSvgFeFloodNode(Node).FloodOpacity);
+        DestSurface.Clear(FloodColor);
+        CurrentSurface := DestSurface;
+      end;
+
+      if TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
+      begin
+        NamedSurfaces[Count] := CurrentSurface;
+        CachedSurface := nil;
+        Inc(Count);
+      end else
+        // Indicate that the surface has been cached for ResolveSurface but
+        // can be released once ResolveSurface returns.
+        CachedSurface := CurrentSurface;
+    end;
+
+    ReleaseOffscreenBitmap(CachedSurface);
+
+    // 4. Blend final filtered result surface onto target canvas
+    if CurrentSurface <> nil then
+      BlendOffscreenSurface(CurrentSurface, bmNormal);
+
+  finally
+    for CurrentSurface in NamedSurfaces do
+      ReleaseOffscreenBitmap(CurrentSurface);
+    ReleaseOffscreenBitmap(SourceGraphic);
+    ReleaseOffscreenBitmap(SourceAlpha);
+  end;
+end;
+
+procedure TSvgRenderer.RenderNodeUnfiltered(ANode: TSvgNode);
+begin
+  PushMatrix;
+  try
+    ApplyMatrix(ANode.Transform);
+
+    if ANode is TSvgPathNode then
+      RenderPathNode(TSvgPathNode(ANode))
+    else
+    if ANode is TSvgGroupNode then
+      RenderGroupNode(TSvgGroupNode(ANode));
+  finally
+    PopMatrix;
+  end;
+end;
+
 procedure TSvgRenderer.RenderNode(ANode: TSvgNode);
 var
   OffscreenBmp, SavedTarget: TCustomBitmap32;
@@ -1214,6 +1740,13 @@ var
 begin
   if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) then
     Exit;
+
+  // Filter processing takes precedence over direct element rendering
+  if ANode.ResolvedFilter <> nil then
+  begin
+    RenderFilter(ANode.ResolvedFilter, ANode);
+    Exit;
+  end;
 
   EffectiveBlendMode := GetEffectiveMixBlendMode(ANode);
 

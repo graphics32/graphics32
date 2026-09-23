@@ -54,6 +54,7 @@ type
     procedure TestSmallCoordinateCubicBezier;
     procedure TestClosePath;
     procedure TestMultipleSubpaths;
+    procedure TestCircleWithTwoArcs;
   end;
 
 implementation
@@ -194,6 +195,27 @@ begin
     Check(Length(path.Path[0]) >= 3);
   finally
     path.Free;
+  end;
+end;
+
+procedure TTestSvgPath.TestCircleWithTwoArcs;
+var
+  pts: TArrayOfArrayOfFloatPoint;
+  i: Integer;
+  dist, cx, cy, r: Double;
+begin
+  pts := SvgPathDataToPoints('M32,3 A29,29,0,1,0,61,32 29,29,0,0,0,32,3 Z');
+  CheckEquals(1, Length(pts));
+  Check(Length(pts[0]) >= 12, 'Multi-arc path should flatten into multiple points');
+
+  cx := 32.0;
+  cy := 32.0;
+  r := 29.0;
+
+  for i := 0 to High(pts[0]) do
+  begin
+    dist := Sqrt(Sqr(pts[0][i].X - cx) + Sqr(pts[0][i].Y - cy));
+    CheckEquals(r, dist, 0.5);
   end;
 end;
 

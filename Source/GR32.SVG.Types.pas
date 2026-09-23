@@ -42,14 +42,32 @@ uses
   GR32_LowLevel,
   GR32.SVG.Utf8;
 
-var
-  SvgFormatSettings: TFormatSettings;
+
+//------------------------------------------------------------------------------
+//
+//      Color space stuff
+//
+//------------------------------------------------------------------------------
 
 // HSLtoRGB overload for float Alpha in the range [0.0..1.0]
 function HSLtoRGB(H, S, L, A: Single): TColor32;
 
+
+//------------------------------------------------------------------------------
+//
+//      SvgColorNameToColor
+//
+//------------------------------------------------------------------------------
+// SVG color name -> TColor32
+//------------------------------------------------------------------------------
 function SvgColorNameToColor(const AName: TValuePUtf8Char; ADefault: TColor32): TColor32;
 
+
+//------------------------------------------------------------------------------
+//
+//      Common enums
+//
+//------------------------------------------------------------------------------
 type
   TSvgBlendMode = (
     bmNormal,
@@ -71,13 +89,60 @@ type
     isoIsolate
   );
 
+  TSvgCompositeOperator = (
+    coOver,
+    coIn,
+    coOut,
+    coAtop,
+    coXor,
+    coArithmetic,
+    coLighter
+  );
+
+  TSvgFeColorMatrixType = (
+    cmMatrix,
+    cmSaturate,
+    cmHueRotate,
+    cmLuminanceToAlpha
+  );
+
+
+//------------------------------------------------------------------------------
+//
+//      String to enum value
+//
+//------------------------------------------------------------------------------
 function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode; overload;
 function ParseSvgBlendMode(const AName: AnsiString): TSvgBlendMode; overload;
 function ParseSvgIsolation(const AName: TValuePUtf8Char): TSvgIsolation; overload;
 function ParseSvgIsolation(const AName: AnsiString): TSvgIsolation; overload;
+function ParseSvgCompositeOperator(const AName: TValuePUtf8Char): TSvgCompositeOperator; overload;
+function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperator; overload;
+function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType; overload;
+function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType; overload;
+
+//------------------------------------------------------------------------------
+//
+//      Enum value to string (for debug)
+//
+//------------------------------------------------------------------------------
 function SvgBlendModeToString(AMode: TSvgBlendMode): string;
 function SvgIsolationToString(AIsolation: TSvgIsolation): string;
+function SvgCompositeOperatorToString(AOp: TSvgCompositeOperator): string;
+function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
 
+// FormatSettings with '.' decimal separator
+var
+  SvgFormatSettings: TFormatSettings;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgLength
+//
+//------------------------------------------------------------------------------
+// SVG length unit type
+//------------------------------------------------------------------------------
 type
   TSvgUnitType = (
     suPx,
@@ -99,6 +164,15 @@ type
     class function Parse(const AStr: UTF8String): TSvgLength; static;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgColor
+//
+//------------------------------------------------------------------------------
+// SVG color
+//------------------------------------------------------------------------------
+type
   TSvgColor = record
     Color: TColor32;
     IsNone: Boolean;
@@ -110,6 +184,15 @@ type
     class function Parse(AColorStr: TValuePUtf8Char): TSvgColor; overload; static;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgAlign
+//
+//------------------------------------------------------------------------------
+// SVG alignment
+//------------------------------------------------------------------------------
+type
   TSvgAlign = (
     saNone,
     saXMinYMin,
@@ -128,6 +211,15 @@ type
     msSlice
   );
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPreserveAspectRatio
+//
+//------------------------------------------------------------------------------
+// SVG aspect ratio
+//------------------------------------------------------------------------------
+type
   TSvgPreserveAspectRatio = record
     Align: TSvgAlign;
     MeetOrSlice: TSvgMeetOrSlice;
@@ -135,44 +227,15 @@ type
     class function Parse(const AStr: UTF8String): TSvgPreserveAspectRatio; static;
   end;
 
-  { TFloatMatrixHelper }
-  (*
-    Note that while TFloatMatrixHelper CAN be used independently:
 
-      var Helper: TFloatMatrixHelper;
-      Helper.Matrix := IdentityMatrix;
-      Helper.Scale(a, b);
-      ...
-
-    it is actually meant to be used as a type cast helper for TFloatMatrix:
-
-      var MatrixA: TFloatMatrix;
-      var MatrixB: TFloatMatrix;
-      ...
-      TFloatMatrixHelper(MatrixA).Scale(a, b);
-      MatrixB := MatrixB * TFloatMatrixHelper(MatrixA);
-      ...
-  *)
-  TFloatMatrixHelper = record
-    // Beware that Matrix is Row-Major!
-    Matrix: TFloatMatrix;
-
-    // Note: operator Multiply(Left, Right) internally calls Mult(Right, Left) so
-    // the result matches normal algebraic expectations: matRes := matA x matB
-    class operator Multiply(const Left, Right: TFloatMatrixHelper): TFloatMatrixHelper; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
-    class operator Multiply(const Left: TFloatMatrixHelper; const Right: TFloatMatrix): TFloatMatrixHelper; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
-    class operator Multiply(const Left: TFloatMatrix; const Right: TFloatMatrixHelper): TFloatMatrix; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
-
-    procedure Translate(Dx, Dy: TFloat);
-    procedure Rotate(Alpha: TFloat); overload;
-    procedure Rotate(Cx, Cy, Alpha: TFloat); overload;
-    procedure Skew(Fx, Fy: TFloat);
-    procedure Scale(Sx, Sy: TFloat); overload;
-    procedure Scale(Value: TFloat); overload;
-    function TransformPoint(const P: TFloatPoint): TFloatPoint;
-    function IsIdentity: boolean;
-  end;
-
+//------------------------------------------------------------------------------
+//
+//      TSvgViewBox
+//
+//------------------------------------------------------------------------------
+// SVG view box
+//------------------------------------------------------------------------------
+type
   TSvgViewBox = record
     X: Single;
     Y: Single;
@@ -185,6 +248,14 @@ type
     function GetTransform(const ATargetRect: TFloatRect; const AAspect: TSvgPreserveAspectRatio): TFloatMatrix;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgKeywordDictionary<T>
+//
+//------------------------------------------------------------------------------
+// Generic Keywork to Value dictionary
+//------------------------------------------------------------------------------
 type
   TSvgKeywordDictionary<T> = record
   private type
@@ -207,11 +278,63 @@ type
     function Lookup(const AKeyword: TValuePUtf8Char): T; overload;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TFloatMatrixHelper
+//
+//------------------------------------------------------------------------------
+//  Note that while TFloatMatrixHelper CAN be used independently:
+//
+//    var Helper: TFloatMatrixHelper;
+//    Helper.Matrix := IdentityMatrix;
+//    Helper.Scale(a, b);
+//    ...
+//
+//  it is actually meant to be used as a type cast helper for TFloatMatrix:
+//
+//    var MatrixA: TFloatMatrix;
+//    var MatrixB: TFloatMatrix;
+//    ...
+//    TFloatMatrixHelper(MatrixA).Scale(a, b);
+//    MatrixB := MatrixB * TFloatMatrixHelper(MatrixA);
+//    ...
+//------------------------------------------------------------------------------
+type
+  TFloatMatrixHelper = record
+    // Beware that Matrix is Row-Major!
+    Matrix: TFloatMatrix;
+
+    // Note: operator Multiply(Left, Right) internally calls Mult(Right, Left) so
+    // the result matches normal algebraic expectations: matRes := matA x matB
+    class operator Multiply(const Left, Right: TFloatMatrixHelper): TFloatMatrixHelper; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
+    class operator Multiply(const Left: TFloatMatrixHelper; const Right: TFloatMatrix): TFloatMatrixHelper; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
+    class operator Multiply(const Left: TFloatMatrix; const Right: TFloatMatrixHelper): TFloatMatrix; overload; {$IF DEFINED(StaticOperators)}static;{$IFEND}
+
+    procedure Translate(Dx, Dy: TFloat);
+    procedure Rotate(Alpha: TFloat); overload;
+    procedure Rotate(Cx, Cy, Alpha: TFloat); overload;
+    procedure Skew(Fx, Fy: TFloat);
+    procedure Scale(Sx, Sy: TFloat); overload;
+    procedure Scale(Value: TFloat); overload;
+    function TransformPoint(const P: TFloatPoint): TFloatPoint;
+    function IsIdentity: boolean;
+  end;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
   AnsiStrings;
 
+//------------------------------------------------------------------------------
+//
+//      Blend modes
+//
+//------------------------------------------------------------------------------
 type
   TBlendModeName = record
     Name: AnsiString;
@@ -252,6 +375,86 @@ begin
     Result := bmNormal;
 end;
 
+function SvgBlendModeToString(AMode: TSvgBlendMode): string;
+begin
+  case AMode of
+    bmMultiply: Result := 'multiply';
+    bmScreen: Result := 'screen';
+    bmOverlay: Result := 'overlay';
+    bmDarken: Result := 'darken';
+    bmLighten: Result := 'lighten';
+    bmColorDodge: Result := 'color-dodge';
+    bmColorBurn: Result := 'color-burn';
+    bmHardLight: Result := 'hard-light';
+    bmSoftLight: Result := 'soft-light';
+    bmDifference: Result := 'difference';
+    bmExclusion: Result := 'exclusion';
+  else
+    Result := 'normal';
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Composite operators
+//
+//------------------------------------------------------------------------------
+type
+  TCompositeOperatorName = record
+    Name: AnsiString;
+    Value: TSvgCompositeOperator;
+  end;
+
+var
+  SvgCompositeOperatorDictionary: TSvgKeywordDictionary<TSvgCompositeOperator>;
+
+const
+  sCompositeOperators: array[0..6] of TCompositeOperatorName = (
+    (Name: 'over'; Value: coOver),
+    (Name: 'in'; Value: coIn),
+    (Name: 'out'; Value: coOut),
+    (Name: 'atop'; Value: coAtop),
+    (Name: 'xor'; Value: coXor),
+    (Name: 'arithmetic'; Value: coArithmetic),
+    (Name: 'lighter'; Value: coLighter)
+  );
+
+function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperator;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgCompositeOperator(Name);
+end;
+
+function ParseSvgCompositeOperator(const AName: TValuePUtf8Char): TSvgCompositeOperator;
+begin
+  if (not SvgCompositeOperatorDictionary.Lookup(AName, Result)) then
+    Result := coOver;
+end;
+
+function SvgCompositeOperatorToString(AOp: TSvgCompositeOperator): string;
+begin
+  case AOp of
+    coIn: Result := 'in';
+    coOut: Result := 'out';
+    coAtop: Result := 'atop';
+    coXor: Result := 'xor';
+    coArithmetic: Result := 'arithmetic';
+    coLighter: Result := 'lighter';
+  else
+    Result := 'over';
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Isolation
+//
+//------------------------------------------------------------------------------
 function ParseSvgIsolation(const AName: AnsiString): TSvgIsolation;
 var
   Name: TValuePUtf8Char;
@@ -273,25 +476,6 @@ begin
     Result := isoAuto;
 end;
 
-function SvgBlendModeToString(AMode: TSvgBlendMode): string;
-begin
-  case AMode of
-    bmMultiply: Result := 'multiply';
-    bmScreen: Result := 'screen';
-    bmOverlay: Result := 'overlay';
-    bmDarken: Result := 'darken';
-    bmLighten: Result := 'lighten';
-    bmColorDodge: Result := 'color-dodge';
-    bmColorBurn: Result := 'color-burn';
-    bmHardLight: Result := 'hard-light';
-    bmSoftLight: Result := 'soft-light';
-    bmDifference: Result := 'difference';
-    bmExclusion: Result := 'exclusion';
-  else
-    Result := 'normal';
-  end;
-end;
-
 function SvgIsolationToString(AIsolation: TSvgIsolation): string;
 begin
   case AIsolation of
@@ -301,6 +485,52 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      feColorMatrix
+//
+//------------------------------------------------------------------------------
+function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgFeColorMatrixType(Name);
+end;
+
+function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType;
+begin
+  if AName.CompareText('saturate') then
+    Result := cmSaturate
+  else
+  if AName.CompareText('huerotate') then
+    Result := cmHueRotate
+  else
+  if AName.CompareText('luminancetoalpha') then
+    Result := cmLuminanceToAlpha
+  else
+    Result := cmMatrix;
+end;
+
+function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
+begin
+  case AType of
+    cmSaturate: Result := 'saturate';
+    cmHueRotate: Result := 'hueRotate';
+    cmLuminanceToAlpha: Result := 'luminanceToAlpha';
+  else
+    Result := 'matrix';
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      HSL color space
+//
+//------------------------------------------------------------------------------
 function HSLtoRGB(H, S, L, A: Single): TColor32;
 begin
   Result := GR32.HSLtoRGB(
@@ -311,6 +541,12 @@ begin
   );
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgKeywordDictionary<T>
+//
+//------------------------------------------------------------------------------
 procedure TSvgKeywordDictionary<T>.Add(const AKeyword: AnsiString; AValue: T);
 var
   Len: integer;
@@ -386,6 +622,12 @@ begin
     end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      SvgColorNameToColor
+//
+//------------------------------------------------------------------------------
 type
   TColorName = record
     Name: AnsiString;
@@ -554,8 +796,11 @@ begin
 end;
 
 
-{ TSvgLength }
-
+//------------------------------------------------------------------------------
+//
+//      TSvgLength
+//
+//------------------------------------------------------------------------------
 class function TSvgLength.Create(AValue: Single; AUnit: TSvgUnitType): TSvgLength;
 begin
   Result.Value := AValue;
@@ -655,8 +900,12 @@ begin
     Result.UnitType := suPx;
 end;
 
-{ TSvgColor }
 
+//------------------------------------------------------------------------------
+//
+//      TSvgColor
+//
+//------------------------------------------------------------------------------
 class function TSvgColor.Create(AColor: TColor32): TSvgColor;
 begin
   Result.Color := AColor;
@@ -803,8 +1052,12 @@ begin
   Result := Parse(Value);
 end;
 
-{ TSvgPreserveAspectRatio }
 
+//------------------------------------------------------------------------------
+//
+//      TSvgPreserveAspectRatio
+//
+//------------------------------------------------------------------------------
 class function TSvgPreserveAspectRatio.Default: TSvgPreserveAspectRatio;
 begin
   Result.Align := saXMidYMid;
@@ -974,8 +1227,12 @@ begin
   Result.Y := vOut[1];
 end;
 
-{ TSvgViewBox }
 
+//------------------------------------------------------------------------------
+//
+//      TSvgViewBox
+//
+//------------------------------------------------------------------------------
 class function TSvgViewBox.Create(AX, AY, AWidth, AHeight: Single): TSvgViewBox;
 begin
   Result.X := AX;
@@ -1082,6 +1339,9 @@ begin
 
   for i := 0 to High(sBlendModes) do
     SvgBlendModeDictionary.Add(sBlendModes[i].Name, sBlendModes[i].Value);
+
+  for i := 0 to High(sCompositeOperators) do
+    SvgCompositeOperatorDictionary.Add(sCompositeOperators[i].Name, sCompositeOperators[i].Value);
 end;
 
 initialization

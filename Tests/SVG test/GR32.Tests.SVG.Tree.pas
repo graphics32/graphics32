@@ -63,6 +63,7 @@ type
     procedure TestResolvedReferencesInTree;
     procedure TestMixBlendModeAndIsolationParsing;
     procedure TestSymbolParsingAndUseResolution;
+    procedure TestFilterASTAndReferenceResolution;
   end;
 
 implementation
@@ -96,6 +97,70 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFilterASTAndReferenceResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  filterNode: TSvgFilterNode;
+  blurNode: TSvgFeGaussianBlurNode;
+  cmNode: TSvgFeColorMatrixNode;
+  offsetNode: TSvgFeOffsetNode;
+  floodNode: TSvgFeFloodNode;
+  rectNode: TSvgNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f1" x="-20%" y="-20%" width="140%" height="140%">' +
+         '      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blurRes"/>' +
+         '      <feColorMatrix in="blurRes" type="saturate" values="2" result="cmRes"/>' +
+         '      <feOffset in="cmRes" dx="5" dy="10" result="offRes"/>' +
+         '      <feFlood flood-color="red" flood-opacity="0.8" result="floodRes"/>' +
+         '      <feMerge>' +
+         '        <feMergeNode in="offRes"/>' +
+         '        <feMergeNode in="SourceGraphic"/>' +
+         '      </feMerge>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect id="r1" x="10" y="10" width="80" height="80" filter="url(#f1)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    filterNode := TSvgFilterNode(docNode.FindNodeById('f1'));
+    Check(filterNode <> nil, 'filterNode "f1" should exist');
+    Check(not filterNode.IsRenderable, 'Filter container node should not be renderable directly');
+    CheckEquals(5, filterNode.Children.Count, 'Filter should contain 5 primitive child nodes');
+
+    blurNode := TSvgFeGaussianBlurNode(filterNode.Children[0]);
+    CheckEquals('SourceGraphic', blurNode.In1);
+    CheckEquals(3.5, blurNode.StdDeviationX, 1E-4);
+    CheckEquals(3.5, blurNode.StdDeviationY, 1E-4);
+    CheckEquals('blurRes', blurNode.ResultName);
+
+    cmNode := TSvgFeColorMatrixNode(filterNode.Children[1]);
+    CheckEquals(Ord(cmSaturate), Ord(cmNode.MatrixType));
+    CheckEquals(1, Length(cmNode.Values));
+    CheckEquals(2.0, cmNode.Values[0], 1E-4);
+
+    offsetNode := TSvgFeOffsetNode(filterNode.Children[2]);
+    CheckEquals(5.0, offsetNode.Dx, 1E-4);
+    CheckEquals(10.0, offsetNode.Dy, 1E-4);
+
+    floodNode := TSvgFeFloodNode(filterNode.Children[3]);
+    CheckEquals(clRed32, floodNode.FloodColor.Color);
+    CheckEquals(0.8, floodNode.FloodOpacity, 1E-4);
+
+    rectNode := docNode.FindNodeById('r1');
+    Check(rectNode <> nil, 'rectNode "r1" should exist');
+    CheckEquals('url(#f1)', rectNode.FilterID);
+    Check(rectNode.ResolvedFilter <> nil, 'ResolvedFilter on rectNode should not be nil');
+    CheckEquals('f1', rectNode.ResolvedFilter.ID);
   finally
     docNode.Free;
   end;

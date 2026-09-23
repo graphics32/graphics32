@@ -461,7 +461,7 @@ begin
   Result := 0;
   while (Len > 0) and (Text^ in ['0'..'9']) do
   begin
-    Result := Result * 10 + (Ord(Text^) - Ord('0'));
+    Result := Result * 10 + Cardinal(Ord(Text^) - Ord('0'));
     Skip;
   end;
 end;
@@ -496,6 +496,8 @@ end;
 
 function TValuePUtf8Char.SkipUntil(ASkip: TAnsiSet; AAfter: boolean): boolean;
 begin
+  Result := False;
+
   while (Len > 0) and not(Text^ in ASkip) do
   begin
     Skip;
