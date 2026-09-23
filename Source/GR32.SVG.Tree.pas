@@ -140,6 +140,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; virtual;
     function FindNodeById(const AId: string): TSvgNode; virtual;
     procedure Render(ACanvas: TObject); virtual;
+    function GetObjectBoundingBox: TFloatRect; virtual;
     procedure ParseAttribute(const AName, AValue: string); virtual;
     procedure ParseStyleAttribute(const AStyleStr: string);
     function Dump(Indent: Integer = 0): string;
@@ -168,6 +169,7 @@ type
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function FindNodeById(const AId: string): TSvgNode; override;
+    function GetObjectBoundingBox: TFloatRect; override;
     procedure AddChild(AChild: TSvgNode);
     procedure ParseAttribute(const AName, AValue: string); override;
     property Children: TObjectList<TSvgNode> read FChildren;
@@ -346,6 +348,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function GetObjectBoundingBox: TFloatRect; override;
     property PathData: TArrayOfArrayOfFloatPoint read FPathData write FPathData;
   end;
 
@@ -830,6 +833,13 @@ begin
   FStroke.ApplySpecified(Result.FStroke);
 end;
 
+function TSvgNode.GetObjectBoundingBox: TFloatRect;
+begin
+  { Calculates the tight axis-aligned bounding box of the node in local untransformed coordinates.
+    Base TSvgNode implementation returns an empty rectangle (0,0,0,0). }
+  Result := FloatRect(0, 0, 0, 0);
+end;
+
 function TSvgNode.FindNodeById(const AId: string): TSvgNode;
 var
   cleanId: string;
@@ -1013,6 +1023,75 @@ begin
   for i := 0 to FChildren.Count - 1 do
     groupRes.AddChild(FChildren[i].Clone(groupRes));
   Result := groupRes;
+end;
+
+function TSvgGroupNode.GetObjectBoundingBox: TFloatRect;
+var
+  i, k: Integer;
+  child: TSvgNode;
+  childBox: TFloatRect;
+  first: Boolean;
+  pts: array[0..3] of TFloatPoint;
+  pt: TFloatPoint;
+  transHelper: TFloatMatrixHelper;
+begin
+  { Calculates the object bounding box for a group node by uniting the bounding boxes
+    of all renderable child nodes. Child node transformations are applied to transform
+    child bounds into parent group coordinate space. }
+  first := True;
+  Result := FloatRect(0, 0, 0, 0);
+
+  for i := 0 to FChildren.Count - 1 do
+  begin
+    child := FChildren[i];
+    if (child <> nil) and child.IsRenderable and child.Visible then
+    begin
+      childBox := child.GetObjectBoundingBox;
+      if (childBox.Right > childBox.Left) or (childBox.Bottom > childBox.Top) then
+      begin
+        if not IsIdentityMatrix(child.Transform) then
+        begin
+          transHelper.Matrix := child.Transform;
+          pts[0] := transHelper.TransformPoint(FloatPoint(childBox.Left, childBox.Top));
+          pts[1] := transHelper.TransformPoint(FloatPoint(childBox.Right, childBox.Top));
+          pts[2] := transHelper.TransformPoint(FloatPoint(childBox.Right, childBox.Bottom));
+          pts[3] := transHelper.TransformPoint(FloatPoint(childBox.Left, childBox.Bottom));
+
+          for k := 0 to 3 do
+          begin
+            pt := pts[k];
+            if first then
+            begin
+              Result := FloatRect(pt.X, pt.Y, pt.X, pt.Y);
+              first := False;
+            end
+            else
+            begin
+              if pt.X < Result.Left then Result.Left := pt.X;
+              if pt.X > Result.Right then Result.Right := pt.X;
+              if pt.Y < Result.Top then Result.Top := pt.Y;
+              if pt.Y > Result.Bottom then Result.Bottom := pt.Y;
+            end;
+          end;
+        end
+        else
+        begin
+          if first then
+          begin
+            Result := childBox;
+            first := False;
+          end
+          else
+          begin
+            if childBox.Left < Result.Left then Result.Left := childBox.Left;
+            if childBox.Right > Result.Right then Result.Right := childBox.Right;
+            if childBox.Top < Result.Top then Result.Top := childBox.Top;
+            if childBox.Bottom > Result.Bottom then Result.Bottom := childBox.Bottom;
+          end;
+        end;
+      end;
+    end;
+  end;
 end;
 
 function TSvgGroupNode.FindNodeById(const AId: string): TSvgNode;
@@ -1698,6 +1777,37 @@ begin
   for i := 0 to High(FPathData) do
     pathRes.FPathData[i] := Copy(FPathData[i], 0, Length(FPathData[i]));
   Result := pathRes;
+end;
+
+function TSvgPathNode.GetObjectBoundingBox: TFloatRect;
+var
+  i, j: Integer;
+  pt: TFloatPoint;
+  first: Boolean;
+begin
+  { Calculates the tight axis-aligned bounding box of path vertices in local coordinates. }
+  first := True;
+  Result := FloatRect(0, 0, 0, 0);
+
+  for i := 0 to High(FPathData) do
+  begin
+    for j := 0 to High(FPathData[i]) do
+    begin
+      pt := FPathData[i][j];
+      if first then
+      begin
+        Result := FloatRect(pt.X, pt.Y, pt.X, pt.Y);
+        first := False;
+      end
+      else
+      begin
+        if pt.X < Result.Left then Result.Left := pt.X;
+        if pt.X > Result.Right then Result.Right := pt.X;
+        if pt.Y < Result.Top then Result.Top := pt.Y;
+        if pt.Y > Result.Bottom then Result.Bottom := pt.Y;
+      end;
+    end;
+  end;
 end;
 
 { TSvgDefsNode }

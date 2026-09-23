@@ -57,6 +57,7 @@ type
     procedure TestPatternFillAndStrokeRendering;
     procedure TestStrokeWidthRendering;
     procedure TestRadialGradientReflect;
+    procedure TestObjectBoundingBoxMaskAndGradient;
   end;
 
 implementation
@@ -467,6 +468,48 @@ begin
         renderer.RenderDocument(docNode);
         CheckEquals(clBlue32, bmp.Pixel[25, 50], 'Masked region inside should be blue');
         CheckEquals(clWhite32, bmp.Pixel[75, 50], 'Masked region outside should remain white background');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestObjectBoundingBoxMaskAndGradient;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="100" height="100">' +
+           '  <defs>' +
+           '    <mask id="m1" maskContentUnits="objectBoundingBox">' +
+           '      <rect x="0" y="0" width="0.5" height="1.0" fill="white"/>' +
+           '    </mask>' +
+           '  </defs>' +
+           '  <g mask="url(#m1)">' +
+           '    <rect x="20" y="20" width="60" height="60" fill="red"/>' +
+           '  </g>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'ObjectBoundingBox mask docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        CheckEquals(clRed32, bmp.Pixel[35, 50], 'Inside objectBoundingBox mask should be red');
+        CheckEquals(clWhite32, bmp.Pixel[65, 50], 'Outside objectBoundingBox mask should remain white');
       finally
         renderer.Free;
       end;

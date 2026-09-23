@@ -75,8 +75,8 @@ type
   protected
     procedure RenderPathNode(APathNode: TSvgPathNode); virtual;
     procedure RenderGroupNode(AGroupNode: TSvgGroupNode); virtual;
-    procedure RenderClipPathNode(AClipNode: TSvgClipPathNode; AMaskBmp: TCustomBitmap32); virtual;
-    procedure RenderMaskNode(AMaskNode: TSvgMaskNode; AMaskBmp: TCustomBitmap32); virtual;
+    procedure RenderClipPathNode(AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
+    procedure RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
@@ -375,11 +375,15 @@ begin
 
     if linNode.GradientUnits = guObjectBoundingBox then
     begin
-      x1 := ABounds.Left + linNode.X1.ToPixels(bWidth);
-      y1 := ABounds.Top + linNode.Y1.ToPixels(bHeight);
-      x2 := ABounds.Left + linNode.X2.ToPixels(bWidth);
-      y2 := ABounds.Top + linNode.Y2.ToPixels(bHeight);
-      totalTransform := gradTransform;
+      x1 := linNode.X1.ToPixels(1.0);
+      y1 := linNode.Y1.ToPixels(1.0);
+      x2 := linNode.X2.ToPixels(1.0);
+      y2 := linNode.Y2.ToPixels(1.0);
+
+      transHelper.Matrix := IdentityMatrix;
+      transHelper.Scale(bWidth, bHeight);
+      transHelper.Translate(ABounds.Left, ABounds.Top);
+      totalTransform := Mult(gradTransform, transHelper.Matrix);
     end else
     begin
       x1 := linNode.X1.ToPixels(FViewportRect.Right - FViewportRect.Left);
@@ -423,12 +427,16 @@ begin
 
     if radNode.GradientUnits = guObjectBoundingBox then
     begin
-      cx := ABounds.Left + radNode.Cx.ToPixels(bWidth);
-      cy := ABounds.Top + radNode.Cy.ToPixels(bHeight);
-      r := radNode.R.ToPixels(Sqrt(bWidth * bWidth + bHeight * bHeight) * Sqrt(0.5));
-      fx := ABounds.Left + radNode.Fx.ToPixels(bWidth);
-      fy := ABounds.Top + radNode.Fy.ToPixels(bHeight);
-      totalTransform := gradTransform;
+      cx := radNode.Cx.ToPixels(1.0);
+      cy := radNode.Cy.ToPixels(1.0);
+      r := radNode.R.ToPixels(1.0);
+      fx := radNode.Fx.ToPixels(1.0);
+      fy := radNode.Fy.ToPixels(1.0);
+
+      transHelper.Matrix := IdentityMatrix;
+      transHelper.Scale(bWidth, bHeight);
+      transHelper.Translate(ABounds.Left, ABounds.Top);
+      totalTransform := Mult(gradTransform, transHelper.Matrix);
     end else
     begin
       cx := radNode.Cx.ToPixels(FViewportRect.Right - FViewportRect.Left);
@@ -743,45 +751,85 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderClipPathNode(AClipNode: TSvgClipPathNode; AMaskBmp: TCustomBitmap32);
+procedure TSvgRenderer.RenderClipPathNode(AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32);
 var
   savedTarget: TCustomBitmap32;
+  savedMatrix: TFloatMatrix;
+  bWidth, bHeight: Single;
+  transHelper: TFloatMatrixHelper;
   i: Integer;
 begin
+  { Renders child nodes of a <clipPath> onto a temporary alpha surface.
+    If clipPathUnits = guObjectBoundingBox, applies translation and scale derived from target object bounds. }
   if (AClipNode = nil) or (AMaskBmp = nil) then Exit;
 
   savedTarget := FTarget;
+  savedMatrix := FCurrentMatrix;
   FTarget := AMaskBmp;
   try
+    if AClipNode.ClipPathUnits = guObjectBoundingBox then
+    begin
+      bWidth := ATargetBounds.Right - ATargetBounds.Left;
+      bHeight := ATargetBounds.Bottom - ATargetBounds.Top;
+      if bWidth <= 0 then bWidth := 1.0;
+      if bHeight <= 0 then bHeight := 1.0;
+
+      transHelper.Matrix := IdentityMatrix;
+      transHelper.Scale(bWidth, bHeight);
+      transHelper.Translate(ATargetBounds.Left, ATargetBounds.Top);
+      FCurrentMatrix := transHelper.Matrix;
+    end;
+
     AMaskBmp.Clear(0); // Clear to 0 transparent so filled shapes paint non-zero alpha inside clip region
     for i := 0 to AClipNode.Children.Count - 1 do
       RenderNode(AClipNode.Children[i]);
   finally
     FTarget := savedTarget;
+    FCurrentMatrix := savedMatrix;
   end;
 end;
 
-procedure TSvgRenderer.RenderMaskNode(AMaskNode: TSvgMaskNode; AMaskBmp: TCustomBitmap32);
+procedure TSvgRenderer.RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32);
 var
   savedTarget: TCustomBitmap32;
+  savedMatrix: TFloatMatrix;
+  bWidth, bHeight: Single;
+  transHelper: TFloatMatrixHelper;
   i: Integer;
 begin
+  { Renders child nodes of a <mask> onto a temporary luminance/alpha surface.
+    If maskContentUnits = guObjectBoundingBox, applies translation and scale derived from target object bounds. }
   if (AMaskNode = nil) or (AMaskBmp = nil) then Exit;
 
   savedTarget := FTarget;
+  savedMatrix := FCurrentMatrix;
   FTarget := AMaskBmp;
   try
+    if AMaskNode.MaskContentUnits = guObjectBoundingBox then
+    begin
+      bWidth := ATargetBounds.Right - ATargetBounds.Left;
+      bHeight := ATargetBounds.Bottom - ATargetBounds.Top;
+      if bWidth <= 0 then bWidth := 1.0;
+      if bHeight <= 0 then bHeight := 1.0;
+
+      transHelper.Matrix := IdentityMatrix;
+      transHelper.Scale(bWidth, bHeight);
+      transHelper.Translate(ATargetBounds.Left, ATargetBounds.Top);
+      FCurrentMatrix := transHelper.Matrix;
+    end;
+
     AMaskBmp.Clear(clBlack32);
     for i := 0 to AMaskNode.Children.Count - 1 do
       RenderNode(AMaskNode.Children[i]);
   finally
     FTarget := savedTarget;
+    FCurrentMatrix := savedMatrix;
   end;
 end;
 
 procedure TSvgRenderer.RenderGroupNode(AGroupNode: TSvgGroupNode);
 var
-  i: Integer;
+  i, k: Integer;
   offscreenBmp, clipMaskBmp, maskBmp: TCustomBitmap32;
   savedTarget: TCustomBitmap32;
   x: Integer;
@@ -793,6 +841,9 @@ var
   alphaVal: Byte;
   oldMatrix: TFloatMatrix;
   clipId, maskId: string;
+  groupBounds, targetWorldBounds: TFloatRect;
+  transHelper: TFloatMatrixHelper;
+  pts: array[0..3] of TFloatPoint;
 begin
   if AGroupNode = nil then
     Exit;
@@ -802,6 +853,23 @@ begin
   begin
     if (FTarget = nil) then
       Exit;
+
+    // Calculate group bounding box in world space for objectBoundingBox units
+    groupBounds := AGroupNode.GetObjectBoundingBox;
+    transHelper.Matrix := FCurrentMatrix;
+    pts[0] := transHelper.TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Top));
+    pts[1] := transHelper.TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Top));
+    pts[2] := transHelper.TransformPoint(FloatPoint(groupBounds.Right, groupBounds.Bottom));
+    pts[3] := transHelper.TransformPoint(FloatPoint(groupBounds.Left, groupBounds.Bottom));
+
+    targetWorldBounds := FloatRect(pts[0].X, pts[0].Y, pts[0].X, pts[0].Y);
+    for k := 1 to 3 do
+    begin
+      if pts[k].X < targetWorldBounds.Left then targetWorldBounds.Left := pts[k].X;
+      if pts[k].X > targetWorldBounds.Right then targetWorldBounds.Right := pts[k].X;
+      if pts[k].Y < targetWorldBounds.Top then targetWorldBounds.Top := pts[k].Y;
+      if pts[k].Y > targetWorldBounds.Bottom then targetWorldBounds.Bottom := pts[k].Y;
+    end;
 
     // Acquire reusable offscreen scratchpad surface from bitmap pool
     offscreenBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
@@ -830,7 +898,7 @@ begin
           clipMaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
 
           oldMatrix := FCurrentMatrix;
-          RenderClipPathNode(clipNodeTarget, clipMaskBmp);
+          RenderClipPathNode(clipNodeTarget, targetWorldBounds, clipMaskBmp);
           FCurrentMatrix := oldMatrix;
 
           srcP := PColor32(offscreenBmp.Bits);
@@ -857,7 +925,7 @@ begin
           maskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, False);
 
           oldMatrix := FCurrentMatrix;
-          RenderMaskNode(maskNodeTarget, maskBmp);
+          RenderMaskNode(maskNodeTarget, targetWorldBounds, maskBmp);
           FCurrentMatrix := oldMatrix;
 
           srcP := PColor32(offscreenBmp.Bits);

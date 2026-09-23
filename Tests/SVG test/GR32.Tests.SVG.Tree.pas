@@ -58,6 +58,7 @@ type
     procedure TestDocTypeParsing;
     procedure TestUseNodeStyleInheritance;
     procedure TestStrokeDashArrayAndOffsetParsing;
+    procedure TestGetObjectBoundingBox;
   end;
 
 implementation
@@ -486,6 +487,61 @@ begin
     Check(p3 <> nil, 'p3 should exist');
     CheckEquals(0, Length(p3.Stroke.DashArray), 'p3 dash array should be empty for "none"');
     CheckEquals(0.0, p3.Stroke.DashOffset, 1E-4);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestGetObjectBoundingBox;
+var
+  xmlStr: string;
+  docNode: TSvgDocumentNode;
+  rectNode, circleNode, groupNode: TSvgNode;
+  box: TFloatRect;
+begin
+  xmlStr :=
+    '<svg width="500" height="500">' +
+    '  <rect id="r1" x="10" y="20" width="100" height="50"/>' +
+    '  <circle id="c1" cx="200" cy="200" r="30"/>' +
+    '  <g id="g1" transform="translate(50, 50)">' +
+    '    <rect id="r2" x="0" y="0" width="40" height="30"/>' +
+    '  </g>' +
+    '</svg>';
+
+  docNode := ParseSvgXml(UTF8String(xmlStr));
+  CheckNotNull(docNode, 'Document node should be parsed');
+  try
+    rectNode := docNode.FindNodeById('r1');
+    CheckNotNull(rectNode, 'r1 rect node should exist');
+    box := rectNode.GetObjectBoundingBox;
+    CheckEquals(10.0, box.Left, 1E-4, 'r1 Left');
+    CheckEquals(20.0, box.Top, 1E-4, 'r1 Top');
+    CheckEquals(110.0, box.Right, 1E-4, 'r1 Right');
+    CheckEquals(70.0, box.Bottom, 1E-4, 'r1 Bottom');
+
+    circleNode := docNode.FindNodeById('c1');
+    CheckNotNull(circleNode, 'c1 circle node should exist');
+    box := circleNode.GetObjectBoundingBox;
+    CheckEquals(170.0, box.Left, 1E-4, 'c1 Left');
+    CheckEquals(170.0, box.Top, 1E-4, 'c1 Top');
+    CheckEquals(230.0, box.Right, 1E-4, 'c1 Right');
+    CheckEquals(230.0, box.Bottom, 1E-4, 'c1 Bottom');
+
+    groupNode := docNode.FindNodeById('g1');
+    CheckNotNull(groupNode, 'g1 group node should exist');
+    box := groupNode.GetObjectBoundingBox;
+    // g1's local bounding box before g1's own transform is applied
+    CheckEquals(0.0, box.Left, 1E-4, 'g1 Left');
+    CheckEquals(0.0, box.Top, 1E-4, 'g1 Top');
+    CheckEquals(40.0, box.Right, 1E-4, 'g1 Right');
+    CheckEquals(30.0, box.Bottom, 1E-4, 'g1 Bottom');
+
+    // docNode unites r1(10,20,110,70), c1(170,170,230,230), and g1 transformed(50,50,90,80)
+    box := docNode.GetObjectBoundingBox;
+    CheckEquals(10.0, box.Left, 1E-4, 'docNode Left');
+    CheckEquals(20.0, box.Top, 1E-4, 'docNode Top');
+    CheckEquals(230.0, box.Right, 1E-4, 'docNode Right');
+    CheckEquals(230.0, box.Bottom, 1E-4, 'docNode Bottom');
   finally
     docNode.Free;
   end;

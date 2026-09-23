@@ -40,8 +40,7 @@ uses
 {$ELSE}
   TestFramework,
 {$ENDIF}
-  SysUtils, Classes,
-  GR32.SVG.Xml;
+  SysUtils, Classes;
 
 type
   TTestSvgXmlParser = class(TTestCase)
@@ -57,6 +56,10 @@ type
   end;
 
 implementation
+
+uses
+  GR32.SVG.Xml,
+  GR32.SVG.Utf8;
 
 { TTestSvgXmlParser }
 
