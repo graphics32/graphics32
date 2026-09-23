@@ -28,7 +28,6 @@ object FormSVGviewer: TFormSVGviewer
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
-    ExplicitHeight = 600
     object DriveComboBox: TDriveComboBox
       Left = 0
       Top = 0
@@ -57,7 +56,6 @@ object FormSVGviewer: TFormSVGviewer
       Mask = '*.svg'
       TabOrder = 2
       OnChange = FileListBoxChange
-      ExplicitHeight = 331
     end
   end
   object PnlRight: TPanel
@@ -68,7 +66,6 @@ object FormSVGviewer: TFormSVGviewer
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
-    ExplicitHeight = 600
     object PageControlSVG: TPageControl
       Left = 0
       Top = 0
@@ -77,17 +74,30 @@ object FormSVGviewer: TFormSVGviewer
       ActivePage = TabSheetPreview
       Align = alClient
       TabOrder = 0
-      ExplicitHeight = 600
       object TabSheetPreview: TTabSheet
         Caption = 'Preview'
         DesignSize = (
           637
           553)
+        object SplitterMemo: TSplitter
+          Left = 0
+          Top = 459
+          Width = 637
+          Height = 5
+          Cursor = crVSplit
+          Align = alBottom
+          Color = clSkyBlue
+          ParentColor = False
+          ResizeStyle = rsUpdate
+          OnCanResize = SplitterMemoCanResize
+          OnBeforeResize = SplitterMemoBeforeResize
+          ExplicitTop = 461
+        end
         object Image32: TImage32
           Left = 0
           Top = 0
           Width = 637
-          Height = 553
+          Height = 459
           Align = alClient
           Bitmap.DrawMode = dmBlend
           Bitmap.ResamplerClassName = 'TNearestResampler'
@@ -100,7 +110,24 @@ object FormSVGviewer: TFormSVGviewer
           MouseZoom.Enabled = True
           MouseZoom.Animate = True
           TabOrder = 0
-          ExplicitHeight = 572
+          ExplicitHeight = 553
+        end
+        object MemoSource2: TMemo
+          Left = 0
+          Top = 464
+          Width = 637
+          Height = 89
+          Align = alBottom
+          BorderStyle = bsNone
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Courier New'
+          Font.Style = []
+          ParentFont = False
+          ScrollBars = ssBoth
+          TabOrder = 2
+          OnChange = MemoSourceChange
         end
         object Button1: TButton
           Left = 559
@@ -111,7 +138,6 @@ object FormSVGviewer: TFormSVGviewer
           Caption = 'Save as PNG'
           TabOrder = 1
           OnClick = Button1Click
-          ExplicitTop = 544
         end
       end
       object TabSheetSource: TTabSheet
@@ -124,10 +150,35 @@ object FormSVGviewer: TFormSVGviewer
           Height = 553
           Align = alClient
           BorderStyle = bsNone
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Courier New'
+          Font.Style = []
+          ParentFont = False
           ScrollBars = ssBoth
           TabOrder = 0
           OnChange = MemoSourceChange
-          ExplicitHeight = 572
+        end
+      end
+      object TabSheetDump: TTabSheet
+        Caption = 'Tree dump'
+        ImageIndex = 2
+        object MemoDump: TMemo
+          Left = 0
+          Top = 0
+          Width = 637
+          Height = 553
+          Align = alClient
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Courier New'
+          Font.Style = []
+          ParentFont = False
+          ReadOnly = True
+          ScrollBars = ssBoth
+          TabOrder = 0
         end
       end
     end
@@ -141,8 +192,5 @@ object FormSVGviewer: TFormSVGviewer
     ParentFont = True
     SimplePanel = True
     UseSystemFont = False
-    ExplicitLeft = 96
-    ExplicitTop = 492
-    ExplicitWidth = 0
   end
 end

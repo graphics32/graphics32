@@ -57,16 +57,24 @@ type
     MemoSource: TMemo;
     Button1: TButton;
     StatusBar: TStatusBar;
+    TabSheetDump: TTabSheet;
+    MemoDump: TMemo;
+    MemoSource2: TMemo;
+    SplitterMemo: TSplitter;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FileListBoxChange(Sender: TObject);
     procedure MemoSourceChange(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure SplitterMemoCanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
+    procedure SplitterMemoBeforeResize(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
-    FLockUpdate: boolean;
+    FLockUpdate: integer;
+    FIgnoreClick: boolean;
     procedure RenderSvg(const ASource: string);
     procedure LoadAndRenderSvg(const AFileName: string);
+    procedure SplitterClicked(Sender: TObject);
   end;
 
 var
@@ -82,12 +90,16 @@ uses
 
 {$R *.dfm}
 
+type
+  TControlCracker = class(TControl);
+
 procedure TFormSVGviewer.FormCreate(Sender: TObject);
 begin
   FDocNode := nil;
   Image32.Bitmap.SetSize(600, 600, False);
   Image32.Bitmap.Clear(clTrWhite32); // Just so we have something to look at
   Image32.ScrollToCenter;
+  TControlCracker(SplitterMemo).OnClick := SplitterClicked;
 end;
 
 procedure TFormSVGviewer.FormDestroy(Sender: TObject);
@@ -115,13 +127,8 @@ begin
   try
     xmlList.LoadFromFile(AFileName, TEncoding.UTF8);
 
-    FLockUpdate := True;
-    try
-      MemoSource.Text := xmlList.Text;
-    finally
-      FLockUpdate := False;
-    end;
     RenderSvg(xmlList.Text);
+
   finally
     xmlList.Free;
   end;
@@ -129,9 +136,24 @@ end;
 
 procedure TFormSVGviewer.MemoSourceChange(Sender: TObject);
 begin
-  if (FLockUpdate) then
+  if (FLockUpdate > 0) then
     exit;
-  RenderSvg(MemoSource.Text);
+
+  Inc(FLockUpdate);
+  try
+    if (Sender = MemoSource) then
+    begin
+      RenderSvg(MemoSource.Text);
+      MemoSource2.Text := MemoSource.Text;
+    end else
+    if (Sender = MemoSource2) then
+    begin
+      RenderSvg(MemoSource2.Text);
+      MemoSource.Text := MemoSource2.Text;
+    end;
+  finally
+    Dec(FLockUpdate);
+  end;
 end;
 
 procedure TFormSVGviewer.RenderSvg(const ASource: string);
@@ -161,13 +183,35 @@ begin
   StopWatch := TStopWatch.StartNew;
 
   FDocNode := ParseSvgXml(xmlText, ErrorMessage);
+
   if FDocNode = nil then
   begin
     StatusBar.SimpleText := ErrorMessage;
+    Inc(FLockUpdate);
+    try
+      MemoSource.Lines.Clear;
+      MemoSource2.Lines.Clear;
+    finally
+      Dec(FLockUpdate);
+    end;
+    MemoDump.Lines.Clear;
     Exit;
   end;
 
   TimeParse := StopWatch.ElapsedMilliseconds;
+
+  if (FLockUpdate = 0) then
+  begin
+    Inc(FLockUpdate);
+    try
+      MemoSource.Text := xmlText;
+      MemoSource2.Text := xmlText;
+    finally
+      Dec(FLockUpdate);
+    end;
+  end;
+
+  MemoDump.Text := FDocNode.Dump;;
 
   renderer := TSvgRenderer.Create(Image32.Bitmap);
   try
@@ -181,6 +225,23 @@ begin
   end;
 
   StatusBar.SimpleText := Format('Parsed in %d mS, Rendered in %d mS', [TimeParse, TimeRender]);
+end;
+
+procedure TFormSVGviewer.SplitterClicked(Sender: TObject);
+begin
+  if (FIgnoreClick) then
+    exit;
+  MemoSource2.Visible := not MemoSource2.Visible;
+end;
+
+procedure TFormSVGviewer.SplitterMemoBeforeResize(Sender: TObject);
+begin
+  FIgnoreClick := False;
+end;
+
+procedure TFormSVGviewer.SplitterMemoCanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
+begin
+  FIgnoreClick := True;
 end;
 
 end.
