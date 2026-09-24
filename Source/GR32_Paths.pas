@@ -68,6 +68,7 @@ uses
 const
   DefaultCircleSteps = 100;
   DefaultBezierTolerance = 0.25;
+  DefaultArcTolerance = 0.05;
 
 type
   TArcPart = (
@@ -262,6 +263,7 @@ type
 var
   CBezierTolerance: TFloat = DefaultBezierTolerance;
   QBezierTolerance: TFloat = DefaultBezierTolerance;
+  CArcTolerance: TFloat = DefaultArcTolerance;
 
 type
   TAddPointEvent = function(const APoint: TFloatPoint): boolean of object;
@@ -574,7 +576,7 @@ procedure TCustomPath.EllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TF
 var
   SweepAngle: TFloat;
   Steps: Integer;
-  StepAngle: TFloat;
+  StepAngle, Alpha: TFloat;
   SinRot, CosRot: TFloat;
   Ux, Uy, Vx, Vy: TFloat;
   CosStep, SinStep: TFloat;
@@ -584,7 +586,6 @@ var
   EffectiveRadius: TFloat;
 const
   MINSTEPS = 6;
-  SQUAREDMINSTEPS = Sqr(MINSTEPS);
   OneOver2Pi: Single = 1 / (2 * Pi);
 begin
   ARadiusX := Abs(ARadiusX);
@@ -627,14 +628,11 @@ begin
   end;
 
   EffectiveRadius := Max(ARadiusX, ARadiusY);
-  StepAngle := Sqr(SweepAngle) * EffectiveRadius;
-
-  if StepAngle < SQUAREDMINSTEPS then
-    Steps := MINSTEPS
+  Alpha := 2 * ArcCos(Max(-1.0, Min(1.0, 1.0 - CArcTolerance / Max(EffectiveRadius, CArcTolerance))));
+  if Alpha > 1e-6 then
+    Steps := Max(MINSTEPS, Ceil(Abs(SweepAngle) / Alpha))
   else
-    Steps := Round(Sqrt(StepAngle));
-  if Steps < 2 then
-    Steps := 2;
+    Steps := MINSTEPS;
 
   StepAngle := SweepAngle / Steps;
 
@@ -672,7 +670,6 @@ end;
 procedure TCustomPath.EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);
 const
   MINSTEPS = 6;
-  SQUAREDMINSTEPS = Sqr(MINSTEPS);
 var
   p1, p2: TFloatPoint;
   dx, dy: TFloat;
@@ -687,7 +684,7 @@ var
   e1x, e1y, e2x, e2y: TFloat;
   StartAngle, DeltaAngle: TFloat;
   LargeArcFlag, SweepFlag: Boolean;
-  EffectiveRadius, StepAngle: TFloat;
+  EffectiveRadius, StepAngle, Alpha: TFloat;
   Steps, i: Integer;
   U_x, U_y, V_x, V_y: TFloat;
   SinStep, CosStep: TFloat;
@@ -774,16 +771,12 @@ begin
       DeltaAngle := DeltaAngle - 2 * Pi;
   end;
 
-  // Direct polyline generation using matrix recurrence
   EffectiveRadius := Max(rx, ry);
-  StepAngle := Sqr(DeltaAngle) * EffectiveRadius;
-
-  if StepAngle < SQUAREDMINSTEPS then
-    Steps := MINSTEPS
+  Alpha := 2 * ArcCos(Max(-1.0, Min(1.0, 1.0 - CArcTolerance / Max(EffectiveRadius, CArcTolerance))));
+  if Alpha > 1e-6 then
+    Steps := Max(MINSTEPS, Ceil(Abs(DeltaAngle) / Alpha))
   else
-    Steps := Round(Sqrt(StepAngle));
-  if Steps < 2 then
-    Steps := 2;
+    Steps := MINSTEPS;
 
   StepAngle := DeltaAngle / Steps;
 
@@ -797,7 +790,7 @@ begin
 
   BeginUpdate;
   try
-    for I := 1 to Steps do
+    for i := 1 to Steps-1 do
     begin
       NewCosA := CosA * CosStep - SinA * SinStep;
       SinA := SinA * CosStep + CosA * SinStep;
