@@ -234,8 +234,8 @@ begin
 
 
   // Convert width and height presentation attributes to pixels
-  NaturalWidth := FDocNode.Width.ToPixels(0, Self.Monitor.PixelsPerInch);
-  NaturalHeight := FDocNode.Height.ToPixels(0, Self.Monitor.PixelsPerInch);
+  NaturalWidth := FDocNode.Width.ToPixels(Image32.Bitmap.Width, Self.Monitor.PixelsPerInch);
+  NaturalHeight := FDocNode.Height.ToPixels(Image32.Bitmap.Height, Self.Monitor.PixelsPerInch);
 
   // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
   if (NaturalWidth <= 0) and FDocNode.ViewBox.IsValid then

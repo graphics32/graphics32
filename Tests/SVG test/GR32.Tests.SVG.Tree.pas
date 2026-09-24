@@ -64,6 +64,7 @@ type
     procedure TestMixBlendModeAndIsolationParsing;
     procedure TestSymbolParsingAndUseResolution;
     procedure TestFilterASTAndReferenceResolution;
+    procedure TestPrimitiveShapePercentageUnits;
   end;
 
 implementation
@@ -805,6 +806,42 @@ begin
     Check(clonedInstance.IsRenderable, 'Symbol instance child inside <use> should be renderable');
     Check(clonedInstance is TSvgGroupNode, 'Symbol instance should be a TSvgGroupNode container');
     CheckEquals(1, TSvgGroupNode(clonedInstance).Children.Count, 'Symbol instance should contain circle child');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestPrimitiveShapePercentageUnits;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  rectNode, circleNode, lineNode, ellipseNode: TSvgPathNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <rect id="r1" x="0%" y="0%" width="100%" height="100%"/>' +
+         '  <circle id="c1" cx="50%" cy="50%" r="25%"/>' +
+         '  <line id="l1" x1="0%" y1="0%" x2="100%" y2="100%"/>' +
+         '  <ellipse id="e1" cx="50%" cy="50%" rx="50%" ry="25%"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    rectNode := TSvgPathNode(docNode.FindNodeById('r1'));
+    Check(rectNode <> nil, 'rectNode r1 should exist');
+    Check(Length(rectNode.PathData) > 0, 'rectNode r1 with percentage width/height should have non-empty PathData');
+
+    circleNode := TSvgPathNode(docNode.FindNodeById('c1'));
+    Check(circleNode <> nil, 'circleNode c1 should exist');
+    Check(Length(circleNode.PathData) > 0, 'circleNode c1 with percentage radius should have non-empty PathData');
+
+    lineNode := TSvgPathNode(docNode.FindNodeById('l1'));
+    Check(lineNode <> nil, 'lineNode l1 should exist');
+    Check(Length(lineNode.PathData) > 0, 'lineNode l1 with percentage coordinates should have non-empty PathData');
+
+    ellipseNode := TSvgPathNode(docNode.FindNodeById('e1'));
+    Check(ellipseNode <> nil, 'ellipseNode e1 should exist');
+    Check(Length(ellipseNode.PathData) > 0, 'ellipseNode e1 with percentage radii should have non-empty PathData');
   finally
     docNode.Free;
   end;

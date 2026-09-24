@@ -97,6 +97,8 @@ type
 
     function ToCardinalAndSkip: Cardinal;
 
+    function LastChar: AnsiChar;
+
     procedure Trim; overload;
     procedure Trim(ASkip: TAnsiSet); overload;
     procedure Skip(Count: integer = 1);
@@ -484,6 +486,14 @@ end;
 function TValuePUtf8Char.Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean;
 begin
   Result := (Len = ValueLen) and CompareMem(Text, Value, Len);
+end;
+
+function TValuePUtf8Char.LastChar: AnsiChar;
+begin
+  if (Len > 0) then
+    Result := Text[Len-1]
+  else
+    Result := #0;
 end;
 
 procedure TValuePUtf8Char.Skip(Count: integer);

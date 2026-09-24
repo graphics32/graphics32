@@ -159,9 +159,11 @@ type
   TSvgLength = record
     Value: Single;
     UnitType: TSvgUnitType;
-    function ToPixels(const ARefSize: Single = 0; const ADpi: Single = 96.0; const AFontSize: Single = 16.0): Single;
+    function ToPixels(const ARefSize: Single = 100.0; const ADpi: Single = 96.0; const AFontSize: Single = 16.0): Single;
     class function Create(AValue: Single; AUnit: TSvgUnitType = suPx): TSvgLength; static;
-    class function Parse(const AStr: UTF8String): TSvgLength; static;
+    class function Parse(const AStr: UTF8String): TSvgLength; overload; static;
+    class function Parse(AStr: TValuePUtf8Char): TSvgLength; overload; static;
+    class function Parse(AStr: TValuePointer): TSvgLength; overload; static;
   end;
 
 
@@ -824,13 +826,14 @@ begin
   end;
 end;
 
-class function TSvgLength.Parse(const AStr: UTF8String): TSvgLength;
+class function TSvgLength.Parse(AStr: TValuePointer): TSvgLength;
+begin
+  Result := Parse(TValuePUtf8Char(AStr));
+end;
+
+class function TSvgLength.Parse(AStr: TValuePUtf8Char): TSvgLength;
 var
-  p, pSuffix: PUtf8Char;
-(*
-  s, numStr, unitStr: UTF8String;
-  i, len: Integer;
-*)
+  Suffix: TValuePUtf8Char;
   Value: Double;
 begin
   // Zero-copy value/unit parser
@@ -838,66 +841,75 @@ begin
   Result.UnitType := suPx;
   Result.Value := 0;
 
-  p := Pointer(AStr);
-  if (p = nil) then
-    exit;
-
   // Skip leading spaces
-  while (p^ <> #0) and (p^ = #32) do
-    Inc(p);
+  AStr.Trim;
 
-  if (p^ = #0) then
+  if (AStr.Len = 0) then
     exit;
 
   // Find end of value = start of suffix
-  pSuffix := p;
-  while (pSuffix^ <> #0) and ((pSuffix^ in ['0'..'9', '.', '-', '+']) or ((pSuffix^ in ['e', 'E']) and not (pSuffix[1] in ['m', 'M', 'x', 'X']))) do
-    Inc(pSuffix);
+  Suffix := AStr;
+  while (Suffix.Len > 0) and ((Suffix.Text^ in ['0'..'9', '.', '-', '+']) or ((Suffix.Text^ in ['e', 'E']) and not (Suffix.Text[1] in ['m', 'M', 'x', 'X']))) do
+    Suffix.Skip;
 
   // Convert value
-  if GetExtended(p, pSuffix-p, Value) then
+  if GetExtended(AStr.Text, Suffix.Text-AStr.Text, Value) then
     Result.Value := Value;
+  AStr.Skip(AStr.Len - Suffix.Len);
 
   // Skip leading spaces
-  while (pSuffix^ <> #0) and (pSuffix^ = #32) do
-    Inc(pSuffix);
+  Suffix.Trim;
 
   // Match and skip suffix
-  case pSuffix^ of
+  case Suffix.Text^ of
     #0: Result.UnitType := suPx;
-    '%': begin Result.UnitType := suPercent; Inc(pSuffix, 1); end;
+
+    '%': begin Result.UnitType := suPercent; Suffix.Skip; end;
+
     'c':
-      case pSuffix[1] of
-        'm': begin Result.UnitType := suCm; Inc(pSuffix, 2); end;
+      case Suffix.Text[1] of
+        'm': begin Result.UnitType := suCm; Suffix.Skip(2); end;
       end;
+
     'e':
-      case pSuffix[1] of
-        'm': begin Result.UnitType := suEm; Inc(pSuffix, 2); end;
-        'x': begin Result.UnitType := suEx; Inc(pSuffix, 2); end;
+      case Suffix.Text[1] of
+        'm': begin Result.UnitType := suEm; Suffix.Skip(2); end;
+        'x': begin Result.UnitType := suEx; Suffix.Skip(2); end;
       end;
+
     'm':
-      case pSuffix[1] of
-        'm': begin Result.UnitType := suMm; Inc(pSuffix, 2); end;
+      case Suffix.Text[1] of
+        'm': begin Result.UnitType := suMm; Suffix.Skip(2); end;
       end;
+
     'i':
-      case pSuffix[1] of
-        'n': begin Result.UnitType := suIn; Inc(pSuffix, 2); end;
+      case Suffix.Text[1] of
+        'n': begin Result.UnitType := suIn; Suffix.Skip(2); end;
       end;
+
     'p':
-      case pSuffix[1] of
-        'c': begin Result.UnitType := suPc; Inc(pSuffix, 2); end;
-        't': begin Result.UnitType := suPt; Inc(pSuffix, 2); end;
-        'x': begin Result.UnitType := suPx; Inc(pSuffix, 2); end;
+      case Suffix.Text[1] of
+        'c': begin Result.UnitType := suPc; Suffix.Skip(2); end;
+        't': begin Result.UnitType := suPt; Suffix.Skip(2); end;
+        'x': begin Result.UnitType := suPx; Suffix.Skip(2); end;
       end;
   end;
 
   // Skip trailing spaces
-  while (pSuffix^ <> #0) and (pSuffix^ = #32) do
-    Inc(pSuffix);
+  Suffix.Trim;
 
   // If we are not at end of string, then we have junk and we discard the suffix
-  if (pSuffix^ <> #0) then
+  if (Suffix.Len > 0) then
     Result.UnitType := suPx;
+end;
+
+class function TSvgLength.Parse(const AStr: UTF8String): TSvgLength;
+var
+  Str: TValuePUtf8Char;
+begin
+  Str.Text := pointer(AStr);
+  Str.Len := Length(AStr);
+  Result := Parse(Str);
 end;
 
 

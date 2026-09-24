@@ -3998,7 +3998,7 @@ var
                     stopTagOffset:
                       begin
                         n := stopOffset;
-                        if (AParser.Value.Len > 0) and (PAnsiChar(AParser.Value.Buffer)[AParser.Value.Len-1] = '%') then
+                        if (TValuePUtf8Char(AParser.Value).LastChar = '%') then
                         begin
                           if (GetExtended(AParser.Value.Buffer, AParser.Value.Len-1, n)) then
                             n := n * 0.01;
@@ -4061,13 +4061,25 @@ var
             x := 0; y := 0; w := 0; h := 0; rx := 0; ry := 0;
             while AParser.ParseNext = xtAttribute do
             begin
-              if LowerCase(AParser.Name.ToString) = 'x' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'y' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'width' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, w, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'height' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, h, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
-              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+              if AParser.Name.CompareText('x') then
+                x := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('y') then
+                y := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('width') then
+                w := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('height') then
+                h := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('rx') then
+                rx := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('ry') then
+                ry := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
             pathNode.PathData := CreateRectPath(x, y, w, h, rx, ry);
           end;
@@ -4079,11 +4091,19 @@ var
             x1 := 0; y1 := 0; x2 := 0; y2 := 0;
             while AParser.ParseNext = xtAttribute do
             begin
-              if LowerCase(AParser.Name.ToString) = 'x1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x1, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'y1' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y1, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'x2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, x2, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'y2' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, y2, SvgFormatSettings)
-              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+              if AParser.Name.CompareText('x1') then
+                x1 := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('y1') then
+                y1 := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('x2') then
+                x2 := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('y2') then
+                y2 := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
             pathNode.PathData := CreateLinePath(x1, y1, x2, y2);
           end;
@@ -4104,10 +4124,16 @@ var
             cx := 0; cy := 0; r := 0;
             while AParser.ParseNext = xtAttribute do
             begin
-              if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'r' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, r, SvgFormatSettings)
-              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+              if AParser.Name.CompareText('cx') then
+                cx := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('cy') then
+                cy := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('r') then
+                r := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
             pathNode.PathData := CreateCirclePath(cx, cy, r);
           end;
@@ -4212,11 +4238,19 @@ var
             cx := 0; cy := 0; rx := 0; ry := 0;
             while AParser.ParseNext = xtAttribute do
             begin
-              if LowerCase(AParser.Name.ToString) = 'cx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cx, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'cy' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, cy, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'rx' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, rx, SvgFormatSettings)
-              else if LowerCase(AParser.Name.ToString) = 'ry' then TryStrToFloat(TValuePUtf8Char(AParser.Value).ToString, ry, SvgFormatSettings)
-              else pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+              if AParser.Name.CompareText('cx') then
+                cx := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('cy') then
+                cy := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('rx') then
+                rx := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+              if AParser.Name.CompareText('ry') then
+                ry := TSvgLength.Parse(AParser.Value).ToPixels
+              else
+                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
             pathNode.PathData := CreateEllipsePath(cx, cy, rx, ry);
           end;
