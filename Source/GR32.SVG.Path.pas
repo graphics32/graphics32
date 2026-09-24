@@ -56,8 +56,8 @@ type
   public
     procedure Init(const AText: string);
     function HasMore: Boolean;
-    function IsCommand(out ACmd: Char): Boolean;
-    function ReadCommand(out ACmd: Char): Boolean;
+    function IsCommand(var ACmd: Char): Boolean;
+    function ReadCommand(var ACmd: Char): Boolean;
     function ReadNumber(out AValue: Single): Boolean;
     function ReadFlag(out AFlag: Boolean): Boolean;
   end;
@@ -81,7 +81,7 @@ begin
     Inc(FPos);
 end;
 
-function TSvgPathScanner.IsCommand(out ACmd: Char): Boolean;
+function TSvgPathScanner.IsCommand(var ACmd: Char): Boolean;
 begin
   SkipWhitespace;
   if (FPos <= FLen) and (FText[FPos] in ['M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z']) then
@@ -89,11 +89,10 @@ begin
     ACmd := FText[FPos];
     Exit(True);
   end;
-  ACmd := #0;
   Result := False;
 end;
 
-function TSvgPathScanner.ReadCommand(out ACmd: Char): Boolean;
+function TSvgPathScanner.ReadCommand(var ACmd: Char): Boolean;
 begin
   if IsCommand(ACmd) then
   begin
@@ -116,11 +115,24 @@ begin
   if FText[FPos] in ['+', '-'] then
     Inc(FPos);
 
-  while (FPos <= FLen) and (FText[FPos] in ['0'..'9', '.']) do
+  // W3C SVG Path Data Syntax Optimization:
+  // In condensed SVG path strings (e.g. 'A29,29,01061,32'), a number starting with '0'
+  // (such as x-axis-rotation 0) may be followed immediately by single-digit arc flags
+  // ('0' or '1') without whitespace or commas separating them (e.g. '01061').
+  // If the first digit is '0' and followed by another digit without a decimal point,
+  // '0' is a standalone numeric value, and subsequent digits belong to flags or
+  // coordinates. Stop reading after '0' so ReadFlag can parse subsequent flag digits.
+  if (FPos <= FLen) and (FText[FPos] = '0') and (FPos + 1 <= FLen) and (FText[FPos + 1] in ['0'..'9']) then
   begin
-    if (FText[FPos] = '.') and (Pos('.', Copy(FText, startPos, FPos - startPos)) > 0) then
-      Break;
     Inc(FPos);
+  end else
+  begin
+    while (FPos <= FLen) and (FText[FPos] in ['0'..'9', '.']) do
+    begin
+      if (FText[FPos] = '.') and (Pos('.', Copy(FText, startPos, FPos - startPos)) > 0) then
+        Break;
+      Inc(FPos);
+    end;
   end;
 
   if (FPos <= FLen) and (FText[FPos] in ['e', 'E']) and
