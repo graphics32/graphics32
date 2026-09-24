@@ -740,8 +740,8 @@ asm
         MOVD    Temp, Theta
         FLD     Temp
         FSINCOS
-        FSTP    [Sin] // cosine
-        FSTP    [Cos] // sine
+        FSTP    [Cos] // cosine
+        FSTP    [Sin] // sine
 
 {$else}
 {$error 'Missing target'}
