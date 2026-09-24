@@ -688,7 +688,7 @@ var
   StartAngle, DeltaAngle: TFloat;
   LargeArcFlag, SweepFlag: Boolean;
   EffectiveRadius, StepAngle: TFloat;
-  Steps, I: Integer;
+  Steps, i: Integer;
   U_x, U_y, V_x, V_y: TFloat;
   SinStep, CosStep: TFloat;
   SinA, CosA, NewCosA: TFloat;
@@ -807,6 +807,13 @@ begin
       Pt.Y := c.Y + U_y * CosA + V_y * SinA;
       LineTo(Pt);
     end;
+
+    // Ensure the final step snaps to the target end point to avoid minor
+    // floating point recurrence drift (e.g. a chain of calls to
+    // EllipticalArc).
+    if Steps > 0 then
+      LineTo(p2);
+
   finally
     EndUpdate;
   end;
