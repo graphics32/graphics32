@@ -1101,6 +1101,7 @@ var
   x: Integer;
   SourceP, DestP: PColor32;
   Gray: Byte;
+  Node: TSvgNode;
   ClipNodeTarget: TSvgClipPathNode;
   MaskNodeTarget: TSvgMaskNode;
   AlphaVal: Byte;
@@ -1110,7 +1111,7 @@ var
 const
   OneOver255: Single = 1 / 255;
 begin
-  if (AGroupNode = nil) then
+  if (AGroupNode = nil) or (not AGroupNode.PassesConditionalProcessing) then
     Exit;
 
   // Offscreen rendering required if we have transparency, a ClipPath, a Mask, or if Isolation = isoIsolate
@@ -1150,8 +1151,15 @@ begin
       SavedTarget := FTarget;
       FTarget := OffscreenBmp;
       try
-        for i := 0 to AGroupNode.Children.Count - 1 do
-          RenderNode(AGroupNode.Children[i]);
+        if AGroupNode is TSvgSwitchNode then
+        begin
+          if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
+            RenderNode(TSvgSwitchNode(AGroupNode).SelectedChild);
+        end else
+        begin
+          for i := 0 to AGroupNode.Children.Count - 1 do
+            RenderNode(AGroupNode.Children[i]);
+        end;
       finally
         FTarget := SavedTarget;
       end;
@@ -1227,8 +1235,15 @@ begin
     Exit;
   end;
 
-  for i := 0 to AGroupNode.Children.Count - 1 do
-    RenderNode(AGroupNode.Children[i]);
+  if AGroupNode is TSvgSwitchNode then
+  begin
+    if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
+      RenderNode(TSvgSwitchNode(AGroupNode).SelectedChild);
+  end else
+  begin
+    for i := 0 to AGroupNode.Children.Count - 1 do
+      RenderNode(AGroupNode.Children[i]);
+  end;
 end;
 
 procedure TSvgRenderer.RenderFilter(AFilterNode: TSvgFilterNode; ANode: TSvgNode);
@@ -1947,13 +1962,7 @@ begin
         exit;
 
       try
-        SubDoc.ResolveUseNodes;
-        SubDoc.ResolveGradients;
-        SubDoc.ResolvePatterns;
-        SubDoc.ResolveMarkers;
-        SubDoc.ResolveClipPathsAndMasks;
-        SubDoc.ResolvePaintServers;
-        SubDoc.ResolveFilters;
+        SubDoc.Resolve;
 
         if SubDoc.ViewBox.IsValid then
           SourceViewBox := SubDoc.ViewBox
@@ -2051,7 +2060,7 @@ var
   OffscreenBmp, SavedTarget: TCustomBitmap32;
   EffectiveBlendMode: TSvgBlendMode;
 begin
-  if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) then
+  if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
     Exit;
 
   // Filter processing takes precedence over direct element rendering

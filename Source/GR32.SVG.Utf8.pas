@@ -103,7 +103,10 @@ type
     procedure Trim(ASkip: TAnsiSet); overload;
     procedure Skip(Count: integer = 1);
     function SkipUntil(ASkip: TAnsiSet; AAfter: boolean = False): boolean;
-    function Split(AChar: AnsiChar; ASkip: boolean = False): TValuePUtf8Char;
+    // Split returns the current text, up to and excluding the split char(s).
+    // If ASkip=True, the current text is moved past the split char(s).
+    function Split(AChar: AnsiChar; ASkip: boolean = False): TValuePUtf8Char; overload;
+    function Split(AChars: TAnsiSet; ASkip: boolean = False): TValuePUtf8Char; overload;
   end;
 
 /// extract a 64-bit unsigned integer from a UTF-8 text buffer
@@ -516,6 +519,31 @@ begin
 
   if Result and AAfter then
     Skip;
+end;
+
+function TValuePUtf8Char.Split(AChars: TAnsiSet; ASkip: boolean): TValuePUtf8Char;
+var
+  p: PUtf8Char;
+  l: PtrInt;
+begin
+  Result.Text := Text;
+  Result.Len := 0;
+  p := Text;
+  l := Len;
+  while (l > 0) and not(p^ in AChars) do
+  begin
+    Inc(p);
+    Dec(l);
+    Inc(Result.Len);
+  end;
+
+  if (ASkip) then
+  begin
+    Text := p;
+    Len := l;
+    while (Len > 0) and (Text^ in AChars) do
+      Skip;
+  end;
 end;
 
 function TValuePUtf8Char.Split(AChar: AnsiChar; ASkip: boolean): TValuePUtf8Char;

@@ -66,6 +66,7 @@ type
     procedure TestFilterASTAndReferenceResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestImageNodeParsingAndAttributes;
+    procedure TestSwitchNodeAndConditionalProcessing;
   end;
 
 implementation
@@ -100,6 +101,80 @@ begin
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
   finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestSwitchNodeAndConditionalProcessing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  switchNode: TSvgSwitchNode;
+  selectedChild: TSvgNode;
+begin
+  // 1. Feature keyword dictionary tests
+  Check(IsSupportedSvgFeature('http://www.w3.org/TR/SVG11/feature#SVG'), 'Standard SVG feature URI should be supported');
+  Check(IsSupportedSvgFeature('http://www.w3.org/TR/SVG11/feature#Shape'), 'Shape feature URI should be supported');
+  Check(IsSupportedSvgFeature('org.w3c.svg.static'), 'Static feature URI should be supported');
+  Check(not IsSupportedSvgFeature('http://www.w3.org/TR/SVG11/feature#Animation'), 'Animation feature URI should evaluate to unsupported');
+  Check(not IsSupportedSvgFeature('http://invalid.feature/uri'), 'Unknown feature URI should evaluate to unsupported');
+
+  // 2. Language matching tests
+  Check(MatchLanguageTag('en-US', 'en'), 'Language range "en" should match system tag "en-US"');
+  Check(MatchLanguageTag('en-US', 'en-US'), 'Language range "en-US" should match system tag "en-US"');
+  Check(not MatchLanguageTag('en-US', 'fr'), 'Language range "fr" should not match system tag "en-US"');
+
+  // 3. Switch node AST parsing and selection test
+  xml := '<svg width="200" height="200">' +
+         '  <switch id="sw1">' +
+         '    <rect id="r_lang_fr" x="0" y="0" width="10" height="10" fill="blue" systemLanguage="fr"/>' +
+         '    <rect id="r_feat_invalid" x="0" y="0" width="10" height="10" fill="yellow" requiredFeatures="http://invalid.feature"/>' +
+         '    <rect id="r_lang_en" x="0" y="0" width="10" height="10" fill="green" systemLanguage="en"/>' +
+         '    <rect id="r_default" x="0" y="0" width="10" height="10" fill="red"/>' +
+         '  </switch>' +
+         '</svg>';
+
+  // System language is default 'en' -> Stage 2 normalization selects r_lang_en while retaining all children in FChildren
+  SetSystemLanguage('en');
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    switchNode := TSvgSwitchNode(docNode.FindNodeById('sw1'));
+    Check(switchNode <> nil, 'switchNode sw1 should exist');
+    Check(switchNode is TSvgSwitchNode, 'sw1 should be a TSvgSwitchNode instance');
+    CheckEquals(4, switchNode.Children.Count, 'All children should be retained in FChildren');
+    Check(switchNode.SelectedChild <> nil, 'SelectedChild should be assigned');
+    CheckEquals('r_lang_en', switchNode.SelectedChild.ID, 'Selected child pointer should be r_lang_en');
+  finally
+    docNode.Free;
+  end;
+
+  // System language is 'fr' -> Stage 2 normalization selects r_lang_fr while retaining all children in FChildren
+  SetSystemLanguage('fr');
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    switchNode := TSvgSwitchNode(docNode.FindNodeById('sw1'));
+    Check(switchNode <> nil, 'switchNode sw1 should exist');
+    CheckEquals(4, switchNode.Children.Count, 'All children should be retained in FChildren');
+    Check(switchNode.SelectedChild <> nil, 'SelectedChild should be assigned');
+    CheckEquals('r_lang_fr', switchNode.SelectedChild.ID, 'Selected child pointer should be r_lang_fr');
+  finally
+    docNode.Free;
+  end;
+
+  // System language is 'de' -> Stage 2 normalization falls back to r_default while retaining all children in FChildren
+  SetSystemLanguage('de');
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    switchNode := TSvgSwitchNode(docNode.FindNodeById('sw1'));
+    Check(switchNode <> nil, 'switchNode sw1 should exist');
+    CheckEquals(4, switchNode.Children.Count, 'All children should be retained in FChildren');
+    Check(switchNode.SelectedChild <> nil, 'SelectedChild should be assigned');
+    CheckEquals('r_default', switchNode.SelectedChild.ID, 'Selected child pointer should be r_default');
+  finally
+    SetSystemLanguage('en');
     docNode.Free;
   end;
 end;

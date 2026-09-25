@@ -65,6 +65,7 @@ type
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
     procedure TestImageRendering;
+    procedure TestSwitchRendering;
   end;
 
 implementation
@@ -906,6 +907,54 @@ begin
     CheckEquals(clBlue32, pCenter, 'Original rect position should be painted blue');
     CheckEquals(clBlue32, pOffset, 'Offset merged rect position should also be painted blue');
   finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestSwitchRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  xml := '<svg width="100" height="100">' +
+         '  <switch>' +
+         '    <rect width="100" height="100" fill="red" systemLanguage="fr"/>' +
+         '    <rect width="100" height="100" fill="green" systemLanguage="en"/>' +
+         '    <rect width="100" height="100" fill="blue"/>' +
+         '  </switch>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(100, 100);
+
+    // 1. Render when SystemLanguage is 'en' -> Green rectangle selected
+    SetSystemLanguage('en');
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clGreen32, bmp.Pixel[50, 50], 'Switch should render green rect when language is en');
+
+    // 2. Render when SystemLanguage is 'fr' -> Red rectangle selected
+    SetSystemLanguage('fr');
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clRed32, bmp.Pixel[50, 50], 'Switch should render red rect when language is fr');
+
+    // 3. Render when SystemLanguage is 'de' -> Blue fallback rectangle selected
+    SetSystemLanguage('de');
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clBlue32, bmp.Pixel[50, 50], 'Switch should render blue fallback rect when language is de');
+
+  finally
+    SetSystemLanguage('en');
     renderer.Free;
     bmp.Free;
     docNode.Free;

@@ -106,6 +106,32 @@ type
     cmLuminanceToAlpha
   );
 
+  { TSvgFeatureKeyword defines SVG 1.1/1.2 feature URIs for conditional processing evaluation }
+  TSvgFeatureKeyword = (
+    fkNone,
+    fkSvg,                     // http://www.w3.org/TR/SVG11/feature#SVG
+    fkSvgStatic,               // http://www.w3.org/TR/SVG11/feature#SVG-static
+    fkCoreAttribute,           // http://www.w3.org/TR/SVG11/feature#CoreAttribute
+    fkStructure,               // http://www.w3.org/TR/SVG11/feature#Structure
+    fkBasicStructure,          // http://www.w3.org/TR/SVG11/feature#BasicStructure
+    fkContainerAttribute,      // http://www.w3.org/TR/SVG11/feature#ContainerAttribute
+    fkConditionalProcessing,   // http://www.w3.org/TR/SVG11/feature#ConditionalProcessing
+    fkImage,                   // http://www.w3.org/TR/SVG11/feature#Image
+    fkStyle,                   // http://www.w3.org/TR/SVG11/feature#Style
+    fkViewportAttribute,       // http://www.w3.org/TR/SVG11/feature#ViewportAttribute
+    fkShape,                   // http://www.w3.org/TR/SVG11/feature#Shape
+    fkGradient,                // http://www.w3.org/TR/SVG11/feature#Gradient
+    fkPattern,                 // http://www.w3.org/TR/SVG11/feature#Pattern
+    fkClip,                    // http://www.w3.org/TR/SVG11/feature#Clip
+    fkMask,                    // http://www.w3.org/TR/SVG11/feature#Mask
+    fkFilter,                  // http://www.w3.org/TR/SVG11/feature#Filter
+    fkBasicFilter,             // http://www.w3.org/TR/SVG11/feature#BasicFilter
+    fkMarker,                  // http://www.w3.org/TR/SVG11/feature#Marker
+    fkExtensibility,           // http://www.w3.org/TR/SVG11/feature#Extensibility
+    fkOrgW3cSvgStatic,         // org.w3c.svg.static
+    fkSvg12Static              // http://www.w3.org/Graphics/SVG/feature/1.2/#SVG-static
+  );
+
 
 //------------------------------------------------------------------------------
 //
@@ -121,6 +147,7 @@ function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperat
 function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType; overload;
 function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType; overload;
 
+
 //------------------------------------------------------------------------------
 //
 //      Enum value to string (for debug)
@@ -131,8 +158,36 @@ function SvgIsolationToString(AIsolation: TSvgIsolation): string;
 function SvgCompositeOperatorToString(AOp: TSvgCompositeOperator): string;
 function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
 
-// FormatSettings with '.' decimal separator
+
+//------------------------------------------------------------------------------
+//
+//      Conditional Processing Helpers
+//
+//------------------------------------------------------------------------------
+// IsSupportedSvgFeature tests whether a feature URI is supported using
+// TSvgKeywordDictionary.
+//------------------------------------------------------------------------------
+function IsSupportedSvgFeature(const AFeatureURI: TValuePUtf8Char): Boolean; overload;
+function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean; overload;
+
+// System language tag management and RFC 3066 / BCP 47 language matching
+function GetSystemLanguage: string;
+procedure SetSystemLanguage(const ALang: string);
+function MatchLanguageTag(const ASystemLang, ALangRange: string): Boolean;
+
 var
+  // GlobalSystemLanguage: Current system language.
+  // Tested again the 'systemlanguage' switch condition.
+  GlobalSystemLanguage: string = 'en';
+
+
+//------------------------------------------------------------------------------
+//
+//      Misc. globals
+//
+//------------------------------------------------------------------------------
+var
+  // FormatSettings with '.' decimal separator
   SvgFormatSettings: TFormatSettings;
 
 
@@ -525,6 +580,98 @@ begin
   else
     Result := 'matrix';
   end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Feature Dictionary & Conditional Processing
+//
+//------------------------------------------------------------------------------
+type
+  TFeatureKeywordName = record
+    Name: AnsiString;
+    Value: TSvgFeatureKeyword;
+  end;
+
+var
+  SvgFeatureKeywordDictionary: TSvgKeywordDictionary<TSvgFeatureKeyword>;
+
+const
+  sFeatureKeywords: array[0..20] of TFeatureKeywordName = (
+    (Name: 'http://www.w3.org/TR/SVG11/feature#SVG'; Value: fkSvg),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#SVG-static'; Value: fkSvgStatic),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#CoreAttribute'; Value: fkCoreAttribute),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Structure'; Value: fkStructure),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#BasicStructure'; Value: fkBasicStructure),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#ContainerAttribute'; Value: fkContainerAttribute),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#ConditionalProcessing'; Value: fkConditionalProcessing),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Image'; Value: fkImage),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Style'; Value: fkStyle),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#ViewportAttribute'; Value: fkViewportAttribute),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Shape'; Value: fkShape),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Gradient'; Value: fkGradient),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Pattern'; Value: fkPattern),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Clip'; Value: fkClip),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Mask'; Value: fkMask),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Filter'; Value: fkFilter),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#BasicFilter'; Value: fkBasicFilter),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Marker'; Value: fkMarker),
+    (Name: 'http://www.w3.org/TR/SVG11/feature#Extensibility'; Value: fkExtensibility),
+    (Name: 'org.w3c.svg.static'; Value: fkOrgW3cSvgStatic),
+    (Name: 'http://www.w3.org/Graphics/SVG/feature/1.2/#SVG-static'; Value: fkSvg12Static)
+  );
+
+function IsSupportedSvgFeature(const AFeatureURI: TValuePUtf8Char): Boolean;
+var
+  Val: TSvgFeatureKeyword;
+begin
+  if SvgFeatureKeywordDictionary.Lookup(AFeatureURI, Val) then
+    Result := (Val <> fkNone)
+  else
+    Result := False;
+end;
+
+function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AFeatureURI);
+  Name.Len := Length(AFeatureURI);
+  Result := IsSupportedSvgFeature(Name);
+end;
+
+function GetSystemLanguage: string;
+begin
+  Result := GlobalSystemLanguage;
+end;
+
+procedure SetSystemLanguage(const ALang: string);
+begin
+  GlobalSystemLanguage := ALang;
+end;
+
+function MatchLanguageTag(const ASystemLang, ALangRange: string): Boolean;
+var
+  sSys, sRange: string;
+begin
+  sSys := LowerCase(Trim(ASystemLang));
+  sRange := LowerCase(Trim(ALangRange));
+
+  if (sRange = '*') or (sRange = '') or (sSys = '') or (sRange = sSys) then
+    Exit(True);
+
+  // Range 'en' matches system tag 'en-US' (prefix check followed by '-')
+  if (Length(sSys) > Length(sRange)) and (Copy(sSys, 1, Length(sRange)) = sRange) and
+     (sSys[Length(sRange) + 1] = '-') then
+    Exit(True);
+
+  // Range 'en-US' matches system tag 'en' (system tag is prefix of range)
+  if (Length(sRange) > Length(sSys)) and (Copy(sRange, 1, Length(sSys)) = sSys) and
+     (sRange[Length(sSys) + 1] = '-') then
+    Exit(True);
+
+  Result := False;
 end;
 
 
@@ -1354,6 +1501,9 @@ begin
 
   for i := 0 to High(sCompositeOperators) do
     SvgCompositeOperatorDictionary.Add(sCompositeOperators[i].Name, sCompositeOperators[i].Value);
+
+  for i := 0 to High(sFeatureKeywords) do
+    SvgFeatureKeywordDictionary.Add(sFeatureKeywords[i].Name, sFeatureKeywords[i].Value);
 end;
 
 initialization

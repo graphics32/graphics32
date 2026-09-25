@@ -231,6 +231,9 @@ type
     FResolvedMarkerMid: TSvgMarkerNode;
     FResolvedMarkerEnd: TSvgMarkerNode;
     FResolving: Boolean;
+    FRequiredFeatures: string;
+    FRequiredExtensions: string;
+    FSystemLanguage: string;
   protected
     function GetIsRenderable: Boolean; virtual;
     function DumpNode(Indent: Integer = 0): string; virtual;
@@ -245,6 +248,10 @@ type
     // procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; virtual;
     procedure ParseAttribute(const AName, AValue: string); overload; virtual;
     procedure ParseStyleAttribute(const AStyleStr: string);
+    function CheckRequiredFeatures: Boolean; virtual;
+    function CheckRequiredExtensions: Boolean; virtual;
+    function CheckSystemLanguage: Boolean; virtual;
+    function PassesConditionalProcessing: Boolean; virtual;
     function Dump(Indent: Integer = 0): string;
     property ID: string read FID write FID;
     property CssClassName: string read FCssClassName write FCssClassName;
@@ -264,6 +271,9 @@ type
     property ResolvedMarkerStart: TSvgMarkerNode read FResolvedMarkerStart write FResolvedMarkerStart;
     property ResolvedMarkerMid: TSvgMarkerNode read FResolvedMarkerMid write FResolvedMarkerMid;
     property ResolvedMarkerEnd: TSvgMarkerNode read FResolvedMarkerEnd write FResolvedMarkerEnd;
+    property RequiredFeatures: string read FRequiredFeatures write FRequiredFeatures;
+    property RequiredExtensions: string read FRequiredExtensions write FRequiredExtensions;
+    property SystemLanguage: string read FSystemLanguage write FSystemLanguage;
     property IsRenderable: Boolean read GetIsRenderable;
   end;
 
@@ -306,6 +316,26 @@ type
     property MaskID: string read FMaskID write FMaskID;
     property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
     property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgSwitchNode
+//
+//------------------------------------------------------------------------------
+// TSvgSwitchNode represents an SVG <switch> container element that evaluates
+// conditional processing attributes (requiredFeatures, requiredExtensions,
+// systemLanguage) on its direct child elements in document order and renders
+// only the first direct child element for which all conditions evaluate to true.
+//------------------------------------------------------------------------------
+  TSvgSwitchNode = class(TSvgGroupNode)
+  private
+    FSelectedChild: TSvgNode;
+  public
+    function GetSelectedChild: TSvgNode;
+    function GetObjectBoundingBox: TFloatRect; override;
+    property SelectedChild: TSvgNode read FSelectedChild write FSelectedChild;
   end;
 
 
@@ -774,9 +804,7 @@ type
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+
     procedure ResolveUseNodes;
     procedure ResolveGradients;
     procedure ResolvePatterns;
@@ -784,7 +812,13 @@ type
     procedure ResolveClipPathsAndMasks;
     procedure ResolvePaintServers;
     procedure ResolveFilters;
+    procedure ResolveTextPaths;
+    procedure ResolveSwitchNodes;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(const AName, AValue: string); override;
+    procedure Resolve;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
     property ViewBox: TSvgViewBox read FViewBox write FViewBox;
@@ -1022,14 +1056,14 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagImage);
+    tagImage, tagSwitch);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'image'
+    'image', 'switch'
   );
 
 var
@@ -1355,6 +1389,9 @@ begin
   Result.FFilterID := FFilterID;
   Result.FResolvedFilter := FResolvedFilter;
   Result.FResolving := False;
+  Result.FRequiredFeatures := FRequiredFeatures;
+  Result.FRequiredExtensions := FRequiredExtensions;
+  Result.FSystemLanguage := FSystemLanguage;
 
   FFill.ApplySpecified(Result.FFill);
   FStroke.ApplySpecified(Result.FStroke);
@@ -1520,9 +1557,85 @@ begin
   if lowerName = 'filter' then
     FFilterID := lowerVal
   else
+  if lowerName = 'requiredfeatures' then
+    FRequiredFeatures := lowerVal
+  else
+  if lowerName = 'requiredextensions' then
+    FRequiredExtensions := lowerVal
+  else
+  if lowerName = 'systemlanguage' then
+    FSystemLanguage := lowerVal
+  else
   if lowerName = 'style' then
     // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
     FStyleAttr := lowerVal;
+end;
+
+function TSvgNode.CheckRequiredFeatures: Boolean;
+var
+  Val: TValuePUtf8Char;
+  OneFeature: TValuePUtf8Char;
+  utf8Features: UTF8String;
+begin
+  Val.Text := PAnsiChar(UTF8String(FRequiredFeatures));
+  Val.Len := Length(FRequiredFeatures);
+
+  Val.Trim;
+
+  if (Val.Len = 0) then
+    Exit(True);
+
+  while (Val.Len > 0) do
+  begin
+    OneFeature := Val.Split([' ', #9, #10, #13], True);
+
+    if (OneFeature.Len > 0) then
+    begin
+      if not IsSupportedSvgFeature(OneFeature) then
+        Exit(False);
+    end else
+      break; // Guard against zero advance -> endless loop. Likely not necessary
+  end;
+
+  Result := True;
+end;
+
+function TSvgNode.CheckRequiredExtensions: Boolean;
+begin
+  // If non-empty, since Graphics32 does not support third-party SVG extensions, return False
+  Result := (Trim(FRequiredExtensions) = '');
+end;
+
+function TSvgNode.CheckSystemLanguage: Boolean;
+var
+  Value: TValuePUtf8Char;
+  OneLang: TValuePUtf8Char;
+  LangStr, SysLang: string;
+begin
+  if Trim(FSystemLanguage) = '' then
+    Exit(True);
+
+  SysLang := GetSystemLanguage;
+  Value.Text := PAnsiChar(UTF8String(FSystemLanguage));
+  Value.Len := Length(FSystemLanguage);
+
+  while Value.Len > 0 do
+  begin
+    OneLang := Value.Split([',', ' ', #9, #10, #13], True);
+
+    if (OneLang.Len > 0) then
+    begin
+      LangStr := OneLang.ToString;
+      if MatchLanguageTag(SysLang, LangStr) then
+        Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+function TSvgNode.PassesConditionalProcessing: Boolean;
+begin
+  Result := CheckRequiredFeatures and CheckRequiredExtensions and CheckSystemLanguage;
 end;
 
 function ExtractUrlIdStr(const AUrlStr: string): string;
@@ -1745,6 +1858,32 @@ begin
     FMaskID := lowerVal
   else
     inherited ParseAttribute(AName, AValue);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgSwitchNode
+//
+//------------------------------------------------------------------------------
+function TSvgSwitchNode.GetSelectedChild: TSvgNode;
+var
+  Child: TSvgNode;
+begin
+  for Child in Children do
+    if (Child <> nil) and Child.Visible and Child.PassesConditionalProcessing then
+      Exit(Child);
+
+  Result := nil;
+end;
+
+function TSvgSwitchNode.GetObjectBoundingBox: TFloatRect;
+begin
+  // Returns bounding box of the active selected child set during Stage 2 tree normalization
+  if (FSelectedChild <> nil) then
+    Result := FSelectedChild.GetObjectBoundingBox
+  else
+    Result := inherited GetObjectBoundingBox;
 end;
 
 
@@ -2877,6 +3016,44 @@ begin
   Result := Result + Format(' (width=%s, height=%s)', [SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
 end;
 
+procedure TSvgDocumentNode.ResolveSwitchNodes;
+
+  procedure ProcessNode(ANode: TSvgNode);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    switchNode: TSvgSwitchNode;
+    child: TSvgNode;
+  begin
+    if ANode = nil then Exit;
+
+    if ANode is TSvgSwitchNode then
+    begin
+      switchNode := TSvgSwitchNode(ANode);
+      // Stage 2 Normalization: Evaluate conditional processing and store pointer to selected child on TSvgSwitchNode,
+      // while preserving all parsed child nodes in FChildren for complete AST preservation.
+      switchNode.SelectedChild := switchNode.GetSelectedChild;
+
+      if switchNode.SelectedChild <> nil then
+        ProcessNode(switchNode.SelectedChild);
+    end
+    else if ANode is TSvgGroupNode then
+    begin
+      group := TSvgGroupNode(ANode);
+
+      for i := 0 to group.Children.Count - 1 do
+      begin
+        child := group.Children[i];
+        if (child <> nil) and child.PassesConditionalProcessing then
+          ProcessNode(child);
+      end;
+    end;
+  end;
+
+begin
+  ProcessNode(Self);
+end;
+
 procedure TSvgDocumentNode.ResolveUseNodes;
 const
   // Maximum recursion depth limit to prevent stack overflow from deep <use> structures
@@ -2982,6 +3159,19 @@ procedure TSvgDocumentNode.ResolveGradients;
 
 begin
   ProcessNode(Self);
+end;
+
+procedure TSvgDocumentNode.Resolve;
+begin
+  ResolveUseNodes;
+  ResolveGradients;
+  ResolvePatterns;
+  ResolveMarkers;
+  ResolveClipPathsAndMasks;
+  ResolvePaintServers;
+  ResolveFilters;
+  ResolveTextPaths;
+  ResolveSwitchNodes;
 end;
 
 procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
@@ -4138,7 +4328,6 @@ var
     StopTag: TSvgStopTagKeyword;
     tagName: string;
     node: TSvgNode;
-    docNode: TSvgDocumentNode;
     startDepth: Byte;
     n: Double;
     stopOffset, stopOpacity: Single;
@@ -4158,14 +4347,19 @@ var
       case tagKeyword of
         tagSvg:
           begin
-            docNode := TSvgDocumentNode.Create(AParent);
-            node := docNode;
+            node := TSvgDocumentNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
         tagG:
           begin
             node := TSvgGroupNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagSwitch:
+          begin
+            node := TSvgSwitchNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
@@ -4552,13 +4746,7 @@ begin
 
         if (Result <> nil) then
         begin
-          Result.ResolveGradients;
-          Result.ResolvePatterns;
-          Result.ResolveUseNodes;
-          Result.ResolveMarkers;
-          Result.ResolveClipPathsAndMasks;
-          Result.ResolvePaintServers;
-          Result.ResolveFilters;
+          Result.Resolve;
           Exit;
         end;
       end;
