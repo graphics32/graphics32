@@ -120,14 +120,19 @@ begin
   case Kind of
     skUniversal:
       Exit(True);
+
     skElement:
       Exit(LowerCase(AElementTag) = Name);
+
     skId:
       Exit(AElementId = Name);
+
     skClass:
       begin
-        if (AClassName = '') or (Name = '') then Exit(False);
-        if AClassName = Name then Exit(True);
+        if (AClassName = '') or (Name = '') then
+          Exit(False);
+        if AClassName = Name then
+          Exit(True);
         classes := TStringList.Create;
         try
           classes.Delimiter := ' ';
@@ -323,7 +328,8 @@ const
   // so later rules override earlier ones of equal specificity.
   Specificities: array[0..3] of Integer = (0, 1, 10, 100);
 begin
-  if ANode = nil then Exit;
+  if (ANode = nil) or (FRules.Count = 0) then
+    Exit;
 
   for specIdx := Low(Specificities) to High(Specificities) do
   begin

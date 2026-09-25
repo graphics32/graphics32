@@ -53,6 +53,7 @@ type
     procedure TestValuePUtf8CharMethods;
     procedure TestErrorHandling;
     procedure TestDocType;
+    procedure TestXmlEntityUnescapingInAttributesAndText;
   end;
 
 implementation
@@ -276,6 +277,27 @@ begin
       raised := True;
   end;
   Check(raised, 'Expected EXmlException for mismatched closing tag');
+end;
+
+procedure TTestSvgXmlParser.TestXmlEntityUnescapingInAttributesAndText;
+var
+  parser: TXmlParser;
+  xml: RawUtf8;
+  valStr: RawUtf8;
+begin
+  xml := '<text title="A &amp; B &lt;C&gt;">&lt;Hello &amp; World&gt;</text>';
+  parser.Init(xml);
+
+  CheckEquals(Ord(xtElementStart), Ord(parser.ParseNext));
+
+  CheckEquals(Ord(xtAttribute), Ord(parser.ParseNext));
+  CheckEquals('title', string(parser.Name.ToUtf8));
+  Check(parser.ValueToUtf8(valStr));
+  CheckEquals('A & B <C>', string(valStr));
+
+  CheckEquals(Ord(xtText), Ord(parser.ParseNext));
+  Check(parser.ValueToUtf8(valStr));
+  CheckEquals('<Hello & World>', string(valStr));
 end;
 
 procedure TTestSvgXmlParser.TestDocType;

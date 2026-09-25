@@ -299,6 +299,11 @@ type
     FMaskID: string;
     FResolvedClipPath: TSvgClipPathNode;
     FResolvedMask: TSvgMaskNode;
+    FFontFamily: string;
+    FFontSize: TSvgLength;
+    FFontWeight: string;
+    FFontStyle: string;
+    FTextAnchor: TSvgTextAnchor;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
@@ -316,6 +321,11 @@ type
     property MaskID: string read FMaskID write FMaskID;
     property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
     property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
+    property FontFamily: string read FFontFamily write FFontFamily;
+    property FontSize: TSvgLength read FFontSize write FFontSize;
+    property FontWeight: string read FFontWeight write FFontWeight;
+    property FontStyle: string read FFontStyle write FFontStyle;
+    property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
   end;
 
 
@@ -999,6 +1009,93 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgTextPositioningNode
+//
+//------------------------------------------------------------------------------
+// TSvgTextPositioningNode is the base AST node class for SVG text positioning
+// elements (<text> and <tspan>). It maintains absolute/relative coordinate
+// offsets (x, y, dx, dy) and raw string content.
+//------------------------------------------------------------------------------
+  TSvgTextPositioningNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FDx: TSvgLength;
+    FDy: TSvgLength;
+    FRotate: TArrayOfFloat;
+    FHasX: Boolean;
+    FHasY: Boolean;
+    FHasDx: Boolean;
+    FHasDy: Boolean;
+    FTextContent: string;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Dx: TSvgLength read FDx write FDx;
+    property Dy: TSvgLength read FDy write FDy;
+    property Rotate: TArrayOfFloat read FRotate write FRotate;
+    property HasX: Boolean read FHasX write FHasX;
+    property HasY: Boolean read FHasY write FHasY;
+    property HasDx: Boolean read FHasDx write FHasDx;
+    property HasDy: Boolean read FHasDy write FHasDy;
+    property TextContent: string read FTextContent write FTextContent;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextNode
+//
+//------------------------------------------------------------------------------
+// TSvgTextNode represents the SVG <text> root text container element.
+//------------------------------------------------------------------------------
+  TSvgTextNode = class(TSvgTextPositioningNode)
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTSpanNode
+//
+//------------------------------------------------------------------------------
+// TSvgTSpanNode represents the SVG <tspan> sub-string positioning element.
+//------------------------------------------------------------------------------
+  TSvgTSpanNode = class(TSvgTextPositioningNode)
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextPathNode
+//
+//------------------------------------------------------------------------------
+// TSvgTextPathNode represents the SVG <textPath> sub-element used to render text
+// aligned along vector path contours referenced via Href.
+//------------------------------------------------------------------------------
+  TSvgTextPathNode = class(TSvgTextPositioningNode)
+  private
+    FHref: string;
+    FStartOffset: TSvgLength;
+    FResolvedPathNode: TSvgPathNode;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    property Href: string read FHref write FHref;
+    property StartOffset: TSvgLength read FStartOffset write FStartOffset;
+    property ResolvedPathNode: TSvgPathNode read FResolvedPathNode write FResolvedPathNode;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      Primitive Shape Converters
 //
 //------------------------------------------------------------------------------
@@ -1008,6 +1105,8 @@ function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
 function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
 function CreatePolylinePath(const APointsStr: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
 
+function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat; overload;
+function ParseFloatArray(const AStr: string): TArrayOfFloat; overload;
 function ParseStrokeDashArray(const AStr: string): TArrayOfFloat;
 
 
@@ -1056,14 +1155,14 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagImage, tagSwitch);
+    tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'image', 'switch'
+    'image', 'switch', 'text', 'tspan', 'textPath'
   );
 
 var
@@ -1715,12 +1814,31 @@ begin
 end;
 
 constructor TSvgGroupNode.Create(AParent: TSvgNode);
+var
+  parentGroup: TSvgGroupNode;
 begin
   inherited Create(AParent);
   FChildren := TObjectList<TSvgNode>.Create(True);
   FOpacity := 1.0;
   FClipPathID := '';
   FMaskID := '';
+
+  if (AParent <> nil) and (AParent is TSvgGroupNode) then
+  begin
+    parentGroup := TSvgGroupNode(AParent);
+    FFontFamily := parentGroup.FontFamily;
+    FFontSize := parentGroup.FontSize;
+    FFontWeight := parentGroup.FontWeight;
+    FFontStyle := parentGroup.FontStyle;
+    FTextAnchor := parentGroup.TextAnchor;
+  end else
+  begin
+    FFontFamily := 'sans-serif';
+    FFontSize := TSvgLength.Create(12.0, suPx);
+    FFontWeight := 'normal';
+    FFontStyle := 'normal';
+    FTextAnchor := taStart;
+  end;
 end;
 
 destructor TSvgGroupNode.Destroy;
@@ -1740,6 +1858,11 @@ begin
   groupRes.FMaskID := FMaskID;
   groupRes.FResolvedClipPath := FResolvedClipPath;
   groupRes.FResolvedMask := FResolvedMask;
+  groupRes.FFontFamily := FFontFamily;
+  groupRes.FFontSize := FFontSize;
+  groupRes.FFontWeight := FFontWeight;
+  groupRes.FFontStyle := FFontStyle;
+  groupRes.FTextAnchor := FTextAnchor;
   for i := 0 to FChildren.Count - 1 do
     groupRes.AddChild(FChildren[i].Clone(groupRes));
   Result := groupRes;
@@ -1851,11 +1974,27 @@ begin
   begin
     if TryStrToFloat(lowerVal, valFloat, SvgFormatSettings) then
       FOpacity := EnsureRange(valFloat, 0.0, 1.0);
-  end
-  else if lowerName = 'clip-path' then
+  end else
+  if lowerName = 'clip-path' then
     FClipPathID := lowerVal
-  else if lowerName = 'mask' then
+  else
+  if lowerName = 'mask' then
     FMaskID := lowerVal
+  else
+  if lowerName = 'font-family' then
+    FFontFamily := lowerVal
+  else
+  if lowerName = 'font-size' then
+    FFontSize := TSvgLength.Parse(lowerVal)
+  else
+  if lowerName = 'font-weight' then
+    FFontWeight := lowerVal
+  else
+  if lowerName = 'font-style' then
+    FFontStyle := lowerVal
+  else
+  if lowerName = 'text-anchor' then
+    FTextAnchor := ParseSvgTextAnchor(lowerVal)
   else
     inherited ParseAttribute(AName, AValue);
 end;
@@ -1884,6 +2023,139 @@ begin
     Result := FSelectedChild.GetObjectBoundingBox
   else
     Result := inherited GetObjectBoundingBox;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextPositioningNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgTextPositioningNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX := TSvgLength.Create(0.0, suPx);
+  FY := TSvgLength.Create(0.0, suPx);
+  FDx := TSvgLength.Create(0.0, suPx);
+  FDy := TSvgLength.Create(0.0, suPx);
+  FRotate := nil;
+  FHasX := False;
+  FHasY := False;
+  FHasDx := False;
+  FHasDy := False;
+  FTextContent := '';
+end;
+
+function TSvgTextPositioningNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  textRes: TSvgTextPositioningNode;
+begin
+  textRes := TSvgTextPositioningNode(inherited Clone(AParent));
+  textRes.FX := FX;
+  textRes.FY := FY;
+  textRes.FDx := FDx;
+  textRes.FDy := FDy;
+  textRes.FRotate := Copy(FRotate);
+  textRes.FHasX := FHasX;
+  textRes.FHasY := FHasY;
+  textRes.FHasDx := FHasDx;
+  textRes.FHasDy := FHasDy;
+  textRes.FTextContent := FTextContent;
+  Result := textRes;
+end;
+
+function TSvgTextPositioningNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  Result := Result + Format(' (x=%s, y=%s)', [SvgLengthToString(FX), SvgLengthToString(FY)]);
+  if Length(FRotate) > 0 then
+    Result := Result + Format(' (rotate="%s")', [FloatToString(FRotate[0])]);
+  if FTextContent <> '' then
+    Result := Result + Format(' (text="%s")', [FTextContent]);
+end;
+
+procedure TSvgTextPositioningNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if lowerName = 'x' then
+  begin
+    FX := TSvgLength.Parse(lowerVal);
+    FHasX := True;
+  end else
+  if lowerName = 'y' then
+  begin
+    FY := TSvgLength.Parse(lowerVal);
+    FHasY := True;
+  end else
+  if lowerName = 'dx' then
+  begin
+    FDx := TSvgLength.Parse(lowerVal);
+    FHasDx := True;
+  end else
+  if lowerName = 'dy' then
+  begin
+    FDy := TSvgLength.Parse(lowerVal);
+    FHasDy := True;
+  end else
+  if lowerName = 'rotate' then
+  begin
+    FRotate := ParseFloatArray(lowerVal);
+  end else
+    inherited ParseAttribute(AName, AValue);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextPathNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgTextPathNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FHref := '';
+  FStartOffset := TSvgLength.Create(0.0, suPx);
+  FResolvedPathNode := nil;
+end;
+
+function TSvgTextPathNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  tpRes: TSvgTextPathNode;
+begin
+  tpRes := TSvgTextPathNode(inherited Clone(AParent));
+  tpRes.FHref := FHref;
+  tpRes.FStartOffset := FStartOffset;
+  tpRes.FResolvedPathNode := FResolvedPathNode;
+  Result := tpRes;
+end;
+
+function TSvgTextPathNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  if FHref <> '' then
+    Result := Result + Format(' (href="%s")', [FHref]);
+  if FStartOffset.Value <> 0 then
+    Result := Result + Format(' (startOffset=%s)', [SvgLengthToString(FStartOffset)]);
+end;
+
+procedure TSvgTextPathNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
+
+  if (lowerName = 'href') or (lowerName = 'xlink:href') then
+    FHref := lowerVal
+  else
+  if lowerName = 'startoffset' then
+    FStartOffset := TSvgLength.Parse(lowerVal)
+  else
+    inherited ParseAttribute(AName, AValue);
 end;
 
 
@@ -3434,6 +3706,44 @@ begin
   ProcessNode(Self);
 end;
 
+procedure TSvgDocumentNode.ResolveTextPaths;
+
+  // Traverses AST to locate <textPath> nodes and bind their Href string
+  // references to actual TSvgPathNode targets in the document.
+  procedure ProcessNode(ANode: TSvgNode);
+  var
+    i: Integer;
+    group: TSvgGroupNode;
+    tpNode: TSvgTextPathNode;
+    targetNode: TSvgNode;
+    idStr: string;
+  begin
+    if ANode = nil then Exit;
+
+    if ANode is TSvgTextPathNode then
+    begin
+      tpNode := TSvgTextPathNode(ANode);
+      if tpNode.Href <> '' then
+      begin
+        idStr := ExtractUrlIdStr(tpNode.Href);
+        targetNode := FindNodeById(idStr);
+        if targetNode is TSvgPathNode then
+          tpNode.ResolvedPathNode := TSvgPathNode(targetNode);
+      end;
+    end;
+
+    if ANode is TSvgGroupNode then
+    begin
+      group := TSvgGroupNode(ANode);
+      for i := 0 to group.Children.Count - 1 do
+        ProcessNode(group.Children[i]);
+    end;
+  end;
+
+begin
+  ProcessNode(Self);
+end;
+
 procedure TSvgDocumentNode.ResolvePatterns;
 
   procedure ProcessNode(ANode: TSvgNode);
@@ -4059,6 +4369,68 @@ begin
   end;
 end;
 
+function ParseFloatArray(const AStr: string): TArrayOfFloat;
+var
+  Values: TValuePUtf8Char;
+begin
+  Values.Text := pointer(AnsiString(AStr));
+  Values.Len := Length(AStr);
+  Result := ParseFloatArray(Values);
+end;
+
+function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat; overload;
+var
+  Start: PUtf8Char;
+  Value: Double;
+  Count: Integer;
+begin
+  Values.Trim;
+
+  if (Values.Len = 0) or (Values.CompareText('none')) then
+    Exit(nil);
+
+  Count := 0;
+  SetLength(Result, 8);
+
+  while (Values.Len > 0) do
+  begin
+    // Trim
+    Values.Trim([' ', #9, #10, #13, ',']);
+    if (Values.Len = 0) then
+      Break;
+
+    Start := Values.Text;
+    // Collect sign
+    Values.Trim(['+', '-']);
+
+    // Collect digits
+    Values.Trim(['0'..'9', '.']);
+
+    // Collect exponent
+    if (Values.Len > 1) and (Values.Text^ in ['e', 'E']) and (Values.Text[1] in ['0'..'9', '+', '-']) then
+    begin
+      Values.Skip; // Skip 'e'
+      if (Values.Text^ in ['+', '-']) then
+        Values.Skip; // Skip '+', '-'
+      Values.Trim(['0'..'9']); // Skip digits
+    end;
+
+    // Did we collect anything?
+    if (Values.Text = Start) then
+      break;
+
+    if (not GetExtended(Start, PtrInt(Values.Text-Start)+1, Value)) then
+      break;
+
+    if (Count >= Length(Result)) then
+      SetLength(Result, Length(Result) * 2);
+    Result[count] := Value;
+    Inc(count);
+  end;
+
+  SetLength(Result, Count);
+end;
+
 //------------------------------------------------------------------------------
 
 function ParseStrokeDashArray(const AStr: string): TArrayOfFloat;
@@ -4313,11 +4685,21 @@ var
   procedure ParseAttributes(ANode: TSvgNode; var AParser: TXmlParser);
   var
     attrName, attrVal: string;
+    Utf8: RawUtf8;
+    SaveKind: TXmlToken;
   begin
     while AParser.ParseNext = xtAttribute do
     begin
       attrName := AParser.Name.ToString;
-      attrVal := TValuePUtf8Char(AParser.Value).ToString;
+      // ValueToUtf8 unescapes XML entity references (&lt;, &gt;, &amp;, &quot;, &apos;, and numeric entities)
+      SaveKind := AParser.Kind;
+      if AParser.ValueToUtf8(Utf8) then
+        attrVal := string(Utf8)
+      else
+      begin
+        AParser.Kind := SaveKind; // ValueToUtf8 errors if it can't unescape
+        attrVal := TValuePUtf8Char(AParser.Value).ToString;
+      end;
       ANode.ParseAttribute(attrName, attrVal);
     end;
   end;
@@ -4331,11 +4713,12 @@ var
     startDepth: Byte;
     n: Double;
     stopOffset, stopOpacity: Single;
-    ptsStr, dStr, cssText: string;
+    ptsStr, s: string;
     childNode: TSvgNode;
-    rawCss: RawUtf8;
+    Utf8: RawUtf8;
     stopVal: TSvgGradientStop;
     Color: TSvgColor;
+    SaveKind: TXmlToken;
   begin
     Result := nil;
     node := nil;
@@ -4432,16 +4815,25 @@ var
         tagPath:
           begin
             node := TSvgPathNode.Create(AParent);
-            dStr := '';
+            ptsStr := '';
             while AParser.ParseNext = xtAttribute do
             begin
-              if AParser.Name.CompareText('d') then
-                dStr := TValuePUtf8Char(AParser.Value).ToString
+              SaveKind := AParser.Kind;
+              if AParser.ValueToUtf8(Utf8) then // Unescape XML
+                s := string(Utf8)
               else
-                node.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+              begin
+                AParser.Kind := SaveKind; // ValueToUtf8 errors if it can't unescape
+                s := TValuePUtf8Char(AParser.Value).ToString;
+              end;
+
+              if AParser.Name.CompareText('d') then
+                ptsStr := s
+              else
+                node.ParseAttribute(AParser.Name.ToString, s);
             end;
-            if dStr <> '' then
-              TSvgPathNode(node).PathData := SvgPathDataToPoints(dStr);
+            if ptsStr <> '' then
+              TSvgPathNode(node).PathData := SvgPathDataToPoints(ptsStr);
           end;
 
         tagRect:
@@ -4496,10 +4888,10 @@ var
 
         tagStyle:
           begin
-            AParser.ConsumeText(rawCss);
-            cssText := string(rawCss);
-            if (cssText <> '') and (cssStyleSheet <> nil) then
-              cssStyleSheet.ParseCss(cssText);
+            AParser.ConsumeText(Utf8);
+            s := string(Utf8);
+            if (s <> '') and (cssStyleSheet <> nil) then
+              cssStyleSheet.ParseCss(s);
             Exit(nil);
           end;
 
@@ -4618,6 +5010,24 @@ var
             ParseAttributes(node, AParser);
           end;
 
+        tagText:
+          begin
+            node := TSvgTextNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagTspan:
+          begin
+            node := TSvgTSpanNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagTextpath:
+          begin
+            node := TSvgTextPathNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
         tagEllipse:
           begin
             node := TSvgPathNode.Create(AParent);
@@ -4646,10 +5056,19 @@ var
             ptsStr := '';
             while AParser.ParseNext = xtAttribute do
             begin
-              if AParser.Name.CompareText('points') then
-                ptsStr := TValuePUtf8Char(AParser.Value).ToString
+              SaveKind := AParser.Kind;
+              if AParser.ValueToUtf8(Utf8) then
+                s := string(Utf8)
               else
-                TSvgPathNode(node).ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+              begin
+                AParser.Kind := SaveKind; // ValueToUtf8 errors if it can't unescape
+                s := TValuePUtf8Char(AParser.Value).ToString;
+              end;
+
+              if AParser.Name.CompareText('points') then
+                ptsStr := s
+              else
+                TSvgPathNode(node).ParseAttribute(AParser.Name.ToString, s);
             end;
             TSvgPathNode(node).PathData := CreatePolylinePath(ptsStr, (tagKeyword = tagPolygon));
           end;
@@ -4693,6 +5112,36 @@ var
           if childNode <> nil then
             TSvgGroupNode(node).AddChild(childNode);
         end else
+        if (AParser.Kind in [xtText, xtCData]) and (node is TSvgTextPositioningNode) then
+        begin
+          if AParser.Kind = xtCData then
+            ptsStr := Trim(TValuePUtf8Char(AParser.Value).ToString)
+          else
+          begin
+            if AParser.ValueToUtf8(Utf8) then
+              ptsStr := Trim(string(Utf8))
+            else
+              ptsStr := Trim(TValuePUtf8Char(AParser.Value).ToString);
+          end;
+          if ptsStr <> '' then
+          begin
+            if TSvgTextPositioningNode(node).Children.Count = 0 then
+            begin
+              if TSvgTextPositioningNode(node).TextContent <> '' then
+                TSvgTextPositioningNode(node).TextContent := TSvgTextPositioningNode(node).TextContent + ' ' + ptsStr
+              else
+                TSvgTextPositioningNode(node).TextContent := ptsStr;
+            end else
+            begin
+              // Create an anonymous tspan child for text fragments when children exist to preserve document order
+              childNode := TSvgTSpanNode.Create(node);
+              TSvgTSpanNode(childNode).TextContent := ptsStr;
+              TSvgTextPositioningNode(node).AddChild(childNode);
+            end;
+          end;
+          AParser.ParseNext;
+        end
+        else
           AParser.ParseNext;
       end;
     end else
@@ -4723,7 +5172,7 @@ begin
   cssStyleSheet := TSvgCssStyleSheet.Create;
   try
 
-    while Parser.ParseNext not in [xtEof, xtError] do
+    while (Parser.Kind <> xtError) and (not (Parser.ParseNext in [xtEof, xtError])) do
     begin
       if Parser.Kind = xtElementStart then
       begin
@@ -4744,7 +5193,7 @@ begin
         end else
           Result := nil;
 
-        if (Result <> nil) then
+        if (Parser.Kind <> xtError) and (Result <> nil) then
         begin
           Result.Resolve;
           Exit;
@@ -4757,7 +5206,7 @@ begin
   end;
 
   if (Parser.Kind = xtError) then
-    AErrorMessage := Format('%d: %s', [Parser.LastErrorLine, XML_ERROR[Parser.LastError]])
+    AErrorMessage := Format('[Line %d]: %s', [Parser.LastErrorLine, XML_ERROR[Parser.LastError]])
   else
     AErrorMessage := '';
 end;

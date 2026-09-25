@@ -1,4 +1,4 @@
-unit GR32.SVG.Renderer;
+﻿unit GR32.SVG.Renderer;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -35,7 +35,7 @@ interface
 {$include GR32.inc}
 
 uses
-  SysUtils, Classes, Generics.Collections,
+  SysUtils, Classes, Graphics, Generics.Collections,
   GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils, GR32_ColorGradients,
   GR32.SVG.Types, GR32.SVG.Tree;
 
@@ -64,6 +64,12 @@ type
     property PatternBmp: TBitmap32 read FPatternBmp;
   end;
 
+  TFontInfo = record
+    FontFamily: string;
+    Style: TFontStyles;
+    Size: integer;
+  end;
+
   TSvgRenderer = class(TObject)
   private
     FTarget: TCustomBitmap32;
@@ -77,6 +83,7 @@ type
   protected
     procedure RenderPathNode(APathNode: TSvgPathNode); virtual;
     procedure RenderImageNode(AImageNode: TSvgImageNode); virtual;
+    procedure RenderTextNode(ATextNode: TSvgTextNode); virtual;
     procedure RenderGroupNode(AGroupNode: TSvgGroupNode); virtual;
     procedure RenderClipPathNode(AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
     procedure RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
@@ -91,6 +98,7 @@ type
     function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect): TCustomPolygonFiller;
     function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
     procedure ReleaseOffscreenBitmap(ABitmap: TCustomBitmap32);
+    procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo); virtual;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
@@ -118,10 +126,17 @@ uses
   GR32_Math,
   GR32_LowLevel,
   GR32_Backends_Generic,
+  GR32_Paths,
+  GR32.Text.Types,
+  GR32.Text.Win,
+  GR32.Text.FontFace,
   GR32.Blur,
   GR32.Blend.Modes,
   GR32.Blend.Modes.PorterDuff,
   GR32.Blend.Modes.PhotoShop;
+
+const
+  ZERO_WIDTH_SPACE = $200B; // Unicode ZERO WIDTH SPACE
 
 function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
 var
@@ -142,6 +157,101 @@ begin
     Exit(False);
   Result := (Abs(AContour[0].X - AContour[len - 1].X) < 0.001) and
             (Abs(AContour[0].Y - AContour[len - 1].Y) < 0.001);
+end;
+
+function TransformPathPoints(const APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix): TArrayOfArrayOfFloatPoint;
+var
+  i, j, len: Integer;
+begin
+  SetLength(Result, Length(APoints));
+  for i := 0 to High(APoints) do
+  begin
+    len := Length(APoints[i]);
+    SetLength(Result[i], len);
+    for j := 0 to len - 1 do
+      Result[i][j] := TFloatMatrixHelper(AMatrix).TransformPoint(APoints[i][j]);
+  end;
+end;
+
+function GetTotalPathLength(const APoints: TArrayOfArrayOfFloatPoint): Single;
+var
+  i, j: Integer;
+  p1, p2: TFloatPoint;
+begin
+  Result := 0;
+  for i := 0 to High(APoints) do
+  begin
+    for j := 0 to High(APoints[i]) - 1 do
+    begin
+      p1 := APoints[i][j];
+      p2 := APoints[i][j + 1];
+      Result := Result + GR32_Math.Hypot(p2.X - p1.X, p2.Y - p1.Y);
+    end;
+  end;
+end;
+
+(*
+  GetPointAndTangentAtDistance:
+  Calculates the 2D position (APoint) and tangent orientation angle in degrees (ATangentAngle)
+  at a specified linear distance (ADistance) along a poly-polygon path (APoints).
+  Returns True if ADistance falls within the total length of the path.
+  Returns False if ADistance is less than 0 or exceeds the total path length (W3C SVG 1.1 §10.10 clipping behavior).
+*)
+function GetPointAndTangentAtDistance(const APoints: TArrayOfArrayOfFloatPoint; ADistance: Single; out APoint: TFloatPoint; out ATangentAngle: Single): Boolean;
+var
+  i, j: Integer;
+  p1, p2: TFloatPoint;
+  SegmentLength, AccumulatedLength, RemainingDistance, dx, dy, t: Single;
+begin
+  Result := False;
+  APoint := FloatPoint(0, 0);
+  ATangentAngle := 0;
+  if (Length(APoints) = 0) or (ADistance < 0) then
+    Exit;
+
+  AccumulatedLength := 0;
+  for i := 0 to High(APoints) do
+  begin
+    for j := 0 to High(APoints[i]) - 1 do
+    begin
+      p1 := APoints[i][j];
+      p2 := APoints[i][j + 1];
+      dx := p2.X - p1.X;
+      dy := p2.Y - p1.Y;
+
+      if (dx = 0) and (dy = 0) then
+        Continue;
+
+      SegmentLength := GR32_Math.Hypot(dx, dy);
+
+      if (ADistance >= AccumulatedLength) and (ADistance <= AccumulatedLength + SegmentLength) then
+      begin
+        RemainingDistance := ADistance - AccumulatedLength;
+        t := RemainingDistance / SegmentLength;
+        // Lerp
+        APoint.X := p1.X + t * dx;
+        APoint.Y := p1.Y + t * dy;
+        ATangentAngle := RadToDeg(ArcTan2(dy, dx));
+        Exit(True);
+      end;
+
+      AccumulatedLength := AccumulatedLength + SegmentLength;
+    end;
+  end;
+end;
+
+function GetSubtreeText(ANode: TSvgNode): string;
+var
+  child: TSvgNode;
+begin
+  Result := '';
+  if ANode is TSvgTextPositioningNode then
+    Result := TSvgTextPositioningNode(ANode).TextContent;
+  if ANode is TSvgGroupNode then
+  begin
+    for child in TSvgGroupNode(ANode).Children do
+      Result := Result + GetSubtreeText(child);
+  end;
 end;
 
 function SvgBlendModeToBlenderClass(ABlendMode: TSvgBlendMode): TGraphics32BlenderClass;
@@ -2036,6 +2146,536 @@ begin
   end;
 end;
 
+procedure TSvgRenderer.MapFont(const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo);
+var
+  s: string;
+begin
+  // TODO : Delegate to event
+  (*
+  if (Assigned(FOnMapFont)) then
+  begin
+    AHandled := False;
+    FOnMapFont(AFontFamily, AWeightStr, AStyleStr, ASize, AFontInfo, AHandled);
+    if (AHandled) then
+      exit;
+  end;
+  *)
+
+  s := LowerCase(Trim(AFontFamily));
+
+  if (s = '') or (s = 'sans-serif') or (s = 'sans') or (s = 'noto sans') or (s = 'system-ui') then
+    AFontInfo.FontFamily := 'Arial'
+  else
+  if (s = 'serif') or (s = 'times') then
+    AFontInfo.FontFamily := 'Times New Roman'
+  else
+  if (s = 'monospace') or (s = 'mono') or (s = 'courier') then
+    AFontInfo.FontFamily := 'Courier New'
+  else
+    AFontInfo.FontFamily := AFontFamily;
+
+  s := LowerCase(AWeightStr);
+  if (s = 'bold') or (s = '700') or (s = '800') or (s = '900') then
+    Include(AFontInfo.Style, fsBold);
+
+  s := LowerCase(AStyleStr);
+  if (s = 'italic') or (s = 'oblique') then
+    Include(AFontInfo.Style, fsItalic);
+
+  AFontInfo.Size := ASize;
+end;
+
+procedure TSvgRenderer.RenderTextNode(ATextNode: TSvgTextNode);
+
+  procedure RenderTextPathData(const APathPoints: TArrayOfArrayOfFloatPoint; const AFill: TSvgFill; const AStroke: TSvgStroke);
+  var
+    TransformedPts, StrokePts, DashedPts: TArrayOfArrayOfFloatPoint;
+    Bounds, StrokeBounds: TFloatRect;
+    PolyRenderer: TPolygonRenderer32;
+    Filler: TCustomPolygonFiller;
+    TargetNode: TSvgNode;
+    FillColor, StrokeColor: TColor32;
+    StrokeWidth, MatScale, ScaledOffset: Single;
+    ScaledDashArray: TArrayOfFloat;
+    i, j, k: Integer;
+  begin
+    if (Length(APathPoints) = 0) or (FTarget = nil) then
+      Exit;
+
+    TransformedPts := GetTransformedPoints(APathPoints);
+    Bounds := GetPathBounds(TransformedPts);
+
+    PolyRenderer := DefaultPolygonRendererClass.Create(FTarget);
+    try
+      // 1. Fill Rendering
+      if AFill.ResolvedPaintServer <> nil then
+      begin
+        TargetNode := TSvgNode(AFill.ResolvedPaintServer);
+        Filler := nil;
+        if TargetNode is TSvgGradientNode then
+          Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), Bounds)
+        else if TargetNode is TSvgPatternNode then
+          Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), Bounds);
+
+        if Filler <> nil then
+        begin
+          try
+            PolyRenderer.Filler := Filler;
+            try
+              PolyRenderer.FillMode := AFill.FillRule;
+              PolyRenderer.PolyPolygonFS(TransformedPts);
+            finally
+              PolyRenderer.Filler := nil;
+            end;
+          finally
+            Filler.Free;
+          end;
+        end;
+      end else
+      if not AFill.Color.IsNone then
+      begin
+        FillColor := AFill.Color.Color;
+        if AFill.Opacity < 1.0 then
+          ScaleAlpha(FillColor, AFill.Opacity);
+
+        if AlphaComponent(FillColor) > 0 then
+        begin
+          PolyRenderer.Color := FillColor;
+          PolyRenderer.FillMode := AFill.FillRule;
+          PolyRenderer.PolyPolygonFS(TransformedPts);
+        end;
+      end;
+
+      // 2. Stroke Rendering
+      StrokeWidth := AStroke.Width.ToPixels(FViewportRect.Right - FViewportRect.Left);
+      if StrokeWidth > 0 then
+      begin
+        MatScale := GetMatrixScale(FCurrentMatrix);
+        StrokeWidth := StrokeWidth * MatScale;
+
+        ScaledDashArray := nil;
+        ScaledOffset := 0;
+        if Length(AStroke.DashArray) > 0 then
+        begin
+          SetLength(ScaledDashArray, Length(AStroke.DashArray));
+          for k := 0 to High(AStroke.DashArray) do
+            ScaledDashArray[k] := AStroke.DashArray[k] * MatScale;
+          ScaledOffset := AStroke.DashOffset * MatScale;
+        end;
+
+        if AStroke.ResolvedPaintServer <> nil then
+        begin
+          TargetNode := TSvgNode(AStroke.ResolvedPaintServer);
+          StrokePts := nil;
+          for i := 0 to High(TransformedPts) do
+          begin
+            if Length(ScaledDashArray) > 0 then
+            begin
+              DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
+              for j := 0 to High(DashedPts) do
+                StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
+            end else
+              StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
+          end;
+
+          StrokeBounds := GetPathBounds(StrokePts);
+          Filler := nil;
+          if TargetNode is TSvgGradientNode then
+            Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), StrokeBounds)
+          else if TargetNode is TSvgPatternNode then
+            Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), StrokeBounds);
+
+          if Filler <> nil then
+          begin
+            try
+              PolyRenderer.Filler := Filler;
+              try
+                PolyRenderer.FillMode := pfWinding;
+                PolyRenderer.PolyPolygonFS(StrokePts);
+              finally
+                PolyRenderer.Filler := nil;
+              end;
+            finally
+              Filler.Free;
+            end;
+          end;
+        end else
+        if not AStroke.Color.IsNone then
+        begin
+          StrokeColor := AStroke.Color.Color;
+          if AStroke.Opacity < 1.0 then
+            ScaleAlpha(StrokeColor, AStroke.Opacity);
+
+          if AlphaComponent(StrokeColor) > 0 then
+          begin
+            StrokePts := nil;
+            for i := 0 to High(TransformedPts) do
+            begin
+              if Length(ScaledDashArray) > 0 then
+              begin
+                DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
+                for j := 0 to High(DashedPts) do
+                  StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
+              end else
+                StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
+            end;
+
+            PolyRenderer.Color := StrokeColor;
+            PolyRenderer.FillMode := pfWinding;
+            PolyRenderer.PolyPolygonFS(StrokePts);
+          end;
+        end;
+      end;
+    finally
+      PolyRenderer.Free;
+    end;
+  end;
+
+  // Evaluates path arc length and places glyphs at interpolated path distance points
+  // aligned to segment tangent orientation angles.
+  procedure ProcessTextPathNode(ANode: TSvgTextPathNode; Canvas: TCanvas32);
+  var
+    Text, CharString: string;
+    RawPts, PathPts: TArrayOfArrayOfFloatPoint;
+    TotalLen, Offset, CurrentDistance, CharWidth, TextWidth, TangAngle, DrawY: Single;
+    FontSizePx: Integer;
+    FontInfo: TFontInfo;
+    TextLayout: TTextLayout;
+    MeasureRect: TFloatRect;
+    Point: TFloatPoint;
+    RotationMat: TFloatMatrixHelper;
+    GlyphIdx: Integer;
+    FontFace: IFontFace32;
+    FontFaceMetrics: TFontFaceMetrics32;
+    RotateArray: TArrayOfFloat;
+    w1, w2, CharacterRotationAngle: Single;
+    ZeroWidth: Single;
+  begin
+    if (ANode = nil) or (not ANode.Visible) then
+      Exit;
+
+    Text := ANode.TextContent;
+    if Text = '' then
+      Text := GetSubtreeText(ANode);
+
+    if (ANode.ResolvedPathNode = nil) or (Text = '') then
+      Exit;
+
+    RawPts := ANode.ResolvedPathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
+    if Length(RawPts) = 0 then
+      Exit;
+
+    if not IsIdentityMatrix(ANode.ResolvedPathNode.Transform) then
+      PathPts := TransformPathPoints(RawPts, ANode.ResolvedPathNode.Transform)
+    else
+      PathPts := RawPts;
+
+    TotalLen := GetTotalPathLength(PathPts);
+    if TotalLen <= 0 then
+      Exit;
+
+    Offset := ANode.StartOffset.ToPixels(TotalLen);
+
+    FontSizePx := Round(ANode.FontSize.ToPixels(FViewportRect.Height));
+    if FontSizePx <= 0 then
+      FontSizePx := 12;
+
+    FontInfo := Default(TFontInfo);
+    MapFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
+
+    Canvas.Bitmap.Font.Name := FontInfo.FontFamily;
+    Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
+    Canvas.Bitmap.Font.Style := FontInfo.Style;
+
+    TextLayout := DefaultTextLayout;
+    TextLayout.ClipLayout := False;
+    TextLayout.AlignmentHorizontal := TextAlignHorLeft;
+    TextLayout.AlignmentVertical := TextAlignVerTop;
+
+    if ANode.TextAnchor <> taStart then
+    begin
+      MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, Text, TextLayout);
+      TextWidth := MeasureRect.Width;
+      if ANode.TextAnchor = taMiddle then
+        Offset := Offset - TextWidth * 0.5
+      else if ANode.TextAnchor = taEnd then
+        Offset := Offset - TextWidth;
+    end;
+
+    FontFace := TFontFace32.Create(Canvas.Bitmap.Font.Handle);
+    try
+      FontFace.GetFontFaceMetrics(TextLayout, FontFaceMetrics);
+      DrawY := -FontFaceMetrics.Ascent;
+    finally
+      FontFace := nil;
+    end;
+
+    if (Length(ANode.Rotate) = 0) and (ANode.Parent <> nil) and (ANode.Parent is TSvgTextPositioningNode) then
+      RotateArray := TSvgTextPositioningNode(ANode.Parent).Rotate
+    else
+      RotateArray := ANode.Rotate;
+
+    ZeroWidth := NaN;
+    SetLength(CharString, 2);
+    CharString[2] := Char(ZERO_WIDTH_SPACE);
+
+    CharacterRotationAngle := 0;
+    CurrentDistance := Offset;
+    for GlyphIdx := 1 to Length(Text) do
+    begin
+      // Get the rotation angle. If there's too few we just reuse the previous
+      if GlyphIdx - 1 <= High(RotateArray) then
+        CharacterRotationAngle := RotateArray[GlyphIdx - 1];
+
+      // Note: The width returned by MeasureText excludes the AdvanceWidth of the last character.
+      // For example, since 'space' has a very small Width + a larger AdvanceWidth, the total
+      // width returned by MeasureText(' ') is almost zero. We work around this by adding a
+      // "zero width space" as the last character.
+      // The width actually also excludes the LSB (Left Side Bearing) of the first character,
+      // but we don't do anything about that.
+      CharString[1] := Text[GlyphIdx];
+
+      if (CharString[1] = ' ') then
+      begin
+        if (IsNaN(ZeroWidth)) then
+        begin
+          MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
+          ZeroWidth := MeasureRect.Width;
+        end;
+
+        if (ZeroWidth <= 0.001) then
+        begin
+          w1 := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, 'x x', TextLayout).Width;
+          w2 := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, 'xx', TextLayout).Width;
+          ZeroWidth := Max(1.0, w1 - w2);
+        end;
+
+        CharWidth := ZeroWidth;
+      end else
+      begin
+        MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
+        CharWidth := MeasureRect.Width;
+
+        if GetPointAndTangentAtDistance(pathPts, CurrentDistance + CharWidth * 0.5, Point, tangAngle) then
+        begin
+          RotationMat.Matrix := IdentityMatrix;
+          RotationMat.Rotate(tangAngle + CharacterRotationAngle);
+          RotationMat.Translate(Point.X, Point.Y);
+
+          PushMatrix;
+          try
+            ApplyMatrix(RotationMat.Matrix);
+            Canvas.Clear;
+            Canvas.BeginUpdate;
+            Canvas.RenderText(-charWidth * 0.5, drawY, Text[GlyphIdx], TextLayout);
+            if (Canvas.Path <> nil) then
+              RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
+            Canvas.Clear;
+            Canvas.EndUpdate;
+          finally
+            PopMatrix;
+          end;
+        end;
+      end;
+
+      CurrentDistance := CurrentDistance + CharWidth;
+    end;
+  end;
+
+  procedure ProcessTextPositioningNode(ANode: TSvgTextPositioningNode; Canvas: TCanvas32; var Cursor: TFloatPoint);
+  var
+    Child: TSvgNode;
+    TextWidth, CharWidth: Single;
+    FontSizePx: integer;
+    FontInfo: TFontInfo;
+    TextLayout: TTextLayout;
+    MeasureRect: TFloatRect;
+    DrawPoint, LastDrawPoint: TFloatPoint;
+    RotationMat: TFloatMatrixHelper;
+    HasNodeTransform: Boolean;
+    CharIndex: Integer;
+    CharString: string;
+    CharacterRotationAngle: Single;
+    ZeroWidth: Single;
+  begin
+    if (ANode = nil) or (not ANode.Visible) then
+      Exit;
+
+    HasNodeTransform := not IsIdentityMatrix(ANode.Transform);
+
+    if HasNodeTransform then
+    begin
+      PushMatrix;
+      ApplyMatrix(ANode.Transform);
+    end;
+    try
+      if ANode.HasX then
+        Cursor.X := ANode.X.ToPixels(FViewportRect.Width);
+      if ANode.HasDx then
+        Cursor.X := Cursor.X + ANode.Dx.ToPixels(FViewportRect.Width);
+
+      if ANode.HasY then
+        Cursor.Y := ANode.Y.ToPixels(FViewportRect.Height);
+      if ANode.HasDy then
+        Cursor.Y := Cursor.Y + ANode.Dy.ToPixels(FViewportRect.Height);
+
+      if (ANode.TextContent <> '') then
+      begin
+        FontSizePx := Round(ANode.FontSize.ToPixels(FViewportRect.Height));
+        if FontSizePx <= 0 then
+          FontSizePx := 12;
+
+        FontInfo := Default(TFontInfo);
+        MapFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
+
+        Canvas.Bitmap.Font.Name := FontInfo.FontFamily;
+        Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
+        Canvas.Bitmap.Font.Style := FontInfo.Style;
+
+        TextLayout := DefaultTextLayout;
+        TextLayout.ClipLayout := False;
+        TextLayout.AlignmentHorizontal := TextAlignHorLeft;
+        TextLayout.AlignmentVertical := TextAlignVerTop;
+
+        MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, ANode.TextContent, TextLayout);
+        TextWidth := MeasureRect.Width;
+
+        // Align with font baseline.
+        // Unfortunately TCanvas32 doesn't currently support this.
+        // TODO : Windows specific
+        var FontFace: IFontFace32 := TFontFace32.Create(Canvas.Bitmap.Font.Handle);
+        try
+          var FontFaceMetrics: TFontFaceMetrics32;
+          FontFace.GetFontFaceMetrics(TextLayout, FontFaceMetrics);
+
+          DrawPoint.Y := Cursor.Y - FontFaceMetrics.Ascent;
+        finally
+          FontFace := nil;
+        end;
+
+        case ANode.TextAnchor of
+          taMiddle: DrawPoint.X := Cursor.X - TextWidth * 0.5;
+          taEnd:    DrawPoint.X := Cursor.X - TextWidth;
+        else
+          DrawPoint.X := Cursor.X;
+        end;
+
+        if Length(ANode.Rotate) > 0 then
+        begin
+          CharacterRotationAngle := 0;
+          ZeroWidth := NaN;
+          SetLength(CharString, 2);
+          CharString[2] := Char(ZERO_WIDTH_SPACE);
+
+          for CharIndex := 1 to Length(ANode.TextContent) do
+          begin
+            // Get the rotation angle. If there's too few we just reuse the previous (we know there's at least one)
+            if CharIndex - 1 <= High(ANode.Rotate) then
+            begin
+              CharacterRotationAngle := ANode.Rotate[CharIndex - 1];
+
+              LastDrawPoint := DrawPoint;
+            end;
+
+            CharString[1] := ANode.TextContent[CharIndex];
+
+            if (CharString[1] = ' ') then
+            begin
+              if (IsNaN(ZeroWidth)) then
+              begin
+                MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
+                ZeroWidth := MeasureRect.Width;
+              end;
+
+              CharWidth := ZeroWidth;
+            end else
+            begin
+
+              MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
+              CharWidth := MeasureRect.Width;
+
+              RotationMat.Matrix := IdentityMatrix;
+              RotationMat.Rotate(DrawPoint.X, Cursor.Y, CharacterRotationAngle);
+
+              PushMatrix;
+              try
+                ApplyMatrix(RotationMat.Matrix);
+                Canvas.Clear;
+                Canvas.BeginUpdate;
+
+                Canvas.RenderText(DrawPoint.X, DrawPoint.Y, CharString, TextLayout);
+                if (Canvas.Path <> nil) then
+                  RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
+
+                Canvas.Clear;
+                Canvas.EndUpdate;
+              finally
+                PopMatrix;
+              end;
+
+            end;
+
+            DrawPoint.X := DrawPoint.X + CharWidth;
+          end;
+        end else
+        begin
+          Canvas.Clear;
+          Canvas.BeginUpdate;
+
+          Canvas.RenderText(DrawPoint.X, DrawPoint.Y, ANode.TextContent, TextLayout);
+
+          if (Canvas.Path <> nil) then
+            RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
+
+          Canvas.Clear;
+          Canvas.EndUpdate;
+        end;
+
+        Cursor.X := Cursor.X + TextWidth;
+      end;
+
+      for Child in ANode.Children do
+      begin
+        if Child is TSvgTextPathNode then
+          ProcessTextPathNode(TSvgTextPathNode(Child), Canvas)
+        else
+        if Child is TSvgTSpanNode then
+          ProcessTextPositioningNode(TSvgTSpanNode(Child), Canvas, Cursor)
+        else
+        if Child is TSvgTextPositioningNode then
+          ProcessTextPositioningNode(TSvgTextPositioningNode(Child), Canvas, Cursor);
+      end;
+    finally
+      if HasNodeTransform then
+        PopMatrix;
+    end;
+  end;
+
+var
+  Canvas: TCanvas32;
+  Cursor: TFloatPoint;
+begin
+  // RenderTextNode decomposes <text> and <tspan> elements into vector path outlines using TCanvas32.
+  // It applies font properties, measures text width for text-anchor alignment, updates cursor positions,
+  // and paints vector glyph geometry with solid/gradient/pattern fills and strokes.
+
+  if (ATextNode = nil) or (not ATextNode.Visible) then
+    Exit;
+
+  if (FTarget = nil) then
+    exit;
+
+  Canvas := TCanvas32.Create(TBitmap32(FTarget));
+  try
+    Cursor.X := 0;
+    Cursor.Y := 0;
+
+    ProcessTextPositioningNode(ATextNode, Canvas, Cursor);
+  finally
+    Canvas.Free;
+  end;
+end;
+
 procedure TSvgRenderer.RenderNodeUnfiltered(ANode: TSvgNode);
 begin
   PushMatrix;
@@ -2047,6 +2687,9 @@ begin
     else
     if ANode is TSvgImageNode then
       RenderImageNode(TSvgImageNode(ANode))
+    else
+    if ANode is TSvgTextNode then
+      RenderTextNode(TSvgTextNode(ANode))
     else
     if ANode is TSvgGroupNode then
       RenderGroupNode(TSvgGroupNode(ANode));
@@ -2089,7 +2732,10 @@ begin
             RenderPathNode(TSvgPathNode(ANode))
           else
           if ANode is TSvgImageNode then
-            RenderImageNode(TSvgImageNode(ANode));
+            RenderImageNode(TSvgImageNode(ANode))
+          else
+          if ANode is TSvgTextNode then
+            RenderTextNode(TSvgTextNode(ANode));
 
         finally
           PopMatrix;
@@ -2115,6 +2761,9 @@ begin
     else
     if ANode is TSvgImageNode then
       RenderImageNode(TSvgImageNode(ANode))
+    else
+    if ANode is TSvgTextNode then
+      RenderTextNode(TSvgTextNode(ANode))
     else
     if ANode is TSvgGroupNode then
       RenderGroupNode(TSvgGroupNode(ANode));

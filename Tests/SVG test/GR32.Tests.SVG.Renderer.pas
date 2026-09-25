@@ -64,6 +64,11 @@ type
     procedure TestFilterRendering;
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
+    procedure TestTextRendering;
+    procedure TestTextRotationRendering;
+    procedure TestTextPathRendering;
+    procedure TestEscapedTextRendering;
+    procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
     procedure TestSwitchRendering;
   end;
@@ -101,6 +106,189 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTextRotationRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  nonWhiteCount, x, y: Integer;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="200">' +
+           '  <text x="100" y="100" font-size="32px" fill="red" rotate="45">Rotated</text>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Rotated text docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        nonWhiteCount := 0;
+        for y := 0 to 199 do
+          for x := 0 to 199 do
+            if bmp.Pixel[x, y] <> clWhite32 then
+              Inc(nonWhiteCount);
+
+        Check(nonWhiteCount > 50, Format('Rotated text should render pixels on canvas (found %d non-white pixels)', [nonWhiteCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTextPathRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  nonWhiteCount, x, y: Integer;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <path id="curve" d="M 20 100 Q 100 20 180 100"/>' +
+           '  </defs>' +
+           '  <text font-size="24px" fill="blue">' +
+           '    <textPath href="#curve" startOffset="10px" rotate="-10 15 20">Text with spaces on path</textPath>' +
+           '  </text>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'TextPath docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        nonWhiteCount := 0;
+        for y := 0 to 199 do
+          for x := 0 to 199 do
+            if bmp.Pixel[x, y] <> clWhite32 then
+              Inc(nonWhiteCount);
+
+        Check(nonWhiteCount > 50, Format('Text along path should render pixels on canvas (found %d non-white pixels)', [nonWhiteCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Test startOffset="-9999" (all glyphs clipped off-path)
+    bmp.Clear(clWhite32);
+    xml := '<svg width="200" height="200">' +
+           '  <defs><path id="curve2" d="M 20 100 L 180 100"/></defs>' +
+           '  <text font-size="24px" fill="blue">' +
+           '    <textPath href="#curve2" startOffset="-9999px">Clipped Away</textPath>' +
+           '  </text>' +
+           '</svg>';
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Out of bounds textPath docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        nonWhiteCount := 0;
+        for y := 0 to 199 do
+          for x := 0 to 199 do
+            if bmp.Pixel[x, y] <> clWhite32 then
+              Inc(nonWhiteCount);
+
+        CheckEquals(0, nonWhiteCount, 'Text positioned completely before start of path should be clipped away (0 rendered pixels)');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestEscapedTextRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  textNode: TSvgTextNode;
+  xml: UTF8String;
+begin
+  xml := '<svg width="200" height="100">' +
+         '  <text id="t1" x="20" y="50" font-size="24px" fill="black">&lt;A &amp; B&gt;</text>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'Escaped text docNode should not be nil');
+  try
+    textNode := TSvgTextNode(docNode.FindNodeById('t1'));
+    Check(textNode <> nil, 'textNode t1 should exist');
+    CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestUserTransformTextSnippet;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  blackPixelCount, x, y: Integer;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg id="svg1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" font-family="Noto Sans" font-size="64">' +
+           '  <g id="g1" transform="skewX(30) translate(-40 0)">' +
+           '    <text id="text1" x="100" y="100" text-anchor="middle">Text</text>' +
+           '  </g>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'User snippet docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        blackPixelCount := 0;
+        for y := 0 to 199 do
+          for x := 0 to 199 do
+            if bmp.Pixel[x, y] = clBlack32 then
+              Inc(blackPixelCount);
+
+        Check(blackPixelCount > 100, Format('Transformed text should render non-white pixels (found %d black pixels)', [blackPixelCount]));
       finally
         renderer.Free;
       end;
@@ -961,6 +1149,40 @@ begin
   end;
 end;
 
+procedure TTestSvgRenderer.TestTextRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="100">' +
+           '  <text x="20" y="50" font-size="24px" fill="red">SVG Text</text>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Text docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        // Background at (0,0) must remain white
+        CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Background at (0,0) should remain white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
 
 procedure TTestSvgRenderer.TestFeColorMatrixRendering;
 var

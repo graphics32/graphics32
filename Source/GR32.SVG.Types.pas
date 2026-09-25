@@ -131,6 +131,12 @@ type
     fkOrgW3cSvgStatic,         // org.w3c.svg.static
     fkSvg12Static              // http://www.w3.org/Graphics/SVG/feature/1.2/#SVG-static
   );
+  
+  TSvgTextAnchor = (
+    taStart,
+    taMiddle,
+    taEnd
+  );
 
 
 //------------------------------------------------------------------------------
@@ -146,6 +152,8 @@ function ParseSvgCompositeOperator(const AName: TValuePUtf8Char): TSvgCompositeO
 function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperator; overload;
 function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType; overload;
 function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType; overload;
+function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
+function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload;
 
 
 //------------------------------------------------------------------------------
@@ -157,6 +165,7 @@ function SvgBlendModeToString(AMode: TSvgBlendMode): string;
 function SvgIsolationToString(AIsolation: TSvgIsolation): string;
 function SvgCompositeOperatorToString(AOp: TSvgCompositeOperator): string;
 function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
+function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 
 
 //------------------------------------------------------------------------------
@@ -672,6 +681,41 @@ begin
     Exit(True);
 
   Result := False;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      text-anchor
+//
+//------------------------------------------------------------------------------
+function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgTextAnchor(Name);
+end;
+
+function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor;
+begin
+  if AName.CompareText('middle') then
+    Result := taMiddle
+  else if AName.CompareText('end') then
+    Result := taEnd
+  else
+    Result := taStart;
+end;
+
+function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
+begin
+  case AAnchor of
+    taMiddle: Result := 'middle';
+    taEnd: Result := 'end';
+  else
+    Result := 'start';
+  end;
 end;
 
 

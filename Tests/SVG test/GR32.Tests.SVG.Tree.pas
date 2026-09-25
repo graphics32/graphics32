@@ -65,8 +65,12 @@ type
     procedure TestSymbolParsingAndUseResolution;
     procedure TestFilterASTAndReferenceResolution;
     procedure TestPrimitiveShapePercentageUnits;
+    procedure TestTextAndTSpanParsing;
+    procedure TestTextRotationParsing;
+    procedure TestTextPathParsingAndResolution;
     procedure TestImageNodeParsingAndAttributes;
     procedure TestSwitchNodeAndConditionalProcessing;
+    procedure TestContainerFontInheritance;
   end;
 
 implementation
@@ -100,6 +104,134 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestTextRotationParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  textNode: TSvgTextNode;
+  tspanNode: TSvgTSpanNode;
+begin
+  xml := '<svg width="200" height="100">' +
+         '  <text id="t1" x="10" y="20" rotate="-45">' +
+         '    Hello' +
+         '    <tspan id="ts1" rotate="-10 -20 30">World</tspan>' +
+         '  </text>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    textNode := TSvgTextNode(docNode.FindNodeById('t1'));
+    Check(textNode <> nil, 'textNode t1 should exist');
+    CheckEquals(1, Length(textNode.Rotate));
+    CheckEquals(-45.0, textNode.Rotate[0], 1E-4);
+
+    tspanNode := TSvgTSpanNode(docNode.FindNodeById('ts1'));
+    Check(tspanNode <> nil, 'tspanNode ts1 should exist');
+    CheckEquals(3, Length(tspanNode.Rotate));
+    CheckEquals(-10.0, tspanNode.Rotate[0], 1E-4);
+    CheckEquals(-20.0, tspanNode.Rotate[1], 1E-4);
+    CheckEquals(30.0, tspanNode.Rotate[2], 1E-4);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestTextPathParsingAndResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  textPathNode: TSvgTextPathNode;
+begin
+  xml := '<svg width="200" height="100">' +
+         '  <defs>' +
+         '    <path id="path1" d="M 10 50 Q 50 10 90 50"/>' +
+         '  </defs>' +
+         '  <text>' +
+         '    <textPath id="tp1" href="#path1" startOffset="10px">Text on path</textPath>' +
+         '  </text>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    textPathNode := TSvgTextPathNode(docNode.FindNodeById('tp1'));
+    Check(textPathNode <> nil, 'textPathNode tp1 should exist');
+    CheckEquals('#path1', textPathNode.Href);
+    CheckEquals(10.0, textPathNode.StartOffset.Value, 1E-4);
+    CheckEquals('Text on path', textPathNode.TextContent);
+    Check(textPathNode.ResolvedPathNode <> nil, 'ResolvedPathNode should be resolved');
+    CheckEquals('path1', textPathNode.ResolvedPathNode.ID);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestContainerFontInheritance;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  textNode: TSvgTextNode;
+begin
+  xml := '<svg width="200" height="100" font-family="Noto Sans" font-size="64px">' +
+         '  <text id="t1" x="10" y="20">Inherited Font</text>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    textNode := TSvgTextNode(docNode.FindNodeById('t1'));
+    Check(textNode <> nil, 'textNode t1 should exist');
+    CheckEquals('Noto Sans', textNode.FontFamily, 'Text node should inherit font-family from root <svg>');
+    CheckEquals(64.0, textNode.FontSize.Value, 1E-4, 'Text node should inherit font-size from root <svg>');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestTextAndTSpanParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  textNode: TSvgTextNode;
+  tspanNode: TSvgTSpanNode;
+begin
+  xml := '<svg width="200" height="100">' +
+         '  <text id="t1" x="10" y="20" dx="2" dy="4" font-family="Arial" font-size="16px" font-weight="bold" font-style="italic" text-anchor="middle" fill="black">' +
+         '    Hello' +
+         '    <tspan id="ts1" dx="5" fill="red" text-anchor="end">World</tspan>' +
+         '  </text>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    textNode := TSvgTextNode(docNode.FindNodeById('t1'));
+    Check(textNode <> nil, 'textNode t1 should exist');
+    CheckEquals(10.0, textNode.X.Value, 1E-4);
+    CheckEquals(20.0, textNode.Y.Value, 1E-4);
+    CheckEquals(2.0, textNode.Dx.Value, 1E-4);
+    CheckEquals(4.0, textNode.Dy.Value, 1E-4);
+    CheckEquals('Arial', textNode.FontFamily);
+    CheckEquals(16.0, textNode.FontSize.Value, 1E-4);
+    CheckEquals('bold', textNode.FontWeight);
+    CheckEquals('italic', textNode.FontStyle);
+    CheckEquals(Ord(taMiddle), Ord(textNode.TextAnchor));
+    CheckEquals('Hello', textNode.TextContent);
+    CheckEquals(1, textNode.Children.Count, 'textNode should contain 1 tspan child');
+
+    tspanNode := TSvgTSpanNode(textNode.Children[0]);
+    Check(tspanNode <> nil, 'tspanNode ts1 should exist');
+    CheckEquals('ts1', tspanNode.ID);
+    CheckEquals(5.0, tspanNode.Dx.Value, 1E-4);
+    CheckEquals('World', tspanNode.TextContent);
+    CheckEquals(clRed32, tspanNode.Fill.Color.Color);
+    CheckEquals(Ord(taEnd), Ord(tspanNode.TextAnchor));
   finally
     docNode.Free;
   end;
