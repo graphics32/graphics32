@@ -73,8 +73,10 @@ type
     FDocumentRoot: TSvgDocumentNode;
     FBitmapPool: TSvgBitmapPool;
     FPolyRenderer: TPolygonRenderer32;
+    FAllowExternalImages: Boolean;
   protected
     procedure RenderPathNode(APathNode: TSvgPathNode); virtual;
+    procedure RenderImageNode(AImageNode: TSvgImageNode); virtual;
     procedure RenderGroupNode(AGroupNode: TSvgGroupNode); virtual;
     procedure RenderClipPathNode(AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
     procedure RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
@@ -104,6 +106,7 @@ type
     property Target: TCustomBitmap32 read FTarget write FTarget;
     property CurrentMatrix: TFloatMatrix read FCurrentMatrix write FCurrentMatrix;
     property ViewportRect: TFloatRect read FViewportRect write FViewportRect;
+    property AllowExternalImages: Boolean read FAllowExternalImages write FAllowExternalImages;
   end;
 
 implementation
@@ -292,6 +295,7 @@ begin
   FDocumentRoot := nil;
   FBitmapPool := TSvgBitmapPool.Create;
   FBitmapPool.BitmapMaxExcess := 1024; // Magic!
+  FAllowExternalImages := False;
 end;
 
 destructor TSvgRenderer.Destroy;
@@ -1732,6 +1736,297 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//
+//      Data URI Parsing Helpers
+//
+//------------------------------------------------------------------------------
+// Used by TSvgRenderer.RenderImageNode
+//------------------------------------------------------------------------------
+function UrlDecode(const AStr: string): string;
+var
+  i, len: Integer;
+  c: Char;
+  code: Integer;
+begin
+  Result := '';
+  len := Length(AStr);
+  i := 1;
+  while i <= len do
+  begin
+    c := AStr[i];
+    if (c = '%') and (i + 2 <= len) then
+    begin
+      code := StrToIntDef('$' + Copy(AStr, i + 1, 2), -1);
+      if code >= 0 then
+      begin
+        Result := Result + Char(code);
+        Inc(i, 3);
+        Continue;
+      end;
+    end;
+    if c = '+' then
+      Result := Result + ' '
+    else
+      Result := Result + c;
+    Inc(i);
+  end;
+end;
+
+procedure DecodeBase64ToStream(const ABase64Str: string; AStream: TStream);
+var
+  i, len: Integer;
+  b1, b2, b3: Byte;
+  v1, v2, v3, v4: Integer;
+  buf: array[0..2] of Byte;
+
+  function DecodeChar(c: Char): Integer;
+  begin
+    case c of
+      'A'..'Z': Result := Ord(c) - Ord('A');
+      'a'..'z': Result := Ord(c) - Ord('a') + 26;
+      '0'..'9': Result := Ord(c) - Ord('0') + 52;
+      '+': Result := 62;
+      '/': Result := 63;
+      '=': Result := -2;
+    else
+      Result := -1;
+    end;
+  end;
+
+begin
+  len := Length(ABase64Str);
+  i := 1;
+  while i <= len do
+  begin
+    v1 := -1;
+    while (i <= len) and (v1 = -1) do
+    begin
+      v1 := DecodeChar(ABase64Str[i]);
+      Inc(i);
+    end;
+    if (v1 < 0) then Break;
+
+    v2 := -1;
+    while (i <= len) and (v2 = -1) do
+    begin
+      v2 := DecodeChar(ABase64Str[i]);
+      Inc(i);
+    end;
+    if (v2 < 0) then Break;
+
+    v3 := -1;
+    while (i <= len) and (v3 = -1) do
+    begin
+      v3 := DecodeChar(ABase64Str[i]);
+      Inc(i);
+    end;
+    if (v3 < -1) then v3 := -2;
+
+    v4 := -1;
+    while (i <= len) and (v4 = -1) do
+    begin
+      v4 := DecodeChar(ABase64Str[i]);
+      Inc(i);
+    end;
+    if (v4 < -1) then v4 := -2;
+
+    b1 := (v1 shl 2) or ((v2 and $30) shr 4);
+    buf[0] := b1;
+    if (v3 >= 0) then
+    begin
+      b2 := ((v2 and $0F) shl 4) or ((v3 and $3C) shr 2);
+      buf[1] := b2;
+      if (v4 >= 0) then
+      begin
+        b3 := ((v3 and $03) shl 6) or v4;
+        buf[2] := b3;
+        AStream.WriteBuffer(buf[0], 3);
+      end else
+        AStream.WriteBuffer(buf[0], 2);
+    end else
+      AStream.WriteBuffer(buf[0], 1);
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgRenderer.RenderImageNode
+//
+//------------------------------------------------------------------------------
+procedure TSvgRenderer.RenderImageNode(AImageNode: TSvgImageNode);
+var
+  WidthPx, HeightPx, xPx, yPx: Single;
+  TargetRect: TFloatRect;
+  hrefStr, MimeType, DataStr, DecodedStr: string;
+  isBase64, isSvg: Boolean;
+  CommaPos: Integer;
+  Stream: TMemoryStream;
+  SubDoc: TSvgDocumentNode;
+  SubRenderer: TSvgRenderer;
+  Bitmap: TBitmap32;
+  AspectMat, TotalMat: TFloatMatrixHelper;
+  Transformation: TAffineTransformation;
+  DestBounds: TFloatRect;
+  DestClip: TRect;
+  SourceViewBox: TSvgViewBox;
+  utf8Bytes: UTF8String;
+begin
+  if (FTarget = nil) or (AImageNode = nil) then
+    Exit;
+
+  WidthPx := AImageNode.Width.ToPixels(FTarget.Width);
+  HeightPx := AImageNode.Height.ToPixels(FTarget.Height);
+  if (WidthPx <= 0) or (HeightPx <= 0) then
+    Exit;
+
+  xPx := AImageNode.X.ToPixels(FTarget.Width);
+  yPx := AImageNode.Y.ToPixels(FTarget.Height);
+  TargetRect := FloatRect(xPx, yPx, xPx + WidthPx, yPx + HeightPx);
+
+  hrefStr := Trim(AImageNode.Href);
+  if (hrefStr = '') then
+    Exit;
+
+  // TODO : The string handling here is horrible! Optimizer later for zero allocation.
+  // Replace stream with "pull" decode on-demand stream
+
+  Stream := TMemoryStream.Create;
+  try
+    isSvg := False;
+    if SameText(Copy(hrefStr, 1, 5), 'data:') then
+    begin
+      CommaPos := Pos(',', hrefStr);
+      if CommaPos > 0 then
+      begin
+        MimeType := LowerCase(Copy(hrefStr, 6, CommaPos - 6));
+        isBase64 := Pos(';base64', MimeType) > 0;
+        isSvg := (Pos('image/svg+xml', MimeType) > 0) or (Pos('image/svg', MimeType) > 0);
+        DataStr := Copy(hrefStr, CommaPos + 1, MaxInt);
+
+        if isBase64 then
+          DecodeBase64ToStream(DataStr, Stream)
+        else
+        begin
+          DecodedStr := UrlDecode(DataStr);
+          utf8Bytes := UTF8String(DecodedStr);
+          if Length(utf8Bytes) > 0 then
+            Stream.WriteBuffer(utf8Bytes[1], Length(utf8Bytes));
+        end;
+      end;
+    end else
+    if FAllowExternalImages and FileExists(hrefStr) then
+    begin
+      Stream.LoadFromFile(hrefStr);
+      if SameText(ExtractFileExt(hrefStr), '.svg') then
+        isSvg := True;
+    end;
+
+    if Stream.Size = 0 then Exit;
+    Stream.Position := 0;
+
+    // Check if content is SVG if not determined by MIME or file extension
+    if not isSvg then
+    begin
+      if Stream.Size > 4 then
+      begin
+        SetLength(DataStr, Min(100, Stream.Size));
+        Stream.ReadBuffer(DataStr[1], Length(DataStr));
+        Stream.Position := 0;
+        if (Pos('<svg', LowerCase(DataStr)) > 0) or (Pos('<?xml', LowerCase(DataStr)) > 0) then
+          isSvg := True;
+      end;
+    end;
+
+    if isSvg then
+    begin
+      // TODO : We could also just let TBitmap.LoadFromStream handle it...
+      SubDoc := ParseSvgXml(PAnsiChar(Stream.Memory), Stream.Size);
+      if SubDoc = nil then
+        exit;
+
+      try
+        SubDoc.ResolveUseNodes;
+        SubDoc.ResolveGradients;
+        SubDoc.ResolvePatterns;
+        SubDoc.ResolveMarkers;
+        SubDoc.ResolveClipPathsAndMasks;
+        SubDoc.ResolvePaintServers;
+        SubDoc.ResolveFilters;
+
+        if SubDoc.ViewBox.IsValid then
+          SourceViewBox := SubDoc.ViewBox
+        else
+        begin
+          WidthPx := SubDoc.Width.ToPixels(TargetRect.Width);
+          HeightPx := SubDoc.Height.ToPixels(TargetRect.Height);
+          if WidthPx <= 0 then
+            WidthPx := TargetRect.Width;
+          if HeightPx <= 0 then
+            HeightPx := TargetRect.Height;
+          SourceViewBox := TSvgViewBox.Create(0, 0, WidthPx, HeightPx);
+        end;
+
+        AspectMat.Matrix := SourceViewBox.GetTransform(TargetRect, AImageNode.PreserveAspectRatio);
+
+        PushMatrix;
+        try
+          ApplyMatrix(AspectMat.Matrix);
+
+          SubRenderer := TSvgRenderer.Create(FTarget);
+          try
+            SubRenderer.AllowExternalImages := FAllowExternalImages;
+            SubRenderer.CurrentMatrix := FCurrentMatrix;
+            SubRenderer.ViewportRect := FViewportRect;
+
+            SubRenderer.RenderNode(SubDoc);
+          finally
+            SubRenderer.Free;
+          end;
+        finally
+          PopMatrix;
+        end;
+      finally
+        SubDoc.Free;
+      end;
+    end else
+    begin
+      Bitmap := TBitmap32.Create;
+      try
+        Bitmap.LoadFromStream(Stream);
+
+        if (Bitmap.Empty) then
+          exit;
+
+        SourceViewBox := TSvgViewBox.Create(0, 0, Bitmap.Width, Bitmap.Height);
+        AspectMat.Matrix := SourceViewBox.GetTransform(TargetRect, AImageNode.PreserveAspectRatio);
+        TotalMat := AspectMat * FCurrentMatrix;
+
+        Transformation := TAffineTransformation.Create;
+        try
+          Transformation.Clear(TotalMat.Matrix);
+
+          DestBounds := Transformation.GetTransformedBounds(FloatRect(0, 0, Bitmap.Width, Bitmap.Height));
+          DestClip := MakeRect(DestBounds, rrOutside);
+
+          Bitmap.DrawMode := dmBlend;
+          Bitmap.CombineMode := cmMerge;
+
+          // Transform and render onto target
+          Transform(FTarget, Bitmap, Transformation, DestClip, True);
+        finally
+          Transformation.Free;
+        end;
+      finally
+        Bitmap.Free;
+      end;
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
 procedure TSvgRenderer.RenderNodeUnfiltered(ANode: TSvgNode);
 begin
   PushMatrix;
@@ -1740,6 +2035,9 @@ begin
 
     if ANode is TSvgPathNode then
       RenderPathNode(TSvgPathNode(ANode))
+    else
+    if ANode is TSvgImageNode then
+      RenderImageNode(TSvgImageNode(ANode))
     else
     if ANode is TSvgGroupNode then
       RenderGroupNode(TSvgGroupNode(ANode));
@@ -1779,7 +2077,10 @@ begin
           ApplyMatrix(ANode.Transform);
 
           if ANode is TSvgPathNode then
-            RenderPathNode(TSvgPathNode(ANode));
+            RenderPathNode(TSvgPathNode(ANode))
+          else
+          if ANode is TSvgImageNode then
+            RenderImageNode(TSvgImageNode(ANode));
 
         finally
           PopMatrix;
@@ -1802,6 +2103,9 @@ begin
 
     if ANode is TSvgPathNode then
       RenderPathNode(TSvgPathNode(ANode))
+    else
+    if ANode is TSvgImageNode then
+      RenderImageNode(TSvgImageNode(ANode))
     else
     if ANode is TSvgGroupNode then
       RenderGroupNode(TSvgGroupNode(ANode));

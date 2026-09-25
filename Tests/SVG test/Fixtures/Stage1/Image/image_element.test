@@ -1,0 +1,7 @@
+--- SVG ---
+<svg width="200" height="200">
+  <image id="img1" x="10" y="10" width="100" height="80" href="sample.png"/>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=200px, height=200px)
+  TSvgImageNode (id="img1") (x=10px, y=10px, width=100px, height=80px) (href="sample.png")

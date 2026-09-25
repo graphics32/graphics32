@@ -65,6 +65,7 @@ type
     procedure TestSymbolParsingAndUseResolution;
     procedure TestFilterASTAndReferenceResolution;
     procedure TestPrimitiveShapePercentageUnits;
+    procedure TestImageNodeParsingAndAttributes;
   end;
 
 implementation
@@ -861,6 +862,52 @@ begin
     ellipseNode := TSvgPathNode(docNode.FindNodeById('e1'));
     Check(ellipseNode <> nil, 'ellipseNode e1 should exist');
     Check(Length(ellipseNode.PathData) > 0, 'ellipseNode e1 with percentage radii should have non-empty PathData');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestImageNodeParsingAndAttributes;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  imgNode: TSvgImageNode;
+  cloned: TSvgNode;
+  bbox: TFloatRect;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <image id="img1" x="10" y="20" width="100" height="80" href="data:image/png;base64,ABC" preserveAspectRatio="none"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'DocNode should not be nil');
+  try
+    CheckEquals(1, docNode.Children.Count, 'Should have 1 child node');
+    Check(docNode.Children[0] is TSvgImageNode, 'Child should be TSvgImageNode');
+
+    imgNode := TSvgImageNode(docNode.Children[0]);
+    CheckEquals('img1', imgNode.ID);
+    CheckEquals(10.0, imgNode.X.ToPixels);
+    CheckEquals(20.0, imgNode.Y.ToPixels);
+    CheckEquals(100.0, imgNode.Width.ToPixels);
+    CheckEquals(80.0, imgNode.Height.ToPixels);
+    CheckEquals('data:image/png;base64,ABC', imgNode.Href);
+    Check(imgNode.PreserveAspectRatio.Align = saNone, 'PreserveAspectRatio.Align should be saNone');
+
+    bbox := imgNode.GetObjectBoundingBox;
+    CheckEquals(10.0, bbox.Left);
+    CheckEquals(20.0, bbox.Top);
+    CheckEquals(110.0, bbox.Right);
+    CheckEquals(100.0, bbox.Bottom);
+
+    cloned := imgNode.Clone(docNode);
+    try
+      Check(cloned is TSvgImageNode, 'Clone should be TSvgImageNode');
+      CheckEquals(100.0, TSvgImageNode(cloned).Width.ToPixels);
+      CheckEquals('data:image/png;base64,ABC', TSvgImageNode(cloned).Href);
+    finally
+      cloned.Free;
+    end;
   finally
     docNode.Free;
   end;

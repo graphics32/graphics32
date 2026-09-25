@@ -932,6 +932,39 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgImageNode
+//
+//------------------------------------------------------------------------------
+// TSvgImageNode represents an SVG <image> element used for embedding raster
+// images (PNG, JPEG, BMP) or nested vector graphics via URL references or
+// base64 data URIs.
+//------------------------------------------------------------------------------
+  TSvgImageNode = class(TSvgNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FHref: string;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(const AName, AValue: string); override;
+    function GetObjectBoundingBox: TFloatRect; override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property Href: string read FHref write FHref;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      Primitive Shape Converters
 //
 //------------------------------------------------------------------------------
@@ -988,13 +1021,15 @@ uses
 type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
-    tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood);
+    tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
+    tagImage);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
-    'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood'
+    'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
+    'image'
   );
 
 var
@@ -3602,34 +3637,67 @@ begin
     inherited ParseAttribute(AName, AValue);
 end;
 
-function ParseStopStyle(AStyle: TValuePUtf8Char; var AOpacity: Single): TSvgColor;
-var
-  n: Double;
-  OneProp: TValuePUtf8Char;
+
+//------------------------------------------------------------------------------
+//
+//      TSvgImageNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgImageNode.Create(AParent: TSvgNode);
 begin
-  Result := TSvgColor.Create(clBlack32);
-  AOpacity := 1.0;
+  inherited Create(AParent);
+  FX := TSvgLength.Create(0.0, suPx);
+  FY := TSvgLength.Create(0.0, suPx);
+  FWidth := TSvgLength.Create(0.0, suPx);
+  FHeight := TSvgLength.Create(0.0, suPx);
+  FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
+end;
 
-  OneProp := AStyle.Split(';', True);
-  OneProp.Trim; // Trim spaces after ';'
+function TSvgImageNode.Clone(AParent: TSvgNode): TSvgNode;
+begin
+  Result := TSvgImageNode(inherited Clone(AParent));
+  TSvgImageNode(Result).FX := FX;
+  TSvgImageNode(Result).FY := FY;
+  TSvgImageNode(Result).FWidth := FWidth;
+  TSvgImageNode(Result).FHeight := FHeight;
+  TSvgImageNode(Result).FHref := FHref;
+  TSvgImageNode(Result).FPreserveAspectRatio := FPreserveAspectRatio;
+end;
 
-  while (OneProp.Len > 0) do
-  begin
-    if OneProp.StartsText('stop-color:', True) then
-    begin
-      Result := TSvgColor.Parse(OneProp);
-    end else
-    if OneProp.StartsText('stop-opacity:', True) then
-    begin
-      n := 1.0;
-      GetExtended(OneProp.Text, OneProp.Len, n);
-      AOpacity := n;
-    end;
+procedure TSvgImageNode.ParseAttribute(const AName, AValue: string);
+var
+  lowerName, lowerVal: string;
+begin
+  lowerName := LowerCase(Trim(AName));
+  lowerVal := Trim(AValue);
 
-    // Move on to the next property
-    OneProp := AStyle.Split(';', True);
-    OneProp.Trim;
-  end;
+  if lowerName = 'x' then FX := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'y' then FY := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'width' then FWidth := TSvgLength.Parse(lowerVal)
+  else if lowerName = 'height' then FHeight := TSvgLength.Parse(lowerVal)
+  else if (lowerName = 'href') or (lowerName = 'xlink:href') or (lowerName = 'src') then FHref := Trim(AValue)
+  else if lowerName = 'preserveaspectratio' then FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(lowerVal)
+  else inherited ParseAttribute(AName, AValue);
+end;
+
+function TSvgImageNode.GetObjectBoundingBox: TFloatRect;
+var
+  xPx, yPx, wPx, hPx: Single;
+begin
+  xPx := FX.ToPixels;
+  yPx := FY.ToPixels;
+  wPx := FWidth.ToPixels;
+  hPx := FHeight.ToPixels;
+  Result := FloatRect(xPx, yPx, xPx + wPx, yPx + hPx);
+end;
+
+function TSvgImageNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  Result := Result + Format(' (x=%s, y=%s, width=%s, height=%s)',
+    [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
+  if FHref <> '' then
+    Result := Result + Format(' (href="%s")', [FHref]);
 end;
 
 
@@ -4022,6 +4090,36 @@ function ParseSvgXml(AText: TValuePUtf8Char; var AErrorMessage: string): TSvgDoc
 var
   cssStyleSheet: TSvgCssStyleSheet;
 
+  function ParseStopStyle(AStyle: TValuePUtf8Char; var AOpacity: Single): TSvgColor;
+  var
+    n: Double;
+    OneProp: TValuePUtf8Char;
+  begin
+    Result := TSvgColor.Create(clBlack32);
+    AOpacity := 1.0;
+
+    OneProp := AStyle.Split(';', True);
+    OneProp.Trim; // Trim spaces after ';'
+
+    while (OneProp.Len > 0) do
+    begin
+      if OneProp.StartsText('stop-color:', True) then
+      begin
+        Result := TSvgColor.Parse(OneProp);
+      end else
+      if OneProp.StartsText('stop-opacity:', True) then
+      begin
+        n := 1.0;
+        GetExtended(OneProp.Text, OneProp.Len, n);
+        AOpacity := n;
+      end;
+
+      // Move on to the next property
+      OneProp := AStyle.Split(';', True);
+      OneProp.Trim;
+    end;
+  end;
+
   procedure ParseAttributes(ANode: TSvgNode; var AParser: TXmlParser);
   var
     attrName, attrVal: string;
@@ -4040,15 +4138,7 @@ var
     StopTag: TSvgStopTagKeyword;
     tagName: string;
     node: TSvgNode;
-    groupNode: TSvgGroupNode;
-    pathNode: TSvgPathNode;
     docNode: TSvgDocumentNode;
-    useNode: TSvgUseNode;
-    linGrad: TSvgLinearGradientNode;
-    radGrad: TSvgRadialGradientNode;
-    clipNode: TSvgClipPathNode;
-    maskNode: TSvgMaskNode;
-    parentGrad: TSvgGradientNode;
     startDepth: Byte;
     n: Double;
     stopOffset, stopOpacity: Single;
@@ -4075,15 +4165,13 @@ var
 
         tagG:
           begin
-            groupNode := TSvgGroupNode.Create(AParent);
-            node := groupNode;
+            node := TSvgGroupNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
         tagUse:
           begin
-            useNode := TSvgUseNode.Create(AParent);
-            node := useNode;
+            node := TSvgUseNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
@@ -4097,7 +4185,7 @@ var
           begin
             if (AParent <> nil) and (AParent is TSvgGradientNode) then
             begin
-              parentGrad := TSvgGradientNode(AParent);
+              node := TSvgGradientNode(AParent);
               stopOffset := 0.0;
               stopOpacity := 1.0;
               Color := TSvgColor.Create(clBlack32);
@@ -4132,7 +4220,7 @@ var
                   end;
               end;
               stopVal := TSvgGradientStop.Create(stopOffset, Color, stopOpacity);
-              parentGrad.AddStop(stopVal);
+              TSvgGradientNode(node).AddStop(stopVal);
             end else
               while AParser.ParseNext = xtAttribute do ;
 
@@ -4143,76 +4231,72 @@ var
 
         tagMask:
           begin
-            maskNode := TSvgMaskNode.Create(AParent);
-            node := maskNode;
+            node := TSvgMaskNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
         tagPath:
           begin
-            pathNode := TSvgPathNode.Create(AParent);
-            node := pathNode;
+            node := TSvgPathNode.Create(AParent);
             dStr := '';
             while AParser.ParseNext = xtAttribute do
             begin
-              if LowerCase(AParser.Name.ToString) = 'd' then
+              if AParser.Name.CompareText('d') then
                 dStr := TValuePUtf8Char(AParser.Value).ToString
               else
-                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+                node.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
             if dStr <> '' then
-              pathNode.PathData := SvgPathDataToPoints(dStr);
+              TSvgPathNode(node).PathData := SvgPathDataToPoints(dStr);
           end;
 
         tagRect:
           begin
-            pathNode := TSvgPathNode.Create(AParent);
-            node := pathNode;
-            pathNode.FProperties.Kind := skRect;
+            node := TSvgPathNode.Create(AParent);
+            TSvgPathNode(node).FProperties.Kind := skRect;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('x') then
-                pathNode.FProperties.rect.X := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.rect.X := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('y') then
-                pathNode.FProperties.rect.Y := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.rect.Y := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('width') then
-                pathNode.FProperties.rect.Width := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.rect.Width := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('height') then
-                pathNode.FProperties.rect.Height := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.rect.Height := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('rx') then
-                pathNode.FProperties.rect.Rx := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.rect.Rx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('ry') then
-                pathNode.FProperties.rect.Ry := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.rect.Ry := TSvgLength.Parse(AParser.Value)
               else
-                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+                TSvgPathNode(node).ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
           end;
 
         tagLine:
           begin
-            pathNode := TSvgPathNode.Create(AParent);
-            node := pathNode;
-            pathNode.FProperties.Kind := skLine;
+            node := TSvgPathNode.Create(AParent);
+            TSvgPathNode(node).FProperties.Kind := skLine;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('x1') then
-                pathNode.FProperties.line.X1 := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.line.X1 := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('y1') then
-                pathNode.FProperties.line.Y1 := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.line.Y1 := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('x2') then
-                pathNode.FProperties.line.X2 := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.line.X2 := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('y2') then
-                pathNode.FProperties.line.Y2 := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.line.Y2 := TSvgLength.Parse(AParser.Value)
               else
-                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+                TSvgPathNode(node).ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
           end;
 
@@ -4227,42 +4311,38 @@ var
 
         tagCircle:
           begin
-            pathNode := TSvgPathNode.Create(AParent);
-            node := pathNode;
-            pathNode.FProperties.Kind := skCircle;
+            node := TSvgPathNode.Create(AParent);
+            TSvgPathNode(node).FProperties.Kind := skCircle;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('cx') then
-                pathNode.FProperties.circle.Cx := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.circle.Cx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('cy') then
-                pathNode.FProperties.circle.Cy := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.circle.Cy := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('r') then
-                pathNode.FProperties.circle.R := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.circle.R := TSvgLength.Parse(AParser.Value)
               else
-                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+                TSvgPathNode(node).ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
           end;
 
         tagLineargradient:
           begin
-            linGrad := TSvgLinearGradientNode.Create(AParent);
-            node := linGrad;
+            node := TSvgLinearGradientNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
         tagRadialgradient:
           begin
-            radGrad := TSvgRadialGradientNode.Create(AParent);
-            node := radGrad;
+            node := TSvgRadialGradientNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
         tagClippath:
           begin
-            clipNode := TSvgClipPathNode.Create(AParent);
-            node := clipNode;
+            node := TSvgClipPathNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
@@ -4281,6 +4361,12 @@ var
         tagSymbol:
           begin
             node := TSvgSymbolNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagImage:
+          begin
+            node := TSvgImageNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
@@ -4340,40 +4426,38 @@ var
 
         tagEllipse:
           begin
-            pathNode := TSvgPathNode.Create(AParent);
-            node := pathNode;
-            pathNode.FProperties.Kind := skEllipse;
+            node := TSvgPathNode.Create(AParent);
+            TSvgPathNode(node).FProperties.Kind := skEllipse;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('cx') then
-                pathNode.FProperties.ellipse.Cx := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.ellipse.Cx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('cy') then
-                pathNode.FProperties.ellipse.Cy := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.ellipse.Cy := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('rx') then
-                pathNode.FProperties.ellipse.Rx := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.ellipse.Rx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('ry') then
-                pathNode.FProperties.ellipse.Ry := TSvgLength.Parse(AParser.Value)
+                TSvgPathNode(node).FProperties.ellipse.Ry := TSvgLength.Parse(AParser.Value)
               else
-                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+                TSvgPathNode(node).ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
           end;
 
         tagPolyline, tagPolygon:
           begin
-            pathNode := TSvgPathNode.Create(AParent);
-            node := pathNode;
+            node := TSvgPathNode.Create(AParent);
             ptsStr := '';
             while AParser.ParseNext = xtAttribute do
             begin
-              if LowerCase(AParser.Name.ToString) = 'points' then
+              if AParser.Name.CompareText('points') then
                 ptsStr := TValuePUtf8Char(AParser.Value).ToString
               else
-                pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
+                TSvgPathNode(node).ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
-            pathNode.PathData := CreatePolylinePath(ptsStr, (tagKeyword = tagPolygon));
+            TSvgPathNode(node).PathData := CreatePolylinePath(ptsStr, (tagKeyword = tagPolygon));
           end;
       end;
 
@@ -4401,7 +4485,6 @@ var
 
     if node is TSvgGroupNode then
     begin
-      groupNode := TSvgGroupNode(node);
       while AParser.Kind not in [xtEof, xtError] do
       begin
         if (AParser.Kind = xtElementEnd) and (AParser.Depth < startDepth) then
@@ -4409,18 +4492,16 @@ var
           AParser.ParseNext;
           Break;
         end;
+
         if AParser.Kind = xtElementStart then
         begin
-          childNode := ParseSubtree(AParser, groupNode);
+          childNode := ParseSubtree(AParser, node);
           if childNode <> nil then
-            groupNode.AddChild(childNode);
-        end
-        else
+            TSvgGroupNode(node).AddChild(childNode);
+        end else
           AParser.ParseNext;
       end;
-    end;
-
-    if not (node is TSvgGroupNode) then
+    end else
     begin
       while (AParser.Kind not in [xtEof, xtError]) and (AParser.Depth >= startDepth) do
         AParser.ParseNext;
@@ -4432,53 +4513,53 @@ var
   end;
 
 var
-  parser: TXmlParser;
-  rootNode: TSvgNode;
-  docRes: TSvgDocumentNode;
+  Parser: TXmlParser;
+  RootNode: TSvgNode;
 begin
   Result := nil;
+
   if (AText.Text = nil) or (AText.Len <= 0) then
   begin
     AErrorMessage := 'No document';
     Exit;
   end;
 
-  parser.Init(AText.Text, AText.Len, [xpoNoException]);
+  Parser.Init(AText.Text, AText.Len, [xpoNoException]);
 
   cssStyleSheet := TSvgCssStyleSheet.Create;
   try
 
-    while parser.ParseNext not in [xtEof, xtError] do
+    while Parser.ParseNext not in [xtEof, xtError] do
     begin
-      if parser.Kind = xtElementStart then
+      if Parser.Kind = xtElementStart then
       begin
-        rootNode := ParseSubtree(parser, nil);
+        RootNode := ParseSubtree(Parser, nil);
 
-        if rootNode is TSvgDocumentNode then
-          docRes := TSvgDocumentNode(rootNode)
+        if RootNode is TSvgDocumentNode then
+          Result := TSvgDocumentNode(RootNode)
         else
-        if rootNode is TSvgGroupNode then
+        if RootNode is TSvgGroupNode then
         begin
-          docRes := TSvgDocumentNode.Create(nil);
-          docRes.AddChild(rootNode);
+          Result := TSvgDocumentNode.Create(nil);
+          Result.AddChild(RootNode);
         end else
-        if rootNode <> nil then
+        if RootNode <> nil then
         begin
-          docRes := TSvgDocumentNode.Create(nil);
-          docRes.AddChild(rootNode);
+          Result := TSvgDocumentNode.Create(nil);
+          Result.AddChild(RootNode);
         end else
-          docRes := nil;
+          Result := nil;
 
-        if docRes <> nil then
+        if (Result <> nil) then
         begin
-          docRes.ResolveGradients;
-          docRes.ResolvePatterns;
-          docRes.ResolveUseNodes;
-          docRes.ResolveMarkers;
-          docRes.ResolveClipPathsAndMasks;
-          docRes.ResolvePaintServers;
-          docRes.ResolveFilters;
-          Exit(docRes);
+          Result.ResolveGradients;
+          Result.ResolvePatterns;
+          Result.ResolveUseNodes;
+          Result.ResolveMarkers;
+          Result.ResolveClipPathsAndMasks;
+          Result.ResolvePaintServers;
+          Result.ResolveFilters;
+          Exit;
         end;
       end;
     end;
@@ -4487,8 +4568,8 @@ begin
     cssStyleSheet.Free;
   end;
 
-  if (parser.Kind = xtError) then
-    AErrorMessage := Format('%d: %s', [parser.LastErrorLine, XML_ERROR[parser.LastError]])
+  if (Parser.Kind = xtError) then
+    AErrorMessage := Format('%d: %s', [Parser.LastErrorLine, XML_ERROR[Parser.LastError]])
   else
     AErrorMessage := '';
 end;

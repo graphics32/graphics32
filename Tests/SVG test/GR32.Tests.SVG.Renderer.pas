@@ -64,6 +64,7 @@ type
     procedure TestFilterRendering;
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
+    procedure TestImageRendering;
   end;
 
 implementation
@@ -893,6 +894,8 @@ begin
   bmp := TBitmap32.Create;
   renderer := TSvgRenderer.Create(bmp);
   try
+    Check(not renderer.AllowExternalImages, 'AllowExternalImages should default to False');
+
     bmp.SetSize(100, 100);
     bmp.Clear(clWhite32);
     renderer.RenderDocument(docNode);
@@ -977,6 +980,37 @@ begin
     pPixel := bmp.Pixel[5, 5];
     CheckEquals(128, RedComponent(pPixel), 'Arithmetic K2=0.5 of Red (255) should give 128 Red');
     CheckEquals(128, BlueComponent(pPixel), 'Arithmetic K3=0.5 of Blue (255) should give 128 Blue');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestImageRendering;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+  pPixel: TColor32;
+begin
+  xml := '<svg width="100" height="100">' +
+         '  <image x="10" y="10" width="50" height="50" href="data:image/svg+xml;utf8,&lt;svg width=&quot;50&quot; height=&quot;50&quot;&gt;&lt;rect width=&quot;50&quot; height=&quot;50&quot; fill=&quot;red&quot;/&gt;&lt;/svg&gt;"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    pPixel := bmp.Pixel[30, 30];
+    CheckEquals(clRed32, pPixel, 'Pixel inside rendered embedded SVG image should be red');
+    CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Pixel outside rendered embedded SVG image should be white');
   finally
     renderer.Free;
     bmp.Free;
