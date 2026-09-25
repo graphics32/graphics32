@@ -816,6 +816,7 @@ var
   xml: UTF8String;
   docNode: TSvgDocumentNode;
   rectNode, circleNode, lineNode, ellipseNode: TSvgPathNode;
+  pts: TArrayOfArrayOfFloatPoint;
 begin
   xml := '<svg width="200" height="200">' +
          '  <rect id="r1" x="0%" y="0%" width="100%" height="100%"/>' +
@@ -830,6 +831,21 @@ begin
     rectNode := TSvgPathNode(docNode.FindNodeById('r1'));
     Check(rectNode <> nil, 'rectNode r1 should exist');
     Check(Length(rectNode.PathData) > 0, 'rectNode r1 with percentage width/height should have non-empty PathData');
+    pts := rectNode.GetPathData(800.0, 600.0);
+    Check(Length(pts) > 0, 'rectNode GetPathData(800,600) should produce points');
+    // For 800x600 viewport, 100% width = 800, 100% height = 600
+    CheckEquals(800.0, pts[0][1].X, 1E-4, 'rectNode 100% width should evaluate dynamically to 800');
+    CheckEquals(600.0, pts[0][2].Y, 1E-4, 'rectNode 100% height should evaluate dynamically to 600');
+
+    // Test caching on identical viewport dimensions
+    pts := rectNode.GetPathData(800.0, 600.0);
+    CheckEquals(800.0, pts[0][1].X, 1E-4, 'rectNode cached 800x600 width');
+    CheckEquals(600.0, pts[0][2].Y, 1E-4, 'rectNode cached 800x600 height');
+
+    // Test viewport change invalidates cache and recomputes for 400x300
+    pts := rectNode.GetPathData(400.0, 300.0);
+    CheckEquals(400.0, pts[0][1].X, 1E-4, 'rectNode recomputed 400x300 width');
+    CheckEquals(300.0, pts[0][2].Y, 1E-4, 'rectNode recomputed 400x300 height');
 
     circleNode := TSvgPathNode(docNode.FindNodeById('c1'));
     Check(circleNode <> nil, 'circleNode c1 should exist');
@@ -838,6 +854,9 @@ begin
     lineNode := TSvgPathNode(docNode.FindNodeById('l1'));
     Check(lineNode <> nil, 'lineNode l1 should exist');
     Check(Length(lineNode.PathData) > 0, 'lineNode l1 with percentage coordinates should have non-empty PathData');
+    pts := lineNode.GetPathData(800.0, 600.0);
+    CheckEquals(800.0, pts[0][1].X, 1E-4, 'lineNode x2=100% should evaluate to 800');
+    CheckEquals(600.0, pts[0][1].Y, 1E-4, 'lineNode y2=100% should evaluate to 600');
 
     ellipseNode := TSvgPathNode(docNode.FindNodeById('e1'));
     Check(ellipseNode <> nil, 'ellipseNode e1 should exist');

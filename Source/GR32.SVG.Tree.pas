@@ -242,7 +242,8 @@ type
     function FindNodeById(const AId: string): TSvgNode; virtual;
     procedure Render(ACanvas: TObject); virtual;
     function GetObjectBoundingBox: TFloatRect; virtual;
-    procedure ParseAttribute(const AName, AValue: string); virtual;
+    // procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; virtual;
+    procedure ParseAttribute(const AName, AValue: string); overload; virtual;
     procedure ParseStyleAttribute(const AStyleStr: string);
     function Dump(Indent: Integer = 0): string;
     property ID: string read FID write FID;
@@ -796,15 +797,59 @@ type
 //      TSvgPathNode
 //
 //------------------------------------------------------------------------------
+  TSvgShapeKind = (skPath, skRect, skCircle, skEllipse, skLine);
+
   TSvgPathNode = class(TSvgNode)
+  private type
+    TPathNodeProperties = record
+      Kind: TSvgShapeKind;
+      case TSvgShapeKind of
+        skRect: (rect: record
+          X: TSvgLength;
+          Y: TSvgLength;
+          Width: TSvgLength;
+          Height: TSvgLength;
+          Rx: TSvgLength;
+          Ry: TSvgLength;
+        end);
+
+        skCircle: (circle: record
+          Cx: TSvgLength;
+          Cy: TSvgLength;
+          R: TSvgLength;
+        end);
+
+        skEllipse: (ellipse: record
+          Cx: TSvgLength;
+          Cy: TSvgLength;
+          Rx: TSvgLength;
+          Ry: TSvgLength;
+        end);
+
+        skLine: (line: record
+          X1: TSvgLength;
+          Y1: TSvgLength;
+          X2: TSvgLength;
+          Y2: TSvgLength;
+        end);
+    end;
   private
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FProperties: TPathNodeProperties;
+    FCachedViewportWidth: Single;
+    FCachedViewportHeight: Single;
     FPathData: TArrayOfArrayOfFloatPoint;
+    function GetPathDataProp: TArrayOfArrayOfFloatPoint;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
   public
+    constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function GetObjectBoundingBox: TFloatRect; override;
-    property PathData: TArrayOfArrayOfFloatPoint read FPathData write FPathData;
+    function GetPathData(const AViewportWidth: Single = 100.0; const AViewportHeight: Single = 100.0): TArrayOfArrayOfFloatPoint;
+    property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
+    property PathData: TArrayOfArrayOfFloatPoint read GetPathDataProp write FPathData;
   end;
 
 
@@ -929,6 +974,7 @@ implementation
 uses
   Types,
   Math,
+  GR32_Math,
   GR32_Paths,
   GR32.SVG.Path,
   GR32.SVG.Xml,
@@ -1306,6 +1352,13 @@ procedure TSvgNode.Render(ACanvas: TObject);
 begin
   // Base implementation does nothing
 end;
+
+(*
+procedure TSvgNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
+begin
+
+end;
+*)
 
 procedure TSvgNode.ParseAttribute(const AName, AValue: string);
 var
@@ -3219,12 +3272,91 @@ end;
 //      TSvgPathNode
 //
 //------------------------------------------------------------------------------
+constructor TSvgPathNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FProperties.Kind := skPath;
+  FCachedViewportWidth := -1.0;
+  FCachedViewportHeight := -1.0;
+end;
+
+function TSvgPathNode.GetPathData(const AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint;
+var
+  Diag: Single;
+const
+  SqrtHalf: Single = 0.7071067811865; // Sqrt(0.5);
+begin
+  if (FProperties.Kind = skPath) then
+    Exit(FPathData);
+
+  if (FCachedViewportWidth = AViewportWidth) and (FCachedViewportHeight = AViewportHeight) and (Length(FPathData) > 0) then
+    Exit(FPathData);
+
+  case FProperties.Kind of
+    skRect:
+      begin
+        FPathData := CreateRectPath(
+          FProperties.rect.X.ToPixels(AViewportWidth),
+          FProperties.rect.Y.ToPixels(AViewportHeight),
+          FProperties.rect.Width.ToPixels(AViewportWidth),
+          FProperties.rect.Height.ToPixels(AViewportHeight),
+          FProperties.rect.Rx.ToPixels(AViewportWidth),
+          FProperties.rect.Ry.ToPixels(AViewportHeight)
+        );
+      end;
+
+    skCircle:
+      begin
+        Diag := GR32_Math.Hypot(AViewportWidth, AViewportHeight) * SqrtHalf;
+        FPathData := CreateCirclePath(
+          FProperties.circle.Cx.ToPixels(AViewportWidth),
+          FProperties.circle.Cy.ToPixels(AViewportHeight),
+          FProperties.circle.R.ToPixels(Diag)
+        );
+      end;
+
+    skEllipse:
+      begin
+        FPathData := CreateEllipsePath(
+          FProperties.ellipse.Cx.ToPixels(AViewportWidth),
+          FProperties.ellipse.Cy.ToPixels(AViewportHeight),
+          FProperties.ellipse.Rx.ToPixels(AViewportWidth),
+          FProperties.ellipse.Ry.ToPixels(AViewportHeight)
+        );
+      end;
+
+    skLine:
+      begin
+        FPathData := CreateLinePath(
+          FProperties.line.X1.ToPixels(AViewportWidth),
+          FProperties.line.Y1.ToPixels(AViewportHeight),
+          FProperties.line.X2.ToPixels(AViewportWidth),
+          FProperties.line.Y2.ToPixels(AViewportHeight)
+        );
+      end;
+  end;
+
+  FCachedViewportWidth := AViewportWidth;
+  FCachedViewportHeight := AViewportHeight;
+  Result := FPathData;
+end;
+
+function TSvgPathNode.GetPathDataProp: TArrayOfArrayOfFloatPoint;
+begin
+  Result := GetPathData(100.0, 100.0);
+end;
+
 function TSvgPathNode.Clone(AParent: TSvgNode): TSvgNode;
 var
   pathRes: TSvgPathNode;
   i: Integer;
 begin
   pathRes := TSvgPathNode(inherited Clone(AParent));
+  pathRes.FProperties := FProperties;
+  pathRes.FWidth := FWidth;
+  pathRes.FHeight := FHeight;
+  pathRes.FCachedViewportWidth := FCachedViewportWidth;
+  pathRes.FCachedViewportHeight := FCachedViewportHeight;
   SetLength(pathRes.FPathData, Length(FPathData));
   for i := 0 to High(FPathData) do
     pathRes.FPathData[i] := Copy(FPathData[i], 0, Length(FPathData[i]));
@@ -3244,33 +3376,11 @@ end;
 
 function TSvgPathNode.GetObjectBoundingBox: TFloatRect;
 var
-  i, j: Integer;
-  pt: TFloatPoint;
-  first: Boolean;
+  PathPoints: TArrayOfArrayOfFloatPoint;
 begin
   { Calculates the tight axis-aligned bounding box of path vertices in local coordinates. }
-  first := True;
-  Result := FloatRect(0, 0, 0, 0);
-
-  for i := 0 to High(FPathData) do
-  begin
-    for j := 0 to High(FPathData[i]) do
-    begin
-      pt := FPathData[i][j];
-      if first then
-      begin
-        Result := FloatRect(pt.X, pt.Y, pt.X, pt.Y);
-        first := False;
-      end
-      else
-      begin
-        if pt.X < Result.Left then Result.Left := pt.X;
-        if pt.X > Result.Right then Result.Right := pt.X;
-        if pt.Y < Result.Top then Result.Top := pt.Y;
-        if pt.Y > Result.Bottom then Result.Bottom := pt.Y;
-      end;
-    end;
-  end;
+  PathPoints := GetPathData(100.0, 100.0);
+  Result := PolyPolygonBounds(PathPoints);
 end;
 
 
@@ -3941,7 +4051,7 @@ var
     parentGrad: TSvgGradientNode;
     startDepth: Byte;
     n: Double;
-    x, y, w, h, rx, ry, cx, cy, r, x1, y1, x2, y2, stopOffset, stopOpacity: Single;
+    stopOffset, stopOpacity: Single;
     ptsStr, dStr, cssText: string;
     childNode: TSvgNode;
     rawCss: RawUtf8;
@@ -4058,54 +4168,52 @@ var
           begin
             pathNode := TSvgPathNode.Create(AParent);
             node := pathNode;
-            x := 0; y := 0; w := 0; h := 0; rx := 0; ry := 0;
+            pathNode.FProperties.Kind := skRect;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('x') then
-                x := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.rect.X := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('y') then
-                y := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.rect.Y := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('width') then
-                w := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.rect.Width := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('height') then
-                h := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.rect.Height := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('rx') then
-                rx := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.rect.Rx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('ry') then
-                ry := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.rect.Ry := TSvgLength.Parse(AParser.Value)
               else
                 pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
-            pathNode.PathData := CreateRectPath(x, y, w, h, rx, ry);
           end;
 
         tagLine:
           begin
             pathNode := TSvgPathNode.Create(AParent);
             node := pathNode;
-            x1 := 0; y1 := 0; x2 := 0; y2 := 0;
+            pathNode.FProperties.Kind := skLine;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('x1') then
-                x1 := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.line.X1 := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('y1') then
-                y1 := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.line.Y1 := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('x2') then
-                x2 := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.line.X2 := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('y2') then
-                y2 := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.line.Y2 := TSvgLength.Parse(AParser.Value)
               else
                 pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
-            pathNode.PathData := CreateLinePath(x1, y1, x2, y2);
           end;
 
         tagStyle:
@@ -4121,21 +4229,20 @@ var
           begin
             pathNode := TSvgPathNode.Create(AParent);
             node := pathNode;
-            cx := 0; cy := 0; r := 0;
+            pathNode.FProperties.Kind := skCircle;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('cx') then
-                cx := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.circle.Cx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('cy') then
-                cy := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.circle.Cy := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('r') then
-                r := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.circle.R := TSvgLength.Parse(AParser.Value)
               else
                 pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
-            pathNode.PathData := CreateCirclePath(cx, cy, r);
           end;
 
         tagLineargradient:
@@ -4235,24 +4342,23 @@ var
           begin
             pathNode := TSvgPathNode.Create(AParent);
             node := pathNode;
-            cx := 0; cy := 0; rx := 0; ry := 0;
+            pathNode.FProperties.Kind := skEllipse;
             while AParser.ParseNext = xtAttribute do
             begin
               if AParser.Name.CompareText('cx') then
-                cx := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.ellipse.Cx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('cy') then
-                cy := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.ellipse.Cy := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('rx') then
-                rx := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.ellipse.Rx := TSvgLength.Parse(AParser.Value)
               else
               if AParser.Name.CompareText('ry') then
-                ry := TSvgLength.Parse(AParser.Value).ToPixels
+                pathNode.FProperties.ellipse.Ry := TSvgLength.Parse(AParser.Value)
               else
                 pathNode.ParseAttribute(AParser.Name.ToString, TValuePUtf8Char(AParser.Value).ToString);
             end;
-            pathNode.PathData := CreateEllipsePath(cx, cy, rx, ry);
           end;
 
         tagPolyline, tagPolygon:
