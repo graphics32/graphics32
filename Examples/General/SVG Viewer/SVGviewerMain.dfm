@@ -100,6 +100,7 @@ object FormSVGviewer: TFormSVGviewer
           Height = 459
           Align = alClient
           Bitmap.DrawMode = dmBlend
+          Bitmap.CombineMode = cmMerge
           Bitmap.ResamplerClassName = 'TNearestResampler'
           BitmapAlign = baCustom
           Scale = 1.000000000000000000
@@ -110,7 +111,6 @@ object FormSVGviewer: TFormSVGviewer
           MouseZoom.Enabled = True
           MouseZoom.Animate = True
           TabOrder = 0
-          ExplicitHeight = 553
         end
         object MemoSource2: TMemo
           Left = 0
@@ -184,6 +184,11 @@ object FormSVGviewer: TFormSVGviewer
           TabOrder = 0
           OnKeyPress = MemoSourceKeyPress
         end
+      end
+      object TabSheetImage32: TTabSheet
+        Caption = 'Image32'
+        ImageIndex = 3
+        TabVisible = False
       end
     end
   end
