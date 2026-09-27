@@ -153,7 +153,7 @@ function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperat
 function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType; overload;
 function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
-function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload;
+function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload; deprecated;
 
 
 //------------------------------------------------------------------------------
@@ -225,8 +225,9 @@ type
     UnitType: TSvgUnitType;
     function ToPixels(const ARefSize: Single = 100.0; const ADpi: Single = 96.0; const AFontSize: Single = 16.0): Single;
     class function Create(AValue: Single; AUnit: TSvgUnitType = suPx): TSvgLength; static;
-    class function Parse(const AStr: UTF8String): TSvgLength; overload; static;
-    class function Parse(AStr: TValuePUtf8Char): TSvgLength; overload; static;
+    class function Parse(const AStr: UTF8String): TSvgLength; overload; static; deprecated;
+    class function Parse(const AStr: TValuePUtf8Char): TSvgLength; overload; static;
+    class function ParseAndSkip(var AStr: TValuePUtf8Char): TSvgLength; overload; static;
     class function Parse(AStr: TValuePointer): TSvgLength; overload; static;
   end;
 
@@ -290,7 +291,7 @@ type
     Align: TSvgAlign;
     MeetOrSlice: TSvgMeetOrSlice;
     class function Default: TSvgPreserveAspectRatio; static;
-    class function Parse(const AStr: UTF8String): TSvgPreserveAspectRatio; static;
+    class function Parse(AValue: TValuePUtf8Char): TSvgPreserveAspectRatio; static;
   end;
 
 
@@ -310,7 +311,7 @@ type
     IsDefined: Boolean;
     function IsValid: Boolean;
     class function Create(AX, AY, AWidth, AHeight: Single): TSvgViewBox; static;
-    class function Parse(const AStr: string): TSvgViewBox; static;
+    class function Parse(AValue: TValuePUtf8Char): TSvgViewBox; static;
     function GetTransform(const ATargetRect: TFloatRect; const AAspect: TSvgPreserveAspectRatio): TFloatMatrix;
   end;
 
@@ -568,16 +569,20 @@ end;
 
 function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType;
 begin
-  if AName.CompareText('saturate') then
-    Result := cmSaturate
-  else
-  if AName.CompareText('huerotate') then
-    Result := cmHueRotate
-  else
-  if AName.CompareText('luminancetoalpha') then
-    Result := cmLuminanceToAlpha
-  else
-    Result := cmMatrix;
+  Result := cmMatrix;
+  case AName.Len of
+    8:
+      if AName.CompareText('saturate') then
+        Result := cmSaturate;
+
+    9:
+      if AName.CompareText('huerotate') then
+        Result := cmHueRotate;
+
+    16:
+      if AName.CompareText('luminancetoalpha') then
+        Result := cmLuminanceToAlpha;
+  end;
 end;
 
 function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
@@ -702,7 +707,8 @@ function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor;
 begin
   if AName.CompareText('middle') then
     Result := taMiddle
-  else if AName.CompareText('end') then
+  else
+  if AName.CompareText('end') then
     Result := taEnd
   else
     Result := taStart;
@@ -1022,19 +1028,17 @@ begin
   Result := Parse(TValuePUtf8Char(AStr));
 end;
 
-class function TSvgLength.Parse(AStr: TValuePUtf8Char): TSvgLength;
+class function TSvgLength.ParseAndSkip(var AStr: TValuePUtf8Char): TSvgLength;
 var
+  Temp: TValuePUtf8Char;
   Suffix: TValuePUtf8Char;
   Value: Double;
 begin
-  // Zero-copy value/unit parser
-
   Result.UnitType := suPx;
   Result.Value := 0;
 
   // Skip leading spaces
   AStr.Trim;
-
   if (AStr.Len = 0) then
     exit;
 
@@ -1044,54 +1048,61 @@ begin
     Suffix.Skip;
 
   // Convert value
-  if GetExtended(AStr.Text, Suffix.Text-AStr.Text, Value) then
+  Temp := AStr;
+  Temp.Len := AStr.Len - Suffix.Len;
+  if Temp.TryToFloat(Value) then
     Result.Value := Value;
+
   AStr.Skip(AStr.Len - Suffix.Len);
 
   // Skip leading spaces
-  Suffix.Trim;
+  AStr.Trim;
 
-  // Match and skip suffix
-  case Suffix.Text^ of
+  // Match and skip AStr
+  case AStr.Text^ of
     #0: Result.UnitType := suPx;
 
-    '%': begin Result.UnitType := suPercent; Suffix.Skip; end;
+    '%': begin Result.UnitType := suPercent; AStr.Skip; end;
 
     'c':
-      case Suffix.Text[1] of
-        'm': begin Result.UnitType := suCm; Suffix.Skip(2); end;
+      case AStr.Text[1] of
+        'm': begin Result.UnitType := suCm; AStr.Skip(2); end;
       end;
 
     'e':
-      case Suffix.Text[1] of
-        'm': begin Result.UnitType := suEm; Suffix.Skip(2); end;
-        'x': begin Result.UnitType := suEx; Suffix.Skip(2); end;
+      case AStr.Text[1] of
+        'm': begin Result.UnitType := suEm; AStr.Skip(2); end;
+        'x': begin Result.UnitType := suEx; AStr.Skip(2); end;
       end;
 
     'm':
-      case Suffix.Text[1] of
-        'm': begin Result.UnitType := suMm; Suffix.Skip(2); end;
+      case AStr.Text[1] of
+        'm': begin Result.UnitType := suMm; AStr.Skip(2); end;
       end;
 
     'i':
-      case Suffix.Text[1] of
-        'n': begin Result.UnitType := suIn; Suffix.Skip(2); end;
+      case AStr.Text[1] of
+        'n': begin Result.UnitType := suIn; AStr.Skip(2); end;
       end;
 
     'p':
-      case Suffix.Text[1] of
-        'c': begin Result.UnitType := suPc; Suffix.Skip(2); end;
-        't': begin Result.UnitType := suPt; Suffix.Skip(2); end;
-        'x': begin Result.UnitType := suPx; Suffix.Skip(2); end;
+      case AStr.Text[1] of
+        'c': begin Result.UnitType := suPc; AStr.Skip(2); end;
+        't': begin Result.UnitType := suPt; AStr.Skip(2); end;
+        'x': begin Result.UnitType := suPx; AStr.Skip(2); end;
       end;
   end;
 
   // Skip trailing spaces
-  Suffix.Trim;
+  AStr.Trim;
+end;
 
-  // If we are not at end of string, then we have junk and we discard the suffix
-  if (Suffix.Len > 0) then
-    Result.UnitType := suPx;
+class function TSvgLength.Parse(const AStr: TValuePUtf8Char): TSvgLength;
+var
+  Temp: TValuePUtf8Char;
+begin
+  Temp := AStr;
+  Result := ParseAndSkip(Temp);
 end;
 
 class function TSvgLength.Parse(const AStr: UTF8String): TSvgLength;
@@ -1218,7 +1229,7 @@ begin
 
   // Smallest possible 'rgb' string is rgb(0,0,0) -> length=10
   // Must be rgb(...) or rgba(...)
-  if (AColorStr.Len >= 10) and (AColorStr.Text[AColorStr.Len-1] = ')') then
+  if (AColorStr.Len >= 10) and (AColorStr.LastChar = ')') then
   begin
     HasRGBA := AColorStr.StartsText('rgba(', True);
     HasRGB := HasRGBA or AColorStr.StartsText('rgb(', True);
@@ -1267,59 +1278,70 @@ begin
   Result.MeetOrSlice := msMeet;
 end;
 
-class function TSvgPreserveAspectRatio.Parse(const AStr: UTF8String): TSvgPreserveAspectRatio;
-type
-  TChars = array[0..MaxInt-1] of AnsiChar;
-  PChars = ^TChars;
+class function TSvgPreserveAspectRatio.Parse(AValue: TValuePUtf8Char): TSvgPreserveAspectRatio;
 var
-  n: integer;
-  s: UTF8String;
-  p: PChars;
+  Align: TValuePUtf8Char;
 begin
   Result := Default;
 
-  p := PChars(@AStr[1]);
-  n := 0;
-  while (p[n] <> #0) and (p[n] <> ' ') do
-    Inc(n);
+  AValue.Trim;
+  if (AValue.Len = 0) then
+    exit;
 
-  if (n > 0) then
-  begin
-    SetString(s, PAnsiChar(p), n);
-    s :=  AnsiStrings.LowerCase(s);
+  Align := AValue.Split(' ', True);
 
-    if s = 'none' then Result.Align := saNone
-    else if s = 'xminymin' then Result.Align := saXMinYMin
-    else if s = 'xmidymin' then Result.Align := saXMidYMin
-    else if s = 'xmaxymin' then Result.Align := saXMaxYMin
-    else if s = 'xminymid' then Result.Align := saXMinYMid
-    else if s = 'xmidymid' then Result.Align := saXMidYMid
-    else if s = 'xmaxymid' then Result.Align := saXMaxYMid
-    else if s = 'xminymax' then Result.Align := saXMinYMax
-    else if s = 'xmidymax' then Result.Align := saXMidYMax
-    else if s = 'xmaxymax' then Result.Align := saXMaxYMax;
+  case Align.Text^ of
+    'n', 'N':
+      if Align.CompareText('none') then
+        Result.Align := saNone;
 
-    while (p[n] <> #0) and (p[n] = ' ') do
-      Inc(n);
+    'x', 'X':
+      if (Align.Len = 8) then
+      begin
+        case Align.Text[2] of
+          'i': // xmi*
+            case Align.Text[7] of
+              'd', 'D':
+                if Align.CompareText('xminymid') then
+                  Result.Align := saXMinYMid
+                else
+                if Align.CompareText('xmidymid') then
+                  Result.Align := saXMidYMid;
+              'n', 'N':
+                if Align.CompareText('xminymin') then
+                  Result.Align := saXMinYMin
+                else
+                if Align.CompareText('xmidymin') then
+                  Result.Align := saXMidYMin;
+              'x', 'X':
+                if Align.CompareText('xminymax') then
+                  Result.Align := saXMinYMax
+                else
+                if Align.CompareText('xmidymax') then
+                  Result.Align := saXMidYMax;
+            end;
+          'a': //xmaxym??
+            case Align.Text[7] of
+              'd', 'D':
+                if Align.CompareText('xmaxymid') then
+                  Result.Align := saXMaxYMid;
+              'n', 'N':
+                if Align.CompareText('xmaxymin') then
+                  Result.Align := saXMaxYMin;
+              'x', 'X':
+                if Align.CompareText('xmaxymax') then
+                  Result.Align := saXMaxYMax;
+            end;
+        end;
 
-    p := PChars(@p[n]);
-    n := 0;
-    while (p[n] <> #0) and (p[n] <> ' ') do
-      Inc(n);
-
-    if (n > 0) then
-    begin
-      SetString(s, PAnsiChar(p), n);
-      s :=  AnsiStrings.LowerCase(s);
-
-      if s = 'slice' then
-        Result.MeetOrSlice := msSlice
-      else
-      if s = 'meet' then
-        Result.MeetOrSlice := msMeet;
-    end;
-
+      end;
   end;
+
+  if AValue.CompareText('slice') then
+    Result.MeetOrSlice := msSlice
+  else
+  if AValue.CompareText('meet') then
+    Result.MeetOrSlice := msMeet;
 end;
 
 { TFloatMatrixHelper }
@@ -1450,31 +1472,28 @@ begin
   Result := IsDefined and (Width > 0) and (Height > 0);
 end;
 
-class function TSvgViewBox.Parse(const AStr: string): TSvgViewBox;
+class function TSvgViewBox.Parse(AValue: TValuePUtf8Char): TSvgViewBox;
+type
+  TValues = array[0..3] of Single;
 var
-  s: string;
-  parts: TStringList;
-  v: array[0..3] of Single;
+  Value: TValuePUtf8Char;
+  Values: TValues;
   i: Integer;
 begin
   Result.IsDefined := False;
-  s := StringReplace(Trim(AStr), ',', ' ', [rfReplaceAll]);
-  parts := TStringList.Create;
-  try
-    parts.Delimiter := ' ';
-    parts.DelimitedText := s;
-    if parts.Count >= 4 then
-    begin
-      for i := 0 to 3 do
-      begin
-        if not TryStrToFloat(Trim(parts[i]), v[i], SvgFormatSettings) then
-          Exit;
-      end;
-      Result := Create(v[0], v[1], v[2], v[3]);
-    end;
-  finally
-    parts.Free;
+  Values := Default(TValues);
+  AValue.Trim;
+  i := 0;
+  while (AValue.Len > 0) and (i <= High(Values)) do
+  begin
+    Value := AValue.Split([' ', ','], True);
+    if (Value.Len = 0) then
+      exit;
+    if (not Value.TryToFloat(Values[i], True)) then
+      exit;
+    Inc(i);
   end;
+  Result := Create(Values[0], Values[1], Values[2], Values[3]);
 end;
 
 function TSvgViewBox.GetTransform(const ATargetRect: TFloatRect; const AAspect: TSvgPreserveAspectRatio): TFloatMatrix;

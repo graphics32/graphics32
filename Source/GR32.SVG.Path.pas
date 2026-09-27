@@ -35,11 +35,21 @@ interface
 {$include GR32.inc}
 
 uses
-  SysUtils, Classes, Math, GR32, GR32_Paths, GR32_Math, GR32.SVG.Types;
+  SysUtils, Classes, Math,
+  GR32,
+  GR32_Paths,
+  GR32_Math,
+  GR32.SVG.Utf8,
+  GR32.SVG.Types;
 
-procedure ParseSvgPathData(const APathData: string; APath: TCustomPath);
-function SvgPathDataToPath(const APathData: string): TFlattenedPath;
-function SvgPathDataToPoints(const APathData: string): TArrayOfArrayOfFloatPoint;
+procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath);
+function SvgPathDataToPath(const APathData: TValuePUtf8Char): TFlattenedPath; overload;
+function SvgPathDataToPoints(const APathData: TValuePUtf8Char): TArrayOfArrayOfFloatPoint; overload;
+
+{$if defined(UNIT_TEST)}
+function SvgPathDataToPath(const APathData: AnsiString): TFlattenedPath; overload;
+function SvgPathDataToPoints(const APathData: AnsiString): TArrayOfArrayOfFloatPoint; overload;
+{$ifend}
 
 implementation
 
@@ -49,71 +59,59 @@ uses
 type
   TSvgPathScanner = record
   private
-    FText: string;
-    FPos: Integer;
-    FLen: Integer;
-    procedure SkipWhitespace;
+    FText: TValuePUtf8Char;
   public
-    procedure Init(const AText: string);
+    procedure Init(const AText: TValuePUtf8Char);
     function HasMore: Boolean;
-    function IsCommand(var ACmd: Char): Boolean;
-    function ReadCommand(var ACmd: Char): Boolean;
+    function IsCommand(var ACmd: AnsiChar): Boolean;
+    function ReadCommand(var ACmd: AnsiChar): Boolean;
     function ReadNumber(out AValue: Single): Boolean;
     function ReadFlag(out AFlag: Boolean): Boolean;
   end;
 
-procedure TSvgPathScanner.Init(const AText: string);
+procedure TSvgPathScanner.Init(const AText: TValuePUtf8Char);
 begin
   FText := AText;
-  FPos := 1;
-  FLen := Length(AText);
 end;
 
 function TSvgPathScanner.HasMore: Boolean;
 begin
-  SkipWhitespace;
-  Result := FPos <= FLen;
+  FText.Trim;
+  Result := (FText.Len > 0);
 end;
 
-procedure TSvgPathScanner.SkipWhitespace;
+function TSvgPathScanner.IsCommand(var ACmd: AnsiChar): Boolean;
 begin
-  while (FPos <= FLen) and (FText[FPos] in [' ', #9, #10, #13, ',']) do
-    Inc(FPos);
-end;
-
-function TSvgPathScanner.IsCommand(var ACmd: Char): Boolean;
-begin
-  SkipWhitespace;
-  if (FPos <= FLen) and (FText[FPos] in ['M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z']) then
+  FText.Trim;
+  if (FText.Len > 0) and (FText.Text^ in ['M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z']) then
   begin
-    ACmd := FText[FPos];
-    Exit(True);
-  end;
-  Result := False;
+    ACmd := FText.Text^;
+    Result := True;
+  end else
+    Result := False;
 end;
 
-function TSvgPathScanner.ReadCommand(var ACmd: Char): Boolean;
+function TSvgPathScanner.ReadCommand(var ACmd: AnsiChar): Boolean;
 begin
   if IsCommand(ACmd) then
   begin
-    Inc(FPos);
-    Exit(True);
-  end;
-  Result := False;
+    FText.Skip;
+    Result := True;
+  end else
+    Result := False;
 end;
 
 function TSvgPathScanner.ReadNumber(out AValue: Single): Boolean;
 var
-  startPos: Integer;
-  numStr: string;
+  Value: TValuePUtf8Char;
 begin
-  SkipWhitespace;
-  if FPos > FLen then
+  FText.Trim([' ', #9, #10, #13, ',']);
+  if (FText.Len = 0) then
     Exit(False);
 
-  startPos := FPos;
-  if FText[FPos] in ['+', '-'] then
-    Inc(FPos);
+  Value := FText;
+  if (FText.Text^ in ['+', '-']) then
+    FText.Skip;
 
   // W3C SVG Path Data Syntax Optimization:
   // In condensed SVG path strings (e.g. 'A29,29,01061,32'), a number starting with '0'
@@ -122,277 +120,358 @@ begin
   // If the first digit is '0' and followed by another digit without a decimal point,
   // '0' is a standalone numeric value, and subsequent digits belong to flags or
   // coordinates. Stop reading after '0' so ReadFlag can parse subsequent flag digits.
-  if (FPos <= FLen) and (FText[FPos] = '0') and (FPos + 1 <= FLen) and (FText[FPos + 1] in ['0'..'9']) then
+  if (FText.Len > 1) and (FText.Text^ = '0') and (FText.Text[1] in ['0'..'9']) then
   begin
-    Inc(FPos);
+    FText.Skip;
   end else
   begin
-    while (FPos <= FLen) and (FText[FPos] in ['0'..'9', '.']) do
-    begin
-      if (FText[FPos] = '.') and (Pos('.', Copy(FText, startPos, FPos - startPos)) > 0) then
-        Break;
-      Inc(FPos);
-    end;
+    while (FText.Len > 0) and (FText.Text^ in ['0'..'9']) do
+      FText.Skip;
+    if (FText.Len > 0) and (FText.Text^ = '.') then
+      FText.Skip;
+    while (FText.Len > 0) and (FText.Text^ in ['0'..'9']) do
+      FText.Skip;
   end;
 
-  if (FPos <= FLen) and (FText[FPos] in ['e', 'E']) and
-     (FPos < FLen) and (FText[FPos + 1] in ['0'..'9', '+', '-']) then
+  if (FText.Len > 1) and (FText.Text^ in ['e', 'E']) and (FText.Text[1] in ['0'..'9', '+', '-']) then
   begin
-    Inc(FPos);
-    if (FPos <= FLen) and (FText[FPos] in ['+', '-']) then
-      Inc(FPos);
-    while (FPos <= FLen) and (FText[FPos] in ['0'..'9']) do
-      Inc(FPos);
+    FText.Skip;
+    if (FText.Text^ in ['+', '-']) then
+      FText.Skip;
+    while (FText.Len > 0) and (FText.Text^ in ['0'..'9']) do
+      FText.Skip;
   end;
 
-  if FPos = startPos then
+  Value.Len := Value.Len - FText.Len;
+  if (Value.Len = 0) then
     Exit(False);
 
-  numStr := Copy(FText, startPos, FPos - startPos);
-  if not TryStrToFloat(numStr, AValue, SvgFormatSettings) then
-    Exit(False);
-
-  Result := True;
+  Result := Value.TryToFloat(AValue);
 end;
 
 function TSvgPathScanner.ReadFlag(out AFlag: Boolean): Boolean;
 begin
-  SkipWhitespace;
-  if (FPos <= FLen) and (FText[FPos] in ['0', '1']) then
+  FText.Trim([' ', #9, #10, #13, ',']);
+  if (FText.Len > 0) and (FText.Text^ in ['0', '1']) then
   begin
-    AFlag := (FText[FPos] = '1');
-    Inc(FPos);
-    Exit(True);
-  end;
-  Result := False;
+    AFlag := (FText.Text^ = '1');
+    FText.Skip;
+    Result := True;
+  end else
+    Result := False;
 end;
 
-procedure ParseSvgPathData(const APathData: string; APath: TCustomPath);
+procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath);
 var
-  scanner: TSvgPathScanner;
-  cmd, lastCmd: Char;
-  isRel: Boolean;
-  currPt, startPt, lastCtrlPt: TFloatPoint;
-  val1, val2, val3, val4, val5, val6: Single;
-  flag1, flag2: Boolean;
+  LastCommand: AnsiChar;
+  CurrentPoint, LastControlPoint: TFloatPoint;
 
   function GetCubicControl1: TFloatPoint;
   begin
-    if CharInSet(lastCmd, ['C', 'c', 'S', 's']) then
-      Result := FloatPoint(2 * currPt.X - lastCtrlPt.X, 2 * currPt.Y - lastCtrlPt.Y)
-    else
-      Result := currPt;
+    if (LastCommand in ['C', 'c', 'S', 's']) then
+    begin
+      Result.X := 2 * CurrentPoint.X - LastControlPoint.X;
+      Result.Y := 2 * CurrentPoint.Y - LastControlPoint.Y;
+    end else
+      Result := CurrentPoint;
   end;
 
   function GetQuadControl1: TFloatPoint;
   begin
-    if CharInSet(lastCmd, ['Q', 'q', 'T', 't']) then
-      Result := FloatPoint(2 * currPt.X - lastCtrlPt.X, 2 * currPt.Y - lastCtrlPt.Y)
-    else
-      Result := currPt;
+    if (LastCommand in ['Q', 'q', 'T', 't']) then
+    begin
+      Result.X := 2 * CurrentPoint.X - LastControlPoint.X;
+      Result.Y := 2 * CurrentPoint.Y - LastControlPoint.Y;
+    end else
+      Result := CurrentPoint;
   end;
 
+var
+  Scanner: TSvgPathScanner;
+  Command: AnsiChar;
+  IsRel: Boolean;
+  StartPoint, NextPoint: TFloatPoint;
+  Value1, Value2, Value3, Value4, Value5, Value6: Single;
+  Flag1, Flag2: Boolean;
 const
   LargeArcMap: array[boolean] of TArcPart = (apMinor, apMajor);
   SweepMap: array[boolean] of TArcDirection = (adNegative, adPositive);
 begin
-  if APath = nil then Exit;
+  if (APath = nil) then
+    Exit;
 
-  scanner.Init(APathData);
-  currPt := FloatPoint(0, 0);
-  startPt := FloatPoint(0, 0);
-  lastCtrlPt := FloatPoint(0, 0);
-  cmd := #0;
-  lastCmd := #0;
+  Scanner.Init(APathData);
+  CurrentPoint := FloatPoint(0, 0);
+  StartPoint := FloatPoint(0, 0);
+  LastControlPoint := FloatPoint(0, 0);
+  Command := #0;
+  LastCommand := #0;
 
-  while scanner.HasMore do
+  while Scanner.HasMore do
   begin
-    if not scanner.ReadCommand(cmd) then
+    if not Scanner.ReadCommand(Command) then
     begin
-      if cmd = #0 then Break;
-      if (cmd = 'M') or (cmd = 'm') then
-      begin
-        if cmd = 'M' then cmd := 'L' else cmd := 'l';
+      // Implicit command repetition:
+      //
+      // - If a command is followed by extra coordinate numbers without a new
+      //   command letter, the previous command repeats implicitly.
+      //   For example, "L 10 20 30 40" is equivalent to "L 10 20 L 30 40".
+      //
+      // - Moveto exception:
+      //   If a moveto command (M or m) is followed by multiple coordinate
+      //   pairs, the first pair executes moveto, and all subsequent implicit
+      //   pairs execute lineto (L or l).
+      case LastCommand of
+        #0: break; // Invalid: No previous command
+        'M': Command := 'L';
+        'm': Command := 'l';
+      else
+        Command := LastCommand;
       end;
     end;
 
-    isRel := CharInSet(cmd, ['m', 'l', 'h', 'v', 'c', 's', 'q', 't', 'a']);
+    IsRel := (Command in ['m', 'l', 'h', 'v', 'c', 's', 'q', 't', 'a']);
 
-    case cmd of
+    case Command of
       'M', 'm':
         begin
-          if not (scanner.ReadNumber(val1) and scanner.ReadNumber(val2)) then Break;
-          if isRel then
-            currPt := FloatPoint(currPt.X + val1, currPt.Y + val2)
-          else
-            currPt := FloatPoint(val1, val2);
-          startPt := currPt;
-          lastCtrlPt := currPt;
-          APath.MoveTo(currPt);
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
+            break;
+
+          if IsRel then
+          begin
+            CurrentPoint.X := CurrentPoint.X + Value1;
+            CurrentPoint.Y := CurrentPoint.Y + Value2;
+          end else
+          begin
+            CurrentPoint.X := Value1;
+            CurrentPoint.Y := Value2;
+          end;
+
+          StartPoint := CurrentPoint;
+          LastControlPoint := CurrentPoint;
+
+          APath.MoveTo(CurrentPoint);
         end;
 
       'L', 'l':
         begin
-          if not (scanner.ReadNumber(val1) and scanner.ReadNumber(val2)) then Break;
-          if isRel then
-            currPt := FloatPoint(currPt.X + val1, currPt.Y + val2)
-          else
-            currPt := FloatPoint(val1, val2);
-          lastCtrlPt := currPt;
-          APath.LineTo(currPt);
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
+            break;
+
+          if IsRel then
+          begin
+            CurrentPoint.X := CurrentPoint.X + Value1;
+            CurrentPoint.Y := CurrentPoint.Y + Value2;
+          end else
+          begin
+            CurrentPoint.X := Value1;
+            CurrentPoint.Y := Value2;
+          end;
+
+          LastControlPoint := CurrentPoint;
+
+          APath.LineTo(CurrentPoint);
         end;
 
       'H', 'h':
         begin
-          if not scanner.ReadNumber(val1) then Break;
-          if isRel then
-            currPt.X := currPt.X + val1
+          if (not Scanner.ReadNumber(Value1)) then
+            Break;
+
+          if IsRel then
+            CurrentPoint.X := CurrentPoint.X + Value1
           else
-            currPt.X := val1;
-          lastCtrlPt := currPt;
-          APath.LineTo(currPt);
+            CurrentPoint.X := Value1;
+          LastControlPoint := CurrentPoint;
+
+          APath.LineTo(CurrentPoint);
         end;
 
       'V', 'v':
         begin
-          if not scanner.ReadNumber(val2) then Break;
-          if isRel then
-            currPt.Y := currPt.Y + val2
+          if (not Scanner.ReadNumber(Value2)) then
+            Break;
+
+          if IsRel then
+            CurrentPoint.Y := CurrentPoint.Y + Value2
           else
-            currPt.Y := val2;
-          lastCtrlPt := currPt;
-          APath.LineTo(currPt);
+            CurrentPoint.Y := Value2;
+          LastControlPoint := CurrentPoint;
+
+          APath.LineTo(CurrentPoint);
         end;
 
       'C', 'c':
         begin
-          if not (scanner.ReadNumber(val1) and scanner.ReadNumber(val2) and
-                  scanner.ReadNumber(val3) and scanner.ReadNumber(val4) and
-                  scanner.ReadNumber(val5) and scanner.ReadNumber(val6)) then Break;
-          if isRel then
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
+                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
+                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+            Break;
+
+          if IsRel then
           begin
-            APath.CurveTo(FloatPoint(currPt.X + val1, currPt.Y + val2),
-                          FloatPoint(currPt.X + val3, currPt.Y + val4),
-                          FloatPoint(currPt.X + val5, currPt.Y + val6));
-            lastCtrlPt := FloatPoint(currPt.X + val3, currPt.Y + val4);
-            currPt := FloatPoint(currPt.X + val5, currPt.Y + val6);
-          end
-          else
+            NextPoint.X := CurrentPoint.X + Value1;
+            NextPoint.Y := CurrentPoint.Y + Value2;
+            LastControlPoint.X := CurrentPoint.X + Value3;
+            LastControlPoint.Y := CurrentPoint.Y + Value4;
+            CurrentPoint.X := CurrentPoint.X + Value5;
+            CurrentPoint.Y := CurrentPoint.Y + Value6;
+          end else
           begin
-            APath.CurveTo(FloatPoint(val1, val2), FloatPoint(val3, val4), FloatPoint(val5, val6));
-            lastCtrlPt := FloatPoint(val3, val4);
-            currPt := FloatPoint(val5, val6);
+            NextPoint.X := Value1;
+            NextPoint.Y := Value2;
+            LastControlPoint.X := Value3;
+            LastControlPoint.Y := Value4;
+            CurrentPoint.X := Value5;
+            CurrentPoint.Y := Value6;
           end;
+
+          APath.CurveTo(NextPoint, LastControlPoint, CurrentPoint);
         end;
 
       'S', 's':
         begin
-          if not (scanner.ReadNumber(val3) and scanner.ReadNumber(val4) and
-                  scanner.ReadNumber(val5) and scanner.ReadNumber(val6)) then Break;
-          val1 := GetCubicControl1.X;
-          val2 := GetCubicControl1.Y;
-          if isRel then
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
+                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+            Break;
+
+          NextPoint := GetCubicControl1;
+
+          if IsRel then
           begin
-            APath.CurveTo(FloatPoint(val1, val2),
-                          FloatPoint(currPt.X + val3, currPt.Y + val4),
-                          FloatPoint(currPt.X + val5, currPt.Y + val6));
-            lastCtrlPt := FloatPoint(currPt.X + val3, currPt.Y + val4);
-            currPt := FloatPoint(currPt.X + val5, currPt.Y + val6);
-          end
-          else
+            LastControlPoint.X := CurrentPoint.X + Value3;
+            LastControlPoint.Y := CurrentPoint.Y + Value4;
+            CurrentPoint.X := CurrentPoint.X + Value5;
+            CurrentPoint.Y := CurrentPoint.Y + Value6;
+          end else
           begin
-            APath.CurveTo(FloatPoint(val1, val2), FloatPoint(val3, val4), FloatPoint(val5, val6));
-            lastCtrlPt := FloatPoint(val3, val4);
-            currPt := FloatPoint(val5, val6);
+            LastControlPoint.X := Value3;
+            LastControlPoint.Y := Value4;
+            CurrentPoint.X := Value5;
+            CurrentPoint.Y := Value6;
           end;
+
+          APath.CurveTo(NextPoint, LastControlPoint, CurrentPoint);
         end;
 
       'Q', 'q':
         begin
-          if not (scanner.ReadNumber(val1) and scanner.ReadNumber(val2) and
-                  scanner.ReadNumber(val3) and scanner.ReadNumber(val4)) then Break;
-          if isRel then
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
+                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+            Break;
+
+          if IsRel then
           begin
-            APath.ConicTo(FloatPoint(currPt.X + val1, currPt.Y + val2),
-                          FloatPoint(currPt.X + val3, currPt.Y + val4));
-            lastCtrlPt := FloatPoint(currPt.X + val1, currPt.Y + val2);
-            currPt := FloatPoint(currPt.X + val3, currPt.Y + val4);
-          end
-          else
+            LastControlPoint.X := CurrentPoint.X + Value1;
+            LastControlPoint.Y := CurrentPoint.Y + Value2;
+            CurrentPoint.X := CurrentPoint.X + Value3;
+            CurrentPoint.Y := CurrentPoint.Y + Value4;
+          end else
           begin
-            APath.ConicTo(FloatPoint(val1, val2), FloatPoint(val3, val4));
-            lastCtrlPt := FloatPoint(val1, val2);
-            currPt := FloatPoint(val3, val4);
+            LastControlPoint.X := Value1;
+            LastControlPoint.Y := Value2;
+            CurrentPoint.X := Value3;
+            CurrentPoint.Y := Value4;
           end;
+
+          APath.ConicTo(LastControlPoint, CurrentPoint);
         end;
 
       'T', 't':
         begin
-          if not (scanner.ReadNumber(val3) and scanner.ReadNumber(val4)) then Break;
-          val1 := GetQuadControl1.X;
-          val2 := GetQuadControl1.Y;
-          if isRel then
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+            Break;
+
+          NextPoint := GetQuadControl1;
+
+          if IsRel then
           begin
-            APath.ConicTo(FloatPoint(val1, val2),
-                          FloatPoint(currPt.X + val3, currPt.Y + val4));
-            lastCtrlPt := FloatPoint(val1, val2);
-            currPt := FloatPoint(currPt.X + val3, currPt.Y + val4);
-          end
-          else
+            LastControlPoint.X := CurrentPoint.X + NextPoint.X;
+            LastControlPoint.Y := CurrentPoint.Y + NextPoint.Y;
+            CurrentPoint.X := CurrentPoint.X + Value3;
+            CurrentPoint.Y := CurrentPoint.Y + Value4;
+          end else
           begin
-            APath.ConicTo(FloatPoint(val1, val2), FloatPoint(val3, val4));
-            lastCtrlPt := FloatPoint(val1, val2);
-            currPt := FloatPoint(val3, val4);
+            LastControlPoint := NextPoint;
+            CurrentPoint.X := Value3;
+            CurrentPoint.Y := Value4;
           end;
+
+          APath.ConicTo(LastControlPoint, CurrentPoint);
         end;
 
       'A', 'a':
         begin
-          if not (scanner.ReadNumber(val1) and scanner.ReadNumber(val2) and
-                  scanner.ReadNumber(val3) and scanner.ReadFlag(flag1) and
-                  scanner.ReadFlag(flag2) and scanner.ReadNumber(val4) and
-                  scanner.ReadNumber(val5)) then
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
+                  Scanner.ReadNumber(Value3) and Scanner.ReadFlag(Flag1) and
+                  Scanner.ReadFlag(Flag2) and Scanner.ReadNumber(Value4) and
+                  Scanner.ReadNumber(Value5)) then
             Break;
 
-          if isRel then
+          if IsRel then
           begin
-            currPt.X := APath.CurrentPoint.X + val4;
-            currPt.Y := APath.CurrentPoint.Y + val5;
+            CurrentPoint.X := APath.CurrentPoint.X + Value4;
+            CurrentPoint.Y := APath.CurrentPoint.Y + Value5;
           end else
           begin
-            currPt.X := val4;
-            currPt.Y := val5;
+            CurrentPoint.X := Value4;
+            CurrentPoint.Y := Value5;
           end;
-          APath.EllipticalArc(currPt, val1, val2, DegToRad(val3), LargeArcMap[flag1], SweepMap[flag2]);
-          lastCtrlPt := currPt;
+
+          APath.EllipticalArc(CurrentPoint, Value1, Value2, DegToRad(Value3), LargeArcMap[Flag1], SweepMap[Flag2]);
+          LastControlPoint := CurrentPoint;
         end;
 
       'Z', 'z':
         begin
           APath.EndPath(True);
-          currPt := startPt;
-          lastCtrlPt := currPt;
+          CurrentPoint := StartPoint;
+          LastControlPoint := CurrentPoint;
         end;
     end;
 
-    lastCmd := cmd;
+    LastCommand := Command;
   end;
 end;
 
-function SvgPathDataToPath(const APathData: string): TFlattenedPath;
+{$if defined(UNIT_TEST)}
+function SvgPathDataToPath(const APathData: AnsiString): TFlattenedPath;
+begin
+   Result := SvgPathDataToPath(TValuePUtf8Char.FromString(APathData));
+end;
+{$ifend}
+
+function SvgPathDataToPath(const APathData: TValuePUtf8Char): TFlattenedPath;
 begin
   Result := TFlattenedPath.Create;
-  ParseSvgPathData(APathData, Result);
-  Result.EndPath;
+  try
+
+    ParseSvgPathData(APathData, Result);
+    Result.EndPath;
+
+  except
+    Result.Free;
+    raise;
+  end;
 end;
 
-function SvgPathDataToPoints(const APathData: string): TArrayOfArrayOfFloatPoint;
+{$if defined(UNIT_TEST)}
+function SvgPathDataToPoints(const APathData: AnsiString): TArrayOfArrayOfFloatPoint;
+begin
+   Result := SvgPathDataToPoints(TValuePUtf8Char.FromString(APathData));
+end;
+{$ifend}
+
+function SvgPathDataToPoints(const APathData: TValuePUtf8Char): TArrayOfArrayOfFloatPoint;
 var
   p: TFlattenedPath;
 begin
   p := SvgPathDataToPath(APathData);
   try
+
     Result := p.Path;
+
   finally
     p.Free;
   end;

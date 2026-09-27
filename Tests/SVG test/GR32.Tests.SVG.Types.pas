@@ -57,7 +57,8 @@ type
 implementation
 
 uses
-  Types;
+  Types,
+  GR32.SVG.Utf8;
 
 { TTestSvgTypes }
 
@@ -162,15 +163,15 @@ procedure TTestSvgTypes.TestSvgPreserveAspectRatioParse;
 var
   ar: TSvgPreserveAspectRatio;
 begin
-  ar := TSvgPreserveAspectRatio.Parse('xMidYMid meet');
+  ar := TSvgPreserveAspectRatio.Parse(TValuePUtf8Char.FromString('xMidYMid meet'));
   CheckEquals(Ord(saXMidYMid), Ord(ar.Align));
   CheckEquals(Ord(msMeet), Ord(ar.MeetOrSlice));
 
-  ar := TSvgPreserveAspectRatio.Parse('xMinYMax slice');
+  ar := TSvgPreserveAspectRatio.Parse(TValuePUtf8Char.FromString('xMinYMax slice'));
   CheckEquals(Ord(saXMinYMax), Ord(ar.Align));
   CheckEquals(Ord(msSlice), Ord(ar.MeetOrSlice));
 
-  ar := TSvgPreserveAspectRatio.Parse('none');
+  ar := TSvgPreserveAspectRatio.Parse(TValuePUtf8Char.FromString('none'));
   CheckEquals(Ord(saNone), Ord(ar.Align));
 end;
 
@@ -183,7 +184,7 @@ var
   helper: TFloatMatrixHelper;
   pIn, pOut: TFloatPoint;
 begin
-  vb := TSvgViewBox.Parse('0 0 100 200');
+  vb := TSvgViewBox.Parse(TValuePUtf8Char.FromString( '0 0 100 200'));
   Check(vb.IsValid);
   CheckEquals(0.0, vb.X, 1E-4);
   CheckEquals(0.0, vb.Y, 1E-4);
@@ -191,7 +192,7 @@ begin
   CheckEquals(200.0, vb.Height, 1E-4);
 
   targetRect := FloatRect(0, 0, 200, 400);
-  aspect := TSvgPreserveAspectRatio.Parse('none');
+  aspect := TSvgPreserveAspectRatio.Parse(TValuePUtf8Char.FromString('none'));
   m := vb.GetTransform(targetRect, aspect);
 
   pIn := FloatPoint(50, 50);

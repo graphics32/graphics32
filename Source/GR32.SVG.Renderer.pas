@@ -138,6 +138,9 @@ uses
 const
   ZERO_WIDTH_SPACE = $200B; // Unicode ZERO WIDTH SPACE
 
+const
+  cMaxStackDepth = 80; // Checked in PushMatrix. Raises exception if exceeded.
+
 function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
 var
   det: Single;
@@ -428,6 +431,8 @@ end;
 
 procedure TSvgRenderer.PushMatrix;
 begin
+  if (FMatrixStack.Count > cMaxStackDepth) then
+    raise Exception.Create('Max stack depth exceeded; Likely invalid recursion in svg references');
   FMatrixStack.Add(FCurrentMatrix);
 end;
 

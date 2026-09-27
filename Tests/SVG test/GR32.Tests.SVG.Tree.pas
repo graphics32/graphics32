@@ -242,7 +242,6 @@ var
   xml: UTF8String;
   docNode: TSvgDocumentNode;
   switchNode: TSvgSwitchNode;
-  selectedChild: TSvgNode;
 begin
   // 1. Feature keyword dictionary tests
   Check(IsSupportedSvgFeature('http://www.w3.org/TR/SVG11/feature#SVG'), 'Standard SVG feature URI should be supported');

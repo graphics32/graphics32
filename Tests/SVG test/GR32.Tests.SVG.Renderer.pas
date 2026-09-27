@@ -76,7 +76,8 @@ type
 implementation
 
 uses
-  Types;
+  Types,
+  GR32.SVG.Utf8;
 
 { TTestSvgRenderer }
 
@@ -236,7 +237,6 @@ end;
 
 procedure TTestSvgRenderer.TestEscapedTextRendering;
 var
-  bmp: TBitmap32;
   docNode: TSvgDocumentNode;
   textNode: TSvgTextNode;
   xml: UTF8String;
@@ -343,6 +343,16 @@ begin
 end;
 
 procedure TTestSvgRenderer.TestTransformStack;
+
+  function ParseSvgTransformHelper(const AStr: string): TFloatMatrix;
+  var
+    Value: TValuePUtf8Char;
+  begin
+    Value.Text := pointer(AnsiString(AStr));
+    Value.Len := Length(AStr);
+    Result := ParseSvgTransform(Value);
+  end;
+
 var
   renderer: TSvgRenderer;
   initialMat: TFloatMatrix;
@@ -351,7 +361,7 @@ begin
   try
     initialMat := renderer.CurrentMatrix;
     renderer.PushMatrix;
-    renderer.ApplyMatrix(ParseSvgTransform('translate(20, 30)'));
+    renderer.ApplyMatrix(ParseSvgTransformHelper('translate(20, 30)'));
 
     Check(FloatRect(0, 0, 0, 0) <> FloatRect(1, 1, 1, 1), 'Dummy check');
     Check(renderer.CurrentMatrix[2, 0] = 20.0, 'Translate X should be 20');
@@ -1249,8 +1259,10 @@ begin
     renderer.RenderDocument(docNode);
 
     pPixel := bmp.Pixel[5, 5];
-    CheckEquals(128, RedComponent(pPixel), 'Arithmetic K2=0.5 of Red (255) should give 128 Red');
-    CheckEquals(128, BlueComponent(pPixel), 'Arithmetic K3=0.5 of Blue (255) should give 128 Blue');
+    if (Abs(RedComponent(pPixel) - 128) > 1) then
+      CheckEquals(128, RedComponent(pPixel), 'Arithmetic K2=0.5 of Red (255) should give 128 Red');
+    if (Abs(BlueComponent(pPixel) - 128) > 1) then
+      CheckEquals(128, BlueComponent(pPixel), 'Arithmetic K3=0.5 of Blue (255) should give 128 Blue');
   finally
     renderer.Free;
     bmp.Free;

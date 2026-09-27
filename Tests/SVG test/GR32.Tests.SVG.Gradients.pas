@@ -143,7 +143,7 @@ procedure TTestSvgGradients.TestGradientInheritance;
 var
   xml: UTF8String;
   docNode: TSvgDocumentNode;
-  baseGrad, derivedGrad: TSvgLinearGradientNode;
+  derivedGrad: TSvgLinearGradientNode;
   defsNode: TSvgDefsNode;
 begin
   xml := '<svg width="100" height="100">' +
@@ -162,7 +162,6 @@ begin
     defsNode := TSvgDefsNode(docNode.Children[0]);
     CheckEquals(2, defsNode.Children.Count);
 
-    baseGrad := TSvgLinearGradientNode(defsNode.Children[0]);
     derivedGrad := TSvgLinearGradientNode(defsNode.Children[1]);
 
     CheckEquals('#baseGrad', derivedGrad.Href);

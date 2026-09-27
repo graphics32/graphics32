@@ -32,6 +32,9 @@ unit GR32.SVG.Utf8;
  * https://github.com/synopse/mORMot2/src/core/mormot.core.fmt.pas
  * Commit SHA: 3af914ac15eab28c41411a1c449da2cf5b1e3a67
  *
+ * Patches to the original code has been marked with [*].
+ * Additions has not been marked.
+ *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -91,11 +94,20 @@ type
     /// case-sensitive comparison with the stored text Value
     function Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean; overload;
 
+//    class operator implicit(const Value: TValuePUtf8Char): AnsiString; // -> AnsiString
+
+    // constructor for debug/unit test
+    class function FromString(const AValue: AnsiString): TValuePUtf8Char; static;
+
     /// case-insensitive comparison with the stored text Value
     function CompareText(const AValue: ansistring): Boolean;
     function StartsText(const AValue: ansistring; ASkip: boolean = False): Boolean;
 
     function ToCardinalAndSkip: Cardinal;
+    function TryToFloat(out Value: Double): boolean; overload;
+    function TryToFloat(out Value: Double; Skip: boolean): boolean; overload;
+    function TryToFloat(out Value: Single): boolean; overload;
+    function TryToFloat(out Value: Single; Skip: boolean): boolean; overload;
 
     function LastChar: AnsiChar;
 
@@ -312,7 +324,12 @@ begin
 
   E := IntVal;
 
+  // [*] Fix: Original code considered ',' a decimal separator.
+  // This is not valid according to the XML standard: https://www.w3.org/TR/xmlschema11-2/#decimal
+  (* old
   if (P < PEnd) and (P^ in ['.', ',']) then
+  *)
+  if (P < PEnd) and (P^ = '.') then
   begin
     Inc(P);
     FracVal := 0;
@@ -404,6 +421,52 @@ begin
     Skip;
 end;
 
+function TValuePUtf8Char.TryToFloat(out Value: Single): boolean;
+begin
+  Result := TryToFloat(Value, False);
+end;
+
+function TValuePUtf8Char.TryToFloat(out Value: Single; Skip: boolean): boolean;
+var
+  Dbl: Double;
+begin
+  Result := TryToFloat(Dbl, Skip);
+  if (Result) then
+    Value := dbl;
+end;
+
+function TValuePUtf8Char.TryToFloat(out Value: Double): boolean;
+begin
+  Result := TryToFloat(Value, False);
+end;
+
+function TValuePUtf8Char.TryToFloat(out Value: Double; Skip: boolean): boolean;
+var
+  Ext: Extended;
+  pRes: PUtf8Char;
+begin
+  if (Text = nil) or (Len <= 0) then
+  begin
+    Value := 0.0;
+    Exit(False);
+  end;
+
+  pRes := GetExtended(Text, Ext, Text + Len);
+
+  Result := (pRes <> nil);
+
+  if (Result) then
+  begin
+    Value := Ext;
+
+    if (Skip) then
+    begin
+      Dec(Len, pRes - Text);
+      Text := pRes;
+    end;
+  end;
+end;
+
 procedure TValuePUtf8Char.Trim;
 begin
   while (Len > 0) and (Text^ in [#1..#32]) do
@@ -490,6 +553,19 @@ function TValuePUtf8Char.Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean;
 begin
   Result := (Len = ValueLen) and CompareMem(Text, Value, Len);
 end;
+
+class function TValuePUtf8Char.FromString(const AValue: AnsiString): TValuePUtf8Char;
+begin
+  Result.Text := pointer(AValue);
+  Result.Len := Length(AValue);
+end;
+
+(*
+class operator TValuePUtf8Char.implicit(const Value: TValuePUtf8Char): AnsiString;
+begin
+  SetString(Result, Value.Text, Value.Len);
+end;
+*)
 
 function TValuePUtf8Char.LastChar: AnsiChar;
 begin

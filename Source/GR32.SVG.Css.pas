@@ -74,6 +74,9 @@ type
 
 implementation
 
+uses
+  GR32.SVG.Utf8;
+
 { TSvgCssSelector }
 
 class function TSvgCssSelector.Parse(const ASelectorStr: string): TSvgCssSelector;
@@ -97,14 +100,13 @@ begin
     Result.Kind := skId;
     Result.Name := Copy(s, 2, Length(s) - 1);
     Result.Specificity := 100;
-  end
-  else if s[1] = '.' then
+  end else
+  if s[1] = '.' then
   begin
     Result.Kind := skClass;
     Result.Name := Copy(s, 2, Length(s) - 1);
     Result.Specificity := 10;
-  end
-  else
+  end else
   begin
     Result.Kind := skElement;
     Result.Name := LowerCase(s);
@@ -311,9 +313,8 @@ end;
 
 procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: string);
 var
-  specIdx: Integer;
-  ruleIdx, propIdx: Integer;
-  rule: TSvgCssRule;
+  i, j: Integer;
+  Rule: TSvgCssRule;
 const
   // CSS Specificity values based on W3C CSS2 / SVG 1.1 specification:
   //   0   = Universal selector (*)
@@ -331,20 +332,11 @@ begin
   if (ANode = nil) or (FRules.Count = 0) then
     Exit;
 
-  for specIdx := Low(Specificities) to High(Specificities) do
-  begin
-    for ruleIdx := 0 to FRules.Count - 1 do
-    begin
-      rule := FRules[ruleIdx];
-      if (rule.Selector.Specificity = Specificities[specIdx]) and rule.Selector.Matches(AElementTag, AClassName, AElementId) then
-      begin
-        for propIdx := 0 to High(rule.Properties) do
-        begin
-          ANode.ParseAttribute(rule.Properties[propIdx].Name, rule.Properties[propIdx].Value);
-        end;
-      end;
-    end;
-  end;
+  for i := Low(Specificities) to High(Specificities) do
+    for Rule in FRules do
+      if (Rule.Selector.Specificity = Specificities[i]) and Rule.Selector.Matches(AElementTag, AClassName, AElementId) then
+        for j := 0 to High(Rule.Properties) do
+          ANode.ParseAttribute(TValuePUtf8Char.FromString(Rule.Properties[j].Name), TValuePUtf8Char.FromString(Rule.Properties[j].Value));
 end;
 
 end.
