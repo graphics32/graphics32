@@ -100,8 +100,10 @@ type
     class function FromString(const AValue: AnsiString): TValuePUtf8Char; static;
 
     /// case-insensitive comparison with the stored text Value
-    function CompareText(const AValue: ansistring): Boolean;
-    function StartsText(const AValue: ansistring; ASkip: boolean = False): Boolean;
+    function CompareText(const AValue: AnsiString): Boolean; overload;
+    function CompareText(const AValue: TValuePUtf8Char): Boolean; overload;
+    function StartsText(const AValue: AnsiString; ASkip: boolean = False): Boolean; overload;
+    function StartsText(const AValue: TValuePUtf8Char; ASkip: boolean = False): Boolean; overload;
 
     function ToCardinalAndSkip: Cardinal;
     function TryToFloat(out Value: Double): boolean; overload;
@@ -649,67 +651,91 @@ end;
 
 function TValuePUtf8Char.StartsText(const AValue: ansistring; ASkip: boolean): Boolean;
 var
+  Value: TValuePUtf8Char;
+begin
+  Value.Text := pointer(AValue);
+  Value.Len := Length(AValue);
+  Result := StartsText(Value, ASkip);
+end;
+
+function TValuePUtf8Char.StartsText(const AValue: TValuePUtf8Char; ASkip: boolean): Boolean;
+var
   i: Integer;
-  p1: PUtf8Char;
+  p1, p2: PUtf8Char;
   c1, c2: Byte;
 begin
-  if Len < Length(AValue) then
+  if (Len < AValue.Len) then
     Exit(False);
 
   p1 := Text;
+  p2 := AValue.Text;
 
-  for i := 1 to Length(AValue) do
+  for i := 1 to AValue.Len do
   begin
     c1 := Byte(p1^);
-    c2 := Byte(AValue[i]);
+    c2 := Byte(p2^);
 
-    // Convert ASCII uppercase A-Z (65..90) to lowercase (97..122) in-place
-    if c1 in [65..90] then
-      Inc(c1, 32);
-    if c2 in [65..90] then
-      Inc(c2, 32);
+    if (c1 <> c2) then
+    begin
+      // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
+      if c1 in [65..90] then
+        c1 := c1 xor $20;
 
-    if c1 <> c2 then
-      Exit(False);
+      if (c1 <> c2) then
+        Exit(False);
+    end;
 
     Inc(p1);
+    Inc(p2);
   end;
 
   if (ASkip) then
   begin
-    Inc(Text, Length(AValue));
-    Dec(Len, Length(AValue));
+    Inc(Text, AValue.Len);
+    Dec(Len, AValue.Len);
   end;
 
   Result := True;
 end;
 
-function TValuePUtf8Char.CompareText(const AValue: ansistring): Boolean;
+function TValuePUtf8Char.CompareText(const AValue: AnsiString): Boolean;
+var
+  Value: TValuePUtf8Char;
+begin
+  Value.Text := pointer(AValue);
+  Value.Len := Length(AValue);
+  Result := CompareText(Value);
+end;
+
+function TValuePUtf8Char.CompareText(const AValue: TValuePUtf8Char): Boolean;
 var
   i: Integer;
-  p1: PUtf8Char;
+  p1, p2: PUtf8Char;
   c1, c2: Byte;
 begin
-  if Len <> Length(AValue) then
+  if (Len <> AValue.Len) then
     Exit(False);
 
   p1 := Text;
+  p2 := AValue.Text;
 
   for i := 1 to Len do
   begin
     c1 := Byte(p1^);
-    c2 := Byte(AValue[i]);
+    c2 := Byte(p2^);
 
-    // Convert ASCII uppercase A-Z (65..90) to lowercase (97..122) in-place
-    if c1 in [65..90] then
-      Inc(c1, 32);
-    if c2 in [65..90] then
-      Inc(c2, 32);
+    if (c1 <> c2) then
+    begin
+      // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
+      if c1 in [65..90] then
+        c1 := c1 xor $20;
 
-    if c1 <> c2 then
-      Exit(False);
+      if c1 <> c2 then
+        Exit(False);
+    end;
 
     Inc(p1);
+    Inc(p2);
   end;
 
   Result := True;

@@ -201,1031 +201,10 @@ type
 
 //------------------------------------------------------------------------------
 //
-//      TSvgNode
+//      Attribute keywords (that we support)
 //
 //------------------------------------------------------------------------------
-// SVG node base class
-//------------------------------------------------------------------------------
-type
-  TSvgMarkerNode = class;
-  TSvgFilterNode = class;
-
-  TSvgNode = class abstract(TObject)
-  private
-    FID: string;
-    FCssClassName: string;
-    FStyleAttr: string; // Stores raw inline style="..." string for deferred cascade evaluation
-    FTransform: TFloatMatrix;
-    FVisible: Boolean;
-    FMixBlendMode: TSvgBlendMode;
-    FIsolation: TSvgIsolation;
-    FFilterID: string;
-    FResolvedFilter: TSvgFilterNode;
-    FParent: TSvgNode;
-    FFill: TSvgFill;
-    FStroke: TSvgStroke;
-    FMarkerStart: string;
-    FMarkerMid: string;
-    FMarkerEnd: string;
-    FResolvedMarkerStart: TSvgMarkerNode;
-    FResolvedMarkerMid: TSvgMarkerNode;
-    FResolvedMarkerEnd: TSvgMarkerNode;
-    FResolving: Boolean;
-    FRequiredFeatures: string;
-    FRequiredExtensions: string;
-    FSystemLanguage: string;
-  protected
-    function GetIsRenderable: Boolean; virtual;
-    function DumpNode(Indent: Integer = 0): string; virtual;
-    function DumpChildren(Indent: Integer = 0): string; virtual;
-  public
-    constructor Create(AParent: TSvgNode = nil); virtual;
-    destructor Destroy; override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; virtual;
-    function FindNodeById(const AId: string): TSvgNode; virtual;
-    procedure Render(ACanvas: TObject); virtual;
-    function GetObjectBoundingBox: TFloatRect; virtual;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; virtual;
-{$if defined(UNIT_TEST)}
-    procedure ParseAttribute(const AName, AValue: AnsiString); overload; virtual;
-{$ifend}
-    procedure ParseStyleAttribute(AStyleStr: TValuePUtf8Char); overload;
-    procedure ParseStyleAttribute(const AStyleStr: string); overload;
-    function CheckRequiredFeatures: Boolean; virtual;
-    function CheckRequiredExtensions: Boolean; virtual;
-    function CheckSystemLanguage: Boolean; virtual;
-    function PassesConditionalProcessing: Boolean; virtual;
-    function Dump(Indent: Integer = 0): string;
-    property ID: string read FID write FID;
-    property CssClassName: string read FCssClassName write FCssClassName;
-    property StyleAttr: string read FStyleAttr write FStyleAttr;
-    property Transform: TFloatMatrix read FTransform write FTransform;
-    property Visible: Boolean read FVisible write FVisible;
-    property MixBlendMode: TSvgBlendMode read FMixBlendMode write FMixBlendMode;
-    property Isolation: TSvgIsolation read FIsolation write FIsolation;
-    property FilterID: string read FFilterID write FFilterID;
-    property ResolvedFilter: TSvgFilterNode read FResolvedFilter write FResolvedFilter;
-    property Parent: TSvgNode read FParent write FParent;
-    property Fill: TSvgFill read FFill write FFill;
-    property Stroke: TSvgStroke read FStroke write FStroke;
-    property MarkerStart: string read FMarkerStart write FMarkerStart;
-    property MarkerMid: string read FMarkerMid write FMarkerMid;
-    property MarkerEnd: string read FMarkerEnd write FMarkerEnd;
-    property ResolvedMarkerStart: TSvgMarkerNode read FResolvedMarkerStart write FResolvedMarkerStart;
-    property ResolvedMarkerMid: TSvgMarkerNode read FResolvedMarkerMid write FResolvedMarkerMid;
-    property ResolvedMarkerEnd: TSvgMarkerNode read FResolvedMarkerEnd write FResolvedMarkerEnd;
-    property RequiredFeatures: string read FRequiredFeatures write FRequiredFeatures;
-    property RequiredExtensions: string read FRequiredExtensions write FRequiredExtensions;
-    property SystemLanguage: string read FSystemLanguage write FSystemLanguage;
-    property IsRenderable: Boolean read GetIsRenderable;
-  end;
-
-  TSvgNodeClass = class of TSvgNode;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgGroupNode
-//
-//------------------------------------------------------------------------------
-// TODO : We should have a TCustomSvgGroupNode base class so we can differentiate between 'G' nodes
-// and nodes derived from a group node.
-//------------------------------------------------------------------------------
-  TSvgClipPathNode = class;
-  TSvgMaskNode = class;
-
-  TSvgGroupNode = class(TSvgNode)
-  private
-    FChildren: TObjectList<TSvgNode>;
-    FOpacity: Single;
-    FClipPathID: string;
-    FMaskID: string;
-    FResolvedClipPath: TSvgClipPathNode;
-    FResolvedMask: TSvgMaskNode;
-    FFontFamily: string;
-    FFontSize: TSvgLength;
-    FFontWeight: string;
-    FFontStyle: string;
-    FTextAnchor: TSvgTextAnchor;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-    function DumpChildren(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    destructor Destroy; override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    function FindNodeById(const AId: string): TSvgNode; override;
-    function GetObjectBoundingBox: TFloatRect; override;
-    procedure AddChild(AChild: TSvgNode);
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property Children: TObjectList<TSvgNode> read FChildren;
-    property Opacity: Single read FOpacity write FOpacity;
-    property ClipPathID: string read FClipPathID write FClipPathID;
-    property MaskID: string read FMaskID write FMaskID;
-    property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
-    property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
-    property FontFamily: string read FFontFamily write FFontFamily;
-    property FontSize: TSvgLength read FFontSize write FFontSize;
-    property FontWeight: string read FFontWeight write FFontWeight;
-    property FontStyle: string read FFontStyle write FFontStyle;
-    property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgSwitchNode
-//
-//------------------------------------------------------------------------------
-// TSvgSwitchNode represents an SVG <switch> container element that evaluates
-// conditional processing attributes (requiredFeatures, requiredExtensions,
-// systemLanguage) on its direct child elements in document order and renders
-// only the first direct child element for which all conditions evaluate to true.
-//------------------------------------------------------------------------------
-  TSvgSwitchNode = class(TSvgGroupNode)
-  private
-    FSelectedChild: TSvgNode;
-  public
-    function GetSelectedChild: TSvgNode;
-    function GetObjectBoundingBox: TFloatRect; override;
-    property SelectedChild: TSvgNode read FSelectedChild write FSelectedChild;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgGradientNode
-//
-//------------------------------------------------------------------------------
-  TSvgGradientNode = class(TSvgGroupNode)
-  private
-    FStops: TList<TSvgGradientStop>;
-    FSpreadMethod: TSvgSpreadMethod;
-    FGradientUnits: TSvgGradientUnits;
-    FHref: string;
-  protected
-    function GetIsRenderable: Boolean; override;
-    function DumpNode(Indent: Integer = 0): string; override;
-    function DumpChildren(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    destructor Destroy; override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure AddStop(const AStop: TSvgGradientStop);
-    procedure InheritFrom(ParentGradient: TSvgGradientNode); virtual;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property Stops: TList<TSvgGradientStop> read FStops;
-    property SpreadMethod: TSvgSpreadMethod read FSpreadMethod write FSpreadMethod;
-    property GradientUnits: TSvgGradientUnits read FGradientUnits write FGradientUnits;
-    property Href: string read FHref write FHref;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgLinearGradientNode
-//
-//------------------------------------------------------------------------------
-  TSvgLinearGradientNode = class(TSvgGradientNode)
-  private
-    FX1: TSvgLength;
-    FY1: TSvgLength;
-    FX2: TSvgLength;
-    FY2: TSvgLength;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property X1: TSvgLength read FX1 write FX1;
-    property Y1: TSvgLength read FY1 write FY1;
-    property X2: TSvgLength read FX2 write FX2;
-    property Y2: TSvgLength read FY2 write FY2;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgRadialGradientNode
-//
-//------------------------------------------------------------------------------
-  TSvgRadialGradientNode = class(TSvgGradientNode)
-  private type
-    TSvgRadialGradientProperties = set of (gpFocalX, gpFocalY);
-  private
-    FSpecified: TSvgRadialGradientProperties;
-    FCx: TSvgLength;
-    FCy: TSvgLength;
-    FR: TSvgLength;
-    FFx: TSvgLength;
-    FFy: TSvgLength;
-    function GetFx: TSvgLength;
-    function GetFy: TSvgLength;
-    procedure SetFx(const Value: TSvgLength);
-    procedure SetFy(const Value: TSvgLength);
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-
-    property Cx: TSvgLength read FCx write FCx;
-    property Cy: TSvgLength read FCy write FCy;
-    property R: TSvgLength read FR write FR;
-    // Focal point; Falls back to Center if not specified
-    property Fx: TSvgLength read GetFx write SetFx;
-    property Fy: TSvgLength read GetFy write SetFy;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgClipPathNode
-//
-//------------------------------------------------------------------------------
-  TSvgClipPathNode = class(TSvgGroupNode)
-  private
-    FClipPathUnits: TSvgGradientUnits;
-  protected
-    function GetIsRenderable: Boolean; override;
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property ClipPathUnits: TSvgGradientUnits read FClipPathUnits write FClipPathUnits;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgMaskNode
-//
-//------------------------------------------------------------------------------
-  TSvgMaskNode = class(TSvgGroupNode)
-  private
-    FX: TSvgLength;
-    FY: TSvgLength;
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-    FMaskUnits: TSvgGradientUnits;
-    FMaskContentUnits: TSvgGradientUnits;
-  protected
-    function GetIsRenderable: Boolean; override;
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property X: TSvgLength read FX write FX;
-    property Y: TSvgLength read FY write FY;
-    property Width: TSvgLength read FWidth write FWidth;
-    property Height: TSvgLength read FHeight write FHeight;
-    property MaskUnits: TSvgGradientUnits read FMaskUnits write FMaskUnits;
-    property MaskContentUnits: TSvgGradientUnits read FMaskContentUnits write FMaskContentUnits;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgPatternNode
-//
-//------------------------------------------------------------------------------
-  TSvgPatternNode = class(TSvgGroupNode)
-  private
-    FX: TSvgLength;
-    FY: TSvgLength;
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-    FPatternUnits: TSvgGradientUnits;
-    FPatternContentUnits: TSvgGradientUnits;
-    FPatternTransform: TFloatMatrix;
-    FViewBox: TSvgViewBox;
-    FPreserveAspectRatio: TSvgPreserveAspectRatio;
-    FHref: string;
-  protected
-    function GetIsRenderable: Boolean; override;
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure InheritFrom(ParentPattern: TSvgPatternNode); virtual;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property X: TSvgLength read FX write FX;
-    property Y: TSvgLength read FY write FY;
-    property Width: TSvgLength read FWidth write FWidth;
-    property Height: TSvgLength read FHeight write FHeight;
-    property PatternUnits: TSvgGradientUnits read FPatternUnits write FPatternUnits;
-    property PatternContentUnits: TSvgGradientUnits read FPatternContentUnits write FPatternContentUnits;
-    property PatternTransform: TFloatMatrix read FPatternTransform write FPatternTransform;
-    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
-    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
-    property Href: string read FHref write FHref;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFilterPrimitiveNode
-//
-//------------------------------------------------------------------------------
-// SVG Filter AST Node Hierarchy
-//------------------------------------------------------------------------------
-  TSvgFilterPrimitiveNode = class(TSvgGroupNode)
-  private
-    FIn1: string;
-    FIn2: string;
-    FResult: string;
-    FResolvedIn1: TSvgFilterInput;
-    FResolvedIn2: TSvgFilterInput;
-    function GetIsReferenceTarget: boolean;
-  protected
-    function GetIsRenderable: Boolean; override;
-  public
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property In1: string read FIn1 write FIn1;
-    property In2: string read FIn2 write FIn2;
-    property ResultName: string read FResult write FResult;
-    property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
-    property ResolvedIn2: TSvgFilterInput read FResolvedIn2 write FResolvedIn2;
-    property IsReferenceTarget: boolean read GetIsReferenceTarget;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeGaussianBlurNode
-//
-//------------------------------------------------------------------------------
-// Filter: feGaussianBlur
-//------------------------------------------------------------------------------
-  TSvgFeGaussianBlurNode = class(TSvgFilterPrimitiveNode)
-  private
-    FStdDeviationX: Single;
-    FStdDeviationY: Single;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property StdDeviationX: Single read FStdDeviationX write FStdDeviationX;
-    property StdDeviationY: Single read FStdDeviationY write FStdDeviationY;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeColorMatrixNode
-//
-//------------------------------------------------------------------------------
-// Filter: feColorMatrix
-//------------------------------------------------------------------------------
-  TSvgFeColorMatrixNode = class(TSvgFilterPrimitiveNode)
-  private
-    FMatrixType: TSvgFeColorMatrixType;
-    FValues: TArrayOfFloat;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property MatrixType: TSvgFeColorMatrixType read FMatrixType write FMatrixType;
-    property Values: TArrayOfFloat read FValues write FValues;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeBlendNode
-//
-//------------------------------------------------------------------------------
-// Filter: feBlend
-//------------------------------------------------------------------------------
-  TSvgFeBlendNode = class(TSvgFilterPrimitiveNode)
-  private
-    FMode: TSvgBlendMode;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property Mode: TSvgBlendMode read FMode write FMode;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeCompositeNode
-//
-//------------------------------------------------------------------------------
-// Filter: feComposite
-//------------------------------------------------------------------------------
-  TSvgFeCompositeNode = class(TSvgFilterPrimitiveNode)
-  private
-    FOperator: TSvgCompositeOperator;
-    FK1: Single;
-    FK2: Single;
-    FK3: Single;
-    FK4: Single;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property CompositeOperator: TSvgCompositeOperator read FOperator write FOperator;
-    property K1: Single read FK1 write FK1;
-    property K2: Single read FK2 write FK2;
-    property K3: Single read FK3 write FK3;
-    property K4: Single read FK4 write FK4;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeMergeNodeChild
-//
-//------------------------------------------------------------------------------
-// Filter: feMerge child node
-//------------------------------------------------------------------------------
-  TSvgFeMergeNodeChild = class(TSvgNode)
-  private
-    FIn1: string;
-    FResolvedIn1: TSvgFilterInput;
-  protected
-    function GetIsRenderable: Boolean; override;
-  public
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property In1: string read FIn1 write FIn1;
-    property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeMergeNode
-//
-//------------------------------------------------------------------------------
-// Filter: feMerge
-//------------------------------------------------------------------------------
-  TSvgFeMergeNode = class(TSvgFilterPrimitiveNode)
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeOffsetNode
-//
-//------------------------------------------------------------------------------
-// Filter: feOffset
-//------------------------------------------------------------------------------
-  TSvgFeOffsetNode = class(TSvgFilterPrimitiveNode)
-  private
-    FDx: Single;
-    FDy: Single;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property Dx: Single read FDx write FDx;
-    property Dy: Single read FDy write FDy;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFeFloodNode
-//
-//------------------------------------------------------------------------------
-// Filter: feFlood
-//------------------------------------------------------------------------------
-  TSvgFeFloodNode = class(TSvgFilterPrimitiveNode)
-  private
-    FFloodColor: TSvgColor;
-    FFloodOpacity: Single;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property FloodColor: TSvgColor read FFloodColor write FFloodColor;
-    property FloodOpacity: Single read FFloodOpacity write FFloodOpacity;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgFilterNode
-//
-//------------------------------------------------------------------------------
-// <filter>
-//------------------------------------------------------------------------------
-  TSvgFilterNode = class(TSvgGroupNode)
-  private
-    FX: TSvgLength;
-    FY: TSvgLength;
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-    FFilterUnits: TSvgGradientUnits;
-    FPrimitiveUnits: TSvgGradientUnits;
-  protected
-    function GetIsRenderable: Boolean; override;
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property X: TSvgLength read FX write FX;
-    property Y: TSvgLength read FY write FY;
-    property Width: TSvgLength read FWidth write FWidth;
-    property Height: TSvgLength read FHeight write FHeight;
-    property FilterUnits: TSvgGradientUnits read FFilterUnits write FFilterUnits;
-    property PrimitiveUnits: TSvgGradientUnits read FPrimitiveUnits write FPrimitiveUnits;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgMarkerNode
-//
-//------------------------------------------------------------------------------
-// TSvgMarkerNode represents an SVG <marker> container element used for rendering
-// vertex markers (arrowheads, dots, icons) along path contours. Markers are
-// non-renderable definition nodes checked via GetIsRenderable returning False.
-//------------------------------------------------------------------------------
-  TSvgMarkerNode = class(TSvgGroupNode)
-  private
-    FRefX: TSvgLength;
-    FRefY: TSvgLength;
-    FMarkerWidth: TSvgLength;
-    FMarkerHeight: TSvgLength;
-    FMarkerUnits: TSvgMarkerUnits;
-    FOrient: TSvgMarkerOrient;
-    FOrientAngle: Single;
-    FViewBox: TSvgViewBox;
-    FPreserveAspectRatio: TSvgPreserveAspectRatio;
-  protected
-    function GetIsRenderable: Boolean; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    { X-coordinate reference origin inside marker coordinate system }
-    property RefX: TSvgLength read FRefX write FRefX;
-    { Y-coordinate reference origin inside marker coordinate system }
-    property RefY: TSvgLength read FRefY write FRefY;
-    { Marker viewport width }
-    property MarkerWidth: TSvgLength read FMarkerWidth write FMarkerWidth;
-    { Marker viewport height }
-    property MarkerHeight: TSvgLength read FMarkerHeight write FMarkerHeight;
-    { Marker coordinate units scaling mode (strokeWidth vs userSpaceOnUse) }
-    property MarkerUnits: TSvgMarkerUnits read FMarkerUnits write FMarkerUnits;
-    { Orientation angle mode (auto, auto-start-reverse, or explicit angle) }
-    property Orient: TSvgMarkerOrient read FOrient write FOrient;
-    { Explicit orientation angle in degrees when Orient is moAngle }
-    property OrientAngle: Single read FOrientAngle write FOrientAngle;
-    { Optional viewBox for marker contents }
-    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
-    { Aspect ratio preservation settings for marker viewBox }
-    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgDocumentNode
-//
-//------------------------------------------------------------------------------
-// <svg>
-//------------------------------------------------------------------------------
-  TSvgDocumentNode = class(TSvgGroupNode)
-  private
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-    FViewBox: TSvgViewBox;
-    FPreserveAspectRatio: TSvgPreserveAspectRatio;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-
-    procedure ResolveUseNodes;
-    procedure ResolveGradients;
-    procedure ResolvePatterns;
-    procedure ResolveMarkers;
-    procedure ResolveClipPathsAndMasks;
-    procedure ResolvePaintServers;
-    procedure ResolveFilters;
-    procedure ResolveTextPaths;
-    procedure ResolveSwitchNodes;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    procedure Resolve;
-    property Width: TSvgLength read FWidth write FWidth;
-    property Height: TSvgLength read FHeight write FHeight;
-    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
-    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgPathNode
-//
-//------------------------------------------------------------------------------
-  TSvgShapeKind = (skPath, skRect, skCircle, skEllipse, skLine);
-
-  TSvgPathNode = class(TSvgNode)
-  private type
-    TPathNodeProperties = record
-      Kind: TSvgShapeKind;
-      case TSvgShapeKind of
-        skRect: (rect: record
-          X: TSvgLength;
-          Y: TSvgLength;
-          Width: TSvgLength;
-          Height: TSvgLength;
-          Rx: TSvgLength;
-          Ry: TSvgLength;
-        end);
-
-        skCircle: (circle: record
-          Cx: TSvgLength;
-          Cy: TSvgLength;
-          R: TSvgLength;
-        end);
-
-        skEllipse: (ellipse: record
-          Cx: TSvgLength;
-          Cy: TSvgLength;
-          Rx: TSvgLength;
-          Ry: TSvgLength;
-        end);
-
-        skLine: (line: record
-          X1: TSvgLength;
-          Y1: TSvgLength;
-          X2: TSvgLength;
-          Y2: TSvgLength;
-        end);
-    end;
-  private
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-    FProperties: TPathNodeProperties;
-    FCachedViewportWidth: Single;
-    FCachedViewportHeight: Single;
-    FPathData: TArrayOfArrayOfFloatPoint;
-    function GetPathDataProp: TArrayOfArrayOfFloatPoint;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    function GetObjectBoundingBox: TFloatRect; override;
-    function GetPathData(const AViewportWidth: Single = 100.0; const AViewportHeight: Single = 100.0): TArrayOfArrayOfFloatPoint;
-    property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
-    property PathData: TArrayOfArrayOfFloatPoint read GetPathDataProp write FPathData;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgDefsNode
-//
-//------------------------------------------------------------------------------
-  TSvgDefsNode = class(TSvgGroupNode)
-  protected
-    function GetIsRenderable: Boolean; override;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgSymbolNode
-//
-//------------------------------------------------------------------------------
-  TSvgSymbolNode = class(TSvgGroupNode)
-  private
-    FX: TSvgLength;
-    FY: TSvgLength;
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-    FViewBox: TSvgViewBox;
-    FPreserveAspectRatio: TSvgPreserveAspectRatio;
-  protected
-    function GetIsRenderable: Boolean; override;
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property X: TSvgLength read FX write FX;
-    property Y: TSvgLength read FY write FY;
-    property Width: TSvgLength read FWidth write FWidth;
-    property Height: TSvgLength read FHeight write FHeight;
-    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
-    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgSymbolInstanceNode
-//
-//------------------------------------------------------------------------------
-  TSvgSymbolInstanceNode = class(TSvgGroupNode)
-  protected
-    function GetIsRenderable: Boolean; override;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgUseNode
-//
-//------------------------------------------------------------------------------
-  TSvgUseNode = class(TSvgGroupNode)
-  private
-    FHref: string;
-    FX: Single;
-    FY: Single;
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property Href: string read FHref write FHref;
-    property X: Single read FX write FX;
-    property Y: Single read FY write FY;
-    property Width: TSvgLength read FWidth write FWidth;
-    property Height: TSvgLength read FHeight write FHeight;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgImageNode
-//
-//------------------------------------------------------------------------------
-// TSvgImageNode represents an SVG <image> element used for embedding raster
-// images (PNG, JPEG, BMP) or nested vector graphics via URL references or
-// base64 data URIs.
-//------------------------------------------------------------------------------
-  TSvgImageNode = class(TSvgNode)
-  private
-    FX: TSvgLength;
-    FY: TSvgLength;
-    FWidth: TSvgLength;
-    FHeight: TSvgLength;
-    FHref: string;
-    FPreserveAspectRatio: TSvgPreserveAspectRatio;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    function GetObjectBoundingBox: TFloatRect; override;
-    property X: TSvgLength read FX write FX;
-    property Y: TSvgLength read FY write FY;
-    property Width: TSvgLength read FWidth write FWidth;
-    property Height: TSvgLength read FHeight write FHeight;
-    property Href: string read FHref write FHref;
-    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgTextPositioningNode
-//
-//------------------------------------------------------------------------------
-// TSvgTextPositioningNode is the base AST node class for SVG text positioning
-// elements (<text> and <tspan>). It maintains absolute/relative coordinate
-// offsets (x, y, dx, dy) and raw string content.
-//------------------------------------------------------------------------------
-  TSvgTextPositioningNode = class(TSvgGroupNode)
-  private
-    FX: TSvgLength;
-    FY: TSvgLength;
-    FDx: TSvgLength;
-    FDy: TSvgLength;
-    FRotate: TArrayOfFloat;
-    FHasX: Boolean;
-    FHasY: Boolean;
-    FHasDx: Boolean;
-    FHasDy: Boolean;
-    FTextContent: string;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property X: TSvgLength read FX write FX;
-    property Y: TSvgLength read FY write FY;
-    property Dx: TSvgLength read FDx write FDx;
-    property Dy: TSvgLength read FDy write FDy;
-    property Rotate: TArrayOfFloat read FRotate write FRotate;
-    property HasX: Boolean read FHasX write FHasX;
-    property HasY: Boolean read FHasY write FHasY;
-    property HasDx: Boolean read FHasDx write FHasDx;
-    property HasDy: Boolean read FHasDy write FHasDy;
-    property TextContent: string read FTextContent write FTextContent;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgTextNode
-//
-//------------------------------------------------------------------------------
-// TSvgTextNode represents the SVG <text> root text container element.
-//------------------------------------------------------------------------------
-  TSvgTextNode = class(TSvgTextPositioningNode)
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgTSpanNode
-//
-//------------------------------------------------------------------------------
-// TSvgTSpanNode represents the SVG <tspan> sub-string positioning element.
-//------------------------------------------------------------------------------
-  TSvgTSpanNode = class(TSvgTextPositioningNode)
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      TSvgTextPathNode
-//
-//------------------------------------------------------------------------------
-// TSvgTextPathNode represents the SVG <textPath> sub-element used to render text
-// aligned along vector path contours referenced via Href.
-//------------------------------------------------------------------------------
-  TSvgTextPathNode = class(TSvgTextPositioningNode)
-  private
-    FHref: string;
-    FStartOffset: TSvgLength;
-    FResolvedPathNode: TSvgPathNode;
-  protected
-    function DumpNode(Indent: Integer = 0): string; override;
-  public
-    constructor Create(AParent: TSvgNode = nil); override;
-    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload; override;
-    property Href: string read FHref write FHref;
-    property StartOffset: TSvgLength read FStartOffset write FStartOffset;
-    property ResolvedPathNode: TSvgPathNode read FResolvedPathNode write FResolvedPathNode;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      Primitive Shape Converters
-//
-//------------------------------------------------------------------------------
-function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
-function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
-function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
-function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
-function CreatePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
-{$if defined(UNIT_TEST)}
-function CreatePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
-{$ifend}
-
-function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat;
-function ParseStrokeDashArray(AStr: TValuePUtf8Char): TArrayOfFloat;
-
-
-//------------------------------------------------------------------------------
-//
-//      Transform Parser
-//
-//------------------------------------------------------------------------------
-function ParseSvgTransform(AValue: TValuePUtf8Char): TFloatMatrix; overload;
-{$if defined(UNIT_TEST)}
-function ParseSvgTransform(const AValue: AnsiString): TFloatMatrix; overload;
-{$ifend}
-
-
-//------------------------------------------------------------------------------
-//
-//      XML Parsing
-//
-//------------------------------------------------------------------------------
-function ParseSvgXml(AText: TValuePUtf8Char): TSvgDocumentNode; overload;
-function ParseSvgXml(AText: TValuePUtf8Char; var AErrorMessage: string): TSvgDocumentNode; overload;
-function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode; overload;
-function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode; overload;
-function ParseSvgXml(const AText: UTF8String): TSvgDocumentNode; overload;
-function ParseSvgXml(const AText: UTF8String; var AErrorMessage: string): TSvgDocumentNode; overload;
-
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-
-implementation
-
-uses
-  Types,
-  Math,
-  GR32_Math,
-  GR32_Paths,
-  GR32.SVG.Path,
-  GR32.SVG.Xml,
-  GR32.SVG.Css;
-
-// TryValueToUtf8 unescapes XML entity references (&lt;, &gt;, &amp;, &quot;, &apos;, and numeric entities)
-function IsUtf8(AParser: TXmlParser): boolean;
-var
-  p: PAnsiChar;
-  Len: PtrInt;
-begin
-  p := AParser.Value.Buffer;
-  Len := AParser.Value.Len;
-  while (Len > 0) do
-    if (p^ = '&') then
-      Exit(True)
-    else
-    begin
-      Inc(p);
-      Dec(Len);
-    end;
-
-  Result := False;
-end;
-
-function TryValueToUtf8(AParser: TXmlParser; out AUtf8: RawUtf8): boolean;
-var
-  SaveKind: TXmlToken;
-begin
-  SaveKind := AParser.Kind;
-  Result := AParser.ValueToUtf8(AUtf8);
-  if (not Result) then
-    // ValueToUtf8 sets an error state if it can't unescape
-    AParser.Kind := SaveKind;
-end;
-
-//------------------------------------------------------------------------------
-//
-//      SvgKeywordDictionary
-//
-//------------------------------------------------------------------------------
-type
-  TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
-    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
-    tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
-
-const
-  sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
-    '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
-    'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
-    'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'image', 'switch', 'text', 'tspan', 'textPath'
-  );
-
-var
-  SvgKeywordDictionary: TSvgKeywordDictionary<TSvgTagKeyword>;
-
-
-//------------------------------------------------------------------------------
-//
-//      SvgStopTagDictionary
-//
-//------------------------------------------------------------------------------
-type
-  TSvgStopTagKeyword = (stopTagNone, stopTagOffset, stopTagStopColor, stopTagStopOpacity, stopTagStyle);
-
-const
-  sSvgStopTagKeywords: array[TSvgStopTagKeyword] of AnsiString = ('', 'offset', 'stop-color', 'stop-opacity', 'style');
-
-var
-  SvgStopTagDictionary: TSvgKeywordDictionary<TSvgStopTagKeyword>;
-
-//------------------------------------------------------------------------------
-//
-//      SvgAttributeKeywordDictionary
-//
+// Parsed by ParseSvgXml and passed on to TSvgNode.ParseAttribute
 //------------------------------------------------------------------------------
 type
   TSvgAttributeKeyword = (
@@ -1325,6 +304,1053 @@ type
     attrPoints
   );
 
+//------------------------------------------------------------------------------
+//
+//      TSvgNode
+//
+//------------------------------------------------------------------------------
+// SVG node base class
+//------------------------------------------------------------------------------
+type
+  TSvgMarkerNode = class;
+  TSvgFilterNode = class;
+
+  TSvgNode = class abstract(TObject)
+  private
+    FID: AnsiString;
+    FCssClassName: string;
+    FStyleAttr: string; // Stores raw inline style="..." string for deferred cascade evaluation
+    FTransform: TFloatMatrix;
+    FVisible: Boolean;
+    FMixBlendMode: TSvgBlendMode;
+    FIsolation: TSvgIsolation;
+    FFilterID: string;
+    FResolvedFilter: TSvgFilterNode;
+    FParent: TSvgNode;
+    FFill: TSvgFill;
+    FStroke: TSvgStroke;
+    FMarkerStart: string;
+    FMarkerMid: string;
+    FMarkerEnd: string;
+    FResolvedMarkerStart: TSvgMarkerNode;
+    FResolvedMarkerMid: TSvgMarkerNode;
+    FResolvedMarkerEnd: TSvgMarkerNode;
+    FResolving: Boolean;
+    FRequiredFeatures: AnsiString;
+    FRequiredExtensions: AnsiString;
+    FSystemLanguage: AnsiString;
+  protected
+    function GetIsRenderable: Boolean; virtual;
+    function DumpNode(Indent: Integer = 0): string; virtual;
+    function DumpChildren(Indent: Integer = 0): string; virtual;
+    procedure SetParent(const Value: TSvgNode);
+    procedure SetID(const Value: AnsiString);
+    procedure SetRequiredFeatures(const Value: AnsiString);
+    procedure NodeAdded(ANode: TSvgNode); virtual;
+    procedure NodeRemoved(ANode: TSvgNode); virtual;
+  public
+    constructor Create(AParent: TSvgNode = nil); virtual;
+    destructor Destroy; override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; virtual;
+    function FindNodeById(const AID: AnsiString): TSvgNode; virtual;
+    procedure Render(ACanvas: TObject); virtual;
+    function GetObjectBoundingBox: TFloatRect; virtual;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; virtual;
+    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload;
+{$if defined(UNIT_TEST)}
+    procedure ParseAttribute(const AName, AValue: AnsiString); overload;
+{$ifend}
+    function KeywordLookup(const AName: TValuePUtf8Char): TSvgAttributeKeyword;
+    procedure ParseStyleAttribute(AStyleStr: TValuePUtf8Char); overload;
+    procedure ParseStyleAttribute(const AStyleStr: string); overload;
+    function CheckRequiredFeatures: Boolean; virtual;
+    function CheckRequiredExtensions: Boolean; virtual;
+    function CheckSystemLanguage: Boolean; virtual;
+    function PassesConditionalProcessing: Boolean; virtual;
+    function Dump(Indent: Integer = 0): string;
+    property ID: AnsiString read FID write SetID;
+    property CssClassName: string read FCssClassName write FCssClassName;
+    property StyleAttr: string read FStyleAttr write FStyleAttr;
+    property Transform: TFloatMatrix read FTransform write FTransform;
+    property Visible: Boolean read FVisible write FVisible;
+    property MixBlendMode: TSvgBlendMode read FMixBlendMode write FMixBlendMode;
+    property Isolation: TSvgIsolation read FIsolation write FIsolation;
+    property FilterID: string read FFilterID write FFilterID;
+    property ResolvedFilter: TSvgFilterNode read FResolvedFilter write FResolvedFilter;
+    property Parent: TSvgNode read FParent write SetParent;
+    property Fill: TSvgFill read FFill write FFill;
+    property Stroke: TSvgStroke read FStroke write FStroke;
+    property MarkerStart: string read FMarkerStart write FMarkerStart;
+    property MarkerMid: string read FMarkerMid write FMarkerMid;
+    property MarkerEnd: string read FMarkerEnd write FMarkerEnd;
+    property ResolvedMarkerStart: TSvgMarkerNode read FResolvedMarkerStart write FResolvedMarkerStart;
+    property ResolvedMarkerMid: TSvgMarkerNode read FResolvedMarkerMid write FResolvedMarkerMid;
+    property ResolvedMarkerEnd: TSvgMarkerNode read FResolvedMarkerEnd write FResolvedMarkerEnd;
+    property RequiredFeatures: AnsiString read FRequiredFeatures write SetRequiredFeatures;
+    property RequiredExtensions: AnsiString read FRequiredExtensions write FRequiredExtensions;
+    property SystemLanguage: AnsiString read FSystemLanguage write FSystemLanguage;
+    property IsRenderable: Boolean read GetIsRenderable;
+  end;
+
+  TSvgNodeClass = class of TSvgNode;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgGroupNode
+//
+//------------------------------------------------------------------------------
+// TODO : We should have a TCustomSvgGroupNode base class so we can differentiate between 'G' nodes
+// and nodes derived from a group node.
+//------------------------------------------------------------------------------
+  TSvgClipPathNode = class;
+  TSvgMaskNode = class;
+
+  TSvgGroupNode = class(TSvgNode)
+  private
+    FChildren: TObjectList<TSvgNode>;
+    FOpacity: Single;
+    FClipPathID: string;
+    FMaskID: string;
+    FResolvedClipPath: TSvgClipPathNode;
+    FResolvedMask: TSvgMaskNode;
+    FFontFamily: string;
+    FFontSize: TSvgLength;
+    FFontWeight: string;
+    FFontStyle: string;
+    FTextAnchor: TSvgTextAnchor;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+    function DumpChildren(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    destructor Destroy; override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function GetObjectBoundingBox: TFloatRect; override;
+    procedure AddChild(AChild: TSvgNode);
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Children: TObjectList<TSvgNode> read FChildren;
+    property Opacity: Single read FOpacity write FOpacity;
+    property ClipPathID: string read FClipPathID write FClipPathID;
+    property MaskID: string read FMaskID write FMaskID;
+    property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
+    property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
+    property FontFamily: string read FFontFamily write FFontFamily;
+    property FontSize: TSvgLength read FFontSize write FFontSize;
+    property FontWeight: string read FFontWeight write FFontWeight;
+    property FontStyle: string read FFontStyle write FFontStyle;
+    property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgSwitchNode
+//
+//------------------------------------------------------------------------------
+// TSvgSwitchNode represents an SVG <switch> container element that evaluates
+// conditional processing attributes (requiredFeatures, requiredExtensions,
+// systemLanguage) on its direct child elements in document order and renders
+// only the first direct child element for which all conditions evaluate to true.
+//------------------------------------------------------------------------------
+  TSvgSwitchNode = class(TSvgGroupNode)
+  private
+    FSelectedChild: TSvgNode;
+  public
+    function GetSelectedChild: TSvgNode;
+    function GetObjectBoundingBox: TFloatRect; override;
+    property SelectedChild: TSvgNode read FSelectedChild write FSelectedChild;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgGradientNode
+//
+//------------------------------------------------------------------------------
+  TSvgGradientNode = class(TSvgGroupNode)
+  private
+    FStops: TList<TSvgGradientStop>;
+    FSpreadMethod: TSvgSpreadMethod;
+    FGradientUnits: TSvgGradientUnits;
+    FHref: string;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+    function DumpChildren(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    destructor Destroy; override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure AddStop(const AStop: TSvgGradientStop);
+    procedure InheritFrom(ParentGradient: TSvgGradientNode); virtual;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Stops: TList<TSvgGradientStop> read FStops;
+    property SpreadMethod: TSvgSpreadMethod read FSpreadMethod write FSpreadMethod;
+    property GradientUnits: TSvgGradientUnits read FGradientUnits write FGradientUnits;
+    property Href: string read FHref write FHref;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgLinearGradientNode
+//
+//------------------------------------------------------------------------------
+  TSvgLinearGradientNode = class(TSvgGradientNode)
+  private
+    FX1: TSvgLength;
+    FY1: TSvgLength;
+    FX2: TSvgLength;
+    FY2: TSvgLength;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property X1: TSvgLength read FX1 write FX1;
+    property Y1: TSvgLength read FY1 write FY1;
+    property X2: TSvgLength read FX2 write FX2;
+    property Y2: TSvgLength read FY2 write FY2;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgRadialGradientNode
+//
+//------------------------------------------------------------------------------
+  TSvgRadialGradientNode = class(TSvgGradientNode)
+  private type
+    TSvgRadialGradientProperties = set of (gpFocalX, gpFocalY);
+  private
+    FSpecified: TSvgRadialGradientProperties;
+    FCx: TSvgLength;
+    FCy: TSvgLength;
+    FR: TSvgLength;
+    FFx: TSvgLength;
+    FFy: TSvgLength;
+    function GetFx: TSvgLength;
+    function GetFy: TSvgLength;
+    procedure SetFx(const Value: TSvgLength);
+    procedure SetFy(const Value: TSvgLength);
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+
+    property Cx: TSvgLength read FCx write FCx;
+    property Cy: TSvgLength read FCy write FCy;
+    property R: TSvgLength read FR write FR;
+    // Focal point; Falls back to Center if not specified
+    property Fx: TSvgLength read GetFx write SetFx;
+    property Fy: TSvgLength read GetFy write SetFy;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgClipPathNode
+//
+//------------------------------------------------------------------------------
+  TSvgClipPathNode = class(TSvgGroupNode)
+  private
+    FClipPathUnits: TSvgGradientUnits;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property ClipPathUnits: TSvgGradientUnits read FClipPathUnits write FClipPathUnits;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgMaskNode
+//
+//------------------------------------------------------------------------------
+  TSvgMaskNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FMaskUnits: TSvgGradientUnits;
+    FMaskContentUnits: TSvgGradientUnits;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property MaskUnits: TSvgGradientUnits read FMaskUnits write FMaskUnits;
+    property MaskContentUnits: TSvgGradientUnits read FMaskContentUnits write FMaskContentUnits;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPatternNode
+//
+//------------------------------------------------------------------------------
+  TSvgPatternNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FPatternUnits: TSvgGradientUnits;
+    FPatternContentUnits: TSvgGradientUnits;
+    FPatternTransform: TFloatMatrix;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+    FHref: string;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure InheritFrom(ParentPattern: TSvgPatternNode); virtual;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property PatternUnits: TSvgGradientUnits read FPatternUnits write FPatternUnits;
+    property PatternContentUnits: TSvgGradientUnits read FPatternContentUnits write FPatternContentUnits;
+    property PatternTransform: TFloatMatrix read FPatternTransform write FPatternTransform;
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+    property Href: string read FHref write FHref;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFilterPrimitiveNode
+//
+//------------------------------------------------------------------------------
+// SVG Filter AST Node Hierarchy
+//------------------------------------------------------------------------------
+  TSvgFilterPrimitiveNode = class(TSvgGroupNode)
+  private
+    FIn1: string;
+    FIn2: string;
+    FResult: string;
+    FResolvedIn1: TSvgFilterInput;
+    FResolvedIn2: TSvgFilterInput;
+    function GetIsReferenceTarget: boolean;
+  protected
+    function GetIsRenderable: Boolean; override;
+  public
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property In1: string read FIn1 write FIn1;
+    property In2: string read FIn2 write FIn2;
+    property ResultName: string read FResult write FResult;
+    property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
+    property ResolvedIn2: TSvgFilterInput read FResolvedIn2 write FResolvedIn2;
+    property IsReferenceTarget: boolean read GetIsReferenceTarget;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeGaussianBlurNode
+//
+//------------------------------------------------------------------------------
+// Filter: feGaussianBlur
+//------------------------------------------------------------------------------
+  TSvgFeGaussianBlurNode = class(TSvgFilterPrimitiveNode)
+  private
+    FStdDeviationX: Single;
+    FStdDeviationY: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property StdDeviationX: Single read FStdDeviationX write FStdDeviationX;
+    property StdDeviationY: Single read FStdDeviationY write FStdDeviationY;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeColorMatrixNode
+//
+//------------------------------------------------------------------------------
+// Filter: feColorMatrix
+//------------------------------------------------------------------------------
+  TSvgFeColorMatrixNode = class(TSvgFilterPrimitiveNode)
+  private
+    FMatrixType: TSvgFeColorMatrixType;
+    FValues: TArrayOfFloat;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property MatrixType: TSvgFeColorMatrixType read FMatrixType write FMatrixType;
+    property Values: TArrayOfFloat read FValues write FValues;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeBlendNode
+//
+//------------------------------------------------------------------------------
+// Filter: feBlend
+//------------------------------------------------------------------------------
+  TSvgFeBlendNode = class(TSvgFilterPrimitiveNode)
+  private
+    FMode: TSvgBlendMode;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Mode: TSvgBlendMode read FMode write FMode;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeCompositeNode
+//
+//------------------------------------------------------------------------------
+// Filter: feComposite
+//------------------------------------------------------------------------------
+  TSvgFeCompositeNode = class(TSvgFilterPrimitiveNode)
+  private
+    FOperator: TSvgCompositeOperator;
+    FK1: Single;
+    FK2: Single;
+    FK3: Single;
+    FK4: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property CompositeOperator: TSvgCompositeOperator read FOperator write FOperator;
+    property K1: Single read FK1 write FK1;
+    property K2: Single read FK2 write FK2;
+    property K3: Single read FK3 write FK3;
+    property K4: Single read FK4 write FK4;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeMergeNodeChild
+//
+//------------------------------------------------------------------------------
+// Filter: feMerge child node
+//------------------------------------------------------------------------------
+  TSvgFeMergeNodeChild = class(TSvgNode)
+  private
+    FIn1: string;
+    FResolvedIn1: TSvgFilterInput;
+  protected
+    function GetIsRenderable: Boolean; override;
+  public
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property In1: string read FIn1 write FIn1;
+    property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeMergeNode
+//
+//------------------------------------------------------------------------------
+// Filter: feMerge
+//------------------------------------------------------------------------------
+  TSvgFeMergeNode = class(TSvgFilterPrimitiveNode)
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeOffsetNode
+//
+//------------------------------------------------------------------------------
+// Filter: feOffset
+//------------------------------------------------------------------------------
+  TSvgFeOffsetNode = class(TSvgFilterPrimitiveNode)
+  private
+    FDx: Single;
+    FDy: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Dx: Single read FDx write FDx;
+    property Dy: Single read FDy write FDy;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeFloodNode
+//
+//------------------------------------------------------------------------------
+// Filter: feFlood
+//------------------------------------------------------------------------------
+  TSvgFeFloodNode = class(TSvgFilterPrimitiveNode)
+  private
+    FFloodColor: TSvgColor;
+    FFloodOpacity: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property FloodColor: TSvgColor read FFloodColor write FFloodColor;
+    property FloodOpacity: Single read FFloodOpacity write FFloodOpacity;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFilterNode
+//
+//------------------------------------------------------------------------------
+// <filter>
+//------------------------------------------------------------------------------
+  TSvgFilterNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FFilterUnits: TSvgGradientUnits;
+    FPrimitiveUnits: TSvgGradientUnits;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property FilterUnits: TSvgGradientUnits read FFilterUnits write FFilterUnits;
+    property PrimitiveUnits: TSvgGradientUnits read FPrimitiveUnits write FPrimitiveUnits;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgMarkerNode
+//
+//------------------------------------------------------------------------------
+// TSvgMarkerNode represents an SVG <marker> container element used for rendering
+// vertex markers (arrowheads, dots, icons) along path contours. Markers are
+// non-renderable definition nodes checked via GetIsRenderable returning False.
+//------------------------------------------------------------------------------
+  TSvgMarkerNode = class(TSvgGroupNode)
+  private
+    FRefX: TSvgLength;
+    FRefY: TSvgLength;
+    FMarkerWidth: TSvgLength;
+    FMarkerHeight: TSvgLength;
+    FMarkerUnits: TSvgMarkerUnits;
+    FOrient: TSvgMarkerOrient;
+    FOrientAngle: Single;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  protected
+    function GetIsRenderable: Boolean; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    { X-coordinate reference origin inside marker coordinate system }
+    property RefX: TSvgLength read FRefX write FRefX;
+    { Y-coordinate reference origin inside marker coordinate system }
+    property RefY: TSvgLength read FRefY write FRefY;
+    { Marker viewport width }
+    property MarkerWidth: TSvgLength read FMarkerWidth write FMarkerWidth;
+    { Marker viewport height }
+    property MarkerHeight: TSvgLength read FMarkerHeight write FMarkerHeight;
+    { Marker coordinate units scaling mode (strokeWidth vs userSpaceOnUse) }
+    property MarkerUnits: TSvgMarkerUnits read FMarkerUnits write FMarkerUnits;
+    { Orientation angle mode (auto, auto-start-reverse, or explicit angle) }
+    property Orient: TSvgMarkerOrient read FOrient write FOrient;
+    { Explicit orientation angle in degrees when Orient is moAngle }
+    property OrientAngle: Single read FOrientAngle write FOrientAngle;
+    { Optional viewBox for marker contents }
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    { Aspect ratio preservation settings for marker viewBox }
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgDocumentNode
+//
+//------------------------------------------------------------------------------
+// <svg>
+//------------------------------------------------------------------------------
+  TSvgDocumentNode = class(TSvgGroupNode)
+  private
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+    FNodes: TDictionary<AnsiString, TSvgNode>;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+    procedure NodeAdded(ANode: TSvgNode); override;
+    procedure NodeRemoved(ANode: TSvgNode); override;
+
+    procedure ResolveUseNodes;
+    procedure ResolveGradients;
+    procedure ResolvePatterns;
+    procedure ResolveMarkers;
+    procedure ResolveClipPathsAndMasks;
+    procedure ResolvePaintServers;
+    procedure ResolveFilters;
+    procedure ResolveTextPaths;
+    procedure ResolveSwitchNodes;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    destructor Destroy; override;
+
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    function FindNodeById(const AID: AnsiString): TSvgNode; override;
+    procedure Resolve;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPathNode
+//
+//------------------------------------------------------------------------------
+  TSvgShapeKind = (skPath, skRect, skCircle, skEllipse, skLine);
+
+  TSvgPathNode = class(TSvgNode)
+  private type
+    TPathNodeProperties = record
+      Kind: TSvgShapeKind;
+      case TSvgShapeKind of
+        skRect: (rect: record
+          X: TSvgLength;
+          Y: TSvgLength;
+          Width: TSvgLength;
+          Height: TSvgLength;
+          Rx: TSvgLength;
+          Ry: TSvgLength;
+        end);
+
+        skCircle: (circle: record
+          Cx: TSvgLength;
+          Cy: TSvgLength;
+          R: TSvgLength;
+        end);
+
+        skEllipse: (ellipse: record
+          Cx: TSvgLength;
+          Cy: TSvgLength;
+          Rx: TSvgLength;
+          Ry: TSvgLength;
+        end);
+
+        skLine: (line: record
+          X1: TSvgLength;
+          Y1: TSvgLength;
+          X2: TSvgLength;
+          Y2: TSvgLength;
+        end);
+    end;
+  private
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FProperties: TPathNodeProperties;
+    FCachedViewportWidth: Single;
+    FCachedViewportHeight: Single;
+    FPathData: TArrayOfArrayOfFloatPoint;
+    function GetPathDataProp: TArrayOfArrayOfFloatPoint;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function GetObjectBoundingBox: TFloatRect; override;
+    function GetPathData(const AViewportWidth: Single = 100.0; const AViewportHeight: Single = 100.0): TArrayOfArrayOfFloatPoint;
+    property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
+    property PathData: TArrayOfArrayOfFloatPoint read GetPathDataProp write FPathData;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgDefsNode
+//
+//------------------------------------------------------------------------------
+  TSvgDefsNode = class(TSvgGroupNode)
+  protected
+    function GetIsRenderable: Boolean; override;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgSymbolNode
+//
+//------------------------------------------------------------------------------
+  TSvgSymbolNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property ViewBox: TSvgViewBox read FViewBox write FViewBox;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgSymbolInstanceNode
+//
+//------------------------------------------------------------------------------
+  TSvgSymbolInstanceNode = class(TSvgGroupNode)
+  protected
+    function GetIsRenderable: Boolean; override;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgUseNode
+//
+//------------------------------------------------------------------------------
+  TSvgUseNode = class(TSvgGroupNode)
+  private
+    FHref: string;
+    FX: Single;
+    FY: Single;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Href: string read FHref write FHref;
+    property X: Single read FX write FX;
+    property Y: Single read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgImageNode
+//
+//------------------------------------------------------------------------------
+// TSvgImageNode represents an SVG <image> element used for embedding raster
+// images (PNG, JPEG, BMP) or nested vector graphics via URL references or
+// base64 data URIs.
+//------------------------------------------------------------------------------
+  TSvgImageNode = class(TSvgNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+    FHref: string;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    function GetObjectBoundingBox: TFloatRect; override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+    property Href: string read FHref write FHref;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextPositioningNode
+//
+//------------------------------------------------------------------------------
+// TSvgTextPositioningNode is the base AST node class for SVG text positioning
+// elements (<text> and <tspan>). It maintains absolute/relative coordinate
+// offsets (x, y, dx, dy) and raw string content.
+//------------------------------------------------------------------------------
+  TSvgTextPositioningNode = class(TSvgGroupNode)
+  private
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FDx: TSvgLength;
+    FDy: TSvgLength;
+    FRotate: TArrayOfFloat;
+    FHasX: Boolean;
+    FHasY: Boolean;
+    FHasDx: Boolean;
+    FHasDy: Boolean;
+    FTextContent: string;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Dx: TSvgLength read FDx write FDx;
+    property Dy: TSvgLength read FDy write FDy;
+    property Rotate: TArrayOfFloat read FRotate write FRotate;
+    property HasX: Boolean read FHasX write FHasX;
+    property HasY: Boolean read FHasY write FHasY;
+    property HasDx: Boolean read FHasDx write FHasDx;
+    property HasDy: Boolean read FHasDy write FHasDy;
+    property TextContent: string read FTextContent write FTextContent;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextNode
+//
+//------------------------------------------------------------------------------
+// TSvgTextNode represents the SVG <text> root text container element.
+//------------------------------------------------------------------------------
+  TSvgTextNode = class(TSvgTextPositioningNode)
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTSpanNode
+//
+//------------------------------------------------------------------------------
+// TSvgTSpanNode represents the SVG <tspan> sub-string positioning element.
+//------------------------------------------------------------------------------
+  TSvgTSpanNode = class(TSvgTextPositioningNode)
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextPathNode
+//
+//------------------------------------------------------------------------------
+// TSvgTextPathNode represents the SVG <textPath> sub-element used to render text
+// aligned along vector path contours referenced via Href.
+//------------------------------------------------------------------------------
+  TSvgTextPathNode = class(TSvgTextPositioningNode)
+  private
+    FHref: string;
+    FStartOffset: TSvgLength;
+    FResolvedPathNode: TSvgPathNode;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Href: string read FHref write FHref;
+    property StartOffset: TSvgLength read FStartOffset write FStartOffset;
+    property ResolvedPathNode: TSvgPathNode read FResolvedPathNode write FResolvedPathNode;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Primitive Shape Converters
+//
+//------------------------------------------------------------------------------
+function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
+function CreatePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
+{$if defined(UNIT_TEST)}
+function CreatePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
+{$ifend}
+
+function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat;
+function ParseStrokeDashArray(Values: TValuePUtf8Char): TArrayOfFloat;
+
+
+//------------------------------------------------------------------------------
+//
+//      Transform Parser
+//
+//------------------------------------------------------------------------------
+function ParseSvgTransform(AValue: TValuePUtf8Char): TFloatMatrix; overload;
+{$if defined(UNIT_TEST)}
+function ParseSvgTransform(const AValue: AnsiString): TFloatMatrix; overload;
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
+//      XML Parsing
+//
+//------------------------------------------------------------------------------
+function ParseSvgXml(AText: TValuePUtf8Char): TSvgDocumentNode; overload;
+function ParseSvgXml(AText: TValuePUtf8Char; var AErrorMessage: string): TSvgDocumentNode; overload;
+function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt): TSvgDocumentNode; overload;
+function ParseSvgXml(AText: PAnsiChar; TextLen: NativeInt; var AErrorMessage: string): TSvgDocumentNode; overload;
+function ParseSvgXml(const AText: UTF8String): TSvgDocumentNode; overload;
+function ParseSvgXml(const AText: UTF8String; var AErrorMessage: string): TSvgDocumentNode; overload;
+
+const
+  sWhiteSpaceSeparators = [' ', #9, #10, #13];
+  sListSeparators = [' ', ',', #9, #10, #13];
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+implementation
+
+uses
+  Generics.Defaults,
+  Types,
+  Math,
+  AnsiStrings,
+  System.Hash,
+  GR32_Math,
+  GR32_Paths,
+  GR32.SVG.Path,
+  GR32.SVG.Xml,
+  GR32.SVG.Css;
+
+// TryValueToUtf8 unescapes XML entity references (&lt;, &gt;, &amp;, &quot;, &apos;, and numeric entities)
+function IsUtf8(AParser: TXmlParser): boolean;
+var
+  p: PAnsiChar;
+  Len: PtrInt;
+begin
+  p := AParser.Value.Buffer;
+  Len := AParser.Value.Len;
+  while (Len > 0) do
+    if (p^ = '&') then
+      Exit(True)
+    else
+    begin
+      Inc(p);
+      Dec(Len);
+    end;
+
+  Result := False;
+end;
+
+function TryValueToUtf8(AParser: TXmlParser; out AUtf8: RawUtf8): boolean;
+var
+  SaveKind: TXmlToken;
+begin
+  SaveKind := AParser.Kind;
+  Result := AParser.ValueToUtf8(AUtf8);
+  if (not Result) then
+    // ValueToUtf8 sets an error state if it can't unescape
+    AParser.Kind := SaveKind;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      SvgKeywordDictionary
+//
+//------------------------------------------------------------------------------
+type
+  TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
+    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
+    tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
+    tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
+
+const
+  sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
+    '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
+    'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
+    'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
+    'image', 'switch', 'text', 'tspan', 'textPath'
+  );
+
+var
+  SvgKeywordDictionary: TSvgKeywordDictionary<TSvgTagKeyword>;
+
+
+//------------------------------------------------------------------------------
+//
+//      SvgStopTagDictionary
+//
+//------------------------------------------------------------------------------
+type
+  TSvgStopTagKeyword = (stopTagNone, stopTagOffset, stopTagStopColor, stopTagStopOpacity, stopTagStyle);
+
+const
+  sSvgStopTagKeywords: array[TSvgStopTagKeyword] of AnsiString = ('', 'offset', 'stop-color', 'stop-opacity', 'style');
+
+var
+  SvgStopTagDictionary: TSvgKeywordDictionary<TSvgStopTagKeyword>;
+
+//------------------------------------------------------------------------------
+//
+//      SvgAttributeKeywordDictionary
+//
+//------------------------------------------------------------------------------
 const
   sSvgAttributeKeywords: array[TSvgAttributeKeyword] of AnsiString = (
     '',
@@ -1696,15 +1722,17 @@ begin
   FIsolation := isoAuto;
   FCssClassName := '';
   FResolving := False;
-  if AParent <> nil then
+  if FParent <> nil then
   begin
-    FFill := AParent.Fill;
-    FStroke := AParent.Stroke;
-    FMarkerStart := AParent.MarkerStart;
-    FMarkerMid := AParent.MarkerMid;
-    FMarkerEnd := AParent.MarkerEnd;
+    FFill := FParent.Fill;
+    FStroke := FParent.Stroke;
+    FMarkerStart := FParent.MarkerStart;
+    FMarkerMid := FParent.MarkerMid;
+    FMarkerEnd := FParent.MarkerEnd;
     FFill.FSpecified := [];
     FStroke.FSpecified := [];
+
+    FParent.NodeAdded(Self);
   end else
   begin
     FFill := TSvgFill.Default;
@@ -1723,7 +1751,6 @@ end;
 function TSvgNode.Clone(AParent: TSvgNode): TSvgNode;
 begin
   Result := TSvgNodeClass(ClassType).Create(AParent);
-  Result.FID := FID;
   Result.FCssClassName := FCssClassName;
   Result.FStyleAttr := FStyleAttr;
   Result.FTransform := FTransform;
@@ -1751,20 +1778,30 @@ begin
   Result := FloatRect(0, 0, 0, 0);
 end;
 
-function TSvgNode.FindNodeById(const AId: string): TSvgNode;
-var
-  cleanId: string;
+function TSvgNode.KeywordLookup(const AName: TValuePUtf8Char): TSvgAttributeKeyword;
 begin
-  if (FID = '') then
-    Exit(nil);
+  if not SvgAttributeKeywordDictionary.Lookup(AName, Result) then
+    Result := attrNone;
+end;
 
-  cleanId := AId;
-  if (cleanId <> '') and (cleanId[1] = '#') then
-    Delete(cleanId, 1, 1);
+procedure TSvgNode.NodeAdded(ANode: TSvgNode);
+begin
+  if (FParent <> nil) then
+    FParent.NodeAdded(ANode);
+end;
 
-  if FID = cleanId then
-    Exit(Self);
-  Result := nil;
+procedure TSvgNode.NodeRemoved(ANode: TSvgNode);
+begin
+  if (FParent <> nil) then
+    FParent.NodeAdded(ANode);
+end;
+
+function TSvgNode.FindNodeById(const AID: AnsiString): TSvgNode;
+begin
+  if (Parent <> nil) then
+    Result := FindNodeById(AID)
+  else
+    Result := nil;
 end;
 
 procedure TSvgNode.Render(ACanvas: TObject);
@@ -1772,7 +1809,59 @@ begin
   // Base implementation does nothing
 end;
 
+procedure TSvgNode.SetID(const Value: AnsiString);
+begin
+  if (FID = Value) then
+    exit;
+
+  if (FID <> '') then
+    NodeRemoved(Self);
+
+  FID := Value;
+
+  if (FID <> '') then
+    NodeAdded(Self);
+end;
+
+procedure TSvgNode.SetParent(const Value: TSvgNode);
+begin
+  if (FParent = Value) then
+    exit;
+
+  if (FParent <> nil) then
+    FParent.NodeRemoved(Self);
+
+  FParent := Value;
+
+  if (FParent <> nil) then
+    FParent.NodeAdded(Self);
+end;
+
+procedure TSvgNode.SetRequiredFeatures(const Value: AnsiString);
+begin
+  if (Value <> '') then
+    FRequiredFeatures := AnsiStrings.Trim(Value)
+  else
+    FRequiredFeatures := #0; // Signal that RequiredFeatures has been set, but to an empty value
+end;
+
+{$if defined(UNIT_TEST)}
+procedure TSvgNode.ParseAttribute(const AName, AValue: AnsiString);
+begin
+  ParseAttribute(TValuePUtf8Char.FromString(AName), TValuePUtf8Char.FromString(AValue));
+end;
+{$ifend}
+
 procedure TSvgNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
+var
+  Keyword: TSvgAttributeKeyword;
+begin
+  Keyword := KeywordLookup(AName);
+  if (Keyword <> attrNone) then
+    ParseAttribute(Keyword, AValue);
+end;
+
+procedure TSvgNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 
   function ParseColor(AValue: TValuePUtf8Char; var Color: TSvgColor; var URL: AnsiString): boolean;
   var
@@ -1814,18 +1903,13 @@ procedure TSvgNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
   end;
 
 var
-  Value: TValuePUtf8Char;
-  Keyword: TSvgAttributeKeyword;
   ValueFloat: Single;
   Color: TSvgColor;
   s: AnsiString;
 begin
-  if not SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-    Exit;
-
-  case Keyword of
+  case AKeyword of
     attrId:
-      FID := AValue.ToString;
+      ID := AValue.ToUtf8;
 
     attrClass, attrClassName:
       FCssClassName := AValue.ToString;
@@ -1927,15 +2011,19 @@ begin
       FStroke.DashOffset := TSvgLength.Parse(AValue).ToPixels;
 
     attrMarkerStart:
-      FMarkerStart := AValue.ToString;
+      if (not AValue.CompareText('none')) then
+        FMarkerStart := AValue.ToString;
 
     attrMarkerMid:
-      FMarkerMid := AValue.ToString;
+      if (not AValue.CompareText('none')) then
+        FMarkerMid := AValue.ToString;
 
     attrMarkerEnd:
-      FMarkerEnd := AValue.ToString;
+      if (not AValue.CompareText('none')) then
+        FMarkerEnd := AValue.ToString;
 
     attrMarker:
+      if (not AValue.CompareText('none')) then
       begin
         FMarkerStart := AValue.ToString;
         FMarkerMid := FMarkerStart;
@@ -1952,13 +2040,13 @@ begin
       FFilterID := AValue.ToString;
 
     attrRequiredFeatures:
-      FRequiredFeatures := AValue.ToString;
+      SetRequiredFeatures(AValue.ToUtf8);
 
     attrRequiredExtensions:
-      FRequiredExtensions := AValue.ToString;
+      FRequiredExtensions := AValue.ToUtf8;
 
     attrSystemLanguage:
-      FSystemLanguage := AValue.ToString;
+      FSystemLanguage := AValue.ToUtf8;
 
     attrStyle:
       // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
@@ -1968,61 +2056,74 @@ end;
 
 function TSvgNode.CheckRequiredFeatures: Boolean;
 var
-  Val: TValuePUtf8Char;
+  Value: TValuePUtf8Char;
   OneFeature: TValuePUtf8Char;
 begin
-  Val.Text := PAnsiChar(UTF8String(FRequiredFeatures));
-  Val.Len := Length(FRequiredFeatures);
-
-  Val.Trim;
-
-  if (Val.Len = 0) then
+  // - If the attribute is not present, then its implicit evaluated value is true.
+  // - If a null string or empty string value is given to attribute
+  //   requiredFeatures, the attribute is evaluate to false.
+  if (Length(FRequiredFeatures) = 0) then
     Exit(True);
 
-  while (Val.Len > 0) do
-  begin
-    OneFeature := Val.Split([' ', #9, #10, #13], True);
+  if (Length(FRequiredFeatures) = 1) and (FRequiredFeatures[1] = #0) then
+    Exit(False);
 
-    if (OneFeature.Len > 0) then
-    begin
-      if not IsSupportedSvgFeature(OneFeature) then
-        Exit(False);
-    end else
+  Value := TValuePUtf8Char.FromString(FRequiredFeatures);
+
+  Value.Trim;
+
+  if (Value.Len = 0) then
+    Exit(False);
+
+  while (Value.Len > 0) do
+  begin
+    OneFeature := Value.Split(sWhiteSpaceSeparators, True);
+
+    if (OneFeature.Len = 0) then
       break; // Guard against zero advance -> endless loop. Likely not necessary
+
+    if not IsSupportedSvgFeature(OneFeature) then
+      Exit(False);
   end;
 
   Result := True;
 end;
 
 function TSvgNode.CheckRequiredExtensions: Boolean;
+var
+  Value: TValuePUtf8Char;
 begin
+  if (FRequiredExtensions = '') then
+    Exit(True);
+
+  Value := TValuePUtf8Char.FromString(FRequiredExtensions);
+  Value.Trim;
   // If non-empty, since Graphics32 does not support third-party SVG extensions, return False
-  Result := (Trim(FRequiredExtensions) = '');
+  Result := (Value.Len = 0);
 end;
 
 function TSvgNode.CheckSystemLanguage: Boolean;
 var
-  Value: TValuePUtf8Char;
+  LocalSysLang: TValuePUtf8Char;
+  GlobalSysLang: TValuePUtf8Char;
   OneLang: TValuePUtf8Char;
-  LangStr, SysLang: string;
 begin
-  if Trim(FSystemLanguage) = '' then
+  if (FSystemLanguage = '') then
     Exit(True);
 
-  SysLang := GetSystemLanguage;
-  Value.Text := PAnsiChar(UTF8String(FSystemLanguage));
-  Value.Len := Length(FSystemLanguage);
+  LocalSysLang := TValuePUtf8Char.FromString(FSystemLanguage);
+  LocalSysLang.Trim;
+  if (LocalSysLang.Len = 0) then
+    Exit(True);
 
-  while Value.Len > 0 do
+  GlobalSysLang := TValuePUtf8Char.FromString(GlobalSystemLanguage);
+
+  while (LocalSysLang.Len > 0) do
   begin
-    OneLang := Value.Split([',', ' ', #9, #10, #13], True);
+    OneLang := LocalSysLang.Split(sListSeparators, True);
 
-    if (OneLang.Len > 0) then
-    begin
-      LangStr := OneLang.ToString;
-      if MatchLanguageTag(SysLang, LangStr) then
-        Exit(True);
-    end;
+    if (OneLang.Len > 0) and MatchLanguageTag(GlobalSysLang, OneLang) then
+      Exit(True);
   end;
   Result := False;
 end;
@@ -2059,6 +2160,7 @@ end;
 procedure TSvgNode.ParseStyleAttribute(AStyleStr: TValuePUtf8Char);
 var
   decl, k, v: TValuePUtf8Char;
+  Keyword: TSvgAttributeKeyword;
 begin
   AStyleStr.Trim;
   while AStyleStr.Len > 0 do
@@ -2072,17 +2174,14 @@ begin
       v := decl;
       v.Trim;
       if (k.Len > 0) and (v.Len > 0) then
-        ParseAttribute(k, v);
+      begin
+        Keyword := KeywordLookup(k);
+        if (Keyword <> attrNone) then
+          ParseAttribute(Keyword, v);
+      end;
     end;
   end;
 end;
-
-{$if defined(UNIT_TEST)}
-procedure TSvgNode.ParseAttribute(const AName, AValue: AnsiString);
-begin
-  ParseAttribute(TValuePUtf8Char.FromString(AName), TValuePUtf8Char.FromString(AValue));
-end;
-{$ifend}
 
 procedure TSvgNode.ParseStyleAttribute(const AStyleStr: string);
 var
@@ -2239,24 +2338,6 @@ begin
   end;
 end;
 
-function TSvgGroupNode.FindNodeById(const AId: string): TSvgNode;
-var
-  i: Integer;
-  found: TSvgNode;
-begin
-  Result := inherited FindNodeById(AId);
-  if Result <> nil then
-    Exit;
-
-  for i := 0 to FChildren.Count - 1 do
-  begin
-    found := FChildren[i].FindNodeById(AId);
-    if found <> nil then
-      Exit(found);
-  end;
-  Result := nil;
-end;
-
 procedure TSvgGroupNode.AddChild(AChild: TSvgNode);
 begin
   if AChild <> nil then
@@ -2266,46 +2347,40 @@ begin
   end;
 end;
 
-procedure TSvgGroupNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
+procedure TSvgGroupNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 var
-  Keyword: TSvgAttributeKeyword;
   Value: Single;
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrOpacity:
-        begin
-          if AValue.TryToFloat(Value) then
-            FOpacity := EnsureRange(Value, 0.0, 1.0);
-        end;
+  case AKeyword of
+    attrOpacity:
+      begin
+        if AValue.TryToFloat(Value) then
+          FOpacity := EnsureRange(Value, 0.0, 1.0);
+      end;
 
-      attrClipPath:
-        FClipPathID := AValue.ToString;
+    attrClipPath:
+      FClipPathID := AValue.ToString;
 
-      attrMask:
-        FMaskID := AValue.ToString;
+    attrMask:
+      FMaskID := AValue.ToString;
 
-      attrFontFamily:
-        FFontFamily := AValue.ToString;
+    attrFontFamily:
+      FFontFamily := AValue.ToString;
 
-      attrFontSize:
-        FFontSize := TSvgLength.Parse(AValue);
+    attrFontSize:
+      FFontSize := TSvgLength.Parse(AValue);
 
-      attrFontWeight:
-        FFontWeight := AValue.ToString;
+    attrFontWeight:
+      FFontWeight := AValue.ToString;
 
-      attrFontStyle:
-        FFontStyle := AValue.ToString;
+    attrFontStyle:
+      FFontStyle := AValue.ToString;
 
-      attrTextAnchor:
-        FTextAnchor := ParseSvgTextAnchor(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end
+    attrTextAnchor:
+      FTextAnchor := ParseSvgTextAnchor(AValue);
   else
-    inherited ParseAttribute(AName, AValue);
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -2383,45 +2458,38 @@ begin
     Result := Result + Format(' (text="%s")', [FTextContent]);
 end;
 
-procedure TSvgTextPositioningNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgTextPositioningNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrX:
-        begin
-          FX := TSvgLength.Parse(AValue);
-          FHasX := True;
-        end;
+  case AKeyword of
+    attrX:
+      begin
+        FX := TSvgLength.Parse(AValue);
+        FHasX := True;
+      end;
 
-      attrY:
-        begin
-          FY := TSvgLength.Parse(AValue);
-          FHasY := True;
-        end;
+    attrY:
+      begin
+        FY := TSvgLength.Parse(AValue);
+        FHasY := True;
+      end;
 
-      attrDx:
-        begin
-          FDx := TSvgLength.Parse(AValue);
-          FHasDx := True;
-        end;
+    attrDx:
+      begin
+        FDx := TSvgLength.Parse(AValue);
+        FHasDx := True;
+      end;
 
-      attrDy:
-        begin
-          FDy := TSvgLength.Parse(AValue);
-          FHasDy := True;
-        end;
+    attrDy:
+      begin
+        FDy := TSvgLength.Parse(AValue);
+        FHasDy := True;
+      end;
 
-      attrRotate:
-        FRotate := ParseFloatArray(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end
+    attrRotate:
+      FRotate := ParseFloatArray(AValue);
   else
-    inherited ParseAttribute(AName, AValue);
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -2458,23 +2526,17 @@ begin
     Result := Result + Format(' (startOffset=%s)', [SvgLengthToString(FStartOffset)]);
 end;
 
-procedure TSvgTextPathNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgTextPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrHref, attrXLinkHref:
-        FHref := AValue.ToString;
+  case AKeyword of
+    attrHref, attrXLinkHref:
+      FHref := AValue.ToString;
 
-      attrStartOffset:
-        FStartOffset := TSvgLength.Parse(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+    attrStartOffset:
+      FStartOffset := TSvgLength.Parse(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -2572,43 +2634,36 @@ begin
     FTransform := ParentGradient.FTransform;
 end;
 
-procedure TSvgGradientNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrHref, attrXLinkHref:
-        FHref := AValue.ToString;
+  case AKeyword of
+    attrHref, attrXLinkHref:
+      FHref := AValue.ToString;
 
-      attrSpreadMethod:
-        begin
-          if AValue.CompareText('reflect') then
-            FSpreadMethod := smReflect
-          else
-          if AValue.CompareText('repeat') then
-            FSpreadMethod := smRepeat
-          else
-            FSpreadMethod := smPad;
-        end;
+    attrSpreadMethod:
+      begin
+        if AValue.CompareText('reflect') then
+          FSpreadMethod := smReflect
+        else
+        if AValue.CompareText('repeat') then
+          FSpreadMethod := smRepeat
+        else
+          FSpreadMethod := smPad;
+      end;
 
-      attrGradientUnits:
-        begin
-          if AValue.CompareText('userspaceonuse') then
-            FGradientUnits := guUserSpaceOnUse
-          else
-            FGradientUnits := guObjectBoundingBox;
-        end;
+    attrGradientUnits:
+      begin
+        if AValue.CompareText('userspaceonuse') then
+          FGradientUnits := guUserSpaceOnUse
+        else
+          FGradientUnits := guObjectBoundingBox;
+      end;
 
-      attrGradientTransform, attrTransform:
-        FTransform := ParseSvgTransform(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end
+    attrGradientTransform, attrTransform:
+      FTransform := ParseSvgTransform(AValue);
   else
-    inherited ParseAttribute(AName, AValue);
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -2660,22 +2715,16 @@ begin
   end;
 end;
 
-procedure TSvgLinearGradientNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgLinearGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrX1: FX1 := TSvgLength.Parse(AValue);
-      attrY1: FY1 := TSvgLength.Parse(AValue);
-      attrX2: FX2 := TSvgLength.Parse(AValue);
-      attrY2: FY2 := TSvgLength.Parse(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  case AKeyword of
+    attrX1: FX1 := TSvgLength.Parse(AValue);
+    attrY1: FY1 := TSvgLength.Parse(AValue);
+    attrX2: FX2 := TSvgLength.Parse(AValue);
+    attrY2: FY2 := TSvgLength.Parse(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -2749,25 +2798,18 @@ begin
   end;
 end;
 
-procedure TSvgRadialGradientNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgRadialGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    // Note: We go through property setters to get FSpecified updated
-    case Keyword of
-      attrCx: Cx := TSvgLength.Parse(AValue);
-      attrCy: Cy := TSvgLength.Parse(AValue);
-      attrR:  R  := TSvgLength.Parse(AValue);
-      attrFx: Fx := TSvgLength.Parse(AValue);
-      attrFy: Fy := TSvgLength.Parse(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end
+  // Note: We go through property setters to get FSpecified updated
+  case AKeyword of
+    attrCx: Cx := TSvgLength.Parse(AValue);
+    attrCy: Cy := TSvgLength.Parse(AValue);
+    attrR:  R  := TSvgLength.Parse(AValue);
+    attrFx: Fx := TSvgLength.Parse(AValue);
+    attrFy: Fy := TSvgLength.Parse(AValue);
   else
-    inherited ParseAttribute(AName, AValue);
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 procedure TSvgRadialGradientNode.SetFx(const Value: TSvgLength);
@@ -2821,25 +2863,19 @@ begin
   Result := Result + Format(' (clipPathUnits=%s)', [unitsStr]);
 end;
 
-procedure TSvgClipPathNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgClipPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrClipPathUnits:
-        begin
-          if AValue.CompareText('objectboundingbox') then
-            FClipPathUnits := guObjectBoundingBox
-          else
-            FClipPathUnits := guUserSpaceOnUse;
-        end;
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  case AKeyword of
+    attrClipPathUnits:
+      begin
+        if AValue.CompareText('objectboundingbox') then
+          FClipPathUnits := guObjectBoundingBox
+        else
+          FClipPathUnits := guUserSpaceOnUse;
+      end;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -2897,38 +2933,39 @@ begin
     [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight), maskUnitsStr, contentUnitsStr]);
 end;
 
-procedure TSvgMaskNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgMaskNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrX: FX := TSvgLength.Parse(AValue);
-      attrY: FY := TSvgLength.Parse(AValue);
-      attrWidth: FWidth := TSvgLength.Parse(AValue);
-      attrHeight: FHeight := TSvgLength.Parse(AValue);
+  case AKeyword of
+    attrX:
+      FX := TSvgLength.Parse(AValue);
 
-      attrMaskUnits:
-        begin
-          if AValue.CompareText('userspaceonuse') then
-            FMaskUnits := guUserSpaceOnUse
-          else
-            FMaskUnits := guObjectBoundingBox;
-        end;
+    attrY:
+      FY := TSvgLength.Parse(AValue);
 
-      attrMaskContentUnits:
-        begin
-          if AValue.CompareText('objectboundingbox') then
-            FMaskContentUnits := guObjectBoundingBox
-          else
-            FMaskContentUnits := guUserSpaceOnUse;
-        end;
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
+
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
+
+    attrMaskUnits:
+      begin
+        if AValue.CompareText('userspaceonuse') then
+          FMaskUnits := guUserSpaceOnUse
+        else
+          FMaskUnits := guObjectBoundingBox;
+      end;
+
+    attrMaskContentUnits:
+      begin
+        if AValue.CompareText('objectboundingbox') then
+          FMaskContentUnits := guObjectBoundingBox
+        else
+          FMaskContentUnits := guUserSpaceOnUse;
+      end;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -3016,58 +3053,51 @@ begin
   end;
 end;
 
-procedure TSvgPatternNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgPatternNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrHref, attrXLinkHref:
-        FHref := AValue.ToString;
+  case AKeyword of
+    attrHref, attrXLinkHref:
+      FHref := AValue.ToString;
 
-      attrX:
-        FX := TSvgLength.Parse(AValue);
+    attrX:
+      FX := TSvgLength.Parse(AValue);
 
-      attrY:
-        FY := TSvgLength.Parse(AValue);
+    attrY:
+      FY := TSvgLength.Parse(AValue);
 
-      attrWidth:
-        FWidth := TSvgLength.Parse(AValue);
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
 
-      attrHeight:
-        FHeight := TSvgLength.Parse(AValue);
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
 
-      attrPatternUnits:
-        begin
-          if AValue.CompareText('userspaceonuse') then
-            FPatternUnits := guUserSpaceOnUse
-          else
-            FPatternUnits := guObjectBoundingBox;
-        end;
+    attrPatternUnits:
+      begin
+        if AValue.CompareText('userspaceonuse') then
+          FPatternUnits := guUserSpaceOnUse
+        else
+          FPatternUnits := guObjectBoundingBox;
+      end;
 
-      attrPatternContentUnits:
-        begin
-          if AValue.CompareText('objectboundingbox') then
-            FPatternContentUnits := guObjectBoundingBox
-          else
-            FPatternContentUnits := guUserSpaceOnUse;
-        end;
+    attrPatternContentUnits:
+      begin
+        if AValue.CompareText('objectboundingbox') then
+          FPatternContentUnits := guObjectBoundingBox
+        else
+          FPatternContentUnits := guUserSpaceOnUse;
+      end;
 
-      attrPatternTransform:
-        FPatternTransform := ParseSvgTransform(AValue);
+    attrPatternTransform:
+      FPatternTransform := ParseSvgTransform(AValue);
 
-      attrViewBox:
-        FViewBox := TSvgViewBox.Parse(AValue);
+    attrViewBox:
+      FViewBox := TSvgViewBox.Parse(AValue);
 
-      attrPreserveAspectRatio:
-        FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end
+    attrPreserveAspectRatio:
+      FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
   else
-    inherited ParseAttribute(AName, AValue);
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -3094,27 +3124,20 @@ begin
   Result := primRes;
 end;
 
-procedure TSvgFilterPrimitiveNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  attrKey: TSvgAttributeKeyword;
+procedure TSvgFilterPrimitiveNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, attrKey) then
-  begin
-    case attrKey of
-      attrIn:
-        FIn1 := AValue.ToString;
+  case AKeyword of
+    attrIn:
+      FIn1 := AValue.ToString;
 
-      attrIn2:
-        FIn2 := AValue.ToString;
+    attrIn2:
+      FIn2 := AValue.ToString;
 
-      attrResult:
-        FResult := AValue.ToString;
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end
+    attrResult:
+      FResult := AValue.ToString;
   else
-    inherited ParseAttribute(AName, AValue);
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFilterPrimitiveNode.GetIsReferenceTarget: boolean;
@@ -3138,31 +3161,25 @@ begin
   Result := blurRes;
 end;
 
-procedure TSvgFeGaussianBlurNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
+procedure TSvgFeGaussianBlurNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 var
-  Keyword: TSvgAttributeKeyword;
   Value1, Value2: TValuePUtf8Char;
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrStdDeviation:
+  case AKeyword of
+    attrStdDeviation:
+      begin
+        Value2 := AValue;
+        Value2.Trim;
+        Value1 := Value2.Split(sListSeparators, True);
+        if (Value1.TryToFloat(FStdDeviationX)) then
         begin
-          Value2 := AValue;
-          Value2.Trim;
-          Value1 := Value2.Split([' ', ','], True);
-          if (Value1.TryToFloat(FStdDeviationX)) then
-          begin
-            if (not Value2.TryToFloat(FStdDeviationY)) then
-              FStdDeviationY := FStdDeviationX;
-          end;
+          if (not Value2.TryToFloat(FStdDeviationY)) then
+            FStdDeviationY := FStdDeviationX;
         end;
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end
+      end;
   else
-    inherited ParseAttribute(AName, AValue);
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFeGaussianBlurNode.DumpNode(Indent: Integer): string;
@@ -3194,44 +3211,39 @@ begin
   Result := cmRes;
 end;
 
-procedure TSvgFeColorMatrixNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
+procedure TSvgFeColorMatrixNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 var
-  Keyword: TSvgAttributeKeyword;
   Value, Values: TValuePUtf8Char;
   i: Integer;
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrType:
-        FMatrixType := ParseSvgFeColorMatrixType(AValue);
+  case AKeyword of
+    attrType:
+      FMatrixType := ParseSvgFeColorMatrixType(AValue);
 
-      attrValues:
+    attrValues:
+      begin
+        Values := AValue;
+        Values.Trim;
+        i := 0;
+        while (Values.Len > 0) do
         begin
-          Values := AValue;
-          Values.Trim;
-          i := 0;
-          while (Values.Len > 0) do
-          begin
-            Value := Values.Split([' ', ','], True);
+          Value := Values.Split(sListSeparators, True);
 
-            if (Value.Len = 0) then
-              break;
+          if (Value.Len = 0) then
+            break;
 
-            if (i > High(FValues)) then
-              SetLength(FValues, i + 20);
+          if (i > High(FValues)) then
+            SetLength(FValues, i + 20);
 
-            if (not Value.TryToFloat(FValues[i])) then
-              break;
-            Inc(i);
-          end;
-          SetLength(FValues, i);
+          if (not Value.TryToFloat(FValues[i])) then
+            break;
+          Inc(i);
         end;
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+        SetLength(FValues, i);
+      end;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFeColorMatrixNode.DumpNode(Indent: Integer): string;
@@ -3260,20 +3272,14 @@ begin
   Result := blendRes;
 end;
 
-procedure TSvgFeBlendNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgFeBlendNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrMode:
-        FMode := ParseSvgBlendMode(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  case AKeyword of
+    attrMode:
+      FMode := ParseSvgBlendMode(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFeBlendNode.DumpNode(Indent: Integer): string;
@@ -3310,33 +3316,27 @@ begin
   Result := compRes;
 end;
 
-procedure TSvgFeCompositeNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgFeCompositeNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrOperator:
-        FOperator := ParseSvgCompositeOperator(AValue);
+  case AKeyword of
+    attrOperator:
+      FOperator := ParseSvgCompositeOperator(AValue);
 
-      attrK1:
-        AValue.TryToFloat(FK1);
+    attrK1:
+      AValue.TryToFloat(FK1);
 
-      attrK2:
-        AValue.TryToFloat(FK2);
+    attrK2:
+      AValue.TryToFloat(FK2);
 
-      attrK3:
-        AValue.TryToFloat(FK3);
+    attrK3:
+      AValue.TryToFloat(FK3);
 
-      attrK4:
-        AValue.TryToFloat(FK4);
+    attrK4:
+      AValue.TryToFloat(FK4);
 
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFeCompositeNode.DumpNode(Indent: Integer): string;
@@ -3365,19 +3365,13 @@ begin
   Result := childRes;
 end;
 
-procedure TSvgFeMergeNodeChild.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgFeMergeNodeChild.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrIn: FIn1 := AValue.ToString;
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  case AKeyword of
+    attrIn: FIn1 := AValue.ToString;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -3396,23 +3390,17 @@ begin
   Result := offRes;
 end;
 
-procedure TSvgFeOffsetNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgFeOffsetNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrDx:
-        AValue.TryToFloat(FDx);
+  case AKeyword of
+    attrDx:
+      AValue.TryToFloat(FDx);
 
-      attrDy:
-        AValue.TryToFloat(FDy);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+    attrDy:
+      AValue.TryToFloat(FDy);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFeOffsetNode.DumpNode(Indent: Integer): string;
@@ -3443,25 +3431,19 @@ begin
   Result := floodRes;
 end;
 
-procedure TSvgFeFloodNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgFeFloodNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrFloodColor:
-        FFloodColor := TSvgColor.Parse(AValue);
+  case AKeyword of
+    attrFloodColor:
+      FFloodColor := TSvgColor.Parse(AValue);
 
-      attrFloodOpacity:
-        if AValue.TryToFloat(FFloodOpacity) then
-          FFloodOpacity := EnsureRange(FFloodOpacity, 0.0, 1.0);
+    attrFloodOpacity:
+      if AValue.TryToFloat(FFloodOpacity) then
+        FFloodOpacity := EnsureRange(FFloodOpacity, 0.0, 1.0);
 
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFeFloodNode.DumpNode(Indent: Integer): string;
@@ -3506,45 +3488,39 @@ begin
   Result := filterRes;
 end;
 
-procedure TSvgFilterNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgFilterNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrX:
-        FX := TSvgLength.Parse(AValue);
+  case AKeyword of
+    attrX:
+      FX := TSvgLength.Parse(AValue);
 
-      attrY:
-        FY := TSvgLength.Parse(AValue);
+    attrY:
+      FY := TSvgLength.Parse(AValue);
 
-      attrWidth:
-        FWidth := TSvgLength.Parse(AValue);
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
 
-      attrHeight:
-        FHeight := TSvgLength.Parse(AValue);
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
 
-      attrFilterUnits:
-        begin
-          if AValue.CompareText('userspaceonuse') then
-            FFilterUnits := guUserSpaceOnUse
-          else
-            FFilterUnits := guObjectBoundingBox;
-        end;
+    attrFilterUnits:
+      begin
+        if AValue.CompareText('userspaceonuse') then
+          FFilterUnits := guUserSpaceOnUse
+        else
+          FFilterUnits := guObjectBoundingBox;
+      end;
 
-      attrPrimitiveUnits:
-        begin
-          if AValue.CompareText('objectboundingbox') then
-            FPrimitiveUnits := guObjectBoundingBox
-          else
-            FPrimitiveUnits := guUserSpaceOnUse;
-        end;
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+    attrPrimitiveUnits:
+      begin
+        if AValue.CompareText('objectboundingbox') then
+          FPrimitiveUnits := guObjectBoundingBox
+        else
+          FPrimitiveUnits := guUserSpaceOnUse;
+      end;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgFilterNode.DumpNode(Indent: Integer): string;
@@ -3594,58 +3570,113 @@ begin
   Result := markerRes;
 end;
 
-procedure TSvgMarkerNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgMarkerNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrRefX:
-        FRefX := TSvgLength.Parse(AValue);
+  case AKeyword of
+    attrRefX:
+      FRefX := TSvgLength.Parse(AValue);
 
-      attrRefY:
-        FRefY := TSvgLength.Parse(AValue);
+    attrRefY:
+      FRefY := TSvgLength.Parse(AValue);
 
-      attrMarkerWidth:
-        FMarkerWidth := TSvgLength.Parse(AValue);
+    attrMarkerWidth:
+      FMarkerWidth := TSvgLength.Parse(AValue);
 
-      attrMarkerHeight:
-        FMarkerHeight := TSvgLength.Parse(AValue);
+    attrMarkerHeight:
+      FMarkerHeight := TSvgLength.Parse(AValue);
 
-      attrMarkerUnits:
+    attrMarkerUnits:
+      begin
+        if AValue.CompareText('userspaceonuse') then
+          FMarkerUnits := muUserSpaceOnUse
+        else
+          FMarkerUnits := muStrokeWidth;
+      end;
+
+    attrOrient:
+      begin
+        if AValue.CompareText('auto') then
+          FOrient := moAuto
+        else
+        if AValue.CompareText('auto-start-reverse') then
+          FOrient := moAutoStartReverse
+        else
         begin
-          if AValue.CompareText('userspaceonuse') then
-            FMarkerUnits := muUserSpaceOnUse
-          else
-            FMarkerUnits := muStrokeWidth;
+          FOrient := moAngle;
+          AValue.TryToFloat(FOrientAngle);
         end;
+      end;
 
-      attrOrient:
-        begin
-          if AValue.CompareText('auto') then
-            FOrient := moAuto
-          else
-          if AValue.CompareText('auto-start-reverse') then
-            FOrient := moAutoStartReverse
-          else
-          begin
-            FOrient := moAngle;
-            AValue.TryToFloat(FOrientAngle);
-          end;
-        end;
+    attrViewBox:
+      FViewBox := TSvgViewBox.Parse(AValue);
 
-      attrViewBox:
-        FViewBox := TSvgViewBox.Parse(AValue);
+    attrPreserveAspectRatio:
+      FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
 
-      attrPreserveAspectRatio:
-        FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
 
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+
+//------------------------------------------------------------------------------
+//
+//      TSvgDocumentNode
+//
+//------------------------------------------------------------------------------
+type
+  TIAnsiStringComparer = class(TCustomComparer<AnsiString>)
+  private class var
+    FOrdinal: TIAnsiStringComparer;
+  private
+    class destructor Destroy;
+  public
+    class function Ordinal: TIAnsiStringComparer;
+
+    function Compare(const Left, Right: AnsiString): Integer; override;
+    function Equals(const Left, Right: AnsiString): Boolean; reintroduce; overload; override;
+    function GetHashCode(const Value: AnsiString): Integer; reintroduce; overload; override;
+  end;
+
+class destructor TIAnsiStringComparer.Destroy;
+begin
+  FreeAndNil(FOrdinal);
+end;
+
+class function TIAnsiStringComparer.Ordinal: TIAnsiStringComparer;
+begin
+  if (FOrdinal = nil) then
+    FOrdinal := TIAnsiStringComparer.Create;
+  Result := FOrdinal;
+end;
+
+function TIAnsiStringComparer.Compare(const Left, Right: AnsiString): Integer;
+var
+  L, R: AnsiString;
+  len, lenDiff: Integer;
+begin
+  L := AnsiStrings.LowerCase(Left);
+  R := AnsiStrings.LowerCase(Right);
+  len := Length(L);
+  lenDiff := len - Length(R);
+  if Length(R) < len then
+    len := Length(R);
+  Result := BinaryCompare(PAnsiChar(L), PAnsiChar(R), len);
+  if Result = 0 then
+    Exit(lenDiff);
+end;
+
+function TIAnsiStringComparer.Equals(const Left, Right: AnsiString): Boolean;
+begin
+  Result := AnsiStrings.SameText(Left, Right);
+end;
+
+function TIAnsiStringComparer.GetHashCode(const Value: AnsiString): Integer;
+var
+  s: AnsiString;
+begin
+  s := AnsiStrings.LowerCase(Value);
+  Result := THashFNV1a32.GetHashValue(PAnsiChar(S)^, Length(S));
 end;
 
 
@@ -3661,6 +3692,15 @@ begin
   FHeight := TSvgLength.Create(100.0, suPercent);
   FViewBox.IsDefined := False;
   FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
+
+  FNodes := TDictionary<AnsiString, TSvgNode>.Create(TIAnsiStringComparer.Ordinal);
+end;
+
+destructor TSvgDocumentNode.Destroy;
+begin
+  FNodes.Free;
+
+  inherited;
 end;
 
 function TSvgDocumentNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -3679,6 +3719,30 @@ function TSvgDocumentNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
   Result := Result + Format(' (width=%s, height=%s)', [SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
+end;
+
+function TSvgDocumentNode.FindNodeById(const AID: AnsiString): TSvgNode;
+var
+  s: AnsiString;
+begin
+  s := AID;
+  if (s[1] = '#') then
+    Delete(s, 1, 1);
+
+  if (not FNodes.TryGetValue(s, Result)) then
+    Result := nil;
+end;
+
+procedure TSvgDocumentNode.NodeAdded(ANode: TSvgNode);
+begin
+  if (ANode.ID <> '') then
+    FNodes.TryAdd(ANode.ID, ANode); // Ignore duplicate; Do not add to dictionary
+end;
+
+procedure TSvgDocumentNode.NodeRemoved(ANode: TSvgNode);
+begin
+  if (ANode.ID <> '') then
+    FNodes.Remove(ANode.ID);
 end;
 
 procedure TSvgDocumentNode.ResolveSwitchNodes;
@@ -4172,30 +4236,24 @@ begin
   ProcessNode(Self);
 end;
 
-procedure TSvgDocumentNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgDocumentNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrWidth:
-        FWidth := TSvgLength.Parse(AValue);
+  case AKeyword of
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
 
-      attrHeight:
-        FHeight := TSvgLength.Parse(AValue);
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
 
-      attrViewBox:
-        FViewBox := TSvgViewBox.Parse(AValue);
+    attrViewBox:
+      FViewBox := TSvgViewBox.Parse(AValue);
 
-      attrPreserveAspectRatio:
-        FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
+    attrPreserveAspectRatio:
+      FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
 
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -4362,7 +4420,6 @@ begin
   begin
     UseNode := TSvgUseNode(AParent);
     Instance := TSvgSymbolInstanceNode.Create(AParent);
-    Instance.FID := FID;
     Instance.FCssClassName := FCssClassName;
     Instance.FStyleAttr := FStyleAttr;
     Instance.FTransform := FTransform;
@@ -4408,7 +4465,6 @@ begin
   end else
   begin
     SymbolClone := TSvgSymbolNode.Create(AParent);
-    SymbolClone.FID := FID;
     SymbolClone.FCssClassName := FCssClassName;
     SymbolClone.FStyleAttr := FStyleAttr;
     SymbolClone.FTransform := FTransform;
@@ -4433,36 +4489,30 @@ begin
   end;
 end;
 
-procedure TSvgSymbolNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  attrKey: TSvgAttributeKeyword;
+procedure TSvgSymbolNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, attrKey) then
-  begin
-    case attrKey of
-      attrX:
-        FX := TSvgLength.Parse(AValue);
+  case AKeyword of
+    attrX:
+      FX := TSvgLength.Parse(AValue);
 
-      attrY:
-        FY := TSvgLength.Parse(AValue);
+    attrY:
+      FY := TSvgLength.Parse(AValue);
 
-      attrWidth:
-        FWidth := TSvgLength.Parse(AValue);
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
 
-      attrHeight:
-        FHeight := TSvgLength.Parse(AValue);
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
 
-      attrViewBox:
-        FViewBox := TSvgViewBox.Parse(AValue);
+    attrViewBox:
+      FViewBox := TSvgViewBox.Parse(AValue);
 
-      attrPreserveAspectRatio:
-        FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
+    attrPreserveAspectRatio:
+      FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
 
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgSymbolNode.DumpNode(Indent: Integer): string;
@@ -4520,32 +4570,26 @@ begin
     Result := Result + Format(' (href="%s")', [FHref]);
 end;
 
-procedure TSvgUseNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgUseNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrHref, attrXLinkHref:
-        FHref := AValue.ToString;
+  case AKeyword of
+    attrHref, attrXLinkHref:
+      FHref := AValue.ToString;
 
-      attrX:
-        AValue.TryToFloat(FX);
+    attrX:
+      AValue.TryToFloat(FX);
 
-      attrY:
-        AValue.TryToFloat(FY);
+    attrY:
+      AValue.TryToFloat(FY);
 
-      attrWidth:
-        FWidth := TSvgLength.Parse(AValue);
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
 
-      attrHeight:
-        FHeight := TSvgLength.Parse(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -4575,35 +4619,29 @@ begin
   TSvgImageNode(Result).FPreserveAspectRatio := FPreserveAspectRatio;
 end;
 
-procedure TSvgImageNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
-var
-  Keyword: TSvgAttributeKeyword;
+procedure TSvgImageNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  if SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
-  begin
-    case Keyword of
-      attrX:
-        FX := TSvgLength.Parse(AValue);
+  case AKeyword of
+    attrX:
+      FX := TSvgLength.Parse(AValue);
 
-      attrY:
-        FY := TSvgLength.Parse(AValue);
+    attrY:
+      FY := TSvgLength.Parse(AValue);
 
-      attrWidth:
-        FWidth := TSvgLength.Parse(AValue);
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
 
-      attrHeight:
-        FHeight := TSvgLength.Parse(AValue);
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
 
-      attrHref, attrXLinkHref, attrSrc:
-        FHref := AValue.ToString;
+    attrHref, attrXLinkHref, attrSrc:
+      FHref := AValue.ToString;
 
-      attrPreserveAspectRatio:
-        FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
-    else
-      inherited ParseAttribute(AName, AValue);
-    end;
-  end else
-    inherited ParseAttribute(AName, AValue);
+    attrPreserveAspectRatio:
+      FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 function TSvgImageNode.GetObjectBoundingBox: TFloatRect;
@@ -4750,12 +4788,12 @@ begin
 
   while (AValues.Len > 0) do
   begin
-    Value := AValues.Split([' ', #9, #10, #13, ','], True);
+    Value := AValues.Split(sListSeparators, True);
 
     if (not Value.TryToFloat(Point.X)) then
       break;
 
-    Value := AValues.Split([' ', #9, #10, #13, ','], True);
+    Value := AValues.Split(sListSeparators, True);
 
     if (not Value.TryToFloat(Point.Y)) then
       break;
@@ -4796,7 +4834,7 @@ begin
   while (Values.Len > 0) do
   begin
     // Trim
-    Value := Values.Split([' ', #9, #10, #13, ','], True);
+    Value := Values.Split(sListSeparators, True);
     if (Value.Len = 0) then
       Break;
 
@@ -4814,35 +4852,36 @@ end;
 
 //------------------------------------------------------------------------------
 
-function ParseStrokeDashArray(AStr: TValuePUtf8Char): TArrayOfFloat;
+function ParseStrokeDashArray(Values: TValuePUtf8Char): TArrayOfFloat;
 var
+  Value: TValuePUtf8Char;
   Count: Integer;
-  Value: TSvgLength;
+  LengthValue: TSvgLength;
   Pixels: Single;
   Len: PtrInt;
   i: integer;
 begin
   Result := nil;
 
-  AStr.Trim;
-  if (AStr.Len = 0) or AStr.CompareText('none') then
+  Values.Trim;
+  if (Values.Len = 0) or Values.CompareText('none') then
     Exit;
 
   Count := 0;
   SetLength(Result, 8);
 
-  while (AStr.Len > 0) do
+  while (Values.Len > 0) do
   begin
-    AStr.Trim([' ', #9, #10, #13, ',']);
-    if (AStr.Len = 0) then
+    Value := Values.Split(sListSeparators, True);
+    if (Value.Len = 0) then
       break;
 
-    Len := AStr.Len;
-    Value := TSvgLength.ParseAndSkip(AStr);
-    if (Len = AStr.Len) then
+    Len := Value.Len;
+    LengthValue := TSvgLength.ParseAndSkip(Value);
+    if (Len = Value.Len) then
       exit; // Avoid endless loop on invalid input
 
-    Pixels := Value.ToPixels;
+    Pixels := LengthValue.ToPixels;
     if (Pixels < 0) then
       Pixels := 0;
 
@@ -4883,21 +4922,22 @@ function ParseSvgTransform(AValue: TValuePUtf8Char): TFloatMatrix;
 
   function ExtractParams(Params: TValuePUtf8Char; var ParamValues: TArray<Single>): integer;
   var
-    Value: Single;
+    Value: TValuePUtf8Char;
+    Float: Single;
   begin
     Result := 0;
     SetLength(ParamValues, 6);
     while (Params.Len > 0) do
     begin
-      Params.Trim([' ', #9, #10, #13, ',']);
-      if (Params.Len = 0) then
+      Value := Params.Split(sListSeparators, True);
+      if (Value.Len = 0) then
         break;
 
-      if (Params.TryToFloat(Value, True)) then
+      if (Value.TryToFloat(Float)) then
       begin
         if (Result > High(ParamValues)) then
           SetLength(ParamValues, Length(ParamValues) * 2);
-        ParamValues[Result] := Value;
+        ParamValues[Result] := Float;
         Inc(Result);
       end;
     end;
@@ -4917,7 +4957,7 @@ begin
 
   while (AValue.Len > 0) do
   begin
-    AValue.Trim([' ', #9, #10, #13, ',']);
+    AValue.Trim(sListSeparators);
     if (AValue.Len = 0) then
       Break;
 
@@ -5049,16 +5089,20 @@ var
   var
     Value: TValuePUtf8Char;
     Utf8: RawUtf8;
+    Keyword: TSvgAttributeKeyword;
   begin
     while AParser.ParseNext = xtAttribute do
     begin
+      if not SvgAttributeKeywordDictionary.Lookup(AParser.Name, Keyword) then
+        continue;
+
       if IsUtf8(AParser) and TryValueToUtf8(AParser, Utf8) then
       begin
         Value.Text := PAnsiChar(Utf8);
         Value.Len := Length(Utf8);
-        ANode.ParseAttribute(AParser.Name, Value);
+        ANode.ParseAttribute(Keyword, Value);
       end else
-        ANode.ParseAttribute(AParser.Name, TValuePUtf8Char(AParser.Value));
+        ANode.ParseAttribute(Keyword, TValuePUtf8Char(AParser.Value));
     end;
   end;
 

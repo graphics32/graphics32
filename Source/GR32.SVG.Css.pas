@@ -35,7 +35,9 @@ interface
 {$include GR32.inc}
 
 uses
-  SysUtils, Classes, Generics.Collections, GR32.SVG.Tree;
+  SysUtils, Classes, Generics.Collections,
+  GR32.SVG.Utf8,
+  GR32.SVG.Tree;
 
 type
   TSvgCssSelectorKind = (skUniversal, skElement, skClass, skId);
@@ -49,9 +51,9 @@ type
   end;
 
   TSvgCssProperty = record
-    Name: string;
-    Value: string;
-    class function Create(const AName, AValue: string): TSvgCssProperty; static;
+    Name: AnsiString;
+    Value: AnsiString;
+    class function Create(const AName, AValue: AnsiString): TSvgCssProperty; static;
   end;
 
   TSvgCssRule = record
@@ -66,16 +68,15 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
     procedure Clear;
     procedure ParseCss(const ACssText: string);
     procedure ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: string);
+
     property Rules: TList<TSvgCssRule> read FRules;
   end;
 
 implementation
-
-uses
-  GR32.SVG.Utf8;
 
 { TSvgCssSelector }
 
@@ -154,7 +155,7 @@ end;
 
 { TSvgCssProperty }
 
-class function TSvgCssProperty.Create(const AName, AValue: string): TSvgCssProperty;
+class function TSvgCssProperty.Create(const AName, AValue: AnsiString): TSvgCssProperty;
 begin
   Result.Name := Trim(AName);
   Result.Value := Trim(AValue);
@@ -312,9 +313,6 @@ begin
 end;
 
 procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: string);
-var
-  i, j: Integer;
-  Rule: TSvgCssRule;
 const
   // CSS Specificity values based on W3C CSS2 / SVG 1.1 specification:
   //   0   = Universal selector (*)
@@ -328,6 +326,10 @@ const
   // Within the same specificity level, stylesheet document order is preserved,
   // so later rules override earlier ones of equal specificity.
   Specificities: array[0..3] of Integer = (0, 1, 10, 100);
+var
+  i, j: Integer;
+  Rule: TSvgCssRule;
+  Keyword: TSvgAttributeKeyword;
 begin
   if (ANode = nil) or (FRules.Count = 0) then
     Exit;
@@ -336,7 +338,11 @@ begin
     for Rule in FRules do
       if (Rule.Selector.Specificity = Specificities[i]) and Rule.Selector.Matches(AElementTag, AClassName, AElementId) then
         for j := 0 to High(Rule.Properties) do
-          ANode.ParseAttribute(TValuePUtf8Char.FromString(Rule.Properties[j].Name), TValuePUtf8Char.FromString(Rule.Properties[j].Value));
+        begin
+          Keyword := ANode.KeywordLookup(TValuePUtf8Char.FromString(Rule.Properties[j].Name));
+          if (Keyword <> attrNone) then
+            ANode.ParseAttribute(Keyword, TValuePUtf8Char.FromString(Rule.Properties[j].Value));
+        end;
 end;
 
 end.

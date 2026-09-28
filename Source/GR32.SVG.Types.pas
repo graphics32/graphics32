@@ -182,9 +182,9 @@ function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean; overload
 {$ifend}
 
 // System language tag management and RFC 3066 / BCP 47 language matching
-function GetSystemLanguage: string;
-procedure SetSystemLanguage(const ALang: string);
-function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean;
+function GetSystemLanguage: AnsiString;
+procedure SetSystemLanguage(const ALang: AnsiString);
+function MatchLanguageTag(ASystemLang, ALangRange: TValuePUtf8Char): Boolean;
 
 var
   // GlobalSystemLanguage: Current system language.
@@ -659,34 +659,32 @@ begin
 end;
 {$ifend}
 
-function GetSystemLanguage: string;
+function GetSystemLanguage: AnsiString;
 begin
   Result := GlobalSystemLanguage;
 end;
 
-procedure SetSystemLanguage(const ALang: string);
+procedure SetSystemLanguage(const ALang: AnsiString);
 begin
   GlobalSystemLanguage := ALang;
 end;
 
-function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean;
-var
-  sSys, sRange: string;
+function MatchLanguageTag(ASystemLang, ALangRange: TValuePUtf8Char): Boolean;
 begin
-  sSys := LowerCase(Trim(ASystemLang));
-  sRange := LowerCase(Trim(ALangRange));
+  ASystemLang.Trim;
+  ALangRange.Trim;
 
-  if (sRange = '*') or (sRange = '') or (sSys = '') or (sRange = sSys) then
+  if (ALangRange.Len = 0) or (ASystemLang.Len = 0) or (ALangRange.Text^ = '*') or (ALangRange.CompareText(ASystemLang)) then
     Exit(True);
 
   // Range 'en' matches system tag 'en-US' (prefix check followed by '-')
-  if (Length(sSys) > Length(sRange)) and (Copy(sSys, 1, Length(sRange)) = sRange) and
-     (sSys[Length(sRange) + 1] = '-') then
+  if (ASystemLang.Len > ALangRange.Len) and (ASystemLang.StartsText(ALangRange)) and
+     (ASystemLang.Text[ALangRange.Len] = '-') then
     Exit(True);
 
   // Range 'en-US' matches system tag 'en' (system tag is prefix of range)
-  if (Length(sRange) > Length(sSys)) and (Copy(sRange, 1, Length(sSys)) = sSys) and
-     (sRange[Length(sSys) + 1] = '-') then
+  if (ALangRange.Len > ASystemLang.Len) and (ALangRange.StartsText(ASystemLang)) and
+     (ALangRange.Text[ASystemLang.Len] = '-') then
     Exit(True);
 
   Result := False;
