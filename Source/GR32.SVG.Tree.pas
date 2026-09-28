@@ -1773,10 +1773,52 @@ begin
 end;
 
 procedure TSvgNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
+
+  function ParseColor(AValue: TValuePUtf8Char; var Color: TSvgColor; var URL: AnsiString): boolean;
+  var
+    Value: TValuePUtf8Char;
+  begin
+    URL := '';
+    Result := False;
+
+    if AValue.CompareText('none') then
+    begin
+      Color := TSvgColor.None;
+      Result := True;
+    end else
+    // fill:url(#linearGradient67376)
+    if AValue.StartsText('url(', True) then
+    begin
+      Value := AValue.Split(')', True);
+      Value.Trim;
+      // fill:url("#someURL")
+      if (Value.Len > 1) and (Value.Text^ in ['"', '''']) and (Value.LastChar in ['"', '''']) then
+      begin
+        Value.Skip;
+        Dec(Value.Len);
+      end;
+      URL := Value.ToString;
+
+      AValue.Trim;
+      // fill:url(...) rgb(0, 0, 0)
+      if (AValue.Len > 0) then
+      begin
+        Color := TSvgColor.Parse(AValue); // Fallback color
+        Result := True;
+      end;
+    end else
+    begin
+      Color := TSvgColor.Parse(AValue);
+      Result := True;
+    end;
+  end;
+
 var
   Value: TValuePUtf8Char;
   Keyword: TSvgAttributeKeyword;
   ValueFloat: Single;
+  Color: TSvgColor;
+  s: AnsiString;
 begin
   if not SvgAttributeKeywordDictionary.Lookup(AName, Keyword) then
     Exit;
@@ -1813,22 +1855,10 @@ begin
 
     attrFill:
       begin
-        if AValue.CompareText('none') then
-          FFill.Color := TSvgColor.None
-        else
-        if AValue.StartsText('url(', True) then
-        begin
-          Value := AValue;
-          if (Value.LastChar = ')') then
-            Dec(Value.Len);
-          if (Value.Len > 1) and (Value.Text^ in ['"', '''']) and (Value.LastChar in ['"', '''']) then
-          begin
-            Value.Skip;
-            Dec(Value.Len);
-          end;
-          FFill.Url := Value.ToString;
-        end else
-          FFill.Color := TSvgColor.Parse(AValue);
+        if (ParseColor(AValue, Color, s)) then
+          FFill.Color := Color;
+        if (s <> '') then
+          FFill.Url := s;
       end;
 
     attrFillOpacity:
@@ -1847,22 +1877,10 @@ begin
 
     attrStroke:
       begin
-        if AValue.CompareText('none') then
-          FStroke.Color := TSvgColor.None
-        else
-        if AValue.StartsText('url(', True) then
-        begin
-          Value := AValue;
-          if (Value.LastChar = ')') then
-            Dec(Value.Len);
-          if (Value.Len > 1) and (Value.Text^ in ['"', '''']) and (Value.LastChar in ['"', '''']) then
-          begin
-            Value.Skip;
-            Dec(Value.Len);
-          end;
-          FStroke.Url := Value.ToString;
-        end else
-          FStroke.Color := TSvgColor.Parse(AValue);
+        if (ParseColor(AValue, Color, s)) then
+          FStroke.Color := Color;
+        if (s <> '') then
+          FStroke.Url := s;
       end;
 
     attrStrokeOpacity:

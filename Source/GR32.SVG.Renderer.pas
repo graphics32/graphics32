@@ -81,17 +81,17 @@ type
     FPolyRenderer: TPolygonRenderer32;
     FAllowExternalImages: Boolean;
   protected
-    procedure RenderPathNode(APathNode: TSvgPathNode); virtual;
-    procedure RenderImageNode(AImageNode: TSvgImageNode); virtual;
-    procedure RenderTextNode(ATextNode: TSvgTextNode); virtual;
-    procedure RenderGroupNode(AGroupNode: TSvgGroupNode); virtual;
-    procedure RenderClipPathNode(AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
-    procedure RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32); virtual;
-    procedure RenderMarker(AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); virtual; // Angle is in radians!
-    procedure RenderMarkers(APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single); virtual;
-    procedure RenderFilter(AFilterNode: TSvgFilterNode; ANode: TSvgNode); virtual;
-    procedure RenderNodeUnfiltered(ANode: TSvgNode); virtual;
-    procedure BlendOffscreenSurface(ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode); virtual;
+    procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode); virtual;
+    procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode); virtual;
+    procedure RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode); virtual;
+    procedure RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgGroupNode); virtual;
+    procedure RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect); virtual;
+    procedure RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect); virtual;
+    procedure RenderMarker(ATarget: TCustomBitmap32; AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); virtual; // Angle is in radians!
+    procedure RenderMarkers(ATarget: TCustomBitmap32; APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single); virtual;
+    procedure RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode); virtual;
+    procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode); virtual;
+    procedure BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode); virtual;
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
@@ -109,7 +109,8 @@ type
 
     procedure RenderDocument(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect); overload;
     procedure RenderDocument(ADoc: TSvgDocumentNode); overload;
-    procedure RenderNode(ANode: TSvgNode); virtual;
+    procedure RenderNode(ATarget: TCustomBitmap32; ANode: TSvgNode); overload; virtual;
+    procedure RenderNode(ANode: TSvgNode); overload; virtual;
 
     property Target: TCustomBitmap32 read FTarget write FTarget;
     property CurrentMatrix: TFloatMatrix read FCurrentMatrix write FCurrentMatrix;
@@ -348,7 +349,7 @@ begin
   begin
     Candidate := FPool[i];
 
-    CandidateSize := Candidate.Width * Candidate.Height;
+    CandidateSize := Candidate.PixelCount;
     Delta := CandidateSize - TargetSize;
 
     if (Delta < 0) then
@@ -450,18 +451,19 @@ begin
   FCurrentMatrix := Mult(FCurrentMatrix, AMatrix);
 end;
 
-procedure TSvgRenderer.BlendOffscreenSurface(ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode);
+procedure TSvgRenderer.BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode);
 var
   BlenderClass: TGraphics32BlenderClass;
   Blender: TCustomGraphics32Blender;
   Combiner: TPixelCombineEvent;
 begin
-  if (ASource = nil) or (FTarget = nil) then
+  if (ASource = nil) or (ATarget = nil) then
     Exit;
 
   if (ABlendMode <> bmNormal) then
   begin
     BlenderClass := SvgBlendModeToBlenderClass(ABlendMode);
+
     if (BlenderClass <> nil) and (BlenderClass <> TGraphics32BlenderNormal) then
     begin
       Blender := BlenderClass.Create;
@@ -473,7 +475,7 @@ begin
           ASource.DrawMode := dmCustom;
           ASource.OnPixelCombine := Combiner;
 
-          ASource.DrawTo(FTarget, 0, 0);
+          ASource.DrawTo(ATarget, 0, 0);
 
           ASource.OnPixelCombine := nil;
           exit;
@@ -486,7 +488,7 @@ begin
 
   ASource.DrawMode := dmBlend;
   ASource.CombineMode := cmMerge;
-  ASource.DrawTo(FTarget, 0, 0);
+  ASource.DrawTo(ATarget, 0, 0);
 end;
 
 
@@ -689,7 +691,6 @@ var
   tileX, tileY, tileW, tileH: Single;
   patternBmp: TBitmap32;
   i, bmpW, bmpH: Integer;
-  savedTarget: TCustomBitmap32;
   savedMatrix: TFloatMatrix;
   savedViewport: TFloatRect;
   contentMat, patTransMat: TFloatMatrix;
@@ -746,11 +747,9 @@ begin
     patternBmp.SetSize(bmpW, bmpH);
     patternBmp.DrawMode := dmBlend;
 
-    savedTarget := FTarget;
     savedMatrix := FCurrentMatrix;
     savedViewport := FViewportRect;
 
-    FTarget := patternBmp;
     FCurrentMatrix := IdentityMatrix;
     FViewportRect := FloatRect(0, 0, bmpW, bmpH);
 
@@ -769,11 +768,12 @@ begin
     PushMatrix;
     try
       ApplyMatrix(contentMat);
+
       for i := 0 to APatternNode.Children.Count - 1 do
-        RenderNode(APatternNode.Children[i]);
+        RenderNode(patternBmp, APatternNode.Children[i]);
+
     finally
       PopMatrix;
-      FTarget := savedTarget;
       FCurrentMatrix := savedMatrix;
       FViewportRect := savedViewport;
     end;
@@ -787,7 +787,7 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderPathNode(APathNode: TSvgPathNode);
+procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
 var
   PathPoints, TransformedPoints: TArrayOfArrayOfFloatPoint;
   Color: TColor32;
@@ -799,7 +799,7 @@ var
   Bounds, StrokeBounds: TFloatRect;
   PaintServerNode: TSvgNode;
 begin
-  if (APathNode = nil) or (FTarget = nil) then
+  if (APathNode = nil) or (ATarget = nil) then
     Exit;
 
   PathPoints := APathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
@@ -811,9 +811,9 @@ begin
   Bounds := GetPathBounds(TransformedPoints);
 
   if (FPolyRenderer = nil) then
-    FPolyRenderer := DefaultPolygonRendererClass.Create(FTarget)
+    FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget)
   else
-    FPolyRenderer.Bitmap := FTarget;
+    FPolyRenderer.Bitmap := ATarget;
 
   (*
   ** 1. Fill Rendering
@@ -832,6 +832,7 @@ begin
     if (Filler <> nil) then
     begin
       try
+        FPolyRenderer.Bitmap := ATarget; // The CreatePatternFiller above will likely change the bitmap, so restore it here
         FPolyRenderer.Filler := Filler;
         try
           FPolyRenderer.FillMode := APathNode.Fill.FillRule;
@@ -853,6 +854,7 @@ begin
 
     if (AlphaComponent(Color) > 0) then
     begin
+      FPolyRenderer.Bitmap := ATarget;
       FPolyRenderer.Color := Color;
       FPolyRenderer.FillMode := APathNode.Fill.FillRule;
 
@@ -906,6 +908,7 @@ begin
       if (Filler <> nil) then
       begin
         try
+          FPolyRenderer.Bitmap := ATarget; // The CreatePatternFiller above will likely change the bitmap, so restore it here
           FPolyRenderer.Filler := Filler;
           try
             FPolyRenderer.FillMode := pfWinding;
@@ -939,6 +942,7 @@ begin
             StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], IsClosedContour(TransformedPoints[i]), StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
         end;
 
+        FPolyRenderer.Bitmap := ATarget;
         FPolyRenderer.Color := Color;
         FPolyRenderer.FillMode := pfWinding;
 
@@ -953,31 +957,31 @@ begin
   if (APathNode.ResolvedMarkerStart <> nil) or (APathNode.ResolvedMarkerMid <> nil) or (APathNode.ResolvedMarkerEnd <> nil) then
   begin
     StrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
-    RenderMarkers(APathNode, PathPoints, StrokeWidth);
+    RenderMarkers(ATarget, APathNode, PathPoints, StrokeWidth);
   end;
 end;
 
-procedure TSvgRenderer.RenderClipPathNode(AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32);
+procedure TSvgRenderer.RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect);
 var
-  savedTarget: TCustomBitmap32;
   savedMatrix: TFloatMatrix;
   bWidth, bHeight: Single;
   i: Integer;
 begin
   { Renders child nodes of a <clipPath> onto a temporary alpha surface.
     If clipPathUnits = guObjectBoundingBox, applies translation and scale derived from target object bounds. }
-  if (AClipNode = nil) or (AMaskBmp = nil) then Exit;
+  if (AClipNode = nil) or (AMaskBmp = nil) then
+    Exit;
 
-  savedTarget := FTarget;
   savedMatrix := FCurrentMatrix;
-  FTarget := AMaskBmp;
   try
     if AClipNode.ClipPathUnits = guObjectBoundingBox then
     begin
       bWidth := ATargetBounds.Right - ATargetBounds.Left;
       bHeight := ATargetBounds.Bottom - ATargetBounds.Top;
-      if bWidth <= 0 then bWidth := 1.0;
-      if bHeight <= 0 then bHeight := 1.0;
+      if bWidth <= 0 then
+        bWidth := 1.0;
+      if bHeight <= 0 then
+        bHeight := 1.0;
 
       FCurrentMatrix := IdentityMatrix;
       TFloatMatrixHelper(FCurrentMatrix).Scale(bWidth, bHeight);
@@ -986,27 +990,24 @@ begin
 
     AMaskBmp.Clear(0); // Clear to 0 transparent so filled shapes paint non-zero alpha inside clip region
     for i := 0 to AClipNode.Children.Count - 1 do
-      RenderNode(AClipNode.Children[i]);
+      RenderNode(AMaskBmp, AClipNode.Children[i]);
   finally
-    FTarget := savedTarget;
     FCurrentMatrix := savedMatrix;
   end;
 end;
 
-procedure TSvgRenderer.RenderMaskNode(AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; AMaskBmp: TCustomBitmap32);
+procedure TSvgRenderer.RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect);
 var
-  savedTarget: TCustomBitmap32;
   savedMatrix: TFloatMatrix;
   bWidth, bHeight: Single;
   i: Integer;
 begin
   { Renders child nodes of a <mask> onto a temporary luminance/alpha surface.
     If maskContentUnits = guObjectBoundingBox, applies translation and scale derived from target object bounds. }
-  if (AMaskNode = nil) or (AMaskBmp = nil) then Exit;
+  if (AMaskNode = nil) or (AMaskBmp = nil) then
+    Exit;
 
-  savedTarget := FTarget;
   savedMatrix := FCurrentMatrix;
-  FTarget := AMaskBmp;
   try
     if AMaskNode.MaskContentUnits = guObjectBoundingBox then
     begin
@@ -1022,14 +1023,13 @@ begin
 
     AMaskBmp.Clear(clBlack32);
     for i := 0 to AMaskNode.Children.Count - 1 do
-      RenderNode(AMaskNode.Children[i]);
+      RenderNode(AMaskBmp, AMaskNode.Children[i]);
   finally
-    FTarget := savedTarget;
     FCurrentMatrix := savedMatrix;
   end;
 end;
 
-procedure TSvgRenderer.RenderMarker(AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single);
+procedure TSvgRenderer.RenderMarker(ATarget: TCustomBitmap32; AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single);
 var
   mw, mh, rx, ry, scaleX, scaleY: Single;
   markerMat: TFloatMatrixHelper;
@@ -1038,7 +1038,7 @@ var
   i: Integer;
   markerViewBox: TSvgViewBox;
 begin
-  if (AMarker = nil) or (AMarker.Children.Count = 0) then
+  if (AMarker = nil) or (AMarker.Children.Count = 0) or (ATarget = nil) then
     Exit;
 
   vpW := FViewportRect.Right - FViewportRect.Left;
@@ -1096,13 +1096,13 @@ begin
   try
     ApplyMatrix(markerMat.Matrix);
     for i := 0 to AMarker.Children.Count - 1 do
-      RenderNode(AMarker.Children[i]);
+      RenderNode(ATarget, AMarker.Children[i]);
   finally
     PopMatrix;
   end;
 end;
 
-procedure TSvgRenderer.RenderMarkers(APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single);
+procedure TSvgRenderer.RenderMarkers(ATarget: TCustomBitmap32; APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single);
 
   function GetVectorAngle(const P1, P2: TFloatPoint): Single;
   var
@@ -1165,7 +1165,7 @@ begin
       else
         vAngle := 0;
       end;
-      RenderMarker(startMarker, contour[0], vAngle, AStrokeWidth);
+      RenderMarker(ATarget, startMarker, contour[0], vAngle, AStrokeWidth);
     end;
 
     // Mid Vertices Markers
@@ -1187,7 +1187,7 @@ begin
         else
           vAngle := 0;
         end;
-        RenderMarker(midMarker, contour[i], vAngle, AStrokeWidth);
+        RenderMarker(ATarget, midMarker, contour[i], vAngle, AStrokeWidth);
       end;
     end;
 
@@ -1203,16 +1203,15 @@ begin
       else
         vAngle := 0;
       end;
-      RenderMarker(endMarker, contour[ptCount - 1], vAngle, AStrokeWidth);
+      RenderMarker(ATarget, endMarker, contour[ptCount - 1], vAngle, AStrokeWidth);
     end;
   end;
 end;
 
-procedure TSvgRenderer.RenderGroupNode(AGroupNode: TSvgGroupNode);
+procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgGroupNode);
 var
   i, k: Integer;
   OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
-  SavedTarget: TCustomBitmap32;
   x: Integer;
   SourceP, DestP: PColor32;
   Gray: Byte;
@@ -1233,7 +1232,7 @@ begin
   if (AGroupNode.Opacity < 1.0) or (AGroupNode.ResolvedClipPath <> nil) or (AGroupNode.ResolvedMask <> nil) or
      (AGroupNode.Isolation = isoIsolate) then
   begin
-    if (FTarget = nil) then
+    if (ATarget = nil) then
       Exit;
 
     // Calculate group bounding box in world space for objectBoundingBox units
@@ -1257,36 +1256,30 @@ begin
     end;
 
     // Acquire reusable offscreen scratchpad surface from bitmap pool
-    OffscreenBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+    OffscreenBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
     ClipMaskBmp := nil;
     MaskBmp := nil;
     try
-      OffscreenBmp.SetSize(FTarget.Width, FTarget.Height);
 
-      SavedTarget := FTarget;
-      FTarget := OffscreenBmp;
-      try
-        if AGroupNode is TSvgSwitchNode then
-        begin
-          if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
-            RenderNode(TSvgSwitchNode(AGroupNode).SelectedChild);
-        end else
-        begin
-          for i := 0 to AGroupNode.Children.Count - 1 do
-            RenderNode(AGroupNode.Children[i]);
-        end;
-      finally
-        FTarget := SavedTarget;
+      if AGroupNode is TSvgSwitchNode then
+      begin
+        if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
+          RenderNode(OffscreenBmp, TSvgSwitchNode(AGroupNode).SelectedChild);
+      end else
+      begin
+        for i := 0 to AGroupNode.Children.Count - 1 do
+          RenderNode(OffscreenBmp, AGroupNode.Children[i]);
       end;
 
       // Apply ClipPath
+      // TODO : Clip using polygon filler
       if (AGroupNode.ResolvedClipPath <> nil) then
       begin
         ClipNodeTarget := AGroupNode.ResolvedClipPath;
-        ClipMaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        ClipMaskBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
 
         OldMatrix := FCurrentMatrix;
-        RenderClipPathNode(ClipNodeTarget, TargetWorldBounds, ClipMaskBmp);
+        RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds);
         FCurrentMatrix := OldMatrix;
 
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -1305,10 +1298,10 @@ begin
       if (AGroupNode.ResolvedMask <> nil) then
       begin
         MaskNodeTarget := AGroupNode.ResolvedMask;
-        MaskBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, False);
+        MaskBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, False);
 
         OldMatrix := FCurrentMatrix;
-        RenderMaskNode(MaskNodeTarget, TargetWorldBounds, MaskBmp);
+        RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds);
         FCurrentMatrix := OldMatrix;
 
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -1338,7 +1331,7 @@ begin
       end;
 
       // Blend offscreen surface onto main target using group's MixBlendMode
-      BlendOffscreenSurface(OffscreenBmp, AGroupNode.MixBlendMode);
+      BlendOffscreenSurface(ATarget, OffscreenBmp, AGroupNode.MixBlendMode);
 
     finally
       // Release surfaces back to bitmap surface pool for reuse in subsequent groups/frames
@@ -1353,15 +1346,15 @@ begin
   if AGroupNode is TSvgSwitchNode then
   begin
     if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
-      RenderNode(TSvgSwitchNode(AGroupNode).SelectedChild);
+      RenderNode(ATarget, TSvgSwitchNode(AGroupNode).SelectedChild);
   end else
   begin
     for i := 0 to AGroupNode.Children.Count - 1 do
-      RenderNode(AGroupNode.Children[i]);
+      RenderNode(ATarget, AGroupNode.Children[i]);
   end;
 end;
 
-procedure TSvgRenderer.RenderFilter(AFilterNode: TSvgFilterNode; ANode: TSvgNode);
+procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
 
   function ResolveSurface(const AInput: TSvgFilterInput; SourceGraphic, SourceAlpha, CurrentSurface, DefaultFallback: TCustomBitmap32; const NamedSurfaces: TArray<TCustomBitmap32>): TCustomBitmap32;
   begin
@@ -1688,7 +1681,6 @@ procedure TSvgRenderer.RenderFilter(AFilterNode: TSvgFilterNode; ANode: TSvgNode
 
 var
   SourceGraphic, SourceAlpha, CurrentSurface, Input1, Input2, TempSurface, DestSurface, CachedSurface: TCustomBitmap32;
-  SavedTarget: TCustomBitmap32;
   NamedSurfaces: TArray<TCustomBitmap32>;
   i, Count: Integer;
   Node, ChildNode: TSvgNode;
@@ -1696,21 +1688,15 @@ var
   FloodColor: TColor32;
   dxInt, dyInt: Integer;
 begin
-  if (AFilterNode = nil) or (ANode = nil) or (FTarget = nil) then
+  if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
 
-  SourceGraphic := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
-  SourceAlpha := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+  SourceGraphic := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
+  SourceAlpha := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
   NamedSurfaces := nil;
   try
     // 1. Render element into SourceGraphic offscreen surface
-    SavedTarget := FTarget;
-    FTarget := SourceGraphic;
-    try
-      RenderNodeUnfiltered(ANode);
-    finally
-      FTarget := SavedTarget;
-    end;
+    RenderNodeUnfiltered(SourceGraphic, ANode);
 
     // 2. Derive SourceAlpha from SourceGraphic
     pSource := PColor32(SourceGraphic.Bits);
@@ -1743,12 +1729,12 @@ begin
       begin
         Input1 := ResolveSurface(TSvgFeGaussianBlurNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
         ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        DestSurface := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
 
         if TSvgFeGaussianBlurNode(Node).StdDeviationX > 0 then
           Blur32(Input1, DestSurface, TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius)
         else
-          Input1.DrawTo(DestSurface, 0, 0);
+          Input1.CopyMapTo(DestSurface);
 
         CurrentSurface := DestSurface;
       end else
@@ -1757,7 +1743,7 @@ begin
       begin
         Input1 := ResolveSurface(TSvgFeColorMatrixNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
         ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        DestSurface := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
 
         ApplyColorMatrix(Input1, DestSurface, TSvgFeColorMatrixNode(Node).MatrixType, TSvgFeColorMatrixNode(Node).Values);
         CurrentSurface := DestSurface;
@@ -1768,16 +1754,10 @@ begin
         Input1 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
         Input2 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
         ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        DestSurface := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
 
         Input2.DrawTo(DestSurface, 0, 0);
-        SavedTarget := FTarget;
-        FTarget := DestSurface;
-        try
-          BlendOffscreenSurface(Input1, TSvgFeBlendNode(Node).Mode);
-        finally
-          FTarget := SavedTarget;
-        end;
+        BlendOffscreenSurface(DestSurface, Input1, TSvgFeBlendNode(Node).Mode);
 
         CurrentSurface := DestSurface;
       end else
@@ -1787,7 +1767,7 @@ begin
         Input1 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
         Input2 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
         ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        DestSurface := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
 
         ApplyComposite(Input1, Input2, DestSurface, TSvgFeCompositeNode(Node).CompositeOperator,
           TSvgFeCompositeNode(Node).K1, TSvgFeCompositeNode(Node).K2, TSvgFeCompositeNode(Node).K3, TSvgFeCompositeNode(Node).K4);
@@ -1796,21 +1776,14 @@ begin
 
       if Node is TSvgFeMergeNode then
       begin
-        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        DestSurface := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
 
         for ChildNode in TSvgFeMergeNode(Node).Children do
         begin
           if ChildNode is TSvgFeMergeNodeChild then
           begin
             Input1 := ResolveSurface(TSvgFeMergeNodeChild(ChildNode).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
-
-            SavedTarget := FTarget;
-            FTarget := DestSurface;
-            try
-              BlendOffscreenSurface(Input1, bmNormal);
-            finally
-              FTarget := SavedTarget;
-            end;
+            BlendOffscreenSurface(DestSurface, Input1, bmNormal);
           end;
         end;
         ReleaseOffscreenBitmap(CachedSurface);
@@ -1821,7 +1794,7 @@ begin
       begin
         Input1 := ResolveSurface(TSvgFeOffsetNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
         ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        DestSurface := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
 
         dxInt := Round(TSvgFeOffsetNode(Node).Dx);
         dyInt := Round(TSvgFeOffsetNode(Node).Dy);
@@ -1831,7 +1804,7 @@ begin
 
       if Node is TSvgFeFloodNode then
       begin
-        DestSurface := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+        DestSurface := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
         ReleaseOffscreenBitmap(CachedSurface);
 
         FloodColor := TSvgFeFloodNode(Node).FloodColor.Color;
@@ -1856,7 +1829,7 @@ begin
 
     // 4. Blend final filtered result surface onto target canvas
     if CurrentSurface <> nil then
-      BlendOffscreenSurface(CurrentSurface, bmNormal);
+      BlendOffscreenSurface(ATarget, CurrentSurface, bmNormal);
 
   finally
     for CurrentSurface in NamedSurfaces do
@@ -1985,7 +1958,7 @@ end;
 //      TSvgRenderer.RenderImageNode
 //
 //------------------------------------------------------------------------------
-procedure TSvgRenderer.RenderImageNode(AImageNode: TSvgImageNode);
+procedure TSvgRenderer.RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
 var
   WidthPx, HeightPx, xPx, yPx: Single;
   TargetRect: TFloatRect;
@@ -2003,16 +1976,16 @@ var
   SourceViewBox: TSvgViewBox;
   utf8Bytes: UTF8String;
 begin
-  if (FTarget = nil) or (AImageNode = nil) then
+  if (ATarget = nil) or (AImageNode = nil) then
     Exit;
 
-  WidthPx := AImageNode.Width.ToPixels(FTarget.Width);
-  HeightPx := AImageNode.Height.ToPixels(FTarget.Height);
+  WidthPx := AImageNode.Width.ToPixels(ATarget.Width);
+  HeightPx := AImageNode.Height.ToPixels(ATarget.Height);
   if (WidthPx <= 0) or (HeightPx <= 0) then
     Exit;
 
-  xPx := AImageNode.X.ToPixels(FTarget.Width);
-  yPx := AImageNode.Y.ToPixels(FTarget.Height);
+  xPx := AImageNode.X.ToPixels(ATarget.Width);
+  yPx := AImageNode.Y.ToPixels(ATarget.Height);
   TargetRect := FloatRect(xPx, yPx, xPx + WidthPx, yPx + HeightPx);
 
   hrefStr := Trim(AImageNode.Href);
@@ -2098,13 +2071,13 @@ begin
         try
           ApplyMatrix(AspectMat.Matrix);
 
-          SubRenderer := TSvgRenderer.Create(FTarget);
+          SubRenderer := TSvgRenderer.Create(ATarget);
           try
             SubRenderer.AllowExternalImages := FAllowExternalImages;
             SubRenderer.CurrentMatrix := FCurrentMatrix;
             SubRenderer.ViewportRect := FViewportRect;
 
-            SubRenderer.RenderNode(SubDoc);
+            SubRenderer.RenderNode(ATarget, SubDoc);
           finally
             SubRenderer.Free;
           end;
@@ -2138,7 +2111,7 @@ begin
           Bitmap.CombineMode := cmMerge;
 
           // Transform and render onto target
-          Transform(FTarget, Bitmap, Transformation, DestClip, True);
+          Transform(ATarget, Bitmap, Transformation, DestClip, True);
         finally
           Transformation.Free;
         end;
@@ -2190,7 +2163,7 @@ begin
   AFontInfo.Size := ASize;
 end;
 
-procedure TSvgRenderer.RenderTextNode(ATextNode: TSvgTextNode);
+procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
 
   procedure RenderTextPathData(const APathPoints: TArrayOfArrayOfFloatPoint; const AFill: TSvgFill; const AStroke: TSvgStroke);
   var
@@ -2204,13 +2177,13 @@ procedure TSvgRenderer.RenderTextNode(ATextNode: TSvgTextNode);
     ScaledDashArray: TArrayOfFloat;
     i, j, k: Integer;
   begin
-    if (Length(APathPoints) = 0) or (FTarget = nil) then
+    if (Length(APathPoints) = 0) or (ATarget = nil) then
       Exit;
 
     TransformedPts := GetTransformedPoints(APathPoints);
     Bounds := GetPathBounds(TransformedPts);
 
-    PolyRenderer := DefaultPolygonRendererClass.Create(FTarget);
+    PolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
     try
       // 1. Fill Rendering
       if AFill.ResolvedPaintServer <> nil then
@@ -2670,42 +2643,49 @@ begin
   if (FTarget = nil) then
     exit;
 
+  // Note: FTarget, not ATarget; We need access to the main bitmap's font properties
+  // and we aren't rendering via TCanvas32
   Canvas := TCanvas32.Create(TBitmap32(FTarget));
   try
     Cursor.X := 0;
     Cursor.Y := 0;
 
+    Canvas.BeginLockUpdate;
+
     ProcessTextPositioningNode(ATextNode, Canvas, Cursor);
+
+    Canvas.EndLockUpdate;
+    Canvas.Clear;
   finally
     Canvas.Free;
   end;
 end;
 
-procedure TSvgRenderer.RenderNodeUnfiltered(ANode: TSvgNode);
+procedure TSvgRenderer.RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
 begin
   PushMatrix;
   try
     ApplyMatrix(ANode.Transform);
 
     if ANode is TSvgPathNode then
-      RenderPathNode(TSvgPathNode(ANode))
+      RenderPathNode(ATarget, TSvgPathNode(ANode))
     else
     if ANode is TSvgImageNode then
-      RenderImageNode(TSvgImageNode(ANode))
+      RenderImageNode(ATarget, TSvgImageNode(ANode))
     else
     if ANode is TSvgTextNode then
-      RenderTextNode(TSvgTextNode(ANode))
+      RenderTextNode(ATarget, TSvgTextNode(ANode))
     else
     if ANode is TSvgGroupNode then
-      RenderGroupNode(TSvgGroupNode(ANode));
+      RenderGroupNode(ATarget, TSvgGroupNode(ANode));
   finally
     PopMatrix;
   end;
 end;
 
-procedure TSvgRenderer.RenderNode(ANode: TSvgNode);
+procedure TSvgRenderer.RenderNode(ATarget: TCustomBitmap32; ANode: TSvgNode);
 var
-  OffscreenBmp, SavedTarget: TCustomBitmap32;
+  OffscreenBmp: TCustomBitmap32;
   EffectiveBlendMode: TSvgBlendMode;
 begin
   if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
@@ -2714,68 +2694,48 @@ begin
   // Filter processing takes precedence over direct element rendering
   if ANode.ResolvedFilter <> nil then
   begin
-    RenderFilter(ANode.ResolvedFilter, ANode);
+    RenderFilter(ATarget, ANode.ResolvedFilter, ANode);
     Exit;
   end;
 
   EffectiveBlendMode := GetEffectiveMixBlendMode(ANode);
 
   // Non-group renderable nodes with non-normal effective blend mode composite via an offscreen surface
-  if (not (ANode is TSvgGroupNode)) and (EffectiveBlendMode <> bmNormal) and (FTarget <> nil) then
+  if (not (ANode is TSvgGroupNode)) and (EffectiveBlendMode <> bmNormal) and (ATarget <> nil) then
   begin
-    OffscreenBmp := GetOffscreenBitmap(FTarget.Width, FTarget.Height, True);
+    OffscreenBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
     try
-      SavedTarget := FTarget;
-      FTarget := OffscreenBmp;
+
+      PushMatrix;
       try
-        PushMatrix;
-        try
+        ApplyMatrix(ANode.Transform);
 
-          ApplyMatrix(ANode.Transform);
+        if ANode is TSvgPathNode then
+          RenderPathNode(OffscreenBmp, TSvgPathNode(ANode))
+        else
+        if ANode is TSvgImageNode then
+          RenderImageNode(OffscreenBmp, TSvgImageNode(ANode))
+        else
+        if ANode is TSvgTextNode then
+          RenderTextNode(OffscreenBmp, TSvgTextNode(ANode));
 
-          if ANode is TSvgPathNode then
-            RenderPathNode(TSvgPathNode(ANode))
-          else
-          if ANode is TSvgImageNode then
-            RenderImageNode(TSvgImageNode(ANode))
-          else
-          if ANode is TSvgTextNode then
-            RenderTextNode(TSvgTextNode(ANode));
-
-        finally
-          PopMatrix;
-        end;
       finally
-        FTarget := SavedTarget;
+        PopMatrix;
       end;
 
-      BlendOffscreenSurface(OffscreenBmp, EffectiveBlendMode);
+      BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode);
     finally
       ReleaseOffscreenBitmap(OffscreenBmp);
     end;
     Exit;
   end;
 
-  PushMatrix;
-  try
+  RenderNodeUnfiltered(ATarget, ANode);
+end;
 
-    ApplyMatrix(ANode.Transform);
-
-    if ANode is TSvgPathNode then
-      RenderPathNode(TSvgPathNode(ANode))
-    else
-    if ANode is TSvgImageNode then
-      RenderImageNode(TSvgImageNode(ANode))
-    else
-    if ANode is TSvgTextNode then
-      RenderTextNode(TSvgTextNode(ANode))
-    else
-    if ANode is TSvgGroupNode then
-      RenderGroupNode(TSvgGroupNode(ANode));
-
-  finally
-    PopMatrix;
-  end;
+procedure TSvgRenderer.RenderNode(ANode: TSvgNode);
+begin
+  RenderNode(FTarget, ANode);
 end;
 
 procedure TSvgRenderer.RenderDocument(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect);

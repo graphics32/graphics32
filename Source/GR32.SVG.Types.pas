@@ -177,17 +177,19 @@ function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 // TSvgKeywordDictionary.
 //------------------------------------------------------------------------------
 function IsSupportedSvgFeature(const AFeatureURI: TValuePUtf8Char): Boolean; overload;
+{$if defined(UNIT_TEST)}
 function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean; overload;
+{$ifend}
 
 // System language tag management and RFC 3066 / BCP 47 language matching
 function GetSystemLanguage: string;
 procedure SetSystemLanguage(const ALang: string);
-function MatchLanguageTag(const ASystemLang, ALangRange: string): Boolean;
+function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean;
 
 var
   // GlobalSystemLanguage: Current system language.
   // Tested again the 'systemlanguage' switch condition.
-  GlobalSystemLanguage: string = 'en';
+  GlobalSystemLanguage: AnsiString = 'en';
 
 
 //------------------------------------------------------------------------------
@@ -225,8 +227,10 @@ type
     UnitType: TSvgUnitType;
     function ToPixels(const ARefSize: Single = 100.0; const ADpi: Single = 96.0; const AFontSize: Single = 16.0): Single;
     class function Create(AValue: Single; AUnit: TSvgUnitType = suPx): TSvgLength; static;
-    class function Parse(const AStr: UTF8String): TSvgLength; overload; static; deprecated;
     class function Parse(const AStr: TValuePUtf8Char): TSvgLength; overload; static;
+{$if defined(UNIT_TEST)}
+    class function Parse(const AStr: UTF8String): TSvgLength; overload; static; deprecated;
+{$ifend}
     class function ParseAndSkip(var AStr: TValuePUtf8Char): TSvgLength; overload; static;
     class function Parse(AStr: TValuePointer): TSvgLength; overload; static;
   end;
@@ -247,8 +251,10 @@ type
     class function Create(AColor: TColor32): TSvgColor; static;
     class function None: TSvgColor; static;
     class function CurrentColor: TSvgColor; static;
-    class function Parse(const AStr: UTF8String): TSvgColor; overload; static;
     class function Parse(AColorStr: TValuePUtf8Char): TSvgColor; overload; static;
+{$if defined(UNIT_TEST)}
+    class function Parse(const AStr: UTF8String): TSvgColor; overload; static;
+{$ifend}
   end;
 
 
@@ -646,14 +652,12 @@ begin
     Result := False;
 end;
 
+{$if defined(UNIT_TEST)}
 function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean;
-var
-  Name: TValuePUtf8Char;
 begin
-  Name.Text := pointer(AFeatureURI);
-  Name.Len := Length(AFeatureURI);
-  Result := IsSupportedSvgFeature(Name);
+  Result := IsSupportedSvgFeature(TValuePUtf8Char.FromString(AFeatureURI));
 end;
+{$ifend}
 
 function GetSystemLanguage: string;
 begin
@@ -665,7 +669,7 @@ begin
   GlobalSystemLanguage := ALang;
 end;
 
-function MatchLanguageTag(const ASystemLang, ALangRange: string): Boolean;
+function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean;
 var
   sSys, sRange: string;
 begin
@@ -1105,14 +1109,12 @@ begin
   Result := ParseAndSkip(Temp);
 end;
 
+{$if defined(UNIT_TEST)}
 class function TSvgLength.Parse(const AStr: UTF8String): TSvgLength;
-var
-  Str: TValuePUtf8Char;
 begin
-  Str.Text := pointer(AStr);
-  Str.Len := Length(AStr);
-  Result := Parse(Str);
+  Result := Parse(TValuePUtf8Char.FromString(Str));
 end;
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -1257,14 +1259,12 @@ begin
   Result := Create(SvgColorNameToColor(AColorStr, clBlack32));
 end;
 
+{$if defined(UNIT_TEST)}
 class function TSvgColor.Parse(const AStr: UTF8String): TSvgColor;
-var
-  Value: TValuePUtf8Char;
 begin
-  Value.Text := pointer(AStr);
-  Value.Len := Length(AStr);
-  Result := Parse(Value);
+  Result := Parse(TValuePUtf8Char.FromString(Value));
 end;
+{$ifend}
 
 
 //------------------------------------------------------------------------------

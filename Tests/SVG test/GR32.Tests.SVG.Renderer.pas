@@ -55,6 +55,8 @@ type
     procedure TestMaskCompositing;
     procedure TestBitmapPool;
     procedure TestPatternFillAndStrokeRendering;
+    procedure TestPatternWithDefaultChildFill;
+    procedure TestInkscapeGradientWithFallbackColor;
     procedure TestStrokeWidthRendering;
     procedure TestRadialGradientReflect;
     procedure TestMarkerRendering;
@@ -107,6 +109,98 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestInkscapeGradientWithFallbackColor;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(406, 206);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="206" width="406">' +
+           '  <defs>' +
+           '    <linearGradient id="linearGradient2195">' +
+           '      <stop id="stop2197" offset="0" style="stop-color: rgb(50, 50, 50); stop-opacity: 1;"/>' +
+           '      <stop id="stop2199" offset="1" style="stop-color: rgb(150, 150, 150); stop-opacity: 1;"/>' +
+           '    </linearGradient>' +
+           '    <radialGradient xlink:href="#linearGradient2195" id="radialGradient3100" gradientUnits="userSpaceOnUse" ' +
+           '      gradientTransform="matrix(0.793492, 0, 0, 1.26025, -124.125, -349.237)" spreadMethod="reflect" ' +
+           '      cx="195.339" cy="367.994" fx="195.339" fy="367.994" r="10.189"/>' +
+           '  </defs>' +
+           '  <rect height="200" id="rect2052" rx="20" ry="20" style="fill: url(#radialGradient3100) rgb(0, 0, 0); fill-opacity: 1;" width="375" x="25" y="3"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Inkscape gradient docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Rect should be painted with gradient colors, NOT opaque black
+        Check(bmp.Pixel[200, 100] <> clBlack32, 'Center of rect with Inkscape url(#id) rgb(...) should be painted with gradient, not solid black');
+        Check(bmp.Pixel[200, 100] <> clWhite32, 'Center of rect should be painted');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestPatternWithDefaultChildFill;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(230, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg viewBox="0 0 230 100" xmlns="http://www.w3.org/2000/svg">' +
+           '  <defs>' +
+           '    <pattern id="star" viewBox="0,0,10,10" width="10%" height="10%">' +
+           '      <polygon points="0,0 2,5 0,10 5,8 10,10 8,5 10,0 5,2"/>' +
+           '    </pattern>' +
+           '  </defs>' +
+           '  <circle cx="60" cy="50" r="50" fill="url(#star)"/>' +
+           '  <circle cx="170" cy="50" r="40" fill="none" stroke-width="20" stroke="url(#star)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Pattern with default child fill docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Pattern fill check on the left circle (cx=60, cy=50)
+        Check(bmp.Pixel[60, 50] <> clWhite32, 'Center region of left circle should be painted by pattern fill');
+
+        // Pattern stroke check on the right circle (cx=170, cy=50, r=40, stroke-width=20)
+        Check(bmp.Pixel[170, 10] <> clWhite32, 'Stroke ring top edge of right circle should be painted by pattern stroke');
+        Check(bmp.Pixel[170, 50] = clWhite32, 'Center of hollow stroked circle should remain white background');
       finally
         renderer.Free;
       end;
