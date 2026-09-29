@@ -60,6 +60,7 @@ type
     procedure TestStrokeDashArrayAndOffsetParsing;
     procedure TestMarkerParsingAndTreeStructure;
     procedure TestGetObjectBoundingBox;
+    procedure TestVisibilityVsDisplayBoundingBox;
     procedure TestResolvedReferencesInTree;
     procedure TestMixBlendModeAndIsolationParsing;
     procedure TestSymbolParsingAndUseResolution;
@@ -924,6 +925,50 @@ begin
     CheckEquals(20.0, box.Top, 1E-4, 'docNode Top');
     CheckEquals(230.0, box.Right, 1E-4, 'docNode Right');
     CheckEquals(230.0, box.Bottom, 1E-4, 'docNode Bottom');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestVisibilityVsDisplayBoundingBox;
+var
+  xmlStr: UTF8String;
+  docNode: TSvgDocumentNode;
+  gHidden, gDisplayNone: TSvgNode;
+  boxHidden, boxDisplayNone: TFloatRect;
+begin
+  xmlStr :=
+    '<svg width="200" height="200">' +
+    '  <g id="gHidden">' +
+    '    <rect id="rHidden" x="20" y="20" width="160" height="160" visibility="hidden"/>' +
+    '    <rect id="rVisible" x="40" y="40" width="120" height="120"/>' +
+    '  </g>' +
+    '  <g id="gDisplayNone">' +
+    '    <rect id="rDisplayNone" x="20" y="20" width="160" height="160" display="none"/>' +
+    '    <rect id="rVisible2" x="40" y="40" width="120" height="120"/>' +
+    '  </g>' +
+    '</svg>';
+
+  docNode := ParseSvgXml(xmlStr);
+  CheckNotNull(docNode, 'Document node should be parsed');
+  try
+    gHidden := docNode.FindNodeById('gHidden');
+    CheckNotNull(gHidden, 'gHidden node should exist');
+    boxHidden := gHidden.GetObjectBoundingBox;
+    // visibility="hidden" element rHidden (20..180) MUST contribute to gHidden bounding box
+    CheckEquals(20.0, boxHidden.Left, 1E-4, 'gHidden Left');
+    CheckEquals(20.0, boxHidden.Top, 1E-4, 'gHidden Top');
+    CheckEquals(180.0, boxHidden.Right, 1E-4, 'gHidden Right');
+    CheckEquals(180.0, boxHidden.Bottom, 1E-4, 'gHidden Bottom');
+
+    gDisplayNone := docNode.FindNodeById('gDisplayNone');
+    CheckNotNull(gDisplayNone, 'gDisplayNone node should exist');
+    boxDisplayNone := gDisplayNone.GetObjectBoundingBox;
+    // display="none" element rDisplayNone (20..180) MUST NOT contribute to gDisplayNone bounding box
+    CheckEquals(40.0, boxDisplayNone.Left, 1E-4, 'gDisplayNone Left');
+    CheckEquals(40.0, boxDisplayNone.Top, 1E-4, 'gDisplayNone Top');
+    CheckEquals(160.0, boxDisplayNone.Right, 1E-4, 'gDisplayNone Right');
+    CheckEquals(160.0, boxDisplayNone.Bottom, 1E-4, 'gDisplayNone Bottom');
   finally
     docNode.Free;
   end;

@@ -1409,7 +1409,7 @@ var
 const
   OneOver255: Single = 1 / 255;
 begin
-  if (AGroupNode = nil) or (not AGroupNode.PassesConditionalProcessing) then
+  if (AGroupNode = nil) or AGroupNode.IsDisplayNone or (not AGroupNode.PassesConditionalProcessing) then
     Exit;
 
   // Offscreen rendering required if we have transparency, a ClipPath, a Mask, or if Isolation = isoIsolate
@@ -2645,7 +2645,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     w1, w2, CharacterRotationAngle: Single;
     ZeroWidth: Single;
   begin
-    if (ANode = nil) or (not ANode.Visible) then
+    if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) then
       Exit;
 
     Text := ANode.TextContent;
@@ -2792,7 +2792,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     CharacterRotationAngle: Single;
     ZeroWidth: Single;
   begin
-    if (ANode = nil) or (not ANode.Visible) then
+    if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) then
       Exit;
 
     HasNodeTransform := not IsIdentityMatrix(ANode.Transform);
@@ -2953,7 +2953,7 @@ begin
   // It applies font properties, measures text width for text-anchor alignment, updates cursor positions,
   // and paints vector glyph geometry with solid/gradient/pattern fills and strokes.
 
-  if (ATextNode = nil) or (not ATextNode.Visible) then
+  if (ATextNode = nil) or ATextNode.IsDisplayNone or (not ATextNode.Visible) then
     Exit;
 
   if (FTarget = nil) then
@@ -3016,7 +3016,7 @@ var
 const
   OneOver255: Single = 1 / 255;
 begin
-  if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
+  if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
     Exit;
 
   // Guard against self-referencing clip-path, clip-mask etc.

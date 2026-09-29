@@ -41,6 +41,7 @@ uses
   GR32.SVG.Utf8;
 
 type
+  TSvgDisplay = (dsInline, dsNone);
   TSvgSpreadMethod = (smPad, smReflect, smRepeat);
   TSvgGradientUnits = (guObjectBoundingBox, guUserSpaceOnUse);
 
@@ -324,6 +325,7 @@ type
     FCssClassName: AnsiString;
     FStyleAttr: AnsiString; // Stores raw inline style="..." string for deferred cascade evaluation
     FTransform: TFloatMatrix;
+    FDisplay: TSvgDisplay;
     FVisible: Boolean;
     FOpacity: Single;
     FClipPathID: AnsiString;
@@ -348,6 +350,7 @@ type
     FRequiredExtensions: AnsiString;
     FSystemLanguage: AnsiString;
   protected
+    function GetIsDisplayNone: Boolean;
     function GetIsRenderable: Boolean; virtual;
     function DumpNode(Indent: Integer = 0): string; virtual;
     function DumpChildren(Indent: Integer = 0): string; virtual;
@@ -380,6 +383,8 @@ type
     property CssClassName: AnsiString read FCssClassName write FCssClassName;
     property StyleAttr: AnsiString read FStyleAttr write FStyleAttr;
     property Transform: TFloatMatrix read FTransform write FTransform;
+    property Display: TSvgDisplay read FDisplay write FDisplay;
+    property IsDisplayNone: Boolean read GetIsDisplayNone;
     property Visible: Boolean read FVisible write FVisible;
     property Opacity: Single read FOpacity write FOpacity;
     property ClipPathID: AnsiString read FClipPathID write FClipPathID;
@@ -1163,6 +1168,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    function GetObjectBoundingBox: TFloatRect; override; // TODO
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
     property Dx: TSvgLength read FDx write FDx;
@@ -1727,7 +1733,11 @@ begin
   inherited Create;
   FParent := AParent;
   FTransform := IdentityMatrix;
-  FVisible := True;
+  FDisplay := dsInline;
+  if FParent <> nil then
+    FVisible := FParent.FVisible
+  else
+    FVisible := True;
   FOpacity := 1.0;
   FClipPathID := '';
   FMaskID := '';
@@ -1769,6 +1779,7 @@ begin
   Result.FCssClassName := FCssClassName;
   Result.FStyleAttr := FStyleAttr;
   Result.FTransform := FTransform;
+  Result.FDisplay := FDisplay;
   Result.FVisible := FVisible;
   Result.FOpacity := FOpacity;
   Result.FClipPathID := FClipPathID;
@@ -1789,6 +1800,17 @@ begin
   Result.FMarkerStart := FMarkerStart;
   Result.FMarkerMid := FMarkerMid;
   Result.FMarkerEnd := FMarkerEnd;
+end;
+
+function TSvgNode.GetIsDisplayNone: Boolean;
+begin
+  if (FDisplay = dsNone) then
+    Result := True
+  else
+  if (FParent <> nil) then
+    Result := FParent.IsDisplayNone
+  else
+    Result := False;
 end;
 
 function TSvgNode.GetObjectBoundingBox: TFloatRect;
@@ -1937,24 +1959,21 @@ begin
     attrTransform:
       FTransform := ParseSvgTransform(AValue);
 
-    attrDisplay, attrVisibility:
+    attrDisplay:
       begin
-        case AValue.Len of
-          4:
-            if AValue.CompareText('none') then
-              FVisible := False;
+        if AValue.CompareText('none') then
+          FDisplay := dsNone
+        else
+          FDisplay := dsInline;
+      end;
 
-          6:
-            if AValue.CompareText('hidden') then
-              FVisible := False
-            else
-            if AValue.CompareText('inline') then
-              FVisible := True;
-
-          7:
-            if AValue.CompareText('visible') then
-              FVisible := True;
-        end;
+    attrVisibility:
+      begin
+        if AValue.CompareText('hidden') or AValue.CompareText('collapse') then
+          FVisible := False
+        else
+        if AValue.CompareText('visible') then
+          FVisible := True;
       end;
 
     attrFill:
@@ -2293,65 +2312,65 @@ end;
 function TSvgGroupNode.GetObjectBoundingBox: TFloatRect;
 var
   i, k: Integer;
-  child: TSvgNode;
-  childBox: TFloatRect;
-  first: Boolean;
-  pts: array[0..3] of TFloatPoint;
-  pt: TFloatPoint;
+  Child: TSvgNode;
+  ChildBox: TFloatRect;
+  First: Boolean;
+  Points: array[0..3] of TFloatPoint;
+  Point: TFloatPoint;
 begin
-  { Calculates the object bounding box for a group node by uniting the bounding boxes
-    of all renderable child nodes. Child node transformations are applied to transform
-    child bounds into parent group coordinate space. }
-  first := True;
+  // Calculates the object bounding box for a group node by uniting the bounding boxes
+  // of all renderable Child nodes. Child node transformations are applied to transform
+  // Child bounds into parent group coordinate space.
+
+  First := True;
   Result := FloatRect(0, 0, 0, 0);
 
   for i := 0 to FChildren.Count - 1 do
   begin
-    child := FChildren[i];
-    if (child <> nil) and child.IsRenderable and child.Visible then
-    begin
-      childBox := child.GetObjectBoundingBox;
-      if (childBox.Right > childBox.Left) or (childBox.Bottom > childBox.Top) then
-      begin
-        if not IsIdentityMatrix(child.Transform) then
-        begin
-          pts[0] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Left, childBox.Top));
-          pts[1] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Right, childBox.Top));
-          pts[2] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Right, childBox.Bottom));
-          pts[3] := TFloatMatrixHelper(child.Transform).TransformPoint(FloatPoint(childBox.Left, childBox.Bottom));
+    Child := FChildren[i];
 
-          for k := 0 to 3 do
-          begin
-            pt := pts[k];
-            if first then
-            begin
-              Result := FloatRect(pt.X, pt.Y, pt.X, pt.Y);
-              first := False;
-            end
-            else
-            begin
-              if pt.X < Result.Left then Result.Left := pt.X;
-              if pt.X > Result.Right then Result.Right := pt.X;
-              if pt.Y < Result.Top then Result.Top := pt.Y;
-              if pt.Y > Result.Bottom then Result.Bottom := pt.Y;
-            end;
-          end;
-        end
-        else
+    if (not Child.IsRenderable) or (Child.IsDisplayNone) then
+      Continue;
+
+    ChildBox := Child.GetObjectBoundingBox;
+
+    if (ChildBox.Right <= ChildBox.Left) and (ChildBox.Bottom <= ChildBox.Top) then
+      continue;
+
+    if not IsIdentityMatrix(Child.Transform) then
+    begin
+      Points[0] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Left, ChildBox.Top));
+      Points[1] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Right, ChildBox.Top));
+      Points[2] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Right, ChildBox.Bottom));
+      Points[3] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Left, ChildBox.Bottom));
+
+      for k := 0 to 3 do
+      begin
+        Point := Points[k];
+        if First then
         begin
-          if first then
-          begin
-            Result := childBox;
-            first := False;
-          end
-          else
-          begin
-            if childBox.Left < Result.Left then Result.Left := childBox.Left;
-            if childBox.Right > Result.Right then Result.Right := childBox.Right;
-            if childBox.Top < Result.Top then Result.Top := childBox.Top;
-            if childBox.Bottom > Result.Bottom then Result.Bottom := childBox.Bottom;
-          end;
+          Result := FloatRect(Point.X, Point.Y, Point.X, Point.Y);
+          First := False;
+        end else
+        begin
+          if Point.X < Result.Left then Result.Left := Point.X;
+          if Point.X > Result.Right then Result.Right := Point.X;
+          if Point.Y < Result.Top then Result.Top := Point.Y;
+          if Point.Y > Result.Bottom then Result.Bottom := Point.Y;
         end;
+      end;
+    end else
+    begin
+      if First then
+      begin
+        Result := ChildBox;
+        First := False;
+      end else
+      begin
+        if ChildBox.Left < Result.Left then Result.Left := ChildBox.Left;
+        if ChildBox.Right > Result.Right then Result.Right := ChildBox.Right;
+        if ChildBox.Top < Result.Top then Result.Top := ChildBox.Top;
+        if ChildBox.Bottom > Result.Bottom then Result.Bottom := ChildBox.Bottom;
       end;
     end;
   end;
@@ -2399,7 +2418,7 @@ var
   Child: TSvgNode;
 begin
   for Child in Children do
-    if (Child <> nil) and Child.Visible and Child.PassesConditionalProcessing then
+    if (Child <> nil) and (not Child.IsDisplayNone) and Child.Visible and Child.PassesConditionalProcessing then
       Exit(Child);
 
   Result := nil;
@@ -2461,6 +2480,11 @@ begin
     Result := Result + Format(' (rotate="%s")', [FloatToString(FRotate[0])]);
   if FTextContent <> '' then
     Result := Result + Format(' (text="%s")', [FTextContent]);
+end;
+
+function TSvgTextPositioningNode.GetObjectBoundingBox: TFloatRect;
+begin
+  Result := inherited; // TODO
 end;
 
 procedure TSvgTextPositioningNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
@@ -4634,6 +4658,7 @@ begin
     Instance.FCssClassName := FCssClassName;
     Instance.FStyleAttr := FStyleAttr;
     Instance.FTransform := FTransform;
+    Instance.FDisplay := FDisplay;
     Instance.FVisible := FVisible;
     Instance.FMixBlendMode := FMixBlendMode;
     Instance.FIsolation := FIsolation;
@@ -4679,6 +4704,7 @@ begin
     SymbolClone.FCssClassName := FCssClassName;
     SymbolClone.FStyleAttr := FStyleAttr;
     SymbolClone.FTransform := FTransform;
+    SymbolClone.FDisplay := FDisplay;
     SymbolClone.FVisible := FVisible;
     SymbolClone.FMixBlendMode := FMixBlendMode;
     SymbolClone.FIsolation := FIsolation;
