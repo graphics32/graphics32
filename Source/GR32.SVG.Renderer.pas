@@ -2263,13 +2263,13 @@ begin
   if (ATarget = nil) or (AImageNode = nil) then
     Exit;
 
-  WidthPx := AImageNode.Width.ToPixels(ATarget.Width);
-  HeightPx := AImageNode.Height.ToPixels(ATarget.Height);
+  WidthPx := AImageNode.Width.ToPixels(FViewportRect.Width);
+  HeightPx := AImageNode.Height.ToPixels(FViewportRect.Height);
   if (WidthPx <= 0) or (HeightPx <= 0) then
     Exit;
 
-  xPx := AImageNode.X.ToPixels(ATarget.Width);
-  yPx := AImageNode.Y.ToPixels(ATarget.Height);
+  xPx := AImageNode.X.ToPixels(FViewportRect.Width);
+  yPx := AImageNode.Y.ToPixels(FViewportRect.Height);
   TargetRect := FloatRect(xPx, yPx, xPx + WidthPx, yPx + HeightPx);
 
   hrefStr := Trim(AImageNode.Href);
@@ -3153,6 +3153,8 @@ begin
     else
       viewBox := TSvgViewBox.Create(0, 0, FTarget.Width, FTarget.Height);
   end;
+
+  FViewportRect := FloatRect(viewBox.X, viewBox.Y, viewBox.X + viewBox.Width, viewBox.Y + viewBox.Height);
 
   vpMat := viewBox.GetTransform(ATargetRect, ADoc.PreserveAspectRatio);
 

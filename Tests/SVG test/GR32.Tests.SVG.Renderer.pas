@@ -75,6 +75,7 @@ type
     procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
     procedure TestSwitchRendering;
+    procedure TestUserSpaceOnUsePercentageGradient;
     procedure TestRoiPolygonRendering;
     procedure TestRoiFilterBlurRendering;
   end;
@@ -431,6 +432,49 @@ begin
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
   finally
     docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestUserSpaceOnUsePercentageGradient;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg id="svg1" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">' +
+           '  <linearGradient id="lg1" x1="15%" y2="80%" gradientUnits="userSpaceOnUse">' +
+           '    <stop offset="0.4" stop-color="white"/>' +
+           '    <stop offset="0.6" stop-color="black"/>' +
+           '  </linearGradient>' +
+           '  <rect id="rect1" x="20" y="20" width="160" height="60" fill="url(#lg1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'UserSpaceOnUse % gradient docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Rect center at (100, 50) should be transition color (~gray), NOT pure white
+        Check(bmp.Pixel[100, 50] <> clWhite32, 'Center of rect with userSpaceOnUse % gradient should not be pure white');
+
+        // Rect near bottom-right at (170, 75) should be dark/black (stop 0.6)
+        Check(RedComponent(bmp.Pixel[170, 75]) < 50, 'Bottom-right of rect should be near black');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
   end;
 end;
 
