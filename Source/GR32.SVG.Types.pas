@@ -184,7 +184,10 @@ function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean; overload
 // System language tag management and RFC 3066 / BCP 47 language matching
 function GetSystemLanguage: AnsiString;
 procedure SetSystemLanguage(const ALang: AnsiString);
-function MatchLanguageTag(ASystemLang, ALangRange: TValuePUtf8Char): Boolean;
+function MatchLanguageTag(ASystemLang, ALangRange: TValuePUtf8Char): Boolean; overload;
+{$if defined(UNIT_TEST)}
+function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean; overload;
+{$ifend}
 
 var
   // GlobalSystemLanguage: Current system language.
@@ -690,6 +693,12 @@ begin
   Result := False;
 end;
 
+{$if defined(UNIT_TEST)}
+function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean;
+begin
+  Result := MatchLanguageTag(TValuePUtf8Char.FromString(ASystemLang), TValuePUtf8Char.FromString(ALangRange));
+end;
+{$ifend}
 
 //------------------------------------------------------------------------------
 //
@@ -1110,7 +1119,7 @@ end;
 {$if defined(UNIT_TEST)}
 class function TSvgLength.Parse(const AStr: UTF8String): TSvgLength;
 begin
-  Result := Parse(TValuePUtf8Char.FromString(Str));
+  Result := Parse(TValuePUtf8Char.FromString(AStr));
 end;
 {$ifend}
 
@@ -1175,12 +1184,21 @@ class function TSvgColor.Parse(AColorStr: TValuePUtf8Char): TSvgColor;
     AColorStr.Skip;
   end;
 
+type
+  TColorRGB = record
+    r, g, b, a: Byte;
+  end;
+
+  TColorHSL = record
+    h, s, l, a: Single;
+  end;
 var
-  HasRGB: boolean;
-  HasRGBA: boolean;
+  Value: TValuePUtf8Char;
+  HasComponentColor: boolean;
+  HasComponentAlpha: boolean;
   n: Double;
-//  sRGB: TValuePUtf8Char;
-  r, g, b, a: Byte;
+  ColorRGB: TColorRGB;
+  ColorHSL: TColorHSL;
 begin
   // Trim
   AColorStr.Trim;
@@ -1201,27 +1219,27 @@ begin
     case AColorStr.Len of
       3:
         begin
-          r := ParseHexByte(True);
-          g := ParseHexByte(True);
-          b := ParseHexByte(True);
-          Exit(Create(Color32(r, g, b, 255)));
+          ColorRGB.r := ParseHexByte(True);
+          ColorRGB.g := ParseHexByte(True);
+          ColorRGB.b := ParseHexByte(True);
+          Exit(Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, 255)));
         end;
 
       6:
         begin
-          r := ParseHexByte;
-          g := ParseHexByte;
-          b := ParseHexByte;
-          Exit(Create(Color32(r, g, b, 255)));
+          ColorRGB.r := ParseHexByte;
+          ColorRGB.g := ParseHexByte;
+          ColorRGB.b := ParseHexByte;
+          Exit(Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, 255)));
         end;
 
       8:
         begin
-          r := ParseHexByte;
-          g := ParseHexByte;
-          b := ParseHexByte;
-          a := ParseHexByte;
-          Exit(Create(Color32(r, g, b, a)));
+          ColorRGB.r := ParseHexByte;
+          ColorRGB.g := ParseHexByte;
+          ColorRGB.b := ParseHexByte;
+          ColorRGB.a := ParseHexByte;
+          Exit(Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, ColorRGB.a)));
         end;
     end;
     Exit(None); // Invalid
@@ -1231,26 +1249,130 @@ begin
   // Must be rgb(...) or rgba(...)
   if (AColorStr.Len >= 10) and (AColorStr.LastChar = ')') then
   begin
-    HasRGBA := AColorStr.StartsText('rgba(', True);
-    HasRGB := HasRGBA or AColorStr.StartsText('rgb(', True);
+    ColorRGB.a := 255;
 
-    if (HasRGB) then
+    (*
+    ** RGB
+    *)
+    if (AColorStr.StartsText('rgb', True)) then
     begin
-      AColorStr.Trim;
-      r := AColorStr.ToCardinalAndSkip;
-      AColorStr.Trim([' ', ',']);
-      g := AColorStr.ToCardinalAndSkip;
-      AColorStr.Trim([' ', ',']);
-      b := AColorStr.ToCardinalAndSkip;
-      if HasRGBA then
+      HasComponentAlpha := AColorStr.StartsText('a(', True);
+      HasComponentColor := HasComponentAlpha or AColorStr.StartsText('(', True);
+
+      if (HasComponentColor) then
       begin
-        AColorStr.Trim([' ', ',']);
-        GetExtended(AColorStr.Text, AColorStr.Len, n);
-        a := Clamp(Round(n * 255.0));
-      end else
-        a := 255;
-      Result := Create(Color32(r, g, b, a));
-      exit;
+        ColorRGB.r := 0;
+        ColorRGB.g := 0;
+        ColorRGB.b := 0;
+        ColorRGB.a := 255;
+        // R
+        Value := AColorStr.Split([' ', ','], True);
+        if (not Value.TryToFloat(n)) then
+          Exit(None);
+        if (Value.LastChar = '%') then
+          n := n * 255 * 0.01;
+        ColorRGB.r := Clamp(Round(n));
+
+        // G
+        Value := AColorStr.Split([' ', ','], True);
+        if (not Value.TryToFloat(n)) then
+          Exit(None);
+        if (Value.LastChar = '%') then
+          n := n * 255 * 0.01;
+        ColorRGB.g := Clamp(Round(n));
+
+        // B
+        Value := AColorStr.Split([' ', ','], True);
+        if (not Value.TryToFloat(n)) then
+          Exit(None);
+        if (Value.LastChar = '%') then
+          n := n * 255 * 0.01;
+        ColorRGB.b := Clamp(Round(n));
+
+        // A
+        Value := AColorStr.Split([' ', ',', '/'], True);
+        if (Value.Len > 0) and (Value.TryToFloat(n)) then
+        begin
+          if (Value.LastChar = '%') then
+            n := n * 255 * 0.01
+          else
+            n := n * 255;
+          ColorRGB.a := Clamp(Round(n));
+        end;
+
+        Result := Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, ColorRGB.a));
+        exit;
+      end;
+
+    end else
+    (*
+    ** HSL
+    *)
+    if (AColorStr.StartsText('hsl', True)) then
+    begin
+      HasComponentAlpha := AColorStr.StartsText('a(', True);
+      HasComponentColor := HasComponentAlpha or AColorStr.StartsText('(', True);
+
+      if (HasComponentColor) then
+      begin
+        ColorHSL.h := 0;
+        ColorHSL.s := 1;
+        ColorHSL.l := 1;
+        ColorHSL.a := 1;
+        // H
+        Value := AColorStr.Split([' ', ','], True);
+        if (Value.TryToFloat(ColorHSL.h, True)) then
+        begin
+          Value.Trim;
+          case Value.Len of
+            3:
+              if (Value.CompareText('rad')) then
+                ColorHSL.h := RadToDeg(ColorHSL.h) / 360
+              else
+                ColorHSL.h := ColorHSL.h / 360; // Default is degrees
+
+            4:
+              if (Value.CompareText('grad')) then
+                ColorHSL.h := ColorHSL.h / 400
+              else
+              if (Value.CompareText('turn')) then
+                ColorHSL.h := ColorHSL.h
+              else
+                ColorHSL.h := ColorHSL.h / 360; // Default is degrees
+          else
+            ColorHSL.h := ColorHSL.h / 360; // Default is degrees
+          end;
+        end else
+          Exit(None);
+
+        // S
+        Value := AColorStr.Split([' ', ','], True);
+        if (Value.TryToFloat(ColorHSL.s)) then
+          ColorHSL.s := ColorHSL.s * 0.01 // '%' is optional
+        else
+          Exit(None);
+
+        // L
+        Value := AColorStr.Split([' ', ','], True);
+        if (Value.TryToFloat(ColorHSL.l)) then
+          ColorHSL.l := ColorHSL.l * 0.01 // '%' is optional
+        else
+          Exit(None);
+
+        // A
+        Value := AColorStr.Split([' ', ',', '/'], True);
+        if (Value.TryToFloat(n)) then
+        begin
+          if (Value.LastChar = '%') then
+            ColorHSL.a := n * 0.01
+          else
+            ColorHSL.a := n;
+        end;
+
+        Result := Create(HSLtoRGB(ColorHSL.h, ColorHSL.s, ColorHSL.l, ColorHSL.a));
+        exit;
+      end;
+
     end;
   end;
 
@@ -1260,7 +1382,7 @@ end;
 {$if defined(UNIT_TEST)}
 class function TSvgColor.Parse(const AStr: UTF8String): TSvgColor;
 begin
-  Result := Parse(TValuePUtf8Char.FromString(Value));
+  Result := Parse(TValuePUtf8Char.FromString(AStr));
 end;
 {$ifend}
 
