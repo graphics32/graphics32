@@ -75,6 +75,8 @@ type
     procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
     procedure TestSwitchRendering;
+    procedure TestRoiPolygonRendering;
+    procedure TestRoiFilterBlurRendering;
   end;
 
 implementation
@@ -429,6 +431,102 @@ begin
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
   finally
     docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestRoiPolygonRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(500, 500);
+    bmp.Clear(clWhite32);
+
+    // Polygon with stroke and opacity rendering into a 500x500 canvas
+    xml := '<svg width="500" height="500">' +
+           '  <polygon points="100,100 200,100 200,200 100,200" fill="blue" stroke="red" stroke-width="20" opacity="0.8"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Polygon ROI docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center inside polygon (150, 150) should be painted semi-transparent blue
+        Check(bmp.Pixel[150, 150] <> clWhite32, 'Center inside ROI polygon should be painted');
+        Check(BlueComponent(bmp.Pixel[150, 150]) > 150, 'Center inside ROI polygon should be predominantly blue');
+
+        // Stroke ring region at (95, 150) should be painted semi-transparent red
+        Check(bmp.Pixel[95, 150] <> clWhite32, 'Stroked ROI expansion region at (95,150) should be painted');
+        Check(RedComponent(bmp.Pixel[95, 150]) > 150, 'Stroked ROI expansion region should be predominantly red');
+
+        // Region far outside ROI (10, 10) and (450, 450) must remain untouched white background
+        CheckEquals(clWhite32, bmp.Pixel[10, 10], 'Pixel far outside ROI at (10,10) must remain white');
+        CheckEquals(clWhite32, bmp.Pixel[450, 450], 'Pixel far outside ROI at (450,450) must remain white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestRoiFilterBlurRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(500, 500);
+    bmp.Clear(clWhite32);
+
+    // Small shape with Gaussian blur filter in large 500x500 canvas
+    xml := '<svg width="500" height="500">' +
+           '  <defs>' +
+           '    <filter id="f_blur">' +
+           '      <feGaussianBlur stdDeviation="10"/>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <rect x="200" y="200" width="100" height="100" fill="red" filter="url(#f_blur)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Filter ROI blur docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center of blurred rect (250, 250) should be painted red
+        Check(RedComponent(bmp.Pixel[250, 250]) > 150, 'Center of blurred rect should be red');
+
+        // Blur margin region (180, 250) should contain soft blurred red alpha
+        Check(bmp.Pixel[180, 250] <> clWhite32, 'Blur margin region at (180,250) should contain blurred pixels');
+        Check(RedComponent(bmp.Pixel[180, 250]) > 0, 'Blur margin region should have red channel from blur');
+
+        // Pixels outside filter ROI (50, 50) and (450, 450) must remain pure white
+        CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Pixel far outside blur ROI at (50,50) must remain white');
+        CheckEquals(clWhite32, bmp.Pixel[450, 450], 'Pixel far outside blur ROI at (450,450) must remain white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
   end;
 end;
 
