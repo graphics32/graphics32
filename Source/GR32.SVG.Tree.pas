@@ -1986,7 +1986,7 @@ begin
 
     attrFillOpacity:
       begin
-        if AValue.TryToFloat(ValueFloat) then
+        if AValue.TryToPercent(ValueFloat) then
           FFill.Opacity := EnsureRange(ValueFloat, 0.0, 1.0);
       end;
 
@@ -2008,7 +2008,7 @@ begin
 
     attrStrokeOpacity:
       begin
-        if AValue.TryToFloat(ValueFloat) then
+        if AValue.TryToPercent(ValueFloat) then
           FStroke.Opacity := EnsureRange(ValueFloat, 0.0, 1.0);
       end;
 
@@ -2070,7 +2070,7 @@ begin
       end;
 
     attrOpacity:
-      if AValue.TryToFloat(ValueFloat) then
+      if AValue.TryToPercent(ValueFloat) then
         FOpacity := EnsureRange(ValueFloat, 0.0, 1.0);
 
     attrClipPath:
@@ -3648,7 +3648,7 @@ begin
       FFloodColor := TSvgColor.Parse(AValue);
 
     attrFloodOpacity:
-      if AValue.TryToFloat(FFloodOpacity) then
+      if AValue.TryToPercent(FFloodOpacity) then
         FFloodOpacity := EnsureRange(FFloodOpacity, 0.0, 1.0);
 
   else
@@ -5294,7 +5294,7 @@ var
 
   function ParseStopStyle(AStyle: TValuePUtf8Char; var AOpacity: Single): TSvgColor;
   var
-    n: Double;
+    n: Single;
     OneProp: TValuePUtf8Char;
   begin
     Result := TSvgColor.Create(clBlack32);
@@ -5311,9 +5311,8 @@ var
       end else
       if OneProp.StartsText('stop-opacity:', True) then
       begin
-        n := 1.0;
-        GetExtended(OneProp.Text, OneProp.Len, n);
-        AOpacity := n;
+        if (OneProp.TryToPercent(n)) then
+          AOpacity := EnsureRange(n, 0.0, 1.0);
       end;
 
       // Move on to the next property
@@ -5351,7 +5350,7 @@ var
     UnicodeText: UnicodeString;
     node: TSvgNode;
     startDepth: Byte;
-    n: Double;
+    n: Single;
     stopOffset, stopOpacity: Single;
     childNode: TSvgNode;
     Utf8: RawUtf8;
@@ -5414,10 +5413,8 @@ var
                     stopTagOffset:
                       begin
                         n := stopOffset;
-                        if (TValuePUtf8Char(AParser.Value).TryToFloat(n)) then
-                          if (TValuePUtf8Char(AParser.Value).LastChar = '%') then
-                            n := n * 0.01;
-                        stopOffset := n;
+                        if (TValuePUtf8Char(AParser.Value).TryToPercent(n)) then
+                          stopOffset := n; // Not clamped... Correct?
                       end;
 
                     stopTagStopColor:
@@ -5426,10 +5423,8 @@ var
                     stopTagStopOpacity:
                       begin
                         n := stopOpacity;
-                        if (TValuePUtf8Char(AParser.Value).TryToFloat(n)) then
-                          if (TValuePUtf8Char(AParser.Value).LastChar = '%') then
-                            n := n * 0.01;
-                        stopOpacity := n;
+                        if (TValuePUtf8Char(AParser.Value).TryToPercent(n)) then
+                          stopOpacity := EnsureRange(n, 0.0, 1.0);
                       end;
 
                     stopTagStyle:

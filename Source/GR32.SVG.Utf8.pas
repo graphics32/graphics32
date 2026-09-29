@@ -111,6 +111,9 @@ type
     function TryToFloat(out Value: Single): boolean; overload;
     function TryToFloat(out Value: Single; Skip: boolean): boolean; overload;
 
+    // Decimal value or percent value, returned as decimal value
+    function TryToPercent(out Value: Single; Skip: boolean = False): boolean; overload;
+
     function LastChar: AnsiChar;
 
     procedure Trim; overload;
@@ -435,6 +438,21 @@ begin
   Result := TryToFloat(Dbl, Skip);
   if (Result) then
     Value := dbl;
+end;
+
+function TValuePUtf8Char.TryToPercent(out Value: Single; Skip: boolean): boolean;
+var
+  Save: TValuePUtf8Char;
+begin
+  Save := Self;
+  Result := TryToFloat(Value, True);
+  if (Result) and (Len > 0) and (Text^ = '%') then
+  begin
+    Value := Value * 0.01;
+    Self.Skip;
+  end;
+  if (not Skip) then
+    Self := Save;
 end;
 
 function TValuePUtf8Char.TryToFloat(out Value: Double): boolean;
