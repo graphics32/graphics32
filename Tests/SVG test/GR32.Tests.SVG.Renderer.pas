@@ -78,6 +78,7 @@ type
     procedure TestUserSpaceOnUsePercentageGradient;
     procedure TestRoiPolygonRendering;
     procedure TestRoiFilterBlurRendering;
+    procedure TestObjectBoundingBoxClipPathRoi;
   end;
 
 implementation
@@ -117,6 +118,60 @@ begin
       finally
         renderer.Free;
       end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestObjectBoundingBoxClipPathRoi;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    xml := '<svg id="svg1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+           '  <clipPath id="clip1" clipPathUnits="objectBoundingBox">' +
+           '    <circle id="circle1" cx="0.5" cy="0.5" r="0.45"/>' +
+           '  </clipPath>' +
+           '  <g id="g2" clip-path="url(#clip1)">' +
+           '    <rect id="rect3" x="20" y="20" width="160" height="160" fill="red" visibility="hidden"/>' +
+           '    <rect id="rect4" x="40" y="40" width="120" height="120" fill="green"/>' +
+           '  </g>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'objectBoundingBox clipPath docNode should not be nil');
+    try
+      // 1. Square target canvas (200x200)
+      bmp.SetSize(200, 200);
+      bmp.Clear(clWhite32);
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        CheckEquals(clGreen32, bmp.Pixel[100, 100], 'Center (100,100) inside square canvas objectBoundingBox clipPath must be green');
+        CheckEquals(clGreen32, bmp.Pixel[50, 50], 'Top-left (50,50) inside square canvas objectBoundingBox clipPath must be green');
+      finally
+        renderer.Free;
+      end;
+
+      // 2. Resized non-square target canvas (400x200) - viewBox 200x200 scaled with xMidYMid meet alignment
+      bmp.SetSize(400, 200);
+      bmp.Clear(clWhite32);
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        CheckEquals(clGreen32, bmp.Pixel[200, 100], 'Center (200,100) inside resized non-square canvas objectBoundingBox clipPath must be green');
+        CheckEquals(clGreen32, bmp.Pixel[150, 50], 'Top-left (150,50) inside resized non-square canvas objectBoundingBox clipPath must be green');
+      finally
+        renderer.Free;
+      end;
+
     finally
       docNode.Free;
     end;

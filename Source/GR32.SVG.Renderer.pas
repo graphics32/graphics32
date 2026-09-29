@@ -86,8 +86,8 @@ type
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
     procedure RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
     procedure RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgGroupNode);
-    procedure RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect);
-    procedure RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect);
+    procedure RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
+    procedure RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     procedure RenderMarker(ATarget: TCustomBitmap32; AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); // Angle is in radians!
     procedure RenderMarkers(ATarget: TCustomBitmap32; APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single);
     procedure RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
@@ -1028,7 +1028,7 @@ begin
         PushMatrix;
         try
           TFloatMatrixHelper(FCurrentMatrix).Translate(-RoiRect.Left, -RoiRect.Top);
-          RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, FloatRoi);
+          RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, FloatRoi, RoiRect);
         finally
           PopMatrix;
           FCurrentMatrix := OldMatrix;
@@ -1056,7 +1056,7 @@ begin
         PushMatrix;
         try
           TFloatMatrixHelper(FCurrentMatrix).Translate(-RoiRect.Left, -RoiRect.Top);
-          RenderMaskNode(MaskBmp, MaskNodeTarget, FloatRoi);
+          RenderMaskNode(MaskBmp, MaskNodeTarget, FloatRoi, RoiRect);
         finally
           PopMatrix;
           FCurrentMatrix := OldMatrix;
@@ -1096,15 +1096,15 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect);
+procedure TSvgRenderer.RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
 var
   SavedMatrix: TFloatMatrix;
-  Width, Height: Single;
+  Width, Height, OffsetX, OffsetY: Single;
   i: Integer;
 begin
   // Renders child nodes of a <clipPath> onto a temporary alpha surface.
   // If clipPathUnits = guObjectBoundingBox, applies translation and
-  // scale derived from target object bounds.
+  // scale derived from target object bounds in ROI coordinate space.
   if (AClipNode = nil) or (AMaskBmp = nil) then
     Exit;
 
@@ -1119,9 +1119,12 @@ begin
       if Height <= 0 then
         Height := 1.0;
 
+      OffsetX := ATargetBounds.Left - ARoiRect.Left;
+      OffsetY := ATargetBounds.Top - ARoiRect.Top;
+
       FCurrentMatrix := IdentityMatrix;
       TFloatMatrixHelper(FCurrentMatrix).Scale(Width, Height);
-      TFloatMatrixHelper(FCurrentMatrix).Translate(ATargetBounds.Left, ATargetBounds.Top);
+      TFloatMatrixHelper(FCurrentMatrix).Translate(OffsetX, OffsetY);
     end;
 
     // Pre-multiply the matrix transformation on the <clipPath> element itself
@@ -1138,15 +1141,15 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect);
+procedure TSvgRenderer.RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
 var
   SavedMatrix: TFloatMatrix;
-  Width, Height: Single;
+  Width, Height, OffsetX, OffsetY: Single;
   i: Integer;
 begin
   // Renders child nodes of a <mask> onto a temporary luminance/alpha surface.
   // If maskContentUnits = guObjectBoundingBox, applies translation and scale
-  // derived from target object bounds.
+  // derived from target object bounds in ROI coordinate space.
 
   if (AMaskNode = nil) or (AMaskBmp = nil) then
     Exit;
@@ -1162,9 +1165,12 @@ begin
       if Height <= 0 then
         Height := 1.0;
 
+      OffsetX := ATargetBounds.Left - ARoiRect.Left;
+      OffsetY := ATargetBounds.Top - ARoiRect.Top;
+
       FCurrentMatrix := IdentityMatrix;
       TFloatMatrixHelper(FCurrentMatrix).Scale(Width, Height);
-      TFloatMatrixHelper(FCurrentMatrix).Translate(ATargetBounds.Left, ATargetBounds.Top);
+      TFloatMatrixHelper(FCurrentMatrix).Translate(OffsetX, OffsetY);
     end;
 
     // Pre-multiply matrix transformation on <mask transform="..."> elements
@@ -1445,7 +1451,7 @@ begin
         PushMatrix;
         try
           TFloatMatrixHelper(FCurrentMatrix).Translate(-GroupRoi.Left, -GroupRoi.Top);
-          RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds);
+          RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds, GroupRoi);
         finally
           PopMatrix;
           FCurrentMatrix := OldMatrix;
@@ -1473,7 +1479,7 @@ begin
         PushMatrix;
         try
           TFloatMatrixHelper(FCurrentMatrix).Translate(-GroupRoi.Left, -GroupRoi.Top);
-          RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds);
+          RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds, GroupRoi);
         finally
           PopMatrix;
           FCurrentMatrix := OldMatrix;
@@ -3052,7 +3058,7 @@ begin
           PushMatrix;
           try
             TFloatMatrixHelper(FCurrentMatrix).Translate(-NodeRoi.Left, -NodeRoi.Top);
-            RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds);
+            RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds, NodeRoi);
           finally
             PopMatrix;
             FCurrentMatrix := OldMatrix;
@@ -3080,7 +3086,7 @@ begin
           PushMatrix;
           try
             TFloatMatrixHelper(FCurrentMatrix).Translate(-NodeRoi.Left, -NodeRoi.Top);
-            RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds);
+            RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds, NodeRoi);
           finally
             PopMatrix;
             FCurrentMatrix := OldMatrix;
