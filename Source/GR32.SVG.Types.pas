@@ -1196,7 +1196,7 @@ var
   Value: TValuePUtf8Char;
   HasComponentColor: boolean;
   HasComponentAlpha: boolean;
-  n: Double;
+  n: Single;
   ColorRGB: TColorRGB;
   ColorHSL: TColorHSL;
 begin
@@ -1217,7 +1217,7 @@ begin
     AColorStr.Skip;
 
     case AColorStr.Len of
-      3:
+      3: // RGB -> RRGGBB
         begin
           ColorRGB.r := ParseHexByte(True);
           ColorRGB.g := ParseHexByte(True);
@@ -1225,7 +1225,16 @@ begin
           Exit(Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, 255)));
         end;
 
-      6:
+      4: // RGBA -> RRGGBBAA
+        begin
+          ColorRGB.r := ParseHexByte(True);
+          ColorRGB.g := ParseHexByte(True);
+          ColorRGB.b := ParseHexByte(True);
+          ColorRGB.a := ParseHexByte(True);
+          Exit(Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, ColorRGB.a)));
+        end;
+
+      6: // RRGGBB
         begin
           ColorRGB.r := ParseHexByte;
           ColorRGB.g := ParseHexByte;
@@ -1233,7 +1242,7 @@ begin
           Exit(Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, 255)));
         end;
 
-      8:
+      8: // RRGGBBAA
         begin
           ColorRGB.r := ParseHexByte;
           ColorRGB.g := ParseHexByte;
@@ -1247,7 +1256,7 @@ begin
 
   // Smallest possible 'rgb' string is rgb(0,0,0) -> length=10
   // Must be rgb(...) or rgba(...)
-  if (AColorStr.Len >= 10) and (AColorStr.LastChar = ')') then
+  if (AColorStr.Len >= 10) then
   begin
     ColorRGB.a := 255;
 
@@ -1267,38 +1276,30 @@ begin
         ColorRGB.a := 255;
         // R
         Value := AColorStr.Split([' ', ','], True);
-        if (not Value.TryToFloat(n)) then
+        Value.Trim;
+        if (not Value.TryToPercentOf(n, 255, True)) then
           Exit(None);
-        if (Value.LastChar = '%') then
-          n := n * 255 * 0.01;
         ColorRGB.r := Clamp(Round(n));
 
         // G
         Value := AColorStr.Split([' ', ','], True);
-        if (not Value.TryToFloat(n)) then
+        Value.Trim;
+        if (not Value.TryToPercentOf(n, 255, True)) then
           Exit(None);
-        if (Value.LastChar = '%') then
-          n := n * 255 * 0.01;
         ColorRGB.g := Clamp(Round(n));
 
         // B
         Value := AColorStr.Split([' ', ','], True);
-        if (not Value.TryToFloat(n)) then
+        Value.Trim;
+        if (not Value.TryToPercentOf(n, 255, True)) then
           Exit(None);
-        if (Value.LastChar = '%') then
-          n := n * 255 * 0.01;
         ColorRGB.b := Clamp(Round(n));
 
         // A
         Value := AColorStr.Split([' ', ',', '/'], True);
-        if (Value.Len > 0) and (Value.TryToFloat(n)) then
-        begin
-          if (Value.LastChar = '%') then
-            n := n * 255 * 0.01
-          else
-            n := n * 255;
-          ColorRGB.a := Clamp(Round(n));
-        end;
+        Value.Trim;
+        if (Value.Len > 0) and (Value.TryToPercent(n)) then
+          ColorRGB.a := Clamp(Round(n * 255));
 
         Result := Create(Color32(ColorRGB.r, ColorRGB.g, ColorRGB.b, ColorRGB.a));
         exit;
@@ -1321,6 +1322,7 @@ begin
         ColorHSL.a := 1;
         // H
         Value := AColorStr.Split([' ', ','], True);
+        Value.Trim;
         if (Value.TryToFloat(ColorHSL.h, True)) then
         begin
           Value.Trim;
@@ -1347,27 +1349,23 @@ begin
 
         // S
         Value := AColorStr.Split([' ', ','], True);
-        if (Value.TryToFloat(ColorHSL.s)) then
-          ColorHSL.s := ColorHSL.s * 0.01 // '%' is optional
-        else
+        Value.Trim;
+        if (not Value.TryToFloat(ColorHSL.s)) then
           Exit(None);
+        ColorHSL.s := ColorHSL.s * 0.01; // Value is always percent (0..100) but '%' is optional
 
         // L
         Value := AColorStr.Split([' ', ','], True);
-        if (Value.TryToFloat(ColorHSL.l)) then
-          ColorHSL.l := ColorHSL.l * 0.01 // '%' is optional
-        else
+        Value.Trim;
+        if (not Value.TryToFloat(ColorHSL.l)) then
           Exit(None);
+        ColorHSL.l := ColorHSL.l * 0.01;
 
         // A
         Value := AColorStr.Split([' ', ',', '/'], True);
-        if (Value.TryToFloat(n)) then
-        begin
-          if (Value.LastChar = '%') then
-            ColorHSL.a := n * 0.01
-          else
-            ColorHSL.a := n;
-        end;
+        Value.Trim;
+        if (Value.TryToPercent(n)) then
+          ColorHSL.a := n;
 
         Result := Create(HSLtoRGB(ColorHSL.h, ColorHSL.s, ColorHSL.l, ColorHSL.a));
         exit;
