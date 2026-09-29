@@ -80,6 +80,7 @@ type
     FBitmapPool: TSvgBitmapPool;
     FPolyRenderer: TPolygonRenderer32;
     FAllowExternalImages: Boolean;
+    FRecursionDepth: integer;
   protected
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode); virtual;
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode); virtual;
@@ -140,7 +141,10 @@ const
   ZERO_WIDTH_SPACE = $200B; // Unicode ZERO WIDTH SPACE
 
 const
-  cMaxStackDepth = 80; // Checked in PushMatrix. Raises exception if exceeded.
+  cMaxRecursions = 20;
+
+const
+  cMaxStackDepth = 80; // Checked in PushMatrix. Exception is exceeded.
 
 function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
 var
@@ -963,28 +967,29 @@ end;
 
 procedure TSvgRenderer.RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect);
 var
-  savedMatrix: TFloatMatrix;
-  bWidth, bHeight: Single;
+  SavedMatrix: TFloatMatrix;
+  Width, Height: Single;
   i: Integer;
 begin
-  { Renders child nodes of a <clipPath> onto a temporary alpha surface.
-    If clipPathUnits = guObjectBoundingBox, applies translation and scale derived from target object bounds. }
+  // Renders child nodes of a <clipPath> onto a temporary alpha surface.
+  // If clipPathUnits = guObjectBoundingBox, applies translation and
+  // scale derived from target object bounds.
   if (AClipNode = nil) or (AMaskBmp = nil) then
     Exit;
 
-  savedMatrix := FCurrentMatrix;
+  SavedMatrix := FCurrentMatrix;
   try
     if AClipNode.ClipPathUnits = guObjectBoundingBox then
     begin
-      bWidth := ATargetBounds.Right - ATargetBounds.Left;
-      bHeight := ATargetBounds.Bottom - ATargetBounds.Top;
-      if bWidth <= 0 then
-        bWidth := 1.0;
-      if bHeight <= 0 then
-        bHeight := 1.0;
+      Width := ATargetBounds.Width;
+      Height := ATargetBounds.Height;
+      if Width <= 0 then
+        Width := 1.0;
+      if Height <= 0 then
+        Height := 1.0;
 
       FCurrentMatrix := IdentityMatrix;
-      TFloatMatrixHelper(FCurrentMatrix).Scale(bWidth, bHeight);
+      TFloatMatrixHelper(FCurrentMatrix).Scale(Width, Height);
       TFloatMatrixHelper(FCurrentMatrix).Translate(ATargetBounds.Left, ATargetBounds.Top);
     end;
 
@@ -992,32 +997,36 @@ begin
     for i := 0 to AClipNode.Children.Count - 1 do
       RenderNode(AMaskBmp, AClipNode.Children[i]);
   finally
-    FCurrentMatrix := savedMatrix;
+    FCurrentMatrix := SavedMatrix;
   end;
 end;
 
 procedure TSvgRenderer.RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect);
 var
-  savedMatrix: TFloatMatrix;
-  bWidth, bHeight: Single;
+  SavedMatrix: TFloatMatrix;
+  Width, Height: Single;
   i: Integer;
 begin
-  { Renders child nodes of a <mask> onto a temporary luminance/alpha surface.
-    If maskContentUnits = guObjectBoundingBox, applies translation and scale derived from target object bounds. }
+  // Renders child nodes of a <mask> onto a temporary luminance/alpha surface.
+  // If maskContentUnits = guObjectBoundingBox, applies translation and scale
+  // derived from target object bounds.
+
   if (AMaskNode = nil) or (AMaskBmp = nil) then
     Exit;
 
-  savedMatrix := FCurrentMatrix;
+  SavedMatrix := FCurrentMatrix;
   try
     if AMaskNode.MaskContentUnits = guObjectBoundingBox then
     begin
-      bWidth := ATargetBounds.Right - ATargetBounds.Left;
-      bHeight := ATargetBounds.Bottom - ATargetBounds.Top;
-      if bWidth <= 0 then bWidth := 1.0;
-      if bHeight <= 0 then bHeight := 1.0;
+      Width := ATargetBounds.Width;
+      Height := ATargetBounds.Height;
+      if Width <= 0 then
+        Width := 1.0;
+      if Height <= 0 then
+        Height := 1.0;
 
       FCurrentMatrix := IdentityMatrix;
-      TFloatMatrixHelper(FCurrentMatrix).Scale(bWidth, bHeight);
+      TFloatMatrixHelper(FCurrentMatrix).Scale(Width, Height);
       TFloatMatrixHelper(FCurrentMatrix).Translate(ATargetBounds.Left, ATargetBounds.Top);
     end;
 
@@ -1025,7 +1034,7 @@ begin
     for i := 0 to AMaskNode.Children.Count - 1 do
       RenderNode(AMaskBmp, AMaskNode.Children[i]);
   finally
-    FCurrentMatrix := savedMatrix;
+    FCurrentMatrix := SavedMatrix;
   end;
 end;
 
@@ -2685,52 +2694,136 @@ end;
 
 procedure TSvgRenderer.RenderNode(ATarget: TCustomBitmap32; ANode: TSvgNode);
 var
-  OffscreenBmp: TCustomBitmap32;
+  OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
   EffectiveBlendMode: TSvgBlendMode;
+  ClipNodeTarget: TSvgClipPathNode;
+  MaskNodeTarget: TSvgMaskNode;
+  OldMatrix: TFloatMatrix;
+  NodeBounds, TargetWorldBounds: TFloatRect;
+  Points: array[0..3] of TFloatPoint;
+  SourceP, DestP: PColor32;
+  x, k: Integer;
+  AlphaVal, Gray: Byte;
+  NeedsOffscreen: Boolean;
+const
+  OneOver255: Single = 1 / 255;
 begin
   if (ANode = nil) or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
     Exit;
 
-  // Filter processing takes precedence over direct element rendering
-  if ANode.ResolvedFilter <> nil then
-  begin
-    RenderFilter(ATarget, ANode.ResolvedFilter, ANode);
+  // Guard against self-referencing clip-path, clip-mask etc.
+  if (FRecursionDepth > cMaxRecursions) then
     Exit;
-  end;
 
-  EffectiveBlendMode := GetEffectiveMixBlendMode(ANode);
+  Inc(FRecursionDepth);
+  try
 
-  // Non-group renderable nodes with non-normal effective blend mode composite via an offscreen surface
-  if (not (ANode is TSvgGroupNode)) and (EffectiveBlendMode <> bmNormal) and (ATarget <> nil) then
-  begin
-    OffscreenBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
-    try
-
-      PushMatrix;
-      try
-        ApplyMatrix(ANode.Transform);
-
-        if ANode is TSvgPathNode then
-          RenderPathNode(OffscreenBmp, TSvgPathNode(ANode))
-        else
-        if ANode is TSvgImageNode then
-          RenderImageNode(OffscreenBmp, TSvgImageNode(ANode))
-        else
-        if ANode is TSvgTextNode then
-          RenderTextNode(OffscreenBmp, TSvgTextNode(ANode));
-
-      finally
-        PopMatrix;
-      end;
-
-      BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode);
-    finally
-      ReleaseOffscreenBitmap(OffscreenBmp);
+    // Filter processing takes precedence over direct element rendering
+    if ANode.ResolvedFilter <> nil then
+    begin
+      RenderFilter(ATarget, ANode.ResolvedFilter, ANode);
+      Exit;
     end;
-    Exit;
-  end;
 
-  RenderNodeUnfiltered(ATarget, ANode);
+    EffectiveBlendMode := GetEffectiveMixBlendMode(ANode);
+
+    // Non-group renderable nodes need offscreen surface if they have ClipPath, Mask, Opacity < 1, or Non-normal blend mode
+    NeedsOffscreen := (not (ANode is TSvgGroupNode)) and
+      ((EffectiveBlendMode <> bmNormal) or (ANode.ResolvedClipPath <> nil) or (ANode.ResolvedMask <> nil) or (ANode.Opacity < 1.0));
+
+    if NeedsOffscreen and (ATarget <> nil) then
+    begin
+      OffscreenBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
+      ClipMaskBmp := nil;
+      MaskBmp := nil;
+      try
+        RenderNodeUnfiltered(OffscreenBmp, ANode);
+
+        // Calculate object bounding box in world space
+        NodeBounds := ANode.GetObjectBoundingBox;
+        Points[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+        Points[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+        Points[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+        Points[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+
+        TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
+        for k := 1 to 3 do
+        begin
+          if (Points[k].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Points[k].X;
+          if (Points[k].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Points[k].X;
+          if (Points[k].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Points[k].Y;
+          if (Points[k].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Points[k].Y;
+        end;
+
+        // Apply ClipPath
+        if (ANode.ResolvedClipPath <> nil) then
+        begin
+          ClipNodeTarget := ANode.ResolvedClipPath;
+          ClipMaskBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, True);
+
+          OldMatrix := FCurrentMatrix;
+          RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds);
+          FCurrentMatrix := OldMatrix;
+
+          SourceP := PColor32(OffscreenBmp.Bits);
+          DestP := PColor32(ClipMaskBmp.Bits);
+          for x := 0 to OffscreenBmp.PixelCount - 1 do
+          begin
+            AlphaVal := AlphaComponent(DestP^);
+            if AlphaVal < 255 then
+              ScaleAlpha(SourceP^, AlphaVal * OneOver255);
+            Inc(SourceP);
+            Inc(DestP);
+          end;
+        end;
+
+        // Apply Alpha Mask
+        if (ANode.ResolvedMask <> nil) then
+        begin
+          MaskNodeTarget := ANode.ResolvedMask;
+          MaskBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, False);
+
+          OldMatrix := FCurrentMatrix;
+          RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds);
+          FCurrentMatrix := OldMatrix;
+
+          SourceP := PColor32(OffscreenBmp.Bits);
+          DestP := PColor32(MaskBmp.Bits);
+          for x := 0 to OffscreenBmp.PixelCount - 1 do
+          begin
+            Gray := Intensity(DestP^);
+            Gray := Round(Gray * (AlphaComponent(DestP^) / 255.0));
+            ScaleAlpha(SourceP^, Gray / 255.0);
+            Inc(SourceP);
+            Inc(DestP);
+          end;
+        end;
+
+        // Apply Opacity
+        if (ANode.Opacity < 1.0) then
+        begin
+          SourceP := PColor32(OffscreenBmp.Bits);
+          for x := 0 to OffscreenBmp.PixelCount - 1 do
+          begin
+            ScaleAlpha(SourceP^, ANode.Opacity);
+            Inc(SourceP);
+          end;
+        end;
+
+        BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode);
+      finally
+        ReleaseOffscreenBitmap(OffscreenBmp);
+        ReleaseOffscreenBitmap(ClipMaskBmp);
+        ReleaseOffscreenBitmap(MaskBmp);
+      end;
+      Exit;
+    end;
+
+    RenderNodeUnfiltered(ATarget, ANode);
+
+  finally
+    Dec(FRecursionDepth);
+  end;
 end;
 
 procedure TSvgRenderer.RenderNode(ANode: TSvgNode);

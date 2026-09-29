@@ -52,6 +52,7 @@ type
     procedure TestGradientFillRendering;
     procedure TestGroupOpacityCompositing;
     procedure TestClipPathCompositing;
+    procedure TestDirectShapeClipPath;
     procedure TestMaskCompositing;
     procedure TestBitmapPool;
     procedure TestPatternFillAndStrokeRendering;
@@ -109,6 +110,46 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestDirectShapeClipPath;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="100" height="100">' +
+           '  <defs>' +
+           '    <clipPath id="clip1">' +
+           '      <rect x="0" y="0" width="50" height="100"/>' +
+           '    </clipPath>' +
+           '  </defs>' +
+           '  <rect x="0" y="0" width="100" height="100" fill="green" clip-path="url(#clip1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        CheckEquals(clGreen32, bmp.Pixel[25, 50], 'Clipped region inside direct rect should be green');
+        CheckEquals(clWhite32, bmp.Pixel[75, 50], 'Clipped region outside direct rect should be white');
       finally
         renderer.Free;
       end;

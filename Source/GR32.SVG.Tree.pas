@@ -314,6 +314,8 @@ type
 type
   TSvgMarkerNode = class;
   TSvgFilterNode = class;
+  TSvgClipPathNode = class;
+  TSvgMaskNode = class;
 
   TSvgNode = class abstract(TObject)
   private
@@ -322,6 +324,11 @@ type
     FStyleAttr: AnsiString; // Stores raw inline style="..." string for deferred cascade evaluation
     FTransform: TFloatMatrix;
     FVisible: Boolean;
+    FOpacity: Single;
+    FClipPathID: AnsiString;
+    FMaskID: AnsiString;
+    FResolvedClipPath: TSvgClipPathNode;
+    FResolvedMask: TSvgMaskNode;
     FMixBlendMode: TSvgBlendMode;
     FIsolation: TSvgIsolation;
     FFilterID: AnsiString;
@@ -373,6 +380,11 @@ type
     property StyleAttr: AnsiString read FStyleAttr write FStyleAttr;
     property Transform: TFloatMatrix read FTransform write FTransform;
     property Visible: Boolean read FVisible write FVisible;
+    property Opacity: Single read FOpacity write FOpacity;
+    property ClipPathID: AnsiString read FClipPathID write FClipPathID;
+    property MaskID: AnsiString read FMaskID write FMaskID;
+    property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
+    property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
     property MixBlendMode: TSvgBlendMode read FMixBlendMode write FMixBlendMode;
     property Isolation: TSvgIsolation read FIsolation write FIsolation;
     property FilterID: AnsiString read FFilterID write FFilterID;
@@ -403,17 +415,9 @@ type
 // TODO : We should have a TCustomSvgGroupNode base class so we can differentiate between 'G' nodes
 // and nodes derived from a group node.
 //------------------------------------------------------------------------------
-  TSvgClipPathNode = class;
-  TSvgMaskNode = class;
-
   TSvgGroupNode = class(TSvgNode)
   private
     FChildren: TObjectList<TSvgNode>;
-    FOpacity: Single;
-    FClipPathID: AnsiString;
-    FMaskID: AnsiString;
-    FResolvedClipPath: TSvgClipPathNode;
-    FResolvedMask: TSvgMaskNode;
     FFontFamily: string;
     FFontSize: TSvgLength;
     FFontWeight: string;
@@ -430,11 +434,6 @@ type
     procedure AddChild(AChild: TSvgNode);
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
     property Children: TObjectList<TSvgNode> read FChildren;
-    property Opacity: Single read FOpacity write FOpacity;
-    property ClipPathID: AnsiString read FClipPathID write FClipPathID;
-    property MaskID: AnsiString read FMaskID write FMaskID;
-    property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
-    property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
     property FontFamily: string read FFontFamily write FFontFamily;
     property FontSize: TSvgLength read FFontSize write FFontSize;
     property FontWeight: string read FFontWeight write FFontWeight;
@@ -1727,6 +1726,11 @@ begin
   FParent := AParent;
   FTransform := IdentityMatrix;
   FVisible := True;
+  FOpacity := 1.0;
+  FClipPathID := '';
+  FMaskID := '';
+  FResolvedClipPath := nil;
+  FResolvedMask := nil;
   FMixBlendMode := bmNormal;
   FIsolation := isoAuto;
   FCssClassName := '';
@@ -1764,6 +1768,11 @@ begin
   Result.FStyleAttr := FStyleAttr;
   Result.FTransform := FTransform;
   Result.FVisible := FVisible;
+  Result.FOpacity := FOpacity;
+  Result.FClipPathID := FClipPathID;
+  Result.FMaskID := FMaskID;
+  Result.FResolvedClipPath := FResolvedClipPath;
+  Result.FResolvedMask := FResolvedMask;
   Result.FMixBlendMode := FMixBlendMode;
   Result.FIsolation := FIsolation;
   Result.FFilterID := FFilterID;
@@ -2039,6 +2048,16 @@ begin
         FMarkerEnd := FMarkerStart;
       end;
 
+    attrOpacity:
+      if AValue.TryToFloat(ValueFloat) then
+        FOpacity := EnsureRange(ValueFloat, 0.0, 1.0);
+
+    attrClipPath:
+      FClipPathID := AValue.ToUtf8;
+
+    attrMask:
+      FMaskID := AValue.ToUtf8;
+
     attrMixBlendMode:
       FMixBlendMode := ParseSvgBlendMode(AValue);
 
@@ -2228,9 +2247,6 @@ var
 begin
   inherited Create(AParent);
   FChildren := TObjectList<TSvgNode>.Create(True);
-  FOpacity := 1.0;
-  FClipPathID := '';
-  FMaskID := '';
 
   if (AParent <> nil) and (AParent is TSvgGroupNode) then
   begin
@@ -2262,11 +2278,6 @@ var
   i: Integer;
 begin
   groupRes := TSvgGroupNode(inherited Clone(AParent));
-  groupRes.FOpacity := FOpacity;
-  groupRes.FClipPathID := FClipPathID;
-  groupRes.FMaskID := FMaskID;
-  groupRes.FResolvedClipPath := FResolvedClipPath;
-  groupRes.FResolvedMask := FResolvedMask;
   groupRes.FFontFamily := FFontFamily;
   groupRes.FFontSize := FFontSize;
   groupRes.FFontWeight := FFontWeight;
@@ -2354,22 +2365,8 @@ begin
 end;
 
 procedure TSvgGroupNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
-var
-  Value: Single;
 begin
   case AKeyword of
-    attrOpacity:
-      begin
-        if AValue.TryToFloat(Value) then
-          FOpacity := EnsureRange(Value, 0.0, 1.0);
-      end;
-
-    attrClipPath:
-      FClipPathID := AValue.ToString;
-
-    attrMask:
-      FMaskID := AValue.ToString;
-
     attrFontFamily:
       FFontFamily := AValue.ToString;
 
@@ -4112,26 +4109,25 @@ procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
   begin
     if ANode = nil then Exit;
 
+    if (ANode.ClipPathID <> '') then
+    begin
+      StrID := ExtractUrlIdStr(ANode.ClipPathID);
+      TargetNode := FindNodeById(StrID);
+      if TargetNode is TSvgClipPathNode then
+        ANode.ResolvedClipPath := TSvgClipPathNode(TargetNode);
+    end;
+
+    if (ANode.MaskID <> '') then
+    begin
+      StrID := ExtractUrlIdStr(ANode.MaskID);
+      TargetNode := FindNodeById(StrID);
+      if TargetNode is TSvgMaskNode then
+        ANode.ResolvedMask := TSvgMaskNode(TargetNode);
+    end;
+
     if ANode is TSvgGroupNode then
     begin
       Group := TSvgGroupNode(ANode);
-
-      if (Group.ClipPathID <> '') then
-      begin
-        StrID := ExtractUrlIdStr(Group.ClipPathID);
-        TargetNode := FindNodeById(StrID);
-        if (TargetNode is TSvgClipPathNode) then
-          Group.ResolvedClipPath := TSvgClipPathNode(TargetNode);
-      end;
-
-      if (Group.MaskID <> '') then
-      begin
-        StrID := ExtractUrlIdStr(Group.MaskID);
-        TargetNode := FindNodeById(StrID);
-        if (TargetNode is TSvgMaskNode) then
-          Group.ResolvedMask := TSvgMaskNode(TargetNode);
-      end;
-
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
