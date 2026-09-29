@@ -49,6 +49,7 @@ type
     procedure TestLinearGradientParsing;
     procedure TestRadialGradientParsing;
     procedure TestGradientInheritance;
+    procedure TestGradientInheritanceUserSpaceOnUse;
     procedure TestClipPathAndMaskParsing;
   end;
 
@@ -159,6 +160,7 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
   try
+    docNode.Resolve;
     defsNode := TSvgDefsNode(docNode.Children[0]);
     CheckEquals(2, defsNode.Children.Count);
 
@@ -168,6 +170,47 @@ begin
     CheckEquals(2, derivedGrad.Stops.Count, 'Derived gradient should inherit stops from baseGrad');
     CheckEquals(clYellow32, derivedGrad.Stops[0].Color.Color);
     CheckEquals(clGreen32, derivedGrad.Stops[1].Color.Color);
+    CheckEquals(Ord(smRepeat), Ord(derivedGrad.SpreadMethod), 'Derived gradient should inherit spreadMethod from baseGrad');
+    CheckEquals(10.0, derivedGrad.X1.Value, 1E-4);
+    CheckEquals(10.0, derivedGrad.Y1.Value, 1E-4);
+    CheckEquals(90.0, derivedGrad.X2.Value, 1E-4);
+    CheckEquals(90.0, derivedGrad.Y2.Value, 1E-4);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgGradients.TestGradientInheritanceUserSpaceOnUse;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  derivedGrad: TSvgLinearGradientNode;
+  defsNode: TSvgDefsNode;
+begin
+  xml := '<svg width="600" height="440" viewBox="0 0 150 110">' +
+         '  <defs>' +
+         '    <linearGradient id="baseGrad">' +
+         '      <stop offset="0" stop-color="#00ff00"/>' +
+         '      <stop offset="1" stop-color="#ff7d00"/>' +
+         '    </linearGradient>' +
+         '    <linearGradient id="derivedGrad" href="#baseGrad" x1="112.5" y1="111.2" x2="111.6" y2="148.6" gradientUnits="userSpaceOnUse"/>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
+  try
+    docNode.Resolve;
+    defsNode := TSvgDefsNode(docNode.Children[0]);
+    derivedGrad := TSvgLinearGradientNode(defsNode.Children[1]);
+
+    CheckEquals('#baseGrad', derivedGrad.Href);
+    CheckEquals(2, derivedGrad.Stops.Count, 'Derived gradient should inherit stops from baseGrad');
+    CheckEquals(Ord(guUserSpaceOnUse), Ord(derivedGrad.GradientUnits), 'GradientUnits should be preserved as userSpaceOnUse');
+    CheckEquals(112.5, derivedGrad.X1.Value, 1E-4, 'X1 coordinate should be preserved');
+    CheckEquals(111.2, derivedGrad.Y1.Value, 1E-4, 'Y1 coordinate should be preserved');
+    CheckEquals(111.6, derivedGrad.X2.Value, 1E-4, 'X2 coordinate should be preserved');
+    CheckEquals(148.6, derivedGrad.Y2.Value, 1E-4, 'Y2 coordinate should be preserved');
   finally
     docNode.Free;
   end;

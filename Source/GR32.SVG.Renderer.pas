@@ -2472,7 +2472,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     RotationMat: TFloatMatrixHelper;
     HasNodeTransform: Boolean;
     CharIndex: Integer;
-    CharString: string;
+    CharString: UnicodeString;
     CharacterRotationAngle: Single;
     ZeroWidth: Single;
   begin
@@ -2555,7 +2555,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
               LastDrawPoint := DrawPoint;
             end;
 
-            CharString[1] := ANode.TextContent[CharIndex];
+            CharString[1] := Char(ANode.TextContent[CharIndex]);
 
             if (CharString[1] = ' ') then
             begin

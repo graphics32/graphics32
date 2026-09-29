@@ -128,12 +128,12 @@ type
     FColor: TSvgColor;
     FOpacity: Single;
     FFillRule: TPolyFillMode;
-    FUrl: string;
+    FUrl: AnsiString;
     FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
     procedure SetColor(const Value: TSvgColor);
     procedure SetFillRule(const Value: TPolyFillMode);
     procedure SetOpacity(const Value: Single);
-    procedure SetUrl(const Value: string);
+    procedure SetUrl(const Value: AnsiString);
   public
 
     procedure ApplySpecified(var ADest: TSvgFill);
@@ -141,7 +141,7 @@ type
     property Color: TSvgColor read FColor write SetColor;
     property Opacity: Single read FOpacity write SetOpacity;
     property FillRule: TPolyFillMode read FFillRule write SetFillRule;
-    property Url: string read FUrl write SetUrl;
+    property Url: AnsiString read FUrl write SetUrl;
     property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgFill; static;
@@ -169,7 +169,7 @@ type
     FMiterLimit: Single;
     FDashArray: TArrayOfFloat;
     FDashOffset: Single;
-    FUrl: string;
+    FUrl: AnsiString;
     FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
   private
     procedure SetColor(const Value: TSvgColor);
@@ -179,7 +179,7 @@ type
     procedure SetJoinStyle(const Value: TJoinStyle);
     procedure SetMiterLimit(const Value: Single);
     procedure SetOpacity(const Value: Single);
-    procedure SetUrl(const Value: string);
+    procedure SetUrl(const Value: AnsiString);
     procedure SetWidth(const Value: TSvgLength);
   public
     procedure ApplySpecified(var ADest: TSvgStroke);
@@ -192,7 +192,7 @@ type
     property MiterLimit: Single read FMiterLimit write SetMiterLimit;
     property DashArray: TArrayOfFloat read FDashArray write SetDashArray;
     property DashOffset: Single read FDashOffset write SetDashOffset;
-    property Url: string read FUrl write SetUrl;
+    property Url: AnsiString read FUrl write SetUrl;
     property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgStroke; static;
@@ -318,20 +318,20 @@ type
   TSvgNode = class abstract(TObject)
   private
     FID: AnsiString;
-    FCssClassName: string;
-    FStyleAttr: string; // Stores raw inline style="..." string for deferred cascade evaluation
+    FCssClassName: AnsiString;
+    FStyleAttr: AnsiString; // Stores raw inline style="..." string for deferred cascade evaluation
     FTransform: TFloatMatrix;
     FVisible: Boolean;
     FMixBlendMode: TSvgBlendMode;
     FIsolation: TSvgIsolation;
-    FFilterID: string;
+    FFilterID: AnsiString;
     FResolvedFilter: TSvgFilterNode;
     FParent: TSvgNode;
     FFill: TSvgFill;
     FStroke: TSvgStroke;
-    FMarkerStart: string;
-    FMarkerMid: string;
-    FMarkerEnd: string;
+    FMarkerStart: AnsiString;
+    FMarkerMid: AnsiString;
+    FMarkerEnd: AnsiString;
     FResolvedMarkerStart: TSvgMarkerNode;
     FResolvedMarkerMid: TSvgMarkerNode;
     FResolvedMarkerEnd: TSvgMarkerNode;
@@ -362,27 +362,27 @@ type
 {$ifend}
     function KeywordLookup(const AName: TValuePUtf8Char): TSvgAttributeKeyword;
     procedure ParseStyleAttribute(AStyleStr: TValuePUtf8Char); overload;
-    procedure ParseStyleAttribute(const AStyleStr: string); overload;
+    procedure ParseStyleAttribute(const AStyleStr: AnsiString); overload;
     function CheckRequiredFeatures: Boolean; virtual;
     function CheckRequiredExtensions: Boolean; virtual;
     function CheckSystemLanguage: Boolean; virtual;
     function PassesConditionalProcessing: Boolean; virtual;
     function Dump(Indent: Integer = 0): string;
     property ID: AnsiString read FID write SetID;
-    property CssClassName: string read FCssClassName write FCssClassName;
-    property StyleAttr: string read FStyleAttr write FStyleAttr;
+    property CssClassName: AnsiString read FCssClassName write FCssClassName;
+    property StyleAttr: AnsiString read FStyleAttr write FStyleAttr;
     property Transform: TFloatMatrix read FTransform write FTransform;
     property Visible: Boolean read FVisible write FVisible;
     property MixBlendMode: TSvgBlendMode read FMixBlendMode write FMixBlendMode;
     property Isolation: TSvgIsolation read FIsolation write FIsolation;
-    property FilterID: string read FFilterID write FFilterID;
+    property FilterID: AnsiString read FFilterID write FFilterID;
     property ResolvedFilter: TSvgFilterNode read FResolvedFilter write FResolvedFilter;
     property Parent: TSvgNode read FParent write SetParent;
     property Fill: TSvgFill read FFill write FFill;
     property Stroke: TSvgStroke read FStroke write FStroke;
-    property MarkerStart: string read FMarkerStart write FMarkerStart;
-    property MarkerMid: string read FMarkerMid write FMarkerMid;
-    property MarkerEnd: string read FMarkerEnd write FMarkerEnd;
+    property MarkerStart: AnsiString read FMarkerStart write FMarkerStart;
+    property MarkerMid: AnsiString read FMarkerMid write FMarkerMid;
+    property MarkerEnd: AnsiString read FMarkerEnd write FMarkerEnd;
     property ResolvedMarkerStart: TSvgMarkerNode read FResolvedMarkerStart write FResolvedMarkerStart;
     property ResolvedMarkerMid: TSvgMarkerNode read FResolvedMarkerMid write FResolvedMarkerMid;
     property ResolvedMarkerEnd: TSvgMarkerNode read FResolvedMarkerEnd write FResolvedMarkerEnd;
@@ -410,8 +410,8 @@ type
   private
     FChildren: TObjectList<TSvgNode>;
     FOpacity: Single;
-    FClipPathID: string;
-    FMaskID: string;
+    FClipPathID: AnsiString;
+    FMaskID: AnsiString;
     FResolvedClipPath: TSvgClipPathNode;
     FResolvedMask: TSvgMaskNode;
     FFontFamily: string;
@@ -431,8 +431,8 @@ type
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
     property Children: TObjectList<TSvgNode> read FChildren;
     property Opacity: Single read FOpacity write FOpacity;
-    property ClipPathID: string read FClipPathID write FClipPathID;
-    property MaskID: string read FMaskID write FMaskID;
+    property ClipPathID: AnsiString read FClipPathID write FClipPathID;
+    property MaskID: AnsiString read FMaskID write FMaskID;
     property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
     property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
     property FontFamily: string read FFontFamily write FFontFamily;
@@ -469,11 +469,14 @@ type
 //
 //------------------------------------------------------------------------------
   TSvgGradientNode = class(TSvgGroupNode)
+  private type
+    TSvgGradientProperties = set of (gpSpreadMethod, gpGradientUnits, gpGradientTransform);
   private
+    FSpecified: TSvgGradientProperties;
     FStops: TList<TSvgGradientStop>;
     FSpreadMethod: TSvgSpreadMethod;
     FGradientUnits: TSvgGradientUnits;
-    FHref: string;
+    FHref: AnsiString;
   protected
     function GetIsRenderable: Boolean; override;
     function DumpNode(Indent: Integer = 0): string; override;
@@ -488,7 +491,7 @@ type
     property Stops: TList<TSvgGradientStop> read FStops;
     property SpreadMethod: TSvgSpreadMethod read FSpreadMethod write FSpreadMethod;
     property GradientUnits: TSvgGradientUnits read FGradientUnits write FGradientUnits;
-    property Href: string read FHref write FHref;
+    property Href: AnsiString read FHref write FHref;
   end;
 
 
@@ -498,7 +501,10 @@ type
 //
 //------------------------------------------------------------------------------
   TSvgLinearGradientNode = class(TSvgGradientNode)
+  private type
+    TSvgLinearGradientProperties = set of (lgpX1, lgpY1, lgpX2, lgpY2);
   private
+    FLinearSpecified: TSvgLinearGradientProperties;
     FX1: TSvgLength;
     FY1: TSvgLength;
     FX2: TSvgLength;
@@ -524,9 +530,9 @@ type
 //------------------------------------------------------------------------------
   TSvgRadialGradientNode = class(TSvgGradientNode)
   private type
-    TSvgRadialGradientProperties = set of (gpFocalX, gpFocalY);
+    TSvgRadialGradientProperties = set of (rgpCx, rgpCy, rgpR, rgpFx, rgpFy);
   private
-    FSpecified: TSvgRadialGradientProperties;
+    FRadialSpecified: TSvgRadialGradientProperties;
     FCx: TSvgLength;
     FCy: TSvgLength;
     FR: TSvgLength;
@@ -608,7 +614,10 @@ type
 //
 //------------------------------------------------------------------------------
   TSvgPatternNode = class(TSvgGroupNode)
+  private type
+    TSvgPatternProperties = set of (ppX, ppY, ppWidth, ppHeight, ppPatternUnits, ppPatternContentUnits, ppPatternTransform, ppViewBox, ppPreserveAspectRatio);
   private
+    FSpecified: TSvgPatternProperties;
     FX: TSvgLength;
     FY: TSvgLength;
     FWidth: TSvgLength;
@@ -618,7 +627,7 @@ type
     FPatternTransform: TFloatMatrix;
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
-    FHref: string;
+    FHref: AnsiString;
   protected
     function GetIsRenderable: Boolean; override;
     function DumpNode(Indent: Integer = 0): string; override;
@@ -636,7 +645,7 @@ type
     property PatternTransform: TFloatMatrix read FPatternTransform write FPatternTransform;
     property ViewBox: TSvgViewBox read FViewBox write FViewBox;
     property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
-    property Href: string read FHref write FHref;
+    property Href: AnsiString read FHref write FHref;
   end;
 
 
@@ -1075,7 +1084,7 @@ type
 //------------------------------------------------------------------------------
   TSvgUseNode = class(TSvgGroupNode)
   private
-    FHref: string;
+    FHref: AnsiString;
     FX: Single;
     FY: Single;
     FWidth: TSvgLength;
@@ -1086,7 +1095,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    property Href: string read FHref write FHref;
+    property Href: AnsiString read FHref write FHref;
     property X: Single read FX write FX;
     property Y: Single read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
@@ -1147,7 +1156,7 @@ type
     FHasY: Boolean;
     FHasDx: Boolean;
     FHasDy: Boolean;
-    FTextContent: string;
+    FTextContent: UnicodeString;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
   public
@@ -1163,7 +1172,7 @@ type
     property HasY: Boolean read FHasY write FHasY;
     property HasDx: Boolean read FHasDx write FHasDx;
     property HasDy: Boolean read FHasDy write FHasDy;
-    property TextContent: string read FTextContent write FTextContent;
+    property TextContent: UnicodeString read FTextContent write FTextContent;
   end;
 
 
@@ -1199,7 +1208,7 @@ type
 //------------------------------------------------------------------------------
   TSvgTextPathNode = class(TSvgTextPositioningNode)
   private
-    FHref: string;
+    FHref: AnsiString;
     FStartOffset: TSvgLength;
     FResolvedPathNode: TSvgPathNode;
   protected
@@ -1208,7 +1217,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    property Href: string read FHref write FHref;
+    property Href: AnsiString read FHref write FHref;
     property StartOffset: TSvgLength read FStartOffset write FStartOffset;
     property ResolvedPathNode: TSvgPathNode read FResolvedPathNode write FResolvedPathNode;
   end;
@@ -1568,7 +1577,7 @@ begin
   Include(FSpecified, fpOpacity);
 end;
 
-procedure TSvgFill.SetUrl(const Value: string);
+procedure TSvgFill.SetUrl(const Value: AnsiString);
 begin
   FUrl := Value;
   Include(FSpecified, fpColor);
@@ -1667,7 +1676,7 @@ begin
   Include(FSpecified, spOpacity);
 end;
 
-procedure TSvgStroke.SetUrl(const Value: string);
+procedure TSvgStroke.SetUrl(const Value: AnsiString);
 begin
   FUrl := Value;
   Include(FSpecified, spColor);
@@ -1886,7 +1895,7 @@ procedure TSvgNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: 
         Value.Skip;
         Dec(Value.Len);
       end;
-      URL := Value.ToString;
+      URL := Value.ToUtf8;
 
       AValue.Trim;
       // fill:url(...) rgb(0, 0, 0)
@@ -1912,7 +1921,7 @@ begin
       ID := AValue.ToUtf8;
 
     attrClass, attrClassName:
-      FCssClassName := AValue.ToString;
+      FCssClassName := AValue.ToUtf8;
 
     attrTransform:
       FTransform := ParseSvgTransform(AValue);
@@ -2012,20 +2021,20 @@ begin
 
     attrMarkerStart:
       if (not AValue.CompareText('none')) then
-        FMarkerStart := AValue.ToString;
+        FMarkerStart := AValue.ToUtf8;
 
     attrMarkerMid:
       if (not AValue.CompareText('none')) then
-        FMarkerMid := AValue.ToString;
+        FMarkerMid := AValue.ToUtf8;
 
     attrMarkerEnd:
       if (not AValue.CompareText('none')) then
-        FMarkerEnd := AValue.ToString;
+        FMarkerEnd := AValue.ToUtf8;
 
     attrMarker:
       if (not AValue.CompareText('none')) then
       begin
-        FMarkerStart := AValue.ToString;
+        FMarkerStart := AValue.ToUtf8;
         FMarkerMid := FMarkerStart;
         FMarkerEnd := FMarkerStart;
       end;
@@ -2037,7 +2046,7 @@ begin
       FIsolation := ParseSvgIsolation(AValue);
 
     attrFilter:
-      FFilterID := AValue.ToString;
+      FFilterID := AValue.ToUtf8;
 
     attrRequiredFeatures:
       SetRequiredFeatures(AValue.ToUtf8);
@@ -2050,7 +2059,7 @@ begin
 
     attrStyle:
       // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
-      FStyleAttr := AValue.ToString;
+      FStyleAttr := AValue.ToUtf8;
   end;
 end;
 
@@ -2133,19 +2142,19 @@ begin
   Result := CheckRequiredFeatures and CheckRequiredExtensions and CheckSystemLanguage;
 end;
 
-function ExtractUrlIdStr(const AUrlStr: string): string;
+function ExtractUrlIdStr(const AUrlStr: AnsiString): AnsiString;
 var
   pStart, pEnd: Integer;
 begin
-  Result := Trim(AUrlStr);
-  pStart := Pos('url(', LowerCase(Result));
+  Result := AnsiStrings.Trim(AUrlStr);
+  pStart := Pos('url(', AnsiStrings.LowerCase(Result));
   if pStart > 0 then
   begin
     Delete(Result, 1, pStart + 3);
     pEnd := Pos(')', Result);
     if pEnd > 0 then
       Result := Copy(Result, 1, pEnd - 1);
-    Result := Trim(Result);
+    Result := AnsiStrings.Trim(Result);
     if (Length(Result) > 0) and (Result[1] in ['"', '''']) then
     begin
       Delete(Result, 1, 1);
@@ -2183,15 +2192,12 @@ begin
   end;
 end;
 
-procedure TSvgNode.ParseStyleAttribute(const AStyleStr: string);
+procedure TSvgNode.ParseStyleAttribute(const AStyleStr: AnsiString);
 var
-  u: UTF8String;
-  val: TValuePUtf8Char;
+  Str: TValuePUtf8Char;
 begin
-  u := UTF8String(AStyleStr);
-  val.Text := PAnsiChar(u);
-  val.Len := Length(u);
-  ParseStyleAttribute(val);
+  Str := TValuePUtf8Char.FromString(AStyleStr);
+  ParseStyleAttribute(Str);
 end;
 
 
@@ -2557,6 +2563,7 @@ begin
   FSpreadMethod := smPad;
   FGradientUnits := guObjectBoundingBox;
   FHref := '';
+  FSpecified := [];
 end;
 
 destructor TSvgGradientNode.Destroy;
@@ -2574,6 +2581,7 @@ begin
   gradRes.FSpreadMethod := FSpreadMethod;
   gradRes.FGradientUnits := FGradientUnits;
   gradRes.FHref := FHref;
+  gradRes.FSpecified := FSpecified;
   for i := 0 to FStops.Count - 1 do
     gradRes.AddStop(FStops[i]);
   Result := gradRes;
@@ -2625,20 +2633,40 @@ var
 begin
   if ParentGradient = nil then
     Exit;
+
   if FStops.Count = 0 then
   begin
     for i := 0 to ParentGradient.FStops.Count - 1 do
       FStops.Add(ParentGradient.FStops[i]);
   end;
-  if IsIdentityMatrix(FTransform) and not IsIdentityMatrix(ParentGradient.FTransform) then
+
+  if not (gpGradientTransform in FSpecified) then
+  begin
     FTransform := ParentGradient.FTransform;
+    if gpGradientTransform in ParentGradient.FSpecified then
+      Include(FSpecified, gpGradientTransform);
+  end;
+
+  if not (gpSpreadMethod in FSpecified) then
+  begin
+    FSpreadMethod := ParentGradient.FSpreadMethod;
+    if gpSpreadMethod in ParentGradient.FSpecified then
+      Include(FSpecified, gpSpreadMethod);
+  end;
+
+  if not (gpGradientUnits in FSpecified) then
+  begin
+    FGradientUnits := ParentGradient.FGradientUnits;
+    if gpGradientUnits in ParentGradient.FSpecified then
+      Include(FSpecified, gpGradientUnits);
+  end;
 end;
 
 procedure TSvgGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
-      FHref := AValue.ToString;
+      FHref := AValue.ToUtf8;
 
     attrSpreadMethod:
       begin
@@ -2649,6 +2677,7 @@ begin
           FSpreadMethod := smRepeat
         else
           FSpreadMethod := smPad;
+        Include(FSpecified, gpSpreadMethod);
       end;
 
     attrGradientUnits:
@@ -2657,10 +2686,14 @@ begin
           FGradientUnits := guUserSpaceOnUse
         else
           FGradientUnits := guObjectBoundingBox;
+        Include(FSpecified, gpGradientUnits);
       end;
 
     attrGradientTransform, attrTransform:
-      FTransform := ParseSvgTransform(AValue);
+      begin
+        FTransform := ParseSvgTransform(AValue);
+        Include(FSpecified, gpGradientTransform);
+      end;
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
@@ -2679,18 +2712,20 @@ begin
   FY1 := TSvgLength.Create(0.0, suPercent);
   FX2 := TSvgLength.Create(100.0, suPercent);
   FY2 := TSvgLength.Create(0.0, suPercent);
+  FLinearSpecified := [];
 end;
 
 function TSvgLinearGradientNode.Clone(AParent: TSvgNode): TSvgNode;
 var
-  linRes: TSvgLinearGradientNode;
+  LinearGradientNode: TSvgLinearGradientNode;
 begin
-  linRes := TSvgLinearGradientNode(inherited Clone(AParent));
-  linRes.FX1 := FX1;
-  linRes.FY1 := FY1;
-  linRes.FX2 := FX2;
-  linRes.FY2 := FY2;
-  Result := linRes;
+  LinearGradientNode := TSvgLinearGradientNode(inherited Clone(AParent));
+  LinearGradientNode.FX1 := FX1;
+  LinearGradientNode.FY1 := FY1;
+  LinearGradientNode.FX2 := FX2;
+  LinearGradientNode.FY2 := FY2;
+  LinearGradientNode.FLinearSpecified := FLinearSpecified;
+  Result := LinearGradientNode;
 end;
 
 function TSvgLinearGradientNode.DumpNode(Indent: Integer): string;
@@ -2702,26 +2737,65 @@ end;
 
 procedure TSvgLinearGradientNode.InheritFrom(ParentGradient: TSvgGradientNode);
 var
-  parentLin: TSvgLinearGradientNode;
+  ParentNode: TSvgLinearGradientNode;
 begin
   inherited InheritFrom(ParentGradient);
   if ParentGradient is TSvgLinearGradientNode then
   begin
-    parentLin := TSvgLinearGradientNode(ParentGradient);
-    FX1 := parentLin.FX1;
-    FY1 := parentLin.FY1;
-    FX2 := parentLin.FX2;
-    FY2 := parentLin.FY2;
+    ParentNode := TSvgLinearGradientNode(ParentGradient);
+    if not (lgpX1 in FLinearSpecified) then
+    begin
+      FX1 := ParentNode.FX1;
+      if lgpX1 in ParentNode.FLinearSpecified then
+        Include(FLinearSpecified, lgpX1);
+    end;
+    if not (lgpY1 in FLinearSpecified) then
+    begin
+      FY1 := ParentNode.FY1;
+      if lgpY1 in ParentNode.FLinearSpecified then
+        Include(FLinearSpecified, lgpY1);
+    end;
+    if not (lgpX2 in FLinearSpecified) then
+    begin
+      FX2 := ParentNode.FX2;
+      if lgpX2 in ParentNode.FLinearSpecified then
+        Include(FLinearSpecified, lgpX2);
+    end;
+    if not (lgpY2 in FLinearSpecified) then
+    begin
+      FY2 := ParentNode.FY2;
+      if lgpY2 in ParentNode.FLinearSpecified then
+        Include(FLinearSpecified, lgpY2);
+    end;
   end;
 end;
 
 procedure TSvgLinearGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
   case AKeyword of
-    attrX1: FX1 := TSvgLength.Parse(AValue);
-    attrY1: FY1 := TSvgLength.Parse(AValue);
-    attrX2: FX2 := TSvgLength.Parse(AValue);
-    attrY2: FY2 := TSvgLength.Parse(AValue);
+    attrX1:
+      begin
+        FX1 := TSvgLength.Parse(AValue);
+        Include(FLinearSpecified, lgpX1);
+      end;
+
+    attrY1:
+      begin
+        FY1 := TSvgLength.Parse(AValue);
+        Include(FLinearSpecified, lgpY1);
+      end;
+
+    attrX2:
+      begin
+        FX2 := TSvgLength.Parse(AValue);
+        Include(FLinearSpecified, lgpX2);
+      end;
+
+    attrY2:
+      begin
+        FY2 := TSvgLength.Parse(AValue);
+        Include(FLinearSpecified, lgpY2);
+      end;
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
@@ -2741,7 +2815,7 @@ begin
   FR := TSvgLength.Create(50.0, suPercent);
   FFx := TSvgLength.Create(50.0, suPercent);
   FFy := TSvgLength.Create(50.0, suPercent);
-  FSpecified := [];
+  FRadialSpecified := [];
 end;
 
 function TSvgRadialGradientNode.DumpNode(Indent: Integer): string;
@@ -2753,7 +2827,7 @@ end;
 
 function TSvgRadialGradientNode.GetFx: TSvgLength;
 begin
-  if (gpFocalX in FSpecified) then
+  if (rgpFx in FRadialSpecified) then
     Result := FFx
   else
     Result := FCx;
@@ -2761,7 +2835,7 @@ end;
 
 function TSvgRadialGradientNode.GetFy: TSvgLength;
 begin
-  if (gpFocalY in FSpecified) then
+  if (rgpFy in FRadialSpecified) then
     Result := FFy
   else
     Result := FCy;
@@ -2769,44 +2843,91 @@ end;
 
 function TSvgRadialGradientNode.Clone(AParent: TSvgNode): TSvgNode;
 var
-  radRes: TSvgRadialGradientNode;
+  RadialGradientNode: TSvgRadialGradientNode;
 begin
-  radRes := TSvgRadialGradientNode(inherited Clone(AParent));
-  radRes.FCx := FCx;
-  radRes.FCy := FCy;
-  radRes.FR := FR;
-  radRes.FFx := FFx;
-  radRes.FFy := FFy;
-  radRes.FSpecified := FSpecified;
-  Result := radRes;
+  RadialGradientNode := TSvgRadialGradientNode(inherited Clone(AParent));
+  RadialGradientNode.FCx := FCx;
+  RadialGradientNode.FCy := FCy;
+  RadialGradientNode.FR := FR;
+  RadialGradientNode.FFx := FFx;
+  RadialGradientNode.FFy := FFy;
+  RadialGradientNode.FRadialSpecified := FRadialSpecified;
+  Result := RadialGradientNode;
 end;
 
 procedure TSvgRadialGradientNode.InheritFrom(ParentGradient: TSvgGradientNode);
 var
-  parentRad: TSvgRadialGradientNode;
+  ParentNode: TSvgRadialGradientNode;
 begin
   inherited InheritFrom(ParentGradient);
   if ParentGradient is TSvgRadialGradientNode then
   begin
-    parentRad := TSvgRadialGradientNode(ParentGradient);
-    FCx := parentRad.FCx;
-    FCy := parentRad.FCy;
-    FR := parentRad.FR;
-    FFx := parentRad.FFx;
-    FFy := parentRad.FFy;
-    FSpecified := parentRad.FSpecified;
+    ParentNode := TSvgRadialGradientNode(ParentGradient);
+    if not (rgpCx in FRadialSpecified) then
+    begin
+      FCx := ParentNode.FCx;
+      if rgpCx in ParentNode.FRadialSpecified then
+        Include(FRadialSpecified, rgpCx);
+    end;
+    if not (rgpCy in FRadialSpecified) then
+    begin
+      FCy := ParentNode.FCy;
+      if rgpCy in ParentNode.FRadialSpecified then
+        Include(FRadialSpecified, rgpCy);
+    end;
+    if not (rgpR in FRadialSpecified) then
+    begin
+      FR := ParentNode.FR;
+      if rgpR in ParentNode.FRadialSpecified then
+        Include(FRadialSpecified, rgpR);
+    end;
+    if not (rgpFx in FRadialSpecified) then
+    begin
+      FFx := ParentNode.FFx;
+      if rgpFx in ParentNode.FRadialSpecified then
+        Include(FRadialSpecified, rgpFx);
+    end;
+    if not (rgpFy in FRadialSpecified) then
+    begin
+      FFy := ParentNode.FFy;
+      if rgpFy in ParentNode.FRadialSpecified then
+        Include(FRadialSpecified, rgpFy);
+    end;
   end;
 end;
 
 procedure TSvgRadialGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
-  // Note: We go through property setters to get FSpecified updated
   case AKeyword of
-    attrCx: Cx := TSvgLength.Parse(AValue);
-    attrCy: Cy := TSvgLength.Parse(AValue);
-    attrR:  R  := TSvgLength.Parse(AValue);
-    attrFx: Fx := TSvgLength.Parse(AValue);
-    attrFy: Fy := TSvgLength.Parse(AValue);
+    attrCx:
+      begin
+        FCx := TSvgLength.Parse(AValue);
+        Include(FRadialSpecified, rgpCx);
+      end;
+
+    attrCy:
+      begin
+        FCy := TSvgLength.Parse(AValue);
+        Include(FRadialSpecified, rgpCy);
+      end;
+
+    attrR:
+      begin
+        FR := TSvgLength.Parse(AValue);
+        Include(FRadialSpecified, rgpR);
+      end;
+
+    attrFx:
+      begin
+        FFx := TSvgLength.Parse(AValue);
+        Include(FRadialSpecified, rgpFx);
+      end;
+
+    attrFy:
+      begin
+        FFy := TSvgLength.Parse(AValue);
+        Include(FRadialSpecified, rgpFy);
+      end;
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
@@ -2815,13 +2936,13 @@ end;
 procedure TSvgRadialGradientNode.SetFx(const Value: TSvgLength);
 begin
   FFx := Value;
-  Include(FSpecified, gpFocalX);
+  Include(FRadialSpecified, rgpFx);
 end;
 
 procedure TSvgRadialGradientNode.SetFy(const Value: TSvgLength);
 begin
   FFy := Value;
-  Include(FSpecified, gpFocalY);
+  Include(FRadialSpecified, rgpFy);
 end;
 
 
@@ -2992,6 +3113,7 @@ begin
   FViewBox.IsDefined := False;
   FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
   FHref := '';
+  FSpecified := [];
 end;
 
 function TSvgPatternNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -3009,6 +3131,7 @@ begin
   patRes.FViewBox := FViewBox;
   patRes.FPreserveAspectRatio := FPreserveAspectRatio;
   patRes.FHref := FHref;
+  patRes.FSpecified := FSpecified;
   Result := patRes;
 end;
 
@@ -3039,12 +3162,53 @@ var
 begin
   if ParentPattern = nil then Exit;
 
-  if (FWidth.Value = 0) and (FWidth.UnitType = suPx) and (ParentPattern.FWidth.Value > 0) then
+  if not (ppX in FSpecified) and (ppX in ParentPattern.FSpecified) then
+  begin
+    FX := ParentPattern.FX;
+    Include(FSpecified, ppX);
+  end;
+  if not (ppY in FSpecified) and (ppY in ParentPattern.FSpecified) then
+  begin
+    FY := ParentPattern.FY;
+    Include(FSpecified, ppY);
+  end;
+  if not (ppWidth in FSpecified) then
+  begin
     FWidth := ParentPattern.FWidth;
-  if (FHeight.Value = 0) and (FHeight.UnitType = suPx) and (ParentPattern.FHeight.Value > 0) then
+    if ppWidth in ParentPattern.FSpecified then
+      Include(FSpecified, ppWidth);
+  end;
+  if not (ppHeight in FSpecified) then
+  begin
     FHeight := ParentPattern.FHeight;
-  if not FViewBox.IsDefined and ParentPattern.FViewBox.IsDefined then
+    if ppHeight in ParentPattern.FSpecified then
+      Include(FSpecified, ppHeight);
+  end;
+  if not (ppPatternUnits in FSpecified) and (ppPatternUnits in ParentPattern.FSpecified) then
+  begin
+    FPatternUnits := ParentPattern.FPatternUnits;
+    Include(FSpecified, ppPatternUnits);
+  end;
+  if not (ppPatternContentUnits in FSpecified) and (ppPatternContentUnits in ParentPattern.FSpecified) then
+  begin
+    FPatternContentUnits := ParentPattern.FPatternContentUnits;
+    Include(FSpecified, ppPatternContentUnits);
+  end;
+  if not (ppPatternTransform in FSpecified) and (ppPatternTransform in ParentPattern.FSpecified) then
+  begin
+    FPatternTransform := ParentPattern.FPatternTransform;
+    Include(FSpecified, ppPatternTransform);
+  end;
+  if not (ppViewBox in FSpecified) and (ppViewBox in ParentPattern.FSpecified) then
+  begin
     FViewBox := ParentPattern.FViewBox;
+    Include(FSpecified, ppViewBox);
+  end;
+  if not (ppPreserveAspectRatio in FSpecified) and (ppPreserveAspectRatio in ParentPattern.FSpecified) then
+  begin
+    FPreserveAspectRatio := ParentPattern.FPreserveAspectRatio;
+    Include(FSpecified, ppPreserveAspectRatio);
+  end;
 
   if (Children.Count = 0) and (ParentPattern.Children.Count > 0) then
   begin
@@ -3057,19 +3221,31 @@ procedure TSvgPatternNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const A
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
-      FHref := AValue.ToString;
+      FHref := AValue.ToUtf8;
 
     attrX:
-      FX := TSvgLength.Parse(AValue);
+      begin
+        FX := TSvgLength.Parse(AValue);
+        Include(FSpecified, ppX);
+      end;
 
     attrY:
-      FY := TSvgLength.Parse(AValue);
+      begin
+        FY := TSvgLength.Parse(AValue);
+        Include(FSpecified, ppY);
+      end;
 
     attrWidth:
-      FWidth := TSvgLength.Parse(AValue);
+      begin
+        FWidth := TSvgLength.Parse(AValue);
+        Include(FSpecified, ppWidth);
+      end;
 
     attrHeight:
-      FHeight := TSvgLength.Parse(AValue);
+      begin
+        FHeight := TSvgLength.Parse(AValue);
+        Include(FSpecified, ppHeight);
+      end;
 
     attrPatternUnits:
       begin
@@ -3077,6 +3253,7 @@ begin
           FPatternUnits := guUserSpaceOnUse
         else
           FPatternUnits := guObjectBoundingBox;
+        Include(FSpecified, ppPatternUnits);
       end;
 
     attrPatternContentUnits:
@@ -3085,16 +3262,26 @@ begin
           FPatternContentUnits := guObjectBoundingBox
         else
           FPatternContentUnits := guUserSpaceOnUse;
+        Include(FSpecified, ppPatternContentUnits);
       end;
 
     attrPatternTransform:
-      FPatternTransform := ParseSvgTransform(AValue);
+      begin
+        FPatternTransform := ParseSvgTransform(AValue);
+        Include(FSpecified, ppPatternTransform);
+      end;
 
     attrViewBox:
-      FViewBox := TSvgViewBox.Parse(AValue);
+      begin
+        FViewBox := TSvgViewBox.Parse(AValue);
+        Include(FSpecified, ppViewBox);
+      end;
 
     attrPreserveAspectRatio:
-      FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
+      begin
+        FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
+        Include(FSpecified, ppPreserveAspectRatio);
+      end;
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
@@ -3555,19 +3742,19 @@ end;
 
 function TSvgMarkerNode.Clone(AParent: TSvgNode): TSvgNode;
 var
-  markerRes: TSvgMarkerNode;
+  MarkerRes: TSvgMarkerNode;
 begin
-  markerRes := TSvgMarkerNode(inherited Clone(AParent));
-  markerRes.FRefX := FRefX;
-  markerRes.FRefY := FRefY;
-  markerRes.FMarkerWidth := FMarkerWidth;
-  markerRes.FMarkerHeight := FMarkerHeight;
-  markerRes.FMarkerUnits := FMarkerUnits;
-  markerRes.FOrient := FOrient;
-  markerRes.FOrientAngle := FOrientAngle;
-  markerRes.FViewBox := FViewBox;
-  markerRes.FPreserveAspectRatio := FPreserveAspectRatio;
-  Result := markerRes;
+  MarkerRes := TSvgMarkerNode(inherited Clone(AParent));
+  MarkerRes.FRefX := FRefX;
+  MarkerRes.FRefY := FRefY;
+  MarkerRes.FMarkerWidth := FMarkerWidth;
+  MarkerRes.FMarkerHeight := FMarkerHeight;
+  MarkerRes.FMarkerUnits := FMarkerUnits;
+  MarkerRes.FOrient := FOrient;
+  MarkerRes.FOrientAngle := FOrientAngle;
+  MarkerRes.FViewBox := FViewBox;
+  MarkerRes.FPreserveAspectRatio := FPreserveAspectRatio;
+  Result := MarkerRes;
 end;
 
 procedure TSvgMarkerNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
@@ -3705,14 +3892,14 @@ end;
 
 function TSvgDocumentNode.Clone(AParent: TSvgNode): TSvgNode;
 var
-  docRes: TSvgDocumentNode;
+  DocRes: TSvgDocumentNode;
 begin
-  docRes := TSvgDocumentNode(inherited Clone(AParent));
-  docRes.FWidth := FWidth;
-  docRes.FHeight := FHeight;
-  docRes.FViewBox := FViewBox;
-  docRes.FPreserveAspectRatio := FPreserveAspectRatio;
-  Result := docRes;
+  DocRes := TSvgDocumentNode(inherited Clone(AParent));
+  DocRes.FWidth := FWidth;
+  DocRes.FHeight := FHeight;
+  DocRes.FViewBox := FViewBox;
+  DocRes.FPreserveAspectRatio := FPreserveAspectRatio;
+  Result := DocRes;
 end;
 
 function TSvgDocumentNode.DumpNode(Indent: Integer): string;
@@ -3750,31 +3937,31 @@ procedure TSvgDocumentNode.ResolveSwitchNodes;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    switchNode: TSvgSwitchNode;
-    child: TSvgNode;
+    Group: TSvgGroupNode;
+    SwitchNode: TSvgSwitchNode;
+    Child: TSvgNode;
   begin
     if ANode = nil then Exit;
 
     if ANode is TSvgSwitchNode then
     begin
-      switchNode := TSvgSwitchNode(ANode);
-      // Stage 2 Normalization: Evaluate conditional processing and store pointer to selected child on TSvgSwitchNode,
-      // while preserving all parsed child nodes in FChildren for complete AST preservation.
-      switchNode.SelectedChild := switchNode.GetSelectedChild;
+      SwitchNode := TSvgSwitchNode(ANode);
+      // Stage 2 Normalization: Evaluate conditional processing and store pointer to selected Child on TSvgSwitchNode,
+      // while preserving all parsed Child nodes in FChildren for complete AST preservation.
+      SwitchNode.SelectedChild := SwitchNode.GetSelectedChild;
 
-      if switchNode.SelectedChild <> nil then
-        ProcessNode(switchNode.SelectedChild);
+      if SwitchNode.SelectedChild <> nil then
+        ProcessNode(SwitchNode.SelectedChild);
     end else
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
+      Group := TSvgGroupNode(ANode);
 
-      for i := 0 to group.Children.Count - 1 do
+      for i := 0 to Group.Children.Count - 1 do
       begin
-        child := group.Children[i];
-        if (child <> nil) and child.PassesConditionalProcessing then
-          ProcessNode(child);
+        Child := Group.Children[i];
+        if (Child <> nil) and Child.PassesConditionalProcessing then
+          ProcessNode(Child);
       end;
     end;
   end;
@@ -3791,10 +3978,10 @@ const
   procedure ProcessNode(ANode: TSvgNode; ADepth: Integer);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    useNode: TSvgUseNode;
-    targetNode, clonedNode: TSvgNode;
-    targetId: string;
+    Group: TSvgGroupNode;
+    UseNode: TSvgUseNode;
+    TargetNode, ClonedNode: TSvgNode;
+    TargetID: AnsiString;
   begin
     // Abort if node is nil, already being resolved (cycle detected), or max depth reached
     if (ANode = nil) or ANode.FResolving or (ADepth > MaxUseDepth) then
@@ -3805,34 +3992,34 @@ const
     try
       if ANode is TSvgUseNode then
       begin
-        useNode := TSvgUseNode(ANode);
-        // Only attempt expansion if useNode has a non-empty href and no children cloned yet
-        if (useNode.Href <> '') and (useNode.Children.Count = 0) then
+        UseNode := TSvgUseNode(ANode);
+        // Only attempt expansion if UseNode has a non-empty href and no children cloned yet
+        if (UseNode.Href <> '') and (UseNode.Children.Count = 0) then
         begin
-          targetId := useNode.Href;
+          TargetID := UseNode.Href;
           // Strip leading '#' from element ID reference if present
-          if (targetId <> '') and (targetId[1] = '#') then
-            Delete(targetId, 1, 1);
+          if (TargetID <> '') and (TargetID[1] = '#') then
+            Delete(TargetID, 1, 1);
 
-          if targetId <> '' then
+          if TargetID <> '' then
           begin
-            targetNode := FindNodeById(targetId);
+            TargetNode := FindNodeById(TargetID);
             // W3C SVG Circular Reference Prevention:
-            // Only clone target if targetNode exists and is not currently being resolved (O(1), zero-allocation)
-            if (targetNode <> nil) and not targetNode.FResolving then
+            // Only clone target if TargetNode exists and is not currently being resolved (O(1), zero-allocation)
+            if (TargetNode <> nil) and not TargetNode.FResolving then
             begin
-              // Keep targetNode.FResolving = True active while cloning AND resolving the cloned subtree
-              targetNode.FResolving := True;
+              // Keep TargetNode.FResolving = True active while cloning AND resolving the cloned subtree
+              TargetNode.FResolving := True;
               try
-                clonedNode := targetNode.Clone(useNode);
-                if (useNode.X <> 0) or (useNode.Y <> 0) then
-                  TFloatMatrixHelper(clonedNode.FTransform).Translate(useNode.X, useNode.Y);
-                useNode.AddChild(clonedNode);
+                ClonedNode := TargetNode.Clone(UseNode);
+                if (UseNode.X <> 0) or (UseNode.Y <> 0) then
+                  TFloatMatrixHelper(ClonedNode.FTransform).Translate(UseNode.X, UseNode.Y);
+                UseNode.AddChild(ClonedNode);
 
-                // Recursively resolve cloned subtree while targetNode remains marked as resolving
-                ProcessNode(clonedNode, ADepth + 1);
+                // Recursively resolve cloned subtree while TargetNode remains marked as resolving
+                ProcessNode(ClonedNode, ADepth + 1);
               finally
-                targetNode.FResolving := False;
+                TargetNode.FResolving := False;
               end;
             end;
           end;
@@ -3841,9 +4028,9 @@ const
       if ANode is TSvgGroupNode then
       begin
         // Recurse into children of regular container groups
-        group := TSvgGroupNode(ANode);
-        for i := 0 to group.Children.Count - 1 do
-          ProcessNode(group.Children[i], ADepth + 1);
+        Group := TSvgGroupNode(ANode);
+        for i := 0 to Group.Children.Count - 1 do
+          ProcessNode(Group.Children[i], ADepth + 1);
       end;
     finally
       // Reset resolving flag upon exiting node resolution traversal
@@ -3857,32 +4044,43 @@ end;
 
 procedure TSvgDocumentNode.ResolveGradients;
 
+  procedure ResolveGradient(AGradientNode: TSvgGradientNode);
+  var
+    ParentTarget: TSvgNode;
+    TargetGradientNode: TSvgGradientNode;
+  begin
+    if (AGradientNode = nil) or AGradientNode.FResolving or (AGradientNode.Href = '') then
+      Exit;
+
+    AGradientNode.FResolving := True;
+    try
+      ParentTarget := FindNodeById(AGradientNode.Href);
+
+      if (ParentTarget is TSvgGradientNode) then
+      begin
+        TargetGradientNode := TSvgGradientNode(ParentTarget);
+        if TargetGradientNode.Href <> '' then
+          ResolveGradient(TargetGradientNode);
+        AGradientNode.InheritFrom(TargetGradientNode);
+      end;
+    finally
+      AGradientNode.FResolving := False;
+    end;
+  end;
+
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    gradNode, targetGrad: TSvgGradientNode;
-    parentTarget: TSvgNode;
+    Group: TSvgGroupNode;
   begin
     if ANode is TSvgGradientNode then
-    begin
-      gradNode := TSvgGradientNode(ANode);
-      if gradNode.Href <> '' then
-      begin
-        parentTarget := FindNodeById(gradNode.Href);
-        if parentTarget is TSvgGradientNode then
-        begin
-          targetGrad := TSvgGradientNode(parentTarget);
-          gradNode.InheritFrom(targetGrad);
-        end;
-      end;
-    end;
+      ResolveGradient(TSvgGradientNode(ANode));
 
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
-      for i := 0 to group.Children.Count - 1 do
-        ProcessNode(group.Children[i]);
+      Group := TSvgGroupNode(ANode);
+      for i := 0 to Group.Children.Count - 1 do
+        ProcessNode(Group.Children[i]);
     end;
   end;
 
@@ -3908,34 +4106,34 @@ procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    targetNode: TSvgNode;
-    idStr: string;
+    Group: TSvgGroupNode;
+    TargetNode: TSvgNode;
+    StrID: AnsiString;
   begin
     if ANode = nil then Exit;
 
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
+      Group := TSvgGroupNode(ANode);
 
-      if group.ClipPathID <> '' then
+      if (Group.ClipPathID <> '') then
       begin
-        idStr := ExtractUrlIdStr(group.ClipPathID);
-        targetNode := FindNodeById(idStr);
-        if targetNode is TSvgClipPathNode then
-          group.ResolvedClipPath := TSvgClipPathNode(targetNode);
+        StrID := ExtractUrlIdStr(Group.ClipPathID);
+        TargetNode := FindNodeById(StrID);
+        if (TargetNode is TSvgClipPathNode) then
+          Group.ResolvedClipPath := TSvgClipPathNode(TargetNode);
       end;
 
-      if group.MaskID <> '' then
+      if (Group.MaskID <> '') then
       begin
-        idStr := ExtractUrlIdStr(group.MaskID);
-        targetNode := FindNodeById(idStr);
-        if targetNode is TSvgMaskNode then
-          group.ResolvedMask := TSvgMaskNode(targetNode);
+        StrID := ExtractUrlIdStr(Group.MaskID);
+        TargetNode := FindNodeById(StrID);
+        if (TargetNode is TSvgMaskNode) then
+          Group.ResolvedMask := TSvgMaskNode(TargetNode);
       end;
 
-      for i := 0 to group.Children.Count - 1 do
-        ProcessNode(group.Children[i]);
+      for i := 0 to Group.Children.Count - 1 do
+        ProcessNode(Group.Children[i]);
     end;
   end;
 
@@ -3945,6 +4143,7 @@ end;
 
 procedure TSvgDocumentNode.ResolveFilters;
 
+  // TODO
   function ResolveFilterInput(const AName: string; IsFirstPrimitive: Boolean; NamedResults: TStringList): TSvgFilterInput;
   var
     lowerName: string;
@@ -3984,6 +4183,7 @@ procedure TSvgDocumentNode.ResolveFilters;
     end;
   end;
 
+    // TODO TODO TODO
   procedure ResolveFilterNodeInputs(AFilterNode: TSvgFilterNode);
   var
     i, childIdx, primCount: Integer;
@@ -3994,7 +4194,8 @@ procedure TSvgDocumentNode.ResolveFilters;
     NamedResults: TStringList;
     isFirst: Boolean;
   begin
-    if AFilterNode = nil then Exit;
+    if AFilterNode = nil then
+      Exit;
 
     NamedResults := TStringList.Create;
     try
@@ -4004,7 +4205,8 @@ procedure TSvgDocumentNode.ResolveFilters;
       for i := 0 to AFilterNode.Children.Count - 1 do
       begin
         primNode := AFilterNode.Children[i];
-        if not (primNode is TSvgFilterPrimitiveNode) then Continue;
+        if not (primNode is TSvgFilterPrimitiveNode) then
+          Continue;
 
         isFirst := (primCount = 0);
         Inc(primCount);
@@ -4039,14 +4241,14 @@ procedure TSvgDocumentNode.ResolveFilters;
     i: Integer;
     group: TSvgGroupNode;
     targetNode: TSvgNode;
-    idStr: string;
+    StrID: AnsiString;
   begin
     if ANode = nil then Exit;
 
     if ANode.FilterID <> '' then
     begin
-      idStr := ExtractUrlIdStr(ANode.FilterID);
-      targetNode := FindNodeById(idStr);
+      StrID := ExtractUrlIdStr(ANode.FilterID);
+      targetNode := FindNodeById(StrID);
       if targetNode is TSvgFilterNode then
       begin
         ANode.ResolvedFilter := TSvgFilterNode(targetNode);
@@ -4071,44 +4273,44 @@ procedure TSvgDocumentNode.ResolvePaintServers;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    fillRef: TSvgFill;
-    strokeStruct: TSvgStroke;
-    targetNode: TSvgNode;
-    idStr: string;
+    Group: TSvgGroupNode;
+    FillRef: TSvgFill;
+    StrokeStruct: TSvgStroke;
+    TargetNode: TSvgNode;
+    StrID: AnsiString;
   begin
     if ANode = nil then
       Exit;
 
     if ANode.Fill.Url <> '' then
     begin
-      idStr := ExtractUrlIdStr(ANode.Fill.Url);
-      targetNode := FindNodeById(idStr);
-      if (targetNode is TSvgGradientNode) or (targetNode is TSvgPatternNode) then
+      StrID := ExtractUrlIdStr(ANode.Fill.Url);
+      TargetNode := FindNodeById(StrID);
+      if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
       begin
-        fillRef := ANode.Fill;
-        fillRef.ResolvedPaintServer := targetNode;
-        ANode.Fill := fillRef;
+        FillRef := ANode.Fill;
+        FillRef.ResolvedPaintServer := TargetNode;
+        ANode.Fill := FillRef;
       end;
     end;
 
     if ANode.Stroke.Url <> '' then
     begin
-      idStr := ExtractUrlIdStr(ANode.Stroke.Url);
-      targetNode := FindNodeById(idStr);
-      if (targetNode is TSvgGradientNode) or (targetNode is TSvgPatternNode) then
+      StrID := ExtractUrlIdStr(ANode.Stroke.Url);
+      TargetNode := FindNodeById(StrID);
+      if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
       begin
-        strokeStruct := ANode.Stroke;
-        strokeStruct.ResolvedPaintServer := targetNode;
-        ANode.Stroke := strokeStruct;
+        StrokeStruct := ANode.Stroke;
+        StrokeStruct.ResolvedPaintServer := TargetNode;
+        ANode.Stroke := StrokeStruct;
       end;
     end;
 
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
-      for i := 0 to group.Children.Count - 1 do
-        ProcessNode(group.Children[i]);
+      Group := TSvgGroupNode(ANode);
+      for i := 0 to Group.Children.Count - 1 do
+        ProcessNode(Group.Children[i]);
     end;
   end;
 
@@ -4121,41 +4323,41 @@ procedure TSvgDocumentNode.ResolveMarkers;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    targetNode: TSvgNode;
-    idStr: string;
+    Group: TSvgGroupNode;
+    TargetNode: TSvgNode;
+    StrID: AnsiString;
   begin
     if ANode = nil then Exit;
 
     if ANode.MarkerStart <> '' then
     begin
-      idStr := ExtractUrlIdStr(ANode.MarkerStart);
-      targetNode := FindNodeById(idStr);
-      if targetNode is TSvgMarkerNode then
-        ANode.ResolvedMarkerStart := TSvgMarkerNode(targetNode);
+      StrID := ExtractUrlIdStr(ANode.MarkerStart);
+      TargetNode := FindNodeById(StrID);
+      if TargetNode is TSvgMarkerNode then
+        ANode.ResolvedMarkerStart := TSvgMarkerNode(TargetNode);
     end;
 
     if ANode.MarkerMid <> '' then
     begin
-      idStr := ExtractUrlIdStr(ANode.MarkerMid);
-      targetNode := FindNodeById(idStr);
-      if targetNode is TSvgMarkerNode then
-        ANode.ResolvedMarkerMid := TSvgMarkerNode(targetNode);
+      StrID := ExtractUrlIdStr(ANode.MarkerMid);
+      TargetNode := FindNodeById(StrID);
+      if TargetNode is TSvgMarkerNode then
+        ANode.ResolvedMarkerMid := TSvgMarkerNode(TargetNode);
     end;
 
     if ANode.MarkerEnd <> '' then
     begin
-      idStr := ExtractUrlIdStr(ANode.MarkerEnd);
-      targetNode := FindNodeById(idStr);
-      if targetNode is TSvgMarkerNode then
-        ANode.ResolvedMarkerEnd := TSvgMarkerNode(targetNode);
+      StrID := ExtractUrlIdStr(ANode.MarkerEnd);
+      TargetNode := FindNodeById(StrID);
+      if TargetNode is TSvgMarkerNode then
+        ANode.ResolvedMarkerEnd := TSvgMarkerNode(TargetNode);
     end;
 
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
-      for i := 0 to group.Children.Count - 1 do
-        ProcessNode(group.Children[i]);
+      Group := TSvgGroupNode(ANode);
+      for i := 0 to Group.Children.Count - 1 do
+        ProcessNode(Group.Children[i]);
     end;
   end;
 
@@ -4170,30 +4372,30 @@ procedure TSvgDocumentNode.ResolveTextPaths;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    tpNode: TSvgTextPathNode;
-    targetNode: TSvgNode;
-    idStr: string;
+    Group: TSvgGroupNode;
+    TextPathNode: TSvgTextPathNode;
+    TargetNode: TSvgNode;
+    StrID: AnsiString;
   begin
     if ANode = nil then Exit;
 
     if ANode is TSvgTextPathNode then
     begin
-      tpNode := TSvgTextPathNode(ANode);
-      if tpNode.Href <> '' then
+      TextPathNode := TSvgTextPathNode(ANode);
+      if TextPathNode.Href <> '' then
       begin
-        idStr := ExtractUrlIdStr(tpNode.Href);
-        targetNode := FindNodeById(idStr);
-        if targetNode is TSvgPathNode then
-          tpNode.ResolvedPathNode := TSvgPathNode(targetNode);
+        StrID := ExtractUrlIdStr(TextPathNode.Href);
+        TargetNode := FindNodeById(StrID);
+        if TargetNode is TSvgPathNode then
+          TextPathNode.ResolvedPathNode := TSvgPathNode(TargetNode);
       end;
     end;
 
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
-      for i := 0 to group.Children.Count - 1 do
-        ProcessNode(group.Children[i]);
+      Group := TSvgGroupNode(ANode);
+      for i := 0 to Group.Children.Count - 1 do
+        ProcessNode(Group.Children[i]);
     end;
   end;
 
@@ -4203,32 +4405,42 @@ end;
 
 procedure TSvgDocumentNode.ResolvePatterns;
 
+  procedure ResolvePattern(APat: TSvgPatternNode);
+  var
+    ParentTarget: TSvgNode;
+    TargetPatternNode: TSvgPatternNode;
+  begin
+    if (APat = nil) or APat.FResolving or (APat.Href = '') then
+      Exit;
+
+    APat.FResolving := True;
+    try
+      ParentTarget := FindNodeById(APat.Href);
+      if ParentTarget is TSvgPatternNode then
+      begin
+        TargetPatternNode := TSvgPatternNode(ParentTarget);
+        if TargetPatternNode.Href <> '' then
+          ResolvePattern(TargetPatternNode);
+        APat.InheritFrom(TargetPatternNode);
+      end;
+    finally
+      APat.FResolving := False;
+    end;
+  end;
+
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    patNode, targetPat: TSvgPatternNode;
-    parentTarget: TSvgNode;
+    Group: TSvgGroupNode;
   begin
     if ANode is TSvgPatternNode then
-    begin
-      patNode := TSvgPatternNode(ANode);
-      if patNode.Href <> '' then
-      begin
-        parentTarget := FindNodeById(patNode.Href);
-        if parentTarget is TSvgPatternNode then
-        begin
-          targetPat := TSvgPatternNode(parentTarget);
-          patNode.InheritFrom(targetPat);
-        end;
-      end;
-    end;
+      ResolvePattern(TSvgPatternNode(ANode));
 
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
-      for i := 0 to group.Children.Count - 1 do
-        ProcessNode(group.Children[i]);
+      Group := TSvgGroupNode(ANode);
+      for i := 0 to Group.Children.Count - 1 do
+        ProcessNode(Group.Children[i]);
     end;
   end;
 
@@ -4574,7 +4786,7 @@ procedure TSvgUseNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValu
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
-      FHref := AValue.ToString;
+      FHref := AValue.ToUtf8;
 
     attrX:
       AValue.TryToFloat(FX);
@@ -5110,7 +5322,8 @@ var
   var
     tagKeyword: TSvgTagKeyword;
     StopTag: TSvgStopTagKeyword;
-    s: string;
+    s: AnsiString;
+    UnicodeText: UnicodeString;
     node: TSvgNode;
     startDepth: Byte;
     n: Double;
@@ -5323,7 +5536,7 @@ var
         tagStyle:
           begin
             AParser.ConsumeText(Utf8);
-            s := string(Utf8);
+            s := Utf8;
             if (s <> '') and (cssStyleSheet <> nil) then
               cssStyleSheet.ParseCss(s);
             Exit(nil);
@@ -5528,7 +5741,7 @@ var
     //    styles override stylesheet rules and presentation attributes (highest priority).
     if cssStyleSheet <> nil then
     begin
-      s := LowerCase(AParser.Name.ToString);
+      s := LowerCase(AParser.Name.ToUtf8);
       cssStyleSheet.ApplyToNode(node, s, node.CssClassName, node.ID);
     end;
 
@@ -5555,28 +5768,28 @@ var
         if (AParser.Kind in [xtText, xtCData]) and (node is TSvgTextPositioningNode) then
         begin
           if AParser.Kind = xtCData then
-            s := Trim(TValuePUtf8Char(AParser.Value).ToString)
+            UnicodeText := Trim(TValuePUtf8Char(AParser.Value).ToString)
           else
           begin
             if AParser.ValueToUtf8(Utf8) then
-              s := Trim(string(Utf8))
+              UnicodeText := Trim(Utf8)
             else
-              s := Trim(TValuePUtf8Char(AParser.Value).ToString);
+              UnicodeText := Trim(TValuePUtf8Char(AParser.Value).ToString);
           end;
 
-          if (s <> '') then
+          if (UnicodeText <> '') then
           begin
             if TSvgTextPositioningNode(node).Children.Count = 0 then
             begin
               if TSvgTextPositioningNode(node).TextContent <> '' then
-                TSvgTextPositioningNode(node).TextContent := TSvgTextPositioningNode(node).TextContent + ' ' + s
+                TSvgTextPositioningNode(node).TextContent := TSvgTextPositioningNode(node).TextContent + ' ' + UnicodeText
               else
-                TSvgTextPositioningNode(node).TextContent := s;
+                TSvgTextPositioningNode(node).TextContent := UnicodeText;
             end else
             begin
               // Create an anonymous tspan child for text fragments when children exist to preserve document order
               childNode := TSvgTSpanNode.Create(node);
-              TSvgTSpanNode(childNode).TextContent := s;
+              TSvgTSpanNode(childNode).TextContent := UnicodeText;
               TSvgTextPositioningNode(node).AddChild(childNode);
             end;
           end;

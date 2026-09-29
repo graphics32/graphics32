@@ -44,10 +44,10 @@ type
 
   TSvgCssSelector = record
     Kind: TSvgCssSelectorKind;
-    Name: string;
+    Name: AnsiString;
     Specificity: Integer;
-    function Matches(const AElementTag, AClassName, AElementId: string): Boolean;
-    class function Parse(const ASelectorStr: string): TSvgCssSelector; static;
+    function Matches(const AElementTag, AClassName, AElementId: AnsiString): Boolean;
+    class function Parse(const ASelectorStr: AnsiString): TSvgCssSelector; static;
   end;
 
   TSvgCssProperty = record
@@ -59,7 +59,7 @@ type
   TSvgCssRule = record
     Selector: TSvgCssSelector;
     Properties: TArray<TSvgCssProperty>;
-    procedure AddProperty(const AName, AValue: string);
+    procedure AddProperty(const AName, AValue: AnsiString);
   end;
 
   TSvgCssStyleSheet = class(TObject)
@@ -70,19 +70,22 @@ type
     destructor Destroy; override;
 
     procedure Clear;
-    procedure ParseCss(const ACssText: string);
-    procedure ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: string);
+    procedure ParseCss(const ACssText: AnsiString);
+    procedure ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: AnsiString);
 
     property Rules: TList<TSvgCssRule> read FRules;
   end;
 
 implementation
 
+uses
+  AnsiStrings;
+
 { TSvgCssSelector }
 
-class function TSvgCssSelector.Parse(const ASelectorStr: string): TSvgCssSelector;
+class function TSvgCssSelector.Parse(const ASelectorStr: AnsiString): TSvgCssSelector;
 var
-  s: string;
+  s: AnsiString;
 begin
   s := Trim(ASelectorStr);
   Result.Name := '';
@@ -115,7 +118,7 @@ begin
   end;
 end;
 
-function TSvgCssSelector.Matches(const AElementTag, AClassName, AElementId: string): Boolean;
+function TSvgCssSelector.Matches(const AElementTag, AClassName, AElementId: AnsiString): Boolean;
 var
   classes: TStringList;
   i: Integer;
@@ -136,6 +139,7 @@ begin
           Exit(False);
         if AClassName = Name then
           Exit(True);
+        // TODO
         classes := TStringList.Create;
         try
           classes.Delimiter := ' ';
@@ -158,17 +162,17 @@ end;
 class function TSvgCssProperty.Create(const AName, AValue: AnsiString): TSvgCssProperty;
 begin
   Result.Name := Trim(AName);
-  Result.Value := Trim(AValue);
+  Result.Value := AnsiStrings.Trim(AValue);
 end;
 
 { TSvgCssRule }
 
-procedure TSvgCssRule.AddProperty(const AName, AValue: string);
+procedure TSvgCssRule.AddProperty(const AName, AValue: AnsiString);
 var
-  len: Integer;
+  Len: Integer;
 begin
-  len := Length(Properties);
-  SetLength(Properties, len + 1);
+  Len := Length(Properties);
+  SetLength(Properties, Len + 1);
   Properties[len] := TSvgCssProperty.Create(AName, AValue);
 end;
 
@@ -191,21 +195,21 @@ begin
   FRules.Clear;
 end;
 
-procedure TSvgCssStyleSheet.ParseCss(const ACssText: string);
+procedure TSvgCssStyleSheet.ParseCss(const ACssText: AnsiString);
 var
   i, len: Integer;
   selStr, declBlock: string;
   pOpen, pClose: Integer;
   declList: TStringList;
-  declStr: string;
+  declStr: AnsiString;
   colonPos: Integer;
-  k, v: string;
+  k, v: AnsiString;
   rule: TSvgCssRule;
   selectors: TStringList;
-  selItem: string;
+  selItem: AnsiString;
   sIdx, dIdx: Integer;
 
-  function CleanCss(const AInput: string): string;
+  function CleanCss(const AInput: AnsiString): AnsiString;
   var
     idx, inputLen: Integer;
     sb: string;
@@ -243,7 +247,7 @@ var
   end;
 
 var
-  cssClean: string;
+  cssClean: AnsiString;
 begin
   cssClean := CleanCss(ACssText);
   len := Length(cssClean);
@@ -312,7 +316,7 @@ begin
   end;
 end;
 
-procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: string);
+procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: AnsiString);
 const
   // CSS Specificity values based on W3C CSS2 / SVG 1.1 specification:
   //   0   = Universal selector (*)
