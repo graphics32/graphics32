@@ -703,9 +703,10 @@ var
   i, bmpW, bmpH: Integer;
   savedMatrix: TFloatMatrix;
   savedViewport: TFloatRect;
-  contentMat, patTransMat: TFloatMatrix;
+  contentMat, patTransMat, totalPatMat, normPatTrans: TFloatMatrixHelper;
   origPt: TFloatPoint;
   tileViewBox: TSvgViewBox;
+  scaleX, scaleY: Single;
 begin
   Result := nil;
   if (APatternNode = nil) or (APatternNode.Children.Count = 0) then
@@ -727,8 +728,8 @@ begin
 
   if APatternNode.PatternUnits = guObjectBoundingBox then
   begin
-    tileX := ABounds.Left + APatternNode.X.ToPixels(bWidth);
-    tileY := ABounds.Top + APatternNode.Y.ToPixels(bHeight);
+    tileX := APatternNode.X.ToPixels(bWidth);
+    tileY := APatternNode.Y.ToPixels(bHeight);
     tileW := APatternNode.Width.ToPixels(bWidth);
     tileH := APatternNode.Height.ToPixels(bHeight);
   end else
@@ -739,18 +740,34 @@ begin
     tileH := APatternNode.Height.ToPixels(vpHeight);
   end;
 
-  patTransMat := APatternNode.PatternTransform;
-  if not IsIdentityMatrix(patTransMat) then
+  if (tileW <= 0) or (tileH <= 0) then
+    Exit;
+
+  patTransMat.Matrix := APatternNode.PatternTransform;
+  if APatternNode.PatternUnits = guObjectBoundingBox then
   begin
-    origPt := TFloatMatrixHelper(patTransMat).TransformPoint(FloatPoint(tileX, tileY));
-    tileX := origPt.X;
-    tileY := origPt.Y;
+    totalPatMat.Matrix := IdentityMatrix;
+    totalPatMat.Scale(bWidth, bHeight);
+    totalPatMat.Translate(ABounds.Left, ABounds.Top);
+    totalPatMat := totalPatMat * patTransMat;
+  end else
+  begin
+    totalPatMat := patTransMat * FCurrentMatrix;
   end;
 
-  bmpW := Round(tileW);
-  bmpH := Round(tileH);
-  if (bmpW <= 0) or (bmpH <= 0) then
-    Exit;
+  scaleX := GR32_Math.Hypot(totalPatMat.Matrix[0, 0], totalPatMat.Matrix[0, 1]);
+  scaleY := GR32_Math.Hypot(totalPatMat.Matrix[1, 0], totalPatMat.Matrix[1, 1]);
+  if scaleX <= 0 then
+    scaleX := 1.0;
+  if scaleY <= 0 then
+    scaleY := 1.0;
+
+  origPt := totalPatMat.TransformPoint(FloatPoint(tileX, tileY));
+  tileX := origPt.X;
+  tileY := origPt.Y;
+
+  bmpW := Max(1, Round(tileW * scaleX));
+  bmpH := Max(1, Round(tileH * scaleY));
 
   patternBmp := TBitmap32.Create;
   try
@@ -763,21 +780,30 @@ begin
     FCurrentMatrix := IdentityMatrix;
     FViewportRect := FloatRect(0, 0, bmpW, bmpH);
 
-    contentMat := IdentityMatrix;
+    normPatTrans := patTransMat;
+    normPatTrans.Matrix[2, 0] := 0;
+    normPatTrans.Matrix[2, 1] := 0;
+
+    contentMat.Matrix := IdentityMatrix;
     if APatternNode.ViewBox.IsValid then
     begin
       tileViewBox := APatternNode.ViewBox;
-      contentMat := tileViewBox.GetTransform(FloatRect(0, 0, tileW, tileH), APatternNode.PreserveAspectRatio);
+      contentMat.Matrix := tileViewBox.GetTransform(FloatRect(0, 0, bmpW, bmpH), APatternNode.PreserveAspectRatio);
+      contentMat := normPatTrans * contentMat;
     end else
     if APatternNode.PatternContentUnits = guObjectBoundingBox then
     begin
-      contentMat := IdentityMatrix;
-      TFloatMatrixHelper(contentMat).Scale(bWidth, bHeight);
+      contentMat.Scale(bWidth * scaleX, bHeight * scaleY);
+      contentMat := normPatTrans * contentMat;
+    end else
+    begin
+      contentMat.Scale(scaleX, scaleY);
+      contentMat := normPatTrans * contentMat;
     end;
 
     PushMatrix;
     try
-      ApplyMatrix(contentMat);
+      ApplyMatrix(contentMat.Matrix);
 
       for i := 0 to APatternNode.Children.Count - 1 do
         RenderNode(patternBmp, APatternNode.Children[i]);
