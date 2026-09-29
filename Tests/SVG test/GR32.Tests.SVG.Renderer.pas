@@ -1311,18 +1311,21 @@ begin
 
     // 1. Render when SystemLanguage is 'en' -> Green rectangle selected
     SetSystemLanguage('en');
+    docNode.Resolve; // switch is resolved at parse time, so we must resolve again
     bmp.Clear(clWhite32);
     renderer.RenderDocument(docNode);
     CheckEquals(clGreen32, bmp.Pixel[50, 50], 'Switch should render green rect when language is en');
 
     // 2. Render when SystemLanguage is 'fr' -> Red rectangle selected
     SetSystemLanguage('fr');
+    docNode.Resolve; // switch is resolved at parse time, so we must resolve again
     bmp.Clear(clWhite32);
     renderer.RenderDocument(docNode);
     CheckEquals(clRed32, bmp.Pixel[50, 50], 'Switch should render red rect when language is fr');
 
     // 3. Render when SystemLanguage is 'de' -> Blue fallback rectangle selected
     SetSystemLanguage('de');
+    docNode.Resolve; // switch is resolved at parse time, so we must resolve again
     bmp.Clear(clWhite32);
     renderer.RenderDocument(docNode);
     CheckEquals(clBlue32, bmp.Pixel[50, 50], 'Switch should render blue fallback rect when language is de');

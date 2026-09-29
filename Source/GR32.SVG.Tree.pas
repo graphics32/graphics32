@@ -3940,7 +3940,8 @@ procedure TSvgDocumentNode.ResolveSwitchNodes;
     SwitchNode: TSvgSwitchNode;
     Child: TSvgNode;
   begin
-    if ANode = nil then Exit;
+    if ANode = nil then
+      Exit;
 
     if ANode is TSvgSwitchNode then
     begin
