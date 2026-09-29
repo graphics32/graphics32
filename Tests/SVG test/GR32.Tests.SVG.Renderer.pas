@@ -53,6 +53,7 @@ type
     procedure TestGroupOpacityCompositing;
     procedure TestClipPathCompositing;
     procedure TestDirectShapeClipPath;
+    procedure TestClipRuleEvenOdd;
     procedure TestMaskCompositing;
     procedure TestBitmapPool;
     procedure TestPatternFillAndStrokeRendering;
@@ -110,6 +111,46 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestClipRuleEvenOdd;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <clipPath id="clip1">' +
+           '      <path d="M 100 15 l 50 160 l -130 -100 l 160 0 l -130 100 z" clip-rule="evenodd"/>' +
+           '    </clipPath>' +
+           '  </defs>' +
+           '  <rect x="0" y="0" width="200" height="200" fill="green" clip-path="url(#clip1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        CheckEquals(clGreen32, bmp.Pixel[100, 30], 'Star arm point should be clipped inside (green)');
+        CheckEquals(clWhite32, bmp.Pixel[100, 100], 'Center pentagon hole with evenodd clip-rule should be outside (white)');
       finally
         renderer.Free;
       end;

@@ -218,6 +218,7 @@ type
     attrFill,
     attrFillOpacity,
     attrFillRule,
+    attrClipRule,
     attrStroke,
     attrStrokeOpacity,
     attrStrokeWidth,
@@ -1371,6 +1372,7 @@ const
     'fill',
     'fill-opacity',
     'fill-rule',
+    'clip-rule',
     'stroke',
     'stroke-opacity',
     'stroke-width',
@@ -1969,7 +1971,7 @@ begin
           FFill.Opacity := EnsureRange(ValueFloat, 0.0, 1.0);
       end;
 
-    attrFillRule:
+    attrClipRule, attrFillRule:
       begin
         if AValue.CompareText('evenodd') then
           FFill.FillRule := pfAlternate
