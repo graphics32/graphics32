@@ -80,6 +80,7 @@ type
     procedure TestPatternTransformAndScaling;
     procedure TestRoiPolygonRendering;
     procedure TestRoiFilterBlurRendering;
+    procedure TestTransformedFilterRendering;
     procedure TestObjectBoundingBoxClipPathRoi;
     procedure TestGradientAndPatternFillOpacity;
   end;
@@ -118,6 +119,60 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTransformedFilterRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(300, 300);
+    bmp.Clear(clWhite32);
+
+    // Filtered group with transform matrix/translation
+    xml := '<svg width="300" height="300">' +
+           '  <defs>' +
+           '    <filter id="f_offset">' +
+           '      <feOffset dx="10" dy="10" result="off"/>' +
+           '      <feMerge>' +
+           '        <feMergeNode in="off"/>' +
+           '        <feMergeNode in="SourceGraphic"/>' +
+           '      </feMerge>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <g transform="translate(100, 100)" filter="url(#f_offset)">' +
+           '    <rect x="0" y="0" width="50" height="50" fill="red"/>' +
+           '  </g>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Transformed filter docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center of rect translated to (100, 100) + (25, 25) = (125, 125) should be red
+        CheckEquals(clRed32, bmp.Pixel[125, 125], 'Center of transformed filtered rect should be red');
+
+        // Offset rect at (125+10, 125+10) = (135, 135) should also be red
+        CheckEquals(clRed32, bmp.Pixel[135, 135], 'Offset position of transformed filter should be red');
+
+        // Pixel outside ROI at (20, 20) should remain pure white
+        CheckEquals(clWhite32, bmp.Pixel[20, 20], 'Pixel outside ROI at (20, 20) must remain white');
       finally
         renderer.Free;
       end;

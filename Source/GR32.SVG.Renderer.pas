@@ -91,6 +91,7 @@ type
     procedure RenderMarker(ATarget: TCustomBitmap32; AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); // Angle is in radians!
     procedure RenderMarkers(ATarget: TCustomBitmap32; APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single);
     procedure RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
+    procedure RenderNodeContent(ATarget: TCustomBitmap32; ANode: TSvgNode);
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
     procedure BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode; AX: Integer; AY: Integer); overload;
     procedure BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode); overload;
@@ -1931,254 +1932,261 @@ begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
 
-  // 1. Calculate source bounds in world target space.
-  // For polygon nodes, source bounds are calculated using PolyPolygonBounds after stroking.
-  MatScale := GetMatrixScale(FCurrentMatrix);
-  if ANode is TSvgPathNode then
-  begin
-    PathNode := TSvgPathNode(ANode);
-    PathPoints := PathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
-    if Length(PathPoints) > 0 then
-    begin
-      TransformedPoints := GetTransformedPoints(PathPoints);
-      StrokePoints := nil;
-      StrokeWidth := PathNode.Stroke.Width.ToPixels(FViewportRect.Width);
-      if (StrokeWidth > 0) and ((PathNode.Stroke.ResolvedPaintServer <> nil) or (not PathNode.Stroke.Color.IsNone)) then
-      begin
-        StrokeWidth := StrokeWidth * MatScale;
-        ScaledDashArray := nil;
-        ScaledOffset := 0;
-        if (PathNode.Stroke.DashArray <> nil) then
-        begin
-          SetLength(ScaledDashArray, Length(PathNode.Stroke.DashArray));
-          for i := 0 to High(PathNode.Stroke.DashArray) do
-            ScaledDashArray[i] := PathNode.Stroke.DashArray[i] * MatScale;
-          ScaledOffset := PathNode.Stroke.DashOffset * MatScale;
-        end;
-
-        for i := 0 to High(TransformedPoints) do
-        begin
-          if (ScaledDashArray <> nil) then
-          begin
-            Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPoints[i]));
-            for j := 0 to High(Points) do
-              StrokePoints := StrokePoints + BuildPolyPolyLine([Points[j]], False, StrokeWidth, PathNode.Stroke.JoinStyle, PathNode.Stroke.EndStyle, PathNode.Stroke.MiterLimit);
-          end else
-            StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], IsClosedContour(TransformedPoints[i]), StrokeWidth, PathNode.Stroke.JoinStyle, PathNode.Stroke.EndStyle, PathNode.Stroke.MiterLimit);
-        end;
-      end;
-
-      SetLength(AllRenderPoints, 0);
-      if (PathNode.Fill.ResolvedPaintServer <> nil) or (not PathNode.Fill.Color.IsNone) then
-        AllRenderPoints := AllRenderPoints + TransformedPoints;
-      if Length(StrokePoints) > 0 then
-        AllRenderPoints := AllRenderPoints + StrokePoints;
-      if Length(AllRenderPoints) = 0 then
-        AllRenderPoints := TransformedPoints;
-
-      // Hard Requirement: PolyPolygonBounds MUST be used to calculate bounds after stroking
-      SourceBounds := PolyPolygonBounds(AllRenderPoints);
-    end else
-      SourceBounds := FloatRect(0, 0, 0, 0);
-  end else
-  begin
-    // For non-polygon nodes, calculate object bounds in world target space
-    NodeBounds := ANode.GetObjectBoundingBox;
-    Pts[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-    Pts[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-    Pts[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-    Pts[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
-
-    SourceBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
-    for i := 1 to 3 do
-    begin
-      if (Pts[i].X < SourceBounds.Left) then SourceBounds.Left := Pts[i].X;
-      if (Pts[i].X > SourceBounds.Right) then SourceBounds.Right := Pts[i].X;
-      if (Pts[i].Y < SourceBounds.Top) then SourceBounds.Top := Pts[i].Y;
-      if (Pts[i].Y > SourceBounds.Bottom) then SourceBounds.Bottom := Pts[i].Y;
-    end;
-  end;
-
-  // 2. Calculate filter-dependent margins (e.g. Gaussian blur radius, offset dx/dy)
-  MarginX := 0;
-  MarginY := 0;
-  for Node in AFilterNode.Children do
-  begin
-    if Node is TSvgFeGaussianBlurNode then
-    begin
-      RadiusX := Ceil(TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * MatScale);
-      RadiusY := Ceil(TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * MatScale);
-      if RadiusX > MarginX then MarginX := RadiusX + 2;
-      if RadiusY > MarginY then MarginY := RadiusY + 2;
-    end else
-    if Node is TSvgFeOffsetNode then
-    begin
-      MarginX := MarginX + Ceil(Abs(TSvgFeOffsetNode(Node).Dx) * MatScale);
-      MarginY := MarginY + Ceil(Abs(TSvgFeOffsetNode(Node).Dy) * MatScale);
-    end;
-  end;
-
-  // 3. Inflate source bounds by filter margins to determine total Filter ROI
-  FilterBounds := SourceBounds;
-  FilterBounds.Left := FilterBounds.Left - MarginX;
-  FilterBounds.Top := FilterBounds.Top - MarginY;
-  FilterBounds.Right := FilterBounds.Right + MarginX;
-  FilterBounds.Bottom := FilterBounds.Bottom + MarginY;
-
-  FilterRoi := MakeRect(FilterBounds, rrOutside);
-  if not GR32.IntersectRect(FilterRoi, FilterRoi, ATarget.BoundsRect) then
-    Exit;
-
-  // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions
-  SourceGraphic := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-  SourceAlpha := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-  NamedSurfaces := nil;
+  PushMatrix;
   try
-    // Render element into SourceGraphic in ROI coordinate space
-    PushMatrix;
-    try
-      TFloatMatrixHelper(FCurrentMatrix).Translate(-FilterRoi.Left, -FilterRoi.Top);
-      RenderNodeUnfiltered(SourceGraphic, ANode);
-    finally
-      PopMatrix;
-    end;
+    ApplyMatrix(ANode.Transform);
 
-    // Derive SourceAlpha from SourceGraphic
-    pSource := PColor32(SourceGraphic.Bits);
-    pDest := PColor32(SourceAlpha.Bits);
-    for i := 0 to SourceGraphic.PixelCount - 1 do
+    // 1. Calculate source bounds in world target space.
+    // For polygon nodes, source bounds are calculated using PolyPolygonBounds after stroking.
+    MatScale := GetMatrixScale(FCurrentMatrix);
+
+    if ANode is TSvgPathNode then
     begin
-      PColor32Entry(pDest).ARGB := PColor32Entry(pSource).A shl 24;
-      Inc(pSource);
-      Inc(pDest);
-    end;
-
-    CurrentSurface := SourceGraphic;
-
-    // Count number of named surfaces so we can preallocate the surface array
-    Count := 0;
-    for Node in AFilterNode.Children do
-      if (Node is TSvgFilterPrimitiveNode) and TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
-        Inc(Count);
-    SetLength(NamedSurfaces, Count);
-    Count := 0;
-
-    // 5. Process filter primitive nodes sequentially on ROI surfaces
-    CachedSurface := nil;
-    for Node in AFilterNode.Children do
-    begin
-      if not (Node is TSvgFilterPrimitiveNode) then
-        Continue;
-
-      if Node is TSvgFeGaussianBlurNode then
+      PathNode := TSvgPathNode(ANode);
+      PathPoints := PathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
+      if Length(PathPoints) > 0 then
       begin
-        Input1 := ResolveSurface(TSvgFeGaussianBlurNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
-        ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-
-        if TSvgFeGaussianBlurNode(Node).StdDeviationX > 0 then
-          Blur32(Input1, DestSurface, TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * MatScale)
-        else
-          Input1.CopyMapTo(DestSurface);
-
-        CurrentSurface := DestSurface;
-      end else
-
-      if Node is TSvgFeColorMatrixNode then
-      begin
-        Input1 := ResolveSurface(TSvgFeColorMatrixNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
-        ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-
-        ApplyColorMatrix(Input1, DestSurface, TSvgFeColorMatrixNode(Node).MatrixType, TSvgFeColorMatrixNode(Node).Values);
-        CurrentSurface := DestSurface;
-      end else
-
-      if Node is TSvgFeBlendNode then
-      begin
-        Input1 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
-        Input2 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
-        ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-
-        Input2.DrawTo(DestSurface, 0, 0);
-        BlendOffscreenSurface(DestSurface, Input1, TSvgFeBlendNode(Node).Mode);
-
-        CurrentSurface := DestSurface;
-      end else
-
-      if Node is TSvgFeCompositeNode then
-      begin
-        Input1 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
-        Input2 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
-        ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-
-        ApplyComposite(Input1, Input2, DestSurface, TSvgFeCompositeNode(Node).CompositeOperator,
-          TSvgFeCompositeNode(Node).K1, TSvgFeCompositeNode(Node).K2, TSvgFeCompositeNode(Node).K3, TSvgFeCompositeNode(Node).K4);
-        CurrentSurface := DestSurface;
-      end else
-
-      if Node is TSvgFeMergeNode then
-      begin
-        DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-
-        for ChildNode in TSvgFeMergeNode(Node).Children do
+        TransformedPoints := GetTransformedPoints(PathPoints);
+        StrokePoints := nil;
+        StrokeWidth := PathNode.Stroke.Width.ToPixels(FViewportRect.Width);
+        if (StrokeWidth > 0) and ((PathNode.Stroke.ResolvedPaintServer <> nil) or (not PathNode.Stroke.Color.IsNone)) then
         begin
-          if ChildNode is TSvgFeMergeNodeChild then
+          StrokeWidth := StrokeWidth * MatScale;
+          ScaledDashArray := nil;
+          ScaledOffset := 0;
+          if (PathNode.Stroke.DashArray <> nil) then
           begin
-            Input1 := ResolveSurface(TSvgFeMergeNodeChild(ChildNode).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
-            BlendOffscreenSurface(DestSurface, Input1, bmNormal);
+            SetLength(ScaledDashArray, Length(PathNode.Stroke.DashArray));
+            for i := 0 to High(PathNode.Stroke.DashArray) do
+              ScaledDashArray[i] := PathNode.Stroke.DashArray[i] * MatScale;
+            ScaledOffset := PathNode.Stroke.DashOffset * MatScale;
+          end;
+
+          for i := 0 to High(TransformedPoints) do
+          begin
+            if (ScaledDashArray <> nil) then
+            begin
+              Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPoints[i]));
+              for j := 0 to High(Points) do
+                StrokePoints := StrokePoints + BuildPolyPolyLine([Points[j]], False, StrokeWidth, PathNode.Stroke.JoinStyle, PathNode.Stroke.EndStyle, PathNode.Stroke.MiterLimit);
+            end else
+              StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], IsClosedContour(TransformedPoints[i]), StrokeWidth, PathNode.Stroke.JoinStyle, PathNode.Stroke.EndStyle, PathNode.Stroke.MiterLimit);
           end;
         end;
-        ReleaseOffscreenBitmap(CachedSurface);
-        CurrentSurface := DestSurface;
+
+        SetLength(AllRenderPoints, 0);
+        if (PathNode.Fill.ResolvedPaintServer <> nil) or (not PathNode.Fill.Color.IsNone) then
+          AllRenderPoints := AllRenderPoints + TransformedPoints;
+        if Length(StrokePoints) > 0 then
+          AllRenderPoints := AllRenderPoints + StrokePoints;
+        if Length(AllRenderPoints) = 0 then
+          AllRenderPoints := TransformedPoints;
+
+        SourceBounds := PolyPolygonBounds(AllRenderPoints);
       end else
+        SourceBounds := FloatRect(0, 0, 0, 0);
+    end else
+    begin
+      // For non-polygon nodes, calculate object bounds in world target space
+      NodeBounds := ANode.GetObjectBoundingBox;
+      Pts[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+      Pts[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+      Pts[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+      Pts[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
 
-      if Node is TSvgFeOffsetNode then
+      SourceBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+      for i := 1 to 3 do
       begin
-        Input1 := ResolveSurface(TSvgFeOffsetNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
-        ReleaseOffscreenBitmap(CachedSurface);
-        DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-
-        dxInt := Round(TSvgFeOffsetNode(Node).Dx * MatScale);
-        dyInt := Round(TSvgFeOffsetNode(Node).Dy * MatScale);
-        Input1.DrawTo(DestSurface, dxInt, dyInt);
-        CurrentSurface := DestSurface;
-      end else
-
-      if Node is TSvgFeFloodNode then
-      begin
-        DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
-        ReleaseOffscreenBitmap(CachedSurface);
-
-        FloodColor := TSvgFeFloodNode(Node).FloodColor.Color;
-        if TSvgFeFloodNode(Node).FloodOpacity < 1.0 then
-          ScaleAlpha(FloodColor, TSvgFeFloodNode(Node).FloodOpacity);
-        DestSurface.Clear(FloodColor);
-        CurrentSurface := DestSurface;
+        if (Pts[i].X < SourceBounds.Left) then SourceBounds.Left := Pts[i].X;
+        if (Pts[i].X > SourceBounds.Right) then SourceBounds.Right := Pts[i].X;
+        if (Pts[i].Y < SourceBounds.Top) then SourceBounds.Top := Pts[i].Y;
+        if (Pts[i].Y > SourceBounds.Bottom) then SourceBounds.Bottom := Pts[i].Y;
       end;
-
-      if TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
-      begin
-        NamedSurfaces[Count] := CurrentSurface;
-        CachedSurface := nil;
-        Inc(Count);
-      end else
-        CachedSurface := CurrentSurface;
     end;
 
-    ReleaseOffscreenBitmap(CachedSurface);
+    // 2. Calculate filter-dependent margins (e.g. Gaussian blur radius, offset dx/dy)
+    MarginX := 0;
+    MarginY := 0;
+    for Node in AFilterNode.Children do
+    begin
+      if Node is TSvgFeGaussianBlurNode then
+      begin
+        RadiusX := Ceil(TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * MatScale);
+        RadiusY := Ceil(TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * MatScale);
+        if RadiusX > MarginX then MarginX := RadiusX + 2;
+        if RadiusY > MarginY then MarginY := RadiusY + 2;
+      end else
+      if Node is TSvgFeOffsetNode then
+      begin
+        MarginX := MarginX + Ceil(Abs(TSvgFeOffsetNode(Node).Dx) * MatScale);
+        MarginY := MarginY + Ceil(Abs(TSvgFeOffsetNode(Node).Dy) * MatScale);
+      end;
+    end;
 
-    // 6. Blend final filtered result surface onto target canvas at ROI origin
-    if CurrentSurface <> nil then
-      BlendOffscreenSurface(ATarget, CurrentSurface, bmNormal, FilterRoi.Left, FilterRoi.Top);
+    // 3. Inflate source bounds by filter margins to determine total Filter ROI
+    FilterBounds := SourceBounds;
+    FilterBounds.Left := FilterBounds.Left - MarginX;
+    FilterBounds.Top := FilterBounds.Top - MarginY;
+    FilterBounds.Right := FilterBounds.Right + MarginX;
+    FilterBounds.Bottom := FilterBounds.Bottom + MarginY;
 
+    FilterRoi := MakeRect(FilterBounds, rrOutside);
+    if not GR32.IntersectRect(FilterRoi, FilterRoi, ATarget.BoundsRect) then
+      Exit;
+
+    // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions
+    SourceGraphic := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+    SourceAlpha := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+    NamedSurfaces := nil;
+    try
+      // Render element into SourceGraphic in ROI coordinate space
+      PushMatrix;
+      try
+        TFloatMatrixHelper(FCurrentMatrix).Translate(-FilterRoi.Left, -FilterRoi.Top);
+        RenderNodeContent(SourceGraphic, ANode);
+      finally
+        PopMatrix;
+      end;
+
+      // Derive SourceAlpha from SourceGraphic
+      pSource := PColor32(SourceGraphic.Bits);
+      pDest := PColor32(SourceAlpha.Bits);
+      for i := 0 to SourceGraphic.PixelCount - 1 do
+      begin
+        PColor32Entry(pDest).ARGB := PColor32Entry(pSource).A shl 24;
+        Inc(pSource);
+        Inc(pDest);
+      end;
+
+      CurrentSurface := SourceGraphic;
+
+      // Count number of named surfaces so we can preallocate the surface array
+      Count := 0;
+      for Node in AFilterNode.Children do
+        if (Node is TSvgFilterPrimitiveNode) and TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
+          Inc(Count);
+      SetLength(NamedSurfaces, Count);
+      Count := 0;
+
+      // 5. Process filter primitive nodes sequentially on ROI surfaces
+      CachedSurface := nil;
+      for Node in AFilterNode.Children do
+      begin
+        if not (Node is TSvgFilterPrimitiveNode) then
+          Continue;
+
+        if Node is TSvgFeGaussianBlurNode then
+        begin
+          Input1 := ResolveSurface(TSvgFeGaussianBlurNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+          ReleaseOffscreenBitmap(CachedSurface);
+          DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+
+          if TSvgFeGaussianBlurNode(Node).StdDeviationX > 0 then
+            Blur32(Input1, DestSurface, TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * MatScale)
+          else
+            Input1.CopyMapTo(DestSurface);
+
+          CurrentSurface := DestSurface;
+        end else
+
+        if Node is TSvgFeColorMatrixNode then
+        begin
+          Input1 := ResolveSurface(TSvgFeColorMatrixNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+          ReleaseOffscreenBitmap(CachedSurface);
+          DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+
+          ApplyColorMatrix(Input1, DestSurface, TSvgFeColorMatrixNode(Node).MatrixType, TSvgFeColorMatrixNode(Node).Values);
+          CurrentSurface := DestSurface;
+        end else
+
+        if Node is TSvgFeBlendNode then
+        begin
+          Input1 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+          Input2 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
+          ReleaseOffscreenBitmap(CachedSurface);
+          DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+
+          Input2.DrawTo(DestSurface, 0, 0);
+          BlendOffscreenSurface(DestSurface, Input1, TSvgFeBlendNode(Node).Mode);
+
+          CurrentSurface := DestSurface;
+        end else
+
+        if Node is TSvgFeCompositeNode then
+        begin
+          Input1 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+          Input2 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn2, SourceGraphic, SourceAlpha, CurrentSurface, SourceGraphic, NamedSurfaces);
+          ReleaseOffscreenBitmap(CachedSurface);
+          DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+
+          ApplyComposite(Input1, Input2, DestSurface, TSvgFeCompositeNode(Node).CompositeOperator,
+            TSvgFeCompositeNode(Node).K1, TSvgFeCompositeNode(Node).K2, TSvgFeCompositeNode(Node).K3, TSvgFeCompositeNode(Node).K4);
+          CurrentSurface := DestSurface;
+        end else
+
+        if Node is TSvgFeMergeNode then
+        begin
+          DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+
+          for ChildNode in TSvgFeMergeNode(Node).Children do
+          begin
+            if ChildNode is TSvgFeMergeNodeChild then
+            begin
+              Input1 := ResolveSurface(TSvgFeMergeNodeChild(ChildNode).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+              BlendOffscreenSurface(DestSurface, Input1, bmNormal);
+            end;
+          end;
+          ReleaseOffscreenBitmap(CachedSurface);
+          CurrentSurface := DestSurface;
+        end else
+
+        if Node is TSvgFeOffsetNode then
+        begin
+          Input1 := ResolveSurface(TSvgFeOffsetNode(Node).ResolvedIn1, SourceGraphic, SourceAlpha, CurrentSurface, CurrentSurface, NamedSurfaces);
+          ReleaseOffscreenBitmap(CachedSurface);
+          DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+
+          dxInt := Round(TSvgFeOffsetNode(Node).Dx * MatScale);
+          dyInt := Round(TSvgFeOffsetNode(Node).Dy * MatScale);
+          Input1.DrawTo(DestSurface, dxInt, dyInt);
+          CurrentSurface := DestSurface;
+        end else
+
+        if Node is TSvgFeFloodNode then
+        begin
+          DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+          ReleaseOffscreenBitmap(CachedSurface);
+
+          FloodColor := TSvgFeFloodNode(Node).FloodColor.Color;
+          if TSvgFeFloodNode(Node).FloodOpacity < 1.0 then
+            ScaleAlpha(FloodColor, TSvgFeFloodNode(Node).FloodOpacity);
+          DestSurface.Clear(FloodColor);
+          CurrentSurface := DestSurface;
+        end;
+
+        if TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
+        begin
+          NamedSurfaces[Count] := CurrentSurface;
+          CachedSurface := nil;
+          Inc(Count);
+        end else
+          CachedSurface := CurrentSurface;
+      end;
+
+      ReleaseOffscreenBitmap(CachedSurface);
+
+      // 6. Blend final filtered result surface onto target canvas at ROI origin
+      if CurrentSurface <> nil then
+        BlendOffscreenSurface(ATarget, CurrentSurface, bmNormal, FilterRoi.Left, FilterRoi.Top);
+
+    finally
+      for CurrentSurface in NamedSurfaces do
+        ReleaseOffscreenBitmap(CurrentSurface);
+      ReleaseOffscreenBitmap(SourceGraphic);
+      ReleaseOffscreenBitmap(SourceAlpha);
+    end;
   finally
-    for CurrentSurface in NamedSurfaces do
-      ReleaseOffscreenBitmap(CurrentSurface);
-    ReleaseOffscreenBitmap(SourceGraphic);
-    ReleaseOffscreenBitmap(SourceAlpha);
+    PopMatrix;
   end;
 end;
 
@@ -3006,23 +3014,27 @@ begin
   end;
 end;
 
+procedure TSvgRenderer.RenderNodeContent(ATarget: TCustomBitmap32; ANode: TSvgNode);
+begin
+  if ANode is TSvgPathNode then
+    RenderPathNode(ATarget, TSvgPathNode(ANode))
+  else
+  if ANode is TSvgImageNode then
+    RenderImageNode(ATarget, TSvgImageNode(ANode))
+  else
+  if ANode is TSvgTextNode then
+    RenderTextNode(ATarget, TSvgTextNode(ANode))
+  else
+  if ANode is TSvgGroupNode then
+    RenderGroupNode(ATarget, TSvgGroupNode(ANode));
+end;
+
 procedure TSvgRenderer.RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
 begin
   PushMatrix;
   try
     ApplyMatrix(ANode.Transform);
-
-    if ANode is TSvgPathNode then
-      RenderPathNode(ATarget, TSvgPathNode(ANode))
-    else
-    if ANode is TSvgImageNode then
-      RenderImageNode(ATarget, TSvgImageNode(ANode))
-    else
-    if ANode is TSvgTextNode then
-      RenderTextNode(ATarget, TSvgTextNode(ANode))
-    else
-    if ANode is TSvgGroupNode then
-      RenderGroupNode(ATarget, TSvgGroupNode(ANode));
+    RenderNodeContent(ATarget, ANode);
   finally
     PopMatrix;
   end;
@@ -3071,37 +3083,41 @@ begin
     // Polygon nodes (TSvgPathNode) handle their own ROI calculation after stroking inside RenderPathNode
     if NeedsOffscreen and (ATarget <> nil) and (not (ANode is TSvgPathNode)) then
     begin
-      // Calculate object bounding box in world space
-      NodeBounds := ANode.GetObjectBoundingBox;
-      Points[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-      Points[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-      Points[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-      Points[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
-
-      TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
-      for k := 1 to 3 do
-      begin
-        if (Points[k].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Points[k].X;
-        if (Points[k].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Points[k].X;
-        if (Points[k].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Points[k].Y;
-        if (Points[k].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Points[k].Y;
-      end;
-
-      NodeRoi := MakeRect(TargetWorldBounds, rrOutside);
-      if not GR32.IntersectRect(NodeRoi, NodeRoi, ATarget.BoundsRect) then
-        Exit;
-
-      OffscreenBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
-      ClipMaskBmp := nil;
-      MaskBmp := nil;
+      PushMatrix;
       try
-        PushMatrix;
-        try
-          TFloatMatrixHelper(FCurrentMatrix).Translate(-NodeRoi.Left, -NodeRoi.Top);
-          RenderNodeUnfiltered(OffscreenBmp, ANode);
-        finally
-          PopMatrix;
+        ApplyMatrix(ANode.Transform);
+
+        // Calculate object bounding box in world space
+        NodeBounds := ANode.GetObjectBoundingBox;
+        Points[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+        Points[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+        Points[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+        Points[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+
+        TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
+        for k := 1 to 3 do
+        begin
+          if (Points[k].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Points[k].X;
+          if (Points[k].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Points[k].X;
+          if (Points[k].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Points[k].Y;
+          if (Points[k].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Points[k].Y;
         end;
+
+        NodeRoi := MakeRect(TargetWorldBounds, rrOutside);
+        if not GR32.IntersectRect(NodeRoi, NodeRoi, ATarget.BoundsRect) then
+          Exit;
+
+        OffscreenBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
+        ClipMaskBmp := nil;
+        MaskBmp := nil;
+        try
+          PushMatrix;
+          try
+            TFloatMatrixHelper(FCurrentMatrix).Translate(-NodeRoi.Left, -NodeRoi.Top);
+            RenderNodeContent(OffscreenBmp, ANode);
+          finally
+            PopMatrix;
+          end;
 
         // Apply ClipPath
         if (ANode.ResolvedClipPath <> nil) then
@@ -3175,6 +3191,9 @@ begin
         ReleaseOffscreenBitmap(OffscreenBmp);
         ReleaseOffscreenBitmap(ClipMaskBmp);
         ReleaseOffscreenBitmap(MaskBmp);
+      end;
+      finally
+        PopMatrix;
       end;
       Exit;
     end;
