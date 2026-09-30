@@ -58,6 +58,7 @@ type
     procedure TestBitmapPool;
     procedure TestPatternFillAndStrokeRendering;
     procedure TestPatternWithDefaultChildFill;
+    procedure TestPatternSizingAndLargeBounds;
     procedure TestInkscapeGradientWithFallbackColor;
     procedure TestStrokeWidthRendering;
     procedure TestRadialGradientReflect;
@@ -80,6 +81,7 @@ type
     procedure TestRoiPolygonRendering;
     procedure TestRoiFilterBlurRendering;
     procedure TestObjectBoundingBoxClipPathRoi;
+    procedure TestGradientAndPatternFillOpacity;
   end;
 
 implementation
@@ -160,6 +162,57 @@ begin
         Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect filled with rotated pattern should be painted');
         Check((bmp.Pixel[100, 100] = clGreen32) or (RedComponent(bmp.Pixel[100, 100]) < 200),
           'Rotated pattern pixels should be green or grey');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestGradientAndPatternFillOpacity;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  pxGrad, pxPatt: TColor32;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="100">' +
+           '  <defs>' +
+           '    <linearGradient id="lg1">' +
+           '      <stop offset="0" stop-color="black"/>' +
+           '      <stop offset="1" stop-color="black"/>' +
+           '    </linearGradient>' +
+           '    <pattern id="patt1" patternUnits="userSpaceOnUse" width="20" height="20">' +
+           '      <rect x="0" y="0" width="20" height="20" fill="black"/>' +
+           '    </pattern>' +
+           '  </defs>' +
+           '  <rect id="r1" x="0" y="0" width="100" height="100" fill="url(#lg1)" fill-opacity="0.5"/>' +
+           '  <rect id="r2" x="100" y="0" width="100" height="100" fill="url(#patt1)" fill-opacity="0.5"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        pxGrad := bmp.Pixel[50, 50];
+        pxPatt := bmp.Pixel[150, 50];
+        // On white canvas, black at 0.5 opacity blends to approx 128 gray
+        Check(RedComponent(pxGrad) > 50, 'Gradient fill-opacity 0.5 on white should not be solid black');
+        Check(RedComponent(pxGrad) < 200, 'Gradient fill-opacity 0.5 on white should not be pure white');
+        Check(RedComponent(pxPatt) > 50, 'Pattern fill-opacity 0.5 on white should not be solid black');
+        Check(RedComponent(pxPatt) < 200, 'Pattern fill-opacity 0.5 on white should not be pure white');
       finally
         renderer.Free;
       end;
@@ -532,6 +585,47 @@ begin
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
   finally
     docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestPatternSizingAndLargeBounds;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(1000, 1000);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">' +
+           '  <defs>' +
+           '    <pattern id="star" viewBox="0,0,10,10" width="10%" height="10%">' +
+           '      <polygon points="0,0 2,5 0,10 5,8 10,10 8,5 10,0 5,2" fill="green"/>' +
+           '    </pattern>' +
+           '  </defs>' +
+           '  <rect x="0" y="0" width="1000" height="1000" fill="url(#star)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil for large pattern fill');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center of rect should be painted by green star pattern tile, not blank white
+        Check(bmp.Pixel[500, 500] <> clWhite32, 'Center region of large rect should be painted by pattern fill');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
   end;
 end;
 

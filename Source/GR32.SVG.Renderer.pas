@@ -96,8 +96,8 @@ type
     procedure BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode); overload;
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
-    function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
-    function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect): TCustomPolygonFiller;
+    function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
+    function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
     function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
     procedure ReleaseOffscreenBitmap(ABitmap: TCustomBitmap32);
     procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo); virtual;
@@ -545,20 +545,19 @@ begin
   end;
 end;
 
-function TSvgRenderer.CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect): TCustomPolygonFiller;
+function TSvgRenderer.CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
 var
   i: Integer;
-  stop: TSvgGradientStop;
-  stopColor: TColor32;
-  bWidth, bHeight: Single;
-  linNode: TSvgLinearGradientNode;
-  radNode: TSvgRadialGradientNode;
-  x1, y1, x2, y2: Single;
-  cx, cy, r, fx, fy, rx, ry, scaleX, scaleY: Single;
-  linFiller: TLinearGradientPolygonFiller;
-  radFiller: TSVGRadialGradientPolygonFiller;
-  totalTransform, gradTransform, bboxMat: TFloatMatrixHelper;
-  ptStart, ptEnd, ptC, ptF: TFloatPoint;
+  Stop: TSvgGradientStop;
+  StopColor: TColor32;
+  BoundsWidth, BoundsHeight: Single;
+  LinearNode: TSvgLinearGradientNode;
+  RadialNode: TSvgRadialGradientNode;
+  cx, cy, r, fx, fy, rx, ry, ScaleX, ScaleY: Single;
+  LinearFiller: TLinearGradientPolygonFiller;
+  RadialFiller: TSVGRadialGradientPolygonFiller;
+  TotalTransform, GradTransform, BboxMat: TFloatMatrixHelper;
+  PointStart, PointEnd, PointC, PointF: TFloatPoint;
 const
   WrapMode: array[TSvgSpreadMethod] of TWrapMode = (wmClamp, wmReflect, wmRepeat);
 begin
@@ -566,259 +565,285 @@ begin
   if (AGradNode = nil) or (AGradNode.Stops.Count = 0) then
     Exit;
 
-  bWidth := ABounds.Right - ABounds.Left;
-  bHeight := ABounds.Bottom - ABounds.Top;
-  if bWidth <= 0 then
-    bWidth := 1.0;
-  if bHeight <= 0 then
-    bHeight := 1.0;
+  BoundsWidth := ABounds.Width;
+  BoundsHeight := ABounds.Height;
+  if BoundsWidth <= 0 then
+    BoundsWidth := 1.0;
+  if BoundsHeight <= 0 then
+    BoundsHeight := 1.0;
 
-  gradTransform.Matrix := AGradNode.Transform;
+  GradTransform.Matrix := AGradNode.Transform;
 
   if AGradNode is TSvgLinearGradientNode then
   begin
-    linNode := TSvgLinearGradientNode(AGradNode);
+    LinearNode := TSvgLinearGradientNode(AGradNode);
 
-    if linNode.GradientUnits = guObjectBoundingBox then
+    if LinearNode.GradientUnits = guObjectBoundingBox then
     begin
-      x1 := linNode.X1.ToPixels(1.0);
-      y1 := linNode.Y1.ToPixels(1.0);
-      x2 := linNode.X2.ToPixels(1.0);
-      y2 := linNode.Y2.ToPixels(1.0);
+      PointStart.X := LinearNode.X1.ToPixels(1.0);
+      PointStart.Y := LinearNode.Y1.ToPixels(1.0);
+      PointEnd.X := LinearNode.X2.ToPixels(1.0);
+      PointEnd.Y := LinearNode.Y2.ToPixels(1.0);
 
-      bboxMat.Matrix := IdentityMatrix;
-      bboxMat.Scale(bWidth, bHeight);
-      bboxMat.Translate(ABounds.Left, ABounds.Top);
-      totalTransform := bboxMat * gradTransform;
+      BboxMat.Matrix := IdentityMatrix;
+      BboxMat.Scale(BoundsWidth, BoundsHeight);
+      BboxMat.Translate(ABounds.Left, ABounds.Top);
+      TotalTransform := BboxMat * GradTransform;
     end else
     begin
-      x1 := linNode.X1.ToPixels(FViewportRect.Right - FViewportRect.Left);
-      y1 := linNode.Y1.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
-      x2 := linNode.X2.ToPixels(FViewportRect.Right - FViewportRect.Left);
-      y2 := linNode.Y2.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
-      totalTransform := gradTransform * FCurrentMatrix;
+      PointStart.X := LinearNode.X1.ToPixels(FViewportRect.Width);
+      PointStart.Y := LinearNode.Y1.ToPixels(FViewportRect.Height);
+      PointEnd.X := LinearNode.X2.ToPixels(FViewportRect.Width);
+      PointEnd.Y := LinearNode.Y2.ToPixels(FViewportRect.Height);
+      TotalTransform := GradTransform * FCurrentMatrix;
     end;
 
-    ptStart := FloatPoint(x1, y1);
-    ptEnd := FloatPoint(x2, y2);
-
-    if (not totalTransform.IsIdentity) then
+    if (not TotalTransform.IsIdentity) then
     begin
-      ptStart := totalTransform.TransformPoint(ptStart);
-      ptEnd := totalTransform.TransformPoint(ptEnd);
+      PointStart := TotalTransform.TransformPoint(PointStart);
+      PointEnd := TotalTransform.TransformPoint(PointEnd);
     end;
 
-    linFiller := TLinearGradientPolygonFiller.Create;
-    linFiller.StartPoint := ptStart;
-    linFiller.EndPoint := ptEnd;
-    linFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
+    LinearFiller := TLinearGradientPolygonFiller.Create;
+    LinearFiller.StartPoint := PointStart;
+    LinearFiller.EndPoint := PointEnd;
+    LinearFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
 
-    linFiller.Gradient.ClearColorStops;
+    LinearFiller.Gradient.ClearColorStops;
     for i := 0 to AGradNode.Stops.Count - 1 do
     begin
-      stop := AGradNode.Stops[i];
-      stopColor := stop.Color.Color;
-      if stop.Opacity < 1.0 then
-        ScaleAlpha(stopColor, stop.Opacity);
-      linFiller.Gradient.AddColorStop(stop.Offset, stopColor);
+      Stop := AGradNode.Stops[i];
+      StopColor := Stop.Color.Color;
+      if (Stop.Opacity < 1.0) or (AOpacity < 1.0) then
+        ScaleAlpha(StopColor, Stop.Opacity * AOpacity);
+      LinearFiller.Gradient.AddColorStop(Stop.Offset, StopColor);
     end;
 
-    Result := linFiller;
+    Result := LinearFiller;
   end else
 
   if AGradNode is TSvgRadialGradientNode then
   begin
-    radNode := TSvgRadialGradientNode(AGradNode);
+    RadialNode := TSvgRadialGradientNode(AGradNode);
 
-    if radNode.GradientUnits = guObjectBoundingBox then
+    if RadialNode.GradientUnits = guObjectBoundingBox then
     begin
-      cx := radNode.Cx.ToPixels(1.0);
-      cy := radNode.Cy.ToPixels(1.0);
-      r := radNode.R.ToPixels(1.0);
-      fx := radNode.Fx.ToPixels(1.0);
-      fy := radNode.Fy.ToPixels(1.0);
+      cx := RadialNode.Cx.ToPixels(1.0);
+      cy := RadialNode.Cy.ToPixels(1.0);
+      r := RadialNode.R.ToPixels(1.0);
+      fx := RadialNode.Fx.ToPixels(1.0);
+      fy := RadialNode.Fy.ToPixels(1.0);
 
-      bboxMat.Matrix := IdentityMatrix;
-      bboxMat.Scale(bWidth, bHeight);
-      bboxMat.Translate(ABounds.Left, ABounds.Top);
-      totalTransform := bboxMat * gradTransform;
+      BboxMat.Matrix := IdentityMatrix;
+      BboxMat.Scale(BoundsWidth, BoundsHeight);
+      BboxMat.Translate(ABounds.Left, ABounds.Top);
+      TotalTransform := BboxMat * GradTransform;
     end else
     begin
-      cx := radNode.Cx.ToPixels(FViewportRect.Right - FViewportRect.Left);
-      cy := radNode.Cy.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
-      r := radNode.R.ToPixels(Sqrt(Sqr(FViewportRect.Right - FViewportRect.Left) + Sqr(FViewportRect.Bottom - FViewportRect.Top)) * Sqrt(0.5));
-      fx := radNode.Fx.ToPixels(FViewportRect.Right - FViewportRect.Left);
-      fy := radNode.Fy.ToPixels(FViewportRect.Bottom - FViewportRect.Top);
-      totalTransform := gradTransform * FCurrentMatrix;
+      cx := RadialNode.Cx.ToPixels(FViewportRect.Width);
+      cy := RadialNode.Cy.ToPixels(FViewportRect.Height);
+      r := RadialNode.R.ToPixels(GR32_Math.Hypot(FViewportRect.Width, FViewportRect.Height) * Sqrt(0.5));
+      fx := RadialNode.Fx.ToPixels(FViewportRect.Width);
+      fy := RadialNode.Fy.ToPixels(FViewportRect.Height);
+      TotalTransform := GradTransform * FCurrentMatrix;
     end;
 
-    ptC := FloatPoint(cx, cy);
-    ptF := FloatPoint(fx, fy);
+    PointC := FloatPoint(cx, cy);
+    PointF := FloatPoint(fx, fy);
 
     rx := r;
     ry := r;
 
-    if (not totalTransform.IsIdentity) then
+    if (not TotalTransform.IsIdentity) then
     begin
-      ptC := totalTransform.TransformPoint(ptC);
-      ptF := totalTransform.TransformPoint(ptF);
+      PointC := TotalTransform.TransformPoint(PointC);
+      PointF := TotalTransform.TransformPoint(PointF);
 
-      scaleX := GR32_Math.Hypot(totalTransform.Matrix[0, 0], totalTransform.Matrix[0, 1]);
-      scaleY := GR32_Math.Hypot(totalTransform.Matrix[1, 0], totalTransform.Matrix[1, 1]);
-      if scaleX > 0 then
-        rx := rx * scaleX;
-      if scaleY > 0 then
-        ry := ry * scaleY;
+      ScaleX := GR32_Math.Hypot(TotalTransform.Matrix[0, 0], TotalTransform.Matrix[0, 1]);
+      ScaleY := GR32_Math.Hypot(TotalTransform.Matrix[1, 0], TotalTransform.Matrix[1, 1]);
+      if ScaleX > 0 then
+        rx := rx * ScaleX;
+      if ScaleY > 0 then
+        ry := ry * ScaleY;
     end;
 
-    radFiller := TSVGRadialGradientPolygonFiller.Create;
+    RadialFiller := TSVGRadialGradientPolygonFiller.Create;
     try
-      radFiller.EllipseBounds := FloatRect(ptC.X - rx, ptC.Y - ry, ptC.X + rx, ptC.Y + ry);
-      radFiller.FocalPoint := ptF;
-      radFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
+      RadialFiller.EllipseBounds := FloatRect(PointC.X - rx, PointC.Y - ry, PointC.X + rx, PointC.Y + ry);
+      RadialFiller.FocalPoint := PointF;
+      RadialFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
 
-      radFiller.Gradient.ClearColorStops;
+      RadialFiller.Gradient.ClearColorStops;
       for i := 0 to AGradNode.Stops.Count - 1 do
       begin
-        stop := AGradNode.Stops[i];
-        stopColor := stop.Color.Color;
-        if stop.Opacity < 1.0 then
-          ScaleAlpha(stopColor, stop.Opacity);
-        radFiller.Gradient.AddColorStop(stop.Offset, stopColor);
+        Stop := AGradNode.Stops[i];
+        StopColor := Stop.Color.Color;
+        if (Stop.Opacity < 1.0) or (AOpacity < 1.0) then
+          ScaleAlpha(StopColor, Stop.Opacity * AOpacity);
+        RadialFiller.Gradient.AddColorStop(Stop.Offset, StopColor);
       end;
     except
-      radFiller.Free;
+      RadialFiller.Free;
       raise;
     end;
 
-    Result := radFiller;
+    Result := RadialFiller;
   end;
 end;
 
-function TSvgRenderer.CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect): TCustomPolygonFiller;
+function TSvgRenderer.CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
 var
-  bWidth, bHeight, vpWidth, vpHeight: Single;
-  tileX, tileY, tileW, tileH: Single;
-  patternBmp: TBitmap32;
-  i, bmpW, bmpH: Integer;
-  savedMatrix: TFloatMatrix;
-  savedViewport: TFloatRect;
-  contentMat, patTransMat, totalPatMat, normPatTrans: TFloatMatrixHelper;
+  BoundsWidth, BoundsHeight, ViewportWidth, ViewportHeight: Single;
+  TileX, TileY, TileWidth, TileHeight: Single;
+  TileWidthPx, TileHeightPx: Single;
+  PatternBitmap: TBitmap32;
+  i, BitmapWidth, BitmapHeight: Integer;
+  SavedMatrix: TFloatMatrix;
+  SavedViewport: TFloatRect;
+  ContentMat, PatternTransMat, NormPatternTrans: TFloatMatrixHelper;
+  TotalPatternMat: TFloatMatrixHelper;
   origPt: TFloatPoint;
-  tileViewBox: TSvgViewBox;
-  scaleX, scaleY: Single;
+  TileViewBox: TSvgViewBox;
+  MatrixScaleX, MatrixScaleY: Single;
+  PatternTransScaleX, PatternTransScaleY: Single;
+  PtX, PtY: Single;
+const
+  cMaxPatternDimension = 4096;
 begin
   Result := nil;
   if (APatternNode = nil) or (APatternNode.Children.Count = 0) then
     Exit;
 
-  bWidth := ABounds.Right - ABounds.Left;
-  bHeight := ABounds.Bottom - ABounds.Top;
-  if bWidth <= 0 then
-    bWidth := 1.0;
-  if bHeight <= 0 then
-    bHeight := 1.0;
+  BoundsWidth := ABounds.Width;
+  BoundsHeight := ABounds.Height;
+  if BoundsWidth <= 0 then
+    BoundsWidth := 1.0;
+  if BoundsHeight <= 0 then
+    BoundsHeight := 1.0;
 
-  vpWidth := FViewportRect.Right - FViewportRect.Left;
-  vpHeight := FViewportRect.Bottom - FViewportRect.Top;
-  if vpWidth <= 0 then
-    vpWidth := 1.0;
-  if vpHeight <= 0 then
-    vpHeight := 1.0;
+  ViewportWidth := FViewportRect.Width;
+  ViewportHeight := FViewportRect.Height;
+  if ViewportWidth <= 0 then
+    ViewportWidth := 1.0;
+  if ViewportHeight <= 0 then
+    ViewportHeight := 1.0;
 
+  MatrixScaleX := GR32_Math.Hypot(FCurrentMatrix[0, 0], FCurrentMatrix[0, 1]);
+  MatrixScaleY := GR32_Math.Hypot(FCurrentMatrix[1, 0], FCurrentMatrix[1, 1]);
+  if MatrixScaleX <= 0 then
+    MatrixScaleX := 1.0;
+  if MatrixScaleY <= 0 then
+    MatrixScaleY := 1.0;
+
+  PatternTransMat.Matrix := APatternNode.PatternTransform;
+  PatternTransScaleX := GR32_Math.Hypot(PatternTransMat.Matrix[0, 0], PatternTransMat.Matrix[0, 1]);
+  PatternTransScaleY := GR32_Math.Hypot(PatternTransMat.Matrix[1, 0], PatternTransMat.Matrix[1, 1]);
+  if PatternTransScaleX <= 0 then
+    PatternTransScaleX := 1.0;
+  if PatternTransScaleY <= 0 then
+    PatternTransScaleY := 1.0;
+
+  // Calculates pattern tile origin and pixel dimensions based on patternUnits.
+  // When patternUnits = guObjectBoundingBox (default), tile attributes x, y, width, height
+  // are defined in normalized bounding box units [0..1] (e.g. 10% = 0.1).
   if APatternNode.PatternUnits = guObjectBoundingBox then
   begin
-    tileX := APatternNode.X.ToPixels(bWidth);
-    tileY := APatternNode.Y.ToPixels(bHeight);
-    tileW := APatternNode.Width.ToPixels(bWidth);
-    tileH := APatternNode.Height.ToPixels(bHeight);
-  end else
+    TileX := APatternNode.X.ToPixels(1.0);
+    TileY := APatternNode.Y.ToPixels(1.0);
+    TileWidth := APatternNode.Width.ToPixels(1.0);
+    TileHeight := APatternNode.Height.ToPixels(1.0);
+
+    TileWidthPx := TileWidth * BoundsWidth;
+    TileHeightPx := TileHeight * BoundsHeight;
+
+    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx * PatternTransScaleX)));
+    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx * PatternTransScaleY)));
+
+    PtX := ABounds.Left + TileX * BoundsWidth;
+    PtY := ABounds.Top + TileY * BoundsHeight;
+    origPt := PatternTransMat.TransformPoint(FloatPoint(PtX, PtY));
+    TileX := origPt.X;
+    TileY := origPt.Y;
+  end
+  else
   begin
-    tileX := APatternNode.X.ToPixels(vpWidth);
-    tileY := APatternNode.Y.ToPixels(vpHeight);
-    tileW := APatternNode.Width.ToPixels(vpWidth);
-    tileH := APatternNode.Height.ToPixels(vpHeight);
+    TileX := APatternNode.X.ToPixels(ViewportWidth);
+    TileY := APatternNode.Y.ToPixels(ViewportHeight);
+    TileWidth := APatternNode.Width.ToPixels(ViewportWidth);
+    TileHeight := APatternNode.Height.ToPixels(ViewportHeight);
+
+    TileWidthPx := TileWidth * MatrixScaleX;
+    TileHeightPx := TileHeight * MatrixScaleY;
+
+    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx * PatternTransScaleX)));
+    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx * PatternTransScaleY)));
+
+    TotalPatternMat := PatternTransMat * FCurrentMatrix;
+    origPt := TotalPatternMat.TransformPoint(FloatPoint(TileX, TileY));
+    TileX := origPt.X;
+    TileY := origPt.Y;
   end;
 
-  if (tileW <= 0) or (tileH <= 0) then
+  if (BitmapWidth <= 0) or (BitmapHeight <= 0) then
     Exit;
 
-  patTransMat.Matrix := APatternNode.PatternTransform;
-  if APatternNode.PatternUnits = guObjectBoundingBox then
-  begin
-    totalPatMat.Matrix := IdentityMatrix;
-    totalPatMat.Scale(bWidth, bHeight);
-    totalPatMat.Translate(ABounds.Left, ABounds.Top);
-    totalPatMat := totalPatMat * patTransMat;
-  end else
-  begin
-    totalPatMat := patTransMat * FCurrentMatrix;
-  end;
-
-  scaleX := GR32_Math.Hypot(totalPatMat.Matrix[0, 0], totalPatMat.Matrix[0, 1]);
-  scaleY := GR32_Math.Hypot(totalPatMat.Matrix[1, 0], totalPatMat.Matrix[1, 1]);
-  if scaleX <= 0 then
-    scaleX := 1.0;
-  if scaleY <= 0 then
-    scaleY := 1.0;
-
-  origPt := totalPatMat.TransformPoint(FloatPoint(tileX, tileY));
-  tileX := origPt.X;
-  tileY := origPt.Y;
-
-  bmpW := Max(1, Round(tileW * scaleX));
-  bmpH := Max(1, Round(tileH * scaleY));
-
-  patternBmp := TBitmap32.Create;
+  PatternBitmap := TBitmap32.Create;
   try
-    patternBmp.SetSize(bmpW, bmpH);
-    patternBmp.DrawMode := dmBlend;
+    PatternBitmap.SetSize(BitmapWidth, BitmapHeight);
+    PatternBitmap.DrawMode := dmBlend;
 
-    savedMatrix := FCurrentMatrix;
-    savedViewport := FViewportRect;
+    SavedMatrix := FCurrentMatrix;
+    SavedViewport := FViewportRect;
 
     FCurrentMatrix := IdentityMatrix;
-    FViewportRect := FloatRect(0, 0, bmpW, bmpH);
+    FViewportRect := FloatRect(0, 0, BitmapWidth, BitmapHeight);
 
-    normPatTrans := patTransMat;
-    normPatTrans.Matrix[2, 0] := 0;
-    normPatTrans.Matrix[2, 1] := 0;
+    NormPatternTrans := PatternTransMat;
+    NormPatternTrans.Matrix[2, 0] := 0;
+    NormPatternTrans.Matrix[2, 1] := 0;
 
-    contentMat.Matrix := IdentityMatrix;
+    // Sets up ContentMat to render pattern child geometry onto offscreen tile bitmap
+    ContentMat.Matrix := IdentityMatrix;
     if APatternNode.ViewBox.IsValid then
     begin
-      tileViewBox := APatternNode.ViewBox;
-      contentMat.Matrix := tileViewBox.GetTransform(FloatRect(0, 0, bmpW, bmpH), APatternNode.PreserveAspectRatio);
-      contentMat := normPatTrans * contentMat;
-    end else
+      TileViewBox := APatternNode.ViewBox;
+      ContentMat.Matrix := TileViewBox.GetTransform(FloatRect(0, 0, TileWidthPx, TileHeightPx), APatternNode.PreserveAspectRatio);
+      ContentMat := NormPatternTrans * ContentMat;
+    end
+    else
     if APatternNode.PatternContentUnits = guObjectBoundingBox then
     begin
-      contentMat.Scale(bWidth * scaleX, bHeight * scaleY);
-      contentMat := normPatTrans * contentMat;
-    end else
+      ContentMat.Scale(BoundsWidth * MatrixScaleX, BoundsHeight * MatrixScaleY);
+      ContentMat := NormPatternTrans * ContentMat;
+    end
+    else
     begin
-      contentMat.Scale(scaleX, scaleY);
-      contentMat := normPatTrans * contentMat;
+      ContentMat.Scale(MatrixScaleX, MatrixScaleY);
+      ContentMat := NormPatternTrans * ContentMat;
     end;
 
     PushMatrix;
     try
-      ApplyMatrix(contentMat.Matrix);
+      ApplyMatrix(ContentMat.Matrix);
 
       for i := 0 to APatternNode.Children.Count - 1 do
-        RenderNode(patternBmp, APatternNode.Children[i]);
+        RenderNode(PatternBitmap, APatternNode.Children[i]);
 
     finally
       PopMatrix;
-      FCurrentMatrix := savedMatrix;
-      FViewportRect := savedViewport;
+      FCurrentMatrix := SavedMatrix;
+      FViewportRect := SavedViewport;
     end;
 
-    Result := TSvgPatternPolygonFiller.Create(patternBmp);
-    TSvgPatternPolygonFiller(Result).OffsetX := Round(tileX);
-    TSvgPatternPolygonFiller(Result).OffsetY := Round(tileY);
+    if (AOpacity < 1.0) then
+      PatternBitmap.MasterAlpha := Round(AOpacity * 256);
+
+    Result := TSvgPatternPolygonFiller.Create(PatternBitmap);
+
+    TSvgPatternPolygonFiller(Result).OffsetX := Round(TileX);
+    TSvgPatternPolygonFiller(Result).OffsetY := Round(TileY);
   except
-    patternBmp.Free;
+    PatternBitmap.Free;
     raise;
   end;
 end;
@@ -942,9 +967,10 @@ begin
 
       Filler := nil;
       if PaintServerNode is TSvgGradientNode then
-        Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), Bounds)
-      else if PaintServerNode is TSvgPatternNode then
-        Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), Bounds);
+        Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), Bounds, APathNode.Fill.Opacity)
+      else
+      if PaintServerNode is TSvgPatternNode then
+        Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), Bounds, APathNode.Fill.Opacity);
 
       if (Filler <> nil) then
       begin
@@ -987,9 +1013,10 @@ begin
         StrokeBounds := GetPathBounds(StrokePoints);
         Filler := nil;
         if PaintServerNode is TSvgGradientNode then
-          Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), StrokeBounds)
-        else if PaintServerNode is TSvgPatternNode then
-          Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), StrokeBounds);
+          Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), StrokeBounds, APathNode.Stroke.Opacity)
+        else
+        if PaintServerNode is TSvgPatternNode then
+          Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), StrokeBounds, APathNode.Stroke.Opacity);
 
         if (Filler <> nil) then
         begin
@@ -1093,8 +1120,8 @@ begin
         for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
           Gray := Intensity(DestP^);
-          Gray := Round(Gray * (AlphaComponent(DestP^) / 255.0));
-          ScaleAlpha(SourceP^, Gray / 255.0);
+          Gray := Round(Gray * (AlphaComponent(DestP^) * OneOver255));
+          ScaleAlpha(SourceP^, Gray * OneOver255);
           Inc(SourceP);
           Inc(DestP);
         end;
@@ -2507,9 +2534,10 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         TargetNode := TSvgNode(AFill.ResolvedPaintServer);
         Filler := nil;
         if TargetNode is TSvgGradientNode then
-          Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), Bounds)
-        else if TargetNode is TSvgPatternNode then
-          Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), Bounds);
+          Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), Bounds, AFill.Opacity)
+        else
+        if TargetNode is TSvgPatternNode then
+          Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), Bounds, AFill.Opacity);
 
         if Filler <> nil then
         begin
@@ -2575,9 +2603,10 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           StrokeBounds := GetPathBounds(StrokePts);
           Filler := nil;
           if TargetNode is TSvgGradientNode then
-            Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), StrokeBounds)
-          else if TargetNode is TSvgPatternNode then
-            Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), StrokeBounds);
+            Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), StrokeBounds, AStroke.Opacity)
+          else
+          if TargetNode is TSvgPatternNode then
+            Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), StrokeBounds, AStroke.Opacity);
 
           if Filler <> nil then
           begin
