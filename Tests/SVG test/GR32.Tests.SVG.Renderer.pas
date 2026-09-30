@@ -77,7 +77,7 @@ type
     procedure TestImageRendering;
     procedure TestSwitchRendering;
     procedure TestUserSpaceOnUsePercentageGradient;
-    procedure TestPatternTransformAndScaling;
+    procedure TestPatternScaling;
     procedure TestRoiPolygonRendering;
     procedure TestRoiFilterBlurRendering;
     procedure TestTransformedFilterRendering;
@@ -184,7 +184,7 @@ begin
   end;
 end;
 
-procedure TTestSvgRenderer.TestPatternTransformAndScaling;
+procedure TTestSvgRenderer.TestPatternScaling;
 var
   bmp: TBitmap32;
   docNode: TSvgDocumentNode;
@@ -198,7 +198,7 @@ begin
 
     xml := '<svg id="svg1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
            '  <defs>' +
-           '    <pattern id="patt1" patternUnits="userSpaceOnUse" width="20" height="20" patternTransform="rotate(30)">' +
+           '    <pattern id="patt1" patternUnits="userSpaceOnUse" width="20" height="20">' +
            '      <rect id="rect1" x="0" y="0" width="10" height="10" fill="grey"/>' +
            '      <rect id="rect2" x="10" y="10" width="10" height="10" fill="green"/>' +
            '    </pattern>' +
@@ -207,16 +207,16 @@ begin
            '</svg>';
 
     docNode := ParseSvgXml(xml);
-    Check(docNode <> nil, 'PatternTransform docNode should not be nil');
+    Check(docNode <> nil, 'Pattern docNode should not be nil');
     try
       renderer := TSvgRenderer.Create(bmp);
       try
         renderer.RenderDocument(docNode);
 
         // Rect center region should be painted with pattern colors, NOT plain white
-        Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect filled with rotated pattern should be painted');
+        Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect filled with pattern should be painted');
         Check((bmp.Pixel[100, 100] = clGreen32) or (RedComponent(bmp.Pixel[100, 100]) < 200),
-          'Rotated pattern pixels should be green or grey');
+          'Pattern pixels should be green or grey');
       finally
         renderer.Free;
       end;

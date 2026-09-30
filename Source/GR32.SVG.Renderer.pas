@@ -701,13 +701,10 @@ var
   i, BitmapWidth, BitmapHeight: Integer;
   SavedMatrix: TFloatMatrix;
   SavedViewport: TFloatRect;
-  ContentMat, PatternTransMat, NormPatternTrans: TFloatMatrixHelper;
-  TotalPatternMat: TFloatMatrixHelper;
+  ContentMat: TFloatMatrixHelper;
   origPt: TFloatPoint;
   TileViewBox: TSvgViewBox;
   MatrixScaleX, MatrixScaleY: Single;
-  PatternTransScaleX, PatternTransScaleY: Single;
-  PtX, PtY: Single;
 const
   cMaxPatternDimension = 4096;
 begin
@@ -736,14 +733,6 @@ begin
   if MatrixScaleY <= 0 then
     MatrixScaleY := 1.0;
 
-  PatternTransMat.Matrix := APatternNode.PatternTransform;
-  PatternTransScaleX := GR32_Math.Hypot(PatternTransMat.Matrix[0, 0], PatternTransMat.Matrix[0, 1]);
-  PatternTransScaleY := GR32_Math.Hypot(PatternTransMat.Matrix[1, 0], PatternTransMat.Matrix[1, 1]);
-  if PatternTransScaleX <= 0 then
-    PatternTransScaleX := 1.0;
-  if PatternTransScaleY <= 0 then
-    PatternTransScaleY := 1.0;
-
   // Calculates pattern tile origin and pixel dimensions based on patternUnits.
   // When patternUnits = guObjectBoundingBox (default), tile attributes x, y, width, height
   // are defined in normalized bounding box units [0..1] (e.g. 10% = 0.1).
@@ -757,14 +746,11 @@ begin
     TileWidthPx := TileWidth * BoundsWidth;
     TileHeightPx := TileHeight * BoundsHeight;
 
-    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx * PatternTransScaleX)));
-    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx * PatternTransScaleY)));
+    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx)));
+    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx)));
 
-    PtX := ABounds.Left + TileX * BoundsWidth;
-    PtY := ABounds.Top + TileY * BoundsHeight;
-    origPt := PatternTransMat.TransformPoint(FloatPoint(PtX, PtY));
-    TileX := origPt.X;
-    TileY := origPt.Y;
+    TileX := ABounds.Left + TileX * BoundsWidth;
+    TileY := ABounds.Top + TileY * BoundsHeight;
   end
   else
   begin
@@ -776,11 +762,10 @@ begin
     TileWidthPx := TileWidth * MatrixScaleX;
     TileHeightPx := TileHeight * MatrixScaleY;
 
-    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx * PatternTransScaleX)));
-    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx * PatternTransScaleY)));
+    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx)));
+    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx)));
 
-    TotalPatternMat := PatternTransMat * FCurrentMatrix;
-    origPt := TotalPatternMat.TransformPoint(FloatPoint(TileX, TileY));
+    origPt := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(TileX, TileY));
     TileX := origPt.X;
     TileY := origPt.Y;
   end;
@@ -799,29 +784,18 @@ begin
     FCurrentMatrix := IdentityMatrix;
     FViewportRect := FloatRect(0, 0, BitmapWidth, BitmapHeight);
 
-    NormPatternTrans := PatternTransMat;
-    NormPatternTrans.Matrix[2, 0] := 0;
-    NormPatternTrans.Matrix[2, 1] := 0;
-
     // Sets up ContentMat to render pattern child geometry onto offscreen tile bitmap
     ContentMat.Matrix := IdentityMatrix;
     if APatternNode.ViewBox.IsValid then
     begin
       TileViewBox := APatternNode.ViewBox;
       ContentMat.Matrix := TileViewBox.GetTransform(FloatRect(0, 0, TileWidthPx, TileHeightPx), APatternNode.PreserveAspectRatio);
-      ContentMat := NormPatternTrans * ContentMat;
     end
     else
     if APatternNode.PatternContentUnits = guObjectBoundingBox then
-    begin
-      ContentMat.Scale(BoundsWidth * MatrixScaleX, BoundsHeight * MatrixScaleY);
-      ContentMat := NormPatternTrans * ContentMat;
-    end
+      ContentMat.Scale(BoundsWidth * MatrixScaleX, BoundsHeight * MatrixScaleY)
     else
-    begin
       ContentMat.Scale(MatrixScaleX, MatrixScaleY);
-      ContentMat := NormPatternTrans * ContentMat;
-    end;
 
     PushMatrix;
     try
