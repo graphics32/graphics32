@@ -73,15 +73,18 @@ type
   TSvgRenderer = class(TObject)
   private
     FTarget: TCustomBitmap32;
-    FMatrixStack: TList<TFloatMatrix>;
-    FCurrentMatrix: TFloatMatrix;
     FViewportRect: TFloatRect;
     FDocumentRoot: TSvgDocumentNode;
     FBitmapPool: TSvgBitmapPool;
     FPolyRenderer: TPolygonRenderer32;
     FAllowExternalImages: Boolean;
     FRecursionDepth: integer;
+    FTransformation: TAffineTransformation;
+    function GetTransformation: TAffineTransformation;
   protected
+    function CanRenderPolyPolygon(APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor): boolean;
+    procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode = pfWinding);
+
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
     procedure RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
@@ -106,8 +109,6 @@ type
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
 
-    procedure PushMatrix;
-    procedure PopMatrix;
     procedure ApplyMatrix(const AMatrix: TFloatMatrix);
 
     procedure RenderDocument(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect); overload;
@@ -116,7 +117,7 @@ type
     procedure RenderNode(ANode: TSvgNode); overload;
 
     property Target: TCustomBitmap32 read FTarget write FTarget;
-    property CurrentMatrix: TFloatMatrix read FCurrentMatrix write FCurrentMatrix;
+    property Transformation: TAffineTransformation read GetTransformation;
     property ViewportRect: TFloatRect read FViewportRect write FViewportRect;
     property AllowExternalImages: Boolean read FAllowExternalImages write FAllowExternalImages;
   end;
@@ -144,6 +145,8 @@ const
 
 const
   cMaxRecursions = 20;
+//  if (FMatrixStack.Count > cMaxStackDepth) then
+//    raise Exception.Create('Max stack depth exceeded; Likely invalid recursion in svg references');
 
 const
   cMaxStackDepth = 80; // Checked in PushMatrix. Exception is exceeded.
@@ -409,8 +412,7 @@ constructor TSvgRenderer.Create(ATarget: TCustomBitmap32);
 begin
   inherited Create;
   FTarget := ATarget;
-  FMatrixStack := TList<TFloatMatrix>.Create;
-  FCurrentMatrix := IdentityMatrix;
+  FTransformation := TAffineTransformation.Create;
   FViewportRect := FloatRect(0, 0, 0, 0);
   FDocumentRoot := nil;
   FBitmapPool := TSvgBitmapPool.Create;
@@ -420,10 +422,15 @@ end;
 
 destructor TSvgRenderer.Destroy;
 begin
+  FTransformation.Free;
   FBitmapPool.Free;
-  FMatrixStack.Free;
   FPolyRenderer.Free;
   inherited Destroy;
+end;
+
+function TSvgRenderer.GetTransformation: TAffineTransformation;
+begin
+  Result := FTransformation;
 end;
 
 function TSvgRenderer.GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean): TCustomBitmap32;
@@ -436,25 +443,9 @@ begin
   FBitmapPool.Release(ABitmap);
 end;
 
-procedure TSvgRenderer.PushMatrix;
-begin
-  if (FMatrixStack.Count > cMaxStackDepth) then
-    raise Exception.Create('Max stack depth exceeded; Likely invalid recursion in svg references');
-  FMatrixStack.Add(FCurrentMatrix);
-end;
-
-procedure TSvgRenderer.PopMatrix;
-begin
-  if FMatrixStack.Count > 0 then
-  begin
-    FCurrentMatrix := FMatrixStack[FMatrixStack.Count - 1];
-    FMatrixStack.Delete(FMatrixStack.Count - 1);
-  end;
-end;
-
 procedure TSvgRenderer.ApplyMatrix(const AMatrix: TFloatMatrix);
 begin
-  FCurrentMatrix := Mult(FCurrentMatrix, AMatrix);
+  FTransformation.Clear(Mult(FTransformation.Matrix, AMatrix));
 end;
 
 procedure TSvgRenderer.BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode; AX: Integer; AY: Integer);
@@ -513,7 +504,7 @@ begin
     len := Length(APoints[i]);
     SetLength(Result[i], len);
     for j := 0 to len - 1 do
-      Result[i][j] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(APoints[i][j]);
+      Result[i][j] := FTransformation.Transform(APoints[i][j]);
   end;
 end;
 
@@ -596,7 +587,7 @@ begin
       PointStart.Y := LinearNode.Y1.ToPixels(FViewportRect.Height);
       PointEnd.X := LinearNode.X2.ToPixels(FViewportRect.Width);
       PointEnd.Y := LinearNode.Y2.ToPixels(FViewportRect.Height);
-      TotalTransform := GradTransform * FCurrentMatrix;
+      TotalTransform := GradTransform * FTransformation.Matrix;
     end;
 
     if (not TotalTransform.IsIdentity) then
@@ -646,7 +637,7 @@ begin
       r := RadialNode.R.ToPixels(GR32_Math.Hypot(FViewportRect.Width, FViewportRect.Height) * Sqrt(0.5));
       fx := RadialNode.Fx.ToPixels(FViewportRect.Width);
       fy := RadialNode.Fy.ToPixels(FViewportRect.Height);
-      TotalTransform := GradTransform * FCurrentMatrix;
+      TotalTransform := GradTransform * FTransformation.Matrix;
     end;
 
     PointC := FloatPoint(cx, cy);
@@ -699,7 +690,6 @@ var
   TileWidthPx, TileHeightPx: Single;
   PatternBitmap: TBitmap32;
   i, BitmapWidth, BitmapHeight: Integer;
-  SavedMatrix: TFloatMatrix;
   SavedViewport: TFloatRect;
   ContentMat: TFloatMatrixHelper;
   origPt: TFloatPoint;
@@ -726,8 +716,8 @@ begin
   if ViewportHeight <= 0 then
     ViewportHeight := 1.0;
 
-  MatrixScaleX := GR32_Math.Hypot(FCurrentMatrix[0, 0], FCurrentMatrix[0, 1]);
-  MatrixScaleY := GR32_Math.Hypot(FCurrentMatrix[1, 0], FCurrentMatrix[1, 1]);
+  MatrixScaleX := GR32_Math.Hypot(FTransformation.Matrix[0, 0], FTransformation.Matrix[0, 1]);
+  MatrixScaleY := GR32_Math.Hypot(FTransformation.Matrix[1, 0], FTransformation.Matrix[1, 1]);
   if MatrixScaleX <= 0 then
     MatrixScaleX := 1.0;
   if MatrixScaleY <= 0 then
@@ -765,7 +755,7 @@ begin
     BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx)));
     BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx)));
 
-    origPt := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(TileX, TileY));
+    origPt := FTransformation.Transform(FloatPoint(TileX, TileY));
     TileX := origPt.X;
     TileY := origPt.Y;
   end;
@@ -778,35 +768,33 @@ begin
     PatternBitmap.SetSize(BitmapWidth, BitmapHeight);
     PatternBitmap.DrawMode := dmBlend;
 
-    SavedMatrix := FCurrentMatrix;
-    SavedViewport := FViewportRect;
-
-    FCurrentMatrix := IdentityMatrix;
-    FViewportRect := FloatRect(0, 0, BitmapWidth, BitmapHeight);
-
-    // Sets up ContentMat to render pattern child geometry onto offscreen tile bitmap
-    ContentMat.Matrix := IdentityMatrix;
-    if APatternNode.ViewBox.IsValid then
-    begin
-      TileViewBox := APatternNode.ViewBox;
-      ContentMat.Matrix := TileViewBox.GetTransform(FloatRect(0, 0, TileWidthPx, TileHeightPx), APatternNode.PreserveAspectRatio);
-    end
-    else
-    if APatternNode.PatternContentUnits = guObjectBoundingBox then
-      ContentMat.Scale(BoundsWidth * MatrixScaleX, BoundsHeight * MatrixScaleY)
-    else
-      ContentMat.Scale(MatrixScaleX, MatrixScaleY);
-
-    PushMatrix;
+    FTransformation.Push;
     try
-      ApplyMatrix(ContentMat.Matrix);
+      SavedViewport := FViewportRect;
 
-      for i := 0 to APatternNode.Children.Count - 1 do
-        RenderNode(PatternBitmap, APatternNode.Children[i]);
+      FTransformation.Clear;
+      FViewportRect := FloatRect(0, 0, BitmapWidth, BitmapHeight);
+
+      // Sets up ContentMat to render pattern child geometry onto offscreen tile bitmap
+      ContentMat.Matrix := IdentityMatrix;
+      if APatternNode.ViewBox.IsValid then
+      begin
+        TileViewBox := APatternNode.ViewBox;
+        ContentMat.Matrix := TileViewBox.GetTransform(FloatRect(0, 0, TileWidthPx, TileHeightPx), APatternNode.PreserveAspectRatio);
+      end
+      else
+      if APatternNode.PatternContentUnits = guObjectBoundingBox then
+        ContentMat.Scale(BoundsWidth * MatrixScaleX, BoundsHeight * MatrixScaleY)
+      else
+        ContentMat.Scale(MatrixScaleX, MatrixScaleY);
+
+        ApplyMatrix(ContentMat.Matrix);
+
+        for i := 0 to APatternNode.Children.Count - 1 do
+          RenderNode(PatternBitmap, APatternNode.Children[i]);
 
     finally
-      PopMatrix;
-      FCurrentMatrix := SavedMatrix;
+      FTransformation.Pop;
       FViewportRect := SavedViewport;
     end;
 
@@ -823,6 +811,78 @@ begin
   end;
 end;
 
+function TSvgRenderer.CanRenderPolyPolygon(APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor): boolean;
+begin
+  Result := (APoints <> nil) and
+    ((APaintServer <> nil) or
+     ((not AColor.IsNone) and (Round(AlphaComponent(AColor.Color) * AOpacity) > 0)));
+end;
+
+procedure TSvgRenderer.RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint;
+  AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode);
+var
+  PaintServerNode: TSvgNode;
+  Bounds: TFloatRect;
+  Filler: TCustomPolygonFiller;
+  Color: TColor32;
+begin
+  if (APoints = nil) then
+    exit;
+
+  if (APaintServer <> nil) then
+  begin
+    Bounds := GetPathBounds(APoints);
+
+    PaintServerNode := TSvgNode(APaintServer);
+
+    Filler := nil;
+    if PaintServerNode is TSvgGradientNode then
+      Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), Bounds, AOpacity)
+    else
+    if PaintServerNode is TSvgPatternNode then
+      Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), Bounds, AOpacity);
+
+    if (Filler = nil) then
+      exit;
+
+    try
+      if (FPolyRenderer = nil) then
+        FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
+
+      FPolyRenderer.Bitmap := ATarget;
+      FPolyRenderer.Filler := Filler;
+      try
+        FPolyRenderer.FillMode := AFillMode;
+
+        FPolyRenderer.PolyPolygonFS(APoints);
+      finally
+        FPolyRenderer.Filler := nil;
+      end;
+    finally
+      Filler.Free;
+    end;
+  end else
+  if (not AColor.IsNone) then
+  begin
+    Color := AColor.Color;
+    if (AOpacity < 1.0) then
+      ScaleAlpha(Color, AOpacity);
+
+    if (AlphaComponent(Color) = 0) then
+      exit;
+
+    if (FPolyRenderer = nil) then
+      FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
+
+    FPolyRenderer.Bitmap := ATarget;
+    FPolyRenderer.Color := Color;
+    FPolyRenderer.FillMode := AFillMode;
+
+    FPolyRenderer.PolyPolygonFS(APoints);
+  end;
+end;
+
+
 procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
 var
   PathPoints, TransformedPoints: TArrayOfArrayOfFloatPoint;
@@ -832,7 +892,7 @@ var
   ScaledDashArray: TArrayOfFloat;
   i, j, k, x: Integer;
   Filler: TCustomPolygonFiller;
-  Bounds, StrokeBounds, FloatRoi: TFloatRect;
+  FloatRoi: TFloatRect;
   PaintServerNode: TSvgNode;
   RoiRect: TRect;
   NeedsOffscreen: Boolean;
@@ -842,7 +902,6 @@ var
   MaskNodeTarget: TSvgMaskNode;
   SourceP, DestP: PColor32;
   AlphaVal, Gray: Byte;
-  OldMatrix: TFloatMatrix;
 const
   OneOver255: Single = 1 / 255;
 begin
@@ -862,7 +921,7 @@ begin
   StrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
   if (StrokeWidth > 0) and ((APathNode.Stroke.ResolvedPaintServer <> nil) or (not APathNode.Stroke.Color.IsNone)) then
   begin
-    MatScale := GetMatrixScale(FCurrentMatrix);
+    MatScale := GetMatrixScale(FTransformation.Matrix);
     StrokeWidth := StrokeWidth * MatScale;
 
     ScaledDashArray := nil;
@@ -929,102 +988,11 @@ begin
     RenderBmp := ATarget;
 
   try
-    if (FPolyRenderer = nil) then
-      FPolyRenderer := DefaultPolygonRendererClass.Create(RenderBmp)
-    else
-      FPolyRenderer.Bitmap := RenderBmp;
-
     // 5. Fill Rendering
-    Bounds := GetPathBounds(TransformedPoints);
-    if APathNode.Fill.ResolvedPaintServer <> nil then
-    begin
-      PaintServerNode := TSvgNode(APathNode.Fill.ResolvedPaintServer);
-
-      Filler := nil;
-      if PaintServerNode is TSvgGradientNode then
-        Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), Bounds, APathNode.Fill.Opacity)
-      else
-      if PaintServerNode is TSvgPatternNode then
-        Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), Bounds, APathNode.Fill.Opacity);
-
-      if (Filler <> nil) then
-      begin
-        try
-          FPolyRenderer.Bitmap := RenderBmp;
-          FPolyRenderer.Filler := Filler;
-          try
-            FPolyRenderer.FillMode := APathNode.Fill.FillRule;
-            FPolyRenderer.PolyPolygonFS(TransformedPoints);
-          finally
-            FPolyRenderer.Filler := nil;
-          end;
-        finally
-          Filler.Free;
-        end;
-      end;
-    end else
-    if (not APathNode.Fill.Color.IsNone) then
-    begin
-      Color := APathNode.Fill.Color.Color;
-      if (APathNode.Fill.Opacity < 1.0) then
-        ScaleAlpha(Color, APathNode.Fill.Opacity);
-
-      if (AlphaComponent(Color) > 0) then
-      begin
-        FPolyRenderer.Bitmap := RenderBmp;
-        FPolyRenderer.Color := Color;
-        FPolyRenderer.FillMode := APathNode.Fill.FillRule;
-
-        FPolyRenderer.PolyPolygonFS(TransformedPoints);
-      end;
-    end;
+    RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, APathNode.Fill.Color, APathNode.Fill.FillRule);
 
     // 6. Stroke Rendering
-    if Length(StrokePoints) > 0 then
-    begin
-      if (APathNode.Stroke.ResolvedPaintServer <> nil) then
-      begin
-        PaintServerNode := TSvgNode(APathNode.Stroke.ResolvedPaintServer);
-        StrokeBounds := GetPathBounds(StrokePoints);
-        Filler := nil;
-        if PaintServerNode is TSvgGradientNode then
-          Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), StrokeBounds, APathNode.Stroke.Opacity)
-        else
-        if PaintServerNode is TSvgPatternNode then
-          Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), StrokeBounds, APathNode.Stroke.Opacity);
-
-        if (Filler <> nil) then
-        begin
-          try
-            FPolyRenderer.Bitmap := RenderBmp;
-            FPolyRenderer.Filler := Filler;
-            try
-              FPolyRenderer.FillMode := pfWinding;
-              FPolyRenderer.PolyPolygonFS(StrokePoints);
-            finally
-              FPolyRenderer.Filler := nil;
-            end;
-          finally
-            Filler.Free;
-          end;
-        end;
-      end else
-      if (not APathNode.Stroke.Color.IsNone) then
-      begin
-        Color := APathNode.Stroke.Color.Color;
-        if (APathNode.Stroke.Opacity < 1.0) then
-          ScaleAlpha(Color, APathNode.Stroke.Opacity);
-
-        if (AlphaComponent(Color) > 0) then
-        begin
-          FPolyRenderer.Bitmap := RenderBmp;
-          FPolyRenderer.Color := Color;
-          FPolyRenderer.FillMode := pfWinding;
-
-          FPolyRenderer.PolyPolygonFS(StrokePoints);
-        end;
-      end;
-    end;
+    RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, APathNode.Stroke.Color);
 
     // 7. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
     if (APathNode.ResolvedMarkerStart <> nil) or (APathNode.ResolvedMarkerMid <> nil) or (APathNode.ResolvedMarkerEnd <> nil) then
@@ -1032,12 +1000,13 @@ begin
       StrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
       if NeedsOffscreen then
       begin
-        PushMatrix;
+        FTransformation.Push;
         try
-          TFloatMatrixHelper(FCurrentMatrix).Translate(-RoiRect.Left, -RoiRect.Top);
+          FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
+
           RenderMarkers(RenderBmp, APathNode, PathPoints, StrokeWidth);
         finally
-          PopMatrix;
+          FTransformation.Pop;
         end;
       end else
         RenderMarkers(RenderBmp, APathNode, PathPoints, StrokeWidth);
@@ -1052,14 +1021,13 @@ begin
         ClipNodeTarget := APathNode.ResolvedClipPath;
         ClipMaskBmp := GetOffscreenBitmap(RoiRect.Width, RoiRect.Height, True);
 
-        OldMatrix := FCurrentMatrix;
-        PushMatrix;
+        FTransformation.Push;
         try
-          TFloatMatrixHelper(FCurrentMatrix).Translate(-RoiRect.Left, -RoiRect.Top);
+          FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
+
           RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, FloatRoi, RoiRect);
         finally
-          PopMatrix;
-          FCurrentMatrix := OldMatrix;
+          FTransformation.Pop;
         end;
 
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -1080,14 +1048,13 @@ begin
         MaskNodeTarget := APathNode.ResolvedMask;
         MaskBmp := GetOffscreenBitmap(RoiRect.Width, RoiRect.Height, False);
 
-        OldMatrix := FCurrentMatrix;
-        PushMatrix;
+        FTransformation.Push;
         try
-          TFloatMatrixHelper(FCurrentMatrix).Translate(-RoiRect.Left, -RoiRect.Top);
+          FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
+
           RenderMaskNode(MaskBmp, MaskNodeTarget, FloatRoi, RoiRect);
         finally
-          PopMatrix;
-          FCurrentMatrix := OldMatrix;
+          FTransformation.Pop;
         end;
 
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -1126,7 +1093,6 @@ end;
 
 procedure TSvgRenderer.RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
 var
-  SavedMatrix: TFloatMatrix;
   Width, Height, OffsetX, OffsetY: Single;
   i: Integer;
 begin
@@ -1136,7 +1102,7 @@ begin
   if (AClipNode = nil) or (AMaskBmp = nil) then
     Exit;
 
-  SavedMatrix := FCurrentMatrix;
+  FTransformation.Push;
   try
     if AClipNode.ClipPathUnits = guObjectBoundingBox then
     begin
@@ -1150,9 +1116,9 @@ begin
       OffsetX := ATargetBounds.Left - ARoiRect.Left;
       OffsetY := ATargetBounds.Top - ARoiRect.Top;
 
-      FCurrentMatrix := IdentityMatrix;
-      TFloatMatrixHelper(FCurrentMatrix).Scale(Width, Height);
-      TFloatMatrixHelper(FCurrentMatrix).Translate(OffsetX, OffsetY);
+      FTransformation.Clear;
+      FTransformation.Scale(Width, Height);
+      FTransformation.Translate(OffsetX, OffsetY);
     end;
 
     // Pre-multiply the matrix transformation on the <clipPath> element itself
@@ -1165,13 +1131,12 @@ begin
     for i := 0 to AClipNode.Children.Count - 1 do
       RenderNode(AMaskBmp, AClipNode.Children[i]);
   finally
-    FCurrentMatrix := SavedMatrix;
+    FTransformation.Pop;
   end;
 end;
 
 procedure TSvgRenderer.RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
 var
-  SavedMatrix: TFloatMatrix;
   Width, Height, OffsetX, OffsetY: Single;
   i: Integer;
 begin
@@ -1182,7 +1147,7 @@ begin
   if (AMaskNode = nil) or (AMaskBmp = nil) then
     Exit;
 
-  SavedMatrix := FCurrentMatrix;
+  FTransformation.Push;
   try
     if AMaskNode.MaskContentUnits = guObjectBoundingBox then
     begin
@@ -1196,9 +1161,9 @@ begin
       OffsetX := ATargetBounds.Left - ARoiRect.Left;
       OffsetY := ATargetBounds.Top - ARoiRect.Top;
 
-      FCurrentMatrix := IdentityMatrix;
-      TFloatMatrixHelper(FCurrentMatrix).Scale(Width, Height);
-      TFloatMatrixHelper(FCurrentMatrix).Translate(OffsetX, OffsetY);
+      FTransformation.Clear;
+      FTransformation.Scale(Width, Height);
+      FTransformation.Translate(OffsetX, OffsetY);
     end;
 
     // Pre-multiply matrix transformation on <mask transform="..."> elements
@@ -1210,7 +1175,7 @@ begin
     for i := 0 to AMaskNode.Children.Count - 1 do
       RenderNode(AMaskBmp, AMaskNode.Children[i]);
   finally
-    FCurrentMatrix := SavedMatrix;
+    FTransformation.Pop;
   end;
 end;
 
@@ -1277,13 +1242,14 @@ begin
     markerMat.Rotate(RadToDeg(AAngle));
   markerMat.Translate(AVertex.X, AVertex.Y);
 
-  PushMatrix;
+  FTransformation.Push;
   try
     ApplyMatrix(markerMat.Matrix);
+
     for i := 0 to AMarker.Children.Count - 1 do
       RenderNode(ATarget, AMarker.Children[i]);
   finally
-    PopMatrix;
+    FTransformation.Pop;
   end;
 end;
 
@@ -1404,7 +1370,6 @@ var
   ClipNodeTarget: TSvgClipPathNode;
   MaskNodeTarget: TSvgMaskNode;
   AlphaVal: Byte;
-  OldMatrix: TFloatMatrix;
   GroupBounds, TargetWorldBounds: TFloatRect;
   GroupRoi: TRect;
   Points: array[0..3] of TFloatPoint;
@@ -1423,10 +1388,10 @@ begin
 
     // Calculate group bounding box in world space for objectBoundingBox units and ROI determination
     GroupBounds := AGroupNode.GetObjectBoundingBox;
-    Points[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Left, GroupBounds.Top));
-    Points[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Right, GroupBounds.Top));
-    Points[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Right, GroupBounds.Bottom));
-    Points[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(GroupBounds.Left, GroupBounds.Bottom));
+    Points[0] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Top));
+    Points[1] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Top));
+    Points[2] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Bottom));
+    Points[3] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Bottom));
 
     TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
     for k := 1 to 3 do
@@ -1452,9 +1417,9 @@ begin
     MaskBmp := nil;
     try
       // Translate matrix to ROI coordinate space
-      PushMatrix;
+      FTransformation.Push;
       try
-        TFloatMatrixHelper(FCurrentMatrix).Translate(-GroupRoi.Left, -GroupRoi.Top);
+        FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
 
         if AGroupNode is TSvgSwitchNode then
         begin
@@ -1466,7 +1431,7 @@ begin
             RenderNode(OffscreenBmp, AGroupNode.Children[i]);
         end;
       finally
-        PopMatrix;
+        FTransformation.Pop;
       end;
 
       // Apply ClipPath in ROI coordinate space
@@ -1475,14 +1440,13 @@ begin
         ClipNodeTarget := AGroupNode.ResolvedClipPath;
         ClipMaskBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, True);
 
-        OldMatrix := FCurrentMatrix;
-        PushMatrix;
+        FTransformation.Push;
         try
-          TFloatMatrixHelper(FCurrentMatrix).Translate(-GroupRoi.Left, -GroupRoi.Top);
+          FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
+
           RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds, GroupRoi);
         finally
-          PopMatrix;
-          FCurrentMatrix := OldMatrix;
+          FTransformation.Pop;
         end;
 
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -1503,14 +1467,13 @@ begin
         MaskNodeTarget := AGroupNode.ResolvedMask;
         MaskBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, False);
 
-        OldMatrix := FCurrentMatrix;
-        PushMatrix;
+        FTransformation.Push;
         try
-          TFloatMatrixHelper(FCurrentMatrix).Translate(-GroupRoi.Left, -GroupRoi.Top);
+          FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
+
           RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds, GroupRoi);
         finally
-          PopMatrix;
-          FCurrentMatrix := OldMatrix;
+          FTransformation.Pop;
         end;
 
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -1906,13 +1869,14 @@ begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
 
-  PushMatrix;
+  FTransformation.Push;
   try
+
     ApplyMatrix(ANode.Transform);
 
     // 1. Calculate source bounds in world target space.
     // For polygon nodes, source bounds are calculated using PolyPolygonBounds after stroking.
-    MatScale := GetMatrixScale(FCurrentMatrix);
+    MatScale := GetMatrixScale(FTransformation.Matrix);
 
     if ANode is TSvgPathNode then
     begin
@@ -1963,10 +1927,10 @@ begin
     begin
       // For non-polygon nodes, calculate object bounds in world target space
       NodeBounds := ANode.GetObjectBoundingBox;
-      Pts[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-      Pts[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-      Pts[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-      Pts[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+      Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+      Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+      Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+      Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
 
       SourceBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
       for i := 1 to 3 do
@@ -2014,12 +1978,13 @@ begin
     NamedSurfaces := nil;
     try
       // Render element into SourceGraphic in ROI coordinate space
-      PushMatrix;
+      FTransformation.Push;
       try
-        TFloatMatrixHelper(FCurrentMatrix).Translate(-FilterRoi.Left, -FilterRoi.Top);
+        FTransformation.Translate(-FilterRoi.Left, -FilterRoi.Top);
+
         RenderNodeContent(SourceGraphic, ANode);
       finally
-        PopMatrix;
+        FTransformation.Pop;
       end;
 
       // Derive SourceAlpha from SourceGraphic
@@ -2159,8 +2124,9 @@ begin
       ReleaseOffscreenBitmap(SourceGraphic);
       ReleaseOffscreenBitmap(SourceAlpha);
     end;
+
   finally
-    PopMatrix;
+    FTransformation.Pop;
   end;
 end;
 
@@ -2392,14 +2358,14 @@ begin
 
         AspectMat.Matrix := SourceViewBox.GetTransform(TargetRect, AImageNode.PreserveAspectRatio);
 
-        PushMatrix;
+        FTransformation.Push;
         try
           ApplyMatrix(AspectMat.Matrix);
 
           SubRenderer := TSvgRenderer.Create(ATarget);
           try
             SubRenderer.AllowExternalImages := FAllowExternalImages;
-            SubRenderer.CurrentMatrix := FCurrentMatrix;
+            SubRenderer.Transformation.Clear(FTransformation.Matrix);
             SubRenderer.ViewportRect := FViewportRect;
 
             SubRenderer.RenderNode(ATarget, SubDoc);
@@ -2407,7 +2373,7 @@ begin
             SubRenderer.Free;
           end;
         finally
-          PopMatrix;
+          FTransformation.Pop;
         end;
       finally
         SubDoc.Free;
@@ -2423,22 +2389,22 @@ begin
 
         SourceViewBox := TSvgViewBox.Create(0, 0, Bitmap.Width, Bitmap.Height);
         AspectMat.Matrix := SourceViewBox.GetTransform(TargetRect, AImageNode.PreserveAspectRatio);
-        TotalMat := AspectMat * FCurrentMatrix;
+        TotalMat := AspectMat * FTransformation.Matrix;
 
-        Transformation := TAffineTransformation.Create;
+        FTransformation.Push;
         try
-          Transformation.Clear(TotalMat.Matrix);
+          FTransformation.Clear(TotalMat.Matrix);
 
-          DestBounds := Transformation.GetTransformedBounds(FloatRect(0, 0, Bitmap.Width, Bitmap.Height));
+          DestBounds := FTransformation.GetTransformedBounds(FloatRect(0, 0, Bitmap.Width, Bitmap.Height));
           DestClip := MakeRect(DestBounds, rrOutside);
 
           Bitmap.DrawMode := dmBlend;
           Bitmap.CombineMode := cmMerge;
 
           // Transform and render onto target
-          Transform(ATarget, Bitmap, Transformation, DestClip, True);
+          Transform(ATarget, Bitmap, FTransformation, DestClip, True);
         finally
-          Transformation.Free;
+          FTransformation.Pop;
         end;
       finally
         Bitmap.Free;
@@ -2493,10 +2459,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
   procedure RenderTextPathData(const APathPoints: TArrayOfArrayOfFloatPoint; const AFill: TSvgFill; const AStroke: TSvgStroke);
   var
     TransformedPts, StrokePts, DashedPts: TArrayOfArrayOfFloatPoint;
-    Bounds, StrokeBounds: TFloatRect;
-    PolyRenderer: TPolygonRenderer32;
-    Filler: TCustomPolygonFiller;
-    TargetNode: TSvgNode;
+    StrokeBounds: TFloatRect;
     FillColor, StrokeColor: TColor32;
     StrokeWidth, MatScale, ScaledOffset: Single;
     ScaledDashArray: TArrayOfFloat;
@@ -2506,133 +2469,40 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       Exit;
 
     TransformedPts := GetTransformedPoints(APathPoints);
-    Bounds := GetPathBounds(TransformedPts);
 
-    PolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
-    try
-      // 1. Fill Rendering
-      if AFill.ResolvedPaintServer <> nil then
+    // 1. Fill Rendering
+    RenderPolyPolygon(ATarget, AFill.ResolvedPaintServer, TransformedPts, AFill.Opacity, AFill.Color, AFill.FillRule);
+
+    // 2. Stroke Rendering
+    StrokeWidth := AStroke.Width.ToPixels(FViewportRect.Width);
+    if (StrokeWidth > 0) and (CanRenderPolyPolygon(AStroke.ResolvedPaintServer, TransformedPts, AStroke.Opacity, AStroke.Color)) then
+    begin
+      MatScale := GetMatrixScale(FTransformation.Matrix);
+      StrokeWidth := StrokeWidth * MatScale;
+
+      ScaledDashArray := nil;
+      ScaledOffset := 0;
+      if Length(AStroke.DashArray) > 0 then
       begin
-        TargetNode := TSvgNode(AFill.ResolvedPaintServer);
-        Filler := nil;
-        if TargetNode is TSvgGradientNode then
-          Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), Bounds, AFill.Opacity)
-        else
-        if TargetNode is TSvgPatternNode then
-          Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), Bounds, AFill.Opacity);
-
-        if Filler <> nil then
-        begin
-          try
-            PolyRenderer.Filler := Filler;
-            try
-              PolyRenderer.FillMode := AFill.FillRule;
-              PolyRenderer.PolyPolygonFS(TransformedPts);
-            finally
-              PolyRenderer.Filler := nil;
-            end;
-          finally
-            Filler.Free;
-          end;
-        end;
-      end else
-      if not AFill.Color.IsNone then
-      begin
-        FillColor := AFill.Color.Color;
-        if AFill.Opacity < 1.0 then
-          ScaleAlpha(FillColor, AFill.Opacity);
-
-        if AlphaComponent(FillColor) > 0 then
-        begin
-          PolyRenderer.Color := FillColor;
-          PolyRenderer.FillMode := AFill.FillRule;
-          PolyRenderer.PolyPolygonFS(TransformedPts);
-        end;
+        SetLength(ScaledDashArray, Length(AStroke.DashArray));
+        for k := 0 to High(AStroke.DashArray) do
+          ScaledDashArray[k] := AStroke.DashArray[k] * MatScale;
+        ScaledOffset := AStroke.DashOffset * MatScale;
       end;
 
-      // 2. Stroke Rendering
-      StrokeWidth := AStroke.Width.ToPixels(FViewportRect.Right - FViewportRect.Left);
-      if StrokeWidth > 0 then
+      StrokePts := nil;
+      for i := 0 to High(TransformedPts) do
       begin
-        MatScale := GetMatrixScale(FCurrentMatrix);
-        StrokeWidth := StrokeWidth * MatScale;
-
-        ScaledDashArray := nil;
-        ScaledOffset := 0;
-        if Length(AStroke.DashArray) > 0 then
+        if Length(ScaledDashArray) > 0 then
         begin
-          SetLength(ScaledDashArray, Length(AStroke.DashArray));
-          for k := 0 to High(AStroke.DashArray) do
-            ScaledDashArray[k] := AStroke.DashArray[k] * MatScale;
-          ScaledOffset := AStroke.DashOffset * MatScale;
-        end;
-
-        if AStroke.ResolvedPaintServer <> nil then
-        begin
-          TargetNode := TSvgNode(AStroke.ResolvedPaintServer);
-          StrokePts := nil;
-          for i := 0 to High(TransformedPts) do
-          begin
-            if Length(ScaledDashArray) > 0 then
-            begin
-              DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
-              for j := 0 to High(DashedPts) do
-                StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
-            end else
-              StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
-          end;
-
-          StrokeBounds := GetPathBounds(StrokePts);
-          Filler := nil;
-          if TargetNode is TSvgGradientNode then
-            Filler := CreateGradientFiller(TSvgGradientNode(TargetNode), StrokeBounds, AStroke.Opacity)
-          else
-          if TargetNode is TSvgPatternNode then
-            Filler := CreatePatternFiller(TSvgPatternNode(TargetNode), StrokeBounds, AStroke.Opacity);
-
-          if Filler <> nil then
-          begin
-            try
-              PolyRenderer.Filler := Filler;
-              try
-                PolyRenderer.FillMode := pfWinding;
-                PolyRenderer.PolyPolygonFS(StrokePts);
-              finally
-                PolyRenderer.Filler := nil;
-              end;
-            finally
-              Filler.Free;
-            end;
-          end;
+          DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
+          for j := 0 to High(DashedPts) do
+            StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
         end else
-        if not AStroke.Color.IsNone then
-        begin
-          StrokeColor := AStroke.Color.Color;
-          if AStroke.Opacity < 1.0 then
-            ScaleAlpha(StrokeColor, AStroke.Opacity);
-
-          if AlphaComponent(StrokeColor) > 0 then
-          begin
-            StrokePts := nil;
-            for i := 0 to High(TransformedPts) do
-            begin
-              if Length(ScaledDashArray) > 0 then
-              begin
-                DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
-                for j := 0 to High(DashedPts) do
-                  StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
-              end else
-                StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
-            end;
-
-            PolyRenderer.Color := StrokeColor;
-            PolyRenderer.FillMode := pfWinding;
-            PolyRenderer.PolyPolygonFS(StrokePts);
-          end;
-        end;
+          StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
       end;
-    finally
-      PolyRenderer.Free;
+
+      RenderPolyPolygon(ATarget, AStroke.ResolvedPaintServer, StrokePts, AStroke.Opacity, AStroke.Color);
     end;
   end;
 
@@ -2767,18 +2637,22 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           RotationMat.Rotate(tangAngle + CharacterRotationAngle);
           RotationMat.Translate(Point.X, Point.Y);
 
-          PushMatrix;
+          FTransformation.Push;
           try
+
             ApplyMatrix(RotationMat.Matrix);
             Canvas.Clear;
             Canvas.BeginUpdate;
+
             Canvas.RenderText(-charWidth * 0.5, drawY, Text[GlyphIdx], TextLayout);
             if (Canvas.Path <> nil) then
               RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
+
             Canvas.Clear;
             Canvas.EndUpdate;
+
           finally
-            PopMatrix;
+            FTransformation.Pop;
           end;
         end;
       end;
@@ -2809,11 +2683,11 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     HasNodeTransform := not IsIdentityMatrix(ANode.Transform);
 
     if HasNodeTransform then
-    begin
-      PushMatrix;
-      ApplyMatrix(ANode.Transform);
-    end;
+      FTransformation.Push;
     try
+      if HasNodeTransform then
+        ApplyMatrix(ANode.Transform);
+
       if ANode.HasX then
         Cursor.X := ANode.X.ToPixels(FViewportRect.Width);
       if ANode.HasDx then
@@ -2902,7 +2776,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
               RotationMat.Matrix := IdentityMatrix;
               RotationMat.Rotate(DrawPoint.X, Cursor.Y, CharacterRotationAngle);
 
-              PushMatrix;
+              FTransformation.Push;
               try
                 ApplyMatrix(RotationMat.Matrix);
                 Canvas.Clear;
@@ -2915,7 +2789,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
                 Canvas.Clear;
                 Canvas.EndUpdate;
               finally
-                PopMatrix;
+                FTransformation.Pop;
               end;
 
             end;
@@ -2952,7 +2826,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       end;
     finally
       if HasNodeTransform then
-        PopMatrix;
+        FTransformation.Pop;
     end;
   end;
 
@@ -3005,12 +2879,12 @@ end;
 
 procedure TSvgRenderer.RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
 begin
-  PushMatrix;
+  FTransformation.Push;
   try
     ApplyMatrix(ANode.Transform);
     RenderNodeContent(ATarget, ANode);
   finally
-    PopMatrix;
+    FTransformation.Pop;
   end;
 end;
 
@@ -3020,7 +2894,6 @@ var
   EffectiveBlendMode: TSvgBlendMode;
   ClipNodeTarget: TSvgClipPathNode;
   MaskNodeTarget: TSvgMaskNode;
-  OldMatrix: TFloatMatrix;
   NodeBounds, TargetWorldBounds: TFloatRect;
   NodeRoi: TRect;
   Points: array[0..3] of TFloatPoint;
@@ -3057,16 +2930,16 @@ begin
     // Polygon nodes (TSvgPathNode) handle their own ROI calculation after stroking inside RenderPathNode
     if NeedsOffscreen and (ATarget <> nil) and (not (ANode is TSvgPathNode)) then
     begin
-      PushMatrix;
+      FTransformation.Push;
       try
         ApplyMatrix(ANode.Transform);
 
         // Calculate object bounding box in world space
         NodeBounds := ANode.GetObjectBoundingBox;
-        Points[0] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-        Points[1] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-        Points[2] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-        Points[3] := TFloatMatrixHelper(FCurrentMatrix).TransformPoint(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+        Points[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+        Points[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+        Points[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+        Points[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
 
         TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
         for k := 1 to 3 do
@@ -3085,89 +2958,88 @@ begin
         ClipMaskBmp := nil;
         MaskBmp := nil;
         try
-          PushMatrix;
+          FTransformation.Push;
           try
-            TFloatMatrixHelper(FCurrentMatrix).Translate(-NodeRoi.Left, -NodeRoi.Top);
+            FTransformation.Translate(-NodeRoi.Left, -NodeRoi.Top);
+
             RenderNodeContent(OffscreenBmp, ANode);
           finally
-            PopMatrix;
+            FTransformation.Pop;
           end;
 
-        // Apply ClipPath
-        if (ANode.ResolvedClipPath <> nil) then
-        begin
-          ClipNodeTarget := ANode.ResolvedClipPath;
-          ClipMaskBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
-
-          OldMatrix := FCurrentMatrix;
-          PushMatrix;
-          try
-            TFloatMatrixHelper(FCurrentMatrix).Translate(-NodeRoi.Left, -NodeRoi.Top);
-            RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds, NodeRoi);
-          finally
-            PopMatrix;
-            FCurrentMatrix := OldMatrix;
-          end;
-
-          SourceP := PColor32(OffscreenBmp.Bits);
-          DestP := PColor32(ClipMaskBmp.Bits);
-          for x := 0 to OffscreenBmp.PixelCount - 1 do
+          // Apply ClipPath
+          if (ANode.ResolvedClipPath <> nil) then
           begin
-            AlphaVal := AlphaComponent(DestP^);
-            if AlphaVal < 255 then
-              ScaleAlpha(SourceP^, AlphaVal * OneOver255);
-            Inc(SourceP);
-            Inc(DestP);
+            ClipNodeTarget := ANode.ResolvedClipPath;
+            ClipMaskBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
+
+            FTransformation.Push;
+            try
+              FTransformation.Translate(-NodeRoi.Left, -NodeRoi.Top);
+
+              RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds, NodeRoi);
+            finally
+              FTransformation.Pop;
+            end;
+
+            SourceP := PColor32(OffscreenBmp.Bits);
+            DestP := PColor32(ClipMaskBmp.Bits);
+            for x := 0 to OffscreenBmp.PixelCount - 1 do
+            begin
+              AlphaVal := AlphaComponent(DestP^);
+              if AlphaVal < 255 then
+                ScaleAlpha(SourceP^, AlphaVal * OneOver255);
+              Inc(SourceP);
+              Inc(DestP);
+            end;
           end;
-        end;
 
-        // Apply Alpha Mask
-        if (ANode.ResolvedMask <> nil) then
-        begin
-          MaskNodeTarget := ANode.ResolvedMask;
-          MaskBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, False);
-
-          OldMatrix := FCurrentMatrix;
-          PushMatrix;
-          try
-            TFloatMatrixHelper(FCurrentMatrix).Translate(-NodeRoi.Left, -NodeRoi.Top);
-            RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds, NodeRoi);
-          finally
-            PopMatrix;
-            FCurrentMatrix := OldMatrix;
-          end;
-
-          SourceP := PColor32(OffscreenBmp.Bits);
-          DestP := PColor32(MaskBmp.Bits);
-          for x := 0 to OffscreenBmp.PixelCount - 1 do
+          // Apply Alpha Mask
+          if (ANode.ResolvedMask <> nil) then
           begin
-            Gray := Intensity(DestP^);
-            Gray := Round(Gray * (AlphaComponent(DestP^) / 255.0));
-            ScaleAlpha(SourceP^, Gray / 255.0);
-            Inc(SourceP);
-            Inc(DestP);
-          end;
-        end;
+            MaskNodeTarget := ANode.ResolvedMask;
+            MaskBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, False);
 
-        // Apply Opacity
-        if (ANode.Opacity < 1.0) then
-        begin
-          SourceP := PColor32(OffscreenBmp.Bits);
-          for x := 0 to OffscreenBmp.PixelCount - 1 do
+            FTransformation.Push;
+            try
+              FTransformation.Translate(-NodeRoi.Left, -NodeRoi.Top);
+
+              RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds, NodeRoi);
+            finally
+              FTransformation.Pop;
+            end;
+
+            SourceP := PColor32(OffscreenBmp.Bits);
+            DestP := PColor32(MaskBmp.Bits);
+            for x := 0 to OffscreenBmp.PixelCount - 1 do
+            begin
+              Gray := Intensity(DestP^);
+              Gray := Round(Gray * (AlphaComponent(DestP^) / 255.0));
+              ScaleAlpha(SourceP^, Gray / 255.0);
+              Inc(SourceP);
+              Inc(DestP);
+            end;
+          end;
+
+          // Apply Opacity
+          if (ANode.Opacity < 1.0) then
           begin
-            ScaleAlpha(SourceP^, ANode.Opacity);
-            Inc(SourceP);
+            SourceP := PColor32(OffscreenBmp.Bits);
+            for x := 0 to OffscreenBmp.PixelCount - 1 do
+            begin
+              ScaleAlpha(SourceP^, ANode.Opacity);
+              Inc(SourceP);
+            end;
           end;
-        end;
 
-        BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode, NodeRoi.Left, NodeRoi.Top);
+          BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode, NodeRoi.Left, NodeRoi.Top);
+        finally
+          ReleaseOffscreenBitmap(OffscreenBmp);
+          ReleaseOffscreenBitmap(ClipMaskBmp);
+          ReleaseOffscreenBitmap(MaskBmp);
+        end;
       finally
-        ReleaseOffscreenBitmap(OffscreenBmp);
-        ReleaseOffscreenBitmap(ClipMaskBmp);
-        ReleaseOffscreenBitmap(MaskBmp);
-      end;
-      finally
-        PopMatrix;
+        FTransformation.Pop;
       end;
       Exit;
     end;
@@ -3212,15 +3084,14 @@ begin
 
   vpMat := viewBox.GetTransform(ATargetRect, ADoc.PreserveAspectRatio);
 
-  FCurrentMatrix := IdentityMatrix;
-  FMatrixStack.Clear;
+  FTransformation.Clear;
 
-  PushMatrix;
+  FTransformation.Push;
   try
     ApplyMatrix(vpMat);
     RenderNode(ADoc);
   finally
-    PopMatrix;
+    FTransformation.Pop;
   end;
 end;
 

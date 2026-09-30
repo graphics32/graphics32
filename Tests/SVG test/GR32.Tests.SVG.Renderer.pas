@@ -926,17 +926,17 @@ var
 begin
   renderer := TSvgRenderer.Create(nil);
   try
-    initialMat := renderer.CurrentMatrix;
-    renderer.PushMatrix;
+    initialMat := renderer.Transformation.Matrix;
+    renderer.Transformation.Push;
     renderer.ApplyMatrix(ParseSvgTransformHelper('translate(20, 30)'));
 
     Check(FloatRect(0, 0, 0, 0) <> FloatRect(1, 1, 1, 1), 'Dummy check');
-    Check(renderer.CurrentMatrix[2, 0] = 20.0, 'Translate X should be 20');
-    Check(renderer.CurrentMatrix[2, 1] = 30.0, 'Translate Y should be 30');
+    Check(renderer.Transformation.Matrix[2, 0] = 20.0, 'Translate X should be 20');
+    Check(renderer.Transformation.Matrix[2, 1] = 30.0, 'Translate Y should be 30');
 
-    renderer.PopMatrix;
-    Check(renderer.CurrentMatrix[2, 0] = initialMat[2, 0], 'Matrix X should be restored');
-    Check(renderer.CurrentMatrix[2, 1] = initialMat[2, 1], 'Matrix Y should be restored');
+    renderer.Transformation.Pop;
+    Check(renderer.Transformation.Matrix[2, 0] = initialMat[2, 0], 'Matrix X should be restored');
+    Check(renderer.Transformation.Matrix[2, 1] = initialMat[2, 1], 'Matrix Y should be restored');
   finally
     renderer.Free;
   end;

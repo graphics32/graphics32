@@ -20,12 +20,12 @@ unit GR32.SVG;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Graphics32
+ * The Original Code is SVG Image Format support for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Anders Melander <anders@melander.dk>
  *
- * Portions created by the Initial Developer are Copyright (C) 2008-2026
+ * Portions created by the Initial Developer are Copyright (C) 2025-2026
  * the Initial Developer. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** *)
@@ -82,43 +82,34 @@ end;
 
 procedure TSvgDocument.Clear;
 begin
-  if FRoot <> nil then
-  begin
-    FreeAndNil(FRoot);
-  end;
+  FreeAndNil(FRoot);
 end;
 
 procedure TSvgDocument.LoadFromStream(AStream: TStream);
 var
-  memStream: TMemoryStream;
   utf8Text: UTF8String;
 begin
   Clear;
-  if AStream = nil then Exit;
+  if AStream = nil then
+    exit;
 
-  memStream := TMemoryStream.Create;
-  try
-    memStream.CopyFrom(AStream, 0);
-    if memStream.Size > 0 then
-    begin
-      SetLength(utf8Text, memStream.Size);
-      Move(memStream.Memory^, utf8Text[1], memStream.Size);
-      FRoot := ParseSvgXml(utf8Text);
-    end;
-  finally
-    memStream.Free;
-  end;
+  SetLength(utf8Text, AStream.Size - AStream.Position);
+  SetLength(utf8Text, AStream.Read(Pointer(utf8Text)^, Length(utf8Text)));
+
+  FRoot := ParseSvgXml(utf8Text);
 end;
 
 procedure TSvgDocument.LoadFromFile(const AFileName: string);
 var
-  fileStream: TFileStream;
+  FileStream: TFileStream;
 begin
-  fileStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
+  FileStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
   try
-    LoadFromStream(fileStream);
+
+    LoadFromStream(FileStream);
+
   finally
-    fileStream.Free;
+    FileStream.Free;
   end;
 end;
 
@@ -162,25 +153,28 @@ end;
 procedure TSvgDocument.Draw(ATarget: TCustomBitmap32);
 begin
   if ATarget <> nil then
-    Draw(ATarget, FloatRect(0, 0, ATarget.Width, ATarget.Height));
+    Draw(ATarget, ATarget.BoundsRect);
 end;
 
 procedure TSvgDocument.Draw(ATarget: TCustomBitmap32; const ARect: TRect);
 begin
-  Draw(ATarget, FloatRect(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom));
+  Draw(ATarget, FloatRect(ARect));
 end;
 
 procedure TSvgDocument.Draw(ATarget: TCustomBitmap32; const ARect: TFloatRect);
 var
-  renderer: TSvgRenderer;
+  Renderer: TSvgRenderer;
 begin
-  if (FRoot = nil) or (ATarget = nil) then Exit;
+  if (FRoot = nil) or (ATarget = nil) then
+    Exit;
 
-  renderer := TSvgRenderer.Create(ATarget);
+  Renderer := TSvgRenderer.Create(ATarget);
   try
-    renderer.RenderDocument(FRoot, ARect);
+
+    Renderer.RenderDocument(FRoot, ARect);
+
   finally
-    renderer.Free;
+    Renderer.Free;
   end;
 end;
 
