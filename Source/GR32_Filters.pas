@@ -262,6 +262,82 @@ function CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True; Clear
 
 
 //------------------------------------------------------------------------------
+//
+//      ScaleAlpha bindings
+//
+//------------------------------------------------------------------------------
+type
+  TScaleAlphaLine = procedure(Source, Dest: PColor32; Count: Integer);
+  TScaleAlphaMems = procedure(Color: PColor32; Count: Integer; Scale: Single);
+  TApplyAlphaMask = procedure(Source, Dest: PColor32; Count: Integer);
+  TLuminance = function(Color: TColor32): Byte;
+
+(*
+** ScaleAlphaLine scales the alpha component of Dest pixels by Source.A / 255.
+**
+** For each pixel:
+**
+**   If Source.A <> 255, Dest.A is scaled by (Dest.A * Source.A + 127) div 255.
+**   RGB channels of Dest are preserved without modification.
+*)
+var
+  ScaleAlphaLine: TScaleAlphaLine;
+
+(*
+** ScaleAlphaMems scales the alpha component of an array of pixels by a Single
+** float Scale factor.
+**
+** A 256-byte lookup table is built once before the loop to map input alpha
+** values to scaled output alpha values: LUT[A] = Clamp(Round(A * Scale)).
+** RGB channels of Color are preserved without modification.
+*)
+var
+  ScaleAlphaMems: TScaleAlphaMems;
+
+(*
+** ApplyAlphaMask_Pas computes the W3C Rec. 601 luminance of Source pixels
+** (with source alpha applied) and scales Dest.A by Gray / 255.
+** RGB channels of Dest are preserved without modification.
+*)
+var
+  ApplyAlphaMask: TApplyAlphaMask;
+
+
+//------------------------------------------------------------------------------
+//
+//      Luminance bindings
+//
+//------------------------------------------------------------------------------
+(*
+** Luminance601 calculates the W3C Rec. 601 luminance for a TColor32 pixel
+** with the pixel's alpha component applied.
+**
+** Formula:
+**
+**   Y_raw = 0.299 * R + 0.587 * G + 0.114 * B
+**
+**   Using Q16 fixed-point math:
+**
+**     Y_raw = (19595 * R + 38470 * G + 7471 * B + 32768) shr 16
+**     Result = (Y_raw * A + 127) div 255
+**
+** Luminance709 calculates the W3C Rec. 709 luminance for a TColor32 pixel
+** with the pixel's alpha component applied.
+**
+** Formula:
+**   Y_raw = 0.2126 * R + 0.7152 * G + 0.0722 * B
+**
+**   Using Q16 fixed-point math:
+**
+**     Y_raw = (13933 * R + 46871 * G + 4732 * B + 32768) shr 16
+**     Result = (Y_raw * A + 127) div 255
+*)
+var
+  Luminance601: TLuminance;
+  Luminance709: TLuminance;
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -270,7 +346,9 @@ implementation
 uses
   Types,
   GR32_Bindings,
-  GR32_Lowlevel;
+  GR32_Blend,
+  GR32_Lowlevel,
+  GR32.Types.SIMD;
 
 const
   sEmptyBitmap = 'The bitmap is nil';
@@ -2044,6 +2122,1026 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      Luminance
+//
+//------------------------------------------------------------------------------
+// Pascal versions
+//------------------------------------------------------------------------------
+function Luminance601_Pas(Color: TColor32): Byte;
+var
+  Entry: TColor32Entry;
+  Y: Cardinal;
+begin
+  Entry.ARGB := Color;
+  Y := (19595 * Entry.R + 38470 * Entry.G + 7471 * Entry.B + 32768) shr 16;
+  Result := MulDiv255Table[Y, Entry.A]; // (Y * Entry.A + 127) div 255;
+end;
+
+//------------------------------------------------------------------------------
+
+function Luminance709_Pas(Color: TColor32): Byte;
+var
+  Entry: TColor32Entry;
+  Y: Cardinal;
+begin
+  Entry.ARGB := Color;
+  Y := (13933 * Entry.R + 46871 * Entry.G + 4732 * Entry.B + 32768) shr 16;
+  Result := MulDiv255Table[Y, Entry.A]; // (Y * Entry.A + 127) div 255;
+end;
+
+
+//------------------------------------------------------------------------------
+// SIMD versions
+//------------------------------------------------------------------------------
+
+{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+const
+  c_div255_bias: array[0..3] of Cardinal = (127, 127, 127, 127);
+  c_div255_mult: array[0..3] of Cardinal = (257, 257, 257, 257);
+  c_rgb_mask32: array[0..3] of Cardinal = ($00FFFFFF, $00FFFFFF, $00FFFFFF, $00FFFFFF);
+{$IFNDEF RGBA_FORMAT}
+  c_w601_bytes: array[0..15] of Byte = (29, 150, 77, 0, 29, 150, 77, 0, 29, 150, 77, 0, 29, 150, 77, 0);
+  c_w709_bytes: array[0..15] of Byte = (19, 183, 54, 0, 19, 183, 54, 0, 19, 183, 54, 0, 19, 183, 54, 0);
+{$ELSE}
+  c_w601_bytes: array[0..15] of Byte = (77, 150, 29, 0, 77, 150, 29, 0, 77, 150, 29, 0, 77, 150, 29, 0);
+  c_w709_bytes: array[0..15] of Byte = (54, 183, 19, 0, 54, 183, 19, 0, 54, 183, 19, 0, 54, 183, 19, 0);
+{$ENDIF}
+  c_ones16: array[0..7] of Word = (1, 1, 1, 1, 1, 1, 1, 1);
+  c_256_single: Single = 256.0;
+{$IFNDEF RGBA_FORMAT}
+  c_w601_words: array[0..7] of Word = (29, 150, 77, 0, 29, 150, 77, 0);
+  c_w709_words: array[0..7] of Word = (19, 183, 54, 0, 19, 183, 54, 0);
+  c_w601_dwords: array[0..3] of Cardinal = (7471, 38470, 19595, 0);
+  c_w709_dwords: array[0..3] of Cardinal = (4732, 46871, 13933, 0);
+{$ELSE}
+  c_w601_words: array[0..7] of Word = (77, 150, 29, 0, 77, 150, 29, 0);
+  c_w709_words: array[0..7] of Word = (54, 183, 19, 0, 54, 183, 19, 0);
+  c_w601_dwords: array[0..3] of Cardinal = (19595, 38470, 7471, 0);
+  c_w709_dwords: array[0..3] of Cardinal = (13933, 46871, 4732, 0);
+{$ENDIF}
+
+//------------------------------------------------------------------------------
+
+(*
+** Luminance601_SSE2 calculates Rec. 601 luminance with source alpha applied
+** using SSE2 vector unpacking and PMADDWD arithmetic.
+*)
+function Luminance601_SSE2(Color: TColor32): Byte; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOV       EDX, EAX
+        SHR       EDX, 24
+        MOVD      XMM0, EAX
+        PXOR      XMM1, XMM1
+        PUNPCKLBW XMM0, XMM1
+        MOV       EAX, Offset c_w601_words
+        MOVDQU    XMM1, [EAX]
+        PMADDWD   XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 8
+
+        MOVD      EAX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$elseif defined(TARGET_x64)}
+        PUSH      RBX
+        MOVD      XMM0, ECX
+        PXOR      XMM1, XMM1
+        PUNPCKLBW XMM0, XMM1
+        LEA       RAX, [RIP + c_w601_words]
+        MOVDQU    XMM1, [RAX]
+        PMADDWD   XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 8
+
+        MOV       EAX, ECX
+        SHR       EAX, 24
+        POP       RBX
+        MOVD      EDX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+(*
+** Luminance601_SSE41 calculates Rec. 601 luminance using SSE4.1 PMOVZXBD
+** zero-extension and 32-bit PMULLD vector multiplication.
+*)
+function Luminance601_SSE41(Color: TColor32): Byte; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOV       EDX, EAX
+        SHR       EDX, 24
+        MOVD      XMM0, EAX
+        PMOVZXBD  XMM0, XMM0
+        MOV       EAX, Offset c_w601_dwords
+        MOVDQU    XMM1, [EAX]
+        PMULLD    XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PSHUFD    XMM2, XMM0, $02
+        PADDD     XMM0, XMM1
+        PADDD     XMM0, XMM2
+        MOV       EAX, 32768
+        MOVD      XMM1, EAX
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 16
+
+        MOVD      EAX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$elseif defined(TARGET_x64)}
+        MOVD      XMM0, ECX
+        PMOVZXBD  XMM0, XMM0
+        LEA       RAX, [RIP + c_w601_dwords]
+        MOVDQU    XMM1, [RAX]
+        PMULLD    XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PSHUFD    XMM2, XMM0, $02
+        PADDD     XMM0, XMM1
+        PADDD     XMM0, XMM2
+        MOV       EAX, 32768
+        MOVD      XMM1, EAX
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 16
+
+        MOV       EAX, ECX
+        SHR       EAX, 24
+        MOVD      EDX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+(*
+** Luminance709_SSE2 calculates Rec. 709 luminance with source alpha applied
+** using SSE2 vector unpacking and PMADDWD arithmetic.
+*)
+function Luminance709_SSE2(Color: TColor32): Byte; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOV       EDX, EAX
+        SHR       EDX, 24
+        MOVD      XMM0, EAX
+        PXOR      XMM1, XMM1
+        PUNPCKLBW XMM0, XMM1
+        MOV       EAX, Offset c_w709_words
+        MOVDQU    XMM1, [EAX]
+        PMADDWD   XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 8
+
+        MOVD      EAX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$elseif defined(TARGET_x64)}
+        PUSH      RBX
+        MOVD      XMM0, ECX
+        PXOR      XMM1, XMM1
+        PUNPCKLBW XMM0, XMM1
+        LEA       RAX, [RIP + c_w709_words]
+        MOVDQU    XMM1, [RAX]
+        PMADDWD   XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 8
+
+        MOV       EAX, ECX
+        SHR       EAX, 24
+        POP       RBX
+        MOVD      EDX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+
+(*
+** Luminance709_SSE41 calculates Rec. 709 luminance using SSE4.1 PMOVZXBD zero-extension
+** and 32-bit PMULLD vector multiplication.
+*)
+function Luminance709_SSE41(Color: TColor32): Byte; {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        MOV       EDX, EAX
+        SHR       EDX, 24
+        MOVD      XMM0, EAX
+        PMOVZXBD  XMM0, XMM0
+        MOV       EAX, Offset c_w709_dwords
+        MOVDQU    XMM1, [EAX]
+        PMULLD    XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PSHUFD    XMM2, XMM0, $02
+        PADDD     XMM0, XMM1
+        PADDD     XMM0, XMM2
+        MOV       EAX, 32768
+        MOVD      XMM1, EAX
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 16
+
+        MOVD      EAX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$elseif defined(TARGET_x64)}
+        MOVD      XMM0, ECX
+        PMOVZXBD  XMM0, XMM0
+        LEA       RAX, [RIP + c_w709_dwords]
+        MOVDQU    XMM1, [RAX]
+        PMULLD    XMM0, XMM1
+        PSHUFD    XMM1, XMM0, $01
+        PSHUFD    XMM2, XMM0, $02
+        PADDD     XMM0, XMM1
+        PADDD     XMM0, XMM2
+        MOV       EAX, 32768
+        MOVD      XMM1, EAX
+        PADDD     XMM0, XMM1
+        PSRLD     XMM0, 16
+
+        MOV       EAX, ECX
+        SHR       EAX, 24
+        MOVD      EDX, XMM0
+        IMUL      EAX, EDX
+        ADD       EAX, 127
+        IMUL      EAX, EAX, 257
+        SHR       EAX, 16
+{$ifend}
+end;
+
+{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+
+//------------------------------------------------------------------------------
+//
+//      ScaleAlphaLine
+//
+//------------------------------------------------------------------------------
+// Pascal version
+//------------------------------------------------------------------------------
+procedure ScaleAlphaLine_Pas(Source, Dest: PColor32Entry; Count: Integer);
+var
+  Sa: Byte;
+begin
+  while (Count > 0) do
+  begin
+    Sa := Source.A;
+    if (Sa <> 255) then
+    begin
+      if (Sa = 0) then
+        Dest.A := 0
+      else
+        Dest.A := MulDiv255Table[Dest.A, Sa]; // = (Dest.A * Sa + 127) div 255
+    end;
+    Inc(Source);
+    Inc(Dest);
+    Dec(Count);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// SIMD versions
+//------------------------------------------------------------------------------
+{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+(*
+** ScaleAlphaLine_SSE2 scales destination alpha values in blocks of 4 pixels
+** using SSE2 word multiplication.
+*)
+procedure ScaleAlphaLine_SSE2(Source, Dest: PColor32Entry; Count: Integer); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        TEST      ECX, ECX
+        JLE       @Exit
+        PUSH      EBX
+        PUSH      ESI
+
+        PXOR      XMM7, XMM7
+        MOV       ESI, Offset SSE_00FF00FF_ALIGNED
+        MOVDQU    XMM6, [ESI]
+        MOV       ESI, Offset SSE_00800080_ALIGNED
+        MOVDQU    XMM4, [ESI]
+        MOV       ESI, Offset SSE_01010101_ALIGNED
+        MOVDQU    XMM0, [ESI]
+
+        SUB       ECX, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQA    XMM5, XMM6
+        MOVZX     EBX, Byte Ptr [EAX + 3]
+        PINSRW    XMM5, EBX, 3
+        MOVZX     EBX, Byte Ptr [EAX + 7]
+        PINSRW    XMM5, EBX, 7
+
+        MOVDQU    XMM1, [EDX]
+        MOVDQA    XMM2, XMM1
+        PUNPCKLBW XMM2, XMM7
+        PMULLW    XMM2, XMM5
+        PADDW     XMM2, XMM4
+        PMULHUW   XMM2, XMM0
+
+        MOVDQA    XMM5, XMM6
+        MOVZX     EBX, Byte Ptr [EAX + 11]
+        PINSRW    XMM5, EBX, 3
+        MOVZX     EBX, Byte Ptr [EAX + 15]
+        PINSRW    XMM5, EBX, 7
+
+        MOVDQA    XMM3, XMM1
+        PUNPCKHBW XMM3, XMM7
+        PMULLW    XMM3, XMM5
+        PADDW     XMM3, XMM4
+        PMULHUW   XMM3, XMM0
+
+        PACKUSWB  XMM2, XMM3
+        MOVDQU    [EDX], XMM2
+
+        ADD       EAX, 16
+        ADD       EDX, 16
+        SUB       ECX, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       ECX, 4
+        JZ        @PopExit
+
+@SingleLoop:
+        MOVZX     EBX, Byte Ptr [EAX + 3]
+        CMP       EBX, 255
+        JE        @NextSingle
+        TEST      EBX, EBX
+        JZ        @ZeroAlpha
+        MOVZX     ESI, Byte Ptr [EDX + 3]
+        IMUL      ESI, EBX
+        ADD       ESI, 127
+        IMUL      ESI, ESI, 257
+        SHR       ESI, 16
+        PUSH      EAX
+        MOV       EAX, ESI
+        MOV       Byte Ptr [EDX + 3], AL
+        POP       EAX
+        JMP       @NextSingle
+@ZeroAlpha:
+        MOV       Byte Ptr [EDX + 3], 0
+@NextSingle:
+        ADD       EAX, 4
+        ADD       EDX, 4
+        DEC       ECX
+        JNZ       @SingleLoop
+
+@PopExit:
+        POP       ESI
+        POP       EBX
+
+@Exit:
+{$elseif defined(TARGET_x64)}
+        TEST      R8D, R8D
+        JLE       @Exit
+        PUSH      RSI
+        PUSH      RBX
+
+        PXOR      XMM7, XMM7
+        LEA       RSI, [RIP + SSE_00FF00FF_ALIGNED]
+        MOVDQU    XMM6, [RSI]
+        LEA       RSI, [RIP + SSE_00800080_ALIGNED]
+        MOVDQU    XMM4, [RSI]
+        LEA       RSI, [RIP + SSE_01010101_ALIGNED]
+        MOVDQU    XMM0, [RSI]
+
+        SUB       R8D, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQA    XMM5, XMM6
+        MOVZX     EBX, Byte Ptr [RCX + 3]
+        PINSRW    XMM5, EBX, 3
+        MOVZX     EBX, Byte Ptr [RCX + 7]
+        PINSRW    XMM5, EBX, 7
+
+        MOVDQU    XMM1, [RDX]
+        MOVDQA    XMM2, XMM1
+        PUNPCKLBW XMM2, XMM7
+        PMULLW    XMM2, XMM5
+        PADDW     XMM2, XMM4
+        PMULHUW   XMM2, XMM0
+
+        MOVDQA    XMM5, XMM6
+        MOVZX     EBX, Byte Ptr [RCX + 11]
+        PINSRW    XMM5, EBX, 3
+        MOVZX     EBX, Byte Ptr [RCX + 15]
+        PINSRW    XMM5, EBX, 7
+
+        MOVDQA    XMM3, XMM1
+        PUNPCKHBW XMM3, XMM7
+        PMULLW    XMM3, XMM5
+        PADDW     XMM3, XMM4
+        PMULHUW   XMM3, XMM0
+
+        PACKUSWB  XMM2, XMM3
+        MOVDQU    [RDX], XMM2
+
+        ADD       RCX, 16
+        ADD       RDX, 16
+        SUB       R8D, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       R8D, 4
+        JZ        @PopExit
+
+@SingleLoop:
+        MOVZX     EBX, Byte Ptr [RCX + 3]
+        CMP       EBX, 255
+        JE        @NextSingle
+        TEST      EBX, EBX
+        JZ        @ZeroAlpha
+        MOVZX     ESI, Byte Ptr [RDX + 3]
+        IMUL      ESI, EBX
+        ADD       ESI, 127
+        IMUL      ESI, ESI, 257
+        SHR       ESI, 16
+        MOV       EAX, ESI
+        MOV       Byte Ptr [RDX + 3], AL
+        JMP       @NextSingle
+@ZeroAlpha:
+        MOV       Byte Ptr [RDX + 3], 0
+@NextSingle:
+        ADD       RCX, 4
+        ADD       RDX, 4
+        DEC       R8D
+        JNZ       @SingleLoop
+
+@PopExit:
+        POP       RBX
+        POP       RSI
+
+@Exit:
+{$ifend}
+end;
+
+{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+
+//------------------------------------------------------------------------------
+//
+//      ScaleAlphaMems
+//
+//------------------------------------------------------------------------------
+// Pascal version
+//------------------------------------------------------------------------------
+(*
+** ScaleAlphaMems_Pas scales the alpha component of an array of pixels by a
+** Single float Scale factor.
+**
+** A 256-byte lookup table (LUT) is constructed up front:
+**   LUT[A] = Clamp(Round(A * Scale), 0, 255).
+** Each pixel's alpha channel is transformed via LUT[Color.A], while RGB color channels
+** remain completely untouched.
+*)
+procedure ScaleAlphaMems_Pas(Color: PColor32Entry; Count: Integer; Scale: Single);
+var
+  LUT: TLUT8;
+  I: Integer;
+  V: Integer;
+begin
+  if (Count <= 0) then
+    Exit;
+
+  for I := 0 to 255 do
+  begin
+    V := Round(I * Scale);
+    if (V < 0) then
+      V := 0
+    else
+    if (V > 255) then
+      V := 255;
+    LUT[I] := Byte(V);
+  end;
+
+  while (Count > 0) do
+  begin
+    Color.A := LUT[Color.A];
+    Inc(Color);
+    Dec(Count);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// SIMD versions
+//------------------------------------------------------------------------------
+{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+(*
+** ScaleAlphaMems_SSE2 scales the alpha component of an array of pixels by a float Scale
+** factor using SSE2 16-bit word multiplication (PMULLW, PADDW, PMULHUW, PACKUSWB)
+** in 4-pixel blocks.
+*)
+procedure ScaleAlphaMems_SSE2(Color: PColor32Entry; Count: Integer; Scale: Single); {$IFDEF FPC}assembler;{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        TEST      EDX, EDX
+        JLE       @Exit
+        PUSH      EBX
+        PUSH      ESI
+
+        // Load 255.0 Single float from SSE_Float255 and multiply by Scale
+        MOV       EBX, Offset SSE_Float255
+        MOVSS     XMM0, DWORD PTR [Scale]
+        MULSS     XMM0, DWORD PTR [EBX]
+        CVTSS2SI  ESI, XMM0             // Convert to integer scale weight W in ESI
+
+        // Clamp scale weight W: if Scale <= 0, zero all alphas; if Scale > 1.0 (ESI > 255), clamp W to 255
+        TEST      ESI, ESI
+        JLE       @ZeroAll
+        CMP       ESI, 255
+        JLE       @SetupW
+        MOV       ESI, 255
+@SetupW:
+
+        // Build word weight vector in XMM6: [255, 255, 255, W, 255, 255, 255, W]
+        MOV       EBX, Offset SSE_00FF00FF_ALIGNED
+        MOVDQU    XMM6, [EBX]
+        PINSRW    XMM6, ESI, 3
+        PSHUFD    XMM6, XMM6, $44
+
+        MOV       EBX, Offset SSE_00800080_ALIGNED
+        MOVDQU    XMM5, [EBX]
+        MOV       EBX, Offset SSE_01010101_ALIGNED
+        MOVDQU    XMM4, [EBX]
+
+        PXOR      XMM7, XMM7
+        MOV       ECX, EDX
+
+        SUB       ECX, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQU    XMM0, [EAX]           // Load 4 pixels
+
+        MOVDQA    XMM1, XMM0
+        PUNPCKLBW XMM1, XMM7
+        PMULLW    XMM1, XMM6
+        PADDW     XMM1, XMM5
+        PMULHUW   XMM1, XMM4
+
+        MOVDQA    XMM2, XMM0
+        PUNPCKHBW XMM2, XMM7
+        PMULLW    XMM2, XMM6
+        PADDW     XMM2, XMM5
+        PMULHUW   XMM2, XMM4
+
+        PACKUSWB  XMM1, XMM2            // Pack 16-bit words back to 8-bit bytes
+        MOVDQU    [EAX], XMM1
+
+        ADD       EAX, 16
+        SUB       ECX, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       ECX, 4
+        JZ        @PopExit
+
+@SingleLoop:
+        MOVZX     EBX, Byte Ptr [EAX + 3]
+        IMUL      EBX, ESI
+        ADD       EBX, 127
+        IMUL      EBX, EBX, 257
+        SHR       EBX, 16
+        MOV       Byte Ptr [EAX + 3], BL
+        ADD       EAX, 4
+        DEC       ECX
+        JNZ       @SingleLoop
+        JMP       @PopExit
+
+@ZeroAll:
+        MOV       Byte Ptr [EAX + 3], 0
+        ADD       EAX, 4
+        DEC       EDX
+        JNZ       @ZeroAll
+
+@PopExit:
+        POP       ESI
+        POP       EBX
+
+@Exit:
+{$elseif defined(TARGET_x64)}
+        TEST      EDX, EDX
+        JLE       @Exit
+        PUSH      RSI
+        PUSH      RBX
+
+        // Multiply Scale parameter (passed in XMM2) by 255.0 and convert to integer weight W
+        LEA       RAX, [RIP + SSE_Float255]
+        MULSS     XMM2, DWORD PTR [RAX]
+        CVTSS2SI  ESI, XMM2             // ESI = W
+
+        // Clamp scale weight W: if Scale <= 0, zero all alphas; if Scale > 1.0 (ESI > 255), clamp W to 255
+        TEST      ESI, ESI
+        JLE       @ZeroAll
+        CMP       ESI, 255
+        JLE       @SetupW
+        MOV       ESI, 255
+@SetupW:
+
+        // Build word weight vector in XMM3: [255, 255, 255, W, 255, 255, 255, W]
+        LEA       RBX, [RIP + SSE_00FF00FF_ALIGNED]
+        MOVDQU    XMM3, [RBX]
+        PINSRW    XMM3, ESI, 3
+        PSHUFD    XMM3, XMM3, $44
+
+        SUB       EDX, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQU    XMM0, [RCX]           // Load 4 pixels
+
+        MOVDQA    XMM1, XMM0
+        PXOR      XMM5, XMM5
+        PUNPCKLBW XMM1, XMM5
+        PMULLW    XMM1, XMM3
+        LEA       RBX, [RIP + SSE_00800080_ALIGNED]
+        PADDW     XMM1, [RBX]
+        LEA       RBX, [RIP + SSE_01010101_ALIGNED]
+        PMULHUW   XMM1, [RBX]
+
+        MOVDQA    XMM2, XMM0
+        PXOR      XMM5, XMM5
+        PUNPCKHBW XMM2, XMM5
+        PMULLW    XMM2, XMM3
+        LEA       RBX, [RIP + SSE_00800080_ALIGNED]
+        PADDW     XMM2, [RBX]
+        LEA       RBX, [RIP + SSE_01010101_ALIGNED]
+        PMULHUW   XMM2, [RBX]
+
+        PACKUSWB  XMM1, XMM2
+        MOVDQU    [RCX], XMM1
+
+        ADD       RCX, 16
+        SUB       EDX, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       EDX, 4
+        JZ        @PopExit
+
+@SingleLoop:
+        MOVZX     EBX, Byte Ptr [RCX + 3]
+        IMUL      EBX, ESI
+        ADD       EBX, 127
+        IMUL      EBX, EBX, 257
+        SHR       EBX, 16
+        MOV       Byte Ptr [RCX + 3], BL
+        ADD       RCX, 4
+        DEC       EDX
+        JNZ       @SingleLoop
+        JMP       @PopExit
+
+@ZeroAll:
+        MOV       Byte Ptr [RCX + 3], 0
+        ADD       RCX, 4
+        DEC       EDX
+        JNZ       @ZeroAll
+
+@PopExit:
+        POP       RBX
+        POP       RSI
+
+@Exit:
+{$ifend}
+end;
+
+{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+
+//------------------------------------------------------------------------------
+//
+//      ApplyAlphaMask
+//
+//------------------------------------------------------------------------------
+// Pascal version
+//------------------------------------------------------------------------------
+procedure ApplyAlphaMask_Pas(Source, Dest: PColor32Entry; Count: Integer);
+var
+  Gray: Byte;
+  Y: Cardinal;
+begin
+  while (Count > 0) do
+  begin
+    // Rec. 601 luminance
+    Y := (19595 * Source.R + 38470 * Source.G + 7471 * Source.B + 32768) shr 16;
+    Gray := MulDiv255Table[Y, Source.A]; // =  (Y * Source.A + 127) div 255;
+
+    if (Gray <> 255) then
+    begin
+      if (Gray = 0) then
+        Dest.A := 0
+      else
+        Dest.A := MulDiv255Table[Dest.A, Gray]; // = (Dest.A * Gray + 127) div 255;
+    end;
+    Inc(Source);
+    Inc(Dest);
+    Dec(Count);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// SIMD versions
+//------------------------------------------------------------------------------
+{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+(*
+** ApplyAlphaMask_SSE41 calculates Rec. 601 luminance of Source pixels (with source alpha applied)
+** and scales Dest.A by Gray / 255 using SSE4.1 32-bit PMULLD vector math in 4-pixel blocks.
+*)
+procedure ApplyAlphaMask_SSE41(Source, Dest: PColor32Entry; Count: Integer); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+asm
+{$if defined(TARGET_x86)}
+        TEST      ECX, ECX
+        JLE       @Exit
+        PUSH      EBX
+        PUSH      ESI
+
+        SUB       ECX, 4
+        JL        @Tail
+
+        MOV       ESI, Offset c_w601_words
+        MOVDQU    XMM5, [ESI]
+
+        PXOR      XMM6, XMM6
+
+@Loop4:
+        MOVDQU    XMM0, [EAX]           // Source 4 pixels
+        MOVDQU    XMM1, [EDX]           // Dest 4 pixels
+
+        // Low 2 pixels luminance
+        MOVDQA    XMM2, XMM0
+        PUNPCKLBW XMM2, XMM6
+        PMADDWD   XMM2, XMM5
+        PSHUFD    XMM3, XMM2, $B1
+        PADDD     XMM2, XMM3
+        PSRLD     XMM2, 8               // Y_raw in [0..255]
+        PSHUFD    XMM2, XMM2, $D8
+
+        // High 2 pixels luminance
+        MOVDQA    XMM3, XMM0
+        PUNPCKHBW XMM3, XMM6
+        PMADDWD   XMM3, XMM5
+        PSHUFD    XMM4, XMM3, $B1
+        PADDD     XMM3, XMM4
+        PSRLD     XMM3, 8               // Y_raw in [0..255]
+        PSHUFD    XMM3, XMM3, $D8
+
+        MOVLHPS   XMM2, XMM3            // Combine into XMM2: [Y0, Y1, Y2, Y3]
+
+        MOVDQU    XMM0, [EAX]
+        PSRLD     XMM0, 24              // Source Alphas
+
+                        PMULLD    XMM2, XMM0            // Y_raw * Sa
+        MOV       ESI, Offset c_div255_bias
+        MOVDQU    XMM4, [ESI]
+        PADDD     XMM2, XMM4
+        MOV       ESI, Offset c_div255_mult
+        MOVDQU    XMM4, [ESI]
+        PMULLD    XMM2, XMM4
+        PSRLD     XMM2, 16              // Gray = (Y_raw * Sa + 127) * 257 shr 16 in [0..255]
+
+        MOVDQA    XMM3, XMM1
+        PSRLD     XMM3, 24              // Dest Alphas
+
+        PMULLD    XMM3, XMM2            // Dest.A * Gray
+        MOV       ESI, Offset c_div255_bias
+        MOVDQU    XMM4, [ESI]
+        PADDD     XMM3, XMM4
+        MOV       ESI, Offset c_div255_mult
+        MOVDQU    XMM4, [ESI]
+        PMULLD    XMM3, XMM4
+        PSRLD     XMM3, 16              // New Dest.A in [0..255]
+
+        PSLLD     XMM3, 24
+        MOV       ESI, Offset c_rgb_mask32
+        MOVDQU    XMM4, [ESI]
+        PAND      XMM1, XMM4
+        POR       XMM1, XMM3
+        MOVDQU    [EDX], XMM1
+
+        ADD       EAX, 16
+        ADD       EDX, 16
+        SUB       ECX, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       ECX, 4
+        JZ        @PopExit
+
+@SingleLoop:
+{$IFNDEF RGBA_FORMAT}
+        MOVZX     EBX, Byte Ptr [EAX + 2]
+        IMUL      EBX, 19595
+        MOVZX     ESI, Byte Ptr [EAX + 1]
+        IMUL      ESI, 38470
+        ADD       EBX, ESI
+        MOVZX     ESI, Byte Ptr [EAX]
+        IMUL      ESI, 7471
+        ADD       EBX, ESI
+{$ELSE}
+        MOVZX     EBX, Byte Ptr [EAX]
+        IMUL      EBX, 19595
+        MOVZX     ESI, Byte Ptr [EAX + 1]
+        IMUL      ESI, 38470
+        ADD       EBX, ESI
+        MOVZX     ESI, Byte Ptr [EAX + 2]
+        IMUL      ESI, 7471
+        ADD       EBX, ESI
+{$ENDIF}
+        ADD       EBX, 32768
+        SHR       EBX, 16
+
+        MOVZX     ESI, Byte Ptr [EAX + 3]
+        IMUL      EBX, ESI
+        ADD       EBX, 127
+        IMUL      EBX, EBX, 257
+        SHR       EBX, 16
+
+        CMP       EBX, 255
+        JE        @NextSingle
+        TEST      EBX, EBX
+        JZ        @ZeroAlpha
+        MOVZX     ESI, Byte Ptr [EDX + 3]
+        IMUL      ESI, EBX
+        ADD       ESI, 127
+        IMUL      ESI, ESI, 257
+        SHR       ESI, 16
+        PUSH      EAX
+        MOV       EAX, ESI
+        MOV       Byte Ptr [EDX + 3], AL
+        POP       EAX
+        JMP       @NextSingle
+@ZeroAlpha:
+        MOV       Byte Ptr [EDX + 3], 0
+@NextSingle:
+        ADD       EAX, 4
+        ADD       EDX, 4
+        DEC       ECX
+        JNZ       @SingleLoop
+
+@PopExit:
+        POP       ESI
+        POP       EBX
+
+@Exit:
+{$elseif defined(TARGET_x64)}
+        TEST      R8D, R8D
+        JLE       @Exit
+        PUSH      RSI
+        PUSH      RBX
+
+        SUB       R8D, 4
+        JL        @Tail
+
+@Loop4:
+        MOVDQU    XMM0, [RCX]           // Source 4 pixels
+        MOVDQU    XMM1, [RDX]           // Dest 4 pixels
+
+        // Low 2 pixels luminance
+        MOVDQA    XMM2, XMM0
+        PXOR      XMM4, XMM4
+        PUNPCKLBW XMM2, XMM4
+        LEA       RSI, [RIP + c_w601_words]
+        PMADDWD   XMM2, [RSI]
+        PSHUFD    XMM3, XMM2, $B1
+        PADDD     XMM2, XMM3
+        PSRLD     XMM2, 8               // Y_raw in [0..255]
+        PSHUFD    XMM2, XMM2, $D8
+
+        // High 2 pixels luminance
+        MOVDQA    XMM3, XMM0
+        PUNPCKHBW XMM3, XMM4
+        PMADDWD   XMM3, [RSI]
+        PSHUFD    XMM4, XMM3, $B1
+        PADDD     XMM3, XMM4
+        PSRLD     XMM3, 8               // Y_raw in [0..255]
+        PSHUFD    XMM3, XMM3, $D8
+
+        MOVLHPS   XMM2, XMM3            // Combine into XMM2: [Y0, Y1, Y2, Y3]
+
+        MOVDQU    XMM0, [RCX]
+        PSRLD     XMM0, 24              // Source Alphas
+
+        PMULLD    XMM2, XMM0            // Y_raw * Sa
+        LEA       RSI, [RIP + c_div255_bias]
+        PADDD     XMM2, [RSI]
+        LEA       RSI, [RIP + c_div255_mult]
+        PMULLD    XMM2, [RSI]
+        PSRLD     XMM2, 16              // Gray = (Y_raw * Sa + 127) * 257 shr 16 in [0..255]
+
+        MOVDQA    XMM4, XMM1
+        PSRLD     XMM4, 24              // Dest Alphas
+
+        PMULLD    XMM4, XMM2            // Dest.A * Gray
+        LEA       RSI, [RIP + c_div255_bias]
+        PADDD     XMM4, [RSI]
+        LEA       RSI, [RIP + c_div255_mult]
+        PMULLD    XMM4, [RSI]
+        PSRLD     XMM4, 16              // New Dest.A in [0..255]
+
+        PSLLD     XMM4, 24
+        LEA       RSI, [RIP + c_rgb_mask32]
+        MOVDQU    XMM0, [RSI]
+        PAND      XMM1, XMM0
+        POR       XMM1, XMM4
+        MOVDQU    [RDX], XMM1
+
+        ADD       RCX, 16
+        ADD       RDX, 16
+        SUB       R8D, 4
+        JGE       @Loop4
+
+@Tail:
+        ADD       R8D, 4
+        JZ        @PopExit
+
+@SingleLoop:
+{$IFNDEF RGBA_FORMAT}
+        MOVZX     EBX, Byte Ptr [RCX + 2]
+        IMUL      EBX, 19595
+        MOVZX     ESI, Byte Ptr [RCX + 1]
+        IMUL      ESI, 38470
+        ADD       EBX, ESI
+        MOVZX     ESI, Byte Ptr [RCX]
+        IMUL      ESI, 7471
+        ADD       EBX, ESI
+{$ELSE}
+        MOVZX     EBX, Byte Ptr [RCX]
+        IMUL      EBX, 19595
+        MOVZX     ESI, Byte Ptr [RCX + 1]
+        IMUL      ESI, 38470
+        ADD       EBX, ESI
+        MOVZX     ESI, Byte Ptr [RCX + 2]
+        IMUL      ESI, 7471
+        ADD       EBX, ESI
+{$ENDIF}
+        ADD       EBX, 32768
+        SHR       EBX, 16
+
+        MOVZX     ESI, Byte Ptr [RCX + 3]
+        IMUL      EBX, ESI
+        ADD       EBX, 127
+        IMUL      EBX, EBX, 257
+        SHR       EBX, 16
+
+        CMP       EBX, 255
+        JE        @NextSingle
+        TEST      EBX, EBX
+        JZ        @ZeroAlpha
+        MOVZX     ESI, Byte Ptr [RDX + 3]
+        IMUL      ESI, EBX
+        ADD       ESI, 127
+        IMUL      ESI, ESI, 257
+        SHR       ESI, 16
+        MOV       EAX, ESI
+        MOV       Byte Ptr [RDX + 3], AL
+        JMP       @NextSingle
+@ZeroAlpha:
+        MOV       Byte Ptr [RDX + 3], 0
+@NextSingle:
+        ADD       RCX, 4
+        ADD       RDX, 4
+        DEC       R8D
+        JNZ       @SingleLoop
+
+@PopExit:
+        POP       RBX
+        POP       RSI
+
+@Exit:
+{$ifend}
+end;
+
+{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+
+
+//------------------------------------------------------------------------------
+//
 //      CPU target and feature Function templates
 //
 //------------------------------------------------------------------------------
@@ -2059,6 +3157,11 @@ begin
   Registry.RegisterBinding(@@LogicalMaskLineAndEx, 'LogicalMaskLineAndEx');
   Registry.RegisterBinding(@@LogicalMaskLineOrEx, 'LogicalMaskLineOrEx');
   Registry.RegisterBinding(@@LogicalMaskLineXorEx, 'LogicalMaskLineXorEx');
+  Registry.RegisterBinding(@@ScaleAlphaLine, 'ScaleAlphaLine');
+  Registry.RegisterBinding(@@ScaleAlphaMems, 'ScaleAlphaMems');
+  Registry.RegisterBinding(@@ApplyAlphaMask, 'ApplyAlphaMask');
+  Registry.RegisterBinding(@@Luminance601, 'Luminance601');
+  Registry.RegisterBinding(@@Luminance709, 'Luminance709');
 
   Registry[@@LogicalMaskLineAnd].Add(   @AndLine_Pas,   [isPascal]).Name := 'AndLine_Pas';
   Registry[@@LogicalMaskLineOr].Add(    @OrLine_Pas,    [isPascal]).Name := 'OrLine_Pas';
@@ -2066,6 +3169,11 @@ begin
   Registry[@@LogicalMaskLineAndEx].Add( @AndLineEx_Pas, [isPascal]).Name := 'AndLineEx_Pas';
   Registry[@@LogicalMaskLineOrEx].Add(  @OrLineEx_Pas,  [isPascal]).Name := 'OrLineEx_Pas';
   Registry[@@LogicalMaskLineXorEx].Add( @XorLineEx_Pas, [isPascal]).Name := 'XorLineEx_Pas';
+  Registry[@@ScaleAlphaLine].Add(       @ScaleAlphaLine_Pas, [isPascal]).Name := 'ScaleAlphaLine_Pas';
+  Registry[@@ScaleAlphaMems].Add(       @ScaleAlphaMems_Pas, [isPascal]).Name := 'ScaleAlphaMems_Pas';
+  Registry[@@ApplyAlphaMask].Add(       @ApplyAlphaMask_Pas, [isPascal]).Name := 'ApplyAlphaMask_Pas';
+  Registry[@@Luminance601].Add(         @Luminance601_Pas,   [isPascal]).Name := 'Luminance601_Pas';
+  Registry[@@Luminance709].Add(         @Luminance709_Pas,   [isPascal]).Name := 'Luminance709_Pas';
 
 {$IFNDEF PUREPASCAL}
   Registry[@@LogicalMaskLineAnd].Add(   @AndLine_ASM,   [isAssembler]).Name := 'AndLine_ASM';
@@ -2074,6 +3182,16 @@ begin
   Registry[@@LogicalMaskLineAndEx].Add( @AndLineEx_ASM, [isAssembler]).Name := 'AndLineEx_ASM';
   Registry[@@LogicalMaskLineOrEx].Add(  @OrLineEx_ASM,  [isAssembler]).Name := 'OrLineEx_ASM';
   Registry[@@LogicalMaskLineXorEx].Add( @XorLineEx_ASM, [isAssembler]).Name := 'XorLineEx_ASM';
+
+{$IFNDEF OMIT_SSE2}
+  Registry[@@ScaleAlphaLine].Add(       @ScaleAlphaLine_SSE2, [isSSE2]).Name := 'ScaleAlphaLine_SSE2';
+  Registry[@@ApplyAlphaMask].Add(       @ApplyAlphaMask_SSE41, [isSSE41]).Name := 'ApplyAlphaMask_SSE41';
+  Registry[@@ScaleAlphaMems].Add(       @ScaleAlphaMems_SSE2, [isSSE2]).Name := 'ScaleAlphaMems_SSE2';
+  Registry[@@Luminance601].Add(         @Luminance601_SSE2,   [isSSE2]).Name := 'Luminance601_SSE2';
+  Registry[@@Luminance601].Add(         @Luminance601_SSE41,  [isSSE41]).Name := 'Luminance601_SSE41';
+  Registry[@@Luminance709].Add(         @Luminance709_SSE2,   [isSSE2]).Name := 'Luminance709_SSE2';
+  Registry[@@Luminance709].Add(         @Luminance709_SSE41,  [isSSE41]).Name := 'Luminance709_SSE41';
+{$ENDIF}
 
   // TODO : rewrite MMX implementations using SSE
 {$IFNDEF OMIT_MMX}

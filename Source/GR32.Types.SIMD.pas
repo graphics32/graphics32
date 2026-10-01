@@ -41,15 +41,15 @@ interface
         ------------------------------------------------
         Parameters: EAX, EDX, ECX, Stack
         Return value: EAX
-        Can modify: EAX, ECX, and EDX
+        Can modify: EAX, ECX, and EDX, XMM0...XMM7
         Must preserve: EDI, ESI, ESP, EBP, and EBX
 
         64-bit, x64 calling convention
         ------------------------------------------------
         Parameters: RCX, RDX, R8, R9 (integer) or XMMO, XMM1, XMM2, XMM3 (float), Stack
         Return value: RAX (integer), XMM+ (float)
-        Can modify: RAX, RCX, RDX, R8, R9, R10, R11, XMMO, XMM1, XMM2, XMM3
-        Must preserve: R12, R13, R14, R15, RDI, RSI, RBX, RBP, RSP, XMM4, XMM5, XMM6, XMM7, XMM8, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, and XMM15
+        Can modify: RAX, RCX, RDX, R8, R9, R10, R11, XMMO...XMM3
+        Must preserve: R12, R13, R14, R15, RDI, RSI, RBX, RBP, RSP, XMM4...XMM15
 
 *)
 

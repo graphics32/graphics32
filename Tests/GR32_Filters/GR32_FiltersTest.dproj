@@ -119,6 +119,7 @@
         <DCCReference Include="TestChromaKey.pas"/>
         <DCCReference Include="TestCreateBitmask.pas"/>
         <DCCReference Include="TestApplyBitmask.pas"/>
+        <DCCReference Include="TestScaleAlphaAndLuminance.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -36,6 +36,9 @@
         <Projects Include="Resampler test\ResamplerTest.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="GR32_Filters\GR32_FiltersTest.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -143,14 +146,23 @@
     <Target Name="ResamplerTest:Make">
         <MSBuild Projects="Resampler test\ResamplerTest.dproj" Targets="Make"/>
     </Target>
+    <Target Name="GR32_FiltersTest">
+        <MSBuild Projects="GR32_Filters\GR32_FiltersTest.dproj"/>
+    </Target>
+    <Target Name="GR32_FiltersTest:Clean">
+        <MSBuild Projects="GR32_Filters\GR32_FiltersTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="GR32_FiltersTest:Make">
+        <MSBuild Projects="GR32_Filters\GR32_FiltersTest.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="SvgTest;BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest;OrdinalMapsTest;ResamplerTest"/>
+        <CallTarget Targets="SvgTest;BlendTest;ColorSpaceTest;LowLevelTest;GuiPngTest;BitmapTest;PolygonTest;TransposeTest;BindingTest;OrdinalMapsTest;ResamplerTest;GR32_FiltersTest"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="SvgTest:Clean;BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean;OrdinalMapsTest:Clean;ResamplerTest:Clean"/>
+        <CallTarget Targets="SvgTest:Clean;BlendTest:Clean;ColorSpaceTest:Clean;LowLevelTest:Clean;GuiPngTest:Clean;BitmapTest:Clean;PolygonTest:Clean;TransposeTest:Clean;BindingTest:Clean;OrdinalMapsTest:Clean;ResamplerTest:Clean;GR32_FiltersTest:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="SvgTest:Make;BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make;BindingTest:Make;OrdinalMapsTest:Make;ResamplerTest:Make"/>
+        <CallTarget Targets="SvgTest:Make;BlendTest:Make;ColorSpaceTest:Make;LowLevelTest:Make;GuiPngTest:Make;BitmapTest:Make;PolygonTest:Make;TransposeTest:Make;BindingTest:Make;OrdinalMapsTest:Make;ResamplerTest:Make;GR32_FiltersTest:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

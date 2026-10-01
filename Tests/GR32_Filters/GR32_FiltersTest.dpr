@@ -20,7 +20,8 @@ uses
   TestApplyLUT in 'TestApplyLUT.pas',
   TestChromaKey in 'TestChromaKey.pas',
   TestCreateBitmask in 'TestCreateBitmask.pas',
-  TestApplyBitmask in 'TestApplyBitmask.pas';
+  TestApplyBitmask in 'TestApplyBitmask.pas',
+  TestScaleAlphaAndLuminance in 'TestScaleAlphaAndLuminance.pas';
 
 {$R *.RES}
 
