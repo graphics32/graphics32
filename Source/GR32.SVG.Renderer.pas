@@ -58,10 +58,34 @@ type
   TSvgPatternPolygonFiller = class(TBitmapPolygonFiller)
   private
     FPatternBmp: TBitmap32;
+    FAffineTransform: Boolean;
+    FInvMatrix: TFloatMatrix;
+    FTileX: Single;
+    FTileY: Single;
+    FTileWidth: Single;
+    FTileHeight: Single;
+    FScaleBmpX: Single;
+    FScaleBmpY: Single;
+    FWrapProcX, FWrapProcY: TWrapProc;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineTransformed(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32; CombineMode: TCombineMode);
   public
     constructor Create(APatternBmp: TBitmap32); reintroduce;
     destructor Destroy; override;
+
+    procedure BeginRendering; override;
+
     property PatternBmp: TBitmap32 read FPatternBmp;
+    property AffineTransform: Boolean read FAffineTransform write FAffineTransform;
+    property InvMatrix: TFloatMatrix read FInvMatrix write FInvMatrix;
+    property TileX: Single read FTileX write FTileX;
+    property TileY: Single read FTileY write FTileY;
+    property TileWidth: Single read FTileWidth write FTileWidth;
+    property TileHeight: Single read FTileHeight write FTileHeight;
+    property ScaleBmpX: Single read FScaleBmpX write FScaleBmpX;
+    property ScaleBmpY: Single read FScaleBmpY write FScaleBmpY;
   end;
 
   TFontInfo = record
@@ -132,6 +156,7 @@ uses
   GR32_LowLevel,
   GR32_Backends_Generic,
   GR32_Paths,
+  GR32_Resamplers,
   GR32.Text.Types,
   GR32.Text.Win,
   GR32.Text.FontFace,
@@ -142,6 +167,9 @@ uses
 
 const
   ZERO_WIDTH_SPACE = $200B; // Unicode ZERO WIDTH SPACE
+
+const
+  OneOver255: Single = 1 / 255;
 
 const
   cMaxRecursions = 20;
@@ -312,17 +340,135 @@ end;
 
 { TSvgPatternPolygonFiller }
 
+procedure TSvgPatternPolygonFiller.BeginRendering;
+begin
+  inherited;
+
+  // Pre-fetch optimized integer wrapping procedures for pattern bitmap pixel dimensions.
+  // Uses WrapPow2 (bitwise AND) if tile dimension is a power-of-two or assembly Wrap otherwise.
+  FWrapProcX := GetOptimalWrap(FPatternBmp.Width - 1);
+  FWrapProcY := GetOptimalWrap(FPatternBmp.Height - 1);
+end;
+
 constructor TSvgPatternPolygonFiller.Create(APatternBmp: TBitmap32);
 begin
   inherited Create;
   FPatternBmp := APatternBmp;
   Pattern := FPatternBmp;
+  FAffineTransform := False;
+  FInvMatrix := IdentityMatrix;
+  FTileX := 0;
+  FTileY := 0;
+  FTileWidth := 1;
+  FTileHeight := 1;
+  FScaleBmpX := 1;
+  FScaleBmpY := 1;
 end;
 
 destructor TSvgPatternPolygonFiller.Destroy;
 begin
   FPatternBmp.Free;
   inherited Destroy;
+end;
+
+function TSvgPatternPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  if FAffineTransform then
+    Result := FillLineTransformed
+  else
+    Result := inherited GetFillLine;
+end;
+
+procedure TSvgPatternPolygonFiller.FillLineTransformed(Dst: PColor32; DstX, DstY, Length: Integer;
+  AlphaValues: PColor32; CombineMode: TCombineMode);
+var
+  X: Integer;
+  PtX, PtY: Single;
+  Dx, Dy: Single;
+  U, V, Upx, Vpx: Single;
+  Ix, Iy: Integer;
+  Wx, Wy: Cardinal;
+  X1, X2, Y1, Y2: Integer;
+  BitmapWidth, BitmapHeight: Integer;
+  SrcColor: TColor32;
+  BlendMem: TBlendMem;
+  BlendMemEx: TBlendMemEx;
+  MasterAlpha: Integer;
+  Row1, Row2: array[0..1] of TColor32;
+begin
+  if (FPatternBmp = nil) or (FPatternBmp.Width <= 0) or (FPatternBmp.Height <= 0) or
+     (FTileWidth <= 0) or (FTileHeight <= 0) then
+    Exit;
+
+  BitmapWidth := FPatternBmp.Width;
+  BitmapHeight := FPatternBmp.Height;
+
+  // Calculates starting point in pattern coordinate space for target pixel (DstX, DstY)
+  PtX := DstX * FInvMatrix[0, 0] + DstY * FInvMatrix[1, 0] + FInvMatrix[2, 0];
+  PtY := DstX * FInvMatrix[0, 1] + DstY * FInvMatrix[1, 1] + FInvMatrix[2, 1];
+
+  // Incremental step per X pixel advancement along the scanline
+  Dx := FInvMatrix[0, 0];
+  Dy := FInvMatrix[0, 1];
+
+  BlendMem := BLEND_MEM[CombineMode]^;
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+  MasterAlpha := FPatternBmp.MasterAlpha;
+
+  for X := 0 to Length - 1 do
+  begin
+    // Use Wrap to constrain continuous float pattern coordinates into tile
+    // bounds [0..FTileWidth) and [0..FTileHeight)
+    U := GR32_LowLevel.Wrap(PtX - FTileX, FTileWidth);
+    V := GR32_LowLevel.Wrap(PtY - FTileY, FTileHeight);
+
+    // Maps tile coordinate (U, V) to continuous bitmap pixel space
+    Upx := U * FScaleBmpX - 0.5;
+    Vpx := V * FScaleBmpY - 0.5;
+
+    Ix := Floor(Upx);
+    Iy := Floor(Vpx);
+
+    Wx := Clamp(Round((Upx - Ix) * 256.0), 0, 256);
+    Wy := Clamp(Round((Vpx - Iy) * 256.0), 0, 256);
+
+    // Tile modulo wrapping across 4 neighbor pixels for continuous bilinear sampling
+    X1 := FWrapProcX(Ix, BitmapWidth - 1);
+    X2 := FWrapProcX(Ix + 1, BitmapWidth - 1);
+
+    Y1 := FWrapProcY(Iy, BitmapHeight - 1);
+    Y2 := FWrapProcY(Iy + 1, BitmapHeight - 1);
+
+    // The funky array ordering matches AlphaInterpolator parameter convention (X2 at
+    // index 0, X1 at index 1) and is due to the way AlphaInterpolator is implemented
+    // and what its normal purpose is; It's used internally by the resamplers and
+    // this is the setup they use.
+    Row1[1] := FPatternBmp.Bits[X1 + Y1 * BitmapWidth];
+    Row1[0] := FPatternBmp.Bits[X2 + Y1 * BitmapWidth];
+
+    Row2[1] := FPatternBmp.Bits[X1 + Y2 * BitmapWidth];
+    Row2[0] := FPatternBmp.Bits[X2 + Y2 * BitmapWidth];
+
+    // Performs 2D bilinear interpolation across 4 neighbor pixels
+    SrcColor := AlphaInterpolator(Wx, Wy, @Row2[0], @Row1[0]);
+
+    if (MasterAlpha < 255) then
+      ScaleAlpha(SrcColor, MasterAlpha * OneOver255);
+
+    if (AlphaValues <> nil) then
+    begin
+      BlendMemEx(SrcColor, Dst^, AlphaValues^);
+      Inc(AlphaValues);
+    end else
+    if (FPatternBmp.DrawMode = dmBlend) then
+      BlendMem(SrcColor, Dst^)
+    else
+      Dst^ := SrcColor;
+
+    Inc(Dst);
+    PtX := PtX + Dx;
+    PtY := PtY + Dy;
+  end;
 end;
 
 { TSvgBitmapPool }
@@ -686,8 +832,7 @@ end;
 function TSvgRenderer.CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
 var
   BoundsWidth, BoundsHeight, ViewportWidth, ViewportHeight: Single;
-  TileX, TileY, TileWidth, TileHeight: Single;
-  TileWidthPx, TileHeightPx: Single;
+  TileX, TileY, TileWidth, TileHeight, TileRatioX, TileRatioY: Single;
   PatternBitmap: TBitmap32;
   i, BitmapWidth, BitmapHeight: Integer;
   SavedViewport: TFloatRect;
@@ -695,6 +840,10 @@ var
   origPt: TFloatPoint;
   TileViewBox: TSvgViewBox;
   MatrixScaleX, MatrixScaleY: Single;
+  PatternTransform: TFloatMatrixHelper;
+  TotalTransform: TFloatMatrixHelper;
+  InvMat: TFloatMatrix;
+  PatternFiller: TSvgPatternPolygonFiller;
 const
   cMaxPatternDimension = 4096;
 begin
@@ -716,52 +865,50 @@ begin
   if ViewportHeight <= 0 then
     ViewportHeight := 1.0;
 
-  MatrixScaleX := GR32_Math.Hypot(FTransformation.Matrix[0, 0], FTransformation.Matrix[0, 1]);
-  MatrixScaleY := GR32_Math.Hypot(FTransformation.Matrix[1, 0], FTransformation.Matrix[1, 1]);
-  if MatrixScaleX <= 0 then
-    MatrixScaleX := 1.0;
-  if MatrixScaleY <= 0 then
-    MatrixScaleY := 1.0;
+  PatternTransform.Matrix := APatternNode.PatternTransform;
+  TotalTransform := PatternTransform * FTransformation.Matrix;
 
-  // Calculates pattern tile origin and pixel dimensions based on patternUnits.
+  // Calculates pattern tile origin and bounds in user space.
   // When patternUnits = guObjectBoundingBox (default), tile attributes x, y, width, height
-  // are defined in normalized bounding box units [0..1] (e.g. 10% = 0.1).
+  // are defined in normalized bounding box units [0..1] relative to target bounds in user space.
   if APatternNode.PatternUnits = guObjectBoundingBox then
   begin
-    TileX := APatternNode.X.ToPixels(1.0);
-    TileY := APatternNode.Y.ToPixels(1.0);
-    TileWidth := APatternNode.Width.ToPixels(1.0);
-    TileHeight := APatternNode.Height.ToPixels(1.0);
+    InvMat := FTransformation.Matrix;
+    GR32_Transforms.Invert(InvMat);
 
-    TileWidthPx := TileWidth * BoundsWidth;
-    TileHeightPx := TileHeight * BoundsHeight;
+    origPt := TFloatMatrixHelper(InvMat).TransformPoint(FloatPoint(ABounds.Left, ABounds.Top));
 
-    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx)));
-    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx)));
+    MatrixScaleX := GR32_Math.Hypot(FTransformation.Matrix[0, 0], FTransformation.Matrix[0, 1]);
+    MatrixScaleY := GR32_Math.Hypot(FTransformation.Matrix[1, 0], FTransformation.Matrix[1, 1]);
+    if MatrixScaleX <= 0 then MatrixScaleX := 1.0;
+    if MatrixScaleY <= 0 then MatrixScaleY := 1.0;
 
-    TileX := ABounds.Left + TileX * BoundsWidth;
-    TileY := ABounds.Top + TileY * BoundsHeight;
-  end
-  else
+    TileRatioX := BoundsWidth / MatrixScaleX;
+    TileRatioY := BoundsHeight / MatrixScaleY;
+    TileWidth := APatternNode.Width.ToPixels(1.0) * TileRatioX;
+    TileHeight := APatternNode.Height.ToPixels(1.0) * TileRatioY;
+    TileX := origPt.X + APatternNode.X.ToPixels(1.0) * TileRatioX;
+    TileY := origPt.Y + APatternNode.Y.ToPixels(1.0) * TileRatioY;
+  end else
   begin
     TileX := APatternNode.X.ToPixels(ViewportWidth);
     TileY := APatternNode.Y.ToPixels(ViewportHeight);
     TileWidth := APatternNode.Width.ToPixels(ViewportWidth);
     TileHeight := APatternNode.Height.ToPixels(ViewportHeight);
-
-    TileWidthPx := TileWidth * MatrixScaleX;
-    TileHeightPx := TileHeight * MatrixScaleY;
-
-    BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidthPx)));
-    BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeightPx)));
-
-    origPt := FTransformation.Transform(FloatPoint(TileX, TileY));
-    TileX := origPt.X;
-    TileY := origPt.Y;
   end;
 
-  if (BitmapWidth <= 0) or (BitmapHeight <= 0) then
+  if (TileWidth <= 0) or (TileHeight <= 0) then
     Exit;
+
+  MatrixScaleX := GR32_Math.Hypot(TotalTransform.Matrix[0, 0], TotalTransform.Matrix[0, 1]);
+  MatrixScaleY := GR32_Math.Hypot(TotalTransform.Matrix[1, 0], TotalTransform.Matrix[1, 1]);
+  if MatrixScaleX <= 0 then
+    MatrixScaleX := 1.0;
+  if MatrixScaleY <= 0 then
+    MatrixScaleY := 1.0;
+
+  BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidth * MatrixScaleX)));
+  BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeight * MatrixScaleY)));
 
   PatternBitmap := TBitmap32.Create;
   try
@@ -780,18 +927,28 @@ begin
       if APatternNode.ViewBox.IsValid then
       begin
         TileViewBox := APatternNode.ViewBox;
-        ContentMat.Matrix := TileViewBox.GetTransform(FloatRect(0, 0, TileWidthPx, TileHeightPx), APatternNode.PreserveAspectRatio);
+        ContentMat.Matrix := TileViewBox.GetTransform(FloatRect(0, 0, BitmapWidth, BitmapHeight), APatternNode.PreserveAspectRatio);
       end
       else
       if APatternNode.PatternContentUnits = guObjectBoundingBox then
-        ContentMat.Scale(BoundsWidth * MatrixScaleX, BoundsHeight * MatrixScaleY)
+      begin
+        TileRatioX := BitmapWidth / TileWidth;
+        TileRatioY := BitmapHeight / TileHeight;
+        ContentMat.Scale(BoundsWidth * TileRatioX, BoundsHeight * TileRatioY);
+        ContentMat.Translate(-TileX * TileRatioX, -TileY * TileRatioY);
+      end
       else
-        ContentMat.Scale(MatrixScaleX, MatrixScaleY);
+      begin
+        TileRatioX := BitmapWidth / TileWidth;
+        TileRatioY := BitmapHeight / TileHeight;
+        ContentMat.Scale(TileRatioX, TileRatioY);
+        ContentMat.Translate(-TileX * TileRatioX, -TileY * TileRatioY);
+      end;
 
-        ApplyMatrix(ContentMat.Matrix);
+      ApplyMatrix(ContentMat.Matrix);
 
-        for i := 0 to APatternNode.Children.Count - 1 do
-          RenderNode(PatternBitmap, APatternNode.Children[i]);
+      for i := 0 to APatternNode.Children.Count - 1 do
+        RenderNode(PatternBitmap, APatternNode.Children[i]);
 
     finally
       FTransformation.Pop;
@@ -799,12 +956,34 @@ begin
     end;
 
     if (AOpacity < 1.0) then
-      PatternBitmap.MasterAlpha := Round(AOpacity * 256);
+      PatternBitmap.MasterAlpha := Round(AOpacity * 255);
 
-    Result := TSvgPatternPolygonFiller.Create(PatternBitmap);
+    PatternFiller := TSvgPatternPolygonFiller.Create(PatternBitmap);
 
-    TSvgPatternPolygonFiller(Result).OffsetX := Round(TileX);
-    TSvgPatternPolygonFiller(Result).OffsetY := Round(TileY);
+    if IsIdentityMatrix(TotalTransform.Matrix) then
+    begin
+      // Pattern can be blitted 1:1 by filler
+      PatternFiller.AffineTransform := False;
+      PatternFiller.OffsetX := Round(TileX);
+      PatternFiller.OffsetY := Round(TileY);
+    end
+    else
+    begin
+      // Pattern must be transformed and sampled by filler
+      InvMat := TotalTransform.Matrix;
+      GR32_Transforms.Invert(InvMat);
+
+      PatternFiller.AffineTransform := True;
+      PatternFiller.InvMatrix := InvMat;
+      PatternFiller.TileX := TileX;
+      PatternFiller.TileY := TileY;
+      PatternFiller.TileWidth := TileWidth;
+      PatternFiller.TileHeight := TileHeight;
+      PatternFiller.ScaleBmpX := BitmapWidth / TileWidth;
+      PatternFiller.ScaleBmpY := BitmapHeight / TileHeight;
+    end;
+
+    Result := PatternFiller;
   except
     PatternBitmap.Free;
     raise;
@@ -902,8 +1081,6 @@ var
   MaskNodeTarget: TSvgMaskNode;
   SourceP, DestP: PColor32;
   AlphaVal, Gray: Byte;
-const
-  OneOver255: Single = 1 / 255;
 begin
   if (APathNode = nil) or (ATarget = nil) then
     Exit;

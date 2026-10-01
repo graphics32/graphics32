@@ -83,6 +83,7 @@ type
     procedure TestTransformedFilterRendering;
     procedure TestObjectBoundingBoxClipPathRoi;
     procedure TestGradientAndPatternFillOpacity;
+    procedure TestPatternTransform;
   end;
 
 implementation
@@ -119,6 +120,48 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestPatternTransform;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg id="svg1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+           '    <pattern id="patt1" patternUnits="userSpaceOnUse" width="40" height="25" patternTransform="skewX(10)">' +
+           '        <rect id="rect1" x="0" y="0" width="100" height="40" fill="none" stroke="green"/>' +
+           '        <rect id="rect2" x="0" y="0" width="20" height="25" fill="red"/>' +
+           '    </pattern>' +
+           '    <rect id="rect3" x="20" y="20" width="160" height="160" fill="url(#patt1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Pattern docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center of rectangle filled with pattern should be painted
+        Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect filled with pattern should be painted');
+        // Pixel at (36, 100) shifted by skewX(10) should contain red tile fill
+        Check(bmp.Pixel[36, 100] = clRed32, 'Transformed pattern tile at skewed coordinate should be painted red');
       finally
         renderer.Free;
       end;
