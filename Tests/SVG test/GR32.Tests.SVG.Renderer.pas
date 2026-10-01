@@ -69,6 +69,10 @@ type
     procedure TestFilterRendering;
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
+    procedure TestFeDropShadowRendering;
+    procedure TestFeDropShadowFilterRegionClipping;
+    procedure TestFeDropShadowWithPercentageCoordinates;
+    procedure TestFeDropShadowAnisotropicBlur;
     procedure TestTextRendering;
     procedure TestTextRotationRendering;
     procedure TestTextPathRendering;
@@ -787,6 +791,177 @@ begin
   end;
 end;
 
+procedure TTestSvgRenderer.TestFeDropShadowWithPercentageCoordinates;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // Test user's SVG snippet with viewBox="0 0 30 10" and percentage coordinates cy="50%"
+  xml := '<svg viewBox="0 0 30 10" xmlns="http://www.w3.org/2000/svg">' +
+         '  <defs>' +
+         '    <filter id="shadow">' +
+         '      <feDropShadow dx="0.2" dy="0.4" stdDeviation="0.2"/>' +
+         '    </filter>' +
+         '    <filter id="shadow2">' +
+         '      <feDropShadow dx="0" dy="0" stdDeviation="0.5" flood-color="cyan"/>' +
+         '    </filter>' +
+         '    <filter id="shadow3">' +
+         '      <feDropShadow dx="-0.8" dy="-0.8" stdDeviation="0" flood-color="pink" flood-opacity="0.5"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <circle cx="5" cy="50%" r="4" style="fill:pink; filter:url(#shadow);"/>' +
+         '  <circle cx="15" cy="50%" r="4" style="fill:pink; filter:url(#shadow2);"/>' +
+         '  <circle cx="25" cy="50%" r="4" style="fill:pink; filter:url(#shadow3);"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(300, 100);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Circle 1 center (cx=5, cy=5) -> bitmap (50, 50) should be painted pink
+    Check(bmp.Pixel[50, 50] <> clWhite32, 'Circle 1 center at (50, 50) should be painted');
+
+    // Circle 2 center (cx=15, cy=5) -> bitmap (150, 50) should be painted pink
+    Check(bmp.Pixel[150, 50] <> clWhite32, 'Circle 2 center at (150, 50) should be painted');
+
+    // Circle 3 center (cx=25, cy=5) -> bitmap (250, 50) should be painted pink
+    Check(bmp.Pixel[250, 50] <> clWhite32, 'Circle 3 center at (250, 50) should be painted');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeDropShadowAnisotropicBlur;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // Test anisotropic drop shadow (stdDeviationX != stdDeviationY) on a non-square surface (200x100)
+  xml := '<svg width="200" height="100">' +
+         '  <defs>' +
+         '    <filter id="f_aniso">' +
+         '      <feDropShadow dx="10" dy="15" stdDeviation="12 3" flood-color="blue"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect x="20" y="20" width="120" height="40" fill="red" filter="url(#f_aniso)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 100);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Center of rect (80, 40) should be painted red
+    CheckEquals(clRed32, bmp.Pixel[80, 40], 'Center of rect should be red');
+
+    // Anisotropic shadow region at (80+10, 40+15) = (90, 55) should contain blue shadow
+    Check(bmp.Pixel[90, 55] <> clWhite32, 'Shadow region at (90, 55) should be painted');
+    Check(BlueComponent(bmp.Pixel[90, 55]) > 0, 'Shadow region should contain blue channel');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeDropShadowFilterRegionClipping;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // Circle at cx=100, cy=100, r=60 -> bbox [40, 40, 160, 160] (120x120)
+  // Default filter region x=-10%, y=-10%, width=120%, height=120% -> [28, 28, 172, 172]
+  xml := '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+         '  <filter id="filter1">' +
+         '    <feDropShadow dx="20" dy="30" stdDeviation="6" flood-color="red"/>' +
+         '  </filter>' +
+         '  <circle id="circle1" cx="100" cy="100" r="60" fill="seagreen" filter="url(#filter1)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Inside circle (100, 100) should be seagreen
+    Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of circle should be painted');
+
+    // Inside filter region shadow area (165, 165) should contain red shadow
+    Check(bmp.Pixel[165, 165] <> clWhite32, 'Shadow inside filter region at (165, 165) should be painted');
+
+    // Outside default filter region [28, 28, 172, 172] at (180, 180) MUST remain pure white (clipped to filter region)
+    CheckEquals(clWhite32, bmp.Pixel[180, 180], 'Shadow extending outside filter region at (180, 180) must be clipped to white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeDropShadowRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pCenter, pShadow: TColor32;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f_ds">' +
+         '      <feDropShadow dx="20" dy="20" stdDeviation="0" flood-color="red"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect x="20" y="20" width="50" height="50" fill="blue" filter="url(#f_ds)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Center of original rect (45, 45) should be blue (SourceGraphic composited over shadow)
+    pCenter := bmp.Pixel[45, 45];
+    CheckEquals(clBlue32, pCenter, 'Original rect area should be blue');
+
+    // Offset shadow region at (20+20+25, 20+20+25) = (65, 65) should be red shadow
+    pShadow := bmp.Pixel[65, 65];
+    CheckEquals(clRed32, pShadow, 'Offset shadow region at (65, 65) should be red');
+
+    // Unpainted area at (5, 5) should remain white
+    CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Background at (5, 5) should remain white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
 procedure TTestSvgRenderer.TestPatternSizingAndLargeBounds;
 var
   bmp: TBitmap32;
@@ -1018,7 +1193,7 @@ var
 begin
   pool := TSvgBitmapPool.Create;
   try
-    pool.BitmapMaxExcess := 128*1024; // Larger than 200*200*4-100*100*4
+    pool.BitmapMaxOversize := 128*1024; // Larger than 200*200*4-100*100*4
 
     // 1. Acquire new bitmap
     bmp1 := pool.Acquire(200, 200, True);

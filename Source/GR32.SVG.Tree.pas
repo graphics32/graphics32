@@ -851,6 +851,36 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeDropShadowNode
+//
+//------------------------------------------------------------------------------
+// Filter: feDropShadow
+//------------------------------------------------------------------------------
+  TSvgFeDropShadowNode = class(TSvgFilterPrimitiveNode)
+  private
+    FDx: Single;
+    FDy: Single;
+    FStdDeviationX: Single;
+    FStdDeviationY: Single;
+    FFloodColor: TSvgColor;
+    FFloodOpacity: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Dx: Single read FDx write FDx;
+    property Dy: Single read FDy write FDy;
+    property StdDeviationX: Single read FStdDeviationX write FStdDeviationX;
+    property StdDeviationY: Single read FStdDeviationY write FStdDeviationY;
+    property FloodColor: TSvgColor read FFloodColor write FFloodColor;
+    property FloodOpacity: Single read FFloodOpacity write FFloodOpacity;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgFilterNode
 //
 //------------------------------------------------------------------------------
@@ -1333,14 +1363,14 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
+    tagFedropshadow, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'image', 'switch', 'text', 'tspan', 'textPath'
+    'feDropShadow', 'image', 'switch', 'text', 'tspan', 'textPath'
   );
 
 var
@@ -3665,6 +3695,79 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeDropShadowNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgFeDropShadowNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FDx := 2.0;
+  FDy := 2.0;
+  FStdDeviationX := 2.0;
+  FStdDeviationY := 2.0;
+  FFloodColor := TSvgColor.Create(clBlack32);
+  FFloodOpacity := 1.0;
+end;
+
+function TSvgFeDropShadowNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  dropRes: TSvgFeDropShadowNode;
+begin
+  dropRes := TSvgFeDropShadowNode(inherited Clone(AParent));
+  dropRes.FDx := FDx;
+  dropRes.FDy := FDy;
+  dropRes.FStdDeviationX := FStdDeviationX;
+  dropRes.FStdDeviationY := FStdDeviationY;
+  dropRes.FFloodColor := FFloodColor;
+  dropRes.FFloodOpacity := FFloodOpacity;
+  Result := dropRes;
+end;
+
+procedure TSvgFeDropShadowNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+var
+  Value1, Value2: TValuePUtf8Char;
+begin
+  case AKeyword of
+    attrDx:
+      AValue.TryToFloat(FDx);
+
+    attrDy:
+      AValue.TryToFloat(FDy);
+
+    attrStdDeviation:
+      begin
+        Value2 := AValue;
+        Value2.Trim;
+        Value1 := Value2.Split(sListSeparators, True);
+        if Value1.TryToFloat(FStdDeviationX) then
+        begin
+          if not Value2.TryToFloat(FStdDeviationY) then
+            FStdDeviationY := FStdDeviationX;
+        end;
+      end;
+
+    attrFloodColor:
+      FFloodColor := TSvgColor.Parse(AValue);
+
+    attrFloodOpacity:
+      if AValue.TryToPercent(FFloodOpacity) then
+        FFloodOpacity := EnsureRange(FFloodOpacity, 0.0, 1.0);
+
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
+
+function TSvgFeDropShadowNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (dx=%s, dy=%s, stdDeviation=%s %s, flood-color=%s, flood-opacity=%s)',
+    [FloatToString(FDx), FloatToString(FDy), FloatToString(FStdDeviationX), FloatToString(FStdDeviationY),
+     SvgColorToString(FFloodColor), FloatToString(FFloodOpacity)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgFilterNode
 //
 //------------------------------------------------------------------------------
@@ -5674,6 +5777,12 @@ var
         tagFeflood:
           begin
             node := TSvgFeFloodNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFedropshadow:
+          begin
+            node := TSvgFeDropShadowNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

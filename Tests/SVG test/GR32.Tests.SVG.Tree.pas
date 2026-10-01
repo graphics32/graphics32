@@ -65,6 +65,7 @@ type
     procedure TestMixBlendModeAndIsolationParsing;
     procedure TestSymbolParsingAndUseResolution;
     procedure TestFilterASTAndReferenceResolution;
+    procedure TestFeDropShadowParsingAndResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestTextAndTSpanParsing;
     procedure TestTextRotationParsing;
@@ -105,6 +106,64 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFeDropShadowParsingAndResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  filterNode1, filterNode2: TSvgFilterNode;
+  dsNodeDefault, dsNodeExplicit: TSvgFeDropShadowNode;
+  rectNode: TSvgNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f_default">' +
+         '      <feDropShadow/>' +
+         '    </filter>' +
+         '    <filter id="f_explicit">' +
+         '      <feDropShadow dx="3" dy="5" stdDeviation="4.5" flood-color="red" flood-opacity="0.6" result="ds_res"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect id="r1" x="10" y="10" width="50" height="50" filter="url(#f_explicit)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    filterNode1 := TSvgFilterNode(docNode.FindNodeById('f_default'));
+    Check(filterNode1 <> nil, 'filterNode f_default should exist');
+    CheckEquals(1, filterNode1.Children.Count, 'Filter should contain 1 child node');
+    Check(filterNode1.Children[0] is TSvgFeDropShadowNode, 'Child should be TSvgFeDropShadowNode');
+
+    dsNodeDefault := TSvgFeDropShadowNode(filterNode1.Children[0]);
+    CheckEquals(2.0, dsNodeDefault.Dx, 1E-4, 'Default dx should be 2');
+    CheckEquals(2.0, dsNodeDefault.Dy, 1E-4, 'Default dy should be 2');
+    CheckEquals(2.0, dsNodeDefault.StdDeviationX, 1E-4, 'Default stdDeviationX should be 2');
+    CheckEquals(2.0, dsNodeDefault.StdDeviationY, 1E-4, 'Default stdDeviationY should be 2');
+    CheckEquals(clBlack32, dsNodeDefault.FloodColor.Color, 'Default flood-color should be black');
+    CheckEquals(1.0, dsNodeDefault.FloodOpacity, 1E-4, 'Default flood-opacity should be 1');
+
+    filterNode2 := TSvgFilterNode(docNode.FindNodeById('f_explicit'));
+    Check(filterNode2 <> nil, 'filterNode f_explicit should exist');
+    Check(filterNode2.Children[0] is TSvgFeDropShadowNode, 'Child should be TSvgFeDropShadowNode');
+
+    dsNodeExplicit := TSvgFeDropShadowNode(filterNode2.Children[0]);
+    CheckEquals(3.0, dsNodeExplicit.Dx, 1E-4, 'Explicit dx should be 3');
+    CheckEquals(5.0, dsNodeExplicit.Dy, 1E-4, 'Explicit dy should be 5');
+    CheckEquals(4.5, dsNodeExplicit.StdDeviationX, 1E-4, 'Explicit stdDeviationX should be 4.5');
+    CheckEquals(4.5, dsNodeExplicit.StdDeviationY, 1E-4, 'Explicit stdDeviationY should be 4.5');
+    CheckEquals(clRed32, dsNodeExplicit.FloodColor.Color, 'Explicit flood-color should be red');
+    CheckEquals(0.6, dsNodeExplicit.FloodOpacity, 1E-4, 'Explicit flood-opacity should be 0.6');
+    CheckEquals('ds_res', dsNodeExplicit.ResultName, 'Explicit result should be ds_res');
+
+    rectNode := docNode.FindNodeById('r1');
+    Check(rectNode <> nil, 'rectNode r1 should exist');
+    Check(rectNode.ResolvedFilter <> nil, 'ResolvedFilter on rectNode should be resolved');
+    CheckEquals('f_explicit', rectNode.ResolvedFilter.ID);
   finally
     docNode.Free;
   end;

@@ -45,14 +45,14 @@ type
   TSvgBitmapPool = class(TObject)
   private
     FPool: TObjectList<TCustomBitmap32>;
-    FBitmapMaxExcess: NativeInt;
+    FBitmapMaxOversize: NativeInt;
   public
     constructor Create;
     destructor Destroy; override;
     function Acquire(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
     procedure Release(ABitmap: TCustomBitmap32);
     procedure Clear;
-    property BitmapMaxExcess: NativeInt read FBitmapMaxExcess write FBitmapMaxExcess;
+    property BitmapMaxOversize: NativeInt read FBitmapMaxOversize write FBitmapMaxOversize;
   end;
 
   TSvgPatternPolygonFiller = class(TBitmapPolygonFiller)
@@ -527,12 +527,15 @@ begin
     // Instantiate a new surface with TMemoryBackend if no Candidate with
     // sufficient buffer dimensions exists in pool
     Result := TBitmap32.Create(TMemoryBackend);
-    TMemoryBackend(Result.Backend).MaxExcess := BitmapMaxExcess;
+    TMemoryBackend(Result.Backend).MaxOversize := BitmapMaxOversize;
     Result.SetSize(AWidth, AHeight, AClear);
   end else
   begin
     FPool.ExtractAt(BestIndex);
     Result.SetSize(AWidth, AHeight, AClear);
+{$ifdef DEBUG}
+    Result.EndLockUpdate; // For debug: Signal that bitmap is out of pool
+{$endif DEBUG}
   end;
 
   Result.MasterAlpha := 255;
@@ -547,6 +550,9 @@ begin
 
   FPool.Add(ABitmap);
   ABitmap.OnPixelCombine := nil;
+{$ifdef DEBUG}
+  ABitmap.BeginLockUpdate; // For debug: Signal that bitmap is in pool
+{$endif DEBUG}
 end;
 
 procedure TSvgBitmapPool.Clear;
@@ -564,7 +570,7 @@ begin
   FViewportRect := FloatRect(0, 0, 0, 0);
   FDocumentRoot := nil;
   FBitmapPool := TSvgBitmapPool.Create;
-  FBitmapPool.BitmapMaxExcess := 1024; // Magic!
+  FBitmapPool.BitmapMaxOversize := 1024; // Magic!
   FAllowExternalImages := False;
 end;
 
@@ -1741,7 +1747,7 @@ type
     SourceGraphic: TCustomBitmap32;
     SourceAlpha: TCustomBitmap32;
     CurrentSurface: TCustomBitmap32;
-    CachedSurface: TCustomBitmap32;
+    UnnamedSurface: TCustomBitmap32;
     ROI: TRect;
     Scale: Single;
     NamedSurfaces: TNamedSurfaces;
@@ -1778,6 +1784,9 @@ begin
       if (AInput.Index >= 0) and (AInput.Index <= High(RenderData.NamedSurfaces)) and (RenderData.NamedSurfaces[AInput.Index] <> nil) then
         Result := RenderData.NamedSurfaces[AInput.Index];
   end;
+
+  if (Result = nil) then
+    Result := RenderData.SourceGraphic;
 end;
 
 //------------------------------------------------------------------------------
@@ -1792,6 +1801,8 @@ type
   public
     class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+
+    class procedure ApplyBlur(Renderer: TSvgRenderer; Input, Output: TCustomBitmap32; RadiusX, RadiusY: Single); static;
   end;
 
 class function TFilterRendererGaussianBlur.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
@@ -1802,19 +1813,10 @@ begin
   Result.Bottom := Result.Top;
 end;
 
-class procedure TFilterRendererGaussianBlur.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+class procedure TFilterRendererGaussianBlur.ApplyBlur(Renderer: TSvgRenderer; Input, Output: TCustomBitmap32; RadiusX, RadiusY: Single);
 var
-  Input, Temp, Transposed: TCustomBitmap32;
-  RadiusX, RadiusY: Single;
+  Temp, Transposed: TCustomBitmap32;
 begin
-  Input := ResolveSurface(Node.ResolvedIn1, RenderData);
-  Renderer.ReleaseOffscreenBitmap(RenderData.CachedSurface);
-
-  RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
-
-  RadiusX := TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
-  RadiusY := TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
-
   // Limit the blur radius to something reasonable. The blur function can handle
   // whatever we throw at it without crashing but the result might be junk due
   // to numeric overflows.
@@ -1828,11 +1830,11 @@ begin
   // avoiding unwanted blur and edge clipping along the un-blurred dimension.
   if (RadiusX < Blur32MinRadius) and (RadiusY < Blur32MinRadius) then
     // No blur
-    Input.CopyMapTo(RenderData.CurrentSurface)
+    Input.CopyMapTo(Output)
   else
   if (RadiusY < Blur32MinRadius) then
     // Horizontal blur
-    HorizontalBlur32(Input, RenderData.CurrentSurface, RadiusX)
+    HorizontalBlur32(Input, Output, RadiusX)
   else
   if (RadiusX < Blur32MinRadius) then
   begin
@@ -1840,12 +1842,14 @@ begin
     Transposed := Renderer.GetOffscreenBitmap(Input.Height, Input.Width, False); // Note: Width/Height swapped for transpose
     Temp := Renderer.GetOffscreenBitmap(Input.Height, Input.Width, False);
     try
-      // Input -> Transposed
+      // Transpose: Input (W x H) -> Transposed (H x W)
       Transpose32(Input.Bits, Transposed.Bits, Input.Width, Input.Height);
-      // Transposed -> Temp
+
+      // Blur: Transposed (H x W) -> Temp (H x W)
       HorizontalBlur32(Transposed, Temp, RadiusY);
-      // Temp -> Output
-      Transpose32(Temp.Bits, RenderData.CurrentSurface.Bits, Temp.Width, Temp.Height);
+
+      // Transpose: Temp (H x W) -> Output (W x H)
+      Transpose32(Temp.Bits, Output.Bits, Input.Height, Input.Width);
     finally
       Renderer.ReleaseOffscreenBitmap(Transposed);
       Renderer.ReleaseOffscreenBitmap(Temp);
@@ -1853,31 +1857,52 @@ begin
   end else
   if Abs(RadiusX - RadiusY) < 1e-4 then
     // Isotropic 2D blur
-    Blur32(Input, RenderData.CurrentSurface, RadiusX)
+    Blur32(Input, Output, RadiusX)
   else
   begin
     // Anisotropic 2D blur
-    Temp := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+    Temp := Renderer.GetOffscreenBitmap(Input.Width, Input.Height, False);
     try
-      // Input -> Temp
+      // Blur: Input (W x H) -> Temp (W x H)
       HorizontalBlur32(Input, Temp, RadiusX);
 
-      Transposed := Renderer.GetOffscreenBitmap(Temp.Height, Temp.Width, False); // Note: Width/Height swapped for transpose
+      Transposed := Renderer.GetOffscreenBitmap(Input.Height, Input.Width, False); // Note: Width/Height swapped for transpose
       try
-        // Temp -> Transposed
+        // Transpose: Temp (W x H) -> Transposed (H x W)
         Transpose32(Temp.Bits, Transposed.Bits, Input.Width, Input.Height);
-        // Transposed -> Temp
+
+        // Blur: Transposed (H x W) -> Temp (H x W)
+        // - Blur will resize Temp but since the pixel count stays the same,
+        //   no reallocation is actually done.
         HorizontalBlur32(Transposed, Temp, RadiusY);
+
+        // Transpose: Temp (H x W) -> Output (W x H)
+        Transpose32(Temp.Bits, Output.Bits, Input.Height, Input.Width);
       finally
         Renderer.ReleaseOffscreenBitmap(Transposed);
       end;
-
-      // Temp -> Output
-      Transpose32(Temp.Bits, RenderData.CurrentSurface.Bits, Input.Height, Input.Width); // Note: Width/Height swapped for transpose
     finally
       Renderer.ReleaseOffscreenBitmap(Temp);
     end;
   end;
+end;
+
+class procedure TFilterRendererGaussianBlur.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  Input: TCustomBitmap32;
+  RadiusX, RadiusY: Single;
+begin
+  Input := ResolveSurface(Node.ResolvedIn1, RenderData);
+
+  if (Input <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+
+  RadiusX := TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
+  RadiusY := TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
+
+  ApplyBlur(Renderer, Input, RenderData.CurrentSurface, RadiusX, RadiusY);
 end;
 
 //------------------------------------------------------------------------------
@@ -2077,7 +2102,9 @@ var
   Input: TCustomBitmap32;
 begin
   Input := ResolveSurface(TSvgFeColorMatrixNode(Node).ResolvedIn1, RenderData);
-  Renderer.ReleaseOffscreenBitmap(RenderData.CachedSurface);
+  if (Input <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
   RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
 
   ApplyColorMatrix(Input, RenderData.CurrentSurface, TSvgFeColorMatrixNode(Node).MatrixType, TSvgFeColorMatrixNode(Node).Values);
@@ -2103,7 +2130,8 @@ var
 begin
   Input1 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn1, RenderData);
   Input2 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn2, RenderData, RenderData.SourceGraphic);
-  Renderer.ReleaseOffscreenBitmap(RenderData.CachedSurface);
+  if (Input1 <> RenderData.UnnamedSurface) and (Input2 <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
   RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
 
@@ -2141,7 +2169,8 @@ var
 begin
   Input1 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn1, RenderData);
   Input2 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn2, RenderData, RenderData.SourceGraphic);
-  Renderer.ReleaseOffscreenBitmap(RenderData.CachedSurface);
+  if (Input1 <> RenderData.UnnamedSurface) and (Input2 <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
   RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
 
@@ -2288,7 +2317,7 @@ begin
       Renderer.BlendOffscreenSurface(DestSurface, Input, bmNormal);
     end;
 
-  Renderer.ReleaseOffscreenBitmap(RenderData.CachedSurface);
+  Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
   RenderData.CurrentSurface := DestSurface;
 end;
 
@@ -2320,7 +2349,8 @@ var
   DestX, DestY: integer;
 begin
   Input := ResolveSurface(TSvgFeOffsetNode(Node).ResolvedIn1, RenderData);
-  Renderer.ReleaseOffscreenBitmap(RenderData.CachedSurface);
+  if (Input <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
   RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
 
@@ -2347,7 +2377,7 @@ class procedure TFilterRendererFlood.Render(Renderer: TSvgRenderer; Node: TSvgFi
 var
   Color: TColor32;
 begin
-  Renderer.ReleaseOffscreenBitmap(RenderData.CachedSurface);
+  Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
   RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
 
@@ -2356,6 +2386,100 @@ begin
     ScaleAlpha(Color, TSvgFeFloodNode(Node).FloodOpacity);
 
   RenderData.CurrentSurface.Clear(Color);
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TFilterRendererDropShadow
+//
+//------------------------------------------------------------------------------
+// Renderer for TSvgFeDropShadowNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererDropShadow = class(TFilterRenderer)
+  public
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+  end;
+
+class function TFilterRendererDropShadow.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+var
+  DropNode: TSvgFeDropShadowNode;
+  BlurRadX, BlurRadY: Single;
+begin
+  DropNode := TSvgFeDropShadowNode(Node);
+  BlurRadX := DropNode.StdDeviationX * GaussianSigmaToRadius * Scale + 2;
+  BlurRadY := DropNode.StdDeviationY * GaussianSigmaToRadius * Scale + 2;
+  Result.Left := Abs(DropNode.Dx) * Scale + BlurRadX;
+  Result.Top := Abs(DropNode.Dy) * Scale + BlurRadY;
+  Result.Right := Result.Left;
+  Result.Bottom := Result.Top;
+end;
+
+class procedure TFilterRendererDropShadow.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  DropNode: TSvgFeDropShadowNode;
+  Input, ShadowSrc, BlurredShadow: TCustomBitmap32;
+  RadiusX, RadiusY: Single;
+  DestX, DestY: Integer;
+  ShadowColor: TColor32Entry;
+  ShadowOpacity: Byte;
+  pIn: PColor32Entry;
+  pShadow: PColor32;
+  i, PixelCount: Integer;
+begin
+  DropNode := TSvgFeDropShadowNode(Node);
+
+  Input := ResolveSurface(DropNode.ResolvedIn1, RenderData);
+  if (Input <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  BlurredShadow := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+  try
+    ShadowSrc := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+    try
+
+      // 1. Extract Flood color components and prepare flood-colored alpha shadow input surface
+      ShadowColor := TColor32Entry(DropNode.FloodColor.Color);
+      ShadowOpacity := Clamp(Round(ShadowColor.A * DropNode.FloodOpacity));
+
+      pIn := PColor32Entry(Input.Bits);
+      pShadow := PColor32(ShadowSrc.Bits);
+      PixelCount := RenderData.ROI.Width * RenderData.ROI.Height;
+
+      for i := 0 to PixelCount - 1 do
+      begin
+        ShadowColor.A := MulDiv255Table[pIn.A, ShadowOpacity]; // = (pIn.A * ShadowOpacity + 127) div 255
+        pShadow^ := ShadowColor.ARGB;
+        Inc(pIn);
+        Inc(pShadow);
+      end;
+
+      // 2. Apply Gaussian blur to the shadow based on RadiusX and RadiusY
+      RadiusX := DropNode.StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
+      RadiusY := DropNode.StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
+
+      TFilterRendererGaussianBlur.ApplyBlur(Renderer, ShadowSrc, BlurredShadow, RadiusX, RadiusY);
+
+    finally
+      Renderer.ReleaseOffscreenBitmap(ShadowSrc);
+    end;
+
+    // 3. Composite blurred shadow shifted by (Dx, Dy) and overlay Input at (0, 0)
+    RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
+
+    DestX := Round(DropNode.Dx * RenderData.Scale);
+    DestY := Round(DropNode.Dy * RenderData.Scale);
+
+    // Paint the shadow...
+    BlockTransfer(RenderData.CurrentSurface, DestX, DestY, RenderData.CurrentSurface.ClipRect,
+      BlurredShadow, BlurredShadow.BoundsRect, dmOpaque);
+    // ...and the input image on top of it
+    Renderer.BlendOffscreenSurface(RenderData.CurrentSurface, Input, bmNormal);
+
+  finally
+    Renderer.ReleaseOffscreenBitmap(BlurredShadow);
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -2512,39 +2636,26 @@ var
   i, j, Count: Integer;
   Node: TSvgNode;
   pSource, pDest: PColor32;
-  SourceBounds, FilterBounds: TFloatRect;
+  SourceBounds, FilterBounds, FilterRegionRect: TFloatRect;
   PathNode: TSvgPathNode;
   PathPoints, TransformedPoints, StrokePoints, AllRenderPoints: TArrayOfArrayOfFloatPoint;
-  StrokeWidth, ScaledOffset: Single;
+  StrokeWidth, ScaledOffset, BBoxWidth, BBoxHeight, RegionLeft, RegionTop, RegionWidth, RegionHeight: Single;
   ScaledDashArray: TArrayOfFloat;
   Points: TArrayOfArrayOfFloatPoint;
-  NodeBounds, DestBounds: TFloatRect;
+  NodeBounds: TFloatRect;
   Pts: array[0..3] of TFloatPoint;
   Margin: TFloatRect;
   MarginX, MarginY, RadiusX, RadiusY: Integer;
-  DestClip: TRect;
-  HasNodeTransform: Boolean;
-  ParentMatrix: TFloatMatrix;
-  FilterMat: TFloatMatrixHelper;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
 
-  HasNodeTransform := not IsIdentityMatrix(ANode.Transform);
-  ParentMatrix := FTransformation.Matrix;
-
   FTransformation.Push;
   try
+    ApplyMatrix(ANode.Transform);
 
-    if not HasNodeTransform then
-      ApplyMatrix(ANode.Transform);
-
-    // 1. Calculate source bounds in user/target space.
-    // For polygon nodes, source bounds are calculated using PolyPolygonBounds after stroking.
-    if HasNodeTransform then
-      RenderData.Scale := 1.0
-    else
-      RenderData.Scale := GetMatrixScale(FTransformation.Matrix);
+    // 1. Calculate source bounds in screen/target space at full resolution.
+    RenderData.Scale := GetMatrixScale(FTransformation.Matrix);
 
     if ANode is TSvgPathNode then
     begin
@@ -2552,10 +2663,7 @@ begin
       PathPoints := PathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
       if Length(PathPoints) > 0 then
       begin
-        if HasNodeTransform then
-          TransformedPoints := PathPoints
-        else
-          TransformedPoints := GetTransformedPoints(PathPoints);
+        TransformedPoints := GetTransformedPoints(PathPoints);
 
         StrokePoints := nil;
         StrokeWidth := PathNode.Stroke.Width.ToPixels(FViewportRect.Width);
@@ -2597,25 +2705,20 @@ begin
         SourceBounds := FloatRect(0, 0, 0, 0);
     end else
     begin
-      // For non-polygon nodes, calculate object bounds
+      // For non-polygon nodes, calculate object bounds in world/screen space
       NodeBounds := ANode.GetObjectBoundingBox;
-      if HasNodeTransform then
-        SourceBounds := NodeBounds
-      else
-      begin
-        Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-        Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-        Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-        Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+      Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+      Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+      Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+      Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
 
-        SourceBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
-        for i := 1 to 3 do
-        begin
-          if (Pts[i].X < SourceBounds.Left) then SourceBounds.Left := Pts[i].X;
-          if (Pts[i].X > SourceBounds.Right) then SourceBounds.Right := Pts[i].X;
-          if (Pts[i].Y < SourceBounds.Top) then SourceBounds.Top := Pts[i].Y;
-          if (Pts[i].Y > SourceBounds.Bottom) then SourceBounds.Bottom := Pts[i].Y;
-        end;
+      SourceBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+      for i := 1 to 3 do
+      begin
+        if (Pts[i].X < SourceBounds.Left) then SourceBounds.Left := Pts[i].X;
+        if (Pts[i].X > SourceBounds.Right) then SourceBounds.Right := Pts[i].X;
+        if (Pts[i].Y < SourceBounds.Top) then SourceBounds.Top := Pts[i].Y;
+        if (Pts[i].Y > SourceBounds.Bottom) then SourceBounds.Bottom := Pts[i].Y;
       end;
     end;
 
@@ -2638,21 +2741,79 @@ begin
         Margin := TFilterRendererOffset.GetMargins(TSvgFeOffsetNode(Node), RenderData.Scale);
         MarginX := MarginX + Ceil(Margin.Left);
         MarginY := MarginY + Ceil(Margin.Top);
+      end else
+      if Node is TSvgFeDropShadowNode then
+      begin
+        Margin := TFilterRendererDropShadow.GetMargins(TSvgFeDropShadowNode(Node), RenderData.Scale);
+        MarginX := MarginX + Ceil(Margin.Left);
+        MarginY := MarginY + Ceil(Margin.Top);
       end;
     end;
 
-    // 3. Inflate source bounds by filter margins to determine total Filter ROI
+    // Calculate filter region defined on AFilterNode (x, y, width, height, filterUnits)
+    if ANode is TSvgPathNode then
+    begin
+      PathPoints := TSvgPathNode(ANode).GetPathData(FViewportRect.Width, FViewportRect.Height);
+      NodeBounds := PolyPolygonBounds(PathPoints);
+    end else
+      NodeBounds := ANode.GetObjectBoundingBox;
+
+    BBoxWidth := NodeBounds.Right - NodeBounds.Left;
+    BBoxHeight := NodeBounds.Bottom - NodeBounds.Top;
+    if BBoxWidth <= 0 then BBoxWidth := 1.0;
+    if BBoxHeight <= 0 then BBoxHeight := 1.0;
+
+    if AFilterNode.FilterUnits = guObjectBoundingBox then
+    begin
+      RegionLeft := NodeBounds.Left + AFilterNode.X.ToPixels(BBoxWidth);
+      RegionTop := NodeBounds.Top + AFilterNode.Y.ToPixels(BBoxHeight);
+      RegionWidth := AFilterNode.Width.ToPixels(BBoxWidth);
+      RegionHeight := AFilterNode.Height.ToPixels(BBoxHeight);
+    end else
+    begin
+      RegionLeft := AFilterNode.X.ToPixels(FViewportRect.Width);
+      RegionTop := AFilterNode.Y.ToPixels(FViewportRect.Height);
+      RegionWidth := AFilterNode.Width.ToPixels(FViewportRect.Width);
+      RegionHeight := AFilterNode.Height.ToPixels(FViewportRect.Height);
+    end;
+
+    FilterRegionRect := FloatRect(RegionLeft, RegionTop, RegionLeft + RegionWidth, RegionTop + RegionHeight);
+
+    // Transform FilterRegionRect to world/screen space
+    Pts[0] := FTransformation.Transform(FloatPoint(FilterRegionRect.Left, FilterRegionRect.Top));
+    Pts[1] := FTransformation.Transform(FloatPoint(FilterRegionRect.Right, FilterRegionRect.Top));
+    Pts[2] := FTransformation.Transform(FloatPoint(FilterRegionRect.Right, FilterRegionRect.Bottom));
+    Pts[3] := FTransformation.Transform(FloatPoint(FilterRegionRect.Left, FilterRegionRect.Bottom));
+
+    FilterRegionRect := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+    for i := 1 to 3 do
+    begin
+      if (Pts[i].X < FilterRegionRect.Left) then FilterRegionRect.Left := Pts[i].X;
+      if (Pts[i].X > FilterRegionRect.Right) then FilterRegionRect.Right := Pts[i].X;
+      if (Pts[i].Y < FilterRegionRect.Top) then FilterRegionRect.Top := Pts[i].Y;
+      if (Pts[i].Y > FilterRegionRect.Bottom) then FilterRegionRect.Bottom := Pts[i].Y;
+    end;
+
+    // 3. Inflate source bounds by filter margins to determine total Filter ROI, then clip to FilterRegionRect
     FilterBounds := SourceBounds;
     FilterBounds.Left := FilterBounds.Left - MarginX;
     FilterBounds.Top := FilterBounds.Top - MarginY;
     FilterBounds.Right := FilterBounds.Right + MarginX;
     FilterBounds.Bottom := FilterBounds.Bottom + MarginY;
 
-    RenderData.ROI := MakeRect(FilterBounds, rrOutside);
-    if (not HasNodeTransform) and (not GR32.IntersectRect(RenderData.ROI, RenderData.ROI, ATarget.BoundsRect)) then
+    if FilterBounds.Left < FilterRegionRect.Left then FilterBounds.Left := FilterRegionRect.Left;
+    if FilterBounds.Top < FilterRegionRect.Top then FilterBounds.Top := FilterRegionRect.Top;
+    if FilterBounds.Right > FilterRegionRect.Right then FilterBounds.Right := FilterRegionRect.Right;
+    if FilterBounds.Bottom > FilterRegionRect.Bottom then FilterBounds.Bottom := FilterRegionRect.Bottom;
+
+    if (FilterBounds.Right <= FilterBounds.Left) or (FilterBounds.Bottom <= FilterBounds.Top) then
       Exit;
 
-    // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions
+    RenderData.ROI := MakeRect(FilterBounds, rrOutside);
+    if not GR32.IntersectRect(RenderData.ROI, RenderData.ROI, ATarget.BoundsRect) then
+      Exit;
+
+    // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions in full screen resolution
     RenderData.SourceGraphic := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
     RenderData.SourceAlpha := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
     RenderData.NamedSurfaces := nil;
@@ -2660,8 +2821,6 @@ begin
       // Render element into SourceGraphic in ROI coordinate space
       FTransformation.Push;
       try
-        if HasNodeTransform then
-          FTransformation.Clear;
         FTransformation.Translate(-RenderData.ROI.Left, -RenderData.ROI.Top);
 
         RenderNodeContent(RenderData.SourceGraphic, ANode);
@@ -2680,6 +2839,7 @@ begin
       end;
 
       RenderData.CurrentSurface := RenderData.SourceGraphic;
+      RenderData.UnnamedSurface := nil; // Indicates that CurrentSurface's ownership is "somebody else's problem".
 
       // Count number of named surfaces so we can preallocate the surface array
       Count := 0;
@@ -2690,74 +2850,90 @@ begin
       Count := 0;
 
       // 5. Process filter primitive nodes sequentially on ROI surfaces
-      RenderData.CachedSurface := nil;
       for Node in AFilterNode.Children do
       begin
         if not (Node is TSvgFilterPrimitiveNode) then
           Continue;
 
         if Node is TSvgFeGaussianBlurNode then
-          TFilterRendererGaussianBlur.Render(Self, TSvgFeGaussianBlurNode(Node), RenderData)
+          TFilterRendererGaussianBlur.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         if Node is TSvgFeColorMatrixNode then
-          TFilterRendererColorMatrix.Render(Self, TSvgFeColorMatrixNode(Node), RenderData)
+          TFilterRendererColorMatrix.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         if Node is TSvgFeBlendNode then
-          TFilterRendererBlend.Render(Self, TSvgFeBlendNode(Node), RenderData)
+          TFilterRendererBlend.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         if Node is TSvgFeCompositeNode then
-          TFilterRendererComposite.Render(Self, TSvgFeCompositeNode(Node), RenderData)
+          TFilterRendererComposite.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         if Node is TSvgFeMergeNode then
-          TFilterRendererMerge.Render(Self, TSvgFeMergeNode(Node), RenderData)
+          TFilterRendererMerge.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         if Node is TSvgFeOffsetNode then
-          TFilterRendererOffset.Render(Self, TSvgFeMergeNode(Node), RenderData)
+          TFilterRendererOffset.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
-
+        if Node is TSvgFeDropShadowNode then
+          TFilterRendererDropShadow.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
+        else
         if Node is TSvgFeFloodNode then
-          TFilterRendererFlood.Render(Self, TSvgFeFloodNode(Node), RenderData);
-
-        if TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
+          TFilterRendererFlood.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
+        else
         begin
-          RenderData.NamedSurfaces[Count] := RenderData.CurrentSurface;
-          RenderData.CachedSurface := nil;
-          Inc(Count);
-        end else
-          RenderData.CachedSurface := RenderData.CurrentSurface;
+          // Unsupported filter; Keep the current intermediate result and let
+          // the next filter continue with it.
+          if (RenderData.CurrentSurface = RenderData.SourceGraphic) then
+            continue; // No filter has yet produced anything
+        end;
+
+        (*
+        ** CurrentSurface has been allocated by the filter.
+        **
+        ** We either:
+        **
+        ** - Save it in the NamedSurfaces array and nil UnnamedSurface,
+        **
+        ** or
+        **
+        ** - Save a pointer to it in UnnamedSurface.
+        **
+        ** When the next filter's Render method has called "Input := ResolveSurface(...)", it
+        ** either:
+        **
+        ** - Keeps the bitmap alive if Input=CurrentSurface=UnnamedSurface,
+        **
+        ** or
+        **
+        ** - Releases the bitmap and nills UnnamedSurface.
+        *)
+
+
+        // CurrentSurface=SourceGraphic will be true if no filter has yet produced anything.
+        if (RenderData.CurrentSurface <> RenderData.SourceGraphic) then
+        begin
+          // UnnamedSurface should be nil, but release anything it points to just
+          // in case the filter failed to do it.
+          ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+          if TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
+          begin
+            RenderData.UnnamedSurface := nil; // Transfer ownership of the bitmap to NamedSurfaces[]
+            RenderData.NamedSurfaces[Count] := RenderData.CurrentSurface;
+            Inc(Count);
+          end else
+            // Transfer ownership of the bitmap to UnnamedSurface
+            RenderData.UnnamedSurface := RenderData.CurrentSurface;
+        end;
       end;
 
-      if (RenderData.CachedSurface <> RenderData.CurrentSurface) then
-        ReleaseOffscreenBitmap(RenderData.CachedSurface);
+      if (RenderData.UnnamedSurface <> RenderData.CurrentSurface) then
+        ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-      // 6. Blend final filtered result surface onto target canvas
-      if RenderData.CurrentSurface <> nil then
-      begin
-        if HasNodeTransform then
-        begin
-          FilterMat.Matrix := IdentityMatrix;
-          FilterMat.Translate(RenderData.ROI.Left, RenderData.ROI.Top);
-          FilterMat := FilterMat * ANode.Transform;
-          FilterMat := FilterMat * ParentMatrix;
+      // 6. Blend final filtered result surface onto target canvas at full resolution
+      if (RenderData.CurrentSurface <> nil) then
+        BlendOffscreenSurface(ATarget, RenderData.CurrentSurface, bmNormal, RenderData.ROI.Left, RenderData.ROI.Top);
 
-          FTransformation.Push;
-          try
-            FTransformation.Clear(FilterMat.Matrix);
-            DestBounds := FTransformation.GetTransformedBounds(FloatRect(0, 0, RenderData.CurrentSurface.Width, RenderData.CurrentSurface.Height));
-            DestClip := MakeRect(DestBounds, rrOutside);
-
-            RenderData.CurrentSurface.DrawMode := dmBlend;
-            RenderData.CurrentSurface.CombineMode := cmMerge;
-
-            Transform(ATarget, RenderData.CurrentSurface, FTransformation, DestClip, True);
-          finally
-            FTransformation.Pop;
-          end;
-        end else
-          BlendOffscreenSurface(ATarget, RenderData.CurrentSurface, bmNormal, RenderData.ROI.Left, RenderData.ROI.Top);
-      end;
-
-      ReleaseOffscreenBitmap(RenderData.CachedSurface);
+      ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
     finally
       for i := 0 to High(RenderData.NamedSurfaces) do
