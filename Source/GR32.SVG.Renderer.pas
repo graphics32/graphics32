@@ -1307,11 +1307,6 @@ begin
       FTransformation.Translate(OffsetX, OffsetY);
     end;
 
-    // Pre-multiply the matrix transformation on the <clipPath> element itself
-    // (e.g. transform="rotate(...)" or transform="matrix(...)")
-    if not IsIdentityMatrix(AClipNode.Transform) then
-      ApplyMatrix(AClipNode.Transform);
-
     AMaskBmp.Clear(0); // Clear to 0 transparent so filled shapes paint non-zero alpha inside clip region
 
     for i := 0 to AClipNode.Children.Count - 1 do
@@ -1351,10 +1346,6 @@ begin
       FTransformation.Scale(Width, Height);
       FTransformation.Translate(OffsetX, OffsetY);
     end;
-
-    // Pre-multiply matrix transformation on <mask transform="..."> elements
-    if not IsIdentityMatrix(AMaskNode.Transform) then
-      ApplyMatrix(AMaskNode.Transform);
 
     AMaskBmp.Clear(clBlack32);
 
