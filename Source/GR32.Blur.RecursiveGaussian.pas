@@ -1393,7 +1393,8 @@ var
 
 {$endif IIR_BLUR_EDGE_CORRECTION}
 
-    IIR_BlurFilterBackward(pIn, pOut, B, Width, v);
+    if (Width > 0) then // Avoids Access Violation with width or height = 1
+      IIR_BlurFilterBackward(pIn, pOut, B, Width, v);
   end;
 
   procedure BlurBuffer;
@@ -1434,13 +1435,13 @@ var
   UnAlignBuffer: pointer;
   UnAlignTransposedBuffer: pointer;
 begin
-  if (Sigma < GaussianRadiusToSigma) then
+  if (Sigma < GaussianRadiusToSigma) or (Src.Width <= 1) or (Src.Height <= 1) then
   begin
     Src.CopyMapTo(Dst);
     exit;
   end;
 
-  Dst.SetSize(Src.Width, Src.Height);
+  Dst.SetSize(Src.Width, Src.Height, False);
 
 {$ifdef IIR_BLUR_INKSCAPE_COEFFICIENTS}
   if (Sigma >= 20) then
