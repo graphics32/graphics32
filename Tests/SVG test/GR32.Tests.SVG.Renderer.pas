@@ -84,6 +84,7 @@ type
     procedure TestObjectBoundingBoxClipPathRoi;
     procedure TestGradientAndPatternFillOpacity;
     procedure TestPatternTransform;
+    procedure TestFeGaussianBlurDirectional;
   end;
 
 implementation
@@ -126,6 +127,106 @@ begin
     finally
       docNode.Free;
     end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeGaussianBlurDirectional;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+
+    // 1. stdDeviation="5 0" on unrotated rect x=40, y=40, width=120, height=120
+    bmp.Clear(clWhite32);
+    xml := '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+           '  <filter id="f1"><feGaussianBlur stdDeviation="5 0"/></filter>' +
+           '  <rect x="40" y="40" width="120" height="120" fill="seagreen" filter="url(#f1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Center inside rect (100, 100) should be seagreen
+        Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect should be painted');
+
+        // Horizontal blur expansion at x=30, y=100 (left of rect x=40) should contain green channel
+        Check(bmp.Pixel[30, 100] <> clWhite32, 'Horizontal blur should expand to the left of rect at x=30');
+
+        // Vertical boundary at y=30, x=100 (above rect y=40) MUST remain pure white because stdDeviationY = 0
+        CheckEquals(clWhite32, bmp.Pixel[100, 30], 'Pixel above rect at y=30 must remain white when stdDeviationY=0');
+
+        // Vertical boundary at y=170, x=100 (below rect y=160) MUST remain pure white because stdDeviationY = 0
+        CheckEquals(clWhite32, bmp.Pixel[100, 170], 'Pixel below rect at y=170 must remain white when stdDeviationY=0');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // 2. stdDeviation="12 0" on rotated rect rotate(45 60 60)
+    bmp.Clear(clWhite32);
+    xml := '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+           '  <filter id="f1"><feGaussianBlur stdDeviation="12 0"/></filter>' +
+           '  <rect x="80" y="10" width="80" height="80" fill="seagreen" filter="url(#f1)" transform="rotate(45 60 60)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Rotated rect docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Rotated rect region in world space around (116, 50) should be painted
+        Check(bmp.Pixel[116, 50] <> clWhite32, 'Rotated rect body region should be painted');
+
+        // Outside unblurred local top edge at (100, 30) MUST remain pure white when stdDeviationY=0
+        CheckEquals(clWhite32, bmp.Pixel[100, 30], 'Pixel outside local top edge of rotated rect at (100, 30) must remain white when stdDeviationY=0');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // 3. Vertical-only blur stdDeviation="0 8" on rect x=40, y=40, width=120, height=120
+    bmp.Clear(clWhite32);
+    xml := '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+           '  <filter id="f1"><feGaussianBlur stdDeviation="0 8"/></filter>' +
+           '  <rect x="40" y="40" width="120" height="120" fill="seagreen" filter="url(#f1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Vertical blur docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Vertical blur expansion at y=30, x=100 (above rect y=40) should contain green channel
+        Check(bmp.Pixel[100, 30] <> clWhite32, 'Vertical blur should expand above rect at y=30');
+
+        // Horizontal boundary at x=30, y=100 (left of rect x=40) MUST remain pure white when stdDeviationX = 0
+        CheckEquals(clWhite32, bmp.Pixel[30, 100], 'Pixel left of rect at x=30 must remain white when stdDeviationX=0');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
   finally
     bmp.Free;
   end;

@@ -117,6 +117,7 @@ type
     procedure RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     procedure RenderMarker(ATarget: TCustomBitmap32; AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); // Angle is in radians!
     procedure RenderMarkers(ATarget: TCustomBitmap32; APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single);
+    procedure VerticalBlur32(ASource, ADest: TCustomBitmap32; ARadius: TFloat);
     procedure RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
     procedure RenderNodeContent(ATarget: TCustomBitmap32; ANode: TSvgNode);
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
@@ -161,6 +162,7 @@ uses
   GR32.Text.Win,
   GR32.Text.FontFace,
   GR32.Blur,
+  GR32.Transpose,
   GR32.Blend.Modes,
   GR32.Blend.Modes.PorterDuff,
   GR32.Blend.Modes.PhotoShop;
@@ -1699,6 +1701,31 @@ begin
   end;
 end;
 
+procedure TSvgRenderer.VerticalBlur32(ASource, ADest: TCustomBitmap32; ARadius: TFloat);
+var
+  TransposedSrc, TransposedDst: TCustomBitmap32;
+begin
+  if (ASource = nil) or (ADest = nil) then
+    Exit;
+
+  if (ARadius < Blur32MinRadius) then
+  begin
+    ASource.CopyMapTo(ADest);
+    Exit;
+  end;
+
+  TransposedSrc := GetOffscreenBitmap(ASource.Height, ASource.Width, False);
+  TransposedDst := GetOffscreenBitmap(ASource.Height, ASource.Width, False);
+  try
+    Transpose32(ASource.Bits, TransposedSrc.Bits, ASource.Width, ASource.Height);
+    HorizontalBlur32(TransposedSrc, TransposedDst, ARadius);
+    Transpose32(TransposedDst.Bits, ADest.Bits, TransposedDst.Width, TransposedDst.Height);
+  finally
+    ReleaseOffscreenBitmap(TransposedSrc);
+    ReleaseOffscreenBitmap(TransposedDst);
+  end;
+end;
+
 procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
 
   function ResolveSurface(const AInput: TSvgFilterInput; SourceGraphic, SourceAlpha, CurrentSurface, DefaultFallback: TCustomBitmap32; const NamedSurfaces: TArray<TCustomBitmap32>): TCustomBitmap32;
@@ -2038,22 +2065,33 @@ var
   StrokeWidth, MatScale, ScaledOffset: Single;
   ScaledDashArray: TArrayOfFloat;
   Points: TArrayOfArrayOfFloatPoint;
-  NodeBounds: TFloatRect;
+  NodeBounds, DestBounds: TFloatRect;
   Pts: array[0..3] of TFloatPoint;
   MarginX, MarginY, RadiusX, RadiusY: Integer;
-  FilterRoi: TRect;
+  RadX, RadY: Single;
+  FilterRoi, DestClip: TRect;
+  HasNodeTransform: Boolean;
+  ParentMatrix: TFloatMatrix;
+  FilterMat: TFloatMatrixHelper;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
 
+  HasNodeTransform := not IsIdentityMatrix(ANode.Transform);
+  ParentMatrix := FTransformation.Matrix;
+
   FTransformation.Push;
   try
 
-    ApplyMatrix(ANode.Transform);
+    if not HasNodeTransform then
+      ApplyMatrix(ANode.Transform);
 
-    // 1. Calculate source bounds in world target space.
+    // 1. Calculate source bounds in user/target space.
     // For polygon nodes, source bounds are calculated using PolyPolygonBounds after stroking.
-    MatScale := GetMatrixScale(FTransformation.Matrix);
+    if HasNodeTransform then
+      MatScale := 1.0
+    else
+      MatScale := GetMatrixScale(FTransformation.Matrix);
 
     if ANode is TSvgPathNode then
     begin
@@ -2061,7 +2099,11 @@ begin
       PathPoints := PathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
       if Length(PathPoints) > 0 then
       begin
-        TransformedPoints := GetTransformedPoints(PathPoints);
+        if HasNodeTransform then
+          TransformedPoints := PathPoints
+        else
+          TransformedPoints := GetTransformedPoints(PathPoints);
+
         StrokePoints := nil;
         StrokeWidth := PathNode.Stroke.Width.ToPixels(FViewportRect.Width);
         if (StrokeWidth > 0) and ((PathNode.Stroke.ResolvedPaintServer <> nil) or (not PathNode.Stroke.Color.IsNone)) then
@@ -2102,20 +2144,25 @@ begin
         SourceBounds := FloatRect(0, 0, 0, 0);
     end else
     begin
-      // For non-polygon nodes, calculate object bounds in world target space
+      // For non-polygon nodes, calculate object bounds
       NodeBounds := ANode.GetObjectBoundingBox;
-      Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-      Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-      Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-      Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
-
-      SourceBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
-      for i := 1 to 3 do
+      if HasNodeTransform then
+        SourceBounds := NodeBounds
+      else
       begin
-        if (Pts[i].X < SourceBounds.Left) then SourceBounds.Left := Pts[i].X;
-        if (Pts[i].X > SourceBounds.Right) then SourceBounds.Right := Pts[i].X;
-        if (Pts[i].Y < SourceBounds.Top) then SourceBounds.Top := Pts[i].Y;
-        if (Pts[i].Y > SourceBounds.Bottom) then SourceBounds.Bottom := Pts[i].Y;
+        Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+        Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+        Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+        Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+
+        SourceBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+        for i := 1 to 3 do
+        begin
+          if (Pts[i].X < SourceBounds.Left) then SourceBounds.Left := Pts[i].X;
+          if (Pts[i].X > SourceBounds.Right) then SourceBounds.Right := Pts[i].X;
+          if (Pts[i].Y < SourceBounds.Top) then SourceBounds.Top := Pts[i].Y;
+          if (Pts[i].Y > SourceBounds.Bottom) then SourceBounds.Bottom := Pts[i].Y;
+        end;
       end;
     end;
 
@@ -2146,7 +2193,7 @@ begin
     FilterBounds.Bottom := FilterBounds.Bottom + MarginY;
 
     FilterRoi := MakeRect(FilterBounds, rrOutside);
-    if not GR32.IntersectRect(FilterRoi, FilterRoi, ATarget.BoundsRect) then
+    if (not HasNodeTransform) and (not GR32.IntersectRect(FilterRoi, FilterRoi, ATarget.BoundsRect)) then
       Exit;
 
     // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions
@@ -2157,6 +2204,8 @@ begin
       // Render element into SourceGraphic in ROI coordinate space
       FTransformation.Push;
       try
+        if HasNodeTransform then
+          FTransformation.Clear;
         FTransformation.Translate(-FilterRoi.Left, -FilterRoi.Top);
 
         RenderNodeContent(SourceGraphic, ANode);
@@ -2197,10 +2246,33 @@ begin
           ReleaseOffscreenBitmap(CachedSurface);
           DestSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
 
-          if TSvgFeGaussianBlurNode(Node).StdDeviationX > 0 then
-            Blur32(Input1, DestSurface, TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * MatScale)
+          RadX := TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * MatScale;
+          RadY := TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * MatScale;
+
+          // Apply Gaussian blur based on horizontal and vertical radii (RadX and RadY).
+          // If only RadX or RadY is specified, perform 1D horizontal or vertical blur accordingly,
+          // avoiding unwanted blur and edge clipping along the un-blurred dimension.
+          if (RadX < Blur32MinRadius) and (RadY < Blur32MinRadius) then
+            Input1.CopyMapTo(DestSurface)
           else
-            Input1.CopyMapTo(DestSurface);
+          if (RadY < Blur32MinRadius) then
+            HorizontalBlur32(Input1, DestSurface, RadX)
+          else
+          if (RadX < Blur32MinRadius) then
+            VerticalBlur32(Input1, DestSurface, RadY)
+          else
+          if Abs(RadX - RadY) < 1e-4 then
+            Blur32(Input1, DestSurface, RadX)
+          else
+          begin
+            TempSurface := GetOffscreenBitmap(FilterRoi.Width, FilterRoi.Height, True);
+            try
+              HorizontalBlur32(Input1, TempSurface, RadX);
+              VerticalBlur32(TempSurface, DestSurface, RadY);
+            finally
+              ReleaseOffscreenBitmap(TempSurface);
+            end;
+          end;
 
           CurrentSurface := DestSurface;
         end else
@@ -2291,9 +2363,32 @@ begin
 
       ReleaseOffscreenBitmap(CachedSurface);
 
-      // 6. Blend final filtered result surface onto target canvas at ROI origin
+      // 6. Blend final filtered result surface onto target canvas
       if CurrentSurface <> nil then
-        BlendOffscreenSurface(ATarget, CurrentSurface, bmNormal, FilterRoi.Left, FilterRoi.Top);
+      begin
+        if HasNodeTransform then
+        begin
+          FilterMat.Matrix := IdentityMatrix;
+          FilterMat.Translate(FilterRoi.Left, FilterRoi.Top);
+          FilterMat := FilterMat * ANode.Transform;
+          FilterMat := FilterMat * ParentMatrix;
+
+          FTransformation.Push;
+          try
+            FTransformation.Clear(FilterMat.Matrix);
+            DestBounds := FTransformation.GetTransformedBounds(FloatRect(0, 0, CurrentSurface.Width, CurrentSurface.Height));
+            DestClip := MakeRect(DestBounds, rrOutside);
+
+            CurrentSurface.DrawMode := dmBlend;
+            CurrentSurface.CombineMode := cmMerge;
+
+            Transform(ATarget, CurrentSurface, FTransformation, DestClip, True);
+          finally
+            FTransformation.Pop;
+          end;
+        end else
+          BlendOffscreenSurface(ATarget, CurrentSurface, bmNormal, FilterRoi.Left, FilterRoi.Top);
+      end;
 
     finally
       for CurrentSurface in NamedSurfaces do
