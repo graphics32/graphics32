@@ -73,6 +73,7 @@ type
     procedure TestImageNodeParsingAndAttributes;
     procedure TestSwitchNodeAndConditionalProcessing;
     procedure TestContainerFontInheritance;
+    procedure TestDefSingularTagParsing;
     procedure TestFontShorthandParsing;
   end;
 
@@ -107,6 +108,39 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestDefSingularTagParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  defsNode: TSvgNode;
+  useNode1, useNode2: TSvgUseNode;
+begin
+  xml := '<svg viewBox="0 0 32 16">' +
+         '  <def>' +
+         '    <circle id="circ" cx="8" cy="8" r="5" fill="none"/>' +
+         '  </def>' +
+         '  <use id="u1" href="#circ" stroke="green" stroke-width="0.25"/>' +
+         '  <use id="u2" href="#circ" transform="translate(16)" stroke="green" stroke-width="1.0"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    defsNode := docNode.FindNodeById('circ');
+    Check(defsNode <> nil, 'Circle element inside singular <def> tag should be registered in ID table');
+
+    useNode1 := TSvgUseNode(docNode.FindNodeById('u1'));
+    Check(useNode1 <> nil, 'u1 should exist');
+    CheckEquals(1, useNode1.Children.Count, 'u1 should expand child referenced from <def>');
+
+    useNode2 := TSvgUseNode(docNode.FindNodeById('u2'));
+    Check(useNode2 <> nil, 'u2 should exist');
+    CheckEquals(1, useNode2.Children.Count, 'u2 should expand child referenced from <def>');
   finally
     docNode.Free;
   end;

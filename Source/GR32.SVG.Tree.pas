@@ -6363,6 +6363,9 @@ begin
   for Tag := Low(TSvgTagKeyword) to High(TSvgTagKeyword) do
     SvgKeywordDictionary.Add(sSvgTagKeywords[Tag], Tag);
 
+  // Singular alias for <defs> tag
+  SvgKeywordDictionary.Add('def', tagDefs);
+
   for StopTag := Low(TSvgStopTagKeyword) to High(TSvgStopTagKeyword) do
     SvgStopTagDictionary.Add(sSvgStopTagKeywords[StopTag], StopTag);
 
