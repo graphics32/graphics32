@@ -2758,10 +2758,10 @@ begin
 
     if AFilterNode.FilterUnits = guObjectBoundingBox then
     begin
-      RegionLeft := NodeBounds.Left + AFilterNode.X.ToPixels(BBoxWidth);
-      RegionTop := NodeBounds.Top + AFilterNode.Y.ToPixels(BBoxHeight);
-      RegionWidth := AFilterNode.Width.ToPixels(BBoxWidth);
-      RegionHeight := AFilterNode.Height.ToPixels(BBoxHeight);
+      RegionLeft := NodeBounds.Left + AFilterNode.X.ToPixels(1.0) * BBoxWidth;
+      RegionTop := NodeBounds.Top + AFilterNode.Y.ToPixels(1.0) * BBoxHeight;
+      RegionWidth := AFilterNode.Width.ToPixels(1.0) * BBoxWidth;
+      RegionHeight := AFilterNode.Height.ToPixels(1.0) * BBoxHeight;
     end else
     begin
       RegionLeft := AFilterNode.X.ToPixels(FViewportRect.Width);
