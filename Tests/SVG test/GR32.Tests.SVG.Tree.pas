@@ -73,6 +73,7 @@ type
     procedure TestImageNodeParsingAndAttributes;
     procedure TestSwitchNodeAndConditionalProcessing;
     procedure TestContainerFontInheritance;
+    procedure TestFontShorthandParsing;
   end;
 
 implementation
@@ -106,6 +107,42 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFontShorthandParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  text1, text2, text3: TSvgTextNode;
+begin
+  xml := '<svg width="200" height="100">' +
+         '  <text id="t1" x="10" y="20" font="italic bold 16px/1.2 &quot;Courier New&quot;, monospace">Inline Font</text>' +
+         '  <text id="t2" x="10" y="40" style="font: small-caps 700 24px Arial;">Style Font</text>' +
+         '  <text id="t3" x="10" y="60" font="small Times New Roman">Keyword Size</text>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    text1 := TSvgTextNode(docNode.FindNodeById('t1'));
+    Check(text1 <> nil, 'textNode t1 should exist');
+    CheckEquals('italic', text1.FontStyle);
+    CheckEquals('bold', text1.FontWeight);
+    CheckEquals(16.0, text1.FontSize.Value, 1E-4);
+    CheckEquals('"Courier New", monospace', text1.FontFamily);
+
+    text2 := TSvgTextNode(docNode.FindNodeById('t2'));
+    Check(text2 <> nil, 'textNode t2 should exist');
+    CheckEquals('700', text2.FontWeight);
+    CheckEquals(24.0, text2.FontSize.Value, 1E-4);
+
+    text3 := TSvgTextNode(docNode.FindNodeById('t3'));
+    Check(text3 <> nil, 'textNode t3 should exist');
+    CheckEquals(13.0, text3.FontSize.Value, 1E-4);
+    CheckEquals('Times New Roman', text3.FontFamily);
   finally
     docNode.Free;
   end;

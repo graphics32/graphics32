@@ -242,6 +242,7 @@ type
     attrOpacity,
     attrClipPath,
     attrMask,
+    attrFont,
     attrFontFamily,
     attrFontSize,
     attrFontWeight,
@@ -424,14 +425,15 @@ type
   TSvgGroupNode = class(TSvgNode)
   private
     FChildren: TObjectList<TSvgNode>;
-    FFontFamily: string;
+    FFontFamily: AnsiString;
     FFontSize: TSvgLength;
-    FFontWeight: string;
-    FFontStyle: string;
+    FFontWeight: AnsiString;
+    FFontStyle: AnsiString;
     FTextAnchor: TSvgTextAnchor;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
+    procedure ParseFontProperty(const AValue: TValuePUtf8Char);
   public
     constructor Create(AParent: TSvgNode = nil); override;
     destructor Destroy; override;
@@ -440,10 +442,10 @@ type
     procedure AddChild(AChild: TSvgNode);
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
     property Children: TObjectList<TSvgNode> read FChildren;
-    property FontFamily: string read FFontFamily write FFontFamily;
+    property FontFamily: AnsiString read FFontFamily write FFontFamily;
     property FontSize: TSvgLength read FFontSize write FFontSize;
-    property FontWeight: string read FFontWeight write FFontWeight;
-    property FontStyle: string read FFontStyle write FFontStyle;
+    property FontWeight: AnsiString read FFontWeight write FFontWeight;
+    property FontStyle: AnsiString read FFontStyle write FFontStyle;
     property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
   end;
 
@@ -1431,6 +1433,7 @@ const
     'opacity',
     'clip-path',
     'mask',
+    'font',
     'font-family',
     'font-size',
     'font-weight',
@@ -2415,9 +2418,185 @@ begin
   end;
 end;
 
+// Parses CSS font shorthand values (e.g. "italic bold 13px/1.2 'Times New Roman', serif")
+procedure TSvgGroupNode.ParseFontProperty(const AValue: TValuePUtf8Char);
+
+  function GetFontWeight(const Token: TValuePUtf8Char): boolean;
+  begin
+    (*
+    ** font-weight
+    *)
+    case Token.Len of
+      3:
+        if (Token.Text^ in ['1'..'9']) and (Token.Text[1] = '0') and (Token.Text[2] = '0') then
+        begin
+          SetString(FFontWeight, Token.Text, 3);
+          Exit(True);
+        end;
+      4:
+        if (Token.CompareText('bold')) then
+        begin
+          FFontWeight := 'bold';
+          Exit(True);
+        end;
+      6:
+        if (Token.CompareText('bolder')) then
+        begin
+          FFontWeight := 'bolder';
+          Exit(True);
+        end;
+      7:
+        if (Token.CompareText('lighter')) then
+        begin
+          FFontWeight := 'lighter';
+          Exit(True);
+        end;
+    end;
+    Result := False;
+  end;
+
+  function GetFontStyle(const Token: TValuePUtf8Char): boolean;
+  begin
+    (*
+    ** font-style
+    *)
+    // Check for font-style
+    case Token.Len of
+      6:
+        if (Token.CompareText('italic')) then
+        begin
+          FFontStyle := 'italic';
+          Exit(True);
+        end;
+
+      7:
+        if (Token.CompareText('oblique')) then
+        begin
+          FFontStyle := 'oblique';
+          Exit(True);
+        end;
+    end;
+
+    // Skip font-variant / font-stretch / normal
+    if (Token.CompareText('normal')) or (Token.CompareText('small-caps')) then
+      Exit(True);
+
+    Result := False;
+  end;
+
+  function GetFontSize(var Token, Next: TValuePUtf8Char): boolean;
+  var
+    AbsoluteSize: Single;
+    SizeToken: TValuePUtf8Char;
+    SlashPos: PUtf8Char;
+  begin
+    (*
+    ** font-size
+    *)
+    AbsoluteSize := 0.0;
+
+    // Handle slash for line-height (e.g. 13px/1.2 or 13px/120%).
+    // It's invalid in svg but let's try to survive it anyway:
+    // If the token contains a slash, grab whatever is before (the font-size)
+    // and discard the next token after it (the line-height).
+    SlashPos := Token.Pos('/');
+    if (SlashPos <> nil) then
+    begin
+      SizeToken.Text := Token.Text;
+      SizeToken.Len := SlashPos - Token.Text;
+      // Skip font-size and slash
+      Token.Skip(SizeToken.Len+1);
+      Token.Trim;
+      // If there's anything left in the token then line-height was included
+      // and we can just ignore it, otherwise it must be the next token: Skip
+      // that so it isn't confused as the font-family
+      if (Token.Len = 0) then
+        Next.Split(sWhiteSpaceSeparators, True);
+    end else
+      SizeToken := Token;
+
+    SizeToken.TrimEnd;
+
+    if (SizeToken.Len = 0) then
+      Exit(True); // Token will likely also be empty
+
+    case SizeToken.Len of
+      5:
+        case SizeToken.Text^ of
+          's': if SizeToken.CompareText('small') then AbsoluteSize := 13.0;
+          'l': if SizeToken.CompareText('large') then AbsoluteSize := 18.0;
+        end;
+
+      6:
+        case SizeToken.Text^ of
+          'm': if SizeToken.CompareText('medium') then AbsoluteSize := 16.0;
+        end;
+
+      7:
+        case SizeToken.Text[2] of
+          'l': if SizeToken.CompareText('x-large') then AbsoluteSize := 24.0;
+          's': if SizeToken.CompareText('x-small') then AbsoluteSize := 10.0;
+        end;
+
+      8:
+        case SizeToken.Text[3] of
+          'l': if SizeToken.CompareText('xx-large') then AbsoluteSize := 32.0;
+          's': if SizeToken.CompareText('xx-small') then AbsoluteSize := 8.0;
+        end;
+    end;
+
+    if (AbsoluteSize <> 0) then
+      FFontSize := TSvgLength.Create(AbsoluteSize, suPx)
+    else
+      FFontSize := TSvgLength.Parse(SizeToken);
+
+    Result := True;
+  end;
+
+var
+  Next, Token: TValuePUtf8Char;
+begin
+  Next := AValue;
+  Next.Trim;
+  if (Next.Len = 0) then
+    Exit;
+
+  // Initial defaults for CSS font shorthand specification
+  FFontStyle := 'normal';
+  FFontWeight := 'normal';
+  FFontSize := TSvgLength.Create(12.0, suPx);
+  FFontFamily := 'sans-serif';
+
+  while (Next.Len > 0) do
+  begin
+    Token := Next.Split(sWhiteSpaceSeparators, True);
+    Token.Trim;
+    Next.Trim;
+
+    if (Token.Len = 0) then
+      Continue;
+
+    if GetFontWeight(Token) then
+      continue;
+
+    if GetFontStyle(Token) then
+      continue;
+
+    if GetFontSize(Token, Next) then
+      break;
+  end;
+
+  // Remaining string after font-size is font-family
+  if (Next.Len > 0) then
+    FFontFamily := Next.ToUtf8;
+end;
+
 procedure TSvgGroupNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
   case AKeyword of
+    attrFont:
+      ParseFontProperty(AValue);
+
     attrFontFamily:
       FFontFamily := AValue.ToString;
 

@@ -104,6 +104,7 @@ type
     function CompareText(const AValue: TValuePUtf8Char): Boolean; overload;
     function StartsText(const AValue: AnsiString; ASkip: boolean = False): Boolean; overload;
     function StartsText(const AValue: TValuePUtf8Char; ASkip: boolean = False): Boolean; overload;
+    function Pos(Chr: AnsiChar): PUtf8Char;
 
     function ToCardinalAndSkip: Cardinal;
     function TryToFloat(out Value: Double): boolean; overload;
@@ -120,6 +121,8 @@ type
 
     procedure Trim; overload;
     procedure Trim(ASkip: TAnsiSet); overload;
+    procedure TrimEnd;
+    procedure TrimQuotes;
     procedure Skip(Count: integer = 1);
     function SkipUntil(ASkip: TAnsiSet; AAfter: boolean = False): boolean;
     // Split returns the current text, up to and excluding the split char(s).
@@ -422,10 +425,31 @@ begin
   SetString(Result, Text, Len);
 end;
 
+procedure TValuePUtf8Char.Trim;
+begin
+  while (Len > 0) and (Text^ in [#1..#32]) do
+    Skip;
+end;
+
 procedure TValuePUtf8Char.Trim(ASkip: TAnsiSet);
 begin
   while (Len > 0) and (Text^ in ASkip) do
     Skip;
+end;
+
+procedure TValuePUtf8Char.TrimEnd;
+begin
+  while (Len > 0) and (Text[Len-1] in [#1..#32]) do
+    Dec(Len);
+end;
+
+procedure TValuePUtf8Char.TrimQuotes;
+begin
+  if (Len >= 2) and (((Text^ = '"') and (Text[Len-1] = '"')) or ((Text^ = '''') and (Text[Len-1] = ''''))) then
+  begin
+    Inc(Text);
+    Dec(Len, 2);
+  end;
 end;
 
 function TValuePUtf8Char.TryToFloat(out Value: Single): boolean;
@@ -502,12 +526,6 @@ begin
       Text := pRes;
     end;
   end;
-end;
-
-procedure TValuePUtf8Char.Trim;
-begin
-  while (Len > 0) and (Text^ in [#1..#32]) do
-    Skip;
 end;
 
 function TValuePUtf8Char.ToString: string;
@@ -610,6 +628,22 @@ begin
     Result := Text[Len-1]
   else
     Result := #0;
+end;
+
+function TValuePUtf8Char.Pos(Chr: AnsiChar): PUtf8Char;
+var
+  i: integer;
+begin
+  if (Text <> nil) and (Len > 0) then
+  begin
+    for i := 0 to Len-1 do
+      if Text[i] = Chr then
+      begin
+        Result := Text + i;
+        Exit;
+      end;
+  end;
+  Result := nil;
 end;
 
 procedure TValuePUtf8Char.Skip(Count: integer);

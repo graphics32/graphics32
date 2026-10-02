@@ -89,7 +89,7 @@ type
   end;
 
   TFontInfo = record
-    FontFamily: string;
+    FontFamily: AnsiString;
     Style: TFontStyles;
     Size: integer;
   end;
@@ -129,7 +129,7 @@ type
     function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
     function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
     procedure ReleaseOffscreenBitmap(var ABitmap: TCustomBitmap32);
-    procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo); virtual;
+    procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: AnsiString; ASize: integer; var AFontInfo: TFontInfo); virtual;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
@@ -152,6 +152,7 @@ implementation
 uses
   Types,
   Math,
+  GR32.SVG.Utf8,
   GR32_Blend,
   GR32_Math,
   GR32_LowLevel,
@@ -3257,9 +3258,11 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.MapFont(const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo);
+procedure TSvgRenderer.MapFont(const AFontFamily, AWeightStr, AStyleStr: AnsiString; ASize: integer; var AFontInfo: TFontInfo);
 var
-  s: string;
+  Parser: TValuePUtf8Char;
+  Token: TValuePUtf8Char;
+  FontFamily: AnsiString;
 begin
   // TODO : Delegate to event
   (*
@@ -3272,25 +3275,95 @@ begin
   end;
   *)
 
-  s := LowerCase(Trim(AFontFamily));
+  Parser := TValuePUtf8Char.FromString(AFontFamily);
+  Parser.Trim;
+  Parser.TrimEnd;
 
-  if (s = '') or (s = 'sans-serif') or (s = 'sans') or (s = 'noto sans') or (s = 'system-ui') then
-    AFontInfo.FontFamily := 'Arial'
-  else
-  if (s = 'serif') or (s = 'times') then
-    AFontInfo.FontFamily := 'Times New Roman'
-  else
-  if (s = 'monospace') or (s = 'mono') or (s = 'courier') then
-    AFontInfo.FontFamily := 'Courier New'
-  else
-    AFontInfo.FontFamily := AFontFamily;
+  // Strip surrounding quotes if present
+  Parser.TrimQuotes;
 
-  s := LowerCase(AWeightStr);
-  if (s = 'bold') or (s = '700') or (s = '800') or (s = '900') then
+  // Extract first font family candidate if a comma-separated fallback list is provided
+  Token := Parser.Split(',', True);
+  Token.TrimQuotes;
+
+  FontFamily := '';
+
+  case Token.Len of
+    0:
+      FontFamily := 'Arial';
+
+    4:
+      case Token.Text^ of
+        's', 'S':
+          if Token.CompareText('sans') then
+            FontFamily := 'Arial';
+
+        'm', 'M':
+          if Token.CompareText('mono') then
+            FontFamily := 'Courier New';
+      end;
+
+    5:
+      case Token.Text^ of
+        's', 'S':
+          if Token.CompareText('serif') then
+            FontFamily := 'Times New Roman';
+
+        't', 'T':
+          if Token.CompareText('times') then
+            FontFamily := 'Times New Roman';
+
+        'm', 'M':
+          if Token.CompareText('mono') then
+            FontFamily := 'Courier New';
+      end;
+
+    7:
+      case Token.Text^ of
+        'c', 'C':
+          if Token.CompareText('courier') then
+            FontFamily := 'Courier New';
+      end;
+
+    9:
+      case Token.Text^ of
+        'n', 'N':
+          if Token.CompareText('noto sans') then
+            FontFamily := 'Arial';
+
+        'm', 'M':
+          if Token.CompareText('monospace') then
+            FontFamily := 'Courier New';
+      end;
+
+    10:
+      case Token.Text[1] of
+        's', 'A':
+          if Token.CompareText('sans-serif') then
+            FontFamily := 'Arial';
+
+        'y', 'Y':
+          if Token.CompareText('system-ui') then
+            FontFamily := 'Arial';
+      end;
+  end;
+
+  if (FontFamily = '') then
+    AFontInfo.FontFamily := Token.ToUtf8
+  else
+    AFontInfo.FontFamily := FontFamily;
+
+  Parser := TValuePUtf8Char.FromString(AWeightStr);
+  Parser.Trim;
+  Parser.TrimEnd;
+
+  if (Parser.Len = 4) and (Parser.CompareText('bold') or Parser.Equal('700') or Parser.Equal('800') or Parser.Equal('900')) then
     Include(AFontInfo.Style, fsBold);
 
-  s := LowerCase(AStyleStr);
-  if (s = 'italic') or (s = 'oblique') then
+  Parser := TValuePUtf8Char.FromString(AStyleStr);
+  Parser.Trim;
+  Parser.TrimEnd;
+  if Parser.CompareText('italic') or Parser.CompareText('oblique') then
     Include(AFontInfo.Style, fsItalic);
 
   AFontInfo.Size := ASize;

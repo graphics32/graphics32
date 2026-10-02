@@ -50,6 +50,7 @@ type
     procedure TestCssStyleSheetParsing;
     procedure TestUseNodeResolution;
     procedure TestCssSpecificityCascade;
+    procedure TestCssFontShorthand;
   end;
 
 implementation
@@ -194,6 +195,55 @@ begin
     resPt := helper.TransformPoint(pt);
     CheckEquals(15.0, resPt.X, 1E-4);
     CheckEquals(25.0, resPt.Y, 1E-4);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgCss.TestCssFontShorthand;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  text1, text2, text3, text4: TSvgTextNode;
+begin
+  xml := '<svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg">' +
+         '  <style>' +
+         '    .small { font: italic 13px sans-serif; }' +
+         '    .heavy { font: bold 30px sans-serif; }' +
+         '    .Rrrrr { font: italic 40px serif; fill: red; }' +
+         '  </style>' +
+         '  <text id="t1" x="20" y="35" class="small">My</text>' +
+         '  <text id="t2" x="40" y="35" class="heavy">cat</text>' +
+         '  <text id="t3" x="55" y="55" class="small">is</text>' +
+         '  <text id="t4" x="65" y="55" class="Rrrrr">Grumpy!</text>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
+  try
+    text1 := TSvgTextNode(docNode.FindNodeById('t1'));
+    Check(text1 <> nil, 'Text node t1 should be found');
+    CheckEquals('italic', text1.FontStyle);
+    CheckEquals(13.0, text1.FontSize.Value, 1E-4);
+    CheckEquals('sans-serif', text1.FontFamily);
+
+    text2 := TSvgTextNode(docNode.FindNodeById('t2'));
+    Check(text2 <> nil, 'Text node t2 should be found');
+    CheckEquals('bold', text2.FontWeight);
+    CheckEquals(30.0, text2.FontSize.Value, 1E-4);
+    CheckEquals('sans-serif', text2.FontFamily);
+
+    text3 := TSvgTextNode(docNode.FindNodeById('t3'));
+    Check(text3 <> nil, 'Text node t3 should be found');
+    CheckEquals('italic', text3.FontStyle);
+    CheckEquals(13.0, text3.FontSize.Value, 1E-4);
+
+    text4 := TSvgTextNode(docNode.FindNodeById('t4'));
+    Check(text4 <> nil, 'Text node t4 should be found');
+    CheckEquals('italic', text4.FontStyle);
+    CheckEquals(40.0, text4.FontSize.Value, 1E-4);
+    CheckEquals('serif', text4.FontFamily);
+    CheckEquals(clRed32, text4.Fill.Color.Color);
   finally
     docNode.Free;
   end;
