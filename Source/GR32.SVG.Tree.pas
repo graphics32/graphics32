@@ -1328,6 +1328,8 @@ uses
   GR32.SVG.Xml,
   GR32.SVG.Css;
 
+//------------------------------------------------------------------------------
+
 // TryValueToUtf8 unescapes XML entity references (&lt;, &gt;, &amp;, &quot;, &apos;, and numeric entities)
 function IsUtf8(AParser: TXmlParser): boolean;
 var
@@ -1357,6 +1359,71 @@ begin
   if (not Result) then
     // ValueToUtf8 sets an error state if it can't unescape
     AParser.Kind := SaveKind;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure NormalizeLinebreaksInline(var Text: UnicodeString);
+const
+  // In Little-Endian UTF-16:
+  // #$000D (#13 / CR) is $000D
+  // #$000A (#10 / LF) is $000A
+  // Combined as 32-bit Cardinal: (LF shl 16) or CR = $000A000D
+  cCRLF = Cardinal($000A000D);
+var
+  Len, Index: Integer;
+  Replacements: integer;
+  pRead: PCardinal;
+  pWrite: PChar;
+begin
+  Len := Length(Text);
+  if Len < 2 then
+    Exit;
+
+  pRead := PCardinal(Text);
+  pWrite := PChar(pRead);
+  Replacements := 0;
+  Index := 1;
+
+  // Process 2 characters (4 bytes) at a time using PCardinal lookahead
+  while Index < Len do
+    if (pRead^ = cCRLF) then
+    begin
+      // Replace CRLF pair with a single space character
+      pWrite^ := ' ';
+      Inc(pWrite);
+      Inc(pRead); // Advance 2 chars = 4 bytes
+      Inc(Index, 2);
+      Inc(Replacements);
+    end else
+    begin
+      // No need to write unless we have made replacements
+      if (Replacements > 0) then
+        pWrite^ := PChar(pRead)^;
+      // Advance by one character
+      Inc(pWrite);
+      Inc(PChar(pRead));
+      Inc(Index);
+    end;
+
+  // Copy remaining single tail character if present
+  if (Replacements > 0) then
+  begin
+    if (Index = Len) then
+      pWrite^ := PChar(pRead)^;
+
+    // Truncate string to actual written length if replacements occurred
+    SetLength(Text, Len - Replacements);
+  end;
+end;
+
+procedure NormalizeControlCharsInline(var Text: UnicodeString);
+var
+  i: integer;
+begin
+  for i := 1 to Length(Text) do
+    if (Ord(Text[i]) <= 13) and (Byte(Ord(Text[i])) in [9, 10, 13]) then
+      Text[i] := #32;
 end;
 
 //------------------------------------------------------------------------------
@@ -6107,8 +6174,10 @@ var
 
     if node is TSvgGroupNode then
     begin
+
       while not(AParser.Kind in [xtEof, xtError]) do
       begin
+
         if (AParser.Kind = xtElementEnd) and (AParser.Depth < startDepth) then
         begin
           AParser.ParseNext;
@@ -6117,24 +6186,32 @@ var
 
         if AParser.Kind = xtElementStart then
         begin
+
           childNode := ParseSubtree(AParser, node);
           if childNode <> nil then
             TSvgGroupNode(node).AddChild(childNode);
+
         end else
         if (AParser.Kind in [xtText, xtCData]) and (node is TSvgTextPositioningNode) then
         begin
+
           if AParser.Kind = xtCData then
-            UnicodeText := Trim(TValuePUtf8Char(AParser.Value).ToString)
+            UnicodeText := TValuePUtf8Char(AParser.Value).ToString
           else
           begin
             if AParser.ValueToUtf8(Utf8) then
-              UnicodeText := Trim(Utf8)
+              UnicodeText := Utf8
             else
-              UnicodeText := Trim(TValuePUtf8Char(AParser.Value).ToString);
+              UnicodeText := TValuePUtf8Char(AParser.Value).ToString;
           end;
 
           if (UnicodeText <> '') then
           begin
+
+            // Normalize newlines and tabs to spaces while preserving spaces
+            NormalizeLinebreaksInline(UnicodeText);
+            NormalizeControlCharsInline(UnicodeText);
+
             if TSvgTextPositioningNode(node).Children.Count = 0 then
             begin
               if TSvgTextPositioningNode(node).TextContent <> '' then
@@ -6148,18 +6225,24 @@ var
               TSvgTSpanNode(childNode).TextContent := UnicodeText;
               TSvgTextPositioningNode(node).AddChild(childNode);
             end;
+
           end;
           AParser.ParseNext;
-        end
-        else
+
+        end else
           AParser.ParseNext;
+
       end;
+
     end else
     begin
+
       while (AParser.Kind not in [xtEof, xtError]) and (AParser.Depth >= startDepth) do
         AParser.ParseNext;
+
       if AParser.Kind = xtElementEnd then
         AParser.ParseNext;
+
     end;
 
     Result := node;
