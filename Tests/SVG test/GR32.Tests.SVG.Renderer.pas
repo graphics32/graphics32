@@ -76,6 +76,7 @@ type
     procedure TestTextRendering;
     procedure TestTextRotationRendering;
     procedure TestTextPathRendering;
+    procedure TestTextOpacityRendering;
     procedure TestEscapedTextRendering;
     procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
@@ -107,6 +108,7 @@ var
   renderer: TSvgRenderer;
   xml: UTF8String;
   centerPixel: TColor32;
+  expectedRangeCount, doubleTransformedRangeCount, x, y: Integer;
 begin
   bmp := TBitmap32.Create;
   try
@@ -126,6 +128,44 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Test transformed text on path (<text transform="translate(0, 50)"> <textPath href="#curve3">)
+    // Ensures text is transformed exactly 1x (Y=100) rather than double-transformed (Y=150)
+    bmp.Clear(clWhite32);
+    xml := '<svg width="200" height="200">' +
+           '  <defs><path id="curve3" d="M 10 50 L 190 50"/></defs>' +
+           '  <text transform="translate(0, 50)" font-size="20px" fill="blue">' +
+           '    <textPath href="#curve3">Transformed Text</textPath>' +
+           '  </text>' +
+           '</svg>';
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Transformed textPath docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        expectedRangeCount := 0;
+        doubleTransformedRangeCount := 0;
+
+        for y := 80 to 120 do
+          for x := 0 to 199 do
+            if bmp.Pixel[x, y] <> clWhite32 then
+              Inc(expectedRangeCount);
+
+        for y := 140 to 180 do
+          for x := 0 to 199 do
+            if bmp.Pixel[x, y] <> clWhite32 then
+              Inc(doubleTransformedRangeCount);
+
+        Check(expectedRangeCount > 30, Format('Transformed text on path should render around expected Y=100 (found %d pixels)', [expectedRangeCount]));
+        CheckEquals(0, doubleTransformedRangeCount, Format('Transformed text on path should not be double-transformed to Y=150 (found %d pixels)', [doubleTransformedRangeCount]));
       finally
         renderer.Free;
       end;
@@ -685,6 +725,69 @@ begin
               Inc(nonWhiteCount);
 
         Check(nonWhiteCount > 50, Format('Rotated text should render pixels on canvas (found %d non-white pixels)', [nonWhiteCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTextOpacityRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  pxTextOpacity, pxPathOpacity: TColor32;
+  x, y: Integer;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="100">' +
+           '  <defs><path id="curve" d="M 10 70 L 190 70"/></defs>' +
+           '  <text x="10" y="30" font-size="24px" fill="black" opacity="0.5">Opacity Text</text>' +
+           '  <text font-size="24px" fill="black" opacity="0.5">' +
+           '    <textPath href="#curve">Opacity TextPath</textPath>' +
+           '  </text>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        pxTextOpacity := clWhite32;
+        pxPathOpacity := clWhite32;
+
+        for y := 0 to 99 do
+          for x := 0 to 199 do
+          begin
+            if (bmp.Pixel[x, y] <> clWhite32) then
+            begin
+              if (y < 45) and (pxTextOpacity = clWhite32) then
+                pxTextOpacity := bmp.Pixel[x, y]
+              else if (y >= 45) and (pxPathOpacity = clWhite32) then
+                pxPathOpacity := bmp.Pixel[x, y];
+            end;
+          end;
+
+        Check(pxTextOpacity <> clWhite32, 'Text with opacity="0.5" should render pixels');
+        Check(RedComponent(pxTextOpacity) > 50, 'Text with opacity="0.5" on white should not be solid black');
+        Check(RedComponent(pxTextOpacity) < 200, 'Text with opacity="0.5" on white should not be pure white');
+
+        Check(pxPathOpacity <> clWhite32, 'TextPath with opacity="0.5" should render pixels');
+        Check(RedComponent(pxPathOpacity) > 50, 'TextPath with opacity="0.5" on white should not be solid black');
+        Check(RedComponent(pxPathOpacity) < 200, 'TextPath with opacity="0.5" on white should not be pure white');
+
       finally
         renderer.Free;
       end;

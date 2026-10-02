@@ -1155,7 +1155,6 @@ begin
   if Length(AllRenderPoints) = 0 then
     AllRenderPoints := TransformedPoints;
 
-  // Hard Requirement: The PolyPolygonBounds function MUST be used to calculate the ROI AFTER stroking.
   FloatRoi := PolyPolygonBounds(AllRenderPoints);
   RoiRect := MakeRect(FloatRoi, rrOutside);
 
@@ -3380,7 +3379,17 @@ end;
 
 procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
 
-  procedure RenderTextPathData(const APathPoints: TArrayOfArrayOfFloatPoint; const AFill: TSvgFill; const AStroke: TSvgStroke);
+  function GetAccumulatedTextOpacity(Node: TSvgNode): Single;
+  begin
+    Result := 1.0;
+    while (Node <> nil) and (Node is TSvgTextPositioningNode) do
+    begin
+      Result := Result * Node.Opacity;
+      Node := Node.Parent;
+    end;
+  end;
+
+  procedure RenderTextPathData(const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
   var
     TransformedPts, StrokePts, DashedPts: TArrayOfArrayOfFloatPoint;
     StrokeBounds: TFloatRect;
@@ -3388,30 +3397,35 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     StrokeWidth, MatScale, ScaledOffset: Single;
     ScaledDashArray: TArrayOfFloat;
     i, j, k: Integer;
+    AccumulatedOpacity, FillOpacity, StrokeOpacity: Single;
   begin
     if (Length(APathPoints) = 0) or (ATarget = nil) then
       Exit;
 
+    AccumulatedOpacity := GetAccumulatedTextOpacity(ANode);
+    FillOpacity := ANode.Fill.Opacity * AccumulatedOpacity;
+    StrokeOpacity := ANode.Stroke.Opacity * AccumulatedOpacity;
+
     TransformedPts := GetTransformedPoints(APathPoints);
 
     // 1. Fill Rendering
-    RenderPolyPolygon(ATarget, AFill.ResolvedPaintServer, TransformedPts, AFill.Opacity, AFill.Color, AFill.FillRule);
+    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, ANode.Fill.Color, ANode.Fill.FillRule);
 
     // 2. Stroke Rendering
-    StrokeWidth := AStroke.Width.ToPixels(FViewportRect.Width);
-    if (StrokeWidth > 0) and (CanRenderPolyPolygon(AStroke.ResolvedPaintServer, TransformedPts, AStroke.Opacity, AStroke.Color)) then
+    StrokeWidth := ANode.Stroke.Width.ToPixels(FViewportRect.Width);
+    if (StrokeWidth > 0) and (CanRenderPolyPolygon(ANode.Stroke.ResolvedPaintServer, TransformedPts, StrokeOpacity, ANode.Stroke.Color)) then
     begin
       MatScale := GetMatrixScale(FTransformation.Matrix);
       StrokeWidth := StrokeWidth * MatScale;
 
       ScaledDashArray := nil;
       ScaledOffset := 0;
-      if Length(AStroke.DashArray) > 0 then
+      if Length(ANode.Stroke.DashArray) > 0 then
       begin
-        SetLength(ScaledDashArray, Length(AStroke.DashArray));
-        for k := 0 to High(AStroke.DashArray) do
-          ScaledDashArray[k] := AStroke.DashArray[k] * MatScale;
-        ScaledOffset := AStroke.DashOffset * MatScale;
+        SetLength(ScaledDashArray, Length(ANode.Stroke.DashArray));
+        for k := 0 to High(ANode.Stroke.DashArray) do
+          ScaledDashArray[k] := ANode.Stroke.DashArray[k] * MatScale;
+        ScaledOffset := ANode.Stroke.DashOffset * MatScale;
       end;
 
       StrokePts := nil;
@@ -3421,12 +3435,12 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         begin
           DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
           for j := 0 to High(DashedPts) do
-            StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
+            StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
         end else
-          StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, AStroke.JoinStyle, AStroke.EndStyle, AStroke.MiterLimit);
+          StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
       end;
 
-      RenderPolyPolygon(ATarget, AStroke.ResolvedPaintServer, StrokePts, AStroke.Opacity, AStroke.Color);
+      RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, ANode.Stroke.Color);
     end;
   end;
 
@@ -3729,7 +3743,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
 
                 Canvas.RenderText(DrawPoint.X, DrawPoint.Y, CharString, TextLayout);
                 if (Canvas.Path <> nil) then
-                  RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
+                  RenderTextPathData(Canvas.Path, ANode);
 
                 Canvas.Clear;
                 Canvas.EndUpdate;
@@ -3749,7 +3763,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           Canvas.RenderText(DrawPoint.X, DrawPoint.Y, ANode.TextContent + Char(ZERO_WIDTH_SPACE), TextLayout);
 
           if (Canvas.Path <> nil) then
-            RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
+            RenderTextPathData(Canvas.Path, ANode);
 
           Canvas.Clear;
           Canvas.EndUpdate;
