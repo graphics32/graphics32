@@ -1577,22 +1577,34 @@ begin
 
     // Calculate group bounding box in world space for objectBoundingBox units and ROI determination
     GroupBounds := AGroupNode.GetObjectBoundingBox;
-    Points[0] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Top));
-    Points[1] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Top));
-    Points[2] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Bottom));
-    Points[3] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Bottom));
-
-    TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
-    for k := 1 to 3 do
+    if (GroupBounds.Right <= GroupBounds.Left) or (GroupBounds.Bottom <= GroupBounds.Top) then
     begin
-      if (Points[k].X < TargetWorldBounds.Left) then
-        TargetWorldBounds.Left := Points[k].X;
-      if (Points[k].X > TargetWorldBounds.Right) then
-        TargetWorldBounds.Right := Points[k].X;
-      if (Points[k].Y < TargetWorldBounds.Top) then
-        TargetWorldBounds.Top := Points[k].Y;
-      if (Points[k].Y > TargetWorldBounds.Bottom) then
-        TargetWorldBounds.Bottom := Points[k].Y;
+      // Fallback for empty or degenerate group bounding boxes;
+      // If GetObjectBoundingBox returns empty/inverted bounds,
+      // we fall back to the target canvas/viewport dimensions,
+      // ensuring offscreen surfaces are allocated properly
+      // rather than disappearing.
+      // See identical logic in TSvgRenderer.RenderNode & TSvgRenderer.RenderFilter
+      TargetWorldBounds := FloatRect(0, 0, ATarget.Width, ATarget.Height);
+    end else
+    begin
+      Points[0] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Top));
+      Points[1] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Top));
+      Points[2] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Bottom));
+      Points[3] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Bottom));
+
+      TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
+      for k := 1 to 3 do
+      begin
+        if (Points[k].X < TargetWorldBounds.Left) then
+          TargetWorldBounds.Left := Points[k].X;
+        if (Points[k].X > TargetWorldBounds.Right) then
+          TargetWorldBounds.Right := Points[k].X;
+        if (Points[k].Y < TargetWorldBounds.Top) then
+          TargetWorldBounds.Top := Points[k].Y;
+        if (Points[k].Y > TargetWorldBounds.Bottom) then
+          TargetWorldBounds.Bottom := Points[k].Y;
+      end;
     end;
 
     // Convert world target bounds to integer pixel ROI and intersect with target bitmap bounds
@@ -2761,8 +2773,18 @@ begin
     end else
       NodeBounds := ANode.GetObjectBoundingBox;
 
+    // Fallback for empty or degenerate group bounding boxes;
+    // If GetObjectBoundingBox returns empty/inverted bounds,
+    // we fall back to the target canvas/viewport dimensions,
+    // ensuring offscreen surfaces are allocated properly
+    // rather than disappearing.
+    // See identical logic in TSvgRenderer.RenderNode & TSvgRenderer.RenderGroupNode
+    if (NodeBounds.Right <= NodeBounds.Left) or (NodeBounds.Bottom <= NodeBounds.Top) then
+      NodeBounds := FViewportRect;
+
     BBoxWidth := NodeBounds.Right - NodeBounds.Left;
     BBoxHeight := NodeBounds.Bottom - NodeBounds.Top;
+    // We have already handled these cases above, but whatever
     if BBoxWidth <= 0 then BBoxWidth := 1.0;
     if BBoxHeight <= 0 then BBoxHeight := 1.0;
 
@@ -3756,18 +3778,30 @@ begin
 
         // Calculate object bounding box in world space
         NodeBounds := ANode.GetObjectBoundingBox;
-        Points[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-        Points[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-        Points[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-        Points[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
-
-        TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
-        for k := 1 to 3 do
+        if (NodeBounds.Right <= NodeBounds.Left) or (NodeBounds.Bottom <= NodeBounds.Top) then
         begin
-          if (Points[k].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Points[k].X;
-          if (Points[k].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Points[k].X;
-          if (Points[k].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Points[k].Y;
-          if (Points[k].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Points[k].Y;
+          // Fallback for empty or degenerate group bounding boxes;
+          // If GetObjectBoundingBox returns empty/inverted bounds,
+          // we fall back to the target canvas/viewport dimensions,
+          // ensuring offscreen surfaces are allocated properly
+          // rather than disappearing.
+          // See identical logic in TSvgRenderer.RenderGroupNode & TSvgRenderer.RenderFilter
+          TargetWorldBounds := FloatRect(0, 0, ATarget.Width, ATarget.Height);
+        end else
+        begin
+          Points[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+          Points[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+          Points[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+          Points[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+
+          TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
+          for k := 1 to 3 do
+          begin
+            if (Points[k].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Points[k].X;
+            if (Points[k].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Points[k].X;
+            if (Points[k].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Points[k].Y;
+            if (Points[k].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Points[k].Y;
+          end;
         end;
 
         NodeRoi := MakeRect(TargetWorldBounds, rrOutside);
