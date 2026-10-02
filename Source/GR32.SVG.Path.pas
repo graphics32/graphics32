@@ -384,16 +384,14 @@ begin
             Break;
 
           NextPoint := GetQuadControl1;
+          LastControlPoint := NextPoint;
 
           if IsRel then
           begin
-            LastControlPoint.X := CurrentPoint.X + NextPoint.X;
-            LastControlPoint.Y := CurrentPoint.Y + NextPoint.Y;
             CurrentPoint.X := CurrentPoint.X + Value3;
             CurrentPoint.Y := CurrentPoint.Y + Value4;
           end else
           begin
-            LastControlPoint := NextPoint;
             CurrentPoint.X := Value3;
             CurrentPoint.Y := Value4;
           end;

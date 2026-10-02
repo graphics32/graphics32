@@ -55,6 +55,7 @@ type
     procedure TestClosePath;
     procedure TestMultipleSubpaths;
     procedure TestCircleWithTwoArcs;
+    procedure TestSmoothQuadBezier;
   end;
 
 implementation
@@ -239,6 +240,34 @@ begin
   CheckEquals(2, Length(pts));
   CheckEquals(10.0, pts[0][0].X, 1E-3);
   CheckEquals(30.0, pts[1][0].X, 1E-3);
+end;
+
+procedure TTestSvgPath.TestSmoothQuadBezier;
+var
+  pts: TArrayOfArrayOfFloatPoint;
+  lastPt: TFloatPoint;
+begin
+  // Test relative smooth quadratic bezier 'q' followed by 't' (e.g., number 8 shape on chessboard)
+  // q -1.125 0 -1.773 .602 t .64 1.656
+  pts := SvgPathDataToPoints('M 10 22.785 q -1.125 0 -1.773 .602 t .64 1.656');
+  CheckEquals(1, Length(pts));
+  Check(Length(pts[0]) > 2);
+  CheckEquals(10.0, pts[0][0].X, 1E-3);
+  CheckEquals(22.785, pts[0][0].Y, 1E-3);
+
+  // End point after 'q': (10 - 1.773, 22.785 + 0.602) = (8.227, 23.387)
+  // End point after 't .64 1.656': (8.227 + 0.64, 23.387 + 1.656) = (8.867, 25.043)
+  lastPt := pts[0][High(pts[0])];
+  CheckEquals(8.867, lastPt.X, 1E-2);
+  CheckEquals(25.043, lastPt.Y, 1E-2);
+
+  // Test absolute smooth quadratic bezier 'Q' followed by 'T'
+  pts := SvgPathDataToPoints('M 10 20 Q 20 10 30 20 T 50 20');
+  CheckEquals(1, Length(pts));
+  Check(Length(pts[0]) > 2);
+  lastPt := pts[0][High(pts[0])];
+  CheckEquals(50.0, lastPt.X, 1E-2);
+  CheckEquals(20.0, lastPt.Y, 1E-2);
 end;
 
 initialization
