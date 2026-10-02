@@ -1176,11 +1176,21 @@ begin
     RenderBmp := ATarget;
 
   try
-    // 5. Fill Rendering
-    RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, APathNode.Fill.Color, APathNode.Fill.FillRule);
+    if NeedsOffscreen then
+    begin
+      FTransformation.Push;
+      FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
+    end;
+    try
+      // 5. Fill Rendering
+      RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, APathNode.Fill.Color, APathNode.Fill.FillRule);
 
-    // 6. Stroke Rendering
-    RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, APathNode.Stroke.Color);
+      // 6. Stroke Rendering
+      RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, APathNode.Stroke.Color);
+    finally
+      if NeedsOffscreen then
+        FTransformation.Pop;
+    end;
 
     // 7. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
     if (APathNode.ResolvedMarkerStart <> nil) or (APathNode.ResolvedMarkerMid <> nil) or (APathNode.ResolvedMarkerEnd <> nil) then
