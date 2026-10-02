@@ -3630,8 +3630,9 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         TextLayout.ClipLayout := False;
         TextLayout.AlignmentHorizontal := TextAlignHorLeft;
         TextLayout.AlignmentVertical := TextAlignVerTop;
+        TextLayout.RemoveLeadingSpace := False;
 
-        MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, ANode.TextContent, TextLayout);
+        MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, ANode.TextContent + Char(ZERO_WIDTH_SPACE), TextLayout);
         TextWidth := MeasureRect.Width;
 
         // Align with font baseline.
@@ -3716,7 +3717,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           Canvas.Clear;
           Canvas.BeginUpdate;
 
-          Canvas.RenderText(DrawPoint.X, DrawPoint.Y, ANode.TextContent, TextLayout);
+          Canvas.RenderText(DrawPoint.X, DrawPoint.Y, ANode.TextContent + Char(ZERO_WIDTH_SPACE), TextLayout);
 
           if (Canvas.Path <> nil) then
             RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
