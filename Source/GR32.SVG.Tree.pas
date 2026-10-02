@@ -304,7 +304,8 @@ type
     attrD,
     attrRx,
     attrRy,
-    attrPoints
+    attrPoints,
+    attrLetterSpacing
   );
 
 //------------------------------------------------------------------------------
@@ -430,6 +431,7 @@ type
     FFontWeight: AnsiString;
     FFontStyle: AnsiString;
     FTextAnchor: TSvgTextAnchor;
+    FLetterSpacing: TSvgLength;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
@@ -447,6 +449,7 @@ type
     property FontWeight: AnsiString read FFontWeight write FFontWeight;
     property FontStyle: AnsiString read FFontStyle write FFontStyle;
     property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
+    property LetterSpacing: TSvgLength read FLetterSpacing write FLetterSpacing;
   end;
 
 
@@ -1495,7 +1498,8 @@ const
     'd',
     'rx',
     'ry',
-    'points'
+    'points',
+    'letter-spacing'
   );
 
 var
@@ -2310,6 +2314,7 @@ begin
     FFontWeight := parentGroup.FontWeight;
     FFontStyle := parentGroup.FontStyle;
     FTextAnchor := parentGroup.TextAnchor;
+    FLetterSpacing := parentGroup.LetterSpacing;
   end else
   begin
     FFontFamily := 'sans-serif';
@@ -2317,6 +2322,7 @@ begin
     FFontWeight := 'normal';
     FFontStyle := 'normal';
     FTextAnchor := taStart;
+    FLetterSpacing := TSvgLength.Create(0.0, suPx);
   end;
 end;
 
@@ -2337,6 +2343,7 @@ begin
   groupRes.FFontWeight := FFontWeight;
   groupRes.FFontStyle := FFontStyle;
   groupRes.FTextAnchor := FTextAnchor;
+  groupRes.FLetterSpacing := FLetterSpacing;
   for i := 0 to FChildren.Count - 1 do
     groupRes.AddChild(FChildren[i].Clone(groupRes));
   Result := groupRes;
@@ -2611,6 +2618,9 @@ begin
 
     attrTextAnchor:
       FTextAnchor := ParseSvgTextAnchor(AValue);
+
+    attrLetterSpacing:
+      FLetterSpacing := TSvgLength.Parse(AValue);
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
