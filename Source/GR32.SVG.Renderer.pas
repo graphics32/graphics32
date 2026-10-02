@@ -203,18 +203,26 @@ begin
             (Abs(AContour[0].Y - AContour[len - 1].Y) < 0.001);
 end;
 
-function TransformPathPoints(const APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix): TArrayOfArrayOfFloatPoint;
+function TransformPathPoints(var APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix): TArrayOfArrayOfFloatPoint;
 var
-  i, j, len: Integer;
+  i, j: Integer;
 begin
   SetLength(Result, Length(APoints));
   for i := 0 to High(APoints) do
   begin
-    len := Length(APoints[i]);
-    SetLength(Result[i], len);
-    for j := 0 to len - 1 do
+    SetLength(Result[i], Length(APoints[i]));
+    for j := 0 to High(APoints[i]) do
       Result[i][j] := TFloatMatrixHelper(AMatrix).TransformPoint(APoints[i][j]);
   end;
+end;
+
+procedure TransformPathPointsInplace(var APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix);
+var
+  i, j: Integer;
+begin
+  for i := 0 to High(APoints) do
+    for j := 0 to High(APoints[i]) do
+      APoints[i][j] := TFloatMatrixHelper(AMatrix).TransformPoint(APoints[i][j]);
 end;
 
 function GetTotalPathLength(const APoints: TArrayOfArrayOfFloatPoint): Single;
@@ -286,15 +294,16 @@ end;
 
 function GetSubtreeText(ANode: TSvgNode): string;
 var
-  child: TSvgNode;
+  Child: TSvgNode;
 begin
   Result := '';
   if ANode is TSvgTextPositioningNode then
     Result := TSvgTextPositioningNode(ANode).TextContent;
+
   if ANode is TSvgGroupNode then
   begin
-    for child in TSvgGroupNode(ANode).Children do
-      Result := Result + GetSubtreeText(child);
+    for Child in TSvgGroupNode(ANode).Children do
+      Result := Result + GetSubtreeText(Child);
   end;
 end;
 
@@ -3426,7 +3435,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
   procedure ProcessTextPathNode(ANode: TSvgTextPathNode; Canvas: TCanvas32);
   var
     Text, CharString: string;
-    RawPts, PathPts: TArrayOfArrayOfFloatPoint;
+    PathPts: TArrayOfArrayOfFloatPoint;
     TotalLen, Offset, CurrentDistance, CharWidth, TextWidth, TangAngle, DrawY: Single;
     FontSizePx: Integer;
     FontInfo: TFontInfo;
@@ -3440,139 +3449,159 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     RotateArray: TArrayOfFloat;
     w1, w2, CharacterRotationAngle: Single;
     ZeroWidth: Single;
+    HasNodeTransform: Boolean;
   begin
     if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) then
       Exit;
 
-    Text := ANode.TextContent;
-    if Text = '' then
-      Text := GetSubtreeText(ANode);
-
-    if (ANode.ResolvedPathNode = nil) or (Text = '') then
+    if (ANode.ResolvedPathNode = nil) then
       Exit;
 
-    RawPts := ANode.ResolvedPathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
-    if Length(RawPts) = 0 then
-      Exit;
+    HasNodeTransform := not IsIdentityMatrix(ANode.Transform);
 
-    if not IsIdentityMatrix(ANode.ResolvedPathNode.Transform) then
-      PathPts := TransformPathPoints(RawPts, ANode.ResolvedPathNode.Transform)
-    else
-      PathPts := RawPts;
-
-    TotalLen := GetTotalPathLength(PathPts);
-    if TotalLen <= 0 then
-      Exit;
-
-    Offset := ANode.StartOffset.ToPixels(TotalLen);
-
-    FontSizePx := Round(ANode.FontSize.ToPixels(FViewportRect.Height));
-    if FontSizePx <= 0 then
-      FontSizePx := 12;
-
-    FontInfo := Default(TFontInfo);
-    MapFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
-
-    Canvas.Bitmap.Font.Name := FontInfo.FontFamily;
-    Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
-    Canvas.Bitmap.Font.Style := FontInfo.Style;
-
-    TextLayout := DefaultTextLayout;
-    TextLayout.ClipLayout := False;
-    TextLayout.AlignmentHorizontal := TextAlignHorLeft;
-    TextLayout.AlignmentVertical := TextAlignVerTop;
-
-    if ANode.TextAnchor <> taStart then
-    begin
-      MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, Text, TextLayout);
-      TextWidth := MeasureRect.Width;
-      if ANode.TextAnchor = taMiddle then
-        Offset := Offset - TextWidth * 0.5
-      else if ANode.TextAnchor = taEnd then
-        Offset := Offset - TextWidth;
-    end;
-
-    FontFace := TFontFace32.Create(Canvas.Bitmap.Font.Handle);
+    if HasNodeTransform then
+      FTransformation.Push;
     try
-      FontFace.GetFontFaceMetrics(TextLayout, FontFaceMetrics);
-      DrawY := -FontFaceMetrics.Ascent;
-    finally
-      FontFace := nil;
-    end;
+      if HasNodeTransform then
+        ApplyMatrix(ANode.Transform);
 
-    if (Length(ANode.Rotate) = 0) and (ANode.Parent <> nil) and (ANode.Parent is TSvgTextPositioningNode) then
-      RotateArray := TSvgTextPositioningNode(ANode.Parent).Rotate
-    else
-      RotateArray := ANode.Rotate;
+      Text := ANode.TextContent;
+      if Text = '' then
+        Text := GetSubtreeText(ANode);
 
-    ZeroWidth := NaN;
-    SetLength(CharString, 2);
-    CharString[2] := Char(ZERO_WIDTH_SPACE);
+      if (Text = '') then
+        Exit;
 
-    CharacterRotationAngle := 0;
-    CurrentDistance := Offset;
-    for GlyphIdx := 1 to Length(Text) do
-    begin
-      // Get the rotation angle. If there's too few we just reuse the previous
-      if GlyphIdx - 1 <= High(RotateArray) then
-        CharacterRotationAngle := RotateArray[GlyphIdx - 1];
+      PathPts := ANode.ResolvedPathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
+      if Length(PathPts) = 0 then
+        Exit;
 
-      // Note: The width returned by MeasureText excludes the AdvanceWidth of the last character.
-      // For example, since 'space' has a very small Width + a larger AdvanceWidth, the total
-      // width returned by MeasureText(' ') is almost zero. We work around this by adding a
-      // "zero width space" as the last character.
-      // The width actually also excludes the LSB (Left Side Bearing) of the first character,
-      // but we don't do anything about that.
-      CharString[1] := Text[GlyphIdx];
-
-      if (CharString[1] = ' ') then
+      if not IsIdentityMatrix(ANode.ResolvedPathNode.Transform) then
       begin
-        if (IsNaN(ZeroWidth)) then
-        begin
-          MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
-          ZeroWidth := MeasureRect.Width;
-        end;
-
-        if (ZeroWidth <= 0.001) then
-        begin
-          w1 := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, 'x x', TextLayout).Width;
-          w2 := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, 'xx', TextLayout).Width;
-          ZeroWidth := Max(1.0, w1 - w2);
-        end;
-
-        CharWidth := ZeroWidth;
-      end else
-      begin
-        MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
-        CharWidth := MeasureRect.Width;
-
-        if GetPointAndTangentAtDistance(pathPts, CurrentDistance + CharWidth * 0.5, Point, tangAngle) then
-        begin
-          RotationMat.Matrix := IdentityMatrix;
-          RotationMat.Rotate(tangAngle + CharacterRotationAngle);
-          RotationMat.Translate(Point.X, Point.Y);
-
-          FTransformation.Push;
-          try
-
-            ApplyMatrix(RotationMat.Matrix);
-            Canvas.Clear;
-            Canvas.BeginUpdate;
-
-            Canvas.RenderText(-charWidth * 0.5, drawY, Text[GlyphIdx], TextLayout);
-            if (Canvas.Path <> nil) then
-              RenderTextPathData(Canvas.Path, ANode.Fill, ANode.Stroke);
-
-            Canvas.Clear;
-            Canvas.EndUpdate;
-
-          finally
-            FTransformation.Pop;
-          end;
-        end;
+        // Avoid mutating the node's internal PathData
+        if (PathPts <> ANode.ResolvedPathNode.PathData) then
+          TransformPathPointsInplace(PathPts, ANode.ResolvedPathNode.Transform)
+        else
+          PathPts := TransformPathPoints(PathPts, ANode.ResolvedPathNode.Transform);
       end;
 
-      CurrentDistance := CurrentDistance + CharWidth;
+      TotalLen := GetTotalPathLength(PathPts);
+      if TotalLen <= 0 then
+        Exit;
+
+      Offset := ANode.StartOffset.ToPixels(TotalLen);
+
+      FontSizePx := Round(ANode.FontSize.ToPixels(FViewportRect.Height));
+      if FontSizePx <= 0 then
+        FontSizePx := 12;
+
+      FontInfo := Default(TFontInfo);
+      MapFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
+
+      Canvas.Bitmap.Font.Name := FontInfo.FontFamily;
+      Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
+      Canvas.Bitmap.Font.Style := FontInfo.Style;
+
+      TextLayout := DefaultTextLayout;
+      TextLayout.ClipLayout := False;
+      TextLayout.AlignmentHorizontal := TextAlignHorLeft;
+      TextLayout.AlignmentVertical := TextAlignVerTop;
+
+      if ANode.TextAnchor <> taStart then
+      begin
+        MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, Text, TextLayout);
+        TextWidth := MeasureRect.Width;
+        if ANode.TextAnchor = taMiddle then
+          Offset := Offset - TextWidth * 0.5
+        else if ANode.TextAnchor = taEnd then
+          Offset := Offset - TextWidth;
+      end;
+
+      FontFace := TFontFace32.Create(Canvas.Bitmap.Font.Handle);
+      try
+        FontFace.GetFontFaceMetrics(TextLayout, FontFaceMetrics);
+        DrawY := -FontFaceMetrics.Ascent;
+      finally
+        FontFace := nil;
+      end;
+
+      if (Length(ANode.Rotate) = 0) and (ANode.Parent <> nil) and (ANode.Parent is TSvgTextPositioningNode) then
+        RotateArray := TSvgTextPositioningNode(ANode.Parent).Rotate
+      else
+        RotateArray := ANode.Rotate;
+
+      ZeroWidth := NaN;
+      SetLength(CharString, 2);
+      CharString[2] := Char(ZERO_WIDTH_SPACE);
+
+      CharacterRotationAngle := 0;
+      CurrentDistance := Offset;
+      for GlyphIdx := 1 to Length(Text) do
+      begin
+        // Get the rotation angle. If there's too few we just reuse the previous
+        if GlyphIdx - 1 <= High(RotateArray) then
+          CharacterRotationAngle := RotateArray[GlyphIdx - 1];
+
+        // Note: The width returned by MeasureText excludes the AdvanceWidth of the last character.
+        // For example, since 'space' has a very small Width + a larger AdvanceWidth, the total
+        // width returned by MeasureText(' ') is almost zero. We work around this by adding a
+        // "zero width space" as the last character.
+        // The width actually also excludes the LSB (Left Side Bearing) of the first character,
+        // but we don't do anything about that.
+        CharString[1] := Text[GlyphIdx];
+
+        if (CharString[1] = ' ') then
+        begin
+          if (IsNaN(ZeroWidth)) then
+          begin
+            MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
+            ZeroWidth := MeasureRect.Width;
+          end;
+
+          if (ZeroWidth <= 0.001) then
+          begin
+            w1 := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, 'x x', TextLayout).Width;
+            w2 := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, 'xx', TextLayout).Width;
+            ZeroWidth := Max(1.0, w1 - w2);
+          end;
+
+          CharWidth := ZeroWidth;
+        end else
+        begin
+          MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
+          CharWidth := MeasureRect.Width;
+
+          if GetPointAndTangentAtDistance(pathPts, CurrentDistance + CharWidth * 0.5, Point, tangAngle) then
+          begin
+            RotationMat.Matrix := IdentityMatrix;
+            RotationMat.Rotate(tangAngle + CharacterRotationAngle);
+            RotationMat.Translate(Point.X, Point.Y);
+
+            FTransformation.Push;
+            try
+
+              ApplyMatrix(RotationMat.Matrix);
+              Canvas.Clear;
+              Canvas.BeginUpdate;
+
+              Canvas.RenderText(-charWidth * 0.5, drawY, Text[GlyphIdx], TextLayout);
+              if (Canvas.Path <> nil) then
+                RenderTextPathData(Canvas.Path, ANode);
+
+              Canvas.Clear;
+              Canvas.EndUpdate;
+
+            finally
+              FTransformation.Pop;
+            end;
+          end;
+        end;
+
+        CurrentDistance := CurrentDistance + CharWidth;
+      end;
+    finally
+      if HasNodeTransform then
+        FTransformation.Pop;
     end;
   end;
 
@@ -3595,7 +3624,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) then
       Exit;
 
-    HasNodeTransform := not IsIdentityMatrix(ANode.Transform);
+    HasNodeTransform := (ANode <> ATextNode) and (not IsIdentityMatrix(ANode.Transform));
 
     if HasNodeTransform then
       FTransformation.Push;
