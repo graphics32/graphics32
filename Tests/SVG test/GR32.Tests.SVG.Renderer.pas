@@ -88,6 +88,7 @@ type
     procedure TestObjectBoundingBoxClipPathRoi;
     procedure TestGradientAndPatternFillOpacity;
     procedure TestPatternTransform;
+    procedure TestGradientTransformObjectBoundingBox;
     procedure TestFeGaussianBlurDirectional;
   end;
 
@@ -786,6 +787,56 @@ begin
     textNode := TSvgTextNode(docNode.FindNodeById('t1'));
     Check(textNode <> nil, 'textNode t1 should exist');
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestGradientTransformObjectBoundingBox;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+  topPixel, bottomPixel: TColor32;
+begin
+  // Verifies that gradientTransform on linearGradient with objectBoundingBox units
+  // is correctly transformed in normalized [0..1] space before mapping to element bounding box.
+  xml := '<svg viewBox="0 0 10 10" width="100" height="100" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+         '  <defs>' +
+         '    <circle id="myCircle" cx="0" cy="0" r="5" />' +
+         '    <linearGradient id="myGradient" gradientTransform="rotate(90)">' +
+         '      <stop offset="20%" stop-color="gold" />' +
+         '      <stop offset="90%" stop-color="red" />' +
+         '    </linearGradient>' +
+         '  </defs>' +
+         '  <use x="5" y="5" xlink:href="#myCircle" fill="url(#myGradient)" />' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    docNode.Resolve;
+    bmp := TBitmap32.Create;
+    renderer := TSvgRenderer.Create(bmp);
+    try
+      bmp.SetSize(100, 100);
+      bmp.Clear(clWhite32);
+      renderer.RenderDocument(docNode);
+
+      // Top inside circle (around y=25 on 100x100 canvas, i.e. y=2.5 in 10x10 viewBox)
+      topPixel := bmp.Pixel[50, 25];
+      // Bottom inside circle (around y=85 on 100x100 canvas, i.e. y=8.5 in 10x10 viewBox)
+      bottomPixel := bmp.Pixel[50, 85];
+
+      // Gold stop (offset 20%) at top has high green component (> 150)
+      Check(GreenComponent(topPixel) > 150, 'Top of circle should be gold (high green component)');
+      // Red stop (offset 90%) at bottom has low green component (< 50)
+      Check(GreenComponent(bottomPixel) < 50, 'Bottom of circle should be red (low green component)');
+    finally
+      renderer.Free;
+      bmp.Free;
+    end;
   finally
     docNode.Free;
   end;

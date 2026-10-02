@@ -735,7 +735,8 @@ begin
       BboxMat.Matrix := IdentityMatrix;
       BboxMat.Scale(BoundsWidth, BoundsHeight);
       BboxMat.Translate(ABounds.Left, ABounds.Top);
-      TotalTransform := BboxMat * GradTransform;
+      // Transform gradient coordinates in normalized [0..1] space before mapping to bounding box
+      TotalTransform := GradTransform * BboxMat;
     end else
     begin
       PointStart.X := LinearNode.X1.ToPixels(FViewportRect.Width);
@@ -784,7 +785,8 @@ begin
       BboxMat.Matrix := IdentityMatrix;
       BboxMat.Scale(BoundsWidth, BoundsHeight);
       BboxMat.Translate(ABounds.Left, ABounds.Top);
-      TotalTransform := BboxMat * GradTransform;
+      // Transform gradient coordinates in normalized [0..1] space before mapping to bounding box
+      TotalTransform := GradTransform * BboxMat;
     end else
     begin
       cx := RadialNode.Cx.ToPixels(FViewportRect.Width);
