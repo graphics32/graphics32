@@ -56,6 +56,7 @@ type
     procedure TestMultipleSubpaths;
     procedure TestCircleWithTwoArcs;
     procedure TestSmoothQuadBezier;
+    procedure TestClosePathFollowedByLine;
   end;
 
 implementation
@@ -268,6 +269,32 @@ begin
   lastPt := pts[0][High(pts[0])];
   CheckEquals(50.0, lastPt.X, 1E-2);
   CheckEquals(20.0, lastPt.Y, 1E-2);
+end;
+
+procedure TTestSvgPath.TestClosePathFollowedByLine;
+var
+  pts: TArrayOfArrayOfFloatPoint;
+begin
+  // M 10 10 L 10 20 L 20 10 z L 100 100 L 120 100
+  // Closepath 'z' closes first triangle (10,10)-(10,20)-(20,10)-(10,10).
+  // Next line command 'L 100 100' should implicitly start second subpath at start point of first subpath (10, 10).
+  pts := SvgPathDataToPoints('M 10 10 L 10 20 L 20 10 z L 100 100 L 120 100');
+  CheckEquals(2, Length(pts));
+
+  // First subpath (triangle)
+  CheckEquals(10.0, pts[0][0].X, 1E-3);
+  CheckEquals(10.0, pts[0][0].Y, 1E-3);
+  CheckEquals(10.0, pts[0][1].X, 1E-3);
+  CheckEquals(20.0, pts[0][1].Y, 1E-3);
+
+  // Second subpath (should start at initial point of previous subpath, i.e. 10,10)
+  CheckEquals(3, Length(pts[1]));
+  CheckEquals(10.0, pts[1][0].X, 1E-3);
+  CheckEquals(10.0, pts[1][0].Y, 1E-3);
+  CheckEquals(100.0, pts[1][1].X, 1E-3);
+  CheckEquals(100.0, pts[1][1].Y, 1E-3);
+  CheckEquals(120.0, pts[1][2].X, 1E-3);
+  CheckEquals(100.0, pts[1][2].Y, 1E-3);
 end;
 
 initialization

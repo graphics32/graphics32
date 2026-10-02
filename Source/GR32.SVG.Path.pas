@@ -230,6 +230,15 @@ begin
       end;
     end;
 
+    // When a closepath command ('z' / 'Z') is followed immediately by a
+    // non-moveto command (e.g. 'L'), a new subpath is implicitly started
+    // at the initial point of the previous closed subpath.
+    if (LastCommand in ['Z', 'z']) and not (Command in ['M', 'm']) then
+    begin
+      APath.MoveTo(CurrentPoint);
+      StartPoint := CurrentPoint;
+    end;
+
     IsRel := (Command in ['m', 'l', 'h', 'v', 'c', 's', 'q', 't', 'a']);
 
     case Command of
