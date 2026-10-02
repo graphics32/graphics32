@@ -1,4 +1,4 @@
-unit GR32_ColorGradients;
+﻿unit GR32_ColorGradients;
 
 (* ***** BEGIN LICENSE BLOCK ***************************************************
 * Version: MPL 1.1 or LGPL 2.1 with linking exception                          *
@@ -511,7 +511,7 @@ type
 // - HTML Canvas Radial Gradients, The createRadialGradient() Method
 //   https://www.w3schools.com/graphics/canvas_radial_gradients.asp
 //
-// - Microsoft Typography, COLR � Color Table, Graphic compositions, Gradients, Radial gradients
+// - Microsoft Typography, COLR — Color Table, Graphic compositions, Gradients, Radial gradients
 //   https://learn.microsoft.com/en-us/typography/opentype/spec/colr#radial-gradients
 //
 //------------------------------------------------------------------------------
@@ -1055,6 +1055,23 @@ resourcestring
 
 const
   CFloatTolerance = 0.001;
+
+function IsVerticalGradient(const P1, P2: TFloatPoint): Boolean; inline; overload;
+var
+  dx, dy: TFloat;
+begin
+  dx := P2.X - P1.X;
+  dy := P2.Y - P1.Y;
+  Result := Abs(dx) <= CFloatTolerance * Max(1.0, Abs(dy));
+end;
+
+function IsVerticalGradient(dx, dy: TFloat): Boolean; inline; overload;
+begin
+  // Gradients with dx near zero (such as 90° or 270° rotations with floating-point residual dx)
+  // are treated as vertical gradients to prevent division by near-zero dx and Int32 scanline
+  // index overflow.
+  Result := Abs(dx) <= CFloatTolerance * Max(1.0, Abs(dy));
+end;
 
 procedure FillLineAlpha(var Dst, AlphaValues: PColor32; Count: Integer;
   Color: TColor32; CombineMode: TCombineMode); {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -4208,7 +4225,7 @@ begin
   dx := FEndPoint.X - FStartPoint.X;
   dy := FEndPoint.Y - FStartPoint.Y;
 
-  if Abs(dx) > 1e-6 then
+  if not IsVerticalGradient(dx, dy) then
     FIncline := dy / dx
   else
   if Abs(dy) > 1e-6 then
@@ -4274,6 +4291,7 @@ end;
 function TLinearGradientPolygonFiller.GetFillLine: TFillLineEvent;
 var
   GradientCount: Integer;
+  dx, dy: TFloat;
 begin
   if (FGradient <> nil) then
     GradientCount := FGradient.GradientCount
@@ -4289,44 +4307,49 @@ begin
 
   else
 
+    dx := FStartPoint.X - FEndPoint.X;
+    dy := FStartPoint.Y - FEndPoint.Y;
+
     if FUseLookUpTable then
     begin
       if (FWrapMode = wmClamp) then
       begin
-        if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
+        if IsVerticalGradient(dx, dy) then
         begin
-          if Abs(FStartPoint.Y - FEndPoint.Y) < 1e-6 then
+          if Abs(dy) < 1e-6 then
             Result := FillLineVerticalPadExtreme
           else
             Result := FillLineVerticalPad;
         end else
-        if FStartPoint.X < FEndPoint.X then
+        if dx < 0 then
           Result := FillLineHorizontalPadPos
         else
           Result := FillLineHorizontalPadNeg;
       end else
       // wmMirror, wmRepeat, wmReflect
       begin
-        if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
+        if IsVerticalGradient(dx, dy) then
           Result := FillLineVerticalWrap
         else
-        if FStartPoint.X < FEndPoint.X then
+        if dx < 0 then
           Result := FillLineHorizontalWrapPos
         else
           Result := FillLineHorizontalWrapNeg;
       end;
     end else
-    if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
     begin
-      if Abs(FStartPoint.Y - FEndPoint.Y) < 1e-6 then
-        Result := FillLineVerticalExtreme
+      if IsVerticalGradient(dx, dy) then
+      begin
+        if Abs(dy) < 1e-6 then
+          Result := FillLineVerticalExtreme
+        else
+          Result := FillLineVertical;
+      end else
+      if dx < 0 then
+        Result := FillLinePositive
       else
-        Result := FillLineVertical;
-    end else
-    if FStartPoint.X < FEndPoint.X then
-      Result := FillLinePositive
-    else
-      Result := FillLineNegative;
+        Result := FillLineNegative;
+    end;
   end;
 end;
 
