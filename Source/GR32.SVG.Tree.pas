@@ -2513,8 +2513,46 @@ begin
 end;
 
 function TSvgTextPositioningNode.GetObjectBoundingBox: TFloatRect;
+var
+  ChildBox: TFloatRect;
+  TextWidth, TextHeight, FontSizePx, XPx, YPx: Single;
 begin
-  Result := inherited; // TODO
+  // Since the parser doesn't have access to the actual font, we have to
+  // calculate the bounding box for text positioning nodes (<text>, <tspan>,
+  // <textPath>) by *estimating* text content extent and uniting with child
+  // node bounding boxes.
+
+  ChildBox := inherited GetObjectBoundingBox;
+
+  if (FTextContent <> '') then
+  begin
+    FontSizePx := FFontSize.ToPixels(100.0);
+    if FontSizePx <= 0 then
+      FontSizePx := 12.0;
+
+    TextWidth := Length(FTextContent) * (FontSizePx * 0.6);
+    TextHeight := FontSizePx;
+
+    XPx := FX.ToPixels(100.0) + FDx.ToPixels(100.0);
+    YPx := FY.ToPixels(100.0) + FDy.ToPixels(100.0);
+
+    case FTextAnchor of
+      taMiddle: XPx := XPx - TextWidth * 0.5;
+      taEnd:    XPx := XPx - TextWidth;
+    end;
+
+    Result := FloatRect(XPx, YPx - TextHeight * 0.8, XPx + TextWidth, YPx + TextHeight * 0.2);
+
+    if (ChildBox.Right > ChildBox.Left) and (ChildBox.Bottom > ChildBox.Top) then
+    begin
+      // Union
+      if ChildBox.Left < Result.Left then Result.Left := ChildBox.Left;
+      if ChildBox.Right > Result.Right then Result.Right := ChildBox.Right;
+      if ChildBox.Top < Result.Top then Result.Top := ChildBox.Top;
+      if ChildBox.Bottom > Result.Bottom then Result.Bottom := ChildBox.Bottom;
+    end;
+  end else
+    Result := ChildBox;
 end;
 
 procedure TSvgTextPositioningNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
