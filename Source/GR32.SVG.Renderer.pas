@@ -20,12 +20,12 @@
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Graphics32
+ * The Original Code is SVG Image Format support for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Anders Melander <anders@melander.dk>
  *
- * Portions created by the Initial Developer are Copyright (C) 2008-2026
+ * Portions created by the Initial Developer are Copyright (C) 2025-2026
  * the Initial Developer. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** *)

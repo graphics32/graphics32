@@ -20,17 +20,18 @@ unit GR32.SVG.Xml;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is SVG reader for Graphics32
+ * The Original Code is SVG Image Format support for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Anders Melander <anders@melander.dk>
  *
- * Portions created by the Initial Developer are Copyright (C) 2026
+ * Portions created by the Initial Developer are Copyright (C) 2025-2026
  * the Initial Developer. All Rights Reserved.
  *
  * The code is this unit was extracted and adapted from mORMot 2:
- * https://github.com/synopse/mORMot2/src/core/mormot.core.fmt.pas
- * Commit SHA: 3af914ac15eab28c41411a1c449da2cf5b1e3a67
+ *
+ *   https://github.com/synopse/mORMot2/src/core/mormot.core.fmt.pas
+ *   Commit SHA: 3af914ac15eab28c41411a1c449da2cf5b1e3a67
  *
  * ***** END LICENSE BLOCK ***** *)
 

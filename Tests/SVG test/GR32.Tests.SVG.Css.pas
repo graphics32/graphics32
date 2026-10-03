@@ -51,6 +51,8 @@ type
     procedure TestUseNodeResolution;
     procedure TestCssSpecificityCascade;
     procedure TestCssFontShorthand;
+    procedure TestCssCommentsAndCompoundSelectors;
+    procedure TestNestedDefsStyle;
   end;
 
 implementation
@@ -109,6 +111,36 @@ begin
   end;
 end;
 
+procedure TTestSvgCss.TestNestedDefsStyle;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  rectNode: TSvgPathNode;
+  pathNode: TSvgPathNode;
+begin
+  xml := '<svg id="Livello_1" data-name="Livello 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 425.2 425.2">' +
+         '  <defs><style>.cls-1{fill:#fff;}</style></defs>' +
+         '  <rect class="cls-1" width="425.2" height="425.2" rx="69.4" ry="69.4"/>' +
+         '  <path d="M338.3,369.9h-4.9V333"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
+  try
+    CheckEquals(3, docNode.Children.Count, 'docNode should have 3 children: defs, rect, path');
+
+    Check(docNode.Children[1] is TSvgPathNode, 'Second child should be TSvgPathNode rect');
+    rectNode := TSvgPathNode(docNode.Children[1]);
+    CheckEquals(clWhite32, rectNode.Fill.Color.Color, 'Rect with class cls-1 should have white fill');
+
+    Check(docNode.Children[2] is TSvgPathNode, 'Third child should be TSvgPathNode path');
+    pathNode := TSvgPathNode(docNode.Children[2]);
+    CheckEquals(clBlack32, pathNode.Fill.Color.Color, 'Path without class should retain default black fill');
+  finally
+    docNode.Free;
+  end;
+end;
+
 procedure TTestSvgCss.TestCssSpecificityCascade;
 var
   xml: UTF8String;
@@ -154,6 +186,36 @@ begin
     CheckEquals(clBlue32, nodeTag.Fill.Color.Color, 'Tag selector should override presentation attribute');
   finally
     docNode.Free;
+  end;
+end;
+
+procedure TTestSvgCss.TestCssCommentsAndCompoundSelectors;
+var
+  sheet: TSvgCssStyleSheet;
+  node: TSvgPathNode;
+begin
+  sheet := TSvgCssStyleSheet.Create;
+  node := TSvgPathNode.Create(nil);
+  try
+    sheet.ParseCss(
+      '/* Header comment */' +
+      'rect.red-shape { fill: red; }' +
+      '/* Mid comment */' +
+      '#target { ; stroke: blue; ; stroke-width: 3px; /* prop comment */ }'
+    );
+    CheckEquals(2, sheet.Rules.Count);
+
+    node.CssClassName := '  red-shape   other-class  ';
+    node.ID := 'target';
+
+    sheet.ApplyToNode(node, 'rect', node.CssClassName, node.ID);
+
+    CheckEquals(clRed32, node.Fill.Color.Color);
+    CheckEquals(clBlue32, node.Stroke.Color.Color);
+    CheckEquals(3.0, node.Stroke.Width.Value, 1E-4);
+  finally
+    node.Free;
+    sheet.Free;
   end;
 end;
 

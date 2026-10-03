@@ -20,12 +20,12 @@ unit GR32.SVG.Tree;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Graphics32
+ * The Original Code is SVG Image Format support for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Anders Melander <anders@melander.dk>
  *
- * Portions created by the Initial Developer are Copyright (C) 2008-2026
+ * Portions created by the Initial Developer are Copyright (C) 2025-2026
  * the Initial Developer. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** *)
@@ -5743,7 +5743,7 @@ var
   var
     tagKeyword: TSvgTagKeyword;
     StopTag: TSvgStopTagKeyword;
-    s: AnsiString;
+    s, TagName: AnsiString;
     UnicodeText: UnicodeString;
     node: TSvgNode;
     startDepth: Byte;
@@ -5761,6 +5761,7 @@ var
     node := nil;
     if (AParser.Kind <> xtElementStart) then
       exit;
+    TagName := LowerCase(AParser.Name.ToUtf8);
     startDepth := AParser.Depth;
 
     if (SvgKeywordDictionary.Lookup(AParser.Name, tagKeyword)) then
@@ -6164,7 +6165,7 @@ var
     //    styles override stylesheet rules and presentation attributes (highest priority).
     if cssStyleSheet <> nil then
     begin
-      s := LowerCase(AParser.Name.ToUtf8);
+      s := TagName;
       cssStyleSheet.ApplyToNode(node, s, node.CssClassName, node.ID);
     end;
 
