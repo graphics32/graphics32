@@ -159,25 +159,30 @@ function ScalePolygon(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed):
 function ScalePolyPolygon(const Points: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfArrayOfFloatPoint; overload;
 function ScalePolyPolygon(const Points: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfArrayOfFixedPoint;  overload;
 
-procedure ScalePolygonInplace(const Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat); overload;
-procedure ScalePolygonInplace(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed); overload;
-procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat); overload;
-procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed);  overload;
+procedure ScalePolygonInplace(var Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat); overload;
+procedure ScalePolygonInplace(var Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed); overload;
+procedure ScalePolyPolygonInplace(var Points: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat); overload;
+procedure ScalePolyPolygonInplace(var Points: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed);  overload;
 
 function TranslatePolygon(const Points: TArrayOfFloatPoint; OffsetX, OffsetY: TFloat): TArrayOfFloatPoint; overload;
 function TranslatePolygon(const Points: TArrayOfFixedPoint; Offsetx, OffsetY: TFixed): TArrayOfFixedPoint; overload;
 function TranslatePolyPolygon(const Points: TArrayOfArrayOfFloatPoint; OffsetX, OffsetY: TFloat): TArrayOfArrayOfFloatPoint; overload;
 function TranslatePolyPolygon(const Points: TArrayOfArrayOfFixedPoint; OffsetX, OffsetY: TFixed): TArrayOfArrayOfFixedPoint; overload;
 
-procedure TranslatePolygonInplace(const Points: TArrayOfFloatPoint; OffsetX, OffsetY: TFloat); overload;
-procedure TranslatePolygonInplace(const Points: TArrayOfFixedPoint; Offsetx, OffsetY: TFixed); overload;
-procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint; OffsetX, OffsetY: TFloat); overload;
-procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint; OffsetX, OffsetY: TFixed); overload;
+procedure TranslatePolygonInplace(var Points: TArrayOfFloatPoint; OffsetX, OffsetY: TFloat); overload;
+procedure TranslatePolygonInplace(var Points: TArrayOfFixedPoint; Offsetx, OffsetY: TFixed); overload;
+procedure TranslatePolyPolygonInplace(var Points: TArrayOfArrayOfFloatPoint; OffsetX, OffsetY: TFloat); overload;
+procedure TranslatePolyPolygonInplace(var Points: TArrayOfArrayOfFixedPoint; OffsetX, OffsetY: TFixed); overload;
 
 function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTransformation): TArrayOfFloatPoint; overload;
 function TransformPolygon(const Points: TArrayOfFixedPoint; Transformation: TTransformation): TArrayOfFixedPoint; overload;
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint; overload;
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint; overload;
+
+procedure TransformPolygonInplace(var Points: TArrayOfFloatPoint; Transformation: TTransformation); overload;
+procedure TransformPolygonInplace(var Points: TArrayOfFixedPoint; Transformation: TTransformation); overload;
+procedure TransformPolyPolygonInplace(var Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation); overload;
+procedure TransformPolyPolygonInplace(var Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation); overload;
 
 function BuildPolygonF(const Data: array of TFloat): TArrayOfFloatPoint; overload;
 function BuildPolygonX(const Data: array of TFixed): TArrayOfFixedPoint; overload;
@@ -2387,7 +2392,7 @@ begin
 end;
 
 // Scales a polygon (TArrayOfFloatPoint)
-procedure ScalePolygonInplace(const Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat);
+procedure ScalePolygonInplace(var Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat);
 var
   I: Integer;
 begin
@@ -2399,7 +2404,7 @@ begin
 end;
 
 // Scales a polygon (TArrayOfFixedPoint)
-procedure ScalePolygonInplace(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed);
+procedure ScalePolygonInplace(var Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed);
 var
   I: Integer;
 begin
@@ -2411,8 +2416,7 @@ begin
 end;
 
 // Scales all sub polygons in a complex polygon (TArrayOfArrayOfFloatPoint)
-procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint;
-  ScaleX, ScaleY: TFloat);
+procedure ScalePolyPolygonInplace(var Points: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat);
 var
   I: Integer;
 begin
@@ -2421,8 +2425,7 @@ begin
 end;
 
 // Scales all sub polygons in a complex polygon (TArrayOfArrayOfFixedPoint)
-procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint;
-  ScaleX, ScaleY: TFixed);
+procedure ScalePolyPolygonInplace(var Points: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed);
 var
   I: Integer;
 begin
@@ -2484,8 +2487,7 @@ begin
     Result[I] := TranslatePolygon(Points[I], OffsetX, OffsetY);
 end;
 
-procedure TranslatePolygonInplace(const Points: TArrayOfFloatPoint;
-  OffsetX, OffsetY: TFloat);
+procedure TranslatePolygonInplace(var Points: TArrayOfFloatPoint; OffsetX, OffsetY: TFloat);
 var
   I: Integer;
 begin
@@ -2496,8 +2498,7 @@ begin
   end;
 end;
 
-procedure TranslatePolygonInplace(const Points: TArrayOfFixedPoint;
-  OffsetX, OffsetY: TFixed);
+procedure TranslatePolygonInplace(var Points: TArrayOfFixedPoint; OffsetX, OffsetY: TFixed);
 var
   I: Integer;
 begin
@@ -2509,8 +2510,7 @@ begin
 end;
 
 // Translates all sub polygons in a complex polygon (TArrayOfArrayOfFloatPoint)
-procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint; OffsetX,
-  OffsetY: TFloat);
+procedure TranslatePolyPolygonInplace(var Points: TArrayOfArrayOfFloatPoint; OffsetX, OffsetY: TFloat);
 var
   I: Integer;
 begin
@@ -2519,18 +2519,55 @@ begin
 end;
 
 // Translates all sub polygons in a complex polygon (TArrayOfArrayOfFixedPoint)
-procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint;
-  OffsetX, OffsetY: TFixed);
+procedure TranslatePolyPolygonInplace(var Points: TArrayOfArrayOfFixedPoint; OffsetX, OffsetY: TFixed);
 var
-  I: Integer;
+  i: Integer;
 begin
-  for I := 0 to Length(Points) - 1 do
-    TranslatePolygonInplace(Points[I], OffsetX, OffsetY);
+  for i := 0 to Length(Points) - 1 do
+    TranslatePolygonInplace(Points[i], OffsetX, OffsetY);
 end;
 
-// Applies transformation to a polygon (TArrayOfFloatPoint)
-function TransformPolygon(const Points: TArrayOfFloatPoint;
-  Transformation: TTransformation): TArrayOfFloatPoint;
+(*
+** In-place transformation of a polygon or poly-polygon
+*)
+procedure TransformPolygonInplace(var Points: TArrayOfFloatPoint; Transformation: TTransformation);
+var
+  i: Integer;
+begin
+  for i := 0 to High(Points) do
+    TTransformationAccess(Transformation).TransformFloat(Points[i].X, Points[i].Y, Points[i].X, Points[i].Y);
+end;
+
+procedure TransformPolygonInplace(var Points: TArrayOfFixedPoint; Transformation: TTransformation);
+var
+  i: Integer;
+begin
+  for i := 0 to High(Points) do
+    TTransformationAccess(Transformation).TransformFixed(Points[i].X, Points[i].Y, Points[i].X, Points[i].Y);
+end;
+
+procedure TransformPolyPolygonInplace(var Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation);
+var
+  i, j: Integer;
+begin
+  for i := 0 to High(Points) do
+    for j := 0 to High(Points[i]) do
+      TTransformationAccess(Transformation).TransformFloat(Points[i, j].X, Points[i, j].Y, Points[i, j].X, Points[i, j].Y);
+end;
+
+procedure TransformPolyPolygonInplace(var Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation);
+var
+  i, j: Integer;
+begin
+  for i := 0 to High(Points) do
+    for j := 0 to High(Points[i]) do
+      TTransformationAccess(Transformation).TransformFixed(Points[i, j].X, Points[i, j].Y, Points[i, j].X, Points[i, j].Y);
+end;
+
+(*
+** Transformation of a polygon or poly-polygon
+*)
+function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTransformation): TArrayOfFloatPoint;
 var
   I: Integer;
 begin
@@ -2540,9 +2577,7 @@ begin
       Points[I].Y, Result[I].X, Result[I].Y);
 end;
 
-// Applies transformation to a polygon (TArrayOfFixedPoint)
-function TransformPolygon(const Points: TArrayOfFixedPoint;
-  Transformation: TTransformation): TArrayOfFixedPoint;
+function TransformPolygon(const Points: TArrayOfFixedPoint; Transformation: TTransformation): TArrayOfFixedPoint;
 var
   I: Integer;
 begin
@@ -2552,9 +2587,7 @@ begin
       Points[I].Y, Result[I].X, Result[I].Y);
 end;
 
-// Applies transformation to all sub polygons in a complex polygon
-function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
-  Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
+function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
 var
   I: Integer;
 begin
@@ -2565,9 +2598,7 @@ begin
     Result[I] := TransformPolygon(Points[I], Transformation);
 end;
 
-// Applies transformation to all sub polygons in a complex polygon
-function TransformPolyPolygon(const Points: TArrayOfArrayOfFixedPoint;
-  Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
+function TransformPolyPolygon(const Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 var
   I: Integer;
 begin
