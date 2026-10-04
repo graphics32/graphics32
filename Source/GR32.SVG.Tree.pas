@@ -5745,7 +5745,7 @@ var
   var
     tagKeyword: TSvgTagKeyword;
     StopTag: TSvgStopTagKeyword;
-    s, TagName: AnsiString;
+    TagName: TValuePUtf8Char;
     UnicodeText: UnicodeString;
     node: TSvgNode;
     startDepth: Byte;
@@ -5763,7 +5763,7 @@ var
     node := nil;
     if (AParser.Kind <> xtElementStart) then
       exit;
-    TagName := LowerCase(AParser.Name.ToUtf8);
+    TagName := AParser.Name;
     startDepth := AParser.Depth;
 
     if (SvgKeywordDictionary.Lookup(AParser.Name, tagKeyword)) then
@@ -5956,9 +5956,8 @@ var
         tagStyle:
           begin
             AParser.ConsumeText(Utf8);
-            s := Utf8;
-            if (s <> '') and (cssStyleSheet <> nil) then
-              cssStyleSheet.ParseCss(s);
+            if (Utf8 <> '') and (cssStyleSheet <> nil) then
+              cssStyleSheet.ParseCss(Utf8);
             Exit(nil);
           end;
 
@@ -6166,10 +6165,7 @@ var
     // 3. Inline style="..." attributes (specificity 1000) are parsed LAST, ensuring inline
     //    styles override stylesheet rules and presentation attributes (highest priority).
     if cssStyleSheet <> nil then
-    begin
-      s := TagName;
-      cssStyleSheet.ApplyToNode(node, s, node.CssClassName, node.ID);
-    end;
+      cssStyleSheet.ApplyToNode(node, TagName, node.CssClassName, node.ID);
 
     // Apply deferred inline style attribute after stylesheet rules to enforce inline specificity dominance
     if (node <> nil) and (node.StyleAttr <> '') then

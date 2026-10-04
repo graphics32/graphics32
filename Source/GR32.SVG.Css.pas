@@ -96,7 +96,7 @@ type
     Id: AnsiString;
     Name: AnsiString;
     Specificity: Integer;
-    function Matches(const AElementTag, AClassName, AElementId: AnsiString): Boolean;
+    function Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean;
     class function Parse(Value: TValuePUtf8Char): TSvgCssSelector; static;
   end;
 
@@ -149,7 +149,7 @@ type
 
     procedure Clear;
     procedure ParseCss(const ACssText: AnsiString);
-    procedure ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: AnsiString);
+    procedure ApplyToNode(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString);
 
     property Rules: TList<TSvgCssRule> read FRules;
   end;
@@ -290,7 +290,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-function TSvgCssSelector.Matches(const AElementTag, AClassName, AElementId: AnsiString): Boolean;
+function TSvgCssSelector.Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean;
 var
   Value: TValuePUtf8Char;
 begin
@@ -300,7 +300,7 @@ begin
 
     skElement:
       begin
-        Value := TValuePUtf8Char.FromString(AElementTag);
+        Value := AElementTag;
         Value.Trim;
         Exit(Value.CompareText(Name));
       end;
@@ -319,7 +319,7 @@ begin
       begin
         if (ElementTag <> '') then
         begin
-          Value := TValuePUtf8Char.FromString(AElementTag);
+          Value := AElementTag;
           Value.Trim;
           if not Value.CompareText(ElementTag) then
             Exit(False);
@@ -550,7 +550,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag, AClassName, AElementId: AnsiString);
+procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString);
 // CSS Specificity values based on W3C CSS2 / SVG 1.1 specification:
 //   0   = Universal selector (*)
 //   1   = Type / Element tag selector (e.g. 'path', 'rect')
