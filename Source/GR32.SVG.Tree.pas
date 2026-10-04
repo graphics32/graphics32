@@ -5599,8 +5599,10 @@ begin
     if (not AValue.SkipUntil(['('], False)) then
       break;
     Command.Len := Command.Len - AValue.Len;
+    Command.TrimEnd;
 
     AValue.Skip; // Skip '('
+    AValue.Trim;
 
     Params := AValue;
     if (not AValue.SkipUntil([')'], False)) then
