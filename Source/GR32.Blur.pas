@@ -37,7 +37,8 @@ interface
 uses
   Classes,
   GR32_Bindings,
-  GR32;
+  GR32,
+  GR32_OrdinalMaps;
 
 //------------------------------------------------------------------------------
 // Note that all blur functions operate on all channels (R, G, B, and A).
@@ -96,6 +97,8 @@ var
 type
   TBlur32Proc = procedure(ASource, ADest: TCustomBitmap32; Radius: TFloat);
   TBlurInplace32Proc = procedure(Bitmap: TCustomBitmap32; Radius: TFloat);
+  TBlur8Proc = procedure(ASource, ADest: TByteMap; Radius: TFloat);
+  TBlurInplace8Proc = procedure(Bitmap: TByteMap; Radius: TFloat);
 
 var
   Blur32Proc: TBlur32Proc;
@@ -115,6 +118,33 @@ var
 var
   HorizontalBlur32: TBlur32Proc;
   GammaHorizontalBlur32: TBlur32Proc;
+
+
+//------------------------------------------------------------------------------
+//
+//      Fast Blur
+//
+//------------------------------------------------------------------------------
+// The FastBlur delegates point to unspecified *fast* blur implementations.
+//
+// The "FastBlur" functions favors speed over quality and are, contrary to the
+// "Blur" functions, not expected to produce perfect results.
+// FastBlur will commonly be used to produce blur effects such as drop shadows.
+//
+// "Unspecified" means that we can change them whenever we introduce a better or
+// faster blur that meet the criteria.
+// You are free to change whatever the delegates point to in your own code.
+//------------------------------------------------------------------------------
+var
+  // TCustomBitmap32 blurs
+  FastBlur32: TBlur32Proc;
+  FastAlphaBlur32: TBlur32Proc;
+  FastHorizontalBlur32: TBlur32Proc;
+  FastHorizontalAlphaBlur32: TBlur32Proc;
+
+  // TBytemap blurs
+  FastBlur8: TBlur8Proc;
+  FastHorizontalBlur8: TBlur8Proc;
 
 
 //------------------------------------------------------------------------------
@@ -181,8 +211,47 @@ uses
   GR32_Resamplers,
   GR32_Polygons,
   GR32_VectorUtils,
-  GR32.Blur.RecursiveGaussian;
+  GR32.Blur.RecursiveGaussian,
+  GR32.Blur.DraftBlur;
 
+
+//------------------------------------------------------------------------------
+//
+//      FastBlur stubs
+//
+//------------------------------------------------------------------------------
+// Not ideal as it just adds another indirection, but our binding system doesn't
+// support registering aliases yet.
+//------------------------------------------------------------------------------
+procedure _FastBlur32(ASource, ADest: TCustomBitmap32; Radius: TFloat);
+begin
+  DraftBlur32(ASource, ADest, Radius);
+end;
+
+procedure _FastAlphaBlur32(ASource, ADest: TCustomBitmap32; Radius: TFloat);
+begin
+  DraftAlphaBlur32(ASource, ADest, Radius);
+end;
+
+procedure _FastHorizontalBlur32(ASource, ADest: TCustomBitmap32; Radius: TFloat);
+begin
+  DraftHorizontalBlur32(ASource, ADest, Radius);
+end;
+
+procedure _FastHorizontalAlphaBlur32(ASource, ADest: TCustomBitmap32; Radius: TFloat);
+begin
+  DraftHorizontalAlphaBlur32(ASource, ADest, Radius);
+end;
+
+procedure _FastBlur8(ASource, ADest: TByteMap; Radius: TFloat);
+begin
+  DraftBlur8(ASource, ADest, Radius);
+end;
+
+procedure _FastHorizontalBlur8(ASource, ADest: TByteMap; Radius: TFloat);
+begin
+  DraftHorizontalBlur8(ASource, ADest, Radius);
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -474,6 +543,14 @@ begin
   // Default fallback stubs for unimplemented functions
   FBlurRegistry[@@HorizontalBlur32].Add(@Blur32NotImplemented, [isPascal], FBlurRegistry.WORST_PRIORITY);
   FBlurRegistry[@@GammaHorizontalBlur32].Add(@Blur32NotImplemented, [isPascal], FBlurRegistry.WORST_PRIORITY);
+
+  // FastBlur static bindings
+  FastBlur32 := @_FastBlur32;
+  FastBlur8 := @_FastBlur8;
+  FastAlphaBlur32 := @_FastAlphaBlur32;
+  FastHorizontalBlur32 := @_FastHorizontalBlur32;
+  FastHorizontalBlur8 := @_FastHorizontalBlur8;
+  FastHorizontalAlphaBlur32 := @_FastHorizontalAlphaBlur32;
 end;
 
 function BlurRegistry: TFunctionRegistry;
