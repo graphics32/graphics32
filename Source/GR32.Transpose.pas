@@ -44,6 +44,7 @@ uses
   Classes,
   SyncObjs,
   GR32,
+  GR32_OrdinalMaps,
   GR32_LowLevel,
   GR32_Bindings;
 
@@ -54,15 +55,19 @@ uses
 //------------------------------------------------------------------------------
 type
   TTranspose32 = procedure(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
+  TTranspose8 = procedure(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
 
 
 //------------------------------------------------------------------------------
 //
-//      TBitmap32 transpose routines
+//      TBitmap32 & TByteMap transpose routines
 //
 //------------------------------------------------------------------------------
 procedure Transpose32(Src, Dst: TBitmap32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure Transpose32(Src, Dst: Pointer; SrcWidth, SrcHeight: integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+procedure Transpose8(Src, Dst: TByteMap); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Transpose8(Src, Dst: Pointer; SrcWidth, SrcHeight: integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -71,6 +76,7 @@ procedure Transpose32(Src, Dst: Pointer; SrcWidth, SrcHeight: integer); overload
 //
 //------------------------------------------------------------------------------
 procedure ReferenceTranspose32(Src, Dst: Pointer; Width, Height: integer);
+procedure ReferenceTranspose8(Src, Dst: Pointer; Width, Height: integer);
 
 
 //------------------------------------------------------------------------------
@@ -83,6 +89,7 @@ procedure ReferenceTranspose32(Src, Dst: Pointer; Width, Height: integer);
 //------------------------------------------------------------------------------
 procedure CacheObliviousTranspose32(Src, Dst: pointer; Width, Height: integer);
 procedure CacheObliviousTransposeEx32(Src, Dst: pointer; Width, Height: integer);
+procedure CacheObliviousTranspose8(Src, Dst: pointer; Width, Height: integer);
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
 {$ifend}
@@ -95,6 +102,7 @@ procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
 //------------------------------------------------------------------------------
 var
   _Transpose32: TTranspose32;
+  _Transpose8: TTranspose8;
 
 var
   TransposeRegistry: TFunctionRegistry;
@@ -114,13 +122,24 @@ implementation
 //------------------------------------------------------------------------------
 procedure Transpose32(Src, Dst: TBitmap32);
 begin
-  Dst.SetSize(Src.Height, Src.Width);
+  Dst.SetSize(Src.Height, Src.Width, False);
   _Transpose32(Src.Bits, Dst.Bits, Src.Width, Src.Height);
 end;
 
 procedure Transpose32(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
 begin
   _Transpose32(Src, Dst, SrcWidth, SrcHeight);
+end;
+
+procedure Transpose8(Src, Dst: TByteMap);
+begin
+  Dst.SetSize(Src.Height, Src.Width, False);
+  _Transpose8(Src.Bits, Dst.Bits, Src.Width, Src.Height);
+end;
+
+procedure Transpose8(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
+begin
+  _Transpose8(Src, Dst, SrcWidth, SrcHeight);
 end;
 
 
@@ -540,11 +559,27 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      ReferenceTranspose32
+//      ReferenceTranspose32 / ReferenceTranspose8
 //
 //------------------------------------------------------------------------------
 // Simple, no-nonsense transpose
 //------------------------------------------------------------------------------
+procedure ReferenceTranspose8(Src, Dst: pointer; Width, Height: integer);
+var
+  y, x: integer;
+  pSrc: PByte;
+begin
+  pSrc := PByte(Src);
+  for y := 0 to Height - 1 do
+  begin
+    for x := 0 to Width - 1 do
+    begin
+      (PByte(Dst) + x * Height + y)^ := pSrc^;
+      Inc(pSrc);
+    end;
+  end;
+end;
+
 procedure ReferenceTranspose32(Src, Dst: pointer; Width, Height: integer);
 
   procedure CopyRow(Src, Dst: PColor32);
@@ -730,6 +765,53 @@ begin
 {$endif USE_GLOBALBUFFER}
 end;
 
+//------------------------------------------------------------------------------
+// CacheObliviousTranspose8 performs cache-friendly 8-bit byte map matrix transposition
+// using recursive block subdivision.
+//------------------------------------------------------------------------------
+procedure CacheObliviousTranspose8(Src, Dst: pointer; Width, Height: integer);
+{$IFOPT R+}{$DEFINE R_WAS_ON}{$R-}{$ENDIF}
+
+  procedure Recurse(Col, Row, ColCount, RowCount: integer);
+  var
+    y, x: integer;
+    Split: integer;
+  begin
+    if (RowCount <= CacheObliviousBlockSize) and (ColCount <= CacheObliviousBlockSize) then
+    begin
+      // Transpose block
+      for y := Row to Row + RowCount - 1 do
+        for x := Col to Col + ColCount - 1 do
+          PByteArray(Dst)[y + x * Height] := PByteArray(Src)[x + y * Width];
+    end
+    else
+    if (RowCount >= ColCount) then
+    begin // Split vertically
+      Split := RowCount div 2;
+      Recurse(Col, Row, ColCount, Split);
+
+      Inc(Row, Split);
+      Dec(RowCount, Split);
+      Recurse(Col, Row, ColCount, RowCount);
+    end
+    else
+    begin // Split horizontally
+      Split := ColCount div 2;
+      Recurse(Col, Row, Split, RowCount);
+
+      Inc(Col, Split);
+      Dec(ColCount, Split);
+      Recurse(Col, Row, ColCount, RowCount);
+    end;
+  end;
+
+begin
+  if (Width <= 0) or (Height <= 0) or (Src = nil) or (Dst = nil) then
+    Exit;
+  Recurse(0, 0, Width, Height);
+end;
+{$IFDEF R_WAS_ON}{$R+}{$UNDEF R_WAS_ON}{$ENDIF}
+
 
 //------------------------------------------------------------------------------
 //
@@ -741,10 +823,14 @@ begin
   TransposeRegistry := NewRegistry('GR32.Transpose bindings');
 
   TransposeRegistry.RegisterBinding(@@_Transpose32, '_Transpose32');
+  TransposeRegistry.RegisterBinding(@@_Transpose8, '_Transpose8');
 
   TransposeRegistry[@@_Transpose32].Add(@ReferenceTranspose32,          [isReference]).Name := 'ReferenceTranspose32';
   TransposeRegistry[@@_Transpose32].Add(@CacheObliviousTranspose32,     [isPascal],     -16).Name := 'CacheObliviousTranspose32';
   TransposeRegistry[@@_Transpose32].Add(@CacheObliviousTransposeEx32,   [isPascal],     -32).Name := 'CacheObliviousTransposeEx32';
+
+  TransposeRegistry[@@_Transpose8].Add(@ReferenceTranspose8,           [isReference]).Name := 'ReferenceTranspose8';
+  TransposeRegistry[@@_Transpose8].Add(@CacheObliviousTranspose8,        [isPascal],     -32).Name := 'CacheObliviousTranspose8';
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   // TODO : SuperDuperTranspose32 has been profiled to be on average 3 times slower
