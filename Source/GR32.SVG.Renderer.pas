@@ -172,6 +172,7 @@ uses
   GR32_Blend,
   GR32_Math,
   GR32_LowLevel,
+  GR32_OrdinalMaps,
   GR32_Backends_Generic,
   GR32_Paths,
   GR32_Resamplers,
@@ -1900,7 +1901,7 @@ begin
   If (RadiusY > 100) then
     RadiusY := 100;
 
-  // Apply Gaussian blur based on horizontal and vertical radii (RadiusX and RadiusY).
+  // Apply blur based on horizontal and vertical radii (RadiusX and RadiusY).
   // If only RadiusX or RadiusY is specified, perform 1D horizontal or vertical blur accordingly,
   // avoiding unwanted blur and edge clipping along the un-blurred dimension.
   if (RadiusX < Blur32MinRadius) and (RadiusY < Blur32MinRadius) then
@@ -1909,7 +1910,7 @@ begin
   else
   if (RadiusY < Blur32MinRadius) then
     // Horizontal blur
-    HorizontalBlur32(Input, Output, RadiusX)
+    FastHorizontalAlphaBlur32(Input, Output, RadiusX)
   else
   if (RadiusX < Blur32MinRadius) then
   begin
@@ -1921,7 +1922,7 @@ begin
       Transpose32(Input.Bits, Transposed.Bits, Input.Width, Input.Height);
 
       // Blur: Transposed (H x W) -> Temp (H x W)
-      HorizontalBlur32(Transposed, Temp, RadiusY);
+      FastHorizontalAlphaBlur32(Transposed, Temp, RadiusY);
 
       // Transpose: Temp (H x W) -> Output (W x H)
       Transpose32(Temp.Bits, Output.Bits, Input.Height, Input.Width);
@@ -1932,14 +1933,16 @@ begin
   end else
   if Abs(RadiusX - RadiusY) < 1e-4 then
     // Isotropic 2D blur
-    Blur32(Input, Output, RadiusX)
+    FastAlphaBlur32(Input, Output, RadiusX)
   else
   begin
     // Anisotropic 2D blur
     Temp := Renderer.GetOffscreenBitmap(Input.Width, Input.Height, False);
     try
+      // TODO : Premultiply->HorBlur->Transpose->HorBlur->Transpose->Unpremultiply; Might save a bit - might not
+
       // Blur: Input (W x H) -> Temp (W x H)
-      HorizontalBlur32(Input, Temp, RadiusX);
+      FastHorizontalAlphaBlur32(Input, Temp, RadiusX);
 
       Transposed := Renderer.GetOffscreenBitmap(Input.Height, Input.Width, False); // Note: Width/Height swapped for transpose
       try
@@ -1947,9 +1950,10 @@ begin
         Transpose32(Temp.Bits, Transposed.Bits, Input.Width, Input.Height);
 
         // Blur: Transposed (H x W) -> Temp (H x W)
-        // - Blur will resize Temp but since the pixel count stays the same,
-        //   no reallocation is actually done.
-        HorizontalBlur32(Transposed, Temp, RadiusY);
+        // - Blur will call SetSize on Temp but since the pixel count stays the
+        //   same, no reallocation is actually done.
+        // - Do not change this unless the SetSize behavior changes!
+        FastHorizontalBlur32(Transposed, Temp, RadiusY);
 
         // Transpose: Temp (H x W) -> Output (W x H)
         Transpose32(Temp.Bits, Output.Bits, Input.Height, Input.Width);
@@ -2494,14 +2498,59 @@ end;
 class procedure TFilterRendererDropShadow.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
 var
   DropNode: TSvgFeDropShadowNode;
-  Input, ShadowSrc, BlurredShadow: TCustomBitmap32;
+  Input, BlurredShadow: TCustomBitmap32;
+  AlphaMap, BlurredAlphaMap: TByteMap;
   RadiusX, RadiusY: Single;
   DestX, DestY: Integer;
   ShadowColor: TColor32Entry;
   ShadowOpacity: Byte;
   pIn: PColor32Entry;
-  pShadow: PColor32;
+  pAlpha: PByte;
+  pBlurred: PColor32Entry;
+  pBlurredAlpha: PByte;
   i, PixelCount: Integer;
+
+  procedure ApplyBlur8(Src, Dst: TByteMap; RadX, RadY: Single);
+  var
+    Temp: TByteMap;
+  begin
+    if (RadX > 100) then RadX := 100;
+    if (RadY > 100) then RadY := 100;
+
+    if (RadX < Blur32MinRadius) and (RadY < Blur32MinRadius) then
+      Dst.Assign(Src)
+    else
+    if (RadY < Blur32MinRadius) then
+      FastHorizontalBlur8(Src, Dst, RadX)
+    else
+    if (RadX < Blur32MinRadius) then
+    begin
+      Temp := TByteMap.Create;
+      try
+        Transpose8(Src, Temp);
+        FastHorizontalBlur8(Temp, Dst, RadY);
+        Transpose8(Dst, Dst); // TODO : Do we support inline transpose?
+      finally
+        Temp.Free;
+      end;
+    end
+    else
+    if Abs(RadX - RadY) < 1e-4 then
+      FastBlur8(Src, Dst, RadX)
+    else
+    begin
+      Temp := TByteMap.Create;
+      try
+        FastHorizontalBlur8(Src, Temp, RadX);
+        Transpose8(Temp, Dst);
+        FastHorizontalBlur8(Dst, Temp, RadY);
+        Transpose8(Temp, Dst);
+      finally
+        Temp.Free;
+      end;
+    end;
+  end;
+
 begin
   DropNode := TSvgFeDropShadowNode(Node);
 
@@ -2509,51 +2558,66 @@ begin
   if (Input <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  BlurredShadow := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+  ShadowColor := TColor32Entry(DropNode.FloodColor.Color);
+  ShadowOpacity := Clamp(Round(ShadowColor.A * DropNode.FloodOpacity));
+
+  PixelCount := RenderData.ROI.Width * RenderData.ROI.Height;
+
+  AlphaMap := TByteMap.Create;
+  BlurredAlphaMap := TByteMap.Create;
   try
-    ShadowSrc := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+    // 1. Extract 8-bit alpha shadow map
+    AlphaMap.SetSize(RenderData.ROI.Width, RenderData.ROI.Height, False);
+    BlurredAlphaMap.SetSize(RenderData.ROI.Width, RenderData.ROI.Height, False);
+
+    pIn := PColor32Entry(Input.Bits);
+    pAlpha := PByte(AlphaMap.Bits);
+
+    for i := 0 to PixelCount - 1 do
+    begin
+      pAlpha^ := MulDiv255Table[pIn.A, ShadowOpacity];
+      Inc(pIn);
+      Inc(pAlpha);
+    end;
+
+    // 2. Apply fast 1-channel blur to 8-bit shadow alpha map
+    RadiusX := DropNode.StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
+    RadiusY := DropNode.StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
+
+    ApplyBlur8(AlphaMap, BlurredAlphaMap, RadiusX, RadiusY);
+
+    // 3. Reconstruct blurred 32-bit ARGB shadow surface
+    BlurredShadow := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
     try
-
-      // 1. Extract Flood color components and prepare flood-colored alpha shadow input surface
-      ShadowColor := TColor32Entry(DropNode.FloodColor.Color);
-      ShadowOpacity := Clamp(Round(ShadowColor.A * DropNode.FloodOpacity));
-
-      pIn := PColor32Entry(Input.Bits);
-      pShadow := PColor32(ShadowSrc.Bits);
-      PixelCount := RenderData.ROI.Width * RenderData.ROI.Height;
+      pBlurred := PColor32Entry(BlurredShadow.Bits);
+      pBlurredAlpha := PByte(BlurredAlphaMap.Bits);
 
       for i := 0 to PixelCount - 1 do
       begin
-        ShadowColor.A := MulDiv255Table[pIn.A, ShadowOpacity]; // = (pIn.A * ShadowOpacity + 127) div 255
-        pShadow^ := ShadowColor.ARGB;
-        Inc(pIn);
-        Inc(pShadow);
+        ShadowColor.A := pBlurredAlpha^;
+        pBlurred^ := ShadowColor;
+        Inc(pBlurred);
+        Inc(pBlurredAlpha);
       end;
 
-      // 2. Apply Gaussian blur to the shadow based on RadiusX and RadiusY
-      RadiusX := DropNode.StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
-      RadiusY := DropNode.StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
+      // 4. Composite blurred shadow shifted by (Dx, Dy) and overlay Input at (0, 0)
+      RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
 
-      TFilterRendererGaussianBlur.ApplyBlur(Renderer, ShadowSrc, BlurredShadow, RadiusX, RadiusY);
+      DestX := Round(DropNode.Dx * RenderData.Scale);
+      DestY := Round(DropNode.Dy * RenderData.Scale);
+
+      // Paint the shadow...
+      BlockTransfer(RenderData.CurrentSurface, DestX, DestY, RenderData.CurrentSurface.ClipRect,
+        BlurredShadow, BlurredShadow.BoundsRect, dmOpaque);
+      // ...and the input image on top of it
+      Renderer.BlendOffscreenSurface(RenderData.CurrentSurface, Input, bmNormal);
 
     finally
-      Renderer.ReleaseOffscreenBitmap(ShadowSrc);
+      Renderer.ReleaseOffscreenBitmap(BlurredShadow);
     end;
-
-    // 3. Composite blurred shadow shifted by (Dx, Dy) and overlay Input at (0, 0)
-    RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
-
-    DestX := Round(DropNode.Dx * RenderData.Scale);
-    DestY := Round(DropNode.Dy * RenderData.Scale);
-
-    // Paint the shadow...
-    BlockTransfer(RenderData.CurrentSurface, DestX, DestY, RenderData.CurrentSurface.ClipRect,
-      BlurredShadow, BlurredShadow.BoundsRect, dmOpaque);
-    // ...and the input image on top of it
-    Renderer.BlendOffscreenSurface(RenderData.CurrentSurface, Input, bmNormal);
-
   finally
-    Renderer.ReleaseOffscreenBitmap(BlurredShadow);
+    BlurredAlphaMap.Free;
+    AlphaMap.Free;
   end;
 end;
 
