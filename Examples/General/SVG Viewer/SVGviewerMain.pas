@@ -38,6 +38,7 @@ interface
 
 uses
   {$IFNDEF FPC} Windows, FileCtrl, {$ELSE} LCLIntf, LCLType, LResources, FileCtrl, {$ENDIF}
+  Messages,
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Vcl.ComCtrls,
 
 {$if defined(IMAGE32)}
@@ -47,6 +48,9 @@ uses
   GR32,
   GR32.SVG.Tree,
   GR32_Image;
+
+const
+  MSG_AFTER_SHOW = WM_USER;
 
 type
   TFormSVGviewer = class(TForm)
@@ -76,6 +80,7 @@ type
     procedure SplitterMemoCanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
     procedure SplitterMemoBeforeResize(Sender: TObject);
     procedure MemoSourceKeyPress(Sender: TObject; var Key: Char);
+    procedure FormShow(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
     FLockUpdate: integer;
@@ -86,6 +91,8 @@ type
     procedure RenderSvg(const ASource: string);
     procedure LoadAndRenderSvg(const AFileName: string);
     procedure SplitterClicked(Sender: TObject);
+
+    procedure MsgAfterShow(var Msg: TMessage); message MSG_AFTER_SHOW;
   end;
 
 var
@@ -94,7 +101,6 @@ var
 implementation
 
 uses
-  Messages,
   IOUtils,
 {$if defined(IMAGE32)}
   Img32.SVG.Reader,
@@ -133,6 +139,11 @@ procedure TFormSVGviewer.FormDestroy(Sender: TObject);
 begin
   if FDocNode <> nil then
     FreeAndNil(FDocNode);
+end;
+
+procedure TFormSVGviewer.FormShow(Sender: TObject);
+begin
+  PostMessage(Handle, MSG_AFTER_SHOW, 0, 0);
 end;
 
 procedure TFormSVGviewer.Button1Click(Sender: TObject);
@@ -192,6 +203,42 @@ begin
     TMemo(Sender).SelectAll;
     Key := #0;
   end;
+end;
+
+procedure TFormSVGviewer.MsgAfterShow(var Msg: TMessage);
+var
+  Filename, Param: string;
+  Count: integer;
+  Benchmark: boolean;
+begin
+  Benchmark := False;
+
+  if (FindCmdLineSwitch('file', Filename, True, [clstValueAppended])) then
+  begin
+    if (FindCmdLineSwitch('maximize')) then
+      WindowState := wsMaximized;
+
+    Count := 1;
+    if (FindCmdLineSwitch('benchmark', Param, True, [clstValueAppended])) then
+    begin
+      Count := StrToIntDef(Param, Count);
+      Benchmark := True;
+    end;
+
+    while (Count > 0) do
+    begin
+      LoadAndRenderSvg(Filename);
+
+      if (Benchmark) then
+        Caption := IntToStr(Count);
+
+      Update;
+      Dec(Count);
+    end;
+  end;
+
+  if (Benchmark) then
+    Application.Terminate;
 end;
 
 procedure TFormSVGviewer.RenderSvg(const ASource: string);

@@ -12,6 +12,7 @@ object FormSVGviewer: TFormSVGviewer
   Font.Style = []
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnShow = FormShow
   TextHeight = 13
   object SplitterMain: TSplitter
     Left = 250
