@@ -123,6 +123,8 @@ procedure ScaleMems_Pas(Dst: PColor32; Count: Integer; Weight: Cardinal);
 //------------------------------------------------------------------------------
 procedure PremultiplyMem_Pas(Pixels: PColor32Entry; Count: Integer);
 procedure UnpremultiplyMem_Pas(Pixels: PColor32Entry; Count: Integer);
+procedure PremultiplyLine_Pas(Src, Dst: PColor32Entry; Count: Integer);
+procedure UnpremultiplyLine_Pas(Src, Dst: PColor32Entry; Count: Integer);
 
 
 //------------------------------------------------------------------------------
@@ -221,6 +223,56 @@ begin
   begin
     BlendMem(F, B^);
     Inc(B);
+    Dec(Count);
+  end;
+end;
+
+procedure PremultiplyLine_Pas(Src, Dst: PColor32Entry; Count: Integer);
+var
+  Div255: PLUT8;
+begin
+  while Count > 0 do
+  begin
+    if (Src.A = 0) then
+      Dst.ARGB := 0
+    else
+    if (Src.A < 255) then
+    begin
+      Div255 := @MulDiv255Table[Src.A];
+      Dst.R := Div255[Src.R];
+      Dst.G := Div255[Src.G];
+      Dst.B := Div255[Src.B];
+      Dst.A := Src.A;
+    end
+    else
+      Dst.ARGB := Src.ARGB;
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
+procedure UnpremultiplyLine_Pas(Src, Dst: PColor32Entry; Count: Integer);
+var
+  Mul255: PLUT8;
+begin
+  while Count > 0 do
+  begin
+    if (Src.A = 0) then
+      Dst.ARGB := 0
+    else
+    if (Src.A < 255) then
+    begin
+      Mul255 := @DivMul255Table[Src.A];
+      Dst.R := Mul255[Src.R];
+      Dst.G := Mul255[Src.G];
+      Dst.B := Mul255[Src.B];
+      Dst.A := Src.A;
+    end
+    else
+      Dst.ARGB := Src.ARGB;
+    Inc(Src);
+    Inc(Dst);
     Dec(Count);
   end;
 end;
@@ -1196,6 +1248,8 @@ begin
 
   BlendRegistry[@@PremultiplyMem].Add(@PremultiplyMem_Pas,    [isPascal]).Name := 'PremultiplyMem_Pas';
   BlendRegistry[@@UnpremultiplyMem].Add(@UnpremultiplyMem_Pas,[isPascal]).Name := 'UnpremultiplyMem_Pas';
+  BlendRegistry[@@PremultiplyLine].Add(@PremultiplyLine_Pas,  [isPascal]).Name := 'PremultiplyLine_Pas';
+  BlendRegistry[@@UnpremultiplyLine].Add(@UnpremultiplyLine_Pas,[isPascal]).Name := 'UnpremultiplyLine_Pas';
 end;
 
 //------------------------------------------------------------------------------

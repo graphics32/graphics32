@@ -148,6 +148,7 @@ type
 // Misc
 //------------------------------------------------------------------------------
   TPremultiplyMem = procedure(Pixels: PColor32; Count: Integer);
+  TPremultiplyLine = procedure(Src, Dst: PColor32; Count: Integer);
 
 
 //------------------------------------------------------------------------------
@@ -252,6 +253,8 @@ var
 //------------------------------------------------------------------------------
   PremultiplyMem: TPremultiplyMem;
   UnpremultiplyMem: TPremultiplyMem;
+  PremultiplyLine: TPremultiplyLine;
+  UnpremultiplyLine: TPremultiplyLine;
 
 //------------------------------------------------------------------------------
 //
@@ -633,6 +636,8 @@ begin
 
   BlendRegistry.RegisterBinding(@@PremultiplyMem,                       'PremultiplyMem');
   BlendRegistry.RegisterBinding(@@UnpremultiplyMem,                     'UnpremultiplyMem');
+  BlendRegistry.RegisterBinding(@@PremultiplyLine,                      'PremultiplyLine');
+  BlendRegistry.RegisterBinding(@@UnpremultiplyLine,                    'UnpremultiplyLine');
 end;
 
 var

@@ -116,6 +116,8 @@ procedure FastScaleMems_SSE41(Dst: PColor32; Count: Integer; Weight: Cardinal); 
 //------------------------------------------------------------------------------
 procedure PremultiplyMem_SSE41(Pixels: PColor32Entry; Count: Integer);
 procedure UnpremultiplyMem_SSE41(Pixels: PColor32Entry; Count: Integer);
+procedure PremultiplyLine_SSE41(Src, Dst: PColor32Entry; Count: Integer);
+procedure UnpremultiplyLine_SSE41(Src, Dst: PColor32Entry; Count: Integer);
 
 
 {$ifend}
@@ -3141,6 +3143,97 @@ asm
 {$ENDIF}
 end;
 
+procedure PremultiplyLine_SSE41(Src, Dst: PColor32Entry; Count: Integer);
+//
+// Uses PMULLD for 32-bit integer multiplication and the $8081 formula for
+// accurate division operating on separate source and destination buffers.
+//
+asm
+{$IFDEF TARGET_x86}
+  // Parameters (x86):
+  //   EAX <- Src
+  //   EDX <- Dst
+  //   ECX <- Count
+
+        TEST      ECX, ECX              // Count=0 -> Exit
+        JZ        @Exit
+
+        PUSH      EBX
+        PXOR      XMM4, XMM4
+        MOV       EBX, $8081
+        MOVD      XMM3, EBX
+        PSHUFD    XMM3, XMM3, 0         // Multiplier constant for division
+
+        MOV       EBX, offset SSE_003FFF7F_ALIGNED
+        MOVDQA    XMM2, [EBX]
+        MOV       EBX, offset SSE_0C080400_ALIGNED
+        MOVDQA    XMM5, [EBX]
+
+@Loop:
+        MOVD      XMM0, [EAX]           // Load pixel from Src
+
+        PMOVZXBD  XMM0, XMM0            // Zero-extend bytes to dwords: B G R A
+        PSHUFD    XMM1, XMM0, $FF       // Broadcast Alpha to all slots
+        PMULLD    XMM0, XMM1            // C * A
+        PMULLD    XMM0, XMM3            // (C * A) * $8081
+        PADDD     XMM0, XMM2            // Add bias ($400000) for rounding
+        PSRLD     XMM0, 23              // Component result
+
+        PINSRB    XMM0, [EAX+3], 12     // Restore original Alpha to byte 12
+
+        PSHUFB    XMM0, XMM5            // Extract low bytes of each dword to pack
+        MOVD      [EDX], XMM0           // Store pixel to Dst
+
+        ADD       EAX, 4                // Next Src pixel
+        ADD       EDX, 4                // Next Dst pixel
+        DEC       ECX
+        JNZ       @Loop
+
+        POP       EBX
+
+@Exit:
+{$ELSE}
+  // Parameters (x64):
+  //   RCX <- Src
+  //   RDX <- Dst
+  //   R8D <- Count
+
+        TEST      R8D, R8D              // Count=0 -> Exit
+        JZ        @Exit
+
+        PXOR      XMM4, XMM4
+        MOV       EAX, $8081
+        MOVD      XMM3, EAX
+        PSHUFD    XMM3, XMM3, 0
+        LEA       RAX, [RIP+SSE_003FFF7F_ALIGNED]
+        MOVDQA    XMM2, [RAX]
+        LEA       RAX, [RIP+SSE_0C080400_ALIGNED]
+        MOVDQA    XMM5, [RAX]
+
+@Loop:
+        MOVD      XMM0, [RCX]           // Load pixel from Src
+
+        PMOVZXBD  XMM0, XMM0            // Zero-extend bytes to dwords: B G R A
+        PSHUFD    XMM1, XMM0, $FF       // Broadcast Alpha to all slots
+        PMULLD    XMM0, XMM1            // C * A
+        PMULLD    XMM0, XMM3            // (C * A) * $8081
+        PADDD     XMM0, XMM2            // Add bias ($400000) for rounding
+        PSRLD     XMM0, 23              // Component result
+
+        PINSRB    XMM0, [RCX+3], 12     // Restore original Alpha to byte 12
+
+        PSHUFB    XMM0, XMM5            // Extract low bytes of each dword to pack
+        MOVD      [RDX], XMM0           // Store pixel to Dst
+
+        ADD       RCX, 4                // Next Src pixel
+        ADD       RDX, 4                // Next Dst pixel
+        DEC       R8D
+        JNZ       @Loop
+
+@Exit:
+{$ENDIF}
+end;
+
 // Precomputed multipliers used to avoid costly integer division inside the
 // unpremultiply loop.
 // The table maps an alpha value (1..255) to a 16.16 fixed point multiplier:
@@ -3326,6 +3419,149 @@ asm
 {$ENDIF}
 end;
 
+procedure UnpremultiplyLine_SSE41(Src, Dst: PColor32Entry; Count: Integer);
+//
+// Uses PMULLD and PSHUFB to improve the multiplier-based fixed-point logic
+// operating on separate source and destination buffers.
+//
+asm
+{$IFDEF TARGET_x86}
+  // Parameters (x86):
+  //   EAX <- Src
+  //   EDX <- Dst
+  //   ECX <- Count
+
+        TEST      ECX, ECX
+        JZ        @Exit
+
+        PUSH      ESI
+        PUSH      EDI
+        PUSH      EBX
+
+        MOV       ESI, offset SSE_0C080400_ALIGNED
+        MOVDQA    XMM3, [ESI]
+        LEA       ESI, [UnpremultiplyTable]
+        // Generate 32768 bias for rounding: (x + 32768) >> 16
+        PCMPEQW   XMM2, XMM2
+        PSLLW     XMM2, 15              // words = $8000
+        PSHUFD    XMM2, XMM2, 0         // dwords = 32768
+
+@Loop:
+        MOV       EBX, [EAX]            // Load pixel from Src
+        TEST      EBX, $FF000000        // Check Alpha=0
+        JZ        @ZeroAlpha
+
+        MOVD      XMM0, EBX             // Save pixel in XMM0
+
+        SHR       EBX, 24               // Extract Alpha
+        CMP       BL, 255               // Check Alpha=255
+        JZ        @Opaque
+
+        MOV       EDI, [ESI + EBX * 4]  // Multiplier from precomputed table
+        MOVD      XMM1, EDI
+        PSHUFD    XMM1, XMM1, 0         // Broadcast multiplier to all slots
+
+        PMOVZXBD  XMM0, XMM0            // Extend bytes to 4 DWords
+
+        PMULLD    XMM0, XMM1            // component * multiplier
+
+        PADDD     XMM0, XMM2            // Round: (x + 32768) >> 16
+        PSRLD     XMM0, 16
+
+        // Restore Alpha
+        MOVZX     EDI, BYTE PTR [EAX+3]
+        PINSRD    XMM0, EDI, 3          // Put original Alpha in dword 3
+
+        PSHUFB    XMM0, XMM3            // Fast byte extraction
+        MOVD      [EDX], XMM0           // Store to Dst
+
+@Next:
+        ADD       EAX, 4                // Next Src pixel
+        ADD       EDX, 4                // Next Dst pixel
+        DEC       ECX
+        JNZ       @Loop
+
+        POP       EBX
+        POP       EDI
+        POP       ESI
+
+@Exit:
+        RET
+
+@Opaque:
+        MOV       EBX, [EAX]
+        MOV       [EDX], EBX
+        JMP       @Next
+
+@ZeroAlpha:
+        MOV       DWORD PTR [EDX], 0    // Clear Dst pixel
+        JMP       @Next
+
+{$ELSE}
+  // Parameters (x64):
+  //   RCX <- Src
+  //   RDX <- Dst
+  //   R8D <- Count
+
+        TEST      R8D, R8D
+        JZ        @Exit
+
+        LEA       R9, [UnpremultiplyTable]
+        LEA       RAX, [RIP+SSE_0C080400_ALIGNED]
+        MOVDQA    XMM3, [RAX]
+        // Generate 32768 bias for rounding: (x + 32768) >> 16
+        PCMPEQW   XMM2, XMM2
+        PSLLW     XMM2, 15              // words = $8000
+        PSHUFD    XMM2, XMM2, 0         // dwords = 32768
+
+@Loop:
+        MOV       R10D, [RCX]           // Load pixel from Src
+        TEST      R10D, $FF000000       // Skip if Alpha=0
+        JZ        @ZeroAlpha
+
+        MOVD      XMM0, R10D
+
+        SHR       R10D, 24              // Extract Alpha
+        CMP       R10B, 255             // Skip if Alpha=255
+        JZ        @Opaque
+
+        MOV       EAX, [R9 + R10 * 4]   // Multiplier from precomputed table
+        MOVD      XMM1, EAX
+        PSHUFD    XMM1, XMM1, 0         // Broadcast multiplier to all slots
+
+        PMOVZXBD  XMM0, XMM0            // Extend bytes to 4 DWords
+
+        PMULLD    XMM0, XMM1            // component * multiplier
+
+        PADDD     XMM0, XMM2            // Round: (x + 32768) >> 16
+        PSRLD     XMM0, 16
+
+        MOVZX     EAX, BYTE PTR [RCX+3] // Put original Alpha in dword 3
+        PINSRD    XMM0, EAX, 3
+
+        PSHUFB    XMM0, XMM3            // Fast byte extraction
+        MOVD      [RDX], XMM0           // Write to Dst
+
+@Next:
+        ADD       RCX, 4                // Next Src pixel
+        ADD       RDX, 4                // Next Dst pixel
+        DEC       R8D
+        JNZ       @Loop
+
+@Exit:
+        RET
+
+@Opaque:
+        MOV       EAX, [RCX]
+        MOV       [RDX], EAX
+        JMP       @Next
+
+@ZeroAlpha:
+        MOV       DWORD PTR [RDX], 0    // Clear Dst pixel
+        JMP       @Next
+{$ENDIF}
+end;
+
 
 
 {$ifend}
@@ -3385,6 +3621,8 @@ begin
 
   BlendRegistry[@@PremultiplyMem].Add(@PremultiplyMem_SSE41,    [isSSE41]).Name := 'PremultiplyMem_SSE41';
   BlendRegistry[@@UnpremultiplyMem].Add(@UnpremultiplyMem_SSE41,[isSSE41]).Name := 'UnpremultiplyMem_SSE41';
+  BlendRegistry[@@PremultiplyLine].Add(@PremultiplyLine_SSE41,  [isSSE41]).Name := 'PremultiplyLine_SSE41';
+  BlendRegistry[@@UnpremultiplyLine].Add(@UnpremultiplyLine_SSE41,[isSSE41]).Name := 'UnpremultiplyLine_SSE41';
 {$if declared(PremultiplyMem_SSE2)}
   BlendRegistry[@@PremultiplyMem].Add(@PremultiplyMem_SSE2,     [isSSE2]).Name := 'PremultiplyMem_SSE2';
 {$ifend}
