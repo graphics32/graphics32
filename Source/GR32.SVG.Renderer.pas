@@ -42,16 +42,32 @@ uses
 type
   { TSvgBitmapPool: Reusable pool of intermediate TBitmap32 offscreen surfaces to eliminate
     frequent heap allocations/deallocations during nested group opacity, clip path, and mask compositing. }
-  TSvgBitmapPool = class(TObject)
+  TMapPool<T: TCustomMap> = class abstract(TObject)
   private
-    FPool: TObjectList<TCustomBitmap32>;
-    FBitmapMaxOversize: NativeInt;
+    FPool: TObjectList<T>;
+    FMaxSize: Int64;
+    FPoolSize: Int64;
+  protected
+    function CreateNewMap: T; virtual; abstract;
+    procedure PrepareMap(Map: T); virtual;
   public
-    constructor Create;
+    constructor Create(AMaxSize: Int64 = 0);
     destructor Destroy; override;
-    function Acquire(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
-    procedure Release(ABitmap: TCustomBitmap32);
+    function Acquire(AWidth, AHeight: Integer; AClear: Boolean = True): T;
+    procedure Release(Map: T); virtual;
     procedure Clear;
+    property MaxSize: Int64 read FMaxSize write FMaxSize;
+    property PoolSize: Int64 read FPoolSize;
+  end;
+
+  TSvgBitmapPool = class(TMapPool<TCustomBitmap32>)
+  private
+    FBitmapMaxOversize: NativeInt;
+  protected
+    function CreateNewMap: TCustomBitmap32; override;
+    procedure PrepareMap(Map: TCustomBitmap32); override;
+  public
+    procedure Release(Map: TCustomBitmap32); override;
     property BitmapMaxOversize: NativeInt read FBitmapMaxOversize write FBitmapMaxOversize;
   end;
 
@@ -483,25 +499,26 @@ begin
   end;
 end;
 
-{ TSvgBitmapPool }
+{ TMapPool<T> }
 
-constructor TSvgBitmapPool.Create;
+constructor TMapPool<T>.Create(AMaxSize: Int64);
 begin
   inherited Create;
-  FPool := TObjectList<TCustomBitmap32>.Create(True);
+  FPool := TObjectList<T>.Create(True);
+  FMaxSize := AMaxSize;
 end;
 
-destructor TSvgBitmapPool.Destroy;
+destructor TMapPool<T>.Destroy;
 begin
   FPool.Free;
   inherited Destroy;
 end;
 
-function TSvgBitmapPool.Acquire(AWidth, AHeight: Integer; AClear: Boolean): TCustomBitmap32;
+function TMapPool<T>.Acquire(AWidth, AHeight: Integer; AClear: Boolean): T;
 var
   i, BestIndex: Integer;
   TargetSize, CandidateSize, Delta, BestDelta: Integer;
-  Candidate: TCustomBitmap32;
+  Candidate: T;
 begin
   Result := nil;
   TargetSize := AWidth * AHeight;
@@ -512,11 +529,12 @@ begin
   // for requested bounds (Width >= AWidth, Height >= AHeight) to avoid costly
   // buffer reallocations. Pick Candidate with smallest excess area (BestDelta).
   // Scan from most recent (most likely to match size) to least recent.
+  // TODO : Binary search
   for i := FPool.Count - 1 downto 0 do
   begin
     Candidate := FPool[i];
 
-    CandidateSize := Candidate.PixelCount;
+    CandidateSize := Candidate.ByteCount;
     Delta := CandidateSize - TargetSize;
 
     if (Delta < 0) then
@@ -534,40 +552,72 @@ begin
 
   if Result = nil then
   begin
-    // Instantiate a new surface with TMemoryBackend if no Candidate with
-    // sufficient buffer dimensions exists in pool
-    Result := TBitmap32.Create(TMemoryBackend);
-    TMemoryBackend(Result.Backend).MaxOversize := BitmapMaxOversize;
+    // Instantiate a new map if no Candidate with sufficient buffer dimensions
+    // exists in pool
+    Result := CreateNewMap;
     Result.SetSize(AWidth, AHeight, AClear);
   end else
   begin
     FPool.ExtractAt(BestIndex);
+    Dec(FPoolSize, Result.ByteCount);
+
     Result.SetSize(AWidth, AHeight, AClear);
 {$ifdef DEBUG}
     Result.EndLockUpdate; // For debug: Signal that bitmap is out of pool
 {$endif DEBUG}
   end;
 
-  Result.MasterAlpha := 255;
-  Result.DrawMode := dmBlend;
-  Result.CombineMode := cmMerge;
+  PrepareMap(Result);
 end;
 
-procedure TSvgBitmapPool.Release(ABitmap: TCustomBitmap32);
-begin
-  if ABitmap = nil then
-    exit;
-
-  FPool.Add(ABitmap);
-  ABitmap.OnPixelCombine := nil;
-{$ifdef DEBUG}
-  ABitmap.BeginLockUpdate; // For debug: Signal that bitmap is in pool
-{$endif DEBUG}
-end;
-
-procedure TSvgBitmapPool.Clear;
+procedure TMapPool<T>.Clear;
 begin
   FPool.Clear;
+end;
+
+procedure TMapPool<T>.PrepareMap(Map: T);
+begin
+end;
+
+procedure TMapPool<T>.Release(Map: T);
+begin
+  if Map = nil then
+    exit;
+
+  if (FMaxSize > 0) and (FPoolSize + Map.ByteCount > FMaxSize) then
+  begin
+    Map.Free;
+    exit;
+  end;
+
+  FPool.Add(Map);
+{$ifdef DEBUG}
+  Map.BeginLockUpdate; // For debug: Signal that bitmap is in pool
+{$endif DEBUG}
+  Inc(FPoolSize, Map.ByteCount);
+end;
+
+{ TSvgBitmapPool }
+
+function TSvgBitmapPool.CreateNewMap: TCustomBitmap32;
+begin
+  Result := TBitmap32.Create(TMemoryBackend);
+  TMemoryBackend(Result.Backend).MaxOversize := BitmapMaxOversize;
+end;
+
+procedure TSvgBitmapPool.PrepareMap(Map: TCustomBitmap32);
+begin
+  Map.MasterAlpha := 255;
+  Map.DrawMode := dmBlend;
+  Map.CombineMode := cmMerge;
+end;
+
+
+procedure TSvgBitmapPool.Release(Map: TCustomBitmap32);
+begin
+  if (Map <> nil) then
+    Map.OnPixelCombine := nil;
+  inherited;
 end;
 
 { TSvgRenderer }
@@ -581,6 +631,7 @@ begin
   FDocumentRoot := nil;
   FBitmapPool := TSvgBitmapPool.Create;
   FBitmapPool.BitmapMaxOversize := 1024; // Magic!
+  FBitmapPool.MaxSize := 256*1024*1024; // More magic!
   FAllowExternalImages := False;
 end;
 
