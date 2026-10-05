@@ -34,6 +34,8 @@ interface
 
 {$include GR32.inc}
 
+{$define USE_SIMD_MASK_FILTERS}
+
 uses
   SysUtils, Classes, Graphics, Generics.Collections,
   GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils, GR32_ColorGradients,
@@ -176,6 +178,7 @@ uses
   GR32_Backends_Generic,
   GR32_Paths,
   GR32_Resamplers,
+  GR32_Filters,
   GR32.Text.Types,
   GR32.Text.Win,
   GR32.Text.FontFace,
@@ -1138,22 +1141,22 @@ end;
 procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
 var
   PathPoints, TransformedPoints: TArrayOfArrayOfFloatPoint;
-  Color: TColor32;
   StrokeWidth, MatScale, ScaledOffset: Single;
   Points, StrokePoints, AllRenderPoints: TArrayOfArrayOfFloatPoint;
   ScaledDashArray: TArrayOfFloat;
-  i, j, k, x: Integer;
-  Filler: TCustomPolygonFiller;
+  i, j: Integer;
   FloatRoi: TFloatRect;
-  PaintServerNode: TSvgNode;
   RoiRect: TRect;
   NeedsOffscreen: Boolean;
   EffectiveBlendMode: TSvgBlendMode;
   RenderBmp, OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
   ClipNodeTarget: TSvgClipPathNode;
   MaskNodeTarget: TSvgMaskNode;
+{$if not defined(USE_SIMD_MASK_FILTERS)}
   SourceP, DestP: PColor32;
+  x: Integer;
   AlphaVal, Gray: Byte;
+{$ifend}
 begin
   if (APathNode = nil) or (ATarget = nil) then
     Exit;
@@ -1289,16 +1292,21 @@ begin
           FTransformation.Pop;
         end;
 
-        SourceP := PColor32(OffscreenBmp.Bits);
-        DestP := PColor32(ClipMaskBmp.Bits);
+{$if defined(USE_SIMD_MASK_FILTERS)}
+        ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
+{$else}
+        DestP := PColor32(OffscreenBmp.Bits);
+        SourceP := PColor32(ClipMaskBmp.Bits);
+
         for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
-          AlphaVal := AlphaComponent(DestP^);
+          AlphaVal := AlphaComponent(SourceP^);
           if AlphaVal < 255 then
-            ScaleAlpha(SourceP^, AlphaVal * OneOver255);
-          Inc(SourceP);
+            ScaleAlpha(DestP^, AlphaVal * OneOver255);
           Inc(DestP);
+          Inc(SourceP);
         end;
+{$ifend}
       end;
 
       // Apply Alpha Mask in ROI space
@@ -1316,27 +1324,37 @@ begin
           FTransformation.Pop;
         end;
 
-        SourceP := PColor32(OffscreenBmp.Bits);
-        DestP := PColor32(MaskBmp.Bits);
+{$if defined(USE_SIMD_MASK_FILTERS)}
+        ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
+{$else}
+        SourceP := PColor32(MaskBmp.Bits);
+        DestP := PColor32(OffscreenBmp.Bits);
+
         for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
-          Gray := Intensity(DestP^);
-          Gray := Round(Gray * (AlphaComponent(DestP^) * OneOver255));
-          ScaleAlpha(SourceP^, Gray * OneOver255);
-          Inc(SourceP);
+          Gray := Intensity(SourceP^);
+          Gray := Round(Gray * (AlphaComponent(SourceP^) * OneOver255));
+          ScaleAlpha(DestP^, Gray * OneOver255);
           Inc(DestP);
+          Inc(SourceP);
         end;
+{$ifend}
       end;
 
       // Apply Opacity
       if (APathNode.Opacity < 1.0) then
       begin
+{$if defined(USE_SIMD_MASK_FILTERS)}
+        ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, APathNode.Opacity);
+{$else}
         SourceP := PColor32(OffscreenBmp.Bits);
+
         for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
           ScaleAlpha(SourceP^, APathNode.Opacity);
           Inc(SourceP);
         end;
+{$ifend}
       end;
 
       // Blend ROI offscreen surface onto destination target at ROI origin
@@ -1613,18 +1631,17 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
 var
   i, k: Integer;
   OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
-  x: Integer;
-  SourceP, DestP: PColor32;
-  Gray: Byte;
-  Node: TSvgNode;
   ClipNodeTarget: TSvgClipPathNode;
   MaskNodeTarget: TSvgMaskNode;
-  AlphaVal: Byte;
   GroupBounds, TargetWorldBounds: TFloatRect;
   GroupRoi: TRect;
   Points: array[0..3] of TFloatPoint;
-const
-  OneOver255: Single = 1 / 255;
+{$if not defined(USE_SIMD_MASK_FILTERS)}
+  SourceP, DestP: PColor32;
+  x: Integer;
+  Gray: Byte;
+  AlphaVal: Byte;
+{$ifend}
 begin
   if (AGroupNode = nil) or AGroupNode.IsDisplayNone or (not AGroupNode.PassesConditionalProcessing) then
     Exit;
@@ -1711,16 +1728,21 @@ begin
           FTransformation.Pop;
         end;
 
-        SourceP := PColor32(OffscreenBmp.Bits);
-        DestP := PColor32(ClipMaskBmp.Bits);
+{$if defined(USE_SIMD_MASK_FILTERS)}
+        ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
+{$else}
+        SourceP := PColor32(ClipMaskBmp.Bits);
+        DestP := PColor32(OffscreenBmp.Bits);
+
         for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
-          AlphaVal := AlphaComponent(DestP^);
+          AlphaVal := AlphaComponent(SourceP^);
           if AlphaVal < 255 then
-            ScaleAlpha(SourceP^, AlphaVal * OneOver255);
-          Inc(SourceP);
+            ScaleAlpha(DestP^, AlphaVal * OneOver255);
           Inc(DestP);
+          Inc(SourceP);
         end;
+{$ifend}
       end;
 
       // Apply Alpha Mask in ROI coordinate space
@@ -1738,27 +1760,37 @@ begin
           FTransformation.Pop;
         end;
 
-        SourceP := PColor32(OffscreenBmp.Bits);
-        DestP := PColor32(MaskBmp.Bits);
+{$if defined(USE_SIMD_MASK_FILTERS)}
+        ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
+{$else}
+        DestP := PColor32(OffscreenBmp.Bits);
+        SourceP := PColor32(MaskBmp.Bits);
+
         for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
-          Gray := Intensity(DestP^);
-          Gray := Round(Gray * (AlphaComponent(DestP^) / 255.0));
-          ScaleAlpha(SourceP^, Gray / 255.0);
-          Inc(SourceP);
+          Gray := Intensity(SourceP^);
+          Gray := Round(Gray * (AlphaComponent(SourceP^) * OneOver255));
+          ScaleAlpha(DestP^, Gray * OneOver255);
           Inc(DestP);
+          Inc(SourceP);
         end;
+{$ifend}
       end;
 
       // Apply Group Opacity
       if (AGroupNode.Opacity < 1.0) then
       begin
+{$if defined(USE_SIMD_MASK_FILTERS)}
+        ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, AGroupNode.Opacity);
+{$else}
         SourceP := PColor32(OffscreenBmp.Bits);
+
         for x := 0 to OffscreenBmp.PixelCount - 1 do
         begin
           ScaleAlpha(SourceP^, AGroupNode.Opacity);
           Inc(SourceP);
         end;
+{$ifend}
       end;
 
       // Blend ROI offscreen surface onto target canvas at group ROI origin
@@ -2091,7 +2123,7 @@ class procedure TFilterRendererColorMatrix.Render(Renderer: TSvgRenderer; Node: 
             if (not HasLast) or ((pSource.ARGB and $00FFFFFF) <> LastSource) then
             begin
               // Rec. 601 W3C NTSC Luminance (Q8)
-              Lum := (integer(13959 * pSource.R) + integer(46858 * pSource.G) + integer(4719 * pSource.B)) div 65536;
+              Lum := Luminance601(pSource.ARGB);
 
               // Output = Luminance + Saturation * (Channel - Luminance)
               pDest.R := Clamp(Lum + ((n * (integer(pSource.R) - Lum)) div 256));
@@ -2118,7 +2150,7 @@ class procedure TFilterRendererColorMatrix.Render(Renderer: TSvgRenderer; Node: 
           begin
             // W3C SVG / Rec. 709 luminance: Y = 0.2126*R + 0.7152*G + 0.0722*B
             // Note: Do not use ColorLightness as that depends on various compiler defines
-            pDest.ARGB := ((13933 * pSource.R + 46871 * pSource.G + 4732 * pSource.B) div 65536) shl 24;
+            pDest.ARGB := Luminance709(pSource.ARGB);
 
             Inc(pSource);
             Inc(pDest);
@@ -2652,8 +2684,6 @@ procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgF
     Combiner: TPixelCombiner;
     c1, c2, c3, c4: Int64;
     vR, vG, vB, vA: integer;
-  const
-    OneOver255: Single = 1 / 255;
   begin
     Count := ASrc1.PixelCount;
     pSource1 := PColor32Entry(ASrc1.Bits);
@@ -3227,7 +3257,6 @@ var
   SubRenderer: TSvgRenderer;
   Bitmap: TBitmap32;
   AspectMat, TotalMat: TFloatMatrixHelper;
-  Transformation: TAffineTransformation;
   DestBounds: TFloatRect;
   DestClip: TRect;
   SourceViewBox: TSvgViewBox;
@@ -3507,8 +3536,6 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
   procedure RenderTextPathData(const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
   var
     TransformedPts, StrokePts, DashedPts: TArrayOfArrayOfFloatPoint;
-    StrokeBounds: TFloatRect;
-    FillColor, StrokeColor: TColor32;
     StrokeWidth, MatScale, ScaledOffset: Single;
     ScaledDashArray: TArrayOfFloat;
     i, j, k: Integer;
@@ -3971,12 +3998,13 @@ var
   NodeBounds, TargetWorldBounds: TFloatRect;
   NodeRoi: TRect;
   Points: array[0..3] of TFloatPoint;
-  SourceP, DestP: PColor32;
-  x, k: Integer;
-  AlphaVal, Gray: Byte;
+  k: Integer;
   NeedsOffscreen: Boolean;
-const
-  OneOver255: Single = 1 / 255;
+{$if not defined(USE_SIMD_MASK_FILTERS)}
+  SourceP, DestP: PColor32;
+  x: Integer;
+  AlphaVal, Gray: Byte;
+{$ifend}
 begin
   if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
     Exit;
@@ -4068,16 +4096,21 @@ begin
               FTransformation.Pop;
             end;
 
-            SourceP := PColor32(OffscreenBmp.Bits);
-            DestP := PColor32(ClipMaskBmp.Bits);
+{$if defined(USE_SIMD_MASK_FILTERS)}
+            ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
+{$else}
+            DestP := PColor32(OffscreenBmp.Bits);
+            SourceP := PColor32(ClipMaskBmp.Bits);
+
             for x := 0 to OffscreenBmp.PixelCount - 1 do
             begin
-              AlphaVal := AlphaComponent(DestP^);
+              AlphaVal := AlphaComponent(SourceP^);
               if AlphaVal < 255 then
-                ScaleAlpha(SourceP^, AlphaVal * OneOver255);
-              Inc(SourceP);
+                ScaleAlpha(DestP^, AlphaVal * OneOver255);
               Inc(DestP);
+              Inc(SourceP);
             end;
+{$ifend}
           end;
 
           // Apply Alpha Mask
@@ -4095,27 +4128,36 @@ begin
               FTransformation.Pop;
             end;
 
-            SourceP := PColor32(OffscreenBmp.Bits);
-            DestP := PColor32(MaskBmp.Bits);
+{$if defined(USE_SIMD_MASK_FILTERS)}
+            ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
+{$else}
+            SourceP := PColor32(MaskBmp.Bits);
+            DestP := PColor32(OffscreenBmp.Bits);
+
             for x := 0 to OffscreenBmp.PixelCount - 1 do
             begin
-              Gray := Intensity(DestP^);
-              Gray := Round(Gray * (AlphaComponent(DestP^) / 255.0));
-              ScaleAlpha(SourceP^, Gray / 255.0);
-              Inc(SourceP);
+              Gray := Intensity(SourceP^);
+              Gray := Round(Gray * (AlphaComponent(SourceP^) * OneOver255));
+              ScaleAlpha(DestP^, Gray * OneOver255);
               Inc(DestP);
+              Inc(SourceP);
             end;
+{$ifend}
           end;
 
           // Apply Opacity
           if (ANode.Opacity < 1.0) then
           begin
+{$if defined(USE_SIMD_MASK_FILTERS)}
+            ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, ANode.Opacity);
+{$else}
             SourceP := PColor32(OffscreenBmp.Bits);
             for x := 0 to OffscreenBmp.PixelCount - 1 do
             begin
               ScaleAlpha(SourceP^, ANode.Opacity);
               Inc(SourceP);
             end;
+{$ifend}
           end;
 
           BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode, NodeRoi.Left, NodeRoi.Top);
