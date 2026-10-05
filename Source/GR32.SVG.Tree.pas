@@ -6541,7 +6541,7 @@ begin
     Exit;
   end;
 
-  Parser.Init(AText.Text, AText.Len, [xpoNoException]);
+  Parser.Init(AText.Text, AText.Len, [xpoNoException, xpoStripNamespacePrefix]);
 
   cssStyleSheet := TSvgCssStyleSheet.Create;
   try

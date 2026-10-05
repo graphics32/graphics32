@@ -54,6 +54,7 @@ type
     procedure TestErrorHandling;
     procedure TestDocType;
     procedure TestXmlEntityUnescapingInAttributesAndText;
+    procedure TestNamespacePrefixStripping;
   end;
 
 implementation
@@ -298,6 +299,52 @@ begin
   CheckEquals(Ord(xtText), Ord(parser.ParseNext));
   Check(parser.ValueToUtf8(valStr));
   CheckEquals('<Hello & World>', string(valStr));
+end;
+
+procedure TTestSvgXmlParser.TestNamespacePrefixStripping;
+var
+  parser: TXmlParser;
+  xml: RawUtf8;
+  valStr: RawUtf8;
+  token: TXmlToken;
+begin
+  xml := '<svg:svg xmlns:svg="http://www.w3.org/2000/svg" svg:width="100">' +
+         '  <svg:g svg:id="g1">' +
+         '    <svg:path svg:d="M 0 0 L 10 10"/>' +
+         '  </svg:g>' +
+         '</svg:svg>';
+
+  parser.Init(xml, [xpoStripNamespacePrefix]);
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtElementStart), Ord(token));
+  CheckEquals('svg', string(parser.Name.ToUtf8));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtAttribute), Ord(token));
+  CheckEquals('xmlns', string(parser.Name.ToUtf8));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtAttribute), Ord(token));
+  CheckEquals('width', string(parser.Name.ToUtf8));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtElementStart), Ord(token));
+  CheckEquals('g', string(parser.Name.ToUtf8));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtAttribute), Ord(token));
+  CheckEquals('id', string(parser.Name.ToUtf8));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtElementStart), Ord(token));
+  CheckEquals('path', string(parser.Name.ToUtf8));
+
+  token := parser.ParseNext;
+  CheckEquals(Ord(xtAttribute), Ord(token));
+  CheckEquals('d', string(parser.Name.ToUtf8));
+  parser.ValueToUtf8(valStr);
+  CheckEquals('M 0 0 L 10 10', string(valStr));
 end;
 
 procedure TTestSvgXmlParser.TestDocType;

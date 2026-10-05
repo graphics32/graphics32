@@ -75,6 +75,7 @@ type
     procedure TestContainerFontInheritance;
     procedure TestDefSingularTagParsing;
     procedure TestFontShorthandParsing;
+    procedure TestNamespacedSvgParsing;
     procedure TestNestedSvgIdResolutionAndCurrentColor;
   end;
 
@@ -142,6 +143,39 @@ begin
     useNode2 := TSvgUseNode(docNode.FindNodeById('u2'));
     Check(useNode2 <> nil, 'u2 should exist');
     CheckEquals(1, useNode2.Children.Count, 'u2 should expand child referenced from <def>');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestNamespacedSvgParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  groupNode: TSvgGroupNode;
+  pathNode: TSvgPathNode;
+begin
+  xml := '<svg:svg width="681" height="779" xmlns:svg="http://www.w3.org/2000/svg">' +
+         '  <svg:defs id="defs26"/>' +
+         '  <svg:g id="Layer_1">' +
+         '    <svg:path id="path7" d="M 510.167 144.833 C 470.417 120.083 432.917 110.333 395.417 85.583 Z" fill="#00598e"/>' +
+         '  </svg:g>' +
+         '</svg:svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil when parsing namespaced SVG XML');
+  try
+    CheckEquals(681.0, docNode.Width.Value, 1E-4);
+    CheckEquals(779.0, docNode.Height.Value, 1E-4);
+    CheckEquals(2, docNode.Children.Count, 'docNode should contain defs and g children');
+
+    groupNode := TSvgGroupNode(docNode.FindNodeById('Layer_1'));
+    Check(groupNode <> nil, 'Layer_1 group node should exist');
+    CheckEquals(1, groupNode.Children.Count, 'Layer_1 group should contain path child');
+
+    pathNode := TSvgPathNode(docNode.FindNodeById('path7'));
+    Check(pathNode <> nil, 'path7 node should exist');
+    Check(Length(pathNode.PathData) > 0, 'path7 node should have non-empty PathData');
   finally
     docNode.Free;
   end;
