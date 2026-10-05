@@ -216,6 +216,7 @@ type
     attrTransform,
     attrDisplay,
     attrVisibility,
+    attrColor,
     attrFill,
     attrFillOpacity,
     attrFillRule,
@@ -339,6 +340,7 @@ type
     FFilterID: AnsiString;
     FResolvedFilter: TSvgFilterNode;
     FParent: TSvgNode;
+    FColor: TSvgColor;
     FFill: TSvgFill;
     FStroke: TSvgStroke;
     FMarkerStart: AnsiString;
@@ -398,6 +400,7 @@ type
     property FilterID: AnsiString read FFilterID write FFilterID;
     property ResolvedFilter: TSvgFilterNode read FResolvedFilter write FResolvedFilter;
     property Parent: TSvgNode read FParent write SetParent;
+    property Color: TSvgColor read FColor write FColor;
     property Fill: TSvgFill read FFill write FFill;
     property Stroke: TSvgStroke read FStroke write FStroke;
     property MarkerStart: AnsiString read FMarkerStart write FMarkerStart;
@@ -1481,6 +1484,7 @@ const
     'transform',
     'display',
     'visibility',
+    'color',
     'fill',
     'fill-opacity',
     'fill-rule',
@@ -1857,6 +1861,7 @@ begin
   FResolving := False;
   if FParent <> nil then
   begin
+    FColor := FParent.Color;
     FFill := FParent.Fill;
     FStroke := FParent.Stroke;
     FMarkerStart := FParent.MarkerStart;
@@ -1868,6 +1873,7 @@ begin
     FParent.NodeAdded(Self);
   end else
   begin
+    FColor := TSvgColor.Create(clBlack32);
     FFill := TSvgFill.Default;
     FStroke := TSvgStroke.Default;
     FMarkerStart := '';
@@ -1899,6 +1905,7 @@ begin
   Result.FFilterID := FFilterID;
   Result.FResolvedFilter := FResolvedFilter;
   Result.FResolving := False;
+  Result.FColor := FColor;
   Result.FRequiredFeatures := FRequiredFeatures;
   Result.FRequiredExtensions := FRequiredExtensions;
   Result.FSystemLanguage := FSystemLanguage;
@@ -2082,6 +2089,12 @@ begin
         else
         if AValue.CompareText('visible') then
           FVisible := True;
+      end;
+
+    attrColor:
+      begin
+        if ParseColor(AValue, Color, s) then
+          FColor := Color;
       end;
 
     attrFill:

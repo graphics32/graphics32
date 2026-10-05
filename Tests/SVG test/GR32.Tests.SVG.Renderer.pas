@@ -83,6 +83,7 @@ type
     procedure TestEscapedTextRendering;
     procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
+    procedure TestNestedSvgAndCurrentColorRendering;
     procedure TestSwitchRendering;
     procedure TestUserSpaceOnUsePercentageGradient;
     procedure TestPatternScaling;
@@ -2518,6 +2519,45 @@ begin
     pPixel := bmp.Pixel[30, 30];
     CheckEquals(clRed32, pPixel, 'Pixel inside rendered embedded SVG image should be red');
     CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Pixel outside rendered embedded SVG image should be white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestNestedSvgAndCurrentColorRendering;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+begin
+  xml := '<svg width="100" height="100" color="green">' +
+         '  <defs>' +
+         '    <g id="defSymbol">' +
+         '      <rect width="40" height="40" fill="currentColor"/>' +
+         '    </g>' +
+         '  </defs>' +
+         '  <svg color="blue" viewBox="0 0 100 100">' +
+         '    <use xlink:href="#defSymbol" x="10" y="10"/>' +
+         '    <rect x="60" y="60" width="30" height="30" fill="currentColor"/>' +
+         '  </svg>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Inner <svg color="blue"> overrides inherited green color for currentColor fills inside innerSvg
+    CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Pixel inside use symbol with currentColor should be blue');
+    CheckEquals(clBlue32, bmp.Pixel[70, 70], 'Pixel inside rect with currentColor should be blue');
+    CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Background pixel should remain white');
   finally
     renderer.Free;
     bmp.Free;

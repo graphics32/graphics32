@@ -75,6 +75,7 @@ type
     procedure TestContainerFontInheritance;
     procedure TestDefSingularTagParsing;
     procedure TestFontShorthandParsing;
+    procedure TestNestedSvgIdResolutionAndCurrentColor;
   end;
 
 implementation
@@ -1289,6 +1290,56 @@ begin
     finally
       cloned.Free;
     end;
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestNestedSvgIdResolutionAndCurrentColor;
+var
+  xml: UTF8String;
+  docNode, innerDoc: TSvgDocumentNode;
+  defNode, useTarget, foundNode: TSvgNode;
+  useNode: TSvgUseNode;
+  pathNode: TSvgPathNode;
+begin
+  xml := '<svg width="200" height="200" color="red">' +
+         '  <defs>' +
+         '    <g id="defSymbol">' +
+         '      <rect width="10" height="10"/>' +
+         '    </g>' +
+         '  </defs>' +
+         '  <svg id="innerSvg" color="blue" viewBox="0 0 100 100">' +
+         '    <use id="u1" xlink:href="#defSymbol"/>' +
+         '    <path id="p1" d="M0 0 L10 10" stroke="currentColor"/>' +
+         '  </svg>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    CheckEquals(clRed32, docNode.Color.Color, 'Outer doc color should be red');
+
+    defNode := docNode.FindNodeById('defSymbol');
+    Check(defNode <> nil, 'defSymbol should be found on outer docNode');
+
+    innerDoc := TSvgDocumentNode(docNode.FindNodeById('innerSvg'));
+    Check(innerDoc <> nil, 'innerSvg should be found');
+    CheckEquals(clBlue32, innerDoc.Color.Color, 'innerSvg color should be blue');
+
+    // Test cross-boundary ID resolution from inner document to outer document
+    foundNode := innerDoc.FindNodeById('defSymbol');
+    Check(foundNode <> nil, 'innerDoc.FindNodeById("defSymbol") should resolve to defSymbol from outer doc');
+    Check(foundNode = defNode, 'foundNode should equal defNode');
+
+    useNode := TSvgUseNode(innerDoc.FindNodeById('u1'));
+    Check(useNode <> nil, 'u1 should be found');
+    CheckEquals(1, useNode.Children.Count, 'useNode should have 1 cloned child resolved');
+
+    pathNode := TSvgPathNode(innerDoc.FindNodeById('p1'));
+    Check(pathNode <> nil, 'p1 should be found');
+    CheckEquals(clBlue32, pathNode.Color.Color, 'p1 should inherit color="blue" from innerSvg');
+    Check(pathNode.Stroke.Color.IsCurrentColor, 'p1 stroke color should have IsCurrentColor = True');
   finally
     docNode.Free;
   end;

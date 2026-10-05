@@ -370,6 +370,18 @@ begin
   Result := bmNormal;
 end;
 
+function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor): TSvgColor;
+begin
+  if AColor.IsCurrentColor then
+  begin
+    if ANode <> nil then
+      Result := ANode.Color
+    else
+      Result := TSvgColor.Create(clBlack32);
+  end else
+    Result := AColor;
+end;
+
 { TSvgPatternPolygonFiller }
 
 procedure TSvgPatternPolygonFiller.BeginRendering;
@@ -1172,7 +1184,7 @@ begin
   // 2. Generate stroke poly-polygon if stroked
   StrokePoints := nil;
   StrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
-  if (StrokeWidth > 0) and ((APathNode.Stroke.ResolvedPaintServer <> nil) or (not APathNode.Stroke.Color.IsNone)) then
+  if (StrokeWidth > 0) and ((APathNode.Stroke.ResolvedPaintServer <> nil) or (not GetEffectiveColor(APathNode, APathNode.Stroke.Color).IsNone)) then
   begin
     MatScale := GetMatrixScale(FTransformation.Matrix);
     StrokeWidth := StrokeWidth * MatScale;
@@ -1202,7 +1214,7 @@ begin
   // 3. Calculate ROI bounding box using PolyPolygonBounds AFTER stroking
   // Collect all output poly-polygons produced and rendered by the polygon node
   SetLength(AllRenderPoints, 0);
-  if (APathNode.Fill.ResolvedPaintServer <> nil) or (not APathNode.Fill.Color.IsNone) then
+  if (APathNode.Fill.ResolvedPaintServer <> nil) or (not GetEffectiveColor(APathNode, APathNode.Fill.Color).IsNone) then
     AllRenderPoints := AllRenderPoints + TransformedPoints;
   if Length(StrokePoints) > 0 then
     AllRenderPoints := AllRenderPoints + StrokePoints;
@@ -1247,10 +1259,10 @@ begin
     end;
     try
       // 5. Fill Rendering
-      RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, APathNode.Fill.Color, APathNode.Fill.FillRule);
+      RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, GetEffectiveColor(APathNode, APathNode.Fill.Color), APathNode.Fill.FillRule);
 
       // 6. Stroke Rendering
-      RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, APathNode.Stroke.Color);
+      RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, GetEffectiveColor(APathNode, APathNode.Stroke.Color));
     finally
       if NeedsOffscreen then
         FTransformation.Pop;
@@ -2893,7 +2905,7 @@ begin
 
         StrokePoints := nil;
         StrokeWidth := PathNode.Stroke.Width.ToPixels(FViewportRect.Width);
-        if (StrokeWidth > 0) and ((PathNode.Stroke.ResolvedPaintServer <> nil) or (not PathNode.Stroke.Color.IsNone)) then
+        if (StrokeWidth > 0) and ((PathNode.Stroke.ResolvedPaintServer <> nil) or (not GetEffectiveColor(PathNode, PathNode.Stroke.Color).IsNone)) then
         begin
           StrokeWidth := StrokeWidth * RenderData.Scale;
           ScaledDashArray := nil;
@@ -2919,7 +2931,7 @@ begin
         end;
 
         SetLength(AllRenderPoints, 0);
-        if (PathNode.Fill.ResolvedPaintServer <> nil) or (not PathNode.Fill.Color.IsNone) then
+        if (PathNode.Fill.ResolvedPaintServer <> nil) or (not GetEffectiveColor(PathNode, PathNode.Fill.Color).IsNone) then
           AllRenderPoints := AllRenderPoints + TransformedPoints;
         if Length(StrokePoints) > 0 then
           AllRenderPoints := AllRenderPoints + StrokePoints;
@@ -3608,11 +3620,11 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     TransformedPts := GetTransformedPoints(APathPoints);
 
     // 1. Fill Rendering
-    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, ANode.Fill.Color, ANode.Fill.FillRule);
+    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, GetEffectiveColor(ANode, ANode.Fill.Color), ANode.Fill.FillRule);
 
     // 2. Stroke Rendering
     StrokeWidth := ANode.Stroke.Width.ToPixels(FViewportRect.Width);
-    if (StrokeWidth > 0) and (CanRenderPolyPolygon(ANode.Stroke.ResolvedPaintServer, TransformedPts, StrokeOpacity, ANode.Stroke.Color)) then
+    if (StrokeWidth > 0) and (CanRenderPolyPolygon(ANode.Stroke.ResolvedPaintServer, TransformedPts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color))) then
     begin
       MatScale := GetMatrixScale(FTransformation.Matrix);
       StrokeWidth := StrokeWidth * MatScale;
@@ -3639,7 +3651,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
       end;
 
-      RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, ANode.Stroke.Color);
+      RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color));
     end;
   end;
 
