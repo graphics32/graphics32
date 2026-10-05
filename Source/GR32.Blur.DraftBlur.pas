@@ -95,7 +95,8 @@ uses
   SysUtils,
   GR32_Blend,
   GR32.Transpose,
-  GR32_Bindings;
+  GR32_Bindings,
+  GR32.Types.SIMD;
 
 type
   TQuadInt = array[0..3] of Integer;
@@ -254,6 +255,474 @@ begin
     pOut[i] := outVal;
   end;
 end;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+//------------------------------------------------------------------------------
+// SIMD 4-channel 32-bit row blur using Alvarez & Mazorra 2nd-order IIR
+// Vectorized across all 4 channels (B, G, R, A) simultaneously in 128-bit XMM
+// registers using SSE4.1 32-bit integer SIMD arithmetic.
+//
+// QScale division is converted into an exact arithmetic right shift (PSRAD)
+// using ShiftCount = BSR(QScale) (8 for QScale=256, 10 for 1024, 12 for 4096).
+// Numeric overflow is prevented because intermediate products (max 255*256*iK
+// ~ 2.67e8 or v1*i2Q ~ 5.34e8) easily fit within 32-bit signed integers
+// (max 2.14e9). Final byte packing uses saturated conversion (PACKUSDW +
+// PACKUSWB).
+//------------------------------------------------------------------------------
+procedure DraftBlurRow32_SSE41(pIn, pOut: PColor32EntryArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PQuadIntArray);
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
+asm
+{$if defined(TARGET_x86)}
+  // Parameters (x86):
+  //   pIn       : EAX
+  //   pOut      : EDX
+  //   Width     : ECX
+  //   iK        : [ESP + 4]
+  //   i2Q       : [ESP + 8]
+  //   iQ2       : [ESP + 12]
+  //   QScale    : [ESP + 16]
+  //   RowBuffer : [ESP + 20]
+
+  TEST      ECX, ECX
+  JLE       @Exit
+
+  PUSH      EBX
+  PUSH      ESI
+  PUSH      EDI
+
+  MOV       ESI, pIn                  // ESI = pIn
+  MOV       EDI, pOut                 // EDI = pOut
+  MOV       EBX, RowBuffer            // EBX = RowBuffer
+
+  // Calculate shift count for division by QScale (QScale = 256, 1024, or 4096)
+  BSR       EAX, QScale
+  MOVD      XMM3, EAX                 // XMM3 = ShiftCount in low 32 bits
+
+  // Broadcast coefficients iK, i2Q, iQ2 to all 4 dwords
+  MOVD      XMM4, iK
+  PSHUFD    XMM4, XMM4, 0             // XMM4 = [iK, iK, iK, iK]
+  MOVD      XMM5, i2Q
+  PSHUFD    XMM5, XMM5, 0             // XMM5 = [i2Q, i2Q, i2Q, i2Q]
+  MOVD      XMM6, iQ2
+  PSHUFD    XMM6, XMM6, 0             // XMM6 = [iQ2, iQ2, iQ2, iQ2]
+
+  // Initialize forward pass boundary values (v1 = v2 = pIn[0] * 256)
+  PMOVZXBD  XMM1, [ESI]               // Zero-extend 4 bytes to 4 dwords
+  PSLLD     XMM1, 8                   // v1 = pIn[0] * 256
+  MOVDQA    XMM2, XMM1                // v2 = v1
+
+  MOV       EAX, ECX                  // Loop counter = Width
+
+@ForwardLoop:
+  // term12 = (v1 * i2Q - v2 * iQ2) div QScale
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  // term0 = (pIn[i] * 256 * iK) div QScale
+  PMOVZXBD  XMM0, [ESI]
+  PSLLD     XMM0, 8
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  // v0 = term0 + term12
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  MOVDQU    [EBX], XMM0               // Store v0 to RowBuffer[i] (MOVDQU for unaligned GetMem buffer safety)
+
+  ADD       ESI, 4
+  ADD       EBX, 16
+  DEC       EAX
+  JNZ       @ForwardLoop
+
+  // Backward pass initialization
+  SUB       EBX, 16                   // Pointer to RowBuffer[Width - 1]
+  LEA       EDI, [EDI + ECX * 4 - 4]  // Pointer to pOut[Width - 1]
+
+  MOVDQU    XMM1, [EBX]               // v1 = RowBuffer[Width - 1]
+  MOVDQA    XMM2, XMM1                // v2 = v1
+
+  MOV       EAX, ECX                  // Loop counter = Width
+
+@BackwardLoop:
+  // term12 = (v1 * i2Q - v2 * iQ2) div QScale
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  // term0 = (RowBuffer[i] * iK) div QScale
+  MOVDQU    XMM0, [EBX]
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  // v0 = term0 + term12
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  // Construct [128, 128, 128, 128] constant in XMM7
+  PCMPEQD   XMM7, XMM7
+  PSRLD     XMM7, 31
+  PSLLD     XMM7, 7                   // XMM7 = [128, 128, 128, 128]
+
+  // Output pixel conversion: valVal = v0 + 128, div 256, saturate to [0..255]
+  PADDD     XMM0, XMM7
+  PSRAD     XMM0, 8
+  PACKUSDW  XMM0, XMM0                // Saturate 32-bit dwords to 16-bit unsigned words
+  PACKUSWB  XMM0, XMM0                // Saturate 16-bit words to 8-bit unsigned bytes
+  MOVD      [EDI], XMM0               // Store 4 bytes to pOut[i]
+
+  SUB       EBX, 16
+  SUB       EDI, 4
+  DEC       EAX
+  JNZ       @BackwardLoop
+
+  POP       EDI
+  POP       ESI
+  POP       EBX
+
+@Exit:
+
+{$elseif defined(TARGET_x64)}
+  // Parameters (x64):
+  //   pIn       : RCX
+  //   pOut      : RDX
+  //   Width     : R8D
+  //   iK        : R9D
+  //   i2Q       : [RSP + 40]
+  //   iQ2       : [RSP + 48]
+  //   QScale    : [RSP + 56]
+  //   RowBuffer : [RSP + 64]
+
+  TEST      R8D, R8D
+  JLE       @Exit
+
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+  .SAVENV XMM6
+  .SAVENV XMM7
+{$ENDIF}
+
+  MOV       R10, RowBuffer            // R10 = RowBuffer
+  MOV       EAX, QScale
+  BSR       EAX, EAX
+  MOVD      XMM3, EAX                 // XMM3 = ShiftCount
+
+  MOVD      XMM4, iK
+  PSHUFD    XMM4, XMM4, 0             // XMM4 = [iK, iK, iK, iK]
+  MOVD      XMM5, i2Q
+  PSHUFD    XMM5, XMM5, 0             // XMM5 = [i2Q, i2Q, i2Q, i2Q]
+  MOVD      XMM6, iQ2
+  PSHUFD    XMM6, XMM6, 0             // XMM6 = [iQ2, iQ2, iQ2, iQ2]
+
+  PMOVZXBD  XMM1, [RCX]
+  PSLLD     XMM1, 8                   // v1 = pIn[0] * 256
+  MOVDQA    XMM2, XMM1                // v2 = v1
+
+  MOV       R11D, R8D                 // Loop counter = Width
+
+@ForwardLoop64:
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  PMOVZXBD  XMM0, [RCX]
+  PSLLD     XMM0, 8
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  MOVDQU    [R10], XMM0
+
+  ADD       RCX, 4
+  ADD       R10, 16
+  DEC       R11D
+  JNZ       @ForwardLoop64
+
+  // Backward pass initialization
+  SUB       R10, 16
+  MOVSXD    RAX, R8D
+  LEA       RDX, [RDX + RAX * 4 - 4]
+
+  MOVDQU    XMM1, [R10]
+  MOVDQA    XMM2, XMM1
+
+  MOV       R11D, R8D
+
+@BackwardLoop64:
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  MOVDQU    XMM0, [R10]
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  PCMPEQD   XMM7, XMM7
+  PSRLD     XMM7, 31
+  PSLLD     XMM7, 7                   // XMM7 = [128, 128, 128, 128]
+
+  PADDD     XMM0, XMM7
+  PSRAD     XMM0, 8
+  PACKUSDW  XMM0, XMM0
+  PACKUSWB  XMM0, XMM0
+  MOVD      [RDX], XMM0
+
+  SUB       R10, 16
+  SUB       RDX, 4
+  DEC       R11D
+  JNZ       @BackwardLoop64
+
+@Exit:
+
+{$else}
+{$message fatal 'Unsupported target'}
+{$ifend}
+
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
+end;
+
+//------------------------------------------------------------------------------
+// SIMD 1-channel 8-bit row blur using Alvarez & Mazorra 2nd-order IIR
+// using SSE4.1 32-bit integer SIMD arithmetic in XMM registers.
+//------------------------------------------------------------------------------
+procedure DraftBlurRow8_SSE41(pIn, pOut: PByteArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PIntArray);
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
+asm
+{$if defined(TARGET_x86)}
+  TEST      ECX, ECX
+  JLE       @Exit
+
+  PUSH      EBX
+  PUSH      ESI
+  PUSH      EDI
+
+  MOV       ESI, pIn
+  MOV       EDI, pOut
+  MOV       EBX, RowBuffer
+
+  BSR       EAX, QScale
+  MOVD      XMM3, EAX
+
+  MOVD      XMM4, iK
+  MOVD      XMM5, i2Q
+  MOVD      XMM6, iQ2
+
+  MOVZX     EAX, BYTE PTR [ESI]
+  MOVD      XMM1, EAX
+  PSLLD     XMM1, 8                   // v1 = pIn[0] * 256
+  MOVDQA    XMM2, XMM1                // v2 = v1
+
+  MOV       EAX, ECX
+
+@ForwardLoop:
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  MOVZX     EDX, BYTE PTR [ESI]
+  MOVD      XMM0, EDX
+  PSLLD     XMM0, 8
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  MOVD      [EBX], XMM0               // Store v0 to RowBuffer[i]
+
+  INC       ESI
+  ADD       EBX, 4
+  DEC       EAX
+  JNZ       @ForwardLoop
+
+  // Backward pass
+  SUB       EBX, 4
+  LEA       EDI, [EDI + ECX - 1]
+
+  MOVD      XMM1, [EBX]
+  MOVDQA    XMM2, XMM1
+
+  MOV       EAX, ECX
+
+@BackwardLoop:
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  MOVD      XMM0, [EBX]
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  PCMPEQD   XMM7, XMM7
+  PSRLD     XMM7, 31
+  PSLLD     XMM7, 7                   // XMM7 = [128, 128, 128, 128]
+
+  PADDD     XMM0, XMM7
+  PSRAD     XMM0, 8
+  PACKUSDW  XMM0, XMM0
+  PACKUSWB  XMM0, XMM0
+  MOVD      EDX, XMM0
+  MOV       [EDI], DL                 // Store 1 byte to pOut[i]
+
+  SUB       EBX, 4
+  DEC       EDI
+  DEC       EAX
+  JNZ       @BackwardLoop
+
+  POP       EDI
+  POP       ESI
+  POP       EBX
+
+@Exit:
+
+{$elseif defined(TARGET_x64)}
+
+  TEST      R8D, R8D
+  JLE       @Exit
+
+{$IFNDEF FPC}
+  .SAVENV XMM4
+  .SAVENV XMM5
+  .SAVENV XMM6
+  .SAVENV XMM7
+{$ENDIF}
+
+  MOV       R10, RowBuffer
+  MOV       EAX, QScale
+  BSR       EAX, EAX
+  MOVD      XMM3, EAX
+
+  MOVD      XMM4, iK
+  MOVD      XMM5, i2Q
+  MOVD      XMM6, iQ2
+
+  MOVZX     EAX, BYTE PTR [RCX]
+  MOVD      XMM1, EAX
+  PSLLD     XMM1, 8                   // v1 = pIn[0] * 256
+  MOVDQA    XMM2, XMM1                // v2 = v1
+
+  MOV       R11D, R8D
+
+@ForwardLoop64:
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  MOVZX     EAX, BYTE PTR [RCX]
+  MOVD      XMM0, EAX
+  PSLLD     XMM0, 8
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  MOVD      [R10], XMM0
+
+  INC       RCX
+  ADD       R10, 4
+  DEC       R11D
+  JNZ       @ForwardLoop64
+
+  // Backward pass
+  SUB       R10, 4
+  MOVSXD    RAX, R8D
+  LEA       RDX, [RDX + RAX - 1]
+
+  MOVD      XMM1, [R10]
+  MOVDQA    XMM2, XMM1
+
+  MOV       R11D, R8D
+
+@BackwardLoop64:
+  MOVDQA    XMM7, XMM1
+  PMULLD    XMM7, XMM5
+  MOVDQA    XMM0, XMM2
+  PMULLD    XMM0, XMM6
+  PSUBD     XMM7, XMM0
+  PSRAD     XMM7, XMM3
+
+  MOVD      XMM0, [R10]
+  PMULLD    XMM0, XMM4
+  PSRAD     XMM0, XMM3
+
+  PADDD     XMM0, XMM7
+
+  MOVDQA    XMM2, XMM1
+  MOVDQA    XMM1, XMM0
+
+  PCMPEQD   XMM7, XMM7
+  PSRLD     XMM7, 31
+  PSLLD     XMM7, 7                   // XMM7 = [128, 128, 128, 128]
+
+  PADDD     XMM0, XMM7
+  PSRAD     XMM0, 8
+  PACKUSDW  XMM0, XMM0
+  PACKUSWB  XMM0, XMM0
+  MOVD      EAX, XMM0
+  MOV       [RDX], AL
+
+  SUB       R10, 4
+  DEC       RDX
+  DEC       R11D
+  JNZ       @BackwardLoop64
+
+@Exit:
+
+{$else}
+{$message fatal 'Unsupported target'}
+{$ifend}
+
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
+end;
+
+{$ifend}
 
 //------------------------------------------------------------------------------
 // Internal 32-bit ARGB Draft Blur Core
@@ -499,6 +968,11 @@ begin
 
   BlurRegistry[@@DraftBlurRow32].Add(@DraftBlurRow32_Pas, [isPascal]).Name := 'DraftBlurRow32_Pas';
   BlurRegistry[@@DraftBlurRow8].Add(@DraftBlurRow8_Pas, [isPascal]).Name := 'DraftBlurRow8_Pas';
+
+  {$IF (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+  BlurRegistry[@@DraftBlurRow32].Add(@DraftBlurRow32_SSE41, [isSSE41]).Name := 'DraftBlurRow32_SSE41';
+  BlurRegistry[@@DraftBlurRow8].Add(@DraftBlurRow8_SSE41, [isSSE41]).Name := 'DraftBlurRow8_SSE41';
+  {$IFEND}
 end;
 
 initialization

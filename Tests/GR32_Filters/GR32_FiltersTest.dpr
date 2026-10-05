@@ -21,7 +21,8 @@ uses
   TestChromaKey in 'TestChromaKey.pas',
   TestCreateBitmask in 'TestCreateBitmask.pas',
   TestApplyBitmask in 'TestApplyBitmask.pas',
-  TestScaleAlphaAndLuminance in 'TestScaleAlphaAndLuminance.pas';
+  TestScaleAlphaAndLuminance in 'TestScaleAlphaAndLuminance.pas',
+  TestDraftBlur in 'TestDraftBlur.pas';
 
 {$R *.RES}
 
