@@ -1876,11 +1876,6 @@ end;
 
 class function TFilterRenderer.ResolveSurface(const AInput: TSvgFilterInput; const RenderData: TFilterRenderData; DefaultFallback: TCustomBitmap32): TCustomBitmap32;
 begin
-  if (DefaultFallback <> nil) then
-    Result := DefaultFallback
-  else
-    Result := RenderData.CurrentSurface;
-
   case AInput.Kind of
     fikSourceGraphic:
       Result := RenderData.SourceGraphic;
@@ -1890,11 +1885,23 @@ begin
 
     fikNamedResult:
       if (AInput.Index >= 0) and (AInput.Index <= High(RenderData.NamedSurfaces)) and (RenderData.NamedSurfaces[AInput.Index] <> nil) then
-        Result := RenderData.NamedSurfaces[AInput.Index];
+        Result := RenderData.NamedSurfaces[AInput.Index]
+      else
+        Result := nil;
+
+    fikPreviousResult:
+      Result := RenderData.CurrentSurface;
+  else
+    Result := nil;
   end;
 
   if (Result = nil) then
-    Result := RenderData.SourceGraphic;
+  begin
+    if (DefaultFallback <> nil) then
+      Result := DefaultFallback
+    else
+      Result := RenderData.SourceGraphic;
+  end;
 end;
 
 //------------------------------------------------------------------------------

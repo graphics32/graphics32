@@ -69,6 +69,7 @@ type
     procedure TestFilterRendering;
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
+    procedure TestFeCompositeDropShadowRendering;
     procedure TestFeDropShadowRendering;
     procedure TestFeDropShadowFilterRegionClipping;
     procedure TestFeDropShadowWithPercentageCoordinates;
@@ -2306,6 +2307,50 @@ begin
       CheckEquals(128, RedComponent(pPixel), 'Arithmetic K2=0.5 of Red (255) should give 128 Red');
     if (Abs(BlueComponent(pPixel) - 128) > 1) then
       CheckEquals(128, BlueComponent(pPixel), 'Arithmetic K3=0.5 of Blue (255) should give 128 Blue');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeCompositeDropShadowRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  shadowPixel: TColor32;
+begin
+  // Test feOffset -> feGaussianBlur -> feFlood -> feComposite (in2 omitted) -> feComposite (SourceGraphic over shadow)
+  xml := '<svg width="100" height="100" viewBox="0 0 100 100">' +
+         '  <defs>' +
+         '    <filter id="f_dropshadow" x="-20%" y="-20%" width="160%" height="160%">' +
+         '      <feOffset dx="10" dy="10"/>' +
+         '      <feGaussianBlur result="blur" stdDeviation="0"/>' +
+         '      <feFlood flood-color="#000000" flood-opacity="1"/>' +
+         '      <feComposite in2="blur" operator="in"/>' +
+         '      <feComposite in="SourceGraphic"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect x="10" y="10" width="30" height="30" fill="red" filter="url(#f_dropshadow)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // SourceGraphic red square is at (10,10)..(40,40)
+    CheckEquals(clRed32, bmp.Pixel[20, 20], 'Original shape at (20,20) should render red');
+
+    // Shadow offset square is at (20,20)..(50,50). At (45,45), shape is absent but shadow is present.
+    shadowPixel := bmp.Pixel[45, 45];
+    CheckEquals(clBlack32, shadowPixel, 'Offset drop shadow at (45,45) should render black');
   finally
     renderer.Free;
     bmp.Free;
