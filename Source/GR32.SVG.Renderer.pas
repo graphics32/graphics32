@@ -165,6 +165,23 @@ type
     property AllowExternalImages: Boolean read FAllowExternalImages write FAllowExternalImages;
   end;
 
+//------------------------------------------------------------------------------
+
+var
+  SvgSystemFonts: record
+    SansSerif: AnsiString;
+    Serif: AnsiString;
+    Monospace: AnsiString;
+  end = (
+    SansSerif:          'Arial';
+    Serif:              'Times New Roman';
+    Monospace:          'Courier New'
+  );
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 implementation
 
 uses
@@ -3642,7 +3659,7 @@ procedure TSvgRenderer.MapFont(const AFontFamily, AWeightStr, AStyleStr: AnsiStr
 var
   Parser: TValuePUtf8Char;
   Token: TValuePUtf8Char;
-  FontFamily: AnsiString;
+  PrimaryCandidate: TValuePUtf8Char;
 begin
   // TODO : Delegate to event
   (*
@@ -3661,77 +3678,88 @@ begin
 
   // Strip surrounding quotes if present
   Parser.TrimQuotes;
+  AFontInfo.FontFamily := '';
+  PrimaryCandidate.Len := 0;
 
-  // Extract first font family candidate if a comma-separated fallback list is provided
-  Token := Parser.Split(',', True);
-  Token.TrimQuotes;
+  while (Parser.Len > 0) and (AFontInfo.FontFamily = '') do
+  begin
 
-  FontFamily := '';
+    // Extract first font family candidate if a comma-separated fallback list is provided
+    Token := Parser.Split(',', True);
+    Token.Trim;
+    Token.TrimQuotes;
 
-  case Token.Len of
-    0:
-      FontFamily := 'Arial';
+    if (Token.Len = 0) then
+      continue;
 
-    4:
-      case Token.Text^ of
-        's', 'S':
-          if Token.CompareText('sans') then
-            FontFamily := 'Arial';
+    if (PrimaryCandidate.Len = 0) then
+      PrimaryCandidate := Token;
 
-        'm', 'M':
-          if Token.CompareText('mono') then
-            FontFamily := 'Courier New';
-      end;
+    case Token.Len of
+      0:
+        AFontInfo.FontFamily := SvgSystemFonts.SansSerif;
 
-    5:
-      case Token.Text^ of
-        's', 'S':
-          if Token.CompareText('serif') then
-            FontFamily := 'Times New Roman';
+      4:
+        case Token.Text^ of
+          's', 'S':
+            if Token.CompareText('sans') then
+              AFontInfo.FontFamily := SvgSystemFonts.SansSerif;
 
-        't', 'T':
-          if Token.CompareText('times') then
-            FontFamily := 'Times New Roman';
+          'm', 'M':
+            if Token.CompareText('mono') then
+              AFontInfo.FontFamily := SvgSystemFonts.Monospace;
+        end;
 
-        'm', 'M':
-          if Token.CompareText('mono') then
-            FontFamily := 'Courier New';
-      end;
+      5:
+        case Token.Text^ of
+          's', 'S':
+            if Token.CompareText('serif') then
+              AFontInfo.FontFamily := SvgSystemFonts.Serif;
 
-    7:
-      case Token.Text^ of
-        'c', 'C':
-          if Token.CompareText('courier') then
-            FontFamily := 'Courier New';
-      end;
+          't', 'T':
+            if Token.CompareText('times') then
+              AFontInfo.FontFamily := SvgSystemFonts.Serif;
+        end;
 
-    9:
-      case Token.Text^ of
-        'n', 'N':
-          if Token.CompareText('noto sans') then
-            FontFamily := 'Arial';
+      7:
+        case Token.Text^ of
+          'c', 'C':
+            if Token.CompareText('courier') then
+              AFontInfo.FontFamily := SvgSystemFonts.Monospace;
+        end;
 
-        'm', 'M':
-          if Token.CompareText('monospace') then
-            FontFamily := 'Courier New';
-      end;
+      9:
+        case Token.Text^ of
+          'n', 'N':
+            if Token.CompareText('noto sans') then
+              AFontInfo.FontFamily := SvgSystemFonts.SansSerif;
 
-    10:
-      case Token.Text[1] of
-        's', 'A':
-          if Token.CompareText('sans-serif') then
-            FontFamily := 'Arial';
+          'm', 'M':
+            if Token.CompareText('monospace') then
+              AFontInfo.FontFamily := SvgSystemFonts.Monospace;
+        end;
 
-        'y', 'Y':
-          if Token.CompareText('system-ui') then
-            FontFamily := 'Arial';
-      end;
+      10:
+        case Token.Text[1] of
+          's', 'A':
+            if Token.CompareText('sans-serif') then
+              AFontInfo.FontFamily := SvgSystemFonts.SansSerif;
+
+          'y', 'Y':
+            if Token.CompareText('system-ui') then
+              AFontInfo.FontFamily := SvgSystemFonts.SansSerif;
+        end;
+    end;
+
   end;
 
-  if (FontFamily = '') then
-    AFontInfo.FontFamily := Token.ToUtf8
-  else
-    AFontInfo.FontFamily := FontFamily;
+  if (AFontInfo.FontFamily = '') then
+  begin
+    if (PrimaryCandidate.Len <> 0) then
+      AFontInfo.FontFamily := PrimaryCandidate.ToUtf8
+    else
+      AFontInfo.FontFamily := SvgSystemFonts.SansSerif;
+  end;
 
   Parser := TValuePUtf8Char.FromString(AWeightStr);
   Parser.Trim;
