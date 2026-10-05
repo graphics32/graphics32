@@ -106,6 +106,14 @@ type
     cmLuminanceToAlpha
   );
 
+  TSvgComponentTransferType = (
+    ctIdentity,
+    ctTable,
+    ctDiscrete,
+    ctLinear,
+    ctGamma
+  );
+
   { TSvgFeatureKeyword defines SVG 1.1/1.2 feature URIs for conditional processing evaluation }
   TSvgFeatureKeyword = (
     fkNone,
@@ -152,6 +160,8 @@ function ParseSvgCompositeOperator(const AName: TValuePUtf8Char): TSvgCompositeO
 function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperator; overload;
 function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType; overload;
 function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType; overload;
+function ParseSvgComponentTransferType(const AName: TValuePUtf8Char): TSvgComponentTransferType; overload;
+function ParseSvgComponentTransferType(const AName: AnsiString): TSvgComponentTransferType; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
 function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload; deprecated;
 
@@ -165,6 +175,7 @@ function SvgBlendModeToString(AMode: TSvgBlendMode): string;
 function SvgIsolationToString(AIsolation: TSvgIsolation): string;
 function SvgCompositeOperatorToString(AOp: TSvgCompositeOperator): string;
 function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
+function ComponentTransferTypeToString(AType: TSvgComponentTransferType): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 
 
@@ -602,6 +613,57 @@ begin
     cmLuminanceToAlpha: Result := 'luminanceToAlpha';
   else
     Result := 'matrix';
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      feComponentTransfer
+//
+//------------------------------------------------------------------------------
+function ParseSvgComponentTransferType(const AName: AnsiString): TSvgComponentTransferType;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgComponentTransferType(Name);
+end;
+
+function ParseSvgComponentTransferType(const AName: TValuePUtf8Char): TSvgComponentTransferType;
+begin
+  Result := ctIdentity;
+  case AName.Len of
+    5:
+      if AName.CompareText('table') then
+        Result := ctTable
+      else
+      if AName.CompareText('gamma') then
+        Result := ctGamma;
+
+    6:
+      if AName.CompareText('linear') then
+        Result := ctLinear;
+
+    8:
+      if AName.CompareText('discrete') then
+        Result := ctDiscrete
+      else
+      if AName.CompareText('identity') then
+        Result := ctIdentity;
+  end;
+end;
+
+function ComponentTransferTypeToString(AType: TSvgComponentTransferType): string;
+begin
+  case AType of
+    ctTable: Result := 'table';
+    ctDiscrete: Result := 'discrete';
+    ctLinear: Result := 'linear';
+    ctGamma: Result := 'gamma';
+  else
+    Result := 'identity';
   end;
 end;
 

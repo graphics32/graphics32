@@ -2570,6 +2570,162 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TFilterRendererComponentTransfer
+//
+//------------------------------------------------------------------------------
+// Renderer for TSvgFeComponentTransferNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererComponentTransfer = class(TFilterRenderer)
+  private
+    class procedure BuildLUT(FuncNode: TSvgFeFuncNode; var LUT: TLUT8);
+  public
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+  end;
+
+class procedure TFilterRendererComponentTransfer.BuildLUT(FuncNode: TSvgFeFuncNode; var LUT: TLUT8);
+var
+  i, n, k: Integer;
+  c, val, t, fIndex: Single;
+  v1, v2: Single;
+begin
+  // Initialize identity lookup table [0..255]
+  for i := 0 to 255 do
+    LUT[i] := i;
+
+  if (FuncNode = nil) then
+    Exit;
+
+  case FuncNode.FuncType of
+    ctIdentity:
+      exit; // Identity; Already done that
+
+    ctTable:
+      begin
+        n := Length(FuncNode.TableValues);
+        if (n = 0) then
+          exit; // Identity; Already done that
+
+        if (n = 1) then
+        begin
+          for i := 0 to 255 do
+            LUT[i] := Clamp(Round(FuncNode.TableValues[0] * 255.0));
+        end else
+        begin
+          for i := 0 to 255 do
+          begin
+            c := i * OneOver255;
+            fIndex := c * (n - 1);
+            k := Trunc(fIndex);
+            if (k >= n - 1) then
+              val := FuncNode.TableValues[n - 1]
+            else
+            begin
+              t := fIndex - k;
+              v1 := FuncNode.TableValues[k];
+              v2 := FuncNode.TableValues[k + 1];
+              val := v1 + t * (v2 - v1);
+            end;
+            LUT[i] := Clamp(Round(val * 255.0));
+          end;
+        end;
+      end;
+
+    ctDiscrete:
+      begin
+        n := Length(FuncNode.TableValues);
+        if (n = 0) then
+          exit; // Identity; Already done that
+
+        for i := 0 to 255 do
+        begin
+          c := i * OneOver255;
+          k := Trunc(c * n);
+          if (k >= n) then
+            k := n - 1;
+          LUT[i] := Clamp(Round(FuncNode.TableValues[k] * 255.0));
+        end;
+      end;
+
+    ctLinear:
+      begin
+        for i := 0 to 255 do
+        begin
+          c := i * OneOver255;
+          val := FuncNode.Slope * c + FuncNode.Intercept;
+          LUT[i] := Clamp(Round(val * 255.0));
+        end;
+      end;
+
+    ctGamma:
+      begin
+        for i := 0 to 255 do
+        begin
+          c := i * OneOver255;
+          val := FuncNode.Amplitude * System.Math.Power(c, FuncNode.Exponent) + FuncNode.Offset;
+          LUT[i] := Clamp(Round(val * 255.0));
+        end;
+      end;
+  end;
+end;
+
+class procedure TFilterRendererComponentTransfer.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  Input: TCustomBitmap32;
+  ChildNode: TSvgNode;
+  FuncR, FuncG, FuncB, FuncA: TSvgFeFuncNode;
+  LutR, LutG, LutB, LutA: TLUT8;
+  i, Count: Integer;
+  pSource, pDest: PColor32Entry;
+begin
+  Input := ResolveSurface(Node.ResolvedIn1, RenderData);
+  if (Input <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+
+  FuncR := nil;
+  FuncG := nil;
+  FuncB := nil;
+  FuncA := nil;
+
+  for ChildNode in Node.Children do
+  begin
+    if ChildNode is TSvgFeFuncRNode then
+      FuncR := TSvgFeFuncRNode(ChildNode)
+    else
+    if ChildNode is TSvgFeFuncGNode then
+      FuncG := TSvgFeFuncGNode(ChildNode)
+    else
+    if ChildNode is TSvgFeFuncBNode then
+      FuncB := TSvgFeFuncBNode(ChildNode)
+    else
+    if ChildNode is TSvgFeFuncANode then
+      FuncA := TSvgFeFuncANode(ChildNode);
+  end;
+
+  BuildLUT(FuncR, LutR);
+  BuildLUT(FuncG, LutG);
+  BuildLUT(FuncB, LutB);
+  BuildLUT(FuncA, LutA);
+
+  Count := Input.PixelCount;
+  pSource := PColor32Entry(Input.Bits);
+  pDest := PColor32Entry(RenderData.CurrentSurface.Bits);
+
+  for i := 0 to Count - 1 do
+  begin
+    pDest.R := LutR[pSource.R];
+    pDest.G := LutG[pSource.G];
+    pDest.B := LutB[pSource.B];
+    pDest.A := LutA[pSource.A];
+    Inc(pSource);
+    Inc(pDest);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+//
 //      TFilterRendererDropShadow
 //
 //------------------------------------------------------------------------------
@@ -3126,6 +3282,9 @@ begin
         else
         if Node is TSvgFeFloodNode then
           TFilterRendererFlood.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
+        else
+        if Node is TSvgFeComponentTransferNode then
+          TFilterRendererComponentTransfer.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         begin
           // Unsupported filter; Keep the current intermediate result and let

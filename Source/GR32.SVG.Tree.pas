@@ -306,7 +306,13 @@ type
     attrRx,
     attrRy,
     attrPoints,
-    attrLetterSpacing
+    attrLetterSpacing,
+    attrTableValues,
+    attrSlope,
+    attrIntercept,
+    attrAmplitude,
+    attrExponent,
+    attrOffset
   );
 
 //------------------------------------------------------------------------------
@@ -854,6 +860,55 @@ type
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
     property FloodColor: TSvgColor read FFloodColor write FFloodColor;
     property FloodOpacity: Single read FFloodOpacity write FFloodOpacity;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeFuncNode
+//
+//------------------------------------------------------------------------------
+// Filter: feFuncR, feFuncG, feFuncB, feFuncA transfer function base node
+//------------------------------------------------------------------------------
+  TSvgFeFuncNode = class(TSvgNode)
+  private
+    FFuncType: TSvgComponentTransferType;
+    FTableValues: TArrayOfFloat;
+    FSlope: Single;
+    FIntercept: Single;
+    FAmplitude: Single;
+    FExponent: Single;
+    FOffset: Single;
+  protected
+    function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property FuncType: TSvgComponentTransferType read FFuncType write FFuncType;
+    property TableValues: TArrayOfFloat read FTableValues write FTableValues;
+    property Slope: Single read FSlope write FSlope;
+    property Intercept: Single read FIntercept write FIntercept;
+    property Amplitude: Single read FAmplitude write FAmplitude;
+    property Exponent: Single read FExponent write FExponent;
+    property Offset: Single read FOffset write FOffset;
+  end;
+
+  TSvgFeFuncRNode = class(TSvgFeFuncNode);
+  TSvgFeFuncGNode = class(TSvgFeFuncNode);
+  TSvgFeFuncBNode = class(TSvgFeFuncNode);
+  TSvgFeFuncANode = class(TSvgFeFuncNode);
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeComponentTransferNode
+//
+//------------------------------------------------------------------------------
+// Filter: feComponentTransfer
+//------------------------------------------------------------------------------
+  TSvgFeComponentTransferNode = class(TSvgFilterPrimitiveNode)
   end;
 
 
@@ -1442,14 +1497,14 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagFedropshadow, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
+    tagFedropshadow, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'image', 'switch', 'text', 'tspan', 'textPath'
+    'feDropShadow', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'image', 'switch', 'text', 'tspan', 'textPath'
   );
 
 var
@@ -1574,7 +1629,13 @@ const
     'rx',
     'ry',
     'points',
-    'letter-spacing'
+    'letter-spacing',
+    'tableValues',
+    'slope',
+    'intercept',
+    'amplitude',
+    'exponent',
+    'offset'
   );
 
 var
@@ -4024,6 +4085,98 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeFuncNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgFeFuncNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FFuncType := ctIdentity;
+  FSlope := 1.0;
+  FIntercept := 0.0;
+  FAmplitude := 1.0;
+  FExponent := 1.0;
+  FOffset := 0.0;
+  FTableValues := nil;
+end;
+
+function TSvgFeFuncNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
+function TSvgFeFuncNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  funcRes: TSvgFeFuncNode;
+begin
+  funcRes := TSvgFeFuncNode(inherited Clone(AParent));
+  funcRes.FFuncType := FFuncType;
+  funcRes.FSlope := FSlope;
+  funcRes.FIntercept := FIntercept;
+  funcRes.FAmplitude := FAmplitude;
+  funcRes.FExponent := FExponent;
+  funcRes.FOffset := FOffset;
+  funcRes.FTableValues := Copy(FTableValues, 0, Length(FTableValues));
+  Result := funcRes;
+end;
+
+procedure TSvgFeFuncNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+var
+  Value, Values: TValuePUtf8Char;
+  i: Integer;
+begin
+  case AKeyword of
+    attrType:
+      FFuncType := ParseSvgComponentTransferType(AValue);
+
+    attrTableValues:
+      begin
+        Values := AValue;
+        Values.Trim;
+        i := 0;
+        while (Values.Len > 0) do
+        begin
+          Value := Values.Split(sListSeparators, True);
+          if (Value.Len = 0) then
+            break;
+
+          if (i > High(FTableValues)) then
+            SetLength(FTableValues, i + 10);
+
+          if (not Value.TryToFloat(FTableValues[i])) then
+            break;
+          Inc(i);
+        end;
+        SetLength(FTableValues, i);
+      end;
+
+    attrSlope:
+      AValue.TryToFloat(FSlope);
+
+    attrIntercept:
+      AValue.TryToFloat(FIntercept);
+
+    attrAmplitude:
+      AValue.TryToFloat(FAmplitude);
+
+    attrExponent:
+      AValue.TryToFloat(FExponent);
+
+    attrOffset:
+      AValue.TryToFloat(FOffset);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
+
+function TSvgFeFuncNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (type=%s)', [ComponentTransferTypeToString(FFuncType)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgFeDropShadowNode
 //
 //------------------------------------------------------------------------------
@@ -6178,6 +6331,36 @@ var
         tagFedropshadow:
           begin
             node := TSvgFeDropShadowNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFecomponenttransfer:
+          begin
+            node := TSvgFeComponentTransferNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFefuncR:
+          begin
+            node := TSvgFeFuncRNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFefuncG:
+          begin
+            node := TSvgFeFuncGNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFefuncB:
+          begin
+            node := TSvgFeFuncBNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFefuncA:
+          begin
+            node := TSvgFeFuncANode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
