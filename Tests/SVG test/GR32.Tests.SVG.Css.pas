@@ -53,6 +53,7 @@ type
     procedure TestCssFontShorthand;
     procedure TestCssCommentsAndCompoundSelectors;
     procedure TestNestedDefsStyle;
+    procedure TestCssCombinatorAndDescendantSelectors;
   end;
 
 implementation
@@ -257,6 +258,53 @@ begin
     resPt := helper.TransformPoint(pt);
     CheckEquals(15.0, resPt.X, 1E-4);
     CheckEquals(25.0, resPt.Y, 1E-4);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgCss.TestCssCombinatorAndDescendantSelectors;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  path1, path2, polyline1, polygon1: TSvgPathNode;
+begin
+  xml := '<svg id="rootDoc" width="200" height="200">' +
+         '  <style>' +
+         '    #rootDoc path { stroke: red; }' +
+         '    #rootDoc > g > path { fill: blue; }' +
+         '    polyline { stroke: green; }' +
+         '    polygon { fill: yellow; }' +
+         '  </style>' +
+         '  <g id="g1">' +
+         '    <path id="p1" d="M0 0 L10 10"/>' +
+         '  </g>' +
+         '  <path id="p2" d="M0 0 L10 10"/>' +
+         '  <polyline id="pl1" points="0,0 10,10 20,20"/>' +
+         '  <polygon id="pg1" points="0,0 10,0 10,10"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    path1 := TSvgPathNode(docNode.FindNodeById('p1'));
+    Check(path1 <> nil, 'p1 should be found');
+    CheckEquals(clRed32, path1.Stroke.Color.Color, 'p1 stroke should be red matched by #rootDoc path');
+    CheckEquals(clBlue32, path1.Fill.Color.Color, 'p1 fill should be blue matched by #rootDoc > g > path');
+
+    path2 := TSvgPathNode(docNode.FindNodeById('p2'));
+    Check(path2 <> nil, 'p2 should be found');
+    CheckEquals(clRed32, path2.Stroke.Color.Color, 'p2 stroke should be red matched by #rootDoc path');
+
+    polyline1 := TSvgPathNode(docNode.FindNodeById('pl1'));
+    Check(polyline1 <> nil, 'pl1 should be found');
+    CheckEquals('polyline', polyline1.ElementTag);
+    CheckEquals(clGreen32, polyline1.Stroke.Color.Color, 'polyline1 stroke should be green matched by polyline rule');
+
+    polygon1 := TSvgPathNode(docNode.FindNodeById('pg1'));
+    Check(polygon1 <> nil, 'pg1 should be found');
+    CheckEquals('polygon', polygon1.ElementTag);
+    CheckEquals(clYellow32, polygon1.Fill.Color.Color, 'polygon1 fill should be yellow matched by polygon rule');
   finally
     docNode.Free;
   end;

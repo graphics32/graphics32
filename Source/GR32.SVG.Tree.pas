@@ -362,6 +362,7 @@ type
   protected
     function GetIsDisplayNone: Boolean;
     function GetIsRenderable: Boolean; virtual;
+    function GetElementTag: AnsiString; virtual;
     function DumpNode(Indent: Integer = 0): string; virtual;
     function DumpChildren(Indent: Integer = 0): string; virtual;
     procedure SetParent(const Value: TSvgNode);
@@ -419,6 +420,7 @@ type
     property RequiredExtensions: AnsiString read FRequiredExtensions write FRequiredExtensions;
     property SystemLanguage: AnsiString read FSystemLanguage write FSystemLanguage;
     property IsRenderable: Boolean read GetIsRenderable;
+    property ElementTag: AnsiString read GetElementTag;
   end;
 
   TSvgNodeClass = class of TSvgNode;
@@ -442,6 +444,7 @@ type
     FTextAnchor: TSvgTextAnchor;
     FLetterSpacing: TSvgLength;
   protected
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
     procedure ParseFontProperty(const AValue: TValuePUtf8Char);
@@ -475,6 +478,8 @@ type
   TSvgSwitchNode = class(TSvgGroupNode)
   private
     FSelectedChild: TSvgNode;
+  protected
+    function GetElementTag: AnsiString; override;
   public
     function GetSelectedChild: TSvgNode;
     function GetObjectBoundingBox: TFloatRect; override;
@@ -589,6 +594,7 @@ type
     FClipPathUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -613,6 +619,7 @@ type
     FMaskContentUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -649,6 +656,7 @@ type
     FHref: AnsiString;
   protected
     function GetIsRenderable: Boolean; override;
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -959,6 +967,7 @@ type
     FPrimitiveUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -995,6 +1004,7 @@ type
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
   protected
     function GetIsRenderable: Boolean; override;
+    function GetElementTag: AnsiString; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -1037,6 +1047,7 @@ type
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
     FNodes: TDictionary<AnsiString, TSvgNode>;
   protected
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
     procedure NodeAdded(ANode: TSvgNode); override;
     procedure NodeRemoved(ANode: TSvgNode); override;
@@ -1072,7 +1083,7 @@ type
 //      TSvgPathNode
 //
 //------------------------------------------------------------------------------
-  TSvgShapeKind = (skPath, skRect, skCircle, skEllipse, skLine);
+  TSvgShapeKind = (skPath, skRect, skCircle, skEllipse, skLine, skPolyline, skPolygon);
 
   TSvgPathNode = class(TSvgNode)
   private type
@@ -1117,6 +1128,7 @@ type
     FPathData: TArrayOfArrayOfFloatPoint;
     function GetPathDataProp: TArrayOfArrayOfFloatPoint;
   protected
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -1135,6 +1147,7 @@ type
 //------------------------------------------------------------------------------
   TSvgDefsNode = class(TSvgGroupNode)
   protected
+    function GetElementTag: AnsiString; override;
     function GetIsRenderable: Boolean; override;
   end;
 
@@ -1153,6 +1166,7 @@ type
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
   protected
+    function GetElementTag: AnsiString; override;
     function GetIsRenderable: Boolean; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
@@ -1192,6 +1206,7 @@ type
     FWidth: TSvgLength;
     FHeight: TSvgLength;
   protected
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -1223,6 +1238,7 @@ type
     FHref: string;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
   protected
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -1287,6 +1303,8 @@ type
 // TSvgTextNode represents the SVG <text> root text container element.
 //------------------------------------------------------------------------------
   TSvgTextNode = class(TSvgTextPositioningNode)
+  protected
+    function GetElementTag: AnsiString; override;
   end;
 
 
@@ -1298,6 +1316,8 @@ type
 // TSvgTSpanNode represents the SVG <tspan> sub-string positioning element.
 //------------------------------------------------------------------------------
   TSvgTSpanNode = class(TSvgTextPositioningNode)
+  protected
+    function GetElementTag: AnsiString; override;
   end;
 
 
@@ -1315,6 +1335,7 @@ type
     FStartOffset: TSvgLength;
     FResolvedPathNode: TSvgPathNode;
   protected
+    function GetElementTag: AnsiString; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -2320,6 +2341,11 @@ begin
   Result := True;
 end;
 
+function TSvgNode.GetElementTag: AnsiString;
+begin
+  Result := '';
+end;
+
 function TSvgNode.CheckRequiredExtensions: Boolean;
 var
   Value: TValuePUtf8Char;
@@ -2446,6 +2472,11 @@ end;
 //      TSvgGroupNode
 //
 //------------------------------------------------------------------------------
+function TSvgGroupNode.GetElementTag: AnsiString;
+begin
+  Result := 'g';
+end;
+
 function TSvgGroupNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
@@ -2795,6 +2826,11 @@ end;
 //      TSvgSwitchNode
 //
 //------------------------------------------------------------------------------
+function TSvgSwitchNode.GetElementTag: AnsiString;
+begin
+  Result := 'switch';
+end;
+
 function TSvgSwitchNode.GetSelectedChild: TSvgNode;
 var
   Child: TSvgNode;
@@ -3394,6 +3430,11 @@ end;
 //      TSvgClipPathNode
 //
 //------------------------------------------------------------------------------
+function TSvgClipPathNode.GetElementTag: AnsiString;
+begin
+  Result := 'clippath';
+end;
+
 function TSvgClipPathNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -3448,6 +3489,11 @@ end;
 //      TSvgMaskNode
 //
 //------------------------------------------------------------------------------
+function TSvgMaskNode.GetElementTag: AnsiString;
+begin
+  Result := 'mask';
+end;
+
 function TSvgMaskNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -3538,6 +3584,11 @@ end;
 //      TSvgPatternNode
 //
 //------------------------------------------------------------------------------
+function TSvgPatternNode.GetElementTag: AnsiString;
+begin
+  Result := 'pattern';
+end;
+
 function TSvgPatternNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -4253,6 +4304,11 @@ end;
 //      TSvgFilterNode
 //
 //------------------------------------------------------------------------------
+function TSvgFilterNode.GetElementTag: AnsiString;
+begin
+  Result := 'filter';
+end;
+
 function TSvgFilterNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -4329,6 +4385,11 @@ end;
 //      TSvgMarkerNode
 //
 //------------------------------------------------------------------------------
+function TSvgMarkerNode.GetElementTag: AnsiString;
+begin
+  Result := 'marker';
+end;
+
 function TSvgMarkerNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -4514,13 +4575,18 @@ begin
   Result := DocRes;
 end;
 
+function TSvgDocumentNode.GetElementTag: AnsiString;
+begin
+  Result := 'svg';
+end;
+
 function TSvgDocumentNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
   Result := Result + Format(' (width=%s, height=%s)', [SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
 end;
 
-function TSvgDocumentNode.FindNodeByID(AID: TValuePUtf8Char): TSvgNode;
+function TSvgDocumentNode.FindNodeById(AID: TValuePUtf8Char): TSvgNode;
 var
   s: AnsiString;
 begin
@@ -5160,7 +5226,7 @@ var
 const
   SqrtHalf: Single = 0.7071067811865; // Sqrt(0.5);
 begin
-  if (FProperties.Kind = skPath) then
+  if (FProperties.Kind in [skPath, skPolyline, skPolygon]) then
     Exit(FPathData);
 
   if (FCachedViewportWidth = AViewportWidth) and (FCachedViewportHeight = AViewportHeight) and (Length(FPathData) > 0) then
@@ -5215,6 +5281,20 @@ begin
   Result := FPathData;
 end;
 
+function TSvgPathNode.GetElementTag: AnsiString;
+begin
+  case FProperties.Kind of
+    skRect: Result := 'rect';
+    skCircle: Result := 'circle';
+    skEllipse: Result := 'ellipse';
+    skLine: Result := 'line';
+    skPolyline: Result := 'polyline';
+    skPolygon: Result := 'polygon';
+  else
+    Result := 'path';
+  end;
+end;
+
 function TSvgPathNode.GetPathDataProp: TArrayOfArrayOfFloatPoint;
 begin
   Result := GetPathData(100.0, 100.0);
@@ -5263,6 +5343,11 @@ end;
 //      TSvgDefsNode
 //
 //------------------------------------------------------------------------------
+function TSvgDefsNode.GetElementTag: AnsiString;
+begin
+  Result := 'defs';
+end;
+
 function TSvgDefsNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -5274,6 +5359,11 @@ end;
 //      TSvgSymbolNode
 //
 //------------------------------------------------------------------------------
+function TSvgSymbolNode.GetElementTag: AnsiString;
+begin
+  Result := 'symbol';
+end;
+
 function TSvgSymbolNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -5449,6 +5539,11 @@ begin
   Result := useRes;
 end;
 
+function TSvgUseNode.GetElementTag: AnsiString;
+begin
+  Result := 'use';
+end;
+
 function TSvgUseNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
@@ -5539,6 +5634,26 @@ begin
   wPx := FWidth.ToPixels;
   hPx := FHeight.ToPixels;
   Result := FloatRect(xPx, yPx, xPx + wPx, yPx + hPx);
+end;
+
+function TSvgImageNode.GetElementTag: AnsiString;
+begin
+  Result := 'image';
+end;
+
+function TSvgTextNode.GetElementTag: AnsiString;
+begin
+  Result := 'text';
+end;
+
+function TSvgTSpanNode.GetElementTag: AnsiString;
+begin
+  Result := 'tspan';
+end;
+
+function TSvgTextPathNode.GetElementTag: AnsiString;
+begin
+  Result := 'textpath';
 end;
 
 function TSvgImageNode.DumpNode(Indent: Integer): string;
@@ -6407,6 +6522,10 @@ var
         tagPolyline, tagPolygon:
           begin
             node := TSvgPathNode.Create(AParent);
+            if tagKeyword = tagPolyline then
+              TSvgPathNode(node).ShapeKind := skPolyline
+            else
+              TSvgPathNode(node).ShapeKind := skPolygon;
             Points.Len := 0;
             while AParser.ParseNext = xtAttribute do
             begin

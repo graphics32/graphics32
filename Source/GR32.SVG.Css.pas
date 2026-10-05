@@ -80,6 +80,19 @@ uses
 
 type
   TSvgCssSelectorKind = (skUniversal, skElement, skClass, skId, skCompound);
+  TSvgCssCombinator = (coNone, coDescendant, coChild);
+
+  TSvgCssSelectorComponent = record
+    Kind: TSvgCssSelectorKind;
+    ElementTag: AnsiString;
+    ClassName: AnsiString;
+    Id: AnsiString;
+    Name: AnsiString;
+    Specificity: Integer;
+    Combinator: TSvgCssCombinator;
+    function MatchesSimple(const AElementTag, AClassName, AElementId: AnsiString): Boolean; overload;
+    function MatchesSimple(ANode: TSvgNode): Boolean; overload;
+  end;
 
 //------------------------------------------------------------------------------
 //
@@ -90,13 +103,10 @@ type
 //------------------------------------------------------------------------------
 type
   TSvgCssSelector = record
-    Kind: TSvgCssSelectorKind;
-    ElementTag: AnsiString;
-    ClassName: AnsiString;
-    Id: AnsiString;
-    Name: AnsiString;
+    Chain: TArray<TSvgCssSelectorComponent>;
     Specificity: Integer;
-    function Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean;
+    function Matches(ANode: TSvgNode): Boolean; overload;
+    function Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean; overload;
     class function Parse(Value: TValuePUtf8Char): TSvgCssSelector; static;
   end;
 
@@ -211,88 +221,9 @@ end;
 //      TSvgCssSelector
 //
 //------------------------------------------------------------------------------
-class function TSvgCssSelector.Parse(Value: TValuePUtf8Char): TSvgCssSelector;
+function TSvgCssSelectorComponent.MatchesSimple(const AElementTag, AClassName, AElementId: AnsiString): Boolean;
 var
-  Part: TValuePUtf8Char;
-  Ch: AnsiChar;
-begin
-  Value.Trim;
-  Value.TrimEnd;
-
-  Result.Kind := skUniversal;
-  Result.ElementTag := '';
-  Result.ClassName := '';
-  Result.Id := '';
-  Result.Name := '';
-  Result.Specificity := 0;
-
-  if (Value.Len = 0) or ((Value.Len = 1) and (Value.Text^ = '*')) then
-    Exit;
-
-  if (Value.Text^ = '#') then
-  begin
-    Result.Kind := skId;
-    SetString(Result.Id, Value.Text + 1, Value.Len - 1);
-    Result.Name := Result.Id;
-    Result.Specificity := 100;
-  end else
-
-  if (Value.Text^ = '.') then
-  begin
-    Result.Kind := skClass;
-    SetString(Result.ClassName, Value.Text + 1, Value.Len - 1);
-    Result.Name := Result.ClassName;
-    Result.Specificity := 10;
-  end else
-
-  begin
-    Part := Value.Split(['.', '#'], False);
-    if (Part.Len > 0) then
-    begin
-      Result.ElementTag := AnsiStrings.LowerCase(Part.ToUtf8);
-      Inc(Result.Specificity, 1);
-    end;
-
-    while (Value.Len > 0) do
-    begin
-      Ch := Value.Text^;
-      Value.Skip(1);
-      Part := Value.Split(['.', '#'], False);
-      if (Ch = '.') then
-      begin
-        if (Result.ClassName <> '') then
-          Result.ClassName := Result.ClassName + ' ' + Part.ToUtf8
-        else
-          Result.ClassName := Part.ToUtf8;
-        Inc(Result.Specificity, 10);
-      end else
-      if (Ch = '#') then
-      begin
-        Result.Id := Part.ToUtf8;
-        Inc(Result.Specificity, 100);
-      end;
-    end;
-
-    if (Result.ClassName <> '') or (Result.Id <> '') then
-    begin
-      Result.Kind := skCompound;
-      if (Result.Id <> '') then
-        Result.Name := Result.Id
-      else
-        Result.Name := Result.ClassName;
-    end else
-    begin
-      Result.Kind := skElement;
-      Result.Name := Result.ElementTag;
-    end;
-  end;
-end;
-
-//------------------------------------------------------------------------------
-
-function TSvgCssSelector.Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean;
-var
-  Value: TValuePUtf8Char;
+  TagVal: TValuePUtf8Char;
 begin
   case Kind of
     skUniversal:
@@ -300,9 +231,9 @@ begin
 
     skElement:
       begin
-        Value := AElementTag;
-        Value.Trim;
-        Exit(Value.CompareText(Name));
+        TagVal := TValuePUtf8Char.FromString(AElementTag);
+        TagVal.Trim;
+        Exit(TagVal.CompareText(Name));
       end;
 
     skClass:
@@ -310,26 +241,26 @@ begin
 
     skId:
       begin
-        Value := TValuePUtf8Char.FromString(AElementId);
-        Value.Trim;
-        Exit(Value.CompareText(Name));
+        TagVal := TValuePUtf8Char.FromString(AElementId);
+        TagVal.Trim;
+        Exit(TagVal.CompareText(Name));
       end;
 
     skCompound:
       begin
         if (ElementTag <> '') then
         begin
-          Value := AElementTag;
-          Value.Trim;
-          if not Value.CompareText(ElementTag) then
+          TagVal := TValuePUtf8Char.FromString(AElementTag);
+          TagVal.Trim;
+          if not TagVal.CompareText(ElementTag) then
             Exit(False);
         end;
 
         if (Id <> '') then
         begin
-          Value := TValuePUtf8Char.FromString(AElementId);
-          Value.Trim;
-          if not Value.CompareText(Id) then
+          TagVal := TValuePUtf8Char.FromString(AElementId);
+          TagVal.Trim;
+          if not TagVal.CompareText(Id) then
             Exit(False);
         end;
 
@@ -344,6 +275,203 @@ begin
   else
     Result := False;
   end;
+end;
+
+function TSvgCssSelectorComponent.MatchesSimple(ANode: TSvgNode): Boolean;
+begin
+  if ANode = nil then
+    Exit(False);
+  Result := MatchesSimple(ANode.ElementTag, ANode.CssClassName, ANode.ID);
+end;
+
+//------------------------------------------------------------------------------
+
+class function TSvgCssSelector.Parse(Value: TValuePUtf8Char): TSvgCssSelector;
+
+  procedure ParseComponent(CompStr: TValuePUtf8Char; var Comp: TSvgCssSelectorComponent);
+  var
+    Part: TValuePUtf8Char;
+    Ch: AnsiChar;
+  begin
+    CompStr.Trim;
+    CompStr.TrimEnd;
+
+    Comp.Kind := skUniversal;
+    Comp.ElementTag := '';
+    Comp.ClassName := '';
+    Comp.Id := '';
+    Comp.Name := '';
+    Comp.Specificity := 0;
+
+    if (CompStr.Len = 0) or ((CompStr.Len = 1) and (CompStr.Text^ = '*')) then
+      Exit;
+
+    if (CompStr.Text^ = '#') then
+    begin
+      Comp.Kind := skId;
+      SetString(Comp.Id, CompStr.Text + 1, CompStr.Len - 1);
+      Comp.Name := Comp.Id;
+      Comp.Specificity := 100;
+    end else
+
+    if (CompStr.Text^ = '.') then
+    begin
+      Comp.Kind := skClass;
+      SetString(Comp.ClassName, CompStr.Text + 1, CompStr.Len - 1);
+      Comp.Name := Comp.ClassName;
+      Comp.Specificity := 10;
+    end else
+
+    begin
+      Part := CompStr.Split(['.', '#'], False);
+      if (Part.Len > 0) then
+      begin
+        Comp.ElementTag := AnsiStrings.LowerCase(Part.ToUtf8);
+        Inc(Comp.Specificity, 1);
+      end;
+
+      while (CompStr.Len > 0) do
+      begin
+        Ch := CompStr.Text^;
+        CompStr.Skip(1);
+        Part := CompStr.Split(['.', '#'], False);
+        if (Ch = '.') then
+        begin
+          if (Comp.ClassName <> '') then
+            Comp.ClassName := Comp.ClassName + ' ' + Part.ToUtf8
+          else
+            Comp.ClassName := Part.ToUtf8;
+          Inc(Comp.Specificity, 10);
+        end else
+        if (Ch = '#') then
+        begin
+          Comp.Id := Part.ToUtf8;
+          Inc(Comp.Specificity, 100);
+        end;
+      end;
+
+      if (Comp.ClassName <> '') or (Comp.Id <> '') then
+      begin
+        Comp.Kind := skCompound;
+        if (Comp.Id <> '') then
+          Comp.Name := Comp.Id
+        else
+          Comp.Name := Comp.ClassName;
+      end else
+      begin
+        Comp.Kind := skElement;
+        Comp.Name := Comp.ElementTag;
+      end;
+    end;
+  end;
+
+var
+  Token: TValuePUtf8Char;
+  Comp: TSvgCssSelectorComponent;
+  NextCombinator, CurrentCombinator: TSvgCssCombinator;
+  Count: Integer;
+  pStart: PUtf8Char;
+begin
+  Value.Trim;
+  Value.TrimEnd;
+
+  Result.Specificity := 0;
+
+  if Value.Len = 0 then
+    Exit;
+
+  CurrentCombinator := coNone;
+  Count := 0;
+
+  while (Value.Len > 0) do
+  begin
+    Value.Trim;
+    if Value.Len = 0 then
+      Break;
+
+    pStart := Value.Text;
+    Value.SkipUntil([#9, #10, #13, ' ', '>'], False);
+
+    Token.Text := pStart;
+    Token.Len := PtrInt(Value.Text - pStart);
+
+    NextCombinator := coDescendant;
+    Value.Trim;
+    if (Value.Len > 0) and (Value.Text^ = '>') then
+    begin
+      NextCombinator := coChild;
+      Value.Skip;
+      Value.Trim;
+    end;
+
+    if (Token.Len > 0) then
+    begin
+      ParseComponent(Token, Comp);
+      Comp.Combinator := CurrentCombinator;
+
+      SetLength(Result.Chain, Count + 1); // Assume there are ony one or two; Not worth it oversizing
+      Result.Chain[Count] := Comp;
+      Inc(Count);
+      Inc(Result.Specificity, Comp.Specificity);
+    end;
+
+    CurrentCombinator := NextCombinator;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+function TSvgCssSelector.Matches(ANode: TSvgNode): Boolean;
+
+  function MatchChain(Node: TSvgNode; Index: Integer): Boolean;
+  var
+    p: TSvgNode;
+  begin
+    if Index < 0 then
+      Exit(True);
+
+    if Node = nil then
+      Exit(False);
+
+    if not Chain[Index].MatchesSimple(Node) then
+      Exit(False);
+
+    if Index = 0 then
+      Exit(True);
+
+    case Chain[Index].Combinator of
+      coChild:
+        Exit(MatchChain(Node.Parent, Index - 1));
+
+      coDescendant:
+        begin
+          p := Node.Parent;
+          while p <> nil do
+          begin
+            if MatchChain(p, Index - 1) then
+              Exit(True);
+            p := p.Parent;
+          end;
+          Exit(False);
+        end;
+    else
+      Exit(False);
+    end;
+  end;
+
+begin
+  if (ANode = nil) or (Length(Chain) = 0) then
+    Exit(False);
+
+  Result := MatchChain(ANode, High(Chain));
+end;
+
+function TSvgCssSelector.Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean;
+begin
+  if Length(Chain) = 0 then
+    Exit(False);
+
+  Result := Chain[High(Chain)].MatchesSimple(AElementTag.ToUtf8, AClassName, AElementId);
 end;
 
 
@@ -575,7 +703,10 @@ begin
   try
     for Rule in FRules do
     begin
-      if Rule.Selector.Matches(AElementTag, AClassName, AElementId) then
+      if Rule.Selector.Matches(ANode) then
+        MatchingRules.Add(Rule)
+      else
+      if (ANode = nil) and Rule.Selector.Matches(AElementTag, AClassName, AElementId) then
         MatchingRules.Add(Rule);
     end;
 
