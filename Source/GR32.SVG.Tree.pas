@@ -365,7 +365,7 @@ type
     constructor Create(AParent: TSvgNode = nil); virtual;
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; virtual;
-    function FindNodeById(const AID: AnsiString): TSvgNode; virtual;
+    function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; virtual;
     procedure Render(ACanvas: TObject); virtual;
     function GetObjectBoundingBox: TFloatRect; virtual;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; virtual;
@@ -971,6 +971,8 @@ type
 //------------------------------------------------------------------------------
   TSvgDocumentNode = class(TSvgGroupNode)
   private
+    FX: TSvgLength;
+    FY: TSvgLength;
     FWidth: TSvgLength;
     FHeight: TSvgLength;
     FViewBox: TSvgViewBox;
@@ -996,9 +998,10 @@ type
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    function FindNodeByID(const AID: AnsiString): TSvgNode; overload; override;
-    function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; reintroduce; overload;
+    function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; override;
     procedure Resolve;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
     property ViewBox: TSvgViewBox read FViewBox write FViewBox;
@@ -1940,13 +1943,13 @@ end;
 procedure TSvgNode.NodeRemoved(ANode: TSvgNode);
 begin
   if (FParent <> nil) then
-    FParent.NodeAdded(ANode);
+    FParent.NodeRemoved(ANode);
 end;
 
-function TSvgNode.FindNodeById(const AID: AnsiString): TSvgNode;
+function TSvgNode.FindNodeByID(AID: TValuePUtf8Char): TSvgNode;
 begin
   if (Parent <> nil) then
-    Result := FindNodeById(AID)
+    Result := Parent.FindNodeByID(AID)
   else
     Result := nil;
 end;
@@ -4314,6 +4317,8 @@ end;
 constructor TSvgDocumentNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
+  FX := TSvgLength.Create(0.0, suPx);
+  FY := TSvgLength.Create(0.0, suPx);
   FWidth := TSvgLength.Create(100.0, suPercent);
   FHeight := TSvgLength.Create(100.0, suPercent);
   FViewBox.IsDefined := False;
@@ -4334,6 +4339,8 @@ var
   DocRes: TSvgDocumentNode;
 begin
   DocRes := TSvgDocumentNode(inherited Clone(AParent));
+  DocRes.FX := FX;
+  DocRes.FY := FY;
   DocRes.FWidth := FWidth;
   DocRes.FHeight := FHeight;
   DocRes.FViewBox := FViewBox;
@@ -4354,20 +4361,8 @@ begin
   AID.Trim('#');
   s := AID.ToUtf8;
 
-  if (not FNodes.TryGetValue(s, Result)) then
-    Result := nil;
-end;
-
-function TSvgDocumentNode.FindNodeByID(const AID: AnsiString): TSvgNode;
-var
-  s: AnsiString;
-begin
-  s := AID;
-  if (s[1] = '#') then
-    Delete(s, 1, 1);
-
-  if (not FNodes.TryGetValue(s, Result)) then
-    Result := nil;
+  if not FNodes.TryGetValue(s, Result) then
+    Result := inherited;
 end;
 
 procedure TSvgDocumentNode.NodeAdded(ANode: TSvgNode);
@@ -4451,7 +4446,7 @@ const
           // Strip leading '#' from element ID reference if present
           ID.Trim('#');
 
-          TargetNode := FindNodeByID(ID);
+          TargetNode := UseNode.FindNodeById(ID);
           // W3C SVG Circular Reference Prevention:
           // Only clone target if TargetNode exists and is not currently being resolved (O(1), zero-allocation)
           if (TargetNode <> nil) and not TargetNode.FResolving then
@@ -4501,7 +4496,7 @@ procedure TSvgDocumentNode.ResolveGradients;
 
     AGradientNode.FResolving := True;
     try
-      ParentTarget := FindNodeById(AGradientNode.Href);
+      ParentTarget := AGradientNode.FindNodeByID(TValuePUtf8Char.FromString(AGradientNode.Href));
 
       if (ParentTarget is TSvgGradientNode) then
       begin
@@ -4562,7 +4557,7 @@ procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
     if (ANode.ClipPathID <> '') then
     begin
       ID := ExtractUrlID(ANode.ClipPathID);
-      TargetNode := FindNodeByID(ID);
+      TargetNode := ANode.FindNodeById(ID);
       if TargetNode is TSvgClipPathNode then
         ANode.ResolvedClipPath := TSvgClipPathNode(TargetNode);
     end;
@@ -4570,7 +4565,7 @@ procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
     if (ANode.MaskID <> '') then
     begin
       ID := ExtractUrlID(ANode.MaskID);
-      TargetNode := FindNodeByID(ID);
+      TargetNode := ANode.FindNodeById(ID);
       if TargetNode is TSvgMaskNode then
         ANode.ResolvedMask := TSvgMaskNode(TargetNode);
     end;
@@ -4751,7 +4746,7 @@ type
     if (ANode.FilterID <> '') then
     begin
       ID := ExtractUrlID(ANode.FilterID);
-      TargetNode := FindNodeByID(ID);
+      TargetNode := ANode.FindNodeById(ID);
 
       if (TargetNode is TSvgFilterNode) then
       begin
@@ -4789,7 +4784,7 @@ procedure TSvgDocumentNode.ResolvePaintServers;
     if ANode.Fill.Url <> '' then
     begin
       ID := ExtractUrlID(ANode.Fill.Url);
-      TargetNode := FindNodeByID(ID);
+      TargetNode := ANode.FindNodeById(ID);
       if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
       begin
         FillRef := ANode.Fill;
@@ -4801,7 +4796,7 @@ procedure TSvgDocumentNode.ResolvePaintServers;
     if ANode.Stroke.Url <> '' then
     begin
       ID := ExtractUrlID(ANode.Stroke.Url);
-      TargetNode := FindNodeByID(ID);
+      TargetNode := ANode.FindNodeById(ID);
       if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
       begin
         StrokeStruct := ANode.Stroke;
@@ -4836,7 +4831,7 @@ procedure TSvgDocumentNode.ResolveMarkers;
     if ANode.MarkerStart <> '' then
     begin
       ID := ExtractUrlID(ANode.MarkerStart);
-      TargetNode := FindNodeByID(ID);
+      TargetNode := ANode.FindNodeById(ID);
       if TargetNode is TSvgMarkerNode then
         ANode.ResolvedMarkerStart := TSvgMarkerNode(TargetNode);
     end;
@@ -4844,7 +4839,7 @@ procedure TSvgDocumentNode.ResolveMarkers;
     if ANode.MarkerMid <> '' then
     begin
       ID := ExtractUrlID(ANode.MarkerMid);
-      TargetNode := FindNodeById(ID);
+      TargetNode := ANode.FindNodeByID(ID);
       if TargetNode is TSvgMarkerNode then
         ANode.ResolvedMarkerMid := TSvgMarkerNode(TargetNode);
     end;
@@ -4852,7 +4847,7 @@ procedure TSvgDocumentNode.ResolveMarkers;
     if ANode.MarkerEnd <> '' then
     begin
       ID := ExtractUrlID(ANode.MarkerEnd);
-      TargetNode := FindNodeById(ID);
+      TargetNode := ANode.FindNodeByID(ID);
       if TargetNode is TSvgMarkerNode then
         ANode.ResolvedMarkerEnd := TSvgMarkerNode(TargetNode);
     end;
@@ -4890,7 +4885,7 @@ procedure TSvgDocumentNode.ResolveTextPaths;
       if (TextPathNode.Href <> '') then
       begin
         ID := ExtractUrlID(TextPathNode.Href);
-        TargetNode := FindNodeById(ID);
+        TargetNode := TextPathNode.FindNodeByID(ID);
         if TargetNode is TSvgPathNode then
           TextPathNode.ResolvedPathNode := TSvgPathNode(TargetNode);
       end;
@@ -4920,7 +4915,7 @@ procedure TSvgDocumentNode.ResolvePatterns;
 
     APat.FResolving := True;
     try
-      ParentTarget := FindNodeById(APat.Href);
+      ParentTarget := APat.FindNodeByID(TValuePUtf8Char.FromString(APat.Href));
       if ParentTarget is TSvgPatternNode then
       begin
         TargetPatternNode := TSvgPatternNode(ParentTarget);
@@ -4956,6 +4951,12 @@ end;
 procedure TSvgDocumentNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
   case AKeyword of
+    attrX:
+      FX := TSvgLength.Parse(AValue);
+
+    attrY:
+      FY := TSvgLength.Parse(AValue);
+
     attrWidth:
       FWidth := TSvgLength.Parse(AValue);
 

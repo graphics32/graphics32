@@ -70,6 +70,8 @@ type
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
     procedure TestFeCompositeDropShadowRendering;
+    procedure TestFeComponentTransferRendering;
+    procedure TestNestedSvgViewportComponentTransfer;
     procedure TestFeDropShadowRendering;
     procedure TestFeDropShadowFilterRegionClipping;
     procedure TestFeDropShadowWithPercentageCoordinates;
@@ -2351,6 +2353,140 @@ begin
     // Shadow offset square is at (20,20)..(50,50). At (45,45), shape is absent but shadow is present.
     shadowPixel := bmp.Pixel[45, 45];
     CheckEquals(clBlack32, shadowPixel, 'Offset drop shadow at (45,45) should render black');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeComponentTransferRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pixel: TColor32;
+begin
+  // Test feComponentTransfer with linear and table functions
+  xml := '<svg width="10" height="10">' +
+         '  <defs>' +
+         '    <filter id="f_ct">' +
+         '      <feComponentTransfer>' +
+         '        <feFuncR type="linear" slope="0.5" intercept="0"/>' +
+         '        <feFuncG type="table" tableValues="1 0"/>' +
+         '        <feFuncB type="discrete" tableValues="0 1"/>' +
+         '      </feComponentTransfer>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect width="10" height="10" fill="rgb(200,255,0)" filter="url(#f_ct)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(10, 10);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    pixel := bmp.Pixel[5, 5];
+    // R: 200 * 0.5 = 100
+    CheckEquals(100, RedComponent(pixel), 'Red channel should be scaled by slope 0.5 to 100');
+    // G: table "1 0" inverts 255 (1.0) to 0 (0.0)
+    CheckEquals(0, GreenComponent(pixel), 'Green channel 255 inverted via table "1 0" should be 0');
+    // B: discrete "0 1" for 0 maps to index 0 -> 0
+    CheckEquals(0, BlueComponent(pixel), 'Blue channel 0 mapped via discrete "0 1" should be 0');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestNestedSvgViewportComponentTransfer;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pIdentity, pTable, pLinear, pGamma: TColor32;
+begin
+  // Test nested <svg> element with viewBox, linearGradient, and feComponentTransfer (identity, table, linear, gamma)
+  xml := '<svg width="480" height="360" viewBox="0 0 480 360">' +
+         '  <g>' +
+         '    <svg x="15" y="5" width="450" height="300" viewBox="0 0 630 420">' +
+         '      <defs>' +
+         '        <linearGradient id="MyGrad" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="590" y2="0">' +
+         '          <stop offset="0" stop-color="#ff0000"/>' +
+         '          <stop offset="0.33" stop-color="#00ff00"/>' +
+         '          <stop offset="0.67" stop-color="#0000ff"/>' +
+         '          <stop offset="1" stop-color="#000000"/>' +
+         '        </linearGradient>' +
+         '        <filter id="Identity">' +
+         '          <feComponentTransfer>' +
+         '            <feFuncR type="identity"/>' +
+         '            <feFuncG type="identity"/>' +
+         '            <feFuncB type="identity"/>' +
+         '            <feFuncA type="identity"/>' +
+         '          </feComponentTransfer>' +
+         '        </filter>' +
+         '        <filter id="Table">' +
+         '          <feComponentTransfer>' +
+         '            <feFuncR type="table" tableValues="0 0 1 1"/>' +
+         '            <feFuncG type="table" tableValues="1 1 0 0"/>' +
+         '            <feFuncB type="table" tableValues="0 1 1 0"/>' +
+         '          </feComponentTransfer>' +
+         '        </filter>' +
+         '        <filter id="Linear">' +
+         '          <feComponentTransfer>' +
+         '            <feFuncR type="linear" slope="0.5" intercept="0.25"/>' +
+         '            <feFuncG type="linear" slope="0.5" intercept="0"/>' +
+         '            <feFuncB type="linear" slope="0.5" intercept="0.5"/>' +
+         '          </feComponentTransfer>' +
+         '        </filter>' +
+         '        <filter id="Gamma">' +
+         '          <feComponentTransfer>' +
+         '            <feFuncR type="gamma" amplitude="2" exponent="5" offset="0"/>' +
+         '            <feFuncG type="gamma" amplitude="2" exponent="3" offset="0"/>' +
+         '            <feFuncB type="gamma" amplitude="2" exponent="1" offset="0"/>' +
+         '          </feComponentTransfer>' +
+         '        </filter>' +
+         '      </defs>' +
+         '      <rect x="10" y="10" width="580" height="40" fill="url(#MyGrad)" filter="url(#Identity)"/>' +
+         '      <rect x="10" y="110" width="580" height="40" fill="url(#MyGrad)" filter="url(#Table)"/>' +
+         '      <rect x="10" y="210" width="580" height="40" fill="url(#MyGrad)" filter="url(#Linear)"/>' +
+         '      <rect x="10" y="310" width="580" height="40" fill="url(#MyGrad)" filter="url(#Gamma)"/>' +
+         '    </svg>' +
+         '  </g>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(480, 360);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Inner <svg> (x=15, y=5, w=450, h=300, viewBox=630x420) scales 450/630 = 0.714
+    // Rect 1 (Identity): x=10..590, y=10..50 -> screen x=22..428, y=12..40
+    pIdentity := bmp.Pixel[25, 25];
+    Check(RedComponent(pIdentity) > 200, 'Identity rect at left edge should render red gradient start');
+
+    // Rect 2 (Table): y=110..150 -> screen y=83..112
+    pTable := bmp.Pixel[25, 95];
+    Check(AlphaComponent(pTable) > 200, 'Table rect should be rendered with valid alpha');
+
+    // Rect 3 (Linear): y=210..250 -> screen y=155..183
+    pLinear := bmp.Pixel[25, 170];
+    Check(AlphaComponent(pLinear) > 200, 'Linear rect should be rendered with valid alpha');
+
+    // Rect 4 (Gamma): y=310..350 -> screen y=226..255
+    pGamma := bmp.Pixel[25, 240];
+    Check(AlphaComponent(pGamma) > 200, 'Gamma rect should be rendered with valid alpha');
   finally
     renderer.Free;
     bmp.Free;

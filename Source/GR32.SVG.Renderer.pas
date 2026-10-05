@@ -1628,8 +1628,74 @@ begin
 end;
 
 procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgGroupNode);
+
+  procedure RenderChildren(ATargetSurface: TCustomBitmap32);
+  var
+    DocNode: TSvgDocumentNode;
+    DocW, DocH, DocX, DocY: Single;
+    DocViewBox: TSvgViewBox;
+    DocVpMat: TFloatMatrix;
+    DocTargetRect, SavedViewport: TFloatRect;
+    i: Integer;
+  begin
+    if (AGroupNode is TSvgDocumentNode) and (AGroupNode <> FDocumentRoot) then
+    begin
+
+      DocNode := TSvgDocumentNode(AGroupNode);
+
+      DocW := DocNode.Width.ToPixels(FViewportRect.Width);
+      DocH := DocNode.Height.ToPixels(FViewportRect.Height);
+      DocX := DocNode.X.ToPixels(FViewportRect.Width);
+      DocY := DocNode.Y.ToPixels(FViewportRect.Height);
+
+      DocTargetRect := FloatRect(DocX, DocY, DocX + DocW, DocY + DocH);
+
+      DocViewBox := DocNode.ViewBox;
+      if not DocViewBox.IsValid then
+      begin
+        if (DocW > 0) and (DocH > 0) then
+          DocViewBox := TSvgViewBox.Create(0, 0, DocW, DocH)
+        else
+          DocViewBox := TSvgViewBox.Create(0, 0, FViewportRect.Width, FViewportRect.Height);
+      end;
+
+      DocVpMat := DocViewBox.GetTransform(DocTargetRect, DocNode.PreserveAspectRatio);
+
+      SavedViewport := FViewportRect;
+      FViewportRect := FloatRect(DocViewBox.X, DocViewBox.Y, DocViewBox.X + DocViewBox.Width, DocViewBox.Y + DocViewBox.Height);
+      try
+        FTransformation.Push;
+        try
+          ApplyMatrix(DocVpMat);
+
+          for i := 0 to DocNode.Children.Count - 1 do
+            RenderNode(ATargetSurface, DocNode.Children[i]);
+
+        finally
+          FTransformation.Pop;
+        end;
+      finally
+        FViewportRect := SavedViewport;
+      end;
+
+    end else
+    if AGroupNode is TSvgSwitchNode then
+    begin
+
+      if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
+        RenderNode(ATargetSurface, TSvgSwitchNode(AGroupNode).SelectedChild);
+
+    end else
+    begin
+
+      for i := 0 to AGroupNode.Children.Count - 1 do
+        RenderNode(ATargetSurface, AGroupNode.Children[i]);
+
+    end;
+  end;
+
 var
-  i, k: Integer;
+  k: Integer;
   OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
   ClipNodeTarget: TSvgClipPathNode;
   MaskNodeTarget: TSvgMaskNode;
@@ -1700,15 +1766,7 @@ begin
       try
         FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
 
-        if AGroupNode is TSvgSwitchNode then
-        begin
-          if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
-            RenderNode(OffscreenBmp, TSvgSwitchNode(AGroupNode).SelectedChild);
-        end else
-        begin
-          for i := 0 to AGroupNode.Children.Count - 1 do
-            RenderNode(OffscreenBmp, AGroupNode.Children[i]);
-        end;
+        RenderChildren(OffscreenBmp);
       finally
         FTransformation.Pop;
       end;
@@ -1805,15 +1863,7 @@ begin
     Exit;
   end;
 
-  if AGroupNode is TSvgSwitchNode then
-  begin
-    if (TSvgSwitchNode(AGroupNode).SelectedChild <> nil) then
-      RenderNode(ATarget, TSvgSwitchNode(AGroupNode).SelectedChild);
-  end else
-  begin
-    for i := 0 to AGroupNode.Children.Count - 1 do
-      RenderNode(ATarget, AGroupNode.Children[i]);
-  end;
+  RenderChildren(ATarget);
 end;
 
 procedure TSvgRenderer.VerticalBlur32(ASource, ADest: TCustomBitmap32; ARadius: TFloat);
