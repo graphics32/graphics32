@@ -66,6 +66,7 @@ type
     procedure TestSymbolParsingAndUseResolution;
     procedure TestFilterASTAndReferenceResolution;
     procedure TestFeDropShadowParsingAndResolution;
+    procedure TestFeTurbulenceParsingAndResolution;
     procedure TestFeMorphologyParsingAndResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestTextAndTSpanParsing;
@@ -266,6 +267,65 @@ begin
     Check(text3 <> nil, 'textNode t3 should exist');
     CheckEquals(13.0, text3.FontSize.Value, 1E-4);
     CheckEquals('Times New Roman', text3.FontFamily);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFeTurbulenceParsingAndResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  filterNode: TSvgFilterNode;
+  turbNode1, turbNode2: TSvgFeTurbulenceNode;
+  clonedNode: TSvgFeTurbulenceNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f1">' +
+         '      <feTurbulence id="t1" type="turbulence" baseFrequency="0.05 0.1" numOctaves="3" seed="5" stitchTiles="stitch" result="turb1"/>' +
+         '      <feTurbulence id="t2" type="fractalNoise" baseFrequency="0.02" numOctaves="1" seed="0" stitchTiles="noStitch"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    filterNode := TSvgFilterNode(docNode.FindNodeById('f1'));
+    Check(filterNode <> nil, 'filterNode "f1" should exist');
+    CheckEquals(2, filterNode.Children.Count, 'Filter should contain 2 child nodes');
+
+    turbNode1 := TSvgFeTurbulenceNode(docNode.FindNodeById('t1'));
+    Check(turbNode1 <> nil, 'turbNode1 should exist');
+    CheckEquals(Ord(ttTurbulence), Ord(turbNode1.TurbulenceType), 'turbNode1 type should be turbulence');
+    CheckEquals(0.05, turbNode1.BaseFrequencyX, 1E-4);
+    CheckEquals(0.1, turbNode1.BaseFrequencyY, 1E-4);
+    CheckEquals(3, turbNode1.NumOctaves);
+    CheckEquals(5.0, turbNode1.Seed, 1E-4);
+    CheckEquals(Ord(stStitch), Ord(turbNode1.StitchTiles), 'turbNode1 stitchTiles should be stitch');
+    CheckEquals('turb1', turbNode1.ResultName);
+
+    turbNode2 := TSvgFeTurbulenceNode(docNode.FindNodeById('t2'));
+    Check(turbNode2 <> nil, 'turbNode2 should exist');
+    CheckEquals(Ord(ttFractalNoise), Ord(turbNode2.TurbulenceType), 'turbNode2 type should be fractalNoise');
+    CheckEquals(0.02, turbNode2.BaseFrequencyX, 1E-4);
+    CheckEquals(0.02, turbNode2.BaseFrequencyY, 1E-4);
+    CheckEquals(1, turbNode2.NumOctaves);
+    CheckEquals(0.0, turbNode2.Seed, 1E-4);
+    CheckEquals(Ord(stNoStitch), Ord(turbNode2.StitchTiles), 'turbNode2 stitchTiles should be noStitch');
+
+    clonedNode := TSvgFeTurbulenceNode(turbNode1.Clone(nil));
+    try
+      CheckEquals(Ord(ttTurbulence), Ord(clonedNode.TurbulenceType));
+      CheckEquals(0.05, clonedNode.BaseFrequencyX, 1E-4);
+      CheckEquals(0.1, clonedNode.BaseFrequencyY, 1E-4);
+      CheckEquals(3, clonedNode.NumOctaves);
+      CheckEquals(5.0, clonedNode.Seed, 1E-4);
+      CheckEquals(Ord(stStitch), Ord(clonedNode.StitchTiles));
+    finally
+      clonedNode.Free;
+    end;
   finally
     docNode.Free;
   end;

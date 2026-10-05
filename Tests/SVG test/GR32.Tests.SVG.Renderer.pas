@@ -76,6 +76,7 @@ type
     procedure TestFeDropShadowFilterRegionClipping;
     procedure TestFeDropShadowWithPercentageCoordinates;
     procedure TestFeDropShadowAnisotropicBlur;
+    procedure TestFeTurbulenceRendering;
     procedure TestFeMorphologyFilterRendering;
     procedure TestTextRendering;
     procedure TestTextRotationRendering;
@@ -1059,6 +1060,82 @@ begin
   finally
     renderer.Free;
     bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeTurbulenceRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp1, bmp2: TBitmap32;
+  p1, p2: TColor32;
+  x, y: Integer;
+  HasNonZero: Boolean;
+begin
+  // Test feTurbulence and feFractalNoise generating non-empty pixels
+  xml := '<svg width="20" height="20">' +
+         '  <defs>' +
+         '    <filter id="f_turb">' +
+         '      <feTurbulence type="turbulence" baseFrequency="0.1" numOctaves="2" seed="1"/>' +
+         '    </filter>' +
+         '    <filter id="f_fractal">' +
+         '      <feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="2" seed="1"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect id="r1" width="20" height="20" filter="url(#f_turb)"/>' +
+         '  <rect id="r2" width="20" height="20" filter="url(#f_fractal)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp1 := TBitmap32.Create;
+  bmp2 := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp1);
+  try
+    bmp1.SetSize(20, 20);
+    bmp1.Clear(0);
+
+    // Render r1 (turbulence)
+    renderer.RenderNode(bmp1, docNode.FindNodeById('r1'));
+
+    HasNonZero := False;
+    for y := 0 to 19 do
+      for x := 0 to 19 do
+      begin
+        p1 := bmp1.Pixel[x, y];
+        if (p1 <> 0) then
+          HasNonZero := True;
+      end;
+    Check(HasNonZero, 'feTurbulence should produce non-zero pixels');
+
+    // Render r2 (fractalNoise)
+    renderer.Target := bmp2;
+    bmp2.SetSize(20, 20);
+    bmp2.Clear(0);
+
+    renderer.RenderNode(bmp2, docNode.FindNodeById('r2'));
+
+    HasNonZero := False;
+    for y := 0 to 19 do
+      for x := 0 to 19 do
+      begin
+        p2 := bmp2.Pixel[x, y];
+        if (p2 <> 0) then
+          HasNonZero := True;
+      end;
+    Check(HasNonZero, 'feFractalNoise should produce non-zero pixels');
+
+    // Compare turbulence vs fractalNoise output at same seed
+    p1 := bmp1.Pixel[10, 10];
+    p2 := bmp2.Pixel[10, 10];
+    Check(p1 <> p2, 'feTurbulence and feFractalNoise should produce distinct results');
+
+  finally
+    renderer.Free;
+    bmp1.Free;
+    bmp2.Free;
     docNode.Free;
   end;
 end;

@@ -187,6 +187,7 @@ implementation
 uses
   Types,
   Math,
+  GR32.Noise.Perlin,
   GR32.SVG.Utf8,
   GR32_Blend,
   GR32_Math,
@@ -3104,6 +3105,100 @@ begin
 end;
 
 //------------------------------------------------------------------------------
+//
+//      TFilterRendererTurbulence
+//
+//------------------------------------------------------------------------------
+// Renderer for TSvgFeTurbulenceNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererTurbulence = class(TFilterRenderer)
+  public
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+  end;
+
+class procedure TFilterRendererTurbulence.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  TurbNode: TSvgFeTurbulenceNode;
+  NoiseGen: TPerlinNoise;
+  BaseFreqX, BaseFreqY: Double;
+  NumOctaves: Integer;
+  Seed: Double;
+  StitchTiles, IsFractalSum: Boolean;
+  TileX, TileY, TileW, TileH: Double;
+  X, Y, Width, Height: Integer;
+  UserPointX, UserPointY: Double;
+  R, G, B, A: Double;
+  pDest: PColor32Entry;
+  Scale: Double;
+begin
+  Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  TurbNode := TSvgFeTurbulenceNode(Node);
+  Width := RenderData.ROI.Width;
+  Height := RenderData.ROI.Height;
+
+  if (Width <= 0) or (Height <= 0) then
+    Exit;
+
+  RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(Width, Height, False);
+
+  BaseFreqX := TurbNode.BaseFrequencyX;
+  BaseFreqY := TurbNode.BaseFrequencyY;
+  NumOctaves := TurbNode.NumOctaves;
+  Seed := TurbNode.Seed;
+  StitchTiles := (TurbNode.StitchTiles = stStitch);
+  IsFractalSum := (TurbNode.TurbulenceType = ttFractalNoise);
+
+  Scale := RenderData.Scale;
+  if Scale <= 0 then
+    Scale := 1.0;
+
+  TileX := RenderData.ROI.Left / Scale;
+  TileY := RenderData.ROI.Top / Scale;
+  TileW := Width / Scale;
+  TileH := Height / Scale;
+
+  NoiseGen := TPerlinNoise.Create(Seed);
+  try
+    pDest := PColor32Entry(RenderData.CurrentSurface.Bits);
+
+    for Y := 0 to Height - 1 do
+    begin
+      UserPointY := TileY + (Y / Scale);
+      for X := 0 to Width - 1 do
+      begin
+        UserPointX := TileX + (X / Scale);
+
+        R := NoiseGen.Turbulence(0, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
+        G := NoiseGen.Turbulence(1, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
+        B := NoiseGen.Turbulence(2, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
+        A := NoiseGen.Turbulence(3, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
+
+        if IsFractalSum then
+        begin
+          pDest.R := Clamp(Round(((R * 255.0) + 255.0) * 0.5));
+          pDest.G := Clamp(Round(((G * 255.0) + 255.0) * 0.5));
+          pDest.B := Clamp(Round(((B * 255.0) + 255.0) * 0.5));
+          pDest.A := Clamp(Round(((A * 255.0) + 255.0) * 0.5));
+        end else
+        begin
+          pDest.R := Clamp(Round(R * 255.0));
+          pDest.G := Clamp(Round(G * 255.0));
+          pDest.B := Clamp(Round(B * 255.0));
+          pDest.A := Clamp(Round(A * 255.0));
+        end;
+
+        Inc(pDest);
+      end;
+    end;
+  finally
+    NoiseGen.Free;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
 
 procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
 
@@ -3519,6 +3614,9 @@ begin
         else
         if Node is TSvgFeComponentTransferNode then
           TFilterRendererComponentTransfer.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
+        else
+        if Node is TSvgFeTurbulenceNode then
+          TFilterRendererTurbulence.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         begin
           // Unsupported filter; Keep the current intermediate result and let

@@ -313,7 +313,11 @@ type
     attrAmplitude,
     attrExponent,
     attrOffset,
-    attrRadius
+    attrRadius,
+    attrBaseFrequency,
+    attrNumOctaves,
+    attrSeed,
+    attrStitchTiles
   );
 
 //------------------------------------------------------------------------------
@@ -977,6 +981,37 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeTurbulenceNode
+//
+//------------------------------------------------------------------------------
+// Filter: feTurbulence
+//------------------------------------------------------------------------------
+  TSvgFeTurbulenceNode = class(TSvgFilterPrimitiveNode)
+  private
+    FBaseFrequencyX: Single;
+    FBaseFrequencyY: Single;
+    FNumOctaves: Integer;
+    FSeed: Single;
+    FStitchTiles: TSvgStitchTiles;
+    FTurbulenceType: TSvgTurbulenceType;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+    function GetElementTag: AnsiString; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property BaseFrequencyX: Single read FBaseFrequencyX write FBaseFrequencyX;
+    property BaseFrequencyY: Single read FBaseFrequencyY write FBaseFrequencyY;
+    property NumOctaves: Integer read FNumOctaves write FNumOctaves;
+    property Seed: Single read FSeed write FSeed;
+    property StitchTiles: TSvgStitchTiles read FStitchTiles write FStitchTiles;
+    property TurbulenceType: TSvgTurbulenceType read FTurbulenceType write FTurbulenceType;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgFilterNode
 //
 //------------------------------------------------------------------------------
@@ -1543,14 +1578,14 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
+    tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'image', 'switch', 'text', 'tspan', 'textPath'
+    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'image', 'switch', 'text', 'tspan', 'textPath'
   );
 
 var
@@ -1682,7 +1717,11 @@ const
     'amplitude',
     'exponent',
     'offset',
-    'radius'
+    'radius',
+    'baseFrequency',
+    'numOctaves',
+    'seed',
+    'stitchTiles'
   );
 
 var
@@ -5594,6 +5633,90 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeTurbulenceNode
+//
+//------------------------------------------------------------------------------
+function TSvgFeTurbulenceNode.GetElementTag: AnsiString;
+begin
+  Result := 'feTurbulence';
+end;
+
+constructor TSvgFeTurbulenceNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FBaseFrequencyX := 0.0;
+  FBaseFrequencyY := 0.0;
+  FNumOctaves := 1;
+  FSeed := 0.0;
+  FStitchTiles := stNoStitch;
+  FTurbulenceType := ttTurbulence;
+end;
+
+function TSvgFeTurbulenceNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  turbRes: TSvgFeTurbulenceNode;
+begin
+  turbRes := TSvgFeTurbulenceNode(inherited Clone(AParent));
+  turbRes.FBaseFrequencyX := FBaseFrequencyX;
+  turbRes.FBaseFrequencyY := FBaseFrequencyY;
+  turbRes.FNumOctaves := FNumOctaves;
+  turbRes.FSeed := FSeed;
+  turbRes.FStitchTiles := FStitchTiles;
+  turbRes.FTurbulenceType := FTurbulenceType;
+  Result := turbRes;
+end;
+
+procedure TSvgFeTurbulenceNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+var
+  Value1, Value2: TValuePUtf8Char;
+  IVal: Integer;
+begin
+  case AKeyword of
+    attrBaseFrequency:
+      begin
+        Value2 := AValue;
+        Value2.Trim;
+        Value1 := Value2.Split(sListSeparators, True);
+        if Value1.TryToFloat(FBaseFrequencyX) then
+        begin
+          if not Value2.TryToFloat(FBaseFrequencyY) then
+            FBaseFrequencyY := FBaseFrequencyX;
+        end;
+        if FBaseFrequencyX < 0 then
+          FBaseFrequencyX := 0;
+        if FBaseFrequencyY < 0 then
+          FBaseFrequencyY := 0;
+      end;
+
+    attrNumOctaves:
+      begin
+        FNumOctaves := AValue.ToCardinal(0);
+      end;
+
+    attrSeed:
+      AValue.TryToFloat(FSeed);
+
+    attrStitchTiles:
+      FStitchTiles := ParseSvgStitchTiles(AValue);
+
+    attrType:
+      FTurbulenceType := ParseSvgTurbulenceType(AValue);
+
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
+
+function TSvgFeTurbulenceNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (type=%s, baseFrequency=%s %s, numOctaves=%d, seed=%s, stitchTiles=%s)',
+    [TurbulenceTypeToString(FTurbulenceType), FloatToString(FBaseFrequencyX), FloatToString(FBaseFrequencyY),
+     FNumOctaves, FloatToString(FSeed), StitchTilesToString(FStitchTiles)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
@@ -6539,6 +6662,12 @@ var
         tagFecomponenttransfer:
           begin
             node := TSvgFeComponentTransferNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFeturbulence:
+          begin
+            node := TSvgFeTurbulenceNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

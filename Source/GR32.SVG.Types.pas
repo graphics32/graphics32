@@ -119,6 +119,18 @@ type
     moDilate
   );
 
+  { TSvgStitchTiles defines tile stitching options for feTurbulence }
+  TSvgStitchTiles = (
+    stNoStitch,
+    stStitch
+  );
+
+  { TSvgTurbulenceType defines turbulence or fractal noise algorithm for feTurbulence }
+  TSvgTurbulenceType = (
+    ttTurbulence,
+    ttFractalNoise
+  );
+
   { TSvgFeatureKeyword defines SVG 1.1/1.2 feature URIs for conditional processing evaluation }
   TSvgFeatureKeyword = (
     fkNone,
@@ -169,6 +181,10 @@ function ParseSvgComponentTransferType(const AName: TValuePUtf8Char): TSvgCompon
 function ParseSvgComponentTransferType(const AName: AnsiString): TSvgComponentTransferType; overload;
 function ParseSvgMorphologyOperator(const AName: TValuePUtf8Char): TSvgMorphologyOperator; overload;
 function ParseSvgMorphologyOperator(const AName: AnsiString): TSvgMorphologyOperator; overload;
+function ParseSvgStitchTiles(const AName: TValuePUtf8Char): TSvgStitchTiles; overload;
+function ParseSvgStitchTiles(const AName: AnsiString): TSvgStitchTiles; overload;
+function ParseSvgTurbulenceType(const AName: TValuePUtf8Char): TSvgTurbulenceType; overload;
+function ParseSvgTurbulenceType(const AName: AnsiString): TSvgTurbulenceType; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
 function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload; deprecated;
 
@@ -184,6 +200,8 @@ function SvgCompositeOperatorToString(AOp: TSvgCompositeOperator): string;
 function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
 function ComponentTransferTypeToString(AType: TSvgComponentTransferType): string;
 function MorphologyOperatorToString(AOp: TSvgMorphologyOperator): string;
+function StitchTilesToString(AStitch: TSvgStitchTiles): string;
+function TurbulenceTypeToString(AType: TSvgTurbulenceType): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 
 
@@ -652,6 +670,62 @@ begin
     moDilate: Result := 'dilate';
   else
     Result := 'erode';
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      feTurbulence
+//
+//------------------------------------------------------------------------------
+function ParseSvgStitchTiles(const AName: AnsiString): TSvgStitchTiles;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgStitchTiles(Name);
+end;
+
+function ParseSvgStitchTiles(const AName: TValuePUtf8Char): TSvgStitchTiles;
+begin
+  Result := stNoStitch;
+  if AName.CompareText('stitch') then
+    Result := stStitch;
+end;
+
+function StitchTilesToString(AStitch: TSvgStitchTiles): string;
+begin
+  case AStitch of
+    stStitch: Result := 'stitch';
+  else
+    Result := 'noStitch';
+  end;
+end;
+
+function ParseSvgTurbulenceType(const AName: AnsiString): TSvgTurbulenceType;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgTurbulenceType(Name);
+end;
+
+function ParseSvgTurbulenceType(const AName: TValuePUtf8Char): TSvgTurbulenceType;
+begin
+  Result := ttTurbulence;
+  if AName.CompareText('fractalNoise') then
+    Result := ttFractalNoise;
+end;
+
+function TurbulenceTypeToString(AType: TSvgTurbulenceType): string;
+begin
+  case AType of
+    ttFractalNoise: Result := 'fractalNoise';
+  else
+    Result := 'turbulence';
   end;
 end;
 
