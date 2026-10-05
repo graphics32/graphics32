@@ -120,7 +120,8 @@ type
 
     function LastChar: AnsiChar;
 
-    procedure Trim; overload;
+    procedure Trim; overload; // TODO : Can we safely extend Trim to also trim from the end?
+    procedure Trim(ASkip: AnsiChar); overload;
     procedure Trim(ASkip: TAnsiSet); overload;
     procedure TrimEnd;
     procedure TrimQuotes;
@@ -130,6 +131,8 @@ type
     // If ASkip=True, the current text is moved past the split char(s).
     function Split(AChar: AnsiChar; ASkip: boolean = False): TValuePUtf8Char; overload;
     function Split(AChars: TAnsiSet; ASkip: boolean = False): TValuePUtf8Char; overload;
+
+    function CompareOrdinal(const Value: AnsiString): integer;
   end;
 
 /// extract a 64-bit unsigned integer from a UTF-8 text buffer
@@ -435,6 +438,12 @@ end;
 procedure TValuePUtf8Char.Trim(ASkip: TAnsiSet);
 begin
   while (Len > 0) and (Text^ in ASkip) do
+    Skip;
+end;
+
+procedure TValuePUtf8Char.Trim(ASkip: AnsiChar);
+begin
+  while (Len > 0) and (Text^ = ASkip) do
     Skip;
 end;
 
@@ -775,6 +784,13 @@ begin
   Value.Text := pointer(AValue);
   Value.Len := Length(AValue);
   Result := CompareText(Value);
+end;
+
+function TValuePUtf8Char.CompareOrdinal(const Value: AnsiString): integer;
+begin
+  Result := AnsiStrings.StrLIComp(pointer(Value), Text, Min(Length(Value), Len));
+  if (Result = 0) and (Length(Value) <> Len) then
+    Result := Length(Value) - Len;
 end;
 
 function TValuePUtf8Char.CompareText(const AValue: TValuePUtf8Char): Boolean;

@@ -668,9 +668,9 @@ type
 //------------------------------------------------------------------------------
   TSvgFilterPrimitiveNode = class(TSvgGroupNode)
   private
-    FIn1: string;
-    FIn2: string;
-    FResult: string;
+    FIn1: AnsiString;
+    FIn2: AnsiString;
+    FResult: AnsiString;
     FResolvedIn1: TSvgFilterInput;
     FResolvedIn2: TSvgFilterInput;
     function GetIsReferenceTarget: boolean;
@@ -679,9 +679,9 @@ type
   public
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    property In1: string read FIn1 write FIn1;
-    property In2: string read FIn2 write FIn2;
-    property ResultName: string read FResult write FResult;
+    property In1: AnsiString read FIn1 write FIn1;
+    property In2: AnsiString read FIn2 write FIn2;
+    property ResultName: AnsiString read FResult write FResult;
     property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
     property ResolvedIn2: TSvgFilterInput read FResolvedIn2 write FResolvedIn2;
     property IsReferenceTarget: boolean read GetIsReferenceTarget;
@@ -996,7 +996,8 @@ type
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    function FindNodeById(const AID: AnsiString): TSvgNode; override;
+    function FindNodeByID(const AID: AnsiString): TSvgNode; overload; override;
+    function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; reintroduce; overload;
     procedure Resolve;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
@@ -2308,6 +2309,24 @@ begin
   end;
   if (Length(Result) > 0) and (Result[1] = '#') then
     Delete(Result, 1, 1);
+end;
+
+function ExtractUrlID(const AUrlStr: AnsiString): TValuePUtf8Char;
+begin
+  Result := TValuePUtf8Char.FromString(AUrlStr);
+  Result.Trim;
+  Result.TrimEnd;
+  Result.Trim(['#']);
+
+  if (Result.StartsText('url(', True)) then
+  begin
+    if (Result.LastChar = ')') then
+      Dec(Result.Len);
+    Result.Trim;
+    Result.TrimEnd;
+
+    Result.TrimQuotes;
+  end;
 end;
 
 procedure TSvgNode.ParseStyleAttribute(AStyleStr: TValuePUtf8Char);
@@ -3662,13 +3681,13 @@ procedure TSvgFilterPrimitiveNode.ParseAttribute(AKeyword: TSvgAttributeKeyword;
 begin
   case AKeyword of
     attrIn:
-      FIn1 := AValue.ToString;
+      FIn1 := AValue.ToUtf8;
 
     attrIn2:
-      FIn2 := AValue.ToString;
+      FIn2 := AValue.ToUtf8;
 
     attrResult:
-      FResult := AValue.ToString;
+      FResult := AValue.ToUtf8;
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
@@ -4328,7 +4347,18 @@ begin
   Result := Result + Format(' (width=%s, height=%s)', [SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
 end;
 
-function TSvgDocumentNode.FindNodeById(const AID: AnsiString): TSvgNode;
+function TSvgDocumentNode.FindNodeByID(AID: TValuePUtf8Char): TSvgNode;
+var
+  s: AnsiString;
+begin
+  AID.Trim('#');
+  s := AID.ToUtf8;
+
+  if (not FNodes.TryGetValue(s, Result)) then
+    Result := nil;
+end;
+
+function TSvgDocumentNode.FindNodeByID(const AID: AnsiString): TSvgNode;
 var
   s: AnsiString;
 begin
@@ -4402,7 +4432,7 @@ const
     Group: TSvgGroupNode;
     UseNode: TSvgUseNode;
     TargetNode, ClonedNode: TSvgNode;
-    TargetID: AnsiString;
+    ID: TValuePUtf8Char;
   begin
     // Abort if node is nil, already being resolved (cycle detected), or max depth reached
     if (ANode = nil) or ANode.FResolving or (ADepth > MaxUseDepth) then
@@ -4417,31 +4447,27 @@ const
         // Only attempt expansion if UseNode has a non-empty href and no children cloned yet
         if (UseNode.Href <> '') and (UseNode.Children.Count = 0) then
         begin
-          TargetID := UseNode.Href;
+          ID := TValuePUtf8Char.FromString(UseNode.Href);
           // Strip leading '#' from element ID reference if present
-          if (TargetID <> '') and (TargetID[1] = '#') then
-            Delete(TargetID, 1, 1);
+          ID.Trim('#');
 
-          if TargetID <> '' then
+          TargetNode := FindNodeByID(ID);
+          // W3C SVG Circular Reference Prevention:
+          // Only clone target if TargetNode exists and is not currently being resolved (O(1), zero-allocation)
+          if (TargetNode <> nil) and not TargetNode.FResolving then
           begin
-            TargetNode := FindNodeById(TargetID);
-            // W3C SVG Circular Reference Prevention:
-            // Only clone target if TargetNode exists and is not currently being resolved (O(1), zero-allocation)
-            if (TargetNode <> nil) and not TargetNode.FResolving then
-            begin
-              // Keep TargetNode.FResolving = True active while cloning AND resolving the cloned subtree
-              TargetNode.FResolving := True;
-              try
-                ClonedNode := TargetNode.Clone(UseNode);
-                if (UseNode.X <> 0) or (UseNode.Y <> 0) then
-                  TFloatMatrixHelper(ClonedNode.FTransform).Translate(UseNode.X, UseNode.Y);
-                UseNode.AddChild(ClonedNode);
+            // Keep TargetNode.FResolving = True active while cloning AND resolving the cloned subtree
+            TargetNode.FResolving := True;
+            try
+              ClonedNode := TargetNode.Clone(UseNode);
+              if (UseNode.X <> 0) or (UseNode.Y <> 0) then
+                TFloatMatrixHelper(ClonedNode.FTransform).Translate(UseNode.X, UseNode.Y);
+              UseNode.AddChild(ClonedNode);
 
-                // Recursively resolve cloned subtree while TargetNode remains marked as resolving
-                ProcessNode(ClonedNode, ADepth + 1);
-              finally
-                TargetNode.FResolving := False;
-              end;
+              // Recursively resolve cloned subtree while TargetNode remains marked as resolving
+              ProcessNode(ClonedNode, ADepth + 1);
+            finally
+              TargetNode.FResolving := False;
             end;
           end;
         end;
@@ -4529,22 +4555,22 @@ procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
     i: Integer;
     Group: TSvgGroupNode;
     TargetNode: TSvgNode;
-    StrID: AnsiString;
+    ID: TValuePUtf8Char;
   begin
     if ANode = nil then Exit;
 
     if (ANode.ClipPathID <> '') then
     begin
-      StrID := ExtractUrlIdStr(ANode.ClipPathID);
-      TargetNode := FindNodeById(StrID);
+      ID := ExtractUrlID(ANode.ClipPathID);
+      TargetNode := FindNodeByID(ID);
       if TargetNode is TSvgClipPathNode then
         ANode.ResolvedClipPath := TSvgClipPathNode(TargetNode);
     end;
 
     if (ANode.MaskID <> '') then
     begin
-      StrID := ExtractUrlIdStr(ANode.MaskID);
-      TargetNode := FindNodeById(StrID);
+      ID := ExtractUrlID(ANode.MaskID);
+      TargetNode := FindNodeByID(ID);
       if TargetNode is TSvgMaskNode then
         ANode.ResolvedMask := TSvgMaskNode(TargetNode);
     end;
@@ -4562,15 +4588,69 @@ begin
 end;
 
 procedure TSvgDocumentNode.ResolveFilters;
+type
+  TNamedResult = record
+    Name: AnsiString;
+    Index: integer; // Sequential index
+  end;
+
+  TNamedResults = TList<TNamedResult>;
+
+  function IndexOf(Value: TValuePUtf8Char; NamedResults: TNamedResults): integer;
+  var
+    L, H, Mid: integer;
+    Cmp: integer;
+  begin
+    if (NamedResults.Count = 0) then
+      Exit(-1);
+
+    L := 0;
+    H := NamedResults.Count - 1;
+    while (L <= H) do
+    begin
+      Mid := L + (H - L) div 2;
+      Cmp := Value.CompareOrdinal(NamedResults[Mid].Name);
+      if (Cmp < 0) then
+        L := Mid + 1
+      else
+      begin
+        H := Mid - 1;
+        if (Cmp = 0) then
+          Exit(NamedResults[Mid].Index);
+      end;
+    end;
+    Result := -1;
+  end;
+
+  function InsertIndex(const Value: AnsiString; NamedResults: TNamedResults): integer;
+  var
+    L, H, Mid: integer;
+    Cmp: integer;
+  begin
+    L := 0;
+    H := NamedResults.Count - 1;
+    while (L <= H) do
+    begin
+      Mid := L + (H - L) div 2;
+      Cmp := AnsiStrings.CompareText(NamedResults[Mid].Name, Value);
+      if (Cmp < 0) then
+        L := Mid + 1
+      else
+        H := Mid - 1;
+    end;
+    Result := L;
+  end;
 
   // TODO
-  function ResolveFilterInput(const AName: string; IsFirstPrimitive: Boolean; NamedResults: TStringList): TSvgFilterInput;
+  function ResolveFilterInput(const AName: AnsiString; IsFirstPrimitive: Boolean; NamedResults: TNamedResults): TSvgFilterInput;
   var
-    lowerName: string;
-    idx: Integer;
+    Index: Integer;
+    Value: TValuePUtf8Char;
   begin
-    lowerName := LowerCase(Trim(AName));
-    if lowerName = '' then
+    Value := TValuePUtf8Char.FromString(AName);
+    Value.Trim;
+
+    if (Value.Len = 0) then
     begin
       if IsFirstPrimitive then
         Result.Kind := fikSourceGraphic
@@ -4578,24 +4658,23 @@ procedure TSvgDocumentNode.ResolveFilters;
         Result.Kind := fikPreviousResult;
       Result.Index := -1;
     end else
-    if lowerName = 'sourcegraphic' then
+    if Value.CompareText('sourcegraphic') then
     begin
       Result.Kind := fikSourceGraphic;
       Result.Index := -1;
     end else
-    if lowerName = 'sourcealpha' then
+    if Value.CompareText('sourcealpha') then
     begin
       Result.Kind := fikSourceAlpha;
       Result.Index := -1;
     end else
     begin
-      idx := NamedResults.IndexOf(lowerName);
-      if idx >= 0 then
+      Index := IndexOf(Value, NamedResults);
+      if Index >= 0 then
       begin
         Result.Kind := fikNamedResult;
-        Result.Index := idx;
-      end
-      else
+        Result.Index := Index;
+      end else
       begin
         Result.Kind := fikPreviousResult;
         Result.Index := -1;
@@ -4603,53 +4682,56 @@ procedure TSvgDocumentNode.ResolveFilters;
     end;
   end;
 
-    // TODO TODO TODO
   procedure ResolveFilterNodeInputs(AFilterNode: TSvgFilterNode);
   var
-    i, childIdx, primCount: Integer;
-    primNode: TSvgNode;
-    prim: TSvgFilterPrimitiveNode;
-    mergeChild: TSvgFeMergeNodeChild;
-    resName: string;
-    NamedResults: TStringList;
-    isFirst: Boolean;
+    i: Integer;
+    PrimNode: TSvgNode;
+    Prim: TSvgFilterPrimitiveNode;
+    MergeChild: TSvgFeMergeNodeChild;
+    NamedResults: TNamedResults;
+    NamedResult: TNamedResult;
+    IsFirst: Boolean;
+    Index: integer;
   begin
     if AFilterNode = nil then
       Exit;
 
-    NamedResults := TStringList.Create;
+    NamedResults := TNamedResults.Create;
     try
-      NamedResults.CaseSensitive := False;
-      primCount := 0;
+      IsFirst := True;
 
       for i := 0 to AFilterNode.Children.Count - 1 do
       begin
-        primNode := AFilterNode.Children[i];
-        if not (primNode is TSvgFilterPrimitiveNode) then
-          Continue;
+        PrimNode := AFilterNode.Children[i];
+        if not (PrimNode is TSvgFilterPrimitiveNode) then
+          continue;
 
-        isFirst := (primCount = 0);
-        Inc(primCount);
+        Prim := TSvgFilterPrimitiveNode(PrimNode);
+        Prim.ResolvedIn1 := ResolveFilterInput(Prim.In1, IsFirst, NamedResults);
+        Prim.ResolvedIn2 := ResolveFilterInput(Prim.In2, IsFirst, NamedResults);
 
-        prim := TSvgFilterPrimitiveNode(primNode);
-        prim.ResolvedIn1 := ResolveFilterInput(prim.In1, isFirst, NamedResults);
-        prim.ResolvedIn2 := ResolveFilterInput(prim.In2, isFirst, NamedResults);
-
-        if prim is TSvgFeMergeNode then
+        if Prim is TSvgFeMergeNode then
         begin
-          for childIdx := 0 to prim.Children.Count - 1 do
+          for Index := 0 to Prim.Children.Count - 1 do
           begin
-            if prim.Children[childIdx] is TSvgFeMergeNodeChild then
+            if Prim.Children[Index] is TSvgFeMergeNodeChild then
             begin
-              mergeChild := TSvgFeMergeNodeChild(prim.Children[childIdx]);
-              mergeChild.ResolvedIn1 := ResolveFilterInput(mergeChild.In1, isFirst, NamedResults);
+              MergeChild := TSvgFeMergeNodeChild(Prim.Children[Index]);
+              MergeChild.ResolvedIn1 := ResolveFilterInput(MergeChild.In1, IsFirst, NamedResults);
             end;
           end;
         end;
 
-        resName := LowerCase(Trim(prim.ResultName));
-        if resName <> '' then
-          NamedResults.Add(resName);
+        IsFirst := False;
+
+        if (Prim.ResultName = '') then
+          continue;
+
+        // Insert ordered
+        NamedResult.Name := Prim.ResultName;
+        NamedResult.Index := NamedResults.Count; // Record unordered index
+        Index := InsertIndex(Prim.ResultName, NamedResults);
+        NamedResults.Insert(Index, NamedResult);
       end;
     finally
       NamedResults.Free;
@@ -4659,28 +4741,30 @@ procedure TSvgDocumentNode.ResolveFilters;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    group: TSvgGroupNode;
-    targetNode: TSvgNode;
-    StrID: AnsiString;
+    Group: TSvgGroupNode;
+    TargetNode: TSvgNode;
+    ID: TValuePUtf8Char;
   begin
-    if ANode = nil then Exit;
+    if (ANode = nil) then
+      exit;
 
-    if ANode.FilterID <> '' then
+    if (ANode.FilterID <> '') then
     begin
-      StrID := ExtractUrlIdStr(ANode.FilterID);
-      targetNode := FindNodeById(StrID);
-      if targetNode is TSvgFilterNode then
+      ID := ExtractUrlID(ANode.FilterID);
+      TargetNode := FindNodeByID(ID);
+
+      if (TargetNode is TSvgFilterNode) then
       begin
-        ANode.ResolvedFilter := TSvgFilterNode(targetNode);
+        ANode.ResolvedFilter := TSvgFilterNode(TargetNode);
         ResolveFilterNodeInputs(ANode.ResolvedFilter);
       end;
     end;
 
     if ANode is TSvgGroupNode then
     begin
-      group := TSvgGroupNode(ANode);
-      for i := 0 to group.Children.Count - 1 do
-        ProcessNode(group.Children[i]);
+      Group := TSvgGroupNode(ANode);
+      for i := 0 to Group.Children.Count - 1 do
+        ProcessNode(Group.Children[i]);
     end;
   end;
 
@@ -4697,15 +4781,15 @@ procedure TSvgDocumentNode.ResolvePaintServers;
     FillRef: TSvgFill;
     StrokeStruct: TSvgStroke;
     TargetNode: TSvgNode;
-    StrID: AnsiString;
+    ID: TValuePUtf8Char;
   begin
     if ANode = nil then
       Exit;
 
     if ANode.Fill.Url <> '' then
     begin
-      StrID := ExtractUrlIdStr(ANode.Fill.Url);
-      TargetNode := FindNodeById(StrID);
+      ID := ExtractUrlID(ANode.Fill.Url);
+      TargetNode := FindNodeByID(ID);
       if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
       begin
         FillRef := ANode.Fill;
@@ -4716,8 +4800,8 @@ procedure TSvgDocumentNode.ResolvePaintServers;
 
     if ANode.Stroke.Url <> '' then
     begin
-      StrID := ExtractUrlIdStr(ANode.Stroke.Url);
-      TargetNode := FindNodeById(StrID);
+      ID := ExtractUrlID(ANode.Stroke.Url);
+      TargetNode := FindNodeByID(ID);
       if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
       begin
         StrokeStruct := ANode.Stroke;
@@ -4745,30 +4829,30 @@ procedure TSvgDocumentNode.ResolveMarkers;
     i: Integer;
     Group: TSvgGroupNode;
     TargetNode: TSvgNode;
-    StrID: AnsiString;
+    ID: TValuePUtf8Char;
   begin
     if ANode = nil then Exit;
 
     if ANode.MarkerStart <> '' then
     begin
-      StrID := ExtractUrlIdStr(ANode.MarkerStart);
-      TargetNode := FindNodeById(StrID);
+      ID := ExtractUrlID(ANode.MarkerStart);
+      TargetNode := FindNodeByID(ID);
       if TargetNode is TSvgMarkerNode then
         ANode.ResolvedMarkerStart := TSvgMarkerNode(TargetNode);
     end;
 
     if ANode.MarkerMid <> '' then
     begin
-      StrID := ExtractUrlIdStr(ANode.MarkerMid);
-      TargetNode := FindNodeById(StrID);
+      ID := ExtractUrlID(ANode.MarkerMid);
+      TargetNode := FindNodeById(ID);
       if TargetNode is TSvgMarkerNode then
         ANode.ResolvedMarkerMid := TSvgMarkerNode(TargetNode);
     end;
 
     if ANode.MarkerEnd <> '' then
     begin
-      StrID := ExtractUrlIdStr(ANode.MarkerEnd);
-      TargetNode := FindNodeById(StrID);
+      ID := ExtractUrlID(ANode.MarkerEnd);
+      TargetNode := FindNodeById(ID);
       if TargetNode is TSvgMarkerNode then
         ANode.ResolvedMarkerEnd := TSvgMarkerNode(TargetNode);
     end;
@@ -4795,17 +4879,18 @@ procedure TSvgDocumentNode.ResolveTextPaths;
     Group: TSvgGroupNode;
     TextPathNode: TSvgTextPathNode;
     TargetNode: TSvgNode;
-    StrID: AnsiString;
+    ID: TValuePUtf8Char;
   begin
-    if ANode = nil then Exit;
+    if (ANode = nil) then
+      exit;
 
     if ANode is TSvgTextPathNode then
     begin
       TextPathNode := TSvgTextPathNode(ANode);
-      if TextPathNode.Href <> '' then
+      if (TextPathNode.Href <> '') then
       begin
-        StrID := ExtractUrlIdStr(TextPathNode.Href);
-        TargetNode := FindNodeById(StrID);
+        ID := ExtractUrlID(TextPathNode.Href);
+        TargetNode := FindNodeById(ID);
         if TargetNode is TSvgPathNode then
           TextPathNode.ResolvedPathNode := TSvgPathNode(TargetNode);
       end;
