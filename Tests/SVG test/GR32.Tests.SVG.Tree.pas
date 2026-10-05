@@ -66,6 +66,7 @@ type
     procedure TestSymbolParsingAndUseResolution;
     procedure TestFilterASTAndReferenceResolution;
     procedure TestFeDropShadowParsingAndResolution;
+    procedure TestFeMorphologyParsingAndResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestTextAndTSpanParsing;
     procedure TestTextRotationParsing;
@@ -110,6 +111,59 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFeMorphologyParsingAndResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  filterDefault, filterExplicit: TSvgFilterNode;
+  mDefault, mExplicit, mClone: TSvgFeMorphologyNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f_default">' +
+         '      <feMorphology/>' +
+         '    </filter>' +
+         '    <filter id="f_explicit">' +
+         '      <feMorphology operator="dilate" radius="5 10"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    filterDefault := TSvgFilterNode(docNode.FindNodeById('f_default'));
+    Check(filterDefault <> nil, 'f_default filter should exist');
+    CheckEquals(1, filterDefault.Children.Count);
+    Check(filterDefault.Children[0] is TSvgFeMorphologyNode);
+
+    mDefault := TSvgFeMorphologyNode(filterDefault.Children[0]);
+    Check(mDefault.MorphologyOperator = moErode, 'Default operator should be moErode');
+    CheckEquals(0.0, mDefault.RadiusX, 1E-4, 'Default radiusX should be 0');
+    CheckEquals(0.0, mDefault.RadiusY, 1E-4, 'Default radiusY should be 0');
+
+    filterExplicit := TSvgFilterNode(docNode.FindNodeById('f_explicit'));
+    Check(filterExplicit <> nil, 'f_explicit filter should exist');
+    CheckEquals(1, filterExplicit.Children.Count);
+
+    mExplicit := TSvgFeMorphologyNode(filterExplicit.Children[0]);
+    Check(mExplicit.MorphologyOperator = moDilate, 'Explicit operator should be moDilate');
+    CheckEquals(5.0, mExplicit.RadiusX, 1E-4, 'RadiusX should be 5');
+    CheckEquals(10.0, mExplicit.RadiusY, 1E-4, 'RadiusY should be 10');
+
+    mClone := TSvgFeMorphologyNode(mExplicit.Clone(nil));
+    try
+      Check(mClone.MorphologyOperator = moDilate, 'Cloned operator should be moDilate');
+      CheckEquals(5.0, mClone.RadiusX, 1E-4, 'Cloned radiusX should be 5');
+      CheckEquals(10.0, mClone.RadiusY, 1E-4, 'Cloned radiusY should be 10');
+    finally
+      mClone.Free;
+    end;
   finally
     docNode.Free;
   end;

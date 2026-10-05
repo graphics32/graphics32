@@ -114,6 +114,11 @@ type
     ctGamma
   );
 
+  TSvgMorphologyOperator = (
+    moErode,
+    moDilate
+  );
+
   { TSvgFeatureKeyword defines SVG 1.1/1.2 feature URIs for conditional processing evaluation }
   TSvgFeatureKeyword = (
     fkNone,
@@ -162,6 +167,8 @@ function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMat
 function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType; overload;
 function ParseSvgComponentTransferType(const AName: TValuePUtf8Char): TSvgComponentTransferType; overload;
 function ParseSvgComponentTransferType(const AName: AnsiString): TSvgComponentTransferType; overload;
+function ParseSvgMorphologyOperator(const AName: TValuePUtf8Char): TSvgMorphologyOperator; overload;
+function ParseSvgMorphologyOperator(const AName: AnsiString): TSvgMorphologyOperator; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
 function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload; deprecated;
 
@@ -176,6 +183,7 @@ function SvgIsolationToString(AIsolation: TSvgIsolation): string;
 function SvgCompositeOperatorToString(AOp: TSvgCompositeOperator): string;
 function FeColorMatrixTypeToString(AType: TSvgFeColorMatrixType): string;
 function ComponentTransferTypeToString(AType: TSvgComponentTransferType): string;
+function MorphologyOperatorToString(AOp: TSvgMorphologyOperator): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 
 
@@ -613,6 +621,37 @@ begin
     cmLuminanceToAlpha: Result := 'luminanceToAlpha';
   else
     Result := 'matrix';
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      feMorphology
+//
+//------------------------------------------------------------------------------
+function ParseSvgMorphologyOperator(const AName: AnsiString): TSvgMorphologyOperator;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgMorphologyOperator(Name);
+end;
+
+function ParseSvgMorphologyOperator(const AName: TValuePUtf8Char): TSvgMorphologyOperator;
+begin
+  Result := moErode;
+  if AName.CompareText('dilate') then
+    Result := moDilate;
+end;
+
+function MorphologyOperatorToString(AOp: TSvgMorphologyOperator): string;
+begin
+  case AOp of
+    moDilate: Result := 'dilate';
+  else
+    Result := 'erode';
   end;
 end;
 

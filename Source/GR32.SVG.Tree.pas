@@ -312,7 +312,8 @@ type
     attrIntercept,
     attrAmplitude,
     attrExponent,
-    attrOffset
+    attrOffset,
+    attrRadius
   );
 
 //------------------------------------------------------------------------------
@@ -952,6 +953,30 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeMorphologyNode
+//
+//------------------------------------------------------------------------------
+// Filter: feMorphology
+//------------------------------------------------------------------------------
+  TSvgFeMorphologyNode = class(TSvgFilterPrimitiveNode)
+  private
+    FOperator: TSvgMorphologyOperator;
+    FRadiusX: Single;
+    FRadiusY: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property MorphologyOperator: TSvgMorphologyOperator read FOperator write FOperator;
+    property RadiusX: Single read FRadiusX write FRadiusX;
+    property RadiusY: Single read FRadiusY write FRadiusY;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgFilterNode
 //
 //------------------------------------------------------------------------------
@@ -1518,14 +1543,14 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagFedropshadow, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
+    tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'image', 'switch', 'text', 'tspan', 'textPath'
+    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'image', 'switch', 'text', 'tspan', 'textPath'
   );
 
 var
@@ -1656,7 +1681,8 @@ const
     'intercept',
     'amplitude',
     'exponent',
-    'offset'
+    'offset',
+    'radius'
   );
 
 var
@@ -5513,6 +5539,61 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeMorphologyNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgFeMorphologyNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FOperator := moErode;
+  FRadiusX := 0.0;
+  FRadiusY := 0.0;
+end;
+
+function TSvgFeMorphologyNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  morphRes: TSvgFeMorphologyNode;
+begin
+  morphRes := TSvgFeMorphologyNode(inherited Clone(AParent));
+  morphRes.FOperator := FOperator;
+  morphRes.FRadiusX := FRadiusX;
+  morphRes.FRadiusY := FRadiusY;
+  Result := morphRes;
+end;
+
+procedure TSvgFeMorphologyNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+var
+  Value1, Value2: TValuePUtf8Char;
+begin
+  case AKeyword of
+    attrOperator:
+      FOperator := ParseSvgMorphologyOperator(AValue);
+
+    attrRadius:
+      begin
+        Value2 := AValue;
+        Value2.Trim;
+        Value1 := Value2.Split(sListSeparators, True);
+        if (Value1.TryToFloat(FRadiusX)) then
+        begin
+          if (not Value2.TryToFloat(FRadiusY)) then
+            FRadiusY := FRadiusX;
+        end;
+      end;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
+
+function TSvgFeMorphologyNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (operator=%s, radius=%s %s)',
+    [MorphologyOperatorToString(FOperator), FloatToString(FRadiusX), FloatToString(FRadiusY)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
@@ -6446,6 +6527,12 @@ var
         tagFedropshadow:
           begin
             node := TSvgFeDropShadowNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFemorphology:
+          begin
+            node := TSvgFeMorphologyNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

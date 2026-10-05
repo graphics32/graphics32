@@ -76,6 +76,7 @@ type
     procedure TestFeDropShadowFilterRegionClipping;
     procedure TestFeDropShadowWithPercentageCoordinates;
     procedure TestFeDropShadowAnisotropicBlur;
+    procedure TestFeMorphologyFilterRendering;
     procedure TestTextRendering;
     procedure TestTextRotationRendering;
     procedure TestTextPathRendering;
@@ -895,6 +896,70 @@ begin
     Check(textNode <> nil, 'textNode t1 should exist');
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
   finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeMorphologyFilterRendering;
+var
+  xmlDilate, xmlErode: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // 1. Dilate test: A 20x20 white square from (40,40) to (60,60) on a black background dilated with radius 10
+  // should expand to a 40x40 square from (30,30) to (70,70).
+  xmlDilate := '<svg width="100" height="100">' +
+               '  <defs>' +
+               '    <filter id="f_dilate" x="0" y="0" width="1" height="1">' +
+               '      <feMorphology operator="dilate" radius="10"/>' +
+               '    </filter>' +
+               '  </defs>' +
+               '  <rect x="40" y="40" width="20" height="20" fill="white" filter="url(#f_dilate)"/>' +
+               '</svg>';
+
+  docNode := ParseSvgXml(xmlDilate);
+  Check(docNode <> nil, 'docNode should not be nil for dilate test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create;
+  try
+    renderer.RenderDocument(bmp, docNode);
+    // (35, 35) was originally outside the square (40,40..60,60), but with dilate radius=10 it becomes white.
+    CheckEquals(clWhite32, bmp.Pixel[35, 35], 'Dilate filter should expand white square to include (35,35)');
+    CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of dilated square should remain white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+
+  // 2. Erode test: A 40x40 white square from (30,30) to (70,70) eroded with radius 10
+  // should shrink to a 20x20 square from (40,40) to (60,60).
+  xmlErode := '<svg width="100" height="100">' +
+              '  <defs>' +
+              '    <filter id="f_erode" x="0" y="0" width="1" height="1">' +
+              '      <feMorphology operator="erode" radius="10"/>' +
+              '    </filter>' +
+              '  </defs>' +
+              '  <rect x="30" y="30" width="40" height="40" fill="white" filter="url(#f_erode)"/>' +
+              '</svg>';
+
+  docNode := ParseSvgXml(xmlErode);
+  Check(docNode <> nil, 'docNode should not be nil for erode test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create;
+  try
+    renderer.RenderDocument(bmp, docNode);
+    // (35, 35) was inside the original 40x40 square (30,30..70,70), but after erosion radius=10 it becomes black/transparent.
+    CheckEquals(clBlack32, bmp.Pixel[35, 35], 'Erode filter should shrink white square away from (35,35)');
+    CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of eroded square should remain white');
+  finally
+    renderer.Free;
+    bmp.Free;
     docNode.Free;
   end;
 end;

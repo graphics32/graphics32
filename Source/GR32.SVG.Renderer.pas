@@ -2587,6 +2587,214 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TFilterRendererMorphology
+//
+//------------------------------------------------------------------------------
+// Renderer for TSvgFeMorphologyNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererMorphology = class(TFilterRenderer)
+  public
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+
+    class procedure ApplyMorphology(Input, Output: TCustomBitmap32; Op: TSvgMorphologyOperator; RadiusX, RadiusY: Integer; TempBitmap: TCustomBitmap32 = nil); static;
+  end;
+
+class function TFilterRendererMorphology.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+var
+  MorphNode: TSvgFeMorphologyNode;
+begin
+  MorphNode := TSvgFeMorphologyNode(Node);
+  Result.Left := MorphNode.RadiusX * Scale;
+  Result.Top := MorphNode.RadiusY * Scale;
+  Result.Right := Result.Left;
+  Result.Bottom := Result.Top;
+end;
+
+class procedure TFilterRendererMorphology.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  Input, Temp: TCustomBitmap32;
+  MorphNode: TSvgFeMorphologyNode;
+  RadiusX, RadiusY: Integer;
+begin
+  MorphNode := TSvgFeMorphologyNode(Node);
+  Input := ResolveSurface(MorphNode.ResolvedIn1, RenderData);
+
+  if (Input <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False);
+
+  RadiusX := Round(MorphNode.RadiusX * RenderData.Scale);
+  RadiusY := Round(MorphNode.RadiusY * RenderData.Scale);
+
+  if (RadiusX > 0) and (RadiusY > 0) then
+    Temp := Renderer.GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, False)
+  else
+    Temp := nil;
+  try
+
+    ApplyMorphology(Input, RenderData.CurrentSurface, MorphNode.MorphologyOperator, RadiusX, RadiusY, Temp);
+
+  finally
+    if Temp <> nil then
+      Renderer.ReleaseOffscreenBitmap(Temp);
+  end;
+end;
+
+class procedure TFilterRendererMorphology.ApplyMorphology(Input, Output: TCustomBitmap32; Op: TSvgMorphologyOperator; RadiusX, RadiusY: Integer; TempBitmap: TCustomBitmap32);
+var
+  W, H, X, Y, i, j, minX, maxX, minY, maxY: Integer;
+  pSrc, pDst: PColor32Entry;
+  minA, minR, minG, minB: Byte;
+  maxA, maxR, maxG, maxB: Byte;
+  Intermediate, SrcPass: TCustomBitmap32;
+begin
+  // TODO : Completely unoptimized - but does anyone really use this filter?
+
+  W := Input.Width;
+  H := Input.Height;
+
+  if (W = 0) or (H = 0) then
+    Exit;
+
+  if (RadiusX <= 0) and (RadiusY <= 0) then
+  begin
+    Input.CopyMapTo(Output);
+    Exit;
+  end;
+
+  if (RadiusX > 0) and (RadiusY > 0) and (TempBitmap <> nil) then
+    Intermediate := TempBitmap
+  else
+    Intermediate := Output;
+
+  // 1D Horizontal Pass
+  if RadiusX > 0 then
+  begin
+
+    case Op of
+      moErode:
+        for Y := 0 to H - 1 do
+          for X := 0 to W - 1 do
+          begin
+            pDst := PColor32Entry(Intermediate.PixelPtr[X, Y]);
+            if (X - RadiusX < 0) or (X + RadiusX >= W) then
+              pDst.ARGB := 0
+            else
+            begin
+              minA := $FF; minR := $FF; minG := $FF; minB := $FF;
+              for i := X - RadiusX to X + RadiusX do
+              begin
+                pSrc := PColor32Entry(Input.PixelPtr[i, Y]);
+                if pSrc.A < minA then minA := pSrc.A;
+                if pSrc.R < minR then minR := pSrc.R;
+                if pSrc.G < minG then minG := pSrc.G;
+                if pSrc.B < minB then minB := pSrc.B;
+              end;
+              pDst.A := minA; pDst.R := minR; pDst.G := minG; pDst.B := minB;
+            end;
+          end;
+
+      moDilate:
+        for Y := 0 to H - 1 do
+          for X := 0 to W - 1 do
+          begin
+            pDst := PColor32Entry(Intermediate.PixelPtr[X, Y]);
+            minX := X - RadiusX;
+            if minX < 0 then
+              minX := 0;
+            maxX := X + RadiusX;
+            if maxX >= W then
+              maxX := W - 1;
+
+            maxA := 0; maxR := 0; maxG := 0; maxB := 0;
+            for i := minX to maxX do
+            begin
+              pSrc := PColor32Entry(Input.PixelPtr[i, Y]);
+              if pSrc.A > maxA then maxA := pSrc.A;
+              if pSrc.R > maxR then maxR := pSrc.R;
+              if pSrc.G > maxG then maxG := pSrc.G;
+              if pSrc.B > maxB then maxB := pSrc.B;
+            end;
+            pDst.A := maxA; pDst.R := maxR; pDst.G := maxG; pDst.B := maxB;
+          end;
+    end;
+
+  end else
+  if Intermediate <> Input then
+    Input.CopyMapTo(Intermediate);
+
+  // 1D Vertical Pass
+  if RadiusY > 0 then
+  begin
+    if RadiusX > 0 then
+      SrcPass := Intermediate
+    else
+      SrcPass := Input;
+
+    case Op of
+      moErode:
+        for Y := 0 to H - 1 do
+        begin
+          if (Y - RadiusY < 0) or (Y + RadiusY >= H) then
+          begin
+            for X := 0 to W - 1 do
+              PColor32Entry(Output.PixelPtr[X, Y]).ARGB := 0;
+          end else
+          begin
+            minY := Y - RadiusY;
+            maxY := Y + RadiusY;
+            for X := 0 to W - 1 do
+            begin
+              pDst := PColor32Entry(Output.PixelPtr[X, Y]);
+              minA := $FF; minR := $FF; minG := $FF; minB := $FF;
+              for j := minY to maxY do
+              begin
+                pSrc := PColor32Entry(SrcPass.PixelPtr[X, j]);
+                if pSrc.A < minA then minA := pSrc.A;
+                if pSrc.R < minR then minR := pSrc.R;
+                if pSrc.G < minG then minG := pSrc.G;
+                if pSrc.B < minB then minB := pSrc.B;
+              end;
+              pDst.A := minA; pDst.R := minR; pDst.G := minG; pDst.B := minB;
+            end;
+          end;
+        end;
+
+      moDilate:
+        for Y := 0 to H - 1 do
+        begin
+          minY := Y - RadiusY;
+          if minY < 0 then
+            minY := 0;
+          maxY := Y + RadiusY;
+          if maxY >= H then
+            maxY := H - 1;
+
+          for X := 0 to W - 1 do
+          begin
+            pDst := PColor32Entry(Output.PixelPtr[X, Y]);
+            maxA := 0; maxR := 0; maxG := 0; maxB := 0;
+            for j := minY to maxY do
+            begin
+              pSrc := PColor32Entry(SrcPass.PixelPtr[X, j]);
+              if pSrc.A > maxA then maxA := pSrc.A;
+              if pSrc.R > maxR then maxR := pSrc.R;
+              if pSrc.G > maxG then maxG := pSrc.G;
+              if pSrc.B > maxB then maxB := pSrc.B;
+            end;
+            pDst.A := maxA; pDst.R := maxR; pDst.G := maxG; pDst.B := maxB;
+          end;
+        end;
+    end;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TFilterRendererComponentTransfer
 //
 //------------------------------------------------------------------------------
@@ -3158,6 +3366,12 @@ begin
         Margin := TFilterRendererDropShadow.GetMargins(TSvgFeDropShadowNode(Node), RenderData.Scale);
         MarginX := MarginX + Ceil(Margin.Left);
         MarginY := MarginY + Ceil(Margin.Top);
+      end else
+      if Node is TSvgFeMorphologyNode then
+      begin
+        Margin := TFilterRendererMorphology.GetMargins(TSvgFeMorphologyNode(Node), RenderData.Scale);
+        MarginX := MarginX + Ceil(Margin.Left);
+        MarginY := MarginY + Ceil(Margin.Top);
       end;
     end;
 
@@ -3299,6 +3513,9 @@ begin
         else
         if Node is TSvgFeFloodNode then
           TFilterRendererFlood.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
+        else
+        if Node is TSvgFeMorphologyNode then
+          TFilterRendererMorphology.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         if Node is TSvgFeComponentTransferNode then
           TFilterRendererComponentTransfer.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
