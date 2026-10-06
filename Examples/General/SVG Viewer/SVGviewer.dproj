@@ -110,6 +110,7 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Debugger_CWD>D:\Projects\Library\Graphics32\Info\SVG\samples</Debugger_CWD>
         <DCC_MapFile>3</DCC_MapFile>
+        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>

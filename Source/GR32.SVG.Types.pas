@@ -291,6 +291,8 @@ type
     class function Create(AColor: TColor32): TSvgColor; static;
     class function None: TSvgColor; static;
     class function CurrentColor: TSvgColor; static;
+    class function Unset: TSvgColor; static;
+    function IsSet: Boolean; inline;
     class function Parse(AColorStr: TValuePUtf8Char): TSvgColor; overload; static;
 {$if defined(UNIT_TEST)}
     class function Parse(const AStr: UTF8String): TSvgColor; overload; static;
@@ -1324,6 +1326,18 @@ begin
   Result.Color := clBlack32;
   Result.IsNone := False;
   Result.IsCurrentColor := True;
+end;
+
+class function TSvgColor.Unset: TSvgColor;
+begin
+  Result.Color := clNone32;
+  Result.IsNone := False;
+  Result.IsCurrentColor := False;
+end;
+
+function TSvgColor.IsSet: Boolean;
+begin
+  Result := (Color <> clNone32) or IsNone or IsCurrentColor;
 end;
 
 class function TSvgColor.Parse(AColorStr: TValuePUtf8Char): TSvgColor;

@@ -40,6 +40,7 @@ uses
   {$IFNDEF FPC} Windows, FileCtrl, {$ELSE} LCLIntf, LCLType, LResources, FileCtrl, {$ENDIF}
   Messages,
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Vcl.ComCtrls,
+  System.ImageList, Vcl.ImgList, Vcl.Buttons,
 
 {$if defined(IMAGE32)}
   Img32.Panels,
@@ -47,7 +48,11 @@ uses
 
   GR32,
   GR32.SVG.Tree,
+  GR32.SVG.Renderer,
   GR32_Image;
+
+type
+  TSvgColorTheme = (ctNone, ctLight, ctDark);
 
 const
   MSG_AFTER_SHOW = WM_USER;
@@ -65,34 +70,49 @@ type
     TabSheetPreview: TTabSheet;
     TabSheetSource: TTabSheet;
     MemoSource: TMemo;
-    Button1: TButton;
+    ButtonSave: TButton;
     StatusBar: TStatusBar;
     TabSheetDump: TTabSheet;
     MemoDump: TMemo;
     MemoSource2: TMemo;
     SplitterMemo: TSplitter;
     TabSheetImage32: TTabSheet;
+    Splitter1: TSplitter;
+    Panel1: TPanel;
+    SpeedButtonTheme: TSpeedButton;
+    ImageList: TImageList;
+    SpeedButtonBackground: TSpeedButton;
+    SpeedButtonRepaint: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FileListBoxChange(Sender: TObject);
     procedure MemoSourceChange(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure ButtonSaveClick(Sender: TObject);
     procedure SplitterMemoCanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
     procedure SplitterMemoBeforeResize(Sender: TObject);
     procedure MemoSourceKeyPress(Sender: TObject; var Key: Char);
     procedure FormShow(Sender: TObject);
+    procedure SpeedButtonThemeClick(Sender: TObject);
+    procedure SpeedButtonBackgroundClick(Sender: TObject);
+    procedure SpeedButtonRepaintClick(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
+    FRenderer: TSvgRenderer;
     FLockUpdate: integer;
     FIgnoreClick: boolean;
+    FColorTheme: TSvgColorTheme;
 {$if defined(IMAGE32)}
     FImage32Panel: TImage32Panel;
 {$ifend}
+    procedure DoRender;
     procedure RenderSvg(const ASource: string);
     procedure LoadAndRenderSvg(const AFileName: string);
     procedure SplitterClicked(Sender: TObject);
 
     procedure MsgAfterShow(var Msg: TMessage); message MSG_AFTER_SHOW;
+    procedure SetColorTheme(const Value: TSvgColorTheme);
+  public
+    property ColorTheme: TSvgColorTheme read FColorTheme write SetColorTheme;
   end;
 
 var
@@ -108,10 +128,12 @@ uses
   Img32.SVG.Core,
 {$ifend}
   GR32_System,
-  GR32.SVG.Types,
-  GR32.SVG.Renderer;
+  GR32.SVG.Types;
 
 {$R *.dfm}
+
+const
+  sColorThemes: array[TSvgColorTheme] of string = ('Default', 'Light', 'Dark');
 
 type
   TControlCracker = class(TControl);
@@ -122,6 +144,8 @@ begin
   Image32.Bitmap.SetSize(600, 600, False);
   Image32.Bitmap.Clear(clTrWhite32); // Just so we have something to look at
   Image32.ScrollToCenter;
+  FRenderer := TSvgRenderer.Create(Image32.Bitmap);
+
   TControlCracker(SplitterMemo).OnClick := SplitterClicked;
 
 {$if defined(IMAGE32)}
@@ -133,12 +157,13 @@ begin
 {$ifend}
 
   PageControlSVG.TabIndex := 0;
+  ColorTheme := ctNone;
 end;
 
 procedure TFormSVGviewer.FormDestroy(Sender: TObject);
 begin
-  if FDocNode <> nil then
-    FreeAndNil(FDocNode);
+  FDocNode.Free;
+  FRenderer.Free;
 end;
 
 procedure TFormSVGviewer.FormShow(Sender: TObject);
@@ -146,9 +171,18 @@ begin
   PostMessage(Handle, MSG_AFTER_SHOW, 0, 0);
 end;
 
-procedure TFormSVGviewer.Button1Click(Sender: TObject);
+procedure TFormSVGviewer.ButtonSaveClick(Sender: TObject);
+var
+  Filename: string;
 begin
-  Image32.Bitmap.SaveToFile(TPath.ChangeExtension(FileListBox.FileName, '.png'));
+  Filename := TPath.ChangeExtension(FileListBox.FileName, '.png');
+  Image32.Bitmap.SaveToFile(Filename);
+  StatusBar.SimpleText := 'Saved to: '+Filename;
+end;
+
+procedure TFormSVGviewer.DoRender;
+begin
+  FRenderer.RenderDocument(FDocNode, Image32.GetBitmapRect);
 end;
 
 procedure TFormSVGviewer.FileListBoxChange(Sender: TObject);
@@ -244,7 +278,6 @@ end;
 procedure TFormSVGviewer.RenderSvg(const ASource: string);
 var
   xmlText: UTF8String;
-  renderer: TSvgRenderer;
   ErrorMessage: string;
   StopWatch: TStopWatch;
   TimeParse, TimeRender: Int64;
@@ -298,16 +331,9 @@ begin
         end;
       end;
 
-      renderer := TSvgRenderer.Create(Image32.Bitmap);
-      try
-        StopWatch := TStopWatch.StartNew;
-
-        renderer.RenderDocument(FDocNode, Image32.GetBitmapRect);
-
-        TimeRender := StopWatch.ElapsedMilliseconds;
-      finally
-        renderer.Free;
-      end;
+      StopWatch := TStopWatch.StartNew;
+      DoRender;
+      TimeRender := StopWatch.ElapsedMilliseconds;
 
     except
       on E: Exception do
@@ -379,6 +405,53 @@ begin
   finally
     Screen.Cursor := crDefault;
   end;
+end;
+
+procedure TFormSVGviewer.SetColorTheme(const Value: TSvgColorTheme);
+begin
+  FColorTheme := Value;
+
+  SpeedButtonTheme.Hint := Format('Color theme: %s', [sColorThemes[FColorTheme]]);
+
+  case FColorTheme of
+    ctLight:
+      begin
+        FRenderer.ThemeFillColor32 := clDarkGray32;
+        FRenderer.ThemeStrokeColor32 := clWhite32;
+      end;
+
+    ctDark:
+      begin
+        FRenderer.ThemeFillColor32 := clLightGray32;
+        FRenderer.ThemeStrokeColor32 := clBlack32;
+      end;
+
+  else
+    FRenderer.ThemeFillColor32 := clNone32;
+    FRenderer.ThemeStrokeColor32 := clNone32;
+  end;
+
+  DoRender;
+end;
+
+procedure TFormSVGviewer.SpeedButtonBackgroundClick(Sender: TObject);
+const
+  Styles: array[0..3] of TBackgroundCheckerStyle = (bcsNone, bcsLight, bcsMedium, bcsDark);
+begin
+  TSpeedButton(Sender).Tag := (TSpeedButton(Sender).Tag + 1) mod 4;
+  Image32.Background.CheckersStyle := Styles[TSpeedButton(Sender).Tag];
+end;
+
+procedure TFormSVGviewer.SpeedButtonRepaintClick(Sender: TObject);
+begin
+  MemoSourceChange(MemoSource);
+end;
+
+procedure TFormSVGviewer.SpeedButtonThemeClick(Sender: TObject);
+begin
+  TSpeedButton(Sender).ImageIndex := (TSpeedButton(Sender).ImageIndex + 1) mod (Ord(High(FColorTheme)) + 1);
+  ColorTheme := TSvgColorTheme(TSpeedButton(Sender).ImageIndex);
+  DoRender;
 end;
 
 procedure TFormSVGviewer.SplitterClicked(Sender: TObject);

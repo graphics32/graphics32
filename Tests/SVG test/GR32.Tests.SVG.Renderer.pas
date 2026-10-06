@@ -97,6 +97,7 @@ type
     procedure TestPatternTransform;
     procedure TestGradientTransformObjectBoundingBox;
     procedure TestFeGaussianBlurDirectional;
+    procedure TestThemeFillAndStrokeColor;
   end;
 
 implementation
@@ -958,6 +959,48 @@ begin
     // (35, 35) was inside the original 40x40 square (30,30..70,70), but after erosion radius=10 it becomes black/transparent.
     CheckEquals(clBlack32, bmp.Pixel[35, 35], 'Erode filter should shrink white square away from (35,35)');
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of eroded square should remain white');
+procedure TTestSvgRenderer.TestThemeFillAndStrokeColor;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+begin
+  xml := '<svg width="100" height="100">' +
+         '  <rect id="r1" x="10" y="10" width="30" height="30" fill="red" stroke="black" stroke-width="4"/>' +
+         '  <rect id="r2" x="60" y="10" width="30" height="30" fill="none" stroke="black" stroke-width="4"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(100, 100);
+
+    // 1. Default rendering (no theme overrides active)
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clRed32, bmp.Pixel[25, 25], 'Default fill should be red');
+    CheckEquals(clBlack32, bmp.Pixel[10, 25], 'Default stroke should be black');
+    CheckEquals(clWhite32, bmp.Pixel[75, 25], 'Unfilled rect interior should remain white');
+
+    // 2. Set ThemeFillColor to Lime32 and ThemeStrokeColor to Blue32
+    renderer.ThemeFillColor := clLime32;
+    renderer.ThemeStrokeColor := clBlue32;
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clLime32, bmp.Pixel[25, 25], 'Theme fill should override red with lime');
+    CheckEquals(clBlue32, bmp.Pixel[10, 25], 'Theme stroke should override black with blue');
+    CheckEquals(clWhite32, bmp.Pixel[75, 25], 'Unfilled rect interior must remain white even with ThemeFillColor active');
+
+    // 3. Clear theme colors and re-verify original rendering
+    renderer.ClearThemeColors;
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clRed32, bmp.Pixel[25, 25], 'Restored fill should be red');
+    CheckEquals(clBlack32, bmp.Pixel[10, 25], 'Restored stroke should be black');
+
   finally
     renderer.Free;
     bmp.Free;
