@@ -105,6 +105,8 @@ type
     function CompareText(const AValue: TValuePUtf8Char): Boolean; overload;
     function StartsText(const AValue: AnsiString; ASkip: boolean = False): Boolean; overload;
     function StartsText(const AValue: TValuePUtf8Char; ASkip: boolean = False): Boolean; overload;
+    function EndsText(const AValue: AnsiString; ATrim: boolean = False): Boolean; overload;
+    function EndsText(const AValue: TValuePUtf8Char; ATrim: boolean = False): Boolean; overload;
     function Pos(Chr: AnsiChar): PUtf8Char;
 
     function ToCardinalAndSkip: Cardinal;
@@ -612,6 +614,50 @@ end;
 function TValuePUtf8Char.Equal(const Value: RawUtf8): Boolean;
 begin
   Result := Equal(PUtf8Char(Value), Length(Value));
+end;
+
+function TValuePUtf8Char.EndsText(const AValue: TValuePUtf8Char; ATrim: boolean): Boolean;
+var
+  i: integer;
+  p1, p2: PUtf8Char;
+  c1, c2: Byte;
+begin
+  if (AValue.Len > Len) then
+    Exit(False);
+
+  p1 := @Text[Len-1];
+  p2 := AValue.Text;
+
+  for i := 1 to AValue.Len do
+  begin
+    c1 := Byte(p1^);
+    c2 := Byte(p2^);
+
+    if (c1 <> c2) then
+    begin
+      // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
+      if c1 in [65..90] then
+        c1 := c1 xor $20;
+
+      if (c1 <> c2) then
+        Exit(False);
+    end;
+
+    Inc(p1);
+    Inc(p2);
+  end;
+  Result := True;
+
+  if (ATrim) then
+    Dec(Len, AValue.Len);
+end;
+
+function TValuePUtf8Char.EndsText(const AValue: AnsiString; ATrim: boolean): Boolean;
+var
+  Value: TValuePUtf8Char;
+begin
+  Value := TValuePUtf8Char.FromString(AValue);
+  Result := EndsText(Value, ATrim);
 end;
 
 function TValuePUtf8Char.Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean;

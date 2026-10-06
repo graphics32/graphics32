@@ -880,9 +880,11 @@ var
   BoundsWidth, BoundsHeight: Single;
   LinearNode: TSvgLinearGradientNode;
   RadialNode: TSvgRadialGradientNode;
+  ConicalNode: TSvgConicalGradientNode;
   cx, cy, r, fx, fy, rx, ry, ScaleX, ScaleY: Single;
   LinearFiller: TLinearGradientPolygonFiller;
   RadialFiller: TSVGRadialGradientPolygonFiller;
+  ConicalFiller: TSVGConicalGradientPolygonFiller;
   TotalTransform, GradTransform, BboxMat: TFloatMatrixHelper;
   PointStart, PointEnd, PointC, PointF: TFloatPoint;
 const
@@ -1017,6 +1019,53 @@ begin
     end;
 
     Result := RadialFiller;
+  end else
+
+  if AGradNode is TSvgConicalGradientNode then
+  begin
+    ConicalNode := TSvgConicalGradientNode(AGradNode);
+
+    if ConicalNode.GradientUnits = guObjectBoundingBox then
+    begin
+      cx := ConicalNode.Cx.ToPixels(1.0);
+      cy := ConicalNode.Cy.ToPixels(1.0);
+
+      BboxMat.Matrix := IdentityMatrix;
+      BboxMat.Scale(BoundsWidth, BoundsHeight);
+      BboxMat.Translate(ABounds.Left, ABounds.Top);
+      // Transform gradient coordinates in normalized [0..1] space before mapping to bounding box
+      TotalTransform := GradTransform * BboxMat;
+    end else
+    begin
+      cx := ConicalNode.Cx.ToPixels(FViewportRect.Width);
+      cy := ConicalNode.Cy.ToPixels(FViewportRect.Height);
+      TotalTransform := GradTransform * FTransformation.Matrix;
+    end;
+
+    ConicalFiller := TSVGConicalGradientPolygonFiller.Create;
+    try
+      ConicalFiller.Center := FloatPoint(cx, cy);
+      ConicalFiller.Angle := DegToRad(ConicalNode.Angle);
+      ConicalFiller.StartAngle := DegToRad(ConicalNode.StartAngle);
+      ConicalFiller.EndAngle := DegToRad(ConicalNode.EndAngle);
+      ConicalFiller.TransformMatrix := TotalTransform.Matrix;
+      ConicalFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
+
+      ConicalFiller.Gradient.ClearColorStops;
+      for i := 0 to AGradNode.Stops.Count - 1 do
+      begin
+        Stop := AGradNode.Stops[i];
+        StopColor := Stop.Color.Color;
+        if (Stop.Opacity < 1.0) or (AOpacity < 1.0) then
+          ScaleAlpha(StopColor, Stop.Opacity * AOpacity);
+        ConicalFiller.Gradient.AddColorStop(Stop.Offset, StopColor);
+      end;
+    except
+      ConicalFiller.Free;
+      raise;
+    end;
+
+    Result := ConicalFiller;
   end;
 end;
 

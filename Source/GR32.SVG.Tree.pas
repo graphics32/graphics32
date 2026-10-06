@@ -298,6 +298,9 @@ type
     attrMarkerWidth,
     attrMarkerHeight,
     attrMarkerUnits,
+    attrAngle,
+    attrStartAngle,
+    attrEndAngle,
     attrOrient,
     attrWidth,
     attrHeight,
@@ -590,6 +593,40 @@ type
     property Fx: TSvgLength read GetFx write SetFx;
     property Fy: TSvgLength read GetFy write SetFy;
   end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgConicalGradientNode
+//
+//------------------------------------------------------------------------------
+  TSvgConicalGradientNode = class(TSvgGradientNode)
+  private type
+    TSvgConicalGradientProperties = set of (cgpCx, cgpCy, cgpAngle, cgpStartAngle, cgpEndAngle);
+  private
+    FConicalSpecified: TSvgConicalGradientProperties;
+    FCx: TSvgLength;
+    FCy: TSvgLength;
+    FAngle: Single;       // in degrees
+    FStartAngle: Single;  // in degrees
+    FEndAngle: Single;    // in degrees
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+
+    property Cx: TSvgLength read FCx write FCx;
+    property Cy: TSvgLength read FCy write FCy;
+    property Angle: Single read FAngle write FAngle;
+    property StartAngle: Single read FStartAngle write FStartAngle;
+    property EndAngle: Single read FEndAngle write FEndAngle;
+  end;
+
+  TSvgConicGradientNode = TSvgConicalGradientNode;
 
 
 //------------------------------------------------------------------------------
@@ -1604,14 +1641,14 @@ end;
 //------------------------------------------------------------------------------
 type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
-    tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
+    tagLineargradient, tagRadialgradient, tagConicgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
     tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence, tagFedisplacementmap, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
-    'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
+    'linearGradient', 'radialgradient', 'conicGradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
     'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap', 'image', 'switch', 'text', 'tspan', 'textPath'
   );
@@ -1730,6 +1767,9 @@ const
     'markerWidth',
     'markerHeight',
     'markerUnits',
+    'angle',
+    'startAngle',
+    'endAngle',
     'orient',
     'width',
     'height',
@@ -3518,6 +3558,143 @@ procedure TSvgRadialGradientNode.SetFy(const Value: TSvgLength);
 begin
   FFy := Value;
   Include(FRadialSpecified, rgpFy);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgConicalGradientNode
+//
+//------------------------------------------------------------------------------
+function ParseSvgAngle(const AValue: TValuePUtf8Char): Single;
+var
+  Val: TValuePUtf8Char;
+  NumVal: Single;
+begin
+  Result := 0.0;
+  if AValue.Len = 0 then
+    Exit;
+  Val := AValue;
+  Val.Trim;
+  Val.TrimEnd;
+
+  if Val.EndsText('deg', True) then
+  begin
+    if Val.TryToFloat(NumVal) then
+      Result := NumVal;
+  end else
+  if Val.EndsText('rad', True) then
+  begin
+    if Val.TryToFloat(NumVal) then
+      Result := RadToDeg(NumVal);
+  end else
+  if Val.EndsText('turn', True) then
+  begin
+    if Val.TryToFloat(NumVal) then
+      Result := NumVal * 360.0;
+  end else
+  if Val.EndsText('grad', True) then
+  begin
+    if Val.TryToFloat(NumVal) then
+      Result := NumVal * 0.9;
+  end else
+  begin
+    if Val.TryToFloat(NumVal) then
+      Result := NumVal;
+  end;
+end;
+
+constructor TSvgConicalGradientNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FCx := TSvgLength.Create(0.5, suPercent);
+  FCy := TSvgLength.Create(0.5, suPercent);
+  FAngle := 0.0;
+  FStartAngle := 0.0;
+  FEndAngle := 360.0;
+end;
+
+function TSvgConicalGradientNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  ConicalGradientNode: TSvgConicalGradientNode;
+begin
+  ConicalGradientNode := TSvgConicalGradientNode(inherited Clone(AParent));
+  ConicalGradientNode.FCx := FCx;
+  ConicalGradientNode.FCy := FCy;
+  ConicalGradientNode.FAngle := FAngle;
+  ConicalGradientNode.FStartAngle := FStartAngle;
+  ConicalGradientNode.FEndAngle := FEndAngle;
+  ConicalGradientNode.FConicalSpecified := FConicalSpecified;
+  Result := ConicalGradientNode;
+end;
+
+function TSvgConicalGradientNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (cx=%s, cy=%s, angle=%s, startAngle=%s, endAngle=%s)',
+    [SvgLengthToString(FCx), SvgLengthToString(FCy), FloatToString(FAngle), FloatToString(FStartAngle), FloatToString(FEndAngle)]);
+end;
+
+procedure TSvgConicalGradientNode.InheritFrom(ParentGradient: TSvgGradientNode);
+var
+  ParentNode: TSvgConicalGradientNode;
+begin
+  inherited InheritFrom(ParentGradient);
+  if ParentGradient is TSvgConicalGradientNode then
+  begin
+    ParentNode := TSvgConicalGradientNode(ParentGradient);
+
+    if not (cgpCx in FConicalSpecified) then
+      FCx := ParentNode.FCx;
+
+    if not (cgpCy in FConicalSpecified) then
+      FCy := ParentNode.FCy;
+
+    if not (cgpAngle in FConicalSpecified) then
+      FAngle := ParentNode.FAngle;
+
+    if not (cgpStartAngle in FConicalSpecified) then
+      FStartAngle := ParentNode.FStartAngle;
+
+    if not (cgpEndAngle in FConicalSpecified) then
+      FEndAngle := ParentNode.FEndAngle;
+  end;
+end;
+
+procedure TSvgConicalGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+begin
+  case AKeyword of
+    attrCx:
+      begin
+        FCx := TSvgLength.Parse(AValue);
+        Include(FConicalSpecified, cgpCx);
+      end;
+
+    attrCy:
+      begin
+        FCy := TSvgLength.Parse(AValue);
+        Include(FConicalSpecified, cgpCy);
+      end;
+
+    attrAngle:
+      begin
+        FAngle := ParseSvgAngle(AValue);
+        Include(FConicalSpecified, cgpAngle);
+      end;
+
+    attrStartAngle:
+      begin
+        FStartAngle := ParseSvgAngle(AValue);
+        Include(FConicalSpecified, cgpStartAngle);
+      end;
+
+    attrEndAngle:
+      begin
+        FEndAngle := ParseSvgAngle(AValue);
+        Include(FConicalSpecified, cgpEndAngle);
+      end;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
 end;
 
 
@@ -6647,6 +6824,12 @@ var
             ParseAttributes(node, AParser);
           end;
 
+        tagConicgradient:
+          begin
+            node := TSvgConicalGradientNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
         tagClippath:
           begin
             node := TSvgClipPathNode.Create(AParent);
@@ -7075,8 +7258,20 @@ begin
   for StopTag := Low(TSvgStopTagKeyword) to High(TSvgStopTagKeyword) do
     SvgStopTagDictionary.Add(sSvgStopTagKeywords[StopTag], StopTag);
 
+  // Aliases for <conicGradient> tag
+  SvgKeywordDictionary.Add('conicalGradient', tagConicgradient);
+  SvgKeywordDictionary.Add('sweepGradient', tagConicgradient);
+  SvgKeywordDictionary.Add('angularGradient', tagConicgradient);
+
   for Attr := Low(TSvgAttributeKeyword) to High(TSvgAttributeKeyword) do
     SvgAttributeKeywordDictionary.Add(sSvgAttributeKeywords[Attr], Attr);
+
+  // Aliases for conic gradient attributes
+  SvgAttributeKeywordDictionary.Add('start-angle', attrStartAngle);
+  SvgAttributeKeywordDictionary.Add('end-angle', attrEndAngle);
+  SvgAttributeKeywordDictionary.Add('a', attrAngle);
+  SvgAttributeKeywordDictionary.Add('from', attrStartAngle);
+  SvgAttributeKeywordDictionary.Add('to', attrEndAngle);
 end;
 
 initialization

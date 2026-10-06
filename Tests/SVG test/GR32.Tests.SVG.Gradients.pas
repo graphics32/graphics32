@@ -51,6 +51,8 @@ type
     procedure TestGradientInheritance;
     procedure TestGradientInheritanceUserSpaceOnUse;
     procedure TestClipPathAndMaskParsing;
+    procedure TestConicalGradientParsing;
+    procedure TestConicalGradientInheritance;
   end;
 
 implementation
@@ -211,6 +213,87 @@ begin
     CheckEquals(111.2, derivedGrad.Y1.Value, 1E-4, 'Y1 coordinate should be preserved');
     CheckEquals(111.6, derivedGrad.X2.Value, 1E-4, 'X2 coordinate should be preserved');
     CheckEquals(148.6, derivedGrad.Y2.Value, 1E-4, 'Y2 coordinate should be preserved');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgGradients.TestConicalGradientParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  gradNode: TSvgConicalGradientNode;
+  defsNode: TSvgDefsNode;
+begin
+  xml := '<svg width="100" height="100">' +
+         '  <defs>' +
+         '    <conicGradient id="grad3" cx="50%" cy="50%" angle="90deg" start-angle="0rad" end-angle="1turn" spreadMethod="reflect">' +
+         '      <stop offset="0" stop-color="red"/>' +
+         '      <stop offset="1" stop-color="blue"/>' +
+         '    </conicGradient>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
+  try
+    CheckEquals(1, docNode.Children.Count);
+    defsNode := TSvgDefsNode(docNode.Children[0]);
+
+    CheckEquals(1, defsNode.Children.Count);
+    Check(defsNode.Children[0] is TSvgConicalGradientNode, 'Child should be TSvgConicalGradientNode');
+
+    gradNode := TSvgConicalGradientNode(defsNode.Children[0]);
+    CheckEquals('grad3', gradNode.ID);
+    CheckEquals(50.0, gradNode.Cx.Value, 1E-4);
+    CheckEquals(50.0, gradNode.Cy.Value, 1E-4);
+    CheckEquals(90.0, gradNode.Angle, 1E-4);
+    CheckEquals(0.0, gradNode.StartAngle, 1E-4);
+    CheckEquals(360.0, gradNode.EndAngle, 1E-4);
+    CheckEquals(Ord(smReflect), Ord(gradNode.SpreadMethod));
+
+    CheckEquals(2, gradNode.Stops.Count);
+    CheckEquals(clRed32, gradNode.Stops[0].Color.Color);
+    CheckEquals(clBlue32, gradNode.Stops[1].Color.Color);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgGradients.TestConicalGradientInheritance;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  derivedGrad: TSvgConicalGradientNode;
+  defsNode: TSvgDefsNode;
+begin
+  xml := '<svg width="100" height="100">' +
+         '  <defs>' +
+         '    <sweepGradient id="baseConic" angle="45" spreadMethod="repeat">' +
+         '      <stop offset="0" stop-color="green"/>' +
+         '      <stop offset="1" stop-color="purple"/>' +
+         '    </sweepGradient>' +
+         '    <conicalGradient id="derivedConic" href="#baseConic" cx="30" cy="30"/>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
+  try
+    docNode.Resolve;
+    defsNode := TSvgDefsNode(docNode.Children[0]);
+    CheckEquals(2, defsNode.Children.Count);
+
+    derivedGrad := TSvgConicalGradientNode(defsNode.Children[1]);
+
+    CheckEquals('#baseConic', derivedGrad.Href);
+    CheckEquals(2, derivedGrad.Stops.Count, 'Derived gradient should inherit stops');
+    CheckEquals(clGreen32, derivedGrad.Stops[0].Color.Color);
+    CheckEquals(clPurple32, derivedGrad.Stops[1].Color.Color);
+    CheckEquals(45.0, derivedGrad.Angle, 1E-4, 'Derived gradient should inherit angle');
+    CheckEquals(Ord(smRepeat), Ord(derivedGrad.SpreadMethod));
+    CheckEquals(30.0, derivedGrad.Cx.Value, 1E-4);
+    CheckEquals(30.0, derivedGrad.Cy.Value, 1E-4);
   finally
     docNode.Free;
   end;

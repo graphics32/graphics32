@@ -99,6 +99,7 @@ type
     procedure TestGradientTransformObjectBoundingBox;
     procedure TestFeGaussianBlurDirectional;
     procedure TestThemeFillAndStrokeColor;
+    procedure TestConicalGradientRendering;
   end;
 
 implementation
@@ -1042,6 +1043,58 @@ begin
     // (35, 35) was inside the original 40x40 square (30,30..70,70), but after erosion radius=10 it becomes black/transparent.
     CheckEquals(clBlack32, bmp.Pixel[35, 35], 'Erode filter should shrink white square away from (35,35)');
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of eroded square should remain white');
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestConicalGradientRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pRight, pLeft: TColor32;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="100" height="100">' +
+           '  <defs>' +
+           '    <conicGradient id="cg1" cx="50" cy="50" angle="0">' +
+           '      <stop offset="0" stop-color="red"/>' +
+           '      <stop offset="0.5" stop-color="green"/>' +
+           '      <stop offset="1" stop-color="blue"/>' +
+           '    </conicGradient>' +
+           '  </defs>' +
+           '  <rect x="0" y="0" width="100" height="100" fill="url(#cg1)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        pRight := bmp.PixelS[75, 50];  // 0 deg (Offset 0.0) -> Red
+        pLeft := bmp.PixelS[25, 50];   // 180 deg (Offset 0.5) -> Green
+
+        Check(RedComponent(pRight) > 200, 'Right edge should be predominantly red at offset 0');
+        Check(GreenComponent(pLeft) > 200, 'Left edge should be predominantly green at offset 0.5');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
 procedure TTestSvgRenderer.TestThemeFillAndStrokeColor;
 var
   bmp: TBitmap32;
