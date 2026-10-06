@@ -41,6 +41,7 @@ uses
   GR32,
   GR32_Polygons,
   GR32_VectorUtils,
+  GR32_Transforms,
 {$if defined(UseInlining)}
   // Needed in interface for inlining
   GR32_Blend,
@@ -779,6 +780,7 @@ type
       AlphaValues: PColor32; CombineMode: TCombineMode);
     procedure GradientFillerChanged; virtual;
     procedure WrapModeChanged; virtual;
+    procedure SetGradient(AGradient: TColor32Gradient); virtual;
   public
     constructor Create; overload;
     constructor Create(ColorGradient: TColor32Gradient); overload; virtual;
@@ -994,6 +996,45 @@ type
 
     property FocalPoint: TFloatPoint read FFocalPointNative write SetFocalPoint;
   end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSVGConicalGradientPolygonFiller
+//      TConicGradientPolygonFiller
+//
+//------------------------------------------------------------------------------
+// SVG compatible conical filler
+//------------------------------------------------------------------------------
+type
+  TSVGConicalGradientPolygonFiller = class(TCustomGradientLookupTablePolygonFiller)
+  private
+    FCenter: TFloatPoint;
+    FAngle: TFloat;       // Rotation angle in radians
+    FStartAngle: TFloat;  // Start angle in radians
+    FEndAngle: TFloat;    // End angle in radians
+    FTransformMatrix: TFloatMatrix;
+    FInvMatrix: TFloatMatrix;
+    FScale: TFloat;
+    FDelta: TFloat;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineConical(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32; CombineMode: TCombineMode);
+  public
+    constructor Create; reintroduce; overload;
+    constructor Create(ColorGradient: TColor32Gradient); reintroduce; overload;
+
+    procedure BeginRendering; override;
+
+    property Center: TFloatPoint read FCenter write FCenter;
+    property Angle: TFloat read FAngle write FAngle;
+    property StartAngle: TFloat read FStartAngle write FStartAngle;
+    property EndAngle: TFloat read FEndAngle write FEndAngle;
+    property TransformMatrix: TFloatMatrix read FTransformMatrix write FTransformMatrix;
+  end;
+
+  TConicGradientPolygonFiller = TSVGConicalGradientPolygonFiller;
 
 
 //------------------------------------------------------------------------------
@@ -3608,11 +3649,8 @@ end;
 
 destructor TCustomGradientPolygonFiller.Destroy;
 begin
-  if Assigned(FGradient) then
-    if FOwnsGradient then
-      FGradient.Free
-    else
-      FGradient.OnGradientColorsChanged := nil;
+  SetGradient(nil);
+
   inherited;
 end;
 
@@ -3637,6 +3675,22 @@ end;
 procedure TCustomGradientPolygonFiller.GradientFillerChanged;
 begin
   // do nothing
+end;
+
+procedure TCustomGradientPolygonFiller.SetGradient(AGradient: TColor32Gradient);
+begin
+  if (FGradient <> nil) then
+  begin
+    if FOwnsGradient then
+      FGradient.Free
+    else
+      FGradient.OnGradientColorsChanged := nil;
+  end;
+
+  FOwnsGradient := False;
+  FGradient := AGradient;
+
+  GradientFillerChanged;
 end;
 
 procedure TCustomGradientPolygonFiller.SetWrapMode(const Value: TWrapMode);
@@ -5214,7 +5268,7 @@ begin
   case FWrapMode of
     wmClamp: WrapProc := nil;
     wmRepeat: WrapProc := GetOptimalWrap(Mask);
-    wmMirror: WrapProc := GetOptimalReflect(Mask);
+    wmMirror: WrapProc := Mirror;
 {$ifdef GR32_WRAPMODE_REFLECT}
     wmReflect: WrapProc := GetOptimalReflect(Mask);
 {$endif}
@@ -5321,6 +5375,130 @@ begin
 
     Inc(Dst);
     Inc(AlphaValues);
+  end;
+end;
+
+{ TSVGConicalGradientPolygonFiller }
+
+constructor TSVGConicalGradientPolygonFiller.Create;
+begin
+  inherited Create;
+  FCenter := FloatPoint(0, 0);
+  FAngle := 0.0;
+  FStartAngle := 0.0;
+  FEndAngle := 2 * PI;
+  FTransformMatrix := IdentityMatrix;
+end;
+
+constructor TSVGConicalGradientPolygonFiller.Create(ColorGradient: TColor32Gradient);
+begin
+  Create;
+  SetGradient(ColorGradient);
+end;
+
+procedure TSVGConicalGradientPolygonFiller.BeginRendering;
+begin
+  if LookUpTableNeedsUpdate then
+  begin
+    if FUseLookUpTable then
+    begin
+      if (FGradientLUT = nil) then
+        raise Exception.Create(RCStrNoTColor32LookupTable);
+
+      if (FGradient <> nil) then
+        FGradient.FillColorLookUpTable(FGradientLUT);
+    end else
+    if (FGradient = nil) then
+      raise Exception.Create(RCStrNoTColor32Gradient);
+
+    inherited;
+  end;
+
+  FInvMatrix := FTransformMatrix;
+  GR32_Transforms.Invert(FInvMatrix);
+
+  FDelta := FEndAngle - FStartAngle;
+  if Abs(FDelta) < 1E-8 then
+    FDelta := 2 * PI;
+
+  FScale := FGradientLUT.Mask / FDelta;
+end;
+
+function TSVGConicalGradientPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FillLineConical;
+end;
+
+procedure TSVGConicalGradientPolygonFiller.FillLineConical(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+var
+  X, Mask, Index: Integer;
+  PtX, PtY, Dx, Dy: TFloat;
+  RelX, RelY, RelativeAngle: TFloat;
+  ColorLUT: PColor32Array;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+  WrapProc: TWrapProc;
+begin
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+  ColorLUT := FGradientLUT.Color32Ptr;
+  Mask := Integer(FGradientLUT.Mask);
+
+  case FWrapMode of
+    wmClamp: WrapProc := nil;
+    wmRepeat: WrapProc := GetOptimalWrap(Mask);
+    wmMirror: WrapProc := Mirror;
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect: WrapProc := GetOptimalReflect(Mask);
+{$endif}
+  else
+    WrapProc := nil;
+  end;
+
+  // Calculates starting point in gradient coordinate space for target pixel (DstX, DstY)
+  PtX := DstX * FInvMatrix[0, 0] + DstY * FInvMatrix[1, 0] + FInvMatrix[2, 0];
+  PtY := DstX * FInvMatrix[0, 1] + DstY * FInvMatrix[1, 1] + FInvMatrix[2, 1];
+
+  // Incremental step per X pixel advancement along the scanline
+  Dx := FInvMatrix[0, 0];
+  Dy := FInvMatrix[0, 1];
+
+  for X := 0 to Length - 1 do
+  begin
+    RelX := PtX - FCenter.X;
+    RelY := PtY - FCenter.Y;
+
+    // Angle relative to StartAngle + Angle
+    RelativeAngle := -ArcTan2(RelY, RelX) - (FStartAngle + FAngle);
+
+    // Normalize RelativeAngle into range [0..2*PI)
+    RelativeAngle := RelativeAngle - 2 * Pi * Floor(RelativeAngle / (2 * Pi));
+
+    Index := Round(FScale * RelativeAngle);
+
+    if Assigned(WrapProc) then
+      Index := WrapProc(Index, Mask)
+    else
+    begin
+      if Index < 0 then
+        Index := 0
+      else
+      if Index > Mask then
+        Index := Mask;
+    end;
+
+    Color32 := ColorLUT^[Index];
+
+    if AlphaValues <> nil then
+    begin
+      BlendMemEx(Color32, Dst^, AlphaValues^);
+      Inc(AlphaValues);
+    end else
+      Dst^ := Color32;
+
+    Inc(Dst);
+    PtX := PtX + Dx;
+    PtY := PtY + Dy;
   end;
 end;
 
