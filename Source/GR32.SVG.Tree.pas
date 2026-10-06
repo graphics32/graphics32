@@ -129,12 +129,12 @@ type
     FColor: TSvgColor;
     FOpacity: Single;
     FFillRule: TPolyFillMode;
-    FUrl: AnsiString;
+    FUrl: UTF8String;
     FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
     procedure SetColor(const Value: TSvgColor);
     procedure SetFillRule(const Value: TPolyFillMode);
     procedure SetOpacity(const Value: Single);
-    procedure SetUrl(const Value: AnsiString);
+    procedure SetUrl(const Value: UTF8String);
   public
 
     procedure ApplySpecified(var ADest: TSvgFill);
@@ -142,7 +142,7 @@ type
     property Color: TSvgColor read FColor write SetColor;
     property Opacity: Single read FOpacity write SetOpacity;
     property FillRule: TPolyFillMode read FFillRule write SetFillRule;
-    property Url: AnsiString read FUrl write SetUrl;
+    property Url: UTF8String read FUrl write SetUrl;
     property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgFill; static;
@@ -170,7 +170,7 @@ type
     FMiterLimit: Single;
     FDashArray: TArrayOfFloat;
     FDashOffset: Single;
-    FUrl: AnsiString;
+    FUrl: UTF8String;
     FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
   private
     procedure SetColor(const Value: TSvgColor);
@@ -180,7 +180,7 @@ type
     procedure SetJoinStyle(const Value: TJoinStyle);
     procedure SetMiterLimit(const Value: Single);
     procedure SetOpacity(const Value: Single);
-    procedure SetUrl(const Value: AnsiString);
+    procedure SetUrl(const Value: UTF8String);
     procedure SetWidth(const Value: TSvgLength);
   public
     procedure ApplySpecified(var ADest: TSvgStroke);
@@ -193,7 +193,7 @@ type
     property MiterLimit: Single read FMiterLimit write SetMiterLimit;
     property DashArray: TArrayOfFloat read FDashArray write SetDashArray;
     property DashOffset: Single read FDashOffset write SetDashOffset;
-    property Url: AnsiString read FUrl write SetUrl;
+    property Url: UTF8String read FUrl write SetUrl;
     property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgStroke; static;
@@ -341,44 +341,44 @@ type
 
   TSvgNode = class abstract(TObject)
   private
-    FID: AnsiString;
-    FCssClassName: AnsiString;
-    FStyleAttr: AnsiString; // Stores raw inline style="..." string for deferred cascade evaluation
+    FID: UTF8String;
+    FCssClassName: UTF8String;
+    FStyleAttr: UTF8String; // Stores raw inline style="..." string for deferred cascade evaluation
     FTransform: TFloatMatrix;
     FDisplay: TSvgDisplay;
     FVisible: Boolean;
     FOpacity: Single;
-    FClipPathID: AnsiString;
-    FMaskID: AnsiString;
+    FClipPathID: UTF8String;
+    FMaskID: UTF8String;
     FResolvedClipPath: TSvgClipPathNode;
     FResolvedMask: TSvgMaskNode;
     FMixBlendMode: TSvgBlendMode;
     FIsolation: TSvgIsolation;
-    FFilterID: AnsiString;
+    FFilterID: UTF8String;
     FResolvedFilter: TSvgFilterNode;
     FParent: TSvgNode;
     FColor: TSvgColor;
     FFill: TSvgFill;
     FStroke: TSvgStroke;
-    FMarkerStart: AnsiString;
-    FMarkerMid: AnsiString;
-    FMarkerEnd: AnsiString;
+    FMarkerStart: UTF8String;
+    FMarkerMid: UTF8String;
+    FMarkerEnd: UTF8String;
     FResolvedMarkerStart: TSvgMarkerNode;
     FResolvedMarkerMid: TSvgMarkerNode;
     FResolvedMarkerEnd: TSvgMarkerNode;
     FResolving: Boolean;
-    FRequiredFeatures: AnsiString;
-    FRequiredExtensions: AnsiString;
-    FSystemLanguage: AnsiString;
+    FRequiredFeatures: UTF8String;
+    FRequiredExtensions: UTF8String;
+    FSystemLanguage: UTF8String;
   protected
     function GetIsDisplayNone: Boolean;
     function GetIsRenderable: Boolean; virtual;
-    function GetElementTag: AnsiString; virtual;
+    function GetElementTag: UTF8String; virtual;
     function DumpNode(Indent: Integer = 0): string; virtual;
     function DumpChildren(Indent: Integer = 0): string; virtual;
     procedure SetParent(const Value: TSvgNode);
-    procedure SetID(const Value: AnsiString);
-    procedure SetRequiredFeatures(const Value: AnsiString);
+    procedure SetID(const Value: UTF8String);
+    procedure SetRequiredFeatures(const Value: UTF8String);
     procedure NodeAdded(ANode: TSvgNode); virtual;
     procedure NodeRemoved(ANode: TSvgNode); virtual;
   public
@@ -391,47 +391,47 @@ type
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; virtual;
     procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload;
 {$if defined(UNIT_TEST)}
-    procedure ParseAttribute(const AName, AValue: AnsiString); overload;
+    procedure ParseAttribute(const AName, AValue: UTF8String); overload;
 {$ifend}
     function KeywordLookup(const AName: TValuePUtf8Char): TSvgAttributeKeyword;
     procedure ParseStyleAttribute(AStyleStr: TValuePUtf8Char); overload;
-    procedure ParseStyleAttribute(const AStyleStr: AnsiString); overload;
+    procedure ParseStyleAttribute(const AStyleStr: UTF8String); overload;
     function CheckRequiredFeatures: Boolean; virtual;
     function CheckRequiredExtensions: Boolean; virtual;
     function CheckSystemLanguage: Boolean; virtual;
     function PassesConditionalProcessing: Boolean; virtual;
     function Dump(Indent: Integer = 0): string;
-    property ID: AnsiString read FID write SetID;
-    property CssClassName: AnsiString read FCssClassName write FCssClassName;
-    property StyleAttr: AnsiString read FStyleAttr write FStyleAttr;
+    property ID: UTF8String read FID write SetID;
+    property CssClassName: UTF8String read FCssClassName write FCssClassName;
+    property StyleAttr: UTF8String read FStyleAttr write FStyleAttr;
     property Transform: TFloatMatrix read FTransform write FTransform;
     property Display: TSvgDisplay read FDisplay write FDisplay;
     property IsDisplayNone: Boolean read GetIsDisplayNone;
     property Visible: Boolean read FVisible write FVisible;
     property Opacity: Single read FOpacity write FOpacity;
-    property ClipPathID: AnsiString read FClipPathID write FClipPathID;
-    property MaskID: AnsiString read FMaskID write FMaskID;
+    property ClipPathID: UTF8String read FClipPathID write FClipPathID;
+    property MaskID: UTF8String read FMaskID write FMaskID;
     property ResolvedClipPath: TSvgClipPathNode read FResolvedClipPath write FResolvedClipPath;
     property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
     property MixBlendMode: TSvgBlendMode read FMixBlendMode write FMixBlendMode;
     property Isolation: TSvgIsolation read FIsolation write FIsolation;
-    property FilterID: AnsiString read FFilterID write FFilterID;
+    property FilterID: UTF8String read FFilterID write FFilterID;
     property ResolvedFilter: TSvgFilterNode read FResolvedFilter write FResolvedFilter;
     property Parent: TSvgNode read FParent write SetParent;
     property Color: TSvgColor read FColor write FColor;
     property Fill: TSvgFill read FFill write FFill;
     property Stroke: TSvgStroke read FStroke write FStroke;
-    property MarkerStart: AnsiString read FMarkerStart write FMarkerStart;
-    property MarkerMid: AnsiString read FMarkerMid write FMarkerMid;
-    property MarkerEnd: AnsiString read FMarkerEnd write FMarkerEnd;
+    property MarkerStart: UTF8String read FMarkerStart write FMarkerStart;
+    property MarkerMid: UTF8String read FMarkerMid write FMarkerMid;
+    property MarkerEnd: UTF8String read FMarkerEnd write FMarkerEnd;
     property ResolvedMarkerStart: TSvgMarkerNode read FResolvedMarkerStart write FResolvedMarkerStart;
     property ResolvedMarkerMid: TSvgMarkerNode read FResolvedMarkerMid write FResolvedMarkerMid;
     property ResolvedMarkerEnd: TSvgMarkerNode read FResolvedMarkerEnd write FResolvedMarkerEnd;
-    property RequiredFeatures: AnsiString read FRequiredFeatures write SetRequiredFeatures;
-    property RequiredExtensions: AnsiString read FRequiredExtensions write FRequiredExtensions;
-    property SystemLanguage: AnsiString read FSystemLanguage write FSystemLanguage;
+    property RequiredFeatures: UTF8String read FRequiredFeatures write SetRequiredFeatures;
+    property RequiredExtensions: UTF8String read FRequiredExtensions write FRequiredExtensions;
+    property SystemLanguage: UTF8String read FSystemLanguage write FSystemLanguage;
     property IsRenderable: Boolean read GetIsRenderable;
-    property ElementTag: AnsiString read GetElementTag;
+    property ElementTag: UTF8String read GetElementTag;
   end;
 
   TSvgNodeClass = class of TSvgNode;
@@ -448,14 +448,14 @@ type
   TSvgGroupNode = class(TSvgNode)
   private
     FChildren: TObjectList<TSvgNode>;
-    FFontFamily: AnsiString;
+    FFontFamily: UTF8String;
     FFontSize: TSvgLength;
-    FFontWeight: AnsiString;
-    FFontStyle: AnsiString;
+    FFontWeight: UTF8String;
+    FFontStyle: UTF8String;
     FTextAnchor: TSvgTextAnchor;
     FLetterSpacing: TSvgLength;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
     procedure ParseFontProperty(const AValue: TValuePUtf8Char);
@@ -467,10 +467,10 @@ type
     procedure AddChild(AChild: TSvgNode);
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
     property Children: TObjectList<TSvgNode> read FChildren;
-    property FontFamily: AnsiString read FFontFamily write FFontFamily;
+    property FontFamily: UTF8String read FFontFamily write FFontFamily;
     property FontSize: TSvgLength read FFontSize write FFontSize;
-    property FontWeight: AnsiString read FFontWeight write FFontWeight;
-    property FontStyle: AnsiString read FFontStyle write FFontStyle;
+    property FontWeight: UTF8String read FFontWeight write FFontWeight;
+    property FontStyle: UTF8String read FFontStyle write FFontStyle;
     property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
     property LetterSpacing: TSvgLength read FLetterSpacing write FLetterSpacing;
   end;
@@ -490,7 +490,7 @@ type
   private
     FSelectedChild: TSvgNode;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
   public
     function GetSelectedChild: TSvgNode;
     function GetObjectBoundingBox: TFloatRect; override;
@@ -511,7 +511,7 @@ type
     FStops: TList<TSvgGradientStop>;
     FSpreadMethod: TSvgSpreadMethod;
     FGradientUnits: TSvgGradientUnits;
-    FHref: AnsiString;
+    FHref: UTF8String;
   protected
     function GetIsRenderable: Boolean; override;
     function DumpNode(Indent: Integer = 0): string; override;
@@ -526,7 +526,7 @@ type
     property Stops: TList<TSvgGradientStop> read FStops;
     property SpreadMethod: TSvgSpreadMethod read FSpreadMethod write FSpreadMethod;
     property GradientUnits: TSvgGradientUnits read FGradientUnits write FGradientUnits;
-    property Href: AnsiString read FHref write FHref;
+    property Href: UTF8String read FHref write FHref;
   end;
 
 
@@ -639,7 +639,7 @@ type
     FClipPathUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -664,7 +664,7 @@ type
     FMaskContentUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -698,10 +698,10 @@ type
     FPatternTransform: TFloatMatrix;
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
-    FHref: AnsiString;
+    FHref: UTF8String;
   protected
     function GetIsRenderable: Boolean; override;
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -717,7 +717,7 @@ type
     property PatternTransform: TFloatMatrix read FPatternTransform write FPatternTransform;
     property ViewBox: TSvgViewBox read FViewBox write FViewBox;
     property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
-    property Href: AnsiString read FHref write FHref;
+    property Href: UTF8String read FHref write FHref;
   end;
 
 
@@ -730,9 +730,9 @@ type
 //------------------------------------------------------------------------------
   TSvgFilterPrimitiveNode = class(TSvgGroupNode)
   private
-    FIn1: AnsiString;
-    FIn2: AnsiString;
-    FResult: AnsiString;
+    FIn1: UTF8String;
+    FIn2: UTF8String;
+    FResult: UTF8String;
     FResolvedIn1: TSvgFilterInput;
     FResolvedIn2: TSvgFilterInput;
     function GetIsReferenceTarget: boolean;
@@ -741,9 +741,9 @@ type
   public
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    property In1: AnsiString read FIn1 write FIn1;
-    property In2: AnsiString read FIn2 write FIn2;
-    property ResultName: AnsiString read FResult write FResult;
+    property In1: UTF8String read FIn1 write FIn1;
+    property In2: UTF8String read FIn2 write FIn2;
+    property ResultName: UTF8String read FResult write FResult;
     property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
     property ResolvedIn2: TSvgFilterInput read FResolvedIn2 write FResolvedIn2;
     property IsReferenceTarget: boolean read GetIsReferenceTarget;
@@ -850,14 +850,14 @@ type
 //------------------------------------------------------------------------------
   TSvgFeMergeNodeChild = class(TSvgNode)
   private
-    FIn1: string;
+    FIn1: UTF8String;
     FResolvedIn1: TSvgFilterInput;
   protected
     function GetIsRenderable: Boolean; override;
   public
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    property In1: string read FIn1 write FIn1;
+    property In1: UTF8String read FIn1 write FIn1;
     property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
   end;
 
@@ -1036,7 +1036,7 @@ type
     FTurbulenceType: TSvgTurbulenceType;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -1067,7 +1067,7 @@ type
     FPrimitiveUnits: TSvgGradientUnits;
   protected
     function GetIsRenderable: Boolean; override;
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -1104,7 +1104,7 @@ type
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
   protected
     function GetIsRenderable: Boolean; override;
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -1145,9 +1145,9 @@ type
     FHeight: TSvgLength;
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
-    FNodes: TDictionary<AnsiString, TSvgNode>;
+    FNodes: TDictionary<UTF8String, TSvgNode>;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
     procedure NodeAdded(ANode: TSvgNode); override;
     procedure NodeRemoved(ANode: TSvgNode); override;
@@ -1228,7 +1228,7 @@ type
     FPathData: TArrayOfArrayOfFloatPoint;
     function GetPathDataProp: TArrayOfArrayOfFloatPoint;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -1247,7 +1247,7 @@ type
 //------------------------------------------------------------------------------
   TSvgDefsNode = class(TSvgGroupNode)
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function GetIsRenderable: Boolean; override;
   end;
 
@@ -1266,7 +1266,7 @@ type
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function GetIsRenderable: Boolean; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
@@ -1307,7 +1307,7 @@ type
     FYChannelSelector: TSvgChannelSelector;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -1325,19 +1325,19 @@ type
 //------------------------------------------------------------------------------
   TSvgUseNode = class(TSvgGroupNode)
   private
-    FHref: AnsiString;
+    FHref: UTF8String;
     FX: Single;
     FY: Single;
     FWidth: TSvgLength;
     FHeight: TSvgLength;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    property Href: AnsiString read FHref write FHref;
+    property Href: UTF8String read FHref write FHref;
     property X: Single read FX write FX;
     property Y: Single read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
@@ -1360,10 +1360,10 @@ type
     FY: TSvgLength;
     FWidth: TSvgLength;
     FHeight: TSvgLength;
-    FHref: string;
+    FHref: UTF8String;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
@@ -1374,7 +1374,7 @@ type
     property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
-    property Href: string read FHref write FHref;
+    property Href: UTF8String read FHref write FHref;
     property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
   end;
 
@@ -1429,7 +1429,7 @@ type
 //------------------------------------------------------------------------------
   TSvgTextNode = class(TSvgTextPositioningNode)
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
   end;
 
 
@@ -1442,7 +1442,7 @@ type
 //------------------------------------------------------------------------------
   TSvgTSpanNode = class(TSvgTextPositioningNode)
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
   end;
 
 
@@ -1456,17 +1456,17 @@ type
 //------------------------------------------------------------------------------
   TSvgTextPathNode = class(TSvgTextPositioningNode)
   private
-    FHref: AnsiString;
+    FHref: UTF8String;
     FStartOffset: TSvgLength;
     FResolvedPathNode: TSvgPathNode;
   protected
-    function GetElementTag: AnsiString; override;
+    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
-    property Href: AnsiString read FHref write FHref;
+    property Href: UTF8String read FHref write FHref;
     property StartOffset: TSvgLength read FStartOffset write FStartOffset;
     property ResolvedPathNode: TSvgPathNode read FResolvedPathNode write FResolvedPathNode;
   end;
@@ -1497,7 +1497,7 @@ function ParseStrokeDashArray(Values: TValuePUtf8Char): TArrayOfFloat;
 //------------------------------------------------------------------------------
 function ParseSvgTransform(AValue: TValuePUtf8Char): TFloatMatrix; overload;
 {$if defined(UNIT_TEST)}
-function ParseSvgTransform(const AValue: AnsiString): TFloatMatrix; overload;
+function ParseSvgTransform(const AValue: UTF8String): TFloatMatrix; overload;
 {$ifend}
 
 
@@ -1528,7 +1528,6 @@ uses
   Generics.Defaults,
   Types,
   Math,
-  AnsiStrings,
   System.Hash,
   GR32_Math,
   GR32_Paths,
@@ -1646,7 +1645,7 @@ type
     tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence, tagFedisplacementmap, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
-  sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
+  sSvgTagKeywords: array[TSvgTagKeyword] of UTF8String = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'conicGradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
@@ -1666,7 +1665,7 @@ type
   TSvgStopTagKeyword = (stopTagNone, stopTagOffset, stopTagStopColor, stopTagStopOpacity, stopTagStyle);
 
 const
-  sSvgStopTagKeywords: array[TSvgStopTagKeyword] of AnsiString = ('', 'offset', 'stop-color', 'stop-opacity', 'style');
+  sSvgStopTagKeywords: array[TSvgStopTagKeyword] of UTF8String = ('', 'offset', 'stop-color', 'stop-opacity', 'style');
 
 var
   SvgStopTagDictionary: TSvgKeywordDictionary<TSvgStopTagKeyword>;
@@ -1677,7 +1676,7 @@ var
 //
 //------------------------------------------------------------------------------
 const
-  sSvgAttributeKeywords: array[TSvgAttributeKeyword] of AnsiString = (
+  sSvgAttributeKeywords: array[TSvgAttributeKeyword] of UTF8String = (
     '',
     'id',
     'class',
@@ -1914,7 +1913,7 @@ begin
   Include(FSpecified, fpOpacity);
 end;
 
-procedure TSvgFill.SetUrl(const Value: AnsiString);
+procedure TSvgFill.SetUrl(const Value: UTF8String);
 begin
   FUrl := Value;
   Include(FSpecified, fpColor);
@@ -2013,7 +2012,7 @@ begin
   Include(FSpecified, spOpacity);
 end;
 
-procedure TSvgStroke.SetUrl(const Value: AnsiString);
+procedure TSvgStroke.SetUrl(const Value: UTF8String);
 begin
   FUrl := Value;
   Include(FSpecified, spColor);
@@ -2184,7 +2183,7 @@ begin
   // Base implementation does nothing
 end;
 
-procedure TSvgNode.SetID(const Value: AnsiString);
+procedure TSvgNode.SetID(const Value: UTF8String);
 begin
   if (FID = Value) then
     exit;
@@ -2212,16 +2211,16 @@ begin
     FParent.NodeAdded(Self);
 end;
 
-procedure TSvgNode.SetRequiredFeatures(const Value: AnsiString);
+procedure TSvgNode.SetRequiredFeatures(const Value: UTF8String);
 begin
   if (Value <> '') then
-    FRequiredFeatures := AnsiStrings.Trim(Value)
+    FRequiredFeatures := UTF8Tools.Trim(Value)
   else
     FRequiredFeatures := #0; // Signal that RequiredFeatures has been set, but to an empty value
 end;
 
 {$if defined(UNIT_TEST)}
-procedure TSvgNode.ParseAttribute(const AName, AValue: AnsiString);
+procedure TSvgNode.ParseAttribute(const AName, AValue: UTF8String);
 begin
   ParseAttribute(TValuePUtf8Char.FromString(AName), TValuePUtf8Char.FromString(AValue));
 end;
@@ -2238,7 +2237,7 @@ end;
 
 procedure TSvgNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 
-  function ParseColor(AValue: TValuePUtf8Char; var Color: TSvgColor; var URL: AnsiString): boolean;
+  function ParseColor(AValue: TValuePUtf8Char; var Color: TSvgColor; var URL: UTF8String): boolean;
   var
     Value: TValuePUtf8Char;
   begin
@@ -2280,7 +2279,7 @@ procedure TSvgNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: 
 var
   ValueFloat: Single;
   Color: TSvgColor;
-  s: AnsiString;
+  s: UTF8String;
 begin
   case AKeyword of
     attrId:
@@ -2477,7 +2476,7 @@ begin
   Result := True;
 end;
 
-function TSvgNode.GetElementTag: AnsiString;
+function TSvgNode.GetElementTag: UTF8String;
 begin
   Result := '';
 end;
@@ -2526,31 +2525,7 @@ begin
   Result := CheckRequiredFeatures and CheckRequiredExtensions and CheckSystemLanguage;
 end;
 
-function ExtractUrlIdStr(const AUrlStr: AnsiString): AnsiString;
-var
-  pStart, pEnd: Integer;
-begin
-  Result := AnsiStrings.Trim(AUrlStr);
-  pStart := Pos('url(', AnsiStrings.LowerCase(Result));
-  if pStart > 0 then
-  begin
-    Delete(Result, 1, pStart + 3);
-    pEnd := Pos(')', Result);
-    if pEnd > 0 then
-      Result := Copy(Result, 1, pEnd - 1);
-    Result := AnsiStrings.Trim(Result);
-    if (Length(Result) > 0) and (Result[1] in ['"', '''']) then
-    begin
-      Delete(Result, 1, 1);
-      if (Length(Result) > 0) and (Result[Length(Result)] in ['"', '''']) then
-        Delete(Result, Length(Result), 1);
-    end;
-  end;
-  if (Length(Result) > 0) and (Result[1] = '#') then
-    Delete(Result, 1, 1);
-end;
-
-function ExtractUrlID(const AUrlStr: AnsiString): TValuePUtf8Char;
+function ExtractUrlID(const AUrlStr: UTF8String): TValuePUtf8Char;
 begin
   Result := TValuePUtf8Char.FromString(AUrlStr);
   Result.Trim;
@@ -2594,7 +2569,7 @@ begin
   end;
 end;
 
-procedure TSvgNode.ParseStyleAttribute(const AStyleStr: AnsiString);
+procedure TSvgNode.ParseStyleAttribute(const AStyleStr: UTF8String);
 var
   Str: TValuePUtf8Char;
 begin
@@ -2608,7 +2583,7 @@ end;
 //      TSvgGroupNode
 //
 //------------------------------------------------------------------------------
-function TSvgGroupNode.GetElementTag: AnsiString;
+function TSvgGroupNode.GetElementTag: UTF8String;
 begin
   Result := 'g';
 end;
@@ -2935,16 +2910,16 @@ begin
       ParseFontProperty(AValue);
 
     attrFontFamily:
-      FFontFamily := AValue.ToString;
+      FFontFamily := AValue.ToUtf8;
 
     attrFontSize:
       FFontSize := TSvgLength.Parse(AValue);
 
     attrFontWeight:
-      FFontWeight := AValue.ToString;
+      FFontWeight := AValue.ToUtf8;
 
     attrFontStyle:
-      FFontStyle := AValue.ToString;
+      FFontStyle := AValue.ToUtf8;
 
     attrTextAnchor:
       FTextAnchor := ParseSvgTextAnchor(AValue);
@@ -2962,7 +2937,7 @@ end;
 //      TSvgSwitchNode
 //
 //------------------------------------------------------------------------------
-function TSvgSwitchNode.GetElementTag: AnsiString;
+function TSvgSwitchNode.GetElementTag: UTF8String;
 begin
   Result := 'switch';
 end;
@@ -3151,7 +3126,7 @@ procedure TSvgTextPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const 
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
-      FHref := AValue.ToString;
+      FHref := AValue.ToUtf8;
 
     attrStartOffset:
       FStartOffset := TSvgLength.Parse(AValue);
@@ -3703,7 +3678,7 @@ end;
 //      TSvgClipPathNode
 //
 //------------------------------------------------------------------------------
-function TSvgClipPathNode.GetElementTag: AnsiString;
+function TSvgClipPathNode.GetElementTag: UTF8String;
 begin
   Result := 'clippath';
 end;
@@ -3762,7 +3737,7 @@ end;
 //      TSvgMaskNode
 //
 //------------------------------------------------------------------------------
-function TSvgMaskNode.GetElementTag: AnsiString;
+function TSvgMaskNode.GetElementTag: UTF8String;
 begin
   Result := 'mask';
 end;
@@ -3857,7 +3832,7 @@ end;
 //      TSvgPatternNode
 //
 //------------------------------------------------------------------------------
-function TSvgPatternNode.GetElementTag: AnsiString;
+function TSvgPatternNode.GetElementTag: UTF8String;
 begin
   Result := 'pattern';
 end;
@@ -3920,7 +3895,7 @@ begin
   Result := Result + Format(' (x=%s, y=%s, width=%s, height=%s, patternUnits=%s, patternContentUnits=%s)',
     [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight), patUnitsStr, contentUnitsStr]);
   if FHref <> '' then
-    Result := Result + ' (href="' + FHref + '")';
+    Result := Result + ' (href="' + string(FHref) + '")';
 end;
 
 procedure TSvgPatternNode.InheritFrom(ParentPattern: TSvgPatternNode);
@@ -4096,7 +4071,7 @@ end;
 
 function TSvgFilterPrimitiveNode.GetIsReferenceTarget: boolean;
 begin
-  Result := (FResult <> ''); // TODO . Replace with boolean flag
+  Result := (FResult <> ''); // TODO : Replace with boolean flag
 end;
 
 
@@ -4322,7 +4297,7 @@ end;
 procedure TSvgFeMergeNodeChild.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 begin
   case AKeyword of
-    attrIn: FIn1 := AValue.ToString;
+    attrIn: FIn1 := AValue.ToUtf8;
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
@@ -4577,7 +4552,7 @@ end;
 //      TSvgFilterNode
 //
 //------------------------------------------------------------------------------
-function TSvgFilterNode.GetElementTag: AnsiString;
+function TSvgFilterNode.GetElementTag: UTF8String;
 begin
   Result := 'filter';
 end;
@@ -4658,7 +4633,7 @@ end;
 //      TSvgMarkerNode
 //
 //------------------------------------------------------------------------------
-function TSvgMarkerNode.GetElementTag: AnsiString;
+function TSvgMarkerNode.GetElementTag: UTF8String;
 begin
   Result := 'marker';
 end;
@@ -4754,57 +4729,46 @@ end;
 //
 //------------------------------------------------------------------------------
 type
-  TIAnsiStringComparer = class(TCustomComparer<AnsiString>)
+  TIUtf8StringComparer = class(TCustomComparer<UTF8String>)
   private class var
-    FOrdinal: TIAnsiStringComparer;
+    FOrdinal: TIUtf8StringComparer;
   private
     class destructor Destroy;
   public
-    class function Ordinal: TIAnsiStringComparer;
+    class function Ordinal: TIUtf8StringComparer;
 
-    function Compare(const Left, Right: AnsiString): Integer; override;
-    function Equals(const Left, Right: AnsiString): Boolean; reintroduce; overload; override;
-    function GetHashCode(const Value: AnsiString): Integer; reintroduce; overload; override;
+    function Compare(const Left, Right: UTF8String): Integer; override;
+    function Equals(const Left, Right: UTF8String): Boolean; reintroduce; overload; override;
+    function GetHashCode(const Value: UTF8String): Integer; reintroduce; overload; override;
   end;
 
-class destructor TIAnsiStringComparer.Destroy;
+class destructor TIUtf8StringComparer.Destroy;
 begin
   FreeAndNil(FOrdinal);
 end;
 
-class function TIAnsiStringComparer.Ordinal: TIAnsiStringComparer;
+class function TIUtf8StringComparer.Ordinal: TIUtf8StringComparer;
 begin
   if (FOrdinal = nil) then
-    FOrdinal := TIAnsiStringComparer.Create;
+    FOrdinal := TIUtf8StringComparer.Create;
   Result := FOrdinal;
 end;
 
-function TIAnsiStringComparer.Compare(const Left, Right: AnsiString): Integer;
-var
-  L, R: AnsiString;
-  len, lenDiff: Integer;
+function TIUtf8StringComparer.Compare(const Left, Right: UTF8String): Integer;
 begin
-  L := AnsiStrings.LowerCase(Left);
-  R := AnsiStrings.LowerCase(Right);
-  len := Length(L);
-  lenDiff := len - Length(R);
-  if Length(R) < len then
-    len := Length(R);
-  Result := BinaryCompare(PAnsiChar(L), PAnsiChar(R), len);
-  if Result = 0 then
-    Exit(lenDiff);
+  Result := UTF8Tools.CompareOrdinal(Left, Right);
 end;
 
-function TIAnsiStringComparer.Equals(const Left, Right: AnsiString): Boolean;
+function TIUtf8StringComparer.Equals(const Left, Right: UTF8String): Boolean;
 begin
-  Result := AnsiStrings.SameText(Left, Right);
+  Result := UTF8Tools.CompareText(Left, Right);
 end;
 
-function TIAnsiStringComparer.GetHashCode(const Value: AnsiString): Integer;
+function TIUtf8StringComparer.GetHashCode(const Value: UTF8String): Integer;
 var
-  s: AnsiString;
+  s: UTF8String;
 begin
-  s := AnsiStrings.LowerCase(Value);
+  s := UTF8Tools.Lowercase(Value);
   Result := THashFNV1a32.GetHashValue(PAnsiChar(S)^, Length(S));
 end;
 
@@ -4824,7 +4788,7 @@ begin
   FViewBox.IsDefined := False;
   FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
 
-  FNodes := TDictionary<AnsiString, TSvgNode>.Create(TIAnsiStringComparer.Ordinal);
+  FNodes := TDictionary<UTF8String, TSvgNode>.Create(TIUtf8StringComparer.Ordinal);
 end;
 
 destructor TSvgDocumentNode.Destroy;
@@ -4848,7 +4812,7 @@ begin
   Result := DocRes;
 end;
 
-function TSvgDocumentNode.GetElementTag: AnsiString;
+function TSvgDocumentNode.GetElementTag: UTF8String;
 begin
   Result := 'svg';
 end;
@@ -4861,7 +4825,7 @@ end;
 
 function TSvgDocumentNode.FindNodeById(AID: TValuePUtf8Char): TSvgNode;
 var
-  s: AnsiString;
+  s: UTF8String;
 begin
   AID.Trim('#');
   s := AID.ToUtf8;
@@ -5090,7 +5054,7 @@ end;
 procedure TSvgDocumentNode.ResolveFilters;
 type
   TNamedResult = record
-    Name: AnsiString;
+    Name: UTF8String;
     Index: integer; // Sequential index
   end;
 
@@ -5122,7 +5086,7 @@ type
     Result := -1;
   end;
 
-  function InsertIndex(const Value: AnsiString; NamedResults: TNamedResults): integer;
+  function InsertIndex(const Value: UTF8String; NamedResults: TNamedResults): integer;
   var
     L, H, Mid: integer;
     Cmp: integer;
@@ -5132,7 +5096,7 @@ type
     while (L <= H) do
     begin
       Mid := L + (H - L) div 2;
-      Cmp := AnsiStrings.CompareText(NamedResults[Mid].Name, Value);
+      Cmp := UTF8Tools.CompareOrdinal(NamedResults[Mid].Name, Value);
       if (Cmp < 0) then
         L := Mid + 1
       else
@@ -5142,7 +5106,7 @@ type
   end;
 
   // TODO
-  function ResolveFilterInput(const AName: AnsiString; IsFirstPrimitive: Boolean; NamedResults: TNamedResults): TSvgFilterInput;
+  function ResolveFilterInput(const AName: UTF8String; IsFirstPrimitive: Boolean; NamedResults: TNamedResults): TSvgFilterInput;
   var
     Index: Integer;
     Value: TValuePUtf8Char;
@@ -5554,7 +5518,7 @@ begin
   Result := FPathData;
 end;
 
-function TSvgPathNode.GetElementTag: AnsiString;
+function TSvgPathNode.GetElementTag: UTF8String;
 begin
   case FProperties.Kind of
     skRect: Result := 'rect';
@@ -5616,7 +5580,7 @@ end;
 //      TSvgDefsNode
 //
 //------------------------------------------------------------------------------
-function TSvgDefsNode.GetElementTag: AnsiString;
+function TSvgDefsNode.GetElementTag: UTF8String;
 begin
   Result := 'defs';
 end;
@@ -5632,7 +5596,7 @@ end;
 //      TSvgSymbolNode
 //
 //------------------------------------------------------------------------------
-function TSvgSymbolNode.GetElementTag: AnsiString;
+function TSvgSymbolNode.GetElementTag: UTF8String;
 begin
   Result := 'symbol';
 end;
@@ -5844,7 +5808,7 @@ end;
 //      TSvgFeTurbulenceNode
 //
 //------------------------------------------------------------------------------
-function TSvgFeTurbulenceNode.GetElementTag: AnsiString;
+function TSvgFeTurbulenceNode.GetElementTag: UTF8String;
 begin
   Result := 'feTurbulence';
 end;
@@ -5877,7 +5841,6 @@ end;
 procedure TSvgFeTurbulenceNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
 var
   Value1, Value2: TValuePUtf8Char;
-  IVal: Integer;
 begin
   case AKeyword of
     attrBaseFrequency:
@@ -5928,7 +5891,7 @@ end;
 //      TSvgFeDisplacementMapNode
 //
 //------------------------------------------------------------------------------
-function TSvgFeDisplacementMapNode.GetElementTag: AnsiString;
+function TSvgFeDisplacementMapNode.GetElementTag: UTF8String;
 begin
   Result := 'feDisplacementMap';
 end;
@@ -6004,7 +5967,7 @@ begin
   Result := useRes;
 end;
 
-function TSvgUseNode.GetElementTag: AnsiString;
+function TSvgUseNode.GetElementTag: UTF8String;
 begin
   Result := 'use';
 end;
@@ -6081,7 +6044,7 @@ begin
       FHeight := TSvgLength.Parse(AValue);
 
     attrHref, attrXLinkHref, attrSrc:
-      FHref := AValue.ToString;
+      FHref := UTF8Tools.Trim(AValue.ToUtf8);
 
     attrPreserveAspectRatio:
       FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
@@ -6101,22 +6064,22 @@ begin
   Result := FloatRect(xPx, yPx, xPx + wPx, yPx + hPx);
 end;
 
-function TSvgImageNode.GetElementTag: AnsiString;
+function TSvgImageNode.GetElementTag: UTF8String;
 begin
   Result := 'image';
 end;
 
-function TSvgTextNode.GetElementTag: AnsiString;
+function TSvgTextNode.GetElementTag: UTF8String;
 begin
   Result := 'text';
 end;
 
-function TSvgTSpanNode.GetElementTag: AnsiString;
+function TSvgTSpanNode.GetElementTag: UTF8String;
 begin
   Result := 'tspan';
 end;
 
-function TSvgTextPathNode.GetElementTag: AnsiString;
+function TSvgTextPathNode.GetElementTag: UTF8String;
 begin
   Result := 'textpath';
 end;
@@ -6378,7 +6341,7 @@ end;
 //
 //------------------------------------------------------------------------------
 {$if defined(UNIT_TEST)}
-function ParseSvgTransform(const AValue: AnsiString): TFloatMatrix; overload;
+function ParseSvgTransform(const AValue: UTF8String): TFloatMatrix; overload;
 begin
    Result := ParseSvgTransform(TValuePUtf8Char.FromString(AValue));
 end;
@@ -7089,7 +7052,7 @@ var
           else
           begin
             if AParser.ValueToUtf8(Utf8) then
-              UnicodeText := Utf8
+              UnicodeText := string(Utf8)
             else
               UnicodeText := TValuePUtf8Char(AParser.Value).ToString;
           end;

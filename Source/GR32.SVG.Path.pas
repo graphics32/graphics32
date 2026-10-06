@@ -47,8 +47,8 @@ function SvgPathDataToPath(const APathData: TValuePUtf8Char): TFlattenedPath; ov
 function SvgPathDataToPoints(const APathData: TValuePUtf8Char): TArrayOfArrayOfFloatPoint; overload;
 
 {$if defined(UNIT_TEST)}
-function SvgPathDataToPath(const APathData: AnsiString): TFlattenedPath; overload;
-function SvgPathDataToPoints(const APathData: AnsiString): TArrayOfArrayOfFloatPoint; overload;
+function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath; overload;
+function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint; overload;
 {$ifend}
 
 implementation
@@ -443,7 +443,7 @@ begin
 end;
 
 {$if defined(UNIT_TEST)}
-function SvgPathDataToPath(const APathData: AnsiString): TFlattenedPath;
+function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath;
 begin
    Result := SvgPathDataToPath(TValuePUtf8Char.FromString(APathData));
 end;
@@ -464,7 +464,7 @@ begin
 end;
 
 {$if defined(UNIT_TEST)}
-function SvgPathDataToPoints(const APathData: AnsiString): TArrayOfArrayOfFloatPoint;
+function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint;
 begin
    Result := SvgPathDataToPoints(TValuePUtf8Char.FromString(APathData));
 end;

@@ -107,7 +107,7 @@ type
   end;
 
   TFontInfo = record
-    FontFamily: AnsiString;
+    FontFamily: UTF8String;
     Style: TFontStyles;
     Size: integer;
   end;
@@ -157,7 +157,7 @@ type
     function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
     function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
     procedure ReleaseOffscreenBitmap(var ABitmap: TCustomBitmap32);
-    procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: AnsiString; ASize: integer; var AFontInfo: TFontInfo); virtual;
+    procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
@@ -184,9 +184,9 @@ type
 
 var
   SvgSystemFonts: record
-    SansSerif: AnsiString;
-    Serif: AnsiString;
-    Monospace: AnsiString;
+    SansSerif: UTF8String;
+    Serif: UTF8String;
+    Monospace: UTF8String;
   end = (
     SansSerif:          'Arial';
     Serif:              'Times New Roman';
@@ -3941,44 +3941,65 @@ end;
 //------------------------------------------------------------------------------
 // Used by TSvgRenderer.RenderImageNode
 //------------------------------------------------------------------------------
-function UrlDecode(const AStr: string): string;
+function UrlDecode(AStr: TValuePUtf8Char): UTF8String;
 var
-  i, len: Integer;
-  c: Char;
-  code: Integer;
+  Code: Integer;
+  Count: integer;
 begin
-  Result := '';
-  len := Length(AStr);
-  i := 1;
-  while i <= len do
+  SetLength(Result, AStr.Len);
+  Count := 0;
+
+  while (AStr.Len > 0) do
   begin
-    c := AStr[i];
-    if (c = '%') and (i + 2 <= len) then
-    begin
-      code := StrToIntDef('$' + Copy(AStr, i + 1, 2), -1);
-      if code >= 0 then
-      begin
-        Result := Result + Char(code);
-        Inc(i, 3);
-        Continue;
-      end;
-    end;
-    if c = '+' then
-      Result := Result + ' '
+    Code := 0;
+    case AStr.Text^ of
+      '%':
+        if (AStr.Len > 2) then
+        begin
+          AStr.Skip;
+          // First digit
+          case AStr.Text^ of
+            '0'..'9': Code := Ord(AStr.Text^) - Ord('0');
+            'a'..'f': Code := Ord(AStr.Text^) - Ord('a') + 10;
+            'A'..'F': Code := Ord(AStr.Text^) - Ord('A') + 10;
+          else
+            Code := 0;
+          end;
+          AStr.Skip;
+          // Second digit
+          case AStr.Text^ of
+            '0'..'9': Code := Code shl 4 + Ord(AStr.Text^) - Ord('0');
+            'a'..'f': Code := Code shl 4 + Ord(AStr.Text^) - Ord('a') + 10;
+            'A'..'F': Code := Code shl 4 + Ord(AStr.Text^) - Ord('A') + 10;
+          else
+            Code := 0;
+          end;
+        end;
+
+      '+':
+        Code := 32;
+
     else
-      Result := Result + c;
-    Inc(i);
+      Code := Ord(AStr.Text^);
+    end;
+
+    if (Code <> 0) then
+    begin
+      Inc(Count);
+      if (Count > Length(Result)) then
+        SetLength(Result, Count * 2);
+      Result[Count] := UTF8Char(Code);
+    end;
+
+    AStr.Skip;
   end;
+
+  SetLength(Result, Count);
 end;
 
-procedure DecodeBase64ToStream(const ABase64Str: string; AStream: TStream);
-var
-  i, len: Integer;
-  b1, b2, b3: Byte;
-  v1, v2, v3, v4: Integer;
-  buf: array[0..2] of Byte;
+procedure DecodeBase64ToStream(ABase64: TValuePUtf8Char; AStream: TStream);
 
-  function DecodeChar(c: Char): Integer;
+  function DecodeChar(c: UTF8Char): Integer;
   begin
     case c of
       'A'..'Z': Result := Ord(c) - Ord('A');
@@ -3992,42 +4013,48 @@ var
     end;
   end;
 
+var
+  b1, b2, b3: Byte;
+  v1, v2, v3, v4: Integer;
+  buf: array[0..2] of Byte;
 begin
-  len := Length(ABase64Str);
-  i := 1;
-  while i <= len do
+  while (ABase64.Len > 0) do
   begin
     v1 := -1;
-    while (i <= len) and (v1 = -1) do
+    while (ABase64.Len > 0) and (v1 = -1) do
     begin
-      v1 := DecodeChar(ABase64Str[i]);
-      Inc(i);
+      v1 := DecodeChar(ABase64.Text^);
+      ABase64.Skip;
     end;
-    if (v1 < 0) then Break;
+    if (v1 < 0) then
+      Break;
 
     v2 := -1;
-    while (i <= len) and (v2 = -1) do
+    while (ABase64.Len > 0) and (v2 = -1) do
     begin
-      v2 := DecodeChar(ABase64Str[i]);
-      Inc(i);
+      v2 := DecodeChar(ABase64.Text^);
+      ABase64.Skip;
     end;
-    if (v2 < 0) then Break;
+    if (v2 < 0) then
+      Break;
 
     v3 := -1;
-    while (i <= len) and (v3 = -1) do
+    while (ABase64.Len > 0) and (v3 = -1) do
     begin
-      v3 := DecodeChar(ABase64Str[i]);
-      Inc(i);
+      v3 := DecodeChar(ABase64.Text^);
+      ABase64.Skip;
     end;
-    if (v3 < -1) then v3 := -2;
+    if (v3 < -1) then
+      v3 := -2;
 
     v4 := -1;
-    while (i <= len) and (v4 = -1) do
+    while (ABase64.Len > 0) and (v4 = -1) do
     begin
-      v4 := DecodeChar(ABase64Str[i]);
-      Inc(i);
+      v4 := DecodeChar(ABase64.Text^);
+      ABase64.Skip;
     end;
-    if (v4 < -1) then v4 := -2;
+    if (v4 < -1) then
+      v4 := -2;
 
     b1 := (v1 shl 2) or ((v2 and $30) shr 4);
     buf[0] := b1;
@@ -4057,9 +4084,7 @@ procedure TSvgRenderer.RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSv
 var
   WidthPx, HeightPx, xPx, yPx: Single;
   TargetRect: TFloatRect;
-  hrefStr, MimeType, DataStr, DecodedStr: string;
-  isBase64, isSvg: Boolean;
-  CommaPos: Integer;
+  isSvg: Boolean;
   Stream: TMemoryStream;
   SubDoc: TSvgDocumentNode;
   SubRenderer: TSvgRenderer;
@@ -4068,7 +4093,9 @@ var
   DestBounds: TFloatRect;
   DestClip: TRect;
   SourceViewBox: TSvgViewBox;
-  utf8Bytes: UTF8String;
+  UTF8Bytes: UTF8String;
+  hRef, MimeType: TValuePUtf8Char;
+  s: string;
 begin
   if (ATarget = nil) or (AImageNode = nil) then
     Exit;
@@ -4082,58 +4109,53 @@ begin
   yPx := AImageNode.Y.ToPixels(FViewportRect.Height);
   TargetRect := FloatRect(xPx, yPx, xPx + WidthPx, yPx + HeightPx);
 
-  hrefStr := Trim(AImageNode.Href);
-  if (hrefStr = '') then
+  if (AImageNode.Href = '') then
     Exit;
 
-  // TODO : The string handling here is horrible! Optimizer later for zero allocation.
-  // Replace stream with "pull" decode on-demand stream
+  // TODO : Replace stream with "pull" decode on-demand stream
 
   Stream := TMemoryStream.Create;
   try
-    isSvg := False;
-    if SameText(Copy(hrefStr, 1, 5), 'data:') then
-    begin
-      CommaPos := Pos(',', hrefStr);
-      if CommaPos > 0 then
-      begin
-        MimeType := LowerCase(Copy(hrefStr, 6, CommaPos - 6));
-        isBase64 := Pos(';base64', MimeType) > 0;
-        isSvg := (Pos('image/svg+xml', MimeType) > 0) or (Pos('image/svg', MimeType) > 0);
-        DataStr := Copy(hrefStr, CommaPos + 1, MaxInt);
+    hRef := TValuePUtf8Char.FromString(AImageNode.Href);
 
-        if isBase64 then
-          DecodeBase64ToStream(DataStr, Stream)
-        else
-        begin
-          DecodedStr := UrlDecode(DataStr);
-          utf8Bytes := UTF8String(DecodedStr);
-          if Length(utf8Bytes) > 0 then
-            Stream.WriteBuffer(utf8Bytes[1], Length(utf8Bytes));
-        end;
+    if hRef.StartsText('data:', True) then
+    begin
+      MimeType := hRef.Split(',', True);
+      if (MimeType.Len = 0) then
+        exit;
+
+      isSvg := MimeType.ContainsText('image/svg+xml') or MimeType.ContainsText('image/svg');
+
+      if MimeType.ContainsText(';base64') then
+        DecodeBase64ToStream(hRef, Stream)
+      else
+      begin
+        UTF8Bytes := UrlDecode(hRef);
+        if Length(UTF8Bytes) > 0 then
+          Stream.WriteBuffer(UTF8Bytes[1], Length(UTF8Bytes));
       end;
     end else
-    if FAllowExternalImages and FileExists(hrefStr) then
+    if FAllowExternalImages then
     begin
-      Stream.LoadFromFile(hrefStr);
-      if SameText(ExtractFileExt(hrefStr), '.svg') then
-        isSvg := True;
-    end;
+      s := hRef.ToString;
+      if not FileExists(s) then
+        exit;
 
-    if Stream.Size = 0 then Exit;
+      Stream.LoadFromFile(s);
+      isSvg := hRef.EndsText('.svg');
+    end else
+      exit;
+
+    if (Stream.Size = 0) then
+      Exit;
     Stream.Position := 0;
 
     // Check if content is SVG if not determined by MIME or file extension
-    if not isSvg then
+    if (not isSvg) then
     begin
-      if Stream.Size > 4 then
-      begin
-        SetLength(DataStr, Min(100, Stream.Size));
-        Stream.ReadBuffer(DataStr[1], Length(DataStr));
-        Stream.Position := 0;
-        if (Pos('<svg', LowerCase(DataStr)) > 0) or (Pos('<?xml', LowerCase(DataStr)) > 0) then
-          isSvg := True;
-      end;
+      hRef.Text := Stream.Memory;
+      hRef.Len := Min(100, Stream.Size); // Limit the scan to something reasonable
+      isSvg := hRef.ContainsText('<svg') or hRef.ContainsText('<?xml');
     end;
 
     if isSvg then
@@ -4218,7 +4240,7 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.MapFont(const AFontFamily, AWeightStr, AStyleStr: AnsiString; ASize: integer; var AFontInfo: TFontInfo);
+procedure TSvgRenderer.MapFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
 var
   Parser: TValuePUtf8Char;
   Token: TValuePUtf8Char;
@@ -4473,7 +4495,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       FontInfo := Default(TFontInfo);
       MapFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
 
-      Canvas.Bitmap.Font.Name := FontInfo.FontFamily;
+      Canvas.Bitmap.Font.Name := string(FontInfo.FontFamily);
       Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
       Canvas.Bitmap.Font.Style := FontInfo.Style;
 
@@ -4626,7 +4648,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         FontInfo := Default(TFontInfo);
         MapFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
 
-        Canvas.Bitmap.Font.Name := FontInfo.FontFamily;
+        Canvas.Bitmap.Font.Name := string(FontInfo.FontFamily);
         Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
         Canvas.Bitmap.Font.Style := FontInfo.Style;
 

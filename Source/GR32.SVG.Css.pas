@@ -84,13 +84,13 @@ type
 
   TSvgCssSelectorComponent = record
     Kind: TSvgCssSelectorKind;
-    ElementTag: AnsiString;
-    ClassName: AnsiString;
-    Id: AnsiString;
-    Name: AnsiString;
+    ElementTag: UTF8String;
+    ClassName: UTF8String;
+    Id: UTF8String;
+    Name: UTF8String;
     Specificity: Integer;
     Combinator: TSvgCssCombinator;
-    function MatchesSimple(const AElementTag, AClassName, AElementId: AnsiString): Boolean; overload;
+    function MatchesSimple(const AElementTag, AClassName, AElementId: UTF8String): Boolean; overload;
     function MatchesSimple(ANode: TSvgNode): Boolean; overload;
   end;
 
@@ -106,7 +106,7 @@ type
     Chain: TArray<TSvgCssSelectorComponent>;
     Specificity: Integer;
     function Matches(ANode: TSvgNode): Boolean; overload;
-    function Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean; overload;
+    function Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String): Boolean; overload;
     class function Parse(Value: TValuePUtf8Char): TSvgCssSelector; static;
   end;
 
@@ -120,8 +120,8 @@ type
 //------------------------------------------------------------------------------
 type
   TSvgCssProperty = record
-    Name: AnsiString;
-    Value: AnsiString;
+    Name: UTF8String;
+    Value: UTF8String;
     class function Create(const AName, AValue: TValuePUtf8Char): TSvgCssProperty; static;
   end;
 
@@ -158,8 +158,8 @@ type
     destructor Destroy; override;
 
     procedure Clear;
-    procedure ParseCss(const ACssText: AnsiString);
-    procedure ApplyToNode(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString);
+    procedure ParseCss(const ACssText: UTF8String);
+    procedure ApplyToNode(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String);
 
     property Rules: TList<TSvgCssRule> read FRules;
   end;
@@ -171,9 +171,6 @@ type
 
 implementation
 
-uses
-  AnsiStrings;
-
 
 //------------------------------------------------------------------------------
 //
@@ -182,7 +179,7 @@ uses
 //------------------------------------------------------------------------------
 // Match a single class name against a white-space separated list of class names.
 //------------------------------------------------------------------------------
-function MatchClass(const AClassList, ATargetClass: AnsiString): Boolean;
+function MatchClass(const AClassList, ATargetClass: UTF8String): Boolean;
 var
   List: TValuePUtf8Char;
   OneClass: TValuePUtf8Char;
@@ -221,7 +218,7 @@ end;
 //      TSvgCssSelector
 //
 //------------------------------------------------------------------------------
-function TSvgCssSelectorComponent.MatchesSimple(const AElementTag, AClassName, AElementId: AnsiString): Boolean;
+function TSvgCssSelectorComponent.MatchesSimple(const AElementTag, AClassName, AElementId: UTF8String): Boolean;
 var
   TagVal: TValuePUtf8Char;
 begin
@@ -326,7 +323,7 @@ class function TSvgCssSelector.Parse(Value: TValuePUtf8Char): TSvgCssSelector;
       Part := CompStr.Split(['.', '#'], False);
       if (Part.Len > 0) then
       begin
-        Comp.ElementTag := AnsiStrings.LowerCase(Part.ToUtf8);
+        Comp.ElementTag := UTF8Tools.Lowercase(Part.ToUtf8);
         Inc(Comp.Specificity, 1);
       end;
 
@@ -466,7 +463,7 @@ begin
   Result := MatchChain(ANode, High(Chain));
 end;
 
-function TSvgCssSelector.Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString): Boolean;
+function TSvgCssSelector.Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String): Boolean;
 begin
   if Length(Chain) = 0 then
     Exit(False);
@@ -535,7 +532,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TSvgCssStyleSheet.ParseCss(const ACssText: AnsiString);
+procedure TSvgCssStyleSheet.ParseCss(const ACssText: UTF8String);
 
   procedure SkipWhitespaceAndComments(var Value: TValuePUtf8Char);
   begin
@@ -678,7 +675,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: AnsiString);
+procedure TSvgCssStyleSheet.ApplyToNode(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String);
 // CSS Specificity values based on W3C CSS2 / SVG 1.1 specification:
 //   0   = Universal selector (*)
 //   1   = Type / Element tag selector (e.g. 'path', 'rect')

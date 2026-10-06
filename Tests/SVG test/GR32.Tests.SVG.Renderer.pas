@@ -1713,7 +1713,7 @@ procedure TTestSvgRenderer.TestTransformStack;
   var
     Value: TValuePUtf8Char;
   begin
-    Value.Text := pointer(AnsiString(AStr));
+    Value.Text := pointer(UTF8String(AStr));
     Value.Len := Length(AStr);
     Result := ParseSvgTransform(Value);
   end;

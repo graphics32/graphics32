@@ -324,8 +324,8 @@ begin
       begin
         Inc(FLockUpdate);
         try
-          MemoSource.Text := xmlText;
-          MemoSource2.Text := xmlText;
+          MemoSource.Text := string(xmlText);
+          MemoSource2.Text := string(xmlText);
         finally
           Dec(FLockUpdate);
         end;

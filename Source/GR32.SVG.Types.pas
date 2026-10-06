@@ -178,25 +178,25 @@ type
 //
 //------------------------------------------------------------------------------
 function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode; overload;
-function ParseSvgBlendMode(const AName: AnsiString): TSvgBlendMode; overload;
+function ParseSvgBlendMode(const AName: UTF8String): TSvgBlendMode; overload;
 function ParseSvgIsolation(const AName: TValuePUtf8Char): TSvgIsolation; overload;
-function ParseSvgIsolation(const AName: AnsiString): TSvgIsolation; overload;
+function ParseSvgIsolation(const AName: UTF8String): TSvgIsolation; overload;
 function ParseSvgCompositeOperator(const AName: TValuePUtf8Char): TSvgCompositeOperator; overload;
-function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperator; overload;
+function ParseSvgCompositeOperator(const AName: UTF8String): TSvgCompositeOperator; overload;
 function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType; overload;
-function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType; overload;
+function ParseSvgFeColorMatrixType(const AName: UTF8String): TSvgFeColorMatrixType; overload;
 function ParseSvgComponentTransferType(const AName: TValuePUtf8Char): TSvgComponentTransferType; overload;
-function ParseSvgComponentTransferType(const AName: AnsiString): TSvgComponentTransferType; overload;
+function ParseSvgComponentTransferType(const AName: UTF8String): TSvgComponentTransferType; overload;
 function ParseSvgMorphologyOperator(const AName: TValuePUtf8Char): TSvgMorphologyOperator; overload;
-function ParseSvgMorphologyOperator(const AName: AnsiString): TSvgMorphologyOperator; overload;
+function ParseSvgMorphologyOperator(const AName: UTF8String): TSvgMorphologyOperator; overload;
 function ParseSvgStitchTiles(const AName: TValuePUtf8Char): TSvgStitchTiles; overload;
-function ParseSvgStitchTiles(const AName: AnsiString): TSvgStitchTiles; overload;
+function ParseSvgStitchTiles(const AName: UTF8String): TSvgStitchTiles; overload;
 function ParseSvgTurbulenceType(const AName: TValuePUtf8Char): TSvgTurbulenceType; overload;
-function ParseSvgTurbulenceType(const AName: AnsiString): TSvgTurbulenceType; overload;
+function ParseSvgTurbulenceType(const AName: UTF8String): TSvgTurbulenceType; overload;
 function ParseSvgChannelSelector(const AName: TValuePUtf8Char): TSvgChannelSelector; overload;
-function ParseSvgChannelSelector(const AName: AnsiString): TSvgChannelSelector; overload;
+function ParseSvgChannelSelector(const AName: UTF8String): TSvgChannelSelector; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
-function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload; deprecated;
+function ParseSvgTextAnchor(const AName: UTF8String): TSvgTextAnchor; overload; deprecated;
 
 
 //------------------------------------------------------------------------------
@@ -226,21 +226,21 @@ function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 //------------------------------------------------------------------------------
 function IsSupportedSvgFeature(const AFeatureURI: TValuePUtf8Char): Boolean; overload;
 {$if defined(UNIT_TEST)}
-function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean; overload;
+function IsSupportedSvgFeature(const AFeatureURI: UTF8String): Boolean; overload;
 {$ifend}
 
 // System language tag management and RFC 3066 / BCP 47 language matching
-function GetSystemLanguage: AnsiString;
-procedure SetSystemLanguage(const ALang: AnsiString);
+function GetSystemLanguage: UTF8String;
+procedure SetSystemLanguage(const ALang: UTF8String);
 function MatchLanguageTag(ASystemLang, ALangRange: TValuePUtf8Char): Boolean; overload;
 {$if defined(UNIT_TEST)}
-function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean; overload;
+function MatchLanguageTag(const ASystemLang, ALangRange: UTF8String): Boolean; overload;
 {$ifend}
 
 var
   // GlobalSystemLanguage: Current system language.
   // Tested again the 'systemlanguage' switch condition.
-  GlobalSystemLanguage: AnsiString = 'en';
+  GlobalSystemLanguage: UTF8String = 'en';
 
 
 //------------------------------------------------------------------------------
@@ -386,7 +386,7 @@ type
   TSvgKeywordDictionary<T> = record
   private type
     TKeyword = record
-      Keyword: AnsiString;
+      Keyword: UTF8String;
       Value: T;
     end;
   private
@@ -398,7 +398,7 @@ type
                                                 // length and are sorted alphabetically.
   public
     // Add a keyword to the dictionary
-    procedure Add(const AKeyword: AnsiString; AValue: T);
+    procedure Add(const AKeyword: UTF8String; AValue: T);
     // Lookup a keyword in the dictionary. Return Value if found, Default(T) otherwise.
     function Lookup(const AKeyword: TValuePUtf8Char; var AValue: T): boolean; overload;
     function Lookup(const AKeyword: TValuePUtf8Char): T; overload;
@@ -453,9 +453,6 @@ type
 
 implementation
 
-uses
-  AnsiStrings;
-
 //------------------------------------------------------------------------------
 //
 //      Blend modes
@@ -463,7 +460,7 @@ uses
 //------------------------------------------------------------------------------
 type
   TBlendModeName = record
-    Name: AnsiString;
+    Name: UTF8String;
     Value: TSvgBlendMode;
   end;
 
@@ -486,7 +483,7 @@ const
     (Name: 'exclusion'; Value: bmExclusion)
   );
 
-function ParseSvgBlendMode(const AName: AnsiString): TSvgBlendMode;
+function ParseSvgBlendMode(const AName: UTF8String): TSvgBlendMode;
 var
   Name: TValuePUtf8Char;
 begin
@@ -528,7 +525,7 @@ end;
 //------------------------------------------------------------------------------
 type
   TCompositeOperatorName = record
-    Name: AnsiString;
+    Name: UTF8String;
     Value: TSvgCompositeOperator;
   end;
 
@@ -546,7 +543,7 @@ const
     (Name: 'lighter'; Value: coLighter)
   );
 
-function ParseSvgCompositeOperator(const AName: AnsiString): TSvgCompositeOperator;
+function ParseSvgCompositeOperator(const AName: UTF8String): TSvgCompositeOperator;
 var
   Name: TValuePUtf8Char;
 begin
@@ -581,7 +578,7 @@ end;
 //      Isolation
 //
 //------------------------------------------------------------------------------
-function ParseSvgIsolation(const AName: AnsiString): TSvgIsolation;
+function ParseSvgIsolation(const AName: UTF8String): TSvgIsolation;
 var
   Name: TValuePUtf8Char;
 begin
@@ -617,7 +614,7 @@ end;
 //      feColorMatrix
 //
 //------------------------------------------------------------------------------
-function ParseSvgFeColorMatrixType(const AName: AnsiString): TSvgFeColorMatrixType;
+function ParseSvgFeColorMatrixType(const AName: UTF8String): TSvgFeColorMatrixType;
 var
   Name: TValuePUtf8Char;
 begin
@@ -661,7 +658,7 @@ end;
 //      feMorphology
 //
 //------------------------------------------------------------------------------
-function ParseSvgMorphologyOperator(const AName: AnsiString): TSvgMorphologyOperator;
+function ParseSvgMorphologyOperator(const AName: UTF8String): TSvgMorphologyOperator;
 var
   Name: TValuePUtf8Char;
 begin
@@ -692,7 +689,7 @@ end;
 //      feTurbulence
 //
 //------------------------------------------------------------------------------
-function ParseSvgStitchTiles(const AName: AnsiString): TSvgStitchTiles;
+function ParseSvgStitchTiles(const AName: UTF8String): TSvgStitchTiles;
 var
   Name: TValuePUtf8Char;
 begin
@@ -717,7 +714,7 @@ begin
   end;
 end;
 
-function ParseSvgTurbulenceType(const AName: AnsiString): TSvgTurbulenceType;
+function ParseSvgTurbulenceType(const AName: UTF8String): TSvgTurbulenceType;
 var
   Name: TValuePUtf8Char;
 begin
@@ -748,7 +745,7 @@ end;
 //      feComponentTransfer
 //
 //------------------------------------------------------------------------------
-function ParseSvgComponentTransferType(const AName: AnsiString): TSvgComponentTransferType;
+function ParseSvgComponentTransferType(const AName: UTF8String): TSvgComponentTransferType;
 var
   Name: TValuePUtf8Char;
 begin
@@ -799,7 +796,7 @@ end;
 //      feDisplacementMap
 //
 //------------------------------------------------------------------------------
-function ParseSvgChannelSelector(const AName: AnsiString): TSvgChannelSelector;
+function ParseSvgChannelSelector(const AName: UTF8String): TSvgChannelSelector;
 var
   Name: TValuePUtf8Char;
 begin
@@ -844,7 +841,7 @@ end;
 //------------------------------------------------------------------------------
 type
   TFeatureKeywordName = record
-    Name: AnsiString;
+    Name: UTF8String;
     Value: TSvgFeatureKeyword;
   end;
 
@@ -887,18 +884,18 @@ begin
 end;
 
 {$if defined(UNIT_TEST)}
-function IsSupportedSvgFeature(const AFeatureURI: AnsiString): Boolean;
+function IsSupportedSvgFeature(const AFeatureURI: UTF8String): Boolean;
 begin
   Result := IsSupportedSvgFeature(TValuePUtf8Char.FromString(AFeatureURI));
 end;
 {$ifend}
 
-function GetSystemLanguage: AnsiString;
+function GetSystemLanguage: UTF8String;
 begin
   Result := GlobalSystemLanguage;
 end;
 
-procedure SetSystemLanguage(const ALang: AnsiString);
+procedure SetSystemLanguage(const ALang: UTF8String);
 begin
   GlobalSystemLanguage := ALang;
 end;
@@ -925,7 +922,7 @@ begin
 end;
 
 {$if defined(UNIT_TEST)}
-function MatchLanguageTag(const ASystemLang, ALangRange: AnsiString): Boolean;
+function MatchLanguageTag(const ASystemLang, ALangRange: UTF8String): Boolean;
 begin
   Result := MatchLanguageTag(TValuePUtf8Char.FromString(ASystemLang), TValuePUtf8Char.FromString(ALangRange));
 end;
@@ -936,7 +933,7 @@ end;
 //      text-anchor
 //
 //------------------------------------------------------------------------------
-function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor;
+function ParseSvgTextAnchor(const AName: UTF8String): TSvgTextAnchor;
 var
   Name: TValuePUtf8Char;
 begin
@@ -988,7 +985,7 @@ end;
 //      TSvgKeywordDictionary<T>
 //
 //------------------------------------------------------------------------------
-procedure TSvgKeywordDictionary<T>.Add(const AKeyword: AnsiString; AValue: T);
+procedure TSvgKeywordDictionary<T>.Add(const AKeyword: UTF8String; AValue: T);
 var
   Len: integer;
   Index: integer;
@@ -1071,7 +1068,7 @@ end;
 //------------------------------------------------------------------------------
 type
   TColorName = record
-    Name: AnsiString;
+    Name: UTF8String;
     Value: TColor32;
   end;
 

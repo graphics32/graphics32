@@ -95,18 +95,20 @@ type
     /// case-sensitive comparison with the stored text Value
     function Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean; overload;
 
-//    class operator implicit(const Value: TValuePUtf8Char): AnsiString; // -> AnsiString
+//    class operator implicit(const Value: TValuePUtf8Char): UTF8String; // TValuePUtf8Char -> UTF8String
+    class operator implicit(const Value: UTF8String): TValuePUtf8Char; // UTF8String -> TValuePUtf8Char
 
     // constructor for debug/unit test
-    class function FromString(const AValue: AnsiString): TValuePUtf8Char; static;
+    class function FromString(const AValue: UTF8String): TValuePUtf8Char; static;
 
     /// case-insensitive comparison with the stored text Value
-    function CompareText(const AValue: AnsiString): Boolean; overload;
+    function CompareText(const AValue: UTF8String): Boolean; overload;
     function CompareText(const AValue: TValuePUtf8Char): Boolean; overload;
-    function StartsText(const AValue: AnsiString; ASkip: boolean = False): Boolean; overload;
+    function StartsText(const AValue: UTF8String; ASkip: boolean = False): Boolean; overload;
     function StartsText(const AValue: TValuePUtf8Char; ASkip: boolean = False): Boolean; overload;
-    function EndsText(const AValue: AnsiString; ATrim: boolean = False): Boolean; overload;
+    function EndsText(const AValue: UTF8String; ATrim: boolean = False): Boolean; overload;
     function EndsText(const AValue: TValuePUtf8Char; ATrim: boolean = False): Boolean; overload;
+    function ContainsText(const AValue: UTF8String): Boolean;
     function Pos(Chr: AnsiChar): PUtf8Char;
 
     function ToCardinalAndSkip: Cardinal;
@@ -134,7 +136,7 @@ type
     function Split(AChar: AnsiChar; ASkip: boolean = False): TValuePUtf8Char; overload;
     function Split(AChars: TAnsiSet; ASkip: boolean = False): TValuePUtf8Char; overload;
 
-    function CompareOrdinal(const Value: AnsiString): integer;
+    function CompareOrdinal(const Value: UTF8String): integer;
   end;
 
 /// extract a 64-bit unsigned integer from a UTF-8 text buffer
@@ -153,6 +155,15 @@ function GetInteger(P: PUtf8Char; Len: PtrInt): PtrInt; overload;
 function GetExtended(P: PUtf8Char; out Value: Extended; PEnd: PUtf8Char = nil): PUtf8Char; overload;
 function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Extended): Boolean; overload;
 function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Double): Boolean; overload;
+
+type
+  UTF8Tools = record
+    // Note: Trims left+right unlike TValuePUtf8Char.Trim
+    class function Trim(const AValue: UTF8String): UTF8String; static;
+    class function CompareText(const AValue1, AValue2: UTF8String): Boolean; static;
+    class function CompareOrdinal(const AValue1, AValue2: UTF8String): integer; static;
+    class function Lowercase(const AValue: UTF8String): UTF8String; static;
+  end;
 
 implementation
 
@@ -652,7 +663,7 @@ begin
     Dec(Len, AValue.Len);
 end;
 
-function TValuePUtf8Char.EndsText(const AValue: AnsiString; ATrim: boolean): Boolean;
+function TValuePUtf8Char.EndsText(const AValue: UTF8String; ATrim: boolean): Boolean;
 var
   Value: TValuePUtf8Char;
 begin
@@ -665,14 +676,20 @@ begin
   Result := (Len = ValueLen) and CompareMem(Text, Value, Len);
 end;
 
-class function TValuePUtf8Char.FromString(const AValue: AnsiString): TValuePUtf8Char;
+class function TValuePUtf8Char.FromString(const AValue: UTF8String): TValuePUtf8Char;
 begin
   Result.Text := pointer(AValue);
   Result.Len := Length(AValue);
 end;
 
+class operator TValuePUtf8Char.implicit(const Value: UTF8String): TValuePUtf8Char;
+begin
+  Result.Text := pointer(Value);
+  Result.Len := Length(Value);
+end;
+
 (*
-class operator TValuePUtf8Char.implicit(const Value: TValuePUtf8Char): AnsiString;
+class operator TValuePUtf8Char.implicit(const Value: TValuePUtf8Char): UTF8String;
 begin
   SetString(Result, Value.Text, Value.Len);
 end;
@@ -774,7 +791,7 @@ begin
   end;
 end;
 
-function TValuePUtf8Char.StartsText(const AValue: ansistring; ASkip: boolean): Boolean;
+function TValuePUtf8Char.StartsText(const AValue: UTF8String; ASkip: boolean): Boolean;
 var
   Value: TValuePUtf8Char;
 begin
@@ -823,7 +840,7 @@ begin
   Result := True;
 end;
 
-function TValuePUtf8Char.CompareText(const AValue: AnsiString): Boolean;
+function TValuePUtf8Char.CompareText(const AValue: UTF8String): Boolean;
 var
   Value: TValuePUtf8Char;
 begin
@@ -832,7 +849,7 @@ begin
   Result := CompareText(Value);
 end;
 
-function TValuePUtf8Char.CompareOrdinal(const Value: AnsiString): integer;
+function TValuePUtf8Char.CompareOrdinal(const Value: UTF8String): integer;
 begin
   Result := AnsiStrings.StrLIComp(pointer(Value), Text, Min(Length(Value), Len));
   if (Result = 0) and (Length(Value) <> Len) then
@@ -871,6 +888,105 @@ begin
   end;
 
   Result := True;
+end;
+
+function TValuePUtf8Char.ContainsText(const AValue: UTF8String): Boolean;
+var
+  Value: TValuePUtf8Char;
+  FromText: PUtf8Char;
+  FromLen: PtrInt;
+  i: integer;
+begin
+  Result := False;
+  FromLen := Len - Length(AValue);
+  if (FromLen < 0) then
+    exit;
+
+  Value := TValuePUtf8Char.FromString(AValue);
+  FromText := Text;
+  while (FromLen > 0) do
+  begin
+    i := Value.Len - 1;
+    Result := True;
+    while (Result) and (i >= 0) do
+    begin
+      Result := (FromText[i] = Value.Text[i]);
+      Dec(i);
+    end;
+    if (Result) then
+      exit;
+
+    Inc(FromText);
+    Dec(FromLen);
+  end;
+end;
+
+{ UTF8Tools }
+
+class function UTF8Tools.CompareOrdinal(const AValue1, AValue2: UTF8String): integer;
+var
+  Value1: TValuePUtf8Char;
+begin
+  Value1 := TValuePUtf8Char.FromString(AValue1);
+  Result := Value1.CompareOrdinal(AValue2);
+end;
+
+class function UTF8Tools.CompareText(const AValue1, AValue2: UTF8String): Boolean;
+var
+  Value1: TValuePUtf8Char;
+  Value2: TValuePUtf8Char;
+begin
+  Value1 := TValuePUtf8Char.FromString(AValue1);
+  Value2 := TValuePUtf8Char.FromString(AValue2);
+  Result := Value1.CompareText(Value2);
+end;
+
+class function UTF8Tools.Lowercase(const AValue: UTF8String): UTF8String;
+var
+  Value: TValuePUtf8Char;
+  p: PUtf8Char;
+begin
+  if (pointer(AValue) = nil) then
+    Exit(AValue);
+
+  // Fast initial scan for already lowercase -> zero copy result
+  p := pointer(AValue);
+  while (p^ <> #0) and not(p^ in ['A'..'Z']) do
+    Inc(p);
+
+  if (p^ = #0) then
+    Exit(AValue); // Zero copy; Just increments ref count
+
+  Value := TValuePUtf8Char.FromString(AValue);
+  SetLength(Result, Length(AValue));
+  p := pointer(Result);
+
+  while (Value.Len > 0) do
+  begin
+    if (Value.Text^ in ['A'..'Z']) then
+      p^ := Utf8Char(Ord(Value.Text^) xor $20)
+    else
+      p^ := Value.Text^;
+    Value.Skip;
+    Inc(p);
+  end;
+end;
+
+class function UTF8Tools.Trim(const AValue: UTF8String): UTF8String;
+var
+  Value: TValuePUtf8Char;
+begin
+  if (Length(AValue) = 0) then
+    Exit(AValue);
+
+  Value := TValuePUtf8Char.FromString(AValue);
+  Value.Trim;
+  Value.TrimEnd;
+
+  if (Value.Len = Length(AValue)) then
+    Result := AValue // Zero copy; Just increments ref count
+  else
+    Result := Value.ToUtf8;
 end;
 
 end.
