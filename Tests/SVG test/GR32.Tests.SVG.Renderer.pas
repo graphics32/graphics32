@@ -78,6 +78,7 @@ type
     procedure TestFeDropShadowAnisotropicBlur;
     procedure TestFeTurbulenceRendering;
     procedure TestFeMorphologyFilterRendering;
+    procedure TestFeDisplacementMapFilterRendering;
     procedure TestTextRendering;
     procedure TestTextRotationRendering;
     procedure TestTextPathRendering;
@@ -898,6 +899,88 @@ begin
     Check(textNode <> nil, 'textNode t1 should exist');
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
   finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeDisplacementMapFilterRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp1, bmp2, bmp3: TBitmap32;
+  HasNonZero: Boolean;
+  x, y: Integer;
+  p1: TColor32;
+begin
+  xml := '<svg width="40" height="40">' +
+         '  <defs>' +
+         '    <filter id="f_disp">' +
+         '      <feTurbulence type="turbulence" baseFrequency="0.1" numOctaves="1" seed="1" result="turb"/>' +
+         '      <feDisplacementMap in="SourceGraphic" in2="turb" scale="10" xChannelSelector="R" yChannelSelector="G"/>' +
+         '    </filter>' +
+         '    <filter id="f_disp_zero">' +
+         '      <feTurbulence type="turbulence" baseFrequency="0.1" numOctaves="1" seed="1" result="turb"/>' +
+         '      <feDisplacementMap in="SourceGraphic" in2="turb" scale="0" xChannelSelector="R" yChannelSelector="G"/>' +
+         '    </filter>' +
+         '    <filter id="f_disp_const">' +
+         '      <feFlood flood-color="rgb(255, 128, 128)" flood-opacity="1" result="map"/>' +
+         '      <feDisplacementMap in="SourceGraphic" in2="map" scale="10" xChannelSelector="R" yChannelSelector="G"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect id="r_disp" x="10" y="10" width="20" height="20" fill="red" filter="url(#f_disp)"/>' +
+         '  <rect id="r_zero" x="10" y="10" width="20" height="20" fill="red" filter="url(#f_disp_zero)"/>' +
+         '  <rect id="r_const" x="10" y="10" width="20" height="20" fill="red" filter="url(#f_disp_const)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp1 := TBitmap32.Create;
+  bmp2 := TBitmap32.Create;
+  bmp3 := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp1);
+  try
+    bmp1.SetSize(40, 40);
+    bmp1.Clear(0);
+
+    // Render rect with scale=10 turbulence displacement
+    renderer.RenderNode(bmp1, docNode.FindNodeById('r_disp'));
+
+    HasNonZero := False;
+    for y := 0 to 39 do
+      for x := 0 to 39 do
+      begin
+        p1 := bmp1.Pixel[x, y];
+        if (p1 <> 0) then
+          HasNonZero := True;
+      end;
+    Check(HasNonZero, 'feDisplacementMap should produce non-zero pixels');
+
+    // Render rect with scale=0
+    renderer.Target := bmp2;
+    bmp2.SetSize(40, 40);
+    bmp2.Clear(0);
+    renderer.RenderNode(bmp2, docNode.FindNodeById('r_zero'));
+
+    // Center pixel (20, 20) should be red in scale=0
+    CheckEquals(clRed32, bmp2.Pixel[20, 20], 'Zero scale center pixel should be red');
+
+    // Render rect with constant map displacement (R=255 => Dx=+5, G=128 => Dy=0)
+    renderer.Target := bmp3;
+    bmp3.SetSize(40, 40);
+    bmp3.Clear(0);
+    renderer.RenderNode(bmp3, docNode.FindNodeById('r_const'));
+
+    // Pixel at (5, 20) looks up source pixel (5+5, 20) = (10, 20) which is inside red rect
+    CheckEquals(clRed32, bmp3.Pixel[5, 20], 'Pixel (5, 20) should be displaced red pixel');
+
+    // Pixel at (28, 20) looks up source pixel (28+5, 20) = (33, 20) which is outside red rect
+    CheckEquals(0, bmp3.Pixel[28, 20], 'Pixel (28, 20) should be empty after displacement shift');
+  finally
+    renderer.Free;
+    bmp1.Free;
+    bmp2.Free;
+    bmp3.Free;
     docNode.Free;
   end;
 end;

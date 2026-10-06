@@ -131,6 +131,14 @@ type
     ttFractalNoise
   );
 
+  { TSvgChannelSelector defines RGBA channel selection for feDisplacementMap }
+  TSvgChannelSelector = (
+    csR,
+    csG,
+    csB,
+    csA
+  );
+
   { TSvgFeatureKeyword defines SVG 1.1/1.2 feature URIs for conditional processing evaluation }
   TSvgFeatureKeyword = (
     fkNone,
@@ -185,6 +193,8 @@ function ParseSvgStitchTiles(const AName: TValuePUtf8Char): TSvgStitchTiles; ove
 function ParseSvgStitchTiles(const AName: AnsiString): TSvgStitchTiles; overload;
 function ParseSvgTurbulenceType(const AName: TValuePUtf8Char): TSvgTurbulenceType; overload;
 function ParseSvgTurbulenceType(const AName: AnsiString): TSvgTurbulenceType; overload;
+function ParseSvgChannelSelector(const AName: TValuePUtf8Char): TSvgChannelSelector; overload;
+function ParseSvgChannelSelector(const AName: AnsiString): TSvgChannelSelector; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
 function ParseSvgTextAnchor(const AName: AnsiString): TSvgTextAnchor; overload; deprecated;
 
@@ -202,6 +212,7 @@ function ComponentTransferTypeToString(AType: TSvgComponentTransferType): string
 function MorphologyOperatorToString(AOp: TSvgMorphologyOperator): string;
 function StitchTilesToString(AStitch: TSvgStitchTiles): string;
 function TurbulenceTypeToString(AType: TSvgTurbulenceType): string;
+function ChannelSelectorToString(ASelector: TSvgChannelSelector): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 
 
@@ -779,6 +790,49 @@ begin
     ctGamma: Result := 'gamma';
   else
     Result := 'identity';
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      feDisplacementMap
+//
+//------------------------------------------------------------------------------
+function ParseSvgChannelSelector(const AName: AnsiString): TSvgChannelSelector;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgChannelSelector(Name);
+end;
+
+function ParseSvgChannelSelector(const AName: TValuePUtf8Char): TSvgChannelSelector;
+begin
+  // SVG spec default for xChannelSelector and yChannelSelector is 'A'
+  Result := csA;
+  if AName.CompareText('R') then
+    Result := csR
+  else
+  if AName.CompareText('G') then
+    Result := csG
+  else
+  if AName.CompareText('B') then
+    Result := csB
+  else
+  if AName.CompareText('A') then
+    Result := csA;
+end;
+
+function ChannelSelectorToString(ASelector: TSvgChannelSelector): string;
+begin
+  case ASelector of
+    csR: Result := 'R';
+    csG: Result := 'G';
+    csB: Result := 'B';
+  else
+    Result := 'A';
   end;
 end;
 

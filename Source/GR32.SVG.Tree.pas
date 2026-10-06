@@ -317,7 +317,10 @@ type
     attrBaseFrequency,
     attrNumOctaves,
     attrSeed,
-    attrStitchTiles
+    attrStitchTiles,
+    attrScale,
+    attrXChannelSelector,
+    attrYChannelSelector
   );
 
 //------------------------------------------------------------------------------
@@ -1255,6 +1258,31 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeDisplacementMapNode
+//
+//------------------------------------------------------------------------------
+// Filter: feDisplacementMap
+//------------------------------------------------------------------------------
+  TSvgFeDisplacementMapNode = class(TSvgFilterPrimitiveNode)
+  private
+    FScale: Single;
+    FXChannelSelector: TSvgChannelSelector;
+    FYChannelSelector: TSvgChannelSelector;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+    function GetElementTag: AnsiString; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    property Scale: Single read FScale write FScale;
+    property XChannelSelector: TSvgChannelSelector read FXChannelSelector write FXChannelSelector;
+    property YChannelSelector: TSvgChannelSelector read FYChannelSelector write FYChannelSelector;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
@@ -1578,14 +1606,14 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
+    tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence, tagFedisplacementmap, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of AnsiString = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'image', 'switch', 'text', 'tspan', 'textPath'
+    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap', 'image', 'switch', 'text', 'tspan', 'textPath'
   );
 
 var
@@ -1721,7 +1749,10 @@ const
     'baseFrequency',
     'numOctaves',
     'seed',
-    'stitchTiles'
+    'stitchTiles',
+    'scale',
+    'xChannelSelector',
+    'yChannelSelector'
   );
 
 var
@@ -5717,6 +5748,59 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeDisplacementMapNode
+//
+//------------------------------------------------------------------------------
+function TSvgFeDisplacementMapNode.GetElementTag: AnsiString;
+begin
+  Result := 'feDisplacementMap';
+end;
+
+constructor TSvgFeDisplacementMapNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FScale := 0.0;
+  FXChannelSelector := csA;
+  FYChannelSelector := csA;
+end;
+
+function TSvgFeDisplacementMapNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  dispRes: TSvgFeDisplacementMapNode;
+begin
+  dispRes := TSvgFeDisplacementMapNode(inherited Clone(AParent));
+  dispRes.FScale := FScale;
+  dispRes.FXChannelSelector := FXChannelSelector;
+  dispRes.FYChannelSelector := FYChannelSelector;
+  Result := dispRes;
+end;
+
+procedure TSvgFeDisplacementMapNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+begin
+  case AKeyword of
+    attrScale:
+      AValue.TryToFloat(FScale);
+
+    attrXChannelSelector:
+      FXChannelSelector := ParseSvgChannelSelector(AValue);
+
+    attrYChannelSelector:
+      FYChannelSelector := ParseSvgChannelSelector(AValue);
+
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
+
+function TSvgFeDisplacementMapNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (scale=%s, xChannelSelector=%s, yChannelSelector=%s)',
+    [FloatToString(FScale), ChannelSelectorToString(FXChannelSelector), ChannelSelectorToString(FYChannelSelector)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
@@ -6668,6 +6752,12 @@ var
         tagFeturbulence:
           begin
             node := TSvgFeTurbulenceNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFedisplacementmap:
+          begin
+            node := TSvgFeDisplacementMapNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

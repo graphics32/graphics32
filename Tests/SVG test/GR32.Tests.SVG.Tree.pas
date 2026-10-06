@@ -68,6 +68,7 @@ type
     procedure TestFeDropShadowParsingAndResolution;
     procedure TestFeTurbulenceParsingAndResolution;
     procedure TestFeMorphologyParsingAndResolution;
+    procedure TestFeDisplacementMapParsingAndResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestTextAndTSpanParsing;
     procedure TestTextRotationParsing;
@@ -112,6 +113,60 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFeDisplacementMapParsingAndResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  filterDefault, filterExplicit: TSvgFilterNode;
+  dispDefault, dispExplicit, dispClone: TSvgFeDisplacementMapNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f_default">' +
+         '      <feDisplacementMap/>' +
+         '    </filter>' +
+         '    <filter id="f_explicit">' +
+         '      <feDisplacementMap in="SourceGraphic" in2="turb" scale="25.5" xChannelSelector="R" yChannelSelector="G" result="disp1"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    filterDefault := TSvgFilterNode(docNode.FindNodeById('f_default'));
+    Check(filterDefault <> nil, 'f_default filter should exist');
+    CheckEquals(1, filterDefault.Children.Count);
+    Check(filterDefault.Children[0] is TSvgFeDisplacementMapNode);
+
+    dispDefault := TSvgFeDisplacementMapNode(filterDefault.Children[0]);
+    CheckEquals(0.0, dispDefault.Scale, 1E-4, 'Default scale should be 0.0');
+    Check(dispDefault.XChannelSelector = csA, 'Default xChannelSelector should be csA');
+    Check(dispDefault.YChannelSelector = csA, 'Default yChannelSelector should be csA');
+
+    filterExplicit := TSvgFilterNode(docNode.FindNodeById('f_explicit'));
+    Check(filterExplicit <> nil, 'f_explicit filter should exist');
+    CheckEquals(1, filterExplicit.Children.Count);
+
+    dispExplicit := TSvgFeDisplacementMapNode(filterExplicit.Children[0]);
+    CheckEquals(25.5, dispExplicit.Scale, 1E-4, 'Scale should be 25.5');
+    Check(dispExplicit.XChannelSelector = csR, 'xChannelSelector should be csR');
+    Check(dispExplicit.YChannelSelector = csG, 'yChannelSelector should be csG');
+    CheckEquals('disp1', dispExplicit.ResultName);
+
+    dispClone := TSvgFeDisplacementMapNode(dispExplicit.Clone(nil));
+    try
+      CheckEquals(25.5, dispClone.Scale, 1E-4, 'Cloned scale should be 25.5');
+      Check(dispClone.XChannelSelector = csR, 'Cloned xChannelSelector should be csR');
+      Check(dispClone.YChannelSelector = csG, 'Cloned yChannelSelector should be csG');
+    finally
+      dispClone.Free;
+    end;
   finally
     docNode.Free;
   end;

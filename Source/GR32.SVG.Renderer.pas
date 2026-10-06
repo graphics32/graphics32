@@ -3284,6 +3284,111 @@ end;
 
 
 //------------------------------------------------------------------------------
+//
+//      TFilterRendererDisplacementMap
+//
+//------------------------------------------------------------------------------
+// Renderer for TSvgFeDisplacementMapNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererDisplacementMap = class(TFilterRenderer)
+  public
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+    class function GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte; static;
+  end;
+
+class function TFilterRendererDisplacementMap.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+var
+  DispNode: TSvgFeDisplacementMapNode;
+  MaxDisp: Single;
+begin
+  DispNode := TSvgFeDisplacementMapNode(Node);
+  MaxDisp := Abs(DispNode.Scale) * 0.5 * Scale;
+  Result.Left := MaxDisp;
+  Result.Top := MaxDisp;
+  Result.Right := MaxDisp;
+  Result.Bottom := MaxDisp;
+end;
+
+class function TFilterRendererDisplacementMap.GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte;
+begin
+  case Channel of
+    csR: Result := Color.R;
+    csG: Result := Color.G;
+    csB: Result := Color.B;
+    csA: Result := Color.A;
+  else
+    Result := Color.A;
+  end;
+end;
+
+class procedure TFilterRendererDisplacementMap.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  DispNode: TSvgFeDisplacementMapNode;
+  Input1, Input2: TCustomBitmap32;
+  Width, Height, X, Y: Integer;
+  ScaledScale, Dx, Dy: Single;
+  ValX, ValY: Byte;
+  RemapTransform: TRemapTransformation;
+  pMap: PColor32Array;
+begin
+  DispNode := TSvgFeDisplacementMapNode(Node);
+  Input1 := ResolveSurface(DispNode.ResolvedIn1, RenderData);
+  Input2 := ResolveSurface(DispNode.ResolvedIn2, RenderData, RenderData.SourceGraphic);
+
+  if (Input1 <> RenderData.UnnamedSurface) and (Input2 <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  Width := RenderData.ROI.Width;
+  Height := RenderData.ROI.Height;
+
+  if (Width <= 0) or (Height <= 0) then
+    Exit;
+
+  RenderData.CurrentSurface := Renderer.GetOffscreenBitmap(Width, Height, True);
+
+  if (Input1 = nil) or (Input2 = nil) then
+    Exit;
+
+  ScaledScale := DispNode.Scale * RenderData.Scale;
+
+  if (Abs(ScaledScale) < 1e-6) or (Width <= 1) or (Height <= 1) then
+  begin
+    Input1.CopyMapTo(RenderData.CurrentSurface);
+    Exit;
+  end;
+
+  RemapTransform := TRemapTransformation.Create;
+  try
+    RemapTransform.VectorMap.SetSize(Width, Height);
+    RemapTransform.SrcRect := FloatRect(0, 0, Width - 1, Height - 1);
+    RemapTransform.MappingRect := FloatRect(0, 0, Width - 1, Height - 1);
+
+    for Y := 0 to Height - 1 do
+    begin
+      pMap := Input2.ScanLine[Y];
+      for X := 0 to Width - 1 do
+      begin
+        ValX := GetChannelValue(TColor32Entry(pMap[X]), DispNode.XChannelSelector);
+        ValY := GetChannelValue(TColor32Entry(pMap[X]), DispNode.YChannelSelector);
+        Dx := ScaledScale * (ValX * OneOver255 - 0.5);
+        Dy := ScaledScale * (ValY * OneOver255 - 0.5);
+        RemapTransform.VectorMap.FloatVector[X, Y] := FloatPoint(Dx, Dy);
+      end;
+    end;
+
+    // Use TLinearResampler for smooth resampling
+    // TODO : This alters the state of a pooled bitmap. Might not be an issue since TLinearResampler is an okay default.
+    TLinearResampler.Create(Input1);
+    Transform(RenderData.CurrentSurface, Input1, RemapTransform);
+  finally
+    RemapTransform.Free;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
 
 procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
 
@@ -3552,6 +3657,12 @@ begin
         Margin := TFilterRendererMorphology.GetMargins(TSvgFeMorphologyNode(Node), RenderData.Scale);
         MarginX := MarginX + Ceil(Margin.Left);
         MarginY := MarginY + Ceil(Margin.Top);
+      end else
+      if Node is TSvgFeDisplacementMapNode then
+      begin
+        Margin := TFilterRendererDisplacementMap.GetMargins(TSvgFeDisplacementMapNode(Node), RenderData.Scale);
+        MarginX := MarginX + Ceil(Margin.Left);
+        MarginY := MarginY + Ceil(Margin.Top);
       end;
     end;
 
@@ -3702,6 +3813,9 @@ begin
         else
         if Node is TSvgFeTurbulenceNode then
           TFilterRendererTurbulence.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
+        else
+        if Node is TSvgFeDisplacementMapNode then
+          TFilterRendererDisplacementMap.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
         else
         begin
           // Unsupported filter; Keep the current intermediate result and let
