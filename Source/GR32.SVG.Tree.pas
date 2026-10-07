@@ -1141,6 +1141,12 @@ type
 // <svg>
 //------------------------------------------------------------------------------
   TSvgDocumentNode = class(TSvgGroupNode)
+  private type
+    // Warning!
+    // TSvgNodeDictionary contains raw pointers to string data.
+    // All hell will break loose if those strings are not kept stable and alive
+    // while the dictionary contains pointers to them.
+    TSvgNodeDictionary = TDictionary<TValuePUtf8Char, TSvgNode>;
   private
     FX: TSvgLength;
     FY: TSvgLength;
@@ -1148,7 +1154,7 @@ type
     FHeight: TSvgLength;
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
-    FNodes: TDictionary<UTF8String, TSvgNode>;
+    FNodes: TSvgNodeDictionary;
   protected
     function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
@@ -4790,51 +4796,62 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TSvgDocumentNode
+//      TValuePUtf8CharComparer
 //
 //------------------------------------------------------------------------------
+// Custom comparer for TSvgNodeDictionary
+//------------------------------------------------------------------------------
 type
-  TIUtf8StringComparer = class(TCustomComparer<UTF8String>)
+  TValuePUtf8CharComparer = class(TCustomComparer<TValuePUtf8Char>)
   private class var
-    FOrdinal: TIUtf8StringComparer;
+    FOrdinal: TValuePUtf8CharComparer;
   private
     class destructor Destroy;
   public
-    class function Ordinal: TIUtf8StringComparer;
+    class function Ordinal: TValuePUtf8CharComparer;
 
-    function Compare(const Left, Right: UTF8String): Integer; override;
-    function Equals(const Left, Right: UTF8String): Boolean; reintroduce; overload; override;
-    function GetHashCode(const Value: UTF8String): Integer; reintroduce; overload; override;
+    function Compare(const Left, Right: TValuePUtf8Char): Integer; override;
+    function Equals(const Left, Right: TValuePUtf8Char): Boolean; reintroduce; overload; override;
+    function GetHashCode(const Value: TValuePUtf8Char): Integer; reintroduce; overload; override;
   end;
 
-class destructor TIUtf8StringComparer.Destroy;
+class destructor TValuePUtf8CharComparer.Destroy;
 begin
   FreeAndNil(FOrdinal);
 end;
 
-class function TIUtf8StringComparer.Ordinal: TIUtf8StringComparer;
+class function TValuePUtf8CharComparer.Ordinal: TValuePUtf8CharComparer;
 begin
   if (FOrdinal = nil) then
-    FOrdinal := TIUtf8StringComparer.Create;
+    FOrdinal := TValuePUtf8CharComparer.Create;
   Result := FOrdinal;
 end;
 
-function TIUtf8StringComparer.Compare(const Left, Right: UTF8String): Integer;
+function TValuePUtf8CharComparer.Compare(const Left, Right: TValuePUtf8Char): Integer;
 begin
-  Result := UTF8Tools.CompareOrdinal(Left, Right);
+  Result := Left.CompareOrdinal(Right);
 end;
 
-function TIUtf8StringComparer.Equals(const Left, Right: UTF8String): Boolean;
+function TValuePUtf8CharComparer.Equals(const Left, Right: TValuePUtf8Char): Boolean;
 begin
-  Result := UTF8Tools.CompareText(Left, Right);
+  Result := Left.CompareText(Right);
 end;
 
-function TIUtf8StringComparer.GetHashCode(const Value: UTF8String): Integer;
+function TValuePUtf8CharComparer.GetHashCode(const Value: TValuePUtf8Char): Integer;
 var
-  s: UTF8String;
+  Hash: Cardinal;
+  i: Integer;
+  c: Byte;
 begin
-  s := UTF8Tools.Lowercase(Value);
-  Result := THashFNV1a32.GetHashValue(PAnsiChar(S)^, Length(S));
+  Hash := 2166136261;
+  for i := 0 to Value.Len - 1 do
+  begin
+    c := Byte(Value.Text[i]);
+    if (c in [65..90]) then
+      c := c xor $20;
+    Hash := (Hash xor c) * 16777619;
+  end;
+  Result := Integer(Hash);
 end;
 
 
@@ -4853,7 +4870,7 @@ begin
   FViewBox.IsDefined := False;
   FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
 
-  FNodes := TDictionary<UTF8String, TSvgNode>.Create(TIUtf8StringComparer.Ordinal);
+  FNodes := TSvgNodeDictionary.Create(TValuePUtf8CharComparer.Ordinal);
 end;
 
 destructor TSvgDocumentNode.Destroy;
@@ -4890,25 +4907,25 @@ end;
 
 function TSvgDocumentNode.FindNodeById(AID: TValuePUtf8Char): TSvgNode;
 var
-  s: UTF8String;
+  Key: TValuePUtf8Char;
 begin
-  AID.Trim('#');
-  s := AID.ToUtf8;
+  Key := AID;
+  Key.Trim('#');
 
-  if not FNodes.TryGetValue(s, Result) then
-    Result := inherited;
+  if not FNodes.TryGetValue(Key, Result) then
+    Result := inherited FindNodeById(AID);
 end;
 
 procedure TSvgDocumentNode.NodeAdded(ANode: TSvgNode);
 begin
   if (ANode.ID <> '') then
-    FNodes.TryAdd(ANode.ID, ANode); // Ignore duplicate; Do not add to dictionary
+    FNodes.TryAdd(TValuePUtf8Char.FromString(ANode.ID), ANode); // Ignore duplicate; Do not add to dictionary
 end;
 
 procedure TSvgDocumentNode.NodeRemoved(ANode: TSvgNode);
 begin
   if (ANode.ID <> '') then
-    FNodes.Remove(ANode.ID);
+    FNodes.Remove(TValuePUtf8Char.FromString(ANode.ID));
 end;
 
 procedure TSvgDocumentNode.ResolveSwitchNodes;
