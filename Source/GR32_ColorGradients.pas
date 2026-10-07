@@ -1045,6 +1045,71 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSVGMeshGradientPolygonFiller
+//      TMeshGradientPolygonFiller
+//
+//------------------------------------------------------------------------------
+// SVG 2 Mesh Gradient Filler supporting bilinear and bicubic Coons mesh patches.
+// This is mostly a proof of concept. It works fine but it's completely
+// unoptimized - and Mesh Gradients were dropped from the SVG 2 proposal and
+// today only InkScape supports them.
+//------------------------------------------------------------------------------
+type
+  TSVGMeshType = (mgtBilinear, mgtBicubic);
+
+  TSVGMeshControlPoints = array[0..3, 0..3] of TFloatPoint;
+
+  TSVGMeshPatch = record
+    // 16 control points in mesh space for bicubic patch:
+    // [0,0]=Top-Left, [3,0]=Top-Right, [3,3]=Bottom-Right, [0,3]=Bottom-Left
+    // For bilinear patches, corners [0,0], [3,0], [3,3], [0,3] define the 4 corners.
+    ControlPoints: TSVGMeshControlPoints;
+    // Corner colors: [0]=Top-Left, [1]=Top-Right, [2]=Bottom-Right, [3]=Bottom-Left
+    Colors: array[0..3] of TColor32;
+  end;
+  TArrayOfSVGMeshPatch = array of TSVGMeshPatch;
+
+  TSVGMeshGradientPolygonFiller = class(TCustomPolygonFiller)
+  private type
+    TMeshTriangle = record
+      P0, P1, P2: TFloatPoint;
+      C0, C1, C2: TColor32;
+      MinY, MaxY: Single;
+    end;
+
+  private
+    FPatches: TArrayOfSVGMeshPatch;
+    FMeshType: TSVGMeshType;
+    FTransformMatrix: TFloatMatrix;
+    FSubdivisionDepth: Integer;
+    FTriangles: array of TMeshTriangle;
+
+  private
+    procedure SubdividePatches;
+    function EvaluatePatchPoint(const APatch: TSVGMeshPatch; u, v: Single): TFloatPoint;
+    function EvaluatePatchColor(const APatch: TSVGMeshPatch; u, v: Single): TColor32;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineMesh(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure BeginRendering; override;
+    procedure Clear;
+    procedure AddPatch(const APatch: TSVGMeshPatch);
+
+    property MeshType: TSVGMeshType read FMeshType write FMeshType;
+    property TransformMatrix: TFloatMatrix read FTransformMatrix write FTransformMatrix;
+    property SubdivisionDepth: Integer read FSubdivisionDepth write FSubdivisionDepth;
+  end;
+
+  TMeshGradientPolygonFiller = TSVGMeshGradientPolygonFiller;
+
+
+
+//------------------------------------------------------------------------------
+//
 //      Utilities
 //
 //------------------------------------------------------------------------------
@@ -5569,6 +5634,267 @@ begin
     PtY := PtY + Dy;
   end;
 end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSVGMeshGradientPolygonFiller
+//
+//------------------------------------------------------------------------------
+constructor TSVGMeshGradientPolygonFiller.Create;
+begin
+  inherited Create;
+  FMeshType := mgtBilinear;
+  FTransformMatrix := IdentityMatrix;
+  FSubdivisionDepth := 8;
+end;
+
+destructor TSVGMeshGradientPolygonFiller.Destroy;
+begin
+  Clear;
+  inherited Destroy;
+end;
+
+procedure TSVGMeshGradientPolygonFiller.Clear;
+begin
+  SetLength(FPatches, 0);
+  SetLength(FTriangles, 0);
+end;
+
+procedure TSVGMeshGradientPolygonFiller.AddPatch(const APatch: TSVGMeshPatch);
+begin
+  SetLength(FPatches, Length(FPatches) + 1);
+  FPatches[High(FPatches)] := APatch;
+end;
+
+function TSVGMeshGradientPolygonFiller.EvaluatePatchPoint(const APatch: TSVGMeshPatch; u, v: Single): TFloatPoint;
+var
+  Bu, Bv: array[0..3] of Single;
+  i, j: Integer;
+  w: Single;
+begin
+  if FMeshType = mgtBilinear then
+  begin
+    Result.X := (1.0 - u) * (1.0 - v) * APatch.ControlPoints[0, 0].X +
+                u * (1.0 - v) * APatch.ControlPoints[3, 0].X +
+                u * v * APatch.ControlPoints[3, 3].X +
+                (1.0 - u) * v * APatch.ControlPoints[0, 3].X;
+    Result.Y := (1.0 - u) * (1.0 - v) * APatch.ControlPoints[0, 0].Y +
+                u * (1.0 - v) * APatch.ControlPoints[3, 0].Y +
+                u * v * APatch.ControlPoints[3, 3].Y +
+                (1.0 - u) * v * APatch.ControlPoints[0, 3].Y;
+    Exit;
+  end;
+
+  Bu[0] := (1.0 - u) * (1.0 - u) * (1.0 - u);
+  Bu[1] := 3.0 * (1.0 - u) * (1.0 - u) * u;
+  Bu[2] := 3.0 * (1.0 - u) * u * u;
+  Bu[3] := u * u * u;
+
+  Bv[0] := (1.0 - v) * (1.0 - v) * (1.0 - v);
+  Bv[1] := 3.0 * (1.0 - v) * (1.0 - v) * v;
+  Bv[2] := 3.0 * (1.0 - v) * v * v;
+  Bv[3] := v * v * v;
+
+  Result.X := 0.0;
+  Result.Y := 0.0;
+  for i := 0 to 3 do
+    for j := 0 to 3 do
+    begin
+      w := Bu[i] * Bv[j];
+      Result.X := Result.X + w * APatch.ControlPoints[i, j].X;
+      Result.Y := Result.Y + w * APatch.ControlPoints[i, j].Y;
+    end;
+end;
+
+function TSVGMeshGradientPolygonFiller.EvaluatePatchColor(const APatch: TSVGMeshPatch; u, v: Single): TColor32;
+var
+  w00, w10, w11, w01: Single;
+begin
+  w00 := (1.0 - u) * (1.0 - v);
+  w10 := u * (1.0 - v);
+  w11 := u * v;
+  w01 := (1.0 - u) * v;
+
+  Result := Linear4PointInterpolation(APatch.Colors[0], APatch.Colors[1],
+    APatch.Colors[2], APatch.Colors[3], w00, w10, w11, w01);
+end;
+
+procedure TSVGMeshGradientPolygonFiller.SubdividePatches;
+
+  function TransformPt(const Pt: TFloatPoint; const TransformMatrix: TFloatMatrix): TFloatPoint; inline;
+  begin
+    Result.X := Pt.X * TransformMatrix[0, 0] + Pt.Y * TransformMatrix[1, 0] + TransformMatrix[2, 0];
+    Result.Y := Pt.X * TransformMatrix[0, 1] + Pt.Y * TransformMatrix[1, 1] + TransformMatrix[2, 1];
+  end;
+
+var
+  PatchIdx, uIdx, vIdx, TriIdx, N: Integer;
+  u1, u2, v1, v2: Single;
+  OneOverN: Single;
+  P00, P10, P11, P01: TFloatPoint;
+  C00, C10, C11, C01: TColor32;
+  Patch: TSVGMeshPatch;
+begin
+  N := FSubdivisionDepth;
+  if N < 1 then
+    N := 1;
+
+  SetLength(FTriangles, Length(FPatches) * N * N * 2);
+  TriIdx := 0;
+
+  for PatchIdx := 0 to High(FPatches) do
+  begin
+    Patch := FPatches[PatchIdx];
+    for uIdx := 0 to N - 1 do
+    begin
+      OneOverN := 1 / N;
+      u1 := uIdx * OneOverN;
+      u2 := (uIdx + 1) * OneOverN;
+      for vIdx := 0 to N - 1 do
+      begin
+        v1 := vIdx / N;
+        v2 := (vIdx + 1) * OneOverN;
+
+        P00 := TransformPt(EvaluatePatchPoint(Patch, u1, v1), FTransformMatrix);
+        P10 := TransformPt(EvaluatePatchPoint(Patch, u2, v1), FTransformMatrix);
+        P11 := TransformPt(EvaluatePatchPoint(Patch, u2, v2), FTransformMatrix);
+        P01 := TransformPt(EvaluatePatchPoint(Patch, u1, v2), FTransformMatrix);
+
+        C00 := EvaluatePatchColor(Patch, u1, v1);
+        C10 := EvaluatePatchColor(Patch, u2, v1);
+        C11 := EvaluatePatchColor(Patch, u2, v2);
+        C01 := EvaluatePatchColor(Patch, u1, v2);
+
+        FTriangles[TriIdx].P0 := P00;
+        FTriangles[TriIdx].P1 := P10;
+        FTriangles[TriIdx].P2 := P11;
+        FTriangles[TriIdx].C0 := C00;
+        FTriangles[TriIdx].C1 := C10;
+        FTriangles[TriIdx].C2 := C11;
+        FTriangles[TriIdx].MinY := Min(P00.Y, Min(P10.Y, P11.Y));
+        FTriangles[TriIdx].MaxY := Max(P00.Y, Max(P10.Y, P11.Y));
+        Inc(TriIdx);
+
+        FTriangles[TriIdx].P0 := P00;
+        FTriangles[TriIdx].P1 := P11;
+        FTriangles[TriIdx].P2 := P01;
+        FTriangles[TriIdx].C0 := C00;
+        FTriangles[TriIdx].C1 := C11;
+        FTriangles[TriIdx].C2 := C01;
+        FTriangles[TriIdx].MinY := Min(P00.Y, Min(P11.Y, P01.Y));
+        FTriangles[TriIdx].MaxY := Max(P00.Y, Max(P11.Y, P01.Y));
+        Inc(TriIdx);
+      end;
+    end;
+  end;
+  SetLength(FTriangles, TriIdx);
+end;
+
+procedure TSVGMeshGradientPolygonFiller.BeginRendering;
+begin
+  inherited BeginRendering;
+  SubdividePatches;
+end;
+
+function TSVGMeshGradientPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FillLineMesh;
+end;
+
+procedure TSVGMeshGradientPolygonFiller.FillLineMesh(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+var
+  i, x, SpanLen: Integer;
+  Y: Single;
+  TriPtr: ^TMeshTriangle;
+  XCross: array[0..1] of Single;
+  CCross: array[0..1] of TColor32;
+  CrossCount: Integer;
+  tEdge, tSpan: Single;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+  XStart, XEnd: Integer;
+  XA, XB: Single;
+  CA, CB: TColor32;
+  EdgeIdx: Integer;
+  EdgeP1, EdgeP2: TFloatPoint;
+  EdgeC1, EdgeC2: TColor32;
+begin
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+  Y := DstY + 0.5;
+
+  for i := 0 to High(FTriangles) do
+  begin
+    TriPtr := @FTriangles[i];
+    if (Y < TriPtr.MinY) or (Y > TriPtr.MaxY) then
+      continue;
+
+    CrossCount := 0;
+    for EdgeIdx := 0 to 2 do
+    begin
+      case EdgeIdx of
+        0: begin EdgeP1 := TriPtr.P0; EdgeP2 := TriPtr.P1; EdgeC1 := TriPtr.C0; EdgeC2 := TriPtr.C1; end;
+        1: begin EdgeP1 := TriPtr.P1; EdgeP2 := TriPtr.P2; EdgeC1 := TriPtr.C1; EdgeC2 := TriPtr.C2; end;
+      else
+           begin EdgeP1 := TriPtr.P2; EdgeP2 := TriPtr.P0; EdgeC1 := TriPtr.C2; EdgeC2 := TriPtr.C0; end;
+      end;
+
+      if ((EdgeP1.Y <= Y) and (Y < EdgeP2.Y)) or ((EdgeP2.Y <= Y) and (Y < EdgeP1.Y)) then
+      begin
+        if Abs(EdgeP2.Y - EdgeP1.Y) > 1e-6 then
+        begin
+          tEdge := (Y - EdgeP1.Y) / (EdgeP2.Y - EdgeP1.Y);
+          XCross[CrossCount] := EdgeP1.X + tEdge * (EdgeP2.X - EdgeP1.X);
+          CCross[CrossCount] := CombineReg(EdgeC2, EdgeC1, Clamp(Round(255.0 * tEdge), 0, 255));
+          Inc(CrossCount);
+          if CrossCount = 2 then
+            Break;
+        end;
+      end;
+    end;
+
+    if CrossCount = 2 then
+    begin
+      if XCross[0] <= XCross[1] then
+      begin
+        XA := XCross[0]; XB := XCross[1];
+        CA := CCross[0]; CB := CCross[1];
+      end else
+      begin
+        XA := XCross[1]; XB := XCross[0];
+        CA := CCross[1]; CB := CCross[0];
+      end;
+
+      XStart := Max(DstX, Ceil(XA));
+      XEnd := Min(DstX + Length - 1, Floor(XB));
+
+      if XStart <= XEnd then
+      begin
+        SpanLen := Round(XB - XA);
+        for x := XStart to XEnd do
+        begin
+          if SpanLen > 0 then
+            tSpan := (x - XA) / (XB - XA)
+          else
+            tSpan := 0.0;
+
+          Color32 := CombineReg(CB, CA, Clamp(Round(255.0 * tSpan), 0, 255));
+
+          if AlphaValues <> nil then
+            BlendMemEx(Color32, PColor32Array(Dst)[x - DstX], PColor32Array(AlphaValues)[x - DstX])
+          else
+            PColor32Array(Dst)[x - DstX] := Color32;
+        end;
+      end;
+    end;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 procedure RegisterBindings;
 begin
