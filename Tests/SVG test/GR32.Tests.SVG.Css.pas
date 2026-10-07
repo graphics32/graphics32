@@ -65,25 +65,29 @@ var
   selElem, selClass, selId, selStar: TSvgCssSelector;
 begin
   selElem := TSvgCssSelector.Parse('rect');
-  CheckEquals(Ord(skElement), Ord(selElem.Kind));
-  CheckEquals('rect', selElem.Name);
+  Check(Length(selElem.Chain) > 0);
+  CheckEquals(Ord(skElement), Ord(selElem.Chain[0].Kind));
+  CheckEquals('rect', selElem.Chain[0].Name);
   Check(selElem.Matches('rect', 'box', 'rect1'));
   Check(not selElem.Matches('circle', 'box', 'rect1'));
 
   selClass := TSvgCssSelector.Parse('.red-box');
-  CheckEquals(Ord(skClass), Ord(selClass.Kind));
-  CheckEquals('red-box', selClass.Name);
+  Check(Length(selClass.Chain) > 0);
+  CheckEquals(Ord(skClass), Ord(selClass.Chain[0].Kind));
+  CheckEquals('red-box', selClass.Chain[0].Name);
   Check(selClass.Matches('rect', 'red-box shape', 'rect1'));
   Check(not selClass.Matches('rect', 'blue-box', 'rect1'));
 
   selId := TSvgCssSelector.Parse('#main_shape');
-  CheckEquals(Ord(skId), Ord(selId.Kind));
-  CheckEquals('main_shape', selId.Name);
+  Check(Length(selId.Chain) > 0);
+  CheckEquals(Ord(skId), Ord(selId.Chain[0].Kind));
+  CheckEquals('main_shape', selId.Chain[0].Name);
   Check(selId.Matches('rect', 'box', 'main_shape'));
   Check(not selId.Matches('rect', 'box', 'other_shape'));
 
   selStar := TSvgCssSelector.Parse('*');
-  CheckEquals(Ord(skUniversal), Ord(selStar.Kind));
+  Check(Length(selStar.Chain) > 0);
+  CheckEquals(Ord(skUniversal), Ord(selStar.Chain[0].Kind));
   Check(selStar.Matches('rect', 'box', 'id1'));
 end;
 

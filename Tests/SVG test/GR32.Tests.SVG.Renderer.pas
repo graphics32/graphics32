@@ -106,6 +106,7 @@ implementation
 
 uses
   Types,
+  Math,
   GR32.SVG.Utf8;
 
 { TTestSvgRenderer }
@@ -156,6 +157,8 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Transformed textPath docNode should not be nil');
     try
+      bmp.SetSize(Ceil(docNode.Width.ToPixels), Ceil(docNode.Height.ToPixels));
+
       renderer := TSvgRenderer.Create(bmp);
       try
         renderer.RenderDocument(docNode);
@@ -1009,9 +1012,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create;
+  renderer := TSvgRenderer.Create(bmp);
   try
-    renderer.RenderDocument(bmp, docNode);
+    renderer.RenderDocument(docNode);
     // (35, 35) was originally outside the square (40,40..60,60), but with dilate radius=10 it becomes white.
     CheckEquals(clWhite32, bmp.Pixel[35, 35], 'Dilate filter should expand white square to include (35,35)');
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of dilated square should remain white');
@@ -1037,9 +1040,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create;
+  renderer := TSvgRenderer.Create(bmp);
   try
-    renderer.RenderDocument(bmp, docNode);
+    renderer.RenderDocument(docNode);
     // (35, 35) was inside the original 40x40 square (30,30..70,70), but after erosion radius=10 it becomes black/transparent.
     CheckEquals(clBlack32, bmp.Pixel[35, 35], 'Erode filter should shrink white square away from (35,35)');
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of eroded square should remain white');
@@ -1122,8 +1125,8 @@ begin
     CheckEquals(clWhite32, bmp.Pixel[75, 25], 'Unfilled rect interior should remain white');
 
     // 2. Set ThemeFillColor to Lime32 and ThemeStrokeColor to Blue32
-    renderer.ThemeFillColor := clLime32;
-    renderer.ThemeStrokeColor := clBlue32;
+    renderer.ThemeFillColor32 := clLime32;
+    renderer.ThemeStrokeColor32 := clBlue32;
     bmp.Clear(clWhite32);
     renderer.RenderDocument(docNode);
     CheckEquals(clLime32, bmp.Pixel[25, 25], 'Theme fill should override red with lime');
