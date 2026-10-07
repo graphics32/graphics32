@@ -390,12 +390,17 @@ type
       Value: T;
     end;
   private
-    FLengths: TArray<integer>;                  // Array of Keywords[] indices, indexed by keyword length.
-                                                // 0 means no keywords for that length.
+    FLengths: TArray<integer>;          // Array of Keywords[] indices, indexed
+                                        // by keyword length-1.
+                                        // 0 means no keywords for that length.
 
-    FKeywords: TArray<TArray<TKeyword>>;        // Sparse array of keyword arrays.
-                                                // All keywords within a keyword array has the same
-                                                // length and are sorted alphabetically.
+    FKeywords: TArray<TArray<TKeyword>>;// Sparse array of keyword arrays.
+                                        // All keywords within a keyword array
+                                        // has the same length and are sorted
+                                        // alphabetically, case insensitive.
+
+  private
+    class function CompareKeywordPointers(P1, P2: PUtf8Char; Len: Integer): Integer; static;
   public
     // Add a keyword to the dictionary
     procedure Add(const AKeyword: UTF8String; AValue: T);
@@ -985,17 +990,44 @@ end;
 //      TSvgKeywordDictionary<T>
 //
 //------------------------------------------------------------------------------
+
+// CompareKeywordPointers performs a case-insensitive UTF-8 comparison of two
+// equal-length string buffers.
+class function TSvgKeywordDictionary<T>.CompareKeywordPointers(P1, P2: PUtf8Char; Len: Integer): Integer;
+var
+  i: Integer;
+  c1, c2: Byte;
+begin
+  for i := 0 to Len - 1 do
+  begin
+    c1 := Byte(P1[i]);
+    c2 := Byte(P2[i]);
+    if (c1 <> c2) then
+    begin
+      if (c1 in [65..90]) <> (c2 in [65..90]) then
+        c1 := c1 xor $20;
+      if (c1 <> c2) then
+        Exit(Integer(c1) - Integer(c2));
+    end;
+  end;
+  Result := 0;
+end;
+
 procedure TSvgKeywordDictionary<T>.Add(const AKeyword: UTF8String; AValue: T);
 var
   Len: integer;
   Index: integer;
+  L, H, Mid: integer;
+  Cmp: integer;
+  NewItem: TKeyword;
 begin
   Len := Length(AKeyword);
   if (Len = 0) then
     exit;
 
-  // Make room in length index
-  if (Len >= High(FLengths)) then
+  // Make room in length index.
+  // Remember that the first entry in the index is for Length=1!
+  if (Len > Length(FLengths)) then
   begin
     if (Len < 16) then
       SetLength(FLengths, 16)
@@ -1018,10 +1050,29 @@ begin
 
   Dec(Index); // Normalize index
 
-  // Insert the new keyword in the keyword list
-  SetLength(FKeywords[Index], Length(FKeywords[Index]) + 1);
-  FKeywords[Index, High(FKeywords[Index])].Keyword := AKeyword;
-  FKeywords[Index, High(FKeywords[Index])].Value := AValue;
+  NewItem.Keyword := AKeyword;
+  NewItem.Value := AValue;
+
+  // Find insertion position using binary search to keep keywords sorted alphabetically
+  L := 0;
+  H := High(FKeywords[Index]);
+  while (L <= H) do
+  begin
+    Mid := L + (H - L) div 2;
+    Cmp := CompareKeywordPointers(PUtf8Char(AKeyword), PUtf8Char(FKeywords[Index, Mid].Keyword), Len);
+    if (Cmp = 0) then
+    begin
+      FKeywords[Index, Mid].Value := AValue;
+      exit;
+    end;
+    if (Cmp < 0) then
+      H := Mid - 1
+    else
+      L := Mid + 1;
+  end;
+
+  // Insert the new keyword at sorted index L
+  Insert(NewItem, FKeywords[Index], L);
 end;
 
 function TSvgKeywordDictionary<T>.Lookup(const AKeyword: TValuePUtf8Char): T;
@@ -1033,13 +1084,14 @@ end;
 function TSvgKeywordDictionary<T>.Lookup(const AKeyword: TValuePUtf8Char; var AValue: T): boolean;
 var
   Index: integer;
-  i: integer;
+  L, H, Mid: integer;
+  Cmp: integer;
 begin
   Result := False;
   if (AKeyword.Len = 0) then
     exit;
 
-  if (AKeyword.Len >= High(FLengths)) then
+  if (AKeyword.Len > Length(FLengths)) then
     exit;
 
   // Get the keyword list for this length
@@ -1051,13 +1103,23 @@ begin
 
   Dec(Index); // Normalize index
 
-  // Find the keyword in the keyword list
-  for i := 0 to High(FKeywords[Index]) do
-    if (AKeyword.CompareText(FKeywords[Index, i].Keyword)) then
+  // Find the keyword using binary search in the sorted keyword list
+  L := 0;
+  H := High(FKeywords[Index]);
+  while (L <= H) do
+  begin
+    Mid := L + (H - L) div 2;
+    Cmp := CompareKeywordPointers(AKeyword.Text, PUtf8Char(FKeywords[Index, Mid].Keyword), AKeyword.Len);
+    if (Cmp = 0) then
     begin
-      AValue := FKeywords[Index, i].Value;
+      AValue := FKeywords[Index, Mid].Value;
       Exit(True);
-    end;
+    end else
+    if (Cmp < 0) then
+      H := Mid - 1
+    else
+      L := Mid + 1;
+  end;
 end;
 
 

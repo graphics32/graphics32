@@ -52,6 +52,7 @@ type
     procedure TestSvgViewBoxParseAndTransform;
     procedure TestFloatMatrixHelper;
     procedure TestHslToRgb;
+    procedure TestSvgKeywordDictionary;
   end;
 
 implementation
@@ -227,6 +228,49 @@ var
 begin
   color := GR32.SVG.Types.HSLtoRGB(0.0, 1.0, 0.5, 1.0);
   CheckEquals(clRed32, color);
+end;
+
+procedure TTestSvgTypes.TestSvgKeywordDictionary;
+var
+  Dict: TSvgKeywordDictionary<Integer>;
+  Val: Integer;
+begin
+  // Add keywords out of alphabetical order
+  Dict.Add('orange', 1);
+  Dict.Add('banana', 2);
+  Dict.Add('apple', 3);
+  Dict.Add('cherry', 4);
+  Dict.Add('grape', 5);
+
+  // Check lookup (exact and case-insensitive)
+  Check(Dict.Lookup(TValuePUtf8Char.FromString('apple'), Val));
+  CheckEquals(3, Val);
+
+  Check(Dict.Lookup(TValuePUtf8Char.FromString('APPLE'), Val));
+  CheckEquals(3, Val);
+
+  Check(Dict.Lookup(TValuePUtf8Char.FromString('Banana'), Val));
+  CheckEquals(2, Val);
+
+  Check(Dict.Lookup(TValuePUtf8Char.FromString('CHERRY'), Val));
+  CheckEquals(4, Val);
+
+  Check(Dict.Lookup(TValuePUtf8Char.FromString('grape'), Val));
+  CheckEquals(5, Val);
+
+  Check(Dict.Lookup(TValuePUtf8Char.FromString('Orange'), Val));
+  CheckEquals(1, Val);
+
+  // Check missing keyword of same length
+  Check(not Dict.Lookup(TValuePUtf8Char.FromString('lemon'), Val));
+
+  // Check missing keyword of different length
+  Check(not Dict.Lookup(TValuePUtf8Char.FromString('kiwi'), Val));
+
+  // Overwrite existing keyword
+  Dict.Add('apple', 10);
+  Check(Dict.Lookup(TValuePUtf8Char.FromString('Apple'), Val));
+  CheckEquals(10, Val);
 end;
 
 initialization

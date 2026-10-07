@@ -647,7 +647,7 @@ begin
     if (c1 <> c2) then
     begin
       // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
-      if c1 in [65..90] then
+      if (c1 in [65..90]) <> (c2 in [65..90]) then
         c1 := c1 xor $20;
 
       if (c1 <> c2) then
@@ -820,7 +820,7 @@ begin
     if (c1 <> c2) then
     begin
       // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
-      if c1 in [65..90] then
+      if (c1 in [65..90]) <> (c2 in [65..90]) then
         c1 := c1 xor $20;
 
       if (c1 <> c2) then
@@ -876,7 +876,7 @@ begin
     if (c1 <> c2) then
     begin
       // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
-      if c1 in [65..90] then
+      if (c1 in [65..90]) <> (c2 in [65..90]) then
         c1 := c1 xor $20;
 
       if c1 <> c2 then
