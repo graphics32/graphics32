@@ -7017,7 +7017,7 @@ var
     //    allowing stylesheet selectors to override presentation attributes.
     // 3. Inline style="..." attributes (specificity 1000) are parsed LAST, ensuring inline
     //    styles override stylesheet rules and presentation attributes (highest priority).
-    if cssStyleSheet <> nil then
+    if (cssStyleSheet <> nil) and (not cssStyleSheet.IsEmpty) then
       cssStyleSheet.ApplyToNode(node, TagName, node.CssClassName, node.ID);
 
     // Apply deferred inline style attribute after stylesheet rules to enforce inline specificity dominance

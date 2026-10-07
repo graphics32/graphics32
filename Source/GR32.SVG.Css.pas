@@ -151,8 +151,11 @@ type
 //------------------------------------------------------------------------------
 type
   TSvgCssStyleSheet = class(TObject)
+  private type
+    TSvgCssRuleList = TList<TSvgCssRule>;
   private
-    FRules: TList<TSvgCssRule>;
+    FRules: TSvgCssRuleList;
+    function GetIsEmpty: Boolean; inline;
   public
     constructor Create;
     destructor Destroy; override;
@@ -161,7 +164,9 @@ type
     procedure ParseCss(const ACssText: UTF8String);
     procedure ApplyToNode(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String);
 
-    property Rules: TList<TSvgCssRule> read FRules;
+    // Note: Rules might be nil if there are no rules
+    property Rules: TSvgCssRuleList read FRules;
+    property IsEmpty: Boolean read GetIsEmpty;
   end;
 
 
@@ -511,10 +516,14 @@ end;
 //      TSvgCssRule
 //
 //------------------------------------------------------------------------------
+function TSvgCssStyleSheet.GetIsEmpty: Boolean;
+begin
+  Result := (FRules = nil) or (FRules.Count = 0);
+end;
+
 constructor TSvgCssStyleSheet.Create;
 begin
   inherited Create;
-  FRules := TList<TSvgCssRule>.Create;
 end;
 
 destructor TSvgCssStyleSheet.Destroy;
@@ -527,7 +536,8 @@ end;
 
 procedure TSvgCssStyleSheet.Clear;
 begin
-  FRules.Clear;
+  if (FRules <> nil) then
+    FRules.Clear;
 end;
 
 //------------------------------------------------------------------------------
@@ -572,6 +582,8 @@ var
   Properties: TArray<TSvgCssProperty>;
   PropCount, SelCount, i: Integer;
 begin
+  Clear;
+
   Value := TValuePUtf8Char.FromString(ACssText);
 
   (*
@@ -668,6 +680,10 @@ begin
       // Since rules are immutable once parsed, we can safely share the same
       // property array among the different rules.
       Rule.Properties := Properties;
+
+      if (FRules = nil) then
+        FRules := TSvgCssRuleList.Create;
+
       FRules.Add(Rule);
     end;
   end;
@@ -691,23 +707,31 @@ var
   i, j: Integer;
   Rule: TSvgCssRule;
   Keyword: TSvgAttributeKeyword;
-  MatchingRules: TList<TSvgCssRule>;
+  MatchingRules: TSvgCssRuleList;
 begin
-  if (ANode = nil) or (FRules.Count = 0) then
+  if (ANode = nil) or (IsEmpty) then
     Exit;
 
-  MatchingRules := TList<TSvgCssRule>.Create;
+  MatchingRules := nil;
   try
     for Rule in FRules do
     begin
       if Rule.Selector.Matches(ANode) then
+      begin
+        if (MatchingRules = nil) then
+          MatchingRules := TSvgCssRuleList.Create;
+
         MatchingRules.Add(Rule)
-      else
+      end else
       if (ANode = nil) and Rule.Selector.Matches(AElementTag, AClassName, AElementId) then
+      begin
+        if (MatchingRules = nil) then
+          MatchingRules := TSvgCssRuleList.Create;
         MatchingRules.Add(Rule);
+      end;
     end;
 
-    if (MatchingRules.Count = 0) then
+    if (MatchingRules = nil) or (MatchingRules.Count = 0) then
       Exit;
 
     // Stable insertion sort by Selector.Specificity ascending to ensure
