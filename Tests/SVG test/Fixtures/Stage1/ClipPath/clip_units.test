@@ -10,4 +10,4 @@
 TSvgDocumentNode (width=100px, height=100px)
   TSvgDefsNode
     TSvgClipPathNode (id="clip1") (clipPathUnits=guObjectBoundingBox)
-      TSvgPathNode
+      TSvgPathNode (fill=currentColor)

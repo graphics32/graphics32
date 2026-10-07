@@ -10,4 +10,4 @@ TSvgDocumentNode (width=100px, height=100px)
   TSvgDefsNode
     TSvgPathNode (id="rect1") (fill=#FFFF0000)
   TSvgUseNode (id="u1") (href="#rect1")
-    TSvgPathNode (id="rect1") (fill=#FFFF0000)
+    TSvgPathNode (fill=#FFFF0000)

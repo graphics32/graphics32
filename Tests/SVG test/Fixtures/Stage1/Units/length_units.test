@@ -4,4 +4,4 @@
 </svg>
 --- EXPECTED AST ---
 TSvgDocumentNode (width=10in, height=5cm)
-  TSvgPathNode
+  TSvgPathNode (fill=currentColor)

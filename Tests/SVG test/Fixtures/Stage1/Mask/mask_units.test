@@ -10,4 +10,4 @@
 TSvgDocumentNode (width=100px, height=100px)
   TSvgDefsNode
     TSvgMaskNode (id="mask1") (x=-10%, y=-10%, width=120%, height=120%, maskUnits=guUserSpaceOnUse, maskContentUnits=guObjectBoundingBox)
-      TSvgPathNode
+      TSvgPathNode (fill=currentColor)
