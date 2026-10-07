@@ -171,6 +171,13 @@ type
     taEnd
   );
 
+  TSvgTextAlignmentHorizontal = (
+    taHorNone,
+    taHorLeft,
+    taHorCenter,
+    taHorRight,
+    taHorJustify
+  );
 
 //------------------------------------------------------------------------------
 //

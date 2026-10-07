@@ -80,6 +80,7 @@ type
     procedure TestFeMorphologyFilterRendering;
     procedure TestFeDisplacementMapFilterRendering;
     procedure TestTextRendering;
+    procedure TestTextAreaRendering;
     procedure TestTextRotationRendering;
     procedure TestTextPathRendering;
     procedure TestTextOpacityRendering;
@@ -178,6 +179,43 @@ begin
 
         Check(expectedRangeCount > 30, Format('Transformed text on path should render around expected Y=100 (found %d pixels)', [expectedRangeCount]));
         CheckEquals(0, doubleTransformedRangeCount, Format('Transformed text on path should not be double-transformed to Y=150 (found %d pixels)', [doubleTransformedRangeCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTextAreaRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="200" height="200">' +
+           '  <textArea x="10" y="10" width="180" height="100" font-size="16px" fill="blue" text-align="center">' +
+           '    Multi-line wrapped text inside a textArea element.' +
+           '  </textArea>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'TextArea docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+        // Background at (0,0) must remain white
+        CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Background at (0,0) should remain white');
       finally
         renderer.Free;
       end;

@@ -249,6 +249,7 @@ type
     attrFontWeight,
     attrFontStyle,
     attrTextAnchor,
+    attrTextAlign,
     attrX,
     attrY,
     attrDx,
@@ -453,6 +454,7 @@ type
     FFontWeight: UTF8String;
     FFontStyle: UTF8String;
     FTextAnchor: TSvgTextAnchor;
+    FTextAlign: TSvgTextAlignmentHorizontal;
     FLetterSpacing: TSvgLength;
   protected
     function GetElementTag: UTF8String; override;
@@ -472,6 +474,7 @@ type
     property FontWeight: UTF8String read FFontWeight write FFontWeight;
     property FontStyle: UTF8String read FFontStyle write FFontStyle;
     property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
+    property TextAlign: TSvgTextAlignmentHorizontal read FTextAlign write FTextAlign;
     property LetterSpacing: TSvgLength read FLetterSpacing write FLetterSpacing;
   end;
 
@@ -1474,6 +1477,31 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgTextAreaNode
+//
+//------------------------------------------------------------------------------
+// TSvgTextAreaNode represents the SVG <textArea> multiline wrapped text block
+// element.
+//------------------------------------------------------------------------------
+  TSvgTextAreaNode = class(TSvgTextPositioningNode)
+  private
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    function GetObjectBoundingBox: TFloatRect; override;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      Primitive Shape Converters
 //
 //------------------------------------------------------------------------------
@@ -1642,14 +1670,16 @@ type
   TSvgTagKeyword = (tagNone, tagSvg, tagG, tagUse, tagDefs, tagStop, tagMask, tagPath, tagRect, tagLine, tagStyle, tagCircle,
     tagLineargradient, tagRadialgradient, tagConicgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
-    tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence, tagFedisplacementmap, tagImage, tagSwitch, tagText, tagTspan, tagTextpath);
+    tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence,
+    tagFedisplacementmap, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of UTF8String = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'conicGradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap', 'image', 'switch', 'text', 'tspan', 'textPath'
+    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap',
+    'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
   );
 
 var
@@ -1717,6 +1747,7 @@ const
     'font-weight',
     'font-style',
     'text-anchor',
+    'text-align',
     'x',
     'y',
     'dx',
@@ -2619,6 +2650,7 @@ begin
     FFontWeight := parentGroup.FontWeight;
     FFontStyle := parentGroup.FontStyle;
     FTextAnchor := parentGroup.TextAnchor;
+    FTextAlign := parentGroup.TextAlign;
     FLetterSpacing := parentGroup.LetterSpacing;
   end else
   begin
@@ -2627,6 +2659,7 @@ begin
     FFontWeight := 'normal';
     FFontStyle := 'normal';
     FTextAnchor := taStart;
+    FTextAlign := taHorNone;
     FLetterSpacing := TSvgLength.Create(0.0, suPx);
   end;
 end;
@@ -2648,6 +2681,7 @@ begin
   groupRes.FFontWeight := FFontWeight;
   groupRes.FFontStyle := FFontStyle;
   groupRes.FTextAnchor := FTextAnchor;
+  groupRes.FTextAlign := FTextAlign;
   groupRes.FLetterSpacing := FLetterSpacing;
   for i := 0 to FChildren.Count - 1 do
     groupRes.AddChild(FChildren[i].Clone(groupRes));
@@ -2924,6 +2958,32 @@ begin
     attrTextAnchor:
       FTextAnchor := ParseSvgTextAnchor(AValue);
 
+    attrTextAlign:
+      begin
+        FTextAlign := taHorNone;
+        case AValue.Len of
+          3:
+            if AValue.CompareText('end') then
+              FTextAlign := taHorRight;
+
+          4:
+            if AValue.CompareText('left') then
+              FTextAlign := taHorLeft;
+
+          5:
+            if AValue.CompareText('right') then
+              FTextAlign := taHorRight;
+
+          6:
+            if AValue.CompareText('center') or AValue.CompareText('middle') then
+              FTextAlign := taHorCenter;
+
+          7:
+            if AValue.CompareText('justify') then
+              FTextAlign := taHorJustify;
+        end;
+      end;
+
     attrLetterSpacing:
       FLetterSpacing := TSvgLength.Parse(AValue);
   else
@@ -3133,6 +3193,11 @@ begin
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
+end;
+
+function TSvgTextPathNode.GetElementTag: UTF8String;
+begin
+  Result := 'textpath';
 end;
 
 
@@ -6069,21 +6134,6 @@ begin
   Result := 'image';
 end;
 
-function TSvgTextNode.GetElementTag: UTF8String;
-begin
-  Result := 'text';
-end;
-
-function TSvgTSpanNode.GetElementTag: UTF8String;
-begin
-  Result := 'tspan';
-end;
-
-function TSvgTextPathNode.GetElementTag: UTF8String;
-begin
-  Result := 'textpath';
-end;
-
 function TSvgImageNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
@@ -6091,6 +6141,81 @@ begin
     [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
   if FHref <> '' then
     Result := Result + Format(' (href="%s")', [FHref]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextNode
+//
+//------------------------------------------------------------------------------
+function TSvgTextNode.GetElementTag: UTF8String;
+begin
+  Result := 'text';
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTSpanNode
+//
+//------------------------------------------------------------------------------
+function TSvgTSpanNode.GetElementTag: UTF8String;
+begin
+  Result := 'tspan';
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextAreaNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgTextAreaNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FWidth := TSvgLength.Create(100.0, suPercent);
+  FHeight := TSvgLength.Create(100.0, suPercent);
+end;
+
+function TSvgTextAreaNode.Clone(AParent: TSvgNode): TSvgNode;
+begin
+  Result := TSvgTextAreaNode(inherited Clone(AParent));
+  TSvgTextAreaNode(Result).FWidth := FWidth;
+  TSvgTextAreaNode(Result).FHeight := FHeight;
+end;
+
+procedure TSvgTextAreaNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+begin
+  case AKeyword of
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
+
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
+
+function TSvgTextAreaNode.GetObjectBoundingBox: TFloatRect;
+begin
+  Result.Left := FX.ToPixels;
+  Result.Top := FY.ToPixels;
+  Result.Right := Result.Left + FWidth.ToPixels;
+  Result.Bottom := Result.Top + FHeight.ToPixels;
+end;
+
+function TSvgTextAreaNode.GetElementTag: UTF8String;
+begin
+  Result := 'textarea';
+end;
+
+function TSvgTextAreaNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  Result := Result + Format(' (width=%s, height=%s)',
+    [SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
 end;
 
 
@@ -6947,6 +7072,20 @@ var
           begin
             node := TSvgTextPathNode.Create(AParent);
             ParseAttributes(node, AParser);
+          end;
+
+        tagTextarea:
+          begin
+            node := TSvgTextAreaNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagTbreak:
+          begin
+            // Just insert a linebreak. No need to represent node in DOM
+            if AParent is TSvgTextPositioningNode then
+              TSvgTextPositioningNode(AParent).TextContent := TSvgTextPositioningNode(AParent).TextContent + #10;
+            node := nil;
           end;
 
         tagEllipse:

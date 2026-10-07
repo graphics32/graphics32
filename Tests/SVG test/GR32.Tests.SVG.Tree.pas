@@ -71,6 +71,7 @@ type
     procedure TestFeDisplacementMapParsingAndResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestTextAndTSpanParsing;
+    procedure TestTextAreaParsing;
     procedure TestTextRotationParsing;
     procedure TestTextPathParsingAndResolution;
     procedure TestImageNodeParsingAndAttributes;
@@ -113,6 +114,44 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestTextAreaParsing;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  textAreaNode: TSvgTextAreaNode;
+  bbox: TFloatRect;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <textArea id="ta1" x="10" y="20" width="100" height="80" font-family="Arial" font-size="14px" text-align="center" fill="black">' +
+         '    First line<tbreak/>Second line' +
+         '  </textArea>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    textAreaNode := TSvgTextAreaNode(docNode.FindNodeById('ta1'));
+    Check(textAreaNode <> nil, 'textAreaNode ta1 should exist');
+    CheckEquals('textarea', textAreaNode.ElementTag);
+    CheckEquals(10.0, textAreaNode.X.Value, 1E-4);
+    CheckEquals(20.0, textAreaNode.Y.Value, 1E-4);
+    CheckEquals(100.0, textAreaNode.Width.Value, 1E-4);
+    CheckEquals(80.0, textAreaNode.Height.Value, 1E-4);
+    CheckEquals('Arial', textAreaNode.FontFamily);
+    CheckEquals(14.0, textAreaNode.FontSize.Value, 1E-4);
+    CheckEquals(Ord(taHorCenter), Ord(textAreaNode.TextAlign));
+    CheckEquals('First line' + #10 + 'Second line', textAreaNode.TextContent);
+
+    bbox := textAreaNode.GetObjectBoundingBox;
+    CheckEquals(10.0, bbox.Left, 1E-4);
+    CheckEquals(20.0, bbox.Top, 1E-4);
+    CheckEquals(110.0, bbox.Right, 1E-4);
+    CheckEquals(100.0, bbox.Bottom, 1E-4);
   finally
     docNode.Free;
   end;

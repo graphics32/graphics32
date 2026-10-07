@@ -139,6 +139,8 @@ type
 
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
+    procedure RenderTextPathData(ATarget: TCustomBitmap32; const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
+    procedure RenderTextAreaNode(ATarget: TCustomBitmap32; ATextAreaNode: TSvgTextAreaNode);
     procedure RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
     procedure RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgGroupNode);
     procedure RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
@@ -4362,7 +4364,7 @@ begin
   AFontInfo.Size := ASize;
 end;
 
-procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
+procedure TSvgRenderer.RenderTextPathData(ATarget: TCustomBitmap32; const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
 
   function GetAccumulatedTextOpacity(Node: TSvgNode): Single;
   begin
@@ -4374,58 +4376,151 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     end;
   end;
 
-  procedure RenderTextPathData(const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
-  var
-    TransformedPts, StrokePts, DashedPts: TArrayOfArrayOfFloatPoint;
-    StrokeWidth, MatScale, ScaledOffset: Single;
-    ScaledDashArray: TArrayOfFloat;
-    i, j, k: Integer;
-    AccumulatedOpacity, FillOpacity, StrokeOpacity: Single;
+var
+  TransformedPts, StrokePts, DashedPts: TArrayOfArrayOfFloatPoint;
+  StrokeWidth, MatScale, ScaledOffset: Single;
+  ScaledDashArray: TArrayOfFloat;
+  i, j, k: Integer;
+  AccumulatedOpacity, FillOpacity, StrokeOpacity: Single;
+begin
+  if (Length(APathPoints) = 0) or (ATarget = nil) then
+    Exit;
+
+  AccumulatedOpacity := GetAccumulatedTextOpacity(ANode);
+  FillOpacity := ANode.Fill.Opacity * AccumulatedOpacity;
+  StrokeOpacity := ANode.Stroke.Opacity * AccumulatedOpacity;
+
+  TransformedPts := GetTransformedPoints(APathPoints);
+
+  // 1. Fill Rendering
+  RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, GetEffectiveColor(ANode, ANode.Fill.Color, ThemeFillColor), ANode.Fill.FillRule);
+
+  // 2. Stroke Rendering
+  StrokeWidth := ANode.Stroke.Width.ToPixels(FViewportRect.Width);
+  if (StrokeWidth > 0) and (CanRenderPolyPolygon(ANode.Stroke.ResolvedPaintServer, TransformedPts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color, ThemeStrokeColor))) then
   begin
-    if (Length(APathPoints) = 0) or (ATarget = nil) then
-      Exit;
+    MatScale := GetMatrixScale(FTransformation.Matrix);
+    StrokeWidth := StrokeWidth * MatScale;
 
-    AccumulatedOpacity := GetAccumulatedTextOpacity(ANode);
-    FillOpacity := ANode.Fill.Opacity * AccumulatedOpacity;
-    StrokeOpacity := ANode.Stroke.Opacity * AccumulatedOpacity;
-
-    TransformedPts := GetTransformedPoints(APathPoints);
-
-    // 1. Fill Rendering
-    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, GetEffectiveColor(ANode, ANode.Fill.Color, ThemeFillColor), ANode.Fill.FillRule);
-
-    // 2. Stroke Rendering
-    StrokeWidth := ANode.Stroke.Width.ToPixels(FViewportRect.Width);
-    if (StrokeWidth > 0) and (CanRenderPolyPolygon(ANode.Stroke.ResolvedPaintServer, TransformedPts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color, ThemeStrokeColor))) then
+    ScaledDashArray := nil;
+    ScaledOffset := 0;
+    if Length(ANode.Stroke.DashArray) > 0 then
     begin
-      MatScale := GetMatrixScale(FTransformation.Matrix);
-      StrokeWidth := StrokeWidth * MatScale;
-
-      ScaledDashArray := nil;
-      ScaledOffset := 0;
-      if Length(ANode.Stroke.DashArray) > 0 then
-      begin
-        SetLength(ScaledDashArray, Length(ANode.Stroke.DashArray));
-        for k := 0 to High(ANode.Stroke.DashArray) do
-          ScaledDashArray[k] := ANode.Stroke.DashArray[k] * MatScale;
-        ScaledOffset := ANode.Stroke.DashOffset * MatScale;
-      end;
-
-      StrokePts := nil;
-      for i := 0 to High(TransformedPts) do
-      begin
-        if Length(ScaledDashArray) > 0 then
-        begin
-          DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
-          for j := 0 to High(DashedPts) do
-            StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
-        end else
-          StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
-      end;
-
-      RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color, ThemeStrokeColor));
+      SetLength(ScaledDashArray, Length(ANode.Stroke.DashArray));
+      for k := 0 to High(ANode.Stroke.DashArray) do
+        ScaledDashArray[k] := ANode.Stroke.DashArray[k] * MatScale;
+      ScaledOffset := ANode.Stroke.DashOffset * MatScale;
     end;
+
+    StrokePts := nil;
+    for i := 0 to High(TransformedPts) do
+    begin
+      if Length(ScaledDashArray) > 0 then
+      begin
+        DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
+        for j := 0 to High(DashedPts) do
+          StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
+      end else
+        StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
+    end;
+
+    RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color, ThemeStrokeColor));
   end;
+end;
+
+procedure TSvgRenderer.RenderTextAreaNode(ATarget: TCustomBitmap32; ATextAreaNode: TSvgTextAreaNode);
+var
+  Text: string;
+  TextRect: TFloatRect;
+  FontSizePx: Integer;
+  FontInfo: TFontInfo;
+  TextLayout: TTextLayout;
+  Canvas: TCanvas32;
+begin
+  if (ATextAreaNode = nil) or ATextAreaNode.IsDisplayNone or (not ATextAreaNode.Visible) then
+    Exit;
+
+  if (ATarget = nil) then
+    Exit;
+
+  TextRect.Left := ATextAreaNode.X.ToPixels(FViewportRect.Width);
+  TextRect.Top := ATextAreaNode.Y.ToPixels(FViewportRect.Height);
+  TextRect.Right := TextRect.Left + ATextAreaNode.Width.ToPixels(FViewportRect.Width);
+  TextRect.Bottom := TextRect.Top + ATextAreaNode.Height.ToPixels(FViewportRect.Height);
+
+  if (TextRect.IsEmpty) then
+    Exit;
+
+  Text := string(ATextAreaNode.TextContent);
+  if (Text = '') or (ATextAreaNode.Children.Count > 0) then
+    Text := GetSubtreeText(ATextAreaNode);
+
+  if (Text = '') then
+    Exit;
+
+  Canvas := TCanvas32.Create(TBitmap32(FTarget));
+  try
+    Canvas.BeginLockUpdate;
+
+    FontSizePx := Round(ATextAreaNode.FontSize.ToPixels(FViewportRect.Height));
+    if FontSizePx <= 0 then
+      FontSizePx := 12;
+
+    FontInfo := Default(TFontInfo);
+    MapFont(ATextAreaNode.FontFamily, ATextAreaNode.FontWeight, ATextAreaNode.FontStyle, FontSizePx, FontInfo);
+
+    Canvas.Bitmap.Font.Name := string(FontInfo.FontFamily);
+    Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
+    Canvas.Bitmap.Font.Style := FontInfo.Style;
+
+    TextLayout := DefaultTextLayout;
+    TextLayout.ClipLayout := True;
+    TextLayout.WordWrap := True;
+    TextLayout.SingleLine := False;
+    TextLayout.RemoveLeadingSpace := False;
+
+    case ATextAreaNode.TextAlign of
+      taHorLeft:
+        TextLayout.AlignmentHorizontal := TextAlignHorLeft;
+
+      taHorRight:
+        TextLayout.AlignmentHorizontal := TextAlignHorRight;
+
+      taHorCenter:
+        TextLayout.AlignmentHorizontal := TextAlignHorCenter;
+
+      taHorJustify:
+        TextLayout.AlignmentHorizontal := TextAlignHorJustify;
+    else
+      case ATextAreaNode.TextAnchor of
+        taMiddle:
+          TextLayout.AlignmentHorizontal := TextAlignHorCenter;
+
+        taEnd:
+          TextLayout.AlignmentHorizontal := TextAlignHorRight;
+      else
+        TextLayout.AlignmentHorizontal := TextAlignHorLeft;
+      end;
+    end;
+
+    Canvas.Clear;
+    Canvas.BeginUpdate;
+
+    Canvas.RenderText(TextRect, Text, TextLayout);
+
+    if (Canvas.Path <> nil) then
+      RenderTextPathData(ATarget, Canvas.Path, ATextAreaNode);
+
+    Canvas.Clear;
+    Canvas.EndUpdate;
+
+    Canvas.EndLockUpdate;
+  finally
+    Canvas.Free;
+  end;
+end;
+
+procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
 
   // Evaluates path arc length and places glyphs at interpolated path distance points
   // aligned to segment tangent orientation angles.
@@ -4583,7 +4678,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
 
               Canvas.RenderText(-charWidth * 0.5, drawY, Text[GlyphIdx], TextLayout);
               if (Canvas.Path <> nil) then
-                RenderTextPathData(Canvas.Path, ANode);
+                RenderTextPathData(ATarget, Canvas.Path, ANode);
 
               Canvas.Clear;
               Canvas.EndUpdate;
@@ -4726,7 +4821,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
 
                 Canvas.RenderText(DrawPoint.X, DrawPoint.Y, CharString, TextLayout);
                 if (Canvas.Path <> nil) then
-                  RenderTextPathData(Canvas.Path, ANode);
+                  RenderTextPathData(ATarget, Canvas.Path, ANode);
 
                 Canvas.Clear;
                 Canvas.EndUpdate;
@@ -4746,7 +4841,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           Canvas.RenderText(DrawPoint.X, DrawPoint.Y, ANode.TextContent + Char(ZERO_WIDTH_SPACE), TextLayout);
 
           if (Canvas.Path <> nil) then
-            RenderTextPathData(Canvas.Path, ANode);
+            RenderTextPathData(ATarget, Canvas.Path, ANode);
 
           Canvas.Clear;
           Canvas.EndUpdate;
@@ -4811,6 +4906,9 @@ begin
   else
   if ANode is TSvgImageNode then
     RenderImageNode(ATarget, TSvgImageNode(ANode))
+  else
+  if ANode is TSvgTextAreaNode then
+    RenderTextAreaNode(ATarget, TSvgTextAreaNode(ANode))
   else
   if ANode is TSvgTextNode then
     RenderTextNode(ATarget, TSvgTextNode(ANode))
