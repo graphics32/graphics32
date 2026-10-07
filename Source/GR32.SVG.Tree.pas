@@ -4958,12 +4958,14 @@ procedure TSvgDocumentNode.NodeAdded(ANode: TSvgNode);
 begin
   if (ANode.ID <> '') then
     FNodes.TryAdd(TValuePUtf8Char.FromString(ANode.ID), ANode); // Ignore duplicate; Do not add to dictionary
+  inherited NodeAdded(ANode);
 end;
 
 procedure TSvgDocumentNode.NodeRemoved(ANode: TSvgNode);
 begin
   if (ANode.ID <> '') then
     FNodes.Remove(TValuePUtf8Char.FromString(ANode.ID));
+  inherited NodeRemoved(ANode);
 end;
 
 procedure TSvgDocumentNode.ResolveSwitchNodes;
