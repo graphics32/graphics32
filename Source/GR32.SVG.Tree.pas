@@ -1630,8 +1630,8 @@ begin
   while Index < Len do
     if (pRead^ = cCRLF) then
     begin
-      // Replace CRLF pair with a single space character
-      pWrite^ := ' ';
+      // Replace CRLF pair with a single LF character (#10)
+      pWrite^ := #10;
       Inc(pWrite);
       Inc(pRead); // Advance 2 chars = 4 bytes
       Inc(Index, 2);
@@ -1663,8 +1663,46 @@ var
   i: integer;
 begin
   for i := 1 to Length(Text) do
-    if (Ord(Text[i]) <= 13) and (Byte(Ord(Text[i])) in [9, 10, 13]) then
-      Text[i] := #32;
+  begin
+    case Text[i] of
+      #13: Text[i] := #10;
+      #9:  Text[i] := #32;
+    end;
+  end;
+end;
+
+procedure CollapseWhitespaceInline(var Text: UnicodeString);
+var
+  InIndex, OutIndex: Integer;
+  InSpace: Boolean;
+  Ch: Char;
+begin
+  if Length(Text) = 0 then
+    Exit;
+
+  OutIndex := 1;
+  InSpace := False;
+
+  for InIndex := 1 to Length(Text) do
+  begin
+    Ch := Text[InIndex];
+    if (Ord(Ch) <= 32) and (Byte(Ord(Ch)) in [9, 10, 13, 32]) then
+    begin
+      if not InSpace then
+      begin
+        Text[OutIndex] := ' ';
+        Inc(OutIndex);
+        InSpace := True;
+      end;
+    end else
+    begin
+      Text[OutIndex] := Ch;
+      Inc(OutIndex);
+      InSpace := False;
+    end;
+  end;
+
+  SetLength(Text, OutIndex - 1);
 end;
 
 //------------------------------------------------------------------------------
@@ -6695,6 +6733,9 @@ var
     Points: TValuePUtf8Char;
     stopVal: TSvgGradientStop;
     Color: TSvgColor;
+    TextPosNode: TSvgTextPositioningNode;
+    i: Integer;
+    c: Char;
   begin
     Result := nil;
     node := nil;
@@ -7101,8 +7142,30 @@ var
           begin
             // Just insert a linebreak. No need to represent node in DOM
             if AParent is TSvgTextPositioningNode then
-              TSvgTextPositioningNode(AParent).TextContent := TSvgTextPositioningNode(AParent).TextContent + #10;
-            node := nil;
+            begin
+              // Trim trailing spaces from existing text
+              UnicodeText := TSvgTextPositioningNode(AParent).TextContent;
+              i := Length(UnicodeText);
+              while (i > 0) and (UnicodeText[i] = ' ') do
+                Dec(i);
+
+              Inc(i); // +1 to make room for #10
+              SetLength(UnicodeText, i); // Grow (if none found) or shrink (if > 1 found)
+              UnicodeText[i] := #10;
+
+              TSvgTextPositioningNode(AParent).TextContent := UnicodeText;
+            end;
+
+            // Consumes any attributes, advances past xtElementEnd if present,
+            // and exit immediately returning nil.
+            // This prevents dummy TSvgNode creation and stops the
+            // depth-draining loop from skipping remaining XML tokens inside
+            // the parent text element.
+            while AParser.ParseNext = xtAttribute do ;
+
+            if AParser.Kind = xtElementEnd then
+              AParser.ParseNext;
+            Exit(nil);
           end;
 
         tagEllipse:
@@ -7188,6 +7251,39 @@ var
 
         if (AParser.Kind = xtElementEnd) and (AParser.Depth < startDepth) then
         begin
+          if node is TSvgTextPositioningNode then
+          begin
+            (*
+            ** Trim trailing white-space.
+            **
+            ** When a text node contains child elements (e.g., <text>Word1 <tspan>Word2</tspan></text>),
+            ** the space after "Word1" is followed by a child element and should not be treated as
+            ** trailing whitespace of the entire text block.
+            ** Thus trailing whitespace is only trimmed from the parent node if it has no children,
+            ** or from the last child node if it does have children.
+            *)
+
+            TextPosNode := TSvgTextPositioningNode(node);
+            if (TextPosNode.Children.Count > 0) then
+            begin
+              // Trim trailing white-space from last child if it is a text positioning node
+              childNode := TextPosNode.Children.Last;
+              if (childNode is TSvgTextPositioningNode) then
+                TextPosNode := TSvgTextPositioningNode(childNode)
+              else
+                TextPosNode := nil;
+            end;
+
+            if (TextPosNode <> nil) then
+            begin
+              UnicodeText := TextPosNode.TextContent;
+              i := Length(UnicodeText);
+              while (i > 0) and ((UnicodeText[i] = ' ') or (UnicodeText[i] = #9)) do
+                Dec(i);
+              SetLength(UnicodeText, i);
+              TextPosNode.TextContent := UnicodeText;
+            end;
+          end;
           AParser.ParseNext;
           Break;
         end;
@@ -7216,22 +7312,60 @@ var
           if (UnicodeText <> '') then
           begin
 
-            // Normalize newlines and tabs to spaces while preserving spaces
-            NormalizeLinebreaksInline(UnicodeText);
-            NormalizeControlCharsInline(UnicodeText);
+            TextPosNode := TSvgTextPositioningNode(node);
 
-            if TSvgTextPositioningNode(node).Children.Count = 0 then
+            if AParser.Kind <> xtCData then
             begin
-              if TSvgTextPositioningNode(node).TextContent <> '' then
-                TSvgTextPositioningNode(node).TextContent := TSvgTextPositioningNode(node).TextContent + ' ' + UnicodeText
-              else
-                TSvgTextPositioningNode(node).TextContent := UnicodeText;
-            end else
+              if node is TSvgTextAreaNode then
+              begin
+                NormalizeLinebreaksInline(UnicodeText);
+                NormalizeControlCharsInline(UnicodeText);
+              end else
+                CollapseWhitespaceInline(UnicodeText);
+            end;
+
+            // Strip leading spaces, tabs, and newlines from UnicodeText when starting, right after a line break (#10), or after a child element
+            if (TextPosNode.TextContent = '') or
+               ((Length(TextPosNode.TextContent) > 0) and (TextPosNode.TextContent[Length(TextPosNode.TextContent)] = #10)) or
+               (TextPosNode.Children.Count > 0) then
             begin
-              // Create an anonymous tspan child for text fragments when children exist to preserve document order
-              childNode := TSvgTSpanNode.Create(node);
-              TSvgTSpanNode(childNode).TextContent := UnicodeText;
-              TSvgTextPositioningNode(node).AddChild(childNode);
+              i := 1;
+              while (i <= Length(UnicodeText)) and ((UnicodeText[i] = ' ') or (UnicodeText[i] = #9) or (UnicodeText[i] = #10)) do
+                Inc(i);
+              if i > 1 then
+                Delete(UnicodeText, 1, i - 1);
+            end;
+
+            if (UnicodeText <> '') then
+            begin
+              if TextPosNode.Children.Count = 0 then
+              begin
+                if (Length(TextPosNode.TextContent) = 0) then
+                  // No existing content; Assign
+                  TextPosNode.TextContent := UnicodeText
+                else
+                begin
+                  c := TextPosNode.TextContent[Length(TextPosNode.TextContent)];
+
+                  if (c = #10) then
+                    // Starting on a new line; Append
+                    TextPosNode.TextContent := TextPosNode.TextContent + UnicodeText
+                  else
+                  if (c = ' ') or (UnicodeText[1] = ' ') then
+                    // Appending to white-space or adding white-space
+                    TextPosNode.TextContent := TextPosNode.TextContent + UnicodeText
+                  else
+                    // Appending; Sperate with white-space
+                    TextPosNode.TextContent := TextPosNode.TextContent + ' ' + UnicodeText;
+                end;
+              end else
+              begin
+                // Create an anonymous tspan child for text fragments when children exist
+                // to preserve document order.
+                childNode := TSvgTSpanNode.Create(node);
+                TSvgTSpanNode(childNode).TextContent := UnicodeText;
+                TextPosNode.AddChild(childNode);
+              end;
             end;
 
           end;

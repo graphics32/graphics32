@@ -81,6 +81,7 @@ type
     procedure TestFontShorthandParsing;
     procedure TestNamespacedSvgParsing;
     procedure TestNestedSvgIdResolutionAndCurrentColor;
+    procedure TestTextLineBreaksAndLeadingSpaces;
   end;
 
 implementation
@@ -1532,6 +1533,68 @@ begin
     finally
       cloned.Free;
     end;
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestTextLineBreaksAndLeadingSpaces;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  textNode1, textNode2, textNode3: TSvgTextNode;
+  textAreaNode, textAreaMulti: TSvgTextAreaNode;
+  expectedText: string;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <text id="t1">' +
+         '    Line 1' +
+         '    Line 2' +
+         '  </text>' +
+         '  <text id="t2">' +
+         '    First Line<tbreak/>Second Line' +
+         '  </text>' +
+         '  <text id="t3">' +
+         '    Word1 <tspan>Word2</tspan> Word3' +
+         '  </text>' +
+         '  <textArea id="ta1">' +
+         '    First Line<tbreak/>' +
+         '    Second Line' +
+         '  </textArea>' +
+         '  <textArea id="ta_multi">' +
+         '    Line 1<tbreak/>' +
+         '    Line 2<tbreak/>' +
+         '    Line 3<tbreak/>' +
+         '    Line 4' +
+         '  </textArea>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    textNode1 := TSvgTextNode(docNode.FindNodeById('t1'));
+    Check(textNode1 <> nil, 't1 should exist');
+    CheckEquals('Line 1 Line 2', textNode1.TextContent, 'Multi-line standard <text> should collapse newlines and spaces into single space per SVG spec');
+
+    textNode2 := TSvgTextNode(docNode.FindNodeById('t2'));
+    Check(textNode2 <> nil, 't2 should exist');
+    CheckEquals('First Line' + #10 + 'Second Line', textNode2.TextContent, '<tbreak/> should insert line break without extra spaces');
+
+    textNode3 := TSvgTextNode(docNode.FindNodeById('t3'));
+    Check(textNode3 <> nil, 't3 should exist');
+    CheckEquals('Word1 ', textNode3.TextContent);
+    CheckEquals(2, textNode3.Children.Count, 't3 should contain 2 tspan children (1 explicit, 1 anonymous for trailing text)');
+    CheckEquals('Word2', TSvgTextNode(textNode3.Children[0]).TextContent);
+    CheckEquals('Word3', TSvgTextNode(textNode3.Children[1]).TextContent);
+
+    textAreaNode := TSvgTextAreaNode(docNode.FindNodeById('ta1'));
+    Check(textAreaNode <> nil, 'ta1 should exist');
+    CheckEquals('First Line' + #10 + 'Second Line', textAreaNode.TextContent, '<textArea> <tbreak/> followed by indentation line break should not introduce double line break or extra space');
+
+    textAreaMulti := TSvgTextAreaNode(docNode.FindNodeById('ta_multi'));
+    Check(textAreaMulti <> nil, 'ta_multi should exist');
+    expectedText := 'Line 1' + #10 + 'Line 2' + #10 + 'Line 3' + #10 + 'Line 4';
+    CheckEquals(expectedText, string(textAreaMulti.TextContent), 'All lines after multiple <tbreak/> tags should be correctly preserved');
   finally
     docNode.Free;
   end;

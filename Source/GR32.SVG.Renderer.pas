@@ -4477,7 +4477,7 @@ begin
     TextLayout.ClipLayout := True;
     TextLayout.WordWrap := True;
     TextLayout.SingleLine := False;
-    TextLayout.RemoveLeadingSpace := False;
+    TextLayout.RemoveLeadingSpace := True;
 
     case ATextAreaNode.TextAlign of
       taHorLeft:
@@ -4751,7 +4751,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         TextLayout.ClipLayout := False;
         TextLayout.AlignmentHorizontal := TextAlignHorLeft;
         TextLayout.AlignmentVertical := TextAlignVerTop;
-        TextLayout.RemoveLeadingSpace := False;
+        TextLayout.RemoveLeadingSpace := True;
 
         MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, ANode.TextContent + Char(ZERO_WIDTH_SPACE), TextLayout);
         TextWidth := MeasureRect.Width;
