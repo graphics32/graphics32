@@ -58,7 +58,8 @@ implementation
 uses
   Types,
   SysUtils,
-  GR32.SVG;
+  GR32.SVG,
+  GR32.SVG.Utf8;
 
 resourcestring
   sImageFormatSVGName = 'Scalable Vector Graphics';
@@ -79,7 +80,8 @@ function TImageFormatAdapterSVG.CanLoadFromStream(AStream: TStream): Boolean;
 var
   SavedPos: Int64;
   BytesRead: Integer;
-  Buffer: AnsiString;
+  Buffer: UTF8String;
+  UTF8: TValuePUtf8Char;
 begin
   Result := False;
   if (AStream = nil) then
@@ -93,14 +95,14 @@ begin
     // We need at least 4 characters to match '<svg' and 6 for a minimal valid svg: '<svg/>'
     if (BytesRead >= 6) then
     begin
+      SetLength(Buffer, BytesRead);
+      UTF8 := TValuePUtf8Char.FromString(Buffer);
       // First a quick test for the common case: Document starts with '<svg'
-      if (Buffer[1] = '<') and (Buffer[2] = 's') and (Buffer[3] = 'v') and (Buffer[4] = 'g') then
+      if UTF8.StartsText('<svg') then
         Exit(True);
 
       // Then the more generic case
-      SetLength(Buffer, BytesRead);
-      Buffer := LowerCase(Buffer);
-      if (Pos('<svg', Buffer) > 0) or (Pos('<?xml', Buffer) > 0) then
+      if UTF8.ContainsText('<svg') or UTF8.ContainsText('<?xml') then
         Result := True;
     end;
   finally
