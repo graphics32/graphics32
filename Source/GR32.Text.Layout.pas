@@ -913,11 +913,11 @@ begin
       if (ATextLayout.ClipLayout) then
       begin
         // Clip top (remember Y is baseline)
-        if (Y - FontFaceMetrics.Descent < ClipRect.Top) then
+        if (Y - FontFaceMetrics.Ascent < ClipRect.Top) then
           continue;
 
-        // Clip bottom
-        if (Y - FontFaceMetrics.Ascent > ClipRect.Bottom) then
+        // Clip bottom (remember Descent is negative
+        if (Y - FontFaceMetrics.Descent > ClipRect.Bottom) then
           break;
       end;
 
