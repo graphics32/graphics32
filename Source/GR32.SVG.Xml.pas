@@ -33,11 +33,15 @@ unit GR32.SVG.Xml;
  *   https://github.com/synopse/mORMot2/src/core/mormot.core.fmt.pas
  *   Commit SHA: 3af914ac15eab28c41411a1c449da2cf5b1e3a67
  *
+ * Patches to the original code has been marked with [*].
+ *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
 
 {$include GR32.inc}
+
+{$define PATCHED} // [*]
 
 uses
   SysUtils,
@@ -532,21 +536,52 @@ begin
 end;
 
 function TXmlParser.ParseName(p, e: PUtf8Char): PUtf8Char;
+// [*] Patched to preserves 'xmlns' as the attribute name when encountering 'xmlns:<prefix>',
+// preventing 'xmlns:svg' from being stripped into attribute name 'svg'.
+{$if defined(PATCHED)}
+var
+  isXmlns: Boolean; // [*]
+{$ifend}
 begin
   Name.Text := p;
+{$if defined(PATCHED)}
+  isXmlns := False;
+{$ifend}
   if xpoStripNamespacePrefix in Options then
     while (p < e) and
           ({$ifdef FPCX86NOTPIC} XML_KIND {$else} fTab^ {$endif}[p^] = 0) do
     begin
       if p^ = ':' then
+      // [*] :
+{$if defined(PATCHED)}
+      begin
+        if (p - Name.Text = 5) and
+           (Name.Text[0] = 'x') and (Name.Text[1] = 'm') and (Name.Text[2] = 'l') and
+           (Name.Text[3] = 'n') and (Name.Text[4] = 's') then
+        begin
+          isXmlns := True;
+        end else
+          Name.Text := p + 1;
+      end;
+{$else}
         Name.Text := p + 1;
+{$ifend}
       Inc(p);
     end
   else
     while (p < e) and
           ({$ifdef FPCX86NOTPIC} XML_KIND {$else} fTab^ {$endif}[p^] = 0) do
       Inc(p);
+
+{$if defined(PATCHED)}
+  if isXmlns then
+    Name.Len := 5
+  else
+    Name.Len := p - Name.Text;
+{$else}
   Name.Len := p - Name.Text;
+{$ifend}
+
   while (p < e) and (p^ <= ' ') do
     Inc(p);
   Result := p;
