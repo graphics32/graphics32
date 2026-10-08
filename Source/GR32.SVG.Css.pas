@@ -90,7 +90,7 @@ type
     Name: UTF8String;
     Specificity: Integer;
     Combinator: TSvgCssCombinator;
-    function MatchesSimple(const AElementTag, AClassName, AElementId: UTF8String): Boolean; overload;
+    function MatchesSimple(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String): Boolean; overload;
     function MatchesSimple(ANode: TSvgNode): Boolean; overload;
   end;
 
@@ -106,6 +106,7 @@ type
     Chain: TArray<TSvgCssSelectorComponent>;
     Specificity: Integer;
     function Matches(ANode: TSvgNode): Boolean; overload;
+    function Matches(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String): Boolean; overload;
     function Matches(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String): Boolean; overload;
     class function Parse(Value: TValuePUtf8Char): TSvgCssSelector; static;
   end;
@@ -223,7 +224,7 @@ end;
 //      TSvgCssSelector
 //
 //------------------------------------------------------------------------------
-function TSvgCssSelectorComponent.MatchesSimple(const AElementTag, AClassName, AElementId: UTF8String): Boolean;
+function TSvgCssSelectorComponent.MatchesSimple(const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String): Boolean;
 var
   TagVal: TValuePUtf8Char;
 begin
@@ -233,7 +234,7 @@ begin
 
     skElement:
       begin
-        TagVal := TValuePUtf8Char.FromString(AElementTag);
+        TagVal := AElementTag;
         TagVal.Trim;
         Exit(TagVal.CompareText(Name));
       end;
@@ -252,7 +253,7 @@ begin
       begin
         if (ElementTag <> '') then
         begin
-          TagVal := TValuePUtf8Char.FromString(AElementTag);
+          TagVal := AElementTag;
           TagVal.Trim;
           if not TagVal.CompareText(ElementTag) then
             Exit(False);
@@ -424,18 +425,48 @@ end;
 //------------------------------------------------------------------------------
 
 function TSvgCssSelector.Matches(ANode: TSvgNode): Boolean;
+var
+  DummyTag: TValuePUtf8Char;
+begin
+  if ANode = nil then
+    Exit(False);
+  DummyTag := TValuePUtf8Char.FromString(ANode.ElementTag);
+  Result := Matches(ANode, DummyTag, ANode.CssClassName, ANode.ID);
+end;
+
+function TSvgCssSelector.Matches(ANode: TSvgNode; const AElementTag: TValuePUtf8Char; const AClassName, AElementId: UTF8String): Boolean;
 
   function MatchChain(Node: TSvgNode; Index: Integer): Boolean;
   var
     p: TSvgNode;
+    IsTarget: Boolean;
+    MatchTag: TValuePUtf8Char;
+    MatchClass, MatchID: UTF8String;
   begin
-    if Index < 0 then
+    if (Index < 0) then
       Exit(True);
 
-    if Node = nil then
+    if (Node = nil) then
       Exit(False);
 
-    if not Chain[Index].MatchesSimple(Node) then
+    IsTarget := (Node = ANode) and (Index = High(Chain));
+
+    if IsTarget then
+    begin
+      if (AElementTag.Len > 0) then
+        MatchTag := AElementTag
+      else
+        MatchTag := TValuePUtf8Char.FromString(Node.ElementTag);
+      MatchClass := AClassName;
+      MatchID := AElementId;
+    end else
+    begin
+      MatchTag := TValuePUtf8Char.FromString(Node.ElementTag);
+      MatchClass := Node.CssClassName;
+      MatchID := Node.ID;
+    end;
+
+    if not Chain[Index].MatchesSimple(MatchTag, MatchClass, MatchID) then
       Exit(False);
 
     if Index = 0 then
@@ -473,7 +504,7 @@ begin
   if Length(Chain) = 0 then
     Exit(False);
 
-  Result := Chain[High(Chain)].MatchesSimple(AElementTag.ToUtf8, AClassName, AElementId);
+  Result := Chain[High(Chain)].MatchesSimple(AElementTag, AClassName, AElementId);
 end;
 
 
@@ -716,17 +747,11 @@ begin
   try
     for Rule in FRules do
     begin
-      if Rule.Selector.Matches(ANode) then
+      if Rule.Selector.Matches(ANode, AElementTag, AClassName, AElementId) then
       begin
         if (MatchingRules = nil) then
           MatchingRules := TSvgCssRuleList.Create;
 
-        MatchingRules.Add(Rule)
-      end else
-      if (ANode = nil) and Rule.Selector.Matches(AElementTag, AClassName, AElementId) then
-      begin
-        if (MatchingRules = nil) then
-          MatchingRules := TSvgCssRuleList.Create;
         MatchingRules.Add(Rule);
       end;
     end;
