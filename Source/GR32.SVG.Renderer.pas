@@ -44,7 +44,7 @@ uses
 type
   { TSvgBitmapPool: Reusable pool of intermediate TBitmap32 offscreen surfaces to eliminate
     frequent heap allocations/deallocations during nested group opacity, clip path, and mask compositing. }
-  TMapPool<T: TCustomMap> = class abstract(TObject)
+  TMapPool<T: TCustomMap; TElement> = class abstract(TObject)
   private
     FPool: TObjectList<T>;
     FMaxSize: Int64;
@@ -62,7 +62,7 @@ type
     property PoolSize: Int64 read FPoolSize;
   end;
 
-  TSvgBitmapPool = class(TMapPool<TCustomBitmap32>)
+  TSvgBitmapPool = class(TMapPool<TCustomBitmap32, TColor32>)
   private
     FBitmapMaxOversize: NativeInt;
   protected
@@ -617,66 +617,59 @@ end;
 
 { TMapPool<T> }
 
-constructor TMapPool<T>.Create(AMaxSize: Int64);
+constructor TMapPool<T, TElement>.Create(AMaxSize: Int64);
 begin
   inherited Create;
   FPool := TObjectList<T>.Create(True);
   FMaxSize := AMaxSize;
 end;
 
-destructor TMapPool<T>.Destroy;
+destructor TMapPool<T, TElement>.Destroy;
 begin
   FPool.Free;
   inherited Destroy;
 end;
 
-function TMapPool<T>.Acquire(AWidth, AHeight: Integer; AClear: Boolean): T;
+function TMapPool<T, TElement>.Acquire(AWidth, AHeight: Integer; AClear: Boolean): T;
 var
-  i, BestIndex: Integer;
-  TargetSize, CandidateSize, Delta, BestDelta: Integer;
+  LowIdx, HighIdx, MidIdx, CandidateIdx: Integer;
+  TargetSize, CandidateSize: Int64;
   Candidate: T;
 begin
-  Result := nil;
-  TargetSize := AWidth * AHeight;
-  BestDelta := MaxInt;
-  BestIndex := -1;
-
-  // Search pool for Candidate surface with existing buffer dimensions sufficient
-  // for requested bounds (Width >= AWidth, Height >= AHeight) to avoid costly
-  // buffer reallocations. Pick Candidate with smallest excess area (BestDelta).
-  // Scan from most recent (most likely to match size) to least recent.
-  // TODO : Binary search
-  for i := FPool.Count - 1 downto 0 do
+  // Binary search pool for Candidate surface with existing buffer size (in
+  // bytes) sufficient for requested bounds in order to avoid costly buffer
+  // reallocations.
+  CandidateIdx := -1;
+  TargetSize := AWidth * AHeight * SizeOf(TElement);
+  LowIdx := 0;
+  HighIdx := FPool.Count - 1;
+  while LowIdx <= HighIdx do
   begin
-    Candidate := FPool[i];
-
+    MidIdx := (LowIdx + HighIdx) div 2;
+    Candidate := FPool[MidIdx];
     CandidateSize := Candidate.ByteCount;
-    Delta := CandidateSize - TargetSize;
-
-    if (Delta < 0) then
-      Continue;
-
-    if Delta < BestDelta then
+    if (CandidateSize >= TargetSize) then
     begin
-      Result := Candidate;
-      BestIndex := i;
-      if Delta = 0 then
-        Break;
-      BestDelta := Delta;
-    end;
+      CandidateIdx := MidIdx;
+      if (CandidateSize = TargetSize) then
+        break;
+      HighIdx := MidIdx - 1;
+    end else
+      LowIdx := MidIdx + 1;
   end;
 
-  if Result = nil then
+  if (CandidateIdx = -1) then
   begin
-    // Instantiate a new map if no Candidate with sufficient buffer dimensions
+    // Instantiate a new map if no candidate with sufficient buffer dimensions
     // exists in pool
     Result := CreateNewMap;
     Result.SetSize(AWidth, AHeight, AClear);
   end else
   begin
-    FPool.ExtractAt(BestIndex);
+    Result := FPool.ExtractAt(CandidateIdx);
     Dec(FPoolSize, Result.ByteCount);
 
+    // Set dimensions. If we're lucky then this doesn't cause a reallocation
     Result.SetSize(AWidth, AHeight, AClear);
 {$ifdef DEBUG}
     Result.EndLockUpdate; // For debug: Signal that bitmap is out of pool
@@ -686,27 +679,46 @@ begin
   PrepareMap(Result);
 end;
 
-procedure TMapPool<T>.Clear;
+procedure TMapPool<T, TElement>.Clear;
 begin
   FPool.Clear;
 end;
 
-procedure TMapPool<T>.PrepareMap(Map: T);
+procedure TMapPool<T, TElement>.PrepareMap(Map: T);
 begin
 end;
 
-procedure TMapPool<T>.Release(Map: T);
+procedure TMapPool<T, TElement>.Release(Map: T);
+var
+  LowIdx, HighIdx, MidIdx: Integer;
+  TargetByteCount, MidByteCount: Int64;
 begin
   if Map = nil then
     exit;
 
+  // Is there room in the pool?
   if (FMaxSize > 0) and (FPoolSize + Map.ByteCount > FMaxSize) then
   begin
     Map.Free;
     exit;
   end;
 
-  FPool.Add(Map);
+  // Insert ordered by ByteCount
+  TargetByteCount := Map.ByteCount;
+  LowIdx := 0;
+  HighIdx := FPool.Count - 1;
+  while LowIdx <= HighIdx do
+  begin
+    MidIdx := (LowIdx + HighIdx) div 2;
+    MidByteCount := FPool[MidIdx].ByteCount;
+    if (TargetByteCount < MidByteCount) then
+      HighIdx := MidIdx - 1
+    else
+      LowIdx := MidIdx + 1;
+  end;
+
+  FPool.Insert(LowIdx, Map);
+
 {$ifdef DEBUG}
   Map.BeginLockUpdate; // For debug: Signal that bitmap is in pool
 {$endif DEBUG}
