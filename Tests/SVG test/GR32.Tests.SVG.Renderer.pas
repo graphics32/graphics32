@@ -148,7 +148,6 @@ begin
 
     // Test transformed text on path (<text transform="translate(0, 50)"> <textPath href="#curve3">)
     // Ensures text is transformed exactly 1x (Y=100) rather than double-transformed (Y=150)
-    bmp.Clear(clWhite32);
     xml := '<svg width="200" height="200">' +
            '  <defs><path id="curve3" d="M 10 50 L 190 50"/></defs>' +
            '  <text transform="translate(0, 50)" font-size="20px" fill="blue">' +
@@ -159,6 +158,7 @@ begin
     Check(docNode <> nil, 'Transformed textPath docNode should not be nil');
     try
       bmp.SetSize(Ceil(docNode.Width.ToPixels), Ceil(docNode.Height.ToPixels));
+      bmp.Clear(clWhite32);
 
       renderer := TSvgRenderer.Create(bmp);
       try
