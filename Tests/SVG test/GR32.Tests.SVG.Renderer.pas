@@ -115,6 +115,42 @@ uses
 { TTestSvgRenderer }
 
 procedure TTestSvgRenderer.TestPathRasterization;
+
+  function Hue(RGB: TColor32): Single;
+  const
+    // reciprocal mul. opt.
+    R6 = 1 / 6;
+  var
+    R, G, B, D, Cmax, Cmin: Single;
+  begin
+    R := RedComponent(RGB) * COne255th;
+    G := GreenComponent(RGB) * COne255th;
+    B := BlueComponent(RGB) * COne255th;
+
+    Cmax := Max(R, Max(G, B));
+    Cmin := Min(R, Min(G, B));
+
+    if Cmax = Cmin then
+      Result := 0
+    else
+    begin
+      D := Cmax - Cmin;
+      if R = Cmax then
+        Result := (G - B) / D
+      else
+      if G = Cmax then
+        Result := 2 + (B - R) / D
+      else
+        Result := 4 + (R - G) / D;
+
+      Result := Result * R6;
+
+      if Result < 0 then
+        Result := Result + 1;
+    end;
+  end;
+
+
 var
   bmp: TBitmap32;
   docNode: TSvgDocumentNode;
@@ -122,10 +158,11 @@ var
   xml: UTF8String;
   centerPixel: TColor32;
   expectedRangeCount, doubleTransformedRangeCount, x, y: Integer;
+  RedCount: integer;
 begin
   bmp := TBitmap32.Create;
   try
-    bmp.SetSize(100, 100);
+    bmp.SetSize(100, 100, False);
     bmp.Clear(clWhite32);
 
     xml := '<svg width="100" height="100">' +
@@ -141,6 +178,36 @@ begin
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Test tspan inside textPath with dy baseline shift and custom fill color
+    bmp.SetSize(400, 200, True);
+    xml := '<svg width="400" height="200">' +
+           '  <defs><path id="line1" d="M 50 100 L 350 100"/></defs>' +
+           '  <text font-size="24px" fill="blue">' +
+           '    <textPath href="#line1">Normal <tspan dy="-30" fill="red">Up</tspan><tspan dy="30"> Down</tspan></textPath>' +
+           '  </text>' +
+           '</svg>';
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'tspan inside textPath docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Verify that red pixels exist above the baseline (y < 90) for tspan dy="-30" fill="red"
+        RedCount := 0;
+        for y := 50 to 85 do
+          for x := 0 to 399 do
+            if (AlphaComponent(bmp.Pixel[x, y]) > 0) and (0.5 - Abs(Hue(bmp.Pixel[x, y]) - 0.5) < 0.01) then
+              Inc(RedCount);
+
+        Check(RedCount > 10, Format('tspan dy="-30" fill="red" inside textPath should render red pixels above baseline (found %d red pixels)', [RedCount]));
       finally
         renderer.Free;
       end;
