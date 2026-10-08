@@ -637,7 +637,7 @@ begin
   if (AValue.Len > Len) then
     Exit(False);
 
-  p1 := @Text[Len-1];
+  p1 := @Text[Len - AValue.Len];
   p2 := AValue.Text;
 
   for i := 1 to AValue.Len do
