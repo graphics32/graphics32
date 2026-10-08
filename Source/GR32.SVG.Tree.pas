@@ -375,6 +375,9 @@ type
     function GetIsDisplayNone: Boolean;
     function GetIsRenderable: Boolean; virtual;
     function GetElementTag: UTF8String; virtual;
+    function GetColor: TSvgColor;
+    procedure SetColor(const Value: TSvgColor);
+    function GetColor32: TColor32;
     function DumpNode(Indent: Integer = 0): string; virtual;
     function DumpChildren(Indent: Integer = 0): string; virtual;
     procedure SetParent(const Value: TSvgNode);
@@ -419,7 +422,8 @@ type
     property FilterID: UTF8String read FFilterID write FFilterID;
     property ResolvedFilter: TSvgFilterNode read FResolvedFilter write FResolvedFilter;
     property Parent: TSvgNode read FParent write SetParent;
-    property Color: TSvgColor read FColor write FColor;
+    property Color: TSvgColor read GetColor write SetColor;
+    property Color32: TColor32 read GetColor32;
     property Fill: TSvgFill read FFill write FFill;
     property Stroke: TSvgStroke read FStroke write FStroke;
     property MarkerStart: UTF8String read FMarkerStart write FMarkerStart;
@@ -1155,6 +1159,7 @@ type
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
     FNodes: TSvgNodeDictionary;
+    procedure SetColor32(const Value: TColor32);
   protected
     function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
@@ -1184,6 +1189,8 @@ type
     property Height: TSvgLength read FHeight write FHeight;
     property ViewBox: TSvgViewBox read FViewBox write FViewBox;
     property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+    property CurrentColor: TSvgColor read GetColor write SetColor;
+    property CurrentColor32: TColor32 read GetColor32 write SetColor32;
   end;
 
 
@@ -1963,7 +1970,7 @@ end;
 
 class function TSvgFill.Default: TSvgFill;
 begin
-  Result.FColor := TSvgColor.Create(clBlack32);
+  Result.FColor := TSvgColor.CurrentColor;
   Result.FOpacity := 1.0;
   Result.FFillRule := pfWinding;
   Result.FUrl := '';
@@ -2151,9 +2158,9 @@ begin
   FIsolation := isoAuto;
   FCssClassName := '';
   FResolving := False;
+  FColor := TSvgColor.Unset;
   if FParent <> nil then
   begin
-    FColor := FParent.Color;
     FFill := FParent.Fill;
     FStroke := FParent.Stroke;
     FMarkerStart := FParent.MarkerStart;
@@ -2165,7 +2172,6 @@ begin
     FParent.NodeAdded(Self);
   end else
   begin
-    FColor := TSvgColor.Create(clBlack32);
     FFill := TSvgFill.Default;
     FStroke := TSvgStroke.Default;
     FMarkerStart := '';
@@ -2207,6 +2213,30 @@ begin
   Result.FMarkerStart := FMarkerStart;
   Result.FMarkerMid := FMarkerMid;
   Result.FMarkerEnd := FMarkerEnd;
+end;
+
+function TSvgNode.GetColor: TSvgColor;
+begin
+  if FColor.IsSet and (not FColor.IsCurrentColor) then
+    Result := FColor
+  else
+  if FParent <> nil then
+    Result := FParent.Color
+  else
+  if FColor.IsSet then
+    Result := FColor
+  else
+    Result := TSvgColor.Create(clBlack32);
+end;
+
+procedure TSvgNode.SetColor(const Value: TSvgColor);
+begin
+  FColor := Value;
+end;
+
+function TSvgNode.GetColor32: TColor32;
+begin
+  Result := GetColor.ToColor32;
 end;
 
 function TSvgNode.GetIsDisplayNone: Boolean;
@@ -2386,7 +2416,7 @@ begin
     attrColor:
       begin
         if ParseColor(AValue, Color, s) then
-          FColor := Color;
+          SetColor(Color);
       end;
 
     attrFill:
@@ -5073,6 +5103,11 @@ const
 
 begin
   ProcessNode(Self, 0);
+end;
+
+procedure TSvgDocumentNode.SetColor32(const Value: TColor32);
+begin
+  SetColor(TSvgColor.Create(Value));
 end;
 
 procedure TSvgDocumentNode.ResolveGradients;

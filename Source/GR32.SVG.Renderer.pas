@@ -124,17 +124,19 @@ type
     FTransformation: TAffineTransformation;
     FThemeFillColor: TSvgColor;
     FThemeStrokeColor: TSvgColor;
+    FCurrentColor: TSvgColor;
     function GetTransformation: TAffineTransformation;
-    procedure SetThemeFillColor(const AColor: TSvgColor);
     procedure SetThemeFillColor32(AColor: TColor32);
-    procedure SetThemeStrokeColor(const AColor: TSvgColor);
     procedure SetThemeStrokeColor32(AColor: TColor32);
     function GetThemeFillColor32: TColor32;
     function GetThemeStrokeColor32: TColor32;
+    procedure SetCurrentColor32(AColor: TColor32);
+    function GetCurrentColor32: TColor32;
+  protected type
+    TThemeColor = (tcStroke, tcFill);
+
   protected
-    function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor): TSvgColor; overload;
-    function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; const AThemeColor: TSvgColor): TSvgColor; overload;
-    function CanRenderPolyPolygon(APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor): boolean;
+    function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor;
     procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode = pfWinding);
 
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
@@ -176,10 +178,12 @@ type
     property Transformation: TAffineTransformation read GetTransformation;
     property ViewportRect: TFloatRect read FViewportRect write FViewportRect;
     property AllowExternalImages: Boolean read FAllowExternalImages write FAllowExternalImages;
-    property ThemeFillColor: TSvgColor read FThemeFillColor write SetThemeFillColor;
+    property ThemeFillColor: TSvgColor read FThemeFillColor write FThemeFillColor;
     property ThemeFillColor32: TColor32 read GetThemeFillColor32 write SetThemeFillColor32;
-    property ThemeStrokeColor: TSvgColor read FThemeStrokeColor write SetThemeStrokeColor;
+    property ThemeStrokeColor: TSvgColor read FThemeStrokeColor write FThemeStrokeColor;
     property ThemeStrokeColor32: TColor32 read GetThemeStrokeColor32 write SetThemeStrokeColor32;
+    property CurrentColor: TSvgColor read FCurrentColor write FCurrentColor;
+    property CurrentColor32: TColor32 read GetCurrentColor32 write SetCurrentColor32;
   end;
 
 //------------------------------------------------------------------------------
@@ -405,84 +409,76 @@ begin
   Result := bmNormal;
 end;
 
-function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor): TSvgColor;
+function TSvgRenderer.GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor): TSvgColor;
 begin
-  if AColor.IsCurrentColor then
-  begin
-    if ANode <> nil then
-      Result := ANode.Color
-    else
-      Result := TSvgColor.Create(clBlack32);
-  end else
-    Result := AColor;
-end;
-
-function TSvgRenderer.GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor): TSvgColor;
-begin
-  Result := GetEffectiveColor(ANode,  AColor, FThemeFillColor);
-end;
-
-function TSvgRenderer.GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; const AThemeColor: TSvgColor): TSvgColor;
-begin
-  if AThemeColor.IsSet and (not AColor.IsNone) then
-    AColor := AThemeColor;
+  if (AColor.IsNone) then
+    Exit(AColor);
 
   if AColor.IsCurrentColor then
   begin
-    if ANode <> nil then
-      Result := ANode.Color
+    if FCurrentColor.IsSet then
+      Result := FCurrentColor
     else
+    if ANode <> nil then
+    begin
+      Result := ANode.Color;
+      if Result.IsCurrentColor then
+        Result := TSvgColor.Create(clBlack32);
+    end else
       Result := TSvgColor.Create(clBlack32);
   end else
-    Result := AColor;
-end;
+  begin
+    case AThemeColor of
+      tcStroke:
+        if (FThemeStrokeColor.IsSet) then
+          Result := FThemeStrokeColor
+        else
+          Result := AColor;
 
-procedure TSvgRenderer.SetThemeFillColor(const AColor: TSvgColor);
-begin
-  FThemeFillColor := AColor;
+      tcFill:
+        if (FThemeFillColor.IsSet) then
+          Result := FThemeFillColor
+        else
+          Result := AColor;
+    end;
+  end;
 end;
 
 procedure TSvgRenderer.SetThemeFillColor32(AColor: TColor32);
 begin
-  if AColor = clNone32 then
-    FThemeFillColor := TSvgColor.Unset
-  else
-    FThemeFillColor := TSvgColor.Create(AColor);
+  FThemeFillColor := TSvgColor.Create(AColor);
 end;
 
 function TSvgRenderer.GetThemeFillColor32: TColor32;
 begin
-  if (FThemeFillColor.IsNone) then
-    Result := clNone32
-  else
-    Result := FThemeFillColor.Color;
-end;
-
-procedure TSvgRenderer.SetThemeStrokeColor(const AColor: TSvgColor);
-begin
-  FThemeStrokeColor := AColor;
+  Result := FThemeFillColor.Color;
 end;
 
 procedure TSvgRenderer.SetThemeStrokeColor32(AColor: TColor32);
 begin
-  if AColor = clNone32 then
-    FThemeStrokeColor := TSvgColor.Unset
-  else
-    FThemeStrokeColor := TSvgColor.Create(AColor);
+  FThemeStrokeColor := TSvgColor.Create(AColor);
 end;
 
 function TSvgRenderer.GetThemeStrokeColor32: TColor32;
 begin
-  if (FThemeStrokeColor.IsNone) then
-    Result := clNone32
-  else
-    Result := FThemeStrokeColor.Color;
+  Result := FThemeStrokeColor.Color;
+end;
+
+procedure TSvgRenderer.SetCurrentColor32(AColor: TColor32);
+begin
+  FCurrentColor := TSvgColor.Create(AColor);
+end;
+
+function TSvgRenderer.GetCurrentColor32: TColor32;
+begin
+  Result := FCurrentColor.Color;
 end;
 
 procedure TSvgRenderer.ClearThemeColors;
 begin
   FThemeFillColor := TSvgColor.Unset;
   FThemeStrokeColor := TSvgColor.Unset;
+  FCurrentColor := TSvgColor.Unset;
 end;
 
 { TSvgPatternPolygonFiller }
@@ -754,6 +750,7 @@ begin
   FAllowExternalImages := False;
   FThemeFillColor := TSvgColor.Unset;
   FThemeStrokeColor := TSvgColor.Unset;
+  FCurrentColor := TSvgColor.Unset;
 end;
 
 destructor TSvgRenderer.Destroy;
@@ -1232,13 +1229,6 @@ begin
   end;
 end;
 
-function TSvgRenderer.CanRenderPolyPolygon(APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor): boolean;
-begin
-  Result := (APoints <> nil) and
-    ((APaintServer <> nil) or
-     ((not AColor.IsNone) and (Round(AlphaComponent(AColor.Color) * AOpacity) > 0)));
-end;
-
 procedure TSvgRenderer.RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint;
   AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode);
 var
@@ -1283,7 +1273,7 @@ begin
       Filler.Free;
     end;
   end else
-  if (not AColor.IsNone) then
+  if (AColor.IsVisible) then
   begin
     Color := AColor.Color;
     if (AOpacity < 1.0) then
@@ -1307,8 +1297,8 @@ end;
 procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
 var
   PathPoints, TransformedPoints: TArrayOfArrayOfFloatPoint;
-  StrokeWidth, MatScale, ScaledOffset: Single;
-  Points, StrokePoints, AllRenderPoints: TArrayOfArrayOfFloatPoint;
+  UserStrokeWidth, StrokeWidth, MatScale, ScaledOffset: Single;
+  Points, StrokePoints: TArrayOfArrayOfFloatPoint;
   ScaledDashArray: TArrayOfFloat;
   i, j: Integer;
   FloatRoi: TFloatRect;
@@ -1318,6 +1308,8 @@ var
   RenderBmp, OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
   ClipNodeTarget: TSvgClipPathNode;
   MaskNodeTarget: TSvgMaskNode;
+  FillColor, StrokeColor: TSvgColor;
+  HasFill, HasStroke, HasMarkers: boolean;
 {$if not defined(USE_SIMD_MASK_FILTERS)}
   SourceP, DestP: PColor32;
   x: Integer;
@@ -1327,7 +1319,27 @@ begin
   if (APathNode = nil) or (ATarget = nil) then
     Exit;
 
-  // 1. Generate path data in user space
+  (*
+  ** 1. Determine what elements we need to process here
+  *)
+  UserStrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
+  if (APathNode.Stroke.ResolvedPaintServer = nil) and (APathNode.Stroke.Opacity > 0) and (UserStrokeWidth > 0) then
+    StrokeColor := GetEffectiveColor(APathNode, APathNode.Stroke.Color, tcStroke)
+  else
+    StrokeColor := TSvgColor.Unset; // No visible stroke or use Paint Server
+  HasStroke := (UserStrokeWidth > 0) and ((APathNode.Stroke.ResolvedPaintServer <> nil) or (StrokeColor.IsVisible));
+
+  if (APathNode.Fill.ResolvedPaintServer = nil) and (APathNode.Fill.Opacity > 0) then
+    FillColor := GetEffectiveColor(APathNode, APathNode.Fill.Color, tcFill)
+  else
+    FillColor := TSvgColor.Unset; // No visible fill or use Paint Server
+  HasFill := (APathNode.Fill.ResolvedPaintServer <> nil) or (FillColor.IsVisible);
+
+  HasMarkers := (APathNode.ResolvedMarkerStart <> nil) or (APathNode.ResolvedMarkerMid <> nil) or (APathNode.ResolvedMarkerEnd <> nil);
+
+  (*
+  ** 2. Generate path in user space
+  *)
   PathPoints := APathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
   if Length(PathPoints) = 0 then
     Exit;
@@ -1335,14 +1347,14 @@ begin
   // Transform path points into world coordinates
   TransformedPoints := GetTransformedPoints(PathPoints);
 
-  // 2. Generate stroke poly-polygon if stroked
+  (*
+  ** 3. Generate stroke polygons if stroked
+  *)
   StrokePoints := nil;
-  StrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
-  if (StrokeWidth > 0) and ((APathNode.Stroke.ResolvedPaintServer <> nil) or (not GetEffectiveColor(APathNode, APathNode.Stroke.Color, ThemeStrokeColor).IsNone)) then
+  if (HasStroke) then
   begin
     MatScale := GetMatrixScale(FTransformation.Matrix);
-    StrokeWidth := StrokeWidth * MatScale;
-
+    StrokeWidth := UserStrokeWidth * MatScale;
     ScaledDashArray := nil;
     ScaledOffset := 0;
     if (APathNode.Stroke.DashArray <> nil) then
@@ -1365,25 +1377,31 @@ begin
     end;
   end;
 
-  // 3. Calculate ROI bounding box using PolyPolygonBounds AFTER stroking
-  // Collect all output poly-polygons produced and rendered by the polygon node
-  SetLength(AllRenderPoints, 0);
-  if (APathNode.Fill.ResolvedPaintServer <> nil) or (not GetEffectiveColor(APathNode, APathNode.Fill.Color, ThemeFillColor).IsNone) then
-    AllRenderPoints := AllRenderPoints + TransformedPoints;
-  if Length(StrokePoints) > 0 then
-    AllRenderPoints := AllRenderPoints + StrokePoints;
+  (*
+  ** 4. Calculate ROI bounding box AFTER stroking and collect all output
+  **    poly-polygons produced and rendered by the polygon node
+  *)
+  if (HasFill or HasStroke) then
+  begin
+    if (HasFill) then
+    begin
+      FloatRoi := PolyPolygonBounds(TransformedPoints);
+      if (HasStroke) then
+        FloatRoi := FloatRoi + PolyPolygonBounds(StrokePoints);
+    end else
+      FloatRoi := PolyPolygonBounds(StrokePoints);
+  end else
+    FloatRoi := PolyPolygonBounds(TransformedPoints); // Only markers
 
-  if Length(AllRenderPoints) = 0 then
-    AllRenderPoints := TransformedPoints;
-
-  FloatRoi := PolyPolygonBounds(AllRenderPoints);
   RoiRect := MakeRect(FloatRoi, rrOutside);
 
   // Intersect calculated ROI with target canvas bounds to skip off-screen geometry
   if not GR32.IntersectRect(RoiRect, RoiRect, ATarget.BoundsRect) then
     Exit;
 
-  // 4. Check whether offscreen bitmap compositing is required (opacity, clip-path, mask, blend-mode)
+  (*
+  ** 5. Check whether offscreen bitmap compositing is required (opacity, clip-path, mask, blend-mode)
+  *)
   EffectiveBlendMode := GetEffectiveMixBlendMode(APathNode);
   NeedsOffscreen := (EffectiveBlendMode <> bmNormal) or (APathNode.ResolvedClipPath <> nil) or
                     (APathNode.ResolvedMask <> nil) or (APathNode.Opacity < 1.0);
@@ -1406,41 +1424,51 @@ begin
     RenderBmp := ATarget;
 
   try
-    if NeedsOffscreen then
+    if (HasFill or HasStroke) then
     begin
-      FTransformation.Push;
-      FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
-    end;
-    try
-      // 5. Fill Rendering
-      RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, GetEffectiveColor(APathNode, APathNode.Fill.Color, ThemeFillColor), APathNode.Fill.FillRule);
-
-      // 6. Stroke Rendering
-      RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, GetEffectiveColor(APathNode, APathNode.Stroke.Color, ThemeStrokeColor));
-    finally
       if NeedsOffscreen then
-        FTransformation.Pop;
+      begin
+        FTransformation.Push;
+        FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
+      end;
+      try
+        (*
+        ** 6. Fill Rendering
+        *)
+        RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, FillColor, APathNode.Fill.FillRule);
+
+        (*
+        ** 7. Stroke Rendering
+        *)
+        RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, StrokeColor);
+      finally
+        if NeedsOffscreen then
+          FTransformation.Pop;
+      end;
     end;
 
-    // 7. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
-    if (APathNode.ResolvedMarkerStart <> nil) or (APathNode.ResolvedMarkerMid <> nil) or (APathNode.ResolvedMarkerEnd <> nil) then
+    (*
+    ** 8. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
+    *)
+    if (HasMarkers) then
     begin
-      StrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
       if NeedsOffscreen then
       begin
         FTransformation.Push;
         try
           FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
 
-          RenderMarkers(RenderBmp, APathNode, PathPoints, StrokeWidth);
+          RenderMarkers(RenderBmp, APathNode, PathPoints, UserStrokeWidth);
         finally
           FTransformation.Pop;
         end;
       end else
-        RenderMarkers(RenderBmp, APathNode, PathPoints, StrokeWidth);
+        RenderMarkers(RenderBmp, APathNode, PathPoints, UserStrokeWidth);
     end;
 
-    // 8. Apply Offscreen Compositing (ClipPath, Mask, Opacity, Blend)
+    (*
+    ** 9. Apply Offscreen Compositing (ClipPath, Mask, Opacity, Blend)
+    *)
     if NeedsOffscreen then
     begin
       // Apply ClipPath in ROI space
@@ -3442,165 +3470,21 @@ end;
 //------------------------------------------------------------------------------
 
 procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
-
-  function ResolveSurface(const AInput: TSvgFilterInput; SourceGraphic, SourceAlpha, CurrentSurface, DefaultFallback: TCustomBitmap32; const NamedSurfaces: TArray<TCustomBitmap32>): TCustomBitmap32;
-  begin
-    Result := DefaultFallback;
-
-    case AInput.Kind of
-      fikSourceGraphic:
-        Result := SourceGraphic;
-
-      fikSourceAlpha:
-        Result := SourceAlpha;
-
-      fikNamedResult:
-        if (AInput.Index >= 0) and (AInput.Index <= High(NamedSurfaces)) and (NamedSurfaces[AInput.Index] <> nil) then
-          Result := NamedSurfaces[AInput.Index];
-    end;
-  end;
-
-  procedure ApplyComposite(ASrc1, ASrc2, ADest: TCustomBitmap32; AOp: TSvgCompositeOperator; K1, K2, K3, K4: Single);
-  type
-    TPixelCombiner = function(F: TColor32; B: TColor32): TColor32 of object;
-  var
-    i, Count: integer;
-    pSource1, pSource2, pDest: PColor32Entry;
-    Blender: TCustomGraphics32Blender;
-    Combiner: TPixelCombiner;
-    c1, c2, c3, c4: Int64;
-    vR, vG, vB, vA: integer;
-  begin
-    Count := ASrc1.PixelCount;
-    pSource1 := PColor32Entry(ASrc1.Bits);
-    pSource2 := PColor32Entry(ASrc2.Bits);
-    pDest := PColor32Entry(ADest.Bits);
-
-    case AOp of
-      coOver:
-        begin
-          // ASrc1 (in) composited over ASrc2 (in2) onto ADest
-          ASrc2.DrawTo(ADest, 0, 0);
-          ASrc1.DrawTo(ADest, 0, 0);
-        end;
-
-      coIn:
-        begin
-          Blender := TGraphics32BlenderSrcIn.Create;
-          try
-            Combiner := Blender.Blend;
-            for i := 0 to Count - 1 do
-            begin
-              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
-              Inc(pSource1); Inc(pSource2); Inc(pDest);
-            end;
-          finally
-            Blender.Free;
-          end;
-        end;
-
-      coOut:
-        begin
-          Blender := TGraphics32BlenderSrcOut.Create;
-          try
-            Combiner := Blender.Blend;
-            for i := 0 to Count - 1 do
-            begin
-              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
-              Inc(pSource1); Inc(pSource2); Inc(pDest);
-            end;
-          finally
-            Blender.Free;
-          end;
-        end;
-
-      coAtop:
-        begin
-          Blender := TGraphics32BlenderSrcAtop.Create;
-          try
-            Combiner := Blender.Blend;
-            for i := 0 to Count - 1 do
-            begin
-              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
-              Inc(pSource1); Inc(pSource2); Inc(pDest);
-            end;
-          finally
-            Blender.Free;
-          end;
-        end;
-
-      coXor:
-        begin
-          Blender := TGraphics32BlenderXor.Create;
-          try
-            Combiner := Blender.Blend;
-            for i := 0 to Count - 1 do
-            begin
-              pDest.ARGB := Combiner(pSource1.ARGB, pSource2.ARGB);
-              Inc(pSource1); Inc(pSource2); Inc(pDest);
-            end;
-          finally
-            Blender.Free;
-          end;
-        end;
-
-      coLighter:
-        begin
-          for i := 0 to Count - 1 do
-          begin
-            pDest.ARGB := ColorAdd(pSource1.ARGB, pSource2.ARGB);
-            Inc(pSource1); Inc(pSource2); Inc(pDest);
-          end;
-        end;
-
-      coArithmetic:
-        begin
-          // W3C SVG arithmetic composite operator formula:
-          // result = K1 * in1 * in2 + K2 * in1 + K3 * in2 + K4
-          // Inputs and outputs normalized to [0, 1]. For byte values in [0, 255]:
-          // result_byte = K1 * (F * B / 255) + K2 * F + K3 * B + K4 * 255
-          // We precalculate Q16 fixed-point factors scaled by 65536.
-          c1 := Round((K1 * OneOver255) * 65536.0);
-          c2 := Round(K2 * 65536.0);
-          c3 := Round(K3 * 65536.0);
-          c4 := Round(K4 * 255.0 * 65536.0);
-
-          for i := 0 to Count - 1 do
-          begin
-            vR := (c1 * pSource1.R * pSource2.R + c2 * pSource1.R + c3 * pSource2.R + c4) div 65536;
-            vG := (c1 * pSource1.G * pSource2.G + c2 * pSource1.G + c3 * pSource2.G + c4) div 65536;
-            vB := (c1 * pSource1.B * pSource2.B + c2 * pSource1.B + c3 * pSource2.B + c4) div 65536;
-            // Note: The W3C SVG specs require that the same formula is used on all four channels.
-            // Some implementations incorrectly uses the Porter-Duff alpha formula:
-            //   1 - (1-F.A) * (1-B.A) = (((F.A xor 255) * (B.A xor 255)) shr 8) xor 255
-            vA := (c1 * pSource1.A * pSource2.A + c2 * pSource1.A + c3 * pSource2.A + c4) div 65536;
-
-            pDest.R := Clamp(vR);
-            pDest.G := Clamp(vG);
-            pDest.B := Clamp(vB);
-            pDest.A := Clamp(vA);
-
-            Inc(pSource1); Inc(pSource2); Inc(pDest);
-          end;
-        end;
-    end;
-  end;
-
 var
   RenderData: TFilterRenderData;
-  i, j, Count: Integer;
+  i, Count: Integer;
   Node: TSvgNode;
   pSource, pDest: PColor32;
   SourceBounds, FilterBounds, FilterRegionRect: TFloatRect;
   PathNode: TSvgPathNode;
-  PathPoints, TransformedPoints, StrokePoints, AllRenderPoints: TArrayOfArrayOfFloatPoint;
-  StrokeWidth, ScaledOffset, BBoxWidth, BBoxHeight, RegionLeft, RegionTop, RegionWidth, RegionHeight: Single;
-  ScaledDashArray: TArrayOfFloat;
-  Points: TArrayOfArrayOfFloatPoint;
+  PathPoints, TransformedPoints, StrokePoints: TArrayOfArrayOfFloatPoint;
+  StrokeWidth, BBoxWidth, BBoxHeight, RegionLeft, RegionTop, RegionWidth, RegionHeight: Single;
   NodeBounds: TFloatRect;
   Pts: array[0..3] of TFloatPoint;
   Margin: TFloatRect;
   MarginX, MarginY, RadiusX, RadiusY: Integer;
+  StrokeColor: TSvgColor;
+  HasStroke: boolean;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
@@ -3616,50 +3500,39 @@ begin
     begin
       PathNode := TSvgPathNode(ANode);
       PathPoints := PathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
+      NodeBounds := PolyPolygonBounds(PathPoints);
+
       if Length(PathPoints) > 0 then
       begin
         TransformedPoints := GetTransformedPoints(PathPoints);
+        SourceBounds := PolyPolygonBounds(TransformedPoints);
 
         StrokePoints := nil;
         StrokeWidth := PathNode.Stroke.Width.ToPixels(FViewportRect.Width);
-        if (StrokeWidth > 0) and ((PathNode.Stroke.ResolvedPaintServer <> nil) or (not GetEffectiveColor(PathNode, PathNode.Stroke.Color, ThemeStrokeColor).IsNone)) then
-        begin
-          StrokeWidth := StrokeWidth * RenderData.Scale;
-          ScaledDashArray := nil;
-          ScaledOffset := 0;
-          if (PathNode.Stroke.DashArray <> nil) then
-          begin
-            SetLength(ScaledDashArray, Length(PathNode.Stroke.DashArray));
-            for i := 0 to High(PathNode.Stroke.DashArray) do
-              ScaledDashArray[i] := PathNode.Stroke.DashArray[i] * RenderData.Scale;
-            ScaledOffset := PathNode.Stroke.DashOffset * RenderData.Scale;
-          end;
+        if (PathNode.Stroke.ResolvedPaintServer = nil) then
+          StrokeColor := GetEffectiveColor(PathNode, PathNode.Stroke.Color, tcStroke)
+        else
+          StrokeColor := TSvgColor.Unset;
+        HasStroke := (StrokeWidth > 0) and ((PathNode.Stroke.ResolvedPaintServer <> nil) or (StrokeColor.IsVisible));
 
-          for i := 0 to High(TransformedPoints) do
-          begin
-            if (ScaledDashArray <> nil) then
-            begin
-              Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPoints[i]));
-              for j := 0 to High(Points) do
-                StrokePoints := StrokePoints + BuildPolyPolyLine([Points[j]], False, StrokeWidth, PathNode.Stroke.JoinStyle, PathNode.Stroke.EndStyle, PathNode.Stroke.MiterLimit);
-            end else
-              StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], IsClosedContour(TransformedPoints[i]), StrokeWidth, PathNode.Stroke.JoinStyle, PathNode.Stroke.EndStyle, PathNode.Stroke.MiterLimit);
-          end;
+        if (HasStroke) then
+        begin
+          // Calculate how far beyond the polygon bounding box the stroke will potentially extend
+          StrokeWidth := StrokeWidth * RenderData.Scale / 2;
+
+          if (PathNode.Stroke.JoinStyle = jsMiter) then
+            StrokeWidth := StrokeWidth * Max(1.0, PathNode.Stroke.MiterLimit);
+
+          GR32.InflateRect(SourceBounds, StrokeWidth, StrokeWidth);
         end;
 
-        SetLength(AllRenderPoints, 0);
-        if (PathNode.Fill.ResolvedPaintServer <> nil) or (not GetEffectiveColor(PathNode, PathNode.Fill.Color, ThemeFillColor).IsNone) then
-          AllRenderPoints := AllRenderPoints + TransformedPoints;
-        if Length(StrokePoints) > 0 then
-          AllRenderPoints := AllRenderPoints + StrokePoints;
-        if Length(AllRenderPoints) = 0 then
-          AllRenderPoints := TransformedPoints;
-
-        SourceBounds := PolyPolygonBounds(AllRenderPoints);
       end else
         SourceBounds := FloatRect(0, 0, 0, 0);
+
     end else
     begin
+      PathPoints := nil;
+
       // For non-polygon nodes, calculate object bounds in world/screen space
       NodeBounds := ANode.GetObjectBoundingBox;
       Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
@@ -3718,13 +3591,7 @@ begin
     end;
 
     // Calculate filter region defined on AFilterNode (x, y, width, height, filterUnits)
-    if ANode is TSvgPathNode then
-    begin
-      PathPoints := TSvgPathNode(ANode).GetPathData(FViewportRect.Width, FViewportRect.Height);
-      NodeBounds := PolyPolygonBounds(PathPoints);
-    end else
-      NodeBounds := ANode.GetObjectBoundingBox;
-
+    //
     // Fallback for empty or degenerate group bounding boxes;
     // If GetObjectBoundingBox returns empty/inverted bounds,
     // we fall back to the target canvas/viewport dimensions,
@@ -3773,10 +3640,7 @@ begin
 
     // 3. Inflate source bounds by filter margins to determine total Filter ROI, then clip to FilterRegionRect
     FilterBounds := SourceBounds;
-    FilterBounds.Left := FilterBounds.Left - MarginX;
-    FilterBounds.Top := FilterBounds.Top - MarginY;
-    FilterBounds.Right := FilterBounds.Right + MarginX;
-    FilterBounds.Bottom := FilterBounds.Bottom + MarginY;
+    GR32.InflateRect(FilterBounds, MarginX, MarginY);
 
     if FilterBounds.Left < FilterRegionRect.Left then FilterBounds.Left := FilterRegionRect.Left;
     if FilterBounds.Top < FilterRegionRect.Top then FilterBounds.Top := FilterRegionRect.Top;
@@ -4382,6 +4246,8 @@ var
   ScaledDashArray: TArrayOfFloat;
   i, j, k: Integer;
   AccumulatedOpacity, FillOpacity, StrokeOpacity: Single;
+  FillColor, StrokeColor: TSvgColor;
+  HasFill, HasStroke: boolean;
 begin
   if (Length(APathPoints) = 0) or (ATarget = nil) then
     Exit;
@@ -4390,14 +4256,30 @@ begin
   FillOpacity := ANode.Fill.Opacity * AccumulatedOpacity;
   StrokeOpacity := ANode.Stroke.Opacity * AccumulatedOpacity;
 
+  if (ANode.Fill.ResolvedPaintServer = nil) then
+    FillColor := GetEffectiveColor(ANode, ANode.Fill.Color, tcFill)
+  else
+    FillColor := TSvgColor.Unset;
+  HasFill := (ANode.Fill.ResolvedPaintServer <> nil) or ((FillColor.IsVisible) and (FillOpacity > 0));
+
+  StrokeWidth := ANode.Stroke.Width.ToPixels(FViewportRect.Width);
+  if (ANode.Stroke.ResolvedPaintServer = nil) and (StrokeWidth > 0) then
+    StrokeColor := GetEffectiveColor(ANode, ANode.Stroke.Color, tcStroke)
+  else
+    StrokeColor := TSvgColor.Unset;
+  HasStroke := (StrokeWidth > 0) and ((ANode.Stroke.ResolvedPaintServer <> nil) or ((StrokeColor.IsVisible) and (StrokeOpacity > 0)));
+
+  if (not HasFill) and (not HasStroke) then
+    exit;
+
   TransformedPts := GetTransformedPoints(APathPoints);
 
   // 1. Fill Rendering
-  RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, GetEffectiveColor(ANode, ANode.Fill.Color, ThemeFillColor), ANode.Fill.FillRule);
+  if (HasFill) then
+    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, FillColor, ANode.Fill.FillRule);
 
   // 2. Stroke Rendering
-  StrokeWidth := ANode.Stroke.Width.ToPixels(FViewportRect.Width);
-  if (StrokeWidth > 0) and (CanRenderPolyPolygon(ANode.Stroke.ResolvedPaintServer, TransformedPts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color, ThemeStrokeColor))) then
+  if (HasStroke) then
   begin
     MatScale := GetMatrixScale(FTransformation.Matrix);
     StrokeWidth := StrokeWidth * MatScale;
@@ -4424,7 +4306,7 @@ begin
         StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
     end;
 
-    RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, GetEffectiveColor(ANode, ANode.Stroke.Color, ThemeStrokeColor));
+    RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, StrokeColor);
   end;
 end;
 

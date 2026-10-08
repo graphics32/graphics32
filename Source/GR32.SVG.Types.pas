@@ -303,18 +303,41 @@ type
 //------------------------------------------------------------------------------
 type
   TSvgColor = record
-    Color: TColor32;
-    IsNone: Boolean;
-    IsCurrentColor: Boolean;
+  public type
+    TColorKind = (ckUnspecified, ckNone, ckColor, ckCurrentColor);
+  private
+    FColor: TColor32;
+    FKind: TColorKind;
+  private
+    function GetIsSet: Boolean; inline;
+    function GetIsNone: Boolean; inline;
+    function GetIsCurrentColor: Boolean; inline;
+    procedure SetColor(const Value: TColor32); inline;
+    function GetIsColor: Boolean; inline;
+    function GetIsVisible: Boolean; inline;
+  public
+    // Constructors
     class function Create(AColor: TColor32): TSvgColor; static;
     class function None: TSvgColor; static;
     class function CurrentColor: TSvgColor; static;
     class function Unset: TSvgColor; static;
-    function IsSet: Boolean; inline;
+
+
     class function Parse(AColorStr: TValuePUtf8Char): TSvgColor; overload; static;
 {$if defined(UNIT_TEST)}
     class function Parse(const AStr: UTF8String): TSvgColor; overload; static;
 {$ifend}
+
+    function ToColor32: TColor32;
+
+    property Color: TColor32 read FColor write SetColor;
+    property Kind: TColorKind read FKind;
+
+    property IsSet: Boolean read GetIsSet;
+    property IsColor: Boolean read GetIsColor;
+    property IsNone: Boolean read GetIsNone;
+    property IsVisible: Boolean read GetIsVisible;
+    property IsCurrentColor: Boolean read GetIsCurrentColor;
   end;
 
 
@@ -1428,36 +1451,52 @@ end;
 //------------------------------------------------------------------------------
 class function TSvgColor.Create(AColor: TColor32): TSvgColor;
 begin
-  Result.Color := AColor;
-  Result.IsNone := False;
-  Result.IsCurrentColor := False;
+  Result.FColor := AColor;
+  Result.FKind := ckColor;
 end;
 
 class function TSvgColor.None: TSvgColor;
 begin
-  Result.Color := $00000000;
-  Result.IsNone := True;
-  Result.IsCurrentColor := False;
+  Result.FColor := clNone32;
+  Result.FKind := ckNone;
 end;
 
 
 class function TSvgColor.CurrentColor: TSvgColor;
 begin
-  Result.Color := clBlack32;
-  Result.IsNone := False;
-  Result.IsCurrentColor := True;
+  Result.FColor := clBlack32;
+  Result.FKind := ckCurrentColor;
 end;
 
 class function TSvgColor.Unset: TSvgColor;
 begin
-  Result.Color := clNone32;
-  Result.IsNone := False;
-  Result.IsCurrentColor := False;
+  Result.FColor := clNone32;
+  Result.FKind := ckUnspecified;
 end;
 
-function TSvgColor.IsSet: Boolean;
+function TSvgColor.GetIsColor: Boolean;
 begin
-  Result := (Color <> clNone32) or IsNone or IsCurrentColor;
+  Result := (Kind = ckColor);
+end;
+
+function TSvgColor.GetIsCurrentColor: Boolean;
+begin
+  Result := (Kind = ckCurrentColor);
+end;
+
+function TSvgColor.GetIsNone: Boolean;
+begin
+  Result := (Kind = ckNone);
+end;
+
+function TSvgColor.GetIsSet: Boolean;
+begin
+  Result := (Kind <> ckUnspecified);
+end;
+
+function TSvgColor.GetIsVisible: Boolean;
+begin
+  Result := (Kind = ckCurrentColor) or ((Kind = ckColor) and (TColor32Entry(FColor).A <> 0));
 end;
 
 class function TSvgColor.Parse(AColorStr: TValuePUtf8Char): TSvgColor;
@@ -1684,6 +1723,19 @@ begin
   end;
 
   Result := Create(SvgColorNameToColor(AColorStr, clBlack32));
+end;
+
+procedure TSvgColor.SetColor(const Value: TColor32);
+begin
+  FColor := Value;
+end;
+
+function TSvgColor.ToColor32: TColor32;
+begin
+  if (IsNone) then
+    Result := clNone32
+  else
+    Result := FColor;
 end;
 
 {$if defined(UNIT_TEST)}

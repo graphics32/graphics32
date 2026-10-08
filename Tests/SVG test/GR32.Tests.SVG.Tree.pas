@@ -81,6 +81,7 @@ type
     procedure TestFontShorthandParsing;
     procedure TestNamespacedSvgParsing;
     procedure TestNestedSvgIdResolutionAndCurrentColor;
+    procedure TestDocumentCurrentColorProperty;
     procedure TestTextLineBreaksAndLeadingSpaces;
   end;
 
@@ -1645,6 +1646,38 @@ begin
     Check(pathNode <> nil, 'p1 should be found');
     CheckEquals(clBlue32, pathNode.Color.Color, 'p1 should inherit color="blue" from innerSvg');
     Check(pathNode.Stroke.Color.IsCurrentColor, 'p1 stroke color should have IsCurrentColor = True');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestDocumentCurrentColorProperty;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  gNode, r1Node: TSvgNode;
+begin
+  xml := '<svg width="100" height="100">' +
+         '  <g id="g1">' +
+         '    <path id="r1" d="M0 0 L10 10" fill="currentColor"/>' +
+         '  </g>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    r1Node := docNode.FindNodeById('r1');
+    Check(r1Node <> nil, 'r1 should be found');
+    CheckEquals(clBlack32, r1Node.Color32, 'Default r1 Color32 should be black');
+
+    docNode.CurrentColor32 := clRed32;
+    CheckEquals(clRed32, docNode.Color32, 'docNode Color32 should be red');
+    CheckEquals(clRed32, r1Node.Color32, 'r1Node should dynamically inherit red Color32 from docNode');
+
+    gNode := docNode.FindNodeById('g1');
+    Check(gNode <> nil, 'g1 should be found');
+    gNode.Color := TSvgColor.Create(clGreen32);
+    CheckEquals(clGreen32, r1Node.Color32, 'r1Node should inherit green Color32 from gNode override');
   finally
     docNode.Free;
   end;

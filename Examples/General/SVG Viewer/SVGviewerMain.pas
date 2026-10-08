@@ -111,8 +111,11 @@ type
 
     procedure MsgAfterShow(var Msg: TMessage); message MSG_AFTER_SHOW;
     procedure SetColorTheme(const Value: TSvgColorTheme);
+    function GetBackground: TBackgroundCheckerStyle;
+    procedure SetBackground(Value: TBackgroundCheckerStyle);
   public
     property ColorTheme: TSvgColorTheme read FColorTheme write SetColorTheme;
+    property Background: TBackgroundCheckerStyle read GetBackground write SetBackground;
   end;
 
 var
@@ -171,6 +174,14 @@ begin
   PostMessage(Handle, MSG_AFTER_SHOW, 0, 0);
 end;
 
+function TFormSVGviewer.GetBackground: TBackgroundCheckerStyle;
+begin
+  if (FColorTheme = ctNone) then
+    Result := Image32.Background.CheckersStyle
+  else
+    Result := bcsNone;
+end;
+
 procedure TFormSVGviewer.ButtonSaveClick(Sender: TObject);
 var
   Filename: string;
@@ -182,6 +193,7 @@ end;
 
 procedure TFormSVGviewer.DoRender;
 begin
+  Image32.Bitmap.Clear;
   FRenderer.RenderDocument(FDocNode, Image32.GetBitmapRect);
 end;
 
@@ -407,28 +419,60 @@ begin
   end;
 end;
 
+procedure TFormSVGviewer.SetBackground(Value: TBackgroundCheckerStyle);
+begin
+  if (Value = bcsCustom) then
+    Value := bcsNone;
+
+  FColorTheme := ctNone;
+
+  Image32.Background.FillStyle := bfsCheckers;
+  Image32.Background.CheckersStyle := Value;
+  Image32.ParentColor := True;
+end;
+
 procedure TFormSVGviewer.SetColorTheme(const Value: TSvgColorTheme);
 begin
   FColorTheme := Value;
 
   SpeedButtonTheme.Hint := Format('Color theme: %s', [sColorThemes[FColorTheme]]);
 
+  // Modern/Well-authored SVGs use "currentColor".
+  // Legacy/Hard-coded single-color SVGs will have to use Theme colors.
   case FColorTheme of
     ctLight:
       begin
-        FRenderer.ThemeFillColor32 := clDarkGray32;
-        FRenderer.ThemeStrokeColor32 := clWhite32;
+        // Dark features...
+        FRenderer.CurrentColor32 := $FF111827; // Remember to also set the Alpha
+        (*
+        FRenderer.ThemeFillColor32 := clLightGray32;
+        FRenderer.ThemeStrokeColor32 := clBlack32;
+        *)
+        // ...on light background
+        Image32.Color := $E1FFD7;
+        Image32.Background.CheckersStyle := bcsNone;
+        Image32.Background.FillStyle := bfsColor;
+        SpeedButtonBackground.Enabled := False;
       end;
 
     ctDark:
       begin
-        FRenderer.ThemeFillColor32 := clLightGray32;
-        FRenderer.ThemeStrokeColor32 := clBlack32;
+        // Light features...
+        FRenderer.CurrentColor32 := $FFFBFAF9; // Remember to also set the Alpha
+        (*
+        FRenderer.ThemeFillColor32 := clDarkGray32;
+        FRenderer.ThemeStrokeColor32 := clWhite32;
+        *)
+        // ...on dark background
+        Image32.Color := $6A2B00;
+        Image32.Background.CheckersStyle := bcsNone;
+        Image32.Background.FillStyle := bfsColor;
+        SpeedButtonBackground.Enabled := False;
       end;
-
   else
-    FRenderer.ThemeFillColor32 := clNone32;
-    FRenderer.ThemeStrokeColor32 := clNone32;
+    FRenderer.ClearThemeColors;
+    SetBackground(bcsLight);
+    SpeedButtonBackground.Enabled := True;
   end;
 
   DoRender;
@@ -439,7 +483,7 @@ const
   Styles: array[0..3] of TBackgroundCheckerStyle = (bcsNone, bcsLight, bcsMedium, bcsDark);
 begin
   TSpeedButton(Sender).Tag := (TSpeedButton(Sender).Tag + 1) mod 4;
-  Image32.Background.CheckersStyle := Styles[TSpeedButton(Sender).Tag];
+  Background := Styles[TSpeedButton(Sender).Tag];
 end;
 
 procedure TFormSVGviewer.SpeedButtonRepaintClick(Sender: TObject);

@@ -88,6 +88,8 @@ type
     procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
     procedure TestNestedSvgAndCurrentColorRendering;
+    procedure TestDocumentAndRendererCurrentColorRendering;
+    procedure TestUncoloredSvgGlyphCurrentColorRendering;
     procedure TestSwitchRendering;
     procedure TestUserSpaceOnUsePercentageGradient;
     procedure TestPatternScaling;
@@ -179,6 +181,40 @@ begin
 
         Check(expectedRangeCount > 30, Format('Transformed text on path should render around expected Y=100 (found %d pixels)', [expectedRangeCount]));
         CheckEquals(0, doubleTransformedRangeCount, Format('Transformed text on path should not be double-transformed to Y=150 (found %d pixels)', [doubleTransformedRangeCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Additional check: Default strokeWidth marker scaling under viewBox scaling (preventing double scaling)
+    bmp.SetSize(500, 500);
+    bmp.Clear(clWhite32);
+    xml := '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+           '  <defs>' +
+           '    <marker id="dot500" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">' +
+           '      <circle cx="5" cy="5" r="5" fill="red" />' +
+           '    </marker>' +
+           '  </defs>' +
+           '  <polyline points="15,80 29,50 43,60 57,30 71,40 85,15" fill="none" stroke="grey" ' +
+           '   marker-start="url(#dot500)" marker-mid="url(#dot500)" marker-end="url(#dot500)" />' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode for scaled marker test should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Mid-vertex at (29,50) in 100x100 viewBox maps to (145,250) on 500x500 canvas.
+        CheckEquals(clRed32, bmp.Pixel[145, 250], 'Marker center at (145,250) should be rendered red');
+
+        // Check pixel slightly outside marker radius (e.g. 25 pixels away at 145, 220).
+        // With markerWidth=5 (radius 2.5 in viewBox = 12.5 px on 500x500 canvas), (145, 220) is 30 px away and MUST remain white background!
+        // If double-scaled, marker radius would be 12.5 * 5 = 62.5 px and fill (145, 220) with red.
+        CheckEquals(clWhite32, bmp.Pixel[145, 220], 'Pixel 30px away from marker center must remain white (marker is not double-scaled)');
       finally
         renderer.Free;
       end;
@@ -2920,6 +2956,93 @@ begin
     CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Pixel inside use symbol with currentColor should be blue');
     CheckEquals(clBlue32, bmp.Pixel[70, 70], 'Pixel inside rect with currentColor should be blue');
     CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Background pixel should remain white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestDocumentAndRendererCurrentColorRendering;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+begin
+  xml := '<svg width="100" height="100">' +
+         '  <rect x="10" y="10" width="40" height="40" fill="currentColor"/>' +
+         '  <rect x="60" y="60" width="30" height="30" fill="currentColor"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(100, 100);
+
+    // 1. Test setting CurrentColor32 on docNode directly
+    docNode.CurrentColor32 := clRed32;
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clRed32, bmp.Pixel[20, 20], 'Pixel should be red from docNode.CurrentColor32');
+    CheckEquals(clRed32, bmp.Pixel[70, 70], 'Pixel should be red from docNode.CurrentColor32');
+
+    // 2. Test overriding CurrentColor32 on TSvgRenderer
+    renderer.CurrentColor32 := clBlue32;
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Pixel should be blue from renderer.CurrentColor32');
+    CheckEquals(clBlue32, bmp.Pixel[70, 70], 'Pixel should be blue from renderer.CurrentColor32');
+
+    // 3. Clear renderer theme colors and verify it falls back to docNode.CurrentColor32
+    renderer.ClearThemeColors;
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clRed32, bmp.Pixel[20, 20], 'Pixel should fall back to red after clearing renderer CurrentColor');
+
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestUncoloredSvgGlyphCurrentColorRendering;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+begin
+  // Uncolored SVG snippet (without fill or color attributes)
+  xml := '<svg xmlns="http://www.w3.org/2000/svg" height="40" width="40"><path d="M 0 0 L 40 0 L 40 40 L 0 40 Z"/></svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(40, 40);
+
+    // 1. By default, uncolored SVG renders black
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clBlack32, bmp.Pixel[20, 20], 'Uncolored SVG should default to black fill');
+
+    // 2. Setting docNode.CurrentColor32 recolors the uncolored SVG
+    docNode.CurrentColor32 := clRed32;
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clRed32, bmp.Pixel[20, 20], 'Uncolored SVG should render red when docNode.CurrentColor32 = clRed32');
+
+    // 3. Overriding renderer.CurrentColor32 recolors the uncolored SVG
+    renderer.CurrentColor32 := clBlue32;
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+    CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Uncolored SVG should render blue when renderer.CurrentColor32 = clBlue32');
+
   finally
     renderer.Free;
     bmp.Free;
