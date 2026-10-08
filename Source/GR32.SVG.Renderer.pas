@@ -52,6 +52,7 @@ type
   protected
     function CreateNewMap: T; virtual; abstract;
     procedure PrepareMap(Map: T); virtual;
+    function CandidateWouldReallocate(Candidate: T; TargetSize: Int64): boolean; virtual;
   public
     constructor Create(AMaxSize: Int64 = 0);
     destructor Destroy; override;
@@ -68,6 +69,7 @@ type
   protected
     function CreateNewMap: TCustomBitmap32; override;
     procedure PrepareMap(Map: TCustomBitmap32); override;
+    function CandidateWouldReallocate(Candidate: TCustomBitmap32; TargetSize: Int64): boolean; override;
   public
     procedure Release(Map: TCustomBitmap32); override;
     property BitmapMaxOversize: NativeInt read FBitmapMaxOversize write FBitmapMaxOversize;
@@ -636,8 +638,8 @@ var
   TargetSize, CandidateSize: Int64;
   Candidate: T;
 begin
-  // Binary search pool for Candidate surface with existing buffer size (in
-  // bytes) sufficient for requested bounds in order to avoid costly buffer
+  // Binary search the pool for candidate surface with existing buffer size (in
+  // bytes) sufficient for requested bounds, in order to avoid costly buffer
   // reallocations.
   CandidateIdx := -1;
   TargetSize := AWidth * AHeight * SizeOf(TElement);
@@ -656,6 +658,16 @@ begin
       HighIdx := MidIdx - 1;
     end else
       LowIdx := MidIdx + 1;
+  end;
+
+  // If the candidate is oversize and would cause a reallocation
+  // once resized below, we might as well keep it in the pool and
+  // instead create a new item
+  if (CandidateIdx <> -1) then
+  begin
+    Candidate := FPool[CandidateIdx];
+    if (Candidate.ByteCount > TargetSize) and CandidateWouldReallocate(Candidate, TargetSize) then
+       CandidateIdx := -1;
   end;
 
   if (CandidateIdx = -1) then
@@ -679,6 +691,11 @@ begin
   PrepareMap(Result);
 end;
 
+function TMapPool<T, TElement>.CandidateWouldReallocate(Candidate: T; TargetSize: Int64): boolean;
+begin
+  Result := False;
+end;
+
 procedure TMapPool<T, TElement>.Clear;
 begin
   FPool.Clear;
@@ -699,8 +716,17 @@ begin
   // Is there room in the pool?
   if (FMaxSize > 0) and (FPoolSize + Map.ByteCount > FMaxSize) then
   begin
-    Map.Free;
-    exit;
+    // Can we make room by deleting the largest item in the pool?
+    // We only do this if the largest item is at least twice as big
+    // as the one we want to add. This gives priority to smaller
+    // items and avoids large items trashing the pool.
+    if (FPool.Count = 0) or (FPoolSize + Map.ByteCount - FPool.Last.ByteCount > FMaxSize) then
+    begin
+      Map.Free;
+      exit;
+    end else
+      FPool.Delete(FPool.Count-1);
+    // Fall though to insert in pool
   end;
 
   // Insert ordered by ByteCount
@@ -727,6 +753,15 @@ end;
 
 { TSvgBitmapPool }
 
+function TSvgBitmapPool.CandidateWouldReallocate(Candidate: TCustomBitmap32; TargetSize: Int64): boolean;
+begin
+  if (Candidate.Backend is TMemoryBackend) and (TMemoryBackend(Candidate.Backend).MaxOversize <> 0) then
+  begin
+    Result := (Candidate.ByteCount - TargetSize > TMemoryBackend(Candidate.Backend).MaxOversize);
+  end else
+    Result := False;
+end;
+
 function TSvgBitmapPool.CreateNewMap: TCustomBitmap32;
 begin
   Result := TBitmap32.Create(TMemoryBackend);
@@ -744,7 +779,17 @@ end;
 procedure TSvgBitmapPool.Release(Map: TCustomBitmap32);
 begin
   if (Map <> nil) then
+  begin
+    if not(Map.Backend is TMemoryBackend) then
+    begin
+      // Not one of ours; Kill it!
+      Map.Free;
+      exit;
+    end;
+
     Map.OnPixelCombine := nil;
+  end;
+
   inherited;
 end;
 
@@ -758,7 +803,7 @@ begin
   FViewportRect := FloatRect(0, 0, 0, 0);
   FDocumentRoot := nil;
   FBitmapPool := TSvgBitmapPool.Create;
-  FBitmapPool.BitmapMaxOversize := 1024; // Magic!
+  FBitmapPool.BitmapMaxOversize := 64*1024; // Magic!
   FBitmapPool.MaxSize := 256*1024*1024; // More magic!
   FAllowExternalImages := False;
   FThemeFillColor := TSvgColor.Unset;
