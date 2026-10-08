@@ -36,7 +36,7 @@ interface
 
 uses
   SysUtils, Classes,
-  GR32, GR32.SVG.Types, GR32.SVG.Tree, GR32.SVG.Renderer;
+  GR32, GR32.SVG.Types, GR32.SVG.Tree, GR32.SVG.Renderer, GR32.SVG.Renderer.Filters;
 
 type
   TSvgDocument = class(TPersistent)
