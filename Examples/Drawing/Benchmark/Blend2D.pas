@@ -4502,7 +4502,7 @@ type
     { Full font name that reflects all family and relevant subfamily descriptors. }
     FullName                  = BL_FONT_STRING_FULL_NAME,
 
-    { Version string. Should begin with the synta `Version <number>.<number>`. }
+    { Version string. Should begin with the syntax `Version <number>.<number>`. }
     VersionString             = BL_FONT_STRING_VERSION_STRING,
 
     { PostScript name for the font. }
