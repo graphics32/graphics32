@@ -157,8 +157,6 @@ type
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
-    function CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
-    function CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
     procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
@@ -228,7 +226,9 @@ uses
   GR32.Blend.Modes.PorterDuff,
   GR32.Blend.Modes.PhotoShop,
   GR32.SVG.Utf8,
-  GR32.SVG.Renderer.Filters;
+  // The following units need to be referenced so the can register their renderers
+  GR32.SVG.Renderer.Filters,
+  GR32.SVG.Renderer.PaintServers;
 
 const
   ZERO_WIDTH_SPACE = $200B; // Unicode ZERO WIDTH SPACE
@@ -929,371 +929,14 @@ begin
   end;
 end;
 
-function TSvgRenderer.CreateGradientFiller(AGradNode: TSvgGradientNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
-var
-  i: Integer;
-  Stop: TSvgGradientStop;
-  StopColor: TColor32;
-  BoundsWidth, BoundsHeight: Single;
-  LinearNode: TSvgLinearGradientNode;
-  RadialNode: TSvgRadialGradientNode;
-  ConicalNode: TSvgConicalGradientNode;
-  cx, cy, r, fx, fy, rx, ry, ScaleX, ScaleY: Single;
-  LinearFiller: TLinearGradientPolygonFiller;
-  RadialFiller: TSVGRadialGradientPolygonFiller;
-  ConicalFiller: TSVGConicalGradientPolygonFiller;
-  TotalTransform, GradTransform, BboxMat: TFloatMatrixHelper;
-  PointStart, PointEnd, PointC, PointF: TFloatPoint;
-const
-  WrapMode: array[TSvgSpreadMethod] of TWrapMode = (wmClamp, wmReflect, wmRepeat);
-begin
-  Result := nil;
-  if (AGradNode = nil) or (AGradNode.Stops.Count = 0) then
-    Exit;
-
-  BoundsWidth := ABounds.Width;
-  BoundsHeight := ABounds.Height;
-  if BoundsWidth <= 0 then
-    BoundsWidth := 1.0;
-  if BoundsHeight <= 0 then
-    BoundsHeight := 1.0;
-
-  GradTransform.Matrix := AGradNode.Transform;
-
-  if AGradNode is TSvgLinearGradientNode then
-  begin
-    LinearNode := TSvgLinearGradientNode(AGradNode);
-
-    if LinearNode.GradientUnits = guObjectBoundingBox then
-    begin
-      PointStart.X := LinearNode.X1.ToPixels(1.0);
-      PointStart.Y := LinearNode.Y1.ToPixels(1.0);
-      PointEnd.X := LinearNode.X2.ToPixels(1.0);
-      PointEnd.Y := LinearNode.Y2.ToPixels(1.0);
-
-      BboxMat.Matrix := IdentityMatrix;
-      BboxMat.Scale(BoundsWidth, BoundsHeight);
-      BboxMat.Translate(ABounds.Left, ABounds.Top);
-      // Transform gradient coordinates in normalized [0..1] space before mapping to bounding box
-      TotalTransform := GradTransform * BboxMat;
-    end else
-    begin
-      PointStart.X := LinearNode.X1.ToPixels(FViewportRect.Width);
-      PointStart.Y := LinearNode.Y1.ToPixels(FViewportRect.Height);
-      PointEnd.X := LinearNode.X2.ToPixels(FViewportRect.Width);
-      PointEnd.Y := LinearNode.Y2.ToPixels(FViewportRect.Height);
-      TotalTransform := GradTransform * FTransformation.Matrix;
-    end;
-
-    if (not TotalTransform.IsIdentity) then
-    begin
-      PointStart := TotalTransform.TransformPoint(PointStart);
-      PointEnd := TotalTransform.TransformPoint(PointEnd);
-    end;
-
-    LinearFiller := TLinearGradientPolygonFiller.Create;
-    LinearFiller.StartPoint := PointStart;
-    LinearFiller.EndPoint := PointEnd;
-    LinearFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
-
-    LinearFiller.Gradient.ClearColorStops;
-    for i := 0 to AGradNode.Stops.Count - 1 do
-    begin
-      Stop := AGradNode.Stops[i];
-      StopColor := Stop.Color.Color;
-      if (Stop.Opacity < 1.0) or (AOpacity < 1.0) then
-        ScaleAlpha(StopColor, Stop.Opacity * AOpacity);
-      LinearFiller.Gradient.AddColorStop(Stop.Offset, StopColor);
-    end;
-
-    Result := LinearFiller;
-  end else
-
-  if AGradNode is TSvgRadialGradientNode then
-  begin
-    RadialNode := TSvgRadialGradientNode(AGradNode);
-
-    if RadialNode.GradientUnits = guObjectBoundingBox then
-    begin
-      cx := RadialNode.Cx.ToPixels(1.0);
-      cy := RadialNode.Cy.ToPixels(1.0);
-      r := RadialNode.R.ToPixels(1.0);
-      fx := RadialNode.Fx.ToPixels(1.0);
-      fy := RadialNode.Fy.ToPixels(1.0);
-
-      BboxMat.Matrix := IdentityMatrix;
-      BboxMat.Scale(BoundsWidth, BoundsHeight);
-      BboxMat.Translate(ABounds.Left, ABounds.Top);
-      // Transform gradient coordinates in normalized [0..1] space before mapping to bounding box
-      TotalTransform := GradTransform * BboxMat;
-    end else
-    begin
-      cx := RadialNode.Cx.ToPixels(FViewportRect.Width);
-      cy := RadialNode.Cy.ToPixels(FViewportRect.Height);
-      r := RadialNode.R.ToPixels(GR32_Math.Hypot(FViewportRect.Width, FViewportRect.Height) * Sqrt(0.5));
-      fx := RadialNode.Fx.ToPixels(FViewportRect.Width);
-      fy := RadialNode.Fy.ToPixels(FViewportRect.Height);
-      TotalTransform := GradTransform * FTransformation.Matrix;
-    end;
-
-    PointC := FloatPoint(cx, cy);
-    PointF := FloatPoint(fx, fy);
-
-    rx := r;
-    ry := r;
-
-    if (not TotalTransform.IsIdentity) then
-    begin
-      PointC := TotalTransform.TransformPoint(PointC);
-      PointF := TotalTransform.TransformPoint(PointF);
-
-      ScaleX := GR32_Math.Hypot(TotalTransform.Matrix[0, 0], TotalTransform.Matrix[0, 1]);
-      ScaleY := GR32_Math.Hypot(TotalTransform.Matrix[1, 0], TotalTransform.Matrix[1, 1]);
-      if ScaleX > 0 then
-        rx := rx * ScaleX;
-      if ScaleY > 0 then
-        ry := ry * ScaleY;
-    end;
-
-    RadialFiller := TSVGRadialGradientPolygonFiller.Create;
-    try
-      RadialFiller.EllipseBounds := FloatRect(PointC.X - rx, PointC.Y - ry, PointC.X + rx, PointC.Y + ry);
-      RadialFiller.FocalPoint := PointF;
-      RadialFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
-
-      RadialFiller.Gradient.ClearColorStops;
-      for i := 0 to AGradNode.Stops.Count - 1 do
-      begin
-        Stop := AGradNode.Stops[i];
-        StopColor := Stop.Color.Color;
-        if (Stop.Opacity < 1.0) or (AOpacity < 1.0) then
-          ScaleAlpha(StopColor, Stop.Opacity * AOpacity);
-        RadialFiller.Gradient.AddColorStop(Stop.Offset, StopColor);
-      end;
-    except
-      RadialFiller.Free;
-      raise;
-    end;
-
-    Result := RadialFiller;
-  end else
-
-  if AGradNode is TSvgConicalGradientNode then
-  begin
-    ConicalNode := TSvgConicalGradientNode(AGradNode);
-
-    if ConicalNode.GradientUnits = guObjectBoundingBox then
-    begin
-      cx := ConicalNode.Cx.ToPixels(1.0);
-      cy := ConicalNode.Cy.ToPixels(1.0);
-
-      BboxMat.Matrix := IdentityMatrix;
-      BboxMat.Scale(BoundsWidth, BoundsHeight);
-      BboxMat.Translate(ABounds.Left, ABounds.Top);
-      // Transform gradient coordinates in normalized [0..1] space before mapping to bounding box
-      TotalTransform := GradTransform * BboxMat;
-    end else
-    begin
-      cx := ConicalNode.Cx.ToPixels(FViewportRect.Width);
-      cy := ConicalNode.Cy.ToPixels(FViewportRect.Height);
-      TotalTransform := GradTransform * FTransformation.Matrix;
-    end;
-
-    ConicalFiller := TSVGConicalGradientPolygonFiller.Create;
-    try
-      ConicalFiller.Center := FloatPoint(cx, cy);
-      ConicalFiller.Angle := DegToRad(ConicalNode.Angle);
-      ConicalFiller.StartAngle := DegToRad(ConicalNode.StartAngle);
-      ConicalFiller.EndAngle := DegToRad(ConicalNode.EndAngle);
-      ConicalFiller.TransformMatrix := TotalTransform.Matrix;
-      ConicalFiller.WrapMode := WrapMode[AGradNode.SpreadMethod];
-
-      ConicalFiller.Gradient.ClearColorStops;
-      for i := 0 to AGradNode.Stops.Count - 1 do
-      begin
-        Stop := AGradNode.Stops[i];
-        StopColor := Stop.Color.Color;
-        if (Stop.Opacity < 1.0) or (AOpacity < 1.0) then
-          ScaleAlpha(StopColor, Stop.Opacity * AOpacity);
-        ConicalFiller.Gradient.AddColorStop(Stop.Offset, StopColor);
-      end;
-    except
-      ConicalFiller.Free;
-      raise;
-    end;
-
-    Result := ConicalFiller;
-  end;
-end;
-
-function TSvgRenderer.CreatePatternFiller(APatternNode: TSvgPatternNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller;
-var
-  BoundsWidth, BoundsHeight, ViewportWidth, ViewportHeight: Single;
-  TileX, TileY, TileWidth, TileHeight, TileRatioX, TileRatioY: Single;
-  PatternBitmap: TBitmap32;
-  i, BitmapWidth, BitmapHeight: Integer;
-  SavedViewport: TFloatRect;
-  ContentMat: TFloatMatrixHelper;
-  origPt: TFloatPoint;
-  TileViewBox: TSvgViewBox;
-  MatrixScaleX, MatrixScaleY: Single;
-  PatternTransform: TFloatMatrixHelper;
-  TotalTransform: TFloatMatrixHelper;
-  InvMat: TFloatMatrix;
-  PatternFiller: TSvgPatternPolygonFiller;
-const
-  cMaxPatternDimension = 4096;
-begin
-  Result := nil;
-  if (APatternNode = nil) or (APatternNode.Children.Count = 0) then
-    Exit;
-
-  BoundsWidth := ABounds.Width;
-  BoundsHeight := ABounds.Height;
-  if BoundsWidth <= 0 then
-    BoundsWidth := 1.0;
-  if BoundsHeight <= 0 then
-    BoundsHeight := 1.0;
-
-  ViewportWidth := FViewportRect.Width;
-  ViewportHeight := FViewportRect.Height;
-  if ViewportWidth <= 0 then
-    ViewportWidth := 1.0;
-  if ViewportHeight <= 0 then
-    ViewportHeight := 1.0;
-
-  PatternTransform.Matrix := APatternNode.PatternTransform;
-  TotalTransform := PatternTransform * FTransformation.Matrix;
-
-  // Calculates pattern tile origin and bounds in user space.
-  // When patternUnits = guObjectBoundingBox (default), tile attributes x, y, width, height
-  // are defined in normalized bounding box units [0..1] relative to target bounds in user space.
-  if APatternNode.PatternUnits = guObjectBoundingBox then
-  begin
-    InvMat := FTransformation.Matrix;
-    GR32_Transforms.Invert(InvMat);
-
-    origPt := TFloatMatrixHelper(InvMat).TransformPoint(FloatPoint(ABounds.Left, ABounds.Top));
-
-    MatrixScaleX := GR32_Math.Hypot(FTransformation.Matrix[0, 0], FTransformation.Matrix[0, 1]);
-    MatrixScaleY := GR32_Math.Hypot(FTransformation.Matrix[1, 0], FTransformation.Matrix[1, 1]);
-    if MatrixScaleX <= 0 then MatrixScaleX := 1.0;
-    if MatrixScaleY <= 0 then MatrixScaleY := 1.0;
-
-    TileRatioX := BoundsWidth / MatrixScaleX;
-    TileRatioY := BoundsHeight / MatrixScaleY;
-    TileWidth := APatternNode.Width.ToPixels(1.0) * TileRatioX;
-    TileHeight := APatternNode.Height.ToPixels(1.0) * TileRatioY;
-    TileX := origPt.X + APatternNode.X.ToPixels(1.0) * TileRatioX;
-    TileY := origPt.Y + APatternNode.Y.ToPixels(1.0) * TileRatioY;
-  end else
-  begin
-    TileX := APatternNode.X.ToPixels(ViewportWidth);
-    TileY := APatternNode.Y.ToPixels(ViewportHeight);
-    TileWidth := APatternNode.Width.ToPixels(ViewportWidth);
-    TileHeight := APatternNode.Height.ToPixels(ViewportHeight);
-  end;
-
-  if (TileWidth <= 0) or (TileHeight <= 0) then
-    Exit;
-
-  MatrixScaleX := GR32_Math.Hypot(TotalTransform.Matrix[0, 0], TotalTransform.Matrix[0, 1]);
-  MatrixScaleY := GR32_Math.Hypot(TotalTransform.Matrix[1, 0], TotalTransform.Matrix[1, 1]);
-  if MatrixScaleX <= 0 then
-    MatrixScaleX := 1.0;
-  if MatrixScaleY <= 0 then
-    MatrixScaleY := 1.0;
-
-  BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidth * MatrixScaleX)));
-  BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeight * MatrixScaleY)));
-
-  PatternBitmap := TBitmap32.Create;
-  try
-    PatternBitmap.SetSize(BitmapWidth, BitmapHeight);
-    PatternBitmap.DrawMode := dmBlend;
-
-    FTransformation.Push;
-    try
-      SavedViewport := FViewportRect;
-
-      FTransformation.Clear;
-      FViewportRect := FloatRect(0, 0, BitmapWidth, BitmapHeight);
-
-      // Sets up ContentMat to render pattern child geometry onto offscreen tile bitmap
-      ContentMat.Matrix := IdentityMatrix;
-      if APatternNode.ViewBox.IsValid then
-      begin
-        TileViewBox := APatternNode.ViewBox;
-        ContentMat.Matrix := TileViewBox.GetTransform(FloatRect(0, 0, BitmapWidth, BitmapHeight), APatternNode.PreserveAspectRatio);
-      end
-      else
-      if APatternNode.PatternContentUnits = guObjectBoundingBox then
-      begin
-        TileRatioX := BitmapWidth / TileWidth;
-        TileRatioY := BitmapHeight / TileHeight;
-        ContentMat.Scale(BoundsWidth * TileRatioX, BoundsHeight * TileRatioY);
-        ContentMat.Translate(-TileX * TileRatioX, -TileY * TileRatioY);
-      end
-      else
-      begin
-        TileRatioX := BitmapWidth / TileWidth;
-        TileRatioY := BitmapHeight / TileHeight;
-        ContentMat.Scale(TileRatioX, TileRatioY);
-        ContentMat.Translate(-TileX * TileRatioX, -TileY * TileRatioY);
-      end;
-
-      ApplyMatrix(ContentMat.Matrix);
-
-      for i := 0 to APatternNode.Children.Count - 1 do
-        RenderNode(PatternBitmap, APatternNode.Children[i]);
-
-    finally
-      FTransformation.Pop;
-      FViewportRect := SavedViewport;
-    end;
-
-    if (AOpacity < 1.0) then
-      PatternBitmap.MasterAlpha := Round(AOpacity * 255);
-
-    PatternFiller := TSvgPatternPolygonFiller.Create(PatternBitmap);
-
-    if IsIdentityMatrix(TotalTransform.Matrix) then
-    begin
-      // Pattern can be blitted 1:1 by filler
-      PatternFiller.AffineTransform := False;
-      PatternFiller.OffsetX := Round(TileX);
-      PatternFiller.OffsetY := Round(TileY);
-    end
-    else
-    begin
-      // Pattern must be transformed and sampled by filler
-      InvMat := TotalTransform.Matrix;
-      GR32_Transforms.Invert(InvMat);
-
-      PatternFiller.AffineTransform := True;
-      PatternFiller.InvMatrix := InvMat;
-      PatternFiller.TileX := TileX;
-      PatternFiller.TileY := TileY;
-      PatternFiller.TileWidth := TileWidth;
-      PatternFiller.TileHeight := TileHeight;
-      PatternFiller.ScaleBmpX := BitmapWidth / TileWidth;
-      PatternFiller.ScaleBmpY := BitmapHeight / TileHeight;
-    end;
-
-    Result := PatternFiller;
-  except
-    PatternBitmap.Free;
-    raise;
-  end;
-end;
-
 procedure TSvgRenderer.RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint;
   AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode);
 var
-  PaintServerNode: TSvgNode;
+  PaintServerNode: TSvgGroupNode;
   Bounds: TFloatRect;
   Filler: TCustomPolygonFiller;
   Color: TColor32;
+  PaintServerRenderer: TPaintServerRendererClass;
 begin
   if (APoints = nil) then
     exit;
@@ -1302,14 +945,17 @@ begin
   begin
     Bounds := GetPathBounds(APoints);
 
-    PaintServerNode := TSvgNode(APaintServer);
+    PaintServerNode := TSvgGroupNode(APaintServer);
 
     Filler := nil;
-    if PaintServerNode is TSvgGradientNode then
-      Filler := CreateGradientFiller(TSvgGradientNode(PaintServerNode), Bounds, AOpacity)
-    else
-    if PaintServerNode is TSvgPatternNode then
-      Filler := CreatePatternFiller(TSvgPatternNode(PaintServerNode), Bounds, AOpacity);
+    if (PaintServerNode is TSvgGradientNode) or (PaintServerNode is TSvgPatternNode) then
+    begin
+      // Get a paint server renderer...
+      PaintServerRenderer := TPaintServerRendererGradientClass(PaintServerNode.GetRenderClass);
+      if (PaintServerRenderer <> nil) then
+        // ...and get a filler from it
+        Filler := PaintServerRenderer.CreateFiller(Self, PaintServerNode, Bounds, AOpacity);
+    end;
 
     if (Filler = nil) then
       exit;
