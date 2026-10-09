@@ -2160,6 +2160,8 @@ var
   MarginX, MarginY, RadiusX, RadiusY: Integer;
   StrokeColor: TSvgColor;
   HasStroke: boolean;
+  FilterNode: TSvgFilterPrimitiveNode;
+  FilterRenderer: TFilterRendererClass;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
@@ -2371,41 +2373,13 @@ begin
         if not (Node is TSvgFilterPrimitiveNode) then
           Continue;
 
-        if Node is TSvgFeGaussianBlurNode then
-          TFilterRendererGaussianBlur.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeColorMatrixNode then
-          TFilterRendererColorMatrix.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeBlendNode then
-          TFilterRendererBlend.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeCompositeNode then
-          TFilterRendererComposite.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeMergeNode then
-          TFilterRendererMerge.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeOffsetNode then
-          TFilterRendererOffset.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeDropShadowNode then
-          TFilterRendererDropShadow.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeFloodNode then
-          TFilterRendererFlood.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeMorphologyNode then
-          TFilterRendererMorphology.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeComponentTransferNode then
-          TFilterRendererComponentTransfer.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeTurbulenceNode then
-          TFilterRendererTurbulence.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
-        else
-        if Node is TSvgFeDisplacementMapNode then
-          TFilterRendererDisplacementMap.Render(Self, TSvgFilterPrimitiveNode(Node), RenderData)
+        // Get the renderer that handles the filter node and...
+        FilterNode := TSvgFilterPrimitiveNode(Node);
+        FilterRenderer := TFilterRendererClass(FilterNode.GetRenderClass);
+
+        // ...and render if we got one
+        if (FilterRenderer <> nil) then
+          FilterRenderer.Render(Self, FilterNode, RenderData)
         else
         begin
           // Unsupported filter; Keep the current intermediate result and let
@@ -2443,7 +2417,7 @@ begin
           // in case the filter failed to do it.
           ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-          if TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
+          if FilterNode.IsReferenceTarget then
           begin
             RenderData.UnnamedSurface := nil; // Transfer ownership of the bitmap to NamedSurfaces[]
             RenderData.NamedSurfaces[Count] := RenderData.CurrentSurface;

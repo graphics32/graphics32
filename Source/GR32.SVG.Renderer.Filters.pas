@@ -73,6 +73,8 @@ type
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); virtual; abstract;
   end;
 
+  TFilterRendererClass = class of TFilterRenderer;
+
 //------------------------------------------------------------------------------
 //
 //      TFilterRendererGaussianBlur
@@ -1470,4 +1472,22 @@ begin
   end;
 end;
 
+procedure RegisterRenderers;
+begin
+  TSvgFeGaussianBlurNode.RegisterRenderClass(TFilterRendererGaussianBlur);
+  TSvgFeColorMatrixNode.RegisterRenderClass(TFilterRendererColorMatrix);
+  TSvgFeBlendNode.RegisterRenderClass(TFilterRendererBlend);
+  TSvgFeCompositeNode.RegisterRenderClass(TFilterRendererComposite);
+  TSvgFeMergeNode.RegisterRenderClass(TFilterRendererMerge);
+  TSvgFeOffsetNode.RegisterRenderClass(TFilterRendererOffset);
+  TSvgFeDropShadowNode.RegisterRenderClass(TFilterRendererDropShadow);
+  TSvgFeFloodNode.RegisterRenderClass(TFilterRendererFlood);
+  TSvgFeMorphologyNode.RegisterRenderClass(TFilterRendererMorphology);
+  TSvgFeComponentTransferNode.RegisterRenderClass(TFilterRendererComponentTransfer);
+  TSvgFeTurbulenceNode.RegisterRenderClass(TFilterRendererTurbulence);
+  TSvgFeDisplacementMapNode.RegisterRenderClass(TFilterRendererDisplacementMap);
+end;
+
+initialization
+  RegisterRenderers;
 end.

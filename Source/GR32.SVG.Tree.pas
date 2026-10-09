@@ -735,7 +735,7 @@ type
 //------------------------------------------------------------------------------
 // SVG Filter AST Node Hierarchy
 //------------------------------------------------------------------------------
-  TSvgFilterPrimitiveNode = class(TSvgGroupNode)
+  TSvgFilterPrimitiveNode = class abstract(TSvgGroupNode)
   private
     FIn1: UTF8String;
     FIn2: UTF8String;
@@ -748,6 +748,11 @@ type
   public
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+
+    // Tree->Renderer dispatch via VMT patching
+    class procedure RegisterRenderClass(RenderClass: TClass); virtual; final;
+    class function GetRenderClass: TClass; virtual; final;
+
     property In1: UTF8String read FIn1 write FIn1;
     property In2: UTF8String read FIn2 write FIn2;
     property ResultName: UTF8String read FResult write FResult;
@@ -1566,6 +1571,12 @@ const
 implementation
 
 uses
+{$if defined(MSWINDOWS)}
+  Windows,
+{$elseif defined(POSIX)}
+  Posix.SysMman,
+  Posix.Unistd;
+{$ifend}
   Generics.Defaults,
   Types,
   Math,
@@ -4212,6 +4223,60 @@ function TSvgFilterPrimitiveNode.GetIsReferenceTarget: boolean;
 begin
   Result := (FResult <> ''); // TODO : Replace with boolean flag
 end;
+
+{$if defined(MSWINDOWS)}
+function PatchPointer(const Address, Value: Pointer): Boolean;
+var
+  OldProtect: DWORD;
+begin
+  Result := VirtualProtect(Address, SizeOf(Pointer), PAGE_READWRITE, OldProtect);
+
+  if (Result) then
+  begin
+    PPointer(Address)^ := Value;
+
+    VirtualProtect(Address, SizeOf(Pointer), OldProtect, OldProtect);
+  end;
+end;
+{$elseif defined(POSIX)}
+var
+  PosixPageSize: Integer = 0;
+
+function PatchPointer(const Address, Value: Pointer): Boolean;
+var
+  AlignedAddress: UIntPtr;
+begin
+  AlignedAddress := UIntPtr(Address) and (not (PosixPageSize - 1));
+
+  Result := (mprotect(Pointer(AlignedAddress), PosixPageSize, PROT_READ or PROT_WRITE) = 0);
+
+  if (Result) then
+    PPointer(Address)^ := Value;
+end;
+{$else}
+function PatchPointer(const Address, Value: Pointer): Boolean;
+begin
+  Result := False;
+end;
+{$ifend}
+
+// Note: We use the vmtAutoTable VMT slot to store a pointer to the
+// filter renderer associated with the class.
+// This allows us to maintain the separation between the AST and the Renderer
+// layer and to avoid making the AST dependent on a specific renderer
+// implementation.
+// The vmtAutoTable slot is only used by the obsolete Delphi 2 "automated"
+// keyword and should be completely safe to hijack for this purpose.
+class procedure TSvgFilterPrimitiveNode.RegisterRenderClass(RenderClass: TClass);
+begin
+  PatchPointer(@PByte(Self)[vmtAutoTable], RenderClass);
+end;
+
+class function TSvgFilterPrimitiveNode.GetRenderClass: TClass;
+begin
+  Result := TClass(PPointer(@PByte(Self)[vmtAutoTable])^);
+end;
+
 
 
 //------------------------------------------------------------------------------
@@ -7566,4 +7631,7 @@ end;
 
 initialization
   InitializeKeywordDictionaries;
+{$if defined(POSIX)}
+  PosixPageSize := sysconf(_SC_PAGESIZE);
+{$ifend}
 end.
