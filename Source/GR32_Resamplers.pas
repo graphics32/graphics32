@@ -3848,7 +3848,7 @@ end;
 //
 //------------------------------------------------------------------------------
 const
-  // Because the gaussian function has inifinite extent we need to limit the
+  // Because the gaussian function has infinite extent we need to limit the
   // width of the window to something reasonable.
   // Often the limit (width) is set to "Full Width at Half Maximum" (FWHM) by
   // calculing the ratio between Radius and Sigma as

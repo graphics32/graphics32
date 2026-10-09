@@ -1707,7 +1707,7 @@ begin
   proc := GetCurrentProcess;
   if QueryProcessCycleTime(proc, cycleTime) then
     Exit(cycleTime * TCPUInfo.cycleDuration);
-  DiagnoseAndExit('GetProccessTimes() failed');
+  DiagnoseAndExit('GetProcessTimes() failed');
   Result := 0;
 end;
 {$ELSE}
@@ -2212,7 +2212,7 @@ begin
 end;
 
 // This data structure will contain the result returned by MinimalLeastSq
-//   - coef        : Estimated coeficient for the high-order term as
+//   - coef        : Estimated coefficient for the high-order term as
 //                   interpolated from data.
 //   - rms         : Normalized Root Mean Squared Error.
 //   - complexity  : Scalability form (e.g. oN, oNLogN). In case a scalability
@@ -4106,7 +4106,7 @@ begin
 
   if info.loadAvg <> nil then
   begin
-    Write('Load Averge: ');
+    Write('Load Average: ');
     for i := 0 to High(info.loadAvg) do
     begin
       Write('%.2f', [info.loadAvg[i]]);
@@ -4644,7 +4644,7 @@ begin
     fOutputStream.WriteData(indent + FormatKV('aggregate_name', run.aggregateName) + ',' + sLineBreak);
   if run.errorOccurred then
   begin
-    fOutputStream.WriteData(indent + FormatKV('error_occured', run.errorOccurred) + ',' + sLineBreak);
+    fOutputStream.WriteData(indent + FormatKV('error_occurred', run.errorOccurred) + ',' + sLineBreak);
     fOutputStream.WriteData(indent + FormatKV('error_message', run.errorMessage) + ',' + sLineBreak);
   end;
   if not run.reportBigO and not run.reportRms then
@@ -4909,7 +4909,7 @@ begin
 //      memory_manager->Stop(&memory_result);
 //    }
 
-  // Ok, now actualy report.
+  // Ok, now actually report.
   report := CreateRunReport(benchmark, i.results, memoryIterations,{ memory_result,}
                             i.seconds, repetitionIndex);
 
