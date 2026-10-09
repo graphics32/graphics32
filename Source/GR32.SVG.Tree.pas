@@ -7483,7 +7483,7 @@ var
     end else
     begin
 
-      while (AParser.Kind not in [xtEof, xtError]) and (AParser.Depth >= startDepth) do
+      while (not (AParser.Kind in [xtEof, xtError])) and (AParser.Depth >= startDepth) do
         AParser.ParseNext;
 
       if AParser.Kind = xtElementEnd then
