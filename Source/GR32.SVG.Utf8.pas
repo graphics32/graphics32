@@ -916,7 +916,7 @@ begin
 
   Value := TValuePUtf8Char.FromString(AValue);
   FromText := Text;
-  while (FromLen > 0) do
+  while (FromLen >= 0) do
   begin
     i := Value.Len - 1;
     Result := True;
