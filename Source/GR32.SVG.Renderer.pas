@@ -35,6 +35,7 @@ interface
 {$include GR32.inc}
 
 {$define USE_SIMD_MASK_FILTERS}
+{-$define ROI_DEBUGDRAW} // Visualize ROI
 
 uses
   SysUtils, Classes, Graphics, Generics.Collections,
@@ -848,6 +849,19 @@ var
 begin
   if (ASource = nil) or (ATarget = nil) then
     Exit;
+
+{$if defined(ROI_DEBUGDRAW)}
+  if (ATarget <> nil) then
+  begin
+    var DebugRect := ASource.BoundsRect;
+    GR32.OffsetRect(DebugRect, AX, AY);
+    var DebugColor := Random($7F) or (Random($7F) shl 8) or (Random($7F) shl 16);
+    ATarget.FrameRectTS(DebugRect, $7F000000 or DebugColor);
+    GR32.InflateRect(DebugRect, 1, 1);
+    DebugColor := (DebugColor shl 1);
+    ATarget.FillRectTS(DebugRect, $3F000000 or DebugColor);
+  end;
+{$ifend}
 
   if (ABlendMode <> bmNormal) then
   begin
