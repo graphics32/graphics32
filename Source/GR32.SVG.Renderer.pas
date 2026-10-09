@@ -1802,8 +1802,7 @@ var
   StrokeWidth, BBoxWidth, BBoxHeight, RegionLeft, RegionTop, RegionWidth, RegionHeight: Single;
   NodeBounds: TFloatRect;
   Pts: array[0..3] of TFloatPoint;
-  Margin: TFloatRect;
-  MarginX, MarginY, RadiusX, RadiusY: Integer;
+  Margin, TotalMargin: TFloatRect;
   StrokeColor: TSvgColor;
   HasStroke: boolean;
   FilterNode: TSvgFilterPrimitiveNode;
@@ -1873,44 +1872,25 @@ begin
       end;
     end;
 
-    // 2. Calculate filter-dependent margins (e.g. Gaussian blur radius, offset dx/dy)
-    MarginX := 0;
-    MarginY := 0;
+    // 2. Calculate filter-dependent directional margins (e.g. Gaussian blur radius, offset dx/dy)
+    TotalMargin := Default(TFloatRect);
     for Node in AFilterNode.Children do
     begin
-      if Node is TSvgFeGaussianBlurNode then
-      begin
-        Margin := TFilterRendererGaussianBlur.GetMargins(TSvgFeGaussianBlurNode(Node), RenderData.Scale);
+      if not (Node is TSvgFilterPrimitiveNode) then
+        Continue;
 
-        RadiusX := Ceil(Margin.Left);
-        RadiusY := Ceil(Margin.Top);
-        if RadiusX > MarginX then MarginX := RadiusX;
-        if RadiusY > MarginY then MarginY := RadiusY;
-      end else
-      if Node is TSvgFeOffsetNode then
-      begin
-        Margin := TFilterRendererOffset.GetMargins(TSvgFeOffsetNode(Node), RenderData.Scale);
-        MarginX := MarginX + Ceil(Margin.Left);
-        MarginY := MarginY + Ceil(Margin.Top);
-      end else
-      if Node is TSvgFeDropShadowNode then
-      begin
-        Margin := TFilterRendererDropShadow.GetMargins(TSvgFeDropShadowNode(Node), RenderData.Scale);
-        MarginX := MarginX + Ceil(Margin.Left);
-        MarginY := MarginY + Ceil(Margin.Top);
-      end else
-      if Node is TSvgFeMorphologyNode then
-      begin
-        Margin := TFilterRendererMorphology.GetMargins(TSvgFeMorphologyNode(Node), RenderData.Scale);
-        MarginX := MarginX + Ceil(Margin.Left);
-        MarginY := MarginY + Ceil(Margin.Top);
-      end else
-      if Node is TSvgFeDisplacementMapNode then
-      begin
-        Margin := TFilterRendererDisplacementMap.GetMargins(TSvgFeDisplacementMapNode(Node), RenderData.Scale);
-        MarginX := MarginX + Ceil(Margin.Left);
-        MarginY := MarginY + Ceil(Margin.Top);
-      end;
+      FilterNode := TSvgFilterPrimitiveNode(Node);
+      FilterRenderer := TFilterRendererClass(FilterNode.GetRenderClass);
+
+      if (FilterRenderer <> nil) then
+        Margin := FilterRenderer.GetMargins(FilterNode, RenderData.Scale)
+      else
+        Margin := Default(TFloatRect);
+
+      TotalMargin.Left := TotalMargin.Left + Margin.Left;
+      TotalMargin.Top := TotalMargin.Top + Margin.Top;
+      TotalMargin.Right := TotalMargin.Right + Margin.Right;
+      TotalMargin.Bottom := TotalMargin.Bottom + Margin.Bottom;
     end;
 
     // Calculate filter region defined on AFilterNode (x, y, width, height, filterUnits)
@@ -1962,8 +1942,10 @@ begin
     end;
 
     // 3. Inflate source bounds by filter margins to determine total Filter ROI, then clip to FilterRegionRect
-    FilterBounds := SourceBounds;
-    GR32.InflateRect(FilterBounds, MarginX, MarginY);
+    FilterBounds.Left := SourceBounds.Left - Ceil(TotalMargin.Left);
+    FilterBounds.Top := SourceBounds.Top - Ceil(TotalMargin.Top);
+    FilterBounds.Right := SourceBounds.Right + Ceil(TotalMargin.Right);
+    FilterBounds.Bottom := SourceBounds.Bottom + Ceil(TotalMargin.Bottom);
 
     if FilterBounds.Left < FilterRegionRect.Left then FilterBounds.Left := FilterRegionRect.Left;
     if FilterBounds.Top < FilterRegionRect.Top then FilterBounds.Top := FilterRegionRect.Top;

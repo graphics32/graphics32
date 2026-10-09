@@ -769,11 +769,15 @@ end;
 //------------------------------------------------------------------------------
 
 class function TFilterRendererOffset.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+var
+  Dx, Dy: Single;
 begin
-  Result.Left := TSvgFeOffsetNode(Node).Dx * Scale;
-  Result.Top := TSvgFeOffsetNode(Node).Dy * Scale;
-  Result.Right := Result.Left;
-  Result.Bottom := Result.Top;
+  Dx := TSvgFeOffsetNode(Node).Dx * Scale;
+  Dy := TSvgFeOffsetNode(Node).Dy * Scale;
+  Result.Left := Max(0.0, -Dx);
+  Result.Top := Max(0.0, -Dy);
+  Result.Right := Max(0.0, Dx);
+  Result.Bottom := Max(0.0, Dy);
 end;
 
 class procedure TFilterRendererOffset.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
@@ -1161,15 +1165,17 @@ end;
 class function TFilterRendererDropShadow.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
 var
   DropNode: TSvgFeDropShadowNode;
-  BlurRadX, BlurRadY: Single;
+  BlurRadX, BlurRadY, Dx, Dy: Single;
 begin
   DropNode := TSvgFeDropShadowNode(Node);
   BlurRadX := DropNode.StdDeviationX * GaussianSigmaToRadius * Scale + 2;
   BlurRadY := DropNode.StdDeviationY * GaussianSigmaToRadius * Scale + 2;
-  Result.Left := Abs(DropNode.Dx) * Scale + BlurRadX;
-  Result.Top := Abs(DropNode.Dy) * Scale + BlurRadY;
-  Result.Right := Result.Left;
-  Result.Bottom := Result.Top;
+  Dx := DropNode.Dx * Scale;
+  Dy := DropNode.Dy * Scale;
+  Result.Left := Max(0.0, -Dx) + BlurRadX;
+  Result.Top := Max(0.0, -Dy) + BlurRadY;
+  Result.Right := Max(0.0, Dx) + BlurRadX;
+  Result.Bottom := Max(0.0, Dy) + BlurRadY;
 end;
 
 class procedure TFilterRendererDropShadow.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);

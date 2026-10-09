@@ -101,6 +101,7 @@ type
     procedure TestPatternTransform;
     procedure TestGradientTransformObjectBoundingBox;
     procedure TestFeGaussianBlurDirectional;
+    procedure TestDirectionalFilterOffsetRoi;
     procedure TestThemeFillAndStrokeColor;
     procedure TestConicalGradientRendering;
   end;
@@ -1704,6 +1705,52 @@ begin
         // Region far outside ROI (10, 10) and (450, 450) must remain untouched white background
         CheckEquals(clWhite32, bmp.Pixel[10, 10], 'Pixel far outside ROI at (10,10) must remain white');
         CheckEquals(clWhite32, bmp.Pixel[450, 450], 'Pixel far outside ROI at (450,450) must remain white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestDirectionalFilterOffsetRoi;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(400, 400);
+    bmp.Clear(clWhite32);
+
+    // Filter with positive offset dx=50, dy=50
+    xml := '<svg width="400" height="400">' +
+           '  <defs>' +
+           '    <filter id="f_offset" x="-50%" y="-50%" width="200%" height="200%">' +
+           '      <feOffset dx="50" dy="50"/>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <rect x="100" y="100" width="50" height="50" fill="red" filter="url(#f_offset)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Offset filter docNode should not be nil');
+    try
+      docNode.Resolve;
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Original rect at (100, 100, 150, 150) shifted by (+50, +50) is now at (150, 150, 200, 200)
+        Check(RedComponent(bmp.Pixel[175, 175]) > 200, 'Shifted rect center (175,175) should be red');
+
+        // Top-left area before offset (80, 80) should remain white (not inflated symmetrically)
+        CheckEquals(clWhite32, bmp.Pixel[80, 80], 'Unexpanded top-left region (80,80) must remain white');
       finally
         renderer.Free;
       end;
