@@ -748,10 +748,16 @@ type
     FResult: UTF8String;
     FResolvedIn1: TSvgFilterInput;
     FResolvedIn2: TSvgFilterInput;
+    FX: TSvgLength;
+    FY: TSvgLength;
+    FWidth: TSvgLength;
+    FHeight: TSvgLength;
     function GetIsReferenceTarget: boolean;
   protected
     function GetIsRenderable: Boolean; override;
+    function DumpNode(Indent: Integer = 0): string; override;
   public
+    constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
 
@@ -761,6 +767,10 @@ type
     property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
     property ResolvedIn2: TSvgFilterInput read FResolvedIn2 write FResolvedIn2;
     property IsReferenceTarget: boolean read GetIsReferenceTarget;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+    property Width: TSvgLength read FWidth write FWidth;
+    property Height: TSvgLength read FHeight write FHeight;
   end;
 
 
@@ -4241,6 +4251,15 @@ end;
 //      TSvgFilterPrimitiveNode
 //
 //------------------------------------------------------------------------------
+constructor TSvgFilterPrimitiveNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX := TSvgLength.Create(0.0, suPercent);
+  FY := TSvgLength.Create(0.0, suPercent);
+  FWidth := TSvgLength.Create(100.0, suPercent);
+  FHeight := TSvgLength.Create(100.0, suPercent);
+end;
+
 function TSvgFilterPrimitiveNode.GetIsRenderable: Boolean;
 begin
   Result := False;
@@ -4256,6 +4275,10 @@ begin
   primRes.FResult := FResult;
   primRes.FResolvedIn1 := FResolvedIn1;
   primRes.FResolvedIn2 := FResolvedIn2;
+  primRes.FX := FX;
+  primRes.FY := FY;
+  primRes.FWidth := FWidth;
+  primRes.FHeight := FHeight;
   Result := primRes;
 end;
 
@@ -4270,9 +4293,32 @@ begin
 
     attrResult:
       FResult := AValue.ToUtf8;
+
+    attrX:
+      FX := TSvgLength.Parse(AValue);
+
+    attrY:
+      FY := TSvgLength.Parse(AValue);
+
+    attrWidth:
+      FWidth := TSvgLength.Parse(AValue);
+
+    attrHeight:
+      FHeight := TSvgLength.Parse(AValue);
   else
     inherited ParseAttribute(AKeyword, AValue);
   end;
+end;
+
+function TSvgFilterPrimitiveNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  if (FX.Value <> 0.0) or (FX.UnitType <> suPercent) or
+     (FY.Value <> 0.0) or (FY.UnitType <> suPercent) or
+     (FWidth.Value <> 100.0) or (FWidth.UnitType <> suPercent) or
+     (FHeight.Value <> 100.0) or (FHeight.UnitType <> suPercent) then
+    Result := Result + Format(' (x=%s, y=%s, width=%s, height=%s)',
+      [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight)]);
 end;
 
 function TSvgFilterPrimitiveNode.GetIsReferenceTarget: boolean;
