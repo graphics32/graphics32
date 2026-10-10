@@ -695,6 +695,7 @@ var
   cmNode: TSvgFeColorMatrixNode;
   offsetNode: TSvgFeOffsetNode;
   floodNode: TSvgFeFloodNode;
+  tileNode: TSvgFeTileNode;
   rectNode: TSvgNode;
 begin
   xml := '<svg width="200" height="200">' +
@@ -704,8 +705,9 @@ begin
          '      <feColorMatrix in="blurRes" type="saturate" values="2" result="cmRes"/>' +
          '      <feOffset in="cmRes" dx="5" dy="10" result="offRes"/>' +
          '      <feFlood flood-color="red" flood-opacity="0.8" result="floodRes"/>' +
+         '      <feTile in="offRes" result="tileRes"/>' +
          '      <feMerge>' +
-         '        <feMergeNode in="offRes"/>' +
+         '        <feMergeNode in="tileRes"/>' +
          '        <feMergeNode in="SourceGraphic"/>' +
          '      </feMerge>' +
          '    </filter>' +
@@ -719,7 +721,12 @@ begin
     filterNode := TSvgFilterNode(docNode.FindNodeById('f1'));
     Check(filterNode <> nil, 'filterNode "f1" should exist');
     Check(not filterNode.IsRenderable, 'Filter container node should not be renderable directly');
-    CheckEquals(5, filterNode.Children.Count, 'Filter should contain 5 primitive child nodes');
+    CheckEquals(6, filterNode.Children.Count, 'Filter should contain 6 primitive child nodes');
+
+    tileNode := TSvgFeTileNode(filterNode.Children[4]);
+    Check(tileNode <> nil, 'tileNode should be instantiated as TSvgFeTileNode');
+    CheckEquals('offRes', tileNode.In1);
+    CheckEquals('tileRes', tileNode.ResultName);
 
     blurNode := TSvgFeGaussianBlurNode(filterNode.Children[0]);
     CheckEquals('SourceGraphic', blurNode.In1);

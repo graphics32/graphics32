@@ -102,6 +102,8 @@ type
     procedure TestGradientTransformObjectBoundingBox;
     procedure TestFeGaussianBlurDirectional;
     procedure TestDirectionalFilterOffsetRoi;
+    procedure TestFeTileFilterRendering;
+    procedure TestFilterPrimitiveSubregionAllocation;
     procedure TestThemeFillAndStrokeColor;
     procedure TestConicalGradientRendering;
   end;
@@ -283,6 +285,117 @@ begin
         // With markerWidth=5 (radius 2.5 in viewBox = 12.5 px on 500x500 canvas), (145, 220) is 30 px away and MUST remain white background!
         // If double-scaled, marker radius would be 12.5 * 5 = 62.5 px and fill (145, 220) with red.
         CheckEquals(clWhite32, bmp.Pixel[145, 220], 'Pixel 30px away from marker center must remain white (marker is not double-scaled)');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // Test W3C filters-offset-01-b.svg (filterUnits="objectBoundingBox", primitiveUnits default "userSpaceOnUse")
+    xml := '<svg width="480" height="360" viewBox="0 0 480 360">' +
+           '  <defs>' +
+           '    <filter id="FOMTest" filterUnits="objectBoundingBox" x="0" y="0" width="2.5" height="4">' +
+           '      <feOffset result="Off1" dx="40" dy="30"/>' +
+           '      <feFlood result="F1" flood-color="#408000" flood-opacity=".8"/>' +
+           '      <feComposite in2="Off1" operator="in" result="C1"/>' +
+           '      <feOffset in="SourceGraphic" result="Off2" dx="80" dy="60"/>' +
+           '      <feFlood result="F2" flood-color="#408000" flood-opacity=".6"/>' +
+           '      <feComposite in2="Off2" operator="in" result="C2"/>' +
+           '      <feOffset in="SourceGraphic" result="Off3" dx="120" dy="90"/>' +
+           '      <feFlood result="F3" flood-color="#408000" flood-opacity=".4"/>' +
+           '      <feComposite in2="Off3" operator="in" result="C3"/>' +
+           '      <feMerge>' +
+           '        <feMergeNode in="C3"/>' +
+           '        <feMergeNode in="C2"/>' +
+           '        <feMergeNode in="C1"/>' +
+           '        <feMergeNode in="SourceGraphic"/>' +
+           '      </feMerge>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <circle cx="160" cy="50" r="40" fill="#000" filter="url(#FOMTest)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'FOMTest docNode should not be nil');
+    try
+      docNode.Resolve;
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        bmp.SetSize(480, 360);
+        bmp.Clear(clWhite32);
+        renderer.RenderDocument(docNode);
+
+        // Outside filter region at (50, 50) should remain pure white
+        CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Pixel outside filter region at (50, 50) should remain white');
+
+        // Original circle center (160, 50) should be black
+        CheckEquals(clBlack32, bmp.Pixel[160, 50], 'Original circle center at (160, 50) should be black');
+
+        // Offset circle 1 at (160+40, 50+30) = (200, 80) should be green (flood color #408000)
+        Check(GreenComponent(bmp.Pixel[200, 80]) > 100, 'Offset circle 1 at (200, 80) should contain green flood color');
+
+        // Offset circle 2 at (160+80, 50+60) = (240, 110) should be green
+        Check(GreenComponent(bmp.Pixel[240, 110]) > 100, 'Offset circle 2 at (240, 110) should contain green flood color');
+
+        // Offset circle 3 at (160+120, 50+90) = (280, 140) should be green
+        Check(GreenComponent(bmp.Pixel[280, 140]) > 100, 'Offset circle 3 at (280, 140) should contain green flood color');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFilterPrimitiveSubregionAllocation;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(500, 400);
+    bmp.Clear(clBlack32);
+
+    xml := '<svg viewBox="0 0 500 400" width="500" height="400">' +
+           '  <defs>' +
+           '    <filter id="feTileFilter" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="115" y="40" width="250" height="250">' +
+           '      <feFlood x="115" y="40" width="54" height="19" flood-color="lime" result="flood"/>' +
+           '      <feOffset in="flood" x="115" y="40" width="50" height="25" dx="6" dy="6" result="offset"/>' +
+           '      <feTile in="offset"/>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <rect x="115" y="40" width="250" height="250" filter="url(#feTileFilter)" />' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'feTileFilter docNode should not be nil');
+    try
+      docNode.Resolve;
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Outside filter region at (50, 20) should remain black
+        CheckEquals(clBlack32, bmp.Pixel[50, 20], 'Pixel outside filter region at (50, 20) should remain black');
+
+        // Inside tile 1 at (115+10, 40+10) = (125, 50), lime green shadow from offset tile should be visible
+        Check(GreenComponent(bmp.Pixel[125, 50]) > 200, 'Inside tile 1 at (125, 50) should be lime');
+
+        // Inside tile 1 transparent offset margin at (115+2, 40+2) = (117, 42) should remain black
+        CheckEquals(clBlack32, bmp.Pixel[117, 42], 'Inside tile 1 offset margin at (117, 42) should be black');
+
+        // Repeated tile 2 at (115+50+10, 40+10) = (175, 50) should be lime
+        Check(GreenComponent(bmp.Pixel[175, 50]) > 200, 'Repeated tile 2 at (175, 50) should be lime');
+
+        // Repeated tile 3 vertically at (125, 40+25+10) = (125, 75) should be lime
+        Check(GreenComponent(bmp.Pixel[125, 75]) > 200, 'Repeated tile 3 vertically at (125, 75) should be lime');
       finally
         renderer.Free;
       end;
@@ -1705,6 +1818,56 @@ begin
         // Region far outside ROI (10, 10) and (450, 450) must remain untouched white background
         CheckEquals(clWhite32, bmp.Pixel[10, 10], 'Pixel far outside ROI at (10,10) must remain white');
         CheckEquals(clWhite32, bmp.Pixel[450, 450], 'Pixel far outside ROI at (450,450) must remain white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeTileFilterRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    // Filter creates a 20x20 red offset tile and repeats it across a 200x200 canvas via feTile
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <filter id="f_tile" x="0%" y="0%" width="100%" height="100%">' +
+           '      <feOffset in="SourceGraphic" dx="0" dy="0" result="tilePattern"/>' +
+           '      <feTile in="tilePattern"/>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <rect x="0" y="0" width="20" height="20" fill="red" filter="url(#f_tile)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'feTile docNode should not be nil');
+    try
+      docNode.Resolve;
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Tile 1 at (10, 10) should be red
+        Check(RedComponent(bmp.Pixel[10, 10]) > 200, 'Tile 1 at (10,10) should be red');
+
+        // Tile 2 repeated at (30, 10) (outside original 20x20 rect) should be red via feTile
+        Check(RedComponent(bmp.Pixel[30, 10]) > 200, 'Repeated tile 2 at (30,10) should be red');
+
+        // Tile 3 repeated at (110, 110) should also be red via feTile
+        Check(RedComponent(bmp.Pixel[110, 110]) > 200, 'Repeated tile 3 at (110,110) should be red');
       finally
         renderer.Free;
       end;

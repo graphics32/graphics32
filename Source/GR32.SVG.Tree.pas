@@ -1350,6 +1350,20 @@ type
     property YChannelSelector: TSvgChannelSelector read FYChannelSelector write FYChannelSelector;
   end;
 
+//------------------------------------------------------------------------------
+//
+//      TSvgFeTileNode
+//
+//------------------------------------------------------------------------------
+// Filter: feTile
+//------------------------------------------------------------------------------
+  TSvgFeTileNode = class(TSvgFilterPrimitiveNode)
+  protected
+    function GetElementTag: UTF8String; override;
+  public
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+  end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -1783,14 +1797,14 @@ type
     tagLineargradient, tagRadialgradient, tagConicgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
     tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence,
-    tagFedisplacementmap, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
+    tagFedisplacementmap, tagFetile, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of UTF8String = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'conicGradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap',
+    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap', 'feTile',
     'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
   );
 
@@ -6210,6 +6224,22 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeTileNode
+//
+//------------------------------------------------------------------------------
+function TSvgFeTileNode.GetElementTag: UTF8String;
+begin
+  Result := 'fetile';
+end;
+
+function TSvgFeTileNode.Clone(AParent: TSvgNode): TSvgNode;
+begin
+  Result := TSvgFeTileNode(inherited Clone(AParent));
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
@@ -7236,6 +7266,12 @@ var
         tagFedisplacementmap:
           begin
             node := TSvgFeDisplacementMapNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFetile:
+          begin
+            node := TSvgFeTileNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 
