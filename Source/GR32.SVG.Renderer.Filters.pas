@@ -701,7 +701,7 @@ class procedure TFilterRendererColorMatrix.Render(Renderer: TSvgRenderer; Node: 
           begin
             // W3C SVG / Rec. 709 luminance: Y = 0.2126*R + 0.7152*G + 0.0722*B
             // Note: Do not use ColorLightness as that depends on various compiler defines
-            pDest.ARGB := Luminance709(pSource.ARGB);
+            pDest.ARGB := Luminance709(pSource.ARGB) shl 24;
 
             Inc(pSource);
             Inc(pDest);
