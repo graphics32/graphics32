@@ -2721,9 +2721,9 @@ begin
   Result := CheckRequiredFeatures and CheckRequiredExtensions and CheckSystemLanguage;
 end;
 
-function ExtractUrlID(const AUrlStr: UTF8String): TValuePUtf8Char;
+function ExtractUrlID(const AURL: TValuePUtf8Char): TValuePUtf8Char; overload;
 begin
-  Result := TValuePUtf8Char.FromString(AUrlStr);
+  Result := AURL;
   Result.Trim;
   Result.TrimEnd;
   Result.Trim(['#']);
@@ -2737,6 +2737,11 @@ begin
 
     Result.TrimQuotes;
   end;
+end;
+
+function ExtractUrlID(const AUrlStr: UTF8String): TValuePUtf8Char; overload;
+begin
+  Result := ExtractUrlID(TValuePUtf8Char.FromString(AUrlStr));
 end;
 
 procedure TSvgNode.ParseStyleAttribute(AStyleStr: TValuePUtf8Char);
@@ -5495,9 +5500,10 @@ type
     if (ANode = nil) then
       exit;
 
-    if (ANode.FilterID <> '') then
+    ID := TValuePUtf8Char.FromString(ANode.FilterID);
+    if (ID.Len > 0) and (not ID.CompareText('none')) then // Do not resolve 'none' filter
     begin
-      ID := ExtractUrlID(ANode.FilterID);
+      ID := ExtractUrlID(ID);
       TargetNode := ANode.FindNodeById(ID);
 
       if (TargetNode is TSvgFilterNode) then

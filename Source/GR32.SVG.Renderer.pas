@@ -2142,6 +2142,9 @@ begin
         // CurrentSurface.Bitmap=SourceGraphic will be true if no filter has yet produced anything.
         if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic) then
         begin
+          // Note that RenderData.CurrentSurface.Bitmap can be nil here if the
+          // filter didn't produce anything.
+
           // UnnamedSurface should be nil, but release anything it points to just
           // in case the filter failed to do it.
           ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
@@ -2161,7 +2164,7 @@ begin
         ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
       // 6. Blend final filtered result surface onto target canvas at full resolution
-      if (RenderData.CurrentSurface.Bitmap <> nil) then
+      if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic) then
         BlendOffscreenSurface(ATarget, RenderData.CurrentSurface.Bitmap, bmNormal,
           RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
           RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
@@ -3277,9 +3280,12 @@ begin
   try
 
     // Filter processing takes precedence over direct element rendering
-    if ANode.ResolvedFilter <> nil then
+    if (ANode.FilterID <> '') then
     begin
-      RenderFilter(ATarget, ANode.ResolvedFilter, ANode);
+      // Exit without rendering when a filter ID is specified but not
+      // resolved (W3C SVG 1.1 §15.2).
+      if ANode.ResolvedFilter <> nil then
+        RenderFilter(ATarget, ANode.ResolvedFilter, ANode);
       Exit;
     end;
 

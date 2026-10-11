@@ -67,6 +67,7 @@ type
     procedure TestMixBlendModeAndIsolationRendering;
     procedure TestSymbolRendering;
     procedure TestFilterRendering;
+    procedure TestNullAndUnresolvedFilterRendering;
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
     procedure TestFeCompositeDropShadowRendering;
@@ -2823,6 +2824,44 @@ begin
 
     CheckEquals(clBlue32, pCenter, 'Original rect position should be painted blue');
     CheckEquals(clBlue32, pOffset, 'Offset merged rect position should also be painted blue');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestNullAndUnresolvedFilterRendering;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // Test null and unresolved filters per SVG 1.1 spec (filters-felem-01-b.svg testcase)
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="null"/>' +
+         '    <filter id="nullreg" filterUnits="objectBoundingBox" x="40%" y="40%" width="20%" height="20%"/>' +
+         '  </defs>' +
+         '  <rect x="0" y="0" width="200" height="200" fill="lime"/>' +
+         '  <circle cx="50" cy="50" r="40" fill="red" filter="url(#notthere)"/>' +
+         '  <circle cx="150" cy="50" r="40" fill="red" filter="url(#null)"/>' +
+         '  <circle cx="50" cy="150" r="40" fill="red" filter="url(#nullreg)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    CheckEquals(clLime32, bmp.Pixel[50, 50], 'Non-existent filter should render transparent black, leaving lime background visible');
+    CheckEquals(clLime32, bmp.Pixel[150, 50], 'Null filter element should render transparent black, leaving lime background visible');
+    CheckEquals(clLime32, bmp.Pixel[50, 150], 'Null filter with small region should render transparent black, leaving lime background visible');
   finally
     renderer.Free;
     bmp.Free;
