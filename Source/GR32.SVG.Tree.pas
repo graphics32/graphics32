@@ -5299,13 +5299,12 @@ type
       Mid := L + (H - L) div 2;
       Cmp := Value.CompareOrdinal(NamedResults[Mid].Name);
       if (Cmp < 0) then
+        H := Mid - 1
+      else
+      if (Cmp > 0) then
         L := Mid + 1
       else
-      begin
-        H := Mid - 1;
-        if (Cmp = 0) then
-          Exit(NamedResults[Mid].Index);
-      end;
+        Exit(NamedResults[Mid].Index);
     end;
     Result := -1;
   end;
@@ -5320,11 +5319,11 @@ type
     while (L <= H) do
     begin
       Mid := L + (H - L) div 2;
-      Cmp := UTF8Tools.CompareOrdinal(NamedResults[Mid].Name, Value);
+      Cmp := UTF8Tools.CompareOrdinal(Value, NamedResults[Mid].Name);
       if (Cmp < 0) then
-        L := Mid + 1
+        H := Mid - 1
       else
-        H := Mid - 1;
+        L := Mid + 1;
     end;
     Result := L;
   end;

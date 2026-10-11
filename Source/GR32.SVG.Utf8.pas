@@ -136,6 +136,7 @@ type
     function Split(AChar: AnsiChar; ASkip: boolean = False): TValuePUtf8Char; overload;
     function Split(AChars: TAnsiSet; ASkip: boolean = False): TValuePUtf8Char; overload;
 
+    // Compare for use in binary search etc. Returns positive if Value sorts after Self
     function CompareOrdinal(const Value: TValuePUtf8Char): integer; overload;
     function CompareOrdinal(const Value: UTF8String): integer; overload;
   end;
@@ -852,7 +853,7 @@ end;
 
 function TValuePUtf8Char.CompareOrdinal(const Value: UTF8String): integer;
 begin
-  Result := AnsiStrings.StrLIComp(pointer(Value), Text, Min(Length(Value), Len));
+  Result := AnsiStrings.StrLIComp(Text, pointer(Value), Min(Length(Value), Len));
   if (Result = 0) then
     Result := Length(Value) - Len;
 end;
@@ -863,7 +864,7 @@ begin
   // it contains a goof[*] so a local Pascal implementation might actually be
   // faster. *: It swaps the case of both left and right, while it only needs to
   // swap the case of one of them.
-  Result := AnsiStrings.StrLIComp(Value.Text, Text, Min(Value.Len, Len));
+  Result := AnsiStrings.StrLIComp(Text, Value.Text, Min(Value.Len, Len));
   if (Result = 0) then
     Result := Value.Len - Len;
 end;
