@@ -83,6 +83,7 @@ type
     ImageList: TImageList;
     SpeedButtonBackground: TSpeedButton;
     SpeedButtonRepaint: TSpeedButton;
+    SpeedButtonExternal: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FileListBoxChange(Sender: TObject);
@@ -95,6 +96,7 @@ type
     procedure SpeedButtonThemeClick(Sender: TObject);
     procedure SpeedButtonBackgroundClick(Sender: TObject);
     procedure SpeedButtonRepaintClick(Sender: TObject);
+    procedure SpeedButtonExternalClick(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
     FRenderer: TSvgRenderer;
@@ -484,6 +486,11 @@ const
 begin
   TSpeedButton(Sender).Tag := (TSpeedButton(Sender).Tag + 1) mod 4;
   Background := Styles[TSpeedButton(Sender).Tag];
+end;
+
+procedure TFormSVGviewer.SpeedButtonExternalClick(Sender: TObject);
+begin
+  FRenderer.AllowExternalImages := TSpeedButton(Sender).Down;
 end;
 
 procedure TFormSVGviewer.SpeedButtonRepaintClick(Sender: TObject);
