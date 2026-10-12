@@ -83,6 +83,7 @@ type
     procedure TestNestedSvgIdResolutionAndCurrentColor;
     procedure TestDocumentCurrentColorProperty;
     procedure TestTextLineBreaksAndLeadingSpaces;
+    procedure TestMarkerAttributeShorthandIgnored;
   end;
 
 implementation
@@ -349,20 +350,24 @@ begin
   try
     text1 := TSvgTextNode(docNode.FindNodeById('t1'));
     Check(text1 <> nil, 'textNode t1 should exist');
-    CheckEquals('italic', text1.FontStyle);
-    CheckEquals('bold', text1.FontWeight);
-    CheckEquals(16.0, text1.FontSize.Value, 1E-4);
-    CheckEquals('"Courier New", monospace', text1.FontFamily);
+    // According to W3C SVG 1.1 Specification Section 6.2:
+    // "Shorthand properties cannot be used as presentation attributes."
+    CheckNotEquals('italic', text1.FontStyle);
+    CheckNotEquals('bold', text1.FontWeight);
+    CheckNotEquals(16.0, text1.FontSize.Value, 1E-4);
+    CheckNotEquals('"Courier New", monospace', text1.FontFamily);
 
     text2 := TSvgTextNode(docNode.FindNodeById('t2'));
     Check(text2 <> nil, 'textNode t2 should exist');
     CheckEquals('700', text2.FontWeight);
     CheckEquals(24.0, text2.FontSize.Value, 1E-4);
 
+    // According to W3C SVG 1.1 Specification Section 6.2:
+    // "Shorthand properties cannot be used as presentation attributes."
     text3 := TSvgTextNode(docNode.FindNodeById('t3'));
     Check(text3 <> nil, 'textNode t3 should exist');
-    CheckEquals(13.0, text3.FontSize.Value, 1E-4);
-    CheckEquals('Times New Roman', text3.FontFamily);
+    CheckNotEquals(13.0, text3.FontSize.Value, 1E-4);
+    CheckNotEquals('Times New Roman', text3.FontFamily);
   finally
     docNode.Free;
   end;
@@ -1126,7 +1131,7 @@ begin
          '    </marker>' +
          '  </defs>' +
          '  <path id="p1" d="M 10 10 L 50 10 L 50 50" marker-start="url(#arrow)" marker-mid="url(#dot)" marker-end="url(#arrow)"/>' +
-         '  <path id="p2" d="M 0 0 L 100 100" marker="url(#arrow)"/>' +
+         '  <path id="p2" d="M 0 0 L 100 100" style="marker: url(#arrow)"/>' +
          '</svg>';
 
   docNode := ParseSvgXml(xml);
@@ -1685,6 +1690,49 @@ begin
     Check(gNode <> nil, 'g1 should be found');
     gNode.Color := TSvgColor.Create(clGreen32);
     CheckEquals(clGreen32, r1Node.Color32, 'r1Node should inherit green Color32 from gNode override');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestMarkerAttributeShorthandIgnored;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  g1, g2, p1: TSvgNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <marker id="m1" refX="5" refY="5" markerWidth="10" markerHeight="10"/>' +
+         '  </defs>' +
+         '  <g id="g1" marker="url(#m1)" font="italic bold 16px Arial">' +
+         '    <path id="p1" d="M10 10 L50 50"/>' +
+         '  </g>' +
+         '  <g id="g2" style="marker: url(#m1); font: italic bold 16px Arial;"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    g1 := docNode.FindNodeById('g1');
+    Check(g1 <> nil, 'g1 should exist');
+    CheckEquals('', g1.MarkerStart, 'XML presentation attribute marker="..." on g1 MUST be ignored per SVG 1.1 spec');
+    CheckEquals('', g1.MarkerMid, 'XML presentation attribute marker="..." on g1 MUST be ignored per SVG 1.1 spec');
+    CheckEquals('', g1.MarkerEnd, 'XML presentation attribute marker="..." on g1 MUST be ignored per SVG 1.1 spec');
+
+    p1 := docNode.FindNodeById('p1');
+    Check(p1 <> nil, 'p1 should exist');
+    CheckEquals('', p1.MarkerStart, 'p1 should not inherit marker from g1 because XML presentation attribute marker="..." was ignored');
+
+    g2 := docNode.FindNodeById('g2');
+    Check(g2 <> nil, 'g2 should exist');
+    CheckEquals('url(#m1)', g2.MarkerStart, 'CSS inline style="marker: url(#m1)" on g2 MUST set MarkerStart');
+    CheckEquals('url(#m1)', g2.MarkerMid, 'CSS inline style="marker: url(#m1)" on g2 MUST set MarkerMid');
+    CheckEquals('url(#m1)', g2.MarkerEnd, 'CSS inline style="marker: url(#m1)" on g2 MUST set MarkerEnd');
+    CheckEquals('italic', TSvgGroupNode(g2).FontStyle, 'CSS inline style="font: ..." on g2 MUST parse FontStyle');
+    CheckEquals('bold', TSvgGroupNode(g2).FontWeight, 'CSS inline style="font: ..." on g2 MUST parse FontWeight');
+    CheckEquals(16.0, TSvgGroupNode(g2).FontSize.Value, 1E-4, 'CSS inline style="font: ..." on g2 MUST parse FontSize');
+    CheckEquals('Arial', TSvgGroupNode(g2).FontFamily, 'CSS inline style="font: ..." on g2 MUST parse FontFamily');
   finally
     docNode.Free;
   end;

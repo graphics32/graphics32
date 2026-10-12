@@ -780,7 +780,7 @@ begin
       begin
         Keyword := ANode.KeywordLookup(TValuePUtf8Char.FromString(Rule.Properties[j].Name));
         if (Keyword <> attrNone) then
-          ANode.ParseAttribute(Keyword, TValuePUtf8Char.FromString(Rule.Properties[j].Value));
+          ANode.ParseAttribute(Keyword, TValuePUtf8Char.FromString(Rule.Properties[j].Value), True);
       end;
     end;
   finally

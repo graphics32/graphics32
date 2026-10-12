@@ -396,10 +396,10 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; virtual;
     function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; virtual;
     function GetObjectBoundingBox: TFloatRect; virtual;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; virtual;
-    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char); overload;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; virtual;
+    procedure ParseAttribute(const AName, AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload;
 {$if defined(UNIT_TEST)}
-    procedure ParseAttribute(const AName, AValue: UTF8String); overload;
+    procedure ParseAttribute(const AName, AValue: UTF8String; AFromCss: Boolean = False); overload;
 {$ifend}
     function KeywordLookup(const AName: TValuePUtf8Char): TSvgAttributeKeyword;
     procedure ParseStyleAttribute(AStyleStr: TValuePUtf8Char); overload;
@@ -475,7 +475,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function GetObjectBoundingBox: TFloatRect; override;
     procedure AddChild(AChild: TSvgNode);
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Children: TObjectList<TSvgNode> read FChildren;
     property FontFamily: UTF8String read FFontFamily write FFontFamily;
     property FontSize: TSvgLength read FFontSize write FFontSize;
@@ -534,7 +534,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure AddStop(const AStop: TSvgGradientStop);
     procedure InheritFrom(ParentGradient: TSvgGradientNode); virtual;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
 
     property Stops: TList<TSvgGradientStop> read FStops;
     property SpreadMethod: TSvgSpreadMethod read FSpreadMethod write FSpreadMethod;
@@ -563,7 +563,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property X1: TSvgLength read FX1 write FX1;
     property Y1: TSvgLength read FY1 write FY1;
     property X2: TSvgLength read FX2 write FX2;
@@ -597,7 +597,7 @@ type
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
 
     property Cx: TSvgLength read FCx write FCx;
     property Cy: TSvgLength read FCy write FCy;
@@ -630,7 +630,7 @@ type
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure InheritFrom(ParentGradient: TSvgGradientNode); override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
 
     property Cx: TSvgLength read FCx write FCx;
     property Cy: TSvgLength read FCy write FCy;
@@ -657,7 +657,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property ClipPathUnits: TSvgGradientUnits read FClipPathUnits write FClipPathUnits;
   end;
 
@@ -682,7 +682,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
@@ -720,7 +720,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure InheritFrom(ParentPattern: TSvgPatternNode); virtual;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
@@ -759,7 +759,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
 
     property In1: UTF8String read FIn1 write FIn1;
     property In2: UTF8String read FIn2 write FIn2;
@@ -789,7 +789,7 @@ type
     function DumpNode(Indent: Integer = 0): string; override;
   public
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property StdDeviationX: Single read FStdDeviationX write FStdDeviationX;
     property StdDeviationY: Single read FStdDeviationY write FStdDeviationY;
   end;
@@ -811,7 +811,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property MatrixType: TSvgFeColorMatrixType read FMatrixType write FMatrixType;
     property Values: TArrayOfFloat read FValues write FValues;
   end;
@@ -832,7 +832,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Mode: TSvgBlendMode read FMode write FMode;
   end;
 
@@ -856,7 +856,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property CompositeOperator: TSvgCompositeOperator read FOperator write FOperator;
     property K1: Single read FK1 write FK1;
     property K2: Single read FK2 write FK2;
@@ -880,7 +880,7 @@ type
     function GetIsRenderable: Boolean; override;
   public
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property In1: UTF8String read FIn1 write FIn1;
     property ResolvedIn1: TSvgFilterInput read FResolvedIn1 write FResolvedIn1;
   end;
@@ -912,7 +912,7 @@ type
     function DumpNode(Indent: Integer = 0): string; override;
   public
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Dx: Single read FDx write FDx;
     property Dy: Single read FDy write FDy;
   end;
@@ -934,7 +934,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property FloodColor: TSvgColor read FFloodColor write FFloodColor;
     property FloodOpacity: Single read FFloodOpacity write FFloodOpacity;
   end;
@@ -962,7 +962,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property FuncType: TSvgComponentTransferType read FFuncType write FFuncType;
     property TableValues: TArrayOfFloat read FTableValues write FTableValues;
     property Slope: Single read FSlope write FSlope;
@@ -1009,7 +1009,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Dx: Single read FDx write FDx;
     property Dy: Single read FDy write FDy;
     property StdDeviationX: Single read FStdDeviationX write FStdDeviationX;
@@ -1036,7 +1036,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property MorphologyOperator: TSvgMorphologyOperator read FOperator write FOperator;
     property RadiusX: Single read FRadiusX write FRadiusX;
     property RadiusY: Single read FRadiusY write FRadiusY;
@@ -1064,7 +1064,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property BaseFrequencyX: Single read FBaseFrequencyX write FBaseFrequencyX;
     property BaseFrequencyY: Single read FBaseFrequencyY write FBaseFrequencyY;
     property NumOctaves: Integer read FNumOctaves write FNumOctaves;
@@ -1096,7 +1096,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
@@ -1132,7 +1132,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     { X-coordinate reference origin inside marker coordinate system }
     property RefX: TSvgLength read FRefX write FRefX;
     { Y-coordinate reference origin inside marker coordinate system }
@@ -1197,7 +1197,7 @@ type
     destructor Destroy; override;
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; override;
     procedure Resolve;
     property X: TSvgLength read FX write FX;
@@ -1305,7 +1305,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
@@ -1344,7 +1344,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Scale: Single read FScale write FScale;
     property XChannelSelector: TSvgChannelSelector read FXChannelSelector write FXChannelSelector;
     property YChannelSelector: TSvgChannelSelector read FYChannelSelector write FYChannelSelector;
@@ -1383,7 +1383,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Href: UTF8String read FHref write FHref;
     property X: Single read FX write FX;
     property Y: Single read FY write FY;
@@ -1415,7 +1415,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function GetObjectBoundingBox: TFloatRect; override;
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
@@ -1452,7 +1452,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function GetObjectBoundingBox: TFloatRect; override; // TODO
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
@@ -1512,7 +1512,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Href: UTF8String read FHref write FHref;
     property StartOffset: TSvgLength read FStartOffset write FStartOffset;
     property ResolvedPathNode: TSvgPathNode read FResolvedPathNode write FResolvedPathNode;
@@ -1537,7 +1537,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char); overload; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function GetObjectBoundingBox: TFloatRect; override;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
@@ -2416,22 +2416,22 @@ begin
 end;
 
 {$if defined(UNIT_TEST)}
-procedure TSvgNode.ParseAttribute(const AName, AValue: UTF8String);
+procedure TSvgNode.ParseAttribute(const AName, AValue: UTF8String; AFromCss: Boolean);
 begin
-  ParseAttribute(TValuePUtf8Char.FromString(AName), TValuePUtf8Char.FromString(AValue));
+  ParseAttribute(TValuePUtf8Char.FromString(AName), TValuePUtf8Char.FromString(AValue), AFromCss);
 end;
 {$ifend}
 
-procedure TSvgNode.ParseAttribute(const AName, AValue: TValuePUtf8Char);
+procedure TSvgNode.ParseAttribute(const AName, AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
   Keyword: TSvgAttributeKeyword;
 begin
   Keyword := KeywordLookup(AName);
   if (Keyword <> attrNone) then
-    ParseAttribute(Keyword, AValue);
+    ParseAttribute(Keyword, AValue, AFromCss);
 end;
 
-procedure TSvgNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 
   function ParseColor(AValue: TValuePUtf8Char; var Color: TSvgColor; var URL: UTF8String): boolean;
   var
@@ -2596,7 +2596,9 @@ begin
         FMarkerEnd := AValue.ToUtf8;
 
     attrMarker:
-      if (not AValue.CompareText('none')) then
+      // According to W3C SVG 1.1 Specification Section 6.2:
+      // "Shorthand properties cannot be used as presentation attributes."
+      if AFromCss and (not AValue.CompareText('none')) then
       begin
         FMarkerStart := AValue.ToUtf8;
         FMarkerMid := FMarkerStart;
@@ -2764,7 +2766,7 @@ begin
       begin
         Keyword := KeywordLookup(k);
         if (Keyword <> attrNone) then
-          ParseAttribute(Keyword, v);
+          ParseAttribute(Keyword, v, True);
       end;
     end;
   end;
@@ -3107,11 +3109,14 @@ begin
     FFontFamily := Next.ToUtf8;
 end;
 
-procedure TSvgGroupNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgGroupNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrFont:
-      ParseFontProperty(AValue);
+      // According to W3C SVG 1.1 Specification Section 6.2:
+      // "Shorthand properties cannot be used as presentation attributes."
+      if AFromCss then
+        ParseFontProperty(AValue);
 
     attrFontFamily:
       FFontFamily := AValue.ToUtf8;
@@ -3157,7 +3162,7 @@ begin
     attrLetterSpacing:
       FLetterSpacing := TSvgLength.Parse(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -3284,7 +3289,7 @@ begin
     Result := ChildBox;
 end;
 
-procedure TSvgTextPositioningNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgTextPositioningNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX:
@@ -3314,7 +3319,7 @@ begin
     attrRotate:
       FRotate := ParseFloatArray(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -3352,7 +3357,7 @@ begin
     Result := Result + Format(' (startOffset=%s)', [SvgLengthToString(FStartOffset)]);
 end;
 
-procedure TSvgTextPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgTextPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
@@ -3361,7 +3366,7 @@ begin
     attrStartOffset:
       FStartOffset := TSvgLength.Parse(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -3487,7 +3492,7 @@ begin
   end;
 end;
 
-procedure TSvgGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
@@ -3520,7 +3525,7 @@ begin
         Include(FSpecified, gpGradientTransform);
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -3595,7 +3600,7 @@ begin
   end;
 end;
 
-procedure TSvgLinearGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgLinearGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX1:
@@ -3622,7 +3627,7 @@ begin
         Include(FLinearSpecified, lgpY2);
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -3721,7 +3726,7 @@ begin
   end;
 end;
 
-procedure TSvgRadialGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgRadialGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrCx:
@@ -3754,7 +3759,7 @@ begin
         Include(FRadialSpecified, rgpFy);
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -3870,7 +3875,7 @@ begin
   end;
 end;
 
-procedure TSvgConicalGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgConicalGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrCx:
@@ -3903,7 +3908,7 @@ begin
         Include(FConicalSpecified, cgpEndAngle);
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -3951,7 +3956,7 @@ begin
   Result := Result + Format(' (clipPathUnits=%s)', [unitsStr]);
 end;
 
-procedure TSvgClipPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgClipPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrClipPathUnits:
@@ -3962,7 +3967,7 @@ begin
           FClipPathUnits := guUserSpaceOnUse;
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4026,7 +4031,7 @@ begin
     [SvgLengthToString(FX), SvgLengthToString(FY), SvgLengthToString(FWidth), SvgLengthToString(FHeight), maskUnitsStr, contentUnitsStr]);
 end;
 
-procedure TSvgMaskNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgMaskNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX:
@@ -4057,7 +4062,7 @@ begin
           FMaskContentUnits := guUserSpaceOnUse;
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4194,7 +4199,7 @@ begin
   end;
 end;
 
-procedure TSvgPatternNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgPatternNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
@@ -4260,7 +4265,7 @@ begin
         Include(FSpecified, ppPreserveAspectRatio);
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4301,7 +4306,7 @@ begin
   Result := primRes;
 end;
 
-procedure TSvgFilterPrimitiveNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFilterPrimitiveNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrIn:
@@ -4325,7 +4330,7 @@ begin
     attrHeight:
       FHeight := TSvgLength.Parse(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4361,7 +4366,7 @@ begin
   Result := blurRes;
 end;
 
-procedure TSvgFeGaussianBlurNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeGaussianBlurNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
   Value1, Value2: TValuePUtf8Char;
 begin
@@ -4378,7 +4383,7 @@ begin
         end;
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4411,7 +4416,7 @@ begin
   Result := cmRes;
 end;
 
-procedure TSvgFeColorMatrixNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeColorMatrixNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
   Value, Values: TValuePUtf8Char;
   i: Integer;
@@ -4442,7 +4447,7 @@ begin
         SetLength(FValues, i);
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4472,13 +4477,13 @@ begin
   Result := blendRes;
 end;
 
-procedure TSvgFeBlendNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeBlendNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrMode:
       FMode := ParseSvgBlendMode(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4516,7 +4521,7 @@ begin
   Result := compRes;
 end;
 
-procedure TSvgFeCompositeNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeCompositeNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrOperator:
@@ -4535,7 +4540,7 @@ begin
       AValue.TryToFloat(FK4);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4565,12 +4570,12 @@ begin
   Result := childRes;
 end;
 
-procedure TSvgFeMergeNodeChild.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeMergeNodeChild.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrIn: FIn1 := AValue.ToUtf8;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4590,7 +4595,7 @@ begin
   Result := offRes;
 end;
 
-procedure TSvgFeOffsetNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeOffsetNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrDx:
@@ -4599,7 +4604,7 @@ begin
     attrDy:
       AValue.TryToFloat(FDy);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4631,7 +4636,7 @@ begin
   Result := floodRes;
 end;
 
-procedure TSvgFeFloodNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeFloodNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrFloodColor:
@@ -4642,7 +4647,7 @@ begin
         FFloodOpacity := EnsureRange(FFloodOpacity, 0.0, 1.0);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4690,7 +4695,7 @@ begin
   Result := funcRes;
 end;
 
-procedure TSvgFeFuncNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeFuncNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
   Value, Values: TValuePUtf8Char;
   i: Integer;
@@ -4735,7 +4740,7 @@ begin
     attrOffset:
       AValue.TryToFloat(FOffset);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4775,7 +4780,7 @@ begin
   Result := dropRes;
 end;
 
-procedure TSvgFeDropShadowNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeDropShadowNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
   Value1, Value2: TValuePUtf8Char;
 begin
@@ -4806,7 +4811,7 @@ begin
         FFloodOpacity := EnsureRange(FFloodOpacity, 0.0, 1.0);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4858,7 +4863,7 @@ begin
   Result := filterRes;
 end;
 
-procedure TSvgFilterNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFilterNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX:
@@ -4889,7 +4894,7 @@ begin
           FPrimitiveUnits := guUserSpaceOnUse;
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -4945,7 +4950,7 @@ begin
   Result := MarkerRes;
 end;
 
-procedure TSvgMarkerNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgMarkerNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrRefX:
@@ -4989,7 +4994,7 @@ begin
       FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -5706,7 +5711,7 @@ begin
   ProcessNode(Self);
 end;
 
-procedure TSvgDocumentNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgDocumentNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX:
@@ -5728,7 +5733,7 @@ begin
       FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -5991,7 +5996,7 @@ begin
   end;
 end;
 
-procedure TSvgSymbolNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgSymbolNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX:
@@ -6013,7 +6018,7 @@ begin
       FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -6061,7 +6066,7 @@ begin
   Result := morphRes;
 end;
 
-procedure TSvgFeMorphologyNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeMorphologyNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
   Value1, Value2: TValuePUtf8Char;
 begin
@@ -6081,7 +6086,7 @@ begin
         end;
       end;
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -6127,7 +6132,7 @@ begin
   Result := turbRes;
 end;
 
-procedure TSvgFeTurbulenceNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeTurbulenceNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
   Value1, Value2: TValuePUtf8Char;
 begin
@@ -6163,7 +6168,7 @@ begin
       FTurbulenceType := ParseSvgTurbulenceType(AValue);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -6204,7 +6209,7 @@ begin
   Result := dispRes;
 end;
 
-procedure TSvgFeDisplacementMapNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgFeDisplacementMapNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrScale:
@@ -6217,7 +6222,7 @@ begin
       FYChannelSelector := ParseSvgChannelSelector(AValue);
 
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -6284,7 +6289,7 @@ begin
     Result := Result + Format(' (href="%s")', [FHref]);
 end;
 
-procedure TSvgUseNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgUseNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrHref, attrXLinkHref:
@@ -6302,7 +6307,7 @@ begin
     attrHeight:
       FHeight := TSvgLength.Parse(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -6333,7 +6338,7 @@ begin
   TSvgImageNode(Result).FPreserveAspectRatio := FPreserveAspectRatio;
 end;
 
-procedure TSvgImageNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgImageNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX:
@@ -6354,7 +6359,7 @@ begin
     attrPreserveAspectRatio:
       FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
@@ -6425,7 +6430,7 @@ begin
   TSvgTextAreaNode(Result).FHeight := FHeight;
 end;
 
-procedure TSvgTextAreaNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char);
+procedure TSvgTextAreaNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrWidth:
@@ -6434,7 +6439,7 @@ begin
     attrHeight:
       FHeight := TSvgLength.Parse(AValue);
   else
-    inherited ParseAttribute(AKeyword, AValue);
+    inherited;
   end;
 end;
 
