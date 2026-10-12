@@ -34,8 +34,9 @@ interface
 
 {$include GR32.inc}
 
-{$define USE_SIMD_MASK_FILTERS}
-{-$define ROI_DEBUGDRAW} // Visualize ROI
+{$define SVG32_USE_SIMD_MASK_FILTERS}
+{-$define SVG32_ROI_DEBUGDRAW} // Visualize ROI
+{$define SVG32_CACHE_BITMAPS}
 
 uses
   SysUtils, Classes, Graphics, Generics.Collections,
@@ -707,12 +708,16 @@ begin
 end;
 
 procedure TMapPool<T, TElement>.Release(Map: T);
+{$if defined(SVG32_CACHE_BITMAPS)}
 var
   LowIdx, HighIdx, MidIdx: Integer;
   TargetByteCount, MidByteCount: Int64;
+{$ifend}
 begin
   if Map = nil then
     exit;
+
+{$if defined(SVG32_CACHE_BITMAPS)}
 
   // Is there room in the pool?
   if (FMaxSize > 0) and (FPoolSize + Map.ByteCount > FMaxSize) then
@@ -750,6 +755,10 @@ begin
   Map.BeginLockUpdate; // For debug: Signal that bitmap is in pool
 {$endif DEBUG}
   Inc(FPoolSize, Map.ByteCount);
+
+{$else}
+  Map.Free;
+{$ifend}
 end;
 
 { TSvgBitmapPool }
@@ -789,7 +798,8 @@ begin
     end;
 
     Map.OnPixelCombine := nil;
-  end;
+  end else
+    exit;
 
   inherited;
 end;
@@ -850,7 +860,7 @@ begin
   if (ASource = nil) or (ATarget = nil) then
     Exit;
 
-{$if defined(ROI_DEBUGDRAW)}
+{$if defined(SVG32_ROI_DEBUGDRAW)}
   if (ATarget <> nil) then
   begin
     var DebugRect := ASource.BoundsRect;
@@ -1028,7 +1038,7 @@ var
   MaskNodeTarget: TSvgMaskNode;
   FillColor, StrokeColor: TSvgColor;
   HasFill, HasStroke, HasMarkers: boolean;
-{$if not defined(USE_SIMD_MASK_FILTERS)}
+{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
   SourceP, DestP: PColor32;
   x: Integer;
   AlphaVal, Gray: Byte;
@@ -1204,7 +1214,7 @@ begin
           FTransformation.Pop;
         end;
 
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
         ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
 {$else}
         DestP := PColor32(OffscreenBmp.Bits);
@@ -1236,7 +1246,7 @@ begin
           FTransformation.Pop;
         end;
 
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
         ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
 {$else}
         SourceP := PColor32(MaskBmp.Bits);
@@ -1256,7 +1266,7 @@ begin
       // Apply Opacity
       if (APathNode.Opacity < 1.0) then
       begin
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
         ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, APathNode.Opacity);
 {$else}
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -1621,7 +1631,7 @@ var
   GroupBounds, TargetWorldBounds: TFloatRect;
   GroupRoi: TRect;
   Points: array[0..3] of TFloatPoint;
-{$if not defined(USE_SIMD_MASK_FILTERS)}
+{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
   SourceP, DestP: PColor32;
   x: Integer;
   Gray: Byte;
@@ -1705,7 +1715,7 @@ begin
           FTransformation.Pop;
         end;
 
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
         ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
 {$else}
         SourceP := PColor32(ClipMaskBmp.Bits);
@@ -1737,7 +1747,7 @@ begin
           FTransformation.Pop;
         end;
 
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
         ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
 {$else}
         DestP := PColor32(OffscreenBmp.Bits);
@@ -1757,7 +1767,7 @@ begin
       // Apply Group Opacity
       if (AGroupNode.Opacity < 1.0) then
       begin
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
         ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, AGroupNode.Opacity);
 {$else}
         SourceP := PColor32(OffscreenBmp.Bits);
@@ -2176,11 +2186,10 @@ begin
           RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
           RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
 
-      ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
-
     finally
       for i := 0 to High(RenderData.NamedSurfaces) do
         ReleaseOffscreenBitmap(RenderData.NamedSurfaces[i].Bitmap);
+      ReleaseOffscreenBitmap(RenderData.UnnamedSurface); // This also takes care of any remaining RenderData.CurrentSurface,Bitmap
       ReleaseOffscreenBitmap(RenderData.SourceGraphic);
       ReleaseOffscreenBitmap(RenderData.SourceAlpha);
     end;
@@ -3270,7 +3279,7 @@ var
   Points: array[0..3] of TFloatPoint;
   k: Integer;
   NeedsOffscreen: Boolean;
-{$if not defined(USE_SIMD_MASK_FILTERS)}
+{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
   SourceP, DestP: PColor32;
   x: Integer;
   AlphaVal, Gray: Byte;
@@ -3369,7 +3378,7 @@ begin
               FTransformation.Pop;
             end;
 
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
             ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
 {$else}
             DestP := PColor32(OffscreenBmp.Bits);
@@ -3401,7 +3410,7 @@ begin
               FTransformation.Pop;
             end;
 
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
             ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
 {$else}
             SourceP := PColor32(MaskBmp.Bits);
@@ -3421,7 +3430,7 @@ begin
           // Apply Opacity
           if (ANode.Opacity < 1.0) then
           begin
-{$if defined(USE_SIMD_MASK_FILTERS)}
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
             ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, ANode.Opacity);
 {$else}
             SourceP := PColor32(OffscreenBmp.Bits);
