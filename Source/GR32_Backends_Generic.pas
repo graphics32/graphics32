@@ -141,7 +141,8 @@ begin
   NewSize := NewWidth * NewHeight * 4;
 
   // Can we reuse the existing buffer?
-  if (NewSize <= FSize) and (FSize - NewSize <= FMaxOversize) then
+  // Note: Size=0 means that we should deallocate the buffer.
+  if (NewSize > 0) and (NewSize <= FSize) and (FSize - NewSize <= FMaxOversize) then
   begin
     try
       Changing;
