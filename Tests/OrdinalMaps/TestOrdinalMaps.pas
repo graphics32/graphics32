@@ -8,7 +8,8 @@ uses
   Classes, Types,
   TestFramework,
   GR32,
-  GR32_OrdinalMaps;
+  GR32_OrdinalMaps,
+  GR32_VectorMaps;
 
 type
   TTestByteMap = class(TTestCase)
@@ -16,6 +17,11 @@ type
   public
   published
     procedure TestRotate180;
+  end;
+
+  TTestVectorMap = class(TTestCase)
+  published
+    procedure TestGetFixedVectorXBoundary;
   end;
 
 implementation
@@ -89,8 +95,46 @@ begin
     DoTest(Random(i), Random(i));
 end;
 
+{ TTestVectorMap }
+
+procedure TTestVectorMap.TestGetFixedVectorXBoundary;
+var
+  VectorMap: TVectorMap;
+  V: TFixedVector;
+  Width, Height: Integer;
+  X, Y: Integer;
+begin
+  Width := 224;
+  Height := 223;
+  VectorMap := TVectorMap.Create(Width, Height);
+  try
+    for Y := 0 to Height - 1 do
+      for X := 0 to Width - 1 do
+        VectorMap.FixedVector[X, Y] := FixedPoint(X * 10, Y * 10);
+
+    // Test sampling at the bottom-right boundary with fractional coordinates
+    // X = 223.5, Y = 222.5 (WX = 223 = Width - 1, WY = 222 = Height - 1)
+    V := VectorMap.FixedVectorX[Fixed(Width - 1) + $8000, Fixed(Height - 1) + $8000];
+    CheckEquals((Width - 1) * 10 * FixedOne, V.X);
+    CheckEquals((Height - 1) * 10 * FixedOne, V.Y);
+
+    // Test sampling at right boundary, interior Y
+    V := VectorMap.FixedVectorX[Fixed(Width - 1) + $8000, Fixed(100)];
+    CheckEquals((Width - 1) * 10 * FixedOne, V.X);
+    CheckEquals(100 * 10 * FixedOne, V.Y);
+
+    // Test sampling at bottom boundary, interior X
+    V := VectorMap.FixedVectorX[Fixed(100), Fixed(Height - 1) + $8000];
+    CheckEquals(100 * 10 * FixedOne, V.X);
+    CheckEquals((Height - 1) * 10 * FixedOne, V.Y);
+  finally
+    VectorMap.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TTestByteMap.Suite);
+  RegisterTest(TTestVectorMap.Suite);
 end.
 
 
