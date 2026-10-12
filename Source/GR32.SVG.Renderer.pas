@@ -1502,6 +1502,12 @@ begin
     // Mid Vertices Markers
     if (midMarker <> nil) and (ptCount > 2) then
     begin
+
+      // TODO : Bug here! We're drawing markers on the vertices of the *flattened* path.
+      // We should be drawing marker on the unflattened control points. Unfortunately
+      // we do not keep that data anywhere and I'm not sure it's worth fixing this bug
+      // due to the overhead.
+
       for i := 1 to ptCount - 2 do
       begin
         case midMarker.Orient of
