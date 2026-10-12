@@ -1367,6 +1367,7 @@ var
   vpW, vpH: Single;
   i: Integer;
   markerViewBox: TSvgViewBox;
+  RefPt: TFloatPoint;
 begin
   if (AMarker = nil) or (AMarker.Children.Count = 0) or (ATarget = nil) then
     Exit;
@@ -1406,9 +1407,9 @@ begin
   begin
     markerViewBox := AMarker.ViewBox;
     viewMat := markerViewBox.GetTransform(FloatRect(0, 0, mw, mh), AMarker.PreserveAspectRatio);
-    markerMat.Matrix := IdentityMatrix;
-    markerMat.Translate(-AMarker.RefX.Value, -AMarker.RefY.Value);
-    markerMat := markerMat * viewMat;
+    RefPt := TFloatMatrixHelper(viewMat).TransformPoint(FloatPoint(AMarker.RefX.ToPixels(markerViewBox.Width), AMarker.RefY.ToPixels(markerViewBox.Height)));
+    markerMat.Matrix := viewMat;
+    markerMat.Translate(-RefPt.X, -RefPt.Y);
     if AMarker.MarkerUnits = muStrokeWidth then
       markerMat.Scale(AStrokeWidth, AStrokeWidth);
   end else

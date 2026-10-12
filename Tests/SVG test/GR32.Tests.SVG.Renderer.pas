@@ -107,6 +107,7 @@ type
     procedure TestFilterPrimitiveSubregionAllocation;
     procedure TestThemeFillAndStrokeColor;
     procedure TestConicalGradientRendering;
+    procedure TestMarkerViewBoxOffset;
   end;
 
 implementation
@@ -1343,6 +1344,53 @@ begin
 
         Check(RedComponent(pRight) > 200, 'Right edge should be predominantly red at offset 0');
         Check(GreenComponent(pLeft) > 200, 'Left edge should be predominantly green at offset 0.5');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestMarkerViewBoxOffset;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    // Marker with non-zero viewBox origin "20 20 10 10", refX="25" refY="25", markerWidth="2" markerHeight="2", strokeWidth=8
+    // refX=25, refY=25 in viewBox maps to (1,1) in 2x2 marker viewport.
+    // Scaled by strokeWidth=8 -> 8x8 marker bounds with reference origin (8,8) placed at path vertex (130, 40).
+    // The 10x10 rect at (20,20) in viewBox covers (0,0)..(2,2) in marker viewport -> (-8,-8)..(8,8) in vertex-relative coords.
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <marker id="marker1" viewBox="20 20 10 10" markerWidth="2" markerHeight="2" refX="25" refY="25" markerUnits="strokeWidth">' +
+           '      <rect x="20" y="20" width="10" height="10" fill="purple" stroke="none"/>' +
+           '    </marker>' +
+           '  </defs>' +
+           '  <path fill="none" stroke="black" stroke-width="8" marker-start="url(#marker1)" d="M 130 40 L 180 40"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // At path vertex (130, 40), the purple rect marker should be aligned at the vertex, not detached/shifted away.
+        Check(bmp.Pixel[130, 40] <> clWhite32, 'Marker vertex at (130,40) should be painted with marker fill');
+        Check(RedComponent(bmp.Pixel[130, 40]) > 100, 'Marker vertex at (130,40) should contain red channel of purple');
+        Check(BlueComponent(bmp.Pixel[130, 40]) > 100, 'Marker vertex at (130,40) should contain blue channel of purple');
       finally
         renderer.Free;
       end;
