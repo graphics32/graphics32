@@ -3288,10 +3288,14 @@ begin
   if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
     Exit;
 
+  if (ANode.IsRendering) then
+    exit;
+
   // Guard against self-referencing clip-path, clip-mask etc.
   if (FRecursionDepth > cMaxRecursions) then
     Exit;
 
+  ANode.IsRendering := True;
   Inc(FRecursionDepth);
   try
 
@@ -3458,6 +3462,7 @@ begin
 
   finally
     Dec(FRecursionDepth);
+    ANode.IsRendering := False;
   end;
 end;
 

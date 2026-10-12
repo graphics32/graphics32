@@ -371,6 +371,7 @@ type
     FRequiredFeatures: UTF8String;
     FRequiredExtensions: UTF8String;
     FSystemLanguage: UTF8String;
+    FIsRendering: boolean;
   protected
     function GetIsDisplayNone: Boolean;
     function GetIsRenderable: Boolean; virtual;
@@ -409,6 +410,10 @@ type
     function CheckSystemLanguage: Boolean; virtual;
     function PassesConditionalProcessing: Boolean; virtual;
     function Dump(Indent: Integer = 0): string;
+
+    // IsRendering: Recursion prevention
+    property IsRendering: boolean read FIsRendering write FIsRendering;
+
     property ID: UTF8String read FID write SetID;
     property CssClassName: UTF8String read FCssClassName write FCssClassName;
     property StyleAttr: UTF8String read FStyleAttr write FStyleAttr;
