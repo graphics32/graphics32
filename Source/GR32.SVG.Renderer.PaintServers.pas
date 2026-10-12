@@ -210,10 +210,10 @@ begin
 
   if LinearNode.GradientUnits = guObjectBoundingBox then
   begin
-    PointStart.X := LinearNode.X1.ToPixels(1.0);
-    PointStart.Y := LinearNode.Y1.ToPixels(1.0);
-    PointEnd.X := LinearNode.X2.ToPixels(1.0);
-    PointEnd.Y := LinearNode.Y2.ToPixels(1.0);
+    PointStart.X := LinearNode.GetSizePx(LinearNode.X1, 1.0);
+    PointStart.Y := LinearNode.GetSizePx(LinearNode.Y1, 1.0);
+    PointEnd.X := LinearNode.GetSizePx(LinearNode.X2, 1.0);
+    PointEnd.Y := LinearNode.GetSizePx(LinearNode.Y2, 1.0);
 
     BboxMat.Matrix := IdentityMatrix;
     BboxMat.Scale(BoundsWidth, BoundsHeight);
@@ -222,10 +222,10 @@ begin
     TotalTransform := Transform * BboxMat;
   end else
   begin
-    PointStart.X := LinearNode.X1.ToPixels(ARenderer.ViewportRect.Width);
-    PointStart.Y := LinearNode.Y1.ToPixels(ARenderer.ViewportRect.Height);
-    PointEnd.X := LinearNode.X2.ToPixels(ARenderer.ViewportRect.Width);
-    PointEnd.Y := LinearNode.Y2.ToPixels(ARenderer.ViewportRect.Height);
+    PointStart.X := LinearNode.GetSizePx(LinearNode.X1, ARenderer.ViewportRect.Width);
+    PointStart.Y := LinearNode.GetSizePx(LinearNode.Y1, ARenderer.ViewportRect.Height);
+    PointEnd.X := LinearNode.GetSizePx(LinearNode.X2, ARenderer.ViewportRect.Width);
+    PointEnd.Y := LinearNode.GetSizePx(LinearNode.Y2, ARenderer.ViewportRect.Height);
     TotalTransform := Transform * ARenderer.Transformation.Matrix;
   end;
 
@@ -290,11 +290,11 @@ begin
 
   if RadialNode.GradientUnits = guObjectBoundingBox then
   begin
-    cx := RadialNode.Cx.ToPixels(1.0);
-    cy := RadialNode.Cy.ToPixels(1.0);
-    r := RadialNode.R.ToPixels(1.0);
-    fx := RadialNode.Fx.ToPixels(1.0);
-    fy := RadialNode.Fy.ToPixels(1.0);
+    cx := RadialNode.GetSizePx(RadialNode.Cx, 1.0);
+    cy := RadialNode.GetSizePx(RadialNode.Cy, 1.0);
+    r := RadialNode.GetSizePx(RadialNode.R, 1.0);
+    fx := RadialNode.GetSizePx(RadialNode.Fx, 1.0);
+    fy := RadialNode.GetSizePx(RadialNode.Fy, 1.0);
 
     BboxMat.Matrix := IdentityMatrix;
     BboxMat.Scale(BoundsWidth, BoundsHeight);
@@ -303,11 +303,11 @@ begin
     TotalTransform := Transform * BboxMat;
   end else
   begin
-    cx := RadialNode.Cx.ToPixels(ARenderer.ViewportRect.Width);
-    cy := RadialNode.Cy.ToPixels(ARenderer.ViewportRect.Height);
-    r := RadialNode.R.ToPixels(GR32_Math.Hypot(ARenderer.ViewportRect.Width, ARenderer.ViewportRect.Height) * Sqrt(0.5));
-    fx := RadialNode.Fx.ToPixels(ARenderer.ViewportRect.Width);
-    fy := RadialNode.Fy.ToPixels(ARenderer.ViewportRect.Height);
+    cx := RadialNode.GetSizePx(RadialNode.Cx, ARenderer.ViewportRect.Width);
+    cy := RadialNode.GetSizePx(RadialNode.Cy, ARenderer.ViewportRect.Height);
+    r := RadialNode.GetSizePx(RadialNode.R, ARenderer.ViewportRect);
+    fx := RadialNode.GetSizePx(RadialNode.Fx, ARenderer.ViewportRect.Width);
+    fy := RadialNode.GetSizePx(RadialNode.Fy, ARenderer.ViewportRect.Height);
     TotalTransform := Transform * ARenderer.Transformation.Matrix;
   end;
 
@@ -382,8 +382,8 @@ begin
 
   if ConicalNode.GradientUnits = guObjectBoundingBox then
   begin
-    cx := ConicalNode.Cx.ToPixels(1.0);
-    cy := ConicalNode.Cy.ToPixels(1.0);
+    cx := ConicalNode.GetSizePx(ConicalNode.Cx, 1.0);
+    cy := ConicalNode.GetSizePx(ConicalNode.Cy, 1.0);
 
     BboxMat.Matrix := IdentityMatrix;
     BboxMat.Scale(BoundsWidth, BoundsHeight);
@@ -392,8 +392,8 @@ begin
     TotalTransform := Transform * BboxMat;
   end else
   begin
-    cx := ConicalNode.Cx.ToPixels(ARenderer.ViewportRect.Width);
-    cy := ConicalNode.Cy.ToPixels(ARenderer.ViewportRect.Height);
+    cx := ConicalNode.GetSizePx(ConicalNode.Cx, ARenderer.ViewportRect.Width);
+    cy := ConicalNode.GetSizePx(ConicalNode.Cy, ARenderer.ViewportRect.Height);
     TotalTransform := Transform * ARenderer.Transformation.Matrix;
   end;
 
@@ -489,16 +489,16 @@ begin
 
     TileRatioX := BoundsWidth / MatrixScaleX;
     TileRatioY := BoundsHeight / MatrixScaleY;
-    TileWidth := PatternNode.Width.ToPixels(1.0) * TileRatioX;
-    TileHeight := PatternNode.Height.ToPixels(1.0) * TileRatioY;
-    TileX := origPt.X + PatternNode.X.ToPixels(1.0) * TileRatioX;
-    TileY := origPt.Y + PatternNode.Y.ToPixels(1.0) * TileRatioY;
+    TileWidth := PatternNode.GetSizePx(PatternNode.Width, 1.0) * TileRatioX;
+    TileHeight := PatternNode.GetSizePx(PatternNode.Height, 1.0) * TileRatioY;
+    TileX := origPt.X + PatternNode.GetSizePx(PatternNode.X, 1.0) * TileRatioX;
+    TileY := origPt.Y + PatternNode.GetSizePx(PatternNode.Y, 1.0) * TileRatioY;
   end else
   begin
-    TileX := PatternNode.X.ToPixels(ViewportWidth);
-    TileY := PatternNode.Y.ToPixels(ViewportHeight);
-    TileWidth := PatternNode.Width.ToPixels(ViewportWidth);
-    TileHeight := PatternNode.Height.ToPixels(ViewportHeight);
+    TileX := PatternNode.GetSizePx(PatternNode.X, ViewportWidth);
+    TileY := PatternNode.GetSizePx(PatternNode.Y, ViewportHeight);
+    TileWidth := PatternNode.GetSizePx(PatternNode.Width, ViewportWidth);
+    TileHeight := PatternNode.GetSizePx(PatternNode.Height, ViewportHeight);
   end;
 
   if (TileWidth <= 0) or (TileHeight <= 0) then

@@ -1,4 +1,4 @@
-unit GR32.SVG.Tree;
+﻿unit GR32.SVG.Tree;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -169,13 +169,13 @@ type
     FEndStyle: TEndStyle;
     FMiterLimit: Single;
     FDashArray: TArrayOfFloat;
-    FDashOffset: Single;
+    FDashOffset: TSvgLength;
     FUrl: UTF8String;
     FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
   private
     procedure SetColor(const Value: TSvgColor);
     procedure SetDashArray(const Value: TArrayOfFloat);
-    procedure SetDashOffset(const Value: Single);
+    procedure SetDashOffset(const Value: TSvgLength);
     procedure SetEndStyle(const Value: TEndStyle);
     procedure SetJoinStyle(const Value: TJoinStyle);
     procedure SetMiterLimit(const Value: Single);
@@ -192,7 +192,7 @@ type
     property EndStyle: TEndStyle read FEndStyle write SetEndStyle;
     property MiterLimit: Single read FMiterLimit write SetMiterLimit;
     property DashArray: TArrayOfFloat read FDashArray write SetDashArray;
-    property DashOffset: Single read FDashOffset write SetDashOffset;
+    property DashOffset: TSvgLength read FDashOffset write SetDashOffset;
     property Url: UTF8String read FUrl write SetUrl;
     property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
 
@@ -371,7 +371,17 @@ type
     FRequiredFeatures: UTF8String;
     FRequiredExtensions: UTF8String;
     FSystemLanguage: UTF8String;
+    FFontFamily: UTF8String;
+    FFontSize: TSvgLength;
+    FHasFontSize: Boolean;
+    FFontWeight: UTF8String;
+    FFontStyle: UTF8String;
+    FTextAnchor: TSvgTextAnchor;
+    FTextAlign: TSvgTextAlignmentHorizontal;
+    FLetterSpacing: TSvgLength;
     FIsRendering: boolean;
+    function GetFontSize: TSvgLength;
+    procedure SetFontSize(const Value: TSvgLength);
   protected
     function GetIsDisplayNone: Boolean;
     function GetIsRenderable: Boolean; virtual;
@@ -386,6 +396,7 @@ type
     procedure SetRequiredFeatures(const Value: UTF8String);
     procedure NodeAdded(ANode: TSvgNode); virtual;
     procedure NodeRemoved(ANode: TSvgNode); virtual;
+    procedure ParseFontProperty(const AValue: TValuePUtf8Char);
   public
     constructor Create(AParent: TSvgNode = nil); virtual;
     destructor Destroy; override;
@@ -396,7 +407,12 @@ type
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; virtual;
     function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; virtual;
-    function GetObjectBoundingBox: TFloatRect; virtual;
+    function GetDocumentNode: TSvgNode; // Guaranteed to be a TSvgDocumentNode or nil
+    function GetViewportRect: TFloatRect; // Viewport of document node or null. Will likely be removed as we more likely need the render-time viewport
+    function GetObjectBoundingBox: TFloatRect; virtual; // TODO : Should take Viewport as parameter to pass on to GetSizePx
+    function GetFontSizePx: Single;
+    function GetSizePx(const ALength: TSvgLength; AValue: Single): Single; overload;
+    function GetSizePx(const ALength: TSvgLength; const AViewport: TFloatRect): Single; overload; // AViewport = The nearest viewport
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; virtual;
     procedure ParseAttribute(const AName, AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload;
 {$if defined(UNIT_TEST)}
@@ -444,6 +460,13 @@ type
     property RequiredFeatures: UTF8String read FRequiredFeatures write SetRequiredFeatures;
     property RequiredExtensions: UTF8String read FRequiredExtensions write FRequiredExtensions;
     property SystemLanguage: UTF8String read FSystemLanguage write FSystemLanguage;
+    property FontFamily: UTF8String read FFontFamily write FFontFamily;
+    property FontSize: TSvgLength read GetFontSize write SetFontSize;
+    property FontWeight: UTF8String read FFontWeight write FFontWeight;
+    property FontStyle: UTF8String read FFontStyle write FFontStyle;
+    property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
+    property TextAlign: TSvgTextAlignmentHorizontal read FTextAlign write FTextAlign;
+    property LetterSpacing: TSvgLength read FLetterSpacing write FLetterSpacing;
     property IsRenderable: Boolean read GetIsRenderable;
     property ElementTag: UTF8String read GetElementTag;
   end;
@@ -462,33 +485,17 @@ type
   TSvgGroupNode = class(TSvgNode)
   private
     FChildren: TObjectList<TSvgNode>;
-    FFontFamily: UTF8String;
-    FFontSize: TSvgLength;
-    FFontWeight: UTF8String;
-    FFontStyle: UTF8String;
-    FTextAnchor: TSvgTextAnchor;
-    FTextAlign: TSvgTextAlignmentHorizontal;
-    FLetterSpacing: TSvgLength;
   protected
     function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
-    procedure ParseFontProperty(const AValue: TValuePUtf8Char);
   public
     constructor Create(AParent: TSvgNode = nil); override;
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function GetObjectBoundingBox: TFloatRect; override;
     procedure AddChild(AChild: TSvgNode);
-    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Children: TObjectList<TSvgNode> read FChildren;
-    property FontFamily: UTF8String read FFontFamily write FFontFamily;
-    property FontSize: TSvgLength read FFontSize write FFontSize;
-    property FontWeight: UTF8String read FFontWeight write FFontWeight;
-    property FontStyle: UTF8String read FFontStyle write FFontStyle;
-    property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
-    property TextAlign: TSvgTextAlignmentHorizontal read FTextAlign write FTextAlign;
-    property LetterSpacing: TSvgLength read FLetterSpacing write FLetterSpacing;
   end;
 
 
@@ -1272,7 +1279,9 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function GetObjectBoundingBox: TFloatRect; override;
-    function GetPathData(const AViewportWidth: Single = 100.0; const AViewportHeight: Single = 100.0): TArrayOfArrayOfFloatPoint;
+    function GetPathData: TArrayOfArrayOfFloatPoint; overload;
+    function GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint; overload;
+    function GetPathData(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint; overload;
     property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
     property PathData: TArrayOfArrayOfFloatPoint read GetPathDataProp write FPathData;
   end;
@@ -2127,7 +2136,7 @@ begin
   Result.FEndStyle := esButt;
   Result.FMiterLimit := 4.0;
   Result.FDashArray := nil;
-  Result.FDashOffset := 0.0;
+  Result.FDashOffset := TSvgLength.Create(0.0);
   Result.FUrl := '';
   Result.FSpecified := [];
 end;
@@ -2144,7 +2153,7 @@ begin
   Include(FSpecified, spDashArray);
 end;
 
-procedure TSvgStroke.SetDashOffset(const Value: Single);
+procedure TSvgStroke.SetDashOffset(const Value: TSvgLength);
 begin
   FDashOffset := Value;
   Include(FSpecified, spDashOffset);
@@ -2212,6 +2221,7 @@ begin
   FCssClassName := '';
   FResolving := False;
   FColor := TSvgColor.Unset;
+  FHasFontSize := False;
   if FParent <> nil then
   begin
     FFill := FParent.Fill;
@@ -2219,6 +2229,12 @@ begin
     FMarkerStart := FParent.MarkerStart;
     FMarkerMid := FParent.MarkerMid;
     FMarkerEnd := FParent.MarkerEnd;
+    FFontFamily := FParent.FontFamily;
+    FFontWeight := FParent.FontWeight;
+    FFontStyle := FParent.FontStyle;
+    FTextAnchor := FParent.TextAnchor;
+    FTextAlign := FParent.TextAlign;
+    FLetterSpacing := FParent.LetterSpacing;
     FFill.FSpecified := [];
     FStroke.FSpecified := [];
 
@@ -2230,6 +2246,14 @@ begin
     FMarkerStart := '';
     FMarkerMid := '';
     FMarkerEnd := '';
+    FFontFamily := 'sans-serif';
+    FFontSize := TSvgLength.Create(16.0, suPx);
+    FHasFontSize := True;
+    FFontWeight := 'normal';
+    FFontStyle := 'normal';
+    FTextAnchor := taStart;
+    FTextAlign := taHorNone;
+    FLetterSpacing := TSvgLength.Create(0.0, suPx);
   end;
 end;
 
@@ -2286,6 +2310,22 @@ begin
   Result := True;
 end;
 
+function TSvgNode.GetFontSize: TSvgLength;
+begin
+  if FHasFontSize then
+    Result := FFontSize
+  else if FParent <> nil then
+    Result := FParent.FontSize
+  else
+    Result := TSvgLength.Create(16.0, suPx);
+end;
+
+procedure TSvgNode.SetFontSize(const Value: TSvgLength);
+begin
+  FFontSize := Value;
+  FHasFontSize := True;
+end;
+
 function TSvgNode.Clone(AParent: TSvgNode): TSvgNode;
 begin
   Result := TSvgNodeClass(ClassType).Create(AParent);
@@ -2308,6 +2348,14 @@ begin
   Result.FRequiredFeatures := FRequiredFeatures;
   Result.FRequiredExtensions := FRequiredExtensions;
   Result.FSystemLanguage := FSystemLanguage;
+  Result.FFontFamily := FFontFamily;
+  Result.FHasFontSize := FHasFontSize;
+  Result.FFontSize := FFontSize;
+  Result.FFontWeight := FFontWeight;
+  Result.FFontStyle := FFontStyle;
+  Result.FTextAnchor := FTextAnchor;
+  Result.FTextAlign := FTextAlign;
+  Result.FLetterSpacing := FLetterSpacing;
 
   FFill.ApplySpecified(Result.FFill);
   FStroke.ApplySpecified(Result.FStroke);
@@ -2359,6 +2407,122 @@ begin
   { Calculates the tight axis-aligned bounding box of the node in local untransformed coordinates.
     Base TSvgNode implementation returns an empty rectangle (0,0,0,0). }
   Result := FloatRect(0, 0, 0, 0);
+end;
+
+function TSvgNode.GetDocumentNode: TSvgNode;
+begin
+  Result := Self;
+  while (Result <> nil) do
+  begin
+    if (Result is TSvgDocumentNode) then
+      exit;
+    Result := Result.Parent;
+  end;
+end;
+
+function TSvgNode.GetViewportRect: TFloatRect;
+var
+  DocNode: TSvgDocumentNode;
+  W, H: Single;
+begin
+  DocNode := TSvgDocumentNode(GetDocumentNode);
+
+  if (DocNode <> nil) then
+  begin
+    if DocNode.ViewBox.IsValid then
+      Exit(DocNode.ViewBox);
+
+    W := DocNode.GetSizePx(DocNode.Width, TSvgLength.NoDefault);
+    H := DocNode.GetSizePx(DocNode.Height, TSvgLength.NoDefault);
+    Result := FloatRect(0, 0, W, H);
+  end else
+    // Fallback default viewport if unattached
+    Result := FloatRect(0, 0, 100, 100);
+end;
+
+function TSvgNode.GetSizePx(const ALength: TSvgLength; const AViewport: TFloatRect): Single;
+const
+  SqrtHalf: Single = 0.7071067811865; // Sqrt(0.5);
+var
+  Diag: Single;
+begin
+  // Per W3C SVG 1.1 (§7.2) and SVG 2 (§8.2), a new SVG viewport is established
+  // whenever any of the following container elements occur in the document tree:
+  //
+  // - Nested <svg> elements:
+  //   A nested <svg> element (e.g. <svg x="10" y="10" width="200" height="100">
+  //   inside an outer <svg>) establishes a new viewport for all of its children.
+  //
+  // - <symbol> elements:
+  //   When referenced by <use>, <symbol> establishes a new viewport based on its
+  //   viewBox and specified/inherited width and height.
+  //
+  // - <pattern> elements:
+  //   Pattern tile contents evaluate inside a pattern viewport established by
+  //   width and height on <pattern>.
+  //
+  // - <marker> elements:
+  //   Marker contents evaluate inside a marker viewport established by
+  //   markerWidth, markerHeight, and viewBox.
+  //
+  // - <foreignObject> elements:
+  //   Establishes a new rectangular viewport for embedded non-SVG content.
+  //
+  // Note: Regular <g> container groups do NOT establish a new viewport; they
+  // inherit their parent container's viewport).
+
+  case ALength.UnitType of
+    suEm, suEx:
+      Result := ALength.ToPixels(TSvgLength.NoDefault, GetFontSizePx);
+
+    suPercent:
+      begin
+        // Per W3C SVG 1.1 §11.4, percentages for stroke properties evaluate
+        // against the normalized diagonal of the SVG viewport: Sqrt((W^2 + H^2)/2)
+        Diag := GR32_Math.Hypot(AViewport.Width, AViewport.Height) * SqrtHalf;
+        Result := ALength.ToPixels(Diag);
+      end;
+  else
+    Result := ALength.ToPixels;
+  end;
+end;
+
+function TSvgNode.GetSizePx(const ALength: TSvgLength; AValue: Single): Single;
+begin
+  case ALength.UnitType of
+    suEm, suEx:
+      Result := ALength.ToPixels(TSvgLength.NoDefault, GetFontSizePx);
+
+    suPercent:
+      Result := ALength.ToPixels(AValue);
+  else
+    Result := ALength.ToPixels;
+  end;
+end;
+
+function TSvgNode.GetFontSizePx: Single;
+
+  function BaseFontSizePx: Single;
+  begin
+    if (FParent <> nil) then
+      Result := FParent.GetFontSizePx
+    else
+      Result := 16.0;
+  end;
+
+begin
+  if not FHasFontSize then
+    Exit(BaseFontSizePx);
+
+  case FFontSize.UnitType of
+    suEm, suEx:
+      Result := FFontSize.ToPixels(TSvgLength.NoDefault, BaseFontSizePx);
+
+    suPercent:
+      Result := FFontSize.ToPixels(BaseFontSizePx);
+  else
+    Result := FFontSize.ToPixels;
+  end;
 end;
 
 function TSvgNode.KeywordLookup(const AName: TValuePUtf8Char): TSvgAttributeKeyword;
@@ -2437,6 +2601,181 @@ begin
   Keyword := KeywordLookup(AName);
   if (Keyword <> attrNone) then
     ParseAttribute(Keyword, AValue, AFromCss);
+end;
+
+// Parses CSS font shorthand values (e.g. "italic bold 13px/1.2 'Times New Roman', serif")
+procedure TSvgNode.ParseFontProperty(const AValue: TValuePUtf8Char);
+
+  function GetFontWeight(const Token: TValuePUtf8Char): boolean;
+  begin
+    (*
+    ** font-weight
+    *)
+    case Token.Len of
+      3:
+        if (Token.Text^ in ['1'..'9']) and (Token.Text[1] = '0') and (Token.Text[2] = '0') then
+        begin
+          SetString(FFontWeight, Token.Text, 3);
+          Exit(True);
+        end;
+      4:
+        if (Token.CompareText('bold')) then
+        begin
+          FFontWeight := 'bold';
+          Exit(True);
+        end;
+      6:
+        if (Token.CompareText('bolder')) then
+        begin
+          FFontWeight := 'bolder';
+          Exit(True);
+        end;
+      7:
+        if (Token.CompareText('lighter')) then
+        begin
+          FFontWeight := 'lighter';
+          Exit(True);
+        end;
+    end;
+    Result := False;
+  end;
+
+  function GetFontStyle(const Token: TValuePUtf8Char): boolean;
+  begin
+    (*
+    ** font-style
+    *)
+    // Check for font-style
+    case Token.Len of
+      6:
+        if (Token.CompareText('italic')) then
+        begin
+          FFontStyle := 'italic';
+          Exit(True);
+        end;
+
+      7:
+        if (Token.CompareText('oblique')) then
+        begin
+          FFontStyle := 'oblique';
+          Exit(True);
+        end;
+    end;
+
+    // Skip font-variant / font-stretch / normal
+    if (Token.CompareText('normal')) or (Token.CompareText('small-caps')) then
+      Exit(True);
+
+    Result := False;
+  end;
+
+  function GetFontSize(var Token, Next: TValuePUtf8Char): boolean;
+  var
+    AbsoluteSize: Single;
+    SizeToken: TValuePUtf8Char;
+    SlashPos: PUtf8Char;
+  begin
+    (*
+    ** font-size
+    *)
+    AbsoluteSize := 0.0;
+
+    // Handle slash for line-height (e.g. 13px/1.2 or 13px/120%).
+    // It's invalid in svg but let's try to survive it anyway:
+    // If the token contains a slash, grab whatever is before (the font-size)
+    // and discard the next token after it (the line-height).
+    SlashPos := Token.Pos('/');
+    if (SlashPos <> nil) then
+    begin
+      SizeToken.Text := Token.Text;
+      SizeToken.Len := SlashPos - Token.Text;
+      // Skip font-size and slash
+      Token.Skip(SizeToken.Len+1);
+      Token.Trim;
+      // If there's anything left in the token then line-height was included
+      // and we can just ignore it, otherwise it must be the next token: Skip
+      // that so it isn't confused as the font-family
+      if (Token.Len = 0) then
+        Next.Split(sWhiteSpaceSeparators, True);
+    end else
+      SizeToken := Token;
+
+    SizeToken.TrimEnd;
+
+    if (SizeToken.Len = 0) then
+      Exit(True); // Token will likely also be empty
+
+    case SizeToken.Len of
+      5:
+        case SizeToken.Text^ of
+          's': if SizeToken.CompareText('small') then AbsoluteSize := 13.0;
+          'l': if SizeToken.CompareText('large') then AbsoluteSize := 18.0;
+        end;
+
+      6:
+        case SizeToken.Text^ of
+          'm': if SizeToken.CompareText('medium') then AbsoluteSize := 16.0;
+        end;
+
+      7:
+        case SizeToken.Text[2] of
+          'l': if SizeToken.CompareText('x-large') then AbsoluteSize := 24.0;
+          's': if SizeToken.CompareText('x-small') then AbsoluteSize := 10.0;
+        end;
+
+      8:
+        case SizeToken.Text[3] of
+          'l': if SizeToken.CompareText('xx-large') then AbsoluteSize := 32.0;
+          's': if SizeToken.CompareText('xx-small') then AbsoluteSize := 8.0;
+        end;
+    end;
+
+    if (AbsoluteSize <> 0) then
+      FFontSize := TSvgLength.Create(AbsoluteSize, suPx)
+    else
+      FFontSize := TSvgLength.Parse(SizeToken);
+    FHasFontSize := True;
+
+    Result := True;
+  end;
+
+var
+  Next, Token: TValuePUtf8Char;
+begin
+  Next := AValue;
+  Next.Trim;
+  if (Next.Len = 0) then
+    Exit;
+
+  // Initial defaults for CSS font shorthand specification
+  FFontStyle := 'normal';
+  FFontWeight := 'normal';
+  FFontSize := TSvgLength.Create(12.0, suPx);
+  FHasFontSize := True;
+  FFontFamily := 'sans-serif';
+
+  while (Next.Len > 0) do
+  begin
+    Token := Next.Split(sWhiteSpaceSeparators, True);
+    Token.Trim;
+    Next.Trim;
+
+    if (Token.Len = 0) then
+      Continue;
+
+    if GetFontWeight(Token) then
+      continue;
+
+    if GetFontStyle(Token) then
+      continue;
+
+    if GetFontSize(Token, Next) then
+      break;
+  end;
+
+  // Remaining string after font-size is font-family
+  if (Next.Len > 0) then
+    FFontFamily := Next.ToUtf8;
 end;
 
 procedure TSvgNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
@@ -2589,7 +2928,7 @@ begin
       FStroke.DashArray := ParseStrokeDashArray(AValue); // TODO : stroke-dasharray="inherit"
 
     attrStrokeDashOffset:
-      FStroke.DashOffset := TSvgLength.Parse(AValue).ToPixels;
+      FStroke.DashOffset := TSvgLength.Parse(AValue);
 
     attrMarkerStart:
       if (not AValue.CompareText('none')) then
@@ -2640,6 +2979,59 @@ begin
 
     attrSystemLanguage:
       FSystemLanguage := AValue.ToUtf8;
+
+    attrFont:
+      // According to W3C SVG 1.1 Specification Section 6.2:
+      // "Shorthand properties cannot be used as presentation attributes."
+      if AFromCss then
+        ParseFontProperty(AValue);
+
+    attrFontFamily:
+      FFontFamily := AValue.ToUtf8;
+
+    attrFontSize:
+      begin
+        FFontSize := TSvgLength.Parse(AValue);
+        FHasFontSize := True;
+      end;
+
+    attrFontWeight:
+      FFontWeight := AValue.ToUtf8;
+
+    attrFontStyle:
+      FFontStyle := AValue.ToUtf8;
+
+    attrTextAnchor:
+      FTextAnchor := ParseSvgTextAnchor(AValue);
+
+    attrTextAlign:
+      begin
+        FTextAlign := taHorNone;
+        case AValue.Len of
+          3:
+            if AValue.CompareText('end') then
+              FTextAlign := taHorRight;
+
+          4:
+            if AValue.CompareText('left') then
+              FTextAlign := taHorLeft;
+
+          5:
+            if AValue.CompareText('right') then
+              FTextAlign := taHorRight;
+
+          6:
+            if AValue.CompareText('center') or AValue.CompareText('middle') then
+              FTextAlign := taHorCenter;
+
+          7:
+            if AValue.CompareText('justify') then
+              FTextAlign := taHorJustify;
+        end;
+      end;
+
+    attrLetterSpacing:
+      FLetterSpacing := TSvgLength.Parse(AValue);
 
     attrStyle:
       // Defer inline style parsing so stylesheet rules (classes/IDs) apply first during cascade evaluation
@@ -2816,32 +3208,9 @@ begin
 end;
 
 constructor TSvgGroupNode.Create(AParent: TSvgNode);
-var
-  parentGroup: TSvgGroupNode;
 begin
   inherited Create(AParent);
   FChildren := TObjectList<TSvgNode>.Create(True);
-
-  if (AParent <> nil) and (AParent is TSvgGroupNode) then
-  begin
-    parentGroup := TSvgGroupNode(AParent);
-    FFontFamily := parentGroup.FontFamily;
-    FFontSize := parentGroup.FontSize;
-    FFontWeight := parentGroup.FontWeight;
-    FFontStyle := parentGroup.FontStyle;
-    FTextAnchor := parentGroup.TextAnchor;
-    FTextAlign := parentGroup.TextAlign;
-    FLetterSpacing := parentGroup.LetterSpacing;
-  end else
-  begin
-    FFontFamily := 'sans-serif';
-    FFontSize := TSvgLength.Create(12.0, suPx);
-    FFontWeight := 'normal';
-    FFontStyle := 'normal';
-    FTextAnchor := taStart;
-    FTextAlign := taHorNone;
-    FLetterSpacing := TSvgLength.Create(0.0, suPx);
-  end;
 end;
 
 destructor TSvgGroupNode.Destroy;
@@ -2856,13 +3225,6 @@ var
   i: Integer;
 begin
   groupRes := TSvgGroupNode(inherited Clone(AParent));
-  groupRes.FFontFamily := FFontFamily;
-  groupRes.FFontSize := FFontSize;
-  groupRes.FFontWeight := FFontWeight;
-  groupRes.FFontStyle := FFontStyle;
-  groupRes.FTextAnchor := FTextAnchor;
-  groupRes.FTextAlign := FTextAlign;
-  groupRes.FLetterSpacing := FLetterSpacing;
   for i := 0 to FChildren.Count - 1 do
     groupRes.AddChild(FChildren[i].Clone(groupRes));
   Result := groupRes;
@@ -2941,236 +3303,6 @@ begin
   begin
     AChild.Parent := Self;
     FChildren.Add(AChild);
-  end;
-end;
-
-// Parses CSS font shorthand values (e.g. "italic bold 13px/1.2 'Times New Roman', serif")
-procedure TSvgGroupNode.ParseFontProperty(const AValue: TValuePUtf8Char);
-
-  function GetFontWeight(const Token: TValuePUtf8Char): boolean;
-  begin
-    (*
-    ** font-weight
-    *)
-    case Token.Len of
-      3:
-        if (Token.Text^ in ['1'..'9']) and (Token.Text[1] = '0') and (Token.Text[2] = '0') then
-        begin
-          SetString(FFontWeight, Token.Text, 3);
-          Exit(True);
-        end;
-      4:
-        if (Token.CompareText('bold')) then
-        begin
-          FFontWeight := 'bold';
-          Exit(True);
-        end;
-      6:
-        if (Token.CompareText('bolder')) then
-        begin
-          FFontWeight := 'bolder';
-          Exit(True);
-        end;
-      7:
-        if (Token.CompareText('lighter')) then
-        begin
-          FFontWeight := 'lighter';
-          Exit(True);
-        end;
-    end;
-    Result := False;
-  end;
-
-  function GetFontStyle(const Token: TValuePUtf8Char): boolean;
-  begin
-    (*
-    ** font-style
-    *)
-    // Check for font-style
-    case Token.Len of
-      6:
-        if (Token.CompareText('italic')) then
-        begin
-          FFontStyle := 'italic';
-          Exit(True);
-        end;
-
-      7:
-        if (Token.CompareText('oblique')) then
-        begin
-          FFontStyle := 'oblique';
-          Exit(True);
-        end;
-    end;
-
-    // Skip font-variant / font-stretch / normal
-    if (Token.CompareText('normal')) or (Token.CompareText('small-caps')) then
-      Exit(True);
-
-    Result := False;
-  end;
-
-  function GetFontSize(var Token, Next: TValuePUtf8Char): boolean;
-  var
-    AbsoluteSize: Single;
-    SizeToken: TValuePUtf8Char;
-    SlashPos: PUtf8Char;
-  begin
-    (*
-    ** font-size
-    *)
-    AbsoluteSize := 0.0;
-
-    // Handle slash for line-height (e.g. 13px/1.2 or 13px/120%).
-    // It's invalid in svg but let's try to survive it anyway:
-    // If the token contains a slash, grab whatever is before (the font-size)
-    // and discard the next token after it (the line-height).
-    SlashPos := Token.Pos('/');
-    if (SlashPos <> nil) then
-    begin
-      SizeToken.Text := Token.Text;
-      SizeToken.Len := SlashPos - Token.Text;
-      // Skip font-size and slash
-      Token.Skip(SizeToken.Len+1);
-      Token.Trim;
-      // If there's anything left in the token then line-height was included
-      // and we can just ignore it, otherwise it must be the next token: Skip
-      // that so it isn't confused as the font-family
-      if (Token.Len = 0) then
-        Next.Split(sWhiteSpaceSeparators, True);
-    end else
-      SizeToken := Token;
-
-    SizeToken.TrimEnd;
-
-    if (SizeToken.Len = 0) then
-      Exit(True); // Token will likely also be empty
-
-    case SizeToken.Len of
-      5:
-        case SizeToken.Text^ of
-          's': if SizeToken.CompareText('small') then AbsoluteSize := 13.0;
-          'l': if SizeToken.CompareText('large') then AbsoluteSize := 18.0;
-        end;
-
-      6:
-        case SizeToken.Text^ of
-          'm': if SizeToken.CompareText('medium') then AbsoluteSize := 16.0;
-        end;
-
-      7:
-        case SizeToken.Text[2] of
-          'l': if SizeToken.CompareText('x-large') then AbsoluteSize := 24.0;
-          's': if SizeToken.CompareText('x-small') then AbsoluteSize := 10.0;
-        end;
-
-      8:
-        case SizeToken.Text[3] of
-          'l': if SizeToken.CompareText('xx-large') then AbsoluteSize := 32.0;
-          's': if SizeToken.CompareText('xx-small') then AbsoluteSize := 8.0;
-        end;
-    end;
-
-    if (AbsoluteSize <> 0) then
-      FFontSize := TSvgLength.Create(AbsoluteSize, suPx)
-    else
-      FFontSize := TSvgLength.Parse(SizeToken);
-
-    Result := True;
-  end;
-
-var
-  Next, Token: TValuePUtf8Char;
-begin
-  Next := AValue;
-  Next.Trim;
-  if (Next.Len = 0) then
-    Exit;
-
-  // Initial defaults for CSS font shorthand specification
-  FFontStyle := 'normal';
-  FFontWeight := 'normal';
-  FFontSize := TSvgLength.Create(12.0, suPx);
-  FFontFamily := 'sans-serif';
-
-  while (Next.Len > 0) do
-  begin
-    Token := Next.Split(sWhiteSpaceSeparators, True);
-    Token.Trim;
-    Next.Trim;
-
-    if (Token.Len = 0) then
-      Continue;
-
-    if GetFontWeight(Token) then
-      continue;
-
-    if GetFontStyle(Token) then
-      continue;
-
-    if GetFontSize(Token, Next) then
-      break;
-  end;
-
-  // Remaining string after font-size is font-family
-  if (Next.Len > 0) then
-    FFontFamily := Next.ToUtf8;
-end;
-
-procedure TSvgGroupNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
-begin
-  case AKeyword of
-    attrFont:
-      // According to W3C SVG 1.1 Specification Section 6.2:
-      // "Shorthand properties cannot be used as presentation attributes."
-      if AFromCss then
-        ParseFontProperty(AValue);
-
-    attrFontFamily:
-      FFontFamily := AValue.ToUtf8;
-
-    attrFontSize:
-      FFontSize := TSvgLength.Parse(AValue);
-
-    attrFontWeight:
-      FFontWeight := AValue.ToUtf8;
-
-    attrFontStyle:
-      FFontStyle := AValue.ToUtf8;
-
-    attrTextAnchor:
-      FTextAnchor := ParseSvgTextAnchor(AValue);
-
-    attrTextAlign:
-      begin
-        FTextAlign := taHorNone;
-        case AValue.Len of
-          3:
-            if AValue.CompareText('end') then
-              FTextAlign := taHorRight;
-
-          4:
-            if AValue.CompareText('left') then
-              FTextAlign := taHorLeft;
-
-          5:
-            if AValue.CompareText('right') then
-              FTextAlign := taHorRight;
-
-          6:
-            if AValue.CompareText('center') or AValue.CompareText('middle') then
-              FTextAlign := taHorCenter;
-
-          7:
-            if AValue.CompareText('justify') then
-              FTextAlign := taHorJustify;
-        end;
-      end;
-
-    attrLetterSpacing:
-      FLetterSpacing := TSvgLength.Parse(AValue);
-  else
-    inherited;
   end;
 end;
 
@@ -3268,7 +3400,7 @@ begin
 
   if (FTextContent <> '') then
   begin
-    FontSizePx := FFontSize.ToPixels(100.0);
+    FontSizePx := GetFontSizePx;
     if FontSizePx <= 0 then
       FontSizePx := 12.0;
 
@@ -5759,64 +5891,74 @@ begin
   FCachedViewportHeight := -1.0;
 end;
 
-function TSvgPathNode.GetPathData(const AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint;
+function TSvgPathNode.GetPathData: TArrayOfArrayOfFloatPoint;
+begin
+  Result := GetPathData(FloatRect(0.0, 0.0, 100.0, 100.0));
+end;
+
+function TSvgPathNode.GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint;
+begin
+  Result := GetPathData(FloatRect(0.0, 0.0, AViewportWidth, AViewportHeight));
+end;
+
+function TSvgPathNode.GetPathData(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
 var
-  Diag: Single;
-const
-  SqrtHalf: Single = 0.7071067811865; // Sqrt(0.5);
+  ViewportWidth, ViewportHeight: Single;
 begin
   if (FProperties.Kind in [skPath, skPolyline, skPolygon]) then
     Exit(FPathData);
 
-  if (FCachedViewportWidth = AViewportWidth) and (FCachedViewportHeight = AViewportHeight) and (Length(FPathData) > 0) then
+  ViewportWidth := AViewport.Width;
+  ViewportHeight := AViewport.Height;
+
+  if (FCachedViewportWidth = ViewportWidth) and (FCachedViewportHeight = ViewportHeight) and (Length(FPathData) > 0) then
     Exit(FPathData);
 
   case FProperties.Kind of
     skRect:
       begin
         FPathData := CreateRectPath(
-          FProperties.rect.X.ToPixels(AViewportWidth),
-          FProperties.rect.Y.ToPixels(AViewportHeight),
-          FProperties.rect.Width.ToPixels(AViewportWidth),
-          FProperties.rect.Height.ToPixels(AViewportHeight),
-          FProperties.rect.Rx.ToPixels(AViewportWidth),
-          FProperties.rect.Ry.ToPixels(AViewportHeight)
+          GetSizePx(FProperties.rect.X, ViewportWidth),
+          GetSizePx(FProperties.rect.Y, ViewportHeight),
+          GetSizePx(FProperties.rect.Width, ViewportWidth),
+          GetSizePx(FProperties.rect.Height, ViewportHeight),
+          GetSizePx(FProperties.rect.Rx, ViewportWidth),
+          GetSizePx(FProperties.rect.Ry, ViewportHeight)
         );
       end;
 
     skCircle:
       begin
-        Diag := GR32_Math.Hypot(AViewportWidth, AViewportHeight) * SqrtHalf;
         FPathData := CreateCirclePath(
-          FProperties.circle.Cx.ToPixels(AViewportWidth),
-          FProperties.circle.Cy.ToPixels(AViewportHeight),
-          FProperties.circle.R.ToPixels(Diag)
+          GetSizePx(FProperties.circle.Cx, ViewportWidth),
+          GetSizePx(FProperties.circle.Cy, ViewportHeight),
+          GetSizePx(FProperties.circle.R, AViewport)
         );
       end;
 
     skEllipse:
       begin
         FPathData := CreateEllipsePath(
-          FProperties.ellipse.Cx.ToPixels(AViewportWidth),
-          FProperties.ellipse.Cy.ToPixels(AViewportHeight),
-          FProperties.ellipse.Rx.ToPixels(AViewportWidth),
-          FProperties.ellipse.Ry.ToPixels(AViewportHeight)
+          GetSizePx(FProperties.ellipse.Cx, ViewportWidth),
+          GetSizePx(FProperties.ellipse.Cy, ViewportHeight),
+          GetSizePx(FProperties.ellipse.Rx, ViewportWidth),
+          GetSizePx(FProperties.ellipse.Ry, ViewportHeight)
         );
       end;
 
     skLine:
       begin
         FPathData := CreateLinePath(
-          FProperties.line.X1.ToPixels(AViewportWidth),
-          FProperties.line.Y1.ToPixels(AViewportHeight),
-          FProperties.line.X2.ToPixels(AViewportWidth),
-          FProperties.line.Y2.ToPixels(AViewportHeight)
+          GetSizePx(FProperties.line.X1, ViewportWidth),
+          GetSizePx(FProperties.line.Y1, ViewportHeight),
+          GetSizePx(FProperties.line.X2, ViewportWidth),
+          GetSizePx(FProperties.line.Y2, ViewportHeight)
         );
       end;
   end;
 
-  FCachedViewportWidth := AViewportWidth;
-  FCachedViewportHeight := AViewportHeight;
+  FCachedViewportWidth := ViewportWidth;
+  FCachedViewportHeight := ViewportHeight;
   Result := FPathData;
 end;
 
@@ -5836,7 +5978,7 @@ end;
 
 function TSvgPathNode.GetPathDataProp: TArrayOfArrayOfFloatPoint;
 begin
-  Result := GetPathData(100.0, 100.0);
+  Result := GetPathData;
 end;
 
 function TSvgPathNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -5871,8 +6013,8 @@ function TSvgPathNode.GetObjectBoundingBox: TFloatRect;
 var
   PathPoints: TArrayOfArrayOfFloatPoint;
 begin
-  { Calculates the tight axis-aligned bounding box of path vertices in local coordinates. }
-  PathPoints := GetPathData(100.0, 100.0);
+  // Calculates the tight axis-aligned bounding box of path vertices in local coordinates.
+  PathPoints := GetPathData;
   Result := PolyPolygonBounds(PathPoints);
 end;
 
@@ -6372,14 +6514,11 @@ begin
 end;
 
 function TSvgImageNode.GetObjectBoundingBox: TFloatRect;
-var
-  xPx, yPx, wPx, hPx: Single;
 begin
-  xPx := FX.ToPixels;
-  yPx := FY.ToPixels;
-  wPx := FWidth.ToPixels;
-  hPx := FHeight.ToPixels;
-  Result := FloatRect(xPx, yPx, xPx + wPx, yPx + hPx);
+  Result.Left := GetSizePx(FX, TSvgLength.NoDefault);
+  Result.Top := GetSizePx(FY, TSvgLength.NoDefault);
+  Result.Right := Result.Left + GetSizePx(FWidth, TSvgLength.NoDefault);
+  Result.Bottom := Result.Top + GetSizePx(FHeight, TSvgLength.NoDefault);
 end;
 
 function TSvgImageNode.GetElementTag: UTF8String;
@@ -6453,10 +6592,10 @@ end;
 
 function TSvgTextAreaNode.GetObjectBoundingBox: TFloatRect;
 begin
-  Result.Left := FX.ToPixels;
-  Result.Top := FY.ToPixels;
-  Result.Right := Result.Left + FWidth.ToPixels;
-  Result.Bottom := Result.Top + FHeight.ToPixels;
+  Result.Left := GetSizePx(FX, TSvgLength.NoDefault);
+  Result.Top := GetSizePx(FY, TSvgLength.NoDefault);
+  Result.Right := Result.Left + GetSizePx(FWidth, TSvgLength.NoDefault);
+  Result.Bottom := Result.Top + GetSizePx(FHeight, TSvgLength.NoDefault);
 end;
 
 function TSvgTextAreaNode.GetElementTag: UTF8String;

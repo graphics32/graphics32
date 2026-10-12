@@ -1,4 +1,4 @@
-unit GR32.SVG.Types;
+﻿unit GR32.SVG.Types;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -281,9 +281,14 @@ type
   );
 
   TSvgLength = record
+  public const
+    NoDefault = 100.0; // An arbitrary number that just happens to be 100...
+  public class var
+    DPI: Single;
+  public
     Value: Single;
     UnitType: TSvgUnitType;
-    function ToPixels(const ARefSize: Single = 100.0; const ADpi: Single = 96.0; const AFontSize: Single = 16.0): Single;
+    function ToPixels(const ARefSize: Single = NoDefault; const AFontSize: Single = 16.0): Single;
     class function Create(AValue: Single; AUnit: TSvgUnitType = suPx): TSvgLength; static;
     class function Parse(const AStr: TValuePUtf8Char): TSvgLength; overload; static;
 {$if defined(UNIT_TEST)}
@@ -402,6 +407,7 @@ type
     class function Create(AX, AY, AWidth, AHeight: Single): TSvgViewBox; static;
     class function Parse(AValue: TValuePUtf8Char): TSvgViewBox; static;
     function GetTransform(const ATargetRect: TFloatRect; const AAspect: TSvgPreserveAspectRatio): TFloatMatrix;
+    class operator implicit(const ViewBox: TSvgViewBox): TFloatRect;
   end;
 
 
@@ -1337,15 +1343,15 @@ begin
   Result.UnitType := AUnit;
 end;
 
-function TSvgLength.ToPixels(const ARefSize, ADpi, AFontSize: Single): Single;
+function TSvgLength.ToPixels(const ARefSize, AFontSize: Single): Single;
 begin
   case UnitType of
     suPx: Result := Value;
-    suPt: Result := Value * (ADpi / 72.0);
-    suMm: Result := Value * (ADpi / 25.4);
-    suCm: Result := Value * (ADpi / 2.54);
-    suIn: Result := Value * ADpi;
-    suPc: Result := Value * (ADpi / 6.0);
+    suPt: Result := Value * (DPI / 72.0);
+    suMm: Result := Value * (DPI / 25.4);
+    suCm: Result := Value * (DPI / 2.54);
+    suIn: Result := Value * DPI;
+    suPc: Result := Value * (DPI / 6.0);
     suPercent: Result := Value * 0.01 * ARefSize;
     suEm: Result := Value * AFontSize;
     suEx: Result := Value * AFontSize * 0.5;
@@ -2031,6 +2037,14 @@ begin
   Result := helper.Matrix;
 end;
 
+class operator TSvgViewBox.implicit(const ViewBox: TSvgViewBox): TFloatRect;
+begin
+  Result.Left := ViewBox.X;
+  Result.Top := ViewBox.Y;
+  Result.Right := ViewBox.X + ViewBox.Width;
+  Result.Bottom := ViewBox.Y + ViewBox.Height;
+end;
+
 procedure InitializeKeywordDictionaries;
 var
   i: integer;
@@ -2055,6 +2069,8 @@ initialization
   SvgFormatSettings := FormatSettings;
 {$ENDIF}
   SvgFormatSettings.DecimalSeparator := '.';
+
+  TSvgLength.DPI := 96.0;
 
   InitializeKeywordDictionaries;
 end.

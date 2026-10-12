@@ -1,4 +1,4 @@
-unit GR32.SVG.Css;
+﻿unit GR32.SVG.Css;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception

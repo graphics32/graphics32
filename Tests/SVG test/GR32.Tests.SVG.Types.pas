@@ -75,7 +75,7 @@ begin
   len := TSvgLength.Parse('2in');
   CheckEquals(2.0, len.Value, 1E-4);
   CheckEquals(Ord(suIn), Ord(len.UnitType));
-  CheckEquals(192.0, len.ToPixels(0, 96.0), 1E-4);
+  CheckEquals(192.0, len.ToPixels(0), 1E-4);
 
   len := TSvgLength.Parse('50%');
   CheckEquals(50.0, len.Value, 1E-4);
@@ -85,12 +85,12 @@ begin
   len := TSvgLength.Parse('1.5em');
   CheckEquals(1.5, len.Value, 1E-4);
   CheckEquals(Ord(suEm), Ord(len.UnitType));
-  CheckEquals(24.0, len.ToPixels(0, 96.0, 16.0), 1E-4);
+  CheckEquals(24.0, len.ToPixels(0, 16.0), 1E-4);
 
   len := TSvgLength.Parse('10ex');
   CheckEquals(10.0, len.Value, 1E-4);
   CheckEquals(Ord(suEx), Ord(len.UnitType));
-  CheckEquals(80.0, len.ToPixels(0, 96.0, 16.0), 1E-4);
+  CheckEquals(80.0, len.ToPixels(0, 16.0), 1E-4);
 
   len := TSvgLength.Parse('1.5e2px');
   CheckEquals(150.0, len.Value, 1E-4);

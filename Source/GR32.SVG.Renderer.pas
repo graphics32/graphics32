@@ -1050,7 +1050,7 @@ begin
   (*
   ** 1. Determine what elements we need to process here
   *)
-  UserStrokeWidth := APathNode.Stroke.Width.ToPixels(FViewportRect.Width);
+  UserStrokeWidth := APathNode.GetSizePx(APathNode.Stroke.Width, FViewportRect.Width);
   if (APathNode.Stroke.ResolvedPaintServer = nil) and (APathNode.Stroke.Opacity > 0) and (UserStrokeWidth > 0) then
     StrokeColor := GetEffectiveColor(APathNode, APathNode.Stroke.Color, tcStroke)
   else
@@ -1068,7 +1068,7 @@ begin
   (*
   ** 2. Generate path in user space
   *)
-  PathPoints := APathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
+  PathPoints := APathNode.GetPathData(FViewportRect);
   if Length(PathPoints) = 0 then
     Exit;
 
@@ -1090,7 +1090,7 @@ begin
       SetLength(ScaledDashArray, Length(APathNode.Stroke.DashArray));
       for i := 0 to High(APathNode.Stroke.DashArray) do
         ScaledDashArray[i] := APathNode.Stroke.DashArray[i] * MatScale;
-      ScaledOffset := APathNode.Stroke.DashOffset * MatScale;
+      ScaledOffset := APathNode.GetSizePx(APathNode.Stroke.DashOffset, FViewportRect) * MatScale;
     end;
 
     for i := 0 to High(TransformedPoints) do
@@ -1389,8 +1389,8 @@ begin
   if vpH <= 0 then
     vpH := 1.0;
 
-  mw := AMarker.MarkerWidth.ToPixels(vpW);
-  mh := AMarker.MarkerHeight.ToPixels(vpH);
+  mw := AMarker.GetSizePx(AMarker.MarkerWidth, vpW);
+  mh := AMarker.GetSizePx(AMarker.MarkerHeight, vpH);
 
   if AMarker.MarkerUnits = muStrokeWidth then
   begin
@@ -1404,8 +1404,8 @@ begin
     scaleY := mh;
   end;
 
-  rx := AMarker.RefX.ToPixels(mw);
-  ry := AMarker.RefY.ToPixels(mh);
+  rx := AMarker.GetSizePx(AMarker.RefX, mw);
+  ry := AMarker.GetSizePx(AMarker.RefY, mh);
 
   // SVG Marker transformation sequence (innermost to outermost):
   // 1. Local marker content -> Shift by (-refX, -refY) in viewBox user space
@@ -1417,7 +1417,11 @@ begin
   begin
     markerViewBox := AMarker.ViewBox;
     viewMat := markerViewBox.GetTransform(FloatRect(0, 0, mw, mh), AMarker.PreserveAspectRatio);
-    RefPt := TFloatMatrixHelper(viewMat).TransformPoint(FloatPoint(AMarker.RefX.ToPixels(markerViewBox.Width), AMarker.RefY.ToPixels(markerViewBox.Height)));
+    RefPt := TFloatMatrixHelper(viewMat).TransformPoint(
+      FloatPoint(
+        AMarker.GetSizePx(AMarker.RefX, markerViewBox.Width),
+        AMarker.GetSizePx(AMarker.RefY, markerViewBox.Height)
+      ));
     markerMat.Matrix := viewMat;
     markerMat.Translate(-RefPt.X, -RefPt.Y);
     if AMarker.MarkerUnits = muStrokeWidth then
@@ -1572,10 +1576,10 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
 
       DocNode := TSvgDocumentNode(AGroupNode);
 
-      DocW := DocNode.Width.ToPixels(FViewportRect.Width);
-      DocH := DocNode.Height.ToPixels(FViewportRect.Height);
-      DocX := DocNode.X.ToPixels(FViewportRect.Width);
-      DocY := DocNode.Y.ToPixels(FViewportRect.Height);
+      DocW := DocNode.GetSizePx(DocNode.Width, FViewportRect.Width);
+      DocH := DocNode.GetSizePx(DocNode.Height, FViewportRect.Height);
+      DocX := DocNode.GetSizePx(DocNode.X, FViewportRect.Width);
+      DocY := DocNode.GetSizePx(DocNode.Y, FViewportRect.Height);
 
       DocTargetRect := FloatRect(DocX, DocY, DocX + DocW, DocY + DocH);
 
@@ -1855,7 +1859,7 @@ begin
     if ANode is TSvgPathNode then
     begin
       PathNode := TSvgPathNode(ANode);
-      PathPoints := PathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
+      PathPoints := PathNode.GetPathData(FViewportRect);
       NodeBounds := PolyPolygonBounds(PathPoints);
 
       if Length(PathPoints) > 0 then
@@ -1864,7 +1868,7 @@ begin
         SourceBounds := PolyPolygonBounds(TransformedPoints);
 
         StrokePoints := nil;
-        StrokeWidth := PathNode.Stroke.Width.ToPixels(FViewportRect.Width);
+        StrokeWidth := PathNode.GetSizePx(PathNode.Stroke.Width, FViewportRect.Width);
         if (PathNode.Stroke.ResolvedPaintServer = nil) then
           StrokeColor := GetEffectiveColor(PathNode, PathNode.Stroke.Color, tcStroke)
         else
@@ -1947,16 +1951,16 @@ begin
     if AFilterNode.FilterUnits = guObjectBoundingBox then
     begin
       // Note: Value returned by ToPixels is always treated as a factor
-      UserFilterRegionRect.Left := NodeBounds.Left + AFilterNode.X.ToPixels(1.0) * BBoxWidth;
-      UserFilterRegionRect.Top := NodeBounds.Top + AFilterNode.Y.ToPixels(1.0) * BBoxHeight;
-      UserFilterRegionRect.Right := UserFilterRegionRect.Left + AFilterNode.Width.ToPixels(1.0) * BBoxWidth;
-      UserFilterRegionRect.Bottom := UserFilterRegionRect.Top + AFilterNode.Height.ToPixels(1.0) * BBoxHeight;
+      UserFilterRegionRect.Left := NodeBounds.Left + AFilterNode.GetSizePx(AFilterNode.X, 1.0) * BBoxWidth;
+      UserFilterRegionRect.Top := NodeBounds.Top + AFilterNode.GetSizePx(AFilterNode.Y, 1.0) * BBoxHeight;
+      UserFilterRegionRect.Right := UserFilterRegionRect.Left + AFilterNode.GetSizePx(AFilterNode.Width, 1.0) * BBoxWidth;
+      UserFilterRegionRect.Bottom := UserFilterRegionRect.Top + AFilterNode.GetSizePx(AFilterNode.Height, 1.0) * BBoxHeight;
     end else
     begin
-      UserFilterRegionRect.Left := AFilterNode.X.ToPixels(FViewportRect.Width);
-      UserFilterRegionRect.Top := AFilterNode.Y.ToPixels(FViewportRect.Height);
-      UserFilterRegionRect.Right := UserFilterRegionRect.Left + AFilterNode.Width.ToPixels(FViewportRect.Width);
-      UserFilterRegionRect.Bottom := UserFilterRegionRect.Top + AFilterNode.Height.ToPixels(FViewportRect.Height);
+      UserFilterRegionRect.Left := AFilterNode.GetSizePx(AFilterNode.X, FViewportRect.Width);
+      UserFilterRegionRect.Top := AFilterNode.GetSizePx(AFilterNode.Y, FViewportRect.Height);
+      UserFilterRegionRect.Right := UserFilterRegionRect.Left + AFilterNode.GetSizePx(AFilterNode.Width, FViewportRect.Width);
+      UserFilterRegionRect.Bottom := UserFilterRegionRect.Top + AFilterNode.GetSizePx(AFilterNode.Height, FViewportRect.Height);
     end;
 
     FilterRegionRect := UserFilterRegionRect;
@@ -2062,34 +2066,34 @@ begin
         //
         if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
         begin
-          PrimRect.Left := NodeBounds.Left + FilterNode.X.ToPixels(1.0) * BBoxWidth;
-          PrimRect.Top := NodeBounds.Top + FilterNode.Y.ToPixels(1.0) * BBoxHeight;
-          PrimRect.Right := PrimRect.Left + FilterNode.Width.ToPixels(1.0) * BBoxWidth;
-          PrimRect.Bottom := PrimRect.Top + FilterNode.Height.ToPixels(1.0) * BBoxHeight;
+          PrimRect.Left := NodeBounds.Left + FilterNode.GetSizePx(FilterNode.X, 1.0) * BBoxWidth;
+          PrimRect.Top := NodeBounds.Top + FilterNode.GetSizePx(FilterNode.Y, 1.0) * BBoxHeight;
+          PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, 1.0) * BBoxWidth;
+          PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, 1.0) * BBoxHeight;
         end else
         begin
           FilterRegionWidth := UserFilterRegionRect.Right - UserFilterRegionRect.Left;
           FilterRegionHeight := UserFilterRegionRect.Bottom - UserFilterRegionRect.Top;
 
           if (FilterNode.X.UnitType = suPercent) then
-            PrimRect.Left := UserFilterRegionRect.Left + FilterNode.X.ToPixels(FilterRegionWidth)
+            PrimRect.Left := UserFilterRegionRect.Left + FilterNode.GetSizePx(FilterNode.X, FilterRegionWidth)
           else
-            PrimRect.Left := FilterNode.X.ToPixels(FViewportRect.Width);
+            PrimRect.Left := FilterNode.GetSizePx(FilterNode.X, FViewportRect.Width);
 
           if (FilterNode.Y.UnitType = suPercent) then
-            PrimRect.Top := UserFilterRegionRect.Top + FilterNode.Y.ToPixels(FilterRegionHeight)
+            PrimRect.Top := UserFilterRegionRect.Top + FilterNode.GetSizePx(FilterNode.Y, FilterRegionHeight)
           else
-            PrimRect.Top := FilterNode.Y.ToPixels(FViewportRect.Height);
+            PrimRect.Top := FilterNode.GetSizePx(FilterNode.Y, FViewportRect.Height);
 
           if (FilterNode.Width.UnitType = suPercent) then
-            PrimRect.Right := PrimRect.Left + FilterNode.Width.ToPixels(FilterRegionWidth)
+            PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, FilterRegionWidth)
           else
-            PrimRect.Right := PrimRect.Left + FilterNode.Width.ToPixels(FViewportRect.Width);
+            PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, FViewportRect.Width);
 
           if (FilterNode.Height.UnitType = suPercent) then
-            PrimRect.Bottom := PrimRect.Top + FilterNode.Height.ToPixels(FilterRegionHeight)
+            PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, FilterRegionHeight)
           else
-            PrimRect.Bottom := PrimRect.Top + FilterNode.Height.ToPixels(FViewportRect.Height);
+            PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, FViewportRect.Height);
         end;
 
         // Transform PrimRect to world/screen space
@@ -2365,13 +2369,13 @@ begin
   if (ATarget = nil) or (AImageNode = nil) then
     Exit;
 
-  WidthPx := AImageNode.Width.ToPixels(FViewportRect.Width);
-  HeightPx := AImageNode.Height.ToPixels(FViewportRect.Height);
+  WidthPx := AImageNode.GetSizePx(AImageNode.Width, FViewportRect.Width);
+  HeightPx := AImageNode.GetSizePx(AImageNode.Height, FViewportRect.Height);
   if (WidthPx <= 0) or (HeightPx <= 0) then
     Exit;
 
-  xPx := AImageNode.X.ToPixels(FViewportRect.Width);
-  yPx := AImageNode.Y.ToPixels(FViewportRect.Height);
+  xPx := AImageNode.GetSizePx(AImageNode.X, FViewportRect.Width);
+  yPx := AImageNode.GetSizePx(AImageNode.Y, FViewportRect.Height);
   TargetRect := FloatRect(xPx, yPx, xPx + WidthPx, yPx + HeightPx);
 
   if (AImageNode.Href = '') then
@@ -2437,8 +2441,8 @@ begin
           SourceViewBox := SubDoc.ViewBox
         else
         begin
-          WidthPx := SubDoc.Width.ToPixels(TargetRect.Width);
-          HeightPx := SubDoc.Height.ToPixels(TargetRect.Height);
+          WidthPx := SubDoc.GetSizePx(SubDoc.Width, TargetRect.Width);
+          HeightPx := SubDoc.GetSizePx(SubDoc.Height, TargetRect.Height);
           if WidthPx <= 0 then
             WidthPx := TargetRect.Width;
           if HeightPx <= 0 then
@@ -2663,7 +2667,7 @@ begin
     FillColor := TSvgColor.Unset;
   HasFill := (ANode.Fill.ResolvedPaintServer <> nil) or ((FillColor.IsVisible) and (FillOpacity > 0));
 
-  StrokeWidth := ANode.Stroke.Width.ToPixels(FViewportRect.Width);
+  StrokeWidth := ANode.GetSizePx(ANode.Stroke.Width, FViewportRect.Width);
   if (ANode.Stroke.ResolvedPaintServer = nil) and (StrokeWidth > 0) then
     StrokeColor := GetEffectiveColor(ANode, ANode.Stroke.Color, tcStroke)
   else
@@ -2692,7 +2696,7 @@ begin
       SetLength(ScaledDashArray, Length(ANode.Stroke.DashArray));
       for k := 0 to High(ANode.Stroke.DashArray) do
         ScaledDashArray[k] := ANode.Stroke.DashArray[k] * MatScale;
-      ScaledOffset := ANode.Stroke.DashOffset * MatScale;
+      ScaledOffset := ANode.GetSizePx(ANode.Stroke.DashOffset, FViewportRect) * MatScale;
     end;
 
     StrokePts := nil;
@@ -2726,10 +2730,10 @@ begin
   if (ATarget = nil) then
     Exit;
 
-  TextRect.Left := ATextAreaNode.X.ToPixels(FViewportRect.Width);
-  TextRect.Top := ATextAreaNode.Y.ToPixels(FViewportRect.Height);
-  TextRect.Right := TextRect.Left + ATextAreaNode.Width.ToPixels(FViewportRect.Width);
-  TextRect.Bottom := TextRect.Top + ATextAreaNode.Height.ToPixels(FViewportRect.Height);
+  TextRect.Left := ATextAreaNode.GetSizePx(ATextAreaNode.X, FViewportRect.Width);
+  TextRect.Top := ATextAreaNode.GetSizePx(ATextAreaNode.Y, FViewportRect.Height);
+  TextRect.Right := TextRect.Left + ATextAreaNode.GetSizePx(ATextAreaNode.Width, FViewportRect.Width);
+  TextRect.Bottom := TextRect.Top + ATextAreaNode.GetSizePx(ATextAreaNode.Height, FViewportRect.Height);
 
   if (TextRect.IsEmpty) then
     Exit;
@@ -2745,7 +2749,7 @@ begin
   try
     Canvas.BeginLockUpdate;
 
-    FontSizePx := Round(ATextAreaNode.FontSize.ToPixels(FViewportRect.Height));
+    FontSizePx := Round(ATextAreaNode.GetFontSizePx);
     if FontSizePx <= 0 then
       FontSizePx := 12;
 
@@ -2835,15 +2839,15 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     end;
     try
       if CurrentNode.HasDx then
-        CurrentDistance := CurrentDistance + CurrentNode.Dx.ToPixels(TotalLen);
+        CurrentDistance := CurrentDistance + CurrentNode.GetSizePx(CurrentNode.Dx, TotalLen);
 
       if CurrentNode.HasDy then
-        ActiveDy := ActiveDy + CurrentNode.Dy.ToPixels(FViewportRect.Height);
+        ActiveDy := ActiveDy + CurrentNode.GetSizePx(CurrentNode.Dy, FViewportRect.Height);
 
       Text := CurrentNode.TextContent;
       if (Text <> '') then
       begin
-        FontSizePx := Round(CurrentNode.FontSize.ToPixels(FViewportRect.Height));
+        FontSizePx := Round(CurrentNode.GetFontSizePx);
         if FontSizePx <= 0 then
           FontSizePx := 12;
 
@@ -2986,7 +2990,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       if HasNodeTransform then
         ApplyMatrix(ANode.Transform);
 
-      PathPts := ANode.ResolvedPathNode.GetPathData(FViewportRect.Width, FViewportRect.Height);
+      PathPts := ANode.ResolvedPathNode.GetPathData(FViewportRect);
       if Length(PathPts) = 0 then
         Exit;
 
@@ -3003,7 +3007,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       if TotalLen <= 0 then
         Exit;
 
-      Offset := ANode.StartOffset.ToPixels(TotalLen);
+      Offset := ANode.GetSizePx(ANode.StartOffset, TotalLen);
 
       if (ANode.TextAnchor <> taStart) then
       begin
@@ -3067,18 +3071,18 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         ApplyMatrix(ANode.Transform);
 
       if ANode.HasX then
-        Cursor.X := ANode.X.ToPixels(FViewportRect.Width);
+        Cursor.X := ANode.GetSizePx(ANode.X, FViewportRect.Width);
       if ANode.HasDx then
-        Cursor.X := Cursor.X + ANode.Dx.ToPixels(FViewportRect.Width);
+        Cursor.X := Cursor.X + ANode.GetSizePx(ANode.Dx, FViewportRect.Width);
 
       if ANode.HasY then
-        Cursor.Y := ANode.Y.ToPixels(FViewportRect.Height);
+        Cursor.Y := ANode.GetSizePx(ANode.Y, FViewportRect.Height);
       if ANode.HasDy then
-        Cursor.Y := Cursor.Y + ANode.Dy.ToPixels(FViewportRect.Height);
+        Cursor.Y := Cursor.Y + ANode.GetSizePx(ANode.Dy, FViewportRect.Height);
 
       if (ANode.TextContent <> '') then
       begin
-        FontSizePx := Round(ANode.FontSize.ToPixels(FViewportRect.Height));
+        FontSizePx := Round(ANode.GetFontSizePx);
         if FontSizePx <= 0 then
           FontSizePx := 12;
 
@@ -3485,8 +3489,8 @@ begin
   FDocumentRoot := ADoc;
   FViewportRect := ATargetRect;
 
-  docW := ADoc.Width.ToPixels(ATargetRect.Right - ATargetRect.Left);
-  docH := ADoc.Height.ToPixels(ATargetRect.Bottom - ATargetRect.Top);
+  docW := ADoc.GetSizePx(ADoc.Width, ATargetRect.Width);
+  docH := ADoc.GetSizePx(ADoc.Height, ATargetRect.Height);
 
   viewBox := ADoc.ViewBox;
   if not viewBox.IsValid then

@@ -1,4 +1,4 @@
-unit GR32.SVG;
+﻿unit GR32.SVG;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -65,6 +65,9 @@ type
   end;
 
 implementation
+
+uses
+  Types;
 
 { TSvgDocument }
 

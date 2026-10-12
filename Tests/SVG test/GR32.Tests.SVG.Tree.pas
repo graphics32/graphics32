@@ -85,6 +85,7 @@ type
     procedure TestTextLineBreaksAndLeadingSpaces;
     procedure TestMarkerAttributeShorthandIgnored;
     procedure TestDisplayNoneOnMarkerAndAncestor;
+    procedure TestPathEmLengthInheritedFontSize;
   end;
 
 implementation
@@ -118,6 +119,35 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestPathEmLengthInheritedFontSize;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  rectNode: TSvgPathNode;
+  pts: TArrayOfArrayOfFloatPoint;
+begin
+  xml := '<svg width="480" height="360">' +
+         '  <g font-size="10px">' +
+         '    <rect id="r1" x="20" y="60" width="20em" height="1"/>' +
+         '  </g>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    rectNode := TSvgPathNode(docNode.FindNodeById('r1'));
+    Check(rectNode <> nil, 'rectNode r1 should exist');
+    CheckEquals(10.0, rectNode.GetFontSizePx, 1E-4, 'Rect node should inherit font-size 10px from parent <g>');
+
+    pts := rectNode.GetPathData(FloatRect(0, 0, 480.0, 360.0));
+    Check(Length(pts) > 0, 'pts should not be empty');
+    CheckEquals(20.0, pts[0][0].X, 1E-4, 'Rect left edge X');
+    CheckEquals(220.0, pts[0][1].X, 1E-4, 'Rect right edge (X + width) should be 20 + 200 = 220');
   finally
     docNode.Free;
   end;
@@ -341,7 +371,7 @@ var
   text1, text2, text3: TSvgTextNode;
 begin
   xml := '<svg width="200" height="100">' +
-         '  <text id="t1" x="10" y="20" font="italic bold 16px/1.2 &quot;Courier New&quot;, monospace">Inline Font</text>' +
+         '  <text id="t1" x="10" y="20" font="italic bold 20px/1.2 &quot;Courier New&quot;, monospace">Inline Font</text>' +
          '  <text id="t2" x="10" y="40" style="font: small-caps 700 24px Arial;">Style Font</text>' +
          '  <text id="t3" x="10" y="60" font="small Times New Roman">Keyword Size</text>' +
          '</svg>';
@@ -355,7 +385,7 @@ begin
     // "Shorthand properties cannot be used as presentation attributes."
     CheckNotEquals('italic', text1.FontStyle);
     CheckNotEquals('bold', text1.FontWeight);
-    CheckNotEquals(16.0, text1.FontSize.Value, 1E-4);
+    CheckNotEquals(20.0, text1.FontSize.Value, 1E-4);
     CheckNotEquals('"Courier New", monospace', text1.FontFamily);
 
     text2 := TSvgTextNode(docNode.FindNodeById('t2'));
@@ -1240,7 +1270,7 @@ begin
     CheckEquals(2, Length(p1.Stroke.DashArray), 'p1 dash array length should be 2');
     CheckEquals(0.15, p1.Stroke.DashArray[0], 1E-4);
     CheckEquals(0.025, p1.Stroke.DashArray[1], 1E-4);
-    CheckEquals(0.01, p1.Stroke.DashOffset, 1E-4);
+    CheckEquals(0.01, p1.Stroke.DashOffset.ToPixels, 1E-4);
 
     p2 := docNode.FindNodeById('p2');
     Check(p2 <> nil, 'p2 should exist');
@@ -1252,12 +1282,12 @@ begin
     CheckEquals(1.0, p2.Stroke.DashArray[3], 1E-4);
     CheckEquals(2.0, p2.Stroke.DashArray[4], 1E-4);
     CheckEquals(3.0, p2.Stroke.DashArray[5], 1E-4);
-    CheckEquals(5.0, p2.Stroke.DashOffset, 1E-4);
+    CheckEquals(5.0, p2.Stroke.DashOffset.ToPixels, 1E-4);
 
     p3 := docNode.FindNodeById('p3');
     Check(p3 <> nil, 'p3 should exist');
     CheckEquals(0, Length(p3.Stroke.DashArray), 'p3 dash array should be empty for "none"');
-    CheckEquals(0.0, p3.Stroke.DashOffset, 1E-4);
+    CheckEquals(0.0, p3.Stroke.DashOffset.ToPixels, 1E-4);
   finally
     docNode.Free;
   end;
