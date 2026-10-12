@@ -2882,6 +2882,7 @@ end;
 ** and scales Dest.A by Gray / 255 using SSE4.1 32-bit PMULLD vector math in 4-pixel blocks.
 *)
 procedure ApplyAlphaMask_SSE41(Source, Dest: PColor32Entry; Count: Integer); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
         TEST      ECX, ECX
@@ -3018,10 +3019,17 @@ asm
 
 @Exit:
 {$elseif defined(TARGET_x64)}
+{$if not defined(FPC)}
+        .SAVENV XMM4
+        .SAVENV XMM5
+{$ifend}
         TEST      R8D, R8D
         JLE       @Exit
         PUSH      RSI
         PUSH      RBX
+
+        LEA       RSI, [RIP + c_w601_words]
+        MOVDQU    XMM5, [RSI]           // Pre-load c_w601_words
 
         SUB       R8D, 4
         JL        @Tail
@@ -3030,53 +3038,55 @@ asm
         MOVDQU    XMM0, [RCX]           // Source 4 pixels
         MOVDQU    XMM1, [RDX]           // Dest 4 pixels
 
-        // Low 2 pixels luminance
-        MOVDQA    XMM2, XMM0
-        PXOR      XMM4, XMM4
-        PUNPCKLBW XMM2, XMM4
-        LEA       RSI, [RIP + c_w601_words]
-        PMADDWD   XMM2, [RSI]
-        PSHUFD    XMM3, XMM2, $B1
-        PADDD     XMM2, XMM3
-        PSRLD     XMM2, 8               // Y_raw in [0..255]
-        PSHUFD    XMM2, XMM2, $D8
+        MOVDQA    XMM2, XMM0            // Copy source pixels
+        PSRLD     XMM0, 24              // Source Alphas in XMM0
 
-        // High 2 pixels luminance
-        MOVDQA    XMM3, XMM0
-        PUNPCKHBW XMM3, XMM4
-        PMADDWD   XMM3, [RSI]
+        // Low 2 pixels luminance
+        MOVDQA    XMM3, XMM2
+        PXOR      XMM4, XMM4
+        PUNPCKLBW XMM3, XMM4
+        PMADDWD   XMM3, XMM5            // PMADDWD using pre-loaded c_w601_words
         PSHUFD    XMM4, XMM3, $B1
         PADDD     XMM3, XMM4
         PSRLD     XMM3, 8               // Y_raw in [0..255]
         PSHUFD    XMM3, XMM3, $D8
 
-        MOVLHPS   XMM2, XMM3            // Combine into XMM2: [Y0, Y1, Y2, Y3]
+        // High 2 pixels luminance
+        PXOR      XMM4, XMM4
+        PUNPCKHBW XMM2, XMM4
+        PMADDWD   XMM2, XMM5            // PMADDWD using pre-loaded c_w601_words
+        PSHUFD    XMM4, XMM2, $B1
+        PADDD     XMM2, XMM4
+        PSRLD     XMM2, 8               // Y_raw in [0..255]
+        PSHUFD    XMM2, XMM2, $D8
 
-        MOVDQU    XMM0, [RCX]
-        PSRLD     XMM0, 24              // Source Alphas
+        MOVLHPS   XMM3, XMM2            // Combine into XMM3: [Y0, Y1, Y2, Y3]
 
-        PMULLD    XMM2, XMM0            // Y_raw * Sa
+        PMULLD    XMM3, XMM0            // Y_raw * Sa
         LEA       RSI, [RIP + c_div255_bias]
-        PADDD     XMM2, [RSI]
+        MOVDQU    XMM4, [RSI]           // Alignment-safe load
+        PADDD     XMM3, XMM4
         LEA       RSI, [RIP + c_div255_mult]
-        PMULLD    XMM2, [RSI]
-        PSRLD     XMM2, 16              // Gray = (Y_raw * Sa + 127) * 257 shr 16 in [0..255]
+        MOVDQU    XMM4, [RSI]           // Alignment-safe load
+        PMULLD    XMM3, XMM4
+        PSRLD     XMM3, 16              // Gray = (Y_raw * Sa + 127) * 257 shr 16 in [0..255]
 
-        MOVDQA    XMM4, XMM1
-        PSRLD     XMM4, 24              // Dest Alphas
+        MOVDQA    XMM2, XMM1            // Dest 4 pixels
+        PSRLD     XMM2, 24              // Dest Alphas in XMM2
 
-        PMULLD    XMM4, XMM2            // Dest.A * Gray
+        PMULLD    XMM2, XMM3            // Dest.A * Gray
         LEA       RSI, [RIP + c_div255_bias]
-        PADDD     XMM4, [RSI]
+        MOVDQU    XMM4, [RSI]
+        PADDD     XMM2, XMM4
         LEA       RSI, [RIP + c_div255_mult]
-        PMULLD    XMM4, [RSI]
-        PSRLD     XMM4, 16              // New Dest.A in [0..255]
+        MOVDQU    XMM4, [RSI]
+        PMULLD    XMM2, XMM4
+        PSRLD     XMM2, 16              // New Dest.A in [0..255]
 
-        PSLLD     XMM4, 24
-        LEA       RSI, [RIP + c_rgb_mask32]
-        MOVDQU    XMM0, [RSI]
-        PAND      XMM1, XMM0
-        POR       XMM1, XMM4
+        PSLLD     XMM2, 24
+        PSLLD     XMM1, 8
+        PSRLD     XMM1, 8               // Clear dest alpha (bits 24..31) without requiring c_rgb_mask32
+        POR       XMM1, XMM2            // Combine Dest RGB with New Dest.A
         MOVDQU    [RDX], XMM1
 
         ADD       RCX, 16
@@ -3142,6 +3152,7 @@ asm
         POP       RSI
 
 @Exit:
+{$if defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
 {$ifend}
 end;
 
