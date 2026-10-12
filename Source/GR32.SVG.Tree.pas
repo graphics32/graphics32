@@ -2337,6 +2337,9 @@ end;
 
 function TSvgNode.GetIsDisplayNone: Boolean;
 begin
+  if not IsRenderable then
+    Exit(False);
+
   if (FDisplay = dsNone) then
     Result := True
   else

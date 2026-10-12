@@ -84,6 +84,7 @@ type
     procedure TestDocumentCurrentColorProperty;
     procedure TestTextLineBreaksAndLeadingSpaces;
     procedure TestMarkerAttributeShorthandIgnored;
+    procedure TestDisplayNoneOnMarkerAndAncestor;
   end;
 
 implementation
@@ -1733,6 +1734,41 @@ begin
     CheckEquals('bold', TSvgGroupNode(g2).FontWeight, 'CSS inline style="font: ..." on g2 MUST parse FontWeight');
     CheckEquals(16.0, TSvgGroupNode(g2).FontSize.Value, 1E-4, 'CSS inline style="font: ..." on g2 MUST parse FontSize');
     CheckEquals('Arial', TSvgGroupNode(g2).FontFamily, 'CSS inline style="font: ..." on g2 MUST parse FontFamily');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestDisplayNoneOnMarkerAndAncestor;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  marker1, marker2: TSvgMarkerNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <marker id="m_direct" display="none" refX="5" refY="5" markerWidth="10" markerHeight="10">' +
+         '      <rect width="10" height="10" fill="red"/>' +
+         '    </marker>' +
+         '    <g display="none">' +
+         '      <marker id="m_parent_none" refX="5" refY="5" markerWidth="10" markerHeight="10">' +
+         '        <rect width="10" height="10" fill="blue"/>' +
+         '      </marker>' +
+         '    </g>' +
+         '  </defs>' +
+         '  <path id="p1" d="M 10 10 L 50 50" marker-start="url(#m_direct)" marker-end="url(#m_parent_none)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    marker1 := TSvgMarkerNode(docNode.FindNodeById('m_direct'));
+    Check(marker1 <> nil, 'm_direct marker should exist');
+    Check(not marker1.IsDisplayNone, 'm_direct marker with display="none" should return IsDisplayNone = False because it is non-renderable');
+
+    marker2 := TSvgMarkerNode(docNode.FindNodeById('m_parent_none'));
+    Check(marker2 <> nil, 'm_parent_none marker should exist');
+    Check(not marker2.IsDisplayNone, 'm_parent_none marker whose parent container has display="none" should return IsDisplayNone = False because it is non-renderable');
   finally
     docNode.Free;
   end;
