@@ -2657,6 +2657,7 @@ end;
 ** in 4-pixel blocks.
 *)
 procedure ScaleAlphaMems_SSE2(Color: PColor32Entry; Count: Integer; Scale: Single); {$IFDEF FPC}assembler;{$ENDIF}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
         TEST      EDX, EDX
@@ -2745,6 +2746,10 @@ asm
 
 @Exit:
 {$elseif defined(TARGET_x64)}
+{$if not defined(FPC)}
+        .SAVENV XMM4
+        .SAVENV XMM5
+{$ifend}
         TEST      EDX, EDX
         JLE       @Exit
         PUSH      RSI
@@ -2769,6 +2774,12 @@ asm
         PINSRW    XMM3, ESI, 3
         PSHUFD    XMM3, XMM3, $44
 
+        // Pre-load aligned constants outside loop
+        LEA       RBX, [RIP + SSE_00800080_ALIGNED]
+        MOVDQA    XMM4, [RBX]
+        LEA       RBX, [RIP + SSE_01010101_ALIGNED]
+        MOVDQA    XMM5, [RBX]
+
         SUB       EDX, 4
         JL        @Tail
 
@@ -2776,22 +2787,18 @@ asm
         MOVDQU    XMM0, [RCX]           // Load 4 pixels
 
         MOVDQA    XMM1, XMM0
-        PXOR      XMM5, XMM5
-        PUNPCKLBW XMM1, XMM5
+        PXOR      XMM2, XMM2
+        PUNPCKLBW XMM1, XMM2
         PMULLW    XMM1, XMM3
-        LEA       RBX, [RIP + SSE_00800080_ALIGNED]
-        PADDW     XMM1, [RBX]
-        LEA       RBX, [RIP + SSE_01010101_ALIGNED]
-        PMULHUW   XMM1, [RBX]
+        PADDW     XMM1, XMM4
+        PMULHUW   XMM1, XMM5
 
         MOVDQA    XMM2, XMM0
-        PXOR      XMM5, XMM5
-        PUNPCKHBW XMM2, XMM5
+        PXOR      XMM0, XMM0
+        PUNPCKHBW XMM2, XMM0
         PMULLW    XMM2, XMM3
-        LEA       RBX, [RIP + SSE_00800080_ALIGNED]
-        PADDW     XMM2, [RBX]
-        LEA       RBX, [RIP + SSE_01010101_ALIGNED]
-        PMULHUW   XMM2, [RBX]
+        PADDW     XMM2, XMM4
+        PMULHUW   XMM2, XMM5
 
         PACKUSWB  XMM1, XMM2
         MOVDQU    [RCX], XMM1
@@ -2827,6 +2834,7 @@ asm
         POP       RSI
 
 @Exit:
+{$if defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
 {$ifend}
 end;
 
