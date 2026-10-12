@@ -2454,6 +2454,8 @@ begin
 
           SubRenderer := TSvgRenderer.Create(ATarget);
           try
+            SubRenderer.FRecursionDepth := FRecursionDepth; // Let's close this little recursion loophole
+
             SubRenderer.AllowExternalImages := FAllowExternalImages;
             SubRenderer.Transformation.Clear(FTransformation.Matrix);
             SubRenderer.ViewportRect := FViewportRect;
