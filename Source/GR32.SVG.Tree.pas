@@ -754,7 +754,10 @@ type
 // SVG Filter AST Node Hierarchy
 //------------------------------------------------------------------------------
   TSvgFilterPrimitiveNode = class abstract(TSvgGroupNode)
+  public type
+    TSvgFilterPrimitiveProperties = set of (fppX, fppY, fppWidth, fppHeight);
   private
+    FSpecified: TSvgFilterPrimitiveProperties;
     FIn1: UTF8String;
     FIn2: UTF8String;
     FResult: UTF8String;
@@ -764,6 +767,10 @@ type
     FY: TSvgLength;
     FWidth: TSvgLength;
     FHeight: TSvgLength;
+    function GetHasHeight: Boolean;
+    function GetHasWidth: Boolean;
+    function GetHasX: Boolean;
+    function GetHasY: Boolean;
     function GetIsReferenceTarget: boolean;
   protected
     function GetIsRenderable: Boolean; override;
@@ -773,6 +780,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
 
+    property Specified: TSvgFilterPrimitiveProperties read FSpecified write FSpecified;
     property In1: UTF8String read FIn1 write FIn1;
     property In2: UTF8String read FIn2 write FIn2;
     property ResultName: UTF8String read FResult write FResult;
@@ -783,6 +791,10 @@ type
     property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
+    property HasX: Boolean read GetHasX;
+    property HasY: Boolean read GetHasY;
+    property HasWidth: Boolean read GetHasWidth;
+    property HasHeight: Boolean read GetHasHeight;
   end;
 
 
@@ -4415,6 +4427,26 @@ end;
 //      TSvgFilterPrimitiveNode
 //
 //------------------------------------------------------------------------------
+function TSvgFilterPrimitiveNode.GetHasX: Boolean;
+begin
+  Result := fppX in FSpecified;
+end;
+
+function TSvgFilterPrimitiveNode.GetHasY: Boolean;
+begin
+  Result := fppY in FSpecified;
+end;
+
+function TSvgFilterPrimitiveNode.GetHasWidth: Boolean;
+begin
+  Result := fppWidth in FSpecified;
+end;
+
+function TSvgFilterPrimitiveNode.GetHasHeight: Boolean;
+begin
+  Result := fppHeight in FSpecified;
+end;
+
 constructor TSvgFilterPrimitiveNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
@@ -4422,6 +4454,7 @@ begin
   FY := TSvgLength.Create(0.0, suPercent);
   FWidth := TSvgLength.Create(100.0, suPercent);
   FHeight := TSvgLength.Create(100.0, suPercent);
+  FSpecified := [];
 end;
 
 function TSvgFilterPrimitiveNode.GetIsRenderable: Boolean;
@@ -4443,6 +4476,7 @@ begin
   primRes.FY := FY;
   primRes.FWidth := FWidth;
   primRes.FHeight := FHeight;
+  primRes.FSpecified := FSpecified;
   Result := primRes;
 end;
 
@@ -4459,16 +4493,28 @@ begin
       FResult := AValue.ToUtf8;
 
     attrX:
-      FX := TSvgLength.Parse(AValue);
+      begin
+        FX := TSvgLength.Parse(AValue);
+        Include(FSpecified, fppX);
+      end;
 
     attrY:
-      FY := TSvgLength.Parse(AValue);
+      begin
+        FY := TSvgLength.Parse(AValue);
+        Include(FSpecified, fppY);
+      end;
 
     attrWidth:
-      FWidth := TSvgLength.Parse(AValue);
+      begin
+        FWidth := TSvgLength.Parse(AValue);
+        Include(FSpecified, fppWidth);
+      end;
 
     attrHeight:
-      FHeight := TSvgLength.Parse(AValue);
+      begin
+        FHeight := TSvgLength.Parse(AValue);
+        Include(FSpecified, fppHeight);
+      end;
   else
     inherited;
   end;

@@ -1844,7 +1844,8 @@ var
   FilterNode: TSvgFilterPrimitiveNode;
   FilterRenderer: TFilterRendererClass;
   PrimRect: TFloatRect;
-  PrimRoiRect: TRect;
+  SpecifiedROI: TRect;
+  HasInputUnion: Boolean;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
@@ -1910,27 +1911,6 @@ begin
       end;
     end;
 
-    // 2. Calculate filter-dependent directional margins (e.g. Gaussian blur radius, offset dx/dy)
-    TotalMargin := Default(TFloatRect);
-    for Node in AFilterNode.Children do
-    begin
-      if not (Node is TSvgFilterPrimitiveNode) then
-        Continue;
-
-      FilterNode := TSvgFilterPrimitiveNode(Node);
-      FilterRenderer := TFilterRendererClass(FilterNode.GetRenderClass);
-
-      if (FilterRenderer <> nil) then
-        Margin := FilterRenderer.GetMargins(FilterNode, RenderData.Scale)
-      else
-        Margin := Default(TFloatRect);
-
-      TotalMargin.Left := TotalMargin.Left + Margin.Left;
-      TotalMargin.Top := TotalMargin.Top + Margin.Top;
-      TotalMargin.Right := TotalMargin.Right + Margin.Right;
-      TotalMargin.Bottom := TotalMargin.Bottom + Margin.Bottom;
-    end;
-
     // Calculate filter region defined on AFilterNode (x, y, width, height, filterUnits)
     //
     // Fallback for empty or degenerate group bounding boxes;
@@ -1986,11 +1966,104 @@ begin
     if (SourceBounds.IsEmpty) then
       SourceBounds := FilterRegionRect;
 
+    FilterBounds := SourceBounds;
+
+    // 2. Calculate filter-dependent directional margins (e.g. Gaussian blur radius, offset dx/dy)
+    // and accumulate primitive subregions into FilterBounds
+    TotalMargin := Default(TFloatRect);
+    for Node in AFilterNode.Children do
+    begin
+      if not (Node is TSvgFilterPrimitiveNode) then
+        Continue;
+
+      FilterNode := TSvgFilterPrimitiveNode(Node);
+      FilterRenderer := TFilterRendererClass(FilterNode.GetRenderClass);
+
+      if (FilterRenderer <> nil) then
+      begin
+        Margin := FilterRenderer.GetMargins(FilterNode, RenderData.Scale);
+
+        TotalMargin.Left := TotalMargin.Left + Margin.Left;
+        TotalMargin.Top := TotalMargin.Top + Margin.Top;
+        TotalMargin.Right := TotalMargin.Right + Margin.Right;
+        TotalMargin.Bottom := TotalMargin.Bottom + Margin.Bottom;
+
+        if FilterRenderer.DefaultSubregionIsFilterRegion then
+        begin
+          if not ([fppX, fppY, fppWidth, fppHeight] <= FilterNode.Specified) then
+            GR32.UnionRect(FilterBounds, FilterBounds, FilterRegionRect);
+        end;
+
+        if (FilterNode.Specified <> []) then
+        begin
+          FilterRegionWidth := UserFilterRegionRect.Right - UserFilterRegionRect.Left;
+          FilterRegionHeight := UserFilterRegionRect.Bottom - UserFilterRegionRect.Top;
+
+          // --- Resolve X / Left ---
+          if fppX in FilterNode.Specified then
+          begin
+            if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+              PrimRect.Left := NodeBounds.Left + FilterNode.GetSizePx(FilterNode.X, 1.0) * BBoxWidth
+            else
+              PrimRect.Left := FilterNode.GetSizePx(FilterNode.X, FViewportRect.Width);
+          end else
+            PrimRect.Left := UserFilterRegionRect.Left;
+
+          // --- Resolve Y / Top ---
+          if fppY in FilterNode.Specified then
+          begin
+            if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+              PrimRect.Top := NodeBounds.Top + FilterNode.GetSizePx(FilterNode.Y, 1.0) * BBoxHeight
+            else
+              PrimRect.Top := FilterNode.GetSizePx(FilterNode.Y, FViewportRect.Height);
+          end else
+            PrimRect.Top := UserFilterRegionRect.Top;
+
+          // --- Resolve Width / Right ---
+          if fppWidth in FilterNode.Specified then
+          begin
+            if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+              PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, 1.0) * BBoxWidth
+            else
+              PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, FViewportRect.Width);
+          end else
+            PrimRect.Right := PrimRect.Left + FilterRegionWidth;
+
+          // --- Resolve Height / Bottom ---
+          if fppHeight in FilterNode.Specified then
+          begin
+            if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+              PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, 1.0) * BBoxHeight
+            else
+              PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, FViewportRect.Height);
+          end else
+            PrimRect.Bottom := PrimRect.Top + FilterRegionHeight;
+
+          // Transform PrimRect to world/screen space
+          Pts[0] := FTransformation.Transform(FloatPoint(PrimRect.Left, PrimRect.Top));
+          Pts[1] := FTransformation.Transform(FloatPoint(PrimRect.Right, PrimRect.Top));
+          Pts[2] := FTransformation.Transform(FloatPoint(PrimRect.Right, PrimRect.Bottom));
+          Pts[3] := FTransformation.Transform(FloatPoint(PrimRect.Left, PrimRect.Bottom));
+
+          PrimRect := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+          for i := 1 to 3 do
+          begin
+            if (Pts[i].X < PrimRect.Left) then PrimRect.Left := Pts[i].X;
+            if (Pts[i].X > PrimRect.Right) then PrimRect.Right := Pts[i].X;
+            if (Pts[i].Y < PrimRect.Top) then PrimRect.Top := Pts[i].Y;
+            if (Pts[i].Y > PrimRect.Bottom) then PrimRect.Bottom := Pts[i].Y;
+          end;
+
+          GR32.UnionRect(FilterBounds, FilterBounds, PrimRect);
+        end;
+      end;
+    end;
+
     // 3. Inflate source bounds by filter margins to determine total Filter ROI, then clip to FilterRegionRect
-    FilterBounds.Left := SourceBounds.Left - Ceil(TotalMargin.Left);
-    FilterBounds.Top := SourceBounds.Top - Ceil(TotalMargin.Top);
-    FilterBounds.Right := SourceBounds.Right + Ceil(TotalMargin.Right);
-    FilterBounds.Bottom := SourceBounds.Bottom + Ceil(TotalMargin.Bottom);
+    FilterBounds.Left := FilterBounds.Left - Ceil(TotalMargin.Left);
+    FilterBounds.Top := FilterBounds.Top - Ceil(TotalMargin.Top);
+    FilterBounds.Right := FilterBounds.Right + Ceil(TotalMargin.Right);
+    FilterBounds.Bottom := FilterBounds.Bottom + Ceil(TotalMargin.Bottom);
 
     if FilterBounds.Left < FilterRegionRect.Left then FilterBounds.Left := FilterRegionRect.Left;
     if FilterBounds.Top < FilterRegionRect.Top then FilterBounds.Top := FilterRegionRect.Top;
@@ -2005,8 +2078,8 @@ begin
       Exit;
 
     // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions in full screen resolution
-    RenderData.SourceGraphic := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
-    RenderData.SourceAlpha := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
+    RenderData.SourceGraphic.Bitmap := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
+    RenderData.SourceAlpha.Bitmap := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
     RenderData.NamedSurfaces := nil;
     try
       // Render element into SourceGraphic in ROI coordinate space
@@ -2014,24 +2087,26 @@ begin
       try
         FTransformation.Translate(-RenderData.ROI.Left, -RenderData.ROI.Top);
 
-        RenderNodeContent(RenderData.SourceGraphic, ANode);
+        RenderNodeContent(RenderData.SourceGraphic.Bitmap, ANode);
       finally
         FTransformation.Pop;
       end;
 
       // Derive SourceAlpha from SourceGraphic
       // TODO : Do this on-demand instead
-      pSource := PColor32(RenderData.SourceGraphic.Bits);
-      pDest := PColor32(RenderData.SourceAlpha.Bits);
-      for i := 0 to RenderData.SourceGraphic.PixelCount - 1 do
+      pSource := PColor32(RenderData.SourceGraphic.Bitmap.Bits);
+      pDest := PColor32(RenderData.SourceAlpha.Bitmap.Bits);
+      for i := 0 to RenderData.SourceGraphic.Bitmap.PixelCount - 1 do
       begin
         PColor32Entry(pDest).ARGB := PColor32Entry(pSource).A shl 24;
         Inc(pSource);
         Inc(pDest);
       end;
 
-      RenderData.CurrentSurface.Bitmap := RenderData.SourceGraphic;
-      RenderData.CurrentSurface.Region := Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height);
+      RenderData.SourceGraphic.Region := Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height);
+      RenderData.SourceAlpha.Region := RenderData.SourceGraphic.Region;
+
+      RenderData.CurrentSurface := RenderData.SourceGraphic;
       RenderData.UnnamedSurface := nil; // Indicates that CurrentSurface's ownership is "somebody else's problem".
 
       // Count number of named surfaces so we can preallocate the surface array
@@ -2050,91 +2125,158 @@ begin
 
         FilterNode := TSvgFilterPrimitiveNode(Node);
 
+        // Get the renderer that handles the filter node
+        FilterRenderer := TFilterRendererClass(FilterNode.GetRenderClass);
+
         // Calculate primitive subregion bounds (x, y, width, height) per
-        // W3C SVG 1.1 Specification §15.5.
+        // W3C SVG 1.1 Specification §15.5 and W3C Filter Effects Module Level 1 §7.1.
         //
         // - For primitiveUnits="objectBoundingBox", lengths evaluate relative
         //   to the target element bounding box (BBoxWidth, BBoxHeight).
         //   A percentage value like 120% means 1.2*Value and a unitless value
-        //   like 1.2 also means 1.2*Value. Point values are treated like
-        //   unitless values.
+        //   like 1.2 also means 1.2*Value.
         //
         // - For primitiveUnits="userSpaceOnUse", percentage lengths (including
         //   defaults 0%, 0%, 100%, 100%) evaluate relative to the filter
         //   region bounds (UserFilterRegionRect), while absolute lengths
         //   express user-space coordinates.
         //
-        if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
-        begin
-          PrimRect.Left := NodeBounds.Left + FilterNode.GetSizePx(FilterNode.X, 1.0) * BBoxWidth;
-          PrimRect.Top := NodeBounds.Top + FilterNode.GetSizePx(FilterNode.Y, 1.0) * BBoxHeight;
-          PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, 1.0) * BBoxWidth;
-          PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, 1.0) * BBoxHeight;
-        end else
-        begin
-          FilterRegionWidth := UserFilterRegionRect.Right - UserFilterRegionRect.Left;
-          FilterRegionHeight := UserFilterRegionRect.Bottom - UserFilterRegionRect.Top;
+        // - For omitted subregion attributes (fppX, fppY, fppWidth, fppHeight
+        //   not in FilterNode.Specified):
+        //
+        //   1) Generator and tile primitives (where FilterRenderer's
+        //      DefaultSubregionIsFilterRegion = True, e.g. feTile, feFlood,
+        //      feTurbulence, feImage), default omitted dimensions to (0%, 0%,
+        //      100%, 100%) of the filter region (full ROI).
+        //
+        //   2) Other primitives default omitted dimensions to the bounding
+        //      union of their input surface region(s).
+        //
 
-          if (FilterNode.X.UnitType = suPercent) then
-            PrimRect.Left := UserFilterRegionRect.Left + FilterNode.GetSizePx(FilterNode.X, FilterRegionWidth)
-          else
-            PrimRect.Left := FilterNode.GetSizePx(FilterNode.X, FViewportRect.Width);
-
-          if (FilterNode.Y.UnitType = suPercent) then
-            PrimRect.Top := UserFilterRegionRect.Top + FilterNode.GetSizePx(FilterNode.Y, FilterRegionHeight)
-          else
-            PrimRect.Top := FilterNode.GetSizePx(FilterNode.Y, FViewportRect.Height);
-
-          if (FilterNode.Width.UnitType = suPercent) then
-            PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, FilterRegionWidth)
-          else
-            PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, FViewportRect.Width);
-
-          if (FilterNode.Height.UnitType = suPercent) then
-            PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, FilterRegionHeight)
-          else
-            PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, FViewportRect.Height);
-        end;
-
-        // Transform PrimRect to world/screen space
-        Pts[0] := FTransformation.Transform(FloatPoint(PrimRect.Left, PrimRect.Top));
-        Pts[1] := FTransformation.Transform(FloatPoint(PrimRect.Right, PrimRect.Top));
-        Pts[2] := FTransformation.Transform(FloatPoint(PrimRect.Right, PrimRect.Bottom));
-        Pts[3] := FTransformation.Transform(FloatPoint(PrimRect.Left, PrimRect.Bottom));
-
-        PrimRect := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
-        for i := 1 to 3 do
-        begin
-          if (Pts[i].X < PrimRect.Left) then PrimRect.Left := Pts[i].X;
-          if (Pts[i].X > PrimRect.Right) then PrimRect.Right := Pts[i].X;
-          if (Pts[i].Y < PrimRect.Top) then PrimRect.Top := Pts[i].Y;
-          if (Pts[i].Y > PrimRect.Bottom) then PrimRect.Bottom := Pts[i].Y;
-        end;
-
-        // Clip PrimRect to FilterRegionRect
-        GR32.IntersectRect(PrimRect, PrimRect, FilterRegionRect);
-
-        // Convert PrimRect to ROI-relative integer TRect
-        PrimRoiRect := MakeRect(FloatRect(
-          PrimRect.Left - RenderData.ROI.Left,
-          PrimRect.Top - RenderData.ROI.Top,
-          PrimRect.Right - RenderData.ROI.Left,
-          PrimRect.Bottom - RenderData.ROI.Top), rrOutside);
-        GR32.IntersectRect(PrimRoiRect, PrimRoiRect, Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height));
-
-        RenderData.CurrentPrimitiveSubregion := PrimRoiRect;
-
-        // Get the renderer that handles the filter node...
-        FilterRenderer := TFilterRendererClass(FilterNode.GetRenderClass);
-
-        // ...and render if we got one
         if (FilterRenderer <> nil) then
-          FilterRenderer.Render(Self, FilterNode, RenderData)
-        else
+        begin
+          RenderData.CurrentSubregion := FilterRenderer.GetRoiRect(FilterNode, RenderData);
+
+          if (RenderData.CurrentSubregion.IsEmpty) then
+          begin
+            if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic.Bitmap) then
+            begin
+              RenderData.CurrentSurface := TSurface.Empty;
+              ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+            end;
+            FilterRenderer := nil;
+          end else
+          begin
+            // 1. Resolve user-space / objectBoundingBox coordinates upfront for specified dimensions
+            FilterRegionWidth := UserFilterRegionRect.Right - UserFilterRegionRect.Left;
+            FilterRegionHeight := UserFilterRegionRect.Bottom - UserFilterRegionRect.Top;
+
+            // --- Resolve X / Left ---
+            if fppX in FilterNode.Specified then
+            begin
+              if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+                PrimRect.Left := NodeBounds.Left + FilterNode.GetSizePx(FilterNode.X, 1.0) * BBoxWidth
+              else
+                PrimRect.Left := FilterNode.GetSizePx(FilterNode.X, FViewportRect.Width);
+            end else
+              // Un-specified: Left will be inherited from RefRoiRect.Left after transformation
+              PrimRect.Left := UserFilterRegionRect.Left;
+
+            // --- Resolve Y / Top ---
+            if fppY in FilterNode.Specified then
+            begin
+              if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+                PrimRect.Top := NodeBounds.Top + FilterNode.GetSizePx(FilterNode.Y, 1.0) * BBoxHeight
+              else
+                PrimRect.Top := FilterNode.GetSizePx(FilterNode.Y, FViewportRect.Height);
+            end else
+              // Un-specified: Top will be inherited from RefRoiRect.Top after transformation
+              PrimRect.Top := UserFilterRegionRect.Top;
+
+            // --- Resolve Width / Right ---
+            if fppWidth in FilterNode.Specified then
+            begin
+              if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+                PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, 1.0) * BBoxWidth
+              else
+                PrimRect.Right := PrimRect.Left + FilterNode.GetSizePx(FilterNode.Width, FViewportRect.Width);
+            end else
+              PrimRect.Right := PrimRect.Left + FilterRegionWidth;
+
+            // --- Resolve Height / Bottom ---
+            if fppHeight in FilterNode.Specified then
+            begin
+              if (AFilterNode.PrimitiveUnits = guObjectBoundingBox) then
+                PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, 1.0) * BBoxHeight
+              else
+                PrimRect.Bottom := PrimRect.Top + FilterNode.GetSizePx(FilterNode.Height, FViewportRect.Height);
+            end else
+              PrimRect.Bottom := PrimRect.Top + FilterRegionHeight;
+          end;
+        end;
+
+        if (FilterRenderer <> nil) then
+        begin
+
+          // 2. Transform PrimRect to world/screen space and clip to FilterRegionRect
+          Pts[0] := FTransformation.Transform(FloatPoint(PrimRect.Left, PrimRect.Top));
+          Pts[1] := FTransformation.Transform(FloatPoint(PrimRect.Right, PrimRect.Top));
+          Pts[2] := FTransformation.Transform(FloatPoint(PrimRect.Right, PrimRect.Bottom));
+          Pts[3] := FTransformation.Transform(FloatPoint(PrimRect.Left, PrimRect.Bottom));
+
+          PrimRect := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+          for i := 1 to 3 do
+          begin
+            if (Pts[i].X < PrimRect.Left) then PrimRect.Left := Pts[i].X;
+            if (Pts[i].X > PrimRect.Right) then PrimRect.Right := Pts[i].X;
+            if (Pts[i].Y < PrimRect.Top) then PrimRect.Top := Pts[i].Y;
+            if (Pts[i].Y > PrimRect.Bottom) then PrimRect.Bottom := Pts[i].Y;
+          end;
+
+          GR32.IntersectRect(PrimRect, PrimRect, FilterRegionRect);
+
+          // Convert PrimRect to ROI-relative integer TRect
+          SpecifiedROI := MakeRect(FloatRect(
+            PrimRect.Left - RenderData.ROI.Left,
+            PrimRect.Top - RenderData.ROI.Top,
+            PrimRect.Right - RenderData.ROI.Left,
+            PrimRect.Bottom - RenderData.ROI.Top), rrOutside);
+          GR32.IntersectRect(SpecifiedROI, SpecifiedROI, Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height));
+
+          // 3. Combine specified dimensions with CurrentSubregion fallback
+          if fppX in FilterNode.Specified then
+            RenderData.CurrentSubregion.Left := SpecifiedROI.Left;
+
+          if fppY in FilterNode.Specified then
+            RenderData.CurrentSubregion.Top := SpecifiedROI.Top;
+
+          if fppWidth in FilterNode.Specified then
+          begin
+            if fppX in FilterNode.Specified then
+              RenderData.CurrentSubregion.Right := SpecifiedROI.Right
+            else
+              // Width is specified, but X was omitted; add evaluated width onto resolved RefRoiRect.Left
+              RenderData.CurrentSubregion.Right := RenderData.CurrentSubregion.Left + SpecifiedROI.Width;
+          end;
+
+          if fppHeight in FilterNode.Specified then
+          begin
+            if fppY in FilterNode.Specified then
+              RenderData.CurrentSubregion.Bottom := SpecifiedROI.Bottom
+            else
+              // Height is specified, but Y was omitted; add evaluated height onto resolved RefRoiRect.Top
+              RenderData.CurrentSubregion.Bottom := RenderData.CurrentSubregion.Top + SpecifiedROI.Height;
+          end;
+
+
+          // Render the filter
+          FilterRenderer.Render(Self, FilterNode, RenderData);
+
+        end else
         begin
           // Unsupported filter; Keep the current intermediate result and let
           // the next filter continue with it.
-          if (RenderData.CurrentSurface.Bitmap = RenderData.SourceGraphic) then
+          if (RenderData.CurrentSurface.Bitmap = RenderData.SourceGraphic.Bitmap) then
             continue; // No filter has yet produced anything
         end;
 
@@ -2160,8 +2302,8 @@ begin
         *)
 
 
-        // CurrentSurface.Bitmap=SourceGraphic will be true if no filter has yet produced anything.
-        if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic) then
+        // CurrentSurface.Bitmap=SourceGraphic.Bitmap will be true if no filter has yet produced anything.
+        if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic.Bitmap) then
         begin
           // Note that RenderData.CurrentSurface.Bitmap can be nil here if the
           // filter didn't produce anything.
@@ -2185,7 +2327,7 @@ begin
         ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
       // 6. Blend final filtered result surface onto target canvas at full resolution
-      if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic) then
+      if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic.Bitmap) then
         BlendOffscreenSurface(ATarget, RenderData.CurrentSurface.Bitmap, bmNormal,
           RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
           RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
@@ -2194,8 +2336,8 @@ begin
       for i := 0 to High(RenderData.NamedSurfaces) do
         ReleaseOffscreenBitmap(RenderData.NamedSurfaces[i].Bitmap);
       ReleaseOffscreenBitmap(RenderData.UnnamedSurface); // This also takes care of any remaining RenderData.CurrentSurface,Bitmap
-      ReleaseOffscreenBitmap(RenderData.SourceGraphic);
-      ReleaseOffscreenBitmap(RenderData.SourceAlpha);
+      ReleaseOffscreenBitmap(RenderData.SourceGraphic.Bitmap);
+      ReleaseOffscreenBitmap(RenderData.SourceAlpha.Bitmap);
     end;
 
   finally

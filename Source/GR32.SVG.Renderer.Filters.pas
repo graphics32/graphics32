@@ -53,11 +53,19 @@ type
 // Encapsulates an intermediate filter surface bitmap together with its active
 // subregion rectangle (in local ROI surface coordinates), as defined by W3C
 // SVG 1.1 Specification §15.5 ("Filter primitive subregion").
+//
+// The Region field specifies the rectangle, relative to RenderData.ROI.TopLeft,
+// that the surface occupies within the overall filter region of interest.
+// For full-ROI surfaces (like SourceGraphic), Region covers the entire ROI
+// rectangle (0, 0, ROI.Width, ROI.Height).
+// For intermediate sub-surfaces created by primitives with specific subregion
+// attributes (x, y, width, height), Region records the subregion rectangle.
 //------------------------------------------------------------------------------
   TSurface = record
     Bitmap: TCustomBitmap32;
     Region: TRect;
     class function Create(ABitmap: TCustomBitmap32; const ARegion: TRect): TSurface; static;
+    class function Empty: TSurface; static;
     function IsEmpty: Boolean;
   end;
 
@@ -73,10 +81,10 @@ type
   TNamedSurfaces = TArray<TSurface>;
 
   TFilterRenderData = record
-    SourceGraphic: TCustomBitmap32;
-    SourceAlpha: TCustomBitmap32;
+    SourceGraphic: TSurface;
+    SourceAlpha: TSurface;
     CurrentSurface: TSurface;
-    CurrentPrimitiveSubregion: TRect;
+    CurrentSubregion: TRect; // The cached result of Renderer.GetRoiRect
     UnnamedSurface: TCustomBitmap32;
     ROI: TRect;
     Scale: Single;
@@ -98,7 +106,9 @@ type
     class procedure CopySurfaceRegion(const ASrc: TSurface; ADst: TCustomBitmap32; const ADstRegion: TRect; CombineOp: TDrawMode = dmOpaque); static;
   public
     class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; virtual;
+    class function GetRoiRect(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TRect; virtual;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); virtual; abstract;
+    class function DefaultSubregionIsFilterRegion: Boolean; virtual;
   end;
 
   TFilterRendererClass = class of TFilterRenderer;
@@ -115,11 +125,11 @@ type
 //------------------------------------------------------------------------------
 type
   TFilterRendererGaussianBlur = class(TFilterRenderer)
+  private
+    class procedure ApplyBlur(Renderer: TSvgRenderer; Input, Output: TCustomBitmap32; RadiusX, RadiusY: Single); static;
   public
     class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
-
-    class procedure ApplyBlur(Renderer: TSvgRenderer; Input, Output: TCustomBitmap32; RadiusX, RadiusY: Single); static;
   end;
 
 
@@ -184,6 +194,7 @@ type
   TFilterRendererMerge = class(TFilterRenderer)
   public
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+    class function GetRoiRect(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TRect; override;
   end;
 
 
@@ -215,8 +226,10 @@ type
 //------------------------------------------------------------------------------
 type
   TFilterRendererFlood = class(TFilterRenderer)
+  protected
   public
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+    class function DefaultSubregionIsFilterRegion: Boolean; override;
   end;
 
 
@@ -231,11 +244,11 @@ type
 //------------------------------------------------------------------------------
 type
   TFilterRendererMorphology = class(TFilterRenderer)
+  private
+    class procedure ApplyMorphology(Input, Output: TCustomBitmap32; Op: TSvgMorphologyOperator; RadiusX, RadiusY: Integer; TempBitmap: TCustomBitmap32 = nil); static;
   public
     class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
-
-    class procedure ApplyMorphology(Input, Output: TCustomBitmap32; Op: TSvgMorphologyOperator; RadiusX, RadiusY: Integer; TempBitmap: TCustomBitmap32 = nil); static;
   end;
 
 
@@ -285,8 +298,10 @@ type
 //------------------------------------------------------------------------------
 type
   TFilterRendererTurbulence = class(TFilterRenderer)
+  protected
   public
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+    class function DefaultSubregionIsFilterRegion: Boolean; override;
   end;
 
 
@@ -301,10 +316,11 @@ type
 //------------------------------------------------------------------------------
 type
   TFilterRendererDisplacementMap = class(TFilterRenderer)
+  private
+    class function GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte; static;
   public
     class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
-    class function GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte; static;
   end;
 
 
@@ -319,8 +335,10 @@ type
 //------------------------------------------------------------------------------
 type
   TFilterRendererTile = class(TFilterRenderer)
+  protected
   public
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+    class function DefaultSubregionIsFilterRegion: Boolean; override;
   end;
 
 
@@ -358,6 +376,11 @@ begin
   Result.Region := ARegion;
 end;
 
+class function TSurface.Empty: TSurface;
+begin
+  Result := Default(TSurface);
+end;
+
 function TSurface.IsEmpty: Boolean;
 begin
   Result := (Bitmap = nil) or (Bitmap.Empty) or (Region.IsEmpty);
@@ -370,27 +393,57 @@ end;
 //
 //------------------------------------------------------------------------------
 
+class function TFilterRenderer.DefaultSubregionIsFilterRegion: Boolean;
+begin
+  Result := False;
+end;
+
 class function TFilterRenderer.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
 begin
   Result := Default(TFloatRect);
+end;
+
+class function TFilterRenderer.GetRoiRect(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TRect;
+var
+  HasRect: boolean;
+  Surface: TSurface;
+begin
+  if (DefaultSubregionIsFilterRegion) then
+  begin
+    Result := Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height);
+    exit;
+  end;
+
+  Result := Default(TRect);
+
+  Surface := TFilterRenderer.ResolveSurface(Node.ResolvedIn1, RenderData);
+  Result := Surface.Region;
+  HasRect := not Surface.IsEmpty;
+
+  Surface := TFilterRenderer.ResolveSurface(Node.ResolvedIn2, RenderData);
+  if (not Surface.IsEmpty) then
+  begin
+    if HasRect then
+      GR32.UnionRect(Result, Result, Surface.Region)
+    else
+    begin
+      Result := Surface.Region;
+      HasRect := True;
+    end;
+  end;
+
+  if not HasRect then
+    Result := Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height);
 end;
 
 class function TFilterRenderer.ResolveSurface(const AInput: TSvgFilterInput; const RenderData: TFilterRenderData; DefaultFallback: TCustomBitmap32): TSurface;
 begin
   case AInput.Kind of
     fikSourceGraphic:
-      begin
-        Result.Bitmap := RenderData.SourceGraphic;
-        if (Result.Bitmap <> nil) then
-          Result.Region := Result.Bitmap.BoundsRect;
-      end;
+      Result := RenderData.SourceGraphic;
 
     fikSourceAlpha:
-      begin
-        Result.Bitmap := RenderData.SourceAlpha;
-        if (Result.Bitmap <> nil) then
-          Result.Region := Result.Bitmap.BoundsRect;
-      end;
+      Result := RenderData.SourceAlpha;
 
     fikNamedResult:
       if (AInput.Index >= 0) and (AInput.Index <= High(RenderData.NamedSurfaces)) then
@@ -407,13 +460,16 @@ begin
   if (Result.Bitmap = nil) then
   begin
     if (DefaultFallback <> nil) then
-      Result.Bitmap := DefaultFallback
-    else
-      Result.Bitmap := RenderData.SourceGraphic;
+    begin
+      Result.Bitmap := DefaultFallback;
+      if (DefaultFallback = RenderData.SourceGraphic.Bitmap) then
+        Result.Region := RenderData.SourceGraphic.Region
+      else
+        Result.Region := DefaultFallback.BoundsRect;
+    end else
+      Result := RenderData.SourceGraphic;
 
-    if (Result.Bitmap <> nil) then
-      Result.Region := Result.Bitmap.BoundsRect
-    else
+    if (Result.Bitmap = nil) then
       Result.Region := Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height);
   end;
 end;
@@ -425,17 +481,26 @@ end;
 
 class procedure TFilterRenderer.CopySurfaceRegion(const ASrc: TSurface; ADst: TCustomBitmap32; const ADstRegion: TRect; CombineOp: TDrawMode);
 var
+  OverlapRect: TRect;
+  SrcRect: TRect;
   DstX, DstY: Integer;
 begin
-  if (ASrc.Bitmap = nil) or (ASrc.Bitmap.Empty) or (ASrc.Region.IsEmpty) or (ADst = nil) or (ADst.Empty) or (ADstRegion.IsEmpty) then
+  if (ASrc.IsEmpty) or (ADst = nil) or (ADst.Empty) or (ADstRegion.IsEmpty) then
     Exit;
 
-  DstX := ASrc.Region.Left - ADstRegion.Left;
-  DstY := ASrc.Region.Top - ADstRegion.Top;
+  if not GR32.IntersectRect(OverlapRect, ASrc.Region, ADstRegion) then
+    Exit;
 
-  BlockTransfer(ADst, DstX, DstY, ADst.BoundsRect, ASrc.Bitmap, ASrc.Bitmap.BoundsRect, CombineOp);
+  SrcRect := Rect(
+    OverlapRect.Left - ASrc.Region.Left,
+    OverlapRect.Top - ASrc.Region.Top,
+    OverlapRect.Right - ASrc.Region.Left,
+    OverlapRect.Bottom - ASrc.Region.Top);
 
-//  ASrc.Bitmap.DrawTo(ADst, DstX, DstY);
+  DstX := OverlapRect.Left - ADstRegion.Left;
+  DstY := OverlapRect.Top - ADstRegion.Top;
+
+  BlockTransfer(ADst, DstX, DstY, ADst.BoundsRect, ASrc.Bitmap, SrcRect, CombineOp);
 end;
 
 
@@ -534,33 +599,31 @@ class procedure TFilterRendererGaussianBlur.Render(Renderer: TSvgRenderer; Node:
 var
   Input: TSurface;
   RadiusX, RadiusY: Single;
-  Subregion: TRect;
   TempInput: TCustomBitmap32;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Input := ResolveSurface(Node.ResolvedIn1, RenderData);
 
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
+  if (Input.IsEmpty) then
   begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
+    RenderData.CurrentSurface := TSurface.Empty;
     Exit;
   end;
 
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
   RadiusX := TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
   RadiusY := TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
 
   TempInput := nil;
   try
-    if (NeedsSubSurface(Input.Bitmap, Subregion)) then
+    if (NeedsSubSurface(Input.Bitmap, RenderData.CurrentSubregion)) then
     begin
-      TempInput := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-      CopySurfaceRegion(Input, TempInput, Subregion);
+      TempInput := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input, TempInput, RenderData.CurrentSubregion);
       Input.Bitmap := TempInput;
     end;
 
@@ -764,25 +827,23 @@ class procedure TFilterRendererColorMatrix.Render(Renderer: TSvgRenderer; Node: 
 
 var
   Input: TSurface;
-  Subregion: TRect;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Input := ResolveSurface(TSvgFeColorMatrixNode(Node).ResolvedIn1, RenderData);
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
+  if (Input.IsEmpty) then
   begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
+    RenderData.CurrentSurface := TSurface.Empty;
     Exit;
   end;
 
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, True);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
-  if (NeedsSubSurface(Input.Bitmap, Subregion)) then
+  if (NeedsSubSurface(Input.Bitmap, RenderData.CurrentSubregion)) then
     // Copy to output and apply in-place
-    CopySurfaceRegion(Input, RenderData.CurrentSurface.Bitmap, Subregion);
+    CopySurfaceRegion(Input, RenderData.CurrentSurface.Bitmap, RenderData.CurrentSubregion);
 
   ApplyColorMatrix(Input.Bitmap, RenderData.CurrentSurface.Bitmap, TSvgFeColorMatrixNode(Node).MatrixType, TSvgFeColorMatrixNode(Node).Values);
 end;
@@ -798,37 +859,29 @@ class procedure TFilterRendererBlend.Render(Renderer: TSvgRenderer; Node: TSvgFi
 var
   Input1: TSurface;
   Input2: TSurface;
-  Subregion: TRect;
   Buf1, Buf2: TCustomBitmap32;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Input1 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn1, RenderData);
-  Input2 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn2, RenderData, RenderData.SourceGraphic);
+  Input2 := ResolveSurface(TSvgFeBlendNode(Node).ResolvedIn2, RenderData, RenderData.SourceGraphic.Bitmap);
   if (Input1.Bitmap <> RenderData.UnnamedSurface) and (Input2.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
-  begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
-    Exit;
-  end;
-
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, True);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
   Buf1 := nil;
   Buf2 := nil;
   try
-    if NeedsSubSurface(Input1.Bitmap, Subregion) then
+    if NeedsSubSurface(Input1.Bitmap, RenderData.CurrentSubregion) then
     begin
-      Buf1 := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-      CopySurfaceRegion(Input1, Buf1, Subregion);
+      Buf1 := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input1, Buf1, RenderData.CurrentSubregion);
       Input1.Bitmap := Buf1;
     end;
-    if NeedsSubSurface(Input2.Bitmap, Subregion) then
+    if NeedsSubSurface(Input2.Bitmap, RenderData.CurrentSubregion) then
     begin
-      Buf2 := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-      CopySurfaceRegion(Input2, Buf2, Subregion);
+      Buf2 := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input2, Buf2, RenderData.CurrentSubregion);
       Input2.Bitmap := Buf2;
     end;
 
@@ -852,7 +905,6 @@ class procedure TFilterRendererComposite.Render(Renderer: TSvgRenderer; Node: TS
 var
   Input1: TSurface;
   Input2: TSurface;
-  Subregion: TRect;
   Buf1, Buf2: TCustomBitmap32;
 
 type
@@ -865,34 +917,27 @@ var
   c1, c2, c3, c4: Int64;
   vR, vG, vB, vA: integer;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Input1 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn1, RenderData);
-  Input2 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn2, RenderData, RenderData.SourceGraphic);
+  Input2 := ResolveSurface(TSvgFeCompositeNode(Node).ResolvedIn2, RenderData, RenderData.SourceGraphic.Bitmap);
   if (Input1.Bitmap <> RenderData.UnnamedSurface) and (Input2.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
-  begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
-    Exit;
-  end;
-
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
   Buf1 := nil;
   Buf2 := nil;
   try
-    if NeedsSubSurface(Input1.Bitmap, Subregion) then
+    if NeedsSubSurface(Input1.Bitmap, RenderData.CurrentSubregion) then
     begin
-      Buf1 := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, True);
-      CopySurfaceRegion(Input1, Buf1, Subregion);
+      Buf1 := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input1, Buf1, RenderData.CurrentSubregion);
       Input1.Bitmap := Buf1;
     end;
-    if NeedsSubSurface(Input2.Bitmap, Subregion) then
+    if NeedsSubSurface(Input2.Bitmap, RenderData.CurrentSubregion) then
     begin
-      Buf2 := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, True);
-      CopySurfaceRegion(Input2, Buf2, Subregion);
+      Buf2 := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input2, Buf2, RenderData.CurrentSubregion);
       Input2.Bitmap := Buf2;
     end;
 
@@ -1015,6 +1060,22 @@ begin
   end;
 end;
 
+class function TFilterRendererMerge.GetRoiRect(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TRect;
+var
+  Surface: TSurface;
+  i: integer;
+begin
+  Result := inherited;
+
+  for i := 0 to Node.Children.Count - 1 do
+    if Node.Children[i] is TSvgFeMergeNodeChild then
+    begin
+      Surface := TFilterRenderer.ResolveSurface(TSvgFeMergeNodeChild(Node.Children[i]).ResolvedIn1, RenderData);
+
+      if (not Surface.IsEmpty) then
+        GR32.UnionRect(Result, Result, Surface.Region)
+    end;
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -1027,47 +1088,44 @@ var
   Input: TSurface;
   DestSurface: TCustomBitmap32;
   ChildNode: TSvgNode;
-  Subregion: TRect;
   First: boolean;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
+  DestSurface := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  try
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
-  begin
-    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
-    Exit;
-  end;
+    // Children must be merged, so first child can draw opaque but the rest must
+    // blend.
+    First := True;
 
-  DestSurface := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  // Children must be merged, so first child can draw opaque but the rest must
-  // blend.
-  First := True;
-
-  for ChildNode in TSvgFeMergeNode(Node).Children do
-    if ChildNode is TSvgFeMergeNodeChild then
-    begin
-      Input := ResolveSurface(TSvgFeMergeNodeChild(ChildNode).ResolvedIn1, RenderData);
-      // Recurse to render child
-      // TODO : There's no recursion here... Should there be?
-      if (Input.Bitmap <> nil) then
+    for ChildNode in TSvgFeMergeNode(Node).Children do
+      if ChildNode is TSvgFeMergeNodeChild then
       begin
-        if (First) then
+        Input := ResolveSurface(TSvgFeMergeNodeChild(ChildNode).ResolvedIn1, RenderData);
+        // Recurse to render child
+        // TODO : There's no recursion here... Should there be?
+        if (Input.Bitmap <> nil) then
         begin
-          CopySurfaceRegion(Input, DestSurface, Subregion, dmOpaque);
-          First := False;
-        end else
-          CopySurfaceRegion(Input, DestSurface, Subregion, dmBlend);
+          if (First) then
+          begin
+            CopySurfaceRegion(Input, DestSurface, RenderData.CurrentSubregion, dmOpaque);
+            First := False;
+          end else
+            CopySurfaceRegion(Input, DestSurface, RenderData.CurrentSubregion, dmBlend);
+        end;
       end;
-    end;
 
-  // Clear result if none of the children did
-  if (First) then
-    DestSurface.Clear;
+    // Clear result if none of the children did
+    if (First) then
+      DestSurface.Clear;
 
-  Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  except
+    Renderer.ReleaseOffscreenBitmap(DestSurface);
+    raise;
+  end;
   RenderData.CurrentSurface.Bitmap := DestSurface;
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 end;
 
 
@@ -1093,24 +1151,22 @@ class procedure TFilterRendererOffset.Render(Renderer: TSvgRenderer; Node: TSvgF
 var
   Input: TSurface;
   DestX, DestY: integer;
-  Subregion: TRect;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Input := ResolveSurface(TSvgFeOffsetNode(Node).ResolvedIn1, RenderData);
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
+  if (Input.IsEmpty) then
   begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
+    RenderData.CurrentSurface := TSurface.Empty;
     Exit;
   end;
 
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, True);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, True);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
-  DestX := Input.Region.Left + Round(TSvgFeOffsetNode(Node).Dx * RenderData.Scale) - Subregion.Left;
-  DestY := Input.Region.Top + Round(TSvgFeOffsetNode(Node).Dy * RenderData.Scale) - Subregion.Top;
+  DestX := Input.Region.Left + Round(TSvgFeOffsetNode(Node).Dx * RenderData.Scale) - RenderData.CurrentSubregion.Left;
+  DestY := Input.Region.Top + Round(TSvgFeOffsetNode(Node).Dy * RenderData.Scale) - RenderData.CurrentSubregion.Top;
 
   // TODO : Why not simply offset the region and copy the source to the output? Size of output should be size of input
   if not Input.IsEmpty then
@@ -1124,22 +1180,19 @@ end;
 //
 //------------------------------------------------------------------------------
 
+class function TFilterRendererFlood.DefaultSubregionIsFilterRegion: Boolean;
+begin
+  Result := True;
+end;
+
 class procedure TFilterRendererFlood.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
 var
   Color: TColor32;
-  Subregion: TRect;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
-  begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
-    Exit;
-  end;
-
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
   Color := TSvgFeFloodNode(Node).FloodColor.Color;
   if TSvgFeFloodNode(Node).FloodOpacity < 1.0 then
@@ -1172,38 +1225,36 @@ var
   Temp, InputBuf: TCustomBitmap32;
   MorphNode: TSvgFeMorphologyNode;
   RadiusX, RadiusY: Integer;
-  Subregion: TRect;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   MorphNode := TSvgFeMorphologyNode(Node);
   Input := ResolveSurface(MorphNode.ResolvedIn1, RenderData);
 
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
+  if (Input.IsEmpty) then
   begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
+    RenderData.CurrentSurface := TSurface.Empty;
     Exit;
   end;
 
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
   RadiusX := Round(MorphNode.RadiusX * RenderData.Scale);
   RadiusY := Round(MorphNode.RadiusY * RenderData.Scale);
 
   InputBuf := nil;
   try
-    if NeedsSubSurface(Input.Bitmap, Subregion) then
+    if NeedsSubSurface(Input.Bitmap, RenderData.CurrentSubregion) then
     begin
-      InputBuf := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-      CopySurfaceRegion(Input, InputBuf, Subregion);
+      InputBuf := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input, InputBuf, RenderData.CurrentSubregion);
       Input.Bitmap := InputBuf;
     end;
 
     if (RadiusX > 0) and (RadiusY > 0) then
-      Temp := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False)
+      Temp := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False)
     else
       Temp := nil;
     try
@@ -1467,23 +1518,21 @@ var
   LutR, LutG, LutB, LutA: TLUT8;
   i, Count: Integer;
   pSource, pDest: PColor32Entry;
-  Subregion: TRect;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Input := ResolveSurface(Node.ResolvedIn1, RenderData);
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
+  if (Input.IsEmpty) then
   begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
+    RenderData.CurrentSurface := TSurface.Empty;
     Exit;
   end;
 
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
-  CopySurfaceRegion(Input, RenderData.CurrentSurface.Bitmap, Subregion);
+  CopySurfaceRegion(Input, RenderData.CurrentSurface.Bitmap, RenderData.CurrentSubregion);
 
   FuncR := nil;
   FuncG := nil;
@@ -1563,7 +1612,6 @@ var
   pBlurred: PColor32Entry;
   pBlurredAlpha: PByte;
   i, PixelCount: Integer;
-  Subregion: TRect;
 
   procedure ApplyBlur8(Src, Dst: TByteMap; RadX, RadY: Single);
   var
@@ -1607,37 +1655,36 @@ var
 
 begin
   DropNode := TSvgFeDropShadowNode(Node);
-  Subregion := RenderData.CurrentPrimitiveSubregion;
 
   Input := ResolveSurface(DropNode.ResolvedIn1, RenderData);
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
+  if (Input.IsEmpty) then
   begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
+    RenderData.CurrentSurface := TSurface.Empty;
     Exit;
   end;
 
   ShadowColor := TColor32Entry(DropNode.FloodColor.Color);
   ShadowOpacity := Clamp(Round(ShadowColor.A * DropNode.FloodOpacity));
 
-  PixelCount := Subregion.Width * Subregion.Height;
+  PixelCount := RenderData.CurrentSubregion.Width * RenderData.CurrentSubregion.Height;
 
   InputBuf := nil;
   AlphaMap := TByteMap.Create;
   BlurredAlphaMap := TByteMap.Create;
   try
-    if NeedsSubSurface(Input.Bitmap, Subregion) then
+    if NeedsSubSurface(Input.Bitmap, RenderData.CurrentSubregion) then
     begin
-      InputBuf := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-      CopySurfaceRegion(Input, InputBuf, Subregion);
+      InputBuf := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input, InputBuf, RenderData.CurrentSubregion);
       Input.Bitmap := InputBuf;
     end;
 
     // 1. Extract 8-bit alpha shadow map
-    AlphaMap.SetSize(Subregion.Width, Subregion.Height, False);
-    BlurredAlphaMap.SetSize(Subregion.Width, Subregion.Height, False);
+    AlphaMap.SetSize(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+    BlurredAlphaMap.SetSize(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
 
     pIn := PColor32Entry(Input.Bitmap.Bits);
     pAlpha := PByte(AlphaMap.Bits);
@@ -1656,7 +1703,7 @@ begin
     ApplyBlur8(AlphaMap, BlurredAlphaMap, RadiusX, RadiusY);
 
     // 3. Reconstruct blurred 32-bit ARGB shadow surface
-    BlurredShadow := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
+    BlurredShadow := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
     try
       pBlurred := PColor32Entry(BlurredShadow.Bits);
       pBlurredAlpha := PByte(BlurredAlphaMap.Bits);
@@ -1670,8 +1717,8 @@ begin
       end;
 
       // 4. Composite blurred shadow shifted by (Dx, Dy) and overlay Input at (0, 0)
-      RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, True);
-      RenderData.CurrentSurface.Region := Subregion;
+      RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, True);
+      RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
       DestX := Round(DropNode.Dx * RenderData.Scale);
       DestY := Round(DropNode.Dy * RenderData.Scale);
@@ -1699,6 +1746,11 @@ end;
 //
 //------------------------------------------------------------------------------
 
+class function TFilterRendererTurbulence.DefaultSubregionIsFilterRegion: Boolean;
+begin
+  Result := True;
+end;
+
 class procedure TFilterRendererTurbulence.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
 var
   TurbNode: TSvgFeTurbulenceNode;
@@ -1712,25 +1764,17 @@ var
   UserPointX, UserPointY: Double;
   R, G, B, A: Double;
   pDest: PColor32Entry;
-  Scale: Double;
-  Subregion: TRect;
+  Scale, OneOverScale: Double;
 begin
   Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  TurbNode := TSvgFeTurbulenceNode(Node);
-  Subregion := RenderData.CurrentPrimitiveSubregion;
-  Width := Subregion.Width;
-  Height := Subregion.Height;
-
-  if (Subregion.IsEmpty) or (Width <= 0) or (Height <= 0) then
-  begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
-    Exit;
-  end;
+  Width := RenderData.CurrentSubregion.Width;
+  Height := RenderData.CurrentSubregion.Height;
 
   RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
+  TurbNode := TSvgFeTurbulenceNode(Node);
   BaseFreqX := TurbNode.BaseFrequencyX;
   BaseFreqY := TurbNode.BaseFrequencyY;
   NumOctaves := TurbNode.NumOctaves;
@@ -1740,12 +1784,16 @@ begin
 
   Scale := RenderData.Scale;
   if Scale <= 0 then
+  begin
     Scale := 1.0;
+    OneOverScale := 1.0;
+  end else
+    OneOverScale := 1 / Scale;
 
-  TileX := (RenderData.ROI.Left + Subregion.Left) / Scale;
-  TileY := (RenderData.ROI.Top + Subregion.Top) / Scale;
-  TileW := Width / Scale;
-  TileH := Height / Scale;
+  TileX := (RenderData.ROI.Left + RenderData.CurrentSubregion.Left) * OneOverScale;
+  TileY := (RenderData.ROI.Top + RenderData.CurrentSubregion.Top) * OneOverScale;
+  TileW := Width * OneOverScale;
+  TileH := Height * OneOverScale;
 
   NoiseGen := TPerlinNoise.Create(Seed);
   try
@@ -1753,10 +1801,10 @@ begin
 
     for Y := 0 to Height - 1 do
     begin
-      UserPointY := TileY + (Y / Scale);
+      UserPointY := TileY + (Y * OneOverScale);
       for X := 0 to Width - 1 do
       begin
-        UserPointX := TileX + (X / Scale);
+        UserPointX := TileX + (X * OneOverScale);
 
         R := NoiseGen.Turbulence(0, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
         G := NoiseGen.Turbulence(1, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
@@ -1827,41 +1875,33 @@ var
   ValX, ValY: Byte;
   RemapTransform: TRemapTransformation;
   pMap: PColor32Array;
-  Subregion: TRect;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   DispNode := TSvgFeDisplacementMapNode(Node);
   Input1 := ResolveSurface(DispNode.ResolvedIn1, RenderData);
-  Input2 := ResolveSurface(DispNode.ResolvedIn2, RenderData, RenderData.SourceGraphic);
+  Input2 := ResolveSurface(DispNode.ResolvedIn2, RenderData, RenderData.SourceGraphic.Bitmap);
 
   if (Input1.Bitmap <> RenderData.UnnamedSurface) and (Input2.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  Width := Subregion.Width;
-  Height := Subregion.Height;
-
-  if (Subregion.IsEmpty) or (Width <= 0) or (Height <= 0) then
-  begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
-    Exit;
-  end;
+  Width := RenderData.CurrentSubregion.Width;
+  Height := RenderData.CurrentSubregion.Height;
 
   RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, True); // TODO : Not sure if we need to clear here. Depends on what Transform does with the destination bitmap
-  RenderData.CurrentSurface.Region := Subregion;
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
   Buf1 := nil;
   Buf2 := nil;
   try
-    if NeedsSubSurface(Input1.Bitmap, Subregion) then
+    if NeedsSubSurface(Input1.Bitmap, RenderData.CurrentSubregion) then
     begin
-      Buf1 := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, True);
-      CopySurfaceRegion(Input1, Buf1, Subregion);
+      Buf1 := Renderer.GetOffscreenBitmap(Width, Height, True);
+      CopySurfaceRegion(Input1, Buf1, RenderData.CurrentSubregion);
       Input1.Bitmap := Buf1;
     end;
-    if NeedsSubSurface(Input2.Bitmap, Subregion) then
+    if NeedsSubSurface(Input2.Bitmap, RenderData.CurrentSubregion) then
     begin
-      Buf2 := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, True);
-      CopySurfaceRegion(Input2, Buf2, Subregion);
+      Buf2 := Renderer.GetOffscreenBitmap(Width, Height, True);
+      CopySurfaceRegion(Input2, Buf2, RenderData.CurrentSubregion);
       Input2.Bitmap := Buf2;
     end;
 
@@ -1912,27 +1952,33 @@ end;
 //
 //------------------------------------------------------------------------------
 
+class function TFilterRendererTile.DefaultSubregionIsFilterRegion: Boolean;
+begin
+  Result := True;
+end;
+
 class procedure TFilterRendererTile.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
 var
   Input: TSurface;
   TileX, TileY, X: Integer;
   TileW, TileH: Integer;
-  DestRect: TRect;
-  Subregion: TRect;
+  Width, Height: Integer;
 begin
-  Subregion := RenderData.CurrentPrimitiveSubregion;
   Input := ResolveSurface(Node.ResolvedIn1, RenderData);
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
     Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-  if (Subregion.IsEmpty) or (Subregion.Width <= 0) or (Subregion.Height <= 0) then
+  if (Input.IsEmpty) then
   begin
-    RenderData.CurrentSurface := TSurface.Create(nil, Subregion);
+    RenderData.CurrentSurface := TSurface.Empty;
     Exit;
   end;
 
-  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Subregion.Width, Subregion.Height, False);
-  RenderData.CurrentSurface.Region := Subregion;
+  Width := RenderData.CurrentSubregion.Width;
+  Height := RenderData.CurrentSubregion.Height;
+
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, True);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
   if (Input.IsEmpty) then
     Exit;
@@ -1942,26 +1988,21 @@ begin
   TileW := Input.Region.Width;
   TileH := Input.Region.Height;
 
-  if (TileW <= 0) or (TileH <= 0) then
-    Exit;
-
-  DestRect := Subregion;
-
-  TileY := DestRect.Top - ((DestRect.Top - Input.Region.Top) mod TileH);
-  if TileY > DestRect.Top then
+  TileY := -(RenderData.CurrentSubregion.Top - Input.Region.Top) mod TileH;
+  if TileY > 0 then
     Dec(TileY, TileH);
 
-  TileX := DestRect.Left - ((DestRect.Left - Input.Region.Left) mod TileW);
-  if TileX > DestRect.Left then
+  TileX := -(RenderData.CurrentSubregion.Left - Input.Region.Left) mod TileW;
+  if TileX > 0 then
     Dec(TileX, TileW);
 
-  while TileY < DestRect.Bottom do
+  while TileY < Height do
   begin
     X := TileX;
 
-    while X < DestRect.Right do
+    while X < Width do
     begin
-      Input.Bitmap.DrawTo(RenderData.CurrentSurface.Bitmap, X - Subregion.Left, TileY - Subregion.Top);
+      Input.Bitmap.DrawTo(RenderData.CurrentSurface.Bitmap, X, TileY);
 
       Inc(X, TileW);
     end;
