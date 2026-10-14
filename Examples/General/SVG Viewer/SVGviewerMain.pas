@@ -36,11 +36,19 @@ interface
 
 {-$define IMAGE32}
 
+{$IFNDEF FPC}
+{$define MODERN_SHELL_CONTROLS}
+{$ENDIF}
+
 uses
   {$IFNDEF FPC} Windows, FileCtrl, {$ELSE} LCLIntf, LCLType, LResources, FileCtrl, {$ENDIF}
   Messages,
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Vcl.ComCtrls,
   System.ImageList, Vcl.ImgList, Vcl.Buttons,
+
+{$IFDEF MODERN_SHELL_CONTROLS}
+  ShellCtrls,
+{$ENDIF}
 
 {$if defined(IMAGE32)}
   Img32.Panels,
@@ -56,6 +64,42 @@ type
 
 const
   MSG_AFTER_SHOW = WM_USER;
+
+// Interposers to replace the horrible old Win3.x shell controls with
+// "modern" (meaning this century) shell controls
+{$IFDEF MODERN_SHELL_CONTROLS}
+type
+  TDirectoryListBox = class;
+  TFileListBox = class;
+
+  TDriveComboBox = class(TShellComboBox)
+  private
+    procedure SetDirList(const Value: TDirectoryListBox);
+  published
+    property Align;
+    property DirList: TDirectoryListBox write SetDirList;
+  end;
+
+  TDirectoryListBox = class(TShellTreeView)
+  private
+    procedure SetFileList(const Value: TFileListBox);
+  published
+    property Align;
+    property FileList: TFileListBox write SetFileList;
+  end;
+
+  TFileListBox = class(TShellListView)
+  private
+    function GetFilename: string;
+    procedure SetDummyInt(const Value: integer);
+    procedure SetDummyString(const Value: string);
+  public
+    property Filename: string read GetFilename;
+  published
+    property ItemHeight: integer write SetDummyInt;
+    property Mask: string write SetDummyString;
+  end;
+{$ENDIF}
 
 type
   TFormSVGviewer = class(TForm)
@@ -115,6 +159,11 @@ type
     procedure SetColorTheme(const Value: TSvgColorTheme);
     function GetBackground: TBackgroundCheckerStyle;
     procedure SetBackground(Value: TBackgroundCheckerStyle);
+
+{$IFDEF MODERN_SHELL_CONTROLS}
+    procedure ShellListViewAddFolder(Sender: TObject; AFolder: TShellFolder; var CanAdd: Boolean);
+    procedure ShellListViewOnChange(Sender: TObject; Item: TListItem; Change: TItemChange);
+{$ENDIF}
   public
     property ColorTheme: TSvgColorTheme read FColorTheme write SetColorTheme;
     property Background: TBackgroundCheckerStyle read GetBackground write SetBackground;
@@ -127,6 +176,7 @@ implementation
 
 uses
   IOUtils,
+  IniFiles,
 {$if defined(IMAGE32)}
   Img32.SVG.Reader,
   Img32.SVG.Path,
@@ -139,11 +189,14 @@ uses
 
 const
   sColorThemes: array[TSvgColorTheme] of string = ('Default', 'Light', 'Dark');
+  sIniFilename = 'GR32_svg_viewer.ini';
 
 type
   TControlCracker = class(TControl);
 
 procedure TFormSVGviewer.FormCreate(Sender: TObject);
+var
+  IniFile: TIniFile;
 begin
   FDocNode := nil;
   Image32.Bitmap.SetSize(600, 600, False);
@@ -161,14 +214,59 @@ begin
   TabSheetImage32.TabVisible := True;
 {$ifend}
 
+  IniFile := TIniFile.Create(TPath.Combine(TPath.GetDirectoryName(Application.ExeName), sIniFilename));
+  try
+{$IFDEF MODERN_SHELL_CONTROLS}
+    FreeAndNil(DriveComboBox);
+
+    DirectoryListBox.ShellListView := FileListBox;
+    DirectoryListBox.ObjectTypes := [otFolders];
+    DirectoryListBox.ReadOnly := True;
+    DirectoryListBox.HideSelection := False;
+    DirectoryListBox.RowSelect := True;
+    DirectoryListBox.Indent := 10;
+    DirectoryListBox.ShowLines := False;
+    DirectoryListBox.ShowRoot := False;
+
+    FileListBox.ShellTreeView := DirectoryListBox;
+    FileListBox.ObjectTypes := [otNonFolders];
+
+    FileListBox.ViewStyle := vsReport;
+    FileListBox.ReadOnly := True;
+    FileListBox.HideSelection := False;
+    FileListBox.RowSelect := True;
+    FileListBox.OnAddFolder := ShellListViewAddFolder;
+    FileListBox.OnChange := ShellListViewOnChange;
+
+    DirectoryListBox.Path := IniFile.ReadString('settings', 'LastFolder', GetCurrentDir);
+{$ELSE}
+    DirectoryListBox.Directory := IniFile.ReadString('settings', 'LastFolder', GetCurrentDir);
+{$ENDIF}
+  finally
+    IniFile.Free;
+  end;
+
   PageControlSVG.TabIndex := 0;
   ColorTheme := ctNone;
 end;
 
 procedure TFormSVGviewer.FormDestroy(Sender: TObject);
+var
+  IniFile: TIniFile;
 begin
   FDocNode.Free;
   FRenderer.Free;
+
+  IniFile := TIniFile.Create(TPath.Combine(TPath.GetDirectoryName(Application.ExeName), sIniFilename));
+  try
+{$IFDEF MODERN_SHELL_CONTROLS}
+    IniFile.WriteString('settings', 'LastFolder', DirectoryListBox.Path);
+{$ELSE}
+    IniFile.WriteString('settings', 'LastFolder', DirectoryListBox.Directory);
+{$ENDIF}
+  finally
+    IniFile.Free;
+  end;
 end;
 
 procedure TFormSVGviewer.FormShow(Sender: TObject);
@@ -521,5 +619,57 @@ procedure TFormSVGviewer.SplitterMemoCanResize(Sender: TObject; var NewSize: Int
 begin
   FIgnoreClick := True;
 end;
+
+{$IFDEF MODERN_SHELL_CONTROLS}
+procedure TFormSVGviewer.ShellListViewAddFolder(Sender: TObject; AFolder: TShellFolder; var CanAdd: Boolean);
+var
+  FileExt: string;
+begin
+  CanAdd := not AFolder.IsFolder;
+  if CanAdd then
+  begin
+    FileExt := ExtractFileExt(AFolder.PathName);
+    CanAdd := (FileExt = '.svg');
+  end;
+end;
+
+procedure TFormSVGviewer.ShellListViewOnChange(Sender: TObject; Item: TListItem; Change: TItemChange);
+begin
+  FileListBoxChange(Sender);
+end;
+
+{ TFileListBox }
+
+function TFileListBox.GetFilename: string;
+begin
+  if (SelectedFolder <> nil) then
+    Result := SelectedFolder.PathName
+  else
+    Result := '';
+end;
+
+procedure TFileListBox.SetDummyInt(const Value: integer);
+begin
+end;
+
+procedure TFileListBox.SetDummyString(const Value: string);
+begin
+end;
+
+{ TDriveComboBox }
+
+procedure TDriveComboBox.SetDirList(const Value: TDirectoryListBox);
+begin
+  ShellTreeView := Value;
+end;
+
+{ TDirectoryListBox }
+
+procedure TDirectoryListBox.SetFileList(const Value: TFileListBox);
+begin
+  ShellListView := Value;
+end;
+
+{$ENDIF}
 
 end.
