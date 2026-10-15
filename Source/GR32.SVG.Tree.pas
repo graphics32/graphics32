@@ -1294,6 +1294,7 @@ type
     function GetPathData: TArrayOfArrayOfFloatPoint; overload;
     function GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint; overload;
     function GetPathData(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint; overload;
+    function IsPathClosed(Index: Integer): Boolean;
     property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
     property PathData: TArrayOfArrayOfFloatPoint read GetPathDataProp write FPathData;
   end;
@@ -5950,8 +5951,16 @@ end;
 function TSvgPathNode.GetPathData(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
 var
   ViewportWidth, ViewportHeight: Single;
+  i: Integer;
 begin
-  if (FProperties.Kind in [skPath, skPolyline, skPolygon]) then
+  if (FProperties.Kind = skPath) then
+  begin
+    Result := Copy(FPathData);
+    for i := 0 to High(Result) do
+      Result[i] := RestoreClosedPath(Result[i]);
+    exit;
+  end else
+  if (FProperties.Kind in [skPolyline, skPolygon]) then
     Exit(FPathData);
 
   ViewportWidth := AViewport.Width;
@@ -6006,6 +6015,17 @@ begin
   FCachedViewportWidth := ViewportWidth;
   FCachedViewportHeight := ViewportHeight;
   Result := FPathData;
+end;
+
+function TSvgPathNode.IsPathClosed(Index: Integer): Boolean;
+begin
+  if (FProperties.Kind = skPath) then
+  begin
+    if (Index >= 0) and (Index <= High(FPathData)) then
+      Exit(IsClosedPath(FPathData[Index]));
+  end;
+
+  Result := (FProperties.Kind in [skRect, skCircle, skEllipse, skPolygon]);
 end;
 
 function TSvgPathNode.GetElementTag: UTF8String;
@@ -6664,20 +6684,14 @@ end;
 //------------------------------------------------------------------------------
 function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
 var
-  path: TFlattenedPath;
+  Path: TFlattenedPath;
 begin
-  Result := nil;
-  if (Width <= 0) or (Height <= 0) then Exit;
+  if (Width <= 0) or (Height <= 0) then
+    Exit(nil);
 
   if (Rx <= 0) and (Ry <= 0) then
   begin
-    path := TFlattenedPath.Create;
-    try
-      path.Rectangle(FloatRect(X, Y, X + Width, Y + Height));
-      Result := path.Path;
-    finally
-      path.Free;
-    end;
+    Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Rectangle(FloatRect(X, Y, X + Width, Y + Height)));
     Exit;
   end;
 
@@ -6686,75 +6700,49 @@ begin
   Rx := Min(Rx, Width * 0.5);
   Ry := Min(Ry, Height * 0.5);
 
-  path := TFlattenedPath.Create;
+  Path := TFlattenedPath.Create;
   try
-    path.MoveTo(X + Rx, Y);
-    path.LineTo(X + Width - Rx, Y);
-    path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Ry), Rx, Ry, 0, -Pi * 0.5, 0);
-    path.LineTo(X + Width, Y + Height - Ry);
-    path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Height - Ry), Rx, Ry, 0, 0, Pi * 0.5);
-    path.LineTo(X + Rx, Y + Height);
-    path.EllipticalArc(FloatPoint(X + Rx, Y + Height - Ry), Rx, Ry, 0, Pi * 0.5, Pi);
-    path.LineTo(X, Y + Ry);
-    path.EllipticalArc(FloatPoint(X + Rx, Y + Ry), Rx, Ry, 0, Pi, Pi * 1.5);
-    path.EndPath(True);
-    Result := path.Path;
+    Path.MoveTo(X + Rx, Y);
+    Path.LineTo(X + Width - Rx, Y);
+    Path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Ry), Rx, Ry, 0, -Pi * 0.5, 0);
+    Path.LineTo(X + Width, Y + Height - Ry);
+    Path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Height - Ry), Rx, Ry, 0, 0, Pi * 0.5);
+    Path.LineTo(X + Rx, Y + Height);
+    Path.EllipticalArc(FloatPoint(X + Rx, Y + Height - Ry), Rx, Ry, 0, Pi * 0.5, Pi);
+    Path.LineTo(X, Y + Ry);
+    Path.EllipticalArc(FloatPoint(X + Rx, Y + Ry), Rx, Ry, 0, Pi, Pi * 1.5);
+    Path.EndPath(True);
+    Result := Path.Path;
   finally
-    path.Free;
+    Path.Free;
   end;
 end;
 
 //------------------------------------------------------------------------------
 
 function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
-var
-  path: TFlattenedPath;
 begin
-  Result := nil;
-  if Radius <= 0 then Exit;
-  path := TFlattenedPath.Create;
-  try
-    path.Circle(Cx, Cy, Radius);
-    path.EndPath(True);
-    Result := path.Path;
-  finally
-    path.Free;
-  end;
+  if Radius <= 0 then
+    Exit(nil);
+
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Circle(FloatPoint(Cx, Cy), Radius));
 end;
 
 //------------------------------------------------------------------------------
 
 function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
-var
-  path: TFlattenedPath;
 begin
-  Result := nil;
-  if (Rx <= 0) or (Ry <= 0) then Exit;
-  path := TFlattenedPath.Create;
-  try
-    path.Ellipse(Cx, Cy, Rx, Ry);
-    path.EndPath(True);
-    Result := path.Path;
-  finally
-    path.Free;
-  end;
+  if (Rx <= 0) or (Ry <= 0) then
+    Exit(nil);
+
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry));
 end;
 
 //------------------------------------------------------------------------------
 
 function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
-var
-  path: TFlattenedPath;
 begin
-  path := TFlattenedPath.Create;
-  try
-    path.MoveTo(X1, Y1);
-    path.LineTo(X2, Y2);
-    path.EndPath(False);
-    Result := path.Path;
-  finally
-    path.Free;
-  end;
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Line(X1, Y1, X2, Y2));
 end;
 
 //------------------------------------------------------------------------------
@@ -7234,6 +7222,9 @@ var
               end;
             end;
             if (Points.Len > 0) then
+              // A path is the only shape where there can be any doubt about
+              // "closedness", so this is also the only place where we need
+              // to use MakeClosedPath.
               TSvgPathNode(node).PathData := SvgPathDataToPoints(Points);
           end;
 

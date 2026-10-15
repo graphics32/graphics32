@@ -44,6 +44,8 @@ uses
 
 procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath);
 function SvgPathDataToPath(const APathData: TValuePUtf8Char): TFlattenedPath; overload;
+// SvgPathDataToPoints includes "Closed" marker. The returned path should
+// only be used with code that can handle this.
 function SvgPathDataToPoints(const APathData: TValuePUtf8Char): TArrayOfArrayOfFloatPoint; overload;
 
 {$if defined(UNIT_TEST)}
@@ -51,10 +53,48 @@ function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath; overloa
 function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint; overload;
 {$ifend}
 
+function MakeClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
+function RestoreClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
+function IsClosedPath(const AData: TArrayOfFloatPoint): boolean;
+
+
+
 implementation
 
 uses
   Types;
+
+function IsClosedPath(const AData: TArrayOfFloatPoint): boolean;
+begin
+  Result := (Length(AData) > 1) and (IsNaN(AData[High(AData)].X));
+end;
+
+function MakeClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
+begin
+  if (AData = nil) then
+    Exit(nil);
+
+  Result := AData;
+
+  if (Length(AData) = 1) or (AData[High(AData)] <> AData[0]) then
+    SetLength(Result, Length(Result)+1);
+
+  Result[High(AData)].X := NaN; // Set "closed" marker
+end;
+
+function RestoreClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
+begin
+  if (AData = nil) then
+    Exit(nil);
+
+
+  if (Length(AData) > 1) and (IsNaN(AData[High(AData)].X)) then
+  begin
+    Result := Copy(AData); // Don't mess with the original
+    Result[High(AData)] := Result[0]; // Clear "closed" marker
+  end else
+    Result := AData;
+end;
 
 type
   TSvgPathScanner = record
@@ -473,11 +513,16 @@ end;
 function SvgPathDataToPoints(const APathData: TValuePUtf8Char): TArrayOfArrayOfFloatPoint;
 var
   p: TFlattenedPath;
+  i: integer;
 begin
   p := SvgPathDataToPath(APathData);
   try
 
     Result := p.Path;
+
+    for i := 0 to High(Result) do
+      if (p.PathClosed[i]) then
+        Result[i] := MakeClosedPath(Result[i]);
 
   finally
     p.Free;

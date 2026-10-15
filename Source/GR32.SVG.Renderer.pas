@@ -240,11 +240,6 @@ const
 
 const
   cMaxRecursions = 20;
-//  if (FMatrixStack.Count > cMaxStackDepth) then
-//    raise Exception.Create('Max stack depth exceeded; Likely invalid recursion in svg references');
-
-const
-  cMaxStackDepth = 80; // Checked in PushMatrix. Exception is exceeded.
 
 function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
 var
@@ -254,17 +249,6 @@ begin
   Result := Sqrt(Abs(det));
   if Result <= 0 then
     Result := 1.0;
-end;
-
-function IsClosedContour(const AContour: TArrayOfFloatPoint): Boolean;
-var
-  len: Integer;
-begin
-  len := Length(AContour);
-  if len < 3 then
-    Exit(False);
-  Result := (Abs(AContour[0].X - AContour[len - 1].X) < 0.001) and
-            (Abs(AContour[0].Y - AContour[len - 1].Y) < 0.001);
 end;
 
 function TransformPathPoints(var APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix): TArrayOfArrayOfFloatPoint;
@@ -1097,11 +1081,11 @@ begin
     begin
       if (ScaledDashArray <> nil) then
       begin
-        Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPoints[i]));
+        Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, APathNode.IsPathClosed(i));
         for j := 0 to High(Points) do
           StrokePoints := StrokePoints + BuildPolyPolyLine([Points[j]], False, StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
       end else
-        StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], IsClosedContour(TransformedPoints[i]), StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+        StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], APathNode.IsPathClosed(i), StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
     end;
   end;
 
@@ -2846,11 +2830,11 @@ begin
     begin
       if Length(ScaledDashArray) > 0 then
       begin
-        DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, IsClosedContour(TransformedPts[i]));
+        DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, True);
         for j := 0 to High(DashedPts) do
           StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
       end else
-        StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], IsClosedContour(TransformedPts[i]), StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
+        StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], True, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
     end;
 
     RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, StrokeColor);
