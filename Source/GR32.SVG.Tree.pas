@@ -121,6 +121,8 @@ type
 // Gradient fill properties
 //------------------------------------------------------------------------------
 type
+  TSvgPaintServerNode = class;
+
   TSvgFill = record
   private type
     TSvgFillProperties = set of (fpColor, fpOpacity, fpFillRule);
@@ -130,7 +132,7 @@ type
     FOpacity: Single;
     FFillRule: TPolyFillMode;
     FUrl: UTF8String;
-    FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
+    FResolvedPaintServer: TSvgPaintServerNode; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
     procedure SetColor(const Value: TSvgColor);
     procedure SetFillRule(const Value: TPolyFillMode);
     procedure SetOpacity(const Value: Single);
@@ -143,7 +145,7 @@ type
     property Opacity: Single read FOpacity write SetOpacity;
     property FillRule: TPolyFillMode read FFillRule write SetFillRule;
     property Url: UTF8String read FUrl write SetUrl;
-    property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
+    property ResolvedPaintServer: TSvgPaintServerNode read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgFill; static;
   end;
@@ -156,7 +158,6 @@ type
 //------------------------------------------------------------------------------
 // Stroke properties
 //------------------------------------------------------------------------------
-type
   TSvgStroke = record
   private type
     TSvgStrokeProperties = set of (spColor, spWidth, spOpacity, spJoinStyle, spEndStyle, spMiterLimit, spDashArray, spDashOffset);
@@ -171,7 +172,7 @@ type
     FDashArray: TArrayOfFloat;
     FDashOffset: TSvgLength;
     FUrl: UTF8String;
-    FResolvedPaintServer: TObject; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
+    FResolvedPaintServer: TSvgPaintServerNode; // Pointer to resolved TSvgGradientNode or TSvgPatternNode
   private
     procedure SetColor(const Value: TSvgColor);
     procedure SetDashArray(const Value: TArrayOfFloat);
@@ -194,7 +195,7 @@ type
     property DashArray: TArrayOfFloat read FDashArray write SetDashArray;
     property DashOffset: TSvgLength read FDashOffset write SetDashOffset;
     property Url: UTF8String read FUrl write SetUrl;
-    property ResolvedPaintServer: TObject read FResolvedPaintServer write FResolvedPaintServer;
+    property ResolvedPaintServer: TSvgPaintServerNode read FResolvedPaintServer write FResolvedPaintServer;
 
     class function Default: TSvgStroke; static;
   end;
@@ -207,7 +208,6 @@ type
 //------------------------------------------------------------------------------
 // Parsed by ParseSvgXml and passed on to TSvgNode.ParseAttribute
 //------------------------------------------------------------------------------
-type
   TSvgAttributeKeyword = (
     attrNone,
     attrId,
@@ -334,7 +334,6 @@ type
 //------------------------------------------------------------------------------
 // SVG node base class
 //------------------------------------------------------------------------------
-type
   TSvgMarkerNode = class;
   TSvgFilterNode = class;
   TSvgClipPathNode = class;
@@ -476,17 +475,15 @@ type
 
 //------------------------------------------------------------------------------
 //
-//      TSvgGroupNode
+//      TSvgCustomGroupNode
 //
 //------------------------------------------------------------------------------
-// TODO : We should have a TCustomSvgGroupNode base class so we can differentiate between 'G' nodes
-// and nodes derived from a group node.
+// Abstract base class for node groups.
 //------------------------------------------------------------------------------
-  TSvgGroupNode = class(TSvgNode)
+  TSvgCustomGroupNode = class abstract(TSvgNode)
   private
     FChildren: TObjectList<TSvgNode>;
   protected
-    function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
     function DumpChildren(Indent: Integer = 0): string; override;
   public
@@ -497,6 +494,28 @@ type
     procedure AddChild(AChild: TSvgNode);
     property Children: TObjectList<TSvgNode> read FChildren;
   end;
+
+//------------------------------------------------------------------------------
+//
+//      TSvgGroupNode
+//
+//------------------------------------------------------------------------------
+// Represents a <g> node.
+//------------------------------------------------------------------------------
+  TSvgGroupNode = class(TSvgCustomGroupNode)
+  protected
+    function GetElementTag: UTF8String; override;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPaintServerNode
+//
+//------------------------------------------------------------------------------
+// Abstract base class for Paint Server nodes
+//------------------------------------------------------------------------------
+  TSvgPaintServerNode = class abstract(TSvgCustomGroupNode);
 
 
 //------------------------------------------------------------------------------
@@ -509,7 +528,7 @@ type
 // systemLanguage) on its direct child elements in document order and renders
 // only the first direct child element for which all conditions evaluate to true.
 //------------------------------------------------------------------------------
-  TSvgSwitchNode = class(TSvgGroupNode)
+  TSvgSwitchNode = class(TSvgCustomGroupNode)
   private
     FSelectedChild: TSvgNode;
   protected
@@ -526,7 +545,9 @@ type
 //      TSvgGradientNode
 //
 //------------------------------------------------------------------------------
-  TSvgGradientNode = class(TSvgGroupNode)
+// Abstract base class for gradient paint server nodes
+//------------------------------------------------------------------------------
+  TSvgGradientNode = class abstract(TSvgPaintServerNode)
   private type
     TSvgGradientProperties = set of (gpSpreadMethod, gpGradientUnits, gpGradientTransform);
   private
@@ -560,6 +581,8 @@ type
 //      TSvgLinearGradientNode
 //
 //------------------------------------------------------------------------------
+// Linear gradient paint server node
+//------------------------------------------------------------------------------
   TSvgLinearGradientNode = class(TSvgGradientNode)
   private type
     TSvgLinearGradientProperties = set of (lgpX1, lgpY1, lgpX2, lgpY2);
@@ -587,6 +610,8 @@ type
 //
 //      TSvgRadialGradientNode
 //
+//------------------------------------------------------------------------------
+// Radial gradient paint server node
 //------------------------------------------------------------------------------
   TSvgRadialGradientNode = class(TSvgGradientNode)
   private type
@@ -625,6 +650,8 @@ type
 //      TSvgConicalGradientNode
 //
 //------------------------------------------------------------------------------
+// Conical gradient paint server node
+//------------------------------------------------------------------------------
   TSvgConicalGradientNode = class(TSvgGradientNode)
   private type
     TSvgConicalGradientProperties = set of (cgpCx, cgpCy, cgpAngle, cgpStartAngle, cgpEndAngle);
@@ -659,7 +686,9 @@ type
 //      TSvgClipPathNode
 //
 //------------------------------------------------------------------------------
-  TSvgClipPathNode = class(TSvgGroupNode)
+// Represents a <clippath> node.
+//------------------------------------------------------------------------------
+  TSvgClipPathNode = class(TSvgCustomGroupNode)
   private
     FClipPathUnits: TSvgGradientUnits;
   protected
@@ -679,7 +708,9 @@ type
 //      TSvgMaskNode
 //
 //------------------------------------------------------------------------------
-  TSvgMaskNode = class(TSvgGroupNode)
+// Represents a <mask> node.
+//------------------------------------------------------------------------------
+  TSvgMaskNode = class(TSvgCustomGroupNode)
   private
     FX: TSvgLength;
     FY: TSvgLength;
@@ -709,7 +740,9 @@ type
 //      TSvgPatternNode
 //
 //------------------------------------------------------------------------------
-  TSvgPatternNode = class(TSvgGroupNode)
+// Represents a <pattern> paint server node.
+//------------------------------------------------------------------------------
+  TSvgPatternNode = class(TSvgPaintServerNode)
   private type
     TSvgPatternProperties = set of (ppX, ppY, ppWidth, ppHeight, ppPatternUnits, ppPatternContentUnits, ppPatternTransform, ppViewBox, ppPreserveAspectRatio);
   private
@@ -751,9 +784,9 @@ type
 //      TSvgFilterPrimitiveNode
 //
 //------------------------------------------------------------------------------
-// SVG Filter AST Node Hierarchy
+// Abstract base class for filter nodes
 //------------------------------------------------------------------------------
-  TSvgFilterPrimitiveNode = class abstract(TSvgGroupNode)
+  TSvgFilterPrimitiveNode = class abstract(TSvgCustomGroupNode)
   public type
     TSvgFilterPrimitiveProperties = set of (fppX, fppY, fppWidth, fppHeight);
   private
@@ -1105,7 +1138,7 @@ type
 //------------------------------------------------------------------------------
 // <filter>
 //------------------------------------------------------------------------------
-  TSvgFilterNode = class(TSvgGroupNode)
+  TSvgFilterNode = class(TSvgCustomGroupNode)
   private
     FX: TSvgLength;
     FY: TSvgLength;
@@ -1139,7 +1172,7 @@ type
 // vertex markers (arrowheads, dots, icons) along path contours. Markers are
 // non-renderable definition nodes checked via GetIsRenderable returning False.
 //------------------------------------------------------------------------------
-  TSvgMarkerNode = class(TSvgGroupNode)
+  TSvgMarkerNode = class(TSvgCustomGroupNode)
   private
     FRefX: TSvgLength;
     FRefY: TSvgLength;
@@ -1183,9 +1216,9 @@ type
 //      TSvgDocumentNode
 //
 //------------------------------------------------------------------------------
-// <svg>
+// Represents a <svg> document node.
 //------------------------------------------------------------------------------
-  TSvgDocumentNode = class(TSvgGroupNode)
+  TSvgDocumentNode = class(TSvgCustomGroupNode)
   private type
     // Warning!
     // TSvgNodeDictionary contains raw pointers to string data.
@@ -1240,6 +1273,16 @@ type
 //      TSvgPathNode
 //
 //------------------------------------------------------------------------------
+// Represents the following path nodes:
+//   <path>
+//   <rect>
+//   <circle>
+//   <ellipse>
+//   <line>
+//   <polyline>
+//   <polygon>
+//------------------------------------------------------------------------------
+
   TSvgShapeKind = (skPath, skRect, skCircle, skEllipse, skLine, skPolyline, skPolygon);
 
   TSvgPathNode = class(TSvgNode)
@@ -1305,7 +1348,9 @@ type
 //      TSvgDefsNode
 //
 //------------------------------------------------------------------------------
-  TSvgDefsNode = class(TSvgGroupNode)
+// Represents a <defs> node.
+//------------------------------------------------------------------------------
+  TSvgDefsNode = class(TSvgCustomGroupNode)
   protected
     function GetElementTag: UTF8String; override;
     function GetIsRenderable: Boolean; override;
@@ -1317,7 +1362,9 @@ type
 //      TSvgSymbolNode
 //
 //------------------------------------------------------------------------------
-  TSvgSymbolNode = class(TSvgGroupNode)
+// Represents a <symbol> node.
+//------------------------------------------------------------------------------
+  TSvgSymbolNode = class(TSvgCustomGroupNode)
   private
     FX: TSvgLength;
     FY: TSvgLength;
@@ -1347,7 +1394,7 @@ type
 //      TSvgSymbolInstanceNode
 //
 //------------------------------------------------------------------------------
-  TSvgSymbolInstanceNode = class(TSvgGroupNode)
+  TSvgSymbolInstanceNode = class(TSvgCustomGroupNode)
   protected
     function GetIsRenderable: Boolean; override;
   end;
@@ -1397,7 +1444,9 @@ type
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
-  TSvgUseNode = class(TSvgGroupNode)
+// Represents a <use> node.
+//------------------------------------------------------------------------------
+  TSvgUseNode = class(TSvgCustomGroupNode)
   private
     FHref: UTF8String;
     FX: Single;
@@ -1462,7 +1511,7 @@ type
 // elements (<text> and <tspan>). It maintains absolute/relative coordinate
 // offsets (x, y, dx, dy) and raw string content.
 //------------------------------------------------------------------------------
-  TSvgTextPositioningNode = class(TSvgGroupNode)
+  TSvgTextPositioningNode = class(TSvgCustomGroupNode)
   private
     FX: TSvgLength;
     FY: TSvgLength;
@@ -3198,22 +3247,17 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TSvgGroupNode
+//      TSvgCustomGroupNode
 //
 //------------------------------------------------------------------------------
-function TSvgGroupNode.GetElementTag: UTF8String;
-begin
-  Result := 'g';
-end;
-
-function TSvgGroupNode.DumpNode(Indent: Integer): string;
+function TSvgCustomGroupNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
   if FOpacity < 1.0 then
     Result := Result + Format(' (opacity=%s)', [FloatToString(FOpacity)]);
 end;
 
-function TSvgGroupNode.DumpChildren(Indent: Integer): string;
+function TSvgCustomGroupNode.DumpChildren(Indent: Integer): string;
 var
   i: Integer;
 begin
@@ -3222,30 +3266,30 @@ begin
     Result := Result + sLineBreak + FChildren[i].Dump(Indent + 1);
 end;
 
-constructor TSvgGroupNode.Create(AParent: TSvgNode);
+constructor TSvgCustomGroupNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
   FChildren := TObjectList<TSvgNode>.Create(True);
 end;
 
-destructor TSvgGroupNode.Destroy;
+destructor TSvgCustomGroupNode.Destroy;
 begin
   FChildren.Free;
   inherited Destroy;
 end;
 
-function TSvgGroupNode.Clone(AParent: TSvgNode): TSvgNode;
+function TSvgCustomGroupNode.Clone(AParent: TSvgNode): TSvgNode;
 var
-  groupRes: TSvgGroupNode;
+  groupRes: TSvgCustomGroupNode;
   i: Integer;
 begin
-  groupRes := TSvgGroupNode(inherited Clone(AParent));
+  groupRes := TSvgCustomGroupNode(inherited Clone(AParent));
   for i := 0 to FChildren.Count - 1 do
     groupRes.AddChild(FChildren[i].Clone(groupRes));
   Result := groupRes;
 end;
 
-function TSvgGroupNode.GetObjectBoundingBox: TFloatRect;
+function TSvgCustomGroupNode.GetObjectBoundingBox: TFloatRect;
 var
   i, k: Integer;
   Child: TSvgNode;
@@ -3312,13 +3356,24 @@ begin
   end;
 end;
 
-procedure TSvgGroupNode.AddChild(AChild: TSvgNode);
+procedure TSvgCustomGroupNode.AddChild(AChild: TSvgNode);
 begin
   if AChild <> nil then
   begin
     AChild.Parent := Self;
     FChildren.Add(AChild);
   end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgGroupNode
+//
+//------------------------------------------------------------------------------
+function TSvgGroupNode.GetElementTag: UTF8String;
+begin
+  Result := 'g';
 end;
 
 
@@ -5351,7 +5406,7 @@ procedure TSvgDocumentNode.ResolveSwitchNodes;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
     SwitchNode: TSvgSwitchNode;
     Child: TSvgNode;
   begin
@@ -5368,9 +5423,9 @@ procedure TSvgDocumentNode.ResolveSwitchNodes;
       if SwitchNode.SelectedChild <> nil then
         ProcessNode(SwitchNode.SelectedChild);
     end else
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
 
       for i := 0 to Group.Children.Count - 1 do
       begin
@@ -5393,7 +5448,7 @@ const
   procedure ProcessNode(ANode: TSvgNode; ADepth: Integer);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
     UseNode: TSvgUseNode;
     TargetNode, ClonedNode: TSvgNode;
     ID: TValuePUtf8Char;
@@ -5436,10 +5491,10 @@ const
           end;
         end;
       end else
-      if ANode is TSvgGroupNode then
+      if ANode is TSvgCustomGroupNode then
       begin
         // Recurse into children of regular container groups
-        Group := TSvgGroupNode(ANode);
+        Group := TSvgCustomGroupNode(ANode);
         for i := 0 to Group.Children.Count - 1 do
           ProcessNode(Group.Children[i], ADepth + 1);
       end;
@@ -5487,14 +5542,14 @@ procedure TSvgDocumentNode.ResolveGradients;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
   begin
     if ANode is TSvgGradientNode then
       ResolveGradient(TSvgGradientNode(ANode));
 
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
@@ -5522,7 +5577,7 @@ procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
     TargetNode: TSvgNode;
     ID: TValuePUtf8Char;
   begin
@@ -5544,9 +5599,9 @@ procedure TSvgDocumentNode.ResolveClipPathsAndMasks;
         ANode.ResolvedMask := TSvgMaskNode(TargetNode);
     end;
 
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
@@ -5709,7 +5764,7 @@ type
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
     TargetNode: TSvgNode;
     ID: TValuePUtf8Char;
   begin
@@ -5729,9 +5784,9 @@ type
       end;
     end;
 
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
@@ -5746,7 +5801,7 @@ procedure TSvgDocumentNode.ResolvePaintServers;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
     FillRef: TSvgFill;
     StrokeStruct: TSvgStroke;
     TargetNode: TSvgNode;
@@ -5758,11 +5813,11 @@ procedure TSvgDocumentNode.ResolvePaintServers;
     if ANode.Fill.Url <> '' then
     begin
       ID := ExtractUrlID(ANode.Fill.Url);
-      TargetNode := ANode.FindNodeById(ID);
-      if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
+      TargetNode := ANode.FindNodeByID(ID);
+      if (TargetNode is TSvgPaintServerNode) then
       begin
         FillRef := ANode.Fill;
-        FillRef.ResolvedPaintServer := TargetNode;
+        FillRef.ResolvedPaintServer := TSvgPaintServerNode(TargetNode);
         ANode.Fill := FillRef;
       end;
     end;
@@ -5770,18 +5825,18 @@ procedure TSvgDocumentNode.ResolvePaintServers;
     if ANode.Stroke.Url <> '' then
     begin
       ID := ExtractUrlID(ANode.Stroke.Url);
-      TargetNode := ANode.FindNodeById(ID);
-      if (TargetNode is TSvgGradientNode) or (TargetNode is TSvgPatternNode) then
+      TargetNode := ANode.FindNodeByID(ID);
+      if (TargetNode is TSvgPaintServerNode) then
       begin
         StrokeStruct := ANode.Stroke;
-        StrokeStruct.ResolvedPaintServer := TargetNode;
+        StrokeStruct.ResolvedPaintServer := TSvgPaintServerNode(TargetNode);
         ANode.Stroke := StrokeStruct;
       end;
     end;
 
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
@@ -5796,7 +5851,7 @@ procedure TSvgDocumentNode.ResolveMarkers;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
     TargetNode: TSvgNode;
     ID: TValuePUtf8Char;
   begin
@@ -5826,9 +5881,9 @@ procedure TSvgDocumentNode.ResolveMarkers;
         ANode.ResolvedMarkerEnd := TSvgMarkerNode(TargetNode);
     end;
 
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
@@ -5845,7 +5900,7 @@ procedure TSvgDocumentNode.ResolveTextPaths;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
     TextPathNode: TSvgTextPathNode;
     TargetNode: TSvgNode;
     ID: TValuePUtf8Char;
@@ -5865,9 +5920,9 @@ procedure TSvgDocumentNode.ResolveTextPaths;
       end;
     end;
 
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
@@ -5905,14 +5960,14 @@ procedure TSvgDocumentNode.ResolvePatterns;
   procedure ProcessNode(ANode: TSvgNode);
   var
     i: Integer;
-    Group: TSvgGroupNode;
+    Group: TSvgCustomGroupNode;
   begin
     if ANode is TSvgPatternNode then
       ResolvePattern(TSvgPatternNode(ANode));
 
-    if ANode is TSvgGroupNode then
+    if ANode is TSvgCustomGroupNode then
     begin
-      Group := TSvgGroupNode(ANode);
+      Group := TSvgCustomGroupNode(ANode);
       for i := 0 to Group.Children.Count - 1 do
         ProcessNode(Group.Children[i]);
     end;
@@ -7630,7 +7685,7 @@ var
 
     if node = nil then
     begin
-      node := TSvgNode.Create(AParent);
+      node := TSvgNode.Create(AParent); // TODO : Abstract class; Needs placeholder specialization
       ParseAttributes(node, AParser);
     end;
 
@@ -7647,7 +7702,7 @@ var
     if (node <> nil) and (node.StyleAttr <> '') then
       node.ParseStyleAttribute(node.StyleAttr);
 
-    if node is TSvgGroupNode then
+    if node is TSvgCustomGroupNode then
     begin
 
       while not(AParser.Kind in [xtEof, xtError]) do
@@ -7697,7 +7752,7 @@ var
 
           childNode := ParseSubtree(AParser, node);
           if childNode <> nil then
-            TSvgGroupNode(node).AddChild(childNode);
+            TSvgCustomGroupNode(node).AddChild(childNode);
 
         end else
         if (AParser.Kind in [xtText, xtCData]) and (node is TSvgTextPositioningNode) then
@@ -7820,11 +7875,6 @@ begin
         if RootNode is TSvgDocumentNode then
           Result := TSvgDocumentNode(RootNode)
         else
-        if RootNode is TSvgGroupNode then
-        begin
-          Result := TSvgDocumentNode.Create(nil);
-          Result.AddChild(RootNode);
-        end else
         if RootNode <> nil then
         begin
           Result := TSvgDocumentNode.Create(nil);

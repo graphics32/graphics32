@@ -53,7 +53,7 @@ uses
 type
   TPaintServerRenderer = class abstract
   public
-    class function CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgGroupNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller; virtual;
+    class function CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgCustomGroupNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller; virtual;
   end;
 
   TPaintServerRendererClass = class of TPaintServerRenderer;
@@ -69,7 +69,7 @@ type
 type
   TPaintServerRendererPattern = class(TPaintServerRenderer)
   public
-    class function CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgGroupNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller; override;
+    class function CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgCustomGroupNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller; override;
   end;
 
   TPaintServerRendererPatternClass = class of TPaintServerRendererPattern;
@@ -89,7 +89,7 @@ type
   protected
     class function DoCreateFiller(ARenderer: TSvgRenderer; AGradNode: TSvgGradientNode; const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller; virtual; abstract;
   public
-    class function CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgGroupNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller; override;
+    class function CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgCustomGroupNode; const ABounds: TFloatRect; AOpacity: Single = 1.0): TCustomPolygonFiller; override;
   end;
 
   TPaintServerRendererGradientClass = class of TPaintServerRendererGradient;
@@ -156,7 +156,7 @@ uses
 //      TPaintServerRenderer
 //
 //------------------------------------------------------------------------------
-class function TPaintServerRenderer.CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgGroupNode; const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller;
+class function TPaintServerRenderer.CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgCustomGroupNode; const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller;
 begin
   Result := nil;
 end;
@@ -168,7 +168,7 @@ end;
 //
 //------------------------------------------------------------------------------
 
-class function TPaintServerRendererGradient.CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgGroupNode; const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller;
+class function TPaintServerRendererGradient.CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgCustomGroupNode; const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller;
 begin
   Result := nil;
   if (ANode = nil) or (TSvgGradientNode(ANode).Stops.Count = 0) then
@@ -426,7 +426,7 @@ end;
 //      TPaintServerRendererPattern
 //
 //------------------------------------------------------------------------------
-class function TPaintServerRendererPattern.CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgGroupNode;
+class function TPaintServerRendererPattern.CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgCustomGroupNode;
   const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller;
 var
   PatternNode: TSvgPatternNode;

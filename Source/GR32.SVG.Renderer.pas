@@ -141,14 +141,14 @@ type
 
   protected
     function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor;
-    procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode = pfWinding);
+    procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode = pfWinding);
 
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
     procedure RenderTextPathData(ATarget: TCustomBitmap32; const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
     procedure RenderTextAreaNode(ATarget: TCustomBitmap32; ATextAreaNode: TSvgTextAreaNode);
     procedure RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
-    procedure RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgGroupNode);
+    procedure RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgCustomGroupNode);
     procedure RenderClipPathNode(AMaskBmp: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     procedure RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     procedure RenderMarker(ATarget: TCustomBitmap32; AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); // Angle is in radians!
@@ -347,9 +347,9 @@ begin
   if ANode is TSvgTextPositioningNode then
     Result := TSvgTextPositioningNode(ANode).TextContent;
 
-  if ANode is TSvgGroupNode then
+  if ANode is TSvgCustomGroupNode then
   begin
-    for Child in TSvgGroupNode(ANode).Children do
+    for Child in TSvgCustomGroupNode(ANode).Children do
       Result := Result + GetSubtreeText(Child);
   end;
 end;
@@ -389,7 +389,7 @@ begin
     if (Node.MixBlendMode <> bmNormal) then
       Exit(Node.MixBlendMode);
 
-    if (Node is TSvgGroupNode) and (TSvgGroupNode(Node).Isolation = isoIsolate) then
+    if (Node is TSvgCustomGroupNode) and (TSvgCustomGroupNode(Node).Isolation = isoIsolate) then
       Break;
 
     Node := Node.Parent;
@@ -940,10 +940,9 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TObject; const APoints: TArrayOfArrayOfFloatPoint;
+procedure TSvgRenderer.RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; const APoints: TArrayOfArrayOfFloatPoint;
   AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode);
 var
-  PaintServerNode: TSvgGroupNode;
   Bounds: TFloatRect;
   Filler: TCustomPolygonFiller;
   Color: TColor32;
@@ -956,17 +955,12 @@ begin
   begin
     Bounds := GetPathBounds(APoints);
 
-    PaintServerNode := TSvgGroupNode(APaintServer);
-
     Filler := nil;
-    if (PaintServerNode is TSvgGradientNode) or (PaintServerNode is TSvgPatternNode) then
-    begin
-      // Get a paint server renderer...
-      PaintServerRenderer := TPaintServerRendererGradientClass(PaintServerNode.GetRenderClass);
-      if (PaintServerRenderer <> nil) then
-        // ...and get a filler from it
-        Filler := PaintServerRenderer.CreateFiller(Self, PaintServerNode, Bounds, AOpacity);
-    end;
+    // Get a paint server renderer...
+    PaintServerRenderer := TPaintServerRendererGradientClass(APaintServer.GetRenderClass);
+    if (PaintServerRenderer <> nil) then
+      // ...and get a filler from it
+      Filler := PaintServerRenderer.CreateFiller(Self, APaintServer, Bounds, AOpacity);
 
     if (Filler = nil) then
       exit;
@@ -1007,7 +1001,6 @@ begin
     FPolyRenderer.PolyPolygonFS(APoints);
   end;
 end;
-
 
 procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
 var
@@ -1551,7 +1544,7 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgGroupNode);
+procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgCustomGroupNode);
 
   procedure RenderChildren(ATargetSurface: TCustomBitmap32);
   var
@@ -3376,6 +3369,7 @@ end;
 
 procedure TSvgRenderer.RenderNodeContent(ATarget: TCustomBitmap32; ANode: TSvgNode);
 begin
+  // TODO : Replace with direct dispatch
   if ANode is TSvgPathNode then
     RenderPathNode(ATarget, TSvgPathNode(ANode))
   else
@@ -3388,8 +3382,8 @@ begin
   if ANode is TSvgTextNode then
     RenderTextNode(ATarget, TSvgTextNode(ANode))
   else
-  if ANode is TSvgGroupNode then
-    RenderGroupNode(ATarget, TSvgGroupNode(ANode));
+  if ANode is TSvgCustomGroupNode then
+    RenderGroupNode(ATarget, TSvgCustomGroupNode(ANode));
 end;
 
 procedure TSvgRenderer.RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
@@ -3447,7 +3441,7 @@ begin
     EffectiveBlendMode := GetEffectiveMixBlendMode(ANode);
 
     // Non-group renderable nodes need offscreen surface if they have ClipPath, Mask, Opacity < 1, or Non-normal blend mode
-    NeedsOffscreen := (not (ANode is TSvgGroupNode)) and
+    NeedsOffscreen := (not (ANode is TSvgCustomGroupNode)) and
       ((EffectiveBlendMode <> bmNormal) or (ANode.ResolvedClipPath <> nil) or (ANode.ResolvedMask <> nil) or (ANode.Opacity < 1.0));
 
     // Polygon nodes (TSvgPathNode) handle their own ROI calculation after stroking inside RenderPathNode
