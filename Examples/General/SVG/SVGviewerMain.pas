@@ -197,6 +197,7 @@ type
 procedure TFormSVGviewer.FormCreate(Sender: TObject);
 var
   IniFile: TIniFile;
+  Folder: string;
 begin
   FDocNode := nil;
   Image32.Bitmap.SetSize(600, 600, False);
@@ -216,35 +217,39 @@ begin
 
   IniFile := TIniFile.Create(TPath.Combine(TPath.GetDirectoryName(Application.ExeName), sIniFilename));
   try
-{$IFDEF MODERN_SHELL_CONTROLS}
-    FreeAndNil(DriveComboBox);
-
-    DirectoryListBox.ShellListView := FileListBox;
-    DirectoryListBox.ObjectTypes := [otFolders];
-    DirectoryListBox.ReadOnly := True;
-    DirectoryListBox.HideSelection := False;
-    DirectoryListBox.RowSelect := True;
-    DirectoryListBox.Indent := 10;
-    DirectoryListBox.ShowLines := False;
-    DirectoryListBox.ShowRoot := False;
-
-    FileListBox.ShellTreeView := DirectoryListBox;
-    FileListBox.ObjectTypes := [otNonFolders];
-
-    FileListBox.ViewStyle := vsReport;
-    FileListBox.ReadOnly := True;
-    FileListBox.HideSelection := False;
-    FileListBox.RowSelect := True;
-    FileListBox.OnAddFolder := ShellListViewAddFolder;
-    FileListBox.OnChange := ShellListViewOnChange;
-
-    DirectoryListBox.Path := IniFile.ReadString('settings', 'LastFolder', GetCurrentDir);
-{$ELSE}
-    DirectoryListBox.Directory := IniFile.ReadString('settings', 'LastFolder', GetCurrentDir);
-{$ENDIF}
+    Folder := IniFile.ReadString('settings', 'LastFolder', GetCurrentDir);
   finally
     IniFile.Free;
   end;
+  if (not TPath.Exists(Folder)) then
+    Folder := GetCurrentDir;
+
+{$IFDEF MODERN_SHELL_CONTROLS}
+  FreeAndNil(DriveComboBox);
+
+  DirectoryListBox.ShellListView := FileListBox;
+  DirectoryListBox.ObjectTypes := [otFolders];
+  DirectoryListBox.ReadOnly := True;
+  DirectoryListBox.HideSelection := False;
+  DirectoryListBox.RowSelect := True;
+  DirectoryListBox.Indent := 10;
+  DirectoryListBox.ShowLines := False;
+  DirectoryListBox.ShowRoot := False;
+
+  FileListBox.ShellTreeView := DirectoryListBox;
+  FileListBox.ObjectTypes := [otNonFolders];
+
+  FileListBox.ViewStyle := vsReport;
+  FileListBox.ReadOnly := True;
+  FileListBox.HideSelection := False;
+  FileListBox.RowSelect := True;
+  FileListBox.OnAddFolder := ShellListViewAddFolder;
+  FileListBox.OnChange := ShellListViewOnChange;
+
+  DirectoryListBox.Path := Folder;
+{$ELSE}
+  DirectoryListBox.Directory := Folder;
+{$ENDIF}
 
   PageControlSVG.TabIndex := 0;
   ColorTheme := ctNone;
@@ -305,16 +310,16 @@ end;
 
 procedure TFormSVGviewer.LoadAndRenderSvg(const AFileName: string);
 var
-  xmlList: TStringList;
+  Stream: TStringStream;
 begin
-  xmlList := TStringList.Create;
+  Stream := TStringStream.Create('', TEncoding.UTF8);
   try
-    xmlList.LoadFromFile(AFileName, TEncoding.UTF8);
+    Stream.LoadFromFile(AFileName);
 
-    RenderSvg(xmlList.Text);
+    RenderSvg(Stream.DataString);
 
   finally
-    xmlList.Free;
+    Stream.Free;
   end;
 end;
 

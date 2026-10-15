@@ -82,7 +82,7 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
-        <Manifest_File>(None)</Manifest_File>
+        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <DCC_UsePackage>dxPScxCommonRS29;dxPSdxChartControlLnkRS29;dxRibbonRS29;vclwinx;DataSnapServer;dxPScxExtCommonRS29;dxRichEditControlCoreRS29;fmx;dxSpreadSheetReportDesignerRS29;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;DBXMSSQLDriver;FireDACCommonODBC;emsclient;dxComnRS29;dxFlowChartDesignerRS29;appanalytics;IndyProtocols;vclx;dxBarExtDBItemsRS29;dbxcds;vcledge;cxVerticalGridRS29;cxFireDACAdaptersRS29;cxSchedulerWebServiceStorageRS29;DBXFirebirdDriver;dxRichEditControlRS29;dxPsPrVwAdvRS29;FireDACSqliteDriver;DbxClientDriver;dxPSdxGaugeControlLnkRS29;soapmidas;dxRibbonCustomizationFormRS29;dbexpress;dxDockingRS29;inet;vcltouch;dxPSdxFCLnkRS29;dxorgcRS29;FireDACDBXDriver;dxSpreadSheetCoreConditionalFormattingDialogsRS29;fmxdae;dxPSRichEditControlLnkRS29;dxPSdxSpreadSheetLnkRS29;CustomIPTransport;FireDACMSSQLDriver;cxADOAdaptersRS29;dxPSPrVwRibbonRS29;IndySystem;dxPScxTLLnkRS29;dxPSdxDBOCLnkRS29;dxGDIPlusRS29;vclFireDAC;dxPSCoreRS29;dxSpreadSheetRS29;FireDACCommon;DataSnapServerMidas;FireDACODBCDriver;emsserverresource;dxPSdxMapControlLnkRS29;dxGanttControlRS29;dxPScxVGridLnkRS29;dxPScxPivotGridLnkRS29;dxADOServerModeRS29;dxWizardControlRS29;bindcompdbx;rtl;FireDACMySQLDriver;dxCloudServiceLibraryRS29;dxServerModeRS29;DBXSqliteDriver;dxBarDBNavRS29;DBXSybaseASEDriver;dxSpreadSheetCoreRS29;dxNavBarRS29;vclimg;DataSnapFireDAC;inetdbxpress;FireDAC;xmlrtl;dsnap;FireDACDb2Driver;dxPSdxLCLnkRS29;DBXOracleDriver;DBXInformixDriver;fmxobj;bindcompvclsmp;DataSnapNativeClient;DatasnapConnectorsFreePascal;dxPSLnksRS29;dxmdsRS29;dxPSdxOCLnkRS29;cxSchedulerGridRS29;dxPScxSchedulerLnkRS29;emshosting;dxChartControlRS29;dxPSdxDBTVLnkRS29;FireDACCommonDriver;dxGaugeControlRS29;IndyIPClient;dxPDFViewerRS29;bindcompvclwinx;dxOrgChartAdvancedCustomizeFormRS29;emsedge;bindcompfmx;dxBarExtItemsRS29;dxFlowChartLayoutsRS29;inetdb;dxdborRS29;FireDACASADriver;dxPScxGridLnkRS29;cxPivotGridChartRS29;vclactnband;fmxFireDAC;FireDACInfxDriver;dxRichEditCoreRS29;cxTreeListdxBarPopupMenuRS29;DBXMySQLDriver;dxFlowChartAdvancedCustomizeFormRS29;VclSmp;cxSchedulerRibbonStyleEventEditorRS29;DataSnapCommon;fmxase;dxtrmdRS29;dxFlowChartRS29;DBXOdbcDriver;dbrtl;dxPScxPCProdRS29;FireDACOracleDriver;FireDACMSAccDriver;cxGridRS29;dxSpellCheckerRS29;DataSnapIndy10ServerTransport;dxRichEditDocumentModelRS29;dxMapControlRS29;DataSnapConnectors;vcldsnap;DBXInterBaseDriver;FireDACMongoDBDriver;FireDACTDataDriver;cxLibraryRS29;Skia.Package.VCL;vcldb;dxPSdxPDFViewerLnkRS29;cxSchedulerTreeBrowserRS29;bindcomp;dxTabbedMDIRS29;cxExportRS29;IndyCore;RESTBackendComponents;dxHttpIndyRequestRS29;dxTileControlRS29;dxFireDACServerModeRS29;cxPivotGridOLAPRS29;FireDACADSDriver;RESTComponents;IndyIPServer;vcl;dsnapxml;adortl;dsnapcon;DataSnapClient;DataSnapProviderClient;dxCoreRS29;cxPivotGridRS29;dxdbtrRS29;DBXDb2Driver;dxSkinsCoreRS29;emsclientfiredac;FireDACPgDriver;FireDACDSDriver;dxBarRS29;tethering;bindcompvcl;CloudService;DBXSybaseASADriver;dxSpreadSheetConditionalFormattingDialogsRS29;cxTreeListRS29;soaprtl;dxDBXServerModeRS29;cxSchedulerRS29;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
@@ -91,7 +91,7 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
-        <Manifest_File>(None)</Manifest_File>
+        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
@@ -111,6 +111,7 @@
         <Debugger_CWD>D:\Projects\Library\Graphics32\Info\SVG\samples</Debugger_CWD>
         <DCC_MapFile>3</DCC_MapFile>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
+        <AppEnableRuntimeThemes>false</AppEnableRuntimeThemes>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
@@ -132,6 +133,7 @@
         <DCC_MapFile>3</DCC_MapFile>
         <DCC_LocalDebugSymbols>true</DCC_LocalDebugSymbols>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+        <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
