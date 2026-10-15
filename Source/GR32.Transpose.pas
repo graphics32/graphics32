@@ -91,7 +91,7 @@ procedure CacheObliviousTranspose32(Src, Dst: pointer; Width, Height: integer);
 procedure CacheObliviousTransposeEx32(Src, Dst: pointer; Width, Height: integer);
 procedure CacheObliviousTranspose8(Src, Dst: pointer; Width, Height: integer);
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
+procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$ifend}
 
 
@@ -159,7 +159,7 @@ end;
 // Ported to Delphi by Anders Melander
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); //{$IFDEF FPC}assembler;{$ENDIF}
+procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 // TODO : This has become a mess. Split into separate x86 and x64 implementations.
 type
   dword = Cardinal;
@@ -552,8 +552,11 @@ asm
   pop edi
 {$ifend}
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6'];
+{$ifend}
 end;
+
 {$ifend}
 
 

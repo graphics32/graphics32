@@ -646,7 +646,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats); // {$IFDEF FPC}assembler;{$ENDIF}
+procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
   // Parameters (x86):
   //   EAX <- iPlus
   //   EDX <- B0
@@ -769,7 +769,9 @@ asm
 
   MOVUPS        TQuadFloat PTR [v], XMM2     // XMM2 -> v
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4'];
+{$ifend}
 end;
 
 {$ifend}

@@ -53,7 +53,7 @@ uses
 //------------------------------------------------------------------------------
 // Blend
 //------------------------------------------------------------------------------
-function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function BlendReg_SSE2(F, B: TColor32): TColor32; {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 function BlendReg_SSE41(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 procedure BlendMem_SSE2(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
@@ -187,7 +187,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendReg_SSE2(F, B: TColor32): TColor32; {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 (*
         BlendReg_SSE2_Sanyin_257
         Contributed by: Sanyin
@@ -227,8 +227,11 @@ asm
         MOVD      EAX, XMM0
         OR        EAX, $FF000000
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4'];
+{$ifend}
 end;
+
 
 
 //------------------------------------------------------------------------------

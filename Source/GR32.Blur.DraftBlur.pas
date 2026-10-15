@@ -270,7 +270,7 @@ end;
 // (max 2.14e9). Final byte packing uses saturated conversion (PACKUSDW +
 // PACKUSWB).
 //------------------------------------------------------------------------------
-procedure DraftBlurRow32_SSE41(pIn, pOut: PColor32EntryArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PQuadIntArray);
+procedure DraftBlurRow32_SSE41(pIn, pOut: PColor32EntryArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PQuadIntArray); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -506,14 +506,16 @@ asm
 {$message fatal 'Unsupported target'}
 {$ifend}
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6', 'XMM7'];
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
 // SIMD 1-channel 8-bit row blur using Alvarez & Mazorra 2nd-order IIR
 // using SSE4.1 32-bit integer SIMD arithmetic in XMM registers.
 //------------------------------------------------------------------------------
-procedure DraftBlurRow8_SSE41(pIn, pOut: PByteArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PIntArray);
+procedure DraftBlurRow8_SSE41(pIn, pOut: PByteArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PIntArray); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -719,7 +721,9 @@ asm
 {$message fatal 'Unsupported target'}
 {$ifend}
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6', 'XMM7'];
+{$ifend}
 end;
 
 {$ifend}

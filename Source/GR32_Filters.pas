@@ -2656,7 +2656,7 @@ end;
 ** factor using SSE2 16-bit word multiplication (PMULLW, PADDW, PMULHUW, PACKUSWB)
 ** in 4-pixel blocks.
 *)
-procedure ScaleAlphaMems_SSE2(Color: PColor32Entry; Count: Integer; Scale: Single); {$IFDEF FPC}assembler;{$ENDIF}
+procedure ScaleAlphaMems_SSE2(Color: PColor32Entry; Count: Integer; Scale: Single); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -2744,7 +2744,6 @@ asm
         POP       ESI
         POP       EBX
 
-@Exit:
 {$elseif defined(TARGET_x64)}
 {$if not defined(FPC)}
         .SAVENV XMM4
@@ -2833,8 +2832,10 @@ asm
         POP       RBX
         POP       RSI
 
+{$ifend}
 @Exit:
-{$if defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5'];
 {$ifend}
 end;
 
@@ -2881,7 +2882,7 @@ end;
 ** ApplyAlphaMask_SSE41 calculates Rec. 601 luminance of Source pixels (with source alpha applied)
 ** and scales Dest.A by Gray / 255 using SSE4.1 32-bit PMULLD vector math in 4-pixel blocks.
 *)
-procedure ApplyAlphaMask_SSE41(Source, Dest: PColor32Entry; Count: Integer); {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
+procedure ApplyAlphaMask_SSE41(Source, Dest: PColor32Entry; Count: Integer); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -3017,7 +3018,6 @@ asm
         POP       ESI
         POP       EBX
 
-@Exit:
 {$elseif defined(TARGET_x64)}
 {$if not defined(FPC)}
         .SAVENV XMM4
@@ -3151,8 +3151,11 @@ asm
         POP       RBX
         POP       RSI
 
+{$ifend}
 @Exit:
-{$if defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
+
+{$if defined(FPC)}
+end['XMM4', 'XMM5'];
 {$ifend}
 end;
 
