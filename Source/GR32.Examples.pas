@@ -28,8 +28,6 @@ unit GR32.Examples;
  * Portions created by the Initial Developer are Copyright (C) 2000-2009
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
- *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -54,53 +52,8 @@ type
 implementation
 
 uses
-{$ifndef FPC}
-  IOUtils,
-{$endif FPC}
-  SysUtils;
-
-// FreePascal support
-{$ifdef FPC}
-type
-  TPath = record
-    class function GetDirectoryName(const APath: string): string; static;
-    class function Combine(const APath, BPath: string): string; static;
-  end;
-
-  TDirectory = record
-    class function Exists(const AFoldername: string): boolean; static;
-    class function GetParent(const AFoldername: string): string; static;
-  end;
-
-  TFile = record
-    class function Exists(const AFilename: string): boolean; static;
-  end;
-
-class function TPath.GetDirectoryName(const APath: string): string;
-begin
-  Result := ExtractFileDir(APath);
-end;
-
-class function TPath.Combine(const APath, BPath: string): string;
-begin
-  Result := ConcatPaths([APath, BPath]);
-end;
-
-class function TDirectory.Exists(const AFoldername: string): boolean;
-begin
-  Result := DirectoryExists(AFoldername);
-end;
-
-class function TDirectory.GetParent(const AFoldername: string): string;
-begin
-  Result := ExtractFileDir(ExcludeTrailingPathDelimiter(AFoldername));
-end;
-
-class function TFile.Exists(const AFilename: string): boolean;
-begin
-  Result := FileExists(AFilename);
-end;
-{$endif FPC}
+  SysUtils,
+  GR32.Platform;
 
 var
   FGraphics32MediaFolder: string;

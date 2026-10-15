@@ -49,7 +49,10 @@ uses
   GR32.ImageFormats.TClipboard, GR32.ImageFormats.TGraphic, 
   GR32.ImageFormats.TIcon, GR32.ImageFormats.TMetaFile, 
   GR32.ImageFormats.TPicture, GR32.ImageFormats.TWICImage, GR32_Polygons.GDI, 
-  GR32_Polygons.AggLite, GR32.Noise.Simplex;
+  GR32_Polygons.AggLite, GR32.Noise.Simplex, GR32.SVG.Path, GR32.SVG.Tree, 
+  GR32.SVG.Renderer, GR32.SVG.Renderer.Filters, GR32.SVG, 
+  GR32.SVG.Renderer.PaintServers, GR32.SVG.Types, GR32.SVG.Css, GR32.SVG.Utf8, 
+  GR32.Platform;
 
 implementation
 

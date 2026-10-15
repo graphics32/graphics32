@@ -1633,7 +1633,9 @@ uses
   Generics.Defaults,
   Types,
   Math,
+{$ifndef FPC}
   System.Hash,
+{$endif}
   GR32_Math,
   GR32_Paths,
   GR32.SVG.Path,
@@ -5202,9 +5204,15 @@ type
   public
     class function Ordinal: TValuePUtf8CharComparer;
 
-    function Compare(const Left, Right: TValuePUtf8Char): Integer; override;
+{$ifndef FPC}
+    function Compare(const Left, Right: TValuePUtf8Char): integer; override;
     function Equals(const Left, Right: TValuePUtf8Char): Boolean; reintroduce; overload; override;
     function GetHashCode(const Value: TValuePUtf8Char): Integer; reintroduce; overload; override;
+{$else PatheticCompiler}
+    function Compare(constref Left, Right: TValuePUtf8Char): LongInt; override;
+    function Equals(constref Left, Right: TValuePUtf8Char): Boolean; reintroduce; overload; override;
+    function GetHashCode(constref Value: TValuePUtf8Char): UInt32; reintroduce; overload; override;
+{$endif}
   end;
 
 class destructor TValuePUtf8CharComparer.Destroy;
@@ -5219,17 +5227,29 @@ begin
   Result := FOrdinal;
 end;
 
-function TValuePUtf8CharComparer.Compare(const Left, Right: TValuePUtf8Char): Integer;
+{$ifndef FPC}
+function TValuePUtf8CharComparer.Compare(const Left, Right: TValuePUtf8Char): integer;
+{$else PatheticCompiler}
+function TValuePUtf8CharComparer.Compare(constref Left, Right: TValuePUtf8Char): LongInt;
+{$endif}
 begin
   Result := Left.CompareOrdinal(Right);
 end;
 
+{$ifndef FPC}
 function TValuePUtf8CharComparer.Equals(const Left, Right: TValuePUtf8Char): Boolean;
+{$else PatheticCompiler}
+function TValuePUtf8CharComparer.Equals(constref Left, Right: TValuePUtf8Char): Boolean;
+{$endif}
 begin
   Result := Left.CompareText(Right);
 end;
 
+{$ifndef FPC}
 function TValuePUtf8CharComparer.GetHashCode(const Value: TValuePUtf8Char): Integer;
+{$else PatheticCompiler}
+function TValuePUtf8CharComparer.GetHashCode(constref Value: TValuePUtf8Char): UInt32;
+{$endif}
 var
   Hash: Cardinal;
   i: Integer;
@@ -5243,7 +5263,11 @@ begin
       c := c xor $20;
     Hash := (Hash xor c) * 16777619;
   end;
+{$ifndef FPC}
   Result := Integer(Hash);
+{$else PatheticCompiler}
+  Result := Int64(Hash);
+{$endif};
 end;
 
 

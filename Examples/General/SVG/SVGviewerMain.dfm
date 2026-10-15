@@ -176,7 +176,6 @@ object FormSVGviewer: TFormSVGviewer
           ParentColor = False
           ResizeStyle = rsUpdate
           OnCanResize = SplitterMemoCanResize
-          OnBeforeResize = SplitterMemoBeforeResize
           ExplicitTop = 461
         end
         object Image32: TImage32

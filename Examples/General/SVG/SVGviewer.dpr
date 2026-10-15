@@ -1,6 +1,9 @@
 program SVGviewer;
 
 uses
+{$IFDEF FPC}
+  Interfaces,
+{$ENDIF}
   Forms,
   SVGviewerMain in 'SVGviewerMain.pas' {FormMain};
 

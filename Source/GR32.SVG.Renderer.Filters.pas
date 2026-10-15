@@ -1503,7 +1503,7 @@ begin
         for i := 0 to 255 do
         begin
           c := i * OneOver255;
-          val := FuncNode.Amplitude * System.Math.Power(c, FuncNode.Exponent) + FuncNode.Offset;
+          val := FuncNode.Amplitude * Math.Power(c, FuncNode.Exponent) + FuncNode.Offset;
           LUT[i] := Clamp(Round(val * 255.0));
         end;
       end;

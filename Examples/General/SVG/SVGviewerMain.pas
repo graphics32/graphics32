@@ -35,19 +35,29 @@ interface
 {$include GR32.inc}
 
 {-$define IMAGE32}
-
-{$IFNDEF FPC}
 {$define MODERN_SHELL_CONTROLS}
+
+{$IFDEF FPC}
+{$define MODERN_SHELL_CONTROLS} // Required on FPC
 {$ENDIF}
 
 uses
-  {$IFNDEF FPC} Windows, FileCtrl, {$ELSE} LCLIntf, LCLType, LResources, FileCtrl, {$ENDIF}
+{$IFDEF FPC}
+  LCLIntf, LCLType, LResources,
+{$ELSE}
+  Windows,
+  ImageList,
+  ImgList,
+{$ENDIF}
   Messages,
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Vcl.ComCtrls,
-  System.ImageList, Vcl.ImgList, Vcl.Buttons,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls,
+  Buttons,
 
 {$IFDEF MODERN_SHELL_CONTROLS}
   ShellCtrls,
+{$ENDIF}
+{$IFNDEF FPC}
+  FileCtrl, // Delphi will add it regardless of MODERN_SHELL_CONTROLS since the controls are on the form.
 {$ENDIF}
 
 {$if defined(IMAGE32)}
@@ -65,6 +75,20 @@ type
 const
   MSG_AFTER_SHOW = WM_USER;
 
+// Interposer for TImageList.ColorDepth
+{$IFDEF FPC}
+type
+  TImageList = class(Controls.TImageList)
+  private type
+    TColorDepth = (cdDefault, cdDeviceDependent, cd4Bit, cd8Bit, cd16Bit, cd24Bit, cd32Bit);
+  private
+    procedure SetDummy(Value: TColorDepth);
+  published
+    property ColorDepth: TColorDepth write SetDummy;
+  end;
+{$ENDIF}
+
+// "modern" (meaning this century) shell controls
 // Interposers to replace the horrible old Win3.x shell controls with
 // "modern" (meaning this century) shell controls
 {$IFDEF MODERN_SHELL_CONTROLS}
@@ -72,7 +96,11 @@ type
   TDirectoryListBox = class;
   TFileListBox = class;
 
+{$IFNDEF FPC}
   TDriveComboBox = class(TShellComboBox)
+{$ELSE}
+  TDriveComboBox = class(TPanel)
+{$ENDIF}
   private
     procedure SetDirList(const Value: TDirectoryListBox);
   published
@@ -134,7 +162,6 @@ type
     procedure MemoSourceChange(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
     procedure SplitterMemoCanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
-    procedure SplitterMemoBeforeResize(Sender: TObject);
     procedure MemoSourceKeyPress(Sender: TObject; var Key: Char);
     procedure FormShow(Sender: TObject);
     procedure SpeedButtonThemeClick(Sender: TObject);
@@ -160,8 +187,13 @@ type
     function GetBackground: TBackgroundCheckerStyle;
     procedure SetBackground(Value: TBackgroundCheckerStyle);
 
+    procedure SplitterMemoBeforeResize(Sender: TObject);
 {$IFDEF MODERN_SHELL_CONTROLS}
+{$IFNDEF FPC}
     procedure ShellListViewAddFolder(Sender: TObject; AFolder: TShellFolder; var CanAdd: Boolean);
+{$ELSE}
+    procedure ShellListViewAddItem(Sender: TObject; const ABasePath: String; const AFileInfo: TSearchRec; var CanAdd: Boolean);
+{$ENDIF}
     procedure ShellListViewOnChange(Sender: TObject; Item: TListItem; Change: TItemChange);
 {$ENDIF}
   public
@@ -175,13 +207,16 @@ var
 implementation
 
 uses
-  IOUtils,
   IniFiles,
+{$IFNDEF FPC}
+  IOUtils,
+{$ENDIF}
 {$if defined(IMAGE32)}
   Img32.SVG.Reader,
   Img32.SVG.Path,
   Img32.SVG.Core,
 {$ifend}
+  GR32.Platform,
   GR32_System,
   GR32.SVG.Types;
 
@@ -192,7 +227,7 @@ const
   sIniFilename = 'GR32_svg_viewer.ini';
 
 type
-  TControlCracker = class(TControl);
+  TControlCracker = class(TCustomControl);
 
 procedure TFormSVGviewer.FormCreate(Sender: TObject);
 var
@@ -221,7 +256,7 @@ begin
   finally
     IniFile.Free;
   end;
-  if (not TPath.Exists(Folder)) then
+  if (not TDirectory.Exists(Folder)) then
     Folder := GetCurrentDir;
 
 {$IFDEF MODERN_SHELL_CONTROLS}
@@ -243,12 +278,20 @@ begin
   FileListBox.ReadOnly := True;
   FileListBox.HideSelection := False;
   FileListBox.RowSelect := True;
+{$IFNDEF FPC}
   FileListBox.OnAddFolder := ShellListViewAddFolder;
+{$ELSE}
+  FileListBox.OnAddItem := ShellListViewAddItem;
+{$ENDIF}
   FileListBox.OnChange := ShellListViewOnChange;
 
   DirectoryListBox.Path := Folder;
 {$ELSE}
   DirectoryListBox.Directory := Folder;
+{$ENDIF}
+
+{$IFNDEF FPC}
+  SplitterMemo.OnBeforeResize := SplitterMemoBeforeResize;
 {$ENDIF}
 
   PageControlSVG.TabIndex := 0;
@@ -357,11 +400,14 @@ begin
 end;
 
 procedure TFormSVGviewer.MsgAfterShow(var Msg: TMessage);
+{$ifndef FPC}
 var
   Filename, Param: string;
   Count: integer;
   Benchmark: boolean;
+{$endif}
 begin
+{$ifndef FPC}
   Benchmark := False;
 
   if (FindCmdLineSwitch('file', Filename, True, [clstValueAppended])) then
@@ -390,6 +436,7 @@ begin
 
   if (Benchmark) then
     Application.Terminate;
+{$endif}
 end;
 
 procedure TFormSVGviewer.RenderSvg(const ASource: string);
@@ -626,6 +673,7 @@ begin
 end;
 
 {$IFDEF MODERN_SHELL_CONTROLS}
+{$IFNDEF FPC}
 procedure TFormSVGviewer.ShellListViewAddFolder(Sender: TObject; AFolder: TShellFolder; var CanAdd: Boolean);
 var
   FileExt: string;
@@ -637,6 +685,20 @@ begin
     CanAdd := (FileExt = '.svg');
   end;
 end;
+{$ELSE}
+procedure TFormSVGviewer.ShellListViewAddItem(Sender: TObject; const ABasePath: String; const AFileInfo: TSearchRec;
+  var CanAdd: Boolean);
+var
+  FileExt: string;
+begin
+  CanAdd := (AFileInfo.Attr and faAnyFile <> 0);
+  if CanAdd then
+  begin
+    FileExt := ExtractFileExt(AFileInfo.Name);
+    CanAdd := (FileExt = '.svg');
+  end;
+end;
+{$ENDIF}
 
 procedure TFormSVGviewer.ShellListViewOnChange(Sender: TObject; Item: TListItem; Change: TItemChange);
 begin
@@ -647,10 +709,17 @@ end;
 
 function TFileListBox.GetFilename: string;
 begin
+{$ifndef FPC}
   if (SelectedFolder <> nil) then
     Result := SelectedFolder.PathName
   else
     Result := '';
+{$else}
+  if (Selected <> nil) then
+    Result := GetPathFromItem(Selected)
+  else
+    Result := '';
+{$endif}
 end;
 
 procedure TFileListBox.SetDummyInt(const Value: integer);
@@ -665,7 +734,9 @@ end;
 
 procedure TDriveComboBox.SetDirList(const Value: TDirectoryListBox);
 begin
+{$ifndef FPC}
   ShellTreeView := Value;
+{$endif}
 end;
 
 { TDirectoryListBox }
@@ -677,4 +748,9 @@ end;
 
 {$ENDIF}
 
+{$IFDEF FPC}
+procedure TImageList.SetDummy(Value: TColorDepth);
+begin
+end;
+{$ENDIF}
 end.

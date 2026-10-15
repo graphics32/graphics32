@@ -151,9 +151,6 @@ uses
   GR32_VectorUtils,
   GR32_ColorGradients;
 
-const
-  OneOver255: Single = 1 / 255;
-
 //------------------------------------------------------------------------------
 //
 //      TPaintServerRenderer

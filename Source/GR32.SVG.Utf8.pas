@@ -154,8 +154,7 @@ function GetInteger(P: PUtf8Char; PEnd: PUtf8Char = nil): PtrInt; overload;
 function GetInteger(P: PUtf8Char; Len: PtrInt): PtrInt; overload;
 
 /// extract an Extended floating point number from a UTF-8 text buffer
-function GetExtended(P: PUtf8Char; out Value: Extended; PEnd: PUtf8Char = nil): PUtf8Char; overload;
-function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Extended): Boolean; overload;
+function GetExtended(P: PUtf8Char; out Value: Double; PEnd: PUtf8Char = nil): PUtf8Char; overload;
 function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Double): Boolean; overload;
 
 type
@@ -172,7 +171,9 @@ implementation
 uses
   Types,
   SysUtils,
+{$IFNDEF FPC}
   AnsiStrings,
+{$ENDIF}
   Math;
 
 function PosChar(Str: PUtf8Char; StrLen: PtrInt; Chr: AnsiChar): PUtf8Char; overload;
@@ -214,7 +215,7 @@ function PosChar0(Str: PUtf8Char; Chr: AnsiChar): PUtf8Char;
 begin
   Result := PosChar(Str, Chr);
   if Result = nil then
-    Result := Str + AnsiStrings.StrLen(Str);
+    Result := Str + {$ifndef FPC}AnsiStrings.{$endif}StrLen(Str);
 end;
 
 function ByteScanIndex(P: PByteArray; Count: PtrInt; Value: byte): PtrInt;
@@ -310,12 +311,12 @@ begin
   Result := PtrInt(GetInt64(P, Len));
 end;
 
-function GetExtended(P: PUtf8Char; out Value: Extended; PEnd: PUtf8Char): PUtf8Char;
+function GetExtended(P: PUtf8Char; out Value: Double; PEnd: PUtf8Char): PUtf8Char;
 var
   Sign, ExpSign: Boolean;
   IntVal, FracVal: Int64;
   FracLen, ExpVal: Integer;
-  E: Extended;
+  E: Double; // [*] Original code operated on "Extended"; Deprecated since... XE2 I guess
 begin
   Value := 0.0;
   if P = nil then
@@ -411,7 +412,7 @@ begin
   Result := P;
 end;
 
-function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Extended): Boolean;
+function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Double): Boolean;
 var
   pRes: PUtf8Char;
 begin
@@ -422,14 +423,6 @@ begin
   end;
   pRes := GetExtended(P, Value, P + Len);
   Result := (pRes <> P);
-end;
-
-function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Double): Boolean;
-var
-  ext: Extended;
-begin
-  Result := GetExtended(P, Len, ext);
-  Value := ext;
 end;
 
 { TValuePUtf8Char }
@@ -528,7 +521,6 @@ end;
 
 function TValuePUtf8Char.TryToFloat(out Value: Double; Skip: boolean): boolean;
 var
-  Ext: Extended;
   pRes: PUtf8Char;
 begin
   if (Text = nil) or (Len <= 0) then
@@ -537,19 +529,14 @@ begin
     Exit(False);
   end;
 
-  pRes := GetExtended(Text, Ext, Text + Len);
+  pRes := GetExtended(Text, Value, Text + Len);
 
   Result := (pRes <> nil);
 
-  if (Result) then
+  if (Result) and (Skip) then
   begin
-    Value := Ext;
-
-    if (Skip) then
-    begin
-      Dec(Len, pRes - Text);
-      Text := pRes;
-    end;
+    Dec(Len, pRes - Text);
+    Text := pRes;
   end;
 end;
 
@@ -615,12 +602,8 @@ begin
 end;
 
 function TValuePUtf8Char.ToDouble: Double;
-var
-  ext: Extended;
 begin
-  if GetExtended(Text, Len, ext) then
-    Result := ext
-  else
+  if not GetExtended(Text, Len, Result) then
     Result := 0.0;
 end;
 
@@ -853,7 +836,7 @@ end;
 
 function TValuePUtf8Char.CompareOrdinal(const Value: UTF8String): integer;
 begin
-  Result := AnsiStrings.StrLIComp(Text, pointer(Value), Min(Length(Value), Len));
+  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Text, pointer(Value), Min(Length(Value), Len));
   if (Result = 0) then
     Result := Length(Value) - Len;
 end;
@@ -861,10 +844,10 @@ end;
 function TValuePUtf8Char.CompareOrdinal(const Value: TValuePUtf8Char): integer;
 begin
   // TODO : I haven't profiled StrLIComp but both the Pascal and assembler version
-  // it contains a goof[*] so a local Pascal implementation might actually be
+  // contains a goof[*] so a local Pascal implementation might actually be
   // faster. *: It swaps the case of both left and right, while it only needs to
   // swap the case of one of them.
-  Result := AnsiStrings.StrLIComp(Text, Value.Text, Min(Value.Len, Len));
+  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Text, Value.Text, Min(Value.Len, Len));
   if (Result = 0) then
     Result := Value.Len - Len;
 end;

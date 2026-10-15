@@ -601,6 +601,8 @@ type
 
     procedure Inflate(const DX, DY: Single); {$IFDEF USEINLINING} inline; {$ENDIF}
 
+    function IsEmpty: Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+
     property Width: TFloat read GetWidth write SetWidth;
     property Height: TFloat read GetHeight write SetHeight;
 
@@ -2862,6 +2864,11 @@ end;
 procedure TFloatRect.Inflate(const DX, DY: Single);
 begin
   InflateRect(Self, DX, DY);
+end;
+
+function TFloatRect.IsEmpty: Boolean;
+begin
+  Result := IsRectEmpty(Self);
 end;
 
 function TFloatRect.GetHeight: TFloat;

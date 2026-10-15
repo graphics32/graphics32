@@ -214,7 +214,6 @@ uses
   GR32_Blend,
   GR32_Math,
   GR32_LowLevel,
-  GR32_OrdinalMaps,
   GR32_Backends_Generic,
   GR32_Paths,
   GR32_Resamplers,
@@ -664,7 +663,11 @@ begin
     Result.SetSize(AWidth, AHeight, AClear);
   end else
   begin
+{$ifndef FPC}
     Result := FPool.ExtractAt(CandidateIdx);
+{$else LetsMimicTheGrownupsButFail}
+    Result := FPool.ExtractIndex(CandidateIdx);
+{$endif}
     Dec(FPoolSize, Result.ByteCount);
 
     // Set dimensions. If we're lucky then this doesn't cause a reallocation
@@ -1099,7 +1102,11 @@ begin
     begin
       FloatRoi := PolyPolygonBounds(TransformedPoints);
       if (HasStroke) then
+{$ifndef FPC}
         FloatRoi := FloatRoi + PolyPolygonBounds(StrokePoints);
+{$else}
+        GR32.UnionRect(FloatRoi, FloatRoi, PolyPolygonBounds(StrokePoints));
+{$endif}
     end else
       FloatRoi := PolyPolygonBounds(StrokePoints);
   end else
@@ -1829,7 +1836,6 @@ var
   FilterRenderer: TFilterRendererClass;
   PrimRect: TFloatRect;
   SpecifiedROI: TRect;
-  HasInputUnion: Boolean;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
@@ -3177,13 +3183,15 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
     FontInfo: TFontInfo;
     TextLayout: TTextLayout;
     MeasureRect: TFloatRect;
-    DrawPoint, LastDrawPoint: TFloatPoint;
+    DrawPoint: TFloatPoint;
     RotationMat: TFloatMatrixHelper;
     HasNodeTransform: Boolean;
     CharIndex: Integer;
     CharString: UnicodeString;
     CharacterRotationAngle: Single;
     ZeroWidth: Single;
+    FontFace: IFontFace32;
+    FontFaceMetrics: TFontFaceMetrics32;
   begin
     if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) then
       Exit;
@@ -3231,9 +3239,8 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         // Align with font baseline.
         // Unfortunately TCanvas32 doesn't currently support this.
         // TODO : Windows specific
-        var FontFace: IFontFace32 := TFontFace32.Create(Canvas.Bitmap.Font.Handle);
+        FontFace := TFontFace32.Create(Canvas.Bitmap.Font.Handle);
         try
-          var FontFaceMetrics: TFontFaceMetrics32;
           FontFace.GetFontFaceMetrics(TextLayout, FontFaceMetrics);
 
           DrawPoint.Y := Cursor.Y - FontFaceMetrics.Ascent;
@@ -3259,11 +3266,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           begin
             // Get the rotation angle. If there's too few we just reuse the previous (we know there's at least one)
             if CharIndex - 1 <= High(ANode.Rotate) then
-            begin
               CharacterRotationAngle := ANode.Rotate[CharIndex - 1];
-
-              LastDrawPoint := DrawPoint;
-            end;
 
             CharString[1] := Char(ANode.TextContent[CharIndex]);
 

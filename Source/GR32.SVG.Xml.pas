@@ -244,8 +244,10 @@ function NumCharToUcs4(entity: PUtf8Char; len: PtrUInt): Ucs4CodePoint;
 
 implementation
 
+{$ifndef FPC}
 uses
   AnsiStrings;
+{$endif}
 
 const
   BOM_UTF8 = $BFBBEF;
@@ -296,7 +298,7 @@ function PosChar0(Str: PUtf8Char; Chr: AnsiChar): PUtf8Char;
 begin
   Result := PosChar(Str, Chr);
   if Result = nil then
-    Result := Str + AnsiStrings.StrLen(Str);
+    Result := Str + {$ifndef FPC}AnsiStrings.{$endif}StrLen(Str);
 end;
 
 function ByteScanIndex(P: PByteArray; Count: PtrInt; Value: byte): PtrInt;
@@ -1167,7 +1169,7 @@ begin
     if Path[1] = Sep then
     begin
       Inc(Path, 2);
-      l := AnsiStrings.StrLen(Path);
+      l := {$ifndef FPC}AnsiStrings.{$endif}StrLen(Path);
       if PosChar(Path, l, Sep) = nil then
         if FindAny(Path, l) then
           Exit;

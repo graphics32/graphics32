@@ -140,7 +140,6 @@ type
 
   IGraphics32BlendGroup = interface
     ['{971D7D2A-B1C6-4F50-A0FB-A236226C8C4F}']
-//    procedure Register(BlenderClass: TGraphics32BlenderClass);
     function GetEnumerator: IGraphics32BlendEnumerator;
 
     function GetName: string;
@@ -163,7 +162,7 @@ type
 
   IGraphics32BlendService = interface
     ['{E0C6833B-CAED-41BA-9EE3-9832243650A4}']
-    procedure Register(BlenderClass: TGraphics32BlenderClass; Groups: TArray<string> = []);
+    procedure Register(BlenderClass: TGraphics32BlenderClass; Groups: TArray<string> = nil);
     function BlenderByID(const ID: string): TGraphics32BlenderClass;
     function GetEnumerator: IGraphics32BlendEnumerator;
 
@@ -234,7 +233,12 @@ end;
 type
   TGraphics32BlendService = class(TInterfacedObject, IGraphics32BlendService, IGraphics32BlendGroups)
   private type
-    TGraphics32BlendGroup = class(TInterfacedObject, IGraphics32BlendGroup)
+    IGraphics32BlendGroupInternal = interface
+      ['{3E098FC8-2F60-410E-8526-44BB7C168C6B}']
+      procedure Register(BlenderClass: TGraphics32BlenderClass);
+    end;
+
+    TGraphics32BlendGroup = class(TInterfacedObject, IGraphics32BlendGroup, IGraphics32BlendGroupInternal)
     private
       FName: string;
       FMembers: TList<TGraphics32BlenderClass>;
@@ -242,6 +246,8 @@ type
       // IGraphics32BlendGroup
       function GetEnumerator: IGraphics32BlendEnumerator;
       function GetName: string;
+      // IGraphics32BlendGroupInternal
+      procedure Register(BlenderClass: TGraphics32BlenderClass);
     public
       constructor Create(const AName: string);
       destructor Destroy; override;
@@ -260,6 +266,10 @@ type
       constructor Create(const AList: TArray<IGraphics32BlendGroup>);
     end;
 
+{$ifdef FPC}
+  private class var
+    FComparer: IEqualityComparer<string>;
+{$endif}
   private
     FBlenders: TDictionary<string, TGraphics32BlenderClass>;
     FGroups: TDictionary<string, IGraphics32BlendGroup>;
@@ -276,7 +286,7 @@ type
 
   private
     // IGraphics32BlendService
-    procedure Register(BlenderClass: TGraphics32BlenderClass; AGroups: TArray<string> = []);
+    procedure Register(BlenderClass: TGraphics32BlenderClass; AGroups: TArray<string> = nil);
     function BlenderByID(const ID: string): TGraphics32BlenderClass;
     function GetGroups: IGraphics32BlendGroups;
     function GetEnumerator: IGraphics32BlendEnumerator;
@@ -288,11 +298,41 @@ type
 
 //------------------------------------------------------------------------------
 
+{$ifdef FPC}
+function KeyEquals(constref ALeft, ARight: string): boolean;
+begin
+  Result := SameText(ALeft, ARight);
+end;
+
+function KeyHash(constref AValue: string): UInt32;
+var
+  s: string;
+  i: Integer;
+begin
+  s := Lowercase(AValue);
+  Result := 2166136261;
+  for i := 1 to Length(s) do
+  begin
+    Result := Result xor Ord(s[I]);
+    Result := Result * 16777619;
+  end;
+end;
+{$endif}
+
 constructor TGraphics32BlendService.Create;
 begin
   inherited Create;
+{$ifndef FPC}
   FBlenders := TDictionary<string, TGraphics32BlenderClass>.Create(TIStringComparer.Ordinal);
   FGroups := TDictionary<string, IGraphics32BlendGroup>.Create(TIStringComparer.Ordinal);
+{$else}
+  // Work around Lazarus' 10 year old KNOWN bug in TIStringComparer.Ordinal. Pathetic!
+  if (FComparer = nil) then
+    FComparer := TEqualityComparer<string>.Construct(@KeyEquals, @KeyHash);
+
+  FBlenders := TDictionary<string, TGraphics32BlenderClass>.Create(FComparer);
+  FGroups := TDictionary<string, IGraphics32BlendGroup>.Create(FComparer);
+{$endif}
 end;
 
 destructor TGraphics32BlendService.Destroy;
@@ -305,7 +345,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TGraphics32BlendService.Register(BlenderClass: TGraphics32BlenderClass; AGroups: TArray<string> = []);
+procedure TGraphics32BlendService.Register(BlenderClass: TGraphics32BlenderClass; AGroups: TArray<string>);
 var
   GroupName: string;
 begin
@@ -354,7 +394,7 @@ begin
     FGroups.Add(GroupName, Group);
   end;
 
-  TGraphics32BlendGroup(Group).FMembers.Add(BlenderClass);
+  (Group as IGraphics32BlendGroupInternal).Register(BlenderClass);
 end;
 
 //------------------------------------------------------------------------------
@@ -393,8 +433,6 @@ begin
   inherited;
 end;
 
-//------------------------------------------------------------------------------
-
 function TGraphics32BlendService.TGraphics32BlendGroup.GetEnumerator: IGraphics32BlendEnumerator;
 begin
   Result := TGraphics32BlendEnumerator.Create(FMembers.ToArray);
@@ -403,6 +441,11 @@ end;
 function TGraphics32BlendService.TGraphics32BlendGroup.GetName: string;
 begin
   Result := FName;
+end;
+
+procedure TGraphics32BlendService.TGraphics32BlendGroup.Register(BlenderClass: TGraphics32BlenderClass);
+begin
+  FMembers.Add(BlenderClass);
 end;
 
 //------------------------------------------------------------------------------
