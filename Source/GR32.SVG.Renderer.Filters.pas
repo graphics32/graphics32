@@ -84,20 +84,25 @@ type
   private
     FRenderer: TSvgRenderer;
     FTarget: TCustomBitmap32;
+    FSourceNode: TSvgNode;
     FSourceAlpha: TSurface;
     FBackgroundImage: TSurface;
     FBackgroundAlpha: TSurface;
+    FFillPaint: TSurface;
+    FStrokePaint: TSurface;
 
   private
     function GetBackgroundAlpha: TSurface;
     function GetBackgroundImage: TSurface;
     function GetSourceAlpha: TSurface;
+    function GetFillPaint: TSurface;
+    function GetStrokePaint: TSurface;
     procedure CopyAlpha(Dst, Src: TCustomBitmap32);
     procedure BlockCopyAlpha(Dst, Src: TCustomBitmap32);
     property Renderer: TSvgRenderer read FRenderer;
 
   public
-    class function Init(ARenderer: TSvgRenderer; ATarget: TCustomBitmap32): TFilterRenderData; static;
+    class function Init(ARenderer: TSvgRenderer; ATarget: TCustomBitmap32; ASourceNode: TSvgNode = nil): TFilterRenderData; static;
     procedure Finalize;
 
   public
@@ -114,6 +119,8 @@ type
     property SourceAlpha: TSurface read GetSourceAlpha;
     property BackgroundImage: TSurface read GetBackgroundImage;
     property BackgroundAlpha: TSurface read GetBackgroundAlpha;
+    property FillPaint: TSurface read GetFillPaint;
+    property StrokePaint: TSurface read GetStrokePaint;
   end;
 
 //------------------------------------------------------------------------------
@@ -390,6 +397,9 @@ type
 const
   OneOver255: Single = 1 / 255;
 
+type
+  TSvgRendererCracker = class(TSvgRenderer);
+
 //------------------------------------------------------------------------------
 //
 //      TSurface
@@ -445,8 +455,52 @@ begin
   Renderer.ReleaseOffscreenBitmap(FFillPaint.Bitmap);
   Renderer.ReleaseOffscreenBitmap(FStrokePaint.Bitmap);
 end;
+
+function TFilterRenderData.GetFillPaint: TSurface;
 var
-  W, I, DstY: Integer;
+  Color: TSvgColor;
+begin
+  if (FFillPaint.Bitmap = nil) then
+  begin
+    FFillPaint.Bitmap := Renderer.GetOffscreenBitmap(ROI.Width, ROI.Height, False);
+    FFillPaint.Region := FFillPaint.Bitmap.BoundsRect;
+
+    if (FSourceNode <> nil) then
+    begin
+      Color := TSvgRendererCracker(Renderer).GetEffectiveColor(FSourceNode, FSourceNode.Fill.Color, tcFill);
+      if (FSourceNode.Fill.ResolvedPaintServer <> nil) then
+        FFillPaint.Bitmap.Clear; // The filler in RenderPolyPolygon will blend so we need a clean sheet to blend onto
+
+      TSvgRendererCracker(Renderer).RenderPolyPolygon(FFillPaint.Bitmap, FSourceNode.Fill.ResolvedPaintServer, FSourceNode.Fill.Opacity, Color);
+    end else
+      FFillPaint.Bitmap.Clear;
+  end;
+
+  Result := FFillPaint;
+end;
+
+function TFilterRenderData.GetStrokePaint: TSurface;
+var
+  Color: TSvgColor;
+begin
+  if (FStrokePaint.Bitmap = nil) then
+  begin
+    FStrokePaint.Bitmap := Renderer.GetOffscreenBitmap(ROI.Width, ROI.Height, False);
+    FStrokePaint.Region := FStrokePaint.Bitmap.BoundsRect;
+
+    if (FSourceNode <> nil) then
+    begin
+      Color := TSvgRendererCracker(Renderer).GetEffectiveColor(FSourceNode, FSourceNode.Stroke.Color, tcStroke);
+      if (FSourceNode.Stroke.ResolvedPaintServer <> nil) then
+        FStrokePaint.Bitmap.Clear; // The filler in RenderPolyPolygon will blend so we need a clean sheet to blend onto
+
+      TSvgRendererCracker(Renderer).RenderPolyPolygon(FStrokePaint.Bitmap, FSourceNode.Stroke.ResolvedPaintServer, FSourceNode.Stroke.Opacity, Color);
+    end else
+      FFillPaint.Bitmap.Clear;
+  end;
+
+  Result := FStrokePaint;
+end;
 
 procedure TFilterRenderData.BlockCopyAlpha(Dst, Src: TCustomBitmap32);
 var
@@ -544,11 +598,12 @@ begin
   Result := FSourceAlpha;
 end;
 
-class function TFilterRenderData.Init(ARenderer: TSvgRenderer; ATarget: TCustomBitmap32): TFilterRenderData;
+class function TFilterRenderData.Init(ARenderer: TSvgRenderer; ATarget: TCustomBitmap32; ASourceNode: TSvgNode): TFilterRenderData;
 begin
   Result := Default(TFilterRenderData);
   Result.FRenderer := ARenderer;
   Result.FTarget := ATarget;
+  Result.FSourceNode := ASourceNode;
 end;
 
 
@@ -615,6 +670,12 @@ begin
 
     fikBackgroundAlpha:
       Result := RenderData.BackgroundAlpha;
+
+    fikFillPaint:
+      Result := RenderData.FillPaint;
+
+    fikStrokePaint:
+      Result := RenderData.StrokePaint;
 
     fikNamedResult:
       if (AInput.Index >= 0) and (AInput.Index <= High(RenderData.NamedSurfaces)) then

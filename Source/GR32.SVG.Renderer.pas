@@ -141,8 +141,10 @@ type
     TThemeColor = (tcStroke, tcFill);
 
   protected
-    function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor;
-    procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; const APoints: TArrayOfArrayOfFloatPoint; AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode = pfWinding);
+    // Fill/stroke a polypolygon OR fill a bitmap
+    // If APoint=nil then ATarget is filled directly, otherwise the polypolygon is
+    // rendered onto it using the fill/stroke.
+    procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; AOpacity: Single; AColor: TSvgColor; const APoints: TArrayOfArrayOfFloatPoint = nil; AFillMode: TPolyFillMode = pfWinding);
 
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
@@ -160,6 +162,7 @@ type
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
+    function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor; // protected to be accesible by TFilterRenderData
     procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
@@ -941,17 +944,17 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; const APoints: TArrayOfArrayOfFloatPoint;
-  AOpacity: Single; AColor: TSvgColor; AFillMode: TPolyFillMode);
+procedure TSvgRenderer.RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; AOpacity: Single; AColor: TSvgColor;
+  const APoints: TArrayOfArrayOfFloatPoint; AFillMode: TPolyFillMode);
 var
   Bounds: TFloatRect;
   Filler: TCustomPolygonFiller;
   Color: TColor32;
   PaintServerRenderer: TPaintServerRendererClass;
 begin
-  if (APoints = nil) then
-    exit;
-
+  (*
+  ** Fill using paint server
+  *)
   if (APaintServer <> nil) then
   begin
     Bounds := GetPathBounds(APoints);
@@ -967,22 +970,33 @@ begin
       exit;
 
     try
-      if (FPolyRenderer = nil) then
-        FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
 
-      FPolyRenderer.Bitmap := ATarget;
-      FPolyRenderer.Filler := Filler;
-      try
-        FPolyRenderer.FillMode := AFillMode;
+      if (APoints <> nil) then
+      begin
+        // Fill target using polygon filler
+        if (FPolyRenderer = nil) then
+          FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
 
-        FPolyRenderer.PolyPolygonFS(APoints);
-      finally
-        FPolyRenderer.Filler := nil;
-      end;
+        FPolyRenderer.Bitmap := ATarget;
+        FPolyRenderer.Filler := Filler;
+        try
+          FPolyRenderer.FillMode := AFillMode;
+
+          FPolyRenderer.PolyPolygonFS(APoints);
+        finally
+          FPolyRenderer.Filler := nil;
+        end;
+      end else
+        // Fill target using filler
+        FillBitmap(ATarget, Filler);
+
     finally
       Filler.Free;
     end;
   end else
+  (*
+  ** Fill using solid color
+  *)
   if (AColor.IsVisible) then
   begin
     Color := AColor.Color;
@@ -992,14 +1006,20 @@ begin
     if (AlphaComponent(Color) = 0) then
       exit;
 
-    if (FPolyRenderer = nil) then
-      FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
+    if (APoints <> nil) then
+    begin
+      // Fill target using solid polygon filler
+      if (FPolyRenderer = nil) then
+        FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
 
-    FPolyRenderer.Bitmap := ATarget;
-    FPolyRenderer.Color := Color;
-    FPolyRenderer.FillMode := AFillMode;
+      FPolyRenderer.Bitmap := ATarget;
+      FPolyRenderer.Color := Color;
+      FPolyRenderer.FillMode := AFillMode;
 
-    FPolyRenderer.PolyPolygonFS(APoints);
+      FPolyRenderer.PolyPolygonFS(APoints);
+    end else
+      // Clear target to color
+      ATarget.Clear(Color);
   end;
 end;
 
@@ -1148,12 +1168,13 @@ begin
         (*
         ** 6. Fill Rendering
         *)
-        RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, TransformedPoints, APathNode.Fill.Opacity, FillColor, APathNode.Fill.FillRule);
+        RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, APathNode.Fill.Opacity, FillColor, TransformedPoints, APathNode.Fill.FillRule);
 
         (*
         ** 7. Stroke Rendering
         *)
-        RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, StrokePoints, APathNode.Stroke.Opacity, StrokeColor);
+        if (StrokePoints <> nil) then
+          RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, APathNode.Stroke.Opacity, StrokeColor, StrokePoints);
       finally
         if NeedsOffscreen then
           FTransformation.Pop;
@@ -1838,7 +1859,7 @@ begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
 
-  RenderData := TFilterRenderData.Init(Self, ATarget);
+  RenderData := TFilterRenderData.Init(Self, ATarget, ANode);
   RenderData.OffscreenOffset := FOffscreenOffset;
 
   FTransformation.Push;
@@ -2797,7 +2818,7 @@ begin
 
   // 1. Fill Rendering
   if (HasFill) then
-    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, TransformedPts, FillOpacity, FillColor, ANode.Fill.FillRule);
+    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, FillOpacity, FillColor, TransformedPts, ANode.Fill.FillRule);
 
   // 2. Stroke Rendering
   if (HasStroke) then
@@ -2827,7 +2848,8 @@ begin
         StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], True, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
     end;
 
-    RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokePts, StrokeOpacity, StrokeColor);
+    if (StrokePts <> nil) then
+      RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokeOpacity, StrokeColor, StrokePts);
   end;
 end;
 

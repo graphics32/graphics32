@@ -67,6 +67,8 @@ type
     procedure TestMixBlendModeAndIsolationRendering;
     procedure TestSymbolRendering;
     procedure TestFilterRendering;
+    procedure TestFilterBackgroundImage;
+    procedure TestFilterFillAndStrokePaint;
     procedure TestNullAndUnresolvedFilterRendering;
     procedure TestFeColorMatrixRendering;
     procedure TestFeCompositeArithmeticRendering;
@@ -348,6 +350,57 @@ begin
     finally
       docNode.Free;
     end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFilterFillAndStrokePaint;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <filter id="f_paint">' +
+           '      <feOffset in="FillPaint" dx="20" dy="20" result="off_fill"/>' +
+           '      <feOffset in="StrokePaint" dx="-20" dy="-20" result="off_stroke"/>' +
+           '      <feMerge>' +
+           '        <feMergeNode in="off_fill"/>' +
+           '        <feMergeNode in="off_stroke"/>' +
+           '        <feMergeNode in="SourceGraphic"/>' +
+           '      </feMerge>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <rect x="50" y="50" width="100" height="100" fill="red" stroke="blue" stroke-width="10" filter="url(#f_paint)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        bmp.Clear(clWhite32);
+        renderer.RenderDocument(docNode);
+
+        // Check FillPaint offset (+20, +20) at (175, 175) -> should render red fill paint
+        CheckEquals(clRed32, bmp.Pixel[175, 175], 'Shifted FillPaint region at (175, 175) should render red');
+
+        // Check StrokePaint offset (-20, -20) at (25, 25) -> should render blue stroke paint
+        CheckEquals(clBlue32, bmp.Pixel[25, 25], 'Shifted StrokePaint region at (25, 25) should render blue');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
   finally
     bmp.Free;
   end;
@@ -2876,6 +2929,92 @@ begin
     renderer.Free;
     bmp.Free;
     docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFilterBackgroundImage;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+
+    // 1. Direct canvas rendering with feBlend in2="BackgroundImage"
+    // Background: green rectangle covering x=20..80, y=20..80.
+    // Foreground shape: red rectangle covering x=40..100, y=40..100 with filter.
+    // Filter blends SourceGraphic (red) over BackgroundImage (green).
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <filter id="f_bg">' +
+           '      <feBlend in="SourceGraphic" in2="BackgroundImage" mode="normal"/>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <rect x="20" y="20" width="60" height="60" fill="green"/>' +
+           '  <rect x="40" y="40" width="60" height="60" fill="red" filter="url(#f_bg)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        bmp.Clear(clWhite32);
+        renderer.RenderDocument(docNode);
+
+        // Non-overlapped green background at (30, 30) should remain green
+        CheckEquals(clGreen32, bmp.Pixel[30, 30], 'Background outside filter shape should remain green');
+
+        // Overlapped filter region at (50, 50) renders SourceGraphic (red) over BackgroundImage (green) -> red
+        CheckEquals(clRed32, bmp.Pixel[50, 50], 'Overlap region (50, 50) blending red over green BackgroundImage should render red');
+
+        // Non-overlapped filter shape region at (90, 90) renders red over white BackgroundImage -> red
+        CheckEquals(clRed32, bmp.Pixel[90, 90], 'Filter shape region outside background (90, 90) should render red');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+    // 2. Offscreen group container rendering with feComposite in2="BackgroundImage"
+    xml := '<svg width="200" height="200">' +
+           '  <defs>' +
+           '    <filter id="f_comp_bg">' +
+           '      <feComposite in="SourceGraphic" in2="BackgroundImage" operator="over"/>' +
+           '    </filter>' +
+           '  </defs>' +
+           '  <rect x="20" y="20" width="60" height="60" fill="green"/>' +
+           '  <g transform="translate(20, 20)" opacity="0.9">' +
+           '    <rect x="20" y="20" width="60" height="60" fill="red" filter="url(#f_comp_bg)"/>' +
+           '  </g>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'docNode inside group should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        bmp.Clear(clWhite32);
+        renderer.RenderDocument(docNode);
+
+        // Background outside group rect at (30, 30) should be green
+        CheckEquals(clGreen32, bmp.Pixel[30, 30], 'Background at (30, 30) should be green');
+
+        // Overlapping filtered element in offscreen group at world (50, 50) should contain red/green blend from BackgroundImage
+        Check(bmp.Pixel[50, 50] <> clWhite32, 'Overlapping filter inside group at world (50, 50) should be painted');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+
+  finally
+    bmp.Free;
   end;
 end;
 

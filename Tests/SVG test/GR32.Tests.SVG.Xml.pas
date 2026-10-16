@@ -208,7 +208,7 @@ procedure TTestSvgXmlParser.TestValuePUtf8CharMethods;
 var
   val: TValuePUtf8Char;
   strVal: RawUtf8;
-  extVal: Extended;
+  extVal: Double;
 begin
   strVal := '12345';
   val.Text := PUtf8Char(strVal);

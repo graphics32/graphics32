@@ -86,6 +86,10 @@ type
 //
 //  - fikBackgroundAlpha: The alpha channel derived from the background image.
 //
+//  - fikFillPaint: The paint server or solid fill color of the target shape.
+//
+//  - fikStrokePaint: The paint server or solid stroke color of the target shape.
+//
 //  - fikPreviousResult: The output surface resulting from the immediately 
 //    preceding filter primitive.
 //
@@ -93,7 +97,7 @@ type
 //    primitive (referencing ResultName).
 //------------------------------------------------------------------------------
 type
-  TSvgFilterInputKind = (fikSourceGraphic, fikSourceAlpha, fikBackgroundImage, fikBackgroundAlpha, fikPreviousResult, fikNamedResult);
+  TSvgFilterInputKind = (fikSourceGraphic, fikSourceAlpha, fikBackgroundImage, fikBackgroundAlpha, fikFillPaint, fikStrokePaint, fikPreviousResult, fikNamedResult);
 
   TSvgFilterInput = record
     Kind: TSvgFilterInputKind;
@@ -5712,6 +5716,16 @@ type
     if Value.CompareText('backgroundalpha') then
     begin
       Result.Kind := fikBackgroundAlpha;
+      Result.Index := -1;
+    end else
+    if Value.CompareText('fillpaint') then
+    begin
+      Result.Kind := fikFillPaint;
+      Result.Index := -1;
+    end else
+    if Value.CompareText('strokepaint') then
+    begin
+      Result.Kind := fikStrokePaint;
       Result.Index := -1;
     end else
     begin
