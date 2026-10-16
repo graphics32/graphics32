@@ -71,6 +71,7 @@ type
     procedure TestFeTurbulenceParsingAndResolution;
     procedure TestFeMorphologyParsingAndResolution;
     procedure TestFeDisplacementMapParsingAndResolution;
+    procedure TestFeConvolveMatrixParsingAndResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestTextAndTSpanParsing;
     procedure TestTextAreaParsing;
@@ -188,6 +189,74 @@ begin
     CheckEquals(20.0, bbox.Top, 1E-4);
     CheckEquals(110.0, bbox.Right, 1E-4);
     CheckEquals(100.0, bbox.Bottom, 1E-4);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFeConvolveMatrixParsingAndResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  filterDefault, filterExplicit: TSvgFilterNode;
+  convDefault, convExplicit, convClone: TSvgFeConvolveMatrixNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f_default">' +
+         '      <feConvolveMatrix/>' +
+         '    </filter>' +
+         '    <filter id="f_explicit">' +
+         '      <feConvolveMatrix order="3 3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0" divisor="1" bias="0.1" targetX="1" targetY="1" edgeMode="wrap" kernelUnitLength="2 2" preserveAlpha="true" result="conv1"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    filterDefault := TSvgFilterNode(docNode.FindNodeById('f_default'));
+    Check(filterDefault <> nil, 'f_default filter should exist');
+    CheckEquals(1, filterDefault.Children.Count);
+    Check(filterDefault.Children[0] is TSvgFeConvolveMatrixNode);
+
+    convDefault := TSvgFeConvolveMatrixNode(filterDefault.Children[0]);
+    CheckEquals(3, convDefault.OrderX, 'Default orderX should be 3');
+    CheckEquals(3, convDefault.OrderY, 'Default orderY should be 3');
+    CheckEquals(1, convDefault.EffectiveTargetX, 'Default targetX should be 1');
+    CheckEquals(1, convDefault.EffectiveTargetY, 'Default targetY should be 1');
+    Check(convDefault.EdgeMode = emDuplicate, 'Default edgeMode should be emDuplicate');
+    CheckFalse(convDefault.PreserveAlpha, 'Default preserveAlpha should be false');
+
+    filterExplicit := TSvgFilterNode(docNode.FindNodeById('f_explicit'));
+    Check(filterExplicit <> nil, 'f_explicit filter should exist');
+    CheckEquals(1, filterExplicit.Children.Count);
+
+    convExplicit := TSvgFeConvolveMatrixNode(filterExplicit.Children[0]);
+    CheckEquals(3, convExplicit.OrderX, 'OrderX should be 3');
+    CheckEquals(3, convExplicit.OrderY, 'OrderY should be 3');
+    CheckEquals(9, Length(convExplicit.KernelMatrix), 'KernelMatrix length should be 9');
+    CheckEquals(5.0, convExplicit.KernelMatrix[4], 1E-4, 'KernelMatrix center should be 5.0');
+    CheckEquals(1.0, convExplicit.Divisor, 1E-4, 'Divisor should be 1.0');
+    CheckEquals(0.1, convExplicit.Bias, 1E-4, 'Bias should be 0.1');
+    CheckEquals(1, convExplicit.EffectiveTargetX, 'TargetX should be 1');
+    CheckEquals(1, convExplicit.EffectiveTargetY, 'TargetY should be 1');
+    Check(convExplicit.EdgeMode = emWrap, 'EdgeMode should be emWrap');
+    CheckEquals(2.0, convExplicit.KernelUnitLengthX, 1E-4, 'KernelUnitLengthX should be 2.0');
+    CheckEquals(2.0, convExplicit.KernelUnitLengthY, 1E-4, 'KernelUnitLengthY should be 2.0');
+    CheckTrue(convExplicit.PreserveAlpha, 'PreserveAlpha should be true');
+    CheckEquals('conv1', convExplicit.ResultName);
+
+    convClone := TSvgFeConvolveMatrixNode(convExplicit.Clone(nil));
+    try
+      CheckEquals(3, convClone.OrderX, 'Cloned OrderX should be 3');
+      CheckEquals(9, Length(convClone.KernelMatrix), 'Cloned KernelMatrix length should be 9');
+      CheckEquals(0.1, convClone.Bias, 1E-4, 'Cloned Bias should be 0.1');
+      Check(convClone.EdgeMode = emWrap, 'Cloned EdgeMode should be emWrap');
+      CheckTrue(convClone.PreserveAlpha, 'Cloned PreserveAlpha should be true');
+    finally
+      convClone.Free;
+    end;
   finally
     docNode.Free;
   end;

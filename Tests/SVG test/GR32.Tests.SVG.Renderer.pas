@@ -82,6 +82,7 @@ type
     procedure TestFeTurbulenceRendering;
     procedure TestFeMorphologyFilterRendering;
     procedure TestFeDisplacementMapFilterRendering;
+    procedure TestFeConvolveMatrixFilterRendering;
     procedure TestTextRendering;
     procedure TestTextAreaRendering;
     procedure TestTextRotationRendering;
@@ -1358,6 +1359,94 @@ begin
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of eroded square should remain white');
   finally
     bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeConvolveMatrixFilterRendering;
+var
+  xmlIdentity, xmlBlur: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // 1. Identity kernel test: 3x3 kernel with 1 in center and 0 elsewhere
+  xmlIdentity := '<svg width="100" height="100">' +
+                 '  <defs>' +
+                 '    <filter id="f_identity" x="0" y="0" width="1" height="1">' +
+                 '      <feConvolveMatrix order="3 3" kernelMatrix="0 0 0 0 1 0 0 0 0"/>' +
+                 '    </filter>' +
+                 '  </defs>' +
+                 '  <rect x="20" y="20" width="60" height="60" fill="red" filter="url(#f_identity)"/>' +
+                 '</svg>';
+
+  docNode := ParseSvgXml(xmlIdentity);
+  Check(docNode <> nil, 'docNode should not be nil for identity convolve test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    // Center pixel of red rect should remain red
+    CheckEquals(clRed32, bmp.Pixel[50, 50], 'Identity kernel should preserve red color at (50,50)');
+    // Outside pixel should remain black
+    CheckEquals(clBlack32, bmp.Pixel[10, 10], 'Pixel outside rect at (10,10) should remain black');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+
+  // 2. Box blur kernel test with preserveAlpha="true"
+  xmlBlur := '<svg width="100" height="100">' +
+             '  <defs>' +
+             '    <filter id="f_blur" x="0" y="0" width="1" height="1">' +
+             '      <feConvolveMatrix order="3 3" kernelMatrix="1 1 1 1 1 1 1 1 1" preserveAlpha="true"/>' +
+             '    </filter>' +
+             '  </defs>' +
+             '  <rect x="40" y="40" width="20" height="20" fill="white" filter="url(#f_blur)"/>' +
+             '</svg>';
+
+  docNode := ParseSvgXml(xmlBlur);
+  Check(docNode <> nil, 'docNode should not be nil for blur convolve test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    // Center of white rect (50,50) should remain white
+    CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of box blurred square should remain white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+
+  // 3. Semi-transparent pixel premultiplied convolution test
+  xmlIdentity := '<svg width="100" height="100">' +
+                 '  <defs>' +
+                 '    <filter id="f_premult" x="0" y="0" width="1" height="1">' +
+                 '      <feConvolveMatrix order="3 3" kernelMatrix="0 0 0 0 1 0 0 0 0" preserveAlpha="true"/>' +
+                 '    </filter>' +
+                 '  </defs>' +
+                 '  <rect x="20" y="20" width="60" height="60" fill="blue" fill-opacity="0.5" filter="url(#f_premult)"/>' +
+                 '</svg>';
+
+  docNode := ParseSvgXml(xmlIdentity);
+  Check(docNode <> nil, 'docNode should not be nil for premult convolve test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    // Semi-transparent blue rect (fill="blue", fill-opacity="0.5") -> Blue=255, Alpha=128
+    CheckEquals(128, TColor32Entry(bmp.Pixel[50, 50]).A, 'Alpha of semi-transparent pixel should be ~128');
+    CheckEquals(255, TColor32Entry(bmp.Pixel[50, 50]).B, 'Unpremultiplied Blue channel of semi-transparent pixel should remain 255');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
   end;
 end;
 

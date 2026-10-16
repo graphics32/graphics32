@@ -333,7 +333,16 @@ type
     attrStitchTiles,
     attrScale,
     attrXChannelSelector,
-    attrYChannelSelector
+    attrYChannelSelector,
+    attrOrder,
+    attrKernelMatrix,
+    attrDivisor,
+    attrBias,
+    attrTargetX,
+    attrTargetY,
+    attrEdgeMode,
+    attrKernelUnitLength,
+    attrPreserveAlpha
   );
 
 //------------------------------------------------------------------------------
@@ -1449,6 +1458,56 @@ type
 
 
 //------------------------------------------------------------------------------
+// Filter: feConvolveMatrix
+//------------------------------------------------------------------------------
+  TSvgFeConvolveMatrixNode = class(TSvgFilterPrimitiveNode)
+  private
+    FOrderX: Integer;
+    FOrderY: Integer;
+    FKernelMatrix: TArrayOfFloat;
+    FDivisor: Single;
+    FHasDivisor: Boolean;
+    FBias: Single;
+    FTargetX: Integer;
+    FHasTargetX: Boolean;
+    FTargetY: Integer;
+    FHasTargetY: Boolean;
+    FEdgeMode: TSvgEdgeMode;
+    FKernelUnitLengthX: Single;
+    FKernelUnitLengthY: Single;
+    FPreserveAlpha: Boolean;
+    function GetEffectiveTargetX: Integer;
+    function GetEffectiveTargetY: Integer;
+    function GetEffectiveDivisor: Single;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+
+    property OrderX: Integer read FOrderX write FOrderX;
+    property OrderY: Integer read FOrderY write FOrderY;
+    property KernelMatrix: TArrayOfFloat read FKernelMatrix write FKernelMatrix;
+    property Divisor: Single read FDivisor write FDivisor;
+    property HasDivisor: Boolean read FHasDivisor write FHasDivisor;
+    property EffectiveDivisor: Single read GetEffectiveDivisor;
+    property Bias: Single read FBias write FBias;
+    property TargetX: Integer read FTargetX write FTargetX;
+    property HasTargetX: Boolean read FHasTargetX write FHasTargetX;
+    property EffectiveTargetX: Integer read GetEffectiveTargetX;
+    property TargetY: Integer read FTargetY write FTargetY;
+    property HasTargetY: Boolean read FHasTargetY write FHasTargetY;
+    property EffectiveTargetY: Integer read GetEffectiveTargetY;
+    property EdgeMode: TSvgEdgeMode read FEdgeMode write FEdgeMode;
+    property KernelUnitLengthX: Single read FKernelUnitLengthX write FKernelUnitLengthX;
+    property KernelUnitLengthY: Single read FKernelUnitLengthY write FKernelUnitLengthY;
+    property PreserveAlpha: Boolean read FPreserveAlpha write FPreserveAlpha;
+  end;
+
+
+//------------------------------------------------------------------------------
 //
 //      TSvgUseNode
 //
@@ -1884,14 +1943,14 @@ type
     tagLineargradient, tagRadialgradient, tagConicgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
     tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence,
-    tagFedisplacementmap, tagFetile, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
+    tagFedisplacementmap, tagFetile, tagFeconvolvematrix, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of UTF8String = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'conicGradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap', 'feTile',
+    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap', 'feTile', 'feConvolveMatrix',
     'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
   );
 
@@ -2036,7 +2095,16 @@ const
     'stitchTiles',
     'scale',
     'xChannelSelector',
-    'yChannelSelector'
+    'yChannelSelector',
+    'order',
+    'kernelMatrix',
+    'divisor',
+    'bias',
+    'targetX',
+    'targetY',
+    'edgeMode',
+    'kernelUnitLength',
+    'preserveAlpha'
   );
 
 var
@@ -6583,6 +6651,173 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgFeConvolveMatrixNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgFeConvolveMatrixNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FOrderX := 3;
+  FOrderY := 3;
+  FKernelMatrix := nil;
+  FDivisor := 1.0;
+  FHasDivisor := False;
+  FBias := 0.0;
+  FTargetX := 1;
+  FHasTargetX := False;
+  FTargetY := 1;
+  FHasTargetY := False;
+  FEdgeMode := emDuplicate;
+  FKernelUnitLengthX := 1.0;
+  FKernelUnitLengthY := 1.0;
+  FPreserveAlpha := False;
+end;
+
+function TSvgFeConvolveMatrixNode.GetElementTag: UTF8String;
+begin
+  Result := 'feConvolveMatrix';
+end;
+
+function TSvgFeConvolveMatrixNode.GetEffectiveTargetX: Integer;
+begin
+  if FHasTargetX then
+    Result := FTargetX
+  else
+    Result := FOrderX div 2;
+end;
+
+function TSvgFeConvolveMatrixNode.GetEffectiveTargetY: Integer;
+begin
+  if FHasTargetY then
+    Result := FTargetY
+  else
+    Result := FOrderY div 2;
+end;
+
+function TSvgFeConvolveMatrixNode.GetEffectiveDivisor: Single;
+var
+  i: Integer;
+  Sum: Double;
+begin
+  if FHasDivisor then
+    Exit(FDivisor);
+
+  Sum := 0.0;
+  for i := 0 to High(FKernelMatrix) do
+    Sum := Sum + FKernelMatrix[i];
+
+  if Abs(Sum) < 1e-6 then
+    Result := 1.0
+  else
+    Result := Sum;
+end;
+
+function TSvgFeConvolveMatrixNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  convRes: TSvgFeConvolveMatrixNode;
+begin
+  convRes := TSvgFeConvolveMatrixNode(inherited Clone(AParent));
+  convRes.FOrderX := FOrderX;
+  convRes.FOrderY := FOrderY;
+  convRes.FKernelMatrix := Copy(FKernelMatrix);
+  convRes.FDivisor := FDivisor;
+  convRes.FHasDivisor := FHasDivisor;
+  convRes.FBias := FBias;
+  convRes.FTargetX := FTargetX;
+  convRes.FHasTargetX := FHasTargetX;
+  convRes.FTargetY := FTargetY;
+  convRes.FHasTargetY := FHasTargetY;
+  convRes.FEdgeMode := FEdgeMode;
+  convRes.FKernelUnitLengthX := FKernelUnitLengthX;
+  convRes.FKernelUnitLengthY := FKernelUnitLengthY;
+  convRes.FPreserveAlpha := FPreserveAlpha;
+  Result := convRes;
+end;
+
+procedure TSvgFeConvolveMatrixNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+var
+  Values, Val1, Val2: TValuePUtf8Char;
+begin
+  case AKeyword of
+    attrOrder:
+      begin
+        Values := AValue;
+        Values.Trim;
+        Val1 := Values.Split(sListSeparators, True);
+        if Val1.Len > 0 then
+        begin
+          FOrderX := Val1.ToCardinal(3);
+          Val2 := Values.Split(sListSeparators, True);
+          if Val2.Len > 0 then
+            FOrderY := Val2.ToCardinal(FOrderX)
+          else
+            FOrderY := FOrderX;
+        end;
+        if FOrderX < 1 then FOrderX := 1;
+        if FOrderY < 1 then FOrderY := 1;
+      end;
+
+    attrKernelMatrix:
+      FKernelMatrix := ParseFloatArray(AValue);
+
+    attrDivisor:
+      begin
+        if AValue.TryToFloat(FDivisor) then
+          FHasDivisor := True;
+      end;
+
+    attrBias:
+      AValue.TryToFloat(FBias);
+
+    attrTargetX:
+      begin
+        FTargetX := AValue.ToCardinal(FOrderX div 2);
+        FHasTargetX := True;
+      end;
+
+    attrTargetY:
+      begin
+        FTargetY := AValue.ToCardinal(FOrderY div 2);
+        FHasTargetY := True;
+      end;
+
+    attrEdgeMode:
+      FEdgeMode := ParseSvgEdgeMode(AValue);
+
+    attrKernelUnitLength:
+      begin
+        Values := AValue;
+        Values.Trim;
+        Val1 := Values.Split(sListSeparators, True);
+        if Val1.Len > 0 then
+        begin
+          if Val1.TryToFloat(FKernelUnitLengthX) then
+          begin
+            Val2 := Values.Split(sListSeparators, True);
+            if (Val2.Len > 0) and Val2.TryToFloat(FKernelUnitLengthY) then
+              // Both X and Y parsed
+            else
+              FKernelUnitLengthY := FKernelUnitLengthX;
+          end;
+        end;
+      end;
+
+    attrPreserveAlpha:
+      FPreserveAlpha := AValue.ToBoolean;
+  else
+    inherited;
+  end;
+end;
+
+function TSvgFeConvolveMatrixNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (order=%d %d, edgeMode=%s, preserveAlpha=%s)',
+    [FOrderX, FOrderY, EdgeModeToString(FEdgeMode), BoolToStr(FPreserveAlpha, True)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
@@ -7583,6 +7818,12 @@ var
         tagFetile:
           begin
             node := TSvgFeTileNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFeconvolvematrix:
+          begin
+            node := TSvgFeConvolveMatrixNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

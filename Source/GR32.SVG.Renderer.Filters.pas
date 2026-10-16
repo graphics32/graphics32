@@ -267,6 +267,25 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TFilterRendererConvolveMatrix
+//
+//------------------------------------------------------------------------------
+// feConvolveMatrix
+//------------------------------------------------------------------------------
+// Filter primitive renderer for TSvgFeConvolveMatrixNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererConvolveMatrix = class(TFilterRenderer)
+  private
+    class procedure ApplyConvolveMatrix(Input, Output: TCustomBitmap32; ConvNode: TSvgFeConvolveMatrixNode; Scale: Single); static;
+  public
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TFilterRendererMorphology
 //
 //------------------------------------------------------------------------------
@@ -2242,6 +2261,228 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TFilterRendererConvolveMatrix
+//
+//------------------------------------------------------------------------------
+
+class function TFilterRendererConvolveMatrix.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+var
+  ConvNode: TSvgFeConvolveMatrixNode;
+  TargetX, TargetY: Integer;
+begin
+  ConvNode := TSvgFeConvolveMatrixNode(Node);
+  TargetX := ConvNode.EffectiveTargetX;
+  TargetY := ConvNode.EffectiveTargetY;
+  Result.Left := TargetX * ConvNode.KernelUnitLengthX * Scale;
+  Result.Right := (ConvNode.OrderX - 1 - TargetX) * ConvNode.KernelUnitLengthX * Scale;
+  Result.Top := TargetY * ConvNode.KernelUnitLengthY * Scale;
+  Result.Bottom := (ConvNode.OrderY - 1 - TargetY) * ConvNode.KernelUnitLengthY * Scale;
+end;
+
+function OutsideIsVoid(Value, Max: Integer): Integer;
+begin
+  if (Value < 0) or (Value > Max) then
+    // Outside pixel is transparent black (0,0,0,0)
+    Result := -1
+  else
+    Result := Value;
+end;
+
+class procedure TFilterRendererConvolveMatrix.ApplyConvolveMatrix(Input, Output: TCustomBitmap32; ConvNode: TSvgFeConvolveMatrixNode; Scale: Single);
+var
+  MaxX, MaxY: Integer;
+  X, Y, kx, ky: Integer;
+  SrcX, SrcY: Integer;
+  KernelIdx: Integer;
+  SumR, SumG, SumB, SumA: Single;
+  Pixel, AlphaPixel: PColor32Entry;
+  ScanLine: PColor32Array;
+  DstPixel: PColor32Entry;
+  ConvolvedR, ConvolvedG, ConvolvedB, ConvolvedA: Integer;
+  KernelVal: Single;
+  OrderX, OrderY: Integer;
+  TargetX, TargetY: Integer;
+  StepX, StepY: Integer;
+  Divisor, InvDivisor: Single;
+  BiasOffset: Single;
+  WrapProcX, WrapProcY: TWrapProc;
+  WrappedX, WrappedY: integer;
+  n: Single;
+begin
+  MaxX := Input.Width - 1;
+  MaxY := Input.Height - 1;
+  if (MaxX < 0) or (MaxY < 0) or (Output.Width <= 0) or (Output.Height <= 0) then
+    Exit;
+
+  OrderX := ConvNode.OrderX;
+  OrderY := ConvNode.OrderY;
+
+  if (Length(ConvNode.KernelMatrix) < OrderX * OrderY) then
+  begin
+    Input.CopyMapTo(Output);
+    Exit;
+  end;
+
+  case ConvNode.EdgeMode of
+    emWrap:
+      begin
+        WrapProcX := GetOptimalWrap(MaxX);
+        WrapProcY := GetOptimalWrap(MaxY);
+      end;
+
+    emDuplicate:
+      begin
+        WrapProcX := Clamp;
+        WrapProcY := Clamp;
+      end;
+  else
+    WrapProcX := OutsideIsVoid;
+    WrapProcY := OutsideIsVoid;
+  end;
+
+  TargetX := ConvNode.EffectiveTargetX;
+  TargetY := ConvNode.EffectiveTargetY;
+  Divisor := ConvNode.EffectiveDivisor;
+  if (Abs(Divisor) < 1e-6) then
+    InvDivisor := 1.0
+  else
+    InvDivisor := 1.0 / Divisor;
+
+  BiasOffset := ConvNode.Bias * 255; // * 255 so it has the same scale as the values it will be added to
+
+  StepX := Max(1, Round(ConvNode.KernelUnitLengthX * Scale));
+  StepY := Max(1, Round(ConvNode.KernelUnitLengthY * Scale));
+
+  DstPixel := PColor32Entry(Output.Bits);
+  AlphaPixel := PColor32Entry(Input.Bits);
+
+  for Y := 0 to MaxY do
+  begin
+    for X := 0 to MaxX do
+    begin
+      SumR := 0.0;
+      SumG := 0.0;
+      SumB := 0.0;
+      SumA := 0.0;
+
+      KernelIdx := 0;
+      for ky := 0 to OrderY - 1 do
+      begin
+
+        SrcY := Y + (ky - TargetY) * StepY;
+
+        WrappedY := WrapProcY(SrcY, MaxY);
+        if (WrappedY < 0) then
+        begin
+          Inc(KernelIdx, OrderX);
+          continue;
+        end;
+
+        ScanLine := Input.ScanLine[WrappedY];
+
+        for kx := 0 to OrderX - 1 do
+        begin
+
+          SrcX := X + (kx - TargetX) * StepX;
+
+          WrappedX := WrapProcX(SrcX, MaxX);
+          if (WrappedX < 0) then
+          begin
+            Inc(KernelIdx);
+            continue;
+          end;
+
+          KernelVal := ConvNode.KernelMatrix[KernelIdx];
+          Inc(KernelIdx);
+
+          Pixel := PColor32Entry(@ScanLine[WrappedX]);
+          if ConvNode.PreserveAlpha then
+            n := KernelVal // Alpha is untouched
+          else
+            // Premultiply: RGB' = RGB * A/255 (we sneakedly defer the division until the unpremultiplication)
+            n := Pixel.A * KernelVal;
+          SumR := SumR + Pixel.R * n;
+          SumG := SumG + Pixel.G * n;
+          SumB := SumB + Pixel.B * n;
+          SumA := SumA + n;
+        end;
+      end;
+
+      if ConvNode.PreserveAlpha then
+      begin
+        // Result alpha is not convolved. The convolution has been performed on unpremultipled RGB
+        ConvolvedR := Round(SumR * InvDivisor + BiasOffset);
+        ConvolvedG := Round(SumG * InvDivisor + BiasOffset);
+        ConvolvedB := Round(SumB * InvDivisor + BiasOffset);
+        ConvolvedA := AlphaPixel.A;
+        Inc(AlphaPixel);
+      end else
+      if (SumA > 0) then
+      begin
+        // Alpha has been convolved; The RGB unpremultiplication must be done with the convolved alpha.
+        // Unpremultiply: RGB = RGB' * 255/A'
+        // RGB scale is 255*255 so by dividing by A we get back to 255
+        n :=  InvDivisor / SumA;
+        ConvolvedR := Round(SumR * n + BiasOffset);
+        ConvolvedG := Round(SumG * n + BiasOffset);
+        ConvolvedB := Round(SumB * n + BiasOffset);
+        ConvolvedA := Round(SumA * InvDivisor + BiasOffset);
+      end else
+      begin
+        DstPixel.ARGB := 0;
+        Inc(DstPixel);
+        continue;
+      end;
+
+      DstPixel.R := Clamp(ConvolvedR);
+      DstPixel.G := Clamp(ConvolvedG);
+      DstPixel.B := Clamp(ConvolvedB);
+      DstPixel.A := Clamp(ConvolvedA);
+
+      Inc(DstPixel);
+    end;
+  end;
+end;
+
+class procedure TFilterRendererConvolveMatrix.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  Input: TSurface;
+  ConvNode: TSvgFeConvolveMatrixNode;
+  TempInput: TCustomBitmap32;
+begin
+  ConvNode := TSvgFeConvolveMatrixNode(Node);
+  Input := ResolveSurface(ConvNode.ResolvedIn1, RenderData);
+
+  if (Input.Bitmap <> RenderData.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  if (Input.IsEmpty) then
+  begin
+    RenderData.CurrentSurface := TSurface.Empty;
+    Exit;
+  end;
+
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
+
+  TempInput := nil;
+  try
+    if NeedsSubSurface(Input.Bitmap, RenderData.CurrentSubregion) then
+    begin
+      TempInput := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
+      CopySurfaceRegion(Input, TempInput, RenderData.CurrentSubregion);
+      Input.Bitmap := TempInput;
+    end;
+
+    ApplyConvolveMatrix(Input.Bitmap, RenderData.CurrentSurface.Bitmap, ConvNode, RenderData.Scale);
+  finally
+    Renderer.ReleaseOffscreenBitmap(TempInput);
+  end;
+end;
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -2261,6 +2502,7 @@ begin
   TSvgFeTurbulenceNode.RegisterRenderClass(TFilterRendererTurbulence);
   TSvgFeDisplacementMapNode.RegisterRenderClass(TFilterRendererDisplacementMap);
   TSvgFeTileNode.RegisterRenderClass(TFilterRendererTile);
+  TSvgFeConvolveMatrixNode.RegisterRenderClass(TFilterRendererConvolveMatrix);
 end;
 
 initialization

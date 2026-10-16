@@ -139,6 +139,13 @@ type
     csA
   );
 
+  { TSvgEdgeMode defines edge handling mode for feConvolveMatrix }
+  TSvgEdgeMode = (
+    emDuplicate,
+    emWrap,
+    emNone
+  );
+
   { TSvgFeatureKeyword defines SVG 1.1/1.2 feature URIs for conditional processing evaluation }
   TSvgFeatureKeyword = (
     fkNone,
@@ -202,6 +209,8 @@ function ParseSvgTurbulenceType(const AName: TValuePUtf8Char): TSvgTurbulenceTyp
 function ParseSvgTurbulenceType(const AName: UTF8String): TSvgTurbulenceType; overload;
 function ParseSvgChannelSelector(const AName: TValuePUtf8Char): TSvgChannelSelector; overload;
 function ParseSvgChannelSelector(const AName: UTF8String): TSvgChannelSelector; overload;
+function ParseSvgEdgeMode(const AName: TValuePUtf8Char): TSvgEdgeMode; overload;
+function ParseSvgEdgeMode(const AName: UTF8String): TSvgEdgeMode; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
 function ParseSvgTextAnchor(const AName: UTF8String): TSvgTextAnchor; overload; deprecated;
 
@@ -220,6 +229,7 @@ function MorphologyOperatorToString(AOp: TSvgMorphologyOperator): string;
 function StitchTilesToString(AStitch: TSvgStitchTiles): string;
 function TurbulenceTypeToString(AType: TSvgTurbulenceType): string;
 function ChannelSelectorToString(ASelector: TSvgChannelSelector): string;
+function EdgeModeToString(AEdgeMode: TSvgEdgeMode): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 
 
@@ -850,17 +860,14 @@ function ParseSvgChannelSelector(const AName: TValuePUtf8Char): TSvgChannelSelec
 begin
   // SVG spec default for xChannelSelector and yChannelSelector is 'A'
   Result := csA;
-  if AName.CompareText('R') then
-    Result := csR
-  else
-  if AName.CompareText('G') then
-    Result := csG
-  else
-  if AName.CompareText('B') then
-    Result := csB
-  else
-  if AName.CompareText('A') then
-    Result := csA;
+  if (AName.Len <> 1) then
+    exit;
+  case AName.Text^ of
+    'R', 'r': Result := csR;
+    'G', 'g': Result := csG;
+    'B', 'b': Result := csB;
+    'A', 'a': Result := csA;
+  end;
 end;
 
 function ChannelSelectorToString(ASelector: TSvgChannelSelector): string;
@@ -871,6 +878,43 @@ begin
     csB: Result := 'B';
   else
     Result := 'A';
+  end;
+end;
+
+function ParseSvgEdgeMode(const AName: UTF8String): TSvgEdgeMode;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgEdgeMode(Name);
+end;
+
+function ParseSvgEdgeMode(const AName: TValuePUtf8Char): TSvgEdgeMode;
+begin
+  // SVG spec default for edgeMode is 'duplicate'
+  Result := emDuplicate;
+  case AName.Len of
+    4:
+      if AName.CompareText('wrap') then
+        Result := emWrap
+      else
+      if AName.CompareText('none') then
+        Result := emNone;
+
+    9:
+      if AName.CompareText('duplicate') then
+        Result := emDuplicate;
+  end;
+end;
+
+function EdgeModeToString(AEdgeMode: TSvgEdgeMode): string;
+begin
+  case AEdgeMode of
+    emWrap: Result := 'wrap';
+    emNone: Result := 'none';
+  else
+    Result := 'duplicate';
   end;
 end;
 
