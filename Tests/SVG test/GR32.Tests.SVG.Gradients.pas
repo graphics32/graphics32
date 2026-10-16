@@ -34,6 +34,8 @@ interface
 
 {$I GR32.inc}
 
+{$WARN IMPLICIT_STRING_CAST OFF}
+
 uses
 {$IFDEF FPC}
   fpcunit, testregistry,

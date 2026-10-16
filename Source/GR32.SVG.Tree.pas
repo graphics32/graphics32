@@ -6866,7 +6866,7 @@ end;
 {$if defined(UNIT_TEST)}
 function CreatePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
 begin
-  Result := CreatePolylinePath(TValuePUtf8Char.FromString(AValues), AClosed);
+  Result := CreatePolylinePath(TValuePUtf8Char.FromString(UTF8String(AValues)), AClosed);
 end;
 {$ifend}
 

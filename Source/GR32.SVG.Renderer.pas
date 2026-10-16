@@ -1840,7 +1840,6 @@ var
   RenderData: TFilterRenderData;
   i, Count: Integer;
   Node: TSvgNode;
-  pSource, pDest: PColor32;
   SourceBounds, FilterBounds, FilterRegionRect: TFloatRect;
   PathNode: TSvgPathNode;
   PathPoints, TransformedPoints, StrokePoints: TArrayOfArrayOfFloatPoint;

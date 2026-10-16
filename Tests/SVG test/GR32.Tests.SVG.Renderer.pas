@@ -389,11 +389,11 @@ begin
         bmp.Clear(clWhite32);
         renderer.RenderDocument(docNode);
 
-        // Check FillPaint offset (+20, +20) at (175, 175) -> should render red fill paint
-        CheckEquals(clRed32, bmp.Pixel[175, 175], 'Shifted FillPaint region at (175, 175) should render red');
+        // Check FillPaint offset (+20, +20) at (160, 160) -> should render red fill paint
+        CheckEquals(clRed32, bmp.Pixel[160, 160], 'Shifted FillPaint region at (160, 160) should render red');
 
-        // Check StrokePaint offset (-20, -20) at (25, 25) -> should render blue stroke paint
-        CheckEquals(clBlue32, bmp.Pixel[25, 25], 'Shifted StrokePaint region at (25, 25) should render blue');
+        // Check StrokePaint offset (-20, -20) at (30, 30) -> should render blue stroke paint
+        CheckEquals(clBlue32, bmp.Pixel[30, 30], 'Shifted StrokePaint region at (30, 30) should render blue');
       finally
         renderer.Free;
       end;

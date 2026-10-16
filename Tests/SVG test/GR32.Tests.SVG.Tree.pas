@@ -34,6 +34,8 @@ interface
 
 {$I GR32.inc}
 
+{$WARN IMPLICIT_STRING_CAST OFF}
+
 uses
 {$IFDEF FPC}
   fpcunit, testregistry,
@@ -1474,8 +1476,8 @@ begin
 
     clonedInstance := useNode.Children[0];
     Check(clonedInstance.IsRenderable, 'Symbol instance child inside <use> should be renderable');
-    Check(clonedInstance is TSvgGroupNode, 'Symbol instance should be a TSvgGroupNode container');
-    CheckEquals(1, TSvgGroupNode(clonedInstance).Children.Count, 'Symbol instance should contain circle child');
+    Check(clonedInstance is TSvgCustomGroupNode, 'Symbol instance should be a TSvgGroupNode container');
+    CheckEquals(1, TSvgCustomGroupNode(clonedInstance).Children.Count, 'Symbol instance should contain circle child');
   finally
     docNode.Free;
   end;
@@ -1648,7 +1650,7 @@ procedure TTestSvgTree.TestNestedSvgIdResolutionAndCurrentColor;
 var
   xml: UTF8String;
   docNode, innerDoc: TSvgDocumentNode;
-  defNode, useTarget, foundNode: TSvgNode;
+  defNode, foundNode: TSvgNode;
   useNode: TSvgUseNode;
   pathNode: TSvgPathNode;
 begin

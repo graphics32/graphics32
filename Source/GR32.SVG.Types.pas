@@ -292,7 +292,7 @@ type
     class function Create(AValue: Single; AUnit: TSvgUnitType = suPx): TSvgLength; static;
     class function Parse(const AStr: TValuePUtf8Char): TSvgLength; overload; static;
 {$if defined(UNIT_TEST)}
-    class function Parse(const AStr: UTF8String): TSvgLength; overload; static; deprecated;
+    class function Parse(const AStr: UTF8String): TSvgLength; overload; static;
 {$ifend}
     class function ParseAndSkip(var AStr: TValuePUtf8Char): TSvgLength; overload; static;
     class function Parse(AStr: TValuePointer): TSvgLength; overload; static;
