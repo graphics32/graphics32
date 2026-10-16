@@ -141,6 +141,7 @@ type
     FLockUpdate: integer;
     FIgnoreClick: boolean;
     FColorTheme: TSvgColorTheme;
+    FFilename: string;
 {$if defined(IMAGE32)}
     FImage32Panel: TImage32Panel;
 {$ifend}
@@ -161,6 +162,8 @@ type
     procedure ShellListViewAddItem(Sender: TObject; const ABasePath: String; const AFileInfo: TSearchRec; var CanAdd: Boolean);
 {$ENDIF}
     procedure ShellListViewOnSelected(Sender: TObject; Item: TListItem; Selected: Boolean);
+
+    procedure ResolveExternalFileHandler(Sender: TObject; const Filename: string; Stream: TStream; var Allow: boolean);
   public
     property ColorTheme: TSvgColorTheme read FColorTheme write SetColorTheme;
     property Background: TBackgroundCheckerStyle read GetBackground write SetBackground;
@@ -200,7 +203,9 @@ begin
   Image32.Bitmap.SetSize(600, 600, False);
   Image32.Bitmap.Clear(clTrWhite32); // Just so we have something to look at
   Image32.ScrollToCenter;
+
   FRenderer := TSvgRenderer.Create(Image32.Bitmap);
+  FRenderer.OnResolveExternalFile := ResolveExternalFileHandler;
 
   TControlCracker(SplitterMemo).OnClick := SplitterClicked;
 
@@ -247,23 +252,14 @@ end;
 procedure TFormSVGviewer.FormDestroy(Sender: TObject);
 var
   IniFile: TIniFile;
-  LastFilename: string;
 begin
   FDocNode.Free;
   FRenderer.Free;
 
   IniFile := TIniFile.Create(TPath.Combine(TPath.GetDirectoryName(Application.ExeName), sIniFilename));
   try
-    if (FileListBox.SelectedFolder <> nil) then
-      LastFilename := FileListBox.SelectedFolder.PathName
-    else
-    if (DirectoryListBox.SelectedFolder <> nil) then
-      LastFilename := DirectoryListBox.SelectedFolder.PathName + '\foobar.svg'
-    else
-      LastFilename := '';
-
-    if (LastFilename <> '') then
-      IniFile.WriteString('settings', 'LastFile', LastFilename);
+    if (FFilename <> '') then
+      IniFile.WriteString('settings', 'LastFile', FFilename);
   finally
     IniFile.Free;
   end;
@@ -286,9 +282,9 @@ procedure TFormSVGviewer.ButtonSaveClick(Sender: TObject);
 var
   Filename: string;
 begin
-  if (FileListBox.SelectedFolder = nil) then
+  if (FFilename = '') then
     exit;
-  Filename := TPath.ChangeExtension(FileListBox.SelectedFolder.PathName, '.png');
+  Filename := TPath.ChangeExtension(FFilename, '.png');
   Image32.Bitmap.SaveToFile(Filename);
   StatusBar.SimpleText := 'Saved to: '+Filename;
 end;
@@ -306,6 +302,7 @@ begin
   Stream := TStringStream.Create('', TEncoding.UTF8);
   try
     Stream.LoadFromFile(AFileName);
+    FFilename := AFilename;
 
     RenderSvg(Stream.DataString);
 
@@ -555,6 +552,32 @@ begin
   finally
     Screen.Cursor := crDefault;
   end;
+end;
+
+procedure TFormSVGviewer.ResolveExternalFileHandler(Sender: TObject; const Filename: string; Stream: TStream; var Allow: boolean);
+var
+  DocumentFolder: string;
+  ExternalFilename: string;
+  FileStream: TFileStream;
+begin
+  DocumentFolder := TPath.GetDirectoryName(FFilename);
+  ExternalFilename := TPath.Combine(DocumentFolder, Filename, False);
+
+  if (not TFile.Exists(ExternalFilename)) then
+    exit;
+
+  if (Stream is TMemoryStream) then
+    TMemoryStream(Stream).LoadFromFile(ExternalFilename)
+  else
+  begin
+    FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    try
+      Stream.CopyFrom(FileStream);
+    finally
+      FileStream.Free;
+    end;
+  end;
+  Allow := True;
 end;
 
 procedure TFormSVGviewer.SetBackground(Value: TBackgroundCheckerStyle);

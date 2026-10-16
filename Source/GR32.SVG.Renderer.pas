@@ -116,6 +116,9 @@ type
     Size: integer;
   end;
 
+  TSvgRendererResolveExternalFileEvent = procedure(Sender: TObject; const Filename: string; Stream: TStream; var Allow: boolean) of object;
+  TSvgRendererResolveFontEvent = procedure(Sender: TObject; const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo);
+
   TSvgRenderer = class(TObject)
   private
     FTarget: TCustomBitmap32;
@@ -130,6 +133,8 @@ type
     FThemeStrokeColor: TSvgColor;
     FCurrentColor: TSvgColor;
     FOffscreenOffset: TPoint;
+    FOnResolveExternalFile: TSvgRendererResolveExternalFileEvent;
+    FOnResolveFontEvent: TSvgRendererResolveFontEvent;
     function GetTransformation: TAffineTransformation;
     procedure SetThemeFillColor32(AColor: TColor32);
     procedure SetThemeStrokeColor32(AColor: TColor32);
@@ -163,7 +168,9 @@ type
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor; // protected to be accesible by TFilterRenderData
-    procedure MapFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
+    procedure ResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
+    procedure DoResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
+    function DoResolveExternalFile(const Filename: string; Stream: TStream): boolean; virtual;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
@@ -191,6 +198,9 @@ type
     property ThemeStrokeColor32: TColor32 read GetThemeStrokeColor32 write SetThemeStrokeColor32;
     property CurrentColor: TSvgColor read FCurrentColor write FCurrentColor;
     property CurrentColor32: TColor32 read GetCurrentColor32 write SetCurrentColor32;
+
+    property OnResolveExternalFile: TSvgRendererResolveExternalFileEvent read FOnResolveExternalFile write FOnResolveExternalFile;
+    property OnResolveFontEvent: TSvgRendererResolveFontEvent read FOnResolveFontEvent write FOnResolveFontEvent;
   end;
 
 //------------------------------------------------------------------------------
@@ -2517,8 +2527,6 @@ begin
   if (AImageNode.Href = '') then
     Exit;
 
-  // TODO : Replace stream with "pull" decode on-demand stream
-
   Stream := TMemoryStream.Create;
   try
     hRef := TValuePUtf8Char.FromString(AImageNode.Href);
@@ -2543,10 +2551,10 @@ begin
     if FAllowExternalImages then
     begin
       s := hRef.ToString;
-      if not FileExists(s) then
+
+      if (not DoResolveExternalFile(s, Stream)) then
         exit;
 
-      Stream.LoadFromFile(s);
       isSvg := hRef.EndsText('.svg');
     end else
       exit;
@@ -2647,23 +2655,18 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.MapFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
+procedure TSvgRenderer.DoResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
+begin
+  if (Assigned(FOnResolveFontEvent)) then
+    FOnResolveFontEvent(Self, string(AFontFamily), string(AWeightStr), string(AStyleStr), ASize, AFontInfo);
+end;
+
+procedure TSvgRenderer.ResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
 var
   Parser: TValuePUtf8Char;
   Token: TValuePUtf8Char;
   PrimaryCandidate: TValuePUtf8Char;
 begin
-  // TODO : Delegate to event
-  (*
-  if (Assigned(FOnMapFont)) then
-  begin
-    AHandled := False;
-    FOnMapFont(AFontFamily, AWeightStr, AStyleStr, ASize, AFontInfo, AHandled);
-    if (AHandled) then
-      exit;
-  end;
-  *)
-
   Parser := TValuePUtf8Char.FromString(AFontFamily);
   Parser.Trim;
   Parser.TrimEnd;
@@ -2767,6 +2770,9 @@ begin
     Include(AFontInfo.Style, fsItalic);
 
   AFontInfo.Size := ASize;
+
+  // Let the user have a go at it
+  DoResolveFont(AFontFamily, AWeightStr, AStyleStr, ASize, AFontInfo);
 end;
 
 procedure TSvgRenderer.RenderTextPathData(ATarget: TCustomBitmap32; const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
@@ -2852,6 +2858,13 @@ begin
   end;
 end;
 
+function TSvgRenderer.DoResolveExternalFile(const Filename: string; Stream: TStream): boolean;
+begin
+  Result := False;
+  if (Assigned(FOnResolveExternalFile)) then
+    FOnResolveExternalFile(Self, Filename, Stream, Result);
+end;
+
 procedure TSvgRenderer.RenderTextAreaNode(ATarget: TCustomBitmap32; ATextAreaNode: TSvgTextAreaNode);
 var
   Text: UnicodeString;
@@ -2891,7 +2904,7 @@ begin
       FontSizePx := 12;
 
     FontInfo := Default(TFontInfo);
-    MapFont(ATextAreaNode.FontFamily, ATextAreaNode.FontWeight, ATextAreaNode.FontStyle, FontSizePx, FontInfo);
+    ResolveFont(ATextAreaNode.FontFamily, ATextAreaNode.FontWeight, ATextAreaNode.FontStyle, FontSizePx, FontInfo);
 
     Canvas.Bitmap.Font.Name := string(FontInfo.FontFamily);
     Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
@@ -2989,7 +3002,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           FontSizePx := 12;
 
         FontInfo := Default(TFontInfo);
-        MapFont(CurrentNode.FontFamily, CurrentNode.FontWeight, CurrentNode.FontStyle, FontSizePx, FontInfo);
+        ResolveFont(CurrentNode.FontFamily, CurrentNode.FontWeight, CurrentNode.FontStyle, FontSizePx, FontInfo);
 
         Canvas.Bitmap.Font.Name := string(FontInfo.FontFamily);
         Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
@@ -3226,7 +3239,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           FontSizePx := 12;
 
         FontInfo := Default(TFontInfo);
-        MapFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
+        ResolveFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
 
         Canvas.Bitmap.Font.Name := string(FontInfo.FontFamily);
         Canvas.Bitmap.Font.Height := -Max(1, FontInfo.Size);
