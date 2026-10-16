@@ -34,44 +34,31 @@ object FormSVGviewer: TFormSVGviewer
     TabOrder = 0
     object Splitter1: TSplitter
       Left = 0
-      Top = 269
+      Top = 250
       Width = 250
       Height = 5
       Cursor = crVSplit
       Align = alTop
       Color = clSkyBlue
       ParentColor = False
-    end
-    object DriveComboBox: TDriveComboBox
-      Left = 0
-      Top = 0
-      Width = 250
-      Height = 19
-      Align = alTop
-      DirList = DirectoryListBox
-      TabOrder = 0
+      ExplicitTop = 269
     end
     object DirectoryListBox: TDirectoryListBox
       Left = 0
-      Top = 19
+      Top = 0
       Width = 250
       Height = 250
       Align = alTop
-      FileList = FileListBox
-      TabOrder = 1
+      TabOrder = 0
     end
     object FileListBox: TFileListBox
       Left = 0
-      Top = 274
+      Top = 255
       Width = 250
-      Height = 270
+      Height = 289
       Align = alClient
       ItemHeight = 13
-      Mask = '*.svg'
-      TabOrder = 2
-      OnChange = FileListBoxChange
-      ExplicitTop = 269
-      ExplicitHeight = 312
+      TabOrder = 1
     end
     object Panel1: TPanel
       Left = 0
@@ -82,7 +69,7 @@ object FormSVGviewer: TFormSVGviewer
       BevelEdges = [beLeft, beRight]
       BevelKind = bkFlat
       BevelOuter = bvNone
-      TabOrder = 3
+      TabOrder = 2
       DesignSize = (
         246
         37)
@@ -143,7 +130,6 @@ object FormSVGviewer: TFormSVGviewer
         Caption = 'Save as PNG'
         TabOrder = 0
         OnClick = ButtonSaveClick
-        ExplicitLeft = 169
       end
     end
   end
