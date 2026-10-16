@@ -129,6 +129,7 @@ type
     FThemeFillColor: TSvgColor;
     FThemeStrokeColor: TSvgColor;
     FCurrentColor: TSvgColor;
+    FOffscreenOffset: TPoint;
     function GetTransformation: TAffineTransformation;
     procedure SetThemeFillColor32(AColor: TColor32);
     procedure SetThemeStrokeColor32(AColor: TColor32);
@@ -1680,11 +1681,15 @@ begin
     try
       // Translate matrix to ROI coordinate space
       FTransformation.Push;
+      Inc(FOffscreenOffset.X, GroupRoi.Left);
+      Inc(FOffscreenOffset.Y, GroupRoi.Top);
       try
         FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
 
         RenderChildren(OffscreenBmp);
       finally
+        Dec(FOffscreenOffset.X, GroupRoi.Left);
+        Dec(FOffscreenOffset.Y, GroupRoi.Top);
         FTransformation.Pop;
       end;
 
@@ -1832,6 +1837,9 @@ var
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
+
+  RenderData := TFilterRenderData.Init(Self, ATarget);
+  RenderData.OffscreenOffset := FOffscreenOffset;
 
   FTransformation.Push;
   try
@@ -2062,9 +2070,8 @@ begin
 
     // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions in full screen resolution
     RenderData.SourceGraphic.Bitmap := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
-    RenderData.SourceAlpha.Bitmap := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
-    RenderData.NamedSurfaces := nil;
     try
+
       // Render element into SourceGraphic in ROI coordinate space
       FTransformation.Push;
       try
@@ -2075,22 +2082,10 @@ begin
         FTransformation.Pop;
       end;
 
-      // Derive SourceAlpha from SourceGraphic
-      // TODO : Do this on-demand instead
-      pSource := PColor32(RenderData.SourceGraphic.Bitmap.Bits);
-      pDest := PColor32(RenderData.SourceAlpha.Bitmap.Bits);
-      for i := 0 to RenderData.SourceGraphic.Bitmap.PixelCount - 1 do
-      begin
-        PColor32Entry(pDest).ARGB := PColor32Entry(pSource).A shl 24;
-        Inc(pSource);
-        Inc(pDest);
-      end;
-
       RenderData.SourceGraphic.Region := Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height);
-      RenderData.SourceAlpha.Region := RenderData.SourceGraphic.Region;
 
       RenderData.CurrentSurface := RenderData.SourceGraphic;
-      RenderData.UnnamedSurface := nil; // Indicates that CurrentSurface's ownership is "somebody else's problem".
+      RenderData.UnnamedSurface := nil; // Indicates that CurrentSurface's ownership is outside the filter loop
 
       // Count number of named surfaces so we can preallocate the surface array
       Count := 0;
@@ -2316,11 +2311,7 @@ begin
           RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
 
     finally
-      for i := 0 to High(RenderData.NamedSurfaces) do
-        ReleaseOffscreenBitmap(RenderData.NamedSurfaces[i].Bitmap);
-      ReleaseOffscreenBitmap(RenderData.UnnamedSurface); // This also takes care of any remaining RenderData.CurrentSurface,Bitmap
-      ReleaseOffscreenBitmap(RenderData.SourceGraphic.Bitmap);
-      ReleaseOffscreenBitmap(RenderData.SourceAlpha.Bitmap);
+      RenderData.Finalize;
     end;
 
   finally
@@ -3487,12 +3478,16 @@ begin
         ClipMaskBmp := nil;
         MaskBmp := nil;
         try
+          Inc(FOffscreenOffset.X, NodeRoi.Left);
+          Inc(FOffscreenOffset.Y, NodeRoi.Top);
           FTransformation.Push;
           try
             FTransformation.Translate(-NodeRoi.Left, -NodeRoi.Top);
 
             RenderNodeContent(OffscreenBmp, ANode);
           finally
+            Dec(FOffscreenOffset.X, NodeRoi.Left);
+            Dec(FOffscreenOffset.Y, NodeRoi.Top);
             FTransformation.Pop;
           end;
 

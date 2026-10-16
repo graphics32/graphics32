@@ -81,14 +81,39 @@ type
   TNamedSurfaces = TArray<TSurface>;
 
   TFilterRenderData = record
+  private
+    FRenderer: TSvgRenderer;
+    FTarget: TCustomBitmap32;
+    FSourceAlpha: TSurface;
+    FBackgroundImage: TSurface;
+    FBackgroundAlpha: TSurface;
+
+  private
+    function GetBackgroundAlpha: TSurface;
+    function GetBackgroundImage: TSurface;
+    function GetSourceAlpha: TSurface;
+    procedure CopyAlpha(Dst, Src: TCustomBitmap32);
+    procedure BlockCopyAlpha(Dst, Src: TCustomBitmap32);
+    property Renderer: TSvgRenderer read FRenderer;
+
+  public
+    class function Init(ARenderer: TSvgRenderer; ATarget: TCustomBitmap32): TFilterRenderData; static;
+    procedure Finalize;
+
+  public
     SourceGraphic: TSurface;
-    SourceAlpha: TSurface;
     CurrentSurface: TSurface;
     CurrentSubregion: TRect; // The cached result of Renderer.GetRoiRect
     UnnamedSurface: TCustomBitmap32;
     ROI: TRect;
+    OffscreenOffset: TPoint;
     Scale: Single;
     NamedSurfaces: TNamedSurfaces;
+
+    // On-demand surfaces
+    property SourceAlpha: TSurface read GetSourceAlpha;
+    property BackgroundImage: TSurface read GetBackgroundImage;
+    property BackgroundAlpha: TSurface read GetBackgroundAlpha;
   end;
 
 //------------------------------------------------------------------------------
@@ -386,6 +411,146 @@ begin
   Result := (Bitmap = nil) or (Bitmap.Empty) or (Region.IsEmpty);
 end;
 
+//------------------------------------------------------------------------------
+//
+//      TFilterRenderData
+//
+//------------------------------------------------------------------------------
+procedure TFilterRenderData.CopyAlpha(Dst, Src: TCustomBitmap32);
+var
+  pSource, pDest: PColor32Entry;
+  i: integer;
+begin
+  pSource := PColor32Entry(Src.Bits);
+  pDest := PColor32Entry(Dst.Bits);
+  for i := 0 to Src.PixelCount - 1 do
+  begin
+    pDest.ARGB := pSource.A shl 24;
+    Inc(pSource);
+    Inc(pDest);
+  end;
+end;
+
+procedure TFilterRenderData.Finalize;
+var
+  i: integer;
+begin
+  for i := 0 to High(NamedSurfaces) do
+    Renderer.ReleaseOffscreenBitmap(NamedSurfaces[i].Bitmap);
+  Renderer.ReleaseOffscreenBitmap(UnnamedSurface); // This also takes care of any remaining CurrentSurface.Bitmap
+  Renderer.ReleaseOffscreenBitmap(SourceGraphic.Bitmap);
+  Renderer.ReleaseOffscreenBitmap(FSourceAlpha.Bitmap);
+  Renderer.ReleaseOffscreenBitmap(FBackgroundImage.Bitmap);
+  Renderer.ReleaseOffscreenBitmap(FBackgroundAlpha.Bitmap);
+  Renderer.ReleaseOffscreenBitmap(FFillPaint.Bitmap);
+  Renderer.ReleaseOffscreenBitmap(FStrokePaint.Bitmap);
+end;
+var
+  W, I, DstY: Integer;
+
+procedure TFilterRenderData.BlockCopyAlpha(Dst, Src: TCustomBitmap32);
+var
+  DstRect, SrcRect, TargetROI: TRect;
+  W, i, DstY: Integer;
+  pSourceRow, pDestRow: PColor32Entry;
+  pSource, pDest: PColor32Entry;
+begin
+  if (Dst = nil) or (Dst.Empty) or (Src = nil) or (Src.Empty) then
+  begin
+    if (Dst <> nil) then
+      Dst.Clear(0);
+    Exit;
+  end;
+
+  TargetROI := ROI;
+  GR32.OffsetRect(TargetROI, OffscreenOffset.X, OffscreenOffset.Y);
+
+  GR32.IntersectRect(SrcRect, TargetROI, Src.BoundsRect);
+
+  if SrcRect.IsEmpty then
+  begin
+    Dst.Clear(0);
+    Exit;
+  end;
+
+  DstRect.Left := SrcRect.Left - TargetROI.Left;
+  DstRect.Top := SrcRect.Top - TargetROI.Top;
+  DstRect.Right := DstRect.Left + SrcRect.Width;
+  DstRect.Bottom := DstRect.Top + SrcRect.Height;
+
+  if (DstRect.Left <> 0) or (DstRect.Top <> 0) or (DstRect.Width <> Dst.Width) or (DstRect.Height <> Dst.Height) then
+    Dst.Clear(0);
+
+  W := DstRect.Width;
+  pSourceRow := PColor32Entry(Src.PixelPtr[SrcRect.Left, SrcRect.Top]);
+  pDestRow := PColor32Entry(Dst.PixelPtr[DstRect.Left, DstRect.Top]);
+
+  for DstY := DstRect.Top to DstRect.Bottom - 1 do
+  begin
+    pSource := pSourceRow;
+    pDest := pDestRow;
+    for i := 0 to W - 1 do
+    begin
+      pDest.ARGB := pSource.A shl 24;
+      Inc(pSource);
+      Inc(pDest);
+    end;
+    Inc(pSourceRow, Src.Width);
+    Inc(pDestRow, Dst.Width);
+  end;
+end;
+
+function TFilterRenderData.GetBackgroundAlpha: TSurface;
+begin
+  if (FBackgroundAlpha.Bitmap = nil) then
+  begin
+    FBackgroundAlpha.Bitmap := Renderer.GetOffscreenBitmap(ROI.Width, ROI.Height, False);
+    FBackgroundAlpha.Region := Rect(0, 0, FBackgroundAlpha.Bitmap.Width, FBackgroundAlpha.Bitmap.Height);
+    BlockCopyAlpha(FBackgroundAlpha.Bitmap, FTarget);
+  end;
+
+  Result := FBackgroundAlpha;
+end;
+
+function TFilterRenderData.GetBackgroundImage: TSurface;
+var
+  TargetROI: TRect;
+begin
+  if (FBackgroundImage.Bitmap = nil) then
+  begin
+    FBackgroundImage.Bitmap := Renderer.GetOffscreenBitmap(ROI.Width, ROI.Height, False);
+    FBackgroundImage.Region := Rect(0, 0, FBackgroundImage.Bitmap.Width, FBackgroundImage.Bitmap.Height);
+    if (FTarget <> nil) and (not FTarget.Empty) then
+    begin
+      TargetROI := ROI;
+      GR32.OffsetRect(TargetROI, OffscreenOffset.X, OffscreenOffset.Y);
+      BlockTransfer(FBackgroundImage.Bitmap, 0, 0, FBackgroundImage.Bitmap.BoundsRect, FTarget, TargetROI, dmOpaque);
+    end else
+      FBackgroundImage.Bitmap.Clear(0);
+  end;
+
+  Result := FBackgroundImage;
+end;
+
+function TFilterRenderData.GetSourceAlpha: TSurface;
+begin
+  if (FSourceAlpha.Bitmap = nil) then
+  begin
+    FSourceAlpha.Bitmap := Renderer.GetOffscreenBitmap(SourceGraphic.Bitmap.Width, SourceGraphic.Bitmap.Height, False);
+    FSourceAlpha.Region := Rect(0, 0, FSourceAlpha.Bitmap.Width, FSourceAlpha.Bitmap.Height);
+    CopyAlpha(FSourceAlpha.Bitmap, SourceGraphic.Bitmap);
+  end;
+
+  Result := FSourceAlpha;
+end;
+
+class function TFilterRenderData.Init(ARenderer: TSvgRenderer; ATarget: TCustomBitmap32): TFilterRenderData;
+begin
+  Result := Default(TFilterRenderData);
+  Result.FRenderer := ARenderer;
+  Result.FTarget := ATarget;
+end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -444,6 +609,12 @@ begin
 
     fikSourceAlpha:
       Result := RenderData.SourceAlpha;
+
+    fikBackgroundImage:
+      Result := RenderData.BackgroundImage;
+
+    fikBackgroundAlpha:
+      Result := RenderData.BackgroundAlpha;
 
     fikNamedResult:
       if (AInput.Index >= 0) and (AInput.Index <= High(RenderData.NamedSurfaces)) then

@@ -82,6 +82,10 @@ type
 //
 //  - fikSourceAlpha: The alpha channel derived from the input graphic element.
 //
+//  - fikBackgroundImage: The background image canvas under the filtered element.
+//
+//  - fikBackgroundAlpha: The alpha channel derived from the background image.
+//
 //  - fikPreviousResult: The output surface resulting from the immediately 
 //    preceding filter primitive.
 //
@@ -89,7 +93,7 @@ type
 //    primitive (referencing ResultName).
 //------------------------------------------------------------------------------
 type
-  TSvgFilterInputKind = (fikSourceGraphic, fikSourceAlpha, fikPreviousResult, fikNamedResult);
+  TSvgFilterInputKind = (fikSourceGraphic, fikSourceAlpha, fikBackgroundImage, fikBackgroundAlpha, fikPreviousResult, fikNamedResult);
 
   TSvgFilterInput = record
     Kind: TSvgFilterInputKind;
@@ -236,6 +240,7 @@ type
     attrMixBlendMode,
     attrIsolation,
     attrFilter,
+    attrEnableBackground,
     attrRequiredFeatures,
     attrRequiredExtensions,
     attrSystemLanguage,
@@ -1938,6 +1943,7 @@ const
     'mix-blend-mode',
     'isolation',
     'filter',
+    'enable-background',
     'requiredFeatures',
     'requiredExtensions',
     'systemLanguage',
@@ -3034,6 +3040,13 @@ begin
 
     attrFilter:
       FFilterID := AValue.ToUtf8;
+
+    attrEnableBackground:
+      (* enable-background has apparently been deprecated.
+         It's present in the original svg 1.1 specs but gone without a trace
+         from later specs.
+         https://www.w3.org/TR/SVG11/filters.html#EnableBackgroundProperty *)
+      ; // FEnableBackgroundNew := AValue.StartsText('new', True);
 
     attrRequiredFeatures:
       SetRequiredFeatures(AValue.ToUtf8);
@@ -5689,6 +5702,16 @@ type
     if Value.CompareText('sourcealpha') then
     begin
       Result.Kind := fikSourceAlpha;
+      Result.Index := -1;
+    end else
+    if Value.CompareText('backgroundimage') then
+    begin
+      Result.Kind := fikBackgroundImage;
+      Result.Index := -1;
+    end else
+    if Value.CompareText('backgroundalpha') then
+    begin
+      Result.Kind := fikBackgroundAlpha;
       Result.Index := -1;
     end else
     begin
