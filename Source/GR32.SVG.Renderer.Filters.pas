@@ -34,12 +34,22 @@ interface
 
 {$include GR32.inc}
 
+// The W3C SVG 1.1. test cases relies on the input being
+// linear RGB, and we don't currently support the
+// color-interpolation-filters attribute, so we have to
+// assume the input is sRGB and do the conversion to linear.
+// We can enable this on a filter-by-filter basis since it isn't really
+// that important, and most renderers ignore the problem anyway
+{-$define SVG32_FEDISPLACEMENTMAP_GAMMA}
+
+
 uses
   SysUtils, Classes, Math, Types,
   GR32,
   GR32_Filters,
   GR32_Transforms,
   GR32_OrdinalMaps,
+  GR32_Gamma,
   GR32.SVG.Types,
   GR32.SVG.Tree,
   GR32.SVG.Renderer;
@@ -367,7 +377,12 @@ type
 //------------------------------------------------------------------------------
 type
   TFilterRendererDisplacementMap = class(TFilterRenderer)
+  private class var
+{$if defined(SVG32_FEDISPLACEMENTMAP_GAMMA)}
+    FInvGammaTable: TGammaTable8Bit;
+{$ifend}
   private
+    class constructor Create;
     class function GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte; static;
   public
     class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
@@ -2109,6 +2124,13 @@ end;
 //
 //------------------------------------------------------------------------------
 
+class constructor TFilterRendererDisplacementMap.Create;
+begin
+{$if defined(SVG32_FEDISPLACEMENTMAP_GAMMA)}
+  SetInv_sRGB(FInvGammaTable);
+{$ifend}
+end;
+
 class function TFilterRendererDisplacementMap.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
 var
   DispNode: TSvgFeDisplacementMapNode;
@@ -2125,9 +2147,15 @@ end;
 class function TFilterRendererDisplacementMap.GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte;
 begin
   case Channel of
+{$if defined(SVG32_FEDISPLACEMENTMAP_GAMMA)}
+    csR: Result := FInvGammaTable[Color.R];
+    csG: Result := FInvGammaTable[Color.G];
+    csB: Result := FInvGammaTable[Color.B];
+{$else}
     csR: Result := Color.R;
     csG: Result := Color.G;
     csB: Result := Color.B;
+{$ifend}
     csA: Result := Color.A;
   else
     Result := Color.A;
