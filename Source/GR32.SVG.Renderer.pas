@@ -2615,9 +2615,10 @@ begin
           try
             SubRenderer.FRecursionDepth := FRecursionDepth; // Let's close this little recursion loophole
 
+            SubRenderer.FDocumentRoot := SubDoc;
             SubRenderer.AllowExternalImages := FAllowExternalImages;
             SubRenderer.Transformation.Clear(FTransformation.Matrix);
-            SubRenderer.ViewportRect := FViewportRect;
+            SubRenderer.ViewportRect := SourceViewBox;
 
             SubRenderer.RenderNode(ATarget, SubDoc);
           finally

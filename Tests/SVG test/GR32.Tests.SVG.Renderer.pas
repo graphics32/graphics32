@@ -92,6 +92,7 @@ type
     procedure TestEscapedTextRendering;
     procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
+    procedure TestSvgSubDocumentImageScaling;
     procedure TestNestedSvgAndCurrentColorRendering;
     procedure TestDocumentAndRendererCurrentColorRendering;
     procedure TestUncoloredSvgGlyphCurrentColorRendering;
@@ -3652,6 +3653,43 @@ begin
     pPixel := bmp.Pixel[30, 30];
     CheckEquals(clRed32, pPixel, 'Pixel inside rendered embedded SVG image should be red');
     CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Pixel outside rendered embedded SVG image should be white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestSvgSubDocumentImageScaling;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+  pCenter, pEdge: TColor32;
+begin
+  // SVG image data URI containing viewBox="0 0 50 50" with larger width/height (100x100) and a centered green circle (cx=25 cy=25 r=20)
+  xml := '<svg width="200" height="200">' +
+         '  <circle cx="75" cy="75" r="20" fill="red"/>' +
+         '  <image x="50" y="50" width="50" height="50" href="data:image/svg+xml;utf8,&lt;svg viewBox=&quot;0 0 50 50&quot; width=&quot;100&quot; height=&quot;100&quot;&gt;&lt;circle cx=&quot;25&quot; cy=&quot;25&quot; r=&quot;20&quot; fill=&quot;lime&quot;/&gt;&lt;/svg&gt;"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Center of green circle in image space (x=50+25=75, y=50+25=75)
+    pCenter := bmp.Pixel[75, 75];
+    CheckEquals(clLime32, pCenter, 'Center of sub-document SVG image should render green circle and cover underlying red circle');
+
+    // Outer area inside image viewport but outside green circle (x=55, y=55)
+    pEdge := bmp.Pixel[55, 55];
+    CheckEquals(clWhite32, pEdge, 'Pixel outside green circle in image viewport should remain background white');
   finally
     renderer.Free;
     bmp.Free;
