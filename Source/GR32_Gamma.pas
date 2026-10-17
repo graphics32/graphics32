@@ -37,10 +37,8 @@ interface
 uses
   GR32;
 
-{ Gamma bias for line/pixel antialiasing }
-
 type
-  TGammaTable8Bit = array [Byte] of Byte;
+  TGammaTable8Bit = array [Byte] of Byte; // TODO : TLUT8
 
 var
   GAMMA_IS_SRGB: boolean;                       // True if GAMMA_ENCODING_TABLE and GAMMA_DECODING_TABLE
@@ -56,6 +54,7 @@ var
   GAMMA_DECODING_TABLE: TGammaTable8Bit;
 
 const
+  // Gamma bias for line/pixel antialiasing
   DEFAULT_GAMMA: Double = 1.6;
 
 // set gamma
@@ -70,16 +69,16 @@ procedure SetInv_sRGB(var GammaTable: TGammaTable8Bit);
 // apply gamma
 function ApplyGamma(Color: TColor32): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function ApplyInvGamma(Color: TColor32): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function ApplyCustomGamma(Color: TColor32; GammaTable: TGammaTable8Bit): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function ApplyCustomGamma(Color: TColor32; const GammaTable: TGammaTable8Bit): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 procedure ApplyGamma(Color: PColor32Array; Length: Integer); overload;
 procedure ApplyInvGamma(Color: PColor32Array; Length: Integer); overload;
-procedure ApplyCustomGamma(Color: PColor32Array; Length: Integer; GammaTable: TGammaTable8Bit); overload;
+procedure ApplyCustomGamma(Color: PColor32Array; Length: Integer; const GammaTable: TGammaTable8Bit); overload;
 
-procedure ApplyGamma(Bitmap: TBitmap32); overload;
-procedure ApplyInvGamma(Bitmap: TBitmap32); overload;
-procedure ApplyCustomGamma(Bitmap: TBitmap32; GammaTable: TGammaTable8Bit); overload;
-procedure ApplyCustomGamma(Bitmap: TBitmap32; Gamma: Double); overload;
+procedure ApplyGamma(Bitmap: TCustomBitmap32); overload;
+procedure ApplyInvGamma(Bitmap: TCustomBitmap32); overload;
+procedure ApplyCustomGamma(Bitmap: TCustomBitmap32; const GammaTable: TGammaTable8Bit); overload;
+procedure ApplyCustomGamma(Bitmap: TCustomBitmap32; Gamma: Double); overload;
 
 // Gamma change notification
 // Warning: Not thread safe
@@ -127,7 +126,7 @@ begin
   TColor32Entry(Result).B := GAMMA_DECODING_TABLE[TColor32Entry(Color).B];
 end;
 
-function ApplyCustomGamma(Color: TColor32; GammaTable: TGammaTable8Bit): TColor32;
+function ApplyCustomGamma(Color: TColor32; const GammaTable: TGammaTable8Bit): TColor32;
 begin
   TColor32Entry(Result).R := GammaTable[TColor32Entry(Color).R];
   TColor32Entry(Result).G := GammaTable[TColor32Entry(Color).G];
@@ -161,7 +160,7 @@ begin
   end;
 end;
 
-procedure ApplyCustomGamma(Color: PColor32Array; Length: Integer; GammaTable: TGammaTable8Bit);
+procedure ApplyCustomGamma(Color: PColor32Array; Length: Integer; const GammaTable: TGammaTable8Bit);
 var
   Index: Integer;
 begin
@@ -175,22 +174,22 @@ begin
 end;
 
 
-procedure ApplyGamma(Bitmap: TBitmap32);
+procedure ApplyGamma(Bitmap: TCustomBitmap32);
 begin
   ApplyGamma(Bitmap.Bits, Bitmap.Width * Bitmap.Height);
 end;
 
-procedure ApplyInvGamma(Bitmap: TBitmap32);
+procedure ApplyInvGamma(Bitmap: TCustomBitmap32);
 begin
   ApplyInvGamma(Bitmap.Bits, Bitmap.Width * Bitmap.Height);
 end;
 
-procedure ApplyCustomGamma(Bitmap: TBitmap32; GammaTable: TGammaTable8Bit);
+procedure ApplyCustomGamma(Bitmap: TCustomBitmap32; const GammaTable: TGammaTable8Bit);
 begin
   ApplyCustomGamma(Bitmap.Bits, Bitmap.Width * Bitmap.Height, GammaTable);
 end;
 
-procedure ApplyCustomGamma(Bitmap: TBitmap32; Gamma: Double);
+procedure ApplyCustomGamma(Bitmap: TCustomBitmap32; Gamma: Double);
 var
   GammaTable: TGammaTable8Bit;
 begin
