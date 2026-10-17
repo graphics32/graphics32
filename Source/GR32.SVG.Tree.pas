@@ -406,6 +406,7 @@ type
     function GetColor: TSvgColor;
     procedure SetColor(const Value: TSvgColor);
     function GetColor32: TColor32;
+    procedure ResolveNode; virtual;
     function DumpNode(Indent: Integer = 0): string; virtual;
     function DumpChildren(Indent: Integer = 0): string; virtual;
     procedure SetParent(const Value: TSvgNode);
@@ -807,6 +808,19 @@ type
   TSvgFilterPrimitiveNode = class abstract(TSvgCustomGroupNode)
   public type
     TSvgFilterPrimitiveProperties = set of (fppX, fppY, fppWidth, fppHeight);
+  protected type
+    TNamedResult = record
+      Name: UTF8String;
+      Index: integer; // Sequential index
+    end;
+
+    TNamedResults = class(TList<TNamedResult>)
+    public
+      function FindIndex(Value: TValuePUtf8Char): integer;
+      function GetInsertIndex(const Value: UTF8String): integer;
+      function ResolveFilterInput(const AName: UTF8String; ADefault: TSvgFilterInputKind = fikSourceGraphic): TSvgFilterInput;
+    end;
+
   private
     FSpecified: TSvgFilterPrimitiveProperties;
     FIn1: UTF8String;
@@ -826,6 +840,7 @@ type
   protected
     function GetIsRenderable: Boolean; override;
     function DumpNode(Indent: Integer = 0): string; override;
+    procedure ResolveFilterNode(NamedResults: TNamedResults; ADefault: TSvgFilterInputKind); virtual;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -969,6 +984,8 @@ type
 // Filter: feMerge
 //------------------------------------------------------------------------------
   TSvgFeMergeNode = class(TSvgFilterPrimitiveNode)
+  protected
+    procedure ResolveFilterNode(NamedResults: TSvgFilterPrimitiveNode.TNamedResults; ADefault: TSvgFilterInputKind); override;
   end;
 
 
@@ -1168,6 +1185,7 @@ type
     function GetIsRenderable: Boolean; override;
     function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
+    procedure ResolveFilterNodeInputs;
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
@@ -1504,6 +1522,33 @@ type
     property KernelUnitLengthX: Single read FKernelUnitLengthX write FKernelUnitLengthX;
     property KernelUnitLengthY: Single read FKernelUnitLengthY write FKernelUnitLengthY;
     property PreserveAlpha: Boolean read FPreserveAlpha write FPreserveAlpha;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeImageNode
+//
+//------------------------------------------------------------------------------
+// Filter: feImage
+//------------------------------------------------------------------------------
+  TSvgFeImageNode = class(TSvgFilterPrimitiveNode)
+  private
+    FHref: UTF8String;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+    FResolvedTargetNode: TSvgNode;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+    procedure ResolveFilterNode(NamedResults: TSvgFilterPrimitiveNode.TNamedResults; ADefault: TSvgFilterInputKind); override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+
+    property Href: UTF8String read FHref write FHref;
+    property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
+    property ResolvedTargetNode: TSvgNode read FResolvedTargetNode write FResolvedTargetNode;
   end;
 
 
@@ -1943,15 +1988,15 @@ type
     tagLineargradient, tagRadialgradient, tagConicgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
     tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence,
-    tagFedisplacementmap, tagFetile, tagFeconvolvematrix, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
+    tagFedisplacementmap, tagFetile, tagFeconvolvematrix, tagFeimage, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of UTF8String = (
     '', 'svg', 'g', 'use', 'defs', 'stop', 'mask', 'path', 'rect', 'line', 'style', 'circle',
     'linearGradient', 'radialgradient', 'conicGradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
-    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence', 'feDisplacementMap', 'feTile', 'feConvolveMatrix',
-    'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
+    'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence',
+    'feDisplacementMap', 'feTile', 'feConvolveMatrix', 'feImage', 'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
   );
 
 var
@@ -2421,6 +2466,12 @@ end;
 class function TSvgNode.GetRenderClass: TClass;
 begin
   Result := TClass(PPointer(@PByte(Self)[vmtAutoTable])^);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TSvgNode.ResolveNode;
+begin
 end;
 
 //------------------------------------------------------------------------------
@@ -4570,6 +4621,97 @@ end;
 //      TSvgFilterPrimitiveNode
 //
 //------------------------------------------------------------------------------
+function TSvgFilterPrimitiveNode.TNamedResults.FindIndex(Value: TValuePUtf8Char): integer;
+var
+  L, H, Mid: integer;
+  Cmp: integer;
+begin
+  if (Count = 0) then
+    Exit(-1);
+
+  L := 0;
+  H := Count - 1;
+  while (L <= H) do
+  begin
+    Mid := L + (H - L) div 2;
+    Cmp := Value.CompareOrdinal(List[Mid].Name);
+    if (Cmp < 0) then
+      H := Mid - 1
+    else
+    if (Cmp > 0) then
+      L := Mid + 1
+    else
+      Exit(List[Mid].Index);
+  end;
+  Result := -1;
+end;
+
+function TSvgFilterPrimitiveNode.TNamedResults.GetInsertIndex(const Value: UTF8String): integer;
+var
+  L, H, Mid: integer;
+  Cmp: integer;
+begin
+  L := 0;
+  H := Count - 1;
+  while (L <= H) do
+  begin
+    Mid := L + (H - L) div 2;
+    Cmp := UTF8Tools.CompareOrdinal(Value, List[Mid].Name);
+    if (Cmp < 0) then
+      H := Mid - 1
+    else
+      L := Mid + 1;
+  end;
+  Result := L;
+end;
+
+function TSvgFilterPrimitiveNode.TNamedResults.ResolveFilterInput(const AName: UTF8String; ADefault: TSvgFilterInputKind): TSvgFilterInput;
+var
+  Value: TValuePUtf8Char;
+begin
+  Value := TValuePUtf8Char.FromString(AName);
+  Value.Trim;
+
+  Result.Kind := fikNamedResult;
+  Result.Index := -1;
+
+  case Value.Len of
+    0:
+      Result.Kind := ADefault;
+
+    9:
+      if Value.CompareText('fillpaint') then
+        Result.Kind := fikFillPaint;
+
+    11:
+      if Value.CompareText('strokepaint') then
+        Result.Kind := fikStrokePaint
+      else
+      if Value.CompareText('sourcealpha') then
+        Result.Kind := fikSourceAlpha;
+
+    13:
+      if Value.CompareText('sourcegraphic') then
+        Result.Kind := fikSourceGraphic;
+
+    15:
+      if Value.CompareText('backgroundalpha') then
+        Result.Kind := fikBackgroundAlpha
+      else
+      if Value.CompareText('backgroundimage') then
+        Result.Kind := fikBackgroundImage;
+
+  end;
+
+  if (Result.Kind = fikNamedResult) then
+  begin
+    Result.Index := FindIndex(Value);
+
+    if (Result.Index < 0) then
+      Result.Kind := ADefault;
+  end;
+end;
+
 function TSvgFilterPrimitiveNode.GetHasX: Boolean;
 begin
   Result := fppX in FSpecified;
@@ -4661,6 +4803,12 @@ begin
   else
     inherited;
   end;
+end;
+
+procedure TSvgFilterPrimitiveNode.ResolveFilterNode(NamedResults: TNamedResults; ADefault: TSvgFilterInputKind);
+begin
+  ResolvedIn1 := NamedResults.ResolveFilterInput(In1, ADefault);
+  ResolvedIn2 := NamedResults.ResolveFilterInput(In2, ADefault);
 end;
 
 function TSvgFilterPrimitiveNode.DumpNode(Indent: Integer): string;
@@ -4906,6 +5054,23 @@ begin
   else
     inherited;
   end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeMergeNode
+//
+//------------------------------------------------------------------------------
+procedure TSvgFeMergeNode.ResolveFilterNode(NamedResults: TSvgFilterPrimitiveNode.TNamedResults; ADefault: TSvgFilterInputKind);
+var
+  i: integer;
+begin
+  inherited;
+
+  for i := 0 to Children.Count - 1 do
+    if Children[i] is TSvgFeMergeNodeChild then
+      TSvgFeMergeNodeChild(Children[i]).ResolvedIn1 := NamedResults.ResolveFilterInput(TSvgFeMergeNodeChild(Children[i]).In1, ADefault);
 end;
 
 
@@ -5224,6 +5389,61 @@ begin
       end;
   else
     inherited;
+  end;
+end;
+
+procedure TSvgFilterNode.ResolveFilterNodeInputs;
+var
+  NamedResults: TSvgFilterPrimitiveNode.TNamedResults;
+  NamedResult: TSvgFilterPrimitiveNode.TNamedResult;
+  i: Integer;
+  Node: TSvgNode;
+  PrimNode: TSvgFilterPrimitiveNode;
+  DefaultInputKind: TSvgFilterInputKind;
+  Index: integer;
+begin
+  NamedResults := nil; // Defer creation of the list until we know that we actually need it
+  try
+    DefaultInputKind := fikSourceGraphic;
+
+    NamedResult.Index := -1; // Flag that insertion isn't pending
+
+    for i := 0 to Children.Count - 1 do
+    begin
+      Node := Children[i];
+      if not (Node is TSvgFilterPrimitiveNode) then
+        continue;
+
+      PrimNode := TSvgFilterPrimitiveNode(Node);
+
+      if (NamedResults = nil) then
+        NamedResults := TSvgFilterPrimitiveNode.TNamedResults.Create;
+
+      // Do we have a deferred insertion?
+      if (NamedResult.Index <> -1) then
+      begin
+        // Insert ordered
+        Index := NamedResults.GetInsertIndex(PrimNode.ResultName);
+        NamedResults.Insert(Index, NamedResult);
+      end;
+
+      PrimNode.ResolveFilterNode(NamedResults, DefaultInputKind);
+
+      // Now that we have a "previous result", switch the default to it
+      DefaultInputKind := fikPreviousResult;
+
+      if (PrimNode.ResultName <> '') then
+      begin
+       // There's no point in adding the last entry to the list; Nobody will read it.
+       // So we defer it until we need to search the list. The flag that indicates
+       // that we have done so is (NamedResult.Index <> -1)
+        NamedResult.Name := PrimNode.ResultName;
+        NamedResult.Index := NamedResults.Count; // Record unordered index
+      end else
+        NamedResult.Index := -1;
+    end;
+  finally
+    NamedResults.Free;
   end;
 end;
 
@@ -5697,174 +5917,6 @@ begin
 end;
 
 procedure TSvgDocumentNode.ResolveFilters;
-type
-  TNamedResult = record
-    Name: UTF8String;
-    Index: integer; // Sequential index
-  end;
-
-  TNamedResults = TList<TNamedResult>;
-
-  function IndexOf(Value: TValuePUtf8Char; NamedResults: TNamedResults): integer;
-  var
-    L, H, Mid: integer;
-    Cmp: integer;
-  begin
-    if (NamedResults.Count = 0) then
-      Exit(-1);
-
-    L := 0;
-    H := NamedResults.Count - 1;
-    while (L <= H) do
-    begin
-      Mid := L + (H - L) div 2;
-      Cmp := Value.CompareOrdinal(NamedResults[Mid].Name);
-      if (Cmp < 0) then
-        H := Mid - 1
-      else
-      if (Cmp > 0) then
-        L := Mid + 1
-      else
-        Exit(NamedResults[Mid].Index);
-    end;
-    Result := -1;
-  end;
-
-  function InsertIndex(const Value: UTF8String; NamedResults: TNamedResults): integer;
-  var
-    L, H, Mid: integer;
-    Cmp: integer;
-  begin
-    L := 0;
-    H := NamedResults.Count - 1;
-    while (L <= H) do
-    begin
-      Mid := L + (H - L) div 2;
-      Cmp := UTF8Tools.CompareOrdinal(Value, NamedResults[Mid].Name);
-      if (Cmp < 0) then
-        H := Mid - 1
-      else
-        L := Mid + 1;
-    end;
-    Result := L;
-  end;
-
-  // TODO
-  function ResolveFilterInput(const AName: UTF8String; IsFirstPrimitive: Boolean; NamedResults: TNamedResults): TSvgFilterInput;
-  var
-    Index: Integer;
-    Value: TValuePUtf8Char;
-  begin
-    Value := TValuePUtf8Char.FromString(AName);
-    Value.Trim;
-
-    if (Value.Len = 0) then
-    begin
-      if IsFirstPrimitive then
-        Result.Kind := fikSourceGraphic
-      else
-        Result.Kind := fikPreviousResult;
-      Result.Index := -1;
-    end else
-    if Value.CompareText('sourcegraphic') then
-    begin
-      Result.Kind := fikSourceGraphic;
-      Result.Index := -1;
-    end else
-    if Value.CompareText('sourcealpha') then
-    begin
-      Result.Kind := fikSourceAlpha;
-      Result.Index := -1;
-    end else
-    if Value.CompareText('backgroundimage') then
-    begin
-      Result.Kind := fikBackgroundImage;
-      Result.Index := -1;
-    end else
-    if Value.CompareText('backgroundalpha') then
-    begin
-      Result.Kind := fikBackgroundAlpha;
-      Result.Index := -1;
-    end else
-    if Value.CompareText('fillpaint') then
-    begin
-      Result.Kind := fikFillPaint;
-      Result.Index := -1;
-    end else
-    if Value.CompareText('strokepaint') then
-    begin
-      Result.Kind := fikStrokePaint;
-      Result.Index := -1;
-    end else
-    begin
-      Index := IndexOf(Value, NamedResults);
-      if Index >= 0 then
-      begin
-        Result.Kind := fikNamedResult;
-        Result.Index := Index;
-      end else
-      begin
-        Result.Kind := fikPreviousResult;
-        Result.Index := -1;
-      end;
-    end;
-  end;
-
-  procedure ResolveFilterNodeInputs(AFilterNode: TSvgFilterNode);
-  var
-    i: Integer;
-    PrimNode: TSvgNode;
-    Prim: TSvgFilterPrimitiveNode;
-    MergeChild: TSvgFeMergeNodeChild;
-    NamedResults: TNamedResults;
-    NamedResult: TNamedResult;
-    IsFirst: Boolean;
-    Index: integer;
-  begin
-    if AFilterNode = nil then
-      Exit;
-
-    NamedResults := TNamedResults.Create;
-    try
-      IsFirst := True;
-
-      for i := 0 to AFilterNode.Children.Count - 1 do
-      begin
-        PrimNode := AFilterNode.Children[i];
-        if not (PrimNode is TSvgFilterPrimitiveNode) then
-          continue;
-
-        Prim := TSvgFilterPrimitiveNode(PrimNode);
-        Prim.ResolvedIn1 := ResolveFilterInput(Prim.In1, IsFirst, NamedResults);
-        Prim.ResolvedIn2 := ResolveFilterInput(Prim.In2, IsFirst, NamedResults);
-
-        if Prim is TSvgFeMergeNode then
-        begin
-          for Index := 0 to Prim.Children.Count - 1 do
-          begin
-            if Prim.Children[Index] is TSvgFeMergeNodeChild then
-            begin
-              MergeChild := TSvgFeMergeNodeChild(Prim.Children[Index]);
-              MergeChild.ResolvedIn1 := ResolveFilterInput(MergeChild.In1, IsFirst, NamedResults);
-            end;
-          end;
-        end;
-
-        IsFirst := False;
-
-        if (Prim.ResultName = '') then
-          continue;
-
-        // Insert ordered
-        NamedResult.Name := Prim.ResultName;
-        NamedResult.Index := NamedResults.Count; // Record unordered index
-        Index := InsertIndex(Prim.ResultName, NamedResults);
-        NamedResults.Insert(Index, NamedResult);
-      end;
-    finally
-      NamedResults.Free;
-    end;
-  end;
 
   procedure ProcessNode(ANode: TSvgNode);
   var
@@ -5876,6 +5928,9 @@ type
     if (ANode = nil) then
       exit;
 
+    if (ANode is TSvgFilterNode) then
+      TSvgFilterNode(ANode).ResolveFilterNodeInputs;
+
     ID := TValuePUtf8Char.FromString(ANode.FilterID);
     if (ID.Len > 0) and (not ID.CompareText('none')) then // Do not resolve 'none' filter
     begin
@@ -5883,10 +5938,7 @@ type
       TargetNode := ANode.FindNodeById(ID);
 
       if (TargetNode is TSvgFilterNode) then
-      begin
         ANode.ResolvedFilter := TSvgFilterNode(TargetNode);
-        ResolveFilterNodeInputs(ANode.ResolvedFilter);
-      end;
     end;
 
     if ANode is TSvgCustomGroupNode then
@@ -6813,6 +6865,64 @@ function TSvgFeConvolveMatrixNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent) + Format(' (order=%d %d, edgeMode=%s, preserveAlpha=%s)',
     [FOrderX, FOrderY, EdgeModeToString(FEdgeMode), BoolToStr(FPreserveAlpha, True)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeImageNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgFeImageNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FPreserveAspectRatio := TSvgPreserveAspectRatio.Default;
+end;
+
+function TSvgFeImageNode.Clone(AParent: TSvgNode): TSvgNode;
+begin
+  Result := TSvgFeImageNode(inherited Clone(AParent));
+  TSvgFeImageNode(Result).FHref := FHref;
+  TSvgFeImageNode(Result).FPreserveAspectRatio := FPreserveAspectRatio;
+  TSvgFeImageNode(Result).FResolvedTargetNode := FResolvedTargetNode;
+end;
+
+procedure TSvgFeImageNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrHref, attrXLinkHref, attrSrc:
+      FHref := UTF8Tools.Trim(AValue.ToUtf8);
+
+    attrPreserveAspectRatio:
+      FPreserveAspectRatio := TSvgPreserveAspectRatio.Parse(AValue);
+  else
+    inherited;
+  end;
+end;
+
+procedure TSvgFeImageNode.ResolveFilterNode(NamedResults: TSvgFilterPrimitiveNode.TNamedResults; ADefault: TSvgFilterInputKind);
+var
+  ID: TValuePUtf8Char;
+begin
+  inherited;
+
+  if (Href <> '') then
+  begin
+    ID := ExtractUrlID(Href);
+    ResolvedTargetNode := FindNodeByID(ID);
+  end;
+end;
+
+function TSvgFeImageNode.GetElementTag: UTF8String;
+begin
+  Result := 'feImage';
+end;
+
+function TSvgFeImageNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+  if FHref <> '' then
+    Result := Result + Format(' (href="%s")', [FHref]);
 end;
 
 
@@ -7836,6 +7946,12 @@ var
         tagFeconvolvematrix:
           begin
             node := TSvgFeConvolveMatrixNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFeimage:
+          begin
+            node := TSvgFeImageNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

@@ -72,6 +72,7 @@ type
     procedure TestFeMorphologyParsingAndResolution;
     procedure TestFeDisplacementMapParsingAndResolution;
     procedure TestFeConvolveMatrixParsingAndResolution;
+    procedure TestFeImageParsingAndResolution;
     procedure TestPrimitiveShapePercentageUnits;
     procedure TestTextAndTSpanParsing;
     procedure TestTextAreaParsing;
@@ -217,6 +218,50 @@ begin
     CheckEquals(20.0, bbox.Top, 1E-4);
     CheckEquals(110.0, bbox.Right, 1E-4);
     CheckEquals(100.0, bbox.Bottom, 1E-4);
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestFeImageParsingAndResolution;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  filterNode: TSvgFilterNode;
+  feImgNode, feImgClone: TSvgFeImageNode;
+begin
+  xml := '<svg width="200" height="200">' +
+         '  <defs>' +
+         '    <filter id="f_img">' +
+         '      <feImage href="#source_rect" preserveAspectRatio="xMidYMid meet" result="img1"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect id="source_rect" x="10" y="10" width="40" height="40" fill="red"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    docNode.Resolve;
+    filterNode := TSvgFilterNode(docNode.FindNodeById('f_img'));
+    Check(filterNode <> nil, 'f_img filter should exist');
+    CheckEquals(1, filterNode.Children.Count);
+    Check(filterNode.Children[0] is TSvgFeImageNode, 'Child should be TSvgFeImageNode');
+
+    feImgNode := TSvgFeImageNode(filterNode.Children[0]);
+    CheckEquals('#source_rect', feImgNode.Href, 'Href should match #source_rect');
+    CheckEquals('img1', feImgNode.ResultName, 'ResultName should be img1');
+    Check(feImgNode.PreserveAspectRatio.Align = saXMidYMid, 'Align should be saXMidYMid');
+    Check(feImgNode.ResolvedTargetNode <> nil, 'ResolvedTargetNode should be resolved');
+    CheckEquals('source_rect', feImgNode.ResolvedTargetNode.Id, 'ResolvedTargetNode Id should be source_rect');
+
+    feImgClone := TSvgFeImageNode(feImgNode.Clone(nil));
+    try
+      CheckEquals('#source_rect', feImgClone.Href, 'Cloned Href should match');
+      CheckEquals('img1', feImgClone.ResultName, 'Cloned ResultName should match');
+    finally
+      feImgClone.Free;
+    end;
   finally
     docNode.Free;
   end;

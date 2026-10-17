@@ -153,6 +153,7 @@ type
 
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
+    procedure RenderImage(ATarget: TCustomBitmap32; const AHref: UTF8String; const ATargetRect: TFloatRect; const APreserveAspectRatio: TSvgPreserveAspectRatio);
     procedure RenderTextPathData(ATarget: TCustomBitmap32; const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
     procedure RenderTextAreaNode(ATarget: TCustomBitmap32; ATextAreaNode: TSvgTextAreaNode);
     procedure RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgTextNode);
@@ -784,6 +785,7 @@ begin
   Map.MasterAlpha := 255;
   Map.DrawMode := dmBlend;
   Map.CombineMode := cmMerge;
+  Map.ResetClipRect;
 end;
 
 
@@ -1863,7 +1865,7 @@ var
   FilterNode: TSvgFilterPrimitiveNode;
   FilterRenderer: TFilterRendererClass;
   PrimRect: TFloatRect;
-  SpecifiedROI: TRect;
+  SpecifiedROI, SaveTargetClipRect: TRect;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
@@ -2241,44 +2243,44 @@ begin
             if (Pts[i].Y > PrimRect.Bottom) then PrimRect.Bottom := Pts[i].Y;
           end;
 
-          GR32.IntersectRect(PrimRect, PrimRect, FilterRegionRect);
-
           // Convert PrimRect to ROI-relative integer TRect
           SpecifiedROI := MakeRect(FloatRect(
             PrimRect.Left - RenderData.ROI.Left,
             PrimRect.Top - RenderData.ROI.Top,
             PrimRect.Right - RenderData.ROI.Left,
             PrimRect.Bottom - RenderData.ROI.Top), rrOutside);
-          GR32.IntersectRect(SpecifiedROI, SpecifiedROI, Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height));
 
           // 3. Combine specified dimensions with CurrentSubregion fallback
           if fppX in FilterNode.Specified then
+          begin
             RenderData.CurrentSubregion.Left := SpecifiedROI.Left;
-
-          if fppY in FilterNode.Specified then
-            RenderData.CurrentSubregion.Top := SpecifiedROI.Top;
-
+            RenderData.CurrentSubregion.Right := SpecifiedROI.Right;
+          end else
           if fppWidth in FilterNode.Specified then
           begin
-            if fppX in FilterNode.Specified then
-              RenderData.CurrentSubregion.Right := SpecifiedROI.Right
-            else
-              // Width is specified, but X was omitted; add evaluated width onto resolved RefRoiRect.Left
-              RenderData.CurrentSubregion.Right := RenderData.CurrentSubregion.Left + SpecifiedROI.Width;
+            RenderData.CurrentSubregion.Right := RenderData.CurrentSubregion.Left + SpecifiedROI.Width;
           end;
 
+          if fppY in FilterNode.Specified then
+          begin
+            RenderData.CurrentSubregion.Top := SpecifiedROI.Top;
+            RenderData.CurrentSubregion.Bottom := SpecifiedROI.Bottom;
+          end else
           if fppHeight in FilterNode.Specified then
           begin
-            if fppY in FilterNode.Specified then
-              RenderData.CurrentSubregion.Bottom := SpecifiedROI.Bottom
-            else
-              // Height is specified, but Y was omitted; add evaluated height onto resolved RefRoiRect.Top
-              RenderData.CurrentSubregion.Bottom := RenderData.CurrentSubregion.Top + SpecifiedROI.Height;
+            RenderData.CurrentSubregion.Bottom := RenderData.CurrentSubregion.Top + SpecifiedROI.Height;
           end;
 
 
-          // Render the filter
-          FilterRenderer.Render(Self, FilterNode, RenderData);
+          (*
+          ** Render the filter
+          *)
+          // Protect against too large subregions -> Exception when allocating surface bitmaps
+          if (RenderData.CurrentSubregion.Width * RenderData.CurrentSubregion.Height <= TCustomBitmap32.MaxPixelCount) then
+          begin
+            FilterRenderer.Render(Self, FilterNode, RenderData);
+
+          end;
 
         end else
         begin
@@ -2334,11 +2336,23 @@ begin
       if (RenderData.UnnamedSurface <> RenderData.CurrentSurface.Bitmap) then
         ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
 
-      // 6. Blend final filtered result surface onto target canvas at full resolution
+      // 6. Blend final filtered result surface onto target canvas at full resolution,
+      //    clipped to the filter region rect per W3C SVG 1.1 Specification §15.5.
       if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic.Bitmap) then
-        BlendOffscreenSurface(ATarget, RenderData.CurrentSurface.Bitmap, bmNormal,
-          RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
-          RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
+      begin
+        SaveTargetClipRect := ATarget.ClipRect;
+        try
+
+          ATarget.ClipRect := MakeRect(FilterRegionRect, rrOutside);
+
+          BlendOffscreenSurface(ATarget, RenderData.CurrentSurface.Bitmap, bmNormal,
+            RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
+            RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
+
+        finally
+          ATarget.ClipRect := SaveTargetClipRect;
+        end;
+      end;
 
     finally
       RenderData.Finalize;
@@ -2492,13 +2506,12 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      TSvgRenderer.RenderImageNode
+//      TSvgRenderer.RenderImage
 //
 //------------------------------------------------------------------------------
-procedure TSvgRenderer.RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
+procedure TSvgRenderer.RenderImage(ATarget: TCustomBitmap32; const AHref: UTF8String; const ATargetRect: TFloatRect; const APreserveAspectRatio: TSvgPreserveAspectRatio);
 var
-  WidthPx, HeightPx, xPx, yPx: Single;
-  TargetRect: TFloatRect;
+  WidthPx, HeightPx: Single;
   isSvg: Boolean;
   Stream: TMemoryStream;
   SubDoc: TSvgDocumentNode;
@@ -2512,24 +2525,15 @@ var
   hRef, MimeType: TValuePUtf8Char;
   s: string;
 begin
-  if (ATarget = nil) or (AImageNode = nil) then
+  if (ATarget = nil) or (AHref = '') then
     Exit;
 
-  WidthPx := AImageNode.GetSizePx(AImageNode.Width, FViewportRect.Width);
-  HeightPx := AImageNode.GetSizePx(AImageNode.Height, FViewportRect.Height);
-  if (WidthPx <= 0) or (HeightPx <= 0) then
-    Exit;
-
-  xPx := AImageNode.GetSizePx(AImageNode.X, FViewportRect.Width);
-  yPx := AImageNode.GetSizePx(AImageNode.Y, FViewportRect.Height);
-  TargetRect := FloatRect(xPx, yPx, xPx + WidthPx, yPx + HeightPx);
-
-  if (AImageNode.Href = '') then
+  if (ATargetRect.Right <= ATargetRect.Left) or (ATargetRect.Bottom <= ATargetRect.Top) then
     Exit;
 
   Stream := TMemoryStream.Create;
   try
-    hRef := TValuePUtf8Char.FromString(AImageNode.Href);
+    hRef := TValuePUtf8Char.FromString(AHref);
 
     if hRef.StartsText('data:', True) then
     begin
@@ -2573,7 +2577,6 @@ begin
 
     if isSvg then
     begin
-      // TODO : We could also just let TBitmap.LoadFromStream handle it...
       SubDoc := ParseSvgXml(PAnsiChar(Stream.Memory), Stream.Size);
       if SubDoc = nil then
         exit;
@@ -2585,16 +2588,16 @@ begin
           SourceViewBox := SubDoc.ViewBox
         else
         begin
-          WidthPx := SubDoc.GetSizePx(SubDoc.Width, TargetRect.Width);
-          HeightPx := SubDoc.GetSizePx(SubDoc.Height, TargetRect.Height);
+          WidthPx := SubDoc.GetSizePx(SubDoc.Width, ATargetRect.Width);
+          HeightPx := SubDoc.GetSizePx(SubDoc.Height, ATargetRect.Height);
           if WidthPx <= 0 then
-            WidthPx := TargetRect.Width;
+            WidthPx := ATargetRect.Width;
           if HeightPx <= 0 then
-            HeightPx := TargetRect.Height;
+            HeightPx := ATargetRect.Height;
           SourceViewBox := TSvgViewBox.Create(0, 0, WidthPx, HeightPx);
         end;
 
-        AspectMat.Matrix := SourceViewBox.GetTransform(TargetRect, AImageNode.PreserveAspectRatio);
+        AspectMat.Matrix := SourceViewBox.GetTransform(ATargetRect, APreserveAspectRatio);
 
         FTransformation.Push;
         try
@@ -2620,6 +2623,12 @@ begin
       end;
     end else
     begin
+      // Let TBitmap32's image format manager have a go at it. We'll fail with
+      // an exception here if no registered image format readers can process
+      // the data.
+      // Do not use a bitmap from the pool, or at least don't return it to the
+      // pool; We don't know what the LoadFromStream does to the bitmap, so we
+      // can't guarantee that it can be used elsewhere.
       Bitmap := TBitmap32.Create;
       try
         Bitmap.LoadFromStream(Stream);
@@ -2627,8 +2636,12 @@ begin
         if (Bitmap.Empty) then
           exit;
 
+        Bitmap.DrawMode := dmBlend;
+        Bitmap.CombineMode := cmMerge;
+        Bitmap.ResamplerClassName := TLinearResampler.ClassName; // Default is likely TNearestResampler which is fast but looks horrible
+
         SourceViewBox := TSvgViewBox.Create(0, 0, Bitmap.Width, Bitmap.Height);
-        AspectMat.Matrix := SourceViewBox.GetTransform(TargetRect, AImageNode.PreserveAspectRatio);
+        AspectMat.Matrix := SourceViewBox.GetTransform(ATargetRect, APreserveAspectRatio);
         TotalMat := AspectMat * FTransformation.Matrix;
 
         FTransformation.Push;
@@ -2638,10 +2651,8 @@ begin
           DestBounds := FTransformation.GetTransformedBounds(FloatRect(0, 0, Bitmap.Width, Bitmap.Height));
           DestClip := MakeRect(DestBounds, rrOutside);
 
-          Bitmap.DrawMode := dmBlend;
-          Bitmap.CombineMode := cmMerge;
-
           // Transform and render onto target
+          // TODO : Just do a stretchtransfer if there's no rotation
           Transform(ATarget, Bitmap, FTransformation, DestClip, True);
         finally
           FTransformation.Pop;
@@ -2654,6 +2665,39 @@ begin
     Stream.Free;
   end;
 end;
+
+//------------------------------------------------------------------------------
+
+procedure TSvgRenderer.RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
+var
+  WidthPx, HeightPx, xPx, yPx: Single;
+  TargetRect: TFloatRect;
+begin
+  if (ATarget = nil) or (AImageNode = nil) then
+    Exit;
+
+  WidthPx := AImageNode.GetSizePx(AImageNode.Width, FViewportRect.Width);
+  HeightPx := AImageNode.GetSizePx(AImageNode.Height, FViewportRect.Height);
+  if (WidthPx <= 0) or (HeightPx <= 0) then
+    Exit;
+
+  xPx := AImageNode.GetSizePx(AImageNode.X, FViewportRect.Width);
+  yPx := AImageNode.GetSizePx(AImageNode.Y, FViewportRect.Height);
+  TargetRect := FloatRect(xPx, yPx, xPx + WidthPx, yPx + HeightPx);
+
+  RenderImage(ATarget, AImageNode.Href, TargetRect, AImageNode.PreserveAspectRatio);
+end;
+
+//------------------------------------------------------------------------------
+
+function TSvgRenderer.DoResolveExternalFile(const Filename: string; Stream: TStream): boolean;
+begin
+  Result := False;
+  if (Assigned(FOnResolveExternalFile)) then
+    FOnResolveExternalFile(Self, Filename, Stream, Result);
+end;
+
+//------------------------------------------------------------------------------
 
 procedure TSvgRenderer.DoResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
 begin
@@ -2775,6 +2819,8 @@ begin
   DoResolveFont(AFontFamily, AWeightStr, AStyleStr, ASize, AFontInfo);
 end;
 
+//------------------------------------------------------------------------------
+
 procedure TSvgRenderer.RenderTextPathData(ATarget: TCustomBitmap32; const APathPoints: TArrayOfArrayOfFloatPoint; ANode: TSvgNode);
 
   function GetAccumulatedTextOpacity(Node: TSvgNode): Single;
@@ -2858,12 +2904,7 @@ begin
   end;
 end;
 
-function TSvgRenderer.DoResolveExternalFile(const Filename: string; Stream: TStream): boolean;
-begin
-  Result := False;
-  if (Assigned(FOnResolveExternalFile)) then
-    FOnResolveExternalFile(Self, Filename, Stream, Result);
-end;
+//------------------------------------------------------------------------------
 
 procedure TSvgRenderer.RenderTextAreaNode(ATarget: TCustomBitmap32; ATextAreaNode: TSvgTextAreaNode);
 var

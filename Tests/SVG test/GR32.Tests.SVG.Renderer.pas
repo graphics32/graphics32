@@ -83,6 +83,7 @@ type
     procedure TestFeMorphologyFilterRendering;
     procedure TestFeDisplacementMapFilterRendering;
     procedure TestFeConvolveMatrixFilterRendering;
+    procedure TestFeImageFilterRendering;
     procedure TestTextRendering;
     procedure TestTextAreaRendering;
     procedure TestTextRotationRendering;
@@ -1359,6 +1360,148 @@ begin
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of eroded square should remain white');
   finally
     bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeImageFilterRendering;
+var
+  xmlElementRef, xmlDataUri, xmlDataUriTransformed, xmlSubregion, xmlXYSpecified: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // 1. Internal element reference test: feImage referencing #red_rect
+  xmlElementRef := '<svg width="100" height="100">' +
+                   '  <defs>' +
+                   '    <rect id="red_rect" x="0" y="0" width="50" height="50" fill="red"/>' +
+                   '    <filter id="f_elem" x="0" y="0" width="1" height="1">' +
+                   '      <feImage href="#red_rect"/>' +
+                   '    </filter>' +
+                   '  </defs>' +
+                   '  <rect x="0" y="0" width="100" height="100" fill="blue" filter="url(#f_elem)"/>' +
+                   '</svg>';
+
+  docNode := ParseSvgXml(xmlElementRef);
+  Check(docNode <> nil, 'docNode should not be nil for feImage element ref test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    // The red_rect (50x50) scaled into filter primitive subregion (100x100) should produce red pixels
+    CheckEquals(clRed32, bmp.Pixel[50, 50], 'Pixel at (50,50) should be red from feImage element reference');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+
+  // 2. Data URI SVG image test
+  xmlDataUri := '<svg width="100" height="100">' +
+                '  <defs>' +
+                '    <filter id="f_data" x="0" y="0" width="1" height="1">' +
+                '      <feImage href="data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;50&quot; height=&quot;50&quot;&gt;&lt;rect width=&quot;50&quot; height=&quot;50&quot; fill=&quot;lime&quot;/&gt;&lt;/svg&gt;"/>' +
+                '    </filter>' +
+                '  </defs>' +
+                '  <rect x="0" y="0" width="100" height="100" fill="black" filter="url(#f_data)"/>' +
+                '</svg>';
+
+  docNode := ParseSvgXml(xmlDataUri);
+  Check(docNode <> nil, 'docNode should not be nil for feImage data URI test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    CheckEquals(clLime32, bmp.Pixel[50, 50], 'Pixel at (50,50) should be lime from feImage data URI');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+
+  // 3. Transformed container parent test: feImage inside transformed group
+  xmlDataUriTransformed := '<svg width="100" height="100">' +
+                           '  <defs>' +
+                           '    <filter id="f_trans" x="0" y="0" width="1" height="1">' +
+                           '      <feImage href="data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;50&quot; height=&quot;50&quot;&gt;&lt;rect width=&quot;50&quot; height=&quot;50&quot; fill=&quot;yellow&quot;/&gt;&lt;/svg&gt;"/>' +
+                           '    </filter>' +
+                           '  </defs>' +
+                           '  <g transform="translate(20 20)">' +
+                           '    <rect x="0" y="0" width="50" height="50" fill="black" filter="url(#f_trans)"/>' +
+                           '  </g>' +
+                           '</svg>';
+
+  docNode := ParseSvgXml(xmlDataUriTransformed);
+  Check(docNode <> nil, 'docNode should not be nil for feImage transformed parent test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(100, 100);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    CheckEquals(clYellow32, bmp.Pixel[45, 45], 'Pixel at (45,45) should be yellow from transformed feImage');
+    CheckEquals(clBlack32, bmp.Pixel[10, 10], 'Pixel outside rect at (10,10) should remain black');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+
+  // 4. Primitive subregion percentage test (feImage width="20.8%")
+  xmlSubregion := '<svg width="480" height="360" viewBox="0 0 480 360">' +
+                  '  <defs>' +
+                  '    <filter id="f_sub" x="0" y="0" width="1" height="1">' +
+                  '      <feImage width="20.8%" href="data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;50&quot; height=&quot;50&quot;&gt;&lt;rect width=&quot;25&quot; height=&quot;50&quot; fill=&quot;lime&quot;/&gt;&lt;rect x=&quot;25&quot; width=&quot;25&quot; height=&quot;50&quot; fill=&quot;blue&quot;/&gt;&lt;/svg&gt;"/>' +
+                  '    </filter>' +
+                  '  </defs>' +
+                  '  <rect x="0" y="0" width="50" height="50" fill="black" filter="url(#f_sub)"/>' +
+                  '</svg>';
+
+  docNode := ParseSvgXml(xmlSubregion);
+  Check(docNode <> nil, 'docNode should not be nil for feImage subregion percentage test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(480, 360);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    CheckEquals(clLime32, bmp.Pixel[35, 25], 'Pixel at (35,25) should be lime from horizontally offset subregion image');
+    CheckEquals(clBlack32, bmp.Pixel[10, 25], 'Pixel at (10,25) should remain black');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+
+  // 5. Primitive subregion x, y specified test (feImage x="67.7%" y="34.6%")
+  xmlXYSpecified := '<svg width="480" height="360" viewBox="0 0 480 360">' +
+                    '  <defs>' +
+                    '    <filter id="f_xy" x="0" y="0" width="1" height="1">' +
+                    '      <feImage x="67.7%" y="34.6%" href="data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;50&quot; height=&quot;50&quot;&gt;&lt;rect width=&quot;50&quot; height=&quot;50&quot; fill=&quot;red&quot;/&gt;&lt;/svg&gt;"/>' +
+                    '    </filter>' +
+                    '  </defs>' +
+                    '  <g transform="translate(60 100)">' +
+                    '    <rect x="300" y="100" width="50" height="50" fill="black" filter="url(#f_xy)"/>' +
+                    '  </g>' +
+                    '</svg>';
+
+  docNode := ParseSvgXml(xmlXYSpecified);
+  Check(docNode <> nil, 'docNode should not be nil for feImage x,y specified test');
+  bmp := TBitmap32.Create;
+  bmp.SetSize(480, 360);
+  bmp.Clear(clBlack32);
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    renderer.RenderDocument(docNode);
+    CheckEquals(clRed32, bmp.Pixel[395, 235], 'Pixel at (395,235) should be red from shifted feImage');
+    CheckEquals(clBlack32, bmp.Pixel[370, 210], 'Pixel at (370,210) should remain black/transparent');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
   end;
 end;
 

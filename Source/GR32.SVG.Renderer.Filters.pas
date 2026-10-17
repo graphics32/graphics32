@@ -394,6 +394,24 @@ type
 
 
 //------------------------------------------------------------------------------
+//
+//      TFilterRendererImage
+//
+//------------------------------------------------------------------------------
+// feImage
+//------------------------------------------------------------------------------
+// Filter primitive renderer for TSvgFeImageNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererImage = class(TFilterRenderer)
+  protected
+  public
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
+    class function DefaultSubregionIsFilterRegion: Boolean; override;
+  end;
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -2483,6 +2501,75 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TFilterRendererImage
+//
+//------------------------------------------------------------------------------
+
+class function TFilterRendererImage.DefaultSubregionIsFilterRegion: Boolean;
+begin
+  Result := True;
+end;
+
+class procedure TFilterRendererImage.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
+var
+  ImageNode: TSvgFeImageNode;
+  Width, Height: Integer;
+  TargetBmp: TCustomBitmap32;
+  SrcBounds: TFloatRect;
+  SourceViewBox: TSvgViewBox;
+  AspectMat: TFloatMatrixHelper;
+begin
+  Renderer.ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+
+  Width := RenderData.CurrentSubregion.Width;
+  Height := RenderData.CurrentSubregion.Height;
+  if (Width <= 0) or (Height <= 0) then
+    Exit;
+
+  RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, True); // We need a transparent bitmap in case the image is transparent
+  RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
+  TargetBmp := RenderData.CurrentSurface.Bitmap;
+
+  ImageNode := TSvgFeImageNode(Node);
+
+  // 1. Internal element reference resolved at tree resolution time (e.g. href="#elementID")
+  if (ImageNode.ResolvedTargetNode <> nil) then
+  begin
+    SrcBounds := ImageNode.ResolvedTargetNode.GetObjectBoundingBox;
+    if (SrcBounds.Right <= SrcBounds.Left) or (SrcBounds.Bottom <= SrcBounds.Top) then
+      SrcBounds := FloatRect(0, 0, Width, Height);
+
+    SourceViewBox := TSvgViewBox.Create(SrcBounds.Left, SrcBounds.Top, SrcBounds.Width, SrcBounds.Height);
+    AspectMat.Matrix := SourceViewBox.GetTransform(FloatRect(0, 0, Width, Height), ImageNode.PreserveAspectRatio);
+
+    Renderer.Transformation.Push;
+    try
+      // Set local transformation to AspectMat.Matrix so TargetNode's object bounding box
+      // maps directly onto local offscreen surface TargetBmp (0, 0, Width, Height).
+      Renderer.Transformation.Clear(AspectMat.Matrix);
+
+      Renderer.RenderNode(TargetBmp, ImageNode.ResolvedTargetNode);
+    finally
+      Renderer.Transformation.Pop;
+    end;
+  end else
+  begin
+    // 2. Data URI, external file, or raster image:
+    // Clear transformation to IdentityMatrix so RenderImage maps image directly to
+    // local offscreen surface TargetBmp (0, 0, Width, Height).
+    Renderer.Transformation.Push;
+    try
+      Renderer.Transformation.Clear(IdentityMatrix);
+      TSvgRendererCracker(Renderer).RenderImage(TargetBmp, ImageNode.Href, FloatRect(0, 0, Width, Height), ImageNode.PreserveAspectRatio);
+    finally
+      Renderer.Transformation.Pop;
+    end;
+  end;
+end;
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -2503,6 +2590,7 @@ begin
   TSvgFeDisplacementMapNode.RegisterRenderClass(TFilterRendererDisplacementMap);
   TSvgFeTileNode.RegisterRenderClass(TFilterRendererTile);
   TSvgFeConvolveMatrixNode.RegisterRenderClass(TFilterRendererConvolveMatrix);
+  TSvgFeImageNode.RegisterRenderClass(TFilterRendererImage);
 end;
 
 initialization
