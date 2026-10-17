@@ -1,13 +1,14 @@
 program SVGviewer;
 
+{$R 'Media.res' 'Media.rc'}
+{$R '..\..\manifest.res'}
+
 uses
-{$IFDEF FPC}
+  {$IFDEF FPC}
   Interfaces,
-{$ENDIF}
+  {$ENDIF }
   Forms,
   SVGviewerMain in 'SVGviewerMain.pas' {FormMain};
-
-{$R *.res}
 
 begin
   Application.Initialize;

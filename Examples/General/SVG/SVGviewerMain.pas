@@ -370,6 +370,7 @@ begin
     begin
       Count := StrToIntDef(Param, Count);
       Benchmark := True;
+      Inc(FLockUpdate);
     end;
 
     while (Count > 0) do
@@ -471,8 +472,9 @@ begin
       begin
         Inc(FLockUpdate);
         try
-          MemoSource.Text := string(xmlText);
-          MemoSource2.Text := string(xmlText);
+          // We're using Memo.Lines.Text instead of Memo.Text in order to handle Unix linebreaks
+          MemoSource.Lines.Text := string(xmlText);
+          MemoSource2.Lines.Text := string(xmlText);
         finally
           Dec(FLockUpdate);
         end;
