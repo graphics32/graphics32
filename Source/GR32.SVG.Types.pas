@@ -496,6 +496,7 @@ type
     procedure Scale(Value: TFloat); overload;
     function TransformPoint(const P: TFloatPoint): TFloatPoint;
     function IsIdentity: boolean;
+    function IsAxisAligned: boolean;
   end;
 
 //------------------------------------------------------------------------------
@@ -1883,6 +1884,14 @@ end;
 class operator TFloatMatrixHelper.Multiply(const Left: TFloatMatrixHelper; const Right: TFloatMatrix): TFloatMatrixHelper;
 begin
   Result.Matrix := Mult(Right, Left.Matrix);
+end;
+
+function TFloatMatrixHelper.IsAxisAligned: boolean;
+begin
+  Result := (Abs(Matrix[0, 1]) < 1e-5) and
+            (Abs(Matrix[1, 0]) < 1e-5) and
+            (Matrix[0, 0] > 0) and
+            (Matrix[1, 1] > 0);
 end;
 
 function TFloatMatrixHelper.IsIdentity: boolean;

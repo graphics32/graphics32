@@ -2527,7 +2527,7 @@ var
   Bitmap: TBitmap32;
   AspectMat, TotalMat: TFloatMatrixHelper;
   DestBounds: TFloatRect;
-  DestClip: TRect;
+  DestRect, DestClip: TRect;
   SourceViewBox: TSvgViewBox;
   UTF8Bytes: UTF8String;
   hRef, MimeType: TValuePUtf8Char;
@@ -2659,9 +2659,27 @@ begin
           DestBounds := FTransformation.GetTransformedBounds(FloatRect(0, 0, Bitmap.Width, Bitmap.Height));
           DestClip := MakeRect(DestBounds, rrOutside);
 
-          // Transform and render onto target
-          // TODO : Just do a stretchtransfer if there's no rotation
-          Transform(ATarget, Bitmap, FTransformation, DestClip, True);
+          // If the target is axis-aligned then we don't need to do a transformation.
+          // Instead we can do a fast BlockTransfer or StretchTransfer. We might be
+          // off by a fractional pixel, but that's not really noticeable.
+          if (TotalMat.IsAxisAligned) then
+          begin
+            DestRect := MakeRect(DestBounds, rrClosest);
+
+            // Check if 1:1 scale and integer alignment -> fast 1:1 BlockTransfer
+            if (Abs(TotalMat.Matrix[0, 0] - 1.0) < 1e-4) and (Abs(TotalMat.Matrix[1, 1] - 1.0) < 1e-4) and
+               (Abs(TotalMat.Matrix[2, 0] - Round(TotalMat.Matrix[2, 0])) < 1e-4) and (Abs(TotalMat.Matrix[2, 1] - Round(TotalMat.Matrix[2, 1])) < 1e-4) then
+              BlockTransfer(ATarget, DestRect.Left, DestRect.Top, DestClip, Bitmap, Bitmap.BoundsRect, dmBlend)
+            else
+              StretchTransfer(ATarget, DestRect, DestClip, Bitmap, Bitmap.BoundsRect, Bitmap.Resampler, dmBlend);
+
+          end else
+          begin
+
+            // Transform and render onto target
+            Transform(ATarget, Bitmap, FTransformation, DestClip, True);
+
+          end;
         finally
           FTransformation.Pop;
         end;
