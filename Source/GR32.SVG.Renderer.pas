@@ -675,7 +675,15 @@ begin
     // Instantiate a new map if no candidate with sufficient buffer dimensions
     // exists in pool
     Result := CreateNewMap;
-    Result.SetSize(AWidth, AHeight, AClear);
+    try
+
+      Result.SetSize(AWidth, AHeight, AClear);
+
+    except
+      // SetSize might bomb on out-of-memory or too large bitmap
+      Result.Free;
+      raise;
+    end;
   end else
   begin
 {$ifndef FPC}
