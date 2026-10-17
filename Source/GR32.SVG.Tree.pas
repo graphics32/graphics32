@@ -1694,8 +1694,8 @@ type
 //
 //------------------------------------------------------------------------------
 function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
-function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
-function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+function CreateCirclePath(Cx, Cy, Radius: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
 function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
 function CreatePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
 {$if defined(UNIT_TEST)}
@@ -7071,22 +7071,34 @@ end;
 
 //------------------------------------------------------------------------------
 
-function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
+function CreateCirclePath(Cx, Cy, Radius: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
+var
+  Steps: Integer;
 begin
   if Radius <= 0 then
     Exit(nil);
 
-  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Circle(FloatPoint(Cx, Cy), Radius));
+  Steps := CalculateCircleSteps(Radius);
+  if Steps < AMinSteps then
+    Steps := AMinSteps;
+
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Circle(FloatPoint(Cx, Cy), Radius, Steps));
 end;
 
 //------------------------------------------------------------------------------
 
-function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
+var
+  Steps: Integer;
 begin
   if (Rx <= 0) or (Ry <= 0) then
     Exit(nil);
 
-  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry));
+  Steps := CalculateCircleSteps(Min(Rx, Ry));
+  if Steps < AMinSteps then
+    Steps := AMinSteps;
+
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry, Steps));
 end;
 
 //------------------------------------------------------------------------------

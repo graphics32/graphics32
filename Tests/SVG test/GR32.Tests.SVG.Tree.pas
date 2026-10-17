@@ -89,6 +89,7 @@ type
     procedure TestMarkerAttributeShorthandIgnored;
     procedure TestDisplayNoneOnMarkerAndAncestor;
     procedure TestPathEmLengthInheritedFontSize;
+    procedure TestSmallRadiusCirclePolygonization;
   end;
 
 implementation
@@ -122,6 +123,33 @@ begin
 
     CheckEquals(1, groupNode.Children.Count);
     Check(pathNode.Parent = groupNode, 'Path node parent should be groupNode');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgTree.TestSmallRadiusCirclePolygonization;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  circleNode: TSvgPathNode;
+  pts: TArrayOfArrayOfFloatPoint;
+begin
+  xml := '<svg viewBox="0 0 80 20">' +
+         '  <symbol id="myDot" width="10" height="10" viewBox="0 0 2 2">' +
+         '    <circle id="c1" cx="1" cy="1" r="1" />' +
+         '  </symbol>' +
+         '  <use href="#myDot" x="5" y="5" />' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    circleNode := TSvgPathNode(docNode.FindNodeById('c1'));
+    Check(circleNode <> nil, 'c1 circle node should exist');
+    pts := circleNode.GetPathData;
+    Check(Length(pts) > 0, 'pts should not be empty');
+    Check(Length(pts[0]) >= 32, Format('Circle with local radius=1.0 must generate at least 32 vertices (found %d)', [Length(pts[0])]));
   finally
     docNode.Free;
   end;
