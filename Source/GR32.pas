@@ -897,6 +897,8 @@ type
     procedure SetPenPos(const Value: TPoint);
     function GetPenPosF: TFixedPoint;
     procedure SetPenPosF(const Value: TFixedPoint);
+  public const
+    MaxPixelCount = MaxInt div SizeOf(DWORD);
   public type
     TInfoHeaderVersion = (InfoHeaderVersion1, InfoHeaderVersion2, InfoHeaderVersion3, InfoHeaderVersion4, InfoHeaderVersion5);
   strict protected
@@ -3357,7 +3359,7 @@ end;
 
 procedure TCustomBitmap32.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 begin
-  if (Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD) > MaxInt) then
+  if (Int64(NewWidth) * Int64(NewHeight) > MaxPixelCount) then
     raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = $%.8X bytes', [NewWidth, NewHeight, Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD)]);
   FBackend.ChangeSize(Width, Height, NewWidth, NewHeight, ClearBuffer);
 end;
