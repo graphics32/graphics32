@@ -187,7 +187,7 @@ type
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
-    function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor; // protected to be accesible by TFilterRenderData
+    function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor; // protected to be accesible by TFilterContext
     procedure ResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
     procedure DoResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
     function DoResolveExternalFile(const Filename: string; Stream: TStream): boolean; virtual;
@@ -1885,7 +1885,7 @@ end;
 
 procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
 var
-  RenderData: TFilterRenderData;
+  FilterContext: TFilterContext;
   i, Count: Integer;
   Node: TSvgNode;
   SourceBounds, FilterBounds, FilterRegionRect: TFloatRect;
@@ -1910,8 +1910,8 @@ begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
 
-  RenderData := TFilterRenderData.Init(Self, ATarget, ANode);
-  RenderData.OffscreenOffset := FOffscreenOffset;
+  FilterContext := TFilterContext.Init(Self, ATarget, ANode);
+  FilterContext.OffscreenOffset := FOffscreenOffset;
 
   TotalMat.Matrix := Mult(FTransformation.Matrix, ANode.Transform);
   IsAxisAligned := TotalMat.IsAxisAligned;
@@ -1922,7 +1922,7 @@ begin
     if IsAxisAligned then
     begin
       ApplyMatrix(ANode.Transform);
-      RenderData.Scale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
+      FilterContext.Scale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
     end else
     begin
       S_local := TotalMat.GetScale;
@@ -1932,7 +1932,7 @@ begin
         OneOverS_local := 1 / S_local;
       FTransformation.Clear;
       FTransformation.Scale(S_local, S_local);
-      RenderData.Scale := S_local;
+      FilterContext.Scale := S_local;
     end;
 
     // 1. Calculate source bounds in screen/target space at full resolution.
@@ -1959,7 +1959,7 @@ begin
         if (HasStroke) then
         begin
           // Calculate how far beyond the polygon bounding box the stroke will potentially extend
-          StrokeWidth := StrokeWidth * RenderData.Scale / 2;
+          StrokeWidth := StrokeWidth * FilterContext.Scale / 2;
 
           if (PathNode.Stroke.JoinStyle = jsMiter) then
             StrokeWidth := StrokeWidth * Max(1.0, PathNode.Stroke.MiterLimit);
@@ -2008,10 +2008,10 @@ begin
     if BBoxWidth <= 0 then BBoxWidth := 1.0;
     if BBoxHeight <= 0 then BBoxHeight := 1.0;
 
-    RenderData.NodeBounds := NodeBounds;
-    RenderData.BBoxWidth := BBoxWidth;
-    RenderData.BBoxHeight := BBoxHeight;
-    RenderData.PrimitiveUnits := AFilterNode.PrimitiveUnits;
+    FilterContext.NodeBounds := NodeBounds;
+    FilterContext.BBoxWidth := BBoxWidth;
+    FilterContext.BBoxHeight := BBoxHeight;
+    FilterContext.PrimitiveUnits := AFilterNode.PrimitiveUnits;
 
     if AFilterNode.FilterUnits = guObjectBoundingBox then
     begin
@@ -2065,7 +2065,7 @@ begin
 
       if (FilterRenderer <> nil) then
       begin
-        FilterRenderer.AdjustOutputRect(FilterNode, RenderData, FilterBounds);
+        FilterRenderer.AdjustOutputRect(FilterNode, FilterContext, FilterBounds);
 
         if FilterRenderer.DefaultSubregionIsFilterRegion then
         begin
@@ -2148,30 +2148,30 @@ begin
     if (FilterBounds.IsEmpty) then
       Exit;
 
-    RenderData.ROI := MakeRect(FilterBounds, rrOutside);
+    FilterContext.ROI := MakeRect(FilterBounds, rrOutside);
 
     // Verify whether the filter ROI is visible on screen before surface allocation.
-    // Note: We use the non-mutating IntersectRect so RenderData.ROI retains its full
+    // Note: We use the non-mutating IntersectRect so FilterContext.ROI retains its full
     // offscreen pixel dimensions and coordinate origin instead of being truncated/shifted.
     if IsAxisAligned then
     begin
-      // For axis-aligned filters, RenderData.ROI is directly in target screen pixel space.
-      if not GR32.IntersectRect(RenderData.ROI, ATarget.BoundsRect) then
+      // For axis-aligned filters, FilterContext.ROI is directly in target screen pixel space.
+      if not GR32.IntersectRect(FilterContext.ROI, ATarget.BoundsRect) then
         Exit;
     end else
     begin
-      // For non-axis-aligned filters (e.g. skew/rotation), RenderData.ROI is in local
+      // For non-axis-aligned filters (e.g. skew/rotation), FilterContext.ROI is in local
       // user space (scaled by S_local). Transform local surface bounds to target screen
       // space to check overlap.
       CompositeMat.Matrix := IdentityMatrix;
-      CompositeMat.Translate(RenderData.ROI.Left, RenderData.ROI.Top);
+      CompositeMat.Translate(FilterContext.ROI.Left, FilterContext.ROI.Top);
       CompositeMat.Scale(OneOverS_local, OneOverS_local);
       CompositeMat := CompositeMat * TotalMat;
 
       AffineTransform := TAffineTransformation.Create;
       try
         AffineTransform.Clear(CompositeMat.Matrix);
-        DestBounds := AffineTransform.GetTransformedBounds(FloatRect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height));
+        DestBounds := AffineTransform.GetTransformedBounds(FloatRect(0, 0, FilterContext.ROI.Width, FilterContext.ROI.Height));
         DestClip := MakeRect(DestBounds, rrOutside);
 
         if not GR32.IntersectRect(DestClip, ATarget.BoundsRect) then
@@ -2182,30 +2182,30 @@ begin
     end;
 
     // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions in full screen resolution
-    RenderData.SourceGraphic.Bitmap := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
+    FilterContext.SourceGraphic.Bitmap := GetOffscreenBitmap(FilterContext.ROI.Width, FilterContext.ROI.Height, True);
     try
 
       // Render element into SourceGraphic in ROI coordinate space
       FTransformation.Push;
       try
-        FTransformation.Translate(-RenderData.ROI.Left, -RenderData.ROI.Top);
+        FTransformation.Translate(-FilterContext.ROI.Left, -FilterContext.ROI.Top);
 
-        RenderNodeContent(RenderData.SourceGraphic.Bitmap, ANode);
+        RenderNodeContent(FilterContext.SourceGraphic.Bitmap, ANode);
       finally
         FTransformation.Pop;
       end;
 
-      RenderData.SourceGraphic.Region := Rect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height);
+      FilterContext.SourceGraphic.Region := Rect(0, 0, FilterContext.ROI.Width, FilterContext.ROI.Height);
 
-      RenderData.CurrentSurface := RenderData.SourceGraphic;
-      RenderData.UnnamedSurface := nil; // Indicates that CurrentSurface's ownership is outside the filter loop
+      FilterContext.CurrentSurface := FilterContext.SourceGraphic;
+      FilterContext.UnnamedSurface := nil; // Indicates that CurrentSurface's ownership is outside the filter loop
 
       // Count number of named surfaces so we can preallocate the surface array
       Count := 0;
       for Node in AFilterNode.Children do
         if (Node is TSvgFilterPrimitiveNode) and TSvgFilterPrimitiveNode(Node).IsReferenceTarget then
           Inc(Count);
-      SetLength(RenderData.NamedSurfaces, Count);
+      SetLength(FilterContext.NamedSurfaces, Count);
       Count := 0;
 
       // 5. Process filter primitive nodes sequentially on ROI surfaces
@@ -2246,14 +2246,14 @@ begin
 
         if (FilterRenderer <> nil) then
         begin
-          RenderData.CurrentSubregion := FilterRenderer.GetRoiRect(FilterNode, RenderData);
+          FilterContext.CurrentSubregion := FilterRenderer.GetRoiRect(FilterNode, FilterContext);
 
-          if (RenderData.CurrentSubregion.IsEmpty) then
+          if (FilterContext.CurrentSubregion.IsEmpty) then
           begin
-            if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic.Bitmap) then
+            if (FilterContext.CurrentSurface.Bitmap <> FilterContext.SourceGraphic.Bitmap) then
             begin
-              RenderData.CurrentSurface := TSurface.Empty;
-              ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+              FilterContext.CurrentSurface := TSurface.Empty;
+              ReleaseOffscreenBitmap(FilterContext.UnnamedSurface);
             end;
             FilterRenderer := nil;
           end else
@@ -2326,30 +2326,30 @@ begin
 
           // Convert PrimRect to ROI-relative integer TRect
           SpecifiedROI := MakeRect(FloatRect(
-            PrimRect.Left - RenderData.ROI.Left,
-            PrimRect.Top - RenderData.ROI.Top,
-            PrimRect.Right - RenderData.ROI.Left,
-            PrimRect.Bottom - RenderData.ROI.Top), rrOutside);
+            PrimRect.Left - FilterContext.ROI.Left,
+            PrimRect.Top - FilterContext.ROI.Top,
+            PrimRect.Right - FilterContext.ROI.Left,
+            PrimRect.Bottom - FilterContext.ROI.Top), rrOutside);
 
           // 3. Combine specified dimensions with CurrentSubregion fallback
           if fppX in FilterNode.Specified then
           begin
-            RenderData.CurrentSubregion.Left := SpecifiedROI.Left;
-            RenderData.CurrentSubregion.Right := SpecifiedROI.Right;
+            FilterContext.CurrentSubregion.Left := SpecifiedROI.Left;
+            FilterContext.CurrentSubregion.Right := SpecifiedROI.Right;
           end else
           if fppWidth in FilterNode.Specified then
           begin
-            RenderData.CurrentSubregion.Right := RenderData.CurrentSubregion.Left + SpecifiedROI.Width;
+            FilterContext.CurrentSubregion.Right := FilterContext.CurrentSubregion.Left + SpecifiedROI.Width;
           end;
 
           if fppY in FilterNode.Specified then
           begin
-            RenderData.CurrentSubregion.Top := SpecifiedROI.Top;
-            RenderData.CurrentSubregion.Bottom := SpecifiedROI.Bottom;
+            FilterContext.CurrentSubregion.Top := SpecifiedROI.Top;
+            FilterContext.CurrentSubregion.Bottom := SpecifiedROI.Bottom;
           end else
           if fppHeight in FilterNode.Specified then
           begin
-            RenderData.CurrentSubregion.Bottom := RenderData.CurrentSubregion.Top + SpecifiedROI.Height;
+            FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
           end;
 
 
@@ -2357,9 +2357,9 @@ begin
           ** Render the filter
           *)
           // Protect against too large subregions -> Exception when allocating surface bitmaps
-          if (RenderData.CurrentSubregion.Width * RenderData.CurrentSubregion.Height <= TCustomBitmap32.MaxPixelCount) then
+          if (FilterContext.CurrentSubregion.Width * FilterContext.CurrentSubregion.Height <= TCustomBitmap32.MaxPixelCount) then
           begin
-            FilterRenderer.Render(Self, FilterNode, RenderData);
+            FilterRenderer.Render(Self, FilterNode, FilterContext);
 
           end;
 
@@ -2367,7 +2367,7 @@ begin
         begin
           // Unsupported filter; Keep the current intermediate result and let
           // the next filter continue with it.
-          if (RenderData.CurrentSurface.Bitmap = RenderData.SourceGraphic.Bitmap) then
+          if (FilterContext.CurrentSurface.Bitmap = FilterContext.SourceGraphic.Bitmap) then
             continue; // No filter has yet produced anything
         end;
 
@@ -2394,32 +2394,32 @@ begin
 
 
         // CurrentSurface.Bitmap=SourceGraphic.Bitmap will be true if no filter has yet produced anything.
-        if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic.Bitmap) then
+        if (FilterContext.CurrentSurface.Bitmap <> FilterContext.SourceGraphic.Bitmap) then
         begin
-          // Note that RenderData.CurrentSurface.Bitmap can be nil here if the
+          // Note that FilterContext.CurrentSurface.Bitmap can be nil here if the
           // filter didn't produce anything.
 
           // UnnamedSurface should be nil, but release anything it points to just
           // in case the filter failed to do it.
-          ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+          ReleaseOffscreenBitmap(FilterContext.UnnamedSurface);
 
           if FilterNode.IsReferenceTarget then
           begin
-            RenderData.UnnamedSurface := nil; // Transfer ownership of the bitmap to NamedSurfaces[]
-            RenderData.NamedSurfaces[Count] := RenderData.CurrentSurface;
+            FilterContext.UnnamedSurface := nil; // Transfer ownership of the bitmap to NamedSurfaces[]
+            FilterContext.NamedSurfaces[Count] := FilterContext.CurrentSurface;
             Inc(Count);
           end else
             // Transfer ownership of the bitmap to UnnamedSurface
-            RenderData.UnnamedSurface := RenderData.CurrentSurface.Bitmap;
+            FilterContext.UnnamedSurface := FilterContext.CurrentSurface.Bitmap;
         end;
       end;
 
-      if (RenderData.UnnamedSurface <> RenderData.CurrentSurface.Bitmap) then
-        ReleaseOffscreenBitmap(RenderData.UnnamedSurface);
+      if (FilterContext.UnnamedSurface <> FilterContext.CurrentSurface.Bitmap) then
+        ReleaseOffscreenBitmap(FilterContext.UnnamedSurface);
 
       // 6. Blend final filtered result surface onto target canvas at full resolution,
       //    clipped to the filter region rect per W3C SVG 1.1 Specification §15.5.
-      if (RenderData.CurrentSurface.Bitmap <> RenderData.SourceGraphic.Bitmap) then
+      if (FilterContext.CurrentSurface.Bitmap <> FilterContext.SourceGraphic.Bitmap) then
       begin
         SaveTargetClipRect := ATarget.ClipRect;
         try
@@ -2428,17 +2428,17 @@ begin
           begin
             ATarget.ClipRect := MakeRect(FilterRegionRect, rrOutside);
 
-            BlendOffscreenSurface(ATarget, RenderData.CurrentSurface.Bitmap, bmNormal,
-              RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
-              RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
+            BlendOffscreenSurface(ATarget, FilterContext.CurrentSurface.Bitmap, bmNormal,
+              FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left,
+              FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Top);
           end else
           begin
             // Non-axis-aligned filter composition (skew/rotation on element or ancestors):
             // Per W3C SVG 1.1 §15.2, filter effects evaluate in local user coordinate space
             // before element/ancestor affine transforms.
             CompositeMat.Matrix := IdentityMatrix;
-            CompositeMat.Translate(RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
-                                   RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
+            CompositeMat.Translate(FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left,
+                                   FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Top);
             CompositeMat.Scale(OneOverS_local, OneOverS_local);
             CompositeMat := CompositeMat * TotalMat;
 
@@ -2446,21 +2446,21 @@ begin
             try
               AffineTransform.Clear(CompositeMat.Matrix);
               DestBounds := AffineTransform.GetTransformedBounds(FloatRect(0, 0,
-                RenderData.CurrentSurface.Bitmap.Width, RenderData.CurrentSurface.Bitmap.Height));
+                FilterContext.CurrentSurface.Bitmap.Width, FilterContext.CurrentSurface.Bitmap.Height));
               DestClip := MakeRect(DestBounds, rrOutside);
 
               if GR32.IntersectRect(DestClip, SaveTargetClipRect, DestClip) then
               begin
 {$if defined(SVG32_HIQ_AFFINE_TRANSFORM)}
-                SetupResampler(RenderData.CurrentSurface.Bitmap, rqHigh);
+                SetupResampler(FilterContext.CurrentSurface.Bitmap, rqHigh);
 {$else}
-                SetupResampler(RenderData.CurrentSurface.Bitmap, rqNormal);
+                SetupResampler(FilterContext.CurrentSurface.Bitmap, rqNormal);
 {$ifend}
 
-                Transform(ATarget, RenderData.CurrentSurface.Bitmap, AffineTransform, DestClip, True);
+                Transform(ATarget, FilterContext.CurrentSurface.Bitmap, AffineTransform, DestClip, True);
 
                 // Bitmap will be returned to the pool, so restore the resampler to something acceptable for all
-                SetupResampler(RenderData.CurrentSurface.Bitmap, rqNormal);
+                SetupResampler(FilterContext.CurrentSurface.Bitmap, rqNormal);
               end;
             finally
               AffineTransform.Free;
@@ -2473,7 +2473,7 @@ begin
       end;
 
     finally
-      RenderData.Finalize;
+      FilterContext.Finalize;
     end;
 
   finally
