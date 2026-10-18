@@ -1895,7 +1895,6 @@ var
   FilterRegionWidth, FilterRegionHeight: Single;
   NodeBounds, UserFilterRegionRect: TFloatRect;
   Pts: array[0..3] of TFloatPoint;
-  Margin, TotalMargin: TFloatRect;
   StrokeColor: TSvgColor;
   HasStroke: boolean;
   FilterNode: TSvgFilterPrimitiveNode;
@@ -2053,8 +2052,7 @@ begin
     FilterBounds := SourceBounds;
 
     // 2. Calculate filter-dependent directional margins (e.g. Gaussian blur radius, offset dx/dy)
-    // and accumulate primitive subregions into FilterBounds
-    TotalMargin := Default(TFloatRect);
+    // and adjust FilterBounds output rectangle
     for Node in AFilterNode.Children do
     begin
       if not (Node is TSvgFilterPrimitiveNode) then
@@ -2065,12 +2063,7 @@ begin
 
       if (FilterRenderer <> nil) then
       begin
-        Margin := FilterRenderer.GetMargins(FilterNode, RenderData);
-
-        TotalMargin.Left := TotalMargin.Left + Margin.Left;
-        TotalMargin.Top := TotalMargin.Top + Margin.Top;
-        TotalMargin.Right := TotalMargin.Right + Margin.Right;
-        TotalMargin.Bottom := TotalMargin.Bottom + Margin.Bottom;
+        FilterRenderer.AdjustOutputRect(FilterNode, RenderData, FilterBounds);
 
         if FilterRenderer.DefaultSubregionIsFilterRegion then
         begin
@@ -2143,11 +2136,7 @@ begin
       end;
     end;
 
-    // 3. Inflate source bounds by filter margins to determine total Filter ROI, then clip to FilterRegionRect
-    FilterBounds.Left := FilterBounds.Left - Ceil(TotalMargin.Left);
-    FilterBounds.Top := FilterBounds.Top - Ceil(TotalMargin.Top);
-    FilterBounds.Right := FilterBounds.Right + Ceil(TotalMargin.Right);
-    FilterBounds.Bottom := FilterBounds.Bottom + Ceil(TotalMargin.Bottom);
+    // 3. Clip FilterBounds to FilterRegionRect to determine total Filter ROI
 
     if FilterBounds.Left < FilterRegionRect.Left then FilterBounds.Left := FilterRegionRect.Left;
     if FilterBounds.Top < FilterRegionRect.Top then FilterBounds.Top := FilterRegionRect.Top;
