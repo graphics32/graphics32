@@ -377,7 +377,12 @@ begin
       E := E + FracVal / Power(10.0, FracLen);
   end;
 
+  // [*] Fix: Ensure that 'e' is followed by exponent digits/sign. This prevents 10em being parse as 10, swallowing the 'e'.
+  (* Old
   if (P < PEnd) and (P^ in ['e', 'E']) then
+  *)
+  if (P < PEnd) and (P^ in ['e', 'E']) and
+     ((P + 1 < PEnd) and ((P[1] in ['0'..'9']) or ((P[1] in ['+', '-']) and (P + 2 < PEnd) and (P[2] in ['0'..'9'])))) then
   begin
     Inc(P);
     ExpSign := False;
@@ -531,7 +536,7 @@ begin
 
   pRes := GetExtended(Text, Value, Text + Len);
 
-  Result := (pRes <> nil);
+  Result := (pRes <> nil) and (pRes <> Text);
 
   if (Result) and (Skip) then
   begin
