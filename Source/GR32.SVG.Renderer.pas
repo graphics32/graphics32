@@ -2150,6 +2150,10 @@ begin
 
     FilterContext.ROI := MakeRect(FilterBounds, rrOutside);
 
+    // Protect against too large subregions -> Exception when allocating surface bitmaps
+    if (Int64(FilterContext.ROI.Width) * Int64(FilterContext.ROI.Height) > TCustomBitmap32.MaxPixelCount) then
+      exit;
+
     // Verify whether the filter ROI is visible on screen before surface allocation.
     // Note: We use the non-mutating IntersectRect so FilterContext.ROI retains its full
     // offscreen pixel dimensions and coordinate origin instead of being truncated/shifted.
@@ -2357,7 +2361,7 @@ begin
           ** Render the filter
           *)
           // Protect against too large subregions -> Exception when allocating surface bitmaps
-          if (FilterContext.CurrentSubregion.Width * FilterContext.CurrentSubregion.Height <= TCustomBitmap32.MaxPixelCount) then
+          if (Int64(FilterContext.CurrentSubregion.Width) * Int64(FilterContext.CurrentSubregion.Height) <= TCustomBitmap32.MaxPixelCount) then
           begin
             FilterRenderer.Render(Self, FilterNode, FilterContext);
 
