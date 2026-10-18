@@ -66,6 +66,7 @@ uses
 procedure TTestSvgTypes.TestSvgLengthParseAndToPixels;
 var
   len: TSvgLength;
+  str: TValuePUtf8Char;
 begin
   len := TSvgLength.Parse('100px');
   CheckEquals(100.0, len.Value, 1E-4);
@@ -96,6 +97,12 @@ begin
   CheckEquals(150.0, len.Value, 1E-4);
   CheckEquals(Ord(suPx), Ord(len.UnitType));
   CheckEquals(150.0, len.ToPixels, 1E-4);
+
+  // Condensed length string where next token starts with negative sign
+  str := TValuePUtf8Char.FromString('270-225');
+  len := TSvgLength.ParseAndSkip(str);
+  CheckEquals(270.0, len.Value, 1E-4);
+  CheckEquals('-225', str.ToString);
 end;
 
 procedure TTestSvgTypes.TestSvgColorParse;

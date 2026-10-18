@@ -1413,9 +1413,8 @@ end;
 
 class function TSvgLength.ParseAndSkip(var AStr: TValuePUtf8Char): TSvgLength;
 var
-  Temp: TValuePUtf8Char;
-  Suffix: TValuePUtf8Char;
   Value: Double;
+  pRes: PUtf8Char;
 begin
   Result.UnitType := suPx;
   Result.Value := 0;
@@ -1425,55 +1424,57 @@ begin
   if (AStr.Len = 0) then
     exit;
 
-  // Find end of value = start of suffix
-  Suffix := AStr;
-  while (Suffix.Len > 0) and ((Suffix.Text^ in ['0'..'9', '.', '-', '+']) or ((Suffix.Text^ in ['e', 'E']) and not (Suffix.Text[1] in ['m', 'M', 'x', 'X']))) do
-    Suffix.Skip;
+  pRes := GetExtended(AStr.Text, Value, AStr.Text + AStr.Len);
+  if (pRes = nil) or (pRes = AStr.Text) then
+    exit;
 
-  // Convert value
-  Temp := AStr;
-  Temp.Len := AStr.Len - Suffix.Len;
-  if Temp.TryToFloat(Value) then
-    Result.Value := Value;
-
-  AStr.Skip(AStr.Len - Suffix.Len);
+  Result.Value := Value;
+  AStr.Skip(pRes - AStr.Text);
 
   // Skip leading spaces
   AStr.Trim;
 
-  // Match and skip AStr
-  case AStr.Text^ of
-    #0: Result.UnitType := suPx;
+  if (AStr.Len > 0) then
+  begin
+    case AStr.Text^ of
+      '%': begin Result.UnitType := suPercent; AStr.Skip; end;
 
-    '%': begin Result.UnitType := suPercent; AStr.Skip; end;
+      'c', 'C':
+        if (AStr.Len >= 2) and (AStr.Text[1] in ['m', 'M']) then
+        begin
+          Result.UnitType := suCm;
+          AStr.Skip(2);
+        end;
 
-    'c':
-      case AStr.Text[1] of
-        'm': begin Result.UnitType := suCm; AStr.Skip(2); end;
-      end;
+      'e', 'E':
+        if (AStr.Len >= 2) then
+          case AStr.Text[1] of
+            'm', 'M': begin Result.UnitType := suEm; AStr.Skip(2); end;
+            'x', 'X': begin Result.UnitType := suEx; AStr.Skip(2); end;
+          end;
 
-    'e':
-      case AStr.Text[1] of
-        'm': begin Result.UnitType := suEm; AStr.Skip(2); end;
-        'x': begin Result.UnitType := suEx; AStr.Skip(2); end;
-      end;
+      'm', 'M':
+        if (AStr.Len >= 2) and (AStr.Text[1] in ['m', 'M']) then
+        begin
+          Result.UnitType := suMm;
+          AStr.Skip(2);
+        end;
 
-    'm':
-      case AStr.Text[1] of
-        'm': begin Result.UnitType := suMm; AStr.Skip(2); end;
-      end;
+      'i', 'I':
+        if (AStr.Len >= 2) and (AStr.Text[1] in ['n', 'N']) then
+        begin
+          Result.UnitType := suIn;
+          AStr.Skip(2);
+        end;
 
-    'i':
-      case AStr.Text[1] of
-        'n': begin Result.UnitType := suIn; AStr.Skip(2); end;
-      end;
-
-    'p':
-      case AStr.Text[1] of
-        'c': begin Result.UnitType := suPc; AStr.Skip(2); end;
-        't': begin Result.UnitType := suPt; AStr.Skip(2); end;
-        'x': begin Result.UnitType := suPx; AStr.Skip(2); end;
-      end;
+      'p', 'P':
+        if (AStr.Len >= 2) then
+          case AStr.Text[1] of
+            'x', 'X': begin Result.UnitType := suPx; AStr.Skip(2); end;
+            't', 'T': begin Result.UnitType := suPt; AStr.Skip(2); end;
+            'c', 'C': begin Result.UnitType := suPc; AStr.Skip(2); end;
+          end;
+    end;
   end;
 
   // Skip trailing spaces

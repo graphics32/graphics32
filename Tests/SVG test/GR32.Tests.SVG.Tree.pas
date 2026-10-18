@@ -1024,6 +1024,24 @@ begin
   pts := CreatePolylinePath('10,10 20,20 30,10', True);
   Check(Length(pts) > 0, 'Polygon path should produce points');
   CheckEquals(4, Length(pts[0])); // Closing path adds start point
+
+  // Condensed Polyline (negative coordinates without spaces/commas)
+  pts := CreatePolylinePath('270-225 300-245 320-225 340-245 280-280 390-280 420-240 280-185', False);
+  Check(Length(pts) > 0, 'Condensed polyline path should produce points');
+  CheckEquals(8, Length(pts[0]));
+  CheckEquals(270.0, pts[0][0].X, 1E-4);
+  CheckEquals(-225.0, pts[0][0].Y, 1E-4);
+  CheckEquals(300.0, pts[0][1].X, 1E-4);
+  CheckEquals(-245.0, pts[0][1].Y, 1E-4);
+
+  // Condensed Polygon (negative coordinates with commas)
+  pts := CreatePolylinePath('179-185,218-203,228-245,202-279,159-280,131-247,139-205', True);
+  Check(Length(pts) > 0, 'Condensed polygon path should produce points');
+  CheckEquals(8, Length(pts[0])); // 7 points + 1 closing point
+  CheckEquals(179.0, pts[0][0].X, 1E-4);
+  CheckEquals(-185.0, pts[0][0].Y, 1E-4);
+  CheckEquals(218.0, pts[0][1].X, 1E-4);
+  CheckEquals(-203.0, pts[0][1].Y, 1E-4);
 end;
 
 procedure TTestSvgTree.TestTransformParsing;

@@ -4845,17 +4845,17 @@ end;
 
 procedure TSvgFeGaussianBlurNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
-  Value1, Value2: TValuePUtf8Char;
+  Value: TValuePUtf8Char;
 begin
   case AKeyword of
     attrStdDeviation:
       begin
-        Value2 := AValue;
-        Value2.Trim;
-        Value1 := Value2.Split(sListSeparators, True);
-        if (Value1.TryToFloat(FStdDeviationX)) then
+        Value := AValue;
+        Value.Trim(sListSeparators);
+        if Value.TryToFloat(FStdDeviationX, True) then
         begin
-          if (not Value2.TryToFloat(FStdDeviationY)) then
+          Value.Trim(sListSeparators);
+          if not Value.TryToFloat(FStdDeviationY, True) then
             FStdDeviationY := FStdDeviationX;
         end;
       end;
@@ -5190,34 +5190,13 @@ begin
 end;
 
 procedure TSvgFeFuncNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
-var
-  Value, Values: TValuePUtf8Char;
-  i: Integer;
 begin
   case AKeyword of
     attrType:
       FFuncType := ParseSvgComponentTransferType(AValue);
 
     attrTableValues:
-      begin
-        Values := AValue;
-        Values.Trim;
-        i := 0;
-        while (Values.Len > 0) do
-        begin
-          Value := Values.Split(sListSeparators, True);
-          if (Value.Len = 0) then
-            break;
-
-          if (i > High(FTableValues)) then
-            SetLength(FTableValues, i + 10);
-
-          if (not Value.TryToFloat(FTableValues[i])) then
-            break;
-          Inc(i);
-        end;
-        SetLength(FTableValues, i);
-      end;
+      FTableValues := ParseFloatArray(AValue);
 
     attrSlope:
       AValue.TryToFloat(FSlope);
@@ -5276,7 +5255,7 @@ end;
 
 procedure TSvgFeDropShadowNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
-  Value1, Value2: TValuePUtf8Char;
+  Value: TValuePUtf8Char;
 begin
   case AKeyword of
     attrDx:
@@ -5287,12 +5266,12 @@ begin
 
     attrStdDeviation:
       begin
-        Value2 := AValue;
-        Value2.Trim;
-        Value1 := Value2.Split(sListSeparators, True);
-        if Value1.TryToFloat(FStdDeviationX) then
+        Value := AValue;
+        Value.Trim(sListSeparators);
+        if Value.TryToFloat(FStdDeviationX, True) then
         begin
-          if not Value2.TryToFloat(FStdDeviationY) then
+          Value.Trim(sListSeparators);
+          if not Value.TryToFloat(FStdDeviationY, True) then
             FStdDeviationY := FStdDeviationX;
         end;
       end;
@@ -6520,7 +6499,7 @@ end;
 
 procedure TSvgFeMorphologyNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
-  Value1, Value2: TValuePUtf8Char;
+  Value: TValuePUtf8Char;
 begin
   case AKeyword of
     attrOperator:
@@ -6528,12 +6507,12 @@ begin
 
     attrRadius:
       begin
-        Value2 := AValue;
-        Value2.Trim;
-        Value1 := Value2.Split(sListSeparators, True);
-        if (Value1.TryToFloat(FRadiusX)) then
+        Value := AValue;
+        Value.Trim(sListSeparators);
+        if Value.TryToFloat(FRadiusX, True) then
         begin
-          if (not Value2.TryToFloat(FRadiusY)) then
+          Value.Trim(sListSeparators);
+          if not Value.TryToFloat(FRadiusY, True) then
             FRadiusY := FRadiusX;
         end;
       end;
@@ -6586,17 +6565,17 @@ end;
 
 procedure TSvgFeTurbulenceNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 var
-  Value1, Value2: TValuePUtf8Char;
+  Value: TValuePUtf8Char;
 begin
   case AKeyword of
     attrBaseFrequency:
       begin
-        Value2 := AValue;
-        Value2.Trim;
-        Value1 := Value2.Split(sListSeparators, True);
-        if Value1.TryToFloat(FBaseFrequencyX) then
+        Value := AValue;
+        Value.Trim(sListSeparators);
+        if Value.TryToFloat(FBaseFrequencyX, True) then
         begin
-          if not Value2.TryToFloat(FBaseFrequencyY) then
+          Value.Trim(sListSeparators);
+          if not Value.TryToFloat(FBaseFrequencyY, True) then
             FBaseFrequencyY := FBaseFrequencyX;
         end;
         if FBaseFrequencyX < 0 then
@@ -6839,18 +6818,12 @@ begin
     attrKernelUnitLength:
       begin
         Values := AValue;
-        Values.Trim;
-        Val1 := Values.Split(sListSeparators, True);
-        if Val1.Len > 0 then
+        Values.Trim(sListSeparators);
+        if Values.TryToFloat(FKernelUnitLengthX, True) then
         begin
-          if Val1.TryToFloat(FKernelUnitLengthX) then
-          begin
-            Val2 := Values.Split(sListSeparators, True);
-            if (Val2.Len > 0) and Val2.TryToFloat(FKernelUnitLengthY) then
-              // Both X and Y parsed
-            else
-              FKernelUnitLengthY := FKernelUnitLengthX;
-          end;
+          Values.Trim(sListSeparators);
+          if not Values.TryToFloat(FKernelUnitLengthY, True) then
+            FKernelUnitLengthY := FKernelUnitLengthX;
         end;
       end;
 
@@ -7229,26 +7202,21 @@ end;
 
 function CreatePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
 var
-  Value: TValuePUtf8Char;
   Count: integer;
   Point: TFloatPoint;
 begin
-  AValues.Trim;
-
   Count := 0;
   SetLength(Result, 1);
   SetLength(Result[0], 16);
 
   while (AValues.Len > 0) do
   begin
-    Value := AValues.Split(sListSeparators, True);
-
-    if (not Value.TryToFloat(Point.X)) then
+    AValues.Trim(sListSeparators);
+    if (not AValues.TryToFloat(Point.X, True)) then
       break;
 
-    Value := AValues.Split(sListSeparators, True);
-
-    if (not Value.TryToFloat(Point.Y)) then
+    AValues.Trim(sListSeparators);
+    if (not AValues.TryToFloat(Point.Y, True)) then
       break;
 
     if (Count > High(Result[0])) then
@@ -7273,8 +7241,8 @@ end;
 
 function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat;
 var
-  Value: TValuePUtf8Char;
   Count: Integer;
+  Val: Single;
 begin
   Values.Trim;
 
@@ -7286,18 +7254,15 @@ begin
 
   while (Values.Len > 0) do
   begin
-    // Trim
-    Value := Values.Split(sListSeparators, True);
-    if (Value.Len = 0) then
-      Break;
+    Values.Trim(sListSeparators);
+    if (not Values.TryToFloat(Val, True)) then
+      break;
 
     if (Count > High(Result)) then
       SetLength(Result, Length(Result) * 2);
 
-    if (not Value.TryToFloat(Result[Count])) then
-      break;
-
-    Inc(count);
+    Result[Count] := Val;
+    Inc(Count);
   end;
 
   SetLength(Result, Count);
@@ -7307,7 +7272,6 @@ end;
 
 function ParseStrokeDashArray(Values: TValuePUtf8Char): TArrayOfFloat;
 var
-  Value: TValuePUtf8Char;
   Count: Integer;
   LengthValue: TSvgLength;
   Pixels: Single;
@@ -7325,14 +7289,14 @@ begin
 
   while (Values.Len > 0) do
   begin
-    Value := Values.Split(sListSeparators, True);
-    if (Value.Len = 0) then
+    Values.Trim(sListSeparators);
+    if (Values.Len = 0) then
       break;
 
-    Len := Value.Len;
-    LengthValue := TSvgLength.ParseAndSkip(Value);
-    if (Len = Value.Len) then
-      exit; // Avoid endless loop on invalid input
+    Len := Values.Len;
+    LengthValue := TSvgLength.ParseAndSkip(Values);
+    if (Len = Values.Len) then
+      break;
 
     Pixels := LengthValue.ToPixels;
     if (Pixels < 0) then
@@ -7375,24 +7339,20 @@ function ParseSvgTransform(AValue: TValuePUtf8Char): TFloatMatrix;
 
   function ExtractParams(Params: TValuePUtf8Char; var ParamValues: TArray<Single>): integer;
   var
-    Value: TValuePUtf8Char;
     Float: Single;
   begin
     Result := 0;
     SetLength(ParamValues, 6);
     while (Params.Len > 0) do
     begin
-      Value := Params.Split(sListSeparators, True);
-      if (Value.Len = 0) then
+      Params.Trim(sListSeparators);
+      if (not Params.TryToFloat(Float, True)) then
         break;
 
-      if (Value.TryToFloat(Float)) then
-      begin
-        if (Result > High(ParamValues)) then
-          SetLength(ParamValues, Length(ParamValues) * 2);
-        ParamValues[Result] := Float;
-        Inc(Result);
-      end;
+      if (Result > High(ParamValues)) then
+        SetLength(ParamValues, Length(ParamValues) * 2);
+      ParamValues[Result] := Float;
+      Inc(Result);
     end;
     // We do not waste time trimming the retuned array
     // SetLength(ParamValues, Result);
