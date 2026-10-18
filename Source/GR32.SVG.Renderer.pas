@@ -1903,7 +1903,7 @@ var
   SpecifiedROI, SaveTargetClipRect, DestClip: TRect;
   IsAxisAligned: Boolean;
   TotalMat, CompositeMat: TFloatMatrixHelper;
-  S_local: Single;
+  S_local, OneOverS_local: Single;
   AffineTransform: TAffineTransformation;
   DestBounds: TFloatRect;
 begin
@@ -1915,7 +1915,7 @@ begin
 
   TotalMat.Matrix := Mult(FTransformation.Matrix, ANode.Transform);
   IsAxisAligned := TotalMat.IsAxisAligned;
-  S_local := 1.0;
+  OneOverS_local := 1.0;
 
   FTransformation.Push;
   try
@@ -1927,7 +1927,9 @@ begin
     begin
       S_local := TotalMat.GetScale;
       if S_local <= 0 then
-        S_local := 1.0;
+        S_local := 1.0
+      else
+        OneOverS_local := 1 / S_local;
       FTransformation.Clear;
       FTransformation.Scale(S_local, S_local);
       RenderData.Scale := S_local;
@@ -2147,8 +2149,37 @@ begin
       Exit;
 
     RenderData.ROI := MakeRect(FilterBounds, rrOutside);
-    if not GR32.IntersectRect(RenderData.ROI, RenderData.ROI, ATarget.BoundsRect) then
-      Exit;
+
+    // Verify whether the filter ROI is visible on screen before surface allocation.
+    // Note: We use the non-mutating IntersectRect so RenderData.ROI retains its full
+    // offscreen pixel dimensions and coordinate origin instead of being truncated/shifted.
+    if IsAxisAligned then
+    begin
+      // For axis-aligned filters, RenderData.ROI is directly in target screen pixel space.
+      if not GR32.IntersectRect(RenderData.ROI, ATarget.BoundsRect) then
+        Exit;
+    end else
+    begin
+      // For non-axis-aligned filters (e.g. skew/rotation), RenderData.ROI is in local
+      // user space (scaled by S_local). Transform local surface bounds to target screen
+      // space to check overlap.
+      CompositeMat.Matrix := IdentityMatrix;
+      CompositeMat.Translate(RenderData.ROI.Left, RenderData.ROI.Top);
+      CompositeMat.Scale(OneOverS_local, OneOverS_local);
+      CompositeMat := CompositeMat * TotalMat;
+
+      AffineTransform := TAffineTransformation.Create;
+      try
+        AffineTransform.Clear(CompositeMat.Matrix);
+        DestBounds := AffineTransform.GetTransformedBounds(FloatRect(0, 0, RenderData.ROI.Width, RenderData.ROI.Height));
+        DestClip := MakeRect(DestBounds, rrOutside);
+
+        if not GR32.IntersectRect(DestClip, ATarget.BoundsRect) then
+          Exit;
+      finally
+        AffineTransform.Free;
+      end;
+    end;
 
     // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions in full screen resolution
     RenderData.SourceGraphic.Bitmap := GetOffscreenBitmap(RenderData.ROI.Width, RenderData.ROI.Height, True);
@@ -2408,7 +2439,7 @@ begin
             CompositeMat.Matrix := IdentityMatrix;
             CompositeMat.Translate(RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
                                    RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
-            CompositeMat.Scale(1.0 / S_local, 1.0 / S_local);
+            CompositeMat.Scale(OneOverS_local, OneOverS_local);
             CompositeMat := CompositeMat * TotalMat;
 
             AffineTransform := TAffineTransformation.Create;

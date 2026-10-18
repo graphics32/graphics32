@@ -116,6 +116,7 @@ type
     procedure TestConicalGradientRendering;
     procedure TestMarkerViewBoxOffset;
     procedure TestFilterPrimitiveUnitsObjectBoundingBox;
+    procedure TestTransformedFilterSmallBitmap;
   end;
 
 implementation
@@ -3963,6 +3964,61 @@ begin
     end;
 
     Check(not HasRed, 'No red pixels should remain visible when lime star offsets over red star with primitiveUnits="objectBoundingBox"');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTransformedFilterSmallBitmap;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  x, y: Integer;
+  HasBlack: Boolean;
+begin
+  xml :=
+    '<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">' +
+    '  <defs>' +
+    '    <filter id="f1" x="-20%" y="-20%" width="140%" height="140%">' +
+    '      <feGaussianBlur stdDeviation="2"/>' +
+    '    </filter>' +
+    '  </defs>' +
+    '  <rect x="200" y="200" width="100" height="100" fill="black" filter="url(#f1)" transform="rotate(15 250 250)"/>' +
+    '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    docNode.Resolve;
+
+    // Render onto a small target bitmap (100x100).
+    // Local user coordinates (200..300) exceed target bitmap bounds (100x100),
+    // but viewBox scaling scales (0..400) down to fit inside (0..100).
+    bmp.SetSize(100, 100);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    HasBlack := False;
+    for y := 0 to bmp.Height - 1 do
+    begin
+      for x := 0 to bmp.Width - 1 do
+      begin
+        if RedComponent(bmp.Pixel[x, y]) < 50 then
+        begin
+          HasBlack := True;
+          Break;
+        end;
+      end;
+      if HasBlack then Break;
+    end;
+
+    Check(HasBlack, 'Non-axis-aligned filtered rect should be visible when rendered onto small output bitmap');
   finally
     renderer.Free;
     bmp.Free;
