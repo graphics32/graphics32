@@ -681,6 +681,8 @@ function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLI
 //------------------------------------------------------------------------------
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF} // TODO : Semantics differ from Delphi IntersectRect
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectRect(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectRect(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRect(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -2660,6 +2662,14 @@ begin
     Dst := Default(TRect);
 end;
 
+function IntersectRect(const R1, R2: TRect): Boolean;
+begin
+  Result := (R1.Left < R2.Right)
+        and (R1.Right > R2.Left)
+        and (R1.Top < R2.Bottom)
+        and (R1.Bottom > R2.Top);
+end;
+
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
 begin
   Dst.Left   := Math.Max(FR1.Left,   FR2.Left);
@@ -2669,6 +2679,14 @@ begin
   Result := (Dst.Right >= Dst.Left) and (Dst.Bottom >= Dst.Top);
   if not Result then
     Dst := Default(TFloatRect);
+end;
+
+function IntersectRect(const R1, R2: TFloatRect): Boolean;
+begin
+  Result := (R1.Left < R2.Right)
+        and (R1.Right > R2.Left)
+        and (R1.Top < R2.Bottom)
+        and (R1.Bottom > R2.Top);
 end;
 
 function IsRectEmpty(const R: TRect): Boolean;
