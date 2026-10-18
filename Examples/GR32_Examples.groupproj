@@ -162,7 +162,7 @@
         <Projects Include="Transformation\Sphere\Sphere.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="General\SVG Viewer\SVGviewer.dproj">
+        <Projects Include="General\SVG\SVGviewer.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -651,13 +651,13 @@
         <MSBuild Projects="Transformation\Sphere\Sphere.dproj" Targets="Make"/>
     </Target>
     <Target Name="SVGviewer">
-        <MSBuild Projects="General\SVG Viewer\SVGviewer.dproj"/>
+        <MSBuild Projects="General\SVG\SVGviewer.dproj"/>
     </Target>
     <Target Name="SVGviewer:Clean">
-        <MSBuild Projects="General\SVG Viewer\SVGviewer.dproj" Targets="Clean"/>
+        <MSBuild Projects="General\SVG\SVGviewer.dproj" Targets="Clean"/>
     </Target>
     <Target Name="SVGviewer:Make">
-        <MSBuild Projects="General\SVG Viewer\SVGviewer.dproj" Targets="Make"/>
+        <MSBuild Projects="General\SVG\SVGviewer.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
         <CallTarget Targets="BlendVsMerge;PixelCombine;TextureBlend;AntiAliasing;ArrowHead;Blurs;ClipperDemo;CubicSpline;Curves;GammaCorrection;GammaBlur;GradFills;GradLines;GradSampler;LineStippling;MeshGradients;Polygons;RenderText;ScatterPlot;TextVPR;ByteMaps;ColorPicker;Image32;Mandelbrot;Rotate;ImgView_Layers;RotLayer;Sprites;Invaders32;NestedSampling;PixelF;Resamplers;ImgWarping;Transform;Visualization;LineSimplification;Grow;Benchmark;PngExplorer;PNG_GR32_Demo;Image32Background;PanAndZoom;PSD_import_export;PSD_bitmap_export;SharpenConvolution;OptimizedRepaint;ResizeAndRotate;ParticleSwarm;PerspectiveCorrection;TransparentForm;ThickLinesTest;WaterEffect;Sphere;SVGviewer"/>

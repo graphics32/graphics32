@@ -124,6 +124,7 @@ type
     SpeedButtonBackground: TSpeedButton;
     SpeedButtonRepaint: TSpeedButton;
     SpeedButtonExternal: TSpeedButton;
+    SpeedButtonLive: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MemoSourceChange(Sender: TObject);
@@ -135,6 +136,8 @@ type
     procedure SpeedButtonBackgroundClick(Sender: TObject);
     procedure SpeedButtonRepaintClick(Sender: TObject);
     procedure SpeedButtonExternalClick(Sender: TObject);
+    procedure SpeedButtonLiveClick(Sender: TObject);
+    procedure Image32Resize(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
     FRenderer: TSvgRenderer;
@@ -278,6 +281,21 @@ begin
     Result := bcsNone;
 end;
 
+procedure TFormSVGviewer.Image32Resize(Sender: TObject);
+var
+  StopWatch: TStopWatch;
+begin
+  if not SpeedButtonLive.Down then
+    exit;
+
+  Image32.SetupBitmap;
+  StopWatch := TStopWatch.StartNew;
+  DoRender;
+  StopWatch.Stop;
+
+  StatusBar.SimpleText := Format('Rendered in %d mS', [StopWatch.ElapsedMilliseconds]);
+end;
+
 procedure TFormSVGviewer.ButtonSaveClick(Sender: TObject);
 var
   Filename: string;
@@ -357,6 +375,8 @@ var
   Benchmark: boolean;
 {$endif}
 begin
+  Update;
+
 {$ifndef FPC}
   Benchmark := False;
 
@@ -440,7 +460,7 @@ begin
     xmlText := UTF8String(ASource);
 
     Image32.Scale := 1.0;
-    Image32.SetupBitmap(True, 0);
+    Image32.SetupBitmap;
 
     Image32.ScrollToCenter;
 
@@ -652,6 +672,12 @@ end;
 procedure TFormSVGviewer.SpeedButtonExternalClick(Sender: TObject);
 begin
   FRenderer.AllowExternalImages := TSpeedButton(Sender).Down;
+end;
+
+procedure TFormSVGviewer.SpeedButtonLiveClick(Sender: TObject);
+begin
+  if TSpeedButton(Sender).Down then
+    Image32Resize(nil);
 end;
 
 procedure TFormSVGviewer.SpeedButtonRepaintClick(Sender: TObject);
