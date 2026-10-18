@@ -124,6 +124,10 @@ type
     OffscreenOffset: TPoint;
     Scale: Single;
     NamedSurfaces: TNamedSurfaces;
+    NodeBounds: TFloatRect;
+    BBoxWidth: Single;
+    BBoxHeight: Single;
+    PrimitiveUnits: TSvgGradientUnits;
 
     // On-demand surfaces
     property SourceAlpha: TSurface read GetSourceAlpha;
@@ -147,7 +151,8 @@ type
     class function NeedsSubSurface(Bitmap: TCustomBitmap32; const Subregion: TRect): boolean; static;
     class procedure CopySurfaceRegion(const ASrc: TSurface; ADst: TCustomBitmap32; const ADstRegion: TRect; CombineOp: TDrawMode = dmOpaque); static;
   public
-    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; virtual;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; overload; virtual;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect; overload; virtual;
     class function GetRoiRect(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TRect; virtual;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); virtual; abstract;
     class function DefaultSubregionIsFilterRegion: Boolean; virtual;
@@ -170,7 +175,7 @@ type
   private
     class procedure ApplyBlur(Renderer: TSvgRenderer; Input, Output: TCustomBitmap32; RadiusX, RadiusY: Single); static;
   public
-    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
   end;
 
@@ -252,7 +257,7 @@ type
 type
   TFilterRendererOffset = class(TFilterRenderer)
   public
-    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
   end;
 
@@ -289,7 +294,7 @@ type
   private
     class procedure ApplyConvolveMatrix(Input, Output: TCustomBitmap32; ConvNode: TSvgFeConvolveMatrixNode; Scale: Single); static;
   public
-    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
   end;
 
@@ -308,7 +313,7 @@ type
   private
     class procedure ApplyMorphology(Input, Output: TCustomBitmap32; Op: TSvgMorphologyOperator; RadiusX, RadiusY: Integer; TempBitmap: TCustomBitmap32 = nil); static;
   public
-    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
   end;
 
@@ -343,7 +348,7 @@ type
 type
   TFilterRendererDropShadow = class(TFilterRenderer)
   public
-    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
   end;
 
@@ -385,7 +390,7 @@ type
     class constructor Create;
     class function GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte; static;
   public
-    class function GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect; override;
+    class function GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect; override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData); override;
   end;
 
@@ -671,6 +676,16 @@ begin
 end;
 
 class function TFilterRenderer.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+var
+  Data: TFilterRenderData;
+begin
+  Data := Default(TFilterRenderData);
+  Data.Scale := Scale;
+  Data.PrimitiveUnits := guUserSpaceOnUse;
+  Result := GetMargins(Node, Data);
+end;
+
+class function TFilterRenderer.GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect;
 begin
   Result := Default(TFloatRect);
 end;
@@ -794,10 +809,19 @@ end;
 //
 //------------------------------------------------------------------------------
 
-class function TFilterRendererGaussianBlur.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+class function TFilterRendererGaussianBlur.GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect;
+var
+  StdDevX, StdDevY: Single;
 begin
-  Result.Left := TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * Scale + 2; // +2 for AA
-  Result.Top := TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * Scale + 2;
+  StdDevX := TSvgFeGaussianBlurNode(Node).StdDeviationX;
+  StdDevY := TSvgFeGaussianBlurNode(Node).StdDeviationY;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    StdDevX := StdDevX * RenderData.BBoxWidth;
+    StdDevY := StdDevY * RenderData.BBoxHeight;
+  end;
+  Result.Left := StdDevX * GaussianSigmaToRadius * RenderData.Scale + 2; // +2 for AA
+  Result.Top := StdDevY * GaussianSigmaToRadius * RenderData.Scale + 2;
   Result.Right := Result.Left;
   Result.Bottom := Result.Top;
 end;
@@ -899,8 +923,15 @@ begin
   RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
   RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
-  RadiusX := TSvgFeGaussianBlurNode(Node).StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
-  RadiusY := TSvgFeGaussianBlurNode(Node).StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
+  RadiusX := TSvgFeGaussianBlurNode(Node).StdDeviationX;
+  RadiusY := TSvgFeGaussianBlurNode(Node).StdDeviationY;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    RadiusX := RadiusX * RenderData.BBoxWidth;
+    RadiusY := RadiusY * RenderData.BBoxHeight;
+  end;
+  RadiusX := RadiusX * GaussianSigmaToRadius * RenderData.Scale;
+  RadiusY := RadiusY * GaussianSigmaToRadius * RenderData.Scale;
 
   TempInput := nil;
   try
@@ -1419,12 +1450,19 @@ end;
 //
 //------------------------------------------------------------------------------
 
-class function TFilterRendererOffset.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+class function TFilterRendererOffset.GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect;
 var
   Dx, Dy: Single;
 begin
-  Dx := TSvgFeOffsetNode(Node).Dx * Scale;
-  Dy := TSvgFeOffsetNode(Node).Dy * Scale;
+  Dx := TSvgFeOffsetNode(Node).Dx;
+  Dy := TSvgFeOffsetNode(Node).Dy;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    Dx := Dx * RenderData.BBoxWidth;
+    Dy := Dy * RenderData.BBoxHeight;
+  end;
+  Dx := Dx * RenderData.Scale;
+  Dy := Dy * RenderData.Scale;
   Result.Left := Max(0.0, -Dx);
   Result.Top := Max(0.0, -Dy);
   Result.Right := Max(0.0, Dx);
@@ -1435,6 +1473,7 @@ class procedure TFilterRendererOffset.Render(Renderer: TSvgRenderer; Node: TSvgF
 var
   Input: TSurface;
   DestX, DestY: integer;
+  Dx, Dy: Single;
 begin
   Input := ResolveSurface(TSvgFeOffsetNode(Node).ResolvedIn1, RenderData);
   if (Input.Bitmap <> RenderData.UnnamedSurface) then
@@ -1449,8 +1488,16 @@ begin
   RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, True);
   RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
-  DestX := Input.Region.Left + Round(TSvgFeOffsetNode(Node).Dx * RenderData.Scale) - RenderData.CurrentSubregion.Left;
-  DestY := Input.Region.Top + Round(TSvgFeOffsetNode(Node).Dy * RenderData.Scale) - RenderData.CurrentSubregion.Top;
+  Dx := TSvgFeOffsetNode(Node).Dx;
+  Dy := TSvgFeOffsetNode(Node).Dy;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    Dx := Dx * RenderData.BBoxWidth;
+    Dy := Dy * RenderData.BBoxHeight;
+  end;
+
+  DestX := Input.Region.Left + Round(Dx * RenderData.Scale) - RenderData.CurrentSubregion.Left;
+  DestY := Input.Region.Top + Round(Dy * RenderData.Scale) - RenderData.CurrentSubregion.Top;
 
   // TODO : Why not simply offset the region and copy the source to the output? Size of output should be size of input
   if not Input.IsEmpty then
@@ -1492,13 +1539,21 @@ end;
 //
 //------------------------------------------------------------------------------
 
-class function TFilterRendererMorphology.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+class function TFilterRendererMorphology.GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect;
 var
   MorphNode: TSvgFeMorphologyNode;
+  RadX, RadY: Single;
 begin
   MorphNode := TSvgFeMorphologyNode(Node);
-  Result.Left := MorphNode.RadiusX * Scale;
-  Result.Top := MorphNode.RadiusY * Scale;
+  RadX := MorphNode.RadiusX;
+  RadY := MorphNode.RadiusY;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    RadX := RadX * RenderData.BBoxWidth;
+    RadY := RadY * RenderData.BBoxHeight;
+  end;
+  Result.Left := RadX * RenderData.Scale;
+  Result.Top := RadY * RenderData.Scale;
   Result.Right := Result.Left;
   Result.Bottom := Result.Top;
 end;
@@ -1509,6 +1564,7 @@ var
   Temp, InputBuf: TCustomBitmap32;
   MorphNode: TSvgFeMorphologyNode;
   RadiusX, RadiusY: Integer;
+  RadX, RadY: Single;
 begin
   MorphNode := TSvgFeMorphologyNode(Node);
   Input := ResolveSurface(MorphNode.ResolvedIn1, RenderData);
@@ -1525,8 +1581,15 @@ begin
   RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, False);
   RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
-  RadiusX := Round(MorphNode.RadiusX * RenderData.Scale);
-  RadiusY := Round(MorphNode.RadiusY * RenderData.Scale);
+  RadX := MorphNode.RadiusX;
+  RadY := MorphNode.RadiusY;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    RadX := RadX * RenderData.BBoxWidth;
+    RadY := RadY * RenderData.BBoxHeight;
+  end;
+  RadiusX := Round(RadX * RenderData.Scale);
+  RadiusY := Round(RadY * RenderData.Scale);
 
   InputBuf := nil;
   try
@@ -1865,16 +1928,27 @@ end;
 //
 //------------------------------------------------------------------------------
 
-class function TFilterRendererDropShadow.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+class function TFilterRendererDropShadow.GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect;
 var
   DropNode: TSvgFeDropShadowNode;
-  BlurRadX, BlurRadY, Dx, Dy: Single;
+  BlurRadX, BlurRadY, Dx, Dy, StdDevX, StdDevY: Single;
 begin
   DropNode := TSvgFeDropShadowNode(Node);
-  BlurRadX := DropNode.StdDeviationX * GaussianSigmaToRadius * Scale + 2;
-  BlurRadY := DropNode.StdDeviationY * GaussianSigmaToRadius * Scale + 2;
-  Dx := DropNode.Dx * Scale;
-  Dy := DropNode.Dy * Scale;
+  StdDevX := DropNode.StdDeviationX;
+  StdDevY := DropNode.StdDeviationY;
+  Dx := DropNode.Dx;
+  Dy := DropNode.Dy;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    StdDevX := StdDevX * RenderData.BBoxWidth;
+    StdDevY := StdDevY * RenderData.BBoxHeight;
+    Dx := Dx * RenderData.BBoxWidth;
+    Dy := Dy * RenderData.BBoxHeight;
+  end;
+  BlurRadX := StdDevX * GaussianSigmaToRadius * RenderData.Scale + 2;
+  BlurRadY := StdDevY * GaussianSigmaToRadius * RenderData.Scale + 2;
+  Dx := Dx * RenderData.Scale;
+  Dy := Dy * RenderData.Scale;
   Result.Left := Max(0.0, -Dx) + BlurRadX;
   Result.Top := Max(0.0, -Dy) + BlurRadY;
   Result.Right := Max(0.0, Dx) + BlurRadX;
@@ -1882,20 +1956,6 @@ begin
 end;
 
 class procedure TFilterRendererDropShadow.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var RenderData: TFilterRenderData);
-var
-  DropNode: TSvgFeDropShadowNode;
-  Input: TSurface;
-  BlurredShadow, InputBuf: TCustomBitmap32;
-  AlphaMap, BlurredAlphaMap: TByteMap;
-  RadiusX, RadiusY: Single;
-  DestX, DestY: Integer;
-  ShadowColor: TColor32Entry;
-  ShadowOpacity: Byte;
-  pIn: PColor32Entry;
-  pAlpha: PByte;
-  pBlurred: PColor32Entry;
-  pBlurredAlpha: PByte;
-  i, PixelCount: Integer;
 
   procedure ApplyBlur8(Src, Dst: TByteMap; RadX, RadY: Single);
   var
@@ -1937,6 +1997,22 @@ var
     end;
   end;
 
+var
+  DropNode: TSvgFeDropShadowNode;
+  Input: TSurface;
+  BlurredShadow, InputBuf: TCustomBitmap32;
+  AlphaMap, BlurredAlphaMap: TByteMap;
+  RadiusX, RadiusY: Single;
+  StdDevX, StdDevY: Single;
+  OffsetX, OffsetY: Single;
+  DestX, DestY: Integer;
+  ShadowColor: TColor32Entry;
+  ShadowOpacity: Byte;
+  pIn: PColor32Entry;
+  pAlpha: PByte;
+  pBlurred: PColor32Entry;
+  pBlurredAlpha: PByte;
+  i, PixelCount: Integer;
 begin
   DropNode := TSvgFeDropShadowNode(Node);
 
@@ -1980,9 +2056,22 @@ begin
       Inc(pAlpha);
     end;
 
+    StdDevX := DropNode.StdDeviationX;
+    StdDevY := DropNode.StdDeviationY;
+    OffsetX := DropNode.Dx * RenderData.Scale;
+    OffsetY := DropNode.Dy * RenderData.Scale;
+
+    if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+    begin
+      StdDevX := StdDevX * RenderData.BBoxWidth;
+      StdDevY := StdDevY * RenderData.BBoxHeight;
+      OffsetX := OffsetX * RenderData.BBoxWidth;
+      OffsetY := OffsetY * RenderData.BBoxHeight;
+    end;
+
     // 2. Apply fast 1-channel blur to 8-bit shadow alpha map
-    RadiusX := DropNode.StdDeviationX * GaussianSigmaToRadius * RenderData.Scale;
-    RadiusY := DropNode.StdDeviationY * GaussianSigmaToRadius * RenderData.Scale;
+    RadiusX := StdDevX * GaussianSigmaToRadius * RenderData.Scale;
+    RadiusY := StdDevY * GaussianSigmaToRadius * RenderData.Scale;
 
     ApplyBlur8(AlphaMap, BlurredAlphaMap, RadiusX, RadiusY);
 
@@ -2000,12 +2089,12 @@ begin
         Inc(pBlurredAlpha);
       end;
 
-      // 4. Composite blurred shadow shifted by (Dx, Dy) and overlay Input at (0, 0)
+      // 4. Composite blurred shadow shifted by (OffsetX, OffsetY) and overlay Input at (0, 0)
       RenderData.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(RenderData.CurrentSubregion.Width, RenderData.CurrentSubregion.Height, True);
       RenderData.CurrentSurface.Region := RenderData.CurrentSubregion;
 
-      DestX := Round(DropNode.Dx * RenderData.Scale);
-      DestY := Round(DropNode.Dy * RenderData.Scale);
+      DestX := Round(OffsetX);
+      DestY := Round(OffsetY);
 
       // Paint the shadow...
       BlockTransfer(RenderData.CurrentSurface.Bitmap, DestX, DestY, RenderData.CurrentSurface.Bitmap.ClipRect,
@@ -2061,6 +2150,11 @@ begin
   TurbNode := TSvgFeTurbulenceNode(Node);
   BaseFreqX := TurbNode.BaseFrequencyX;
   BaseFreqY := TurbNode.BaseFrequencyY;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    if RenderData.BBoxWidth > 0 then BaseFreqX := BaseFreqX / RenderData.BBoxWidth;
+    if RenderData.BBoxHeight > 0 then BaseFreqY := BaseFreqY / RenderData.BBoxHeight;
+  end;
   NumOctaves := TurbNode.NumOctaves;
   Seed := TurbNode.Seed;
   StitchTiles := (TurbNode.StitchTiles = stStitch);
@@ -2131,13 +2225,16 @@ begin
 {$ifend}
 end;
 
-class function TFilterRendererDisplacementMap.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+class function TFilterRendererDisplacementMap.GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect;
 var
   DispNode: TSvgFeDisplacementMapNode;
-  MaxDisp: Single;
+  ScaleVal, MaxDisp: Single;
 begin
   DispNode := TSvgFeDisplacementMapNode(Node);
-  MaxDisp := Abs(DispNode.Scale) * 0.5 * Scale;
+  ScaleVal := DispNode.Scale;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+    ScaleVal := ScaleVal * Max(RenderData.BBoxWidth, RenderData.BBoxHeight);
+  MaxDisp := Abs(ScaleVal) * 0.5 * RenderData.Scale;
   Result.Left := MaxDisp;
   Result.Top := MaxDisp;
   Result.Right := MaxDisp;
@@ -2202,7 +2299,10 @@ begin
       Input2.Bitmap := Buf2;
     end;
 
-    ScaledScale := DispNode.Scale * RenderData.Scale;
+    ScaledScale := DispNode.Scale;
+    if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+      ScaledScale := ScaledScale * Max(RenderData.BBoxWidth, RenderData.BBoxHeight);
+    ScaledScale := ScaledScale * RenderData.Scale;
 
     if (Abs(ScaledScale) < 1e-6) or (Width <= 1) or (Height <= 1) then
     begin
@@ -2313,18 +2413,26 @@ end;
 //
 //------------------------------------------------------------------------------
 
-class function TFilterRendererConvolveMatrix.GetMargins(Node: TSvgFilterPrimitiveNode; Scale: Single): TFloatRect;
+class function TFilterRendererConvolveMatrix.GetMargins(Node: TSvgFilterPrimitiveNode; const RenderData: TFilterRenderData): TFloatRect;
 var
   ConvNode: TSvgFeConvolveMatrixNode;
   TargetX, TargetY: Integer;
+  UnitLenX, UnitLenY: Single;
 begin
   ConvNode := TSvgFeConvolveMatrixNode(Node);
   TargetX := ConvNode.EffectiveTargetX;
   TargetY := ConvNode.EffectiveTargetY;
-  Result.Left := TargetX * ConvNode.KernelUnitLengthX * Scale;
-  Result.Right := (ConvNode.OrderX - 1 - TargetX) * ConvNode.KernelUnitLengthX * Scale;
-  Result.Top := TargetY * ConvNode.KernelUnitLengthY * Scale;
-  Result.Bottom := (ConvNode.OrderY - 1 - TargetY) * ConvNode.KernelUnitLengthY * Scale;
+  UnitLenX := ConvNode.KernelUnitLengthX;
+  UnitLenY := ConvNode.KernelUnitLengthY;
+  if (RenderData.PrimitiveUnits = guObjectBoundingBox) then
+  begin
+    UnitLenX := UnitLenX * RenderData.BBoxWidth;
+    UnitLenY := UnitLenY * RenderData.BBoxHeight;
+  end;
+  Result.Left := TargetX * UnitLenX * RenderData.Scale;
+  Result.Right := (ConvNode.OrderX - 1 - TargetX) * UnitLenX * RenderData.Scale;
+  Result.Top := TargetY * UnitLenY * RenderData.Scale;
+  Result.Bottom := (ConvNode.OrderY - 1 - TargetY) * UnitLenY * RenderData.Scale;
 end;
 
 function OutsideIsVoid(Value, Max: Integer): Integer;

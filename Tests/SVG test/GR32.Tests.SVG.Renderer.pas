@@ -115,6 +115,7 @@ type
     procedure TestThemeFillAndStrokeColor;
     procedure TestConicalGradientRendering;
     procedure TestMarkerViewBoxOffset;
+    procedure TestFilterPrimitiveUnitsObjectBoundingBox;
   end;
 
 implementation
@@ -3905,6 +3906,63 @@ begin
     renderer.RenderDocument(docNode);
     CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Uncolored SVG should render blue when renderer.CurrentColor32 = clBlue32');
 
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFilterPrimitiveUnitsObjectBoundingBox;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  x, y: Integer;
+  HasRed: Boolean;
+begin
+  xml :=
+    '<svg width="480" height="360" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+    '  <defs>' +
+    '    <filter id="obb3" filterUnits="userSpaceOnUse" primitiveUnits="objectBoundingBox" x="-50%" y="-50%" width="200%" height="200%">' +
+    '      <feOffset dx="2" dy="2"/>' +
+    '    </filter>' +
+    '    <polygon id="star" points="300,60 311.755,83.819 338.042,87.639 319.021,106.180 323.511,132.360 300,120 276.488,132.360 280.978,106.180 261.957,87.639 288.244,83.819 300,60 311.755,83.819"/>' +
+    '  </defs>' +
+    '  <g transform="translate(80 0)">' +
+    '    <use xlink:href="#star" transform="translate(-150 150)" fill="red"/>' +
+    '    <use xlink:href="#star" transform="translate(-302 5.1)" fill="lime" filter="url(#obb3)"/>' +
+    '  </g>' +
+    '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    docNode.Resolve;
+    bmp.SetSize(480, 360);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Verify that the lime star offset by primitiveUnits="objectBoundingBox" dx=2 dy=2
+    // covers the underlying red star so that no red pixels remain visible.
+    HasRed := False;
+    for y := 0 to bmp.Height - 1 do
+    begin
+      for x := 0 to bmp.Width - 1 do
+      begin
+        if (RedComponent(bmp.Pixel[x, y]) > 200) and (GreenComponent(bmp.Pixel[x, y]) < 50) and (BlueComponent(bmp.Pixel[x, y]) < 50) then
+        begin
+          HasRed := True;
+          Break;
+        end;
+      end;
+      if HasRed then Break;
+    end;
+
+    Check(not HasRed, 'No red pixels should remain visible when lime star offsets over red star with primitiveUnits="objectBoundingBox"');
   finally
     renderer.Free;
     bmp.Free;

@@ -2007,6 +2007,11 @@ begin
     if BBoxWidth <= 0 then BBoxWidth := 1.0;
     if BBoxHeight <= 0 then BBoxHeight := 1.0;
 
+    RenderData.NodeBounds := NodeBounds;
+    RenderData.BBoxWidth := BBoxWidth;
+    RenderData.BBoxHeight := BBoxHeight;
+    RenderData.PrimitiveUnits := AFilterNode.PrimitiveUnits;
+
     if AFilterNode.FilterUnits = guObjectBoundingBox then
     begin
       // Note: Value returned by ToPixels is always treated as a factor
@@ -2060,7 +2065,7 @@ begin
 
       if (FilterRenderer <> nil) then
       begin
-        Margin := FilterRenderer.GetMargins(FilterNode, RenderData.Scale);
+        Margin := FilterRenderer.GetMargins(FilterNode, RenderData);
 
         TotalMargin.Left := TotalMargin.Left + Margin.Left;
         TotalMargin.Top := TotalMargin.Top + Margin.Top;
