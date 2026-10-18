@@ -103,6 +103,7 @@ type
     procedure TestRoiPolygonRendering;
     procedure TestRoiFilterBlurRendering;
     procedure TestTransformedFilterRendering;
+    procedure TestTransformedFilterTileRendering;
     procedure TestObjectBoundingBoxClipPathRoi;
     procedure TestGradientAndPatternFillOpacity;
     procedure TestPatternTransform;
@@ -688,6 +689,55 @@ begin
 
         // Pixel outside ROI at (20, 20) should remain pure white
         CheckEquals(clWhite32, bmp.Pixel[20, 20], 'Pixel outside ROI at (20, 20) must remain white');
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTransformedFilterTileRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  nonWhitePixels: Integer;
+  x, y: Integer;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg id="svg1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+           '  <filter id="filter1">' +
+           '    <feFlood flood-color="seagreen" x="28" y="28" width="10" height="10"/>' +
+           '    <feOffset dx="5" dy="5"/>' +
+           '    <feTile/>' +
+           '  </filter>' +
+           '  <rect id="rect1" x="40" y="30" width="90" height="75" filter="url(#filter1)" transform="skewX(30) rotate(30)"/>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'Transformed filter tile docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode);
+
+        // Count seagreen pixels rendered on canvas from the transformed tiled filter
+        nonWhitePixels := 0;
+        for y := 0 to 199 do
+          for x := 0 to 199 do
+            if bmp.Pixel[x, y] <> clWhite32 then
+              Inc(nonWhitePixels);
+
+        Check(nonWhitePixels > 100, Format('Transformed filter with feTile should render tiled pattern onto canvas (found %d pixels)', [nonWhitePixels]));
       finally
         renderer.Free;
       end;

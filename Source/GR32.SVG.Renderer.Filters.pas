@@ -2229,9 +2229,8 @@ begin
         end;
       end;
 
-      // Use TLinearResampler for smooth resampling
-      // TODO : This alters the state of a pooled bitmap. Might not be an issue since TLinearResampler is an okay default.
-      TLinearResampler.Create(Input1.Bitmap);
+      TSvgRendererCracker(Renderer).SetupResampler(Input1.Bitmap, rqNormal); // Default resampler is likely TNearestResampler which is fast but looks horrible
+
       Transform(RenderData.CurrentSurface.Bitmap, Input1.Bitmap, RemapTransform);
     finally
       RemapTransform.Free;

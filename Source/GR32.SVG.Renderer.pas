@@ -38,6 +38,17 @@ interface
 {-$define SVG32_ROI_DEBUGDRAW} // Visualize ROI
 {$define SVG32_CACHE_BITMAPS}
 
+// Define SVG32_HIQ_AFFINE_TRANSFORM to perform affine bitmap transformations
+// using TKernelResampler instead of TLinearResampler.
+//
+// By default TLinearResampler is used to perform affine bitmap transformations.
+// Unfortunately this resampler does not handle semitransparency correctly (it
+// resamples straight RGB instead of premultiplied RGB) so it might produce dark
+// edges in the transitions between opaque and transparent pixels.
+// To avoid this problem a kernel resampler (TKernelResampler) can be used
+// instead at the cost of some performance.
+{-$define SVG32_HIQ_AFFINE_TRANSFORM}
+
 uses
   SysUtils, Classes, Graphics, Generics.Collections,
   GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils, GR32_ColorGradients,
@@ -116,6 +127,12 @@ type
     Size: integer;
   end;
 
+  TResamplerQuality = (
+    rqFast,             // Resample using TNearestResampler
+    rqNormal,           // Resample using TLinearResampler
+    rqHigh              // Resample using TKernelResampler
+  );
+
   TSvgRendererResolveExternalFileEvent = procedure(Sender: TObject; const Filename: string; Stream: TStream; var Allow: boolean) of object;
   TSvgRendererResolveFontEvent = procedure(Sender: TObject; const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo);
 
@@ -150,6 +167,8 @@ type
     // If APoint=nil then ATarget is filled directly, otherwise the polypolygon is
     // rendered onto it using the fill/stroke.
     procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; AOpacity: Single; AColor: TSvgColor; const APoints: TArrayOfArrayOfFloatPoint = nil; AFillMode: TPolyFillMode = pfWinding);
+
+    procedure SetupResampler(ABitmap: TCustomBitmap32; AQuality: TResamplerQuality);
 
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
@@ -254,16 +273,6 @@ const
 
 const
   cMaxRecursions = 20;
-
-function GetMatrixScale(const AMatrix: TFloatMatrix): Single;
-var
-  det: Single;
-begin
-  det := AMatrix[0, 0] * AMatrix[1, 1] - AMatrix[0, 1] * AMatrix[1, 0];
-  Result := Sqrt(Abs(det));
-  if Result <= 0 then
-    Result := 1.0;
-end;
 
 function TransformPathPoints(var APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix): TArrayOfArrayOfFloatPoint;
 var
@@ -460,6 +469,25 @@ end;
 procedure TSvgRenderer.SetThemeStrokeColor32(AColor: TColor32);
 begin
   FThemeStrokeColor := TSvgColor.Create(AColor);
+end;
+
+procedure TSvgRenderer.SetupResampler(ABitmap: TCustomBitmap32; AQuality: TResamplerQuality);
+begin
+  case AQuality of
+    rqFast:
+      ABitmap.ResamplerClassName := TNearestResampler.ClassName;
+
+    rqNormal:
+      ABitmap.ResamplerClassName := TLinearResampler.ClassName;
+
+    rqHigh:
+      begin
+        ABitmap.ResamplerClassName := TKernelResampler.ClassName;
+        TKernelResampler(ABitmap.Resampler).KernelClassName := TLinearKernel.ClassName; // Default is TBoxKernel
+      end;
+  end;
+
+  ABitmap.Resampler.PixelAccessMode := pamTransparentEdge; // Required for proper AA
 end;
 
 function TSvgRenderer.GetThemeStrokeColor32: TColor32;
@@ -1102,7 +1130,7 @@ begin
   StrokePoints := nil;
   if (HasStroke) then
   begin
-    MatScale := GetMatrixScale(FTransformation.Matrix);
+    MatScale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
     StrokeWidth := UserStrokeWidth * MatScale;
     ScaledDashArray := nil;
     ScaledOffset := 0;
@@ -1873,7 +1901,12 @@ var
   FilterNode: TSvgFilterPrimitiveNode;
   FilterRenderer: TFilterRendererClass;
   PrimRect: TFloatRect;
-  SpecifiedROI, SaveTargetClipRect: TRect;
+  SpecifiedROI, SaveTargetClipRect, DestClip: TRect;
+  IsAxisAligned: Boolean;
+  TotalMat, CompositeMat: TFloatMatrixHelper;
+  S_local: Single;
+  AffineTransform: TAffineTransformation;
+  DestBounds: TFloatRect;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
@@ -1881,12 +1914,27 @@ begin
   RenderData := TFilterRenderData.Init(Self, ATarget, ANode);
   RenderData.OffscreenOffset := FOffscreenOffset;
 
+  TotalMat.Matrix := Mult(FTransformation.Matrix, ANode.Transform);
+  IsAxisAligned := TotalMat.IsAxisAligned;
+  S_local := 1.0;
+
   FTransformation.Push;
   try
-    ApplyMatrix(ANode.Transform);
+    if IsAxisAligned then
+    begin
+      ApplyMatrix(ANode.Transform);
+      RenderData.Scale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
+    end else
+    begin
+      S_local := TotalMat.GetScale;
+      if S_local <= 0 then
+        S_local := 1.0;
+      FTransformation.Clear;
+      FTransformation.Scale(S_local, S_local);
+      RenderData.Scale := S_local;
+    end;
 
     // 1. Calculate source bounds in screen/target space at full resolution.
-    RenderData.Scale := GetMatrixScale(FTransformation.Matrix);
 
     if ANode is TSvgPathNode then
     begin
@@ -2351,11 +2399,48 @@ begin
         SaveTargetClipRect := ATarget.ClipRect;
         try
 
-          ATarget.ClipRect := MakeRect(FilterRegionRect, rrOutside);
+          if IsAxisAligned then
+          begin
+            ATarget.ClipRect := MakeRect(FilterRegionRect, rrOutside);
 
-          BlendOffscreenSurface(ATarget, RenderData.CurrentSurface.Bitmap, bmNormal,
-            RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
-            RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
+            BlendOffscreenSurface(ATarget, RenderData.CurrentSurface.Bitmap, bmNormal,
+              RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
+              RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
+          end else
+          begin
+            // Non-axis-aligned filter composition (skew/rotation on element or ancestors):
+            // Per W3C SVG 1.1 §15.2, filter effects evaluate in local user coordinate space
+            // before element/ancestor affine transforms.
+            CompositeMat.Matrix := IdentityMatrix;
+            CompositeMat.Translate(RenderData.ROI.Left + RenderData.CurrentSurface.Region.Left,
+                                   RenderData.ROI.Top + RenderData.CurrentSurface.Region.Top);
+            CompositeMat.Scale(1.0 / S_local, 1.0 / S_local);
+            CompositeMat := CompositeMat * TotalMat;
+
+            AffineTransform := TAffineTransformation.Create;
+            try
+              AffineTransform.Clear(CompositeMat.Matrix);
+              DestBounds := AffineTransform.GetTransformedBounds(FloatRect(0, 0,
+                RenderData.CurrentSurface.Bitmap.Width, RenderData.CurrentSurface.Bitmap.Height));
+              DestClip := MakeRect(DestBounds, rrOutside);
+
+              if GR32.IntersectRect(DestClip, SaveTargetClipRect, DestClip) then
+              begin
+{$if defined(SVG32_HIQ_AFFINE_TRANSFORM)}
+                SetupResampler(RenderData.CurrentSurface.Bitmap, rqHigh);
+{$else}
+                SetupResampler(RenderData.CurrentSurface.Bitmap, rqNormal);
+{$ifend}
+
+                Transform(ATarget, RenderData.CurrentSurface.Bitmap, AffineTransform, DestClip, True);
+
+                // Bitmap will be returned to the pool, so restore the resampler to something acceptable for all
+                SetupResampler(RenderData.CurrentSurface.Bitmap, rqNormal);
+              end;
+            finally
+              AffineTransform.Free;
+            end;
+          end;
 
         finally
           ATarget.ClipRect := SaveTargetClipRect;
@@ -2670,7 +2755,6 @@ begin
 
         Bitmap.DrawMode := dmBlend;
         Bitmap.CombineMode := cmMerge;
-        Bitmap.ResamplerClassName := TLinearResampler.ClassName; // Default is likely TNearestResampler which is fast but looks horrible
 
         SourceViewBox := TSvgViewBox.Create(0, 0, Bitmap.Width, Bitmap.Height);
         AspectMat.Matrix := SourceViewBox.GetTransform(ATargetRect, APreserveAspectRatio);
@@ -2699,6 +2783,8 @@ begin
 
           end else
           begin
+
+            SetupResampler(Bitmap, rqNormal); // Default resampler is likely TNearestResampler which is fast but looks horrible
 
             // Transform and render onto target
             Transform(ATarget, Bitmap, FTransformation, DestClip, True);
@@ -2924,7 +3010,7 @@ begin
   // 2. Stroke Rendering
   if (HasStroke) then
   begin
-    MatScale := GetMatrixScale(FTransformation.Matrix);
+    MatScale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
     StrokeWidth := StrokeWidth * MatScale;
 
     ScaledDashArray := nil;

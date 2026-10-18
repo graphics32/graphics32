@@ -497,6 +497,7 @@ type
     function TransformPoint(const P: TFloatPoint): TFloatPoint;
     function IsIdentity: boolean;
     function IsAxisAligned: boolean;
+    function GetScale: Single;
   end;
 
 //------------------------------------------------------------------------------
@@ -1884,6 +1885,16 @@ end;
 class operator TFloatMatrixHelper.Multiply(const Left: TFloatMatrixHelper; const Right: TFloatMatrix): TFloatMatrixHelper;
 begin
   Result.Matrix := Mult(Right, Left.Matrix);
+end;
+
+function TFloatMatrixHelper.GetScale: Single;
+var
+  Det: Single;
+begin
+  Det := Matrix[0, 0] * Matrix[1, 1] - Matrix[0, 1] * Matrix[1, 0];
+  Result := FastSqrtBab1(Abs(Det));
+  if Result <= 0 then
+    Result := 1.0;
 end;
 
 function TFloatMatrixHelper.IsAxisAligned: boolean;
