@@ -93,6 +93,7 @@ type
     procedure TestUserTransformTextSnippet;
     procedure TestImageRendering;
     procedure TestSvgSubDocumentImageScaling;
+    procedure TestSvgSubDocumentImageNoViewBox;
     procedure TestNestedSvgAndCurrentColorRendering;
     procedure TestDocumentAndRendererCurrentColorRendering;
     procedure TestUncoloredSvgGlyphCurrentColorRendering;
@@ -3690,6 +3691,44 @@ begin
     // Outer area inside image viewport but outside green circle (x=55, y=55)
     pEdge := bmp.Pixel[55, 55];
     CheckEquals(clWhite32, pEdge, 'Pixel outside green circle in image viewport should remain background white');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestSvgSubDocumentImageNoViewBox;
+var
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  docNode: TSvgDocumentNode;
+  xml: UTF8String;
+  pInside, pOutside: TColor32;
+begin
+  // SVG image without a viewBox, width=50 height=50 containing a top-left quarter circle path at local (5, 25) -> (25, 5) -> (25, 25) Z
+  // Referencing image has viewport x=50 y=50 width=25 height=25, mapping local shape to parent (55, 75) -> (75, 55) -> (75, 75)
+  xml := '<svg width="200" height="200">' +
+         '  <path d="M55 75 A 20 20 0 0 1 75 55 l 0 20 Z" fill="red"/>' +
+         '  <image x="50" y="50" width="25" height="25" href="data:image/svg+xml;utf8,&lt;svg width=&quot;50&quot; height=&quot;50&quot;&gt;&lt;path d=&quot;M5 25 A 20 20 0 0 1 25 5 l 0 20 Z&quot; fill=&quot;lime&quot;/&gt;&lt;/svg&gt;"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Quarter circle pixel inside the image viewport (x=65, y=65): green path from sub-document renders over red path
+    pInside := bmp.Pixel[65, 65];
+    CheckEquals(clLime32, pInside, 'Sub-document SVG image without viewBox should align top-left and render green shape over red background');
+
+    // Pixel outside image viewport (x=45, y=45) should remain background white
+    pOutside := bmp.Pixel[45, 45];
+    CheckEquals(clWhite32, pOutside, 'Pixel outside image viewport should remain white');
   finally
     renderer.Free;
     bmp.Free;

@@ -2526,8 +2526,8 @@ var
   SubRenderer: TSvgRenderer;
   Bitmap: TBitmap32;
   AspectMat, TotalMat: TFloatMatrixHelper;
-  DestBounds: TFloatRect;
-  DestRect, DestClip: TRect;
+  DestBounds, SubViewportRect: TFloatRect;
+  DestRect, DestClip, SaveTargetClipRect, ImageClipRect: TRect;
   SourceViewBox: TSvgViewBox;
   UTF8Bytes: UTF8String;
   hRef, MimeType: TValuePUtf8Char;
@@ -2592,39 +2592,62 @@ begin
       try
         SubDoc.Resolve;
 
+        // W3C SVG 1.1 Specification §11.6 & §11.8:
+        // An <image> element referencing an SVG document establishes a new viewport defined
+        // by the x, y, width, and height attributes of the <image> element.
         if SubDoc.ViewBox.IsValid then
-          SourceViewBox := SubDoc.ViewBox
-        else
         begin
+          // 1. Referenced SVG has a valid viewBox: map viewBox onto <image> target viewport
+          //    using preserveAspectRatio transformation rules.
+          SourceViewBox := SubDoc.ViewBox;
+          AspectMat.Matrix := SourceViewBox.GetTransform(ATargetRect, APreserveAspectRatio);
+          SubViewportRect := SourceViewBox;
+        end else
+        begin
+          // 2. Referenced SVG has NO viewBox: per W3C SVG 1.1 §11.6, preserveAspectRatio is ignored,
+          //    and the embedded SVG image's top-left corner is aligned with the top-left corner of the
+          //    viewport established by the <image> element without scaling.
           WidthPx := SubDoc.GetSizePx(SubDoc.Width, ATargetRect.Width);
           HeightPx := SubDoc.GetSizePx(SubDoc.Height, ATargetRect.Height);
           if WidthPx <= 0 then
             WidthPx := ATargetRect.Width;
           if HeightPx <= 0 then
             HeightPx := ATargetRect.Height;
-          SourceViewBox := TSvgViewBox.Create(0, 0, WidthPx, HeightPx);
+
+          AspectMat.Matrix := IdentityMatrix;
+          AspectMat.Translate(ATargetRect.Left, ATargetRect.Top);
+          SubViewportRect := FloatRect(0, 0, WidthPx, HeightPx);
         end;
 
-        AspectMat.Matrix := SourceViewBox.GetTransform(ATargetRect, APreserveAspectRatio);
+        // Establish viewport clip rect for the <image> element in target screen space
+        SaveTargetClipRect := ATarget.ClipRect;
+        ImageClipRect := MakeRect(FTransformation.GetTransformedBounds(ATargetRect), rrOutside);
+        if not GR32.IntersectRect(ImageClipRect, SaveTargetClipRect, ImageClipRect) then
+          Exit;
 
         FTransformation.Push;
         try
           ApplyMatrix(AspectMat.Matrix);
 
+          ATarget.ClipRect := ImageClipRect;
+
           SubRenderer := TSvgRenderer.Create(ATarget);
           try
             SubRenderer.FRecursionDepth := FRecursionDepth; // Let's close this little recursion loophole
 
+            // Set FDocumentRoot so SubDoc is recognized as the root document of the sub-renderer
+            // rather than a nested <svg> element, preventing duplicate viewBox transform applications.
             SubRenderer.FDocumentRoot := SubDoc;
             SubRenderer.AllowExternalImages := FAllowExternalImages;
             SubRenderer.Transformation.Clear(FTransformation.Matrix);
-            SubRenderer.ViewportRect := SourceViewBox;
+            SubRenderer.ViewportRect := SubViewportRect;
 
             SubRenderer.RenderNode(ATarget, SubDoc);
           finally
             SubRenderer.Free;
           end;
         finally
+          ATarget.ClipRect := SaveTargetClipRect;
           FTransformation.Pop;
         end;
       finally
