@@ -431,6 +431,7 @@ type
     function GetFontSizePx: Single;
     function GetSizePx(const ALength: TSvgLength; AValue: Single): Single; overload;
     function GetSizePx(const ALength: TSvgLength; const AViewport: TFloatRect): Single; overload; // AViewport = The nearest viewport
+    function GetLetterSpacingPx(const ARefSize: Single = 100.0): Single;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; virtual;
     procedure ParseAttribute(const AName, AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload;
 {$if defined(UNIT_TEST)}
@@ -1624,18 +1625,23 @@ type
 // elements (<text> and <tspan>). It maintains absolute/relative coordinate
 // offsets (x, y, dx, dy) and raw string content.
 //------------------------------------------------------------------------------
+
   TSvgTextPositioningNode = class(TSvgCustomGroupNode)
   private
-    FX: TSvgLength;
-    FY: TSvgLength;
-    FDx: TSvgLength;
-    FDy: TSvgLength;
+    FXArray: TArrayOfSvgLength;
+    FYArray: TArrayOfSvgLength;
+    FDxArray: TArrayOfSvgLength;
+    FDyArray: TArrayOfSvgLength;
     FRotate: TArrayOfFloat;
-    FHasX: Boolean;
-    FHasY: Boolean;
-    FHasDx: Boolean;
-    FHasDy: Boolean;
     FTextContent: UnicodeString;
+    function GetDx: TSvgLength;
+    function GetDy: TSvgLength;
+    function GetX: TSvgLength;
+    function GetY: TSvgLength;
+    function GetHasDx: Boolean;
+    function GetHasDy: Boolean;
+    function GetHasX: Boolean;
+    function GetHasY: Boolean;
   protected
     function DumpNode(Indent: Integer = 0): string; override;
   public
@@ -1643,15 +1649,19 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function GetObjectBoundingBox: TFloatRect; override; // TODO
-    property X: TSvgLength read FX write FX;
-    property Y: TSvgLength read FY write FY;
-    property Dx: TSvgLength read FDx write FDx;
-    property Dy: TSvgLength read FDy write FDy;
+    property X: TSvgLength read GetX;
+    property Y: TSvgLength read GetY;
+    property Dx: TSvgLength read GetDx;
+    property Dy: TSvgLength read GetDy;
+    property XArray: TArrayOfSvgLength read FXArray write FXArray;
+    property YArray: TArrayOfSvgLength read FYArray write FYArray;
+    property DxArray: TArrayOfSvgLength read FDxArray write FDxArray;
+    property DyArray: TArrayOfSvgLength read FDyArray write FDyArray;
     property Rotate: TArrayOfFloat read FRotate write FRotate;
-    property HasX: Boolean read FHasX write FHasX;
-    property HasY: Boolean read FHasY write FHasY;
-    property HasDx: Boolean read FHasDx write FHasDx;
-    property HasDy: Boolean read FHasDy write FHasDy;
+    property HasX: Boolean read GetHasX;
+    property HasY: Boolean read GetHasY;
+    property HasDx: Boolean read GetHasDx;
+    property HasDy: Boolean read GetHasDy;
     property TextContent: UnicodeString read FTextContent write FTextContent;
   end;
 
@@ -1748,6 +1758,7 @@ function CreatePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfAr
 {$ifend}
 
 function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat;
+function ParseLengthArray(Values: TValuePUtf8Char): TArrayOfSvgLength;
 function ParseStrokeDashArray(Values: TValuePUtf8Char): TArrayOfFloat;
 
 
@@ -2718,6 +2729,19 @@ begin
   end;
 end;
 
+function TSvgNode.GetLetterSpacingPx(const ARefSize: Single): Single;
+begin
+  case FLetterSpacing.UnitType of
+    suEm, suEx:
+      Result := FLetterSpacing.ToPixels(TSvgLength.NoDefault, GetFontSizePx);
+
+    suPercent:
+      Result := FLetterSpacing.ToPixels(ARefSize);
+  else
+    Result := FLetterSpacing.ToPixels;
+  end;
+end;
+
 function TSvgNode.KeywordLookup(const AName: TValuePUtf8Char): TSvgAttributeKeyword;
 begin
   if not SvgAttributeKeywordDictionary.Lookup(AName, Result) then
@@ -3552,16 +3576,6 @@ end;
 constructor TSvgTextPositioningNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
-  FX := TSvgLength.Create(0.0, suPx);
-  FY := TSvgLength.Create(0.0, suPx);
-  FDx := TSvgLength.Create(0.0, suPx);
-  FDy := TSvgLength.Create(0.0, suPx);
-  FRotate := nil;
-  FHasX := False;
-  FHasY := False;
-  FHasDx := False;
-  FHasDy := False;
-  FTextContent := '';
 end;
 
 function TSvgTextPositioningNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -3569,15 +3583,11 @@ var
   textRes: TSvgTextPositioningNode;
 begin
   textRes := TSvgTextPositioningNode(inherited Clone(AParent));
-  textRes.FX := FX;
-  textRes.FY := FY;
-  textRes.FDx := FDx;
-  textRes.FDy := FDy;
+  textRes.FXArray := Copy(FXArray);
+  textRes.FYArray := Copy(FYArray);
+  textRes.FDxArray := Copy(FDxArray);
+  textRes.FDyArray := Copy(FDyArray);
   textRes.FRotate := Copy(FRotate);
-  textRes.FHasX := FHasX;
-  textRes.FHasY := FHasY;
-  textRes.FHasDx := FHasDx;
-  textRes.FHasDy := FHasDy;
   textRes.FTextContent := FTextContent;
   Result := textRes;
 end;
@@ -3585,11 +3595,47 @@ end;
 function TSvgTextPositioningNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
-  Result := Result + Format(' (x=%s, y=%s)', [SvgLengthToString(FX), SvgLengthToString(FY)]);
+  Result := Result + Format(' (x=%s, y=%s)', [SvgLengthToString(X), SvgLengthToString(Y)]);
   if Length(FRotate) > 0 then
     Result := Result + Format(' (rotate="%s")', [FloatToString(FRotate[0])]);
   if FTextContent <> '' then
     Result := Result + Format(' (text="%s")', [FTextContent]);
+end;
+
+function TSvgTextPositioningNode.GetDx: TSvgLength;
+begin
+  if (FDxArray <> nil) then
+    Result := FDxArray[0]
+  else
+    Result := TSvgLength.Create(0.0, suPx);
+end;
+
+function TSvgTextPositioningNode.GetDy: TSvgLength;
+begin
+  if (FDyArray <> nil) then
+    Result := FDyArray[0]
+  else
+    Result := TSvgLength.Create(0.0, suPx);
+end;
+
+function TSvgTextPositioningNode.GetHasDx: Boolean;
+begin
+  Result := (FDxArray <> nil);
+end;
+
+function TSvgTextPositioningNode.GetHasDy: Boolean;
+begin
+  Result := (FDyArray <> nil);
+end;
+
+function TSvgTextPositioningNode.GetHasX: Boolean;
+begin
+  Result := (FXArray <> nil);
+end;
+
+function TSvgTextPositioningNode.GetHasY: Boolean;
+begin
+  Result := (FYArray <> nil);
 end;
 
 function TSvgTextPositioningNode.GetObjectBoundingBox: TFloatRect;
@@ -3613,8 +3659,8 @@ begin
     TextWidth := Length(FTextContent) * (FontSizePx * 0.6);
     TextHeight := FontSizePx;
 
-    XPx := FX.ToPixels(100.0) + FDx.ToPixels(100.0);
-    YPx := FY.ToPixels(100.0) + FDy.ToPixels(100.0);
+    XPx := X.ToPixels(100.0) + Dx.ToPixels(100.0);
+    YPx := Y.ToPixels(100.0) + Dy.ToPixels(100.0);
 
     case FTextAnchor of
       taMiddle: XPx := XPx - TextWidth * 0.5;
@@ -3635,32 +3681,36 @@ begin
     Result := ChildBox;
 end;
 
+function TSvgTextPositioningNode.GetX: TSvgLength;
+begin
+  if (FXArray <> nil) then
+    Result := FXArray[0]
+  else
+    Result := TSvgLength.Create(0.0, suPx);
+end;
+
+function TSvgTextPositioningNode.GetY: TSvgLength;
+begin
+  if (FYArray <> nil) then
+    Result := FYArray[0]
+  else
+    Result := TSvgLength.Create(0.0, suPx);
+end;
+
 procedure TSvgTextPositioningNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
 begin
   case AKeyword of
     attrX:
-      begin
-        FX := TSvgLength.Parse(AValue);
-        FHasX := True;
-      end;
+      FXArray := ParseLengthArray(AValue);
 
     attrY:
-      begin
-        FY := TSvgLength.Parse(AValue);
-        FHasY := True;
-      end;
+      FYArray := ParseLengthArray(AValue);
 
     attrDx:
-      begin
-        FDx := TSvgLength.Parse(AValue);
-        FHasDx := True;
-      end;
+      FDxArray := ParseLengthArray(AValue);
 
     attrDy:
-      begin
-        FDy := TSvgLength.Parse(AValue);
-        FHasDy := True;
-      end;
+      FDyArray := ParseLengthArray(AValue);
 
     attrRotate:
       FRotate := ParseFloatArray(AValue);
@@ -6170,13 +6220,21 @@ var
 begin
   if (FProperties.Kind = skPath) then
   begin
-    Result := Copy(FPathData);
-    for i := 0 to High(Result) do
-      Result[i] := RestoreClosedPath(Result[i]);
+    SetLength(Result, Length(FPathData));
+    for i := 0 to High(FPathData) do
+    begin
+      Result[i] := RestoreClosedPath(FPathData[i]);
+      SetLength(Result[i], Length(Result[i])); // Make array unique so call site can mutate it if desired
+    end;
     exit;
   end else
   if (FProperties.Kind in [skPolyline, skPolygon]) then
-    Exit(FPathData);
+  begin
+    SetLength(Result, Length(FPathData));
+    for i := 0 to High(FPathData) do
+      Result[i] := Copy(FPathData[i]);
+    exit;
+  end;
 
   ViewportWidth := AViewport.Width;
   ViewportHeight := AViewport.Height;
@@ -7092,8 +7150,8 @@ end;
 
 function TSvgTextAreaNode.GetObjectBoundingBox: TFloatRect;
 begin
-  Result.Left := GetSizePx(FX, TSvgLength.NoDefault);
-  Result.Top := GetSizePx(FY, TSvgLength.NoDefault);
+  Result.Left := GetSizePx(X, TSvgLength.NoDefault);
+  Result.Top := GetSizePx(Y, TSvgLength.NoDefault);
   Result.Right := Result.Left + GetSizePx(FWidth, TSvgLength.NoDefault);
   Result.Bottom := Result.Top + GetSizePx(FHeight, TSvgLength.NoDefault);
 end;
@@ -7262,6 +7320,41 @@ begin
       SetLength(Result, Length(Result) * 2);
 
     Result[Count] := Val;
+    Inc(Count);
+  end;
+
+  SetLength(Result, Count);
+end;
+
+function ParseLengthArray(Values: TValuePUtf8Char): TArrayOfSvgLength;
+var
+  Count: Integer;
+  LengthValue: TSvgLength;
+  Len: PtrInt;
+begin
+  Values.Trim;
+
+  if (Values.Len = 0) or (Values.CompareText('none')) then
+    Exit(nil);
+
+  Count := 0;
+  SetLength(Result, 8);
+
+  while (Values.Len > 0) do
+  begin
+    Values.Trim(sListSeparators);
+    if (Values.Len = 0) then
+      break;
+
+    Len := Values.Len;
+    LengthValue := TSvgLength.ParseAndSkip(Values);
+    if (Len = Values.Len) then
+      break; // Avoid infinite loop on invalid input
+
+    if (Count > High(Result)) then
+      SetLength(Result, Length(Result) * 2);
+
+    Result[Count] := LengthValue;
     Inc(Count);
   end;
 

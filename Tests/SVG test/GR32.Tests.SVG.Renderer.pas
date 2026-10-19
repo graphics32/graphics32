@@ -117,6 +117,7 @@ type
     procedure TestMarkerViewBoxOffset;
     procedure TestFilterPrimitiveUnitsObjectBoundingBox;
     procedure TestTransformedFilterSmallBitmap;
+    procedure TestTextPathRepeatedRenderNoShift;
   end;
 
 implementation
@@ -4022,6 +4023,75 @@ begin
   finally
     renderer.Free;
     bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTextPathRepeatedRenderNoShift;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer1, renderer2: TSvgRenderer;
+  bmp1, bmp2: TBitmap32;
+  x, y: Integer;
+  IsDifferent: Boolean;
+begin
+  xml :=
+    '<svg width="740" height="660" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+    '  <g transform="translate(-60, -140)">' +
+    '    <g id="group1" transform="matrix(3.954125, 0, 0, 3.954125, -523.0143, -2296.450)">' +
+    '      <path id="path1"' +
+    '        d="M 172.24629,567.04534 C 170.48282,568.99386 169.19421,571.36310 168.54883,573.91249 C 166.63401,581.47640 170.94179,589.90332 178.78126,591.69620 C 184.93079,593.10259 191.77674,589.51703 193.01227,583.07965 C 193.92037,578.34822 191.04825,573.05820 186.01160,572.40134 C 182.70732,571.97040 178.90962,574.15330 178.88598,577.78612"' +
+    '        transform="matrix(0.707107, 0.707107, 0.707107, -0.707107, -356.0688, 926.3581)"' +
+    '        fill="none" stroke="black" stroke-width="0.12645" />' +
+    '      <text id="text1" transform="translate(-0.179946, 0.667297)" font-family="Times New Roman" font-size="23" opacity="0.083" fill="black">' +
+    '        <textPath id="textpath1" xlink:href="#path1">' +
+    '          <tspan id="tspan1" dx="0 0.43187 -0.57582 -0.86374 0.28791 -0.86374 -0.71978 -1.29561 0 0 -0.71978 -2.73517 -1.87143" letter-spacing="-1.5">Excellence Endures</tspan>' +
+    '        </textPath>' +
+    '      </text>' +
+    '    </g>' +
+    '  </g>' +
+    '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp1 := TBitmap32.Create;
+  bmp2 := TBitmap32.Create;
+  renderer1 := TSvgRenderer.Create(bmp1);
+  renderer2 := TSvgRenderer.Create(bmp2);
+  try
+    docNode.Resolve;
+
+    // Render 1
+    bmp1.SetSize(740, 660);
+    bmp1.Clear(clWhite32);
+    renderer1.RenderDocument(docNode);
+
+    // Render 2
+    bmp2.SetSize(740, 660);
+    bmp2.Clear(clWhite32);
+    renderer2.RenderDocument(docNode);
+
+    IsDifferent := False;
+    for y := 0 to bmp1.Height - 1 do
+    begin
+      for x := 0 to bmp1.Width - 1 do
+      begin
+        if bmp1.Pixel[x, y] <> bmp2.Pixel[x, y] then
+        begin
+          IsDifferent := True;
+          Break;
+        end;
+      end;
+      if IsDifferent then Break;
+    end;
+
+    Check(not IsDifferent, 'Second render should produce identical pixel output to first render without path/text shifting');
+  finally
+    renderer1.Free;
+    renderer2.Free;
+    bmp1.Free;
+    bmp2.Free;
     docNode.Free;
   end;
 end;

@@ -3194,12 +3194,6 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       ApplyMatrix(CurrentNode.Transform);
     end;
     try
-      if CurrentNode.HasDx then
-        CurrentDistance := CurrentDistance + CurrentNode.GetSizePx(CurrentNode.Dx, TotalLen);
-
-      if CurrentNode.HasDy then
-        ActiveDy := ActiveDy + CurrentNode.GetSizePx(CurrentNode.Dy, FViewportRect.Height);
-
       Text := CurrentNode.TextContent;
       if (Text <> '') then
       begin
@@ -3239,11 +3233,18 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         CharacterRotationAngle := 0;
         for GlyphIdx := 1 to Length(Text) do
         begin
-          if GlyphIdx - 1 <= High(RotateArray) then
+          if (CurrentNode.HasDx) and (GlyphIdx <= High(CurrentNode.DxArray) + 1) then
+            CurrentDistance := CurrentDistance + CurrentNode.GetSizePx(CurrentNode.DxArray[GlyphIdx - 1], TotalLen);
+
+          if (CurrentNode.HasDy) and (GlyphIdx <= High(CurrentNode.DyArray) + 1) then
+            ActiveDy := ActiveDy + CurrentNode.GetSizePx(CurrentNode.DyArray[GlyphIdx - 1], FViewportRect.Height);
+
+          if (GlyphIdx <= High(RotateArray) + 1) then
             CharacterRotationAngle := RotateArray[GlyphIdx - 1];
 
           CharString[1] := Text[GlyphIdx];
 
+          // Work around for Canvas.MeasureText's LSB/RSB trim
           if (CharString[1] = ' ') then
           begin
             if (IsNaN(ZeroWidth)) then
@@ -3263,7 +3264,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           end else
           begin
             MeasureRect := Canvas.MeasureText(Canvas.Bitmap.BoundsRect, CharString, TextLayout);
-            CharWidth := MeasureRect.Width;
+            CharWidth := MeasureRect.Width + CurrentNode.GetLetterSpacingPx(FViewportRect.Width);
 
             if GetPointAndTangentAtDistance(PathPts, CurrentDistance + CharWidth * 0.5, Point, TangAngle) then
             begin

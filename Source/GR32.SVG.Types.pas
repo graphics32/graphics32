@@ -308,6 +308,7 @@ type
     class function Parse(AStr: TValuePointer): TSvgLength; overload; static;
   end;
 
+  TArrayOfSvgLength = TArray<TSvgLength>;
 
 //------------------------------------------------------------------------------
 //
