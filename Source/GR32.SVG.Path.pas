@@ -38,64 +38,360 @@ uses
   SysUtils, Classes, Math,
   GR32,
   GR32_Paths,
+  GR32_Transforms,
   GR32_Math,
   GR32.SVG.Utf8,
   GR32.SVG.Types;
 
+//------------------------------------------------------------------------------
+//
+//      TSvgPathCommand
+//
+//------------------------------------------------------------------------------
+type
+  TSvgPathCommandKind = (pckMoveTo, pckLineTo, pckCurveTo, pckConicTo, pckEllipticalArc, pckEndPath);
+
+  TSvgPathCommand = record
+    Kind: TSvgPathCommandKind;
+    Closed: Boolean;
+    case TSvgPathCommandKind of
+      pckMoveTo:        (MoveTo:  record P: TFloatPoint; end);
+      pckLineTo:        (LineTo:  record P: TFloatPoint; end);
+      pckCurveTo:       (CurveTo: record C1, C2, P: TFloatPoint; end);
+      pckConicTo:       (ConicTo: record P1, P: TFloatPoint; end);
+      pckEllipticalArc: (Arc:     record EndPoint: TFloatPoint; RadiusX, RadiusY, AngleRad: Single; Part: TArcPart; Direction: TArcDirection; end);
+  end;
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPathCommands
+//
+//------------------------------------------------------------------------------
+type
+  TSvgPathCommands = class(TCustomPath)
+  private type
+    TSvgPathCommandArray = TArray<TSvgPathCommand>;
+    PSvgPathCommand = ^TSvgPathCommand;
+  private
+    FCommands: TArray<TSvgPathCommand>;
+    FCount: Integer;
+    FClosed: boolean;
+    FNextCommand: PSvgPathCommand;
+  protected
+    procedure DoCubicBezierCurve(const P2, P3, P4: TFloatPoint); override;
+    procedure DoQuadraticBezierCurve(const P2, P3: TFloatPoint); override;
+    procedure DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); override;
+    procedure AssignTo(Dest: TPersistent); override;
+    procedure BeginCommand;
+    procedure EndCommand;
+    function GetInProgress: boolean;
+    property NextCommand: PSvgPathCommand read FNextCommand;
+  public
+    constructor Create; override;
+    procedure Clear; override;
+
+    procedure MoveTo(const P: TFloatPoint); override;
+    procedure LineTo(const P: TFloatPoint); override;
+    procedure EndPath(Close: Boolean = False); override;
+
+    function Flatten(ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+
+    property Commands: TSvgPathCommandArray read FCommands;
+    property Count: Integer read FCount;
+    property Closed: boolean read FClosed;
+    property InProgress: boolean read GetInProgress;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      ParseSvgPathData
+//
+//------------------------------------------------------------------------------
+// svg <path> parser
+//------------------------------------------------------------------------------
 procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath);
-function SvgPathDataToPath(const APathData: TValuePUtf8Char): TFlattenedPath; overload;
-// SvgPathDataToPoints includes "Closed" marker. The returned path should
-// only be used with code that can handle this.
-function SvgPathDataToPoints(const APathData: TValuePUtf8Char): TArrayOfArrayOfFloatPoint; overload;
+
 
 {$if defined(UNIT_TEST)}
 function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath; overload;
-function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint; overload;
+function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint;
 {$ifend}
 
-function MakeClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
-function RestoreClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
-function IsClosedPath(const AData: TArrayOfFloatPoint): boolean;
+
+//------------------------------------------------------------------------------
+//
+//      Primitive Shape Converters
+//
+//------------------------------------------------------------------------------
+function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint; overload;
+function CreateCirclePath(Cx, Cy, Radius: Single; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint; overload;
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint; overload;
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint; overload;
+function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
 
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
 uses
-  Types;
+  Types,
+  GR32_VectorUtils;
 
-function IsClosedPath(const AData: TArrayOfFloatPoint): boolean;
+{$if defined(UNIT_TEST)}
+function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath;
+var
+  Data: TValuePUtf8Char;
 begin
-  Result := (Length(AData) > 1) and (IsNaN(AData[High(AData)].X));
+  Data := TValuePUtf8Char.FromString(APathData);
+
+  Result := TFlattenedPath.Create;
+  try
+
+    ParseSvgPathData(Data, Result);
+    Result.EndPath;
+
+  except
+    Result.Free;
+    raise;
+  end;
 end;
 
-function MakeClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
+function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint;
+var
+  Data: TValuePUtf8Char;
+  p: TFlattenedPath;
+  i: integer;
 begin
-  if (AData = nil) then
-    Exit(nil);
+  Data := TValuePUtf8Char.FromString(APathData);
 
-  Result := AData;
+  p := SvgPathDataToPath(APathData);
+  try
 
-  if (Length(AData) = 1) or (AData[High(AData)] <> AData[0]) then
-    SetLength(Result, Length(Result)+1);
+    Result := p.Path;
 
-  Result[High(AData)].X := NaN; // Set "closed" marker
+  finally
+    p.Free;
+  end;
 end;
+{$ifend}
 
-function RestoreClosedPath(const AData: TArrayOfFloatPoint): TArrayOfFloatPoint;
+
+//------------------------------------------------------------------------------
+//
+//      Elliptical Arc Transmogrififier
+//
+//------------------------------------------------------------------------------
+type
+  TTransformedArcProps = record
+    AxisA: TFloatPoint;
+    RadiusX: Single;
+    RadiusY: Single;
+    AngleRad: Single;
+    Sweep: TArcDirection;
+  end;
+
+// Transform elliptical arc radii (rx, ry) and rotation (phi) under matrix M
+// into equivalent orthogonal ellipse parameters (Rx, Ry, PhiWorld) using 2D
+// conjugate diameter decomposition.
+function TransformArcProps(RadiusX, RadiusY, AngleRad: Single; Sweep: TArcDirection;
+  const AMatrix: TFloatMatrix): TTransformedArcProps;
+var
+  SinPhi, CosPhi: Single;
+  UxUser, VxUser: TFloatPoint;
+  UxWorld, VxWorld: TFloatPoint;
+  DotUV, LenUSqr, LenVSqr: Single;
+  Theta0, SinT, CosT: Single;
+  AxisA, AxisB: TFloatPoint;
+  Det: Single;
 begin
-  if (AData = nil) then
-    Exit(nil);
+  GR32_Math.SinCos(AngleRad, SinPhi, CosPhi);
 
+  // 1. User-space semi-axis vectors
+  UxUser := FloatPoint(RadiusX * CosPhi, RadiusX * SinPhi);
+  VxUser := FloatPoint(-RadiusY * SinPhi, RadiusY * CosPhi);
 
-  if (Length(AData) > 1) and (IsNaN(AData[High(AData)].X)) then
+  // 2. Transform semi-axis vectors to world space using 2x2 matrix portion of AMatrix
+  UxWorld.X := UxUser.X * AMatrix[0, 0] + UxUser.Y * AMatrix[1, 0];
+  UxWorld.Y := UxUser.X * AMatrix[0, 1] + UxUser.Y * AMatrix[1, 1];
+
+  VxWorld.X := VxUser.X * AMatrix[0, 0] + VxUser.Y * AMatrix[1, 0];
+  VxWorld.Y := VxUser.X * AMatrix[0, 1] + VxUser.Y * AMatrix[1, 1];
+
+  // 3. Find parameter angle theta0 where distance from center reaches maximum
+  DotUV := UxWorld.X * VxWorld.X + UxWorld.Y * VxWorld.Y;
+  LenUSqr := UxWorld.X * UxWorld.X + UxWorld.Y * UxWorld.Y;
+  LenVSqr := VxWorld.X * VxWorld.X + VxWorld.Y * VxWorld.Y;
+
+  if Abs(DotUV) < 1e-6 then
+    Theta0 := 0
+  else
+    Theta0 := 0.5 * ArcTan2(2.0 * DotUV, LenUSqr - LenVSqr);
+
+  GR32_Math.SinCos(Theta0, SinT, CosT);
+
+  // 4. Calculate world-space orthogonal principal semi-major & semi-minor axis vectors
+  AxisA.X := UxWorld.X * CosT + VxWorld.X * SinT;
+  AxisA.Y := UxWorld.Y * CosT + VxWorld.Y * SinT;
+
+  AxisB.X := -UxWorld.X * SinT + VxWorld.X * CosT;
+  AxisB.Y := -UxWorld.Y * SinT + VxWorld.Y * CosT;
+
+  Result.AxisA := AxisA;
+  Result.RadiusX := GR32_Math.Hypot(AxisA.X, AxisA.Y);
+  Result.RadiusY := GR32_Math.Hypot(AxisB.X, AxisB.Y);
+  Result.AngleRad := ArcTan2(AxisA.Y, AxisA.X);
+
+  // 5. If matrix determinant is negative (reflection transform), flip sweep direction
+  Det := AMatrix[0, 0] * AMatrix[1, 1] - AMatrix[0, 1] * AMatrix[1, 0];
+  if Det < 0 then
   begin
-    Result := Copy(AData); // Don't mess with the original
-    Result[High(AData)] := Result[0]; // Clear "closed" marker
+    if Sweep = adPositive then
+      Result.Sweep := adNegative
+    else
+      Result.Sweep := adPositive;
   end else
-    Result := AData;
+    Result.Sweep := Sweep;
 end;
 
+//------------------------------------------------------------------------------
+//
+//      Primitive Shape Converters
+//
+//------------------------------------------------------------------------------
+function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+var
+  Path: TFlattenedPath;
+begin
+  if (Width <= 0) or (Height <= 0) then
+    Exit(nil);
+
+  if (Rx <= 0) and (Ry <= 0) then
+  begin
+    Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Rectangle(FloatRect(X, Y, X + Width, Y + Height)));
+    Exit;
+  end;
+
+  if Rx <= 0 then Rx := Ry;
+  if Ry <= 0 then Ry := Rx;
+  Rx := Min(Rx, Width * 0.5);
+  Ry := Min(Ry, Height * 0.5);
+
+  Path := TFlattenedPath.Create;
+  try
+    Path.MoveTo(X + Rx, Y);
+    Path.LineTo(X + Width - Rx, Y);
+    Path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Ry), Rx, Ry, 0, -Pi * 0.5, 0);
+    Path.LineTo(X + Width, Y + Height - Ry);
+    Path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Height - Ry), Rx, Ry, 0, 0, Pi * 0.5);
+    Path.LineTo(X + Rx, Y + Height);
+    Path.EllipticalArc(FloatPoint(X + Rx, Y + Height - Ry), Rx, Ry, 0, Pi * 0.5, Pi);
+    Path.LineTo(X, Y + Ry);
+    Path.EllipticalArc(FloatPoint(X + Rx, Y + Ry), Rx, Ry, 0, Pi, Pi * 1.5);
+    Path.EndPath(True);
+    Result := Path.Path;
+  finally
+    Path.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+function CreateCirclePath(Cx, Cy, Radius: Single): TArrayOfArrayOfFloatPoint;
+begin
+  if (Radius <= 0) then
+    Exit(nil);
+
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Circle(FloatPoint(Cx, Cy), Radius));
+end;
+
+function CreateCirclePath(Cx, Cy, Radius: Single; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+var
+  Path: TFlattenedPath;
+  ArcProps: TTransformedArcProps;
+  WorldCenter, StartPt, MidPt: TFloatPoint;
+begin
+  if (Radius <= 0) then
+    Exit(nil);
+
+  // Convert circle to two elliptical arcs, transform, and flatten
+  Path := TFlattenedPath.Create;
+  try
+    WorldCenter := ATransformation.Transform(FloatPoint(Cx, Cy));
+    ArcProps := TransformArcProps(Radius, Radius, 0.0, adPositive, ATransformation.Matrix);
+
+    StartPt := FloatPoint(WorldCenter.X + ArcProps.AxisA.X, WorldCenter.Y + ArcProps.AxisA.Y);
+    MidPt := FloatPoint(WorldCenter.X - ArcProps.AxisA.X, WorldCenter.Y - ArcProps.AxisA.Y);
+
+    Path.MoveTo(StartPt);
+    Path.EllipticalArc(MidPt, ArcProps.RadiusX, ArcProps.RadiusY, ArcProps.AngleRad, apMinor, ArcProps.Sweep);
+    Path.EllipticalArc(StartPt, ArcProps.RadiusX, ArcProps.RadiusY, ArcProps.AngleRad, apMinor, ArcProps.Sweep);
+
+    Path.EndPath(True);
+    Result := Path.Path;
+  finally
+    Path.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
+begin
+  if (Rx <= 0) or (Ry <= 0) then
+    Exit(nil);
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry));
+end;
+
+function CreateEllipsePath(Cx, Cy, Rx, Ry: Single; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+var
+  Path: TFlattenedPath;
+  ArcProps: TTransformedArcProps;
+  WorldCenter, StartPt, MidPt: TFloatPoint;
+begin
+  if (Rx <= 0) or (Ry <= 0) then
+    Exit(nil);
+
+  // Convert ellipse to two elliptical arcs, transform, and flatten
+  Path := TFlattenedPath.Create;
+  try
+    WorldCenter := ATransformation.Transform(FloatPoint(Cx, Cy));
+
+    // Transform elliptical arc parameters from user to world space
+    ArcProps := TransformArcProps(Rx, Ry, 0.0, adPositive, ATransformation.Matrix);
+
+    StartPt := FloatPoint(WorldCenter.X + ArcProps.AxisA.X, WorldCenter.Y + ArcProps.AxisA.Y);
+    MidPt := FloatPoint(WorldCenter.X - ArcProps.AxisA.X, WorldCenter.Y - ArcProps.AxisA.Y);
+
+    Path.MoveTo(StartPt);
+
+    Path.EllipticalArc(MidPt, ArcProps.RadiusX, ArcProps.RadiusY, ArcProps.AngleRad, apMinor, ArcProps.Sweep);
+    Path.EllipticalArc(StartPt, ArcProps.RadiusX, ArcProps.RadiusY, ArcProps.AngleRad, apMinor, ArcProps.Sweep);
+
+    Path.EndPath(True);
+    Result := Path.Path;
+  finally
+    Path.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
+begin
+  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Line(X1, Y1, X2, Y2));
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPathScanner
+//
+//------------------------------------------------------------------------------
 type
   TSvgPathScanner = record
   private
@@ -201,6 +497,11 @@ begin
     Result := False;
 end;
 
+//------------------------------------------------------------------------------
+//
+//      ParseSvgPathData
+//
+//------------------------------------------------------------------------------
 procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath);
 var
   LastCommand: AnsiChar;
@@ -458,8 +759,8 @@ begin
 
           if IsRel then
           begin
-            CurrentPoint.X := APath.CurrentPoint.X + Value4;
-            CurrentPoint.Y := APath.CurrentPoint.Y + Value5;
+            CurrentPoint.X := CurrentPoint.X + Value4;
+            CurrentPoint.Y := CurrentPoint.Y + Value5;
           end else
           begin
             CurrentPoint.X := Value4;
@@ -482,51 +783,204 @@ begin
   end;
 end;
 
-{$if defined(UNIT_TEST)}
-function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath;
+//------------------------------------------------------------------------------
+//
+//      TSvgPathCommands
+//
+//------------------------------------------------------------------------------
+constructor TSvgPathCommands.Create;
 begin
-   Result := SvgPathDataToPath(TValuePUtf8Char.FromString(APathData));
+  inherited Create;
+  FCount := 0;
+  SetLength(FCommands, 16);
 end;
-{$ifend}
 
-function SvgPathDataToPath(const APathData: TValuePUtf8Char): TFlattenedPath;
+procedure TSvgPathCommands.Clear;
 begin
-  Result := TFlattenedPath.Create;
-  try
+  inherited Clear;
+  FCount := 0;
+end;
 
-    ParseSvgPathData(APathData, Result);
-    Result.EndPath;
+procedure TSvgPathCommands.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+  if (Dest is TSvgPathCommands) then
+  begin
+    TSvgPathCommands(Dest).FCommands := Copy(FCommands);
+    TSvgPathCommands(Dest).FCount := FCount;
+    TSvgPathCommands(Dest).FClosed := FClosed;
+  end else
+    inherited;
+end;
 
-  except
-    Result.Free;
-    raise;
+procedure TSvgPathCommands.BeginCommand;
+begin
+  if (FCount >= Length(FCommands)) then
+    SetLength(FCommands, Length(FCommands) * 2);
+
+  FNextCommand := @FCommands[Count];
+end;
+
+procedure TSvgPathCommands.EndCommand;
+begin
+  Inc(FCount);
+  FNextCommand := nil;
+end;
+
+procedure TSvgPathCommands.MoveTo(const P: TFloatPoint);
+begin
+  inherited MoveTo(P);
+
+  BeginCommand;
+  begin
+    NextCommand.Kind := pckMoveTo;
+    NextCommand.MoveTo.P := P;
   end;
+  EndCommand;
 end;
 
-{$if defined(UNIT_TEST)}
-function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint;
+procedure TSvgPathCommands.LineTo(const P: TFloatPoint);
 begin
-   Result := SvgPathDataToPoints(TValuePUtf8Char.FromString(APathData));
-end;
-{$ifend}
+  inherited LineTo(P);
 
-function SvgPathDataToPoints(const APathData: TValuePUtf8Char): TArrayOfArrayOfFloatPoint;
+  BeginCommand;
+  begin
+    NextCommand.Kind := pckLineTo;
+    NextCommand.LineTo.P := P;
+  end;
+  EndCommand;
+end;
+
+procedure TSvgPathCommands.DoCubicBezierCurve(const P2, P3, P4: TFloatPoint);
+begin
+  BeginCommand;
+  begin
+    NextCommand.Kind := pckCurveTo;
+    NextCommand.CurveTo.C1 := P2;
+    NextCommand.CurveTo.C2 := P3;
+    NextCommand.CurveTo.P := P4;
+  end;
+  EndCommand;
+end;
+
+procedure TSvgPathCommands.DoQuadraticBezierCurve(const P2, P3: TFloatPoint);
+begin
+  BeginCommand;
+  begin
+    NextCommand.Kind := pckConicTo;
+    NextCommand.ConicTo.P1 := P2;
+    NextCommand.ConicTo.P := P3;
+  end;
+  EndCommand;
+end;
+
+procedure TSvgPathCommands.DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);
+begin
+  BeginCommand;
+  begin
+    NextCommand.Kind := pckEllipticalArc;
+    NextCommand.Arc.EndPoint := AEndPoint;
+    NextCommand.Arc.RadiusX := ARadiusX;
+    NextCommand.Arc.RadiusY := ARadiusY;
+    NextCommand.Arc.AngleRad := ARotation;
+    NextCommand.Arc.Part := APart;
+    NextCommand.Arc.Direction := ASweep;
+  end;
+  EndCommand;
+end;
+
+procedure TSvgPathCommands.EndPath(Close: Boolean);
+begin
+  if (not InProgress) then
+    exit;
+
+  inherited EndPath(Close);
+
+  FClosed := Close;
+
+  BeginCommand;
+  begin
+    NextCommand.Kind := pckEndPath;
+    NextCommand.Closed := Close;
+  end;
+  EndCommand;
+end;
+
+function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
 var
-  p: TFlattenedPath;
-  i: integer;
+  Scale: Single;
+
+  procedure ReplayCommands(Path: TFlattenedPath);
+  var
+    i: Integer;
+    ArcProps: TTransformedArcProps;
+  begin
+    for i := 0 to FCount - 1 do
+    begin
+      case FCommands[i].Kind of
+        pckMoveTo:
+          Path.MoveTo(ATransformation.Transform(FCommands[i].MoveTo.P));
+
+        pckLineTo:
+          Path.LineTo(ATransformation.Transform(FCommands[i].LineTo.P));
+
+        pckCurveTo:
+          Path.CurveTo(ATransformation.Transform(FCommands[i].CurveTo.C1), ATransformation.Transform(FCommands[i].CurveTo.C2), ATransformation.Transform(FCommands[i].CurveTo.P));
+
+        pckConicTo:
+          Path.ConicTo(ATransformation.Transform(FCommands[i].ConicTo.P1), ATransformation.Transform(FCommands[i].ConicTo.P));
+
+        pckEllipticalArc:
+          begin
+            if (not TFloatMatrixHelper(ATransformation.Matrix).IsAxisAligned) then
+            begin
+              // Transforms elliptical arc parameters from user to world space
+              ArcProps := TransformArcProps(FCommands[i].Arc.RadiusX, FCommands[i].Arc.RadiusY,
+                FCommands[i].Arc.AngleRad, FCommands[i].Arc.Direction, ATransformation.Matrix);
+
+              Path.EllipticalArc(ATransformation.Transform(FCommands[i].Arc.EndPoint), ArcProps.RadiusX, ArcProps.RadiusY,
+                ArcProps.AngleRad, FCommands[i].Arc.Part, ArcProps.Sweep);
+            end else
+            begin
+              if (IsNaN(Scale)) then
+                Scale := TFloatMatrixHelper(ATransformation.Matrix).GetScale;
+
+              Path.EllipticalArc(ATransformation.Transform(FCommands[i].Arc.EndPoint), FCommands[i].Arc.RadiusX * Scale, FCommands[i].Arc.RadiusY * Scale,
+                FCommands[i].Arc.AngleRad, FCommands[i].Arc.Part, FCommands[i].Arc.Direction);
+            end;
+          end;
+
+        pckEndPath:
+          Path.EndPath(FCommands[i].Closed);
+      end;
+    end;
+  end;
+
+var
+  Path: TFlattenedPath;
 begin
-  p := SvgPathDataToPath(APathData);
+  if FCount = 0 then
+    Exit(nil);
+
+  Scale := NaN;
+
+  Path := TFlattenedPath.Create;
   try
 
-    Result := p.Path;
+    ReplayCommands(Path);
 
-    for i := 0 to High(Result) do
-      if (p.PathClosed[i]) then
-        Result[i] := MakeClosedPath(Result[i]);
+    Path.EndPath;
+
+    Result := Path.Path;
 
   finally
-    p.Free;
+    Path.Free;
   end;
+end;
+
+function TSvgPathCommands.GetInProgress: boolean;
+begin
+  Result := (FCount > 0) and (FCommands[FCount-1].Kind <> pckEndPath);
 end;
 
 end.

@@ -118,6 +118,7 @@ type
     procedure TestFilterPrimitiveUnitsObjectBoundingBox;
     procedure TestTransformedFilterSmallBitmap;
     procedure TestTextPathRepeatedRenderNoShift;
+    procedure TestShapeFlatteningAtLargeCanvasScale;
   end;
 
 implementation
@@ -4092,6 +4093,66 @@ begin
     renderer2.Free;
     bmp1.Free;
     bmp2.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestShapeFlatteningAtLargeCanvasScale;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  pathNode, circleNode: TSvgPathNode;
+  ptsSmallScale, ptsLargeScale: TArrayOfArrayOfFloatPoint;
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+begin
+  // SVG defined in a tiny 10x10 viewBox with bezier curves and circle
+  xml := '<svg viewBox="0 0 10 10" width="10" height="10">' +
+         '  <path id="curve" d="M 0 0 C 10 0 0 10 10 10" fill="none" stroke="red"/>' +
+         '  <circle id="c1" cx="5" cy="5" r="4" fill="blue"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should parse');
+  try
+    pathNode := TSvgPathNode(docNode.FindNodeById('curve'));
+    circleNode := TSvgPathNode(docNode.FindNodeById('c1'));
+    Check(pathNode <> nil, 'curve node should exist');
+    Check(circleNode <> nil, 'c1 node should exist');
+
+    // Verify path commands were recorded at parse time (no string parsing at render time)
+    Check(pathNode.PathCommands.Count > 0, 'Path commands should be pre-parsed at XML parse time');
+
+    // Flatten at 1:1 scale (viewBox scale = 1.0)
+    ptsSmallScale := pathNode.GetPathData(FloatRect(0, 0, 10, 10), 1.0);
+
+    // Flatten at 100x scale (viewBox rendered onto 1000x1000 canvas)
+    ptsLargeScale := pathNode.GetPathData(FloatRect(0, 0, 10, 10), 100.0);
+
+    // At 100x scale, curve tolerance is reduced so more points are generated for smooth rendering
+    Check(Length(ptsLargeScale[0]) > Length(ptsSmallScale[0]), 'Path flattened at 100x scale should contain more points for smooth rendering');
+
+    // Similarly check circle tessellation steps at 100x scale vs 1x scale
+    ptsSmallScale := circleNode.GetPathData(FloatRect(0, 0, 10, 10), 1.0);
+    ptsLargeScale := circleNode.GetPathData(FloatRect(0, 0, 10, 10), 100.0);
+    Check(Length(ptsLargeScale[0]) > Length(ptsSmallScale[0]), 'Circle flattened at 100x scale should contain more tessellation steps');
+
+    // Verify rendering onto a large 1000x1000 bitmap executes without error
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(1000, 1000);
+      bmp.Clear(clWhite32);
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode, FloatRect(0, 0, 1000, 1000));
+        Check(bmp.Pixel[500, 500] <> clWhite32, 'Rendered circle should paint pixels on target canvas');
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
+  finally
     docNode.Free;
   end;
 end;

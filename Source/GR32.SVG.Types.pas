@@ -499,6 +499,9 @@ type
     function IsIdentity: boolean;
     function IsAxisAligned: boolean;
     function GetScale: Single;
+    function GetScaleX: Single; // Axis aligned X scale
+    function GetScaleY: Single; // Axis aligned Y scale
+    function GetScaleXY: Single; // Axis aligned XY scale (e.g. radius)
   end;
 
 //------------------------------------------------------------------------------
@@ -1897,6 +1900,21 @@ begin
   Result := FastSqrtBab1(Abs(Det));
   if Result <= 0 then
     Result := 1.0;
+end;
+
+function TFloatMatrixHelper.GetScaleX: Single;
+begin
+  Result := Matrix[0, 0];
+end;
+
+function TFloatMatrixHelper.GetScaleXY: Single;
+begin
+  Result := FastSqrtBab1(Matrix[0, 0] * Matrix[0, 0] + Matrix[1, 1] * Matrix[1, 1]);
+end;
+
+function TFloatMatrixHelper.GetScaleY: Single;
+begin
+  Result := Matrix[1, 1];
 end;
 
 function TFloatMatrixHelper.IsAxisAligned: boolean;

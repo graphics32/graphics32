@@ -2664,7 +2664,7 @@ begin
   // 1. Internal element reference resolved at tree resolution time (e.g. href="#elementID")
   if (ImageNode.ResolvedTargetNode <> nil) then
   begin
-    SrcBounds := ImageNode.ResolvedTargetNode.GetObjectBoundingBox;
+    SrcBounds := ImageNode.ResolvedTargetNode.GetObjectBoundingBox(Renderer.ViewportRect);
     if (SrcBounds.Right <= SrcBounds.Left) or (SrcBounds.Bottom <= SrcBounds.Top) then
       SrcBounds := FloatRect(0, 0, Width, Height);
 

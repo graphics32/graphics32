@@ -38,6 +38,7 @@ uses
   SysUtils, Classes, Generics.Collections,
   GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils,
   GR32.SVG.Types,
+  GR32.SVG.Path,
   GR32.SVG.Utf8;
 
 type
@@ -427,7 +428,8 @@ type
     function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; virtual;
     function GetDocumentNode: TSvgNode; // Guaranteed to be a TSvgDocumentNode or nil
     function GetViewportRect: TFloatRect; // Viewport of document node or null. Will likely be removed as we more likely need the render-time viewport
-    function GetObjectBoundingBox: TFloatRect; virtual; // TODO : Should take Viewport as parameter to pass on to GetSizePx
+    // GetObjectBoundingBox: Calculates the tight axis-aligned bounding box of the node in local untransformed coordinates.
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; virtual;
     function GetFontSizePx: Single;
     function GetSizePx(const ALength: TSvgLength; AValue: Single): Single; overload;
     function GetSizePx(const ALength: TSvgLength; const AViewport: TFloatRect): Single; overload; // AViewport = The nearest viewport
@@ -510,7 +512,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    function GetObjectBoundingBox: TFloatRect; override;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     procedure AddChild(AChild: TSvgNode);
     property Children: TObjectList<TSvgNode> read FChildren;
   end;
@@ -555,7 +557,7 @@ type
     function GetElementTag: UTF8String; override;
   public
     function GetSelectedChild: TSvgNode;
-    function GetObjectBoundingBox: TFloatRect; override;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     property SelectedChild: TSvgNode read FSelectedChild write FSelectedChild;
   end;
 
@@ -1360,23 +1362,25 @@ type
     FWidth: TSvgLength;
     FHeight: TSvgLength;
     FProperties: TPathNodeProperties;
+    FPathCommands: TSvgPathCommands;
+    FPolyPoints: TArrayOfFloatPoint;
     FCachedViewportWidth: Single;
     FCachedViewportHeight: Single;
-    FPathData: TArrayOfArrayOfFloatPoint;
-    function GetPathDataProp: TArrayOfArrayOfFloatPoint;
+    FCachedMatrix: TFloatMatrix;
+    FCachedPathData: TArrayOfArrayOfFloatPoint;
   protected
     function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
   public
     constructor Create(AParent: TSvgNode = nil); override;
+    destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    function GetObjectBoundingBox: TFloatRect; override;
-    function GetPathData: TArrayOfArrayOfFloatPoint; overload;
-    function GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint; overload;
-    function GetPathData(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint; overload;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+    function GetControlPoints(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
     function IsPathClosed(Index: Integer): Boolean;
     property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
-    property PathData: TArrayOfArrayOfFloatPoint read GetPathDataProp write FPathData;
+    property PathCommands: TSvgPathCommands read FPathCommands;
   end;
 
 
@@ -1606,7 +1610,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
-    function GetObjectBoundingBox: TFloatRect; override;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     property X: TSvgLength read FX write FX;
     property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
@@ -1648,7 +1652,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
-    function GetObjectBoundingBox: TFloatRect; override; // TODO
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     property X: TSvgLength read GetX;
     property Y: TSvgLength read GetY;
     property Dx: TSvgLength read GetDx;
@@ -1737,7 +1741,7 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
-    function GetObjectBoundingBox: TFloatRect; override;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
   end;
@@ -1745,21 +1749,17 @@ type
 
 //------------------------------------------------------------------------------
 //
-//      Primitive Shape Converters
+//      Misc. vector parsers
 //
 //------------------------------------------------------------------------------
-function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
-function CreateCirclePath(Cx, Cy, Radius: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
-function CreateEllipsePath(Cx, Cy, Rx, Ry: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
-function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
-function CreatePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
-{$if defined(UNIT_TEST)}
-function CreatePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
-{$ifend}
-
 function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat;
 function ParseLengthArray(Values: TValuePUtf8Char): TArrayOfSvgLength;
 function ParseStrokeDashArray(Values: TValuePUtf8Char): TArrayOfFloat;
+
+function ParsePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfFloatPoint; overload;
+{$if defined(UNIT_TEST)}
+function ParsePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint; overload;
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -1811,7 +1811,6 @@ uses
 {$endif}
   GR32_Math,
   GR32_Paths,
-  GR32.SVG.Path,
   GR32.SVG.Xml,
   GR32.SVG.Css;
 
@@ -2606,10 +2605,8 @@ begin
     Result := False;
 end;
 
-function TSvgNode.GetObjectBoundingBox: TFloatRect;
+function TSvgNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
 begin
-  { Calculates the tight axis-aligned bounding box of the node in local untransformed coordinates.
-    Base TSvgNode implementation returns an empty rectangle (0,0,0,0). }
   Result := FloatRect(0, 0, 0, 0);
 end;
 
@@ -3449,7 +3446,7 @@ begin
   Result := groupRes;
 end;
 
-function TSvgCustomGroupNode.GetObjectBoundingBox: TFloatRect;
+function TSvgCustomGroupNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
 var
   i, k: Integer;
   Child: TSvgNode;
@@ -3472,7 +3469,7 @@ begin
     if (not Child.IsRenderable) or (Child.IsDisplayNone) then
       Continue;
 
-    ChildBox := Child.GetObjectBoundingBox;
+    ChildBox := Child.GetObjectBoundingBox(AViewport);
 
     if (ChildBox.Right <= ChildBox.Left) and (ChildBox.Bottom <= ChildBox.Top) then
       continue;
@@ -3558,13 +3555,13 @@ begin
   Result := nil;
 end;
 
-function TSvgSwitchNode.GetObjectBoundingBox: TFloatRect;
+function TSvgSwitchNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
 begin
   // Returns bounding box of the active selected child set during Stage 2 tree normalization
   if (FSelectedChild <> nil) then
-    Result := FSelectedChild.GetObjectBoundingBox
+    Result := FSelectedChild.GetObjectBoundingBox(AViewport)
   else
-    Result := inherited GetObjectBoundingBox;
+    Result := inherited GetObjectBoundingBox(AViewport);
 end;
 
 
@@ -3638,7 +3635,7 @@ begin
   Result := (FYArray <> nil);
 end;
 
-function TSvgTextPositioningNode.GetObjectBoundingBox: TFloatRect;
+function TSvgTextPositioningNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
 var
   ChildBox: TFloatRect;
   TextWidth, TextHeight, FontSizePx, XPx, YPx: Single;
@@ -3648,7 +3645,7 @@ begin
   // <textPath>) by *estimating* text content extent and uniting with child
   // node bounding boxes.
 
-  ChildBox := inherited GetObjectBoundingBox;
+  ChildBox := inherited GetObjectBoundingBox(AViewport);
 
   if (FTextContent <> '') then
   begin
@@ -3659,8 +3656,8 @@ begin
     TextWidth := Length(FTextContent) * (FontSizePx * 0.6);
     TextHeight := FontSizePx;
 
-    XPx := X.ToPixels(100.0) + Dx.ToPixels(100.0);
-    YPx := Y.ToPixels(100.0) + Dy.ToPixels(100.0);
+    XPx := GetSizePx(X, AViewport.Width) + GetSizePx(Dx, AViewport.Width);
+    YPx := GetSizePx(Y, AViewport.Height) + GetSizePx(Dy, AViewport.Height);
 
     case FTextAnchor of
       taMiddle: XPx := XPx - TextWidth * 0.5;
@@ -6199,84 +6196,212 @@ constructor TSvgPathNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
   FProperties.Kind := skPath;
+  FPathCommands := TSvgPathCommands.Create;
   FCachedViewportWidth := -1.0;
   FCachedViewportHeight := -1.0;
+  FCachedMatrix := IdentityMatrix;
 end;
 
-function TSvgPathNode.GetPathData: TArrayOfArrayOfFloatPoint;
+destructor TSvgPathNode.Destroy;
 begin
-  Result := GetPathData(FloatRect(0.0, 0.0, 100.0, 100.0));
+  FPathCommands.Free;
+  inherited Destroy;
 end;
 
-function TSvgPathNode.GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint;
-begin
-  Result := GetPathData(FloatRect(0.0, 0.0, AViewportWidth, AViewportHeight));
-end;
-
-function TSvgPathNode.GetPathData(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
+function TSvgPathNode.GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
 var
   ViewportWidth, ViewportHeight: Single;
-  i: Integer;
+  i, Count: Integer;
+  IsAxisAligned, IsIdent: Boolean;
+  p, p2: TFloatPoint;
+  Points: TArrayOfFloatPoint;
+  n: Single;
 begin
-  if (FProperties.Kind = skPath) then
-  begin
-    SetLength(Result, Length(FPathData));
-    for i := 0 to High(FPathData) do
-    begin
-      Result[i] := RestoreClosedPath(FPathData[i]);
-      SetLength(Result[i], Length(Result[i])); // Make array unique so call site can mutate it if desired
-    end;
-    exit;
-  end else
-  if (FProperties.Kind in [skPolyline, skPolygon]) then
-  begin
-    SetLength(Result, Length(FPathData));
-    for i := 0 to High(FPathData) do
-      Result[i] := Copy(FPathData[i]);
-    exit;
-  end;
-
   ViewportWidth := AViewport.Width;
   ViewportHeight := AViewport.Height;
 
-  if (FCachedViewportWidth = ViewportWidth) and (FCachedViewportHeight = ViewportHeight) and (Length(FPathData) > 0) then
-    Exit(FPathData);
+  if (FCachedPathData <> nil) and
+     (FCachedViewportWidth = ViewportWidth) and (FCachedViewportHeight = ViewportHeight) and
+     (CompareMem(@FCachedMatrix, @ATransformation.Matrix, SizeOf(FCachedMatrix))) then
+  begin
+    Result := Copy(FCachedPathData);
+    Exit;
+  end;
 
+  IsIdent := TFloatMatrixHelper(ATransformation.Matrix).IsIdentity;
+  if (not IsIdent) then // Test saves us a Sqrt
+    IsAxisAligned := TFloatMatrixHelper(ATransformation.Matrix).IsAxisAligned
+  else
+    IsAxisAligned := True;
+
+
+  (*
+  ** If the transformation is axis-aligned we do a simple translation of coordinates,
+  ** and scale of dimensions and then flatten in world space. Otherwise for simple
+  ** shapes (lines basically) we "flatten" in user space and then transform to world
+  ** space, and finally for curves we convert to arcs, transform in user space and
+  ** then flatten to world space.
+  *)
   case FProperties.Kind of
+    skPath:
+      FCachedPathData := FPathCommands.Flatten(ATransformation);
+
+    skPolyline, skPolygon:
+      begin
+        Count := Length(FPolyPoints);
+        if Count < 2 then
+          FCachedPathData := nil
+        else
+        begin
+          SetLength(FCachedPathData, 1);
+
+          // Polygon should have First=Last but let's make sure
+          if (FProperties.Kind = skPolygon) then
+          begin
+            if (FPolyPoints[0].X <> FPolyPoints[Count - 1].X) or (FPolyPoints[0].Y <> FPolyPoints[Count - 1].Y) then
+              Inc(Count);
+          end;
+
+          if (not IsIdent) then
+          begin
+            SetLength(Points, Count);
+
+            // Translate all points
+            for i := 0 to High(FPolyPoints) do
+              Points[i] := ATransformation.Transform(FPolyPoints[i]);
+
+            // Copy missing polygon endpoint
+            if (FProperties.Kind = skPolygon) and (Count > Length(FPolyPoints)) then
+              Points[Count-1] := Points[0];
+          end else
+          begin
+            // No translation; Just copy. This will likely never happen.
+            if (FProperties.Kind = skPolygon) then
+            begin
+              // First = Last?
+              if (FPolyPoints[0].X = FPolyPoints[Count - 1].X) and (FPolyPoints[0].Y = FPolyPoints[Count - 1].Y) then
+                // Yup; Just copy
+                Points := Copy(FPolyPoints)
+              else
+              begin
+                // Nope; Copy and add missing endpoint
+                SetLength(Points, Count + 1);
+                Move(FPolyPoints[0], Points[0], Count * SizeOf(TFloatPoint));
+                Points[Count] := FPolyPoints[0];
+              end;
+            end else
+              Points := Copy(FPolyPoints);
+          end;
+          FCachedPathData[0] := Points;
+        end;
+      end;
+
     skRect:
       begin
-        FPathData := CreateRectPath(
-          GetSizePx(FProperties.rect.X, ViewportWidth),
-          GetSizePx(FProperties.rect.Y, ViewportHeight),
-          GetSizePx(FProperties.rect.Width, ViewportWidth),
-          GetSizePx(FProperties.rect.Height, ViewportHeight),
-          GetSizePx(FProperties.rect.Rx, ViewportWidth),
-          GetSizePx(FProperties.rect.Ry, ViewportHeight)
-        );
+        if (IsAxisAligned) then
+        begin
+          p.X := GetSizePx(FProperties.rect.X, ViewportWidth);
+          p.Y := GetSizePx(FProperties.rect.Y, ViewportHeight);
+          p := ATransformation.Transform(p);
+
+          FCachedPathData := CreateRectPath(
+            p.X,
+            p.Y,
+            GetSizePx(FProperties.rect.Width, ViewportWidth) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
+            GetSizePx(FProperties.rect.Height, ViewportHeight) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY,
+            GetSizePx(FProperties.rect.Rx, ViewportWidth) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
+            GetSizePx(FProperties.rect.Ry, ViewportHeight) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY
+          );
+        end else
+        begin
+          FCachedPathData := CreateRectPath(
+            GetSizePx(FProperties.rect.X, ViewportWidth),
+            GetSizePx(FProperties.rect.Y, ViewportHeight),
+            GetSizePx(FProperties.rect.Width, ViewportWidth),
+            GetSizePx(FProperties.rect.Height, ViewportHeight),
+            GetSizePx(FProperties.rect.Rx, ViewportWidth),
+            GetSizePx(FProperties.rect.Ry, ViewportHeight)
+          );
+
+          TransformPolyPolygonInplace(FCachedPathData, ATransformation);
+        end;
       end;
 
     skCircle:
+      if (IsAxisAligned) then
       begin
-        FPathData := CreateCirclePath(
+        p.X := GetSizePx(FProperties.circle.Cx, ViewportWidth);
+        p.Y := GetSizePx(FProperties.circle.Cy, ViewportHeight);
+        p := ATransformation.Transform(p);
+
+        if (TFloatMatrixHelper(ATransformation.Matrix).GetScaleX = TFloatMatrixHelper(ATransformation.Matrix).GetScaleY) then
+          FCachedPathData := CreateCirclePath(
+            p.X,
+            p.Y,
+            GetSizePx(FProperties.circle.R, AViewport) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX
+          )
+        else
+        begin
+          n := GetSizePx(FProperties.circle.R, AViewport);
+          FCachedPathData := CreateEllipsePath(
+            p.X,
+            p.Y,
+            n * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
+            n * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY
+          );
+        end;
+      end else
+      begin
+        FCachedPathData := CreateCirclePath(
           GetSizePx(FProperties.circle.Cx, ViewportWidth),
           GetSizePx(FProperties.circle.Cy, ViewportHeight),
-          GetSizePx(FProperties.circle.R, AViewport)
+          GetSizePx(FProperties.circle.R, AViewport),
+          ATransformation
         );
       end;
 
     skEllipse:
+      if (IsAxisAligned) then
       begin
-        FPathData := CreateEllipsePath(
+        p.X := GetSizePx(FProperties.ellipse.Cx, ViewportWidth);
+        p.Y := GetSizePx(FProperties.ellipse.Cy, ViewportHeight);
+        p := ATransformation.Transform(p);
+
+        FCachedPathData := CreateEllipsePath(
+          p.X,
+          p.Y,
+          GetSizePx(FProperties.ellipse.Rx, ViewportWidth) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
+          GetSizePx(FProperties.ellipse.Ry, ViewportHeight) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY
+        );
+      end else
+      begin
+        FCachedPathData := CreateEllipsePath(
           GetSizePx(FProperties.ellipse.Cx, ViewportWidth),
           GetSizePx(FProperties.ellipse.Cy, ViewportHeight),
           GetSizePx(FProperties.ellipse.Rx, ViewportWidth),
-          GetSizePx(FProperties.ellipse.Ry, ViewportHeight)
+          GetSizePx(FProperties.ellipse.Ry, ViewportHeight),
+          ATransformation
         );
       end;
 
     skLine:
+      if (not IsIdent) then
       begin
-        FPathData := CreateLinePath(
+        p.X := GetSizePx(FProperties.line.X1, ViewportWidth);
+        p.Y := GetSizePx(FProperties.line.Y1, ViewportHeight);
+        p2.X := GetSizePx(FProperties.line.X2, ViewportWidth);
+        p2.Y := GetSizePx(FProperties.line.Y2, ViewportHeight);
+        p := ATransformation.Transform(p);
+        p2 := ATransformation.Transform(p2);
+        FCachedPathData := CreateLinePath(
+          p.X,
+          p.Y,
+          p2.X,
+          p2.Y
+        );
+      end else
+      begin
+        FCachedPathData := CreateLinePath(
           GetSizePx(FProperties.line.X1, ViewportWidth),
           GetSizePx(FProperties.line.Y1, ViewportHeight),
           GetSizePx(FProperties.line.X2, ViewportWidth),
@@ -6287,18 +6412,19 @@ begin
 
   FCachedViewportWidth := ViewportWidth;
   FCachedViewportHeight := ViewportHeight;
-  Result := FPathData;
+  FCachedMatrix := ATransformation.Matrix;
+
+  SetLength(Result, Length(FCachedPathData));
+  for i := 0 to High(FCachedPathData) do
+    Result[i] := Copy(FCachedPathData[i]);
 end;
 
 function TSvgPathNode.IsPathClosed(Index: Integer): Boolean;
 begin
   if (FProperties.Kind = skPath) then
-  begin
-    if (Index >= 0) and (Index <= High(FPathData)) then
-      Exit(IsClosedPath(FPathData[Index]));
-  end;
-
-  Result := (FProperties.Kind in [skRect, skCircle, skEllipse, skPolygon]);
+    Result := FPathCommands.Closed
+  else
+    Result := (FProperties.Kind in [skRect, skCircle, skEllipse, skPolygon]);
 end;
 
 function TSvgPathNode.GetElementTag: UTF8String;
@@ -6315,11 +6441,6 @@ begin
   end;
 end;
 
-function TSvgPathNode.GetPathDataProp: TArrayOfArrayOfFloatPoint;
-begin
-  Result := GetPathData;
-end;
-
 function TSvgPathNode.Clone(AParent: TSvgNode): TSvgNode;
 var
   pathRes: TSvgPathNode;
@@ -6329,11 +6450,17 @@ begin
   pathRes.FProperties := FProperties;
   pathRes.FWidth := FWidth;
   pathRes.FHeight := FHeight;
+  pathRes.PathCommands.Assign(PathCommands);
+  pathRes.FPolyPoints := Copy(FPolyPoints);
+
+  // TODO : We don't really need to copy the cache...
   pathRes.FCachedViewportWidth := FCachedViewportWidth;
   pathRes.FCachedViewportHeight := FCachedViewportHeight;
-  SetLength(pathRes.FPathData, Length(FPathData));
-  for i := 0 to High(FPathData) do
-    pathRes.FPathData[i] := Copy(FPathData[i], 0, Length(FPathData[i]));
+  pathRes.FCachedMatrix := FCachedMatrix;
+  SetLength(pathRes.FCachedPathData, Length(FCachedPathData));
+  for i := 0 to High(FCachedPathData) do
+    pathRes.FCachedPathData[i] := Copy(FCachedPathData[i]);
+
   Result := pathRes;
 end;
 
@@ -6348,13 +6475,234 @@ begin
     Result := Result + Format(' (stroke=%s)', [SvgColorToString(FStroke.Color)]);
 end;
 
-function TSvgPathNode.GetObjectBoundingBox: TFloatRect;
+function TSvgPathNode.GetControlPoints(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
 var
-  PathPoints: TArrayOfArrayOfFloatPoint;
+  r: TFloatRect;
+  p: TFloatPoint;
+  rad: TFloatPoint;
+  ViewportWidth, ViewportHeight: Single;
+  i: Integer;
+  Cmd: TSvgPathCommand;
+  Path: TFlattenedPath;
 begin
-  // Calculates the tight axis-aligned bounding box of path vertices in local coordinates.
-  PathPoints := GetPathData;
-  Result := PolyPolygonBounds(PathPoints);
+  Result := nil;
+  ViewportWidth := AViewport.Width;
+  ViewportHeight := AViewport.Height;
+
+  // Note that although we are using a TFlattenedPath, we are not actually
+  // flattening anything. We just use it to collect the control points.
+  Path := TFlattenedPath.Create;
+  try
+    case FProperties.Kind of
+      skPath:
+        begin
+          if (FPathCommands.Count = 0) then
+            exit;
+
+          for i := 0 to FPathCommands.Count - 1 do
+          begin
+            Cmd := FPathCommands.Commands[i];
+
+            case Cmd.Kind of
+              pckMoveTo:
+                begin
+                  Path.EndPath;
+                  Path.LineTo(Cmd.MoveTo.P);
+                end;
+
+              pckLineTo:
+                Path.LineTo(Cmd.LineTo.P);
+
+              pckEllipticalArc:
+                Path.LineTo(Cmd.Arc.EndPoint);
+
+              pckCurveTo:
+                Path.LineTo(Cmd.CurveTo.P);
+
+              pckConicTo:
+                Path.LineTo(Cmd.ConicTo.P);
+
+              pckEndPath:
+                Path.EndPath;
+            end;
+          end;
+        end;
+
+      skPolyline:
+        if (FPolyPoints <> nil) then
+          Path.PolyLine(FPolyPoints);
+
+      skPolygon:
+        if (FPolyPoints <> nil) then
+          Path.Polygon(FPolyPoints);
+
+      skRect:
+        begin
+          r.Left := GetSizePx(FProperties.rect.X, ViewportWidth);
+          r.Top := GetSizePx(FProperties.rect.Y, ViewportHeight);
+          r.Right := r.Left + GetSizePx(FProperties.rect.Width, ViewportWidth);
+          r.Bottom := r.Top + GetSizePx(FProperties.rect.Height, ViewportHeight);
+          Path.Rectangle(r);
+        end;
+
+      skLine:
+        begin
+          Path.MoveTo(GetSizePx(FProperties.line.X1, ViewportWidth), GetSizePx(FProperties.line.Y1, ViewportHeight));
+          Path.LineTo(GetSizePx(FProperties.line.X2, ViewportWidth), GetSizePx(FProperties.line.Y2, ViewportHeight));
+        end;
+
+      skCircle:
+        begin
+          p.X := GetSizePx(FProperties.circle.Cx, ViewportWidth);
+          p.Y := GetSizePx(FProperties.circle.Cy, ViewportHeight);
+          rad.X := GetSizePx(FProperties.circle.R, AViewport);
+          Path.MoveTo(p.x + rad.X, p.Y);
+          Path.LineTo(p.x, p.Y + rad.X);
+          Path.LineTo(p.x - rad.X, p.Y);
+          Path.LineTo(p.x, p.Y - rad.X);
+        end;
+
+      skEllipse:
+        begin
+          p.X := GetSizePx(FProperties.ellipse.Cx, ViewportWidth);
+          p.Y := GetSizePx(FProperties.ellipse.Cy, ViewportHeight);
+          rad.X := GetSizePx(FProperties.ellipse.Rx, AViewport);
+          rad.Y := GetSizePx(FProperties.ellipse.Ry, AViewport);
+          Path.MoveTo(p.x + rad.X, p.Y);
+          Path.LineTo(p.x, p.Y + rad.X);
+          Path.LineTo(p.x - rad.X, p.Y);
+          Path.LineTo(p.x, p.Y - rad.X);
+        end;
+    end;
+
+    Path.EndPath;
+
+    Result := Path.Path;
+  finally
+    Path.Free;
+  end;
+end;
+
+function TSvgPathNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  First: Boolean;
+
+  procedure ExpandPt(const P: TFloatPoint);
+  begin
+    if First then
+    begin
+      Result := FloatRect(P.X, P.Y, P.X, P.Y);
+      First := False;
+    end else
+    begin
+      if P.X < Result.Left then Result.Left := P.X;
+      if P.X > Result.Right then Result.Right := P.X;
+      if P.Y < Result.Top then Result.Top := P.Y;
+      if P.Y > Result.Bottom then Result.Bottom := P.Y;
+    end;
+  end;
+
+var
+  VpW, VpH, rx, ry, cx, cy, r, x1, y1, x2, y2: Single;
+  i: Integer;
+  Cmd: TSvgPathCommand;
+begin
+  Result := FloatRect(0, 0, 0, 0);
+
+  VpW := AViewport.Width;
+  VpH := AViewport.Height;
+
+  case FProperties.Kind of
+    skRect:
+      begin
+        Result.Left := GetSizePx(FProperties.rect.X, VpW);
+        Result.Top := GetSizePx(FProperties.rect.Y, VpH);
+        Result.Right := Result.Left + GetSizePx(FProperties.rect.Width, VpW);
+        Result.Bottom := Result.Top + GetSizePx(FProperties.rect.Height, VpH);
+      end;
+
+    skCircle:
+      begin
+        cx := GetSizePx(FProperties.circle.Cx, VpW);
+        cy := GetSizePx(FProperties.circle.Cy, VpH);
+        r := GetSizePx(FProperties.circle.R, AViewport);
+        Result := FloatRect(cx - r, cy - r, cx + r, cy + r);
+      end;
+
+    skEllipse:
+      begin
+        cx := GetSizePx(FProperties.ellipse.Cx, VpW);
+        cy := GetSizePx(FProperties.ellipse.Cy, VpH);
+        rx := GetSizePx(FProperties.ellipse.Rx, VpW);
+        ry := GetSizePx(FProperties.ellipse.Ry, VpH);
+        Result := FloatRect(cx - rx, cy - ry, cx + rx, cy + ry);
+      end;
+
+    skLine:
+      begin
+        x1 := GetSizePx(FProperties.line.X1, VpW);
+        y1 := GetSizePx(FProperties.line.Y1, VpH);
+        x2 := GetSizePx(FProperties.line.X2, VpW);
+        y2 := GetSizePx(FProperties.line.Y2, VpH);
+        Result := FloatRect(Min(x1, x2), Min(y1, y2), Max(x1, x2), Max(y1, y2));
+      end;
+
+    skPolyline, skPolygon:
+      begin
+        if (FPolyPoints = nil) then
+          exit;
+        Result.TopLeft := FPolyPoints[0];
+        Result.BottomRight := Result.TopLeft;
+        First := False;
+        for i := 1 to High(FPolyPoints) do
+          ExpandPt(FPolyPoints[i]);
+      end;
+
+    skPath:
+      begin
+        if (FPathCommands.Count = 0) then
+          exit;
+
+        First := True;
+        for i := 0 to FPathCommands.Count - 1 do
+        begin
+          Cmd := FPathCommands.Commands[i];
+          case Cmd.Kind of
+            pckMoveTo:
+              ExpandPt(Cmd.MoveTo.P);
+
+            pckLineTo:
+              ExpandPt(Cmd.LineTo.P);
+
+            pckEllipticalArc:
+              begin
+               ExpandPt(Cmd.Arc.EndPoint);
+                // Expand by arc radii bounds
+                if not First then
+                begin
+                  Result.Left := Min(Result.Left, Cmd.Arc.EndPoint.X - Cmd.Arc.RadiusX);
+                  Result.Right := Max(Result.Right, Cmd.Arc.EndPoint.X + Cmd.Arc.RadiusX);
+                  Result.Top := Min(Result.Top, Cmd.Arc.EndPoint.Y - Cmd.Arc.RadiusY);
+                  Result.Bottom := Max(Result.Bottom, Cmd.Arc.EndPoint.Y + Cmd.Arc.RadiusY);
+                end;
+              end;
+
+            pckCurveTo:
+              begin
+                ExpandPt(Cmd.CurveTo.C1);
+                ExpandPt(Cmd.CurveTo.C2);
+                ExpandPt(Cmd.CurveTo.P);
+              end;
+
+            pckConicTo:
+              begin
+                ExpandPt(Cmd.ConicTo.P1);
+                ExpandPt(Cmd.ConicTo.P);
+              end;
+          end;
+        end;
+      end;
+  end;
 end;
 
 
@@ -7071,12 +7419,12 @@ begin
   end;
 end;
 
-function TSvgImageNode.GetObjectBoundingBox: TFloatRect;
+function TSvgImageNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
 begin
-  Result.Left := GetSizePx(FX, TSvgLength.NoDefault);
-  Result.Top := GetSizePx(FY, TSvgLength.NoDefault);
-  Result.Right := Result.Left + GetSizePx(FWidth, TSvgLength.NoDefault);
-  Result.Bottom := Result.Top + GetSizePx(FHeight, TSvgLength.NoDefault);
+  Result.Left := GetSizePx(FX, AViewport.Width);
+  Result.Top := GetSizePx(FY, AViewport.Height);
+  Result.Right := Result.Left + GetSizePx(FWidth, AViewport.Width);
+  Result.Bottom := Result.Top + GetSizePx(FHeight, AViewport.Height);
 end;
 
 function TSvgImageNode.GetElementTag: UTF8String;
@@ -7148,12 +7496,12 @@ begin
   end;
 end;
 
-function TSvgTextAreaNode.GetObjectBoundingBox: TFloatRect;
+function TSvgTextAreaNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
 begin
-  Result.Left := GetSizePx(X, TSvgLength.NoDefault);
-  Result.Top := GetSizePx(Y, TSvgLength.NoDefault);
-  Result.Right := Result.Left + GetSizePx(FWidth, TSvgLength.NoDefault);
-  Result.Bottom := Result.Top + GetSizePx(FHeight, TSvgLength.NoDefault);
+  Result.Left := GetSizePx(X, AViewport.Width);
+  Result.Top := GetSizePx(Y, AViewport.Height);
+  Result.Right := Result.Left + GetSizePx(FWidth, AViewport.Width);
+  Result.Bottom := Result.Top + GetSizePx(FHeight, AViewport.Height);
 end;
 
 function TSvgTextAreaNode.GetElementTag: UTF8String;
@@ -7171,132 +7519,9 @@ end;
 
 //------------------------------------------------------------------------------
 //
-//      Primitive Shape Converters
+//      Misc. vector parsers
 //
 //------------------------------------------------------------------------------
-function CreateRectPath(X, Y, Width, Height, Rx, Ry: Single): TArrayOfArrayOfFloatPoint;
-var
-  Path: TFlattenedPath;
-begin
-  if (Width <= 0) or (Height <= 0) then
-    Exit(nil);
-
-  if (Rx <= 0) and (Ry <= 0) then
-  begin
-    Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Rectangle(FloatRect(X, Y, X + Width, Y + Height)));
-    Exit;
-  end;
-
-  if Rx <= 0 then Rx := Ry;
-  if Ry <= 0 then Ry := Rx;
-  Rx := Min(Rx, Width * 0.5);
-  Ry := Min(Ry, Height * 0.5);
-
-  Path := TFlattenedPath.Create;
-  try
-    Path.MoveTo(X + Rx, Y);
-    Path.LineTo(X + Width - Rx, Y);
-    Path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Ry), Rx, Ry, 0, -Pi * 0.5, 0);
-    Path.LineTo(X + Width, Y + Height - Ry);
-    Path.EllipticalArc(FloatPoint(X + Width - Rx, Y + Height - Ry), Rx, Ry, 0, 0, Pi * 0.5);
-    Path.LineTo(X + Rx, Y + Height);
-    Path.EllipticalArc(FloatPoint(X + Rx, Y + Height - Ry), Rx, Ry, 0, Pi * 0.5, Pi);
-    Path.LineTo(X, Y + Ry);
-    Path.EllipticalArc(FloatPoint(X + Rx, Y + Ry), Rx, Ry, 0, Pi, Pi * 1.5);
-    Path.EndPath(True);
-    Result := Path.Path;
-  finally
-    Path.Free;
-  end;
-end;
-
-//------------------------------------------------------------------------------
-
-function CreateCirclePath(Cx, Cy, Radius: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
-var
-  Steps: Integer;
-begin
-  if Radius <= 0 then
-    Exit(nil);
-
-  Steps := CalculateCircleSteps(Radius);
-  if Steps < AMinSteps then
-    Steps := AMinSteps;
-
-  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Circle(FloatPoint(Cx, Cy), Radius, Steps));
-end;
-
-//------------------------------------------------------------------------------
-
-function CreateEllipsePath(Cx, Cy, Rx, Ry: Single; AMinSteps: Integer = 32): TArrayOfArrayOfFloatPoint;
-var
-  Steps: Integer;
-begin
-  if (Rx <= 0) or (Ry <= 0) then
-    Exit(nil);
-
-  Steps := CalculateCircleSteps(Min(Rx, Ry));
-  if Steps < AMinSteps then
-    Steps := AMinSteps;
-
-  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry, Steps));
-end;
-
-//------------------------------------------------------------------------------
-
-function CreateLinePath(X1, Y1, X2, Y2: Single): TArrayOfArrayOfFloatPoint;
-begin
-  Result := GR32_VectorUtils.PolyPolygon(GR32_VectorUtils.Line(X1, Y1, X2, Y2));
-end;
-
-//------------------------------------------------------------------------------
-
-{$if defined(UNIT_TEST)}
-function CreatePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
-begin
-  Result := CreatePolylinePath(TValuePUtf8Char.FromString(UTF8String(AValues)), AClosed);
-end;
-{$ifend}
-
-function CreatePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
-var
-  Count: integer;
-  Point: TFloatPoint;
-begin
-  Count := 0;
-  SetLength(Result, 1);
-  SetLength(Result[0], 16);
-
-  while (AValues.Len > 0) do
-  begin
-    AValues.Trim(sListSeparators);
-    if (not AValues.TryToFloat(Point.X, True)) then
-      break;
-
-    AValues.Trim(sListSeparators);
-    if (not AValues.TryToFloat(Point.Y, True)) then
-      break;
-
-    if (Count > High(Result[0])) then
-      SetLength(Result[0], Length(Result[0]) * 2);
-
-    Result[0, Count] := Point;
-    Inc(Count);
-  end;
-
-  if (Count < 2) then
-    Exit(nil);
-
-  if (AClosed) then
-  begin
-    Inc(Count);
-    if (Count > Length(Result[0])) then
-      SetLength(Result[0], Count);
-    Result[0, Count-1] := Result[0, 0];
-  end;
-  SetLength(Result[0], Count);
-end;
-
 function ParseFloatArray(Values: TValuePUtf8Char): TArrayOfFloat;
 var
   Count: Integer;
@@ -7553,6 +7778,53 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+
+{$if defined(UNIT_TEST)}
+function ParsePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArrayOfFloatPoint;
+begin
+  Result := [ParsePolylinePath(TValuePUtf8Char.FromString(UTF8String(AValues)), AClosed)];
+end;
+{$ifend}
+
+function ParsePolylinePath(AValues: TValuePUtf8Char; AClosed: Boolean): TArrayOfFloatPoint;
+var
+  Count: integer;
+  Point: TFloatPoint;
+begin
+  Count := 0;
+  SetLength(Result, 16);
+
+  while (AValues.Len > 0) do
+  begin
+    AValues.Trim(sListSeparators);
+    if (not AValues.TryToFloat(Point.X, True)) then
+      break;
+
+    AValues.Trim(sListSeparators);
+    if (not AValues.TryToFloat(Point.Y, True)) then
+      break;
+
+    if (Count > High(Result)) then
+      SetLength(Result, Length(Result) * 2);
+
+    Result[Count] := Point;
+    Inc(Count);
+  end;
+
+  if (Count < 2) then
+    Exit(nil);
+
+  if (AClosed) then
+  begin
+    Inc(Count);
+    if (Count > Length(Result)) then
+      SetLength(Result, Count);
+    Result[Count-1] := Result[0];
+  end;
+  SetLength(Result, Count);
+end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -7748,10 +8020,10 @@ var
               end;
             end;
             if (Points.Len > 0) then
-              // A path is the only shape where there can be any doubt about
-              // "closedness", so this is also the only place where we need
-              // to use MakeClosedPath.
-              TSvgPathNode(node).PathData := SvgPathDataToPoints(Points);
+            begin
+              ParseSvgPathData(Points, TSvgPathNode(node).PathCommands);
+              TSvgPathNode(node).PathCommands.EndPath;
+            end;
           end;
 
         tagRect:
@@ -8138,7 +8410,7 @@ var
               end;
             end;
             if (Points.Len > 0) then
-              TSvgPathNode(node).PathData := CreatePolylinePath(Points, (tagKeyword = tagPolygon));
+              TSvgPathNode(node).FPolyPoints := ParsePolylinePath(Points, (tagKeyword = tagPolygon));
           end;
       end;
 

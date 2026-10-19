@@ -1073,7 +1073,7 @@ end;
 
 procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
 var
-  PathPoints, TransformedPoints: TArrayOfArrayOfFloatPoint;
+  TransformedPoints, MarkerPoints: TArrayOfArrayOfFloatPoint;
   UserStrokeWidth, StrokeWidth, MatScale, ScaledOffset: Single;
   Points, StrokePoints: TArrayOfArrayOfFloatPoint;
   ScaledDashArray: TArrayOfFloat;
@@ -1115,14 +1115,12 @@ begin
   HasMarkers := (APathNode.ResolvedMarkerStart <> nil) or (APathNode.ResolvedMarkerMid <> nil) or (APathNode.ResolvedMarkerEnd <> nil);
 
   (*
-  ** 2. Generate path in user space
+  ** 2. Generate path and transform into world coordinates
   *)
-  PathPoints := APathNode.GetPathData(FViewportRect);
-  if Length(PathPoints) = 0 then
+  MatScale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
+  TransformedPoints := APathNode.GetPathData(FViewportRect, FTransformation);
+  if (TransformedPoints = nil) then
     Exit;
-
-  // Transform path points into world coordinates
-  TransformedPoints := GetTransformedPoints(PathPoints);
 
   (*
   ** 3. Generate stroke polygons if stroked
@@ -1130,7 +1128,6 @@ begin
   StrokePoints := nil;
   if (HasStroke) then
   begin
-    MatScale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
     StrokeWidth := UserStrokeWidth * MatScale;
     ScaledDashArray := nil;
     ScaledOffset := 0;
@@ -1162,6 +1159,7 @@ begin
   begin
     if (HasFill) then
     begin
+      // TODO : Will PolyPolygonBounds(StrokePoints) not always >= PolyPolygonBounds(TransformedPoints)
       FloatRoi := PolyPolygonBounds(TransformedPoints);
       if (HasStroke) then
 {$ifndef FPC}
@@ -1233,19 +1231,25 @@ begin
     ** 8. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
     *)
     if (HasMarkers) then
+      // Note: Markers are in user space
+      MarkerPoints := APathNode.GetControlPoints(FViewportRect)
+    else
+      MarkerPoints := nil;
+    if (MarkerPoints <> nil) then
     begin
+
       if NeedsOffscreen then
       begin
         FTransformation.Push;
         try
           FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
 
-          RenderMarkers(RenderBmp, APathNode, PathPoints, UserStrokeWidth);
+          RenderMarkers(RenderBmp, APathNode, MarkerPoints, UserStrokeWidth);
         finally
           FTransformation.Pop;
         end;
       end else
-        RenderMarkers(RenderBmp, APathNode, PathPoints, UserStrokeWidth);
+        RenderMarkers(RenderBmp, APathNode, MarkerPoints, UserStrokeWidth);
     end;
 
     (*
@@ -1707,7 +1711,7 @@ begin
       Exit;
 
     // Calculate group bounding box in world space for objectBoundingBox units and ROI determination
-    GroupBounds := AGroupNode.GetObjectBoundingBox;
+    GroupBounds := AGroupNode.GetObjectBoundingBox(FViewportRect);
     if (GroupBounds.Right <= GroupBounds.Left) or (GroupBounds.Bottom <= GroupBounds.Top) then
     begin
       // Fallback for empty or degenerate group bounding boxes;
@@ -1890,7 +1894,7 @@ var
   Node: TSvgNode;
   SourceBounds, FilterBounds, FilterRegionRect: TFloatRect;
   PathNode: TSvgPathNode;
-  PathPoints, TransformedPoints, StrokePoints: TArrayOfArrayOfFloatPoint;
+  TransformedPoints, StrokePoints: TArrayOfArrayOfFloatPoint;
   StrokeWidth, BBoxWidth, BBoxHeight: Single;
   FilterRegionWidth, FilterRegionHeight: Single;
   NodeBounds, UserFilterRegionRect: TFloatRect;
@@ -1940,12 +1944,11 @@ begin
     if ANode is TSvgPathNode then
     begin
       PathNode := TSvgPathNode(ANode);
-      PathPoints := PathNode.GetPathData(FViewportRect);
-      NodeBounds := PolyPolygonBounds(PathPoints);
+      NodeBounds := PathNode.GetObjectBoundingBox(FViewportRect);
+      TransformedPoints := PathNode.GetPathData(FViewportRect, FTransformation);
 
-      if Length(PathPoints) > 0 then
+      if Length(TransformedPoints) > 0 then
       begin
-        TransformedPoints := GetTransformedPoints(PathPoints);
         SourceBounds := PolyPolygonBounds(TransformedPoints);
 
         StrokePoints := nil;
@@ -1972,10 +1975,8 @@ begin
 
     end else
     begin
-      PathPoints := nil;
-
       // For non-polygon nodes, calculate object bounds in world/screen space
-      NodeBounds := ANode.GetObjectBoundingBox;
+      NodeBounds := ANode.GetObjectBoundingBox(FViewportRect);
       Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
       Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
       Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
@@ -3347,18 +3348,19 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       if HasNodeTransform then
         ApplyMatrix(ANode.Transform);
 
-      PathPts := ANode.ResolvedPathNode.GetPathData(FViewportRect);
+      FTransformation.Push;
+      try
+
+        FTransformation.Clear(ANode.ResolvedPathNode.Transform);
+
+        PathPts := ANode.ResolvedPathNode.GetPathData(FViewportRect, FTransformation);
+
+      finally
+        FTransformation.Pop;
+      end;
+
       if Length(PathPts) = 0 then
         Exit;
-
-      if not IsIdentityMatrix(ANode.ResolvedPathNode.Transform) then
-      begin
-        // Avoid mutating the node's internal PathData
-        if (PathPts <> ANode.ResolvedPathNode.PathData) then
-          TransformPathPointsInplace(PathPts, ANode.ResolvedPathNode.Transform)
-        else
-          PathPts := TransformPathPoints(PathPts, ANode.ResolvedPathNode.Transform);
-      end;
 
       TotalLen := GetTotalPathLength(PathPts);
       if TotalLen <= 0 then
@@ -3684,7 +3686,7 @@ begin
         ApplyMatrix(ANode.Transform);
 
         // Calculate object bounding box in world space
-        NodeBounds := ANode.GetObjectBoundingBox;
+        NodeBounds := ANode.GetObjectBoundingBox(FViewportRect);
         if (NodeBounds.Right <= NodeBounds.Left) or (NodeBounds.Bottom <= NodeBounds.Top) then
         begin
           // Fallback for empty or degenerate group bounding boxes;
