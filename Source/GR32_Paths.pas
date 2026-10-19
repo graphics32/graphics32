@@ -82,20 +82,52 @@ type
 
   TControlPointOrigin = (cpNone, cpCubic, cpConic);
 
+//------------------------------------------------------------------------------
+//
+//      TCustomPath
+//
+//------------------------------------------------------------------------------
+// Abstract path base class.
+// - Manages CurrentPoint and LastControlPoint.
+// - Handles relative to absolute translation.
+// - Performs no flattening; Curve methods produces no output by default.
+//------------------------------------------------------------------------------
 type
-  { TCustomPath }
-  TCustomPath = class(TThreadPersistent)
+  TAddPointEvent = function(const APoint: TFloatPoint): boolean of object;
+
+type
+  TCustomPath = class abstract(TThreadPersistent)
   private
     FCurrentPoint: TFloatPoint;
     FLastControlPoint: TFloatPoint;
     FControlPointOrigin: TControlPointOrigin;
   protected
+    procedure AssignTo(Dest: TPersistent); override;
+
     // AddPoint returns False *if* the point equals the previous point in
     // the buffer. Otherwise returns True.
     // If PATH_ADDPOINT_PACKING is defined then False also implies that
     // the point wasn't added, and True that the point was added.
     function AddPoint(const APoint: TFloatPoint): boolean; virtual;
-    procedure AssignTo(Dest: TPersistent); override;
+
+    // Apart from AddPoint and the Line* methods, the Do* methods below are the
+    // only ones that directly produce vertices (in the derived classes where
+    // that functionality has been implemented).
+    // In this base class the more simple curve methods have placeholder
+    // implementations that just generate simple approximations using straight
+    // lines.
+    procedure DoCubicBezierCurve(const P2, P3, P4: TFloatPoint); virtual;
+    procedure DoQuadraticBezierCurve(const P2, P3: TFloatPoint); virtual;
+    procedure DoArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat); virtual;
+    procedure DoEllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean); overload; virtual;
+    procedure DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);overload; virtual;
+    procedure DoRoundRect(const Rect: TFloatRect; const Radius: TFloat); virtual;
+    procedure DoCircle(const Cx, Cy, Radius: TFloat; Steps: Integer); virtual;
+    procedure DoEllipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer); virtual;
+    procedure DoRectangle(const Rect: TFloatRect); virtual;
+
+    property LastControlPoint: TFloatPoint read FLastControlPoint write FLastControlPoint;
+    property ControlPointOrigin: TControlPointOrigin read FControlPointOrigin write FControlPointOrigin;
   public
     constructor Create; override;
 
@@ -133,7 +165,7 @@ type
     procedure CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const C1, C2, P: TFloatPoint); overload; virtual;
-    procedure CurveTo(const C2, P: TFloatPoint); overload; virtual;
+    procedure CurveTo(const C2, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveToRelative(const X1, Y1, X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveToRelative(const X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveToRelative(const C1, C2, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -142,17 +174,17 @@ type
     procedure ConicTo(const X1, Y1, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicTo(const P1, P: TFloatPoint); overload; virtual;
     procedure ConicTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure ConicTo(const P: TFloatPoint); overload; virtual;
+    procedure ConicTo(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const X1, Y1, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const P1, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     // Arcs
-    procedure Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
+    procedure Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat); virtual;
     // - HTML 5 style Elliptical Arc
-    procedure EllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean = False); overload;
+    procedure EllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean = False); overload; virtual;
     // - SVG style Elliptical Arc
-    procedure EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); overload;
+    procedure EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);overload; virtual;
     // Polylines
     procedure PolyLine(const APoints: TArrayOfFloatPoint; AOffset: integer = 0); virtual;
     procedure PolyPolyLine(const APoints: TArrayOfArrayOfFloatPoint); virtual;
@@ -165,7 +197,7 @@ type
     procedure Ellipse(Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Circle(const Cx, Cy, Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
-    procedure Circle(const Center: TFloatPoint; Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
+    procedure Circle(const Center: TFloatPoint; Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
     procedure PolyPolygon(const APoints: TArrayOfArrayOfFloatPoint); virtual;
 
@@ -175,7 +207,15 @@ type
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
   end;
 
-  { TFlattenedPath }
+//------------------------------------------------------------------------------
+//
+//      TFlattenedPath
+//
+//------------------------------------------------------------------------------
+// Wraps a poly-polygon constructed by the shape methods.
+// - Performs flattening of curved shapes.
+//------------------------------------------------------------------------------
+type
   TFlattenedPath = class(TCustomPath)
   private
     FPath: TArrayOfArrayOfFloatPoint;
@@ -185,6 +225,9 @@ type
     FPointIndex: Integer;
     FOnBeginPath: TNotifyEvent;
     FOnEndPath: TNotifyEvent;
+    FCubicBezierTolerance: TFloat;
+    FQuadraticBezierTolerance: TFloat;
+    FEllipticalArcTolerance: TFloat;
   protected
     function GetPoints: TArrayOfFloatPoint;
   protected
@@ -194,10 +237,22 @@ type
     procedure DoEndPath; virtual;
     procedure ClearPoints;
 
+    procedure DoCubicBezierCurve(const P2, P3, P4: TFloatPoint); override;
+    procedure DoQuadraticBezierCurve(const P2, P3: TFloatPoint); override;
+    procedure DoArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat); override;
+    procedure DoEllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean); overload; override;
+    procedure DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);overload; override;
+    procedure DoRoundRect(const Rect: TFloatRect; const Radius: TFloat); override;
+    procedure DoCircle(const Cx, Cy, Radius: TFloat; Steps: Integer); override;
+    procedure DoEllipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer); override;
+
     // Points temporarily holds the vertices used to build a path. Cleared after path has been constructed.
+    // Note that the Points property returns a trimmed copy of the internal array.
     property Points: TArrayOfFloatPoint read GetPoints;
     property ClosedCount: integer read FClosedCount;
   public
+    constructor Create; override;
+
     procedure Clear; override;
 
     procedure EndPath(Close: boolean = False); override;
@@ -210,10 +265,25 @@ type
 
     property OnBeginPath: TNotifyEvent read FOnBeginPath write FOnBeginPath;
     property OnEndPath: TNotifyEvent read FOnEndPath write FOnEndPath;
+
+    // Flattening tolerances. Initialized to the global defaults.
+    property CubicBezierTolerance: TFloat read FCubicBezierTolerance write FCubicBezierTolerance;
+    property QuadraticBezierTolerance: TFloat read FQuadraticBezierTolerance write FQuadraticBezierTolerance;
+    property EllipticalArcTolerance: TFloat read FEllipticalArcTolerance write FEllipticalArcTolerance;
   end;
 
-  { TCustomCanvas }
-  TCustomCanvas = class(TFlattenedPath)
+//------------------------------------------------------------------------------
+//
+//      TCustomCanvas
+//
+//------------------------------------------------------------------------------
+// Abstract base class for paths with an associated transformation.
+// - Introduces the abstract DrawPath method.
+// - DrawPath is called when the path has changed (subject to batching), after
+//   which the path is cleared.
+//------------------------------------------------------------------------------
+type
+  TCustomCanvas = class abstract(TFlattenedPath)
   private
     FTransformation: TTransformation;
   protected
@@ -226,10 +296,26 @@ type
     property Transformation: TTransformation read FTransformation write SetTransformation;
   end;
 
-  { TCanvas32 }
-  TCanvas32 = class(TCustomCanvas)
+
+//------------------------------------------------------------------------------
+//
+//      TCustomCanvas32
+//
+//------------------------------------------------------------------------------
+// Wraps a TCustomBitmap32 and renders the path onto it.
+// Introduces:
+// - Rasterization via a polygon rasterizer.
+// - Brush collection.
+// - Vectorized text output via the bitmap's backend.
+// Note that, in theory, a TBitmap32 is required for text output, since only
+// TBitmap32 surfaces the Font property. In practice though, a TCustomBitmap32
+// is perfectly able to handle text output since it delegates the vectorization
+// task to the backend.
+//------------------------------------------------------------------------------
+type
+  TCustomCanvas32 = class(TCustomCanvas)
   private
-    FBitmap: TBitmap32;
+    FBitmap: TCustomBitmap32;
     FRenderer: TPolygonRenderer32;
     FBrushes: TBrushCollection;
   protected
@@ -242,7 +328,7 @@ type
     class function GetPolygonRendererClass: TPolygonRenderer32Class; virtual;
     procedure BrushCollectionChangeHandler(Sender: TObject); virtual;
   public
-    constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
+    constructor Create(ABitmap: TCustomBitmap32); reintroduce; virtual;
     destructor Destroy; override;
 
     procedure RenderText(X, Y: TFloat; const Text: string; Flags: Cardinal); overload;
@@ -254,19 +340,48 @@ type
     procedure RenderText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
 
-    property Bitmap: TBitmap32 read FBitmap;
+    property Bitmap: TCustomBitmap32 read FBitmap;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
     property RendererClassName: string read GetRendererClassName write SetRendererClassName;
     property Brushes: TBrushCollection read FBrushes;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TCanvas32
+//
+//------------------------------------------------------------------------------
+// Wraps a TBitmap32.
+// Introduces:
+// - Rasterization via a polygon rasterizer.
+// - Brush collection.
+// - Vectorized text output via the bitmap's backend.
+//------------------------------------------------------------------------------
+type
+  TCanvas32 = class(TCustomCanvas32)
+  protected
+    function GetBitmap: TBitmap32;
+  public
+    constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
+    property Bitmap: TBitmap32 read GetBitmap;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      Global curve flattening tolerances
+//
+//------------------------------------------------------------------------------
 var
   CBezierTolerance: TFloat = DefaultBezierTolerance;
   QBezierTolerance: TFloat = DefaultBezierTolerance;
   CArcTolerance: TFloat = DefaultArcTolerance;
 
-type
-  TAddPointEvent = function(const APoint: TFloatPoint): boolean of object;
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 implementation
 
@@ -552,264 +667,15 @@ var
 {$ifend}
 
 
-//============================================================================//
-
-{ TCustomPath }
-
+//------------------------------------------------------------------------------
+//
+//      TCustomPath
+//
+//------------------------------------------------------------------------------
 constructor TCustomPath.Create;
 begin
   inherited;
   FControlPointOrigin := cpNone;
-end;
-
-function TCustomPath.AddPoint(const APoint: TFloatPoint): boolean;
-begin
-  Result := True;
-end;
-
-procedure TCustomPath.Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
-begin
-  PolyLine(BuildArc(P, StartAngle, EndAngle, Radius));
-end;
-
-procedure TCustomPath.EllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean);
-var
-  SweepAngle: TFloat;
-  Steps: Integer;
-  StepAngle, Alpha: TFloat;
-  SinRot, CosRot: TFloat;
-  Ux, Uy, Vx, Vy: TFloat;
-  CosStep, SinStep: TFloat;
-  CosA, SinA, NewCosA: TFloat;
-  I: Integer;
-  Pt: TFloatPoint;
-  EffectiveRadius: TFloat;
-const
-  MINSTEPS = 6;
-  OneOver2Pi: Single = 1 / (2 * Pi);
-begin
-  ARadiusX := Abs(ARadiusX);
-  ARadiusY := Abs(ARadiusY);
-
-  if (ARadiusX < 1e-6) or (ARadiusY < 1e-6) then
-  begin
-    LineTo(ACenter);
-    Exit;
-  end;
-
-  // Compute sweep angle according to HTML5 canvas specification
-  SweepAngle := AEndAngle - AStartAngle;
-  if ACounterclockwise then
-  begin
-    if SweepAngle > 0 then
-      SweepAngle := SweepAngle - 2 * Pi * (Trunc(SweepAngle * OneOver2Pi) + 1);
-    if SweepAngle <= -2 * Pi then
-      SweepAngle := -2 * Pi;
-  end else
-  begin
-    if SweepAngle < 0 then
-      SweepAngle := SweepAngle + 2 * Pi * (Trunc(-SweepAngle * OneOver2Pi) + 1);
-    if SweepAngle >= 2 * Pi then
-      SweepAngle := 2 * Pi;
-  end;
-
-  if Abs(SweepAngle) < 1e-6 then
-  begin
-    GR32_Math.SinCos(ARotation, SinRot, CosRot);
-    GR32_Math.SinCos(AStartAngle, SinA, CosA);
-    Ux := ARadiusX * CosRot;
-    Uy := ARadiusX * SinRot;
-    Vx := -ARadiusY * SinRot;
-    Vy := ARadiusY * CosRot;
-    Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
-    Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
-    LineTo(Pt);
-    Exit;
-  end;
-
-  EffectiveRadius := Max(ARadiusX, ARadiusY);
-  Alpha := 2 * ArcCos(Max(-1.0, Min(1.0, 1.0 - CArcTolerance / Max(EffectiveRadius, CArcTolerance))));
-  if Alpha > 1e-6 then
-    Steps := Max(MINSTEPS, Ceil(Abs(SweepAngle) / Alpha))
-  else
-    Steps := MINSTEPS;
-
-  StepAngle := SweepAngle / Steps;
-
-  GR32_Math.SinCos(ARotation, SinRot, CosRot);
-  Ux := ARadiusX * CosRot;
-  Uy := ARadiusX * SinRot;
-  Vx := -ARadiusY * SinRot;
-  Vy := ARadiusY * CosRot;
-
-  GR32_Math.SinCos(StepAngle, SinStep, CosStep);
-  GR32_Math.SinCos(AStartAngle, SinA, CosA);
-
-  BeginUpdate;
-  try
-    Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
-    Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
-    LineTo(Pt);
-
-    for I := 1 to Steps do
-    begin
-      NewCosA := CosA * CosStep - SinA * SinStep;
-      SinA    := SinA * CosStep + CosA * SinStep;
-      CosA    := NewCosA;
-
-      Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
-      Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
-
-      LineTo(Pt);
-    end;
-  finally
-    EndUpdate;
-  end;
-end;
-
-procedure TCustomPath.EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);
-const
-  MINSTEPS = 6;
-var
-  p1, p2: TFloatPoint;
-  dx, dy: TFloat;
-  rx, ry: TFloat;
-  SinPhi, CosPhi: TFloat;
-  dpx, dpy: TFloat;
-  ux, uy, uLength: TFloat;
-  s, Factor: TFloat;
-  wx, wy: TFloat;
-  rwx, rwy: TFloat;
-  c: TFloatPoint;
-  e1x, e1y, e2x, e2y: TFloat;
-  StartAngle, DeltaAngle: TFloat;
-  LargeArcFlag, SweepFlag: Boolean;
-  EffectiveRadius, StepAngle, Alpha: TFloat;
-  Steps, i: Integer;
-  U_x, U_y, V_x, V_y: TFloat;
-  SinStep, CosStep: TFloat;
-  SinA, CosA, NewCosA: TFloat;
-  Pt: TFloatPoint;
-begin
-  p1 := FCurrentPoint;
-  p2 := AEndPoint;
-
-  // If start point equals end point, nothing to draw
-  if (Abs(p1.X - p2.X) < 1e-6) and (Abs(p1.Y - p2.Y) < 1e-6) then
-    Exit;
-
-  rx := Abs(ARadiusX);
-  ry := Abs(ARadiusY);
-
-  // If radii are degenerate (0), draw straight line to target
-  if (rx < 1e-6) or (ry < 1e-6) then
-  begin
-    LineTo(p2);
-    Exit;
-  end;
-
-  LargeArcFlag := (APart = apMajor);
-  SweepFlag    := (ASweep = adPositive);
-
-  // Half-distance vector d = (p1 - p2) / 2
-  dx := (p1.X - p2.X) * 0.5;
-  dy := (p1.Y - p2.Y) * 0.5;
-
-  // d' = R(-phi) * d (rotate by -phi)
-  GR32_Math.SinCos(ARotation, SinPhi, CosPhi);
-  dpx := CosPhi * dx + SinPhi * dy;
-  dpy := -SinPhi * dx + CosPhi * dy;
-
-  // u = d' / r (scale by 1/r)
-  ux := dpx / rx;
-  uy := dpy / ry;
-
-  // Check u length
-  uLength := Sqrt(ux * ux + uy * uy);
-  if uLength > 1.0 then
-  begin
-    // Radii scaling factor if points are too far apart for radii
-    rx := rx * uLength;
-    ry := ry * uLength;
-    ux := ux / uLength;
-    uy := uy / uLength;
-    uLength := 1.0;
-  end;
-
-  // Center displacement factor s in scaled parameter space
-  if LargeArcFlag <> SweepFlag then
-    s := 1.0
-  else
-    s := -1.0;
-
-  Factor := s * Sqrt(Max(0, 1.0 - uLength * uLength)) / uLength;
-  wx := Factor * uy;
-  wy := -Factor * ux;
-
-  // Reconstruct ellipse center c = (p1 + p2)/2 + R(phi) * (r * w)
-  rwx := rx * wx;
-  rwy := ry * wy;
-  c.X := (p1.X + p2.X) * 0.5 + (CosPhi * rwx - SinPhi * rwy);
-  c.Y := (p1.Y + p2.Y) * 0.5 + (SinPhi * rwx + CosPhi * rwy);
-
-  // Start vector e1 = u - w, End vector e2 = -u - w on parameter unit circle
-  e1x := ux - wx;
-  e1y := uy - wy;
-  e2x := -ux - wx;
-  e2y := -uy - wy;
-
-  StartAngle := ArcTan2(e1y, e1x);
-  DeltaAngle := ArcTan2(e1x * e2y - e1y * e2x, e1x * e2x + e1y * e2y);
-
-  if SweepFlag then
-  begin
-    if (DeltaAngle < 0) then
-      DeltaAngle := DeltaAngle + 2 * Pi;
-  end else
-  begin
-    if (DeltaAngle > 0) then
-      DeltaAngle := DeltaAngle - 2 * Pi;
-  end;
-
-  EffectiveRadius := Max(rx, ry);
-  Alpha := 2 * ArcCos(Max(-1.0, Min(1.0, 1.0 - CArcTolerance / Max(EffectiveRadius, CArcTolerance))));
-  if Alpha > 1e-6 then
-    Steps := Max(MINSTEPS, Ceil(Abs(DeltaAngle) / Alpha))
-  else
-    Steps := MINSTEPS;
-
-  StepAngle := DeltaAngle / Steps;
-
-  U_x := rx * CosPhi;
-  U_y := rx * SinPhi;
-  V_x := -ry * SinPhi;
-  V_y := ry * CosPhi;
-
-  GR32_Math.SinCos(StepAngle, SinStep, CosStep);
-  GR32_Math.SinCos(StartAngle, SinA, CosA);
-
-  BeginUpdate;
-  try
-    for i := 1 to Steps-1 do
-    begin
-      NewCosA := CosA * CosStep - SinA * SinStep;
-      SinA := SinA * CosStep + CosA * SinStep;
-      CosA := NewCosA;
-
-      Pt.X := c.X + U_x * CosA + V_x * SinA;
-      Pt.Y := c.Y + U_y * CosA + V_y * SinA;
-      LineTo(Pt);
-    end;
-
-    // Ensure the final step snaps to the target end point to avoid minor
-    // floating point recurrence drift (e.g. a chain of calls to
-    // EllipticalArc).
-    if Steps > 0 then
-      LineTo(p2);
-
-  finally
-    EndUpdate;
-  end;
 end;
 
 procedure TCustomPath.AssignTo(Dest: TPersistent);
@@ -824,18 +690,38 @@ begin
     inherited;
 end;
 
+function TCustomPath.AddPoint(const APoint: TFloatPoint): boolean;
+begin
+  Result := True;
+end;
+
+procedure TCustomPath.Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
+begin
+  DoArc(P, StartAngle, EndAngle, Radius);
+end;
+
+procedure TCustomPath.EllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; AStartAngle, AEndAngle: TFloat; ACounterclockwise: Boolean);
+begin
+  DoEllipticalArc(ACenter, ARadiusX, ARadiusY, ARotation, AStartAngle, AEndAngle, ACounterclockwise);
+end;
+
+procedure TCustomPath.EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);
+begin
+  DoEllipticalArc(AEndPoint, ARadiusX, ARadiusY, ARotation, APart, ASweep);
+end;
+
 procedure TCustomPath.BeginPath;
 begin
 end;
 
 procedure TCustomPath.Circle(const Cx, Cy, Radius: TFloat; Steps: Integer);
 begin
-  Polygon(GR32_VectorUtils.Circle(Cx, Cy, Radius, Steps));
+  DoCircle(Cx, Cy, Radius, Steps);
 end;
 
 procedure TCustomPath.Circle(const Center: TFloatPoint; Radius: TFloat; Steps: Integer);
 begin
-  Polygon(GR32_VectorUtils.Circle(Center.X, Center.Y, Radius, Steps));
+  Circle(Center.X, Center.Y, Radius, Steps);
 end;
 
 procedure TCustomPath.Clear;
@@ -850,7 +736,7 @@ end;
 
 procedure TCustomPath.ConicTo(const P1, P: TFloatPoint);
 begin
-  QuadraticBezierCurve(FCurrentPoint, P1, P, AddPoint, QBezierTolerance);
+  DoQuadraticBezierCurve(P1, P); // From CurrentPoint
   AddPoint(P);
   FCurrentPoint := P;
   FLastControlPoint := P1;
@@ -903,7 +789,7 @@ end;
 
 procedure TCustomPath.CurveTo(const C1, C2, P: TFloatPoint);
 begin
-  CubicBezierCurve(FCurrentPoint, C1, C2, P, AddPoint, CBezierTolerance);
+  DoCubicBezierCurve(C1, C2, P); // From CurrentPoint
   AddPoint(P);
   FCurrentPoint := P;
   FLastControlPoint := C2;
@@ -956,14 +842,66 @@ begin
   CurveTo(OffsetPoint(C2, FCurrentPoint), OffsetPoint(P, FCurrentPoint));
 end;
 
+procedure TCustomPath.DoArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
+begin
+  LineTo(P);
+end;
+
+procedure TCustomPath.DoCircle(const Cx, Cy, Radius: TFloat; Steps: Integer);
+begin
+  Rectangle(FloatRect(Cx-Radius/2, Cy-Radius/2, Cx+Radius/2, Cy+Radius/2));
+end;
+
+procedure TCustomPath.DoCubicBezierCurve(const P2, P3, P4: TFloatPoint);
+begin
+  // P1 is FCurrentPoint
+  LineTo(P2);
+  LineTo(P3);
+  // Caller will add P4
+end;
+
+procedure TCustomPath.DoEllipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer);
+begin
+  Rectangle(FloatRect(Cx-Rx/2, Cy-Ry/2, Cx+Rx/2, Cy+Ry/2));
+end;
+
+procedure TCustomPath.DoEllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY, ARotation, AStartAngle, AEndAngle: TFloat;
+  ACounterclockwise: Boolean);
+begin
+  LineTo(ACenter);
+end;
+
+procedure TCustomPath.DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY, ARotation: TFloat; APart: TArcPart;
+  ASweep: TArcDirection);
+begin
+  LineTo(AEndPoint);
+end;
+
+procedure TCustomPath.DoQuadraticBezierCurve(const P2, P3: TFloatPoint);
+begin
+  // P1 is FCurrentPoint
+  LineTo(P2);
+  // Caller will add P3
+end;
+
+procedure TCustomPath.DoRectangle(const Rect: TFloatRect);
+begin
+  Polygon(GR32_VectorUtils.Rectangle(Rect));
+end;
+
+procedure TCustomPath.DoRoundRect(const Rect: TFloatRect; const Radius: TFloat);
+begin
+  Rectangle(Rect);
+end;
+
 procedure TCustomPath.Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer);
 begin
-  Polygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry, Steps));
+  DoEllipse(Cx, Cy, Rx, Ry, Steps);
 end;
 
 procedure TCustomPath.Ellipse(Rx, Ry: TFloat; Steps: Integer);
 begin
-  with FCurrentPoint do Ellipse(X, Y, Rx, Ry);
+  Ellipse(FCurrentPoint.X, FCurrentPoint.Y, Rx, Ry);
 end;
 
 procedure TCustomPath.EndPath(Close: boolean = False);
@@ -1019,12 +957,12 @@ end;
 
 procedure TCustomPath.Rectangle(const Rect: TFloatRect);
 begin
-  Polygon(GR32_VectorUtils.Rectangle(Rect));
+  DoRectangle(Rect);
 end;
 
 procedure TCustomPath.RoundRect(const Rect: TFloatRect; const Radius: TFloat);
 begin
-  Polygon(GR32_VectorUtils.RoundRect(Rect, Radius));
+  DoRoundRect(Rect, Radius);
 end;
 
 procedure TCustomPath.VerticalLineTo(const Y: TFloat);
@@ -1108,8 +1046,11 @@ begin
   FControlPointOrigin := cpNone;
 end;
 
-{ TFlattenedPath }
-
+//------------------------------------------------------------------------------
+//
+//      TFlattenedPath
+//
+//------------------------------------------------------------------------------
 procedure TFlattenedPath.EndPath(Close: boolean = False);
 var
   n: Integer;
@@ -1161,6 +1102,15 @@ begin
   // FPoints := nil;
 end;
 
+constructor TFlattenedPath.Create;
+begin
+  inherited;
+
+  FCubicBezierTolerance := CBezierTolerance;
+  FQuadraticBezierTolerance := QBezierTolerance;
+  FEllipticalArcTolerance := CArcTolerance;
+end;
+
 procedure TFlattenedPath.DoBeginPath;
 begin
   EndPath; //implicitly finish a prior path
@@ -1175,6 +1125,278 @@ begin
     FOnEndPath(Self);
 
   Changed;
+end;
+
+procedure TFlattenedPath.DoArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
+begin
+  PolyLine(BuildArc(P, StartAngle, EndAngle, Radius));
+end;
+
+procedure TFlattenedPath.DoCircle(const Cx, Cy, Radius: TFloat; Steps: Integer);
+begin
+  Polygon(GR32_VectorUtils.Circle(Cx, Cy, Radius, Steps));
+end;
+
+procedure TFlattenedPath.DoCubicBezierCurve(const P2, P3, P4: TFloatPoint);
+begin
+  CubicBezierCurve(CurrentPoint, P2, P3, P4, AddPoint, CubicBezierTolerance);
+end;
+
+procedure TFlattenedPath.DoEllipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer);
+begin
+  Polygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry, Steps));
+end;
+
+procedure TFlattenedPath.DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY, ARotation: TFloat; APart: TArcPart;
+  ASweep: TArcDirection);
+const
+  MINSTEPS = 6;
+var
+  p1, p2: TFloatPoint;
+  dx, dy: TFloat;
+  rx, ry: TFloat;
+  SinPhi, CosPhi: TFloat;
+  dpx, dpy: TFloat;
+  ux, uy, uLength: TFloat;
+  s, Factor: TFloat;
+  wx, wy: TFloat;
+  rwx, rwy: TFloat;
+  c: TFloatPoint;
+  e1x, e1y, e2x, e2y: TFloat;
+  StartAngle, DeltaAngle: TFloat;
+  LargeArcFlag, SweepFlag: Boolean;
+  EffectiveRadius, StepAngle, Alpha: TFloat;
+  Steps, i: Integer;
+  U_x, U_y, V_x, V_y: TFloat;
+  SinStep, CosStep: TFloat;
+  SinA, CosA, NewCosA: TFloat;
+  Pt: TFloatPoint;
+begin
+  p1 := CurrentPoint;
+  p2 := AEndPoint;
+
+  // If start point equals end point, nothing to draw
+  if (Abs(p1.X - p2.X) < 1e-6) and (Abs(p1.Y - p2.Y) < 1e-6) then
+    Exit;
+
+  rx := Abs(ARadiusX);
+  ry := Abs(ARadiusY);
+
+  // If radii are degenerate (0), draw straight line to target
+  if (rx < 1e-6) or (ry < 1e-6) then
+  begin
+    LineTo(p2);
+    Exit;
+  end;
+
+  LargeArcFlag := (APart = apMajor);
+  SweepFlag    := (ASweep = adPositive);
+
+  // Half-distance vector d = (p1 - p2) / 2
+  dx := (p1.X - p2.X) * 0.5;
+  dy := (p1.Y - p2.Y) * 0.5;
+
+  // d' = R(-phi) * d (rotate by -phi)
+  GR32_Math.SinCos(ARotation, SinPhi, CosPhi);
+  dpx := CosPhi * dx + SinPhi * dy;
+  dpy := -SinPhi * dx + CosPhi * dy;
+
+  // u = d' / r (scale by 1/r)
+  ux := dpx / rx;
+  uy := dpy / ry;
+
+  // Check u length
+  uLength := Sqrt(ux * ux + uy * uy);
+  if uLength > 1.0 then
+  begin
+    // Radii scaling factor if points are too far apart for radii
+    rx := rx * uLength;
+    ry := ry * uLength;
+    ux := ux / uLength;
+    uy := uy / uLength;
+    uLength := 1.0;
+  end;
+
+  // Center displacement factor s in scaled parameter space
+  if LargeArcFlag <> SweepFlag then
+    s := 1.0
+  else
+    s := -1.0;
+
+  Factor := s * Sqrt(Max(0, 1.0 - uLength * uLength)) / uLength;
+  wx := Factor * uy;
+  wy := -Factor * ux;
+
+  // Reconstruct ellipse center c = (p1 + p2)/2 + R(phi) * (r * w)
+  rwx := rx * wx;
+  rwy := ry * wy;
+  c.X := (p1.X + p2.X) * 0.5 + (CosPhi * rwx - SinPhi * rwy);
+  c.Y := (p1.Y + p2.Y) * 0.5 + (SinPhi * rwx + CosPhi * rwy);
+
+  // Start vector e1 = u - w, End vector e2 = -u - w on parameter unit circle
+  e1x := ux - wx;
+  e1y := uy - wy;
+  e2x := -ux - wx;
+  e2y := -uy - wy;
+
+  StartAngle := ArcTan2(e1y, e1x);
+  DeltaAngle := ArcTan2(e1x * e2y - e1y * e2x, e1x * e2x + e1y * e2y);
+
+  if SweepFlag then
+  begin
+    if (DeltaAngle < 0) then
+      DeltaAngle := DeltaAngle + 2 * Pi;
+  end else
+  begin
+    if (DeltaAngle > 0) then
+      DeltaAngle := DeltaAngle - 2 * Pi;
+  end;
+
+  EffectiveRadius := Max(rx, ry);
+  Alpha := 2 * ArcCos(Max(-1.0, Min(1.0, 1.0 - EllipticalArcTolerance / Max(EffectiveRadius, EllipticalArcTolerance))));
+  if Alpha > 1e-6 then
+    Steps := Max(MINSTEPS, Ceil(Abs(DeltaAngle) / Alpha))
+  else
+    Steps := MINSTEPS;
+
+  StepAngle := DeltaAngle / Steps;
+
+  U_x := rx * CosPhi;
+  U_y := rx * SinPhi;
+  V_x := -ry * SinPhi;
+  V_y := ry * CosPhi;
+
+  GR32_Math.SinCos(StepAngle, SinStep, CosStep);
+  GR32_Math.SinCos(StartAngle, SinA, CosA);
+
+  BeginUpdate;
+  try
+    for i := 1 to Steps-1 do
+    begin
+      NewCosA := CosA * CosStep - SinA * SinStep;
+      SinA := SinA * CosStep + CosA * SinStep;
+      CosA := NewCosA;
+
+      Pt.X := c.X + U_x * CosA + V_x * SinA;
+      Pt.Y := c.Y + U_y * CosA + V_y * SinA;
+      LineTo(Pt);
+    end;
+
+    // Ensure the final step snaps to the target end point to avoid minor
+    // floating point recurrence drift (e.g. a chain of calls to
+    // EllipticalArc).
+    if Steps > 0 then
+      LineTo(p2);
+
+  finally
+    EndUpdate;
+  end;
+end;
+
+procedure TFlattenedPath.DoEllipticalArc(ACenter: TFloatPoint; ARadiusX, ARadiusY, ARotation, AStartAngle, AEndAngle: TFloat;
+  ACounterclockwise: Boolean);
+var
+  SweepAngle: TFloat;
+  Steps: Integer;
+  StepAngle, Alpha: TFloat;
+  SinRot, CosRot: TFloat;
+  Ux, Uy, Vx, Vy: TFloat;
+  CosStep, SinStep: TFloat;
+  CosA, SinA, NewCosA: TFloat;
+  I: Integer;
+  Pt: TFloatPoint;
+  EffectiveRadius: TFloat;
+const
+  MINSTEPS = 6;
+  OneOver2Pi: Single = 1 / (2 * Pi);
+begin
+  ARadiusX := Abs(ARadiusX);
+  ARadiusY := Abs(ARadiusY);
+
+  if (ARadiusX < 1e-6) or (ARadiusY < 1e-6) then
+  begin
+    LineTo(ACenter);
+    Exit;
+  end;
+
+  // Compute sweep angle according to HTML5 canvas specification
+  SweepAngle := AEndAngle - AStartAngle;
+  if ACounterclockwise then
+  begin
+    if SweepAngle > 0 then
+      SweepAngle := SweepAngle - 2 * Pi * (Trunc(SweepAngle * OneOver2Pi) + 1);
+    if SweepAngle <= -2 * Pi then
+      SweepAngle := -2 * Pi;
+  end else
+  begin
+    if SweepAngle < 0 then
+      SweepAngle := SweepAngle + 2 * Pi * (Trunc(-SweepAngle * OneOver2Pi) + 1);
+    if SweepAngle >= 2 * Pi then
+      SweepAngle := 2 * Pi;
+  end;
+
+  if Abs(SweepAngle) < 1e-6 then
+  begin
+    GR32_Math.SinCos(ARotation, SinRot, CosRot);
+    GR32_Math.SinCos(AStartAngle, SinA, CosA);
+    Ux := ARadiusX * CosRot;
+    Uy := ARadiusX * SinRot;
+    Vx := -ARadiusY * SinRot;
+    Vy := ARadiusY * CosRot;
+    Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
+    Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
+    LineTo(Pt);
+    Exit;
+  end;
+
+  EffectiveRadius := Max(ARadiusX, ARadiusY);
+  Alpha := 2 * ArcCos(Max(-1.0, Min(1.0, 1.0 - EllipticalArcTolerance / Max(EffectiveRadius, EllipticalArcTolerance))));
+  if Alpha > 1e-6 then
+    Steps := Max(MINSTEPS, Ceil(Abs(SweepAngle) / Alpha))
+  else
+    Steps := MINSTEPS;
+
+  StepAngle := SweepAngle / Steps;
+
+  GR32_Math.SinCos(ARotation, SinRot, CosRot);
+  Ux := ARadiusX * CosRot;
+  Uy := ARadiusX * SinRot;
+  Vx := -ARadiusY * SinRot;
+  Vy := ARadiusY * CosRot;
+
+  GR32_Math.SinCos(StepAngle, SinStep, CosStep);
+  GR32_Math.SinCos(AStartAngle, SinA, CosA);
+
+  BeginUpdate;
+  try
+    Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
+    Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
+    LineTo(Pt);
+
+    for I := 1 to Steps do
+    begin
+      NewCosA := CosA * CosStep - SinA * SinStep;
+      SinA    := SinA * CosStep + CosA * SinStep;
+      CosA    := NewCosA;
+
+      Pt.X := ACenter.X + Ux * CosA + Vx * SinA;
+      Pt.Y := ACenter.Y + Uy * CosA + Vy * SinA;
+
+      LineTo(Pt);
+    end;
+  finally
+    EndUpdate;
+  end;
+end;
+
+procedure TFlattenedPath.DoQuadraticBezierCurve(const P2, P3: TFloatPoint);
+begin
+  QuadraticBezierCurve(CurrentPoint, P2, P3, AddPoint, QuadraticBezierTolerance);
+end;
+
+procedure TFlattenedPath.DoRoundRect(const Rect: TFloatRect; const Radius: TFloat);
+begin
+  Polygon(GR32_VectorUtils.RoundRect(Rect, Radius));
 end;
 
 procedure TFlattenedPath.MoveTo(const P: TFloatPoint);
@@ -1236,6 +1458,10 @@ begin
       TFlattenedPath(Dest).DoEndPath;
 
       TFlattenedPath(Dest).Changed;
+
+      TFlattenedPath(Dest).FCubicBezierTolerance := FCubicBezierTolerance;
+      TFlattenedPath(Dest).FQuadraticBezierTolerance := FQuadraticBezierTolerance;
+      TFlattenedPath(Dest).FEllipticalArcTolerance := FEllipticalArcTolerance;
     finally
       TFlattenedPath(Dest).EndUpdate;
     end;
@@ -1249,9 +1475,11 @@ begin
 end;
 
 
-
-{ TCustomCanvas }
-
+//------------------------------------------------------------------------------
+//
+//      TCustomCanvas
+//
+//------------------------------------------------------------------------------
 procedure TCustomCanvas.AssignTo(Dest: TPersistent);
 begin
   if (Dest is TCustomCanvas) then
@@ -1281,32 +1509,13 @@ begin
   end;
 end;
 
-{ TCanvas32 }
 
-procedure TCanvas32.AssignTo(Dest: TPersistent);
-begin
-  if (Dest is TCanvas32) then
-  begin
-    TCanvas32(Dest).BeginUpdate;
-    inherited;
-    // DONE : Shouldn't this be .FBitmap.Assign(FBitmap)?
-    // No, because TCanvas32 doesn't own the bitmap; It just references it.
-    TCanvas32(Dest).FBitmap := FBitmap;
-
-    TCanvas32(Dest).FRenderer.Assign(FRenderer);
-    TCanvas32(Dest).FBrushes.Assign(FBrushes);
-    TCanvas32(Dest).Changed;
-    TCanvas32(Dest).EndUpdate;
-  end else
-    inherited;
-end;
-
-procedure TCanvas32.BrushCollectionChangeHandler(Sender: TObject);
-begin
-  Changed;
-end;
-
-constructor TCanvas32.Create(ABitmap: TBitmap32);
+//------------------------------------------------------------------------------
+//
+//      TCustomCanvas32
+//
+//------------------------------------------------------------------------------
+constructor TCustomCanvas32.Create(ABitmap: TCustomBitmap32);
 begin
   if (ABitmap = nil) then
     raise Exception.Create('Bitmap parameter required');
@@ -1321,14 +1530,37 @@ begin
   FBrushes.OnChange := BrushCollectionChangeHandler;
 end;
 
-destructor TCanvas32.Destroy;
+destructor TCustomCanvas32.Destroy;
 begin
   FBrushes.Free;
   FRenderer.Free;
   inherited;
 end;
 
-procedure TCanvas32.DrawPath(const Path: TFlattenedPath);
+procedure TCustomCanvas32.AssignTo(Dest: TPersistent);
+begin
+  if (Dest is TCustomCanvas32) then
+  begin
+    TCustomCanvas32(Dest).BeginUpdate;
+    inherited;
+    // DONE : Shouldn't this be .FBitmap.Assign(FBitmap)?
+    // No, because TCustomCanvas32 doesn't own the bitmap; It just references it.
+    TCustomCanvas32(Dest).FBitmap := FBitmap;
+
+    TCustomCanvas32(Dest).FRenderer.Assign(FRenderer);
+    TCustomCanvas32(Dest).FBrushes.Assign(FBrushes);
+    TCustomCanvas32(Dest).Changed;
+    TCustomCanvas32(Dest).EndUpdate;
+  end else
+    inherited;
+end;
+
+procedure TCustomCanvas32.BrushCollectionChangeHandler(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TCustomCanvas32.DrawPath(const Path: TFlattenedPath);
 var
   ClipRect: TFloatRect;
   i: Integer;
@@ -1356,18 +1588,17 @@ begin
   end;
 end;
 
-
-class function TCanvas32.GetPolygonRendererClass: TPolygonRenderer32Class;
+class function TCustomCanvas32.GetPolygonRendererClass: TPolygonRenderer32Class;
 begin
   Result := DefaultPolygonRendererClass;
 end;
 
-function TCanvas32.GetRendererClassName: string;
+function TCustomCanvas32.GetRendererClassName: string;
 begin
   Result := FRenderer.ClassName;
 end;
 
-function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect;
+function TCustomCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect;
 var
   TextToPath: ITextToPathSupport;
   TextToPath2: ITextToPathSupport2;
@@ -1381,7 +1612,7 @@ begin
     raise Exception.Create(RCStrInappropriateBackend);
 end;
 
-function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
+function TCustomCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 var
   Layout: TTextLayout;
 begin
@@ -1390,7 +1621,7 @@ begin
   Result := MeasureText(DstRect, Text, Layout);
 end;
 
-procedure TCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout);
+procedure TCustomCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout);
 var
   TextToPath: ITextToPathSupport;
   TextToPath2: ITextToPathSupport2;
@@ -1404,7 +1635,7 @@ begin
     raise Exception.Create(RCStrInappropriateBackend);
 end;
 
-procedure TCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal);
+procedure TCustomCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal);
 var
   Layout: TTextLayout;
 begin
@@ -1413,12 +1644,12 @@ begin
   RenderText(DstRect, Text, Layout);
 end;
 
-procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string);
+procedure TCustomCanvas32.RenderText(X, Y: TFloat; const Text: string);
 begin
   RenderText(X, Y, Text, DefaultTextLayout);
 end;
 
-procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string; const Layout: TTextLayout);
+procedure TCustomCanvas32.RenderText(X, Y: TFloat; const Text: string; const Layout: TTextLayout);
 var
   TextToPath: ITextToPathSupport;
   TextToPath2: ITextToPathSupport2;
@@ -1432,7 +1663,7 @@ begin
     raise Exception.Create(RCStrInappropriateBackend);
 end;
 
-procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string; Flags: Cardinal);
+procedure TCustomCanvas32.RenderText(X, Y: TFloat; const Text: string; Flags: Cardinal);
 var
   Layout: TTextLayout;
 begin
@@ -1441,7 +1672,7 @@ begin
   RenderText(X, Y, Text, Layout);
 end;
 
-procedure TCanvas32.SetRenderer(ARenderer: TPolygonRenderer32);
+procedure TCustomCanvas32.SetRenderer(ARenderer: TPolygonRenderer32);
 begin
   if (ARenderer <> nil) and (FRenderer <> ARenderer) then
   begin
@@ -1452,7 +1683,7 @@ begin
   end;
 end;
 
-procedure TCanvas32.SetRendererClassName(const Value: string);
+procedure TCustomCanvas32.SetRendererClassName(const Value: string);
 var
   RendererClass: TPolygonRenderer32Class;
 begin
@@ -1462,6 +1693,21 @@ begin
     if (RendererClass <> nil) then
       Renderer := RendererClass.Create;
   end;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TCanvas32
+//
+//------------------------------------------------------------------------------
+constructor TCanvas32.Create(ABitmap: TBitmap32);
+begin
+  inherited Create(ABitmap);
+end;
+
+function TCanvas32.GetBitmap: TBitmap32;
+begin
+  Result := TBitmap32(inherited Bitmap);
 end;
 
 end.
