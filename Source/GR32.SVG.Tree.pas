@@ -5858,13 +5858,15 @@ procedure TSvgDocumentNode.ResolveGradients;
   var
     ParentTarget: TSvgNode;
     TargetGradientNode: TSvgGradientNode;
+    ID: TValuePUtf8Char;
   begin
     if (AGradientNode = nil) or AGradientNode.FResolving or (AGradientNode.Href = '') then
       Exit;
 
     AGradientNode.FResolving := True;
     try
-      ParentTarget := AGradientNode.FindNodeByID(TValuePUtf8Char.FromString(AGradientNode.Href));
+      ID := ExtractUrlID(AGradientNode.Href);
+      ParentTarget := AGradientNode.FindNodeByID(ID);
 
       if (ParentTarget is TSvgGradientNode) then
       begin
@@ -6129,13 +6131,15 @@ procedure TSvgDocumentNode.ResolvePatterns;
   var
     ParentTarget: TSvgNode;
     TargetPatternNode: TSvgPatternNode;
+    ID: TValuePUtf8Char;
   begin
     if (APat = nil) or APat.FResolving or (APat.Href = '') then
       Exit;
 
     APat.FResolving := True;
     try
-      ParentTarget := APat.FindNodeByID(TValuePUtf8Char.FromString(APat.Href));
+      ID := ExtractUrlID(APat.Href);
+      ParentTarget := APat.FindNodeByID(ID);
       if ParentTarget is TSvgPatternNode then
       begin
         TargetPatternNode := TSvgPatternNode(ParentTarget);

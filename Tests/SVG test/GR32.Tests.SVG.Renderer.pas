@@ -119,6 +119,7 @@ type
     procedure TestTransformedFilterSmallBitmap;
     procedure TestTextPathRepeatedRenderNoShift;
     procedure TestShapeFlatteningAtLargeCanvasScale;
+    procedure TestClipPathOpacityIgnored;
   end;
 
 implementation
@@ -4146,6 +4147,52 @@ begin
       try
         renderer.RenderDocument(docNode, FloatRect(0, 0, 1000, 1000));
         Check(bmp.Pixel[500, 500] <> clWhite32, 'Rendered circle should paint pixels on target canvas');
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestClipPathOpacityIgnored;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  pixelColor: TColor32;
+begin
+  xml := '<svg width="100" height="100" viewBox="0 0 100 100">' +
+         '  <defs>' +
+         '    <clipPath id="clip1">' +
+         '      <rect x="0" y="0" width="100" height="100" style="opacity: 0.15; fill: #2b0000;"/>' +
+         '    </clipPath>' +
+         '  </defs>' +
+         '  <rect x="0" y="0" width="100" height="100" clip-path="url(#clip1)" fill="#ff0000"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should parse');
+  try
+    docNode.Resolve;
+
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(100, 100);
+      bmp.Clear(clWhite32);
+
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+
+        pixelColor := bmp.Pixel[50, 50];
+        // The clipPath child shape has opacity: 0.15, but opacity must be ignored on clipPath children
+        // so the clipped red rect renders at full 100% opacity red ($FFFF0000) rather than dimmed.
+        CheckEqualsHex($FFFF0000, pixelColor, 'Clipped shape should render at 100% opacity red, ignoring clipPath child opacity');
       finally
         renderer.Free;
       end;

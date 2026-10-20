@@ -145,6 +145,7 @@ type
     FPolyRenderer: TPolygonRenderer32;
     FAllowExternalImages: Boolean;
     FRecursionDepth: integer;
+    FRenderingClipPath: integer;
     FTransformation: TAffineTransformation;
     FThemeFillColor: TSvgColor;
     FThemeStrokeColor: TSvgColor;
@@ -159,6 +160,7 @@ type
     function GetThemeStrokeColor32: TColor32;
     procedure SetCurrentColor32(AColor: TColor32);
     function GetCurrentColor32: TColor32;
+    function GetIsRenderingClipPath: boolean;
   protected type
     TThemeColor = (tcStroke, tcFill);
 
@@ -181,16 +183,21 @@ type
     procedure RenderMaskNode(AMaskBmp: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     procedure RenderMarker(ATarget: TCustomBitmap32; AMarker: TSvgMarkerNode; const AVertex: TFloatPoint; AAngle: Single; AStrokeWidth: Single); // Angle is in radians!
     procedure RenderMarkers(ATarget: TCustomBitmap32; APathNode: TSvgPathNode; const APoints: TArrayOfArrayOfFloatPoint; AStrokeWidth: Single);
-    procedure VerticalBlur32(ASource, ADest: TCustomBitmap32; ARadius: TFloat);
     procedure RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
     procedure RenderNodeContent(ATarget: TCustomBitmap32; ANode: TSvgNode);
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
+    procedure ApplyClipPathNode(ATarget: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect; ATranslate: boolean = True);
+    procedure ApplyMaskNode(ATarget: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor; // protected to be accesible by TFilterContext
+    procedure VerticalBlur32(ASource, ADest: TCustomBitmap32; ARadius: TFloat);
     procedure ResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
     procedure DoResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
     function DoResolveExternalFile(const Filename: string; Stream: TStream): boolean; virtual;
+    procedure BeginRenderClipPath;
+    procedure EndRenderClipPath;
+    property IsRenderingClipPath: boolean read GetIsRenderingClipPath;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
@@ -421,6 +428,80 @@ begin
   Result := bmNormal;
 end;
 
+procedure ApplyAlphaMask(AMask, ATarget: TCustomBitmap32);
+{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
+var
+  SourceP, DestP: PColor32;
+  i: Integer;
+  AlphaVal: Byte;
+{$ifend}
+begin
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
+  ScaleAlphaLine(PColor32(AMask.Bits), PColor32(ATarget.Bits), ATarget.PixelCount);
+{$else}
+    SourceP := PColor32(AMask.Bits);
+    DestP := PColor32(ATarget.Bits);
+
+    for i := 0 to ATarget.PixelCount - 1 do
+    begin
+      AlphaVal := AlphaComponent(SourceP^);
+      if AlphaVal < 255 then
+        ScaleAlpha(DestP^, AlphaVal * OneOver255);
+      Inc(DestP);
+      Inc(SourceP);
+    end;
+{$ifend}
+end;
+
+procedure ApplyLuminanceMask(AMask, ATarget: TCustomBitmap32);
+{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
+var
+  SourceP: PColor32Entry;
+  DestP: PColor32;
+  i: Integer;
+  Gray: Byte;
+{$ifend}
+begin
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
+  GR32_Filters.ApplyAlphaMask(PColor32(AMask.Bits), PColor32(ATarget.Bits), ATarget.PixelCount);
+{$else}
+    SourceP := PColor32Entry(AMask.Bits);
+    DestP := PColor32(ATarget.Bits);
+
+    for i := 0 to ATarget.PixelCount - 1 do
+    begin
+      Gray := Intensity(SourceP.ARGB);
+      Gray := Round(Gray * SourceP.A * OneOver255);
+      if Gray < 255 then
+        ScaleAlpha(DestP^, Gray * OneOver255);
+      Inc(DestP);
+      Inc(SourceP);
+    end;
+{$ifend}
+end;
+
+procedure ApplyOpacity(ATarget: TCustomBitmap32; AOpacity: Single);
+{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
+var
+  SourceP, DestP: PColor32;
+  i: Integer;
+{$ifend}
+begin
+  if (AOpacity >= 1.0) then
+    exit;
+
+{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
+    ScaleAlphaMems(PColor32(ATarget.Bits), ATarget.PixelCount, AOpacity);
+{$else}
+    SourceP := PColor32(ATarget.Bits);
+    for i := 0 to ATarget.PixelCount - 1 do
+    begin
+      ScaleAlpha(SourceP^, AOpacity);
+      Inc(SourceP);
+    end;
+{$ifend}
+end;
+
 function TSvgRenderer.GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor): TSvgColor;
 begin
   if (AColor.IsNone) then
@@ -454,6 +535,21 @@ begin
           Result := AColor;
     end;
   end;
+end;
+
+procedure TSvgRenderer.BeginRenderClipPath;
+begin
+  Inc(FRenderingClipPath);
+end;
+
+procedure TSvgRenderer.EndRenderClipPath;
+begin
+  Dec(FRenderingClipPath);
+end;
+
+function TSvgRenderer.GetIsRenderingClipPath: boolean;
+begin
+  Result := (FRenderingClipPath > 0);
 end;
 
 procedure TSvgRenderer.SetThemeFillColor32(AColor: TColor32);
@@ -1082,16 +1178,9 @@ var
   RoiRect: TRect;
   NeedsOffscreen: Boolean;
   EffectiveBlendMode: TSvgBlendMode;
-  RenderBmp, OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
-  ClipNodeTarget: TSvgClipPathNode;
-  MaskNodeTarget: TSvgMaskNode;
+  RenderBmp, OffscreenBmp: TCustomBitmap32;
   FillColor, StrokeColor: TSvgColor;
   HasFill, HasStroke, HasMarkers: boolean;
-{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
-  SourceP, DestP: PColor32;
-  x: Integer;
-  AlphaVal, Gray: Byte;
-{$ifend}
 begin
   if (APathNode = nil) or (ATarget = nil) then
     Exit;
@@ -1181,13 +1270,49 @@ begin
   (*
   ** 5. Check whether offscreen bitmap compositing is required (opacity, clip-path, mask, blend-mode)
   *)
+  if IsRenderingClipPath then
+  begin
+    // Per W3C SVG 1.1 Specification §14.3.5 ("Clipping paths"):
+    // The raw geometry of each child in a 'clipPath' element is used, conceptually
+    // forming a 100% opaque binary clipping region. Presentation properties such as
+    // 'opacity', 'fill-opacity', 'stroke', 'filter', and 'mask' on children of 'clipPath'
+    // are ignored, and shape fill geometry is rendered at 100% alpha (clWhite32) into
+    // the clip mask surface to prevent child opacity from dimming clipped content.
+
+    FillColor := TSvgColor.Create(clWhite32);
+    if (APathNode.Fill.Color.IsSet) and (not APathNode.Fill.Color.IsVisible) then
+      HasFill := False
+    else
+      HasFill := True;
+
+    if HasFill then
+    begin
+      // W3C SVG 1.1 §14.3.5:
+      // If a child inside <clipPath> has a 'clip-path' property, the child shape
+      // is clipped by that referenced clipPath before unioning with other children.
+      if (APathNode.ResolvedClipPath <> nil) then
+      begin
+        OffscreenBmp := GetOffscreenBitmap(RoiRect.Width, RoiRect.Height, True);
+        try
+          TranslatePolyPolygonInplace(TransformedPoints, -RoiRect.Left, -RoiRect.Top);
+          RenderPolyPolygon(OffscreenBmp, nil, 1.0, FillColor, TransformedPoints, APathNode.Fill.FillRule);
+
+          ApplyClipPathNode(OffscreenBmp, APathNode.ResolvedClipPath, FloatRoi, RoiRect);
+          BlendOffscreenSurface(ATarget, OffscreenBmp, bmNormal, RoiRect.Left, RoiRect.Top);
+        finally
+          ReleaseOffscreenBitmap(OffscreenBmp);
+        end;
+      end else
+        RenderPolyPolygon(ATarget, nil, 1.0, FillColor, TransformedPoints, APathNode.Fill.FillRule);
+    end;
+    Exit;
+  end;
+
   EffectiveBlendMode := GetEffectiveMixBlendMode(APathNode);
   NeedsOffscreen := (EffectiveBlendMode <> bmNormal) or (APathNode.ResolvedClipPath <> nil) or
                     (APathNode.ResolvedMask <> nil) or (APathNode.Opacity < 1.0);
 
   OffscreenBmp := nil;
-  ClipMaskBmp := nil;
-  MaskBmp := nil;
 
   if NeedsOffscreen then
   begin
@@ -1259,83 +1384,15 @@ begin
     begin
       // Apply ClipPath in ROI space
       if (APathNode.ResolvedClipPath <> nil) then
-      begin
-        ClipNodeTarget := APathNode.ResolvedClipPath;
-        ClipMaskBmp := GetOffscreenBitmap(RoiRect.Width, RoiRect.Height, True);
-
-        FTransformation.Push;
-        try
-          FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
-
-          RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, FloatRoi, RoiRect);
-        finally
-          FTransformation.Pop;
-        end;
-
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-        ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
-{$else}
-        DestP := PColor32(OffscreenBmp.Bits);
-        SourceP := PColor32(ClipMaskBmp.Bits);
-
-        for x := 0 to OffscreenBmp.PixelCount - 1 do
-        begin
-          AlphaVal := AlphaComponent(SourceP^);
-          if AlphaVal < 255 then
-            ScaleAlpha(DestP^, AlphaVal * OneOver255);
-          Inc(DestP);
-          Inc(SourceP);
-        end;
-{$ifend}
-      end;
+        ApplyClipPathNode(OffscreenBmp, APathNode.ResolvedClipPath, FloatRoi, RoiRect);
 
       // Apply Alpha Mask in ROI space
       if (APathNode.ResolvedMask <> nil) then
-      begin
-        MaskNodeTarget := APathNode.ResolvedMask;
-        MaskBmp := GetOffscreenBitmap(RoiRect.Width, RoiRect.Height, False);
-
-        FTransformation.Push;
-        try
-          FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
-
-          RenderMaskNode(MaskBmp, MaskNodeTarget, FloatRoi, RoiRect);
-        finally
-          FTransformation.Pop;
-        end;
-
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-        ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
-{$else}
-        SourceP := PColor32(MaskBmp.Bits);
-        DestP := PColor32(OffscreenBmp.Bits);
-
-        for x := 0 to OffscreenBmp.PixelCount - 1 do
-        begin
-          Gray := Intensity(SourceP^);
-          Gray := Round(Gray * (AlphaComponent(SourceP^) * OneOver255));
-          ScaleAlpha(DestP^, Gray * OneOver255);
-          Inc(DestP);
-          Inc(SourceP);
-        end;
-{$ifend}
-      end;
+        ApplyMaskNode(OffscreenBmp, APathNode.ResolvedMask, FloatRoi, RoiRect);
 
       // Apply Opacity
       if (APathNode.Opacity < 1.0) then
-      begin
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-        ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, APathNode.Opacity);
-{$else}
-        SourceP := PColor32(OffscreenBmp.Bits);
-
-        for x := 0 to OffscreenBmp.PixelCount - 1 do
-        begin
-          ScaleAlpha(SourceP^, APathNode.Opacity);
-          Inc(SourceP);
-        end;
-{$ifend}
-      end;
+        ApplyOpacity(OffscreenBmp, APathNode.Opacity);
 
       // Blend ROI offscreen surface onto destination target at ROI origin
       BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode, RoiRect.Left, RoiRect.Top);
@@ -1343,8 +1400,61 @@ begin
 
   finally
     ReleaseOffscreenBitmap(OffscreenBmp);
-    ReleaseOffscreenBitmap(ClipMaskBmp);
+  end;
+end;
+
+procedure TSvgRenderer.ApplyMaskNode(ATarget: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
+var
+  MaskBmp: TCustomBitmap32;
+begin
+  if (AMaskNode = nil) then
+    exit;
+
+  MaskBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, False); // RenderMaskNode clears bitmap
+  try
+
+    FTransformation.Push;
+    try
+      FTransformation.Translate(-ARoiRect.Left, -ARoiRect.Top);
+
+      RenderMaskNode(MaskBmp, AMaskNode, ATargetBounds, ARoiRect);
+    finally
+      FTransformation.Pop;
+    end;
+
+    ApplyLuminanceMask(MaskBmp, ATarget);
+
+  finally
     ReleaseOffscreenBitmap(MaskBmp);
+  end;
+end;
+
+procedure TSvgRenderer.ApplyClipPathNode(ATarget: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect;
+  const ARoiRect: TRect; ATranslate: boolean);
+var
+  MaskBmp: TCustomBitmap32;
+begin
+  if (AClipNode = nil) then
+    exit;
+
+  if (ATranslate) then
+    FTransformation.Push;
+  try
+    if (ATranslate) then
+      FTransformation.Translate(-ARoiRect.Left, -ARoiRect.Top);
+
+    MaskBmp := GetOffscreenBitmap(ATarget.Width, ATarget.Height, False); // RenderClipPathNode clears bitmap
+    try
+      RenderClipPathNode(MaskBmp, AClipNode, ATargetBounds, ARoiRect);
+
+      ApplyAlphaMask(MaskBmp, ATarget);
+
+    finally
+      ReleaseOffscreenBitmap(MaskBmp);
+    end;
+  finally
+    if (ATranslate) then
+      FTransformation.Pop;
   end;
 end;
 
@@ -1356,34 +1466,53 @@ begin
   // Renders child nodes of a <clipPath> onto a temporary alpha surface.
   // If clipPathUnits = guObjectBoundingBox, applies translation and
   // scale derived from target object bounds in ROI coordinate space.
-  if (AClipNode = nil) or (AMaskBmp = nil) then
+  //
+  // Per W3C SVG 1.1 Specification §14.3.5 ("Clipping paths"), children of a <clipPath>
+  // evaluate strictly as raw geometric clipping shapes at 100% alpha (solid coverage).
+  // We set FIsRenderingClipPath := True to bypass visual presentation properties
+  // (filters, offscreen opacity compositing, masks, sub-clipPaths, and paint servers).
+  if (AMaskBmp = nil) then
     Exit;
 
-  FTransformation.Push;
+  AMaskBmp.Clear(0); // Clear to 0 transparent so filled shapes paint non-zero alpha inside clip region
+
+  if (AClipNode = nil) then
+    Exit;
+
+  BeginRenderClipPath;
   try
-    if AClipNode.ClipPathUnits = guObjectBoundingBox then
-    begin
-      Width := ATargetBounds.Width;
-      Height := ATargetBounds.Height;
-      if Width <= 0 then
-        Width := 1.0;
-      if Height <= 0 then
-        Height := 1.0;
+    FTransformation.Push;
+    try
+      if AClipNode.ClipPathUnits = guObjectBoundingBox then
+      begin
+        Width := ATargetBounds.Width;
+        Height := ATargetBounds.Height;
+        if Width <= 0 then
+          Width := 1.0;
+        if Height <= 0 then
+          Height := 1.0;
 
-      OffsetX := ATargetBounds.Left - ARoiRect.Left;
-      OffsetY := ATargetBounds.Top - ARoiRect.Top;
+        OffsetX := ATargetBounds.Left - ARoiRect.Left;
+        OffsetY := ATargetBounds.Top - ARoiRect.Top;
 
-      FTransformation.Clear;
-      FTransformation.Scale(Width, Height);
-      FTransformation.Translate(OffsetX, OffsetY);
+        FTransformation.Clear;
+        FTransformation.Scale(Width, Height);
+        FTransformation.Translate(OffsetX, OffsetY);
+      end;
+
+      for i := 0 to AClipNode.Children.Count - 1 do
+        RenderNode(AMaskBmp, AClipNode.Children[i]);
+
+      // W3C SVG 1.1 §14.3.5 ("Clipping paths"):
+      // If a 'clip-path' property is specified on the <clipPath> element itself,
+      // intersect the resulting clipping path with the referenced clipPath.
+      ApplyClipPathNode(AMaskBmp, AClipNode.ResolvedClipPath, ATargetBounds, ARoiRect, False);
+
+    finally
+      FTransformation.Pop;
     end;
-
-    AMaskBmp.Clear(0); // Clear to 0 transparent so filled shapes paint non-zero alpha inside clip region
-
-    for i := 0 to AClipNode.Children.Count - 1 do
-      RenderNode(AMaskBmp, AClipNode.Children[i]);
   finally
-    FTransformation.Pop;
+    EndRenderClipPath;
   end;
 end;
 
@@ -1396,8 +1525,24 @@ begin
   // If maskContentUnits = guObjectBoundingBox, applies translation and scale
   // derived from target object bounds in ROI coordinate space.
 
-  if (AMaskNode = nil) or (AMaskBmp = nil) then
-    Exit;
+  if (AMaskBmp = nil) then
+    exit;
+
+  if (AMaskNode = nil) then
+  begin
+    AMaskBmp.Clear(clBlack32);
+    exit;
+  end;
+
+  // If the 'mask' property references a 'mask' element containing no children,
+  // the element referencing it is not rendered.
+  if (AMaskNode.Children.Count = 0) then
+  begin
+    AMaskBmp.Clear(0);
+    exit;
+  end;
+
+  AMaskBmp.Clear(clBlack32);
 
   FTransformation.Push;
   try
@@ -1417,8 +1562,6 @@ begin
       FTransformation.Scale(Width, Height);
       FTransformation.Translate(OffsetX, OffsetY);
     end;
-
-    AMaskBmp.Clear(clBlack32);
 
     for i := 0 to AMaskNode.Children.Count - 1 do
       RenderNode(AMaskBmp, AMaskNode.Children[i]);
@@ -1687,178 +1830,113 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
 
 var
   k: Integer;
-  OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
-  ClipNodeTarget: TSvgClipPathNode;
-  MaskNodeTarget: TSvgMaskNode;
+  OffscreenBmp: TCustomBitmap32;
   GroupBounds, TargetWorldBounds: TFloatRect;
   GroupRoi: TRect;
   Points: array[0..3] of TFloatPoint;
-{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
-  SourceP, DestP: PColor32;
-  x: Integer;
-  Gray: Byte;
-  AlphaVal: Byte;
-{$ifend}
+  NeedsOffscreen: Boolean;
+  EffectiveBlendMode: TSvgBlendMode;
 begin
   if (AGroupNode = nil) or AGroupNode.IsDisplayNone or (not AGroupNode.PassesConditionalProcessing) then
     Exit;
 
-  // Offscreen rendering required if we have transparency, a ClipPath, a Mask, or if Isolation = isoIsolate
-  if (AGroupNode.Opacity < 1.0) or (AGroupNode.ResolvedClipPath <> nil) or (AGroupNode.ResolvedMask <> nil) or
-     (AGroupNode.Isolation = isoIsolate) then
-  begin
-    if (ATarget = nil) then
-      Exit;
-
-    // Calculate group bounding box in world space for objectBoundingBox units and ROI determination
-    GroupBounds := AGroupNode.GetObjectBoundingBox(FViewportRect);
-    if (GroupBounds.Right <= GroupBounds.Left) or (GroupBounds.Bottom <= GroupBounds.Top) then
-    begin
-      // Fallback for empty or degenerate group bounding boxes;
-      // If GetObjectBoundingBox returns empty/inverted bounds,
-      // we fall back to the target canvas/viewport dimensions,
-      // ensuring offscreen surfaces are allocated properly
-      // rather than disappearing.
-      // See identical logic in TSvgRenderer.RenderNode & TSvgRenderer.RenderFilter
-      TargetWorldBounds := FloatRect(0, 0, ATarget.Width, ATarget.Height);
-    end else
-    begin
-      Points[0] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Top));
-      Points[1] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Top));
-      Points[2] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Bottom));
-      Points[3] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Bottom));
-
-      TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
-      for k := 1 to 3 do
-      begin
-        if (Points[k].X < TargetWorldBounds.Left) then
-          TargetWorldBounds.Left := Points[k].X;
-        if (Points[k].X > TargetWorldBounds.Right) then
-          TargetWorldBounds.Right := Points[k].X;
-        if (Points[k].Y < TargetWorldBounds.Top) then
-          TargetWorldBounds.Top := Points[k].Y;
-        if (Points[k].Y > TargetWorldBounds.Bottom) then
-          TargetWorldBounds.Bottom := Points[k].Y;
-      end;
-    end;
-
-    // Convert world target bounds to integer pixel ROI and intersect with target bitmap bounds
-    GroupRoi := MakeRect(TargetWorldBounds, rrOutside);
-    if not GR32.IntersectRect(GroupRoi, GroupRoi, ATarget.BoundsRect) then
-      Exit;
-
-    // Acquire reusable offscreen surface sized strictly to the calculated ROI
-    OffscreenBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, True);
-    ClipMaskBmp := nil;
-    MaskBmp := nil;
-    try
-      // Translate matrix to ROI coordinate space
-      FTransformation.Push;
-      Inc(FOffscreenOffset.X, GroupRoi.Left);
-      Inc(FOffscreenOffset.Y, GroupRoi.Top);
-      try
-        FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
-
-        RenderChildren(OffscreenBmp);
-      finally
-        Dec(FOffscreenOffset.X, GroupRoi.Left);
-        Dec(FOffscreenOffset.Y, GroupRoi.Top);
-        FTransformation.Pop;
-      end;
-
-      // Apply ClipPath in ROI coordinate space
-      if (AGroupNode.ResolvedClipPath <> nil) then
-      begin
-        ClipNodeTarget := AGroupNode.ResolvedClipPath;
-        ClipMaskBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, True);
-
-        FTransformation.Push;
-        try
-          FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
-
-          RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds, GroupRoi);
-        finally
-          FTransformation.Pop;
-        end;
-
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-        ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
-{$else}
-        SourceP := PColor32(ClipMaskBmp.Bits);
-        DestP := PColor32(OffscreenBmp.Bits);
-
-        for x := 0 to OffscreenBmp.PixelCount - 1 do
-        begin
-          AlphaVal := AlphaComponent(SourceP^);
-          if AlphaVal < 255 then
-            ScaleAlpha(DestP^, AlphaVal * OneOver255);
-          Inc(DestP);
-          Inc(SourceP);
-        end;
-{$ifend}
-      end;
-
-      // Apply Alpha Mask in ROI coordinate space
-      if (AGroupNode.ResolvedMask <> nil) then
-      begin
-        MaskNodeTarget := AGroupNode.ResolvedMask;
-        MaskBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, False);
-
-        FTransformation.Push;
-        try
-          FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
-
-          RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds, GroupRoi);
-        finally
-          FTransformation.Pop;
-        end;
-
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-        ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
-{$else}
-        DestP := PColor32(OffscreenBmp.Bits);
-        SourceP := PColor32(MaskBmp.Bits);
-
-        for x := 0 to OffscreenBmp.PixelCount - 1 do
-        begin
-          Gray := Intensity(SourceP^);
-          Gray := Round(Gray * (AlphaComponent(SourceP^) * OneOver255));
-          ScaleAlpha(DestP^, Gray * OneOver255);
-          Inc(DestP);
-          Inc(SourceP);
-        end;
-{$ifend}
-      end;
-
-      // Apply Group Opacity
-      if (AGroupNode.Opacity < 1.0) then
-      begin
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-        ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, AGroupNode.Opacity);
-{$else}
-        SourceP := PColor32(OffscreenBmp.Bits);
-
-        for x := 0 to OffscreenBmp.PixelCount - 1 do
-        begin
-          ScaleAlpha(SourceP^, AGroupNode.Opacity);
-          Inc(SourceP);
-        end;
-{$ifend}
-      end;
-
-      // Blend ROI offscreen surface onto target canvas at group ROI origin
-      BlendOffscreenSurface(ATarget, OffscreenBmp, AGroupNode.MixBlendMode, GroupRoi.Left, GroupRoi.Top);
-
-    finally
-      ReleaseOffscreenBitmap(OffscreenBmp);
-      ReleaseOffscreenBitmap(ClipMaskBmp);
-      ReleaseOffscreenBitmap(MaskBmp);
-    end;
-
+  if (ATarget = nil) then
     Exit;
+
+  // Offscreen rendering required if we have transparency, a ClipPath, a Mask,
+  // or if Isolation = isoIsolate.
+  // Per W3C SVG 1.1 §14.3.5, offscreen opacity and mask/clip compositing are
+  // bypassed when rendering children inside a <clipPath>, but clip-path
+  // references on group elements still apply.
+  NeedsOffscreen := (AGroupNode.ResolvedClipPath <> nil) or
+                    ((not IsRenderingClipPath) and
+                     ((AGroupNode.Opacity < 1.0) or
+                      (AGroupNode.ResolvedMask <> nil) or
+                      (AGroupNode.Isolation = isoIsolate)));
+
+  if not NeedsOffscreen then
+  begin
+    RenderChildren(ATarget);
+    exit;
   end;
 
-  RenderChildren(ATarget);
+  // Calculate group bounding box in world space for objectBoundingBox units and ROI determination
+  GroupBounds := AGroupNode.GetObjectBoundingBox(FViewportRect);
+  if (GroupBounds.Right <= GroupBounds.Left) or (GroupBounds.Bottom <= GroupBounds.Top) then
+  begin
+    // Fallback for empty or degenerate group bounding boxes;
+    // If GetObjectBoundingBox returns empty/inverted bounds,
+    // we fall back to the target canvas/viewport dimensions,
+    // ensuring offscreen surfaces are allocated properly
+    // rather than disappearing.
+    // See identical logic in TSvgRenderer.RenderNode & TSvgRenderer.RenderFilter
+    TargetWorldBounds := FloatRect(0, 0, ATarget.Width, ATarget.Height);
+  end else
+  begin
+    Points[0] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Top));
+    Points[1] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Top));
+    Points[2] := FTransformation.Transform(FloatPoint(GroupBounds.Right, GroupBounds.Bottom));
+    Points[3] := FTransformation.Transform(FloatPoint(GroupBounds.Left, GroupBounds.Bottom));
+
+    TargetWorldBounds := FloatRect(Points[0].X, Points[0].Y, Points[0].X, Points[0].Y);
+    for k := 1 to 3 do
+    begin
+      if (Points[k].X < TargetWorldBounds.Left) then
+        TargetWorldBounds.Left := Points[k].X;
+      if (Points[k].X > TargetWorldBounds.Right) then
+        TargetWorldBounds.Right := Points[k].X;
+      if (Points[k].Y < TargetWorldBounds.Top) then
+        TargetWorldBounds.Top := Points[k].Y;
+      if (Points[k].Y > TargetWorldBounds.Bottom) then
+        TargetWorldBounds.Bottom := Points[k].Y;
+    end;
+  end;
+
+  // Convert world target bounds to integer pixel ROI and intersect with target bitmap bounds
+  GroupRoi := MakeRect(TargetWorldBounds, rrOutside);
+  if not GR32.IntersectRect(GroupRoi, GroupRoi, ATarget.BoundsRect) then
+    Exit;
+
+  // Acquire reusable offscreen surface sized strictly to the calculated ROI
+  OffscreenBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, True);
+  try
+    // Translate matrix to ROI coordinate space
+    FTransformation.Push;
+    Inc(FOffscreenOffset.X, GroupRoi.Left);
+    Inc(FOffscreenOffset.Y, GroupRoi.Top);
+    try
+      FTransformation.Translate(-GroupRoi.Left, -GroupRoi.Top);
+
+      RenderChildren(OffscreenBmp);
+    finally
+      Dec(FOffscreenOffset.X, GroupRoi.Left);
+      Dec(FOffscreenOffset.Y, GroupRoi.Top);
+      FTransformation.Pop;
+    end;
+
+    // Apply ClipPath in ROI coordinate space
+    if (AGroupNode.ResolvedClipPath <> nil) then
+      ApplyClipPathNode(OffscreenBmp, AGroupNode.ResolvedClipPath, TargetWorldBounds, GroupRoi);
+
+    // Apply Alpha Mask in ROI coordinate space (bypassed inside clipPath)
+    if (not IsRenderingClipPath) and (AGroupNode.ResolvedMask <> nil) then
+      ApplyMaskNode(OffscreenBmp, AGroupNode.ResolvedMask, TargetWorldBounds, GroupRoi);
+
+    // Apply Group Opacity (bypassed inside clipPath)
+    if (not IsRenderingClipPath) and (AGroupNode.Opacity < 1.0) then
+      ApplyOpacity(OffscreenBmp, AGroupNode.Opacity);
+
+    if IsRenderingClipPath then
+      EffectiveBlendMode := bmNormal
+    else
+      EffectiveBlendMode := AGroupNode.MixBlendMode;
+
+    // Blend ROI offscreen surface onto target canvas at group ROI origin
+    BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode, GroupRoi.Left, GroupRoi.Top);
+
+  finally
+    ReleaseOffscreenBitmap(OffscreenBmp);
+  end;
 end;
 
 procedure TSvgRenderer.VerticalBlur32(ASource, ADest: TCustomBitmap32; ARadius: TFloat);
@@ -3633,20 +3711,13 @@ end;
 
 procedure TSvgRenderer.RenderNode(ATarget: TCustomBitmap32; ANode: TSvgNode);
 var
-  OffscreenBmp, ClipMaskBmp, MaskBmp: TCustomBitmap32;
+  OffscreenBmp: TCustomBitmap32;
   EffectiveBlendMode: TSvgBlendMode;
-  ClipNodeTarget: TSvgClipPathNode;
-  MaskNodeTarget: TSvgMaskNode;
   NodeBounds, TargetWorldBounds: TFloatRect;
   NodeRoi: TRect;
   Points: array[0..3] of TFloatPoint;
   k: Integer;
   NeedsOffscreen: Boolean;
-{$if not defined(SVG32_USE_SIMD_MASK_FILTERS)}
-  SourceP, DestP: PColor32;
-  x: Integer;
-  AlphaVal, Gray: Byte;
-{$ifend}
 begin
   if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
     Exit;
@@ -3662,8 +3733,10 @@ begin
   Inc(FRecursionDepth);
   try
 
-    // Filter processing takes precedence over direct element rendering
-    if (ANode.FilterID <> '') then
+    // Filter processing takes precedence over direct element rendering.
+    // Per W3C SVG 1.1 §14.3.5, filter processing is bypassed when evaluating
+    // child elements of a <clipPath>.
+    if (ANode.FilterID <> '') and (not IsRenderingClipPath) then
     begin
       // Exit without rendering when a filter ID is specified but not
       // resolved (W3C SVG 1.1 §15.2).
@@ -3674,8 +3747,11 @@ begin
 
     EffectiveBlendMode := GetEffectiveMixBlendMode(ANode);
 
-    // Non-group renderable nodes need offscreen surface if they have ClipPath, Mask, Opacity < 1, or Non-normal blend mode
-    NeedsOffscreen := (not (ANode is TSvgCustomGroupNode)) and
+    // Non-group renderable nodes need offscreen surface if they have ClipPath,
+    // Mask, Opacity < 1, or Non-normal blend mode.
+    // Per W3C SVG 1.1 §14.3.5, offscreen opacity/mask/clip surface allocation
+    // is bypassed inside a <clipPath>.
+    NeedsOffscreen := (not IsRenderingClipPath) and (not (ANode is TSvgCustomGroupNode)) and
       ((EffectiveBlendMode <> bmNormal) or (ANode.ResolvedClipPath <> nil) or (ANode.ResolvedMask <> nil) or (ANode.Opacity < 1.0));
 
     // Polygon nodes (TSvgPathNode) handle their own ROI calculation after stroking inside RenderPathNode
@@ -3718,8 +3794,6 @@ begin
           Exit;
 
         OffscreenBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
-        ClipMaskBmp := nil;
-        MaskBmp := nil;
         try
           Inc(FOffscreenOffset.X, NodeRoi.Left);
           Inc(FOffscreenOffset.Y, NodeRoi.Top);
@@ -3736,88 +3810,19 @@ begin
 
           // Apply ClipPath
           if (ANode.ResolvedClipPath <> nil) then
-          begin
-            ClipNodeTarget := ANode.ResolvedClipPath;
-            ClipMaskBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
-
-            FTransformation.Push;
-            try
-              FTransformation.Translate(-NodeRoi.Left, -NodeRoi.Top);
-
-              RenderClipPathNode(ClipMaskBmp, ClipNodeTarget, TargetWorldBounds, NodeRoi);
-            finally
-              FTransformation.Pop;
-            end;
-
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-            ScaleAlphaLine(PColor32(ClipMaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
-{$else}
-            DestP := PColor32(OffscreenBmp.Bits);
-            SourceP := PColor32(ClipMaskBmp.Bits);
-
-            for x := 0 to OffscreenBmp.PixelCount - 1 do
-            begin
-              AlphaVal := AlphaComponent(SourceP^);
-              if AlphaVal < 255 then
-                ScaleAlpha(DestP^, AlphaVal * OneOver255);
-              Inc(DestP);
-              Inc(SourceP);
-            end;
-{$ifend}
-          end;
+            ApplyClipPathNode(OffscreenBmp, ANode.ResolvedClipPath, TargetWorldBounds, NodeRoi);
 
           // Apply Alpha Mask
           if (ANode.ResolvedMask <> nil) then
-          begin
-            MaskNodeTarget := ANode.ResolvedMask;
-            MaskBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, False);
-
-            FTransformation.Push;
-            try
-              FTransformation.Translate(-NodeRoi.Left, -NodeRoi.Top);
-
-              RenderMaskNode(MaskBmp, MaskNodeTarget, TargetWorldBounds, NodeRoi);
-            finally
-              FTransformation.Pop;
-            end;
-
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-            ApplyAlphaMask(PColor32(MaskBmp.Bits), PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount);
-{$else}
-            SourceP := PColor32(MaskBmp.Bits);
-            DestP := PColor32(OffscreenBmp.Bits);
-
-            for x := 0 to OffscreenBmp.PixelCount - 1 do
-            begin
-              Gray := Intensity(SourceP^);
-              Gray := Round(Gray * (AlphaComponent(SourceP^) * OneOver255));
-              ScaleAlpha(DestP^, Gray * OneOver255);
-              Inc(DestP);
-              Inc(SourceP);
-            end;
-{$ifend}
-          end;
+            ApplyMaskNode(OffscreenBmp, ANode.ResolvedMask, TargetWorldBounds, NodeRoi);
 
           // Apply Opacity
           if (ANode.Opacity < 1.0) then
-          begin
-{$if defined(SVG32_USE_SIMD_MASK_FILTERS)}
-            ScaleAlphaMems(PColor32(OffscreenBmp.Bits), OffscreenBmp.PixelCount, ANode.Opacity);
-{$else}
-            SourceP := PColor32(OffscreenBmp.Bits);
-            for x := 0 to OffscreenBmp.PixelCount - 1 do
-            begin
-              ScaleAlpha(SourceP^, ANode.Opacity);
-              Inc(SourceP);
-            end;
-{$ifend}
-          end;
+            ApplyOpacity(OffscreenBmp, ANode.Opacity);
 
           BlendOffscreenSurface(ATarget, OffscreenBmp, EffectiveBlendMode, NodeRoi.Left, NodeRoi.Top);
         finally
           ReleaseOffscreenBitmap(OffscreenBmp);
-          ReleaseOffscreenBitmap(ClipMaskBmp);
-          ReleaseOffscreenBitmap(MaskBmp);
         end;
       finally
         FTransformation.Pop;
