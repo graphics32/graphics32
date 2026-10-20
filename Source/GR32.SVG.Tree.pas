@@ -3349,8 +3349,9 @@ begin
   Result := AURL;
   Result.Trim;
   Result.TrimEnd;
-  Result.Trim(['#']);
 
+  // Resolve url() function
+  // https://www.w3.org/TR/css3-values/#url-value
   if (Result.StartsText('url(', True)) then
   begin
     if (Result.LastChar = ')') then
@@ -3358,8 +3359,15 @@ begin
     Result.Trim;
     Result.TrimEnd;
 
-    Result.TrimQuotes;
+    // TODO : Handle backslash escaping
+
+    while (Result.TrimQuotes) do
+      ; // Loop to handle double quotes
   end;
+
+  // Remove a leading # fragment char if there is one
+  // https://www.w3.org/TR/SVG/linking.html#TermURLReferenceWithFragmentIdentifier
+  Result.Trim(['#']);
 end;
 
 function ExtractUrlID(const AUrlStr: UTF8String): TValuePUtf8Char; overload;

@@ -128,7 +128,7 @@ type
     procedure Trim(ASkip: AnsiChar); overload;
     procedure Trim(ASkip: TAnsiSet); overload;
     procedure TrimEnd;
-    procedure TrimQuotes;
+    function TrimQuotes: boolean; // Return True if quotes were trimmed
     procedure Skip(Count: integer = 1);
     function SkipUntil(ASkip: TAnsiSet; AAfter: boolean = False): boolean;
     // Split returns the current text, up to and excluding the split char(s).
@@ -466,13 +466,15 @@ begin
     Dec(Len);
 end;
 
-procedure TValuePUtf8Char.TrimQuotes;
+function TValuePUtf8Char.TrimQuotes: boolean;
 begin
   if (Len >= 2) and (((Text^ = '"') and (Text[Len-1] = '"')) or ((Text^ = '''') and (Text[Len-1] = ''''))) then
   begin
     Inc(Text);
     Dec(Len, 2);
-  end;
+    Result := True;
+  end else
+    Result := False;
 end;
 
 function TValuePUtf8Char.TryToFloat(out Value: Single): boolean;
