@@ -90,6 +90,7 @@ type
     function ToBoolean: Boolean;
     /// convert the value into a floating point number
     function ToDouble: Double; {$ifdef HASINLINE}inline;{$endif}
+    function ToSingle: Single; {$ifdef HASINLINE}inline;{$endif}
     /// case-sensitive comparison with the stored text Value
     function Equal(const Value: RawUtf8): Boolean; overload; {$ifdef HASINLINE}inline;{$endif}
     /// case-sensitive comparison with the stored text Value
@@ -611,6 +612,16 @@ end;
 function TValuePUtf8Char.ToDouble: Double;
 begin
   if not GetExtended(Text, Len, Result) then
+    Result := 0.0;
+end;
+
+function TValuePUtf8Char.ToSingle: Single;
+var
+  d: Double;
+begin
+  if GetExtended(Text, Len, d) then
+    Result := d
+  else
     Result := 0.0;
 end;
 

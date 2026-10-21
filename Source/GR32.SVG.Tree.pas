@@ -262,6 +262,7 @@ type
     attrTextAlign,
     attrX,
     attrY,
+    attrZ,
     attrDx,
     attrDy,
     attrRotate,
@@ -343,7 +344,18 @@ type
     attrTargetY,
     attrEdgeMode,
     attrKernelUnitLength,
-    attrPreserveAlpha
+    attrPreserveAlpha,
+    attrSurfaceScale,
+    attrDiffuseConstant,
+    attrSpecularConstant,
+    attrSpecularExponent,
+    attrLightingColor,
+    attrAzimuth,
+    attrElevation,
+    attrPointsAtX,
+    attrPointsAtY,
+    attrPointsAtZ,
+    attrLimitingConeAngle
   );
 
 //------------------------------------------------------------------------------
@@ -1489,6 +1501,10 @@ type
 
 
 //------------------------------------------------------------------------------
+//
+//      TSvgFeConvolveMatrixNode
+//
+//------------------------------------------------------------------------------
 // Filter: feConvolveMatrix
 //------------------------------------------------------------------------------
   TSvgFeConvolveMatrixNode = class(TSvgFilterPrimitiveNode)
@@ -1562,6 +1578,139 @@ type
     property Href: UTF8String read FHref write FHref;
     property PreserveAspectRatio: TSvgPreserveAspectRatio read FPreserveAspectRatio write FPreserveAspectRatio;
     property ResolvedTargetNode: TSvgNode read FResolvedTargetNode write FResolvedTargetNode;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFeDiffuseLightingNode
+//      TSvgFeSpecularLightingNode
+//
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Light Source Nodes (feDistantLight, fePointLight, feSpotLight)
+//------------------------------------------------------------------------------
+  TSvgLightNode = class abstract(TSvgNode)
+  protected
+    function GetIsRenderable: Boolean; override;
+  end;
+
+  TSvgFeDistantLightNode = class(TSvgLightNode)
+  private
+    FAzimuth: Single;
+    FElevation: Single;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+
+    property Azimuth: Single read FAzimuth write FAzimuth;
+    property Elevation: Single read FElevation write FElevation;
+  end;
+
+  TSvgFePointLightNode = class(TSvgLightNode)
+  private
+    FX: Single;
+    FY: Single;
+    FZ: Single;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+
+    property X: Single read FX write FX;
+    property Y: Single read FY write FY;
+    property Z: Single read FZ write FZ;
+  end;
+
+  TSvgFeSpotLightNode = class(TSvgLightNode)
+  private
+    FX: Single;
+    FY: Single;
+    FZ: Single;
+    FPointsAtX: Single;
+    FPointsAtY: Single;
+    FPointsAtZ: Single;
+    FSpecularExponent: Single;
+    FLimitingConeAngle: Single;
+    FHasLimitingConeAngle: Boolean;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+
+    property X: Single read FX write FX;
+    property Y: Single read FY write FY;
+    property Z: Single read FZ write FZ;
+    property PointsAtX: Single read FPointsAtX write FPointsAtX;
+    property PointsAtY: Single read FPointsAtY write FPointsAtY;
+    property PointsAtZ: Single read FPointsAtZ write FPointsAtZ;
+    property SpecularExponent: Single read FSpecularExponent write FSpecularExponent;
+    property LimitingConeAngle: Single read FLimitingConeAngle write FLimitingConeAngle;
+    property HasLimitingConeAngle: Boolean read FHasLimitingConeAngle write FHasLimitingConeAngle;
+  end;
+
+
+//------------------------------------------------------------------------------
+// Lighting Filter Primitive Base & Nodes (feDiffuseLighting, feSpecularLighting)
+//------------------------------------------------------------------------------
+  TSvgLightingFilterNode = class abstract(TSvgFilterPrimitiveNode)
+  private
+    FSurfaceScale: Single;
+    FLightingColor: TSvgColor;
+    FKernelUnitLengthX: Single;
+    FKernelUnitLengthY: Single;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+    function GetLightNode: TSvgLightNode;
+
+    property SurfaceScale: Single read FSurfaceScale write FSurfaceScale;
+    property LightingColor: TSvgColor read FLightingColor write FLightingColor;
+    property KernelUnitLengthX: Single read FKernelUnitLengthX write FKernelUnitLengthX;
+    property KernelUnitLengthY: Single read FKernelUnitLengthY write FKernelUnitLengthY;
+  end;
+
+  TSvgFeDiffuseLightingNode = class(TSvgLightingFilterNode)
+  private
+    FDiffuseConstant: Single;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+
+    property DiffuseConstant: Single read FDiffuseConstant write FDiffuseConstant;
+  end;
+
+  TSvgFeSpecularLightingNode = class(TSvgLightingFilterNode)
+  private
+    FSpecularConstant: Single;
+    FSpecularExponent: Single;
+  protected
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+
+    property SpecularConstant: Single read FSpecularConstant write FSpecularConstant;
+    property SpecularExponent: Single read FSpecularExponent write FSpecularExponent;
   end;
 
 
@@ -2006,7 +2155,8 @@ type
     tagLineargradient, tagRadialgradient, tagConicgradient, tagClippath, tagPattern, tagMarker, tagEllipse, tagPolyline, tagPolygon, tagSymbol,
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
     tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence,
-    tagFedisplacementmap, tagFetile, tagFeconvolvematrix, tagFeimage, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
+    tagFedisplacementmap, tagFetile, tagFeconvolvematrix, tagFeimage, tagFediffuselighting, tagFespecularlighting,
+    tagFedistantlight, tagFepointlight, tagFespotlight, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of UTF8String = (
@@ -2014,7 +2164,8 @@ const
     'linearGradient', 'radialgradient', 'conicGradient', 'clipPath', 'pattern', 'marker', 'ellipse', 'polyline', 'polygon', 'symbol',
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
     'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence',
-    'feDisplacementMap', 'feTile', 'feConvolveMatrix', 'feImage', 'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
+    'feDisplacementMap', 'feTile', 'feConvolveMatrix', 'feImage', 'feDiffuseLighting', 'feSpecularLighting', 'feDistantLight',
+    'fePointLight', 'feSpotLight', 'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
   );
 
 var
@@ -2086,6 +2237,7 @@ const
     'text-align',
     'x',
     'y',
+    'z',
     'dx',
     'dy',
     'rotate',
@@ -2167,7 +2319,18 @@ const
     'targetY',
     'edgeMode',
     'kernelUnitLength',
-    'preserveAlpha'
+    'preserveAlpha',
+    'surfaceScale',
+    'diffuseConstant',
+    'specularConstant',
+    'specularExponent',
+    'lighting-color',
+    'azimuth',
+    'elevation',
+    'pointsAtX',
+    'pointsAtY',
+    'pointsAtZ',
+    'limitingConeAngle'
   );
 
 var
@@ -7360,6 +7523,339 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgLightNode / Light Source Implementations
+//
+//------------------------------------------------------------------------------
+function TSvgLightNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
+// TSvgFeDistantLightNode
+constructor TSvgFeDistantLightNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FAzimuth := 0.0;
+  FElevation := 0.0;
+end;
+
+function TSvgFeDistantLightNode.GetElementTag: UTF8String;
+begin
+  Result := 'feDistantLight';
+end;
+
+function TSvgFeDistantLightNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  dlRes: TSvgFeDistantLightNode;
+begin
+  dlRes := TSvgFeDistantLightNode(inherited Clone(AParent));
+  dlRes.FAzimuth := FAzimuth;
+  dlRes.FElevation := FElevation;
+  Result := dlRes;
+end;
+
+procedure TSvgFeDistantLightNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrAzimuth:
+      AValue.TryToFloat(FAzimuth);
+
+    attrElevation:
+      AValue.TryToFloat(FElevation);
+  else
+    inherited;
+  end;
+end;
+
+function TSvgFeDistantLightNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (azimuth=%s, elevation=%s)',
+    [FloatToString(FAzimuth), FloatToString(FElevation)]);
+end;
+
+// TSvgFePointLightNode
+constructor TSvgFePointLightNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX := 0.0;
+  FY := 0.0;
+  FZ := 0.0;
+end;
+
+function TSvgFePointLightNode.GetElementTag: UTF8String;
+begin
+  Result := 'fePointLight';
+end;
+
+function TSvgFePointLightNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  plRes: TSvgFePointLightNode;
+begin
+  plRes := TSvgFePointLightNode(inherited Clone(AParent));
+  plRes.FX := FX;
+  plRes.FY := FY;
+  plRes.FZ := FZ;
+  Result := plRes;
+end;
+
+procedure TSvgFePointLightNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrX:
+      AValue.TryToFloat(FX);
+
+    attrY:
+      AValue.TryToFloat(FY);
+
+    attrZ:
+      AValue.TryToFloat(FZ);
+  else
+    inherited;
+  end;
+end;
+
+function TSvgFePointLightNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (x=%s, y=%s, z=%s)',
+    [FloatToString(FX), FloatToString(FY), FloatToString(FZ)]);
+end;
+
+// TSvgFeSpotLightNode
+constructor TSvgFeSpotLightNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FX := 0.0;
+  FY := 0.0;
+  FZ := 0.0;
+  FPointsAtX := 0.0;
+  FPointsAtY := 0.0;
+  FPointsAtZ := 0.0;
+  FSpecularExponent := 1.0;
+  FLimitingConeAngle := 90.0;
+  FHasLimitingConeAngle := False;
+end;
+
+function TSvgFeSpotLightNode.GetElementTag: UTF8String;
+begin
+  Result := 'feSpotLight';
+end;
+
+function TSvgFeSpotLightNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  slRes: TSvgFeSpotLightNode;
+begin
+  slRes := TSvgFeSpotLightNode(inherited Clone(AParent));
+  slRes.FX := FX;
+  slRes.FY := FY;
+  slRes.FZ := FZ;
+  slRes.FPointsAtX := FPointsAtX;
+  slRes.FPointsAtY := FPointsAtY;
+  slRes.FPointsAtZ := FPointsAtZ;
+  slRes.FSpecularExponent := FSpecularExponent;
+  slRes.FLimitingConeAngle := FLimitingConeAngle;
+  slRes.FHasLimitingConeAngle := FHasLimitingConeAngle;
+  Result := slRes;
+end;
+
+procedure TSvgFeSpotLightNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrX:
+      AValue.TryToFloat(FX);
+
+    attrY:
+      AValue.TryToFloat(FY);
+
+    attrZ:
+      AValue.TryToFloat(FZ);
+
+    attrPointsAtX:
+      AValue.TryToFloat(FPointsAtX);
+
+    attrPointsAtY:
+      AValue.TryToFloat(FPointsAtY);
+
+    attrPointsAtZ:
+      AValue.TryToFloat(FPointsAtZ);
+
+    attrSpecularExponent:
+      AValue.TryToFloat(FSpecularExponent);
+
+    attrLimitingConeAngle:
+      begin
+        AValue.TryToFloat(FLimitingConeAngle);
+        FHasLimitingConeAngle := True;
+      end;
+  else
+    inherited;
+  end;
+end;
+
+function TSvgFeSpotLightNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (x=%s, y=%s, z=%s, pointsAtX=%s, pointsAtY=%s, pointsAtZ=%s, specularExponent=%s)',
+    [FloatToString(FX), FloatToString(FY), FloatToString(FZ),
+     FloatToString(FPointsAtX), FloatToString(FPointsAtY), FloatToString(FPointsAtZ),
+     FloatToString(FSpecularExponent)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgLightingFilterNode Implementations
+//
+//------------------------------------------------------------------------------
+constructor TSvgLightingFilterNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FSurfaceScale := 1.0;
+  FLightingColor := TSvgColor.Create(clWhite32);
+  FKernelUnitLengthX := 1.0;
+  FKernelUnitLengthY := 1.0;
+end;
+
+function TSvgLightingFilterNode.GetLightNode: TSvgLightNode;
+var
+  i: Integer;
+begin
+  for i := 0 to Children.Count - 1 do
+  begin
+    if Children[i] is TSvgLightNode then
+      Exit(TSvgLightNode(Children[i]));
+  end;
+  Result := nil;
+end;
+
+function TSvgLightingFilterNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  lfRes: TSvgLightingFilterNode;
+begin
+  lfRes := TSvgLightingFilterNode(inherited Clone(AParent));
+  lfRes.FSurfaceScale := FSurfaceScale;
+  lfRes.FLightingColor := FLightingColor;
+  lfRes.FKernelUnitLengthX := FKernelUnitLengthX;
+  lfRes.FKernelUnitLengthY := FKernelUnitLengthY;
+  Result := lfRes;
+end;
+
+procedure TSvgLightingFilterNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+var
+  Values, Val1, Val2: TValuePUtf8Char;
+begin
+  case AKeyword of
+    attrSurfaceScale:
+      AValue.TryToFloat(FSurfaceScale);
+
+    attrLightingColor:
+      FLightingColor := TSvgColor.Parse(AValue);
+
+    attrKernelUnitLength:
+      begin
+        Values := AValue;
+        Values.Trim;
+        Val1 := Values.Split(sListSeparators, True);
+        if Val1.Len > 0 then
+        begin
+          Val1.TryToFloat(FKernelUnitLengthX);
+          Val2 := Values.Split(sListSeparators, True);
+          if Val2.Len > 0 then
+            Val2.TryToFloat(FKernelUnitLengthY)
+          else
+            FKernelUnitLengthY := FKernelUnitLengthX;
+        end;
+      end;
+  else
+    inherited;
+  end;
+end;
+
+function TSvgLightingFilterNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (surfaceScale=%s, lighting-color=%s)',
+    [FloatToString(FSurfaceScale), SvgColorToString(FLightingColor)]);
+end;
+
+// TSvgFeDiffuseLightingNode
+constructor TSvgFeDiffuseLightingNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FDiffuseConstant := 1.0;
+end;
+
+function TSvgFeDiffuseLightingNode.GetElementTag: UTF8String;
+begin
+  Result := 'feDiffuseLighting';
+end;
+
+function TSvgFeDiffuseLightingNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  diffRes: TSvgFeDiffuseLightingNode;
+begin
+  diffRes := TSvgFeDiffuseLightingNode(inherited Clone(AParent));
+  diffRes.FDiffuseConstant := FDiffuseConstant;
+  Result := diffRes;
+end;
+
+procedure TSvgFeDiffuseLightingNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrDiffuseConstant:
+      AValue.TryToFloat(FDiffuseConstant);
+  else
+    inherited ParseAttribute(AKeyword, AValue, AFromCss);
+  end;
+end;
+
+function TSvgFeDiffuseLightingNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (diffuseConstant=%s)', [FloatToString(FDiffuseConstant)]);
+end;
+
+// TSvgFeSpecularLightingNode
+constructor TSvgFeSpecularLightingNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FSpecularConstant := 1.0;
+  FSpecularExponent := 1.0;
+end;
+
+function TSvgFeSpecularLightingNode.GetElementTag: UTF8String;
+begin
+  Result := 'feSpecularLighting';
+end;
+
+function TSvgFeSpecularLightingNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  specRes: TSvgFeSpecularLightingNode;
+begin
+  specRes := TSvgFeSpecularLightingNode(inherited Clone(AParent));
+  specRes.FSpecularConstant := FSpecularConstant;
+  specRes.FSpecularExponent := FSpecularExponent;
+  Result := specRes;
+end;
+
+procedure TSvgFeSpecularLightingNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrSpecularConstant:
+      AValue.TryToFloat(FSpecularConstant);
+
+    attrSpecularExponent:
+      AValue.TryToFloat(FSpecularExponent);
+  else
+    inherited ParseAttribute(AKeyword, AValue, AFromCss);
+  end;
+end;
+
+function TSvgFeSpecularLightingNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (specularConstant=%s, specularExponent=%s)',
+    [FloatToString(FSpecularConstant), FloatToString(FSpecularExponent)]);
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgUseNode
 //
 //------------------------------------------------------------------------------
@@ -8324,6 +8820,36 @@ var
         tagFeconvolvematrix:
           begin
             node := TSvgFeConvolveMatrixNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFediffuselighting:
+          begin
+            node := TSvgFeDiffuseLightingNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFespecularlighting:
+          begin
+            node := TSvgFeSpecularLightingNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFedistantlight:
+          begin
+            node := TSvgFeDistantLightNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFepointlight:
+          begin
+            node := TSvgFePointLightNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagFespotlight:
+          begin
+            node := TSvgFeSpotLightNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

@@ -120,6 +120,8 @@ type
     procedure TestTextPathRepeatedRenderNoShift;
     procedure TestShapeFlatteningAtLargeCanvasScale;
     procedure TestClipPathOpacityIgnored;
+    procedure TestFeDiffuseLightingAndSpecularLighting;
+    procedure TestW3CFiltersLight03;
   end;
 
 implementation
@@ -1271,6 +1273,206 @@ begin
     textNode := TSvgTextNode(docNode.FindNodeById('t1'));
     Check(textNode <> nil, 'textNode t1 should exist');
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFeDiffuseLightingAndSpecularLighting;
+var
+  xmlDiff, xmlSpec, xmlSmoothDiff, xml270deg: UTF8String;
+  docNode: TSvgDocumentNode;
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  pixelColor: TColor32;
+  x, y, NonZeroCount, uniqueColorCount: Integer;
+  colorSeen: array[0..255] of Boolean;
+  rVal: Byte;
+begin
+  // 1. feDiffuseLighting with feDistantLight
+  xmlDiff := '<svg width="100" height="100">' +
+             '  <defs>' +
+             '    <filter id="f_diff">' +
+             '      <feDiffuseLighting in="SourceGraphic" surfaceScale="5" diffuseConstant="1" lighting-color="white">' +
+             '        <feDistantLight azimuth="45" elevation="60"/>' +
+             '      </feDiffuseLighting>' +
+             '    </filter>' +
+             '  </defs>' +
+             '  <rect x="20" y="20" width="60" height="60" fill="white" filter="url(#f_diff)"/>' +
+             '</svg>';
+
+  docNode := ParseSvgXml(xmlDiff);
+  Check(docNode <> nil, 'feDiffuseLighting docNode should parse');
+  try
+    docNode.Resolve;
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(100, 100);
+      bmp.Clear(clBlack32);
+
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+
+        pixelColor := bmp.Pixel[50, 50];
+        Check(TColor32Entry(pixelColor).A = 255, 'feDiffuseLighting output alpha must be 255 (opaque)');
+        Check(TColor32Entry(pixelColor).R > 0, 'feDiffuseLighting output red channel should be non-zero');
+
+        NonZeroCount := 0;
+        for y := 20 to 79 do
+          for x := 20 to 79 do
+            if bmp.Pixel[x, y] <> clBlack32 then
+              Inc(NonZeroCount);
+
+        Check(NonZeroCount > 100, Format('feDiffuseLighting should produce non-zero illuminated pixels in filter region (found %d)', [NonZeroCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
+  finally
+    docNode.Free;
+  end;
+
+  // 2. feSpecularLighting with fePointLight
+  xmlSpec := '<svg width="100" height="100">' +
+             '  <defs>' +
+             '    <filter id="f_spec">' +
+             '      <feSpecularLighting in="SourceGraphic" surfaceScale="5" specularConstant="1" specularExponent="20" lighting-color="white">' +
+             '        <fePointLight x="50" y="50" z="30"/>' +
+             '      </feSpecularLighting>' +
+             '    </filter>' +
+             '  </defs>' +
+             '  <circle cx="50" cy="50" r="30" fill="white" filter="url(#f_spec)"/>' +
+             '</svg>';
+
+  docNode := ParseSvgXml(xmlSpec);
+  Check(docNode <> nil, 'feSpecularLighting docNode should parse');
+  try
+    docNode.Resolve;
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(100, 100);
+      bmp.Clear(clBlack32);
+
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+
+        pixelColor := bmp.Pixel[50, 50];
+        Check(TColor32Entry(pixelColor).R > 0, 'feSpecularLighting center highlight red channel should be non-zero');
+        Check(TColor32Entry(pixelColor).A > 0, 'feSpecularLighting center highlight alpha channel should be non-zero');
+
+        NonZeroCount := 0;
+        for y := 0 to 99 do
+          for x := 0 to 99 do
+            if bmp.Pixel[x, y] <> clBlack32 then
+              Inc(NonZeroCount);
+
+        Check(NonZeroCount > 50, Format('feSpecularLighting should produce specular highlight pixels (found %d)', [NonZeroCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
+  finally
+    docNode.Free;
+  end;
+
+  // 3. feDiffuseLighting with radial heightmap verifying smooth linear-to-sRGB tonal distribution
+  xmlSmoothDiff := '<svg width="200" height="200">' +
+                   '  <defs>' +
+                   '    <filter id="f_smooth_diff">' +
+                   '      <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur"/>' +
+                   '      <feDiffuseLighting in="blur" surfaceScale="20" diffuseConstant="1" lighting-color="white">' +
+                   '        <fePointLight x="100" y="100" z="40"/>' +
+                   '      </feDiffuseLighting>' +
+                   '    </filter>' +
+                   '  </defs>' +
+                   '  <circle cx="100" cy="100" r="70" fill="white" filter="url(#f_smooth_diff)"/>' +
+                   '</svg>';
+
+  docNode := ParseSvgXml(xmlSmoothDiff);
+  Check(docNode <> nil, 'feDiffuseLighting smooth docNode should parse');
+  try
+    docNode.Resolve;
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(200, 200);
+      bmp.Clear(clBlack32);
+
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode, FloatRect(0, 0, 200, 200));
+
+        FillChar(colorSeen, SizeOf(colorSeen), 0);
+        for y := 0 to 199 do
+          for x := 0 to 199 do
+          begin
+            rVal := TColor32Entry(bmp.Pixel[x, y]).R;
+            colorSeen[rVal] := True;
+          end;
+
+        uniqueColorCount := 0;
+        for x := 0 to 255 do
+          if colorSeen[x] then
+            Inc(uniqueColorCount);
+
+        Check(uniqueColorCount > 240, Format('feDiffuseLighting with 16-bit sRGB gamma mapping should produce smooth color range (found %d unique color shades)', [uniqueColorCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
+  finally
+    docNode.Free;
+  end;
+
+  // 4. feDistantLight with elevation=270 deg (light directly from below/behind, L = (0, 0, -1))
+  xml270deg := '<svg width="100" height="100">' +
+               '  <defs>' +
+               '    <filter id="f_270">' +
+               '      <feSpecularLighting in="SourceGraphic" surfaceScale="10" specularConstant="1" specularExponent="1" lighting-color="white">' +
+               '        <feDistantLight azimuth="0" elevation="270"/>' +
+               '      </feSpecularLighting>' +
+               '    </filter>' +
+               '  </defs>' +
+               '  <circle cx="50" cy="50" r="30" fill="white" filter="url(#f_270)"/>' +
+               '</svg>';
+
+  docNode := ParseSvgXml(xml270deg);
+  Check(docNode <> nil, '270 deg elevation docNode should parse');
+  try
+    docNode.Resolve;
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(100, 100);
+      bmp.Clear(clBlack32);
+
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+
+        // For elevation=270 deg, light direction vector L = (0, 0, -1).
+        // Eye vector E = (0, 0, 1).
+        // Halfway vector H = L + E = (0, 0, 0).
+        // Specular intensity Is = Ks * max(N . H, 0)^Exponent = 0 everywhere (no spurious right-side half-circle!).
+        NonZeroCount := 0;
+        for y := 0 to 99 do
+          for x := 0 to 99 do
+            if TColor32Entry(bmp.Pixel[x, y]).R > 0 then
+              Inc(NonZeroCount);
+
+        CheckEquals(0, NonZeroCount, Format('270 deg elevation specular light must yield zero intensity everywhere (found %d non-zero pixels)', [NonZeroCount]));
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
   finally
     docNode.Free;
   end;
@@ -4193,6 +4395,87 @@ begin
         // The clipPath child shape has opacity: 0.15, but opacity must be ignored on clipPath children
         // so the clipped red rect renders at full 100% opacity red ($FFFF0000) rather than dimmed.
         CheckEqualsHex($FFFF0000, pixelColor, 'Clipped shape should render at 100% opacity red, ignoring clipPath child opacity');
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestW3CFiltersLight03;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+  c1, c2, c3: TColor32;
+begin
+  xml :=
+    '<svg width="480" height="360" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg">' +
+    '  <defs>' +
+    '    <filter id="light-primobjbbox" primitiveUnits="objectBoundingBox">' +
+    '      <feSpecularLighting lighting-color="blue" surfaceScale="5" specularConstant="10" specularExponent="6">' +
+    '        <fePointLight x="0.875" y="0.875" z="-0.0625"/>' +
+    '      </feSpecularLighting>' +
+    '      <feComposite operator="in" in2="SourceGraphic"/>' +
+    '    </filter>' +
+    '    <filter id="light-primusou" primitiveUnits="userSpaceOnUse">' +
+    '      <feSpecularLighting lighting-color="blue" surfaceScale="5" specularConstant="10" specularExponent="6">' +
+    '        <fePointLight x="30" y="30" z="-5"/>' +
+    '      </feSpecularLighting>' +
+    '      <feComposite operator="in" in2="SourceGraphic"/>' +
+    '    </filter>' +
+    '    <filter id="light-primdefault">' +
+    '      <feSpecularLighting lighting-color="blue" surfaceScale="5" specularConstant="10" specularExponent="6">' +
+    '        <fePointLight x="30" y="30" z="-5"/>' +
+    '      </feSpecularLighting>' +
+    '      <feComposite operator="in" in2="SourceGraphic"/>' +
+    '    </filter>' +
+    '  </defs>' +
+    '  <g stroke="black" transform="translate(80 100)">' +
+    '    <circle r="40" stroke-width="10" filter="url(#light-primobjbbox)" fill="black"/>' +
+    '  </g>' +
+    '  <g stroke="black" transform="translate(245 100)">' +
+    '    <circle r="40" stroke-width="10" filter="url(#light-primusou)" fill="black"/>' +
+    '  </g>' +
+    '  <g stroke="black" transform="translate(400 100)">' +
+    '    <circle r="40" stroke-width="10" filter="url(#light-primdefault)" fill="black"/>' +
+    '  </g>' +
+    '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should parse');
+  try
+    docNode.Resolve;
+
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(480, 360);
+      bmp.Clear(clWhite32);
+
+      renderer := TSvgRenderer.Create(bmp);
+      try
+        renderer.RenderDocument(docNode, FloatRect(0, 0, 480, 360));
+
+        // Sample near the highlight region of circle 1 (80+20, 100+20) = (100, 120)
+        c1 := bmp.Pixel[100, 120];
+        // Sample near the highlight region of circle 2 (245+20, 100+20) = (265, 120)
+        c2 := bmp.Pixel[265, 120];
+        // Sample near the highlight region of circle 3 (400+20, 100+20) = (420, 120)
+        c3 := bmp.Pixel[420, 120];
+
+        // All 3 circles should render blue lighting (blue > 100)
+        Check(BlueComponent(c1) > 100, 'Circle 1 should render blue specular lighting');
+        Check(BlueComponent(c2) > 100, 'Circle 2 should render blue specular lighting');
+        Check(BlueComponent(c3) > 100, 'Circle 3 should render blue specular lighting');
+
+        // All 3 circles should render identical specular lighting across primitiveUnits modes
+        Check(Abs(Integer(BlueComponent(c1)) - Integer(BlueComponent(c2))) <= 5, 'Circle 1 and Circle 2 specular lighting should match');
+        Check(Abs(Integer(BlueComponent(c2)) - Integer(BlueComponent(c3))) <= 5, 'Circle 2 and Circle 3 specular lighting should match');
       finally
         renderer.Free;
       end;

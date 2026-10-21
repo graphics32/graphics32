@@ -64,7 +64,7 @@ type
 // subregion rectangle (in local ROI surface coordinates), as defined by W3C
 // SVG 1.1 Specification §15.5 ("Filter primitive subregion").
 //
-// The Region field specifies the rectangle, relative to RenderData.ROI.TopLeft,
+// The Region field specifies the rectangle, relative to FilterContext.ROI.TopLeft,
 // that the surface occupies within the overall filter region of interest.
 // For full-ROI surfaces (like SourceGraphic), Region covers the entire ROI
 // rectangle (0, 0, ROI.Width, ROI.Height).
@@ -427,6 +427,52 @@ type
   public
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var FilterContext: TFilterContext); override;
     class function DefaultSubregionIsFilterRegion: Boolean; override;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TFilterRendererDiffuseLighting & TFilterRendererSpecularLighting
+//
+//------------------------------------------------------------------------------
+// Base class for lightning filters
+//------------------------------------------------------------------------------
+type
+  TFilterRendererLightingBase = class abstract(TFilterRenderer)
+  private type
+    TLUT16 = array[Word] of Byte;
+  protected class var
+    FsRGBTable16: TLUT16;
+    FInvGammaTable: TGammaTable8Bit;
+  private
+    class constructor Create;
+  protected
+    class procedure CalculateNormal(Input: TCustomBitmap32; x, y, Width, Height, StepX, StepY: Integer; SurfaceScale: Single; out Nx, Ny, Nz: Single);
+    class procedure CalculateLightVector(LightNode: TSvgLightNode; x, y: Integer; const FilterContext: TFilterContext; SurfaceScale: Single; InputAlpha: Byte; Scale: Single; out Lx, Ly, Lz, SpotFactor: Single);
+  public
+    class procedure AdjustOutputRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext; var AOutputRect: TFloatRect); override;
+  end;
+
+//------------------------------------------------------------------------------
+// feDiffuseLighting
+//------------------------------------------------------------------------------
+// Filter primitive renderer for TSvgFeDiffuseLightingNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererDiffuseLighting = class(TFilterRendererLightingBase)
+  public
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var FilterContext: TFilterContext); override;
+  end;
+
+//------------------------------------------------------------------------------
+// feSpecularLighting
+//------------------------------------------------------------------------------
+// Filter primitive renderer for TSvgFeSpecularLightingNode
+//------------------------------------------------------------------------------
+type
+  TFilterRendererSpecularLighting = class(TFilterRendererLightingBase)
+  public
+    class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var FilterContext: TFilterContext); override;
   end;
 
 
@@ -2696,6 +2742,589 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TFilterRendererLightingBase
+//
+//------------------------------------------------------------------------------
+
+class constructor TFilterRendererLightingBase.Create;
+var
+  i: Integer;
+  Val, sRGB: Double;
+const
+  CExp = 1.0 / 2.4;
+begin
+  SetInv_sRGB(FInvGammaTable);
+  for i := 0 to $FFFF do
+  begin
+    Val := i / 65535.0;
+    if Val <= 0.0031308 then
+      sRGB := 12.92 * Val
+    else
+      sRGB := 1.055 * Math.Power(Val, CExp) - 0.055;
+    FsRGBTable16[i] := Clamp(Round(255.0 * sRGB));
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// Calculates the surface normal vector N = (Nx, Ny, Nz) at pixel (x, y)
+// using 3x3 Sobel gradient operator applied to the input surface's alpha channel
+// scaled by SurfaceScale per W3C SVG 1.1 Specification §15.14/§15.22.
+//------------------------------------------------------------------------------
+class procedure TFilterRendererLightingBase.CalculateNormal(Input: TCustomBitmap32; x, y, Width, Height, StepX, StepY: Integer; SurfaceScale: Single; out Nx, Ny, Nz: Single);
+var
+  xM1, xP1: Integer;
+  yM1, yP1: Integer;
+  pM1, p0, pP1: PColor32Array;
+  dx, dy, Len: Single;
+  FactorX, FactorY: Single;
+begin
+  xM1 := Max(0, x - StepX);
+  xP1 := Min(Width - 1, x + StepX);
+
+  yM1 := Max(0, y - StepY);
+  yP1 := Min(Height - 1, y + StepY);
+
+  pM1 := Input.ScanLine[yM1];
+  p0  := Input.ScanLine[y];
+  pP1 := Input.ScanLine[yP1];
+
+  // Boundary-aware scaling factors per W3C SVG 1.1 Specification §15.14
+  if (x = 0) or (x = Width - 1) then
+    FactorX := 1.0 / (2.0 * 255.0 * StepX)
+  else
+    FactorX := 1.0 / (4.0 * 255.0 * StepX);
+
+  if (y = 0) or (y = Height - 1) then
+    FactorY := 1.0 / (2.0 * 255.0 * StepY)
+  else
+    FactorY := 1.0 / (4.0 * 255.0 * StepY);
+
+  // 3x3 Sobel dx = Kx x I
+  dx := SurfaceScale * FactorX * (
+    (TColor32Entry(pM1[xP1]).A - TColor32Entry(pM1[xM1]).A) +
+    2.0 * (TColor32Entry(p0[xP1]).A - TColor32Entry(p0[xM1]).A) +
+    (TColor32Entry(pP1[xP1]).A - TColor32Entry(pP1[xM1]).A));
+
+  // 3x3 Sobel dy = Ky x I
+  dy := SurfaceScale * FactorY * (
+    (TColor32Entry(pP1[xM1]).A - TColor32Entry(pM1[xM1]).A) +
+    2.0 * (TColor32Entry(pP1[x]).A - TColor32Entry(pM1[x]).A) +
+    (TColor32Entry(pP1[xP1]).A - TColor32Entry(pM1[xP1]).A));
+
+  // Construct surface normal N = (-dx, -dy, 1) and normalize to unit length
+  Nx := -dx;
+  Ny := -dy;
+  Nz := 1.0;
+
+  Len := Sqrt(Nx * Nx + Ny * Ny + Nz * Nz);
+  if Len > 1e-6 then
+  begin
+    Nx := Nx / Len;
+    Ny := Ny / Len;
+    Nz := Nz / Len;
+  end else
+  begin
+    Nx := 0.0;
+    Ny := 0.0;
+    Nz := 1.0;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// Expands the output ROI bounding box by the 3x3 Sobel kernel step size (StepX, StepY)
+// to prevent shape boundary truncation / box clipping during surface normal calculation.
+//------------------------------------------------------------------------------
+class procedure TFilterRendererLightingBase.AdjustOutputRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext; var AOutputRect: TFloatRect);
+var
+  StepX, StepY: Integer;
+  UnitLenX, UnitLenY: Single;
+begin
+  if (Node <> nil) and ((fppX in Node.Specified) or (fppY in Node.Specified) or
+     (TSvgLightingFilterNode(Node).KernelUnitLengthX <> 1.0) or (TSvgLightingFilterNode(Node).KernelUnitLengthY <> 1.0)) then
+  begin
+    UnitLenX := TSvgLightingFilterNode(Node).KernelUnitLengthX;
+    UnitLenY := TSvgLightingFilterNode(Node).KernelUnitLengthY;
+    if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
+    begin
+      UnitLenX := UnitLenX * FilterContext.BBoxWidth;
+      UnitLenY := UnitLenY * FilterContext.BBoxHeight;
+    end;
+    StepX := Max(1, Round(UnitLenX * FilterContext.Scale));
+    StepY := Max(1, Round(UnitLenY * FilterContext.Scale));
+  end else
+  begin
+    StepX := 1;
+    StepY := 1;
+  end;
+
+  GR32.InflateRect(AOutputRect, StepX, StepY);
+end;
+
+//------------------------------------------------------------------------------
+// Computes the normalized unit light vector L = (Lx, Ly, Lz) pointing from
+// the surface point at (x, y, Z(x, y)) towards the light source, as well
+// as the spot light attenuation factor (SpotFactor) for feSpotLight.
+//------------------------------------------------------------------------------
+class procedure TFilterRendererLightingBase.CalculateLightVector(
+  LightNode: TSvgLightNode; x, y: Integer; const FilterContext: TFilterContext;
+  SurfaceScale: Single; InputAlpha: Byte; Scale: Single;
+  out Lx, Ly, Lz, SpotFactor: Single);
+var
+  DistantLight: TSvgFeDistantLightNode;
+  PointLight: TSvgFePointLightNode;
+  SpotLight: TSvgFeSpotLightNode;
+  AzRad, ElRad, CosEl: Single;
+  Px, Py, Pz: Single;
+  LightWorldPt: TFloatPoint;
+  SampleWorldX, SampleWorldY: Single;
+  Vx, Vy, Vz, VLen: Single;
+  Sx, Sy, Sz, SLen: Single;
+  CosAngle: Single;
+  LimitingCos: Single;
+  DiagonalLength: Single;
+const
+  HalfPiToRad = Pi / 180;
+begin
+  SpotFactor := 1.0;
+
+  if (LightNode is TSvgFeDistantLightNode) then
+  begin
+    DistantLight := TSvgFeDistantLightNode(LightNode);
+    AzRad := DistantLight.Azimuth * HalfPiToRad;
+    ElRad := DistantLight.Elevation * HalfPiToRad;
+    GR32_Math.SinCos(ElRad, Vz, CosEl); // Vz = Sin(ElRad), CosEl = Cos(ElRad)
+    GR32_Math.SinCos(AzRad, Vy, Vx);    // Vy = Sin(AzRad), Vx = Cos(AzRad)
+
+    // Note on Elevation = 270 deg / 90 deg:
+    // When elevation is 90 deg or 270 deg, the light vector is perpendicular (parallel to Z axis),
+    // making CosEl = 0 mathematically. Floating-point single-precision math evaluates
+    // CosEl ~ 1.19e-8. For specular lighting (H = L + E), an infinitesimal non-zero Lx = CosEl * Vx
+    // makes H = (Lx, 0, 0) non-zero. Normalizing H = H / |H| converts this tiny 1e-8 residual
+    // into a unit vector H = (+1, 0, 0) or (-1, 0, 0), projecting a false specular half-circle.
+    // Clamping Lx and Ly to 0 when Abs(CosEl) < 1e-5 yields L = (0, 0, -1) and H = (0, 0, 0),
+    // producing 0 specular intensity. This is mathematically correct for a light shining away
+    // from the viewer and prevents indeterminate 0/0 floating-point normalization artifacts.
+    if Abs(CosEl) < 1e-5 then
+    begin
+      Lx := 0.0;
+      Ly := 0.0;
+    end else
+    begin
+      Lx := Vx * CosEl;
+      Ly := Vy * CosEl;
+    end;
+    Lz := Vz;
+  end else
+  if (LightNode is TSvgFePointLightNode) then
+  begin
+    PointLight := TSvgFePointLightNode(LightNode);
+    Px := PointLight.X;
+    Py := PointLight.Y;
+    Pz := PointLight.Z;
+    if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
+    begin
+      Px := FilterContext.NodeBounds.Left + Px * FilterContext.BBoxWidth;
+      Py := FilterContext.NodeBounds.Top + Py * FilterContext.BBoxHeight;
+      DiagonalLength := Sqrt(FilterContext.BBoxWidth * FilterContext.BBoxWidth + FilterContext.BBoxHeight * FilterContext.BBoxHeight) * 0.7071067811865475;
+      Pz := Pz * DiagonalLength;
+    end;
+
+    // Transform local light coordinates (Px, Py) to world screen space
+    LightWorldPt := FilterContext.Renderer.Transformation.Transform(FloatPoint(Px, Py));
+    Px := LightWorldPt.X;
+    Py := LightWorldPt.Y;
+    Pz := Pz * Scale;
+
+    SampleWorldX := FilterContext.ROI.Left + FilterContext.CurrentSubregion.Left + x;
+    SampleWorldY := FilterContext.ROI.Top + FilterContext.CurrentSubregion.Top + y;
+
+    Vx := Px - SampleWorldX;
+    Vy := Py - SampleWorldY;
+    Vz := Pz - (SurfaceScale * InputAlpha * OneOver255 * Scale);
+
+    VLen := Sqrt(Vx * Vx + Vy * Vy + Vz * Vz);
+    if VLen > 1e-6 then
+    begin
+      Lx := Vx / VLen;
+      Ly := Vy / VLen;
+      Lz := Vz / VLen;
+    end else
+    begin
+      Lx := 0.0;
+      Ly := 0.0;
+      Lz := 1.0;
+    end;
+  end else
+  if LightNode is TSvgFeSpotLightNode then
+  begin
+    SpotLight := TSvgFeSpotLightNode(LightNode);
+    Px := SpotLight.X;
+    Py := SpotLight.Y;
+    Pz := SpotLight.Z;
+    if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
+    begin
+      Px := FilterContext.NodeBounds.Left + Px * FilterContext.BBoxWidth;
+      Py := FilterContext.NodeBounds.Top + Py * FilterContext.BBoxHeight;
+      DiagonalLength := GR32_Math.Hypot(FilterContext.BBoxWidth, FilterContext.BBoxHeight) * 0.7071067811865475;
+      Pz := Pz * DiagonalLength;
+    end;
+
+    // Transform local light coordinates (Px, Py) to world screen space
+    LightWorldPt := FilterContext.Renderer.Transformation.Transform(FloatPoint(Px, Py));
+    Px := LightWorldPt.X;
+    Py := LightWorldPt.Y;
+    Pz := Pz * Scale;
+
+    SampleWorldX := FilterContext.ROI.Left + FilterContext.CurrentSubregion.Left + x;
+    SampleWorldY := FilterContext.ROI.Top + FilterContext.CurrentSubregion.Top + y;
+
+    Vx := Px - SampleWorldX;
+    Vy := Py - SampleWorldY;
+    Vz := Pz - (SurfaceScale * InputAlpha * OneOver255 * Scale);
+
+    VLen := Sqrt(Vx * Vx + Vy * Vy + Vz * Vz);
+    if VLen > 1e-6 then
+    begin
+      Lx := Vx / VLen;
+      Ly := Vy / VLen;
+      Lz := Vz / VLen;
+    end else
+    begin
+      Lx := 0.0;
+      Ly := 0.0;
+      Lz := 1.0;
+    end;
+
+    // Spot direction vector S from light position towards pointsAt
+    Sx := SpotLight.PointsAtX;
+    Sy := SpotLight.PointsAtY;
+    Sz := SpotLight.PointsAtZ;
+    if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
+    begin
+      Sx := FilterContext.NodeBounds.Left + Sx * FilterContext.BBoxWidth;
+      Sy := FilterContext.NodeBounds.Top + Sy * FilterContext.BBoxHeight;
+      DiagonalLength := Sqrt(FilterContext.BBoxWidth * FilterContext.BBoxWidth + FilterContext.BBoxHeight * FilterContext.BBoxHeight) * 0.7071067811865475;
+      Sz := Sz * DiagonalLength;
+    end;
+
+    LightWorldPt := FilterContext.Renderer.Transformation.Transform(FloatPoint(Sx, Sy));
+    Sx := LightWorldPt.X - Px;
+    Sy := LightWorldPt.Y - Py;
+    Sz := (Sz * Scale) - Pz;
+
+    SLen := Sqrt(Sx * Sx + Sy * Sy + Sz * Sz);
+    if SLen > 1e-6 then
+    begin
+      Sx := Sx / SLen;
+      Sy := Sy / SLen;
+      Sz := Sz / SLen;
+    end else
+    begin
+      Sx := 0.0;
+      Sy := 0.0;
+      Sz := -1.0;
+    end;
+
+    // Cosine of angle between direction pointing from light to surface (-L) and spot direction S
+    CosAngle := (-Lx * Sx) + (-Ly * Sy) + (-Lz * Sz);
+
+    if SpotLight.HasLimitingConeAngle then
+      LimitingCos := Cos(SpotLight.LimitingConeAngle * HalfPiToRad)
+    else
+      LimitingCos := 0.0; // 90 deg -> cos(90) = 0
+
+    if CosAngle < LimitingCos then
+      SpotFactor := 0.0
+    else
+    if CosAngle > 0.0 then
+    begin
+      if Abs(SpotLight.SpecularExponent - 1.0) < 1e-4 then
+        SpotFactor := CosAngle
+      else
+        SpotFactor := Math.Power(CosAngle, SpotLight.SpecularExponent);
+    end else
+      SpotFactor := 0.0;
+  end else
+  begin
+    Lx := 0.0;
+    Ly := 0.0;
+    Lz := 1.0;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TFilterRendererDiffuseLighting
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Computes diffuse intensity Id = Kd * max(N . L, 0) * SpotFactor and maps
+// lighting color to resulting RGB channels with full alpha opacity.
+//------------------------------------------------------------------------------
+class procedure TFilterRendererDiffuseLighting.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var FilterContext: TFilterContext);
+var
+  DiffNode: TSvgFeDiffuseLightingNode;
+  InputSurface: TSurface;
+  Input, Output, TempInput: TCustomBitmap32;
+  LightNode: TSvgLightNode;
+  LightingColor: TColor32;
+  Lr, Lg, Lb: Single;
+  Width, Height, x, y: Integer;
+  SurfaceScale, Kd, Scale: Single;
+  UnitLenX, UnitLenY: Single;
+  StepX, StepY: Integer;
+  Nx, Ny, Nz: Single;
+  Lx, Ly, Lz, SpotFactor: Single;
+  NDotL, Id: Single;
+  P: PColor32Entry;
+  pRow: PColor32Array;
+begin
+  if not (Node is TSvgFeDiffuseLightingNode) then
+    Exit;
+
+  DiffNode := TSvgFeDiffuseLightingNode(Node);
+  InputSurface := ResolveSurface(DiffNode.ResolvedIn1, FilterContext);
+
+  if (InputSurface.Bitmap <> FilterContext.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(FilterContext.UnnamedSurface);
+
+  if (InputSurface.IsEmpty) then
+  begin
+    FilterContext.CurrentSurface := TSurface.Empty;
+    Exit;
+  end;
+
+  Width := FilterContext.CurrentSubregion.Width;
+  Height := FilterContext.CurrentSubregion.Height;
+  if (Width <= 0) or (Height <= 0) then
+  begin
+    FilterContext.CurrentSurface := TSurface.Empty;
+    Exit;
+  end;
+
+  FilterContext.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, False);
+  FilterContext.CurrentSurface.Region := FilterContext.CurrentSubregion;
+  Output := FilterContext.CurrentSurface.Bitmap;
+
+  TempInput := nil;
+  try
+    if NeedsSubSurface(InputSurface.Bitmap, FilterContext.CurrentSubregion) then
+    begin
+      TempInput := Renderer.GetOffscreenBitmap(Width, Height, False);
+      CopySurfaceRegion(InputSurface, TempInput, FilterContext.CurrentSubregion);
+      Input := TempInput;
+    end else
+      Input := InputSurface.Bitmap;
+
+    LightNode := DiffNode.GetLightNode;
+    LightingColor := TSvgRendererCracker(Renderer).GetEffectiveColor(DiffNode, DiffNode.LightingColor).Color;
+    Lr := FInvGammaTable[RedComponent(LightingColor)] * OneOver255;
+    Lg := FInvGammaTable[GreenComponent(LightingColor)] * OneOver255;
+    Lb := FInvGammaTable[BlueComponent(LightingColor)] * OneOver255;
+
+    SurfaceScale := DiffNode.SurfaceScale;
+    Kd := DiffNode.DiffuseConstant;
+    Scale := FilterContext.Scale;
+
+    if (fppX in DiffNode.Specified) or (fppY in DiffNode.Specified) or
+       (DiffNode.KernelUnitLengthX <> 1.0) or (DiffNode.KernelUnitLengthY <> 1.0) then
+    begin
+      UnitLenX := DiffNode.KernelUnitLengthX;
+      UnitLenY := DiffNode.KernelUnitLengthY;
+      if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
+      begin
+        UnitLenX := UnitLenX * FilterContext.BBoxWidth;
+        UnitLenY := UnitLenY * FilterContext.BBoxHeight;
+      end;
+      StepX := Max(1, Round(UnitLenX * Scale));
+      StepY := Max(1, Round(UnitLenY * Scale));
+    end else
+    begin
+      StepX := 1;
+      StepY := 1;
+    end;
+
+    P := PColor32Entry(Output.Bits);
+    for y := 0 to Height - 1 do
+    begin
+      pRow := Input.ScanLine[y];
+      for x := 0 to Width - 1 do
+      begin
+        CalculateNormal(Input, x, y, Width, Height, StepX, StepY, SurfaceScale, Nx, Ny, Nz);
+        CalculateLightVector(LightNode, x, y, FilterContext, SurfaceScale,
+          TColor32Entry(pRow[x]).A, Scale, Lx, Ly, Lz, SpotFactor);
+
+        NDotL := (Nx * Lx) + (Ny * Ly) + (Nz * Lz);
+        if NDotL < 0.0 then
+          NDotL := 0.0;
+
+        Id := Kd * NDotL * SpotFactor;
+
+        P.R := FsRGBTable16[Clamp(Round(Id * Lr * 65535.0), 0, 65535)];
+        P.G := FsRGBTable16[Clamp(Round(Id * Lg * 65535.0), 0, 65535)];
+        P.B := FsRGBTable16[Clamp(Round(Id * Lb * 65535.0), 0, 65535)];
+        P.A := 255;
+
+        Inc(P);
+      end;
+    end;
+  finally
+    Renderer.ReleaseOffscreenBitmap(TempInput);
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TFilterRendererSpecularLighting
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Computes specular intensity Is = Ks * max(N . H, 0)^Exponent * SpotFactor
+// where H = normalized(L + E) with eye vector E = (0, 0, 1), mapping
+// resulting specular highlight RGB and setting alpha to max(R, G, B).
+//------------------------------------------------------------------------------
+class procedure TFilterRendererSpecularLighting.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var FilterContext: TFilterContext);
+var
+  SpecNode: TSvgFeSpecularLightingNode;
+  InputSurface: TSurface;
+  Input, Output, TempInput: TCustomBitmap32;
+  LightNode: TSvgLightNode;
+  LightingColor: TColor32;
+  Lr, Lg, Lb: Single;
+  Width, Height, x, y: Integer;
+  SurfaceScale, Ks, Exponent, Scale: Single;
+  UnitLenX, UnitLenY: Single;
+  StepX, StepY: Integer;
+  Nx, Ny, Nz: Single;
+  Lx, Ly, Lz, SpotFactor: Single;
+  Hx, Hy, Hz, HLen: Single;
+  NDotH, Ispec: Single;
+  P: PColor32Entry;
+  pRow: PColor32Array;
+begin
+  if not (Node is TSvgFeSpecularLightingNode) then
+    Exit;
+
+  SpecNode := TSvgFeSpecularLightingNode(Node);
+  InputSurface := ResolveSurface(SpecNode.ResolvedIn1, FilterContext);
+
+  if (InputSurface.Bitmap <> FilterContext.UnnamedSurface) then
+    Renderer.ReleaseOffscreenBitmap(FilterContext.UnnamedSurface);
+
+  if (InputSurface.IsEmpty) then
+  begin
+    FilterContext.CurrentSurface := TSurface.Empty;
+    Exit;
+  end;
+
+  Width := FilterContext.CurrentSubregion.Width;
+  Height := FilterContext.CurrentSubregion.Height;
+  if (Width <= 0) or (Height <= 0) then
+  begin
+    FilterContext.CurrentSurface := TSurface.Empty;
+    Exit;
+  end;
+
+  FilterContext.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, False);
+  FilterContext.CurrentSurface.Region := FilterContext.CurrentSubregion;
+  Output := FilterContext.CurrentSurface.Bitmap;
+
+  TempInput := nil;
+  try
+    if NeedsSubSurface(InputSurface.Bitmap, FilterContext.CurrentSubregion) then
+    begin
+      TempInput := Renderer.GetOffscreenBitmap(Width, Height, False);
+      CopySurfaceRegion(InputSurface, TempInput, FilterContext.CurrentSubregion);
+      Input := TempInput;
+    end else
+      Input := InputSurface.Bitmap;
+
+    LightNode := SpecNode.GetLightNode;
+    LightingColor := TSvgRendererCracker(Renderer).GetEffectiveColor(SpecNode, SpecNode.LightingColor).Color;
+    Lr := FInvGammaTable[RedComponent(LightingColor)] * OneOver255;
+    Lg := FInvGammaTable[GreenComponent(LightingColor)] * OneOver255;
+    Lb := FInvGammaTable[BlueComponent(LightingColor)] * OneOver255;
+
+    SurfaceScale := SpecNode.SurfaceScale;
+    Ks := SpecNode.SpecularConstant;
+    Exponent := SpecNode.SpecularExponent;
+    Scale := FilterContext.Scale;
+
+    if (fppX in SpecNode.Specified) or (fppY in SpecNode.Specified) or
+       (SpecNode.KernelUnitLengthX <> 1.0) or (SpecNode.KernelUnitLengthY <> 1.0) then
+    begin
+      UnitLenX := SpecNode.KernelUnitLengthX;
+      UnitLenY := SpecNode.KernelUnitLengthY;
+      if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
+      begin
+        UnitLenX := SpecNode.KernelUnitLengthX * FilterContext.BBoxWidth;
+        UnitLenY := SpecNode.KernelUnitLengthY * FilterContext.BBoxHeight;
+      end;
+      StepX := Max(1, Round(UnitLenX * Scale));
+      StepY := Max(1, Round(UnitLenY * Scale));
+    end else
+    begin
+      StepX := 1;
+      StepY := 1;
+    end;
+
+    P := PColor32Entry(Output.Bits);
+    for y := 0 to Height - 1 do
+    begin
+      pRow := Input.ScanLine[y];
+      for x := 0 to Width - 1 do
+      begin
+        CalculateNormal(Input, x, y, Width, Height, StepX, StepY, SurfaceScale, Nx, Ny, Nz);
+        CalculateLightVector(LightNode, x, y, FilterContext, SurfaceScale,
+          TColor32Entry(pRow[x]).A, Scale, Lx, Ly, Lz, SpotFactor);
+
+        // Eye vector E = (0, 0, 1), Halfway vector H = Normalized(L + E)
+        Hx := Lx;
+        Hy := Ly;
+        Hz := Lz + 1.0;
+
+        HLen := Sqrt(Hx * Hx + Hy * Hy + Hz * Hz);
+        if HLen > 1e-12 then
+        begin
+          Hx := Hx / HLen;
+          Hy := Hy / HLen;
+          Hz := Hz / HLen;
+        end;
+
+        NDotH := (Nx * Hx) + (Ny * Hy) + (Nz * Hz);
+        if NDotH < 0.0 then
+          NDotH := 0.0;
+
+        if NDotH > 0.0 then
+        begin
+          if Abs(Exponent - 1.0) < 1e-4 then
+            Ispec := Ks * NDotH * SpotFactor
+          else
+            Ispec := Ks * Math.Power(NDotH, Exponent) * SpotFactor;
+        end else
+          Ispec := 0.0;
+
+        P.R := FsRGBTable16[Clamp(Round(Ispec * Lr * 65535.0), 0, 65535)];
+        P.G := FsRGBTable16[Clamp(Round(Ispec * Lg * 65535.0), 0, 65535)];
+        P.B := FsRGBTable16[Clamp(Round(Ispec * Lb * 65535.0), 0, 65535)];
+        P.A := Max(P.R, P.G, P.B);
+
+        Inc(P);
+      end;
+    end;
+  finally
+    Renderer.ReleaseOffscreenBitmap(TempInput);
+  end;
+end;
+
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -2717,6 +3346,8 @@ begin
   TSvgFeTileNode.RegisterRenderClass(TFilterRendererTile);
   TSvgFeConvolveMatrixNode.RegisterRenderClass(TFilterRendererConvolveMatrix);
   TSvgFeImageNode.RegisterRenderClass(TFilterRendererImage);
+  TSvgFeDiffuseLightingNode.RegisterRenderClass(TFilterRendererDiffuseLighting);
+  TSvgFeSpecularLightingNode.RegisterRenderClass(TFilterRendererSpecularLighting);
 end;
 
 initialization
