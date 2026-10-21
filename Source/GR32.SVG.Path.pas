@@ -114,7 +114,7 @@ procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath)
 
 
 {$if defined(UNIT_TEST)}
-function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath; overload;
+function CreatePolylinePath(const APathData: UTF8String): TFlattenedPath;
 function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatPoint;
 {$ifend}
 
@@ -143,7 +143,7 @@ uses
   GR32_VectorUtils;
 
 {$if defined(UNIT_TEST)}
-function SvgPathDataToPath(const APathData: UTF8String): TFlattenedPath;
+function CreatePolylinePath(const APathData: UTF8String): TFlattenedPath;
 var
   Data: TValuePUtf8Char;
 begin
@@ -165,11 +165,10 @@ function SvgPathDataToPoints(const APathData: UTF8String): TArrayOfArrayOfFloatP
 var
   Data: TValuePUtf8Char;
   p: TFlattenedPath;
-  i: integer;
 begin
   Data := TValuePUtf8Char.FromString(APathData);
 
-  p := SvgPathDataToPath(APathData);
+  p := CreatePolylinePath(APathData);
   try
 
     Result := p.Path;

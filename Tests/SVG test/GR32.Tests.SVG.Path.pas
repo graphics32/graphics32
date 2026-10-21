@@ -191,7 +191,7 @@ procedure TTestSvgPath.TestClosePath;
 var
   path: TFlattenedPath;
 begin
-  path := SvgPathDataToPath('M 10 10 L 20 10 L 20 20 Z');
+  path := CreatePolylinePath('M 10 10 L 20 10 L 20 20 Z');
   try
     CheckEquals(1, Length(path.Path));
     Check(Length(path.Path[0]) >= 3);

@@ -429,7 +429,10 @@ type
     function GetDocumentNode: TSvgNode; // Guaranteed to be a TSvgDocumentNode or nil
     function GetViewportRect: TFloatRect; // Viewport of document node or null. Will likely be removed as we more likely need the render-time viewport
     // GetObjectBoundingBox: Calculates the tight axis-aligned bounding box of the node in local untransformed coordinates.
-    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; virtual;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; overload; virtual;
+{$if defined(UNIT_TEST)}
+    function GetObjectBoundingBox: TFloatRect; overload;
+{$ifend}
     function GetFontSizePx: Single;
     function GetSizePx(const ALength: TSvgLength; AValue: Single): Single; overload;
     function GetSizePx(const ALength: TSvgLength; const AViewport: TFloatRect): Single; overload; // AViewport = The nearest viewport
@@ -1375,8 +1378,13 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
-    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
-    function GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; overload; override;
+    function GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint; overload;
+{$if defined(UNIT_TEST)}
+    function GetPathData(const AViewport: TFloatRect; const AScale: Single = 1.0): TArrayOfArrayOfFloatPoint; overload;
+    function GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint; overload;
+    function GetPathData: TArrayOfArrayOfFloatPoint; overload;
+{$ifend}
     function GetControlPoints(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
     function IsPathClosed(Index: Integer): Boolean;
     property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
@@ -2609,6 +2617,13 @@ function TSvgNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
 begin
   Result := FloatRect(0, 0, 0, 0);
 end;
+
+{$if defined(UNIT_TEST)}
+function TSvgNode.GetObjectBoundingBox: TFloatRect;
+begin
+  Result := GetObjectBoundingBox(FloatRect(0, 0, 0, 0));
+end;
+{$ifend}
 
 function TSvgNode.GetDocumentNode: TSvgNode;
 begin
@@ -6430,6 +6445,32 @@ begin
   for i := 0 to High(FCachedPathData) do
     Result[i] := Copy(FCachedPathData[i]);
 end;
+
+{$if defined(UNIT_TEST)}
+function TSvgPathNode.GetPathData(const AViewport: TFloatRect; const AScale: Single): TArrayOfArrayOfFloatPoint;
+var
+  Trans: TAffineTransformation;
+begin
+  Trans := TAffineTransformation.Create;
+  try
+    if AScale <> 1.0 then
+      Trans.Scale(AScale, AScale);
+    Result := GetPathData(AViewport, Trans);
+  finally
+    Trans.Free;
+  end;
+end;
+
+function TSvgPathNode.GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint;
+begin
+  Result := GetPathData(FloatRect(0, 0, AViewportWidth, AViewportHeight), 1.0);
+end;
+
+function TSvgPathNode.GetPathData: TArrayOfArrayOfFloatPoint;
+begin
+  Result := GetPathData(FloatRect(0, 0, 0, 0), 1.0);
+end;
+{$ifend}
 
 function TSvgPathNode.IsPathClosed(Index: Integer): Boolean;
 begin

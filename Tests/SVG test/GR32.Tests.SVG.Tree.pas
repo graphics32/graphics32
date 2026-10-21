@@ -96,7 +96,8 @@ type
 implementation
 
 uses
-  Types;
+  Types,
+  GR32.SVG.Path;
 
 { TTestSvgTree }
 
@@ -502,7 +503,7 @@ begin
 
     pathNode := TSvgPathNode(docNode.FindNodeById('path7'));
     Check(pathNode <> nil, 'path7 node should exist');
-    Check(Length(pathNode.PathData) > 0, 'path7 node should have non-empty PathData');
+    Check(pathNode.PathCommands.Count > 0, 'path7 node should have non-empty PathCommands');
   finally
     docNode.Free;
   end;
@@ -1016,17 +1017,17 @@ begin
   CheckEquals(2, Length(pts[0]));
 
   // Polyline
-  pts := CreatePolylinePath('10,10 20,20 30,10', False);
+  pts := ParsePolylinePath('10,10 20,20 30,10', False);
   Check(Length(pts) > 0, 'Polyline path should produce points');
   CheckEquals(3, Length(pts[0]));
 
   // Polygon
-  pts := CreatePolylinePath('10,10 20,20 30,10', True);
+  pts := ParsePolylinePath('10,10 20,20 30,10', True);
   Check(Length(pts) > 0, 'Polygon path should produce points');
   CheckEquals(4, Length(pts[0])); // Closing path adds start point
 
   // Condensed Polyline (negative coordinates without spaces/commas)
-  pts := CreatePolylinePath('270-225 300-245 320-225 340-245 280-280 390-280 420-240 280-185', False);
+  pts := ParsePolylinePath('270-225 300-245 320-225 340-245 280-280 390-280 420-240 280-185', False);
   Check(Length(pts) > 0, 'Condensed polyline path should produce points');
   CheckEquals(8, Length(pts[0]));
   CheckEquals(270.0, pts[0][0].X, 1E-4);
@@ -1035,7 +1036,7 @@ begin
   CheckEquals(-245.0, pts[0][1].Y, 1E-4);
 
   // Condensed Polygon (negative coordinates with commas)
-  pts := CreatePolylinePath('179-185,218-203,228-245,202-279,159-280,131-247,139-205', True);
+  pts := ParsePolylinePath('179-185,218-203,228-245,202-279,159-280,131-247,139-205', True);
   Check(Length(pts) > 0, 'Condensed polygon path should produce points');
   CheckEquals(8, Length(pts[0])); // 7 points + 1 closing point
   CheckEquals(179.0, pts[0][0].X, 1E-4);
@@ -1112,11 +1113,11 @@ begin
 
     Check(groupNode.Children[0] is TSvgPathNode, 'First child should be TSvgPathNode');
     rectNode := TSvgPathNode(groupNode.Children[0]);
-    Check(Length(rectNode.PathData) > 0, 'Rect node should have generated PathData');
+    Check(Length(rectNode.GetPathData) > 0, 'Rect node should have generated PathData');
 
     Check(groupNode.Children[1] is TSvgPathNode, 'Second child should be TSvgPathNode');
     circleNode := TSvgPathNode(groupNode.Children[1]);
-    Check(Length(circleNode.PathData) > 0, 'Circle node should have generated PathData');
+    Check(Length(circleNode.GetPathData) > 0, 'Circle node should have generated PathData');
   finally
     docNode.Free;
   end;
@@ -1662,7 +1663,7 @@ begin
   try
     rectNode := TSvgPathNode(docNode.FindNodeById('r1'));
     Check(rectNode <> nil, 'rectNode r1 should exist');
-    Check(Length(rectNode.PathData) > 0, 'rectNode r1 with percentage width/height should have non-empty PathData');
+    Check(Length(rectNode.GetPathData(800.0, 600.0)) > 0, 'rectNode r1 with percentage width/height should have non-empty PathData');
     pts := rectNode.GetPathData(800.0, 600.0);
     Check(Length(pts) > 0, 'rectNode GetPathData(800,600) should produce points');
     // For 800x600 viewport, 100% width = 800, 100% height = 600
@@ -1681,18 +1682,18 @@ begin
 
     circleNode := TSvgPathNode(docNode.FindNodeById('c1'));
     Check(circleNode <> nil, 'circleNode c1 should exist');
-    Check(Length(circleNode.PathData) > 0, 'circleNode c1 with percentage radius should have non-empty PathData');
+    Check(Length(circleNode.GetPathData(800.0, 600.0)) > 0, 'circleNode c1 with percentage radius should have non-empty PathData');
 
     lineNode := TSvgPathNode(docNode.FindNodeById('l1'));
     Check(lineNode <> nil, 'lineNode l1 should exist');
-    Check(Length(lineNode.PathData) > 0, 'lineNode l1 with percentage coordinates should have non-empty PathData');
+    Check(Length(lineNode.GetPathData(800.0, 600.0)) > 0, 'lineNode l1 with percentage coordinates should have non-empty PathData');
     pts := lineNode.GetPathData(800.0, 600.0);
     CheckEquals(800.0, pts[0][1].X, 1E-4, 'lineNode x2=100% should evaluate to 800');
     CheckEquals(600.0, pts[0][1].Y, 1E-4, 'lineNode y2=100% should evaluate to 600');
 
     ellipseNode := TSvgPathNode(docNode.FindNodeById('e1'));
     Check(ellipseNode <> nil, 'ellipseNode e1 should exist');
-    Check(Length(ellipseNode.PathData) > 0, 'ellipseNode e1 with percentage radii should have non-empty PathData');
+    Check(Length(ellipseNode.GetPathData(800.0, 600.0)) > 0, 'ellipseNode e1 with percentage radii should have non-empty PathData');
   finally
     docNode.Free;
   end;
