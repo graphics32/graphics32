@@ -49,10 +49,20 @@ interface
 // instead at the cost of some performance.
 {-$define SVG32_HIQ_AFFINE_TRANSFORM}
 
+{$if defined(DCC) and (CompilerVersion >= 28.0)}
+  {$define USE_PPL} // Use Delphi's Parallel Programming Library (introduced XE7)
+{$ifend}
+
 uses
   SysUtils, Classes, Graphics, Generics.Collections,
-  GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils, GR32_ColorGradients,
-  GR32.SVG.Types, GR32.SVG.Tree;
+  GR32,
+  GR32_Transforms,
+  GR32_Rasterizers,
+  GR32_Polygons,
+  GR32_VectorUtils,
+  GR32_ColorGradients,
+  GR32.SVG.Types,
+  GR32.SVG.Tree;
 
 type
   { TSvgBitmapPool: Reusable pool of intermediate TBitmap32 offscreen surfaces to eliminate
@@ -147,6 +157,10 @@ type
     FRecursionDepth: integer;
     FRenderingClipPath: integer;
     FTransformation: TAffineTransformation;
+    FResamplers: array[TResamplerQuality] of TCustomResampler;
+    FRasterizer: TRasterizer;
+    FTransformer: TCustomSampler;
+
     FThemeFillColor: TSvgColor;
     FThemeStrokeColor: TSvgColor;
     FCurrentColor: TSvgColor;
@@ -161,6 +175,7 @@ type
     procedure SetCurrentColor32(AColor: TColor32);
     function GetCurrentColor32: TColor32;
     function GetIsRenderingClipPath: boolean;
+    function GetResampler(Quality: TResamplerQuality): TCustomResampler;
   protected type
     TThemeColor = (tcStroke, tcFill);
 
@@ -171,6 +186,7 @@ type
     procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; AOpacity: Single; AColor: TSvgColor; const APoints: TArrayOfArrayOfFloatPoint = nil; AFillMode: TPolyFillMode = pfWinding);
 
     procedure SetupResampler(ABitmap: TCustomBitmap32; AQuality: TResamplerQuality);
+    procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect; Reverse: boolean; AResampler: TCustomResampler);
 
     procedure RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
     procedure RenderImageNode(ATarget: TCustomBitmap32; AImageNode: TSvgImageNode);
@@ -198,6 +214,8 @@ type
     procedure BeginRenderClipPath;
     procedure EndRenderClipPath;
     property IsRenderingClipPath: boolean read GetIsRenderingClipPath;
+
+    property Resampler[Quality: TResamplerQuality]: TCustomResampler read GetResampler;
   public
     constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
     destructor Destroy; override;
@@ -586,6 +604,77 @@ begin
   ABitmap.Resampler.PixelAccessMode := pamTransparentEdge; // Required for proper AA
 end;
 
+procedure TSvgRenderer.Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect; Reverse: boolean;
+  AResampler: TCustomResampler);
+var
+  DstRect: TRect;
+begin
+  GR32.IntersectRect(DstRect, DstClip, Dst.ClipRect);
+
+  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
+    Exit;
+
+  if (FTransformer = nil) then
+    FTransformer := TTransformer.Create(nil, nil);
+
+  if (FRasterizer = nil) then
+  begin
+{$if defined(USE_PPL)}
+    FRasterizer := TMultithreadedRegularRasterizer.Create;
+{$else}
+    FRasterizer := DefaultRasterizerClass.Create;
+{$ifend}
+    FRasterizer.Sampler := FTransformer;
+  end;
+
+  TTransformer(FTransformer).Sampler := AResampler;
+  TTransformer(FTransformer).Transformation := Transformation;
+  TTransformer(FTransformer).ReverseTransform := Reverse;
+  try
+
+    AResampler.Bitmap := Src;
+    try
+
+      FRasterizer.Rasterize(Dst, DstRect, Src);
+
+    finally
+      AResampler.Bitmap := nil;
+    end;
+
+  finally
+    TTransformer(FTransformer).Sampler := nil;
+    TTransformer(FTransformer).Transformation := nil;
+    TTransformer(FTransformer).ReverseTransform := Reverse;
+  end;
+
+  Dst.Changed(DstRect);
+end;
+
+function TSvgRenderer.GetResampler(Quality: TResamplerQuality): TCustomResampler;
+begin
+  Result := FResamplers[Quality];
+
+  if (Result = nil) then
+  begin
+    case Quality of
+      rqFast:
+        Result := TNearestResampler.Create;
+
+      rqNormal:
+        Result := TLinearResampler.Create;
+
+      rqHigh:
+        begin
+          Result := TKernelResampler.Create;
+          TKernelResampler(Result).KernelClassName := TLinearKernel.ClassName; // Default is TBoxKernel
+        end;
+    end;
+
+    Result.PixelAccessMode := pamTransparentEdge; // Required for proper AA
+    FResamplers[Quality] := Result;
+  end;
+end;
+
 function TSvgRenderer.GetThemeStrokeColor32: TColor32;
 begin
   Result := FThemeStrokeColor.Color;
@@ -962,6 +1051,11 @@ begin
   FTransformation.Free;
   FBitmapPool.Free;
   FPolyRenderer.Free;
+  FResamplers[rqFast].Free;
+  FResamplers[rqNormal].Free;
+  FResamplers[rqHigh].Free;
+  FRasterizer.Free;
+  FTransformer.Free;
   inherited Destroy;
 end;
 
@@ -2535,15 +2629,10 @@ begin
               if GR32.IntersectRect(DestClip, SaveTargetClipRect, DestClip) then
               begin
 {$if defined(SVG32_HIQ_AFFINE_TRANSFORM)}
-                SetupResampler(FilterContext.CurrentSurface.Bitmap, rqHigh);
+                Transform(ATarget, FilterContext.CurrentSurface.Bitmap, AffineTransform, DestClip, True, Resampler[rqHigh]);
 {$else}
-                SetupResampler(FilterContext.CurrentSurface.Bitmap, rqNormal);
+                Transform(ATarget, FilterContext.CurrentSurface.Bitmap, AffineTransform, DestClip, True, Resampler[rqNormal]);
 {$ifend}
-
-                Transform(ATarget, FilterContext.CurrentSurface.Bitmap, AffineTransform, DestClip, True);
-
-                // Bitmap will be returned to the pool, so restore the resampler to something acceptable for all
-                SetupResampler(FilterContext.CurrentSurface.Bitmap, rqNormal);
               end;
             finally
               AffineTransform.Free;
@@ -2887,17 +2976,11 @@ begin
                (Abs(TotalMat.Matrix[2, 0] - Round(TotalMat.Matrix[2, 0])) < 1e-4) and (Abs(TotalMat.Matrix[2, 1] - Round(TotalMat.Matrix[2, 1])) < 1e-4) then
               BlockTransfer(ATarget, DestRect.Left, DestRect.Top, DestClip, Bitmap, Bitmap.BoundsRect, dmBlend)
             else
-              StretchTransfer(ATarget, DestRect, DestClip, Bitmap, Bitmap.BoundsRect, Bitmap.Resampler, dmBlend);
-
+              StretchTransfer(ATarget, DestRect, DestClip, Bitmap, Bitmap.BoundsRect, Resampler[rqNormal], dmBlend);
           end else
-          begin
-
-            SetupResampler(Bitmap, rqNormal); // Default resampler is likely TNearestResampler which is fast but looks horrible
-
             // Transform and render onto target
-            Transform(ATarget, Bitmap, FTransformation, DestClip, True);
+            Transform(ATarget, Bitmap, FTransformation, DestClip, True, Resampler[rqNormal]);
 
-          end;
         finally
           FTransformation.Pop;
         end;
