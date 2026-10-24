@@ -109,6 +109,9 @@ function BuildDashedLine(const Points: TArrayOfFixedPoint;
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint; overload;
 function ClipPolygon(const Points: TArrayOfFixedPoint; const ClipRect: TFixedRect): TArrayOfFixedPoint; overload;
 
+procedure SanitizePolygon(var Points: TArrayOfFloatPoint; StripClosePoint: boolean = False);
+procedure SanitizePolyPolygon(var Points: TArrayOfArrayOfFloatPoint; StripClosePoint: boolean = False);
+
 function CalculateCircleSteps(Radius: TFloat): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFloatPoint; overload;
@@ -1907,6 +1910,75 @@ begin
   end;
 
   if (J >= 0) and (Length(Result[J]) = 0) then SetLength(Result, J);
+end;
+
+procedure SanitizePolygon(var Points: TArrayOfFloatPoint; StripClosePoint: boolean);
+const
+  EPSILON = 1E-4;
+var
+  i, Count, ResultCount: Integer;
+  LastP, NextP, OutP, FirstP: PFloatPoint;
+begin
+  Count := Length(Points);
+  if Count < 2 then
+    exit;
+
+  FirstP := @Points[0];
+  NextP := FirstP;
+  LastP := nil;
+
+  // 1. Scan for the first duplicate (if any)
+  i := 1;
+  while (i < Count) do
+  begin
+    LastP := NextP;
+    Inc(NextP);
+    if (Abs(NextP.X - LastP.X) < EPSILON) and (Abs(NextP.Y - LastP.Y) < EPSILON) then
+      break; // Found first duplicate at index i
+    Inc(i);
+  end;
+
+  ResultCount := i;
+
+  // 2. If a duplicate was found, start compacting from index i onwards
+  OutP := NextP;
+  while (i < Count) do
+  begin
+    // Skip consecutive duplicates
+    if (Abs(NextP.X - LastP.X) >= EPSILON) or (Abs(NextP.Y - LastP.Y) >= EPSILON) then
+    begin
+      OutP^ := NextP^;
+      LastP := OutP;
+      Inc(OutP);
+      Inc(ResultCount);
+    end;
+    Inc(NextP);
+    Inc(i);
+  end;
+
+  // 3. Strip trailing closing duplicates (e.g. multiple trailing P[0] matches)
+  if StripClosePoint and (ResultCount > 1) then
+  begin
+    OutP := @Points[ResultCount - 1];
+    while (ResultCount > 1) and
+          (Abs(OutP.X - FirstP.X) <= EPSILON) and
+          (Abs(OutP.Y - FirstP.Y) <= EPSILON) do
+    begin
+      Dec(ResultCount);
+      Dec(OutP);
+    end;
+  end;
+
+  if (ResultCount <> Length(Points)) then
+    SetLength(Points, ResultCount);
+end;
+
+procedure SanitizePolyPolygon(var Points: TArrayOfArrayOfFloatPoint; StripClosePoint: boolean);
+var
+  i: integer;
+begin
+  for i := 0 to High(Points) do
+    SanitizePolygon(Points[i], StripClosePoint);
 end;
 
 function InterpolateX(X: TFloat; const P1, P2: TFloatPoint): TFloatPoint; overload;
