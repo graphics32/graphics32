@@ -503,8 +503,8 @@ class function PolyLineBuilderReference.BuildPolyPolyLine(const Points: TArrayOf
   Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle;
   EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfArrayOfFloatPoint;
 var
-  I: Integer;
-  P1, P2: TArrayOfFloatPoint;
+  i, Count: Integer;
+  P1, P2, Pts: TArrayOfFloatPoint;
   Dst: TArrayOfArrayOfFloatPoint;
   Normals: TArrayOfFloatPoint;
   HalfStrokeWidth: TFloat;
@@ -515,21 +515,31 @@ begin
     SetLength(Dst, Length(Points) * 2);
     HalfStrokeWidth := StrokeWidth * 0.5;
 
-    for I := 0 to High(Points) do
+    for i := 0 to High(Points) do
     begin
-      Normals := BuildNormals(Points[I]);
-      P1 := Grow(Points[I], Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
-      P2 := Grow(Points[I], Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
-      Dst[I * 2] := P1;
-      Dst[I * 2 + 1] := ReversePolygon(P2);
+      Pts := Points[i];
+      Count := Length(Pts);
+
+      // Strip duplicated closing points (where P[High] == P[0]) for closed polygon growing
+      while (Count > 1) and (Pts[0].X = Pts[Count - 1].X) and (Pts[0].Y = Pts[Count - 1].Y) do
+        Dec(Count);
+
+      Normals := BuildNormals(Pts, Count);
+      if (Length(Normals) < Length(Pts)) then
+        Setlength(Pts, Length(Normals));
+
+      P1 := Grow(Pts, Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      P2 := Grow(Pts, Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      Dst[i * 2] := P1;
+      Dst[i * 2 + 1] := ReversePolygon(P2);
     end;
 
   end else
   begin
 
     SetLength(Dst, Length(Points));
-    for I := 0 to High(Points) do
-      Dst[I] := BuildPolyLine(Points[I], StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+    for i := 0 to High(Points) do
+      Dst[i] := BuildPolyLine(Points[i], StrokeWidth, JoinStyle, EndStyle, MiterLimit);
 
   end;
   Result := Dst;
@@ -580,8 +590,8 @@ class function PolyLineBuilderReference.BuildPolyPolyLine(const Points: TArrayOf
   Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle;
   EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfArrayOfFixedPoint;
 var
-  I: Integer;
-  P1, P2: TArrayOfFixedPoint;
+  i, Count: Integer;
+  P1, P2, Pts: TArrayOfFixedPoint;
   Dst: TArrayOfArrayOfFixedPoint;
   Normals: TArrayOfFixedPoint;
   HalfStrokeWidth: TFixed;
@@ -592,21 +602,31 @@ begin
     SetLength(Dst, Length(Points) * 2);
     HalfStrokeWidth := StrokeWidth shr 1;
 
-    for I := 0 to High(Points) do
+    for i := 0 to High(Points) do
     begin
-      Normals := BuildNormals(Points[I]);
-      P1 := Grow(Points[I], Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
-      P2 := Grow(Points[I], Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
-      Dst[I * 2] := P1;
-      Dst[I * 2 + 1] := ReversePolygon(P2);
+      Pts := Points[i];
+      Count := Length(Pts);
+
+      // Strip duplicated closing points (where P[High] == P[0]) for closed polygon growing
+      while (Count > 1) and (Pts[0].X = Pts[Count - 1].X) and (Pts[0].Y = Pts[Count - 1].Y) do
+        Dec(Count);
+
+      Normals := BuildNormals(Pts, Count);
+      if (Length(Normals) < Length(Pts)) then
+        Setlength(Pts, Length(Normals));
+
+      P1 := Grow(Points[i], Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      P2 := Grow(Points[i], Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      Dst[i * 2] := P1;
+      Dst[i * 2 + 1] := ReversePolygon(P2);
     end;
 
   end else
   begin
 
     SetLength(Dst, Length(Points));
-    for I := 0 to High(Points) do
-      Dst[I] := BuildPolyLine(Points[I], StrokeWidth, JoinStyle, EndStyle);
+    for i := 0 to High(Points) do
+      Dst[i] := BuildPolyLine(Points[i], StrokeWidth, JoinStyle, EndStyle);
 
   end;
   Result := Dst;
