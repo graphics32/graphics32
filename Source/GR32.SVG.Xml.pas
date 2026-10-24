@@ -33,7 +33,8 @@ unit GR32.SVG.Xml;
  *   https://github.com/synopse/mORMot2/src/core/mormot.core.fmt.pas
  *   Commit SHA: 3af914ac15eab28c41411a1c449da2cf5b1e3a67
  *
- * Patches to the original code has been marked with [*].
+ * - Patches to the original code has been marked with [*].
+ * - Conditional inlining has been replaced with unconditional inlining.
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -129,10 +130,8 @@ type
   TXmlParser = record
   private
     procedure SetOrRaiseLastError;
-    procedure SetOrRaiseError(reason: TXmlParserError);
-      {$ifdef HASINLINE} inline; {$endif}
-    function ParseName(p, e: PUtf8Char): PUtf8Char;
-      {$ifdef HASINLINE} inline; {$endif}
+    procedure SetOrRaiseError(reason: TXmlParserError); inline;
+    function ParseName(p, e: PUtf8Char): PUtf8Char; inline;
   public
     /// the current token kind, as set by the last ParseNext call
     Kind: TXmlToken;
@@ -153,8 +152,7 @@ type
       ParserOptions: TXmlParserOptions = []); overload;
     /// prepare the parsing of a given XML UTF-8 string content
     function Init(const Text: RawUtf8;
-      ParserOptions: TXmlParserOptions = []): PXmlParser; overload;
-      {$ifdef HASINLINE} inline; {$endif}
+      ParserOptions: TXmlParserOptions = []): PXmlParser; overload; inline;
     /// reset the current position to the beginning of the XML supplied to Init()
     function Rewind: PXmlParser;
     /// locate an element using a simplified XPath-like syntax
@@ -164,16 +162,13 @@ type
     /// iterate to the next token of the input, returning xtEof when done
     function ParseNext: TXmlToken;
     /// returns the current Name as an allocated UTF-8 string
-    procedure NameToUtf8(var result: RawUtf8);
-      {$ifdef HASINLINE}inline;{$endif}
+    procedure NameToUtf8(var result: RawUtf8); inline;
     /// decode the current Value as an allocated UTF-8 string
-    function ValueToUtf8(var Dest: RawUtf8): Boolean;
-      {$ifdef HASINLINE}inline;{$endif}
+    function ValueToUtf8(var Dest: RawUtf8): Boolean; inline;
     /// decode and append the current Value to an existing UTF-8 string
     function ValueAppendToUtf8(var Dest: RawUtf8): Boolean;
     /// iterate over the direct child elements matching a given name
-    function Next(const ElementName: RawUtf8): Boolean; overload;
-      {$ifdef HASINLINE}inline;{$endif}
+    function Next(const ElementName: RawUtf8): Boolean; overload; inline;
     /// iterate over the direct child elements matching a given name
     function Next(ElementName: PUtf8Char; ElementLen: PtrInt): Boolean; overload;
     /// consume/skip the current element subtree
@@ -193,8 +188,7 @@ type
     /// continue after the element from a previously saved level
     function RestoreAndSkip: Boolean;
     /// the offset of the current token in the input buffer
-    function Position: PtrInt;
-      {$ifdef HASINLINE}inline;{$endif}
+    function Position: PtrInt; inline;
     /// raise the EXmlException corresponding to LastError/LastErrorLine
     procedure RaiseException;
   private

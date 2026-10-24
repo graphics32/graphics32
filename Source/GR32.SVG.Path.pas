@@ -142,6 +142,10 @@ uses
   Types,
   GR32_VectorUtils;
 
+const
+  sWhiteSpaceSeparators = [' ', #9, #10, #13];
+  sListSeparators = [' ', ',', #9, #10, #13];
+
 {$if defined(UNIT_TEST)}
 function CreatePolylinePath(const APathData: UTF8String): TFlattenedPath;
 var
@@ -440,7 +444,7 @@ function TSvgPathScanner.ReadNumber(out AValue: Single): Boolean;
 var
   Value: TValuePUtf8Char;
 begin
-  FText.Trim([' ', #9, #10, #13, ',']);
+  FText.Trim(sListSeparators);
   if (FText.Len = 0) then
     Exit(False);
 
@@ -460,12 +464,10 @@ begin
     FText.Skip;
   end else
   begin
-    while (FText.Len > 0) and (FText.Text^ in ['0'..'9']) do
-      FText.Skip;
+    FText.SkipDigits;
     if (FText.Len > 0) and (FText.Text^ = '.') then
       FText.Skip;
-    while (FText.Len > 0) and (FText.Text^ in ['0'..'9']) do
-      FText.Skip;
+    FText.SkipDigits;
   end;
 
   if (FText.Len > 1) and (FText.Text^ in ['e', 'E']) and (FText.Text[1] in ['0'..'9', '+', '-']) then
@@ -473,8 +475,7 @@ begin
     FText.Skip;
     if (FText.Text^ in ['+', '-']) then
       FText.Skip;
-    while (FText.Len > 0) and (FText.Text^ in ['0'..'9']) do
-      FText.Skip;
+    FText.SkipDigits;
   end;
 
   Value.Len := Value.Len - FText.Len;
@@ -486,7 +487,7 @@ end;
 
 function TSvgPathScanner.ReadFlag(out AFlag: Boolean): Boolean;
 begin
-  FText.Trim([' ', #9, #10, #13, ',']);
+  FText.Trim(sListSeparators);
   if (FText.Len > 0) and (FText.Text^ in ['0', '1']) then
   begin
     AFlag := (FText.Text^ = '1');

@@ -73,34 +73,34 @@ type
     /// how many UTF-8 bytes are stored in Value
     Len: PtrInt;
     /// convert the value into a UTF-8 string
-    procedure ToUtf8(var Value: RawUtf8); overload; {$ifdef HASINLINE}inline;{$endif}
+    procedure ToUtf8(var Value: RawUtf8); overload; inline;
     /// convert the value into a UTF-8 string
-    function ToUtf8: RawUtf8; overload; {$ifdef HASINLINE}inline;{$endif}
+    function ToUtf8: RawUtf8; overload; inline;
     /// convert the value into a RTL string
-    function ToString: string; {$ifdef HASINLINE}inline;{$endif}
+    function ToString: string; inline;
     /// convert the value into a signed integer
-    function ToInteger: PtrInt; {$ifdef HASINLINE}inline;{$endif}
+    function ToInteger: PtrInt; inline;
     /// convert the value into an unsigned integer
-    function ToCardinal: PtrUInt; overload; {$ifdef HASINLINE}inline;{$endif}
+    function ToCardinal: PtrUInt; overload; inline;
     /// convert the value into an unsigned integer
-    function ToCardinal(Def: PtrUInt): PtrUInt; overload; {$ifdef HASINLINE}inline;{$endif}
+    function ToCardinal(Def: PtrUInt): PtrUInt; overload; inline;
     /// convert the value into a 64-bit signed integer
-    function ToInt64: Int64; {$ifdef HASINLINE}inline;{$endif}
+    function ToInt64: Int64; inline;
     /// returns true if Value is either '1' or 'true'
     function ToBoolean: Boolean;
     /// convert the value into a floating point number
-    function ToDouble: Double; {$ifdef HASINLINE}inline;{$endif}
-    function ToSingle: Single; {$ifdef HASINLINE}inline;{$endif}
+    function ToDouble: Double; inline;
+    function ToSingle: Single; inline;
     /// case-sensitive comparison with the stored text Value
-    function Equal(const Value: RawUtf8): Boolean; overload; {$ifdef HASINLINE}inline;{$endif}
+    function Equal(const Value: RawUtf8): Boolean; overload; inline;
     /// case-sensitive comparison with the stored text Value
-    function Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean; overload;
+    function Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean; overload; inline;
 
 //    class operator implicit(const Value: TValuePUtf8Char): UTF8String; // TValuePUtf8Char -> UTF8String
-    class operator implicit(const Value: UTF8String): TValuePUtf8Char; // UTF8String -> TValuePUtf8Char
+    class operator implicit(const Value: UTF8String): TValuePUtf8Char; inline; // UTF8String -> TValuePUtf8Char
 
     // constructor for debug/unit test
-    class function FromString(const AValue: UTF8String): TValuePUtf8Char; static;
+    class function FromString(const AValue: UTF8String): TValuePUtf8Char; static; inline;
 
     /// case-insensitive comparison with the stored text Value
     function CompareText(const AValue: UTF8String): Boolean; overload;
@@ -123,14 +123,16 @@ type
     // Decimal value or percent value of <Multiplier>, returned as decimal value
     function TryToPercentOf(out Value: Single; Multiplier: Single; Skip: boolean = False): boolean;
 
-    function LastChar: AnsiChar;
+    function LastChar: AnsiChar; inline;
 
-    procedure Trim; overload; // TODO : Can we safely extend Trim to also trim from the end?
-    procedure Trim(ASkip: AnsiChar); overload;
-    procedure Trim(ASkip: TAnsiSet); overload;
-    procedure TrimEnd;
-    function TrimQuotes: boolean; // Return True if quotes were trimmed
-    procedure Skip(Count: integer = 1);
+    procedure Trim; overload; inline; // TODO : Can we safely extend Trim to also trim from the end?
+    procedure Trim(ASkip: AnsiChar); overload; inline;
+    procedure Trim(ASkip: TAnsiSet); overload; inline;
+    procedure TrimEnd; inline;
+    function TrimQuotes: boolean; inline; // Return True if quotes were trimmed
+    procedure Skip; overload; inline;
+    procedure Skip(Count: integer); overload; inline;
+    procedure SkipDigits; inline;
     function SkipUntil(ASkip: TAnsiSet; AAfter: boolean = False): boolean;
     // Split returns the current text, up to and excluding the split char(s).
     // If ASkip=True, the current text is moved past the split char(s).
@@ -250,7 +252,7 @@ begin
   if P = nil then Exit;
   if PEnd = nil then
     PEnd := P + $7FFFFFFF;
-  while (P < PEnd) and (P^ in ['0'..'9']) do
+  while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
   begin
     c := Ord(P^) - Ord('0');
     Result := Result * 10 + c;
@@ -275,7 +277,7 @@ begin
   if P = nil then Exit;
   if PEnd = nil then
     PEnd := P + $7FFFFFFF;
-  while (P < PEnd) and (P^ in [#1..#32]) do
+  while (P < PEnd) and (P^ <= #32) do // (P^ in [#1..#32]) do
     Inc(P);
   neg := False;
   if P < PEnd then
@@ -288,7 +290,7 @@ begin
     else if P^ = '+' then
       Inc(P);
   end;
-  while (P < PEnd) and (P^ in ['0'..'9']) do
+  while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
   begin
     c := Ord(P^) - Ord('0');
     Result := Result * 10 + c;
@@ -332,7 +334,7 @@ begin
   if PEnd = nil then
     PEnd := P + $7FFFFFFF;
 
-  while (P < PEnd) and (P^ in [#1..#32]) do
+  while (P < PEnd) and (P^ <= #32) do // (P^ in [#1..#32])
     Inc(P);
 
   if P >= PEnd then
@@ -351,7 +353,7 @@ begin
     Inc(P);
 
   IntVal := 0;
-  while (P < PEnd) and (P^ in ['0'..'9']) do
+  while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
   begin
     IntVal := IntVal * 10 + (Ord(P^) - Ord('0'));
     Inc(P);
@@ -369,7 +371,7 @@ begin
     Inc(P);
     FracVal := 0;
     FracLen := 0;
-    while (P < PEnd) and (P^ in ['0'..'9']) do
+    while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
     begin
       if FracLen < 18 then
       begin
@@ -387,7 +389,7 @@ begin
   if (P < PEnd) and (P^ in ['e', 'E']) then
   *)
   if (P < PEnd) and (P^ in ['e', 'E']) and
-     ((P + 1 < PEnd) and ((P[1] in ['0'..'9']) or ((P[1] in ['+', '-']) and (P + 2 < PEnd) and (P[2] in ['0'..'9'])))) then
+     ((P + 1 < PEnd) and ((P[1] in ['0'..'9']) or ((P[1] in ['+', '-']) and (P + 2 < PEnd) and ((Ord(P[2]) xor $30) < 10)))) then // (P[2] in ['0'..'9'])
   begin
     Inc(P);
     ExpSign := False;
@@ -400,7 +402,7 @@ begin
       Inc(P);
 
     ExpVal := 0;
-    while (P < PEnd) and (P^ in ['0'..'9']) do
+    while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
     begin
       ExpVal := ExpVal * 10 + (Ord(P^) - Ord('0'));
       Inc(P);
@@ -449,25 +451,34 @@ end;
 
 procedure TValuePUtf8Char.Trim;
 begin
-  while (Len > 0) and (Text^ in [#1..#32]) do
-    Skip;
+  while (Len > 0) and (Text^ <= #32) do // (Text^ in [#1..#32])
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
 end;
 
 procedure TValuePUtf8Char.Trim(ASkip: TAnsiSet);
 begin
   while (Len > 0) and (Text^ in ASkip) do
-    Skip;
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
 end;
 
 procedure TValuePUtf8Char.Trim(ASkip: AnsiChar);
 begin
   while (Len > 0) and (Text^ = ASkip) do
-    Skip;
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
 end;
 
 procedure TValuePUtf8Char.TrimEnd;
 begin
-  while (Len > 0) and (Text[Len-1] in [#1..#32]) do
+  while (Len > 0) and (Text[Len-1] <= #32) do // (Text[Len-1] in [#1..#32])
     Dec(Len);
 end;
 
@@ -606,7 +617,7 @@ end;
 function TValuePUtf8Char.ToCardinalAndSkip: Cardinal;
 begin
   Result := 0;
-  while (Len > 0) and (Text^ in ['0'..'9']) do
+  while (Len > 0) and ((Ord(Text^) xor $30) < 10) do // (Text^ in ['0'..'9'])
   begin
     Result := Result * 10 + Cardinal(Ord(Text^) - Ord('0'));
     Skip;
@@ -726,12 +737,29 @@ begin
   Result := nil;
 end;
 
+procedure TValuePUtf8Char.Skip;
+begin
+  if (Len = 0) then
+    exit;
+  Inc(Text);
+  Dec(Len);
+end;
+
 procedure TValuePUtf8Char.Skip(Count: integer);
 begin
   if (Count > Len) then
     Count := Len;
   Inc(Text, Count);
   Dec(Len, Count);
+end;
+
+procedure TValuePUtf8Char.SkipDigits;
+begin
+  while (Len > 0) and ((Ord(Text^) xor $30) < 10) do
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
 end;
 
 function TValuePUtf8Char.SkipUntil(ASkip: TAnsiSet; AAfter: boolean): boolean;
