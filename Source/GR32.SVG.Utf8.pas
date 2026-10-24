@@ -137,9 +137,12 @@ type
     function Split(AChar: AnsiChar; ASkip: boolean = False): TValuePUtf8Char; overload;
     function Split(AChars: TAnsiSet; ASkip: boolean = False): TValuePUtf8Char; overload;
 
-    // Compare for use in binary search etc. Returns positive if Value sorts after Self
+    // Case sensitive compare for use in binary search etc. Returns positive if Value sorts after Self
     function CompareOrdinal(const Value: TValuePUtf8Char): integer; overload;
     function CompareOrdinal(const Value: UTF8String): integer; overload;
+    // Case insensitive compare for use in binary search etc. Returns positive if Value sorts after Self
+    function CompareTextOrdinal(const Value: TValuePUtf8Char): integer; overload;
+    function CompareTextOrdinal(const Value: UTF8String): integer; overload;
   end;
 
 /// extract a 64-bit unsigned integer from a UTF-8 text buffer
@@ -164,6 +167,7 @@ type
     class function Trim(const AValue: UTF8String): UTF8String; static;
     class function CompareText(const AValue1, AValue2: UTF8String): Boolean; static;
     class function CompareOrdinal(const AValue1, AValue2: UTF8String): integer; static;
+    class function CompareTextOrdinal(const AValue1, AValue2: UTF8String): integer; static;
     class function Lowercase(const AValue: UTF8String): UTF8String; static;
   end;
 
@@ -854,12 +858,26 @@ end;
 
 function TValuePUtf8Char.CompareOrdinal(const Value: UTF8String): integer;
 begin
-  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Text, pointer(Value), Min(Length(Value), Len));
+  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(Text, pointer(Value), Min(Length(Value), Len));
   if (Result = 0) then
     Result := Length(Value) - Len;
 end;
 
 function TValuePUtf8Char.CompareOrdinal(const Value: TValuePUtf8Char): integer;
+begin
+  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(Text, Value.Text, Min(Value.Len, Len));
+  if (Result = 0) then
+    Result := Value.Len - Len;
+end;
+
+function TValuePUtf8Char.CompareTextOrdinal(const Value: UTF8String): integer;
+begin
+  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Text, pointer(Value), Min(Length(Value), Len));
+  if (Result = 0) then
+    Result := Length(Value) - Len;
+end;
+
+function TValuePUtf8Char.CompareTextOrdinal(const Value: TValuePUtf8Char): integer;
 begin
   // TODO : I haven't profiled StrLIComp but both the Pascal and assembler version
   // contains a goof[*] so a local Pascal implementation might actually be
@@ -943,6 +961,14 @@ var
 begin
   Value1 := TValuePUtf8Char.FromString(AValue1);
   Result := Value1.CompareOrdinal(AValue2);
+end;
+
+class function UTF8Tools.CompareTextOrdinal(const AValue1, AValue2: UTF8String): integer;
+var
+  Value1: TValuePUtf8Char;
+begin
+  Value1 := TValuePUtf8Char.FromString(AValue1);
+  Result := Value1.CompareTextOrdinal(AValue2);
 end;
 
 class function UTF8Tools.CompareText(const AValue1, AValue2: UTF8String): Boolean;

@@ -834,6 +834,7 @@ type
 
     TNamedResults = class(TList<TNamedResult>)
     public
+      // Case-insensitive!
       function FindIndex(Value: TValuePUtf8Char): integer;
       function GetInsertIndex(const Value: UTF8String): integer;
       function ResolveFilterInput(const AName: UTF8String; ADefault: TSvgFilterInputKind = fikSourceGraphic): TSvgFilterInput;
@@ -4867,7 +4868,7 @@ begin
   while (L <= H) do
   begin
     Mid := L + (H - L) div 2;
-    Cmp := Value.CompareOrdinal(List[Mid].Name);
+    Cmp := Value.CompareTextOrdinal(List[Mid].Name);
     if (Cmp < 0) then
       H := Mid - 1
     else
@@ -4889,7 +4890,7 @@ begin
   while (L <= H) do
   begin
     Mid := L + (H - L) div 2;
-    Cmp := UTF8Tools.CompareOrdinal(Value, List[Mid].Name);
+    Cmp := UTF8Tools.CompareTextOrdinal(Value, List[Mid].Name);
     if (Cmp < 0) then
       H := Mid - 1
     else
@@ -5765,7 +5766,8 @@ end;
 //      TValuePUtf8CharComparer
 //
 //------------------------------------------------------------------------------
-// Custom comparer for TSvgNodeDictionary
+// Custom comparer for TSvgNodeDictionary.
+// Case sensitive!
 //------------------------------------------------------------------------------
 type
   TValuePUtf8CharComparer = class(TCustomComparer<TValuePUtf8Char>)
@@ -5814,7 +5816,7 @@ function TValuePUtf8CharComparer.Equals(const Left, Right: TValuePUtf8Char): Boo
 function TValuePUtf8CharComparer.Equals(constref Left, Right: TValuePUtf8Char): Boolean;
 {$endif}
 begin
-  Result := Left.CompareText(Right);
+  Result := (Left.CompareOrdinal(Right) = 0);
 end;
 
 {$ifndef FPC}
@@ -5831,8 +5833,6 @@ begin
   for i := 0 to Value.Len - 1 do
   begin
     c := Byte(Value.Text[i]);
-    if (c in [65..90]) then
-      c := c xor $20;
     Hash := (Hash xor c) * 16777619;
   end;
 {$ifndef FPC}
