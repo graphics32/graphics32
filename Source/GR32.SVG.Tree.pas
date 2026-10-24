@@ -6434,16 +6434,16 @@ begin
   *)
   case FProperties.Kind of
     skPath:
-      FCachedPathData := FPathCommands.Flatten(ATransformation);
+      Result := FPathCommands.Flatten(ATransformation);
 
     skPolyline, skPolygon:
       begin
         Count := Length(FPolyPoints);
         if Count < 2 then
-          FCachedPathData := nil
+          Result := nil
         else
         begin
-          SetLength(FCachedPathData, 1);
+          SetLength(Result, 1);
 
           // Polygon should have First=Last but let's make sure
           if (FProperties.Kind = skPolygon) then
@@ -6482,7 +6482,7 @@ begin
             end else
               Points := Copy(FPolyPoints);
           end;
-          FCachedPathData[0] := Points;
+          Result[0] := Points;
         end;
       end;
 
@@ -6494,7 +6494,7 @@ begin
           p.Y := GetSizePx(FProperties.rect.Y, ViewportHeight);
           p := ATransformation.Transform(p);
 
-          FCachedPathData := CreateRectPath(
+          Result := CreateRectPath(
             p.X,
             p.Y,
             GetSizePx(FProperties.rect.Width, ViewportWidth) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
@@ -6504,7 +6504,7 @@ begin
           );
         end else
         begin
-          FCachedPathData := CreateRectPath(
+          Result := CreateRectPath(
             GetSizePx(FProperties.rect.X, ViewportWidth),
             GetSizePx(FProperties.rect.Y, ViewportHeight),
             GetSizePx(FProperties.rect.Width, ViewportWidth),
@@ -6513,7 +6513,7 @@ begin
             GetSizePx(FProperties.rect.Ry, ViewportHeight)
           );
 
-          TransformPolyPolygonInplace(FCachedPathData, ATransformation);
+          TransformPolyPolygonInplace(Result, ATransformation);
         end;
       end;
 
@@ -6525,7 +6525,7 @@ begin
         p := ATransformation.Transform(p);
 
         if (TFloatMatrixHelper(ATransformation.Matrix).GetScaleX = TFloatMatrixHelper(ATransformation.Matrix).GetScaleY) then
-          FCachedPathData := CreateCirclePath(
+          Result := CreateCirclePath(
             p.X,
             p.Y,
             GetSizePx(FProperties.circle.R, AViewport) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX
@@ -6533,7 +6533,7 @@ begin
         else
         begin
           n := GetSizePx(FProperties.circle.R, AViewport);
-          FCachedPathData := CreateEllipsePath(
+          Result := CreateEllipsePath(
             p.X,
             p.Y,
             n * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
@@ -6542,7 +6542,7 @@ begin
         end;
       end else
       begin
-        FCachedPathData := CreateCirclePath(
+        Result := CreateCirclePath(
           GetSizePx(FProperties.circle.Cx, ViewportWidth),
           GetSizePx(FProperties.circle.Cy, ViewportHeight),
           GetSizePx(FProperties.circle.R, AViewport),
@@ -6557,7 +6557,7 @@ begin
         p.Y := GetSizePx(FProperties.ellipse.Cy, ViewportHeight);
         p := ATransformation.Transform(p);
 
-        FCachedPathData := CreateEllipsePath(
+        Result := CreateEllipsePath(
           p.X,
           p.Y,
           GetSizePx(FProperties.ellipse.Rx, ViewportWidth) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
@@ -6565,7 +6565,7 @@ begin
         );
       end else
       begin
-        FCachedPathData := CreateEllipsePath(
+        Result := CreateEllipsePath(
           GetSizePx(FProperties.ellipse.Cx, ViewportWidth),
           GetSizePx(FProperties.ellipse.Cy, ViewportHeight),
           GetSizePx(FProperties.ellipse.Rx, ViewportWidth),
@@ -6583,7 +6583,7 @@ begin
         p2.Y := GetSizePx(FProperties.line.Y2, ViewportHeight);
         p := ATransformation.Transform(p);
         p2 := ATransformation.Transform(p2);
-        FCachedPathData := CreateLinePath(
+        Result := CreateLinePath(
           p.X,
           p.Y,
           p2.X,
@@ -6591,7 +6591,7 @@ begin
         );
       end else
       begin
-        FCachedPathData := CreateLinePath(
+        Result := CreateLinePath(
           GetSizePx(FProperties.line.X1, ViewportWidth),
           GetSizePx(FProperties.line.Y1, ViewportHeight),
           GetSizePx(FProperties.line.X2, ViewportWidth),
@@ -6603,6 +6603,12 @@ begin
   FCachedViewportWidth := ViewportWidth;
   FCachedViewportHeight := ViewportHeight;
   FCachedMatrix := ATransformation.Matrix;
+
+  SanitizePolyPolygon(Result, True);
+
+  SetLength(FCachedPathData, Length(Result));
+  for i := 0 to High(Result) do
+    FCachedPathData[i] := Copy(Result[i]);
 
   SetLength(Result, Length(FCachedPathData));
   for i := 0 to High(FCachedPathData) do
