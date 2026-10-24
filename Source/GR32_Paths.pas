@@ -36,6 +36,20 @@ interface
 
 {$include GR32.inc}
 
+// Define one of the following two *CubicBezierCurve symbols to select
+// the algorithm used to flatten cubic Bezier curves.
+//
+// - RecursiveCubicBezierCurve is the classic De Casteljau algorithm.
+//
+// - RaphLevienCubicBezierCurve is a new analytic algorithm which
+//   produces far less vertices for the same error tolerance.
+//
+// If none of the symbols are defined the RaphLevienCubicBezierCurve
+// implementation is used.
+//
+{-$define RecursiveCubicBezierCurve}
+{-$define RaphLevienCubicBezierCurve}
+
 // Define one of the following two *QuadraticBezierCurve symbols to select
 // the algorithm used to flatten quadratic Bezier curves.
 //
@@ -404,6 +418,26 @@ begin
     Abs(P2.Y + P4.Y - 2 * P3.Y);
 end;
 
+function CubicBezierFlatnessSq(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+var
+  dx, dy, L2, d1Sq, d2Sq: TFloat;
+begin
+  dx := P4.X - P1.X;
+  dy := P4.Y - P1.Y;
+  L2 := dx * dx + dy * dy;
+  if L2 < 1e-12 then
+  begin
+    d1Sq := Sqr(P2.X - P1.X) + Sqr(P2.Y - P1.Y);
+    d2Sq := Sqr(P3.X - P1.X) + Sqr(P3.Y - P1.Y);
+  end else
+  begin
+    L2 := 1 / L2;
+    d1Sq := Sqr((P2.X - P1.X) * dy - (P2.Y - P1.Y) * dx) * L2;
+    d2Sq := Sqr((P3.X - P1.X) * dy - (P3.Y - P1.Y) * dx) * L2;
+  end;
+  Result := Max(d1Sq, d2Sq);
+end;
+
 function QuadraticBezierFlatness(const P1, P2, P3: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result :=
@@ -411,18 +445,31 @@ begin
     Abs(P1.y + P3.y - 2 * P2.y);
 end;
 
-procedure CubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+//------------------------------------------------------------------------------
+//
+//      Cubic Bezier curve flattening
+//
+//------------------------------------------------------------------------------
+type
+  TCubicBezierCurve = procedure(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+
+
+//------------------------------------------------------------------------------
+// Recursive subdivision using Paul de Casteljau's algorithm
+//------------------------------------------------------------------------------
+procedure RecursiveCubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
 const
   MaxRecursionDepth = 16;
 var
-  EffectiveTolerance, Span: TFloat;
+  EffectiveToleranceSq, Span: TFloat;
+  EffectiveTolerance: TFloat;
   Depth: Integer;
 
   procedure DoCubicBezierCurve(const P1, P2, P3, P4: TFloatPoint);
   var
     P12, P23, P34, P123, P234, P1234: TFloatPoint;
   begin
-    if (Depth >= MaxRecursionDepth) or (CubicBezierFlatness(P1, P2, P3, P4) < EffectiveTolerance) then
+    if (Depth >= MaxRecursionDepth) or (CubicBezierFlatnessSq(P1, P2, P3, P4) < EffectiveToleranceSq) then
       AddPoint(P1)
     else
     begin
@@ -459,10 +506,80 @@ begin
           Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y) +
           Abs(P4.X - P3.X) + Abs(P4.Y - P3.Y);
   if Span > 0 then
-    EffectiveTolerance := Min(EffectiveTolerance, Max(1e-4, Span * 1e-3));
+    EffectiveTolerance := Min(EffectiveTolerance, Max(0.05, Span * 1e-3));
+  EffectiveToleranceSq := EffectiveTolerance * EffectiveTolerance;
 
   Depth := 0;
   DoCubicBezierCurve(P1, P2, P3, P4);
+end;
+
+
+//------------------------------------------------------------------------------
+// Analytic subdivision using Raph Levien's cubic algorithm
+// License: Apache 2.0
+// https://www.apache.org/licenses/LICENSE-2.0
+//------------------------------------------------------------------------------
+procedure RaphLevienCubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+var
+  EffectiveTolerance, Span: TFloat;
+  dx12, dy12, dx23, dy23, dx34, dy34: TFloat;
+  ddx1, ddy1, ddx2, ddy2: TFloat;
+  max_dd2: TFloat;
+  Count: Integer;
+  OneOverCount: TFloat;
+  i: Integer;
+  t, mt: TFloat;
+  p: TFloatPoint;
+begin
+  EffectiveTolerance := Tolerance;
+  Span := Abs(P4.X - P1.X) + Abs(P4.Y - P1.Y) +
+          Abs(P2.X - P1.X) + Abs(P2.Y - P1.Y) +
+          Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y) +
+          Abs(P4.X - P3.X) + Abs(P4.Y - P3.Y);
+  if Span > 0 then
+    EffectiveTolerance := Min(EffectiveTolerance, Max(0.05, Span * 1e-3));
+
+  dx12 := P2.X - P1.X;
+  dy12 := P2.Y - P1.Y;
+  dx23 := P3.X - P2.X;
+  dy23 := P3.Y - P2.Y;
+  dx34 := P4.X - P3.X;
+  dy34 := P4.Y - P3.Y;
+
+  ddx1 := dx23 - dx12;
+  ddy1 := dy23 - dy12;
+  ddx2 := dx34 - dx23;
+  ddy2 := dy34 - dy23;
+
+  max_dd2 := Max(ddx1 * ddx1 + ddy1 * ddy1, ddx2 * ddx2 + ddy2 * ddy2);
+
+  Count := Ceil(Sqrt(Max(0.0, 6.0 * Sqrt(max_dd2) / (8.0 * EffectiveTolerance))));
+  if Count < 1 then
+    Count := 1;
+
+  OneOverCount := 1.0 / Count;
+
+  AddPoint(P1);
+
+  for i := 1 to Count - 1 do
+  begin
+    t := i * OneOverCount;
+    mt := 1.0 - t;
+
+    p.X := P1.X * (mt * mt * mt) +
+           P2.X * (3.0 * mt * mt * t) +
+           P3.X * (3.0 * mt * t * t) +
+           P4.X * (t * t * t);
+
+    p.Y := P1.Y * (mt * mt * mt) +
+           P2.Y * (3.0 * mt * mt * t) +
+           P3.Y * (3.0 * mt * t * t) +
+           P4.Y * (t * t * t);
+
+    AddPoint(p);
+  end;
+
+  AddPoint(P4);
 end;
 
 //------------------------------------------------------------------------------
@@ -653,6 +770,19 @@ begin
 
   Evaluate(1);
 end;
+
+{$if (not defined(RecursiveCubicBezierCurve)) and (not defined(RaphLevienCubicBezierCurve))}
+  {$define RaphLevienCubicBezierCurve}
+{$ifend}
+
+var
+  CubicBezierCurve: TCubicBezierCurve =
+{$if defined(RecursiveCubicBezierCurve)}
+    RecursiveCubicBezierCurve;
+{$elseif defined(RaphLevienCubicBezierCurve)}
+    RaphLevienCubicBezierCurve;
+{$ifend}
+
 
 {$if (not defined(RecursiveQuadraticBezierCurve)) and (not defined(RaphLevienQuadraticBezierCurve))}
   {$define RaphLevienQuadraticBezierCurve}
