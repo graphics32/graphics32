@@ -1312,6 +1312,7 @@ begin
   ** 3. Generate stroke polygons if stroked
   *)
   StrokePoints := nil;
+  StrokeWidth := 0; // Silences compile warning
   if (HasStroke) then
   begin
     StrokeWidth := UserStrokeWidth * MatScale;

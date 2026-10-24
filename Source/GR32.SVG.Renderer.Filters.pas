@@ -2168,7 +2168,7 @@ var
   UserPointX, UserPointY: Double;
   R, G, B, A: Double;
   pDest: PColor32Entry;
-  Scale, OneOverScale: Double;
+  OneOverScale: Double;
 begin
   Renderer.ReleaseOffscreenBitmap(FilterContext.UnnamedSurface);
 
@@ -2191,13 +2191,10 @@ begin
   StitchTiles := (TurbNode.StitchTiles = stStitch);
   IsFractalSum := (TurbNode.TurbulenceType = ttFractalNoise);
 
-  Scale := FilterContext.Scale;
-  if Scale <= 0 then
-  begin
-    Scale := 1.0;
-    OneOverScale := 1.0;
-  end else
-    OneOverScale := 1 / Scale;
+  if FilterContext.Scale <= 0 then
+    OneOverScale := 1.0
+  else
+    OneOverScale := 1 / FilterContext.Scale;
 
   TileX := (FilterContext.ROI.Left + FilterContext.CurrentSubregion.Left) * OneOverScale;
   TileY := (FilterContext.ROI.Top + FilterContext.CurrentSubregion.Top) * OneOverScale;
