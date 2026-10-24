@@ -858,34 +858,34 @@ end;
 
 function TValuePUtf8Char.CompareOrdinal(const Value: UTF8String): integer;
 begin
-  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(Text, pointer(Value), Min(Length(Value), Len));
+  Result := Len - Length(Value); // Shorter before longer
   if (Result = 0) then
-    Result := Length(Value) - Len;
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(pointer(Value), Text, Min(Length(Value), Len)); // 'a' before 'b'
 end;
 
 function TValuePUtf8Char.CompareOrdinal(const Value: TValuePUtf8Char): integer;
 begin
-  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(Text, Value.Text, Min(Value.Len, Len));
+  Result := Len - Value.Len;
   if (Result = 0) then
-    Result := Value.Len - Len;
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(Value.Text, Text, Min(Value.Len, Len));
 end;
 
 function TValuePUtf8Char.CompareTextOrdinal(const Value: UTF8String): integer;
 begin
-  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Text, pointer(Value), Min(Length(Value), Len));
+  Result := Len - Length(Value);
   if (Result = 0) then
-    Result := Length(Value) - Len;
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(pointer(Value), Text, Min(Length(Value), Len));
 end;
 
 function TValuePUtf8Char.CompareTextOrdinal(const Value: TValuePUtf8Char): integer;
 begin
+  Result := Len - Value.Len;
   // TODO : I haven't profiled StrLIComp but both the Pascal and assembler version
   // contains a goof[*] so a local Pascal implementation might actually be
   // faster. *: It swaps the case of both left and right, while it only needs to
   // swap the case of one of them.
-  Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Text, Value.Text, Min(Value.Len, Len));
   if (Result = 0) then
-    Result := Value.Len - Len;
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Value.Text, Text, Min(Value.Len, Len));
 end;
 
 function TValuePUtf8Char.CompareText(const AValue: TValuePUtf8Char): Boolean;

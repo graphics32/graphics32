@@ -5636,7 +5636,7 @@ begin
       if (NamedResult.Index <> -1) then
       begin
         // Insert ordered
-        Index := NamedResults.GetInsertIndex(PrimNode.ResultName);
+        Index := NamedResults.GetInsertIndex(NamedResult.Name);
         NamedResults.Insert(Index, NamedResult);
       end;
 
@@ -5816,7 +5816,7 @@ function TValuePUtf8CharComparer.Equals(const Left, Right: TValuePUtf8Char): Boo
 function TValuePUtf8CharComparer.Equals(constref Left, Right: TValuePUtf8Char): Boolean;
 {$endif}
 begin
-  Result := (Left.CompareOrdinal(Right) = 0);
+  Result := (Left.Len = Right.Len) and CompareMem(Left.Text, Right.Text, Left.Len);
 end;
 
 {$ifndef FPC}
