@@ -999,6 +999,8 @@ function TSvgBitmapPool.CreateNewMap: TCustomBitmap32;
 begin
   Result := TBitmap32.Create(TMemoryBackend);
   TMemoryBackend(Result.Backend).MaxOversize := BitmapMaxOversize;
+  // Prevent update notification overhead; Nobody's listening
+  Result.BeginLockUpdate;
 end;
 
 procedure TSvgBitmapPool.PrepareMap(Map: TCustomBitmap32);
@@ -3959,7 +3961,17 @@ begin
   FTransformation.Push;
   try
     ApplyMatrix(vpMat);
-    RenderNode(ADoc);
+
+    Target.BeginLockUpdate;
+    try
+
+      RenderNode(ADoc);
+
+    finally
+      Target.EndLockUpdate;
+    end;
+    Target.Changed; // Bunch all updates up into a single whole-scene update
+
   finally
     FTransformation.Pop;
   end;

@@ -856,10 +856,7 @@ begin
   end;
   MarginX := StdDevX * GaussianSigmaToRadius * FilterContext.Scale + 2; // +2 for AA
   MarginY := StdDevY * GaussianSigmaToRadius * FilterContext.Scale + 2;
-  AOutputRect.Left := AOutputRect.Left - MarginX;
-  AOutputRect.Top := AOutputRect.Top - MarginY;
-  AOutputRect.Right := AOutputRect.Right + MarginX;
-  AOutputRect.Bottom := AOutputRect.Bottom + MarginY;
+  GR32.InflateRect(AOutputRect, MarginX, MarginY);
 end;
 
 class procedure TFilterRendererGaussianBlur.ApplyBlur(Renderer: TSvgRenderer; Input, Output: TCustomBitmap32; RadiusX, RadiusY: Single);
@@ -1589,10 +1586,7 @@ begin
   end;
   RadX := RadX * FilterContext.Scale;
   RadY := RadY * FilterContext.Scale;
-  AOutputRect.Left := AOutputRect.Left - RadX;
-  AOutputRect.Top := AOutputRect.Top - RadY;
-  AOutputRect.Right := AOutputRect.Right + RadX;
-  AOutputRect.Bottom := AOutputRect.Bottom + RadY;
+  GR32.InflateRect(AOutputRect, RadX, RadY);
 end;
 
 class procedure TFilterRendererMorphology.Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var FilterContext: TFilterContext);
@@ -2272,10 +2266,7 @@ begin
   if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
     ScaleVal := ScaleVal * Max(FilterContext.BBoxWidth, FilterContext.BBoxHeight);
   MaxDisp := Abs(ScaleVal) * 0.5 * FilterContext.Scale;
-  AOutputRect.Left := AOutputRect.Left - MaxDisp;
-  AOutputRect.Top := AOutputRect.Top - MaxDisp;
-  AOutputRect.Right := AOutputRect.Right + MaxDisp;
-  AOutputRect.Bottom := AOutputRect.Bottom + MaxDisp;
+  GR32.InflateRect(AOutputRect, MaxDisp, MaxDisp);
 end;
 
 class function TFilterRendererDisplacementMap.GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte;

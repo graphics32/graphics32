@@ -508,8 +508,8 @@ begin
   if MatrixScaleY <= 0 then
     MatrixScaleY := 1.0;
 
-  BitmapWidth := Min(cMaxPatternDimension, Max(1, Round(TileWidth * MatrixScaleX)));
-  BitmapHeight := Min(cMaxPatternDimension, Max(1, Round(TileHeight * MatrixScaleY)));
+  BitmapWidth := Clamp(Round(TileWidth * MatrixScaleX), 1, cMaxPatternDimension);
+  BitmapHeight := Clamp(Round(TileHeight * MatrixScaleY), 1, cMaxPatternDimension);
 
   PatternBitmap := TBitmap32.Create;
   try
