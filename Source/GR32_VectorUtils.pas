@@ -1224,28 +1224,28 @@ function Circle(const R: TRect): TArrayOfFloatPoint;
 begin
   Result := Circle(
     FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
-    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)));
+    0.5 * Min(R.Right - R.Left, R.Bottom - R.Top));
 end;
 
 function Circle(const R: TRect; Steps: Integer): TArrayOfFloatPoint;
 begin
   Result := Circle(
     FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
-    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)), Steps);
+    0.5 * Min(R.Right - R.Left, R.Bottom - R.Top), Steps);
 end;
 
 function Circle(const R: TFloatRect): TArrayOfFloatPoint;
 begin
   Result := Circle(
     FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
-    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)));
+    0.5 * Min(R.Right - R.Left, R.Bottom - R.Top));
 end;
 
 function Circle(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint;
 begin
   Result := Circle(
     FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
-    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)), Steps);
+    0.5 * Min(R.Right - R.Left, R.Bottom - R.Top), Steps);
 end;
 
 function Pie(const P: TFloatPoint; const Radius: TFloat;
@@ -2235,10 +2235,14 @@ begin
   Result.Bottom := Points[0].Y;
   for I := 1 to High(Points) do
   begin
-    Result.Left := Min(Result.Left, Points[I].X);
-    Result.Right := Max(Result.Right, Points[I].X);
-    Result.Top := Min(Result.Top, Points[I].Y);
-    Result.Bottom := Max(Result.Bottom, Points[I].Y);
+    if (Points[I].X < Result.Left) then
+      Result.Left := Points[I].X;
+    if (Points[I].X > Result.Right) then
+      Result.Right := Points[I].X;
+    if (Points[I].Y < Result.Top) then
+      Result.Top := Points[I].Y;
+    if (Points[I].Y > Result.Bottom) then
+      Result.Bottom := Points[I].Y;
   end;
 end;
 
@@ -2255,10 +2259,14 @@ begin
   Result.Bottom := Points[0].Y;
   for I := 1 to High(Points) do
   begin
-    Result.Left := Min(Result.Left, Points[I].X);
-    Result.Right := Max(Result.Right, Points[I].X);
-    Result.Top := Min(Result.Top, Points[I].Y);
-    Result.Bottom := Max(Result.Bottom, Points[I].Y);
+    if (Points[I].X < Result.Left) then
+      Result.Left := Points[I].X;
+    if (Points[I].X > Result.Right) then
+      Result.Right := Points[I].X;
+    if (Points[I].Y < Result.Top) then
+      Result.Top := Points[I].Y;
+    if (Points[I].Y > Result.Bottom) then
+      Result.Bottom := Points[I].Y;
   end;
 end;
 
