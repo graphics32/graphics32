@@ -83,8 +83,8 @@ type
 
 function DelaunayTriangulation(Points: TArrayOfFloatPoint): TArrayOfTriangleVertexIndices;
 
-function BuildNormals(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint; overload;
-function BuildNormals(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload;
+function BuildNormals(const Points: TArrayOfFloatPoint; Count: integer = -1): TArrayOfFloatPoint; overload;
+function BuildNormals(const Points: TArrayOfFixedPoint; Count: integer = -1): TArrayOfFixedPoint; overload;
 
 function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; {$ifndef GR32_OFFSET_REF} deprecated; {$ENDIF} {$IFDEF USEINLINING} inline; {$ENDIF}
 function Grow(const Points: TArrayOfFloatPoint; const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter; Closed: Boolean = True; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1490,70 +1490,109 @@ begin
   Result := Grow(Rectangle(R2), CornerRadius, jsRound, True);
 end;
 
-function BuildNormals(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
+function BuildNormals(const Points: TArrayOfFloatPoint; Count: integer): TArrayOfFloatPoint;
 const
   EPSILON = 1E-4;
 var
-  I, Count, NextI: Integer;
-  dx, dy, f: Double;
+  i, NextI: Integer;
+  dX, dY, f: Double;
 begin
-  Count := Length(Points);
+  if (Count < 0) then
+    Count := Length(Points);
   SetLength(Result, Count);
 
-  I := 0;
+  i := 0;
   NextI := 1;
 
-  while I < Count do
+  while (i < Count) do
   begin
-    if NextI >= Count then NextI := 0;
+    if (NextI >= Count) then
+      NextI := 0;
 
-    dx := Points[NextI].X - Points[I].X;
-    dy := Points[NextI].Y - Points[I].Y;
-    f := GR32_Math.Hypot(dx, dy);
+    dX := Points[NextI].X - Points[i].X;
+    dY := Points[NextI].Y - Points[i].Y;
+    f := GR32_Math.Hypot(dX, dY);
+
     if (f > EPSILON) then
     begin
       f := 1 / f;
-      dx := dx * f;
-      dy := dy * f;
+      Result[i].X := dY * f;
+      Result[i].Y := -dX * f;
+    end else
+    begin
+      // Fall back to previous valid normal or zero vector if at start
+      if (i > 0) then
+        Result[i] := Result[i - 1]
+      else
+      begin
+        Result[i].X := 0;
+        Result[i].Y := 0;
+      end;
     end;
-    Result[I].X := dy;
 
-    Result[I].Y := -dx;
-
-    Inc(I);
+    Inc(i);
     Inc(NextI);
+  end;
+
+  // Forward fix-up for i=0 if the first edge was zero-length
+  if (Result[0].X = 0) and (Result[0].Y = 0) and (Count > 1) then
+  begin
+    i := 1;
+    while (i < Count) and (Result[i].X = 0) and (Result[i].Y = 0) do
+      Inc(i);
+    if (i < Count) then
+      Result[0] := Result[i];
   end;
 end;
 
-function BuildNormals(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint;
+function BuildNormals(const Points: TArrayOfFixedPoint; Count: integer): TArrayOfFixedPoint;
 var
-  I, Count, NextI: Integer;
-  dx, dy, f: TFixed;
+  i, NextI: Integer;
+  dX, dY, f: TFixed;
 begin
-  Count := Length(Points);
+  if (Count < 0) then
+    Count := Length(Points);
   SetLength(Result, Count);
 
-  I := 0;
+  i := 0;
   NextI := 1;
 
-  while I < Count do
+  while (i < Count) do
   begin
-    if NextI >= Count then NextI := 0;
+    if (NextI >= Count) then
+      NextI := 0;
 
-    dx := Points[NextI].X - Points[I].X;
-    dy := Points[NextI].Y - Points[I].Y;
-    f := GR32_Math.Hypot(dx, dy);
+    dX := Points[NextI].X - Points[i].X;
+    dY := Points[NextI].Y - Points[i].Y;
+    f := GR32_Math.Hypot(dX, dY);
     if (f <> 0) then
     begin
-      dx := FixedDiv(dx, f);
-      dy := FixedDiv(dy, f);
+      Result[i].X := FixedDiv(dY, f);
+      Result[i].Y := -FixedDiv(dX, f);;
+    end else
+    begin
+      // Fall back to previous valid normal or zero vector if at start
+      if (i > 0) then
+        Result[i] := Result[i - 1]
+      else
+      begin
+        Result[i].X := 0;
+        Result[i].Y := 0;
+      end;
     end;
 
-    Result[I].X := dy;
-    Result[I].Y := -dx;
-
-    Inc(I);
+    Inc(i);
     Inc(NextI);
+  end;
+
+  // Forward fix-up for i=0 if the first edge was zero-length
+  if (Result[0].X = 0) and (Result[0].Y = 0) and (Count > 1) then
+  begin
+    i := 1;
+    while (i < Count) and (Result[i].X = 0) and (Result[i].Y = 0) do
+      Inc(i);
+    if (i < Count) then
+      Result[0] := Result[i];
   end;
 end;
 
