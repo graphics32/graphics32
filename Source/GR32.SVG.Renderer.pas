@@ -1266,7 +1266,8 @@ end;
 procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgPathNode);
 var
   TransformedPoints, MarkerPoints: TArrayOfArrayOfFloatPoint;
-  UserStrokeWidth, StrokeWidth, MatScale, ScaledOffset: Single;
+  UserStrokeWidth, StrokeWidth, MaxStrokeExtent: Single;
+  MatScale, ScaledOffset: Single;
   Points, StrokePoints: TArrayOfArrayOfFloatPoint;
   ScaledDashArray: TArrayOfFloat;
   i, j: Integer;
@@ -1337,25 +1338,15 @@ begin
   end;
 
   (*
-  ** 4. Calculate ROI bounding box AFTER stroking and collect all output
+  ** 4. Calculate ROI bounding box after stroking and collect all output
   **    poly-polygons produced and rendered by the polygon node
   *)
-  if (HasFill or HasStroke) then
+  FloatRoi := PolyPolygonBounds(TransformedPoints);
+  if HasStroke then
   begin
-    if (HasFill) then
-    begin
-      // TODO : Will PolyPolygonBounds(StrokePoints) not always >= PolyPolygonBounds(TransformedPoints)
-      FloatRoi := PolyPolygonBounds(TransformedPoints);
-      if (HasStroke) then
-{$ifndef FPC}
-        FloatRoi := FloatRoi + PolyPolygonBounds(StrokePoints);
-{$else}
-        GR32.UnionRect(FloatRoi, FloatRoi, PolyPolygonBounds(StrokePoints));
-{$endif}
-    end else
-      FloatRoi := PolyPolygonBounds(StrokePoints);
-  end else
-    FloatRoi := PolyPolygonBounds(TransformedPoints); // Only markers
+    MaxStrokeExtent := (StrokeWidth * 0.5) * Max(1.0, APathNode.Stroke.MiterLimit);
+    GR32.InflateRect(FloatRoi, MaxStrokeExtent, MaxStrokeExtent);
+  end;
 
   RoiRect := MakeRect(FloatRoi, rrOutside);
 
