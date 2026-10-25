@@ -164,6 +164,8 @@ type
     FThemeFillColor: TSvgColor;
     FThemeStrokeColor: TSvgColor;
     FCurrentColor: TSvgColor;
+    FOverridePreserveAspectRatio: Boolean;
+    FPreserveAspectRatioOverride: TSvgPreserveAspectRatio;
     FOffscreenOffset: TPoint;
     FOnResolveExternalFile: TSvgRendererResolveExternalFileEvent;
     FOnResolveFontEvent: TSvgRendererResolveFontEvent;
@@ -243,6 +245,8 @@ type
     property ThemeStrokeColor32: TColor32 read GetThemeStrokeColor32 write SetThemeStrokeColor32;
     property CurrentColor: TSvgColor read FCurrentColor write FCurrentColor;
     property CurrentColor32: TColor32 read GetCurrentColor32 write SetCurrentColor32;
+    property OverridePreserveAspectRatio: Boolean read FOverridePreserveAspectRatio write FOverridePreserveAspectRatio;
+    property PreserveAspectRatioOverride: TSvgPreserveAspectRatio read FPreserveAspectRatioOverride write FPreserveAspectRatioOverride;
 
     property OnResolveExternalFile: TSvgRendererResolveExternalFileEvent read FOnResolveExternalFile write FOnResolveExternalFile;
     property OnResolveFontEvent: TSvgRendererResolveFontEvent read FOnResolveFontEvent write FOnResolveFontEvent;
@@ -3925,12 +3929,18 @@ var
   vpMat: TFloatMatrix;
   viewBox: TSvgViewBox;
   docW, docH: Single;
+  Aspect: TSvgPreserveAspectRatio;
 begin
   if (ADoc = nil) or (FTarget = nil) then
     Exit;
 
   FDocumentRoot := ADoc;
   FViewportRect := ATargetRect;
+
+  if FOverridePreserveAspectRatio then
+    Aspect := FPreserveAspectRatioOverride
+  else
+    Aspect := ADoc.PreserveAspectRatio;
 
   docW := ADoc.GetSizePx(ADoc.Width, ATargetRect.Width);
   docH := ADoc.GetSizePx(ADoc.Height, ATargetRect.Height);
@@ -3946,7 +3956,7 @@ begin
 
   FViewportRect := FloatRect(viewBox.X, viewBox.Y, viewBox.X + viewBox.Width, viewBox.Y + viewBox.Height);
 
-  vpMat := viewBox.GetTransform(ATargetRect, ADoc.PreserveAspectRatio);
+  vpMat := viewBox.GetTransform(ATargetRect, Aspect);
 
   FTransformation.Clear;
 
