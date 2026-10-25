@@ -138,6 +138,20 @@ type
 
 
 //------------------------------------------------------------------------------
+//
+//      TPaintServerRendererMeshGradient
+//
+//------------------------------------------------------------------------------
+// Painter server renderer for TSvgMeshGradientNode
+//------------------------------------------------------------------------------
+type
+  TPaintServerRendererMeshGradient = class abstract(TPaintServerRendererGradient)
+  protected
+    class function DoCreateFiller(ARenderer: TSvgRenderer; AGradNode: TSvgGradientNode; const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller; override;
+  end;
+
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -171,8 +185,11 @@ end;
 class function TPaintServerRendererGradient.CreateFiller(ARenderer: TSvgRenderer; ANode: TSvgCustomGroupNode; const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller;
 begin
   Result := nil;
-  if (ANode = nil) or (TSvgGradientNode(ANode).Stops.Count = 0) then
+  if (ANode = nil) then
     exit;
+
+  if (not TSvgGradientNode(ANode).CanFill) then
+    Exit;
 
   Result := DoCreateFiller(ARenderer, TSvgGradientNode(ANode), ABounds, AOpacity);
 end;
@@ -423,6 +440,79 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TPaintServerRendererMeshGradient
+//
+//------------------------------------------------------------------------------
+class function TPaintServerRendererMeshGradient.DoCreateFiller(ARenderer: TSvgRenderer; AGradNode: TSvgGradientNode;
+  const ABounds: TFloatRect; AOpacity: Single): TCustomPolygonFiller;
+var
+  MeshNode: TSvgMeshGradientNode;
+  MeshFiller: TSVGMeshGradientPolygonFiller;
+  RowNode: TSvgMeshRowNode;
+  PatchNode: TSvgMeshPatchNode;
+  Patch: TSVGMeshPatch;
+  RowIdx, PatchIdx, StopIdx, k1, k2: Integer;
+  StopColor: TColor32;
+  Transform, TotalTransform, BboxMat: TFloatMatrixHelper;
+begin
+  MeshNode := TSvgMeshGradientNode(AGradNode);
+  MeshNode.ResolveMesh;
+
+  MeshFiller := TSVGMeshGradientPolygonFiller.Create;
+
+  if MeshNode.MeshType = smtBicubic then
+    MeshFiller.MeshType := mgtBicubic
+  else
+    MeshFiller.MeshType := mgtBilinear;
+
+  for RowIdx := 0 to MeshNode.Children.Count - 1 do
+  begin
+    if MeshNode.Children[RowIdx] is TSvgMeshRowNode then
+    begin
+      RowNode := TSvgMeshRowNode(MeshNode.Children[RowIdx]);
+      for PatchIdx := 0 to RowNode.Children.Count - 1 do
+      begin
+        if RowNode.Children[PatchIdx] is TSvgMeshPatchNode then
+        begin
+          PatchNode := TSvgMeshPatchNode(RowNode.Children[PatchIdx]);
+
+          Patch := Default(TSVGMeshPatch);
+
+          for k1 := 0 to 3 do
+            for k2 := 0 to 3 do
+              Patch.ControlPoints[k1, k2] := PatchNode.ControlPoints[k1, k2];
+
+          for StopIdx := 0 to 3 do
+          begin
+            StopColor := PatchNode.CornerColors[StopIdx].Color;
+            if (PatchNode.CornerOpacities[StopIdx] < 1.0) or (AOpacity < 1.0) then
+              ScaleAlpha(StopColor, PatchNode.CornerOpacities[StopIdx] * AOpacity);
+            Patch.Colors[StopIdx] := StopColor;
+          end;
+
+          MeshFiller.AddPatch(Patch);
+        end;
+      end;
+    end;
+  end;
+
+  Transform.Matrix := AGradNode.Transform;
+
+  if MeshNode.GradientUnits = guObjectBoundingBox then
+  begin
+    BboxMat.Matrix := IdentityMatrix;
+    BboxMat.Scale(ABounds.Width, ABounds.Height);
+    BboxMat.Translate(ABounds.Left, ABounds.Top);
+    TotalTransform := Transform * BboxMat * ARenderer.Transformation.Matrix;
+  end else
+    TotalTransform := Transform * ARenderer.Transformation.Matrix;
+
+  MeshFiller.TransformMatrix := TotalTransform.Matrix;
+  Result := MeshFiller;
+end;
+
+//------------------------------------------------------------------------------
+//
 //      TPaintServerRendererPattern
 //
 //------------------------------------------------------------------------------
@@ -599,6 +689,7 @@ begin
   TSvgLinearGradientNode.RegisterRenderClass(TPaintServerRendererLinearGradient);
   TSvgRadialGradientNode.RegisterRenderClass(TPaintServerRendererRadialGradient);
   TSvgConicalGradientNode.RegisterRenderClass(TPaintServerRendererConicalGradient);
+  TSvgMeshGradientNode.RegisterRenderClass(TPaintServerRendererMeshGradient);
 end;
 
 initialization

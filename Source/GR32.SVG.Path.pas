@@ -54,7 +54,8 @@ type
   TSvgPathCommand = record
     Kind: TSvgPathCommandKind;
     Closed: Boolean;
-    IsRelative: Boolean;
+    IsRelative: Boolean; // Note that coordinates are absolute even when IsRelative=True
+    ParamPairCount: Byte; // Number of coordinate pairs specified in original command (e.g. 2 vs 3 for cubic curve)
     case TSvgPathCommandKind of
       pckMoveTo:        (MoveTo:  record P: TFloatPoint; end);
       pckLineTo:        (LineTo:  record P: TFloatPoint; end);
@@ -511,6 +512,18 @@ end;
 //------------------------------------------------------------------------------
 procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath);
 var
+  PathCommands: TSvgPathCommands;
+
+  procedure SetParamPairCount(Value: byte);
+  begin
+    if (PathCommands = nil) then
+      exit;
+
+    if (PathCommands.Count > 0) then
+      PathCommands.Commands[PathCommands.Count - 1].ParamPairCount := Value;
+  end;
+
+var
   Scanner: TSvgPathScanner;
   Command, LastCommand: AnsiChar;
   Value1, Value2, Value3, Value4, Value5, Value6: Single;
@@ -525,6 +538,11 @@ begin
   Scanner.Init(APathData);
   Command := #0;
   LastCommand := #0;
+
+  if (APath is TSvgPathCommands) then
+    PathCommands := TSvgPathCommands(APath)
+  else
+    PathCommands := nil;
 
   while Scanner.HasMore do
   begin
@@ -606,31 +624,83 @@ begin
 
       'C':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
-                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
-          APath.CurveTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
+            Break;
+
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+          begin
+            Value3 := Value1;
+            Value4 := Value2;
+            Value5 := Value1;
+            Value6 := Value2;
+            APath.CurveTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+            SetParamPairCount(1);
+          end else
+          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          begin
+            Value5 := Value3;
+            Value6 := Value4;
+            APath.CurveTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+            SetParamPairCount(2);
+          end else
+          begin
+            APath.CurveTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+            SetParamPairCount(3);
+          end;
         end;
 
       'c':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
-                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
-          APath.CurveToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
+            Break;
+
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+          begin
+            Value3 := Value1;
+            Value4 := Value2;
+            Value5 := Value1;
+            Value6 := Value2;
+            APath.CurveToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+            SetParamPairCount(1);
+          end else
+          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          begin
+            Value5 := Value3;
+            Value6 := Value4;
+            APath.CurveToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+            SetParamPairCount(2);
+          end else
+          begin
+            APath.CurveToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+            SetParamPairCount(3);
+          end;
         end;
 
       'S':
         begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+            Break;
+
+          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          begin
+            Value5 := Value3;
+            Value6 := Value4;
+          end;
+
           APath.CurveTo(FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
         end;
 
       's':
         begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+            Break;
+
+          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          begin
+            Value5 := Value3;
+            Value6 := Value4;
+          end;
+
           APath.CurveToRelative(FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
         end;
 

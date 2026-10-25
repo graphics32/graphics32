@@ -377,7 +377,8 @@ type
     attrPointsAtX,
     attrPointsAtY,
     attrPointsAtZ,
-    attrLimitingConeAngle
+    attrLimitingConeAngle,
+    attrPath
   );
 
 //------------------------------------------------------------------------------
@@ -638,6 +639,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure AddStop(const AStop: TSvgGradientStop);
     procedure InheritFrom(ParentGradient: TSvgGradientNode); virtual;
+    function CanFill: boolean; virtual;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function ShouldApply(const AObjectBounds: TFloatRect): boolean; override;
 
@@ -751,6 +753,91 @@ type
   end;
 
   TSvgConicGradientNode = TSvgConicalGradientNode;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgMeshPatchNode
+//      TSvgMeshRowNode
+//      TSvgMeshGradientNode
+//
+//------------------------------------------------------------------------------
+// SVG 2 Mesh Gradient AST Nodes
+// This is mostly a proof of concept. It works for simple cases but it's
+// completely unoptimized - and Mesh Gradients were dropped from the SVG 2
+// proposal a long time ago and today only InkScape supports them.
+// As a consequence, the mesh gradient svg syntax has never been finalized so
+// this implementation will work for some test cases and fail (gracefully) for
+// others. You've been warned.
+//------------------------------------------------------------------------------
+  TSvgMeshPatchNode = class(TSvgGroupNode)
+  public type
+    TControlPoints = array[0..3, 0..3] of TFloatPoint;
+  private type
+    TStop = record
+      Commands: TSvgPathCommands;
+      Color: TSvgColor;
+      Opacity: Single;
+    end;
+  private
+    FStops: array[0..3] of TStop;
+    FCornerColors: array[0..3] of TSvgColor;
+    FCornerOpacities: array[0..3] of Single;
+    FControlPoints: TControlPoints;
+    FStopCount: integer;
+  private
+    procedure ResolveControlPoints(APath: TValuePUtf8Char);
+    function GetCornerColor(Index: integer): TSvgColor;
+    function GetCornerOpacity(Index: integer): Single;
+    function GetStopPathCommands(Index: Integer): TSvgPathCommands;
+    procedure SetCornerColor(AIndex: Integer; AColor: TSvgColor);
+    procedure SetCornerOpacity(AIndex: integer; const Value: Single);
+  protected
+    function GetIsRenderable: Boolean; override;
+    function GetElementTag: UTF8String; override;
+    function DumpNode(Indent: Integer = 0): string; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    destructor Destroy; override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); override;
+    procedure AddStop(AColor: TSvgColor; AOpacity: Single = 1.0; const APathStr: UTF8String = '');
+
+    property ControlPoints: TControlPoints read FControlPoints;
+    property CornerColors[Index: integer]: TSvgColor read GetCornerColor write SetCornerColor;
+    property CornerOpacities[Index: integer]: Single read GetCornerOpacity write SetCornerOpacity;
+    property StopColors[Index: integer]: TSvgColor read GetCornerColor write SetCornerColor;
+    property StopOpacities[Index: integer]: Single read GetCornerOpacity write SetCornerOpacity;
+    property StopPathCommands[Index: Integer]: TSvgPathCommands read GetStopPathCommands;
+  end;
+
+  TSvgMeshRowNode = class(TSvgGroupNode)
+  protected
+    function GetIsRenderable: Boolean; override;
+    function GetElementTag: UTF8String; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+  end;
+
+  TSvgMeshGradientNode = class(TSvgGradientNode)
+  private
+    FMeshType: TSvgMeshType;
+    FX: TSvgLength;
+    FY: TSvgLength;
+  protected
+    function DumpNode(Indent: Integer = 0): string; override;
+    procedure ResolveNode; override;
+  public
+    constructor Create(AParent: TSvgNode = nil); override;
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function CanFill: boolean; override;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); override;
+    procedure ResolveMesh;
+
+    property MeshType: TSvgMeshType read FMeshType write FMeshType;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
+  end;
 
 
 //------------------------------------------------------------------------------
@@ -2204,7 +2291,8 @@ type
     tagFilter, tagFegaussianblur, tagFecolormatrix, tagFeblend, tagFecomposite, tagFemerge, tagFemergenode, tagFeoffset, tagFeflood,
     tagFedropshadow, tagFemorphology, tagFecomponenttransfer, tagFefuncR, tagFefuncG, tagFefuncB, tagFefuncA, tagFeturbulence,
     tagFedisplacementmap, tagFetile, tagFeconvolvematrix, tagFeimage, tagFediffuselighting, tagFespecularlighting,
-    tagFedistantlight, tagFepointlight, tagFespotlight, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak);
+    tagFedistantlight, tagFepointlight, tagFespotlight, tagImage, tagSwitch, tagText, tagTspan, tagTextpath, tagTextarea, tagTbreak,
+    tagMeshgradient, tagMeshrow, tagMeshpatch);
 
 const
   sSvgTagKeywords: array[TSvgTagKeyword] of UTF8String = (
@@ -2213,7 +2301,8 @@ const
     'filter', 'feGaussianblur', 'feColormatrix', 'feBlend', 'feComposite', 'feMerge', 'feMergenode', 'feOffset', 'feFlood',
     'feDropShadow', 'feMorphology', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feTurbulence',
     'feDisplacementMap', 'feTile', 'feConvolveMatrix', 'feImage', 'feDiffuseLighting', 'feSpecularLighting', 'feDistantLight',
-    'fePointLight', 'feSpotLight', 'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak'
+    'fePointLight', 'feSpotLight', 'image', 'switch', 'text', 'tspan', 'textPath', 'textArea', 'tbreak',
+    'meshGradient', 'meshRow', 'meshPatch'
   );
 
 var
@@ -2226,10 +2315,10 @@ var
 //
 //------------------------------------------------------------------------------
 type
-  TSvgStopTagKeyword = (stopTagNone, stopTagOffset, stopTagStopColor, stopTagStopOpacity, stopTagStyle);
+  TSvgStopTagKeyword = (stopTagNone, stopTagOffset, stopTagStopColor, stopTagStopOpacity, stopTagStyle, stopTagPath);
 
 const
-  sSvgStopTagKeywords: array[TSvgStopTagKeyword] of UTF8String = ('', 'offset', 'stop-color', 'stop-opacity', 'style');
+  sSvgStopTagKeywords: array[TSvgStopTagKeyword] of UTF8String = ('', 'offset', 'stop-color', 'stop-opacity', 'style', 'path');
 
 var
   SvgStopTagDictionary: TSvgKeywordDictionary<TSvgStopTagKeyword>;
@@ -2381,7 +2470,8 @@ const
     'pointsAtX',
     'pointsAtY',
     'pointsAtZ',
-    'limitingConeAngle'
+    'limitingConeAngle',
+    'path'
   );
 
 var
@@ -4117,6 +4207,11 @@ begin
   inherited Destroy;
 end;
 
+function TSvgGradientNode.CanFill: boolean;
+begin
+  Result := (Stops.Count > 0);
+end;
+
 function TSvgGradientNode.Clone(AParent: TSvgNode): TSvgNode;
 var
   gradRes: TSvgGradientNode;
@@ -4636,6 +4731,810 @@ begin
       end;
   else
     inherited;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgMeshPatchNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgMeshPatchNode.Create(AParent: TSvgNode);
+var
+  i: Integer;
+begin
+  inherited Create(AParent);
+
+  for i := 0 to High(FStops) do
+  begin
+    FStops[i].Color := TSvgColor.Unset;
+    FStops[i].Opacity := 1.0;
+    FStops[i].Commands := TSvgPathCommands.Create;
+    FCornerColors[i] := TSvgColor.Create(clBlack32);
+    FCornerOpacities[i] := 1.0;
+  end;
+
+  // Default unit square patch [0..100]
+  FControlPoints[0, 0] := FloatPoint(0, 0);
+  FControlPoints[3, 0] := FloatPoint(100, 0);
+  FControlPoints[3, 3] := FloatPoint(100, 100);
+  FControlPoints[0, 3] := FloatPoint(0, 100);
+
+  ResolveControlPoints(Default(TValuePUtf8Char));
+end;
+
+destructor TSvgMeshPatchNode.Destroy;
+var
+  i: Integer;
+begin
+  for i := 0 to High(FStops) do
+    FStops[i].Commands.Free;
+  inherited Destroy;
+end;
+
+(* http://tavmjong.free.fr/SVG/MESH/Mesh.html
+
+- Each 'c' path consists of three points, using the last node of the previous
+  path as the first node of the current path.
+
+- The color is assigned to the corner at the start of the path.
+  This follows the Cairo conventions (which follows the PDF convention).
+
+- If a <meshPatch> is defined with less than the normal number of <stop>s it
+  will be as if the first missing <stop> has an offset-path that consists of a
+  line to the nominal end-point of the last missing <stop> and the other
+  missing <stop>s have offset-paths that consist of zero-length lines.
+
+- If a <stop> is missing an offset-path, it is as if the offset-path consists
+  of a zero-length line unless the <stop> is the nominal last <stop> in a
+  <messPatch> in which case it is as if the offset-path is a line to its
+  nominal end-point.
+
+- If a <stop> is missing a stop-color, it is as if the stop-color is the same
+  as the previous <stop>.
+  Note that only the first <meshPatch> in the first row defines a color on the
+  first <stop>.
+
+- Only 'c', 'C', 'l', and 'L' are allowed in "path".
+  As patches are automatically completed, no 'z' or 'Z' is needed and the
+  meaning of 'z' and 'Z' to close a path is a bit different than what is done
+  for patches.
+
+<meshGradient x="100" y="100" id="example"> <!-- x, y used for initial moveto. -->
+ <meshRow> <!-- No attributes, used only to define begin/end of row. -->
+   <meshPatch>
+     <stop path="c  25,-25  75, 25  100,0" stop-color="blue" />
+     <stop path="c  25, 25 -25, 75  0,100" stop-color="green" />
+     <stop path="c -25, 25 -75,-25 -100,0" stop-color="orange" />
+     <stop path="c -25,-25, 25,-75"        stop-color="red" /> <!-- Last point not needed (closed path). -->
+   </meshPatch>
+   <meshPatch>
+     <stop path="c  25,-25  75, 25  100,0" /> <!-- stop-color from previous patch. -->
+     <stop path="c  25, 25 -25, 75  0,100" stop-color="green" />
+     <stop path="c -25, 25 -75,-25"        stop-color="orange" /> <!-- Last point not needed (closed path). -->
+     <!-- Last path (left side) taken from right side of previous path (with points reversed). -->
+   </meshPatch>
+   ...
+ </meshRow>
+ <meshRow> <!-- New row. -->
+   <meshPatch>
+     <!-- First path (top side) taken from bottom path of patch above. -->
+     <stop path="c  25, 25 -25, 75  0,100" /> <!-- stop-color from patch above. -->
+     <stop path="c -25, 25 -75,-25 -100,0" stop-color="orange" />
+     <stop path="c -25,-25, 25,-75"        stop-color="red" /> <!-- Last point not needed (closed path). -->
+   </meshPatch>
+   <meshPatch>
+     <!-- First path (top side) taken from bottom path of patch above (with points reversed). -->
+     <stop path="c  25, 25 -25, 75  0,100" /> <!-- stop-color from patch above. -->
+     <stop path="c -25, 25 -75,-25"        stop-color="orange" /> <!-- Last point not needed (closed path). -->
+     <!-- Last path (left side) taken from right side of previous path (with points reversed). -->
+   </meshPatch>
+   ...
+ </meshRow>
+ ...
+</meshGradient>
+
+*)
+procedure TSvgMeshPatchNode.ResolveControlPoints(APath: TValuePUtf8Char);
+var
+  Cmd: Utf8Char;
+  Val: Single;
+  CurrPt, EndPt, C1, C2: TFloatPoint;
+  EdgeIdx, i, j: Integer;
+  u, v, BilinearX, BilinearY: Single;
+begin
+  APath.Trim;
+
+  EdgeIdx := 0;
+
+  if (APath.Len = 0) then
+  begin
+    FControlPoints[0, 0] := FloatPoint(0, 0);
+    FControlPoints[3, 0] := FloatPoint(100, 0);
+    FControlPoints[3, 3] := FloatPoint(100, 100);
+    FControlPoints[0, 3] := FloatPoint(0, 100);
+  end else
+  begin
+    CurrPt := FloatPoint(0, 0);
+    Cmd := #0;
+
+    while (APath.Len > 0) and (EdgeIdx < 4) do
+    begin
+      APath.Trim(sListSeparators);
+      if APath.Len = 0 then
+        Break;
+
+      if APath.Text^ in ['A'..'Z', 'a'..'z'] then
+      begin
+        Cmd := APath.Text^;
+        APath.Skip;
+        APath.Trim(sListSeparators);
+      end;
+
+      case Cmd of
+        'M', 'm':
+          begin
+            if APath.TryToFloat(Val, True) then
+            begin
+              CurrPt.X := Val;
+              APath.Trim(sListSeparators);
+              if APath.TryToFloat(Val, True) then
+                CurrPt.Y := Val;
+              FControlPoints[0, 0] := CurrPt;
+            end;
+          end;
+
+        'L', 'l':
+          begin
+            if APath.TryToFloat(Val, True) then
+            begin
+              EndPt.X := Val;
+              APath.Trim(sListSeparators);
+              if APath.TryToFloat(Val, True) then
+                EndPt.Y := Val;
+
+              C1 := FloatPoint(CurrPt.X + (EndPt.X - CurrPt.X) / 3.0, CurrPt.Y + (EndPt.Y - CurrPt.Y) / 3.0);
+              C2 := FloatPoint(CurrPt.X + 2.0 * (EndPt.X - CurrPt.X) / 3.0, CurrPt.Y + 2.0 * (EndPt.Y - CurrPt.Y) / 3.0);
+
+              case EdgeIdx of
+                0: begin FControlPoints[1, 0] := C1; FControlPoints[2, 0] := C2; FControlPoints[3, 0] := EndPt; end;
+                1: begin FControlPoints[3, 1] := C1; FControlPoints[3, 2] := C2; FControlPoints[3, 3] := EndPt; end;
+                2: begin FControlPoints[2, 3] := C1; FControlPoints[1, 3] := C2; FControlPoints[0, 3] := EndPt; end;
+                3: begin FControlPoints[0, 2] := C1; FControlPoints[0, 1] := C2; end;
+              end;
+
+              CurrPt := EndPt;
+              Inc(EdgeIdx);
+            end;
+          end;
+
+        'C', 'c':
+          begin
+            if APath.TryToFloat(Val, True) then
+            begin
+              C1.X := Val; APath.Trim(sListSeparators);
+              if APath.TryToFloat(Val, True) then C1.Y := Val; APath.Trim(sListSeparators);
+              if APath.TryToFloat(Val, True) then C2.X := Val; APath.Trim(sListSeparators);
+              if APath.TryToFloat(Val, True) then C2.Y := Val; APath.Trim(sListSeparators);
+              if APath.TryToFloat(Val, True) then EndPt.X := Val; APath.Trim(sListSeparators);
+              if APath.TryToFloat(Val, True) then EndPt.Y := Val;
+
+              case EdgeIdx of
+                0: begin FControlPoints[1, 0] := C1; FControlPoints[2, 0] := C2; FControlPoints[3, 0] := EndPt; end;
+                1: begin FControlPoints[3, 1] := C1; FControlPoints[3, 2] := C2; FControlPoints[3, 3] := EndPt; end;
+                2: begin FControlPoints[2, 3] := C1; FControlPoints[1, 3] := C2; FControlPoints[0, 3] := EndPt; end;
+                3: begin FControlPoints[0, 2] := C1; FControlPoints[0, 1] := C2; end;
+              end;
+
+              CurrPt := EndPt;
+              Inc(EdgeIdx);
+            end;
+          end;
+
+        'Z', 'z':
+          Break;
+      else
+        APath.Skip;
+      end;
+    end;
+  end;
+
+  // Boundary 1/3 and 2/3 fallback if edge commands were incomplete
+  if EdgeIdx = 0 then
+  begin
+    FControlPoints[1, 0] := FloatPoint(FControlPoints[0, 0].X + (FControlPoints[3, 0].X - FControlPoints[0, 0].X) / 3.0, FControlPoints[0, 0].Y + (FControlPoints[3, 0].Y - FControlPoints[0, 0].Y) / 3.0);
+    FControlPoints[2, 0] := FloatPoint(FControlPoints[0, 0].X + 2.0 * (FControlPoints[3, 0].X - FControlPoints[0, 0].X) / 3.0, FControlPoints[0, 0].Y + 2.0 * (FControlPoints[3, 0].Y - FControlPoints[0, 0].Y) / 3.0);
+    FControlPoints[1, 3] := FloatPoint(FControlPoints[0, 3].X + (FControlPoints[3, 3].X - FControlPoints[0, 3].X) / 3.0, FControlPoints[0, 3].Y + (FControlPoints[3, 3].Y - FControlPoints[0, 3].Y) / 3.0);
+    FControlPoints[2, 3] := FloatPoint(FControlPoints[0, 3].X + 2.0 * (FControlPoints[3, 3].X - FControlPoints[0, 3].X) / 3.0, FControlPoints[0, 3].Y + 2.0 * (FControlPoints[3, 3].Y - FControlPoints[0, 3].Y) / 3.0);
+    FControlPoints[0, 1] := FloatPoint(FControlPoints[0, 0].X + (FControlPoints[0, 3].X - FControlPoints[0, 0].X) / 3.0, FControlPoints[0, 0].Y + (FControlPoints[0, 3].Y - FControlPoints[0, 0].Y) / 3.0);
+    FControlPoints[0, 2] := FloatPoint(FControlPoints[0, 0].X + 2.0 * (FControlPoints[0, 3].X - FControlPoints[0, 0].X) / 3.0, FControlPoints[0, 0].Y + 2.0 * (FControlPoints[0, 3].Y - FControlPoints[0, 0].Y) / 3.0);
+    FControlPoints[3, 1] := FloatPoint(FControlPoints[3, 0].X + (FControlPoints[3, 3].X - FControlPoints[3, 0].X) / 3.0, FControlPoints[3, 0].Y + (FControlPoints[3, 3].Y - FControlPoints[3, 0].Y) / 3.0);
+    FControlPoints[3, 2] := FloatPoint(FControlPoints[3, 0].X + 2.0 * (FControlPoints[3, 3].X - FControlPoints[3, 0].X) / 3.0, FControlPoints[3, 0].Y + 2.0 * (FControlPoints[3, 3].Y - FControlPoints[3, 0].Y) / 3.0);
+  end;
+
+  // Interior Coons patch bilinear blending calculation
+  for i := 1 to 2 do
+  begin
+    u := i / 3.0;
+    for j := 1 to 2 do
+    begin
+      v := j / 3.0;
+      BilinearX := (1.0 - u) * (1.0 - v) * FControlPoints[0, 0].X + u * (1.0 - v) * FControlPoints[3, 0].X + u * v * FControlPoints[3, 3].X + (1.0 - u) * v * FControlPoints[0, 3].X;
+      BilinearY := (1.0 - u) * (1.0 - v) * FControlPoints[0, 0].Y + u * (1.0 - v) * FControlPoints[3, 0].Y + u * v * FControlPoints[3, 3].Y + (1.0 - u) * v * FControlPoints[0, 3].Y;
+
+      FControlPoints[i, j].X := (1.0 - u) * FControlPoints[0, j].X + u * FControlPoints[3, j].X + (1.0 - v) * FControlPoints[i, 0].X + v * FControlPoints[i, 3].X - BilinearX;
+      FControlPoints[i, j].Y := (1.0 - u) * FControlPoints[0, j].Y + u * FControlPoints[3, j].Y + (1.0 - v) * FControlPoints[i, 0].Y + v * FControlPoints[i, 3].Y - BilinearY;
+    end;
+  end;
+end;
+
+function TSvgMeshPatchNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
+function TSvgMeshPatchNode.GetCornerColor(Index: integer): TSvgColor;
+begin
+  if (Index >= 0) and (Index <= High(FCornerColors)) then
+    Result := FCornerColors[Index]
+  else
+    Result := TSvgColor.None;
+end;
+
+function TSvgMeshPatchNode.GetCornerOpacity(Index: integer): Single;
+begin
+  if (Index >= 0) and (Index <= High(FCornerOpacities)) then
+    Result := FCornerOpacities[Index]
+  else
+    Result := 1.0;
+end;
+
+function TSvgMeshPatchNode.GetElementTag: UTF8String;
+begin
+  Result := 'meshpatch';
+end;
+
+function TSvgMeshPatchNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent);
+//  if FPathStr <> '' then
+//    Result := Result + Format(' (path="%s")', [FPathStr]);
+end;
+
+function TSvgMeshPatchNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  patchRes: TSvgMeshPatchNode;
+  i, j: Integer;
+begin
+  patchRes := TSvgMeshPatchNode(inherited Clone(AParent));
+
+  patchRes.FStopCount := FStopCount;
+  for i := 0 to FStopCount - 1 do
+  begin
+    patchRes.FStops[i].Color := FStops[i].Color;
+    patchRes.FStops[i].Opacity := FStops[i].Opacity;
+    patchRes.FStops[i].Commands.Assign(FStops[i].Commands);
+  end;
+
+  for i := 0 to 3 do
+  begin
+    patchRes.FCornerColors[i] := FCornerColors[i];
+    patchRes.FCornerOpacities[i] := FCornerOpacities[i];
+  end;
+
+  for i := 0 to 3 do
+    for j := 0 to 3 do
+      patchRes.FControlPoints[i, j] := FControlPoints[i, j];
+  Result := patchRes;
+end;
+
+procedure TSvgMeshPatchNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrPath, attrD:
+      begin
+        ResolveControlPoints(AValue);
+      end;
+  else
+    inherited ParseAttribute(AKeyword, AValue);
+  end;
+end;
+
+procedure ProcessPathCommandsForMeshEdge(Commands: TSvgPathCommands; var CurrentPt: TFloatPoint;
+  out C1, C2, EndPt: TFloatPoint; DefaultDx, DefaultDy: Single; const ExpectedEndPt: PFloatPoint = nil);
+var
+  i: Integer;
+  Cmd: TSvgPathCommand;
+  HasEdge: Boolean;
+  BasePt: TFloatPoint;
+begin
+  BasePt := CurrentPt;
+  C1 := BasePt;
+  C2 := BasePt;
+  EndPt := BasePt;
+  HasEdge := False;
+
+  if (Commands <> nil) and (Commands.Count > 0) then
+  begin
+    for i := 0 to Commands.Count - 1 do
+    begin
+      Cmd := Commands.Commands[i];
+      case Cmd.Kind of
+        pckMoveTo:
+          begin
+            if Cmd.IsRelative then
+              CurrentPt := FloatPoint(BasePt.X + Cmd.MoveTo.P.X, BasePt.Y + Cmd.MoveTo.P.Y)
+            else
+              CurrentPt := Cmd.MoveTo.P;
+            BasePt := CurrentPt;
+          end;
+
+        pckLineTo:
+          begin
+            if Cmd.IsRelative then
+              EndPt := FloatPoint(BasePt.X + Cmd.LineTo.P.X, BasePt.Y + Cmd.LineTo.P.Y)
+            else
+              EndPt := Cmd.LineTo.P;
+            C1 := FloatPoint(CurrentPt.X + (EndPt.X - CurrentPt.X) / 3.0, CurrentPt.Y + (EndPt.Y - CurrentPt.Y) / 3.0);
+            C2 := FloatPoint(CurrentPt.X + 2.0 * (EndPt.X - CurrentPt.X) / 3.0, CurrentPt.Y + 2.0 * (EndPt.Y - CurrentPt.Y) / 3.0);
+            HasEdge := True;
+            Break;
+          end;
+
+        pckCurveTo:
+          begin
+            if Cmd.IsRelative then
+            begin
+              C1 := FloatPoint(BasePt.X + Cmd.CurveTo.C1.X, BasePt.Y + Cmd.CurveTo.C1.Y);
+              C2 := FloatPoint(BasePt.X + Cmd.CurveTo.C2.X, BasePt.Y + Cmd.CurveTo.C2.Y);
+              if (Cmd.ParamPairCount = 2) and (ExpectedEndPt <> nil) then
+                EndPt := ExpectedEndPt^
+              else
+                EndPt := FloatPoint(BasePt.X + Cmd.CurveTo.P.X, BasePt.Y + Cmd.CurveTo.P.Y);
+            end else
+            begin
+              C1 := Cmd.CurveTo.C1;
+              C2 := Cmd.CurveTo.C2;
+              if (Cmd.ParamPairCount = 2) and (ExpectedEndPt <> nil) then
+                EndPt := ExpectedEndPt^
+              else
+                EndPt := Cmd.CurveTo.P;
+            end;
+            HasEdge := True;
+            Break;
+          end;
+
+        pckConicTo:
+          begin
+            if Cmd.IsRelative then
+            begin
+              C1 := FloatPoint(BasePt.X + Cmd.ConicTo.P1.X, BasePt.Y + Cmd.ConicTo.P1.Y);
+              C2 := FloatPoint(BasePt.X + Cmd.ConicTo.P.X, BasePt.Y + Cmd.ConicTo.P.Y);
+              EndPt := FloatPoint(BasePt.X + Cmd.ConicTo.P.X, BasePt.Y + Cmd.ConicTo.P.Y);
+            end else
+            begin
+              C1 := Cmd.ConicTo.P1;
+              C2 := Cmd.ConicTo.P;
+              EndPt := Cmd.ConicTo.P;
+            end;
+            HasEdge := True;
+            Break;
+          end;
+
+        pckEllipticalArc:
+          begin
+            if Cmd.IsRelative then
+              EndPt := FloatPoint(BasePt.X + Cmd.Arc.EndPoint.X, BasePt.Y + Cmd.Arc.EndPoint.Y)
+            else
+              EndPt := Cmd.Arc.EndPoint;
+            C1 := FloatPoint(CurrentPt.X + (EndPt.X - CurrentPt.X) / 3.0, CurrentPt.Y + (EndPt.Y - CurrentPt.Y) / 3.0);
+            C2 := FloatPoint(CurrentPt.X + 2.0 * (EndPt.X - CurrentPt.X) / 3.0, CurrentPt.Y + 2.0 * (EndPt.Y - CurrentPt.Y) / 3.0);
+            HasEdge := True;
+            Break;
+          end;
+      end;
+    end;
+  end;
+
+  if not HasEdge then
+  begin
+    EndPt := FloatPoint(CurrentPt.X + DefaultDx, CurrentPt.Y + DefaultDy);
+    C1 := FloatPoint(CurrentPt.X + DefaultDx / 3.0, CurrentPt.Y + DefaultDy / 3.0);
+    C2 := FloatPoint(CurrentPt.X + 2.0 * DefaultDx / 3.0, CurrentPt.Y + 2.0 * DefaultDy / 3.0);
+  end;
+end;
+
+procedure TSvgMeshGradientNode.ResolveNode;
+begin
+  inherited ResolveNode;
+  ResolveMesh;
+end;
+
+procedure TSvgMeshGradientNode.ResolveMesh;
+type
+  TSvgMeshVertex = record
+    Pt: TFloatPoint;
+    Color: TSvgColor;
+    Opacity: Single;
+  end;
+var
+  RowIdx, PatchIdx, e, i, j: Integer;
+  PatchNode, NeighborPatch: TSvgMeshPatchNode;
+  RowList: TList<TSvgMeshRowNode>;
+  Patches: array of array of TSvgMeshPatchNode;
+  Grid: array of array of TSvgMeshVertex;
+  RowCount, ColCount, RowI, ColI: Integer;
+  MeshCursor, StartPt, C1, C2, EndPt: TFloatPoint;
+  u, v, BilinearX, BilinearY: Single;
+  DefaultDxs: array[0..3] of Single;
+  DefaultDys: array[0..3] of Single;
+begin
+  RowList := TList<TSvgMeshRowNode>.Create;
+  try
+    for RowIdx := 0 to Children.Count - 1 do
+      if Children[RowIdx] is TSvgMeshRowNode then
+        RowList.Add(TSvgMeshRowNode(Children[RowIdx]));
+
+    RowCount := RowList.Count;
+    if (RowCount = 0) then
+      exit;
+
+    ColCount := 0;
+    for PatchIdx := 0 to RowList[0].Children.Count - 1 do
+      if RowList[0].Children[PatchIdx] is TSvgMeshPatchNode then
+        Inc(ColCount);
+
+    if (ColCount = 0) then
+      exit;
+
+    SetLength(Patches, RowCount, ColCount);
+    for RowI := 0 to RowCount - 1 do
+    begin
+      ColI := 0;
+      for PatchIdx := 0 to RowList[RowI].Children.Count - 1 do
+        if RowList[RowI].Children[PatchIdx] is TSvgMeshPatchNode then
+        begin
+          if (ColI < ColCount) then
+          begin
+            Patches[RowI, ColI] := TSvgMeshPatchNode(RowList[RowI].Children[PatchIdx]);
+            Inc(ColI);
+          end;
+        end;
+    end;
+
+    DefaultDxs[0] :=  100.0; DefaultDys[0] :=    0.0;
+    DefaultDxs[1] :=    0.0; DefaultDys[1] :=  100.0;
+    DefaultDxs[2] := -100.0; DefaultDys[2] :=    0.0;
+    DefaultDxs[3] :=    0.0; DefaultDys[3] := -100.0;
+
+    SetLength(Grid, RowCount + 1, ColCount + 1);
+    for RowI := 0 to RowCount do
+      for ColI := 0 to ColCount do
+      begin
+        Grid[RowI, ColI].Color := TSvgColor.Create(clBlack32);
+        Grid[RowI, ColI].Opacity := 1.0;
+      end;
+
+    MeshCursor := FloatPoint(FX.ToPixels, FY.ToPixels);
+    Grid[0, 0].Pt := MeshCursor;
+
+    for RowI := 0 to RowCount - 1 do
+    begin
+      if (RowI > 0) and (Patches[RowI - 1, 0] <> nil) then
+        MeshCursor := Patches[RowI - 1, 0].FControlPoints[0, 3];
+
+      for ColI := 0 to ColCount - 1 do
+      begin
+        PatchNode := Patches[RowI, ColI];
+        if (PatchNode = nil) then
+          continue;
+
+        // Check if any stop path contains cubic curve commands
+        e := 0;
+        while (FMeshType <> smtBicubic) and (e < PatchNode.FStopCount) do
+        begin
+          if (PatchNode.StopPathCommands[e] <> nil) and (PatchNode.StopPathCommands[e].Count > 0) then
+            for i := 0 to PatchNode.StopPathCommands[e].Count - 1 do
+              if (PatchNode.StopPathCommands[e].Commands[i].Kind = pckCurveTo) then
+              begin
+                FMeshType := smtBicubic;
+                Break;
+              end;
+
+          Inc(e);
+        end;
+
+        // SVG 2 / Inkscape 2D Mesh Grid Vertex Resolution
+        // --- Edge 0 (Top) ---
+        if (RowI > 0) then
+        begin
+          NeighborPatch := Patches[RowI - 1, ColI];
+          if (NeighborPatch <> nil) then
+          begin
+            PatchNode.FControlPoints[0, 0] := NeighborPatch.FControlPoints[0, 3];
+            PatchNode.FControlPoints[1, 0] := NeighborPatch.FControlPoints[1, 3];
+            PatchNode.FControlPoints[2, 0] := NeighborPatch.FControlPoints[2, 3];
+            PatchNode.FControlPoints[3, 0] := NeighborPatch.FControlPoints[3, 3];
+          end;
+        end else
+        begin
+          StartPt := MeshCursor;
+          ProcessPathCommandsForMeshEdge(PatchNode.StopPathCommands[0], StartPt, C1, C2, EndPt, DefaultDxs[0], DefaultDys[0]);
+          PatchNode.FControlPoints[0, 0] := StartPt;
+          PatchNode.FControlPoints[1, 0] := C1;
+          PatchNode.FControlPoints[2, 0] := C2;
+          PatchNode.FControlPoints[3, 0] := EndPt;
+          MeshCursor := EndPt;
+
+          Grid[0, ColI].Pt := StartPt;
+          Grid[0, ColI + 1].Pt := EndPt;
+
+          if (PatchNode.FStopCount > 0) and PatchNode.FStops[0].Color.IsSet then
+          begin
+            if (ColI = 0) then
+            begin
+              Grid[0, 0].Color := PatchNode.FStops[0].Color;
+              Grid[0, 0].Opacity := PatchNode.FStops[0].Opacity;
+            end;
+          end;
+        end;
+
+        // --- Edge 1 (Right) ---
+        StartPt := PatchNode.FControlPoints[3, 0];
+        if (RowI = 0) then
+          e := 1
+        else
+          e := 0;
+        ProcessPathCommandsForMeshEdge(PatchNode.StopPathCommands[e], StartPt, C1, C2, EndPt, DefaultDxs[1], DefaultDys[1]);
+        PatchNode.FControlPoints[3, 1] := C1;
+        PatchNode.FControlPoints[3, 2] := C2;
+        PatchNode.FControlPoints[3, 3] := EndPt;
+
+        Grid[RowI + 1, ColI + 1].Pt := EndPt;
+
+        if (RowI = 0) and (ColI = 0) then
+        begin
+          if (e < PatchNode.FStopCount) and PatchNode.FStops[e].Color.IsSet then
+          begin
+            Grid[0, 1].Color := PatchNode.FStops[e].Color;
+            Grid[0, 1].Opacity := PatchNode.FStops[e].Opacity;
+          end else
+            Grid[0, 1].Color := Grid[0, 0].Color;
+        end else
+        begin
+          if (e < PatchNode.FStopCount) and PatchNode.FStops[e].Color.IsSet then
+          begin
+            Grid[RowI, ColI + 1].Color := PatchNode.FStops[e].Color;
+            Grid[RowI, ColI + 1].Opacity := PatchNode.FStops[e].Opacity;
+          end;
+        end;
+
+        // --- Edge 2 (Bottom) ---
+        StartPt := PatchNode.FControlPoints[3, 3];
+        if (RowI = 0) then
+          e := 2
+        else
+          e := 1;
+        if (ColI > 0) and (Patches[RowI, ColI - 1] <> nil) then
+          ProcessPathCommandsForMeshEdge(PatchNode.StopPathCommands[e], StartPt, C1, C2, EndPt, DefaultDxs[2], DefaultDys[2], @Patches[RowI, ColI - 1].FControlPoints[3, 3])
+        else
+          ProcessPathCommandsForMeshEdge(PatchNode.StopPathCommands[e], StartPt, C1, C2, EndPt, DefaultDxs[2], DefaultDys[2]);
+        PatchNode.FControlPoints[2, 3] := C1;
+        PatchNode.FControlPoints[1, 3] := C2;
+        PatchNode.FControlPoints[0, 3] := EndPt;
+
+        Grid[RowI + 1, ColI].Pt := EndPt;
+
+        if (RowI = 0) and (ColI = 0) then
+        begin
+          if (e < PatchNode.FStopCount) and PatchNode.FStops[e].Color.IsSet then
+          begin
+            Grid[1, 1].Color := PatchNode.FStops[e].Color;
+            Grid[1, 1].Opacity := PatchNode.FStops[e].Opacity;
+          end else
+            Grid[1, 1].Color := Grid[0, 1].Color;
+        end else
+        begin
+          if (e < PatchNode.FStopCount) and PatchNode.FStops[e].Color.IsSet then
+          begin
+            Grid[RowI + 1, ColI + 1].Color := PatchNode.FStops[e].Color;
+            Grid[RowI + 1, ColI + 1].Opacity := PatchNode.FStops[e].Opacity;
+          end else
+            Grid[RowI + 1, ColI + 1].Color := Grid[RowI, ColI + 1].Color;
+        end;
+
+        // --- Edge 3 (Left) ---
+        if (ColI > 0) then
+        begin
+          NeighborPatch := Patches[RowI, ColI - 1];
+          if (NeighborPatch <> nil) then
+          begin
+            PatchNode.FControlPoints[0, 0] := NeighborPatch.FControlPoints[3, 0];
+            PatchNode.FControlPoints[0, 1] := NeighborPatch.FControlPoints[3, 1];
+            PatchNode.FControlPoints[0, 2] := NeighborPatch.FControlPoints[3, 2];
+            PatchNode.FControlPoints[0, 3] := NeighborPatch.FControlPoints[3, 3];
+          end;
+        end else
+        begin
+          StartPt := PatchNode.FControlPoints[0, 3];
+          if (RowI = 0) then
+            e := 3
+          else
+            e := 2;
+          ProcessPathCommandsForMeshEdge(PatchNode.StopPathCommands[e], StartPt, C1, C2, EndPt, DefaultDxs[3], DefaultDys[3], @PatchNode.FControlPoints[0, 0]);
+          PatchNode.FControlPoints[0, 2] := C1;
+          PatchNode.FControlPoints[0, 1] := C2;
+          PatchNode.FControlPoints[0, 0] := EndPt;
+
+          if (RowI = 0) and (ColI = 0) then
+          begin
+            if (e < PatchNode.FStopCount) and PatchNode.FStops[e].Color.IsSet then
+            begin
+              Grid[1, 0].Color := PatchNode.FStops[e].Color;
+              Grid[1, 0].Opacity := PatchNode.FStops[e].Opacity;
+            end else
+              Grid[1, 0].Color := Grid[1, 1].Color;
+          end else
+          begin
+            if (e < PatchNode.FStopCount) and PatchNode.FStops[e].Color.IsSet then
+            begin
+              Grid[RowI + 1, 0].Color := PatchNode.FStops[e].Color;
+              Grid[RowI + 1, 0].Opacity := PatchNode.FStops[e].Opacity;
+            end else
+              Grid[RowI + 1, 0].Color := Grid[RowI, 0].Color;
+          end;
+        end;
+
+        // Map resolved 2D grid vertices to patch 4 corners
+        PatchNode.CornerColors[0] := Grid[RowI, ColI].Color;
+        PatchNode.CornerOpacities[0] := Grid[RowI, ColI].Opacity;
+        PatchNode.CornerColors[1] := Grid[RowI, ColI + 1].Color;
+        PatchNode.CornerOpacities[1] := Grid[RowI, ColI + 1].Opacity;
+        PatchNode.CornerColors[2] := Grid[RowI + 1, ColI + 1].Color;
+        PatchNode.CornerOpacities[2] := Grid[RowI + 1, ColI + 1].Opacity;
+        PatchNode.CornerColors[3] := Grid[RowI + 1, ColI].Color;
+        PatchNode.CornerOpacities[3] := Grid[RowI + 1, ColI].Opacity;
+
+        // --- Coons interior control points calculation ---
+        for i := 1 to 2 do
+        begin
+          u := i / 3.0;
+          for j := 1 to 2 do
+          begin
+            v := j / 3.0;
+            BilinearX := (1.0 - u) * (1.0 - v) * PatchNode.FControlPoints[0, 0].X +
+                        u * (1.0 - v) * PatchNode.FControlPoints[3, 0].X +
+                        u * v * PatchNode.FControlPoints[3, 3].X +
+                        (1.0 - u) * v * PatchNode.FControlPoints[0, 3].X;
+            BilinearY := (1.0 - u) * (1.0 - v) * PatchNode.FControlPoints[0, 0].Y +
+                        u * (1.0 - v) * PatchNode.FControlPoints[3, 0].Y +
+                        u * v * PatchNode.FControlPoints[3, 3].Y +
+                        (1.0 - u) * v * PatchNode.FControlPoints[0, 3].Y;
+
+            PatchNode.FControlPoints[i, j].X := (1.0 - u) * PatchNode.FControlPoints[0, j].X +
+                                               u * PatchNode.FControlPoints[3, j].X +
+                                               (1.0 - v) * PatchNode.FControlPoints[i, 0].X +
+                                               v * PatchNode.FControlPoints[i, 3].X - BilinearX;
+            PatchNode.FControlPoints[i, j].Y := (1.0 - u) * PatchNode.FControlPoints[0, j].Y +
+                                               u * PatchNode.FControlPoints[3, j].Y +
+                                               (1.0 - v) * PatchNode.FControlPoints[i, 0].Y +
+                                               v * PatchNode.FControlPoints[i, 3].Y - BilinearY;
+          end;
+        end;
+      end;
+    end;
+  finally
+    RowList.Free;
+  end;
+end;
+
+function TSvgMeshPatchNode.GetStopPathCommands(Index: Integer): TSvgPathCommands;
+begin
+  if (Index >= 0) and (Index < FStopCount) then
+    Result := FStops[Index].Commands
+  else
+    Result := nil;
+end;
+
+procedure TSvgMeshPatchNode.AddStop(AColor: TSvgColor; AOpacity: Single; const APathStr: UTF8String);
+begin
+  if (FStopCount > High(FStops)) then
+    exit;
+
+  FStops[FStopCount].Color := AColor;
+  FStops[FStopCount].Opacity := EnsureRange(AOpacity, 0.0, 1.0);
+  FStops[FStopCount].Commands.Clear;
+  if APathStr <> '' then
+    ParseSvgPathData(TValuePUtf8Char.FromString(APathStr), FStops[FStopCount].Commands);
+  Inc(FStopCount);
+end;
+
+procedure TSvgMeshPatchNode.SetCornerColor(AIndex: Integer; AColor: TSvgColor);
+begin
+  if (AIndex < 0) or (AIndex > High(FCornerColors)) then
+    exit;
+  FCornerColors[AIndex] := AColor;
+end;
+
+procedure TSvgMeshPatchNode.SetCornerOpacity(AIndex: integer; const Value: Single);
+begin
+  if (AIndex < 0) or (AIndex > High(FCornerOpacities)) then
+    exit;
+  FCornerOpacities[AIndex] := EnsureRange(Value, 0.0, 1.0);
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgMeshRowNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgMeshRowNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+end;
+
+function TSvgMeshRowNode.GetIsRenderable: Boolean;
+begin
+  Result := False;
+end;
+
+function TSvgMeshRowNode.GetElementTag: UTF8String;
+begin
+  Result := 'meshrow';
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgMeshGradientNode
+//
+//------------------------------------------------------------------------------
+constructor TSvgMeshGradientNode.Create(AParent: TSvgNode);
+begin
+  inherited Create(AParent);
+  FMeshType := smtBilinear;
+  FX := TSvgLength.Create(0.0, suPx);
+  FY := TSvgLength.Create(0.0, suPx);
+  FGradientUnits := guUserSpaceOnUse; // Default for SVG 2 meshGradient
+end;
+
+function TSvgMeshGradientNode.Clone(AParent: TSvgNode): TSvgNode;
+var
+  meshRes: TSvgMeshGradientNode;
+begin
+  meshRes := TSvgMeshGradientNode(inherited Clone(AParent));
+  meshRes.FMeshType := FMeshType;
+  meshRes.FX := FX;
+  meshRes.FY := FY;
+  Result := meshRes;
+end;
+
+function TSvgMeshGradientNode.DumpNode(Indent: Integer): string;
+begin
+  Result := inherited DumpNode(Indent) + Format(' (type=%s, x=%s, y=%s)',
+    [SvgMeshTypeToString(FMeshType), SvgLengthToString(FX), SvgLengthToString(FY)]);
+end;
+
+function TSvgMeshGradientNode.CanFill: boolean;
+begin
+  Result := True;
+end;
+
+procedure TSvgMeshGradientNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+begin
+  case AKeyword of
+    attrType:
+      FMeshType := ParseSvgMeshType(AValue);
+
+    attrX:
+      FX := TSvgLength.Parse(AValue);
+
+    attrY:
+      FY := TSvgLength.Parse(AValue);
+  else
+    inherited ParseAttribute(AKeyword, AValue);
   end;
 end;
 
@@ -8613,6 +9512,7 @@ var
     Value: TValuePUtf8Char;
     Points: TValuePUtf8Char;
     stopVal: TSvgGradientStop;
+    stopPathStr: UTF8String;
     Color: TSvgColor;
     TextPosNode: TSvgTextPositioningNode;
     i: Integer;
@@ -8692,6 +9592,34 @@ var
               end;
               stopVal := TSvgGradientStop.Create(stopOffset, Color, stopOpacity);
               TSvgGradientNode(node).AddStop(stopVal);
+            end else
+            if (AParent <> nil) and (AParent is TSvgMeshPatchNode) then
+            begin
+              stopOpacity := 1.0;
+              stopPathStr := '';
+              Color := TSvgColor.Unset;
+              while AParser.ParseNext = xtAttribute do
+              begin
+                if (SvgStopTagDictionary.Lookup(AParser.Name, StopTag)) then
+                  case StopTag of
+                    stopTagStopColor:
+                      Color := TSvgColor.Parse(TValuePUtf8Char(AParser.Value));
+
+                    stopTagStopOpacity:
+                      begin
+                        n := stopOpacity;
+                        if (TValuePUtf8Char(AParser.Value).TryToPercent(n)) then
+                          stopOpacity := EnsureRange(n, 0.0, 1.0);
+                      end;
+
+                    stopTagStyle:
+                      Color := ParseStopStyle(TValuePUtf8Char(AParser.Value), stopOpacity);
+
+                    stopTagPath:
+                      stopPathStr := TValuePUtf8Char(AParser.Value).ToUtf8; // TODO : Parse this
+                  end;
+              end;
+              TSvgMeshPatchNode(AParent).AddStop(Color, stopOpacity, stopPathStr);
             end else
               while AParser.ParseNext = xtAttribute do ;
 
@@ -8857,6 +9785,24 @@ var
         tagConicgradient:
           begin
             node := TSvgConicalGradientNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagMeshgradient:
+          begin
+            node := TSvgMeshGradientNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagMeshrow:
+          begin
+            node := TSvgMeshRowNode.Create(AParent);
+            ParseAttributes(node, AParser);
+          end;
+
+        tagMeshpatch:
+          begin
+            node := TSvgMeshPatchNode.Create(AParent);
             ParseAttributes(node, AParser);
           end;
 

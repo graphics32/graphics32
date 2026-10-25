@@ -230,6 +230,11 @@ type
     taHorJustify
   );
 
+  TSvgMeshType = (
+    smtBilinear,
+    smtBicubic
+  );
+
 //------------------------------------------------------------------------------
 //
 //      String to enum value
@@ -260,6 +265,8 @@ function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overl
 function ParseSvgTextAnchor(const AName: UTF8String): TSvgTextAnchor; overload; deprecated;
 function ParseSvgLengthAdjust(const AName: TValuePUtf8Char): TSvgLengthAdjust; overload;
 function ParseSvgLengthAdjust(const AName: UTF8String): TSvgLengthAdjust; overload; deprecated;
+function ParseSvgMeshType(const AName: TValuePUtf8Char): TSvgMeshType; overload;
+function ParseSvgMeshType(const AName: UTF8String): TSvgMeshType; overload;
 
 
 //------------------------------------------------------------------------------
@@ -279,6 +286,7 @@ function ChannelSelectorToString(ASelector: TSvgChannelSelector): string;
 function EdgeModeToString(AEdgeMode: TSvgEdgeMode): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 function SvgLengthAdjustToString(ALengthAdjust: TSvgLengthAdjust): string;
+function SvgMeshTypeToString(AMeshType: TSvgMeshType): string;
 
 
 //------------------------------------------------------------------------------
@@ -989,6 +997,27 @@ begin
   else
     Result := 'duplicate';
   end;
+end;
+
+function ParseSvgMeshType(const AName: UTF8String): TSvgMeshType;
+begin
+  Result := ParseSvgMeshType(TValuePUtf8Char.FromString(AName));
+end;
+
+function ParseSvgMeshType(const AName: TValuePUtf8Char): TSvgMeshType;
+begin
+  if AName.CompareText('bicubic') then
+    Result := smtBicubic
+  else
+    Result := smtBilinear;
+end;
+
+function SvgMeshTypeToString(AMeshType: TSvgMeshType): string;
+begin
+  if AMeshType = smtBicubic then
+    Result := 'bicubic'
+  else
+    Result := 'bilinear';
 end;
 
 
