@@ -36,6 +36,12 @@ interface
 
 {$include GR32.inc}
 
+// Define SQR_SLOW to avoid use of Sqr()
+// Sqr() converts Single arguments to Double regardless of {$EXCESSPRECISION OFF}
+{$IFDEF TARGET_X64}
+{$define SQR_SLOW}
+{$ENDIF}
+
 uses
   Types, Classes, SysUtils, Math,
   GR32,
@@ -4999,13 +5005,24 @@ begin
     Exit;
   end;
 
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := FRadXInv * FRadXInv;
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+  RadMax := ((FRadius.X * FRadius.X) + YDist) * SqrInvRadius;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   RadMax := (Sqr(FRadius.X) + YDist) * SqrInvRadius;
+{$ifend}
 
   for X := DstX to DstX + Length - 1 do
   begin
+{$if defined(SQR_SLOW)}
+    SqrRelRad := X - FCenter.X;
+    SqrRelRad := ((SqrRelRad * SqrRelRad) + YDist) * SqrInvRadius;
+{$else}
     SqrRelRad := (Sqr(X - FCenter.X) + YDist) * SqrInvRadius;
+{$ifend}
     // Clamp
     if SqrRelRad > RadMax then
       Index := Mask
@@ -5031,17 +5048,30 @@ var
   ReflectProc: TWrapProc;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+{$if defined(SQR_SLOW)}
+  n: TFLoat;
+{$ifend}
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := FRadXInv * FRadXInv;
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+{$ifend}
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
   ReflectProc := GetOptimalReflect(FGradientLUT.Size-1);
 
   for X := DstX to DstX + Length - 1 do
   begin
+{$if defined(SQR_SLOW)}
+    n := X - FCenter.X;
+    Index := Round(Mask * FastSqrt(((n*n) + YDist) * SqrInvRadius));
+{$else}
     Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius));
+{$ifend}
     // Reflect
     Index := ReflectProc(Index, FGradientLUT.Size-1);
     (*
@@ -5068,16 +5098,29 @@ var
   ColorLUT: PColor32Array;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+{$if defined(SQR_SLOW)}
+  n: TFLoat;
+{$ifend}
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := (FRadXInv * FRadXInv);
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+{$ifend}
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
 
   for X := DstX to DstX + Length - 1 do
   begin
+{$if defined(SQR_SLOW)}
+    n := X - FCenter.X;
+    Index := Round(Mask * FastSqrt(((n*n) + YDist) * SqrInvRadius));
+{$else}
     Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius));
+{$ifend}
     // Mirror
     Index := Mirror(Index, FGradientLUT.Size-1);
 
@@ -5099,10 +5142,18 @@ var
   WrapProc: TWrapProc;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+{$if defined(SQR_SLOW)}
+  n: TFLoat;
+{$ifend}
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := (FRadXInv * FRadXInv);
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+{$ifend}
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
   WrapProc := GetOptimalWrap(FGradientLUT.Size-1);
@@ -5110,7 +5161,12 @@ begin
   for X := DstX to DstX + Length - 1 do
   begin
     // Wrap
+{$if defined(SQR_SLOW)}
+    n  := X - FCenter.X;
+    Index := WrapProc(Round(Mask * FastSqrt(((n*n) + YDist) * SqrInvRadius)), FGradientLUT.Size-1);
+{$else}
     Index := WrapProc(Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius)), FGradientLUT.Size-1);
+{$ifend}
     // Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius)) mod FGradientLUT.Size;
 
     Color32 := ColorLUT^[Index];
@@ -5283,8 +5339,13 @@ begin
     Exit;
   end;
 
+{$if defined(SQR_SLOW)}
+  XSqr := (FRadius.X * FRadius.X);
+  YSqr := (FRadius.Y * FRadius.Y);
+{$else}
   XSqr := Sqr(FRadius.X);
   YSqr := Sqr(FRadius.Y);
+{$ifend}
 
   for X := DstX to DstX + Length - 1 do
   begin
@@ -5340,8 +5401,15 @@ begin
           if (FFocalPt.X > X2) = (RelPos.X > 0) then
             X2 := -(Qb + Qz) * Qa;
           Y2 := m * X2 + b;
+{$if defined(SQR_SLOW)}
+          Rad := RelPos.X * RelPos.X + RelPos.Y * RelPos.Y;
+          X2 := X2 - FFocalPt.X;
+          Y2 := Y2 - FFocalPt.Y;
+          Rad2 := X2*X2 + Y2*Y2;
+{$else}
           Rad := Sqr(RelPos.X) + Sqr(RelPos.Y);
           Rad2 := Sqr(X2 - FFocalPt.X) + Sqr(Y2 - FFocalPt.Y);
+{$ifend}
 
           if Rad2 = 0 then
             Index := 0
