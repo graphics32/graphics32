@@ -8329,7 +8329,12 @@ begin
 
     // In SVG, transform functions in a transform list are applied right-to-left (innermost to outermost).
     // Pre-multiplying Matrix onto Result achieves the correct right-to-left evaluation order.
+ {$if (CompilerVersion = 37.0) and defined(TARGET_X86)}
+    // Work around "F2084 Internal Error: C2802" in Delphi 13, 32-bit, release
+    Result := Mult(Result, Matrix.Matrix);
+{$else}
     TFloatMatrixHelper(Result) := Matrix * Result;
+{$ifend}
   end;
 end;
 
