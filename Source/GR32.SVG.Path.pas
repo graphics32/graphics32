@@ -54,6 +54,7 @@ type
   TSvgPathCommand = record
     Kind: TSvgPathCommandKind;
     Closed: Boolean;
+    IsRelative: Boolean;
     case TSvgPathCommandKind of
       pckMoveTo:        (MoveTo:  record P: TFloatPoint; end);
       pckLineTo:        (LineTo:  record P: TFloatPoint; end);
@@ -77,13 +78,11 @@ type
     FCount: Integer;
     FClosed: boolean;
     FNextCommand: PSvgPathCommand;
+    FCommandLevel: integer;
   protected
-    procedure DoCubicBezierCurve(const P2, P3, P4: TFloatPoint); override;
-    procedure DoQuadraticBezierCurve(const P2, P3: TFloatPoint); override;
-    procedure DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); override;
     procedure AssignTo(Dest: TPersistent); override;
     procedure BeginCommand;
-    procedure EndCommand;
+    procedure EndCommand(AIsRelative: boolean = False);
     function GetInProgress: boolean;
     property NextCommand: PSvgPathCommand read FNextCommand;
   public
@@ -91,7 +90,15 @@ type
     procedure Clear; override;
 
     procedure MoveTo(const P: TFloatPoint); override;
+    procedure MoveToRelative(const P: TFloatPoint); override;
     procedure LineTo(const P: TFloatPoint); override;
+    procedure LineToRelative(const P: TFloatPoint); override;
+    procedure CurveTo(const C1, C2, P: TFloatPoint); override;
+    procedure CurveToRelative(const C1, C2, P: TFloatPoint); override;
+    procedure ConicTo(const P1, P: TFloatPoint); override;
+    procedure ConicToRelative(const P1, P: TFloatPoint); override;
+    procedure EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); override;
+    procedure EllipticalArcRelative(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); override;
     procedure EndPath(Close: Boolean = False); override;
 
     function Flatten(ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
@@ -504,34 +511,8 @@ end;
 //------------------------------------------------------------------------------
 procedure ParseSvgPathData(const APathData: TValuePUtf8Char; APath: TCustomPath);
 var
-  LastCommand: AnsiChar;
-  CurrentPoint, LastControlPoint: TFloatPoint;
-
-  function GetCubicControl1: TFloatPoint;
-  begin
-    if (LastCommand in ['C', 'c', 'S', 's']) then
-    begin
-      Result.X := 2 * CurrentPoint.X - LastControlPoint.X;
-      Result.Y := 2 * CurrentPoint.Y - LastControlPoint.Y;
-    end else
-      Result := CurrentPoint;
-  end;
-
-  function GetQuadControl1: TFloatPoint;
-  begin
-    if (LastCommand in ['Q', 'q', 'T', 't']) then
-    begin
-      Result.X := 2 * CurrentPoint.X - LastControlPoint.X;
-      Result.Y := 2 * CurrentPoint.Y - LastControlPoint.Y;
-    end else
-      Result := CurrentPoint;
-  end;
-
-var
   Scanner: TSvgPathScanner;
-  Command: AnsiChar;
-  IsRel: Boolean;
-  StartPoint, NextPoint: TFloatPoint;
+  Command, LastCommand: AnsiChar;
   Value1, Value2, Value3, Value4, Value5, Value6: Single;
   Flag1, Flag2: Boolean;
 const
@@ -542,9 +523,6 @@ begin
     Exit;
 
   Scanner.Init(APathData);
-  CurrentPoint := FloatPoint(0, 0);
-  StartPoint := FloatPoint(0, 0);
-  LastControlPoint := FloatPoint(0, 0);
   Command := #0;
   LastCommand := #0;
 
@@ -575,207 +553,134 @@ begin
     // non-moveto command (e.g. 'L'), a new subpath is implicitly started
     // at the initial point of the previous closed subpath.
     if (LastCommand in ['Z', 'z']) and not (Command in ['M', 'm']) then
-    begin
-      APath.MoveTo(CurrentPoint);
-      StartPoint := CurrentPoint;
-    end;
-
-    IsRel := (Command in ['m', 'l', 'h', 'v', 'c', 's', 'q', 't', 'a']);
+      APath.MoveTo(APath.CurrentPoint);
 
     case Command of
-      'M', 'm':
+      'M':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
-            break;
-
-          if IsRel then
-          begin
-            CurrentPoint.X := CurrentPoint.X + Value1;
-            CurrentPoint.Y := CurrentPoint.Y + Value2;
-          end else
-          begin
-            CurrentPoint.X := Value1;
-            CurrentPoint.Y := Value2;
-          end;
-
-          StartPoint := CurrentPoint;
-          LastControlPoint := CurrentPoint;
-
-          APath.MoveTo(CurrentPoint);
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          APath.MoveTo(FloatPoint(Value1, Value2));
         end;
 
-      'L', 'l':
+      'm':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
-            break;
-
-          if IsRel then
-          begin
-            CurrentPoint.X := CurrentPoint.X + Value1;
-            CurrentPoint.Y := CurrentPoint.Y + Value2;
-          end else
-          begin
-            CurrentPoint.X := Value1;
-            CurrentPoint.Y := Value2;
-          end;
-
-          LastControlPoint := CurrentPoint;
-
-          APath.LineTo(CurrentPoint);
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          APath.MoveToRelative(FloatPoint(Value1, Value2));
         end;
 
-      'H', 'h':
+      'L':
         begin
-          if (not Scanner.ReadNumber(Value1)) then
-            Break;
-
-          if IsRel then
-            CurrentPoint.X := CurrentPoint.X + Value1
-          else
-            CurrentPoint.X := Value1;
-          LastControlPoint := CurrentPoint;
-
-          APath.LineTo(CurrentPoint);
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          APath.LineTo(FloatPoint(Value1, Value2));
         end;
 
-      'V', 'v':
+      'l':
         begin
-          if (not Scanner.ReadNumber(Value2)) then
-            Break;
-
-          if IsRel then
-            CurrentPoint.Y := CurrentPoint.Y + Value2
-          else
-            CurrentPoint.Y := Value2;
-          LastControlPoint := CurrentPoint;
-
-          APath.LineTo(CurrentPoint);
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          APath.LineToRelative(FloatPoint(Value1, Value2));
         end;
 
-      'C', 'c':
+      'H':
+        begin
+          if not Scanner.ReadNumber(Value1) then break;
+          APath.HorizontalLineTo(Value1);
+        end;
+
+      'h':
+        begin
+          if not Scanner.ReadNumber(Value1) then break;
+          APath.HorizontalLineToRelative(Value1);
+        end;
+
+      'V':
+        begin
+          if not Scanner.ReadNumber(Value2) then break;
+          APath.VerticalLineTo(Value2);
+        end;
+
+      'v':
+        begin
+          if not Scanner.ReadNumber(Value2) then break;
+          APath.VerticalLineToRelative(Value2);
+        end;
+
+      'C':
         begin
           if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
                   Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
-            Break;
-
-          if IsRel then
-          begin
-            NextPoint.X := CurrentPoint.X + Value1;
-            NextPoint.Y := CurrentPoint.Y + Value2;
-            LastControlPoint.X := CurrentPoint.X + Value3;
-            LastControlPoint.Y := CurrentPoint.Y + Value4;
-            CurrentPoint.X := CurrentPoint.X + Value5;
-            CurrentPoint.Y := CurrentPoint.Y + Value6;
-          end else
-          begin
-            NextPoint.X := Value1;
-            NextPoint.Y := Value2;
-            LastControlPoint.X := Value3;
-            LastControlPoint.Y := Value4;
-            CurrentPoint.X := Value5;
-            CurrentPoint.Y := Value6;
-          end;
-
-          APath.CurveTo(NextPoint, LastControlPoint, CurrentPoint);
+                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
+          APath.CurveTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
         end;
 
-      'S', 's':
-        begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
-            Break;
-
-          NextPoint := GetCubicControl1;
-
-          if IsRel then
-          begin
-            LastControlPoint.X := CurrentPoint.X + Value3;
-            LastControlPoint.Y := CurrentPoint.Y + Value4;
-            CurrentPoint.X := CurrentPoint.X + Value5;
-            CurrentPoint.Y := CurrentPoint.Y + Value6;
-          end else
-          begin
-            LastControlPoint.X := Value3;
-            LastControlPoint.Y := Value4;
-            CurrentPoint.X := Value5;
-            CurrentPoint.Y := Value6;
-          end;
-
-          APath.CurveTo(NextPoint, LastControlPoint, CurrentPoint);
-        end;
-
-      'Q', 'q':
+      'c':
         begin
           if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
-                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
-            Break;
-
-          if IsRel then
-          begin
-            LastControlPoint.X := CurrentPoint.X + Value1;
-            LastControlPoint.Y := CurrentPoint.Y + Value2;
-            CurrentPoint.X := CurrentPoint.X + Value3;
-            CurrentPoint.Y := CurrentPoint.Y + Value4;
-          end else
-          begin
-            LastControlPoint.X := Value1;
-            LastControlPoint.Y := Value2;
-            CurrentPoint.X := Value3;
-            CurrentPoint.Y := Value4;
-          end;
-
-          APath.ConicTo(LastControlPoint, CurrentPoint);
+                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
+                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
+          APath.CurveToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
         end;
 
-      'T', 't':
+      'S':
         begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
-            Break;
-
-          NextPoint := GetQuadControl1;
-          LastControlPoint := NextPoint;
-
-          if IsRel then
-          begin
-            CurrentPoint.X := CurrentPoint.X + Value3;
-            CurrentPoint.Y := CurrentPoint.Y + Value4;
-          end else
-          begin
-            CurrentPoint.X := Value3;
-            CurrentPoint.Y := Value4;
-          end;
-
-          APath.ConicTo(LastControlPoint, CurrentPoint);
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
+                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
+          APath.CurveTo(FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
         end;
 
-      'A', 'a':
+      's':
+        begin
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4) and
+                  Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then break;
+          APath.CurveToRelative(FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
+        end;
+
+      'Q':
+        begin
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
+                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          APath.ConicTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4));
+        end;
+
+      'q':
+        begin
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
+                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          APath.ConicToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4));
+        end;
+
+      'T':
+        begin
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          APath.ConicTo(FloatPoint(Value3, Value4));
+        end;
+
+      't':
+        begin
+          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          APath.ConicToRelative(FloatPoint(Value3, Value4));
+        end;
+
+      'A':
         begin
           if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
                   Scanner.ReadNumber(Value3) and Scanner.ReadFlag(Flag1) and
                   Scanner.ReadFlag(Flag2) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5)) then
-            Break;
+                  Scanner.ReadNumber(Value5)) then break;
+          APath.EllipticalArc(FloatPoint(Value4, Value5), Value1, Value2, DegToRad(Value3), LargeArcMap[Flag1], SweepMap[Flag2]);
+        end;
 
-          if IsRel then
-          begin
-            CurrentPoint.X := CurrentPoint.X + Value4;
-            CurrentPoint.Y := CurrentPoint.Y + Value5;
-          end else
-          begin
-            CurrentPoint.X := Value4;
-            CurrentPoint.Y := Value5;
-          end;
-
-          APath.EllipticalArc(CurrentPoint, Value1, Value2, DegToRad(Value3), LargeArcMap[Flag1], SweepMap[Flag2]);
-          LastControlPoint := CurrentPoint;
+      'a':
+        begin
+          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
+                  Scanner.ReadNumber(Value3) and Scanner.ReadFlag(Flag1) and
+                  Scanner.ReadFlag(Flag2) and Scanner.ReadNumber(Value4) and
+                  Scanner.ReadNumber(Value5)) then break;
+          APath.EllipticalArcRelative(FloatPoint(Value4, Value5), Value1, Value2, DegToRad(Value3), LargeArcMap[Flag1], SweepMap[Flag2]);
         end;
 
       'Z', 'z':
         begin
           APath.EndPath(True);
-          CurrentPoint := StartPoint;
-          LastControlPoint := CurrentPoint;
         end;
     end;
 
@@ -815,21 +720,34 @@ end;
 
 procedure TSvgPathCommands.BeginCommand;
 begin
+  Inc(FCommandLevel);
+  if (FCommandLevel > 1) then
+    exit;
+
   if (FCount >= Length(FCommands)) then
     SetLength(FCommands, Length(FCommands) * 2);
 
   FNextCommand := @FCommands[Count];
+  FNextCommand^ := Default(TSvgPathCommand);
 end;
 
-procedure TSvgPathCommands.EndCommand;
+procedure TSvgPathCommands.EndCommand(AIsRelative: boolean);
 begin
+  Dec(FCommandLevel);
+  if (FCommandLevel > 0) then
+    exit;
+
+  Assert(FCount <= High(FCommands));
+
+  FNextCommand.IsRelative := AIsRelative;
+
   Inc(FCount);
   FNextCommand := nil;
 end;
 
 procedure TSvgPathCommands.MoveTo(const P: TFloatPoint);
 begin
-  inherited MoveTo(P);
+  inherited;
 
   BeginCommand;
   begin
@@ -839,9 +757,18 @@ begin
   EndCommand;
 end;
 
+procedure TSvgPathCommands.MoveToRelative(const P: TFloatPoint);
+begin
+  BeginCommand;
+  begin
+    inherited;
+  end;
+  EndCommand(True);
+end;
+
 procedure TSvgPathCommands.LineTo(const P: TFloatPoint);
 begin
-  inherited LineTo(P);
+  inherited;
 
   BeginCommand;
   begin
@@ -851,31 +778,65 @@ begin
   EndCommand;
 end;
 
-procedure TSvgPathCommands.DoCubicBezierCurve(const P2, P3, P4: TFloatPoint);
+procedure TSvgPathCommands.LineToRelative(const P: TFloatPoint);
 begin
+  BeginCommand;
+  begin
+    inherited;
+  end;
+  EndCommand(True);
+end;
+
+procedure TSvgPathCommands.CurveTo(const C1, C2, P: TFloatPoint);
+begin
+  inherited;
+
   BeginCommand;
   begin
     NextCommand.Kind := pckCurveTo;
-    NextCommand.CurveTo.C1 := P2;
-    NextCommand.CurveTo.C2 := P3;
-    NextCommand.CurveTo.P := P4;
+    NextCommand.CurveTo.C1 := C1;
+    NextCommand.CurveTo.C2 := C2;
+    NextCommand.CurveTo.P := P;
   end;
   EndCommand;
 end;
 
-procedure TSvgPathCommands.DoQuadraticBezierCurve(const P2, P3: TFloatPoint);
+procedure TSvgPathCommands.CurveToRelative(const C1, C2, P: TFloatPoint);
 begin
   BeginCommand;
   begin
+    inherited;
+  end;
+  EndCommand(True);
+end;
+
+procedure TSvgPathCommands.ConicTo(const P1, P: TFloatPoint);
+begin
+  inherited;
+
+  BeginCommand;
+  begin
     NextCommand.Kind := pckConicTo;
-    NextCommand.ConicTo.P1 := P2;
-    NextCommand.ConicTo.P := P3;
+    NextCommand.ConicTo.P1 := P1;
+    NextCommand.ConicTo.P := P;
   end;
   EndCommand;
 end;
 
-procedure TSvgPathCommands.DoEllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);
+procedure TSvgPathCommands.ConicToRelative(const P1, P: TFloatPoint);
 begin
+  BeginCommand;
+  begin
+    inherited;
+  end;
+  EndCommand(True);
+end;
+
+procedure TSvgPathCommands.EllipticalArc(AEndPoint: TFloatPoint; ARadiusX, ARadiusY, ARotation: TFloat; APart: TArcPart;
+  ASweep: TArcDirection);
+begin
+  inherited;
+
   BeginCommand;
   begin
     NextCommand.Kind := pckEllipticalArc;
@@ -889,12 +850,21 @@ begin
   EndCommand;
 end;
 
+procedure TSvgPathCommands.EllipticalArcRelative(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection);
+begin
+  BeginCommand;
+  begin
+    inherited;
+  end;
+  EndCommand(True);
+end;
+
 procedure TSvgPathCommands.EndPath(Close: Boolean);
 begin
+  inherited;
+
   if (not InProgress) then
     exit;
-
-  inherited EndPath(Close);
 
   FClosed := Close;
 
@@ -910,7 +880,7 @@ function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArra
 var
   Scale: Single;
 
-  procedure ReplayCommands(Path: TFlattenedPath);
+  procedure ReplayCommands(Path: TCustomPath);
   var
     i: Integer;
     ArcProps: TTransformedArcProps;
