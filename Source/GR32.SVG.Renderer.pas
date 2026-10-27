@@ -156,6 +156,7 @@ type
     FAllowExternalImages: Boolean;
     FRecursionDepth: integer;
     FRenderingClipPath: integer;
+    FFilteredNode: TSvgNode;
     FTransformation: TAffineTransformation;
     FResamplers: array[TResamplerQuality] of TCustomResampler;
     FRasterizer: TRasterizer;
@@ -1400,9 +1401,20 @@ begin
     Exit;
   end;
 
-  EffectiveBlendMode := GetEffectiveMixBlendMode(APathNode);
-  NeedsOffscreen := (EffectiveBlendMode <> bmNormal) or (APathNode.ResolvedClipPath <> nil) or
-                    (APathNode.ResolvedMask <> nil) or (APathNode.Opacity < 1.0);
+  // Per W3C SVG 1.1 Specification §15.2, when rendering the SourceGraphic input for a filter,
+  // the target node's clip-path, mask, opacity, and mix-blend-mode are bypassed up front
+  // so the filter primitives operate on unclipped raw graphic content. Those presentation
+  // properties are subsequently applied to the filtered result surface in RenderFilter.
+  if (APathNode = FFilteredNode) then
+  begin
+    EffectiveBlendMode := bmNormal;
+    NeedsOffscreen := False;
+  end else
+  begin
+    EffectiveBlendMode := GetEffectiveMixBlendMode(APathNode);
+    NeedsOffscreen := (EffectiveBlendMode <> bmNormal) or (APathNode.ResolvedClipPath <> nil) or
+                      (APathNode.ResolvedMask <> nil) or (APathNode.Opacity < 1.0);
+  end;
 
   OffscreenBmp := nil;
 
@@ -1940,11 +1952,16 @@ begin
   // Per W3C SVG 1.1 §14.3.5, offscreen opacity and mask/clip compositing are
   // bypassed when rendering children inside a <clipPath>, but clip-path
   // references on group elements still apply.
-  NeedsOffscreen := (AGroupNode.ResolvedClipPath <> nil) or
-                    ((not IsRenderingClipPath) and
-                     ((AGroupNode.Opacity < 1.0) or
-                      (AGroupNode.ResolvedMask <> nil) or
-                      (AGroupNode.Isolation = isoIsolate)));
+  // Per W3C SVG 1.1 §15.2, clip-path, mask, and opacity on the filtered group itself
+  // are bypassed during SourceGraphic rasterization and applied after filter execution in RenderFilter.
+  if (AGroupNode = FFilteredNode) then
+    NeedsOffscreen := False
+  else
+    NeedsOffscreen := (AGroupNode.ResolvedClipPath <> nil) or
+                      ((not IsRenderingClipPath) and
+                       ((AGroupNode.Opacity < 1.0) or
+                        (AGroupNode.ResolvedMask <> nil) or
+                        (AGroupNode.Isolation = isoIsolate)));
 
   if not NeedsOffscreen then
   begin
@@ -2061,8 +2078,8 @@ procedure TSvgRenderer.RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgF
 var
   FilterContext: TFilterContext;
   i, Count: Integer;
-  Node: TSvgNode;
-  SourceBounds, FilterBounds, FilterRegionRect: TFloatRect;
+  Node, SavedFilteredNode: TSvgNode;
+  SourceBounds, FilterBounds, FilterRegionRect, TargetWorldBounds: TFloatRect;
   PathNode: TSvgPathNode;
   TransformedPoints, StrokePoints: TArrayOfArrayOfFloatPoint;
   StrokeWidth, BBoxWidth, BBoxHeight: Single;
@@ -2360,13 +2377,18 @@ begin
     FilterContext.SourceGraphic.Bitmap := GetOffscreenBitmap(FilterContext.ROI.Width, FilterContext.ROI.Height, True);
     try
 
-      // Render element into SourceGraphic in ROI coordinate space
+      // Render element into SourceGraphic in ROI coordinate space.
+      // Track FFilteredNode := ANode so child rendering methods bypass ANode's own
+      // clip-path, mask, opacity, and mix-blend-mode when generating SourceGraphic.
       FTransformation.Push;
+      SavedFilteredNode := FFilteredNode;
+      FFilteredNode := ANode;
       try
         FTransformation.Translate(-FilterContext.ROI.Left, -FilterContext.ROI.Top);
 
         RenderNodeContent(FilterContext.SourceGraphic.Bitmap, ANode);
       finally
+        FFilteredNode := SavedFilteredNode;
         FTransformation.Pop;
       end;
 
@@ -2596,6 +2618,44 @@ begin
       //    clipped to the filter region rect per W3C SVG 1.1 Specification §15.5.
       if (FilterContext.CurrentSurface.Bitmap <> FilterContext.SourceGraphic.Bitmap) then
       begin
+        FTransformation.Push;
+        try
+          ApplyMatrix(ANode.Transform);
+
+          // Compute TargetWorldBounds for clip path / mask resolution
+          Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+          Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+          Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+          Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+
+          TargetWorldBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+          for i := 1 to 3 do
+          begin
+            if (Pts[i].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Pts[i].X;
+            if (Pts[i].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Pts[i].X;
+            if (Pts[i].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Pts[i].Y;
+            if (Pts[i].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Pts[i].Y;
+          end;
+
+          FTransformation.Translate(-FilterContext.ROI.Left, -FilterContext.ROI.Top);
+
+          // Per W3C SVG 1.1 §15.2 ("Filter Effects Overview"):
+          // "Note that 'clip-path', 'mask' and 'opacity' apply to the target element AFTER 'filter' is applied."
+          // Apply target element clip-path, mask, and opacity directly onto the filtered result surface
+          // before compositing onto the target canvas.
+          if (ANode.ResolvedClipPath <> nil) then
+            ApplyClipPathNode(FilterContext.CurrentSurface.Bitmap, ANode.ResolvedClipPath, TargetWorldBounds, FilterContext.ROI, False);
+
+          if (ANode.ResolvedMask <> nil) then
+            ApplyMaskNode(FilterContext.CurrentSurface.Bitmap, ANode.ResolvedMask, TargetWorldBounds, FilterContext.ROI);
+
+          if (ANode.Opacity < 1.0) then
+            ApplyOpacity(FilterContext.CurrentSurface.Bitmap, ANode.Opacity);
+
+        finally
+          FTransformation.Pop;
+        end;
+
         SaveTargetClipRect := ATarget.ClipRect;
         try
 
@@ -2603,7 +2663,7 @@ begin
           begin
             ATarget.ClipRect := MakeRect(FilterRegionRect, rrOutside);
 
-            BlendOffscreenSurface(ATarget, FilterContext.CurrentSurface.Bitmap, bmNormal,
+            BlendOffscreenSurface(ATarget, FilterContext.CurrentSurface.Bitmap, ANode.MixBlendMode,
               FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left,
               FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Top);
           end else
@@ -3832,8 +3892,12 @@ begin
     // Mask, Opacity < 1, or Non-normal blend mode.
     // Per W3C SVG 1.1 §14.3.5, offscreen opacity/mask/clip surface allocation
     // is bypassed inside a <clipPath>.
-    NeedsOffscreen := (not IsRenderingClipPath) and (not (ANode is TSvgCustomGroupNode)) and
-      ((EffectiveBlendMode <> bmNormal) or (ANode.ResolvedClipPath <> nil) or (ANode.ResolvedMask <> nil) or (ANode.Opacity < 1.0));
+    // Per W3C SVG 1.1 §15.2, bypass offscreen surface creation for the node being filtered when generating SourceGraphic
+    if (ANode = FFilteredNode) then
+      NeedsOffscreen := False
+    else
+      NeedsOffscreen := (not IsRenderingClipPath) and (not (ANode is TSvgCustomGroupNode)) and
+        ((EffectiveBlendMode <> bmNormal) or (ANode.ResolvedClipPath <> nil) or (ANode.ResolvedMask <> nil) or (ANode.Opacity < 1.0));
 
     // Polygon nodes (TSvgPathNode) handle their own ROI calculation after stroking inside RenderPathNode
     if NeedsOffscreen and (ATarget <> nil) and (not (ANode is TSvgPathNode)) then

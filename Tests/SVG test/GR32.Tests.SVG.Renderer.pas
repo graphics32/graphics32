@@ -67,6 +67,7 @@ type
     procedure TestMixBlendModeAndIsolationRendering;
     procedure TestSymbolRendering;
     procedure TestFilterRendering;
+    procedure TestFilterWithClipPath;
     procedure TestFilterBackgroundImage;
     procedure TestFilterFillAndStrokePaint;
     procedure TestNullAndUnresolvedFilterRendering;
@@ -3416,6 +3417,51 @@ begin
 
     CheckEquals(clBlue32, pCenter, 'Original rect position should be painted blue');
     CheckEquals(clBlue32, pOffset, 'Offset merged rect position should also be painted blue');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestFilterWithClipPath;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pOutside, pStarTip: TColor32;
+begin
+  // Test element with both filter and clip-path.
+  // Per W3C SVG 1.1 §15.2, clip-path applies to the element AFTER filter processing.
+  xml := '<svg id="svg1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+         '  <filter id="filter1">' +
+         '    <feGaussianBlur stdDeviation="4"/>' +
+         '  </filter>' +
+         '  <clipPath id="clip1">' +
+         '    <path id="path1" d="M 100 15 l 50 160 l -130 -100 l 160 0 l -130 100 z"/>' +
+         '  </clipPath>' +
+         '  <rect id="rect1" x="40" y="40" width="120" height="120" fill="seagreen" ' +
+         '        clip-path="url(#clip1)" filter="url(#filter1)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Pixels strictly outside the clip path star shape must remain white (clipped)
+    pOutside := bmp.Pixel[10, 10];
+    CheckEquals(clWhite32, pOutside, 'Pixel outside clip-path star shape should be white');
+
+    // Pixels inside the star tip outside rect x=40..160, y=40..160 (e.g. at (100, 25))
+    // must contain blurred seagreen (non-white)
+    pStarTip := bmp.Pixel[100, 25];
+    Check(pStarTip <> clWhite32, 'Star tip inside clip-path should show blurred seagreen content');
   finally
     renderer.Free;
     bmp.Free;
