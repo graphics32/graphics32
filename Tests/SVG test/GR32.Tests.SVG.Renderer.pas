@@ -122,6 +122,7 @@ type
     procedure TestTextPathRepeatedRenderNoShift;
     procedure TestShapeFlatteningAtLargeCanvasScale;
     procedure TestClipPathOpacityIgnored;
+    procedure TestClipPathChildFillNone;
     procedure TestFeDiffuseLightingAndSpecularLighting;
     procedure TestW3CFiltersLight03;
   end;
@@ -1276,6 +1277,46 @@ begin
     Check(textNode <> nil, 'textNode t1 should exist');
     CheckEquals('<A & B>', textNode.TextContent, 'Escaped text content should be unescaped during XML parsing');
   finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestClipPathChildFillNone;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  bmp: TBitmap32;
+  renderer: TSvgRenderer;
+begin
+  // Test W3C SVG 1.1 testcase masking-intro-01-f.svg
+  // Shapes inside <clipPath> with fill="none" must still contribute shape fill geometry to the clip path per §14.3.5
+  xml := '<svg viewBox="0 0 480 360" width="480" height="360">' +
+         '  <defs>' +
+         '    <clipPath id="one" clipPathUnits="objectBoundingBox">' +
+         '      <circle cx="0.3" cy="0.5" r="0.2" stroke-width="0.15" fill="none" stroke="red"/>' +
+         '      <circle cx="0.7" cy="0.5" r="0.2" stroke-width="0.15" fill="none" stroke="none"/>' +
+         '    </clipPath>' +
+         '  </defs>' +
+         '  <rect x="150" y="0" width="200" height="200" fill="darkblue" clip-path="url(#one)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(480, 360);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Left circle center at x=150+0.3*200 = 210, y=0+0.5*200 = 100 should be painted darkblue
+    CheckEquals(clDarkBlue32, bmp.Pixel[210, 100], 'Left circle inside clip-path with fill="none" should render darkblue');
+
+    // Right circle center at x=150+0.7*200 = 290, y=0+0.5*200 = 100 should be painted darkblue
+    CheckEquals(clDarkBlue32, bmp.Pixel[290, 100], 'Right circle inside clip-path with fill="none" should render darkblue');
+  finally
+    renderer.Free;
+    bmp.Free;
     docNode.Free;
   end;
 end;

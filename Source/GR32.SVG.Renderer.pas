@@ -1372,11 +1372,12 @@ begin
     // are ignored, and shape fill geometry is rendered at 100% alpha (clWhite32) into
     // the clip mask surface to prevent child opacity from dimming clipped content.
 
+    // Per W3C SVG 1.1 Specification §14.3.5 ("Clipping paths"):
+    // "The 'fill' and 'stroke' properties on children of a 'clipPath' element are ignored.
+    // Shape fill geometry is used as the clipping path, regardless of whether 'fill' is
+    // specified or set to 'none'."
     FillColor := TSvgColor.Create(clWhite32);
-    if (APathNode.Fill.Color.IsSet) and (not APathNode.Fill.Color.IsVisible) then
-      HasFill := False
-    else
-      HasFill := True;
+    HasFill := True;
 
     if HasFill then
     begin
