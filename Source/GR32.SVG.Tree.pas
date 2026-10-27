@@ -442,6 +442,8 @@ type
     function GetViewportRect: TFloatRect; // Viewport of document node or null. Will likely be removed as we more likely need the render-time viewport
     // GetObjectBoundingBox: Calculates the tight axis-aligned bounding box of the node in local untransformed coordinates.
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; overload; virtual;
+    // GetVisualBoundingBox: Calculates visual bounding box including filter region expansions for offscreen surface allocation.
+    function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; virtual;
 {$if defined(UNIT_TEST)}
     function GetObjectBoundingBox: TFloatRect; overload;
 {$ifend}
@@ -2782,6 +2784,43 @@ begin
   Result := FloatRect(0, 0, 0, 0);
 end;
 
+function TSvgNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  BBoxWidth, BBoxHeight: Single;
+begin
+  // Calculates the visual bounding box of the node in local untransformed coordinates.
+  // Unlike GetObjectBoundingBox (which returns raw fill/stroke geometry bounds),
+  // GetVisualBoundingBox expands the node's bounding box to account for its filter region
+  // (per W3C SVG 1.1 §15.5) so that group containers allocate sufficiently sized offscreen surfaces.
+  Result := GetObjectBoundingBox(AViewport);
+
+  if (ResolvedFilter = nil) then
+    exit;
+
+  if (Result.IsEmpty) then
+    Result := AViewport;
+
+  BBoxWidth := Result.Width;
+  BBoxHeight := Result.Height;
+  if BBoxWidth <= 0 then BBoxWidth := 1.0;
+  if BBoxHeight <= 0 then BBoxHeight := 1.0;
+
+  // Evaluates filter region boundaries based on filterUnits (objectBoundingBox or userSpaceOnUse)
+  if (ResolvedFilter.FilterUnits = guObjectBoundingBox) then
+  begin
+    Result.Left := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.X, 1.0) * BBoxWidth;
+    Result.Top := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Y, 1.0) * BBoxHeight;
+    Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, 1.0) * BBoxWidth;
+    Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, 1.0) * BBoxHeight;
+  end else
+  begin
+    Result.Left := ResolvedFilter.GetSizePx(ResolvedFilter.X, AViewport.Width);
+    Result.Top := ResolvedFilter.GetSizePx(ResolvedFilter.Y, AViewport.Height);
+    Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, AViewport.Width);
+    Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, AViewport.Height);
+  end;
+end;
+
 {$if defined(UNIT_TEST)}
 function TSvgNode.GetObjectBoundingBox: TFloatRect;
 begin
@@ -3656,7 +3695,7 @@ begin
     if (not Child.IsRenderable) or (Child.IsDisplayNone) then
       Continue;
 
-    ChildBox := Child.GetObjectBoundingBox(AViewport);
+    ChildBox := Child.GetVisualBoundingBox(AViewport);
 
     if (ChildBox.Right <= ChildBox.Left) and (ChildBox.Bottom <= ChildBox.Top) then
       continue;

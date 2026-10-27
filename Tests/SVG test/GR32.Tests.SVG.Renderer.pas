@@ -68,6 +68,7 @@ type
     procedure TestSymbolRendering;
     procedure TestFilterRendering;
     procedure TestFilterWithClipPath;
+    procedure TestGroupMaskFilterCombination;
     procedure TestFilterBackgroundImage;
     procedure TestFilterFillAndStrokePaint;
     procedure TestNullAndUnresolvedFilterRendering;
@@ -3462,6 +3463,50 @@ begin
     // must contain blurred seagreen (non-white)
     pStarTip := bmp.Pixel[100, 25];
     Check(pStarTip <> clWhite32, 'Star tip inside clip-path should show blurred seagreen content');
+  finally
+    renderer.Free;
+    bmp.Free;
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestGroupMaskFilterCombination;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+  pxInsideRect3: TColor32;
+begin
+  // Test parent group mask with child transformed filter node (feFlood).
+  // Verifies that group offscreen surface ROI includes child filter region expansion
+  // so the flood fill reaches y=104 inside mask (y=40..160) without top clipping.
+  xml := '<svg id="svg1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+         '  <mask id="mask1" maskUnits="userSpaceOnUse">' +
+         '    <rect id="rect1" x="40" y="40" width="120" height="120" fill="white"/>' +
+         '  </mask>' +
+         '  <filter id="filter1">' +
+         '    <feFlood flood-color="seagreen"/>' +
+         '  </filter>' +
+         '  <g id="g1" mask="url(#mask1)">' +
+         '    <rect id="rect2" x="20" y="20" width="160" height="160" fill="green" ' +
+         '          filter="url(#filter1)" transform="translate(0 100)"/>' +
+         '  </g>' +
+         '  <rect id="rect3" x="40" y="104" width="120" height="56" fill="none" stroke="black"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  bmp := TBitmap32.Create;
+  renderer := TSvgRenderer.Create(bmp);
+  try
+    bmp.SetSize(200, 200);
+    bmp.Clear(clWhite32);
+    renderer.RenderDocument(docNode);
+
+    // Pixel at (100, 110) inside rect3 (y=104..160) and mask1 (y=40..160) must be seagreen
+    pxInsideRect3 := bmp.Pixel[100, 110];
+    Check(GreenComponent(pxInsideRect3) > 100, 'Top region inside rect3 (100, 110) must be filled with seagreen');
   finally
     renderer.Free;
     bmp.Free;

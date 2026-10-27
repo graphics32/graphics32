@@ -1970,7 +1970,7 @@ begin
   end;
 
   // Calculate group bounding box in world space for objectBoundingBox units and ROI determination
-  GroupBounds := AGroupNode.GetObjectBoundingBox(FViewportRect);
+  GroupBounds := AGroupNode.GetVisualBoundingBox(FViewportRect);
   if (GroupBounds.Right <= GroupBounds.Left) or (GroupBounds.Bottom <= GroupBounds.Top) then
   begin
     // Fallback for empty or degenerate group bounding boxes;
@@ -3907,7 +3907,7 @@ begin
         ApplyMatrix(ANode.Transform);
 
         // Calculate object bounding box in world space
-        NodeBounds := ANode.GetObjectBoundingBox(FViewportRect);
+        NodeBounds := ANode.GetVisualBoundingBox(FViewportRect);
         if (NodeBounds.Right <= NodeBounds.Left) or (NodeBounds.Bottom <= NodeBounds.Top) then
         begin
           // Fallback for empty or degenerate group bounding boxes;
