@@ -38,6 +38,136 @@ uses
 
 //------------------------------------------------------------------------------
 //
+//      TGlyphMetrics32
+//
+//------------------------------------------------------------------------------
+// Glyph metrics - of a single glyph
+//------------------------------------------------------------------------------
+//
+//
+//                 |<------ Width ---->|       |<----- Width ---->|
+//                 .                   .       .                  .
+//                 .                   .       .                  .
+//                 .  ffffffffffffffff .       .                  .
+//                 . f::::::::::::::::f        .                  .
+//                  f::::::::::::::::::f       .                  .
+//                  f::::::fffffff:::::f       .                  .
+//                  f:::::f       ffffff       .  ggggggggg   ggggg.....-
+//                  f:::::f            .       . g:::::::::ggg::::g     ^
+//                 f:::::::ffffff      .        g:::::::::::::::::g     |
+//                 f::::::::::::f      .       g::::::ggggg::::::gg     |
+//                 f::::::::::::f      .       g:::::g     g:::::g      |
+//                 f:::::::ffffff      .       g:::::g     g:::::g      |
+//                  f:::::f            .       g:::::g     g:::::g      |
+//                  f:::::f            .       g::::::g    g:::::g      |
+//                 f:::::::f           .       g:::::::ggggg:::::g      |
+//                 f:::::::f           .        g::::::::::::::::g    Height
+//                 f:::::::f           .         gg::::::::::::::g      |
+//    Origin-->*   fffffffff           .   *       gggggggg::::::g      |
+//             .   .                   .   .               g:::::g      |
+//             .   .                   .   .   gggggg      g:::::g      |
+//             |<->|                   |<->|   g:::::gg   gg:::::g      |
+//             . |                       | .    g::::::ggg:::::::g      |
+//             . OffsetX/LSB           RSB .     gg:::::::::::::g       |
+//             .                           .       ggg::::::ggg         v
+//             |<------- AdvanceX -------->|          gggggg ...........-
+//
+//
+//
+//
+//
+//------------------------------------------------------------------------------
+type
+  TGlyphMetrics32 = record
+  private
+    function GetLeftSideBearing: Single; {$ifdef UseInlining}inline;{$endif}
+    function GetRightSideBearing: Single; {$ifdef UseInlining}inline;{$endif}
+
+  public
+    Valid: boolean;
+    OffsetX: Single;            // X-offset from origin to visible start of glyph
+    OffsetY: Single;            // Y-offset from origin to visible start of glyph
+    Width: Single;              // Visible width of glyph
+    Height: Single;             // Visible height of glyph
+    AdvanceX: Single;           // X-offset from origin to origin of next glyph
+    AdvanceY: Single;           // Y-offset from origin to origin of next glyph
+
+  public
+
+    // Left Side Bearing: Distance from origin to visible start of glyph. Same as OffsetX
+    property LeftSideBearing: Single read GetLeftSideBearing;
+
+    // Right Side Bearing: Distance from visible end of glyph to origin+AdvanceX
+    property RightSideBearing: Single read GetRightSideBearing;
+
+  end;
+
+  TGlyphStringMetrics32 = TArray<TGlyphMetrics32>;
+
+
+
+//------------------------------------------------------------------------------
+//
+//      TFontFaceMetrics32
+//
+//------------------------------------------------------------------------------
+// Font face metrics
+//------------------------------------------------------------------------------
+//
+//
+//           ..-........................................................-....
+//             ^                                                        ^
+//             |      ffffffffffffffff                                  |
+//             |     f::::::::::::::::f                                 |
+//             |    f::::::::::::::::::f                                |
+//             |    f::::::fffffff:::::f                                |
+//             |    f:::::f       ffffff          ggggggggg   ggggg     |
+//             |    f:::::f                      g:::::::::ggg::::g     |
+//    Ascent---+   f:::::::ffffff               g:::::::::::::::::g     |
+//             |   f::::::::::::f              g::::::ggggg::::::gg     |
+//             |   f::::::::::::f              g:::::g     g:::::g      |
+//             |   f:::::::ffffff              g:::::g     g:::::g      |
+//             |    f:::::f                    g:::::g     g:::::g      |
+//             |    f:::::f                    g::::::g    g:::::g      |
+//             |   f:::::::f                   g:::::::ggggg:::::g      |
+//             |   f:::::::f                    g::::::::::::::::g    Height
+//             |   f:::::::f                     gg::::::::::::::g      |
+//  Baseline-->*.. fffffffff ..................... gggggggg::::::g .....|....
+//             |                                           g:::::g      |
+//             |                               gggggg      g:::::g      |
+//   Descent---+                               g:::::gg   gg:::::g      |
+//  (negative) |                                g::::::ggg:::::::g      |
+//             |                                 gg:::::::::::::g       |
+//             v                                   ggg::::::ggg         v
+//           ..-..................................... gggggg ...........-....
+//             |
+//  Line gap---+
+//             |
+//             v
+//           ..-.............................................................
+//
+//
+//------------------------------------------------------------------------------
+type
+  TFontFaceMetrics32 = record
+  private
+    function GetHeight: Single; {$ifdef UseInlining}inline;{$endif}
+
+  public
+    Valid: boolean;
+    Ascent: Single;
+    Descent: Single;
+    LineGap: Single;
+    EMSize: integer;
+    EMSpaceWidth: Single;
+
+  public
+    property Height: Single read GetHeight;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      Text layout bit flags
 //
 //------------------------------------------------------------------------------
@@ -272,6 +402,31 @@ function LayoutToTextFlags(const ALayout: TTextLayout): Cardinal;
 
 implementation
 
+
+//------------------------------------------------------------------------------
+//
+//      TGlyphMetrics32
+//
+//------------------------------------------------------------------------------
+function TGlyphMetrics32.GetLeftSideBearing: Single;
+begin
+  Result := OffsetX;
+end;
+
+function TGlyphMetrics32.GetRightSideBearing: Single;
+begin
+  Result := AdvanceX - OffsetX - Width;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TFontFaceMetrics32
+//
+//------------------------------------------------------------------------------
+function TFontFaceMetrics32.GetHeight: Single;
+begin
+  Result := Ascent - Descent; // Note: "-Descent" because Descent is negative
+end;
 
 //------------------------------------------------------------------------------
 //

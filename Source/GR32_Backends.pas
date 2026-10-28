@@ -98,6 +98,8 @@ type
     procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; const Layout: TTextLayout); overload;
     procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
+    function GetFontFaceMetrics(const ATextLayout: TTextLayout; var AFontFaceMetrics: TFontFaceMetrics32): boolean;
+    function GetGlyphMetrics(const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
   end;
 
   ICanvasSupport = interface(IUnknown)

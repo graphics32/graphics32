@@ -280,6 +280,9 @@ type
 
     class function MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TFloatRect; overload; static;
     class function MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect; overload; static;
+
+    class function GetFontFaceMetrics(AFont: HFont; const ATextLayout: TTextLayout; var AFontFaceMetrics: TFontFaceMetrics32): boolean; static;
+    class function GetGlyphMetrics(AFont: HFont; const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean; static;
   end;
 
 
@@ -380,6 +383,39 @@ begin
   TextFlagsToLayout(AFlags, TextLayout);
 
   TextToPath(AFont, APath, ARect, AText, TextLayout);
+end;
+
+//------------------------------------------------------------------------------
+
+class function TextToolsWin.GetFontFaceMetrics(AFont: HFont; const ATextLayout: TTextLayout;
+  var AFontFaceMetrics: TFontFaceMetrics32): boolean;
+var
+  FontFace: IFontFace32;
+begin
+  FontFace := TFontFace32.Create(AFont);
+
+  Result := FontFace.GetFontFaceMetrics(ATextLayout, AFontFaceMetrics);
+end;
+
+//------------------------------------------------------------------------------
+
+class function TextToolsWin.GetGlyphMetrics(AFont: HFont; const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
+var
+  FontFace: IFontFace32;
+  i: integer;
+begin
+  Result := False;
+
+  FontFace := TFontFace32.Create(AFont);
+
+  SetLength(GlyphMetrics, Length(Text));
+  for i := 1 to Length(Text) do
+  begin
+    if (FontFace.GetGlyphMetrics(Ord(Text[i]), GlyphMetrics[i-1])) then
+      Result := Result or GlyphMetrics[i-1].Valid
+    else
+      GlyphMetrics[i-1].Valid := False;
+  end;
 end;
 
 //------------------------------------------------------------------------------

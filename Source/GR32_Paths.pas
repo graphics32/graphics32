@@ -340,10 +340,9 @@ type
 // - Rasterization via a polygon rasterizer.
 // - Brush collection.
 // - Vectorized text output via the bitmap's backend.
-// Note that, in theory, a TBitmap32 is required for text output, since only
-// TBitmap32 surfaces the Font property. In practice though, a TCustomBitmap32
-// is perfectly able to handle text output since it delegates the vectorization
-// task to the backend.
+// Note that a bitmap with a backend that implements the font support interfaces
+// is required for text output. Attempting to use the text functions on a bitmap
+// that doesn't support these will raise an exception.
 //------------------------------------------------------------------------------
 type
   TCustomCanvas32 = class(TCustomCanvas)
@@ -373,6 +372,9 @@ type
     procedure RenderText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
 
+    function GetFontFaceMetrics(const Layout: TTextLayout; var FontFaceMetrics: TFontFaceMetrics32): boolean;
+    function GetGlyphMetrics(const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
+
     property Bitmap: TCustomBitmap32 read FBitmap;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
     property RendererClassName: string read GetRendererClassName write SetRendererClassName;
@@ -389,7 +391,6 @@ type
 // Introduces:
 // - Rasterization via a polygon rasterizer.
 // - Brush collection.
-// - Vectorized text output via the bitmap's backend.
 //------------------------------------------------------------------------------
 type
   TCanvas32 = class(TCustomCanvas32)
@@ -1790,6 +1791,16 @@ begin
   end;
 end;
 
+function TCustomCanvas32.GetFontFaceMetrics(const Layout: TTextLayout; var FontFaceMetrics: TFontFaceMetrics32): boolean;
+var
+  TextToPath2: ITextToPathSupport2;
+begin
+  if (Supports(Bitmap.Backend, ITextToPathSupport2, TextToPath2)) then
+    Result := TextToPath2.GetFontFaceMetrics(Layout, FontFaceMetrics)
+  else
+    raise Exception.Create(RCStrInappropriateBackend);
+end;
+
 class function TCustomCanvas32.GetPolygonRendererClass: TPolygonRenderer32Class;
 begin
   Result := DefaultPolygonRendererClass;
@@ -1798,6 +1809,16 @@ end;
 function TCustomCanvas32.GetRendererClassName: string;
 begin
   Result := FRenderer.ClassName;
+end;
+
+function TCustomCanvas32.GetGlyphMetrics(const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
+var
+  TextToPath2: ITextToPathSupport2;
+begin
+  if (Supports(Bitmap.Backend, ITextToPathSupport2, TextToPath2)) then
+    Result := TextToPath2.GetGlyphMetrics(Text, GlyphMetrics)
+  else
+    raise Exception.Create(RCStrInappropriateBackend);
 end;
 
 function TCustomCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect;
