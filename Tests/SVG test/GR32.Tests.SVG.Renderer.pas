@@ -90,6 +90,7 @@ type
     procedure TestTextAreaRendering;
     procedure TestTextRotationRendering;
     procedure TestTextPathRendering;
+    procedure TestTextPathTextLengthRendering;
     procedure TestTextOpacityRendering;
     procedure TestEscapedTextRendering;
     procedure TestUserTransformTextSnippet;
@@ -1174,6 +1175,55 @@ begin
         Check(RedComponent(pxPathOpacity) > 50, 'TextPath with opacity="0.5" on white should not be solid black');
         Check(RedComponent(pxPathOpacity) < 200, 'TextPath with opacity="0.5" on white should not be pure white');
 
+      finally
+        renderer.Free;
+      end;
+    finally
+      docNode.Free;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestTextPathTextLengthRendering;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  nonWhiteCount, x, y: Integer;
+begin
+  bmp := TBitmap32.Create;
+  try
+    bmp.SetSize(300, 200);
+    bmp.Clear(clWhite32);
+
+    xml := '<svg width="300" height="200">' +
+           '  <defs>' +
+           '    <path id="line1" d="M 10 50 L 290 50"/>' +
+           '    <path id="line2" d="M 10 150 L 290 150"/>' +
+           '  </defs>' +
+           '  <text font-size="20px" fill="black">' +
+           '    <textPath href="#line1" textLength="250px" lengthAdjust="spacing">TextPath Spacing</textPath>' +
+           '    <textPath href="#line2" textLength="250px" lengthAdjust="spacingAndGlyphs">TextPath Glyphs</textPath>' +
+           '  </text>' +
+           '</svg>';
+
+    docNode := ParseSvgXml(xml);
+    Check(docNode <> nil, 'TextPath textLength docNode should not be nil');
+    try
+      renderer := TSvgRenderer.Create;
+      try
+        renderer.RenderNode(bmp, docNode);
+
+        nonWhiteCount := 0;
+        for y := 0 to bmp.Height - 1 do
+          for x := 0 to bmp.Width - 1 do
+            if bmp.Pixel[x, y] <> clWhite32 then
+              Inc(nonWhiteCount);
+
+        Check(nonWhiteCount > 50, Format('TextPath with textLength should render glyphs (found %d non-white pixels)', [nonWhiteCount]));
       finally
         renderer.Free;
       end;

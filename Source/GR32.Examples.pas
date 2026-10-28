@@ -53,6 +53,9 @@ implementation
 
 uses
   SysUtils,
+{$ifndef FPC}
+  IOUtils,
+{$endif}
   GR32.Platform;
 
 var

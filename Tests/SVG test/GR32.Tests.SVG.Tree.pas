@@ -703,14 +703,15 @@ procedure TTestSvgTree.TestTextPathParsingAndResolution;
 var
   xml: UTF8String;
   docNode: TSvgDocumentNode;
-  textPathNode: TSvgTextPathNode;
+  textPathNode, textPathNode2: TSvgTextPathNode;
 begin
   xml := '<svg width="200" height="100">' +
          '  <defs>' +
          '    <path id="path1" d="M 10 50 Q 50 10 90 50"/>' +
          '  </defs>' +
          '  <text>' +
-         '    <textPath id="tp1" href="#path1" startOffset="10px">Text on path</textPath>' +
+         '    <textPath id="tp1" href="#path1" startOffset="10px" textLength="150px" lengthAdjust="spacingAndGlyphs">Text on path</textPath>' +
+         '    <textPath id="tp2" href="#path1" textLength="80px" lengthAdjust="spacing">Text 2</textPath>' +
          '  </text>' +
          '</svg>';
 
@@ -721,9 +722,18 @@ begin
     Check(textPathNode <> nil, 'textPathNode tp1 should exist');
     CheckEquals('#path1', textPathNode.Href);
     CheckEquals(10.0, textPathNode.StartOffset.Value, 1E-4);
+    Check(textPathNode.HasTextLength, 'tp1 should have textLength');
+    CheckEquals(150.0, textPathNode.TextLength.Value, 1E-4);
+    Check(textPathNode.LengthAdjust = laSpacingAndGlyphs, 'tp1 lengthAdjust should be spacingAndGlyphs');
     CheckEquals('Text on path', textPathNode.TextContent);
     Check(textPathNode.ResolvedPathNode <> nil, 'ResolvedPathNode should be resolved');
     CheckEquals('path1', textPathNode.ResolvedPathNode.ID);
+
+    textPathNode2 := TSvgTextPathNode(docNode.FindNodeById('tp2'));
+    Check(textPathNode2 <> nil, 'textPathNode tp2 should exist');
+    Check(textPathNode2.HasTextLength, 'tp2 should have textLength');
+    CheckEquals(80.0, textPathNode2.TextLength.Value, 1E-4);
+    Check(textPathNode2.LengthAdjust = laSpacing, 'tp2 lengthAdjust should be spacing');
   finally
     docNode.Free;
   end;

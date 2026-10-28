@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <!-- Demonstration of textLength attribute on <text>, <tspan>, and <textPath> -->
+  <style>
+    text { font-family: sans-serif; font-size: 18px; fill: #111827; }
+    .label { font-size: 12px; fill: #6B7280; }
+    .ref-line { stroke: #EF4444; stroke-width: 1; stroke-dasharray: 4,4; }
+    path.curve { fill: none; stroke: #CBD5E1; stroke-width: 2; }
+  </style>
+
+  <!-- Title -->
+  <text x="20" y="30" font-weight="bold" font-size="20">SVG textLength Attribute Demo</text>
+
+  <!-- 1. textLength on <text> -->
+  <g transform="translate(20, 60)">
+    <text x="0" y="0" class="label">1. Natural width (no textLength):</text>
+    <text x="0" y="25">Graphics32 Vector Text</text>
+
+    <text x="0" y="65" class="label">2. Expanded textLength="350px":</text>
+    <text x="0" y="90" textLength="350">Graphics32 Vector Text</text>
+    <line x1="0" y1="95" x2="350" y2="95" class="ref-line" />
+
+    <text x="0" y="130" class="label">3. Compressed textLength="140px":</text>
+    <text x="0" y="155" textLength="140">Graphics32 Vector Text</text>
+    <line x1="0" y1="160" x2="140" y2="160" class="ref-line" />
+  </g>
+
+  <!-- 2. textLength on <tspan> -->
+  <g transform="translate(20, 260)">
+    <text x="0" y="0" class="label">4. textLength on inner &lt;tspan&gt;:</text>
+    <text x="0" y="25">
+      Normal
+      <tspan fill="#2563EB" textLength="200"> [ Expanded TSpan ] </tspan>
+      End
+    </text>
+  </g>
+
+  <!-- 3. textLength on <textPath> -->
+  <g transform="translate(20, 310)">
+    <path id="textPathCurve" class="curve" d="M 0,40 Q 150,0 300,40 T 550,40" />
+    <text y="0">
+      <textPath href="#textPathCurve" fill="#D97706" textLength="400">
+        Text along path stretched to textLength 400px
+      </textPath>
+    </text>
+  </g>
+</svg>

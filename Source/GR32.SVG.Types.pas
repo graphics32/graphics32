@@ -172,12 +172,43 @@ type
     fkSvg12Static              // http://www.w3.org/Graphics/SVG/feature/1.2/#SVG-static
   );
   
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextAnchor
+//
+//------------------------------------------------------------------------------
+type
   TSvgTextAnchor = (
     taStart,
     taMiddle,
     taEnd
   );
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgLengthAdjust
+//
+//------------------------------------------------------------------------------
+// TSvgLengthAdjust defines text length adjustment modes for SVG <text>,
+// <tspan>, and <textPath> elements:
+//
+// - laSpacing:                 Adjust advance spacing between glyphs only.
+//
+// - laSpacingAndGlyphs:        Scale both advance spacing and horizontal glyph
+//                              geometry width.
+//------------------------------------------------------------------------------
+type
+  TSvgLengthAdjust = (laSpacing, laSpacingAndGlyphs);
+
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextAlignmentHorizontal
+//
+//------------------------------------------------------------------------------
+type
   TSvgTextAlignmentHorizontal = (
     taHorNone,
     taHorLeft,
@@ -213,6 +244,8 @@ function ParseSvgEdgeMode(const AName: TValuePUtf8Char): TSvgEdgeMode; overload;
 function ParseSvgEdgeMode(const AName: UTF8String): TSvgEdgeMode; overload;
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
 function ParseSvgTextAnchor(const AName: UTF8String): TSvgTextAnchor; overload; deprecated;
+function ParseSvgLengthAdjust(const AName: TValuePUtf8Char): TSvgLengthAdjust; overload;
+function ParseSvgLengthAdjust(const AName: UTF8String): TSvgLengthAdjust; overload; deprecated;
 
 
 //------------------------------------------------------------------------------
@@ -231,6 +264,7 @@ function TurbulenceTypeToString(AType: TSvgTurbulenceType): string;
 function ChannelSelectorToString(ASelector: TSvgChannelSelector): string;
 function EdgeModeToString(AEdgeMode: TSvgEdgeMode): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
+function SvgLengthAdjustToString(ALengthAdjust: TSvgLengthAdjust): string;
 
 
 //------------------------------------------------------------------------------
@@ -1051,6 +1085,32 @@ begin
     taEnd: Result := 'end';
   else
     Result := 'start';
+  end;
+end;
+
+function ParseSvgLengthAdjust(const AName: UTF8String): TSvgLengthAdjust;
+var
+  Name: TValuePUtf8Char;
+begin
+  Name.Text := pointer(AName);
+  Name.Len := Length(AName);
+  Result := ParseSvgLengthAdjust(Name);
+end;
+
+function ParseSvgLengthAdjust(const AName: TValuePUtf8Char): TSvgLengthAdjust;
+begin
+  if AName.CompareText('spacingandglyphs') then
+    Result := laSpacingAndGlyphs
+  else
+    Result := laSpacing;
+end;
+
+function SvgLengthAdjustToString(ALengthAdjust: TSvgLengthAdjust): string;
+begin
+  case ALengthAdjust of
+    laSpacingAndGlyphs: Result := 'spacingAndGlyphs';
+  else
+    Result := 'spacing';
   end;
 end;
 

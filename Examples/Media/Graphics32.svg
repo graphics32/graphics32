@@ -149,11 +149,12 @@
   <g transform="translate(400, 280) rotate(-5)" filter="url(#drop-shadow)">
 
     <!-- SVG Feature: Basic Shape - Rect with rounded corners (rx, ry as explicit XML attributes) -->
-    <rect x="-300" y="-170" width="600" height="340" rx="16" ry="16" fill="#1e293b" class="card-border"/>
+    <rect x="-300" y="-170" width="600" height="340" rx="30" ry="30" fill="#1e293b" class="card-border"/>
 
     <!-- SVG Feature: Text-on-a-Path (<textPath>) repeating text around the box inner border -->
-    <text font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#a7f3d0" letter-spacing="1em">
-      <textPath href="#box-perimeter-path" xlink:href="#box-perimeter-path">
+    <text font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#a7f3d0">
+      <!-- SVG Feature: Text stretched to fill specified space -->
+      <textPath href="#box-perimeter-path" xlink:href="#box-perimeter-path" textLength="1720" lengthAdjust="spacing">
         FAST &#8226; FLEXIBLE &#8226; PRECISION VECTOR GRAPHICS &#8226; FAST &#8226; FLEXIBLE &#8226; PRECISION VECTOR GRAPHICS &#8226; FAST &#8226; FLEXIBLE &#8226; PRECISION VECTOR GRAPHICS &#8226; 
       </textPath>
     </text>
