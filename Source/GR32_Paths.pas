@@ -70,7 +70,7 @@ interface
 {$define PATH_ADDPOINT_PACKING}
 
 uses
-  Classes, SysUtils,
+  Classes, SysUtils, Graphics,
   GR32,
   GR32_Math,
   GR32_Polygons,
@@ -348,6 +348,7 @@ type
   TCustomCanvas32 = class(TCustomCanvas)
   private
     FBitmap: TCustomBitmap32;
+    FFont: TFont; // Cached access to backend font object. All hell will break loose if backend is changed
     FRenderer: TPolygonRenderer32;
     FBrushes: TBrushCollection;
   protected
@@ -359,6 +360,7 @@ type
     procedure DrawPath(const Path: TFlattenedPath); override;
     class function GetPolygonRendererClass: TPolygonRenderer32Class; virtual;
     procedure BrushCollectionChangeHandler(Sender: TObject); virtual;
+    function GetFont: TFont; virtual;
   public
     constructor Create(ABitmap: TCustomBitmap32); reintroduce; virtual;
     destructor Destroy; override;
@@ -373,9 +375,14 @@ type
     function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
 
     function GetFontFaceMetrics(const Layout: TTextLayout; var FontFaceMetrics: TFontFaceMetrics32): boolean;
+    // Note: GetGlyphMetrics returns True if it could retrieve metrics for *any* of the
+    // requested glyphs, and False only if it could retrive metrics for none of them.
+    // The caller should examine the TGlyphMetrics32.Valid flag for each glyph metric
+    // to determine if it is valid or not.
     function GetGlyphMetrics(const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
 
     property Bitmap: TCustomBitmap32 read FBitmap;
+    property Font: TFont read GetFont;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
     property RendererClassName: string read GetRendererClassName write SetRendererClassName;
     property Brushes: TBrushCollection read FBrushes;
@@ -1789,6 +1796,20 @@ begin
       if FBrushes[i].Visible then
         FBrushes[i].PolyPolygonMixedFS(Renderer, Path.Path, ClipRect, Transformation, Path.PathClosed);
   end;
+end;
+
+function TCustomCanvas32.GetFont: TFont;
+var
+  FontSupport: IFontSupport;
+begin
+  if (FFont = nil) then
+  begin
+    if (Supports(Bitmap.Backend, IFontSupport, FontSupport)) then
+      FFont := FontSupport.Font
+    else
+      raise Exception.Create(RCStrInappropriateBackend);
+  end;
+  Result := FFont;
 end;
 
 function TCustomCanvas32.GetFontFaceMetrics(const Layout: TTextLayout; var FontFaceMetrics: TFontFaceMetrics32): boolean;
