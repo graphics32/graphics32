@@ -323,7 +323,13 @@ type
                                         // Ignore if LineBreakIsParagraph=True
 
     RemoveLeadingSpace: boolean;        // Remove leading whitespace after line/paragraph breaks.
-                                        // The first line is considered to after a line break.
+                                        // The first line is considered to be after a line break.
+
+    TrimSideBearings: boolean;          // Remove Left Side Bearing from the first glyph on a line and Right
+                                        // Side Bearing from the last glyph on a line.
+                                        // TrimSideBearings=False mimics the behavior of the Windows' APIs
+                                        // (and even MS Word) which doesn't consider side bearings at all
+                                        // when calculating text width or wrapping text. Pfft!
 
     (*
     ** Clipping
@@ -374,6 +380,7 @@ var
     LineBreakIsParagraph:       False;
     DoubleLineBreakIsParagraph: False;
     RemoveLeadingSpace:         False;
+    TrimSideBearings:           True;
 
     (*
     ** Clipping
