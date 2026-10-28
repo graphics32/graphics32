@@ -172,7 +172,7 @@ class function TPaintServerRendererGradient.CreateFiller(ARenderer: TSvgRenderer
 begin
   Result := nil;
   if (ANode = nil) or (TSvgGradientNode(ANode).Stops.Count = 0) then
-    Exit;
+    exit;
 
   Result := DoCreateFiller(ARenderer, TSvgGradientNode(ANode), ABounds, AOpacity);
 end;

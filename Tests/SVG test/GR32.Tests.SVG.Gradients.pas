@@ -43,7 +43,7 @@ uses
   TestFramework,
 {$ENDIF}
   Types, SysUtils, Classes,
-  GR32, GR32.SVG.Types, GR32.SVG.Tree;
+  GR32, GR32.SVG.Types, GR32.SVG.Tree, GR32.SVG.Renderer;
 
 type
   TTestSvgGradients = class(TTestCase)
@@ -55,6 +55,7 @@ type
     procedure TestClipPathAndMaskParsing;
     procedure TestConicalGradientParsing;
     procedure TestConicalGradientInheritance;
+    procedure TestZeroDimensionsObjectBoundingBoxGradientFallback;
   end;
 
 implementation
@@ -336,6 +337,59 @@ begin
     CheckEquals('mask1', maskNode.ID);
     CheckEquals(Ord(guUserSpaceOnUse), Ord(maskNode.MaskUnits));
     CheckEquals(Ord(guObjectBoundingBox), Ord(maskNode.MaskContentUnits));
+  finally
+    docNode.Free;
+  end;
+end;
+
+procedure TTestSvgGradients.TestZeroDimensionsObjectBoundingBoxGradientFallback;
+var
+  xml: UTF8String;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  bmp: TBitmap32;
+begin
+  // Horizontal line (height=0) and vertical line (width=0) with gradientUnits="objectBoundingBox"
+  xml := '<svg width="100" height="100">' +
+         '  <defs>' +
+         '    <linearGradient id="grad1" gradientUnits="objectBoundingBox">' +
+         '      <stop offset="0" stop-color="black"/>' +
+         '      <stop offset="1" stop-color="white"/>' +
+         '    </linearGradient>' +
+         '  </defs>' +
+         '  <line x1="10" y1="30" x2="90" y2="30" stroke="url(#grad1) #00ff00" stroke-width="10"/>' +
+         '  <line x1="10" y1="60" x2="90" y2="60" stroke="url(#grad1)" stroke-width="10"/>' +
+         '  <line x1="10" y1="10" x2="90" y2="90" stroke="url(#grad1)" stroke-width="10"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should parse');
+  try
+    docNode.Resolve;
+
+    bmp := TBitmap32.Create;
+    try
+      bmp.SetSize(100, 100);
+      bmp.Clear(clWhite32);
+
+      renderer := TSvgRenderer.Create;
+      try
+        renderer.RenderDocument(bmp, docNode);
+
+        // Line 1 (horizontal, y=30, with fallback #00ff00 green): gradient invalid on 1D line, fallback green should render
+        CheckEquals(clLime32, bmp.Pixel[50, 30], 'Line with invalid objectBoundingBox gradient and fallback #00ff00 should render green fallback stroke');
+
+        // Line 2 (horizontal, y=60, without fallback): gradient invalid on 1D line, no fallback -> remains white background
+        CheckEquals(clWhite32, bmp.Pixel[50, 60], 'Line with invalid objectBoundingBox gradient and no fallback should not render (white background)');
+
+        // Line 3 (diagonal, x1=10 y1=10 x2=90 y2=90, 2D object bounding box): gradient is valid -> renders painted pixels
+        Check(bmp.Pixel[50, 50] <> clWhite32, 'Diagonal line with valid 2D objectBoundingBox gradient should render gradient stroke');
+      finally
+        renderer.Free;
+      end;
+    finally
+      bmp.Free;
+    end;
   finally
     docNode.Free;
   end;

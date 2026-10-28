@@ -1184,7 +1184,6 @@ begin
   BlendOffscreenSurface(ATarget, ASource, ABlendMode, 0, 0);
 end;
 
-
 function TSvgRenderer.GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 var
   i, j, len: Integer;
@@ -1250,34 +1249,37 @@ begin
       // ...and get a filler from it
       Filler := PaintServerRenderer.CreateFiller(Self, APaintServer, Bounds, AOpacity);
 
-    if (Filler = nil) then
+    if (Filler <> nil) then
+    begin
+      try
+
+        if (APoints <> nil) then
+        begin
+          // Fill target using polygon filler
+          if (FPolyRenderer = nil) then
+            FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
+
+          FPolyRenderer.Bitmap := ATarget;
+          FPolyRenderer.Filler := Filler;
+          try
+            FPolyRenderer.FillMode := AFillMode;
+
+            FPolyRenderer.PolyPolygonFS(APoints);
+          finally
+            FPolyRenderer.Filler := nil;
+          end;
+        end else
+          // Fill target using filler
+          FillBitmap(ATarget, Filler);
+
+      finally
+        Filler.Free;
+      end;
       exit;
-
-    try
-
-      if (APoints <> nil) then
-      begin
-        // Fill target using polygon filler
-        if (FPolyRenderer = nil) then
-          FPolyRenderer := DefaultPolygonRendererClass.Create(ATarget);
-
-        FPolyRenderer.Bitmap := ATarget;
-        FPolyRenderer.Filler := Filler;
-        try
-          FPolyRenderer.FillMode := AFillMode;
-
-          FPolyRenderer.PolyPolygonFS(APoints);
-        finally
-          FPolyRenderer.Filler := nil;
-        end;
-      end else
-        // Fill target using filler
-        FillBitmap(ATarget, Filler);
-
-    finally
-      Filler.Free;
     end;
-  end else
+    // Fall-through to paint solid
+  end;
+
   (*
   ** Fill using solid color
   *)
@@ -1322,25 +1324,32 @@ var
   RenderBmp, OffscreenBmp: TCustomBitmap32;
   FillColor, StrokeColor: TSvgColor;
   HasFill, HasStroke, HasMarkers: boolean;
+  FillPaintServer, StrokePaintServer: TSvgPaintServerNode;
 begin
   if (APathNode = nil) or (ATarget = nil) then
     Exit;
 
   (*
   ** 1. Determine what elements we need to process here
+  **    We need to calculate the effective colors even if the stroke or fill
+  **    has a paint-server, because the paint-server might not be able to
+  **    create a filler (e.g. if the fill area is empty) in which case we must
+  **    fall back to solid fill/stroke.
   *)
   UserStrokeWidth := APathNode.GetSizePx(APathNode.Stroke.Width, FViewportRect.Width);
-  if (APathNode.Stroke.ResolvedPaintServer = nil) and (APathNode.Stroke.Opacity > 0) and (UserStrokeWidth > 0) then
+  if (APathNode.Stroke.Opacity > 0) and (UserStrokeWidth > 0) then
     StrokeColor := GetEffectiveColor(APathNode, APathNode.Stroke.Color, tcStroke)
   else
-    StrokeColor := TSvgColor.Unset; // No visible stroke or use Paint Server
-  HasStroke := (UserStrokeWidth > 0) and ((APathNode.Stroke.ResolvedPaintServer <> nil) or (StrokeColor.IsVisible));
+    StrokeColor := TSvgColor.Unset;
+  StrokePaintServer := APathNode.Stroke.ResolvedPaintServer;
+  HasStroke := (UserStrokeWidth > 0) and ((StrokePaintServer <> nil) or (StrokeColor.IsVisible));
 
-  if (APathNode.Fill.ResolvedPaintServer = nil) and (APathNode.Fill.Opacity > 0) then
+  if (APathNode.Fill.Opacity > 0) then
     FillColor := GetEffectiveColor(APathNode, APathNode.Fill.Color, tcFill)
   else
-    FillColor := TSvgColor.Unset; // No visible fill or use Paint Server
-  HasFill := (APathNode.Fill.ResolvedPaintServer <> nil) or (FillColor.IsVisible);
+    FillColor := TSvgColor.Unset;
+  FillPaintServer := APathNode.Fill.ResolvedPaintServer;
+  HasFill := (FillPaintServer <> nil) or (FillColor.IsVisible);
 
   HasMarkers := (APathNode.ResolvedMarkerStart <> nil) or (APathNode.ResolvedMarkerMid <> nil) or (APathNode.ResolvedMarkerEnd <> nil);
 
@@ -1483,16 +1492,27 @@ begin
         FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
       end;
       try
+        var ObjBox := APathNode.GetObjectBoundingBox(FViewportRect);
+
         (*
         ** 6. Fill Rendering
         *)
-        RenderPolyPolygon(RenderBmp, APathNode.Fill.ResolvedPaintServer, APathNode.Fill.Opacity, FillColor, TransformedPoints, APathNode.Fill.FillRule);
+        if (FillPaintServer <> nil) and (not FillPaintServer.ShouldApply(ObjBox)) then
+          FillPaintServer := nil;
+
+        RenderPolyPolygon(RenderBmp, FillPaintServer, APathNode.Fill.Opacity, FillColor, TransformedPoints, APathNode.Fill.FillRule);
+
 
         (*
         ** 7. Stroke Rendering
         *)
         if (StrokePoints <> nil) then
-          RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, APathNode.Stroke.Opacity, StrokeColor, StrokePoints);
+        begin
+          if (StrokePaintServer <> nil) and (not StrokePaintServer.ShouldApply(ObjBox)) then
+            StrokePaintServer := nil;
+
+          RenderPolyPolygon(RenderBmp, StrokePaintServer, APathNode.Stroke.Opacity, StrokeColor, StrokePoints);
+        end;
       finally
         if NeedsOffscreen then
         begin
@@ -3322,6 +3342,7 @@ var
   AccumulatedOpacity, FillOpacity, StrokeOpacity: Single;
   FillColor, StrokeColor: TSvgColor;
   HasFill, HasStroke: boolean;
+  FillPaintServer, StrokePaintServer: TSvgPaintServerNode;
 begin
   if (Length(APathPoints) = 0) or (ATarget = nil) then
     Exit;
@@ -3330,27 +3351,35 @@ begin
   FillOpacity := ANode.Fill.Opacity * AccumulatedOpacity;
   StrokeOpacity := ANode.Stroke.Opacity * AccumulatedOpacity;
 
-  if (ANode.Fill.ResolvedPaintServer = nil) then
+  if (ANode.Fill.Opacity > 0) then
     FillColor := GetEffectiveColor(ANode, ANode.Fill.Color, tcFill)
   else
     FillColor := TSvgColor.Unset;
-  HasFill := (ANode.Fill.ResolvedPaintServer <> nil) or ((FillColor.IsVisible) and (FillOpacity > 0));
+  FillPaintServer := ANode.Fill.ResolvedPaintServer;
+  HasFill := (FillPaintServer <> nil) or ((FillColor.IsVisible) and (FillOpacity > 0));
 
   StrokeWidth := ANode.GetSizePx(ANode.Stroke.Width, FViewportRect.Width);
-  if (ANode.Stroke.ResolvedPaintServer = nil) and (StrokeWidth > 0) then
+  if (ANode.Stroke.Opacity > 0) and (StrokeWidth > 0) then
     StrokeColor := GetEffectiveColor(ANode, ANode.Stroke.Color, tcStroke)
   else
     StrokeColor := TSvgColor.Unset;
-  HasStroke := (StrokeWidth > 0) and ((ANode.Stroke.ResolvedPaintServer <> nil) or ((StrokeColor.IsVisible) and (StrokeOpacity > 0)));
+  StrokePaintServer := ANode.Stroke.ResolvedPaintServer;
+  HasStroke := (StrokeWidth > 0) and ((StrokePaintServer <> nil) or ((StrokeColor.IsVisible) and (StrokeOpacity > 0)));
 
   if (not HasFill) and (not HasStroke) then
     exit;
 
   TransformedPts := GetTransformedPoints(APathPoints);
+  var ObjBox := ANode.GetObjectBoundingBox(FViewportRect);
 
   // 1. Fill Rendering
   if (HasFill) then
-    RenderPolyPolygon(ATarget, ANode.Fill.ResolvedPaintServer, FillOpacity, FillColor, TransformedPts, ANode.Fill.FillRule);
+  begin
+    if (FillPaintServer <> nil) and (not FillPaintServer.ShouldApply(ObjBox)) then
+      FillPaintServer := nil;
+
+    RenderPolyPolygon(ATarget, FillPaintServer, FillOpacity, FillColor, TransformedPts, ANode.Fill.FillRule);
+  end;
 
   // 2. Stroke Rendering
   if (HasStroke) then
@@ -3381,7 +3410,12 @@ begin
     end;
 
     if (StrokePts <> nil) then
-      RenderPolyPolygon(ATarget, ANode.Stroke.ResolvedPaintServer, StrokeOpacity, StrokeColor, StrokePts);
+    begin
+      if (StrokePaintServer <> nil) and (not StrokePaintServer.ShouldApply(ObjBox)) then
+        StrokePaintServer := nil;
+
+      RenderPolyPolygon(ATarget, StrokePaintServer, StrokeOpacity, StrokeColor, StrokePts);
+    end;
   end;
 end;
 

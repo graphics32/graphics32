@@ -578,7 +578,15 @@ type
 //------------------------------------------------------------------------------
 // Abstract base class for Paint Server nodes
 //------------------------------------------------------------------------------
-  TSvgPaintServerNode = class abstract(TSvgCustomGroupNode);
+  TSvgPaintServerNode = class abstract(TSvgCustomGroupNode)
+  public
+    // ShouldApply: Determines if the paintserver should be applied, given the specified
+    // bounding box. This is used to enforce W3C SVG 1.1 Specification §13.2.2 & §13.2.3:
+    // If gradientUnits="objectBoundingBox" and the bounding box of the target element
+    // has zero width or zero height (such as horizontal or vertical lines), the gradient
+    // is invalid and CreateFiller returns nil so rendering falls back to solid paint.
+    function ShouldApply(const AObjectBounds: TFloatRect): boolean; virtual;
+  end;
 
 
 //------------------------------------------------------------------------------
@@ -631,6 +639,7 @@ type
     procedure AddStop(const AStop: TSvgGradientStop);
     procedure InheritFrom(ParentGradient: TSvgGradientNode); virtual;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
+    function ShouldApply(const AObjectBounds: TFloatRect): boolean; override;
 
     property Stops: TList<TSvgGradientStop> read FStops;
     property SpreadMethod: TSvgSpreadMethod read FSpreadMethod write FSpreadMethod;
@@ -4073,6 +4082,17 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TSvgPaintServerNode
+//
+//------------------------------------------------------------------------------
+function TSvgPaintServerNode.ShouldApply(const AObjectBounds: TFloatRect): boolean;
+begin
+  Result := True;
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgGradientNode
 //
 //------------------------------------------------------------------------------
@@ -4222,6 +4242,18 @@ begin
   else
     inherited;
   end;
+end;
+
+function TSvgGradientNode.ShouldApply(const AObjectBounds: TFloatRect): boolean;
+begin
+  // Per W3C SVG 1.1 Specification §13.2.2 & §13.2.3:
+  // If gradientUnits="objectBoundingBox" and the bounding box of the target element
+  // has zero width or zero height (such as horizontal or vertical lines), the gradient
+  // is invalid and CreateFiller returns nil so rendering falls back to solid paint.
+  if (GradientUnits = guObjectBoundingBox) and (AObjectBounds.IsEmpty) then
+    Result := False
+  else
+    Result := inherited;
 end;
 
 
