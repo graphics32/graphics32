@@ -304,28 +304,6 @@ const
 const
   cMaxRecursions = 20;
 
-function TransformPathPoints(var APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix): TArrayOfArrayOfFloatPoint;
-var
-  i, j: Integer;
-begin
-  SetLength(Result, Length(APoints));
-  for i := 0 to High(APoints) do
-  begin
-    SetLength(Result[i], Length(APoints[i]));
-    for j := 0 to High(APoints[i]) do
-      Result[i][j] := TFloatMatrixHelper(AMatrix).TransformPoint(APoints[i][j]);
-  end;
-end;
-
-procedure TransformPathPointsInplace(var APoints: TArrayOfArrayOfFloatPoint; const AMatrix: TFloatMatrix);
-var
-  i, j: Integer;
-begin
-  for i := 0 to High(APoints) do
-    for j := 0 to High(APoints[i]) do
-      APoints[i][j] := TFloatMatrixHelper(AMatrix).TransformPoint(APoints[i][j]);
-end;
-
 function GetTotalPathLength(const APoints: TArrayOfArrayOfFloatPoint): Single;
 var
   i, j: Integer;

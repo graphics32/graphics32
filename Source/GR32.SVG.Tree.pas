@@ -1394,6 +1394,8 @@ type
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; overload; override;
+    // Note: The array returned by GetPathData is cached. It (or it's elements) must be considered
+    // immutable. Do not perform in-place modifications on it.
     function GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint; overload;
 {$if defined(UNIT_TEST)}
     function GetPathData(const AViewport: TFloatRect; const AScale: Single = 1.0): TArrayOfArrayOfFloatPoint; overload;
@@ -6454,7 +6456,7 @@ begin
      (FCachedViewportWidth = ViewportWidth) and (FCachedViewportHeight = ViewportHeight) and
      (CompareMem(@FCachedMatrix, @ATransformation.Matrix, SizeOf(FCachedMatrix))) then
   begin
-    Result := Copy(FCachedPathData);
+    Result := FCachedPathData;
     Exit;
   end;
 
@@ -6658,13 +6660,7 @@ begin
 
   SanitizePolyPolygon(Result, IsClosed);
 
-  SetLength(FCachedPathData, Length(Result));
-  for i := 0 to High(Result) do
-    FCachedPathData[i] := Copy(Result[i]);
-
-  SetLength(Result, Length(FCachedPathData));
-  for i := 0 to High(FCachedPathData) do
-    Result[i] := Copy(FCachedPathData[i]);
+  FCachedPathData := Result;
 end;
 
 {$if defined(UNIT_TEST)}
