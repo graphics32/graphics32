@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SVG Feature: Document root with width, height, viewBox, and XML namespace declarations -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="800" height="600" viewBox="0 0 800 600">
+
+  <!-- SVG Feature: Embedded CSS Stylesheet (<style> tag) with class, element, and ID selectors -->
+  <style>
+    .bg-style { fill: url(#bg-linear-grad); }
+    .card-border { stroke: #334155; stroke-width: 2px; }
+    .star-fill { fill: #f59e0b; stroke: #b45309; stroke-width: 1.5px; }
+  </style>
+
+  <!-- SVG Feature: Definitions container (<defs>) for reusable graphical resources -->
+  <defs>
+    <!-- SVG Feature: Linear Gradient with high-contrast vibrant stop colors and gradientTransform -->
+    <linearGradient id="bg-linear-grad" x1="0%" y1="0%" x2="100%" y2="100%" gradientTransform="rotate(15)">
+      <stop offset="0%" stop-color="#0f172a" stop-opacity="1.0"/>
+      <stop offset="50%" stop-color="#2e1065" stop-opacity="1.0"/>
+      <stop offset="100%" stop-color="#0d9488" stop-opacity="1.0"/>
+    </linearGradient>
+
+    <!-- SVG Feature: Linear Gradient with vertical stop distribution for gold metallic text fill -->
+    <linearGradient id="gold-linear-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <!-- SVG Feature: Linear Gradient in blueish colors for abstract wave pattern -->
+    <linearGradient id="wave-linear-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+
+    <!-- SVG Feature: Radial Gradient with high-contrast focal point (fx, fy), center (cx, cy), and radius (r) -->
+    <radialGradient id="vibrant-radial-grad" cx="50%" cy="50%" r="50%" fx="35%" fy="35%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="1.0"/>
+      <stop offset="45%" stop-color="#e11d48" stop-opacity="1.0"/>
+      <stop offset="100%" stop-color="#1e1b4b" stop-opacity="1.0"/>
+    </radialGradient>
+
+    <!-- SVG Feature: Radial Gradient for ellipse fill with rich, deep blue tones -->
+    <radialGradient id="ellipse-radial-grad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#bfdbfe"/>
+      <stop offset="35%" stop-color="#3b82f6"/>
+      <stop offset="75%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+
+    <!-- SVG Feature: Radial Gradients for standalone Lens Flare composition -->
+    <radialGradient id="flare-core-grad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1.0"/>
+      <stop offset="20%" stop-color="#fff7ed" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#fdba74" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#f97316" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ea580c" stop-opacity="0.0"/>
+    </radialGradient>
+
+    <radialGradient id="flare-ring-grad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.0"/>
+      <stop offset="65%" stop-color="#38bdf8" stop-opacity="0.0"/>
+      <stop offset="80%" stop-color="#a855f7" stop-opacity="0.5"/>
+      <stop offset="92%" stop-color="#38bdf8" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/>
+    </radialGradient>
+
+    <!-- SVG Feature: Pattern Fill with patternUnits, width, height, and patternTransform -->
+    <pattern id="grid-pattern" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="24" height="24" fill="none"/>
+      <path d="M 0 12 L 24 12 M 12 0 L 12 24" stroke="#38bdf8" stroke-width="0.75" stroke-opacity="0.3"/>
+      <circle cx="12" cy="12" r="1.5" fill="#38bdf8" fill-opacity="0.6"/>
+    </pattern>
+
+    <!-- SVG Feature: Filter primitive drop-shadow using SVG 1.1 primitives (feGaussianBlur, feOffset, feFlood, feComposite, feMerge) for broad renderer compatibility -->
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feOffset in="blur" dx="3" dy="5" result="offsetBlur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.75" result="flood"/>
+      <feComposite in="flood" in2="offsetBlur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- SVG Feature: Filter primitives feTurbulence (freq 0.5) and soft feSpecularLighting highlight for ellipse surface texture -->
+    <filter id="ellipse-filter" x="-20%" y="-20%" width="140%" height="140%">
+      <!-- Generate fine noise texture with baseFrequency 0.5 -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="2" result="noise"/>
+      <!-- Soften noise opacity/intensity so underlying gradient remains clearly visible -->
+      <feColorMatrix in="noise" type="matrix" values="1000 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 10 0" result="softNoise"/>
+      <!-- Clip noise strictly to ellipse geometry (SourceGraphic alpha) -->
+      <feComposite in="softNoise" in2="SourceGraphic" operator="in" result="clippedNoise"/>
+      <!-- Blend clipped noise over the underlying radial gradient fill -->
+      <feBlend in="clippedNoise" in2="SourceGraphic" mode="overlay" result="gradientWithNoise"/>
+      <!-- Subtle, realistic specular highlight located near upper-left focal point without whiting out gradient -->
+      <feSpecularLighting in="SourceGraphic" surfaceScale="2" specularConstant="0.6" specularExponent="30" lighting-color="green" result="specularHighlight">
+        <fePointLight x="-200" y="-40" z="40"/>
+      </feSpecularLighting>
+      <!-- Clip highlight to ellipse boundary -->
+      <feComposite in="specularHighlight" in2="SourceGraphic" operator="in" result="clippedHighlight"/>
+      <!-- Combine subtle specular highlight over gradient+noise -->
+      <feBlend in="clippedHighlight" in2="gradientWithNoise" mode="screen"/>
+    </filter>
+
+    <!-- SVG Feature: Filter primitive feGaussianBlur with stdDeviation blur radius for white glow effect -->
+    <filter id="white-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.85" result="glowColor"/>
+      <feComposite in="glowColor" in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- SVG Feature: Filter primitive feGaussianBlur with stdDeviation blur radius for glow accents -->
+    <filter id="glow-blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+
+    <!-- SVG Feature: Filter primitive feGaussianBlur for lens flare soft optical blur -->
+    <filter id="flare-blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+
+    <!-- SVG Feature: Luminance Mask (mask) for alpha transparency masking -->
+    <mask id="fade-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="800" height="600">
+      <rect x="0" y="0" width="800" height="600" fill="white"/>
+      <circle cx="400" cy="300" r="220" fill="black" opacity="0.25"/>
+    </mask>
+
+    <!-- SVG Feature: Reusable Symbol (symbol) with viewBox and element template -->
+    <symbol id="star-symbol" viewBox="0 0 24 24">
+      <polygon points="12,2 15,9 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9,9" class="star-fill"/>
+    </symbol>
+
+    <!-- SVG Feature: Path definition for text alignment along box inner perimeter (<textPath>) -->
+    <path id="box-perimeter-path" d="M -278 -148 h 556 a 12 12 0 0 1 12 12 v 272 a 12 12 0 0 1 -12 12 h -556 a 12 12 0 0 1 -12 -12 v -272 a 12 12 0 0 1 12 -12 z"/>
+  </defs>
+
+  <!-- SVG Feature: Basic Shape - Rect with linear gradient fill -->
+  <rect x="0" y="0" width="800" height="600" fill="url(#bg-linear-grad)"/>
+
+  <!-- SVG Feature: Basic Shape - Rect with pattern fill and opacity -->
+  <rect x="0" y="0" width="800" height="600" fill="url(#grid-pattern)" opacity="0.5"/>
+
+  <!-- SVG Feature: Slanted Group element (<g>) with matrix transform (translate, rotate) and drop shadow filter -->
+  <g transform="translate(400, 280) rotate(-5)" filter="url(#drop-shadow)">
+
+    <!-- SVG Feature: Basic Shape - Rect with rounded corners (rx, ry as explicit XML attributes) -->
+    <rect x="-300" y="-170" width="600" height="340" rx="16" ry="16" fill="#1e293b" class="card-border"/>
+
+    <!-- SVG Feature: Text-on-a-Path (<textPath>) repeating text around the box inner border -->
+    <text font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#a7f3d0" letter-spacing="1em">
+      <textPath href="#box-perimeter-path" xlink:href="#box-perimeter-path">
+        FAST &#8226; FLEXIBLE &#8226; PRECISION VECTOR GRAPHICS &#8226; FAST &#8226; FLEXIBLE &#8226; PRECISION VECTOR GRAPHICS &#8226; FAST &#8226; FLEXIBLE &#8226; PRECISION VECTOR GRAPHICS &#8226; 
+      </textPath>
+    </text>
+
+    <!-- SVG Feature: Abstract Digital Wave Pattern positioned above border text, but below text, ellipse, and circle -->
+    <g filter="url(#white-glow)">
+      <!-- Primary wave mesh extending to box edges -->
+      <path d="M -300 50 C -200 0, -100 130, 0 60 S 200 0, 300 50" fill="none" stroke="url(#wave-linear-grad)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M -300 56 C -200 8, -100 126, 0 64 S 200 8, 300 56" fill="none" stroke="url(#wave-linear-grad)" stroke-width="2.2" opacity="0.9"/>
+      <path d="M -300 62 C -200 16, -100 122, 0 68 S 200 16, 300 62" fill="none" stroke="url(#wave-linear-grad)" stroke-width="2.0" opacity="0.85"/>
+      <path d="M -300 68 C -200 24, -100 118, 0 72 S 200 24, 300 68" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.8" opacity="0.8"/>
+      <path d="M -300 74 C -200 32, -100 114, 0 76 S 200 32, 300 74" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.6" opacity="0.75"/>
+      <path d="M -300 80 C -200 40, -100 110, 0 80 S 200 40, 300 80" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.5" opacity="0.7"/>
+      <path d="M -300 86 C -200 48, -100 106, 0 84 S 200 48, 300 86" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.4" opacity="0.65"/>
+      <path d="M -300 92 C -200 56, -100 102, 0 88 S 200 56, 300 92" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.3" opacity="0.6"/>
+      <path d="M -300 98 C -200 64, -100 98, 0 92 S 200 64, 300 98" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.2" opacity="0.55"/>
+      <path d="M -300 104 C -200 72, -100 94, 0 96 S 200 72, 300 104" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.1" opacity="0.5"/>
+
+      <!-- Secondary overlapping wave ribbon extending to box edges -->
+      <path d="M -300 90 C -180 145, -60 15, 60 105 S 200 135, 300 65" fill="none" stroke="url(#wave-linear-grad)" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
+      <path d="M -300 95 C -180 139, -60 21, 60 101 S 200 129, 300 70" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.9" opacity="0.75"/>
+      <path d="M -300 100 C -180 133, -60 27, 60 97 S 200 123, 300 75" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.6" opacity="0.7"/>
+      <path d="M -300 105 C -180 127, -60 33, 60 93 S 200 117, 300 80" fill="none" stroke="url(#wave-linear-grad)" stroke-width="1.3" opacity="0.65"/>
+    </g>
+
+    <!-- SVG Feature: Basic Shape - Ellipse with rich radial gradient fill and feTurbulence/feSpecularLighting filter -->
+    <ellipse cx="-180" cy="-20" rx="65" ry="40" fill="url(#ellipse-radial-grad)" stroke="#1d4ed8" stroke-width="2" filter="url(#ellipse-filter)"/>
+
+    <!-- SVG Feature: Basic Shape - Circle with high-contrast Radial Gradient fill -->
+    <circle cx="180" cy="-20" r="45" fill="url(#vibrant-radial-grad)" stroke="#ffffff" stroke-width="1.5"/>
+
+    <!-- SVG Feature: Basic Shape - Circle with Gaussian blur filter glow accent -->
+    <circle cx="180" cy="-20" r="55" fill="none" stroke="#38bdf8" stroke-width="3" filter="url(#glow-blur)" opacity="0.75"/>
+
+    <!-- SVG Feature: Multiline Text (<text> and <tspan>) with explicit coordinates and gold linear gradient fill -->
+    <text text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="bold" fill="url(#gold-linear-grad)" filter="url(#drop-shadow)">
+      <tspan x="0" y="-30" font-size="50">Graphics32</tspan>
+      <tspan x="0" y="30" font-size="28" fill="#94a3b8" font-weight="600" letter-spacing="2">Excellence Endures</tspan>
+    </text>
+
+    <!-- SVG Feature: Symbol Instantiation (<use> element) with href and xlink:href attributes for SVG 1.1 compatibility -->
+    <use href="#star-symbol" xlink:href="#star-symbol" x="-260" y="-140" width="24" height="24"/>
+    <use href="#star-symbol" xlink:href="#star-symbol" x="236" y="-140" width="24" height="24"/>
+    <use href="#star-symbol" xlink:href="#star-symbol" x="-225" y="-132" width="18" height="18" opacity="0.6"/>
+    <use href="#star-symbol" xlink:href="#star-symbol" x="205" y="-132" width="18" height="18" opacity="0.6"/>
+
+  </g>
+
+  <!-- SVG Feature: World-aligned Lens Flare Effect centered on top-left corner of slanted card (world coord: 86.33, 136.79) with soft optical blur filter -->
+  <g id="world-aligned-lens-flare" transform="translate(86.33, 136.79)" filter="url(#flare-blur)">
+    <!-- Soft outer flare glow halo -->
+    <circle cx="0" cy="0" r="75" fill="url(#flare-core-grad)" opacity="0.9"/>
+    <!-- Rainbow optical refraction ring -->
+    <circle cx="0" cy="0" r="48" fill="url(#flare-ring-grad)" opacity="0.85"/>
+    <!-- World-aligned horizontal, vertical & diagonal starburst light rays -->
+    <path d="M -90 0 L 90 0 M 0 -90 L 0 90 M -50 -50 L 50 50 M -50 50 L 50 -50" stroke="#ffffff" stroke-width="1.8" opacity="0.85"/>
+    <path d="M -140 0 L 140 0 M 0 -140 L 0 140" stroke="#ffffff" stroke-width="2.8" opacity="0.95"/>
+    <!-- Brilliant center flare core -->
+    <circle cx="0" cy="0" r="18" fill="#ffffff"/>
+    <circle cx="0" cy="0" r="8" fill="#fef08a"/>
+    <!-- Secondary optical flare artifacts aligned along horizontal world axis -->
+    <circle cx="45" cy="22" r="14" fill="#38bdf8" opacity="0.4"/>
+    <circle cx="80" cy="40" r="9" fill="#a855f7" opacity="0.35"/>
+    <circle cx="125" cy="62" r="20" fill="#f59e0b" opacity="0.3"/>
+  </g>
+
+</svg>
