@@ -1356,8 +1356,8 @@ begin
 
   RoiRect := MakeRect(FloatRoi, rrOutside);
 
-  // Intersect calculated ROI with target canvas bounds to skip off-screen geometry
-  if not GR32.IntersectRect(RoiRect, RoiRect, ATarget.BoundsRect) then
+  // Skip off-screen geometry if calculated ROI doesn't intersect with target canvas bounds.
+  if not GR32.IntersectRect(RoiRect, ATarget.BoundsRect) then
     Exit;
 
   (*
@@ -2002,10 +2002,10 @@ begin
     end;
   end;
 
-  // Convert world target bounds to integer pixel ROI and intersect with target bitmap bounds
+  // Convert world target bounds to integer pixel ROI.
   GroupRoi := MakeRect(TargetWorldBounds, rrOutside);
-  if not GR32.IntersectRect(GroupRoi, GroupRoi, ATarget.BoundsRect) then
-    Exit;
+  if not GR32.IntersectRect(GroupRoi, ATarget.BoundsRect) then
+    exit;
 
   // Acquire reusable offscreen surface sized strictly to the calculated ROI
   OffscreenBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, True);
@@ -3936,7 +3936,7 @@ begin
         end;
 
         NodeRoi := MakeRect(TargetWorldBounds, rrOutside);
-        if not GR32.IntersectRect(NodeRoi, NodeRoi, ATarget.BoundsRect) then
+        if not GR32.IntersectRect(NodeRoi, ATarget.BoundsRect) then
           Exit;
 
         OffscreenBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
