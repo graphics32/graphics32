@@ -6445,6 +6445,7 @@ var
   p, p2: TFloatPoint;
   Points: TArrayOfFloatPoint;
   n: Single;
+  IsClosed: boolean;
 begin
   ViewportWidth := AViewport.Width;
   ViewportHeight := AViewport.Height;
@@ -6463,6 +6464,7 @@ begin
   else
     IsAxisAligned := True;
 
+  IsClosed := False;
 
   (*
   ** If the transformation is axis-aligned we do a simple translation of coordinates,
@@ -6473,7 +6475,10 @@ begin
   *)
   case FProperties.Kind of
     skPath:
-      Result := FPathCommands.Flatten(ATransformation);
+      begin
+        Result := FPathCommands.Flatten(ATransformation);
+        IsClosed := FPathCommands.Closed;
+      end;
 
     skPolyline, skPolygon:
       begin
@@ -6489,6 +6494,7 @@ begin
           begin
             if (FPolyPoints[0].X <> FPolyPoints[Count - 1].X) or (FPolyPoints[0].Y <> FPolyPoints[Count - 1].Y) then
               Inc(Count);
+            IsClosed := True;
           end;
 
           if (not IsIdent) then
@@ -6527,6 +6533,7 @@ begin
 
     skRect:
       begin
+        IsClosed := True;
         if (IsAxisAligned) then
         begin
           p.X := GetSizePx(FProperties.rect.X, ViewportWidth);
@@ -6557,60 +6564,66 @@ begin
       end;
 
     skCircle:
-      if (IsAxisAligned) then
       begin
-        p.X := GetSizePx(FProperties.circle.Cx, ViewportWidth);
-        p.Y := GetSizePx(FProperties.circle.Cy, ViewportHeight);
-        p := ATransformation.Transform(p);
-
-        if (TFloatMatrixHelper(ATransformation.Matrix).GetScaleX = TFloatMatrixHelper(ATransformation.Matrix).GetScaleY) then
-          Result := CreateCirclePath(
-            p.X,
-            p.Y,
-            GetSizePx(FProperties.circle.R, AViewport) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX
-          )
-        else
+        IsClosed := True;
+        if (IsAxisAligned) then
         begin
-          n := GetSizePx(FProperties.circle.R, AViewport);
-          Result := CreateEllipsePath(
-            p.X,
-            p.Y,
-            n * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
-            n * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY
+          p.X := GetSizePx(FProperties.circle.Cx, ViewportWidth);
+          p.Y := GetSizePx(FProperties.circle.Cy, ViewportHeight);
+          p := ATransformation.Transform(p);
+
+          if (TFloatMatrixHelper(ATransformation.Matrix).GetScaleX = TFloatMatrixHelper(ATransformation.Matrix).GetScaleY) then
+            Result := CreateCirclePath(
+              p.X,
+              p.Y,
+              GetSizePx(FProperties.circle.R, AViewport) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX
+            )
+          else
+          begin
+            n := GetSizePx(FProperties.circle.R, AViewport);
+            Result := CreateEllipsePath(
+              p.X,
+              p.Y,
+              n * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
+              n * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY
+            );
+          end;
+        end else
+        begin
+          Result := CreateCirclePath(
+            GetSizePx(FProperties.circle.Cx, ViewportWidth),
+            GetSizePx(FProperties.circle.Cy, ViewportHeight),
+            GetSizePx(FProperties.circle.R, AViewport),
+            ATransformation
           );
         end;
-      end else
-      begin
-        Result := CreateCirclePath(
-          GetSizePx(FProperties.circle.Cx, ViewportWidth),
-          GetSizePx(FProperties.circle.Cy, ViewportHeight),
-          GetSizePx(FProperties.circle.R, AViewport),
-          ATransformation
-        );
       end;
 
     skEllipse:
-      if (IsAxisAligned) then
       begin
-        p.X := GetSizePx(FProperties.ellipse.Cx, ViewportWidth);
-        p.Y := GetSizePx(FProperties.ellipse.Cy, ViewportHeight);
-        p := ATransformation.Transform(p);
+        IsClosed := True;
+        if (IsAxisAligned) then
+        begin
+          p.X := GetSizePx(FProperties.ellipse.Cx, ViewportWidth);
+          p.Y := GetSizePx(FProperties.ellipse.Cy, ViewportHeight);
+          p := ATransformation.Transform(p);
 
-        Result := CreateEllipsePath(
-          p.X,
-          p.Y,
-          GetSizePx(FProperties.ellipse.Rx, ViewportWidth) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
-          GetSizePx(FProperties.ellipse.Ry, ViewportHeight) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY
-        );
-      end else
-      begin
-        Result := CreateEllipsePath(
-          GetSizePx(FProperties.ellipse.Cx, ViewportWidth),
-          GetSizePx(FProperties.ellipse.Cy, ViewportHeight),
-          GetSizePx(FProperties.ellipse.Rx, ViewportWidth),
-          GetSizePx(FProperties.ellipse.Ry, ViewportHeight),
-          ATransformation
-        );
+          Result := CreateEllipsePath(
+            p.X,
+            p.Y,
+            GetSizePx(FProperties.ellipse.Rx, ViewportWidth) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleX,
+            GetSizePx(FProperties.ellipse.Ry, ViewportHeight) * TFloatMatrixHelper(ATransformation.Matrix).GetScaleY
+          );
+        end else
+        begin
+          Result := CreateEllipsePath(
+            GetSizePx(FProperties.ellipse.Cx, ViewportWidth),
+            GetSizePx(FProperties.ellipse.Cy, ViewportHeight),
+            GetSizePx(FProperties.ellipse.Rx, ViewportWidth),
+            GetSizePx(FProperties.ellipse.Ry, ViewportHeight),
+            ATransformation
+          );
+        end;
       end;
 
     skLine:
@@ -6643,7 +6656,7 @@ begin
   FCachedViewportHeight := ViewportHeight;
   FCachedMatrix := ATransformation.Matrix;
 
-  SanitizePolyPolygon(Result, True);
+  SanitizePolyPolygon(Result, IsClosed);
 
   SetLength(FCachedPathData, Length(Result));
   for i := 0 to High(Result) do
