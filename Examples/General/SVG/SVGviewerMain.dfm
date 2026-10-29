@@ -121,19 +121,6 @@ object FormSVGviewer: TFormSVGviewer
         Flat = True
         OnClick = SpeedButtonExternalClick
       end
-      object SpeedButtonLive: TSpeedButton
-        Left = 120
-        Top = 4
-        Width = 29
-        Height = 29
-        Hint = 'Live update'
-        AllowAllUp = True
-        GroupIndex = 2
-        ImageIndex = 6
-        Images = ImageList
-        Flat = True
-        OnClick = SpeedButtonLiveClick
-      end
       object ButtonSave: TButton
         Left = 165
         Top = 6
@@ -195,7 +182,9 @@ object FormSVGviewer: TFormSVGviewer
           MouseZoom.Enabled = True
           MouseZoom.Animate = True
           TabOrder = 0
-          OnResize = Image32Resize
+          OnMouseEnter = Image32MouseEnter
+          OnMouseLeave = Image32MouseLeave
+          OnPaintStage = Image32PaintStage
         end
         object MemoSource2: TMemo
           Left = 0
@@ -272,9 +261,24 @@ object FormSVGviewer: TFormSVGviewer
     Top = 581
     Width = 900
     Height = 19
-    Panels = <>
+    Panels = <
+      item
+        Text = 'Parse:'
+        Width = 100
+      end
+      item
+        Text = 'Render:'
+        Width = 100
+      end
+      item
+        Text = 'Size:'
+        Width = 150
+      end
+      item
+        Text = 'Status:'
+        Width = 50
+      end>
     ParentFont = True
-    SimplePanel = True
     UseSystemFont = False
   end
   object ImageList: TImageList

@@ -57,8 +57,11 @@ uses
 {$ifend}
 
   GR32,
+  GR32_System,
   GR32.SVG.Tree,
   GR32.SVG.Renderer,
+  GR32.Layers.SVG,
+  GR32_Layers,
   GR32_Image;
 
 type
@@ -124,7 +127,6 @@ type
     SpeedButtonBackground: TSpeedButton;
     SpeedButtonRepaint: TSpeedButton;
     SpeedButtonExternal: TSpeedButton;
-    SpeedButtonLive: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MemoSourceChange(Sender: TObject);
@@ -136,19 +138,22 @@ type
     procedure SpeedButtonBackgroundClick(Sender: TObject);
     procedure SpeedButtonRepaintClick(Sender: TObject);
     procedure SpeedButtonExternalClick(Sender: TObject);
-    procedure SpeedButtonLiveClick(Sender: TObject);
-    procedure Image32Resize(Sender: TObject);
+    procedure Image32PaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
+    procedure Image32MouseEnter(Sender: TObject);
+    procedure Image32MouseLeave(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
-    FRenderer: TSvgRenderer;
     FLockUpdate: integer;
     FIgnoreClick: boolean;
     FColorTheme: TSvgColorTheme;
     FFilename: string;
+    FLayer: TSvgLayer;
+    FRubberbandLayer: TRubberbandLayer;
+    FStopWatchLayer: TStopWatch;
+
 {$if defined(IMAGE32)}
     FImage32Panel: TImage32Panel;
 {$ifend}
-    procedure DoRender;
     procedure RenderSvg(const ASource: string);
     procedure LoadAndRenderSvg(const AFileName: string);
     procedure SplitterClicked(Sender: TObject);
@@ -157,6 +162,7 @@ type
     procedure SetColorTheme(const Value: TSvgColorTheme);
     function GetBackground: TBackgroundCheckerStyle;
     procedure SetBackground(Value: TBackgroundCheckerStyle);
+    procedure ApplyColorTheme(Renderer: TSvgRenderer);
 
     procedure SplitterMemoBeforeResize(Sender: TObject);
 {$IFNDEF FPC}
@@ -179,6 +185,8 @@ implementation
 
 uses
   IniFiles,
+  System.Types,
+  System.Math,
 {$IFNDEF FPC}
   IOUtils,
 {$ENDIF}
@@ -188,7 +196,6 @@ uses
   Img32.SVG.Core,
 {$ifend}
   GR32.Platform,
-  GR32_System,
   GR32.SVG.Types;
 
 {$R *.dfm}
@@ -201,14 +208,43 @@ type
   TControlCracker = class(TCustomControl);
 
 procedure TFormSVGviewer.FormCreate(Sender: TObject);
+var
+  i: integer;
+  Stage: PPaintStage;
 begin
   FDocNode := nil;
-  Image32.Bitmap.SetSize(600, 600, False);
-  Image32.Bitmap.Clear(clTrWhite32); // Just so we have something to look at
-  Image32.ScrollToCenter;
 
-  FRenderer := TSvgRenderer.Create(Image32.Bitmap);
-  FRenderer.OnResolveExternalFile := ResolveExternalFileHandler;
+  Image32.MouseZoom.ConstrainPivot := False;
+  // Insert a custom paint stage just before and right after the layer paint
+  // stage so we can time the rendering of the svg layer.
+  // The presence of a PST_CUSTOM stages causes the OnPaintStage event to execute.
+  for i := 0 to Image32.PaintStages.Count-1 do
+    if (Image32.PaintStages[i].Stage = PST_DRAW_LAYERS) then
+    begin
+      // Add after
+      Stage := Image32.PaintStages.Insert(i+1);
+      Stage.Stage := PST_CUSTOM;
+      Stage.Parameter := 1; // Indicate "after"
+      // Add before
+      Stage := Image32.PaintStages.Insert(i);
+      Stage.Stage := PST_CUSTOM;
+      Stage.Parameter := 0; // Indicate "before"
+      break;
+    end;
+
+  FLayer := TSvgLayer.Create(Image32.Layers);
+  FLayer.Scaled := True;
+  FLayer.MouseEvents := True;
+  FLayer.Renderer.OnResolveExternalFile := ResolveExternalFileHandler;
+
+  FRubberbandLayer := TRubberbandLayer.Create(Image32.Layers);
+  FRubberbandLayer.ChildLayer := FLayer;
+  FRubberbandLayer.Visible := False;
+  FRubberbandLayer.HandleStyle := hsCircle;
+  FRubberbandLayer.HandleSize := 5;
+  FRubberbandLayer.HandleFrameSize := 2.0;
+  FRubberbandLayer.HandleFrame := clCornFlowerBlue32;
+  FRubberbandLayer.HandleFill := clTrWhite32;
 
   TControlCracker(SplitterMemo).OnClick := SplitterClicked;
 
@@ -257,7 +293,6 @@ var
   IniFile: TIniFile;
 begin
   FDocNode.Free;
-  FRenderer.Free;
 
   IniFile := TIniFile.Create(TPath.Combine(TPath.GetDirectoryName(Application.ExeName), sIniFilename));
   try
@@ -281,42 +316,92 @@ begin
     Result := bcsNone;
 end;
 
-procedure TFormSVGviewer.Image32Resize(Sender: TObject);
-var
-  StopWatch: TStopWatch;
+procedure TFormSVGviewer.Image32MouseEnter(Sender: TObject);
 begin
-  if not SpeedButtonLive.Down then
-    exit;
+  FRubberbandLayer.Visible := FLayer.Visible;
+end;
 
-  Image32.SetupBitmap;
-  StopWatch := TStopWatch.StartNew;
-  DoRender;
-  StopWatch.Stop;
+procedure TFormSVGviewer.Image32MouseLeave(Sender: TObject);
+begin
+  FRubberbandLayer.Visible := False;
+end;
 
-  StatusBar.SimpleText := Format('Rendered in %d mS', [StopWatch.ElapsedMilliseconds]);
+procedure TFormSVGviewer.Image32PaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
+begin
+  case Image32.PaintStages[StageNum].Parameter of
+    0: // Before layer
+      FStopWatchLayer := FStopWatchLayer.StartNew;
+
+    1: // After layer
+      begin
+        if (not FStopWatchLayer.IsRunning) then
+          exit;
+        FStopWatchLayer.Stop;
+        if (FLayer <> nil) and (FLayer.Visible) then
+          StatusBar.Panels[1].Text := Format('Render: %d mS', [FStopWatchLayer.ElapsedMilliseconds]);
+      end;
+  end;
 end;
 
 procedure TFormSVGviewer.ButtonSaveClick(Sender: TObject);
 var
   Filename: string;
+  Bitmap: TBitmap32;
+  Renderer: TSvgRenderer;
+  NaturalWidth, NaturalHeight: Single;
 begin
   if (FFilename = '') then
     exit;
   Filename := TPath.ChangeExtension(FFilename, '.png');
-  Image32.Bitmap.SaveToFile(Filename);
-  StatusBar.SimpleText := 'Saved to: '+Filename;
-end;
 
-procedure TFormSVGviewer.DoRender;
-begin
-  Image32.Bitmap.Clear;
-  FRenderer.RenderDocument(FDocNode, Image32.GetBitmapRect);
+  Bitmap := TBitmap32.Create;
+  try
+    // Convert width and height presentation attributes to pixels
+    NaturalWidth := FDocNode.Width.ToPixels(600, Self.Monitor.PixelsPerInch);
+    NaturalHeight := FDocNode.Height.ToPixels(800, Self.Monitor.PixelsPerInch);
+
+    // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
+    if (NaturalWidth <= 0) then
+    begin
+      if FDocNode.ViewBox.IsValid then
+        NaturalWidth := FDocNode.ViewBox.Width
+      else
+        NaturalWidth := 600;
+    end;
+
+    if (NaturalHeight <= 0) then
+    begin
+      if FDocNode.ViewBox.IsValid then
+        NaturalHeight := FDocNode.ViewBox.Height
+      else
+        NaturalHeight := 800;
+    end;
+
+    Bitmap.SetSize(Round(NaturalWidth), Round(NaturalHeight));
+
+    Renderer := TSvgRenderer.Create;
+    try
+      Renderer.OnResolveExternalFile := ResolveExternalFileHandler;
+      ApplyColorTheme(Renderer);
+      Renderer.AllowExternalImages := FLayer.Renderer.AllowExternalImages;
+
+      Renderer.RenderDocument(Bitmap, FDocNode);
+    finally
+      Renderer.Free;
+    end;
+
+    Bitmap.SaveToFile(Filename);
+  finally
+    Bitmap.Free;
+  end;
+  StatusBar.Panels[3].Text := 'Saved to: '+Filename;
 end;
 
 procedure TFormSVGviewer.LoadAndRenderSvg(const AFileName: string);
 var
   Stream: TStringStream;
 begin
+  StatusBar.Panels[3].Text := 'Loading'; StatusBar.Update;
   Stream := TStringStream.Create('', TEncoding.UTF8);
   try
     Stream.LoadFromFile(AFileName);
@@ -449,45 +534,64 @@ var
   xmlText: UTF8String;
   ErrorMessage: string;
   StopWatch: TStopWatch;
-  TimeParse, TimeRender: Int64;
+  LayerRect, ViewportRect: TFloatRect;
   NaturalWidth, NaturalHeight: Single;
-  s: string;
+  Scale: Single;
+const
+  Margin = 8;
 begin
   Screen.Cursor := crAppStart;
   try
+    FLayer.SvgDocument := nil;
+    FLayer.Visible := False;
+    FRubberbandLayer.Visible := False;
     FreeAndNil(FDocNode);
+    MemoDump.Lines.Clear;
+    if (FLockUpdate = 0) then
+    begin
+      Inc(FLockUpdate);
+      try
+        MemoSource.Lines.Clear;
+        MemoSource2.Lines.Clear;
+      finally
+        Dec(FLockUpdate);
+      end;
+    end;
 
     xmlText := UTF8String(ASource);
 
     Image32.Scale := 1.0;
-    Image32.SetupBitmap;
-
+    // Layer scaling via TImage32.Scale (and by extension mouse zoom) doesn't work
+    // unless we have a bitmap, so create a transparent one
+    Image32.SetupBitmap(True, 0);
     Image32.ScrollToCenter;
 
-    TimeParse := 0;
-    TimeRender := 0;
+    ViewportRect := Image32.GetViewportRect;
+
+    StatusBar.Panels[0].Text := '';
+    StatusBar.Panels[1].Text := '';
+    StatusBar.Panels[2].Text := '';
+    StatusBar.Panels[3].Text := '';
+
     try
+      (*
+      ** Parse svg
+      *)
+      StatusBar.Panels[3].Text := 'Parsing'; StatusBar.Update;
       StopWatch := TStopWatch.StartNew;
-
-      FDocNode := ParseSvgXml(xmlText, ErrorMessage);
-
-      TimeParse := StopWatch.ElapsedMilliseconds;
-
-      if FDocNode = nil then
       begin
-        StatusBar.SimpleText := ErrorMessage;
 
-        Inc(FLockUpdate);
-        try
-          MemoSource.Lines.Clear;
-          MemoSource2.Lines.Clear;
-        finally
-          Dec(FLockUpdate);
-        end;
-        MemoDump.Lines.Clear;
-        Exit;
+        FDocNode := ParseSvgXml(xmlText, ErrorMessage);
+
       end;
+      StopWatch.Stop;
+      StatusBar.Panels[0].Text := Format('Parse: %d mS', [StopWatch.ElapsedMilliseconds]); StatusBar.Update;
 
+
+      (*
+      ** Display svg info
+      *)
+      // Display source
       if (FLockUpdate = 0) then
       begin
         Inc(FLockUpdate);
@@ -500,33 +604,64 @@ begin
         end;
       end;
 
-      StopWatch := TStopWatch.StartNew;
-      DoRender;
-      TimeRender := StopWatch.ElapsedMilliseconds;
+      if FDocNode = nil then
+      begin
+        StatusBar.Panels[3].Text := ErrorMessage;;
+        exit;
+      end;
 
+      // Convert width and height presentation attributes to pixels
+      NaturalWidth := FDocNode.Width.ToPixels(ViewportRect.Width, Self.Monitor.PixelsPerInch);
+      NaturalHeight := FDocNode.Height.ToPixels(ViewportRect.Height, Self.Monitor.PixelsPerInch);
+
+      // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
+      if (NaturalWidth <= 0) and FDocNode.ViewBox.IsValid then
+        NaturalWidth := FDocNode.ViewBox.Width;
+
+      if (NaturalHeight <= 0) and FDocNode.ViewBox.IsValid then
+        NaturalHeight := FDocNode.ViewBox.Height;
+
+      StatusBar.Panels[2].Text := Format('Size: %.1n x %.1n', [NaturalWidth, NaturalHeight]); StatusBar.Update;
+
+      // Dump svg AST info
+      MemoDump.Text := FDocNode.Dump;
+
+
+      (*
+      ** Setup svg layer
+      *)
+      // Scale to TImage32 viewport...
+      Scale := Min((ViewportRect.Width - Margin) / NaturalWidth, (ViewportRect.Height - Margin) / NaturalHeight);
+
+      // ...and center svg viewport in TImage32 viewport
+      LayerRect := FloatRect(0, 0, NaturalWidth * Scale, NaturalHeight * Scale);
+      GR32.OffsetRect(LayerRect, (ViewportRect.Width - LayerRect.Width) / 2, (ViewportRect.Height - LayerRect.Height) / 2);
+      FRubberbandLayer.Location := LayerRect;
+      FRubberbandLayer.Visible := True;
+
+      (*
+      ** Render svg
+      *)
+      StatusBar.Panels[3].Text := 'Rendering'; StatusBar.Update;
+      FLayer.SvgDocument := FDocNode;
+
+      // Repaint TImage32 -> render svg layer
+      FLayer.Visible := True;
+      Image32.Update;
+
+      // The render stopwatch is started when the first custom do-nothing
+      // paint stage is executed and stopped when the second executes.
+      // If the stopwatch is still running now, it means the layer render,
+      // which happens in-between, failed.
+      if (FStopWatchLayer.IsRunning) then
+        StatusBar.Panels[1].Text := 'Render: Failed';
+      FStopWatchLayer.Stop;
+
+      StatusBar.Panels[3].Text := 'Done';
     except
       on E: Exception do
-        ErrorMessage := E.Message;
+        StatusBar.Panels[3].Text := ErrorMessage;
     end;
-
-    MemoDump.Text := FDocNode.Dump;
-
-    // Convert width and height presentation attributes to pixels
-    NaturalWidth := FDocNode.Width.ToPixels(Image32.Bitmap.Width, Self.Monitor.PixelsPerInch);
-    NaturalHeight := FDocNode.Height.ToPixels(Image32.Bitmap.Height, Self.Monitor.PixelsPerInch);
-
-    // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
-    if (NaturalWidth <= 0) and FDocNode.ViewBox.IsValid then
-      NaturalWidth := FDocNode.ViewBox.Width;
-
-    if (NaturalHeight <= 0) and FDocNode.ViewBox.IsValid then
-      NaturalHeight := FDocNode.ViewBox.Height;
-
-    if (ErrorMessage <> '') then
-      s := ErrorMessage + ': '
-    else
-      s := '';
-    s := s + Format('Parsed in %d mS, Rendered in %d mS. Size: %.1n x %.1n', [TimeParse, TimeRender, NaturalWidth, NaturalHeight]);
 
 {$if defined(IMAGE32)}
     try
@@ -539,7 +674,8 @@ begin
           StopWatch := TStopWatch.StartNew;
           if (LoadFromStream(stream)) then
           begin
-            TimeParse := StopWatch.ElapsedMilliseconds;
+            var TimeParse := StopWatch.ElapsedMilliseconds;
+            var TimeRender: Int64;
 
             var r := RootElement.viewboxWH;
             FImage32Panel.Image.BeginUpdate;
@@ -554,9 +690,9 @@ begin
             finally
               FImage32Panel.Image.EndUpdate;
             end;
-            s := s + Format(' - Image32: Parsed in %d mS, Rendered in %d mS', [TimeParse, TimeRender]);
+            StatusBar.Panels[3].Text := Format('Image32: Parsed in %d mS, Rendered in %d mS', [TimeParse, TimeRender]);
           end else
-            s := s + ' - Image32: Parse failed';
+            StatusBar.Panels[3].Text := 'Image32: Parse failed';
         finally
           Free;
         end;
@@ -565,11 +701,9 @@ begin
       end;
     except
       on E: Exception do
-        s := s + Format(' - Image32: %s', [E.Message]);
+        StatusBar.Panels[3].Text := Format('Image32: %s', [E.Message]);
     end;
 {$ifend}
-
-    StatusBar.SimpleText := s;
 
   finally
     Screen.Cursor := crDefault;
@@ -614,23 +748,45 @@ begin
   Image32.ParentColor := True;
 end;
 
+procedure TFormSVGviewer.ApplyColorTheme(Renderer: TSvgRenderer);
+begin
+  // Modern/Well-authored SVGs use "currentColor".
+  // Legacy/Hard-coded single-color SVGs will have to use Theme colors.
+  case FColorTheme of
+    ctLight:
+      begin
+        Renderer.CurrentColor32 := $FF111827; // Remember to also set the Alpha
+        (*
+        FRenderer.ThemeFillColor32 := clLightGray32;
+        FRenderer.ThemeStrokeColor32 := clBlack32;
+        *)
+      end;
+
+    ctDark:
+      begin
+        Renderer.CurrentColor32 := $FFFBFAF9; // Remember to also set the Alpha
+        (*
+        FRenderer.ThemeFillColor32 := clDarkGray32;
+        FRenderer.ThemeStrokeColor32 := clWhite32;
+        *)
+      end;
+  else
+    Renderer.ClearThemeColors;
+  end;
+end;
+
 procedure TFormSVGviewer.SetColorTheme(const Value: TSvgColorTheme);
 begin
   FColorTheme := Value;
 
   SpeedButtonTheme.Hint := Format('Color theme: %s', [sColorThemes[FColorTheme]]);
 
-  // Modern/Well-authored SVGs use "currentColor".
-  // Legacy/Hard-coded single-color SVGs will have to use Theme colors.
+  ApplyColorTheme(FLayer.Renderer);
+
   case FColorTheme of
     ctLight:
       begin
         // Dark features...
-        FRenderer.CurrentColor32 := $FF111827; // Remember to also set the Alpha
-        (*
-        FRenderer.ThemeFillColor32 := clLightGray32;
-        FRenderer.ThemeStrokeColor32 := clBlack32;
-        *)
         // ...on light background
         Image32.Color := $E1FFD7;
         Image32.Background.CheckersStyle := bcsNone;
@@ -641,11 +797,6 @@ begin
     ctDark:
       begin
         // Light features...
-        FRenderer.CurrentColor32 := $FFFBFAF9; // Remember to also set the Alpha
-        (*
-        FRenderer.ThemeFillColor32 := clDarkGray32;
-        FRenderer.ThemeStrokeColor32 := clWhite32;
-        *)
         // ...on dark background
         Image32.Color := $6A2B00;
         Image32.Background.CheckersStyle := bcsNone;
@@ -653,12 +804,11 @@ begin
         SpeedButtonBackground.Enabled := False;
       end;
   else
-    FRenderer.ClearThemeColors;
     SetBackground(bcsLight);
     SpeedButtonBackground.Enabled := True;
   end;
 
-  DoRender;
+  FLayer.Update;
 end;
 
 procedure TFormSVGviewer.SpeedButtonBackgroundClick(Sender: TObject);
@@ -671,13 +821,7 @@ end;
 
 procedure TFormSVGviewer.SpeedButtonExternalClick(Sender: TObject);
 begin
-  FRenderer.AllowExternalImages := TSpeedButton(Sender).Down;
-end;
-
-procedure TFormSVGviewer.SpeedButtonLiveClick(Sender: TObject);
-begin
-  if TSpeedButton(Sender).Down then
-    Image32Resize(nil);
+  FLayer.Renderer.AllowExternalImages := TSpeedButton(Sender).Down;
 end;
 
 procedure TFormSVGviewer.SpeedButtonRepaintClick(Sender: TObject);
@@ -689,7 +833,6 @@ procedure TFormSVGviewer.SpeedButtonThemeClick(Sender: TObject);
 begin
   TSpeedButton(Sender).ImageIndex := (TSpeedButton(Sender).ImageIndex + 1) mod (Ord(High(FColorTheme)) + 1);
   ColorTheme := TSvgColorTheme(TSpeedButton(Sender).ImageIndex);
-  DoRender;
 end;
 
 procedure TFormSVGviewer.SplitterClicked(Sender: TObject);

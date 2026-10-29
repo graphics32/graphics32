@@ -543,9 +543,11 @@ type
     procedure Skew(Fx, Fy: TFloat);
     procedure Scale(Sx, Sy: TFloat); overload;
     procedure Scale(Value: TFloat); overload;
+    procedure Invert;
     function TransformPoint(const P: TFloatPoint): TFloatPoint;
     function IsIdentity: boolean;
     function IsAxisAligned: boolean;
+    function Determinant: TFloat;
     function GetScale: Single;
     function GetScaleX: Single; // Axis aligned X scale
     function GetScaleY: Single; // Axis aligned Y scale
@@ -1983,6 +1985,11 @@ begin
   Result.Matrix := Mult(Right, Left.Matrix);
 end;
 
+function TFloatMatrixHelper.Determinant: TFloat;
+begin
+  Result := GR32_Transforms.Determinant(Matrix);
+end;
+
 function TFloatMatrixHelper.GetScale: Single;
 var
   Det: Single;
@@ -2006,6 +2013,11 @@ end;
 function TFloatMatrixHelper.GetScaleY: Single;
 begin
   Result := Matrix[1, 1];
+end;
+
+procedure TFloatMatrixHelper.Invert;
+begin
+  GR32_Transforms.Invert(Matrix);
 end;
 
 function TFloatMatrixHelper.IsAxisAligned: boolean;

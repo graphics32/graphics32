@@ -236,6 +236,8 @@ type
     procedure RenderNode(ATarget: TCustomBitmap32; ANode: TSvgNode); overload;
     procedure RenderNode(ANode: TSvgNode); overload;
 
+    function GetDocumentBounds(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect): TFloatRect;
+
     property Target: TCustomBitmap32 read FTarget write FTarget;
     property Transformation: TAffineTransformation read GetTransformation;
     property ViewportRect: TFloatRect read FViewportRect write FViewportRect;
@@ -588,9 +590,7 @@ procedure TSvgRenderer.Transform(Dst, Src: TCustomBitmap32; Transformation: TTra
 var
   DstRect: TRect;
 begin
-  GR32.IntersectRect(DstRect, DstClip, Dst.ClipRect);
-
-  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
+  if (not GR32.IntersectRect(DstRect, DstClip, Dst.ClipRect)) then
     Exit;
 
   if (FTransformer = nil) then
@@ -1328,11 +1328,12 @@ begin
     GR32.InflateRect(FloatRoi, MaxStrokeExtent, MaxStrokeExtent);
   end;
 
-  RoiRect := MakeRect(FloatRoi, rrOutside);
-
-  // Skip off-screen geometry if calculated ROI doesn't intersect with target canvas bounds.
-  if not GR32.IntersectRect(RoiRect, ATarget.BoundsRect) then
+  // Intersect FloatRoi with ATarget.ClipRect so offscreen surface allocations remain bounded strictly 
+  // to the visible target viewport instead of allocating huge buffers when zoomed in.
+  if not GR32.IntersectRect(FloatRoi, FloatRoi, FloatRect(ATarget.ClipRect)) then
     Exit;
+
+  RoiRect := MakeRect(FloatRoi, rrOutside);
 
   (*
   ** 5. Check whether offscreen bitmap compositing is required (opacity, clip-path, mask, blend-mode)
@@ -1412,6 +1413,8 @@ begin
       if NeedsOffscreen then
       begin
         FTransformation.Push;
+        Inc(FOffscreenOffset.X, RoiRect.Left);
+        Inc(FOffscreenOffset.Y, RoiRect.Top);
         FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
       end;
       try
@@ -1427,7 +1430,11 @@ begin
           RenderPolyPolygon(RenderBmp, APathNode.Stroke.ResolvedPaintServer, APathNode.Stroke.Opacity, StrokeColor, StrokePoints);
       finally
         if NeedsOffscreen then
+        begin
+          Dec(FOffscreenOffset.X, RoiRect.Left);
+          Dec(FOffscreenOffset.Y, RoiRect.Top);
           FTransformation.Pop;
+        end;
       end;
     end;
 
@@ -1988,10 +1995,13 @@ begin
     end;
   end;
 
-  // Convert world target bounds to integer pixel ROI.
-  GroupRoi := MakeRect(TargetWorldBounds, rrOutside);
-  if not GR32.IntersectRect(GroupRoi, ATarget.BoundsRect) then
+  // Intersect TargetWorldBounds with ATarget.ClipRect so offscreen surface allocations
+  // remain bounded strictly to the visible target viewport instead of allocating huge 
+  // buffers when zoomed in.
+  if not GR32.IntersectRect(TargetWorldBounds, TargetWorldBounds, FloatRect(ATarget.ClipRect)) then
     exit;
+
+  GroupRoi := MakeRect(TargetWorldBounds, rrOutside);
 
   // Acquire reusable offscreen surface sized strictly to the calculated ROI
   OffscreenBmp := GetOffscreenBitmap(GroupRoi.Width, GroupRoi.Height, True);
@@ -2078,9 +2088,10 @@ var
   FilterNode: TSvgFilterPrimitiveNode;
   FilterRenderer: TFilterRendererClass;
   PrimRect: TFloatRect;
-  SpecifiedROI, SaveTargetClipRect, DestClip: TRect;
+  SpecifiedROI, SaveTargetClipRect, DestClip, LocalClipRect: TRect;
   IsAxisAligned: Boolean;
   TotalMat, CompositeMat: TFloatMatrixHelper;
+  InvMat: TFloatMatrix;
   S_local, OneOverS_local: Single;
   AffineTransform: TAffineTransformation;
   DestBounds: TFloatRect;
@@ -2323,6 +2334,40 @@ begin
     if (FilterBounds.IsEmpty) then
       Exit;
 
+    // Clip FilterBounds to visible viewport ATarget.ClipRect (both axis-aligned and non-axis-aligned)
+    // to bound offscreen surface allocations (FilterContext.ROI) strictly to the visible area.
+    if IsAxisAligned then
+    begin
+      if not GR32.IntersectRect(FilterBounds, FilterBounds, FloatRect(ATarget.ClipRect)) then
+        Exit;
+    end else
+    begin
+      // For non-axis-aligned filters (e.g. rotate/skew), transform ATarget.ClipRect from screen space
+      // back into local filter user space (where FTransformation = Scale(S_local, S_local)) and clip FilterBounds.
+      CompositeMat.Matrix := IdentityMatrix;
+      CompositeMat.Scale(OneOverS_local, OneOverS_local);
+      CompositeMat := CompositeMat * TotalMat;
+
+      if CompositeMat.Determinant <> 0 then
+      begin
+        InvMat := CompositeMat.Matrix;
+        GR32_Transforms.Invert(InvMat);
+
+        AffineTransform := TAffineTransformation.Create;
+        try
+          AffineTransform.Clear(InvMat);
+          DestBounds := AffineTransform.GetTransformedBounds(FloatRect(ATarget.ClipRect));
+          if not GR32.IntersectRect(FilterBounds, FilterBounds, DestBounds) then
+            Exit;
+        finally
+          AffineTransform.Free;
+        end;
+      end;
+    end;
+
+    if (FilterBounds.IsEmpty) then
+      Exit;
+
     FilterContext.ROI := MakeRect(FilterBounds, rrOutside);
 
     // Protect against too large subregions -> Exception when allocating surface bitmaps
@@ -2330,34 +2375,10 @@ begin
       exit;
 
     // Verify whether the filter ROI is visible on screen before surface allocation.
-    // Note: We use the non-mutating IntersectRect so FilterContext.ROI retains its full
-    // offscreen pixel dimensions and coordinate origin instead of being truncated/shifted.
     if IsAxisAligned then
     begin
-      // For axis-aligned filters, FilterContext.ROI is directly in target screen pixel space.
-      if not GR32.IntersectRect(FilterContext.ROI, ATarget.BoundsRect) then
+      if not GR32.IntersectRect(FilterContext.ROI, FilterContext.ROI, ATarget.ClipRect) then
         Exit;
-    end else
-    begin
-      // For non-axis-aligned filters (e.g. skew/rotation), FilterContext.ROI is in local
-      // user space (scaled by S_local). Transform local surface bounds to target screen
-      // space to check overlap.
-      CompositeMat.Matrix := IdentityMatrix;
-      CompositeMat.Translate(FilterContext.ROI.Left, FilterContext.ROI.Top);
-      CompositeMat.Scale(OneOverS_local, OneOverS_local);
-      CompositeMat := CompositeMat * TotalMat;
-
-      AffineTransform := TAffineTransformation.Create;
-      try
-        AffineTransform.Clear(CompositeMat.Matrix);
-        DestBounds := AffineTransform.GetTransformedBounds(FloatRect(0, 0, FilterContext.ROI.Width, FilterContext.ROI.Height));
-        DestClip := MakeRect(DestBounds, rrOutside);
-
-        if not GR32.IntersectRect(DestClip, ATarget.BoundsRect) then
-          Exit;
-      finally
-        AffineTransform.Free;
-      end;
     end;
 
     // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions in full screen resolution
@@ -2367,14 +2388,19 @@ begin
       // Render element into SourceGraphic in ROI coordinate space.
       // Track FFilteredNode := ANode so child rendering methods bypass ANode's own
       // clip-path, mask, opacity, and mix-blend-mode when generating SourceGraphic.
+      // Track FOffscreenOffset so child elements, gradients, and patterns map to the clipped surface.
       FTransformation.Push;
       SavedFilteredNode := FFilteredNode;
       FFilteredNode := ANode;
+      Inc(FOffscreenOffset.X, FilterContext.ROI.Left);
+      Inc(FOffscreenOffset.Y, FilterContext.ROI.Top);
       try
         FTransformation.Translate(-FilterContext.ROI.Left, -FilterContext.ROI.Top);
 
         RenderNodeContent(FilterContext.SourceGraphic.Bitmap, ANode);
       finally
+        Dec(FOffscreenOffset.X, FilterContext.ROI.Left);
+        Dec(FOffscreenOffset.Y, FilterContext.ROI.Top);
         FFilteredNode := SavedFilteredNode;
         FTransformation.Pop;
       end;
@@ -2536,13 +2562,31 @@ begin
             FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
           end;
 
+          // Clip FilterContext.CurrentSubregion to the visible target clip rect mapped to local ROI space,
+          // ensuring offscreen surface bitmap allocations in filter primitive renderers (e.g. feFlood, feGaussianBlur)
+          // remain small and bounded strictly to the visible canvas area when zoomed in.
+          if IsAxisAligned then
+          begin
+            LocalClipRect := ATarget.ClipRect;
+            GR32.OffsetRect(LocalClipRect, -FilterContext.ROI.Left, -FilterContext.ROI.Top);
+            if not GR32.IntersectRect(FilterContext.CurrentSubregion, FilterContext.CurrentSubregion, LocalClipRect) then
+              FilterContext.CurrentSubregion := Default(TRect);
+          end else
+          begin
+            // For non-axis-aligned filters (e.g. rotated elements), FilterContext.ROI is in local user space.
+            // Intersect CurrentSubregion with local surface bounds (0, 0, ROI.Width, ROI.Height) so subregion
+            // allocations remain strictly bounded to the local surface size.
+            if not GR32.IntersectRect(FilterContext.CurrentSubregion, FilterContext.CurrentSubregion, Rect(0, 0, FilterContext.ROI.Width, FilterContext.ROI.Height)) then
+              FilterContext.CurrentSubregion := Default(TRect);
+          end;
 
           (*
           ** Render the filter
           *)
-          // Protect against too large subregions -> Exception when allocating surface bitmaps
-          if (Int64(FilterContext.CurrentSubregion.Width) * Int64(FilterContext.CurrentSubregion.Height) <= TCustomBitmap32.MaxPixelCount) then
+          if (not FilterContext.CurrentSubregion.IsEmpty) and
+             (Int64(FilterContext.CurrentSubregion.Width) * Int64(FilterContext.CurrentSubregion.Height) <= TCustomBitmap32.MaxPixelCount) then
           begin
+
             FilterRenderer.Render(Self, FilterNode, FilterContext);
 
           end;
@@ -4154,9 +4198,10 @@ begin
           end;
         end;
 
-        NodeRoi := MakeRect(TargetWorldBounds, rrOutside);
-        if not GR32.IntersectRect(NodeRoi, ATarget.BoundsRect) then
+        if not GR32.IntersectRect(TargetWorldBounds, TargetWorldBounds, FloatRect(ATarget.ClipRect)) then
           Exit;
+
+        NodeRoi := MakeRect(TargetWorldBounds, rrOutside);
 
         OffscreenBmp := GetOffscreenBitmap(NodeRoi.Width, NodeRoi.Height, True);
         try
@@ -4206,6 +4251,63 @@ end;
 procedure TSvgRenderer.RenderNode(ANode: TSvgNode);
 begin
   RenderNode(FTarget, ANode);
+end;
+
+function TSvgRenderer.GetDocumentBounds(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect): TFloatRect;
+var
+  vpMat: TFloatMatrix;
+  viewBox: TSvgViewBox;
+  docW, docH: Single;
+  Aspect: TSvgPreserveAspectRatio;
+  UserVisualBounds, RenderedBounds, ClippedRenderedBounds: TFloatRect;
+begin
+  if (ADoc = nil) then
+    Exit(FloatRect(0, 0, 0, 0));
+
+  if FOverridePreserveAspectRatio then
+    Aspect := FPreserveAspectRatioOverride
+  else
+    Aspect := ADoc.PreserveAspectRatio;
+
+  docW := ADoc.GetSizePx(ADoc.Width, ATargetRect.Width);
+  docH := ADoc.GetSizePx(ADoc.Height, ATargetRect.Height);
+
+  viewBox := ADoc.ViewBox;
+  if not viewBox.IsValid then
+  begin
+    if (docW > 0) and (docH > 0) then
+      viewBox := TSvgViewBox.Create(0, 0, docW, docH)
+    else if FTarget <> nil then
+      viewBox := TSvgViewBox.Create(0, 0, FTarget.Width, FTarget.Height)
+    else
+      viewBox := TSvgViewBox.Create(0, 0, ATargetRect.Width, ATargetRect.Height);
+  end;
+
+  // 1. Calculate actual visual geometry bounds in user space
+  UserVisualBounds := ADoc.GetVisualBoundingBox(FloatRect(viewBox.X, viewBox.Y, viewBox.X + viewBox.Width, viewBox.Y + viewBox.Height));
+
+  // 2. Compute viewBox-to-target transform matrix
+  vpMat := viewBox.GetTransform(ATargetRect, Aspect);
+
+  // 3. Transform user space visual bounds to target screen space
+  FTransformation.Push;
+  try
+    FTransformation.Clear(VpMat);
+    RenderedBounds := FTransformation.GetTransformedBounds(UserVisualBounds);
+  finally
+    FTransformation.Pop;
+  end;
+
+  // 4. If overflow <> ofVisible, clip rendered bounds to ATargetRect
+  if (ADoc.Overflow <> ofVisible) then
+  begin
+    if GR32.IntersectRect(ClippedRenderedBounds, RenderedBounds, ATargetRect) then
+      RenderedBounds := ClippedRenderedBounds
+    else
+      RenderedBounds := ATargetRect;
+  end;
+
+  Result := RenderedBounds;
 end;
 
 procedure TSvgRenderer.RenderDocument(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect);

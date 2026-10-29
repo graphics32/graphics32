@@ -2825,13 +2825,24 @@ end;
 
 function TSvgNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
 var
-  BBoxWidth, BBoxHeight: Single;
+  BBoxWidth, BBoxHeight, HalfStroke: Single;
 begin
   // Calculates the visual bounding box of the node in local untransformed coordinates.
-  // Unlike GetObjectBoundingBox (which returns raw fill/stroke geometry bounds),
-  // GetVisualBoundingBox expands the node's bounding box to account for its filter region
-  // (per W3C SVG 1.1 §15.5) so that group containers allocate sufficiently sized offscreen surfaces.
+  // Unlike GetObjectBoundingBox (which returns raw fill geometry bounds),
+  // GetVisualBoundingBox expands the node's bounding box to account for stroke width
+  // and filter region expansions (per W3C SVG 1.1 §15.5).
   Result := GetObjectBoundingBox(AViewport);
+
+  if not Result.IsEmpty then
+  begin
+    if (not FStroke.Color.IsNone) and (FStroke.Width.Value > 0) then
+    begin
+      HalfStroke := GetSizePx(FStroke.Width, AViewport) * 0.5;
+      if FStroke.JoinStyle = jsMiter then
+        HalfStroke := HalfStroke * Max(1.0, FStroke.MiterLimit);
+      GR32.InflateRect(Result, HalfStroke, HalfStroke);
+    end;
+  end;
 
   if (ResolvedFilter = nil) then
     exit;
@@ -7012,15 +7023,7 @@ begin
 
             pckEllipticalArc:
               begin
-               ExpandPt(Cmd.Arc.EndPoint);
-                // Expand by arc radii bounds
-                if not First then
-                begin
-                  Result.Left := Min(Result.Left, Cmd.Arc.EndPoint.X - Cmd.Arc.RadiusX);
-                  Result.Right := Max(Result.Right, Cmd.Arc.EndPoint.X + Cmd.Arc.RadiusX);
-                  Result.Top := Min(Result.Top, Cmd.Arc.EndPoint.Y - Cmd.Arc.RadiusY);
-                  Result.Bottom := Max(Result.Bottom, Cmd.Arc.EndPoint.Y + Cmd.Arc.RadiusY);
-                end;
+                ExpandPt(Cmd.Arc.EndPoint);
               end;
 
             pckCurveTo:
