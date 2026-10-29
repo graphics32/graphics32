@@ -64,18 +64,24 @@ uses
   GR32.SVG.Types,
   GR32.SVG.Tree;
 
+//------------------------------------------------------------------------------
+//
+//      TMapPool<T>
+//
+//------------------------------------------------------------------------------
+// Manages a pool of TCustomMap objects.
+//------------------------------------------------------------------------------
 type
-  { TSvgBitmapPool: Reusable pool of intermediate TBitmap32 offscreen surfaces to eliminate
-    frequent heap allocations/deallocations during nested group opacity, clip path, and mask compositing. }
   TMapPool<T: TCustomMap; TElement> = class abstract(TObject)
   private
-    FPool: TObjectList<T>;
+    FPool: TObjectList<T>; // List of maps ordered by byte size. Smallest first.
     FMaxSize: Int64;
     FPoolSize: Int64;
   protected
     function CreateNewMap: T; virtual; abstract;
     procedure PrepareMap(Map: T); virtual;
     function CandidateWouldReallocate(Candidate: T; TargetSize: Int64): boolean; virtual;
+    procedure PurgeFromPool(Index: integer);
   public
     constructor Create(AMaxSize: Int64 = 0);
     destructor Destroy; override;
@@ -86,6 +92,17 @@ type
     property PoolSize: Int64 read FPoolSize;
   end;
 
+//------------------------------------------------------------------------------
+//
+//      TSvgBitmapPool
+//
+//------------------------------------------------------------------------------
+// Reusable pool of intermediate TCustomBitmap32 offscreen surfaces to eliminate
+// frequent heap allocations/deallocations during nested group opacity, clip
+// path, and mask compositing.
+// All bitmaps use the TMemoryBackend backend.
+//------------------------------------------------------------------------------
+type
   TSvgBitmapPool = class(TMapPool<TCustomBitmap32, TColor32>)
   private
     FBitmapMaxOversize: NativeInt;
@@ -98,6 +115,15 @@ type
     property BitmapMaxOversize: NativeInt read FBitmapMaxOversize write FBitmapMaxOversize;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPatternPolygonFiller
+//
+//------------------------------------------------------------------------------
+// Tiling bitmap polygon filler with transformation support.
+//------------------------------------------------------------------------------
+type
   TSvgPatternPolygonFiller = class(TBitmapPolygonFiller)
   private
     FPatternBmp: TBitmap32;
@@ -131,6 +157,13 @@ type
     property ScaleBmpY: Single read FScaleBmpY write FScaleBmpY;
   end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgRenderer
+//
+//------------------------------------------------------------------------------
+type
   TFontInfo = record
     FontFamily: UTF8String;
     Style: TFontStyles;
@@ -829,6 +862,7 @@ var
   LowIdx, HighIdx, MidIdx, CandidateIdx: Integer;
   TargetSize, CandidateSize: Int64;
   Candidate: T;
+  i: integer;
 begin
   // Binary search the pool for candidate surface with existing buffer size (in
   // bytes) sufficient for requested bounds, in order to avoid costly buffer
@@ -869,7 +903,34 @@ begin
     Result := CreateNewMap;
     try
 
-      Result.SetSize(AWidth, AHeight, AClear);
+      while True do
+      begin
+        try
+
+          Result.SetSize(AWidth, AHeight, AClear);
+          break;
+
+        except
+          on E: EOutOfMemory do
+          begin
+            // Try to recover from out-of-memory by freeing items from the pool.
+            // Note that this might fail, even though there is available memory,
+            // due to memory fragmentation.
+            // We don't worry about performance here. We just try to survive.
+            if (FPool.IsEmpty) then
+              raise;
+            // Delete the last (i.e. largest) item
+            PurgeFromPool(FPool.Count-1);
+            // And delete a few items from the start (i.e. the smallest)
+            i := 16;
+            while (not FPool.IsEmpty) and (i > 0) do
+            begin
+              PurgeFromPool(0);
+              Dec(i);
+            end;
+          end;
+        end;
+      end;
 
     except
       // SetSize might bomb on out-of-memory or too large bitmap
@@ -909,6 +970,12 @@ procedure TMapPool<T, TElement>.PrepareMap(Map: T);
 begin
 end;
 
+procedure TMapPool<T, TElement>.PurgeFromPool(Index: integer);
+begin
+  Dec(FPoolSize, FPool[Index].ByteCount);
+  FPool.Delete(Index);
+end;
+
 procedure TMapPool<T, TElement>.Release(Map: T);
 {$if defined(SVG32_CACHE_BITMAPS)}
 var
@@ -933,7 +1000,7 @@ begin
       Map.Free;
       exit;
     end else
-      FPool.Delete(FPool.Count-1);
+      PurgeFromPool(FPool.Count-1);
     // Fall though to insert in pool
   end;
 
