@@ -897,10 +897,9 @@ begin
     Exit;
   end;
 
-  if Src <> Dst then
-    Src.CopyMapTo(Dst);
+  Dst.SetSize(Src.Width, Src.Height, False);
 
-  Premultiply32(Dst);
+  PremultiplyLine(PColor32(Src.Bits), PColor32(Dst.Bits), Src.PixelCount);
   DraftBlur32(Dst, Dst, Radius);
   Unpremultiply32(Dst);
 end;
@@ -924,10 +923,9 @@ begin
     Exit;
   end;
 
-  if Src <> Dst then
-    Src.CopyMapTo(Dst);
+  Dst.SetSize(Src.Width, Src.Height, False);
 
-  Premultiply32(Dst);
+  PremultiplyLine(PColor32(Src.Bits), PColor32(Dst.Bits), Src.PixelCount);
   DraftHorizontalBlur32(Dst, Dst, Radius);
   Unpremultiply32(Dst);
 end;
