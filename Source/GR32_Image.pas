@@ -469,6 +469,7 @@ type
     FZoomFactor: Double;
     FShiftState: TMouseShiftState;
     FAnimate: boolean;
+    FConstrainPivot: boolean;
   protected
     procedure SetMaxScale(const Value: Single);
     procedure SetMinScale(const Value: Single);
@@ -490,6 +491,7 @@ type
     property Invert: boolean read FInvert write FInvert default False;
     property ShiftState: TMouseShiftState read FShiftState write FShiftState default [];
     property MaintainPivot: boolean read FMaintainPivot write FMaintainPivot default True;
+    property ConstrainPivot: boolean read FConstrainPivot write FConstrainPivot default True;
     property MinScale: Single read FMinScale write SetMinScale stored IsMinScaleStored;
     property MaxScale: Single read FMaxScale write SetMaxScale stored IsMaxScaleStored;
     property Steps: integer read FSteps write SetSteps default 12;
@@ -2580,9 +2582,19 @@ begin
 
     r := GetBitmapRect;
 
-    // Constrain pivot to bitmap rect
-    Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
-    Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+    // If ConstrainPivot is True AND Bitmap is not empty, constrain the pivot to
+    // the bitmap bounds. Otherwise (when ConstrainPivot is False OR Bitmap is
+    // empty), compute pivot relative to bitmap/view origin without clamping,
+    // enabling mouse zoom over layers without requiring a background bitmap.
+    if FMouseZoomOptions.ConstrainPivot and (not Bitmap.Empty) then
+    begin
+      Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
+      Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+    end else
+    begin
+      Pivot.X := MousePos.X;
+      Pivot.Y := MousePos.Y;
+    end;
 
     // Transform coordinates from Control to Bitmap
     Pivot.X := (Pivot.X - r.Left) / ScaleX;
@@ -5126,6 +5138,7 @@ begin
   FMinScale := 0.0625;
   FMaxScale := 128.0;
   FMaintainPivot := True;
+  FConstrainPivot := True;
   UpdateZoomFactor;
 end;
 
