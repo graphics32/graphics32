@@ -195,9 +195,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         centerPixel := bmp.Pixel[50, 50];
         CheckEquals(clRed32, centerPixel, 'Center pixel should be red');
         CheckEquals(clWhite32, bmp.Pixel[5, 5], 'Top-left pixel should be white');
@@ -219,9 +219,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'tspan inside textPath docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Verify that red pixels exist above the baseline (y < 90) for tspan dy="-30" fill="red"
         RedCount := 0;
@@ -252,9 +252,9 @@ begin
       bmp.SetSize(Ceil(docNode.Width.ToPixels), Ceil(docNode.Height.ToPixels));
       bmp.Clear(clWhite32);
 
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         expectedRangeCount := 0;
         doubleTransformedRangeCount := 0;
@@ -294,9 +294,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode for scaled marker test should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Mid-vertex at (29,50) in 100x100 viewBox maps to (145,250) on 500x500 canvas.
         CheckEquals(clRed32, bmp.Pixel[145, 250], 'Marker center at (145,250) should be rendered red');
@@ -340,11 +340,11 @@ begin
     Check(docNode <> nil, 'FOMTest docNode should not be nil');
     try
       docNode.Resolve;
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
         bmp.SetSize(480, 360);
         bmp.Clear(clWhite32);
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Outside filter region at (50, 50) should remain pure white
         CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Pixel outside filter region at (50, 50) should remain white');
@@ -400,10 +400,10 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
         bmp.Clear(clWhite32);
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Check FillPaint offset (+20, +20) at (160, 160) -> should render red fill paint
         CheckEquals(clRed32, bmp.Pixel[160, 160], 'Shifted FillPaint region at (160, 160) should render red');
@@ -449,9 +449,9 @@ begin
     Check(docNode <> nil, 'feTileFilter docNode should not be nil');
     try
       docNode.Resolve;
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Outside filter region at (50, 20) should remain black
         CheckEquals(clBlack32, bmp.Pixel[50, 20], 'Pixel outside filter region at (50, 20) should remain black');
@@ -499,9 +499,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'TextArea docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         // Background at (0,0) must remain white
         CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Background at (0,0) should remain white');
       finally
@@ -536,9 +536,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center inside rect (100, 100) should be seagreen
         Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect should be painted');
@@ -568,9 +568,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Rotated rect docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Rotated rect region in world space around (116, 50) should be painted
         Check(bmp.Pixel[116, 50] <> clWhite32, 'Rotated rect body region should be painted');
@@ -594,9 +594,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Vertical blur docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Vertical blur expansion at y=30, x=100 (above rect y=40) should contain green channel
         Check(bmp.Pixel[100, 30] <> clWhite32, 'Vertical blur should expand above rect at y=30');
@@ -638,9 +638,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Pattern docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center of rectangle filled with pattern should be painted
         Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect filled with pattern should be painted');
@@ -688,9 +688,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Transformed filter docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center of rect translated to (100, 100) + (25, 25) = (125, 125) should be red
         CheckEquals(clRed32, bmp.Pixel[125, 125], 'Center of transformed filtered rect should be red');
@@ -737,9 +737,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Transformed filter tile docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Count seagreen pixels rendered on canvas from the transformed tiled filter
         nonWhitePixels := 0;
@@ -785,9 +785,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Pattern docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Rect center region should be painted with pattern colors, NOT plain white
         Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of rect filled with pattern should be painted');
@@ -834,9 +834,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         pxGrad := bmp.Pixel[50, 50];
         pxPatt := bmp.Pixel[150, 50];
         // On white canvas, black at 0.5 opacity blends to approx 128 gray
@@ -880,9 +880,9 @@ begin
       // 1. Square target canvas (200x200)
       bmp.SetSize(200, 200);
       bmp.Clear(clWhite32);
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clGreen32, bmp.Pixel[100, 100], 'Center (100,100) inside square canvas objectBoundingBox clipPath must be green');
         CheckEquals(clGreen32, bmp.Pixel[50, 50], 'Top-left (50,50) inside square canvas objectBoundingBox clipPath must be green');
       finally
@@ -892,9 +892,9 @@ begin
       // 2. Resized non-square target canvas (400x200) - viewBox 200x200 scaled with xMidYMid meet alignment
       bmp.SetSize(400, 200);
       bmp.Clear(clWhite32);
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clGreen32, bmp.Pixel[200, 100], 'Center (200,100) inside resized non-square canvas objectBoundingBox clipPath must be green');
         CheckEquals(clGreen32, bmp.Pixel[150, 50], 'Top-left (150,50) inside resized non-square canvas objectBoundingBox clipPath must be green');
       finally
@@ -933,9 +933,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clGreen32, bmp.Pixel[100, 30], 'Star arm point should be clipped inside (green)');
         CheckEquals(clWhite32, bmp.Pixel[100, 100], 'Center pentagon hole with evenodd clip-rule should be outside (white)');
       finally
@@ -973,9 +973,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clGreen32, bmp.Pixel[25, 50], 'Clipped region inside direct rect should be green');
         CheckEquals(clWhite32, bmp.Pixel[75, 50], 'Clipped region outside direct rect should be white');
       finally
@@ -1017,9 +1017,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Inkscape gradient docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Rect should be painted with gradient colors, NOT opaque black
         Check(bmp.Pixel[200, 100] <> clBlack32, 'Center of rect with Inkscape url(#id) rgb(...) should be painted with gradient, not solid black');
@@ -1060,9 +1060,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Pattern with default child fill docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Pattern fill check on the left circle (cx=60, cy=50)
         Check(bmp.Pixel[60, 50] <> clWhite32, 'Center region of left circle should be painted by pattern fill');
@@ -1101,9 +1101,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Rotated text docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         nonWhiteCount := 0;
         for y := 0 to 199 do
@@ -1148,9 +1148,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         pxTextOpacity := clWhite32;
         pxPathOpacity := clWhite32;
@@ -1260,9 +1260,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'TextPath docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         nonWhiteCount := 0;
         for y := 0 to 199 do
@@ -1289,9 +1289,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Out of bounds textPath docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         nonWhiteCount := 0;
         for y := 0 to 199 do
           for x := 0 to 199 do
@@ -1353,11 +1353,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(480, 360);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Left circle center at x=150+0.3*200 = 210, y=0+0.5*200 = 100 should be painted darkblue
     CheckEquals(clDarkBlue32, bmp.Pixel[210, 100], 'Left circle inside clip-path with fill="none" should render darkblue');
@@ -1403,9 +1403,9 @@ begin
       bmp.SetSize(100, 100);
       bmp.Clear(clBlack32);
 
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+        renderer.RenderDocument(bmp, docNode, FloatRect(0, 0, 100, 100));
 
         pixelColor := bmp.Pixel[50, 50];
         Check(TColor32Entry(pixelColor).A = 255, 'feDiffuseLighting output alpha must be 255 (opaque)');
@@ -1449,9 +1449,9 @@ begin
       bmp.SetSize(100, 100);
       bmp.Clear(clBlack32);
 
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+        renderer.RenderDocument(bmp, docNode, FloatRect(0, 0, 100, 100));
 
         pixelColor := bmp.Pixel[50, 50];
         Check(TColor32Entry(pixelColor).R > 0, 'feSpecularLighting center highlight red channel should be non-zero');
@@ -1496,9 +1496,9 @@ begin
       bmp.SetSize(200, 200);
       bmp.Clear(clBlack32);
 
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode, FloatRect(0, 0, 200, 200));
+        renderer.RenderDocument(bmp, docNode, FloatRect(0, 0, 200, 200));
 
         FillChar(colorSeen, SizeOf(colorSeen), 0);
         for y := 0 to 199 do
@@ -1545,9 +1545,9 @@ begin
       bmp.SetSize(100, 100);
       bmp.Clear(clBlack32);
 
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+        renderer.RenderDocument(bmp, docNode, FloatRect(0, 0, 100, 100));
 
         // For elevation=270 deg, light direction vector L = (0, 0, -1).
         // Eye vector E = (0, 0, 1).
@@ -1606,7 +1606,7 @@ begin
   bmp1 := TBitmap32.Create;
   bmp2 := TBitmap32.Create;
   bmp3 := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp1);
+  renderer := TSvgRenderer.Create;
   try
     bmp1.SetSize(40, 40);
     bmp1.Clear(0);
@@ -1625,7 +1625,6 @@ begin
     Check(HasNonZero, 'feDisplacementMap should produce non-zero pixels');
 
     // Render rect with scale=0
-    renderer.Target := bmp2;
     bmp2.SetSize(40, 40);
     bmp2.Clear(0);
     renderer.RenderNode(bmp2, docNode.FindNodeById('r_zero'));
@@ -1634,7 +1633,6 @@ begin
     CheckEquals(clRed32, bmp2.Pixel[20, 20], 'Zero scale center pixel should be red');
 
     // Render rect with constant map displacement (R=255 => Dx=+5, G=128 => Dy=0)
-    renderer.Target := bmp3;
     bmp3.SetSize(40, 40);
     bmp3.Clear(0);
     renderer.RenderNode(bmp3, docNode.FindNodeById('r_const'));
@@ -1676,9 +1674,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     // (35, 35) was originally outside the square (40,40..60,60), but with dilate radius=10 it becomes white.
     CheckEquals(clWhite32, bmp.Pixel[35, 35], 'Dilate filter should expand white square to include (35,35)');
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of dilated square should remain white');
@@ -1704,9 +1702,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     // (35, 35) was inside the original 40x40 square (30,30..70,70), but after erosion radius=10 it becomes black/transparent.
     CheckEquals(clBlack32, bmp.Pixel[35, 35], 'Erode filter should shrink white square away from (35,35)');
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of eroded square should remain white');
@@ -1738,9 +1736,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     // The red_rect (50x50) scaled into filter primitive subregion (100x100) should produce red pixels
     CheckEquals(clRed32, bmp.Pixel[50, 50], 'Pixel at (50,50) should be red from feImage element reference');
   finally
@@ -1764,9 +1762,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clLime32, bmp.Pixel[50, 50], 'Pixel at (50,50) should be lime from feImage data URI');
   finally
     renderer.Free;
@@ -1791,9 +1789,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clYellow32, bmp.Pixel[45, 45], 'Pixel at (45,45) should be yellow from transformed feImage');
     CheckEquals(clBlack32, bmp.Pixel[10, 10], 'Pixel outside rect at (10,10) should remain black');
   finally
@@ -1817,9 +1815,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(480, 360);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clLime32, bmp.Pixel[35, 25], 'Pixel at (35,25) should be lime from horizontally offset subregion image');
     CheckEquals(clBlack32, bmp.Pixel[10, 25], 'Pixel at (10,25) should remain black');
   finally
@@ -1845,9 +1843,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(480, 360);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clRed32, bmp.Pixel[395, 235], 'Pixel at (395,235) should be red from shifted feImage');
     CheckEquals(clBlack32, bmp.Pixel[370, 210], 'Pixel at (370,210) should remain black/transparent');
   finally
@@ -1879,9 +1877,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     // Center pixel of red rect should remain red
     CheckEquals(clRed32, bmp.Pixel[50, 50], 'Identity kernel should preserve red color at (50,50)');
     // Outside pixel should remain black
@@ -1907,9 +1905,9 @@ begin
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
   bmp.Clear(clBlack32);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     // Center of white rect (50,50) should remain white
     CheckEquals(clWhite32, bmp.Pixel[50, 50], 'Center of box blurred square should remain white');
   finally
@@ -1932,9 +1930,9 @@ begin
   Check(docNode <> nil, 'docNode should not be nil for premult convolve test');
   bmp := TBitmap32.Create;
   bmp.SetSize(100, 100);
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     // Semi-transparent blue rect (fill="blue", fill-opacity="0.5") -> Blue=255, Alpha=128
     CheckEquals(128, TColor32Entry(bmp.Pixel[50, 50]).A, 'Alpha of semi-transparent pixel should be ~128');
     CheckEquals(255, TColor32Entry(bmp.Pixel[50, 50]).B, 'Unpremultiplied Blue channel of semi-transparent pixel should remain 255');
@@ -1972,9 +1970,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'ParseSvgXml should return a non-nil TSvgDocumentNode');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         pRight := bmp.PixelS[75, 50];  // 0 deg (Offset 0.0) -> Red
         pLeft := bmp.PixelS[25, 50];   // 180 deg (Offset 0.5) -> Green
@@ -2020,9 +2018,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // At path vertex (130, 40), the purple rect marker should be aligned at the vertex, not detached/shifted away.
         Check(bmp.Pixel[130, 40] <> clWhite32, 'Marker vertex at (130,40) should be painted with marker fill');
@@ -2054,13 +2052,13 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(100, 100);
 
     // 1. Default rendering (no theme overrides active)
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clRed32, bmp.Pixel[25, 25], 'Default fill should be red');
     CheckEquals(clBlack32, bmp.Pixel[10, 25], 'Default stroke should be black');
     CheckEquals(clWhite32, bmp.Pixel[75, 25], 'Unfilled rect interior should remain white');
@@ -2069,7 +2067,7 @@ begin
     renderer.ThemeFillColor32 := clLime32;
     renderer.ThemeStrokeColor32 := clBlue32;
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clLime32, bmp.Pixel[25, 25], 'Theme fill should override red with lime');
     CheckEquals(clBlue32, bmp.Pixel[10, 25], 'Theme stroke should override black with blue');
     CheckEquals(clWhite32, bmp.Pixel[75, 25], 'Unfilled rect interior must remain white even with ThemeFillColor active');
@@ -2077,7 +2075,7 @@ begin
     // 3. Clear theme colors and re-verify original rendering
     renderer.ClearThemeColors;
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clRed32, bmp.Pixel[25, 25], 'Restored fill should be red');
     CheckEquals(clBlack32, bmp.Pixel[10, 25], 'Restored stroke should be black');
 
@@ -2114,11 +2112,11 @@ begin
   try
     docNode.Resolve;
     bmp := TBitmap32.Create;
-    renderer := TSvgRenderer.Create(bmp);
+    renderer := TSvgRenderer.Create;
     try
       bmp.SetSize(100, 100);
       bmp.Clear(clWhite32);
-      renderer.RenderDocument(docNode);
+      renderer.RenderDocument(bmp, docNode);
 
       // Top inside circle (around y=25 on 100x100 canvas, i.e. y=2.5 in 10x10 viewBox)
       topPixel := bmp.Pixel[50, 25];
@@ -2166,11 +2164,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(300, 100);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Circle 1 center (cx=5, cy=5) -> bitmap (50, 50) should be painted pink
     Check(bmp.Pixel[50, 50] <> clWhite32, 'Circle 1 center at (50, 50) should be painted');
@@ -2215,7 +2213,7 @@ begin
   Check(docNode <> nil, 'docNode should not be nil');
   bmp1 := TBitmap32.Create;
   bmp2 := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp1);
+  renderer := TSvgRenderer.Create;
   try
     bmp1.SetSize(20, 20);
     bmp1.Clear(0);
@@ -2234,7 +2232,6 @@ begin
     Check(HasNonZero, 'feTurbulence should produce non-zero pixels');
 
     // Render r2 (fractalNoise)
-    renderer.Target := bmp2;
     bmp2.SetSize(20, 20);
     bmp2.Clear(0);
 
@@ -2283,11 +2280,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 100);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Center of rect (80, 40) should be painted red
     CheckEquals(clRed32, bmp.Pixel[80, 40], 'Center of rect should be red');
@@ -2321,11 +2318,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 200);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Inside circle (100, 100) should be seagreen
     Check(bmp.Pixel[100, 100] <> clWhite32, 'Center of circle should be painted');
@@ -2362,11 +2359,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 200);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Center of original rect (45, 45) should be blue (SourceGraphic composited over shadow)
     pCenter := bmp.Pixel[45, 45];
@@ -2409,9 +2406,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil for large pattern fill');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center of rect should be painted by green star pattern tile, not blank white
         Check(bmp.Pixel[500, 500] <> clWhite32, 'Center region of large rect should be painted by pattern fill');
@@ -2449,9 +2446,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'UserSpaceOnUse % gradient docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Rect center at (100, 50) should be transition color (~gray), NOT pure white
         Check(bmp.Pixel[100, 50] <> clWhite32, 'Center of rect with userSpaceOnUse % gradient should not be pure white');
@@ -2489,9 +2486,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Polygon ROI docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center inside polygon (150, 150) should be painted semi-transparent blue
         Check(bmp.Pixel[150, 150] <> clWhite32, 'Center inside ROI polygon should be painted');
@@ -2542,9 +2539,9 @@ begin
     Check(docNode <> nil, 'feTile docNode should not be nil');
     try
       docNode.Resolve;
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Tile 1 at (10, 10) should be red
         Check(RedComponent(bmp.Pixel[10, 10]) > 200, 'Tile 1 at (10,10) should be red');
@@ -2591,9 +2588,9 @@ begin
     Check(docNode <> nil, 'Offset filter docNode should not be nil');
     try
       docNode.Resolve;
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Original rect at (100, 100, 150, 150) shifted by (+50, +50) is now at (150, 150, 200, 200)
         Check(RedComponent(bmp.Pixel[175, 175]) > 200, 'Shifted rect center (175,175) should be red');
@@ -2636,9 +2633,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Filter ROI blur docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center of blurred rect (250, 250) should be painted red
         Check(RedComponent(bmp.Pixel[250, 250]) > 150, 'Center of blurred rect should be red');
@@ -2683,9 +2680,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'User snippet docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         blackPixelCount := 0;
         for y := 0 to 199 do
@@ -2762,7 +2759,7 @@ var
   renderer: TSvgRenderer;
   initialMat: TFloatMatrix;
 begin
-  renderer := TSvgRenderer.Create(nil);
+  renderer := TSvgRenderer.Create;
   try
     initialMat := renderer.Transformation.Matrix;
     renderer.Transformation.Push;
@@ -2805,9 +2802,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Gradient docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         Check(bmp.Pixel[5, 50] <> clWhite32, 'Left side should be colored');
         Check(bmp.Pixel[95, 50] <> clWhite32, 'Right side should be colored');
         Check(RedComponent(bmp.Pixel[5, 50]) > BlueComponent(bmp.Pixel[5, 50]), 'Left side should be predominantly red');
@@ -2844,9 +2841,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Opacity docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         // Black rendered with 0.5 opacity over white results in gray (~127..128)
         Check(RedComponent(bmp.Pixel[50, 50]) > 100, 'Semi-transparent black over white should be gray');
         Check(RedComponent(bmp.Pixel[50, 50]) < 160, 'Semi-transparent black over white should be gray');
@@ -2887,9 +2884,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'ClipPath docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clRed32, bmp.Pixel[25, 50], 'Clipped region inside should be red');
         CheckEquals(clWhite32, bmp.Pixel[75, 50], 'Clipped region outside should be white');
       finally
@@ -2928,9 +2925,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Pattern fill/stroke docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Check top-left corner (0,0) where <defs> was placed - must remain white background!
         CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Top-left corner where <defs> is defined must not render directly');
@@ -2973,9 +2970,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         minY := 100;
         maxY := -1;
@@ -3012,9 +3009,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'user snippet docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Rect top edge: rect y=5 in viewBox 1200x400 scaled to 454x198 bitmap under xMidYMid meet alignment.
         // scale = Min(454/1200, 198/400) = 0.378333.
@@ -3073,9 +3070,9 @@ begin
     docNodeAuto := ParseSvgXml(xmlAuto);
     Check(docNodeAuto <> nil, 'Multiply blend docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmpAuto);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNodeAuto);
+        renderer.RenderDocument(bmpAuto, docNodeAuto);
         overlapPixel := bmpAuto.Pixel[50, 50];
         CheckEquals(clBlack32, overlapPixel, 'Red multiplied by Blue should yield Black');
       finally
@@ -3095,9 +3092,9 @@ begin
     docNodeAuto := ParseSvgXml(xmlAuto);
     Check(docNodeAuto <> nil, 'Screen blend docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmpAuto);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNodeAuto);
+        renderer.RenderDocument(bmpAuto, docNodeAuto);
         overlapPixel := bmpAuto.Pixel[50, 50];
         CheckEquals(Color32(255, 0, 255, 255), overlapPixel, 'Red screened with Blue should yield Magenta');
       finally
@@ -3126,17 +3123,17 @@ begin
     docNodeIsolate := ParseSvgXml(xmlIsolate);
     try
       bmpAuto.Clear(clWhite32);
-      renderer := TSvgRenderer.Create(bmpAuto);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNodeAuto);
+        renderer.RenderDocument(bmpAuto, docNodeAuto);
       finally
         renderer.Free;
       end;
 
       bmpIsolate.Clear(clWhite32);
-      renderer := TSvgRenderer.Create(bmpIsolate);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNodeIsolate);
+        renderer.RenderDocument(bmpIsolate, docNodeIsolate);
       finally
         renderer.Free;
       end;
@@ -3182,9 +3179,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Mask docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clBlue32, bmp.Pixel[25, 50], 'Masked region inside should be blue');
         CheckEquals(clWhite32, bmp.Pixel[75, 50], 'Masked region outside should remain white background');
       finally
@@ -3226,9 +3223,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Marker docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Check top-left corner where <defs> is defined - must remain white background!
         CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Top-left corner where <defs> is defined must not render directly');
@@ -3265,9 +3262,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'viewBox marker docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clRed32, bmp.Pixel[50, 50], 'viewBox marker with refX=10, refY=10 should center red dot at (50,50)');
       finally
         renderer.Free;
@@ -3306,9 +3303,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'ObjectBoundingBox mask docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         CheckEquals(clRed32, bmp.Pixel[35, 50], 'Inside objectBoundingBox mask should be red');
         CheckEquals(clWhite32, bmp.Pixel[65, 50], 'Outside objectBoundingBox mask should remain white');
       finally
@@ -3351,9 +3348,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Radial reflect docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center near (10, 10) is dark/black (stop 0)
         // Distance 10 (e.g. 20, 10) is white (stop 1)
@@ -3395,9 +3392,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'User snippet docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Center is at (30.875, 114.528) -> rgb(50,50,50)
         // Radii rx ~ 8, ry ~ 12.8 -> alternating rgb(150,150,150) and rgb(50,50,50) wave rings
@@ -3448,9 +3445,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
       try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Check top-left corner (0,0) where <defs> symbol template was defined - must remain white background!
         CheckEquals(clWhite32, bmp.Pixel[10, 10], 'Unreferenced symbol template must not render at top-left origin');
@@ -3496,13 +3493,13 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     Check(not renderer.AllowExternalImages, 'AllowExternalImages should default to False');
 
     bmp.SetSize(100, 100);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     pCenter := bmp.Pixel[20, 20];
     pOffset := bmp.Pixel[35, 35];
@@ -3540,11 +3537,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 200);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Pixels strictly outside the clip path star shape must remain white (clipped)
     pOutside := bmp.Pixel[10, 10];
@@ -3589,11 +3586,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 200);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Pixel at (100, 110) inside rect3 (y=104..160) and mask1 (y=40..160) must be seagreen
     pxInsideRect3 := bmp.Pixel[100, 110];
@@ -3633,10 +3630,10 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
         bmp.Clear(clWhite32);
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Non-overlapped green background at (30, 30) should remain green
         CheckEquals(clGreen32, bmp.Pixel[30, 30], 'Background outside filter shape should remain green');
@@ -3669,10 +3666,10 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'docNode inside group should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
         bmp.Clear(clWhite32);
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
 
         // Background outside group rect at (30, 30) should be green
         CheckEquals(clGreen32, bmp.Pixel[30, 30], 'Background at (30, 30) should be green');
@@ -3713,11 +3710,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 200);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     CheckEquals(clLime32, bmp.Pixel[50, 50], 'Non-existent filter should render transparent black, leaving lime background visible');
     CheckEquals(clLime32, bmp.Pixel[150, 50], 'Null filter element should render transparent black, leaving lime background visible');
@@ -3747,7 +3744,7 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(100, 100);
 
@@ -3755,21 +3752,21 @@ begin
     SetSystemLanguage('en');
     docNode.Resolve; // switch is resolved at parse time, so we must resolve again
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clGreen32, bmp.Pixel[50, 50], 'Switch should render green rect when language is en');
 
     // 2. Render when SystemLanguage is 'fr' -> Red rectangle selected
     SetSystemLanguage('fr');
     docNode.Resolve; // switch is resolved at parse time, so we must resolve again
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clRed32, bmp.Pixel[50, 50], 'Switch should render red rect when language is fr');
 
     // 3. Render when SystemLanguage is 'de' -> Blue fallback rectangle selected
     SetSystemLanguage('de');
     docNode.Resolve; // switch is resolved at parse time, so we must resolve again
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clBlue32, bmp.Pixel[50, 50], 'Switch should render blue fallback rect when language is de');
 
   finally
@@ -3799,9 +3796,9 @@ begin
     docNode := ParseSvgXml(xml);
     Check(docNode <> nil, 'Text docNode should not be nil');
     try
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode);
+        renderer.RenderDocument(bmp, docNode);
         // Background at (0,0) must remain white
         CheckEquals(clWhite32, bmp.Pixel[0, 0], 'Background at (0,0) should remain white');
       finally
@@ -3836,11 +3833,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(10, 10);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     pPixel := bmp.Pixel[5, 5];
     CheckEquals(clBlue32, pPixel, 'Red channel swapped to Blue should render clBlue32');
@@ -3873,11 +3870,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(10, 10);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     pPixel := bmp.Pixel[5, 5];
     if (Abs(RedComponent(pPixel) - 128) > 1) then
@@ -3916,11 +3913,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(100, 100);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // SourceGraphic red square is at (10,10)..(40,40)
     CheckEquals(clRed32, bmp.Pixel[20, 20], 'Original shape at (20,20) should render red');
@@ -3960,11 +3957,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(10, 10);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     pixel := bmp.Pixel[5, 5];
     // R: 200 * 0.5 = 100
@@ -4040,11 +4037,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(480, 360);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Inner <svg> (x=15, y=5, w=450, h=300, viewBox=630x420) scales 450/630 = 0.714
     // Rect 1 (Identity): x=10..590, y=10..50 -> screen x=22..428, y=12..40
@@ -4084,11 +4081,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(100, 100);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     pPixel := bmp.Pixel[30, 30];
     CheckEquals(clRed32, pPixel, 'Pixel inside rendered embedded SVG image should be red');
@@ -4117,11 +4114,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 200);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Center of green circle in image space (x=50+25=75, y=50+25=75)
     pCenter := bmp.Pixel[75, 75];
@@ -4155,11 +4152,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(200, 200);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Quarter circle pixel inside the image viewport (x=65, y=65): green path from sub-document renders over red path
     pInside := bmp.Pixel[65, 65];
@@ -4197,11 +4194,11 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(100, 100);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Inner <svg color="blue"> overrides inherited green color for currentColor fills inside innerSvg
     CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Pixel inside use symbol with currentColor should be blue');
@@ -4229,28 +4226,28 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(100, 100);
 
     // 1. Test setting CurrentColor32 on docNode directly
     docNode.CurrentColor32 := clRed32;
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clRed32, bmp.Pixel[20, 20], 'Pixel should be red from docNode.CurrentColor32');
     CheckEquals(clRed32, bmp.Pixel[70, 70], 'Pixel should be red from docNode.CurrentColor32');
 
     // 2. Test overriding CurrentColor32 on TSvgRenderer
     renderer.CurrentColor32 := clBlue32;
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Pixel should be blue from renderer.CurrentColor32');
     CheckEquals(clBlue32, bmp.Pixel[70, 70], 'Pixel should be blue from renderer.CurrentColor32');
 
     // 3. Clear renderer theme colors and verify it falls back to docNode.CurrentColor32
     renderer.ClearThemeColors;
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clRed32, bmp.Pixel[20, 20], 'Pixel should fall back to red after clearing renderer CurrentColor');
 
   finally
@@ -4273,25 +4270,25 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     bmp.SetSize(40, 40);
 
     // 1. By default, uncolored SVG renders black
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clBlack32, bmp.Pixel[20, 20], 'Uncolored SVG should default to black fill');
 
     // 2. Setting docNode.CurrentColor32 recolors the uncolored SVG
     docNode.CurrentColor32 := clRed32;
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clRed32, bmp.Pixel[20, 20], 'Uncolored SVG should render red when docNode.CurrentColor32 = clRed32');
 
     // 3. Overriding renderer.CurrentColor32 recolors the uncolored SVG
     renderer.CurrentColor32 := clBlue32;
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
     CheckEquals(clBlue32, bmp.Pixel[20, 20], 'Uncolored SVG should render blue when renderer.CurrentColor32 = clBlue32');
 
   finally
@@ -4327,12 +4324,12 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     docNode.Resolve;
     bmp.SetSize(480, 360);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     // Verify that the lime star offset by primitiveUnits="objectBoundingBox" dx=2 dy=2
     // covers the underlying red star so that no red pixels remain visible.
@@ -4380,7 +4377,7 @@ begin
   docNode := ParseSvgXml(xml);
   Check(docNode <> nil, 'docNode should not be nil');
   bmp := TBitmap32.Create;
-  renderer := TSvgRenderer.Create(bmp);
+  renderer := TSvgRenderer.Create;
   try
     docNode.Resolve;
 
@@ -4389,7 +4386,7 @@ begin
     // but viewBox scaling scales (0..400) down to fit inside (0..100).
     bmp.SetSize(100, 100);
     bmp.Clear(clWhite32);
-    renderer.RenderDocument(docNode);
+    renderer.RenderDocument(bmp, docNode);
 
     HasBlack := False;
     for y := 0 to bmp.Height - 1 do
@@ -4443,20 +4440,20 @@ begin
   Check(docNode <> nil, 'docNode should not be nil');
   bmp1 := TBitmap32.Create;
   bmp2 := TBitmap32.Create;
-  renderer1 := TSvgRenderer.Create(bmp1);
-  renderer2 := TSvgRenderer.Create(bmp2);
+  renderer1 := TSvgRenderer.Create;
+  renderer2 := TSvgRenderer.Create;
   try
     docNode.Resolve;
 
     // Render 1
     bmp1.SetSize(740, 660);
     bmp1.Clear(clWhite32);
-    renderer1.RenderDocument(docNode);
+    renderer1.RenderDocument(bmp1, docNode);
 
     // Render 2
     bmp2.SetSize(740, 660);
     bmp2.Clear(clWhite32);
-    renderer2.RenderDocument(docNode);
+    renderer2.RenderDocument(bmp2, docNode);
 
     IsDifferent := False;
     for y := 0 to bmp1.Height - 1 do
@@ -4527,9 +4524,9 @@ begin
     try
       bmp.SetSize(1000, 1000);
       bmp.Clear(clWhite32);
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode, FloatRect(0, 0, 1000, 1000));
+        renderer.RenderDocument(bmp, docNode, FloatRect(0, 0, 1000, 1000));
         Check(bmp.Pixel[500, 500] <> clWhite32, 'Rendered circle should paint pixels on target canvas');
       finally
         renderer.Free;
@@ -4569,9 +4566,9 @@ begin
       bmp.SetSize(100, 100);
       bmp.Clear(clWhite32);
 
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode, FloatRect(0, 0, 100, 100));
+        renderer.RenderDocument(bmp, docNode, FloatRect(0, 0, 100, 100));
 
         pixelColor := bmp.Pixel[50, 50];
         // The clipPath child shape has opacity: 0.15, but opacity must be ignored on clipPath children
@@ -4639,9 +4636,9 @@ begin
       bmp.SetSize(480, 360);
       bmp.Clear(clWhite32);
 
-      renderer := TSvgRenderer.Create(bmp);
+      renderer := TSvgRenderer.Create;
       try
-        renderer.RenderDocument(docNode, FloatRect(0, 0, 480, 360));
+        renderer.RenderDocument(bmp, docNode, FloatRect(0, 0, 480, 360));
 
         // Sample near the highlight region of circle 1 (80+20, 100+20) = (100, 120)
         c1 := bmp.Pixel[100, 120];

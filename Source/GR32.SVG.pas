@@ -171,10 +171,10 @@ begin
   if (FRoot = nil) or (ATarget = nil) then
     Exit;
 
-  Renderer := TSvgRenderer.Create(ATarget);
+  Renderer := TSvgRenderer.Create;
   try
 
-    Renderer.RenderDocument(FRoot, ARect);
+    Renderer.RenderDocument(ATarget, FRoot, ARect);
 
   finally
     Renderer.Free;

@@ -251,9 +251,10 @@ type
     procedure EndRenderClipPath;
     property IsRenderingClipPath: boolean read GetIsRenderingClipPath;
 
+    property Target: TCustomBitmap32 read FTarget;
     property Resampler[Quality: TResamplerQuality]: TCustomResampler read GetResampler;
   public
-    constructor Create(ATarget: TCustomBitmap32 = nil); virtual;
+    constructor Create; virtual;
     destructor Destroy; override;
 
     function GetOffscreenBitmap(AWidth, AHeight: Integer; AClear: Boolean = True): TCustomBitmap32;
@@ -264,14 +265,12 @@ type
     procedure ApplyMatrix(const AMatrix: TFloatMatrix);
     procedure ClearThemeColors;
 
-    procedure RenderDocument(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect); overload;
-    procedure RenderDocument(ADoc: TSvgDocumentNode); overload;
-    procedure RenderNode(ATarget: TCustomBitmap32; ANode: TSvgNode); overload;
-    procedure RenderNode(ANode: TSvgNode); overload;
+    procedure RenderDocument(ATarget: TCustomBitmap32; ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect); overload;
+    procedure RenderDocument(ATarget: TCustomBitmap32; ADoc: TSvgDocumentNode); overload;
+    procedure RenderNode(ATarget: TCustomBitmap32; ANode: TSvgNode);
 
-    function GetDocumentBounds(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect): TFloatRect;
+    function GetDocumentBounds(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect; ATarget: TCustomBitmap32 = nil): TFloatRect;
 
-    property Target: TCustomBitmap32 read FTarget write FTarget;
     property Transformation: TAffineTransformation read GetTransformation;
     property ViewportRect: TFloatRect read FViewportRect write FViewportRect;
     property AllowExternalImages: Boolean read FAllowExternalImages write FAllowExternalImages;
@@ -1078,10 +1077,9 @@ end;
 
 { TSvgRenderer }
 
-constructor TSvgRenderer.Create(ATarget: TCustomBitmap32);
+constructor TSvgRenderer.Create;
 begin
   inherited Create;
-  FTarget := ATarget;
   FTransformation := TAffineTransformation.Create;
   FViewportRect := FloatRect(0, 0, 0, 0);
   FDocumentRoot := nil;
@@ -3069,7 +3067,7 @@ begin
 
           ATarget.ClipRect := ImageClipRect;
 
-          SubRenderer := TSvgRenderer.Create(ATarget);
+          SubRenderer := TSvgRenderer.Create;
           try
             SubRenderer.FRecursionDepth := FRecursionDepth; // Let's close this little recursion loophole
 
@@ -4112,7 +4110,7 @@ begin
   if (ATextNode = nil) or ATextNode.IsDisplayNone or (not ATextNode.Visible) then
     Exit;
 
-  if (FTarget = nil) then
+  if (ATarget = nil) then
     exit;
 
   // We can't be sure that the FTarget bitmap has a backend that supports
@@ -4191,6 +4189,9 @@ var
   k: Integer;
   NeedsOffscreen: Boolean;
 begin
+  if (ATarget = nil) then
+    exit;
+
   if (ANode = nil) or ANode.IsDisplayNone or (not ANode.Visible) or (not ANode.IsRenderable) or (not ANode.PassesConditionalProcessing) then
     Exit;
 
@@ -4315,12 +4316,7 @@ begin
   end;
 end;
 
-procedure TSvgRenderer.RenderNode(ANode: TSvgNode);
-begin
-  RenderNode(FTarget, ANode);
-end;
-
-function TSvgRenderer.GetDocumentBounds(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect): TFloatRect;
+function TSvgRenderer.GetDocumentBounds(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect; ATarget: TCustomBitmap32): TFloatRect;
 var
   vpMat: TFloatMatrix;
   viewBox: TSvgViewBox;
@@ -4344,8 +4340,9 @@ begin
   begin
     if (docW > 0) and (docH > 0) then
       viewBox := TSvgViewBox.Create(0, 0, docW, docH)
-    else if FTarget <> nil then
-      viewBox := TSvgViewBox.Create(0, 0, FTarget.Width, FTarget.Height)
+    else
+    if (ATarget <> nil) then
+      viewBox := TSvgViewBox.Create(0, 0, ATarget.Width, ATarget.Height)
     else
       viewBox := TSvgViewBox.Create(0, 0, ATargetRect.Width, ATargetRect.Height);
   end;
@@ -4377,7 +4374,7 @@ begin
   Result := RenderedBounds;
 end;
 
-procedure TSvgRenderer.RenderDocument(ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect);
+procedure TSvgRenderer.RenderDocument(ATarget: TCustomBitmap32; ADoc: TSvgDocumentNode; const ATargetRect: TFloatRect);
 var
   vpMat: TFloatMatrix;
   viewBox: TSvgViewBox;
@@ -4386,7 +4383,7 @@ var
   SaveClip: TRect;
   DocClipRect: TRect;
 begin
-  if (ADoc = nil) or (FTarget = nil) then
+  if (ADoc = nil) or (ATarget = nil) then
     Exit;
 
   FDocumentRoot := ADoc;
@@ -4406,7 +4403,7 @@ begin
     if (docW > 0) and (docH > 0) then
       viewBox := TSvgViewBox.Create(0, 0, docW, docH)
     else
-      viewBox := TSvgViewBox.Create(0, 0, FTarget.Width, FTarget.Height);
+      viewBox := TSvgViewBox.Create(0, 0, ATarget.Width, ATarget.Height);
   end;
 
   FViewportRect := FloatRect(viewBox.X, viewBox.Y, viewBox.X + viewBox.Width, viewBox.Y + viewBox.Height);
@@ -4419,35 +4416,42 @@ begin
   try
     ApplyMatrix(vpMat);
 
-    Target.BeginLockUpdate;
-    SaveClip := Target.ClipRect;
+    ATarget.BeginLockUpdate;
+    SaveClip := ATarget.ClipRect;
     try
       // Per W3C SVG 1.1 §14.3.3 ("The 'overflow' property"), root document content is clipped
       // to the target viewport rectangle unless overflow="visible" is explicitly specified.
       if (ADoc.Overflow <> ofVisible) then
       begin
         DocClipRect := MakeRect(ATargetRect, rrOutside);
-        GR32.IntersectRect(DocClipRect, Target.ClipRect, DocClipRect);
-        Target.ClipRect := DocClipRect;
+        GR32.IntersectRect(DocClipRect, ATarget.ClipRect, DocClipRect);
+        ATarget.ClipRect := DocClipRect;
       end;
 
-      RenderNode(ADoc);
+      FTarget := ATarget; // Save root bitmap so we get access to its backend if we need it
+      try
+
+        RenderNode(ATarget, ADoc);
+
+      finally
+        FTarget := nil;
+      end;
 
     finally
-      Target.ClipRect := SaveClip;
-      Target.EndLockUpdate;
+      ATarget.ClipRect := SaveClip;
+      ATarget.EndLockUpdate;
     end;
-    Target.Changed; // Bunch all updates up into a single whole-scene update
+    ATarget.Changed; // Bunch all updates up into a single whole-scene update
 
   finally
     FTransformation.Pop;
   end;
 end;
 
-procedure TSvgRenderer.RenderDocument(ADoc: TSvgDocumentNode);
+procedure TSvgRenderer.RenderDocument(ATarget: TCustomBitmap32; ADoc: TSvgDocumentNode);
 begin
-  if FTarget <> nil then
-    RenderDocument(ADoc, FloatRect(0, 0, FTarget.Width, FTarget.Height));
+  if (ATarget <> nil) then
+    RenderDocument(ATarget, ADoc, FloatRect(0, 0, ATarget.Width, ATarget.Height));
 end;
 
 end.
