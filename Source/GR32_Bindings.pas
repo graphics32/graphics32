@@ -330,8 +330,15 @@ end;
 //------------------------------------------------------------------------------
 
 function DefaultPriorityProc(const Info: IFunctionInfo): Integer;
+var
+  InstructionSupport: TInstructionSupport;
 begin
-  if (Info.InstructionSupport <= GR32_System.CPU.InstructionSupport) then
+  InstructionSupport := Info.InstructionSupport;
+  // isReference implies Pascal
+  if (isReference in InstructionSupport) then
+    InstructionSupport := InstructionSupport - [isReference] + [isPascal];
+
+  if (InstructionSupport <= GR32_System.CPU.InstructionSupport) then
     Result := Info.Priority
   else
     Result := TFunctionRegistry.INVALID_PRIORITY;
