@@ -3290,9 +3290,13 @@ asm
         MOVDQA    XMM3, [ESI]
         LEA       ESI, [UnpremultiplyTable]
         // Generate 32768 bias for rounding: (x + 32768) >> 16
-        PCMPEQW   XMM2, XMM2
-        PSLLW     XMM2, 15              // words = $8000
-        PSHUFD    XMM2, XMM2, 0         // dwords = 32768
+        PCMPEQD   XMM2, XMM2
+        PSLLD     XMM2, 31              // dwords = $80000000
+        PSRLD     XMM2, 16              // dwords = $00008000 (32768)
+
+        // Generate 255 clamp mask: [255, 255, 255, 255]
+        PCMPEQD   XMM4, XMM4
+        PSRLD     XMM4, 24
 
 @Loop:
         MOV       ECX, [EAX]            // Load pixel
@@ -3327,6 +3331,7 @@ asm
         MOVZX     EBX, BYTE PTR [EAX+3]
         PINSRD    XMM0, EBX, 3          // Put original Alpha in dword 3
 
+        PMINSD    XMM0, XMM4            // Clamp dwords to 255 max
         PSHUFB    XMM0, XMM3            // Fast byte extraction
         MOVD      [EAX], XMM0
 
@@ -3369,9 +3374,13 @@ asm
         LEA       RAX, [RIP+SSE_0C080400_ALIGNED]
         MOVDQA    XMM3, [RAX]
         // Generate 32768 bias for rounding: (x + 32768) >> 16
-        PCMPEQW   XMM2, XMM2
-        PSLLW     XMM2, 15              // words = $8000
-        PSHUFD    XMM2, XMM2, 0         // dwords = 32768
+        PCMPEQD   XMM2, XMM2
+        PSLLD     XMM2, 31              // dwords = $80000000
+        PSRLD     XMM2, 16              // dwords = $00008000 (32768)
+
+        // Generate 255 clamp mask: [255, 255, 255, 255]
+        PCMPEQD   XMM4, XMM4
+        PSRLD     XMM4, 24
 
 @Loop:
         MOV       R8D, [RCX]            // Load pixel
@@ -3405,6 +3414,7 @@ asm
         MOVZX     EAX, BYTE PTR [RCX+3] // Put original Alpha in dword 3
         PINSRD    XMM0, EAX, 3
 
+        PMINSD    XMM0, XMM4            // Clamp dwords to 255 max
         PSHUFB    XMM0, XMM3            // Fast byte extraction
         MOVD      [RCX], XMM0
 
@@ -3445,9 +3455,13 @@ asm
         MOVDQA    XMM3, [ESI]
         LEA       ESI, [UnpremultiplyTable]
         // Generate 32768 bias for rounding: (x + 32768) >> 16
-        PCMPEQW   XMM2, XMM2
-        PSLLW     XMM2, 15              // words = $8000
-        PSHUFD    XMM2, XMM2, 0         // dwords = 32768
+        PCMPEQD   XMM2, XMM2
+        PSLLD     XMM2, 31              // dwords = $80000000
+        PSRLD     XMM2, 16              // dwords = $00008000 (32768)
+
+        // Generate 255 clamp mask: [255, 255, 255, 255]
+        PCMPEQD   XMM4, XMM4
+        PSRLD     XMM4, 24
 
 @Loop:
         MOV       EBX, [EAX]            // Load pixel from Src
@@ -3475,6 +3489,7 @@ asm
         MOVZX     EDI, BYTE PTR [EAX+3]
         PINSRD    XMM0, EDI, 3          // Put original Alpha in dword 3
 
+        PMINSD    XMM0, XMM4            // Clamp dwords to 255 max
         PSHUFB    XMM0, XMM3            // Fast byte extraction
         MOVD      [EDX], XMM0           // Store to Dst
 
@@ -3513,9 +3528,13 @@ asm
         LEA       RAX, [RIP+SSE_0C080400_ALIGNED]
         MOVDQA    XMM3, [RAX]
         // Generate 32768 bias for rounding: (x + 32768) >> 16
-        PCMPEQW   XMM2, XMM2
-        PSLLW     XMM2, 15              // words = $8000
-        PSHUFD    XMM2, XMM2, 0         // dwords = 32768
+        PCMPEQD   XMM2, XMM2
+        PSLLD     XMM2, 31              // dwords = $80000000
+        PSRLD     XMM2, 16              // dwords = $00008000 (32768)
+
+        // Generate 255 clamp mask: [255, 255, 255, 255]
+        PCMPEQD   XMM4, XMM4
+        PSRLD     XMM4, 24
 
 @Loop:
         MOV       R10D, [RCX]           // Load pixel from Src
@@ -3542,6 +3561,7 @@ asm
         MOVZX     EAX, BYTE PTR [RCX+3] // Put original Alpha in dword 3
         PINSRD    XMM0, EAX, 3
 
+        PMINSD    XMM0, XMM4            // Clamp dwords to 255 max
         PSHUFB    XMM0, XMM3            // Fast byte extraction
         MOVD      [RDX], XMM0           // Write to Dst
 

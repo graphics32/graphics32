@@ -22,7 +22,10 @@ type
     procedure ReferenceUnpremultiply(Color: PColor32Entry; Count: Integer);
     procedure CheckImplementation(const Name: string; PremultProc, UnpremultProc: TPremultiplyMem);
     procedure CheckLineImplementation(const Name: string; PremultProc, UnpremultProc: TPremultiplyLine);
+    procedure CheckAllCombinations(const Name: string; PremultProc, UnpremultProc: TPremultiplyMem);
+    procedure CheckAllCombinationsLine(const Name: string; PremultProc, UnpremultProc: TPremultiplyLine);
   published
+    procedure TestAllColorAlphaCombinations;
     procedure TestBinding;
     procedure TestPascal;
     procedure TestLineBinding;
@@ -228,6 +231,155 @@ begin
     Actual.Free;
     Source.Free;
   end;
+end;
+
+procedure TTestPremultiply.CheckAllCombinations(const Name: string; PremultProc, UnpremultProc: TPremultiplyMem);
+var
+  Expected, Actual: TBitmap32;
+  x, y: Integer;
+  Pixel_Exp, Pixel_Act: TColor32Entry;
+  RefVal, ExpVal: Byte;
+const
+  MaxPremultiplyLoss = 1;
+  MaxUnpremultiplyLoss = 2;
+begin
+  Expected := TBitmap32.Create(256, 256);
+  Actual := TBitmap32.Create(256, 256);
+  try
+    // Part 1: Test Premultiply on all (Color=x, Alpha=y) combinations
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Actual.Pixel[x, y] := Color32(x, x, x, y);
+        RefVal := Round(x * y / 255.0);
+        Expected.Pixel[x, y] := Color32(RefVal, RefVal, RefVal, y);
+      end;
+
+    PremultProc(pointer(Actual.Bits), 256 * 256);
+
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Pixel_Exp.ARGB := Expected.Pixel[x, y];
+        Pixel_Act.ARGB := Actual.Pixel[x, y];
+        if (Abs(Pixel_Exp.A - Pixel_Act.A) > 0) or
+           (Abs(Pixel_Exp.R - Pixel_Act.R) > MaxPremultiplyLoss) or
+           (Abs(Pixel_Exp.G - Pixel_Act.G) > MaxPremultiplyLoss) or
+           (Abs(Pixel_Exp.B - Pixel_Act.B) > MaxPremultiplyLoss) then
+          Fail(Format('%s (256x256): Premultiply failure for Color=%d Alpha=%d. Expected %.8X, Actual %.8X', [Name, x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
+      end;
+
+    // Part 2: Test Unpremultiply on all (PremultColor=x, Alpha=y) combinations
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Actual.Pixel[x, y] := Color32(x, x, x, y);
+        if y = 0 then
+          ExpVal := 0
+        else
+          ExpVal := Clamp(Round(x * 255.0 / y));
+        Expected.Pixel[x, y] := Color32(ExpVal, ExpVal, ExpVal, y);
+      end;
+
+    UnpremultProc(pointer(Actual.Bits), 256 * 256);
+
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Pixel_Exp.ARGB := Expected.Pixel[x, y];
+        Pixel_Act.ARGB := Actual.Pixel[x, y];
+        if (Abs(Pixel_Exp.A - Pixel_Act.A) > 0) or
+           (Abs(Pixel_Exp.R - Pixel_Act.R) > MaxUnpremultiplyLoss) or
+           (Abs(Pixel_Exp.G - Pixel_Act.G) > MaxUnpremultiplyLoss) or
+           (Abs(Pixel_Exp.B - Pixel_Act.B) > MaxUnpremultiplyLoss) then
+          Fail(Format('%s (256x256): Unpremultiply failure for PremultColor=%d Alpha=%d. Expected %.8X, Actual %.8X', [Name, x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
+      end;
+  finally
+    Expected.Free;
+    Actual.Free;
+  end;
+end;
+
+procedure TTestPremultiply.CheckAllCombinationsLine(const Name: string; PremultProc, UnpremultProc: TPremultiplyLine);
+var
+  Expected, Actual, Source: TBitmap32;
+  x, y: Integer;
+  Pixel_Exp, Pixel_Act: TColor32Entry;
+  RefVal, ExpVal: Byte;
+const
+  MaxPremultiplyLoss = 1;
+  MaxUnpremultiplyLoss = 2;
+begin
+  Expected := TBitmap32.Create(256, 256);
+  Actual := TBitmap32.Create(256, 256);
+  Source := TBitmap32.Create(256, 256);
+  try
+    // Part 1: Test PremultiplyLine on all (Color=x, Alpha=y) combinations
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Source.Pixel[x, y] := Color32(x, x, x, y);
+        RefVal := Round(x * y / 255.0);
+        Expected.Pixel[x, y] := Color32(RefVal, RefVal, RefVal, y);
+      end;
+
+    PremultProc(pointer(Source.Bits), pointer(Actual.Bits), 256 * 256);
+
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Pixel_Exp.ARGB := Expected.Pixel[x, y];
+        Pixel_Act.ARGB := Actual.Pixel[x, y];
+        if (Abs(Pixel_Exp.A - Pixel_Act.A) > 0) or
+           (Abs(Pixel_Exp.R - Pixel_Act.R) > MaxPremultiplyLoss) or
+           (Abs(Pixel_Exp.G - Pixel_Act.G) > MaxPremultiplyLoss) or
+           (Abs(Pixel_Exp.B - Pixel_Act.B) > MaxPremultiplyLoss) then
+          Fail(Format('%s Line (256x256): Premultiply failure for Color=%d Alpha=%d. Expected %.8X, Actual %.8X', [Name, x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
+      end;
+
+    // Part 2: Test UnpremultiplyLine on all (PremultColor=x, Alpha=y) combinations
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Source.Pixel[x, y] := Color32(x, x, x, y);
+        if y = 0 then
+          ExpVal := 0
+        else
+          ExpVal := Clamp(Round(x * 255.0 / y));
+        Expected.Pixel[x, y] := Color32(ExpVal, ExpVal, ExpVal, y);
+      end;
+
+    UnpremultProc(pointer(Source.Bits), pointer(Actual.Bits), 256 * 256);
+
+    for y := 0 to 255 do
+      for x := 0 to 255 do
+      begin
+        Pixel_Exp.ARGB := Expected.Pixel[x, y];
+        Pixel_Act.ARGB := Actual.Pixel[x, y];
+        if (Abs(Pixel_Exp.A - Pixel_Act.A) > 0) or
+           (Abs(Pixel_Exp.R - Pixel_Act.R) > MaxUnpremultiplyLoss) or
+           (Abs(Pixel_Exp.G - Pixel_Act.G) > MaxUnpremultiplyLoss) or
+           (Abs(Pixel_Exp.B - Pixel_Act.B) > MaxUnpremultiplyLoss) then
+          Fail(Format('%s Line (256x256): Unpremultiply failure for PremultColor=%d Alpha=%d. Expected %.8X, Actual %.8X', [Name, x, y, Pixel_Exp.ARGB, Pixel_Act.ARGB]));
+      end;
+  finally
+    Expected.Free;
+    Actual.Free;
+    Source.Free;
+  end;
+end;
+
+procedure TTestPremultiply.TestAllColorAlphaCombinations;
+begin
+  CheckAllCombinations('Pascal 256x256', TPremultiplyMem(@PremultiplyMem_Pas), TPremultiplyMem(@UnpremultiplyMem_Pas));
+  CheckAllCombinationsLine('Pascal Line 256x256', TPremultiplyLine(@PremultiplyLine_Pas), TPremultiplyLine(@UnpremultiplyLine_Pas));
+{$if not defined(PUREPASCAL)}
+  if (isSSE41 in CPU.InstructionSupport) then
+  begin
+    CheckAllCombinations('SSE4.1 256x256', TPremultiplyMem(@PremultiplyMem_SSE41), TPremultiplyMem(@UnpremultiplyMem_SSE41));
+    CheckAllCombinationsLine('SSE4.1 Line 256x256', TPremultiplyLine(@PremultiplyLine_SSE41), TPremultiplyLine(@UnpremultiplyLine_SSE41));
+  end;
+{$ifend}
 end;
 
 procedure TTestPremultiply.TestBinding;
