@@ -244,6 +244,7 @@ type
     attrTransform,
     attrDisplay,
     attrVisibility,
+    attrOverflow,
     attrColor,
     attrFill,
     attrFillOpacity,
@@ -399,6 +400,7 @@ type
     FTransform: TFloatMatrix;
     FDisplay: TSvgDisplay;
     FVisible: Boolean;
+    FOverflow: TSvgOverflow;
     FOpacity: Single;
     FClipPathID: UTF8String;
     FMaskID: UTF8String;
@@ -496,6 +498,7 @@ type
     property Display: TSvgDisplay read FDisplay write FDisplay;
     property IsDisplayNone: Boolean read GetIsDisplayNone;
     property Visible: Boolean read FVisible write FVisible;
+    property Overflow: TSvgOverflow read FOverflow write FOverflow default ofHidden;
     property Opacity: Single read FOpacity write FOpacity;
     property ClipPathID: UTF8String read FClipPathID write FClipPathID;
     property MaskID: UTF8String read FMaskID write FMaskID;
@@ -2236,6 +2239,7 @@ const
     'transform',
     'display',
     'visibility',
+    'overflow',
     'color',
     'fill',
     'fill-opacity',
@@ -3317,6 +3321,9 @@ begin
         if AValue.CompareText('visible') then
           FVisible := True;
       end;
+
+    attrOverflow:
+      FOverflow := ParseSvgOverflow(AValue);
 
     attrColor:
       begin
@@ -4762,6 +4769,7 @@ end;
 constructor TSvgPatternNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
+  FOverflow := ofHidden;
   FX := TSvgLength.Create(0.0, suPx);
   FY := TSvgLength.Create(0.0, suPx);
   FWidth := TSvgLength.Create(0.0, suPx);
@@ -5781,6 +5789,7 @@ end;
 constructor TSvgMarkerNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
+  FOverflow := ofHidden;
   FRefX := TSvgLength.Create(0.0, suPx);
   FRefY := TSvgLength.Create(0.0, suPx);
   FMarkerWidth := TSvgLength.Create(3.0, suPx);
@@ -5948,6 +5957,7 @@ end;
 constructor TSvgDocumentNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
+  FOverflow := ofHidden;
   FX := TSvgLength.Create(0.0, suPx);
   FY := TSvgLength.Create(0.0, suPx);
   FWidth := TSvgLength.Create(100.0, suPercent);
@@ -7066,6 +7076,7 @@ end;
 constructor TSvgSymbolNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
+  FOverflow := ofHidden;
   FX := TSvgLength.Create(0.0, suPx);
   FY := TSvgLength.Create(0.0, suPx);
   FWidth := TSvgLength.Create(0.0, suPx);
@@ -8035,6 +8046,7 @@ end;
 constructor TSvgImageNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
+  FOverflow := ofHidden;
   FX := TSvgLength.Create(0.0, suPx);
   FY := TSvgLength.Create(0.0, suPx);
   FWidth := TSvgLength.Create(0.0, suPx);
@@ -8131,6 +8143,7 @@ end;
 constructor TSvgTextAreaNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
+  FOverflow := ofHidden;
   FWidth := TSvgLength.Create(100.0, suPercent);
   FHeight := TSvgLength.Create(100.0, suPercent);
 end;

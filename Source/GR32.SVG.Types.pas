@@ -188,6 +188,19 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgOverflow
+//
+//------------------------------------------------------------------------------
+type
+  TSvgOverflow = (
+    ofVisible,
+    ofHidden,
+    ofScroll,
+    ofAuto
+  );
+
+//------------------------------------------------------------------------------
+//
 //      TSvgLengthAdjust
 //
 //------------------------------------------------------------------------------
@@ -222,6 +235,7 @@ type
 //      String to enum value
 //
 //------------------------------------------------------------------------------
+function ParseSvgOverflow(const AName: TValuePUtf8Char): TSvgOverflow; overload;
 function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode; overload;
 function ParseSvgBlendMode(const AName: UTF8String): TSvgBlendMode; overload;
 function ParseSvgIsolation(const AName: TValuePUtf8Char): TSvgIsolation; overload;
@@ -581,6 +595,23 @@ begin
   Name.Text := pointer(AName);
   Name.Len := Length(AName);
   Result := ParseSvgBlendMode(Name);
+end;
+
+function ParseSvgOverflow(const AName: TValuePUtf8Char): TSvgOverflow;
+begin
+  if AName.CompareText('hidden') then
+    Result := ofHidden
+  else
+  if AName.CompareText('visible') then
+    Result := ofVisible
+  else
+  if AName.CompareText('scroll') then
+    Result := ofScroll
+  else
+  if AName.CompareText('auto') then
+    Result := ofAuto
+  else
+    Result := ofVisible;
 end;
 
 function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode;

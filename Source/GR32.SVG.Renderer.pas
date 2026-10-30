@@ -1848,7 +1848,8 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
     DocW, DocH, DocX, DocY: Single;
     DocViewBox: TSvgViewBox;
     DocVpMat: TFloatMatrix;
-    DocTargetRect, SavedViewport: TFloatRect;
+    DocTargetRect, SavedViewport, TransformedDocTarget: TFloatRect;
+    SaveSurfaceClip, DocClipRect: TRect;
     i: Integer;
   begin
     if (AGroupNode is TSvgDocumentNode) and (AGroupNode <> FDocumentRoot) then
@@ -1878,13 +1879,24 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
       FViewportRect := FloatRect(DocViewBox.X, DocViewBox.Y, DocViewBox.X + DocViewBox.Width, DocViewBox.Y + DocViewBox.Height);
       try
         FTransformation.Push;
+        SaveSurfaceClip := ATargetSurface.ClipRect;
         try
           ApplyMatrix(DocVpMat);
+
+          // Clip nested <svg> document viewport if overflow <> ofVisible
+          if (DocNode.Overflow <> ofVisible) then
+          begin
+            TransformedDocTarget := FTransformation.GetTransformedBounds(DocTargetRect);
+            DocClipRect := MakeRect(TransformedDocTarget, rrOutside);
+            GR32.IntersectRect(DocClipRect, ATargetSurface.ClipRect, DocClipRect);
+            ATargetSurface.ClipRect := DocClipRect;
+          end;
 
           for i := 0 to DocNode.Children.Count - 1 do
             RenderNode(ATargetSurface, DocNode.Children[i]);
 
         finally
+          ATargetSurface.ClipRect := SaveSurfaceClip;
           FTransformation.Pop;
         end;
       finally
@@ -4202,6 +4214,8 @@ var
   viewBox: TSvgViewBox;
   docW, docH: Single;
   Aspect: TSvgPreserveAspectRatio;
+  SaveClip: TRect;
+  DocClipRect: TRect;
 begin
   if (ADoc = nil) or (FTarget = nil) then
     Exit;
@@ -4237,11 +4251,21 @@ begin
     ApplyMatrix(vpMat);
 
     Target.BeginLockUpdate;
+    SaveClip := Target.ClipRect;
     try
+      // Per W3C SVG 1.1 §14.3.3 ("The 'overflow' property"), root document content is clipped
+      // to the target viewport rectangle unless overflow="visible" is explicitly specified.
+      if (ADoc.Overflow <> ofVisible) then
+      begin
+        DocClipRect := MakeRect(ATargetRect, rrOutside);
+        GR32.IntersectRect(DocClipRect, Target.ClipRect, DocClipRect);
+        Target.ClipRect := DocClipRect;
+      end;
 
       RenderNode(ADoc);
 
     finally
+      Target.ClipRect := SaveClip;
       Target.EndLockUpdate;
     end;
     Target.Changed; // Bunch all updates up into a single whole-scene update
