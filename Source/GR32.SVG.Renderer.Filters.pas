@@ -598,7 +598,7 @@ begin
 
       TSvgRendererCracker(Renderer).RenderPolyPolygon(FStrokePaint.Bitmap, FSourceNode.Stroke.ResolvedPaintServer, FSourceNode.Stroke.Opacity, Color);
     end else
-      FFillPaint.Bitmap.Clear;
+      FStrokePaint.Bitmap.Clear;
   end;
 
   Result := FStrokePaint;

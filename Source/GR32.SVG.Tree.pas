@@ -10284,29 +10284,43 @@ begin
 
   cssStyleSheet := TSvgCssStyleSheet.Create;
   try
+    try
 
-    while (Parser.Kind <> xtError) and (not (Parser.ParseNext in [xtEof, xtError])) do
-    begin
-      if Parser.Kind = xtElementStart then
+      while (Parser.Kind <> xtError) and (not (Parser.ParseNext in [xtEof, xtError])) do
       begin
-        RootNode := ParseSubtree(Parser, nil);
-
-        if RootNode is TSvgDocumentNode then
-          Result := TSvgDocumentNode(RootNode)
-        else
-        if RootNode <> nil then
+        if Parser.Kind = xtElementStart then
         begin
-          Result := TSvgDocumentNode.Create(nil);
-          Result.AddChild(RootNode);
-        end else
-          Result := nil;
+          RootNode := ParseSubtree(Parser, nil);
 
-        if (Parser.Kind <> xtError) and (Result <> nil) then
-        begin
-          Result.Resolve;
-          Exit;
+          if (RootNode is TSvgDocumentNode) then
+          begin
+            if (Result <> nil) then
+            begin
+              // We already have a root node; Ignore the new one
+              RootNode.Free;
+              continue;
+            end;
+            Result := TSvgDocumentNode(RootNode);
+          end else
+          if (RootNode <> nil) then
+          begin
+            Result := TSvgDocumentNode.Create(nil);
+            Result.AddChild(RootNode);
+          end else
+            // Failed to parse; Reject what we have so far
+            FreeAndNil(Result);
+
+          if (Parser.Kind <> xtError) and (Result <> nil) then
+          begin
+            Result.Resolve;
+            Exit;
+          end;
         end;
       end;
+
+    except
+      Result.Free;
+      raise;
     end;
 
   finally

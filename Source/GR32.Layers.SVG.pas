@@ -147,7 +147,7 @@ begin
 
       // Inflate by 1 pixel to ensure anti-aliased edge pixels on polygon borders
       // are completely encompassed when invalidating layer update rects.
-      GR32.InflateRect(RenderedBounds, 1.0, 1.0);
+      GR32.InflateRect(Result, 1, 1);
     
       FCachedUpdateRect := Result;
     end else

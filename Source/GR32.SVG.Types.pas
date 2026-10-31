@@ -242,31 +242,31 @@ type
 //------------------------------------------------------------------------------
 function ParseSvgOverflow(const AName: TValuePUtf8Char): TSvgOverflow; overload;
 function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode; overload;
-function ParseSvgBlendMode(const AName: UTF8String): TSvgBlendMode; overload;
+function ParseSvgBlendMode(const AName: UTF8String): TSvgBlendMode; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgIsolation(const AName: TValuePUtf8Char): TSvgIsolation; overload;
-function ParseSvgIsolation(const AName: UTF8String): TSvgIsolation; overload;
+function ParseSvgIsolation(const AName: UTF8String): TSvgIsolation; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgCompositeOperator(const AName: TValuePUtf8Char): TSvgCompositeOperator; overload;
-function ParseSvgCompositeOperator(const AName: UTF8String): TSvgCompositeOperator; overload;
+function ParseSvgCompositeOperator(const AName: UTF8String): TSvgCompositeOperator; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgFeColorMatrixType(const AName: TValuePUtf8Char): TSvgFeColorMatrixType; overload;
-function ParseSvgFeColorMatrixType(const AName: UTF8String): TSvgFeColorMatrixType; overload;
+function ParseSvgFeColorMatrixType(const AName: UTF8String): TSvgFeColorMatrixType; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgComponentTransferType(const AName: TValuePUtf8Char): TSvgComponentTransferType; overload;
-function ParseSvgComponentTransferType(const AName: UTF8String): TSvgComponentTransferType; overload;
+function ParseSvgComponentTransferType(const AName: UTF8String): TSvgComponentTransferType; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgMorphologyOperator(const AName: TValuePUtf8Char): TSvgMorphologyOperator; overload;
-function ParseSvgMorphologyOperator(const AName: UTF8String): TSvgMorphologyOperator; overload;
+function ParseSvgMorphologyOperator(const AName: UTF8String): TSvgMorphologyOperator; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgStitchTiles(const AName: TValuePUtf8Char): TSvgStitchTiles; overload;
-function ParseSvgStitchTiles(const AName: UTF8String): TSvgStitchTiles; overload;
+function ParseSvgStitchTiles(const AName: UTF8String): TSvgStitchTiles; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgTurbulenceType(const AName: TValuePUtf8Char): TSvgTurbulenceType; overload;
-function ParseSvgTurbulenceType(const AName: UTF8String): TSvgTurbulenceType; overload;
+function ParseSvgTurbulenceType(const AName: UTF8String): TSvgTurbulenceType; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgChannelSelector(const AName: TValuePUtf8Char): TSvgChannelSelector; overload;
-function ParseSvgChannelSelector(const AName: UTF8String): TSvgChannelSelector; overload;
+function ParseSvgChannelSelector(const AName: UTF8String): TSvgChannelSelector; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgEdgeMode(const AName: TValuePUtf8Char): TSvgEdgeMode; overload;
-function ParseSvgEdgeMode(const AName: UTF8String): TSvgEdgeMode; overload;
+function ParseSvgEdgeMode(const AName: UTF8String): TSvgEdgeMode; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgTextAnchor(const AName: TValuePUtf8Char): TSvgTextAnchor; overload;
-function ParseSvgTextAnchor(const AName: UTF8String): TSvgTextAnchor; overload; deprecated;
+function ParseSvgTextAnchor(const AName: UTF8String): TSvgTextAnchor; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgLengthAdjust(const AName: TValuePUtf8Char): TSvgLengthAdjust; overload;
-function ParseSvgLengthAdjust(const AName: UTF8String): TSvgLengthAdjust; overload; deprecated;
+function ParseSvgLengthAdjust(const AName: UTF8String): TSvgLengthAdjust; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgMeshType(const AName: TValuePUtf8Char): TSvgMeshType; overload;
-function ParseSvgMeshType(const AName: UTF8String): TSvgMeshType; overload;
+function ParseSvgMeshType(const AName: UTF8String): TSvgMeshType; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 
 
 //------------------------------------------------------------------------------

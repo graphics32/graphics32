@@ -156,6 +156,7 @@ type
     TSvgCssRuleList = TList<TSvgCssRule>;
   private
     FRules: TSvgCssRuleList;
+    FMatchingRules: TSvgCssRuleList;
     function GetIsEmpty: Boolean; inline;
   public
     constructor Create;
@@ -560,6 +561,7 @@ end;
 destructor TSvgCssStyleSheet.Destroy;
 begin
   FRules.Free;
+  FMatchingRules.Free;
   inherited Destroy;
 end;
 
@@ -569,6 +571,8 @@ procedure TSvgCssStyleSheet.Clear;
 begin
   if (FRules <> nil) then
     FRules.Clear;
+  if (FMatchingRules <> nil) then
+    FMatchingRules.Clear;
 end;
 
 //------------------------------------------------------------------------------
@@ -738,54 +742,54 @@ var
   i, j: Integer;
   Rule: TSvgCssRule;
   Keyword: TSvgAttributeKeyword;
-  MatchingRules: TSvgCssRuleList;
 begin
   if (ANode = nil) or (IsEmpty) then
     Exit;
 
-  MatchingRules := nil;
-  try
-    for Rule in FRules do
+  if (FMatchingRules <> nil) then
+    FMatchingRules.Clear;
+
+  for Rule in FRules do
+  begin
+    if Rule.Selector.Matches(ANode, AElementTag, AClassName, AElementId) then
     begin
-      if Rule.Selector.Matches(ANode, AElementTag, AClassName, AElementId) then
-      begin
-        if (MatchingRules = nil) then
-          MatchingRules := TSvgCssRuleList.Create;
+      if (FMatchingRules = nil) then
+        FMatchingRules := TSvgCssRuleList.Create;
 
-        MatchingRules.Add(Rule);
-      end;
+      FMatchingRules.Add(Rule);
     end;
-
-    if (MatchingRules = nil) or (MatchingRules.Count = 0) then
-      Exit;
-
-    // Stable insertion sort by Selector.Specificity ascending to ensure
-    // higher specificity overrides lower, and equal specificity preserves
-    // document order.
-    for i := 1 to MatchingRules.Count - 1 do
-    begin
-      Rule := MatchingRules[i];
-      j := i - 1;
-      while (j >= 0) and (MatchingRules[j].Selector.Specificity > Rule.Selector.Specificity) do
-      begin
-        MatchingRules[j + 1] := MatchingRules[j];
-        Dec(j);
-      end;
-      MatchingRules[j + 1] := Rule;
-    end;
-
-    for Rule in MatchingRules do
-    begin
-      for j := 0 to High(Rule.Properties) do
-      begin
-        Keyword := ANode.KeywordLookup(TValuePUtf8Char.FromString(Rule.Properties[j].Name));
-        if (Keyword <> attrNone) then
-          ANode.ParseAttribute(Keyword, TValuePUtf8Char.FromString(Rule.Properties[j].Value), True);
-      end;
-    end;
-  finally
-    MatchingRules.Free;
   end;
+
+  if (FMatchingRules = nil) or (FMatchingRules.Count = 0) then
+    Exit;
+
+  // Stable insertion sort by Selector.Specificity ascending to ensure
+  // higher specificity overrides lower, and equal specificity preserves
+  // document order.
+  for i := 1 to FMatchingRules.Count - 1 do
+  begin
+    Rule := FMatchingRules[i];
+    j := i - 1;
+    while (j >= 0) and (FMatchingRules[j].Selector.Specificity > Rule.Selector.Specificity) do
+    begin
+      FMatchingRules[j + 1] := FMatchingRules[j];
+      Dec(j);
+    end;
+    FMatchingRules[j + 1] := Rule;
+  end;
+
+  for Rule in FMatchingRules do
+  begin
+    for j := 0 to High(Rule.Properties) do
+    begin
+      Keyword := ANode.KeywordLookup(TValuePUtf8Char.FromString(Rule.Properties[j].Name));
+      if (Keyword <> attrNone) then
+        ANode.ParseAttribute(Keyword, TValuePUtf8Char.FromString(Rule.Properties[j].Value), True);
+    end;
+  end;
+
+  if (FMatchingRules <> nil) then
+    FMatchingRules.Clear;
 end;
 
 end.

@@ -947,13 +947,12 @@ begin
 end;
 
 function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
-var
-  Scale: Single;
 
   procedure ReplayCommands(Path: TCustomPath);
   var
     i: Integer;
     ArcProps: TTransformedArcProps;
+    ScaleX, ScaleY: Single;
   begin
     for i := 0 to FCount - 1 do
     begin
@@ -972,7 +971,13 @@ var
 
         pckEllipticalArc:
           begin
-            if (not TFloatMatrixHelper(ATransformation.Matrix).IsAxisAligned) then
+            ScaleX := TFloatMatrixHelper(ATransformation.Matrix).GetScaleX;
+            ScaleY := TFloatMatrixHelper(ATransformation.Matrix).GetScaleY;
+
+            // If the matrix has skew/rotation, OR if non-uniform scaling is applied to a rotated ellipse,
+            // the ellipse's principal axes and angle change, requiring 2D conjugate diameter decomposition.
+            if (not TFloatMatrixHelper(ATransformation.Matrix).IsAxisAligned) or
+               ((ScaleX <> ScaleY) and (FCommands[i].Arc.AngleRad <> 0)) then
             begin
               // Transforms elliptical arc parameters from user to world space
               ArcProps := TransformArcProps(FCommands[i].Arc.RadiusX, FCommands[i].Arc.RadiusY,
@@ -982,12 +987,13 @@ var
                 ArcProps.AngleRad, FCommands[i].Arc.Part, ArcProps.Sweep);
             end else
             begin
-              if (IsNaN(Scale)) then
-                Scale := TFloatMatrixHelper(ATransformation.Matrix).GetScale;
-
-              Path.EllipticalArc(ATransformation.Transform(FCommands[i].Arc.EndPoint), FCommands[i].Arc.RadiusX * Scale, FCommands[i].Arc.RadiusY * Scale,
+              // Axis-aligned case with either uniform scaling or an unrotated arc:
+              // Radii scale directly along coordinate axes, and rotation angle remains unchanged.
+              Path.EllipticalArc(ATransformation.Transform(FCommands[i].Arc.EndPoint),
+                FCommands[i].Arc.RadiusX * ScaleX, FCommands[i].Arc.RadiusY * ScaleY,
                 FCommands[i].Arc.AngleRad, FCommands[i].Arc.Part, FCommands[i].Arc.Direction);
             end;
+
           end;
 
         pckEndPath:
@@ -1001,8 +1007,6 @@ var
 begin
   if FCount = 0 then
     Exit(nil);
-
-  Scale := NaN;
 
   Path := TFlattenedPath.Create;
   try
