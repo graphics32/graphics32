@@ -37,6 +37,9 @@ interface
 {$define SVG32_USE_SIMD_MASK_FILTERS}
 {-$define SVG32_ROI_DEBUGDRAW} // Visualize ROI
 {$define SVG32_CACHE_BITMAPS}
+// Define SVG32_FRUSTUM_CULLING to have elements outside the viewport
+// (bitmap.ClipRect) culled.
+{$define SVG32_FRUSTUM_CULLING}
 
 // Define SVG32_HIQ_AFFINE_TRANSFORM to perform affine bitmap transformations
 // using TKernelResampler instead of TLinearResampler.
@@ -240,6 +243,7 @@ type
     procedure RenderFilter(ATarget: TCustomBitmap32; AFilterNode: TSvgFilterNode; ANode: TSvgNode);
     procedure RenderNodeContent(ATarget: TCustomBitmap32; ANode: TSvgNode);
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
+    function CanCullNode(ATarget: TCustomBitmap32; ANode: TSvgNode): boolean;
     procedure ApplyClipPathNode(ATarget: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect; ATranslate: boolean = True);
     procedure ApplyMaskNode(ATarget: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
@@ -701,6 +705,51 @@ end;
 function TSvgRenderer.GetCurrentColor32: TColor32;
 begin
   Result := FCurrentColor.Color;
+end;
+
+function TSvgRenderer.CanCullNode(ATarget: TCustomBitmap32; ANode: TSvgNode): boolean;
+var
+  VisualBounds: TFloatRect;
+  WorldBounds: TFloatRect;
+begin
+{$if defined(SVG32_FRUSTUM_CULLING)}
+  (*
+  ** Test for early frustum culling
+  *)
+
+  if (ATarget = nil) or (ANode = nil) then
+    Exit(True);
+
+  // Never cull clip path definitions or the active filter source graphic
+  if (IsRenderingClipPath) or (ANode = FFilteredNode) or (not ANode.CanCull) then
+    Exit(False);
+
+  VisualBounds := ANode.GetVisualBoundingBox(FViewportRect);
+
+  // If the node has markers we should inflate bounds to accommodate
+  // marker reach... but we ignore that specific case for now.
+
+  // If bounds are empty (or degenerate), there is nothing to draw
+  if (VisualBounds.IsEmpty) then
+    Exit(True);
+
+  FTransformation.Push;
+  try
+    // Combine parent world transformation with node local transformation
+    if not IsIdentityMatrix(ANode.Transform) then
+      ApplyMatrix(ANode.Transform);
+
+    // Transform local visual bounds into target screen space
+    WorldBounds := FTransformation.GetTransformedBounds(VisualBounds);
+  finally
+    FTransformation.Pop;
+  end;
+
+  // Test if completely outside visible target
+  Result := not GR32.IntersectRect(WorldBounds, FloatRect(ATarget.ClipRect));
+{$else}
+  Result := False;
+{$ifend}
 end;
 
 procedure TSvgRenderer.ClearThemeColors;
@@ -1451,6 +1500,7 @@ var
   FillColor, StrokeColor: TSvgColor;
   HasFill, HasStroke, HasMarkers: boolean;
   FillPaintServer, StrokePaintServer: TSvgPaintServerNode;
+  ObjBox: TFloatRect;
 begin
   if (APathNode = nil) or (ATarget = nil) then
     Exit;
@@ -1618,7 +1668,7 @@ begin
         FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
       end;
       try
-        var ObjBox := APathNode.GetObjectBoundingBox(FViewportRect);
+        ObjBox := APathNode.GetObjectBoundingBox(FViewportRect);
 
         (*
         ** 6. Fill Rendering
@@ -3464,6 +3514,7 @@ var
   FillColor, StrokeColor: TSvgColor;
   HasFill, HasStroke: boolean;
   FillPaintServer, StrokePaintServer: TSvgPaintServerNode;
+  ObjBox: TFloatRect;
 begin
   if (Length(APathPoints) = 0) or (ATarget = nil) then
     Exit;
@@ -3491,7 +3542,7 @@ begin
     exit;
 
   TransformedPts := GetTransformedPoints(APathPoints);
-  var ObjBox := ANode.GetObjectBoundingBox(FViewportRect);
+  ObjBox := ANode.GetObjectBoundingBox(FViewportRect);
 
   // 1. Fill Rendering
   if (HasFill) then
@@ -4351,6 +4402,10 @@ begin
     Exit;
 
   if (ANode.IsRendering) then
+    exit;
+
+  // Early frustum culling
+  if CanCullNode(ATarget, ANode) then
     exit;
 
   // Guard against self-referencing clip-path, clip-mask etc.

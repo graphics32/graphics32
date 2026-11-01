@@ -473,6 +473,7 @@ type
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; overload; virtual;
     // GetVisualBoundingBox: Calculates visual bounding box including filter region expansions for offscreen surface allocation.
     function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; virtual;
+    function CanCull: boolean; virtual; // Is it safe to perform frustum culling on the node?
 {$if defined(UNIT_TEST)}
     function GetObjectBoundingBox: TFloatRect; overload;
 {$ifend}
@@ -1436,6 +1437,7 @@ type
     destructor Destroy; override;
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function CanCull: boolean; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; override;
     procedure Resolve;
@@ -1864,6 +1866,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function CanCull: boolean; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Href: UTF8String read FHref write FHref;
     property X: Single read FX write FX;
@@ -1947,6 +1950,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function CanCull: boolean; override;
     property X: TSvgLength read GetX;
     property Y: TSvgLength read GetY;
     property Dx: TSvgLength read GetDx;
@@ -2943,7 +2947,9 @@ begin
   // and filter region expansions (per W3C SVG 1.1 §15.5).
   Result := GetObjectBoundingBox(AViewport);
 
-  if not Result.IsEmpty then
+  // Don't use Result.IsEmpty here! We need to apply stroke to horizontal/vertical lines
+  if (Result.Right >= Result.Left) and (Result.Bottom >= Result.Top) and
+     ((Result.Right > Result.Left) or (Result.Bottom > Result.Top)) then
   begin
     if (not FStroke.Color.IsNone) and (FStroke.Width.Value > 0) then
     begin
@@ -3681,6 +3687,11 @@ begin
   Result := '';
 end;
 
+function TSvgNode.CanCull: boolean;
+begin
+  Result := True;
+end;
+
 function TSvgNode.CheckRequiredExtensions: Boolean;
 var
   Value: TValuePUtf8Char;
@@ -3964,6 +3975,11 @@ begin
   inherited Create(AParent);
   FTextLength := TSvgLength.Create(0.0, suPx);
   FLengthAdjust := laSpacing;
+end;
+
+function TSvgTextPositioningNode.CanCull: boolean;
+begin
+  Result := False; // It's possible but not worth the effort
 end;
 
 function TSvgTextPositioningNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -6946,6 +6962,11 @@ begin
   inherited;
 end;
 
+function TSvgDocumentNode.CanCull: boolean;
+begin
+  Result := False;
+end;
+
 function TSvgDocumentNode.Clone(AParent: TSvgNode): TSvgNode;
 var
   DocRes: TSvgDocumentNode;
@@ -7922,6 +7943,7 @@ var
   VpW, VpH, rx, ry, cx, cy, r, x1, y1, x2, y2: Single;
   i: Integer;
   Cmd: TSvgPathCommand;
+  CurrPt: TFloatPoint;
 begin
   Result := FloatRect(0, 0, 0, 0);
 
@@ -7980,19 +8002,32 @@ begin
           exit;
 
         First := True;
+        CurrPt := FloatPoint(0, 0);
         for i := 0 to FPathCommands.Count - 1 do
         begin
           Cmd := FPathCommands.Commands[i];
           case Cmd.Kind of
             pckMoveTo:
-              ExpandPt(Cmd.MoveTo.P);
+              begin
+                ExpandPt(Cmd.MoveTo.P);
+                CurrPt := Cmd.MoveTo.P;
+              end;
 
             pckLineTo:
-              ExpandPt(Cmd.LineTo.P);
+              begin
+                ExpandPt(Cmd.LineTo.P);
+                CurrPt := Cmd.LineTo.P;
+              end;
 
             pckEllipticalArc:
               begin
+                // Envelope covering arc bulge from both start and end points
+                ExpandPt(FloatPoint(CurrPt.X - Cmd.Arc.RadiusX, CurrPt.Y - Cmd.Arc.RadiusY));
+                ExpandPt(FloatPoint(CurrPt.X + Cmd.Arc.RadiusX, CurrPt.Y + Cmd.Arc.RadiusY));
+                ExpandPt(FloatPoint(Cmd.Arc.EndPoint.X - Cmd.Arc.RadiusX, Cmd.Arc.EndPoint.Y - Cmd.Arc.RadiusY));
+                ExpandPt(FloatPoint(Cmd.Arc.EndPoint.X + Cmd.Arc.RadiusX, Cmd.Arc.EndPoint.Y + Cmd.Arc.RadiusY));
                 ExpandPt(Cmd.Arc.EndPoint);
+                CurrPt := Cmd.Arc.EndPoint;
               end;
 
             pckCurveTo:
@@ -8000,16 +8035,19 @@ begin
                 ExpandPt(Cmd.CurveTo.C1);
                 ExpandPt(Cmd.CurveTo.C2);
                 ExpandPt(Cmd.CurveTo.P);
+                CurrPt := Cmd.CurveTo.P;
               end;
 
             pckConicTo:
               begin
                 ExpandPt(Cmd.ConicTo.P1);
                 ExpandPt(Cmd.ConicTo.P);
+                CurrPt := Cmd.ConicTo.P;
               end;
           end;
         end;
       end;
+
   end;
 end;
 
@@ -8960,6 +8998,11 @@ begin
   FY := 0;
   FWidth := TSvgLength.Create(0.0, suPx);
   FHeight := TSvgLength.Create(0.0, suPx);
+end;
+
+function TSvgUseNode.CanCull: boolean;
+begin
+  Result := False;
 end;
 
 function TSvgUseNode.Clone(AParent: TSvgNode): TSvgNode;
