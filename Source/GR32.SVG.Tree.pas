@@ -2012,6 +2012,7 @@ type
   public
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Href: UTF8String read FHref write FHref;
     property StartOffset: TSvgLength read FStartOffset write FStartOffset;
@@ -4177,6 +4178,24 @@ end;
 function TSvgTextPathNode.GetElementTag: UTF8String;
 begin
   Result := 'textpath';
+end;
+
+function TSvgTextPathNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  FontSizePx: Single;
+begin
+  // Since <textPath> does not have absolute X/Y attributes, its bounding box
+  // must be calculated from the referenced vector path contour (FResolvedPathNode),
+  // inflated by font-size to encompass glyph baselines and ascenders/descenders.
+  if FResolvedPathNode <> nil then
+  begin
+    Result := FResolvedPathNode.GetObjectBoundingBox(AViewport);
+    FontSizePx := GetFontSizePx;
+    if FontSizePx <= 0 then
+      FontSizePx := 12.0;
+    GR32.InflateRect(Result, FontSizePx, FontSizePx);
+  end else
+    Result := inherited GetObjectBoundingBox(AViewport);
 end;
 
 
