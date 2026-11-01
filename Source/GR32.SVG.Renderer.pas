@@ -711,6 +711,10 @@ function TSvgRenderer.CanCullNode(ATarget: TCustomBitmap32; ANode: TSvgNode): bo
 var
   VisualBounds: TFloatRect;
   WorldBounds: TFloatRect;
+  HasMarkers: boolean;
+  WorldStrokeWidth: Single;
+const
+  MinStrokeWidthSqr: Single = 0.1 * 0.1;
 begin
 {$if defined(SVG32_FRUSTUM_CULLING)}
   (*
@@ -738,6 +742,18 @@ begin
     // Combine parent world transformation with node local transformation
     if not IsIdentityMatrix(ANode.Transform) then
       ApplyMatrix(ANode.Transform);
+
+    // Cull invisible hairline strokes
+    HasMarkers := (ANode.ResolvedMarkerStart <> nil) or (ANode.ResolvedMarkerMid <> nil) or (ANode.ResolvedMarkerEnd <> nil);
+    if (not HasMarkers) and
+       ((ANode.Fill.Color.IsNone) or (ANode.Fill.Opacity <= 0)) and
+       (ANode.Fill.ResolvedPaintServer = nil) then
+    begin
+      WorldStrokeWidth := ANode.GetSizePx(ANode.Stroke.Width, FViewportRect);
+      WorldStrokeWidth := (WorldStrokeWidth * WorldStrokeWidth) * TFloatMatrixHelper(FTransformation.Matrix).GetScaleSqr;
+      if (WorldStrokeWidth < MinStrokeWidthSqr) then
+        Exit(True);
+    end;
 
     // Transform local visual bounds into target screen space
     WorldBounds := FTransformation.GetTransformedBounds(VisualBounds);
