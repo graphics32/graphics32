@@ -253,6 +253,8 @@ type
 //------------------------------------------------------------------------------
 type
   TFlattenedPath = class(TCustomPath)
+  public const
+    AddPointPackTolerance: Single = 0.05; // We could likely get by with a much higher tolerance, but this is safe
   private
     FPath: TArrayOfArrayOfFloatPoint;
     FClosed: TBooleanArray;
@@ -1629,7 +1631,7 @@ begin
     DoBeginPath;
 
   // Is the point different from the last one added to the buffer?
-  Result := (FPointIndex = 0) or (APoint <> FPoints[FPointIndex-1]);
+  Result := (FPointIndex = 0) or (Abs(APoint.X-FPoints[FPointIndex-1].X) > AddPointPackTolerance) or (Abs(APoint.Y-FPoints[FPointIndex-1].Y) > AddPointPackTolerance);
 
 {$if (defined(PATH_ADDPOINT_PACKING)) and (not defined(PATH_ADDPOINT_NOPACKING))}
   if (not Result) then
