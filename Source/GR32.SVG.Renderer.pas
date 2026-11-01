@@ -138,6 +138,8 @@ type
     FWrapProcX, FWrapProcY: TWrapProc;
   protected
     function GetFillLine: TFillLineEvent; override;
+    procedure FillLineAxisAligned(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32; CombineMode: TCombineMode);
     procedure FillLineTransformed(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32; CombineMode: TCombineMode);
   public
@@ -744,9 +746,133 @@ end;
 function TSvgPatternPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   if FAffineTransform then
-    Result := FillLineTransformed
-  else
+  begin
+    // Fast path: If the inverse matrix is axis-aligned (no rotation/skew),
+    // use FillLineAxisAligned which precomputes Y row coordinates once per scanline
+    // and uses 16.16 TFixed integer stepping along X.
+    // My test shows that the gain from this optimization is... (drumroll) Zero!
+    if (Abs(FInvMatrix[0, 1]) < 1e-5) and (Abs(FInvMatrix[1, 0]) < 1e-5) then
+      Result := FillLineAxisAligned
+    else
+      Result := FillLineTransformed;
+  end else
     Result := inherited GetFillLine;
+end;
+
+procedure TSvgPatternPolygonFiller.FillLineAxisAligned(Dst: PColor32; DstX, DstY, Length: Integer;
+  AlphaValues: PColor32; CombineMode: TCombineMode);
+{$POINTERMATH ON}
+var
+  X: Integer;
+  PtY, V, Vpx: Single;
+  Iy, Y1, Y2: Integer;
+  Wy, Wx: Cardinal;
+  X1, X2: Integer;
+  BitmapWidth, BitmapHeight: Integer;
+  SrcColor: TColor32;
+  BlendMem: TBlendMem;
+  BlendMemEx: TBlendMemEx;
+  MasterAlpha: Integer;
+  Row1, Row2: array[0..1] of TColor32;
+  Row1Base, Row2Base: PColor32;
+  // 16.16 Fixed-Point stepping variables for X
+  CurrX_Fixed, StepX_Fixed: TFixed;
+  Width_Fixed: TFixed;
+  IsPow2Width: Boolean;
+  MaskWidth: Integer;
+  Ix: Integer;
+  U0, Upx0: Single;
+begin
+  if (FPatternBmp = nil) or (FPatternBmp.Width <= 0) or (FPatternBmp.Height <= 0) or
+     (FTileWidth <= 0) or (FTileHeight <= 0) then
+    Exit;
+
+  BitmapWidth := FPatternBmp.Width;
+  BitmapHeight := FPatternBmp.Height;
+
+  // 1. Precalculate Y row parameters once for the entire scanline (Dy = 0)
+  PtY := DstX * FInvMatrix[0, 1] + DstY * FInvMatrix[1, 1] + FInvMatrix[2, 1];
+  V := GR32_LowLevel.Wrap(PtY - FTileY, FTileHeight);
+  Vpx := V * FScaleBmpY - 0.5;
+
+  Iy := Floor(Vpx);
+  Wy := Clamp(Round((Vpx - Iy) * 256.0), 0, 256);
+
+  Y1 := FWrapProcY(Iy, BitmapHeight - 1);
+  Y2 := FWrapProcY(Iy + 1, BitmapHeight - 1);
+
+  Row1Base := @FPatternBmp.Bits[Y1 * BitmapWidth];
+  Row2Base := @FPatternBmp.Bits[Y2 * BitmapWidth];
+
+  BlendMem := BLEND_MEM[CombineMode]^;
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+  MasterAlpha := FPatternBmp.MasterAlpha;
+
+  // 2. Set up 16.16 fixed-point horizontal stepping
+  StepX_Fixed := Fixed(FInvMatrix[0, 0] * FScaleBmpX);
+  Width_Fixed := BitmapWidth shl 16;
+  IsPow2Width := IsPowerOf2(BitmapWidth);
+  MaskWidth := BitmapWidth - 1;
+
+  // Initial user-to-bitmap continuous coordinate for DstX
+  U0 := GR32_LowLevel.Wrap(DstX * FInvMatrix[0, 0] + DstY * FInvMatrix[1, 0] + FInvMatrix[2, 0] - FTileX, FTileWidth);
+  Upx0 := U0 * FScaleBmpX - 0.5;
+  CurrX_Fixed := Fixed(Upx0);
+
+  // 3. Fast scanline loop using 16.16 TFixed stepping
+  for X := 0 to Length - 1 do
+  begin
+    // Wrap continuous 16.16 coordinate into [0..Width_Fixed)
+    if IsPow2Width then
+    begin
+      // Power-of-two bitmask wrapping
+      Ix := (CurrX_Fixed shr 16) and MaskWidth;
+      X1 := Ix;
+      X2 := (Ix + 1) and MaskWidth;
+    end else
+    begin
+      // General wrapping for non-power-of-two dimensions
+      while (CurrX_Fixed < 0) do
+        Inc(CurrX_Fixed, Width_Fixed);
+      while (CurrX_Fixed >= Width_Fixed) do
+        Dec(CurrX_Fixed, Width_Fixed);
+
+      Ix := CurrX_Fixed shr 16;
+      X1 := Ix;
+      X2 := Ix + 1;
+      if (X2 >= BitmapWidth) then
+        X2 := 0;
+    end;
+
+    // Sub-pixel 8-bit weight from fractional 16-bit bits: [0..256]
+    Wx := (Cardinal(CurrX_Fixed) and $FF00) shr 8;
+
+    // AlphaInterpolator parameter convention: index 0 = X2, index 1 = X1
+    Row1[1] := Row1Base[X1];
+    Row1[0] := Row1Base[X2];
+
+    Row2[1] := Row2Base[X1];
+    Row2[0] := Row2Base[X2];
+
+    // Performs bilinear interpolation using optimized SIMD/Pascal AlphaInterpolator
+    SrcColor := AlphaInterpolator(Wx, Wy, @Row2[0], @Row1[0]);
+
+    if (MasterAlpha < 255) then
+      ScaleAlpha(SrcColor, MasterAlpha * OneOver255);
+
+    if (AlphaValues <> nil) then
+    begin
+      BlendMemEx(SrcColor, Dst^, AlphaValues^);
+      Inc(AlphaValues);
+    end else
+    if (FPatternBmp.DrawMode = dmBlend) then
+      BlendMem(SrcColor, Dst^)
+    else
+      Dst^ := SrcColor;
+
+    Inc(Dst);
+    Inc(CurrX_Fixed, StepX_Fixed);
+  end;
 end;
 
 procedure TSvgPatternPolygonFiller.FillLineTransformed(Dst: PColor32; DstX, DstY, Length: Integer;
