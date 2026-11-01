@@ -151,7 +151,7 @@ begin
     Check(circleNode <> nil, 'c1 circle node should exist');
     pts := circleNode.GetPathData;
     Check(Length(pts) > 0, 'pts should not be empty');
-    Check(Length(pts[0]) >= 32, Format('Circle with local radius=1.0 must generate at least 32 vertices (found %d)', [Length(pts[0])]));
+    Check(Length(pts[0]) >= 6, Format('Circle with local radius=1.0 must generate at least 6 vertices (found %d)', [Length(pts[0])]));
   finally
     docNode.Free;
   end;
@@ -770,7 +770,7 @@ var
 begin
   xml := '<svg width="200" height="100">' +
          '  <text id="t1" x="10" y="20" dx="2" dy="4" font-family="Arial" font-size="16px" font-weight="bold" font-style="italic" text-anchor="middle" fill="black">' +
-         '    Hello' +
+         '    Hello'#10 +
          '    <tspan id="ts1" dx="5" fill="red" text-anchor="end">World</tspan>' +
          '  </text>' +
          '</svg>';

@@ -28,4 +28,7 @@ begin
       Free
   else
     GUITestRunner.RunRegisteredTests;
+{$IFDEF CONSOLE_TESTRUNNER}
+  readln;
+{$ENDIF}
 end.
