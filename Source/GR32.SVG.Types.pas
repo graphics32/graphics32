@@ -557,9 +557,11 @@ type
     function IsAxisAligned: boolean;
     function Determinant: TFloat;
     function GetScale: Single;
+    function GetScaleSqr: Single; // Square scale; Avoids a Sqrt
     function GetScaleX: Single; // Axis aligned X scale
     function GetScaleY: Single; // Axis aligned Y scale
     function GetScaleXY: Single; // Axis aligned XY scale (e.g. radius)
+    function GetScaleXYSqr: Single; // Squared
   end;
 
 //------------------------------------------------------------------------------
@@ -2025,8 +2027,14 @@ var
 begin
   Det := Matrix[0, 0] * Matrix[1, 1] - Matrix[0, 1] * Matrix[1, 0];
   Result := FastSqrtBab1(Abs(Det));
-  if Result <= 0 then
-    Result := 1.0;
+end;
+
+function TFloatMatrixHelper.GetScaleSqr: Single;
+var
+  Det: Single;
+begin
+  Det := Matrix[0, 0] * Matrix[1, 1] - Matrix[0, 1] * Matrix[1, 0];
+  Result := Abs(Det);
 end;
 
 function TFloatMatrixHelper.GetScaleX: Single;
@@ -2037,6 +2045,11 @@ end;
 function TFloatMatrixHelper.GetScaleXY: Single;
 begin
   Result := FastSqrtBab1(Matrix[0, 0] * Matrix[0, 0] + Matrix[1, 1] * Matrix[1, 1]);
+end;
+
+function TFloatMatrixHelper.GetScaleXYSqr: Single;
+begin
+  Result := Matrix[0, 0] * Matrix[0, 0] + Matrix[1, 1] * Matrix[1, 1];
 end;
 
 function TFloatMatrixHelper.GetScaleY: Single;
