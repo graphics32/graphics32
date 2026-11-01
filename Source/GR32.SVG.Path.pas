@@ -953,24 +953,63 @@ function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArra
     i: Integer;
     ArcProps: TTransformedArcProps;
     ScaleX, ScaleY: Single;
+    CurrPt, P, C1, C2, P1: TFloatPoint;
+  const
+    MinCurveSpan: Single = 0.5; // Minimum span below which we convert a curve to a straight line
   begin
+    CurrPt := FloatPoint(0, 0);
+
     for i := 0 to FCount - 1 do
     begin
       case FCommands[i].Kind of
         pckMoveTo:
-          Path.MoveTo(ATransformation.Transform(FCommands[i].MoveTo.P));
+          begin
+            CurrPt := ATransformation.Transform(FCommands[i].MoveTo.P);
+            Path.MoveTo(CurrPt);
+          end;
 
         pckLineTo:
-          Path.LineTo(ATransformation.Transform(FCommands[i].LineTo.P));
+          begin
+            CurrPt := ATransformation.Transform(FCommands[i].LineTo.P);
+            Path.LineTo(CurrPt);
+          end;
 
         pckCurveTo:
-          Path.CurveTo(ATransformation.Transform(FCommands[i].CurveTo.C1), ATransformation.Transform(FCommands[i].CurveTo.C2), ATransformation.Transform(FCommands[i].CurveTo.P));
+          begin
+            C1 := ATransformation.Transform(FCommands[i].CurveTo.C1);
+            C2 := ATransformation.Transform(FCommands[i].CurveTo.C2);
+            P  := ATransformation.Transform(FCommands[i].CurveTo.P);
+
+            // If the entire cubic curve bounding box in world space is smaller than 0.5 px,
+            // its curvature cannot be resolved by the rasterizer; emit a straight LineTo:
+            if (Max(Abs(P.X - CurrPt.X), Max(Abs(C1.X - CurrPt.X), Abs(C2.X - CurrPt.X))) < MinCurveSpan) and
+               (Max(Abs(P.Y - CurrPt.Y), Max(Abs(C1.Y - CurrPt.Y), Abs(C2.Y - CurrPt.Y))) < MinCurveSpan) then
+              Path.LineTo(P)
+            else
+              Path.CurveTo(C1, C2, P);
+
+            CurrPt := P;
+          end;
 
         pckConicTo:
-          Path.ConicTo(ATransformation.Transform(FCommands[i].ConicTo.P1), ATransformation.Transform(FCommands[i].ConicTo.P));
+          begin
+            P1 := ATransformation.Transform(FCommands[i].ConicTo.P1);
+            P  := ATransformation.Transform(FCommands[i].ConicTo.P);
+
+            // Sub-pixel quadratic curve bailout
+            if (Max(Abs(P.X - CurrPt.X), Abs(P1.X - CurrPt.X)) < MinCurveSpan) and
+               (Max(Abs(P.Y - CurrPt.Y), Abs(P1.Y - CurrPt.Y)) < MinCurveSpan) then
+              Path.LineTo(P)
+            else
+              Path.ConicTo(P1, P);
+
+            CurrPt := P;
+          end;
 
         pckEllipticalArc:
           begin
+            P := ATransformation.Transform(FCommands[i].Arc.EndPoint);
+
             ScaleX := TFloatMatrixHelper(ATransformation.Matrix).GetScaleX;
             ScaleY := TFloatMatrixHelper(ATransformation.Matrix).GetScaleY;
 
@@ -983,17 +1022,27 @@ function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArra
               ArcProps := TransformArcProps(FCommands[i].Arc.RadiusX, FCommands[i].Arc.RadiusY,
                 FCommands[i].Arc.AngleRad, FCommands[i].Arc.Direction, ATransformation.Matrix);
 
-              Path.EllipticalArc(ATransformation.Transform(FCommands[i].Arc.EndPoint), ArcProps.RadiusX, ArcProps.RadiusY,
-                ArcProps.AngleRad, FCommands[i].Arc.Part, ArcProps.Sweep);
+              // Sub-pixel arc bailout
+              if (ArcProps.RadiusX < MinCurveSpan) and (ArcProps.RadiusY < MinCurveSpan) then
+                Path.LineTo(P)
+              else
+                Path.EllipticalArc(P, ArcProps.RadiusX, ArcProps.RadiusY,
+                  ArcProps.AngleRad, FCommands[i].Arc.Part, ArcProps.Sweep);
             end else
             begin
-              // Axis-aligned case with either uniform scaling or an unrotated arc:
-              // Radii scale directly along coordinate axes, and rotation angle remains unchanged.
-              Path.EllipticalArc(ATransformation.Transform(FCommands[i].Arc.EndPoint),
-                FCommands[i].Arc.RadiusX * ScaleX, FCommands[i].Arc.RadiusY * ScaleY,
-                FCommands[i].Arc.AngleRad, FCommands[i].Arc.Part, FCommands[i].Arc.Direction);
+              // Sub-pixel arc bailout
+              if (FCommands[i].Arc.RadiusX * ScaleX < MinCurveSpan) and
+                 (FCommands[i].Arc.RadiusY * ScaleY < MinCurveSpan) then
+                Path.LineTo(P)
+              else
+                // Axis-aligned case with either uniform scaling or an unrotated arc:
+                // Radii scale directly along coordinate axes, and rotation angle remains unchanged.
+                Path.EllipticalArc(P,
+                  FCommands[i].Arc.RadiusX * ScaleX, FCommands[i].Arc.RadiusY * ScaleY,
+                  FCommands[i].Arc.AngleRad, FCommands[i].Arc.Part, FCommands[i].Arc.Direction);
             end;
 
+            CurrPt := P;
           end;
 
         pckEndPath:
