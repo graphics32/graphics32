@@ -82,7 +82,10 @@ uses
 const
   DefaultCircleSteps = 100;
   DefaultBezierTolerance = 0.25;
-  DefaultArcTolerance = 0.05;
+  DefaultArcTolerance = 0.25;
+  MinCubicTolerance: Single = 0.25;
+  MinQuadraticTolerance: Single = 0.25;
+
 
 type
   TArcPart = (
@@ -533,7 +536,7 @@ begin
           Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y) +
           Abs(P4.X - P3.X) + Abs(P4.Y - P3.Y);
   if Span > 0 then
-    EffectiveTolerance := Min(EffectiveTolerance, Max(0.05, Span * 1e-3));
+    EffectiveTolerance := Min(EffectiveTolerance, Max(MinCubicTolerance, Span * 1e-3));
   EffectiveToleranceSq := EffectiveTolerance * EffectiveTolerance;
 
   Depth := 0;
@@ -564,7 +567,7 @@ begin
           Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y) +
           Abs(P4.X - P3.X) + Abs(P4.Y - P3.Y);
   if Span > 0 then
-    EffectiveTolerance := Min(EffectiveTolerance, Max(0.05, Span * 1e-3));
+    EffectiveTolerance := Min(EffectiveTolerance, Max(MinCubicTolerance, Span * 1e-3));
 
   dx12 := P2.X - P1.X;
   dy12 := P2.Y - P1.Y;
@@ -662,7 +665,7 @@ begin
           Abs(P2.X - P1.X) + Abs(P2.Y - P1.Y) +
           Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y);
   if Span > 0 then
-    EffectiveTolerance := Min(EffectiveTolerance, Max(1e-4, Span * 1e-3));
+    EffectiveTolerance := Min(EffectiveTolerance, Max(MinQuadraticTolerance, Span * 1e-3));
 
   Depth := 0;
   DoQuadraticBezierCurve(P1, P2, P3);
@@ -768,7 +771,7 @@ begin
           Abs(P2.X - P1.X) + Abs(P2.Y - P1.Y) +
           Abs(P3.X - P2.X) + Abs(P3.Y - P2.Y);
   if Span > 0 then
-    EffectiveTolerance := Min(EffectiveTolerance, Max(1e-4, Span * 1e-3));
+    EffectiveTolerance := Min(EffectiveTolerance, Max(MinQuadraticTolerance, Span * 1e-3));
 
   a0 := ApproxMyint(x0);
   a2 := ApproxMyint(x2);
