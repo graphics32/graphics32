@@ -272,7 +272,11 @@ object FormSVGviewer: TFormSVGviewer
       end
       item
         Text = 'Size:'
-        Width = 150
+        Width = 140
+      end
+      item
+        Text = 'Vertex count:'
+        Width = 130
       end
       item
         Text = 'Status:'

@@ -292,6 +292,7 @@ procedure TFormSVGviewer.FormDestroy(Sender: TObject);
 var
   IniFile: TIniFile;
 begin
+  FLayer.SvgDocument := nil;
   FDocNode.Free;
 
   IniFile := TIniFile.Create(TPath.Combine(TPath.GetDirectoryName(Application.ExeName), sIniFilename));
@@ -338,8 +339,13 @@ begin
           exit;
         FStopWatchLayer.Stop;
         if (FLayer <> nil) and (FLayer.Visible) then
-          StatusBar.Panels[1].Text := Format('Render: %d mS', [FStopWatchLayer.ElapsedMilliseconds]);
-      end;
+        begin
+          StatusBar.Panels[1].Text := Format('Render: %d mS', [FStopWatchLayer.ElapsedMilliseconds]); StatusBar.Update;
+ {$if declared(SvgVertexCount)} // Declared in GR32.SVG.Tree if BENCHMARK_FLATTEN is defined
+          StatusBar.Panels[3].Text := Format('Vertex count: %.0n', [SvgVertexCount * 1.0]); StatusBar.Update;
+{$ifend}
+        end;
+    end;
   end;
 end;
 
@@ -394,14 +400,14 @@ begin
   finally
     Bitmap.Free;
   end;
-  StatusBar.Panels[3].Text := 'Saved to: '+Filename;
+  StatusBar.Panels[4].Text := 'Saved to: '+Filename;
 end;
 
 procedure TFormSVGviewer.LoadAndRenderSvg(const AFileName: string);
 var
   Stream: TStringStream;
 begin
-  StatusBar.Panels[3].Text := 'Loading'; StatusBar.Update;
+  StatusBar.Panels[4].Text := 'Loading'; StatusBar.Update;
   Stream := TStringStream.Create('', TEncoding.UTF8);
   try
     Stream.LoadFromFile(AFileName);
@@ -572,12 +578,13 @@ begin
     StatusBar.Panels[1].Text := '';
     StatusBar.Panels[2].Text := '';
     StatusBar.Panels[3].Text := '';
+    StatusBar.Panels[4].Text := '';
 
     try
       (*
       ** Parse svg
       *)
-      StatusBar.Panels[3].Text := 'Parsing'; StatusBar.Update;
+      StatusBar.Panels[4].Text := 'Parsing'; StatusBar.Update;
       StopWatch := TStopWatch.StartNew;
       begin
 
@@ -606,7 +613,7 @@ begin
 
       if FDocNode = nil then
       begin
-        StatusBar.Panels[3].Text := ErrorMessage;;
+        StatusBar.Panels[4].Text := ErrorMessage;;
         exit;
       end;
 
@@ -642,7 +649,7 @@ begin
       (*
       ** Render svg
       *)
-      StatusBar.Panels[3].Text := 'Rendering'; StatusBar.Update;
+      StatusBar.Panels[4].Text := 'Rendering'; StatusBar.Update;
       FLayer.SvgDocument := FDocNode;
 
       // Repaint TImage32 -> render svg layer
@@ -657,10 +664,10 @@ begin
         StatusBar.Panels[1].Text := 'Render: Failed';
       FStopWatchLayer.Stop;
 
-      StatusBar.Panels[3].Text := 'Done';
+      StatusBar.Panels[4].Text := 'Done';
     except
       on E: Exception do
-        StatusBar.Panels[3].Text := ErrorMessage;
+        StatusBar.Panels[4].Text := ErrorMessage;
     end;
 
 {$if defined(IMAGE32)}
@@ -690,9 +697,9 @@ begin
             finally
               FImage32Panel.Image.EndUpdate;
             end;
-            StatusBar.Panels[3].Text := Format('Image32: Parsed in %d mS, Rendered in %d mS', [TimeParse, TimeRender]);
+            StatusBar.Panels[4].Text := Format('Image32: Parsed in %d mS, Rendered in %d mS', [TimeParse, TimeRender]);
           end else
-            StatusBar.Panels[3].Text := 'Image32: Parse failed';
+            StatusBar.Panels[4].Text := 'Image32: Parse failed';
         finally
           Free;
         end;
@@ -701,7 +708,7 @@ begin
       end;
     except
       on E: Exception do
-        StatusBar.Panels[3].Text := Format('Image32: %s', [E.Message]);
+        StatusBar.Panels[4].Text := Format('Image32: %s', [E.Message]);
     end;
 {$ifend}
 

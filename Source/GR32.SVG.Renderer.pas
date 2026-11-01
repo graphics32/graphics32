@@ -4538,6 +4538,10 @@ var
   SaveClip: TRect;
   DocClipRect: TRect;
 begin
+ {$if declared(SvgVertexCount)}
+   SvgVertexCount := 0;
+{$ifend}
+
   if (ADoc = nil) or (ATarget = nil) then
     Exit;
 

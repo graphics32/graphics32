@@ -34,6 +34,11 @@ interface
 
 {$include GR32.inc}
 
+// if BENCHMARK_FLATTEN is defined, we count (in SvgVertexCount) how many
+// vertices are produced when flattening/rendering a svg document.
+// This can be used to tune the flattening/vertex culling algorithms.
+{-$define BENCHMARK_FLATTEN}
+
 uses
   SysUtils, Classes, Generics.Collections,
   GR32, GR32_Transforms, GR32_Polygons, GR32_VectorUtils,
@@ -2081,6 +2086,11 @@ const
   sWhiteSpaceSeparators = [' ', #9, #10, #13];
   sListSeparators = [' ', ',', #9, #10, #13];
 
+//------------------------------------------------------------------------------
+
+{$if defined(BENCHMARK_FLATTEN)}
+var SvgVertexCount: Int64 = 0;
+{$ifend}
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -7465,6 +7475,10 @@ begin
      (CompareMem(@FCachedMatrix, @ATransformation.Matrix, SizeOf(FCachedMatrix))) then
   begin
     Result := FCachedPathData;
+{$if defined(BENCHMARK_FLATTEN)}
+    for var Polygon in Result do
+      Inc(SvgVertexCount, Length(Polygon));
+{$ifend}
     Exit;
   end;
 
@@ -7669,6 +7683,11 @@ begin
   SanitizePolyPolygon(Result, IsClosed);
 
   FCachedPathData := Result;
+
+{$if defined(BENCHMARK_FLATTEN)}
+  for var Polygon in Result do
+    Inc(SvgVertexCount, Length(Polygon));
+{$ifend}
 end;
 
 {$if defined(UNIT_TEST)}
