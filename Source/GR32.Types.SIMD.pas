@@ -46,10 +46,14 @@ interface
 
         64-bit, x64 calling convention
         ------------------------------------------------
-        Parameters: RCX, RDX, R8, R9 (integer) or XMMO, XMM1, XMM2, XMM3 (float), Stack
+        Parameters: RCX, RDX, R8, R9 (integer) and/or XMMO, XMM1, XMM2, XMM3 (float), Stack
         Return value: RAX (integer), XMM+ (float)
-        Can modify: RAX, RCX, RDX, R8, R9, R10, R11, XMMO...XMM3
-        Must preserve: R12, R13, R14, R15, RDI, RSI, RBX, RBP, RSP, XMM4...XMM15
+        Can modify: RAX, RCX, RDX, R8, R9, R10, R11, XMMO...XMM5
+        Must preserve: R12, R13, R14, R15, RDI, RSI, RBX, RBP, RSP, XMM6...XMM15
+        Note that the Delphi documentation incorrectly claims that XMM4 and XMM5 must
+        be preserved - which is why you will see that many of Graphics32's x64
+        assembler routines contains '.SAVENV XMM4' and '.SAVENV XMM5'. These are
+        harmless and are ignored by the compiler.
 
 *)
 

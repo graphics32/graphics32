@@ -1271,7 +1271,8 @@ end;
 {$IFNDEF OMIT_SSE2}
 
 {$IFNDEF PUREPASCAL}
-function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$IFDEF FPC}assembler; {$ENDIF}
+function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM3,XMM3
@@ -1309,6 +1310,12 @@ asm
         MOVD      EAX,XMM0
 {$ENDIF}
 {$IFDEF TARGET_X64}
+{$if defined(TARGET_x64) and not defined(FPC)}
+        .SAVENV XMM4
+        .SAVENV XMM5
+        .SAVENV XMM6
+{$ifend}
+
         MOVQ      XMM0,XMM3
         SHUFPS    XMM0,XMM0,0
 
@@ -1349,9 +1356,14 @@ asm
         PACKUSWB  XMM0,XMM3
         MOVD      EAX,XMM0
 {$ENDIF}
+
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6'];
+{$ifend}
 end;
 
-function Linear4PointInterpolation_SSE2(A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32; {$IFDEF FPC}assembler; {$ENDIF}
+function Linear4PointInterpolation_SSE2(A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32; {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM7,XMM7
@@ -1403,71 +1415,83 @@ asm
         MOVD      EAX,XMM0
 {$ENDIF}
 {$IFDEF TARGET_X64}
-        PXOR      XMM7,XMM7
+{$if defined(TARGET_x64) and not defined(FPC)}
+        .SAVENV XMM4
+        .SAVENV XMM5
+{$ifend}
+        PXOR      XMM3, XMM3
 
-        MOVD      XMM0,A
-        PUNPCKLBW XMM0,XMM7
-        PUNPCKLWD XMM0,XMM7
-        CVTDQ2PS  XMM0,XMM0
-        MOVD      XMM1,B
-        PUNPCKLBW XMM1,XMM7
-        PUNPCKLWD XMM1,XMM7
-        CVTDQ2PS  XMM1,XMM1
+        MOVD      XMM0, A
+        PUNPCKLBW XMM0, XMM3
+        PUNPCKLWD XMM0, XMM3
+        CVTDQ2PS  XMM0, XMM0
+
+        MOVD      XMM1, B
+        PUNPCKLBW XMM1, XMM3
+        PUNPCKLWD XMM1, XMM3
+        CVTDQ2PS  XMM1, XMM1
 
 {$IFDEF FPC}
         MOV       EAX, [RBP + $30]
 {$ELSE}
         MOV       EAX, WA
 {$ENDIF}
-        MOVD      XMM4,EAX
-        SHUFPS    XMM4,XMM4,0
-        MULPS     XMM0,XMM4
+        MOVD      XMM4, EAX
+        SHUFPS    XMM4, XMM4, 0
+        MULPS     XMM0, XMM4
 
 {$IFDEF FPC}
         MOV       EDX, [RBP + $38]
 {$ELSE}
         MOV       EDX, WB
 {$ENDIF}
-        MOVD      XMM5,EDX
-        SHUFPS    XMM5,XMM5,0
-        MULPS     XMM1,XMM5
-        ADDPS     XMM0,XMM1
+        MOVD      XMM5, EDX
+        SHUFPS    XMM5, XMM5, 0
+        MULPS     XMM1, XMM5
+        ADDPS     XMM0, XMM1
 
-        MOVD      XMM2,C
-        PUNPCKLBW XMM2,XMM7
-        PUNPCKLWD XMM2,XMM7
-        CVTDQ2PS  XMM2,XMM2
-        MOVD      XMM3,D
-        PUNPCKLBW XMM3,XMM7
-        PUNPCKLWD XMM3,XMM7
-        CVTDQ2PS  XMM3,XMM3
+        MOVD      XMM2, C
+        PUNPCKLBW XMM2, XMM3
+        PUNPCKLWD XMM2, XMM3
+        CVTDQ2PS  XMM2, XMM2
+
+        // Load D into temporary XMM1 (since XMM0 has accumulated A+B)
+        MOVD      XMM1, D
+        PUNPCKLBW XMM1, XMM3
+        PUNPCKLWD XMM1, XMM3
+        CVTDQ2PS  XMM1, XMM1
 
 {$IFDEF FPC}
         MOV       EAX, [RBP + $40]
 {$ELSE}
         MOV       EAX, WC
 {$ENDIF}
-        MOVD      XMM4,EAX
-        SHUFPS    XMM4,XMM4,0
-        MULPS     XMM2,XMM4
+        MOVD      XMM4, EAX
+        SHUFPS    XMM4, XMM4, 0
+        MULPS     XMM2, XMM4
 
 {$IFDEF FPC}
         MOV       EDX, [RBP + $48]
 {$ELSE}
         MOV       EDX, WD
 {$ENDIF}
-        MOVD      XMM5,EDX
-        SHUFPS    XMM5,XMM5,0
-        MULPS     XMM3,XMM5
-        ADDPS     XMM2,XMM3
-        ADDPS     XMM0,XMM2
+        MOVD      XMM5, EDX
+        SHUFPS    XMM5, XMM5, 0
+        MULPS     XMM1, XMM5
+        ADDPS     XMM2, XMM1
+        ADDPS     XMM0, XMM2
 
-        CVTPS2DQ  XMM0,XMM0
-        PACKSSDW  XMM0,XMM7
-        PACKUSWB  XMM0,XMM7
-        MOVD      EAX,XMM0
+        CVTPS2DQ  XMM0, XMM0
+        PACKSSDW  XMM0, XMM3
+        PACKUSWB  XMM0, XMM3
+        MOVD      EAX, XMM0
 {$ENDIF}
+
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5'];
+{$ifend}
 end;
+
 {$ENDIF}
 {$ENDIF}
 
