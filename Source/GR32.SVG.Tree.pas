@@ -10185,7 +10185,7 @@ var
           Break;
         end;
 
-        if AParser.Kind = xtElementStart then
+        if (AParser.Kind = xtElementStart) then
         begin
 
           childNode := ParseSubtree(AParser, node);
@@ -10196,7 +10196,7 @@ var
         if (AParser.Kind in [xtText, xtCData]) and (node is TSvgTextPositioningNode) then
         begin
 
-          if AParser.Kind = xtCData then
+          if (AParser.Kind = xtCData) then
             UnicodeText := TValuePUtf8Char(AParser.Value).ToString
           else
           begin
@@ -10211,14 +10211,32 @@ var
 
             TextPosNode := TSvgTextPositioningNode(node);
 
-            if AParser.Kind <> xtCData then
+            if (AParser.Kind <> xtCData) then
             begin
               if node is TSvgTextAreaNode then
               begin
                 NormalizeLinebreaksInline(UnicodeText);
                 NormalizeControlCharsInline(UnicodeText);
               end else
-                CollapseWhitespaceInline(UnicodeText);
+              begin
+                // If the raw text ended with a newline (and optional trailing whitespace)
+                // before a tag, the whitespace after the word was introduced by
+                // the newline and indentation.
+                // In xml:space="default", trailing newlines in a text chunk are removed.
+                i := Length(UnicodeText);
+                while (i > 0) and ((UnicodeText[i] = ' ') or (UnicodeText[i] = #9)) do
+                  Dec(i);
+                if (i > 0) and ((UnicodeText[i] = #10) or (UnicodeText[i] = #13)) then
+                begin
+                  CollapseWhitespaceInline(UnicodeText);
+                  i := Length(UnicodeText);
+                  while (i > 0) and (UnicodeText[i] = ' ') do
+                    Dec(i);
+                  if (i <> Length(UnicodeText)) then
+                    SetLength(UnicodeText, i);
+                end else
+                  CollapseWhitespaceInline(UnicodeText);
+              end;
             end;
 
             // Strip leading spaces, tabs, and newlines from UnicodeText when starting, right after a line break (#10), or after a child element
@@ -10229,7 +10247,7 @@ var
               i := 1;
               while (i <= Length(UnicodeText)) and ((UnicodeText[i] = ' ') or (UnicodeText[i] = #9) or (UnicodeText[i] = #10)) do
                 Inc(i);
-              if i > 1 then
+              if (i > 1) then
                 Delete(UnicodeText, 1, i - 1);
             end;
 
