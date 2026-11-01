@@ -746,7 +746,10 @@ begin
   end;
 
   // Test if completely outside visible target
-  Result := not GR32.IntersectRect(WorldBounds, FloatRect(ATarget.ClipRect));
+  Result := not GR32.IntersectRect(WorldBounds, WorldBounds, FloatRect(ATarget.ClipRect));
+
+  // Level-of-detail culling for microscopic sub-pixel elements
+  Result := Result or ((WorldBounds.Width < 0.2) and (WorldBounds.Height < 0.2));
 {$else}
   Result := False;
 {$ifend}
