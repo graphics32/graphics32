@@ -128,6 +128,10 @@
         <DCCReference Include="..\..\GR32.Blend.Pascal.pas"/>
         <DCCReference Include="..\..\GR32.Blend.Assembler.pas"/>
         <DCCReference Include="..\..\GR32.Blend.SSE2.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.Modes.Extra.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.Modes.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.Modes.PhotoShop.pas"/>
+        <DCCReference Include="..\..\GR32.Blend.Modes.PorterDuff.pas"/>
         <DCCReference Include="..\..\GR32_Gamma.pas"/>
         <DCCReference Include="..\..\GR32_Png.pas"/>
         <DCCReference Include="..\..\GR32_PortableNetworkGraphic.pas"/>
@@ -171,14 +175,31 @@
         <DCCReference Include="..\..\GR32.ImageFormats.PSD.Reader.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.PSD.Types.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.PSD.Writer.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.SVG.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.JPG.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.GIF.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Css.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Path.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Renderer.Filters.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Renderer.PaintServers.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Renderer.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Tree.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Types.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Utf8.pas"/>
+        <DCCReference Include="..\..\GR32.SVG.Xml.pas"/>
+        <DCCReference Include="..\..\GR32.Layers.SVG.pas"/>
         <DCCReference Include="..\..\GR32_ColorSwatch.pas"/>
         <DCCReference Include="..\..\GR32.BigEndian.pas"/>
         <DCCReference Include="..\..\GR32.Blur.pas"/>
         <DCCReference Include="..\..\GR32.Blur.RecursiveGaussian.pas"/>
+        <DCCReference Include="..\..\GR32.Blur.DraftBlur.pas"/>
         <DCCReference Include="..\..\GR32.Math.Complex.pas"/>
         <DCCReference Include="..\..\GR32.Types.SIMD.pas"/>
         <DCCReference Include="..\..\GR32_VectorUtils.Reference.pas"/>
         <DCCReference Include="..\..\GR32.Transpose.pas"/>
+        <DCCReference Include="..\..\GR32.Noise.Perlin.pas"/>
+        <DCCReference Include="..\..\GR32.Noise.Simplex.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -31,7 +31,8 @@ package GR32_R;
 {$IMPLICITBUILD OFF}
 
 requires
-  vcl;
+  vcl,
+  vclimg;
 
 contains
   GR32 in '..\..\GR32.pas',
@@ -76,6 +77,10 @@ contains
   GR32.Blend.Pascal in '..\..\GR32.Blend.Pascal.pas',
   GR32.Blend.Assembler in '..\..\GR32.Blend.Assembler.pas',
   GR32.Blend.SSE2 in '..\..\GR32.Blend.SSE2.pas',
+  GR32.Blend.Modes.Extra in '..\..\GR32.Blend.Modes.Extra.pas',
+  GR32.Blend.Modes in '..\..\GR32.Blend.Modes.pas',
+  GR32.Blend.Modes.PhotoShop in '..\..\GR32.Blend.Modes.PhotoShop.pas',
+  GR32.Blend.Modes.PorterDuff in '..\..\GR32.Blend.Modes.PorterDuff.pas',
   GR32_Gamma in '..\..\GR32_Gamma.pas',
   GR32_Png in '..\..\GR32_Png.pas',
   GR32_PortableNetworkGraphic in '..\..\GR32_PortableNetworkGraphic.pas',
@@ -119,14 +124,31 @@ contains
   GR32.ImageFormats.PSD.Reader in '..\..\GR32.ImageFormats.PSD.Reader.pas',
   GR32.ImageFormats.PSD.Types in '..\..\GR32.ImageFormats.PSD.Types.pas',
   GR32.ImageFormats.PSD.Writer in '..\..\GR32.ImageFormats.PSD.Writer.pas',
+  GR32.ImageFormats.SVG in '..\..\GR32.ImageFormats.SVG.pas',
+  GR32.ImageFormats.JPG in '..\..\GR32.ImageFormats.JPG.pas',
+  GR32.ImageFormats.GIF in '..\..\GR32.ImageFormats.GIF.pas',
+  GR32.SVG.Css in '..\..\GR32.SVG.Css.pas',
+  GR32.SVG in '..\..\GR32.SVG.pas',
+  GR32.SVG.Path in '..\..\GR32.SVG.Path.pas',
+  GR32.SVG.Renderer.Filters in '..\..\GR32.SVG.Renderer.Filters.pas',
+  GR32.SVG.Renderer.PaintServers in '..\..\GR32.SVG.Renderer.PaintServers.pas',
+  GR32.SVG.Renderer in '..\..\GR32.SVG.Renderer.pas',
+  GR32.SVG.Tree in '..\..\GR32.SVG.Tree.pas',
+  GR32.SVG.Types in '..\..\GR32.SVG.Types.pas',
+  GR32.SVG.Utf8 in '..\..\GR32.SVG.Utf8.pas',
+  GR32.SVG.Xml in '..\..\GR32.SVG.Xml.pas',
+  GR32.Layers.SVG in '..\..\GR32.Layers.SVG.pas',
   GR32_ColorSwatch in '..\..\GR32_ColorSwatch.pas',
   GR32.BigEndian in '..\..\GR32.BigEndian.pas',
   GR32.Blur in '..\..\GR32.Blur.pas',
   GR32.Blur.RecursiveGaussian in '..\..\GR32.Blur.RecursiveGaussian.pas',
+  GR32.Blur.DraftBlur in '..\..\GR32.Blur.DraftBlur.pas',
   GR32.Math.Complex in '..\..\GR32.Math.Complex.pas',
   GR32.Types.SIMD in '..\..\GR32.Types.SIMD.pas',
   GR32_VectorUtils.Reference in '..\..\GR32_VectorUtils.Reference.pas',
-  GR32.Transpose in '..\..\GR32.Transpose.pas';
+  GR32.Transpose in '..\..\GR32.Transpose.pas',
+  GR32.Noise.Perlin in '..\..\GR32.Noise.Perlin.pas',
+  GR32.Noise.Simplex in '..\..\GR32.Noise.Simplex.pas';
 
 end.
 

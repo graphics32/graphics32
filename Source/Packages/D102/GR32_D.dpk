@@ -43,6 +43,7 @@ contains
   GR32.Design.Reg in '..\..\Design\GR32.Design.Reg.pas',
   GR32.Design.Color32 in '..\..\Design\GR32.Design.Color32.pas',
   GR32.Design.Misc in '..\..\Design\GR32.Design.Misc.pas',
+  GR32.Design.ImageFormats in '..\..\Design\GR32.Design.ImageFormats.pas',
   GR32.Design.ColorPicker in '..\..\Design\GR32.Design.ColorPicker.pas' {FormColorPicker};
 
 end.
