@@ -1514,7 +1514,12 @@ begin
   if FRepaintOptimizer.Enabled then
     FRepaintOptimizer.BeginPaint;
 
-  PaintSupport := FBuffer.Backend as IPaintSupport;
+  if (not Supports(FBuffer.Backend, IPaintSupport, PaintSupport)) then
+  begin
+    // Exception in Paint -> exeption flood; Hide control to avoid it
+    Hide;
+    raise Exception.CreateFmt('%s.Buffer.Backend must support IPaintSupport', [ClassName]);
+  end;
 
   if not FBufferValid then
   begin
