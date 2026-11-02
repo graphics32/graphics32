@@ -853,7 +853,7 @@ begin
   if not FOpenDialog.Execute then
     exit;
 
-  Bitmap := TBitmap32.Create(TMemoryBackend);
+  Bitmap := TBitmap32.Create; // Note: Must use platform backend in order to provide font support for adapters (e.g. SVG)
   try
     Bitmap.LoadFromFile(FOpenDialog.Filename);
     LoadFromImage(Bitmap);
