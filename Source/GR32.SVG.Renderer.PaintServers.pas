@@ -601,6 +601,7 @@ begin
   BitmapWidth := Clamp(Round(TileWidth * MatrixScaleX), 1, cMaxPatternDimension);
   BitmapHeight := Clamp(Round(TileHeight * MatrixScaleY), 1, cMaxPatternDimension);
 
+  PatternFiller := nil;
   PatternBitmap := TBitmap32.Create;
   try
     PatternBitmap.SetSize(BitmapWidth, BitmapHeight);
@@ -648,6 +649,7 @@ begin
       PatternBitmap.MasterAlpha := Round(AOpacity * 255);
 
     PatternFiller := TSvgPatternPolygonFiller.Create(PatternBitmap);
+    PatternBitmap := nil; // Filler now owns the bitmap
 
     if IsIdentityMatrix(TotalTransform.Matrix) then
     begin
@@ -674,6 +676,7 @@ begin
     Result := PatternFiller;
   except
     PatternBitmap.Free;
+    PatternFiller.Free;
     raise;
   end;
 end;
