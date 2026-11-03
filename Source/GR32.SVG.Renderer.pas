@@ -2187,9 +2187,9 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
         FTransformation.Push;
         SaveSurfaceClip := ATargetSurface.ClipRect;
         try
-          ApplyMatrix(DocVpMat);
-
-          // Clip nested <svg> document viewport if overflow <> ofVisible
+          // Clip nested <svg> document viewport if overflow <> ofVisible.
+          // Bounding box must be transformed to screen coordinates using parent transformation
+          // prior to applying the inner viewBox transform matrix (DocVpMat).
           if (DocNode.Overflow <> ofVisible) then
           begin
             TransformedDocTarget := FTransformation.GetTransformedBounds(DocTargetRect);
@@ -2197,6 +2197,8 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
             GR32.IntersectRect(DocClipRect, ATargetSurface.ClipRect, DocClipRect);
             ATargetSurface.ClipRect := DocClipRect;
           end;
+
+          ApplyMatrix(DocVpMat);
 
           for i := 0 to DocNode.Children.Count - 1 do
             RenderNode(ATargetSurface, DocNode.Children[i]);
