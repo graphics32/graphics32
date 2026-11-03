@@ -40,6 +40,7 @@ requires
 
 contains
   GR32.Design.BitmapEditor in '..\..\Design\GR32.Design.BitmapEditor.pas' {PictureEditorForm},
+  GR32.Design.DebugVisualizers in '..\..\Design\GR32.Design.DebugVisualizers.pas',
   GR32.Design.Reg in '..\..\Design\GR32.Design.Reg.pas',
   GR32.Design.Color32 in '..\..\Design\GR32.Design.Color32.pas',
   GR32.Design.Misc in '..\..\Design\GR32.Design.Misc.pas',

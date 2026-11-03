@@ -72,6 +72,7 @@
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="GR32_R.dcp"/>
         <DCCReference Include="VclSmp.dcp"/>
+        <DCCReference Include="..\..\Design\GR32.Design.DebugVisualizers.pas"/>
         <DCCReference Include="..\..\Design\GR32.Design.BitmapEditor.pas">
             <Form>PictureEditorForm</Form>
         </DCCReference>
