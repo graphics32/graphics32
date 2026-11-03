@@ -55,7 +55,7 @@ type
   TPictureEditorForm = class(TForm)
     TabSheetAlpha: TTabSheet;
     Bevel1: TBevel;
-    Cancel: TButton;
+    ButtonCancel: TButton;
     ButtonClear: TToolButton;
     ButtonCopy: TToolButton;
     ImageList: TImageList;
@@ -69,7 +69,7 @@ type
     MenuItemSave: TMenuItem;
     mnSeparator: TMenuItem;
     mnSeparator2: TMenuItem;
-    OKButton: TButton;
+    ButtonOK: TButton;
     PageControl: TPageControl;
     Panel1: TPanel;
     ButtonPaste: TToolButton;
@@ -92,6 +92,8 @@ type
     ActionHelp: TAction;
     ButtonGrid: TToolButton;
     ActionGrid: TAction;
+    ActionOK: TAction;
+    ActionCancel: TAction;
     procedure ActionLoadExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
     procedure ActionHasBitmapUpdate(Sender: TObject);
@@ -103,6 +105,12 @@ type
     procedure ActionHelpExecute(Sender: TObject);
     procedure ActionGridExecute(Sender: TObject);
     procedure ActionGridUpdate(Sender: TObject);
+    procedure ActionOKExecute(Sender: TObject);
+    procedure ActionCancelExecute(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+  private
+    FReadOnly: boolean;
+    procedure SetReadOnly(const Value: boolean);
   protected
 {$IFDEF PLATFORM_INDEPENDENT}
     FOpenDialog: TOpenDialog;
@@ -124,6 +132,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     procedure LoadFromImage(Source: TPersistent);
+    property ReadOnly: boolean read FReadOnly write SetReadOnly;
   end;
 
   TBitmap32Editor = class(TComponent)
@@ -406,6 +415,13 @@ begin
     Result := FImageAllChannels;
 end;
 
+procedure TPictureEditorForm.FormShow(Sender: TObject);
+begin
+  FImageAllChannels.FitToViewport;
+  FImageRGBChannels.FitToViewport;
+  FImageAlphaChannel.FitToViewport;
+end;
+
 procedure TPictureEditorForm.LoadFromImage(Source: TPersistent);
 
   procedure UpdateImageBackground(Image: TImage32);
@@ -500,9 +516,10 @@ begin
     FImageRGBChannels.EndUpdate;
     FImageAlphaChannel.EndUpdate;
   end;
-  FImageAllChannels.Changed;
-  FImageRGBChannels.Changed;
-  FImageAlphaChannel.Changed;
+
+  FImageAllChannels.FitToViewport;
+  FImageRGBChannels.FitToViewport;
+  FImageAlphaChannel.FitToViewport;
 
   if (FImageAllChannels.Bitmap.Empty) then
     StatusBar.Panels[3].Text := sInfoEmpty
@@ -523,6 +540,25 @@ begin
     Image.EndUpdate;
   end;
   Image.Changed;
+end;
+
+procedure TPictureEditorForm.SetReadOnly(const Value: boolean);
+var
+  x: integer;
+begin
+  if (FReadOnly = Value) then
+    exit;
+
+  FReadOnly := Value;
+  ActionLoad.Visible := not FReadOnly;
+  ActionClear.Visible := not FReadOnly;
+  ActionPaste.Visible := not FReadOnly;
+  ActionInvert.Visible := not FReadOnly;
+  ActionCancel.Visible := not FReadOnly;
+
+  x := ButtonOK.Left;
+  ButtonOK.Left := ButtonCancel.Left;
+  ButtonCancel.Left := x;
 end;
 
 procedure TPictureEditorForm.SyncZoomAndPan;
@@ -841,6 +877,11 @@ begin
   Result := 1;
 end;
 
+procedure TPictureEditorForm.ActionCancelExecute(Sender: TObject);
+begin
+  ModalResult := mrCancel;
+end;
+
 procedure TPictureEditorForm.ActionClearExecute(Sender: TObject);
 begin
   LoadFromImage(nil);
@@ -860,6 +901,13 @@ begin
   finally
     Bitmap.Free;
   end;
+end;
+
+procedure TPictureEditorForm.ActionOKExecute(Sender: TObject);
+begin
+  ModalResult := mrOK;
+  if (FReadOnly) then
+    Close;
 end;
 
 procedure TPictureEditorForm.ActionPasteExecute(Sender: TObject);

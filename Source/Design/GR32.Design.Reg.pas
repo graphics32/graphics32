@@ -54,6 +54,11 @@ uses
   GR32,
   GR32.Design.Color32,
   GR32.Design.BitmapEditor,
+  {$IFNDEF FPC}
+  {$IF CompilerVersion >= 25.0}
+  GR32.Design.DebugVisualizers,
+  {$IFEND}
+  {$ENDIF}
   GR32.Design.Misc,
   GR32_Image,
   {$ifdef MSWINDOWS}
@@ -93,6 +98,13 @@ begin
   RegisterPropertyEditor(TypeInfo(TCustomResampler), TBitmap32, 'Resampler', TResamplerClassProperty);
   RegisterPropertyEditor(TypeInfo(string), TKernelResampler, 'KernelClassName', nil);
   RegisterPropertyEditor(TypeInfo(TCustomKernel), TKernelResampler, 'Kernel', TKernelClassProperty);
+
+  {$IFNDEF FPC}
+  {$IF CompilerVersion >= 25.0}
+  // Register debug visualizers for TCustomBitmap32 in the Delphi IDE
+  RegisterDebugVisualizers;
+  {$IFEND}
+  {$ENDIF}
 end;
 
 end.
