@@ -17,7 +17,8 @@ uses
   GR32.Tests.SVG.Gradients in 'GR32.Tests.SVG.Gradients.pas',
   GR32.Tests.SVG.Renderer in 'GR32.Tests.SVG.Renderer.pas',
   GR32.Tests.SVG.Facade in 'GR32.Tests.SVG.Facade.pas',
-  GR32.Tests.SVG.Fixtures in 'GR32.Tests.SVG.Fixtures.pas';
+  GR32.Tests.SVG.Fixtures in 'GR32.Tests.SVG.Fixtures.pas',
+  GR32.Tests.SVG.FileTests in 'GR32.Tests.SVG.FileTests.pas';
 
 {$R *.RES}
 
