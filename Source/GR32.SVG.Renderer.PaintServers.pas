@@ -559,9 +559,22 @@ begin
   PatternTransform.Matrix := PatternNode.PatternTransform;
   TotalTransform := PatternTransform * ARenderer.Transformation.Matrix;
 
+  // Calculates user-space dimensions of the target bounding box.
+  // ABounds is provided in screen/render coordinates, so dividing by the transformation
+  // scale yields the user-space bounding box dimensions.
+  MatrixScaleX := GR32_Math.Hypot(ARenderer.Transformation.Matrix[0, 0], ARenderer.Transformation.Matrix[0, 1]);
+  MatrixScaleY := GR32_Math.Hypot(ARenderer.Transformation.Matrix[1, 0], ARenderer.Transformation.Matrix[1, 1]);
+  if MatrixScaleX <= 0 then MatrixScaleX := 1.0;
+  if MatrixScaleY <= 0 then MatrixScaleY := 1.0;
+
+  TileRatioX := BoundsWidth / MatrixScaleX;
+  TileRatioY := BoundsHeight / MatrixScaleY;
+
   // Calculates pattern tile origin and bounds in user space.
   // When patternUnits = guObjectBoundingBox (default), tile attributes x, y, width, height
-  // are defined in normalized bounding box units [0..1] relative to target bounds in user space.
+  // are defined in normalized bounding box units [0..1] (or percentages) relative to target bounds in user space.
+  // Using PatternNode.<Attr>.ToPixels(1.0) correctly evaluates both percentages (50% -> 0.5)
+  // and fractions/numbers (0.5 -> 0.5) against the 1.0 normalized reference size.
   if PatternNode.PatternUnits = guObjectBoundingBox then
   begin
     InvMat := ARenderer.Transformation.Matrix;
@@ -569,17 +582,10 @@ begin
 
     origPt := TFloatMatrixHelper(InvMat).TransformPoint(FloatPoint(ABounds.Left, ABounds.Top));
 
-    MatrixScaleX := GR32_Math.Hypot(ARenderer.Transformation.Matrix[0, 0], ARenderer.Transformation.Matrix[0, 1]);
-    MatrixScaleY := GR32_Math.Hypot(ARenderer.Transformation.Matrix[1, 0], ARenderer.Transformation.Matrix[1, 1]);
-    if MatrixScaleX <= 0 then MatrixScaleX := 1.0;
-    if MatrixScaleY <= 0 then MatrixScaleY := 1.0;
-
-    TileRatioX := BoundsWidth / MatrixScaleX;
-    TileRatioY := BoundsHeight / MatrixScaleY;
-    TileWidth := PatternNode.GetSizePx(PatternNode.Width, 1.0) * TileRatioX;
-    TileHeight := PatternNode.GetSizePx(PatternNode.Height, 1.0) * TileRatioY;
-    TileX := origPt.X + PatternNode.GetSizePx(PatternNode.X, 1.0) * TileRatioX;
-    TileY := origPt.Y + PatternNode.GetSizePx(PatternNode.Y, 1.0) * TileRatioY;
+    TileWidth := PatternNode.Width.ToPixels(1.0) * TileRatioX;
+    TileHeight := PatternNode.Height.ToPixels(1.0) * TileRatioY;
+    TileX := origPt.X + PatternNode.X.ToPixels(1.0) * TileRatioX;
+    TileY := origPt.Y + PatternNode.Y.ToPixels(1.0) * TileRatioY;
   end else
   begin
     TileX := PatternNode.GetSizePx(PatternNode.X, ViewportWidth);
@@ -623,16 +629,23 @@ begin
       end else
       if PatternNode.PatternContentUnits = guObjectBoundingBox then
       begin
+        // When patternContentUnits = guObjectBoundingBox, child geometry coordinates
+        // are defined in normalized [0..1] bounding box units relative to the object bounding box
+        // in user space (BoundsWidth / MatrixScaleX, BoundsHeight / MatrixScaleY).
+        // The tile's content coordinate system origin (0, 0) is at the top-left of the tile bitmap,
+        // so content is scaled to the tile bitmap without translating by the pattern tile offset.
+        // Using user-space dimensions rather than screen-space BoundsWidth/BoundsHeight ensures
+        // the pattern content scale remains invariant to target resolution/viewBox scaling.
         TileRatioX := BitmapWidth / TileWidth;
         TileRatioY := BitmapHeight / TileHeight;
-        ContentMat.Scale(BoundsWidth * TileRatioX, BoundsHeight * TileRatioY);
-        ContentMat.Translate(-TileX * TileRatioX, -TileY * TileRatioY);
+        ContentMat.Scale((BoundsWidth / MatrixScaleX) * TileRatioX, (BoundsHeight / MatrixScaleY) * TileRatioY);
       end else
       begin
+        // When patternContentUnits = guUserSpaceOnUse, child geometry coordinates
+        // are defined in user space units directly mapping 1:1 with tile space.
         TileRatioX := BitmapWidth / TileWidth;
         TileRatioY := BitmapHeight / TileHeight;
         ContentMat.Scale(TileRatioX, TileRatioY);
-        ContentMat.Translate(-TileX * TileRatioX, -TileY * TileRatioY);
       end;
 
       ARenderer.ApplyMatrix(ContentMat.Matrix);
