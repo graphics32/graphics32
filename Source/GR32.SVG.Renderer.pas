@@ -1896,7 +1896,19 @@ begin
       // W3C SVG 1.1 §14.3.5 ("Clipping paths"):
       // If a 'clip-path' property is specified on the <clipPath> element itself,
       // intersect the resulting clipping path with the referenced clipPath.
-      ApplyClipPathNode(AMaskBmp, AClipNode.ResolvedClipPath, ATargetBounds, ARoiRect, False);
+
+      // Guard against self-referencing clip-path, clip-mask etc.
+      if (FRecursionDepth > cMaxRecursions) then
+        Exit;
+
+      Inc(FRecursionDepth);
+      try
+
+        ApplyClipPathNode(AMaskBmp, AClipNode.ResolvedClipPath, ATargetBounds, ARoiRect, False);
+
+      finally
+        Dec(FRecursionDepth);
+      end;
 
     finally
       FTransformation.Pop;
