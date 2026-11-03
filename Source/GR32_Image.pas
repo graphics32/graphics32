@@ -2841,7 +2841,6 @@ var
   Len: integer;
   BlockSize: integer;
   RowPtr: PColor32Array;
-  i: Integer;
   Parity: integer;
   ViewportRect: TRect;
   BitmapRect: TRect;
@@ -2962,17 +2961,6 @@ begin
     {$endif}
         C := Color32(BackgroundColor);
 
-        if InvalidRects.Count > 0 then
-        begin
-          for i := 0 to InvalidRects.Count-1 do
-          begin
-            if (DrawBitmapBackground) and (ClearStyle <> bfsColor) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (BitmapRect.Contains(InvalidRects[i]^)) then
-              continue;
-
-            with InvalidRects[i]^ do
-              Dest.FillRectS(Left, Top, Right, Bottom, C);
-          end;
-        end else
         if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) then
         begin
           Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
@@ -3156,7 +3144,8 @@ begin
     Exit;
 
   BitmapRect := CachedBitmapRect;
-  if GR32.IsRectEmpty(BitmapRect) then
+
+  if (not GR32.IntersectRect(BitmapRect, Dest.ClipRect)) then
     Exit;
 
   Bitmap.Lock;

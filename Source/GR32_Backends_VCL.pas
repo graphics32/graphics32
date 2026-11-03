@@ -663,7 +663,8 @@ begin
   BufferHandle := ABuffer.Handle;
   for i := 0 to AInvalidRects.Count - 1 do
     with AInvalidRects[i]^ do
-      BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
+      if (Left < Right) and (Top < Bottom) then
+        BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
 end;
 
 procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);
