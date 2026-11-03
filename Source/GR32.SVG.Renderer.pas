@@ -540,18 +540,42 @@ begin
 end;
 
 function TSvgRenderer.GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor): TSvgColor;
+var
+  ColorNode: TSvgNode;
 begin
   if (AColor.IsNone) then
     Exit(AColor);
 
   if AColor.IsCurrentColor then
   begin
+    // Renderer-level CurrentColor override takes precedence if explicitly set
     if FCurrentColor.IsSet then
       Result := FCurrentColor
     else
     if ANode <> nil then
     begin
-      Result := ANode.Color;
+      // Determine the node context to resolve currentColor from:
+      // In CSS/SVG, currentColor on an inherited fill/stroke property resolves
+      // against the color property of the element where fill/stroke was declared (e.g. W3C SVG test color-prop-05-t).
+      // Walk up the parent hierarchy to find the node where fill/stroke was explicitly specified.
+      // If fill/stroke was specified on ANode itself (or inside a cloned <use> subtree), ANode itself is used.
+      ColorNode := ANode;
+      if (AThemeColor = tcFill) then
+      begin
+        while (ColorNode <> nil) and not (fpColor in ColorNode.Fill.Specified) do
+          ColorNode := ColorNode.Parent;
+        if ColorNode = nil then
+          ColorNode := ANode;
+      end else
+      if (AThemeColor = tcStroke) then
+      begin
+        while (ColorNode <> nil) and not (spColor in ColorNode.Stroke.Specified) do
+          ColorNode := ColorNode.Parent;
+        if ColorNode = nil then
+          ColorNode := ANode;
+      end;
+
+      Result := ColorNode.Color;
       if Result.IsCurrentColor then
         Result := TSvgColor.Create(clBlack32);
     end else

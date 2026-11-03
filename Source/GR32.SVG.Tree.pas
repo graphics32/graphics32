@@ -157,7 +157,7 @@ type
   TSvgPaintServerNode = class;
 
   TSvgFill = record
-  private type
+  public type
     TSvgFillProperties = set of (fpColor, fpOpacity, fpFillRule);
   private
     FSpecified: TSvgFillProperties;
@@ -179,6 +179,7 @@ type
     property FillRule: TPolyFillMode read FFillRule write SetFillRule;
     property Url: UTF8String read FUrl write SetUrl;
     property ResolvedPaintServer: TSvgPaintServerNode read FResolvedPaintServer write FResolvedPaintServer;
+    property Specified: TSvgFillProperties read FSpecified;
 
     class function Default: TSvgFill; static;
   end;
@@ -191,9 +192,10 @@ type
 //------------------------------------------------------------------------------
 // Stroke properties
 //------------------------------------------------------------------------------
+  TSvgStrokeProperty = (spColor, spWidth, spOpacity, spJoinStyle, spEndStyle, spMiterLimit, spDashArray, spDashOffset);
+  TSvgStrokeProperties = set of TSvgStrokeProperty;
+
   TSvgStroke = record
-  private type
-    TSvgStrokeProperties = set of (spColor, spWidth, spOpacity, spJoinStyle, spEndStyle, spMiterLimit, spDashArray, spDashOffset);
   private
     FSpecified: TSvgStrokeProperties;
     FColor: TSvgColor;
@@ -229,6 +231,7 @@ type
     property DashOffset: TSvgLength read FDashOffset write SetDashOffset;
     property Url: UTF8String read FUrl write SetUrl;
     property ResolvedPaintServer: TSvgPaintServerNode read FResolvedPaintServer write FResolvedPaintServer;
+    property Specified: TSvgStrokeProperties read FSpecified;
 
     class function Default: TSvgStroke; static;
   end;
@@ -2574,10 +2577,10 @@ begin
     ADest.ResolvedPaintServer := FResolvedPaintServer;
   end;
 
-  if fpOpacity in FSpecified then
+  if (fpOpacity in FSpecified) then
     ADest.Opacity := FOpacity;
 
-  if fpFillRule in FSpecified then
+  if (fpFillRule in FSpecified) then
     ADest.FillRule := FFillRule;
 end;
 
