@@ -2264,11 +2264,15 @@ begin
   if (AGroupNode = FFilteredNode) then
     NeedsOffscreen := False
   else
+    // Offscreen surface required if group has clip-path, opacity < 1, mask, isolation,
+    // or enable-background="new" (W3C SVG 1.1 §15.2.1: establishes a new background
+    // canvas initialized to transparent black).
     NeedsOffscreen := (AGroupNode.ResolvedClipPath <> nil) or
                       ((not IsRenderingClipPath) and
                        ((AGroupNode.Opacity < 1.0) or
                         (AGroupNode.ResolvedMask <> nil) or
-                        (AGroupNode.Isolation = isoIsolate)));
+                        (AGroupNode.Isolation = isoIsolate) or
+                        (AGroupNode.EnableBackground = ebNew)));
 
   if not NeedsOffscreen then
   begin

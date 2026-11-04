@@ -201,6 +201,19 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgEnableBackground
+//
+//------------------------------------------------------------------------------
+// W3C SVG 1.1 Specification §15.2.1 ('enable-background' property)
+//------------------------------------------------------------------------------
+type
+  TSvgEnableBackground = (
+    ebAccumulate,
+    ebNew
+  );
+
+//------------------------------------------------------------------------------
+//
 //      TSvgLengthAdjust
 //
 //------------------------------------------------------------------------------
@@ -241,6 +254,7 @@ type
 //
 //------------------------------------------------------------------------------
 function ParseSvgOverflow(const AName: TValuePUtf8Char): TSvgOverflow; overload;
+function ParseSvgEnableBackground(const AName: TValuePUtf8Char): TSvgEnableBackground; overload;
 function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode; overload;
 function ParseSvgBlendMode(const AName: UTF8String): TSvgBlendMode; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgIsolation(const AName: TValuePUtf8Char): TSvgIsolation; overload;
@@ -624,6 +638,15 @@ begin
     Result := ofAuto
   else
     Result := ofVisible;
+end;
+
+function ParseSvgEnableBackground(const AName: TValuePUtf8Char): TSvgEnableBackground;
+begin
+  // Per W3C SVG 1.1 §15.2.1, 'new [ <x> <y> <width> <height> ]' establishes a new background canvas
+  if AName.StartsText('new', True) then
+    Result := ebNew
+  else
+    Result := ebAccumulate;
 end;
 
 function ParseSvgBlendMode(const AName: TValuePUtf8Char): TSvgBlendMode;

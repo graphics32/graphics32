@@ -606,7 +606,7 @@ end;
 
 procedure TFilterContext.BlockCopyAlpha(Dst, Src: TCustomBitmap32);
 var
-  DstRect, SrcRect, TargetROI: TRect;
+  DstRect, SrcRect: TRect;
   W, i, DstY: Integer;
   pSourceRow, pDestRow: PColor32Entry;
   pSource, pDest: PColor32Entry;
@@ -618,10 +618,7 @@ begin
     Exit;
   end;
 
-  TargetROI := ROI;
-  GR32.OffsetRect(TargetROI, OffscreenOffset.X, OffscreenOffset.Y);
-
-  GR32.IntersectRect(SrcRect, TargetROI, Src.BoundsRect);
+  GR32.IntersectRect(SrcRect, ROI, Src.BoundsRect);
 
   if SrcRect.IsEmpty then
   begin
@@ -629,8 +626,8 @@ begin
     Exit;
   end;
 
-  DstRect.Left := SrcRect.Left - TargetROI.Left;
-  DstRect.Top := SrcRect.Top - TargetROI.Top;
+  DstRect.Left := SrcRect.Left - ROI.Left;
+  DstRect.Top := SrcRect.Top - ROI.Top;
   DstRect.Right := DstRect.Left + SrcRect.Width;
   DstRect.Bottom := DstRect.Top + SrcRect.Height;
 
@@ -662,6 +659,10 @@ begin
   begin
     FBackgroundAlpha.Bitmap := Renderer.GetOffscreenBitmap(ROI.Width, ROI.Height, False);
     FBackgroundAlpha.Region := Rect(0, 0, FBackgroundAlpha.Bitmap.Width, FBackgroundAlpha.Bitmap.Height);
+
+    // Per W3C SVG 1.1 §15.2.1, BackgroundAlpha is only supported when an ancestor container
+    // established a background canvas (enable-background="new") or when rendering into an isolated offscreen surface.
+    // If the target is the opaque root canvas without enable-background="new", clear to transparent black.
     BlockCopyAlpha(FBackgroundAlpha.Bitmap, FTarget);
   end;
 
@@ -670,17 +671,26 @@ end;
 
 function TFilterContext.GetBackgroundImage: TSurface;
 var
-  TargetROI: TRect;
+  DstX, DstY: integer;
+  SrcRect: TRect;
 begin
   if (FBackgroundImage.Bitmap = nil) then
   begin
-    FBackgroundImage.Bitmap := Renderer.GetOffscreenBitmap(ROI.Width, ROI.Height, False);
+    FBackgroundImage.Bitmap := Renderer.GetOffscreenBitmap(ROI.Width, ROI.Height, True); // Clear because BlockTransfer might not so it
     FBackgroundImage.Region := Rect(0, 0, FBackgroundImage.Bitmap.Width, FBackgroundImage.Bitmap.Height);
+
+    // Per W3C SVG 1.1 §15.2.1, BackgroundImage is only supported when an ancestor container
+    // established a background canvas (enable-background="new") or when rendering into an
+    // isolated offscreen surface.
     if (FTarget <> nil) and (not FTarget.Empty) then
     begin
-      TargetROI := ROI;
-      GR32.OffsetRect(TargetROI, OffscreenOffset.X, OffscreenOffset.Y);
-      BlockTransfer(FBackgroundImage.Bitmap, 0, 0, FBackgroundImage.Bitmap.BoundsRect, FTarget, TargetROI, dmOpaque);
+      if GR32.IntersectRect(SrcRect, ROI, FTarget.BoundsRect) then
+      begin
+        DstX := SrcRect.Left - ROI.Left;
+        DstY := SrcRect.Top - ROI.Top;
+        BlockTransfer(FBackgroundImage.Bitmap, DstX, DstY, FBackgroundImage.Bitmap.BoundsRect, FTarget, SrcRect, dmOpaque);
+      end else
+        FBackgroundImage.Bitmap.Clear(0);
     end else
       FBackgroundImage.Bitmap.Clear(0);
   end;

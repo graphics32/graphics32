@@ -417,6 +417,7 @@ type
     FResolvedMask: TSvgMaskNode;
     FMixBlendMode: TSvgBlendMode;
     FIsolation: TSvgIsolation;
+    FEnableBackground: TSvgEnableBackground;
     FFilterID: UTF8String;
     FResolvedFilter: TSvgFilterNode;
     FParent: TSvgNode;
@@ -516,6 +517,7 @@ type
     property ResolvedMask: TSvgMaskNode read FResolvedMask write FResolvedMask;
     property MixBlendMode: TSvgBlendMode read FMixBlendMode write FMixBlendMode;
     property Isolation: TSvgIsolation read FIsolation write FIsolation;
+    property EnableBackground: TSvgEnableBackground read FEnableBackground write FEnableBackground default ebAccumulate;
     property FilterID: UTF8String read FFilterID write FFilterID;
     property ResolvedFilter: TSvgFilterNode read FResolvedFilter write FResolvedFilter;
     property Parent: TSvgNode read FParent write SetParent;
@@ -2874,6 +2876,7 @@ begin
   Result.FResolvedMask := FResolvedMask;
   Result.FMixBlendMode := FMixBlendMode;
   Result.FIsolation := FIsolation;
+  Result.FEnableBackground := FEnableBackground;
   Result.FFilterID := FFilterID;
   Result.FResolvedFilter := FResolvedFilter;
   Result.FResolving := False;
@@ -3576,11 +3579,9 @@ begin
       FFilterID := AValue.ToUtf8;
 
     attrEnableBackground:
-      (* enable-background has apparently been deprecated.
-         It's present in the original svg 1.1 specs but gone without a trace
-         from later specs.
-         https://www.w3.org/TR/SVG11/filters.html#EnableBackgroundProperty *)
-      ; // FEnableBackgroundNew := AValue.StartsText('new', True);
+      // W3C SVG 1.1 Specification §15.2.1 ('enable-background' property).
+      // 'new' establishes a new background image canvas initialized to transparent black.
+      FEnableBackground := ParseSvgEnableBackground(AValue);
 
     attrRequiredFeatures:
       SetRequiredFeatures(AValue.ToUtf8);
