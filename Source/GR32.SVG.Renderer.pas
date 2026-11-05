@@ -2405,7 +2405,7 @@ var
   FilterNode: TSvgFilterPrimitiveNode;
   FilterRenderer: TFilterRendererClass;
   PrimRect: TFloatRect;
-  SpecifiedROI, SaveTargetClipRect, DestClip, LocalClipRect: TRect;
+  SpecifiedROI, SaveTargetClipRect, DestClip, FilterClipRect: TRect;
   IsAxisAligned: Boolean;
   TotalMat, CompositeMat: TFloatMatrixHelper;
   InvMat: TFloatMatrix;
@@ -2879,24 +2879,12 @@ begin
             FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
           end;
 
-          // Clip FilterContext.CurrentSubregion to the visible target clip rect mapped to local ROI space,
-          // ensuring offscreen surface bitmap allocations in filter primitive renderers (e.g. feFlood, feGaussianBlur)
-          // remain small and bounded strictly to the visible canvas area when zoomed in.
-          if IsAxisAligned then
-          begin
-            LocalClipRect := ATarget.ClipRect;
-            GR32.OffsetRect(LocalClipRect, -FilterContext.ROI.Left, -FilterContext.ROI.Top);
-            if not GR32.IntersectRect(FilterContext.CurrentSubregion, FilterContext.CurrentSubregion, LocalClipRect) then
-              FilterContext.CurrentSubregion := Default(TRect);
-          end else
-          begin
-            // For non-axis-aligned filters (e.g. rotated elements), FilterContext.ROI is in local user space.
-            // Intersect CurrentSubregion with local surface bounds (0, 0, ROI.Width, ROI.Height) so subregion
-            // allocations remain strictly bounded to the local surface size.
-            if not GR32.IntersectRect(FilterContext.CurrentSubregion, FilterContext.CurrentSubregion, Rect(0, 0, FilterContext.ROI.Width, FilterContext.ROI.Height)) then
-              FilterContext.CurrentSubregion := Default(TRect);
-          end;
-
+          // Filter primitive subregions define intermediate boundaries for primitive operations.
+          // Intermediate primitive subregions must not be clipped against the visible canvas viewport,
+          // as intermediate results may lie partially or fully outside the viewport while still being
+          // required by subsequent filter primitives (e.g., when zoomed or panned). Full-region
+          // primitives without explicit subregions already default to FilterContext.ROI, and final
+          // compositing clips to ATarget.ClipRect.
           (*
           ** Render the filter
           *)
@@ -3009,7 +2997,10 @@ begin
 
           if IsAxisAligned then
           begin
-            ATarget.ClipRect := MakeRect(FilterRegionRect, rrOutside);
+            FilterClipRect := MakeRect(FilterRegionRect, rrOutside);
+            if not GR32.IntersectRect(FilterClipRect, SaveTargetClipRect, FilterClipRect) then
+              Exit;
+            ATarget.ClipRect := FilterClipRect;
 
             BlendOffscreenSurface(ATarget, FilterContext.CurrentSurface.Bitmap, ANode.MixBlendMode,
               FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left,

@@ -2417,6 +2417,9 @@ begin
   TileW := Input.Region.Width;
   TileH := Input.Region.Height;
 
+  if (TileW <= 0) or (TileH <= 0) then
+    Exit;
+
   TileY := -(FilterContext.CurrentSubregion.Top - Input.Region.Top) mod TileH;
   if TileY > 0 then
     Dec(TileY, TileH);
