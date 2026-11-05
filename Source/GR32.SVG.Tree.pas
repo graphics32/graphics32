@@ -566,6 +566,7 @@ type
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     procedure AddChild(AChild: TSvgNode);
     property Children: TObjectList<TSvgNode> read FChildren;
   end;
@@ -3860,8 +3861,78 @@ var
   Point: TFloatPoint;
 begin
   // Calculates the object bounding box for a group node by uniting the bounding boxes
-  // of all renderable Child nodes. Child node transformations are applied to transform
-  // Child bounds into parent group coordinate space.
+  // of all renderable child nodes. Per W3C SVG 1.1 §5.12, the object bounding box is
+  // calculated strictly on fill geometry without stroke, clipping, markers, or filter effects.
+  // Child node transformations are applied to transform child bounds into parent group coordinate space.
+
+  First := True;
+  Result := FloatRect(0, 0, 0, 0);
+
+  for i := 0 to FChildren.Count - 1 do
+  begin
+    Child := FChildren[i];
+
+    if (not Child.IsRenderable) or (Child.IsDisplayNone) then
+      Continue;
+
+    ChildBox := Child.GetObjectBoundingBox(AViewport);
+
+    if (ChildBox.Right <= ChildBox.Left) and (ChildBox.Bottom <= ChildBox.Top) then
+      continue;
+
+    if not IsIdentityMatrix(Child.Transform) then
+    begin
+      Points[0] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Left, ChildBox.Top));
+      Points[1] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Right, ChildBox.Top));
+      Points[2] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Right, ChildBox.Bottom));
+      Points[3] := TFloatMatrixHelper(Child.Transform).TransformPoint(FloatPoint(ChildBox.Left, ChildBox.Bottom));
+
+      for k := 0 to 3 do
+      begin
+        Point := Points[k];
+        if First then
+        begin
+          Result := FloatRect(Point.X, Point.Y, Point.X, Point.Y);
+          First := False;
+        end else
+        begin
+          if Point.X < Result.Left then Result.Left := Point.X;
+          if Point.X > Result.Right then Result.Right := Point.X;
+          if Point.Y < Result.Top then Result.Top := Point.Y;
+          if Point.Y > Result.Bottom then Result.Bottom := Point.Y;
+        end;
+      end;
+    end else
+    begin
+      if First then
+      begin
+        Result := ChildBox;
+        First := False;
+      end else
+      begin
+        if ChildBox.Left < Result.Left then Result.Left := ChildBox.Left;
+        if ChildBox.Right > Result.Right then Result.Right := ChildBox.Right;
+        if ChildBox.Top < Result.Top then Result.Top := ChildBox.Top;
+        if ChildBox.Bottom > Result.Bottom then Result.Bottom := ChildBox.Bottom;
+      end;
+    end;
+  end;
+end;
+
+function TSvgCustomGroupNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  i, k: Integer;
+  Child: TSvgNode;
+  ChildBox: TFloatRect;
+  First: Boolean;
+  Points: array[0..3] of TFloatPoint;
+  Point: TFloatPoint;
+  BBoxWidth, BBoxHeight, HalfStroke: Single;
+begin
+  // Calculates the visual bounding box for a group node by uniting the visual bounding boxes
+  // of all renderable child nodes (including stroke and child filter expansions), ensuring container
+  // group bounding boxes (GroupBounds) and offscreen surface allocations (GroupRoi) in
+  // TSvgRenderer.RenderGroupNode encompass child filter region expansions and strokes.
 
   First := True;
   Result := FloatRect(0, 0, 0, 0);
@@ -3914,6 +3985,45 @@ begin
         if ChildBox.Bottom > Result.Bottom then Result.Bottom := ChildBox.Bottom;
       end;
     end;
+  end;
+
+  // Apply group's own stroke if any
+  if (Result.Right >= Result.Left) and (Result.Bottom >= Result.Top) and
+     ((Result.Right > Result.Left) or (Result.Bottom > Result.Top)) then
+  begin
+    if (not FStroke.Color.IsNone) and (FStroke.Width.Value > 0) then
+    begin
+      HalfStroke := GetSizePx(FStroke.Width, AViewport) * 0.5;
+      if FStroke.JoinStyle = jsMiter then
+        HalfStroke := HalfStroke * Max(1.0, FStroke.MiterLimit);
+      GR32.InflateRect(Result, HalfStroke, HalfStroke);
+    end;
+  end;
+
+  // Apply group's own filter if any
+  if (ResolvedFilter = nil) then
+    exit;
+
+  if (Result.IsEmpty) then
+    Result := AViewport;
+
+  BBoxWidth := Result.Width;
+  BBoxHeight := Result.Height;
+  if BBoxWidth <= 0 then BBoxWidth := 1.0;
+  if BBoxHeight <= 0 then BBoxHeight := 1.0;
+
+  if (ResolvedFilter.FilterUnits = guObjectBoundingBox) then
+  begin
+    Result.Left := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.X, 1.0) * BBoxWidth;
+    Result.Top := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Y, 1.0) * BBoxHeight;
+    Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, 1.0) * BBoxWidth;
+    Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, 1.0) * BBoxHeight;
+  end else
+  begin
+    Result.Left := ResolvedFilter.GetSizePx(ResolvedFilter.X, AViewport.Width);
+    Result.Top := ResolvedFilter.GetSizePx(ResolvedFilter.Y, AViewport.Height);
+    Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, AViewport.Width);
+    Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, AViewport.Height);
   end;
 end;
 
