@@ -620,6 +620,7 @@ type
   public
     function GetSelectedChild: TSvgNode;
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     property SelectedChild: TSvgNode read FSelectedChild write FSelectedChild;
   end;
 
@@ -1956,6 +1957,7 @@ type
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     function CanCull: boolean; override;
     property X: TSvgLength read GetX;
     property Y: TSvgLength read GetY;
@@ -4078,6 +4080,14 @@ begin
     Result := inherited GetObjectBoundingBox(AViewport);
 end;
 
+function TSvgSwitchNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
+begin
+  if (FSelectedChild <> nil) then
+    Result := FSelectedChild.GetVisualBoundingBox(AViewport)
+  else
+    Result := inherited GetVisualBoundingBox(AViewport);
+end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -4209,6 +4219,55 @@ begin
     end;
   end else
     Result := ChildBox;
+end;
+
+function TSvgTextPositioningNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  BBoxWidth, BBoxHeight, HalfStroke: Single;
+begin
+  // Calculates the visual bounding box for text positioning nodes (<text>, <tspan>, <textArea>).
+  // Because TSvgTextPositioningNode inherits from TSvgCustomGroupNode but stores direct text
+  // in FTextContent rather than as child nodes, visual bounds calculation must start with its own
+  // GetObjectBoundingBox (which evaluates FTextContent and descendant text positioning spans)
+  // before applying stroke expansion and filter region adjustments.
+  Result := GetObjectBoundingBox(AViewport);
+
+  if (Result.Right >= Result.Left) and (Result.Bottom >= Result.Top) and
+     ((Result.Right > Result.Left) or (Result.Bottom > Result.Top)) then
+  begin
+    if (not FStroke.Color.IsNone) and (FStroke.Width.Value > 0) then
+    begin
+      HalfStroke := GetSizePx(FStroke.Width, AViewport) * 0.5;
+      if FStroke.JoinStyle = jsMiter then
+        HalfStroke := HalfStroke * Max(1.0, FStroke.MiterLimit);
+      GR32.InflateRect(Result, HalfStroke, HalfStroke);
+    end;
+  end;
+
+  if (ResolvedFilter = nil) then
+    exit;
+
+  if (Result.IsEmpty) then
+    Result := AViewport;
+
+  BBoxWidth := Result.Width;
+  BBoxHeight := Result.Height;
+  if BBoxWidth <= 0 then BBoxWidth := 1.0;
+  if BBoxHeight <= 0 then BBoxHeight := 1.0;
+
+  if (ResolvedFilter.FilterUnits = guObjectBoundingBox) then
+  begin
+    Result.Left := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.X, 1.0) * BBoxWidth;
+    Result.Top := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Y, 1.0) * BBoxHeight;
+    Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, 1.0) * BBoxWidth;
+    Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, 1.0) * BBoxHeight;
+  end else
+  begin
+    Result.Left := ResolvedFilter.GetSizePx(ResolvedFilter.X, AViewport.Width);
+    Result.Top := ResolvedFilter.GetSizePx(ResolvedFilter.Y, AViewport.Height);
+    Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, AViewport.Width);
+    Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, AViewport.Height);
+  end;
 end;
 
 function TSvgTextPositioningNode.GetX: TSvgLength;
