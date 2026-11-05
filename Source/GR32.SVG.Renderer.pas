@@ -2859,24 +2859,41 @@ begin
             PrimRect.Bottom - FilterContext.ROI.Top), rrOutside);
 
           // 3. Combine specified dimensions with CurrentSubregion fallback
-          if fppX in FilterNode.Specified then
+          // Per W3C SVG 1.1 §15.5 ("Filter primitive subregion"):
+          // For primitives whose default subregion is the filter region (DefaultSubregionIsFilterRegion = True,
+          // such as feImage, feFlood, feTile, feTurbulence), omitted subregion dimensions default to
+          // 0%, 0%, 100%, 100% of the filter region (SpecifiedROI). For other primitives, omitted dimensions
+          // default to the bounding union of their input surface region(s).
+          if FilterRenderer.DefaultSubregionIsFilterRegion then
           begin
-            FilterContext.CurrentSubregion.Left := SpecifiedROI.Left;
-            FilterContext.CurrentSubregion.Right := SpecifiedROI.Right;
-          end else
-          if fppWidth in FilterNode.Specified then
-          begin
-            FilterContext.CurrentSubregion.Right := FilterContext.CurrentSubregion.Left + SpecifiedROI.Width;
-          end;
+            FilterContext.CurrentSubregion := SpecifiedROI;
 
-          if fppY in FilterNode.Specified then
-          begin
-            FilterContext.CurrentSubregion.Top := SpecifiedROI.Top;
-            FilterContext.CurrentSubregion.Bottom := SpecifiedROI.Bottom;
+            if (fppWidth in FilterNode.Specified) and not (fppX in FilterNode.Specified) then
+              FilterContext.CurrentSubregion.Right := FilterContext.CurrentSubregion.Left + SpecifiedROI.Width;
+
+            if (fppHeight in FilterNode.Specified) and not (fppY in FilterNode.Specified) then
+              FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
           end else
-          if fppHeight in FilterNode.Specified then
           begin
-            FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
+            if fppX in FilterNode.Specified then
+            begin
+              FilterContext.CurrentSubregion.Left := SpecifiedROI.Left;
+              FilterContext.CurrentSubregion.Right := SpecifiedROI.Right;
+            end else
+            if fppWidth in FilterNode.Specified then
+            begin
+              FilterContext.CurrentSubregion.Right := FilterContext.CurrentSubregion.Left + SpecifiedROI.Width;
+            end;
+
+            if fppY in FilterNode.Specified then
+            begin
+              FilterContext.CurrentSubregion.Top := SpecifiedROI.Top;
+              FilterContext.CurrentSubregion.Bottom := SpecifiedROI.Bottom;
+            end else
+            if fppHeight in FilterNode.Specified then
+            begin
+              FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
+            end;
           end;
 
           // Filter primitive subregions define intermediate boundaries for primitive operations.
