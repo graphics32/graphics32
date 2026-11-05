@@ -689,10 +689,8 @@ begin
         DstX := SrcRect.Left - ROI.Left;
         DstY := SrcRect.Top - ROI.Top;
         BlockTransfer(FBackgroundImage.Bitmap, DstX, DstY, FBackgroundImage.Bitmap.BoundsRect, FTarget, SrcRect, dmOpaque);
-      end else
-        FBackgroundImage.Bitmap.Clear(0);
-    end else
-      FBackgroundImage.Bitmap.Clear(0);
+      end;
+    end;
   end;
 
   Result := FBackgroundImage;
