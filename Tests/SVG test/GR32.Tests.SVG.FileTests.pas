@@ -41,6 +41,7 @@ uses
   TestFramework,
 {$ENDIF}
   SysUtils, Classes, IOUtils, Math,
+  IniFiles,
   GR32, GR32.SVG, GR32.ImageFormats.PNG32,
   FileTestFramework;
 
@@ -71,6 +72,11 @@ type
 type
   { Unit test case for rendering SVG files and comparing the output against PNG reference images }
   TSvgCompareFileTest = class(TFileTestCase)
+  private class var
+    FResultIni: TMemIniFile;
+    FFixes: integer;
+    FRegressions: integer;
+  protected
   public
     class function HandlesFiles(const AFilename: string): Boolean; override;
   published
@@ -216,54 +222,88 @@ var
   Png: TPortableNetworkGraphic;
   CompRes: TBitmapComparisonResult;
 begin
-  // Determine expected reference PNG path matching the SVG filename
-  PngFileName := TPath.ChangeExtension(TestFileName, '.png');
-  Check(TFile.Exists(PngFileName),
-    Format('Corresponding PNG reference file not found for SVG: "%s"', [TestFileName]));
+  var ResultKey := StringReplace(TestFileName, '=', '_', [rfReplaceAll]);
+  var Expected := FResultIni.ReadString('results', ResultKey, 'new');
+  if Expected.StartsWith('ignore') then
+  begin
+    Status('Ignored: '+TestFileName);
+    exit;
+  end;
+  var n := Pos(' ', Expected);
+  if (n > 0) then
+    Setlength(Expected, n-1);
 
-  ExpectedBmp := TBitmap32.Create;
   try
-    // Load reference PNG image
-    // ExpectedBmp.LoadFromFile(PngFileName);
-    // We have to use TPortableNetworkGraphic directly in order to work around bugs in the resvg png files
-    Png := TPortableNetworkGraphic.Create;
-    try
-      Png.IgnoredChunks := ['sBIT'];
-      Png.LoadFromFile(PngFileName);
-      ExpectedBmp.Assign(Png);
-    finally
-      Png.Free;
-    end;
-    Check(not ExpectedBmp.Empty,
-      Format('Loaded reference PNG is empty: "%s"', [PngFileName]));
+    // Determine expected reference PNG path matching the SVG filename
+    PngFileName := TPath.ChangeExtension(TestFileName, '.png');
+    Check(TFile.Exists(PngFileName),
+      Format('Corresponding PNG reference file not found for SVG: "%s"', [TestFileName]));
 
-    ActualBmp := TBitmap32.Create;
+    ExpectedBmp := TBitmap32.Create;
     try
-      // Size destination bitmap to match expected image dimensions
-      ActualBmp.SetSize(ExpectedBmp.Width, ExpectedBmp.Height);
-      ActualBmp.Clear;
-
-      SvgDoc := TSvgDocument.Create;
+      // Load reference PNG image
+      // ExpectedBmp.LoadFromFile(PngFileName);
+      // We have to use TPortableNetworkGraphic directly in order to work around bugs in the resvg png files
+      Png := TPortableNetworkGraphic.Create;
       try
-        // Load and render SVG document
-        SvgDoc.LoadFromFile(TestFileName);
-        Check(SvgDoc.Root <> nil,
-          Format('Failed to parse SVG document: "%s"', [TestFileName]));
-
-        SvgDoc.Draw(ActualBmp);
-
-        // Compare actual rendered SVG against expected reference PNG
-        CompRes := CompareBitmaps(ActualBmp, ExpectedBmp);
-        Check(CompRes.Match,
-          Format('Comparison failure for "%s": %s', [TestFileName, CompRes.ErrorMessage]));
+        Png.IgnoredChunks := ['sBIT'];
+        Png.LoadFromFile(PngFileName);
+        ExpectedBmp.Assign(Png);
       finally
-        SvgDoc.Free;
+        Png.Free;
+      end;
+      Check(not ExpectedBmp.Empty,
+        Format('Loaded reference PNG is empty: "%s"', [PngFileName]));
+
+      ActualBmp := TBitmap32.Create;
+      try
+        // Size destination bitmap to match expected image dimensions
+        ActualBmp.SetSize(ExpectedBmp.Width, ExpectedBmp.Height);
+        ActualBmp.Clear;
+
+        SvgDoc := TSvgDocument.Create;
+        try
+          // Load and render SVG document
+          SvgDoc.LoadFromFile(TestFileName);
+          Check(SvgDoc.Root <> nil,
+            Format('Failed to parse SVG document: "%s"', [TestFileName]));
+
+          SvgDoc.Draw(ActualBmp);
+
+          // Compare actual rendered SVG against expected reference PNG
+          CompRes := CompareBitmaps(ActualBmp, ExpectedBmp);
+          Check(CompRes.Match,
+            Format('Comparison failure for "%s": %s', [TestFileName, CompRes.ErrorMessage]));
+        finally
+          SvgDoc.Free;
+        end;
+      finally
+        ActualBmp.Free;
       end;
     finally
-      ActualBmp.Free;
+      ExpectedBmp.Free;
     end;
-  finally
-    ExpectedBmp.Free;
+
+    var Result: string;
+    if (Expected.StartsWith('FAIL')) then
+    begin
+      Inc(FFixes);
+      Result := 'pass (FIXED)';
+    end else
+      Result := 'pass';
+    if (Expected <> Result) then
+      FResultIni.WriteString('results', ResultKey, Result);
+  except
+    var Result: string;
+    if (not Expected.StartsWith('FAIL')) then
+    begin
+      Inc(FRegressions);
+      Result := 'FAIL (REGRESSION)';
+    end else
+      Result := 'FAIL';
+    if (Expected <> Result) then
+      FResultIni.WriteString('results', ResultKey, Result);
+    raise;
   end;
 end;
 
@@ -290,13 +330,29 @@ begin
   end;
 end;
 
+type
+  TCompareFolderTestSuite = class(TFolderTestSuite)
+  protected
+    procedure RunTest(testResult: TTestResult); override;
+  end;
+
+procedure TCompareFolderTestSuite.RunTest(testResult: TTestResult);
+begin
+  TSvgCompareFileTest.FFixes := 0;
+  TSvgCompareFileTest.FRegressions := 0;
+
+  inherited;
+end;
+
 var
   CompareTestSuite: TFolderTestSuite;
   ParseTestSuite: TFolderTestSuite;
 
+{ TCompareFolderTestSuite }
+
 initialization
   // Test suite 1: Iterates through and below ..\..\Data\Compare, rendering SVGs and comparing to PNGs
-  CompareTestSuite := TFolderTestSuite.Create(
+  CompareTestSuite := TCompareFolderTestSuite.Create(
     'SVG Render Comparison',
     TSvgCompareFileTest,
     '..\..\Data\Compare',
@@ -315,4 +371,17 @@ initialization
   );
   RegisterTest(ParseTestSuite);
 
+  TSvgCompareFileTest.FResultIni := TMemIniFile.Create('..\..\Data\Compare\results.txt');
+
+  TSvgCompareFileTest.FFixes := TSvgCompareFileTest.FResultIni.ReadInteger('status', 'Fixes', 0);
+  TSvgCompareFileTest.FResultIni.WriteInteger('status', 'Fixes before', TSvgCompareFileTest.FFixes);
+
+  TSvgCompareFileTest.FRegressions := TSvgCompareFileTest.FResultIni.ReadInteger('status', 'Regressions', 0);
+  TSvgCompareFileTest.FResultIni.WriteInteger('status', 'Regressions before', TSvgCompareFileTest.FRegressions);
+finalization
+  TSvgCompareFileTest.FResultIni.WriteInteger('status', 'Fixes', TSvgCompareFileTest.FFixes);
+  TSvgCompareFileTest.FResultIni.WriteInteger('status', 'Regressions', TSvgCompareFileTest.FRegressions);
+
+  TSvgCompareFileTest.FResultIni.UpdateFile;
+  TSvgCompareFileTest.FResultIni.Free;
 end.
