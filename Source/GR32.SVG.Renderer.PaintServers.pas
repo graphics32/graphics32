@@ -1,4 +1,4 @@
-unit GR32.SVG.Renderer.PaintServers;
+﻿unit GR32.SVG.Renderer.PaintServers;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -521,7 +521,7 @@ class function TPaintServerRendererPattern.CreateFiller(ARenderer: TSvgRenderer;
 var
   PatternNode: TSvgPatternNode;
   BoundsWidth, BoundsHeight, ViewportWidth, ViewportHeight: Single;
-  TileX, TileY, TileWidth, TileHeight, TileRatioX, TileRatioY: Single;
+  TileX, TileY, TileWidth, TileHeight, ScaledTileWidth, ScaledTileHeight, TileRatioX, TileRatioY: Single;
   PatternBitmap: TBitmap32;
   i, BitmapWidth, BitmapHeight: Integer;
   SavedViewport: TFloatRect;
@@ -604,8 +604,27 @@ begin
   if MatrixScaleY <= 0 then
     MatrixScaleY := 1.0;
 
-  BitmapWidth := Clamp(Round(TileWidth * MatrixScaleX), 1, cMaxPatternDimension);
-  BitmapHeight := Clamp(Round(TileHeight * MatrixScaleY), 1, cMaxPatternDimension);
+  // When zoomed in, clamp tile bitmap dimensions proportionally so the aspect ratio
+  // of the tile is strictly preserved, preventing anisotropic distortion (e.g. rhombuses
+  // becoming squares or angles changing from 60° to 45°/90°).
+  ScaledTileWidth := TileWidth * MatrixScaleX;
+  ScaledTileHeight := TileHeight * MatrixScaleY;
+  if (ScaledTileWidth > cMaxPatternDimension) or (ScaledTileHeight > cMaxPatternDimension) then
+  begin
+    if (ScaledTileWidth > ScaledTileHeight) then
+    begin
+      BitmapWidth := cMaxPatternDimension;
+      BitmapHeight := Clamp(Round(ScaledTileHeight * cMaxPatternDimension / ScaledTileWidth), 1, cMaxPatternDimension);
+    end else
+    begin
+      BitmapHeight := cMaxPatternDimension;
+      BitmapWidth := Clamp(Round(ScaledTileWidth * cMaxPatternDimension / ScaledTileHeight), 1, cMaxPatternDimension);
+    end;
+  end else
+  begin
+    BitmapWidth := Clamp(Round(ScaledTileWidth), 1, cMaxPatternDimension);
+    BitmapHeight := Clamp(Round(ScaledTileHeight), 1, cMaxPatternDimension);
+  end;
 
   PatternFiller := nil;
   PatternBitmap := TBitmap32.Create;
