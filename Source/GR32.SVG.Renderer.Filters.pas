@@ -1248,13 +1248,17 @@ begin
   try
     if NeedsSubSurface(Input1.Bitmap, FilterContext.CurrentSubregion) then
     begin
-      Buf1 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, False);
+      // Clear to transparent black because CopySurfaceRegion might only fill a sub-area
+      // of Buf1, and the remainder would otherwise retain dirty pixels from the pool.
+      Buf1 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, True);
       CopySurfaceRegion(Input1, Buf1, FilterContext.CurrentSubregion);
       Input1.Bitmap := Buf1;
     end;
     if NeedsSubSurface(Input2.Bitmap, FilterContext.CurrentSubregion) then
     begin
-      Buf2 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, False);
+      // Clear to transparent black because CopySurfaceRegion might only fill a sub-area
+      // of Buf2, and the remainder would otherwise retain dirty pixels from the pool.
+      Buf2 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, True);
       CopySurfaceRegion(Input2, Buf2, FilterContext.CurrentSubregion);
       Input2.Bitmap := Buf2;
     end;
@@ -1304,13 +1308,17 @@ begin
   try
     if NeedsSubSurface(Input1.Bitmap, FilterContext.CurrentSubregion) then
     begin
-      Buf1 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, False);
+      // Clear to transparent black because CopySurfaceRegion might only fill a sub-area
+      // of Buf1, and the remainder would otherwise retain dirty pixels from the pool.
+      Buf1 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, True);
       CopySurfaceRegion(Input1, Buf1, FilterContext.CurrentSubregion);
       Input1.Bitmap := Buf1;
     end;
     if NeedsSubSurface(Input2.Bitmap, FilterContext.CurrentSubregion) then
     begin
-      Buf2 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, False);
+      // Clear to transparent black because CopySurfaceRegion might only fill a sub-area
+      // of Buf2, and the remainder would otherwise retain dirty pixels from the pool.
+      Buf2 := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, True);
       CopySurfaceRegion(Input2, Buf2, FilterContext.CurrentSubregion);
       Input2.Bitmap := Buf2;
     end;
@@ -1464,19 +1472,18 @@ var
   ChildNode: TSvgNode;
   First: boolean;
 begin
-  DestSurface := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, False);
+  // Clear to transparent black because child surfaces might only fill part of CurrentSubregion
+  DestSurface := Renderer.GetOffscreenBitmap(FilterContext.CurrentSubregion.Width, FilterContext.CurrentSubregion.Height, True);
   try
 
-    // Children must be merged, so first child can draw opaque but the rest must
-    // blend.
+    // Children must be merged, so first child can draw opaque but the rest must blend.
     First := True;
 
     for ChildNode in TSvgFeMergeNode(Node).Children do
       if ChildNode is TSvgFeMergeNodeChild then
       begin
         Input := ResolveSurface(TSvgFeMergeNodeChild(ChildNode).ResolvedIn1, FilterContext);
-        // Recurse to render child
-        // TODO : There's no recursion here... Should there be?
+
         if (Input.Bitmap <> nil) then
         begin
           if (First) then
@@ -1487,10 +1494,6 @@ begin
             CopySurfaceRegion(Input, DestSurface, FilterContext.CurrentSubregion, dmBlend);
         end;
       end;
-
-    // Clear result if none of the children did
-    if (First) then
-      DestSurface.Clear;
 
     Renderer.ReleaseOffscreenBitmap(FilterContext.UnnamedSurface);
 
