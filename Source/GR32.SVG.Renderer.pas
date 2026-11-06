@@ -4644,12 +4644,20 @@ begin
   else
     Aspect := ADoc.PreserveAspectRatio;
 
-  docW := ADoc.GetSizePx(ADoc.Width, ATargetRect.Width);
-  docH := ADoc.GetSizePx(ADoc.Height, ATargetRect.Height);
-
   viewBox := ADoc.ViewBox;
   if not viewBox.IsValid then
   begin
+    docW := ADoc.Width.ToPixels(ATargetRect.Width);
+    docH := ADoc.Height.ToPixels(ATargetRect.Height);
+
+    if (ADoc.Width.UnitType = suPercent) and (ADoc.Height.UnitType = suPercent) and
+       (ATarget <> nil) and (ATarget.Width > 0) and (ATarget.Height > 0) and
+       ((ATargetRect.Width <> ATarget.Width) or (ATargetRect.Height <> ATarget.Height)) then
+    begin
+      docW := ADoc.Width.ToPixels(ATarget.Width);
+      docH := ADoc.Height.ToPixels(ATarget.Height);
+    end;
+
     if (docW > 0) and (docH > 0) then
       viewBox := TSvgViewBox.Create(0, 0, docW, docH)
     else
@@ -4710,12 +4718,20 @@ begin
   else
     Aspect := ADoc.PreserveAspectRatio;
 
-  docW := ADoc.GetSizePx(ADoc.Width, ATargetRect.Width);
-  docH := ADoc.GetSizePx(ADoc.Height, ATargetRect.Height);
-
   viewBox := ADoc.ViewBox;
   if not viewBox.IsValid then
   begin
+    docW := ADoc.Width.ToPixels(ATargetRect.Width);
+    docH := ADoc.Height.ToPixels(ATargetRect.Height);
+
+    if (ADoc.Width.UnitType = suPercent) and (ADoc.Height.UnitType = suPercent) and
+       (ATarget <> nil) and (ATarget.Width > 0) and (ATarget.Height > 0) and
+       ((ATargetRect.Width <> ATarget.Width) or (ATargetRect.Height <> ATarget.Height)) then
+    begin
+      docW := ADoc.Width.ToPixels(ATarget.Width);
+      docH := ADoc.Height.ToPixels(ATarget.Height);
+    end;
+
     if (docW > 0) and (docH > 0) then
       viewBox := TSvgViewBox.Create(0, 0, docW, docH)
     else
