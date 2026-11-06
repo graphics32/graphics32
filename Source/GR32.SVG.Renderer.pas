@@ -2393,7 +2393,7 @@ var
   FilterContext: TFilterContext;
   i, Count: Integer;
   Node, SavedFilteredNode: TSvgNode;
-  SourceBounds, FilterBounds, FilterRegionRect, TargetWorldBounds: TFloatRect;
+  SourceBounds, FilterBounds, FilterRegionRect, TargetWorldBounds, VisibleROI, RequiredInputRect: TFloatRect;
   PathNode: TSvgPathNode;
   TransformedPoints, StrokePoints: TArrayOfArrayOfFloatPoint;
   StrokeWidth, BBoxWidth, BBoxHeight: Single;
@@ -2652,10 +2652,10 @@ begin
       Exit;
 
     // Clip FilterBounds to visible viewport ATarget.ClipRect (both axis-aligned and non-axis-aligned)
-    // to bound offscreen surface allocations (FilterContext.ROI) strictly to the visible area.
+    // to bound offscreen surface allocations strictly to the visible area.
     if IsAxisAligned then
     begin
-      if not GR32.IntersectRect(FilterBounds, FilterBounds, FloatRect(ATarget.ClipRect)) then
+      if not GR32.IntersectRect(VisibleROI, FilterBounds, FloatRect(ATarget.ClipRect)) then
         Exit;
     end else
     begin
@@ -2674,13 +2674,33 @@ begin
         try
           AffineTransform.Clear(InvMat);
           DestBounds := AffineTransform.GetTransformedBounds(FloatRect(ATarget.ClipRect));
-          if not GR32.IntersectRect(FilterBounds, FilterBounds, DestBounds) then
+          if not GR32.IntersectRect(VisibleROI, FilterBounds, DestBounds) then
             Exit;
         finally
           AffineTransform.Free;
         end;
-      end;
+      end else
+        Exit;
     end;
+
+    // Use AdjustInputRect across filter primitives to determine what source pixels outside VisibleROI
+    // are required by primitives (e.g., feOffset, feGaussianBlur) to produce the visible output.
+    // Constrain the resulting filter bounds strictly to RequiredInputRect intersected with FilterRegionRect,
+    // ensuring offscreen surfaces remain bounded to the visible viewport plus filter reach on zoom.
+    RequiredInputRect := VisibleROI;
+    for Node in AFilterNode.Children do
+    begin
+      if not (Node is TSvgFilterPrimitiveNode) then
+        Continue;
+
+      FilterNode := TSvgFilterPrimitiveNode(Node);
+      FilterRenderer := TFilterRendererClass(FilterNode.GetRenderClass);
+      if (FilterRenderer <> nil) then
+        FilterRenderer.AdjustInputRect(FilterNode, FilterContext, RequiredInputRect);
+    end;
+
+    GR32.UnionRect(FilterBounds, VisibleROI, RequiredInputRect);
+    GR32.IntersectRect(FilterBounds, FilterBounds, FilterRegionRect);
 
     if (FilterBounds.IsEmpty) then
       Exit;
@@ -2694,7 +2714,7 @@ begin
     // Verify whether the filter ROI is visible on screen before surface allocation.
     if IsAxisAligned then
     begin
-      if not GR32.IntersectRect(FilterContext.ROI, FilterContext.ROI, ATarget.ClipRect) then
+      if not GR32.IntersectRect(FilterContext.ROI, ATarget.ClipRect) then
         Exit;
     end;
 
@@ -2862,17 +2882,28 @@ begin
           // Per W3C SVG 1.1 §15.5 ("Filter primitive subregion"):
           // For primitives whose default subregion is the filter region (DefaultSubregionIsFilterRegion = True,
           // such as feImage, feFlood, feTile, feTurbulence), omitted subregion dimensions default to
-          // 0%, 0%, 100%, 100% of the filter region (SpecifiedROI). For other primitives, omitted dimensions
+          // 0%, 0%, 100%, 100% of the filter region. For other primitives, omitted dimensions
           // default to the bounding union of their input surface region(s).
+          // To prevent excessive bitmap allocations on high zoom, full-region surfaces are constrained
+          // to local ROI bounds (0, 0, ROI.Width, ROI.Height) while FullPrimitiveSubregion records the
+          // unconstrained subregion for primitives that scale external content (such as feImage).
           if FilterRenderer.DefaultSubregionIsFilterRegion then
           begin
-            FilterContext.CurrentSubregion := SpecifiedROI;
+            FilterContext.FullPrimitiveSubregion := SpecifiedROI;
 
-            if (fppWidth in FilterNode.Specified) and not (fppX in FilterNode.Specified) then
-              FilterContext.CurrentSubregion.Right := FilterContext.CurrentSubregion.Left + SpecifiedROI.Width;
+            if FilterNode.Specified <> [] then
+            begin
+              FilterContext.CurrentSubregion := SpecifiedROI;
 
-            if (fppHeight in FilterNode.Specified) and not (fppY in FilterNode.Specified) then
-              FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
+              if (fppWidth in FilterNode.Specified) and not (fppX in FilterNode.Specified) then
+                FilterContext.CurrentSubregion.Right := FilterContext.CurrentSubregion.Left + SpecifiedROI.Width;
+
+              if (fppHeight in FilterNode.Specified) and not (fppY in FilterNode.Specified) then
+                FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
+            end else
+            begin
+              FilterContext.CurrentSubregion := Rect(0, 0, FilterContext.ROI.Width, FilterContext.ROI.Height);
+            end;
           end else
           begin
             if fppX in FilterNode.Specified then
@@ -2894,6 +2925,8 @@ begin
             begin
               FilterContext.CurrentSubregion.Bottom := FilterContext.CurrentSubregion.Top + SpecifiedROI.Height;
             end;
+
+            FilterContext.FullPrimitiveSubregion := FilterContext.CurrentSubregion;
           end;
 
           // Filter primitive subregions define intermediate boundaries for primitive operations.
