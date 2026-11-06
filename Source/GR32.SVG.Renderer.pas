@@ -3004,42 +3004,45 @@ begin
       //    clipped to the filter region rect per W3C SVG 1.1 Specification §15.5.
       if (FilterContext.CurrentSurface.Bitmap <> FilterContext.SourceGraphic.Bitmap) then
       begin
-        FTransformation.Push;
-        try
-          ApplyMatrix(ANode.Transform);
+        if (ANode.ResolvedClipPath <> nil) or (ANode.ResolvedMask <> nil) or (ANode.Opacity < 1.0) then
+        begin
+          FTransformation.Push;
+          try
+            ApplyMatrix(ANode.Transform);
 
-          // Compute TargetWorldBounds for clip path / mask resolution
-          Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
-          Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
-          Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
-          Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
+            // Compute TargetWorldBounds for clip path / mask resolution
+            Pts[0] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Top));
+            Pts[1] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Top));
+            Pts[2] := FTransformation.Transform(FloatPoint(NodeBounds.Right, NodeBounds.Bottom));
+            Pts[3] := FTransformation.Transform(FloatPoint(NodeBounds.Left, NodeBounds.Bottom));
 
-          TargetWorldBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
-          for i := 1 to 3 do
-          begin
-            if (Pts[i].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Pts[i].X;
-            if (Pts[i].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Pts[i].X;
-            if (Pts[i].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Pts[i].Y;
-            if (Pts[i].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Pts[i].Y;
+            TargetWorldBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+            for i := 1 to 3 do
+            begin
+              if (Pts[i].X < TargetWorldBounds.Left) then TargetWorldBounds.Left := Pts[i].X;
+              if (Pts[i].X > TargetWorldBounds.Right) then TargetWorldBounds.Right := Pts[i].X;
+              if (Pts[i].Y < TargetWorldBounds.Top) then TargetWorldBounds.Top := Pts[i].Y;
+              if (Pts[i].Y > TargetWorldBounds.Bottom) then TargetWorldBounds.Bottom := Pts[i].Y;
+            end;
+
+            FTransformation.Translate(-FilterContext.ROI.Left, -FilterContext.ROI.Top);
+
+            // Per W3C SVG 1.1 §15.2 ("Filter Effects Overview"):
+            // "Note that 'clip-path', 'mask' and 'opacity' apply to the target element AFTER 'filter' is applied."
+            // Apply target element clip-path, mask, and opacity directly onto the filtered result surface
+            // before compositing onto the target canvas.
+            if (ANode.ResolvedClipPath <> nil) then
+              ApplyClipPathNode(FilterContext.CurrentSurface.Bitmap, ANode.ResolvedClipPath, TargetWorldBounds, FilterContext.ROI, False);
+
+            if (ANode.ResolvedMask <> nil) then
+              ApplyMaskNode(FilterContext.CurrentSurface.Bitmap, ANode.ResolvedMask, TargetWorldBounds, FilterContext.ROI);
+
+            if (ANode.Opacity < 1.0) then
+              ApplyOpacity(FilterContext.CurrentSurface.Bitmap, ANode.Opacity);
+
+          finally
+            FTransformation.Pop;
           end;
-
-          FTransformation.Translate(-FilterContext.ROI.Left, -FilterContext.ROI.Top);
-
-          // Per W3C SVG 1.1 §15.2 ("Filter Effects Overview"):
-          // "Note that 'clip-path', 'mask' and 'opacity' apply to the target element AFTER 'filter' is applied."
-          // Apply target element clip-path, mask, and opacity directly onto the filtered result surface
-          // before compositing onto the target canvas.
-          if (ANode.ResolvedClipPath <> nil) then
-            ApplyClipPathNode(FilterContext.CurrentSurface.Bitmap, ANode.ResolvedClipPath, TargetWorldBounds, FilterContext.ROI, False);
-
-          if (ANode.ResolvedMask <> nil) then
-            ApplyMaskNode(FilterContext.CurrentSurface.Bitmap, ANode.ResolvedMask, TargetWorldBounds, FilterContext.ROI);
-
-          if (ANode.Opacity < 1.0) then
-            ApplyOpacity(FilterContext.CurrentSurface.Bitmap, ANode.Opacity);
-
-        finally
-          FTransformation.Pop;
         end;
 
         SaveTargetClipRect := ATarget.ClipRect;
