@@ -2285,6 +2285,10 @@ begin
   try
     pDest := PColor32Entry(FilterContext.CurrentSurface.Bitmap.Bits);
 
+    // Render turbulence across all pixels using the unified 4-channel Perlin turbulence
+    // routine (Turbulence4) which evaluates R, G, B, and A simultaneously in a single pass
+    // per octave. This avoids computing grid indices, coordinate fractions, stitch wrapping,
+    // and smooth-curve polynomials 4 separate times per pixel.
     for Y := 0 to Height - 1 do
     begin
       UserPointY := TileY + (Y * OneOverScale);
@@ -2292,19 +2296,19 @@ begin
       begin
         UserPointX := TileX + (X * OneOverScale);
 
-        R := NoiseGen.Turbulence(0, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
-        G := NoiseGen.Turbulence(1, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
-        B := NoiseGen.Turbulence(2, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
-        A := NoiseGen.Turbulence(3, UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves, IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH);
+        NoiseGen.Turbulence4(UserPointX, UserPointY, BaseFreqX, BaseFreqY, NumOctaves,
+          IsFractalSum, StitchTiles, TileX, TileY, TileW, TileH, R, G, B, A);
 
         if IsFractalSum then
         begin
+          // For fractalSum: colorValue = ((turbFunctionResult * 255) + 255) / 2
           pDest.R := Clamp(Round(((R * 255.0) + 255.0) * 0.5));
           pDest.G := Clamp(Round(((G * 255.0) + 255.0) * 0.5));
           pDest.B := Clamp(Round(((B * 255.0) + 255.0) * 0.5));
           pDest.A := Clamp(Round(((A * 255.0) + 255.0) * 0.5));
         end else
         begin
+          // For turbulence: colorValue = turbFunctionResult * 255
           pDest.R := Clamp(Round(R * 255.0));
           pDest.G := Clamp(Round(G * 255.0));
           pDest.B := Clamp(Round(B * 255.0));

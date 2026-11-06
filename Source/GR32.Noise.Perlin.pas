@@ -70,6 +70,10 @@ type
     function Noise2(Channel: Integer; const X, Y: Double; Stitch: PStitchInfo = nil): Double;
     function Turbulence(Channel: Integer; X, Y: Double; BaseFreqX, BaseFreqY: Double;
       NumOctaves: Integer; BFractalSum, BDoStitching: Boolean; TileX, TileY, TileWidth, TileHeight: Double): Double;
+    procedure Turbulence4(X, Y, BaseFreqX, BaseFreqY: Double;
+      NumOctaves: Integer; BFractalSum, BDoStitching: Boolean;
+      TileX, TileY, TileWidth, TileHeight: Double;
+      out R, G, B, A: Double);
   end;
 
 //------------------------------------------------------------------------------
@@ -298,6 +302,180 @@ begin
     else
       Result := Result + (Abs(Noise2(Channel, X, Y, pStitch)) * Ratio);
 
+    X := X * 2.0;
+    Y := Y * 2.0;
+    Ratio := Ratio / 2.0;
+
+    if pStitch <> nil then
+    begin
+      Stitch.Width := Stitch.Width * 2;
+      Stitch.WrapX := 2 * Stitch.WrapX - PerlinN;
+      Stitch.Height := Stitch.Height * 2;
+      Stitch.WrapY := 2 * Stitch.WrapY - PerlinN;
+    end;
+  end;
+end;
+
+procedure TPerlinNoise.Turbulence4(X, Y, BaseFreqX, BaseFreqY: Double;
+  NumOctaves: Integer; BFractalSum, BDoStitching: Boolean;
+  TileX, TileY, TileWidth, TileHeight: Double;
+  out R, G, B, A: Double);
+var
+  Stitch: TStitchInfo;
+  pStitch: PStitchInfo;
+  LoFreq, HiFreq: Double;
+  Ratio: Double;
+  Octave: Integer;
+  Bx0, Bx1, By0, By1: Integer;
+  B00, B10, B01, B11: Integer;
+  Rx0, Rx1, Ry0, Ry1: Double;
+  Sx, Sy, T, U, V: Double;
+  InterpA, InterpB: Double;
+  N0, N1, N2, N3: Double;
+  I, J: Integer;
+begin
+  // Adjust base frequencies and initialize stitch info if tile stitching is requested
+  if BDoStitching then
+  begin
+    if BaseFreqX <> 0.0 then
+    begin
+      LoFreq := Floor(TileWidth * BaseFreqX) / TileWidth;
+      HiFreq := Ceil(TileWidth * BaseFreqX) / TileWidth;
+      if (LoFreq > 0) and (BaseFreqX / LoFreq < HiFreq / BaseFreqX) then
+        BaseFreqX := LoFreq
+      else
+        BaseFreqX := HiFreq;
+    end;
+
+    if BaseFreqY <> 0.0 then
+    begin
+      LoFreq := Floor(TileHeight * BaseFreqY) / TileHeight;
+      HiFreq := Ceil(TileHeight * BaseFreqY) / TileHeight;
+      if (LoFreq > 0) and (BaseFreqY / LoFreq < HiFreq / BaseFreqY) then
+        BaseFreqY := LoFreq
+      else
+        BaseFreqY := HiFreq;
+    end;
+
+    Stitch.Width := Round(TileWidth * BaseFreqX);
+    Stitch.WrapX := Round(TileX * BaseFreqX) + PerlinN + Stitch.Width;
+    Stitch.Height := Round(TileHeight * BaseFreqY);
+    Stitch.WrapY := Round(TileY * BaseFreqY) + PerlinN + Stitch.Height;
+
+    pStitch := @Stitch;
+  end
+  else
+    pStitch := nil;
+
+  R := 0.0;
+  G := 0.0;
+  B := 0.0;
+  A := 0.0;
+
+  // Scale initial user coordinates by base frequencies
+  X := X * BaseFreqX;
+  Y := Y * BaseFreqY;
+  Ratio := 1.0;
+
+  for Octave := 0 to NumOctaves - 1 do
+  begin
+    // Compute lattice indices and fractional offsets for X
+    T := X + PerlinN;
+    Bx0 := Trunc(T);
+    Bx1 := Bx0 + 1;
+    Rx0 := T - Trunc(T);
+    Rx1 := Rx0 - 1.0;
+
+    // Compute lattice indices and fractional offsets for Y
+    T := Y + PerlinN;
+    By0 := Trunc(T);
+    By1 := By0 + 1;
+    Ry0 := T - Trunc(T);
+    Ry1 := Ry0 - 1.0;
+
+    // Adjust lattice coordinates when tile stitching is active
+    if pStitch <> nil then
+    begin
+      if Bx0 >= pStitch.WrapX then
+        Dec(Bx0, pStitch.Width);
+      if Bx1 >= pStitch.WrapX then
+        Dec(Bx1, pStitch.Width);
+      if By0 >= pStitch.WrapY then
+        Dec(By0, pStitch.Height);
+      if By1 >= pStitch.WrapY then
+        Dec(By1, pStitch.Height);
+    end;
+
+    Bx0 := Bx0 and BM;
+    Bx1 := Bx1 and BM;
+    By0 := By0 and BM;
+    By1 := By1 and BM;
+
+    I := FLatticeSelector[Bx0];
+    J := FLatticeSelector[Bx1];
+
+    B00 := FLatticeSelector[I + By0];
+    B10 := FLatticeSelector[J + By0];
+    B01 := FLatticeSelector[I + By1];
+    B11 := FLatticeSelector[J + By1];
+
+    // Smooth curve interpolation weights
+    Sx := SCurve(Rx0);
+    Sy := SCurve(Ry0);
+
+    // Channel 0 (Red)
+    U := Rx0 * FGradient[0, B00, 0] + Ry0 * FGradient[0, B00, 1];
+    V := Rx1 * FGradient[0, B10, 0] + Ry0 * FGradient[0, B10, 1];
+    InterpA := Lerp(Sx, U, V);
+    U := Rx0 * FGradient[0, B01, 0] + Ry1 * FGradient[0, B01, 1];
+    V := Rx1 * FGradient[0, B11, 0] + Ry1 * FGradient[0, B11, 1];
+    InterpB := Lerp(Sx, U, V);
+    N0 := Lerp(Sy, InterpA, InterpB);
+
+    // Channel 1 (Green)
+    U := Rx0 * FGradient[1, B00, 0] + Ry0 * FGradient[1, B00, 1];
+    V := Rx1 * FGradient[1, B10, 0] + Ry0 * FGradient[1, B10, 1];
+    InterpA := Lerp(Sx, U, V);
+    U := Rx0 * FGradient[1, B01, 0] + Ry1 * FGradient[1, B01, 1];
+    V := Rx1 * FGradient[1, B11, 0] + Ry1 * FGradient[1, B11, 1];
+    InterpB := Lerp(Sx, U, V);
+    N1 := Lerp(Sy, InterpA, InterpB);
+
+    // Channel 2 (Blue)
+    U := Rx0 * FGradient[2, B00, 0] + Ry0 * FGradient[2, B00, 1];
+    V := Rx1 * FGradient[2, B10, 0] + Ry0 * FGradient[2, B10, 1];
+    InterpA := Lerp(Sx, U, V);
+    U := Rx0 * FGradient[2, B01, 0] + Ry1 * FGradient[2, B01, 1];
+    V := Rx1 * FGradient[2, B11, 0] + Ry1 * FGradient[2, B11, 1];
+    InterpB := Lerp(Sx, U, V);
+    N2 := Lerp(Sy, InterpA, InterpB);
+
+    // Channel 3 (Alpha)
+    U := Rx0 * FGradient[3, B00, 0] + Ry0 * FGradient[3, B00, 1];
+    V := Rx1 * FGradient[3, B10, 0] + Ry0 * FGradient[3, B10, 1];
+    InterpA := Lerp(Sx, U, V);
+    U := Rx0 * FGradient[3, B01, 0] + Ry1 * FGradient[3, B01, 1];
+    V := Rx1 * FGradient[3, B11, 0] + Ry1 * FGradient[3, B11, 1];
+    InterpB := Lerp(Sx, U, V);
+    N3 := Lerp(Sy, InterpA, InterpB);
+
+    // Accumulate octave contributions
+    if BFractalSum then
+    begin
+      R := R + (N0 * Ratio);
+      G := G + (N1 * Ratio);
+      B := B + (N2 * Ratio);
+      A := A + (N3 * Ratio);
+    end
+    else
+    begin
+      R := R + (Abs(N0) * Ratio);
+      G := G + (Abs(N1) * Ratio);
+      B := B + (Abs(N2) * Ratio);
+      A := A + (Abs(N3) * Ratio);
+    end;
+
+    // Advance octave frequency and amplitude ratio
     X := X * 2.0;
     Y := Y * 2.0;
     Ratio := Ratio / 2.0;
