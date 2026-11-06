@@ -2273,8 +2273,11 @@ begin
   else
     OneOverScale := 1 / FilterContext.Scale;
 
-  TileX := (FilterContext.ROI.Left + FilterContext.CurrentSubregion.Left) * OneOverScale;
-  TileY := (FilterContext.ROI.Top + FilterContext.CurrentSubregion.Top) * OneOverScale;
+  // Compute TileX and TileY in element local user space by subtracting the renderer's
+  // translation offset (accounting for panning) so the Perlin noise pattern stays attached
+  // to the SVG element during document panning rather than remaining stationary on screen.
+  TileX := (FilterContext.ROI.Left + FilterContext.CurrentSubregion.Left - Renderer.Transformation.Matrix[2, 0]) * OneOverScale;
+  TileY := (FilterContext.ROI.Top + FilterContext.CurrentSubregion.Top - Renderer.Transformation.Matrix[2, 1]) * OneOverScale;
   TileW := Width * OneOverScale;
   TileH := Height * OneOverScale;
 
