@@ -1423,6 +1423,7 @@ type
     FViewBox: TSvgViewBox;
     FPreserveAspectRatio: TSvgPreserveAspectRatio;
     FNodes: TSvgNodeDictionary;
+    function GetNestedDocumentBounds(const AViewport: TFloatRect; AVisual: Boolean): TFloatRect;
     procedure SetColor32(const Value: TColor32);
   protected
     function GetElementTag: UTF8String; override;
@@ -1445,6 +1446,8 @@ type
 
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function CanCull: boolean; override;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     function FindNodeByID(AID: TValuePUtf8Char): TSvgNode; override;
     procedure Resolve;
@@ -7137,7 +7140,124 @@ end;
 
 function TSvgDocumentNode.CanCull: boolean;
 begin
-  Result := False;
+  // Root document node (FParent = nil) is never culled directly, while nested
+  // <svg> document nodes (FParent <> nil) can be safely culled using their
+  // accurately calculated parent-space visual bounding box.
+  Result := (FParent <> nil);
+end;
+
+function TSvgDocumentNode.GetNestedDocumentBounds(const AViewport: TFloatRect; AVisual: Boolean): TFloatRect;
+var
+  DocW, DocH, DocX, DocY: Single;
+  DocViewBox: TSvgViewBox;
+  DocTargetRect, InnerViewport: TFloatRect;
+  DocVpMat: TFloatMatrix;
+  ChildrenBox, TransformedBox: TFloatRect;
+  Pts: array[0..3] of TFloatPoint;
+  k: Integer;
+  BBoxWidth, BBoxHeight: Single;
+begin
+  // Calculate target placement rectangle in parent user space from X, Y, Width, and Height
+  DocW := GetSizePx(FWidth, AViewport.Width);
+  DocH := GetSizePx(FHeight, AViewport.Height);
+  DocX := GetSizePx(FX, AViewport.Width);
+  DocY := GetSizePx(FY, AViewport.Height);
+
+  DocTargetRect := FloatRect(DocX, DocY, DocX + DocW, DocY + DocH);
+
+  // Resolve inner viewBox; defaults to (0, 0, DocW, DocH) when unspecified
+  DocViewBox := FViewBox;
+  if not DocViewBox.IsValid then
+  begin
+    if (DocW > 0) and (DocH > 0) then
+      DocViewBox := TSvgViewBox.Create(0, 0, DocW, DocH)
+    else
+      DocViewBox := TSvgViewBox.Create(0, 0, AViewport.Width, AViewport.Height);
+  end;
+
+  InnerViewport := FloatRect(DocViewBox.X, DocViewBox.Y, DocViewBox.X + DocViewBox.Width, DocViewBox.Y + DocViewBox.Height);
+  DocVpMat := DocViewBox.GetTransform(DocTargetRect, FPreserveAspectRatio);
+
+  // Evaluate children's bounding box in inner viewBox space (fill-only or visual with strokes/filter expansions)
+  if AVisual then
+    // Evaluate children's visual bounding box (including strokes and child filter expansions) in inner viewBox space
+    ChildrenBox := inherited GetVisualBoundingBox(InnerViewport)
+  else
+    // Evaluate children's fill geometry bounding box within inner viewBox space
+    ChildrenBox := inherited GetObjectBoundingBox(InnerViewport);
+
+  if (ChildrenBox.Right <= ChildrenBox.Left) and (ChildrenBox.Bottom <= ChildrenBox.Top) then
+    Exit(FloatRect(0, 0, 0, 0));
+
+  // Transform child bounding box from inner viewBox space to parent space using DocVpMat
+  Pts[0] := TFloatMatrixHelper(DocVpMat).TransformPoint(FloatPoint(ChildrenBox.Left, ChildrenBox.Top));
+  Pts[1] := TFloatMatrixHelper(DocVpMat).TransformPoint(FloatPoint(ChildrenBox.Right, ChildrenBox.Top));
+  Pts[2] := TFloatMatrixHelper(DocVpMat).TransformPoint(FloatPoint(ChildrenBox.Right, ChildrenBox.Bottom));
+  Pts[3] := TFloatMatrixHelper(DocVpMat).TransformPoint(FloatPoint(ChildrenBox.Left, ChildrenBox.Bottom));
+
+  TransformedBox := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+  for k := 1 to 3 do
+  begin
+    if Pts[k].X < TransformedBox.Left then TransformedBox.Left := Pts[k].X;
+    if Pts[k].X > TransformedBox.Right then TransformedBox.Right := Pts[k].X;
+    if Pts[k].Y < TransformedBox.Top then TransformedBox.Top := Pts[k].Y;
+    if Pts[k].Y > TransformedBox.Bottom then TransformedBox.Bottom := Pts[k].Y;
+  end;
+
+  // Clip to nested document viewport bounds when overflow is not visible
+  if (FOverflow <> ofVisible) then
+  begin
+    if not GR32.IntersectRect(TransformedBox, TransformedBox, DocTargetRect) then
+      Exit(FloatRect(0, 0, 0, 0));
+  end;
+
+  Result := TransformedBox;
+
+  // Visual bounds also expand for any filter effect attached to the document node
+  if AVisual and (ResolvedFilter <> nil) then
+  begin
+    if (Result.IsEmpty) then
+      Result := DocTargetRect;
+
+    BBoxWidth := Result.Width;
+    BBoxHeight := Result.Height;
+    if BBoxWidth <= 0 then BBoxWidth := 1.0;
+    if BBoxHeight <= 0 then BBoxHeight := 1.0;
+
+    if (ResolvedFilter.FilterUnits = guObjectBoundingBox) then
+    begin
+      Result.Left := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.X, 1.0) * BBoxWidth;
+      Result.Top := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Y, 1.0) * BBoxHeight;
+      Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, 1.0) * BBoxWidth;
+      Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, 1.0) * BBoxHeight;
+    end else
+    begin
+      Result.Left := ResolvedFilter.GetSizePx(ResolvedFilter.X, AViewport.Width);
+      Result.Top := ResolvedFilter.GetSizePx(ResolvedFilter.Y, AViewport.Height);
+      Result.Right := Result.Left + ResolvedFilter.GetSizePx(ResolvedFilter.Width, AViewport.Width);
+      Result.Bottom := Result.Top + ResolvedFilter.GetSizePx(ResolvedFilter.Height, AViewport.Height);
+    end;
+  end;
+end;
+
+function TSvgDocumentNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
+begin
+  // For the root document node (FParent = nil), coordinates are already in the root viewBox space.
+  if (FParent = nil) then
+    Exit(inherited GetObjectBoundingBox(AViewport));
+
+  // For nested <svg> documents (FParent <> nil), calculate target rectangle in parent user space.
+  Result := GetNestedDocumentBounds(AViewport, False);
+end;
+
+function TSvgDocumentNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
+begin
+  // For the root document node (FParent = nil), coordinates are already in the root viewBox space.
+  if (FParent = nil) then
+    Exit(inherited GetVisualBoundingBox(AViewport));
+
+  // For nested <svg> documents (FParent <> nil), calculate target rectangle in parent user space.
+  Result := GetNestedDocumentBounds(AViewport, True);
 end;
 
 function TSvgDocumentNode.Clone(AParent: TSvgNode): TSvgNode;
