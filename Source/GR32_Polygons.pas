@@ -558,6 +558,15 @@ resourcestring
 type
   TBitmap32Access = class(TCustomBitmap32);
 
+type
+  // TSingleInteger is used for binary manipulation of Single values
+  // For example Abs(n) = TSingleInteger(TSingleInteger(n).Int and $7FFFFFFF).Float
+  TSingleInteger = record
+    case boolean of
+      False: (Int: Integer);
+      True:  (Float: Single);
+  end;
+
 //------------------------------------------------------------------------------
 //
 //      Polygon Renderer registration routines
@@ -1454,10 +1463,16 @@ procedure MakeAlphaNonZeroUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32A
 var
   I: Integer;
   V: Integer;
+  n: Single;
 begin
   for I := 0 to Count - 1 do
   begin
-    V := Clamp(Round(Abs(Coverage[I]) * 256));
+    // Optimizations:
+    // 1. FastRound is about 6x faster than Round here (D13,x64)
+    // 2. Single cast to avoid Double->Single conversion
+    // 3. RTL's Abs() converts to Double. We flip a bit.
+    n := TSingleInteger(TSingleInteger(Coverage[I]).Int and $7FFFFFFF).Float;
+    V := Clamp(FastRound(n * Single(256.0)));
     AlphaValues[I] := V;
   end;
 end;
@@ -1481,10 +1496,12 @@ procedure MakeAlphaEvenOddUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32A
 var
   I: Integer;
   V: Integer;
+  n: Single;
 begin
   for I := 0 to Count - 1 do
   begin
-    V := Round(Abs(Coverage[I]) * 256);
+    n := TSingleInteger(TSingleInteger(Coverage[I]).Int and $7FFFFFFF).Float;
+    V := FastRound(n * Single(256.0));
     V := V and $000001ff;
     if V >= $100 then
       V := V xor $1ff;
