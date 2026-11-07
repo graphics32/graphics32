@@ -160,8 +160,8 @@ type
 
     procedure MsgAfterShow(var Msg: TMessage); message MSG_AFTER_SHOW;
     procedure SetColorTheme(const Value: TSvgColorTheme);
-    function GetBackground: TBackgroundCheckerStyle;
-    procedure SetBackground(Value: TBackgroundCheckerStyle);
+    function GetBackground: TBackgroundCheckerboardStyle;
+    procedure SetBackground(Value: TBackgroundCheckerboardStyle);
     procedure ApplyColorTheme(Renderer: TSvgRenderer);
 
     procedure SplitterMemoBeforeResize(Sender: TObject);
@@ -175,7 +175,7 @@ type
     procedure ResolveExternalFileHandler(Sender: TObject; const Filename: string; Stream: TStream; var Allow: boolean);
   public
     property ColorTheme: TSvgColorTheme read FColorTheme write SetColorTheme;
-    property Background: TBackgroundCheckerStyle read GetBackground write SetBackground;
+    property Background: TBackgroundCheckerboardStyle read GetBackground write SetBackground;
   end;
 
 var
@@ -309,10 +309,10 @@ begin
   PostMessage(Handle, MSG_AFTER_SHOW, 0, 0);
 end;
 
-function TFormSVGviewer.GetBackground: TBackgroundCheckerStyle;
+function TFormSVGviewer.GetBackground: TBackgroundCheckerboardStyle;
 begin
   if (FColorTheme = ctNone) then
-    Result := Image32.Background.CheckersStyle
+    Result := Image32.Background.CheckerboardStyle
   else
     Result := bcsNone;
 end;
@@ -461,7 +461,7 @@ var
 
 {$ifndef FPC}
 var
-  Filename, Param: string;
+  Path, Filename, OneFile, Param: string;
   Count: integer;
   Benchmark: boolean;
 {$endif}
@@ -484,14 +484,19 @@ begin
       Inc(FLockUpdate);
     end;
 
+    Path := TPath.GetDirectoryName(Filename);
+    Filename := TPath.GetFileName(Filename);
     while (Count > 0) do
     begin
-      LoadAndRenderSvg(Filename);
+      for OneFile in TDirectory.GetFiles(Path, Filename) do
+      begin
+        LoadAndRenderSvg(OneFile);
 
-      if (Benchmark) then
-        Caption := IntToStr(Count);
+        if (Benchmark) then
+          Caption := Format('%d: %s', [Count, OneFile]);
+        Update;
+      end;
 
-      Update;
       Dec(Count);
     end;
   end;
@@ -743,15 +748,15 @@ begin
   Allow := True;
 end;
 
-procedure TFormSVGviewer.SetBackground(Value: TBackgroundCheckerStyle);
+procedure TFormSVGviewer.SetBackground(Value: TBackgroundCheckerboardStyle);
 begin
   if (Value = bcsCustom) then
     Value := bcsNone;
 
   FColorTheme := ctNone;
 
-  Image32.Background.FillStyle := bfsCheckers;
-  Image32.Background.CheckersStyle := Value;
+  Image32.Background.FillStyle := bfsCheckerboard;
+  Image32.Background.CheckerboardStyle := Value;
   Image32.ParentColor := True;
 end;
 
@@ -796,7 +801,7 @@ begin
         // Dark features...
         // ...on light background
         Image32.Color := $E1FFD7;
-        Image32.Background.CheckersStyle := bcsNone;
+        Image32.Background.CheckerboardStyle := bcsNone;
         Image32.Background.FillStyle := bfsColor;
         SpeedButtonBackground.Enabled := False;
       end;
@@ -820,7 +825,7 @@ end;
 
 procedure TFormSVGviewer.SpeedButtonBackgroundClick(Sender: TObject);
 const
-  Styles: array[0..3] of TBackgroundCheckerStyle = (bcsNone, bcsLight, bcsMedium, bcsDark);
+  Styles: array[0..3] of TBackgroundCheckerboardStyle = (bcsNone, bcsLight, bcsMedium, bcsDark);
 begin
   TSpeedButton(Sender).Tag := (TSpeedButton(Sender).Tag + 1) mod 4;
   Background := Styles[TSpeedButton(Sender).Tag];
