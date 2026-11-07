@@ -5507,7 +5507,7 @@ begin
             Index := Mask
           else
           begin
-            UnclippedIndex := Round(Mask * FastSqrtBab1(Rad / Rad2));
+            UnclippedIndex := FastRound(Mask * FastSqrtBab1(Rad / Rad2));
             if Assigned(WrapProc) then
               Index := WrapProc(UnclippedIndex, Mask)
             else
