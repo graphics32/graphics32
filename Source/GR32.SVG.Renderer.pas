@@ -436,7 +436,11 @@ const
     cBlendHardLight,
     cBlendSoftLight,
     cBlendDifference,
-    cBlendExclusion
+    cBlendExclusion,
+    cBlendHue,
+    cBlendSaturation,
+    cBlendColor,
+    cBlendLuminosity
   );
 begin
   Result := Graphics32BlendService.BlenderByID(cBlendModeMap[ABlendMode]);

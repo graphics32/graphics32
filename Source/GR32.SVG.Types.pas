@@ -81,7 +81,11 @@ type
     bmHardLight,
     bmSoftLight,
     bmDifference,
-    bmExclusion
+    bmExclusion,
+    bmHue,
+    bmSaturation,
+    bmColor,
+    bmLuminosity
   );
 
   TSvgIsolation = (
@@ -599,7 +603,7 @@ var
   SvgBlendModeDictionary: TSvgKeywordDictionary<TSvgBlendMode>;
 
 const
-  sBlendModes: array[0..11] of TBlendModeName = (
+  sBlendModes: array[0..15] of TBlendModeName = (
     (Name: ''; Value: bmNormal),
     (Name: 'multiply'; Value: bmMultiply),
     (Name: 'screen'; Value: bmScreen),
@@ -611,7 +615,11 @@ const
     (Name: 'hard-light'; Value: bmHardLight),
     (Name: 'soft-light'; Value: bmSoftLight),
     (Name: 'difference'; Value: bmDifference),
-    (Name: 'exclusion'; Value: bmExclusion)
+    (Name: 'exclusion'; Value: bmExclusion),
+    (Name: 'hue'; Value: bmHue),
+    (Name: 'saturation'; Value: bmSaturation),
+    (Name: 'color'; Value: bmColor),
+    (Name: 'luminosity'; Value: bmLuminosity)
   );
 
 function ParseSvgBlendMode(const AName: UTF8String): TSvgBlendMode;
@@ -669,6 +677,10 @@ begin
     bmSoftLight: Result := 'soft-light';
     bmDifference: Result := 'difference';
     bmExclusion: Result := 'exclusion';
+    bmHue: Result := 'hue';
+    bmSaturation: Result := 'saturation';
+    bmColor: Result := 'color';
+    bmLuminosity: Result := 'luminosity';
   else
     Result := 'normal';
   end;

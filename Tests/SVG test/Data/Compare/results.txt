@@ -1,6 +1,8 @@
 [status]
 Fixes=0
 Regressions=0
+Fixes before=0
+Regressions before=0
 comment0=Note:
 comment1=A "FAIL (REGRESSION)" stays a regression (but doesn't count as one) until we
 comment2=manually remove the "(REGRESSION)", or the test passes.
@@ -31,13 +33,13 @@ comment3=Likewise for "pass (FIXED)".
 ..\..\Data\Compare\resvg test suite\filters\feBlend\empty.svg=pass
 ..\..\Data\Compare\resvg test suite\filters\feBlend\mode_color-burn.svg=pass
 ..\..\Data\Compare\resvg test suite\filters\feBlend\mode_darken.svg=pass
-..\..\Data\Compare\resvg test suite\filters\feBlend\mode_hue.svg=FAIL (REGRESSION) TODO: Fix this
+..\..\Data\Compare\resvg test suite\filters\feBlend\mode_hue.svg=FAIL : Fails due to sRGB/LinearRGB
 ..\..\Data\Compare\resvg test suite\filters\feBlend\mode_lighten.svg=pass
 ..\..\Data\Compare\resvg test suite\filters\feBlend\mode_multiply.svg=pass
 ..\..\Data\Compare\resvg test suite\filters\feBlend\mode_normal.svg=pass
 ..\..\Data\Compare\resvg test suite\filters\feBlend\mode_screen.svg=FAIL (REGRESSION) TODO: Looks okay to me
-..\..\Data\Compare\resvg test suite\filters\feBlend\with-subregion-on-input-1.svg=FAIL (REGRESSION)
-..\..\Data\Compare\resvg test suite\filters\feBlend\with-subregion-on-input-2.svg=FAIL (REGRESSION)
+..\..\Data\Compare\resvg test suite\filters\feBlend\with-subregion-on-input-1.svg=FAIL : Fails due to sRGB/LinearRGB
+..\..\Data\Compare\resvg test suite\filters\feBlend\with-subregion-on-input-2.svg=FAIL : Fails due to sRGB/LinearRGB
 ..\..\Data\Compare\resvg test suite\filters\feColorMatrix\invalid-type.svg=FAIL (REGRESSION)
 ..\..\Data\Compare\resvg test suite\filters\feColorMatrix\type_hueRotate-without-an-angle.svg=pass
 ..\..\Data\Compare\resvg test suite\filters\feColorMatrix\type_hueRotate.svg=FAIL (REGRESSION)
