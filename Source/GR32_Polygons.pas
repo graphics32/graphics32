@@ -1563,10 +1563,6 @@ asm
   //   XMM3: [255.0] x 4
   //   XMM4: [$7FFFFFFF] x 4
 
-{$IFNDEF FPC}
-  .SAVENV XMM4
-{$ENDIF}
-
         TEST        R8D, R8D
         JLE         @Exit
 
@@ -1766,25 +1762,18 @@ asm
 
   // SSE register usage:
   //   XMM0: work
-  //   XMM1: work
+  //   XMM1: work (min calculation)
   //   XMM2: [256.0] x 4
+  //   XMM3: [$000001FF] x 4
   //   XMM4: [$7FFFFFFF] x 4
-  //   XMM6: [$000001FF] x 4
-  //   XMM7: work
-
-{$IFNDEF FPC}
-  .SAVENV XMM4
-  .SAVENV XMM5
-  .SAVENV XMM6
-  .SAVENV XMM7
-{$ENDIF}
+  //   XMM5: work
 
         TEST        R8D, R8D
         JLE         @Exit
 
-        // Prepare mask $000001FF in XMM6
-        PCMPEQD     XMM6, XMM6
-        PSRLD       XMM6, 23            // 4 x $000001FF
+        // Prepare mask $000001FF in XMM3
+        PCMPEQD     XMM3, XMM3
+        PSRLD       XMM3, 23            // 4 x $000001FF
 
         // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
         PCMPEQD     XMM4, XMM4
@@ -1809,15 +1798,15 @@ asm
         ANDPS       XMM0, XMM4          // abs
         MULPS       XMM0, XMM2          // abs(coverage) * 256.0
         CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
-        PAND        XMM0, XMM6          // and with $000001FF
-        MOVDQA      XMM7, XMM0
-        PXOR        XMM7, XMM6          // V xor $1FF
+        PAND        XMM0, XMM3          // and with $000001FF
+        MOVDQA      XMM5, XMM0
+        PXOR        XMM5, XMM3          // V xor $1FF
 
         // Min for SSE2 (values in range 0..$1FF)
-        MOVDQA      XMM1, XMM7
+        MOVDQA      XMM1, XMM5
         PCMPGTD     XMM1, XMM0
         PAND        XMM0, XMM1
-        PANDN       XMM1, XMM7
+        PANDN       XMM1, XMM5
         POR         XMM0, XMM1
 
         MOVDQU      [RDX], XMM0         // Save alpha values
@@ -1834,13 +1823,13 @@ asm
         ANDPS       XMM0, XMM4
         MULSS       XMM0, XMM2
         CVTPS2DQ    XMM0, XMM0
-        PAND        XMM0, XMM6
-        MOVDQA      XMM7, XMM6
-        PXOR        XMM7, XMM0
-        MOVDQA      XMM1, XMM7
+        PAND        XMM0, XMM3
+        MOVDQA      XMM5, XMM3
+        PXOR        XMM5, XMM0
+        MOVDQA      XMM1, XMM5
         PCMPGTD     XMM1, XMM0
         PAND        XMM0, XMM1
-        PANDN       XMM1, XMM7
+        PANDN       XMM1, XMM5
         POR         XMM0, XMM1
         MOVD        EAX, XMM0
         MOV         [RDX], EAX
@@ -1851,7 +1840,7 @@ asm
 
 @Exit:
 
-{$if defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
+{$if defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
 
 {$else}
 {$error 'Missing target'}
@@ -1949,23 +1938,17 @@ asm
 
   // SSE register usage:
   //   XMM0: work
+  //   XMM1: [$000001FF] x 4
   //   XMM2: [256.0] x 4
+  //   XMM3: work
   //   XMM4: [$7FFFFFFF] x 4
-  //   XMM6: [$000001FF] x 4
-  //   XMM7: work
-
-{$IFNDEF FPC}
-  .SAVENV XMM4
-  .SAVENV XMM6
-  .SAVENV XMM7
-{$ENDIF}
 
         TEST        R8D, R8D
         JLE         @Exit
 
-        // Prepare mask $000001FF in XMM6
-        PCMPEQD     XMM6, XMM6
-        PSRLD       XMM6, 23            // 4 x $000001FF
+        // Prepare mask $000001FF in XMM1
+        PCMPEQD     XMM1, XMM1
+        PSRLD       XMM1, 23            // 4 x $000001FF
 
         // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
         PCMPEQD     XMM4, XMM4
@@ -1990,10 +1973,10 @@ asm
         ANDPS       XMM0, XMM4          // abs
         MULPS       XMM0, XMM2          // abs(coverage) * 256.0
         CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
-        PAND        XMM0, XMM6          // and with $000001FF
-        MOVDQA      XMM7, XMM0
-        PXOR        XMM7, XMM6          // V xor $1FF
-        PMINUD      XMM0, XMM7          // min(V, V xor $1FF)
+        PAND        XMM0, XMM1          // and with $000001FF
+        MOVDQA      XMM3, XMM0
+        PXOR        XMM3, XMM1          // V xor $1FF
+        PMINUD      XMM0, XMM3          // min(V, V xor $1FF)
         MOVDQU      [RDX], XMM0         // Save alpha values
         ADD         RCX, 16
         ADD         RDX, 16
@@ -2008,10 +1991,10 @@ asm
         ANDPS       XMM0, XMM4
         MULSS       XMM0, XMM2
         CVTPS2DQ    XMM0, XMM0
-        PAND        XMM0, XMM6
-        MOVDQA      XMM7, XMM6
-        PXOR        XMM7, XMM0
-        PMINUD      XMM0, XMM7
+        PAND        XMM0, XMM1
+        MOVDQA      XMM3, XMM1
+        PXOR        XMM3, XMM0
+        PMINUD      XMM0, XMM3
         MOVD        EAX, XMM0
         MOV         [RDX], EAX
         ADD         RDX, 4
@@ -2021,7 +2004,7 @@ asm
 
 @Exit:
 
-{$if defined(FPC)}end['XMM4', 'XMM6', 'XMM7'];{$ifend}
+{$if defined(FPC)}end['XMM4'];{$ifend}
 
 {$else}
 {$error 'Missing target'}
