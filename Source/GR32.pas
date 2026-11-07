@@ -855,6 +855,8 @@ type
   TResourceType = LCLType.TResourceType;
 {$endif FPC}
 
+  TCheckerboardColors = array[0..1] of TColor32;
+
   { TCustomBitmap32 }
 
   TCustomBitmap32 = class(TCustomMap)
@@ -1098,6 +1100,8 @@ type
     procedure FrameRectTSP(X1, Y1, X2, Y2: Integer);
     procedure FrameRectS(const ARect: TRect; Value: TColor32); overload;
     procedure FrameRectTS(const ARect: TRect; Value: TColor32); overload;
+
+    procedure FillCheckerboardRect(const ARect: TRect; const AColors: TCheckerboardColors; AExponent: integer);
 
     procedure RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer); overload;
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
@@ -6031,6 +6035,47 @@ end;
 procedure TCustomBitmap32.LineToFSP(X, Y: Single);
 begin
   LineToXSP(Fixed(X), Fixed(Y));
+end;
+
+procedure TCustomBitmap32.FillCheckerboardRect(const ARect: TRect; const AColors: TCheckerboardColors; AExponent: integer);
+var
+  r: TRect;
+  X, Y: integer;
+  Len, Remain: integer;
+  BlockSize: integer;
+  Pixel: PColor32;
+  Parity: integer;
+begin
+  if (not GR32.IntersectRect(r, ARect, ClipRect)) then
+    exit;
+
+  if (AColors[0] <> AColors[1]) then
+  begin
+    BlockSize := 1 shl AExponent;
+    for Y := r.Top to r.Bottom - 1 do
+    begin
+      X := r.Left;
+      Pixel := PixelPtr[X, Y];
+      // BlockSize is   $00000010, $00000100, $00001000, $00010000, etc. so
+      // BlockSize-1 is $00000001, $00000011, $00000111, $00001111, etc.
+      Remain := r.Right - X;
+      Len := BlockSize - (X and (BlockSize - 1)); // (X and (BlockSize - 1)) = (X mod BlockSize)
+      Parity := ((X shr AExponent) xor (Y shr AExponent)) and 1;
+
+      while (Remain > 0) do
+      begin
+        if (Len > Remain) then
+          Len := Remain;
+        FillLongword(Pixel^, Len, AColors[Parity]);
+        Inc(Pixel, Len);
+        Dec(Remain, Len);
+        Parity := 1 - Parity;
+        Len := BlockSize;
+      end;
+    end;
+  end else
+    // Odd color = Even color -> Just clear with the color
+    FillRectS(r, AColors[0]);
 end;
 
 procedure TCustomBitmap32.FillRect(X1, Y1, X2, Y2: Integer; Value: TColor32);
