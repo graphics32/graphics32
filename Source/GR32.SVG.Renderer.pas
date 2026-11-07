@@ -1015,14 +1015,14 @@ begin
     V := GR32_LowLevel.Wrap(PtY - FTileY, FTileHeight);
 
     // Maps tile coordinate (U, V) to continuous bitmap pixel space
-    Upx := U * FScaleBmpX - 0.5;
-    Vpx := V * FScaleBmpY - 0.5;
+    Upx := U * FScaleBmpX - Single(0.5); // We have to cast to Single or Delphi will do a Double->Single conversion (D13,x64)
+    Vpx := V * FScaleBmpY - Single(0.5);
 
-    Ix := Floor(Upx);
-    Iy := Floor(Vpx);
+    Ix := FastFloor(Upx);
+    Iy := FastFloor(Vpx);
 
-    Wx := Clamp(Round((Upx - Ix) * 256.0), 0, 256);
-    Wy := Clamp(Round((Vpx - Iy) * 256.0), 0, 256);
+    Wx := Clamp(FastRound((Upx - Ix) * Single(256.0)), 0, 256); // FastRound is about 6x faster than Round here (D13,x64)
+    Wy := Clamp(FastRound((Vpx - Iy) * Single(256.0)), 0, 256);
 
     // Tile modulo wrapping across 4 neighbor pixels for continuous bilinear sampling
     X1 := FWrapProcX(Ix, BitmapWidth - 1);
