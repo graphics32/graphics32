@@ -3110,7 +3110,7 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-  MathRegistry := NewRegistry('GR32_Math bindings');
+  MathRegistry := NewRegistry('GR32_Math');
 
   MathRegistry.RegisterBinding(FID_CUMSUM,              @@CumSum,               'CumSum');
   MathRegistry.RegisterBinding(FID_FLOATMOD_F,          @@FloatMod_F,           'FloatMod_F');

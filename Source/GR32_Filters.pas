@@ -3172,7 +3172,7 @@ var
 
 procedure RegisterBindings;
 begin
-  Registry := NewRegistry('GR32_Filters bindings');
+  Registry := NewRegistry('GR32_Filters');
   Registry.RegisterBinding(@@LogicalMaskLineAnd, 'LogicalMaskLineAnd');
   Registry.RegisterBinding(@@LogicalMaskLineOr, 'LogicalMaskLineOr');
   Registry.RegisterBinding(@@LogicalMaskLineXor, 'LogicalMaskLineXor');

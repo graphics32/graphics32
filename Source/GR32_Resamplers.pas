@@ -5363,7 +5363,7 @@ var
 
 procedure RegisterBindings;
 begin
-  ResamplersRegistry := NewRegistry('GR32_Resamplers bindings');
+  ResamplersRegistry := NewRegistry('GR32_Resamplers');
   ResamplersRegistry.RegisterBinding(@@BlockAverage, 'BlockAverage');
   ResamplersRegistry.RegisterBinding(@@Interpolator, 'Interpolator');
   ResamplersRegistry.RegisterBinding(@@AlphaInterpolator, 'AlphaInterpolator');

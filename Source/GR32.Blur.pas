@@ -557,7 +557,7 @@ function BlurRegistry: TFunctionRegistry;
 begin
   if (FBlurRegistry = nil) then
   begin
-    FBlurRegistry := NewRegistry('GR32.Blur bindings');
+    FBlurRegistry := NewRegistry('GR32.Blur');
     RegisterBindings;
   end;
 

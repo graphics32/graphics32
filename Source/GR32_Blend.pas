@@ -647,7 +647,7 @@ function BlendRegistry: TFunctionRegistry;
 begin
   if (FBlendRegistry = nil) then
   begin
-    FBlendRegistry := NewRegistry('GR32_Blend bindings');
+    FBlendRegistry := NewRegistry('GR32_Blend');
     RegisterBindings;
   end;
   Result := FBlendRegistry;

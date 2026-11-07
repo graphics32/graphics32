@@ -1396,7 +1396,7 @@ var
 {$endif IIR_BLUR_EDGE_CORRECTION}
 
     if (Width > 0) then // Avoids Access Violation with width or height = 1
-      IIR_BlurFilterBackward(pIn, pOut, B, Width, v);
+    IIR_BlurFilterBackward(pIn, pOut, B, Width, v);
   end;
 
   procedure BlurBuffer;

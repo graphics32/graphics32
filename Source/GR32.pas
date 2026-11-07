@@ -8193,7 +8193,7 @@ function GeneralRegistry: TFunctionRegistry;
 begin
   if (FGeneralRegistry = nil) then
   begin
-    FGeneralRegistry := NewRegistry('GR32 misc. bindings');
+    FGeneralRegistry := NewRegistry('GR32');
     RegisterBindings;
   end;
   Result := FGeneralRegistry;
