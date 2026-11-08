@@ -115,9 +115,11 @@ begin
 
   FSvgNode := Value;
 
-  if (FSvgNode <> nil) and (Location.IsEmpty) then
+  if (FSvgNode <> nil) and (Location.IsEmpty) and (LayerCollection <> nil) and (LayerCollection.Owner is TCustomImage32) then
   begin
-    Image := TCustomImage32(LayerCollection.Owner); // This sucks!
+    // TODO : We need a safer way of getting the viewport - or maybe we leave this to the caller
+
+    Image := TCustomImage32(LayerCollection.Owner);
 
     W := FSvgNode.GetSizePx(FSvgNode.Width, Image.ClientWidth);
     H := FSvgNode.GetSizePx(FSvgNode.Height, Image.ClientHeight);
