@@ -289,6 +289,7 @@ type
     attrFontStyle,
     attrTextAnchor,
     attrTextAlign,
+    attrTextDecoration,
     attrX,
     attrY,
     attrZ,
@@ -443,6 +444,7 @@ type
     FFontStyle: UTF8String;
     FTextAnchor: TSvgTextAnchor;
     FTextAlign: TSvgTextAlignmentHorizontal;
+    FTextDecoration: TSvgTextDecorations;
     FLetterSpacing: TSvgLength;
     FIsRendering: boolean;
     function GetFontSize: TSvgLength;
@@ -543,6 +545,7 @@ type
     property FontStyle: UTF8String read FFontStyle write FFontStyle;
     property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
     property TextAlign: TSvgTextAlignmentHorizontal read FTextAlign write FTextAlign;
+    property TextDecoration: TSvgTextDecorations read FTextDecoration write FTextDecoration;
     property LetterSpacing: TSvgLength read FLetterSpacing write FLetterSpacing;
     property IsRenderable: Boolean read GetIsRenderable;
     property ElementTag: UTF8String read GetElementTag;
@@ -2403,6 +2406,7 @@ const
     'font-style',
     'text-anchor',
     'text-align',
+    'text-decoration',
     'x',
     'y',
     'z',
@@ -2774,6 +2778,7 @@ begin
     FFontStyle := FParent.FontStyle;
     FTextAnchor := FParent.TextAnchor;
     FTextAlign := FParent.TextAlign;
+    FTextDecoration := FParent.TextDecoration;
     FLetterSpacing := FParent.LetterSpacing;
     FFill.FSpecified := [];
     FStroke.FSpecified := [];
@@ -2794,6 +2799,7 @@ begin
     FFontStyle := 'normal';
     FTextAnchor := taStart;
     FTextAlign := taHorNone;
+    FTextDecoration := cDefaultTextDecorations;
     FLetterSpacing := TSvgLength.Create(0.0, suPx);
   end;
 end;
@@ -2903,6 +2909,7 @@ begin
   Result.FFontStyle := FFontStyle;
   Result.FTextAnchor := FTextAnchor;
   Result.FTextAlign := FTextAlign;
+  Result.FTextDecoration := FTextDecoration;
   Result.FLetterSpacing := FLetterSpacing;
 
   FFill.ApplySpecified(Result.FFill);
@@ -3605,6 +3612,9 @@ begin
 
     attrTextAnchor:
       FTextAnchor := ParseSvgTextAnchor(AValue);
+
+    attrTextDecoration:
+      FTextDecoration := ParseSvgTextDecoration(AValue);
 
     attrTextAlign:
       begin

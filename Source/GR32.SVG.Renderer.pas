@@ -3875,6 +3875,9 @@ begin
       if (Canvas.Path <> nil) then
         RenderTextPathData(ATarget, Canvas.Path, ATextAreaNode);
 
+      // TODO: Implement 'text-decoration' support for TSvgTextAreaNode (ATextAreaNode.TextDecoration).
+      // Calculate and render underline, overline, and line-through decoration geometry based on font metrics.
+
       Canvas.Clear;
       Canvas.EndUpdate;
 
@@ -4455,6 +4458,10 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
               // ...and rasterize it
               if (Canvas.Path <> nil) then
                 RenderTextPathData(ATarget, Canvas.Path, ANode);
+
+              // TODO: Implement 'text-decoration' support for text glyphs/spans (ANode.TextDecoration).
+              // Underline, overline, and line-through lines should be constructed and rendered
+              // based on baseline ascent, font metrics, and text span extents.
 
               Canvas.Clear;
               Canvas.EndUpdate;

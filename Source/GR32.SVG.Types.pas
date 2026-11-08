@@ -273,6 +273,24 @@ const
 
 //------------------------------------------------------------------------------
 //
+//      TSvgTextDecorations
+//
+//------------------------------------------------------------------------------
+// TSvgTextDecoration defines the text decoration lines for SVG text elements.
+//------------------------------------------------------------------------------
+type
+  TSvgTextDecorations = set of (
+    tdUnderline,
+    tdOverline,
+    tdLineThrough
+  );
+
+const
+  cDefaultTextDecorations: TSvgTextDecorations = [];
+
+
+//------------------------------------------------------------------------------
+//
 //      String to enum value
 //
 //------------------------------------------------------------------------------
@@ -306,6 +324,8 @@ function ParseSvgMeshType(const AName: TValuePUtf8Char): TSvgMeshType; overload;
 function ParseSvgMeshType(const AName: UTF8String): TSvgMeshType; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgPaintOrder(const AValue: TValuePUtf8Char): TSvgPaintOrder; overload;
 function ParseSvgPaintOrder(const AValue: UTF8String): TSvgPaintOrder; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
+function ParseSvgTextDecoration(const AValue: TValuePUtf8Char): TSvgTextDecorations; overload;
+function ParseSvgTextDecoration(const AValue: UTF8String): TSvgTextDecorations; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -327,6 +347,7 @@ function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 function SvgLengthAdjustToString(ALengthAdjust: TSvgLengthAdjust): string;
 function SvgMeshTypeToString(AMeshType: TSvgMeshType): string;
 function SvgPaintOrderToString(const AOrder: TSvgPaintOrder): string;
+function SvgTextDecorationToString(ADecorations: TSvgTextDecorations): string;
 
 
 //------------------------------------------------------------------------------
@@ -1024,6 +1045,84 @@ begin
       Result := Result + ' ' + S;
   end;
 end;
+
+//------------------------------------------------------------------------------
+//
+//      TSvgTextDecorations
+//
+//------------------------------------------------------------------------------
+function ParseSvgTextDecoration(const AValue: UTF8String): TSvgTextDecorations;
+var
+  Val: TValuePUtf8Char;
+begin
+  Val.Text := pointer(AValue);
+  Val.Len := Length(AValue);
+  Result := ParseSvgTextDecoration(Val);
+end;
+
+function ParseSvgTextDecoration(const AValue: TValuePUtf8Char): TSvgTextDecorations;
+var
+  Parser, Token: TValuePUtf8Char;
+begin
+  Result := cDefaultTextDecorations;
+
+  Parser := AValue;
+  Parser.Trim(sListSeparators);
+  if Parser.Len = 0 then
+    Exit;
+
+  if Parser.CompareText('none') then
+    Exit;
+
+  while Parser.Len > 0 do
+  begin
+    Token := Parser.Split(sListSeparators, True);
+    Token.Trim(sListSeparators);
+    if Token.Len = 0 then
+    begin
+      Parser.Trim(sListSeparators);
+      Continue;
+    end;
+
+    if Token.CompareText('underline') then
+      Include(Result, tdUnderline)
+    else
+    if Token.CompareText('overline') then
+      Include(Result, tdOverline)
+    else
+    if Token.CompareText('line-through') then
+      Include(Result, tdLineThrough);
+
+    Parser.Trim(sListSeparators);
+  end;
+end;
+
+function SvgTextDecorationToString(ADecorations: TSvgTextDecorations): string;
+begin
+  Result := '';
+  if ADecorations = [] then
+    Exit('none');
+
+  if tdUnderline in ADecorations then
+    Result := 'underline';
+
+  if tdOverline in ADecorations then
+  begin
+    if Result = '' then
+      Result := 'overline'
+    else
+      Result := Result + ' overline';
+  end;
+
+  if tdLineThrough in ADecorations then
+  begin
+    if Result = '' then
+      Result := 'line-through'
+    else
+      Result := Result + ' line-through';
+  end;
+end;
+
 
 //------------------------------------------------------------------------------
 //
