@@ -225,6 +225,8 @@ type
     // If APoint=nil then ATarget is filled directly, otherwise the polypolygon is
     // rendered onto it using the fill/stroke.
     procedure RenderPolyPolygon(ATarget: TCustomBitmap32; APaintServer: TSvgPaintServerNode; AOpacity: Single; AColor: TSvgColor; const APoints: TArrayOfArrayOfFloatPoint = nil; AFillMode: TPolyFillMode = pfWinding);
+    procedure AdjustOffscreenOffset(X, Y: integer);
+
 
     procedure SetupResampler(ABitmap: TCustomBitmap32; AQuality: TResamplerQuality);
     procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect; Reverse: boolean; AResampler: TCustomResampler);
@@ -1882,6 +1884,12 @@ begin
   finally
     ReleaseOffscreenBitmap(MaskBmp);
   end;
+end;
+
+procedure TSvgRenderer.AdjustOffscreenOffset(X, Y: integer);
+begin
+  Inc(FOffscreenOffset.X, X);
+  Inc(FOffscreenOffset.Y, Y);
 end;
 
 procedure TSvgRenderer.ApplyClipPathNode(ATarget: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect;

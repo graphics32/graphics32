@@ -583,7 +583,18 @@ begin
       if (FSourceNode.Fill.ResolvedPaintServer <> nil) then
         FFillPaint.Bitmap.Clear; // The filler in RenderPolyPolygon will blend so we need a clean sheet to blend onto
 
-      TSvgRendererCracker(Renderer).RenderPolyPolygon(FFillPaint.Bitmap, FSourceNode.Fill.ResolvedPaintServer, FSourceNode.Fill.Opacity, Color);
+      // Translate transformation and track FOffscreenOffset so patterns and gradients
+      // map correctly into the local offscreen surface coordinates of ROI.
+      Renderer.Transformation.Push;
+      TSvgRendererCracker(Renderer).AdjustOffscreenOffset(ROI.Left, ROI.Top);
+      try
+        Renderer.Transformation.Translate(-ROI.Left, -ROI.Top);
+
+        TSvgRendererCracker(Renderer).RenderPolyPolygon(FFillPaint.Bitmap, FSourceNode.Fill.ResolvedPaintServer, FSourceNode.Fill.Opacity, Color);
+      finally
+        TSvgRendererCracker(Renderer).AdjustOffscreenOffset(-ROI.Left, -ROI.Top);
+        Renderer.Transformation.Pop;
+      end;
     end else
       FFillPaint.Bitmap.Clear;
   end;
@@ -606,7 +617,18 @@ begin
       if (FSourceNode.Stroke.ResolvedPaintServer <> nil) then
         FStrokePaint.Bitmap.Clear; // The filler in RenderPolyPolygon will blend so we need a clean sheet to blend onto
 
-      TSvgRendererCracker(Renderer).RenderPolyPolygon(FStrokePaint.Bitmap, FSourceNode.Stroke.ResolvedPaintServer, FSourceNode.Stroke.Opacity, Color);
+      // Translate transformation and track FOffscreenOffset so patterns and gradients
+      // map correctly into the local offscreen surface coordinates of ROI.
+      Renderer.Transformation.Push;
+      TSvgRendererCracker(Renderer).AdjustOffscreenOffset(ROI.Left, ROI.Top);
+      try
+        Renderer.Transformation.Translate(-ROI.Left, -ROI.Top);
+
+        TSvgRendererCracker(Renderer).RenderPolyPolygon(FStrokePaint.Bitmap, FSourceNode.Stroke.ResolvedPaintServer, FSourceNode.Stroke.Opacity, Color);
+      finally
+        TSvgRendererCracker(Renderer).AdjustOffscreenOffset(-ROI.Left, -ROI.Top);
+        Renderer.Transformation.Pop;
+      end;
     end else
       FStrokePaint.Bitmap.Clear;
   end;
