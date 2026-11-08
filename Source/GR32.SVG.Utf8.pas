@@ -111,6 +111,7 @@ type
     function EndsText(const AValue: TValuePUtf8Char; ATrim: boolean = False): Boolean; overload;
     function ContainsText(const AValue: UTF8String): Boolean;
     function Pos(Chr: AnsiChar): PUtf8Char;
+    function IsDigit: boolean; inline;
 
     function ToCardinalAndSkip: Cardinal;
     function TryToFloat(out Value: Double): boolean; overload;
@@ -704,6 +705,11 @@ class operator TValuePUtf8Char.implicit(const Value: UTF8String): TValuePUtf8Cha
 begin
   Result.Text := pointer(Value);
   Result.Len := Length(Value);
+end;
+
+function TValuePUtf8Char.IsDigit: boolean;
+begin
+  Result := (Len > 0) and ((Ord(Text^) xor $30) < 10);
 end;
 
 (*

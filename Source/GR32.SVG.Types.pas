@@ -457,6 +457,43 @@ type
     msSlice
   );
 
+  TSvgFontWeightType = (
+    fwNormal,
+    fwBold,
+    fwBolder,
+    fwLighter,
+    fwAbsolute
+  );
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFontWeight
+//
+//------------------------------------------------------------------------------
+// SVG font weight
+//------------------------------------------------------------------------------
+type
+  TSvgFontWeight = record
+  public
+    Kind: TSvgFontWeightType;
+    Value: Single;
+    class function Default: TSvgFontWeight; static; inline;
+    class function Create(AKind: TSvgFontWeightType; AValue: Single = 400.0): TSvgFontWeight; static; inline;
+    class function Parse(const AStr: TValuePUtf8Char): TSvgFontWeight; overload; static;
+    class function Parse(const AStr: TValuePUtf8Char; var AFontWeight: TSvgFontWeight): boolean; overload; static;
+    class function Parse(const AStr: UTF8String): TSvgFontWeight; overload; static;
+    function ToString: string; inline;
+    function ToUtf8: UTF8String;
+    class operator Implicit(const AWeight: TSvgFontWeight): UTF8String; inline;
+    class operator Implicit(const AWeight: TSvgFontWeight): string; inline;
+    class operator Equal(const Left: TSvgFontWeight; const Right: TSvgFontWeight): Boolean;
+    class operator Equal(const Left: TSvgFontWeight; const Right: UTF8String): Boolean;
+    class operator Equal(const Left: UTF8String; const Right: TSvgFontWeight): Boolean;
+    class operator NotEqual(const Left: TSvgFontWeight; const Right: TSvgFontWeight): Boolean;
+    class operator NotEqual(const Left: TSvgFontWeight; const Right: UTF8String): Boolean;
+    class operator NotEqual(const Left: UTF8String; const Right: TSvgFontWeight): Boolean;
+  end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -684,6 +721,175 @@ begin
   else
     Result := 'normal';
   end;
+end;
+
+//------------------------------------------------------------------------------
+//
+//      TSvgFontWeight
+//
+//------------------------------------------------------------------------------
+class function TSvgFontWeight.Default: TSvgFontWeight;
+begin
+  Result.Kind := fwNormal;
+  Result.Value := 400.0;
+end;
+
+class function TSvgFontWeight.Create(AKind: TSvgFontWeightType; AValue: Single): TSvgFontWeight;
+begin
+  Result.Kind := AKind;
+
+  case AKind of
+    fwLighter:
+      AValue := 100;
+
+    fwNormal:
+      AValue := 400;
+
+    fwBold:
+      AValue := 700;
+
+    fwBolder:
+      AValue := 900;
+
+  else
+    if (AValue < 1.0) then
+      AValue := 1.0
+    else
+    if (AValue > 1000.0) then
+      AValue := 1000.0;
+  end;
+
+  Result.Value := AValue;
+end;
+
+class function TSvgFontWeight.Parse(const AStr: UTF8String): TSvgFontWeight;
+begin
+  Result := Parse(TValuePUtf8Char.FromString(AStr));
+end;
+
+class function TSvgFontWeight.Parse(const AStr: TValuePUtf8Char): TSvgFontWeight;
+begin
+  if (not Parse(AStr, Result)) then
+    Result := Default;
+end;
+
+class function TSvgFontWeight.Parse(const AStr: TValuePUtf8Char; var AFontWeight: TSvgFontWeight): boolean;
+var
+  Val: TValuePUtf8Char;
+  Weight: SIngle;
+begin
+  Result := True;
+
+  Val := AStr;
+  Val.Trim;
+  Val.TrimEnd;
+
+  case Val.Len of
+    0: Exit(False);
+
+    4:
+      if Val.CompareText('bold') then
+      begin
+        AFontWeight := Create(fwBold);
+        exit;
+      end;
+
+    6:
+      if Val.CompareText('normal') then
+      begin
+        AFontWeight := Create(fwNormal);
+        exit;
+      end else
+      if Val.CompareText('bolder') then
+      begin
+        AFontWeight := Create(fwBolder);
+        exit;
+      end;
+
+    7:
+      if Val.CompareText('lighter') then
+      begin
+        AFontWeight := Create(fwLighter);
+        exit;
+      end;
+  end;
+
+  if (AStr.IsDigit) then
+  begin
+    Weight := AStr.ToSingle;
+    AStr.SkipDigits;
+    if (AStr.Len > 0) then
+      Exit(False); // There's more; Likely 'px' - i.e. a font size, not a weight
+    AFontWeight := Create(fwAbsolute, Weight);
+    exit;
+  end;
+
+  Result := False;
+end;
+
+function TSvgFontWeight.ToString: string;
+begin
+  Result := string(ToUtf8);
+end;
+
+function TSvgFontWeight.ToUtf8: UTF8String;
+begin
+  case Kind of
+    fwNormal:   Result := 'normal';
+    fwBold:     Result := 'bold';
+    fwBolder:   Result := 'bolder';
+    fwLighter:  Result := 'lighter';
+    fwAbsolute: Result := UTF8String(Format('%.1n', [Value]));
+  else
+    Result := 'normal';
+  end;
+end;
+
+class operator TSvgFontWeight.Implicit(const AWeight: TSvgFontWeight): UTF8String;
+begin
+  Result := AWeight.ToUtf8;
+end;
+
+class operator TSvgFontWeight.Implicit(const AWeight: TSvgFontWeight): string;
+begin
+  Result := string(AWeight.ToUtf8);
+end;
+
+class operator TSvgFontWeight.Equal(const Left: TSvgFontWeight; const Right: TSvgFontWeight): Boolean;
+begin
+  if (Left.Kind = Right.Kind) then
+  begin
+    if (Left.Kind = fwAbsolute) then
+      Result := (Left.Value = Right.Value)
+    else
+      Result := True;
+  end else
+    Result := False;
+end;
+
+class operator TSvgFontWeight.Equal(const Left: TSvgFontWeight; const Right: UTF8String): Boolean;
+begin
+  Result := (Left.ToUtf8 = Right);
+end;
+
+class operator TSvgFontWeight.Equal(const Left: UTF8String; const Right: TSvgFontWeight): Boolean;
+begin
+  Result := (Left = Right.ToUtf8);
+end;
+
+class operator TSvgFontWeight.NotEqual(const Left: TSvgFontWeight; const Right: TSvgFontWeight): Boolean;
+begin
+  Result := not (Left = Right);
+end;
+
+class operator TSvgFontWeight.NotEqual(const Left: TSvgFontWeight; const Right: UTF8String): Boolean;
+begin
+  Result := not (Left = Right);
+end;
+
+class operator TSvgFontWeight.NotEqual(const Left: UTF8String; const Right: TSvgFontWeight): Boolean;
+begin
+  Result := not (Left = Right);
 end;
 
 

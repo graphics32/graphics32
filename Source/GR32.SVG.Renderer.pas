@@ -249,8 +249,10 @@ type
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
     function GetPathBounds(const APoints: TArrayOfArrayOfFloatPoint): TFloatRect;
     function GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor = tcFill): TSvgColor; // protected to be accesible by TFilterContext
+    function GetEffectiveFontWeight(ANode: TSvgNode): Integer;
     procedure VerticalBlur32(ASource, ADest: TCustomBitmap32; ARadius: TFloat);
-    procedure ResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo);
+    procedure ResolveFont(ANode: TSvgNode; ASize: integer; var AFontInfo: TFontInfo); overload;
+    procedure ResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); overload;
     procedure DoResolveFont(const AFontFamily, AWeightStr, AStyleStr: UTF8String; ASize: integer; var AFontInfo: TFontInfo); virtual;
     function DoResolveExternalFile(const Filename: string; Stream: TStream): boolean; virtual;
     procedure BeginRenderClipPath;
@@ -541,6 +543,59 @@ begin
       Inc(SourceP);
     end;
 {$ifend}
+end;
+
+function TSvgRenderer.GetEffectiveFontWeight(ANode: TSvgNode): Integer;
+var
+  ParentWeight: Integer;
+begin
+  if (ANode = nil) then
+    Exit(400);
+
+  case ANode.FontWeight.Kind of
+    fwAbsolute:
+      Result := Round(ANode.FontWeight.Value);
+
+    fwNormal:
+      Result := 400;
+
+    fwBold:
+      Result := 700;
+
+    fwBolder:
+      begin
+        if (ANode.Parent <> nil) then
+          ParentWeight := GetEffectiveFontWeight(ANode.Parent)
+        else
+          ParentWeight := 400;
+
+        if ParentWeight < 400 then
+          Result := 400
+        else
+        if ParentWeight < 600 then
+          Result := 700
+        else
+          Result := 900;
+      end;
+
+    fwLighter:
+      begin
+        if (ANode.Parent <> nil) then
+          ParentWeight := GetEffectiveFontWeight(ANode.Parent)
+        else
+          ParentWeight := 400;
+
+        if ParentWeight > 700 then
+          Result := 700
+        else
+        if ParentWeight >= 600 then
+          Result := 400
+        else
+          Result := 100;
+      end;
+  else
+    Result := 400;
+  end;
 end;
 
 function TSvgRenderer.GetEffectiveColor(ANode: TSvgNode; AColor: TSvgColor; AThemeColor: TThemeColor): TSvgColor;
@@ -3491,6 +3546,7 @@ var
   Parser: TValuePUtf8Char;
   Token: TValuePUtf8Char;
   PrimaryCandidate: TValuePUtf8Char;
+  FontWeight: TSvgFontWeight;
 begin
   Parser := TValuePUtf8Char.FromString(AFontFamily);
   Parser.Trim;
@@ -3582,11 +3638,9 @@ begin
   end;
 
   Parser := TValuePUtf8Char.FromString(AWeightStr);
-  Parser.Trim;
-  Parser.TrimEnd;
-
-  if (Parser.Len = 4) and (Parser.CompareText('bold') or Parser.Equal('700') or Parser.Equal('800') or Parser.Equal('900')) then
-    Include(AFontInfo.Style, fsBold);
+  if TSvgFontWeight.Parse(Parser, FontWeight) then
+    if (FontWeight.Value >= 600.0) then
+      Include(AFontInfo.Style, fsBold);
 
   Parser := TValuePUtf8Char.FromString(AStyleStr);
   Parser.Trim;
@@ -3598,6 +3652,17 @@ begin
 
   // Let the user have a go at it
   DoResolveFont(AFontFamily, AWeightStr, AStyleStr, ASize, AFontInfo);
+end;
+
+procedure TSvgRenderer.ResolveFont(ANode: TSvgNode; ASize: integer; var AFontInfo: TFontInfo);
+var
+  EffectiveWeight: Integer;
+begin
+  if (ANode = nil) then
+    Exit;
+
+  EffectiveWeight := GetEffectiveFontWeight(ANode);
+  ResolveFont(ANode.FontFamily, UTF8String(IntToStr(EffectiveWeight)), ANode.FontStyle, ASize, AFontInfo);
 end;
 
 //------------------------------------------------------------------------------
@@ -3756,9 +3821,8 @@ begin
         FontSizePx := 12;
 
       FontInfo := Default(TFontInfo);
-      ResolveFont(ATextAreaNode.FontFamily, ATextAreaNode.FontWeight, ATextAreaNode.FontStyle, FontSizePx, FontInfo);
+      ResolveFont(ATextAreaNode, FontSizePx, FontInfo);
 
-      Canvas.Font.Name := string(FontInfo.FontFamily);
       Canvas.Font.Name := string(FontInfo.FontFamily);
       Canvas.Font.Height := -Max(1, FontInfo.Size);
       Canvas.Font.Style := FontInfo.Style;
@@ -3888,7 +3952,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
             FontSizePx := 12;
 
           FontInfo := Default(TFontInfo);
-          ResolveFont(CurrentNode.FontFamily, CurrentNode.FontWeight, CurrentNode.FontStyle, FontSizePx, FontInfo);
+          ResolveFont(CurrentNode, FontSizePx, FontInfo);
 
           Canvas.Font.Name := string(FontInfo.FontFamily);
           Canvas.Font.Height := -Max(1, FontInfo.Size);
@@ -4000,7 +4064,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           FontSizePx := 12;
 
         FontInfo := Default(TFontInfo);
-        ResolveFont(CurrentNode.FontFamily, CurrentNode.FontWeight, CurrentNode.FontStyle, FontSizePx, FontInfo);
+        ResolveFont(CurrentNode, FontSizePx, FontInfo);
 
         Canvas.Font.Name := string(FontInfo.FontFamily);
         Canvas.Font.Height := -Max(1, FontInfo.Size);
@@ -4262,7 +4326,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           FontSizePx := 12;
 
         FontInfo := Default(TFontInfo);
-        ResolveFont(ANode.FontFamily, ANode.FontWeight, ANode.FontStyle, FontSizePx, FontInfo);
+        ResolveFont(ANode, FontSizePx, FontInfo);
 
         Canvas.Font.Name := string(FontInfo.FontFamily);
         Canvas.Font.Height := -Max(1, FontInfo.Size);

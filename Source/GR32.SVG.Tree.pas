@@ -437,7 +437,7 @@ type
     FFontFamily: UTF8String;
     FFontSize: TSvgLength;
     FHasFontSize: Boolean;
-    FFontWeight: UTF8String;
+    FFontWeight: TSvgFontWeight;
     FFontStyle: UTF8String;
     FTextAnchor: TSvgTextAnchor;
     FTextAlign: TSvgTextAlignmentHorizontal;
@@ -536,7 +536,7 @@ type
     property SystemLanguage: UTF8String read FSystemLanguage write FSystemLanguage;
     property FontFamily: UTF8String read FFontFamily write FFontFamily;
     property FontSize: TSvgLength read GetFontSize write SetFontSize;
-    property FontWeight: UTF8String read FFontWeight write FFontWeight;
+    property FontWeight: TSvgFontWeight read FFontWeight write FFontWeight;
     property FontStyle: UTF8String read FFontStyle write FFontStyle;
     property TextAnchor: TSvgTextAnchor read FTextAnchor write FTextAnchor;
     property TextAlign: TSvgTextAlignmentHorizontal read FTextAlign write FTextAlign;
@@ -2784,7 +2784,7 @@ begin
     FFontFamily := 'sans-serif';
     FFontSize := TSvgLength.Create(16.0, suPx);
     FHasFontSize := True;
-    FFontWeight := 'normal';
+    FFontWeight := TSvgFontWeight.Default;
     FFontStyle := 'normal';
     FTextAnchor := taStart;
     FTextAlign := taHorNone;
@@ -3221,33 +3221,7 @@ procedure TSvgNode.ParseFontProperty(const AValue: TValuePUtf8Char);
     (*
     ** font-weight
     *)
-    case Token.Len of
-      3:
-        if (Token.Text^ in ['1'..'9']) and (Token.Text[1] = '0') and (Token.Text[2] = '0') then
-        begin
-          SetString(FFontWeight, Token.Text, 3);
-          Exit(True);
-        end;
-      4:
-        if (Token.CompareText('bold')) then
-        begin
-          FFontWeight := 'bold';
-          Exit(True);
-        end;
-      6:
-        if (Token.CompareText('bolder')) then
-        begin
-          FFontWeight := 'bolder';
-          Exit(True);
-        end;
-      7:
-        if (Token.CompareText('lighter')) then
-        begin
-          FFontWeight := 'lighter';
-          Exit(True);
-        end;
-    end;
-    Result := False;
+    Result := TSvgFontWeight.Parse(Token, FFontWeight);
   end;
 
   function GetFontStyle(const Token: TValuePUtf8Char): boolean;
@@ -3359,7 +3333,7 @@ begin
 
   // Initial defaults for CSS font shorthand specification
   FFontStyle := 'normal';
-  FFontWeight := 'normal';
+  FFontWeight := TSvgFontWeight.Default;
   FFontSize := TSvgLength.Create(12.0, suPx);
   FHasFontSize := True;
   FFontFamily := 'sans-serif';
@@ -3614,7 +3588,7 @@ begin
       end;
 
     attrFontWeight:
-      FFontWeight := AValue.ToUtf8;
+      FFontWeight := TSvgFontWeight.Parse(AValue);
 
     attrFontStyle:
       FFontStyle := AValue.ToUtf8;
