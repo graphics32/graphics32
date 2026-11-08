@@ -270,6 +270,7 @@ type
     attrMarkerMid,
     attrMarkerEnd,
     attrMarker,
+    attrPaintOrder,
     attrMixBlendMode,
     attrIsolation,
     attrFilter,
@@ -430,6 +431,7 @@ type
     FResolvedMarkerStart: TSvgMarkerNode;
     FResolvedMarkerMid: TSvgMarkerNode;
     FResolvedMarkerEnd: TSvgMarkerNode;
+    FPaintOrder: TSvgPaintOrder;
     FResolving: Boolean;
     FRequiredFeatures: UTF8String;
     FRequiredExtensions: UTF8String;
@@ -531,6 +533,7 @@ type
     property ResolvedMarkerStart: TSvgMarkerNode read FResolvedMarkerStart write FResolvedMarkerStart;
     property ResolvedMarkerMid: TSvgMarkerNode read FResolvedMarkerMid write FResolvedMarkerMid;
     property ResolvedMarkerEnd: TSvgMarkerNode read FResolvedMarkerEnd write FResolvedMarkerEnd;
+    property PaintOrder: TSvgPaintOrder read FPaintOrder write FPaintOrder;
     property RequiredFeatures: UTF8String read FRequiredFeatures write SetRequiredFeatures;
     property RequiredExtensions: UTF8String read FRequiredExtensions write FRequiredExtensions;
     property SystemLanguage: UTF8String read FSystemLanguage write FSystemLanguage;
@@ -2381,6 +2384,7 @@ const
     'marker-mid',
     'marker-end',
     'marker',
+    'paint-order',
     'mix-blend-mode',
     'isolation',
     'filter',
@@ -2764,6 +2768,7 @@ begin
     FMarkerStart := FParent.MarkerStart;
     FMarkerMid := FParent.MarkerMid;
     FMarkerEnd := FParent.MarkerEnd;
+    FPaintOrder := FParent.PaintOrder;
     FFontFamily := FParent.FontFamily;
     FFontWeight := FParent.FontWeight;
     FFontStyle := FParent.FontStyle;
@@ -2781,6 +2786,7 @@ begin
     FMarkerStart := '';
     FMarkerMid := '';
     FMarkerEnd := '';
+    FPaintOrder := cDefaultPaintOrder;
     FFontFamily := 'sans-serif';
     FFontSize := TSvgLength.Create(16.0, suPx);
     FHasFontSize := True;
@@ -2904,6 +2910,7 @@ begin
   Result.FMarkerStart := FMarkerStart;
   Result.FMarkerMid := FMarkerMid;
   Result.FMarkerEnd := FMarkerEnd;
+  Result.FPaintOrder := FPaintOrder;
 end;
 
 function TSvgNode.GetColor: TSvgColor;
@@ -3538,6 +3545,9 @@ begin
         FMarkerMid := FMarkerStart;
         FMarkerEnd := FMarkerStart;
       end;
+
+    attrPaintOrder:
+      FPaintOrder := ParseSvgPaintOrder(AValue);
 
     attrOpacity:
       if AValue.TryToPercent(ValueFloat) then

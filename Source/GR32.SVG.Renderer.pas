@@ -1772,6 +1772,11 @@ begin
       try
         ObjBox := APathNode.GetObjectBoundingBox(FViewportRect);
 
+        // TODO: Implement 'paint-order' attribute support (APathNode.PaintOrder).
+        // By default, order is Fill, Stroke, Markers. If APathNode.PaintOrder specifies
+        // a different sequence (e.g. Stroke before Fill, or Markers between/before),
+        // dispatch the rendering of Fill, Stroke, and Markers according to that order.
+
         (*
         ** 6. Fill Rendering
         *)
@@ -1811,7 +1816,8 @@ begin
       MarkerPoints := nil;
     if (MarkerPoints <> nil) then
     begin
-
+      // TODO: If 'paint-order' is implemented, marker rendering would be integrated
+      // into the loop/dispatch over APathNode.PaintOrder alongside fill and stroke.
       if NeedsOffscreen then
       begin
         FTransformation.Push;
@@ -3717,6 +3723,10 @@ begin
 
   TransformedPts := GetTransformedPoints(APathPoints);
   ObjBox := ANode.GetObjectBoundingBox(FViewportRect);
+
+  // TODO: Implement 'paint-order' attribute support for text (ANode.PaintOrder).
+  // By default, text fill is rendered before text stroke. If ANode.PaintOrder
+  // specifies stroke before fill, render stroke first.
 
   // 1. Fill Rendering
   if (HasFill) then

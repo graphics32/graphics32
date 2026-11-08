@@ -203,6 +203,7 @@ type
     ofAuto
   );
 
+
 //------------------------------------------------------------------------------
 //
 //      TSvgEnableBackground
@@ -215,6 +216,7 @@ type
     ebAccumulate,
     ebNew
   );
+
 
 //------------------------------------------------------------------------------
 //
@@ -252,6 +254,23 @@ type
     smtBicubic
   );
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPaintOrder
+//
+//------------------------------------------------------------------------------
+// TSvgPaintOrderElement defines the components of the SVG paint-order attribute
+// (fill, stroke, markers).
+//------------------------------------------------------------------------------
+type
+  TSvgPaintOrderElement = (poFill, poStroke, poMarkers);
+  TSvgPaintOrder = array[0..2] of TSvgPaintOrderElement;
+
+const
+  cDefaultPaintOrder: TSvgPaintOrder = (poFill, poStroke, poMarkers);
+
+
 //------------------------------------------------------------------------------
 //
 //      String to enum value
@@ -285,6 +304,8 @@ function ParseSvgLengthAdjust(const AName: TValuePUtf8Char): TSvgLengthAdjust; o
 function ParseSvgLengthAdjust(const AName: UTF8String): TSvgLengthAdjust; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 function ParseSvgMeshType(const AName: TValuePUtf8Char): TSvgMeshType; overload;
 function ParseSvgMeshType(const AName: UTF8String): TSvgMeshType; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
+function ParseSvgPaintOrder(const AValue: TValuePUtf8Char): TSvgPaintOrder; overload;
+function ParseSvgPaintOrder(const AValue: UTF8String): TSvgPaintOrder; overload; {$if not defined(UNIT_TEST)} deprecated;{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -305,6 +326,7 @@ function EdgeModeToString(AEdgeMode: TSvgEdgeMode): string;
 function SvgTextAnchorToString(AAnchor: TSvgTextAnchor): string;
 function SvgLengthAdjustToString(ALengthAdjust: TSvgLengthAdjust): string;
 function SvgMeshTypeToString(AMeshType: TSvgMeshType): string;
+function SvgPaintOrderToString(const AOrder: TSvgPaintOrder): string;
 
 
 //------------------------------------------------------------------------------
@@ -342,6 +364,10 @@ var
 var
   // FormatSettings with '.' decimal separator
   SvgFormatSettings: TFormatSettings;
+
+const
+  sWhiteSpaceSeparators = [' ', #9, #10, #13];
+  sListSeparators = [' ', ',', #9, #10, #13];
 
 
 //------------------------------------------------------------------------------
@@ -892,6 +918,112 @@ begin
   Result := not (Left = Right);
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TSvgPaintOrder
+//
+//------------------------------------------------------------------------------
+function ParseSvgPaintOrder(const AValue: UTF8String): TSvgPaintOrder;
+var
+  Val: TValuePUtf8Char;
+begin
+  Val.Text := pointer(AValue);
+  Val.Len := Length(AValue);
+  Result := ParseSvgPaintOrder(Val);
+end;
+
+function ParseSvgPaintOrder(const AValue: TValuePUtf8Char): TSvgPaintOrder;
+var
+  Parser, Token: TValuePUtf8Char;
+  HasElement: array[TSvgPaintOrderElement] of Boolean;
+  Elem: TSvgPaintOrderElement;
+  Count: Integer;
+begin
+  Result := cDefaultPaintOrder;
+
+  Parser := AValue;
+  Parser.Trim(sListSeparators);
+  if Parser.Len = 0 then
+    Exit;
+
+  if Parser.CompareText('normal') then
+    Exit;
+
+  HasElement[poFill] := False;
+  HasElement[poStroke] := False;
+  HasElement[poMarkers] := False;
+  Count := 0;
+
+  while Parser.Len > 0 do
+  begin
+    Token := Parser.Split(sListSeparators, True);
+    Token.Trim(sListSeparators);
+    if Token.Len = 0 then
+    begin
+      Parser.Trim(sListSeparators);
+      Continue;
+    end;
+
+    if Token.CompareText('fill') then
+      Elem := poFill
+    else
+    if Token.CompareText('stroke') then
+      Elem := poStroke
+    else
+    if Token.CompareText('markers') then
+      Elem := poMarkers
+    else
+    begin
+      // Invalid keyword or syntax error: standard SVG/CSS rejects invalid value
+      Result := cDefaultPaintOrder;
+      Exit;
+    end;
+
+    // Duplicates are disallowed in paint-order syntax [ fill || stroke || markers ]
+    if HasElement[Elem] then
+    begin
+      Result := cDefaultPaintOrder;
+      Exit;
+    end;
+
+    HasElement[Elem] := True;
+    Result[Count] := Elem;
+    Inc(Count);
+
+    Parser.Trim(sListSeparators);
+  end;
+
+  // Append omitted components in their default relative order: fill, stroke, markers
+  for Elem := Low(TSvgPaintOrderElement) to High(TSvgPaintOrderElement) do
+  begin
+    if not HasElement[Elem] then
+    begin
+      Result[Count] := Elem;
+      Inc(Count);
+    end;
+  end;
+end;
+
+function SvgPaintOrderToString(const AOrder: TSvgPaintOrder): string;
+var
+  i: Integer;
+  S: string;
+begin
+  Result := '';
+  for i := 0 to 2 do
+  begin
+    case AOrder[i] of
+      poFill: S := 'fill';
+      poStroke: S := 'stroke';
+      poMarkers: S := 'markers';
+    end;
+    if Result = '' then
+      Result := S
+    else
+      Result := Result + ' ' + S;
+  end;
+end;
 
 //------------------------------------------------------------------------------
 //
