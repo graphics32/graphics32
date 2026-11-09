@@ -861,11 +861,11 @@ begin
       end;
   end;
 
-  if (AStr.IsDigit) then
+  if (Val.IsDigit) then
   begin
-    Weight := AStr.ToSingle;
-    AStr.SkipDigits;
-    if (AStr.Len > 0) then
+    Weight := Val.ToSingle;
+    Val.SkipDigits;
+    if (Val.Len > 0) then
       Exit(False); // There's more; Likely 'px' - i.e. a font size, not a weight
     AFontWeight := Create(fwAbsolute, Weight);
     exit;

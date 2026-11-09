@@ -3337,8 +3337,13 @@ procedure TSvgNode.ParseFontProperty(const AValue: TValuePUtf8Char);
     Result := True;
   end;
 
+type
+  TFontProp = (fpWeight, fpStyle, fpSize);
+  TFontProps = set of TFontProp;
 var
   Next, Token: TValuePUtf8Char;
+  Prop: TFontProp;
+  NeedProps: TFontProps;
 begin
   Next := AValue;
   Next.Trim;
@@ -3352,7 +3357,9 @@ begin
   FHasFontSize := True;
   FFontFamily := 'sans-serif';
 
-  while (Next.Len > 0) do
+  NeedProps := [fpWeight, fpStyle, fpSize];
+
+  while (Next.Len > 0) and (NeedProps <> []) do
   begin
     Token := Next.Split(sWhiteSpaceSeparators, True);
     Token.Trim;
@@ -3361,14 +3368,31 @@ begin
     if (Token.Len = 0) then
       Continue;
 
-    if GetFontWeight(Token) then
-      continue;
+    for Prop in NeedProps do
+    begin
+      case Prop of
+        fpWeight:
+          if GetFontWeight(Token) then
+          begin
+            Exclude(NeedProps, Prop);
+            break;
+          end;
 
-    if GetFontStyle(Token) then
-      continue;
+        fpStyle:
+          if GetFontStyle(Token) then
+          begin
+            Exclude(NeedProps, Prop);
+            break;
+          end;
 
-    if GetFontSize(Token, Next) then
-      break;
+        fpSize:
+          if GetFontSize(Token, Next) then
+          begin
+            NeedProps := [];
+            break;
+          end;
+      end;
+    end;
   end;
 
   // Remaining string after font-size is font-family
