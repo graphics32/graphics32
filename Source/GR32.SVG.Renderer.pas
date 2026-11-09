@@ -185,6 +185,11 @@ type
   TSvgRendererResolveFontEvent = procedure(Sender: TObject; const AFontFamily, AWeightStr, AStyleStr: string; ASize: integer; var AFontInfo: TFontInfo);
 
   TSvgRenderer = class(TObject)
+  private const
+    cMaxFilterDimension = 1024;
+    cBitmapMaxOversize = 64*1024;
+    cBitmapPoolMaxSize = 256*1024*1024;
+
   private
     FTarget: TCustomBitmap32;
     FViewportRect: TFloatRect;
@@ -208,6 +213,8 @@ type
     FOffscreenOffset: TPoint;
     FOnResolveExternalFile: TSvgRendererResolveExternalFileEvent;
     FOnResolveFontEvent: TSvgRendererResolveFontEvent;
+    FMaxFilterDimension: integer;
+
     function GetTransformation: TAffineTransformation;
     procedure SetThemeFillColor32(AColor: TColor32);
     procedure SetThemeStrokeColor32(AColor: TColor32);
@@ -217,6 +224,10 @@ type
     function GetCurrentColor32: TColor32;
     function GetIsRenderingClipPath: boolean;
     function GetResampler(Quality: TResamplerQuality): TCustomResampler;
+    function GetBitmapMaxOversize: integer;
+    function GetBitmapPoolMaxSize: integer;
+    procedure SetBitmapMaxOversize(const Value: integer);
+    procedure SetBitmapPoolMaxSize(const Value: integer);
   protected type
     TThemeColor = (tcStroke, tcFill);
 
@@ -271,6 +282,7 @@ type
     procedure ReleaseOffscreenBitmap(var ABitmap: TCustomBitmap32);
     procedure BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode; AX: Integer; AY: Integer); overload;
     procedure BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode); overload;
+    procedure StretchOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode; ADestRect: TRect);
 
     procedure ApplyMatrix(const AMatrix: TFloatMatrix);
     procedure ClearThemeColors;
@@ -292,6 +304,10 @@ type
     property CurrentColor32: TColor32 read GetCurrentColor32 write SetCurrentColor32;
     property OverridePreserveAspectRatio: Boolean read FOverridePreserveAspectRatio write FOverridePreserveAspectRatio;
     property PreserveAspectRatioOverride: TSvgPreserveAspectRatio read FPreserveAspectRatioOverride write FPreserveAspectRatioOverride;
+
+    property MaxFilterDimension: integer read FMaxFilterDimension write FMaxFilterDimension;
+    property BitmapMaxOversize: integer read GetBitmapMaxOversize write SetBitmapMaxOversize;
+    property BitmapPoolMaxSize: integer read GetBitmapPoolMaxSize write SetBitmapPoolMaxSize;
 
     property OnResolveExternalFile: TSvgRendererResolveExternalFileEvent read FOnResolveExternalFile write FOnResolveExternalFile;
     property OnResolveFontEvent: TSvgRendererResolveFontEvent read FOnResolveFontEvent write FOnResolveFontEvent;
@@ -782,9 +798,29 @@ begin
   Result := FThemeStrokeColor.Color;
 end;
 
+procedure TSvgRenderer.SetBitmapMaxOversize(const Value: integer);
+begin
+  FBitmapPool.BitmapMaxOversize := Value;
+end;
+
+procedure TSvgRenderer.SetBitmapPoolMaxSize(const Value: integer);
+begin
+  FBitmapPool.MaxSize := Value;
+end;
+
 procedure TSvgRenderer.SetCurrentColor32(AColor: TColor32);
 begin
   FCurrentColor := TSvgColor.Create(AColor);
+end;
+
+function TSvgRenderer.GetBitmapMaxOversize: integer;
+begin
+  Result := FBitmapPool.BitmapMaxOversize;
+end;
+
+function TSvgRenderer.GetBitmapPoolMaxSize: integer;
+begin
+  Result := FBitmapPool.MaxSize;
 end;
 
 function TSvgRenderer.GetCurrentColor32: TColor32;
@@ -1363,12 +1399,13 @@ begin
   FViewportRect := FloatRect(0, 0, 0, 0);
   FDocumentRoot := nil;
   FBitmapPool := TSvgBitmapPool.Create;
-  FBitmapPool.BitmapMaxOversize := 64*1024; // Magic!
-  FBitmapPool.MaxSize := 256*1024*1024; // More magic!
+  FBitmapPool.BitmapMaxOversize := cBitmapMaxOversize;
+  FBitmapPool.MaxSize := cBitmapPoolMaxSize;
   FAllowExternalImages := False;
   FThemeFillColor := TSvgColor.Unset;
   FThemeStrokeColor := TSvgColor.Unset;
   FCurrentColor := TSvgColor.Unset;
+  FMaxFilterDimension := cMaxFilterDimension;
 end;
 
 destructor TSvgRenderer.Destroy;
@@ -1403,6 +1440,55 @@ end;
 procedure TSvgRenderer.ApplyMatrix(const AMatrix: TFloatMatrix);
 begin
   FTransformation.Clear(Mult(FTransformation.Matrix, AMatrix));
+end;
+
+procedure TSvgRenderer.StretchOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode; ADestRect: TRect);
+var
+  BlenderClass: TGraphics32BlenderClass;
+  Blender: TCustomGraphics32Blender;
+  Combiner: TPixelCombineEvent;
+begin
+  if (ASource = nil) or (ATarget = nil) then
+    Exit;
+
+{$if defined(SVG32_ROI_DEBUGDRAW)}
+  if (ATarget <> nil) then
+  begin
+    var DebugRect := ADestRect;
+    var DebugColor := Random($7F) or (Random($7F) shl 8) or (Random($7F) shl 16);
+    ATarget.FrameRectTS(DebugRect, $7F000000 or DebugColor);
+    GR32.InflateRect(DebugRect, 1, 1);
+    DebugColor := (DebugColor shl 1);
+    ATarget.FillRectTS(DebugRect, $3F000000 or DebugColor);
+  end;
+{$ifend}
+
+  if (ABlendMode <> bmNormal) then
+  begin
+    BlenderClass := SvgBlendModeToBlenderClass(ABlendMode);
+
+    if (BlenderClass <> nil) and (BlenderClass <> TGraphics32BlenderNormal) then
+    begin
+      Blender := BlenderClass.Create;
+      try
+        Blender.GetPixelCombiner(Combiner);
+
+        if Assigned(Combiner) then
+        begin
+          StretchTransfer(ATarget, ADestRect, ATarget.ClipRect,
+            ASource, ASource.BoundsRect,
+            Resampler[rqNormal], dmCustom, Combiner);
+          exit;
+        end;
+      finally
+        Blender.Free;
+      end;
+    end;
+  end;
+
+  StretchTransfer(ATarget, ADestRect, ATarget.ClipRect,
+    ASource, ASource.BoundsRect,
+    Resampler[rqNormal], dmBlend);
 end;
 
 procedure TSvgRenderer.BlendOffscreenSurface(ATarget, ASource: TCustomBitmap32; ABlendMode: TSvgBlendMode; AX: Integer; AY: Integer);
@@ -2478,13 +2564,14 @@ var
   FilterNode: TSvgFilterPrimitiveNode;
   FilterRenderer: TFilterRendererClass;
   PrimRect: TFloatRect;
-  SpecifiedROI, SaveTargetClipRect, DestClip, FilterClipRect: TRect;
+  SpecifiedROI, SaveTargetClipRect, DestClip, FilterClipRect, TargetDestRect: TRect;
   IsAxisAligned: Boolean;
   TotalMat, CompositeMat: TFloatMatrixHelper;
   InvMat: TFloatMatrix;
   S_local, OneOverS_local: Single;
   AffineTransform: TAffineTransformation;
   DestBounds: TFloatRect;
+  FilterScaleFactor: Single;
 begin
   if (AFilterNode = nil) or (ANode = nil) or (ATarget = nil) then
     Exit;
@@ -2495,6 +2582,7 @@ begin
   TotalMat.Matrix := Mult(FTransformation.Matrix, ANode.Transform);
   IsAxisAligned := TotalMat.IsAxisAligned;
   OneOverS_local := 1.0;
+  FilterScaleFactor := 1.0;
 
   FTransformation.Push;
   try
@@ -2789,6 +2877,27 @@ begin
     begin
       if not GR32.IntersectRect(FilterContext.ROI, ATarget.ClipRect) then
         Exit;
+    end;
+
+    // Clamped Resolution Filter Processing
+    // When the required filter surface exceeds MaxFilterDimension (1024), clamp the filter rendering scale
+    // proportionally. Re-scale FTransformation, FilterContext.Scale, FilterContext.ROI, and coordinate
+    // offsets so that SourceGraphic and all intermediate primitive surfaces (feImage, feDisplacementMap, etc.)
+    // are allocated and processed strictly within the budget, preventing OOM and discrete 8-bit quantization aliasing.
+    if (FilterContext.ROI.Width > FMaxFilterDimension) or (FilterContext.ROI.Height > FMaxFilterDimension) then
+    begin
+      FilterScaleFactor := FMaxFilterDimension / Max(FilterContext.ROI.Width, FilterContext.ROI.Height);
+      FilterContext.Scale := FilterContext.Scale * FilterScaleFactor;
+
+      FTransformation.Scale(FilterScaleFactor, FilterScaleFactor);
+
+      // Re-scale FilterContext.ROI to the clamped dimensions
+      FilterContext.ROI := Rect(
+        Round(FilterContext.ROI.Left * FilterScaleFactor),
+        Round(FilterContext.ROI.Top * FilterScaleFactor),
+        Round(FilterContext.ROI.Left * FilterScaleFactor) + Max(2, Round(FilterContext.ROI.Width * FilterScaleFactor)),
+        Round(FilterContext.ROI.Top * FilterScaleFactor) + Max(2, Round(FilterContext.ROI.Height * FilterScaleFactor))
+      );
     end;
 
     // 4. Allocate intermediate filter surfaces constrained to the ROI dimensions in full screen resolution
@@ -3128,9 +3237,24 @@ begin
               Exit;
             ATarget.ClipRect := FilterClipRect;
 
-            BlendOffscreenSurface(ATarget, FilterContext.CurrentSurface.Bitmap, ANode.MixBlendMode,
-              FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left,
-              FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Top);
+            if (FilterScaleFactor < 1.0) then
+            begin
+              // Clamped filter resolution: upscale filtered result smoothly onto ATarget using linear resampling
+              TargetDestRect := Rect(
+                Round((FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left) / FilterScaleFactor),
+                Round((FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Top) / FilterScaleFactor),
+                Round((FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Right) / FilterScaleFactor),
+                Round((FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Bottom) / FilterScaleFactor)
+              );
+
+              StretchOffscreenSurface(ATarget, FilterContext.CurrentSurface.Bitmap, ANode.MixBlendMode,
+                TargetDestRect);
+            end else
+            begin
+              BlendOffscreenSurface(ATarget, FilterContext.CurrentSurface.Bitmap, ANode.MixBlendMode,
+                FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left,
+                FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Top);
+            end;
           end else
           begin
             // Non-axis-aligned filter composition (skew/rotation on element or ancestors):
@@ -3139,6 +3263,8 @@ begin
             CompositeMat.Matrix := IdentityMatrix;
             CompositeMat.Translate(FilterContext.ROI.Left + FilterContext.CurrentSurface.Region.Left,
                                    FilterContext.ROI.Top + FilterContext.CurrentSurface.Region.Top);
+            if (FilterScaleFactor < 1.0) then
+              CompositeMat.Scale(1.0 / FilterScaleFactor, 1.0 / FilterScaleFactor);
             CompositeMat.Scale(OneOverS_local, OneOverS_local);
             CompositeMat := CompositeMat * TotalMat;
 

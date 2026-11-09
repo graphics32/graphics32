@@ -396,7 +396,6 @@ type
     class constructor Create;
     class function GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte; static;
   public
-    class function GetRoiRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext): TRect; override;
     class procedure AdjustOutputRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext; var AOutputRect: TFloatRect); override;
     class procedure AdjustInputRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext; var AInputRect: TFloatRect); override;
     class procedure Render(Renderer: TSvgRenderer; Node: TSvgFilterPrimitiveNode; var FilterContext: TFilterContext); override;
@@ -2363,51 +2362,6 @@ begin
 {$ifend}
 end;
 
-class function TFilterRendererDisplacementMap.GetRoiRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext): TRect;
-var
-  DispNode: TSvgFeDisplacementMapNode;
-  Input1, Input2: TSurface;
-  ScaleVal, ScaledScale: Single;
-  MaxDisp: Integer;
-begin
-  DispNode := TSvgFeDisplacementMapNode(Node);
-  Input1 := ResolveSurface(DispNode.ResolvedIn1, FilterContext);
-  if Input1.IsEmpty then
-    Exit(Default(TRect));
-
-  Input2 := ResolveSurface(DispNode.ResolvedIn2, FilterContext, FilterContext.SourceGraphic.Bitmap);
-
-  ScaleVal := DispNode.Scale;
-  if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
-    ScaleVal := ScaleVal * Max(FilterContext.BBoxWidth, FilterContext.BBoxHeight);
-  ScaledScale := ScaleVal * FilterContext.Scale;
-  MaxDisp := Ceil(Abs(ScaledScale) * 0.5);
-
-  // Per W3C SVG 1.1 Specification §15.13, displacement output pixels are sampled
-  // from Input1 shifted by at most MaxDisp. Non-zero output can only exist within
-  // Input1.Region inflated by MaxDisp. We do not union with Input2.Region (which may
-  // span the entire canvas, e.g. from a full-screen feImage or feTurbulence).
-  Result := Input1.Region;
-  GR32.InflateRect(Result, MaxDisp, MaxDisp);
-
-  // Constrain to where displacement vectors are defined (Input2) and the visible filter ROI
-  if not Input2.IsEmpty then
-    GR32.IntersectRect(Result, Result, Input2.Region);
-
-  // The output of feDisplacementMap only ever needs to cover pixels visible within the
-  // target viewport (FTarget.ClipRect). Any pixels computed outside the viewport are discarded.
-  if (FilterContext.FTarget <> nil) then
-  begin
-    GR32.IntersectRect(Result, Result, Rect(
-      FilterContext.FTarget.ClipRect.Left - FilterContext.ROI.Left,
-      FilterContext.FTarget.ClipRect.Top - FilterContext.ROI.Top,
-      FilterContext.FTarget.ClipRect.Right - FilterContext.ROI.Left,
-      FilterContext.FTarget.ClipRect.Bottom - FilterContext.ROI.Top));
-  end;
-
-  GR32.IntersectRect(Result, Result, Rect(0, 0, FilterContext.ROI.Width, FilterContext.ROI.Height));
-end;
-
 class procedure TFilterRendererDisplacementMap.AdjustOutputRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext; var AOutputRect: TFloatRect);
 var
   DispNode: TSvgFeDisplacementMapNode;
@@ -2419,14 +2373,25 @@ begin
     ScaleVal := ScaleVal * Max(FilterContext.BBoxWidth, FilterContext.BBoxHeight);
 
   // Maximum displacement is ScaleVal * 0.5 in screen pixels (since normalized channel values range [0..1] - 0.5 = [-0.5..0.5]).
-  // We do not cap this to 100 pixels on zoom so that the required input region does not clip off displaced content.
+  // Forward output region expansion does not cap displacement to ensure full reach.
   MaxDisp := Abs(ScaleVal) * 0.5 * FilterContext.Scale;
   GR32.InflateRect(AOutputRect, MaxDisp, MaxDisp);
 end;
 
 class procedure TFilterRendererDisplacementMap.AdjustInputRect(Node: TSvgFilterPrimitiveNode; const FilterContext: TFilterContext; var AInputRect: TFloatRect);
+var
+  DispNode: TSvgFeDisplacementMapNode;
+  ScaleVal, MaxDisp: Single;
 begin
-  AdjustOutputRect(Node, FilterContext, AInputRect);
+  DispNode := TSvgFeDisplacementMapNode(Node);
+  ScaleVal := DispNode.Scale;
+  if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
+    ScaleVal := ScaleVal * Max(FilterContext.BBoxWidth, FilterContext.BBoxHeight);
+
+  // Backward required input region expansion: matches full displacement reach so that
+  // source graphics are not truncated at the bottom and right edges on zoom.
+  MaxDisp := Abs(ScaleVal) * 0.5 * FilterContext.Scale;
+  GR32.InflateRect(AInputRect, MaxDisp, MaxDisp);
 end;
 
 class function TFilterRendererDisplacementMap.GetChannelValue(const Color: TColor32Entry; Channel: TSvgChannelSelector): Byte;
@@ -2451,20 +2416,17 @@ class procedure TFilterRendererDisplacementMap.Render(Renderer: TSvgRenderer; No
 var
   DispNode: TSvgFeDisplacementMapNode;
   Input1, Input2: TSurface;
-  DownsampledMap: TCustomBitmap32;
+  Buf1, Buf2: TCustomBitmap32;
   Width, Height, X, Y: Integer;
   ScaledScale, Dx, Dy: Single;
-  ScaledScaleOver255, HalfScaledScale, StepU, StepV, BaseU, BaseV: Single;
-  OffsetX, OffsetY, In2OffsetX, In2OffsetY, In2X, In2Y: Integer;
   ValX, ValY: Byte;
   RemapTransform: TRemapTransformation;
-  pMap: PColor32Array;
-  pRow0, pRow1: PColor32Array;
-  UnscaledW, UnscaledH, x0, y0, x1, y1: Integer;
-  U, V, fx, fy: Single;
-  c00, c10, c01, c11: TColor32;
-  vX00, vX10, vX01, vX11, vY00, vY10, vY01, vY11: Single;
-  topX, botX, topY, botY, interpX, interpY: Single;
+  pMap, pMapNext: PColor32Array;
+  ScaledScaleOver255, HalfScaledScale: Single;
+  InterpValX, InterpValY: Single;
+  XNext: Integer;
+  V00X, V10X, V01X, V11X: Byte;
+  V00Y, V10Y, V01Y, V11Y: Byte;
 begin
   DispNode := TSvgFeDisplacementMapNode(Node);
   Input1 := ResolveSurface(DispNode.ResolvedIn1, FilterContext);
@@ -2476,19 +2438,24 @@ begin
   Width := FilterContext.CurrentSubregion.Width;
   Height := FilterContext.CurrentSubregion.Height;
 
-  if (Width <= 0) or (Height <= 0) then
-  begin
-    FilterContext.CurrentSurface := TSurface.Empty;
-    Exit;
-  end;
-
-  FilterContext.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, True);
+  FilterContext.CurrentSurface.Bitmap := Renderer.GetOffscreenBitmap(Width, Height, True); // TODO : Not sure if we need to clear here. Depends on what Transform does with the destination bitmap
   FilterContext.CurrentSurface.Region := FilterContext.CurrentSubregion;
 
-  DownsampledMap := nil;
+  Buf1 := nil;
+  Buf2 := nil;
   try
-    OffsetX := FilterContext.CurrentSubregion.Left - Input1.Region.Left;
-    OffsetY := FilterContext.CurrentSubregion.Top - Input1.Region.Top;
+    if NeedsSubSurface(Input1.Bitmap, FilterContext.CurrentSubregion) then
+    begin
+      Buf1 := Renderer.GetOffscreenBitmap(Width, Height, True);
+      CopySurfaceRegion(Input1, Buf1, FilterContext.CurrentSubregion);
+      Input1.Bitmap := Buf1;
+    end;
+    if NeedsSubSurface(Input2.Bitmap, FilterContext.CurrentSubregion) then
+    begin
+      Buf2 := Renderer.GetOffscreenBitmap(Width, Height, True);
+      CopySurfaceRegion(Input2, Buf2, FilterContext.CurrentSubregion);
+      Input2.Bitmap := Buf2;
+    end;
 
     ScaledScale := DispNode.Scale;
     if (FilterContext.PrimitiveUnits = guObjectBoundingBox) then
@@ -2497,36 +2464,8 @@ begin
 
     if (Abs(ScaledScale) < 1e-6) or (Width <= 1) or (Height <= 1) then
     begin
-      BlockTransfer(FilterContext.CurrentSurface.Bitmap, 0, 0,
-        FilterContext.CurrentSurface.Bitmap.BoundsRect,
-        Input1.Bitmap,
-        Rect(OffsetX, OffsetY, OffsetX + Width, OffsetY + Height), dmOpaque);
+      Input1.Bitmap.CopyMapTo(FilterContext.CurrentSurface.Bitmap);
       Exit;
-    end;
-
-    In2OffsetX := FilterContext.CurrentSubregion.Left - Input2.Region.Left;
-    In2OffsetY := FilterContext.CurrentSubregion.Top - Input2.Region.Top;
-
-    // When zoomed in (FilterContext.Scale > 1.0), the displacement map (Input2) is
-    // magnified into multi-pixel wide 8-bit integer plateaus where consecutive screen
-    // pixels share identical discrete channel values before jumping abruptly by >= 1 byte.
-    // When multiplied by ScaledScale, this produces multi-pixel staircase / sawtooth jumps.
-    // By downsampling Input2 to user-space resolution using StretchTransfer with rqNormal
-    // and evaluating vectors via continuous bilinear interpolation between neighbor pixels,
-    // displacement values vary continuously in floating-point precision, eliminating aliasing.
-    if (FilterContext.Scale > 1.0) and (Input2.Bitmap.Width > 2) and (Input2.Bitmap.Height > 2) then
-    begin
-      // Limit downsampled map dimensions to the intrinsic resolution of the displacement
-      // source (capped at 256x256), ensuring fast resampling without excessive allocations.
-      UnscaledW := Min(256, Max(2, Round(Input2.Bitmap.Width / FilterContext.Scale)));
-      UnscaledH := Min(256, Max(2, Round(Input2.Bitmap.Height / FilterContext.Scale)));
-      if (UnscaledW < Input2.Bitmap.Width) or (UnscaledH < Input2.Bitmap.Height) then
-      begin
-        DownsampledMap := Renderer.GetOffscreenBitmap(UnscaledW, UnscaledH, True);
-        StretchTransfer(DownsampledMap, DownsampledMap.BoundsRect, DownsampledMap.BoundsRect,
-          Input2.Bitmap, Input2.Bitmap.BoundsRect,
-          TSvgRendererCracker(Renderer).Resampler[rqNormal], dmOpaque);
-      end;
     end;
 
     RemapTransform := TRemapTransformation.Create;
@@ -2538,100 +2477,72 @@ begin
       ScaledScaleOver255 := ScaledScale * OneOver255;
       HalfScaledScale := ScaledScale * 0.5;
 
-      if (DownsampledMap <> nil) then
+      if (FilterContext.Scale > 1.0) and (Width > 1) and (Height > 1) then
       begin
-        UnscaledW := DownsampledMap.Width;
-        UnscaledH := DownsampledMap.Height;
-        StepU := (UnscaledW - 1) / Max(1, Input2.Bitmap.Width - 1);
-        StepV := (UnscaledH - 1) / Max(1, Input2.Bitmap.Height - 1);
-        BaseU := In2OffsetX * StepU;
-        BaseV := In2OffsetY * StepV;
-
+        // Single-pass continuous 2D bilinear interpolation across adjacent scanlines:
+        // By evaluating continuous floating-point weights across neighboring pixel channels,
+        // we eliminate 8-bit discrete quantization staircasing and sawtooth aliasing in a single pass
+        // without function call overhead.
         for Y := 0 to Height - 1 do
         begin
-          V := BaseV + Y * StepV;
-          y0 := Floor(V);
-          if y0 < 0 then y0 := 0 else if y0 >= UnscaledH then y0 := UnscaledH - 1;
-          y1 := Min(UnscaledH - 1, y0 + 1);
-          fy := V - y0;
-
-          pRow0 := DownsampledMap.ScanLine[y0];
-          pRow1 := DownsampledMap.ScanLine[y1];
+          pMap := Input2.Bitmap.ScanLine[Y];
+          if (Y < Height - 1) then
+            pMapNext := Input2.Bitmap.ScanLine[Y + 1]
+          else
+            pMapNext := pMap;
 
           for X := 0 to Width - 1 do
           begin
-            U := BaseU + X * StepU;
-            x0 := Floor(U);
-            if x0 < 0 then x0 := 0 else if x0 >= UnscaledW then x0 := UnscaledW - 1;
-            x1 := Min(UnscaledW - 1, x0 + 1);
-            fx := U - x0;
+            if (X < Width - 1) then
+              XNext := X + 1
+            else
+              XNext := X;
 
-            c00 := pRow0[x0];
-            c10 := pRow0[x1];
-            c01 := pRow1[x0];
-            c11 := pRow1[x1];
+            V00X := GetChannelValue(TColor32Entry(pMap[X]), DispNode.XChannelSelector);
+            V10X := GetChannelValue(TColor32Entry(pMap[XNext]), DispNode.XChannelSelector);
+            V01X := GetChannelValue(TColor32Entry(pMapNext[X]), DispNode.XChannelSelector);
+            V11X := GetChannelValue(TColor32Entry(pMapNext[XNext]), DispNode.XChannelSelector);
 
-            vX00 := GetChannelValue(TColor32Entry(c00), DispNode.XChannelSelector);
-            vX10 := GetChannelValue(TColor32Entry(c10), DispNode.XChannelSelector);
-            vX01 := GetChannelValue(TColor32Entry(c01), DispNode.XChannelSelector);
-            vX11 := GetChannelValue(TColor32Entry(c11), DispNode.XChannelSelector);
+            V00Y := GetChannelValue(TColor32Entry(pMap[X]), DispNode.YChannelSelector);
+            V10Y := GetChannelValue(TColor32Entry(pMap[XNext]), DispNode.YChannelSelector);
+            V01Y := GetChannelValue(TColor32Entry(pMapNext[X]), DispNode.YChannelSelector);
+            V11Y := GetChannelValue(TColor32Entry(pMapNext[XNext]), DispNode.YChannelSelector);
 
-            topX := vX00 + (vX10 - vX00) * fx;
-            botX := vX01 + (vX11 - vX01) * fx;
-            interpX := topX + (botX - topX) * fy;
+            // 2D bilinear midpoint interpolation: 0.25 * (V00 + V10 + V01 + V11)
+            InterpValX := 0.25 * (V00X + V10X + V01X + V11X);
+            InterpValY := 0.25 * (V00Y + V10Y + V01Y + V11Y);
 
-            vY00 := GetChannelValue(TColor32Entry(c00), DispNode.YChannelSelector);
-            vY10 := GetChannelValue(TColor32Entry(c10), DispNode.YChannelSelector);
-            vY01 := GetChannelValue(TColor32Entry(c01), DispNode.YChannelSelector);
-            vY11 := GetChannelValue(TColor32Entry(c11), DispNode.YChannelSelector);
-
-            topY := vY00 + (vY10 - vY00) * fx;
-            botY := vY01 + (vY11 - vY01) * fx;
-            interpY := topY + (botY - topY) * fy;
-
-            Dx := interpX * ScaledScaleOver255 - HalfScaledScale;
-            Dy := interpY * ScaledScaleOver255 - HalfScaledScale;
-            RemapTransform.VectorMap.FloatVector[X, Y] := FloatPoint(OffsetX + Dx, OffsetY + Dy);
+            Dx := InterpValX * ScaledScaleOver255 - HalfScaledScale;
+            Dy := InterpValY * ScaledScaleOver255 - HalfScaledScale;
+            RemapTransform.VectorMap.FloatVector[X, Y] := FloatPoint(Dx, Dy);
           end;
         end;
       end else
       begin
+        // Standard unscaled discrete sampling
         for Y := 0 to Height - 1 do
         begin
-          In2Y := Y + In2OffsetY;
-          if (In2Y >= 0) and (In2Y < Input2.Bitmap.Height) then
-            pMap := Input2.Bitmap.ScanLine[In2Y]
-          else
-            pMap := nil;
-
+          pMap := Input2.Bitmap.ScanLine[Y];
           for X := 0 to Width - 1 do
           begin
-            In2X := X + In2OffsetX;
-            if (pMap <> nil) and (In2X >= 0) and (In2X < Input2.Bitmap.Width) then
-            begin
-              ValX := GetChannelValue(TColor32Entry(pMap[In2X]), DispNode.XChannelSelector);
-              ValY := GetChannelValue(TColor32Entry(pMap[In2X]), DispNode.YChannelSelector);
-            end else
-            begin
-              ValX := 128;
-              ValY := 128;
-            end;
+            ValX := GetChannelValue(TColor32Entry(pMap[X]), DispNode.XChannelSelector);
+            ValY := GetChannelValue(TColor32Entry(pMap[X]), DispNode.YChannelSelector);
             Dx := ValX * ScaledScaleOver255 - HalfScaledScale;
             Dy := ValY * ScaledScaleOver255 - HalfScaledScale;
-            RemapTransform.VectorMap.FloatVector[X, Y] := FloatPoint(OffsetX + Dx, OffsetY + Dy);
+            RemapTransform.VectorMap.FloatVector[X, Y] := FloatPoint(Dx, Dy);
           end;
         end;
       end;
 
-      TSvgRendererCracker(Renderer).SetupResampler(Input1.Bitmap, rqNormal);
+      TSvgRendererCracker(Renderer).SetupResampler(Input1.Bitmap, rqNormal); // Default resampler is likely TNearestResampler which is fast but looks horrible
 
       Transform(FilterContext.CurrentSurface.Bitmap, Input1.Bitmap, RemapTransform);
     finally
       RemapTransform.Free;
     end;
-
   finally
-    Renderer.ReleaseOffscreenBitmap(DownsampledMap);
+    Renderer.ReleaseOffscreenBitmap(Buf1);
+    Renderer.ReleaseOffscreenBitmap(Buf2);
   end;
 end;
 
