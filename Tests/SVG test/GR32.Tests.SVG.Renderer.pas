@@ -70,6 +70,7 @@ type
     procedure TestFilterWithClipPath;
     procedure TestGroupMaskFilterCombination;
     procedure TestFilterBackgroundImage;
+    procedure TestEnableBackgroundRootZoomPan;
     procedure TestFilterFillAndStrokePaint;
     procedure TestNullAndUnresolvedFilterRendering;
     procedure TestFeColorMatrixRendering;
@@ -3661,6 +3662,77 @@ begin
 
   finally
     bmp.Free;
+  end;
+end;
+
+procedure TTestSvgRenderer.TestEnableBackgroundRootZoomPan;
+var
+  bmp: TBitmap32;
+  docNode: TSvgDocumentNode;
+  renderer: TSvgRenderer;
+  xml: UTF8String;
+  targetRect: TFloatRect;
+begin
+  // Test that style="enable-background:new" on the root document node does not
+  // force FDocumentRoot into a clamped offscreen group buffer during zoom and pan,
+  // ensuring filtered elements using in2="BackgroundImage" are rendered at the correct
+  // scale and align with unfiltered reference elements (per issue with clamped resolution filter processing).
+  xml := '<svg width="200" height="200" style="enable-background:new">' +
+         '  <defs>' +
+         '    <filter id="f_blend">' +
+         '      <feBlend in="SourceGraphic" in2="BackgroundImage" mode="normal"/>' +
+         '    </filter>' +
+         '  </defs>' +
+         '  <rect x="0" y="0" width="200" height="200" fill="white"/>' +
+         '  <!-- Unfiltered red square at (40, 20) -->' +
+         '  <rect x="40" y="20" width="20" height="20" fill="red"/>' +
+         '  <!-- Filtered red square at (40, 60) with identical width and X coordinate -->' +
+         '  <rect x="40" y="60" width="20" height="20" fill="red" filter="url(#f_blend)"/>' +
+         '</svg>';
+
+  docNode := ParseSvgXml(xml);
+  Check(docNode <> nil, 'docNode should not be nil');
+  try
+    renderer := TSvgRenderer.Create;
+    bmp := TBitmap32.Create;
+    try
+      // Render zoomed 2x and panned so the left side is partially outside the target canvas
+      // Target viewport: size 200x200, but document TargetRect is scaled to 400x400 and offset to (-40, -20)
+      bmp.SetSize(200, 200);
+      bmp.Clear(clWhite32);
+
+      targetRect := FloatRect(-40, -20, 360, 380);
+      renderer.RenderDocument(bmp, docNode, targetRect);
+
+      // Under 2x zoom and -40px X translation:
+      // Both squares have user X = 40..60.
+      // Screen X = 40 * 2 - 40 = 40 to 60 * 2 - 40 = 80.
+      // Width on screen must be 40 pixels (from X=40 to X=79).
+      // Screen Y for unfiltered square (user Y=20..40): 20 * 2 - 20 = 20 to 40 * 2 - 20 = 60.
+      // Screen Y for filtered square (user Y=60..80): 60 * 2 - 20 = 100 to 80 * 2 - 20 = 140.
+
+      // 1. Verify unfiltered square at screen (60, 40) is red, and outside is white
+      CheckEquals(clRed32, bmp.Pixel[60, 40], 'Unfiltered square center (60, 40) should be red');
+      CheckEquals(clWhite32, bmp.Pixel[35, 40], 'Outside unfiltered square at X=35 should be white');
+      CheckEquals(clWhite32, bmp.Pixel[85, 40], 'Outside unfiltered square at X=85 should be white');
+
+      // 2. Verify filtered square with enable-background has the EXACT same screen X bounds (40..79):
+      // Center (60, 120) should be red
+      CheckEquals(clRed32, bmp.Pixel[60, 120], 'Filtered square center (60, 120) should be red');
+      // Left inside edge (X=45) should be red
+      CheckEquals(clRed32, bmp.Pixel[45, 120], 'Filtered square left side (45, 120) should be red');
+      // Right inside edge (X=75) should be red
+      CheckEquals(clRed32, bmp.Pixel[75, 120], 'Filtered square right side (75, 120) should be red');
+      // Outside left (X=35) must be white (not shifted/inflated)
+      CheckEquals(clWhite32, bmp.Pixel[35, 120], 'Outside filtered square at X=35 should be white (not shifted/inflated)');
+      // Outside right (X=85) must be white (not shifted/inflated)
+      CheckEquals(clWhite32, bmp.Pixel[85, 120], 'Outside filtered square at X=85 should be white (not shifted/inflated)');
+    finally
+      renderer.Free;
+      bmp.Free;
+    end;
+  finally
+    docNode.Free;
   end;
 end;
 

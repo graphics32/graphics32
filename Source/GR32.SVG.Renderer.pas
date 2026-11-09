@@ -2427,12 +2427,16 @@ begin
     // Offscreen surface required if group has clip-path, opacity < 1, mask, isolation,
     // or enable-background="new" (W3C SVG 1.1 §15.2.1: establishes a new background
     // canvas initialized to transparent black).
+    // Note: For the root document node (FDocumentRoot), ATarget is already the target canvas
+    // establishing the background canvas per W3C SVG 1.1 §15.2.1; isolating FDocumentRoot into
+    // an offscreen buffer causes scale distortion and position shift under zoom/pan with clamped filters
+    // (per unit test TestEnableBackgroundRootZoomPan).
     NeedsOffscreen := (AGroupNode.ResolvedClipPath <> nil) or
                       ((not IsRenderingClipPath) and
                        ((AGroupNode.Opacity < 1.0) or
                         (AGroupNode.ResolvedMask <> nil) or
                         (AGroupNode.Isolation = isoIsolate) or
-                        (AGroupNode.EnableBackground = ebNew)));
+                        ((AGroupNode <> FDocumentRoot) and (AGroupNode.EnableBackground = ebNew))));
 
   if not NeedsOffscreen then
   begin
