@@ -327,6 +327,9 @@ begin
   FRubberbandLayer.Visible := False;
 end;
 
+type
+  TSvgRendererCracker = class(TSvgRenderer);
+
 procedure TFormSVGviewer.Image32PaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
 begin
   case Image32.PaintStages[StageNum].Parameter of
@@ -343,6 +346,8 @@ begin
           StatusBar.Panels[1].Text := Format('Render: %d mS', [FStopWatchLayer.ElapsedMilliseconds]); StatusBar.Update;
  {$if declared(SvgVertexCount)} // Declared in GR32.SVG.Tree if BENCHMARK_FLATTEN is defined
           StatusBar.Panels[3].Text := Format('Vertex count: %.0n', [SvgVertexCount * 1.0]); StatusBar.Update;
+{$else}
+          StatusBar.Panels[3].Text := Format('Pool: %.0n', [TSvgRendererCracker(FLayer.Renderer).BitmapPool.PoolSize * 1.0]); StatusBar.Update;
 {$ifend}
         end;
     end;

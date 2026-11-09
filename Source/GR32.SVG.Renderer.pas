@@ -187,7 +187,7 @@ type
   TSvgRenderer = class(TObject)
   private const
     cMaxFilterDimension = 1024;
-    cBitmapMaxOversize = 64*1024;
+    cBitmapMaxOversize = 512*1024;
     cBitmapPoolMaxSize = 256*1024*1024;
 
   private
@@ -274,6 +274,7 @@ type
 
     property Target: TCustomBitmap32 read FTarget;
     property Resampler[Quality: TResamplerQuality]: TCustomResampler read GetResampler;
+    property BitmapPool: TSvgBitmapPool read FBitmapPool;
   public
     constructor Create; virtual;
     destructor Destroy; override;
