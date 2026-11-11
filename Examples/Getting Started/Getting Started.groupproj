@@ -1,0 +1,96 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{59FA0D39-BC23-4FD1-81F3-849CA63FB510}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="1. Creating and Managing Bitmaps\CreatingAndManagingBitmaps.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="2. Direct Pixel Access\DirectPixelAccess.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="3. Drawing Shapes and Alpha Blending\DrawingShapesAndAlphaBlending.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="4. Vector Graphics and Text with TCanvas32\VectorGraphicsAndTextWithTCanvas32.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="5. Resampling and Bitmap Rotation\ResamplingAndBitmapRotation.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="6. Image Display and Interactive Layers with TImage32\ImageDisplayAndInteractiveLayersWithTImage32.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="CreatingAndManagingBitmaps">
+        <MSBuild Projects="1. Creating and Managing Bitmaps\CreatingAndManagingBitmaps.dproj"/>
+    </Target>
+    <Target Name="CreatingAndManagingBitmaps:Clean">
+        <MSBuild Projects="1. Creating and Managing Bitmaps\CreatingAndManagingBitmaps.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CreatingAndManagingBitmaps:Make">
+        <MSBuild Projects="1. Creating and Managing Bitmaps\CreatingAndManagingBitmaps.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DirectPixelAccess">
+        <MSBuild Projects="2. Direct Pixel Access\DirectPixelAccess.dproj"/>
+    </Target>
+    <Target Name="DirectPixelAccess:Clean">
+        <MSBuild Projects="2. Direct Pixel Access\DirectPixelAccess.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DirectPixelAccess:Make">
+        <MSBuild Projects="2. Direct Pixel Access\DirectPixelAccess.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DrawingShapesAndAlphaBlending">
+        <MSBuild Projects="3. Drawing Shapes and Alpha Blending\DrawingShapesAndAlphaBlending.dproj"/>
+    </Target>
+    <Target Name="DrawingShapesAndAlphaBlending:Clean">
+        <MSBuild Projects="3. Drawing Shapes and Alpha Blending\DrawingShapesAndAlphaBlending.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DrawingShapesAndAlphaBlending:Make">
+        <MSBuild Projects="3. Drawing Shapes and Alpha Blending\DrawingShapesAndAlphaBlending.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="VectorGraphicsAndTextWithTCanvas32">
+        <MSBuild Projects="4. Vector Graphics and Text with TCanvas32\VectorGraphicsAndTextWithTCanvas32.dproj"/>
+    </Target>
+    <Target Name="VectorGraphicsAndTextWithTCanvas32:Clean">
+        <MSBuild Projects="4. Vector Graphics and Text with TCanvas32\VectorGraphicsAndTextWithTCanvas32.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="VectorGraphicsAndTextWithTCanvas32:Make">
+        <MSBuild Projects="4. Vector Graphics and Text with TCanvas32\VectorGraphicsAndTextWithTCanvas32.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ResamplingAndBitmapRotation">
+        <MSBuild Projects="5. Resampling and Bitmap Rotation\ResamplingAndBitmapRotation.dproj"/>
+    </Target>
+    <Target Name="ResamplingAndBitmapRotation:Clean">
+        <MSBuild Projects="5. Resampling and Bitmap Rotation\ResamplingAndBitmapRotation.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ResamplingAndBitmapRotation:Make">
+        <MSBuild Projects="5. Resampling and Bitmap Rotation\ResamplingAndBitmapRotation.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ImageDisplayAndInteractiveLayersWithTImage32">
+        <MSBuild Projects="6. Image Display and Interactive Layers with TImage32\ImageDisplayAndInteractiveLayersWithTImage32.dproj"/>
+    </Target>
+    <Target Name="ImageDisplayAndInteractiveLayersWithTImage32:Clean">
+        <MSBuild Projects="6. Image Display and Interactive Layers with TImage32\ImageDisplayAndInteractiveLayersWithTImage32.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ImageDisplayAndInteractiveLayersWithTImage32:Make">
+        <MSBuild Projects="6. Image Display and Interactive Layers with TImage32\ImageDisplayAndInteractiveLayersWithTImage32.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="CreatingAndManagingBitmaps;DirectPixelAccess;DrawingShapesAndAlphaBlending;VectorGraphicsAndTextWithTCanvas32;ResamplingAndBitmapRotation;ImageDisplayAndInteractiveLayersWithTImage32"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="CreatingAndManagingBitmaps:Clean;DirectPixelAccess:Clean;DrawingShapesAndAlphaBlending:Clean;VectorGraphicsAndTextWithTCanvas32:Clean;ResamplingAndBitmapRotation:Clean;ImageDisplayAndInteractiveLayersWithTImage32:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="CreatingAndManagingBitmaps:Make;DirectPixelAccess:Make;DrawingShapesAndAlphaBlending:Make;VectorGraphicsAndTextWithTCanvas32:Make;ResamplingAndBitmapRotation:Make;ImageDisplayAndInteractiveLayersWithTImage32:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

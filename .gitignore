@@ -26,6 +26,14 @@ Win32
 Win64
 *.~*~
 
+node_modules
+docs/.vitepress/cache
+docs/.vitepress/dist
+docs/.vitepress/.temp
+*.zip
+
+*.log
+
 # Lazarus
 *.lps
 backup/

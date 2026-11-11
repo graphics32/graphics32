@@ -1,0 +1,29 @@
+{
+  "name": "graphics32-docs",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Graphics32 Documentation built with VitePress",
+  "private": true,
+  "scripts": {
+    "sync-screenshots": "node docs/.vitepress/syncScreenshots.js",
+    "docs:dev": "node docs/.vitepress/syncScreenshots.js && vitepress dev docs",
+    "docs:build": "node docs/.vitepress/syncScreenshots.js && vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "@lando/vitepress-theme-default-plus": "^1.2.0",
+    "@nolebase/vitepress-plugin-enhanced-readabilities": "^2.18.2",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-mathjax3": "^4.3.2",
+    "mermaid": "^11.17.0",
+    "vitepress": "^1.5.0",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "^0.9.12"
+  },
+  "dependencies": {
+    "photoswipe": "^5.4.4",
+    "swiper": "^14.2.0"
+  }
+}

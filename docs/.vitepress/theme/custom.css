@@ -1,0 +1,73 @@
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+}
+
+.VPHero .name {
+  background: var(--vp-home-hero-name-background);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: var(--vp-home-hero-name-color);
+  color: transparent;
+}
+
+/* Default top-alignment for documentation tables */
+.vp-doc td,
+.vp-doc th {
+  vertical-align: top;
+}
+
+/* API pages specific styling */
+.api-page-doc {
+  font-size: 15px;
+  --vp-code-color: var(--vp-c-text-1);
+}
+
+.api-page-doc .vp-doc {
+  font-size: 15px;
+}
+
+.api-page-doc :not(pre) > code {
+  color: var(--vp-c-text-1);
+}
+
+.api-page-doc .vp-doc h2 {
+  margin: 20px 0 10px;
+  border-top: none;
+  padding-top: 4px;
+  font-size: 20px;
+  line-height: 20px;
+}
+
+.api-page-doc .vp-doc h2 .header-anchor {
+  top: 0px;
+}
+
+.api-page-doc .vp-doc div[class*="language-"],
+.api-page-doc .vp-doc table,
+.api-page-doc .vp-doc ul,
+.api-page-doc .vp-doc p {
+  margin-top: 10px;
+}
+
+.api-page-doc .vp-doc .api-member-category h2 {
+  border-bottom: none;
+  padding-bottom: 0px;
+}
+
+/* PhotoSwipe discrete overlay & backdrop blur */
+.pswp__bg {
+  background: rgba(15, 15, 20, 0.99) !important;
+/*
+  background: rgba(15, 15, 20, 0.75) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+*/
+}
+
+/* Interactive cursor for document images */
+.vp-doc img,
+.content img,
+main img:not(.hero-slide img) {
+  cursor: pointer;
+}

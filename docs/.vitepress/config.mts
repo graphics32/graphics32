@@ -1,0 +1,416 @@
+import { defineConfig } from '@lando/vitepress-theme-default-plus/config'
+import { withMermaid } from 'vitepress-plugin-mermaid'
+import fs from 'fs'
+import path from 'path'
+import mathjax3 from 'markdown-it-mathjax3'
+import footnote from 'markdown-it-footnote'
+import { generateSidebarForDir } from './sidebar'
+import { buildSymbolMap, apiSymbolLinksPlugin } from './symbolMap'
+import { apiShortcodesPlugin } from './shortcodePlugin'
+import { branchShortcodePlugin } from './branchShortcodePlugin'
+import { seeAlsoPlugin } from './seeAlsoPlugin'
+import { apiFrontmatterPlugin } from './apiFrontmatterPlugin'
+import { execSync } from 'child_process'
+import { generateVirtualMembers, getGitBranch } from './virtualMembers'
+import { generateMemberData } from './generateMemberData'
+import { generateLlmsTxt } from './generateLlmsTxt'
+
+const stackOverflowSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M18.986 21.865v-6.404h2.134V24H1.844v-8.539h2.13v6.404h15.012zM6.111 19.731h10.657v-2.134H6.111v2.134zm.284-5.263l10.42 2.217.447-2.086-10.42-2.217-.447 2.086zm1.393-5.021l9.467 4.908.974-1.89-9.467-4.908-.974 1.89zm3.018-4.703l7.808 7.272 1.442-1.551-7.808-7.272-1.442 1.551zm5.228-3.911l-1.821 1.09 5.485 9.155 1.821-1.09-5.485-9.155z"/>
+</svg>`
+
+// Load Delphi-PRAXIS English & German favicon SVGs
+let delphiPraxisEnSvg = ''
+let delphiPraxisDeSvg = ''
+try {
+  delphiPraxisEnSvg = fs.readFileSync(path.resolve(__dirname, '../public/delphipraxis-en.svg'), 'utf-8')
+  delphiPraxisDeSvg = fs.readFileSync(path.resolve(__dirname, '../public/delphipraxis-de.svg'), 'utf-8')
+} catch (e) {
+  delphiPraxisEnSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>`
+  delphiPraxisDeSvg = delphiPraxisEnSvg
+}
+
+const apiDir = path.resolve(__dirname, '../api')
+const tutorialDir = path.resolve(__dirname, '../guide/tutorial')
+
+const currentBranch = getGitBranch()
+
+let shortCommit = ''
+try {
+  shortCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim()
+} catch (e) {
+  shortCommit = 'unknown'
+}
+
+const buildTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
+
+// Generate virtual member routes for class inheritance before building symbol map and sidebar
+generateVirtualMembers(apiDir)
+generateMemberData(apiDir, path.resolve(__dirname, '../public/memberData.json'))
+generateLlmsTxt(apiDir, path.resolve(__dirname, '../public'))
+
+// Generate full API sidebar data as static JSON asset for dynamic client-side hydration
+const fullApiSidebar = [
+  {
+    text: 'API Reference',
+    items: [
+      { text: 'API Overview', link: '/api/' },
+      ...generateSidebarForDir(apiDir, '', { collapsed: true })
+    ]
+  }
+]
+fs.mkdirSync(path.resolve(__dirname, '../public'), { recursive: true })
+fs.writeFileSync(
+  path.resolve(__dirname, '../public/sidebarData.json'),
+  JSON.stringify(fullApiSidebar, null, 2),
+  'utf-8'
+)
+
+const symbolMap = buildSymbolMap(apiDir)
+
+/*
+** Hard coded sidebars
+*/
+const guideSidebar = [
+  {
+    text: 'Guide',
+    items: [
+      { text: 'Getting Started', link: '/guide/' },
+      { text: 'Tutorials', link: '/guide/tutorial/' },
+      { text: 'Features', link: '/guide/features' },
+      { text: 'Requirements', link: '/guide/requirements' },
+      { text: 'Installation', link: '/guide/installation' }
+    ]
+  }
+]
+
+const conceptItems = [
+  { text: 'Naming Conventions', link: '/guide/naming-conventions' },
+  { text: 'Alpha composition', link: '/guide/alpha-composition' },
+  { text: 'Line Patterns', link: '/guide/line-patterns' },
+  { text: 'Color Gradients', link: '/guide/color-gradients' },
+  { text: 'Sampling and Rasterization', link: '/guide/sampling-and-rasterization' },
+  { text: 'Back-Ends', link: '/guide/back-ends' },
+  { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
+  { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
+  { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
+  { text: 'Vectorial Polygon Rasterizer', link: '/guide/vpr' },
+  {
+    text: 'Using TImage32',
+    items: [
+      { text: 'Overview', link: '/guide/using-timage32/overview' },
+      { text: 'Bitmap Image', link: '/guide/using-timage32/bitmap-image' },
+      { text: 'Using Layers', link: '/guide/using-timage32/using-layers' },
+      { text: 'Paint Stages', link: '/guide/using-timage32/paint-stages' }
+    ]
+  }
+]
+
+const conceptsSidebar = [
+  {
+    text: 'Concepts',
+    items: conceptItems
+  }
+]
+
+// Collect all concept routes to map them to conceptsSidebar
+const conceptRoutes: Record<string, typeof conceptsSidebar> = {}
+function registerConceptRoutes(items: typeof conceptItems) {
+  for (const item of items) {
+    if ('link' in item && item.link) {
+      conceptRoutes[item.link] = conceptsSidebar
+    }
+    if ('items' in item && Array.isArray(item.items)) {
+      registerConceptRoutes(item.items as typeof conceptItems)
+    }
+  }
+}
+registerConceptRoutes(conceptItems)
+
+const aboutSidebar = [
+  {
+    text: 'About',
+    items: [
+      { text: 'Contact', link: '/guide/contact' },
+      { text: 'License', link: '/guide/license' },
+      { text: 'Generator Guide', link: '/how_to_generate_documentation' },
+      { text: 'API Generator Guide', link: '/how_to_generate_API_documentation' }
+    ]
+  }
+]
+
+export default withMermaid(await defineConfig({
+  title: "Graphics32",
+  description: "A high-performance 32-bit graphics library for Delphi and Lazarus/FPC",
+  cleanUrls: true,
+  rewrites: {
+    // Strips category subfolders from public URLs while preserving physical category organization on disk
+    // e.g. api/GR32/Classes/TBitmap32/Methods/Draw.md -> api/GR32/TBitmap32/Draw
+    // e.g. api/GR32_Filters/Routines/Invert.md -> api/GR32_Filters/Invert
+    // Special rule for members named Index/index to prevent route and SSR temp chunk collision with class overview index.md pages
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events|Fields)/:member(Index|index)': 'api/:unit/:class/:memcat-:member',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events|Fields)/:member(Index|index).md': 'api/:unit/:class/:memcat-:member.md',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events|Fields)/:member': 'api/:unit/:class/:member',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:memcat(Constructors|Methods|Properties|Events|Fields)/:member.md': 'api/:unit/:class/:member.md',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:member': 'api/:unit/:class/:member',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/:member.md': 'api/:unit/:class/:member.md',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class/index.md': 'api/:unit/:class/index.md',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:class': 'api/:unit/:class',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:item': 'api/:unit/:item',
+    'api/:unit/:cat(Classes|Types|Routines|Constants|Variables|Interfaces)/:item.md': 'api/:unit/:item.md'
+  },
+  lastUpdated: true,
+  ignoreDeadLinks: true, // Keep this until we get our act together and fix all the dead links
+
+  head: [
+    ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }]
+  ],
+
+  vite: {
+    optimizeDeps: {
+      exclude: [
+        '@nolebase/vitepress-plugin-enhanced-readabilities/client',
+        'vitepress',
+        '@nolebase/ui',
+      ],
+    },
+    ssr: {
+      noExternal: [
+        '@lando/vitepress-theme-default-plus',
+        '@nolebase/vitepress-plugin-enhanced-readabilities',
+        '@nolebase/ui',
+      ]
+    }
+  },
+
+  markdown: {
+    math: true,
+    languageAlias: {
+      pas: 'pascal',
+      delphi: 'pascal'
+    },
+    config: (md) => {
+      md.use(footnote)
+      md.use(mathjax3)
+      apiFrontmatterPlugin(md)
+      seeAlsoPlugin(md)
+      apiSymbolLinksPlugin(md, symbolMap)
+      apiShortcodesPlugin(md)
+      branchShortcodePlugin(md)
+    }
+  },
+
+  themeConfig: {
+    lastUpdated: { /* Work around for "Just now" bug */
+      text: 'Updated at',
+      formatOptions: {
+        dateStyle: 'medium', // or 'short', 'full', 'long'
+        timeStyle: 'short'
+      }
+    },
+    contributors: false,
+
+    buildInfo: {
+      branch: currentBranch,
+      commit: shortCommit,
+      timestamp: buildTimestamp
+    },
+
+    editLink: {
+      pattern: `https://github.com/graphics32/graphics32/edit/${currentBranch}/docs/:path`,
+      text: 'Edit this page on GitHub'
+    },
+
+    nav: [
+      { text: 'Home', link: '/' },
+      {
+        text: 'Guide',
+        items: [
+          { text: 'Getting Started', link: '/guide/' },
+          { text: 'Tutorials', link: '/guide/tutorial/' },
+          { text: 'Features', link: '/guide/features' },
+          { text: 'Requirements', link: '/guide/requirements' },
+          { text: 'Installation', link: '/guide/installation' }
+        ]
+      },
+      {
+        text: 'Concepts',
+        items: conceptItems
+      },
+      { text: 'API Reference', link: '/api/' },
+      { text: 'Examples', link: '/examples/' },
+      {
+        text: 'About',
+        items: [
+          { text: 'Contact', link: '/guide/contact' },
+          { text: 'License', link: '/guide/license' },
+          {
+            text: 'About the documentation',
+            items: [
+              { text: 'Generator Guide', link: '/how_to_generate_documentation' },
+              { text: 'API Generator Guide', link: '/how_to_generate_API_documentation' }
+            ]
+          }
+        ]
+      }
+    ],
+
+    sidebar: {
+/* Dynamic Guide sidebar; Disabled
+      '/guide/': [
+        {
+          text: 'Guide',
+          items: [
+            { text: 'Overview', link: '/guide/' },
+            ...generateSidebarForDir(guideDir, '', { collapsed: false })
+          ]
+        }
+      ],
+*/
+/*
+** Hard coded Guide sidebar
+*/
+
+      '/guide/features': guideSidebar,
+      '/guide/requirements': guideSidebar,
+      '/guide/installation': guideSidebar,
+      '/guide/tutorial/': [
+        {
+          text: 'Tutorials',
+          items: [
+            { text: 'Overview', link: '/guide/tutorial/' },
+            ...generateSidebarForDir(tutorialDir, '', { collapsed: false, sortBy: 'title' })
+          ]
+        }
+      ],
+      ...conceptRoutes,
+      '/guide/contact': aboutSidebar,
+      '/guide/license': aboutSidebar,
+      '/how_to_generate_documentation': aboutSidebar,
+      '/how_to_generate_API_documentation': aboutSidebar,
+      '/guide/': guideSidebar,
+      '/examples/': [
+        {
+          text: 'Examples',
+          items: [
+            { text: 'Example Projects', link: '/examples/' }
+          ]
+        }
+      ],
+      '/api/': [
+        {
+          text: 'API Reference',
+          items: [
+            { text: 'API Overview', link: '/api/' }
+          ]
+        }
+      ]
+    },
+
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/graphics32/graphics32' },
+      {
+        icon: { svg: stackOverflowSvg },
+        link: 'https://stackoverflow.com/questions/tagged/graphics32',
+        ariaLabel: 'Stack Overflow'
+      },
+      {
+        icon: { svg: delphiPraxisEnSvg },
+        link: 'https://en.delphipraxis.net/search/?q=graphics32',
+        ariaLabel: 'Delphi-PRAXIS (English)'
+      },
+      {
+        icon: { svg: delphiPraxisDeSvg },
+        link: 'https://www.delphipraxis.net/dp_search.php?do=process&query=graphics32',
+        ariaLabel: 'Delphi-PRAXIS (German)'
+      }
+    ],
+
+    search: {
+      provider: 'local',
+      options: (() => {
+        const splitSections = async (file: string, html: string) => {
+          let frontmatterTitle: string | null = null
+          try {
+            const content = fs.readFileSync(file, 'utf-8')
+            const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+            if (match) {
+              const yamlStr = match[1]
+              const entityMatch = yamlStr.match(/^entity:\s*([^\r\n]+)/m)
+              const titleMatch = yamlStr.match(/^title:\s*([^\r\n]+)/m)
+              const unitMatch = yamlStr.match(/^unit:\s*([^\r\n]+)/m)
+
+              const rawVal = entityMatch?.[1] || titleMatch?.[1] || unitMatch?.[1]
+              if (rawVal) {
+                frontmatterTitle = rawVal.trim().replace(/^["']|["']$/g, '')
+              }
+            }
+          } catch (e) {
+            // ignore file read error
+          }
+
+          const headingRegex = /<h(\d*).*?>(.*?<a.*? href="#.*?".*?>.*?<\/a>)<\/h\1>/gi
+          const headingContentRegex = /(.*?)<a.*? href="#(.*?)".*?>.*?<\/a>/i
+
+          const clearHtmlTags = (str: string) => str.replace(/<[^>]*>/g, '')
+          const getSearchableText = (content: string) => clearHtmlTags(content).trim()
+
+          const result = html.split(headingRegex)
+          const topContent = result.shift()
+
+          const sections: { anchor: string; titles: string[]; text: string }[] = []
+          let rootTitle = frontmatterTitle
+
+          const topText = getSearchableText(topContent || '')
+          if (topText && rootTitle) {
+            sections.push({
+              anchor: '',
+              titles: [rootTitle],
+              text: topText
+            })
+          }
+
+          let parentTitles: string[] = rootTitle ? [rootTitle] : []
+
+          for (let i = 0; i < result.length; i += 3) {
+            const level = parseInt(result[i]) - 1
+            const heading = result[i + 1]
+            const headingResult = headingContentRegex.exec(heading)
+            const title = clearHtmlTags(headingResult?.[1] ?? '').trim()
+            const anchor = headingResult?.[2] ?? ''
+            const content = result[i + 2]
+            if (!title) continue
+
+            if (level === 0) {
+              rootTitle = title
+              parentTitles = [rootTitle]
+              const text = getSearchableText(content)
+              if (text || rootTitle) {
+                sections.push({ anchor, titles: [rootTitle], text })
+              }
+            } else {
+              let titles = parentTitles.slice(0, level)
+              if (!titles[0] && rootTitle) {
+                titles[0] = rootTitle
+              }
+              titles[level] = title
+              titles = titles.filter(Boolean)
+              const text = getSearchableText(content)
+              sections.push({ anchor, titles, text })
+              parentTitles[level] = title
+            }
+          }
+
+          return sections
+        }
+
+        return {
+          _splitIntoSections: splitSections,
+          miniSearch: {
+            _splitIntoSections: splitSections
+          }
+        }
+      })()
+    }
+  }
+}))

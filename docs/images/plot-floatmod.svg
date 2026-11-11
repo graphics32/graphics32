@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="100%" height="100%">
+  <!-- Grid Lines -->
+  <line x1="50" y1="62.5" x2="550" y2="62.5" stroke="#7f7f7f" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4,4" />
+  <text x="42" y="66.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="end">3.5</text>
+
+  <!-- Axes -->
+  <line x1="50" y1="237.5" x2="550" y2="237.5" stroke="#7f7f7f" stroke-width="1.5" />
+  <line x1="300" y1="30" x2="300" y2="270" stroke="#7f7f7f" stroke-width="1.5" />
+
+  <!-- X Axis Ticks & Labels -->
+  <line x1="50" y1="233.5" x2="50" y2="241.5" stroke="#7f7f7f" stroke-width="1" />
+  <text x="50" y="255.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">-10</text>
+
+  <line x1="125" y1="233.5" x2="125" y2="241.5" stroke="#7f7f7f" stroke-width="1" />
+  <text x="125" y="255.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">-7</text>
+
+  <line x1="212.5" y1="233.5" x2="212.5" y2="241.5" stroke="#7f7f7f" stroke-width="1" />
+  <text x="212.5" y="255.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">-3.5</text>
+
+  <text x="292" y="255.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="end">0</text>
+
+  <line x1="387.5" y1="233.5" x2="387.5" y2="241.5" stroke="#7f7f7f" stroke-width="1" />
+  <text x="387.5" y="255.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">3.5</text>
+
+  <line x1="475" y1="233.5" x2="475" y2="241.5" stroke="#7f7f7f" stroke-width="1" />
+  <text x="475" y="255.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">7</text>
+
+  <line x1="550" y1="233.5" x2="550" y2="241.5" stroke="#7f7f7f" stroke-width="1" />
+  <text x="550" y="255.5" fill="#7f7f7f" font-size="11" font-family="sans-serif" text-anchor="middle">10</text>
+
+  <!-- Title & Axis Labels -->
+  <text x="300" y="20" fill="#7f7f7f" font-size="13" font-weight="bold" font-family="sans-serif" text-anchor="middle">FloatMod(x, 3.5)</text>
+
+  <!-- Fill Under Curve -->
+  <path d="M 50,237.5 L 50,212.5 L 125,62.5 L 125,237.5 Z" fill="#a6d3ff" fill-opacity="0.5" />
+  <path d="M 125,237.5 L 212.5,62.5 L 212.5,237.5 Z" fill="#a6d3ff" fill-opacity="0.5" />
+  <path d="M 212.5,237.5 L 300,62.5 L 300,237.5 Z" fill="#a6d3ff" fill-opacity="0.5" />
+  <path d="M 300,237.5 L 387.5,62.5 L 387.5,237.5 Z" fill="#a6d3ff" fill-opacity="0.5" />
+  <path d="M 387.5,237.5 L 475,62.5 L 475,237.5 Z" fill="#a6d3ff" fill-opacity="0.5" />
+  <path d="M 475,237.5 L 550,87.5 L 550,237.5 Z" fill="#a6d3ff" fill-opacity="0.5" />
+
+  <!-- Curves -->
+  <line x1="50" y1="212.5" x2="125" y2="62.5" stroke="#0066cc" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="125" y1="237.5" x2="212.5" y2="62.5" stroke="#0066cc" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="212.5" y1="237.5" x2="300" y2="62.5" stroke="#0066cc" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="300" y1="237.5" x2="387.5" y2="62.5" stroke="#0066cc" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="387.5" y1="237.5" x2="475" y2="62.5" stroke="#0066cc" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="475" y1="237.5" x2="550" y2="87.5" stroke="#0066cc" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Discontinuity Endpoints -->
+  <circle cx="125" cy="62.5" r="3" fill="#none" stroke="#0066cc" stroke-width="1.5" />
+  <circle cx="212.5" cy="62.5" r="3" fill="#none" stroke="#0066cc" stroke-width="1.5" />
+  <circle cx="300" cy="62.5" r="3" fill="#none" stroke="#0066cc" stroke-width="1.5" />
+  <circle cx="387.5" cy="62.5" r="3" fill="#none" stroke="#0066cc" stroke-width="1.5" />
+  <circle cx="475" cy="62.5" r="3" fill="#none" stroke="#0066cc" stroke-width="1.5" />
+
+  <circle cx="125" cy="237.5" r="3" fill="#0066cc" />
+  <circle cx="212.5" cy="237.5" r="3" fill="#0066cc" />
+  <circle cx="300" cy="237.5" r="3" fill="#0066cc" />
+  <circle cx="387.5" cy="237.5" r="3" fill="#0066cc" />
+  <circle cx="475" cy="237.5" r="3" fill="#0066cc" />
+</svg>

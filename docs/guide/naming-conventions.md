@@ -1,0 +1,39 @@
+# Naming conventions
+
+## General
+Graphics32 follows standard Delphi/FPC identifier naming practices:
+
+| Category | Prefix | Example |
+|---|---|---|
+| **Classes** | `T` | `TBitmap32`, `TImage32`, `TCustomSampler` |
+| **Interfaces** | `I` | `IBackend`, `INotify` |
+| **Types / Records** | `T` | `TColor32`, `TFloatPoint`, `TRect` |
+| **Color Constants** | `cl` | `clWhite32`, `clRed32` |
+| **Global Functions** | PascalCase | `Color32`, `RedComponent`, `Intensity` |
+
+
+## Line and Pixel methods
+
+The [[TBitmap32]] class provides a large number of methods for single pixel access and single pixel width line drawing. While the prefix of these methods indicate _what_ they do (draw a line, access a pixel, etc.), the postfix denotes _how_ they behave. The methods can include one or more of the following postfixes:
+
+| Postfix| Name| Description| Sample (magnified x4)| Examples |
+| --- | --- | --- | --- | --- |
+| (none)| | Methods without modifiers offer maximum performance.<br>Lines and pixels are rendered without anti-aliasing and without color blending.<br>No clipping is performed so coordinates are expected to be within bitmap boundaries. Out of bounds coordinates can cause access violations and memory overwrites.| ![](./images/Line.png)| `Line`<br>`HorzLine`<br>`Pixel`<br>`FillRect` |
+| S | Safe | Clipping is performed when coordinates extend beyond bitmap boundaries.<br>This modifier can be combined with any **one** of the anti-aliasing or transparent modifiers below (T, A, X or F) and also with the stippling (P) modifier.| ![](./images/Line.png) | `LineS`<br>`LineToS`<br>`PixelS` |
+| T | Transparent | Semi-transparent pixels are merged onto the background image (though still without anti-aliasing). | ![](./images/LineT.png)| `LineTS`<br>`LineToTS`<br>`FillRectTS` |
+| A | Anti-aliased | Uses a modified version of [Bresenham’s algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) known as [Wu’s antialiasing](https://en.wikipedia.org/wiki/Xiaolin_Wu%27s_line_algorithm).| ![](./images/LineA.png) | `LineA`<br>`LineAS` |
+| X | Fixed | Coordinates are in fixed point (`TFixed`) format.<br>These methods also employ a more sophisticated anti-aliasing algorithm than that used in the ‘A’ methods above. | ![](./images/LineF.png) | `LineX`<br>`LineXS`<br>`PixelXS` |
+| F | Float | Coordinates are in floating point (`TFloat`) format.<br>These methods employ the same anti-aliasing algorithm used in the ‘X’ methods.| ![](./images/LineF.png) | `LineFS`<br>`PixelFS` |
+| P | Stippling | Lines are drawn using a [stippling pattern](line-patterns).<br>This modifier must be combined with either the ‘X’ or ‘F’ modifiers above. | ![](./images/LineFP.png) | `LineFSP`<br>`LineXSP` |
+| W | Wrapped | Coordinate-wrapped pixel access modulo bitmap dimensions (`Width` and `Height`) |  | `PixelW`<br>`PixelFW` |
+| R | Resampled | Resampled pixel access at floating-point coordinates evaluated using the active resampler. |  | `PixelFR`<br>`PixelXR` |
+
+:::info Note
+For lines, all the methods listed above draw line segments that are **a single pixel wide**.
+To draw thicker (or thinner) lines, see the [[PolylineFS|Polyline]] and [[PolyPolylineFS|PolyPolyline]] functions in the [[GR32_Polygons]] unit. Those functions also produce better anti-aliased blending over fully transparent backgrounds (when compared with X & F modifier methods above).
+![](./images/LineQ.png)
+:::
+
+## Blend functions
+
+<!--@include: include/naming-blend.md-->
