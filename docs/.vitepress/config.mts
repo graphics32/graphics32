@@ -84,34 +84,48 @@ const guideSidebar = [
   }
 ]
 
-const conceptsSidebar = [
+const conceptItems = [
+  { text: 'Naming Conventions', link: '/guide/naming-conventions' },
+  { text: 'Alpha composition', link: '/guide/alpha-composition' },
+  { text: 'Line Patterns', link: '/guide/line-patterns' },
+  { text: 'Color Gradients', link: '/guide/color-gradients' },
+  { text: 'Sampling and Rasterization', link: '/guide/sampling-and-rasterization' },
+  { text: 'Back-Ends', link: '/guide/back-ends' },
+  { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
+  { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
+  { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
+  { text: 'Vectorial Polygon Rasterizer', link: '/guide/vpr' },
   {
-    text: 'Concepts',
+    text: 'Using TImage32',
     items: [
-      { text: 'Drawing and Blending', link: '/guide/drawing-and-blending' },
-      { text: 'Resampling and Transforms', link: '/guide/resampling-and-transforms' },
-      { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
-      { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
-      { text: 'Alpha Composition', link: '/guide/alpha-composition' },
-      { text: 'Line Patterns', link: '/guide/line-patterns' },
-      { text: 'Color Gradients', link: '/guide/color-gradients' },
-      { text: 'Sampling and Rasterization', link: '/guide/sampling-and-rasterization' },
-      { text: 'Back-Ends', link: '/guide/back-ends' },
-      { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
-      { text: 'Vectorial Polygon Rasterizer', link: '/guide/vpr' },
-      { text: 'Naming Conventions', link: '/guide/naming-conventions' },
-      {
-        text: 'Using TImage32',
-        items: [
-          { text: 'Overview', link: '/guide/using-timage32/overview' },
-          { text: 'Bitmap Image', link: '/guide/using-timage32/bitmap-image' },
-          { text: 'Using Layers', link: '/guide/using-timage32/using-layers' },
-          { text: 'Paint Stages', link: '/guide/using-timage32/paint-stages' }
-        ]
-      }
+      { text: 'Overview', link: '/guide/using-timage32/overview' },
+      { text: 'Bitmap Image', link: '/guide/using-timage32/bitmap-image' },
+      { text: 'Using Layers', link: '/guide/using-timage32/using-layers' },
+      { text: 'Paint Stages', link: '/guide/using-timage32/paint-stages' }
     ]
   }
 ]
+
+const conceptsSidebar = [
+  {
+    text: 'Concepts',
+    items: conceptItems
+  }
+]
+
+// Collect all concept routes to map them to conceptsSidebar
+const conceptRoutes: Record<string, typeof conceptsSidebar> = {}
+function registerConceptRoutes(items: typeof conceptItems) {
+  for (const item of items) {
+    if ('link' in item && item.link) {
+      conceptRoutes[item.link] = conceptsSidebar
+    }
+    if ('items' in item && Array.isArray(item.items)) {
+      registerConceptRoutes(item.items as typeof conceptItems)
+    }
+  }
+}
+registerConceptRoutes(conceptItems)
 
 const aboutSidebar = [
   {
@@ -221,27 +235,7 @@ export default withMermaid(await defineConfig({
       },
       {
         text: 'Concepts',
-        items: [
-          { text: 'Alpha composition', link: '/guide/alpha-composition' },
-          { text: 'Line Patterns', link: '/guide/line-patterns' },
-          { text: 'Color Gradients', link: '/guide/color-gradients' },
-          { text: 'Sampling and Rasterization', link: '/guide/sampling-and-rasterization' },
-          { text: 'Back-Ends', link: '/guide/back-ends' },
-          { text: 'Repaint Optimization', link: '/guide/repaint-optimization' },
-          { text: 'Naming Conventions', link: '/guide/naming-conventions' },
-          { text: 'CPU Feature Detection', link: '/guide/cpu-feature-detection' },
-          { text: 'SIMD Optimizations', link: '/guide/simd-optimizations' },
-          { text: 'Vectorial Polygon Rasterizer', link: '/guide/vpr' },
-          {
-            text: 'Using TImage32',
-            items: [
-              { text: 'Overview', link: '/guide/using-timage32/overview' },
-              { text: 'Bitmap Image', link: '/guide/using-timage32/bitmap-image' },
-              { text: 'Using Layers', link: '/guide/using-timage32/using-layers' },
-              { text: 'Paint Stages', link: '/guide/using-timage32/paint-stages' }
-            ]
-          }
-        ]
+        items: conceptItems
       },
       { text: 'API Reference', link: '/api/' },
       { text: 'Examples', link: '/examples/' },
@@ -289,21 +283,7 @@ export default withMermaid(await defineConfig({
           ]
         }
       ],
-      '/guide/bitmaps-and-colors': conceptsSidebar,
-      '/guide/alpha-composition': conceptsSidebar,
-      '/guide/line-patterns': conceptsSidebar,
-      '/guide/color-gradients': conceptsSidebar,
-      '/guide/sampling-and-rasterization': conceptsSidebar,
-      '/guide/back-ends': conceptsSidebar,
-      '/guide/repaint-optimization': conceptsSidebar,
-      '/guide/naming-conventions': conceptsSidebar,
-      '/guide/cpu-feature-detection': conceptsSidebar,
-      '/guide/simd-optimizations': conceptsSidebar,
-      '/guide/vpr': conceptsSidebar,
-      '/guide/using-timage32': conceptsSidebar,
-      '/guide/bitmap-image': conceptsSidebar,
-      '/guide/using-layers': conceptsSidebar,
-      '/guide/paint-stages': conceptsSidebar,
+      ...conceptRoutes,
       '/guide/contact': aboutSidebar,
       '/guide/license': aboutSidebar,
       '/how_to_generate_documentation': aboutSidebar,

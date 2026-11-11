@@ -1,5 +1,9 @@
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export interface SidebarItem {
   text: string
@@ -46,10 +50,13 @@ function getTitleFromFile(filePath: string, fallback: string): string {
 export function generateSidebarForDir(
   rootDir: string,
   relPath: string = '',
-  options: { collapsed?: boolean; sortBy?: 'filename' | 'title' } = {}
+  options: { collapsed?: boolean; sortBy?: 'filename' | 'title'; basePath?: string } = {}
 ): SidebarItem[] {
   const absPath = path.join(rootDir, relPath)
   if (!fs.existsSync(absPath)) return []
+
+  const docsDir = path.resolve(__dirname, '..')
+  const rootPrefix = options.basePath ?? path.relative(docsDir, rootDir).replace(/\\/g, '/')
 
   const entries = fs.readdirSync(absPath, { withFileTypes: true })
 
@@ -97,7 +104,7 @@ export function generateSidebarForDir(
       .join('/')
 
     const folderLink = fs.existsSync(indexMd)
-      ? '/' + path.join(path.basename(rootDir), cleanSubRel, '/').replace(/\\/g, '/').replace(/\/+/g, '/')
+      ? '/' + path.join(rootPrefix, cleanSubRel, '/').replace(/\\/g, '/').replace(/\/+/g, '/')
       : undefined
 
     const entry: SidebarItem = {
@@ -132,7 +139,7 @@ export function generateSidebarForDir(
     const isMemberIndex = nameNoExt.toLowerCase() === 'index' && ['Constructors', 'Methods', 'Properties', 'Events', 'Fields'].includes(parentDirName)
     const targetName = isMemberIndex ? `${parentDirName}-${nameNoExt}` : nameNoExt
 
-    const link = '/' + path.join(path.basename(rootDir), cleanRelPath, targetName).replace(/\\/g, '/').replace(/\/+/g, '/')
+    const link = '/' + path.join(rootPrefix, cleanRelPath, targetName).replace(/\\/g, '/').replace(/\/+/g, '/')
     items.push({ text: title, link })
   }
 
