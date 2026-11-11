@@ -187,6 +187,13 @@ export default withMermaid(await defineConfig({
   },
 
   themeConfig: {
+    lastUpdated: { /* Work around for "Just now" bug */
+      text: 'Updated at',
+      formatOptions: {
+        dateStyle: 'medium', // or 'short', 'full', 'long'
+        timeStyle: 'short'
+      }
+    },
     contributors: false,
 
     buildInfo: {
