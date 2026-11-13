@@ -64,6 +64,7 @@ uses
   GR32_Polygons,
   GR32_VectorUtils,
   GR32_ColorGradients,
+  GR32.Text.Types,
   GR32.SVG.Types,
   GR32.SVG.Tree;
 
@@ -327,6 +328,53 @@ var
     Monospace:          'Courier New'
   );
 
+var
+  DefaultSvgTextLayout: TTextLayout = (
+    (*
+    ** Vertical typeface metrics
+    *)
+    VerticalMetrics:            vmTypographic;
+
+    (*
+    ** Vertical line spacing
+    *)
+    InterLineFactor:            1.0;
+    InterParagraphFactor:       1.5;
+
+    (*
+    ** Alignment
+    *)
+    AlignmentHorizontal:        TextAlignHorLeft;
+    AlignmentVertical:          TextAlignVerTop;
+
+    (*
+    ** Horizontal justification
+    *)
+    AlignmentHorizontalLastLine: TextAlignHorLastStart;
+
+    MinInterWordSpaceFactor:    0.8;
+    MaxInterWordSpaceFactor:    2.0;
+    MaxInterCharSpaceFactor:    0.2;
+
+
+    (*
+    ** Misc
+    *)
+    Kerning:                    False;
+    WordWrap:                   False;
+    SingleLine:                 True;
+    LineBreakIsParagraph:       False;
+    DoubleLineBreakIsParagraph: False;
+    RemoveLeadingSpace:         False;
+    TrimSideBearings:           False;
+
+    (*
+    ** Clipping
+    *)
+    ClipLayout:                 True;
+    ClipRaster:                 True;
+  );
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -344,7 +392,6 @@ uses
   GR32_Paths,
   GR32_Resamplers,
   GR32_Filters,
-  GR32.Text.Types,
   GR32.Blur,
   GR32.Transpose,
   GR32.Blend.Modes,
@@ -3976,11 +4023,10 @@ begin
       Canvas.Font.Height := -Max(1, FontInfo.Size);
       Canvas.Font.Style := FontInfo.Style;
 
-      TextLayout := DefaultTextLayout;
-      TextLayout.ClipLayout := True;
+      TextLayout := DefaultSvgTextLayout;
       TextLayout.WordWrap := True;
       TextLayout.SingleLine := False;
-      TextLayout.RemoveLeadingSpace := True;
+      TextLayout.TrimSideBearings := True;
 
       case ATextAreaNode.TextAlign of
         taHorLeft:
@@ -4110,8 +4156,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           Canvas.Font.Height := -Max(1, FontInfo.Size);
           Canvas.Font.Style := FontInfo.Style;
 
-          TextLayout := DefaultTextLayout;
-          TextLayout.ClipLayout := False;
+          TextLayout := DefaultSvgTextLayout;
           TextLayout.AlignmentHorizontal := TextAlignHorLeft;
           TextLayout.AlignmentVertical := TextAlignVerTop;
 
@@ -4222,8 +4267,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         Canvas.Font.Height := -Max(1, FontInfo.Size);
         Canvas.Font.Style := FontInfo.Style;
 
-        TextLayout := DefaultTextLayout;
-        TextLayout.ClipLayout := False;
+        TextLayout := DefaultSvgTextLayout;
         TextLayout.AlignmentHorizontal := TextAlignHorLeft;
         TextLayout.AlignmentVertical := TextAlignVerTop;
 
@@ -4484,11 +4528,9 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         Canvas.Font.Height := -Max(1, FontInfo.Size);
         Canvas.Font.Style := FontInfo.Style;
 
-        TextLayout := DefaultTextLayout;
-        TextLayout.ClipLayout := False;
+        TextLayout := DefaultSvgTextLayout;
         TextLayout.AlignmentHorizontal := TextAlignHorLeft;
         TextLayout.AlignmentVertical := TextAlignVerTop;
-        TextLayout.RemoveLeadingSpace := True;
 
         if Canvas.GetFontFaceMetrics(TextLayout, FontFaceMetrics) then
         begin
