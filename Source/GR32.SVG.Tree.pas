@@ -7317,7 +7317,12 @@ end;
 procedure TSvgDocumentNode.NodeAdded(ANode: TSvgNode);
 begin
   if (ANode.ID <> '') then
+{$if (CompilerVersion > 32.0)}
     FNodes.TryAdd(TValuePUtf8Char.FromString(ANode.ID), ANode); // Ignore duplicate; Do not add to dictionary
+{$else}
+    // Delphi 10.2 does have the TryAdd method but thinks it doesn't
+    FNodes.AddOrSetValue(TValuePUtf8Char.FromString(ANode.ID), ANode);
+{$ifend}
   inherited NodeAdded(ANode);
 end;
 
@@ -7827,8 +7832,8 @@ begin
   begin
     Result := FCachedPathData;
 {$if defined(BENCHMARK_FLATTEN)}
-    for var Polygon in Result do
-      Inc(SvgVertexCount, Length(Polygon));
+    for Points in Result do
+      Inc(SvgVertexCount, Length(Points));
 {$ifend}
     Exit;
   end;
@@ -8036,8 +8041,8 @@ begin
   FCachedPathData := Result;
 
 {$if defined(BENCHMARK_FLATTEN)}
-  for var Polygon in Result do
-    Inc(SvgVertexCount, Length(Polygon));
+  for Points in Result do
+    Inc(SvgVertexCount, Length(Points));
 {$ifend}
 end;
 

@@ -1279,13 +1279,21 @@ begin
             // Note that this might fail, even though there is available memory,
             // due to memory fragmentation.
             // We don't worry about performance here. We just try to survive.
+{$if (CompilerVersion >= 36.0)}
             if (FPool.IsEmpty) then
+{$else}
+            if (FPool.Count = 0) then
+{$ifend}
               raise;
             // Delete the last (i.e. largest) item
             PurgeFromPool(FPool.Count-1);
             // And delete a few items from the start (i.e. the smallest)
             i := 16;
+{$if (CompilerVersion >= 36.0)}
             while (not FPool.IsEmpty) and (i > 0) do
+{$else}
+            while (FPool.Count > 0) and (i > 0) do
+{$ifend}
             begin
               PurgeFromPool(0);
               Dec(i);
@@ -1302,7 +1310,11 @@ begin
   end else
   begin
 {$ifndef FPC}
+{$if (CompilerVersion >= 33.0)} // Delphi 10.3?
     Result := FPool.ExtractAt(CandidateIdx);
+{$else} // Delphi 10.2 doesn't have ExtractAt
+    Result := FPool.Extract(FPool[CandidateIdx]);
+{$ifend}
 {$else LetsMimicTheGrownupsButFail}
     Result := FPool.ExtractIndex(CandidateIdx);
 {$endif}
