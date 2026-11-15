@@ -34,6 +34,8 @@ interface
 
 {$include GR32.inc}
 
+{-$define SVG32_CULL_SHAPES} // Replaces out-of-viewport beziers with straight line segments. Needs work
+
 uses
   SysUtils, Classes, Math,
   GR32,
@@ -102,7 +104,7 @@ type
     procedure EllipticalArcRelative(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); override;
     procedure EndPath(Close: Boolean = False); override;
 
-    function Flatten(ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+    function Flatten(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
 
     property Commands: TSvgPathCommandArray read FCommands;
     property Count: Integer read FCount;
@@ -946,7 +948,7 @@ begin
   EndCommand;
 end;
 
-function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
 
   procedure ReplayCommands(Path: TCustomPath);
   var
@@ -954,6 +956,9 @@ function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArra
     ArcProps: TTransformedArcProps;
     ScaleX, ScaleY: Single;
     CurrPt, P, C1, C2, P1: TFloatPoint;
+{$if defined(SVG32_CULL_SHAPES)}
+    r: TFloatRect;
+{$ifend}
   const
     MinCurveSpan: Single = 0.5; // Minimum span below which we convert a curve to a straight line
   begin
@@ -979,14 +984,25 @@ function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArra
             C1 := ATransformation.Transform(FCommands[i].CurveTo.C1);
             C2 := ATransformation.Transform(FCommands[i].CurveTo.C2);
             P  := ATransformation.Transform(FCommands[i].CurveTo.P);
-
             // If the entire cubic curve bounding box in world space is smaller than 0.5 px,
             // its curvature cannot be resolved by the rasterizer; emit a straight LineTo:
-            if (Max(Abs(P.X - CurrPt.X), Max(Abs(C1.X - CurrPt.X), Abs(C2.X - CurrPt.X))) < MinCurveSpan) and
-               (Max(Abs(P.Y - CurrPt.Y), Max(Abs(C1.Y - CurrPt.Y), Abs(C2.Y - CurrPt.Y))) < MinCurveSpan) then
+            if ((Max(Abs(P.X - CurrPt.X), Max(Abs(C1.X - CurrPt.X), Abs(C2.X - CurrPt.X))) < MinCurveSpan) and
+                (Max(Abs(P.Y - CurrPt.Y), Max(Abs(C1.Y - CurrPt.Y), Abs(C2.Y - CurrPt.Y))) < MinCurveSpan)) then
               Path.LineTo(P)
             else
+{$if defined(SVG32_CULL_SHAPES)}
+            begin
+              r.TopLeft := Path.CurrentPoint;
+              r.BottomRight := P;
+              r.NormalizeRect;
+              if (not AViewport.IntersectsWith(r)) then
+                Path.LineTo(P)
+              else
+                Path.CurveTo(C1, C2, P);
+            end;
+{$else}
               Path.CurveTo(C1, C2, P);
+{$ifend}
 
             CurrPt := P;
           end;
@@ -1001,7 +1017,19 @@ function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArra
                (Max(Abs(P.Y - CurrPt.Y), Abs(P1.Y - CurrPt.Y)) < MinCurveSpan) then
               Path.LineTo(P)
             else
+{$if defined(SVG32_CULL_SHAPES)}
+            begin
+              r.TopLeft := Path.CurrentPoint;
+              r.BottomRight := P;
+              r.NormalizeRect;
+              if (not AViewport.IntersectsWith(r)) then
+                Path.LineTo(P)
+              else
+                Path.ConicTo(P1, P);
+            end;
+{$else}
               Path.ConicTo(P1, P);
+{$ifend}
 
             CurrPt := P;
           end;
@@ -1013,6 +1041,14 @@ function TSvgPathCommands.Flatten(ATransformation: TAffineTransformation): TArra
             ScaleX := TFloatMatrixHelper(ATransformation.Matrix).GetScaleX;
             ScaleY := TFloatMatrixHelper(ATransformation.Matrix).GetScaleY;
 
+{$if defined(SVG32_CULL_SHAPES)}
+            r.TopLeft := Path.CurrentPoint;
+            r.BottomRight := P;
+            r.NormalizeRect;
+            if (not AViewport.IntersectsWith(r)) then
+              Path.LineTo(P)
+            else
+{$ifend}
             // If the matrix has skew/rotation, OR if non-uniform scaling is applied to a rotated ellipse,
             // the ellipse's principal axes and angle change, requiring 2D conjugate diameter decomposition.
             if (not TFloatMatrixHelper(ATransformation.Matrix).IsAxisAligned) or

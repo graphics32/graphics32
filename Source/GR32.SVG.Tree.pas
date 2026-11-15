@@ -7851,7 +7851,7 @@ begin
   case FProperties.Kind of
     skPath:
       begin
-        Result := FPathCommands.Flatten(ATransformation);
+        Result := FPathCommands.Flatten(AViewport, ATransformation);
         IsClosed := FPathCommands.Closed;
       end;
 
