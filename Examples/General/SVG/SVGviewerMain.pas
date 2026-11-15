@@ -46,7 +46,7 @@ uses
 {$ENDIF}
   Messages,
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls,
-  Buttons,
+  Buttons, System.Actions, Vcl.ActnList,
   ShellCtrls,
 {$IFNDEF FPC}
   FileCtrl, // Delphi will add it since the controls are on the form.
@@ -127,20 +127,27 @@ type
     SpeedButtonBackground: TSpeedButton;
     SpeedButtonRepaint: TSpeedButton;
     SpeedButtonExternal: TSpeedButton;
+    ActionList: TActionList;
+    ActionTheme: TAction;
+    ActionBackground: TAction;
+    ActionReload: TAction;
+    ActionAllowExternal: TAction;
+    ActionSave: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MemoSourceChange(Sender: TObject);
-    procedure ButtonSaveClick(Sender: TObject);
     procedure SplitterMemoCanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
     procedure MemoSourceKeyPress(Sender: TObject; var Key: Char);
     procedure FormShow(Sender: TObject);
-    procedure SpeedButtonThemeClick(Sender: TObject);
-    procedure SpeedButtonBackgroundClick(Sender: TObject);
-    procedure SpeedButtonRepaintClick(Sender: TObject);
-    procedure SpeedButtonExternalClick(Sender: TObject);
     procedure Image32PaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
     procedure Image32MouseEnter(Sender: TObject);
     procedure Image32MouseLeave(Sender: TObject);
+    procedure ActionThemeExecute(Sender: TObject);
+    procedure ActionBackgroundExecute(Sender: TObject);
+    procedure ActionReloadExecute(Sender: TObject);
+    procedure ActionAllowExternalExecute(Sender: TObject);
+    procedure ActionSaveExecute(Sender: TObject);
+    procedure ActionBackgroundUpdate(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
     FLockUpdate: integer;
@@ -236,6 +243,7 @@ begin
   FLayer.Scaled := True;
   FLayer.MouseEvents := True;
   FLayer.Renderer.OnResolveExternalFile := ResolveExternalFileHandler;
+  FLayer.Renderer.AllowExternalImages := ActionAllowExternal.Checked;
 
   FRubberbandLayer := TRubberbandLayer.Create(Image32.Layers);
   FRubberbandLayer.ChildLayer := FLayer;
@@ -280,9 +288,9 @@ begin
 {$ENDIF}
   FileListBox.OnSelectItem := ShellListViewOnSelected;
 
-{$IFNDEF FPC}
+{$if (not defined(FPC)) and (CompilerVersion >= 37.0)}
   SplitterMemo.OnBeforeResize := SplitterMemoBeforeResize;
-{$ENDIF}
+{$ifend}
 
   PageControlSVG.TabIndex := 0;
   ColorTheme := ctNone;
@@ -352,60 +360,6 @@ begin
         end;
     end;
   end;
-end;
-
-procedure TFormSVGviewer.ButtonSaveClick(Sender: TObject);
-var
-  Filename: string;
-  Bitmap: TBitmap32;
-  Renderer: TSvgRenderer;
-  NaturalWidth, NaturalHeight: Single;
-begin
-  if (FFilename = '') then
-    exit;
-  Filename := TPath.ChangeExtension(FFilename, '.png');
-
-  Bitmap := TBitmap32.Create;
-  try
-    // Convert width and height presentation attributes to pixels
-    NaturalWidth := FDocNode.Width.ToPixels(600, Self.Monitor.PixelsPerInch);
-    NaturalHeight := FDocNode.Height.ToPixels(800, Self.Monitor.PixelsPerInch);
-
-    // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
-    if (NaturalWidth <= 0) then
-    begin
-      if FDocNode.ViewBox.IsValid then
-        NaturalWidth := FDocNode.ViewBox.Width
-      else
-        NaturalWidth := 600;
-    end;
-
-    if (NaturalHeight <= 0) then
-    begin
-      if FDocNode.ViewBox.IsValid then
-        NaturalHeight := FDocNode.ViewBox.Height
-      else
-        NaturalHeight := 800;
-    end;
-
-    Bitmap.SetSize(Round(NaturalWidth), Round(NaturalHeight));
-
-    Renderer := TSvgRenderer.Create;
-    try
-      Renderer.OnResolveExternalFile := ResolveExternalFileHandler;
-      ApplyColorTheme(Renderer);
-      Renderer.AllowExternalImages := FLayer.Renderer.AllowExternalImages;
-
-      Renderer.RenderDocument(Bitmap, FDocNode);
-    finally
-      Renderer.Free;
-    end;
-
-    Bitmap.SaveToFile(Filename);
-  finally
-    Bitmap.Free;
-  end;
-  StatusBar.Panels[4].Text := 'Saved to: '+Filename;
 end;
 
 procedure TFormSVGviewer.LoadAndRenderSvg(const AFileName: string);
@@ -734,7 +688,11 @@ var
   FileStream: TFileStream;
 begin
   DocumentFolder := TPath.GetDirectoryName(FFilename);
+{$if (CompilerVersion > 32.0)}
   ExternalFilename := TPath.Combine(DocumentFolder, Filename, False);
+{$else}
+  ExternalFilename := DocumentFolder + Filename; // TPath.Combine will raise exception if file doesn't exist
+{$ifend}
 
   if (not TFile.Exists(ExternalFilename)) then
     exit;
@@ -745,7 +703,7 @@ begin
   begin
     FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      Stream.CopyFrom(FileStream);
+      Stream.CopyFrom(FileStream, FileStream.Size);
     finally
       FileStream.Free;
     end;
@@ -763,6 +721,101 @@ begin
   Image32.Background.FillStyle := bfsCheckerboard;
   Image32.Background.CheckerboardStyle := Value;
   Image32.ParentColor := True;
+end;
+
+procedure TFormSVGviewer.ActionAllowExternalExecute(Sender: TObject);
+begin
+  TAction(Sender).Checked := not TAction(Sender).Checked;
+  FLayer.Renderer.AllowExternalImages := TAction(Sender).Checked;
+  ActionReload.Execute;
+end;
+
+procedure TFormSVGviewer.ActionBackgroundExecute(Sender: TObject);
+const
+  Styles: array[0..3] of TBackgroundCheckerboardStyle = (bcsNone, bcsLight, bcsMedium, bcsDark);
+begin
+  TAction(Sender).Tag := (TAction(Sender).Tag + 1) mod Length(Styles);
+  Background := Styles[TAction(Sender).Tag];
+end;
+
+procedure TFormSVGviewer.ActionBackgroundUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (FColorTheme = ctNone);
+end;
+
+procedure TFormSVGviewer.ActionReloadExecute(Sender: TObject);
+begin
+  MemoSourceChange(MemoSource);
+end;
+
+procedure TFormSVGviewer.ActionSaveExecute(Sender: TObject);
+var
+  Filename: string;
+  Bitmap: TBitmap32;
+  Renderer: TSvgRenderer;
+  NaturalWidth, NaturalHeight: Single;
+begin
+  if (FFilename = '') then
+    exit;
+  Filename := TPath.ChangeExtension(FFilename, '.png');
+
+  if (not PromptForFileName(Filename)) then
+    exit;
+
+  Bitmap := TBitmap32.Create;
+  try
+    // Convert width and height presentation attributes to pixels
+    NaturalWidth := FDocNode.Width.ToPixels(600, Self.Monitor.PixelsPerInch);
+    NaturalHeight := FDocNode.Height.ToPixels(800, Self.Monitor.PixelsPerInch);
+
+    // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
+    if (NaturalWidth <= 0) then
+    begin
+      if FDocNode.ViewBox.IsValid then
+        NaturalWidth := FDocNode.ViewBox.Width
+      else
+        NaturalWidth := 600;
+    end;
+
+    if (NaturalHeight <= 0) then
+    begin
+      if FDocNode.ViewBox.IsValid then
+        NaturalHeight := FDocNode.ViewBox.Height
+      else
+        NaturalHeight := 800;
+    end;
+
+    Bitmap.SetSize(Round(NaturalWidth), Round(NaturalHeight));
+
+    Renderer := TSvgRenderer.Create;
+    try
+      Renderer.OnResolveExternalFile := ResolveExternalFileHandler;
+      ApplyColorTheme(Renderer);
+      Renderer.AllowExternalImages := FLayer.Renderer.AllowExternalImages;
+
+      Renderer.RenderDocument(Bitmap, FDocNode);
+    finally
+      Renderer.Free;
+    end;
+
+    Bitmap.SaveToFile(Filename);
+  finally
+    Bitmap.Free;
+  end;
+  StatusBar.Panels[4].Text := 'Saved to: '+Filename;
+end;
+
+procedure TFormSVGviewer.ActionThemeExecute(Sender: TObject);
+begin
+  TAction(Sender).ImageIndex := (TAction(Sender).ImageIndex + 1) mod (Ord(High(FColorTheme)) + 1);
+{$if (CompilerVersion > 32.0)}
+  // TSpeedButton.Action.ImageIndex -> TSpeedButton.ImageIndex sync is broken internally
+  SpeedButtonTheme.ImageIndex := TAction(Sender).ImageIndex;
+{$else}
+  SpeedButtonTheme.Glyph.Assign(nil);
+  ImageList.GetBitmap(TAction(Sender).ImageIndex, SpeedButtonTheme.Glyph);
+{$ifend}
+  ColorTheme := TSvgColorTheme(TAction(Sender).ImageIndex);
 end;
 
 procedure TFormSVGviewer.ApplyColorTheme(Renderer: TSvgRenderer);
@@ -796,7 +849,7 @@ procedure TFormSVGviewer.SetColorTheme(const Value: TSvgColorTheme);
 begin
   FColorTheme := Value;
 
-  SpeedButtonTheme.Hint := Format('Color theme: %s', [sColorThemes[FColorTheme]]);
+  ActionTheme.Hint := Format('Color theme: %s', [sColorThemes[FColorTheme]]);
 
   ApplyColorTheme(FLayer.Renderer);
 
@@ -808,7 +861,6 @@ begin
         Image32.Color := $E1FFD7;
         Image32.Background.CheckerboardStyle := bcsNone;
         Image32.Background.FillStyle := bfsColor;
-        SpeedButtonBackground.Enabled := False;
       end;
 
     ctDark:
@@ -818,38 +870,12 @@ begin
         Image32.Color := $6A2B00;
         Image32.Background.CheckersStyle := bcsNone;
         Image32.Background.FillStyle := bfsColor;
-        SpeedButtonBackground.Enabled := False;
       end;
   else
     SetBackground(bcsLight);
-    SpeedButtonBackground.Enabled := True;
   end;
 
   FLayer.Update;
-end;
-
-procedure TFormSVGviewer.SpeedButtonBackgroundClick(Sender: TObject);
-const
-  Styles: array[0..3] of TBackgroundCheckerboardStyle = (bcsNone, bcsLight, bcsMedium, bcsDark);
-begin
-  TSpeedButton(Sender).Tag := (TSpeedButton(Sender).Tag + 1) mod 4;
-  Background := Styles[TSpeedButton(Sender).Tag];
-end;
-
-procedure TFormSVGviewer.SpeedButtonExternalClick(Sender: TObject);
-begin
-  FLayer.Renderer.AllowExternalImages := TSpeedButton(Sender).Down;
-end;
-
-procedure TFormSVGviewer.SpeedButtonRepaintClick(Sender: TObject);
-begin
-  MemoSourceChange(MemoSource);
-end;
-
-procedure TFormSVGviewer.SpeedButtonThemeClick(Sender: TObject);
-begin
-  TSpeedButton(Sender).ImageIndex := (TSpeedButton(Sender).ImageIndex + 1) mod (Ord(High(FColorTheme)) + 1);
-  ColorTheme := TSvgColorTheme(TSpeedButton(Sender).ImageIndex);
 end;
 
 procedure TFormSVGviewer.SplitterClicked(Sender: TObject);

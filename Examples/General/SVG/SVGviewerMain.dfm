@@ -14,6 +14,7 @@ object FormSVGviewer: TFormSVGviewer
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
+  PixelsPerInch = 96
   TextHeight = 13
   object SplitterMain: TSplitter
     Left = 250
@@ -78,58 +79,47 @@ object FormSVGviewer: TFormSVGviewer
         Top = 4
         Width = 29
         Height = 29
+        Action = ActionTheme
         AllowAllUp = True
-        ImageIndex = 0
-        Images = ImageList
         Flat = True
-        OnClick = SpeedButtonThemeClick
       end
       object SpeedButtonBackground: TSpeedButton
         Left = 33
         Top = 4
         Width = 29
         Height = 29
-        Hint = 'Background'
+        Action = ActionBackground
         AllowAllUp = True
-        ImageIndex = 3
-        Images = ImageList
         Flat = True
-        OnClick = SpeedButtonBackgroundClick
       end
       object SpeedButtonRepaint: TSpeedButton
         Left = 62
         Top = 4
         Width = 29
         Height = 29
-        Hint = 'Reload and render'
+        Action = ActionReload
         AllowAllUp = True
-        ImageIndex = 4
-        Images = ImageList
         Flat = True
-        OnClick = SpeedButtonRepaintClick
       end
       object SpeedButtonExternal: TSpeedButton
         Left = 91
         Top = 4
         Width = 29
         Height = 29
-        Hint = 'Allow external images'
+        Action = ActionAllowExternal
         AllowAllUp = True
         GroupIndex = 1
-        ImageIndex = 5
-        Images = ImageList
+        Down = True
         Flat = True
-        OnClick = SpeedButtonExternalClick
       end
       object ButtonSave: TButton
         Left = 165
         Top = 6
         Width = 75
         Height = 25
+        Action = ActionSave
         Anchors = [akTop, akRight]
-        Caption = 'Save as PNG'
         TabOrder = 0
-        OnClick = ButtonSaveClick
       end
     end
   end
@@ -292,7 +282,7 @@ object FormSVGviewer: TFormSVGviewer
     Left = 72
     Top = 416
     Bitmap = {
-      494C010107000800040018001800FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C010107000800080018001800FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000600000003000000001002000000000000048
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -892,5 +882,37 @@ object FormSVGviewer: TFormSVGviewer
       FC003FFFE7FFFF07FFE00007FF00FFFFE7FFFFFFFFFFFFFFFFFFFFFFE7FFFFFF
       FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000000
       000000000000}
+  end
+  object ActionList: TActionList
+    Images = ImageList
+    Left = 72
+    Top = 356
+    object ActionTheme: TAction
+      Hint = 'Color theme'
+      ImageIndex = 0
+      OnExecute = ActionThemeExecute
+    end
+    object ActionBackground: TAction
+      Hint = 'Background'
+      ImageIndex = 3
+      OnExecute = ActionBackgroundExecute
+      OnUpdate = ActionBackgroundUpdate
+    end
+    object ActionReload: TAction
+      Hint = 'Reload and render'
+      ImageIndex = 4
+      OnExecute = ActionReloadExecute
+    end
+    object ActionAllowExternal: TAction
+      Checked = True
+      GroupIndex = 1
+      Hint = 'Allow external images'
+      ImageIndex = 5
+      OnExecute = ActionAllowExternalExecute
+    end
+    object ActionSave: TAction
+      Caption = 'Save as PNG'
+      OnExecute = ActionSaveExecute
+    end
   end
 end
