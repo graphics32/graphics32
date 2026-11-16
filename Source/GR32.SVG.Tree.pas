@@ -10713,6 +10713,7 @@ begin
     Exit;
   end;
 
+  // TODO : Add xpoKeepWhiteSpace when we implement proper handling of white-space
   Parser.Init(AText.Text, AText.Len, [xpoNoException, xpoStripNamespacePrefix]);
 
   cssStyleSheet := TSvgCssStyleSheet.Create;
