@@ -360,7 +360,7 @@ var
     (*
     ** Misc
     *)
-    Kerning:                    False;
+    Kerning:                    True; // Kerning is enabled by default in svg
     WordWrap:                   False;
     SingleLine:                 True;
     LineBreakIsParagraph:       False;
@@ -3810,9 +3810,11 @@ begin
 
       9:
         case Token.Text^ of
+(* "Noto Sans" is not a virtual font name; It's an actual font.
           'n', 'N':
             if Token.CompareText('noto sans') then
               AFontInfo.FontFamily := SvgSystemFonts.SansSerif;
+*)
 
           'm', 'M':
             if Token.CompareText('monospace') then
@@ -4557,6 +4559,8 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
           DefaultAdvance := FontSizePx * 0.5;
         end;
 
+        // TODO : We need to process the text as a string, instead of individual
+        // characters, if we are to support kerning.
         Canvas.GetGlyphMetrics(Text, GlyphMetrics);
 
         LetterSpacing := ANode.GetLetterSpacingPx(FViewportRect.Width);
