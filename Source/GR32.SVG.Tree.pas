@@ -556,6 +556,16 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSvgGenericNode
+//
+//------------------------------------------------------------------------------
+// Placeholder for unknown node types.
+//------------------------------------------------------------------------------
+  TSvgGenericNode = class sealed(TSvgNode);
+
+
+//------------------------------------------------------------------------------
+//
 //      TSvgCustomGroupNode
 //
 //------------------------------------------------------------------------------
@@ -10507,7 +10517,7 @@ var
 
     if node = nil then
     begin
-      node := TSvgNode.Create(AParent); // TODO : Abstract class; Needs placeholder specialization
+      node := TSvgGenericNode.Create(AParent);
       ParseAttributes(node, AParser);
     end;
 
