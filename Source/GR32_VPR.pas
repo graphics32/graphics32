@@ -1197,8 +1197,10 @@ begin
   Registry.RegisterBinding(@@IntegrateSegment, 'IntegrateSergment');
 
   Registry[@@IntegrateSegment].Add(   @IntegrateSegment_Pas,        [isPascal]).Name := 'IntegrateSegment_Pas';
+{$if (not defined(FPC))} // IntegrateSegment_SSE2 currently doesn't work with FPC 3.2.2
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   Registry[@@IntegrateSegment].Add(   @IntegrateSegment_SSE2,       [isSSE2]).Name := 'IntegrateSegment_SSE2';
+{$ifend}
 {$ifend}
 
   Registry.RebindAll;

@@ -75,8 +75,13 @@ type
 implementation
 
 uses
+{$if defined(FPC)}
+  Types,
+  Math,
+{$else}
   System.Types,
   System.Math,
+{$ifend}
   GR32_Image;
 
 //------------------------------------------------------------------------------
@@ -143,7 +148,11 @@ begin
       FCachedAdjustedLocation := UpdateRect;
       
       RenderedBounds := FRenderer.GetDocumentBounds(FSvgNode, UpdateRect);
+{$if defined(FPC)}
+       GR32.UnionRect(UpdateRect, UpdateRect, RenderedBounds);
+{$else}
       UpdateRect.Union(RenderedBounds);
+{$ifend}
 
       Result := MakeRect(UpdateRect, rrOutside);
 

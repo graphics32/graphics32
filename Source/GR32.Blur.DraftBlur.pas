@@ -270,7 +270,7 @@ end;
 // (max 2.14e9). Final byte packing uses saturated conversion (PACKUSDW +
 // PACKUSWB).
 //------------------------------------------------------------------------------
-procedure DraftBlurRow32_SSE41(pIn, pOut: PColor32EntryArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PQuadIntArray); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure DraftBlurRow32_SSE41(pIn, pOut: PColor32EntryArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PQuadIntArray); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -278,10 +278,10 @@ asm
   //   pIn       : EAX
   //   pOut      : EDX
   //   Width     : ECX
-  //   iK        : [ESP + 4]
-  //   i2Q       : [ESP + 8]
-  //   iQ2       : [ESP + 12]
-  //   QScale    : [ESP + 16]
+  //   iK        : [ESP + 4]  <-- Note that these offsets are BEFORE we push 12 bytes onto
+  //   i2Q       : [ESP + 8]      the stack. Therefore we need to either adjust the offsets,
+  //   iQ2       : [ESP + 12]     or we need a stackframe. I've opted for a stackframe to
+  //   QScale    : [ESP + 16]     make things easy.
   //   RowBuffer : [ESP + 20]
 
   TEST      ECX, ECX
@@ -515,7 +515,7 @@ end;
 // SIMD 1-channel 8-bit row blur using Alvarez & Mazorra 2nd-order IIR
 // using SSE4.1 32-bit integer SIMD arithmetic in XMM registers.
 //------------------------------------------------------------------------------
-procedure DraftBlurRow8_SSE41(pIn, pOut: PByteArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PIntArray); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure DraftBlurRow8_SSE41(pIn, pOut: PByteArray; Width: Integer; iK, i2Q, iQ2, QScale: Integer; RowBuffer: PIntArray); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}

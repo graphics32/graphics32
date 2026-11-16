@@ -50,7 +50,7 @@ uses
 type
   TPath = record
     class function GetDirectoryName(const APath: string): string; static;
-    class function Combine(const APath, BPath: string): string; static;
+    class function Combine(const APath, BPath: string; const ValidateParams: Boolean = True): string; static;
     class function ChangeExtension(const Path, Extension: string): string; static;
   end;
 
@@ -94,7 +94,7 @@ begin
   Result := ExtractFileDir(APath);
 end;
 
-class function TPath.Combine(const APath, BPath: string): string;
+class function TPath.Combine(const APath, BPath: string; const ValidateParams: Boolean): string;
 begin
   Result := ConcatPaths([APath, BPath]);
 end;

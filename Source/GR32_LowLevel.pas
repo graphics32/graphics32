@@ -1773,12 +1773,16 @@ end;
 //
 //------------------------------------------------------------------------------
 function SetSSERoundMode(const RoundMode: TRoundingMode): TRoundingMode;
-{$IFNDEF FPC}
+{$if (not defined(FPC))}
 {$WARN SYMBOL_PLATFORM OFF}
 begin
   Result := Math.SetSSERoundMode(RoundMode);
 end;
-{$ELSE}
+{$else}
+begin
+  Result := Math.SetRoundMode(RoundMode);
+end;
+(*
 var
   MXCSR: Cardinal;
 begin
@@ -1801,7 +1805,8 @@ begin
   end;
   Math.SetMXCSR(MXCSR);
 end;
-{$ENDIF}
+*)
+{$ifend}
 
 
 //------------------------------------------------------------------------------

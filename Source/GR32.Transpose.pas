@@ -160,7 +160,7 @@ end;
 // Ported to Delphi by Anders Melander
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 // TODO : This has become a mess. Split into separate x86 and x64 implementations.
 type
   dword = Cardinal;
@@ -682,7 +682,7 @@ end;
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 {$if defined(TARGET_x64)}
-procedure GudkovTransposeBlock_SSE2_x64(pSrc: PColor32; SrcStrideBytes: Integer; pBuf: PColor32; pNextSrc: PColor32; HasNextBlock: LongBool); {$if defined(FPC)}assembler; nostackframe;{$ifEnd}
+procedure GudkovTransposeBlock_SSE2_x64(pSrc: PColor32; SrcStrideBytes: Integer; pBuf: PColor32; pNextSrc: PColor32; HasNextBlock: LongBool);
 {$if defined(FPC)}begin{$ifend}
 asm
 {$if not defined(FPC)}

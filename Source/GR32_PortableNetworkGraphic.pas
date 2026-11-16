@@ -1460,7 +1460,7 @@ end;
 
 function TPortableNetworkGraphic.GetIgnoredChunks: TArray<TChunkName>;
 begin
-{$if (CompilerVersion >= 36.0)}
+{$if (not defined(FPC)) and (CompilerVersion >= 36.0)}
   if (FIgnoreChunks = nil) or (FIgnoreChunks.IsEmpty) then
 {$else}
   if (FIgnoreChunks = nil) or (FIgnoreChunks.Count = 0) then

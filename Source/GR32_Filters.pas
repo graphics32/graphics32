@@ -3154,9 +3154,7 @@ asm
 {$ifend}
 @Exit:
 
-{$if defined(FPC)}
-end['XMM4', 'XMM5'];
-{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
 end;
 
 {$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}

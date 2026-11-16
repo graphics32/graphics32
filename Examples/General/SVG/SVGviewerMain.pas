@@ -46,9 +46,10 @@ uses
 {$ENDIF}
   Messages,
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls,
-  Buttons, System.Actions, Vcl.ActnList,
+  Buttons, ActnList,
   ShellCtrls,
 {$IFNDEF FPC}
+  Actions,
   FileCtrl, // Delphi will add it since the controls are on the form.
 {$ENDIF}
 
@@ -192,11 +193,14 @@ implementation
 
 uses
   IniFiles,
+{$if defined(FPC)}
+  Types,
+  Math,
+{$else}
   System.Types,
   System.Math,
-{$IFNDEF FPC}
   IOUtils,
-{$ENDIF}
+{$ifend}
 {$if defined(IMAGE32)}
   Img32.SVG.Reader,
   Img32.SVG.Path,
@@ -275,7 +279,9 @@ begin
 
   FileListBox.ShellTreeView := DirectoryListBox;
   // Prevents AV when we set the other properties. These controls are really half-baked
+{$if not defined(FPC)}
   FileListBox.CreateRoot;
+{$ifend}
   FileListBox.ObjectTypes := [otNonFolders];
   FileListBox.ViewStyle := vsReport;
   FileListBox.ReadOnly := True;
@@ -488,7 +494,11 @@ begin
   if (LastFile <> '') then
   begin
     for i := 0 to FileListBox.Items.Count-1 do
+{$if not defined(FPC)}
       if SameText(LastFile, FileListBox.Folders[i].PathName) then
+{$else}
+      if SameText(LastFile, FileListBox.GetPathFromItem(FileListBox.Items[i])) then
+{$ifend}
       begin
         FileListBox.ItemIndex := i;
         FileListBox.Items[i].MakeVisible(False);
@@ -688,7 +698,7 @@ var
   FileStream: TFileStream;
 begin
   DocumentFolder := TPath.GetDirectoryName(FFilename);
-{$if (CompilerVersion > 32.0)}
+{$if (defined(FPC)) or (CompilerVersion > 32.0)}
   ExternalFilename := TPath.Combine(DocumentFolder, Filename, False);
 {$else}
   ExternalFilename := DocumentFolder + Filename; // TPath.Combine will raise exception if file doesn't exist
@@ -808,7 +818,7 @@ end;
 procedure TFormSVGviewer.ActionThemeExecute(Sender: TObject);
 begin
   TAction(Sender).ImageIndex := (TAction(Sender).ImageIndex + 1) mod (Ord(High(FColorTheme)) + 1);
-{$if (CompilerVersion > 32.0)}
+{$if (defined(FPC)) or (CompilerVersion > 32.0)}
   // TSpeedButton.Action.ImageIndex -> TSpeedButton.ImageIndex sync is broken internally
   SpeedButtonTheme.ImageIndex := TAction(Sender).ImageIndex;
 {$else}
@@ -925,7 +935,11 @@ end;
 procedure TFormSVGviewer.ShellListViewOnSelected(Sender: TObject; Item: TListItem; Selected: Boolean);
 begin
   if (Selected) then
+{$if not defined(FPC)}
     LoadAndRenderSvg(FileListBox.SelectedFolder.PathName);
+{$else}
+    LoadAndRenderSvg(FileListBox.GetPathFromItem(FileListBox.Selected));
+{$ifend}
 end;
 
 { TFileListBox }

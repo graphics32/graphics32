@@ -706,7 +706,7 @@ end;
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
-procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 // Note: Don't bother aligning the SSE_FloatOne data so we can use
 // MOVAPS; It gives zero performance improvement (and might be slower
 // due to instruction size).
@@ -943,7 +943,7 @@ end;
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -1189,7 +1189,7 @@ end;
 //------------------------------------------------------------------------------
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
-procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -1482,7 +1482,7 @@ end;
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
-procedure MakeAlphaNonZeroUPF_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure MakeAlphaNonZeroUPF_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Unused: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -1661,7 +1661,7 @@ end;
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
-procedure MakeAlphaEvenOddUPF_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure MakeAlphaEvenOddUPF_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Unused: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -1851,7 +1851,7 @@ end;
 //------------------------------------------------------------------------------
 // MakeAlphaEvenOddUPF_SSE41
 //------------------------------------------------------------------------------
-procedure MakeAlphaEvenOddUPF_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+procedure MakeAlphaEvenOddUPF_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Unused: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}

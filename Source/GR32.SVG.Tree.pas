@@ -974,6 +974,12 @@ type
     end;
 
     TNamedResults = class(TList<TNamedResult>)
+{$if defined(FPC)}
+    private type
+      TNamedResultArray = array of TNamedResult;
+    protected
+      property List: TNamedResultArray read FItems;
+{$ifend}
     public
       // Case-insensitive!
       function FindIndex(Value: TValuePUtf8Char): integer;
@@ -7317,7 +7323,7 @@ end;
 procedure TSvgDocumentNode.NodeAdded(ANode: TSvgNode);
 begin
   if (ANode.ID <> '') then
-{$if (CompilerVersion > 32.0)}
+{$if defined(FPC) or (CompilerVersion > 32.0)}
     FNodes.TryAdd(TValuePUtf8Char.FromString(ANode.ID), ANode); // Ignore duplicate; Do not add to dictionary
 {$else}
     // Delphi 10.2 does have the TryAdd method but thinks it doesn't
@@ -9777,7 +9783,7 @@ begin
 
     // In SVG, transform functions in a transform list are applied right-to-left (innermost to outermost).
     // Pre-multiplying Matrix onto Result achieves the correct right-to-left evaluation order.
- {$if (CompilerVersion = 37.0) and defined(TARGET_X86)}
+ {$if (not defined(FPC)) and (CompilerVersion = 37.0) and defined(TARGET_X86)}
     // Work around "F2084 Internal Error: C2802" in Delphi 13, 32-bit, release
     Result := Mult(Result, Matrix.Matrix);
 {$else}

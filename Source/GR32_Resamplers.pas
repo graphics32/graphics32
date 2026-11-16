@@ -3004,13 +3004,6 @@ asm
   //   XMM3: p12[1]
   //   XMM4: Misc.
   //   XMM5: SSE_FloatOne, SSE_FloatScale, misc.
-  //
-{$IFDEF TARGET_X64}
-{$IFNDEF FPC}
-  .SAVENV XMM4
-  .SAVENV XMM5
-{$ENDIF}
-{$ENDIF}
 
         (*
         ** Zero-extension unpacking of the four pixels.
@@ -3044,10 +3037,10 @@ asm
         CVTDQ2PS  XMM2, XMM2
         CVTDQ2PS  XMM3, XMM3
 
-{$IFNDEF FPC}
-        MOVUPS    XMM5, [SSE_FloatOne]  // Load unaligned
+{$IFDEF TARGET_X64}
+        MOVUPS    XMM5, [RIP+SSE_FloatOne] // Load unaligned
 {$ELSE}
-        MOVUPS    XMM5, [RIP+SSE_FloatOne]
+        MOVUPS    XMM5, [SSE_FloatOne]
 {$ENDIF}
 
         (*
@@ -3133,7 +3126,11 @@ asm
 {$IFNDEF FPC}
         MOVUPS    XMM5, [SSE_FloatScale]// Load unaligned
 {$ELSE}
+{$IFDEF TARGET_X64}
         MOVUPS    XMM5, [RIP+SSE_FloatScale]
+{$ELSE}
+        MOVUPS    XMM5, [SSE_FloatScale]
+{$ENDIF}
 {$ENDIF}
         MULPS     XMM1, XMM5            // Scale Alpha back to 8-bit range.
         BLENDPS   XMM0, XMM1, $08       // Combine RGB and A.
@@ -3146,13 +3143,6 @@ asm
         PACKSSDW  XMM0, XMM2            // DWORD -> WORD
         PACKUSWB  XMM0, XMM2            // WORD -> BYTE
         MOVD      EAX, XMM0             // Result in EAX
-
-{$IFDEF TARGET_X64}
-{$IFNDEF FPC}
-  .SAVENV XMM4
-  .SAVENV XMM5
-{$ENDIF}
-{$ENDIF}
 end;
 {$ifend}
 

@@ -341,22 +341,38 @@ end;
 //------------------------------------------------------------------------------
 procedure MakeUnique(var Points: TArrayOfFixedPoint); overload;
 begin
-  DynArrayUnique(Pointer(Points), TypeInfo(TArrayOfFloatPoint));
+{$if defined(FPC)}
+  SetLength(Points, Length(Points));
+{$else}
+DynArrayUnique(Pointer(Points), TypeInfo(TArrayOfFloatPoint));
+{$ifend}
 end;
 
 procedure MakeUnique(var Points: TArrayOfArrayOfFixedPoint); overload;
 begin
+{$if defined(FPC)}
+  SetLength(Points, Length(Points));
+{$else}
   DynArrayUnique(Pointer(Points), TypeInfo(TArrayOfArrayOfFloatPoint));
+{$ifend}
 end;
 
 procedure MakeUnique(var Points: TArrayOfFloatPoint); overload;
 begin
+{$if defined(FPC)}
+  SetLength(Points, Length(Points));
+{$else}
   DynArrayUnique(Pointer(Points), TypeInfo(TArrayOfFloatPoint));
+{$ifend}
 end;
 
 procedure MakeUnique(var Points: TArrayOfArrayOfFloatPoint); overload;
 begin
+{$if defined(FPC)}
+  SetLength(Points, Length(Points));
+{$else}
   DynArrayUnique(Pointer(Points), TypeInfo(TArrayOfArrayOfFloatPoint));
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------

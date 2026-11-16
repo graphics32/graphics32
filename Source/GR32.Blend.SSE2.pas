@@ -3706,21 +3706,13 @@ asm
         PMULLD    XMM1, XMM0                    // XMM1 <- Color * Weight * $8081
 
         // Add bias (~$7F*$8081)
-{$if (not defined(FPC))}
-        PADDD     XMM1, DQWORD PTR [SSE_003FFF7F_ALIGNED] // XMM1 <- (Color * Weight * $8081) + Bias
-{$else}
-        PADDD     XMM1, DQWORD PTR [rip+SSE_003FFF7F_ALIGNED]
-{$ifend}
+        PADDD     XMM1, DQWORD PTR [RIP+SSE_003FFF7F_ALIGNED] // XMM1 <- (Color * Weight * $8081) + Bias
 
         // Reduce 32-bits to 9-bits
         PSRLD     XMM1, 23                      // XMM1 <- ((Color * Weight * $8081) + Bias) shr 23
 
         // Convert from dwords to bytes with truncation (losing the sign in the 9th bit)
-{$if (not defined(FPC))}
-        PSHUFB    XMM1, DQWORD PTR [SSE_0C080400_ALIGNED] // XMM1[0] <- XMM1[0..3][0]
-{$else}
-        PSHUFB    XMM1, DQWORD PTR [rip+SSE_0C080400_ALIGNED]
-{$ifend}
+        PSHUFB    XMM1, DQWORD PTR [RIP+SSE_0C080400_ALIGNED] // XMM1[0] <- XMM1[0..3][0]
 
         // Store dest
         MOVD      [RCX], XMM1
@@ -4202,6 +4194,9 @@ asm
   //   XMM7:
   //
 
+        TEST      EDX, EDX
+        JLE       @Exit
+
         PUSH      ESI
         PUSH      EBX
 
@@ -4259,7 +4254,6 @@ asm
         DEC       EDX
         JNZ       @Loop
 
-@Exit:
         POP       EBX
         POP       ESI
         RET
@@ -4288,8 +4282,7 @@ asm
   //   XMM6:
   //   XMM7:
   //
-
-        LEA       R9, [UnpremultiplyTable]
+        LEA       R9, [RIP+UnpremultiplyTable]
         LEA       RAX, [RIP+SSE_0C080400_ALIGNED]
         MOVDQA    XMM3, [RAX]
         // Generate 32768 bias for rounding: (x + 32768) >> 16
@@ -4337,18 +4330,17 @@ asm
         PSHUFB    XMM0, XMM3            // Fast byte extraction
         MOVD      [RCX], XMM0
 
+        JMP       @Next
+
+@ZeroAlpha:
+        MOV       DWORD PTR [RCX], 0    // Clear pixel
+
 @Next:
         ADD       RCX, 4                // Next pixel
         DEC       EDX
         JNZ       @Loop
-
-@Exit:
-        RET
-
-@ZeroAlpha:
-        MOV       DWORD PTR [RCX], 0    // Clear pixel
-        JMP       @Next
 {$ENDIF}
+@Exit:
 end;
 
 procedure UnpremultiplyLine_SSE41(Src, Dst: PColor32Entry; Count: Integer);
@@ -4443,7 +4435,7 @@ asm
         TEST      R8D, R8D
         JZ        @Exit
 
-        LEA       R9, [UnpremultiplyTable]
+        LEA       R9, [RIP+UnpremultiplyTable]
         LEA       RAX, [RIP+SSE_0C080400_ALIGNED]
         MOVDQA    XMM3, [RAX]
         // Generate 32768 bias for rounding: (x + 32768) >> 16
@@ -4484,14 +4476,7 @@ asm
         PSHUFB    XMM0, XMM3            // Fast byte extraction
         MOVD      [RDX], XMM0           // Write to Dst
 
-@Next:
-        ADD       RCX, 4                // Next Src pixel
-        ADD       RDX, 4                // Next Dst pixel
-        DEC       R8D
-        JNZ       @Loop
-
-@Exit:
-        RET
+        JMP       @Next
 
 @Opaque:
         MOV       EAX, [RCX]
@@ -4500,7 +4485,14 @@ asm
 
 @ZeroAlpha:
         MOV       DWORD PTR [RDX], 0    // Clear Dst pixel
-        JMP       @Next
+
+@Next:
+        ADD       RCX, 4                // Next Src pixel
+        ADD       RDX, 4                // Next Dst pixel
+        DEC       R8D
+        JNZ       @Loop
+
+@Exit:
 {$ENDIF}
 end;
 
