@@ -2618,6 +2618,7 @@ end;
 
 class function TSvgFill.Default: TSvgFill;
 begin
+  Result := System.Default(TSvgFill);
   Result.FColor := TSvgColor.CurrentColor;
   Result.FOpacity := 1.0;
   Result.FFillRule := pfWinding;
@@ -2688,6 +2689,7 @@ end;
 
 class function TSvgStroke.Default: TSvgStroke;
 begin
+  Result := System.Default(TSvgStroke);
   Result.FColor := TSvgColor.None;
   Result.FWidth := TSvgLength.Create(1.0, suPx);
   Result.FOpacity := 1.0;
