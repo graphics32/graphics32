@@ -924,11 +924,13 @@ begin
       if (ATextLayout.ClipLayout) then
       begin
         // Clip top (remember Y is baseline)
-        if (Y - FontFaceMetrics.Ascent < ClipRect.Top) then
+        if (ATextLayout.AlignmentVertical in [TextAlignVerBottom, TextAlignVerCenter]) and
+           (Y - FontFaceMetrics.Ascent < ClipRect.Top-0.01) then // -0.01 to handle rounding errors
           continue;
 
         // Clip bottom (remember Descent is negative
-        if (Y - FontFaceMetrics.Descent > ClipRect.Bottom) then
+        if (ATextLayout.AlignmentVertical in [TextAlignVerTop, TextAlignVerCenter]) and
+           (Y - FontFaceMetrics.Descent > ClipRect.Bottom+0.01) then // +0.01 to handle rounding errors
           break;
       end;
 
