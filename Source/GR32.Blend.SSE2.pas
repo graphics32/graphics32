@@ -3036,8 +3036,17 @@ asm
         MOVZX     ESI, BYTE PTR [EDI + ESI] // Wa
         MOVD      XMM2, ESI
         PSHUFLW   XMM2, XMM2, $00
-        // TODO : AV here; ECX=1
+        (* PMOVZXBW reads 8 bytes but there's only 4 bytes left -> Access Violation
+           Seen with:
+             - "W3C SVG 1.1 TestSuite\svg\animate-elem-91-t.svg"
+             - "W3C SVG 1.1 TestSuite\svg\filters-displace-01-f.svg"
+             - "W3C SVG 1.1 TestSuite\svg\filters-image-02-b"
+
         PMOVZXBW  XMM1, [EDX]      // Reload Dst unpacked
+        *)
+        MOVD      XMM1, [EDX]
+        PMOVZXBW  XMM1, XMM1
+
         PSUBW     XMM0, XMM1
         PMULLW    XMM0, XMM2
         PSLLW     XMM1, 8
@@ -3295,7 +3304,13 @@ asm
         MOVZX     EAX, BYTE PTR [RAX + R10] // Wa
         MOVD      XMM2, EAX
         PSHUFLW   XMM2, XMM2, $00
+        (* PMOVZXBW reads 8 bytes but there's only 4 bytes left -> Access Violation
+           See same code in x86 section.
         PMOVZXBW  XMM1, [RDX]      // Reload Dst unpacked
+        *)
+        MOVD      XMM1, [RDX]
+        PMOVZXBW  XMM1, XMM1
+
         PSUBW     XMM0, XMM1
         PMULLW    XMM0, XMM2
         PSLLW     XMM1, 8
@@ -4515,11 +4530,7 @@ begin
 {$if not defined(FPC)}
   BlendRegistry[@@MergeReg].Add(       @MergeReg_SSE41,         [isSSE41]).Name := 'MergeReg_SSE41';
   BlendRegistry[@@MergeMem].Add(       @MergeMem_SSE41,         [isSSE41]).Name := 'MergeMem_SSE41';
-  // AV with:
-  // - "W3C SVG 1.1 TestSuite\svg\animate-elem-91-t.svg"
-  // - "W3C SVG 1.1 TestSuite\svg\filters-displace-01-f.svg"
-  // - "W3C SVG 1.1 TestSuite\svg\filters-image-02-b"
-  // BlendRegistry[@@MergeLine].Add(      @MergeLine_SSE41,        [isSSE41]).Name := 'MergeLine_SSE41';
+  BlendRegistry[@@MergeLine].Add(      @MergeLine_SSE41,        [isSSE41]).Name := 'MergeLine_SSE41';
 {$ifend}
 
   BlendRegistry[@@CombineReg].Add(     @CombineReg_SSE2,        [isSSE2]).Name := 'CombineReg_SSE2';
