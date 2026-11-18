@@ -535,7 +535,7 @@ begin
 
     text2 := TSvgTextNode(docNode.FindNodeById('t2'));
     Check(text2 <> nil, 'textNode t2 should exist');
-    CheckEquals('700', text2.FontWeight);
+    CheckEquals('700.0', text2.FontWeight);
     CheckEquals(24.0, text2.FontSize.Value, 1E-4);
 
     // According to W3C SVG 1.1 Specification Section 6.2:

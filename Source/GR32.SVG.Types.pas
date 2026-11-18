@@ -886,7 +886,7 @@ begin
     fwBold:     Result := 'bold';
     fwBolder:   Result := 'bolder';
     fwLighter:  Result := 'lighter';
-    fwAbsolute: Result := UTF8String(Format('%.1n', [Value]));
+    fwAbsolute: Result := UTF8String(Format('%.1n', [Value], SvgFormatSettings));
   else
     Result := 'normal';
   end;

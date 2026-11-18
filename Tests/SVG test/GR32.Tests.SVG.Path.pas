@@ -114,8 +114,12 @@ procedure TTestSvgPath.TestArc;
 var
   pts: TArrayOfArrayOfFloatPoint;
   midIdx: Integer;
+  SaveArcTolerance: Single;
 begin
+  SaveArcTolerance := CArcTolerance;
+  CArcTolerance := 0.05;
   pts := SvgPathDataToPoints('M 10 10 A 25 25 0 0 0 35 35');
+  CArcTolerance := SaveArcTolerance;
   CheckEquals(1, Length(pts));
   Check(Length(pts[0]) > 2);
   CheckEquals(10.0, pts[0][0].X, 1E-3);

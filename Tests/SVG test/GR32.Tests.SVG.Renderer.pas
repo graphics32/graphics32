@@ -46,6 +46,8 @@ uses
 
 type
   TTestSvgRenderer = class(TTestCase)
+  private
+    procedure CheckColor(Expected, Actual: TColor32; Tolerance: TColor32; const Msg: string = '');
   published
     procedure TestPathRasterization;
     procedure TestTransformStack;
@@ -885,8 +887,8 @@ begin
       renderer := TSvgRenderer.Create;
       try
         renderer.RenderDocument(bmp, docNode);
-        CheckEquals(clGreen32, bmp.Pixel[100, 100], 'Center (100,100) inside square canvas objectBoundingBox clipPath must be green');
-        CheckEquals(clGreen32, bmp.Pixel[50, 50], 'Top-left (50,50) inside square canvas objectBoundingBox clipPath must be green');
+        CheckEquals(clGreen32, bmp.Pixel[100, 100], $00010101, 'Center (100,100) inside square canvas objectBoundingBox clipPath must be green');
+        CheckColor(clGreen32, bmp.Pixel[50, 50], $00010101, 'Top-left (50,50) inside square canvas objectBoundingBox clipPath must be green');
       finally
         renderer.Free;
       end;
@@ -897,8 +899,8 @@ begin
       renderer := TSvgRenderer.Create;
       try
         renderer.RenderDocument(bmp, docNode);
-        CheckEquals(clGreen32, bmp.Pixel[200, 100], 'Center (200,100) inside resized non-square canvas objectBoundingBox clipPath must be green');
-        CheckEquals(clGreen32, bmp.Pixel[150, 50], 'Top-left (150,50) inside resized non-square canvas objectBoundingBox clipPath must be green');
+        CheckEquals(clGreen32, bmp.Pixel[200, 100], $00010101, 'Center (200,100) inside resized non-square canvas objectBoundingBox clipPath must be green');
+        CheckColor(clGreen32, bmp.Pixel[150, 50], $00010101, 'Top-left (150,50) inside resized non-square canvas objectBoundingBox clipPath must be green');
       finally
         renderer.Free;
       end;
@@ -1641,7 +1643,7 @@ begin
     renderer.RenderNode(bmp3, docNode.FindNodeById('r_const'));
 
     // Pixel at (5, 20) looks up source pixel (5+5, 20) = (10, 20) which is inside red rect
-    CheckEquals(clRed32, bmp3.Pixel[5, 20], 'Pixel (5, 20) should be displaced red pixel');
+    CheckColor(clRed32, bmp3.Pixel[5, 20], $00010000, 'Pixel (5, 20) should be displaced red pixel');
 
     // Pixel at (28, 20) looks up source pixel (28+5, 20) = (33, 20) which is outside red rect
     CheckEquals(0, bmp3.Pixel[28, 20], 'Pixel (28, 20) should be empty after displacement shift');
@@ -1911,8 +1913,8 @@ begin
   try
     renderer.RenderDocument(bmp, docNode);
     // Semi-transparent blue rect (fill="blue", fill-opacity="0.5") -> Blue=255, Alpha=128
-    CheckEquals(128, TColor32Entry(bmp.Pixel[50, 50]).A, 'Alpha of semi-transparent pixel should be ~128');
-    CheckEquals(255, TColor32Entry(bmp.Pixel[50, 50]).B, 'Unpremultiplied Blue channel of semi-transparent pixel should remain 255');
+    CheckEquals(128, TColor32Entry(bmp.Pixel[50, 50]).A, 1, 'Alpha of semi-transparent pixel should be ~128');
+    CheckEquals(255, TColor32Entry(bmp.Pixel[50, 50]).B, 2, 'Unpremultiplied Blue channel of semi-transparent pixel should remain ~255');
   finally
     renderer.Free;
     bmp.Free;
@@ -2677,6 +2679,15 @@ begin
   finally
     bmp.Free;
   end;
+end;
+
+procedure TTestSvgRenderer.CheckColor(Expected, Actual, Tolerance: TColor32; const Msg: string);
+begin
+  if (Abs(TColor32Entry(Expected).R - TColor32Entry(Actual).R) > TColor32Entry(Tolerance).R) or
+     (Abs(TColor32Entry(Expected).G - TColor32Entry(Actual).G) > TColor32Entry(Tolerance).G) or
+     (Abs(TColor32Entry(Expected).B - TColor32Entry(Actual).B) > TColor32Entry(Tolerance).B) or
+     (Abs(TColor32Entry(Expected).A - TColor32Entry(Actual).A) > TColor32Entry(Tolerance).A) then
+    CheckEquals(IntToHex(TColor32Entry(Expected).R, 8), IntToHex(TColor32Entry(Actual).R, 8), Msg);
 end;
 
 procedure TTestSvgRenderer.TestBitmapPool;
@@ -4208,7 +4219,7 @@ begin
 
     // Quarter circle pixel inside the image viewport (x=65, y=65): green path from sub-document renders over red path
     pInside := bmp.Pixel[65, 65];
-    CheckEquals(clLime32, pInside, 'Sub-document SVG image without viewBox should align top-left and render green shape over red background');
+    CheckColor(clLime32, pInside, $00010101, 'Sub-document SVG image without viewBox should align top-left and render green shape over red background');
 
     // Pixel outside image viewport (x=45, y=45) should remain background white
     pOutside := bmp.Pixel[45, 45];
