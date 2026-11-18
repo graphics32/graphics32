@@ -35,6 +35,7 @@ interface
 {$include GR32.inc}
 
 {-$define SVG32_CULL_SHAPES} // Replaces out-of-viewport beziers with straight line segments. Needs work
+{$define SVG32_MIN_CURVE_SPAN} // Collapse curves to lines if the span is below a limit (half a pixel)
 
 uses
   SysUtils, Classes, Math,
@@ -958,11 +959,16 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
     CurrPt, P, C1, C2, P1: TFloatPoint;
 {$if defined(SVG32_CULL_SHAPES)}
     r: TFloatRect;
+    Viewport: TFloatRect;
 {$ifend}
   const
     MinCurveSpan: Single = 0.5; // Minimum span below which we convert a curve to a straight line
   begin
     CurrPt := FloatPoint(0, 0);
+{$if defined(SVG32_CULL_SHAPES)}
+    Viewport.TopLeft := ATransformation.Transform(AViewport.TopLeft);
+    Viewport.BottomRight := ATransformation.Transform(AViewport.BottomRight);
+{$ifend}
 
     for i := 0 to FCount - 1 do
     begin
@@ -984,26 +990,29 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
             C1 := ATransformation.Transform(FCommands[i].CurveTo.C1);
             C2 := ATransformation.Transform(FCommands[i].CurveTo.C2);
             P  := ATransformation.Transform(FCommands[i].CurveTo.P);
+{$if defined(SVG32_MIN_CURVE_SPAN)}
             // If the entire cubic curve bounding box in world space is smaller than 0.5 px,
             // its curvature cannot be resolved by the rasterizer; emit a straight LineTo:
             if ((Max(Abs(P.X - CurrPt.X), Max(Abs(C1.X - CurrPt.X), Abs(C2.X - CurrPt.X))) < MinCurveSpan) and
                 (Max(Abs(P.Y - CurrPt.Y), Max(Abs(C1.Y - CurrPt.Y), Abs(C2.Y - CurrPt.Y))) < MinCurveSpan)) then
-              Path.LineTo(P)
-            else
-{$if defined(SVG32_CULL_SHAPES)}
             begin
-              r.TopLeft := Path.CurrentPoint;
-              r.BottomRight := P;
-              r.NormalizeRect;
-              if (not AViewport.IntersectsWith(r)) then
-                Path.LineTo(P)
-              else
-                Path.CurveTo(C1, C2, P);
+              Path.LineTo(P);
+              CurrPt := P;
+              continue;
             end;
-{$else}
-              Path.CurveTo(C1, C2, P);
 {$ifend}
-
+{$if defined(SVG32_CULL_SHAPES)}
+            r.TopLeft := Path.CurrentPoint;
+            r.BottomRight := P;
+            r.NormalizeRect;
+            if (not AViewport.IntersectsWith(r)) then
+            begin
+              Path.LineTo(P);
+              CurrPt := P;
+              continue;
+            end;
+{$ifend}
+            Path.CurveTo(C1, C2, P);
             CurrPt := P;
           end;
 
@@ -1012,25 +1021,28 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
             P1 := ATransformation.Transform(FCommands[i].ConicTo.P1);
             P  := ATransformation.Transform(FCommands[i].ConicTo.P);
 
+{$if defined(SVG32_MIN_CURVE_SPAN)}
             // Sub-pixel quadratic curve bailout
             if (Max(Abs(P.X - CurrPt.X), Abs(P1.X - CurrPt.X)) < MinCurveSpan) and
                (Max(Abs(P.Y - CurrPt.Y), Abs(P1.Y - CurrPt.Y)) < MinCurveSpan) then
-              Path.LineTo(P)
-            else
-{$if defined(SVG32_CULL_SHAPES)}
             begin
-              r.TopLeft := Path.CurrentPoint;
-              r.BottomRight := P;
-              r.NormalizeRect;
-              if (not AViewport.IntersectsWith(r)) then
-                Path.LineTo(P)
-              else
-                Path.ConicTo(P1, P);
+              Path.LineTo(P);
+              CurrPt := P;
+              continue;
             end;
-{$else}
-              Path.ConicTo(P1, P);
 {$ifend}
-
+{$if defined(SVG32_CULL_SHAPES)}
+            r.TopLeft := Path.CurrentPoint;
+            r.BottomRight := P;
+            r.NormalizeRect;
+            if (not AViewport.IntersectsWith(r)) then
+            begin
+              Path.LineTo(P);
+              CurrPt := P;
+              continue;
+            end;
+{$ifend}
+            Path.ConicTo(P1, P);
             CurrPt := P;
           end;
 
@@ -1046,8 +1058,11 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
             r.BottomRight := P;
             r.NormalizeRect;
             if (not AViewport.IntersectsWith(r)) then
-              Path.LineTo(P)
-            else
+            begin
+              Path.LineTo(P);
+              CurrPt := P;
+              continue;
+            end;
 {$ifend}
             // If the matrix has skew/rotation, OR if non-uniform scaling is applied to a rotated ellipse,
             // the ellipse's principal axes and angle change, requiring 2D conjugate diameter decomposition.
@@ -1058,30 +1073,48 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
               ArcProps := TransformArcProps(FCommands[i].Arc.RadiusX, FCommands[i].Arc.RadiusY,
                 FCommands[i].Arc.AngleRad, FCommands[i].Arc.Direction, ATransformation.Matrix);
 
+{$if defined(SVG32_MIN_CURVE_SPAN)}
               // Sub-pixel arc bailout
               if (ArcProps.RadiusX < MinCurveSpan) and (ArcProps.RadiusY < MinCurveSpan) then
-                Path.LineTo(P)
-              else
-                Path.EllipticalArc(P, ArcProps.RadiusX, ArcProps.RadiusY,
-                  ArcProps.AngleRad, FCommands[i].Arc.Part, ArcProps.Sweep);
+              begin
+                Path.LineTo(P);
+                CurrPt := P;
+                continue;
+              end;
+{$ifend}
+              Path.EllipticalArc(P, ArcProps.RadiusX, ArcProps.RadiusY,
+                ArcProps.AngleRad, FCommands[i].Arc.Part, ArcProps.Sweep);
             end else
             begin
+{$if defined(SVG32_MIN_CURVE_SPAN)}
               // Sub-pixel arc bailout
               if (FCommands[i].Arc.RadiusX * ScaleX < MinCurveSpan) and
                  (FCommands[i].Arc.RadiusY * ScaleY < MinCurveSpan) then
-                Path.LineTo(P)
-              else
-                // Axis-aligned case with either uniform scaling or an unrotated arc:
-                // Radii scale directly along coordinate axes, and rotation angle remains unchanged.
-                Path.EllipticalArc(P,
-                  FCommands[i].Arc.RadiusX * ScaleX, FCommands[i].Arc.RadiusY * ScaleY,
-                  FCommands[i].Arc.AngleRad, FCommands[i].Arc.Part, FCommands[i].Arc.Direction);
+              begin
+                Path.LineTo(P);
+                CurrPt := P;
+                continue;
+              end;
+{$ifend}
+              // Axis-aligned case with either uniform scaling or an unrotated arc:
+              // Radii scale directly along coordinate axes, and rotation angle remains unchanged.
+              Path.EllipticalArc(P,
+                FCommands[i].Arc.RadiusX * ScaleX, FCommands[i].Arc.RadiusY * ScaleY,
+                FCommands[i].Arc.AngleRad, FCommands[i].Arc.Part, FCommands[i].Arc.Direction);
             end;
 
             CurrPt := P;
           end;
 
         pckEndPath:
+          // TODO :
+          // 1. If the whole polygon is fully above, to the right, or below the
+          //    viewport, then it doesn't affect the winding or pixel coverage
+          //    and we can safely ignore it.
+          // 2. If the shape is fully to the left of the viewport, then it may
+          //    affect pixel coverage, but the exact shape doesn't matter and we
+          //    can safely replace it with a straight line.
+          // We can apply this culling before flattening.
           Path.EndPath(FCommands[i].Closed);
       end;
     end;
