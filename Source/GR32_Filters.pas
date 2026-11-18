@@ -2154,7 +2154,7 @@ end;
 // SIMD versions
 //------------------------------------------------------------------------------
 
-{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 const
   c_div255_bias: array[0..3] of Cardinal = (127, 127, 127, 127);
@@ -2389,7 +2389,7 @@ asm
 {$ifend}
 end;
 
-{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$ifend (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 
 //------------------------------------------------------------------------------
@@ -2422,7 +2422,7 @@ end;
 //------------------------------------------------------------------------------
 // SIMD versions
 //------------------------------------------------------------------------------
-{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 (*
 ** ScaleAlphaLine_SSE2 scales destination alpha values in blocks of 4 pixels
@@ -2599,7 +2599,7 @@ asm
 {$ifend}
 end;
 
-{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$ifend (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 
 //------------------------------------------------------------------------------
@@ -2649,7 +2649,7 @@ end;
 //------------------------------------------------------------------------------
 // SIMD versions
 //------------------------------------------------------------------------------
-{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 (*
 ** ScaleAlphaMems_SSE2 scales the alpha component of an array of pixels by a float Scale
@@ -2839,7 +2839,7 @@ end['XMM4', 'XMM5'];
 {$ifend}
 end;
 
-{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$ifend (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 
 //------------------------------------------------------------------------------
@@ -2876,7 +2876,7 @@ end;
 //------------------------------------------------------------------------------
 // SIMD versions
 //------------------------------------------------------------------------------
-{$if (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 (*
 ** ApplyAlphaMask_SSE41 calculates Rec. 601 luminance of Source pixels (with source alpha applied)
@@ -3157,7 +3157,7 @@ asm
 {$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
 end;
 
-{$ifend (not defined(PURE_PASCAL)) and (not defined(OMIT_SSE2))}
+{$ifend (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
 
 //------------------------------------------------------------------------------
