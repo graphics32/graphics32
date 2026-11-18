@@ -215,6 +215,7 @@ type
     FOnResolveExternalFile: TSvgRendererResolveExternalFileEvent;
     FOnResolveFontEvent: TSvgRendererResolveFontEvent;
     FMaxFilterDimension: integer;
+    FCanRasterizeText: boolean;
 
     function GetTransformation: TAffineTransformation;
     procedure SetThemeFillColor32(AColor: TColor32);
@@ -258,6 +259,7 @@ type
     procedure RenderNodeContent(ATarget: TCustomBitmap32; ANode: TSvgNode);
     procedure RenderNodeUnfiltered(ATarget: TCustomBitmap32; ANode: TSvgNode);
     function CanCullNode(ATarget: TCustomBitmap32; ANode: TSvgNode): boolean;
+    function CanRasterizeText(ABitmap: TCustomBitmap32): boolean;
     procedure ApplyClipPathNode(ATarget: TCustomBitmap32; AClipNode: TSvgClipPathNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect; ATranslate: boolean = True);
     procedure ApplyMaskNode(ATarget: TCustomBitmap32; AMaskNode: TSvgMaskNode; const ATargetBounds: TFloatRect; const ARoiRect: TRect);
     function GetTransformedPoints(const APoints: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
@@ -940,6 +942,11 @@ begin
 {$ifend}
 end;
 
+function TSvgRenderer.CanRasterizeText(ABitmap: TCustomBitmap32): boolean;
+begin
+  Result := FCanRasterizeText and Supports(ABitmap.Backend, IFontSupport) and Supports(ABitmap.Backend, ITextToPathSupport2);
+end;
+
 procedure TSvgRenderer.ClearThemeColors;
 begin
   FThemeFillColor := TSvgColor.Unset;
@@ -1466,6 +1473,7 @@ begin
   FThemeStrokeColor := TSvgColor.Unset;
   FCurrentColor := TSvgColor.Unset;
   FMaxFilterDimension := cMaxFilterDimension;
+  FCanRasterizeText := True; // Assume we can - until we know better
 end;
 
 destructor TSvgRenderer.Destroy;
@@ -3994,6 +4002,9 @@ begin
   if (ATarget = nil) then
     Exit;
 
+  if (not FCanRasterizeText) then
+    exit;
+
   TextRect.Left := ATextAreaNode.GetSizePx(ATextAreaNode.X, FViewportRect.Width);
   TextRect.Top := ATextAreaNode.GetSizePx(ATextAreaNode.Y, FViewportRect.Height);
   TextRect.Right := TextRect.Left + ATextAreaNode.GetSizePx(ATextAreaNode.Width, FViewportRect.Width);
@@ -4011,14 +4022,19 @@ begin
 
   TempBitmap := nil;
   try
-    if (Supports(ATarget.Backend, IFontSupport)) then
+    if CanRasterizeText(ATarget) then
       BitmapWithFont := ATarget
     else
-    if (FTarget is TBitmap32) or (Supports(FTarget.Backend, IFontSupport)) then
+    if CanRasterizeText(FTarget) then
       BitmapWithFont := FTarget
     else
     begin
       TempBitmap := TBitmap32.Create;
+      if not CanRasterizeText(TempBitmap) then
+      begin
+        FCanRasterizeText := False;
+        exit;
+      end;
       BitmapWithFont := TempBitmap;
     end;
 
@@ -4706,20 +4722,29 @@ begin
   if (ATarget = nil) then
     exit;
 
+  if (not FCanRasterizeText) then
+    exit;
+
   // We can't be sure that the FTarget bitmap has a backend that supports
   // the Font property and the ATarget bitmap is most likely an off-screen
   // cached bitmap with a TMemoryBackend. If none of them can support Font
   // then we create a temporary bitmap that does.
   TempBitmap := nil;
   try
-    if (Supports(ATarget.Backend, IFontSupport)) then
+    if CanRasterizeText(ATarget) then
       BitmapWithFont := ATarget
     else
-    if (FTarget is TBitmap32) or (Supports(FTarget.Backend, IFontSupport)) then
+    if CanRasterizeText(FTarget) then
       BitmapWithFont := FTarget
     else
     begin
       TempBitmap := TBitmap32.Create;
+      if not CanRasterizeText(TempBitmap) then
+      begin
+        FCanRasterizeText := False;
+        exit;
+      end;
+
       BitmapWithFont := TempBitmap;
     end;
 
