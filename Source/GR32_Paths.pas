@@ -1,4 +1,4 @@
-unit GR32_Paths;
+﻿unit GR32_Paths;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -36,20 +36,26 @@ interface
 
 {$include GR32.inc}
 
-// Define one of the following two *CubicBezierCurve symbols to select
+// ****************************************************************************
+// Define one of the following three *CubicBezierCurve symbols to select
 // the algorithm used to flatten cubic Bezier curves.
 //
 // - RecursiveCubicBezierCurve is the classic De Casteljau algorithm.
 //
-// - RaphLevienCubicBezierCurve is a new analytic algorithm which
-//   produces far less vertices for the same error tolerance.
+// - WangCubicBezierCurve is fast but not very precise.
 //
-// If none of the symbols are defined the RaphLevienCubicBezierCurve
+// - RaphLevienCubicBezierCurve is reasonably fast and produces far less
+//   vertices for the same error tolerance.
+//
+// If none of the symbols are defined, the RaphLevienCubicBezierCurve
 // implementation is used.
 //
 {-$define RecursiveCubicBezierCurve}
 {-$define RaphLevienCubicBezierCurve}
+{-$define WantCubicBezierCurve}
+// ****************************************************************************
 
+// ****************************************************************************
 // Define one of the following two *QuadraticBezierCurve symbols to select
 // the algorithm used to flatten quadratic Bezier curves.
 //
@@ -58,11 +64,12 @@ interface
 // - RaphLevienQuadraticBezierCurve is a new analytic algorithm which
 //   produces far less vertices for the same error tolerance.
 //
-// If none of the symbols are defined the RaphLevienQuadraticBezierCurve
+// If none of the symbols are defined, the RaphLevienQuadraticBezierCurve
 // implementation is used.
 //
 {-$define RecursiveQuadraticBezierCurve}
 {-$define RaphLevienQuadraticBezierCurve}
+// ****************************************************************************
 
 // Define PATH_ADDPOINT_PACKING to have the path classes pack sequences
 // of duplicate points being added to a path, to a single point.
@@ -82,7 +89,7 @@ uses
 const
   DefaultCircleSteps = 100;
   DefaultBezierTolerance = 0.25;
-  DefaultArcTolerance = 0.25;
+  DefaultArcTolerance = 0.1;
   MinCubicTolerance: Single = 0.05;
   MinQuadraticTolerance: Single = 0.05;
 
@@ -168,7 +175,7 @@ type
 
     procedure Clear; virtual;
 
-    // BeginPath does nothing [*]; Path is started automatically'.
+    // BeginPath does nothing [*]; Path is started automatically.
     // However, we have kept it as it may be more intuitive for the user to
     // wrap their polyline calls in BeginPath/EndPath.
     // [*] It actually calls EndPath internally to ensure that any path
@@ -547,11 +554,339 @@ end;
 
 
 //------------------------------------------------------------------------------
-// Analytic subdivision using Raph Levien's cubic algorithm
+// Analytic subdivision using Raph Levien's quadratics algorithm
 // License: Apache 2.0
 // https://www.apache.org/licenses/LICENSE-2.0
 //------------------------------------------------------------------------------
+// Recursively approximate cubic pieces by quadratics, then flattens the
+// quadratics.
+//------------------------------------------------------------------------------
 procedure RaphLevienCubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
+const
+  ToQuadTolerance: TFloat = 0.1;
+  MaxQuadPieces: integer = 65536;
+  MaxQuadPieces6: TFloat = 65536.0*65536.0*65536.0*65536.0*65536.0*65536.0; // MaxQuadPieces^6
+  OneOverSix: TFloat = 1.0 / 6.0;
+  OneHalf: TFloat = 0.5;
+  OneQuarter: TFloat = 0.25;
+type
+  TFlattenParams = record
+    A0, A2: TFloat;
+    U0, UScale: TFloat;
+    Value: TFloat;
+  end;
+
+  TQuadPiece = record
+    P0, P1, P2: TFloatPoint;
+    Params: TFlattenParams;
+  end;
+
+  TQuadPieceArray = array of TQuadPiece;
+
+var
+  Quads: TQuadPieceArray;
+  QuadCount, I, N: Integer;
+  Accuracy, SqrtTolerance, SqrtRemainingTolerance: TFloat;
+  MaxHypot2, Error, Ratio, Sum, Step, ValSum, Target: TFloat;
+  SubP0, SubP3, SubC1, SubC2: TFloatPoint;
+  T0, T1, DT, T: TFloat;
+  Params: TFlattenParams;
+
+  function Add(const A, B: TFloatPoint): TFloatPoint; inline;
+  begin
+    Result := FloatPoint(A.X + B.X, A.Y + B.Y);
+  end;
+
+  function Subtract(const A, B: TFloatPoint): TFloatPoint; inline;
+  begin
+    Result := FloatPoint(A.X - B.X, A.Y - B.Y);
+  end;
+
+  function ScalePoint(const A: TFloatPoint; const S: TFloat): TFloatPoint; inline;
+  begin
+    Result := FloatPoint(A.X * S, A.Y * S);
+  end;
+
+  function Dot(const A, B: TFloatPoint): TFloat; inline;
+  begin
+    Result := A.X * B.X + A.Y * B.Y;
+  end;
+
+  function Cross(const A, B: TFloatPoint): TFloat; inline;
+  begin
+    Result := A.X * B.Y - A.Y * B.X;
+  end;
+
+  function Hypot(const A: TFloatPoint): TFloat; inline;
+  begin
+    Result := FastSqrt(A.X * A.X + A.Y * A.Y);
+  end;
+
+  function CubicEval(const A, B, C, D: TFloatPoint; const U: TFloat): TFloatPoint; inline;
+  var
+    MU: TFloat;
+  begin
+    MU := 1 - U;
+    Result := Add(
+      Add(ScalePoint(A, MU * MU * MU),
+          ScalePoint(B, 3 * MU * MU * U)),
+      Add(ScalePoint(C, 3 * MU * U * U),
+          ScalePoint(D, U * U * U)));
+  end;
+
+  function CubicDerivative(const A, B, C, D: TFloatPoint; const U: TFloat): TFloatPoint; inline;
+  var
+    MU: TFloat;
+  begin
+    MU := 1 - U;
+    Result := ScalePoint(
+      Add(
+        Add(ScalePoint(Subtract(B, A), MU * MU),
+            ScalePoint(Subtract(C, B), 2 * MU * U)),
+        ScalePoint(Subtract(D, C), U * U)),
+      3);
+  end;
+
+  function ApproxParabolaIntegral(const X: TFloat): TFloat; inline;
+  const
+    D: TFloat = 0.67;
+  begin
+    Result := X /
+      (1 - D + FastSqrt(FastSqrt(D * D * D * D + OneQuarter * X * X)));
+  end;
+
+  function ApproxParabolaInverseIntegral(const X: TFloat): TFloat; inline;
+  const
+    B: TFloat = 0.39;
+  begin
+    Result := X * (1 - B + FastSqrt(B * B + OneQuarter * X * X));
+  end;
+
+  procedure EstimateQuadratic(const A, B, C: TFloatPoint; const SqrtTol: TFloat; out R: TFlattenParams);
+  var
+    D01, D12, DD, Chord: TFloatPoint;
+    CrossValue, X0, X2, Scale, SqrtScale: TFloat;
+    A0, A2, DA, XMin, Denom, U0, U2: TFloat;
+    SameSign: Boolean;
+  begin
+    R.A0 := 0;
+    R.A2 := 0;
+    R.U0 := 0;
+    R.UScale := 0;
+    R.Value := 0;
+
+    D01 := Subtract(B, A);
+    D12 := Subtract(C, B);
+    DD := Subtract(D01, D12);
+    Chord := Subtract(C, A);
+
+    CrossValue := Cross(Chord, DD);
+
+    // Degenerate quadratic: no useful canonical-parabola mapping.
+    if CrossValue = 0 then
+      Exit;
+
+    X0 := Dot(D01, DD) / CrossValue;
+    X2 := Dot(D12, DD) / CrossValue;
+
+    if X2 = X0 then
+      Exit;
+
+    Scale := Abs(CrossValue / (Hypot(DD) * (X2 - X0)));
+    A0 := ApproxParabolaIntegral(X0);
+    A2 := ApproxParabolaIntegral(X2);
+    DA := Abs(A2 - A0);
+
+    if IsNan(Scale) or IsInfinite(Scale) then
+      Exit;
+
+    SqrtScale := Sqrt(Scale);
+    SameSign :=
+      ((X0 = 0) and (X2 = 0)) or
+      ((X0 > 0) and (X2 > 0)) or
+      ((X0 < 0) and (X2 < 0));
+
+    if SameSign then
+      R.Value := DA * SqrtScale
+    else
+    begin
+      // Handle the cusp case, where curvature changes sign.
+      if SqrtScale = 0 then
+        Exit;
+
+      XMin := SqrtTol / SqrtScale;
+      Denom := ApproxParabolaIntegral(XMin);
+      if Denom = 0 then
+        Exit;
+
+      R.Value := SqrtTol * DA / Denom;
+    end;
+
+    U0 := ApproxParabolaInverseIntegral(A0);
+    U2 := ApproxParabolaInverseIntegral(A2);
+
+    R.A0 := A0;
+    R.A2 := A2;
+    R.U0 := U0;
+
+    if U2 <> U0 then
+      R.UScale := 1 / (U2 - U0);
+
+    if IsNan(R.Value) or IsInfinite(R.Value) or (R.Value < 0) then
+      R.Value := 0;
+  end;
+
+  function DetermineQuadraticT(const R: TFlattenParams; const Fraction: TFloat): TFloat; inline;
+  var
+    A, U: TFloat;
+  begin
+    A := R.A0 + (R.A2 - R.A0) * Fraction;
+    U := ApproxParabolaInverseIntegral(A);
+
+    if R.UScale = 0 then
+      Result := Fraction
+    else
+      Result := (U - R.U0) * R.UScale;
+
+    if Result < 0 then Result := 0;
+    if Result > 1 then Result := 1;
+  end;
+
+  function QuadraticEval(const A, B, C: TFloatPoint; const U: TFloat): TFloatPoint; inline;
+  var
+    MU: TFloat;
+  begin
+    MU := 1 - U;
+    Result := Add(
+      Add(ScalePoint(A, MU * MU), ScalePoint(B, 2 * MU * U)),
+      ScalePoint(C, U * U));
+  end;
+
+begin
+  AddPoint(P1);
+
+  if (Tolerance <= 0) or IsNan(Tolerance) or IsInfinite(Tolerance) then
+  begin
+    AddPoint(P4);
+    Exit;
+  end;
+
+  Accuracy := Tolerance * ToQuadTolerance;
+  SqrtTolerance := FastSqrt(Tolerance);
+  SqrtRemainingTolerance := SqrtTolerance * FastSqrt(1 - ToQuadTolerance);
+
+  if SqrtRemainingTolerance = 0 then
+  begin
+    AddPoint(P4);
+    Exit;
+  end;
+
+  // Estimate how many equal-parameter cubic pieces are needed for the
+  // cubic-to-quadratic approximation.
+  MaxHypot2 := 432 * Accuracy * Accuracy;
+  SubC1 := Subtract(ScalePoint(P2, 3), P1);
+  SubC2 := Subtract(ScalePoint(P3, 3), P4);
+  Error := Dot(Subtract(SubC2, SubC1), Subtract(SubC2, SubC1));
+
+  if MaxHypot2 <= 0 then
+    QuadCount := 1
+  else
+  begin
+    Ratio := Error / MaxHypot2;
+
+    if Ratio <= 1 then
+      QuadCount := 1
+    else
+    if IsNan(Ratio) or IsInfinite(Ratio) or (Ratio >= MaxQuadPieces6) then
+      QuadCount := MaxQuadPieces
+    else
+      QuadCount := Ceil(Power(Ratio, OneOverSix));
+
+    if QuadCount < 1 then
+      QuadCount := 1;
+    if QuadCount > MaxQuadPieces then
+      QuadCount := MaxQuadPieces;
+  end;
+
+  SetLength(Quads, QuadCount);
+  Sum := 0;
+
+  // Convert each cubic subsegment to its approximating quadratic and
+  // estimate that quadratic's analytic flattening effort.
+  for I := 0 to QuadCount - 1 do
+  begin
+    T0 := I / QuadCount;
+    T1 := (I + 1) / QuadCount;
+    DT := T1 - T0;
+
+    SubP0 := CubicEval(P1, P2, P3, P4, T0);
+    SubP3 := CubicEval(P1, P2, P3, P4, T1);
+
+    // Exact control points of this cubic subsegment, using its endpoint
+    // derivatives.
+    SubC1 := Add(SubP0,
+      ScalePoint(CubicDerivative(P1, P2, P3, P4, T0), DT / 3));
+    SubC2 := Subtract(SubP3,
+      ScalePoint(CubicDerivative(P1, P2, P3, P4, T1), DT / 3));
+
+    Quads[I].P0 := SubP0;
+    Quads[I].P1 := ScalePoint(
+      Add(
+        Subtract(ScalePoint(SubC1, 3), SubP0),
+        Subtract(ScalePoint(SubC2, 3), SubP3)),
+      OneQuarter);
+    Quads[I].P2 := SubP3;
+
+    EstimateQuadratic(Quads[I].P0, Quads[I].P1, Quads[I].P2,
+      SqrtRemainingTolerance, Params);
+
+    Quads[I].Params := Params;
+    Sum := Sum + Params.Value;
+  end;
+
+  N := Ceil(OneHalf * Sum / SqrtRemainingTolerance);
+  if N < 1 then
+    N := 1;
+
+  Step := Sum / N;
+  I := 1;
+  ValSum := 0;
+
+  // Distribute line samples across the quadratic pieces according to
+  // their accumulated analytic flattening estimates.
+  for QuadCount := 0 to High(Quads) do
+  begin
+    Params := Quads[QuadCount].Params;
+    Target := I * Step;
+
+    while (Params.Value > 0) and (Target < ValSum + Params.Value) do
+    begin
+      T := DetermineQuadraticT(Params,
+        (Target - ValSum) / Params.Value);
+
+      AddPoint(QuadraticEval(
+        Quads[QuadCount].P0,
+        Quads[QuadCount].P1,
+        Quads[QuadCount].P2,
+        T));
+
+      Inc(I);
+      if I = N + 1 then
+        Break;
+
+      Target := I * Step;
+    end;
+
+    ValSum := ValSum + Params.Value;
+  end;
+
+  AddPoint(P4);
+end;
+
+//------------------------------------------------------------------------------
+// Subdivision of cubic bezier using Wang's Bézier tessellation algorithm.
+//------------------------------------------------------------------------------
+procedure WangCubicBezierCurve(const P1, P2, P3, P4: TFloatPoint; const AddPoint: TAddPointEvent; const Tolerance: TFloat);
 var
   EffectiveTolerance, Span: TFloat;
   dx12, dy12, dx23, dy23, dx34, dy34: TFloat;
@@ -803,7 +1138,7 @@ begin
   Evaluate(1);
 end;
 
-{$if (not defined(RecursiveCubicBezierCurve)) and (not defined(RaphLevienCubicBezierCurve))}
+{$if (not defined(RecursiveCubicBezierCurve)) and (not defined(RaphLevienCubicBezierCurve)) and (not defined(WangCubicBezierCurve))}
   {$define RaphLevienCubicBezierCurve}
 {$ifend}
 
@@ -811,6 +1146,8 @@ var
   CubicBezierCurve: TCubicBezierCurve =
 {$if defined(RecursiveCubicBezierCurve)}
     RecursiveCubicBezierCurve;
+{$elseif defined(WangCubicBezierCurve)}
+    WangCubicBezierCurve;
 {$elseif defined(RaphLevienCubicBezierCurve)}
     RaphLevienCubicBezierCurve;
 {$ifend}
