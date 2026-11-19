@@ -19,7 +19,8 @@ Optimized for 32-bit pixel formats, it provides fast operations with pixel, vect
 - **Text**: Crystal clear anti-aliased, vector based text rendering with advanced layout.
 - **Multithreading**: Safe bitmap locking mechanism for multithreaded applications.
 - **Backends**: Extensible surface-managing backends for cross-platform and framework compatibility.
-- **Optimized**: Hot spots are implemented in highly optimized SIMD assembler (SSE2 and SSE4.1) with optional fallback to pure Pascal.
+- **Image formats**: Reads, writes, and displays the most common image formats via an extensible format adapter framework; Svg, png, jpg, gif, photoshop psd, bmp, etc.
+- **Optimized**: Hot spots are implemented in highly optimized SIMD assembler (SSE2, SSE4.1, & AVX2) with optional fallback to plain x86 assembler or pure Pascal.
 
 ## Supported Platforms and Frameworks
 

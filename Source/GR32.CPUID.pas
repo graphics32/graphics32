@@ -71,7 +71,7 @@ type
 
   TCPUInstructionSet = (
     // Synthetic features. Used by the binding system.
-    isReference,{ Reference implementation }
+    isReference,{ Reference implementation; Implies isPascal }
     isPascal,   { PUREPASCAL implementation }
     isAssembler,{ Assembler implementation, using no features beyond base x86/x64 assembler }
 

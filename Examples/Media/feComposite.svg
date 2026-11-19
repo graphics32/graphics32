@@ -1,0 +1,14 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="compositeFilter">
+      <feOffset in="SourceGraphic" dx="20" dy="20" result="off"/>
+      <feComposite in="SourceGraphic" in2="off" operator="out"/>
+    </filter>
+  </defs>
+
+  <!-- Left: Unfiltered shape -->
+  <rect x="30" y="50" width="100" height="100" fill="#2ecc71"/>
+
+  <!-- Right: Filtered shape (composite out yields cut-out difference shape) -->
+  <rect x="230" y="50" width="100" height="100" fill="#2ecc71" filter="url(#compositeFilter)"/>
+</svg>

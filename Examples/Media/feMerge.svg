@@ -1,0 +1,18 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="mergeFilter" x="-20%" y="-20%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feOffset in="blur" dx="10" dy="10" result="offsetBlur"/>
+      <feMerge>
+        <feMergeNode in="offsetBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Left: Unfiltered shape -->
+  <rect x="30" y="50" width="100" height="100" fill="#9b59b6"/>
+
+  <!-- Right: Filtered shape (drop shadow AND source graphic merged: two overlapping shapes visible) -->
+  <rect x="230" y="50" width="100" height="100" fill="#9b59b6" filter="url(#mergeFilter)"/>
+</svg>

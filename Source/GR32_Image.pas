@@ -365,12 +365,10 @@ type
     X, Y: Integer; Layer: TCustomLayer) of object;
   TPaintStageHandler = procedure(Dest: TBitmap32; StageNum: Integer) of object;
 
-  TBackgroundCheckerStyle = (bcsCustom, bcsNone, bcsLight, bcsMedium, bcsDark);
+  TBackgroundCheckerboardStyle = (bcsCustom, bcsNone, bcsLight, bcsMedium, bcsDark);
   TBackgroundFillStyle = (bfsColor, bfsCheckers, bfsPattern);
 
   TBackgroundOptions = class(TNotifiablePersistent)
-  private type
-    TCheckersColors = array[0..1] of TColor32;
   strict private
     FPatternBitmap: TBitmap32;
     FOuterBorderColor: TColor;
@@ -380,11 +378,18 @@ type
     FDropShadowOffset: integer;
     FDropShadowSize: integer;
     FDropShadowColor: TColor32;
-    FCheckersColors: TCheckersColors;
-    FCheckersStyle: TBackgroundCheckerStyle;
-    FCheckersExponent: integer;
+    FCheckerboardColors: TCheckerboardColors;
+    FCheckerboardStyle: TBackgroundCheckerboardStyle;
+    FCheckerboardExponent: integer;
     FFillStyle: TBackgroundFillStyle;
+  private
+    procedure ReadCheckersStyle(Reader: TReader);
+    procedure ReadCheckersColorEven(Reader: TReader);
+    procedure ReadCheckersColorOdd(Reader: TReader);
+    procedure ReadCheckersExponent(Reader: TReader);
   protected
+    procedure DefineProperties(Filer: TFiler); override;
+
     procedure SetFillStyle(const Value: TBackgroundFillStyle);
     procedure SetPatternBitmap(const Value: TBitmap32);
     procedure SetDropShadowBitmap(const Value: TBitmap32);
@@ -394,12 +399,12 @@ type
     procedure SetInnerBorderColor(const Value: TColor);
     procedure SetInnerBorderWidth(const Value: integer);
     procedure SetOuterBorderColor(const Value: TColor);
-    procedure SetCheckersStyle(const Value: TBackgroundCheckerStyle);
-    function GetCheckersColor(const Index: Integer): TColor;
-    procedure SetCheckersColor(Index: integer; const Value: TColor);
-    procedure SetCheckersExponent(const Value: integer);
+    procedure SetCheckerboardStyle(const Value: TBackgroundCheckerboardStyle);
+    function GetCheckerboardColor(const Index: Integer): TColor;
+    procedure SetCheckerboardColor(Index: integer; const Value: TColor);
+    procedure SetCheckerboardExponent(const Value: integer);
 
-    function IsCheckersColorsStored(Index: integer): boolean;
+    function IsCheckerboardColorsStored(Index: integer): boolean;
     function IsDropShadowBitmapStored: boolean;
     function IsPatternBitmapStored: boolean;
 
@@ -413,7 +418,12 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property CheckersColors: TCheckersColors read FCheckersColors;
+    property CheckerboardColors: TCheckerboardColors read FCheckerboardColors;
+    // Backward compatibility after "Checkers" -> "Checkerboard" rename; Don't use these in new code!
+    property CheckersStyle: TBackgroundCheckerboardStyle read FCheckerboardStyle write SetCheckerboardStyle;
+    property CheckersColorOdd: TColor index 0 read GetCheckerboardColor write SetCheckerboardColor;
+    property CheckersColorEven: TColor index 1 read GetCheckerboardColor write SetCheckerboardColor;
+    property CheckersExponent: integer read FCheckerboardExponent write SetCheckerboardExponent;
   published
     // FillStyle: Specifies how to clear the area *around* the bitmap
     property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle default bfsColor;
@@ -438,14 +448,14 @@ type
     property DropShadowBitmap: TBitmap32 read FDropShadowBitmap write SetDropShadowBitmap stored IsDropShadowBitmapStored;
 
     // CheckersStyle: Specifies how to clear the area *under* the bitmap
-    property CheckersStyle: TBackgroundCheckerStyle read FCheckersStyle write SetCheckersStyle default bcsNone;
-    property CheckersColorOdd: TColor index 0 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
-    property CheckersColorEven: TColor index 1 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
+    property CheckerboardStyle: TBackgroundCheckerboardStyle read FCheckerboardStyle write SetCheckerboardStyle default bcsNone;
+    property CheckerboardColorOdd: TColor index 0 read GetCheckerboardColor write SetCheckerboardColor stored IsCheckerboardColorsStored;
+    property CheckerboardColorEven: TColor index 1 read GetCheckerboardColor write SetCheckerboardColor stored IsCheckerboardColorsStored;
     // CheckersExponent: Size of a single square in the checkers pattern
     // expressed as an exponent of 2.
     // This means that the actual square size is 2^CheckersExponent. So
     // if CheckersExponent=3 then the actual size is 2^3 = 8.
-    property CheckersExponent: integer read FCheckersExponent write SetCheckersExponent default 3;
+    property CheckerboardExponent: integer read FCheckerboardExponent write SetCheckerboardExponent default 3;
   end;
 
   TMouseShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
@@ -479,6 +489,7 @@ type
     FZoomFactor: Double;
     FShiftState: TMouseShiftState;
     FAnimate: boolean;
+    FConstrainPivot: boolean;
   protected
     procedure SetMaxScale(const Value: Single);
     procedure SetMinScale(const Value: Single);
@@ -500,6 +511,7 @@ type
     property Invert: boolean read FInvert write FInvert default False;
     property ShiftState: TMouseShiftState read FShiftState write FShiftState default [];
     property MaintainPivot: boolean read FMaintainPivot write FMaintainPivot default True;
+    property ConstrainPivot: boolean read FConstrainPivot write FConstrainPivot default True;
     property MinScale: Single read FMinScale write SetMinScale stored IsMinScaleStored;
     property MaxScale: Single read FMaxScale write SetMaxScale stored IsMaxScaleStored;
     property Steps: integer read FSteps write SetSteps default 12;
@@ -678,6 +690,13 @@ type
     property OnPaintStage: TPaintStageEvent read FOnPaintStage write FOnPaintStage;
     property OnScaleChange: TNotifyEvent read FOnScaleChange write FOnScaleChange;
   end;
+
+// Backward compatibility after "Checkers" -> "Checkerboard" rename
+type
+  TBackgroundCheckerStyle = TBackgroundCheckerboardStyle;
+
+const
+  bfsCheckerboard = bfsCheckers; // We can't rename an enum in a backward compatible way :-(
 
 
 //------------------------------------------------------------------------------
@@ -977,7 +996,7 @@ type
 //
 //------------------------------------------------------------------------------
 var
-  DefaultCheckersColors: array[TBackgroundCheckerStyle] of TBackgroundOptions.TCheckersColors =
+  DefaultCheckersColors: array[TBackgroundCheckerboardStyle] of TCheckerboardColors =
     (($FFFFFFFF, $FF000000),
      ($FFFFFFFF, $FFFFFFFF),
      ($FFFFFFFF, $FFEBEBEB),
@@ -999,6 +1018,7 @@ implementation
 uses
   Math,
   SysUtils,
+  TypInfo,
 {$if not defined(FRAMEWORK_FMX)}
   Forms,
 {$ifend}
@@ -1705,7 +1725,12 @@ begin
   if FRepaintOptimizer.Enabled then
     FRepaintOptimizer.BeginPaint;
 
-  PaintSupport := FBuffer.Backend as IPaintSupport;
+  if (not Supports(FBuffer.Backend, IPaintSupport, PaintSupport)) then
+  begin
+    // Exception in Paint -> exeption flood; Hide control to avoid it
+    Hide;
+    raise Exception.CreateFmt('%s.Buffer.Backend must support IPaintSupport', [ClassName]);
+  end;
 
   if not FBufferValid then
   begin
@@ -2084,9 +2109,9 @@ begin
   FFillStyle := bfsColor;
   FOuterBorderColor := clNone;
   FInnerBorderColor := clNone;
-  FCheckersStyle := bcsCustom;
-  SetCheckersStyle(bcsNone); // We need to go via the property setter
-  FCheckersExponent := 3;
+  FCheckerboardStyle := bcsCustom;
+  SetCheckerboardStyle(bcsNone); // We need to go via the property setter
+  FCheckerboardExponent := 3;
 end;
 
 destructor TBackgroundOptions.Destroy;
@@ -2094,6 +2119,53 @@ begin
   FPatternBitmap.Free;
   FDropShadowBitmap.Free;
   inherited;
+end;
+
+procedure TBackgroundOptions.ReadCheckersStyle(Reader: TReader);
+var
+  Ident: string;
+begin
+  Ident := Reader.ReadIdent;
+  CheckerboardStyle := TBackgroundCheckerboardStyle(GetEnumValue(TypeInfo(TBackgroundCheckerboardStyle), Ident));
+end;
+
+procedure TBackgroundOptions.ReadCheckersColorOdd(Reader: TReader);
+var
+  Value: LongInt;
+begin
+  if (Reader.NextValue = vaIdent) then
+  begin
+    if IdentToColor(Reader.ReadIdent, Value) then
+      CheckerboardColorOdd := Value;
+  end else
+    CheckerboardColorOdd := TColor(Reader.ReadInteger);
+end;
+
+procedure TBackgroundOptions.ReadCheckersColorEven(Reader: TReader);
+var
+  Value: LongInt;
+begin
+  if (Reader.NextValue = vaIdent) then
+  begin
+    if IdentToColor(Reader.ReadIdent, Value) then
+      CheckerboardColorEven := Value;
+  end else
+    CheckerboardColorEven := TColor(Reader.ReadInteger);
+end;
+
+procedure TBackgroundOptions.ReadCheckersExponent(Reader: TReader);
+begin
+  CheckerboardExponent := Reader.ReadInteger;
+end;
+
+procedure TBackgroundOptions.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+  // Handle renamed properties
+  Filer.DefineProperty('CheckersStyle', ReadCheckersStyle, nil, False);
+  Filer.DefineProperty('CheckersColorOdd', ReadCheckersColorOdd, nil, False);
+  Filer.DefineProperty('CheckersColorEven', ReadCheckersColorEven, nil, False);
+  Filer.DefineProperty('CheckersExponent', ReadCheckersExponent, nil, False);
 end;
 
 function TBackgroundOptions.ActualFillStyle: TBackgroundFillStyle;
@@ -2105,7 +2177,7 @@ begin
       ;
 
     bfsCheckers:
-      if (FCheckersStyle = bcsNone) then
+      if (FCheckerboardStyle = bcsNone) then
         Result := bfsColor;
 
     bfsPattern:
@@ -2118,18 +2190,18 @@ function TBackgroundOptions.ActualClearStyle: TBackgroundFillStyle;
 begin
   Result := ActualFillStyle;
 
-  if (FCheckersStyle <> bcsNone) then
+  if (FCheckerboardStyle <> bcsNone) then
     Result := bfsCheckers;
 end;
 
-function TBackgroundOptions.GetCheckersColor(const Index: Integer): TColor;
+function TBackgroundOptions.GetCheckerboardColor(const Index: Integer): TColor;
 begin
-  Result := WinColor(FCheckersColors[Index]);
+  Result := WinColor(FCheckerboardColors[Index]);
 end;
 
-function TBackgroundOptions.IsCheckersColorsStored(Index: integer): boolean;
+function TBackgroundOptions.IsCheckerboardColorsStored(Index: integer): boolean;
 begin
-  Result := (FCheckersStyle = bcsCustom);
+  Result := (FCheckerboardStyle = bcsCustom);
 end;
 
 function TBackgroundOptions.IsDropShadowBitmapStored: boolean;
@@ -2147,35 +2219,35 @@ begin
   FPatternBitmap.Assign(Value);
 end;
 
-procedure TBackgroundOptions.SetCheckersColor(Index: integer; const Value: TColor);
+procedure TBackgroundOptions.SetCheckerboardColor(Index: integer; const Value: TColor);
 begin
-  if (FCheckersStyle <> bcsCustom) or (Color32(Value) <> FCheckersColors[Index]) then
+  if (FCheckerboardStyle <> bcsCustom) or (Color32(Value) <> FCheckerboardColors[Index]) then
   begin
-    FCheckersColors[Index] := Color32(Value);
-    FCheckersStyle := bcsCustom;
+    FCheckerboardColors[Index] := Color32(Value);
+    FCheckerboardStyle := bcsCustom;
     Changed;
   end;
 end;
 
-procedure TBackgroundOptions.SetCheckersExponent(const Value: integer);
+procedure TBackgroundOptions.SetCheckerboardExponent(const Value: integer);
 begin
-  if (Value <> FCheckersExponent) then
+  if (Value <> FCheckerboardExponent) then
   begin;
     // There's no technical reason to limit the size, but there's also no
     // practical reason to allow larger values.
-    FCheckersExponent := Min(10, Max(0, Value));
+    FCheckerboardExponent := Min(10, Max(0, Value));
     Changed;
   end;
 end;
 
-procedure TBackgroundOptions.SetCheckersStyle(const Value: TBackgroundCheckerStyle);
+procedure TBackgroundOptions.SetCheckerboardStyle(const Value: TBackgroundCheckerboardStyle);
 begin
-  if (FCheckersStyle <> Value) then
+  if (FCheckerboardStyle <> Value) then
   begin
-    FCheckersStyle := Value;
+    FCheckerboardStyle := Value;
 
-    if (FCheckersStyle <> bcsCustom) then
-      FCheckersColors := DefaultCheckersColors[FCheckersStyle];
+    if (FCheckerboardStyle <> bcsCustom) then
+      FCheckerboardColors := DefaultCheckersColors[FCheckerboardStyle];
 
     Changed;
   end;
@@ -2789,9 +2861,19 @@ begin
 
     r := GetBitmapRect;
 
-    // Constrain pivot to bitmap rect
-    Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
-    Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+    // If ConstrainPivot is True AND Bitmap is not empty, constrain the pivot to
+    // the bitmap bounds. Otherwise (when ConstrainPivot is False OR Bitmap is
+    // empty), compute pivot relative to bitmap/view origin without clamping,
+    // enabling mouse zoom over layers without requiring a background bitmap.
+    if FMouseZoomOptions.ConstrainPivot and (not Bitmap.Empty) then
+    begin
+      Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
+      Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+    end else
+    begin
+      Pivot.X := MousePos.X;
+      Pivot.Y := MousePos.Y;
+    end;
 
     // Transform coordinates from Control to Bitmap
     Pivot.X := (Pivot.X - r.Left) / ScaleX;
@@ -3045,11 +3127,10 @@ var
   OuterBorder: integer;
   InnerBorder: integer;
   X, Y: integer;
-  Len: integer;
-  BlockSize: integer;
-  RowPtr: PColor32Array;
-  i: Integer;
-  Parity: integer;
+//  Len, Remain: integer;
+//  BlockSize: integer;
+//  PixelPtr: PColor32;
+//  Parity: integer;
   ViewportRect: TRect;
   BitmapRect: TRect;
   r: TRect;
@@ -3154,7 +3235,7 @@ begin
           end;
 
         // CheckersStyle=bcsNone doesn't clear the area under the bitmap so we need to do it here
-        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = bcsNone) then
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckerboardStyle = bcsNone) then
         begin
           BackgroundColor := Color;
     {$ifdef FPC}
@@ -3175,18 +3256,7 @@ begin
     {$endif}
         C := Color32(BackgroundColor);
 
-        if InvalidRects.Count > 0 then
-        begin
-          for i := 0 to InvalidRects.Count-1 do
-          begin
-            if (DrawBitmapBackground) and (ClearStyle <> bfsColor) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (BitmapRect.Contains(InvalidRects[i]^)) then
-              continue;
-
-            with InvalidRects[i]^ do
-              Dest.FillRectS(Left, Top, Right, Bottom, C);
-          end;
-        end else
-        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) then
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckerboardStyle <> bcsNone) then
         begin
           Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
           Dest.FillRectS(Rect(ViewportRect.Left, r.Top, r.Left, r.Bottom), C);
@@ -3282,7 +3352,7 @@ begin
   (*
   ** Checkers
   *)
-  if (FBackgroundOptions.CheckersStyle <> bcsNone) and
+  if (FBackgroundOptions.CheckerboardStyle <> bcsNone) and
     ((DrawBitmapBackground) or
      ((FillStyle = bfsCheckers) and
       ((Bitmap.Empty) or (Bitmap.DrawMode = dmOpaque)))) then
@@ -3294,6 +3364,8 @@ begin
       // Fill the area under the bitmap
       GR32.IntersectRect(r, BitmapRect, Dest.ClipRect);
 
+    Dest.FillCheckerboardRect(r, FBackgroundOptions.CheckerboardColors, FBackgroundOptions.CheckersExponent);
+(*
     if (r.Width > 0) and (r.Bottom > r.Top) then
     begin
       if (FBackgroundOptions.CheckersStyle <> bcsCustom) or (FBackgroundOptions.CheckersColors[0] <> FBackgroundOptions.CheckersColors[1]) then
@@ -3301,29 +3373,30 @@ begin
         BlockSize := 1 shl FBackgroundOptions.CheckersExponent;
         for Y := r.Top to r.Bottom - 1 do
         begin
-          RowPtr := Dest.ScanLine[Y];
           X := r.Left;
+          PixelPtr := Dest.PixelPtr[X, Y];
           // BlockSize is $00000010, $00000100, $00001000, $00010000, etc. so
           // BlockSize-1 is $00000001, $00000011, $00000111, $00001111, etc.
+          Remain := r.Right - X;
           Len := BlockSize - (X and (BlockSize - 1)); // (X and (BlockSize - 1)) = (X mod BlockSize)
-          if (Len > r.Right - X) then
-            Len := r.Right - X;
           Parity := ((X shr FBackgroundOptions.CheckersExponent) xor (Y shr FBackgroundOptions.CheckersExponent)) and 1;
 
-          while (X < r.Right) do
+          while (Remain > 0) do
           begin
-            FillLongword(RowPtr[X], Len, FBackgroundOptions.CheckersColors[Parity]);
-            Inc(X, Len);
+            if (Len > Remain) then
+              Len := Remain;
+            FillLongword(PixelPtr^, Len, FBackgroundOptions.CheckersColors[Parity]);
+            Inc(PixelPtr, Len);
+            Dec(Remain, Len);
             Parity := 1 - Parity;
             Len := BlockSize;
-            if (Len > r.Right - X) then
-              Len := r.Right - X;
           end;
         end;
       end else
         // Odd color = Even color -> Just clear with the color
         Dest.FillRectS(r, FBackgroundOptions.CheckersColors[0]);
     end;
+*)
   end;
 end;
 
@@ -3369,7 +3442,8 @@ begin
     Exit;
 
   BitmapRect := CachedBitmapRect;
-  if GR32.IsRectEmpty(BitmapRect) then
+
+  if (not GR32.IntersectRect(BitmapRect, Dest.ClipRect)) then
     Exit;
 
   Bitmap.Lock;
@@ -5388,6 +5462,7 @@ begin
   FMinScale := 0.0625;
   FMaxScale := 128.0;
   FMaintainPivot := True;
+  FConstrainPivot := True;
   UpdateZoomFactor;
 end;
 

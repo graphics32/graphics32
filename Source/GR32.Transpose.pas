@@ -44,6 +44,7 @@ uses
   Classes,
   SyncObjs,
   GR32,
+  GR32_OrdinalMaps,
   GR32_LowLevel,
   GR32_Bindings;
 
@@ -54,15 +55,19 @@ uses
 //------------------------------------------------------------------------------
 type
   TTranspose32 = procedure(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
+  TTranspose8 = procedure(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
 
 
 //------------------------------------------------------------------------------
 //
-//      TBitmap32 transpose routines
+//      TBitmap32 & TByteMap transpose routines
 //
 //------------------------------------------------------------------------------
 procedure Transpose32(Src, Dst: TBitmap32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure Transpose32(Src, Dst: Pointer; SrcWidth, SrcHeight: integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+procedure Transpose8(Src, Dst: TByteMap); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Transpose8(Src, Dst: Pointer; SrcWidth, SrcHeight: integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 //------------------------------------------------------------------------------
@@ -71,6 +76,7 @@ procedure Transpose32(Src, Dst: Pointer; SrcWidth, SrcHeight: integer); overload
 //
 //------------------------------------------------------------------------------
 procedure ReferenceTranspose32(Src, Dst: Pointer; Width, Height: integer);
+procedure ReferenceTranspose8(Src, Dst: Pointer; Width, Height: integer);
 
 
 //------------------------------------------------------------------------------
@@ -83,8 +89,10 @@ procedure ReferenceTranspose32(Src, Dst: Pointer; Width, Height: integer);
 //------------------------------------------------------------------------------
 procedure CacheObliviousTranspose32(Src, Dst: pointer; Width, Height: integer);
 procedure CacheObliviousTransposeEx32(Src, Dst: pointer; Width, Height: integer);
+procedure CacheObliviousTranspose8(Src, Dst: pointer; Width, Height: integer);
+procedure TransposeGudkov32(Src, Dst: Pointer; Width, Height: integer);
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
+procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$ifend}
 
 
@@ -95,6 +103,7 @@ procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer);
 //------------------------------------------------------------------------------
 var
   _Transpose32: TTranspose32;
+  _Transpose8: TTranspose8;
 
 var
   TransposeRegistry: TFunctionRegistry;
@@ -114,13 +123,24 @@ implementation
 //------------------------------------------------------------------------------
 procedure Transpose32(Src, Dst: TBitmap32);
 begin
-  Dst.SetSize(Src.Height, Src.Width);
+  Dst.SetSize(Src.Height, Src.Width, False);
   _Transpose32(Src.Bits, Dst.Bits, Src.Width, Src.Height);
 end;
 
 procedure Transpose32(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
 begin
   _Transpose32(Src, Dst, SrcWidth, SrcHeight);
+end;
+
+procedure Transpose8(Src, Dst: TByteMap);
+begin
+  Dst.SetSize(Src.Height, Src.Width, False);
+  _Transpose8(Src.Bits, Dst.Bits, Src.Width, Src.Height);
+end;
+
+procedure Transpose8(Src, Dst: Pointer; SrcWidth, SrcHeight: integer);
+begin
+  _Transpose8(Src, Dst, SrcWidth, SrcHeight);
 end;
 
 
@@ -140,7 +160,7 @@ end;
 // Ported to Delphi by Anders Melander
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); //{$IFDEF FPC}assembler;{$ENDIF}
+procedure SuperDuperTranspose32(Src, Dst: Pointer; W, Height: integer); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 // TODO : This has become a mess. Split into separate x86 and x64 implementations.
 type
   dword = Cardinal;
@@ -533,18 +553,37 @@ asm
   pop edi
 {$ifend}
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6'];
+{$ifend}
 end;
+
 {$ifend}
 
 
 //------------------------------------------------------------------------------
 //
-//      ReferenceTranspose32
+//      ReferenceTranspose32 / ReferenceTranspose8
 //
 //------------------------------------------------------------------------------
 // Simple, no-nonsense transpose
 //------------------------------------------------------------------------------
+procedure ReferenceTranspose8(Src, Dst: pointer; Width, Height: integer);
+var
+  y, x: integer;
+  pSrc: PByte;
+begin
+  pSrc := PByte(Src);
+  for y := 0 to Height - 1 do
+  begin
+    for x := 0 to Width - 1 do
+    begin
+      (PByte(Dst) + x * Height + y)^ := pSrc^;
+      Inc(pSrc);
+    end;
+  end;
+end;
+
 procedure ReferenceTranspose32(Src, Dst: pointer; Width, Height: integer);
 
   procedure CopyRow(Src, Dst: PColor32);
@@ -570,6 +609,313 @@ begin
   end;
 end;
 
+
+//------------------------------------------------------------------------------
+//
+//      TransposeGudkov32
+//
+//------------------------------------------------------------------------------
+// High-performance matrix transposition for 32-bit pixel data based on Andrei
+// Gudkov's transpose optimization techniques (https://gudok.xyz/transpose/).
+//
+// Features:
+// 1. 2D L1d block decomposition (32x32 pixel blocks) to bound working set size
+//    within L1d cache.
+// 2. Local output buffering (32x32 TColor32 buffer on stack) to eliminate
+//    store-buffer / Request-For-Ownership (RFO) stalls on strided destination writes.
+// 3. Software prefetching of source rows of the next 32x32 block in row-major
+//    block order.
+// 4. Fast 4x4 sub-block vector/scalar transpose kernels for full 32x32 blocks.
+// 5. Handles arbitrary bitmap dimensions (including partial edge blocks) and
+//    unaligned pointers.
+//------------------------------------------------------------------------------
+
+{$POINTERMATH ON}
+
+type
+  TGudkovTransposeBlock = procedure(pSrc: PColor32; SrcStrideBytes: Integer; pBuf: PColor32; pNextSrc: PColor32; HasNextBlock: LongBool);
+
+var
+  _GudkovTransposeBlock: TGudkovTransposeBlock = nil;
+
+procedure GudkovTransposeBlock_Pascal(pSrc: PColor32; SrcStrideBytes: Integer; pBuf: PColor32; Unused_pNextSrc: PColor32; Unused_HasNextBlock: LongBool);
+var
+  br, bc: Integer;
+  r0, c0: Integer;
+  p0, p1, p2, p3: PColor32;
+  a0, a1, a2, a3: TColor32;
+  b0, b1, b2, b3: TColor32;
+  c0_val, c1_val, c2_val, c3_val: TColor32;
+  d0, d1, d2, d3: TColor32;
+  dst0, dst1, dst2, dst3: PColor32;
+begin
+  for br := 0 to 7 do
+  begin
+    r0 := br * 4;
+    for bc := 0 to 7 do
+    begin
+      c0 := bc * 4;
+
+      p0 := PColor32(PByte(pSrc) + (r0 + 0) * SrcStrideBytes + c0 * SizeOf(TColor32));
+      p1 := PColor32(PByte(pSrc) + (r0 + 1) * SrcStrideBytes + c0 * SizeOf(TColor32));
+      p2 := PColor32(PByte(pSrc) + (r0 + 2) * SrcStrideBytes + c0 * SizeOf(TColor32));
+      p3 := PColor32(PByte(pSrc) + (r0 + 3) * SrcStrideBytes + c0 * SizeOf(TColor32));
+
+      a0 := p0[0]; a1 := p0[1]; a2 := p0[2]; a3 := p0[3];
+      b0 := p1[0]; b1 := p1[1]; b2 := p1[2]; b3 := p1[3];
+      c0_val := p2[0]; c1_val := p2[1]; c2_val := p2[2]; c3_val := p2[3];
+      d0 := p3[0]; d1 := p3[1]; d2 := p3[2]; d3 := p3[3];
+
+      dst0 := PColor32(PByte(pBuf) + (c0 + 0) * (32 * SizeOf(TColor32)) + r0 * SizeOf(TColor32));
+      dst1 := PColor32(PByte(pBuf) + (c0 + 1) * (32 * SizeOf(TColor32)) + r0 * SizeOf(TColor32));
+      dst2 := PColor32(PByte(pBuf) + (c0 + 2) * (32 * SizeOf(TColor32)) + r0 * SizeOf(TColor32));
+      dst3 := PColor32(PByte(pBuf) + (c0 + 3) * (32 * SizeOf(TColor32)) + r0 * SizeOf(TColor32));
+
+      dst0[0] := a0; dst0[1] := b0; dst0[2] := c0_val; dst0[3] := d0;
+      dst1[0] := a1; dst1[1] := b1; dst1[2] := c1_val; dst1[3] := d1;
+      dst2[0] := a2; dst2[1] := b2; dst2[2] := c2_val; dst2[3] := d2;
+      dst3[0] := a3; dst3[1] := b3; dst3[2] := c3_val; dst3[3] := d3;
+    end;
+  end;
+end;
+
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+{$if defined(TARGET_x64)}
+procedure GudkovTransposeBlock_SSE2_x64(pSrc: PColor32; SrcStrideBytes: Integer; pBuf: PColor32; pNextSrc: PColor32; HasNextBlock: LongBool);
+{$if defined(FPC)}begin{$ifend}
+asm
+{$if not defined(FPC)}
+  .SAVENV XMM4
+  .SAVENV XMM5
+
+  .PUSHNV RBX
+  .PUSHNV RSI
+  .PUSHNV RDI
+  .PUSHNV R12
+{$ifend}
+
+  movsxd  rdx, edx                    // Ensure RDX is 64-bit stride
+
+  xor     r10, r10                    // r10 = br (0 to 28 step 4)
+
+@RowLoop64:
+  test    r9, r9
+  jz      @NoPrefetch64
+  mov     rax, r10
+  imul    rax, rdx
+  add     rax, r9
+  prefetchnta [rax]
+@NoPrefetch64:
+
+  mov     rax, r10
+  imul    rax, rdx
+  add     rax, rcx                    // rax = r0_ptr (pSrc + r0 * SrcStrideBytes)
+
+  mov     rsi, rax
+  add     rax, rdx
+  mov     rdi, rax
+  add     rax, rdx
+  mov     rbx, rax
+  add     rax, rdx
+  mov     r12, rax                    // r12 = r3_ptr
+
+  xor     r11, r11                    // r11 = bc (0 to 28 step 4)
+
+@ColLoop64:
+  movups  xmm0, [rsi + r11 * 4]
+  movups  xmm1, [rdi + r11 * 4]
+  movups  xmm2, [rbx + r11 * 4]
+  movups  xmm3, [r12 + r11 * 4]
+
+  movaps   xmm4, xmm0
+  movaps   xmm5, xmm2
+  unpcklps xmm4, xmm1
+  unpcklps xmm5, xmm3
+  unpckhps xmm0, xmm1
+  unpckhps xmm2, xmm3
+  movaps   xmm1, xmm4
+  movaps   xmm3, xmm0
+  movlhps  xmm4, xmm5
+  movlhps  xmm3, xmm2
+  movhlps  xmm5, xmm1
+  movhlps  xmm2, xmm0
+
+  // Calculate pBuf row address for c0: rax = pBuf + r11 * 128 + r10 * 4
+  mov     rax, r11
+  shl     rax, 7
+  add     rax, r8
+  lea     rax, [rax + r10 * 4]
+
+  movups  [rax],       xmm4
+  movups  [rax + 128], xmm5
+  movups  [rax + 256], xmm3
+  movups  [rax + 384], xmm2
+
+  add     r11, 4
+  cmp     r11, 32
+  jl      @ColLoop64
+
+  add     r10, 4
+  cmp     r10, 32
+  jl      @RowLoop64
+
+{$if defined(FPC)}
+end['XMM4', 'XMM5', 'XMM5', 'RBX', 'RSI', 'RDI', 'R12'];
+{$ifend}
+end;
+
+{$elseif defined(TARGET_x86)}
+
+procedure GudkovTransposeBlock_SSE2_x86(pSrc: PColor32; SrcStrideBytes: Integer; pBuf: PColor32; pNextSrc: PColor32; HasNextBlock: LongBool);
+var
+  br, bc: Integer;
+  r0_val, c0_val: Integer;
+  p0, p1, p2, p3: PColor32;
+  d0, d1, d2, d3: PColor32;
+  pNextRow: PColor32;
+begin
+  for br := 0 to 7 do
+  begin
+    r0_val := br * 4;
+
+    if HasNextBlock and (pNextSrc <> nil) then
+    begin
+      pNextRow := PColor32(PByte(pNextSrc) + r0_val * SrcStrideBytes);
+      asm
+        mov eax, pNextRow
+        prefetchnta [eax]
+      end;
+    end;
+
+    for bc := 0 to 7 do
+    begin
+      c0_val := bc * 4;
+
+      p0 := PColor32(PByte(pSrc) + (r0_val + 0) * SrcStrideBytes + c0_val * SizeOf(TColor32));
+      p1 := PColor32(PByte(pSrc) + (r0_val + 1) * SrcStrideBytes + c0_val * SizeOf(TColor32));
+      p2 := PColor32(PByte(pSrc) + (r0_val + 2) * SrcStrideBytes + c0_val * SizeOf(TColor32));
+      p3 := PColor32(PByte(pSrc) + (r0_val + 3) * SrcStrideBytes + c0_val * SizeOf(TColor32));
+
+      d0 := PColor32(PByte(pBuf) + (c0_val + 0) * (32 * SizeOf(TColor32)) + r0_val * SizeOf(TColor32));
+      d1 := PColor32(PByte(pBuf) + (c0_val + 1) * (32 * SizeOf(TColor32)) + r0_val * SizeOf(TColor32));
+      d2 := PColor32(PByte(pBuf) + (c0_val + 2) * (32 * SizeOf(TColor32)) + r0_val * SizeOf(TColor32));
+      d3 := PColor32(PByte(pBuf) + (c0_val + 3) * (32 * SizeOf(TColor32)) + r0_val * SizeOf(TColor32));
+
+      asm
+        mov eax, p0
+        movups xmm0, [eax]
+        mov eax, p1
+        movups xmm1, [eax]
+        mov eax, p2
+        movups xmm2, [eax]
+        mov eax, p3
+        movups xmm3, [eax]
+
+        movaps   xmm4, xmm0
+        movaps   xmm5, xmm2
+        unpcklps xmm4, xmm1
+        unpcklps xmm5, xmm3
+        unpckhps xmm0, xmm1
+        unpckhps xmm2, xmm3
+        movaps   xmm1, xmm4
+        movaps   xmm3, xmm0
+        movlhps  xmm4, xmm5
+        movlhps  xmm3, xmm2
+        movhlps  xmm5, xmm1
+        movhlps  xmm2, xmm0
+
+        mov eax, d0
+        movups [eax], xmm4
+        mov eax, d1
+        movups [eax], xmm5
+        mov eax, d2
+        movups [eax], xmm3
+        mov eax, d3
+        movups [eax], xmm2
+      end;
+    end;
+  end;
+end;
+{$ifEnd}
+{$ifEnd}
+
+procedure TransposeGudkov32(Src, Dst: Pointer; Width, Height: integer);
+const
+  BlockSize = 32;
+var
+  SrcStrideBytes, DstStrideBytes: Integer;
+  NumRowBlocks, NumColBlocks: Integer;
+  rb, cb, NextRB, NextCB: Integer;
+  SrcY, SrcX, bh, bw, r, c: Integer;
+  pSrcBlock, pNextSrcBlock, pSrcRow, pDstRow: PColor32;
+  HasNextBlock: Boolean;
+  LocalBuf: array[0..BlockSize * BlockSize - 1] of TColor32;
+begin
+  if (Width <= 0) or (Height <= 0) or (Src = nil) or (Dst = nil) then
+    Exit;
+
+  SrcStrideBytes := Width * SizeOf(TColor32);
+  DstStrideBytes := Height * SizeOf(TColor32);
+
+  NumRowBlocks := (Height + BlockSize - 1) div BlockSize;
+  NumColBlocks := (Width + BlockSize - 1) div BlockSize;
+
+  for rb := 0 to NumRowBlocks - 1 do
+  begin
+    SrcY := rb * BlockSize;
+    bh := Height - SrcY;
+    if bh > BlockSize then
+      bh := BlockSize;
+
+    for cb := 0 to NumColBlocks - 1 do
+    begin
+      SrcX := cb * BlockSize;
+      bw := Width - SrcX;
+      if bw > BlockSize then
+        bw := BlockSize;
+
+      pSrcBlock := PColor32(PByte(Src) + SrcY * SrcStrideBytes + SrcX * SizeOf(TColor32));
+
+      // Calculate next block origin for software prefetching
+      NextCB := cb + 1;
+      NextRB := rb;
+      if NextCB >= NumColBlocks then
+      begin
+        NextCB := 0;
+        Inc(NextRB);
+      end;
+
+      HasNextBlock := NextRB < NumRowBlocks;
+      if HasNextBlock then
+        pNextSrcBlock := PColor32(PByte(Src) + (NextRB * BlockSize) * SrcStrideBytes + (NextCB * BlockSize) * SizeOf(TColor32))
+      else
+        pNextSrcBlock := nil;
+
+      // Transpose source block into LocalBuf
+      if (bh = BlockSize) and (bw = BlockSize) then
+        _GudkovTransposeBlock(PColor32(pSrcBlock), SrcStrideBytes, @LocalBuf[0], PColor32(pNextSrcBlock), HasNextBlock)
+      else
+      begin
+        // Partial block boundary transposition
+        pSrcRow := pSrcBlock;
+        for r := 0 to bh - 1 do
+        begin
+          for c := 0 to bw - 1 do
+            LocalBuf[c * BlockSize + r] := pSrcRow[c];
+          pSrcRow := PColor32(PByte(pSrcRow) + SrcStrideBytes);
+        end;
+      end;
+
+      // Copy transposed rows from LocalBuf to Dst
+      for c := 0 to bw - 1 do
+      begin
+        pDstRow := PColor32(PByte(Dst) + (SrcX + c) * DstStrideBytes + SrcY * SizeOf(TColor32));
+        MoveLongword(LocalBuf[c * BlockSize], pDstRow^, bh);
+      end;
+    end;
+  end;
+end;
 
 //------------------------------------------------------------------------------
 //
@@ -730,6 +1076,53 @@ begin
 {$endif USE_GLOBALBUFFER}
 end;
 
+//------------------------------------------------------------------------------
+// CacheObliviousTranspose8 performs cache-friendly 8-bit byte map matrix transposition
+// using recursive block subdivision.
+//------------------------------------------------------------------------------
+procedure CacheObliviousTranspose8(Src, Dst: pointer; Width, Height: integer);
+{$IFOPT R+}{$DEFINE R_WAS_ON}{$R-}{$ENDIF}
+
+  procedure Recurse(Col, Row, ColCount, RowCount: integer);
+  var
+    y, x: integer;
+    Split: integer;
+  begin
+    if (RowCount <= CacheObliviousBlockSize) and (ColCount <= CacheObliviousBlockSize) then
+    begin
+      // Transpose block
+      for y := Row to Row + RowCount - 1 do
+        for x := Col to Col + ColCount - 1 do
+          PByteArray(Dst)[y + x * Height] := PByteArray(Src)[x + y * Width];
+    end
+    else
+    if (RowCount >= ColCount) then
+    begin // Split vertically
+      Split := RowCount div 2;
+      Recurse(Col, Row, ColCount, Split);
+
+      Inc(Row, Split);
+      Dec(RowCount, Split);
+      Recurse(Col, Row, ColCount, RowCount);
+    end
+    else
+    begin // Split horizontally
+      Split := ColCount div 2;
+      Recurse(Col, Row, Split, RowCount);
+
+      Inc(Col, Split);
+      Dec(ColCount, Split);
+      Recurse(Col, Row, ColCount, RowCount);
+    end;
+  end;
+
+begin
+  if (Width <= 0) or (Height <= 0) or (Src = nil) or (Dst = nil) then
+    Exit;
+  Recurse(0, 0, Width, Height);
+end;
+{$IFDEF R_WAS_ON}{$R+}{$UNDEF R_WAS_ON}{$ENDIF}
+
 
 //------------------------------------------------------------------------------
 //
@@ -738,19 +1131,34 @@ end;
 //------------------------------------------------------------------------------
 procedure RegisterBindings;
 begin
-  TransposeRegistry := NewRegistry('GR32.Transpose bindings');
+  TransposeRegistry := NewRegistry('GR32.Transpose');
 
   TransposeRegistry.RegisterBinding(@@_Transpose32, '_Transpose32');
+  TransposeRegistry.RegisterBinding(@@_Transpose8, '_Transpose8');
+  TransposeRegistry.RegisterBinding(@@_GudkovTransposeBlock, '_GudkovTransposeBlock');
 
   TransposeRegistry[@@_Transpose32].Add(@ReferenceTranspose32,          [isReference]).Name := 'ReferenceTranspose32';
   TransposeRegistry[@@_Transpose32].Add(@CacheObliviousTranspose32,     [isPascal],     -16).Name := 'CacheObliviousTranspose32';
   TransposeRegistry[@@_Transpose32].Add(@CacheObliviousTransposeEx32,   [isPascal],     -32).Name := 'CacheObliviousTransposeEx32';
+  TransposeRegistry[@@_Transpose32].Add(@TransposeGudkov32,             [isPascal, isSSE2, isSSE41], -64).Name := 'TransposeGudkov32';
+
+  TransposeRegistry[@@_Transpose8].Add(@ReferenceTranspose8,           [isReference]).Name := 'ReferenceTranspose8';
+  TransposeRegistry[@@_Transpose8].Add(@CacheObliviousTranspose8,        [isPascal],     -32).Name := 'CacheObliviousTranspose8';
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
   // TODO : SuperDuperTranspose32 has been profiled to be on average 3 times slower
   // than CacheObliviousTransposeEx32 in the Gaussian blur benchmark.
   // It's still vastly faster in most real-world situations so we give it priority.
   TransposeRegistry[@@_Transpose32].Add(@SuperDuperTranspose32,         [isSSE2],       -48).Name := 'SuperDuperTranspose32';
+{$ifend}
+
+  TransposeRegistry[@@_GudkovTransposeBlock].Add(@GudkovTransposeBlock_Pascal, [isPascal], -16).Name := 'GudkovTransposeBlock_Pascal';
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+{$if defined(TARGET_x64)}
+  TransposeRegistry[@@_GudkovTransposeBlock].Add(@GudkovTransposeBlock_SSE2_x64, [isSSE41], -32).Name := 'GudkovTransposeBlock_SSE2_x64';
+{$elseif defined(TARGET_x86)}
+  TransposeRegistry[@@_GudkovTransposeBlock].Add(@GudkovTransposeBlock_SSE2_x86, [isSSE2], -32).Name := 'GudkovTransposeBlock_SSE2_x86';
+{$ifend}
 {$ifend}
 
   TransposeRegistry.RebindAll;

@@ -224,27 +224,26 @@ function TVectorMap.GetFixedVectorX(X, Y: TFixed): TFixedVector;
 const
   Next = SizeOf(TFixedVector);
 var
-  WX,WY: TFixed;
+  WX, WY: TFixed;
   W, H: Integer;
   P: Pointer;
 begin
   WX := TFixedRec(X).Int;
   WY := TFixedRec(Y).Int;
-  W := Width;
-  H := Height;
-  if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= H - 1) then
+
+  if (WX >= 0) and (WX < Width) and (WY >= 0) and (WY < Height) then
   begin
-    P := @FVectors[WX + WY * W];
+    P := @FVectors[WX + WY * Width];
 
-    if (WY = H - 1) then
-      W := 0
-    else
-      W := W * Next;
-
-    if (WX = W - 1) then
+    if (WX = Width - 1) then
       H := 0
     else
       H := Next;
+
+    if (WY = Height - 1) then
+      W := 0
+    else
+      W := Width * Next;
 
     WX := TFixedRec(X).Frac;
     WY := TFixedRec(Y).Frac;

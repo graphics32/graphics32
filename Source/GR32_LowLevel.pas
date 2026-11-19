@@ -56,6 +56,7 @@ uses
   Graphics,
 {$ifend}
   System.UITypes,
+  Math,
   GR32,
   GR32_Math,
   GR32_Bindings;
@@ -308,6 +309,21 @@ var
 
 //------------------------------------------------------------------------------
 //
+//      SetSSERoundMode
+//
+//------------------------------------------------------------------------------
+// Mirrors the Delphi Math.SetSSERoundMode function
+//------------------------------------------------------------------------------
+{$IFDEF FPC}
+type
+  TRoundingMode = Math.TFPURoundingMode;
+{$ENDIF}
+
+function SetSSERoundMode(const RoundMode: TRoundingMode): TRoundingMode; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+
+//------------------------------------------------------------------------------
+//
 //      SAR: Shift right with sign conservation
 //
 //------------------------------------------------------------------------------
@@ -364,12 +380,7 @@ const
 implementation
 
 uses
-{$if not defined(FPC)}
-  System.Math,
-{$else}
   SysUtils,
-  Math,
-{$ifend}
   GR32.Types.SIMD;
 
 {$R-}{$Q-}  // switch off overflow and range checking
@@ -378,6 +389,41 @@ uses
 //
 //      FillLongword
 //
+//------------------------------------------------------------------------------
+// Benchmark results:
+//
+// - FillLongword_Pas is consistently *much* slower than the assembler versions.
+//
+// - FillLongword_SSE2 is only faster than FillLongword_ASM for size<256.
+//
+// - FillLongword_ASM is 2-3 times faster than faster than FillLongword_SSE2 for
+//   size 256->4096. For Size>4096 it is only marginally faster.
+//
+// - FillLongword_SSE2_Unrolled is about twice as fast as FillLongword_SSE2 for
+//   size 256-4096. For Size>4096 it is about the same.
+//
+// - FillLongword_AVX2 is 15-20% faster than FillLongword_ASM for sizes<4096.
+//   At 4096 it's slight slower, and above it's about the same.
+//
+// - FillLongword_AVX2_NT is 10-15 faster than the rest for sizes>1M. Below that
+//   it's much slower than all the other SIMD variants. Below 1024 it's slower
+//   than all.
+//
+// Verdict:
+//
+// - We apply the following registration
+//   1. FillLongword_ASM: isAssembler
+//   2. FillLongword_ASM: isSSE2
+//   3. FillLongword_SSE2_Unrolled: isSSE2
+//   4. FillLongword_AVX2: isAVX2
+//
+//   - FillLongword_ASM is registered twice; Once as isAssembler and once as
+//     isSSE2.
+//   - FillLongword_SSE2_Unrolled is also registered as isSSE2 but with a
+//     worse priority.
+//
+// The remaining variants are moved to the benchmark unit and only kept for
+// reference.
 //------------------------------------------------------------------------------
 procedure FillLongword_Pas(var X; Count: Cardinal; Value: Longword);
 var
@@ -389,7 +435,7 @@ begin
     P[I] := Integer(Value);
 end;
 
-{$IFNDEF PUREPASCAL}
+{$if (not defined(PUREPASCAL))}
 procedure FillLongword_ASM(var X; Count: Cardinal; Value: Longword); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
@@ -419,125 +465,245 @@ asm
         POP     RDI
 {$ENDIF}
 end;
+{$ifend}
 
-{$IFNDEF OMIT_SSE2}
-procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+//------------------------------------------------------------------------------
+// FillLongword_SSE2_Unrolled
+//------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+procedure FillLongword_SSE2_Unrolled(var X; Count: Integer; Value: Longword); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
-        // EAX = X;   EDX = Count;   ECX = Value
-
-        TEST       EDX, EDX        // if Count = 0 then
-        JZ         @Exit           //   Exit
-
-        PUSH       EDI             // push EDI on stack
-        MOV        EDI, EAX        // Point EDI to destination
-
-        CMP        EDX, 32
-        JL         @SmallLoop
-
-        AND        EAX, 3          // get aligned count
-        TEST       EAX, EAX        // check if X is not dividable by 4
-        JNZ        @SmallLoop      // otherwise perform slow small loop
-
-        MOV        EAX, EDI
-        SHR        EAX, 2          // bytes to count
-        AND        EAX, 3          // get aligned count
-        ADD        EAX,-4
-        NEG        EAX             // get count to advance
-        JZ         @SetupMain
-        SUB        EDX, EAX        // subtract aligning start from total count
-
-@AligningLoop:
-        MOV        [EDI], ECX
-        ADD        EDI, 4
-        DEC        EAX
-        JNZ        @AligningLoop
-
-@SetupMain:
-        MOV        EAX, EDX        // EAX = remaining count
-        SHR        EAX, 2
-        SHL        EAX, 2
-        SUB        EDX, EAX        // EDX = remaining count
-        SHR        EAX, 2
+        TEST       EDX, EDX
+        JLE        @Exit
+        PUSH       EDI
+        MOV        EDI, EAX
 
         MOVD       XMM0, ECX
         PUNPCKLDQ  XMM0, XMM0
         PUNPCKLDQ  XMM0, XMM0
-@SSE2Loop:
-        MOVDQA     [EDI], XMM0
-        ADD        EDI, 16
+
+        CMP        EDX, 16
+        JL         @Remainder
+
+        // Align EDI to 16 bytes
+        MOV        EAX, EDI
+        AND        EAX, 15
+        JZ         @SetupMain
+        SHR        EAX, 2
+        NEG        EAX
+        ADD        EAX, 4
+        SUB        EDX, EAX
+
+@AlignLoop:
+        MOV        [EDI], ECX
+        ADD        EDI, 4
         DEC        EAX
-        JNZ        @SSE2Loop
+        JNZ        @AlignLoop
 
-@SmallLoop:
-        MOV        EAX,ECX
-        MOV        ECX,EDX
+@SetupMain:
+        MOV        EAX, EDX
+        SHR        EAX, 4              // 16 dwords (64 bytes) per iteration
+        JZ         @Remainder
 
-        REP        STOSD           // Fill count dwords
+@Loop:
+        MOVDQA     [EDI], XMM0
+        MOVDQA     [EDI + 16], XMM0
+        MOVDQA     [EDI + 32], XMM0
+        MOVDQA     [EDI + 48], XMM0
+        ADD        EDI, 64
+        DEC        EAX
+        JNZ        @Loop
+
+@Remainder:
+        AND        EDX, 15
+        JZ         @ExitPOP
+
+@RemainderLoop:
+        MOV        [EDI], ECX
+        ADD        EDI, 4
+        DEC        EDX
+        JNZ        @RemainderLoop
 
 @ExitPOP:
         POP        EDI
-
 @Exit:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
-        // RCX = X;   RDX = Count;   R8 = Value
-
-        TEST       RDX, RDX        // if Count = 0 then
-        JZ         @Exit           //   Exit
-
-        MOV        R9, RCX         // Point R9 to destination
-
-        CMP        RDX, 32
-        JL         @SmallLoop
-
-        AND        RCX, 3          // get aligned count
-        TEST       RCX, RCX        // check if X is not dividable by 4
-        JNZ        @SmallLoop      // otherwise perform slow small loop
-
-        MOV        RCX, R9
-        SHR        RCX, 2          // bytes to count
-        AND        RCX, 3          // get aligned count
-        ADD        RCX,-4
-        NEG        RCX             // get count to advance
-        JZ         @SetupMain
-        SUB        RDX, RCX        // subtract aligning start from total count
-
-@AligningLoop:
-        MOV        [R9], R8D
-        ADD        R9, 4
-        DEC        RCX
-        JNZ        @AligningLoop
-
-@SetupMain:
-        MOV        RCX, RDX        // RCX = remaining count
-        SHR        RCX, 2
-        SHL        RCX, 2
-        SUB        RDX, RCX        // RDX = remaining count
-        SHR        RCX, 2
+        TEST       RDX, RDX
+        JLE        @Exit
+        MOV        R9, RCX
 
         MOVD       XMM0, R8D
         PUNPCKLDQ  XMM0, XMM0
         PUNPCKLDQ  XMM0, XMM0
-@SSE2Loop:
-        MOVDQA     [R9], XMM0
-        ADD        R9, 16
-        DEC        RCX
-        JNZ        @SSE2Loop
 
-        TEST       RDX, RDX
+        CMP        RDX, 16
+        JL         @Remainder
+
+        MOV        RAX, R9
+        AND        RAX, 15
+        JZ         @SetupMain
+        SHR        RAX, 2
+        NEG        RAX
+        ADD        RAX, 4
+        SUB        RDX, RAX
+
+@AlignLoop:
+        MOV        [R9], R8D
+        ADD        R9, 4
+        DEC        RAX
+        JNZ        @AlignLoop
+
+@SetupMain:
+        MOV        RAX, RDX
+        SHR        RAX, 4
+        JZ         @Remainder
+
+@Loop:
+        MOVDQA     [R9], XMM0
+        MOVDQA     [R9 + 16], XMM0
+        MOVDQA     [R9 + 32], XMM0
+        MOVDQA     [R9 + 48], XMM0
+        ADD        R9, 64
+        DEC        RAX
+        JNZ        @Loop
+
+@Remainder:
+        AND        RDX, 15
         JZ         @Exit
-@SmallLoop:
+
+@RemainderLoop:
         MOV        [R9], R8D
         ADD        R9, 4
         DEC        RDX
-        JNZ        @SmallLoop
+        JNZ        @RemainderLoop
+
 @Exit:
 {$ENDIF}
 end;
+{$ifend}
+
+//------------------------------------------------------------------------------
+// FillLongword_AVX2 (Cached)
+//------------------------------------------------------------------------------
+{$if defined(FPC) or (CompilerVersion >= 35.0)} // AVX supported from Delphi 11
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+procedure FillLongword_AVX2(var X; Count: Integer; Value: Longword); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x86}
+        TEST       EDX, EDX
+        JLE        @Exit
+        PUSH       EDI
+        MOV        EDI, EAX
+
+        MOVD       XMM0, ECX
+        VPBROADCASTD YMM0, XMM0
+
+        CMP        EDX, 32
+        JL         @Remainder
+
+        // Align EDI to 32 bytes
+        MOV        EAX, EDI
+        AND        EAX, 31
+        JZ         @SetupMain
+        SHR        EAX, 2
+        NEG        EAX
+        ADD        EAX, 8
+        SUB        EDX, EAX
+
+@AlignLoop:
+        MOV        [EDI], ECX
+        ADD        EDI, 4
+        DEC        EAX
+        JNZ        @AlignLoop
+
+@SetupMain:
+        MOV        EAX, EDX
+        SHR        EAX, 5              // 32 dwords (128 bytes) per iteration
+        JZ         @Remainder
+
+@Loop:
+        VMOVDQA    [EDI], YMM0
+        VMOVDQA    [EDI + 32], YMM0
+        VMOVDQA    [EDI + 64], YMM0
+        VMOVDQA    [EDI + 96], YMM0
+        ADD        EDI, 128
+        DEC        EAX
+        JNZ        @Loop
+
+@Remainder:
+        VZEROUPPER
+        AND        EDX, 31
+        JZ         @ExitPOP
+
+@RemainderLoop:
+        MOV        [EDI], ECX
+        ADD        EDI, 4
+        DEC        EDX
+        JNZ        @RemainderLoop
+
+@ExitPOP:
+        POP        EDI
+@Exit:
 {$ENDIF}
+
+{$IFDEF TARGET_x64}
+        TEST       RDX, RDX
+        JLE        @Exit
+        MOV        R9, RCX
+
+        MOVD       XMM0, R8D
+        VPBROADCASTD YMM0, XMM0
+
+        CMP        RDX, 32
+        JL         @Remainder
+
+        MOV        RAX, R9
+        AND        RAX, 31
+        JZ         @SetupMain
+        SHR        RAX, 2
+        NEG        RAX
+        ADD        RAX, 8
+        SUB        RDX, RAX
+
+@AlignLoop:
+        MOV        [R9], R8D
+        ADD        R9, 4
+        DEC        RAX
+        JNZ        @AlignLoop
+
+@SetupMain:
+        MOV        RAX, RDX
+        SHR        RAX, 5
+        JZ         @Remainder
+
+@Loop:
+        VMOVDQA    [R9], YMM0
+        VMOVDQA    [R9 + 32], YMM0
+        VMOVDQA    [R9 + 64], YMM0
+        VMOVDQA    [R9 + 96], YMM0
+        ADD        R9, 128
+        DEC        RAX
+        JNZ        @Loop
+
+@Remainder:
+        VZEROUPPER
+        AND        RDX, 31
+        JZ         @Exit
+
+@RemainderLoop:
+        MOV        [R9], R8D
+        ADD        R9, 4
+        DEC        RDX
+        JNZ        @RemainderLoop
+
+@Exit:
 {$ENDIF}
+end;
+{$ifend}
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -1758,6 +1924,48 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      SetSSERoundMode
+//
+//------------------------------------------------------------------------------
+function SetSSERoundMode(const RoundMode: TRoundingMode): TRoundingMode;
+{$if (not defined(FPC))}
+{$WARN SYMBOL_PLATFORM OFF}
+begin
+  Result := Math.SetSSERoundMode(RoundMode);
+end;
+{$else}
+begin
+  Result := Math.SetRoundMode(RoundMode);
+end;
+(*
+var
+  MXCSR: Cardinal;
+begin
+  MXCSR := Math.GetMXCSR;
+  case (MXCSR and $6000) of
+    $0000: Result := rmNearest;
+    $2000: Result := rmDown;
+    $4000: Result := rmUp;
+    $6000: Result := rmTruncate;
+  else
+    Result := rmNearest;
+  end;
+
+  MXCSR := MXCSR and not $6000;
+  case RoundMode of
+    rmNearest:  ; // already 00
+    rmDown:     MXCSR := MXCSR or $2000;
+    rmUp:       MXCSR := MXCSR or $4000;
+    rmTruncate: MXCSR := MXCSR or $6000;
+  end;
+  Math.SetMXCSR(MXCSR);
+end;
+*)
+{$ifend}
+
+
+//------------------------------------------------------------------------------
+//
 //      SAR: Shift right with sign conservation
 //
 //------------------------------------------------------------------------------
@@ -2098,7 +2306,7 @@ procedure RegisterBindings;
 begin
   {$WARN SYMBOL_EXPERIMENTAL OFF}
 
-  LowLevelRegistry := NewRegistry('GR32_LowLevel bindings');
+  LowLevelRegistry := NewRegistry('GR32_LowLevel');
 
   LowLevelRegistry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord, 'FillLongWord');
   LowLevelRegistry.RegisterBinding(FID_FAST_TRUNC, @@FastTrunc, 'FastTrunc');
@@ -2121,7 +2329,13 @@ begin
 {$ifend}
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-  LowLevelRegistry[@@FillLongWord].Add(         @FillLongword_SSE2,     [isSSE2]).Name := 'FillLongword_SSE2';
+  // FillLongWord_ASM is faster than FillLongword_SSE2_Unrolled in most cases
+  LowLevelRegistry[@@FillLongWord].Add(         @FillLongWord_ASM,      [isSSE2]).Name := 'FillLongWord_ASM';
+
+  LowLevelRegistry[@@FillLongWord].Add(         @FillLongword_SSE2_Unrolled, [isSSE2], BindingPriorityWorse).Name := 'FillLongword_SSE2_Unrolled';
+{$if defined(FPC) or (CompilerVersion >= 35.0)} // AVX supported from Delphi 11
+  LowLevelRegistry[@@FillLongWord].Add(         @FillLongword_AVX2,     [isAVX2]).Name := 'FillLongword_AVX2';
+{$ifend}
   LowLevelRegistry[@@FastTrunc].Add(            @FastTrunc_SSE2,        [isSSE2]).Name := 'FastTrunc_SSE2';
   LowLevelRegistry[@@FastRound].Add(            @FastRound_SSE41,       [isSSE41]).Name := 'FastRound_SSE41';
   LowLevelRegistry[@@FastFloorSingle].Add(      @FastFloorSingle_SSE41, [isSSE41]).Name := 'FastFloorSingle_SSE41';

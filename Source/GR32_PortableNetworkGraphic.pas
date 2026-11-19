@@ -38,6 +38,7 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
+  Generics.Collections,
   Classes, Graphics, SysUtils,
 {$IFDEF FPC}
   ZBase,
@@ -103,6 +104,8 @@ type
 //
 //------------------------------------------------------------------------------
   TPortableNetworkGraphic = class(TInterfacedPersistent, IStreamPersist)
+  private type
+    TVoid = record end;
   private
     FCompressionLevel : Byte;
     function GetBitDepth: Byte;
@@ -152,6 +155,8 @@ type
     function GetFilterMethods: TAvailableAdaptiveFilterMethods;
     procedure SetBackgroundChunk(const Value: TPngChunkBackgroundColor);
     function GetChunks: TCompositeChunkList;
+    function GetIgnoredChunks: TArray<TChunkName>;
+    procedure SetIgnoredChunks(const Value: TArray<TChunkName>);
 
   protected
     FImageHeader: TPngChunkImageHeader;
@@ -170,6 +175,8 @@ type
     FAdditionalChunks: TChunkList;
 
     FCompositeChunkList: TCompositeChunkList;
+
+    FIgnoreChunks: TDictionary<TChunkName, TVoid>;
 
   protected
     procedure Clear; virtual;
@@ -239,6 +246,7 @@ type
     property PixelUnit: Byte read GetPixelUnit write SetPixelUnit;
 
     property Chunks: TCompositeChunkList read GetChunks;
+    property IgnoredChunks: TArray<TChunkName> read GetIgnoredChunks write SetIgnoredChunks;
   end;
 
 //------------------------------------------------------------------------------
@@ -286,6 +294,7 @@ begin
   FDefaultChunks.Free;
   FImageHeader.Free;
   FCompositeChunkList.Free;
+  FIgnoreChunks.Free;
 
   inherited;
 end;
@@ -494,6 +503,20 @@ begin
 {$ifend}
     FBackgroundChunk.Assign(Value);
   end;
+end;
+
+procedure TPortableNetworkGraphic.SetIgnoredChunks(const Value: TArray<TChunkName>);
+var
+  Name: TChunkName;
+begin
+  if (FIgnoreChunks = nil) and (Value = nil) then
+    exit;
+  if (FIgnoreChunks = nil) then
+    FIgnoreChunks := TDictionary<TChunkName, TVoid>.Create(Length(Value))
+  else
+    FIgnoreChunks.Clear;
+  for Name in Value do
+    FIgnoreChunks.Add(Name, TVoid(nil^));
 end;
 
 procedure TPortableNetworkGraphic.SetImageHeader(const Value: TPngChunkImageHeader);
@@ -787,6 +810,10 @@ begin
       if ChunkName = 'IHDR' then
         raise EPngError.Create(RCStrNotAValidPNGFile);
 
+      if (FIgnoreChunks <> nil) and FIgnoreChunks.ContainsKey(ChunkName) then
+      begin
+        // Ignore
+      end else
       if ChunkName = 'IDAT' then
       begin
         ReadImageDataChunk(MemoryStream, ChunkSize);
@@ -882,7 +909,7 @@ begin
       end else
       begin
         ChunkClass := FindPngChunkByChunkName(ChunkName);
-        
+
         if ChunkClass <> nil then
         begin
           Chunk := ChunkClass.Create(FImageHeader);
@@ -1429,6 +1456,17 @@ end;
 function TPortableNetworkGraphic.GetHeight: Integer;
 begin
   Result := FImageHeader.Height;
+end;
+
+function TPortableNetworkGraphic.GetIgnoredChunks: TArray<TChunkName>;
+begin
+{$if (not defined(FPC)) and (CompilerVersion >= 36.0)}
+  if (FIgnoreChunks = nil) or (FIgnoreChunks.IsEmpty) then
+{$else}
+  if (FIgnoreChunks = nil) or (FIgnoreChunks.Count = 0) then
+{$ifend}
+    Exit(nil);
+  Result := FIgnoreChunks.Keys.ToArray;
 end;
 
 function TPortableNetworkGraphic.GetInterlaceMethod: TInterlaceMethod;

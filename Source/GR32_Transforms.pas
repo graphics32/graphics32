@@ -64,15 +64,101 @@ type
   TVector3f = array [0..2] of TFloat;
   TVector3i = array [0..2] of Integer;
 
-// Matrix conversion routines
+//------------------------------------------------------------------------------
+//
+//      Test for identity matrix
+//
+//------------------------------------------------------------------------------
+function IsIdentityMatrix(const AMatrix: TFloatMatrix): boolean; overload;
+function IsIdentityMatrix(const AMatrix: TFixedMatrix): boolean; overload;
+
+//------------------------------------------------------------------------------
+//
+//      Fixed <-> Float matrix conversion
+//
+//------------------------------------------------------------------------------
 function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix; overload;
 function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix; overload;
 
+//------------------------------------------------------------------------------
+//
+//      Adjoint(M): Replaces M with its adjugate (classical adjoint) matrix.
+//
+//------------------------------------------------------------------------------
+// Calculates the matrix of cofactors transposed for a 3x3 matrix.
+// Used as an intermediate step in matrix inversion (M^-1 = Adjoint(M) / Det(M)).
+//------------------------------------------------------------------------------
 procedure Adjoint(var M: TFloatMatrix);
+
+//------------------------------------------------------------------------------
+//
+//      Determinant(M): Calculates the scalar determinant of a 3x3 matrix M.
+//
+//------------------------------------------------------------------------------
+// Returns the determinant using 3x3 cofactor expansion.
+// A non-zero determinant indicates that M is invertible (non-singular).
+//------------------------------------------------------------------------------
 function Determinant(const M: TFloatMatrix): TFloat;
+
+//------------------------------------------------------------------------------
+//
+//      Scale(M, Factor): Scales all components of matrix M by Factor.
+//
+//------------------------------------------------------------------------------
+// Multiplies each 3x3 entry M[i, j] in-place by the scalar Factor.
+//------------------------------------------------------------------------------
 procedure Scale(var M: TFloatMatrix; Factor: TFloat);
+
+//------------------------------------------------------------------------------
+//
+//      Invert(M): Replaces matrix M with its inverse M^-1.
+//
+//------------------------------------------------------------------------------
+// Calculates the inverse matrix M^-1 using Adjoint(M) and Determinant(M).
+// If the determinant is near zero (|Det| < 1E-5), M is set to IdentityMatrix.
+//------------------------------------------------------------------------------
 procedure Invert(var M: TFloatMatrix);
+
+//------------------------------------------------------------------------------
+//
+//      Mult(M1, M2): Multiplies two transformation matrices.
+//
+//------------------------------------------------------------------------------
+// Note on parameter order and row-vector transformation convention:
+//
+// In Graphics32, 2D points are represented as row vectors V = [x, y, 1] and
+// transformed via V' = V * M (see VectorTransform).
+//
+// In row-vector notation, sequential transformations are post-multiplied:
+// applying transformation A followed by transformation B yields:
+//   V' = (V * A) * B = V * (A * B)
+// Thus, the combined matrix for "A then B" is mathematically (A * B).
+//
+// However, implementation-wise, Mult(M1, M2) computes:
+//   Result[i, j] = M1[0, j] * M2[i, 0] + M1[1, j] * M2[i, 1] + M1[2, j] * M2[i, 2]
+//
+// Indexing Result[i, j] calculates standard column-by-row matrix multiplication
+// of M2 * M1 (i.e. M2 is on the left, M1 on the right).
+//
+// Therefore:
+// - Mult(A, B) computes B * A.
+// - To compute the combined matrix (A * B) for "apply A, then apply B", you must
+//   call Mult(B, A) [or Matrix := Mult(NewTransform, Matrix)].
+//------------------------------------------------------------------------------
 function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
+
+//------------------------------------------------------------------------------
+//
+//      VectorTransform(M, V): Transforms 3D homogeneous point V by matrix M.
+//
+//------------------------------------------------------------------------------
+// Evaluates row-vector transformation V' = V * M:
+//   V'[0] = M[0,0]*V[0] + M[1,0]*V[1] + M[2,0]*V[2]
+//   V'[1] = M[0,1]*V[0] + M[1,1]*V[1] + M[2,1]*V[2]
+//   V'[2] = M[0,2]*V[0] + M[1,2]*V[1] + M[2,2]*V[2]
+// For 2D affine points where V = [x, y, 1], V'[0] and V'[1] give the transformed
+// (x', y') coordinates.
+//------------------------------------------------------------------------------
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 
 
@@ -197,8 +283,25 @@ type
     procedure Pop;
     procedure Clear; overload;
     procedure Clear(const BaseMatrix: TFloatMatrix); overload;
-    procedure Rotate(Alpha: TFloat); overload; // degrees
-    procedure Rotate(Cx, Cy, Alpha: TFloat); overload; // degrees
+
+    (*
+    ** Note: TAffineTransformation.Rotate rotates counter-clockwise!
+    **
+    ** In a screen space where X increases to the right and Y increases downwards:
+    **
+    ** - Positive angles (Alpha > 0) rotate counter-clockwise on screen.
+    **   Example: Rotating point (1, 0) (to the right of origin) by 90 degress (Pi/2)
+    **   transforms it to (0, -1); Above origin on screen.
+    **
+    ** - Negative Angles (-Alpha) rotate clockwise on screen.
+    **   Example: Rotating point (1, 0) by -90 degrees (-Pi/2) transforms it to
+    **   (0, 1); Below origin on screen.
+    **
+    ** Many other 2D graphics APIs (such as Direct2D, GDI+, HTML5 Canvas, SVG, Cairo,
+    ** and Skia) define positive angles as clockwise rotation in screen space.
+    *)
+    procedure Rotate(Alpha: TFloat); overload; // degrees, not radians
+    procedure Rotate(Cx, Cy, Alpha: TFloat); overload; // degrees, not radians
     procedure Skew(Fx, Fy: TFloat);
     procedure Scale(Sx, Sy: TFloat); overload;
     procedure Scale(Value: TFloat); overload;
@@ -661,6 +764,75 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      Test for identity matrix
+//
+//------------------------------------------------------------------------------
+function IsIdentityMatrix(const AMatrix: TFloatMatrix): boolean;
+type
+  TFloatMatrixArray = array [0..8] of TFloat; // 3x3 TFloat precision unpacked into a linear array
+begin
+  Result :=
+    (TFloatMatrixArray(AMatrix)[0] = 1) and
+    (TFloatMatrixArray(AMatrix)[1] = 0) and
+    (TFloatMatrixArray(AMatrix)[2] = 0) and
+    (TFloatMatrixArray(AMatrix)[3] = 0) and
+    (TFloatMatrixArray(AMatrix)[4] = 1) and
+    (TFloatMatrixArray(AMatrix)[5] = 0) and
+    (TFloatMatrixArray(AMatrix)[6] = 0) and
+    (TFloatMatrixArray(AMatrix)[7] = 0) and
+    (TFloatMatrixArray(AMatrix)[8] = 1);
+end;
+
+function IsIdentityMatrix(const AMatrix: TFixedMatrix): boolean;
+type
+  TFixedMatrixArray = array [0..8] of TFixed; // 3x3 TFixed precision unpacked into a linear array
+begin
+  Result :=
+    (TFixedMatrixArray(AMatrix)[0] = FixedOne) and
+    (TFixedMatrixArray(AMatrix)[1] = 0) and
+    (TFixedMatrixArray(AMatrix)[2] = 0) and
+    (TFixedMatrixArray(AMatrix)[3] = 0) and
+    (TFixedMatrixArray(AMatrix)[4] = FixedOne) and
+    (TFixedMatrixArray(AMatrix)[5] = 0) and
+    (TFixedMatrixArray(AMatrix)[6] = 0) and
+    (TFixedMatrixArray(AMatrix)[7] = 0) and
+    (TFixedMatrixArray(AMatrix)[8] = FixedOne);
+end;
+
+//------------------------------------------------------------------------------
+//
+//      Fixed <-> Float matrix conversion
+//
+//------------------------------------------------------------------------------
+function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix;
+begin
+  Result[0,0] := Round(FloatMatrix[0,0] * FixedOne);
+  Result[0,1] := Round(FloatMatrix[0,1] * FixedOne);
+  Result[0,2] := Round(FloatMatrix[0,2] * FixedOne);
+  Result[1,0] := Round(FloatMatrix[1,0] * FixedOne);
+  Result[1,1] := Round(FloatMatrix[1,1] * FixedOne);
+  Result[1,2] := Round(FloatMatrix[1,2] * FixedOne);
+  Result[2,0] := Round(FloatMatrix[2,0] * FixedOne);
+  Result[2,1] := Round(FloatMatrix[2,1] * FixedOne);
+  Result[2,2] := Round(FloatMatrix[2,2] * FixedOne);
+end;
+
+function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix;
+begin
+  Result[0,0] := FixedMatrix[0,0] * FixedToFloat;
+  Result[0,1] := FixedMatrix[0,1] * FixedToFloat;
+  Result[0,2] := FixedMatrix[0,2] * FixedToFloat;
+  Result[1,0] := FixedMatrix[1,0] * FixedToFloat;
+  Result[1,1] := FixedMatrix[1,1] * FixedToFloat;
+  Result[1,2] := FixedMatrix[1,2] * FixedToFloat;
+  Result[2,0] := FixedMatrix[2,0] * FixedToFloat;
+  Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
+  Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      A bit of linear algebra
 //
 //------------------------------------------------------------------------------
@@ -1036,36 +1208,6 @@ begin
     end;
   end;
 end;
-
-//------------------------------------------------------------------------------
-// Matrix conversion routines
-//------------------------------------------------------------------------------
-function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix;
-begin
-  Result[0,0] := Round(FloatMatrix[0,0] * FixedOne);
-  Result[0,1] := Round(FloatMatrix[0,1] * FixedOne);
-  Result[0,2] := Round(FloatMatrix[0,2] * FixedOne);
-  Result[1,0] := Round(FloatMatrix[1,0] * FixedOne);
-  Result[1,1] := Round(FloatMatrix[1,1] * FixedOne);
-  Result[1,2] := Round(FloatMatrix[1,2] * FixedOne);
-  Result[2,0] := Round(FloatMatrix[2,0] * FixedOne);
-  Result[2,1] := Round(FloatMatrix[2,1] * FixedOne);
-  Result[2,2] := Round(FloatMatrix[2,2] * FixedOne);
-end;
-
-function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix;
-begin
-  Result[0,0] := FixedMatrix[0,0] * FixedToFloat;
-  Result[0,1] := FixedMatrix[0,1] * FixedToFloat;
-  Result[0,2] := FixedMatrix[0,2] * FixedToFloat;
-  Result[1,0] := FixedMatrix[1,0] * FixedToFloat;
-  Result[1,1] := FixedMatrix[1,1] * FixedToFloat;
-  Result[1,2] := FixedMatrix[1,2] * FixedToFloat;
-  Result[2,0] := FixedMatrix[2,0] * FixedToFloat;
-  Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
-  Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
-end;
-
 
 //------------------------------------------------------------------------------
 //
@@ -3220,7 +3362,7 @@ var
 
 procedure RegisterBindings;
 begin
-  TransformsRegistry := NewRegistry('GR32_Transforms bindings');
+  TransformsRegistry := NewRegistry('GR32_Transforms');
   TransformsRegistry.RegisterBinding(@@DET_2x2_32, 'DET_2x2_32');
   TransformsRegistry.RegisterBinding(@@DET_3x3_32, 'DET_3x3_32');
   TransformsRegistry.RegisterBinding(@@DET_2x2_64, 'DET_2x2_64');

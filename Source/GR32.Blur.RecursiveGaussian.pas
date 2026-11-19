@@ -646,7 +646,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats); // {$IFDEF FPC}assembler;{$ENDIF}
+procedure BlurApplyEdgeCorrection_SSE41(iPlus: PFloat; const B: TQuadFloat; var v: TQuadFloat; const M: TNineFloats); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
   // Parameters (x86):
   //   EAX <- iPlus
   //   EDX <- B0
@@ -769,7 +769,9 @@ asm
 
   MOVUPS        TQuadFloat PTR [v], XMM2     // XMM2 -> v
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4'];
+{$ifend}
 end;
 
 {$ifend}
@@ -1393,6 +1395,7 @@ var
 
 {$endif IIR_BLUR_EDGE_CORRECTION}
 
+    if (Width > 0) then // Avoids Access Violation with width or height = 1
     IIR_BlurFilterBackward(pIn, pOut, B, Width, v);
   end;
 
@@ -1434,13 +1437,13 @@ var
   UnAlignBuffer: pointer;
   UnAlignTransposedBuffer: pointer;
 begin
-  if (Sigma < GaussianRadiusToSigma) then
+  if (Sigma < GaussianRadiusToSigma) or (Src.Width <= 1) or (Src.Height <= 1) then
   begin
     Src.CopyMapTo(Dst);
     exit;
   end;
 
-  Dst.SetSize(Src.Width, Src.Height);
+  Dst.SetSize(Src.Width, Src.Height, False);
 
 {$ifdef IIR_BLUR_INKSCAPE_COEFFICIENTS}
   if (Sigma >= 20) then

@@ -1,0 +1,14 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="floodFilter">
+      <feFlood flood-color="#1abc9c" flood-opacity="1.0" result="flood"/>
+      <feComposite in="flood" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+
+  <!-- Left: Unfiltered shape -->
+  <rect x="30" y="50" width="100" height="100" fill="#34495e"/>
+
+  <!-- Right: Filtered shape (flooded with turquoise color inside shape bounds) -->
+  <rect x="230" y="50" width="100" height="100" fill="#34495e" filter="url(#floodFilter)"/>
+</svg>

@@ -56,7 +56,7 @@ procedure Main;
 begin
   Spring.Benchmark.benchmark_format_args := False;
 
-  for var BindingName in ['MakeAlphaEvenOddUP', 'MakeAlphaNonZeroUP'] do
+  for var BindingName in ['MakeAlphaEvenOddUP', 'MakeAlphaNonZeroUP', 'MakeAlphaEvenOddUPF', 'MakeAlphaNonZeroUPF'] do
   begin
 
     var Binding := PolygonsRegistry.FindBinding(BindingName);

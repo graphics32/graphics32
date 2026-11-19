@@ -1,4 +1,4 @@
-unit GR32_ColorGradients;
+﻿unit GR32_ColorGradients;
 
 (* ***** BEGIN LICENSE BLOCK ***************************************************
 * Version: MPL 1.1 or LGPL 2.1 with linking exception                          *
@@ -36,11 +36,18 @@ interface
 
 {$include GR32.inc}
 
+// Define SQR_SLOW to avoid use of Sqr()
+// Sqr() converts Single arguments to Double regardless of {$EXCESSPRECISION OFF}
+{$IFDEF TARGET_X64}
+{$define SQR_SLOW}
+{$ENDIF}
+
 uses
   Types, Classes, SysUtils, Math,
   GR32,
   GR32_Polygons,
   GR32_VectorUtils,
+  GR32_Transforms,
 {$if defined(UseInlining)}
   // Needed in interface for inlining
   GR32_Blend,
@@ -511,7 +518,7 @@ type
 // - HTML Canvas Radial Gradients, The createRadialGradient() Method
 //   https://www.w3schools.com/graphics/canvas_radial_gradients.asp
 //
-// - Microsoft Typography, COLR � Color Table, Graphic compositions, Gradients, Radial gradients
+// - Microsoft Typography, COLR — Color Table, Graphic compositions, Gradients, Radial gradients
 //   https://learn.microsoft.com/en-us/typography/opentype/spec/colr#radial-gradients
 //
 //------------------------------------------------------------------------------
@@ -779,6 +786,7 @@ type
       AlphaValues: PColor32; CombineMode: TCombineMode);
     procedure GradientFillerChanged; virtual;
     procedure WrapModeChanged; virtual;
+    procedure SetGradient(AGradient: TColor32Gradient); virtual;
   public
     constructor Create; overload;
     constructor Create(ColorGradient: TColor32Gradient); overload; virtual;
@@ -998,6 +1006,110 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TSVGConicalGradientPolygonFiller
+//      TConicGradientPolygonFiller
+//
+//------------------------------------------------------------------------------
+// SVG compatible conical filler
+//------------------------------------------------------------------------------
+type
+  TSVGConicalGradientPolygonFiller = class(TCustomGradientLookupTablePolygonFiller)
+  private
+    FCenter: TFloatPoint;
+    FAngle: TFloat;       // Rotation angle in radians
+    FStartAngle: TFloat;  // Start angle in radians
+    FEndAngle: TFloat;    // End angle in radians
+    FTransformMatrix: TFloatMatrix;
+    FInvMatrix: TFloatMatrix;
+    FScale: TFloat;
+    FDelta: TFloat;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineConical(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32; CombineMode: TCombineMode);
+  public
+    constructor Create; reintroduce; overload;
+    constructor Create(ColorGradient: TColor32Gradient); reintroduce; overload;
+
+    procedure BeginRendering; override;
+
+    property Center: TFloatPoint read FCenter write FCenter;
+    property Angle: TFloat read FAngle write FAngle;
+    property StartAngle: TFloat read FStartAngle write FStartAngle;
+    property EndAngle: TFloat read FEndAngle write FEndAngle;
+    property TransformMatrix: TFloatMatrix read FTransformMatrix write FTransformMatrix;
+  end;
+
+  TConicGradientPolygonFiller = TSVGConicalGradientPolygonFiller;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSVGMeshGradientPolygonFiller
+//      TMeshGradientPolygonFiller
+//
+//------------------------------------------------------------------------------
+// SVG 2 Mesh Gradient Filler supporting bilinear and bicubic Coons mesh patches.
+// This is mostly a proof of concept. It works fine but it's completely
+// unoptimized - and Mesh Gradients were dropped from the SVG 2 proposal and
+// today only InkScape supports them.
+//------------------------------------------------------------------------------
+type
+  TSVGMeshType = (mgtBilinear, mgtBicubic);
+
+  TSVGMeshControlPoints = array[0..3, 0..3] of TFloatPoint;
+
+  TSVGMeshPatch = record
+    // 16 control points in mesh space for bicubic patch:
+    // [0,0]=Top-Left, [3,0]=Top-Right, [3,3]=Bottom-Right, [0,3]=Bottom-Left
+    // For bilinear patches, corners [0,0], [3,0], [3,3], [0,3] define the 4 corners.
+    ControlPoints: TSVGMeshControlPoints;
+    // Corner colors: [0]=Top-Left, [1]=Top-Right, [2]=Bottom-Right, [3]=Bottom-Left
+    Colors: array[0..3] of TColor32;
+  end;
+  TArrayOfSVGMeshPatch = array of TSVGMeshPatch;
+
+  TSVGMeshGradientPolygonFiller = class(TCustomPolygonFiller)
+  private type
+    TMeshTriangle = record
+      P0, P1, P2: TFloatPoint;
+      C0, C1, C2: TColor32;
+      MinY, MaxY: Single;
+    end;
+
+  private
+    FPatches: TArrayOfSVGMeshPatch;
+    FMeshType: TSVGMeshType;
+    FTransformMatrix: TFloatMatrix;
+    FSubdivisionDepth: Integer;
+    FTriangles: array of TMeshTriangle;
+
+  private
+    procedure SubdividePatches;
+    function EvaluatePatchPoint(const APatch: TSVGMeshPatch; u, v: Single): TFloatPoint;
+    function EvaluatePatchColor(const APatch: TSVGMeshPatch; u, v: Single): TColor32;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineMesh(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure BeginRendering; override;
+    procedure Clear;
+    procedure AddPatch(const APatch: TSVGMeshPatch);
+
+    property MeshType: TSVGMeshType read FMeshType write FMeshType;
+    property TransformMatrix: TFloatMatrix read FTransformMatrix write FTransformMatrix;
+    property SubdivisionDepth: Integer read FSubdivisionDepth write FSubdivisionDepth;
+  end;
+
+  TMeshGradientPolygonFiller = TSVGMeshGradientPolygonFiller;
+
+
+
+//------------------------------------------------------------------------------
+//
 //      Utilities
 //
 //------------------------------------------------------------------------------
@@ -1055,6 +1167,23 @@ resourcestring
 
 const
   CFloatTolerance = 0.001;
+
+function IsVerticalGradient(const P1, P2: TFloatPoint): Boolean; inline; overload;
+var
+  dx, dy: TFloat;
+begin
+  dx := P2.X - P1.X;
+  dy := P2.Y - P1.Y;
+  Result := Abs(dx) <= CFloatTolerance * Max(1.0, Abs(dy));
+end;
+
+function IsVerticalGradient(dx, dy: TFloat): Boolean; inline; overload;
+begin
+  // Gradients with dx near zero (such as 90° or 270° rotations with floating-point residual dx)
+  // are treated as vertical gradients to prevent division by near-zero dx and Int32 scanline
+  // index overflow.
+  Result := Abs(dx) <= CFloatTolerance * Max(1.0, Abs(dy));
+end;
 
 procedure FillLineAlpha(var Dst, AlphaValues: PColor32; Count: Integer;
   Color: TColor32; CombineMode: TCombineMode); {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -1142,7 +1271,8 @@ end;
 {$IFNDEF OMIT_SSE2}
 
 {$IFNDEF PUREPASCAL}
-function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$IFDEF FPC}assembler; {$ENDIF}
+function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM3,XMM3
@@ -1180,6 +1310,12 @@ asm
         MOVD      EAX,XMM0
 {$ENDIF}
 {$IFDEF TARGET_X64}
+{$if defined(TARGET_x64) and not defined(FPC)}
+        .SAVENV XMM4
+        .SAVENV XMM5
+        .SAVENV XMM6
+{$ifend}
+
         MOVQ      XMM0,XMM3
         SHUFPS    XMM0,XMM0,0
 
@@ -1220,9 +1356,14 @@ asm
         PACKUSWB  XMM0,XMM3
         MOVD      EAX,XMM0
 {$ENDIF}
+
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6'];
+{$ifend}
 end;
 
-function Linear4PointInterpolation_SSE2(A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32; {$IFDEF FPC}assembler; {$ENDIF}
+function Linear4PointInterpolation_SSE2(A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32; {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM7,XMM7
@@ -1274,71 +1415,83 @@ asm
         MOVD      EAX,XMM0
 {$ENDIF}
 {$IFDEF TARGET_X64}
-        PXOR      XMM7,XMM7
+{$if defined(TARGET_x64) and not defined(FPC)}
+        .SAVENV XMM4
+        .SAVENV XMM5
+{$ifend}
+        PXOR      XMM3, XMM3
 
-        MOVD      XMM0,A
-        PUNPCKLBW XMM0,XMM7
-        PUNPCKLWD XMM0,XMM7
-        CVTDQ2PS  XMM0,XMM0
-        MOVD      XMM1,B
-        PUNPCKLBW XMM1,XMM7
-        PUNPCKLWD XMM1,XMM7
-        CVTDQ2PS  XMM1,XMM1
+        MOVD      XMM0, A
+        PUNPCKLBW XMM0, XMM3
+        PUNPCKLWD XMM0, XMM3
+        CVTDQ2PS  XMM0, XMM0
+
+        MOVD      XMM1, B
+        PUNPCKLBW XMM1, XMM3
+        PUNPCKLWD XMM1, XMM3
+        CVTDQ2PS  XMM1, XMM1
 
 {$IFDEF FPC}
         MOV       EAX, [RBP + $30]
 {$ELSE}
         MOV       EAX, WA
 {$ENDIF}
-        MOVD      XMM4,EAX
-        SHUFPS    XMM4,XMM4,0
-        MULPS     XMM0,XMM4
+        MOVD      XMM4, EAX
+        SHUFPS    XMM4, XMM4, 0
+        MULPS     XMM0, XMM4
 
 {$IFDEF FPC}
         MOV       EDX, [RBP + $38]
 {$ELSE}
         MOV       EDX, WB
 {$ENDIF}
-        MOVD      XMM5,EDX
-        SHUFPS    XMM5,XMM5,0
-        MULPS     XMM1,XMM5
-        ADDPS     XMM0,XMM1
+        MOVD      XMM5, EDX
+        SHUFPS    XMM5, XMM5, 0
+        MULPS     XMM1, XMM5
+        ADDPS     XMM0, XMM1
 
-        MOVD      XMM2,C
-        PUNPCKLBW XMM2,XMM7
-        PUNPCKLWD XMM2,XMM7
-        CVTDQ2PS  XMM2,XMM2
-        MOVD      XMM3,D
-        PUNPCKLBW XMM3,XMM7
-        PUNPCKLWD XMM3,XMM7
-        CVTDQ2PS  XMM3,XMM3
+        MOVD      XMM2, C
+        PUNPCKLBW XMM2, XMM3
+        PUNPCKLWD XMM2, XMM3
+        CVTDQ2PS  XMM2, XMM2
+
+        // Load D into temporary XMM1 (since XMM0 has accumulated A+B)
+        MOVD      XMM1, D
+        PUNPCKLBW XMM1, XMM3
+        PUNPCKLWD XMM1, XMM3
+        CVTDQ2PS  XMM1, XMM1
 
 {$IFDEF FPC}
         MOV       EAX, [RBP + $40]
 {$ELSE}
         MOV       EAX, WC
 {$ENDIF}
-        MOVD      XMM4,EAX
-        SHUFPS    XMM4,XMM4,0
-        MULPS     XMM2,XMM4
+        MOVD      XMM4, EAX
+        SHUFPS    XMM4, XMM4, 0
+        MULPS     XMM2, XMM4
 
 {$IFDEF FPC}
         MOV       EDX, [RBP + $48]
 {$ELSE}
         MOV       EDX, WD
 {$ENDIF}
-        MOVD      XMM5,EDX
-        SHUFPS    XMM5,XMM5,0
-        MULPS     XMM3,XMM5
-        ADDPS     XMM2,XMM3
-        ADDPS     XMM0,XMM2
+        MOVD      XMM5, EDX
+        SHUFPS    XMM5, XMM5, 0
+        MULPS     XMM1, XMM5
+        ADDPS     XMM2, XMM1
+        ADDPS     XMM0, XMM2
 
-        CVTPS2DQ  XMM0,XMM0
-        PACKSSDW  XMM0,XMM7
-        PACKUSWB  XMM0,XMM7
-        MOVD      EAX,XMM0
+        CVTPS2DQ  XMM0, XMM0
+        PACKSSDW  XMM0, XMM3
+        PACKUSWB  XMM0, XMM3
+        MOVD      EAX, XMM0
 {$ENDIF}
+
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5'];
+{$ifend}
 end;
+
 {$ENDIF}
 {$ENDIF}
 
@@ -3591,11 +3744,8 @@ end;
 
 destructor TCustomGradientPolygonFiller.Destroy;
 begin
-  if Assigned(FGradient) then
-    if FOwnsGradient then
-      FGradient.Free
-    else
-      FGradient.OnGradientColorsChanged := nil;
+  SetGradient(nil);
+
   inherited;
 end;
 
@@ -3620,6 +3770,22 @@ end;
 procedure TCustomGradientPolygonFiller.GradientFillerChanged;
 begin
   // do nothing
+end;
+
+procedure TCustomGradientPolygonFiller.SetGradient(AGradient: TColor32Gradient);
+begin
+  if (FGradient <> nil) then
+  begin
+    if FOwnsGradient then
+      FGradient.Free
+    else
+      FGradient.OnGradientColorsChanged := nil;
+  end;
+
+  FOwnsGradient := False;
+  FGradient := AGradient;
+
+  GradientFillerChanged;
 end;
 
 procedure TCustomGradientPolygonFiller.SetWrapMode(const Value: TWrapMode);
@@ -4208,7 +4374,7 @@ begin
   dx := FEndPoint.X - FStartPoint.X;
   dy := FEndPoint.Y - FStartPoint.Y;
 
-  if Abs(dx) > 1e-6 then
+  if not IsVerticalGradient(dx, dy) then
     FIncline := dy / dx
   else
   if Abs(dy) > 1e-6 then
@@ -4274,6 +4440,7 @@ end;
 function TLinearGradientPolygonFiller.GetFillLine: TFillLineEvent;
 var
   GradientCount: Integer;
+  dx, dy: TFloat;
 begin
   if (FGradient <> nil) then
     GradientCount := FGradient.GradientCount
@@ -4289,44 +4456,49 @@ begin
 
   else
 
+    dx := FStartPoint.X - FEndPoint.X;
+    dy := FStartPoint.Y - FEndPoint.Y;
+
     if FUseLookUpTable then
     begin
       if (FWrapMode = wmClamp) then
       begin
-        if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
+        if IsVerticalGradient(dx, dy) then
         begin
-          if Abs(FStartPoint.Y - FEndPoint.Y) < 1e-6 then
+          if Abs(dy) < 1e-6 then
             Result := FillLineVerticalPadExtreme
           else
             Result := FillLineVerticalPad;
         end else
-        if FStartPoint.X < FEndPoint.X then
+        if dx < 0 then
           Result := FillLineHorizontalPadPos
         else
           Result := FillLineHorizontalPadNeg;
       end else
       // wmMirror, wmRepeat, wmReflect
       begin
-        if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
+        if IsVerticalGradient(dx, dy) then
           Result := FillLineVerticalWrap
         else
-        if FStartPoint.X < FEndPoint.X then
+        if dx < 0 then
           Result := FillLineHorizontalWrapPos
         else
           Result := FillLineHorizontalWrapNeg;
       end;
     end else
-    if Abs(FStartPoint.X - FEndPoint.X) < 1e-6 then
     begin
-      if Abs(FStartPoint.Y - FEndPoint.Y) < 1e-6 then
-        Result := FillLineVerticalExtreme
+      if IsVerticalGradient(dx, dy) then
+      begin
+        if Abs(dy) < 1e-6 then
+          Result := FillLineVerticalExtreme
+        else
+          Result := FillLineVertical;
+      end else
+      if dx < 0 then
+        Result := FillLinePositive
       else
-        Result := FillLineVertical;
-    end else
-    if FStartPoint.X < FEndPoint.X then
-      Result := FillLinePositive
-    else
-      Result := FillLineNegative;
+        Result := FillLineNegative;
+    end;
   end;
 end;
 
@@ -4922,13 +5094,24 @@ begin
     Exit;
   end;
 
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := FRadXInv * FRadXInv;
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+  RadMax := ((FRadius.X * FRadius.X) + YDist) * SqrInvRadius;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   RadMax := (Sqr(FRadius.X) + YDist) * SqrInvRadius;
+{$ifend}
 
   for X := DstX to DstX + Length - 1 do
   begin
+{$if defined(SQR_SLOW)}
+    SqrRelRad := X - FCenter.X;
+    SqrRelRad := ((SqrRelRad * SqrRelRad) + YDist) * SqrInvRadius;
+{$else}
     SqrRelRad := (Sqr(X - FCenter.X) + YDist) * SqrInvRadius;
+{$ifend}
     // Clamp
     if SqrRelRad > RadMax then
       Index := Mask
@@ -4954,17 +5137,30 @@ var
   ReflectProc: TWrapProc;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+{$if defined(SQR_SLOW)}
+  n: TFLoat;
+{$ifend}
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := FRadXInv * FRadXInv;
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+{$ifend}
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
   ReflectProc := GetOptimalReflect(FGradientLUT.Size-1);
 
   for X := DstX to DstX + Length - 1 do
   begin
+{$if defined(SQR_SLOW)}
+    n := X - FCenter.X;
+    Index := Round(Mask * FastSqrt(((n*n) + YDist) * SqrInvRadius));
+{$else}
     Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius));
+{$ifend}
     // Reflect
     Index := ReflectProc(Index, FGradientLUT.Size-1);
     (*
@@ -4991,16 +5187,29 @@ var
   ColorLUT: PColor32Array;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+{$if defined(SQR_SLOW)}
+  n: TFLoat;
+{$ifend}
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := (FRadXInv * FRadXInv);
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+{$ifend}
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
 
   for X := DstX to DstX + Length - 1 do
   begin
+{$if defined(SQR_SLOW)}
+    n := X - FCenter.X;
+    Index := Round(Mask * FastSqrt(((n*n) + YDist) * SqrInvRadius));
+{$else}
     Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius));
+{$ifend}
     // Mirror
     Index := Mirror(Index, FGradientLUT.Size-1);
 
@@ -5022,10 +5231,18 @@ var
   WrapProc: TWrapProc;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+{$if defined(SQR_SLOW)}
+  n: TFLoat;
+{$ifend}
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+{$if defined(SQR_SLOW)}
+  SqrInvRadius := (FRadXInv * FRadXInv);
+  YDist := (DstY - FCenter.Y) * FRadScale; YDist := YDist * YDist;
+{$else}
   SqrInvRadius := Sqr(FRadXInv);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+{$ifend}
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
   WrapProc := GetOptimalWrap(FGradientLUT.Size-1);
@@ -5033,7 +5250,12 @@ begin
   for X := DstX to DstX + Length - 1 do
   begin
     // Wrap
+{$if defined(SQR_SLOW)}
+    n  := X - FCenter.X;
+    Index := WrapProc(Round(Mask * FastSqrt(((n*n) + YDist) * SqrInvRadius)), FGradientLUT.Size-1);
+{$else}
     Index := WrapProc(Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius)), FGradientLUT.Size-1);
+{$ifend}
     // Index := Round(Mask * FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius)) mod FGradientLUT.Size;
 
     Color32 := ColorLUT^[Index];
@@ -5066,7 +5288,7 @@ end;
 
 procedure TSVGRadialGradientPolygonFiller.SetFocalPoint(const Value: TFloatPoint);
 begin
-  if (FFocalPointNative.X <> Value.X) and (FFocalPointNative.Y <> Value.Y) then
+  if (FFocalPointNative.X <> Value.X) or (FFocalPointNative.Y <> Value.Y) then
   begin
     FFocalPointNative := Value;
     GradientFillerChanged;
@@ -5147,15 +5369,15 @@ begin
   begin
     if FUseLookUpTable then
     begin
-      if not Assigned(FGradientLUT) then
+      if (FGradientLUT = nil) then
         raise Exception.Create(RCStrNoTColor32LookupTable);
 
-      if Assigned(FGradient) then
+      if (FGradient <> nil) then
         FGradient.FillColorLookUpTable(FGradientLUT);
-    end
-    else
-      if not Assigned(FGradient) then
-        raise Exception.Create(RCStrNoTColor32Gradient);
+    end else
+    if (FGradient = nil) then
+      raise Exception.Create(RCStrNoTColor32Gradient);
+
     inherited;
   end;
   InitMembers;
@@ -5170,67 +5392,94 @@ procedure TSVGRadialGradientPolygonFiller.FillLineEllipse(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32;
   CombineMode: TCombineMode);
 var
-  X, Mask: Integer;
+  X, Mask, Index, UnclippedIndex: Integer;
   ColorLUT: PColor32Array;
   Rad, Rad2, X2, Y2: TFloat;
-  m, b, Qa, Qb, Qc, Qz, XSqr: Double;
+  m, b, Qa, Qb, Qc, Qz, XSqr, YSqr: Double;
   RelPos: TFloatPoint;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+  WrapProc: TWrapProc;
 begin
   BlendMemEx := BLEND_MEM_EX[CombineMode]^;
   if (FRadius.X = 0) or (FRadius.Y = 0) then
     Exit;
 
   ColorLUT := FGradientLUT.Color32Ptr;
-
-  RelPos.Y := DstY - FCenter.Y - FFocalPt.Y;
   Mask := Integer(FGradientLUT.Mask);
 
+  RelPos.Y := DstY - FCenter.Y - FFocalPt.Y;
+
+  case FWrapMode of
+    wmClamp: WrapProc := nil;
+    wmRepeat: WrapProc := GetOptimalWrap(Mask);
+    wmMirror: WrapProc := Mirror;
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect: WrapProc := GetOptimalReflect(Mask);
+{$endif}
+  else
+    WrapProc := nil;
+  end;
+
   // check if out of bounds (vertically)
-  if (DstY < FOffset.Y) or (DstY >= (FRadius.Y * 2) + 1 + FOffset.Y) then
+  if (FWrapMode = wmClamp) and ((DstY < FOffset.Y) or (DstY >= (FRadius.Y * 2) + 1 + FOffset.Y)) then
   begin
     FillLineAlpha(Dst, AlphaValues, Length, ColorLUT^[Mask], CombineMode);
     Exit;
   end;
 
+{$if defined(SQR_SLOW)}
+  XSqr := (FRadius.X * FRadius.X);
+  YSqr := (FRadius.Y * FRadius.Y);
+{$else}
+  XSqr := Sqr(FRadius.X);
+  YSqr := Sqr(FRadius.Y);
+{$ifend}
+
   for X := DstX to DstX + Length - 1 do
   begin
     // check if out of bounds (horizontally)
-    if (X < FOffset.X) or (X >= (FRadius.X * 2) + 1 + FOffset.X) then
+    if (FWrapMode = wmClamp) and ((X < FOffset.X) or (X >= (FRadius.X * 2) + 1 + FOffset.X)) then
       Color32 := ColorLUT^[Mask]
     else
     begin
+
       RelPos.X := X - FCenter.X - FFocalPt.X;
 
-      if Abs(RelPos.X) < CFloatTolerance then //ie on the vertical line (see above)
+      if Abs(RelPos.X) < CFloatTolerance then // ie on the vertical line
       begin
-        Assert(Abs(X - FCenter.X) <= FRadius.X);
-
         Rad := Abs(RelPos.Y);
-        if Abs(Abs(X - FCenter.X)) <= FRadius.X then
+        if RelPos.Y < 0 then
+          Rad2 := Abs(-FVertDist - FFocalPt.Y)
+        else
+          Rad2 := Abs(FVertDist - FFocalPt.Y);
+
+        if Rad2 = 0 then
+          Index := 0
+        else
+        if (FWrapMode = wmClamp) and (Rad >= Rad2) then
+          Index := Mask
+        else
         begin
-          if RelPos.Y < 0 then
-            Rad2 := Abs(-FVertDist - FFocalPt.Y)
+          UnclippedIndex := Round(Mask * Rad / Rad2);
+          if Assigned(WrapProc) then
+            Index := WrapProc(UnclippedIndex, Mask)
           else
-            Rad2 := Abs( FVertDist - FFocalPt.Y);
-          if Rad >= Rad2 then
-            Color32 := ColorLUT^[Mask]
-          else
-            Color32 := ColorLUT^[Round(Mask * Rad / Rad2)];
-        end else
-          Color32 := ColorLUT^[Mask];
-      end
-      else
+            Index := Min(UnclippedIndex, Mask);
+        end;
+
+        Color32 := ColorLUT^[Index];
+
+      end else
       begin
+
         m := RelPos.Y / RelPos.X;
         b := FFocalPt.Y - m * FFocalPt.X;
-        XSqr := Sqr(FRadius.X);
 
         // apply quadratic equation ...
-        Qa := 2 * (Sqr(FRadius.Y) + XSqr * m * m);
+        Qa := 2 * (YSqr + XSqr * m * m);
         Qb := XSqr * 2 * m * b;
-        Qc := XSqr * (b * b - Sqr(FRadius.Y));
+        Qc := XSqr * (b * b - YSqr);
         Qz := Qb * Qb - 2 * Qa * Qc;
 
         if Qz >= 0 then
@@ -5241,15 +5490,41 @@ begin
           if (FFocalPt.X > X2) = (RelPos.X > 0) then
             X2 := -(Qb + Qz) * Qa;
           Y2 := m * X2 + b;
+{$if defined(SQR_SLOW)}
+          Rad := RelPos.X * RelPos.X + RelPos.Y * RelPos.Y;
+          X2 := X2 - FFocalPt.X;
+          Y2 := Y2 - FFocalPt.Y;
+          Rad2 := X2*X2 + Y2*Y2;
+{$else}
           Rad := Sqr(RelPos.X) + Sqr(RelPos.Y);
           Rad2 := Sqr(X2 - FFocalPt.X) + Sqr(Y2 - FFocalPt.Y);
+{$ifend}
 
-          if Rad >= Rad2 then
+          if Rad2 = 0 then
+            Index := 0
+          else
+          if (FWrapMode = wmClamp) and (Rad >= Rad2) then
+            Index := Mask
+          else
+          begin
+            UnclippedIndex := FastRound(Mask * FastSqrtBab1(Rad / Rad2));
+            if Assigned(WrapProc) then
+              Index := WrapProc(UnclippedIndex, Mask)
+            else
+              Index := Min(UnclippedIndex, Mask);
+          end;
+
+          Color32 := ColorLUT^[Index];
+
+        end else
+        begin
+
+          if (FWrapMode = wmClamp) or not Assigned(WrapProc) then
             Color32 := ColorLUT^[Mask]
           else
-            Color32 := ColorLUT^[Round(Mask * FastSqrtBab1(Rad / Rad2))];
-        end else
-          Color32 := ColorLUT^[Mask];
+            Color32 := ColorLUT^[WrapProc(Mask, Mask)];
+
+        end;
       end;
     end;
 
@@ -5260,9 +5535,394 @@ begin
   end;
 end;
 
+{ TSVGConicalGradientPolygonFiller }
+
+constructor TSVGConicalGradientPolygonFiller.Create;
+begin
+  inherited Create;
+  FCenter := FloatPoint(0, 0);
+  FAngle := 0.0;
+  FStartAngle := 0.0;
+  FEndAngle := 2 * PI;
+  FTransformMatrix := IdentityMatrix;
+end;
+
+constructor TSVGConicalGradientPolygonFiller.Create(ColorGradient: TColor32Gradient);
+begin
+  Create;
+  SetGradient(ColorGradient);
+end;
+
+procedure TSVGConicalGradientPolygonFiller.BeginRendering;
+begin
+  if LookUpTableNeedsUpdate then
+  begin
+    if FUseLookUpTable then
+    begin
+      if (FGradientLUT = nil) then
+        raise Exception.Create(RCStrNoTColor32LookupTable);
+
+      if (FGradient <> nil) then
+        FGradient.FillColorLookUpTable(FGradientLUT);
+    end else
+    if (FGradient = nil) then
+      raise Exception.Create(RCStrNoTColor32Gradient);
+
+    inherited;
+  end;
+
+  FInvMatrix := FTransformMatrix;
+  GR32_Transforms.Invert(FInvMatrix);
+
+  FDelta := FEndAngle - FStartAngle;
+  if Abs(FDelta) < 1E-8 then
+    FDelta := 2 * PI;
+
+  FScale := FGradientLUT.Mask / FDelta;
+end;
+
+function TSVGConicalGradientPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FillLineConical;
+end;
+
+procedure TSVGConicalGradientPolygonFiller.FillLineConical(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+var
+  X, Mask, Index: Integer;
+  PtX, PtY, Dx, Dy: TFloat;
+  RelX, RelY, RelativeAngle: TFloat;
+  ColorLUT: PColor32Array;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+  WrapProc: TWrapProc;
+begin
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+  ColorLUT := FGradientLUT.Color32Ptr;
+  Mask := Integer(FGradientLUT.Mask);
+
+  case FWrapMode of
+    wmClamp: WrapProc := nil;
+    wmRepeat: WrapProc := GetOptimalWrap(Mask);
+    wmMirror: WrapProc := Mirror;
+{$ifdef GR32_WRAPMODE_REFLECT}
+    wmReflect: WrapProc := GetOptimalReflect(Mask);
+{$endif}
+  else
+    WrapProc := nil;
+  end;
+
+  // Calculates starting point in gradient coordinate space for target pixel (DstX, DstY)
+  PtX := DstX * FInvMatrix[0, 0] + DstY * FInvMatrix[1, 0] + FInvMatrix[2, 0];
+  PtY := DstX * FInvMatrix[0, 1] + DstY * FInvMatrix[1, 1] + FInvMatrix[2, 1];
+
+  // Incremental step per X pixel advancement along the scanline
+  Dx := FInvMatrix[0, 0];
+  Dy := FInvMatrix[0, 1];
+
+  for X := 0 to Length - 1 do
+  begin
+    RelX := PtX - FCenter.X;
+    RelY := PtY - FCenter.Y;
+
+    // Angle relative to StartAngle + Angle
+    RelativeAngle := -ArcTan2(RelY, RelX) - (FStartAngle + FAngle);
+
+    // Normalize RelativeAngle into range [0..2*PI)
+    RelativeAngle := RelativeAngle - 2 * Pi * Floor(RelativeAngle / (2 * Pi));
+
+    Index := Round(FScale * RelativeAngle);
+
+    if Assigned(WrapProc) then
+      Index := WrapProc(Index, Mask)
+    else
+    begin
+      if Index < 0 then
+        Index := 0
+      else
+      if Index > Mask then
+        Index := Mask;
+    end;
+
+    Color32 := ColorLUT^[Index];
+
+    if AlphaValues <> nil then
+    begin
+      BlendMemEx(Color32, Dst^, AlphaValues^);
+      Inc(AlphaValues);
+    end else
+      Dst^ := Color32;
+
+    Inc(Dst);
+    PtX := PtX + Dx;
+    PtY := PtY + Dy;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
+//      TSVGMeshGradientPolygonFiller
+//
+//------------------------------------------------------------------------------
+constructor TSVGMeshGradientPolygonFiller.Create;
+begin
+  inherited Create;
+  FMeshType := mgtBilinear;
+  FTransformMatrix := IdentityMatrix;
+  FSubdivisionDepth := 8;
+end;
+
+destructor TSVGMeshGradientPolygonFiller.Destroy;
+begin
+  Clear;
+  inherited Destroy;
+end;
+
+procedure TSVGMeshGradientPolygonFiller.Clear;
+begin
+  SetLength(FPatches, 0);
+  SetLength(FTriangles, 0);
+end;
+
+procedure TSVGMeshGradientPolygonFiller.AddPatch(const APatch: TSVGMeshPatch);
+begin
+  SetLength(FPatches, Length(FPatches) + 1);
+  FPatches[High(FPatches)] := APatch;
+end;
+
+function TSVGMeshGradientPolygonFiller.EvaluatePatchPoint(const APatch: TSVGMeshPatch; u, v: Single): TFloatPoint;
+var
+  Bu, Bv: array[0..3] of Single;
+  i, j: Integer;
+  w: Single;
+begin
+  if FMeshType = mgtBilinear then
+  begin
+    Result.X := (1.0 - u) * (1.0 - v) * APatch.ControlPoints[0, 0].X +
+                u * (1.0 - v) * APatch.ControlPoints[3, 0].X +
+                u * v * APatch.ControlPoints[3, 3].X +
+                (1.0 - u) * v * APatch.ControlPoints[0, 3].X;
+    Result.Y := (1.0 - u) * (1.0 - v) * APatch.ControlPoints[0, 0].Y +
+                u * (1.0 - v) * APatch.ControlPoints[3, 0].Y +
+                u * v * APatch.ControlPoints[3, 3].Y +
+                (1.0 - u) * v * APatch.ControlPoints[0, 3].Y;
+    Exit;
+  end;
+
+  Bu[0] := (1.0 - u) * (1.0 - u) * (1.0 - u);
+  Bu[1] := 3.0 * (1.0 - u) * (1.0 - u) * u;
+  Bu[2] := 3.0 * (1.0 - u) * u * u;
+  Bu[3] := u * u * u;
+
+  Bv[0] := (1.0 - v) * (1.0 - v) * (1.0 - v);
+  Bv[1] := 3.0 * (1.0 - v) * (1.0 - v) * v;
+  Bv[2] := 3.0 * (1.0 - v) * v * v;
+  Bv[3] := v * v * v;
+
+  Result.X := 0.0;
+  Result.Y := 0.0;
+  for i := 0 to 3 do
+    for j := 0 to 3 do
+    begin
+      w := Bu[i] * Bv[j];
+      Result.X := Result.X + w * APatch.ControlPoints[i, j].X;
+      Result.Y := Result.Y + w * APatch.ControlPoints[i, j].Y;
+    end;
+end;
+
+function TSVGMeshGradientPolygonFiller.EvaluatePatchColor(const APatch: TSVGMeshPatch; u, v: Single): TColor32;
+var
+  w00, w10, w11, w01: Single;
+begin
+  w00 := (1.0 - u) * (1.0 - v);
+  w10 := u * (1.0 - v);
+  w11 := u * v;
+  w01 := (1.0 - u) * v;
+
+  Result := Linear4PointInterpolation(APatch.Colors[0], APatch.Colors[1],
+    APatch.Colors[2], APatch.Colors[3], w00, w10, w11, w01);
+end;
+
+procedure TSVGMeshGradientPolygonFiller.SubdividePatches;
+
+  function TransformPt(const Pt: TFloatPoint; const TransformMatrix: TFloatMatrix): TFloatPoint; inline;
+  begin
+    Result.X := Pt.X * TransformMatrix[0, 0] + Pt.Y * TransformMatrix[1, 0] + TransformMatrix[2, 0];
+    Result.Y := Pt.X * TransformMatrix[0, 1] + Pt.Y * TransformMatrix[1, 1] + TransformMatrix[2, 1];
+  end;
+
+var
+  PatchIdx, uIdx, vIdx, TriIdx, N: Integer;
+  u1, u2, v1, v2: Single;
+  OneOverN: Single;
+  P00, P10, P11, P01: TFloatPoint;
+  C00, C10, C11, C01: TColor32;
+  Patch: TSVGMeshPatch;
+begin
+  N := FSubdivisionDepth;
+  if N < 1 then
+    N := 1;
+
+  SetLength(FTriangles, Length(FPatches) * N * N * 2);
+  TriIdx := 0;
+
+  for PatchIdx := 0 to High(FPatches) do
+  begin
+    Patch := FPatches[PatchIdx];
+    for uIdx := 0 to N - 1 do
+    begin
+      OneOverN := 1 / N;
+      u1 := uIdx * OneOverN;
+      u2 := (uIdx + 1) * OneOverN;
+      for vIdx := 0 to N - 1 do
+      begin
+        v1 := vIdx / N;
+        v2 := (vIdx + 1) * OneOverN;
+
+        P00 := TransformPt(EvaluatePatchPoint(Patch, u1, v1), FTransformMatrix);
+        P10 := TransformPt(EvaluatePatchPoint(Patch, u2, v1), FTransformMatrix);
+        P11 := TransformPt(EvaluatePatchPoint(Patch, u2, v2), FTransformMatrix);
+        P01 := TransformPt(EvaluatePatchPoint(Patch, u1, v2), FTransformMatrix);
+
+        C00 := EvaluatePatchColor(Patch, u1, v1);
+        C10 := EvaluatePatchColor(Patch, u2, v1);
+        C11 := EvaluatePatchColor(Patch, u2, v2);
+        C01 := EvaluatePatchColor(Patch, u1, v2);
+
+        FTriangles[TriIdx].P0 := P00;
+        FTriangles[TriIdx].P1 := P10;
+        FTriangles[TriIdx].P2 := P11;
+        FTriangles[TriIdx].C0 := C00;
+        FTriangles[TriIdx].C1 := C10;
+        FTriangles[TriIdx].C2 := C11;
+        FTriangles[TriIdx].MinY := Min(P00.Y, Min(P10.Y, P11.Y));
+        FTriangles[TriIdx].MaxY := Max(P00.Y, Max(P10.Y, P11.Y));
+        Inc(TriIdx);
+
+        FTriangles[TriIdx].P0 := P00;
+        FTriangles[TriIdx].P1 := P11;
+        FTriangles[TriIdx].P2 := P01;
+        FTriangles[TriIdx].C0 := C00;
+        FTriangles[TriIdx].C1 := C11;
+        FTriangles[TriIdx].C2 := C01;
+        FTriangles[TriIdx].MinY := Min(P00.Y, Min(P11.Y, P01.Y));
+        FTriangles[TriIdx].MaxY := Max(P00.Y, Max(P11.Y, P01.Y));
+        Inc(TriIdx);
+      end;
+    end;
+  end;
+  SetLength(FTriangles, TriIdx);
+end;
+
+procedure TSVGMeshGradientPolygonFiller.BeginRendering;
+begin
+  inherited BeginRendering;
+  SubdividePatches;
+end;
+
+function TSVGMeshGradientPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FillLineMesh;
+end;
+
+procedure TSVGMeshGradientPolygonFiller.FillLineMesh(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+var
+  i, x, SpanLen: Integer;
+  Y: Single;
+  TriPtr: ^TMeshTriangle;
+  XCross: array[0..1] of Single;
+  CCross: array[0..1] of TColor32;
+  CrossCount: Integer;
+  tEdge, tSpan: Single;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+  XStart, XEnd: Integer;
+  XA, XB: Single;
+  CA, CB: TColor32;
+  EdgeIdx: Integer;
+  EdgeP1, EdgeP2: TFloatPoint;
+  EdgeC1, EdgeC2: TColor32;
+begin
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+  Y := DstY + 0.5;
+
+  for i := 0 to High(FTriangles) do
+  begin
+    TriPtr := @FTriangles[i];
+    if (Y < TriPtr.MinY) or (Y > TriPtr.MaxY) then
+      continue;
+
+    CrossCount := 0;
+    for EdgeIdx := 0 to 2 do
+    begin
+      case EdgeIdx of
+        0: begin EdgeP1 := TriPtr.P0; EdgeP2 := TriPtr.P1; EdgeC1 := TriPtr.C0; EdgeC2 := TriPtr.C1; end;
+        1: begin EdgeP1 := TriPtr.P1; EdgeP2 := TriPtr.P2; EdgeC1 := TriPtr.C1; EdgeC2 := TriPtr.C2; end;
+      else
+           begin EdgeP1 := TriPtr.P2; EdgeP2 := TriPtr.P0; EdgeC1 := TriPtr.C2; EdgeC2 := TriPtr.C0; end;
+      end;
+
+      if ((EdgeP1.Y <= Y) and (Y < EdgeP2.Y)) or ((EdgeP2.Y <= Y) and (Y < EdgeP1.Y)) then
+      begin
+        if Abs(EdgeP2.Y - EdgeP1.Y) > 1e-6 then
+        begin
+          tEdge := (Y - EdgeP1.Y) / (EdgeP2.Y - EdgeP1.Y);
+          XCross[CrossCount] := EdgeP1.X + tEdge * (EdgeP2.X - EdgeP1.X);
+          CCross[CrossCount] := CombineReg(EdgeC2, EdgeC1, Clamp(Round(255.0 * tEdge), 0, 255));
+          Inc(CrossCount);
+          if CrossCount = 2 then
+            Break;
+        end;
+      end;
+    end;
+
+    if CrossCount = 2 then
+    begin
+      if XCross[0] <= XCross[1] then
+      begin
+        XA := XCross[0]; XB := XCross[1];
+        CA := CCross[0]; CB := CCross[1];
+      end else
+      begin
+        XA := XCross[1]; XB := XCross[0];
+        CA := CCross[1]; CB := CCross[0];
+      end;
+
+      XStart := Max(DstX, Ceil(XA));
+      XEnd := Min(DstX + Length - 1, Floor(XB));
+
+      if XStart <= XEnd then
+      begin
+        SpanLen := Round(XB - XA);
+        for x := XStart to XEnd do
+        begin
+          if SpanLen > 0 then
+            tSpan := (x - XA) / (XB - XA)
+          else
+            tSpan := 0.0;
+
+          Color32 := CombineReg(CB, CA, Clamp(Round(255.0 * tSpan), 0, 255));
+
+          if AlphaValues <> nil then
+            BlendMemEx(Color32, PColor32Array(Dst)[x - DstX], PColor32Array(AlphaValues)[x - DstX])
+          else
+            PColor32Array(Dst)[x - DstX] := Color32;
+        end;
+      end;
+    end;
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 procedure RegisterBindings;
 begin
-  GradientRegistry := NewRegistry('GR32_ColorGradients bindings');
+  GradientRegistry := NewRegistry('GR32_ColorGradients');
   GradientRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolation, 'Linear3PointInterpolation');
   GradientRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolation, 'Linear4PointInterpolation');
 

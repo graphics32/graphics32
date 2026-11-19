@@ -17,14 +17,20 @@ type
   public
     procedure DoTest(Width, Height: integer; BitmapSrc, BitmapDst, ReferenceBitmap: TBitmap32; Transposer: TTranspose32);
     procedure DoDoTest(Transposer: TTranspose32);
+    procedure DoTestCorners(Transposer: TTranspose32);
 
   published
     procedure TestSquareTranspose;
     procedure TestRectangularTranspose;
 
     procedure TestSuperDuperTranspose32;
+    procedure TestSuperDuperTransposeCorners;
     procedure TestCacheObliviousTranspose32;
+    procedure TestCacheObliviousTransposeCorners;
     procedure TestCacheObliviousTransposeEx32;
+    procedure TestCacheObliviousTransposeExCorners;
+    procedure TestTransposeGudkov32;
+    procedure TestTransposeGudkovCorners;
   end;
 
 implementation
@@ -79,6 +85,34 @@ begin
   CheckEqualsMem(ReferenceBitmap.Bits, BitmapDst.Bits, Width * Height * SizeOf(TColor32), Format('(%d, %d)', [Width, Height]));
 end;
 
+procedure TTestTranspose.DoTestCorners(Transposer: TTranspose32);
+begin
+  var BitmapSrc := TBitmap32.Create;
+  var BitmapDst := TBitmap32.Create;
+  var ReferenceBitmap := TBitmap32.Create;
+  try
+    // Test small dimensions (1..16) covering all (W mod 4, H mod 4) remainder permutations
+    // and cases where W < 4 or H < 4 (no 4x4 blocks processed)
+    for var W := 1 to 16 do
+      for var H := 1 to 16 do
+        DoTest(W, H, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+
+    // Test specific non-multiples of 4 and corner dimensions
+    DoTest(134, 82, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+    DoTest(82, 134, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+    DoTest(133, 81, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+    DoTest(135, 83, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+    DoTest(1, 100, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+    DoTest(100, 1, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+    DoTest(3, 100, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+    DoTest(100, 3, BitmapSrc, BitmapDst, ReferenceBitmap, Transposer);
+  finally
+    ReferenceBitmap.Free;
+    BitmapSrc.Free;
+    BitmapDst.Free;
+  end;
+end;
+
 procedure TTestTranspose.TestSquareTranspose;
 begin
   var BitmapSrc := TBitmap32.Create;
@@ -104,6 +138,11 @@ begin
   DoDoTest(SuperDuperTranspose32);
 end;
 
+procedure TTestTranspose.TestSuperDuperTransposeCorners;
+begin
+  DoTestCorners(SuperDuperTranspose32);
+end;
+
 procedure TTestTranspose.TestRectangularTranspose;
 begin
   DoDoTest(Transpose32);
@@ -114,9 +153,29 @@ begin
   DoDoTest(CacheObliviousTranspose32);
 end;
 
+procedure TTestTranspose.TestCacheObliviousTransposeCorners;
+begin
+  DoTestCorners(CacheObliviousTranspose32);
+end;
+
 procedure TTestTranspose.TestCacheObliviousTransposeEx32;
 begin
   DoDoTest(CacheObliviousTransposeEx32);
+end;
+
+procedure TTestTranspose.TestCacheObliviousTransposeExCorners;
+begin
+  DoTestCorners(CacheObliviousTransposeEx32);
+end;
+
+procedure TTestTranspose.TestTransposeGudkov32;
+begin
+  DoDoTest(TransposeGudkov32);
+end;
+
+procedure TTestTranspose.TestTransposeGudkovCorners;
+begin
+  DoTestCorners(TransposeGudkov32);
 end;
 
 initialization
