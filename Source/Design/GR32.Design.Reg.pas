@@ -101,7 +101,7 @@ begin
 
   {$IFNDEF FPC}
   {$IF CompilerVersion >= 25.0}
-  // Register debug visualizers for TCustomBitmap32 in the Delphi IDE
+  // Register debug visualizers for TCustomBitmap32 and TColor32 in the Delphi IDE
   RegisterDebugVisualizers;
   {$IFEND}
   {$ENDIF}

@@ -128,6 +128,39 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      TColor32DebuggerVisualizer
+//
+//------------------------------------------------------------------------------
+// TColor32 visualizer.
+//------------------------------------------------------------------------------
+type
+  TColor32ValueReplacer = class abstract(TGraphics32DebuggerVisualizer,
+    IOTADebuggerVisualizerValueReplacer)
+  private class var
+    FValueReplacer: IOTADebuggerVisualizer;
+  private
+    // IOTADebuggerVisualizerValueReplacer
+    function GetReplacementValue(const Expression, TypeName, EvalResult: string): string;
+
+  protected
+    // IOTADebuggerVisualizer
+    function GetSupportedTypeCount: Integer; override;
+    procedure GetSupportedType(Index: Integer; var TypeName: string; var AllDescendants: Boolean); override;
+
+  protected
+    // IOTADebuggerVisualizer
+    function GetVisualizerIdentifier: string; override;
+    function GetVisualizerName: string; override;
+    function GetVisualizerDescription: string; override;
+
+  public
+    class procedure Register(const DebuggerServices: IOTADebuggerServices); static;
+    class procedure Unregister(const DebuggerServices: IOTADebuggerServices); static;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TBitmap32DebuggerVisualizer
 //
 //------------------------------------------------------------------------------
@@ -220,6 +253,8 @@ uses
   GR32_Backends_Generic;
 
 resourcestring
+  sColor32ValueReplacerName  = 'Graphics32 Color Value Replacer';
+  sColor32ValueReplacerDesc  = 'Displays the color channel values of a TColor32 value';
   sBitmap32ValueReplacerName = 'Graphics32 Bitmap Value Replacer';
   sBitmap32ValueReplacerDesc = 'Displays the dimensions of a TCustomBitmap32 / TBitmap32 instance';
   sBitmap32CustomViewerName  = 'Graphics32 Bitmap Visualizer';
@@ -354,6 +389,78 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      TColor32ValueReplacer
+//
+//------------------------------------------------------------------------------
+function TColor32ValueReplacer.GetSupportedTypeCount: Integer;
+begin
+  Result := 1;
+end;
+
+procedure TColor32ValueReplacer.GetSupportedType(Index: Integer;
+  var TypeName: string; var AllDescendants: Boolean);
+begin
+  AllDescendants := False;
+  TypeName := 'TColor32';
+end;
+
+//------------------------------------------------------------------------------
+
+function TColor32ValueReplacer.GetVisualizerIdentifier: string;
+begin
+  Result := 'Graphics32.Color32ValueReplacer';
+end;
+
+function TColor32ValueReplacer.GetVisualizerName: string;
+begin
+  Result := sColor32ValueReplacerName;
+end;
+
+class procedure TColor32ValueReplacer.Register(const DebuggerServices: IOTADebuggerServices);
+begin
+  if (FValueReplacer = nil) then
+  begin
+    FValueReplacer := TColor32ValueReplacer.Create;
+    DebuggerServices.RegisterDebugVisualizer(FValueReplacer);
+  end;
+end;
+
+class procedure TColor32ValueReplacer.Unregister(const DebuggerServices: IOTADebuggerServices);
+begin
+  if (FValueReplacer <> nil) then
+  begin
+    DebuggerServices.UnregisterDebugVisualizer(FValueReplacer);
+    FValueReplacer := nil;
+  end;
+end;
+
+function TColor32ValueReplacer.GetVisualizerDescription: string;
+begin
+  Result := sColor32ValueReplacerDesc;
+end;
+
+function TColor32ValueReplacer.GetReplacementValue(const Expression, TypeName,
+  EvalResult: string): string;
+var
+  Value: Int64;
+  Color: TColor32Entry;
+begin
+  Result := EvalResult;
+
+  if TryStrToInt64(EvalResult, Value) then
+  begin
+    Color.ARGB := Value;
+    // #$2009 = THIN SPACE
+    // #$2022 = BULLET
+    Result := Format('ARGB: $%s'#$2009'%s'#$2009'%s'#$2009'%s '#$2022' Alpha: %d '#$2022' Red: %d '#$2022' Green: %d '#$2022' Blue: %d', [
+      IntToHex(Color.A, 2), IntToHex(Color.R, 2), IntToHex(Color.G, 2), IntToHex(Color.B, 2),
+      Color.A, Color.R, Color.G, Color.B]);
+  end;
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      TBitmap32DebuggerVisualizer
 //
 //------------------------------------------------------------------------------
@@ -365,7 +472,7 @@ end;
 procedure TBitmap32DebuggerVisualizer.GetSupportedType(Index: Integer;
   var TypeName: string; var AllDescendants: Boolean);
 begin
-  AllDescendants := False;
+  AllDescendants := False; // Why not True?
   case Index of
     0: TypeName := 'TCustomBitmap32';
     1: TypeName := 'TBitmap32';
@@ -672,6 +779,8 @@ begin
   begin
     TBitmap32ValueReplacer.Register(DebuggerServices);
     TBitmap32Viewer.Register(DebuggerServices);
+
+    TColor32ValueReplacer.Register(DebuggerServices);
   end;
 end;
 
@@ -683,6 +792,8 @@ begin
   begin
     TBitmap32ValueReplacer.Unregister(DebuggerServices);
     TBitmap32Viewer.Unregister(DebuggerServices);
+
+    TColor32ValueReplacer.Unregister(DebuggerServices);
   end;
 end;
 
