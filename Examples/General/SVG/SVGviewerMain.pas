@@ -102,6 +102,19 @@ type
     property ItemHeight: integer write SetDummyInt;
   end;
 
+// Interposer for pre-Delphi 10.4 TSpeedButton
+{$if (not defined(FPC)) and (CompilerVersion < 34.0)}
+type
+  TSpeedButton = class(Buttons.TSpeedButton)
+  private
+    procedure SetImages(Value: TCustomImageList);
+    procedure SetImageIndex(Value: integer);
+  published
+    property Images: TCustomImageList write SetImages;
+    property ImageIndex: integer write SetImageIndex;
+  end;
+{$ifend}
+
 type
   TFormSVGviewer = class(TForm)
     PnlLeft: TPanel;
@@ -111,7 +124,7 @@ type
     PnlRight: TPanel;
     Image32: TImage32;
     PageControlSVG: TPageControl;
-    TabSheetPreview: TTabSheet;
+    TabSheetView: TTabSheet;
     TabSheetSource: TTabSheet;
     MemoSource: TMemo;
     ButtonSave: TButton;
@@ -134,6 +147,7 @@ type
     ActionReload: TAction;
     ActionAllowExternal: TAction;
     ActionSave: TAction;
+    Bitmap32List: TBitmap32List;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MemoSourceChange(Sender: TObject);
@@ -222,6 +236,7 @@ procedure TFormSVGviewer.FormCreate(Sender: TObject);
 var
   i: integer;
   Stage: PPaintStage;
+  Bitmap: TBitmap;
 begin
   FDocNode := nil;
 
@@ -297,6 +312,34 @@ begin
 {$if (not defined(FPC)) and (CompilerVersion >= 37.0)}
   SplitterMemo.OnBeforeResize := SplitterMemoBeforeResize;
 {$ifend}
+
+  // Load ImageList from BitmapList so we avoid the worst
+  // Lazarus/Delphi/Version problems with ImageLists.
+  Bitmap := TBitmap.Create;
+  try
+    ImageList.Clear;
+    for i := 0 to Bitmap32List.Bitmaps.Count-1 do
+    begin
+      Bitmap.Assign(Bitmap32List[i]);
+      ImageList.Add(Bitmap, nil);
+    end;
+  finally
+    Bitmap.Free;
+  end;
+
+  for i := 0 to ComponentCount-1 do
+    if (Components[i] is TSpeedButton) then
+    begin
+{$if (not defined(FPC))}
+      TSpeedButton(Components[i]).Glyph.Assign(nil);
+{$ifend}
+{$if (defined(FPC)) or (CompilerVersion >= 34.0)}
+      TSpeedButton(Components[i]).ImageIndex := TAction(TSpeedButton(Components[i]).Action).ImageIndex;
+{$ifend}
+      // TSpeedButton.Action.ImageIndex -> TSpeedButton.Glyph sync is broken internally
+      // for pretty much all versions.
+      ImageList.GetBitmap(TAction(TSpeedButton(Components[i]).Action).ImageIndex, TSpeedButton(Components[i]).Glyph);
+    end;
 
   PageControlSVG.TabIndex := 0;
   ColorTheme := ctNone;
@@ -738,6 +781,19 @@ begin
   TAction(Sender).Checked := not TAction(Sender).Checked;
   FLayer.Renderer.AllowExternalImages := TAction(Sender).Checked;
   ActionReload.Execute;
+
+  if TAction(Sender).Checked then
+    TAction(Sender).ImageIndex := 5
+  else
+    TAction(Sender).ImageIndex := 6;
+
+{$if (defined(FPC)) or (CompilerVersion >= 34.0)}
+  SpeedButtonExternal.ImageIndex := TAction(Sender).ImageIndex;
+{$ifend}
+{$if (defined(FPC)) or (CompilerVersion < 34.0)}
+  SpeedButtonExternal.Glyph.Assign(nil);
+  ImageList.GetBitmap(TAction(Sender).ImageIndex, SpeedButtonExternal.Glyph);
+{$ifend}
 end;
 
 procedure TFormSVGviewer.ActionBackgroundExecute(Sender: TObject);
@@ -817,15 +873,17 @@ end;
 
 procedure TFormSVGviewer.ActionThemeExecute(Sender: TObject);
 begin
-  TAction(Sender).ImageIndex := (TAction(Sender).ImageIndex + 1) mod (Ord(High(FColorTheme)) + 1);
-{$if (defined(FPC)) or (CompilerVersion > 32.0)}
-  // TSpeedButton.Action.ImageIndex -> TSpeedButton.ImageIndex sync is broken internally
+  ActionTheme.ImageIndex := (ActionTheme.ImageIndex + 1) mod (Ord(High(FColorTheme)) + 1);
+  ColorTheme := TSvgColorTheme(ActionTheme.ImageIndex);
+
+{$if (defined(FPC)) or (CompilerVersion >= 34.0)}
   SpeedButtonTheme.ImageIndex := TAction(Sender).ImageIndex;
-{$else}
+{$ifend}
+
+{$if (defined(FPC)) or (CompilerVersion < 34.0)}
   SpeedButtonTheme.Glyph.Assign(nil);
   ImageList.GetBitmap(TAction(Sender).ImageIndex, SpeedButtonTheme.Glyph);
 {$ifend}
-  ColorTheme := TSvgColorTheme(TAction(Sender).ImageIndex);
 end;
 
 procedure TFormSVGviewer.ApplyColorTheme(Renderer: TSvgRenderer);
@@ -953,4 +1011,17 @@ procedure TImageList.SetDummy(Value: TColorDepth);
 begin
 end;
 {$ENDIF}
+
+{ TSpeedButton }
+
+{$if (not defined(FPC)) and (CompilerVersion < 34.0)}
+procedure TSpeedButton.SetImages(Value: TCustomImageList);
+begin
+end;
+
+procedure TSpeedButton.SetImageIndex(Value: integer);
+begin
+end;
+{$ifend}
+
 end.
