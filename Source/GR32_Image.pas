@@ -212,6 +212,7 @@ type
     FOnMouseEnter: TNotifyEvent;
     FOnMouseLeave: TNotifyEvent;
     FOnChange: TNotifyEvent;
+    FTransparent: Boolean;
     procedure SetBufferOversize(Value: Integer);
 {$IFDEF FPC}
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
@@ -240,7 +241,12 @@ type
     function  CustomRepaint: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
     procedure SetPartialRepaintQueued;
+    function GetIsTransparent: Boolean; virtual;
+    procedure SetTransparent(Value: Boolean); virtual;
     procedure DoPrepareInvalidRects; virtual;
+    procedure DoPaintBackground(Dest: TBitmap32); virtual;
+    procedure PaintBackground(Dest: TBitmap32); virtual;
+    procedure PaintBuffer; virtual;
     procedure DoPaintBuffer; virtual;
     procedure DoPaintGDIOverlay; virtual;
     procedure DoBufferResized(const OldWidth, OldHeight: Integer); virtual;
@@ -260,6 +266,8 @@ type
     property UpdateCount: Integer read FUpdateCount;
     property LockUpdateCount: Integer read FLockUpdateCount;
     property Modified: boolean read FModified;
+    property ForceFullRepaint: Boolean read FForceFullRepaint write FForceFullRepaint;
+    property IsTransparent: Boolean read GetIsTransparent;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -283,6 +291,7 @@ type
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
     property MouseInControl: Boolean read FMouseInControl;
     property RepaintMode: TRepaintMode read FRepaintMode write SetRepaintMode default rmFull;
+    property Transparent: Boolean read FTransparent write SetTransparent default False;
 
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
@@ -318,6 +327,7 @@ type
     property ShowHint;
     property TabOrder;
     property TabStop;
+    property Transparent;
     property Visible;
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
@@ -565,7 +575,9 @@ type
     function CanMousePan: boolean; virtual;
     function CanMouseZoom: boolean; virtual;
     function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
+    function GetIsTransparent: Boolean; override;
     procedure DoInitStages; virtual;
+    procedure PaintBackground(Dest: TBitmap32); override;
     procedure DoPaintBuffer; override;
     procedure DoPaintGDIOverlay; override;
     procedure DoScaleChange; virtual;
@@ -585,6 +597,7 @@ type
     procedure SetOffsetHorz(Value: TFloat); virtual;
     procedure SetOffsetVert(Value: TFloat); virtual;
     procedure SetScaleMode(Value: TScaleMode); virtual;
+    procedure CreateParams(var Params: TCreateParams); override;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     function GetBitmapMargin: integer; virtual;
     procedure DoZoom({$ifdef CLOSURE_CAPTURES_CONST}const{$endif} APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
@@ -694,6 +707,7 @@ type
     property Background;
     property MousePan;
     property MouseZoom;
+    property Transparent;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -842,6 +856,7 @@ type
 //------------------------------------------------------------------------------
 type
   TImgView32 = class(TCustomImgView32)
+  published
     property Align;
     property Anchors;
     property AutoSize;
@@ -862,6 +877,7 @@ type
     property Background;
     property MousePan;
     property MouseZoom;
+    property Transparent;
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
@@ -1291,9 +1307,59 @@ begin
     end;
 
     UpdateRectSupport.InvalidateRect(Self, R);
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+    if IsTransparent then
+    begin
+      // Force parent to repaint so we can update the background
+      GR32.OffsetRect(R, Left, Top);
+      UpdateRectSupport.InvalidateRect(Parent, R, True);
+    end;
+{$ifend}
+
     SetPartialRepaintQueued;
   end else
+  begin
     inherited Invalidate;
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+    if IsTransparent then
+      Parent.Invalidate;
+{$ifend}
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+function TCustomPaintBox32.GetIsTransparent: Boolean;
+begin
+  // Transparency is only supported if:
+  // - We have a parent (the parent supplies the background).
+{$if defined(TRANSPARENT_TIMAGE32)}
+  Result := (FTransparent) and (Parent <> nil);
+{$else}
+  Result := False;
+{$ifend}
+end;
+
+procedure TCustomPaintBox32.SetTransparent(Value: Boolean);
+begin
+  if Value <> FTransparent then
+  begin
+    FTransparent := Value;
+
+    (* This is nonsense; Even though we "look" transparent, from the POW of
+    ** Windows, we are still opaque since we cover everything behind us.
+
+    if FTransparent then
+      ControlStyle := ControlStyle - [csOpaque]
+    else
+      ControlStyle := ControlStyle + [csOpaque];
+
+    RecreateWnd;
+    *)
+    Invalidate;
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -1310,6 +1376,7 @@ begin
     TCustomPaintBox32(Dest).FInvalidRects.Assign(FInvalidRects);
     TCustomPaintBox32(Dest).FForceFullRepaint := FForceFullRepaint;
     TCustomPaintBox32(Dest).FOptions := FOptions;
+    TCustomPaintBox32(Dest).FTransparent := FTransparent;
     TCustomPaintBox32(Dest).FOnGDIOverlay := FOnGDIOverlay;
     TCustomPaintBox32(Dest).FOnMouseEnter := FOnMouseEnter;
     TCustomPaintBox32(Dest).FOnMouseLeave := FOnMouseLeave;
@@ -1362,13 +1429,12 @@ end;
 
 function TCustomPaintBox32.CustomRepaint: Boolean;
 begin
-  Result := FRepaintOptimizer.Enabled and not FForceFullRepaint and
-    FRepaintOptimizer.UpdatesAvailable;
+  Result := FRepaintOptimizer.Enabled and (not FForceFullRepaint) and FRepaintOptimizer.UpdatesAvailable;
 end;
 
 procedure TCustomPaintBox32.DoPrepareInvalidRects;
 begin
-  if FRepaintOptimizer.Enabled and not FForceFullRepaint then
+  if FRepaintOptimizer.Enabled and (not FForceFullRepaint) then
     FRepaintOptimizer.PerformOptimization;
 end;
 
@@ -1379,9 +1445,20 @@ end;
 
 //------------------------------------------------------------------------------
 
+procedure TCustomPaintBox32.PaintBuffer;
+begin
+  if IsTransparent then
+    ForceFullRepaint := True;
+
+  DoPaintBuffer;
+end;
+
 procedure TCustomPaintBox32.DoPaintBuffer;
 begin
-  // force full repaint, this is necessary when Buffer is invalid and was never painted
+  // Descendants should override this method for painting operations,
+  // not the Paint method!!!
+
+  // Force full repaint; This is necessary when Buffer is invalid and was never painted.
   // This will omit calculating the invalid rects, thus we paint everything.
   if FForceFullRepaint then
   begin
@@ -1390,10 +1467,110 @@ begin
   end else
     DoPrepareInvalidRects;
 
-  // descendants should override this method for painting operations,
-  // not the Paint method!!!
   FBufferValid := True;
 end;
+
+procedure TCustomPaintBox32.PaintBackground(Dest: TBitmap32);
+begin
+  DoPaintBackground(Dest);
+end;
+
+procedure TCustomPaintBox32.DoPaintBackground(Dest: TBitmap32);
+{$if defined(TRANSPARENT_TIMAGE32)}
+var
+  SaveIndex: Integer;
+  SaveIndex2: Integer;
+  P: TPoint;
+  Sibling: TControl;
+  i: integer;
+begin
+  if (IsTransparent) then
+  begin
+
+    SaveIndex := SaveDC(Dest.Handle);
+    try
+      // The parent's WM_PRINT paints the background starting from the parent's
+      // client origin.
+      // We need to calculate the offset between our client origin and the
+      // parent's client origin.
+      P := ClientOrigin - Parent.ClientOrigin;
+
+      SetViewportOrgEx(Dest.Handle, -P.X, -P.Y, nil);
+      IntersectClipRect(Dest.Handle, P.X, P.Y, P.X + Width, P.Y + Height);
+
+      // Note that Windows, contrary to common belief, paints controls in Z-order,
+      // top-to-bottom, and uses clipping to give the impression that controls are
+      // painted bottom-to-top [*].
+      //
+      //   +--------+                     +--------+                    +--------+
+      //   |  Top   |                     |  Top   |                    |  Top   |
+      //   |        |---+   is painted    |        |         +---+      |        |---+
+      //   |        |   |   by WM_PAINT   |        |         |   |      |        |   |
+      //   +--------+   |        as       +--------+    +----+   | -->  +--------+   |
+      //       |        |                               |        |          |        |
+      //       | Bottom |                               | Bottom |          | Bottom |
+      //       +--------+                               +--------+          +--------+
+      //
+      // Unfortunately WM_PRINT does not apply clipping so when we paint controls
+      // with WM_PRINT, stacked/overlapping controls will appear in reverse
+      // Z-order.
+      //
+      //   +--------+                     +--------+                    +--------+
+      //   |  Top   |                     |  Top   |                    |  Top   |
+      //   |        |---+   is painted    |        |    +--------+      |   +--------+
+      //   |        |   |   by WM_PRINT   |        |    |        |      |   |        |
+      //   +--------+   |        as       +--------+    |        | -->  +---|        |
+      //       |        |                               |        |          |        |
+      //       | Bottom |                               | Bottom |          | Bottom |
+      //       +--------+                               +--------+          +--------+
+      //
+      // To work around this we manually iterate the siblings and paint them from
+      // back to front.
+      //
+      // [*] Controls with the WS_EX_TRANSPARENT style obviously does things
+      //     a bit differently. We do not handle that case here.
+      //
+
+      (*
+      ** WM_PRINT the parent to produce the background and paint TGraphicControls.
+      *)
+      Parent.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_ERASEBKGND);
+
+      (*
+      ** Paint TWinControl siblings that are below us in the Z-order.
+      *)
+      for i := 0 to Parent.ControlCount-1 do
+      begin
+        Sibling := Parent.Controls[i];
+
+        if (Sibling = Self) then
+          break;
+
+        if (Sibling is TWinControl) and Sibling.Visible then
+        begin
+          SaveIndex2 := SaveDC(Dest.Handle);
+          try
+            SetViewportOrgEx(Dest.Handle, Sibling.Left - P.X, Sibling.Top - P.Y, nil);
+            IntersectClipRect(Dest.Handle, 0, 0, Sibling.Width, Sibling.Height);
+
+            Sibling.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_ERASEBKGND or PRF_CHILDREN);
+          finally
+            RestoreDC(Dest.Handle, SaveIndex2);
+          end;
+        end;
+      end;
+
+    finally
+      RestoreDC(Dest.Handle, SaveIndex);
+    end;
+
+    exit;
+  end;
+end;
+{$else}
+begin
+end;
+{$ifend}
 
 procedure TCustomPaintBox32.DoPaintGDIOverlay;
 begin
@@ -1462,6 +1639,11 @@ begin
 end;
 
 procedure TCustomPaintBox32.Invalidate;
+{$if defined(TRANSPARENT_TIMAGE32)}
+var
+  R: TRect;
+  UpdateRectSupport: IUpdateRectSupport;
+{$ifend}
 begin
   FBufferValid := False;
 {$if defined(FPC) and defined(MSWINDOWS)}
@@ -1470,6 +1652,17 @@ begin
     InvalidateRect(Handle, nil, not(csOpaque in ControlStyle));
 {$else}
   inherited;
+{$ifend}
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+  if IsTransparent and Visible then
+  begin
+    R := BoundsRect;
+    if (Supports(FBuffer.Backend, IUpdateRectSupport, UpdateRectSupport)) then
+      UpdateRectSupport.InvalidateRect(Parent, R, True)
+    else
+      Parent.Invalidate;
+  end;
 {$ifend}
 end;
 
@@ -1517,7 +1710,8 @@ begin
   if not FBufferValid then
   begin
     PaintSupport.ImageNeeded;
-    DoPaintBuffer;
+    PaintBackground(Buffer);
+    PaintBuffer;
     PaintSupport.CheckPixmap;
   end;
 
@@ -1674,7 +1868,11 @@ begin
   inherited;
   if (not (csLoading in ComponentState)) then
     ResizeBuffer;
+
   FBufferValid := False;
+
+  if (IsTransparent) then
+    ForceFullInvalidate;
 end;
 
 procedure TCustomPaintBox32.SetBufferOversize(Value: Integer);
@@ -2224,6 +2422,17 @@ begin
     SetPartialRepaintQueued;
 
   BufferValid := False;
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+  if IsTransparent then
+  begin
+    // Force parent to repaint so we can update the background
+    R := AArea;
+    GR32.OffsetRect(R, Left, Top);
+
+    InvalidateRect(Parent.Handle, @R, True);
+  end;
+{$ifend}
 end;
 
 procedure TCustomImage32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
@@ -2605,12 +2814,27 @@ begin
   end;
 end;
 
+procedure TCustomImage32.PaintBackground(Dest: TBitmap32);
+begin
+  // Background is painted by ExecClearBackgnd(
+end;
+
 procedure TCustomImage32.DoPaintBuffer;
 var
   PaintStageHandlerCount: Integer;
   i, j: Integer;
   PaintStageMask: TPaintStageMaskValue;
 begin
+  if IsTransparent then
+    // Full repaint in case the background is animated
+    ForceFullRepaint := True;
+
+  if ForceFullRepaint then
+  begin
+    ForceFullRepaint := False;
+    InvalidRects.Clear;
+  end;
+
   if RepaintOptimizer.Enabled then
     RepaintOptimizer.BeginPaintBuffer;
 
@@ -2838,6 +3062,12 @@ var
   FillStyle: TBackgroundFillStyle;
   ClearStyle: TBackgroundFillStyle;
 begin
+  if (IsTransparent) then
+  begin
+    DoPaintBackground(Dest);
+    exit;
+  end;
+
   ViewportRect := GetViewportRect;
 
   if (not Bitmap.Empty) and (Bitmap.DrawMode = dmOpaque) then
@@ -3948,6 +4178,9 @@ procedure TCustomImage32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
   InvalidateCache;
+
+  if (IsTransparent) and (not BufferValid) then
+    ForceFullInvalidate;
 end;
 
 procedure TCustomImage32.SetHotTrackLayer(ALayer: TCustomLayer);
@@ -4066,6 +4299,20 @@ begin
   end;
 end;
 
+procedure TCustomImage32.CreateParams(var Params: TCreateParams);
+begin
+  inherited;
+
+  (* See SetTransparent.
+  ** Also, WS_EX_TRANSPARENT makes Windows paint and display whatever is underneath
+  ** us before we are being painted. This causes flicker and is unnecessary since
+  ** we are opaque.
+
+  if FTransparent then
+    Params.ExStyle := Params.ExStyle or WS_EX_TRANSPARENT;
+  *)
+end;
+
 procedure TCustomImage32.SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000);
 begin
   BeginUpdate;
@@ -4127,6 +4374,21 @@ function TCustomImage32.GetCachedBitmapRect: TRect;
 begin
   UpdateCache;
   Result := FCachedBitmapRect;
+end;
+
+function TCustomImage32.GetIsTransparent: Boolean;
+begin
+  // Transparency is only supported if:
+  // - We have a parent (the parent supplies the background).
+  // - We aren't painting to produce a flattened image.
+  // - We do not have a bitmap, or we have a bitmap and:
+  //   - We aren't tiling.
+  //   - We aren't stretching.
+{$if defined(TRANSPARENT_TIMAGE32)}
+  Result := inherited GetIsTransparent and (not PaintToMode) and ((Bitmap = nil) or ((BitmapAlign <> baTile) and (ScaleMode <> smStretch)));
+{$else}
+  Result := False;
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------

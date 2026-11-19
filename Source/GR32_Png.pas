@@ -667,7 +667,7 @@ begin
         end;
 
       // reset data stream position
-      DataStream.Seek(0, soFromBeginning);
+      DataStream.Position := 0;
 
       // compress image data from data stream
       CompressImageDataFromStream(DataStream);
@@ -691,7 +691,7 @@ begin
     DecompressImageDataToStream(DataStream);
 
     // reset data stream position
-    DataStream.Seek(0, soFromBeginning);
+    DataStream.Position := 0;
 
     case ImageHeader.InterlaceMethod of
       imNone:
@@ -1052,7 +1052,7 @@ begin
         end;
 
       // reset data stream position
-      DataStream.Seek(0, soFromBeginning);
+      DataStream.Position := 0;
 
       // compress image data from data stream
       CompressImageDataFromStream(DataStream);
@@ -1586,8 +1586,9 @@ begin
       ctTrueColorAlpha:
         RowByteSize := (PixelPerRow * FHeader.BitDepth * 4) div 8;
     else
-      Continue;
+      RowByteSize := 0; // Silence bogus Delphi 10.0/10.1 compiler hint
     end;
+
     if RowByteSize = 0 then
       Continue;
 

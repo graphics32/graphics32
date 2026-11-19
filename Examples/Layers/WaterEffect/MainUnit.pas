@@ -68,7 +68,8 @@ implementation
 {$R *.dfm}
 
 uses
-  Types;
+  Types,
+  GR32.ImageFormats.JPG;
 
 procedure TFormMain.FormCreate(Sender: TObject);
 begin

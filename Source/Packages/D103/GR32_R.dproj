@@ -86,6 +86,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="vcl.dcp"/>
+        <DCCReference Include="vclimg.dcp"/>
         <DCCReference Include="..\..\GR32.pas"/>
         <DCCReference Include="..\..\GR32_Backends.pas"/>
         <DCCReference Include="..\..\GR32_Backends_Generic.pas"/>
@@ -171,6 +172,7 @@
         <DCCReference Include="..\..\GR32.ImageFormats.PSD.Reader.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.PSD.Types.pas"/>
         <DCCReference Include="..\..\GR32.ImageFormats.PSD.Writer.pas"/>
+        <DCCReference Include="..\..\GR32.ImageFormats.JPG.pas"/>
         <DCCReference Include="..\..\GR32_ColorSwatch.pas"/>
         <DCCReference Include="..\..\GR32.BigEndian.pas"/>
         <DCCReference Include="..\..\GR32.Blur.pas"/>
