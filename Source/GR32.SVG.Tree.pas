@@ -2991,16 +2991,20 @@ begin
   // and filter region expansions (per W3C SVG 1.1 §15.5).
   Result := GetObjectBoundingBox(AViewport);
 
-  // Don't use Result.IsEmpty here! We need to apply stroke to horizontal/vertical lines
-  if (Result.Right >= Result.Left) and (Result.Bottom >= Result.Top) and
-     ((Result.Right > Result.Left) or (Result.Bottom > Result.Top)) then
+  if (Result.Right >= Result.Left) and (Result.Bottom >= Result.Top) then
   begin
-    if (not FStroke.Color.IsNone) and (FStroke.Width.Value > 0) then
+    // Don't use Result.IsEmpty here! We need to apply stroke to
+    // horizontal/vertical lines and even to points.
+    // EndStyle = esRound or esSquare, with a point and a stroke, produces a circle/square.
+    if (FStroke.EndStyle in [esRound, esSquare]) or (Result.Right > Result.Left) or (Result.Bottom > Result.Top) then
     begin
-      HalfStroke := GetSizePx(FStroke.Width, AViewport) * 0.5;
-      if FStroke.JoinStyle = jsMiter then
-        HalfStroke := HalfStroke * Max(1.0, FStroke.MiterLimit);
-      GR32.InflateRect(Result, HalfStroke, HalfStroke);
+      if (not FStroke.Color.IsNone) and (FStroke.Width.Value > 0) then
+      begin
+        HalfStroke := GetSizePx(FStroke.Width, AViewport) * 0.5;
+        if FStroke.JoinStyle = jsMiter then
+          HalfStroke := HalfStroke * Max(1.0, FStroke.MiterLimit);
+        GR32.InflateRect(Result, HalfStroke, HalfStroke);
+      end;
     end;
   end;
 
