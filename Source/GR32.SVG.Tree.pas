@@ -3572,7 +3572,7 @@ begin
       end;
 
     attrStrokeDashArray:
-      FStroke.DashArray := ParseStrokeDashArray(AValue); // TODO : stroke-dasharray="inherit"
+      FStroke.DashArray := ParseStrokeDashArray(AValue);
 
     attrStrokeDashOffset:
       FStroke.DashOffset := TSvgLength.Parse(AValue);
