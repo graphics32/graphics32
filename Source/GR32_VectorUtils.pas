@@ -1584,7 +1584,7 @@ begin
   end;
 
   // Forward fix-up for i=0 if the first edge was zero-length
-  if (Result[0].X = 0) and (Result[0].Y = 0) and (Count > 1) then
+  if (Count > 1) and (Result[0].X = 0) and (Result[0].Y = 0) then
   begin
     i := 1;
     while (i < Count) and (Result[i].X = 0) and (Result[i].Y = 0) do
@@ -1635,7 +1635,7 @@ begin
   end;
 
   // Forward fix-up for i=0 if the first edge was zero-length
-  if (Result[0].X = 0) and (Result[0].Y = 0) and (Count > 1) then
+  if (Count > 1) and (Result[0].X = 0) and (Result[0].Y = 0) then
   begin
     i := 1;
     while (i < Count) and (Result[i].X = 0) and (Result[i].Y = 0) do
