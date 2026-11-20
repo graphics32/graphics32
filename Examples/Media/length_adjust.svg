@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420">
+  <!-- Demonstration of lengthAdjust attribute (spacing vs spacingAndGlyphs) on <text>, <tspan>, and <textPath> -->
+  <style>
+    text { font-family: sans-serif; font-size: 18px; fill: #111827; }
+    .label { font-size: 12px; fill: #6B7280; }
+    .ref-line { stroke: #3B82F6; stroke-width: 1; stroke-dasharray: 4,4; }
+    path.curve { fill: none; stroke: #E2E8F0; stroke-width: 2; }
+  </style>
+
+  <!-- Title -->
+  <text x="20" y="30" font-weight="bold" font-size="20">SVG lengthAdjust Attribute Demo</text>
+
+  <!-- 1. lengthAdjust on <text> -->
+  <g transform="translate(20, 60)">
+    <text x="0" y="0" class="label">1. Natural width (no textLength):</text>
+    <text x="0" y="25">Graphics32 Text Rendering</text>
+
+    <text x="0" y="65" class="label">2. textLength="380" lengthAdjust="spacing" (inter-character spacing only):</text>
+    <text x="0" y="90" textLength="380" lengthAdjust="spacing" fill="#059669">Graphics32 Text Rendering</text>
+    <line x1="0" y1="95" x2="380" y2="95" class="ref-line" />
+
+    <text x="0" y="130" class="label">3. textLength="380" lengthAdjust="spacingAndGlyphs" (stretches glyphs &amp; spacing):</text>
+    <text x="0" y="155" textLength="380" lengthAdjust="spacingAndGlyphs" fill="#7C3AED">Graphics32 Text Rendering</text>
+    <line x1="0" y1="160" x2="380" y2="160" class="ref-line" />
+  </g>
+
+  <!-- 2. lengthAdjust on <tspan> -->
+  <g transform="translate(20, 260)">
+    <text x="0" y="0" class="label">4. lengthAdjust="spacingAndGlyphs" on &lt;tspan&gt;:</text>
+    <text x="0" y="25">
+      Start
+      <tspan fill="#DC2626" textLength="220" lengthAdjust="spacingAndGlyphs"> [ Scaled TSpan ] </tspan>
+      Finish
+    </text>
+  </g>
+
+  <!-- 3. lengthAdjust on <textPath> -->
+  <g transform="translate(20, 320)">
+    <path id="curvePath" class="curve" d="M 0,35 Q 200,0 400,35 T 550,35" />
+    <text>
+      <textPath href="#curvePath" textLength="450" lengthAdjust="spacingAndGlyphs" fill="#2563EB">
+        TextPath with spacingAndGlyphs scaling along path contour
+      </textPath>
+    </text>
+  </g>
+</svg>

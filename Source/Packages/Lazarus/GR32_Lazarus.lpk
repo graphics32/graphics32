@@ -28,7 +28,7 @@
     <License Value="GNU Library or Lesser General Public License (LGPL 2.1 with linking exception)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="3"/>
-    <Files Count="100">
+    <Files Count="110">
       <Item1>
         <Filename Value="..\..\GR32.pas"/>
         <UnitName Value="GR32"/>
@@ -435,6 +435,46 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <Filename Value="..\..\GR32.Noise.Simplex.pas"/>
         <UnitName Value="GR32.Noise.Simplex"/>
       </Item100>
+      <Item101>
+        <Filename Value="..\..\GR32.SVG.Path.pas"/>
+        <UnitName Value="GR32.SVG.Path"/>
+      </Item101>
+      <Item102>
+        <Filename Value="..\..\GR32.SVG.Tree.pas"/>
+        <UnitName Value="GR32.SVG.Tree"/>
+      </Item102>
+      <Item103>
+        <Filename Value="..\..\GR32.SVG.Renderer.pas"/>
+        <UnitName Value="GR32.SVG.Renderer"/>
+      </Item103>
+      <Item104>
+        <Filename Value="..\..\GR32.SVG.Renderer.Filters.pas"/>
+        <UnitName Value="GR32.SVG.Renderer.Filters"/>
+      </Item104>
+      <Item105>
+        <Filename Value="..\..\GR32.SVG.pas"/>
+        <UnitName Value="GR32.SVG"/>
+      </Item105>
+      <Item106>
+        <Filename Value="..\..\GR32.SVG.Renderer.PaintServers.pas"/>
+        <UnitName Value="GR32.SVG.Renderer.PaintServers"/>
+      </Item106>
+      <Item107>
+        <Filename Value="..\..\GR32.SVG.Types.pas"/>
+        <UnitName Value="GR32.SVG.Types"/>
+      </Item107>
+      <Item108>
+        <Filename Value="..\..\GR32.SVG.Css.pas"/>
+        <UnitName Value="GR32.SVG.Css"/>
+      </Item108>
+      <Item109>
+        <Filename Value="..\..\GR32.SVG.Utf8.pas"/>
+        <UnitName Value="GR32.SVG.Utf8"/>
+      </Item109>
+      <Item110>
+        <Filename Value="..\..\GR32.Platform.pas"/>
+        <UnitName Value="GR32.Platform"/>
+      </Item110>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

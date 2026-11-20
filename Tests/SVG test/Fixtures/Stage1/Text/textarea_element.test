@@ -1,0 +1,7 @@
+--- SVG ---
+<svg width="200" height="200">
+  <textArea id="ta1" x="10" y="10" width="180" height="100">Wrapped text inside textArea</textArea>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=200px, height=200px)
+  TSvgTextAreaNode (id="ta1") (x=10px, y=10px) (text="Wrapped text inside textArea") (width=180px, height=100px)

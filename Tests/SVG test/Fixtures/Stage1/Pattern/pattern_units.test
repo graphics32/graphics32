@@ -1,0 +1,16 @@
+--- SVG ---
+<svg width="200" height="200">
+  <defs>
+    <pattern id="pat1" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect width="10" height="10" fill="red"/>
+    </pattern>
+    <pattern id="pat2" href="#pat1" x="5" y="5"/>
+  </defs>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=200px, height=200px)
+  TSvgDefsNode
+    TSvgPatternNode (id="pat1") (x=0px, y=0px, width=20px, height=20px, patternUnits=guUserSpaceOnUse, patternContentUnits=guUserSpaceOnUse)
+      TSvgPathNode (fill=#FFFF0000)
+    TSvgPatternNode (id="pat2") (x=5px, y=5px, width=20px, height=20px, patternUnits=guUserSpaceOnUse, patternContentUnits=guUserSpaceOnUse) (href="#pat1")
+      TSvgPathNode (fill=#FFFF0000)

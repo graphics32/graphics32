@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="400" height="400"
+     viewBox="0 0 400 400">
+
+  <defs>
+    <meshgradient id="myMesh" x="0" y="80" gradientUnits="userSpaceOnUse">
+      <meshrow>
+	<meshpatch>
+	  <stop path="C  60, 80 100, 40 160, 40"  style="stop-color:#ffff00"/>
+	  <stop path="C 160,100 200,140 200,200"  style="stop-color:#ff0000"/>
+	  <stop path="C 140,200 100,240  40,240"  style="stop-color:#ff80ff"/>
+	  <stop path="C  40,180   0,140"          style="stop-color:#8080ff"/>
+	</meshpatch>
+	<meshpatch>
+	  <stop path="C 220, 40 260,  0 320,  0"  />
+	  <stop path="C 320, 60 360,100 360,160"  style="stop-color:#ffff00"/>
+	  <stop path="C 300,160 260,200 200,200"  style="stop-color:#8080ff"/>
+	  <!-- No fourth stop. -->
+	</meshpatch>
+      </meshrow>
+      <meshrow>
+	<meshpatch>
+	  <!-- No first stop. -->
+	  <stop path="C 200,260 240,300 240,360"  />
+	  <stop path="C 180,360 140,400  80,400"  style="stop-color:#ff0000"/>
+	  <stop path="C 80, 340  40,300"          style="stop-color:#ffff00"/>
+	</meshpatch>
+	<meshpatch>
+	  <!-- No first stop. -->
+	  <stop path="C 360,220 400,260 400,320"  />
+	  <stop path="C 340,320 300,360"          style="stop-color:#ffff00"/>
+	  <!-- No fourth stop. -->
+	</meshpatch>
+      </meshrow>
+    </meshgradient>
+
+  </defs>
+
+  <rect width="100%" height="100%"               style="fill:#efefef"/>
+  <rect width="100%" height="100%"               style="fill:url(#myMesh) ;stroke:black"/>
+
+  <script type="text/javascript" xlink:href="mesh.js"></script>
+
+</svg>
+
+

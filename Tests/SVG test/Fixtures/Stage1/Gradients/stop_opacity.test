@@ -1,0 +1,15 @@
+--- SVG ---
+<svg width="200" height="200">
+  <defs>
+    <linearGradient id="gStop">
+      <stop offset="0%" stop-color="red" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00FF00" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=200px, height=200px)
+  TSvgDefsNode
+    TSvgLinearGradientNode (id="gStop") (spreadMethod=smPad, units=guObjectBoundingBox) (x1=0%, y1=0%, x2=100%, y2=0%)
+      TSvgGradientStop (offset=0, color=#FFFF0000, opacity=0.5)
+      TSvgGradientStop (offset=1, color=#FF00FF00, opacity=0.8)

@@ -5,7 +5,7 @@ interface
 {$I ..\..\Source\GR32.inc}
 
 uses
-  TestFramework,
+  DUnitX.TestFramework,
   Classes, SysUtils, Math,
   GR32,
   GR32.Blend.Modes,
@@ -14,57 +14,98 @@ uses
   GR32.Blend.Modes.Extra;
 
 type
-  TTestBlendModes = class(TTestCase)
+  [TestFixture]
+  TTestBlendModes = class
   private
     procedure CheckBlend(BlenderClass: TGraphics32BlenderClass; F, B: TColor32; Expected: TColor32; const Msg: string = ''; Epsilon: integer = 1); overload;
     procedure CheckBlend(const BlenderID: string; F, B: TColor32; Expected: TColor32; const Msg: string = ''; Epsilon: integer = 1); overload;
-  published
+  public
     // Photoshop Separable Modes
+    [Test]
     procedure TestNormal;
+    [Test]
     procedure TestMultiply;
+    [Test]
     procedure TestScreen;
+    [Test]
     procedure TestOverlay;
+    [Test]
     procedure TestHardLight;
+    [Test]
     procedure TestSoftLight;
+    [Test]
     procedure TestVividLight;
+    [Test]
     procedure TestLinearLight;
+    [Test]
     procedure TestPinLight;
+    [Test]
     procedure TestHardMix;
+    [Test]
     procedure TestColorDodge;
+    [Test]
     procedure TestColorBurn;
+    [Test]
     procedure TestLinearDodge;
+    [Test]
     procedure TestLinearBurn;
+    [Test]
     procedure TestDifference;
+    [Test]
     procedure TestExclusion;
+    [Test]
     procedure TestNegation;
+    [Test]
     procedure TestLighten;
+    [Test]
     procedure TestDarken;
+    [Test]
     procedure TestDarkerColor;
+    [Test]
     procedure TestLighterColor;
 
     // Photoshop Non-separable Modes
+    [Test]
     procedure TestHue;
+    [Test]
     procedure TestSaturation;
+    [Test]
     procedure TestColor;
+    [Test]
     procedure TestLuminosity;
 
     // Porter-Duff Operators
+    [Test]
     procedure TestPorterDuffSrc;
+    [Test]
     procedure TestPorterDuffSrcOver;
+    [Test]
     procedure TestPorterDuffSrcIn;
+    [Test]
     procedure TestPorterDuffSrcOut;
+    [Test]
     procedure TestPorterDuffSrcAtop;
+    [Test]
     procedure TestPorterDuffDest;
+    [Test]
     procedure TestPorterDuffDestOver;
+    [Test]
     procedure TestPorterDuffDestIn;
+    [Test]
     procedure TestPorterDuffDestOut;
+    [Test]
     procedure TestPorterDuffDestAtop;
+    [Test]
     procedure TestPorterDuffClear;
+    [Test]
     procedure TestPorterDuffXor;
 
     // Extra Modes
+    [Test]
     procedure TestExtraErase;
+    [Test]
     procedure TestExtraMask;
+    [Test]
     procedure TestExtraAlpha;
   end;
 
@@ -75,7 +116,7 @@ implementation
 procedure TTestBlendModes.CheckBlend(const BlenderID: string; F, B, Expected: TColor32; const Msg: string; Epsilon: integer);
 begin
   var BlenderClass := Graphics32BlendService.BlenderByID(BlenderID);
-  CheckTrue(BlenderClass <> nil, Format('Unknown blend ID: %s', [BlenderID]));
+  Assert.IsTrue(BlenderClass <> nil, Format('Unknown blend ID: %s', [BlenderID]));
   var s := BlenderClass.Name;
   if (Msg <> '') then
     s := s + ': ' + Msg;
@@ -97,9 +138,9 @@ begin
     aa.ARGB := Actual;
 
     if (Abs(ae.A - aa.A) > Epsilon) or (Abs(ae.R - aa.R) > Epsilon) and (Abs(ae.G - aa.G) > Epsilon) and (Abs(ae.B - aa.B) > Epsilon) then
-      CheckEquals(IntToHex(Expected, 8), IntToHex(Actual, 8), Msg)
+      Assert.AreEqual(IntToHex(Expected, 8), IntToHex(Actual, 8), Msg)
     else
-      CheckTrue(True);
+      Assert.IsTrue(True);
 
   finally
     Blender.Free;
@@ -348,6 +389,6 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestBlendModes.Suite);
+  TDUnitX.RegisterTestFixture(TTestBlendModes);
 
 end.

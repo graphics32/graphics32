@@ -72,12 +72,14 @@
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="GR32_R.dcp"/>
         <DCCReference Include="VclSmp.dcp"/>
+        <DCCReference Include="..\..\Design\GR32.Design.DebugVisualizers.pas"/>
         <DCCReference Include="..\..\Design\GR32.Design.BitmapEditor.pas">
             <Form>PictureEditorForm</Form>
         </DCCReference>
         <DCCReference Include="..\..\Design\GR32.Design.Reg.pas"/>
         <DCCReference Include="..\..\Design\GR32.Design.Color32.pas"/>
         <DCCReference Include="..\..\Design\GR32.Design.Misc.pas"/>
+        <DCCReference Include="..\..\Design\GR32.Design.ImageFormats.pas"/>
         <DCCReference Include="..\..\Design\GR32.Design.ColorPicker.pas">
             <Form>FormColorPicker</Form>
             <FormType>dfm</FormType>

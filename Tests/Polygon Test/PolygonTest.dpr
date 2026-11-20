@@ -25,7 +25,8 @@ uses
   TextTestRunner,
   DUnitTestRunner,
   Forms,
-  TestPolygonIssues in 'TestPolygonIssues.pas';
+  TestPolygonIssues in 'TestPolygonIssues.pas',
+  TestCanvas32 in 'TestCanvas32.pas';
 
 {$R *.RES}
 

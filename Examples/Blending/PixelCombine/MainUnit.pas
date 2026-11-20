@@ -110,8 +110,10 @@ const
 
 constructor TFormPixelCombine.Create(AOwner: TComponent);
 begin
-  inherited;
+  // Create stuff before inherited in case OldCreateOrder=False (or in the case of Delphi 11+, deprecated)
   FBlenders := TObjectDictionary<TBitmapLayer, TCustomGraphics32Blender>.Create([doOwnsValues]);
+
+  inherited;
 end;
 
 destructor TFormPixelCombine.Destroy;

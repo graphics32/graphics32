@@ -1,0 +1,11 @@
+--- SVG ---
+<svg width="100" height="100">
+  <style>
+    rect { fill: blue; }
+    .box { fill: green; }
+  </style>
+  <rect id="r1" class="box" x="0" y="0" width="50" height="50" fill="red" style="fill: yellow;"/>
+</svg>
+--- EXPECTED AST ---
+TSvgDocumentNode (width=100px, height=100px)
+  TSvgPathNode (id="r1") (fill=#FFFFFF00)
