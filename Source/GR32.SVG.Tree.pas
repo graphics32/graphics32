@@ -3572,7 +3572,8 @@ begin
       end;
 
     attrStrokeDashArray:
-      FStroke.DashArray := ParseStrokeDashArray(AValue);
+      if (not AValue.CompareText('inherit')) then
+        FStroke.DashArray := ParseStrokeDashArray(AValue);
 
     attrStrokeDashOffset:
       FStroke.DashOffset := TSvgLength.Parse(AValue);
