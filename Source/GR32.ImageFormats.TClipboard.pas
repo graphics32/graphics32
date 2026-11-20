@@ -39,9 +39,9 @@ interface
 implementation
 
 uses
-  Classes,
-  SysUtils,
-  ClipBrd,
+  System.Classes,
+  System.SysUtils,
+  Vcl.ClipBrd,
   GR32,
   GR32_Clipboard,
   GR32.ImageFormats;

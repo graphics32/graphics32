@@ -38,8 +38,8 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
 {$IFDEF FPC}
   ZBase, ZDeflate, ZInflate,
 {$ELSE}

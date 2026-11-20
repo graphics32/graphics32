@@ -38,8 +38,8 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
   GR32_PortableNetworkGraphic.Types,
   GR32_PortableNetworkGraphic.Encoding,
   GR32_PortableNetworkGraphic.Chunks,
@@ -294,6 +294,9 @@ begin
         ctGrayscaleAlpha : RowByteSize := (PixelPerRow * FHeader.BitDepth * 2) div 8;
         ctTrueColorAlpha : RowByteSize := (PixelPerRow * FHeader.BitDepth * 4) div 8;
       else
+{$if (not defined(FPC)) and (CompilerVersion >= 30.0) and (CompilerVersion <= 31.0)}
+        RowByteSize := 0; // Silence bogus Delphi 10.0/10.1 compiler hint
+{$ifend}
         Continue;
       end;
 
@@ -419,6 +422,9 @@ begin
         ctGrayscaleAlpha : RowByteSize := (PixelPerRow * FHeader.BitDepth * 2) div 8;
         ctTrueColorAlpha : RowByteSize := (PixelPerRow * FHeader.BitDepth * 4) div 8;
       else
+{$if (not defined(FPC)) and (CompilerVersion >= 30.0) and (CompilerVersion <= 31.0)}
+        RowByteSize := 0; // Silence bogus Delphi 10.0/10.1 compiler hint
+{$ifend}
         Continue;
       end;
 

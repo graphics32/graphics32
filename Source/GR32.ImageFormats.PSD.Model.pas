@@ -43,8 +43,8 @@ uses
 {$ELSE}
   System.Generics.Collections,
 {$ENDIF}
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
   GR32,
   GR32_Image,
   GR32.ImageFormats.PSD.Types;
@@ -604,8 +604,8 @@ var
 implementation
 
 uses
-  Math,
-  Types,
+  System.Math,
+  System.Types,
   GR32_Layers,
   GR32_Resamplers,
   GR32_Backends_Generic,

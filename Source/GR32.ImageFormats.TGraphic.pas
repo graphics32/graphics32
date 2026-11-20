@@ -37,9 +37,9 @@ interface
 {$include GR32.inc}
 
 uses
-  Classes,
-  Graphics,
-  SysUtils,
+  System.Classes,
+  Vcl.Graphics,
+  System.SysUtils,
   GR32,
   GR32_Backends,
   GR32.ImageFormats;
@@ -128,7 +128,7 @@ type
 implementation
 
 uses
-  Types;
+  System.Types;
 
 type
   TGraphicCracker = class(TGraphic);

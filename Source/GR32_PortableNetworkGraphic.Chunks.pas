@@ -45,8 +45,8 @@ interface
 {-$define PNG_CHUNK_INTERNATIONAL_TEXT}
 
 uses
-  Generics.Collections,
-  Classes, Graphics, SysUtils,
+  System.Generics.Collections,
+  System.Classes, Vcl.Graphics, System.SysUtils,
   GR32_PortableNetworkGraphic.Types;
 
 type

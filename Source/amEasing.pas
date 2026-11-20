@@ -150,8 +150,8 @@ type
 implementation
 
 uses
-  Math,
-  Windows,
+  System.Math,
+  Winapi.Windows,
   System.Diagnostics;
 
 // -----------------------------------------------------------------------------
@@ -324,7 +324,7 @@ begin
   if (Value = 1) then
     Exit(1);
 
-  Result := Sin(13 * Pi/2 * Value) * Math.Power(2, 10 * (Value-1));
+  Result := Sin(13 * Pi/2 * Value) * System.Math.Power(2, 10 * (Value-1));
 end;
 
 // Modeled after the damped sine wave
@@ -337,7 +337,7 @@ begin
   if (Value = 1) then
     Exit(1);
 
-  Result := Sin(-13 * Pi/2 * (Value + 1)) * Math.Power(2, -10 * Value) + 1;
+  Result := Sin(-13 * Pi/2 * (Value + 1)) * System.Math.Power(2, -10 * Value) + 1;
 end;
 
 // Modeled after the piecewise exponentially-damped sine wave:
@@ -352,9 +352,9 @@ begin
     Exit(1);
 
   if (Value < 0.5) then
-    Result := 0.5 * Sin(13 * Pi * Value) * Math.Power(2, 10 * (2 * Value - 1))
+    Result := 0.5 * Sin(13 * Pi * Value) * System.Math.Power(2, 10 * (2 * Value - 1))
   else
-    Result := 0.5 * (Sin(-13 * Pi/2 * ((2 * Value - 1) + 1)) * Math.Power(2, -10 * (2 * Value - 1)) + 2);
+    Result := 0.5 * (Sin(-13 * Pi/2 * ((2 * Value - 1) + 1)) * System.Math.Power(2, -10 * (2 * Value - 1)) + 2);
 end;
 
 // Modeled after the exponential function
@@ -364,7 +364,7 @@ begin
   if (Value = 0) then
     Result := 0
   else
-    Result := Math.Power(2, 10 * (Value-1));
+    Result := System.Math.Power(2, 10 * (Value-1));
 end;
 
 // Modeled after the exponential function
@@ -374,7 +374,7 @@ begin
   if (Value = 1) then
     Result := 1
   else
-    Result := Math.Power(2, -10 * Value);
+    Result := System.Math.Power(2, -10 * Value);
 end;
 
 // Modeled after the piecewise exponential
@@ -389,9 +389,9 @@ begin
     Result := 1
   else
   if (Value < 0.5) then
-    Result := 0.5 * Math.Power(2, 20 * Value - 10)
+    Result := 0.5 * System.Math.Power(2, 20 * Value - 10)
   else
-    Result := -0.5 * Math.Power(2, -20 * Value + 10) + 1;
+    Result := -0.5 * System.Math.Power(2, -20 * Value + 10) + 1;
 end;
 
 // Modeled after the overshooting cubic

@@ -39,9 +39,9 @@ uses
 {$IFDEF FPC}
   LCLIntf,
 {$ENDIF}
-  Generics.Defaults,
-  Generics.Collections,
-  Classes, SysUtils,
+  System.Generics.Defaults,
+  System.Generics.Collections,
+  System.Classes, System.SysUtils,
   GR32,
   GR32_Containers,
   GR32_Layers;

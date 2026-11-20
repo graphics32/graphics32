@@ -38,7 +38,7 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes,
+  System.Classes,
   GR32_PortableNetworkGraphic.Types,
   GR32_PortableNetworkGraphic.Chunks;
 
@@ -84,7 +84,7 @@ type
 implementation
 
 uses
-  SysUtils,
+  System.SysUtils,
   GR32.BigEndian;
 
 //------------------------------------------------------------------------------

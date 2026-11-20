@@ -37,8 +37,8 @@ interface
 {$include GR32.inc}
 
 uses
-  Classes,
-  SysUtils;
+  System.Classes,
+  System.SysUtils;
 
 // Define CHECKED_STREAM_READS to have stream read operations raise an exception
 // (of type EBigEndian) if they fail to read the required amount of data.

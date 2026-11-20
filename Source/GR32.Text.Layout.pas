@@ -38,7 +38,7 @@ interface
 {-$define DEBUG_TEXT_CHAR}
 
 uses
-  Character,
+  System.Character,
   GR32,
   GR32_Paths,
   GR32.Text.Types,
@@ -194,9 +194,9 @@ implementation
 
 uses
 {$ifdef UseInlining}
-  Types,
+  System.Types,
 {$endif}
-  Math,
+  System.Math,
   GR32.Text.Unicode;
 
 
@@ -557,6 +557,7 @@ var
   Paragraph: PTextParagraph;
   BacktrackedCount: integer;
   n: integer;
+  LeftSideBearing, RightSideBearing: Single;
 begin
   Assert(ALineCount <= Length(AParagraphs));
 
@@ -604,13 +605,23 @@ begin
 
     Width := Width + AText[Index].Metrics.AdvanceX;
 
+    if (ATextLayout.TrimSideBearings) then
+    begin
+      LeftSideBearing := AText[Index].Metrics.LeftSideBearing;
+      RightSideBearing := AText[Index].Metrics.RightSideBearing;
+    end else
+    begin
+      LeftSideBearing := 0;
+      RightSideBearing := 0;
+    end;
+
     // Skip left-side-bearing of first character on line
     if (Paragraph.Count = 0) then
-      Width := Width - AText[Index].Metrics.LeftSideBearing;
+      Width := Width - LeftSideBearing;
 
     // First char is mandatory. Otherwise, if the first character exceeds the limit, we will end
     // up in an endless loop trying to break the same character again and again.
-    if (Paragraph.Count > 0) and (Width - AText[Index].Metrics.RightSideBearing > AMaxWidth) then
+    if (Paragraph.Count > 0) and (Width - RightSideBearing > AMaxWidth) then
     begin
       // Width exceeded; Step backward until we find a break opportunity.
       // If there is none, before we reach the start of the line, just break
@@ -913,11 +924,13 @@ begin
       if (ATextLayout.ClipLayout) then
       begin
         // Clip top (remember Y is baseline)
-        if (Y - FontFaceMetrics.Descent < ClipRect.Top) then
+        if (ATextLayout.AlignmentVertical in [TextAlignVerBottom, TextAlignVerCenter]) and
+           (Y - FontFaceMetrics.Ascent < ClipRect.Top-0.01) then // -0.01 to handle rounding errors
           continue;
 
-        // Clip bottom
-        if (Y - FontFaceMetrics.Ascent > ClipRect.Bottom) then
+        // Clip bottom (remember Descent is negative
+        if (ATextLayout.AlignmentVertical in [TextAlignVerTop, TextAlignVerCenter]) and
+           (Y - FontFaceMetrics.Descent > ClipRect.Bottom+0.01) then // +0.01 to handle rounding errors
           break;
       end;
 
@@ -932,8 +945,11 @@ begin
           Line.Width := Line.Width + TextCharacterString[i].Metrics.AdvanceX;
 
         // Remove leftmost LSB and rightmost RSB
-        Line.Width := Line.Width - TextCharacterString[Line.StartIndex].Metrics.LeftSideBearing;
-        Line.Width := Line.Width - TextCharacterString[Line.LastIndex].Metrics.RightSideBearing;
+        if (ATextLayout.TrimSideBearings) then
+        begin
+          Line.Width := Line.Width - TextCharacterString[Line.StartIndex].Metrics.LeftSideBearing;
+          Line.Width := Line.Width - TextCharacterString[Line.LastIndex].Metrics.RightSideBearing;
+        end;
       end;
 
 
@@ -1063,7 +1079,8 @@ begin
         if (X < XMin) then
           XMin := X;
 
-        X := X - TextCharacterString[Line.StartIndex].Metrics.LeftSideBearing;
+        if (ATextLayout.TrimSideBearings) then
+          X := X - TextCharacterString[Line.StartIndex].Metrics.LeftSideBearing;
       end;
 
       for i := Line.StartIndex to Line.LastIndex do
@@ -1075,7 +1092,12 @@ begin
           Skip := (X + TextCharacterString[i].Metrics.AdvanceX < ClipRect.Left);
 
           // Clip to right side
-          if (X - TextCharacterString[i].Metrics.LeftSideBearing > ClipRect.Right) then
+          if (ATextLayout.TrimSideBearings) then
+          begin
+            if (X - TextCharacterString[i].Metrics.LeftSideBearing > ClipRect.Right) then
+              break;
+          end else
+          if (X > ClipRect.Right) then
             break;
         end else
           Skip := False;
@@ -1105,7 +1127,10 @@ begin
         X := X + AdvanceX;
 
         // Calculate max X excluding RSB
-        LastWidth := X - TextCharacterString[i].Metrics.RightSideBearing;
+        if (ATextLayout.TrimSideBearings) then
+          LastWidth := X - TextCharacterString[i].Metrics.RightSideBearing
+        else
+          LastWidth := X;
         if (LastWidth > XMax) then
           XMax := LastWidth;
       end;

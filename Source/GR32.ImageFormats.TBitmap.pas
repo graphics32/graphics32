@@ -39,14 +39,14 @@ interface
 implementation
 
 uses
-  Classes,
+  System.Classes,
 {$ifndef FPC}
-  Windows,
+  Winapi.Windows,
 {$else FPC}
   LCLType,
 {$endif FPC}
-  Graphics,
-  SysUtils,
+  Vcl.Graphics,
+  System.SysUtils,
   GR32,
   GR32_Backends,
   GR32.ImageFormats.TGraphic,

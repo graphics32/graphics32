@@ -38,7 +38,7 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes,
+  System.Classes,
   GR32_PortableNetworkGraphic.Types,
   GR32_PortableNetworkGraphic.Chunks;
 

@@ -57,11 +57,11 @@ interface
 
 uses
 {$if defined(MSWINDOWS)}
-  Windows,
+  Winapi.Windows,
 {$ifend}
 
 {$if defined(FRAMEWORK_VCL)}
-  Messages,
+  Winapi.Messages,
 {$elseif defined(FRAMEWORK_FMX)}
 {$elseif defined(FRAMEWORK_LCL)}
   LCLIntf, LCLType, LMessages,
@@ -79,8 +79,8 @@ uses
   Controls,
   StdCtrls, // TScrollBar
 {$ifend}
-  Types,
-  Classes,
+  System.Types,
+  System.Classes,
   GR32,
   GR32_Layers,
   GR32_Containers,
@@ -212,6 +212,7 @@ type
     FOnMouseEnter: TNotifyEvent;
     FOnMouseLeave: TNotifyEvent;
     FOnChange: TNotifyEvent;
+    FTransparent: Boolean;
     procedure SetBufferOversize(Value: Integer);
 {$IFDEF FPC}
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
@@ -240,7 +241,12 @@ type
     function  CustomRepaint: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
     procedure SetPartialRepaintQueued;
+    function GetIsTransparent: Boolean; virtual;
+    procedure SetTransparent(Value: Boolean); virtual;
     procedure DoPrepareInvalidRects; virtual;
+    procedure DoPaintBackground(Dest: TBitmap32); virtual;
+    procedure PaintBackground(Dest: TBitmap32); virtual;
+    procedure PaintBuffer; virtual;
     procedure DoPaintBuffer; virtual;
     procedure DoPaintGDIOverlay; virtual;
     procedure DoBufferResized(const OldWidth, OldHeight: Integer); virtual;
@@ -260,6 +266,8 @@ type
     property UpdateCount: Integer read FUpdateCount;
     property LockUpdateCount: Integer read FLockUpdateCount;
     property Modified: boolean read FModified;
+    property ForceFullRepaint: Boolean read FForceFullRepaint write FForceFullRepaint;
+    property IsTransparent: Boolean read GetIsTransparent;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -283,6 +291,7 @@ type
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
     property MouseInControl: Boolean read FMouseInControl;
     property RepaintMode: TRepaintMode read FRepaintMode write SetRepaintMode default rmFull;
+    property Transparent: Boolean read FTransparent write SetTransparent default False;
 
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
@@ -318,6 +327,7 @@ type
     property ShowHint;
     property TabOrder;
     property TabStop;
+    property Transparent;
     property Visible;
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
@@ -355,12 +365,10 @@ type
     X, Y: Integer; Layer: TCustomLayer) of object;
   TPaintStageHandler = procedure(Dest: TBitmap32; StageNum: Integer) of object;
 
-  TBackgroundCheckerStyle = (bcsCustom, bcsNone, bcsLight, bcsMedium, bcsDark);
+  TBackgroundCheckerboardStyle = (bcsCustom, bcsNone, bcsLight, bcsMedium, bcsDark);
   TBackgroundFillStyle = (bfsColor, bfsCheckers, bfsPattern);
 
   TBackgroundOptions = class(TNotifiablePersistent)
-  private type
-    TCheckersColors = array[0..1] of TColor32;
   strict private
     FPatternBitmap: TBitmap32;
     FOuterBorderColor: TColor;
@@ -370,11 +378,18 @@ type
     FDropShadowOffset: integer;
     FDropShadowSize: integer;
     FDropShadowColor: TColor32;
-    FCheckersColors: TCheckersColors;
-    FCheckersStyle: TBackgroundCheckerStyle;
-    FCheckersExponent: integer;
+    FCheckerboardColors: TCheckerboardColors;
+    FCheckerboardStyle: TBackgroundCheckerboardStyle;
+    FCheckerboardExponent: integer;
     FFillStyle: TBackgroundFillStyle;
+  private
+    procedure ReadCheckersStyle(Reader: TReader);
+    procedure ReadCheckersColorEven(Reader: TReader);
+    procedure ReadCheckersColorOdd(Reader: TReader);
+    procedure ReadCheckersExponent(Reader: TReader);
   protected
+    procedure DefineProperties(Filer: TFiler); override;
+
     procedure SetFillStyle(const Value: TBackgroundFillStyle);
     procedure SetPatternBitmap(const Value: TBitmap32);
     procedure SetDropShadowBitmap(const Value: TBitmap32);
@@ -384,12 +399,12 @@ type
     procedure SetInnerBorderColor(const Value: TColor);
     procedure SetInnerBorderWidth(const Value: integer);
     procedure SetOuterBorderColor(const Value: TColor);
-    procedure SetCheckersStyle(const Value: TBackgroundCheckerStyle);
-    function GetCheckersColor(const Index: Integer): TColor;
-    procedure SetCheckersColor(Index: integer; const Value: TColor);
-    procedure SetCheckersExponent(const Value: integer);
+    procedure SetCheckerboardStyle(const Value: TBackgroundCheckerboardStyle);
+    function GetCheckerboardColor(const Index: Integer): TColor;
+    procedure SetCheckerboardColor(Index: integer; const Value: TColor);
+    procedure SetCheckerboardExponent(const Value: integer);
 
-    function IsCheckersColorsStored(Index: integer): boolean;
+    function IsCheckerboardColorsStored(Index: integer): boolean;
     function IsDropShadowBitmapStored: boolean;
     function IsPatternBitmapStored: boolean;
 
@@ -403,7 +418,12 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property CheckersColors: TCheckersColors read FCheckersColors;
+    property CheckerboardColors: TCheckerboardColors read FCheckerboardColors;
+    // Backward compatibility after "Checkers" -> "Checkerboard" rename; Don't use these in new code!
+    property CheckersStyle: TBackgroundCheckerboardStyle read FCheckerboardStyle write SetCheckerboardStyle;
+    property CheckersColorOdd: TColor index 0 read GetCheckerboardColor write SetCheckerboardColor;
+    property CheckersColorEven: TColor index 1 read GetCheckerboardColor write SetCheckerboardColor;
+    property CheckersExponent: integer read FCheckerboardExponent write SetCheckerboardExponent;
   published
     // FillStyle: Specifies how to clear the area *around* the bitmap
     property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle default bfsColor;
@@ -428,14 +448,14 @@ type
     property DropShadowBitmap: TBitmap32 read FDropShadowBitmap write SetDropShadowBitmap stored IsDropShadowBitmapStored;
 
     // CheckersStyle: Specifies how to clear the area *under* the bitmap
-    property CheckersStyle: TBackgroundCheckerStyle read FCheckersStyle write SetCheckersStyle default bcsNone;
-    property CheckersColorOdd: TColor index 0 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
-    property CheckersColorEven: TColor index 1 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
+    property CheckerboardStyle: TBackgroundCheckerboardStyle read FCheckerboardStyle write SetCheckerboardStyle default bcsNone;
+    property CheckerboardColorOdd: TColor index 0 read GetCheckerboardColor write SetCheckerboardColor stored IsCheckerboardColorsStored;
+    property CheckerboardColorEven: TColor index 1 read GetCheckerboardColor write SetCheckerboardColor stored IsCheckerboardColorsStored;
     // CheckersExponent: Size of a single square in the checkers pattern
     // expressed as an exponent of 2.
     // This means that the actual square size is 2^CheckersExponent. So
     // if CheckersExponent=3 then the actual size is 2^3 = 8.
-    property CheckersExponent: integer read FCheckersExponent write SetCheckersExponent default 3;
+    property CheckerboardExponent: integer read FCheckerboardExponent write SetCheckerboardExponent default 3;
   end;
 
   TMouseShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
@@ -469,6 +489,7 @@ type
     FZoomFactor: Double;
     FShiftState: TMouseShiftState;
     FAnimate: boolean;
+    FConstrainPivot: boolean;
   protected
     procedure SetMaxScale(const Value: Single);
     procedure SetMinScale(const Value: Single);
@@ -490,6 +511,7 @@ type
     property Invert: boolean read FInvert write FInvert default False;
     property ShiftState: TMouseShiftState read FShiftState write FShiftState default [];
     property MaintainPivot: boolean read FMaintainPivot write FMaintainPivot default True;
+    property ConstrainPivot: boolean read FConstrainPivot write FConstrainPivot default True;
     property MinScale: Single read FMinScale write SetMinScale stored IsMinScaleStored;
     property MaxScale: Single read FMaxScale write SetMaxScale stored IsMaxScaleStored;
     property Steps: integer read FSteps write SetSteps default 12;
@@ -565,7 +587,9 @@ type
     function CanMousePan: boolean; virtual;
     function CanMouseZoom: boolean; virtual;
     function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
+    function GetIsTransparent: Boolean; override;
     procedure DoInitStages; virtual;
+    procedure PaintBackground(Dest: TBitmap32); override;
     procedure DoPaintBuffer; override;
     procedure DoPaintGDIOverlay; override;
     procedure DoScaleChange; virtual;
@@ -585,6 +609,7 @@ type
     procedure SetOffsetHorz(Value: TFloat); virtual;
     procedure SetOffsetVert(Value: TFloat); virtual;
     procedure SetScaleMode(Value: TScaleMode); virtual;
+    procedure CreateParams(var Params: TCreateParams); override;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     function GetBitmapMargin: integer; virtual;
     procedure DoZoom({$ifdef CLOSURE_CAPTURES_CONST}const{$endif} APivot: TFloatPoint; AScale: TFloat; AMaintainPivot, AAnimate: boolean);
@@ -666,6 +691,13 @@ type
     property OnScaleChange: TNotifyEvent read FOnScaleChange write FOnScaleChange;
   end;
 
+// Backward compatibility after "Checkers" -> "Checkerboard" rename
+type
+  TBackgroundCheckerStyle = TBackgroundCheckerboardStyle;
+
+const
+  bfsCheckerboard = bfsCheckers; // We can't rename an enum in a backward compatible way :-(
+
 
 //------------------------------------------------------------------------------
 //
@@ -694,6 +726,7 @@ type
     property Background;
     property MousePan;
     property MouseZoom;
+    property Transparent;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -842,6 +875,7 @@ type
 //------------------------------------------------------------------------------
 type
   TImgView32 = class(TCustomImgView32)
+  published
     property Align;
     property Anchors;
     property AutoSize;
@@ -862,6 +896,7 @@ type
     property Background;
     property MousePan;
     property MouseZoom;
+    property Transparent;
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
@@ -961,7 +996,7 @@ type
 //
 //------------------------------------------------------------------------------
 var
-  DefaultCheckersColors: array[TBackgroundCheckerStyle] of TBackgroundOptions.TCheckersColors =
+  DefaultCheckersColors: array[TBackgroundCheckerboardStyle] of TCheckerboardColors =
     (($FFFFFFFF, $FF000000),
      ($FFFFFFFF, $FFFFFFFF),
      ($FFFFFFFF, $FFEBEBEB),
@@ -981,13 +1016,14 @@ var
 implementation
 
 uses
-  Math,
-  SysUtils,
+  System.Math,
+  System.SysUtils,
+  System.TypInfo,
 {$if not defined(FRAMEWORK_FMX)}
-  Forms,
+  Vcl.Forms,
 {$ifend}
 {$if defined(MSWINDOWS)}
-  Themes,
+  Vcl.Themes,
 {$ifend}
 {$if defined(AnimatedZoom)}
   amEasing,
@@ -1291,9 +1327,59 @@ begin
     end;
 
     UpdateRectSupport.InvalidateRect(Self, R);
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+    if IsTransparent then
+    begin
+      // Force parent to repaint so we can update the background
+      GR32.OffsetRect(R, Left, Top);
+      UpdateRectSupport.InvalidateRect(Parent, R, True);
+    end;
+{$ifend}
+
     SetPartialRepaintQueued;
   end else
+  begin
     inherited Invalidate;
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+    if IsTransparent then
+      Parent.Invalidate;
+{$ifend}
+  end;
+end;
+
+//------------------------------------------------------------------------------
+
+function TCustomPaintBox32.GetIsTransparent: Boolean;
+begin
+  // Transparency is only supported if:
+  // - We have a parent (the parent supplies the background).
+{$if defined(TRANSPARENT_TIMAGE32)}
+  Result := (FTransparent) and (Parent <> nil);
+{$else}
+  Result := False;
+{$ifend}
+end;
+
+procedure TCustomPaintBox32.SetTransparent(Value: Boolean);
+begin
+  if Value <> FTransparent then
+  begin
+    FTransparent := Value;
+
+    (* This is nonsense; Even though we "look" transparent, from the POW of
+    ** Windows, we are still opaque since we cover everything behind us.
+
+    if FTransparent then
+      ControlStyle := ControlStyle - [csOpaque]
+    else
+      ControlStyle := ControlStyle + [csOpaque];
+
+    RecreateWnd;
+    *)
+    Invalidate;
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -1310,6 +1396,7 @@ begin
     TCustomPaintBox32(Dest).FInvalidRects.Assign(FInvalidRects);
     TCustomPaintBox32(Dest).FForceFullRepaint := FForceFullRepaint;
     TCustomPaintBox32(Dest).FOptions := FOptions;
+    TCustomPaintBox32(Dest).FTransparent := FTransparent;
     TCustomPaintBox32(Dest).FOnGDIOverlay := FOnGDIOverlay;
     TCustomPaintBox32(Dest).FOnMouseEnter := FOnMouseEnter;
     TCustomPaintBox32(Dest).FOnMouseLeave := FOnMouseLeave;
@@ -1362,13 +1449,12 @@ end;
 
 function TCustomPaintBox32.CustomRepaint: Boolean;
 begin
-  Result := FRepaintOptimizer.Enabled and not FForceFullRepaint and
-    FRepaintOptimizer.UpdatesAvailable;
+  Result := FRepaintOptimizer.Enabled and (not FForceFullRepaint) and FRepaintOptimizer.UpdatesAvailable;
 end;
 
 procedure TCustomPaintBox32.DoPrepareInvalidRects;
 begin
-  if FRepaintOptimizer.Enabled and not FForceFullRepaint then
+  if FRepaintOptimizer.Enabled and (not FForceFullRepaint) then
     FRepaintOptimizer.PerformOptimization;
 end;
 
@@ -1379,9 +1465,20 @@ end;
 
 //------------------------------------------------------------------------------
 
+procedure TCustomPaintBox32.PaintBuffer;
+begin
+  if IsTransparent then
+    ForceFullRepaint := True;
+
+  DoPaintBuffer;
+end;
+
 procedure TCustomPaintBox32.DoPaintBuffer;
 begin
-  // force full repaint, this is necessary when Buffer is invalid and was never painted
+  // Descendants should override this method for painting operations,
+  // not the Paint method!!!
+
+  // Force full repaint; This is necessary when Buffer is invalid and was never painted.
   // This will omit calculating the invalid rects, thus we paint everything.
   if FForceFullRepaint then
   begin
@@ -1390,10 +1487,110 @@ begin
   end else
     DoPrepareInvalidRects;
 
-  // descendants should override this method for painting operations,
-  // not the Paint method!!!
   FBufferValid := True;
 end;
+
+procedure TCustomPaintBox32.PaintBackground(Dest: TBitmap32);
+begin
+  DoPaintBackground(Dest);
+end;
+
+procedure TCustomPaintBox32.DoPaintBackground(Dest: TBitmap32);
+{$if defined(TRANSPARENT_TIMAGE32)}
+var
+  SaveIndex: Integer;
+  SaveIndex2: Integer;
+  P: TPoint;
+  Sibling: TControl;
+  i: integer;
+begin
+  if (IsTransparent) then
+  begin
+
+    SaveIndex := SaveDC(Dest.Handle);
+    try
+      // The parent's WM_PRINT paints the background starting from the parent's
+      // client origin.
+      // We need to calculate the offset between our client origin and the
+      // parent's client origin.
+      P := ClientOrigin - Parent.ClientOrigin;
+
+      SetViewportOrgEx(Dest.Handle, -P.X, -P.Y, nil);
+      IntersectClipRect(Dest.Handle, P.X, P.Y, P.X + Width, P.Y + Height);
+
+      // Note that Windows, contrary to common belief, paints controls in Z-order,
+      // top-to-bottom, and uses clipping to give the impression that controls are
+      // painted bottom-to-top [*].
+      //
+      //   +--------+                     +--------+                    +--------+
+      //   |  Top   |                     |  Top   |                    |  Top   |
+      //   |        |---+   is painted    |        |         +---+      |        |---+
+      //   |        |   |   by WM_PAINT   |        |         |   |      |        |   |
+      //   +--------+   |        as       +--------+    +----+   | -->  +--------+   |
+      //       |        |                               |        |          |        |
+      //       | Bottom |                               | Bottom |          | Bottom |
+      //       +--------+                               +--------+          +--------+
+      //
+      // Unfortunately WM_PRINT does not apply clipping so when we paint controls
+      // with WM_PRINT, stacked/overlapping controls will appear in reverse
+      // Z-order.
+      //
+      //   +--------+                     +--------+                    +--------+
+      //   |  Top   |                     |  Top   |                    |  Top   |
+      //   |        |---+   is painted    |        |    +--------+      |   +--------+
+      //   |        |   |   by WM_PRINT   |        |    |        |      |   |        |
+      //   +--------+   |        as       +--------+    |        | -->  +---|        |
+      //       |        |                               |        |          |        |
+      //       | Bottom |                               | Bottom |          | Bottom |
+      //       +--------+                               +--------+          +--------+
+      //
+      // To work around this we manually iterate the siblings and paint them from
+      // back to front.
+      //
+      // [*] Controls with the WS_EX_TRANSPARENT style obviously does things
+      //     a bit differently. We do not handle that case here.
+      //
+
+      (*
+      ** WM_PRINT the parent to produce the background and paint TGraphicControls.
+      *)
+      Parent.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_ERASEBKGND);
+
+      (*
+      ** Paint TWinControl siblings that are below us in the Z-order.
+      *)
+      for i := 0 to Parent.ControlCount-1 do
+      begin
+        Sibling := Parent.Controls[i];
+
+        if (Sibling = Self) then
+          break;
+
+        if (Sibling is TWinControl) and Sibling.Visible then
+        begin
+          SaveIndex2 := SaveDC(Dest.Handle);
+          try
+            SetViewportOrgEx(Dest.Handle, Sibling.Left - P.X, Sibling.Top - P.Y, nil);
+            IntersectClipRect(Dest.Handle, 0, 0, Sibling.Width, Sibling.Height);
+
+            Sibling.Perform(WM_PRINT, Dest.Handle, PRF_CLIENT or PRF_ERASEBKGND or PRF_CHILDREN);
+          finally
+            RestoreDC(Dest.Handle, SaveIndex2);
+          end;
+        end;
+      end;
+
+    finally
+      RestoreDC(Dest.Handle, SaveIndex);
+    end;
+
+    exit;
+  end;
+end;
+{$else}
+begin
+end;
+{$ifend}
 
 procedure TCustomPaintBox32.DoPaintGDIOverlay;
 begin
@@ -1462,6 +1659,11 @@ begin
 end;
 
 procedure TCustomPaintBox32.Invalidate;
+{$if defined(TRANSPARENT_TIMAGE32)}
+var
+  R: TRect;
+  UpdateRectSupport: IUpdateRectSupport;
+{$ifend}
 begin
   FBufferValid := False;
 {$if defined(FPC) and defined(MSWINDOWS)}
@@ -1470,6 +1672,17 @@ begin
     InvalidateRect(Handle, nil, not(csOpaque in ControlStyle));
 {$else}
   inherited;
+{$ifend}
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+  if IsTransparent and Visible then
+  begin
+    R := BoundsRect;
+    if (Supports(FBuffer.Backend, IUpdateRectSupport, UpdateRectSupport)) then
+      UpdateRectSupport.InvalidateRect(Parent, R, True)
+    else
+      Parent.Invalidate;
+  end;
 {$ifend}
 end;
 
@@ -1512,12 +1725,18 @@ begin
   if FRepaintOptimizer.Enabled then
     FRepaintOptimizer.BeginPaint;
 
-  PaintSupport := FBuffer.Backend as IPaintSupport;
+  if (not Supports(FBuffer.Backend, IPaintSupport, PaintSupport)) then
+  begin
+    // Exception in Paint -> exeption flood; Hide control to avoid it
+    Hide;
+    raise Exception.CreateFmt('%s.Buffer.Backend must support IPaintSupport', [ClassName]);
+  end;
 
   if not FBufferValid then
   begin
     PaintSupport.ImageNeeded;
-    DoPaintBuffer;
+    PaintBackground(Buffer);
+    PaintBuffer;
     PaintSupport.CheckPixmap;
   end;
 
@@ -1674,7 +1893,11 @@ begin
   inherited;
   if (not (csLoading in ComponentState)) then
     ResizeBuffer;
+
   FBufferValid := False;
+
+  if (IsTransparent) then
+    ForceFullInvalidate;
 end;
 
 procedure TCustomPaintBox32.SetBufferOversize(Value: Integer);
@@ -1886,9 +2109,9 @@ begin
   FFillStyle := bfsColor;
   FOuterBorderColor := clNone;
   FInnerBorderColor := clNone;
-  FCheckersStyle := bcsCustom;
-  SetCheckersStyle(bcsNone); // We need to go via the property setter
-  FCheckersExponent := 3;
+  FCheckerboardStyle := bcsCustom;
+  SetCheckerboardStyle(bcsNone); // We need to go via the property setter
+  FCheckerboardExponent := 3;
 end;
 
 destructor TBackgroundOptions.Destroy;
@@ -1896,6 +2119,53 @@ begin
   FPatternBitmap.Free;
   FDropShadowBitmap.Free;
   inherited;
+end;
+
+procedure TBackgroundOptions.ReadCheckersStyle(Reader: TReader);
+var
+  Ident: string;
+begin
+  Ident := Reader.ReadIdent;
+  CheckerboardStyle := TBackgroundCheckerboardStyle(GetEnumValue(TypeInfo(TBackgroundCheckerboardStyle), Ident));
+end;
+
+procedure TBackgroundOptions.ReadCheckersColorOdd(Reader: TReader);
+var
+  Value: LongInt;
+begin
+  if (Reader.NextValue = vaIdent) then
+  begin
+    if IdentToColor(Reader.ReadIdent, Value) then
+      CheckerboardColorOdd := Value;
+  end else
+    CheckerboardColorOdd := TColor(Reader.ReadInteger);
+end;
+
+procedure TBackgroundOptions.ReadCheckersColorEven(Reader: TReader);
+var
+  Value: LongInt;
+begin
+  if (Reader.NextValue = vaIdent) then
+  begin
+    if IdentToColor(Reader.ReadIdent, Value) then
+      CheckerboardColorEven := Value;
+  end else
+    CheckerboardColorEven := TColor(Reader.ReadInteger);
+end;
+
+procedure TBackgroundOptions.ReadCheckersExponent(Reader: TReader);
+begin
+  CheckerboardExponent := Reader.ReadInteger;
+end;
+
+procedure TBackgroundOptions.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+  // Handle renamed properties
+  Filer.DefineProperty('CheckersStyle', ReadCheckersStyle, nil, False);
+  Filer.DefineProperty('CheckersColorOdd', ReadCheckersColorOdd, nil, False);
+  Filer.DefineProperty('CheckersColorEven', ReadCheckersColorEven, nil, False);
+  Filer.DefineProperty('CheckersExponent', ReadCheckersExponent, nil, False);
 end;
 
 function TBackgroundOptions.ActualFillStyle: TBackgroundFillStyle;
@@ -1907,7 +2177,7 @@ begin
       ;
 
     bfsCheckers:
-      if (FCheckersStyle = bcsNone) then
+      if (FCheckerboardStyle = bcsNone) then
         Result := bfsColor;
 
     bfsPattern:
@@ -1920,18 +2190,18 @@ function TBackgroundOptions.ActualClearStyle: TBackgroundFillStyle;
 begin
   Result := ActualFillStyle;
 
-  if (FCheckersStyle <> bcsNone) then
+  if (FCheckerboardStyle <> bcsNone) then
     Result := bfsCheckers;
 end;
 
-function TBackgroundOptions.GetCheckersColor(const Index: Integer): TColor;
+function TBackgroundOptions.GetCheckerboardColor(const Index: Integer): TColor;
 begin
-  Result := WinColor(FCheckersColors[Index]);
+  Result := WinColor(FCheckerboardColors[Index]);
 end;
 
-function TBackgroundOptions.IsCheckersColorsStored(Index: integer): boolean;
+function TBackgroundOptions.IsCheckerboardColorsStored(Index: integer): boolean;
 begin
-  Result := (FCheckersStyle = bcsCustom);
+  Result := (FCheckerboardStyle = bcsCustom);
 end;
 
 function TBackgroundOptions.IsDropShadowBitmapStored: boolean;
@@ -1949,35 +2219,35 @@ begin
   FPatternBitmap.Assign(Value);
 end;
 
-procedure TBackgroundOptions.SetCheckersColor(Index: integer; const Value: TColor);
+procedure TBackgroundOptions.SetCheckerboardColor(Index: integer; const Value: TColor);
 begin
-  if (FCheckersStyle <> bcsCustom) or (Color32(Value) <> FCheckersColors[Index]) then
+  if (FCheckerboardStyle <> bcsCustom) or (Color32(Value) <> FCheckerboardColors[Index]) then
   begin
-    FCheckersColors[Index] := Color32(Value);
-    FCheckersStyle := bcsCustom;
+    FCheckerboardColors[Index] := Color32(Value);
+    FCheckerboardStyle := bcsCustom;
     Changed;
   end;
 end;
 
-procedure TBackgroundOptions.SetCheckersExponent(const Value: integer);
+procedure TBackgroundOptions.SetCheckerboardExponent(const Value: integer);
 begin
-  if (Value <> FCheckersExponent) then
+  if (Value <> FCheckerboardExponent) then
   begin;
     // There's no technical reason to limit the size, but there's also no
     // practical reason to allow larger values.
-    FCheckersExponent := Min(10, Max(0, Value));
+    FCheckerboardExponent := Min(10, Max(0, Value));
     Changed;
   end;
 end;
 
-procedure TBackgroundOptions.SetCheckersStyle(const Value: TBackgroundCheckerStyle);
+procedure TBackgroundOptions.SetCheckerboardStyle(const Value: TBackgroundCheckerboardStyle);
 begin
-  if (FCheckersStyle <> Value) then
+  if (FCheckerboardStyle <> Value) then
   begin
-    FCheckersStyle := Value;
+    FCheckerboardStyle := Value;
 
-    if (FCheckersStyle <> bcsCustom) then
-      FCheckersColors := DefaultCheckersColors[FCheckersStyle];
+    if (FCheckerboardStyle <> bcsCustom) then
+      FCheckerboardColors := DefaultCheckersColors[FCheckerboardStyle];
 
     Changed;
   end;
@@ -2224,6 +2494,17 @@ begin
     SetPartialRepaintQueued;
 
   BufferValid := False;
+
+{$if defined(TRANSPARENT_TIMAGE32)}
+  if IsTransparent then
+  begin
+    // Force parent to repaint so we can update the background
+    R := AArea;
+    GR32.OffsetRect(R, Left, Top);
+
+    InvalidateRect(Parent.Handle, @R, True);
+  end;
+{$ifend}
 end;
 
 procedure TCustomImage32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
@@ -2580,9 +2861,19 @@ begin
 
     r := GetBitmapRect;
 
-    // Constrain pivot to bitmap rect
-    Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
-    Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+    // If ConstrainPivot is True AND Bitmap is not empty, constrain the pivot to
+    // the bitmap bounds. Otherwise (when ConstrainPivot is False OR Bitmap is
+    // empty), compute pivot relative to bitmap/view origin without clamping,
+    // enabling mouse zoom over layers without requiring a background bitmap.
+    if FMouseZoomOptions.ConstrainPivot and (not Bitmap.Empty) then
+    begin
+      Pivot.X := Constrain(MousePos.X, r.Left, r.Right);
+      Pivot.Y := Constrain(MousePos.Y, r.Top, r.Bottom);
+    end else
+    begin
+      Pivot.X := MousePos.X;
+      Pivot.Y := MousePos.Y;
+    end;
 
     // Transform coordinates from Control to Bitmap
     Pivot.X := (Pivot.X - r.Left) / ScaleX;
@@ -2605,12 +2896,27 @@ begin
   end;
 end;
 
+procedure TCustomImage32.PaintBackground(Dest: TBitmap32);
+begin
+  // Background is painted by ExecClearBackgnd(
+end;
+
 procedure TCustomImage32.DoPaintBuffer;
 var
   PaintStageHandlerCount: Integer;
   i, j: Integer;
   PaintStageMask: TPaintStageMaskValue;
 begin
+  if IsTransparent then
+    // Full repaint in case the background is animated
+    ForceFullRepaint := True;
+
+  if ForceFullRepaint then
+  begin
+    ForceFullRepaint := False;
+    InvalidRects.Clear;
+  end;
+
   if RepaintOptimizer.Enabled then
     RepaintOptimizer.BeginPaintBuffer;
 
@@ -2821,11 +3127,10 @@ var
   OuterBorder: integer;
   InnerBorder: integer;
   X, Y: integer;
-  Len: integer;
-  BlockSize: integer;
-  RowPtr: PColor32Array;
-  i: Integer;
-  Parity: integer;
+//  Len, Remain: integer;
+//  BlockSize: integer;
+//  PixelPtr: PColor32;
+//  Parity: integer;
   ViewportRect: TRect;
   BitmapRect: TRect;
   r: TRect;
@@ -2838,6 +3143,12 @@ var
   FillStyle: TBackgroundFillStyle;
   ClearStyle: TBackgroundFillStyle;
 begin
+  if (IsTransparent) then
+  begin
+    DoPaintBackground(Dest);
+    exit;
+  end;
+
   ViewportRect := GetViewportRect;
 
   if (not Bitmap.Empty) and (Bitmap.DrawMode = dmOpaque) then
@@ -2924,7 +3235,7 @@ begin
           end;
 
         // CheckersStyle=bcsNone doesn't clear the area under the bitmap so we need to do it here
-        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = bcsNone) then
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckerboardStyle = bcsNone) then
         begin
           BackgroundColor := Color;
     {$ifdef FPC}
@@ -2945,18 +3256,7 @@ begin
     {$endif}
         C := Color32(BackgroundColor);
 
-        if InvalidRects.Count > 0 then
-        begin
-          for i := 0 to InvalidRects.Count-1 do
-          begin
-            if (DrawBitmapBackground) and (ClearStyle <> bfsColor) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (BitmapRect.Contains(InvalidRects[i]^)) then
-              continue;
-
-            with InvalidRects[i]^ do
-              Dest.FillRectS(Left, Top, Right, Bottom, C);
-          end;
-        end else
-        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) then
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckerboardStyle <> bcsNone) then
         begin
           Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
           Dest.FillRectS(Rect(ViewportRect.Left, r.Top, r.Left, r.Bottom), C);
@@ -3052,7 +3352,7 @@ begin
   (*
   ** Checkers
   *)
-  if (FBackgroundOptions.CheckersStyle <> bcsNone) and
+  if (FBackgroundOptions.CheckerboardStyle <> bcsNone) and
     ((DrawBitmapBackground) or
      ((FillStyle = bfsCheckers) and
       ((Bitmap.Empty) or (Bitmap.DrawMode = dmOpaque)))) then
@@ -3064,6 +3364,8 @@ begin
       // Fill the area under the bitmap
       GR32.IntersectRect(r, BitmapRect, Dest.ClipRect);
 
+    Dest.FillCheckerboardRect(r, FBackgroundOptions.CheckerboardColors, FBackgroundOptions.CheckersExponent);
+(*
     if (r.Width > 0) and (r.Bottom > r.Top) then
     begin
       if (FBackgroundOptions.CheckersStyle <> bcsCustom) or (FBackgroundOptions.CheckersColors[0] <> FBackgroundOptions.CheckersColors[1]) then
@@ -3071,29 +3373,30 @@ begin
         BlockSize := 1 shl FBackgroundOptions.CheckersExponent;
         for Y := r.Top to r.Bottom - 1 do
         begin
-          RowPtr := Dest.ScanLine[Y];
           X := r.Left;
+          PixelPtr := Dest.PixelPtr[X, Y];
           // BlockSize is $00000010, $00000100, $00001000, $00010000, etc. so
           // BlockSize-1 is $00000001, $00000011, $00000111, $00001111, etc.
+          Remain := r.Right - X;
           Len := BlockSize - (X and (BlockSize - 1)); // (X and (BlockSize - 1)) = (X mod BlockSize)
-          if (Len > r.Right - X) then
-            Len := r.Right - X;
           Parity := ((X shr FBackgroundOptions.CheckersExponent) xor (Y shr FBackgroundOptions.CheckersExponent)) and 1;
 
-          while (X < r.Right) do
+          while (Remain > 0) do
           begin
-            FillLongword(RowPtr[X], Len, FBackgroundOptions.CheckersColors[Parity]);
-            Inc(X, Len);
+            if (Len > Remain) then
+              Len := Remain;
+            FillLongword(PixelPtr^, Len, FBackgroundOptions.CheckersColors[Parity]);
+            Inc(PixelPtr, Len);
+            Dec(Remain, Len);
             Parity := 1 - Parity;
             Len := BlockSize;
-            if (Len > r.Right - X) then
-              Len := r.Right - X;
           end;
         end;
       end else
         // Odd color = Even color -> Just clear with the color
         Dest.FillRectS(r, FBackgroundOptions.CheckersColors[0]);
     end;
+*)
   end;
 end;
 
@@ -3139,7 +3442,8 @@ begin
     Exit;
 
   BitmapRect := CachedBitmapRect;
-  if GR32.IsRectEmpty(BitmapRect) then
+
+  if (not GR32.IntersectRect(BitmapRect, Dest.ClipRect)) then
     Exit;
 
   Bitmap.Lock;
@@ -3948,6 +4252,9 @@ procedure TCustomImage32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
   InvalidateCache;
+
+  if (IsTransparent) and (not BufferValid) then
+    ForceFullInvalidate;
 end;
 
 procedure TCustomImage32.SetHotTrackLayer(ALayer: TCustomLayer);
@@ -4066,6 +4373,20 @@ begin
   end;
 end;
 
+procedure TCustomImage32.CreateParams(var Params: TCreateParams);
+begin
+  inherited;
+
+  (* See SetTransparent.
+  ** Also, WS_EX_TRANSPARENT makes Windows paint and display whatever is underneath
+  ** us before we are being painted. This causes flicker and is unnecessary since
+  ** we are opaque.
+
+  if FTransparent then
+    Params.ExStyle := Params.ExStyle or WS_EX_TRANSPARENT;
+  *)
+end;
+
 procedure TCustomImage32.SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000);
 begin
   BeginUpdate;
@@ -4127,6 +4448,21 @@ function TCustomImage32.GetCachedBitmapRect: TRect;
 begin
   UpdateCache;
   Result := FCachedBitmapRect;
+end;
+
+function TCustomImage32.GetIsTransparent: Boolean;
+begin
+  // Transparency is only supported if:
+  // - We have a parent (the parent supplies the background).
+  // - We aren't painting to produce a flattened image.
+  // - We do not have a bitmap, or we have a bitmap and:
+  //   - We aren't tiling.
+  //   - We aren't stretching.
+{$if defined(TRANSPARENT_TIMAGE32)}
+  Result := inherited GetIsTransparent and (not PaintToMode) and ((Bitmap = nil) or ((BitmapAlign <> baTile) and (ScaleMode <> smStretch)));
+{$else}
+  Result := False;
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------
@@ -5126,6 +5462,7 @@ begin
   FMinScale := 0.0625;
   FMaxScale := 128.0;
   FMaintainPivot := True;
+  FConstrainPivot := True;
   UpdateZoomFactor;
 end;
 

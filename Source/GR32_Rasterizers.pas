@@ -39,7 +39,7 @@ interface
 {$ifend}
 
 uses
-  Classes,
+  System.Classes,
   GR32,
   GR32_Blend;
 
@@ -326,7 +326,7 @@ uses
   System.SysUtils,
   System.Threading,
 {$ifend}
-  Math,
+  System.Math,
   GR32_Math,
   GR32_System,
   GR32_LowLevel,

@@ -39,11 +39,11 @@ interface
 implementation
 
 uses
-  Classes,
-  Graphics,
-  SysUtils,
+  System.Classes,
+  Vcl.Graphics,
+  System.SysUtils,
 {$ifndef FPC}
-  Consts,
+  Vcl.Consts,
 {$endif FPC}
   GR32,
   GR32.ImageFormats.TGraphic,

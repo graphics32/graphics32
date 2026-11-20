@@ -52,9 +52,9 @@ uses
   CSIntf, CSAux,
 {$ENDIF}
 {$if defined(UseInlining)}
-  Types,
+  System.Types,
 {$ifend}
-  SysUtils, Classes,
+  System.SysUtils, System.Classes,
   GR32,
   GR32_System,
   GR32_Containers,
@@ -244,7 +244,7 @@ type
 implementation
 
 uses
-  GR32_Bindings, GR32_LowLevel, GR32_Math, Math;
+  GR32_Bindings, GR32_LowLevel, GR32_Math, System.Math;
 
 var
   MicroTilesU: procedure(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
@@ -1661,7 +1661,7 @@ var
 
 procedure RegisterBindings;
 begin
-  Registry := NewRegistry('GR32_MicroTiles bindings');
+  Registry := NewRegistry('GR32_MicroTiles');
   Registry.RegisterBinding(@@MicroTileUnion, 'MicroTileUnion');
   Registry.RegisterBinding(@@MicroTilesU, 'MicroTilesU');
 

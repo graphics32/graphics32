@@ -142,6 +142,8 @@ type
     procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; const Layout: TTextLayout); overload;
     procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
+    function GetFontFaceMetrics(const Layout: TTextLayout; var FontFaceMetrics: TFontFaceMetrics32): boolean;
+    function GetGlyphMetrics(const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
 
     { ICanvasSupport }
     function GetCanvasChange: TNotifyEvent;
@@ -155,7 +157,7 @@ type
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
 
     { IUpdateRectSupport }
-    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect; AErase: boolean = False);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
 
   end;
@@ -330,6 +332,11 @@ begin
     FOnFontChange(Self);
 end;
 
+function TGDIBackend.GetGlyphMetrics(const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
+begin
+  Result := TextToolsWin.GetGlyphMetrics(FFont.Handle, Text, GlyphMetrics);
+end;
+
 function TGDIBackend.TextExtent(const Text: string): TSize;
 var
   DC: HDC;
@@ -493,6 +500,11 @@ begin
   Result := FFont;
 end;
 
+function TGDIBackend.GetFontFaceMetrics(const Layout: TTextLayout; var FontFaceMetrics: TFontFaceMetrics32): boolean;
+begin
+  Result := TextToolsWin.GetFontFaceMetrics(FFont.Handle, Layout, FontFaceMetrics);
+end;
+
 function TGDIBackend.GetHandle: HDC;
 begin
   Result := FHDC;
@@ -503,10 +515,10 @@ begin
   Result := FOnFontChange;
 end;
 
-procedure TGDIBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
+procedure TGDIBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect; AErase: boolean);
 begin
   if (AControl.HandleAllocated) then
-    WinAPI.Windows.InvalidateRect(AControl.Handle, @ARect, False);
+    WinAPI.Windows.InvalidateRect(AControl.Handle, @ARect, AErase);
 end;
 
 procedure TGDIBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
@@ -651,7 +663,8 @@ begin
   BufferHandle := ABuffer.Handle;
   for i := 0 to AInvalidRects.Count - 1 do
     with AInvalidRects[i]^ do
-      BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
+      if (Left < Right) and (Top < Bottom) then
+        BitBlt(CanvasHandle, Left, Top, Right - Left, Bottom - Top, BufferHandle, Left, Top, SRCCOPY);
 end;
 
 procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; const AInvalidRect: TRect; ACanvas: TCanvas);

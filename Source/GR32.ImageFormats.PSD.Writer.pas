@@ -42,7 +42,7 @@ interface
 {$include GR32.inc}
 
 uses
-  Classes,
+  System.Classes,
   GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Model;
 
@@ -70,12 +70,12 @@ implementation
 uses
   Generics.Collections,
 {$ifndef FPC}
-  ZLib,
+  System.ZLib,
 {$else FPC}
   zstream,
 {$endif FPC}
-  Math,
-  SysUtils,
+  System.Math,
+  System.SysUtils,
   GR32,
   GR32_LowLevel,
   GR32.BigEndian,

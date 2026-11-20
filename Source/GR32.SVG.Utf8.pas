@@ -1,0 +1,1066 @@
+﻿unit GR32.SVG.Utf8;
+
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
+ *
+ * The Original Code is SVG Image Format support for Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Anders Melander <anders@melander.dk>
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2025-2026
+ * the Initial Developer. All Rights Reserved.
+ *
+ * The code is this unit was based on mORMot 2 code:
+ *
+ *   https://github.com/synopse/mORMot2/src/core/mormot.core.fmt.pas
+ *   Commit SHA: 3af914ac15eab28c41411a1c449da2cf5b1e3a67
+ *
+ * Patches to the original code has been marked with [*].
+ * Additions has not been marked.
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
+interface
+
+{$include GR32.inc}
+
+type
+  RawUtf8 = UTF8String;
+  PRawUtf8 = ^RawUtf8;
+  PUtf8Char = PAnsiChar;
+  PPUtf8Char = ^PUtf8Char;
+{$ifdef CPU64}
+  PtrInt = NativeInt;
+  PtrUInt = NativeUInt;
+{$else}
+  PtrInt = integer;
+  PtrUInt = cardinal;
+{$endif CPU64}
+
+  /// points to one value as raw memory buffer pointer and length
+  TValuePointer = record
+    /// a pointer to the actual UTF-8 or binary content
+    Buffer: Pointer;
+    /// how many bytes are stored in Buffer
+    Len: PtrInt;
+  end;
+
+  /// points to one value of raw UTF-8 content, decoded from e.g. an XML buffer
+  TValuePUtf8Char = record
+  private type
+    TAnsiSet = set of AnsiChar;
+  public
+    /// a pointer to the actual UTF-8 text
+    Text: PUtf8Char;
+    /// how many UTF-8 bytes are stored in Value
+    Len: PtrInt;
+    /// convert the value into a UTF-8 string
+    procedure ToUtf8(var Value: RawUtf8); overload; inline;
+    /// convert the value into a UTF-8 string
+    function ToUtf8: RawUtf8; overload; inline;
+    /// convert the value into a RTL string
+    function ToString: string; inline;
+    /// convert the value into a signed integer
+    function ToInteger: PtrInt; inline;
+    /// convert the value into an unsigned integer
+    function ToCardinal: PtrUInt; overload; inline;
+    /// convert the value into an unsigned integer
+    function ToCardinal(Def: PtrUInt): PtrUInt; overload; inline;
+    /// convert the value into a 64-bit signed integer
+    function ToInt64: Int64; inline;
+    /// returns true if Value is either '1' or 'true'
+    function ToBoolean: Boolean;
+    /// convert the value into a floating point number
+    function ToDouble: Double; inline;
+    function ToSingle: Single; inline;
+    /// case-sensitive comparison with the stored text Value
+    function Equal(const Value: RawUtf8): Boolean; overload; inline;
+    /// case-sensitive comparison with the stored text Value
+    function Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean; overload; inline;
+
+//    class operator implicit(const Value: TValuePUtf8Char): UTF8String; // TValuePUtf8Char -> UTF8String
+    class operator implicit(const Value: UTF8String): TValuePUtf8Char; inline; // UTF8String -> TValuePUtf8Char
+
+    // constructor for debug/unit test
+    class function FromString(const AValue: UTF8String): TValuePUtf8Char; static; inline;
+
+    /// case-insensitive comparison with the stored text Value
+    function CompareText(const AValue: UTF8String): Boolean; overload;
+    function CompareText(const AValue: TValuePUtf8Char): Boolean; overload;
+    function StartsText(const AValue: UTF8String; ASkip: boolean = False): Boolean; overload;
+    function StartsText(const AValue: TValuePUtf8Char; ASkip: boolean = False): Boolean; overload;
+    function EndsText(const AValue: UTF8String; ATrim: boolean = False): Boolean; overload;
+    function EndsText(const AValue: TValuePUtf8Char; ATrim: boolean = False): Boolean; overload;
+    function ContainsText(const AValue: UTF8String): Boolean;
+    function Pos(Chr: AnsiChar): PUtf8Char;
+    function IsDigit: boolean; inline;
+
+    function ToCardinalAndSkip: Cardinal;
+    function TryToFloat(out Value: Double): boolean; overload;
+    function TryToFloat(out Value: Double; Skip: boolean): boolean; overload;
+    function TryToFloat(out Value: Single): boolean; overload;
+    function TryToFloat(out Value: Single; Skip: boolean): boolean; overload;
+
+    // Decimal value or percent value, returned as decimal value
+    function TryToPercent(out Value: Single; Skip: boolean = False): boolean;
+    // Decimal value or percent value of <Multiplier>, returned as decimal value
+    function TryToPercentOf(out Value: Single; Multiplier: Single; Skip: boolean = False): boolean;
+
+    function LastChar: AnsiChar; inline;
+
+    procedure Trim; overload; inline; // TODO : Can we safely extend Trim to also trim from the end?
+    procedure Trim(ASkip: AnsiChar); overload; inline;
+    procedure Trim(ASkip: TAnsiSet); overload; inline;
+    procedure TrimEnd; inline;
+    function TrimQuotes: boolean; inline; // Return True if quotes were trimmed
+    procedure Skip; overload; inline;
+    procedure Skip(Count: integer); overload; inline;
+    procedure SkipDigits; inline;
+    function SkipUntil(ASkip: TAnsiSet; AAfter: boolean = False): boolean;
+    // Split returns the current text, up to and excluding the split char(s).
+    // If ASkip=True, the current text is moved past the split char(s).
+    function Split(AChar: AnsiChar; ASkip: boolean = False): TValuePUtf8Char; overload;
+    function Split(AChars: TAnsiSet; ASkip: boolean = False): TValuePUtf8Char; overload;
+
+    // Case sensitive compare for use in binary search etc. Returns positive if Value sorts after Self
+    function CompareOrdinal(const Value: TValuePUtf8Char): integer; overload;
+    function CompareOrdinal(const Value: UTF8String): integer; overload;
+    // Case insensitive compare for use in binary search etc. Returns positive if Value sorts after Self
+    function CompareTextOrdinal(const Value: TValuePUtf8Char): integer; overload;
+    function CompareTextOrdinal(const Value: UTF8String): integer; overload;
+  end;
+
+/// extract a 64-bit unsigned integer from a UTF-8 text buffer
+function GetCardinal(P: PUtf8Char; PEnd: PUtf8Char = nil): PtrUInt; overload;
+function GetCardinal(P: PUtf8Char; Len: PtrInt): PtrUInt; overload;
+
+/// extract a 64-bit signed integer from a UTF-8 text buffer
+function GetInt64(P: PUtf8Char; PEnd: PUtf8Char = nil): Int64; overload;
+function GetInt64(P: PUtf8Char; Len: PtrInt): Int64; overload;
+
+/// extract a signed integer from a UTF-8 text buffer
+function GetInteger(P: PUtf8Char; PEnd: PUtf8Char = nil): PtrInt; overload;
+function GetInteger(P: PUtf8Char; Len: PtrInt): PtrInt; overload;
+
+/// extract an Extended floating point number from a UTF-8 text buffer
+function GetExtended(P: PUtf8Char; out Value: Double; PEnd: PUtf8Char = nil): PUtf8Char; overload;
+function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Double): Boolean; overload;
+
+type
+  UTF8Tools = record
+    // Note: Trims left+right unlike TValuePUtf8Char.Trim
+    class function Trim(const AValue: UTF8String): UTF8String; static;
+    class function CompareText(const AValue1, AValue2: UTF8String): Boolean; static;
+    class function CompareOrdinal(const AValue1, AValue2: UTF8String): integer; static;
+    class function CompareTextOrdinal(const AValue1, AValue2: UTF8String): integer; static;
+    class function Lowercase(const AValue: UTF8String): UTF8String; static;
+  end;
+
+implementation
+
+uses
+  Types,
+  SysUtils,
+{$IFNDEF FPC}
+  AnsiStrings,
+{$ENDIF}
+  Math;
+
+function PosChar(Str: PUtf8Char; StrLen: PtrInt; Chr: AnsiChar): PUtf8Char; overload;
+begin
+  if (Str <> nil) and (StrLen > 0) then
+  begin
+    while StrLen > 0 do
+    begin
+      if Str^ = Chr then
+      begin
+        Result := Str;
+        Exit;
+      end;
+      Inc(Str);
+      Dec(StrLen);
+    end;
+  end;
+  Result := nil;
+end;
+
+function PosChar(Str: PUtf8Char; Chr: AnsiChar): PUtf8Char; overload;
+begin
+  if Str <> nil then
+  begin
+    while Str^ <> #0 do
+    begin
+      if Str^ = Chr then
+      begin
+        Result := Str;
+        Exit;
+      end;
+      Inc(Str);
+    end;
+  end;
+  Result := nil;
+end;
+
+function PosChar0(Str: PUtf8Char; Chr: AnsiChar): PUtf8Char;
+begin
+  Result := PosChar(Str, Chr);
+  if Result = nil then
+    Result := Str + {$ifndef FPC}AnsiStrings.{$endif}StrLen(Str);
+end;
+
+function ByteScanIndex(P: PByteArray; Count: PtrInt; Value: byte): PtrInt;
+begin
+  result := 0;
+  if P <> nil then
+    repeat
+      if result >= Count then
+        break;
+      if P^[result] = Value then
+        exit;
+      inc(result);
+    until false;
+  result := -1;
+end;
+
+function CompareMemSmall(P1, P2: Pointer; Length: PtrInt): Boolean;
+begin
+  Result := CompareMem(P1, P2, Length);
+end;
+
+function GetCardinal(P: PUtf8Char; PEnd: PUtf8Char): PtrUInt;
+var
+  c: PtrUInt;
+begin
+  Result := 0;
+  if P = nil then Exit;
+  if PEnd = nil then
+    PEnd := P + $7FFFFFFF;
+  while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
+  begin
+    c := Ord(P^) - Ord('0');
+    Result := Result * 10 + c;
+    Inc(P);
+  end;
+end;
+
+function GetCardinal(P: PUtf8Char; Len: PtrInt): PtrUInt;
+begin
+  if (P = nil) or (Len <= 0) then
+    Result := 0
+  else
+    Result := GetCardinal(P, P + Len);
+end;
+
+function GetInt64(P: PUtf8Char; PEnd: PUtf8Char): Int64;
+var
+  neg: Boolean;
+  c: Int64;
+begin
+  Result := 0;
+  if P = nil then Exit;
+  if PEnd = nil then
+    PEnd := P + $7FFFFFFF;
+  while (P < PEnd) and (P^ <= #32) do // (P^ in [#1..#32]) do
+    Inc(P);
+  neg := False;
+  if P < PEnd then
+  begin
+    if P^ = '-' then
+    begin
+      neg := True;
+      Inc(P);
+    end
+    else if P^ = '+' then
+      Inc(P);
+  end;
+  while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
+  begin
+    c := Ord(P^) - Ord('0');
+    Result := Result * 10 + c;
+    Inc(P);
+  end;
+  if neg then
+    Result := -Result;
+end;
+
+function GetInt64(P: PUtf8Char; Len: PtrInt): Int64;
+begin
+  if (P = nil) or (Len <= 0) then
+    Result := 0
+  else
+    Result := GetInt64(P, P + Len);
+end;
+
+function GetInteger(P: PUtf8Char; PEnd: PUtf8Char): PtrInt;
+begin
+  Result := PtrInt(GetInt64(P, PEnd));
+end;
+
+function GetInteger(P: PUtf8Char; Len: PtrInt): PtrInt;
+begin
+  Result := PtrInt(GetInt64(P, Len));
+end;
+
+function GetExtended(P: PUtf8Char; out Value: Double; PEnd: PUtf8Char): PUtf8Char;
+var
+  Sign, ExpSign: Boolean;
+  IntVal, FracVal: Int64;
+  FracLen, ExpVal: Integer;
+  E: Double; // [*] Original code operated on "Extended"; Deprecated since... XE2 I guess
+begin
+  Value := 0.0;
+  if P = nil then
+  begin
+    Result := nil;
+    Exit;
+  end;
+  if PEnd = nil then
+    PEnd := P + $7FFFFFFF;
+
+  while (P < PEnd) and (P^ <= #32) do // (P^ in [#1..#32])
+    Inc(P);
+
+  if P >= PEnd then
+  begin
+    Result := P;
+    Exit;
+  end;
+
+  Sign := False;
+  if P^ = '-' then
+  begin
+    Sign := True;
+    Inc(P);
+  end
+  else if P^ = '+' then
+    Inc(P);
+
+  IntVal := 0;
+  while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
+  begin
+    IntVal := IntVal * 10 + (Ord(P^) - Ord('0'));
+    Inc(P);
+  end;
+
+  E := IntVal;
+
+  // [*] Fix: Original code considered ',' a decimal separator.
+  // This is not valid according to the XML standard: https://www.w3.org/TR/xmlschema11-2/#decimal
+  (* old
+  if (P < PEnd) and (P^ in ['.', ',']) then
+  *)
+  if (P < PEnd) and (P^ = '.') then
+  begin
+    Inc(P);
+    FracVal := 0;
+    FracLen := 0;
+    while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
+    begin
+      if FracLen < 18 then
+      begin
+        FracVal := FracVal * 10 + (Ord(P^) - Ord('0'));
+        Inc(FracLen);
+      end;
+      Inc(P);
+    end;
+    if FracLen > 0 then
+      E := E + FracVal / Power(10.0, FracLen);
+  end;
+
+  // [*] Fix: Ensure that 'e' is followed by exponent digits/sign. This prevents 10em being parse as 10, swallowing the 'e'.
+  (* Old
+  if (P < PEnd) and (P^ in ['e', 'E']) then
+  *)
+  if (P < PEnd) and (P^ in ['e', 'E']) and
+     ((P + 1 < PEnd) and ((P[1] in ['0'..'9']) or ((P[1] in ['+', '-']) and (P + 2 < PEnd) and ((Ord(P[2]) xor $30) < 10)))) then // (P[2] in ['0'..'9'])
+  begin
+    Inc(P);
+    ExpSign := False;
+    if (P < PEnd) and (P^ = '-') then
+    begin
+      ExpSign := True;
+      Inc(P);
+    end
+    else if (P < PEnd) and (P^ = '+') then
+      Inc(P);
+
+    ExpVal := 0;
+    while (P < PEnd) and ((Ord(P^) xor $30) < 10) do // (P^ in ['0'..'9'])
+    begin
+      ExpVal := ExpVal * 10 + (Ord(P^) - Ord('0'));
+      Inc(P);
+    end;
+
+    if ExpVal <> 0 then
+    begin
+      if ExpSign then
+        E := E / Power(10.0, ExpVal)
+      else
+        E := E * Power(10.0, ExpVal);
+    end;
+  end;
+
+  if Sign then
+    E := -E;
+
+  Value := E;
+  Result := P;
+end;
+
+function GetExtended(P: PUtf8Char; Len: PtrInt; out Value: Double): Boolean;
+var
+  pRes: PUtf8Char;
+begin
+  if (P = nil) or (Len <= 0) then
+  begin
+    Value := 0.0;
+    Exit(False);
+  end;
+  pRes := GetExtended(P, Value, P + Len);
+  Result := (pRes <> P);
+end;
+
+{ TValuePUtf8Char }
+
+procedure TValuePUtf8Char.ToUtf8(var Value: RawUtf8);
+begin
+  SetString(Value, Text, Len);
+end;
+
+function TValuePUtf8Char.ToUtf8: RawUtf8;
+begin
+  SetString(Result, Text, Len);
+end;
+
+procedure TValuePUtf8Char.Trim;
+begin
+  while (Len > 0) and (Text^ <= #32) do // (Text^ in [#1..#32])
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
+end;
+
+procedure TValuePUtf8Char.Trim(ASkip: TAnsiSet);
+begin
+  while (Len > 0) and (Text^ in ASkip) do
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
+end;
+
+procedure TValuePUtf8Char.Trim(ASkip: AnsiChar);
+begin
+  while (Len > 0) and (Text^ = ASkip) do
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
+end;
+
+procedure TValuePUtf8Char.TrimEnd;
+begin
+  while (Len > 0) and (Text[Len-1] <= #32) do // (Text[Len-1] in [#1..#32])
+    Dec(Len);
+end;
+
+function TValuePUtf8Char.TrimQuotes: boolean;
+begin
+  if (Len >= 2) and (((Text^ = '"') and (Text[Len-1] = '"')) or ((Text^ = '''') and (Text[Len-1] = ''''))) then
+  begin
+    Inc(Text);
+    Dec(Len, 2);
+    Result := True;
+  end else
+    Result := False;
+end;
+
+function TValuePUtf8Char.TryToFloat(out Value: Single): boolean;
+begin
+  Result := TryToFloat(Value, False);
+end;
+
+function TValuePUtf8Char.TryToFloat(out Value: Single; Skip: boolean): boolean;
+var
+  Dbl: Double;
+begin
+  Result := TryToFloat(Dbl, Skip);
+  if (Result) then
+    Value := dbl;
+end;
+
+function TValuePUtf8Char.TryToPercent(out Value: Single; Skip: boolean): boolean;
+var
+  Save: TValuePUtf8Char;
+begin
+  Save := Self;
+  Result := TryToFloat(Value, True);
+  if (Result) and (Len > 0) and (Text^ = '%') then
+  begin
+    Value := Value * 0.01;
+    Self.Skip;
+  end;
+  if (not Skip) then
+    Self := Save;
+end;
+
+function TValuePUtf8Char.TryToPercentOf(out Value: Single; Multiplier: Single; Skip: boolean): boolean;
+var
+  Save: TValuePUtf8Char;
+begin
+  Save := Self;
+  Result := TryToFloat(Value, True);
+  if (Result) and (Len > 0) and (Text^ = '%') then
+  begin
+    Value := Value * 0.01 * Multiplier;
+    Self.Skip;
+  end;
+  if (not Skip) then
+    Self := Save;
+end;
+
+function TValuePUtf8Char.TryToFloat(out Value: Double): boolean;
+begin
+  Result := TryToFloat(Value, False);
+end;
+
+function TValuePUtf8Char.TryToFloat(out Value: Double; Skip: boolean): boolean;
+var
+  pRes: PUtf8Char;
+begin
+  if (Text = nil) or (Len <= 0) then
+  begin
+    Value := 0.0;
+    Exit(False);
+  end;
+
+  pRes := GetExtended(Text, Value, Text + Len);
+
+  Result := (pRes <> nil) and (pRes <> Text);
+
+  if (Result) and (Skip) then
+  begin
+    Dec(Len, pRes - Text);
+    Text := pRes;
+  end;
+end;
+
+function TValuePUtf8Char.ToString: string;
+var
+  u: RawUtf8;
+begin
+  SetString(u, Text, Len);
+  Result := string(u);
+end;
+
+function TValuePUtf8Char.ToInteger: PtrInt;
+begin
+  Result := GetInteger(Text, Len);
+end;
+
+function TValuePUtf8Char.ToCardinal: PtrUInt;
+begin
+  Result := ToCardinal(0);
+end;
+
+function TValuePUtf8Char.ToCardinal(Def: PtrUInt): PtrUInt;
+var
+  i: Int64;
+begin
+  if (Text = nil) or (Len <= 0) then
+    Exit(Def);
+  i := GetInt64(Text, Len);
+  if (i < 0) or (i > High(Cardinal)) then
+    Result := Def
+  else
+    Result := Cardinal(i);
+end;
+
+function TValuePUtf8Char.ToInt64: Int64;
+begin
+  Result := GetInt64(Text, Len);
+end;
+
+function TValuePUtf8Char.ToBoolean: Boolean;
+begin
+  if (Text = nil) or (Len <= 0) then
+    Exit(False);
+  if (Len = 1) and (Text^ = '1') then
+    Exit(True);
+  if (Len = 4) and
+     ((Text[0] = 't') or (Text[0] = 'T')) and
+     ((Text[1] = 'r') or (Text[1] = 'R')) and
+     ((Text[2] = 'u') or (Text[2] = 'U')) and
+     ((Text[3] = 'e') or (Text[3] = 'E')) then
+    Exit(True);
+  Result := False;
+end;
+
+function TValuePUtf8Char.ToCardinalAndSkip: Cardinal;
+begin
+  Result := 0;
+  while (Len > 0) and ((Ord(Text^) xor $30) < 10) do // (Text^ in ['0'..'9'])
+  begin
+    Result := Result * 10 + Cardinal(Ord(Text^) - Ord('0'));
+    Skip;
+  end;
+end;
+
+function TValuePUtf8Char.ToDouble: Double;
+begin
+  if not GetExtended(Text, Len, Result) then
+    Result := 0.0;
+end;
+
+function TValuePUtf8Char.ToSingle: Single;
+var
+  d: Double;
+begin
+  if GetExtended(Text, Len, d) then
+    Result := d
+  else
+    Result := 0.0;
+end;
+
+function TValuePUtf8Char.Equal(const Value: RawUtf8): Boolean;
+begin
+  Result := Equal(PUtf8Char(Value), Length(Value));
+end;
+
+function TValuePUtf8Char.EndsText(const AValue: TValuePUtf8Char; ATrim: boolean): Boolean;
+var
+  i: integer;
+  p1, p2: PUtf8Char;
+  c1, c2: Byte;
+begin
+  if (AValue.Len > Len) then
+    Exit(False);
+
+  p1 := @Text[Len - AValue.Len];
+  p2 := AValue.Text;
+
+  for i := 1 to AValue.Len do
+  begin
+    c1 := Byte(p1^);
+    c2 := Byte(p2^);
+
+    if (c1 <> c2) then
+    begin
+      // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
+      if (c1 in [65..90]) <> (c2 in [65..90]) then
+        c1 := c1 xor $20;
+
+      if (c1 <> c2) then
+        Exit(False);
+    end;
+
+    Inc(p1);
+    Inc(p2);
+  end;
+  Result := True;
+
+  if (ATrim) then
+    Dec(Len, AValue.Len);
+end;
+
+function TValuePUtf8Char.EndsText(const AValue: UTF8String; ATrim: boolean): Boolean;
+var
+  Value: TValuePUtf8Char;
+begin
+  Value := TValuePUtf8Char.FromString(AValue);
+  Result := EndsText(Value, ATrim);
+end;
+
+function TValuePUtf8Char.Equal(Value: PUtf8Char; ValueLen: PtrInt): Boolean;
+begin
+  Result := (Len = ValueLen) and CompareMem(Text, Value, Len);
+end;
+
+class function TValuePUtf8Char.FromString(const AValue: UTF8String): TValuePUtf8Char;
+begin
+  Result.Text := pointer(AValue);
+  Result.Len := Length(AValue);
+end;
+
+class operator TValuePUtf8Char.implicit(const Value: UTF8String): TValuePUtf8Char;
+begin
+  Result.Text := pointer(Value);
+  Result.Len := Length(Value);
+end;
+
+function TValuePUtf8Char.IsDigit: boolean;
+begin
+  Result := (Len > 0) and ((Ord(Text^) xor $30) < 10);
+end;
+
+(*
+class operator TValuePUtf8Char.implicit(const Value: TValuePUtf8Char): UTF8String;
+begin
+  SetString(Result, Value.Text, Value.Len);
+end;
+*)
+
+function TValuePUtf8Char.LastChar: AnsiChar;
+begin
+  if (Len > 0) then
+    Result := Text[Len-1]
+  else
+    Result := #0;
+end;
+
+function TValuePUtf8Char.Pos(Chr: AnsiChar): PUtf8Char;
+var
+  i: integer;
+begin
+  if (Text <> nil) and (Len > 0) then
+  begin
+    for i := 0 to Len-1 do
+      if Text[i] = Chr then
+      begin
+        Result := Text + i;
+        Exit;
+      end;
+  end;
+  Result := nil;
+end;
+
+procedure TValuePUtf8Char.Skip;
+begin
+  if (Len = 0) then
+    exit;
+  Inc(Text);
+  Dec(Len);
+end;
+
+procedure TValuePUtf8Char.Skip(Count: integer);
+begin
+  if (Count > Len) then
+    Count := Len;
+  Inc(Text, Count);
+  Dec(Len, Count);
+end;
+
+procedure TValuePUtf8Char.SkipDigits;
+begin
+  while (Len > 0) and ((Ord(Text^) xor $30) < 10) do
+  begin
+    Inc(Text);
+    Dec(Len);
+  end;
+end;
+
+function TValuePUtf8Char.SkipUntil(ASkip: TAnsiSet; AAfter: boolean): boolean;
+begin
+  Result := False;
+
+  while (Len > 0) and not(Text^ in ASkip) do
+  begin
+    Skip;
+    Result := True;
+  end;
+
+  if Result and AAfter then
+    Skip;
+end;
+
+function TValuePUtf8Char.Split(AChars: TAnsiSet; ASkip: boolean): TValuePUtf8Char;
+var
+  p: PUtf8Char;
+  l: PtrInt;
+begin
+  Result.Text := Text;
+  Result.Len := 0;
+  p := Text;
+  l := Len;
+  while (l > 0) and not(p^ in AChars) do
+  begin
+    Inc(p);
+    Dec(l);
+    Inc(Result.Len);
+  end;
+
+  if (ASkip) then
+  begin
+    Text := p;
+    Len := l;
+    while (Len > 0) and (Text^ in AChars) do
+      Skip;
+  end;
+end;
+
+function TValuePUtf8Char.Split(AChar: AnsiChar; ASkip: boolean): TValuePUtf8Char;
+var
+  p: PUtf8Char;
+  l: PtrInt;
+begin
+  Result.Text := Text;
+  Result.Len := 0;
+  p := Text;
+  l := Len;
+  while (l > 0) and (p^ <> AChar) do
+  begin
+    Inc(p);
+    Dec(l);
+    Inc(Result.Len);
+  end;
+
+  if (ASkip) then
+  begin
+    Text := p;
+    Len := l;
+    if (Len > 0) and (Text^ = AChar) then
+      Skip;
+  end;
+end;
+
+function TValuePUtf8Char.StartsText(const AValue: UTF8String; ASkip: boolean): Boolean;
+var
+  Value: TValuePUtf8Char;
+begin
+  Value.Text := pointer(AValue);
+  Value.Len := Length(AValue);
+  Result := StartsText(Value, ASkip);
+end;
+
+function TValuePUtf8Char.StartsText(const AValue: TValuePUtf8Char; ASkip: boolean): Boolean;
+var
+  i: Integer;
+  p1, p2: PUtf8Char;
+  c1, c2: Byte;
+begin
+  if (Len < AValue.Len) then
+    Exit(False);
+
+  p1 := Text;
+  p2 := AValue.Text;
+
+  for i := 1 to AValue.Len do
+  begin
+    c1 := Byte(p1^);
+    c2 := Byte(p2^);
+
+    if (c1 <> c2) then
+    begin
+      // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
+      if (c1 in [65..90]) <> (c2 in [65..90]) then
+        c1 := c1 xor $20;
+
+      if (c1 <> c2) then
+        Exit(False);
+    end;
+
+    Inc(p1);
+    Inc(p2);
+  end;
+
+  if (ASkip) then
+  begin
+    Inc(Text, AValue.Len);
+    Dec(Len, AValue.Len);
+  end;
+
+  Result := True;
+end;
+
+function TValuePUtf8Char.CompareText(const AValue: UTF8String): Boolean;
+var
+  Value: TValuePUtf8Char;
+begin
+  Value.Text := pointer(AValue);
+  Value.Len := Length(AValue);
+  Result := CompareText(Value);
+end;
+
+function TValuePUtf8Char.CompareOrdinal(const Value: UTF8String): integer;
+begin
+  Result := Len - Length(Value); // Shorter before longer
+  if (Result = 0) then
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(pointer(Value), Text, Min(Length(Value), Len)); // 'a' before 'b'
+end;
+
+function TValuePUtf8Char.CompareOrdinal(const Value: TValuePUtf8Char): integer;
+begin
+  Result := Len - Value.Len;
+  if (Result = 0) then
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLComp(Value.Text, Text, Min(Value.Len, Len));
+end;
+
+function TValuePUtf8Char.CompareTextOrdinal(const Value: UTF8String): integer;
+begin
+  Result := Len - Length(Value);
+  if (Result = 0) then
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(pointer(Value), Text, Min(Length(Value), Len));
+end;
+
+function TValuePUtf8Char.CompareTextOrdinal(const Value: TValuePUtf8Char): integer;
+begin
+  Result := Len - Value.Len;
+  // TODO : I haven't profiled StrLIComp but both the Pascal and assembler version
+  // contains a goof[*] so a local Pascal implementation might actually be
+  // faster. *: It swaps the case of both left and right, while it only needs to
+  // swap the case of one of them.
+  if (Result = 0) then
+    Result := {$ifndef FPC}AnsiStrings.{$endif}StrLIComp(Value.Text, Text, Min(Value.Len, Len));
+end;
+
+function TValuePUtf8Char.CompareText(const AValue: TValuePUtf8Char): Boolean;
+var
+  i: Integer;
+  p1, p2: PUtf8Char;
+  c1, c2: Byte;
+begin
+  if (Len <> AValue.Len) then
+    Exit(False);
+
+  p1 := Text;
+  p2 := AValue.Text;
+
+  for i := 1 to Len do
+  begin
+    c1 := Byte(p1^);
+    c2 := Byte(p2^);
+
+    if (c1 <> c2) then
+    begin
+      // Switch between ASCII uppercase A-Z (65..90) and lowercase (97..122) in-place
+      if (c1 in [65..90]) <> (c2 in [65..90]) then
+        c1 := c1 xor $20;
+
+      if c1 <> c2 then
+        Exit(False);
+    end;
+
+    Inc(p1);
+    Inc(p2);
+  end;
+
+  Result := True;
+end;
+
+function TValuePUtf8Char.ContainsText(const AValue: UTF8String): Boolean;
+var
+  Value: TValuePUtf8Char;
+  FromText: PUtf8Char;
+  FromLen: PtrInt;
+  i: integer;
+begin
+  Result := False;
+  FromLen := Len - Length(AValue);
+  if (FromLen < 0) then
+    exit;
+
+  Value := TValuePUtf8Char.FromString(AValue);
+  FromText := Text;
+  while (FromLen >= 0) do
+  begin
+    i := Value.Len - 1;
+    Result := True;
+    while (Result) and (i >= 0) do
+    begin
+      Result := (FromText[i] = Value.Text[i]);
+      Dec(i);
+    end;
+    if (Result) then
+      exit;
+
+    Inc(FromText);
+    Dec(FromLen);
+  end;
+end;
+
+{ UTF8Tools }
+
+class function UTF8Tools.CompareOrdinal(const AValue1, AValue2: UTF8String): integer;
+var
+  Value1: TValuePUtf8Char;
+begin
+  Value1 := TValuePUtf8Char.FromString(AValue1);
+  Result := Value1.CompareOrdinal(AValue2);
+end;
+
+class function UTF8Tools.CompareTextOrdinal(const AValue1, AValue2: UTF8String): integer;
+var
+  Value1: TValuePUtf8Char;
+begin
+  Value1 := TValuePUtf8Char.FromString(AValue1);
+  Result := Value1.CompareTextOrdinal(AValue2);
+end;
+
+class function UTF8Tools.CompareText(const AValue1, AValue2: UTF8String): Boolean;
+var
+  Value1: TValuePUtf8Char;
+  Value2: TValuePUtf8Char;
+begin
+  Value1 := TValuePUtf8Char.FromString(AValue1);
+  Value2 := TValuePUtf8Char.FromString(AValue2);
+  Result := Value1.CompareText(Value2);
+end;
+
+class function UTF8Tools.Lowercase(const AValue: UTF8String): UTF8String;
+var
+  Value: TValuePUtf8Char;
+  p: PUtf8Char;
+begin
+  if (pointer(AValue) = nil) then
+    Exit(AValue);
+
+  // Fast initial scan for already lowercase -> zero copy result
+  p := pointer(AValue);
+  while (p^ <> #0) and not(p^ in ['A'..'Z']) do
+    Inc(p);
+
+  if (p^ = #0) then
+    Exit(AValue); // Zero copy; Just increments ref count
+
+  Value := TValuePUtf8Char.FromString(AValue);
+  SetLength(Result, Length(AValue));
+  p := pointer(Result);
+
+  while (Value.Len > 0) do
+  begin
+    if (Value.Text^ in ['A'..'Z']) then
+      p^ := Utf8Char(Ord(Value.Text^) xor $20)
+    else
+      p^ := Value.Text^;
+    Value.Skip;
+    Inc(p);
+  end;
+end;
+
+class function UTF8Tools.Trim(const AValue: UTF8String): UTF8String;
+var
+  Value: TValuePUtf8Char;
+begin
+  if (Length(AValue) = 0) then
+    Exit(AValue);
+
+  Value := TValuePUtf8Char.FromString(AValue);
+  Value.Trim;
+  Value.TrimEnd;
+
+  if (Value.Len = Length(AValue)) then
+    Result := AValue // Zero copy; Just increments ref count
+  else
+    Result := Value.ToUtf8;
+end;
+
+end.

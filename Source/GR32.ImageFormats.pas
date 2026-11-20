@@ -37,8 +37,8 @@ interface
 {$include GR32.inc}
 
 uses
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
   Generics.Defaults,
   Generics.Collections,
 {$ifdef FPC}
@@ -434,11 +434,11 @@ implementation
 
 uses
 {$ifndef FPC}
-  Consts,
-  IOUtils,
-  Windows,
+  Vcl.Consts,
+  System.IOUtils,
+  Winapi.Windows,
 {$endif FPC}
-  ClipBrd,
+  Vcl.ClipBrd,
   GR32_Clipboard;
 
 //------------------------------------------------------------------------------

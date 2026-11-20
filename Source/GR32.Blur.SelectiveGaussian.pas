@@ -859,7 +859,7 @@ end;
 
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
-procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Integer; out Sum, FactSum: Cardinal); //{$IFDEF FPC} assembler; {$ENDIF}
+procedure Accumulate_SSE2(pSrc: Pointer; pFact: Pointer; Count, Min, Max: Integer; out Sum, FactSum: Cardinal); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
   // Parameters (x86):
   //   EAX <- pSrc
   //   EDX <- pFact
@@ -1124,8 +1124,11 @@ asm
         MOVD        DWORD PTR [RAX], XMM6
 {$ifend}
 
-{$if defined(TARGET_x64) and defined(FPC)}end['XMM4', 'XMM5', 'XMM6', 'XMM7'];{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}
+end['XMM4', 'XMM5', 'XMM6', 'XMM7'];
+{$ifend}
 end;
+
 {$ifend}
 
 //------------------------------------------------------------------------------

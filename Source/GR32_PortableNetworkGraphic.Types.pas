@@ -38,7 +38,7 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  SysUtils;
+  System.SysUtils;
 
 //------------------------------------------------------------------------------
 //
@@ -78,8 +78,8 @@ type
 //
 //------------------------------------------------------------------------------
 type
-  PByteArray = SysUtils.PByteArray;
-  TByteArray = SysUtils.TByteArray;
+  PByteArray = System.SysUtils.PByteArray;
+  TByteArray = System.SysUtils.TByteArray;
 
   EPngError = class(Exception);
 

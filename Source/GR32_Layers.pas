@@ -53,10 +53,10 @@ uses
   Graphics,
   Forms,
 {$ifend}
-  Generics.Collections,
-  Classes,
-  SysUtils,
-  Math,
+  System.Generics.Collections,
+  System.Classes,
+  System.SysUtils,
+  System.Math,
   GR32;
 
 //------------------------------------------------------------------------------
@@ -850,8 +850,8 @@ type
 implementation
 
 uses
-  TypInfo,
-  Types,
+  System.TypInfo,
+  System.Types,
   GR32_Image,
   GR32_LowLevel,
   GR32_Math,

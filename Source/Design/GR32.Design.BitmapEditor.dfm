@@ -11,6 +11,7 @@ object PictureEditorForm: TPictureEditorForm
   Constraints.MinWidth = 310
   ParentFont = True
   Position = poScreenCenter
+  OnShow = FormShow
   TextHeight = 15
   object Bevel1: TBevel
     Left = 0
@@ -127,25 +128,25 @@ object PictureEditorForm: TPictureEditorForm
       Caption = 'Zoom: 100%'
       ShowAccelChar = False
     end
-    object OKButton: TButton
+    object ButtonOK: TButton
       Left = 325
       Top = 6
-      Width = 64
+      Width = 65
       Height = 23
+      Action = ActionOK
       Anchors = [akRight, akBottom]
-      Caption = 'OK'
       Default = True
       ModalResult = 1
       TabOrder = 0
     end
-    object Cancel: TButton
+    object ButtonCancel: TButton
       Left = 400
       Top = 6
       Width = 65
       Height = 23
+      Action = ActionCancel
       Anchors = [akRight, akBottom]
       Cancel = True
-      Caption = 'Cancel'
       ModalResult = 2
       TabOrder = 1
     end
@@ -164,7 +165,7 @@ object PictureEditorForm: TPictureEditorForm
         Width = 130
       end
       item
-        Width = 50
+        Width = 90
       end
       item
         Width = 50
@@ -256,6 +257,14 @@ object PictureEditorForm: TPictureEditorForm
       ImageIndex = 7
       OnExecute = ActionGridExecute
       OnUpdate = ActionGridUpdate
+    end
+    object ActionOK: TAction
+      Caption = 'OK'
+      OnExecute = ActionOKExecute
+    end
+    object ActionCancel: TAction
+      Caption = 'Cancel'
+      OnExecute = ActionCancelExecute
     end
   end
 end

@@ -41,9 +41,10 @@ interface
 
 uses
   Generics.Collections,
-  Graphics,
+  Vcl.Graphics,
   GR32,
   GR32_Paths,
+  GR32.Text.Types,
   GR32.Text.FontFace;
 
 
@@ -354,7 +355,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  System.SysUtils;
 
 //------------------------------------------------------------------------------
 //

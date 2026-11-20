@@ -1765,7 +1765,7 @@ var
 
 procedure RegisterBindings;
 begin
-  FillSpanRegistry := NewRegistry('GR32_PolygonsAggLite bindings');
+  FillSpanRegistry := NewRegistry('GR32_Polygons.AggLite');
   FillSpanRegistry.RegisterBinding(@@FILLSPAN, 'FILLSPAN');
 
   // pure pascal

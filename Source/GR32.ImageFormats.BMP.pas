@@ -39,11 +39,11 @@ interface
 implementation
 
 uses
-  Classes,
-  Graphics,
-  SysUtils,
+  System.Classes,
+  Vcl.Graphics,
+  System.SysUtils,
 {$ifndef FPC}
-  Windows,
+  Winapi.Windows,
 {$else FPC}
   LCLType,
 {$endif FPC}

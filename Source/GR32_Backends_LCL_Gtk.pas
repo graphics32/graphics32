@@ -128,7 +128,7 @@ type
     procedure DeleteCanvas;
   protected
     { IUpdateRectSupport }
-    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect; AErase: boolean = False);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   protected
     property Canvas: TCanvas read GetCanvas;
@@ -520,7 +520,7 @@ end;
 
 
 { IUpdateRectSupport }
-procedure TLCLBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
+procedure TLCLBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect; AErase: boolean);
 var
   Widget: PGtkWidget;
   UpdateRect: TGdkRectangle;
@@ -537,7 +537,7 @@ begin
   UpdateRect.Width := ARect.Right-ARect.Left;
   UpdateRect.Height := ARect.Bottom-ARect.Top;
 
-  gdk_window_invalidate_rect(Widget.window, @UpdateRect, False);
+  gdk_window_invalidate_rect(Widget.window, @UpdateRect, AErase);
 end;
 
 procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer;

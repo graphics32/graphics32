@@ -41,15 +41,19 @@ interface
         ------------------------------------------------
         Parameters: EAX, EDX, ECX, Stack
         Return value: EAX
-        Can modify: EAX, ECX, and EDX
+        Can modify: EAX, ECX, and EDX, XMM0...XMM7
         Must preserve: EDI, ESI, ESP, EBP, and EBX
 
         64-bit, x64 calling convention
         ------------------------------------------------
-        Parameters: RCX, RDX, R8, R9 (integer) or XMMO, XMM1, XMM2, XMM3 (float), Stack
+        Parameters: RCX, RDX, R8, R9 (integer) and/or XMMO, XMM1, XMM2, XMM3 (float), Stack
         Return value: RAX (integer), XMM+ (float)
-        Can modify: RAX, RCX, RDX, R8, R9, R10, R11, XMMO, XMM1, XMM2, XMM3
-        Must preserve: R12, R13, R14, R15, RDI, RSI, RBX, RBP, RSP, XMM4, XMM5, XMM6, XMM7, XMM8, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, and XMM15
+        Can modify: RAX, RCX, RDX, R8, R9, R10, R11, XMMO...XMM5
+        Must preserve: R12, R13, R14, R15, RDI, RSI, RBX, RBP, RSP, XMM6...XMM15
+        Note that the Delphi documentation incorrectly claims that XMM4 and XMM5 must
+        be preserved - which is why you will see that many of Graphics32's x64
+        assembler routines contains '.SAVENV XMM4' and '.SAVENV XMM5'. These are
+        harmless and are ignored by the compiler.
 
 *)
 
@@ -107,6 +111,7 @@ type
 const
   SSE_FloatOne          : array[0..3] of Single   = (1, 1, 1, 1);
   SSE_Float255          : array[0..3] of Single   = (255, 255, 255, 255);
+  SSE_Float256          : array[0..3] of Single   = (256, 256, 256, 256);
   SSE_Float256x256      : array[0..3] of Single   = ($00010000, $00010000, $00010000, $00010000); // 256*256
   SSE_FloatScale        : array[0..3] of Single   = (1/65536.0, 1/65536.0, 1/65536.0, 1/65536.0);
   SSE_IntAbsMask        : array[0..3] of Cardinal = ($7FFFFFFF, $7FFFFFFF, $7FFFFFFF, $7FFFFFFF);
@@ -130,7 +135,14 @@ procedure SSE_003FFF7F_ALIGNED;
 // Aligned pack table for PSHUFB: Picks low byte of 4 dwords
 procedure SSE_0C080400_ALIGNED;
 
+// Four aligned 0.5 floats
+procedure SSE_FloatHalf_ALIGNED;
 
+// Four aligned 1.0 floats
+procedure SSE_FloatOne_ALIGNED;
+
+// 1 x $80000000
+procedure SSE_80000000_ALIGNED;
 {$ifend}
 
 //------------------------------------------------------------------------------
@@ -213,6 +225,48 @@ asm
   db $00, $04, $08, $0C
   db $00, $04, $08, $0C
   db $00, $04, $08, $0C
+end;
+
+// Four aligned 0.5 floats
+procedure SSE_FloatHalf_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  {$IFDEF FPC}
+  ALIGN 16
+  {$ELSE}
+  .ALIGN 16
+  {$ENDIF}
+  db $00, $00, $00, $3F
+  db $00, $00, $00, $3F
+  db $00, $00, $00, $3F
+  db $00, $00, $00, $3F
+end;
+
+// Four aligned 1.0 floats
+procedure SSE_FloatOne_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  {$IFDEF FPC}
+  ALIGN 16
+  {$ELSE}
+  .ALIGN 16
+  {$ENDIF}
+  db $00, $00, $80, $3F
+  db $00, $00, $80, $3F
+  db $00, $00, $80, $3F
+  db $00, $00, $80, $3F
+end;
+
+// 1 x $80000000
+procedure SSE_80000000_ALIGNED; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+  {$IFDEF FPC}
+  ALIGN 16
+  {$ELSE}
+  .ALIGN 16
+  {$ENDIF}
+  db $00, $00, $00, $80
+  db $00, $00, $00, $00
+  db $00, $00, $00, $00
+  db $00, $00, $00, $00
 end;
 
 end.

@@ -40,7 +40,7 @@ interface
 {$include GR32.inc}
 
 uses
-  Classes,
+  System.Classes,
 {$ifdef FPC}
   LCLType,
 {$endif FPC}
@@ -127,7 +127,7 @@ uses
   LCLIntf,
 {$ELSE FPC}
 {$ifdef MSWINDOWS}
-  Windows,
+  Winapi.Windows,
 {$ENDIF MSWINDOWS}
 {$ENDIF FPC}
 {$if defined(FRAMEWORK_VCL)}
@@ -142,7 +142,7 @@ uses
   Graphics,
   Clipbrd,
 {$ifend}
-  SysUtils,
+  System.SysUtils,
   GR32_Resamplers;
 
 {$if defined(FRAMEWORK_FMX)}

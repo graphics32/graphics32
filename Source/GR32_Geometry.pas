@@ -37,7 +37,7 @@ interface
 {$include GR32.inc}
 
 uses
-  Math, Types, GR32;
+  System.Math, System.Types, GR32;
 
 type
   TLinePos = (lpStart, lpEnd, lpBoth, lpNeither);
@@ -660,7 +660,7 @@ end;
 function PerpendicularDistance(const P, P1, P2: TPoint): TFloat;
 begin
   Result := Abs((P.x - P2.x) * (P1.y - P2.y) - (P.y - P2.y) * (P1.x - P2.x)) /
-    Math.Hypot(P1.x - P2.x, P1.y - P2.y);
+    System.Math.Hypot(P1.x - P2.x, P1.y - P2.y);
 end;
 
 function SamePoint(const A, B: TPoint; SqrDist: integer): Boolean; overload;

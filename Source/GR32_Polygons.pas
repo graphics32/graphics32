@@ -558,6 +558,15 @@ resourcestring
 type
   TBitmap32Access = class(TCustomBitmap32);
 
+type
+  // TSingleInteger is used for binary manipulation of Single values
+  // For example Abs(n) = TSingleInteger(TSingleInteger(n).Int and $7FFFFFFF).Float
+  TSingleInteger = record
+    case boolean of
+      False: (Int: Integer);
+      True:  (Float: Single);
+  end;
+
 //------------------------------------------------------------------------------
 //
 //      Polygon Renderer registration routines
@@ -697,7 +706,7 @@ end;
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
 
-procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);
+procedure MakeAlphaNonZeroUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 // Note: Don't bother aligning the SSE_FloatOne data so we can use
 // MOVAPS; It gives zero performance improvement (and might be slower
 // due to instruction size).
@@ -934,7 +943,7 @@ end;
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
 {$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
-procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);
+procedure MakeAlphaEvenOddUP_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -1180,7 +1189,7 @@ end;
 //------------------------------------------------------------------------------
 // Contributed by Kadaif
 //------------------------------------------------------------------------------
-procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32);
+procedure MakeAlphaEvenOddUP_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Color: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler;{$ifend}
 {$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
 asm
 {$if defined(TARGET_x86)}
@@ -1454,13 +1463,166 @@ procedure MakeAlphaNonZeroUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32A
 var
   I: Integer;
   V: Integer;
+  n: Single;
 begin
   for I := 0 to Count - 1 do
   begin
-    V := Clamp(Round(Abs(Coverage[I]) * 256));
+    // Optimizations:
+    // 1. FastRound is about 6x faster than Round here (D13,x64)
+    // 2. Single cast to avoid Double->Single conversion
+    // 3. RTL's Abs() converts to Double. We flip a bit.
+    n := TSingleInteger(TSingleInteger(Coverage[I]).Int and $7FFFFFFF).Float;
+    V := Clamp(FastRound(n * Single(256.0)));
     AlphaValues[I] := V;
   end;
 end;
+
+//------------------------------------------------------------------------------
+// MakeAlphaNonZeroUPF_SSE2
+//------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+procedure MakeAlphaNonZeroUPF_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Unused: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
+asm
+{$if defined(TARGET_x86)}
+
+  // Parameters (x86):
+  // EAX <- Coverage
+  // EDX <- AlphaValues
+  // ECX <- Count
+  // Stack[0] <- Color (ignored)
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM2: [256.0] x 4
+  //   XMM3: [255.0] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+
+        TEST        ECX, ECX
+        JLE         @EXIT
+
+        PUSH        ESI
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4, 1
+
+        // Load constant 256.0 into XMM2 and 255.0 into XMM3
+        MOVUPS      XMM2, DQWORD PTR [SSE_Float256]
+        MOVUPS      XMM3, DQWORD PTR [SSE_Float255]
+
+        CMP         ECX, 4
+        JL          @Remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         ESI, ECX
+        SAR         ESI, 2
+
+@Loop:
+        MOVUPS      XMM0, [EAX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM2          // abs(coverage) * 256.0
+        MINPS       XMM0, XMM3          // clamp to 255.0 (Round(min(x, 255)) = Clamp(Round(x)))
+        CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
+        MOVDQU      [EDX], XMM0         // Save alpha values
+        ADD         EDX, 16
+        ADD         EAX, 16
+        DEC         ESI
+        JNZ         @Loop
+        AND         ECX, 3              // get remainder
+        JZ          @END
+
+@Remainder:
+        MOVSS       XMM0, [EAX]
+        ANDPS       XMM0, XMM4
+        MULSS       XMM0, XMM2
+        MINSS       XMM0, XMM3
+        CVTPS2DQ    XMM0, XMM0
+        MOVD        [EDX], XMM0
+        ADD         EDX, 4
+        ADD         EAX, 4
+        DEC         ECX
+        JNZ         @Remainder
+
+@END:
+        POP         ESI
+@EXIT:
+
+{$elseif defined(TARGET_x64)}
+
+  // Parameters (x64):
+  // RCX <- Coverage
+  // RDX <- AlphaValues
+  // R8D <- Count
+  // R9D <- Color (ignored)
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM2: [256.0] x 4
+  //   XMM3: [255.0] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+
+        TEST        R8D, R8D
+        JLE         @Exit
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4, 1
+
+        // Load constant 256.0 into XMM2 and 255.0 into XMM3
+{$if (not defined(FPC))}
+        MOVUPS      XMM2, DQWORD PTR [SSE_Float256]
+        MOVUPS      XMM3, DQWORD PTR [SSE_Float255]
+{$else}
+        MOVUPS      XMM2, DQWORD PTR [rip+SSE_Float256]
+        MOVUPS      XMM3, DQWORD PTR [rip+SSE_Float255]
+{$ifend}
+
+        CMP         R8D, 4
+        JL          @Remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         R10, R8
+        SHR         R10, 2
+
+@Loop:
+        MOVUPS      XMM0, [RCX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM2          // abs(coverage) * 256.0
+        MINPS       XMM0, XMM3          // clamp to 255.0
+        CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
+        MOVDQU      [RDX], XMM0         // Save alpha values
+        ADD         RCX, 16
+        ADD         RDX, 16
+        DEC         R10
+        JNZ         @Loop
+
+        AND         R8D, 3
+        JZ          @Exit
+
+@Remainder:
+        MOVSS       XMM0, [RCX]
+        ANDPS       XMM0, XMM4
+        MULSS       XMM0, XMM2
+        MINSS       XMM0, XMM3
+        CVTSS2SI    EAX, XMM0
+        MOV         [RDX], EAX
+        ADD         RCX, 4
+        ADD         RDX, 4
+        DEC         R8D
+        JNZ         @Remainder
+
+@Exit:
+
+{$if defined(FPC)}end['XMM4'];{$ifend}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -1481,16 +1643,375 @@ procedure MakeAlphaEvenOddUPF_Pas(Coverage: PSingleArray; AlphaValues: PColor32A
 var
   I: Integer;
   V: Integer;
+  n: Single;
 begin
   for I := 0 to Count - 1 do
   begin
-    V := Round(Abs(Coverage[I]) * 256);
+    n := TSingleInteger(TSingleInteger(Coverage[I]).Int and $7FFFFFFF).Float;
+    V := FastRound(n * Single(256.0));
     V := V and $000001ff;
     if V >= $100 then
       V := V xor $1ff;
     AlphaValues[I] := V;
   end;
 end;
+
+//------------------------------------------------------------------------------
+// MakeAlphaEvenOddUPF_SSE2
+//------------------------------------------------------------------------------
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+
+procedure MakeAlphaEvenOddUPF_SSE2(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Unused: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
+asm
+{$if defined(TARGET_x86)}
+
+  // Parameters (x86):
+  // EAX <- Coverage
+  // EDX <- AlphaValues
+  // ECX <- Count
+  // Stack[0] <- Color (ignored)
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1: work (SSE2 min calculation)
+  //   XMM2: [256.0] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM6: [$000001FF] x 4
+  //   XMM7: work
+
+        TEST        ECX, ECX
+        JLE         @EXIT
+
+        PUSH        ESI
+
+        // Prepare mask $000001FF in XMM6: all 1s shifted right by 23
+        PCMPEQD     XMM6, XMM6
+        PSRLD       XMM6, 23            // 4 x $000001FF
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4, 1
+
+        // Load constant 256.0 into XMM2
+        MOVUPS      XMM2, DQWORD PTR [SSE_Float256]
+
+        CMP         ECX, 4
+        JL          @Remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         ESI, ECX
+        SAR         ESI, 2
+
+@Loop:
+        MOVUPS      XMM0, [EAX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM2          // abs(coverage) * 256.0
+        CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
+        PAND        XMM0, XMM6          // and with $000001FF
+        MOVDQA      XMM7, XMM0
+        PXOR        XMM7, XMM6          // V xor $1FF
+
+        // Unsigned 32-bit MIN(XMM0, XMM7) for SSE2:
+        // XMM1 = (XMM7 > XMM0)
+        // Note: values are in range 0..$1FF, so signed PCMPGTD works identically to unsigned
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+
+        MOVDQU      [EDX], XMM0         // Save alpha values
+        ADD         EAX, 16
+        ADD         EDX, 16
+        DEC         ESI
+        JNZ         @Loop
+        AND         ECX, 3              // get remainder
+        JZ          @END
+
+@Remainder:
+        MOVSS       XMM0, [EAX]
+        ANDPS       XMM0, XMM4
+        MULSS       XMM0, XMM2
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6
+        MOVDQA      XMM7, XMM6
+        PXOR        XMM7, XMM0
+        MOVDQA      XMM1, XMM7
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM7
+        POR         XMM0, XMM1
+        MOVD        [EDX], XMM0
+        ADD         EDX, 4
+        ADD         EAX, 4
+        DEC         ECX
+        JNZ         @Remainder
+
+@END:
+        POP         ESI
+@EXIT:
+
+{$elseif defined(TARGET_x64)}
+
+  // Parameters (x64):
+  // RCX <- Coverage
+  // RDX <- AlphaValues
+  // R8D <- Count
+  // R9D <- Color (ignored)
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1: work (min calculation)
+  //   XMM2: [256.0] x 4
+  //   XMM3: [$000001FF] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM5: work
+
+        TEST        R8D, R8D
+        JLE         @Exit
+
+        // Prepare mask $000001FF in XMM3
+        PCMPEQD     XMM3, XMM3
+        PSRLD       XMM3, 23            // 4 x $000001FF
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4, 1
+
+        // Load constant 256.0 into XMM2
+{$if (not defined(FPC))}
+        MOVUPS      XMM2, DQWORD PTR [SSE_Float256]
+{$else}
+        MOVUPS      XMM2, DQWORD PTR [rip+SSE_Float256]
+{$ifend}
+
+        CMP         R8D, 4
+        JL          @Remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         R10, R8
+        SHR         R10, 2
+
+@Loop:
+        MOVUPS      XMM0, [RCX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM2          // abs(coverage) * 256.0
+        CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
+        PAND        XMM0, XMM3          // and with $000001FF
+        MOVDQA      XMM5, XMM0
+        PXOR        XMM5, XMM3          // V xor $1FF
+
+        // Min for SSE2 (values in range 0..$1FF)
+        MOVDQA      XMM1, XMM5
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM5
+        POR         XMM0, XMM1
+
+        MOVDQU      [RDX], XMM0         // Save alpha values
+        ADD         RCX, 16
+        ADD         RDX, 16
+        DEC         R10
+        JNZ         @Loop
+
+        AND         R8D, 3
+        JZ          @Exit
+
+@Remainder:
+        MOVSS       XMM0, [RCX]
+        ANDPS       XMM0, XMM4
+        MULSS       XMM0, XMM2
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM3
+        MOVDQA      XMM5, XMM3
+        PXOR        XMM5, XMM0
+        MOVDQA      XMM1, XMM5
+        PCMPGTD     XMM1, XMM0
+        PAND        XMM0, XMM1
+        PANDN       XMM1, XMM5
+        POR         XMM0, XMM1
+        MOVD        EAX, XMM0
+        MOV         [RDX], EAX
+        ADD         RDX, 4
+        ADD         RCX, 4
+        DEC         R8D
+        JNZ         @Remainder
+
+@Exit:
+
+{$if defined(FPC)}end['XMM4', 'XMM5'];{$ifend}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+
+//------------------------------------------------------------------------------
+// MakeAlphaEvenOddUPF_SSE41
+//------------------------------------------------------------------------------
+procedure MakeAlphaEvenOddUPF_SSE41(Coverage: PSingleArray; AlphaValues: PColor32Array; Count: integer; Unused: TColor32); {$if defined(TARGET_x86) and defined(FPC)}assembler; nostackframe;{$ifend}
+{$if defined(TARGET_x64) and defined(FPC)}begin{$ifend}
+asm
+{$if defined(TARGET_x86)}
+
+  // Parameters (x86):
+  // EAX <- Coverage
+  // EDX <- AlphaValues
+  // ECX <- Count
+  // Stack[0] <- Color (ignored)
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM2: [256.0] x 4
+  //   XMM4: [$7FFFFFFF] x 4
+  //   XMM6: [$000001FF] x 4
+  //   XMM7: work
+
+        TEST        ECX, ECX
+        JLE         @EXIT
+
+        PUSH        ESI
+
+        // Prepare mask $000001FF in XMM6: all 1s shifted right by 23
+        PCMPEQD     XMM6, XMM6
+        PSRLD       XMM6, 23            // 4 x $000001FF
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4, 1
+
+        // Load constant 256.0 into XMM2
+        MOVUPS      XMM2, DQWORD PTR [SSE_Float256]
+
+        CMP         ECX, 4
+        JL          @Remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         ESI, ECX
+        SAR         ESI, 2
+
+@Loop:
+        MOVUPS      XMM0, [EAX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM2          // abs(coverage) * 256.0
+        CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
+        PAND        XMM0, XMM6          // and with $000001FF
+        MOVDQA      XMM7, XMM0
+        PXOR        XMM7, XMM6          // V xor $1FF
+        PMINUD      XMM0, XMM7          // min(V, V xor $1FF)
+        MOVDQU      [EDX], XMM0         // Save alpha values
+        ADD         EAX, 16
+        ADD         EDX, 16
+        DEC         ESI
+        JNZ         @Loop
+        AND         ECX, 3              // get remainder
+        JZ          @END
+
+@Remainder:
+        MOVSS       XMM0, [EAX]
+        ANDPS       XMM0, XMM4
+        MULSS       XMM0, XMM2
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM6
+        MOVDQA      XMM7, XMM6
+        PXOR        XMM7, XMM0
+        PMINUD      XMM0, XMM7
+        MOVD        [EDX], XMM0
+        ADD         EDX, 4
+        ADD         EAX, 4
+        DEC         ECX
+        JNZ         @Remainder
+
+@END:
+        POP         ESI
+@EXIT:
+
+{$elseif defined(TARGET_x64)}
+
+  // Parameters (x64):
+  // RCX <- Coverage
+  // RDX <- AlphaValues
+  // R8D <- Count
+  // R9D <- Color (ignored)
+
+  // SSE register usage:
+  //   XMM0: work
+  //   XMM1: [$000001FF] x 4
+  //   XMM2: [256.0] x 4
+  //   XMM3: work
+  //   XMM4: [$7FFFFFFF] x 4
+
+        TEST        R8D, R8D
+        JLE         @Exit
+
+        // Prepare mask $000001FF in XMM1
+        PCMPEQD     XMM1, XMM1
+        PSRLD       XMM1, 23            // 4 x $000001FF
+
+        // Prepare mask for absolute value (0x7FFFFFFF) in XMM4
+        PCMPEQD     XMM4, XMM4
+        PSRLD       XMM4, 1
+
+        // Load constant 256.0 into XMM2
+{$if (not defined(FPC))}
+        MOVUPS      XMM2, DQWORD PTR [SSE_Float256]
+{$else}
+        MOVUPS      XMM2, DQWORD PTR [rip+SSE_Float256]
+{$ifend}
+
+        CMP         R8D, 4
+        JL          @Remainder
+
+        // Main loop: process 4 elements per iteration
+        MOV         R10, R8
+        SHR         R10, 2
+
+@Loop:
+        MOVUPS      XMM0, [RCX]         // Load coverage
+        ANDPS       XMM0, XMM4          // abs
+        MULPS       XMM0, XMM2          // abs(coverage) * 256.0
+        CVTPS2DQ    XMM0, XMM0          // 4xsingle -> 4xinteger (round)
+        PAND        XMM0, XMM1          // and with $000001FF
+        MOVDQA      XMM3, XMM0
+        PXOR        XMM3, XMM1          // V xor $1FF
+        PMINUD      XMM0, XMM3          // min(V, V xor $1FF)
+        MOVDQU      [RDX], XMM0         // Save alpha values
+        ADD         RCX, 16
+        ADD         RDX, 16
+        DEC         R10
+        JNZ         @Loop
+
+        AND         R8D, 3
+        JZ          @Exit
+
+@Remainder:
+        MOVSS       XMM0, [RCX]
+        ANDPS       XMM0, XMM4
+        MULSS       XMM0, XMM2
+        CVTPS2DQ    XMM0, XMM0
+        PAND        XMM0, XMM1
+        MOVDQA      XMM3, XMM1
+        PXOR        XMM3, XMM0
+        PMINUD      XMM0, XMM3
+        MOVD        EAX, XMM0
+        MOV         [RDX], EAX
+        ADD         RDX, 4
+        ADD         RCX, 4
+        DEC         R8D
+        JNZ         @Remainder
+
+@Exit:
+
+{$if defined(FPC)}end['XMM4'];{$ifend}
+
+{$else}
+{$error 'Missing target'}
+{$ifend}
+end;
+
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -3261,7 +3782,7 @@ function PolygonsRegistry: TFunctionRegistry;
 begin
   if (FPolygonsRegistry = nil) then
   begin
-    FPolygonsRegistry := NewRegistry('GR32_Polygons bindings');
+    FPolygonsRegistry := NewRegistry('GR32_Polygons');
     RegisterBindings;
   end;
   Result := FPolygonsRegistry;
@@ -3290,9 +3811,16 @@ begin
 
   // EvenOddUPF
   PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(  @MakeAlphaEvenOddUPF_Pas,       [isPascal]).Name := 'MakeAlphaEvenOddUPF_Pas';
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+  PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(  @MakeAlphaEvenOddUPF_SSE2,      [isSSE2]).Name := 'MakeAlphaEvenOddUPF_SSE2';
+  PolygonsRegistry[@@MakeAlphaEvenOddUPF].Add(  @MakeAlphaEvenOddUPF_SSE41,     [isSSE41]).Name := 'MakeAlphaEvenOddUPF_SSE41';
+{$ifend}
 
   // NonZeroUPF
   PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(  @MakeAlphaNonZeroUPF_Pas,       [isPascal]).Name := 'MakeAlphaNonZeroUPF_Pas';
+{$if (not defined(PUREPASCAL)) and (not defined(OMIT_SSE2))}
+  PolygonsRegistry[@@MakeAlphaNonZeroUPF].Add(  @MakeAlphaNonZeroUPF_SSE2,      [isSSE2]).Name := 'MakeAlphaNonZeroUPF_SSE2';
+{$ifend}
 end;
 
 //------------------------------------------------------------------------------

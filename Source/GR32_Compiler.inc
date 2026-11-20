@@ -41,48 +41,13 @@
     Delphi 10.4 Sydney          34.0
     Delphi 10.3 Rio             33.0
     Delphi 10.2 Tokyo           32.0
-    Delphi 10.1 Berlin          31.0
-    Delphi 10 Seattle           30.0
-    Delphi XE8                  29.0
-    Delphi XE7                  28.0
-    Delphi XE6                  27.0
-    Delphi XE5                  26.0
-    Delphi XE4                  25.0
-    Delphi XE3                  24.0
-    Delphi XE2                  23.0
 
     FreePascal 3.2.2
 
 
-  This file previously defined the following symbols:
+  The following symbols can be used to identify the compiler:
 
-    COMPILERFPC  - FPC (since version 2.6.0)
-    COMPILER6    - Delphi 6
-    COMPILER7    - Delphi 7
-    COMPILER2005 - Delphi 2005
-    COMPILER2006 - Delphi 2006 / BDS 2006
-    COMPILER2007 - Delphi / RAD Studio 2007
-    COMPILER2009 - Delphi 2009
-    COMPILER2010 - Delphi 2010
-    COMPILERXE1  - Delphi XE
-    COMPILERXE2  - Delphi XE2
-    COMPILERXE3  - Delphi XE3
-    COMPILERXE4  - Delphi XE4
-    COMPILERXE5  - Delphi XE5
-    COMPILERXE6  - Delphi XE6
-    COMPILERXE7  - Delphi XE7
-    COMPILERXE8  - Delphi XE8
-    COMPILERRX   - Delphi RX (10 Seattle)
-    COMPILERRX1  - Delphi RX1 (10.1 Berlin)
-    COMPILERRX2  - Delphi RX2 (10.2 Tokyo)
-    COMPILERRX3  - Delphi RX3 (10.3 Rio)
-    COMPILERRX4  - Delphi RX4 (10.4 Sydney)
-    COMPILERRX5  - Delphi 11 (Alexandria)
-    COMPILERRX6  - Delphi 12 (Athens)
-
-  The above symbols have all been deprecated. Instead use the following symbols:
-
-    FPC                 - FreePascal
+    FPC                 - Free Pascal
     DCC                 - Delphi
     BCB                 - C++ Builder
     CompilerVersion     - Delphi version
@@ -95,6 +60,36 @@
     TARGET_x64     - x86 (64-Bit)
     TARGET_POWERPC - Power PC
     TARGET_ARM     - ARM processor
+
+
+  List of Delphi compiler versions (see above for the subset we support):
+  -----------------------------------------------------------------------
+
+    Name                   CompilerVersion
+    -------------------------------------------
+    Delphi 13 Florence          37.0
+    Delphi 12 Yukon             36.0
+    Delphi 11 Alexandria        35.0
+    Delphi 10.4 Sydney          34.0
+    Delphi 10.3 Rio             33.0
+    Delphi 10.2 Tokyo           32.0
+    Delphi 10.1 Berlin          31.0
+    Delphi 10 Seattle           30.0
+    Delphi XE8                  29.0
+    Delphi XE7                  28.0
+    Delphi XE6                  27.0
+    Delphi XE5                  26.0
+    Delphi XE4                  25.0
+    Delphi XE3                  24.0
+    Delphi XE2                  23.0
+    Delphi XE                   22.0
+    Delphi 2010                 21.0
+    Delphi 2009                 20.0
+    Delphi 2007                 18.5
+    Delphi 2006                 18.0
+    Delphi 2005                 17.0
+    Delphi 7                    15.0
+    Delphi 6                    14.0 (first version that has CompilerVersion)
 *)
 
 
@@ -103,16 +98,21 @@
 
   {...}
 
-{$elseif (CompilerVersion < 23.0)} // Delphi XE2 and later
+{$elseif (CompilerVersion < 23.0)} // Prior to Delphi XE2
 
-  {$Message Fatal 'Graphics32 only supports Delphi/BCB XE2 (or higher) or Free Pascal / Lazarus'}
+  {$Message Fatal 'Graphics32 only supports Delphi/BCB 10.2 (or higher) or Free Pascal / Lazarus'}
+
+{$elseif (CompilerVersion < 32.0)} // Prior to Delphi 10.2 (warning for now)
+
+  {$Message Warn 'Graphics32 only supports Delphi/BCB 10.2 (or higher) or Free Pascal / Lazarus'}
+  {$LEGACYIFEND ON}
 
 {$elseif (CompilerVersion > 37.0)} // Newer than this file but we'll take it
 
   {$Message Hint 'Unknown compiler version. Assuming compatible with last known version.'}
   {$LEGACYIFEND ON}
 
-{$else} // Delphi XE3 and later
+{$else} // Delphi 10.2 and later
 
   {$LEGACYIFEND ON} // Stupid. Required for XE4+ but introduced in XE3.
 
@@ -387,7 +387,7 @@
   The exact version of Delphi that introduced the overload is unknown at this
   time.
 *)
-{$if defined(FPC) or (CompilerVersion > 33.0)}
+{$if defined(FPC) or (CompilerVersion >= 33.0)}
 {$define ClientToScreenRect}
 {$ifend}
 
@@ -446,9 +446,11 @@
   If this symbol is defined, the compiler supports declaration of
   generic methods in non-generic classes.
 
-  The symbol is defined for Delphi 10 and later, and for FPC.
+  The symbol is defined for Delphi 10.2 and later, and for FPC.
+  Generic methods are actually supported from Delphi 10.0 but we don't use them
+  until Delphi 10.2 due to compiler bugs in the constraint declaration.
 *)
-{$if defined(FPC) or (CompilerVersion >= 30.0)} // Delphi 10 or later
+{$if defined(FPC) or (CompilerVersion >= 32.0)} // Delphi 10.2 or later
   {$define GenericMethods}
 {$ifend}
 
@@ -540,6 +542,19 @@
   {$define GENERIC_POINTERS}
 {$elseif (CompilerVersion > 25.0)}
   {$define GENERIC_POINTERS}
+{$ifend}
+
+
+(*
+  Symbol: TRANSPARENT_TIMAGE32
+  -------------------------------
+
+     If defined, TCustomImage32 supports background transparency (a.k.a. ParentBackground).
+
+  The symbol is only defined for Delphi on Windows.
+*)
+{$if (not defined(FPC)) and defined(MSWINDOWS)}
+  {$define TRANSPARENT_TIMAGE32}
 {$ifend}
 
 

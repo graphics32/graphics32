@@ -39,7 +39,7 @@ interface
 {$define PSD_PARSE_IMAGE_RESOURCE_SECTION}
 
 uses
-  Classes,
+  System.Classes,
   GR32.ImageFormats.PSD,
   GR32.ImageFormats.PSD.Model;
 
@@ -65,13 +65,13 @@ implementation
 
 uses
 {$ifndef FPC}
-  ZLib,
+  System.ZLib,
 {$else FPC}
   zstream,
 {$endif FPC}
-  Generics.Collections,
-  SysUtils,
-  Math,
+  System.Generics.Collections,
+  System.SysUtils,
+  System.Math,
   GR32,
   GR32_LowLevel,
   GR32.BigEndian,

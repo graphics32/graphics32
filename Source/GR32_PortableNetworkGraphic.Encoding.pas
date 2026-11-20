@@ -38,8 +38,8 @@ interface
 {$include GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
   GR32_PortableNetworkGraphic.Types,
   GR32_PortableNetworkGraphic.Chunks,
   GR32_PortableNetworkGraphic.Chunks.PLTE,
@@ -137,7 +137,7 @@ function CalculateRowSum(CurrentRow: PByteArray; BytesPerRow: Integer): Cardinal
 implementation
 
 uses
-  Math;
+  System.Math;
 
 
 //------------------------------------------------------------------------------

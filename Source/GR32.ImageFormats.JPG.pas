@@ -39,15 +39,15 @@ interface
 implementation
 
 uses
-  Classes,
+  System.Classes,
 {$if defined(DynArrayOps)}
-  SysUtils,
+  System.SysUtils,
 {$ifend}
 {$ifdef FPC}
   Graphics,
 {$else FPC}
-  Jpeg,
-  JConsts,
+  Vcl.Imaging.Jpeg,
+  Vcl.Imaging.JConsts,
 {$endif FPC}
   GR32.ImageFormats,
   GR32.ImageFormats.TGraphic;

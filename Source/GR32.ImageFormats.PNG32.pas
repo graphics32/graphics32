@@ -55,12 +55,12 @@ implementation
 
 
 uses
-  Classes,
-  Graphics,
+  System.Classes,
+  Vcl.Graphics,
 {$if defined(GR32_CLIPBOARD_PNG)}
-  Clipbrd,
+  Vcl.Clipbrd,
 {$if defined(MSWINDOWS)}
-  Windows,
+  Winapi.Windows,
 {$ifend}
   GR32_Clipboard,
 {$ifend}

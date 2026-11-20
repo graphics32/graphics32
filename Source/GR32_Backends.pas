@@ -55,8 +55,8 @@ uses
   Graphics,
 {$ifend}
 
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
 
   GR32,
   GR32.Text.Types,
@@ -98,6 +98,8 @@ type
     procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string; const Layout: TTextLayout); overload;
     procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: string; const Layout: TTextLayout): TFloatRect; overload;
+    function GetFontFaceMetrics(const ATextLayout: TTextLayout; var AFontFaceMetrics: TFontFaceMetrics32): boolean;
+    function GetGlyphMetrics(const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
   end;
 
   ICanvasSupport = interface(IUnknown)
@@ -149,7 +151,7 @@ type
 
   IUpdateRectSupport = interface(IUnknown)
     ['{BC19CD02-0ACB-4545-A65A-1317C8E9E7F5}']
-    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect; AErase: boolean = False);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   end;
 

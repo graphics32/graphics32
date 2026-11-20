@@ -57,8 +57,8 @@ interface
 
 
 uses
-  Classes,
-  SysUtils, // Exception
+  System.Classes,
+  System.SysUtils, // Exception
   GR32,
   GR32_Transforms,
   GR32_Containers,
@@ -1090,8 +1090,8 @@ resourcestring
 implementation
 
 uses
-  Math,
-  Types,
+  System.Math,
+  System.Types,
   GR32_Bindings,
   GR32_LowLevel,
   GR32_Rasterizers,
@@ -3004,13 +3004,6 @@ asm
   //   XMM3: p12[1]
   //   XMM4: Misc.
   //   XMM5: SSE_FloatOne, SSE_FloatScale, misc.
-  //
-{$IFDEF TARGET_X64}
-{$IFNDEF FPC}
-  .SAVENV XMM4
-  .SAVENV XMM5
-{$ENDIF}
-{$ENDIF}
 
         (*
         ** Zero-extension unpacking of the four pixels.
@@ -3044,10 +3037,10 @@ asm
         CVTDQ2PS  XMM2, XMM2
         CVTDQ2PS  XMM3, XMM3
 
-{$IFNDEF FPC}
-        MOVUPS    XMM5, [SSE_FloatOne]  // Load unaligned
+{$IFDEF TARGET_X64}
+        MOVUPS    XMM5, [RIP+SSE_FloatOne] // Load unaligned
 {$ELSE}
-        MOVUPS    XMM5, [RIP+SSE_FloatOne]
+        MOVUPS    XMM5, [SSE_FloatOne]
 {$ENDIF}
 
         (*
@@ -3124,35 +3117,31 @@ asm
         (*
         ** Unpremultiplication and Alpha normalization.
         *)
-        PSHUFD    XMM1, XMM0, $FF       // Accumulated Alpha.
-        PXOR      XMM2, XMM2
-        MOVDQA    XMM3, XMM1
-        CMPPS     XMM3, XMM2, 0         // Zero Alpha mask.
-        DIVPS     XMM0, XMM1            // Normalize RGB.
+        PEXTRD    EAX, XMM0, 3          // Extract interpolated Alpha
+        AND       EAX, $7FFFFFFF        // Treat +0.0 and -0.0 as zero
+        TEST      EAX, EAX
+        JZ        @Exit                 // Alpha=0 -> ARGB=0
 
-{$IFNDEF FPC}
-        MOVUPS    XMM5, [SSE_FloatScale]// Load unaligned
+        PSHUFD    XMM1, XMM0, $FF       // Broadcast accumulated Alpha
+        DIVPS     XMM0, XMM1            // Normalize RGB; Alpha is nonzero
+
+{$IFDEF TARGET_X64}
+        MOVUPS    XMM5, [RIP+SSE_FloatScale]// Load unaligned
 {$ELSE}
-        MOVUPS    XMM5, [RIP+SSE_FloatScale]
+        MOVUPS    XMM5, [SSE_FloatScale]
 {$ENDIF}
         MULPS     XMM1, XMM5            // Scale Alpha back to 8-bit range.
         BLENDPS   XMM0, XMM1, $08       // Combine RGB and A.
-        ANDNPS    XMM3, XMM0            // Handle zero Alpha.
 
         (*
         ** Float -> integer
         *)
-        CVTPS2DQ  XMM0, XMM3            // Round
+        PXOR      XMM2, XMM2            // Zero used by packing below
+        CVTPS2DQ  XMM0, XMM0            // Round
         PACKSSDW  XMM0, XMM2            // DWORD -> WORD
         PACKUSWB  XMM0, XMM2            // WORD -> BYTE
         MOVD      EAX, XMM0             // Result in EAX
-
-{$IFDEF TARGET_X64}
-{$IFNDEF FPC}
-  .SAVENV XMM4
-  .SAVENV XMM5
-{$ENDIF}
-{$ENDIF}
+@Exit:
 end;
 {$ifend}
 
@@ -5363,7 +5352,7 @@ var
 
 procedure RegisterBindings;
 begin
-  ResamplersRegistry := NewRegistry('GR32_Resamplers bindings');
+  ResamplersRegistry := NewRegistry('GR32_Resamplers');
   ResamplersRegistry.RegisterBinding(@@BlockAverage, 'BlockAverage');
   ResamplersRegistry.RegisterBinding(@@Interpolator, 'Interpolator');
   ResamplersRegistry.RegisterBinding(@@AlphaInterpolator, 'AlphaInterpolator');

@@ -47,11 +47,11 @@ interface
 //------------------------------------------------------------------------------
 
 uses
-  Generics.Defaults,
-  Generics.Collections,
-  Windows,
-  Types,
-  Graphics,
+  System.Generics.Defaults,
+  System.Generics.Collections,
+  Winapi.Windows,
+  System.Types,
+  Vcl.Graphics,
 
   GR32,
   GR32_Paths,
@@ -280,6 +280,9 @@ type
 
     class function MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; AFlags: Cardinal = 0): TFloatRect; overload; static;
     class function MeasureText(AFont: HFont; const ARect: TFloatRect; const AText: string; const ALayout: TTextLayout): TFloatRect; overload; static;
+
+    class function GetFontFaceMetrics(AFont: HFont; const ATextLayout: TTextLayout; var AFontFaceMetrics: TFontFaceMetrics32): boolean; static;
+    class function GetGlyphMetrics(AFont: HFont; const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean; static;
   end;
 
 
@@ -301,8 +304,8 @@ var
 implementation
 
 uses
-  Math,
-  SysUtils,
+  System.Math,
+  System.SysUtils,
   GR32.Text.Unicode;
 
 const
@@ -380,6 +383,39 @@ begin
   TextFlagsToLayout(AFlags, TextLayout);
 
   TextToPath(AFont, APath, ARect, AText, TextLayout);
+end;
+
+//------------------------------------------------------------------------------
+
+class function TextToolsWin.GetFontFaceMetrics(AFont: HFont; const ATextLayout: TTextLayout;
+  var AFontFaceMetrics: TFontFaceMetrics32): boolean;
+var
+  FontFace: IFontFace32;
+begin
+  FontFace := TFontFace32.Create(AFont);
+
+  Result := FontFace.GetFontFaceMetrics(ATextLayout, AFontFaceMetrics);
+end;
+
+//------------------------------------------------------------------------------
+
+class function TextToolsWin.GetGlyphMetrics(AFont: HFont; const Text: string; var GlyphMetrics: TGlyphStringMetrics32): boolean;
+var
+  FontFace: IFontFace32;
+  i: integer;
+begin
+  Result := False;
+
+  FontFace := TFontFace32.Create(AFont);
+
+  SetLength(GlyphMetrics, Length(Text));
+  for i := 1 to Length(Text) do
+  begin
+    if (FontFace.GetGlyphMetrics(Ord(Text[i]), GlyphMetrics[i-1])) then
+      Result := Result or GlyphMetrics[i-1].Valid
+    else
+      GlyphMetrics[i-1].Valid := False;
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -736,7 +772,7 @@ begin
     ** Get metrics from Windows
     *)
     GlyphMetrics := Default(TGlyphMetrics);
-    Res := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_METRICS, GlyphMetrics, 0, nil, VertFlip_mat2);
+    Res := Winapi.Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_METRICS, GlyphMetrics, 0, nil, VertFlip_mat2);
 
     if (Res = GDI_ERROR) then
     begin
@@ -955,7 +991,7 @@ begin
     (*
     ** Get bezier data (and the glyph metrics) from Windows
     *)
-    PolygonHeaderSize := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, 0, nil, VertFlip_mat2);
+    PolygonHeaderSize := Winapi.Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, 0, nil, VertFlip_mat2);
 
     Result := (PolygonHeaderSize <> GDI_ERROR) and (PolygonHeaderSize <> 0);
     if (not Result) then
@@ -965,7 +1001,7 @@ begin
     try
 
       PolygonHeader := PolygonHeaderAlloc;
-      PolygonHeaderSize := Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, PolygonHeaderSize, PolygonHeader, VertFlip_mat2);
+      PolygonHeaderSize := Winapi.Windows.GetGlyphOutline(FFontData.FontDC, AGlyph, GGO_NATIVE or GGO_UNHINTED, GlyphMetrics, PolygonHeaderSize, PolygonHeader, VertFlip_mat2);
 
       if (PolygonHeaderSize = GDI_ERROR) or (PolygonHeader.dwType <> TT_POLYGON_TYPE) then
         exit;

@@ -35,7 +35,7 @@ interface
 {$include GR32.inc}
 
 uses
-  Math,
+  System.Math,
 {$IFDEF FPC}
   LCLIntf, LCLType, Types,
 {$ELSE}
@@ -59,8 +59,8 @@ uses
   Graphics,
   Controls,
 {$ifend}
-  Classes,
-  SysUtils,
+  System.Classes,
+  System.SysUtils,
   GR32_Bindings;
 
 {$if defined(FRAMEWORK_FMX)}
@@ -70,7 +70,7 @@ type
 
 { Version Control }
 const
-  Graphics32Version = '3.0';
+  Graphics32Version = '4.0';
 
 { 32-bit Color }
 type
@@ -129,6 +129,9 @@ const
   clFuchsia32             = TColor32({$IFNDEF RGBA_FORMAT} $FFFF00FF {$ELSE} $FFFF00FF {$ENDIF});
   clAqua32                = TColor32({$IFNDEF RGBA_FORMAT} $FF00FFFF {$ELSE} $FFFFFF00 {$ENDIF});
 
+  clCyan32                = clAqua32;
+  clMagenta32             = clFuchsia32;
+
   clAliceBlue32           = TColor32({$IFNDEF RGBA_FORMAT} $FFF0F8FF {$ELSE} $FFFFF8F0 {$ENDIF});
   clAntiqueWhite32        = TColor32({$IFNDEF RGBA_FORMAT} $FFFAEBD7 {$ELSE} $FFD7EBFA {$ENDIF});
   clAquamarine32          = TColor32({$IFNDEF RGBA_FORMAT} $FF7FFFD4 {$ELSE} $FFD4FF7F {$ENDIF});
@@ -170,6 +173,7 @@ const
   clDodgerBlue32          = TColor32({$IFNDEF RGBA_FORMAT} $FF1E90FF {$ELSE} $FFFF901E {$ENDIF});
   clFireBrick32           = TColor32({$IFNDEF RGBA_FORMAT} $FFB22222 {$ELSE} $FF2222B2 {$ENDIF});
   clFloralWhite32         = TColor32({$IFNDEF RGBA_FORMAT} $FFFFFAF0 {$ELSE} $FFF0FAFF {$ENDIF});
+  clForestGreen32         = TColor32({$IFNDEF RGBA_FORMAT} $FF228B22 {$ELSE} $FF228B22 {$ENDIF});
   clGainsBoro32           = TColor32({$IFNDEF RGBA_FORMAT} $FFDCDCDC {$ELSE} $FFDCDCDC {$ENDIF});
   clGhostWhite32          = TColor32({$IFNDEF RGBA_FORMAT} $FFF8F8FF {$ELSE} $FFFFF8F8 {$ENDIF});
   clGold32                = TColor32({$IFNDEF RGBA_FORMAT} $FFFFD700 {$ELSE} $FF00D7FF {$ENDIF});
@@ -234,6 +238,7 @@ const
   clPapayaWhip32          = TColor32({$IFNDEF RGBA_FORMAT} $FFFFEFD5 {$ELSE} $FFD5EFFF {$ENDIF});
   clPeachPuff32           = TColor32({$IFNDEF RGBA_FORMAT} $FFFFDAB9 {$ELSE} $FFB9DAFF {$ENDIF});
   clPeru32                = TColor32({$IFNDEF RGBA_FORMAT} $FFCD853F {$ELSE} $FF3F85CD {$ENDIF});
+  clPink32                = TColor32({$IFNDEF RGBA_FORMAT} $FFFFC0CB {$ELSE} $FFC0CBFF {$ENDIF});
   clPlum32                = TColor32({$IFNDEF RGBA_FORMAT} $FFDDA0DD {$ELSE} $FFDDA0DD {$ENDIF});
   clPowderBlue32          = TColor32({$IFNDEF RGBA_FORMAT} $FFB0E0E6 {$ELSE} $FFE6E0B0 {$ENDIF});
   clRosyBrown32           = TColor32({$IFNDEF RGBA_FORMAT} $FFBC8F8F {$ELSE} $FF8F8FBC {$ENDIF});
@@ -596,6 +601,8 @@ type
 
     procedure Inflate(const DX, DY: Single); {$IFDEF USEINLINING} inline; {$ENDIF}
 
+    function IsEmpty: Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+
     property Width: TFloat read GetWidth write SetWidth;
     property Height: TFloat read GetHeight write SetHeight;
 
@@ -672,8 +679,11 @@ function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLI
 //------------------------------------------------------------------------------
 // Some basic operations over rectangles
 //------------------------------------------------------------------------------
-function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF} // TODO : Semantics differ from Delphi IntersectRect
-function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+// This version of IntersectRect does not suffer from parameter aliasing; It's safe to specify the same variable as input and output
+function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectRect(out Dst: TFloatRect; const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectRect(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectRect(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRect(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -780,7 +790,7 @@ type
   { TCustomMap }
   { An ancestor for bitmaps and similar 2D distributions which have width and
     height properties }
-  TCustomMap = class(TThreadPersistent)
+  TCustomMap = class abstract(TThreadPersistent)
   protected
     FHeight: Integer;
     FWidth: Integer;
@@ -789,6 +799,7 @@ type
     procedure SetHeight(NewHeight: Integer); virtual;
     procedure SetWidth(NewWidth: Integer); virtual;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual;
+    function GetByteCount: integer; virtual;
   public
     constructor Create(Width, Height: Integer); reintroduce; overload;
     destructor Destroy; override;
@@ -802,6 +813,12 @@ type
 
     property Height: Integer read FHeight write SetHeight;
     property Width: Integer read FWidth write SetWidth;
+
+    // If the map encapsulates a contiguous block of memory, then ByteCount returns
+    // the size of this memory. Otherwise returns 0 (e.g. TVectorMap which wraps a
+    // dynamic array).
+    property ByteCount: integer read GetByteCount;
+
     property OnResize: TNotifyEvent read FOnResize write FOnResize;
   end;
 
@@ -837,6 +854,8 @@ type
 {$else FPC}
   TResourceType = LCLType.TResourceType;
 {$endif FPC}
+
+  TCheckerboardColors = array[0..1] of TColor32;
 
   { TCustomBitmap32 }
 
@@ -883,18 +902,29 @@ type
     procedure SetPenPos(const Value: TPoint);
     function GetPenPosF: TFixedPoint;
     procedure SetPenPosF(const Value: TFixedPoint);
+  public const
+    MaxPixelCount = MaxInt div SizeOf(DWORD);
   public type
     TInfoHeaderVersion = (InfoHeaderVersion1, InfoHeaderVersion2, InfoHeaderVersion3, InfoHeaderVersion4, InfoHeaderVersion5);
   strict protected
     procedure BackendChangedHandler(Sender: TObject); virtual;
     procedure BackendChangingHandler(Sender: TObject); virtual;
+  strict protected type
+    // Identical to the types in GR32_Blend. Redeclared here to avoid circular dependencies.
+    TBlendMem = procedure(F: TColor32; var B: TColor32);
+    PBlendMem = ^TBlendMem;
+    TBlendMemEx = procedure(F: TColor32; var B: TColor32; M: Cardinal);
+    PBlendMemEx = ^TBlendMemEx;
   strict protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
-    BlendProc: Pointer;
+    BlendProc: TBlendMem;
+    BlendProcEx: TBlendMemEx;
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
+    function GetPixelCount: integer;
     function  Equal(B: TCustomBitmap32): Boolean;
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
@@ -957,6 +987,7 @@ type
     procedure SetPixelX(X, Y: TFixed; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
+
   public
     // Create with specified backend
     constructor Create(ABackendClass: TCustomBackendClass); overload; virtual;
@@ -1078,6 +1109,8 @@ type
     procedure FrameRectS(const ARect: TRect; Value: TColor32); overload;
     procedure FrameRectTS(const ARect: TRect; Value: TColor32); overload;
 
+    procedure FillCheckerboardRect(const ARect: TRect; const AColors: TCheckerboardColors; AExponent: integer);
+
     procedure RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer); overload;
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
@@ -1109,6 +1142,7 @@ type
 {$ELSE}
     property Bits: PColor32Array read FBits;
 {$ENDIF}
+    property PixelCount: integer read GetPixelCount;
 
     property ClipRect: TRect read FClipRect write SetClipRect;
     property Clipping: Boolean read FClipping;
@@ -1237,6 +1271,9 @@ type
     procedure Clear; virtual;
     function Empty: Boolean; virtual;
 
+    // Finalize existing surface (if any) and initialize a new surface.
+    // Note: The backend is allowed to resize or reuse the existing surface
+    // (if any) in order to minimize reallocations.
     procedure ChangeSize(out Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual;
 
 {$IFDEF BITS_GETTER}
@@ -2577,6 +2614,8 @@ begin
 end;
 
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
+var
+  Left, Top, Right, Bottom: integer;
 begin
   (*
       Note that, for historic reasons and due to poor documentation of the
@@ -2613,40 +2652,87 @@ begin
   *)
 
   if R1.Left >= R2.Left then
-    Dst.Left := R1.Left
+    Left := R1.Left
   else
-    Dst.Left := R2.Left;
+    Left := R2.Left;
 
   if R1.Right <= R2.Right then
-    Dst.Right := R1.Right
+    Right := R1.Right
   else
-    Dst.Right := R2.Right;
+    Right := R2.Right;
 
   if R1.Top >= R2.Top then
-    Dst.Top := R1.Top
+    Top := R1.Top
   else
-    Dst.Top := R2.Top;
+    Top := R2.Top;
 
   if R1.Bottom <= R2.Bottom then
-    Dst.Bottom := R1.Bottom
+    Bottom := R1.Bottom
   else
-    Dst.Bottom := R2.Bottom;
+    Bottom := R2.Bottom;
 
-  Result := (Dst.Right >= Dst.Left) and (Dst.Bottom >= Dst.Top);
+  Result := (Right >= Left) and (Bottom >= Top);
 
-  if not Result then
+  if Result then
+  begin
+    Dst.Left   := Left;
+    Dst.Right  := Right;
+    Dst.Top    := Top;
+    Dst.Bottom := Bottom;
+  end else
     Dst := Default(TRect);
 end;
 
-function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
+function IntersectRect(const R1, R2: TRect): Boolean;
 begin
-  Dst.Left   := Math.Max(FR1.Left,   FR2.Left);
-  Dst.Right  := Math.Min(FR1.Right,  FR2.Right);
-  Dst.Top    := Math.Max(FR1.Top,    FR2.Top);
-  Dst.Bottom := Math.Min(FR1.Bottom, FR2.Bottom);
-  Result := (Dst.Right >= Dst.Left) and (Dst.Bottom >= Dst.Top);
-  if not Result then
-    Dst := Default(TFloatRect);
+  Result := (R1.Left < R2.Right) and
+            (R1.Right > R2.Left) and
+            (R1.Top < R2.Bottom) and
+            (R1.Bottom > R2.Top);
+end;
+
+function IntersectRect(out Dst: TFloatRect; const R1, R2: TFloatRect): Boolean;
+var
+  Left, Top, Right, Bottom: Single;
+begin
+  if R1.Left >= R2.Left then
+    Left := R1.Left
+  else
+    Left := R2.Left;
+
+  if R1.Right <= R2.Right then
+    Right := R1.Right
+  else
+    Right := R2.Right;
+
+  if R1.Top >= R2.Top then
+    Top := R1.Top
+  else
+    Top := R2.Top;
+
+  if R1.Bottom <= R2.Bottom then
+    Bottom := R1.Bottom
+  else
+    Bottom := R2.Bottom;
+
+  Result := (Right >= Left) and (Bottom >= Top);
+
+  if Result then
+  begin
+    Dst.Left   := Left;
+    Dst.Right  := Right;
+    Dst.Top    := Top;
+    Dst.Bottom := Bottom;
+  end else
+    Dst := Default(TRect);
+end;
+
+function IntersectRect(const R1, R2: TFloatRect): Boolean;
+begin
+  Result := (R1.Left < R2.Right) and
+            (R1.Right > R2.Left) and
+            (R1.Top < R2.Bottom) and
+            (R1.Bottom > R2.Top);
 end;
 
 function IsRectEmpty(const R: TRect): Boolean;
@@ -2844,6 +2930,11 @@ end;
 procedure TFloatRect.Inflate(const DX, DY: Single);
 begin
   InflateRect(Self, DX, DY);
+end;
+
+function TFloatRect.IsEmpty: Boolean;
+begin
+  Result := IsRectEmpty(Self);
 end;
 
 function TFloatRect.GetHeight: TFloat;
@@ -3104,6 +3195,11 @@ begin
   Result := (Width = 0) or (Height = 0);
 end;
 
+function TCustomMap.GetByteCount: integer;
+begin
+  Result := 0;
+end;
+
 procedure TCustomMap.Resized;
 begin
   if Assigned(FOnResize) then
@@ -3183,6 +3279,7 @@ begin
   FStippleStep := 1;
   FCombineMode := cmBlend;
   BlendProc := @BLEND_MEM[FCombineMode]^;
+  BlendProcEx := @BLEND_MEM_EX[FCombineMode]^;
   WrapProcHorz := GetWrapProcEx(WrapMode);
   WrapProcVert := GetWrapProcEx(WrapMode);
   FResampler := TNearestResampler.Create(Self);
@@ -3327,7 +3424,7 @@ end;
 
 procedure TCustomBitmap32.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 begin
-  if (Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD) > MaxInt) then
+  if (Int64(NewWidth) * Int64(NewHeight) > MaxPixelCount) then
     raise EOutOfResources.CreateFmt('Unsupported bitmap size: %d x %d x 4 = $%.8X bytes', [NewWidth, NewHeight, Int64(NewWidth) * Int64(NewHeight) * SizeOf(DWORD)]);
   FBackend.ChangeSize(Width, Height, NewWidth, NewHeight, ClearBuffer);
 end;
@@ -3466,6 +3563,16 @@ end;
 function TCustomBitmap32.GetScanLine(Y: Integer): PColor32Array;
 begin
   Result := @Bits[Y * FWidth];
+end;
+
+function TCustomBitmap32.GetByteCount: integer;
+begin
+  Result := Width * Height * SizeOf(TColor32);
+end;
+
+function TCustomBitmap32.GetPixelCount: integer;
+begin
+  Result := Width * Height;
 end;
 
 function TCustomBitmap32.GetPenPos: TPoint;
@@ -3645,12 +3752,12 @@ end;
 
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
-  TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
+  BlendProc(Value, Bits[X + Y * Width]);
 end;
 
 procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
-  TBlendMem(BlendProc)(Value, Ptr^);
+  BlendProc(Value, Ptr^);
   Inc(Ptr);
 end;
 
@@ -3659,7 +3766,7 @@ begin
   if {$IFDEF CHANGED_IN_PIXELS}not FMeasuringMode and{$ENDIF}
     (X >= FClipRect.Left) and (X < FClipRect.Right) and
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
-    TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
+    BlendProc(Value, Bits[X + Y * Width]);
 
 {$IFDEF CHANGED_IN_PIXELS}
   Changed(MakeRect(X, Y, X + 1, Y + 1));
@@ -3970,11 +4077,6 @@ begin
                        WordRec(TFixedRec(Y).Frac).Hi);
 end;
 
-class function TCustomBitmap32.GetPlatformBackendClass: TCustomBackendClass;
-begin
-  Result := TMemoryBackend;
-end;
-
 procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
 begin
 {$if defined(PUREPASCAL) or defined(TARGET_X64)}
@@ -3993,6 +4095,10 @@ begin
     SET_T256(WrapProcHorz(X, Left, Right - 128), WrapProcVert(Y, Top, Bottom - 128), Value);
 end;
 
+class function TCustomBitmap32.GetPlatformBackendClass: TCustomBackendClass;
+begin
+  Result := TMemoryBackend;
+end;
 
 procedure TCustomBitmap32.SetStipple(const NewStipple: TArrayOfColor32);
 begin
@@ -4129,7 +4235,7 @@ begin
   if not FMeasuringMode then
   begin
     P := PixelPtr[X1, Y];
-    BlendMem := TBlendMem(BlendProc);
+    BlendMem := BlendProc;
     for i := X1 to X2 do
     begin
       BlendMem(Value, P^);
@@ -4345,7 +4451,7 @@ begin
   if not FMeasuringMode then
   begin
     P := PixelPtr[X, Y1];
-    BlendMem := TBlendMem(BlendProc);
+    BlendMem := BlendProc;
 
     for i := Y1 to Y2 do
     begin
@@ -4897,7 +5003,7 @@ begin
     P := PixelPtr[X1, Y1];
     Sy := Sy * Width;
 
-    BlendMem := TBlendMem(BlendProc);
+    BlendMem := BlendProc;
 
     if Dx > Dy then
     begin
@@ -5135,7 +5241,8 @@ begin
         Inc(term);
     end;
 
-    BlendMem := BLEND_MEM[FCombineMode]^;
+    BlendMem := BlendProc;
+
     while xd <> term do
     begin
       Inc(xd, Sx);
@@ -5518,8 +5625,8 @@ begin
     end;
 
     EC := 0;
-    BLEND_MEM[FCombineMode]^(Value, Bits[X1 + Y1 * Width]);
-    BlendMemEx := BLEND_MEM_EX[FCombineMode]^;
+    Blendproc(Value, Bits[X1 + Y1 * Width]);
+    BlendMemEx := BlendProcEx;
 
     if Dy > Dx then
     begin
@@ -5691,7 +5798,7 @@ begin
     xd := X1; yd := Y1;
     CheckVert := True;
     CornerAA := False;
-    BlendMemEx := BLEND_MEM_EX[FCombineMode]^;
+    BlendMemEx := BlendProcEx;
 
     // clipping rect horizontal entry
     if Y1 < Cy1 then
@@ -5703,7 +5810,7 @@ begin
       else
         tmp := tmp div EA;
 
-      xd := Math.Min(xd + tmp, X2 + 1);
+      xd := System.Math.Min(xd + tmp, X2 + 1);
       EC := tmp * EA;
 
       if rem mod EA > 0 then
@@ -5937,6 +6044,47 @@ end;
 procedure TCustomBitmap32.LineToFSP(X, Y: Single);
 begin
   LineToXSP(Fixed(X), Fixed(Y));
+end;
+
+procedure TCustomBitmap32.FillCheckerboardRect(const ARect: TRect; const AColors: TCheckerboardColors; AExponent: integer);
+var
+  r: TRect;
+  X, Y: integer;
+  Len, Remain: integer;
+  BlockSize: integer;
+  Pixel: PColor32;
+  Parity: integer;
+begin
+  if (not GR32.IntersectRect(r, ARect, ClipRect)) then
+    exit;
+
+  if (AColors[0] <> AColors[1]) then
+  begin
+    BlockSize := 1 shl AExponent;
+    for Y := r.Top to r.Bottom - 1 do
+    begin
+      X := r.Left;
+      Pixel := PixelPtr[X, Y];
+      // BlockSize is   $00000010, $00000100, $00001000, $00010000, etc. so
+      // BlockSize-1 is $00000001, $00000011, $00000111, $00001111, etc.
+      Remain := r.Right - X;
+      Len := BlockSize - (X and (BlockSize - 1)); // (X and (BlockSize - 1)) = (X mod BlockSize)
+      Parity := ((X shr AExponent) xor (Y shr AExponent)) and 1;
+
+      while (Remain > 0) do
+      begin
+        if (Len > Remain) then
+          Len := Remain;
+        FillLongword(Pixel^, Len, AColors[Parity]);
+        Inc(Pixel, Len);
+        Dec(Remain, Len);
+        Parity := 1 - Parity;
+        Len := BlockSize;
+      end;
+    end;
+  end else
+    // Odd color = Even color -> Just clear with the color
+    FillRectS(r, AColors[0]);
 end;
 
 procedure TCustomBitmap32.FillRect(X1, Y1, X2, Y2: Integer; Value: TColor32);
@@ -6965,6 +7113,7 @@ begin
   begin
     FCombineMode := Value;
     BlendProc := @BLEND_MEM[FCombineMode]^;
+    BlendProcEx := @BLEND_MEM_EX[FCombineMode]^;
     Changed;
   end;
 end;
@@ -8099,7 +8248,7 @@ function GeneralRegistry: TFunctionRegistry;
 begin
   if (FGeneralRegistry = nil) then
   begin
-    FGeneralRegistry := NewRegistry('GR32 misc. bindings');
+    FGeneralRegistry := NewRegistry('GR32');
     RegisterBindings;
   end;
   Result := FGeneralRegistry;

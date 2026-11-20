@@ -36,7 +36,7 @@ interface
 {$include GR32.inc}
 
 uses
-  Classes,
+  System.Classes,
   GR32;
 
 type
@@ -53,6 +53,7 @@ type
   protected
     FBits: PByteArray;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
   public
     constructor Create; overload; override;
     destructor Destroy; override;
@@ -77,6 +78,7 @@ type
     FBits: PByteArray;
     procedure AssignTo(Dst: TPersistent); override;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
   public
     constructor Create; overload; override;
     destructor Destroy; override;
@@ -123,6 +125,7 @@ type
   protected
     FBits: PWordArray;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
   public
     constructor Create; overload; override;
     destructor Destroy; override;
@@ -149,6 +152,7 @@ type
   protected
     FBits: PIntegerArray;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
   public
     constructor Create; overload; override;
     destructor Destroy; override;
@@ -175,6 +179,7 @@ type
   protected
     FBits: PCardinalArray;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
   public
     constructor Create; overload; override;
     destructor Destroy; override;
@@ -201,6 +206,7 @@ type
   protected
     FBits: PFloatArray;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
   public
     constructor Create; overload; override;
     destructor Destroy; override;
@@ -226,6 +232,7 @@ type
   protected
     FBits: Pointer;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+    function GetByteCount: integer; override;
   public
     constructor Create; overload; override;
     destructor Destroy; override;
@@ -243,7 +250,7 @@ type
 implementation
 
 uses
-  Math,
+  System.Math,
   GR32_LowLevel,
   GR32_Blend,
   GR32_Resamplers;
@@ -303,6 +310,11 @@ end;
 function TBooleanMap.Empty: Boolean;
 begin
   Result := (Width = 0) or (Height = 0) or (FBits = nil);
+end;
+
+function TBooleanMap.GetByteCount: integer;
+begin
+  Result := Bytes(Width * Height);
 end;
 
 function TBooleanMap.GetValue(X, Y: Integer): Boolean;
@@ -601,6 +613,11 @@ begin
     end;
     Dst.Changed;
   end;
+end;
+
+function TByteMap.GetByteCount: integer;
+begin
+  Result := Width * Height;
 end;
 
 function TByteMap.GetScanline(Y: Integer): PByteArray;
@@ -1029,8 +1046,8 @@ begin
     Top := Rect.Top;
     if Top < 0 then
       Top := 0;
-    Right := Math.Min(Rect.Left + Self.Width, Rect.Right);
-    Bottom := Math.Min(Rect.Top + Self.Height, Rect.Bottom);
+    Right := System.Math.Min(Rect.Left + Self.Width, Rect.Right);
+    Bottom := System.Math.Min(Rect.Top + Self.Height, Rect.Bottom);
 
     // split RGB and alpha
     RGB := Color and $FFFFFF;
@@ -1114,6 +1131,11 @@ end;
 function TWordMap.Empty: Boolean;
 begin
   Result := (Width = 0) or (Height = 0) or (FBits = nil);
+end;
+
+function TWordMap.GetByteCount: integer;
+begin
+  Result := Width * Height * SizeOf(Word);
 end;
 
 function TWordMap.GetScanline(Y: Integer): PWordArray;
@@ -1202,6 +1224,11 @@ begin
   Result := (Width = 0) or (Height = 0) or (FBits = nil);
 end;
 
+function TIntegerMap.GetByteCount: integer;
+begin
+  Result := Width * Height * SizeOf(Integer);
+end;
+
 function TIntegerMap.GetScanline(Y: Integer): PIntegerArray;
 begin
   Result := @FBits^[Y * Width];
@@ -1286,6 +1313,11 @@ end;
 function TCardinalMap.Empty: Boolean;
 begin
   Result := (Width = 0) or (Height = 0) or (FBits = nil);
+end;
+
+function TCardinalMap.GetByteCount: integer;
+begin
+  Result := Width * Height * SizeOf(Cardinal);
 end;
 
 function TCardinalMap.GetScanline(Y: Integer): PCardinalArray;
@@ -1378,6 +1410,11 @@ begin
   Result := (Width = 0) or (Height = 0) or (FBits = nil);
 end;
 
+function TFloatMap.GetByteCount: integer;
+begin
+  Result := Width * Height * SizeOf(TFloat);
+end;
+
 function TFloatMap.GetScanline(Y: Integer): PFloatArray;
 begin
   Result := @FBits^[Y * Width];
@@ -1450,6 +1487,11 @@ end;
 function TGenericMap<T>.Empty: Boolean;
 begin
   Result := (Width = 0) or (Height = 0) or (FBits = nil);
+end;
+
+function TGenericMap<T>.GetByteCount: integer;
+begin
+  Result := Width * Height * SizeOf(T);
 end;
 
 function TGenericMap<T>.GetValue(X, Y: Integer): T;

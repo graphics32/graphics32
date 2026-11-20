@@ -37,12 +37,12 @@ interface
 implementation
 
 uses
-  Classes,
+  System.Classes,
 {$ifdef FPC}
   LCLType, // LCLType must be after Classes so we get the correct THandle
 {$endif FPC}
-  Graphics,
-  Clipbrd,
+  Vcl.Graphics,
+  Vcl.Clipbrd,
   GR32,
   GR32.ImageFormats;
 

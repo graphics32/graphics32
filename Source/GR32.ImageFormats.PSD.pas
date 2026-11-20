@@ -44,10 +44,10 @@ interface
 implementation
 
 uses
-  SysUtils,
-  Classes,
-  Math,
-  Types,
+  System.SysUtils,
+  System.Classes,
+  System.Math,
+  System.Types,
   GR32,
   GR32_Backends_Generic,
   GR32_Resamplers,

@@ -38,12 +38,12 @@ interface
 {$include GR32.inc}
 
 uses
-  Generics.Collections,
-  Types,
-  RTLConsts,
-  SysUtils,
-  Classes,
-  TypInfo;
+  System.Generics.Collections,
+  System.Types,
+  System.RTLConsts,
+  System.SysUtils,
+  System.Classes,
+  System.TypInfo;
 
 const
   BUCKET_MASK = $FF;               

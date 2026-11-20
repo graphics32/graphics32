@@ -37,7 +37,7 @@ interface
 {-$define GR32_DEBUG_BRUSH}
 
 uses
-  Classes, GR32, GR32_Polygons, GR32_Transforms;
+  System.Classes, GR32, GR32_Polygons, GR32_Transforms;
 
 type
   TBooleanArray = array of boolean;
