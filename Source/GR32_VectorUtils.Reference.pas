@@ -469,7 +469,32 @@ var
   P: PFloatPoint;
 begin
   Result := nil;
+  if (Length(Points) = 0) then
+    exit;
+
   V := StrokeWidth * 0.5;
+
+  // Simplify sub-pixel lines
+  if (StrokeWidth < 1) then
+  begin
+    JoinStyle := jsSquare;
+    if (EndStyle = esRound) then
+      EndStyle := esSquare;
+  end;
+
+  if (Length(Points) = 1) then
+  begin
+    case EndStyle of
+      esSquare:
+        Result := Rectangle(MakeRect(Points[0].X - V, Points[0].Y - V, Points[0].X + V, Points[0].Y + V));
+
+      esRound:
+        Result := Circle(Points[0], V);
+    else
+      Exit(Points);
+    end;
+  end;
+
   Normals := BuildNormals(Points);
 
   H := High(Points) - 1;
@@ -557,7 +582,32 @@ var
   P: PFixedPoint;
 begin
   Result := nil;
+  if (Length(Points) = 0) then
+    exit;
+
   V := StrokeWidth shr 1;
+
+  // Simplify sub-pixel lines
+  if (StrokeWidth < 1) then
+  begin
+    JoinStyle := jsSquare;
+    if (EndStyle = esRound) then
+      EndStyle := esSquare;
+  end;
+
+  if (Length(Points) = 1) then
+  begin
+    case EndStyle of
+      esSquare:
+        Result := FloatPointToFixedPoint(Rectangle(MakeRect(FixedRect(Points[0].X - V, Points[0].Y - V, Points[0].X + V, Points[0].Y + V))));
+
+      esRound:
+        Result := FloatPointToFixedPoint(Circle(FloatPoint(Points[0]), V * FixedToFloat));
+    else
+      Exit(Points);
+    end;
+  end;
+
   Normals := BuildNormals(Points);
 
   H := High(Points) - 1;
