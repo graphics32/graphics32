@@ -71,10 +71,24 @@ type
 
 implementation
 
+{$if (not defined(FPC)) and declared(IOTAAboutBoxServices120)}
+
+{$define BRANDING}
+
+{$if declared(IOTASplashScreenServices280) or declared(IOTAAboutBoxServices280)}
+{$define BRANDING_EX}
+{$ifend}
+
+{$ifend}
+
 uses
 {$IFNDEF FPC}
   SysUtils,
 {$ENDIF}
+{$if defined(BRANDING_EX)}
+  Vcl.Graphics,
+  Vcl.Imaging.pngimage,
+{$ifend}
   GR32,
   GR32_Resamplers;
 
@@ -183,14 +197,73 @@ end;
 //      Branding
 //
 //------------------------------------------------------------------------------
+{$if defined(BRANDING)}
 const
   sProductName = 'Graphics32';
   sProductVersion = GR32.Graphics32Version;
   sProductCopyright = 'Copyright '#$00A9' 1997-%s'#13#10'Alex A. Denisov and the GR32 team'#13#10'All rights reserved.';
   sProductLogo = 'GR32';
+  sProductLogos: array of string = ['GR32_24x24', 'GR32_48x48', 'GR32_64x64'];
   sProductLicense = 'Open Source: MPL 1.1 or LGPL 2.1 with linking exception';
   sProductSKU = ''; // Will be appended, with a space before, to the product name on the splash
   sProductRegistered = True;
+
+type
+  BrandingInfo = record
+  private
+{$if defined(BRANDING_EX)}
+    class var FLogoBitmaps: TGraphicArray;
+{$ifend}
+    class var FLogoBitmap: HBITMAP;
+    class function GetProductName: string; static;
+    class function GetProductCopyright: string; static;
+  public
+    class procedure Initialize; static;
+    class procedure Finalize; static;
+
+    class property ProductName: string read GetProductName;
+    class property ProductCopyright: string read GetProductCopyright;
+{$if defined(BRANDING_EX)}
+    class property LogoBitmaps: TGraphicArray read FLogoBitmaps;
+{$ifend}
+    class property LogoBitmap: HBITMAP read FLogoBitmap;
+  end;
+
+class procedure BrandingInfo.Initialize;
+begin
+{$if defined(BRANDING_EX)}
+  SetLength(FLogoBitmaps, Length(sProductLogos));
+  for var i := 0 to High(FLogoBitmaps) do
+  begin
+    FLogoBitmaps[i] := TPngImage.Create;
+    TPngImage(FLogoBitmaps[i]).LoadFromResourceName(hInstance, sProductLogos[i]);
+  end;
+{$ifend}
+  FLogoBitmap := LoadBitmap(hInstance, sProductLogo);
+end;
+
+class procedure BrandingInfo.Finalize;
+begin
+{$if defined(BRANDING_EX)}
+  for var i := 0 to High(FLogoBitmaps) do
+    FLogoBitmaps[i].Free;
+{$ifend}
+  DeleteObject(FLogoBitmap);
+end;
+
+class function BrandingInfo.GetProductName: string;
+begin
+  if (sProductVersion <> '') then
+    Result := Format('%s %s', [sProductName, sProductVersion])
+  else
+    Result := sProductName;
+end;
+
+class function BrandingInfo.GetProductCopyright: string;
+begin
+  Result := Format(sProductCopyright, [FormatDateTime('YYYY', Now)]);
+end;
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -198,11 +271,9 @@ const
 //      IDE splash screen
 //
 //------------------------------------------------------------------------------
-{$IFNDEF FPC}
+{$if defined(BRANDING)}
 type
   SplashInfo = record
-  private
-    class var FLogoBitmap: HBITMAP;
   public
     class procedure Initialize; static;
     class procedure Finalize; static;
@@ -210,21 +281,42 @@ type
 
 class procedure SplashInfo.Initialize;
 var
-  Title: string;
+  SplashScreenServices270: IOTASplashScreenServices270;
 begin
-  FLogoBitmap := LoadBitmap(hInstance, sProductLogo);
-  if (sProductVersion <> '') then
-    Title := Format('%s %s', [sProductName, sProductVersion])
-  else
-    Title := sProductName;
-  (SplashScreenServices as IOTasplashScreenServices).AddPluginBitmap(Title, FLogoBitmap, not sProductRegistered, sProductLicense, sProductSKU);
+{$if defined(BRANDING_EX)}
+  var SplashScreenServices280: IOTASplashScreenServices280;
+  if Supports(SplashScreenServices, IOTASplashScreenServices280, SplashScreenServices280) then
+  begin
+    SplashScreenServices280.AddPluginBitmap(BrandingInfo.ProductName, BrandingInfo.LogoBitmaps, not sProductRegistered, sProductLicense, sProductSKU);
+    exit;
+  end else
+{$ifend}
+  if Supports(SplashScreenServices, IOTASplashScreenServices270, SplashScreenServices270) then
+  begin
+    // The service will delete the bitmap, so we need to hand it a copy
+    var Bitmap := CopyImage(BrandingInfo.LogoBitmap, IMAGE_BITMAP, 0, 0, 0);
+    SplashScreenServices270.AddPluginBitmap(BrandingInfo.ProductName, Bitmap, not sProductRegistered, sProductLicense, sProductSKU);
+    exit;
+  end;
+
+  // Apparently Embarcadero doesn't understand how inherited interfaces work...
+  // They don't appear to have declared support for the versioned base interfaces
+  // on the implementing object. This means that it's pointless to query the
+  // service for the interfaces; They only support the unversioned one.
+
+{$if defined(BRANDING_EX)}
+  SplashScreenServices.AddPluginBitmap(BrandingInfo.ProductName, BrandingInfo.LogoBitmaps, not sProductRegistered, sProductLicense, sProductSKU)
+{$else}
+  // The service will delete the bitmap, so we need to hand it a copy
+  var Bitmap := CopyImage(BrandingInfo.LogoBitmap, IMAGE_BITMAP, 0, 0, 0);
+  SplashScreenServices.AddPluginBitmap(BrandingInfo.ProductName, Bitmap, not sProductRegistered, sProductLicense, sProductSKU);
+{$ifend}
 end;
 
 class procedure SplashInfo.Finalize;
 begin
-  DeleteObject(FLogoBitmap);
 end;
-{$ENDIF}
+{$ifend}
 
 
 //------------------------------------------------------------------------------
@@ -232,11 +324,10 @@ end;
 //      IDE about box
 //
 //------------------------------------------------------------------------------
-{$IFNDEF FPC}
+{$if defined(BRANDING)}
 type
   AboutInfo = record
   private
-    class var FLogoBitmap: HBITMAP;
     class var FAboutInfoIndex: integer;
   public
     class procedure Initialize; static;
@@ -245,51 +336,65 @@ type
 
 class procedure AboutInfo.Initialize;
 var
-  AboutBoxServices: IOTAAboutBoxServices;
-  Title, Info, Copyright: string;
+  AboutBoxServices120: IOTAAboutBoxServices120;
 begin
   FAboutInfoIndex := -1;
 
-  if Supports(BorlandIDEServices, IOTAAboutBoxServices, AboutBoxServices) then
+  var Info := Format('%s'#13#10#13#10'%s', [BrandingInfo.ProductName, BrandingInfo.ProductCopyright]);
+
+{$if defined(BRANDING_EX)}
+  var AboutBoxServices280: IOTAAboutBoxServices280;
+  if Supports(BorlandIDEServices, IOTAAboutBoxServices280, AboutBoxServices280) then
   begin
-    FLogoBitmap := LoadBitmap(hInstance, sProductLogo);
-
-    if (sProductVersion <> '') then
-      Title := Format('%s %s', [sProductName, sProductVersion])
-    else
-      Title := sProductName;
-    Copyright := Format(sProductCopyright, [FormatDateTime('YYYY', Now)]);
-    Info := Format('%s %s'#13#10#13#10'%s', [sProductName, sProductVersion, Copyright]);
-
-    FAboutInfoIndex := AboutBoxServices.AddPluginInfo(Title, Info, FLogoBitmap, not sProductRegistered, sProductLicense, sProductSKU);
+    FAboutInfoIndex := AboutBoxServices280.AddPluginInfo(BrandingInfo.ProductName, Info, BrandingInfo.LogoBitmaps, not sProductRegistered, sProductLicense, sProductSKU);
+    exit;
+  end else
+{$ifend}
+  if Supports(BorlandIDEServices, IOTAAboutBoxServices120, AboutBoxServices120) then
+  begin
+    // The service will delete the bitmap, so we need to hand it a copy
+    var Bitmap := CopyImage(BrandingInfo.LogoBitmap, IMAGE_BITMAP, 0, 0, 0);
+    FAboutInfoIndex := AboutBoxServices120.AddPluginInfo(BrandingInfo.ProductName, Info, Bitmap, not sProductRegistered, sProductLicense, sProductSKU);
+    exit;
   end;
+
+{$if defined(BRANDING_EX)}
+  FAboutInfoIndex := (BorlandIDEServices as IOTAAboutBoxServices).AddPluginInfo(BrandingInfo.ProductName, Info, BrandingInfo.LogoBitmaps, not sProductRegistered, sProductLicense, sProductSKU);
+{$else}
+  // The service will delete the bitmap, so we need to hand it a copy
+  var Bitmap := CopyImage(BrandingInfo.LogoBitmap, IMAGE_BITMAP, 0, 0, 0);
+  FAboutInfoIndex := (BorlandIDEServices as IOTAAboutBoxServices).AddPluginInfo(BrandingInfo.ProductName, Info, Bitmap, not sProductRegistered, sProductLicense, sProductSKU);
+{$ifend}
 end;
 
 class procedure AboutInfo.Finalize;
 var
-  AboutBoxServices: IOTAAboutBoxServices;
+  AboutBoxServices120: IOTAAboutBoxServices120;
 begin
-  if (FAboutInfoIndex <> -1) and Supports(BorlandIDEServices, IOTAAboutBoxServices, AboutBoxServices) and (FAboutInfoIndex <> -1) then
+  if (FAboutInfoIndex <> -1) then
   begin
-    AboutBoxServices.RemovePluginInfo(FAboutInfoIndex);
-
-    DeleteObject(FLogoBitmap);
+    if Supports(BorlandIDEServices, IOTAAboutBoxServices120, AboutBoxServices120) then
+      AboutBoxServices120.RemovePluginInfo(FAboutInfoIndex)
+    else
+      (BorlandIDEServices as IOTAAboutBoxServices).RemovePluginInfo(FAboutInfoIndex);
   end;
 end;
-{$ENDIF}
+{$ifend}
 
 //------------------------------------------------------------------------------
 
 initialization
-{$IFNDEF FPC}
+{$if defined(BRANDING)}
+  BrandingInfo.Initialize;
   SplashInfo.Initialize;
   AboutInfo.Initialize;
-{$ENDIF}
+{$ifend}
 
 finalization
-{$IFNDEF FPC}
+{$if defined(BRANDING)}
   SplashInfo.Finalize;
   AboutInfo.Finalize;
-{$ENDIF}
+  BrandingInfo.Finalize;
+{$ifend}
 
 end.
