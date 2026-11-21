@@ -160,17 +160,9 @@ begin
 end;
 
 procedure TCustomColorSwatch.Paint;
-var
-  X, Y: Integer;
-  OddY: Boolean;
-  ScanLine: PColor32Array;
 const
-  CCheckerBoardColor: array [Boolean] of TColor32 = ($FFA0A0A0, $FF5F5F5F);
+  CheckerBoardColors: TCheckerBoardColors = ($FFA0A0A0, $FF5F5F5F);
 begin
-//  if not Assigned(Parent) then
-//    Exit;
-
-
   if (FBuffer.Empty) then
     exit;
 
@@ -178,24 +170,11 @@ begin
   begin
     (FBuffer.Backend as IPaintSupport).ImageNeeded;
 
-    // draw checker board
-    if not (FColor and $FF000000 = $FF000000) then
-    begin
-      Y := 0;
-      while Y < FBuffer.Height do
-      begin
-        ScanLine := FBuffer.Scanline[Y];
-        OddY := Odd(Y shr 2);
-        for X := 0 to FBuffer.Width - 1 do
-          ScanLine[X] := CCheckerBoardColor[Odd(X shr 2) = OddY];
-        Inc(Y);
-      end;
-    end;
+    if (TColor32Entry(FColor).A <> 255) then
+      FBuffer.FillCheckerboardRect(FBuffer.BoundsRect, CheckerBoardColors, 2);
 
-    // draw color
     FBuffer.FillRectT(0, 0, FBuffer.Width, FBuffer.Height, FColor);
 
-    // eventually draw border
     if FBorder then
       FBuffer.FrameRectTS(0, 0, FBuffer.Width, FBuffer.Height, $DF000000);
 

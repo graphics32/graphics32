@@ -119,8 +119,6 @@ type
       Y: Integer; Layer: TCustomLayer);
     procedure DstImgMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
-      StageNum: Cardinal);
     procedure GaugeMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure ImgButtonClick(Sender: TObject);
@@ -243,11 +241,6 @@ begin
   begin
     Bitmap.Assign(Src);
     Cursor := crNone;
-    with PaintStages[0]^ do //Set up custom paintstage to draw checkerboard
-    begin
-      Stage := PST_CUSTOM;
-      Parameter := 1; // use parameter to tag the stage, we inspect this in OnPaintStage
-    end;
   end;
 
   Remapper := TRemapTransformation.Create;
@@ -775,43 +768,6 @@ begin
   if Sender is TToolbutton then
     TToolButton(Sender).DropdownMenu.Popup(Mouse.CursorPos.X,
        Mouse.CursorPos.Y);
-end;
-
-procedure TMainForm.DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
-  StageNum: Cardinal);
-const            //0..1
-  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0); 
-var 
-  R: TRect;
-  I, J: Integer; 
-  OddY: Integer;
-  TilesHorz, TilesVert: Integer;
-  TileX, TileY: Integer;
-  TileHeight, TileWidth: Integer; 
-begin
-  with TImgView32(Sender) do
-  begin
-    BeginUpdate;
-    R := GetViewportRect;
-    TileHeight := 8;
-    TileWidth := 8;
-    TilesHorz := (R.Right - R.Left) div TileWidth;
-    TilesVert := (R.Bottom - R.Top) div TileHeight;
-    TileY := 0;
-    for J := 0 to TilesVert do
-    begin
-      TileX := 0;
-      OddY := J and $1;
-      for I := 0 to TilesHorz do
-      begin
-        Buffer.FillRectS(TileX, TileY, TileX + TileWidth, TileY +
-          TileHeight,Colors[I and $1 = OddY]);
-        Inc(TileX, TileWidth);
-      end;
-      Inc(TileY, TileHeight);
-    end;
-    EndUpdate;
-  end;
 end;
 
 procedure TMainForm.MnuKernelModeClick(Sender: TObject);

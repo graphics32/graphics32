@@ -55,8 +55,6 @@ type
     RadioButtonMerge: TRadioButton;
     procedure FormCreate(Sender: TObject);
     procedure CheckBoxImageClick(Sender: TObject);
-    procedure DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
-      StageNum: Cardinal);
     procedure RadioButtonBlendClick(Sender: TObject);
     procedure RadioButtonMergeClick(Sender: TObject);
     procedure RadioButtonNoneClick(Sender: TObject);
@@ -89,16 +87,6 @@ uses
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  // setup custom checker board paint stage
-  with DstImg do
-  begin
-    with PaintStages[0]^ do //Set up custom paintstage to draw checkerboard
-    begin
-      Stage := PST_CUSTOM;
-      Parameter := 1; // use parameter to tag the stage, we inspect this in OnPaintStage
-    end;
-  end;
-
   // Load the textures (note size 256x256 is implicity expected!)
   FForeground := TBitmap32.Create;
   FForeground.LoadFromResourceName(HInstance, 'TextureA', 'JPG');
@@ -137,44 +125,6 @@ begin
     Line := PColor32EntryArray(FBackground.ScanLine[Y]);
     for X := 0 to FBackground.Width - 1 do
       Line^[X].A := Y;
-  end;
-end;
-
-procedure TMainForm.DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
-  StageNum: Cardinal);
-const
-  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
-var
-  R: TRect;
-  I, J: Integer;
-  OddY: Integer;
-  TilesHorz, TilesVert: Integer;
-  TileX, TileY: Integer;
-  TileHeight, TileWidth: Integer;
-begin
-  // draw checker board
-  with TImgView32(Sender) do
-  begin
-    BeginUpdate;
-    R := GetViewportRect;
-    TileHeight := 8;
-    TileWidth := 8;
-    TilesHorz := (R.Right - R.Left) div TileWidth;
-    TilesVert := (R.Bottom - R.Top) div TileHeight;
-    TileY := 0;
-    for J := 0 to TilesVert do
-    begin
-      TileX := 0;
-      OddY := J and $1;
-      for I := 0 to TilesHorz do
-      begin
-        Buffer.FillRectS(TileX, TileY, TileX + TileWidth, TileY +
-          TileHeight, Colors[I and $1 = OddY]);
-        Inc(TileX, TileWidth);
-      end;
-      Inc(TileY, TileHeight);
-    end;
-    EndUpdate;
   end;
 end;
 

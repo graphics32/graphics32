@@ -80,24 +80,18 @@ begin
   // load example image
   Image32.Bitmap.LoadFromResourceName(HInstance, 'STONES', RT_RCDATA);
 
-  with Image32 do
-  begin
-    if PaintStages[0]^.Stage = PST_CLEAR_BACKGND then PaintStages[0]^.Stage := PST_CUSTOM;
-    PaintStages.Add^.Stage := PST_CUSTOM;
-  end;
+  Image32.PaintStages.Add.Stage := PST_CUSTOM;
   Image32.BufferOversize := 0;
+
   Src := TBitmap32.Create;
-  with Src do
-  begin
-    SetBorderTransparent(Src, BoundsRect);
-    Assign(Image32.Bitmap);
-    OuterColor := clNone32;
-  end;
+  SetBorderTransparent(Src, BoundsRect);
+  Src.Assign(Image32.Bitmap);
+  Src.OuterColor := clNone32;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
- Src.Free;
+  Src.Free;
 end;
 
 procedure TMainForm.TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
@@ -138,36 +132,8 @@ end;
 
 procedure TMainForm.Image32PaintStage(Sender: TObject; Buffer: TBitmap32;
   StageNum: Cardinal);
-const
-  Colors: array [0..1] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
-var
-  W, I, J, Parity: Integer;
-  Line1, Line2: TArrayOfColor32; // a buffer for a couple of scanlines
 begin
-  with Image32.Buffer do
-    if StageNum = 0 then
-    begin
-      W := Width;
-      SetLength(Line1, W);
-      SetLength(Line2, W);
-      for I := 0 to W - 1 do
-      begin
-        Parity := I shr 3 and $1;
-        Line1[I] := Colors[Parity];
-        Line2[I] := Colors[1 - Parity];
-      end;
-      for J := 0 to Height - 1 do
-      begin
-        Parity := J shr 3 and $1;
-
-        if Boolean(Parity) then
-          MoveLongword(Line1[0], ScanLine[J]^, W)
-        else
-          MoveLongword(Line2[0], ScanLine[J]^, W);
-      end;
-    end
-    else
-      FrameRectS(BoundsRect , $FF000000);
+  Buffer.FrameRectS(Image32.BoundsRect, $FF000000);
 end;
 
 procedure TMainForm.GbrTwistChange(Sender: TObject);

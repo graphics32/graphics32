@@ -436,9 +436,10 @@ procedure TColor32Property.ListDrawValue(const Value: string; ACanvas: TCanvas;
 var
   Right: Integer;
   C: TColor32;
-  i, j: Integer;
   W, H: Integer;
   Bitmap32: TBitmap32;
+const
+  CheckerboardColors: TCheckerboardColors = (clBlack32, clWhite32);
 begin
   try
     Right := (ARect.Bottom - ARect.Top) + ARect.Left;
@@ -453,24 +454,17 @@ begin
         C := clWhite32;
       if (W > 8) and (H > 8) then
       begin
-        if not (C and $FF000000 = $FF000000) then
-        begin
-          for j := 0 to H - 1 do
-            for i := 0 to W - 1 do
-              if Odd(i div 3) = Odd(j div 3) then
-                Bitmap32[i, j] := clBlack32
-              else
-                Bitmap32[i, j] := clWhite32;
-        end;
+        if (TColor32Entry(C).A <> 255) then
+          Bitmap32.FillCheckerboardRect(Bitmap32.BoundsRect, CheckerboardColors, 2);
         Bitmap32.FillRectT(0, 0, W, H, C);
       end;
       Bitmap32.FrameRectTS(0, 0, W, H, $DF000000);
       Bitmap32.DrawTo(ACanvas.Handle, ARect.Left + 1, ARect.Top + 1);
     finally
       Bitmap32.Free;
-      DefaultPropertyListDrawValue(Value, ACanvas,
-        Rect(Right, ARect.Top, ARect.Right, ARect.Bottom), ASelected);
     end;
+    DefaultPropertyListDrawValue(Value, ACanvas,
+      Rect(Right, ARect.Top, ARect.Right, ARect.Bottom), ASelected);
   except
     on E: Exception do ShowMessage(E.Message);
   end;

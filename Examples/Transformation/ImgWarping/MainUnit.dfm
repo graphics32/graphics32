@@ -297,6 +297,8 @@ object MainForm: TMainForm
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScaleMode = smScale
+    Background.FillStyle = bfsCheckers
+    Background.CheckerboardStyle = bcsDark
     ScrollBars.Increment = 0
     ScrollBars.Size = 16
     ScrollBars.Visibility = svAuto
@@ -305,7 +307,6 @@ object MainForm: TMainForm
     OnMouseDown = DstImgMouseDown
     OnMouseMove = DstImgMouseMove
     OnMouseUp = DstImgMouseUp
-    OnPaintStage = DstImgPaintStage
   end
   object OpenPictureDialog: TOpenPictureDialog
     Left = 136

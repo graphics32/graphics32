@@ -1155,16 +1155,14 @@ var
   end;
 
 var
-  X, Y: Integer;
-  ScanLine: PColor32Array;
   Value: Single;
   LeftColor, RightColor: TColor32Entry;
-  OddY: Boolean;
   BorderOffset: Integer;
   GradientFiller: TLinearGradientPolygonFiller;
+  r: TRect;
 const
   CByteScale = 1 / 255;
-  CCheckerBoardColor: array [Boolean] of TColor32 = ($FFA0A0A0, $FF5F5F5F);
+  CheckerBoardColors: TCheckerBoardColors = ($FFA0A0A0, $FF5F5F5F);
   // Size of indicator triangles
   IndicatorWidth = 3;
   IndicatorHeight = 5;
@@ -1212,14 +1210,9 @@ begin
           Value := LeftColor.A * CByteScale;
           LeftColor.A := 0;
           RightColor.A := 255;
-
-          for Y := 0 to Height - 1 do
-          begin
-            OddY := Odd(Y div 8);
-            ScanLine := FBuffer.ScanLine[Y];
-            for X := IndicatorWidth to Width - IndicatorWidth - 1 do
-              ScanLine^[X] := CCheckerBoardColor[Odd(X shr 3) = OddY];
-          end;
+          r := ClientRect;
+          GR32.InflateRect(r, -IndicatorWidth, 0);
+          FBuffer.FillCheckerboardRect(r, CheckerBoardColors, 3);
         end
       else
         Exit;
@@ -1401,17 +1394,16 @@ var
   end;
 
 var
-  X, Y, Index: Integer;
-  ScanLine: PColor32Array;
+  Index: Integer;
   Value: Single;
   LeftColor, RightColor: TColor32Entry;
   ValueRect: TRect;
-  OddY: Boolean;
   BorderOffset: Integer;
   GradientFiller: TLinearGradientPolygonFiller;
+  r: TRect;
 const
   CByteScale = 1 / 255;
-  CCheckerBoardColor: array [Boolean] of TColor32 = ($FFA0A0A0, $FF5F5F5F);
+  CheckerBoardColors: TCheckerBoardColors = ($FFA0A0A0, $FF5F5F5F);
   // Size of indicator triangles
   IndicatorWidth = 3;
   IndicatorHeight = 5;
@@ -1460,14 +1452,8 @@ begin
             Value := LeftColor.A * CByteScale;
             LeftColor.A := 0;
             RightColor.A := 255;
-
-            for Y := ValueRect.Top to Min(ValueRect.Bottom, Height) - 1 do
-            begin
-              OddY := Odd(Y div 8);
-              ScanLine := FBuffer.ScanLine[Y];
-              for X := ValueRect.Left to ValueRect.Right - 1 do
-                ScanLine^[X] := CCheckerBoardColor[Odd(X shr 3) = OddY];
-            end;
+            GR32.IntersectRect(r, ClientRect, ValueRect);
+            FBuffer.FillCheckerboardRect(r, CheckerBoardColors, 3);
           end;
         else
           Exit;

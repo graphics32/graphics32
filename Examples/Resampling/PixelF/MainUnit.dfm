@@ -21,6 +21,8 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Scale = 1.000000000000000000
     ScaleMode = smOptimalScaled
+    Background.FillStyle = bfsCheckers
+    Background.CheckerboardStyle = bcsDark
     TabOrder = 0
     OnPaintStage = Image32PaintStage
     ExplicitLeft = 2

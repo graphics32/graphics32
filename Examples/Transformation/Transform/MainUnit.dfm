@@ -512,6 +512,8 @@ object FormTranformExample: TFormTranformExample
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScaleMode = smNormal
+    Background.FillStyle = bfsCheckers
+    Background.CheckerboardStyle = bcsDark
     TabOrder = 0
     OnDblClick = SrcDblClick
     OnPaintStage = DstPaintStage
@@ -529,6 +531,8 @@ object FormTranformExample: TFormTranformExample
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScaleMode = smNormal
+    Background.FillStyle = bfsCheckers
+    Background.CheckerboardStyle = bcsDark
     TabOrder = 1
     OnMouseDown = RubberLayerMouseDown
     OnMouseMove = RubberLayerMouseMove

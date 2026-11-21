@@ -72,8 +72,9 @@ object MainForm: TMainForm
     ParentColor = False
     Scale = 1.000000000000000000
     ScaleMode = smNormal
+    Background.FillStyle = bfsCheckers
+    Background.CheckerboardStyle = bcsDark
     TabOrder = 0
-    OnPaintStage = DstImgPaintStage
   end
   object RadioButtonBlend: TRadioButton
     Left = 8

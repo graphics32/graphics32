@@ -210,28 +210,13 @@ begin
 end;
 
 procedure TFormTranformExample.FormCreate(Sender: TObject);
-var
-  PaintStage: PPaintStage;
 begin
   // load example image
   Src.Bitmap.LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
 
-  //Setup custom paintstages ("checkerboard" and border)
-
-  //Set up custom paintstage to draw checkerboard
-  Dst.PaintStages[0].Stage := PST_CUSTOM;
-  Dst.PaintStages[0].Parameter := 1; // use parameter to tag the stage, we inspect this in OnPaintStage
-
-  PaintStage := Dst.PaintStages.Add;  //Insert new paintstage on top of everything else, we use this to draw border
-  PaintStage.Stage := PST_CUSTOM;
-  PaintStage.Parameter := 2;
-
-  Src.PaintStages[0].Stage := PST_CUSTOM;
-  Src.PaintStages[0].Parameter := 1;
-
-  PaintStage := Src.PaintStages.Add;
-  PaintStage.Stage := PST_CUSTOM;
-  PaintStage.Parameter := 2;
+  // Insert new paintstage on top of everything else, we use this to draw border
+  Dst.PaintStages.Add.Stage := PST_CUSTOM;;
+  Src.PaintStages.Add.Stage := PST_CUSTOM;;
 
   ResamplerList.GetClassNames(CmbResamplerClassNames.Items);
   KernelList.GetClassNames(CmbKernelClassNames.Items);
@@ -714,45 +699,8 @@ end;
 
 procedure TFormTranformExample.DstPaintStage(Sender: TObject; Buffer: TBitmap32;
   StageNum: Cardinal);
-const            //0..1
-  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
-var
-  R: TRect;
-  I, J: Integer;
-  OddY: Integer;
-  TilesHorz, TilesVert: Integer;
-  TileX, TileY: Integer;
-  TileHeight, TileWidth: Integer;
 begin
-  if Sender is TImage32 then with TImage32(Sender) do
-  begin
-    BeginUpdate;
-    R := GetViewportRect;
-    case PaintStages[StageNum].Parameter of
-      1: begin //Draw Checkerboard
-           TileHeight := 8;
-           TileWidth := 8;
-
-           TilesHorz := (R.Right - R.Left) div TileWidth;
-           TilesVert := (R.Bottom - R.Top) div TileHeight;
-           TileY := 0;
-
-           for J := 0 to TilesVert do
-           begin
-             TileX := 0;
-             OddY := J and $1;
-             for I := 0 to TilesHorz do
-             begin
-               Buffer.FillRectS(TileX, TileY, TileX + TileWidth, TileY + TileHeight,Colors[I and $1 = OddY]);
-               Inc(TileX, TileWidth);
-             end;
-             Inc(TileY, TileHeight);
-           end;
-         end;
-      2: Buffer.FrameRectS(R , $FF000000); //Draw Frame
-    end;
-    EndUpdate;
-  end;
+  Buffer.FrameRectS(TImage32(Sender).GetViewportRect, $FF000000); //Draw Frame
 end;
 
 procedure TFormTranformExample.CbxRepeatClick(Sender: TObject);
