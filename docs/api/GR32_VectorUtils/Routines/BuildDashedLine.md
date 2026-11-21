@@ -49,3 +49,9 @@ overloads:
 ## Description
 
 `BuildDashedLine` breaks input polyline paths into multi-contour arrays containing dashed line segments.
+
+::: info
+Note that the `DashOffset` parameter specifies the offset of **the beginning** of the dash/gap sequence. It does *not* specify an offset **into** the sequence.
+This is the reverse of common definitions, such as the [stroke-dashoffset](https://www.w3.org/TR/SVG/painting.html#StrokeDashoffsetProperty) property of svg dashed strokes, or [Direct2D strokes](https://learn.microsoft.com/en-us/windows/win32/api/d2d1/ns-d2d1-d2d1_stroke_style_properties).
+Since the definition are the reverse of each other, you can simply negate the specified offset value to achieve the behaviour of for example svg or Direct2D.
+:::

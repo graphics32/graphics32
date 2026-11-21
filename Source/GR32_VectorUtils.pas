@@ -99,12 +99,13 @@ function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint; Closed: Bool
 function BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFixedPoint; Closed: Boolean; StrokeWidth: TFixed; JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-function BuildDashedLine(const Points: TArrayOfFloatPoint;
-  const DashArray: TArrayOfFloat; DashOffset: TFloat = 0;
-  Closed: Boolean = False): TArrayOfArrayOfFloatPoint; overload;
-function BuildDashedLine(const Points: TArrayOfFixedPoint;
-  const DashArray: TArrayOfFixed; DashOffset: TFixed = 0;
-  Closed: Boolean = False): TArrayOfArrayOfFixedPoint; overload;
+// BuildDashedLine:
+// - Note that the DashOffset parameter specifies the offset along the Points curve that the
+//   start of DashArray aligns to. It does NOT specify an offset along DashArray.
+//   To get the effect of specifying an offset into the DashArray pattern, simply invert the
+//   sign of the DashOffset parameter.
+function BuildDashedLine(const Points: TArrayOfFloatPoint; const DashArray: TArrayOfFloat; DashOffset: TFloat = 0; Closed: Boolean = False): TArrayOfArrayOfFloatPoint; overload;
+function BuildDashedLine(const Points: TArrayOfFixedPoint; const DashArray: TArrayOfFixed; DashOffset: TFixed = 0; Closed: Boolean = False): TArrayOfArrayOfFixedPoint; overload;
 
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint; overload;
 function ClipPolygon(const Points: TArrayOfFixedPoint; const ClipRect: TFixedRect): TArrayOfFixedPoint; overload;
