@@ -400,7 +400,7 @@ uses
   GR32.Blend.Modes.PorterDuff,
   GR32.Blend.Modes.PhotoShop,
   GR32.SVG.Utf8,
-  // The following units need to be referenced so the can register their renderers
+  // The following units need to be referenced so they can register their renderers
   GR32.SVG.Renderer.Filters,
   GR32.SVG.Renderer.PaintServers;
 
@@ -410,18 +410,31 @@ const
 const
   cMaxRecursions = 20;
 
-function GetTotalPathLength(const APoints: TArrayOfArrayOfFloatPoint): Single;
+function GetTotalPathLength(const APoints: TArrayOfArrayOfFloatPoint; AClosed: boolean): Single;
 var
   i, j: Integer;
   p1, p2: TFloatPoint;
+  First: integer;
 begin
   Result := 0;
+  if AClosed then
+    First := 0
+  else
+    First := 1;
   for i := 0 to High(APoints) do
   begin
-    for j := 0 to High(APoints[i]) - 1 do
+    if (Length(APoints[i]) < 2) then
+      continue;
+
+    if AClosed then
+      p2 := APoints[i][High(APoints[i])] // Closing segment goes from last to first point
+    else
+      p2 := APoints[i][0];
+
+    for j := First to High(APoints[i]) do
     begin
-      p1 := APoints[i][j];
-      p2 := APoints[i][j + 1];
+      p1 := p2;
+      p2 := APoints[i][j];
       Result := Result + GR32_Math.Hypot(p2.X - p1.X, p2.Y - p1.Y);
     end;
   end;
@@ -1817,11 +1830,11 @@ begin
     begin
       if (ScaledDashArray <> nil) then
       begin
-        Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, APathNode.IsPathClosed(i));
+        Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, APathNode.IsPathClosed);
         for j := 0 to High(Points) do
           StrokePoints := StrokePoints + BuildPolyPolyLine([Points[j]], False, StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
       end else
-        StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], APathNode.IsPathClosed(i), StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+        StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], APathNode.IsPathClosed, StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
     end;
   end;
 
@@ -4444,7 +4457,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       if Length(PathPts) = 0 then
         Exit;
 
-      TotalLen := GetTotalPathLength(PathPts);
+      TotalLen := GetTotalPathLength(PathPts, ANode.ResolvedPathNode.IsPathClosed);
       if TotalLen <= 0 then
         Exit;
 

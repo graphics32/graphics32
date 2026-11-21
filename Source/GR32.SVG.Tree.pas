@@ -1562,7 +1562,7 @@ type
     function GetPathData: TArrayOfArrayOfFloatPoint; overload;
 {$ifend}
     function GetControlPoints(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
-    function IsPathClosed(Index: Integer): Boolean;
+    function IsPathClosed: Boolean;
     property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
     property PathCommands: TSvgPathCommands read FPathCommands;
   end;
@@ -8095,7 +8095,7 @@ begin
 end;
 {$ifend}
 
-function TSvgPathNode.IsPathClosed(Index: Integer): Boolean;
+function TSvgPathNode.IsPathClosed: Boolean;
 begin
   if (FProperties.Kind = skPath) then
     Result := FPathCommands.Closed
