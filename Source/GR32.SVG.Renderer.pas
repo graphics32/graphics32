@@ -1759,7 +1759,7 @@ procedure TSvgRenderer.RenderPathNode(ATarget: TCustomBitmap32; APathNode: TSvgP
 var
   TransformedPoints, MarkerPoints: TArrayOfArrayOfFloatPoint;
   UserStrokeWidth, StrokeWidth, MaxStrokeExtent: Single;
-  MatScale, ScaledOffset: Single;
+  MatScale, ScaledOffset, DashScale, TotalLen: Single;
   Points, StrokePoints: TArrayOfArrayOfFloatPoint;
   ScaledDashArray: TArrayOfFloat;
   i, j: Integer;
@@ -1820,10 +1820,20 @@ begin
     ScaledOffset := 0;
     if (APathNode.Stroke.DashArray <> nil) then
     begin
+      if APathNode.HasPathLength and (APathNode.PathLength > 0) then
+      begin
+        TotalLen := GetTotalPathLength(TransformedPoints, APathNode.IsPathClosed);
+        if TotalLen > 0 then
+          DashScale := TotalLen / APathNode.PathLength
+        else
+          DashScale := MatScale;
+      end else
+        DashScale := MatScale;
+
       SetLength(ScaledDashArray, Length(APathNode.Stroke.DashArray));
       for i := 0 to High(APathNode.Stroke.DashArray) do
-        ScaledDashArray[i] := APathNode.Stroke.DashArray[i] * MatScale;
-      ScaledOffset := APathNode.GetSizePx(APathNode.Stroke.DashOffset, FViewportRect) * MatScale;
+        ScaledDashArray[i] := APathNode.Stroke.DashArray[i] * DashScale;
+      ScaledOffset := -APathNode.GetSizePx(APathNode.Stroke.DashOffset, FViewportRect) * DashScale;
     end;
 
     for i := 0 to High(TransformedPoints) do
@@ -3971,7 +3981,7 @@ begin
       SetLength(ScaledDashArray, Length(ANode.Stroke.DashArray));
       for k := 0 to High(ANode.Stroke.DashArray) do
         ScaledDashArray[k] := ANode.Stroke.DashArray[k] * MatScale;
-      ScaledOffset := ANode.GetSizePx(ANode.Stroke.DashOffset, FViewportRect) * MatScale;
+      ScaledOffset := -ANode.GetSizePx(ANode.Stroke.DashOffset, FViewportRect) * MatScale;
     end;
 
     StrokePts := nil;
@@ -4462,6 +4472,9 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
         Exit;
 
       Offset := ANode.GetSizePx(ANode.StartOffset, TotalLen);
+      if (ANode.ResolvedPathNode <> nil) and ANode.ResolvedPathNode.HasPathLength and
+         (ANode.ResolvedPathNode.PathLength > 0) and (ANode.StartOffset.UnitType <> suPercent) then
+        Offset := Offset * (TotalLen / ANode.ResolvedPathNode.PathLength);
 
       NaturalWidth := 0.0;
       CharCount := 0;

@@ -388,7 +388,8 @@ type
     attrPointsAtY,
     attrPointsAtZ,
     attrLimitingConeAngle,
-    attrPath
+    attrPath,
+    attrPathLength
   );
 
 //------------------------------------------------------------------------------
@@ -1545,6 +1546,8 @@ type
     FCachedViewportHeight: Single;
     FCachedMatrix: TFloatMatrix;
     FCachedPathData: TArrayOfArrayOfFloatPoint;
+    FPathLength: Single;
+    FHasPathLength: Boolean;
   protected
     function GetElementTag: UTF8String; override;
     function DumpNode(Indent: Integer = 0): string; override;
@@ -1563,8 +1566,11 @@ type
 {$ifend}
     function GetControlPoints(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
     function IsPathClosed: Boolean;
+    procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); override;
     property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
     property PathCommands: TSvgPathCommands read FPathCommands;
+    property PathLength: Single read FPathLength write FPathLength;
+    property HasPathLength: Boolean read FHasPathLength;
   end;
 
 
@@ -2521,7 +2527,8 @@ const
     'pointsAtY',
     'pointsAtZ',
     'limitingConeAngle',
-    'path'
+    'path',
+    'pathLength'
   );
 
 var
@@ -7828,6 +7835,8 @@ begin
   FCachedViewportWidth := -1.0;
   FCachedViewportHeight := -1.0;
   FCachedMatrix := IdentityMatrix;
+  FPathLength := 0;
+  FHasPathLength := False;
 end;
 
 destructor TSvgPathNode.Destroy;
@@ -8128,6 +8137,8 @@ begin
   pathRes.FHeight := FHeight;
   pathRes.PathCommands.Assign(PathCommands);
   pathRes.FPolyPoints := Copy(FPolyPoints);
+  pathRes.FPathLength := FPathLength;
+  pathRes.FHasPathLength := FHasPathLength;
 
   // TODO : We don't really need to copy the cache...
   pathRes.FCachedViewportWidth := FCachedViewportWidth;
@@ -8140,6 +8151,24 @@ begin
   Result := pathRes;
 end;
 
+procedure TSvgPathNode.ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean);
+var
+  Val: Single;
+begin
+  case AKeyword of
+    attrPathLength:
+      begin
+        if AValue.TryToFloat(Val) and (Val >= 0) then
+        begin
+          FPathLength := Val;
+          FHasPathLength := True;
+        end;
+      end;
+  else
+    inherited;
+  end;
+end;
+
 function TSvgPathNode.DumpNode(Indent: Integer): string;
 begin
   Result := inherited DumpNode(Indent);
@@ -8149,6 +8178,8 @@ begin
     Result := Result + Format(' (fillUrl=%s)', [FFill.Url]);
   if not FStroke.Color.IsNone then
     Result := Result + Format(' (stroke=%s)', [SvgColorToString(FStroke.Color)]);
+  if FHasPathLength then
+    Result := Result + Format(' (pathLength=%s)', [FloatToString(FPathLength)]);
 end;
 
 function TSvgPathNode.GetControlPoints(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
