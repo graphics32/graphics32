@@ -462,11 +462,30 @@ end;
 class function PolyLineBuilderReference.BuildPolyLine(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFloat): TArrayOfFloatPoint;
 var
+  V: TFloat;
+
+  procedure CollapseToPoint;
+  begin
+    // Collapse esSquare->Square, esRound->Circle, esButt->Point
+    // See issue #412
+    case EndStyle of
+      esSquare:
+        Result := Rectangle(MakeRect(Points[0].X - V, Points[0].Y - V, Points[0].X + V, Points[0].Y + V));
+
+      esRound:
+        Result := Circle(Points[0], V);
+    else
+      SetLength(Result, 1);
+      Result[0] := Points[0];
+    end;
+  end;
+
+var
   L, H: Integer;
   Normals: TArrayOfFloatPoint;
   P1, P2, E1, E2: TArrayOfFloatPoint;
-  V: TFloat;
   P: PFloatPoint;
+  IsSingle: boolean;
 begin
   Result := nil;
   if (Length(Points) = 0) then
@@ -482,17 +501,19 @@ begin
       EndStyle := esSquare;
   end;
 
-  if (Length(Points) = 1) then
+  // Do we only have a single point - or only points near enough to be
+  // considered a single point?
+  IsSingle := True;
+  L := 1;
+  while (IsSingle) and (L <= High(Points)) do
   begin
-    case EndStyle of
-      esSquare:
-        Result := Rectangle(MakeRect(Points[0].X - V, Points[0].Y - V, Points[0].X + V, Points[0].Y + V));
-
-      esRound:
-        Result := Circle(Points[0], V);
-    else
-      Exit(Points);
-    end;
+    IsSingle := (Abs(Points[0].X-Points[L].X) + Abs(Points[0].Y-Points[L].Y) < 0.5);
+    Inc(L);
+  end;
+  if (IsSingle) then
+  begin
+    CollapseToPoint;
+    exit;
   end;
 
   Normals := BuildNormals(Points);
@@ -502,7 +523,10 @@ begin
     Dec(H);
   // All normals zeroed => Exit
   if H < 0 then
+  begin
+    CollapseToPoint;
     Exit;
+  end;
 
   L := 0;
   while (Normals[L].X = 0) and (Normals[L].Y = 0) do
@@ -575,11 +599,30 @@ end;
 class function PolyLineBuilderReference.BuildPolyLine(const Points: TArrayOfFixedPoint; StrokeWidth: TFixed;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle; MiterLimit: TFixed): TArrayOfFixedPoint;
 var
+  V: TFixed;
+
+  procedure CollapseToPoint;
+  begin
+    // Collapse esSquare->Square, esRound->Circle, esButt->Point
+    // See issue #412
+    case EndStyle of
+      esSquare:
+        Result := FloatPointToFixedPoint(Rectangle(MakeRect(FixedRect(Points[0].X - V, Points[0].Y - V, Points[0].X + V, Points[0].Y + V))));
+
+      esRound:
+        Result := FloatPointToFixedPoint(Circle(FloatPoint(Points[0]), V * FixedToFloat));
+    else
+      SetLength(Result, 1);
+      Result[0] := Points[0];
+    end;
+  end;
+
+var
   L, H: Integer;
   Normals: TArrayOfFixedPoint;
   P1, P2, E1, E2: TArrayOfFixedPoint;
-  V: TFixed;
   P: PFixedPoint;
+  IsSingle: boolean;
 begin
   Result := nil;
   if (Length(Points) = 0) then
@@ -595,17 +638,19 @@ begin
       EndStyle := esSquare;
   end;
 
-  if (Length(Points) = 1) then
+  // Do we only have a single point - or only points near enough to be
+  // considered a single point?
+  IsSingle := True;
+  L := 1;
+  while (IsSingle) and (L <= High(Points)) do
   begin
-    case EndStyle of
-      esSquare:
-        Result := FloatPointToFixedPoint(Rectangle(MakeRect(FixedRect(Points[0].X - V, Points[0].Y - V, Points[0].X + V, Points[0].Y + V))));
-
-      esRound:
-        Result := FloatPointToFixedPoint(Circle(FloatPoint(Points[0]), V * FixedToFloat));
-    else
-      Exit(Points);
-    end;
+    IsSingle := (Abs(Points[0].X-Points[L].X) + Abs(Points[0].Y-Points[L].Y) < FixedHalf);
+    Inc(L);
+  end;
+  if (IsSingle) then
+  begin
+    CollapseToPoint;
+    exit;
   end;
 
   Normals := BuildNormals(Points);
@@ -614,7 +659,10 @@ begin
   while (H >= 0) and (Normals[H].X = 0) and (Normals[H].Y = 0) do
     Dec(H);
   if H < 0 then
-    Exit;
+  begin
+    CollapseToPoint;
+    exit;
+  end;
 
   L := 0;
   while (Normals[L].X = 0) and (Normals[L].Y = 0) do
