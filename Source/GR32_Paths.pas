@@ -268,6 +268,7 @@ type
     FClosedCount: integer;
     FPoints: TArrayOfFloatPoint;
     FPointIndex: Integer;
+    FLastWasPassive: boolean;
     FOnBeginPath: TNotifyEvent;
     FOnEndPath: TNotifyEvent;
     FCubicBezierTolerance: TFloat;
@@ -295,6 +296,12 @@ type
     // Note that the Points property returns a trimmed copy of the internal array.
     property Points: TArrayOfFloatPoint read GetPoints;
     property ClosedCount: integer read FClosedCount;
+    // LastWasPassive=False specifies that the last vertex was a pen movement
+    // that produced ink (e.g. LineTo), while LastWasPassive=True specifies
+    // that it was a passive pen movement (e.g. MoveTo).
+    // When LastWasPassive=True, FPointIndex will always be 1 and the FPoints
+    // buffer will contain a single vertex.
+    property LastWasPassive: boolean read FLastWasPassive write FLastWasPassive;
   public
     constructor Create; override;
 
@@ -1609,6 +1616,13 @@ begin
   if (FPointIndex = 0) then
     exit;
 
+  // If the last (and only) point was a MoveTo, then just ignore it and clear the buffer
+  if (LastWasPassive) then
+  begin
+    ClearPoints;
+    exit;
+  end;
+
   if (Close) then
   begin
     AddPoint(FPoints[0]);
@@ -1957,7 +1971,22 @@ begin
 
   inherited;
 
-  AddPoint(P);
+  // If the last vertex was also a MoveTo then just move the vertex we have stored.
+  // Since a MoveTo will purge the buffer, set FPointIndex=0, and then add a point,
+  // FPointIndex should be 1 at this point.
+  if (LastWasPassive) and (FPointIndex > 0) then
+  begin
+
+    Assert(FPointIndex = 1);
+    FPoints[0] := P;
+
+  end else
+  begin
+
+    AddPoint(P);
+    LastWasPassive := True;
+
+  end;
 end;
 
 function TFlattenedPath.AddPoint(const APoint: TFloatPoint): boolean;
@@ -1968,7 +1997,9 @@ begin
     DoBeginPath;
 
   // Is the point different from the last one added to the buffer?
-  Result := (FPointIndex = 0) or (Abs(APoint.X-FPoints[FPointIndex-1].X) > AddPointPackTolerance) or (Abs(APoint.Y-FPoints[FPointIndex-1].Y) > AddPointPackTolerance);
+  Result := (LastWasPassive) or (FPointIndex = 0) or
+    (Abs(APoint.X-FPoints[FPointIndex-1].X) > AddPointPackTolerance) or
+    (Abs(APoint.Y-FPoints[FPointIndex-1].Y) > AddPointPackTolerance);
 
 {$if (defined(PATH_ADDPOINT_PACKING)) and (not defined(PATH_ADDPOINT_NOPACKING))}
   if (not Result) then
@@ -1986,6 +2017,8 @@ begin
   // Add vertex to buffer
   FPoints[FPointIndex] := p;
   Inc(FPointIndex);
+
+  LastWasPassive := False;
 end;
 
 procedure TFlattenedPath.AssignTo(Dest: TPersistent);
