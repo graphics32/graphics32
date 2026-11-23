@@ -1772,6 +1772,7 @@ var
   HasFill, HasStroke, HasMarkers: boolean;
   FillPaintServer, StrokePaintServer: TSvgPaintServerNode;
   ObjBox: TFloatRect;
+  PaintOrder: TSvgPaintOrderElement;
 begin
   if (APathNode = nil) or (ATarget = nil) then
     Exit;
@@ -1859,7 +1860,7 @@ begin
     GR32.InflateRect(FloatRoi, MaxStrokeExtent, MaxStrokeExtent);
   end;
 
-  // Intersect FloatRoi with ATarget.ClipRect so offscreen surface allocations remain bounded strictly 
+  // Intersect FloatRoi with ATarget.ClipRect so offscreen surface allocations remain bounded strictly
   // to the visible target viewport instead of allocating huge buffers when zoomed in.
   if not GR32.IntersectRect(FloatRoi, FloatRoi, FloatRect(ATarget.ClipRect)) then
     Exit;
@@ -1923,23 +1924,30 @@ begin
                       (APathNode.ResolvedMask <> nil) or (APathNode.Opacity < 1.0);
   end;
 
+  if (HasMarkers) then
+    // Note: Markers are in user space
+    MarkerPoints := APathNode.GetControlPoints(FViewportRect)
+  else
+    MarkerPoints := nil;
+  HasMarkers := HasMarkers and (MarkerPoints <> nil);
+
   OffscreenBmp := nil;
-
-  if NeedsOffscreen then
-  begin
-    // Defer allocation of ROI bitmap until bounds are actually known after stroking
-    OffscreenBmp := GetOffscreenBitmap(RoiRect.Width, RoiRect.Height, True);
-    RenderBmp := OffscreenBmp;
-
-    // Translate output poly-polygons to ROI coordinate space prior to rendering
-    TranslatePolyPolygonInplace(TransformedPoints, -RoiRect.Left, -RoiRect.Top);
-    if Length(StrokePoints) > 0 then
-      TranslatePolyPolygonInplace(StrokePoints, -RoiRect.Left, -RoiRect.Top);
-  end else
-    RenderBmp := ATarget;
-
   try
-    if (HasFill or HasStroke) then
+
+    if NeedsOffscreen then
+    begin
+      // Defer allocation of ROI bitmap until bounds are actually known after stroking
+      OffscreenBmp := GetOffscreenBitmap(RoiRect.Width, RoiRect.Height, True);
+      RenderBmp := OffscreenBmp;
+
+      // Translate output poly-polygons to ROI coordinate space prior to rendering
+      TranslatePolyPolygonInplace(TransformedPoints, -RoiRect.Left, -RoiRect.Top);
+      if (StrokePoints <> nil) then
+        TranslatePolyPolygonInplace(StrokePoints, -RoiRect.Left, -RoiRect.Top);
+    end else
+      RenderBmp := ATarget;
+
+    if (HasFill or HasStroke or HasMarkers) then
     begin
       if NeedsOffscreen then
       begin
@@ -1951,30 +1959,45 @@ begin
       try
         ObjBox := APathNode.GetObjectBoundingBox(FViewportRect);
 
-        // TODO: Implement 'paint-order' attribute support (APathNode.PaintOrder).
         // By default, order is Fill, Stroke, Markers. If APathNode.PaintOrder specifies
         // a different sequence (e.g. Stroke before Fill, or Markers between/before),
         // dispatch the rendering of Fill, Stroke, and Markers according to that order.
-
-        (*
-        ** 6. Fill Rendering
-        *)
-        if (FillPaintServer <> nil) and (not FillPaintServer.ShouldApply(ObjBox)) then
-          FillPaintServer := nil;
-
-        RenderPolyPolygon(RenderBmp, FillPaintServer, APathNode.Fill.Opacity, FillColor, TransformedPoints, APathNode.Fill.FillRule);
-
-
-        (*
-        ** 7. Stroke Rendering
-        *)
-        if (StrokePoints <> nil) then
+        for PaintOrder in APathNode.PaintOrder do
         begin
-          if (StrokePaintServer <> nil) and (not StrokePaintServer.ShouldApply(ObjBox)) then
-            StrokePaintServer := nil;
+          case PaintOrder of
+            poFill:
+              (*
+              ** 6. Fill Rendering
+              *)
+              if (HasFill) then
+              begin
+                if (FillPaintServer <> nil) and (not FillPaintServer.ShouldApply(ObjBox)) then
+                  FillPaintServer := nil;
 
-          RenderPolyPolygon(RenderBmp, StrokePaintServer, APathNode.Stroke.Opacity, StrokeColor, StrokePoints);
+                RenderPolyPolygon(RenderBmp, FillPaintServer, APathNode.Fill.Opacity, FillColor, TransformedPoints, APathNode.Fill.FillRule);
+              end;
+
+            poStroke:
+              (*
+              ** 7. Stroke Rendering
+              *)
+              if (StrokePoints <> nil) then
+              begin
+                if (StrokePaintServer <> nil) and (not StrokePaintServer.ShouldApply(ObjBox)) then
+                  StrokePaintServer := nil;
+
+                RenderPolyPolygon(RenderBmp, StrokePaintServer, APathNode.Stroke.Opacity, StrokeColor, StrokePoints);
+              end;
+
+            poMarkers:
+              (*
+              ** 8. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
+              *)
+              if (HasMarkers) then
+                RenderMarkers(RenderBmp, APathNode, MarkerPoints, UserStrokeWidth);
+          end;
         end;
+
       finally
         if NeedsOffscreen then
         begin
@@ -1983,32 +2006,6 @@ begin
           FTransformation.Pop;
         end;
       end;
-    end;
-
-    (*
-    ** 8. Markers Rendering (per SVG specification, markers paint on top of fill and stroke)
-    *)
-    if (HasMarkers) then
-      // Note: Markers are in user space
-      MarkerPoints := APathNode.GetControlPoints(FViewportRect)
-    else
-      MarkerPoints := nil;
-    if (MarkerPoints <> nil) then
-    begin
-      // TODO: If 'paint-order' is implemented, marker rendering would be integrated
-      // into the loop/dispatch over APathNode.PaintOrder alongside fill and stroke.
-      if NeedsOffscreen then
-      begin
-        FTransformation.Push;
-        try
-          FTransformation.Translate(-RoiRect.Left, -RoiRect.Top);
-
-          RenderMarkers(RenderBmp, APathNode, MarkerPoints, UserStrokeWidth);
-        finally
-          FTransformation.Pop;
-        end;
-      end else
-        RenderMarkers(RenderBmp, APathNode, MarkerPoints, UserStrokeWidth);
     end;
 
     (*
@@ -3926,6 +3923,7 @@ var
   HasFill, HasStroke: boolean;
   FillPaintServer, StrokePaintServer: TSvgPaintServerNode;
   ObjBox: TFloatRect;
+  PaintOrder: TSvgPaintOrderElement;
 begin
   if (Length(APathPoints) = 0) or (ATarget = nil) then
     Exit;
@@ -3955,53 +3953,58 @@ begin
   TransformedPts := GetTransformedPoints(APathPoints);
   ObjBox := ANode.GetObjectBoundingBox(FViewportRect);
 
-  // TODO: Implement 'paint-order' attribute support for text (ANode.PaintOrder).
   // By default, text fill is rendered before text stroke. If ANode.PaintOrder
   // specifies stroke before fill, render stroke first.
-
-  // 1. Fill Rendering
-  if (HasFill) then
+  for PaintOrder in ANode.PaintOrder do
   begin
-    if (FillPaintServer <> nil) and (not FillPaintServer.ShouldApply(ObjBox)) then
-      FillPaintServer := nil;
+    case PaintOrder of
+      poFill:
+        // 1. Fill Rendering
+        if (HasFill) then
+        begin
+          if (FillPaintServer <> nil) and (not FillPaintServer.ShouldApply(ObjBox)) then
+            FillPaintServer := nil;
 
-    RenderPolyPolygon(ATarget, FillPaintServer, FillOpacity, FillColor, TransformedPts, ANode.Fill.FillRule);
-  end;
+          RenderPolyPolygon(ATarget, FillPaintServer, FillOpacity, FillColor, TransformedPts, ANode.Fill.FillRule);
+        end;
 
-  // 2. Stroke Rendering
-  if (HasStroke) then
-  begin
-    MatScale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
-    StrokeWidth := StrokeWidth * MatScale;
+      poStroke:
+        // 2. Stroke Rendering
+        if (HasStroke) then
+        begin
+          MatScale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
+          StrokeWidth := StrokeWidth * MatScale;
 
-    ScaledDashArray := nil;
-    ScaledOffset := 0;
-    if Length(ANode.Stroke.DashArray) > 0 then
-    begin
-      SetLength(ScaledDashArray, Length(ANode.Stroke.DashArray));
-      for k := 0 to High(ANode.Stroke.DashArray) do
-        ScaledDashArray[k] := ANode.Stroke.DashArray[k] * MatScale;
-      ScaledOffset := -ANode.GetSizePx(ANode.Stroke.DashOffset, FViewportRect) * MatScale;
-    end;
+          ScaledDashArray := nil;
+          ScaledOffset := 0;
+          if Length(ANode.Stroke.DashArray) > 0 then
+          begin
+            SetLength(ScaledDashArray, Length(ANode.Stroke.DashArray));
+            for k := 0 to High(ANode.Stroke.DashArray) do
+              ScaledDashArray[k] := ANode.Stroke.DashArray[k] * MatScale;
+            ScaledOffset := -ANode.GetSizePx(ANode.Stroke.DashOffset, FViewportRect) * MatScale;
+          end;
 
-    StrokePts := nil;
-    for i := 0 to High(TransformedPts) do
-    begin
-      if Length(ScaledDashArray) > 0 then
-      begin
-        DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, True);
-        for j := 0 to High(DashedPts) do
-          StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
-      end else
-        StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], True, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
-    end;
+          StrokePts := nil;
+          for i := 0 to High(TransformedPts) do
+          begin
+            if Length(ScaledDashArray) > 0 then
+            begin
+              DashedPts := BuildDashedLine(TransformedPts[i], ScaledDashArray, ScaledOffset, True);
+              for j := 0 to High(DashedPts) do
+                StrokePts := StrokePts + BuildPolyPolyLine([DashedPts[j]], False, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
+            end else
+              StrokePts := StrokePts + BuildPolyPolyLine([TransformedPts[i]], True, StrokeWidth, ANode.Stroke.JoinStyle, ANode.Stroke.EndStyle, ANode.Stroke.MiterLimit);
+          end;
 
-    if (StrokePts <> nil) then
-    begin
-      if (StrokePaintServer <> nil) and (not StrokePaintServer.ShouldApply(ObjBox)) then
-        StrokePaintServer := nil;
+          if (StrokePts <> nil) then
+          begin
+            if (StrokePaintServer <> nil) and (not StrokePaintServer.ShouldApply(ObjBox)) then
+              StrokePaintServer := nil;
 
-      RenderPolyPolygon(ATarget, StrokePaintServer, StrokeOpacity, StrokeColor, StrokePts);
+            RenderPolyPolygon(ATarget, StrokePaintServer, StrokeOpacity, StrokeColor, StrokePts);
+          end;
+        end;
     end;
   end;
 end;
