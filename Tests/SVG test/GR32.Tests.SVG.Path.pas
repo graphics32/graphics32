@@ -225,17 +225,6 @@ begin
     dist := Sqrt(Sqr(pts[0][i].X - cx) + Sqr(pts[0][i].Y - cy));
     CheckEquals(r, dist, 0.5);
   end;
-
-  // Condensed flag-concatenated arc path without commas between rotation and flags (e.g. 010 and 000)
-  pts := SvgPathDataToPoints('M32,3 A29,29,01061,32 29,29,00032,3 Z');
-  CheckEquals(1, Length(pts));
-  Check(Length(pts[0]) >= 12, 'Condensed multi-arc path should parse all arc segments');
-
-  for i := 0 to High(pts[0]) do
-  begin
-    dist := Sqrt(Sqr(pts[0][i].X - cx) + Sqr(pts[0][i].Y - cy));
-    CheckEquals(r, dist, 0.5);
-  end;
 end;
 
 procedure TTestSvgPath.TestMultipleSubpaths;

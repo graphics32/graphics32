@@ -416,6 +416,7 @@ type
     function IsCommand(var ACmd: AnsiChar): Boolean;
     function ReadCommand(var ACmd: AnsiChar): Boolean;
     function ReadNumber(out AValue: Single): Boolean;
+    function ReadCoordinatePair(out X, Y: Single): Boolean;
     function ReadFlag(out AFlag: Boolean): Boolean;
   end;
 
@@ -451,6 +452,11 @@ begin
     Result := False;
 end;
 
+function TSvgPathScanner.ReadCoordinatePair(out X, Y: Single): Boolean;
+begin
+  Result := ReadNumber(X) and ReadNumber(Y);
+end;
+
 function TSvgPathScanner.ReadNumber(out AValue: Single): Boolean;
 var
   Value: TValuePUtf8Char;
@@ -463,23 +469,10 @@ begin
   if (FText.Text^ in ['+', '-']) then
     FText.Skip;
 
-  // W3C SVG Path Data Syntax Optimization:
-  // In condensed SVG path strings (e.g. 'A29,29,01061,32'), a number starting with '0'
-  // (such as x-axis-rotation 0) may be followed immediately by single-digit arc flags
-  // ('0' or '1') without whitespace or commas separating them (e.g. '01061').
-  // If the first digit is '0' and followed by another digit without a decimal point,
-  // '0' is a standalone numeric value, and subsequent digits belong to flags or
-  // coordinates. Stop reading after '0' so ReadFlag can parse subsequent flag digits.
-  if (FText.Len > 1) and (FText.Text^ = '0') and (FText.Text[1] in ['0'..'9']) then
-  begin
+  FText.SkipDigits;
+  if (FText.Len > 0) and (FText.Text^ = '.') then
     FText.Skip;
-  end else
-  begin
-    FText.SkipDigits;
-    if (FText.Len > 0) and (FText.Text^ = '.') then
-      FText.Skip;
-    FText.SkipDigits;
-  end;
+  FText.SkipDigits;
 
   if (FText.Len > 1) and (FText.Text^ in ['e', 'E']) and (FText.Text[1] in ['0'..'9', '+', '-']) then
   begin
@@ -547,6 +540,8 @@ begin
   else
     PathCommands := nil;
 
+  // SVG 1.1; Section 8.3.9 The grammar for path data
+  // https://www.w3.org/Graphics/SVG/1.1/paths.html#PathDataBNF
   while Scanner.HasMore do
   begin
     if not Scanner.ReadCommand(Command) then
@@ -579,25 +574,25 @@ begin
     case Command of
       'M':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          if (not Scanner.ReadCoordinatePair(Value1, Value2)) then break;
           APath.MoveTo(FloatPoint(Value1, Value2));
         end;
 
       'm':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          if (not Scanner.ReadCoordinatePair(Value1, Value2)) then break;
           APath.MoveToRelative(FloatPoint(Value1, Value2));
         end;
 
       'L':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          if (not Scanner.ReadCoordinatePair(Value1, Value2)) then break;
           APath.LineTo(FloatPoint(Value1, Value2));
         end;
 
       'l':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then break;
+          if (not Scanner.ReadCoordinatePair(Value1, Value2)) then break;
           APath.LineToRelative(FloatPoint(Value1, Value2));
         end;
 
@@ -627,10 +622,10 @@ begin
 
       'C':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
+          if (not Scanner.ReadCoordinatePair(Value1, Value2)) then
             Break;
 
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+          if (not Scanner.ReadCoordinatePair(Value3, Value4)) then
           begin
             Value3 := Value1;
             Value4 := Value2;
@@ -639,7 +634,7 @@ begin
             APath.CurveTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
             SetParamPairCount(1);
           end else
-          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          if (not Scanner.ReadCoordinatePair(Value5, Value6)) then
           begin
             Value5 := Value3;
             Value6 := Value4;
@@ -654,10 +649,10 @@ begin
 
       'c':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2)) then
+          if (not Scanner.ReadCoordinatePair(Value1, Value2)) then
             Break;
 
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+          if (not Scanner.ReadCoordinatePair(Value3, Value4)) then
           begin
             Value3 := Value1;
             Value4 := Value2;
@@ -666,7 +661,7 @@ begin
             APath.CurveToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4), FloatPoint(Value5, Value6));
             SetParamPairCount(1);
           end else
-          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          if (not Scanner.ReadCoordinatePair(Value5, Value6)) then
           begin
             Value5 := Value3;
             Value6 := Value4;
@@ -681,10 +676,10 @@ begin
 
       'S':
         begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+          if (not Scanner.ReadCoordinatePair(Value3, Value4)) then
             Break;
 
-          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          if (not Scanner.ReadCoordinatePair(Value5, Value6)) then
           begin
             Value5 := Value3;
             Value6 := Value4;
@@ -695,10 +690,10 @@ begin
 
       's':
         begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then
+          if (not Scanner.ReadCoordinatePair(Value3, Value4)) then
             Break;
 
-          if not (Scanner.ReadNumber(Value5) and Scanner.ReadNumber(Value6)) then
+          if (not Scanner.ReadCoordinatePair(Value5, Value6)) then
           begin
             Value5 := Value3;
             Value6 := Value4;
@@ -709,27 +704,27 @@ begin
 
       'Q':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
-                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          if not(Scanner.ReadCoordinatePair(Value1, Value2) and
+                 Scanner.ReadCoordinatePair(Value3, Value4)) then break;
           APath.ConicTo(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4));
         end;
 
       'q':
         begin
-          if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
-                  Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          if not (Scanner.ReadCoordinatePair(Value1, Value2) and
+                  Scanner.ReadCoordinatePair(Value3, Value4)) then break;
           APath.ConicToRelative(FloatPoint(Value1, Value2), FloatPoint(Value3, Value4));
         end;
 
       'T':
         begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          if (not Scanner.ReadCoordinatePair(Value3, Value4)) then break;
           APath.ConicTo(FloatPoint(Value3, Value4));
         end;
 
       't':
         begin
-          if not (Scanner.ReadNumber(Value3) and Scanner.ReadNumber(Value4)) then break;
+          if (not Scanner.ReadCoordinatePair(Value3, Value4)) then break;
           APath.ConicToRelative(FloatPoint(Value3, Value4));
         end;
 
@@ -737,8 +732,8 @@ begin
         begin
           if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
                   Scanner.ReadNumber(Value3) and Scanner.ReadFlag(Flag1) and
-                  Scanner.ReadFlag(Flag2) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5)) then break;
+                  Scanner.ReadFlag(Flag2) and
+                  Scanner.ReadCoordinatePair(Value4, Value5)) then break;
           APath.EllipticalArc(FloatPoint(Value4, Value5), Value1, Value2, DegToRad(Value3), LargeArcMap[Flag1], SweepMap[Flag2]);
         end;
 
@@ -746,8 +741,8 @@ begin
         begin
           if not (Scanner.ReadNumber(Value1) and Scanner.ReadNumber(Value2) and
                   Scanner.ReadNumber(Value3) and Scanner.ReadFlag(Flag1) and
-                  Scanner.ReadFlag(Flag2) and Scanner.ReadNumber(Value4) and
-                  Scanner.ReadNumber(Value5)) then break;
+                  Scanner.ReadFlag(Flag2) and
+                  Scanner.ReadCoordinatePair(Value4, Value5)) then break;
           APath.EllipticalArcRelative(FloatPoint(Value4, Value5), Value1, Value2, DegToRad(Value3), LargeArcMap[Flag1], SweepMap[Flag2]);
         end;
 
