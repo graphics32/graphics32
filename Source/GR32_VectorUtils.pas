@@ -111,7 +111,7 @@ function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRec
 function ClipPolygon(const Points: TArrayOfFixedPoint; const ClipRect: TFixedRect): TArrayOfFixedPoint; overload;
 
 procedure SanitizePolygon(var Points: TArrayOfFloatPoint; StripClosePoint: boolean = False);
-procedure SanitizePolyPolygon(var Points: TArrayOfArrayOfFloatPoint; StripClosePoint: boolean = False);
+procedure SanitizePolyPolygon(var Points: TArrayOfArrayOfFloatPoint; const StripClosePoints: TArray<boolean> = nil);
 
 function CalculateCircleSteps(Radius: TFloat): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
@@ -2023,15 +2023,23 @@ begin
     SetLength(Points, ResultCount);
 end;
 
-procedure SanitizePolyPolygon(var Points: TArrayOfArrayOfFloatPoint; StripClosePoint: boolean);
+procedure SanitizePolyPolygon(var Points: TArrayOfArrayOfFloatPoint; const StripClosePoints: TArray<boolean>);
 var
   i: integer;
+  StripClosePoint: boolean;
 begin
   // Ensure that we don't mutate a shared dynamic array
   MakeUnique(Points);
 
   for i := 0 to High(Points) do
+  begin
+    if (StripClosePoints <> nil) and (i <= High(StripClosePoints)) then
+      StripClosePoint := StripClosePoints[i]
+    else
+      StripClosePoint := False;
+
     SanitizePolygon(Points[i], StripClosePoint);
+  end;
 end;
 
 function InterpolateX(X: TFloat; const P1, P2: TFloatPoint): TFloatPoint; overload;
