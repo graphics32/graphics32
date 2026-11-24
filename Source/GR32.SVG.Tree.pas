@@ -1546,6 +1546,7 @@ type
     FCachedViewportHeight: Single;
     FCachedMatrix: TFloatMatrix;
     FCachedPathData: TArrayOfArrayOfFloatPoint;
+    FCachedPolyClosed: TPolyClosedState;
     FPathLength: Single;
     FHasPathLength: Boolean;
   protected
@@ -1558,14 +1559,13 @@ type
     function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; overload; override;
     // Note: The array returned by GetPathData is cached. It (or it's elements) must be considered
     // immutable. Do not perform in-place modifications on it.
-    function GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint; overload;
+    function GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation; var APolyClosed: TPolyClosedState): TArrayOfArrayOfFloatPoint; overload;
 {$if defined(UNIT_TEST)}
     function GetPathData(const AViewport: TFloatRect; const AScale: Single = 1.0): TArrayOfArrayOfFloatPoint; overload;
     function GetPathData(AViewportWidth, AViewportHeight: Single): TArrayOfArrayOfFloatPoint; overload;
     function GetPathData: TArrayOfArrayOfFloatPoint; overload;
 {$ifend}
     function GetControlPoints(const AViewport: TFloatRect): TArrayOfArrayOfFloatPoint;
-    function IsPathClosed: Boolean;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); override;
     property ShapeKind: TSvgShapeKind read FProperties.Kind write FProperties.Kind;
     property PathCommands: TSvgPathCommands read FPathCommands;
@@ -7845,7 +7845,7 @@ begin
   inherited Destroy;
 end;
 
-function TSvgPathNode.GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+function TSvgPathNode.GetPathData(const AViewport: TFloatRect; ATransformation: TAffineTransformation; var APolyClosed: TPolyClosedState): TArrayOfArrayOfFloatPoint;
 var
   ViewportWidth, ViewportHeight: Single;
   i, Count: Integer;
@@ -7853,7 +7853,6 @@ var
   p, p2: TFloatPoint;
   Points: TArrayOfFloatPoint;
   n: Single;
-  IsClosed: boolean;
 begin
   ViewportWidth := AViewport.Width;
   ViewportHeight := AViewport.Height;
@@ -7863,6 +7862,7 @@ begin
      (CompareMem(@FCachedMatrix, @ATransformation.Matrix, SizeOf(FCachedMatrix))) then
   begin
     Result := FCachedPathData;
+    APolyClosed := FCachedPolyClosed;
 {$if defined(BENCHMARK_FLATTEN)}
     for Points in Result do
       Inc(SvgVertexCount, Length(Points));
@@ -7876,7 +7876,7 @@ begin
   else
     IsAxisAligned := True;
 
-  IsClosed := False;
+  APolyClosed := nil; // nil=False
 
   (*
   ** If the transformation is axis-aligned we do a simple translation of coordinates,
@@ -7887,10 +7887,7 @@ begin
   *)
   case FProperties.Kind of
     skPath:
-      begin
-        Result := FPathCommands.Flatten(AViewport, ATransformation);
-        IsClosed := FPathCommands.Closed;
-      end;
+      Result := FPathCommands.Flatten(AViewport, ATransformation, APolyClosed);
 
     skPolyline, skPolygon:
       begin
@@ -7906,7 +7903,7 @@ begin
           begin
             if (FPolyPoints[0].X <> FPolyPoints[Count - 1].X) or (FPolyPoints[0].Y <> FPolyPoints[Count - 1].Y) then
               Inc(Count);
-            IsClosed := True;
+            APolyClosed := [True];
           end;
 
           if (not IsIdent) then
@@ -7945,7 +7942,7 @@ begin
 
     skRect:
       begin
-        IsClosed := True;
+        APolyClosed := [True];
         if (IsAxisAligned) then
         begin
           p.X := GetSizePx(FProperties.rect.X, ViewportWidth);
@@ -7977,7 +7974,7 @@ begin
 
     skCircle:
       begin
-        IsClosed := True;
+        APolyClosed := [True];
         if (IsAxisAligned) then
         begin
           p.X := GetSizePx(FProperties.circle.Cx, ViewportWidth);
@@ -8013,7 +8010,7 @@ begin
 
     skEllipse:
       begin
-        IsClosed := True;
+        APolyClosed := [True];
         if (IsAxisAligned) then
         begin
           p.X := GetSizePx(FProperties.ellipse.Cx, ViewportWidth);
@@ -8068,9 +8065,10 @@ begin
   FCachedViewportHeight := ViewportHeight;
   FCachedMatrix := ATransformation.Matrix;
 
-  SanitizePolyPolygon(Result, IsClosed);
+  SanitizePolyPolygon(Result, APolyClosed);
 
   FCachedPathData := Result;
+  FCachedPolyClosed := APolyClosed;
 
 {$if defined(BENCHMARK_FLATTEN)}
   for Points in Result do
@@ -8082,12 +8080,13 @@ end;
 function TSvgPathNode.GetPathData(const AViewport: TFloatRect; const AScale: Single): TArrayOfArrayOfFloatPoint;
 var
   Trans: TAffineTransformation;
+  PolyClosed: TPolyClosedState;
 begin
   Trans := TAffineTransformation.Create;
   try
     if AScale <> 1.0 then
       Trans.Scale(AScale, AScale);
-    Result := GetPathData(AViewport, Trans);
+    Result := GetPathData(AViewport, Trans, PolyClosed);
   finally
     Trans.Free;
   end;
@@ -8103,14 +8102,6 @@ begin
   Result := GetPathData(FloatRect(0, 0, 0, 0), 1.0);
 end;
 {$ifend}
-
-function TSvgPathNode.IsPathClosed: Boolean;
-begin
-  if (FProperties.Kind = skPath) then
-    Result := FPathCommands.Closed
-  else
-    Result := (FProperties.Kind in [skRect, skCircle, skEllipse, skPolygon]);
-end;
 
 function TSvgPathNode.GetElementTag: UTF8String;
 begin

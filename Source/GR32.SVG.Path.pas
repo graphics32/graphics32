@@ -67,6 +67,8 @@ type
       pckEllipticalArc: (Arc:     record EndPoint: TFloatPoint; RadiusX, RadiusY, AngleRad: Single; Part: TArcPart; Direction: TArcDirection; end);
   end;
 
+  TPolyClosedState = TArray<boolean>;
+
 //------------------------------------------------------------------------------
 //
 //      TSvgPathCommands
@@ -80,7 +82,6 @@ type
   private
     FCommands: TArray<TSvgPathCommand>;
     FCount: Integer;
-    FClosed: boolean;
     FNextCommand: PSvgPathCommand;
     FCommandLevel: integer;
   protected
@@ -105,11 +106,10 @@ type
     procedure EllipticalArcRelative(AEndPoint: TFloatPoint; ARadiusX, ARadiusY: TFloat; ARotation: TFloat; APart: TArcPart; ASweep: TArcDirection); override;
     procedure EndPath(Close: Boolean = False); override;
 
-    function Flatten(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+    function Flatten(const AViewport: TFloatRect; ATransformation: TAffineTransformation; var APolyClosed: TPolyClosedState): TArrayOfArrayOfFloatPoint;
 
     property Commands: TSvgPathCommandArray read FCommands;
     property Count: Integer read FCount;
-    property Closed: boolean read FClosed;
     property InProgress: boolean read GetInProgress;
   end;
 
@@ -781,7 +781,6 @@ begin
   begin
     TSvgPathCommands(Dest).FCommands := Copy(FCommands);
     TSvgPathCommands(Dest).FCount := FCount;
-    TSvgPathCommands(Dest).FClosed := FClosed;
   end else
     inherited;
 end;
@@ -934,8 +933,6 @@ begin
   if (not InProgress) then
     exit;
 
-  FClosed := Close;
-
   BeginCommand;
   begin
     NextCommand.Kind := pckEndPath;
@@ -944,7 +941,9 @@ begin
   EndCommand;
 end;
 
-function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: TAffineTransformation): TArrayOfArrayOfFloatPoint;
+function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: TAffineTransformation; var APolyClosed: TPolyClosedState): TArrayOfArrayOfFloatPoint;
+var
+  PolyIndex: integer;
 
   procedure ReplayCommands(Path: TCustomPath);
   var
@@ -952,6 +951,7 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
     ArcProps: TTransformedArcProps;
     ScaleX, ScaleY: Single;
     CurrPt, P, C1, C2, P1: TFloatPoint;
+    Command, LastCommand: TSvgPathCommandKind;
 {$if defined(SVG32_CULL_SHAPES)}
     r: TFloatRect;
     Viewport: TFloatRect;
@@ -965,11 +965,21 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
     Viewport.BottomRight := ATransformation.Transform(AViewport.BottomRight);
 {$ifend}
 
+    Command := pckMoveTo;
+
     for i := 0 to FCount - 1 do
     begin
-      case FCommands[i].Kind of
+      LastCommand := Command;
+      Command := FCommands[i].Kind;
+
+      case Command of
         pckMoveTo:
           begin
+            if (LastCommand in [pckLineTo, pckCurveTo, pckConicTo, pckEllipticalArc]) then
+            begin
+              APolyClosed[PolyIndex] := False;
+              Inc(PolyIndex);
+            end;
             CurrPt := ATransformation.Transform(FCommands[i].MoveTo.P);
             Path.MoveTo(CurrPt);
           end;
@@ -1102,17 +1112,62 @@ function TSvgPathCommands.Flatten(const AViewport: TFloatRect; ATransformation: 
           end;
 
         pckEndPath:
-          // TODO :
-          // 1. If the whole polygon is fully above, to the right, or below the
-          //    viewport, then it doesn't affect the winding or pixel coverage
-          //    and we can safely ignore it.
-          // 2. If the shape is fully to the left of the viewport, then it may
-          //    affect pixel coverage, but the exact shape doesn't matter and we
-          //    can safely replace it with a straight line.
-          // We can apply this culling before flattening.
-          Path.EndPath(FCommands[i].Closed);
+          begin
+            // TODO :
+            // 1. If the whole polygon is fully above, to the right, or below the
+            //    viewport, then it doesn't affect the winding or pixel coverage
+            //    and we can safely ignore it.
+            // 2. If the shape is fully to the left of the viewport, then it may
+            //    affect pixel coverage, but the exact shape doesn't matter and we
+            //    can safely replace it with a straight line.
+            // We can apply this culling before flattening.
+
+
+            if (LastCommand in [pckLineTo, pckCurveTo, pckConicTo, pckEllipticalArc]) then
+            begin
+              APolyClosed[PolyIndex] := FCommands[i].Closed;
+              Inc(PolyIndex);
+            end;
+
+            Path.EndPath(FCommands[i].Closed);
+          end;
       end;
     end;
+
+    // Implicit EndPath
+    if (Command in [pckLineTo, pckCurveTo, pckConicTo, pckEllipticalArc]) then
+    begin
+      Path.EndPath;
+
+      APolyClosed[PolyIndex] := False;
+      Inc(PolyIndex);
+    end;
+
+    // Trim closed in case we culled some of the shapes
+    SetLength(APolyClosed, PolyIndex);
+  end;
+
+  function CalculatePolyCount: integer;
+  var
+    i: integer;
+    LastCommand: TSvgPathCommandKind;
+  begin
+    (*
+    ** Calculate how many shapes the path commands can produce.
+    *)
+    Result := 0;
+    LastCommand := pckMoveTo;
+    for i := 0 to FCount - 1 do
+    begin
+      // A curve followed by a MoveTo or EndTo produces a polyline
+      if (LastCommand in [pckLineTo, pckCurveTo, pckConicTo, pckEllipticalArc]) and
+        (FCommands[i].Kind in [pckMoveTo, pckEndPath]) then
+        Inc(Result);
+      LastCommand := FCommands[i].Kind;
+    end;
+    // Implicit EndPath
+    if (LastCommand in [pckLineTo, pckCurveTo, pckConicTo, pckEllipticalArc]) then
+      Inc(Result);
   end;
 
 var
@@ -1121,12 +1176,13 @@ begin
   if FCount = 0 then
     Exit(nil);
 
+  SetLength(APolyClosed, CalculatePolyCount);
+  PolyIndex := 0;
+
   Path := TFlattenedPath.Create;
   try
 
     ReplayCommands(Path);
-
-    Path.EndPath;
 
     Result := Path.Path;
 

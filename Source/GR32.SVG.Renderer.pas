@@ -410,26 +410,28 @@ const
 const
   cMaxRecursions = 20;
 
-function GetTotalPathLength(const APoints: TArrayOfArrayOfFloatPoint; AClosed: boolean): Single;
+function GetTotalPathLength(const APoints: TArrayOfArrayOfFloatPoint; const APolyClosed: TArray<boolean>): Single;
 var
   i, j: Integer;
   p1, p2: TFloatPoint;
   First: integer;
 begin
   Result := 0;
-  if AClosed then
-    First := 0
-  else
-    First := 1;
+
   for i := 0 to High(APoints) do
   begin
     if (Length(APoints[i]) < 2) then
       continue;
 
-    if AClosed then
+    if (APolyClosed <> nil) and (i <= High(APolyClosed)) and (APolyClosed[i]) then
+    begin
+      First := 0;
       p2 := APoints[i][High(APoints[i])] // Closing segment goes from last to first point
-    else
+    end else
+    begin
+      First := 1;
       p2 := APoints[i][0];
+    end;
 
     for j := First to High(APoints[i]) do
     begin
@@ -1761,6 +1763,8 @@ var
   UserStrokeWidth, StrokeWidth, MaxStrokeExtent: Single;
   MatScale, ScaledOffset, DashScale, TotalLen: Single;
   Points, StrokePoints: TArrayOfArrayOfFloatPoint;
+  PolyClosed: TArray<boolean>;
+  Closed: boolean;
   ScaledDashArray: TArrayOfFloat;
   i, j: Integer;
   FloatRoi: TFloatRect;
@@ -1805,7 +1809,7 @@ begin
   ** 2. Generate path and transform into world coordinates
   *)
   MatScale := TFloatMatrixHelper(FTransformation.Matrix).GetScale;
-  TransformedPoints := APathNode.GetPathData(FViewportRect, FTransformation);
+  TransformedPoints := APathNode.GetPathData(FViewportRect, FTransformation, PolyClosed);
   if (TransformedPoints = nil) then
     Exit;
 
@@ -1823,7 +1827,7 @@ begin
     begin
       if APathNode.HasPathLength and (APathNode.PathLength > 0) then
       begin
-        TotalLen := GetTotalPathLength(TransformedPoints, APathNode.IsPathClosed);
+        TotalLen := GetTotalPathLength(TransformedPoints, PolyClosed);
         if TotalLen > 0 then
           DashScale := TotalLen / APathNode.PathLength
         else
@@ -1839,13 +1843,15 @@ begin
 
     for i := 0 to High(TransformedPoints) do
     begin
+      Closed := (PolyClosed <> nil) and (i <= High(PolyClosed)) and (PolyClosed[i]);
+
       if (ScaledDashArray <> nil) then
       begin
-        Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, APathNode.IsPathClosed);
+        Points := BuildDashedLine(TransformedPoints[i], ScaledDashArray, ScaledOffset, Closed);
         for j := 0 to High(Points) do
           StrokePoints := StrokePoints + BuildPolyPolyLine([Points[j]], False, StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
       end else
-        StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], APathNode.IsPathClosed, StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
+        StrokePoints := StrokePoints + BuildPolyPolyLine([TransformedPoints[i]], Closed, StrokeWidth, APathNode.Stroke.JoinStyle, APathNode.Stroke.EndStyle, APathNode.Stroke.MiterLimit);
     end;
   end;
 
@@ -2647,6 +2653,7 @@ var
   SourceBounds, FilterBounds, FilterRegionRect, TargetWorldBounds, VisibleROI, RequiredInputRect: TFloatRect;
   PathNode: TSvgPathNode;
   TransformedPoints, StrokePoints: TArrayOfArrayOfFloatPoint;
+  PolyClosed: TArray<boolean>;
   StrokeWidth, BBoxWidth, BBoxHeight: Single;
   FilterRegionWidth, FilterRegionHeight: Single;
   NodeBounds, UserFilterRegionRect: TFloatRect;
@@ -2700,7 +2707,7 @@ begin
     begin
       PathNode := TSvgPathNode(ANode);
       NodeBounds := PathNode.GetObjectBoundingBox(FViewportRect);
-      TransformedPoints := PathNode.GetPathData(FViewportRect, FTransformation);
+      TransformedPoints := PathNode.GetPathData(FViewportRect, FTransformation, PolyClosed);
 
       if Length(TransformedPoints) > 0 then
       begin
@@ -4436,6 +4443,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
   procedure ProcessTextPathNode(ANode: TSvgTextPathNode; Canvas: TCustomCanvas32);
   var
     PathPts: TArrayOfArrayOfFloatPoint;
+    PolyClosed: TArray<boolean>;
     TotalLen, Offset, CurrentDistance, NaturalWidth, TextWidth, ExtraSpacing, ScaleFactor: Single;
     CharCount: Integer;
     HasNodeTransform: Boolean;
@@ -4461,7 +4469,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
 
         FTransformation.Clear(ANode.ResolvedPathNode.Transform);
 
-        PathPts := ANode.ResolvedPathNode.GetPathData(FViewportRect, FTransformation);
+        PathPts := ANode.ResolvedPathNode.GetPathData(FViewportRect, FTransformation, PolyClosed);
 
       finally
         FTransformation.Pop;
@@ -4470,7 +4478,7 @@ procedure TSvgRenderer.RenderTextNode(ATarget: TCustomBitmap32; ATextNode: TSvgT
       if Length(PathPts) = 0 then
         Exit;
 
-      TotalLen := GetTotalPathLength(PathPts, ANode.ResolvedPathNode.IsPathClosed);
+      TotalLen := GetTotalPathLength(PathPts, PolyClosed);
       if TotalLen <= 0 then
         Exit;
 
