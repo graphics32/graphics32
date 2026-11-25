@@ -831,7 +831,8 @@ type
     destructor Destroy; override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); override;
-    procedure AddStop(AColor: TSvgColor; AOpacity: Single = 1.0; const APathStr: UTF8String = '');
+    procedure AddStop(AColor: TSvgColor; AOpacity: Single = 1.0); overload;
+    procedure AddStop(AColor: TSvgColor; AOpacity: Single; const APath: TValuePUtf8Char); overload;
 
     property ControlPoints: TControlPoints read FControlPoints;
     property CornerColors[Index: integer]: TSvgColor read GetCornerColor write SetCornerColor;
@@ -5723,7 +5724,14 @@ begin
     Result := nil;
 end;
 
-procedure TSvgMeshPatchNode.AddStop(AColor: TSvgColor; AOpacity: Single; const APathStr: UTF8String);
+procedure TSvgMeshPatchNode.AddStop(AColor: TSvgColor; AOpacity: Single);
+const
+  Path: TValuePUtf8Char = (Text: nil; Len: 0);
+begin
+  AddStop(AColor, AOpacity, Path);
+end;
+
+procedure TSvgMeshPatchNode.AddStop(AColor: TSvgColor; AOpacity: Single; const APath: TValuePUtf8Char);
 begin
   if (FStopCount > High(FStops)) then
     exit;
@@ -5731,8 +5739,8 @@ begin
   FStops[FStopCount].Color := AColor;
   FStops[FStopCount].Opacity := EnsureRange(AOpacity, 0.0, 1.0);
   FStops[FStopCount].Commands.Clear;
-  if APathStr <> '' then
-    ParseSvgPathData(TValuePUtf8Char.FromString(APathStr), FStops[FStopCount].Commands);
+  if (APath.Len <> 0) then
+    ParseSvgPathData(APath, FStops[FStopCount].Commands);
   Inc(FStopCount);
 end;
 
@@ -8137,7 +8145,6 @@ end;
 function TSvgPathNode.Clone(AParent: TSvgNode): TSvgNode;
 var
   pathRes: TSvgPathNode;
-  i: Integer;
 begin
   pathRes := TSvgPathNode(inherited Clone(AParent));
   pathRes.FProperties := FProperties;
@@ -8148,13 +8155,12 @@ begin
   pathRes.FPathLength := FPathLength;
   pathRes.FHasPathLength := FHasPathLength;
 
-  // TODO : We don't really need to copy the cache...
-  pathRes.FCachedViewportWidth := FCachedViewportWidth;
-  pathRes.FCachedViewportHeight := FCachedViewportHeight;
-  pathRes.FCachedMatrix := FCachedMatrix;
-  SetLength(pathRes.FCachedPathData, Length(FCachedPathData));
-  for i := 0 to High(FCachedPathData) do
-    pathRes.FCachedPathData[i] := Copy(FCachedPathData[i]);
+  // Don't clone the cache
+  pathRes.FCachedViewportWidth := 0;
+  pathRes.FCachedViewportHeight := 0;
+  pathRes.FCachedMatrix := Default(TFloatMatrix);
+  pathRes.FCachedPathData := nil;
+  pathRes.FCachedPolyClosed := nil;
 
   Result := pathRes;
 end;
@@ -9991,7 +9997,7 @@ var
     Value: TValuePUtf8Char;
     Points: TValuePUtf8Char;
     stopVal: TSvgGradientStop;
-    stopPathStr: UTF8String;
+    stopPath: TValuePUtf8Char;
     Color: TSvgColor;
     TextPosNode: TSvgTextPositioningNode;
     i: Integer;
@@ -10075,7 +10081,7 @@ var
             if (AParent <> nil) and (AParent is TSvgMeshPatchNode) then
             begin
               stopOpacity := 1.0;
-              stopPathStr := '';
+              stopPath := Default(TValuePUtf8Char);
               Color := TSvgColor.Unset;
               while AParser.ParseNext = xtAttribute do
               begin
@@ -10095,10 +10101,10 @@ var
                       Color := ParseStopStyle(TValuePUtf8Char(AParser.Value), stopOpacity);
 
                     stopTagPath:
-                      stopPathStr := TValuePUtf8Char(AParser.Value).ToUtf8; // TODO : Parse this
+                      stopPath := TValuePUtf8Char(AParser.Value);
                   end;
               end;
-              TSvgMeshPatchNode(AParent).AddStop(Color, stopOpacity, stopPathStr);
+              TSvgMeshPatchNode(AParent).AddStop(Color, stopOpacity, stopPath);
             end else
               while AParser.ParseNext = xtAttribute do ;
 
