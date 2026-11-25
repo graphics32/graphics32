@@ -1,4 +1,4 @@
-unit Clipper.Engine;
+unit GR32.Clipper.Engine;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
@@ -11,10 +11,10 @@ unit Clipper.Engine;
 
 interface
 
-{$I Clipper.inc}
+{$I GR32.Clipper.inc}
 
 uses
-  Classes, Math, Clipper.Core;
+  Classes, Math, GR32.Clipper.Core;
 
 type
   //PathType:
@@ -3726,7 +3726,7 @@ begin
     result := Assigned(outrec.pts) and
       BuildPath(outrec.pts, FReverseSolution, false, outrec.path);
     if not Result then Exit;
-    outrec.bounds := Clipper.Core.GetBounds(outrec.path);
+    outrec.bounds := GR32.Clipper.Core.GetBounds(outrec.path);
   end else
     Result := true;
 end;

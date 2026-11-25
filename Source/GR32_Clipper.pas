@@ -42,36 +42,36 @@ uses
   Math,
   GR32_Clipper2,
   GR32_Polygons,
-  Clipper.Core,
-  Clipper.Engine,
-  Clipper.Offset,
+  GR32.Clipper.Core,
+  GR32.Clipper.Engine,
+  GR32.Clipper.Offset,
   GR32;
 
 const
   // TPathType
-  ptSubject     = Clipper.Engine.ptSubject;
-  ptClip        = Clipper.Engine.ptClip;
+  ptSubject     = GR32.Clipper.Engine.ptSubject;
+  ptClip        = GR32.Clipper.Engine.ptClip;
 
 const
   // TClipType
-  ctNone        = Clipper.Core.ctNoClip;
-  ctNoClip      = Clipper.Core.ctNoClip;
-  ctIntersection= Clipper.Core.ctIntersection;
-  ctUnion       = Clipper.Core.ctUnion;
-  ctDifference  = Clipper.Core.ctDifference;
-  ctXor         = Clipper.Core.ctXor;
+  ctNone        = GR32.Clipper.Core.ctNoClip;
+  ctNoClip      = GR32.Clipper.Core.ctNoClip;
+  ctIntersection= GR32.Clipper.Core.ctIntersection;
+  ctUnion       = GR32.Clipper.Core.ctUnion;
+  ctDifference  = GR32.Clipper.Core.ctDifference;
+  ctXor         = GR32.Clipper.Core.ctXor;
 
 const
   // TFillRule
-  frEvenOdd     = Clipper.Core.frEvenOdd;
-  frNonZero     = Clipper.Core.frNonZero;
-  frPositive    = Clipper.Core.frPositive;
-  frNegative    = Clipper.Core.frNegative;
+  frEvenOdd     = GR32.Clipper.Core.frEvenOdd;
+  frNonZero     = GR32.Clipper.Core.frNonZero;
+  frPositive    = GR32.Clipper.Core.frPositive;
+  frNegative    = GR32.Clipper.Core.frNegative;
 
 type
-  TPathType = Clipper.Engine.TPathType;
-  TClipType = Clipper.Core.TClipType;
-  TFillRule = Clipper.Core.TFillRule;
+  TPathType = GR32.Clipper.Engine.TPathType;
+  TClipType = GR32.Clipper.Core.TClipType;
+  TFillRule = GR32.Clipper.Core.TFillRule;
 
 type
   TClipper = class(TClipper64)
@@ -98,26 +98,26 @@ type
 
 const
   // TJoinType
-  jtBevel       = Clipper.Offset.jtBevel;
-  jtSquare      = Clipper.Offset.jtSquare;
-  jtRound       = Clipper.Offset.jtRound;
-  jtRoundEx     = Clipper.Offset.jtRound; // Not implemented in Clipper2
-  jtMiter       = Clipper.Offset.jtMiter;
+  jtBevel       = GR32.Clipper.Offset.jtBevel;
+  jtSquare      = GR32.Clipper.Offset.jtSquare;
+  jtRound       = GR32.Clipper.Offset.jtRound;
+  jtRoundEx     = GR32.Clipper.Offset.jtRound; // Not implemented in Clipper2
+  jtMiter       = GR32.Clipper.Offset.jtMiter;
 
 const
   // TEndType
-  etPolygon     = Clipper.Offset.etPolygon;
-  etOpenJoined  = Clipper.Offset.etJoined;
-  etOpenButt    = Clipper.Offset.etButt;
-  etOpenSquare  = Clipper.Offset.etSquare;
-  etOpenRound   = Clipper.Offset.etRound;
+  etPolygon     = GR32.Clipper.Offset.etPolygon;
+  etOpenJoined  = GR32.Clipper.Offset.etJoined;
+  etOpenButt    = GR32.Clipper.Offset.etButt;
+  etOpenSquare  = GR32.Clipper.Offset.etSquare;
+  etOpenRound   = GR32.Clipper.Offset.etRound;
 
 type
-  TJoinType = Clipper.Offset.TJoinType;
-  TEndType = Clipper.Offset.TEndType;
+  TJoinType = GR32.Clipper.Offset.TJoinType;
+  TEndType = GR32.Clipper.Offset.TEndType;
 
 type
-  TClipperOffset = class(Clipper.Offset.TClipperOffset)
+  TClipperOffset = class(GR32.Clipper.Offset.TClipperOffset)
   private
   public
     procedure AddPath(const Path: TArrayOfFloatPoint); overload; deprecated 'Use AddPath(path, joinType, endType)';
@@ -141,7 +141,7 @@ function InflatePaths(const Paths: GR32.TArrayOfArrayOfFloatPoint;
 implementation
 
 uses
-  Clipper;
+  GR32.Clipper;
 
 //------------------------------------------------------------------------------
 
@@ -152,8 +152,8 @@ var
   sub, sol: TPaths64;
 begin
   sub := GR32_Clipper2.FixedPointsToPaths64(Paths);
-  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.FixedGrowScale, jointType, EndType, MiterLimit);
-  sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
+  sol := GR32.Clipper.InflatePaths(sub, Delta * ClipperFloat.FixedGrowScale, jointType, EndType, MiterLimit);
+  sol := GR32.Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFixedPoints(sol);
 end;
 
@@ -164,8 +164,8 @@ var
   sub, sol: TPaths64;
 begin
   sub := GR32_Clipper2.FloatPointsToPaths64(Paths);
-  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.GrowScale, jointType, EndType, MiterLimit);
-  sol := Clipper.Core.RamerDouglasPeucker(sol, 10);
+  sol := GR32.Clipper.InflatePaths(sub, Delta * ClipperFloat.GrowScale, jointType, EndType, MiterLimit);
+  sol := GR32.Clipper.Core.RamerDouglasPeucker(sol, 10);
   Result := GR32_Clipper2.Paths64ToFloatPoints(sol);
 end;
 

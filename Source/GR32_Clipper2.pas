@@ -36,7 +36,7 @@ interface
 
 uses
   GR32, GR32_Polygons,
-  Clipper, Clipper.Core, Clipper.Engine, Clipper.Offset;
+  GR32.Clipper, GR32.Clipper.Core, GR32.Clipper.Engine, GR32.Clipper.Offset;
 
 (*
 ** TFixed variants
@@ -70,13 +70,13 @@ function GR32_Inflate(const Paths: GR32.TArrayOfArrayOfFloatPoint; Delta: double
 ** TPath64 conversion
 *)
 
-function FixedPointsToPath64(const PathFixed: GR32.TArrayOfFixedPoint): Clipper.TPath64;
-function FloatPointsToPath64(const PathFloat: GR32.TArrayOfFloatPoint): Clipper.TPath64;
-function FixedPointsToPaths64(const PathsFixed: GR32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
-function FloatPointsToPaths64(const PathsFloat: GR32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
+function FixedPointsToPath64(const PathFixed: GR32.TArrayOfFixedPoint): GR32.Clipper.TPath64;
+function FloatPointsToPath64(const PathFloat: GR32.TArrayOfFloatPoint): GR32.Clipper.TPath64;
+function FixedPointsToPaths64(const PathsFixed: GR32.TArrayOfArrayOfFixedPoint): GR32.Clipper.TPaths64;
+function FloatPointsToPaths64(const PathsFloat: GR32.TArrayOfArrayOfFloatPoint): GR32.Clipper.TPaths64;
 
-function Paths64ToFixedPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFixedPoint;
-function Paths64ToFloatPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFloatPoint;
+function Paths64ToFixedPoints(const Paths: GR32.Clipper.TPaths64): GR32.TArrayOfArrayOfFixedPoint;
+function Paths64ToFloatPoints(const Paths: GR32.Clipper.TPaths64): GR32.TArrayOfArrayOfFloatPoint;
 
 function FloatRect(const r: TRect64): GR32.TFloatRect;
 
@@ -86,21 +86,21 @@ function FloatRect(const r: TRect64): GR32.TFloatRect;
 *)
 
 type
-  TClipper64  = Clipper.Engine.TClipper64;
-  TPoint64    = Clipper.Core.TPoint64;
-  TRect64     = Clipper.Core.TRect64;
-  TPath64     = Clipper.Core.TPath64;
-  TPaths64    = Clipper.Core.TPaths64;
-  TPointD     = Clipper.Core.TPointD;
-  TRectD      = Clipper.Core.TRectD;
-  TPathD      = Clipper.Core.TPathD;
-  TPathsD     = Clipper.Core.TPathsD;
-  TFillRule   = Clipper.Core.TFillRule;
-  TPolyTree64 = Clipper.Engine.TPolyTree64;
-  TPolyTreeD  = Clipper.Engine.TPolyTreeD;
-  TJoinType   = Clipper.Offset.TJoinType;
-  TEndType    = Clipper.Offset.TEndType;
-  TClipType   = Clipper.Core.TClipType;
+  TClipper64  = GR32.Clipper.Engine.TClipper64;
+  TPoint64    = GR32.Clipper.Core.TPoint64;
+  TRect64     = GR32.Clipper.Core.TRect64;
+  TPath64     = GR32.Clipper.Core.TPath64;
+  TPaths64    = GR32.Clipper.Core.TPaths64;
+  TPointD     = GR32.Clipper.Core.TPointD;
+  TRectD      = GR32.Clipper.Core.TRectD;
+  TPathD      = GR32.Clipper.Core.TPathD;
+  TPathsD     = GR32.Clipper.Core.TPathsD;
+  TFillRule   = GR32.Clipper.Core.TFillRule;
+  TPolyTree64 = GR32.Clipper.Engine.TPolyTree64;
+  TPolyTreeD  = GR32.Clipper.Engine.TPolyTreeD;
+  TJoinType   = GR32.Clipper.Offset.TJoinType;
+  TEndType    = GR32.Clipper.Offset.TEndType;
+  TClipType   = GR32.Clipper.Core.TClipType;
 
 
 (*
@@ -108,29 +108,29 @@ type
 *)
 
 const
-  frEvenOdd   = Clipper.Core.frEvenOdd;
-  frNonZero   = Clipper.Core.frNonZero;
-  frPositive  = Clipper.Core.frPositive;
-  frNegative  = Clipper.Core.frNegative;
+  frEvenOdd   = GR32.Clipper.Core.frEvenOdd;
+  frNonZero   = GR32.Clipper.Core.frNonZero;
+  frPositive  = GR32.Clipper.Core.frPositive;
+  frNegative  = GR32.Clipper.Core.frNegative;
 
-  jtMiter     = Clipper.Offset.jtMiter;
-  jtBevel     = Clipper.Offset.jtBevel;
-  jtRound     = Clipper.Offset.jtRound;
-  jtSquare    = Clipper.Offset.jtSquare;
-  jtRoundEx   = Clipper.Offset.jtRound; // Not implemented in Clipper2
+  jtMiter     = GR32.Clipper.Offset.jtMiter;
+  jtBevel     = GR32.Clipper.Offset.jtBevel;
+  jtRound     = GR32.Clipper.Offset.jtRound;
+  jtSquare    = GR32.Clipper.Offset.jtSquare;
+  jtRoundEx   = GR32.Clipper.Offset.jtRound; // Not implemented in Clipper2
 
-  etPolygon   = Clipper.Offset.etPolygon;
-  etJoined    = Clipper.Offset.etJoined;
-  etButt      = Clipper.Offset.etButt;
-  etSquare    = Clipper.Offset.etSquare;
-  etRound     = Clipper.Offset.etRound;
+  etPolygon   = GR32.Clipper.Offset.etPolygon;
+  etJoined    = GR32.Clipper.Offset.etJoined;
+  etButt      = GR32.Clipper.Offset.etButt;
+  etSquare    = GR32.Clipper.Offset.etSquare;
+  etRound     = GR32.Clipper.Offset.etRound;
 
-  ctNone          = Clipper.Core.ctNoClip;
-  ctNoClip        = Clipper.Core.ctNoClip;
-  ctIntersection  = Clipper.Core.ctIntersection;
-  ctUnion         = Clipper.Core.ctUnion;
-  ctDifference    = Clipper.Core.ctDifference;
-  ctXor           = Clipper.Core.ctXor;
+  ctNone          = GR32.Clipper.Core.ctNoClip;
+  ctNoClip        = GR32.Clipper.Core.ctNoClip;
+  ctIntersection  = GR32.Clipper.Core.ctIntersection;
+  ctUnion         = GR32.Clipper.Core.ctUnion;
+  ctDifference    = GR32.Clipper.Core.ctDifference;
+  ctXor           = GR32.Clipper.Core.ctXor;
 
 
 (*
@@ -195,7 +195,7 @@ begin
   Result.Bottom  := DoubleToInt64(r.Bottom * ClipperFloat.Scale);
 end;
 
-function FixedPointsToPath64(const PathFixed: GR32.TArrayOfFixedPoint): Clipper.TPath64;
+function FixedPointsToPath64(const PathFixed: GR32.TArrayOfFixedPoint): GR32.Clipper.TPath64;
 var
   i, len: integer;
 begin
@@ -208,7 +208,7 @@ begin
   end;
 end;
 
-function FloatPointsToPath64(const PathFloat: GR32.TArrayOfFloatPoint): Clipper.TPath64;
+function FloatPointsToPath64(const PathFloat: GR32.TArrayOfFloatPoint): GR32.Clipper.TPath64;
 var
   i, len: integer;
 begin
@@ -221,7 +221,7 @@ begin
   end;
 end;
 
-function FixedPointsToPaths64(const PathsFixed: GR32.TArrayOfArrayOfFixedPoint): Clipper.TPaths64;
+function FixedPointsToPaths64(const PathsFixed: GR32.TArrayOfArrayOfFixedPoint): GR32.Clipper.TPaths64;
 var
   i, len: integer;
 begin
@@ -231,7 +231,7 @@ begin
     Result[i] := FixedPointsToPath64(PathsFixed[i]);
 end;
 
-function FloatPointsToPaths64(const PathsFloat: GR32.TArrayOfArrayOfFloatPoint): Clipper.TPaths64;
+function FloatPointsToPaths64(const PathsFloat: GR32.TArrayOfArrayOfFloatPoint): GR32.Clipper.TPaths64;
 var
   i, len: integer;
 begin
@@ -241,7 +241,7 @@ begin
     Result[i] := FloatPointsToPath64(PathsFloat[i]);
 end;
 
-function Path64ToFixedPoints(const Path: Clipper.TPath64): GR32.TArrayOfFixedPoint;
+function Path64ToFixedPoints(const Path: GR32.Clipper.TPath64): GR32.TArrayOfFixedPoint;
 var
   i, len: integer;
 begin
@@ -254,7 +254,7 @@ begin
   end;
 end;
 
-function Path64ToFloatPoints(const Path: Clipper.TPath64): GR32.TArrayOfFloatPoint;
+function Path64ToFloatPoints(const Path: GR32.Clipper.TPath64): GR32.TArrayOfFloatPoint;
 var
   i, len: integer;
 begin
@@ -267,7 +267,7 @@ begin
   end;
 end;
 
-function Paths64ToFixedPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFixedPoint;
+function Paths64ToFixedPoints(const Paths: GR32.Clipper.TPaths64): GR32.TArrayOfArrayOfFixedPoint;
 var
   i, len: integer;
 begin
@@ -277,7 +277,7 @@ begin
     Result[i] := Path64ToFixedPoints(Paths[i]);
 end;
 
-function Paths64ToFloatPoints(const Paths: Clipper.TPaths64): GR32.TArrayOfArrayOfFloatPoint;
+function Paths64ToFloatPoints(const Paths: GR32.Clipper.TPaths64): GR32.TArrayOfArrayOfFloatPoint;
 var
   i, len: integer;
 begin
@@ -295,7 +295,7 @@ var
 begin
   sub := FixedPointsToPaths64(Subject);
   clp := FixedPointsToPaths64(Clip);
-  sol := Clipper.BooleanOp(ClipType, sub, clp, TFillRule(FillMode));
+  sol := GR32.Clipper.BooleanOp(ClipType, sub, clp, TFillRule(FillMode));
   Result := Paths64ToFixedPoints(sol);
 end;
 
@@ -307,7 +307,7 @@ var
 begin
   sub := FloatPointsToPaths64(Subject);
   clp := FloatPointsToPaths64(Clip);
-  sol := Clipper.BooleanOp(ClipType, sub, clp, TFillRule(FillMode));
+  sol := GR32.Clipper.BooleanOp(ClipType, sub, clp, TFillRule(FillMode));
   Result := Paths64ToFloatPoints(sol);
 end;
 
@@ -368,7 +368,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := FixedPointsToPaths64(Paths);
-  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.FixedGrowScale, JoinType, EndType, MiterLimit);
+  sol := GR32.Clipper.InflatePaths(sub, Delta * ClipperFloat.FixedGrowScale, JoinType, EndType, MiterLimit);
   sol := RamerDouglasPeucker(sol, 1);
   Result := Paths64ToFixedPoints(sol);
 end;
@@ -380,7 +380,7 @@ var
   sub, sol: TPaths64;
 begin
   sub := FloatPointsToPaths64(Paths);
-  sol := Clipper.InflatePaths(sub, Delta * ClipperFloat.GrowScale, JoinType, EndType, MiterLimit);
+  sol := GR32.Clipper.InflatePaths(sub, Delta * ClipperFloat.GrowScale, JoinType, EndType, MiterLimit);
   sol := RamerDouglasPeucker(sol, 10);
   Result := Paths64ToFloatPoints(sol);
 end;

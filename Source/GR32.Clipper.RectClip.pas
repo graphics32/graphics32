@@ -1,4 +1,4 @@
-unit Clipper.RectClip;
+unit GR32.Clipper.RectClip;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
@@ -11,10 +11,10 @@ unit Clipper.RectClip;
 
 interface
 
-{$I Clipper.inc}
+{$I GR32.Clipper.inc}
 
 uses
-  Classes, Math, SysUtils, Clipper.Core;
+  Classes, Math, SysUtils, GR32.Clipper.Core;
 
 type
   TLocation = (locLeft, locTop, locRight, locBottom, locInside);

@@ -1,4 +1,4 @@
-unit Clipper.Core;
+unit GR32.Clipper.Core;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
@@ -10,7 +10,7 @@ unit Clipper.Core;
 * License   :  https://www.boost.org/LICENSE_1_0.txt                           *
 *******************************************************************************)
 
-{$I Clipper.inc}
+{$I GR32.Clipper.inc}
 
 interface
 

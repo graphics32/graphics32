@@ -1,4 +1,4 @@
-unit Clipper;
+unit GR32.Clipper;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
@@ -11,52 +11,52 @@ unit Clipper;
 
 interface
 
-{$I Clipper.inc}
+{$I GR32.Clipper.inc}
 
 uses
   Math, SysUtils, Classes,
-  Clipper.Core, Clipper.Engine, Clipper.Offset, Clipper.RectClip;
+  GR32.Clipper.Core, GR32.Clipper.Engine, GR32.Clipper.Offset, GR32.Clipper.RectClip;
 
 // A number of structures defined in other units are redeclared here
 // so those units won't also need to be declared in your own units clauses.
 type
-  TClipper    = Clipper.Engine.TClipper64;
-  TClipper64  = Clipper.Engine.TClipper64;
-  TPoint64    = Clipper.Core.TPoint64;
-  TRect64     = Clipper.Core.TRect64;
-  TPath64     = Clipper.Core.TPath64;
-  TPaths64    = Clipper.Core.TPaths64;
-  TPointD     = Clipper.Core.TPointD;
-  TRectD      = Clipper.Core.TRectD;
-  TPathD      = Clipper.Core.TPathD;
-  TPathsD     = Clipper.Core.TPathsD;
-  TFillRule   = Clipper.Core.TFillRule;
-  TPolyTree64 = Clipper.Engine.TPolyTree64;
-  TPolyTreeD  = Clipper.Engine.TPolyTreeD;
-  TJoinType   = Clipper.Offset.TJoinType;
-  TEndType    = Clipper.Offset.TEndType;
+  TClipper    = GR32.Clipper.Engine.TClipper64;
+  TClipper64  = GR32.Clipper.Engine.TClipper64;
+  TPoint64    = GR32.Clipper.Core.TPoint64;
+  TRect64     = GR32.Clipper.Core.TRect64;
+  TPath64     = GR32.Clipper.Core.TPath64;
+  TPaths64    = GR32.Clipper.Core.TPaths64;
+  TPointD     = GR32.Clipper.Core.TPointD;
+  TRectD      = GR32.Clipper.Core.TRectD;
+  TPathD      = GR32.Clipper.Core.TPathD;
+  TPathsD     = GR32.Clipper.Core.TPathsD;
+  TFillRule   = GR32.Clipper.Core.TFillRule;
+  TPolyTree64 = GR32.Clipper.Engine.TPolyTree64;
+  TPolyTreeD  = GR32.Clipper.Engine.TPolyTreeD;
+  TJoinType   = GR32.Clipper.Offset.TJoinType;
+  TEndType    = GR32.Clipper.Offset.TEndType;
 
   TArrayOfInt64 = array of Int64;
 const
-  frEvenOdd   = Clipper.Core.frEvenOdd;
-  frNonZero   = Clipper.Core.frNonZero;
-  frPositive  = Clipper.Core.frPositive;
-  frNegative  = Clipper.Core.frNegative;
-  jtBevel     = Clipper.Offset.jtBevel;
-  jtSquare    = Clipper.Offset.jtSquare;
-  jtRound     = Clipper.Offset.jtRound;
-  jtMiter     = Clipper.Offset.jtMiter;
-  etPolygon   = Clipper.Offset.etPolygon;
-  etJoined    = Clipper.Offset.etJoined;
-  etButt      = Clipper.Offset.etButt;
-  etSquare    = Clipper.Offset.etSquare;
-  etRound     = Clipper.Offset.etRound;
+  frEvenOdd   = GR32.Clipper.Core.frEvenOdd;
+  frNonZero   = GR32.Clipper.Core.frNonZero;
+  frPositive  = GR32.Clipper.Core.frPositive;
+  frNegative  = GR32.Clipper.Core.frNegative;
+  jtBevel     = GR32.Clipper.Offset.jtBevel;
+  jtSquare    = GR32.Clipper.Offset.jtSquare;
+  jtRound     = GR32.Clipper.Offset.jtRound;
+  jtMiter     = GR32.Clipper.Offset.jtMiter;
+  etPolygon   = GR32.Clipper.Offset.etPolygon;
+  etJoined    = GR32.Clipper.Offset.etJoined;
+  etButt      = GR32.Clipper.Offset.etButt;
+  etSquare    = GR32.Clipper.Offset.etSquare;
+  etRound     = GR32.Clipper.Offset.etRound;
 
-  ctNone          = Clipper.Core.ctNoClip;
-  ctIntersection  = Clipper.Core.ctIntersection;
-  ctUnion         = Clipper.Core.ctUnion;
-  ctDifference    = Clipper.Core.ctDifference;
-  ctXor           = Clipper.Core.ctXor;
+  ctNone          = GR32.Clipper.Core.ctNoClip;
+  ctIntersection  = GR32.Clipper.Core.ctIntersection;
+  ctUnion         = GR32.Clipper.Core.ctUnion;
+  ctDifference    = GR32.Clipper.Core.ctDifference;
+  ctXor           = GR32.Clipper.Core.ctXor;
 
 function BooleanOp(clipType: TClipType;
   const subjects, clips: TPaths64; fillRule: TFillRule): TPaths64; overload;
@@ -160,7 +160,7 @@ function SimplifyPaths(const paths: TPathsD; shapeTolerance: double;
 implementation
 
 uses
-  Clipper.Minkowski;
+  GR32.Clipper.Minkowski;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -613,14 +613,14 @@ end;
 function MinkowskiSum(const pattern, path: TPath64;
   pathIsClosed: Boolean): TPaths64;
 begin
- Result := Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
+ Result := GR32.Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
 end;
 //------------------------------------------------------------------------------
 
 function MinkowskiSum(const pattern, path: TPathD;
   pathIsClosed: Boolean): TPathsD;
 begin
- Result := Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
+ Result := GR32.Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
 end;
 //------------------------------------------------------------------------------
 
@@ -815,13 +815,13 @@ end;
 function PointInPolygon(const pt: TPoint64;
   const polygon: TPath64): TPointInPolygonResult;
 begin
-  Result := Clipper.Core.PointInPolygon(pt, polygon);
+  Result := GR32.Clipper.Core.PointInPolygon(pt, polygon);
 end;
 //------------------------------------------------------------------------------
 
 function Path2ContainsPath1(const path1, path2: TPath64): Boolean;
 begin
-  Result := Clipper.Core.Path2ContainsPath1(path1, path2);
+  Result := GR32.Clipper.Core.Path2ContainsPath1(path1, path2);
 end;
 //------------------------------------------------------------------------------
 

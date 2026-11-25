@@ -1,4 +1,4 @@
-unit Clipper.Offset;
+unit GR32.Clipper.Offset;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
@@ -9,12 +9,12 @@ unit Clipper.Offset;
 * License   :  https://www.boost.org/LICENSE_1_0.txt                           *
 *******************************************************************************)
 
-{$I Clipper.inc}
+{$I GR32.Clipper.inc}
 
 interface
 
 uses
-  Classes, Clipper.Core, Clipper.Engine;
+  Classes, GR32.Clipper.Core, GR32.Clipper.Engine;
 
 type
 
