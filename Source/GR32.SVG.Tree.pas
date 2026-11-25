@@ -1626,8 +1626,25 @@ type
 //
 //------------------------------------------------------------------------------
   TSvgSymbolInstanceNode = class(TSvgCustomGroupNode)
+  private
+    FSymbolViewport: TFloatRect;
+    FHasViewport: Boolean;
+    FOverflowHidden: Boolean;
   protected
     function GetIsRenderable: Boolean; override;
+  public
+    // The symbol's internal viewport rect (in viewBox/user-unit space).
+    // Used by the renderer to update its ViewportRect when rendering children,
+    // so that percentage-based lengths inside the symbol resolve correctly.
+    property SymbolViewport: TFloatRect read FSymbolViewport write FSymbolViewport;
+    // True when SymbolViewport holds a valid non-empty viewport.
+    // False when the <symbol> has no viewBox and <use> has no width/height,
+    // in which case the symbol renders like a plain <g> (no clipping, no
+    // viewport update).
+    property HasViewport: Boolean read FHasViewport write FHasViewport;
+    // True if overflow is hidden (default for <symbol>) and the renderer
+    // should clip children to the viewport target rect.
+    property OverflowHidden: Boolean read FOverflowHidden write FOverflowHidden;
   end;
 
 
@@ -8507,7 +8524,27 @@ begin
       TargetRect := FloatRect(0, 0, w, h);
       ViewMat := FViewBox.GetTransform(TargetRect, FPreserveAspectRatio);
       Instance.FTransform := ViewMat * TFloatMatrixHelper(Instance.FTransform);
+      // The symbol's internal viewport is the viewBox coordinate space.
+      // Children resolve percentage lengths against this viewport.
+      Instance.FSymbolViewport := FloatRect(FViewBox.X, FViewBox.Y, FViewBox.X + FViewBox.Width, FViewBox.Y + FViewBox.Height);
+      Instance.FHasViewport := True;
+    end else
+    if (w > 0) and (h > 0) then
+    begin
+      // No viewBox, but <use> supplies a width/height: use those as the viewport.
+      // Children resolve percentages against this w*h space and clipping applies.
+      Instance.FSymbolViewport := FloatRect(0, 0, w, h);
+      Instance.FHasViewport := True;
+    end else
+    begin
+      // No viewBox and no effective size: symbol acts as a plain <g>.
+      // No viewport update and no clipping in the renderer.
+      Instance.FHasViewport := False;
     end;
+
+    // <symbol> defaults to overflow:hidden per SVG spec.
+    // FOverflow on the symbol node was set to ofHidden in Create().
+    Instance.FOverflowHidden := (FOverflow = ofHidden) or (FOverflow = ofScroll);
 
     for i := 0 to Children.Count - 1 do
       Instance.AddChild(Children[i].Clone(Instance));

@@ -2413,16 +2413,67 @@ end;
 
 procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSvgCustomGroupNode);
 
+  procedure DoRenderChildren(ATargetSurface: TCustomBitmap32; Parent: TSvgCustomGroupNode);
+  var
+    i: integer;
+  begin
+    for i := 0 to Parent.Children.Count - 1 do
+      RenderNode(ATargetSurface, Parent.Children[i]);
+  end;
+
   procedure RenderChildren(ATargetSurface: TCustomBitmap32);
   var
     DocNode: TSvgDocumentNode;
+    SymbolInstanceNode: TSvgSymbolInstanceNode;
     DocW, DocH, DocX, DocY: Single;
     DocViewBox: TSvgViewBox;
     DocVpMat: TFloatMatrix;
-    DocTargetRect, SavedViewport, TransformedDocTarget: TFloatRect;
-    SaveSurfaceClip, DocClipRect: TRect;
-    i: Integer;
+    DocTargetRect, SavedViewport, TransformedRect: TFloatRect;
+    SavedClipRect, ClipRect: TRect;
   begin
+    // A symbol only establishes a viewport when it has an effective size
+    // (from its viewBox, or from width/height on the <use> element).
+    // When no viewport exists (e.g. <symbol> with no viewBox and <use> with
+    // no width/height), the symbol behaves like a plain <g>: no viewport
+    // update and no clipping.
+    if (AGroupNode is TSvgSymbolInstanceNode) and TSvgSymbolInstanceNode(AGroupNode).HasViewport then
+    begin
+      // <symbol> instances establish their own viewport for child rendering.
+      // The viewBox-to-target transform is already baked into the instance's
+      // FTransform (applied by RenderNodeUnfiltered before we get here).
+      // We only need to:
+      //   1. Update FViewportRect so percentage lengths inside the symbol resolve
+      //      against the symbol's internal coordinate space (the viewBox).
+      //   2. Optionally clip to the symbol viewport (overflow:hidden by default).
+
+      SymbolInstanceNode := TSvgSymbolInstanceNode(AGroupNode);
+
+      SavedViewport := FViewportRect;
+      FViewportRect := SymbolInstanceNode.SymbolViewport;
+      try
+        SavedClipRect := ATargetSurface.ClipRect;
+        try
+          if SymbolInstanceNode.OverflowHidden then
+          begin
+            // Clip to the symbol viewport region in screen space.
+            // FTransformation already has the viewBox transform applied,
+            // so transform the SymbolViewport rect to get screen-space bounds.
+            TransformedRect := FTransformation.GetTransformedBounds(SymbolInstanceNode.SymbolViewport);
+            ClipRect := MakeRect(TransformedRect, rrOutside);
+            GR32.IntersectRect(ClipRect, ATargetSurface.ClipRect, ClipRect);
+            ATargetSurface.ClipRect := ClipRect;
+          end;
+
+          DoRenderChildren(ATargetSurface, AGroupNode);
+
+        finally
+          ATargetSurface.ClipRect := SavedClipRect;
+        end;
+      finally
+        FViewportRect := SavedViewport;
+      end;
+
+    end else
     if (AGroupNode is TSvgDocumentNode) and (AGroupNode <> FDocumentRoot) then
     begin
 
@@ -2450,26 +2501,25 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
       FViewportRect := FloatRect(DocViewBox.X, DocViewBox.Y, DocViewBox.X + DocViewBox.Width, DocViewBox.Y + DocViewBox.Height);
       try
         FTransformation.Push;
-        SaveSurfaceClip := ATargetSurface.ClipRect;
+        SavedClipRect := ATargetSurface.ClipRect;
         try
           // Clip nested <svg> document viewport if overflow <> ofVisible.
           // Bounding box must be transformed to screen coordinates using parent transformation
           // prior to applying the inner viewBox transform matrix (DocVpMat).
           if (DocNode.Overflow <> ofVisible) then
           begin
-            TransformedDocTarget := FTransformation.GetTransformedBounds(DocTargetRect);
-            DocClipRect := MakeRect(TransformedDocTarget, rrOutside);
-            GR32.IntersectRect(DocClipRect, ATargetSurface.ClipRect, DocClipRect);
-            ATargetSurface.ClipRect := DocClipRect;
+            TransformedRect := FTransformation.GetTransformedBounds(DocTargetRect);
+            ClipRect := MakeRect(TransformedRect, rrOutside);
+            GR32.IntersectRect(ClipRect, ATargetSurface.ClipRect, ClipRect);
+            ATargetSurface.ClipRect := ClipRect;
           end;
 
           ApplyMatrix(DocVpMat);
 
-          for i := 0 to DocNode.Children.Count - 1 do
-            RenderNode(ATargetSurface, DocNode.Children[i]);
+          DoRenderChildren(ATargetSurface, DocNode);
 
         finally
-          ATargetSurface.ClipRect := SaveSurfaceClip;
+          ATargetSurface.ClipRect := SavedClipRect;
           FTransformation.Pop;
         end;
       finally
@@ -2484,12 +2534,7 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
         RenderNode(ATargetSurface, TSvgSwitchNode(AGroupNode).SelectedChild);
 
     end else
-    begin
-
-      for i := 0 to AGroupNode.Children.Count - 1 do
-        RenderNode(ATargetSurface, AGroupNode.Children[i]);
-
-    end;
+      DoRenderChildren(ATargetSurface, AGroupNode);
   end;
 
 var
