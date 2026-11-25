@@ -1,19 +1,19 @@
-unit Clipper.Minkowski;
+unit GR32.Clipper.Minkowski;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
 * Date      :  21 December 2023                                                *
 * Copyright :  Angus Johnson 2010-2022                                         *
 * Purpose   :  Minkowski Addition and Difference                               *
-* License   :  http://www.boost.org/LICENSE_1_0.txt                            *
+* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
 *******************************************************************************)
 
-{$I Clipper.inc}
+{$I GR32.Clipper.inc}
 
 interface
 
 uses
-  Classes, Math, Clipper.Core;
+  Classes, Math, GR32.Clipper.Core;
 
 function MinkowskiSum(const Pattern, Path: TPath64;
   PathIsClosed: Boolean): TPaths64; overload;
@@ -26,7 +26,7 @@ function MinkowskiDiff(const Pattern, Path: TPathD;
 implementation
 
 uses
-  Clipper;
+  GR32.Clipper;
 
 function AddPoints(val1, val2: TPoint64): TPoint64;
   {$IFDEF INLINING} inline; {$ENDIF}

@@ -83,9 +83,9 @@ type
 implementation
 
 uses
-  Clipper,
-  Clipper.Core,
-  Clipper.Offset,
+  GR32.Clipper,
+  GR32.Clipper.Core,
+  GR32.Clipper.Offset,
   GR32_Clipper2,
 
   GR32_Math,
@@ -119,9 +119,9 @@ begin
   else
     EndType := etJoined;
 
-  Result := Clipper.InflatePaths(Points, Delta, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
+  Result := GR32.Clipper.InflatePaths(Points, Delta, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
 
-  Result := Clipper.Core.RamerDouglasPeucker(Result, 1);
+  Result := GR32.Clipper.Core.RamerDouglasPeucker(Result, 1);
 end;
 
 
@@ -199,8 +199,8 @@ begin
 
   EndType := EndStyleToEndType[EndStyle];
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
+  Result64 := GR32.Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
+  Result64 := GR32.Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
   Res := GR32_Clipper2.Paths64ToFloatPoints(Result64);
 
@@ -223,8 +223,8 @@ begin
   else
     EndType := EndStyleToEndType[EndStyle];
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
+  Result64 := GR32.Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
+  Result64 := GR32.Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
   Result := GR32_Clipper2.Paths64ToFloatPoints(Result64);
 end;
@@ -241,8 +241,8 @@ begin
   Paths64 := GR32_Clipper2.FixedPointsToPaths64(PolyPolygon(Points));
 {$ifend}
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
+  Result64 := GR32.Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndStyleToEndType[EndStyle], MiterLimit);
+  Result64 := GR32.Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
   Res := GR32_Clipper2.Paths64ToFixedPoints(Result64);
 
@@ -265,8 +265,8 @@ begin
   else
     EndType := EndStyleToEndType[EndStyle];
 
-  Result64 := Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
-  Result64 := Clipper.Core.RamerDouglasPeucker(Result64, 1);
+  Result64 := GR32.Clipper.InflatePaths(Paths64, StrokeWidth * GR32_Clipper2.ClipperFloat.GrowScale, JoinStyleToJoinType[JoinStyle], EndType, MiterLimit);
+  Result64 := GR32.Clipper.Core.RamerDouglasPeucker(Result64, 1);
 
   Result := GR32_Clipper2.Paths64ToFixedPoints(Result64);
 end;

@@ -1,62 +1,62 @@
-unit Clipper;
+unit GR32.Clipper;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
-* Date      :  7 May 2024                                                      *
-* Website   :  http://www.angusj.com                                           *
-* Copyright :  Angus Johnson 2010-2024                                         *
+* Date      :  5 March 2025                                                    *
+* Website   :  https://www.angusj.com                                          *
+* Copyright :  Angus Johnson 2010-2025                                         *
 * Purpose   :  This module provides a simple interface to the Clipper Library  *
-* License   :  http://www.boost.org/LICENSE_1_0.txt                            *
+* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
 *******************************************************************************)
 
 interface
 
-{$I Clipper.inc}
+{$I GR32.Clipper.inc}
 
 uses
   Math, SysUtils, Classes,
-  Clipper.Core, Clipper.Engine, Clipper.Offset, Clipper.RectClip;
+  GR32.Clipper.Core, GR32.Clipper.Engine, GR32.Clipper.Offset, GR32.Clipper.RectClip;
 
 // A number of structures defined in other units are redeclared here
 // so those units won't also need to be declared in your own units clauses.
 type
-  TClipper    = Clipper.Engine.TClipper64;
-  TClipper64  = Clipper.Engine.TClipper64;
-  TPoint64    = Clipper.Core.TPoint64;
-  TRect64     = Clipper.Core.TRect64;
-  TPath64     = Clipper.Core.TPath64;
-  TPaths64    = Clipper.Core.TPaths64;
-  TPointD     = Clipper.Core.TPointD;
-  TRectD      = Clipper.Core.TRectD;
-  TPathD      = Clipper.Core.TPathD;
-  TPathsD     = Clipper.Core.TPathsD;
-  TFillRule   = Clipper.Core.TFillRule;
-  TPolyTree64 = Clipper.Engine.TPolyTree64;
-  TPolyTreeD  = Clipper.Engine.TPolyTreeD;
-  TJoinType   = Clipper.Offset.TJoinType;
-  TEndType    = Clipper.Offset.TEndType;
+  TClipper    = GR32.Clipper.Engine.TClipper64;
+  TClipper64  = GR32.Clipper.Engine.TClipper64;
+  TPoint64    = GR32.Clipper.Core.TPoint64;
+  TRect64     = GR32.Clipper.Core.TRect64;
+  TPath64     = GR32.Clipper.Core.TPath64;
+  TPaths64    = GR32.Clipper.Core.TPaths64;
+  TPointD     = GR32.Clipper.Core.TPointD;
+  TRectD      = GR32.Clipper.Core.TRectD;
+  TPathD      = GR32.Clipper.Core.TPathD;
+  TPathsD     = GR32.Clipper.Core.TPathsD;
+  TFillRule   = GR32.Clipper.Core.TFillRule;
+  TPolyTree64 = GR32.Clipper.Engine.TPolyTree64;
+  TPolyTreeD  = GR32.Clipper.Engine.TPolyTreeD;
+  TJoinType   = GR32.Clipper.Offset.TJoinType;
+  TEndType    = GR32.Clipper.Offset.TEndType;
 
   TArrayOfInt64 = array of Int64;
 const
-  frEvenOdd   = Clipper.Core.frEvenOdd;
-  frNonZero   = Clipper.Core.frNonZero;
-  frPositive  = Clipper.Core.frPositive;
-  frNegative  = Clipper.Core.frNegative;
-  jtBevel     = Clipper.Offset.jtBevel;
-  jtSquare    = Clipper.Offset.jtSquare;
-  jtRound     = Clipper.Offset.jtRound;
-  jtMiter     = Clipper.Offset.jtMiter;
-  etPolygon   = Clipper.Offset.etPolygon;
-  etJoined    = Clipper.Offset.etJoined;
-  etButt      = Clipper.Offset.etButt;
-  etSquare    = Clipper.Offset.etSquare;
-  etRound     = Clipper.Offset.etRound;
+  frEvenOdd   = GR32.Clipper.Core.frEvenOdd;
+  frNonZero   = GR32.Clipper.Core.frNonZero;
+  frPositive  = GR32.Clipper.Core.frPositive;
+  frNegative  = GR32.Clipper.Core.frNegative;
+  jtBevel     = GR32.Clipper.Offset.jtBevel;
+  jtSquare    = GR32.Clipper.Offset.jtSquare;
+  jtRound     = GR32.Clipper.Offset.jtRound;
+  jtMiter     = GR32.Clipper.Offset.jtMiter;
+  etPolygon   = GR32.Clipper.Offset.etPolygon;
+  etJoined    = GR32.Clipper.Offset.etJoined;
+  etButt      = GR32.Clipper.Offset.etButt;
+  etSquare    = GR32.Clipper.Offset.etSquare;
+  etRound     = GR32.Clipper.Offset.etRound;
 
-  ctNone          = Clipper.Core.ctNone;
-  ctIntersection  = Clipper.Core.ctIntersection;
-  ctUnion         = Clipper.Core.ctUnion;
-  ctDifference    = Clipper.Core.ctDifference;
-  ctXor           = Clipper.Core.ctXor;
+  ctNone          = GR32.Clipper.Core.ctNoClip;
+  ctIntersection  = GR32.Clipper.Core.ctIntersection;
+  ctUnion         = GR32.Clipper.Core.ctUnion;
+  ctDifference    = GR32.Clipper.Core.ctDifference;
+  ctXor           = GR32.Clipper.Core.ctXor;
 
 function BooleanOp(clipType: TClipType;
   const subjects, clips: TPaths64; fillRule: TFillRule): TPaths64; overload;
@@ -144,8 +144,9 @@ function TrimCollinear(const p: TPath64;
 function TrimCollinear(const path: TPathD;
   precision: integer; isOpenPath: Boolean = false): TPathD; overload;
 
-function PointInPolygon(const pt: TPoint64; const polygon: TPath64):
-  TPointInPolygonResult;
+function PointInPolygon(const pt: TPoint64;
+  const polygon: TPath64): TPointInPolygonResult;
+function Path2ContainsPath1(const path1, path2: TPath64): Boolean; overload;
 
 function SimplifyPath(const path: TPath64;
   shapeTolerance: double; isClosedPath: Boolean = true): TPath64; overload;
@@ -159,7 +160,7 @@ function SimplifyPaths(const paths: TPathsD; shapeTolerance: double;
 implementation
 
 uses
-  Clipper.Minkowski;
+  GR32.Clipper.Minkowski;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -173,9 +174,9 @@ begin
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := ints[i*3];
-    Result[i].Y := ints[i*3 +1];
-    Result[i].z := ints[i*3 +2];
+    Result[i].X := ints[i * 3];
+    Result[i].Y := ints[i * 3 + 1];
+    Result[i].z := ints[i * 3 + 2];
   end;
 end;
 //------------------------------------------------------------------------------
@@ -186,11 +187,11 @@ var
 begin
   len := length(dbls) div 3;
   SetLength(Result, len);
-  for i := 0 to len -1 do
+  for i := 0 to len - 1 do
   begin
-    Result[i].X := dbls[i*3];
-    Result[i].Y := dbls[i*3 +1];
-    Result[i].Z := Round(dbls[i*3 +2]);
+    Result[i].X := dbls[i * 3];
+    Result[i].Y := dbls[i * 3 + 1];
+    Result[i].Z := Round(dbls[i * 3 + 2]);
   end;
 end;
 //------------------------------------------------------------------------------
@@ -202,10 +203,10 @@ var
 begin
   len := length(ints) div 2;
   SetLength(Result, len);
-  for i := 0 to len -1 do
+  for i := 0 to len - 1 do
   begin
-    Result[i].X := ints[i*2];
-    Result[i].Y := ints[i*2 +1];
+    Result[i].X := ints[i * 2];
+    Result[i].Y := ints[i * 2 + 1];
   end;
 end;
 //------------------------------------------------------------------------------
@@ -218,8 +219,8 @@ begin
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := dbls[i*2];
-    Result[i].Y := dbls[i*2 +1];
+    Result[i].X := dbls[i * 2];
+    Result[i].Y := dbls[i * 2 + 1];
   end;
 end;
 //------------------------------------------------------------------------------
@@ -232,7 +233,7 @@ begin
   if (Length(Poly.Polygon) > 0) then
   begin
     i := Length(Paths);
-    SetLength(Paths, i +1);
+    SetLength(Paths, i + 1);
     Paths[i] := Poly.Polygon;
   end;
   for i := 0 to Poly.Count - 1 do
@@ -405,10 +406,10 @@ var
 begin
   CheckPrecisionRange(precision);
   scale := Power(10, precision);
-  invScale := 1/scale;
+  invScale := 1 / scale;
   pp := ScalePaths(paths, scale, scale);
 
-  with TClipperOffset.Create(miterLimit, ArcTolerance) do
+  with TClipperOffset.Create(miterLimit, scale * ArcTolerance) do
   try
     AddPaths(pp, jt, et);
     Execute(delta * scale, pp); // reuse pp to receive the solution.
@@ -459,7 +460,7 @@ begin
   rec := Rect64(ScaleRect(rect, scale));
   tmpPath := ScalePath(path, scale);
   tmpPath := RectClip(rec, tmpPath);
-  Result := ScalePathD(tmpPath, 1/scale);
+  Result := ScalePathD(tmpPath, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -480,7 +481,7 @@ begin
   finally
     Free;
   end;
-  Result := ScalePathsD(tmpPaths, 1/scale);
+  Result := ScalePathsD(tmpPaths, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -528,7 +529,7 @@ begin
   rec := Rect64(ScaleRect(rect, scale));
   tmpPath := ScalePath(path, scale);
   tmpPaths := RectClipLines(rec, tmpPath);
-  Result := ScalePathsD(tmpPaths, 1/scale);
+  Result := ScalePathsD(tmpPaths, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -551,7 +552,7 @@ begin
   finally
     Free;
   end;
-  Result := ScalePathsD(tmpPaths, 1/scale);
+  Result := ScalePathsD(tmpPaths, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -612,14 +613,14 @@ end;
 function MinkowskiSum(const pattern, path: TPath64;
   pathIsClosed: Boolean): TPaths64;
 begin
- Result := Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
+ Result := GR32.Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
 end;
 //------------------------------------------------------------------------------
 
 function MinkowskiSum(const pattern, path: TPathD;
   pathIsClosed: Boolean): TPathsD;
 begin
- Result := Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
+ Result := GR32.Clipper.Minkowski.MinkowskiSum(pattern, path, pathIsClosed);
 end;
 //------------------------------------------------------------------------------
 
@@ -654,9 +655,9 @@ begin
   highI := high(p);
   if highI < 0 then Exit;
   for i := 0 to highI -1 do
-    Result := Result + format('%1.*n,%1.*n, ',
+    Result := Result + format('%1.*f,%1.*f, ',
       [decimals, p[i].X, decimals, p[i].Y]);
-  Result := Result + format('%1.*n,%1.*n',[
+  Result := Result + format('%1.*f,%1.*f',[
     decimals, p[highI].X, decimals, p[highI].Y]);
 end;
 //------------------------------------------------------------------------------
@@ -683,7 +684,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure ShowPolyPathStructure64(pp: TPolyPath64; level: integer;
+procedure ShowPolyPathStructure64(pp: TPolyPath64; ppIdx, level: integer;
   strings: TStrings);
 var
   i: integer;
@@ -692,12 +693,14 @@ begin
   spaces := StringOfChar(' ', level * 2);
   if pp.Count = 1 then plural := '' else plural := 's';
   if pp.IsHole then
-    strings.Add(Format('%sA hole containing %d polygon%s', [spaces, pp.Count, plural]))
+    strings.Add(Format('%sHole (%d) containing %d polygon%s',
+      [spaces, ppIdx, pp.Count, plural]))
   else
-    strings.Add(Format('%sA polygon containing %d hole%s', [spaces, pp.Count, plural]));
+    strings.Add(Format('%sPolygon (%d) containing %d hole%s',
+      [spaces, ppIdx, pp.Count, plural]));
   for i := 0 to pp.Count -1 do
     if pp.child[i].Count> 0 then
-      ShowPolyPathStructure64(pp.child[i], level + 1, strings);
+      ShowPolyPathStructure64(pp.child[i], i, level + 1, strings);
 end;
 //------------------------------------------------------------------------------
 
@@ -710,7 +713,7 @@ begin
     strings.Add(Format('Polytree with just %d polygons.', [polytree.Count]));
   for i := 0 to polytree.Count -1 do
     if polytree[i].Count > 0 then
-      ShowPolyPathStructure64(polytree[i], 1, strings);
+      ShowPolyPathStructure64(polytree[i], i, 1, strings);
 end;
 //------------------------------------------------------------------------------
 
@@ -805,14 +808,20 @@ begin
   scale := power(10, precision);
   p := ScalePath(path, scale);
   p := TrimCollinear(p, isOpenPath);
-  Result := ScalePathD(p, 1/scale);
+  Result := ScalePathD(p, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
 function PointInPolygon(const pt: TPoint64;
   const polygon: TPath64): TPointInPolygonResult;
 begin
-  Result := Clipper.Core.PointInPolygon(pt, polygon);
+  Result := GR32.Clipper.Core.PointInPolygon(pt, polygon);
+end;
+//------------------------------------------------------------------------------
+
+function Path2ContainsPath1(const path1, path2: TPath64): Boolean;
+begin
+  Result := GR32.Clipper.Core.Path2ContainsPath1(path1, path2);
 end;
 //------------------------------------------------------------------------------
 
@@ -821,7 +830,7 @@ function DistanceSqrd(const pt1, pt2: TPoint64): double;
 var
   x1,y1,x2,y2: double;
 begin
-  // nb: older versions of Delphi don't allow explicit typcasting
+  // nb: older versions of Delphi don't allow explicit typecasting
   x1 := pt1.X; y1 := pt1.Y;
   x2 := pt2.X; y2 := pt2.Y;
   result := Sqr(x1 - x2) + Sqr(y1 - y2);
@@ -868,7 +877,7 @@ begin
   minHigh := Iif(isClosedPath, 2, 1);
   if highI < minHigh then Exit;
 
-  SetLength(srArray, highI +1);
+  SetLength(srArray, highI + 1);
   with srArray[0] do
   begin
     pt      := path[0];
@@ -881,19 +890,19 @@ begin
   with srArray[highI] do
   begin
     pt      := path[highI];
-    prev    := @srArray[highI-1];
+    prev    := @srArray[highI - 1];
     next    := @srArray[0];
     pdSqrd  := Iif(isClosedPath,
-      PerpendicDistSqrd(path[highI], path[highI-1], path[0]), invalidD);
+      PerpendicDistSqrd(path[highI], path[highI - 1], path[0]), invalidD);
   end;
 
-  for i := 1 to highI -1 do
+  for i := 1 to highI - 1 do
     with srArray[i] do
     begin
       pt      := path[i];
-      prev    := @srArray[i-1];
-      next    := @srArray[i+1];
-      pdSqrd  := PerpendicDistSqrd(path[i], path[i-1], path[i+1]);
+      prev    := @srArray[i - 1];
+      next    := @srArray[i + 1];
+      pdSqrd  := PerpendicDistSqrd(path[i], path[i - 1], path[i + 1]);
     end;
 
   first := @srArray[0];
@@ -919,7 +928,7 @@ begin
   end;
   if highI < minHigh then Exit;
   if not isClosedPath then first := @srArray[0];
-  SetLength(Result, highI +1);
+  SetLength(Result, highI + 1);
   for i := 0 to HighI do
   begin
     Result[i] := first.pt;
@@ -935,7 +944,7 @@ var
 begin
   len := Length(paths);
   SetLength(Result, len);
-  for i := 0 to len -1 do
+  for i := 0 to len - 1 do
     result[i] := SimplifyPath(paths[i], shapeTolerance, isClosedPath);
 end;
 //------------------------------------------------------------------------------
@@ -949,7 +958,7 @@ begin
   scale := power(10, decimalPrecision);
   p := ScalePath(path, scale);
   p := SimplifyPath(p, shapeTolerance, isClosedPath);
-  Result := ScalePathD(p, 1/scale);
+  Result := ScalePathD(p, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -962,7 +971,7 @@ begin
   scale := power(10, decimalPrecision);
   pp := ScalePaths(paths, scale);
   pp := SimplifyPaths(pp, shapeTolerance, isClosedPath);
-  Result := ScalePathsD(pp, 1/scale);
+  Result := ScalePathsD(pp, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
