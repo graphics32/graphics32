@@ -54,7 +54,8 @@ const
 
 const
   // TClipType
-  ctNone        = Clipper.Core.ctNone;
+  ctNone        = Clipper.Core.ctNoClip;
+  ctNoClip      = Clipper.Core.ctNoClip;
   ctIntersection= Clipper.Core.ctIntersection;
   ctUnion       = Clipper.Core.ctUnion;
   ctDifference  = Clipper.Core.ctDifference;

@@ -2,11 +2,11 @@ unit Clipper.Engine;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
-* Date      :  27 April 2024                                                   *
-* Website   :  http://www.angusj.com                                           *
-* Copyright :  Angus Johnson 2010-2024                                         *
+* Date      :  21 February 2026                                                *
+* Website   :  https://www.angusj.com                                          *
+* Copyright :  Angus Johnson 2010-2026                                         *
 * Purpose   :  This is the main polygon clipping module                        *
-* License   :  http://www.boost.org/LICENSE_1_0.txt                            *
+* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
 *******************************************************************************)
 
 interface
@@ -219,7 +219,7 @@ type
     FSucceeded          : Boolean;
     FReverseSolution    : Boolean;
   {$IFDEF USINGZ}
-    fDefaultZ           : Int64;
+    fDefaultZ           : Ztype;
     fZCallback          : TZCallback64;
   {$ENDIF}
     procedure Reset;
@@ -287,7 +287,7 @@ type
   {$IFDEF USINGZ}
     procedure SetZ( e1, e2: PActive; var intersectPt: TPoint64);
     property  ZCallback : TZCallback64 read fZCallback write fZCallback;
-    property  DefaultZ : Int64 read fDefaultZ write fDefaultZ;
+    property  DefaultZ : Ztype read fDefaultZ write fDefaultZ;
   {$ENDIF}
     property  Succeeded : Boolean read FSucceeded;
   public
@@ -372,8 +372,7 @@ type
     FInvScale: double;
   {$IFDEF USINGZ}
     fZCallback : TZCallbackD;
-    procedure ZCB(const bot1, top1, bot2, top2: TPoint64;
-      var intersectPt: TPoint64);
+    procedure ZCB(const bot1, top1, bot2, top2: TPoint64; var intersectPt: TPoint64);
     procedure CheckCallback;
   {$ENDIF}
   public
@@ -691,7 +690,7 @@ function TopX(e: PActive; const currentY: Int64): Int64; overload;
 begin
   if (currentY = e.top.Y) or (e.top.X = e.bot.X) then Result := e.top.X
   else if (currentY = e.bot.Y) then Result := e.bot.X
-  else Result := e.bot.X + Round(e.dx*(currentY - e.bot.Y));
+  else Result := e.bot.X + Round(e.dx * (currentY - e.bot.Y));
 end;
 //------------------------------------------------------------------------------
 
@@ -814,7 +813,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function GetMaximaPair(e: PActive): PActive;
+function GetMaximaPair(e: PActive): PActive; {$IFDEF INLINING} inline; {$ENDIF}
 begin
   Result := e.nextInAEL;
   while assigned(Result) do
@@ -875,7 +874,7 @@ var
   val: Integer;
   op2: POutPt;
   isAbove, startingAbove: Boolean;
-  d: double; // avoids integer overflow
+  d: integer;
 begin
   result := pipOutside;
   if (op = op.next) or (op.prev = op.next) then Exit;
@@ -900,7 +899,7 @@ begin
       while (op2 <> op) and (op2.pt.Y > pt.Y) do op2 := op2.next;
     if (op2 = op) then break;
 
-    // must have touched or crossed the pt.Y horizonal
+    // must have touched or crossed the pt.Y horizontal
     // and this must happen an even number of times
 
     if (op2.pt.Y = pt.Y) then // touching the horizontal
@@ -919,7 +918,7 @@ begin
       val := 1 - val // toggle val
     else
     begin
-      d := CrossProduct(op2.prev.pt, op2.pt, pt);
+      d := CrossProductSign(op2.prev.pt, op2.pt, pt);
       if d = 0 then Exit; // ie point on path
       if (d < 0) = isAbove then val := 1 - val;
     end;
@@ -929,7 +928,7 @@ begin
 
   if (isAbove <> startingAbove) then
   begin
-    d := CrossProduct(op2.prev.pt, op2.pt, pt);
+    d := CrossProductSign(op2.prev.pt, op2.pt, pt);
     if d = 0 then Exit; // ie point on path
     if (d < 0) = isAbove then val := 1 - val;
   end;
@@ -943,36 +942,33 @@ end;
 function Path1InsidePath2(const op1, op2: POutPt): Boolean;
 var
   op: POutPt;
-  mp: TPoint64;
-  path: TPath64;
-  pipResult: TPointInPolygonResult;
-  outsideCnt: integer;
+  pip: TPointInPolygonResult;
 begin
-  // precondition - the twi paths or1 & pr2 don't intersect
-  // we need to make some accommodation for rounding errors
-  // so we won't jump if the first vertex is found outside
-  outsideCnt := 0;
+  // accommodate rounding errors
+  Result := false;
+  pip := pipOn;
   op := op1;
   repeat
-    pipResult := PointInOpPolygon(op.pt, op2);
-    if pipResult = pipOutside then inc(outsideCnt)
-    else if pipResult = pipInside then dec(outsideCnt);
+    case (PointInOpPolygon(op.pt, op2)) of
+      pipOutside:
+      begin
+        if (pip = pipOutside) then Exit;
+        pip := pipOutside;
+      end;
+      pipInside:
+      begin
+        if (pip = pipInside) then begin Result := true; Exit end;
+        pip := pipInside;
+      end;
+    end;
     op := op.next;
-  until (op = op1) or (Abs(outsideCnt) = 2);
-  if (Abs(outsideCnt) < 2) then
-  begin
-    // if path1's location is still equivocal then check its midpoint
-    path := GetCleanPath(op1);
-    mp := Clipper.Core.GetBounds(path).MidPoint;
-    path := GetCleanPath(op2);
-    Result := PointInPolygon(mp, path) <> pipOutside;
-  end
-  else
-     Result := (outsideCnt < 0);
+  until (op = op1);
+  // result unclear, so try again using cleaned paths
+  Result := Path2ContainsPath1(GetCleanPath(op1), GetCleanPath(op2)); // (#973)
 end;
 //------------------------------------------------------------------------------
 
-procedure UncoupleOutRec(e: PActive);
+procedure UncoupleOutRec(e: PActive); {$IFDEF INLINING} inline; {$ENDIF}
 var
   outRec: POutRec;
 begin
@@ -1017,6 +1013,11 @@ begin
   GetMem(v, sizeof(TVertex) * totalVerts);
   vertexList.Add(v);
 
+  {$IF not defined(FPC) and (CompilerVersion <= 26.0)}
+  // Delphi 7-XE5 have a problem with "continue" and the
+  // code analysis, marking "ascending" as "not initialized"
+  ascending := False;
+  {$IFEND}
   for i := 0 to High(paths) do
   begin
     len := Length(paths[i]);
@@ -1153,14 +1154,14 @@ begin
     if reverse then op := op.prev else op := op.next;
   end;
 
-  setLength(path, j+1);
+  setLength(path, j + 1);
   if isOpen then
     Result := (j > 0) else
     Result := (j > 1);
 end;
 //------------------------------------------------------------------------------
 
-function DisposeOutPt(op: POutPt): POutPt;
+function DisposeOutPt(op: POutPt): POutPt; {$IFDEF INLINING} inline; {$ENDIF}
 begin
   if op.next = op then
     Result := nil else
@@ -1284,7 +1285,7 @@ begin
   d4 := (pt1.x - pt2.x);
   d5 := (pt2.y + pt3.y);
   d6 := (pt2.x - pt3.x);
-  result := d1 * d2 + d3 *d4 + d5 *d6;
+  result := d1 * d2 + d3 * d4 + d5 * d6;
 end;
 //------------------------------------------------------------------------------
 
@@ -1323,16 +1324,13 @@ procedure SetOwner(outrec, newOwner: POutRec);
 var
   tmp: POutRec;
 begin
-  //precondition1: new_owner is never null
-  while Assigned(newOwner.owner) and
-    not Assigned(newOwner.owner.pts) do
-      newOwner.owner := newOwner.owner.owner;
-  //make sure that outrec isn't an owner of newOwner
+  // precondition: new_owner is never null
+  newOwner.owner := GetRealOutRec(newOwner.owner);
+
+  // make sure that outrec isn't an owner of newOwner
   tmp := newOwner;
-  while Assigned(tmp) and (tmp <> outrec) do
-    tmp := tmp.owner;
-  if Assigned(tmp) then
-    newOwner.owner := outrec.owner;
+  while Assigned(tmp) and (tmp <> outrec) do tmp := tmp.owner;
+  if Assigned(tmp) then newOwner.owner := outrec.owner;
   outrec.owner := newOwner;
 end;
 
@@ -1796,7 +1794,7 @@ function IsValidAelOrder(resident, newcomer: PActive): Boolean;
 var
   botY: Int64;
   newcomerIsLeft: Boolean;
-  d: double;
+  d: integer;
 begin
   if (newcomer.currX <> resident.currX) then
   begin
@@ -1805,7 +1803,7 @@ begin
   end;
 
   // get the turning direction  a1.top, a2.bot, a2.top
-  d := CrossProduct(resident.top, newcomer.bot, newcomer.top);
+  d := CrossProductSign(resident.top, newcomer.bot, newcomer.top);
   if d <> 0 then
   begin
     Result := d < 0;
@@ -1817,14 +1815,14 @@ begin
   if not IsMaxima(resident) and
     (resident.top.Y > newcomer.top.Y) then
   begin
-    Result := CrossProduct(newcomer.bot,
+    Result := CrossProductSign(newcomer.bot,
       resident.top, NextVertex(resident).pt) <= 0;
     Exit;
   end
   else if not IsMaxima(newcomer) and
     (newcomer.top.Y > resident.top.Y) then
   begin
-    Result := CrossProduct(newcomer.bot,
+    Result := CrossProductSign(newcomer.bot,
       newcomer.top, NextVertex(newcomer).pt) >= 0;
     Exit;
   end;
@@ -1843,7 +1841,7 @@ begin
       Result := true
   else
     // otherwise compare turning direction of the alternate bound
-    Result := (CrossProduct(PrevPrevVertex(resident).pt,
+    Result := (CrossProductSign(PrevPrevVertex(resident).pt,
       newcomer.bot, PrevPrevVertex(newcomer).pt) > 0) = newcomerIsLeft;
 end;
 //------------------------------------------------------------------------------
@@ -1947,7 +1945,8 @@ begin
       begin
         if IsHeadingLeftHorz(rightB) then SwapActives(leftB, rightB);
       end
-      else if (leftB.dx < rightB.dx) then SwapActives(leftB, rightB);
+      else if (leftB.dx < rightB.dx) then
+        SwapActives(leftB, rightB);
       //so when leftB has windDx == 1, the polygon will be oriented
       //counter-clockwise in Cartesian coords (clockwise with inverted Y).
     end
@@ -1989,7 +1988,7 @@ begin
       begin
         rbn := rightB.nextInAEL;
         IntersectEdges(rightB, rbn, rightB.bot);
-        SwapPositionsInAEL(rightB, rightB.nextInAEL);
+        SwapPositionsInAEL(rightB, rbn);
       end;
 
       if IsHorizontal(rightB) then
@@ -2039,6 +2038,8 @@ begin
   newOr.owner := nil;
   e1.outrec := newOr;
   e2.outrec := newOr;
+  Result := NewOutPt(pt, newOr);
+  newOr.pts := Result;
 
   if IsOpen(e1) then
   begin
@@ -2068,8 +2069,6 @@ begin
         SetSides(newOr, e2, e1);
     end;
   end;
-  Result := NewOutPt(pt, newOr);
-  newOr.pts := Result;
 end;
 //------------------------------------------------------------------------------
 
@@ -2154,8 +2153,7 @@ begin
   prevOp := splitOp.prev;
   nextNextOp := splitOp.next.next;
   outrec.pts := prevOp;
-  GetSegmentIntersectPt(
-    prevOp.pt, splitOp.pt, splitOp.next.pt, nextNextOp.pt, ip);
+  GetLineIntersectPt(prevOp.pt, splitOp.pt, splitOp.next.pt, nextNextOp.pt, ip);
 {$IFDEF USINGZ}
   if Assigned(fZCallback) then
     fZCallback(prevOp.Pt, splitOp.Pt, splitOp.Next.Pt, nextNextOp.Pt, ip);
@@ -2186,36 +2184,35 @@ begin
     prevOp.next := newOp2;
   end;
 
-  // nb: area1 is the path's area *before* splitting, whereas area2 is
-  // the area of the triangle containing splitOp & splitOp.next.
-  // So the only way for these areas to have the same sign is if
-  // the split triangle is larger than the path containing prevOp or
-  // if there's more than one self-intersection.
-  if (absArea2 > 1) and
-    ((absArea2 > absArea1) or
-    ((area2 > 0) = (area1 > 0))) then
-  begin
-    newOutRec := FOutRecList.Add;
-    newOutRec.owner := outrec.owner;
+  // given we're splitting at a self-intersection, and given area1 is the
+  // path's area *before* splitting (which comprises of both positive and
+  // negative areas), and given area2 is the area of a new triangle containing
+  // splitOp, splitOp.next and the intesect pt, if area1 and area2 have the
+  // same sign then area2 must be the larger of the splits.
 
-    splitOp.outrec := newOutRec;
-    splitOp.next.outrec := newOutRec;
-    newOp := NewOutPt(ip, newOutRec, splitOp.next, splitOp);
-    splitOp.prev := newOp;
-    splitOp.next.next := newOp;
-    newOutRec.pts := newOp;
-
-    if FUsingPolytree then
-    begin
-      if (Path1InsidePath2(prevOp, newOp)) then
-        AddSplit(newOutRec, outrec) else
-        AddSplit(outrec, newOutRec);
-    end;
-
-  end else
+  if (absArea2 < 1) or
+    ((absArea2 < absArea1) and ((area2 > 0) <> (area1 > 0))) then
   begin
     Dispose(splitOp.next);
     Dispose(splitOp);
+    Exit;
+  end;
+
+  newOutRec := FOutRecList.Add;
+  newOutRec.owner := outrec.owner;
+
+  splitOp.outrec := newOutRec;
+  splitOp.next.outrec := newOutRec;
+  newOp := NewOutPt(ip, newOutRec, splitOp.next, splitOp);
+  splitOp.prev := newOp;
+  splitOp.next.next := newOp;
+  newOutRec.pts := newOp;
+
+  if FUsingPolytree then
+  begin
+    if (Path1InsidePath2(prevOp, newOp)) then
+      AddSplit(newOutRec, outrec) else
+      AddSplit(outrec, newOutRec);
   end;
 end;
 //------------------------------------------------------------------------------
@@ -2225,17 +2222,22 @@ var
   op2: POutPt;
 begin
   op2 := outrec.pts;
+  if (op2.prev = op2.next.next) then
+    Exit; // because triangles can't self-intersect
+
   while true do
   begin
-    // triangles can't self-intersect
-    if (op2.prev = op2.next.next) then
-      Break
-    else if SegmentsIntersect(op2.prev.pt, op2.pt,
+    if SegmentsIntersect(op2.prev.pt, op2.pt,
       op2.next.pt, op2.next.next.pt) then
     begin
+      // split required.
+      if (op2 = outrec.pts) or (op2.next = outrec.pts) then
+        outrec.pts := outrec.pts.prev;
       DoSplitOp(outrec, op2);
       if not assigned(outrec.pts) then Break;
       op2 := outrec.pts;
+      if (op2.prev = op2.next.next) then
+        Break; // because triangles can't self-intersect
       Continue;
     end else
       op2 := op2.next;
@@ -2279,8 +2281,8 @@ begin
       if not Assigned(e) then
         outRec.owner := nil else
         SetOwner(outRec, e.outrec);
-      // nb: outRec.owner here is likely NOT the real
-      // owner but this will be checked in DeepCheckOwner()
+      // nb: outRec.owner here is likely NOT the real owner
+      // but this will be checked in DeepCheckOwner()
     end;
     UncoupleOutRec(e1);
   end
@@ -2377,6 +2379,8 @@ begin
     not IsHotEdge(e) or not IsHotEdge(prev) or
     IsHorizontal(e) or IsHorizontal(prev) or
     IsOpen(e) or IsOpen(prev) then Exit;
+  // Also exit if pt is within a unit of the top of either edge
+  // unless one of the edges is almost horizontal ...
   if ((pt.Y < e.top.Y +2) or (pt.Y < prev.top.Y +2)) and
     ((e.bot.Y > pt.Y) or (prev.bot.Y > pt.Y)) then Exit; // (#490)
 
@@ -2408,6 +2412,9 @@ begin
     not IsHotEdge(e) or not IsHotEdge(next) or
     IsHorizontal(e) or IsHorizontal(next) or
     IsOpen(e) or IsOpen(next) then Exit;
+
+  // Also exit if pt is within a unit of the top of either edge
+  // unless one of the edges is almost horizontal ...
   if ((pt.Y < e.top.Y +2) or (pt.Y < next.top.Y +2)) and
     ((e.bot.Y > pt.Y) or (next.bot.Y > pt.Y)) then Exit; // (#490)
 
@@ -2559,9 +2566,8 @@ procedure TClipperBase.IntersectEdges(e1, e2: PActive; pt: TPoint64);
 var
   e1WindCnt, e2WindCnt, e1WindCnt2, e2WindCnt2: Integer;
   e3: PActive;
-  resultOp, op2: POutPt;
+  op, op2: POutPt;
 begin
-  resultOp := nil;
   // MANAGE OPEN PATH INTERSECTIONS SEPARATELY ...
   if FHasOpenPaths and (IsOpen(e1) or IsOpen(e2)) then
   begin
@@ -2586,7 +2592,7 @@ begin
     // toggle contribution ...
     if IsHotEdge(e1) then
     begin
-      resultOp := AddOutPt(e1, pt);
+      op := AddOutPt(e1, pt);
       if IsFront(e1) then
         e1.outrec.frontE := nil else
         e1.outrec.backE := nil;
@@ -2610,17 +2616,18 @@ begin
           SetSides(e3.outrec, e3, e1);
         Exit;
       end else
-        resultOp := StartOpenPath(e1, pt);
+        op := StartOpenPath(e1, pt);
     end else
-      resultOp := StartOpenPath(e1, pt);
+      op := StartOpenPath(e1, pt);
 
     {$IFDEF USINGZ}
-    SetZ(e1, e2, resultOp.pt);
+    SetZ(e1, e2, op.pt);
     {$ENDIF}
     Exit;
   end;
 
   // MANAGING CLOSED PATHS FROM HERE ON
+
   if IsJoined(e1) then UndoJoin(e1, pt);
   if IsJoined(e2) then UndoJoin(e2, pt);
 
@@ -2679,20 +2686,20 @@ begin
     if not (e1WindCnt in [0,1]) or not (e2WindCnt in [0,1]) or
       (not IsSamePolyType(e1, e2) and (fClipType <> ctXor)) then
     begin
-      resultOp := AddLocalMaxPoly(e1, e2, pt);
+      op := AddLocalMaxPoly(e1, e2, pt);
       {$IFDEF USINGZ}
-      if Assigned(Result) then SetZ(e1, e2, Result.pt);
+      if Assigned(op) then SetZ(e1, e2, op.pt);
       {$ENDIF}
 
     end else if IsFront(e1) or (e1.outrec = e2.outrec) then
     begin
       // this 'else if' condition isn't strictly needed but
-      // it's sensible to split polygons that ony touch at
+      // it's sensible to split polygons that only touch at
       // a common vertex (not at common edges).
-      resultOp := AddLocalMaxPoly(e1, e2, pt);
+      op := AddLocalMaxPoly(e1, e2, pt);
       {$IFDEF USINGZ}
       op2 := AddLocalMinPoly(e1, e2, pt);
-      if Assigned(Result) then SetZ(e1, e2, Result.pt);
+      if Assigned(op) then SetZ(e1, e2, op.pt);
       SetZ(e1, e2, op2.pt);
       {$ELSE}
       AddLocalMinPoly(e1, e2, pt);
@@ -2700,10 +2707,10 @@ begin
     end else
     begin
       // can't treat as maxima & minima
-      resultOp := AddOutPt(e1, pt);
+      op := AddOutPt(e1, pt);
       {$IFDEF USINGZ}
       op2 := AddOutPt(e2, pt);
-      SetZ(e1, e2, Result.pt);
+      SetZ(e1, e2, op.pt);
       SetZ(e1, e2, op2.pt);
       {$ELSE}
       AddOutPt(e2, pt);
@@ -2715,17 +2722,17 @@ begin
   // if one or other edge is 'hot' ...
   else if IsHotEdge(e1) then
   begin
-    resultOp := AddOutPt(e1, pt);
+    op := AddOutPt(e1, pt);
     {$IFDEF USINGZ}
-    SetZ(e1, e2, Result.pt);
+    SetZ(e1, e2, op.pt);
     {$ENDIF}
     SwapOutRecs(e1, e2);
   end
   else if IsHotEdge(e2) then
   begin
-    resultOp := AddOutPt(e2, pt);
+    op := AddOutPt(e2, pt);
     {$IFDEF USINGZ}
-    SetZ(e1, e2, Result.pt);
+    SetZ(e1, e2, op.pt);
     {$ENDIF}
     SwapOutRecs(e1, e2);
   end
@@ -2753,32 +2760,32 @@ begin
 
     if not IsSamePolyType(e1, e2) then
     begin
-      resultOp := AddLocalMinPoly(e1, e2, pt, false);
+      op := AddLocalMinPoly(e1, e2, pt, false);
       {$IFDEF USINGZ}
-      SetZ(e1, e2, Result.pt);
+      SetZ(e1, e2, op.pt);
       {$ENDIF}
     end
     else if (e1WindCnt = 1) and (e2WindCnt = 1) then
     begin
-      resultOp := nil;
+      op := nil;
       case FClipType of
         ctIntersection:
           if (e1WindCnt2 <= 0) or (e2WindCnt2 <= 0) then Exit
-          else resultOp := AddLocalMinPoly(e1, e2, pt, false);
+          else op := AddLocalMinPoly(e1, e2, pt, false);
         ctUnion:
           if (e1WindCnt2 <= 0) and (e2WindCnt2 <= 0) then
-            resultOp := AddLocalMinPoly(e1, e2, pt, false);
+            op := AddLocalMinPoly(e1, e2, pt, false);
         ctDifference:
           if ((GetPolyType(e1) = ptClip) and
                 (e1WindCnt2 > 0) and (e2WindCnt2 > 0)) or
               ((GetPolyType(e1) = ptSubject) and
                 (e1WindCnt2 <= 0) and (e2WindCnt2 <= 0)) then
-            resultOp := AddLocalMinPoly(e1, e2, pt, false);
+            op := AddLocalMinPoly(e1, e2, pt, false);
         else // xOr
-            resultOp := AddLocalMinPoly(e1, e2, pt, false);
+            op := AddLocalMinPoly(e1, e2, pt, false);
       end;
       {$IFDEF USINGZ}
-      if assigned(Result) then SetZ(e1, e2, Result.pt);
+      if assigned(op) then SetZ(e1, e2, op.pt);
       {$ENDIF}
     end;
   end;
@@ -2827,10 +2834,9 @@ begin
     e.prevInSEL := e.prevInAEL;
     e.nextInSEL := e.nextInAEL;
     e.jump := e.nextInSEL;
-    if (e.joinedWith = jwLeft) then
-      e.currX := e.prevInAEL.currX // this also avoids complications
-    else
-      e.currX := TopX(e, topY);
+    // it is safe to ignore 'joined' edges here because
+    // if necessary they will be split in IntersectEdges()
+    e.currX := TopX(e, topY);
     e := e.nextInAEL;
   end;
 end;
@@ -2842,7 +2848,7 @@ var
   Y: Int64;
   e: PActive;
 begin
-  if clipType = ctNone then Exit;
+  if clipType = ctNoClip then Exit;
   FFillRule := fillRule;
   FClipType := clipType;
   Reset;
@@ -2904,14 +2910,14 @@ function HorzontalsOverlap(const horz1a, horz1b, horz2a, horz2b: TPoint64): bool
 begin
   if horz1a.X < horz1b.X then
   begin
-    Result := Iif(horz2a.X < horz2b.X,
-      HorzOverlapWithLRSet(horz1a, horz1b, horz2a, horz2b),
-      HorzOverlapWithLRSet(horz1a, horz1b, horz2b, horz2a));
+    if (horz2a.X < horz2b.X) then
+      Result := HorzOverlapWithLRSet(horz1a, horz1b, horz2a, horz2b) else
+      Result := HorzOverlapWithLRSet(horz1a, horz1b, horz2b, horz2a);
   end else
   begin
-    Result := Iif(horz2a.X < horz2b.X,
-      HorzOverlapWithLRSet(horz1b, horz1a, horz2a, horz2b),
-      HorzOverlapWithLRSet(horz1b, horz1a, horz2b, horz2a));
+    if (horz2a.X < horz2b.X) then
+      Result := HorzOverlapWithLRSet(horz1b, horz1a, horz2a, horz2b) else
+      Result := HorzOverlapWithLRSet(horz1b, horz1a, horz2b, horz2a);
   end;
 end;
 //------------------------------------------------------------------------------
@@ -3000,10 +3006,10 @@ begin
   FHorzSegList.Sort(HorzSegListSort);
 
   // find overlaps
-  for i := 0 to FHorzSegList.Count -2 do
+  for i := 0 to FHorzSegList.Count - 2 do
   begin
     hs1 := FHorzSegList.UnsafeGet(i);
-    for j := i+1 to FHorzSegList.Count -1 do
+    for j := i+1 to FHorzSegList.Count - 1 do
     begin
       hs2 := FHorzSegList.UnsafeGet(j);
 
@@ -3040,13 +3046,13 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure MoveSplits(fromOr, toOr: POutRec);
+procedure MoveSplits(fromOr, toOr: POutRec); {$IFDEF INLINING} inline; {$ENDIF}
 var
   i: integer;
 begin
-  if not assigned(fromOr.splits) then Exit;
   for i := 0 to High(fromOr.splits) do
-    AddSplit(toOr, fromOr.splits[i]);
+    if toOr <> fromOr.splits[i] then
+      AddSplit(toOr, fromOr.splits[i]);
   fromOr.splits := nil;
 end;
 //------------------------------------------------------------------------------
@@ -3085,7 +3091,7 @@ begin
         or1.pts.outrec := or1;
       end;
 
-      if FUsingPolytree then //#498, #520, #584, D#576, #618
+      if FUsingPolytree then // #498, #520, #584, D#576, #618
       begin
         if Path1InsidePath2(or1.pts, or2.pts) then
         begin
@@ -3101,7 +3107,7 @@ begin
         else if Path1InsidePath2(or2.pts, or1.pts) then
         begin
           or2.owner := or1;
-        end 
+        end
         else
           or2.owner := or1.owner;
 
@@ -3109,13 +3115,15 @@ begin
       end
       else
         or2.owner := or1;
-    end else
+    end
+    else // or1 <> or2, hence joining not splitting
     begin
       or2.pts := nil;
-      if FUsingPolytree then   
+      if FUsingPolytree then
       begin
         SetOwner(or2, or1);
-        MoveSplits(or2, or1); //#618
+        if assigned(or2.splits) then
+          MoveSplits(or2, or1); // #618
       end else
         or2.owner := or1;
     end;
@@ -3150,7 +3158,7 @@ var
   absDx1, absDx2: double;
   node: PIntersectNode;
 begin
-  if not GetSegmentIntersectPt(e1.bot, e1.top, e2.bot, e2.top, ip) then
+  if not GetLineIntersectPt(e1.bot, e1.top, e2.bot, e2.top, ip) then
     ip := Point64(e1.currX, topY);
   // Rounding errors can occasionally place the calculated intersection
   // point either below or above the scanbeam, so check and correct ...
@@ -3171,7 +3179,9 @@ begin
     else
     begin
       ip.Y := Iif(ip.Y < topY, topY , fBotY);
-      ip.X := Iif(absDx1 < absDx2, TopX(e1, ip.Y), TopX(e2, ip.Y));
+      if absDx1 < absDx2 then
+        ip.X := TopX(e1, ip.Y) else
+        ip.X := TopX(e2, ip.Y);
     end;
   end;
   new(node);
@@ -3389,7 +3399,7 @@ var
       Result := assigned(e);
       // nb: this block isn't yet redundant
     end
-    else if horzEdge.currX < horzEdge.top.X then
+    else if (horzEdge.currX < horzEdge.top.X) then
     begin
       horzLeft := horzEdge.currX;
       horzRight := horzEdge.top.X;
@@ -3429,6 +3439,7 @@ begin
   Y := horzEdge.bot.Y;
   maxVertex := nil;
 
+  // maxVertex - manages consecutive horizontal edges
   if horzIsOpen then
     maxVertex := GetCurrYMaximaVertexOpen(horzEdge) else
     maxVertex := GetCurrYMaximaVertex(horzEdge);
@@ -3525,7 +3536,7 @@ begin
       end;
       if IsHotEdge(horzEdge) then
       begin
-        //nb: The outrec containining the op returned by IntersectEdges
+        //nb: The outrec containing the op returned by IntersectEdges
         //above may no longer be associated with horzEdge.
         FHorzSegList.Add(GetLastOp(horzEdge));
       end;
@@ -3709,18 +3720,15 @@ end;
 
 function TClipperBase.CheckBounds(outrec: POutRec): Boolean;
 begin
-  if not Assigned(outrec.pts) then
-    Result := false
-  else if not outrec.bounds.IsEmpty then
-    Result := true
-  else
+  if outrec.bounds.IsEmpty then
   begin
     CleanCollinear(outrec);
     result := Assigned(outrec.pts) and
       BuildPath(outrec.pts, FReverseSolution, false, outrec.path);
     if not Result then Exit;
     outrec.bounds := Clipper.Core.GetBounds(outrec.path);
-  end;
+  end else
+    Result := true;
 end;
 //------------------------------------------------------------------------------
 
@@ -3732,24 +3740,32 @@ begin
   // returns true if a valid owner is found in splits
   // (and also assigns it to outrec.owner)
   Result := true;
-  for i := 0 to High(splits) do
+  // nb: use indexing (not an iterator) in case 'splits' is modified inside
+  // this loop, and also accommodate the length of splits changing (#1029)
+  i := 0;
+  while (i < Length(splits)) do
   begin
-    split := GetRealOutRec(splits[i]);
-    if (split = nil) or 
-       (split = outrec) or 
-       (split.recursiveCheck = outrec) then Continue;
-       
+    split := splits[i]; inc(i);
+    if not Assigned(split.pts) and Assigned(split.splits) and
+      CheckSplitOwner(outrec, split.splits) then Exit; // Result := true (#942)
+
+    split := GetRealOutRec(split);
+    if not Assigned(split) or (split = outrec) or
+      (split.recursiveCheck = outrec) then Continue;
     split.recursiveCheck := outrec; // prevent infinite loops
-    if Assigned(split.splits) and
-      CheckSplitOwner(outrec, split.splits) then Exit
-    else if IsValidOwner(outrec, split) and
-      CheckBounds(split) and
-      (split.bounds.Contains(outrec.bounds) and
-      Path1InsidePath2(outrec.pts, split.pts)) then
-    begin
-      outrec.owner := split;
-      Exit;
-    end;
+
+    if Assigned(split.splits) and CheckSplitOwner(outrec, split.splits) then
+      Exit; // Result := true
+
+    if not CheckBounds(split) or
+      not split.bounds.Contains(outrec.bounds) or
+      not Path1InsidePath2(outrec.pts, split.pts) then Continue;
+
+    if not IsValidOwner(outrec, split) then // split is owned by outrec (#957)
+      split.owner := outrec.owner;
+
+    outrec.owner := split;
+    Exit; // Result := true
   end;
   Result := false;
 end;
@@ -4055,7 +4071,7 @@ begin
   inherited Create;
   CheckPrecisionRange(precision);
   FScale := Math.Power(10, precision);
-  FInvScale := 1/FScale;
+  FInvScale := 1 / FScale;
 end;
 //------------------------------------------------------------------------------
 
@@ -4222,7 +4238,7 @@ begin
   Result := TPolyPathD.Create;
   Result.Parent := self;
   TPolyPathD(Result).fScale := fScale;
-  TPolyPathD(Result).FPath := ScalePathD(path, 1/FScale);
+  TPolyPathD(Result).FPath := ScalePathD(path, 1 / FScale);
   ChildList.Add(Result);
 end;
 //------------------------------------------------------------------------------

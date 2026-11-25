@@ -2,11 +2,11 @@ unit Clipper;
 
 (*******************************************************************************
 * Author    :  Angus Johnson                                                   *
-* Date      :  7 May 2024                                                      *
-* Website   :  http://www.angusj.com                                           *
-* Copyright :  Angus Johnson 2010-2024                                         *
+* Date      :  5 March 2025                                                    *
+* Website   :  https://www.angusj.com                                          *
+* Copyright :  Angus Johnson 2010-2025                                         *
 * Purpose   :  This module provides a simple interface to the Clipper Library  *
-* License   :  http://www.boost.org/LICENSE_1_0.txt                            *
+* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
 *******************************************************************************)
 
 interface
@@ -52,7 +52,7 @@ const
   etSquare    = Clipper.Offset.etSquare;
   etRound     = Clipper.Offset.etRound;
 
-  ctNone          = Clipper.Core.ctNone;
+  ctNone          = Clipper.Core.ctNoClip;
   ctIntersection  = Clipper.Core.ctIntersection;
   ctUnion         = Clipper.Core.ctUnion;
   ctDifference    = Clipper.Core.ctDifference;
@@ -144,8 +144,9 @@ function TrimCollinear(const p: TPath64;
 function TrimCollinear(const path: TPathD;
   precision: integer; isOpenPath: Boolean = false): TPathD; overload;
 
-function PointInPolygon(const pt: TPoint64; const polygon: TPath64):
-  TPointInPolygonResult;
+function PointInPolygon(const pt: TPoint64;
+  const polygon: TPath64): TPointInPolygonResult;
+function Path2ContainsPath1(const path1, path2: TPath64): Boolean; overload;
 
 function SimplifyPath(const path: TPath64;
   shapeTolerance: double; isClosedPath: Boolean = true): TPath64; overload;
@@ -173,9 +174,9 @@ begin
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := ints[i*3];
-    Result[i].Y := ints[i*3 +1];
-    Result[i].z := ints[i*3 +2];
+    Result[i].X := ints[i * 3];
+    Result[i].Y := ints[i * 3 + 1];
+    Result[i].z := ints[i * 3 + 2];
   end;
 end;
 //------------------------------------------------------------------------------
@@ -186,11 +187,11 @@ var
 begin
   len := length(dbls) div 3;
   SetLength(Result, len);
-  for i := 0 to len -1 do
+  for i := 0 to len - 1 do
   begin
-    Result[i].X := dbls[i*3];
-    Result[i].Y := dbls[i*3 +1];
-    Result[i].Z := Round(dbls[i*3 +2]);
+    Result[i].X := dbls[i * 3];
+    Result[i].Y := dbls[i * 3 + 1];
+    Result[i].Z := Round(dbls[i * 3 + 2]);
   end;
 end;
 //------------------------------------------------------------------------------
@@ -202,10 +203,10 @@ var
 begin
   len := length(ints) div 2;
   SetLength(Result, len);
-  for i := 0 to len -1 do
+  for i := 0 to len - 1 do
   begin
-    Result[i].X := ints[i*2];
-    Result[i].Y := ints[i*2 +1];
+    Result[i].X := ints[i * 2];
+    Result[i].Y := ints[i * 2 + 1];
   end;
 end;
 //------------------------------------------------------------------------------
@@ -218,8 +219,8 @@ begin
   SetLength(Result, len);
   for i := 0 to len -1 do
   begin
-    Result[i].X := dbls[i*2];
-    Result[i].Y := dbls[i*2 +1];
+    Result[i].X := dbls[i * 2];
+    Result[i].Y := dbls[i * 2 + 1];
   end;
 end;
 //------------------------------------------------------------------------------
@@ -232,7 +233,7 @@ begin
   if (Length(Poly.Polygon) > 0) then
   begin
     i := Length(Paths);
-    SetLength(Paths, i +1);
+    SetLength(Paths, i + 1);
     Paths[i] := Poly.Polygon;
   end;
   for i := 0 to Poly.Count - 1 do
@@ -405,10 +406,10 @@ var
 begin
   CheckPrecisionRange(precision);
   scale := Power(10, precision);
-  invScale := 1/scale;
+  invScale := 1 / scale;
   pp := ScalePaths(paths, scale, scale);
 
-  with TClipperOffset.Create(miterLimit, ArcTolerance) do
+  with TClipperOffset.Create(miterLimit, scale * ArcTolerance) do
   try
     AddPaths(pp, jt, et);
     Execute(delta * scale, pp); // reuse pp to receive the solution.
@@ -459,7 +460,7 @@ begin
   rec := Rect64(ScaleRect(rect, scale));
   tmpPath := ScalePath(path, scale);
   tmpPath := RectClip(rec, tmpPath);
-  Result := ScalePathD(tmpPath, 1/scale);
+  Result := ScalePathD(tmpPath, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -480,7 +481,7 @@ begin
   finally
     Free;
   end;
-  Result := ScalePathsD(tmpPaths, 1/scale);
+  Result := ScalePathsD(tmpPaths, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -528,7 +529,7 @@ begin
   rec := Rect64(ScaleRect(rect, scale));
   tmpPath := ScalePath(path, scale);
   tmpPaths := RectClipLines(rec, tmpPath);
-  Result := ScalePathsD(tmpPaths, 1/scale);
+  Result := ScalePathsD(tmpPaths, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -551,7 +552,7 @@ begin
   finally
     Free;
   end;
-  Result := ScalePathsD(tmpPaths, 1/scale);
+  Result := ScalePathsD(tmpPaths, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -654,9 +655,9 @@ begin
   highI := high(p);
   if highI < 0 then Exit;
   for i := 0 to highI -1 do
-    Result := Result + format('%1.*n,%1.*n, ',
+    Result := Result + format('%1.*f,%1.*f, ',
       [decimals, p[i].X, decimals, p[i].Y]);
-  Result := Result + format('%1.*n,%1.*n',[
+  Result := Result + format('%1.*f,%1.*f',[
     decimals, p[highI].X, decimals, p[highI].Y]);
 end;
 //------------------------------------------------------------------------------
@@ -683,7 +684,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure ShowPolyPathStructure64(pp: TPolyPath64; level: integer;
+procedure ShowPolyPathStructure64(pp: TPolyPath64; ppIdx, level: integer;
   strings: TStrings);
 var
   i: integer;
@@ -692,12 +693,14 @@ begin
   spaces := StringOfChar(' ', level * 2);
   if pp.Count = 1 then plural := '' else plural := 's';
   if pp.IsHole then
-    strings.Add(Format('%sA hole containing %d polygon%s', [spaces, pp.Count, plural]))
+    strings.Add(Format('%sHole (%d) containing %d polygon%s',
+      [spaces, ppIdx, pp.Count, plural]))
   else
-    strings.Add(Format('%sA polygon containing %d hole%s', [spaces, pp.Count, plural]));
+    strings.Add(Format('%sPolygon (%d) containing %d hole%s',
+      [spaces, ppIdx, pp.Count, plural]));
   for i := 0 to pp.Count -1 do
     if pp.child[i].Count> 0 then
-      ShowPolyPathStructure64(pp.child[i], level + 1, strings);
+      ShowPolyPathStructure64(pp.child[i], i, level + 1, strings);
 end;
 //------------------------------------------------------------------------------
 
@@ -710,7 +713,7 @@ begin
     strings.Add(Format('Polytree with just %d polygons.', [polytree.Count]));
   for i := 0 to polytree.Count -1 do
     if polytree[i].Count > 0 then
-      ShowPolyPathStructure64(polytree[i], 1, strings);
+      ShowPolyPathStructure64(polytree[i], i, 1, strings);
 end;
 //------------------------------------------------------------------------------
 
@@ -805,7 +808,7 @@ begin
   scale := power(10, precision);
   p := ScalePath(path, scale);
   p := TrimCollinear(p, isOpenPath);
-  Result := ScalePathD(p, 1/scale);
+  Result := ScalePathD(p, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -816,12 +819,18 @@ begin
 end;
 //------------------------------------------------------------------------------
 
+function Path2ContainsPath1(const path1, path2: TPath64): Boolean;
+begin
+  Result := Clipper.Core.Path2ContainsPath1(path1, path2);
+end;
+//------------------------------------------------------------------------------
+
 function DistanceSqrd(const pt1, pt2: TPoint64): double;
   {$IFDEF INLINE} inline; {$ENDIF}
 var
   x1,y1,x2,y2: double;
 begin
-  // nb: older versions of Delphi don't allow explicit typcasting
+  // nb: older versions of Delphi don't allow explicit typecasting
   x1 := pt1.X; y1 := pt1.Y;
   x2 := pt2.X; y2 := pt2.Y;
   result := Sqr(x1 - x2) + Sqr(y1 - y2);
@@ -868,7 +877,7 @@ begin
   minHigh := Iif(isClosedPath, 2, 1);
   if highI < minHigh then Exit;
 
-  SetLength(srArray, highI +1);
+  SetLength(srArray, highI + 1);
   with srArray[0] do
   begin
     pt      := path[0];
@@ -881,19 +890,19 @@ begin
   with srArray[highI] do
   begin
     pt      := path[highI];
-    prev    := @srArray[highI-1];
+    prev    := @srArray[highI - 1];
     next    := @srArray[0];
     pdSqrd  := Iif(isClosedPath,
-      PerpendicDistSqrd(path[highI], path[highI-1], path[0]), invalidD);
+      PerpendicDistSqrd(path[highI], path[highI - 1], path[0]), invalidD);
   end;
 
-  for i := 1 to highI -1 do
+  for i := 1 to highI - 1 do
     with srArray[i] do
     begin
       pt      := path[i];
-      prev    := @srArray[i-1];
-      next    := @srArray[i+1];
-      pdSqrd  := PerpendicDistSqrd(path[i], path[i-1], path[i+1]);
+      prev    := @srArray[i - 1];
+      next    := @srArray[i + 1];
+      pdSqrd  := PerpendicDistSqrd(path[i], path[i - 1], path[i + 1]);
     end;
 
   first := @srArray[0];
@@ -919,7 +928,7 @@ begin
   end;
   if highI < minHigh then Exit;
   if not isClosedPath then first := @srArray[0];
-  SetLength(Result, highI +1);
+  SetLength(Result, highI + 1);
   for i := 0 to HighI do
   begin
     Result[i] := first.pt;
@@ -935,7 +944,7 @@ var
 begin
   len := Length(paths);
   SetLength(Result, len);
-  for i := 0 to len -1 do
+  for i := 0 to len - 1 do
     result[i] := SimplifyPath(paths[i], shapeTolerance, isClosedPath);
 end;
 //------------------------------------------------------------------------------
@@ -949,7 +958,7 @@ begin
   scale := power(10, decimalPrecision);
   p := ScalePath(path, scale);
   p := SimplifyPath(p, shapeTolerance, isClosedPath);
-  Result := ScalePathD(p, 1/scale);
+  Result := ScalePathD(p, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
@@ -962,7 +971,7 @@ begin
   scale := power(10, decimalPrecision);
   pp := ScalePaths(paths, scale);
   pp := SimplifyPaths(pp, shapeTolerance, isClosedPath);
-  Result := ScalePathsD(pp, 1/scale);
+  Result := ScalePathsD(pp, 1 / scale);
 end;
 //------------------------------------------------------------------------------
 
