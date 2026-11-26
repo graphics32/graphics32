@@ -127,7 +127,6 @@ type
     TabSheetView: TTabSheet;
     TabSheetSource: TTabSheet;
     MemoSource: TMemo;
-    ButtonSave: TButton;
     StatusBar: TStatusBar;
     TabSheetDump: TTabSheet;
     MemoDump: TMemo;
@@ -148,6 +147,9 @@ type
     ActionAllowExternal: TAction;
     ActionSave: TAction;
     Bitmap32List: TBitmap32List;
+    ActionCopy: TAction;
+    ButtonSave: TSpeedButton;
+    ButtonCopy: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure MemoSourceChange(Sender: TObject);
@@ -163,6 +165,8 @@ type
     procedure ActionAllowExternalExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
     procedure ActionBackgroundUpdate(Sender: TObject);
+    procedure ActionCopyExecute(Sender: TObject);
+    procedure ActionHasDocumentUpdate(Sender: TObject);
   private
     FDocNode: TSvgDocumentNode;
     FLockUpdate: integer;
@@ -178,14 +182,15 @@ type
 {$ifend}
     procedure RenderSvg(const ASource: string);
     procedure LoadAndRenderSvg(const AFileName: string);
-    procedure SplitterClicked(Sender: TObject);
 
     procedure MsgAfterShow(var Msg: TMessage); message MSG_AFTER_SHOW;
     procedure SetColorTheme(const Value: TSvgColorTheme);
     function GetBackground: TBackgroundCheckerboardStyle;
     procedure SetBackground(Value: TBackgroundCheckerboardStyle);
     procedure ApplyColorTheme(Renderer: TSvgRenderer);
+    procedure RenderToBitmap(Bitmap: TBitmap32);
 
+    procedure SplitterClicked(Sender: TObject);
     procedure SplitterMemoBeforeResize(Sender: TObject);
 {$IFNDEF FPC}
     procedure ShellListViewAddFolder(Sender: TObject; AFolder: TShellFolder; var CanAdd: Boolean);
@@ -215,6 +220,7 @@ uses
   System.Math,
   IOUtils,
 {$ifend}
+  ClipBrd,
 {$if defined(IMAGE32)}
   Img32.SVG.Reader,
   Img32.SVG.Path,
@@ -734,6 +740,46 @@ begin
   end;
 end;
 
+procedure TFormSVGviewer.RenderToBitmap(Bitmap: TBitmap32);
+var
+  Renderer: TSvgRenderer;
+  NaturalWidth, NaturalHeight: Single;
+begin
+  // Convert width and height presentation attributes to pixels
+  NaturalWidth := FDocNode.Width.ToPixels(600, Self.Monitor.PixelsPerInch);
+  NaturalHeight := FDocNode.Height.ToPixels(800, Self.Monitor.PixelsPerInch);
+
+  // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
+  if (NaturalWidth <= 0) then
+  begin
+    if FDocNode.ViewBox.IsValid then
+      NaturalWidth := FDocNode.ViewBox.Width
+    else
+      NaturalWidth := 600;
+  end;
+
+  if (NaturalHeight <= 0) then
+  begin
+    if FDocNode.ViewBox.IsValid then
+      NaturalHeight := FDocNode.ViewBox.Height
+    else
+      NaturalHeight := 800;
+  end;
+
+  Bitmap.SetSize(Round(NaturalWidth), Round(NaturalHeight));
+
+  Renderer := TSvgRenderer.Create;
+  try
+    Renderer.OnResolveExternalFile := ResolveExternalFileHandler;
+    ApplyColorTheme(Renderer);
+    Renderer.AllowExternalImages := FLayer.Renderer.AllowExternalImages;
+
+    Renderer.RenderDocument(Bitmap, FDocNode);
+  finally
+    Renderer.Free;
+  end;
+end;
+
 procedure TFormSVGviewer.ResolveExternalFileHandler(Sender: TObject; const Filename: string; Stream: TStream; var Allow: boolean);
 var
   DocumentFolder: string;
@@ -809,6 +855,20 @@ begin
   TAction(Sender).Enabled := (FColorTheme = ctNone);
 end;
 
+procedure TFormSVGviewer.ActionCopyExecute(Sender: TObject);
+var
+  Bitmap: TBitmap32;
+begin
+  Bitmap := TBitmap32.Create;
+  try
+    RenderToBitmap(Bitmap);
+    Clipboard.Assign(Bitmap);
+  finally
+    Bitmap.Free;
+  end;
+  StatusBar.Panels[4].Text := 'Copied to clipboard';
+end;
+
 procedure TFormSVGviewer.ActionReloadExecute(Sender: TObject);
 begin
   MemoSourceChange(MemoSource);
@@ -818,8 +878,6 @@ procedure TFormSVGviewer.ActionSaveExecute(Sender: TObject);
 var
   Filename: string;
   Bitmap: TBitmap32;
-  Renderer: TSvgRenderer;
-  NaturalWidth, NaturalHeight: Single;
 begin
   if (FFilename = '') then
     exit;
@@ -830,45 +888,17 @@ begin
 
   Bitmap := TBitmap32.Create;
   try
-    // Convert width and height presentation attributes to pixels
-    NaturalWidth := FDocNode.Width.ToPixels(600, Self.Monitor.PixelsPerInch);
-    NaturalHeight := FDocNode.Height.ToPixels(800, Self.Monitor.PixelsPerInch);
-
-    // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
-    if (NaturalWidth <= 0) then
-    begin
-      if FDocNode.ViewBox.IsValid then
-        NaturalWidth := FDocNode.ViewBox.Width
-      else
-        NaturalWidth := 600;
-    end;
-
-    if (NaturalHeight <= 0) then
-    begin
-      if FDocNode.ViewBox.IsValid then
-        NaturalHeight := FDocNode.ViewBox.Height
-      else
-        NaturalHeight := 800;
-    end;
-
-    Bitmap.SetSize(Round(NaturalWidth), Round(NaturalHeight));
-
-    Renderer := TSvgRenderer.Create;
-    try
-      Renderer.OnResolveExternalFile := ResolveExternalFileHandler;
-      ApplyColorTheme(Renderer);
-      Renderer.AllowExternalImages := FLayer.Renderer.AllowExternalImages;
-
-      Renderer.RenderDocument(Bitmap, FDocNode);
-    finally
-      Renderer.Free;
-    end;
-
+    RenderToBitmap(Bitmap);
     Bitmap.SaveToFile(Filename);
   finally
     Bitmap.Free;
   end;
   StatusBar.Panels[4].Text := 'Saved to: '+Filename;
+end;
+
+procedure TFormSVGviewer.ActionHasDocumentUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (FDocNode <> nil);
 end;
 
 procedure TFormSVGviewer.ActionThemeExecute(Sender: TObject);
