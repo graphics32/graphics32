@@ -1073,7 +1073,7 @@ begin
   CheckEquals(35.0, resPt.Y, 1E-4);
 
   // Test complex multi-transform list: 'rotate(-10 50 100) translate(-36 45.5) skewX(40) scale(1 0.5)'
-  mat := ParseSvgTransform('rotate(-10 50 100) translate(-36 45.5) skewX(40) scale(1 0.5)');
+  mat := ParseSvgTransform('rotate(-10 50 100) translate(-36 45.5) skewX(40deg) scale(1 0.5)');
   helper.Matrix := mat;
   pt := FloatPoint(10, 30);
   resPt := helper.TransformPoint(pt);

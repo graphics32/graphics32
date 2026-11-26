@@ -2123,6 +2123,15 @@ function ParsePolylinePath(const AValues: string; AClosed: Boolean): TArrayOfArr
 
 //------------------------------------------------------------------------------
 //
+//      Angle Value Parser
+//
+//------------------------------------------------------------------------------
+function TryParseSvgAngle(var AValue: TValuePUtf8Char; out Value: Single; Skip: boolean): boolean;
+function ParseSvgAngle(const AValue: TValuePUtf8Char): Single;
+
+
+//------------------------------------------------------------------------------
+//
 //      Transform Parser
 //
 //------------------------------------------------------------------------------
@@ -4890,44 +4899,6 @@ end;
 //      TSvgConicalGradientNode
 //
 //------------------------------------------------------------------------------
-function ParseSvgAngle(const AValue: TValuePUtf8Char): Single;
-var
-  Val: TValuePUtf8Char;
-  NumVal: Single;
-begin
-  Result := 0.0;
-  if AValue.Len = 0 then
-    Exit;
-  Val := AValue;
-  Val.Trim;
-  Val.TrimEnd;
-
-  if Val.EndsText('deg', True) then
-  begin
-    if Val.TryToFloat(NumVal) then
-      Result := NumVal;
-  end else
-  if Val.EndsText('rad', True) then
-  begin
-    if Val.TryToFloat(NumVal) then
-      Result := RadToDeg(NumVal);
-  end else
-  if Val.EndsText('turn', True) then
-  begin
-    if Val.TryToFloat(NumVal) then
-      Result := NumVal * 360.0;
-  end else
-  if Val.EndsText('grad', True) then
-  begin
-    if Val.TryToFloat(NumVal) then
-      Result := NumVal * 0.9;
-  end else
-  begin
-    if Val.TryToFloat(NumVal) then
-      Result := NumVal;
-  end;
-end;
-
 constructor TSvgConicalGradientNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
@@ -9734,6 +9705,74 @@ end;
 
 //------------------------------------------------------------------------------
 //
+//      Angle Value Parser
+//
+//------------------------------------------------------------------------------
+function TryParseSvgAngle(var AValue: TValuePUtf8Char; out Value: Single; Skip: boolean): boolean;
+var
+  AngleUnit: TValuePUtf8Char;
+begin
+  Result := False;
+  Value := 0.0;
+  if (AValue.Len = 0) then
+    Exit;
+
+  // Get value
+  if (not AValue.TryToFloat(Value, True)) then
+    exit;
+
+  // Isolate unit
+  AngleUnit := AValue.Split(sListSeparators, True);
+
+  // Value without a unit is illegal according to the specs, but we'll allow it.
+  // - Firefox:         Allow
+  // - Chromium Blink:  Allow
+  // - Inkscape:        Disallow
+  // - resvg:           Mostly allow. A few (5-6) resvg test cases only pass if
+  //                    we disallow, but a lot more (20-30) then fail. Strange.
+  if (AngleUnit.Len = 0) then
+    Exit(True);
+
+  case AngleUnit.Text^ of
+    'd':
+      if AngleUnit.CompareText('deg') then
+        Result := True;
+
+    'r':
+      if AngleUnit.CompareText('rad') then
+      begin
+        Result := True;
+        Value := RadToDeg(Value);
+      end;
+
+    't':
+      if AngleUnit.CompareText('turn') then
+      begin
+        Result := True;
+        Value := Value * 360.0;
+      end;
+
+    'g':
+      if AngleUnit.CompareText('grad') then
+      begin
+        Result := True;
+        Value := Value * 0.9;
+      end;
+  end;
+end;
+
+function ParseSvgAngle(const AValue: TValuePUtf8Char): Single;
+var
+  Val: TValuePUtf8Char;
+begin
+  Val := AValue;
+  if not TryParseSvgAngle(Val, Result, False) then
+    Result := 0.0;
+end;
+
+
+//------------------------------------------------------------------------------
+//
 //      Transform Parser
 //
 //------------------------------------------------------------------------------
@@ -9745,32 +9784,35 @@ end;
 {$ifend}
 
 function ParseSvgTransform(AValue: TValuePUtf8Char): TFloatMatrix;
+type
+  TParamValues = array[0..5] of Single;
 
-  function ExtractParams(Params: TValuePUtf8Char; var ParamValues: TArray<Single>): integer;
+  function ExtractParams(Params: TValuePUtf8Char; var ParamValues: TParamValues; MaxCount: integer; FirstIsAngle: boolean = False): integer;
   var
     Float: Single;
   begin
     Result := 0;
-    SetLength(ParamValues, 6);
-    while (Params.Len > 0) do
+    while (Params.Len > 0) and (Result <= High(ParamValues)) and (Result < MaxCount) do
     begin
       Params.Trim(sListSeparators);
+
+      if (Result = 0) and (FirstIsAngle) then
+      begin
+        if (not TryParseSvgAngle(Params, Float, True)) then
+          break;
+      end else
       if (not Params.TryToFloat(Float, True)) then
         break;
 
-      if (Result > High(ParamValues)) then
-        SetLength(ParamValues, Length(ParamValues) * 2);
       ParamValues[Result] := Float;
       Inc(Result);
     end;
-    // We do not waste time trimming the retuned array
-    // SetLength(ParamValues, Result);
   end;
 
 var
   Command: TValuePUtf8Char;
   Params: TValuePUtf8Char;
-  ParamValues: TArray<Single>;
+  ParamValues: TParamValues;
   Count: integer;
   Matrix: TFloatMatrixHelper;
 begin
@@ -9799,17 +9841,27 @@ begin
 
     AValue.Skip; // Skip ')'
 
-    Count := ExtractParams(Params, ParamValues);
-    if (Count = 0) then
-      continue;
-
-
     Matrix.Matrix := IdentityMatrix;
+
+    (*
+      Transform functions
+      https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/transform#transform_functions
+
+        matrix(<a> <b> <c> <d> <e> <f>)
+        translate(<x> [<y>])
+        scale(<x> [<y>])
+        rotate(<a> [<x> <y>])
+        skewX(<a>)
+        skewY(<a>)
+    *)
 
     case Command.Len of
       5:
         if Command.CompareText('scale') then
         begin
+          // Syntax: scale(<x> [<y>])
+          Count := ExtractParams(Params, ParamValues, 2);
+
           if (Count >= 2) then
             Matrix.Scale(ParamValues[0], ParamValues[1])
           else
@@ -9818,19 +9870,27 @@ begin
         end else
         if Command.CompareText('skewx') then
         begin
+          // Syntax: skewX(<a>)
+          Count := ExtractParams(Params, ParamValues, 1, True);
+
           if (Count >= 1) then
             Matrix.Skew(Tan(DegToRad(ParamValues[0])), 0);
         end else
         if Command.CompareText('skewy') then
         begin
+          // Syntax: skewY(<a>)
+          Count := ExtractParams(Params, ParamValues, 1, True);
+
           if (Count >= 1) then
             Matrix.Skew(0, Tan(DegToRad(ParamValues[0])));
-        end
-        ;
+        end;
 
       6:
         if Command.CompareText('rotate') then
         begin
+          // Syntax: rotate(<a> [<x> <y>])
+          Count := ExtractParams(Params, ParamValues, 3, True);
+
           if (Count >= 3) then
             Matrix.Rotate(ParamValues[1], ParamValues[2], ParamValues[0])
           else
@@ -9839,6 +9899,9 @@ begin
         end else
         if Command.CompareText('matrix') then
         begin
+          // Syntax: matrix(<a> <b> <c> <d> <e> <f>)
+          Count := ExtractParams(Params, ParamValues, 6);
+
           if (Count >= 6) then
           begin
             Matrix.Matrix[0, 0] := ParamValues[0];
@@ -9855,6 +9918,9 @@ begin
     else
       if Command.CompareText('translate') then
       begin
+          // Syntax: translate(<x> [<y>])
+          Count := ExtractParams(Params, ParamValues, 2);
+
         if (Count >= 2) then
           Matrix.Translate(ParamValues[0], ParamValues[1])
         else
