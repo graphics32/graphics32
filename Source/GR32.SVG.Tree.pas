@@ -1626,23 +1626,48 @@ type
 //      TSvgSymbolInstanceNode
 //
 //------------------------------------------------------------------------------
+// Represents an expanded <symbol> instance created when resolving a <use>.
+// Viewport sizing and viewBox-to-target mapping are deferred to render/bounds
+// time via ComputeViewport so percentage lengths on <use> and <symbol> resolve
+// against the active parent viewport rather than at parse time.
+//------------------------------------------------------------------------------
+  TSvgUseNode = class;
+
   TSvgSymbolInstanceNode = class(TSvgCustomGroupNode)
   private
-    FSymbolViewport: TFloatRect;
-    FHasViewport: Boolean;
+    FUseNode: TSvgUseNode;
+    FSymbolNode: TSvgSymbolNode;
+(*
+    FViewBox: TSvgViewBox;
+    FPreserveAspectRatio: TSvgPreserveAspectRatio;
+    FUseWidth: TSvgLength;
+    FUseHeight: TSvgLength;
+    FSymbolX: TSvgLength;
+    FSymbolY: TSvgLength;
+    FSymbolWidth: TSvgLength;
+    FSymbolHeight: TSvgLength;
+*)
     FOverflowHidden: Boolean;
   protected
     function GetIsRenderable: Boolean; override;
+
   public
-    // The symbol's internal viewport rect (in viewBox/user-unit space).
-    // Used by the renderer to update its ViewportRect when rendering children,
-    // so that percentage-based lengths inside the symbol resolve correctly.
-    property SymbolViewport: TFloatRect read FSymbolViewport write FSymbolViewport;
-    // True when SymbolViewport holds a valid non-empty viewport.
-    // False when the <symbol> has no viewBox and <use> has no width/height,
-    // in which case the symbol renders like a plain <g> (no clipping, no
-    // viewport update).
-    property HasViewport: Boolean read FHasViewport write FHasViewport;
+
+    function Clone(AParent: TSvgNode = nil): TSvgNode; override;
+
+    // Resolves the symbol's viewport against AParentViewport and outputs:
+    //   AViewMat        - viewBox-to-target transform (identity if no viewBox)
+    //   ASymbolViewport - Internal coordinate space for child percentage lengths
+    //   ATargetRect     - Viewport clip rect in the symbol's coordinate space (before AViewMat)
+    //   AHasViewport    - False when no viewBox and no effective size exist (behaves like <g>)
+    procedure ComputeViewport(const AParentViewport: TFloatRect;
+      out AViewMat: TFloatMatrix;
+      out ASymbolViewport: TFloatRect;
+      out ATargetRect: TFloatRect;
+      out AHasViewport: Boolean);
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+
     // True if overflow is hidden (default for <symbol>) and the renderer
     // should clip children to the viewport target rect.
     property OverflowHidden: Boolean read FOverflowHidden write FOverflowHidden;
@@ -1912,8 +1937,8 @@ type
   TSvgUseNode = class(TSvgCustomGroupNode)
   private
     FHref: UTF8String;
-    FX: Single;
-    FY: Single;
+    FX: TSvgLength;
+    FY: TSvgLength;
     FWidth: TSvgLength;
     FHeight: TSvgLength;
   protected
@@ -1923,10 +1948,12 @@ type
     constructor Create(AParent: TSvgNode = nil); override;
     function Clone(AParent: TSvgNode = nil): TSvgNode; override;
     function CanCull: boolean; override;
+    function GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
+    function GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect; override;
     procedure ParseAttribute(AKeyword: TSvgAttributeKeyword; const AValue: TValuePUtf8Char; AFromCss: Boolean = False); overload; override;
     property Href: UTF8String read FHref write FHref;
-    property X: Single read FX write FX;
-    property Y: Single read FY write FY;
+    property X: TSvgLength read FX write FX;
+    property Y: TSvgLength read FY write FY;
     property Width: TSvgLength read FWidth write FWidth;
     property Height: TSvgLength read FHeight write FHeight;
   end;
@@ -7437,8 +7464,6 @@ const
             TargetNode.FResolving := True;
             try
               ClonedNode := TargetNode.Clone(UseNode);
-              if (UseNode.X <> 0) or (UseNode.Y <> 0) then
-                TFloatMatrixHelper(ClonedNode.FTransform).Translate(UseNode.X, UseNode.Y);
               UseNode.AddChild(ClonedNode);
 
               // Recursively resolve cloned subtree while TargetNode remains marked as resolving
@@ -8456,9 +8481,6 @@ var
   SymbolClone: TSvgSymbolNode;
   i: Integer;
   UseNode: TSvgUseNode;
-  w, h: Single;
-  ViewMat: TFloatMatrix;
-  TargetRect: TFloatRect;
 begin
   if AParent is TSvgUseNode then
   begin
@@ -8476,49 +8498,22 @@ begin
     FFill.ApplySpecified(Instance.FFill);
     FStroke.ApplySpecified(Instance.FStroke);
 
-    w := 0;
-    h := 0;
-    if UseNode <> nil then
-    begin
-      if UseNode.Width.Value > 0 then
-        w := UseNode.Width.ToPixels
-      else
-        w := FWidth.ToPixels;
-
-      if UseNode.Height.Value > 0 then
-        h := UseNode.Height.ToPixels
-      else
-        h := FHeight.ToPixels;
-    end;
-
-    if (w <= 0) and FViewBox.IsValid then
-      w := FViewBox.Width;
-    if (h <= 0) and FViewBox.IsValid then
-      h := FViewBox.Height;
-
-    if FViewBox.IsValid and (w > 0) and (h > 0) then
-    begin
-      TargetRect := FloatRect(0, 0, w, h);
-      ViewMat := FViewBox.GetTransform(TargetRect, FPreserveAspectRatio);
-      Instance.FTransform := ViewMat * TFloatMatrixHelper(Instance.FTransform);
-      // The symbol's internal viewport is the viewBox coordinate space.
-      // Children resolve percentage lengths against this viewport.
-      Instance.FSymbolViewport := FloatRect(FViewBox.X, FViewBox.Y, FViewBox.X + FViewBox.Width, FViewBox.Y + FViewBox.Height);
-      Instance.FHasViewport := True;
-    end else
-    if (w > 0) and (h > 0) then
-    begin
-      // No viewBox, but <use> supplies a width/height: use those as the viewport.
-      // Children resolve percentages against this w*h space and clipping applies.
-      Instance.FSymbolViewport := FloatRect(0, 0, w, h);
-      Instance.FHasViewport := True;
-    end else
-    begin
-      // No viewBox and no effective size: symbol acts as a plain <g>.
-      // No viewport update and no clipping in the renderer.
-      Instance.FHasViewport := False;
-    end;
-
+    // Defer viewport and viewBox transform calculation to render/bounds time so
+    // percentage lengths on <use> and <symbol> resolve against the active viewport.
+    // Note: Instead of copying the symbol and use properties we just save pointers
+    // to them. A bit dangerous...
+    Instance.FUseNode := UseNode;
+    Instance.FSymbolNode := Self;
+(*
+    Instance.FViewBox := FViewBox;
+    Instance.FUseWidth := UseNode.Width;
+    Instance.FUseHeight := UseNode.Height;
+    Instance.FSymbolX := FX;
+    Instance.FSymbolY := FY;
+    Instance.FSymbolWidth := FWidth;
+    Instance.FSymbolHeight := FHeight;
+    Instance.FPreserveAspectRatio := FPreserveAspectRatio;
+*)
     // <symbol> defaults to overflow:hidden per SVG spec.
     // FOverflow on the symbol node was set to ofHidden in Create().
     Instance.FOverflowHidden := (FOverflow = ofHidden) or (FOverflow = ofScroll);
@@ -8598,6 +8593,155 @@ end;
 function TSvgSymbolInstanceNode.GetIsRenderable: Boolean;
 begin
   Result := True;
+end;
+
+function TSvgSymbolInstanceNode.Clone(AParent: TSvgNode): TSvgNode;
+begin
+  Result := inherited;
+(*
+  TSvgSymbolInstanceNode(Result).FViewBox := FViewBox;
+  TSvgSymbolInstanceNode(Result).FPreserveAspectRatio := FPreserveAspectRatio;
+  TSvgSymbolInstanceNode(Result).FUseWidth := FUseWidth;
+  TSvgSymbolInstanceNode(Result).FUseHeight := FUseHeight;
+  TSvgSymbolInstanceNode(Result).FSymbolX := FSymbolX;
+  TSvgSymbolInstanceNode(Result).FSymbolY := FSymbolY;
+  TSvgSymbolInstanceNode(Result).FSymbolWidth := FSymbolWidth;
+  TSvgSymbolInstanceNode(Result).FSymbolHeight := FSymbolHeight;
+*)
+  TSvgSymbolInstanceNode(Result).FUseNode := FUseNode; // Cloning pointers... Not nice.
+  TSvgSymbolInstanceNode(Result).FSymbolNode := FSymbolNode;
+  TSvgSymbolInstanceNode(Result).FOverflowHidden := FOverflowHidden;
+end;
+
+procedure TSvgSymbolInstanceNode.ComputeViewport(const AParentViewport: TFloatRect;
+  out AViewMat: TFloatMatrix; out ASymbolViewport: TFloatRect;
+  out ATargetRect: TFloatRect; out AHasViewport: Boolean);
+var
+  X, Y, Width, Height: Single;
+begin
+  // <use> width/height override <symbol> width/height when specified (> 0)
+  if FUseNode.Width.Value > 0 then
+    Width := GetSizePx(FUseNode.Width, AParentViewport.Width)
+  else
+    Width := GetSizePx(FSymbolNode.Width, AParentViewport.Width);
+
+  if FUseNode.Height.Value > 0 then
+    Height := GetSizePx(FUseNode.Height, AParentViewport.Height)
+  else
+    Height := GetSizePx(FSymbolNode.Height, AParentViewport.Height);
+
+  // Fall back to viewBox dimensions if no explicit width/height was provided
+  if (Width <= 0) and FSymbolNode.ViewBox.IsValid then
+    Width := FSymbolNode.ViewBox.Width;
+  if (Height <= 0) and FSymbolNode.ViewBox.IsValid then
+    Height := FSymbolNode.ViewBox.Height;
+
+  X := GetSizePx(FSymbolNode.X, AParentViewport.Width);
+  Y := GetSizePx(FSymbolNode.Y, AParentViewport.Height);
+
+  if FSymbolNode.ViewBox.IsValid and (Width > 0) and (Height > 0) then
+  begin
+    // Target viewport rect in the symbol's coordinate space (after symbol's transform, before viewBox)
+    ATargetRect := FloatRect(X, Y, X + Width, Y + Height);
+    AViewMat := FSymbolNode.ViewBox.GetTransform(ATargetRect, FSymbolNode.PreserveAspectRatio);
+    // Children resolve percentage lengths against the viewBox coordinate space
+    ASymbolViewport := FSymbolNode.ViewBox;
+    AHasViewport := True;
+  end else
+  if (Width > 0) and (Height > 0) then
+  begin
+    // No viewBox, but an explicit size exists: establish a Width * Height viewport
+    ATargetRect := FloatRect(X, Y, X + Width, Y + Height);
+    AViewMat := IdentityMatrix;
+    if (X <> 0) or (Y <> 0) then
+      TFloatMatrixHelper(AViewMat).Translate(X, Y);
+    ASymbolViewport := FloatRect(0, 0, Width, Height);
+    AHasViewport := True;
+  end else
+  begin
+    // No viewBox and no effective size: symbol acts as a plain <g>
+    ATargetRect := FloatRect(0, 0, 0, 0);
+    AViewMat := IdentityMatrix;
+    ASymbolViewport := FloatRect(0, 0, 0, 0);
+    AHasViewport := False;
+  end;
+end;
+
+function TSvgSymbolInstanceNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  ViewMat: TFloatMatrix;
+  SymbolVp, TargetRect, Box: TFloatRect;
+  HasVp: Boolean;
+  Pts: array[0..3] of TFloatPoint;
+  i: Integer;
+begin
+  // Resolve viewport dynamically so percentage lengths and viewBox scaling are
+  // reflected in the bounding box (FTransform only holds the symbol's own transform).
+  ComputeViewport(AViewport, ViewMat, SymbolVp, TargetRect, HasVp);
+  if HasVp then
+    Box := inherited GetObjectBoundingBox(SymbolVp)
+  else
+    Box := inherited GetObjectBoundingBox(AViewport);
+
+  if (Box.Right <= Box.Left) and (Box.Bottom <= Box.Top) then
+    Exit(Box);
+
+  if IsIdentityMatrix(ViewMat) then
+    Exit(Box);
+
+  Pts[0] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Left, Box.Top));
+  Pts[1] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Right, Box.Top));
+  Pts[2] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Right, Box.Bottom));
+  Pts[3] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Left, Box.Bottom));
+
+  Result := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+  for i := 1 to 3 do
+  begin
+    if Pts[i].X < Result.Left then Result.Left := Pts[i].X;
+    if Pts[i].X > Result.Right then Result.Right := Pts[i].X;
+    if Pts[i].Y < Result.Top then Result.Top := Pts[i].Y;
+    if Pts[i].Y > Result.Bottom then Result.Bottom := Pts[i].Y;
+  end;
+end;
+
+function TSvgSymbolInstanceNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  ViewMat: TFloatMatrix;
+  SymbolVp, TargetRect, Box: TFloatRect;
+  HasVp: Boolean;
+  Pts: array[0..3] of TFloatPoint;
+  i: Integer;
+begin
+  ComputeViewport(AViewport, ViewMat, SymbolVp, TargetRect, HasVp);
+  if HasVp then
+    Box := inherited GetVisualBoundingBox(SymbolVp)
+  else
+    Box := inherited GetVisualBoundingBox(AViewport);
+
+  if (Box.Right <= Box.Left) and (Box.Bottom <= Box.Top) then
+    Exit(Box);
+
+  if not IsIdentityMatrix(ViewMat) then
+  begin
+    Pts[0] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Left, Box.Top));
+    Pts[1] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Right, Box.Top));
+    Pts[2] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Right, Box.Bottom));
+    Pts[3] := TFloatMatrixHelper(ViewMat).TransformPoint(FloatPoint(Box.Left, Box.Bottom));
+
+    Result := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+    for i := 1 to 3 do
+    begin
+      if Pts[i].X < Result.Left then Result.Left := Pts[i].X;
+      if Pts[i].X > Result.Right then Result.Right := Pts[i].X;
+      if Pts[i].Y < Result.Top then Result.Top := Pts[i].Y;
+      if Pts[i].Y > Result.Bottom then Result.Bottom := Pts[i].Y;
+    end;
+  end else
+    Result := Box;
+
+  // When overflow is hidden, visual bounds cannot exceed the symbol's viewport rect
+  if HasVp and FOverflowHidden then
+    GR32.IntersectRect(Result, Result, TargetRect);
 end;
 
 
@@ -9369,8 +9513,8 @@ constructor TSvgUseNode.Create(AParent: TSvgNode);
 begin
   inherited Create(AParent);
   FHref := '';
-  FX := 0;
-  FY := 0;
+  FX := TSvgLength.Create(0.0, suPx);
+  FY := TSvgLength.Create(0.0, suPx);
   FWidth := TSvgLength.Create(0.0, suPx);
   FHeight := TSvgLength.Create(0.0, suPx);
 end;
@@ -9378,6 +9522,34 @@ end;
 function TSvgUseNode.CanCull: boolean;
 begin
   Result := False;
+end;
+
+function TSvgUseNode.GetObjectBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  dx, dy: Single;
+begin
+  Result := inherited GetObjectBoundingBox(AViewport);
+  if (Result.Right <= Result.Left) and (Result.Bottom <= Result.Top) then
+    Exit;
+  // Apply <use> x/y offset in the parent viewport's coordinate space
+  dx := GetSizePx(FX, AViewport.Width);
+  dy := GetSizePx(FY, AViewport.Height);
+  if (dx <> 0) or (dy <> 0) then
+    GR32.OffsetRect(Result, dx, dy);
+end;
+
+function TSvgUseNode.GetVisualBoundingBox(const AViewport: TFloatRect): TFloatRect;
+var
+  dx, dy: Single;
+begin
+  Result := inherited GetVisualBoundingBox(AViewport);
+  if (Result.Right <= Result.Left) and (Result.Bottom <= Result.Top) then
+    Exit;
+  // Apply <use> x/y offset in the parent viewport's coordinate space
+  dx := GetSizePx(FX, AViewport.Width);
+  dy := GetSizePx(FY, AViewport.Height);
+  if (dx <> 0) or (dy <> 0) then
+    GR32.OffsetRect(Result, dx, dy);
 end;
 
 function TSvgUseNode.Clone(AParent: TSvgNode): TSvgNode;
@@ -9412,10 +9584,10 @@ begin
       FHref := AValue.ToUtf8;
 
     attrX:
-      AValue.TryToFloat(FX);
+      FX := TSvgLength.Parse(AValue);
 
     attrY:
-      AValue.TryToFloat(FY);
+      FY := TSvgLength.Parse(AValue);
 
     attrWidth:
       FWidth := TSvgLength.Parse(AValue);
