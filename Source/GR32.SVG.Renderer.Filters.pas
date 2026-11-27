@@ -1953,7 +1953,23 @@ begin
 
     ctGamma:
       begin
-        for i := 0 to 255 do
+        // Handle c=0 separately to avoid division-by-zero exceptions with negative exponent
+        if (FuncNode.Exponent < 0.0) then
+        begin
+          // 0 raised to a negative power approaches +Infinity (unless Amplitude is 0)
+          if (FuncNode.Amplitude = 0.0) then
+            val := FuncNode.Offset
+          else
+          if (FuncNode.Amplitude > 0.0) then
+            val := 1.0
+          else
+            val := 0.0;
+        end else
+          val := FuncNode.Offset;
+
+        LUT[0] := Clamp(Round(val * 255.0));
+
+        for i := 1 to 255 do
         begin
           c := i * OneOver255;
           val := FuncNode.Amplitude * Math.Power(c, FuncNode.Exponent) + FuncNode.Offset;
