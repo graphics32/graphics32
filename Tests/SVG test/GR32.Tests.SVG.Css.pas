@@ -232,8 +232,8 @@ var
   docNode: TSvgDocumentNode;
   useNode: TSvgUseNode;
   clonedPath: TSvgPathNode;
-  helper: TFloatMatrixHelper;
-  pt, resPt: TFloatPoint;
+//  helper: TFloatMatrixHelper;
+//  pt, resPt: TFloatPoint;
 begin
   xml := '<svg width="200" height="200">' +
          '  <defs>' +
@@ -250,8 +250,8 @@ begin
     Check(docNode.Children[1] is TSvgUseNode, 'Second child should be TSvgUseNode');
     useNode := TSvgUseNode(docNode.Children[1]);
     CheckEquals('#rect_shape', useNode.Href);
-    CheckEquals(15.0, useNode.X, 1E-4);
-    CheckEquals(25.0, useNode.Y, 1E-4);
+    CheckEquals(15.0, useNode.X.Value, 1E-4);
+    CheckEquals(25.0, useNode.Y.Value, 1E-4);
 
     CheckEquals(1, useNode.Children.Count);
     Check(useNode.Children[0] is TSvgPathNode, 'Use node child should be cloned TSvgPathNode');
@@ -259,11 +259,13 @@ begin
     clonedPath := TSvgPathNode(useNode.Children[0]);
     CheckEquals(clRed32, clonedPath.Fill.Color.Color);
 
+    (* Resolved at render-time now
     helper.Matrix := clonedPath.Transform;
     pt := FloatPoint(0, 0);
     resPt := helper.TransformPoint(pt);
     CheckEquals(15.0, resPt.X, 1E-4);
     CheckEquals(25.0, resPt.Y, 1E-4);
+    *)
   finally
     docNode.Free;
   end;

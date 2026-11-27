@@ -2425,49 +2425,177 @@ procedure TSvgRenderer.RenderGroupNode(ATarget: TCustomBitmap32; AGroupNode: TSv
   var
     DocNode: TSvgDocumentNode;
     SymbolInstanceNode: TSvgSymbolInstanceNode;
-    DocW, DocH, DocX, DocY: Single;
+    UseNode: TSvgUseNode;
+    DocW, DocH, DocX, DocY, UseX, UseY: Single;
     DocViewBox: TSvgViewBox;
-    DocVpMat: TFloatMatrix;
+    DocVpMat, ViewMat, TranslateMat: TFloatMatrix;
     DocTargetRect, SavedViewport, TransformedRect: TFloatRect;
-    SavedClipRect, ClipRect: TRect;
+    SymbolViewport, SymbolTargetRect, ClipBounds: TFloatRect;
+    SavedClipRect, ClipRect, Roi: TRect;
+    HasViewport, IsAxisAligned: Boolean;
+    Pts: array[0..3] of TFloatPoint;
+    ClipPoly: TArrayOfArrayOfFloatPoint;
+    OffscreenBmp, MaskBmp: TCustomBitmap32;
+    k: Integer;
   begin
+    if AGroupNode is TSvgUseNode then
+    begin
+      // <use> x/y attributes can be percentages, so resolve them against the
+      // active FViewportRect and translate in local space via ApplyMatrix
+      // (FTransformation.Translate would apply in screen space).
+      UseNode := TSvgUseNode(AGroupNode);
+      UseX := UseNode.GetSizePx(UseNode.X, FViewportRect.Width);
+      UseY := UseNode.GetSizePx(UseNode.Y, FViewportRect.Height);
+      if (UseX <> 0) or (UseY <> 0) then
+      begin
+        TranslateMat := IdentityMatrix;
+        TFloatMatrixHelper(TranslateMat).Translate(UseX, UseY);
+        FTransformation.Push;
+        try
+          ApplyMatrix(TranslateMat);
+          DoRenderChildren(ATargetSurface, AGroupNode);
+        finally
+          FTransformation.Pop;
+        end;
+      end else
+        DoRenderChildren(ATargetSurface, AGroupNode);
+    end else
     // A symbol only establishes a viewport when it has an effective size
     // (from its viewBox, or from width/height on the <use> element).
     // When no viewport exists (e.g. <symbol> with no viewBox and <use> with
     // no width/height), the symbol behaves like a plain <g>: no viewport
     // update and no clipping.
-    if (AGroupNode is TSvgSymbolInstanceNode) and TSvgSymbolInstanceNode(AGroupNode).HasViewport then
+    if AGroupNode is TSvgSymbolInstanceNode then
     begin
-      // <symbol> instances establish their own viewport for child rendering.
-      // The viewBox-to-target transform is already baked into the instance's
-      // FTransform (applied by RenderNodeUnfiltered before we get here).
-      // We only need to:
-      //   1. Update FViewportRect so percentage lengths inside the symbol resolve
-      //      against the symbol's internal coordinate space (the viewBox).
-      //   2. Optionally clip to the symbol viewport (overflow:hidden by default).
-
       SymbolInstanceNode := TSvgSymbolInstanceNode(AGroupNode);
+      SymbolInstanceNode.ComputeViewport(FViewportRect, ViewMat, SymbolViewport, SymbolTargetRect, HasViewport);
 
+      if not HasViewport then
+      begin
+        DoRenderChildren(ATargetSurface, AGroupNode);
+        Exit;
+      end;
+
+      // <symbol> instances establish their own viewport for child rendering.
+      // Note: RenderNodeUnfiltered has already applied the <symbol>'s own
+      // FTransform (e.g. transform="rotate(45)") to FTransformation.
+      // We now:
+      //   1. Clip to SymbolTargetRect (overflow:hidden by default) in the
+      //      symbol's coordinate system prior to applying ViewMat.
+      //   2. Apply ViewMat and update FViewportRect so percentage lengths inside
+      //      the symbol resolve against the symbol's internal coordinate space.
       SavedViewport := FViewportRect;
-      FViewportRect := SymbolInstanceNode.SymbolViewport;
+      FViewportRect := SymbolViewport;
       try
-        SavedClipRect := ATargetSurface.ClipRect;
-        try
-          if SymbolInstanceNode.OverflowHidden then
+        if SymbolInstanceNode.OverflowHidden then
+        begin
+          // Check only the off-diagonal shear/rotation terms; negative scales
+          // (flips) are still axis-aligned rectangles.
+          IsAxisAligned := (Abs(FTransformation.Matrix[0, 1]) < 1e-5) and
+                           (Abs(FTransformation.Matrix[1, 0]) < 1e-5);
+          if IsAxisAligned then
           begin
-            // Clip to the symbol viewport region in screen space.
-            // FTransformation already has the viewBox transform applied,
-            // so transform the SymbolViewport rect to get screen-space bounds.
-            TransformedRect := FTransformation.GetTransformedBounds(SymbolInstanceNode.SymbolViewport);
-            ClipRect := MakeRect(TransformedRect, rrOutside);
-            GR32.IntersectRect(ClipRect, ATargetSurface.ClipRect, ClipRect);
-            ATargetSurface.ClipRect := ClipRect;
+            // Fast path: axis-aligned viewport maps directly to Bitmap.ClipRect.
+            SavedClipRect := ATargetSurface.ClipRect;
+            try
+              TransformedRect := FTransformation.GetTransformedBounds(SymbolTargetRect);
+              ClipRect := MakeRect(TransformedRect, rrOutside);
+              GR32.IntersectRect(ClipRect, ATargetSurface.ClipRect, ClipRect);
+              ATargetSurface.ClipRect := ClipRect;
+
+              FTransformation.Push;
+              try
+                ApplyMatrix(ViewMat);
+                DoRenderChildren(ATargetSurface, AGroupNode);
+              finally
+                FTransformation.Pop;
+              end;
+            finally
+              ATargetSurface.ClipRect := SavedClipRect;
+            end;
+          end else
+          begin
+            // Non-axis-aligned viewport (e.g. rotated/skewed <symbol>):
+            // TCustomBitmap32.ClipRect is axis-aligned and cannot clip to a rotated
+            // rectangle, so we render into an offscreen ROI, rasterize the transformed
+            // viewport quad into a mask bitmap, and alpha-mask the result.
+            Pts[0] := FTransformation.Transform(FloatPoint(SymbolTargetRect.Left, SymbolTargetRect.Top));
+            Pts[1] := FTransformation.Transform(FloatPoint(SymbolTargetRect.Right, SymbolTargetRect.Top));
+            Pts[2] := FTransformation.Transform(FloatPoint(SymbolTargetRect.Right, SymbolTargetRect.Bottom));
+            Pts[3] := FTransformation.Transform(FloatPoint(SymbolTargetRect.Left, SymbolTargetRect.Bottom));
+
+            ClipBounds := FloatRect(Pts[0].X, Pts[0].Y, Pts[0].X, Pts[0].Y);
+            for k := 1 to 3 do
+            begin
+              if Pts[k].X < ClipBounds.Left then ClipBounds.Left := Pts[k].X;
+              if Pts[k].X > ClipBounds.Right then ClipBounds.Right := Pts[k].X;
+              if Pts[k].Y < ClipBounds.Top then ClipBounds.Top := Pts[k].Y;
+              if Pts[k].Y > ClipBounds.Bottom then ClipBounds.Bottom := Pts[k].Y;
+            end;
+
+            // Skip rendering if the rotated viewport lies completely outside ATargetSurface.ClipRect
+            if not GR32.IntersectRect(ClipBounds, ClipBounds, FloatRect(ATargetSurface.ClipRect)) then
+              Exit;
+
+            Roi := MakeRect(ClipBounds, rrOutside);
+            if (Roi.Width <= 0) or (Roi.Height <= 0) then
+              Exit;
+
+            OffscreenBmp := GetOffscreenBitmap(Roi.Width, Roi.Height, True);
+            try
+              // Shift rendering into offscreen ROI space, then apply ViewMat for children
+              FTransformation.Push;
+              Inc(FOffscreenOffset.X, Roi.Left);
+              Inc(FOffscreenOffset.Y, Roi.Top);
+              try
+                FTransformation.Translate(-Roi.Left, -Roi.Top);
+                ApplyMatrix(ViewMat);
+                DoRenderChildren(OffscreenBmp, AGroupNode);
+              finally
+                Dec(FOffscreenOffset.X, Roi.Left);
+                Dec(FOffscreenOffset.Y, Roi.Top);
+                FTransformation.Pop;
+              end;
+
+              // Rasterize the rotated viewport quad in ROI space and mask OffscreenBmp
+              MaskBmp := GetOffscreenBitmap(Roi.Width, Roi.Height, False);
+              try
+                MaskBmp.Clear(0);
+                SetLength(ClipPoly, 1);
+                SetLength(ClipPoly[0], 4);
+                for k := 0 to 3 do
+                begin
+                  ClipPoly[0][k].X := Pts[k].X - Roi.Left;
+                  ClipPoly[0][k].Y := Pts[k].Y - Roi.Top;
+                end;
+
+                if FPolyRenderer = nil then
+                  FPolyRenderer := DefaultPolygonRendererClass.Create(MaskBmp);
+                FPolyRenderer.Bitmap := MaskBmp;
+                FPolyRenderer.Color := clWhite32;
+                FPolyRenderer.FillMode := pfWinding;
+                FPolyRenderer.PolyPolygonFS(ClipPoly);
+
+                ApplyAlphaMask(MaskBmp, OffscreenBmp);
+              finally
+                ReleaseOffscreenBitmap(MaskBmp);
+              end;
+
+              BlendOffscreenSurface(ATargetSurface, OffscreenBmp, bmNormal, Roi.Left, Roi.Top);
+            finally
+              ReleaseOffscreenBitmap(OffscreenBmp);
+            end;
           end;
-
-          DoRenderChildren(ATargetSurface, AGroupNode);
-
-        finally
-          ATargetSurface.ClipRect := SavedClipRect;
+        end else
+        begin
+          // overflow:visible - apply ViewMat without clipping
+          FTransformation.Push;
+          try
+            ApplyMatrix(ViewMat);
+            DoRenderChildren(ATargetSurface, AGroupNode);
+          finally
+            FTransformation.Pop;
+          end;
         end;
       finally
         FViewportRect := SavedViewport;

@@ -744,10 +744,13 @@ procedure TFormSVGviewer.RenderToBitmap(Bitmap: TBitmap32);
 var
   Renderer: TSvgRenderer;
   NaturalWidth, NaturalHeight: Single;
+const
+  DefaultWidth = 200;
+  DefaultHeight = 200;
 begin
   // Convert width and height presentation attributes to pixels
-  NaturalWidth := FDocNode.Width.ToPixels(600, Self.Monitor.PixelsPerInch);
-  NaturalHeight := FDocNode.Height.ToPixels(800, Self.Monitor.PixelsPerInch);
+  NaturalWidth := FDocNode.Width.ToPixels(DefaultWidth, Self.Monitor.PixelsPerInch);
+  NaturalHeight := FDocNode.Height.ToPixels(DefaultHeight, Self.Monitor.PixelsPerInch);
 
   // Fall back to ViewBox dimensions if width or height are unspecified (0 or %)
   if (NaturalWidth <= 0) then
@@ -755,7 +758,7 @@ begin
     if FDocNode.ViewBox.IsValid then
       NaturalWidth := FDocNode.ViewBox.Width
     else
-      NaturalWidth := 600;
+      NaturalWidth := DefaultWidth;
   end;
 
   if (NaturalHeight <= 0) then
@@ -763,7 +766,7 @@ begin
     if FDocNode.ViewBox.IsValid then
       NaturalHeight := FDocNode.ViewBox.Height
     else
-      NaturalHeight := 800;
+      NaturalHeight := DefaultHeight;
   end;
 
   Bitmap.SetSize(Round(NaturalWidth), Round(NaturalHeight));
